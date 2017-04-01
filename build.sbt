@@ -14,7 +14,7 @@ lazy val loggingDependencies = Seq(
 )
 
 lazy val tensorflow = (project in file("."))
-    .aggregate(tensorflow_jni, tensorflow_macros, tensorflow_api)
+    .aggregate(tensorflow_jni, tensorflow_api) // Ignoreing tensorflow_macros for now
     .settings(
       sourcesInBase := false,
       unmanagedSourceDirectories in Compile := Nil,
@@ -44,26 +44,26 @@ lazy val tensorflow_jni = (project in file("./tensorflow_jni"))
       sourceDirectories in Compile += sourceDirectory.value / "main" / "generated" / "java"
     )
 
-lazy val tensorflow_macros = (project in file("./tensorflow_macros"))
-    .dependsOn(tensorflow_jni)
-    .settings(
-      name := "tensorflow_macros",
-      // Logging dependencies
-      libraryDependencies ++= loggingDependencies,
-      // Test dependencies
-      libraryDependencies += "org.scalactic" %% "scalactic" % "3.0.1",
-      libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1" % "test",
-      // Meta-programming dependencies
-      libraryDependencies += "org.scalameta" %% "scalameta" % "1.6.0",
-      addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-M7" cross CrossVersion.full),
-      // Protobuf settings
-      PB.protobufSettings,
-      version in PB.protobufConfig := "3.2.0",
-      libraryDependencies += "com.google.protobuf" % "protobuf-java" % (version in PB.protobufConfig).value % PB.protobufConfig.name,
-      sourceDirectory in PB.protobufConfig := sourceDirectory.value / "main" / "protobuf",
-      javaSource in PB.protobufConfig := ((sourceDirectory in Compile).value / "generated" / "java"),
-      sourceDirectories in Compile += sourceDirectory.value / "main" / "generated" / "java"
-    )
+//lazy val tensorflow_macros = (project in file("./tensorflow_macros"))
+//    .dependsOn(tensorflow_jni)
+//    .settings(
+//      name := "tensorflow_macros",
+//      // Logging dependencies
+//      libraryDependencies ++= loggingDependencies,
+//      // Test dependencies
+//      libraryDependencies += "org.scalactic" %% "scalactic" % "3.0.1",
+//      libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1" % "test",
+//      // Meta-programming dependencies
+//      libraryDependencies += "org.scalameta" %% "scalameta" % "1.6.0",
+//      addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-M7" cross CrossVersion.full),
+//      // Protobuf settings
+//      PB.protobufSettings,
+//      version in PB.protobufConfig := "3.2.0",
+//      libraryDependencies += "com.google.protobuf" % "protobuf-java" % (version in PB.protobufConfig).value % PB.protobufConfig.name,
+//      sourceDirectory in PB.protobufConfig := sourceDirectory.value / "main" / "protobuf",
+//      javaSource in PB.protobufConfig := ((sourceDirectory in Compile).value / "generated" / "java"),
+//      sourceDirectories in Compile += sourceDirectory.value / "main" / "generated" / "java"
+//    )
 
 lazy val tensorflow_api = (project in file("./tensorflow_api"))
     .dependsOn(tensorflow_macros, tensorflow_jni)
