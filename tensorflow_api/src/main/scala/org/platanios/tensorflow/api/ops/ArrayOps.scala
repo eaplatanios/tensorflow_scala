@@ -11,7 +11,7 @@ object ArrayOps {
   def constant(value: Any, dataType: DataType[_] = null, name: String = "Constant")
       (implicit context: DynamicVariable[OpCreationContext]): Op.Output = {
     using(Tensor.create(value = value)) { tensor =>
-      val opBuilder = Op.opBuildHelper(context = context, opType = "Const", name = name)
+      val opBuilder = Op.Builder(context = context, opType = "Const", name = name)
       opBuilder.setAttribute(name = "value", value = tensor)
       if (dataType != null)
         opBuilder.setAttribute(name = "dtype", value = dataType)
@@ -25,13 +25,13 @@ object ArrayOps {
       (implicit context: DynamicVariable[OpCreationContext]): Op.Output = {
     shape match {
       case Some(shapeValue) =>
-        Op.opBuildHelper(context = context, opType = "PlaceholderV2", name = name)
+        Op.Builder(context = context, opType = "PlaceholderV2", name = name)
             .setAttribute(name = "dtype", value = dataType)
             .setAttribute(name = "shape", value = shapeValue)
             .build()
             .output(index = 0)
       case None =>
-        Op.opBuildHelper(context = context, opType = "Placeholder", name = name)
+        Op.Builder(context = context, opType = "Placeholder", name = name)
             .setAttribute(name = "dtype", value = dataType)
             .build()
             .output(index = 0)
@@ -40,8 +40,9 @@ object ArrayOps {
 
   def placeholderWithDefault(value: Any, shape: Shape, name: String = "PlaceholderWithDefault")
       (implicit context: DynamicVariable[OpCreationContext]): Op.Output = {
-    val default: Op.Output = constant(value = value, name = s"$name/default_value")
-    Op.opBuildHelper(context = context, opType = "PlaceholderWithDefault", name = name, default)
+    val default: Op.Output = constant(value = value, name = s"$name/DefaultValue")
+    Op.Builder(context = context, opType = "PlaceholderWithDefault", name = name)
+        .addInput(default)
         .setAttribute(name = "shape", value = shape)
         .build()
         .output(index = 0)

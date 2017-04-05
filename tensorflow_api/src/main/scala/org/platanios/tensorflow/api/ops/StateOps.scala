@@ -24,7 +24,7 @@ object StateOps {
   def variable(
       shape: Shape, dataType: DataType[_], container: String = "", sharedName: String = "", name: String = "Variable")
       (implicit context: DynamicVariable[OpCreationContext]): Op.Output = {
-    Op.opBuildHelper(context = context, opType = "VariableV2", name = name)
+    Op.Builder(context = context, opType = "VariableV2", name = name)
         .setAttribute(name = "shape", value = shape)
         .setAttribute(name = "dtype", value = dataType)
         .setAttribute(name = "container", value = container)
@@ -44,7 +44,8 @@ object StateOps {
   def isVariableInitialized(
       variable: Op.Output, dataType: DataType[_], name: String = "IsVariableInitialized")
       (implicit context: DynamicVariable[OpCreationContext]): Op.Output = {
-    Op.opBuildHelper(context = context, opType = "IsVariableInitialized", name = name, variable)
+    Op.Builder(context = context, opType = "IsVariableInitialized", name = name)
+        .addInput(variable)
         .setAttribute(name = "dtype", value = dataType)
         .build().output(index = 0)
   }
@@ -66,7 +67,9 @@ object StateOps {
       variable: Op.Output, value: Op.Output, validateShape: Boolean = true, useLocking: Boolean = true,
       name: String = "Assign")
       (implicit context: DynamicVariable[OpCreationContext]): Op.Output = {
-    Op.opBuildHelper(context = context, opType = "Assign", name = name, variable, value)
+    Op.Builder(context = context, opType = "Assign", name = name)
+        .addInput(variable)
+        .addInput(value)
         .setAttribute(name = "validate_shape", value = validateShape)
         .setAttribute(name = "use_locking", value = useLocking)
         .build().output(0)
@@ -86,7 +89,9 @@ object StateOps {
     */
   def assignAdd(variable: Op.Output, value: Op.Output, useLocking: Boolean = true, name: String = "AssignAdd")
       (implicit context: DynamicVariable[OpCreationContext]): Op.Output = {
-    Op.opBuildHelper(context = context, opType = "AssignAdd", name = name, variable, value)
+    Op.Builder(context = context, opType = "AssignAdd", name = name)
+        .addInput(variable)
+        .addInput(value)
         .setAttribute(name = "use_locking", value = useLocking)
         .build().output(0)
   }
@@ -105,7 +110,9 @@ object StateOps {
     */
   def assignSub(variable: Op.Output, value: Op.Output, useLocking: Boolean = true, name: String = "AssignSub")
       (implicit context: DynamicVariable[OpCreationContext]): Op.Output = {
-    Op.opBuildHelper(context = context, opType = "AssignSub", name = name, variable, value)
+    Op.Builder(context = context, opType = "AssignSub", name = name)
+        .addInput(variable)
+        .addInput(value)
         .setAttribute(name = "use_locking", value = useLocking)
         .build().output(0)
   }

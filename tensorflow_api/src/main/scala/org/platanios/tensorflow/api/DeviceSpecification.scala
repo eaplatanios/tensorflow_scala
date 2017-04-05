@@ -8,27 +8,36 @@ import scala.util.matching.Regex
   *
   * Device specifications are used throughout TensorFlow to describe where state is stored and computations occur.
   *
-  * TODO: Add example.
   * @example {{{
-  *  # Place the operations on device "GPU:0" in the "ps" job.
-  * device_spec = DeviceSpec(job="ps", device_type="GPU", device_index=0)
-  * with tf.device(device_spec):
-  *   # Both my_var and squared_var will be placed on /job:ps/device:GPU:0.
-  *   my_var = tf.Variable(..., name="my_variable")
-  *   squared_var = tf.square(my_var)
+  *   createWith(device = "/GPU:0") {
+  *     // All ops constructed in this code block will be assigned to '/device:GPU:0'
+  *     val c = constant(1.0)
+  *     assert(c.device == "/device:GPU:0")
+  *   }
   * }}}
   *
   * If a [[DeviceSpecification]] is partially specified, it will be merged with other [[DeviceSpecification]]s according
   * to the scope in which it is defined. [[DeviceSpecification]] components defined in inner scopes take precedence over
   * those defined in outer scopes.
   *
-  * TODO: Add example.
   * @example {{{
-  *   with tf.device(DeviceSpec(job="train", )):
-  *     with tf.device(DeviceSpec(job="ps", device_type="GPU", device_index=0):
-  *       # Nodes created here will be assigned to /job:ps/device:GPU:0.
-  *       with tf.device(DeviceSpec(device_type="GPU", device_index=1):
-  *         # Nodes created here will be assigned to /job:train/device:GPU:1.
+  *   createWith(device = "/GPU:0") {
+  *     // All ops constructed in this code block will be assigned to '/device:GPU:0'
+  *     val c1 = constant(1.0)
+  *     assert(c1.device == "/device:GPU:0")
+  *
+  *     // Reset the device being used
+  *     createWith(device = "/job:ps") {
+  *       // All ops constructed in this code block will be assigned to '/job:ps/device:GPU:0'
+  *       val c2 = constant(2.0)
+  *       assert(c2.device == "/job:ps/device:GPU:0")
+  *       createWith(device = "/job:train/device:GPU:1") {
+  *         // All ops constructed in this code block will be assigned to '/job:train/device:GPU:1'
+  *         val c3 = constant(3.0)
+  *         assert(c3.device == "/job:train/device:GPU:1")
+  *       }
+  *     }
+  *   }
   * }}}
   *
   * A [[DeviceSpecification]] consists of 5 components, each of which is optionally specified.
@@ -42,7 +51,7 @@ import scala.util.matching.Regex
   *
   * @author Emmanouil Antonios Platanios
   */
-case class DeviceSpecification(
+private[api] case class DeviceSpecification(
     job: String = null, replica: Int = -1, task: Int = -1, deviceType: String = null, deviceIndex: Int = -1) {
   /** Returns a string representation of this device, of the form:
     *
@@ -75,7 +84,7 @@ case class DeviceSpecification(
   *
   * @author Emmanouil Antonios Platanios
   */
-object DeviceSpecification {
+private[api] object DeviceSpecification {
   private val deviceStringRegex: Regex =
     """
       #^(?:/job:([^/:]+))?

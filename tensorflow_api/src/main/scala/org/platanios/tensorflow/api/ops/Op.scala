@@ -12,17 +12,19 @@ import scala.util.matching.Regex
   * @author Emmanouil Antonios Platanios
   */
 final case class Op(graph: Graph, unsafeNativeHandle: Long) {
-  /** Returns the full name of the Operation. */
+  /** Name of the op. */
   def name: String = using(graph.reference) { _ => NativeOperation.name(unsafeNativeHandle) }
 
-  /** Returns the type of the operation, i.e., the name of the computation performed by the
-    * operation. */
+  /** Type of the op (i.e., the name of the computation performed by the operation). */
   def opType: String = using(graph.reference) { _ => NativeOperation.opType(unsafeNativeHandle) }
+
+  /** Device in which the op tensors are stored and where computations are performed for this op. */
+  def device: String = using(graph.reference) { _ => NativeOperation.device(unsafeNativeHandle) }
 
   /** Returns a symbolic handle to one of the tensors produced by this operation. */
   def output(index: Int): Op.Output = Op.Output(op = this, index = index)
 
-  /** Returns the number of tensors produced by this operation. */
+  /** Number of tensors produced by this operation. */
   def numOutputs: Int = using(graph.reference) { _ => NativeOperation.numOutputs(unsafeNativeHandle) }
 
   def outputDataType(outputIndex: Int): DataType[_] =
@@ -39,19 +41,30 @@ final case class Op(graph: Graph, unsafeNativeHandle: Long) {
     }
 }
 
-// TODO: Add device and control inputs options.
-private[api] final case class OpCreationContext(graph: Graph = Graph(), nameScope: String = "")
+// TODO: Add control input options.
+private[ops] final case class OpSpecification(name: String, opType: String)
+private[api] final case class OpCreationContext(
+    graph: Graph = Graph(), nameScope: String = "", device: OpSpecification => String = _ => "")
 
 object Op {
+  /** Convenient implicit conversion function used to convert devices specified as [[String]]s for use with the
+    * [[createWith]] function, to the expected device function format taking an [[OpSpecification]] as input and
+    * return a device specification string.
+    *
+    * @param  device Device specification string.
+    * @return Function that returns `device` for any [[OpSpecification]] used as input.
+    */
+  implicit def deviceConversion(device: String): OpSpecification => String = _ => device
+
   /** Creates a context that can be used for creating ops according to the provided options.
     *
     * During graph creation, a context is maintained that includes: (i) the current graph in which new ops are placed,
-    * and (ii) the current name scope used for naming these new ops. Whenever `createWith(...)` is used, all ops created
-    * within the provided code block will be placed in the provided graph. Furthermore, the provided name scope is
-    * appended to the context name scope, generating a new op creation context. This new context is used for all ops
-    * created within the code block provided in the `createWith(...)` function.
+    * (ii) the current name scope used for naming these new ops, and (iii) a device function, used to decide in which
+    * device (e.g., CPU vs. GPU) the new ops should be placed and executed.
     *
-    * The `nameScope` argument will be interpreted as follows:
+    * when `createWith(...)` is used with a name scope, the provided name scope is appended to the context name scope,
+    * generating a new op creation context. This new context is used for all ops created within the code block provided
+    * in the `createWith(...)` function. The `nameScope` argument will be interpreted as follows:
     *   - A string will create a new name scope, in which `nameScope` is appended to the prefix of all operations
     *     created in the provided code block. If `nameScope` has been used before, it will be made unique by calling
     *     `uniqueName(graph = context.graph, name = nameScope)`.
@@ -59,9 +72,22 @@ object Op {
     *
     * TODO: Support re-entering existing name scopes.
     *
-    * @note This function checks the provided `nameScope` for validity by checking whether it matches: (i) the regular
-    *       expression `[A-Za-z0-9.][A-Za-z0-9_.\\-/]*` if the current context name scope is empty (i.e., at the root),
-    *       or (ii) the regular expression `[A-Za-z0-9_.\\-/]*`, otherwise.
+    * This function checks the provided `nameScope` for validity by checking whether it matches: (i) the regular
+    * expression `[A-Za-z0-9.][A-Za-z0-9_.\\-/]*` if the current context name scope is empty (i.e., at the root), or
+    * (ii) the regular expression `[A-Za-z0-9_.\\-/]*`, otherwise.
+    *
+    * When `createWith(...)` is used with a device, the `device` argument needs to be a function taking an
+    * [[OpSpecification]] as input and returning a string representation of the device where the corresponding op should
+    * be placed. This function is invoked every time a new op is created within the provided code block. If the function
+    * returns `null` for some op, then all subsequent invocations of `createWith(device = ...)` in the provided code
+    * block will be ignored. Note that, if the [[deviceConversion]] implicit conversion function is within scope, then
+    * a `String` value (or `null`) can be used directly for the `device` field. In this case, the value provided will be
+    * used as the device for all newly create ops in the provided code block. For information about the valid syntax of
+    * device name strings, see the documentation in
+    * [`DeviceNameUtils`](https://www.tensorflow.org/code/tensorflow/core/util/device_name_utils.h).
+    *
+    * Note that the device scope may be overridden by op wrappers or other library code. For example, a variable
+    * assignment op must be colocated with the corresponding variable. Incompatible device scopes will be ignored.
     *
     * Note that all arguments of this function are optional. If they are not provided, then the corresponding option in
     * current op creation context is left unchanged.
@@ -111,17 +137,52 @@ object Op {
     *     }
     *   }
     *
-    *   // Changing both the graph and the name scope for new ops
+    *   // Specifying which device to use
     *
-    *   createWith(graph = g, nameScope = "Nested") {
-    *     val c = constant(5.0, name = "C")
+    *   createWith(device = "/GPU:0") {
+    *     // All ops constructed in this code block will be placed in GPU 0
+    *     val gpu0C = constant(7.0)
+    *     assert(gpu0C.device == "/device:GPU:0")
+    *
+    *     // Reset the device being used
+    *     createWith(device = null) {
+    *       // All ops constructed in this code block will have no assigned device
+    *       val c = constant(8.0)
+    *       assert(c.device == "")
+    *     }
+    *   }
+    *
+    *   // Using a device function
+    *
+    *   def matMulOnGPU(opSpecification: OpSpecification): String = {
+    *     if (opSpecification.opType == "MatMul")
+    *       "/GPU:0"
+    *     else
+    *       "/CPU:0"
+    *   }
+    *
+    *   createWith(device = matMulOnGPU) {
+    *     // All ops of type "MatMul" constructed in this code block will be placed on GPU 0. All other operations will
+    *     // be placed on CPU 0.
+    *     val c = constant(9.0)
+    *     assert(c.device == "/device:CPU:0")
+    *     val m = matMul(c, constant(10.0))
+    *     assert(m.device == "/device:GPU:0")
+    *   }
+    *
+    *   // Changing graph, name scope, and device to use for new ops.
+    *
+    *   createWith(graph = g, nameScope = "Nested", device = "/GPU:0") {
+    *     val c = constant(11.0, name = "C")
     *     assert(c.graph == g)
     *     assert(c.op.name == "Nested/C")
+    *     assert(c.device == "/device:GPU:0")
     *   }
     * }}}
     *
     * @param  graph     Graph to use as default for new ops.
     * @param  nameScope Name scope to use.
+    * @param  device    Device function to use.
     * @param  block     Code block to run using the provided options.
     * @param  context   Current op creation context.
     * @tparam R         Return type of the code block.
@@ -129,8 +190,8 @@ object Op {
     * @throws IllegalNameException If the provided name scope does not pass the regular expression validity checks.
     */
   @throws[IllegalNameException]
-  def createWith[R](graph: Graph = null, nameScope: String = null)(block: => R)
-      (implicit context: DynamicVariable[OpCreationContext]): R = {
+  def createWith[R](graph: Graph = null, nameScope: String = null, device: OpSpecification => String = _ => "")
+      (block: => R)(implicit context: DynamicVariable[OpCreationContext]): R = {
     val newGraph: Graph = if (graph == null) context.graph else graph
     val newNameScope: String = {
       if (nameScope == null) {
@@ -150,14 +211,29 @@ object Op {
           uniqueName(graph = context.graph, name = s"${context.nameScope}/${convertNameScopeToName(nameScope)}")
       }
     }
-    context.withValue(context.copy(graph = newGraph, nameScope = newNameScope))(block)
+    val newDevice: OpSpecification => String = {
+      val oldContextDevice = context.device
+      opSpecification => {
+        val oldDeviceSpecString = oldContextDevice(opSpecification)
+        val newDeviceSpecString = if (device != null) device(opSpecification) else null
+        // Check if the device has been reset or has to be reset for all subsequent nested scopes
+        if (oldDeviceSpecString == null || newDeviceSpecString == null) {
+          null
+        } else {
+          val oldDeviceSpec = DeviceSpecification.fromString(oldDeviceSpecString)
+          val newDeviceSpec = DeviceSpecification.fromString(newDeviceSpecString)
+          DeviceSpecification.merge(oldDeviceSpec, newDeviceSpec).toString
+        }
+      }
+    }
+    context.withValue(context.copy(graph = newGraph, nameScope = newNameScope, device = newDevice))(block)
   }
 
   private[this] val validOpNameRegex: Regex = "^[A-Za-z0-9.][A-Za-z0-9_.\\-/]*$".r
 
   /** Checks whether the provided string is a valid op name.
     *
-    * @param  name  String to check.
+    * @param  name String to check.
     * @return Boolean value indicating whether the check was successful.
     */
   private[this] def checkName(name: String): Boolean =
@@ -216,6 +292,7 @@ object Op {
   final case class Output(op: Op, index: Int) {
     def graph: Graph = op.graph
     def name: String = s"${op.name}:$index"
+    def device: String = op.device
     def dataType: DataType[_] = op.outputDataType(index)
     def shape: Shape = Shape(
       using(op.graph.reference) { r => NativeOperation.shape(r.nativeHandle, op.unsafeNativeHandle, index) })
@@ -232,20 +309,11 @@ object Op {
     override def toString: String = name
   }
 
-  private[ops] def opBuildHelper(
-      context: OpCreationContext, opType: String, name: String, inputs: Output*): Op.Builder = {
-    val opName: String = {
-      if (context.nameScope == "")
-        name
-      else
-        s"${context.nameScope}/$name"
-    }
-    Op.Builder(graph = context.graph, opType = opType, name = opName).addInputs(inputs)
-  }
-
-  private[ops] final case class Builder(graph: Graph, opType: String, name: String) {
-    if (!checkName(name = name))
-      throw IllegalNameException(s"Illegal op name '$name'.")
+  private[ops] final case class Builder(context: OpCreationContext, opType: String, name: String) {
+    private val graph: Graph = context.graph
+    private val opName: String = if (context.nameScope == "") name else s"${context.nameScope}/$name"
+    if (!checkName(name = opName))
+      throw IllegalNameException(s"Illegal op name '$opName'.")
 
     private var built: Boolean = false
     private var inputs: Seq[Output] = Seq[Output]()
@@ -266,27 +334,29 @@ object Op {
     def build(): Op = using(graph.reference) { _ =>
       if (built)
         throw OpBuilderUsedException("This op builder has already been used to built an op and cannot be re-used.")
+      device = Option(context.device(OpSpecification(name = name, opType = opType)))
       graph.synchronized {
-        val nativeHandle: Long = using(graph.reference) { r =>
-          NativeOperation.allocate(r.nativeHandle, opType, uniqueName(graph = graph, name = name))
+        using(graph.reference) { r =>
+          val nativeHandle: Long = NativeOperation.allocate(
+            r.nativeHandle, opType, uniqueName(graph = graph, name = opName))
+          inputs.foreach(input => NativeOperation.addInput(nativeHandle, input.op.unsafeNativeHandle, input.index))
+          device.foreach(NativeOperation.setDevice(nativeHandle, _))
+          byteArrayAttributes.foreach(a => NativeOperation.setAttrString(nativeHandle, a._1, a._2))
+          longAttributes.foreach(a => NativeOperation.setAttrInt(nativeHandle, a._1, a._2))
+          longArrayAttributes.foreach(a => NativeOperation.setAttrIntList(nativeHandle, a._1, a._2))
+          floatAttributes.foreach(a => NativeOperation.setAttrFloat(nativeHandle, a._1, a._2))
+          floatArrayAttributes.foreach(a => NativeOperation.setAttrFloatList(nativeHandle, a._1, a._2))
+          booleanAttributes.foreach(a => NativeOperation.setAttrBool(nativeHandle, a._1, a._2))
+          booleanArrayAttributes.foreach(a => NativeOperation.setAttrBoolList(nativeHandle, a._1, a._2))
+          dataTypeAttributes.foreach(a => NativeOperation.setAttrType(nativeHandle, a._1, a._2))
+          dataTypeArrayAttributes.foreach(a => NativeOperation.setAttrTypeList(nativeHandle, a._1, a._2))
+          tensorAttributes.foreach(a => NativeOperation.setAttrTensor(nativeHandle, a._1, a._2))
+          tensorArrayAttributes.foreach(a => NativeOperation.setAttrTensorList(nativeHandle, a._1, a._2))
+          shapeAttributes.foreach(a => NativeOperation.setAttrShape(nativeHandle, a._1, a._2.shape, a._2.rank))
+          val operation = Op(graph, NativeOperation.finish(nativeHandle))
+          built = true
+          operation
         }
-        inputs.foreach(input => NativeOperation.addInput(nativeHandle, input.op.unsafeNativeHandle, input.index))
-        device.foreach(NativeOperation.setDevice(nativeHandle, _))
-        byteArrayAttributes.foreach(a => NativeOperation.setAttrString(nativeHandle, a._1, a._2))
-        longAttributes.foreach(a => NativeOperation.setAttrInt(nativeHandle, a._1, a._2))
-        longArrayAttributes.foreach(a => NativeOperation.setAttrIntList(nativeHandle, a._1, a._2))
-        floatAttributes.foreach(a => NativeOperation.setAttrFloat(nativeHandle, a._1, a._2))
-        floatArrayAttributes.foreach(a => NativeOperation.setAttrFloatList(nativeHandle, a._1, a._2))
-        booleanAttributes.foreach(a => NativeOperation.setAttrBool(nativeHandle, a._1, a._2))
-        booleanArrayAttributes.foreach(a => NativeOperation.setAttrBoolList(nativeHandle, a._1, a._2))
-        dataTypeAttributes.foreach(a => NativeOperation.setAttrType(nativeHandle, a._1, a._2))
-        dataTypeArrayAttributes.foreach(a => NativeOperation.setAttrTypeList(nativeHandle, a._1, a._2))
-        tensorAttributes.foreach(a => NativeOperation.setAttrTensor(nativeHandle, a._1, a._2))
-        tensorArrayAttributes.foreach(a => NativeOperation.setAttrTensorList(nativeHandle, a._1, a._2))
-        shapeAttributes.foreach(a => NativeOperation.setAttrShape(nativeHandle, a._1, a._2.shape, a._2.rank))
-        val operation = Op(graph, NativeOperation.finish(nativeHandle))
-        built = true
-        operation
       }
     }
 

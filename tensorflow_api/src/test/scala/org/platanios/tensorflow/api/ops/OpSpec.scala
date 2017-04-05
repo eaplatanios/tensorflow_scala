@@ -3,13 +3,16 @@ package org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.Exception.IllegalNameException
 import org.platanios.tensorflow.api.Graph
 import org.platanios.tensorflow.api.ops.ArrayOps.constant
-import org.platanios.tensorflow.api.ops.Op.createWith
+import org.platanios.tensorflow.api.ops.MathOps.matMul
+import org.platanios.tensorflow.api.ops.Op._
 import org.scalatest._
 
 /**
   * @author Emmanouil Antonios Platanios
   */
 class OpSpec extends FlatSpec with Matchers {
+  //region createWith(...) Specification
+
   "The 'createWith' function" must "change the default graph (only) for its code block" in {
     val graph1 = Graph()
     val graph2 = Graph()
@@ -28,6 +31,8 @@ class OpSpec extends FlatSpec with Matchers {
       assert(graph2Constant2.graph === graph2)
     }
   }
+
+  //region createWith(nameScope = ...) Specification
 
   it must "change the name scope for newly created ops (only) for its code block" in {
     createWith(graph = Graph()) {
@@ -86,26 +91,147 @@ class OpSpec extends FlatSpec with Matchers {
     }
   }
 
-  it must "allow changing both the graph and the name scope for its code block" in {
+  //endregion
+
+  //region createWith(device = ...) Specification
+
+  it must "change the device in which newly created ops from its code block (only) are placed" in {
+    createWith(graph = Graph()) {
+      val c1 = constant(1.0)
+      assert(c1.device === "")
+      createWith(device = "/CPU:0") {
+        val c2 = constant(2.0)
+        assert(c2.device === "/device:CPU:0")
+        createWith(device = "/GPU:0") {
+          val c3 = constant(3.0)
+          assert(c3.device === "/device:GPU:0")
+        }
+      }
+      val c4 = constant(4.0)
+      assert(c4.device === "")
+    }
+  }
+
+  it must "allow for nesting of device scopes" in {
+    createWith(graph = Graph()) {
+      val c1 = constant(1.0)
+      assert(c1.device === "")
+      createWith(device = "/job:worker/replica:2") {
+        val c2 = constant(2.0)
+        assert(c2.device === "/job:worker/replica:2")
+        createWith(device = "/job:worker/replica:3/task:0") {
+          val c3 = constant(3.0)
+          assert(c3.device === "/job:worker/replica:3/task:0")
+        }
+      }
+      val c4 = constant(4.0)
+      assert(c4.device === "")
+    }
+  }
+
+  it must "nest device scopes by appropriately overriding device specifications" in {
+    createWith(graph = Graph()) {
+      val c1 = constant(1.0)
+      assert(c1.device === "")
+      createWith(device = "/job:worker/replica:2/device:CPU:1") {
+        val c2 = constant(2.0)
+        assert(c2.device === "/job:worker/replica:2/device:CPU:1")
+        createWith(device = "/job:worker/replica:2/device:GPU:2") {
+          val c3 = constant(3.0)
+          assert(c3.device === "/job:worker/replica:2/device:GPU:2")
+        }
+      }
+      val c4 = constant(4.0)
+      assert(c4.device === "")
+    }
+  }
+
+  it must "nest device scopes by appropriately merging device specifications" in {
+    createWith(graph = Graph()) {
+      val c1 = constant(1.0)
+      assert(c1.device === "")
+      createWith(device = "/device:GPU:*") {
+        val c2 = constant(2.0)
+        assert(c2.device === "/device:GPU:*")
+        createWith(device = "/job:worker") {
+          val c3 = constant(3.0)
+          assert(c3.device === "/job:worker/device:GPU:*")
+          createWith(device = "/device:CPU:0") {
+            val c4 = constant(4.0)
+            assert(c4.device === "/job:worker/device:CPU:0")
+            createWith(device = "/job:ps") {
+              val c5 = constant(5.0)
+              assert(c5.device === "/job:ps/device:CPU:0")
+            }
+          }
+        }
+        createWith(device = "/device:GPU:5") {
+          val c6 = constant(6.0)
+          assert(c6.device === "/device:GPU:5")
+        }
+      }
+      val c7 = constant(7.0)
+      assert(c7.device === "")
+    }
+  }
+
+  it must "reset the device whenever an empty string is provided for its device argument" in {
+    createWith(graph = Graph()) {
+      val c1 = constant(1.0, name = "C_1")
+      assert(c1.device === "")
+      createWith(device = "/CPU:0") {
+        val c2 = constant(2.0)
+        assert(c2.device === "/device:CPU:0")
+        createWith(device = null) {
+          val c3 = constant(3.0)
+          assert(c3.device === "")
+        }
+      }
+    }
+  }
+  
+  it must "be able to use device functions for setting op devices individually" in {
+    def matMulOnGPU(opSpecification: OpSpecification): String = {
+      if (opSpecification.opType == "MatMul")
+        "/GPU:0"
+      else
+        "/CPU:0"
+    }
+    createWith(device = matMulOnGPU) {
+      val c = constant(1.0)
+      assert(c.device === "/device:CPU:0")
+      val m = matMul(c, constant(2.0))
+      assert(m.device === "/device:GPU:0")
+    }
+  }
+
+  //endregion
+
+  it must "allow changing, the graph, the name scope, and the device used for its code block simultaneously" in {
     val graph1 = Graph()
     val graph2 = Graph()
     createWith(graph = graph1) {
       val graph1Constant = constant(1.0)
       assert(graph1Constant.graph === graph1)
     }
-    createWith(graph = graph2, nameScope = "Nested") {
+    createWith(graph = graph2, nameScope = "Nested", device = "/GPU:0") {
       val graph2Constant1 = constant(2.0, name = "C")
       assert(graph2Constant1.graph === graph2)
       assert(graph2Constant1.op.name === "Nested/C")
+      assert(graph2Constant1.device === "/device:GPU:0")
       createWith(graph = graph1, nameScope = "Inner") {
         val graph1NestedConstant = constant(3.0, name = "C")
         assert(graph1NestedConstant.graph === graph1)
         assert(graph1NestedConstant.op.name === "Nested/Inner/C")
+        assert(graph1NestedConstant.device === "/device:GPU:0")
       }
       val graph2Constant2 = constant(4.0)
       assert(graph2Constant2.graph === graph2)
+      assert(graph2Constant2.device === "/device:GPU:0")
     }
   }
+
+  //endregion
 
   "Ops created using the same name" must "have their name made unique by appending an index to it" in {
     createWith(graph = Graph()) {
