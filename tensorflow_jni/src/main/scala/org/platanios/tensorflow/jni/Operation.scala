@@ -9,9 +9,12 @@ import ch.jodersky.jni.nativeLoader
 object Operation {
   // Operation
   @native def name(handle: Long): String
-  @native def opName(handle: Long): String
+  @native def opType(handle: Long): String
+  @native def device(handle: Long): String
   @native def numOutputs(handle: Long): Int
-  @native def dataType(graphHandle: Long, opHandle: Long, output: Int): Int
+  @native def outputDataType(graphHandle: Long, opHandle: Long, output: Int): Int
+  @native def numInputs(handle: Long): Int
+  @native def inputDataType(graphHandle: Long, opHandle: Long, input: Int): Int
   @native def shape(graphHandle: Long, opHandle: Long, output: Int): Array[Long]
   @native def allOps: Array[Byte]
 

@@ -65,12 +65,20 @@ JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_name
   return env->NewStringUTF(TF_OperationName(op));
 }
 
-JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_opName(JNIEnv* env,
+JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_opType(JNIEnv* env,
                                                                                  jobject object,
                                                                                  jlong handle) {
   TF_Operation* op = requireOperationHandle(env, handle);
   if (op == nullptr) return nullptr;
   return env->NewStringUTF(TF_OperationOpType(op));
+}
+
+JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_device(JNIEnv* env,
+                                                                                 jobject object,
+                                                                                 jlong handle) {
+  TF_Operation* op = requireOperationHandle(env, handle);
+  if (op == nullptr) return nullptr;
+  return env->NewStringUTF(TF_OperationDevice(op));
 }
 
 JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_numOutputs(JNIEnv* env,
@@ -81,7 +89,7 @@ JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_numOutp
   return TF_OperationNumOutputs(op);
 }
 
-JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_dataType(
+JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_outputDataType(
     JNIEnv* env, jobject object, jlong graph_handle, jlong op_handle, jint output_index) {
   TF_Graph* graph = requireGraphHandle(env, graph_handle);
   if (graph == nullptr) return 0;
@@ -98,6 +106,33 @@ JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_dataTyp
   }
 
   return static_cast<jint>(TF_OperationOutputType(TF_Output{op, output_index}));
+}
+
+JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_numInputs(JNIEnv* env,
+                                                                                jobject object,
+                                                                                jlong handle) {
+  TF_Operation* op = requireOperationHandle(env, handle);
+  if (op == nullptr) return 0;
+  return TF_OperationNumInputs(op);
+}
+
+JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_inputDataType(
+    JNIEnv* env, jobject object, jlong graph_handle, jlong op_handle, jint input_index) {
+  TF_Graph* graph = requireGraphHandle(env, graph_handle);
+  if (graph == nullptr) return 0;
+  TF_Operation* op = requireOperationHandle(env, op_handle);
+  if (op == nullptr) return 0;
+
+  int num_inputs = TF_OperationNumInputs(op);
+  if (input_index < 0 || input_index >= num_inputs) {
+    throwException(
+        env, kIndexOutOfBoundsException,
+        "invalid input index (%d) for an operation that has %d inputs",
+        input_index, num_inputs);
+    return 0;
+  }
+
+  return static_cast<jint>(TF_OperationInputType(TF_Input{op, input_index}));
 }
 
 JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_shape(

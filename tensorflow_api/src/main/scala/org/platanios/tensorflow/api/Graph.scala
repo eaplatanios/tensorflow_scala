@@ -38,9 +38,9 @@ final case class Graph(private var nativeHandle: Long) extends Closeable {
     *
     * <p>Or {@code null} if no such operation exists in the Graph.
     */
-  def operation(name: String): Option[Op] = {
+  def op(name: String): Option[Op] = {
     NativeHandleLock.synchronized {
-      val operationHandle: Long = NativeGraph.operation(nativeHandle, name)
+      val operationHandle: Long = NativeGraph.op(nativeHandle, name)
       if (operationHandle == 0)
         None
       else

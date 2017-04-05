@@ -11,7 +11,7 @@ object MathOps {
   def addN(inputs: Array[Op.Output], name: String = "AddN")
       (implicit context: DynamicVariable[OpCreationContext]): Op.Output =
     Op.opBuildHelper(context = context, opType = "AddN", name = name)
-        .addInputList(inputs)
+        .addInputs(inputs)
         .build().output(index = 0)
 
   def matMul(

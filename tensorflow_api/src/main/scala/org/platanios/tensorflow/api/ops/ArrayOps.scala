@@ -10,9 +10,8 @@ import scala.util.DynamicVariable
 object ArrayOps {
   def constant(value: Any, dataType: DataType[_] = null, name: String = "Const")
       (implicit context: DynamicVariable[OpCreationContext]): Op.Output = {
-    val opName: String = Op.name(context = context, providedName = name)
     using(Tensor.create(value = value)) { tensor =>
-      val opBuilder: Op.Builder = Op.Builder(graph = context.graph, opType = "Const", name = opName)
+      val opBuilder = Op.opBuildHelper(context = context, opType = "Const", name = name)
       opBuilder.setAttribute(name = "value", value = tensor)
       if (dataType != null)
         opBuilder.setAttribute(name = "dtype", value = dataType)
@@ -24,16 +23,15 @@ object ArrayOps {
 
   def placeholder(dataType: DataType[_], shape: Option[Shape] = None, name: String = "Placeholder")
       (implicit context: DynamicVariable[OpCreationContext]): Op.Output = {
-    val opName: String = Op.name(context = context, providedName = name)
     shape match {
       case Some(shapeValue) =>
-        Op.Builder(graph = context.graph, opType = "PlaceholderV2", name = opName)
+        Op.opBuildHelper(context = context, opType = "PlaceholderV2", name = name)
             .setAttribute(name = "dtype", value = dataType)
             .setAttribute(name = "shape", value = shapeValue)
             .build()
             .output(index = 0)
       case None =>
-        Op.Builder(graph = context.graph, opType = "Placeholder", name = opName)
+        Op.opBuildHelper(context = context, opType = "Placeholder", name = name)
             .setAttribute(name = "dtype", value = dataType)
             .build()
             .output(index = 0)
@@ -42,9 +40,8 @@ object ArrayOps {
 
   def placeholderWithDefault(value: Any, shape: Shape, name: String = "PlaceholderWithDefault")
       (implicit context: DynamicVariable[OpCreationContext]): Op.Output = {
-    val opName: String = Op.name(context = context, providedName = name)
-    Op.Builder(graph = context.graph, opType = "PlaceholderWithDefault", name = opName)
-        .addInput(constant(value = value, name = s"$opName/Const"))
+    val default: Op.Output = constant(value = value, name = s"$name/default_value")
+    Op.opBuildHelper(context = context, opType = "PlaceholderWithDefault", name = name, default)
         .setAttribute(name = "shape", value = shape)
         .build()
         .output(index = 0)

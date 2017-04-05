@@ -25,10 +25,10 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_delete
 
 /*
  * Class:     org_platanios_tensorflow_jni_Graph__
- * Method:    operation
+ * Method:    op
  * Signature: (JLjava/lang/String;)J
  */
-JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_operation
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_op
   (JNIEnv *, jobject, jlong, jstring);
 
 /*

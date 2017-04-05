@@ -9,7 +9,7 @@ scalacOptions in ThisBuild ++= Seq(
   "-language:implicitConversions"
 )
 
-exportJars := true
+logBuffered in Test := false
 
 // Scaladoc options
 scalacOptions in (ThisBuild, Compile, doc) ++= Seq("-groups", "-implicits")

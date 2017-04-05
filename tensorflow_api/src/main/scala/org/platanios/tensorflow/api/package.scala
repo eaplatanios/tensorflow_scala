@@ -1,7 +1,5 @@
 package org.platanios.tensorflow
 
-import org.platanios.tensorflow.api.ops.OpCreationContext
-
 import scala.util.DynamicVariable
 
 /**
@@ -24,17 +22,12 @@ package object api {
     }
   }
 
-  // Graph Creation Helpers
+  import org.platanios.tensorflow.api.ops.OpCreationContext
 
+  val defaultGraph: Graph = Graph()
   implicit val opCreationContext: DynamicVariable[OpCreationContext] =
-    new DynamicVariable[OpCreationContext](OpCreationContext())
+    new DynamicVariable[OpCreationContext](OpCreationContext(graph = defaultGraph))
 
   implicit def dynamicVariableToOpCreationContext(context: DynamicVariable[OpCreationContext]): OpCreationContext =
     context.value
-
-  def createUsing[R](graph: Graph)(block: => R)(implicit context: DynamicVariable[OpCreationContext]): R =
-    context.withValue(context.copy(graph = graph))(block)
-
-  def createUsing[R](nameScope: String)(block: => R)(implicit context: DynamicVariable[OpCreationContext]): R =
-    context.withValue(context.copy(nameScope = s"${context.nameScope}/$nameScope"))(block)
 }

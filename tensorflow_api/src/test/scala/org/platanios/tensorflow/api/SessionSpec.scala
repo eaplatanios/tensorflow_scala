@@ -2,6 +2,7 @@ package org.platanios.tensorflow.api
 
 import org.platanios.tensorflow.api.ops.ArrayOps._
 import org.platanios.tensorflow.api.ops.MathOps._
+import org.platanios.tensorflow.api.ops.Op.usingGraph
 import org.scalatest._
 
 /**
@@ -10,7 +11,7 @@ import org.scalatest._
 class SessionSpec extends FlatSpec with Matchers {
   "Session run fetch by name" should "return the correct result" in {
     val graph = Graph()
-    createUsing(graph) {
+    usingGraph(graph) {
       val a = constant(Array[Array[Int]](Array[Int](2), Array[Int](3)))
       val x = placeholder(dataType = DataType.int32, name = "X")
       subtract(constant(1), matMul(a = a, b = x, transposeA = true), name = "Y")

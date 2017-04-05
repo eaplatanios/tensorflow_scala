@@ -26,7 +26,7 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_delete(JNIE
   TF_DeleteGraph(reinterpret_cast<TF_Graph*>(handle));
 }
 
-JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_operation(JNIEnv* env,
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_op(JNIEnv* env,
                                                                             jobject object,
                                                                             jlong handle,
                                                                             jstring name) {
