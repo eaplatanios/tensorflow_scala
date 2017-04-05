@@ -43,58 +43,44 @@ final case class Op(graph: Graph, unsafeNativeHandle: Long) {
 private[api] final case class OpCreationContext(graph: Graph = Graph(), nameScope: String = "")
 
 object Op {
-  /** Creates a context that can be used for creating operations within the specified graph.
+  /** Creates a context that can be used for creating ops according to the provided options.
     *
-    * During graph creation, a context is maintained that includes the current graph in which new ops are placed.
-    * Whenever `usingGraph(...)` is used, all ops created within the provided code block will be placed in the provided
-    * graph.
-    *
-    * This method should be used if you want to create multiple graphs in the same process. For convenience, a global
-    * default graph is provided and used by default. All ops will be added to this graph if you do not create a new
-    * graph explicitly.
-    *
-    * Care must be taken if concurrency is used while creating the graph because the graph creation context is wrapped
-    * inside a [[scala.util.DynamicVariable]]. More information on this general issue can be found at
-    * [[http://stevenskelton.ca/threadlocal-variables-scala-futures/]].
-    *
-    * @example {{{
-    *   val graph = Graph()
-    *   usingGraph(graph) {
-    *     val c = constant(5.0)
-    *     assert(c.graph == graph)
-    *   }
-    * }}}
-    *
-    * @param  graph   Graph to use as default for new ops.
-    * @param  block   Code block to run using the provided graph as the default graph in which new ops are placed.
-    * @param  context Current op creation context.
-    * @tparam R       Return type of the code block.
-    *
-    * @return Return value of the code block.
-    */
-  def usingGraph[R](graph: Graph)(block: => R)(implicit context: DynamicVariable[OpCreationContext]): R =
-    context.withValue(context.copy(graph = graph))(block)
-
-  /** Creates a context that can be used for generating hierarchical names for operations.
-    *
-    * During graph creation, a context is maintained that includes the current name scope. Whenever
-    * `usingNameScope(...)` is used, the provided name scope is appended to the context name scope, generating a new
-    * graph creation context. This new context is used for all ops created within the code block provided in the
-    * `usingNameScope(...)` function.
+    * During graph creation, a context is maintained that includes: (i) the current graph in which new ops are placed,
+    * and (ii) the current name scope used for naming these new ops. Whenever `createWith(...)` is used, all ops created
+    * within the provided code block will be placed in the provided graph. Furthermore, the provided name scope is
+    * appended to the context name scope, generating a new op creation context. This new context is used for all ops
+    * created within the code block provided in the `createWith(...)` function.
     *
     * The `nameScope` argument will be interpreted as follows:
     *   - A string will create a new name scope, in which `nameScope` is appended to the prefix of all operations
     *     created in the provided code block. If `nameScope` has been used before, it will be made unique by calling
     *     `uniqueName(graph = context.graph, name = nameScope)`.
-    *   - A value of `""` or `null` will reset the current name scope to the top-level (i.e., empty) name scope.
-    *
-    * Care must be taken if concurrency is used while creating the graph because the graph creation context is wrapped
-    * inside a [[scala.util.DynamicVariable]]. More information on this general issue can be found at
-    * [[http://stevenskelton.ca/threadlocal-variables-scala-futures/]].
+    *   - A value of `""` will reset the current name scope to the top-level (i.e., empty) name scope.
     *
     * TODO: Support re-entering existing name scopes.
     *
+    * @note This function checks the provided `nameScope` for validity by checking whether it matches: (i) the regular
+    *       expression `[A-Za-z0-9.][A-Za-z0-9_.\\-/]*` if the current context name scope is empty (i.e., at the root),
+    *       or (ii) the regular expression `[A-Za-z0-9_.\\-/]*`, otherwise.
+    *
+    * Note that all arguments of this function are optional. If they are not provided, then the corresponding option in
+    * current op creation context is left unchanged.
+    *
+    * Care must be taken if concurrency is used while creating the graph because the op creation context is wrapped
+    * inside a [[scala.util.DynamicVariable]]. More information on this general issue can be found at
+    * [[http://stevenskelton.ca/threadlocal-variables-scala-futures/]].
+    *
     * @example {{{
+    *   // Placing the new ops in the provided graph
+    *
+    *   val g = Graph()
+    *   createWith(graph = g) {
+    *     val c = constant(5.0)
+    *     assert(c.graph == g)
+    *   }
+    *
+    *   // Changing the name scope for the new ops
+    *
     *   // No name scope used
     *   val c = constant(1.0, name = "C")
     *   assert(c.op.name == "C")
@@ -102,64 +88,69 @@ object Op {
     *   assert(c_1.op.name == "C_1")
     *
     *   // Create a name scope called "Nested"
-    *   usingNameScope("Nested") {
+    *   createWith(nameScope = "Nested") {
     *     val nestedC = constant(3.0, name = "C")
     *     assert(nestedC.op.name == "Nested/C")
     *
     *     // Create a nested name scope called "Inner"
-    *     usingNameScope("Inner") {
+    *     createWith(nameScope = "Inner") {
     *       val nestedInnerC = constant(4.0, name = "C")
     *       assert(nestedInnerC.op.name == "Nested/Inner/C")
     *     }
     *
     *     // Create a nested name scope called "Inner_1"
-    *     usingNameScope("Inner_1") {
+    *     createWith(nameScope = "Inner_1") {
     *       val nestedInner1C = constant(5.0, name = "C")
     *       assert(nestedInner1C.op.name == "Nested/Inner_1/C")
     *
     *       // Reset the name scope using ""
-    *       usingNameScope("") {
+    *       createWith(nameScope = "") {
     *         val c2 = constant(6.0, name = "C_2")
     *         assert(c2.op.name == "C_2")
     *       }
-    *
-    *       // Reset the name scope using null
-    *       usingNameScope(null) {
-    *         val c3 = constant(7.0, name = "C_3")
-    *         assert(c3.op.name == "C_3")
-    *       }
     *     }
+    *   }
+    *
+    *   // Changing both the graph and the name scope for new ops
+    *
+    *   createWith(graph = g, nameScope = "Nested") {
+    *     val c = constant(5.0, name = "C")
+    *     assert(c.graph == g)
+    *     assert(c.op.name == "Nested/C")
     *   }
     * }}}
     *
-    * @note This function checks the provided `nameScope` for validity by checking whether it matches: (i) the regular
-    *       expression `[A-Za-z0-9.][A-Za-z0-9_.\\-/]*` if the current context name scope is empty (i.e., at the root),
-    *       or (ii) the regular expression `[A-Za-z0-9_.\\-/]*`, otherwise.
-    *
+    * @param  graph     Graph to use as default for new ops.
     * @param  nameScope Name scope to use.
-    * @param  block     Code block to run using the provided name scope.
+    * @param  block     Code block to run using the provided options.
     * @param  context   Current op creation context.
     * @tparam R         Return type of the code block.
     * @return Return value of the code block.
     * @throws IllegalNameException If the provided name scope does not pass the regular expression validity checks.
     */
   @throws[IllegalNameException]
-  def usingNameScope[R](nameScope: String)(block: => R)(implicit context: DynamicVariable[OpCreationContext]): R = {
-    // Check whether the provided name scope is valid.
-    // If the root name scope is being set, then stricter checks are performed on it (i.e., op naming checks). This
-    // makes sure the name scope does not start with any illegal characters (e.g., '_', '-', '\', and '/').
-    if (nameScope != null &&
-        ((context.nameScope == "" && !checkName(nameScope)) || (context.nameScope != "" && !checkNameScope(nameScope))))
-      throw IllegalNameException(s"Illegal name scope '$nameScope'.")
+  def createWith[R](graph: Graph = null, nameScope: String = null)(block: => R)
+      (implicit context: DynamicVariable[OpCreationContext]): R = {
+    val newGraph: Graph = if (graph == null) context.graph else graph
     val newNameScope: String = {
-      if (nameScope == "" || nameScope == null)
-        ""
-      else if (context.nameScope == "")
-        uniqueName(graph = context.graph, name = s"${convertNameScopeToName(nameScope)}")
-      else
-        uniqueName(graph = context.graph, name = s"${context.nameScope}/${convertNameScopeToName(nameScope)}")
+      if (nameScope == null) {
+        context.nameScope
+      } else {
+        // Check whether the provided name scope is valid.
+        // If the root name scope is being set, then stricter checks are performed on it (i.e., op naming checks). This
+        // makes sure the name scope does not start with any illegal characters (e.g., '_', '-', '\', and '/').
+        if ((context.nameScope == "" && !checkName(nameScope))
+            || (context.nameScope != "" && !checkNameScope(nameScope)))
+          throw IllegalNameException(s"Illegal name scope '$nameScope'.")
+        if (nameScope == "")
+          ""
+        else if (context.nameScope == "")
+          uniqueName(graph = context.graph, name = s"${convertNameScopeToName(nameScope)}")
+        else
+          uniqueName(graph = context.graph, name = s"${context.nameScope}/${convertNameScopeToName(nameScope)}")
+      }
     }
-    context.withValue(context.copy(nameScope = newNameScope))(block)
+    context.withValue(context.copy(graph = newGraph, nameScope = newNameScope))(block)
   }
 
   private[this] val validOpNameRegex: Regex = "^[A-Za-z0-9.][A-Za-z0-9_.\\-/]*$".r
