@@ -57,7 +57,7 @@ object Op {
     * inside a [[scala.util.DynamicVariable]]. More information on this general issue can be found at
     * [[http://stevenskelton.ca/threadlocal-variables-scala-futures/]].
     *
-    * @example  {{{
+    * @example {{{
     *   val graph = Graph()
     *   usingGraph(graph) {
     *     val c = constant(5.0)
@@ -94,39 +94,39 @@ object Op {
     *
     * TODO: Support re-entering existing name scopes.
     *
-    * @example  {{{
+    * @example {{{
     *   // No name scope used
-    *   val c = constant(1.0, name = "c")
-    *   assert(c.op.name == "c")
-    *   val c1 = constant(2.0, name = "c_1")
-    *   assert(c_1.op.name == "c_1")
+    *   val c = constant(1.0, name = "C")
+    *   assert(c.op.name == "C")
+    *   val c1 = constant(2.0, name = "C_1")
+    *   assert(c_1.op.name == "C_1")
     *
-    *   // Create a name scope called "nested"
-    *   usingNameScope("nested") {
-    *     val nestedC = constant(3.0, name = "c")
-    *     assert(nestedC.op.name == "nested/c")
+    *   // Create a name scope called "Nested"
+    *   usingNameScope("Nested") {
+    *     val nestedC = constant(3.0, name = "C")
+    *     assert(nestedC.op.name == "Nested/C")
     *
-    *     // Create a nested name scope called "inner"
-    *     usingNameScope("inner") {
-    *       val nestedInnerC = constant(4.0, name = "c")
-    *       assert(nestedInnerC.op.name == "nested/inner/c")
+    *     // Create a nested name scope called "Inner"
+    *     usingNameScope("Inner") {
+    *       val nestedInnerC = constant(4.0, name = "C")
+    *       assert(nestedInnerC.op.name == "Nested/Inner/C")
     *     }
     *
-    *     // Create a nested name scope called "inner_1"
-    *     usingNameScope("inner_1") {
-    *       val nestedInner1C = constant(5.0, name = "c")
-    *       assert(nestedInner1C.op.name == "nested/inner_1/c")
+    *     // Create a nested name scope called "Inner_1"
+    *     usingNameScope("Inner_1") {
+    *       val nestedInner1C = constant(5.0, name = "C")
+    *       assert(nestedInner1C.op.name == "Nested/Inner_1/C")
     *
     *       // Reset the name scope using ""
     *       usingNameScope("") {
-    *         val c2 = constant(6.0, name = "c_2")
-    *         assert(c2.op.name == "c_2")
+    *         val c2 = constant(6.0, name = "C_2")
+    *         assert(c2.op.name == "C_2")
     *       }
     *
     *       // Reset the name scope using null
     *       usingNameScope(null) {
-    *         val c3 = constant(7.0, name = "c_3")
-    *         assert(c3.op.name == "c_3")
+    *         val c3 = constant(7.0, name = "C_3")
+    *         assert(c3.op.name == "C_3")
     *       }
     *     }
     *   }
@@ -140,10 +140,8 @@ object Op {
     * @param  block     Code block to run using the provided name scope.
     * @param  context   Current op creation context.
     * @tparam R         Return type of the code block.
-    *
     * @return Return value of the code block.
-    *
-    * @throws IllegalNameException If the provided name scope does not pass the validity regular expression checks.
+    * @throws IllegalNameException If the provided name scope does not pass the regular expression validity checks.
     */
   @throws[IllegalNameException]
   def usingNameScope[R](nameScope: String)(block: => R)(implicit context: DynamicVariable[OpCreationContext]): R = {
@@ -169,7 +167,6 @@ object Op {
   /** Checks whether the provided string is a valid op name.
     *
     * @param  name  String to check.
-    *
     * @return Boolean value indicating whether the check was successful.
     */
   private[this] def checkName(name: String): Boolean =
@@ -192,7 +189,6 @@ object Op {
     * @param  graph   Graph for which the unique name is generated.
     * @param  name    Name in which to base the generated unique name.
     * @param  counter Current counter value `i`.
-    *
     * @return Unique name.
     */
   private[this] def uniqueName(graph: Graph, name: String, counter: Int = 1): String = {
@@ -209,7 +205,6 @@ object Op {
   /** Checks whether the provided string is a valid name scope for creating ops.
     *
     * @param  nameScope String to check.
-    *
     * @return Boolean value indicating whether the check was successful.
     */
   private[this] def checkNameScope(nameScope: String): Boolean =
