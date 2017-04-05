@@ -8,7 +8,7 @@ import scala.util.DynamicVariable
   * @author Emmanouil Antonios Platanios
   */
 object ArrayOps {
-  def constant(value: Any, dataType: DataType[_] = null, name: String = "Const")
+  def constant(value: Any, dataType: DataType[_] = null, name: String = "Constant")
       (implicit context: DynamicVariable[OpCreationContext]): Op.Output = {
     using(Tensor.create(value = value)) { tensor =>
       val opBuilder = Op.opBuildHelper(context = context, opType = "Const", name = name)

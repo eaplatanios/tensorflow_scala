@@ -67,7 +67,7 @@ object Op {
     *
     * @param  graph   Graph to use as default for new ops.
     * @param  block   Code block to run using the provided graph as the default graph in which new ops are placed.
-    * @param  context Current graph creation context.
+    * @param  context Current op creation context.
     * @tparam R       Return type of the code block.
     *
     * @return Return value of the code block.
@@ -138,7 +138,7 @@ object Op {
     *
     * @param  nameScope Name scope to use.
     * @param  block     Code block to run using the provided name scope.
-    * @param  context   Current graph creation context.
+    * @param  context   Current op creation context.
     * @tparam R         Return type of the code block.
     *
     * @return Return value of the code block.

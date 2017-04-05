@@ -112,4 +112,6 @@ class OpSpec extends FlatSpec with Matchers {
       assertThrows[IllegalNameException](constant(1.0, name = "/c"))
     }
   }
+
+  // TODO: Add name scope exceptions spec.
 }
