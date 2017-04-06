@@ -4,10 +4,14 @@ import org.platanios.tensorflow.api.Exception.InvalidGraphElementException
 import org.platanios.tensorflow.api.ops.Op
 import org.platanios.tensorflow.jni.{Graph => NativeGraph}
 
+import scala.collection.mutable
+
 /**
   * @author Emmanouil Antonios Platanios
   */
 final case class Graph(private var nativeHandle: Long) extends Closeable {
+  private[api] val opsCache: mutable.Map[Long, Op] = mutable.LongMap[Op]()
+
   /** Returns the op with the specified name.
     *
     * @param  name Op name.
@@ -19,7 +23,7 @@ final case class Graph(private var nativeHandle: Long) extends Closeable {
       if (opHandle == 0)
         None
       else
-        Some(Op(this, opHandle))
+        Some(opsCache.getOrElseUpdate(opHandle, Op(this, opHandle)))
     }
 
   /** Returns all ops of this graph.
@@ -30,7 +34,7 @@ final case class Graph(private var nativeHandle: Long) extends Closeable {
     */
   def ops: Array[Op] =
     NativeHandleLock.synchronized {
-      NativeGraph.ops(nativeHandle).map(Op(this, _))
+      NativeGraph.ops(nativeHandle).map(handle => opsCache.getOrElseUpdate(handle, Op(this, handle)))
     }
 
   /** Returns the op referred to by the provided name, in this graph.

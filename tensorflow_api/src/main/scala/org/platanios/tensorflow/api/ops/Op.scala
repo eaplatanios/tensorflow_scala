@@ -12,6 +12,8 @@ import scala.util.matching.Regex
   * @author Emmanouil Antonios Platanios
   */
 final case class Op(graph: Graph, nativeHandle: Long) {
+  graph.opsCache.update(nativeHandle, this)
+
   /** Name of the op. */
   val name: String = using(graph.reference) { _ => NativeOp.name(nativeHandle) }
 
@@ -31,20 +33,23 @@ final case class Op(graph: Graph, nativeHandle: Long) {
   private[api] def input(index: Int): Op.Output = {
     using(graph.reference) { _ =>
       val jniOpOutput = NativeOp.input(nativeHandle, index)
-      Op.Output(op = Op(graph = graph, nativeHandle = jniOpOutput.opHandle), index = jniOpOutput.outputIndex)
+      val op = graph.opsCache.getOrElseUpdate(jniOpOutput.opHandle, Op(graph, jniOpOutput.opHandle))
+      op.output(jniOpOutput.outputIndex)
     }
   }
 
   val inputs: Array[Op.Output] = (0 until numInputs).map(input).toArray
 
   /** Returns a symbolic handle to one of the tensors produced by this operation. */
-  private[api] def output(index: Int): Op.Output = Op.Output(op = this, index = index)
+  private[api] def output(index: Int): Op.Output = outputs(index)
 
-  val outputs: Array[Op.Output] = (0 until numOutputs).map(output).toArray
+  val outputs: Array[Op.Output] = (0 until numOutputs).map(i => Op.Output(op = this, index = i)).toArray
 
   def outputConsumers(index: Int): Array[Op.Output] = using(graph.reference) { _ =>
-    NativeOp.consumers(nativeHandle, index).map(jniOpOutput => Op.Output(
-      op = Op(graph = graph, nativeHandle = jniOpOutput.opHandle), index = jniOpOutput.outputIndex))
+    NativeOp.consumers(nativeHandle, index).map(jniOpOutput => {
+      val op = graph.opsCache.getOrElseUpdate(jniOpOutput.opHandle, Op(graph, jniOpOutput.opHandle))
+      op.output(jniOpOutput.outputIndex)
+    })
   }
 
   def inputDataType(inputIndex: Int): DataType[_] =
@@ -56,6 +61,8 @@ final case class Op(graph: Graph, nativeHandle: Long) {
     using(graph.reference) { r =>
       DataType.fromCValue(NativeOp.outputDataType(r.nativeHandle, nativeHandle, outputIndex))
     }
+
+  override def toString: String = name
 }
 
 // TODO: Add control input options.
@@ -317,7 +324,7 @@ object Op {
     }
   }
 
-  final case class Output(op: Op, index: Int) {
+  final case class Output private (op: Op, index: Int) {
     def graph: Graph = op.graph
     def name: String = s"${op.name}:$index"
     def device: String = op.device
