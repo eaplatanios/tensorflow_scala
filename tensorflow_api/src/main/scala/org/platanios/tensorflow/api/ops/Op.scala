@@ -1,7 +1,7 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api._
-import org.platanios.tensorflow.jni.{Operation => NativeOperation}
+import org.platanios.tensorflow.jni.{Op => NativeOp}
 import org.platanios.tensorflow.api.Exception.{IllegalNameException, OpBuilderUsedException}
 
 import java.nio.charset.Charset
@@ -13,38 +13,56 @@ import scala.util.matching.Regex
   */
 final case class Op(graph: Graph, nativeHandle: Long) {
   /** Name of the op. */
-  val name: String = using(graph.reference) { _ => NativeOperation.name(nativeHandle) }
+  val name: String = using(graph.reference) { _ => NativeOp.name(nativeHandle) }
 
   /** Type of the op (i.e., the name of the computation performed by the operation). */
-  val opType: String = using(graph.reference) { _ => NativeOperation.opType(nativeHandle) }
+  val opType: String = using(graph.reference) { _ => NativeOp.opType(nativeHandle) }
 
   /** Device in which the op tensors are stored and where computations are performed for this op. */
-  val device: String = using(graph.reference) { _ => NativeOperation.device(nativeHandle) }
+  val device: String = using(graph.reference) { _ => NativeOp.device(nativeHandle) }
 
   /** Returns the number of tensors fed as input to this operation. */
-  val numInputs: Int = using(graph.reference) { _ => NativeOperation.numInputs(nativeHandle) }
+  val numInputs: Int = using(graph.reference) { _ => NativeOp.numInputs(nativeHandle) }
 
   /** Number of tensors produced by this operation. */
-  val numOutputs: Int = using(graph.reference) { _ => NativeOperation.numOutputs(nativeHandle) }
+  val numOutputs: Int = using(graph.reference) { _ => NativeOp.numOutputs(nativeHandle) }
+
+  // TODO: Avoid creating new instances of the Op classes if they already exist.
+  private[api] def input(index: Int): Op.Output = {
+    using(graph.reference) { _ =>
+      val jniOpOutput = NativeOp.input(nativeHandle, index)
+      Op.Output(op = Op(graph = graph, nativeHandle = jniOpOutput.opHandle), index = jniOpOutput.outputIndex)
+    }
+  }
+
+  val inputs: Array[Op.Output] = (0 until numInputs).map(input).toArray
 
   /** Returns a symbolic handle to one of the tensors produced by this operation. */
-  def output(index: Int): Op.Output = Op.Output(op = this, index = index)
+  private[api] def output(index: Int): Op.Output = Op.Output(op = this, index = index)
+
+  val outputs: Array[Op.Output] = (0 until numOutputs).map(output).toArray
+
+  def outputConsumers(index: Int): Array[Op.Output] = using(graph.reference) { _ =>
+    NativeOp.consumers(nativeHandle, index).map(jniOpOutput => Op.Output(
+      op = Op(graph = graph, nativeHandle = jniOpOutput.opHandle), index = jniOpOutput.outputIndex))
+  }
 
   def inputDataType(inputIndex: Int): DataType[_] =
     using(graph.reference) { r =>
-      DataType.fromCValue(NativeOperation.inputDataType(r.nativeHandle, nativeHandle, inputIndex))
+      DataType.fromCValue(NativeOp.inputDataType(r.nativeHandle, nativeHandle, inputIndex))
     }
 
   def outputDataType(outputIndex: Int): DataType[_] =
     using(graph.reference) { r =>
-      DataType.fromCValue(NativeOperation.outputDataType(r.nativeHandle, nativeHandle, outputIndex))
+      DataType.fromCValue(NativeOp.outputDataType(r.nativeHandle, nativeHandle, outputIndex))
     }
 }
 
 // TODO: Add control input options.
 private[ops] final case class OpSpecification(name: String, opType: String)
 private[api] final case class OpCreationContext(
-    graph: Graph = Graph(), nameScope: String = "", device: OpSpecification => String = _ => "")
+    graph: Graph = Graph(), nameScope: String = "", device: OpSpecification => String = _ => "",
+    controlDependencies: Set[Op] = Set())
 
 object Op {
   /** Convenient implicit conversion function used to convert devices specified as [[String]]s for use with the
@@ -289,13 +307,25 @@ object Op {
       nameScope
   }
 
+  // TODO: Add merge functions for other parts of the op creation context.
+
+  private[this] def mergeControlDependencies(oldControlDeps: Set[Op], newControlDeps: Set[Op]): Set[Op] = {
+    if (newControlDeps == null) {
+      Set[Op]()
+    } else {
+      ???
+    }
+  }
+
   final case class Output(op: Op, index: Int) {
     def graph: Graph = op.graph
     def name: String = s"${op.name}:$index"
     def device: String = op.device
     def dataType: DataType[_] = op.outputDataType(index)
     def shape: Shape = Shape(
-      using(op.graph.reference) { r => NativeOperation.shape(r.nativeHandle, op.nativeHandle, index) })
+      using(op.graph.reference) { r => NativeOp.shape(r.nativeHandle, op.nativeHandle, index) })
+
+    def consumers: Array[Op.Output] = op.outputConsumers(index)
 
     //region Ops
 
@@ -337,23 +367,24 @@ object Op {
       device = Option(context.device(OpSpecification(name = name, opType = opType)))
       graph.synchronized {
         using(graph.reference) { r =>
-          val nativeHandle: Long = NativeOperation.allocate(
+          val nativeHandle: Long = NativeOp.allocate(
             r.nativeHandle, opType, uniqueName(graph = graph, name = opName))
-          inputs.foreach(input => NativeOperation.addInput(nativeHandle, input.op.nativeHandle, input.index))
-          device.foreach(NativeOperation.setDevice(nativeHandle, _))
-          byteArrayAttributes.foreach(a => NativeOperation.setAttrString(nativeHandle, a._1, a._2))
-          longAttributes.foreach(a => NativeOperation.setAttrInt(nativeHandle, a._1, a._2))
-          longArrayAttributes.foreach(a => NativeOperation.setAttrIntList(nativeHandle, a._1, a._2))
-          floatAttributes.foreach(a => NativeOperation.setAttrFloat(nativeHandle, a._1, a._2))
-          floatArrayAttributes.foreach(a => NativeOperation.setAttrFloatList(nativeHandle, a._1, a._2))
-          booleanAttributes.foreach(a => NativeOperation.setAttrBool(nativeHandle, a._1, a._2))
-          booleanArrayAttributes.foreach(a => NativeOperation.setAttrBoolList(nativeHandle, a._1, a._2))
-          dataTypeAttributes.foreach(a => NativeOperation.setAttrType(nativeHandle, a._1, a._2))
-          dataTypeArrayAttributes.foreach(a => NativeOperation.setAttrTypeList(nativeHandle, a._1, a._2))
-          tensorAttributes.foreach(a => NativeOperation.setAttrTensor(nativeHandle, a._1, a._2))
-          tensorArrayAttributes.foreach(a => NativeOperation.setAttrTensorList(nativeHandle, a._1, a._2))
-          shapeAttributes.foreach(a => NativeOperation.setAttrShape(nativeHandle, a._1, a._2.shape, a._2.rank))
-          val operation = Op(graph, NativeOperation.finish(nativeHandle))
+          inputs.foreach(input => NativeOp.addInput(nativeHandle, input.op.nativeHandle, input.index))
+          context.controlDependencies.foreach(op => NativeOp.addControlInput(nativeHandle, op.nativeHandle))
+          device.foreach(NativeOp.setDevice(nativeHandle, _))
+          byteArrayAttributes.foreach(a => NativeOp.setAttrString(nativeHandle, a._1, a._2))
+          longAttributes.foreach(a => NativeOp.setAttrInt(nativeHandle, a._1, a._2))
+          longArrayAttributes.foreach(a => NativeOp.setAttrIntList(nativeHandle, a._1, a._2))
+          floatAttributes.foreach(a => NativeOp.setAttrFloat(nativeHandle, a._1, a._2))
+          floatArrayAttributes.foreach(a => NativeOp.setAttrFloatList(nativeHandle, a._1, a._2))
+          booleanAttributes.foreach(a => NativeOp.setAttrBool(nativeHandle, a._1, a._2))
+          booleanArrayAttributes.foreach(a => NativeOp.setAttrBoolList(nativeHandle, a._1, a._2))
+          dataTypeAttributes.foreach(a => NativeOp.setAttrType(nativeHandle, a._1, a._2))
+          dataTypeArrayAttributes.foreach(a => NativeOp.setAttrTypeList(nativeHandle, a._1, a._2))
+          tensorAttributes.foreach(a => NativeOp.setAttrTensor(nativeHandle, a._1, a._2))
+          tensorArrayAttributes.foreach(a => NativeOp.setAttrTensorList(nativeHandle, a._1, a._2))
+          shapeAttributes.foreach(a => NativeOp.setAttrShape(nativeHandle, a._1, a._2.shape, a._2.rank))
+          val operation = Op(graph, NativeOp.finish(nativeHandle))
           built = true
           operation
         }

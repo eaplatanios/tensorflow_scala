@@ -5,8 +5,10 @@ import ch.jodersky.jni.nativeLoader
 /**
   * @author Emmanouil Antonios Platanios
   */
+case class OpOutput(opHandle: Long, outputIndex: Int)
+
 @nativeLoader("tensorflow_jni")
-object Operation {
+object Op {
   // Operation
   @native def name(handle: Long): String
   @native def opType(handle: Long): String
@@ -16,11 +18,12 @@ object Operation {
   @native def numOutputs(handle: Long): Int
   @native def numControlOutputs(handle: Long): Int
   @native def numConsumers(handle: Long, output: Int): Int
-  // TODO: Inputs and consumers getters (need to be able to return op/output index pairs).
+  @native def input(handle: Long, inputIndex: Int): OpOutput
   @native def controlInputs(handle: Long): Array[Long]
   @native def controlOutputs(handle: Long): Array[Long]
-  @native def inputDataType(graphHandle: Long, opHandle: Long, input: Int): Int
-  @native def outputDataType(graphHandle: Long, opHandle: Long, output: Int): Int
+  @native def consumers(handle: Long, outputIndex: Int): Array[OpOutput]
+  @native def inputDataType(graphHandle: Long, opHandle: Long, inputIndex: Int): Int
+  @native def outputDataType(graphHandle: Long, opHandle: Long, outputIndex: Int): Int
   @native def shape(graphHandle: Long, opHandle: Long, output: Int): Array[Long]
   @native def allOps: Array[Byte]
 

@@ -57,7 +57,7 @@ TF_Tensor* requireTensor(JNIEnv* env, jlong handle) {
 }
 }  // namespace
 
-JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_name(JNIEnv* env,
+JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_Op_00024_name(JNIEnv* env,
                                                                              jobject object,
                                                                              jlong handle) {
   TF_Operation* op = requireOperationHandle(env, handle);
@@ -65,7 +65,7 @@ JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_name
   return env->NewStringUTF(TF_OperationName(op));
 }
 
-JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_opType(JNIEnv* env,
+JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_Op_00024_opType(JNIEnv* env,
                                                                                  jobject object,
                                                                                  jlong handle) {
   TF_Operation* op = requireOperationHandle(env, handle);
@@ -73,7 +73,7 @@ JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_opTy
   return env->NewStringUTF(TF_OperationOpType(op));
 }
 
-JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_device(JNIEnv* env,
+JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_Op_00024_device(JNIEnv* env,
                                                                                  jobject object,
                                                                                  jlong handle) {
   TF_Operation* op = requireOperationHandle(env, handle);
@@ -81,7 +81,7 @@ JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_devi
   return env->NewStringUTF(TF_OperationDevice(op));
 }
 
-JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_numInputs(JNIEnv* env,
+JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Op_00024_numInputs(JNIEnv* env,
                                                                                 jobject object,
                                                                                 jlong handle) {
   TF_Operation* op = requireOperationHandle(env, handle);
@@ -89,7 +89,7 @@ JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_numInpu
   return TF_OperationNumInputs(op);
 }
 
-JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_numControlInputs(JNIEnv* env,
+JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Op_00024_numControlInputs(JNIEnv* env,
                                                                                 jobject object,
                                                                                 jlong handle) {
   TF_Operation* op = requireOperationHandle(env, handle);
@@ -97,7 +97,7 @@ JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_numCont
   return TF_OperationNumControlInputs(op);
 }
 
-JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_numOutputs(JNIEnv* env,
+JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Op_00024_numOutputs(JNIEnv* env,
                                                                                 jobject object,
                                                                                 jlong handle) {
   TF_Operation* op = requireOperationHandle(env, handle);
@@ -105,7 +105,7 @@ JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_numOutp
   return TF_OperationNumOutputs(op);
 }
 
-JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_numControlOutputs(JNIEnv* env,
+JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Op_00024_numControlOutputs(JNIEnv* env,
                                                                                 jobject object,
                                                                                 jlong handle) {
   TF_Operation* op = requireOperationHandle(env, handle);
@@ -113,7 +113,7 @@ JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_numCont
   return TF_OperationNumControlOutputs(op);
 }
 
-JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_numConsumers(JNIEnv* env,
+JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Op_00024_numConsumers(JNIEnv* env,
                                                                                 jobject object,
                                                                                 jlong handle,
                                                                                 jint output_index) {
@@ -123,7 +123,31 @@ JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_numCons
   return TF_OperationOutputNumConsumers(output);
 }
 
-JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_controlInputs(JNIEnv* env,
+JNIEXPORT jobject JNICALL Java_org_platanios_tensorflow_jni_Op_00024_input(JNIEnv* env,
+                                                                                  jobject object,
+                                                                                  jlong handle,
+                                                                                  jint input_index) {
+  TF_Operation* op = requireOperationHandle(env, handle);
+  if (op == nullptr) return nullptr;
+
+  int num_inputs = TF_OperationNumInputs(op);
+  if (input_index < 0 || input_index >= num_inputs) {
+    throwException(
+        env, kIndexOutOfBoundsException,
+        "invalid input index (%d) for an operation that has %d inputs",
+        input_index, num_inputs);
+    return 0;
+  }
+
+  TF_Output output = TF_OperationInput(TF_Input{op, input_index});
+  jclass outputClass = env->FindClass("org/platanios/tensorflow/jni/OpOutput");
+  jmethodID outputClassConstructor = env->GetStaticMethodID(
+    outputClass, "apply", "(JI)Lorg/platanios/tensorflow/jni/OpOutput;");
+  return env->CallStaticObjectMethod(
+    outputClass, outputClassConstructor, reinterpret_cast<jlong>(output.oper), output.index);
+}
+
+JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_controlInputs(JNIEnv* env,
                                                                                              jobject object,
                                                                                              jlong handle) {
   TF_Operation* op = requireOperationHandle(env, handle);
@@ -141,7 +165,7 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_c
   return ret;
 }
 
-JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_controlOutputs(JNIEnv* env,
+JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_controlOutputs(JNIEnv* env,
                                                                                              jobject object,
                                                                                              jlong handle) {
   TF_Operation* op = requireOperationHandle(env, handle);
@@ -159,7 +183,30 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_c
   return ret;
 }
 
-JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_inputDataType(
+JNIEXPORT jobjectArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_consumers(JNIEnv* env,
+                                                                                  jobject object,
+                                                                                  jlong handle,
+                                                                                  jint output_index) {
+  TF_Operation* op = requireOperationHandle(env, handle);
+  if (op == nullptr) return nullptr;
+
+  TF_Output output{op, output_index};
+  int numConsumers = TF_OperationOutputNumConsumers(output);
+  std::unique_ptr<TF_Input[]> consumers(new TF_Input[numConsumers]);
+  TF_OperationOutputConsumers(output, consumers.get(), numConsumers);
+  jclass outputClass = env->FindClass("org/platanios/tensorflow/jni/OpOutput");
+  jmethodID outputClassConstructor = env->GetStaticMethodID(
+    outputClass, "apply", "(JI)Lorg/platanios/tensorflow/jni/OpOutput;");
+  jobjectArray ret = env->NewObjectArray(numConsumers, outputClass, NULL);
+  for (int i = 0; i < numConsumers; ++i) {
+    env->SetObjectArrayElement(
+      ret, i, env->CallStaticObjectMethod(
+        outputClass, outputClassConstructor, reinterpret_cast<jlong>(consumers[i].oper), consumers[i].index));
+  }
+  return ret;
+}
+
+JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Op_00024_inputDataType(
     JNIEnv* env, jobject object, jlong graph_handle, jlong op_handle, jint input_index) {
   TF_Graph* graph = requireGraphHandle(env, graph_handle);
   if (graph == nullptr) return 0;
@@ -178,7 +225,7 @@ JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_inputDa
   return static_cast<jint>(TF_OperationInputType(TF_Input{op, input_index}));
 }
 
-JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_outputDataType(
+JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Op_00024_outputDataType(
     JNIEnv* env, jobject object, jlong graph_handle, jlong op_handle, jint output_index) {
   TF_Graph* graph = requireGraphHandle(env, graph_handle);
   if (graph == nullptr) return 0;
@@ -197,7 +244,7 @@ JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_outputD
   return static_cast<jint>(TF_OperationOutputType(TF_Output{op, output_index}));
 }
 
-JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_shape(
+JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_shape(
     JNIEnv* env, jobject object, jlong graph_handle, jlong op_handle, jint output_index) {
   TF_Graph* graph = requireGraphHandle(env, graph_handle);
   if (graph == nullptr) return nullptr;
@@ -247,7 +294,7 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_s
   return ret;
 }
 
-JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_allOps(JNIEnv* env,
+JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_allOps(JNIEnv* env,
                                                                                       jobject object) {
   TF_Buffer* opListBuffer = TF_GetAllOpList();
   jbyteArray ret = env->NewByteArray(opListBuffer->length);
@@ -257,7 +304,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_a
   return ret;
 }
 
-JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_allocate(
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Op_00024_allocate(
     JNIEnv* env, jobject object, jlong graph_handle, jstring type, jstring name) {
   if (graph_handle == 0) {
     throwException(env, kIllegalStateException,
@@ -275,7 +322,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_alloca
   return reinterpret_cast<jlong>(d);
 }
 
-JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_finish(
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Op_00024_finish(
     JNIEnv* env, jobject object, jlong handle) {
   TF_OperationDescription* d = requireOperationDescriptionHandle(env, handle);
   if (d == nullptr) return 0;
@@ -287,7 +334,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_finish
   return 0;
 }
 
-JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_addInput(
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_addInput(
     JNIEnv* env, jobject object, jlong handle, jlong op_handle, jint index) {
   TF_Output out;
   if (!resolveOutput(env, op_handle, index, &out)) return;
@@ -296,7 +343,7 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_addInpu
   TF_AddInput(d, out);
 }
 
-JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_addInputList(
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_addInputList(
     JNIEnv* env, jobject object, jlong handle, jlongArray op_handles,
     jintArray indices) {
   TF_OperationDescription* d = requireOperationDescriptionHandle(env, handle);
@@ -322,7 +369,7 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_addInpu
   TF_AddInputList(d, o.get(), n);
 }
 
-JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_addControlInput
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_addControlInput
   (JNIEnv* env, jobject object, jlong handle, jlong inputOpHandle) {
   TF_OperationDescription* d = requireOperationDescriptionHandle(env, handle);
   if (d == nullptr) return;
@@ -331,7 +378,7 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_addCont
   TF_AddControlInput(d, op);
 }
 
-JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_setDevice(
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_setDevice(
     JNIEnv* env, jobject object, jlong handle, jstring device) {
   TF_OperationDescription* d = requireOperationDescriptionHandle(env, handle);
   if (d == nullptr) return;
@@ -340,7 +387,7 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_setDevi
   env->ReleaseStringUTFChars(device, cdevice);
 }
 
-JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_setAttrString(
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_setAttrString(
     JNIEnv* env, jobject object, jlong handle, jstring name, jbyteArray value) {
   static_assert(sizeof(jbyte) == 1,
                 "Require Java byte to be represented as a single byte");
@@ -354,7 +401,7 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_setAttr
 }
 
 #define DEFINE_SET_ATTR_SCALAR(name, jtype, ctype)                                           \
-  JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_setAttr##name(        \
+  JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_setAttr##name(        \
       JNIEnv* env, jobject object, jlong handle, jstring name, jtype value) {                \
     static_assert(                                                                           \
         sizeof(ctype) >= sizeof(jtype),                                                      \
@@ -368,7 +415,7 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_setAttr
 
 #define DEFINE_SET_ATTR_LIST(name, jname, jtype, ctype)                            \
   JNIEXPORT void JNICALL                                                           \
-      Java_org_platanios_tensorflow_jni_Operation_00024_setAttr##name##List(           \
+      Java_org_platanios_tensorflow_jni_Op_00024_setAttr##name##List(           \
           JNIEnv* env, jobject object, jlong handle, jstring name,                 \
           jtype##Array value) {                                                    \
     TF_OperationDescription* d = requireOperationDescriptionHandle(env, handle);   \
@@ -402,7 +449,7 @@ DEFINE_SET_ATTR(Type, Int, jint, TF_DataType);
 #undef DEFINE_SET_ATTR_LIST
 #undef DEFINE_SET_ATTR_SCALAR
 
-JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_setAttrTensor(
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_setAttrTensor(
     JNIEnv* env, jobject object, jlong handle, jstring name,
     jlong tensor_handle) {
   TF_OperationDescription* d = requireOperationDescriptionHandle(env, handle);
@@ -416,7 +463,7 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_setAttr
   env->ReleaseStringUTFChars(name, cname);
 }
 
-JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_setAttrTensorList(
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_setAttrTensorList(
     JNIEnv* env, jobject object, jlong handle, jstring name,
     jlongArray tensor_handles) {
   TF_OperationDescription* d = requireOperationDescriptionHandle(env, handle);
@@ -439,7 +486,7 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_setAttr
   env->ReleaseStringUTFChars(name, cname);
 }
 
-JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_setAttrShape(
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_setAttrShape(
     JNIEnv* env, jobject object, jlong handle, jstring name, jlongArray shape,
     jint num_dims) {
   TF_OperationDescription* d = requireOperationDescriptionHandle(env, handle);
