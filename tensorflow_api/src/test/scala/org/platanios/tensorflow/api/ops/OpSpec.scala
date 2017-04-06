@@ -189,7 +189,7 @@ class OpSpec extends FlatSpec with Matchers {
       }
     }
   }
-  
+
   it must "be able to use device functions for setting op devices individually" in {
     def matMulOnGPU(opSpecification: OpSpecification): String = {
       if (opSpecification.opType == "MatMul")
@@ -202,6 +202,93 @@ class OpSpec extends FlatSpec with Matchers {
       assert(c.device === "/device:CPU:0")
       val m = matMul(c, constant(2.0))
       assert(m.device === "/device:GPU:0")
+    }
+  }
+
+  //endregion
+
+  //region createWith(controlDependencies = ...) Specification
+
+  it must "change the control dependencies for newly created ops (only) for its code block" in {
+    createWith(graph = Graph()) {
+      val a = constant(1.0)
+      val b = constant(1.0)
+      assert(a.controlInputs.toSet === Set.empty[Op])
+      assert(a.controlOutputs.toSet === Set.empty[Op])
+      assert(b.controlInputs.toSet === Set.empty[Op])
+      assert(b.controlOutputs.toSet === Set.empty[Op])
+      val c = createWith(controlDependencies = Set[Op](a)) {
+        val c = constant(1.0)
+        assert(c.controlInputs.toSet === Set[Op](a))
+        assert(c.controlOutputs.toSet === Set.empty[Op])
+        assert(a.controlOutputs.toSet === Set[Op](c))
+        assert(b.controlOutputs.toSet === Set.empty[Op])
+        c
+      }
+      createWith(controlDependencies = Set[Op](a, b)) {
+        val d = constant(1.0)
+        assert(d.controlInputs.toSet === Set[Op](a, b))
+        assert(d.controlOutputs.toSet === Set.empty[Op])
+        assert(a.controlOutputs.toSet === Set[Op](c, d))
+        assert(b.controlOutputs.toSet === Set[Op](d))
+      }
+    }
+  }
+
+  it must "allow for nesting of control dependencies specifications" in {
+    createWith(graph = Graph()) {
+      val a = constant(1.0)
+      val b = constant(1.0)
+      assert(a.controlInputs.toSet === Set.empty[Op])
+      assert(a.controlOutputs.toSet === Set.empty[Op])
+      assert(b.controlInputs.toSet === Set.empty[Op])
+      assert(b.controlOutputs.toSet === Set.empty[Op])
+      createWith(controlDependencies = Set[Op](a)) {
+        val c = constant(1.0)
+        assert(c.controlInputs.toSet === Set[Op](a))
+        assert(c.controlOutputs.toSet === Set.empty[Op])
+        assert(a.controlOutputs.toSet === Set[Op](c))
+        assert(b.controlOutputs.toSet === Set.empty[Op])
+        createWith(controlDependencies = Set[Op](b)) {
+          val d = constant(1.0)
+          assert(d.controlInputs.toSet === Set[Op](a, b))
+          assert(d.controlOutputs.toSet === Set.empty[Op])
+          assert(a.controlOutputs.toSet === Set[Op](c, d))
+          assert(b.controlOutputs.toSet === Set[Op](d))
+        }
+      }
+    }
+  }
+
+  it must "reset the control dependencies (only) for its code block when provided an empty set" in {
+    createWith(graph = Graph()) {
+      val a = constant(1.0)
+      val b = constant(1.0)
+      assert(a.controlInputs.toSet === Set.empty[Op])
+      assert(a.controlOutputs.toSet === Set.empty[Op])
+      assert(b.controlInputs.toSet === Set.empty[Op])
+      assert(b.controlOutputs.toSet === Set.empty[Op])
+      createWith(controlDependencies = Set[Op](a)) {
+        val c = constant(1.0)
+        assert(c.controlInputs.toSet === Set[Op](a))
+        assert(c.controlOutputs.toSet === Set.empty[Op])
+        assert(a.controlOutputs.toSet === Set[Op](c))
+        assert(b.controlOutputs.toSet === Set.empty[Op])
+        createWith(controlDependencies = Set.empty[Op]) {
+          val d = constant(1.0)
+          assert(d.controlInputs.toSet === Set.empty[Op])
+          assert(d.controlOutputs.toSet === Set.empty[Op])
+          assert(a.controlOutputs.toSet === Set[Op](c))
+          assert(b.controlOutputs.toSet === Set.empty[Op])
+          createWith(controlDependencies = Set[Op](b)) {
+            val e = constant(1.0)
+            assert(e.controlInputs.toSet === Set[Op](b))
+            assert(e.controlOutputs.toSet === Set.empty[Op])
+            assert(a.controlOutputs.toSet === Set[Op](c))
+            assert(b.controlOutputs.toSet === Set[Op](e))
+          }
+        }
+      }
     }
   }
 

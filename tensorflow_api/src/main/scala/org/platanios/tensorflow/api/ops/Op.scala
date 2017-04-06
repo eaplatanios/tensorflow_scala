@@ -3,8 +3,9 @@ package org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.jni.{Op => NativeOp}
 import org.platanios.tensorflow.api.Exception.{IllegalNameException, OpBuilderUsedException}
-
 import java.nio.charset.Charset
+
+import scala.collection.mutable
 import scala.util.DynamicVariable
 import scala.util.matching.Regex
 
@@ -26,8 +27,12 @@ final case class Op(graph: Graph, nativeHandle: Long) {
   /** Returns the number of tensors fed as input to this operation. */
   val numInputs: Int = using(graph.reference) { _ => NativeOp.numInputs(nativeHandle) }
 
+  val numControlInputs: Int = using(graph.reference) { _ => NativeOp.numControlInputs(nativeHandle) }
+
   /** Number of tensors produced by this operation. */
   val numOutputs: Int = using(graph.reference) { _ => NativeOp.numOutputs(nativeHandle) }
+
+  val numControlOutputs: Int = using(graph.reference) { _ => NativeOp.numControlOutputs(nativeHandle) }
 
   // TODO: Avoid creating new instances of the Op classes if they already exist.
   private[api] def input(index: Int): Op.Output = {
@@ -40,10 +45,20 @@ final case class Op(graph: Graph, nativeHandle: Long) {
 
   val inputs: Array[Op.Output] = (0 until numInputs).map(input).toArray
 
+  val controlInputs: Array[Op] = {
+    val controlInputHandles = using(graph.reference) { _ => NativeOp.controlInputs(nativeHandle) }
+    controlInputHandles.map(handle => graph.opsCache.getOrElseUpdate(handle, Op(graph, handle)))
+  }
+
   /** Returns a symbolic handle to one of the tensors produced by this operation. */
   private[api] def output(index: Int): Op.Output = outputs(index)
 
   val outputs: Array[Op.Output] = (0 until numOutputs).map(i => Op.Output(op = this, index = i)).toArray
+
+  def controlOutputs: Array[Op] = {
+    val controlOutputHandles = using(graph.reference) { _ => NativeOp.controlOutputs(nativeHandle) }
+    controlOutputHandles.map(handle => graph.opsCache.getOrElseUpdate(handle, Op(graph, handle)))
+  }
 
   private def outputConsumers(index: Int): Array[Op.Output] = using(graph.reference) { _ =>
     NativeOp.consumers(nativeHandle, index).map(jniOpOutput => {
@@ -65,11 +80,11 @@ final case class Op(graph: Graph, nativeHandle: Long) {
   override def toString: String = name
 }
 
-// TODO: Add control input options.
+// TODO: Add support for container contexts.
 private[ops] final case class OpSpecification(name: String, opType: String)
 private[api] final case class OpCreationContext(
     graph: Graph = Graph(), nameScope: String = "", device: OpSpecification => String = _ => "",
-    controlDependencies: Set[Op] = Set())
+    controlDependencies: Set[Op] = Set.empty[Op])
 
 object Op {
   /** Convenient implicit conversion function used to convert devices specified as [[String]]s for use with the
@@ -81,13 +96,51 @@ object Op {
     */
   implicit def deviceImplicitConversion(device: String): OpSpecification => String = _ => device
 
+  /** Convenient implicit conversion function used to convert op outputs to their corresponding ops for use with the
+    * [[createWith]] function, when specifying control dependencies.
+    *
+    * @param  opOutput Op output.
+    * @return Op corresponding to the provided op output.
+    */
+  implicit def opOutputToOpImplicitConversion(opOutput: Op.Output): Op = opOutput.op
+
   /** Creates a context that can be used for creating ops according to the provided options.
     *
-    * During graph creation, a context is maintained that includes: (i) the current graph in which new ops are placed,
-    * (ii) the current name scope used for naming these new ops, and (iii) a device function, used to decide in which
-    * device (e.g., CPU vs. GPU) the new ops should be placed and executed.
+    * = General Information =
     *
-    * when `createWith(...)` is used with a name scope, the provided name scope is appended to the context name scope,
+    * During graph creation, a context is maintained that includes:
+    *   - The current graph in which new ops are placed.
+    *   - The current name scope used for naming these new ops.
+    *   - A device function, used to decide in which device (e.g., CPU) the new ops should be placed and executed.
+    *   - A set of ops defining control dependencies for the newly constructed ops. This means that the newly
+    *     constructed ops are constrained to only execute after the provided set of ops has finished executing.
+    *
+    * Note that all arguments of this function are optional. If they are not provided, then the corresponding option in
+    * current op creation context is left unchanged.
+    *
+    * Care must be taken if concurrency is used while creating the graph because the op creation context is wrapped
+    * inside a [[scala.util.DynamicVariable]]. More information on this general issue can be found at
+    * [[http://stevenskelton.ca/threadlocal-variables-scala-futures/]].
+    *
+    * = Argument Specifics =
+    *
+    * == Graph ==
+    *
+    * When `createWith(...)` is used with a graph, then all ops created within its code block will be placed in the
+    * provided graph.
+    *
+    * For example:
+    * {{{
+    *   val g = Graph()
+    *   createWith(graph = g) {
+    *     val c = constant(5.0)
+    *     assert(c.graph == g)
+    *   }
+    * }}}
+    *
+    * == Name Scope ==
+    *
+    * When createWith(...)` is used with a name scope, the provided name scope is appended to the context name scope,
     * generating a new op creation context. This new context is used for all ops created within the code block provided
     * in the `createWith(...)` function. The `nameScope` argument will be interpreted as follows:
     *   - A string will create a new name scope, in which `nameScope` is appended to the prefix of all operations
@@ -101,37 +154,8 @@ object Op {
     * expression `[A-Za-z0-9.][A-Za-z0-9_.\\-/]*` if the current context name scope is empty (i.e., at the root), or
     * (ii) the regular expression `[A-Za-z0-9_.\\-/]*`, otherwise.
     *
-    * When `createWith(...)` is used with a device, the `device` argument needs to be a function taking an
-    * [[OpSpecification]] as input and returning a string representation of the device where the corresponding op should
-    * be placed. This function is invoked every time a new op is created within the provided code block. If the function
-    * returns `null` for some op, then all subsequent invocations of `createWith(device = ...)` in the provided code
-    * block will be ignored. Note that, if the [[deviceImplicitConversion]] implicit conversion function is within
-    * scope, then a `String` value (or `null`) can be used directly for the `device` field. In this case, the value
-    * provided will be used as the device for all newly create ops in the provided code block. For information about the
-    * valid syntax of device name strings, see the documentation in
-    * [`DeviceNameUtils`](https://www.tensorflow.org/code/tensorflow/core/util/device_name_utils.h).
-    *
-    * Note that the device scope may be overridden by op wrappers or other library code. For example, a variable
-    * assignment op must be colocated with the corresponding variable. Incompatible device scopes will be ignored.
-    *
-    * Note that all arguments of this function are optional. If they are not provided, then the corresponding option in
-    * current op creation context is left unchanged.
-    *
-    * Care must be taken if concurrency is used while creating the graph because the op creation context is wrapped
-    * inside a [[scala.util.DynamicVariable]]. More information on this general issue can be found at
-    * [[http://stevenskelton.ca/threadlocal-variables-scala-futures/]].
-    *
-    * @example {{{
-    *   // Placing the new ops in the provided graph
-    *
-    *   val g = Graph()
-    *   createWith(graph = g) {
-    *     val c = constant(5.0)
-    *     assert(c.graph == g)
-    *   }
-    *
-    *   // Changing the name scope for the new ops
-    *
+    * For example:
+    * {{{
     *   // No name scope used
     *   val c = constant(1.0, name = "C")
     *   assert(c.op.name == "C")
@@ -161,9 +185,26 @@ object Op {
     *       }
     *     }
     *   }
+    * }}}
     *
+    * == Device ==
+    *
+    * When `createWith(...)` is used with a device, the `device` argument needs to be a function taking an
+    * [[OpSpecification]] as input and returning a string representation of the device where the corresponding op should
+    * be placed. This function is invoked every time a new op is created within the provided code block. If the function
+    * returns `null` for some op, then all subsequent invocations of `createWith(device = ...)` in the provided code
+    * block will be ignored. Note that, if the [[deviceImplicitConversion]] implicit conversion function is within
+    * scope, then a `String` value (or `null`) can be used directly for the `device` field. In this case, the value
+    * provided will be used as the device for all newly create ops in the provided code block. For information about the
+    * valid syntax of device name strings, see the documentation in
+    * [`DeviceNameUtils`](https://www.tensorflow.org/code/tensorflow/core/util/device_name_utils.h).
+    *
+    * Note that the device scope may be overridden by op wrappers or other library code. For example, a variable
+    * assignment op must be colocated with the corresponding variable. Incompatible device scopes will be ignored.
+    *
+    * For example:
+    * {{{
     *   // Specifying which device to use
-    *
     *   createWith(device = "/GPU:0") {
     *     // All ops constructed in this code block will be placed in GPU 0
     *     val gpu0C = constant(7.0)
@@ -178,7 +219,6 @@ object Op {
     *   }
     *
     *   // Using a device function
-    *
     *   def matMulOnGPU(opSpecification: OpSpecification): String = {
     *     if (opSpecification.opType == "MatMul")
     *       "/GPU:0"
@@ -194,9 +234,53 @@ object Op {
     *     val m = matMul(c, constant(10.0))
     *     assert(m.device == "/device:GPU:0")
     *   }
+    * }}}
     *
+    * == Control Dependencies ==
+    *
+    * When `createWith(...)` is used with a set of control dependencies, then all ops created within its code block will
+    * be dependent on the control dependency ops. This means that they will be guaranteed to execute only after all of
+    * the control dependencies ops have finished executing. Note that if a set of control dependencies already exist in
+    * the current op creation context (e.g., as the result of nesting multiple `createWith(controlDependencies = ...)`
+    * calls), then the new set of control dependencies will be the union of the two sets. Furthermore, if an empty set
+    * is provided, then the control dependencies are cleared, instead of taking the union with the current control
+    * dependencies.
+    *
+    * For example:
+    * {{{
+    *   val a = constant(1.0)
+    *   val b = constant(1.0)
+    *   createWith(controlDependencies = Set(a)) {
+    *     val c = constant(1.0)
+    *     assert(c.controlInputs.toSet == Set(a))
+    *     createWith(controlDependencies = Set(b, c)) {
+    *       val d = constant(1.0)
+    *       assert(d.controlInputs.toSet == Set(a, b, c))
+    *       createWith(controlDependencies = Set()) {
+    *         createWith(controlDependencies = Set(d)) {
+    *           val e = constant(1.0)
+    *           assert(e.controlInputs.toSet == Set(d))
+    *         }
+    *       }
+    *     }
+    *   }
+    *   assert(a.controlOutputs.toSet == Set(c, d))
+    *   assert(b.controlOutputs.toSet == Set(d))
+    *   assert(c.controlOutputs.toSet == Set())
+    *   assert(d.controlOutputs.toSet == Set(e))
+    *   assert(e.controlOutputs.toSet == Set())
+    * }}}
+    *
+    * Note that transitive dependencies are eliminated (e.g., if `a` depends on `b` and `c`, and `b` depends on `c`,
+    * then the dependency of `a` on `c` is ignored) in order not to add redundant control dependencies to the graph.
+    *
+    * == Combining Arguments ==
+    *
+    * Multiple arguments can be provided to change several aspects of the current op creation scope.
+    *
+    * For example:
+    * {{{
     *   // Changing graph, name scope, and device to use for new ops.
-    *
     *   createWith(graph = g, nameScope = "Nested", device = "/GPU:0") {
     *     val c = constant(11.0, name = "C")
     *     assert(c.graph == g)
@@ -205,53 +289,107 @@ object Op {
     *   }
     * }}}
     *
-    * @param  graph     Graph to use as default for new ops.
-    * @param  nameScope Name scope to use.
-    * @param  device    Device function to use.
-    * @param  block     Code block to run using the provided options.
-    * @param  context   Current op creation context.
-    * @tparam R         Return type of the code block.
+    * @param  graph               Graph to use as default for new ops.
+    * @param  nameScope           Name scope to use.
+    * @param  device              Device function to use.
+    * @param  controlDependencies Control dependencies to use.
+    * @param  block               Code block to run using the provided options.
+    * @param  context             Current op creation context.
+    * @tparam R                   Return type of the code block.
     * @return Return value of the code block.
     * @throws IllegalNameException If the provided name scope does not pass the regular expression validity checks.
     */
   @throws[IllegalNameException]
-  def createWith[R](graph: Graph = null, nameScope: String = null, device: OpSpecification => String = _ => "")
+  def createWith[R](
+      graph: Graph = null, nameScope: String = null, device: OpSpecification => String = _ => "",
+      controlDependencies: Set[Op] = null)
       (block: => R)(implicit context: DynamicVariable[OpCreationContext]): R = {
-    val newGraph: Graph = if (graph == null) context.graph else graph
-    val newNameScope: String = {
-      if (nameScope == null) {
-        context.nameScope
+    val newGraph: Graph = mergeGraph(graph, context)
+    val newNameScope: String = mergeNameScope(nameScope, context)
+    val newDevice: OpSpecification => String = mergeDevice(device, context)
+    val newControlDependencies: Set[Op] = mergeControlDependencies(controlDependencies, context)
+    context.withValue(context.copy(
+      graph = newGraph, nameScope = newNameScope, device = newDevice, controlDependencies = newControlDependencies)) {
+      block
+    }
+  }
+
+  /** Merges a graph to provided op creation context graph and returns the graph to use when specifying the updated op
+    * creation context. The merging rules are specified in the documentation of [[createWith]] function.
+    *
+    * @param  graph   Graph to merge.
+    * @param  context Op creation context whose graph needs to be updated.
+    * @return Graph to use for the new op creation context.
+    */
+  private[this] def mergeGraph(graph: Graph, context: OpCreationContext): Graph = {
+    if (graph == null) context.graph else graph
+  }
+
+  /** Merges a name scope to provided op creation context name scope and returns the name scope to use when specifying
+    * the updated op creation context. The merging rules are specified in the documentation of [[createWith]] function.
+    *
+    * @param  nameScope Name scope to merge.
+    * @param  context   Op creation context whose name scope needs to be updated.
+    * @return Name scope to use for the new op creation context.
+    */
+  private[this] def mergeNameScope(nameScope: String, context: OpCreationContext): String = {
+    if (nameScope == null) {
+      context.nameScope
+    } else {
+      // Check whether the provided name scope is valid.
+      // If the root name scope is being set, then stricter checks are performed on it (i.e., op naming checks). This
+      // makes sure the name scope does not start with any illegal characters (e.g., '_', '-', '\', and '/').
+      if ((context.nameScope == "" && !checkName(nameScope))
+          || (context.nameScope != "" && !checkNameScope(nameScope)))
+        throw IllegalNameException(s"Illegal name scope '$nameScope'.")
+      if (nameScope == "")
+        ""
+      else if (context.nameScope == "")
+        uniqueName(graph = context.graph, name = s"${convertNameScopeToName(nameScope)}")
+      else
+        uniqueName(graph = context.graph, name = s"${context.nameScope}/${convertNameScopeToName(nameScope)}")
+    }
+  }
+
+  /** Merges a device to provided op creation context device and returns the device to use when specifying the updated
+    * op creation context. The merging rules are specified in the documentation of [[createWith]] function.
+    *
+    * @param  device  Device to merge.
+    * @param  context Op creation context whose device needs to be updated.
+    * @return Device to use for the new op creation context.
+    */
+  private[this] def mergeDevice(
+      device: OpSpecification => String = _ => "", context: OpCreationContext): OpSpecification => String = {
+    val oldContextDevice = context.device
+    opSpecification => {
+      val oldDeviceSpecString = oldContextDevice(opSpecification)
+      val newDeviceSpecString = if (device != null) device(opSpecification) else null
+      // Check if the device has been reset or has to be reset for all subsequent nested scopes
+      if (oldDeviceSpecString == null || newDeviceSpecString == null) {
+        null
       } else {
-        // Check whether the provided name scope is valid.
-        // If the root name scope is being set, then stricter checks are performed on it (i.e., op naming checks). This
-        // makes sure the name scope does not start with any illegal characters (e.g., '_', '-', '\', and '/').
-        if ((context.nameScope == "" && !checkName(nameScope))
-            || (context.nameScope != "" && !checkNameScope(nameScope)))
-          throw IllegalNameException(s"Illegal name scope '$nameScope'.")
-        if (nameScope == "")
-          ""
-        else if (context.nameScope == "")
-          uniqueName(graph = context.graph, name = s"${convertNameScopeToName(nameScope)}")
-        else
-          uniqueName(graph = context.graph, name = s"${context.nameScope}/${convertNameScopeToName(nameScope)}")
+        val oldDeviceSpec = DeviceSpecification.fromString(oldDeviceSpecString)
+        val newDeviceSpec = DeviceSpecification.fromString(newDeviceSpecString)
+        DeviceSpecification.merge(oldDeviceSpec, newDeviceSpec).toString
       }
     }
-    val newDevice: OpSpecification => String = {
-      val oldContextDevice = context.device
-      opSpecification => {
-        val oldDeviceSpecString = oldContextDevice(opSpecification)
-        val newDeviceSpecString = if (device != null) device(opSpecification) else null
-        // Check if the device has been reset or has to be reset for all subsequent nested scopes
-        if (oldDeviceSpecString == null || newDeviceSpecString == null) {
-          null
-        } else {
-          val oldDeviceSpec = DeviceSpecification.fromString(oldDeviceSpecString)
-          val newDeviceSpec = DeviceSpecification.fromString(newDeviceSpecString)
-          DeviceSpecification.merge(oldDeviceSpec, newDeviceSpec).toString
-        }
-      }
-    }
-    context.withValue(context.copy(graph = newGraph, nameScope = newNameScope, device = newDevice))(block)
+  }
+
+  /** Merges a set of control dependencies to provided op creation context set of control dependencies and returns the
+    * set of control dependencies to use when specifying the updated op creation context. The merging rules are
+    * specified in the documentation of [[createWith]] function.
+    *
+    * @param  controlDependencies Set of control dependencies to merge.
+    * @param  context             Op creation context whose name scope needs to be updated.
+    * @return Set of control dependencies to use for the new op creation context.
+    */
+  private[this] def mergeControlDependencies(controlDependencies: Set[Op], context: OpCreationContext): Set[Op] = {
+    if (controlDependencies == null)
+      context.controlDependencies
+    else if (controlDependencies == Set.empty[Op])
+      controlDependencies
+    else
+      context.controlDependencies ++ controlDependencies
   }
 
   private[this] val validOpNameRegex: Regex = "^[A-Za-z0-9.][A-Za-z0-9_.\\-/]*$".r
@@ -314,16 +452,6 @@ object Op {
       nameScope
   }
 
-  // TODO: Add merge functions for other parts of the op creation context.
-
-  private[this] def mergeControlDependencies(oldControlDeps: Set[Op], newControlDeps: Set[Op]): Set[Op] = {
-    if (newControlDeps == null) {
-      Set[Op]()
-    } else {
-      ???
-    }
-  }
-
   final case class Output private (op: Op, index: Int) {
     val name: String = s"${op.name}:$index"
     val dataType: DataType[_] = op.outputDataType(index)
@@ -368,6 +496,23 @@ object Op {
     private var tensorArrayAttributes: Map[String, Array[Long]] = Map[String, Array[Long]]()
     private var shapeAttributes: Map[String, Shape] = Map[String, Shape]()
 
+    /** Prunes control dependencies from the provided set, given that the op for which these control dependencies are
+      * specified uses `op` as direct or indirect (through other ops) input or control input. This eliminates redundant
+      * control dependencies due to transitive dependencies (e.g., if `a` depends on `b` and `c`, and `b` depends on
+      * `c`, then the dependency of `a` on `c` is pruned).
+      *
+      * @param  controlDeps Current set of control dependencies for the op that is being built.
+      * @param  op          Op that is a direct or indirect (through other ops) input or control input, for the op that
+      *                     is being built.
+      */
+    private[this] def pruneControlDependencies(controlDeps: mutable.Set[Op], op: Op): Unit = {
+      // Prune op that is already used as input to the dependant op
+      controlDeps -= op
+      // Prune transitive control dependencies
+      op.inputs.foreach(input => pruneControlDependencies(controlDeps, input.op))
+      op.controlInputs.foreach(pruneControlDependencies(controlDeps, _))
+    }
+
     def build(): Op = using(graph.reference) { _ =>
       if (built)
         throw OpBuilderUsedException("This op builder has already been used to built an op and cannot be re-used.")
@@ -377,7 +522,9 @@ object Op {
           val nativeHandle: Long = NativeOp.allocate(
             r.nativeHandle, opType, uniqueName(graph = graph, name = opName))
           inputs.foreach(input => NativeOp.addInput(nativeHandle, input.op.nativeHandle, input.index))
-          context.controlDependencies.foreach(op => NativeOp.addControlInput(nativeHandle, op.nativeHandle))
+          val controlDependencies: mutable.Set[Op] = mutable.Set(context.controlDependencies.toSeq: _*)
+          inputs.foreach(input => pruneControlDependencies(controlDependencies, input.op))
+          controlDependencies.foreach(op => NativeOp.addControlInput(nativeHandle, op.nativeHandle))
           device.foreach(NativeOp.setDevice(nativeHandle, _))
           byteArrayAttributes.foreach(a => NativeOp.setAttrString(nativeHandle, a._1, a._2))
           longAttributes.foreach(a => NativeOp.setAttrInt(nativeHandle, a._1, a._2))
