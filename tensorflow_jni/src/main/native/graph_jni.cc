@@ -1,6 +1,7 @@
 #include "include/graph_jni.h"
 
 #include <limits>
+#include <vector>
 #include "include/c_api.h"
 #include "include/exception_jni.h"
 
@@ -26,7 +27,7 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_delete(JNIE
   TF_DeleteGraph(reinterpret_cast<TF_Graph*>(handle));
 }
 
-JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_op(JNIEnv* env,
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_findOp(JNIEnv* env,
                                                                             jobject object,
                                                                             jlong handle,
                                                                             jstring name) {
@@ -36,6 +37,26 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_op(JNIEnv*
   TF_Operation* op = TF_GraphOperationByName(g, cname);
   env->ReleaseStringUTFChars(name, cname);
   return reinterpret_cast<jlong>(op);
+}
+
+JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_allOps(JNIEnv* env,
+                                                                            jobject object,
+                                                                            jlong handle) {
+  TF_Graph* g = requireHandle(env, handle);
+  if (g == nullptr) return 0;
+  std::vector<TF_Operation*> ops;
+  size_t pos = 0;
+  TF_Operation* op;
+  while ((op = TF_GraphNextOperation(g, &pos)) != nullptr) {
+    ops.push_back(op);
+  }
+  jlongArray ret = env->NewLongArray(ops.size());
+  jlong* opsArray = env->GetLongArrayElements(ret, nullptr);
+  for (int i = 0; i < ops.size(); ++i) {
+    opsArray[i] = reinterpret_cast<jlong>(ops[i]);
+  }
+  env->ReleaseLongArrayElements(ret, opsArray, 0);
+  return ret;
 }
 
 JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_importGraphDef(

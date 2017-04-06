@@ -25,11 +25,19 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_delete
 
 /*
  * Class:     org_platanios_tensorflow_jni_Graph__
- * Method:    op
+ * Method:    findOp
  * Signature: (JLjava/lang/String;)J
  */
-JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_op
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_findOp
   (JNIEnv *, jobject, jlong, jstring);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Graph__
+ * Method:    allOps
+ * Signature: (J)[J
+ */
+JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_allOps
+  (JNIEnv *, jobject, jlong);
 
 /*
  * Class:     org_platanios_tensorflow_jni_Graph__

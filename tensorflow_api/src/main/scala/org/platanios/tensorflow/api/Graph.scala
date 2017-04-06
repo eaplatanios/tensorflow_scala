@@ -25,7 +25,7 @@ final case class Graph(private var nativeHandle: Long) extends Closeable {
     */
   @throws[InvalidGraphElementException]
   def asGraphElement(name: String, allowOpOutput: Boolean = true, allowOp: Boolean = true): Either[Op, Op.Output] =
-    synchronized {
+  NativeHandleLock.synchronized {
       if (!allowOpOutput && !allowOp)
         throw new IllegalArgumentException("'allowOpOutput' and 'allowOp' cannot both be set to 'false'.")
       if (name.contains(':')) {
@@ -34,7 +34,7 @@ final case class Graph(private var nativeHandle: Long) extends Closeable {
           if (nameParts.length != 2 || !nameParts(1).matches("\\d+"))
             throw InvalidGraphElementException(
               s"The name $name looks a like an op output name, but it is not a valid one. Op output names must be of " +
-                  s"the form \"<op_name>:<output_index>\".")
+                  "the form \"<op_name>:<output_index>\".")
           val opName = nameParts(0)
           val opOutputIndex = nameParts(1).toInt
           val graphOp = findOp(opName) match {
@@ -103,11 +103,17 @@ final case class Graph(private var nativeHandle: Long) extends Closeable {
     */
   def findOp(name: String): Option[Op] = {
     NativeHandleLock.synchronized {
-      val operationHandle: Long = NativeGraph.op(nativeHandle, name)
-      if (operationHandle == 0)
+      val opHandle: Long = NativeGraph.findOp(nativeHandle, name)
+      if (opHandle == 0)
         None
       else
-        Some(Op(this, operationHandle))
+        Some(Op(this, opHandle))
+    }
+  }
+
+  def allOps: Array[Op] = {
+    NativeHandleLock.synchronized {
+      NativeGraph.allOps(nativeHandle).map(Op(this, _))
     }
   }
 
