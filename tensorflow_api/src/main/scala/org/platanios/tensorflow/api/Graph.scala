@@ -1,5 +1,6 @@
 package org.platanios.tensorflow.api
 
+import org.platanios.tensorflow.api.Exception.InvalidGraphElementException
 import org.platanios.tensorflow.api.ops.Op
 import org.platanios.tensorflow.jni.{Graph => NativeGraph}
 
@@ -7,6 +8,68 @@ import org.platanios.tensorflow.jni.{Graph => NativeGraph}
   * @author Emmanouil Antonios Platanios
   */
 final case class Graph(private var nativeHandle: Long) extends Closeable {
+  /** Returns the [[Op]] or [[Op.Output]] referred to by the provided name.
+    *
+    * This function validates that `name` refers to an element of this graph, and gives an informative error message if
+    * it does not. It is the canonical way to get/validate an [[Op]] or [[Op.Output]] from an external argument
+    * reference in the Session API. The vast majority of this function is figuring out what an API user might be doing
+    * wrong, so that we can give helpful error messages.
+    *
+    * @note This function may be called concurrently from multiple threads (i.e., it is thread-safe).
+    *
+    * @param  name          Name of the graph element being looked up.
+    * @param  allowOpOutput Allow op outputs to be considered for the graph element to return.
+    * @param  allowOp       Allow ops to be considered for the graph element to return.
+    * @return Graph element named `name`.
+    * @throws InvalidGraphElementException  If the provided name cannot be associated with an element of this graph.
+    */
+  @throws[InvalidGraphElementException]
+  def asGraphElement(name: String, allowOpOutput: Boolean = true, allowOp: Boolean = true): Either[Op, Op.Output] =
+    synchronized {
+      if (!allowOpOutput && !allowOp)
+        throw new IllegalArgumentException("'allowOpOutput' and 'allowOp' cannot both be set to 'false'.")
+      if (name.contains(':')) {
+        if (allowOpOutput) {
+          val nameParts = name.split(':')
+          if (nameParts.length != 2 || !nameParts(1).matches("\\d+"))
+            throw InvalidGraphElementException(
+              s"The name $name looks a like an op output name, but it is not a valid one. Op output names must be of " +
+                  s"the form \"<op_name>:<output_index>\".")
+          val opName = nameParts(0)
+          val opOutputIndex = nameParts(1).toInt
+          val graphOp = findOp(opName) match {
+            case Some(o) => o
+            case None => throw InvalidGraphElementException(
+              s"The name $name refers to an op output which does not exist in the graph. More specifically, the op, " +
+                  s"$opName, does not exist in the graph.")
+          }
+          if (opOutputIndex > graphOp.numOutputs - 1)
+            throw InvalidGraphElementException(
+              s"The name $name refers to an op output which does not exist in the graph. More specifically, the op, " +
+                  s"$opName, does exist in th graph, but it only has ${graphOp.numOutputs} outputs.")
+          Right(graphOp.output(opOutputIndex))
+        } else {
+          throw InvalidGraphElementException(
+            s"Name $name appears to refer to an op output, but 'allowOpOutput' was set to 'false'.")
+        }
+      } else if (allowOp) {
+        findOp(name) match {
+          case Some(o) => Left(o)
+          case None => throw InvalidGraphElementException(
+            s"The name $name refers to an op which does not exist in the graph.")
+        }
+      } else {
+        findOp(name) match {
+          case Some(_) => throw InvalidGraphElementException(
+            s"Name $name appears to refer to an op, but 'allowOp' was set to 'false'.")
+          case None =>
+        }
+        throw InvalidGraphElementException(
+          s"Name $name looks like an (invalid) op name, and not an op output name. Op output names must be of the " +
+              "form <op_name>:<output_index>\".")
+      }
+    }
+
   private object NativeHandleLock
   private var referenceCount: Int = 0
 
@@ -38,7 +101,7 @@ final case class Graph(private var nativeHandle: Long) extends Closeable {
     *
     * <p>Or {@code null} if no such operation exists in the Graph.
     */
-  def op(name: String): Option[Op] = {
+  def findOp(name: String): Option[Op] = {
     NativeHandleLock.synchronized {
       val operationHandle: Long = NativeGraph.op(nativeHandle, name)
       if (operationHandle == 0)
@@ -47,16 +110,6 @@ final case class Graph(private var nativeHandle: Long) extends Closeable {
         Some(Op(this, operationHandle))
     }
   }
-
-//  /** Returns a builder to add {@link Operation}s to the Graph.
-//    *
-//    * @param opType of the Operation (i.e., identifies the computation to be performed)
-//    * @param name   to refer to the created Operation in the graph.
-//    * @return an { @link OperationBuilder}, which will add the Operation to the graph when { @link
-//    *                    OperationBuilder#build()} is invoked. If { @link OperationBuilder#build()} is not invoked,
-//    *                    then some resources may leak.
-//    */
-//  def operationBuilder(opType: String, name: String): Operation.Builder = Operation.Builder(this, opType, name)
 
   /** Import a serialized representation of a TensorFlow graph.
     *
@@ -69,7 +122,9 @@ final case class Graph(private var nativeHandle: Long) extends Closeable {
   def importGraphDef(graphDef: Array[Byte], prefix: String): Unit = {
     if (graphDef == null || prefix == null)
       throw new IllegalArgumentException("graphDef and prefix cannot be null.")
-    NativeHandleLock.synchronized { NativeGraph.importGraphDef(nativeHandle, graphDef, prefix) }
+    NativeHandleLock.synchronized {
+      NativeGraph.importGraphDef(nativeHandle, graphDef, prefix)
+    }
   }
 
   /** Import a serialized representation of a TensorFlow graph.

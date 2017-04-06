@@ -40,7 +40,7 @@ final case class Session(graph: Graph, private var nativeHandle: Long) extends C
     private var runOptions: Option[Array[Byte]] = None
 
     private def operationByName(name: String): Op =
-      graph.op(name = name) match {
+      graph.findOp(name = name) match {
         case Some(op) => op
         case None => throw new IllegalArgumentException(s"No operation named \'$name\' in the current graph.")
       }

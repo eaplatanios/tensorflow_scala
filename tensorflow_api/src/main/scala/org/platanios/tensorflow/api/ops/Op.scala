@@ -54,7 +54,7 @@ object Op {
     * @param  device Device specification string.
     * @return Function that returns `device` for any [[OpSpecification]] used as input.
     */
-  implicit def deviceConversion(device: String): OpSpecification => String = _ => device
+  implicit def deviceImplicitConversion(device: String): OpSpecification => String = _ => device
 
   /** Creates a context that can be used for creating ops according to the provided options.
     *
@@ -80,10 +80,10 @@ object Op {
     * [[OpSpecification]] as input and returning a string representation of the device where the corresponding op should
     * be placed. This function is invoked every time a new op is created within the provided code block. If the function
     * returns `null` for some op, then all subsequent invocations of `createWith(device = ...)` in the provided code
-    * block will be ignored. Note that, if the [[deviceConversion]] implicit conversion function is within scope, then
-    * a `String` value (or `null`) can be used directly for the `device` field. In this case, the value provided will be
-    * used as the device for all newly create ops in the provided code block. For information about the valid syntax of
-    * device name strings, see the documentation in
+    * block will be ignored. Note that, if the [[deviceImplicitConversion]] implicit conversion function is within
+    * scope, then a `String` value (or `null`) can be used directly for the `device` field. In this case, the value
+    * provided will be used as the device for all newly create ops in the provided code block. For information about the
+    * valid syntax of device name strings, see the documentation in
     * [`DeviceNameUtils`](https://www.tensorflow.org/code/tensorflow/core/util/device_name_utils.h).
     *
     * Note that the device scope may be overridden by op wrappers or other library code. For example, a variable
@@ -259,9 +259,9 @@ object Op {
     * @return Unique name.
     */
   private[this] def uniqueName(graph: Graph, name: String, counter: Int = 1): String = {
-    if (graph.op(name).isEmpty)
+    if (graph.findOp(name).isEmpty)
       name
-    else if (graph.op(s"${name}_$counter").isEmpty)
+    else if (graph.findOp(s"${name}_$counter").isEmpty)
       s"${name}_$counter"
     else
       uniqueName(graph = graph, name = name, counter = counter + 1)
