@@ -11,10 +11,16 @@ object Operation {
   @native def name(handle: Long): String
   @native def opType(handle: Long): String
   @native def device(handle: Long): String
-  @native def numOutputs(handle: Long): Int
-  @native def outputDataType(graphHandle: Long, opHandle: Long, output: Int): Int
   @native def numInputs(handle: Long): Int
+  @native def numControlInputs(handle: Long): Int
+  @native def numOutputs(handle: Long): Int
+  @native def numControlOutputs(handle: Long): Int
+  @native def numConsumers(handle: Long, output: Int): Int
+  // TODO: Inputs and consumers getters (need to be able to return op/output index pairs).
+  @native def controlInputs(handle: Long): Array[Long]
+  @native def controlOutputs(handle: Long): Array[Long]
   @native def inputDataType(graphHandle: Long, opHandle: Long, input: Int): Int
+  @native def outputDataType(graphHandle: Long, opHandle: Long, output: Int): Int
   @native def shape(graphHandle: Long, opHandle: Long, output: Int): Array[Long]
   @native def allOps: Array[Byte]
 

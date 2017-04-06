@@ -34,22 +34,6 @@ JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_devi
 
 /*
  * Class:     org_platanios_tensorflow_jni_Operation__
- * Method:    numOutputs
- * Signature: (J)I
- */
-JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_numOutputs
-  (JNIEnv *, jobject, jlong);
-
-/*
- * Class:     org_platanios_tensorflow_jni_Operation__
- * Method:    outputDataType
- * Signature: (JJI)I
- */
-JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_outputDataType
-  (JNIEnv *, jobject, jlong, jlong, jint);
-
-/*
- * Class:     org_platanios_tensorflow_jni_Operation__
  * Method:    numInputs
  * Signature: (J)I
  */
@@ -58,10 +42,66 @@ JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_numInpu
 
 /*
  * Class:     org_platanios_tensorflow_jni_Operation__
+ * Method:    numControlInputs
+ * Signature: (J)I
+ */
+JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_numControlInputs
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Operation__
+ * Method:    numOutputs
+ * Signature: (J)I
+ */
+JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_numOutputs
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Operation__
+ * Method:    numControlOutputs
+ * Signature: (J)I
+ */
+JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_numControlOutputs
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Operation__
+ * Method:    numConsumers
+ * Signature: (JI)I
+ */
+JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_numConsumers
+  (JNIEnv *, jobject, jlong, jint);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Operation__
+ * Method:    controlInputs
+ * Signature: (J)[J
+ */
+JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_controlInputs
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Operation__
+ * Method:    controlOutputs
+ * Signature: (J)[J
+ */
+JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_controlOutputs
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Operation__
  * Method:    inputDataType
  * Signature: (JJI)I
  */
 JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_inputDataType
+  (JNIEnv *, jobject, jlong, jlong, jint);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Operation__
+ * Method:    outputDataType
+ * Signature: (JJI)I
+ */
+JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Operation_00024_outputDataType
   (JNIEnv *, jobject, jlong, jlong, jint);
 
 /*
