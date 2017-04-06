@@ -33,10 +33,10 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_findOp
 
 /*
  * Class:     org_platanios_tensorflow_jni_Graph__
- * Method:    allOps
+ * Method:    ops
  * Signature: (J)[J
  */
-JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_allOps
+JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_ops
   (JNIEnv *, jobject, jlong);
 
 /*

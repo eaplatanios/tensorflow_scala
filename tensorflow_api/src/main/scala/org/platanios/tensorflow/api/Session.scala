@@ -71,11 +71,11 @@ final case class Session(graph: Graph, private var nativeHandle: Long) extends C
 
     def run(wantMetadata: Boolean = false): (List[Tensor[_]], Array[Byte]) = {
       val inputTensorHandles: Array[Long] = inputTensors.map(_.nativeHandle).toArray
-      val inputOpHandles: Array[Long] = inputs.map(_.op.unsafeNativeHandle).toArray
+      val inputOpHandles: Array[Long] = inputs.map(_.op.nativeHandle).toArray
       val inputOpIndices: Array[Int] = inputs.map(_.index).toArray
-      val outputOpHandles: Array[Long] = this.outputs.map(_.op.unsafeNativeHandle).toArray
+      val outputOpHandles: Array[Long] = this.outputs.map(_.op.nativeHandle).toArray
       val outputOpIndices: Array[Int] = this.outputs.map(_.index).toArray
-      val targetOpHandles: Array[Long] = targets.map(_.unsafeNativeHandle).toArray
+      val targetOpHandles: Array[Long] = targets.map(_.nativeHandle).toArray
       val outputTensorHandles: Array[Long] = Array.ofDim[Long](this.outputs.length)
 
       // It's okay to use Operation.getUnsafeNativeHandle() here since the safety depends on the

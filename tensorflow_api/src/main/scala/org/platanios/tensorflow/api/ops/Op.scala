@@ -11,33 +11,33 @@ import scala.util.matching.Regex
 /**
   * @author Emmanouil Antonios Platanios
   */
-final case class Op(graph: Graph, unsafeNativeHandle: Long) {
+final case class Op(graph: Graph, nativeHandle: Long) {
   /** Name of the op. */
-  def name: String = using(graph.reference) { _ => NativeOperation.name(unsafeNativeHandle) }
+  val name: String = using(graph.reference) { _ => NativeOperation.name(nativeHandle) }
 
   /** Type of the op (i.e., the name of the computation performed by the operation). */
-  def opType: String = using(graph.reference) { _ => NativeOperation.opType(unsafeNativeHandle) }
+  val opType: String = using(graph.reference) { _ => NativeOperation.opType(nativeHandle) }
 
   /** Device in which the op tensors are stored and where computations are performed for this op. */
-  def device: String = using(graph.reference) { _ => NativeOperation.device(unsafeNativeHandle) }
+  val device: String = using(graph.reference) { _ => NativeOperation.device(nativeHandle) }
+
+  /** Returns the number of tensors fed as input to this operation. */
+  val numInputs: Int = using(graph.reference) { _ => NativeOperation.numInputs(nativeHandle) }
+
+  /** Number of tensors produced by this operation. */
+  val numOutputs: Int = using(graph.reference) { _ => NativeOperation.numOutputs(nativeHandle) }
 
   /** Returns a symbolic handle to one of the tensors produced by this operation. */
   def output(index: Int): Op.Output = Op.Output(op = this, index = index)
 
-  /** Number of tensors produced by this operation. */
-  def numOutputs: Int = using(graph.reference) { _ => NativeOperation.numOutputs(unsafeNativeHandle) }
+  def inputDataType(inputIndex: Int): DataType[_] =
+    using(graph.reference) { r =>
+      DataType.fromCValue(NativeOperation.inputDataType(r.nativeHandle, nativeHandle, inputIndex))
+    }
 
   def outputDataType(outputIndex: Int): DataType[_] =
     using(graph.reference) { r =>
-      DataType.fromCValue(NativeOperation.outputDataType(r.nativeHandle, unsafeNativeHandle, outputIndex))
-    }
-
-  /** Returns the number of tensors fed as input to this operation. */
-  def numInputs: Int = using(graph.reference) { _ => NativeOperation.numInputs(unsafeNativeHandle) }
-
-  def inputDataType(inputIndex: Int): DataType[_] =
-    using(graph.reference) { r =>
-      DataType.fromCValue(NativeOperation.inputDataType(r.nativeHandle, unsafeNativeHandle, inputIndex))
+      DataType.fromCValue(NativeOperation.outputDataType(r.nativeHandle, nativeHandle, outputIndex))
     }
 }
 
@@ -295,7 +295,7 @@ object Op {
     def device: String = op.device
     def dataType: DataType[_] = op.outputDataType(index)
     def shape: Shape = Shape(
-      using(op.graph.reference) { r => NativeOperation.shape(r.nativeHandle, op.unsafeNativeHandle, index) })
+      using(op.graph.reference) { r => NativeOperation.shape(r.nativeHandle, op.nativeHandle, index) })
 
     //region Ops
 
@@ -339,7 +339,7 @@ object Op {
         using(graph.reference) { r =>
           val nativeHandle: Long = NativeOperation.allocate(
             r.nativeHandle, opType, uniqueName(graph = graph, name = opName))
-          inputs.foreach(input => NativeOperation.addInput(nativeHandle, input.op.unsafeNativeHandle, input.index))
+          inputs.foreach(input => NativeOperation.addInput(nativeHandle, input.op.nativeHandle, input.index))
           device.foreach(NativeOperation.setDevice(nativeHandle, _))
           byteArrayAttributes.foreach(a => NativeOperation.setAttrString(nativeHandle, a._1, a._2))
           longAttributes.foreach(a => NativeOperation.setAttrInt(nativeHandle, a._1, a._2))

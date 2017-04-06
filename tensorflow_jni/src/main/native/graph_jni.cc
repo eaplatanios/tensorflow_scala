@@ -39,7 +39,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_findOp(JNI
   return reinterpret_cast<jlong>(op);
 }
 
-JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_allOps(JNIEnv* env,
+JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_ops(JNIEnv* env,
                                                                             jobject object,
                                                                             jlong handle) {
   TF_Graph* g = requireHandle(env, handle);

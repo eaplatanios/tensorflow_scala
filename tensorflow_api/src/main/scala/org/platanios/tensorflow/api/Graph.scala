@@ -8,7 +8,58 @@ import org.platanios.tensorflow.jni.{Graph => NativeGraph}
   * @author Emmanouil Antonios Platanios
   */
 final case class Graph(private var nativeHandle: Long) extends Closeable {
-  /** Returns the [[Op]] or [[Op.Output]] referred to by the provided name.
+  /** Returns the op with the specified name.
+    *
+    * @param  name Op name.
+    * @return Option containing the op corresponding to that name (`None` if such an op does not exist in this graph).
+    */
+  def findOp(name: String): Option[Op] =
+    NativeHandleLock.synchronized {
+      val opHandle: Long = NativeGraph.findOp(nativeHandle, name)
+      if (opHandle == 0)
+        None
+      else
+        Some(Op(this, opHandle))
+    }
+
+  /** Returns all ops of this graph.
+    *
+    * @note This function may be called concurrently from multiple threads (i.e., it is thread-safe).
+    *
+    * @return Array containing all ops of this graph.
+    */
+  def ops: Array[Op] =
+    NativeHandleLock.synchronized {
+      NativeGraph.ops(nativeHandle).map(Op(this, _))
+    }
+
+  /** Returns the op referred to by the provided name, in this graph.
+    *
+    * If such an op cannot be found, an informative exception is thrown.
+    *
+    * @note This function may be called concurrently from multiple threads (i.e., it is thread-safe).
+    *
+    * @param  name Op name.
+    * @return Op, from this graph, corresponding to that name.
+    */
+  @throws[InvalidGraphElementException]
+  def opByName(name: String): Op =
+  graphElementByName(name = name, allowOp = true, allowOpOutput = false).left.get
+
+  /** Returns the op output referred to by the provided name, in this graph.
+    *
+    * If such an op output cannot be found, an informative exception is thrown.
+    *
+    * @note This function may be called concurrently from multiple threads (i.e., it is thread-safe).
+    *
+    * @param  name Op output name.
+    * @return Op output, from this graph, corresponding to that name.
+    */
+  @throws[InvalidGraphElementException]
+  def opOutputByName(name: String): Op.Output =
+    graphElementByName(name = name, allowOp = false, allowOpOutput = true).right.get
+
+  /** Returns the [[Op]] or [[Op.Output]] referred to by the provided name, in this graph.
     *
     * This function validates that `name` refers to an element of this graph, and gives an informative error message if
     * it does not. It is the canonical way to get/validate an [[Op]] or [[Op.Output]] from an external argument
@@ -24,7 +75,7 @@ final case class Graph(private var nativeHandle: Long) extends Closeable {
     * @throws InvalidGraphElementException  If the provided name cannot be associated with an element of this graph.
     */
   @throws[InvalidGraphElementException]
-  def asGraphElement(name: String, allowOpOutput: Boolean = true, allowOp: Boolean = true): Either[Op, Op.Output] =
+  def graphElementByName(name: String, allowOpOutput: Boolean = true, allowOp: Boolean = true): Either[Op, Op.Output] =
   NativeHandleLock.synchronized {
       if (!allowOpOutput && !allowOp)
         throw new IllegalArgumentException("'allowOpOutput' and 'allowOp' cannot both be set to 'false'.")
@@ -94,26 +145,6 @@ final case class Graph(private var nativeHandle: Long) extends Closeable {
         NativeGraph.delete(nativeHandle)
         nativeHandle = 0
       }
-    }
-  }
-
-  /** Returns the operation (node in the Graph) with the provided name.
-    *
-    * <p>Or {@code null} if no such operation exists in the Graph.
-    */
-  def findOp(name: String): Option[Op] = {
-    NativeHandleLock.synchronized {
-      val opHandle: Long = NativeGraph.findOp(nativeHandle, name)
-      if (opHandle == 0)
-        None
-      else
-        Some(Op(this, opHandle))
-    }
-  }
-
-  def allOps: Array[Op] = {
-    NativeHandleLock.synchronized {
-      NativeGraph.allOps(nativeHandle).map(Op(this, _))
     }
   }
 

@@ -19,6 +19,6 @@ class GraphTest extends FlatSpec with Matchers {
       val c4 = constant(4.0, name = "C_4")
       Array(c1.op, c2.op, c3.op, c4.op)
     }
-    assert(graph.allOps === allOps)
+    assert(graph.ops === allOps)
   }
 }
