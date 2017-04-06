@@ -17,7 +17,7 @@ final case class Graph(private var nativeHandle: Long) extends Closeable {
     * @param  name Op name.
     * @return Option containing the op corresponding to that name (`None` if such an op does not exist in this graph).
     */
-  def findOp(name: String): Option[Op] =
+  private[api] def findOp(name: String): Option[Op] =
     NativeHandleLock.synchronized {
       val opHandle: Long = NativeGraph.findOp(nativeHandle, name)
       if (opHandle == 0)
@@ -48,7 +48,7 @@ final case class Graph(private var nativeHandle: Long) extends Closeable {
     */
   @throws[InvalidGraphElementException]
   def opByName(name: String): Op =
-  graphElementByName(name = name, allowOp = true, allowOpOutput = false).left.get
+    graphElementByName(name = name, allowOp = true, allowOpOutput = false).left.get
 
   /** Returns the op output referred to by the provided name, in this graph.
     *
@@ -79,8 +79,9 @@ final case class Graph(private var nativeHandle: Long) extends Closeable {
     * @throws InvalidGraphElementException  If the provided name cannot be associated with an element of this graph.
     */
   @throws[InvalidGraphElementException]
-  def graphElementByName(name: String, allowOpOutput: Boolean = true, allowOp: Boolean = true): Either[Op, Op.Output] =
-  NativeHandleLock.synchronized {
+  private[api] def graphElementByName(
+      name: String, allowOpOutput: Boolean = true, allowOp: Boolean = true): Either[Op, Op.Output] =
+    NativeHandleLock.synchronized {
       if (!allowOpOutput && !allowOp)
         throw new IllegalArgumentException("'allowOpOutput' and 'allowOp' cannot both be set to 'false'.")
       if (name.contains(':')) {
@@ -88,40 +89,40 @@ final case class Graph(private var nativeHandle: Long) extends Closeable {
           val nameParts = name.split(':')
           if (nameParts.length != 2 || !nameParts(1).matches("\\d+"))
             throw InvalidGraphElementException(
-              s"The name $name looks a like an op output name, but it is not a valid one. Op output names must be of " +
+              s"Name '$name' looks a like an op output name, but it is not a valid one. Op output names must be of " +
                   "the form \"<op_name>:<output_index>\".")
           val opName = nameParts(0)
           val opOutputIndex = nameParts(1).toInt
           val graphOp = findOp(opName) match {
             case Some(o) => o
             case None => throw InvalidGraphElementException(
-              s"The name $name refers to an op output which does not exist in the graph. More specifically, the op, " +
-                  s"$opName, does not exist in the graph.")
+              s"Name '$name' refers to an op output which does not exist in the graph. More specifically, op, " +
+                  s"'$opName', does not exist in the graph.")
           }
           if (opOutputIndex > graphOp.numOutputs - 1)
             throw InvalidGraphElementException(
-              s"The name $name refers to an op output which does not exist in the graph. More specifically, the op, " +
-                  s"$opName, does exist in th graph, but it only has ${graphOp.numOutputs} outputs.")
+              s"Name '$name' refers to an op output which does not exist in the graph. More specifically, op, " +
+                  s"'$opName', does exist in the graph, but it only has ${graphOp.numOutputs} output(s).")
           Right(graphOp.output(opOutputIndex))
         } else {
           throw InvalidGraphElementException(
-            s"Name $name appears to refer to an op output, but 'allowOpOutput' was set to 'false'.")
+            s"Name '$name' appears to refer to an op output, but 'allowOpOutput' was set to 'false'.")
         }
       } else if (allowOp) {
         findOp(name) match {
           case Some(o) => Left(o)
           case None => throw InvalidGraphElementException(
-            s"The name $name refers to an op which does not exist in the graph.")
+            s"Name '$name' refers to an op which does not exist in the graph.")
         }
       } else {
         findOp(name) match {
           case Some(_) => throw InvalidGraphElementException(
-            s"Name $name appears to refer to an op, but 'allowOp' was set to 'false'.")
+            s"Name '$name' appears to refer to an op, but 'allowOp' was set to 'false'.")
           case None =>
         }
         throw InvalidGraphElementException(
-          s"Name $name looks like an (invalid) op name, and not an op output name. Op output names must be of the " +
-              "form <op_name>:<output_index>\".")
+          s"Name '$name' looks like an (invalid) op name, and not an op output name. Op output names must be of the " +
+              "form \"<op_name>:<output_index>\".")
       }
     }
 
