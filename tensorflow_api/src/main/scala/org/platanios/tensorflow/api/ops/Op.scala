@@ -45,7 +45,7 @@ final case class Op(graph: Graph, nativeHandle: Long) {
 
   val outputs: Array[Op.Output] = (0 until numOutputs).map(i => Op.Output(op = this, index = i)).toArray
 
-  def outputConsumers(index: Int): Array[Op.Output] = using(graph.reference) { _ =>
+  private def outputConsumers(index: Int): Array[Op.Output] = using(graph.reference) { _ =>
     NativeOp.consumers(nativeHandle, index).map(jniOpOutput => {
       val op = graph.opsCache.getOrElseUpdate(jniOpOutput.opHandle, Op(graph, jniOpOutput.opHandle))
       op.output(jniOpOutput.outputIndex)
@@ -325,14 +325,14 @@ object Op {
   }
 
   final case class Output private (op: Op, index: Int) {
+    val name: String = s"${op.name}:$index"
+    val dataType: DataType[_] = op.outputDataType(index)
+    val consumers: Array[Op.Output] = op.outputConsumers(index)
+
     def graph: Graph = op.graph
-    def name: String = s"${op.name}:$index"
     def device: String = op.device
-    def dataType: DataType[_] = op.outputDataType(index)
     def shape: Shape = Shape(
       using(op.graph.reference) { r => NativeOp.shape(r.nativeHandle, op.nativeHandle, index) })
-
-    def consumers: Array[Op.Output] = op.outputConsumers(index)
 
     //region Ops
 
