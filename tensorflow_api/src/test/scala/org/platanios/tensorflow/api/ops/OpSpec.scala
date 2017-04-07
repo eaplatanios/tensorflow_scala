@@ -209,7 +209,22 @@ class OpSpec extends FlatSpec with Matchers {
 
   //region createWith(colocationOps = ...) Specification
 
-  // TODO: Figure out how to test colocation.
+  it must "be able to colocate ops" in {
+    val a = createWith(device = "/CPU:0")(constant(1.0, name = "A"))
+    val b = createWith(device = "/GPU:0")(constant(1.0, name = "B"))
+    assert(a.colocationGroups === Set.empty[String])
+    assert(b.colocationGroups === Set.empty[String])
+    val c = createWith(colocationOps = Set(a))(constant(1.0, name = "C"))
+    assert(c.colocationGroups === Set("loc:@A"))
+    createWith(colocationOps = Set(b)) {
+      val d = constant(1.0, name = "D")
+      assert(d.colocationGroups === Set("loc:@B"))
+      createWith(colocationOps = Set(a, d)) {
+        val e = constant(1.0, name = "E")
+        assert(e.colocationGroups === Set("loc:@A", "loc:@B", "loc:@D"))
+      }
+    }
+  }
 
   //endregion
 

@@ -77,6 +77,11 @@ final case class Op(graph: Graph, nativeHandle: Long) {
       DataType.fromCValue(NativeOp.outputDataType(r.nativeHandle, nativeHandle, outputIndex))
     }
 
+  // TODO: Make this return a Set[Op] instead and convert all vals of this class to lazy vals.
+  val colocationGroups: Set[String] = using(graph.reference) { _ =>
+    Option(NativeOp.getAttrStringList(nativeHandle, "_class")).map(_.toSet).getOrElse(Set.empty[String])
+  }
+
   override def toString: String = name
 }
 

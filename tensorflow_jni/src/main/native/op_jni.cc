@@ -1,6 +1,7 @@
 #include "include/op_jni.h"
 
 #include <memory>
+#include <string>
 
 #include "include/c_api.h"
 #include "include/exception_jni.h"
@@ -54,6 +55,45 @@ TF_Tensor* requireTensor(JNIEnv* env, jlong handle) {
     return nullptr;
   }
   return reinterpret_cast<TF_Tensor*>(handle);
+}
+
+const char* attrTypeToString(TF_AttrType type, char is_list) {
+  std::string typeName;
+  switch(type) {
+    case TF_ATTR_STRING:
+      typeName = "String";
+      break;
+    case TF_ATTR_INT:
+      typeName = "Int";
+      break;
+    case TF_ATTR_FLOAT:
+      typeName = "Float";
+      break;
+    case TF_ATTR_BOOL:
+      typeName = "Boolean";
+      break;
+    case TF_ATTR_TYPE:
+      typeName = "DataType";
+      break;
+    case TF_ATTR_SHAPE:
+      typeName = "Shape";
+      break;
+    case TF_ATTR_TENSOR:
+      typeName = "Tensor";
+      break;
+    case TF_ATTR_PLACEHOLDER:
+      typeName = "Placeholder";
+      break;
+    case TF_ATTR_FUNC:
+      typeName = "Function";
+      break;
+    default:
+      typeName = "Unknown";
+      break;
+  }
+  if (is_list == 1)
+    return ("List[" + typeName + "]").c_str();
+  return typeName.c_str();
 }
 }  // namespace
 
@@ -294,6 +334,89 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_shape(
   return ret;
 }
 
+JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttrString(
+  JNIEnv* env, jobject object, jlong opHandle, jstring attrName) {
+  TF_Operation* op = requireOperationHandle(env, opHandle);
+  if (op == nullptr) return nullptr;
+  const char* attrNameString = env->GetStringUTFChars(attrName, nullptr);
+  TF_Status* status = TF_NewStatus();
+  TF_AttrMetadata attrMetadata = TF_OperationGetAttrMetadata(op, attrNameString, status);
+  if (throwExceptionIfNotOK(env, status)) {
+    if (attrMetadata.total_size < 0) return nullptr;
+    if (attrMetadata.type != TF_ATTR_STRING || attrMetadata.is_list == 1)
+      throwException(
+        env, "java/lang/IllegalArgumentException", "Attribute '%s' is not a string. It is a '%s', instead.",
+        attrNameString, attrTypeToString(attrMetadata.type, attrMetadata.is_list));
+    long long attrValueSize = reinterpret_cast<long long>(attrMetadata.total_size);
+    if (attrValueSize < 0)
+      return nullptr;
+    char* attrValue = new char[attrValueSize];
+    TF_Status* status = TF_NewStatus();
+    TF_OperationGetAttrString(op, attrNameString, attrValue, attrValueSize, status);
+    if (throwExceptionIfNotOK(env, status)) {
+      env->ReleaseStringUTFChars(attrName, attrNameString);
+      return env->NewStringUTF(attrValue);
+    }
+    return nullptr;
+  }
+  return nullptr;
+}
+
+JNIEXPORT jobjectArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttrStringList(
+  JNIEnv* env, jobject object, jlong opHandle, jstring attrName) {
+  TF_Operation* op = requireOperationHandle(env, opHandle);
+  if (op == nullptr) return nullptr;
+  const char* attrNameString = env->GetStringUTFChars(attrName, nullptr);
+  TF_Status* status = TF_NewStatus();
+  TF_AttrMetadata attrMetadata = TF_OperationGetAttrMetadata(op, attrNameString, status);
+  if (throwExceptionIfNotOK(env, status)) {
+    if (attrMetadata.total_size < 0) return nullptr;
+    if (attrMetadata.type != TF_ATTR_STRING || attrMetadata.is_list == 0)
+      throwException(
+        env, "java/lang/IllegalArgumentException", "Attribute '%s' is not a string list. It is a '%s', instead.",
+        attrNameString, attrTypeToString(attrMetadata.type, attrMetadata.is_list));
+    size_t storageSize = static_cast<size_t>(attrMetadata.total_size);
+    if (attrMetadata.list_size <= 0) return nullptr;
+    void** attrValuePointers = new void*[attrMetadata.list_size];
+    size_t* attrValueLengths = new size_t[attrMetadata.list_size];
+    void* storage = new char[storageSize];
+    TF_Status* status = TF_NewStatus();
+    TF_OperationGetAttrStringList(
+      op, attrNameString, attrValuePointers, attrValueLengths, attrMetadata.list_size, storage, storageSize, status);
+    if (throwExceptionIfNotOK(env, status)) {
+      jobjectArray ret;
+      ret = env->NewObjectArray(attrMetadata.list_size, env->FindClass("java/lang/String"), env->NewStringUTF(""));
+      int i;
+      for(i = 0; i < attrMetadata.list_size; i++) {
+        char* value = new char[attrValueLengths[i]];
+        strncpy(value, reinterpret_cast<const char*>(attrValuePointers[i]), attrValueLengths[i]);
+        env->SetObjectArrayElement(ret, i, env->NewStringUTF(value));
+      }
+      env->ReleaseStringUTFChars(attrName, attrNameString);
+      return ret;
+    }
+    return nullptr;
+  }
+  return nullptr;
+}
+
+// Get the list of strings in the value of the attribute `attr_name`.  Fills in
+// `values` and `lengths`, each of which must point to an array of length at
+// least `max_values`.
+//
+// The elements of values will point to addresses in `storage` which must be at
+// least `storage_size` bytes in length.  Ideally, max_values would be set to
+// TF_AttrMetadata.list_size and `storage` would be at least
+// TF_AttrMetadata.total_size, obtained from TF_OperationGetAttrMetadata(oper,
+// attr_name).
+//
+// Fails if storage_size is too small to hold the requested number of strings.
+extern void TF_OperationGetAttrStringList(TF_Operation* oper,
+                                          const char* attr_name, void** values,
+                                          size_t* lengths, int max_values,
+                                          void* storage, size_t storage_size,
+                                          TF_Status* status);
+
 JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_allOps(JNIEnv* env,
                                                                                       jobject object) {
   TF_Buffer* opListBuffer = TF_GetAllOpList();
@@ -410,7 +533,7 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_setAttrString(
 }
 
 #define DEFINE_SET_ATTR_SCALAR(name, jtype, ctype)                                           \
-  JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_setAttr##name(        \
+  JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_setAttr##name(           \
       JNIEnv* env, jobject object, jlong handle, jstring name, jtype value) {                \
     static_assert(                                                                           \
         sizeof(ctype) >= sizeof(jtype),                                                      \
@@ -424,7 +547,7 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_setAttrString(
 
 #define DEFINE_SET_ATTR_LIST(name, jname, jtype, ctype)                            \
   JNIEXPORT void JNICALL                                                           \
-      Java_org_platanios_tensorflow_jni_Op_00024_setAttr##name##List(           \
+      Java_org_platanios_tensorflow_jni_Op_00024_setAttr##name##List(              \
           JNIEnv* env, jobject object, jlong handle, jstring name,                 \
           jtype##Array value) {                                                    \
     TF_OperationDescription* d = requireOperationDescriptionHandle(env, handle);   \
