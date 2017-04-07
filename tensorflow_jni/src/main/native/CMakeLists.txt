@@ -28,7 +28,7 @@ include_directories(include)
 include_directories(${JNI_INCLUDE_DIRS})
 
 # Link directories
-link_directories(lib)
+link_directories(${LD_LIBRARY_PATH})
 
 # Sources
 file(GLOB LIB_SRC

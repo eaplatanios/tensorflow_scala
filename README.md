@@ -19,8 +19,9 @@ then perform the following steps:
 
      Make sure to add the `--config=cuda` option when running the last
      command, if compiling with CUDA support.
-  3. Copy the `bazel-bin/tensorflow/libtensorflow.so` file in the directory
-     `tensorflow_scala/tensorflow_jni/src/main/native/lib/`.
+  3. Copy the `bazel-bin/tensorflow/libtensorflow.so` file in a
+     directory that is in `LD_LIBRARY_PATH`, or set `LD_LIBRARY_PATH`
+     appropriately.
 
 In order to compile, run the following command from within the
 `tensorflow_scala` directory:
