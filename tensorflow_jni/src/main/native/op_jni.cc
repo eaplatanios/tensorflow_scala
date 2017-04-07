@@ -387,6 +387,15 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_setDevice(
   env->ReleaseStringUTFChars(device, cdevice);
 }
 
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_colocateWith(
+    JNIEnv* env, jobject object, jlong handle, jlong colocationOpHandle) {
+  TF_OperationDescription* d = requireOperationDescriptionHandle(env, handle);
+  if (d == nullptr) return;
+  TF_Operation* colocationOp = requireOperationHandle(env, colocationOpHandle);
+  if (colocationOp == nullptr) return;
+  TF_ColocateWith(d, colocationOp);
+}
+
 JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_setAttrString(
     JNIEnv* env, jobject object, jlong handle, jstring name, jbyteArray value) {
   static_assert(sizeof(jbyte) == 1,

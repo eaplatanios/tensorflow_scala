@@ -34,6 +34,7 @@ object Op {
   @native def addInputList(handle: Long, operationHandles: Array[Long], indices: Array[Int]): Unit
   @native def addControlInput(handle: Long, inputOpHandle: Long): Unit
   @native def setDevice(handle: Long, device: String): Unit
+  @native def colocateWith(handle: Long, colocationOpHandle: Long): Unit
 
   // The names of all the setAttr* family functions below correspond to the C library types, not the
   // Java library types. Roughly, setAttrFoo calls the TensorFlow C library function: TF_SetAttrFoo.

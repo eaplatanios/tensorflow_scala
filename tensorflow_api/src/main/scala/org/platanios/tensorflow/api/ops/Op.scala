@@ -84,7 +84,7 @@ final case class Op(graph: Graph, nativeHandle: Long) {
 private[ops] final case class OpSpecification(name: String, opType: String)
 private[api] final case class OpCreationContext(
     graph: Graph = Graph(), nameScope: String = "", device: OpSpecification => String = _ => "",
-    controlDependencies: Set[Op] = Set.empty[Op])
+    colocationOps: Set[Op] = Set.empty[Op], controlDependencies: Set[Op] = Set.empty[Op])
 
 object Op {
   /** Convenient implicit conversion function used to convert devices specified as [[String]]s for use with the
@@ -112,6 +112,8 @@ object Op {
     *   - The current graph in which new ops are placed.
     *   - The current name scope used for naming these new ops.
     *   - A device function, used to decide in which device (e.g., CPU) the new ops should be placed and executed.
+    *   - A set of colocation ops for the newly constructed ops. This means that the newly created ops will be placed on
+    *     the same device as these colocation ops.
     *   - A set of ops defining control dependencies for the newly constructed ops. This means that the newly
     *     constructed ops are constrained to only execute after the provided set of ops has finished executing.
     *
@@ -236,6 +238,30 @@ object Op {
     *   }
     * }}}
     *
+    * == Colocation Ops ==
+    *
+    * When `createWith(...)` is used with a set of colocation ops, then all ops created within its code block will be
+    * placed on the same device as the provided colocation ops. Note that if a set of colocation ops already exist in
+    * the current op creation context (e.g., as the result of nesting multiple `createWith(colocationOps = ...)` calls),
+    * then the new set of colocation ops will be the union of the two sets.
+    *
+    * Note that using a non-empty set of colocation ops resets any existing device constraints. In other words,
+    * colocation ops override any other device placement specification.
+    *
+    * For example:
+    * {{{
+    *   val a = createWith(device = "/CPU:0")(constant(1.0))
+    *   val b = createWith(device = "/GPU:0")(constant(1.0))
+    *   createWith(colocationOps = Set(a)) {
+    *     val c = constant(1.0)
+    *     assert(c.device == a.device)
+    *   }
+    *   createWith(colocationOps = Set(b)) {
+    *     val d = constant(1.0)
+    *     assert(d.device == b.device)
+    *   }
+    * }}}
+    *
     * == Control Dependencies ==
     *
     * When `createWith(...)` is used with a set of control dependencies, then all ops created within its code block will
@@ -302,20 +328,20 @@ object Op {
   @throws[IllegalNameException]
   def createWith[R](
       graph: Graph = null, nameScope: String = null, device: OpSpecification => String = _ => "",
-      controlDependencies: Set[Op] = null)
+      colocationOps: Set[Op] = null, controlDependencies: Set[Op] = null)
       (block: => R)(implicit context: DynamicVariable[OpCreationContext]): R = {
     val newGraph: Graph = mergeGraph(graph, context)
     val newNameScope: String = mergeNameScope(nameScope, context)
     val newDevice: OpSpecification => String = mergeDevice(device, context)
+    val newColocationOps: Set[Op] = mergeColocationOps(colocationOps, context)
     val newControlDependencies: Set[Op] = mergeControlDependencies(controlDependencies, context)
     context.withValue(context.copy(
-      graph = newGraph, nameScope = newNameScope, device = newDevice, controlDependencies = newControlDependencies)) {
-      block
-    }
+      graph = newGraph, nameScope = newNameScope, device = newDevice, colocationOps = newColocationOps,
+      controlDependencies = newControlDependencies))(block)
   }
 
-  /** Merges a graph to provided op creation context graph and returns the graph to use when specifying the updated op
-    * creation context. The merging rules are specified in the documentation of [[createWith]] function.
+  /** Merges a graph to the provided op creation context graph and returns the graph to use when specifying the updated
+    * op creation context. The merging rules are specified in the documentation of [[createWith]] function.
     *
     * @param  graph   Graph to merge.
     * @param  context Op creation context whose graph needs to be updated.
@@ -325,8 +351,9 @@ object Op {
     if (graph == null) context.graph else graph
   }
 
-  /** Merges a name scope to provided op creation context name scope and returns the name scope to use when specifying
-    * the updated op creation context. The merging rules are specified in the documentation of [[createWith]] function.
+  /** Merges a name scope to the provided op creation context name scope and returns the name scope to use when
+    * specifying the updated op creation context. The merging rules are specified in the documentation of [[createWith]]
+    * function.
     *
     * @param  nameScope Name scope to merge.
     * @param  context   Op creation context whose name scope needs to be updated.
@@ -351,8 +378,8 @@ object Op {
     }
   }
 
-  /** Merges a device to provided op creation context device and returns the device to use when specifying the updated
-    * op creation context. The merging rules are specified in the documentation of [[createWith]] function.
+  /** Merges a device to the provided op creation context device and returns the device to use when specifying the
+    * updated op creation context. The merging rules are specified in the documentation of [[createWith]] function.
     *
     * @param  device  Device to merge.
     * @param  context Op creation context whose device needs to be updated.
@@ -375,12 +402,27 @@ object Op {
     }
   }
 
-  /** Merges a set of control dependencies to provided op creation context set of control dependencies and returns the
-    * set of control dependencies to use when specifying the updated op creation context. The merging rules are
+  /** Merges a set of colocation ops to the provided op creation context set of colocation ops and returns the
+    * set of colocation ops to use when specifying the updated op creation context. The merging rules are
+    * specified in the documentation of [[createWith]] function.
+    *
+    * @param  colocationOps Set of colocation ops to merge.
+    * @param  context       Op creation context whose colocation ops need to be updated.
+    * @return Set of colocation ops to use for the new op creation context.
+    */
+  private[this] def mergeColocationOps(colocationOps: Set[Op], context: OpCreationContext): Set[Op] = {
+    if (colocationOps == null)
+      context.colocationOps
+    else
+      context.colocationOps ++ colocationOps
+  }
+
+  /** Merges a set of control dependencies to the provided op creation context set of control dependencies and returns
+    * the set of control dependencies to use when specifying the updated op creation context. The merging rules are
     * specified in the documentation of [[createWith]] function.
     *
     * @param  controlDependencies Set of control dependencies to merge.
-    * @param  context             Op creation context whose name scope needs to be updated.
+    * @param  context             Op creation context whose control dependencies needs to be updated.
     * @return Set of control dependencies to use for the new op creation context.
     */
   private[this] def mergeControlDependencies(controlDependencies: Set[Op], context: OpCreationContext): Set[Op] = {
@@ -526,6 +568,7 @@ object Op {
           inputs.foreach(input => pruneControlDependencies(controlDependencies, input.op))
           controlDependencies.foreach(op => NativeOp.addControlInput(nativeHandle, op.nativeHandle))
           device.foreach(NativeOp.setDevice(nativeHandle, _))
+          context.colocationOps.foreach(op => NativeOp.colocateWith(nativeHandle, op.nativeHandle))
           byteArrayAttributes.foreach(a => NativeOp.setAttrString(nativeHandle, a._1, a._2))
           longAttributes.foreach(a => NativeOp.setAttrInt(nativeHandle, a._1, a._2))
           longArrayAttributes.foreach(a => NativeOp.setAttrIntList(nativeHandle, a._1, a._2))

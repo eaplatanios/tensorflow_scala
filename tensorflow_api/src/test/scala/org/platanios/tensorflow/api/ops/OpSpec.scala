@@ -207,6 +207,12 @@ class OpSpec extends FlatSpec with Matchers {
 
   //endregion
 
+  //region createWith(colocationOps = ...) Specification
+
+  // TODO: Figure out how to test colocation.
+
+  //endregion
+
   //region createWith(controlDependencies = ...) Specification
 
   it must "change the control dependencies for newly created ops (only) for its code block" in {

@@ -185,6 +185,14 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_setDevice
   (JNIEnv *, jobject, jlong, jstring);
 
 /*
+* Class:     org_platanios_tensorflow_jni_Op__
+* Method:    colocateWith
+* Signature: (JJ)V
+*/
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_colocateWith
+  (JNIEnv *, jobject, jlong, jlong);
+
+/*
  * Class:     org_platanios_tensorflow_jni_Op__
  * Method:    setAttrString
  * Signature: (JLjava/lang/String;[B)V
