@@ -4,12 +4,12 @@ TensorFlow API for the Scala Programming Language
 
 ## Set Up for Development
 
-Make sure you have (`cmake`)[https://cmake.org/install/] installed and
+Make sure you have [CMake](https://cmake.org/install/) installed and
 then perform the following steps:
   1. Clone this repository in a directory (e.g., `tensorflow_scala`).
   2. Compile the TensorFlow dynamic library by running the following
      commands in the
-     (TensorFlow)[https://github.com/tensorflow/tensorflow] source code
+     [TensorFlow](https://github.com/tensorflow/tensorflow) source code
      directory:
 
      ```bash
