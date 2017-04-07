@@ -29,8 +29,6 @@ include_directories(${JNI_INCLUDE_DIRS})
 
 # Link directories
 link_directories(lib)
-link_directories(lib/native)
-link_directories(lib/native/x86_64-darwin)
 
 # Sources
 file(GLOB LIB_SRC
