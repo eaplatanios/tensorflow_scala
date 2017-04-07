@@ -17,4 +17,7 @@ project/plugins/project/
 **/src/main/generated/**/*
 
 # IntelliJ Specific
-.idea/**/*
+**/.idea/**/*
+
+# CLion Specific
+**/cmake-build-debug/**/*
