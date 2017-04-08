@@ -368,7 +368,7 @@ class OpSpec extends FlatSpec with Matchers {
 
   // TODO: Add name scope exceptions spec.
 
-  "'stripNameScop' and 'prependNameScope'" must "work correctly even when 'loc:@' is used" in {
+  "'stripNameScope' and 'prependNameScope'" must "work correctly even when 'loc:@' is used" in {
     val names = Array[String](
       "hidden1/hidden1/weights", // Same prefix. Should strip.
       "hidden1///hidden1/weights", // Extra '/'. Should strip.

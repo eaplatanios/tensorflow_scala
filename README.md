@@ -38,20 +38,32 @@ sbt compile
   - [x] Device op creation context
   - [x] Colocation op creation context
   - [x] Control dependencies op creation context
+  - [ ] "Static" name scope op creation context
   - [ ] Attribute op creation context
   - [ ] Container op creation context
   - [ ] Gradient override map op creation context (need gradient support first)
   - [ ] Kernel label map op creation context (may be unnecessary)
+- Execution API helpers:
+  - [ ] Default session
+  - [ ] Session execution context
 - General API features:
   - [ ] Variables
   - [ ] Gradients
   - [ ] Optimizers
   - [ ] Estimators
+  - [ ] tfprof / op statistics collection
 
 ## TODOs
 
 - Op creation:
+  - Add tests for all of the op functions
   - Get graph from inputs
   - Assert same graph for inputs and control inputs
+  - Convert to tensor function
   - Graph collections
+  - Set Op.Output shape
+  - Support re-entering existing name scopes
   - Reset default graph
+  - Register op statistics
+- Execution:
+  - Revamp the session API

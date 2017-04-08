@@ -8,7 +8,23 @@ import java.nio.charset.Charset
 import scala.collection.mutable
 import scala.util.DynamicVariable
 
-/**
+/** Represents a graph node, or as we shall call it, an operation, that performs computation on tensors.
+  *
+  * An `Op` is a symbolic representation of the computation it performs. It is a node in a TensorFlow [[Graph]] that
+  * takes zero or more `Op.Output` objects as input, and produces zero or more `Op.Output` objects as output. `Op`
+  * objects are constructed by calling op creation functions, such as [[ArrayOps.constant]] or [[MathOps.matMul]].
+  *
+  * For example, `val c = MathOps.matMul(a, b)` creates an `Op` of type `"MatMul"` that takes `Op.Output`s `a` and
+  * `b` as input, and produces `Op.Output` `c` as output.
+  *
+  * @note The `Op.Input` class is simply a wrapper around an `Op` meant to represent one of its inputs. Actual op inputs
+  *       have type `Op.Output` since they represent outputs of other ops. Currently, `Op.Input` is only useful for
+  *       representing consumers of an `Op`'s outputs.
+  *
+  * After the graph has been launched in a [[Session]], an `Op` can be executed by using [[Session.run]].
+  *
+  * TODO: Add `Op.run` use example, once that is supported.
+  *
   * @author Emmanouil Antonios Platanios
   */
 final case class Op private (graph: Graph, nativeHandle: Long) {
@@ -26,20 +42,21 @@ final case class Op private (graph: Graph, nativeHandle: Long) {
   /** Colocation ops for this op (i.e., ops guaranteed to be placed on the same device). */
   lazy val colocationOps: Set[Op] = using(graph.reference) { _ =>
     Option(NativeOp.getAttrStringList(nativeHandle, COLOCATION_OPS_ATTRIBUTE_NAME))
-      .map(_.toSet[String].map(opName => graph.findOp(opName.substring(COLOCATION_OPS_ATTRIBUTE_PREFIX.length)).get))
-      .getOrElse(Set.empty[Op])
+        .map(_.toSet[String].map(opName => graph.findOp(opName.substring(COLOCATION_OPS_ATTRIBUTE_PREFIX.length)).get))
+        .getOrElse(Set.empty[Op])
   }
 
   /** Number of inputs to this op (i.e., number of tensors fed as input to this op). */
   lazy val numInputs: Int = using(graph.reference) { _ => NativeOp.numInputs(nativeHandle) }
 
   /** Inputs of this op. Note that these inputs are outputs of other ops and thus have type [[Op.Output]]. */
-  lazy val inputs: Array[Op.Output] = (0 until numInputs).map(index =>
-    using(graph.reference) { _ =>
-      val jniOpOutput = NativeOp.input(nativeHandle, index)
-      val op = graph.opsCache.getOrElseUpdate(jniOpOutput.opHandle, Op(graph, jniOpOutput.opHandle))
-      op.outputs(jniOpOutput.outputIndex)
-    }).toArray
+  lazy val inputs: Array[Op.Output] = (0 until numInputs).map(index => using(graph.reference) { _ =>
+    val jniOpOutput = NativeOp.input(nativeHandle, index)
+    val op = graph.opsCache.getOrElseUpdate(
+      jniOpOutput.opHandle,
+      Op(graph, jniOpOutput.opHandle))
+    op.outputs(jniOpOutput.outputIndex)
+  }).toArray
 
   /** Number of control inputs to this op. These are ops that are guaranteed to finish executing before this op starts
     * executing). */
@@ -181,8 +198,6 @@ object Op {
     *     created in the provided code block. If `nameScope` has been used before, it will be made unique by calling
     *     `uniqueName(graph = context.graph, name = nameScope)`.
     *   - A value of `""` will reset the current name scope to the top-level (i.e., empty) name scope.
-    *
-    * TODO: Support re-entering existing name scopes.
     *
     * This function checks the provided `nameScope` for validity by checking whether it matches: (i) the regular
     * expression `[A-Za-z0-9.][A-Za-z0-9_.\\-/]*` if the current context name scope is empty (i.e., at the root), or
@@ -532,21 +547,66 @@ object Op {
 
   //endregion ProtoBuf Helper Functions
 
+  /** Wrapper around an `Op` meant to represent one of its inputs. Actual op inputs have type `Op.Output` since they
+    * represent outputs of other ops. Currently, `Op.Input` is only useful for representing consumers of an `Op`'s
+    * outputs.
+    *
+    * @param  op    Op whose input this class represents.
+    * @param  index Input index.
+    */
   final case class Input private (op: Op, index: Int) {
+    /** Name of this op input. This is simply set to `"<op.name>:<index>"`. */
+    lazy val name: String = s"${op.name}:$index"
+
+    /** Data type of this op input. */
     lazy val dataType: DataType[_] = op.inputDataType(index)
 
+    /** Graph where the op belongs. */
     def graph: Graph = op.graph
+
+    override def toString: String = s"Op.Input(name = $name, dataType = $dataType)"
   }
 
+  /** Represents one of the outputs of an `Op`'s computation.
+    *
+    * An `Op.Output` is a symbolic handle to one of the outputs of an `Op`. It does not hold the values of that op's
+    * output, but instead provides a means of computing those values in a TensorFlow [[Session]].
+    *
+    * This class has two primary purposes:
+    *
+    *   1. An `Op.Output` can be passed as input to another `Op`. This builds a dataflow connection between ops, which
+    *      enables TensorFlow to execute an entire [[Graph]] that represents a large, multi-step computation.
+    *   2. After the graph has been launched in a [[Session]], the value of an [[Op.Output]] can be computed by passing
+    *      it to [[Session.run]]. [[Op.Output.evaluate]] is a shortcut for [[Session.run]] that uses the default session
+    *      in the current execution context.
+    *
+    * In the following example, `c`, `d`, and `e` are symbolic [[Op.Output]] objects, whereas `result` is a Scala array
+    * that stores a concrete value:
+    *
+    * TODO: Add example.
+    *
+    * @param  op    Op whose output this class represents.
+    * @param  index Output index.
+    */
   final case class Output private (op: Op, index: Int) {
+    /** Name of this op output. This is simply set to `"<op.name>:<index>"`. */
     lazy val name: String = s"${op.name}:$index"
+
+    /** Data type of this op output. */
     lazy val dataType: DataType[_] = op.outputDataType(index)
+
+    /** Consumers of this op output (i.e., ops that use this op output as one of their inputs). */
     lazy val consumers: Array[Op.Input] = op.outputConsumers(index)
 
+    /** Graph where the op belongs. */
     def graph: Graph = op.graph
+
+    /** Device on which this op output is placed. */
     def device: String = op.device
-    def shape: Shape = Shape(
-      using(op.graph.reference) { r => NativeOp.shape(r.nativeHandle, op.nativeHandle, index) })
+
+    /** Shape of the tensor that this op output represents. */
+    def shape: Shape = Shape(using(op.graph.reference) { r =>
+      NativeOp.shape(r.nativeHandle, op.nativeHandle, index) })
 
     //region Ops
 
@@ -557,7 +617,7 @@ object Op {
 
     //endregion Ops
 
-    override def toString: String = name
+    override def toString: String = s"Op.Output(name = $name, shape = $shape, dataType = $dataType, device = $device)"
   }
 
   private[ops] final case class Builder(context: OpCreationContext, opType: String, name: String) {

@@ -8,7 +8,7 @@ final case class Shape(shape: Array[Long]) {
   def size(i: Int): Long = shape(i)
   def asArray: Array[Long] = shape
 
-  override def toString: String = if (shape == null) "<unknown>" else shape.mkString(", ").replace("-1", "?")
+  override def toString: String = if (shape == null) "<unknown>" else s"[${shape.mkString(", ").replace("-1", "?")}]"
 }
 
 object Shape {
