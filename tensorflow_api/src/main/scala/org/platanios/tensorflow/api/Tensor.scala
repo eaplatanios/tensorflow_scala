@@ -7,7 +7,7 @@ import java.nio._
 /**
   * @author Emmanouil Antonios Platanios
   */
-final case class Tensor(dataType: DataType, shape: Array[Long], var nativeHandle: Long)
+final case class Tensor(dataType: DataType, shape: Array[Long], private[api] var nativeHandle: Long)
     extends Closeable {
   def rank: Int = shape.length
   def numElements: Long = Tensor.numElements(shape)

@@ -8,7 +8,7 @@ import scala.collection.mutable.ArrayBuffer
 /**
   * @author Emmanouil Antonios Platanios
   */
-final case class Session(graph: Graph, private var nativeHandle: Long) extends Closeable {
+final case class Session private (graph: Graph, private var nativeHandle: Long) extends Closeable {
   private object NativeHandleLock
   private var referenceCount: Int = 0
 

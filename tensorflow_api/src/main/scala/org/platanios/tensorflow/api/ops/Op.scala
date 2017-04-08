@@ -27,7 +27,7 @@ import scala.util.DynamicVariable
   *
   * @author Emmanouil Antonios Platanios
   */
-final case class Op private (graph: Graph, nativeHandle: Long) {
+final case class Op private (graph: Graph, private[api] val nativeHandle: Long) {
   graph.opsCache.update(nativeHandle, this) // Update the ops cache of the graph with the current op
 
   /** Name of the op. */
@@ -42,7 +42,9 @@ final case class Op private (graph: Graph, nativeHandle: Long) {
   /** Colocation ops for this op (i.e., ops guaranteed to be placed on the same device). */
   lazy val colocationOps: Set[Op] = using(graph.reference) { _ =>
     Option(NativeOp.getAttrStringList(nativeHandle, COLOCATION_OPS_ATTRIBUTE_NAME))
-        .map(_.toSet[String].map(opName => graph.findOp(opName.substring(COLOCATION_OPS_ATTRIBUTE_PREFIX.length)).get))
+        .map(_.toSet[String]
+                 .filter(_.startsWith(COLOCATION_OPS_ATTRIBUTE_PREFIX))
+                 .map(opName => graph.findOp(opName.substring(COLOCATION_OPS_ATTRIBUTE_PREFIX.length)).get))
         .getOrElse(Set.empty[Op])
   }
 
@@ -686,7 +688,7 @@ object Op {
           dataTypeArrayAttributes.foreach(a => NativeOp.setAttrTypeList(nativeHandle, a._1, a._2))
           tensorAttributes.foreach(a => NativeOp.setAttrTensor(nativeHandle, a._1, a._2))
           tensorArrayAttributes.foreach(a => NativeOp.setAttrTensorList(nativeHandle, a._1, a._2))
-          shapeAttributes.foreach(a => NativeOp.setAttrShape(nativeHandle, a._1, a._2.shape, a._2.rank))
+          shapeAttributes.foreach(a => NativeOp.setAttrShape(nativeHandle, a._1, a._2.asArray, a._2.rank))
           val operation = Op(graph, NativeOp.finish(nativeHandle))
           built = true
           operation
