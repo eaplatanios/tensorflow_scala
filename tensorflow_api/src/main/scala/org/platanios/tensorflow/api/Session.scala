@@ -47,14 +47,14 @@ final case class Session(graph: Graph, private var nativeHandle: Long) extends C
 
     def feed(opName: String, index: Int = 0, tensor: Tensor[_]): Runner = {
       val op: Op = operationByName(name = opName)
-      inputs += op.output(index = index)
+      inputs += op.outputs(index)
       inputTensors += tensor
       this
     }
 
     def fetch(opName: String, index: Int = 0): Runner = {
       val op: Op = operationByName(name = opName)
-      outputs += op.output(index)
+      outputs += op.outputs(index)
       this
     }
 

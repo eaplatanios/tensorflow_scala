@@ -29,7 +29,7 @@ object StateOps {
         .setAttribute(name = "dtype", value = dataType)
         .setAttribute(name = "container", value = container)
         .setAttribute(name = "shared_name", value = sharedName)
-        .build().output(index = 0)
+        .build().outputs(0)
   }
 
   /** Creates an op that checks whether a tensor has been initialized. The output of this op is a boolean scalar
@@ -47,7 +47,7 @@ object StateOps {
     Op.Builder(context = context, opType = "IsVariableInitialized", name = name)
         .addInput(variable)
         .setAttribute(name = "dtype", value = dataType)
-        .build().output(index = 0)
+        .build().outputs(0)
   }
 
   /** Creates an op that assigns a value to a variable. The output of this op is the input variable, after the
@@ -72,7 +72,7 @@ object StateOps {
         .addInput(value)
         .setAttribute(name = "validate_shape", value = validateShape)
         .setAttribute(name = "use_locking", value = useLocking)
-        .build().output(0)
+        .build().outputs(0)
   }
 
   /** Creates an op that updates a variable value by adding the provided value to it. The output of this op is the input
@@ -93,7 +93,7 @@ object StateOps {
         .addInput(variable)
         .addInput(value)
         .setAttribute(name = "use_locking", value = useLocking)
-        .build().output(0)
+        .build().outputs(0)
   }
 
   /** Creates an op that updates a variable value by subtracting the provided value from it. The output of this op is
@@ -114,7 +114,7 @@ object StateOps {
         .addInput(variable)
         .addInput(value)
         .setAttribute(name = "use_locking", value = useLocking)
-        .build().output(0)
+        .build().outputs(0)
   }
 
   // TODO: Add scatter update ops.

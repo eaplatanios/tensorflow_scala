@@ -103,7 +103,7 @@ final case class Graph(private var nativeHandle: Long) extends Closeable {
             throw InvalidGraphElementException(
               s"Name '$name' refers to an op output which does not exist in the graph. More specifically, op, " +
                   s"'$opName', does exist in the graph, but it only has ${graphOp.numOutputs} output(s).")
-          Right(graphOp.output(opOutputIndex))
+          Right(graphOp.outputs(opOutputIndex))
         } else {
           throw InvalidGraphElementException(
             s"Name '$name' appears to refer to an op output, but 'allowOpOutput' was set to 'false'.")

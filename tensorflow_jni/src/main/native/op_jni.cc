@@ -335,87 +335,72 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_shape(
 }
 
 JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttrString(
-  JNIEnv* env, jobject object, jlong opHandle, jstring attrName) {
-  TF_Operation* op = requireOperationHandle(env, opHandle);
-  if (op == nullptr) return nullptr;
-  const char* attrNameString = env->GetStringUTFChars(attrName, nullptr);
-  TF_Status* status = TF_NewStatus();
-  TF_AttrMetadata attrMetadata = TF_OperationGetAttrMetadata(op, attrNameString, status);
-  if (throwExceptionIfNotOK(env, status)) {
-    if (attrMetadata.total_size < 0) return nullptr;
-    if (attrMetadata.type != TF_ATTR_STRING || attrMetadata.is_list == 1)
-      throwException(
-        env, "java/lang/IllegalArgumentException", "Attribute '%s' is not a string. It is a '%s', instead.",
-        attrNameString, attrTypeToString(attrMetadata.type, attrMetadata.is_list));
-    long long attrValueSize = reinterpret_cast<long long>(attrMetadata.total_size);
-    if (attrValueSize < 0)
-      return nullptr;
-    char* attrValue = new char[attrValueSize];
+        JNIEnv* env, jobject object, jlong opHandle, jstring attrName) {
+    TF_Operation* op = requireOperationHandle(env, opHandle);
+    if (op == nullptr) return nullptr;
+    const char* attrNameString = env->GetStringUTFChars(attrName, nullptr);
     TF_Status* status = TF_NewStatus();
-    TF_OperationGetAttrString(op, attrNameString, attrValue, attrValueSize, status);
+    TF_AttrMetadata attrMetadata = TF_OperationGetAttrMetadata(op, attrNameString, status);
     if (throwExceptionIfNotOK(env, status)) {
-      env->ReleaseStringUTFChars(attrName, attrNameString);
-      return env->NewStringUTF(attrValue);
+        if (attrMetadata.total_size < 0) return nullptr;
+        if (attrMetadata.type != TF_ATTR_STRING || attrMetadata.is_list == 1)
+            throwException(
+                    env, "java/lang/IllegalArgumentException", "Attribute '%s' is not a string. It is a '%s', instead.",
+                    attrNameString, attrTypeToString(attrMetadata.type, attrMetadata.is_list));
+        size_t attrValueSize = (size_t) attrMetadata.total_size;
+        if (attrValueSize < 0)
+            return nullptr;
+        char* attrValue = new char[attrValueSize];
+        TF_Status* status = TF_NewStatus();
+        TF_OperationGetAttrString(op, attrNameString, attrValue, attrValueSize, status);
+        if (throwExceptionIfNotOK(env, status)) {
+            env->ReleaseStringUTFChars(attrName, attrNameString);
+            return env->NewStringUTF(attrValue);
+        }
+        return nullptr;
     }
     return nullptr;
-  }
-  return nullptr;
 }
 
 JNIEXPORT jobjectArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttrStringList(
   JNIEnv* env, jobject object, jlong opHandle, jstring attrName) {
-  TF_Operation* op = requireOperationHandle(env, opHandle);
-  if (op == nullptr) return nullptr;
-  const char* attrNameString = env->GetStringUTFChars(attrName, nullptr);
-  TF_Status* status = TF_NewStatus();
-  TF_AttrMetadata attrMetadata = TF_OperationGetAttrMetadata(op, attrNameString, status);
-  if (throwExceptionIfNotOK(env, status)) {
-    if (attrMetadata.total_size < 0) return nullptr;
-    if (attrMetadata.type != TF_ATTR_STRING || attrMetadata.is_list == 0)
-      throwException(
-        env, "java/lang/IllegalArgumentException", "Attribute '%s' is not a string list. It is a '%s', instead.",
-        attrNameString, attrTypeToString(attrMetadata.type, attrMetadata.is_list));
-    size_t storageSize = static_cast<size_t>(attrMetadata.total_size);
-    if (attrMetadata.list_size <= 0) return nullptr;
-    void** attrValuePointers = new void*[attrMetadata.list_size];
-    size_t* attrValueLengths = new size_t[attrMetadata.list_size];
-    void* storage = new char[storageSize];
-    TF_Status* status = TF_NewStatus();
-    TF_OperationGetAttrStringList(
-      op, attrNameString, attrValuePointers, attrValueLengths, attrMetadata.list_size, storage, storageSize, status);
+    TF_Operation *op = requireOperationHandle(env, opHandle);
+    if (op == nullptr) return nullptr;
+    const char *attrNameString = env->GetStringUTFChars(attrName, nullptr);
+    TF_Status *status = TF_NewStatus();
+    TF_AttrMetadata attr_metadata = TF_OperationGetAttrMetadata(op, attrNameString, status);
     if (throwExceptionIfNotOK(env, status)) {
-      jobjectArray ret;
-      ret = env->NewObjectArray(attrMetadata.list_size, env->FindClass("java/lang/String"), env->NewStringUTF(""));
-      int i;
-      for(i = 0; i < attrMetadata.list_size; i++) {
-        char* value = new char[attrValueLengths[i]];
-        strncpy(value, reinterpret_cast<const char*>(attrValuePointers[i]), attrValueLengths[i]);
-        env->SetObjectArrayElement(ret, i, env->NewStringUTF(value));
-      }
-      env->ReleaseStringUTFChars(attrName, attrNameString);
-      return ret;
+        if (attr_metadata.total_size < 0) return nullptr;
+        if (attr_metadata.type != TF_ATTR_STRING || attr_metadata.is_list == 0)
+            throwException(
+                    env, "java/lang/IllegalArgumentException",
+                    "Attribute '%s' is not a string list. It is a '%s', instead.",
+                    attrNameString, attrTypeToString(attr_metadata.type, attr_metadata.is_list));
+        size_t storageSize = (size_t) attr_metadata.total_size;
+        int list_size = (int) attr_metadata.list_size;
+        if (list_size <= 0) return nullptr;
+        void **attrValuePointers = new void *[list_size];
+        size_t *attrValueLengths = new size_t[list_size];
+        void *storage = new char[storageSize];
+        TF_Status *status = TF_NewStatus();
+        TF_OperationGetAttrStringList(
+                op, attrNameString, attrValuePointers, attrValueLengths, list_size, storage, storageSize, status);
+        if (throwExceptionIfNotOK(env, status)) {
+            jobjectArray ret;
+            ret = env->NewObjectArray(list_size, env->FindClass("java/lang/String"), env->NewStringUTF(""));
+            for (int i = 0; i < list_size; i++) {
+                char *value = new char[attrValueLengths[i] + 1];
+                strncpy(value, reinterpret_cast<const char *>(attrValuePointers[i]), attrValueLengths[i]);
+                value[attrValueLengths[i]] = '\0';
+                env->SetObjectArrayElement(ret, i, env->NewStringUTF(value));
+            }
+            env->ReleaseStringUTFChars(attrName, attrNameString);
+            return ret;
+        }
+        return nullptr;
     }
     return nullptr;
-  }
-  return nullptr;
 }
-
-// Get the list of strings in the value of the attribute `attr_name`.  Fills in
-// `values` and `lengths`, each of which must point to an array of length at
-// least `max_values`.
-//
-// The elements of values will point to addresses in `storage` which must be at
-// least `storage_size` bytes in length.  Ideally, max_values would be set to
-// TF_AttrMetadata.list_size and `storage` would be at least
-// TF_AttrMetadata.total_size, obtained from TF_OperationGetAttrMetadata(oper,
-// attr_name).
-//
-// Fails if storage_size is too small to hold the requested number of strings.
-extern void TF_OperationGetAttrStringList(TF_Operation* oper,
-                                          const char* attr_name, void** values,
-                                          size_t* lengths, int max_values,
-                                          void* storage, size_t storage_size,
-                                          TF_Status* status);
 
 JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_allOps(JNIEnv* env,
                                                                                       jobject object) {

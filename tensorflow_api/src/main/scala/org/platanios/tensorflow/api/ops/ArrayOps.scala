@@ -17,7 +17,7 @@ object ArrayOps {
         opBuilder.setAttribute(name = "dtype", value = dataType)
       else
         opBuilder.setAttribute(name = "dtype", value = tensor.dataType)
-      opBuilder.build().output(0)
+      opBuilder.build().outputs(0)
     }
   }
 
@@ -29,12 +29,12 @@ object ArrayOps {
             .setAttribute(name = "dtype", value = dataType)
             .setAttribute(name = "shape", value = shapeValue)
             .build()
-            .output(index = 0)
+            .outputs(0)
       case None =>
         Op.Builder(context = context, opType = "Placeholder", name = name)
             .setAttribute(name = "dtype", value = dataType)
             .build()
-            .output(index = 0)
+            .outputs(0)
     }
   }
 
@@ -45,6 +45,6 @@ object ArrayOps {
         .addInput(default)
         .setAttribute(name = "shape", value = shape)
         .build()
-        .output(index = 0)
+        .outputs(0)
   }
 }

@@ -3,89 +3,116 @@ package org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.jni.{Op => NativeOp}
 import org.platanios.tensorflow.api.Exception.{IllegalNameException, OpBuilderUsedException}
-import java.nio.charset.Charset
 
+import java.nio.charset.Charset
 import scala.collection.mutable
 import scala.util.DynamicVariable
-import scala.util.matching.Regex
 
 /**
   * @author Emmanouil Antonios Platanios
   */
 final case class Op(graph: Graph, nativeHandle: Long) {
-  graph.opsCache.update(nativeHandle, this)
+  graph.opsCache.update(nativeHandle, this) // Update the ops cache of the graph with the current op
 
   /** Name of the op. */
-  val name: String = using(graph.reference) { _ => NativeOp.name(nativeHandle) }
+  lazy val name: String = using(graph.reference) { _ => NativeOp.name(nativeHandle) }
 
   /** Type of the op (i.e., the name of the computation performed by the operation). */
-  val opType: String = using(graph.reference) { _ => NativeOp.opType(nativeHandle) }
+  lazy val opType: String = using(graph.reference) { _ => NativeOp.opType(nativeHandle) }
 
-  /** Device in which the op tensors are stored and where computations are performed for this op. */
-  val device: String = using(graph.reference) { _ => NativeOp.device(nativeHandle) }
+  /** Device in which the op tensors are stored and where all computations for this op are performed. */
+  lazy val device: String = using(graph.reference) { _ => NativeOp.device(nativeHandle) }
 
-  /** Returns the number of tensors fed as input to this operation. */
-  val numInputs: Int = using(graph.reference) { _ => NativeOp.numInputs(nativeHandle) }
+  /** Colocation ops for this op (i.e., ops guaranteed to be placed on the same device). */
+  lazy val colocationOps: Set[Op] = using(graph.reference) { _ =>
+    Option(NativeOp.getAttrStringList(nativeHandle, COLOCATION_OPS_ATTRIBUTE_NAME))
+      .map(_.toSet[String].map(opName => graph.findOp(opName.substring(COLOCATION_OPS_ATTRIBUTE_PREFIX.length)).get))
+      .getOrElse(Set.empty[Op])
+  }
 
-  val numControlInputs: Int = using(graph.reference) { _ => NativeOp.numControlInputs(nativeHandle) }
+  /** Number of inputs to this op (i.e., number of tensors fed as input to this op). */
+  lazy val numInputs: Int = using(graph.reference) { _ => NativeOp.numInputs(nativeHandle) }
 
-  /** Number of tensors produced by this operation. */
-  val numOutputs: Int = using(graph.reference) { _ => NativeOp.numOutputs(nativeHandle) }
-
-  val numControlOutputs: Int = using(graph.reference) { _ => NativeOp.numControlOutputs(nativeHandle) }
-
-  // TODO: Avoid creating new instances of the Op classes if they already exist.
-  private[api] def input(index: Int): Op.Output = {
+  /** Inputs of this op. Note that these inputs are outputs of other ops and thus have type [[Op.Output]]. */
+  lazy val inputs: Array[Op.Output] = (0 until numInputs).map(index =>
     using(graph.reference) { _ =>
       val jniOpOutput = NativeOp.input(nativeHandle, index)
       val op = graph.opsCache.getOrElseUpdate(jniOpOutput.opHandle, Op(graph, jniOpOutput.opHandle))
-      op.output(jniOpOutput.outputIndex)
-    }
-  }
+      op.outputs(jniOpOutput.outputIndex)
+    }).toArray
 
-  val inputs: Array[Op.Output] = (0 until numInputs).map(input).toArray
+  /** Number of control inputs to this op. These are ops that are guaranteed to finish executing before this op starts
+    * executing). */
+  lazy val numControlInputs: Int = using(graph.reference) { _ => NativeOp.numControlInputs(nativeHandle) }
 
-  val controlInputs: Array[Op] = {
+  /** Control inputs of this op. These are ops that are guaranteed to finish executing before this op starts
+    * executing). */
+  lazy val controlInputs: Set[Op] = {
     val controlInputHandles = using(graph.reference) { _ => NativeOp.controlInputs(nativeHandle) }
-    controlInputHandles.map(handle => graph.opsCache.getOrElseUpdate(handle, Op(graph, handle)))
+    controlInputHandles.map(handle => graph.opsCache.getOrElseUpdate(handle, Op(graph, handle))).toSet
   }
 
-  /** Returns a symbolic handle to one of the tensors produced by this operation. */
-  private[api] def output(index: Int): Op.Output = outputs(index)
+  /** Number of tensors produced by this operation. */
+  lazy val numOutputs: Int = using(graph.reference) { _ => NativeOp.numOutputs(nativeHandle) }
 
-  val outputs: Array[Op.Output] = (0 until numOutputs).map(i => Op.Output(op = this, index = i)).toArray
+  /** Outputs of this op. */
+  lazy val outputs: Array[Op.Output] = (0 until numOutputs).map(i => Op.Output(op = this, index = i)).toArray
 
-  def controlOutputs: Array[Op] = {
+  /** Gets the (current) number of control outputs of this op. These are ops that are guaranteed to start executing
+    * after this op finishes executing.
+    *
+    * @note A concurrent modification of the graph can change the number of control outputs of this op.
+    * @return Current number of control outputs of this op.
+    */
+  def numControlOutputs: Int = using(graph.reference) { _ => NativeOp.numControlOutputs(nativeHandle) }
+
+  /** Gets the (current) control outputs of this op. These are ops that are guaranteed to start executing after this op
+    * finishes executing.
+    *
+    * @note A concurrent modification of the graph can change the number of control outputs of this op.
+    * @return Current control outputs of this op.
+    */
+  def controlOutputs: Set[Op] = {
     val controlOutputHandles = using(graph.reference) { _ => NativeOp.controlOutputs(nativeHandle) }
-    controlOutputHandles.map(handle => graph.opsCache.getOrElseUpdate(handle, Op(graph, handle)))
+    controlOutputHandles.map(handle => graph.opsCache.getOrElseUpdate(handle, Op(graph, handle))).toSet
   }
 
-  private def outputConsumers(index: Int): Array[Op.Output] = using(graph.reference) { _ =>
+  /** Gets the data type of the specified input of this op.
+    *
+    * @param  index Input index.
+    * @return Data type of the specified input.
+    */
+  private def inputDataType(index: Int): DataType[_] =
+    using(graph.reference) { r =>
+      DataType.fromCValue(NativeOp.inputDataType(r.nativeHandle, nativeHandle, index))
+    }
+
+  /** Gets the data type of the specified output of this op.
+    *
+    * @param  index Output index.
+    * @return Data type of the specified output.
+    */
+  private def outputDataType(index: Int): DataType[_] =
+    using(graph.reference) { r =>
+      DataType.fromCValue(NativeOp.outputDataType(r.nativeHandle, nativeHandle, index))
+    }
+
+  /** Gets the (current) number of consumers of the specified output of this op. These are other ops that use the
+    * specified output as one of their inputs.
+    *
+    * @param  index Output index.
+    * @return Current consumers of the specified output.
+    */
+  private def outputConsumers(index: Int): Array[Op.Input] = using(graph.reference) { _ =>
     NativeOp.consumers(nativeHandle, index).map(jniOpOutput => {
       val op = graph.opsCache.getOrElseUpdate(jniOpOutput.opHandle, Op(graph, jniOpOutput.opHandle))
-      op.output(jniOpOutput.outputIndex)
+      Op.Input(op = op, index = index)
     })
-  }
-
-  def inputDataType(inputIndex: Int): DataType[_] =
-    using(graph.reference) { r =>
-      DataType.fromCValue(NativeOp.inputDataType(r.nativeHandle, nativeHandle, inputIndex))
-    }
-
-  def outputDataType(outputIndex: Int): DataType[_] =
-    using(graph.reference) { r =>
-      DataType.fromCValue(NativeOp.outputDataType(r.nativeHandle, nativeHandle, outputIndex))
-    }
-
-  // TODO: Make this return a Set[Op] instead and convert all vals of this class to lazy vals.
-  val colocationGroups: Set[String] = using(graph.reference) { _ =>
-    Option(NativeOp.getAttrStringList(nativeHandle, "_class")).map(_.toSet).getOrElse(Set.empty[String])
   }
 
   override def toString: String = name
 }
 
-// TODO: Add support for container contexts.
 private[ops] final case class OpSpecification(name: String, opType: String)
 private[api] final case class OpCreationContext(
     graph: Graph = Graph(), nameScope: String = "", device: OpSpecification => String = _ => "",
@@ -147,7 +174,7 @@ object Op {
     *
     * == Name Scope ==
     *
-    * When createWith(...)` is used with a name scope, the provided name scope is appended to the context name scope,
+    * When `createWith(...)` is used with a name scope, the provided name scope is appended to the context name scope,
     * generating a new op creation context. This new context is used for all ops created within the code block provided
     * in the `createWith(...)` function. The `nameScope` argument will be interpreted as follows:
     *   - A string will create a new name scope, in which `nameScope` is appended to the prefix of all operations
@@ -439,15 +466,13 @@ object Op {
       context.controlDependencies ++ controlDependencies
   }
 
-  private[this] val validOpNameRegex: Regex = "^[A-Za-z0-9.][A-Za-z0-9_.\\-/]*$".r
-
   /** Checks whether the provided string is a valid op name.
     *
     * @param  name String to check.
     * @return Boolean value indicating whether the check was successful.
     */
   private[this] def checkName(name: String): Boolean =
-    validOpNameRegex.pattern.matcher(name).matches
+    VALID_OP_NAME_REGEX.pattern.matcher(name).matches
 
   /** Returns a unique operation name in a graph, based on the provided `name`.
     *
@@ -477,15 +502,13 @@ object Op {
       uniqueName(graph = graph, name = name, counter = counter + 1)
   }
 
-  private[this] val validNameScopeRegex: Regex = "^[A-Za-z0-9_.\\-/]*$".r
-
   /** Checks whether the provided string is a valid name scope for creating ops.
     *
     * @param  nameScope String to check.
     * @return Boolean value indicating whether the check was successful.
     */
   private[this] def checkNameScope(nameScope: String): Boolean =
-    validNameScopeRegex.pattern.matcher(nameScope).matches
+    VALID_NAME_SCOPE_REGEX.pattern.matcher(nameScope).matches
 
   /** Converts the provided name scope to a valid op name, by removing a trailing `"/"` if there exists one.
     *
@@ -499,10 +522,16 @@ object Op {
       nameScope
   }
 
+  final case class Input private(op: Op, index: Int) {
+    lazy val dataType: DataType[_] = op.inputDataType(index)
+
+    def graph: Graph = op.graph
+  }
+
   final case class Output private (op: Op, index: Int) {
-    val name: String = s"${op.name}:$index"
-    val dataType: DataType[_] = op.outputDataType(index)
-    val consumers: Array[Op.Output] = op.outputConsumers(index)
+    lazy val name: String = s"${op.name}:$index"
+    lazy val dataType: DataType[_] = op.outputDataType(index)
+    lazy val consumers: Array[Op.Input] = op.outputConsumers(index)
 
     def graph: Graph = op.graph
     def device: String = op.device
@@ -553,6 +582,7 @@ object Op {
       *                     is being built.
       */
     private[this] def pruneControlDependencies(controlDeps: mutable.Set[Op], op: Op): Unit = {
+      // TODO: Check if this is too expensive for large graphs.
       // Prune op that is already used as input to the dependant op
       controlDeps -= op
       // Prune transitive control dependencies

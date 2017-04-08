@@ -55,7 +55,7 @@ class GraphSpec extends FlatSpec with Matchers {
 
   "'opOutputByName'" must "return an existing op output in a graph" in {
     val (graph, ops) = prepareGraph()
-    assert(graph.opOutputByName("C_2:0") === ops(1).output(0))
+    assert(graph.opOutputByName("C_2:0") === ops(1).outputs(0))
   }
 
   it must "throw an 'InvalidGraphElementException' exception with an informative message " +
@@ -80,7 +80,7 @@ class GraphSpec extends FlatSpec with Matchers {
   "'graphElementByName'" must "return an existing element in a graph" in {
     val (graph, ops) = prepareGraph()
     assert(graph.graphElementByName("C_2").left.get === ops(1))
-    assert(graph.graphElementByName("C_2:0").right.get === ops(1).output(0))
+    assert(graph.graphElementByName("C_2:0").right.get === ops(1).outputs(0))
   }
 
   it must "throw an 'InvalidGraphElementException' exception with an informative message " +

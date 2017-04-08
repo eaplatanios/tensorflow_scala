@@ -32,9 +32,15 @@ sbt compile
 
 ## Supported Features
 
-- [x] Graph op creation context
-- [x] Name scope op creation context
-- [x] Device op creation context
-- [ ] Colocation op creation context
-- [x] Control dependencies op creation context
-- [ ] Container op creation context
+- Op creation API helpers:
+  - [x] Graph op creation context
+  - [x] Name scope op creation context
+  - [x] Device op creation context
+  - [x] Colocation op creation context
+  - [x] Control dependencies op creation context
+  - [ ] Container op creation context
+- General API features:
+  - [ ] Variables
+  - [ ] Gradients
+  - [ ] Optimizers
+  - [ ] Estimators
