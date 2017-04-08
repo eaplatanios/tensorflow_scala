@@ -340,19 +340,17 @@ JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttrStri
     if (op == nullptr) return nullptr;
     const char* attrNameString = env->GetStringUTFChars(attrName, nullptr);
     TF_Status* status = TF_NewStatus();
-    TF_AttrMetadata attrMetadata = TF_OperationGetAttrMetadata(op, attrNameString, status);
+    TF_AttrMetadata attr_metadata = TF_OperationGetAttrMetadata(op, attrNameString, status);
     if (throwExceptionIfNotOK(env, status)) {
-        if (attrMetadata.total_size < 0) return nullptr;
-        if (attrMetadata.type != TF_ATTR_STRING || attrMetadata.is_list == 1)
+        if (attr_metadata.total_size < 0) return nullptr;
+        if (attr_metadata.type != TF_ATTR_STRING || attr_metadata.is_list == 1)
             throwException(
                     env, "java/lang/IllegalArgumentException", "Attribute '%s' is not a string. It is a '%s', instead.",
-                    attrNameString, attrTypeToString(attrMetadata.type, attrMetadata.is_list));
-        size_t attrValueSize = (size_t) attrMetadata.total_size;
-        if (attrValueSize < 0)
-            return nullptr;
-        char* attrValue = new char[attrValueSize];
+                    attrNameString, attrTypeToString(attr_metadata.type, attr_metadata.is_list));
+        if (attr_metadata.total_size < 0) return nullptr;
+        char* attrValue = new char[attr_metadata.total_size];
         TF_Status* status = TF_NewStatus();
-        TF_OperationGetAttrString(op, attrNameString, attrValue, attrValueSize, status);
+        TF_OperationGetAttrString(op, attrNameString, attrValue, (size_t) attr_metadata.total_size, status);
         if (throwExceptionIfNotOK(env, status)) {
             env->ReleaseStringUTFChars(attrName, attrNameString);
             return env->NewStringUTF(attrValue);
