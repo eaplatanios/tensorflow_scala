@@ -8,7 +8,7 @@ import scala.util.DynamicVariable
   * @author Emmanouil Antonios Platanios
   */
 object ArrayOps {
-  def constant(value: Any, dataType: DataType[_] = null, name: String = "Constant")
+  def constant(value: Any, dataType: DataType = null, name: String = "Constant")
       (implicit context: DynamicVariable[OpCreationContext]): Op.Output = {
     using(Tensor.create(value = value)) { tensor =>
       val opBuilder = Op.Builder(context = context, opType = "Const", name = name)
@@ -21,7 +21,7 @@ object ArrayOps {
     }
   }
 
-  def placeholder(dataType: DataType[_], shape: Option[Shape] = None, name: String = "Placeholder")
+  def placeholder(dataType: DataType, shape: Option[Shape] = None, name: String = "Placeholder")
       (implicit context: DynamicVariable[OpCreationContext]): Op.Output = {
     shape match {
       case Some(shapeValue) =>

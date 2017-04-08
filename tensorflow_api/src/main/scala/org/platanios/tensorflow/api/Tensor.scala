@@ -7,7 +7,7 @@ import java.nio._
 /**
   * @author Emmanouil Antonios Platanios
   */
-final case class Tensor[T](dataType: DataType[T], shape: Array[Long], var nativeHandle: Long)
+final case class Tensor(dataType: DataType, shape: Array[Long], var nativeHandle: Long)
     extends Closeable {
   def rank: Int = shape.length
   def numElements: Long = Tensor.numElements(shape)
@@ -15,14 +15,14 @@ final case class Tensor[T](dataType: DataType[T], shape: Array[Long], var native
 
   private def buffer: ByteBuffer = NativeTensor.buffer(nativeHandle).order(ByteOrder.nativeOrder())
 
-  def scalarValue: T = dataType match {
-    case DataType.float => NativeTensor.scalarFloat(nativeHandle).asInstanceOf[T]
-    case DataType.double => NativeTensor.scalarDouble(nativeHandle).asInstanceOf[T]
-    case DataType.int32 => NativeTensor.scalarInt(nativeHandle).asInstanceOf[T]
+  def scalarValue: Any = dataType match {
+    case DataType.float => NativeTensor.scalarFloat(nativeHandle)
+    case DataType.double => NativeTensor.scalarDouble(nativeHandle)
+    case DataType.int32 => NativeTensor.scalarInt(nativeHandle)
     case DataType.uint8 => ???
     case DataType.string => ???
-    case DataType.int64 => NativeTensor.scalarLong(nativeHandle).asInstanceOf[T]
-    case DataType.boolean => NativeTensor.scalarBoolean(nativeHandle).asInstanceOf[T]
+    case DataType.int64 => NativeTensor.scalarLong(nativeHandle)
+    case DataType.boolean => NativeTensor.scalarBoolean(nativeHandle)
     case _ => throw new IllegalArgumentException(
       s"DataType $dataType is not recognized in Scala (TensorFlow version ${TensorFlow.version}).")
   }
@@ -91,8 +91,8 @@ final case class Tensor[T](dataType: DataType[T], shape: Array[Long], var native
 }
 
 object Tensor {
-  def create(value: Any): Tensor[_] = {
-    implicit val dataType: DataType[_] = dataTypeOf(value)
+  def create(value: Any): Tensor = {
+    implicit val dataType: DataType = dataTypeOf(value)
     val shape: Array[Long] = Array.ofDim[Long](rank(value))
     fillShape(value = value, axis = 0, shape = shape)
     if (dataType != DataType.string) {
@@ -110,31 +110,31 @@ object Tensor {
     }
   }
 
-  def create(shape: Array[Long], data: FloatBuffer): Tensor[Float] = {
-    val tensor: Tensor[Float] = allocateForBuffer(DataType.float, shape, data.remaining())
+  def create(shape: Array[Long], data: FloatBuffer): Tensor = {
+    val tensor: Tensor = allocateForBuffer(DataType.float, shape, data.remaining())
     tensor.buffer.asFloatBuffer().put(data)
     tensor
   }
 
-  def create(shape: Array[Long], data: DoubleBuffer): Tensor[Double] = {
-    val tensor: Tensor[Double] = allocateForBuffer(DataType.double, shape, data.remaining())
+  def create(shape: Array[Long], data: DoubleBuffer): Tensor = {
+    val tensor: Tensor = allocateForBuffer(DataType.double, shape, data.remaining())
     tensor.buffer.asDoubleBuffer().put(data)
     tensor
   }
 
-  def create(shape: Array[Long], data: IntBuffer): Tensor[Int] = {
-    val tensor: Tensor[Int] = allocateForBuffer(DataType.int32, shape, data.remaining())
+  def create(shape: Array[Long], data: IntBuffer): Tensor = {
+    val tensor: Tensor = allocateForBuffer(DataType.int32, shape, data.remaining())
     tensor.buffer.asIntBuffer().put(data)
     tensor
   }
 
-  def create(shape: Array[Long], data: LongBuffer): Tensor[Long] = {
-    val tensor: Tensor[Long] = allocateForBuffer(DataType.int64, shape, data.remaining())
+  def create(shape: Array[Long], data: LongBuffer): Tensor = {
+    val tensor: Tensor = allocateForBuffer(DataType.int64, shape, data.remaining())
     tensor.buffer.asLongBuffer().put(data)
     tensor
   }
 
-  def create[T](dataType: DataType[T], shape: Array[Long], data: ByteBuffer): Tensor[T] = {
+  def create(dataType: DataType, shape: Array[Long], data: ByteBuffer): Tensor = {
     val numRemaining: Int = {
       if (dataType != DataType.string) {
         if (data.remaining() % dataType.byteSize != 0)
@@ -145,20 +145,20 @@ object Tensor {
         data.remaining()
       }
     }
-    val tensor: Tensor[T] = allocateForBuffer(dataType, shape, numRemaining)
+    val tensor: Tensor = allocateForBuffer(dataType, shape, numRemaining)
     tensor.buffer.put(data)
     tensor
   }
 
-  def fromNativeHandle(nativeHandle: Long): Tensor[_] = {
-    val dataType: DataType[_] = DataType.fromCValue(NativeTensor.dataType(nativeHandle))
+  def fromNativeHandle(nativeHandle: Long): Tensor = {
+    val dataType: DataType = DataType.fromCValue(NativeTensor.dataType(nativeHandle))
     val shape: Array[Long] = NativeTensor.shape(nativeHandle)
     Tensor(dataType = dataType, shape = shape, nativeHandle = nativeHandle)
   }
 
   // Helper function to allocate a Tensor for the create() methods that create a Tensor from
   // a java.nio.Buffer.
-  private def allocateForBuffer[T](dataType: DataType[T], shape: Array[Long], numBuffered: Int): Tensor[T] = {
+  private def allocateForBuffer(dataType: DataType, shape: Array[Long], numBuffered: Int): Tensor = {
     val size: Long = numElements(shape)
     val numBytes: Long = {
       if (dataType != DataType.string) {
@@ -175,7 +175,7 @@ object Tensor {
     Tensor(dataType = dataType, shape = shape, nativeHandle = nativeHandle)
   }
 
-  private def incompatibleBufferException(buffer: Buffer, dataType: DataType[_]): IllegalArgumentException = {
+  private def incompatibleBufferException(buffer: Buffer, dataType: DataType): IllegalArgumentException = {
     new IllegalArgumentException(s"Cannot use ${buffer.getClass.getName} with a Tensor of type $dataType.")
   }
 
@@ -194,7 +194,7 @@ object Tensor {
     n
   }
 
-  private def dataTypeOf(value: Any): DataType[_] = {
+  private def dataTypeOf(value: Any): DataType = {
     value match {
       // Array[Byte] is a DataType.STRING scalar.
       case value: Array[Byte] =>

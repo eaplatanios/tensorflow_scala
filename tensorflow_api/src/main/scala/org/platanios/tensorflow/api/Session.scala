@@ -12,6 +12,10 @@ final case class Session(graph: Graph, private var nativeHandle: Long) extends C
   private object NativeHandleLock
   private var referenceCount: Int = 0
 
+  def run(feeds: Map[Op.Output, Tensor], fetches: Array[Op.Output]): Array[Tensor] = {
+    ???
+  }
+
   override def close(): Unit = {
     graph.reference.close()
     NativeHandleLock.synchronized {
@@ -34,7 +38,7 @@ final case class Session(graph: Graph, private var nativeHandle: Long) extends C
 
   final case class Runner() {
     private val inputs: ArrayBuffer[Op.Output] = ArrayBuffer[Op.Output]()
-    private val inputTensors: ArrayBuffer[Tensor[_]] = ArrayBuffer[Tensor[_]]()
+    private val inputTensors: ArrayBuffer[Tensor] = ArrayBuffer[Tensor]()
     private val outputs: ArrayBuffer[Op.Output] = ArrayBuffer[Op.Output]()
     private val targets: ArrayBuffer[Op] = ArrayBuffer[Op]()
     private var runOptions: Option[Array[Byte]] = None
@@ -45,7 +49,7 @@ final case class Session(graph: Graph, private var nativeHandle: Long) extends C
         case None => throw new IllegalArgumentException(s"No operation named \'$name\' in the current graph.")
       }
 
-    def feed(opName: String, index: Int = 0, tensor: Tensor[_]): Runner = {
+    def feed(opName: String, index: Int = 0, tensor: Tensor): Runner = {
       val op: Op = operationByName(name = opName)
       inputs += op.outputs(index)
       inputTensors += tensor
@@ -69,7 +73,7 @@ final case class Session(graph: Graph, private var nativeHandle: Long) extends C
       this
     }
 
-    def run(wantMetadata: Boolean = false): (List[Tensor[_]], Array[Byte]) = {
+    def run(wantMetadata: Boolean = false): (List[Tensor], Array[Byte]) = {
       val inputTensorHandles: Array[Long] = inputTensors.map(_.nativeHandle).toArray
       val inputOpHandles: Array[Long] = inputs.map(_.op.nativeHandle).toArray
       val inputOpIndices: Array[Int] = inputs.map(_.index).toArray
@@ -93,7 +97,7 @@ final case class Session(graph: Graph, private var nativeHandle: Long) extends C
           wantRunMetadata = wantMetadata,
           outputTensorHandles = outputTensorHandles)
       }
-      val outputs: List[Tensor[_]] =
+      val outputs: List[Tensor] =
         outputTensorHandles.map(h => Tensor.fromNativeHandle(nativeHandle = h)).toList
       (outputs, metadata)
     }

@@ -8,7 +8,7 @@ import scala.util.matching.Regex
   */
 package object api {
   val DataType = org.platanios.tensorflow.jni.DataType
-  type DataType[T] = org.platanios.tensorflow.jni.DataType[T]
+  type DataType = org.platanios.tensorflow.jni.DataType
 
   private[api] val COLOCATION_OPS_ATTRIBUTE_NAME = "_class"
   private[api] val COLOCATION_OPS_ATTRIBUTE_PREFIX = "loc:@"

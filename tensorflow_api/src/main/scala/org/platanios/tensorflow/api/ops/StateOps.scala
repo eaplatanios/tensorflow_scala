@@ -22,7 +22,7 @@ object StateOps {
     * @return Created variable op.
     */
   def variable(
-      shape: Shape, dataType: DataType[_], container: String = "", sharedName: String = "", name: String = "Variable")
+      shape: Shape, dataType: DataType, container: String = "", sharedName: String = "", name: String = "Variable")
       (implicit context: DynamicVariable[OpCreationContext]): Op.Output = {
     Op.Builder(context = context, opType = "VariableV2", name = name)
         .setAttribute(name = "shape", value = shape)
@@ -42,7 +42,7 @@ object StateOps {
     * @return Created op.
     */
   def isVariableInitialized(
-      variable: Op.Output, dataType: DataType[_], name: String = "IsVariableInitialized")
+      variable: Op.Output, dataType: DataType, name: String = "IsVariableInitialized")
       (implicit context: DynamicVariable[OpCreationContext]): Op.Output = {
     Op.Builder(context = context, opType = "IsVariableInitialized", name = name)
         .addInput(variable)

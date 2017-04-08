@@ -99,7 +99,7 @@ final case class Op private (graph: Graph, nativeHandle: Long) {
     * @param  index Input index.
     * @return Data type of the specified input.
     */
-  private def inputDataType(index: Int): DataType[_] =
+  private def inputDataType(index: Int): DataType =
     using(graph.reference) { r =>
       DataType.fromCValue(NativeOp.inputDataType(r.nativeHandle, nativeHandle, index))
     }
@@ -109,7 +109,7 @@ final case class Op private (graph: Graph, nativeHandle: Long) {
     * @param  index Output index.
     * @return Data type of the specified output.
     */
-  private def outputDataType(index: Int): DataType[_] =
+  private def outputDataType(index: Int): DataType =
     using(graph.reference) { r =>
       DataType.fromCValue(NativeOp.outputDataType(r.nativeHandle, nativeHandle, index))
     }
@@ -559,7 +559,7 @@ object Op {
     lazy val name: String = s"${op.name}:$index"
 
     /** Data type of this op input. */
-    lazy val dataType: DataType[_] = op.inputDataType(index)
+    lazy val dataType: DataType = op.inputDataType(index)
 
     /** Graph where the op belongs. */
     def graph: Graph = op.graph
@@ -577,8 +577,9 @@ object Op {
     *   1. An `Op.Output` can be passed as input to another `Op`. This builds a dataflow connection between ops, which
     *      enables TensorFlow to execute an entire [[Graph]] that represents a large, multi-step computation.
     *   2. After the graph has been launched in a [[Session]], the value of an [[Op.Output]] can be computed by passing
-    *      it to [[Session.run]]. [[Op.Output.evaluate]] is a shortcut for [[Session.run]] that uses the default session
-    *      in the current execution context.
+    *      it to [[Session.run]].
+    *
+    * TODO: `Op.Output.evaluate` is a shortcut for [[Session.run]] that uses the default session in the current execution context.
     *
     * In the following example, `c`, `d`, and `e` are symbolic [[Op.Output]] objects, whereas `result` is a Scala array
     * that stores a concrete value:
@@ -593,7 +594,7 @@ object Op {
     lazy val name: String = s"${op.name}:$index"
 
     /** Data type of this op output. */
-    lazy val dataType: DataType[_] = op.outputDataType(index)
+    lazy val dataType: DataType = op.outputDataType(index)
 
     /** Consumers of this op output (i.e., ops that use this op output as one of their inputs). */
     lazy val consumers: Array[Op.Input] = op.outputConsumers(index)
@@ -748,22 +749,22 @@ object Op {
       this
     }
 
-    def setAttribute(name: String, value: DataType[_]): Builder = {
+    def setAttribute(name: String, value: DataType): Builder = {
       dataTypeAttributes += name -> value.cValue
       this
     }
 
-    def setAttribute(name: String, value: Array[DataType[_]]): Builder = {
+    def setAttribute(name: String, value: Array[DataType]): Builder = {
       dataTypeArrayAttributes += name -> value.map(_.cValue)
       this
     }
 
-    def setAttribute(name: String, value: Tensor[_]): Builder = {
+    def setAttribute(name: String, value: Tensor): Builder = {
       tensorAttributes += name -> value.nativeHandle
       this
     }
 
-    def setAttribute(name: String, value: Array[Tensor[_]]): Builder = {
+    def setAttribute(name: String, value: Array[Tensor]): Builder = {
       tensorArrayAttributes += name -> value.map(_.nativeHandle)
       this
     }

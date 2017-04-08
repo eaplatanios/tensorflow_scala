@@ -35,7 +35,7 @@ object MathOps {
         .setAttribute(name = "adj_y", value = adjointY)
         .build().outputs(0)
 
-  def cast(x: Op.Output, dataType: DataType[_], name: String = "Cast")
+  def cast(x: Op.Output, dataType: DataType, name: String = "Cast")
       (implicit context: DynamicVariable[OpCreationContext]): Op.Output =
     Op.Builder(context = context, opType = "Cast", name = name)
         .addInput(x)
