@@ -11,7 +11,7 @@ import scala.util.DynamicVariable
 /**
   * @author Emmanouil Antonios Platanios
   */
-final case class Op(graph: Graph, nativeHandle: Long) {
+final case class Op private (graph: Graph, nativeHandle: Long) {
   graph.opsCache.update(nativeHandle, this) // Update the ops cache of the graph with the current op
 
   /** Name of the op. */
@@ -522,7 +522,7 @@ object Op {
       nameScope
   }
 
-  final case class Input private(op: Op, index: Int) {
+  final case class Input private (op: Op, index: Int) {
     lazy val dataType: DataType[_] = op.inputDataType(index)
 
     def graph: Graph = op.graph
