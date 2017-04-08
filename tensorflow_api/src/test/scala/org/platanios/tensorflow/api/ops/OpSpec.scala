@@ -367,4 +367,30 @@ class OpSpec extends FlatSpec with Matchers {
   }
 
   // TODO: Add name scope exceptions spec.
+
+  "'stripNameScop' and 'prependNameScope'" must "work correctly even when 'loc:@' is used" in {
+    val names = Array[String](
+      "hidden1/hidden1/weights", // Same prefix. Should strip.
+      "hidden1///hidden1/weights", // Extra '/'. Should strip.
+      "^hidden1/hidden1/weights", // Same prefix. Should strip.
+      "loc:@hidden1/hidden1/weights", // Same prefix. Should strip.
+      "hhidden1/hidden1/weights", // Different prefix. Should keep.
+      "hidden1" // Not a prefix. Should keep.
+    )
+    val expectedStripedNames = Array[String](
+      "hidden1/weights", "hidden1/weights", "^hidden1/weights", "loc:@hidden1/weights", "hhidden1/hidden1/weights",
+      "hidden1")
+    val expectedPrependedNames = Array[String](
+      "hidden2/hidden1/weights", "hidden2/hidden1/weights", "^hidden2/hidden1/weights", "loc:@hidden2/hidden1/weights",
+      "hidden2/hhidden1/hidden1/weights", "hidden2/hidden1")
+    val nameScopeToStrip = "hidden1"
+    val nameScopeToPrepend = "hidden2"
+    (names, expectedStripedNames, expectedPrependedNames).zipped
+        .foreach((name, expectedStripedName, expectedPrependedName) => {
+          val strippedName = stripNameScope(nameScope = nameScopeToStrip, name = name)
+          val prependedName = prependNameScope(nameScope = nameScopeToPrepend, name = strippedName)
+          assert(strippedName === expectedStripedName)
+          assert(prependedName === expectedPrependedName)
+        })
+  }
 }

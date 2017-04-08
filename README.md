@@ -38,9 +38,20 @@ sbt compile
   - [x] Device op creation context
   - [x] Colocation op creation context
   - [x] Control dependencies op creation context
+  - [ ] Attribute op creation context
   - [ ] Container op creation context
+  - [ ] Gradient override map op creation context (need gradient support first)
+  - [ ] Kernel label map op creation context (may be unnecessary)
 - General API features:
   - [ ] Variables
   - [ ] Gradients
   - [ ] Optimizers
   - [ ] Estimators
+
+## TODOs
+
+- Op creation:
+  - Get graph from inputs
+  - Assert same graph for inputs and control inputs
+  - Graph collections
+  - Reset default graph

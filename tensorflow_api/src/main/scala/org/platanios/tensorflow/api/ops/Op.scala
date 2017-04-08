@@ -522,6 +522,16 @@ object Op {
       nameScope
   }
 
+  //region ProtoBuf Helper Functions
+
+  private[ops] def stripNameScope(nameScope: String, name: String): String =
+    name.replaceFirst(s"([\\^]|loc:@|^)$nameScope[\\/]+(.*)", "$1$2")
+
+  private[ops] def prependNameScope(nameScope: String, name: String): String =
+    name.replaceFirst("([\\^]|loc:@|^)(.*)", "$1" + nameScope + "/$2")
+
+  //endregion ProtoBuf Helper Functions
+
   final case class Input private (op: Op, index: Int) {
     lazy val dataType: DataType[_] = op.inputDataType(index)
 
