@@ -331,7 +331,7 @@ object ArrayOps {
     * @param  name      Name for the created op.
     * @return Created op.
     */
-  def split(input: Op.Output, numSplits: Int, axis: Int = 0, name: String = "Split"): Array[Op.Output] = {
+  def splitEvenly(input: Op.Output, numSplits: Int, axis: Int = 0, name: String = "Split"): Array[Op.Output] = {
     Op.Builder(opType = "Split", name = name)
         .addInput(Op.createWith(nameScope = name)(constant(value = axis, name = "Axis")))
         .addInput(input)
