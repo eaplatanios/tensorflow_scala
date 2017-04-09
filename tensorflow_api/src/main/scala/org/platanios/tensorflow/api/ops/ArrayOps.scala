@@ -1,5 +1,6 @@
 package org.platanios.tensorflow.api.ops
 
+import org.platanios.tensorflow.api.Exception.InvalidShapeException
 import org.platanios.tensorflow.api.{DataType, Shape, Tensor, using}
 
 /**
@@ -140,7 +141,7 @@ object ArrayOps {
 
   /** Creates an op that stacks a list of rank-`R` tensors into one rank-`(R+1)` tensor.
     *
-    * The op packs the list of tensors in `values` into a tensor with rank one higher than each tensor in `values`, by
+    * The op packs the list of tensors in `inputs` into a tensor with rank one higher than each tensor in `inputs`, by
     * packing them along the `axis` dimension. Given a list of `N` tensors of shape `[A, B, C]`:
     *   - If `axis == 0`, then the output tensor will have shape `[N, A, B, C]`.
     *   - If `axis == 1`, then the output tensor will have shape `[A, N, B, C]`.
@@ -162,8 +163,10 @@ object ArrayOps {
     * @param  axis   Dimension along which to stack the input tensors.
     * @param  name   Name for the created op.
     * @return Created op.
+    * @throws InvalidShapeException     If the input tensor shapes are not compatible with each other.
     * @throws IndexOutOfBoundsException If `axis` is not within the expected output tensor shape rank.
     */
+  @throws[InvalidShapeException]
   @throws[IndexOutOfBoundsException]
   def stack(inputs: Array[Op.Output], axis: Long = 0, name: String = "Stack"): Op.Output = {
     val inputsShape = inputs.head.shape
@@ -176,6 +179,43 @@ object ArrayOps {
     Op.Builder(opType = "Pack", name = name)
         .addInputList(inputs)
         .setAttribute("axis", axis)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that stacks a list of rank-`R` tensors into one rank-`(R+1)` tensor, in parallel.
+    *
+    * The op packs the list of tensors in `inputs` into a tensor with rank one higher than each tensor in `inputs`, by
+    * packing them along the first dimension. Given a list of `N` tensors of shape `[A, B, C]`, the output tensor will
+    * have shape `[N, A, B, C]`.
+    *
+    * For example:
+    * {{{
+    *   // 'x' is [1, 4]
+    *   // 'y' is [2, 5]
+    *   // 'z' is [3, 6]
+    *   parallelStack(Array(x, y, z)) == [[1, 4], [2, 5], [3, 6]]
+    * }}}
+    *
+    * The op requires that the shape of all input tensors is known at graph construction time.
+    *
+    * The difference between `stack` and `parallelStack` is that `stack` requires all of the inputs be computed before
+    * the operation will begin executing, but does not require that the input shapes be known during graph construction.
+    * `parallelStack` will copy pieces of the input into the output as they become available. In some situations this
+    * can provide a performance benefit.
+    *
+    * @param  inputs Input tensors to be stacked.
+    * @param  name   Name for the created op.
+    * @return Created op.
+    * @throws InvalidShapeException     If the input tensor shapes are not compatible with each other.
+    */
+  @throws[InvalidShapeException]
+  def parallelStack(inputs: Array[Op.Output], name: String = "ParallelStack"): Op.Output = {
+    val inputsShape = inputs.head.shape
+    inputs.tail.foreach(_.shape.assertIsCompatibleWith(inputsShape))
+    val outputShape = Shape(inputs.length.asInstanceOf[Long]).concatenateWith(inputsShape)
+    Op.Builder(opType = "ParallelConcat", name = name)
+        .addInputList(inputs)
+        .setAttribute("shape", outputShape)
         .build().outputs(0)
   }
 
