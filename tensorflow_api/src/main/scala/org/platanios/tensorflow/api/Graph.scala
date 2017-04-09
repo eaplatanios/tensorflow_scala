@@ -1,7 +1,6 @@
 package org.platanios.tensorflow.api
 
 import org.platanios.tensorflow.api.Exception.InvalidGraphElementException
-import org.platanios.tensorflow.api.ops.Op
 import org.platanios.tensorflow.jni.{Graph => NativeGraph}
 
 import scala.collection.mutable

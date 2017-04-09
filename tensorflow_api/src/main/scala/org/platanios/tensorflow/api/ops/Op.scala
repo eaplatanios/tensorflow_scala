@@ -2,9 +2,9 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.jni.{Op => NativeOp}
-import org.platanios.tensorflow.api.Exception.{IllegalNameException, OpBuilderUsedException}
-
+import org.platanios.tensorflow.api.Exception.{GraphMismatchException, IllegalNameException, OpBuilderUsedException}
 import java.nio.charset.Charset
+
 import scala.collection.mutable
 import scala.util.DynamicVariable
 
@@ -389,6 +389,29 @@ object Op {
       controlDependencies = newControlDependencies))(block)
   }
 
+  /** Creates a context that can be used for creating ops.
+    *
+    * This function validates that the provided `values` are all defined in the same graph, makes that the graph used
+    * by the op creation context it defines, and also "pushes" the provided `nameScope` in the op creation context. More
+    * details on the op creation context can be found in the documentation of the public API [[createWith]] function of
+    * this library.
+    *
+    * @param  nameScope Name scope to use.
+    * @param  values    Input values to obtain the default graph from.
+    * @param  block     Code block to run using the provided options.
+    * @param  context   Current op creation context.
+    * @tparam R         Return type of the code block.
+    * @return Return value of the code block.
+    * @throws GraphMismatchException If any two of the values provided lie in different graphs.
+    */
+  @throws[GraphMismatchException]
+  private[ops] def createWith[R](nameScope: String, values: Array[Op.Output])(block: => R)
+      (implicit context: DynamicVariable[OpCreationContext]): R = {
+    val newGraph: Graph = mergeGraph(getGraphFromInputs(values), context)
+    val newNameScope: String = mergeNameScope(nameScope, context)
+    context.withValue(context.copy(graph = newGraph, nameScope = newNameScope))(block)
+  }
+
   /** Merges a graph to the provided op creation context graph and returns the graph to use when specifying the updated
     * op creation context. The merging rules are specified in the documentation of [[createWith]] function.
     *
@@ -537,6 +560,45 @@ object Op {
       nameScope.substring(0, nameScope.length - 1)
     else
       nameScope
+  }
+
+  /** Asserts that two ops are defined in the same graph. If they are not, a [[GraphMismatchException]] is thrown.
+    *
+    * @param  op1 First op.
+    * @param  op2 Second op.
+    * @throws GraphMismatchException If the two ops lie in different graphs.
+    */
+  @throws[GraphMismatchException]
+  private[this] def assertSameGraph(op1: Op, op2: Op): Unit = {
+    if (op1.graph != op2.graph)
+      throw GraphMismatchException(s"'$op1' and '$op2' must be defined in the same graph.")
+  }
+
+  /** Returns the appropriate graph to use for the given inputs.
+    *
+    * This function provides a consistent algorithm for choosing the graph in which an op should be constructed in:
+    *
+    *   1. If the argument `graph` is provided and is not set to `null`, the function validates that all `inputs` are
+    *      defined in that graph.
+    *   2. Otherwise, we attempt to select a graph from the first op in `inputs` and validate that all other `inputs`
+    *      are also defined in the same graph.
+    *
+    * @param  inputs Inputs.
+    * @param  graph  Graph to use. If `null`, the graph is inferred from `inputs`.
+    * @return The appropriate graph to use for the given inputs.
+    * @throws GraphMismatchException If any two of the inputs lie in different graphs, or if `graph` is not `null` and
+    *                                at least one of the `inputs` is not defined in it.
+    */
+  @throws[GraphMismatchException]
+  private[this] def getGraphFromInputs(inputs: Array[Op.Output], graph: Graph = null): Graph = {
+    val returnGraph = if (graph == null) inputs.head.graph else graph
+    inputs.foreach(i => {
+      if (graph == null)
+        assertSameGraph(inputs.head, i)
+      else if (i.graph != returnGraph)
+        throw GraphMismatchException(s"'${i.op}' is not defined in the passed-in graph.")
+    })
+    returnGraph
   }
 
   //region ProtoBuf Helper Functions
