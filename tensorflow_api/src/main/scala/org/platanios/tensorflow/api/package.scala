@@ -9,6 +9,8 @@ import scala.util.matching.Regex
 package object api {
   val DataType = org.platanios.tensorflow.jni.DataType
   type DataType = org.platanios.tensorflow.jni.DataType
+  type Op = ops.Op
+  val Op = ops.Op
 
   private[api] val COLOCATION_OPS_ATTRIBUTE_NAME = "_class"
   private[api] val COLOCATION_OPS_ATTRIBUTE_PREFIX = "loc:@"
@@ -28,6 +30,8 @@ package object api {
     }
   }
 
+  //region Op Creation Implicits
+
   import org.platanios.tensorflow.api.ops.OpCreationContext
 
   val defaultGraph: Graph = Graph()
@@ -36,4 +40,19 @@ package object api {
 
   implicit def dynamicVariableToOpCreationContext(context: DynamicVariable[OpCreationContext]): OpCreationContext =
     context.value
+
+  //endregion
+
+  //region Slice Implicits
+
+  def :: : Slice = Slice.::
+  implicit def intToSlice(int: Int): Slice = Slice.intToSlice(int)
+  implicit def longToSlice(long: Long): Slice = Slice.longToSlice(long)
+  implicit def intToSliceWithOneNumber(int: Int): SliceWithOneNumber = Slice.intToSliceWithOneNumber(int)
+  implicit def longToSliceWithOneNumber(long: Long): SliceWithOneNumber = Slice.longToSliceWithOneNumber(long)
+  implicit def sliceConstructionToSlice(sliceConstruction: SliceConstruction): Slice = {
+    Slice.sliceConstructionToSlice(sliceConstruction)
+  }
+
+  //endregion
 }

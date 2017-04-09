@@ -160,16 +160,17 @@ object Slice {
   }
 
   /** Returns a slice object representing all indices. */
-  def :: = Slice(start = 0, end = -1)
+  private[api] def :: = Slice(start = 0, end = -1)
 
-  implicit def intToSlice(int: Int): Slice = Slice(start = int, end = int + 1)
-  implicit def longToSlice(long: Long): Slice = Slice(start = long, end = long + 1)
-  implicit def intToSliceWithOneNumber(int: Int): SliceWithOneNumber = SliceWithOneNumber(int)
-  implicit def longToSliceWithOneNumber(long: Long): SliceWithOneNumber = SliceWithOneNumber(long)
+  private[api] implicit def intToSlice(int: Int): Slice = Slice(start = int, end = int + 1)
+  private[api] implicit def longToSlice(long: Long): Slice = Slice(start = long, end = long + 1)
+  private[api] implicit def intToSliceWithOneNumber(int: Int): SliceWithOneNumber = SliceWithOneNumber(int)
+  private[api] implicit def longToSliceWithOneNumber(long: Long): SliceWithOneNumber = SliceWithOneNumber(long)
 
-  implicit def sliceConstructionToSlice(sliceConstruction: SliceConstruction): Slice = sliceConstruction match {
-    case SliceWithOneNumber(start) => Slice(start = start, end = start + 1)
-    case SliceWithTwoNumbers(start, end) => Slice(start = start, end = end)
-    case SliceWithThreeNumbers(start, step, end) => Slice(start = start, end = end, step = step)
-  }
+  private[api] implicit def sliceConstructionToSlice(sliceConstruction: SliceConstruction): Slice =
+    sliceConstruction match {
+      case SliceWithOneNumber(start) => Slice(start = start, end = start + 1)
+      case SliceWithTwoNumbers(start, end) => Slice(start = start, end = end)
+      case SliceWithThreeNumbers(start, step, end) => Slice(start = start, end = end, step = step)
+    }
 }

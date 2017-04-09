@@ -1,6 +1,5 @@
 package org.platanios.tensorflow.api
 
-import org.platanios.tensorflow.api.Slice._
 import org.scalatest._
 
 /**
