@@ -608,10 +608,12 @@ object Op {
     def device: String = op.device
 
     /** Shape of the tensor that this op output represents. */
-    def shape: Shape = Shape(using(op.graph.reference) { r =>
+    def shape: Shape = Shape.fromSeq(using(op.graph.reference) { r =>
       NativeOp.shape(r.nativeHandle, op.nativeHandle, index) })
 
     //region Ops
+
+    // TODO: Slicing ops.
 
     def +(other: Output): Output = MathOps.add(x = this, y = other)
     def -(other: Output): Output = MathOps.subtract(x = this, y = other)

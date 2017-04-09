@@ -32,6 +32,10 @@ sbt compile
 
 ## Supported Features
 
+- General features:
+  - [x] Slice creation
+    - [ ] Support int-based slicing too (rather than just long)
+  - [ ] Op output slicing
 - Op creation API helpers:
   - [x] Graph op creation context
   - [x] Name scope op creation context
@@ -67,3 +71,5 @@ sbt compile
   - Register op statistics
 - Execution:
   - Revamp the session API
+- General API:
+  - Find a way to expose inner functions and implicits to the root API package.

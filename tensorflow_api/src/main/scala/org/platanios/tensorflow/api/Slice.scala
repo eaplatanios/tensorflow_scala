@@ -4,6 +4,7 @@ import Slice._
 
 import scala.collection.mutable.ArrayBuffer
 
+// TODO: Support integer slices.
 // TODO: Assertions and index computations may be doable in a more efficient manner, in this class.
 /** Represents a slice object. A slice is a sequence of indices for some underlying sequence or tensor.
   *
