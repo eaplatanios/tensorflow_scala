@@ -2,7 +2,6 @@ package org.platanios.tensorflow.api
 
 import org.platanios.tensorflow.api.Exception.InvalidGraphElementException
 import org.platanios.tensorflow.api.ops.ArrayOps.constant
-import org.platanios.tensorflow.api.ops.Op
 import org.platanios.tensorflow.api.ops.Op.createWith
 import org.scalatest.{FlatSpec, Matchers}
 

@@ -2,16 +2,13 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.{DataType, Shape, Tensor, using}
 
-import scala.util.DynamicVariable
-
 /**
   * @author Emmanouil Antonios Platanios
   */
 object ArrayOps {
-  def constant(value: Any, dataType: DataType = null, name: String = "Constant")
-      (implicit context: DynamicVariable[OpCreationContext]): Op.Output = {
+  def constant(value: Any, dataType: DataType = null, name: String = "Constant"): Op.Output = {
     using(Tensor.create(value = value)) { tensor =>
-      val opBuilder = Op.Builder(context = context, opType = "Const", name = name)
+      val opBuilder = Op.Builder(opType = "Const", name = name)
       opBuilder.setAttribute(name = "value", value = tensor)
       if (dataType != null)
         opBuilder.setAttribute(name = "dtype", value = dataType)
@@ -31,18 +28,16 @@ object ArrayOps {
     * @param  shape    Shape of the tensor that will be fed. The shape can be any partially-specified, or even
     *                  completely unknown.
     * @param  name     Name for the created op.
-    * @param  context  Op creation context.
     * @return Created op.
     */
-  def placeholder(dataType: DataType, shape: Shape = null, name: String = "Placeholder")
-      (implicit context: DynamicVariable[OpCreationContext]): Op.Output = {
+  def placeholder(dataType: DataType, shape: Shape = null, name: String = "Placeholder"): Op.Output = {
     if (shape != null) {
-      Op.Builder(context = context, opType = "PlaceholderV2", name = name)
+      Op.Builder(opType = "PlaceholderV2", name = name)
           .setAttribute(name = "dtype", value = dataType)
           .setAttribute(name = "shape", value = shape)
           .build().outputs(0)
     } else {
-      Op.Builder(context = context, opType = "Placeholder", name = name)
+      Op.Builder(opType = "Placeholder", name = name)
           .setAttribute(name = "dtype", value = dataType)
           .build().outputs(0)
     }
@@ -54,15 +49,25 @@ object ArrayOps {
     * @param  shape        Shape of the tensor that will be fed. The shape can be any partially-specified, or even
     *                      completely unknown.
     * @param  name         Name for the created op.
-    * @param  context      Op creation context.
     * @return Created op.
     */
-  def placeholderWithDefault(defaultValue: Any, shape: Shape, name: String = "PlaceholderWithDefault")
-      (implicit context: DynamicVariable[OpCreationContext]): Op.Output = {
+  def placeholderWithDefault(defaultValue: Any, shape: Shape, name: String = "PlaceholderWithDefault"): Op.Output = {
     val default: Op.Output = constant(value = defaultValue, name = s"$name/DefaultValue")
-    Op.Builder(context = context, opType = "PlaceholderWithDefault", name = name)
+    Op.Builder(opType = "PlaceholderWithDefault", name = name)
         .addInput(default)
         .setAttribute(name = "shape", value = shape)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that returns a tensor with the same shape and contents as the input tensor or value.
+    *
+    * @param  input Input tensor.
+    * @param  name  Name for the created op.
+    * @return Created op.
+    */
+  def identity(input: Op.Output, name: String = "Identity"): Op.Output = {
+    Op.Builder(opType = "Identity", name = name)
+        .addInput(input)
         .build().outputs(0)
   }
 
@@ -93,16 +98,14 @@ object ArrayOps {
     *
     * This op is related to [[squeeze]], which removes dimensions of size 1.
     *
-    * @param  input   Input tensor.
-    * @param  axis    Dimension index at which to expand the shape of `input`.
-    * @param  name    Name for the created op.
-    * @param  context Op creation context.
+    * @param  input Input tensor.
+    * @param  axis  Dimension index at which to expand the shape of `input`.
+    * @param  name  Name for the created op.
     * @return Created op.
     */
-  def expandDims(input: Op.Output, axis: Long, name: String = "ExpandDims")
-      (implicit context: DynamicVariable[OpCreationContext]): Op.Output = {
-    val axisConstant: Op.Output = constant(value = axis, name = s"$name/Axis")
-    Op.Builder(context = context, opType = "ExpandDims", name = name)
+  def expandDims(input: Op.Output, axis: Long, name: String = "ExpandDims"): Op.Output = {
+    val axisConstant = Op.createWith(nameScope = name)(constant(value = axis, name = s"$name/Axis"))
+    Op.Builder(opType = "ExpandDims", name = name)
         .addInput(input)
         .addInput(axisConstant)
         .build().outputs(0)
@@ -121,16 +124,14 @@ object ArrayOps {
     *   shape(squeeze(t, Array(2L, 4L))) ==> [1, 2, 3, 1]
     * }}}
     *
-    * @param  input   Input tensor.
-    * @param  axes    Dimensions of size 1 to squeeze. If this argument is not provided, then all dimensions of size 1
-    *                 will be squeezed.
-    * @param  name    Name for the created op.
-    * @param  context Op creation context.
+    * @param  input Input tensor.
+    * @param  axes  Dimensions of size 1 to squeeze. If this argument is not provided, then all dimensions of size 1
+    *               will be squeezed.
+    * @param  name  Name for the created op.
     * @return Created op.
     */
-  def squeeze(input: Op.Output, axes: Array[Long] = null, name: String = "Squeeze")
-      (implicit context: DynamicVariable[OpCreationContext]): Op.Output = {
-    val builder = Op.Builder(context = context, opType = "Squeeze", name = name)
+  def squeeze(input: Op.Output, axes: Array[Long] = null, name: String = "Squeeze"): Op.Output = {
+    val builder = Op.Builder(opType = "Squeeze", name = name)
         .addInput(input)
     if (axes != null)
       builder.setAttribute("squeeze_dims", axes)
@@ -157,16 +158,14 @@ object ArrayOps {
     *
     * This op is the opposite of `unstack`.
     *
-    * @param  inputs  Input tensors to be stacked.
-    * @param  axis    Dimension along which to stack the input tensors.
-    * @param  name    Name for the created op.
-    * @param  context Op creation context.
+    * @param  inputs Input tensors to be stacked.
+    * @param  axis   Dimension along which to stack the input tensors.
+    * @param  name   Name for the created op.
     * @return Created op.
     * @throws IndexOutOfBoundsException If `axis` is not within the expected output tensor shape rank.
     */
   @throws[IndexOutOfBoundsException]
-  def stack(inputs: Array[Op.Output], axis: Long = 0, name: String = "Stack")
-      (implicit context: DynamicVariable[OpCreationContext]): Op.Output = {
+  def stack(inputs: Array[Op.Output], axis: Long = 0, name: String = "Stack"): Op.Output = {
     val inputsShape = inputs.head.shape
     inputs.tail.foreach(_.shape.assertIsCompatibleWith(inputsShape))
     if (inputsShape.rank != -1) {
@@ -174,7 +173,7 @@ object ArrayOps {
       if (axis < -expandedRank || axis >= expandedRank)
         throw new IndexOutOfBoundsException(s"Provided axis, $axis, is not in [${-expandedRank}, $expandedRank).")
     }
-    Op.Builder(context = context, opType = "Pack", name = name)
+    Op.Builder(opType = "Pack", name = name)
         .addInputList(inputs)
         .setAttribute("axis", axis)
         .build().outputs(0)
@@ -197,17 +196,17 @@ object ArrayOps {
     *
     * This op is the opposite of `stack`.
     *
-    * @param  input   Rank `R > 0` `Tensor` to be unstacked.
-    * @param  number  Number of tensors to unstack. If set to `-1` (the default value), its value will be inferred.
-    * @param  axis    Dimension along which to unstack the input tensor.
-    * @param  name    Name for the created op.
-    * @param  context Op creation context.
+    * @param  input  Rank `R > 0` `Tensor` to be unstacked.
+    * @param  number Number of tensors to unstack. If set to `-1` (the default value), its value will be inferred.
+    * @param  axis   Dimension along which to unstack the input tensor.
+    * @param  name   Name for the created op.
     * @return Created op.
     * @throws IndexOutOfBoundsException If `axis` is not within the range [-R, R).
     * @throws IllegalArgumentException  If `number` is not specified and its value cannot be inferred.
     */
-  def unstack(input: Op.Output, number: Long = -1, axis: Long = 0, name: String = "Unstack")
-      (implicit context: DynamicVariable[OpCreationContext]): Array[Op.Output] = {
+  @throws[IndexOutOfBoundsException]
+  @throws[IllegalArgumentException]
+  def unstack(input: Op.Output, number: Long = -1, axis: Long = 0, name: String = "Unstack"): Array[Op.Output] = {
     val num: Long = {
       if (number >= 0) {
         number
@@ -222,10 +221,52 @@ object ArrayOps {
     }
     if (num == -1)
       throw new IllegalArgumentException(s"Cannot infer number of tensors to unstack from shape '${input.shape}'.")
-    Op.Builder(context = context, opType = "Unpack", name = name)
+    Op.Builder(opType = "Unpack", name = name)
         .addInput(input)
         .setAttribute("num", num)
         .setAttribute("axis", axis)
         .build().outputs
+  }
+
+  /** Creates an op that concatenates tensors along one dimension.
+    *
+    * The op concatenates the list of tensors `inputs` along the dimension `axis`. If
+    * `inputs(i).shape = [D0, D1, ..., Daxis(i), ..., Dn]`, then the concatenated tensor will have shape
+    * `[D0, D1, ..., Raxis, ..., Dn]`, where `Raxis = sum(Daxis(i))`. That is, the data from the input tensors is joined
+    * along the `axis` dimension.
+    *
+    * For example:
+    * {{{
+    *   // 't1' is equal to [[1, 2, 3], [4, 5, 6]]
+    *   // 't2' is equal to [[7, 8, 9], [10, 11, 12]]
+    *   concat(Array(t1, t2), 0) == [[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12]]
+    *   concat(Array(t1, t2), 1) == [[1, 2, 3, 7, 8, 9], [4, 5, 6, 10, 11, 12]]
+    *
+    *   // 't3' has shape [2, 3]
+    *   // 't4' has shape [2, 3]
+    *   shape(concat(Array(t3, t4), 0)) == [4, 3]
+    *   shape(concat(Array(t3, t4), 1)) == [2, 6]
+    * }}}
+    *
+    * Note that, if you want to concatenate along a new axis, it may be better to use the `stack` op instead:
+    * {{{
+    *   concat(tensors.map(t => expandDims(t, axis)), axis) == stack(tensors, axis)
+    * }}}
+    *
+    * @param  inputs Input tensors to be concatenated.
+    * @param  axis   Dimension along which to concatenate the input tensors.
+    * @param  name   Name for the created op.
+    * @return Created op.
+    */
+  def concatenate(inputs: Array[Op.Output], axis: Long = 0, name: String = "Concatenate"): Op.Output = {
+    val axisConstant = Op.createWith(nameScope = name)(constant(value = axis, name = "Axis"))
+    if (inputs.length == 1) {
+      identity(inputs.head, name = name)
+    } else {
+      Op.Builder(opType = "ConcatV2", name = name)
+          .addInputs(inputs)
+          .addInput(axisConstant)
+          .build().outputs(0)
+    }
   }
 }

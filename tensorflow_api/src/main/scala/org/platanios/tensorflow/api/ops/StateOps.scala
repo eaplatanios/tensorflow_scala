@@ -18,13 +18,12 @@ object StateOps {
     * @param  sharedName If non-empty, the created variable is named in the given bucket with this shared name.
     *                    Otherwise, the op name is used, instead.
     * @param  name       Name for the generated variable op.
-    * @param  context    Op creation context.
     * @return Created variable op.
     */
   def variable(
-      shape: Shape, dataType: DataType, container: String = "", sharedName: String = "", name: String = "Variable")
-      (implicit context: DynamicVariable[OpCreationContext]): Op.Output = {
-    Op.Builder(context = context, opType = "VariableV2", name = name)
+      shape: Shape, dataType: DataType, container: String = "", sharedName: String = "",
+      name: String = "Variable"): Op.Output = {
+    Op.Builder(opType = "VariableV2", name = name)
         .setAttribute(name = "shape", value = shape)
         .setAttribute(name = "dtype", value = dataType)
         .setAttribute(name = "container", value = container)
@@ -38,13 +37,11 @@ object StateOps {
     * @param  variable Variable being checked that may be uninitialized.
     * @param  dataType Data type of the elements in the variable tensor.
     * @param  name     Name for the generated variable op.
-    * @param  context  Op creation context.
     * @return Created op.
     */
   def isVariableInitialized(
-      variable: Op.Output, dataType: DataType, name: String = "IsVariableInitialized")
-      (implicit context: DynamicVariable[OpCreationContext]): Op.Output = {
-    Op.Builder(context = context, opType = "IsVariableInitialized", name = name)
+      variable: Op.Output, dataType: DataType, name: String = "IsVariableInitialized"): Op.Output = {
+    Op.Builder(opType = "IsVariableInitialized", name = name)
         .addInput(variable)
         .setAttribute(name = "dtype", value = dataType)
         .build().outputs(0)
@@ -60,14 +57,12 @@ object StateOps {
     * @param  useLocking    If `true`, the assignment will be protected by a lock. Otherwise, the behavior is undefined,
     *                       but may exhibit less contention.
     * @param  name          Name for the generated variable op.
-    * @param  context       Op creation context.
     * @return Created op.
     */
   def assign(
       variable: Op.Output, value: Op.Output, validateShape: Boolean = true, useLocking: Boolean = true,
-      name: String = "Assign")
-      (implicit context: DynamicVariable[OpCreationContext]): Op.Output = {
-    Op.Builder(context = context, opType = "Assign", name = name)
+      name: String = "Assign"): Op.Output = {
+    Op.Builder(opType = "Assign", name = name)
         .addInput(variable)
         .addInput(value)
         .setAttribute(name = "validate_shape", value = validateShape)
@@ -84,12 +79,11 @@ object StateOps {
     * @param  useLocking If `true`, the assignment will be protected by a lock. Otherwise, the behavior is undefined,
     *                    but may exhibit less contention.
     * @param  name       Name for the generated variable op.
-    * @param  context    Op creation context.
     * @return Created op.
     */
-  def assignAdd(variable: Op.Output, value: Op.Output, useLocking: Boolean = true, name: String = "AssignAdd")
-      (implicit context: DynamicVariable[OpCreationContext]): Op.Output = {
-    Op.Builder(context = context, opType = "AssignAdd", name = name)
+  def assignAdd(
+      variable: Op.Output, value: Op.Output, useLocking: Boolean = true, name: String = "AssignAdd"): Op.Output = {
+    Op.Builder(opType = "AssignAdd", name = name)
         .addInput(variable)
         .addInput(value)
         .setAttribute(name = "use_locking", value = useLocking)
@@ -105,12 +99,11 @@ object StateOps {
     * @param  useLocking If `true`, the assignment will be protected by a lock. Otherwise, the behavior is undefined,
     *                    but may exhibit less contention.
     * @param  name       Name for the generated variable op.
-    * @param  context    Op creation context.
     * @return Created op.
     */
-  def assignSub(variable: Op.Output, value: Op.Output, useLocking: Boolean = true, name: String = "AssignSub")
-      (implicit context: DynamicVariable[OpCreationContext]): Op.Output = {
-    Op.Builder(context = context, opType = "AssignSub", name = name)
+  def assignSub(
+      variable: Op.Output, value: Op.Output, useLocking: Boolean = true, name: String = "AssignSub"): Op.Output = {
+    Op.Builder(opType = "AssignSub", name = name)
         .addInput(variable)
         .addInput(value)
         .setAttribute(name = "use_locking", value = useLocking)

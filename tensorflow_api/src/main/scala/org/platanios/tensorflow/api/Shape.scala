@@ -235,7 +235,7 @@ final class Shape private (private val array: Array[Long]) {
   override def toString: String = if (array == null) "<unknown>" else s"[${array.mkString(", ").replace("-1", "?")}]"
 
   override def equals(that: Any): Boolean = that match {
-    case that: Shape => {
+    case that: Shape =>
       if ((this.rank != that.rank)
           || (this.array == null && that.array != null)
           || (this.array != null && that.array == null))
@@ -244,7 +244,6 @@ final class Shape private (private val array: Array[Long]) {
         true
       else
         this.array.sameElements(that.array)
-    }
     case _ => false
   }
 

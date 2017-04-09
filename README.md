@@ -42,7 +42,6 @@ sbt compile
   - [x] Device op creation context
   - [x] Colocation op creation context
   - [x] Control dependencies op creation context
-  - [ ] "Static" name scope op creation context
   - [ ] Attribute op creation context
   - [ ] Container op creation context
   - [ ] Gradient override map op creation context (need gradient support first)
@@ -51,6 +50,8 @@ sbt compile
   - [ ] Default session
   - [ ] Session execution context
 - General API features:
+  - [ ] Data type helper and manipulation function
+  - [ ] Summaries
   - [ ] Variables
   - [ ] Gradients
   - [ ] Optimizers

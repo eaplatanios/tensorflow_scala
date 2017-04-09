@@ -1,6 +1,5 @@
 package org.platanios.tensorflow.api
 
-import org.platanios.tensorflow.api.ops.Op
 import org.platanios.tensorflow.jni.{Graph => NativeGraph, Session => NativeSession}
 
 import scala.collection.mutable.ArrayBuffer

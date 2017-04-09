@@ -687,7 +687,8 @@ object Op {
     override def toString: String = s"Op.Output(name = $name, shape = $shape, dataType = $dataType, device = $device)"
   }
 
-  private[ops] final case class Builder(context: OpCreationContext, opType: String, name: String) {
+  private[ops] final case class Builder(opType: String, name: String)
+      (implicit context: DynamicVariable[OpCreationContext]){
     private val graph: Graph = context.graph
     private val opName: String = if (context.nameScope == "") name else s"${context.nameScope}/$name"
     if (!checkName(name = opName))

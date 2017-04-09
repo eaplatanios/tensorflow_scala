@@ -36,11 +36,10 @@ package object api {
   import org.platanios.tensorflow.api.ops.OpCreationContext
 
   val defaultGraph: Graph = Graph()
-  implicit val opCreationContext: DynamicVariable[OpCreationContext] =
+  private[api] implicit val opCreationContext: DynamicVariable[OpCreationContext] =
     new DynamicVariable[OpCreationContext](OpCreationContext(graph = defaultGraph))
-
-  implicit def dynamicVariableToOpCreationContext(context: DynamicVariable[OpCreationContext]): OpCreationContext =
-    context.value
+  private[api] implicit def dynamicVariableToOpCreationContext(
+      context: DynamicVariable[OpCreationContext]): OpCreationContext = context.value
 
   //endregion
 
