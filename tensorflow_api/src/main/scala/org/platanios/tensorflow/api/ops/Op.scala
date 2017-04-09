@@ -633,6 +633,7 @@ object Op {
 
     private var built: Boolean = false
     private var inputs: Seq[Output] = Seq[Output]()
+    private var inputLists: Seq[Array[Output]] = Seq[Array[Output]]()
     private var device: Option[String] = None
     private var byteArrayAttributes: Map[String, Array[Byte]] = Map[String, Array[Byte]]()
     private var longAttributes: Map[String, Long] = Map[String, Long]()
@@ -674,8 +675,11 @@ object Op {
           val nativeHandle: Long = NativeOp.allocate(
             r.nativeHandle, opType, uniqueName(graph = graph, name = opName))
           inputs.foreach(input => NativeOp.addInput(nativeHandle, input.op.nativeHandle, input.index))
+          inputLists.foreach(inputList => NativeOp.addInputList(
+            nativeHandle, inputList.map(_.nativeHandle), inputList.map(_.index)))
           val controlDependencies: mutable.Set[Op] = mutable.Set(context.controlDependencies.toSeq: _*)
           inputs.foreach(input => pruneControlDependencies(controlDependencies, input.op))
+          inputLists.foreach(_.foreach(input => pruneControlDependencies(controlDependencies, input.op)))
           controlDependencies.foreach(op => NativeOp.addControlInput(nativeHandle, op.nativeHandle))
           device.foreach(NativeOp.setDevice(nativeHandle, _))
           context.colocationOps.foreach(op => NativeOp.colocateWith(nativeHandle, op.nativeHandle))
@@ -705,6 +709,11 @@ object Op {
 
     def addInputs(inputs: Seq[Output]): Builder = {
       this.inputs ++= inputs
+      this
+    }
+
+    def addInputList(inputs: Seq[Output]): Builder = {
+      this.inputLists :+= inputs.toArray
       this
     }
 
