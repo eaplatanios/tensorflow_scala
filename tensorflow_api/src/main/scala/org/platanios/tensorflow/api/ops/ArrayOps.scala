@@ -53,9 +53,8 @@ object ArrayOps {
     * @return Created op.
     */
   def placeholderWithDefault(defaultValue: Any, shape: Shape, name: String = "PlaceholderWithDefault"): Op.Output = {
-    val default: Op.Output = constant(value = defaultValue, name = s"$name/DefaultValue")
     Op.Builder(opType = "PlaceholderWithDefault", name = name)
-        .addInput(default)
+        .addInput(Op.createWith(nameScope = name)(constant(value = defaultValue, name = "DefaultValue")))
         .setAttribute(name = "shape", value = shape)
         .build().outputs(0)
   }
@@ -104,11 +103,10 @@ object ArrayOps {
     * @param  name  Name for the created op.
     * @return Created op.
     */
-  def expandDims(input: Op.Output, axis: Long, name: String = "ExpandDims"): Op.Output = {
-    val axisConstant = Op.createWith(nameScope = name)(constant(value = axis, name = s"$name/Axis"))
+  def expandDims(input: Op.Output, axis: Int, name: String = "ExpandDims"): Op.Output = {
     Op.Builder(opType = "ExpandDims", name = name)
         .addInput(input)
-        .addInput(axisConstant)
+        .addInput(Op.createWith(nameScope = name)(constant(value = axis, name = "Axis")))
         .build().outputs(0)
   }
 
@@ -131,11 +129,11 @@ object ArrayOps {
     * @param  name  Name for the created op.
     * @return Created op.
     */
-  def squeeze(input: Op.Output, axes: Array[Long] = null, name: String = "Squeeze"): Op.Output = {
+  def squeeze(input: Op.Output, axes: Array[Int] = null, name: String = "Squeeze"): Op.Output = {
     val builder = Op.Builder(opType = "Squeeze", name = name)
         .addInput(input)
     if (axes != null)
-      builder.setAttribute("squeeze_dims", axes)
+      builder.setAttribute("squeeze_dims", axes.map(_.asInstanceOf[Long]))
     builder.build().outputs(0)
   }
 
@@ -168,7 +166,7 @@ object ArrayOps {
     */
   @throws[InvalidShapeException]
   @throws[IndexOutOfBoundsException]
-  def stack(inputs: Array[Op.Output], axis: Long = 0, name: String = "Stack"): Op.Output = {
+  def stack(inputs: Array[Op.Output], axis: Int = 0, name: String = "Stack"): Op.Output = {
     val inputsShape = inputs.head.shape
     inputs.tail.foreach(_.shape.assertIsCompatibleWith(inputsShape))
     if (inputsShape.rank != -1) {
@@ -206,7 +204,7 @@ object ArrayOps {
     * @param  inputs Input tensors to be stacked.
     * @param  name   Name for the created op.
     * @return Created op.
-    * @throws InvalidShapeException     If the input tensor shapes are not compatible with each other.
+    * @throws InvalidShapeException If the input tensor shapes are not compatible with each other.
     */
   @throws[InvalidShapeException]
   def parallelStack(inputs: Array[Op.Output], name: String = "ParallelStack"): Op.Output = {
@@ -246,8 +244,8 @@ object ArrayOps {
     */
   @throws[IndexOutOfBoundsException]
   @throws[IllegalArgumentException]
-  def unstack(input: Op.Output, number: Long = -1, axis: Long = 0, name: String = "Unstack"): Array[Op.Output] = {
-    val num: Long = {
+  def unstack(input: Op.Output, number: Int = -1, axis: Int = 0, name: String = "Unstack"): Array[Op.Output] = {
+    val num: Int = {
       if (number >= 0) {
         number
       } else {
@@ -256,7 +254,7 @@ object ArrayOps {
         if (inputShapeRank != -1 && (axis < -inputShapeRank || axis >= inputShapeRank))
           throw new IndexOutOfBoundsException(
             s"Provided axis, $axis, is not in [${-inputShapeRank}, $inputShapeRank).")
-        inputShape(axis.asInstanceOf[Int])
+        inputShape(axis).asInstanceOf[Int] // TODO: Make shapes integer-valued instead?
       }
     }
     if (num == -1)
@@ -298,15 +296,76 @@ object ArrayOps {
     * @param  name   Name for the created op.
     * @return Created op.
     */
-  def concatenate(inputs: Array[Op.Output], axis: Long = 0, name: String = "Concatenate"): Op.Output = {
+  def concatenate(inputs: Array[Op.Output], axis: Int = 0, name: String = "Concatenate"): Op.Output = {
     val axisConstant = Op.createWith(nameScope = name)(constant(value = axis, name = "Axis"))
     if (inputs.length == 1) {
-      identity(inputs.head, name = name)
+      Op.createWith(nameScope = name)(identity(inputs.head))
     } else {
       Op.Builder(opType = "ConcatV2", name = name)
           .addInputs(inputs)
           .addInput(axisConstant)
           .build().outputs(0)
     }
+  }
+
+  // TODO: Add support for "ConcatOffset".
+
+  /** Creates an op that splits a tensor into sub-tensors.
+    *
+    * The op splits `input` along dimension `axis` into `numSplits` smaller tensors. It requires that `numSplits` evenly
+    * splits `input.shape(axis)`.
+    *
+    * For example:
+    * {{{
+    *   // 't' is a tensor with shape [5, 30]
+    *   // Split 't' into 3 tensors along dimension 1:
+    *   val splits = split(t, numSplits = 3, axis = 1)
+    *   shape(splits(0)) == [5, 10]
+    *   shape(splits(1)) == [5, 10]
+    *   shape(splits(2)) == [5, 10]
+    * }}}
+    *
+    * @param  input     Input tensor to split.
+    * @param  numSplits Number of splits to obtain along the `axis` dimension.
+    * @param  axis      Dimension along which to split the input tensor.
+    * @param  name      Name for the created op.
+    * @return Created op.
+    */
+  def split(input: Op.Output, numSplits: Int, axis: Int = 0, name: String = "Split"): Array[Op.Output] = {
+    Op.Builder(opType = "Split", name = name)
+        .addInput(Op.createWith(nameScope = name)(constant(value = axis, name = "Axis")))
+        .addInput(input)
+        .setAttribute("num_split", numSplits)
+        .build().outputs
+  }
+
+  /** Creates an op that splits a tensor into sub-tensors.
+    *
+    * The op splits `input` along dimension `axis` into `splitSizes.length` smaller tensors. The shape of the `i`-th
+    * smaller tensor has the same size as the `input` except along dimension `axis` where the size is equal to
+    * `splitSizes(i)`.
+    *
+    * For example:
+    * {{{
+    *   // 't' is a tensor with shape [5, 30]
+    *   // Split 't' into 3 tensors with sizes [4, 5, 11] along dimension 1:
+    *   val splits = split(t, splitSizes = [4, 15, 11], axis = 1)
+    *   shape(splits(0)) == [5, 4]
+    *   shape(splits(1)) == [5, 15]
+    *   shape(splits(2)) == [5, 11]
+    * }}}
+    *
+    * @param  input      Input tensor to split.
+    * @param  splitSizes Sizes for the splits to obtain.
+    * @param  axis       Dimension along which to split the input tensor.
+    * @param  name       Name for the created op.
+    * @return Created op.
+    */
+  def split(input: Op.Output, splitSizes: Array[Int], axis: Int = 0, name: String = "Split"): Array[Op.Output] = {
+    Op.Builder(opType = "SplitV", name = name)
+        .addInput(input)
+        .addInput(Op.createWith(nameScope = name)(constant(value = splitSizes, name = "Sizes")))
+        .addInput(Op.createWith(nameScope = name)(constant(value = axis, name = "Axis")))
+        .build().outputs
   }
 }
