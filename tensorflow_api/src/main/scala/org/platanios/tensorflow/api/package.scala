@@ -7,9 +7,6 @@ import scala.util.matching.Regex
   * @author Emmanouil Antonios Platanios
   */
 package object api {
-  type DataType = org.platanios.tensorflow.jni.DataType
-  val DataType = org.platanios.tensorflow.jni.DataType
-
   type Op = ops.Op
   val Op = ops.Op
 

@@ -1,4 +1,6 @@
-package org.platanios.tensorflow.jni
+package org.platanios.tensorflow.api
+
+import org.platanios.tensorflow.jni.{TensorFlow => NativeLibrary}
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -14,7 +16,7 @@ object DataType {
   val int64: DataType = DataType(cValue = 9, byteSize = 8)
   val boolean: DataType = DataType(cValue = 10, byteSize = 1)
 
-  def fromCValue(cValue: Int): DataType = {
+  private[api] def fromCValue(cValue: Int): DataType = {
     cValue match {
       case float.cValue => float
       case double.cValue => double
@@ -24,7 +26,7 @@ object DataType {
       case int64.cValue => int64
       case boolean.cValue => boolean
       case value => throw new IllegalArgumentException(
-        s"Data type $value is not recognized in Scala (TensorFlow version ${TensorFlow.version}).")
+        s"Data type $value is not recognized in Scala (TensorFlow version ${NativeLibrary.version}).")
     }
   }
 }
