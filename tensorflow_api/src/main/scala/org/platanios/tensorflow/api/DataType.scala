@@ -96,7 +96,7 @@ object DataType {
   val qint32: DataType = DataType(name = "qint32", cValue = 13)
   val quint8: DataType = DataType(name = "quint8", cValue = 12)
   val quint16: DataType = DataType(name = "quint16", cValue = 16)
-  val boolean: DataType = DataType(name = "Bbolean", cValue = 10)
+  val boolean: DataType = DataType(name = "boolean", cValue = 10)
   val string: DataType = DataType(name = "string", cValue = 7)
   val resource: DataType = DataType(name = "resource", cValue = 20)
   val float16Ref: DataType = DataType(name = "float16_ref", cValue = 119)
