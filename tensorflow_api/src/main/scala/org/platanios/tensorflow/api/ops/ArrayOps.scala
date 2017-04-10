@@ -7,15 +7,41 @@ import org.platanios.tensorflow.api.{DataType, Shape, Tensor, using}
   * @author Emmanouil Antonios Platanios
   */
 object ArrayOps {
-  def constant(value: Any, dataType: DataType = null, name: String = "Constant"): Op.Output = {
-    using(Tensor.create(value = value)) { tensor =>
-      val opBuilder = Op.Builder(opType = "Const", name = name)
-      opBuilder.setAttribute(name = "value", value = tensor)
-      if (dataType != null)
-        opBuilder.setAttribute(name = "dtype", value = dataType)
-      else
-        opBuilder.setAttribute(name = "dtype", value = tensor.dataType)
-      opBuilder.build().outputs(0)
+  /** Creates an op that returns a constant tensor.
+    *
+    * The resulting tensor is populated with values of type `dataType`, as specified by the arguments `value` and
+    * (optionally) `shape` (see examples below).
+    *
+    * The argument `value` can be a constant value, or an array (potentially multi-dimensional) with elements of type
+    * `dataType`. If `value` is a one-dimensional array, then its length should be less than or equal to the number of
+    * elements implied by the `shape` argument (if specified). In the case where the array length is less than the
+    * number of elements specified by `shape`, the last element in the array will be used to fill the remaining entries.
+    *
+    * The argument `dataType` is optional. If not specified, then its value is inferred from the type of `value`.
+    *
+    * The argument `shape` is optional. If present, it specifies the dimensions of the resulting tensor. If not present,
+    * the of `value` is used,
+    *
+    * @param  value       A constant value of data type `dataType`.
+    * @param  dataType    Data type of the resulting tensor. If not provided, its value will be inferred from the type of
+    *                     `value`.
+    * @param  shape       Shape of the resulting tensor.
+    * @param  verifyShape If `true` and `shape` is not `null`, then the shape of `value` will be verified (i.e., checked
+    *                     to see if it is equal to the provided shape.
+    * @param  name        Name for the created op.
+    * @return Created op.
+    * @throws InvalidShapeException If `shape != null`, `verifyShape == true`, and the shape of values does not match
+    *                               the provided `shape`.
+    */
+  @throws[InvalidShapeException]
+  def constant(
+      value: Any, dataType: DataType = null, shape: Shape = null, verifyShape: Boolean = false,
+      name: String = "Constant"): Op.Output = {
+    using(Tensor.create(value = value, dataType = dataType, shape = shape, verifyShape = verifyShape)) { tensor =>
+      Op.Builder(opType = "Const", name = name)
+          .setAttribute(name = "value", value = tensor)
+          .setAttribute(name = "dtype", value = tensor.dataType)
+          .build().outputs(0)
     }
   }
 

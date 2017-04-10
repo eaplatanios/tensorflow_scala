@@ -108,6 +108,31 @@ class DataTypeSpec extends FlatSpec with Matchers {
     assertThrows[IllegalArgumentException](DataType.fromName(null))
   }
 
+  "'DataType.dataTypeOf'" must "work correctly when valid values are provided" in {
+    assert(DataType.dataTypeOf(1.0f) === DataType.float32)
+    assert(DataType.dataTypeOf(1.0) === DataType.float64)
+    assert(DataType.dataTypeOf(1) === DataType.int32)
+    assert(DataType.dataTypeOf(1L) === DataType.int64)
+    assert(DataType.dataTypeOf(true) === DataType.boolean)
+    assert(DataType.dataTypeOf(Array[Byte](1, 2, 3)) === DataType.string)
+    assert(DataType.dataTypeOf(Array(1.0f, 2.0f)) === DataType.float32)
+    assert(DataType.dataTypeOf(Array(1.0, 2.0)) === DataType.float64)
+    assert(DataType.dataTypeOf(Array(1, 2)) === DataType.int32)
+    assert(DataType.dataTypeOf(Array(1L, 2L)) === DataType.int64)
+    assert(DataType.dataTypeOf(Array(true, false)) === DataType.boolean)
+    assert(DataType.dataTypeOf(Array(Array[Byte](1, 2, 3), Array[Byte](4, 5, 6))) === DataType.string)
+    assert(DataType.dataTypeOf(Array(Array(1.0f, 2.0f), Array(3.0f, 4.0f))) === DataType.float32)
+    assert(DataType.dataTypeOf(Array(Array(1.0, 2.0), Array(3.0, 4.0))) === DataType.float64)
+    assert(DataType.dataTypeOf(Array(Array(1, 2), Array(3, 4))) === DataType.int32)
+    assert(DataType.dataTypeOf(Array(Array(1L, 2L), Array(3L, 4L))) === DataType.int64)
+    assert(DataType.dataTypeOf(Array(Array(true, false), Array(false, true))) === DataType.boolean)
+  }
+
+  it must "throw an 'IllegalArgumentException' when invalid values are provided" in {
+    assertThrows[IllegalArgumentException](DataType.dataTypeOf("foo")) // TODO: Support strings?
+    assertThrows[IllegalArgumentException](DataType.dataTypeOf((5.0, -1)))
+  }
+
   "'DataType.size'" must "give the correct result" in {
     assert(DataType.float16.byteSize === Some(2))
     assert(DataType.float32.byteSize === Some(4))

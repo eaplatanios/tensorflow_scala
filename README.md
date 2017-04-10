@@ -50,7 +50,7 @@ sbt compile
   - [ ] Default session
   - [ ] Session execution context
 - General API features:
-  - [ ] Data type helper and manipulation function
+  - [ ] Support for all data types.
   - [ ] Summaries
   - [ ] Variables
   - [ ] Gradients
@@ -60,6 +60,8 @@ sbt compile
 
 ## TODOs
 
+- Tensors:
+  - Support for all data types and avoidance of memory copy by using an underlying C++ structure.
 - Op creation:
   - Add tests for all of the op functions
   - Get graph from inputs

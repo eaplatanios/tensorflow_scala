@@ -240,4 +240,32 @@ object DataType {
     case value => throw new IllegalArgumentException(
       s"Data type name '$value' is not recognized in Scala (TensorFlow version ${NativeLibrary.version}).")
   }
+
+  /** Returns the [[DataType]] of the provided value.
+    *
+    * @param  value Value whose data type to return.
+    * @return Data type of the provided value.
+    * @throws IllegalArgumentException If the data type of the provided value is not supported as a TensorFlow
+    *                                  [[DataType]].
+    */
+  @throws[IllegalArgumentException]
+  private[api] def dataTypeOf(value: Any): DataType = {
+    value match {
+      // Array[Byte] is a DataType.String scalar
+      case value: Array[Byte] =>
+        if (value.length == 0)
+          throw new IllegalArgumentException("Cannot create a tensor of size 0.")
+        DataType.string
+      case value: Array[_] =>
+        if (value.length == 0)
+          throw new IllegalArgumentException("Cannot create a tensor of size 0.")
+        dataTypeOf(value(0)) // TODO: What if different array elements have different values?
+      case _: Float => DataType.float32
+      case _: Double => DataType.float64
+      case _: Int => DataType.int32
+      case _: Long => DataType.int64
+      case _: Boolean => DataType.boolean
+      case _ => throw new IllegalArgumentException(s"Cannot create a tensor of type '${value.getClass.getName}'.")
+    }
+  }
 }
