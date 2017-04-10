@@ -15,6 +15,14 @@ extern "C" {
 JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_version
   (JNIEnv *, jobject);
 
+/*
+ * Class:     org_platanios_tensorflow_jni_TensorFlow__
+ * Method:    dataTypeSize
+ * Signature: (I)I
+ */
+JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_dataTypeSize
+  (JNIEnv *, jobject, jint);
+
 #ifdef __cplusplus
 }
 #endif

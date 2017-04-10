@@ -8,4 +8,5 @@ import ch.jodersky.jni.nativeLoader
 @nativeLoader("tensorflow_jni")
 object TensorFlow {
   @native def version: String
+  @native def dataTypeSize(dataTypeCValue: Int): Int
 }
