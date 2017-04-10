@@ -20,7 +20,7 @@ object ArrayOps {
     * The argument `dataType` is optional. If not specified, then its value is inferred from the type of `value`.
     *
     * The argument `shape` is optional. If present, it specifies the dimensions of the resulting tensor. If not present,
-    * the of `value` is used,
+    * the shape of `value` is used.
     *
     * @param  value       A constant value of data type `dataType`.
     * @param  dataType    Data type of the resulting tensor. If not provided, its value will be inferred from the type of
@@ -44,6 +44,11 @@ object ArrayOps {
           .build().outputs(0)
     }
   }
+
+  // TODO: Add support for "ImmutableConst".
+
+  // TODO: Add support for "zeros" and "ones", after fixing "Tensor.create".
+  // TODO: Add support for "zerosLike" and "onesLike".
 
   /** Creates a placeholder op for a tensor that will always be fed.
     *

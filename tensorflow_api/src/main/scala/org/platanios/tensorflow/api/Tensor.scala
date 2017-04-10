@@ -104,7 +104,9 @@ object Tensor {
     * The argument `dataType` is optional. If not specified, then its value is inferred from the type of `value`.
     *
     * The argument `shape` is optional. If present, it specifies the dimensions of the resulting tensor. If not present,
-    * the of `value` is used,
+    * the shape of `value` is used.
+    *
+    * **IMPORTANT NOTE** The data type argument and the shape arguments are not currently being used.
     *
     * @param  value       A constant value of data type `dataType`.
     * @param  dataType    Data type of the resulting tensor. If not provided, its value will be inferred from the type
