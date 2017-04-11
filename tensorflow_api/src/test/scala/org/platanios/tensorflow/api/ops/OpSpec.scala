@@ -393,4 +393,38 @@ class OpSpec extends FlatSpec with Matchers {
           assert(prependedName === expectedPrependedName)
         })
   }
+
+  "'Op.OutputIndexedSlices'" must "be convertible to 'Op.Output'" in {
+    val values = ArrayOps.constant(Array(Array(2, 3), Array(5, 7)))
+    val indices = ArrayOps.constant(Array(0, 2))
+    val denseShape = ArrayOps.constant(Array(3, 2))
+    val indexedSlices = Op.OutputIndexedSlices(values, indices, denseShape)
+    fail // We need a working "toOpOutput" method.
+    // assert(indexedSlices.toOpOutput.eval === Tensor.create(Array(Array(2, 3), Array(0, 0), Array(5, 7)))
+
+//    def testToTensor(self):
+//    with self.test_session():
+//        values = constant_op.constant([2, 3, 5, 7], shape=[2, 2])
+//    indices = constant_op.constant([0, 2])
+//    dense_shape = constant_op.constant([3, 2])
+//    x = ops.IndexedSlices(values, indices, dense_shape)
+//    tensor = ops.convert_to_tensor(x, name="tensor")
+//    self.assertAllEqual(tensor.eval(), [[2, 3], [0, 0], [5, 7]])
+//
+//    def testNegation(self):
+//    with self.test_session():
+//        values = constant_op.constant([2, 3, 5, 7], shape=[2, 2])
+//    indices = constant_op.constant([0, 2])
+//    x = -ops.IndexedSlices(values, indices)
+//    self.assertAllEqual(x.values.eval(), [[-2, -3], [-5, -7]])
+//    self.assertAllEqual(x.indices.eval(), [0, 2])
+//
+//    def testScalarMul(self):
+//    with self.test_session():
+//        values = constant_op.constant([2, 3, 5, 7], shape=[2, 2])
+//    indices = constant_op.constant([0, 2])
+//    x = math_ops.scalar_mul(-2, ops.IndexedSlices(values, indices))
+//    self.assertAllEqual(x.values.eval(), [[-4, -6], [-10, -14]])
+//    self.assertAllEqual(x.indices.eval(), [0, 2])
+  }
 }

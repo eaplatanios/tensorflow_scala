@@ -164,9 +164,9 @@ object Op {
     *   - The current name scope used for naming these new ops.
     *   - A device function, used to decide in which device (e.g., CPU) the new ops should be placed and executed.
     *   - A set of colocation ops for the newly constructed ops. This means that the newly created ops will be placed on
-    *     the same device as these colocation ops.
+    * the same device as these colocation ops.
     *   - A set of ops defining control dependencies for the newly constructed ops. This means that the newly
-    *     constructed ops are constrained to only execute after the provided set of ops has finished executing.
+    * constructed ops are constrained to only execute after the provided set of ops has finished executing.
     *
     * Note that all arguments of this function are optional. If they are not provided, then the corresponding option in
     * current op creation context is left unchanged.
@@ -197,8 +197,8 @@ object Op {
     * generating a new op creation context. This new context is used for all ops created within the code block provided
     * in the `createWith(...)` function. The `nameScope` argument will be interpreted as follows:
     *   - A string will create a new name scope, in which `nameScope` is appended to the prefix of all operations
-    *     created in the provided code block. If `nameScope` has been used before, it will be made unique by calling
-    *     `uniqueName(graph = context.graph, name = nameScope)`.
+    * created in the provided code block. If `nameScope` has been used before, it will be made unique by calling
+    * `uniqueName(graph = context.graph, name = nameScope)`.
     *   - A value of `""` will reset the current name scope to the top-level (i.e., empty) name scope.
     *
     * This function checks the provided `nameScope` for validity by checking whether it matches: (i) the regular
@@ -370,7 +370,7 @@ object Op {
     * @param  controlDependencies Control dependencies to use.
     * @param  block               Code block to run using the provided options.
     * @param  context             Current op creation context.
-    * @tparam R                   Return type of the code block.
+    * @tparam R Return type of the code block.
     * @return Return value of the code block.
     * @throws IllegalNameException If the provided name scope does not pass the regular expression validity checks.
     */
@@ -400,7 +400,7 @@ object Op {
     * @param  values    Input values to obtain the default graph from.
     * @param  block     Code block to run using the provided options.
     * @param  context   Current op creation context.
-    * @tparam R         Return type of the code block.
+    * @tparam R Return type of the code block.
     * @return Return value of the code block.
     * @throws GraphMismatchException If any two of the values provided lie in different graphs.
     */
@@ -524,10 +524,8 @@ object Op {
     *       name and adding the new op to the graph, so that no other op with the same name is added to the graph in the
     *       meantime. You rarely need to call `uniqueName` directly. Most of the time you just need to create
     *       `usingNameScope(...)` (which is also thread-safe) blocks to generate structured names.
-    *
     * @note Operation names are displayed in error messages reported by the TensorFlow runtime, and in various
     *       visualization tools such as TensorBoard.
-    *
     * @param  graph   Graph for which the unique name is generated.
     * @param  name    Name in which to base the generated unique name.
     * @param  counter Current counter value `i`.
@@ -579,9 +577,9 @@ object Op {
     * This function provides a consistent algorithm for choosing the graph in which an op should be constructed in:
     *
     *   1. If the argument `graph` is provided and is not set to `null`, the function validates that all `inputs` are
-    *      defined in that graph.
+    * defined in that graph.
     *   2. Otherwise, we attempt to select a graph from the first op in `inputs` and validate that all other `inputs`
-    *      are also defined in the same graph.
+    * are also defined in the same graph.
     *
     * @param  inputs Inputs.
     * @param  graph  Graph to use. If `null`, the graph is inferred from `inputs`.
@@ -618,7 +616,7 @@ object Op {
     * @param  op    Op whose input this class represents.
     * @param  index Input index.
     */
-  final case class Input private (op: Op, index: Int) {
+  final case class Input private(op: Op, index: Int) {
     /** Name of this op input. This is simply set to `"<op.name>:<index>"`. */
     lazy val name: String = s"${op.name}:$index"
 
@@ -631,7 +629,13 @@ object Op {
     override def toString: String = s"Op.Input(name = $name, dataType = $dataType)"
   }
 
-  /** Represents one of the outputs of an `Op`'s computation.
+  /** Trait representing outputs of an `Op`'s computation. */
+  private[api] sealed trait OutputLike {
+    /** Returns an [[Op.Output]] that this [[Op.OutputLike]] object represents. */
+    private[api] def toOpOutput(dataType: DataType = null): Op.Output
+  }
+
+  /** Representation of one of the outputs of an `Op`'s computation.
     *
     * An `Op.Output` is a symbolic handle to one of the outputs of an `Op`. It does not hold the values of that op's
     * output, but instead provides a means of computing those values in a TensorFlow [[Session]].
@@ -639,21 +643,25 @@ object Op {
     * This class has two primary purposes:
     *
     *   1. An `Op.Output` can be passed as input to another `Op`. This builds a dataflow connection between ops, which
-    *      enables TensorFlow to execute an entire [[Graph]] that represents a large, multi-step computation.
+    * enables TensorFlow to execute an entire [[Graph]] that represents a large, multi-step computation.
     *   2. After the graph has been launched in a [[Session]], the value of an [[Op.Output]] can be computed by passing
-    *      it to [[Session.run]].
-    *
-    * TODO: `Op.Output.evaluate` is a shortcut for [[Session.run]] that uses the default session in the current execution context.
+    * it to `Session.run`.
+    *   3. `Op.Output.evaluate` can also be used to compute the value of an [[Op.Output]] If no session is provided,
+    * then the default session is used.
     *
     * In the following example, `c`, `d`, and `e` are symbolic [[Op.Output]] objects, whereas `result` is a Scala array
     * that stores a concrete value:
-    *
-    * TODO: Add example.
+    * {{{
+    *   val c = constant(Array(Array(1.0, 2.0), Array(3.0, 4.0)))
+    *   val d = constant(Array(Array(1.0, 1.0), Array(0.0, 1.0)))
+    *   val e = matMul(c, d)
+    *   val result = e.evaluate() // 'result' now holds the result of the matrix multiplication.
+    * }}}
     *
     * @param  op    Op whose output this class represents.
     * @param  index Output index.
     */
-  final case class Output private (op: Op, index: Int) {
+  final case class Output private(op: Op, index: Int) extends OutputLike {
     /** Name of this op output. This is simply set to `"<op.name>:<index>"`. */
     lazy val name: String = s"${op.name}:$index"
 
@@ -666,12 +674,30 @@ object Op {
     /** Graph where the op belongs. */
     def graph: Graph = op.graph
 
-    /** Device on which this op output is placed. */
+    /** Device on which this op output will be placed. */
     def device: String = op.device
 
     /** Shape of the tensor that this op output represents. */
     def shape: Shape = Shape.fromSeq(using(op.graph.reference) { r =>
-      NativeOp.shape(r.nativeHandle, op.nativeHandle, index) })
+      NativeOp.shape(r.nativeHandle, op.nativeHandle, index)
+    })
+
+    /** Evaluates this op output.
+      *
+      * If `feeds` is non-empty, then the provided feed values are fed into the session for computing the value of this
+      * op output.
+      *
+      * If `session` is `null` (i.e., not provided), then the default session is used. Otherwise, `session` is used for
+      * the evaluation.
+      *
+      * @param  feeds   Tensors to feed into the session for this evaluation.
+      * @param  session Optional session to use for the evaluation.
+      * @return Value of this op output, for this evaluation.
+      */
+    def evaluate(feeds: Map[Op.Output, Tensor] = Map.empty, session: Session = null): Tensor = {
+      val effectiveSession = if (session == null) defaultSession else session
+      effectiveSession.run(feeds, Array(this))(0)
+    }
 
     //region Ops
 
@@ -684,11 +710,75 @@ object Op {
 
     //endregion Ops
 
+    private[api] def toOpOutput(dataType: DataType = null): Op.Output = {
+      throw new IllegalArgumentException(
+        s"Op output conversion requested data type '$dataType' for op output, '$this', with data type: " +
+            s"'${this.dataType}.")
+      this
+    }
+
     override def toString: String = s"Op.Output(name = $name, shape = $shape, dataType = $dataType, device = $device)"
   }
 
+  /** Sparse representation of one of the outputs of an `Op`'s computation. of a set of tensor slices at given indices.
+    *
+    * This class if a simple wrapper for a pair (or a set of three) of [[Op.Output]] objects:
+    *   - `values`: An [[Op.Output]] of any data type, with shape `[D0, D1, ..., Dn]`.
+    *   - `indices`: A one-dimensional integer [[Op.Output]] with shape `[D0]`.
+    *   - `denseShape`: Optionally, an integer [[Op.Output]] with shape `[LARGE0, D1, ..., Dn]`.
+    *
+    * An [[Op.OutputIndexedSlices]] is typically used to represent a subset of a larger [[Op.Output]], `dense`, of shape
+    * `[LARGE0, D1, ..., Dn]`, where `LARGE0 >> D0`. The values in `indices` are the indices in the first dimension of
+    * the slices that have been extracted from the larger tensor.
+    *
+    * The dense [[Op.Output]], `dense`, represented by [[Op.OutputIndexedSlices]], `slices`, has:
+    * {{{
+    *   dense(slices.indices(i), ::, ::, ...) = slices.values(i, ::, ::, ...)
+    * }}}
+    *
+    * The [[Op.OutputIndexedSlices]] class is used primarily in the definition of gradients for operations that have
+    * sparse gradients, such as `gather`.
+    *
+    * Note that this is different than [[Op.SparseOutput]] which uses multi-dimensional indices and scalar values.
+    *
+    * @param  values     Values corresponding to the provided indices.
+    * @param  indices    Indices along the first dimension of the corresponding dense [[Op.Output]].
+    * @param  denseShape Shape of the corresponding dense [[Op.Output]].
+    */
+  final case class OutputIndexedSlices private(values: Op.Output, indices: Op.Output, denseShape: Op.Output = null)
+      extends OutputLike {
+    /** Graph that contains `values`, `indices`, and `denseShape`. */
+    val graph: Graph = getGraphFromInputs(Array(values, indices, denseShape))
+
+    /** Name of this op output indexed slices. */
+    lazy val name: String = s"$values[$indices]" + (if (denseShape != null) s"(shape = $denseShape)" else "")
+
+    /** Data type of this op output indexed slices. */
+    lazy val dataType: DataType = values.dataType
+
+    /** Op that outputs these indexed slices. */
+    def op: Op = values.op
+
+    /** Device on which these op output indexed slices will be placed. */
+    def device: String = values.device
+
+    private[api] def toOpOutput(dataType: DataType = null): Op.Output = {
+      if (dataType != null && !dataType.isCompatibleWith(this.dataType))
+        throw new IllegalArgumentException(
+          s"Op output conversion requested data type '$dataType' for op output, '$this', with data type: " +
+              s"'${this.dataType}.")
+      if (denseShape == null)
+        throw new IllegalStateException(
+          s"Op output conversion requested the conversion of 'Op.OutputIndexedSlices', '$this', which has no dense " +
+              s"shape information available.")
+      ???
+    }
+  }
+
+  final case class SparseOutput private() // TODO: Add SparseOutput support.
+
   private[ops] final case class Builder(opType: String, name: String)
-      (implicit context: DynamicVariable[OpCreationContext]){
+      (implicit context: DynamicVariable[OpCreationContext]) {
     private val graph: Graph = context.graph
     private val opName: String = if (context.nameScope == "") name else s"${context.nameScope}/$name"
     if (!checkName(name = opName))

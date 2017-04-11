@@ -18,7 +18,9 @@ class SessionSpec extends FlatSpec with Matchers {
     }
     val session = Session(graph = graph)
     using(Tensor.create(Array[Array[Int]](Array[Int](5), Array[Int](7)))) { x =>
-      val outputs = session.Runner().feed(opName = "X", tensor = x).fetch(opName = "Y").run()._1
+      val feeds = Map(graph.opOutputByName("X:0") -> x)
+      val fetches = Array(graph.opOutputByName("Y:0"))
+      val outputs = session.run(feeds, fetches)
       assert(outputs.size == 1)
       val expectedResult = Array[Array[Int]](Array[Int](-30))
       outputs.head.copyTo(Array.ofDim[Int](1, 1)) should equal(expectedResult)

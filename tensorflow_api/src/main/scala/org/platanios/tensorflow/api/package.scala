@@ -32,7 +32,7 @@ package object api {
 
   import org.platanios.tensorflow.api.ops.OpCreationContext
 
-  val defaultGraph: Graph = Graph()
+  private[api] val defaultGraph: Graph = Graph()
   private[api] implicit val opCreationContext: DynamicVariable[OpCreationContext] =
     new DynamicVariable[OpCreationContext](OpCreationContext(graph = defaultGraph))
   private[api] implicit def dynamicVariableToOpCreationContext(
@@ -52,4 +52,6 @@ package object api {
   }
 
   //endregion
+
+  private[api] val defaultSession: Session = Session(defaultGraph)
 }
