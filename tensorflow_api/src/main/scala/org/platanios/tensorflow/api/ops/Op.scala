@@ -772,6 +772,7 @@ object Op {
         throw new IllegalStateException(
           s"Op output conversion requested the conversion of 'Op.OutputIndexedSlices', '$this', which has no dense " +
               s"shape information available.")
+      // TODO: Add check for large number of elements (e.g., > 100000000).
       ???
     }
 

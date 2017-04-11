@@ -23,23 +23,26 @@ sealed case class DataType private (name: String, private[api] val cValue: Int) 
     }
   }
 
-  /** Returns `true` if this data type represents a boolean data type. */
-  def isBoolean: Boolean = base == DataType.boolean
-
   /** Returns `true` if this data type represents a non-quantized floating-point data type. */
   def isFloatingPoint: Boolean = !isQuantized && DataType.floatingPointDataTypes.contains(base)
 
-  /** Returns `true` if this data type represents a non-quantized integer data type. */
-  def isInteger: Boolean = !isQuantized && DataType.integerDataTypes.contains(base)
-
   /** Returns `true` if this data type represents a complex data types. */
   def isComplex: Boolean = DataType.complexDataTypes.contains(base)
+
+  /** Returns `true` if this data type represents a non-quantized integer data type. */
+  def isInteger: Boolean = !isQuantized && DataType.integerDataTypes.contains(base)
 
   /** Returns `true` if this data type represents a quantized data type. */
   def isQuantized: Boolean = DataType.quantizedDataTypes.contains(base)
 
   /** Returns `true` if this data type represents a non-quantized unsigned data type. */
   def isUnsigned: Boolean = !isQuantized && DataType.unsignedDataTypes.contains(base)
+
+  /** Returns `true` if this data type represents a numeric data type. */
+  def isNumeric: Boolean = DataType.numericDataTypes.contains(base)
+
+  /** Returns `true` if this data type represents a boolean data type. */
+  def isBoolean: Boolean = base == DataType.boolean
 
   /** Returns `true` if this data type represents a reference data type. */
   def isRef: Boolean = cValue > 100
@@ -121,19 +124,34 @@ object DataType {
   val resourceRef: DataType = DataType(name = "resource_ref", cValue = 120)
 
   /** Set of all floating-point data types. */
-  private val floatingPointDataTypes = Set(float16, float32, float64, bfloat16)
-
-  /** Set of all integer data types. */
-  private val integerDataTypes = Set(int8, int16, int32, int64, uint8, uint16, qint8, qint16, qint32, quint8, quint16)
+  val floatingPointDataTypes: Set[DataType] = {
+    Set(float16, float32, float64, bfloat16)
+  }
 
   /** Set of all complex data types. */
-  private val complexDataTypes = Set(complex64, complex128)
+  val complexDataTypes: Set[DataType] = {
+    Set(complex64, complex128)
+  }
+
+  /** Set of all integer data types. */
+  val integerDataTypes: Set[DataType] = {
+    Set(int8, int16, int32, int64, uint8, uint16, qint8, qint16, qint32, quint8, quint16)
+  }
 
   /** Set of all quantized data types. */
-  private val quantizedDataTypes = Set(bfloat16, qint8, qint16, qint32, quint8, quint16)
+  val quantizedDataTypes: Set[DataType] = {
+    Set(bfloat16, qint8, qint16, qint32, quint8, quint16)
+  }
 
   /** Set of all unsigned data types. */
-  private val unsignedDataTypes = Set(uint8, uint16, quint8, quint16)
+  val unsignedDataTypes: Set[DataType] = {
+    Set(uint8, uint16, quint8, quint16)
+  }
+
+  /** Set of all numeric data types. */
+  val numericDataTypes: Set[DataType] = {
+    floatingPointDataTypes ++ complexDataTypes ++ integerDataTypes ++ quantizedDataTypes
+  }
 
   /** Returns the data type corresponding to the provided C value.
     *

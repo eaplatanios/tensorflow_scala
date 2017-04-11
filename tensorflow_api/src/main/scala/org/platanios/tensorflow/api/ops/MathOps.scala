@@ -1,6 +1,7 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.DataType
+import org.platanios.tensorflow.api.Exception.InvalidDataTypeException
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -310,4 +311,225 @@ object MathOps {
         .addInput(b)
         .addInput(x)
         .build().outputs(0)
+
+  //region Segment Ops
+
+  /** Creates an op that computes the sum along segments of a tensor.
+    *
+    * The op computes a tensor such that `output(i) = \sum_{j...} data(j,...)` where the sum is over all `j` such that
+    * `segmentIndices(j) == i`. Unlike `unsortedSegmentSum`, `segmentIndices` need be sorted.
+    *
+    * If the sum if empty for a given segment index `i`, `output(i)` is set to `0`.
+    *
+    * The result tensor has the same data type as `data`, but its first dimension size is equal to the number of
+    * distinct segment indices.
+    *
+    * @param  data           Data (must have a numeric data type -- i.e., representing a number).
+    * @param  segmentIndices Segment indices (must have data type of `int32` or `int64`). Values should be sorted and
+    *                        can be repeated.
+    * @param  name           Name for the created op.
+    * @return Created op.
+    */
+  def segmentSum(data: Op.Output, segmentIndices: Op.Output, name: String = "SegmentSum"): Op.Output = {
+    if (data.dataType.isNumeric)
+      throw InvalidDataTypeException(s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
+    if (segmentIndices.dataType != DataType.int32 && segmentIndices.dataType != DataType.int64)
+      throw InvalidDataTypeException(
+        s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'int32' or 'int64', as required.")
+    Op.Builder(opType = "SegmentSum", name = name)
+        .addInput(data)
+        .addInput(segmentIndices)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that computes the mean along segments of a tensor.
+    *
+    * The op computes a tensor such that `output(i) = \frac{sum_{j...} data(j,...)}{N}` where the sum is over all `j`
+    * such that `segmentIndices(j) == i` and `N` is the total number of values being summed. Unlike
+    * `unsortedSegmentMean`, `segmentIndices` need be sorted.
+    *
+    * If the sum if empty for a given segment index `i`, `output(i)` is set to `0`.
+    *
+    * The result tensor has the same data type as `data`, but its first dimension size is equal to the number of
+    * distinct segment indices.
+    *
+    * @param  data           Data (must have a numeric data type -- i.e., representing a number).
+    * @param  segmentIndices Segment indices (must have data type of `int32` or `int64`). Values should be sorted and
+    *                        can be repeated.
+    * @param  name           Name for the created op.
+    * @return Created op.
+    */
+  def segmentMean(data: Op.Output, segmentIndices: Op.Output, name: String = "SegmentMean"): Op.Output = {
+    if (data.dataType.isNumeric)
+      throw InvalidDataTypeException(s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
+    if (segmentIndices.dataType != DataType.int32 && segmentIndices.dataType != DataType.int64)
+      throw InvalidDataTypeException(
+        s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'int32' or 'int64', as required.")
+    Op.Builder(opType = "SegmentMean", name = name)
+        .addInput(data)
+        .addInput(segmentIndices)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that computes the product along segments of a tensor.
+    *
+    * The op computes a tensor such that `output(i) = \prod_{j...} data(j,...)` where the product is over all `j` such
+    * that `segmentIndices(j) == i`. Unlike `unsortedSegmentProd`, `segmentIndices` need be sorted.
+    *
+    * If the product if empty for a given segment index `i`, `output(i)` is set to `1`.
+    *
+    * The result tensor has the same data type as `data`, but its first dimension size is equal to the number of
+    * distinct segment indices.
+    *
+    * @param  data           Data (must have a numeric data type -- i.e., representing a number).
+    * @param  segmentIndices Segment indices (must have data type of `int32` or `int64`). Values should be sorted and
+    *                        can be repeated.
+    * @param  name           Name for the created op.
+    * @return Created op.
+    */
+  def segmentProd(data: Op.Output, segmentIndices: Op.Output, name: String = "SegmentProd"): Op.Output = {
+    if (data.dataType.isNumeric)
+      throw InvalidDataTypeException(s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
+    if (segmentIndices.dataType != DataType.int32 && segmentIndices.dataType != DataType.int64)
+      throw InvalidDataTypeException(
+        s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'int32' or 'int64', as required.")
+    Op.Builder(opType = "SegmentProd", name = name)
+        .addInput(data)
+        .addInput(segmentIndices)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that computes the min along segments of a tensor.
+    *
+    * The op computes a tensor such that `output(i) = \min_{j...} data(j,...)` where the min is over all `j` such that
+    * `segmentIndices(j) == i`. Unlike `unsortedSegmentMin`, `segmentIndices` need be sorted.
+    *
+    * If the min if empty for a given segment index `i`, `output(i)` is set to `0`.
+    *
+    * The result tensor has the same data type as `data`, but its first dimension size is equal to the number of
+    * distinct segment indices.
+    *
+    * @param  data           Data (must have a numeric data type -- i.e., representing a number).
+    * @param  segmentIndices Segment indices (must have data type of `int32` or `int64`). Values should be sorted and
+    *                        can be repeated.
+    * @param  name           Name for the created op.
+    * @return Created op.
+    */
+  def segmentMin(data: Op.Output, segmentIndices: Op.Output, name: String = "SegmentMin"): Op.Output = {
+    if (data.dataType.isNumeric)
+      throw InvalidDataTypeException(s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
+    if (segmentIndices.dataType != DataType.int32 && segmentIndices.dataType != DataType.int64)
+      throw InvalidDataTypeException(
+        s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'int32' or 'int64', as required.")
+    Op.Builder(opType = "SegmentMin", name = name)
+        .addInput(data)
+        .addInput(segmentIndices)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that computes the max along segments of a tensor.
+    *
+    * The op computes a tensor such that `output(i) = \max_{j...} data(j,...)` where the max is over all `j` such that
+    * `segmentIndices(j) == i`. Unlike `unsortedSegmentMax`, `segmentIndices` need be sorted.
+    *
+    * If the max if empty for a given segment index `i`, `output(i)` is set to `0`.
+    *
+    * The result tensor has the same data type as `data`, but its first dimension size is equal to the number of
+    * distinct segment indices.
+    *
+    * @param  data           Data (must have a numeric data type -- i.e., representing a number).
+    * @param  segmentIndices Segment indices (must have data type of `int32` or `int64`). Values should be sorted and
+    *                        can be repeated.
+    * @param  name           Name for the created op.
+    * @return Created op.
+    */
+  def segmentMax(data: Op.Output, segmentIndices: Op.Output, name: String = "SegmentMax"): Op.Output = {
+    if (data.dataType.isNumeric)
+      throw InvalidDataTypeException(s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
+    if (segmentIndices.dataType != DataType.int32 && segmentIndices.dataType != DataType.int64)
+      throw InvalidDataTypeException(
+        s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'int32' or 'int64', as required.")
+    Op.Builder(opType = "SegmentMax", name = name)
+        .addInput(data)
+        .addInput(segmentIndices)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that computes the sum along segments of a tensor.
+    *
+    * The op computes a tensor such that `output(i) = \sum_{j...} data(j...)` where the sum is over all `j` such that
+    * `segmentIndices(j) == i`. Unlike `segmentSum`, `segmentIndices` need not be sorted and need not cover all values
+    * in the full range of valid values.
+    *
+    * If the sum if empty for a given segment index `i`, `output(i)` is set to `0`.
+    *
+    * `segmentsNumber` should equal the number of distinct segment indices.
+    *
+    * The result tensor has the same data type as `data`, but its first dimension size is equal to the number of
+    * distinct segment indices.
+    *
+    * @param  data           Data (must have a numeric data type -- i.e., representing a number).
+    * @param  segmentIndices Segment indices (must have data type of `int32` or `int64`).
+    * @param  segmentsNumber Number of segments (must have data type of `int32`).
+    * @param  name           Name for the created op.
+    * @return Created op.
+    */
+  def unsortedSegmentSum(
+      data: Op.Output, segmentIndices: Op.Output, segmentsNumber: Op.Output,
+      name: String = "UnsortedSegmentSum"): Op.Output = {
+    if (data.dataType.isNumeric)
+      throw InvalidDataTypeException(s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
+    if (segmentIndices.dataType != DataType.int32 && segmentIndices.dataType != DataType.int64)
+      throw InvalidDataTypeException(
+        s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'int32' or 'int64', as required.")
+    if (segmentsNumber.dataType != DataType.int32)
+      throw InvalidDataTypeException(
+        s"'segmentIndices' data type, '${segmentsNumber.dataType}', is not 'int32', as required.")
+    Op.Builder(opType = "UnsortedSegmentSum", name = name)
+        .addInput(data)
+        .addInput(segmentIndices)
+        .addInput(segmentsNumber)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that computes the max along segments of a tensor.
+    *
+    * The op computes a tensor such that `output(i) = \max_{j...} data(j...)` where the max is over all `j` such that
+    * `segmentIndices(j) == i`. Unlike `segmentMax`, `segmentIndices` need not be sorted and need not cover all values
+    * in the full range of valid values.
+    *
+    * If the max if empty for a given segment index `i`, `output(i)` is set to `0`.
+    *
+    * `segmentsNumber` should equal the number of distinct segment indices.
+    *
+    * The result tensor has the same data type as `data`, but its first dimension size is equal to the number of
+    * distinct segment indices.
+    *
+    * @param  data           Data (must have a numeric data type -- i.e., representing a number).
+    * @param  segmentIndices Segment indices (must have data type of `int32` or `int64`).
+    * @param  segmentsNumber Number of segments (must have data type of `int32`).
+    * @param  name           Name for the created op.
+    * @return Created op.
+    */
+  def unsortedSegmentProd(
+      data: Op.Output, segmentIndices: Op.Output, segmentsNumber: Op.Output,
+      name: String = "UnsortedSegmentMax"): Op.Output = {
+    if (data.dataType.isNumeric)
+      throw InvalidDataTypeException(s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
+    if (segmentIndices.dataType != DataType.int32 && segmentIndices.dataType != DataType.int64)
+      throw InvalidDataTypeException(
+        s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'int32' or 'int64', as required.")
+    if (segmentsNumber.dataType != DataType.int32)
+      throw InvalidDataTypeException(
+        s"'segmentIndices' data type, '${segmentsNumber.dataType}', is not 'int32', as required.")
+    Op.Builder(opType = "UnsortedSegmentMax", name = name)
+        .addInput(data)
+        .addInput(segmentIndices)
+        .addInput(segmentsNumber)
+        .build().outputs(0)
+  }
+
+  // TODO: Add sparse segment ops.
+
+  //endregion Segment Ops
 }
