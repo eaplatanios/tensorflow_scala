@@ -19,6 +19,9 @@ object Exception {
   case class InvalidShapeException(message: String = null, cause: Throwable = null)
       extends IllegalArgumentException(message, cause)
 
+  case class InvalidIndexerException(message: String = null, cause: Throwable = null)
+      extends IllegalArgumentException(message, cause)
+
   case class InvalidDataTypeException(message: String = null, cause: Throwable = null)
       extends IllegalArgumentException(message, cause)
 

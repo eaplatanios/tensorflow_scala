@@ -15,7 +15,7 @@ final case class Tensor(dataType: DataType, shape: Shape, private[api] var nativ
   def numElements: Long = shape.numElements.get
   def numBytes: Int = buffer.remaining()
 
-  private def buffer: ByteBuffer = NativeTensor.buffer(nativeHandle).order(ByteOrder.nativeOrder())
+  private[api] def buffer: ByteBuffer = NativeTensor.buffer(nativeHandle).order(ByteOrder.nativeOrder())
 
   def scalarValue: Any = dataType match {
     case DataType.float32 => NativeTensor.scalarFloat(nativeHandle)

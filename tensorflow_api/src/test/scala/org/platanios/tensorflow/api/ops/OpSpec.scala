@@ -1,7 +1,7 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.Exception.IllegalNameException
-import org.platanios.tensorflow.api.Graph
+import org.platanios.tensorflow.api.{Graph, Tensor}
 import org.platanios.tensorflow.api.ops.ArrayOps.constant
 import org.platanios.tensorflow.api.ops.MathOps.matMul
 import org.platanios.tensorflow.api.ops.Op._
@@ -399,8 +399,11 @@ class OpSpec extends FlatSpec with Matchers {
     val indices = ArrayOps.constant(Array(0, 2))
     val denseShape = ArrayOps.constant(Array(3, 2))
     val indexedSlices = Op.OutputIndexedSlices(values, indices, denseShape)
-    fail // We need a working "toOpOutput" method.
-    // assert(indexedSlices.toOpOutput.eval === Tensor.create(Array(Array(2, 3), Array(0, 0), Array(5, 7)))
+    // TODO: Simplify this after we standardize our tensor interface.
+    val resultTensor = indexedSlices.toOpOutput().value()
+    val resultArray = Array.ofDim[Int](resultTensor.shape(0).asInstanceOf[Int], resultTensor.shape(1).asInstanceOf[Int])
+    resultTensor.copyTo(resultArray)
+    assert(resultArray === Array(Array(2, 3), Array(0, 0), Array(5, 7)))
 
 //    def testToTensor(self):
 //    with self.test_session():

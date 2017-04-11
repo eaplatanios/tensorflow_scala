@@ -694,14 +694,26 @@ object Op {
       * @param  session Optional session to use for the evaluation.
       * @return Value of this op output, for this evaluation.
       */
-    def evaluate(feeds: Map[Op.Output, Tensor] = Map.empty, session: Session = null): Tensor = {
+    def value(feeds: Map[Op.Output, Tensor] = Map.empty, session: Session = null): Tensor = {
       val effectiveSession = if (session == null) defaultSession else session
       effectiveSession.run(feeds, Array(this))(0)
     }
 
-    //region Ops
+    //region Slicing
 
-    // TODO: Slicing ops.
+    // TODO: Maybe add support for a name argument for the constructed op?
+    /** Creates an op that slices this op according to the provided indexers.
+      *
+      * More details into how to construct and use indexers are provided in the [[Indexer]] documentation.
+      *
+      * @param  indexers Sequence of indexers to use.
+      * @return Created op.
+      */
+    def slice(indexers: Indexer*): Op.Output = Indexer.toStridedSlice(indexers: _*)(this)
+
+    //endregion Slicing
+
+    //region Ops
 
     def +(other: Output): Output = MathOps.add(x = this, y = other)
     def -(other: Output): Output = MathOps.subtract(x = this, y = other)
@@ -716,6 +728,15 @@ object Op {
             s"'${this.dataType}.")
       this
     }
+
+    /** Creates an op that slices this op according to the provided indexers.
+      *
+      * More details into how to construct and use indexers are provided in the [[Indexer]] documentation.
+      *
+      * @param  indexers Sequence of indexers to use.
+      * @return Created op.
+      */
+    def apply(indexers: Indexer*): Op.Output = slice(indexers: _*)
 
     override def toString: String = s"Op.Output(name = $name, shape = $shape, dataType = $dataType, device = $device)"
   }
@@ -773,7 +794,9 @@ object Op {
           s"Op output conversion requested the conversion of 'Op.OutputIndexedSlices', '$this', which has no dense " +
               s"shape information available.")
       // TODO: Add check for large number of elements (e.g., > 100000000).
-      ???
+      createWith(nameScope = "IndexedSlicesToOutput") {
+        MathOps.unsortedSegmentSum(data = values, segmentIndices = indices, segmentsNumber = denseShape(0))
+      }
     }
 
     override def toString: String = {

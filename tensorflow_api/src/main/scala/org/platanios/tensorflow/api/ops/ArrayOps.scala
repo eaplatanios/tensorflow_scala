@@ -1,6 +1,6 @@
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api.Exception.InvalidShapeException
+import org.platanios.tensorflow.api.Exception.{InvalidDataTypeException, InvalidShapeException}
 import org.platanios.tensorflow.api.{DataType, Shape, Tensor, using}
 
 /**
@@ -45,10 +45,35 @@ object ArrayOps {
     }
   }
 
+  /** Creates an op that returns a tensor of zeros with the same shape and data type as `input`.
+    *
+    * @param  input Input.
+    * @param  name  Name for the created op.
+    * @return Created op.
+    */
+  def zerosLike(input: Op.Output, name: String = "ZerosLike"): Op.Output = {
+    // TODO: Add support for changing the dataType and for the "optimize" flag.
+    Op.Builder(opType = "ZerosLike", name = name)
+        .addInput(input)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that returns a tensor of ones with the same shape and data type as `input`.
+    *
+    * @param  input Input.
+    * @param  name  Name for the created op.
+    * @return Created op.
+    */
+  def onesLike(input: Op.Output, name: String = "OnesLike"): Op.Output = {
+    // TODO: Add support for changing the dataType and for the "optimize" flag.
+    Op.Builder(opType = "ZerosLike", name = name)
+        .addInput(input)
+        .build().outputs(0) + constant(1, dataType = input.dataType)
+  }
+
   // TODO: Add support for "ImmutableConst".
 
   // TODO: Add support for "zeros" and "ones", after fixing "Tensor.create".
-  // TODO: Add support for "zerosLike" and "onesLike".
 
   /** Creates a placeholder op for a tensor that will always be fed.
     *
@@ -399,4 +424,161 @@ object ArrayOps {
         .addInput(Op.createWith(nameScope = name)(constant(value = axis, name = "Axis")))
         .build().outputs
   }
+
+  //region Slice Ops
+
+  /** Creates an op that returns a slice from `input`.
+    *
+    * The op output is a tensor with dimensions described by `size`, whose values are extracted from `input`, starting
+    * at the offsets in `begin`.
+    *
+    * Requirements:
+    *
+    *   - `0 <= begin(i) <= begin(i) + size(i) <= Di, for i in [0, n)`, where `Di` corresponds to the size of
+    * the `i`th dimension of `input` and `n` corresponds to the rank of `input`.
+    *
+    * @param  input Tensor to slice.
+    * @param  begin Begin index tensor (must have data type of `int32` or `int64`). `begin(i)` specifies the offset into
+    *               the `i`th dimension of `input` to slice from.
+    * @param  size  Slice size tensor (must have data type of `int32` or `int64`). `size(i)` specifies the number of
+    *               elements of the `i`th dimension of `input` to slice. If `size(i) == -1`, then all the remaining
+    *               elements in dimension `i` are included in the slice (i.e., this is equivalent to setting
+    *               `size(i) = input.shape(i) - begin(i)`).
+    * @param  name  Name for the created op.
+    * @return Created op.
+    */
+  def slice(input: Op.Output, begin: Op.Output, size: Op.Output, name: String = "Slice"): Op.Output = {
+    if (begin.dataType != DataType.int32 && begin.dataType != DataType.int64)
+      throw InvalidDataTypeException(s"'begin' data type, '${begin.dataType}', is not 'int32' or 'int64', as required.")
+    if (size.dataType != DataType.int32 && size.dataType != DataType.int64)
+      throw InvalidDataTypeException(s"'size' data type, '${size.dataType}', is not 'int32' or 'int64', as required.")
+    Op.Builder(opType = "Slice", name = name)
+        .addInput(input)
+        .addInput(begin)
+        .addInput(size)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that returns a strided slice from `input`.
+    *
+    * Note that most users will want to use the `apply` or the `slice` method of [[Op.Output]] rather than this function
+    * directly, as the interface of those methods is much simpler.
+    *
+    * The goal of the op is to produce a new tensor with a subset of the elements from the `n`-dimensional `input`
+    * tensor. The subset is chosen using a sequence of `m` sparse specifications encoded into the arguments of this
+    * function. Note that, in some cases, `m` could be equal to `n`, but this need not be the case.
+    * Each range specification entry can be one of the following:
+    *
+    *   - An ellipsis (`---` or `Ellipsis`). Ellipses are used to represent zero or more dimensions of a full-dimension
+    * selection and are produced using `ellipsisMask`. For example, `foo(---)` is the identity slice.
+    *   - A new axis (`NewAxis`). New axes are used to insert new dimensions of size `1` and are produced using
+    * `newAxisMask`. For example, `foo(NewAxis, ---)`, where `foo` has shape `[3, 4]`, produces a new tensor with
+    * shape `[1, 3, 4]`.
+    *   - A single index (`Index`). This is used to keep only elements that have a given index. For example, if `foo` is
+    * a tensor with shape `[5, 6]`, `foo(2, ::)` produces a tensor with shape `[6]`. This is encoded in `begin` and
+    * `end` (where `end` has to be equal to `begin + 1`) and in the `shrinkAxisMask` (since an axis is being
+    * shrinked).
+    *   - A slice (`Slice`). Slices define a range with a `start`, an `end`, and a `step` size. They are used to specify
+    * which elements to choose from a given dimension. `step` (sometimes called "stride") can be any integer, but
+    * `0`. `begin` is an integer which represents the index of the first value to select, while `end` represents the
+    * index of the last value to select (exclusive). The number of values selected in each dimension is
+    * `end - begin` if `step > 0` and `begin - end` if `step < 0`. `begin` and `end` can be negative, where `-1`
+    * corresponds to the last element, `-2` to the second to last, etc. `beginMask` controls whether to replace the
+    * explicitly provided `begin` with an implicit effective value of: `0` if `step > 0`, and `-1` if `step < 0`.
+    * `endMask` is analogous, but produces the number required to create the largest open interval. There is
+    * currently no way to create begin masks and end masks in the Scala Indexer API. Values of `0` and `-1` should
+    * instead be appropriately used for the `begin` value. The `endMask` functionality is not currently supported at
+    * all since `foo(0 :: )` should return all elements of `foo`, whereas `foo(0 :: -1)` will return all except the
+    * last one.
+    *
+    * Requirements:
+    *
+    *   - `0 != strides(i),` for `i` in `[0, m)` (i.e., no stride should be equal to `0`).
+    *   - `ellipsisMask` must be a power of two (i.e., only one ellipsis used).
+    *
+    * Each conceptual range specification is encoded in the op's arguments. The encoding is best understood by
+    * considering a non-trivial example. In particular:
+    *
+    * {{{
+    *   // 'foo' is a tensor with shape '[5, 5, 5, 5, 5, 5]'
+    *   foo(1, 2 :: 4, NewAxis, ---, 0 :: -1 :: -3, ::) will be encoded as:
+    *   begin = [1, 2, x, x, 0, x] // Where "x" denotes that this value is ignored (we usually simply set it to 0)
+    *   end = [2, 4, x, x, -3, x]
+    *   strides = [1, 1, x, x, -1, 1]
+    *   beginMask = 1 << 4 | 1 << 5 = 48
+    *   endMask = 1 << 5 = 32
+    *   ellipsisMask = 1 << 3 = 8
+    *   newAxisMask = 1 << 2 = 4
+    *   shrinkAxisMask = 1 << 0 = 1
+    *   // The final shape of the slice becomes '[2, 1, 5, 5, 2, 5]'
+    * }}}
+    *
+    * Let us walk step by step through each argument specification in the example slice:
+    *
+    *   1. The first argument is turned into `begin = 1`, `end = begin + 1 = 2`, `strides = 1`, and the first bit of
+    * `shrinkAxisMask` set to `1` (i.e., `shrinkAxisMask |= 1 << 0`). Setting the bit of `shrinkAxisMask` to `1`
+    * makes sure this argument is treated differently than `1 :: 2`, which would not shrink the corresponding axis.
+    *   2. The second argument contributes `2` to `begin`, `4` to `end`, and `1` to `strides`. All masks have zero bits
+    * contributed.
+    *   3. The third argument sets the third bit of `newAxisMask` to `1` (i.e., `newAxisMask |= 1 << 2`).
+    *   4. The fourth argument sets the fourth bit of `ellipsisMask` to `1` (i.e., `ellipsisMask |= 1 << 3`).
+    *   5. The fifth argument contributes `0` to `begin`, `-3` to `end`, and `-1` to `strides`. It shows the use of
+    * negative indices. A negative index `i` associated with a dimension that has size `s` is converted to a
+    * positive index `s + i`. So `-1` becomes `s - 1` (i.e., the last element index). This conversion is done
+    * internally and so `begin`, `end`, and `strides` are allowed to have negative values.
+    *   6. The sixth argument indicates that the entire contents of the corresponding dimension are selected. It sets
+    * the sixth bit of `beginMask` and `endMask` to `1` (i.e., `beginMask |= 1 << 6` and `endMask |= 1 << 6`).
+    *
+    * @param  input          Tensor to slice.
+    * @param  begin          One-dimensional integer tensor. `begin(i)` specifies the begin offset into the `i`th range
+    *                        specification. The exact dimension this corresponds to will be determined by context.
+    *                        Out-of-bounds values will be silently clamped. If the `i`th bit of `beginMask` is `1`, then
+    *                        `begin(i)` is ignored and the full range of the appropriate dimension is used instead.
+    *                        Negative values causes indexing to start from the highest element.
+    * @param  end            One-dimensional integer tensor. `end(i)` is like `begin(i)` with the exception that it
+    *                        determines the end offset into the `i`th range specification, and that `endMask` is used to
+    *                        determine full ranges.
+    * @param  strides        One-dimensional integer tensor. `strides(i)` specifies the increment in the `i`th range
+    *                        specification after extracting a given element. Negative indices will reverse the original
+    *                        order. Out-of-bounds values are clamped to `[0, shape(i)) if slice(i) > 0` or
+    *                        `[-1, shape(i) - 1] if slice(i) < 0`.
+    * @param  beginMask      Integer value representing a bitmask where bit `i` being `1` means to ignore the begin
+    *                        value and instead use the largest interval possible. At runtime `begin(i)` will be replaced
+    *                        with `[0, shape(i) - 1) if stride(i) > 0` or `[-1, shape(i) - 1]` if `stride(i) < 0`.
+    * @param  endMask        Integer value analogous to `beginMask`, but for specifying the end offset of the slice.
+    * @param  ellipsisMask   Integer value representing a bitmask where bit `i` being `1` means that the `i`th position
+    *                        is actually an ellipsis. At most one bit can be `1`. If `ellipsisMask == 0`, then an
+    *                        implicit ellipsis mask with value `1 << (m + 1)` is provided. This means that
+    *                        `foo(3 :: 5) == foo(3 :: 5, ---)`. An ellipsis implicitly creates as many range
+    *                        specifications as necessary to fully specify the sliced range for every dimension. For
+    *                        example, for a 4-dimensional tensor `foo` the slice `foo(2, ---, 5 :: 8)` implies
+    *                        `foo(2, ::, ::, 5 :: 8)`.
+    * @param  newAxisMask    Integer value representing a bitmask where bit `i` being `1` means that the `i`th range
+    *                        specification creates a new dimension with size `1`. For example,
+    *                        `foo(0 :: 4, NewAxis, 0 :: 2)` will produce a tensor with shape `[4, 1, 2]`.
+    * @param  shrinkAxisMask Integer value representing a bitmask where bit `i` being `1` means that the `i`th range
+    *                        specification should shrink the dimensionality. `begin` and `end` must imply a slice of
+    *                        size `1` in the dimension. For example, in `foo(0 :: 4, 3, 0 :: 2)` would result in a
+    *                        tensor with shape `[4, 2]`.
+    * @param  name           Name for the created op.
+    * @return Created op.
+    */
+  def stridedSlice(
+      input: Op.Output, begin: Op.Output, end: Op.Output, strides: Op.Output = null, beginMask: Int = 0,
+      endMask: Int = 0, ellipsisMask: Int = 0, newAxisMask: Int = 0, shrinkAxisMask: Int = 0,
+      name: String = "StridedSlice"): Op.Output = {
+    Op.Builder(opType = "StridedSlice", name = name)
+        .addInput(input)
+        .addInput(begin)
+        .addInput(end)
+        .addInput(if (strides == null) onesLike(begin) else strides)
+        .setAttribute("begin_mask", beginMask)
+        .setAttribute("end_mask", endMask)
+        .setAttribute("ellipsis_mask", ellipsisMask)
+        .setAttribute("new_axis_mask", newAxisMask)
+        .setAttribute("shrink_axis_mask", shrinkAxisMask)
+        .build().outputs(0)
+  }
+
+  //endregion Slice Ops
 }

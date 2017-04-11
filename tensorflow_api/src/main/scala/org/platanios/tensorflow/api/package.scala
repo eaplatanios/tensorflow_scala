@@ -38,20 +38,23 @@ package object api {
   private[api] implicit def dynamicVariableToOpCreationContext(
       context: DynamicVariable[OpCreationContext]): OpCreationContext = context.value
 
-  //endregion
+  //endregion Op Creation Implicits
 
-  //region Slice Implicits
+  //region Indexer Implicits
 
-  def :: : Slice = Slice.::
-  implicit def intToSlice(int: Int): Slice = Slice.intToSlice(int)
-  implicit def longToSlice(long: Long): Slice = Slice.longToSlice(long)
-  implicit def intToSliceWithOneNumber(int: Int): SliceWithOneNumber = Slice.intToSliceWithOneNumber(int)
-  implicit def longToSliceWithOneNumber(long: Long): SliceWithOneNumber = Slice.longToSliceWithOneNumber(long)
-  implicit def sliceConstructionToSlice(sliceConstruction: SliceConstruction): Slice = {
-    Slice.sliceConstructionToSlice(sliceConstruction)
-  }
+  val --- : Indexer = Indexer.---
+  val :: : Slice = Slice.::
+  implicit def intToIndex(index: Int): Index = Indexer.intToIndex(index)
+  implicit def intToIndexerConstructionWithOneNumber(n: Int): IndexerConstructionWithOneNumber =
+    Indexer.intToIndexerConstructionWithOneNumber(n)
+  implicit def indexerConstructionWithOneNumberToIndex(construction: IndexerConstructionWithOneNumber): Index =
+    Indexer.indexerConstructionWithOneNumberToIndex(construction)
+  implicit def indexerConstructionWithTwoNumbersToSlice(construction: IndexerConstructionWithTwoNumbers): Slice =
+    Indexer.indexerConstructionWithTwoNumbersToSlice(construction)
+  implicit def indexerConstructionWithThreeNumbersToSlice(construction: IndexerConstructionWithThreeNumbers): Slice =
+    Indexer.indexerConstructionWithThreeNumbersToSlice(construction)
 
-  //endregion
+  //endregion Indexer Implicits
 
   private[api] val defaultSession: Session = Session(defaultGraph)
 }

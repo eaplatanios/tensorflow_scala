@@ -2,6 +2,7 @@ package org.platanios.tensorflow.api
 
 import org.platanios.tensorflow.api.Exception.InvalidShapeException
 
+// TODO: Should shapes really use longs or could we do with integers?
 // TODO: What about an Op.Output.setShape method (for the documentation)?
 /** Represents the shape of a tensor computed by an op.
   *
@@ -225,11 +226,10 @@ final class Shape private (private val array: Array[Long]) {
   def apply(slice: Slice): Shape = {
     if (slice == null)
       throw new IllegalArgumentException("The provided slice should not be 'null'.")
-    // TODO: Support integer slices.
     if (array != null)
-      Shape.fromSeq(slice.toArray(rank.asInstanceOf[Long]).map(i => array(i.asInstanceOf[Int])))
+      Shape.fromSeq(slice.toArray(rank).map(i => array(i)))
     else
-      Shape.unknown(slice.length(rank).asInstanceOf[Int])
+      Shape.unknown(slice.length(rank))
   }
 
   override def toString: String = if (array == null) "<unknown>" else s"[${array.mkString(", ").replace("-1", "?")}]"
