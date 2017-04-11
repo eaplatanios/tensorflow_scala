@@ -18,13 +18,13 @@ final case class Tensor(dataType: DataType, shape: Shape, private[api] var nativ
   private[api] def buffer: ByteBuffer = NativeTensor.buffer(nativeHandle).order(ByteOrder.nativeOrder())
 
   def scalarValue: Any = dataType match {
-    case DataType.float32 => NativeTensor.scalarFloat(nativeHandle)
-    case DataType.float64 => NativeTensor.scalarDouble(nativeHandle)
-    case DataType.int32 => NativeTensor.scalarInt(nativeHandle)
-    case DataType.uint8 => ???
-    case DataType.string => ???
-    case DataType.int64 => NativeTensor.scalarLong(nativeHandle)
-    case DataType.boolean => NativeTensor.scalarBoolean(nativeHandle)
+    case DataType.Float32 => NativeTensor.scalarFloat(nativeHandle)
+    case DataType.Float64 => NativeTensor.scalarDouble(nativeHandle)
+    case DataType.Int32 => NativeTensor.scalarInt(nativeHandle)
+    case DataType.UInt8 => ???
+    case DataType.String => ???
+    case DataType.Int64 => NativeTensor.scalarLong(nativeHandle)
+    case DataType.Boolean => NativeTensor.scalarBoolean(nativeHandle)
     case _ => throw new IllegalArgumentException(
       s"DataType '$dataType' is not recognized in the TensorFlow Scala API (TensorFlow version ${TensorFlow.version}).")
   }
@@ -38,25 +38,25 @@ final case class Tensor(dataType: DataType, shape: Shape, private[api] var nativ
   }
 
   def writeTo(buffer: FloatBuffer): Unit = {
-    if (dataType != DataType.float32)
+    if (dataType != DataType.Float32)
       throw Tensor.incompatibleBufferException(buffer, dataType)
     buffer.put(this.buffer.asFloatBuffer())
   }
 
   def writeTo(buffer: DoubleBuffer): Unit = {
-    if (dataType != DataType.float64)
+    if (dataType != DataType.Float64)
       throw Tensor.incompatibleBufferException(buffer, dataType)
     buffer.put(this.buffer.asDoubleBuffer())
   }
 
   def writeTo(buffer: IntBuffer): Unit = {
-    if (dataType != DataType.int32)
+    if (dataType != DataType.Int32)
       throw Tensor.incompatibleBufferException(buffer, dataType)
     buffer.put(this.buffer.asIntBuffer())
   }
 
   def writeTo(buffer: LongBuffer): Unit = {
-    if (dataType != DataType.int64)
+    if (dataType != DataType.Int64)
       throw Tensor.incompatibleBufferException(buffer, dataType)
     buffer.put(this.buffer.asLongBuffer())
   }
@@ -122,8 +122,8 @@ object Tensor {
     val inferredDataType: DataType = if (dataType == null) DataType.dataTypeOf(value) else dataType
     val inferredShape: Shape = if (shape == null) Tensor.shape(value) else shape
     // TODO: !!! Fix this so that it actually does verify the shape and the data type and does appropriate type casts.
-    if (inferredDataType != DataType.string) {
-      val byteSize = inferredDataType.byteSize.get * inferredShape.numElements.get
+    if (inferredDataType != DataType.String) {
+      val byteSize = inferredDataType.byteSize * inferredShape.numElements.get
       val nativeHandle = NativeTensor.allocate(inferredDataType.cValue, inferredShape.asArray, byteSize)
       NativeTensor.setValue(nativeHandle, value)
       Tensor(dataType = inferredDataType, shape = inferredShape, nativeHandle = nativeHandle)
@@ -138,36 +138,36 @@ object Tensor {
   }
 
   def create(shape: Shape, data: FloatBuffer): Tensor = {
-    val tensor: Tensor = allocateForBuffer(DataType.float32, shape, data.remaining())
+    val tensor: Tensor = allocateForBuffer(DataType.Float32, shape, data.remaining())
     tensor.buffer.asFloatBuffer().put(data)
     tensor
   }
 
   def create(shape: Shape, data: DoubleBuffer): Tensor = {
-    val tensor: Tensor = allocateForBuffer(DataType.float64, shape, data.remaining())
+    val tensor: Tensor = allocateForBuffer(DataType.Float64, shape, data.remaining())
     tensor.buffer.asDoubleBuffer().put(data)
     tensor
   }
 
   def create(shape: Shape, data: IntBuffer): Tensor = {
-    val tensor: Tensor = allocateForBuffer(DataType.int32, shape, data.remaining())
+    val tensor: Tensor = allocateForBuffer(DataType.Int32, shape, data.remaining())
     tensor.buffer.asIntBuffer().put(data)
     tensor
   }
 
   def create(shape: Shape, data: LongBuffer): Tensor = {
-    val tensor: Tensor = allocateForBuffer(DataType.int64, shape, data.remaining())
+    val tensor: Tensor = allocateForBuffer(DataType.Int64, shape, data.remaining())
     tensor.buffer.asLongBuffer().put(data)
     tensor
   }
 
   def create(dataType: DataType, shape: Shape, data: ByteBuffer): Tensor = {
     val numRemaining: Int = {
-      if (dataType != DataType.string) {
-        if (data.remaining() % dataType.byteSize.get != 0)
+      if (dataType != DataType.String) {
+        if (data.remaining() % dataType.byteSize != 0)
           throw new IllegalArgumentException(s"A byte buffer with ${data.remaining()} bytes is not compatible with a " +
                                                  s"${dataType.toString} Tensor (${dataType.byteSize} bytes/element).")
-        data.remaining() / dataType.byteSize.get
+        data.remaining() / dataType.byteSize
       } else {
         data.remaining()
       }
@@ -188,10 +188,10 @@ object Tensor {
   private def allocateForBuffer(dataType: DataType, shape: Shape, numBuffered: Int): Tensor = {
     val size: Long = shape.numElements.get
     val numBytes: Long = {
-      if (dataType != DataType.string) {
+      if (dataType != DataType.String) {
         if (numBuffered != size)
           throw incompatibleBufferException(numBuffered, shape)
-        size * dataType.byteSize.get
+        size * dataType.byteSize
       } else {
         // DataType.String tensor encoded in a ByteBuffer.
         numBuffered

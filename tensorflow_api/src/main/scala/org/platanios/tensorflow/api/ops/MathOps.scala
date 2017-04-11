@@ -333,7 +333,7 @@ object MathOps {
   def segmentSum(data: Op.Output, segmentIndices: Op.Output, name: String = "SegmentSum"): Op.Output = {
     if (!data.dataType.isNumeric)
       throw InvalidDataTypeException(s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
-    if (segmentIndices.dataType != DataType.int32 && segmentIndices.dataType != DataType.int64)
+    if (segmentIndices.dataType != DataType.Int32 && segmentIndices.dataType != DataType.Int64)
       throw InvalidDataTypeException(
         s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'int32' or 'int64', as required.")
     Op.Builder(opType = "SegmentSum", name = name)
@@ -362,7 +362,7 @@ object MathOps {
   def segmentMean(data: Op.Output, segmentIndices: Op.Output, name: String = "SegmentMean"): Op.Output = {
     if (!data.dataType.isNumeric)
       throw InvalidDataTypeException(s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
-    if (segmentIndices.dataType != DataType.int32 && segmentIndices.dataType != DataType.int64)
+    if (segmentIndices.dataType != DataType.Int32 && segmentIndices.dataType != DataType.Int64)
       throw InvalidDataTypeException(
         s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'int32' or 'int64', as required.")
     Op.Builder(opType = "SegmentMean", name = name)
@@ -390,7 +390,7 @@ object MathOps {
   def segmentProd(data: Op.Output, segmentIndices: Op.Output, name: String = "SegmentProd"): Op.Output = {
     if (!data.dataType.isNumeric)
       throw InvalidDataTypeException(s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
-    if (segmentIndices.dataType != DataType.int32 && segmentIndices.dataType != DataType.int64)
+    if (segmentIndices.dataType != DataType.Int32 && segmentIndices.dataType != DataType.Int64)
       throw InvalidDataTypeException(
         s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'int32' or 'int64', as required.")
     Op.Builder(opType = "SegmentProd", name = name)
@@ -418,7 +418,7 @@ object MathOps {
   def segmentMin(data: Op.Output, segmentIndices: Op.Output, name: String = "SegmentMin"): Op.Output = {
     if (!data.dataType.isNumeric)
       throw InvalidDataTypeException(s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
-    if (segmentIndices.dataType != DataType.int32 && segmentIndices.dataType != DataType.int64)
+    if (segmentIndices.dataType != DataType.Int32 && segmentIndices.dataType != DataType.Int64)
       throw InvalidDataTypeException(
         s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'int32' or 'int64', as required.")
     Op.Builder(opType = "SegmentMin", name = name)
@@ -446,7 +446,7 @@ object MathOps {
   def segmentMax(data: Op.Output, segmentIndices: Op.Output, name: String = "SegmentMax"): Op.Output = {
     if (!data.dataType.isNumeric)
       throw InvalidDataTypeException(s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
-    if (segmentIndices.dataType != DataType.int32 && segmentIndices.dataType != DataType.int64)
+    if (segmentIndices.dataType != DataType.Int32 && segmentIndices.dataType != DataType.Int64)
       throw InvalidDataTypeException(
         s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'int32' or 'int64', as required.")
     Op.Builder(opType = "SegmentMax", name = name)
@@ -479,10 +479,10 @@ object MathOps {
       name: String = "UnsortedSegmentSum"): Op.Output = {
     if (!data.dataType.isNumeric)
       throw InvalidDataTypeException(s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
-    if (segmentIndices.dataType != DataType.int32 && segmentIndices.dataType != DataType.int64)
+    if (segmentIndices.dataType != DataType.Int32 && segmentIndices.dataType != DataType.Int64)
       throw InvalidDataTypeException(
         s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'int32' or 'int64', as required.")
-    if (segmentsNumber.dataType != DataType.int32)
+    if (segmentsNumber.dataType != DataType.Int32)
       throw InvalidDataTypeException(
         s"'segmentIndices' data type, '${segmentsNumber.dataType}', is not 'int32', as required.")
     Op.Builder(opType = "UnsortedSegmentSum", name = name)
@@ -516,10 +516,10 @@ object MathOps {
       name: String = "UnsortedSegmentMax"): Op.Output = {
     if (!data.dataType.isNumeric)
       throw InvalidDataTypeException(s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
-    if (segmentIndices.dataType != DataType.int32 && segmentIndices.dataType != DataType.int64)
+    if (segmentIndices.dataType != DataType.Int32 && segmentIndices.dataType != DataType.Int64)
       throw InvalidDataTypeException(
         s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'int32' or 'int64', as required.")
-    if (segmentsNumber.dataType != DataType.int32)
+    if (segmentsNumber.dataType != DataType.Int32)
       throw InvalidDataTypeException(
         s"'segmentIndices' data type, '${segmentsNumber.dataType}', is not 'int32', as required.")
     Op.Builder(opType = "UnsortedSegmentMax", name = name)

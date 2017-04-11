@@ -13,7 +13,7 @@ class SessionSpec extends FlatSpec with Matchers {
     val graph = Graph()
     createWith(graph = graph) {
       val a = constant(Array[Array[Int]](Array[Int](2), Array[Int](3)))
-      val x = placeholder(dataType = DataType.int32, name = "X")
+      val x = placeholder(dataType = DataType.Int32, name = "X")
       subtract(constant(1), matMul(a = a, b = x, transposeA = true), name = "Y")
     }
     val session = Session(graph = graph)

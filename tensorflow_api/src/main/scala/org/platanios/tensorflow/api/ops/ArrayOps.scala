@@ -448,9 +448,9 @@ object ArrayOps {
     * @return Created op.
     */
   def slice(input: Op.Output, begin: Op.Output, size: Op.Output, name: String = "Slice"): Op.Output = {
-    if (begin.dataType != DataType.int32 && begin.dataType != DataType.int64)
+    if (begin.dataType != DataType.Int32 && begin.dataType != DataType.Int64)
       throw InvalidDataTypeException(s"'begin' data type, '${begin.dataType}', is not 'int32' or 'int64', as required.")
-    if (size.dataType != DataType.int32 && size.dataType != DataType.int64)
+    if (size.dataType != DataType.Int32 && size.dataType != DataType.Int64)
       throw InvalidDataTypeException(s"'size' data type, '${size.dataType}', is not 'int32' or 'int64', as required.")
     Op.Builder(opType = "Slice", name = name)
         .addInput(input)
