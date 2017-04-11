@@ -751,7 +751,8 @@ object Op {
     val graph: Graph = getGraphFromInputs(Array(values, indices, denseShape))
 
     /** Name of this op output indexed slices. */
-    lazy val name: String = s"$values[$indices]" + (if (denseShape != null) s"(shape = $denseShape)" else "")
+    lazy val name: String = s"${values.name}[${indices.name}]" +
+        (if (denseShape != null) s"(shape = ${denseShape.name})" else "")
 
     /** Data type of this op output indexed slices. */
     lazy val dataType: DataType = values.dataType
@@ -772,6 +773,11 @@ object Op {
           s"Op output conversion requested the conversion of 'Op.OutputIndexedSlices', '$this', which has no dense " +
               s"shape information available.")
       ???
+    }
+
+    override def toString: String = {
+      s"Op.OutputIndexedSlices(values = ${values.name}, indices = ${indices.name}, denseShape = ${denseShape.name}, " +
+          s"device = $device)}"
     }
   }
 
