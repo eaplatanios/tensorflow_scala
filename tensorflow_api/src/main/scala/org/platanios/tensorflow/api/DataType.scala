@@ -2,6 +2,8 @@ package org.platanios.tensorflow.api
 
 import org.platanios.tensorflow.jni.{TensorFlow => NativeLibrary}
 
+import java.nio.ByteBuffer
+
 /** Represents the data type of the elements in a tensor.
   *
   * @author Emmanouil Antonios Platanios
@@ -50,6 +52,21 @@ sealed trait DataType {
   /** Returns `true` if this data type represents a boolean data type. */
   def isBoolean: Boolean = base == DataType.Boolean
 
+  /** Returns `true` if the `other` data type can be converted to this data type.
+    *
+    * The conversion rules are as follows:
+    * {{{
+    *   DataType(cValue = T)      .isCompatibleWith(DataType(cValue = T))       == true
+    *   DataType(cValue = T)      .isCompatibleWith(DataType(cValue = T).asRef) == true
+    *   DataType(cValue = T).asRef.isCompatibleWith(DataType(cValue = T))       == false
+    *   DataType(cValue = T).asRef.isCompatibleWith(DataType(cValue = T).asRef) == true
+    * }}}
+    *
+    * @param  other Data type to check compatibility with.
+    * @return Result of the compatibility check.
+    */
+  def isCompatibleWith(other: DataType): Boolean = cValue == other.cValue || cValue == other.base.cValue
+
   /** Returns `true` if this data type represents a reference data type. */
   def isRef: Boolean = cValue > 100
 
@@ -68,20 +85,7 @@ sealed trait DataType {
     case _ => this
   }
 
-  /** Returns `true` if the `other` data type can be converted to this data type.
-    *
-    * The conversion rules are as follows:
-    * {{{
-    *   DataType(cValue = T)      .isCompatibleWith(DataType(cValue = T))       == true
-    *   DataType(cValue = T)      .isCompatibleWith(DataType(cValue = T).asRef) == true
-    *   DataType(cValue = T).asRef.isCompatibleWith(DataType(cValue = T))       == false
-    *   DataType(cValue = T).asRef.isCompatibleWith(DataType(cValue = T).asRef) == true
-    * }}}
-    *
-    * @param  other Data type to check compatibility with.
-    * @return Result of the compatibility check.
-    */
-  def isCompatibleWith(other: DataType): Boolean = cValue == other.cValue || cValue == other.base.cValue
+  def getElementFromByteBuffer(byteBuffer: ByteBuffer, index: Int): Any
 
   override def toString: String = name
 }
@@ -92,240 +96,384 @@ object DataType {
     override val name: String = "Float16"
     override val cValue: Int = 19
     override val byteSize: Int = 2
+
+    override def getElementFromByteBuffer(byteBuffer: ByteBuffer, index: Int): Float = {
+      byteBuffer.getShort(index).asInstanceOf[Float]
+    }
   }
 
   object Float32 extends DataType {
     override val name: String = "Float32"
     override val cValue: Int = 1
     override val byteSize: Int = 4
+
+    override def getElementFromByteBuffer(byteBuffer: ByteBuffer, index: Int): Float = {
+      byteBuffer.getFloat(index)
+    }
   }
 
   object Float64 extends DataType {
     override val name: String = "Float64"
     override val cValue: Int = 2
     override val byteSize: Int = 8
+
+    override def getElementFromByteBuffer(byteBuffer: ByteBuffer, index: Int): Double = {
+      byteBuffer.getDouble(index)
+    }
   }
 
   object BFloat16 extends DataType {
     override val name: String = "BFloat16"
     override val cValue: Int = 14
     override val byteSize: Int = 2
+
+    override def getElementFromByteBuffer(byteBuffer: ByteBuffer, index: Int): Float = {
+      byteBuffer.getShort(index).asInstanceOf[Float]
+    }
   }
 
   object Complex64 extends DataType {
     override val name: String = "Complex64"
     override val cValue: Int = 8
     override val byteSize: Int = 8
+
+    override def getElementFromByteBuffer(byteBuffer: ByteBuffer, index: Int): Any = ???
   }
 
   object Complex128 extends DataType {
     override val name: String = "Complex128"
     override val cValue: Int = 18
     override val byteSize: Int = 16
+
+    override def getElementFromByteBuffer(byteBuffer: ByteBuffer, index: Int): Any = ???
   }
 
   object Int8 extends DataType {
     override val name: String = "Int8"
     override val cValue: Int = 6
     override val byteSize: Int = 1
+
+    override def getElementFromByteBuffer(byteBuffer: ByteBuffer, index: Int): Byte = {
+      byteBuffer.get(index)
+    }
   }
 
   object Int16 extends DataType {
     override val name: String = "Int16"
     override val cValue: Int = 5
     override val byteSize: Int = 2
+
+    override def getElementFromByteBuffer(byteBuffer: ByteBuffer, index: Int): Short = {
+      byteBuffer.getShort(index)
+    }
   }
 
   object Int32 extends DataType {
     override val name: String = "Int32"
     override val cValue: Int = 3
     override val byteSize: Int = 4
+
+    override def getElementFromByteBuffer(byteBuffer: ByteBuffer, index: Int): Int = {
+      byteBuffer.getInt(index)
+    }
   }
 
   object Int64 extends DataType {
     override val name: String = "Int64"
     override val cValue: Int = 9
     override val byteSize: Int = 8
+
+    override def getElementFromByteBuffer(byteBuffer: ByteBuffer, index: Int): Long = {
+      byteBuffer.getLong(index)
+    }
   }
 
   object UInt8 extends DataType {
     override val name: String = "UInt8"
     override val cValue: Int = 4
     override val byteSize: Int = 1
+
+    override def getElementFromByteBuffer(byteBuffer: ByteBuffer, index: Int): Short = {
+      byteBuffer.getShort(index)
+    }
   }
 
   object UInt16 extends DataType {
     override val name: String = "UInt16"
     override val cValue: Int = 17
     override val byteSize: Int = 2
+
+    override def getElementFromByteBuffer(byteBuffer: ByteBuffer, index: Int): Int = {
+      byteBuffer.getInt(index)
+    }
   }
 
   object QInt8 extends DataType {
     override val name: String = "QInt8"
     override val cValue: Int = 11
     override val byteSize: Int = 1
+
+    override def getElementFromByteBuffer(byteBuffer: ByteBuffer, index: Int): Byte = {
+      byteBuffer.get(index)
+    }
   }
 
   object QInt16 extends DataType {
     override val name: String = "QInt16"
     override val cValue: Int = 15
     override val byteSize: Int = 2
+
+    override def getElementFromByteBuffer(byteBuffer: ByteBuffer, index: Int): Short = {
+      byteBuffer.getShort(index)
+    }
   }
 
   object QInt32 extends DataType {
     override val name: String = "QInt32"
     override val cValue: Int = 13
     override val byteSize: Int = 4
+
+    override def getElementFromByteBuffer(byteBuffer: ByteBuffer, index: Int): Int = {
+      byteBuffer.getInt(index)
+    }
   }
 
   object QUInt8 extends DataType {
     override val name: String = "QUInt8"
     override val cValue: Int = 12
     override val byteSize: Int = 1
+
+    override def getElementFromByteBuffer(byteBuffer: ByteBuffer, index: Int): Short = {
+      byteBuffer.getShort(index)
+    }
   }
 
   object QUInt16 extends DataType {
     override val name: String = "QUInt16"
     override val cValue: Int = 16
     override val byteSize: Int = 2
+
+    override def getElementFromByteBuffer(byteBuffer: ByteBuffer, index: Int): Int = {
+      byteBuffer.getInt(index)
+    }
   }
 
   object Boolean extends DataType {
     override val name: String = "Boolean"
     override val cValue: Int = 10
     override val byteSize: Int = 1
+
+    override def getElementFromByteBuffer(byteBuffer: ByteBuffer, index: Int): Boolean = {
+      byteBuffer.get(index).asInstanceOf[Boolean]
+    }
   }
 
   object String extends DataType {
     override val name: String = "String"
     override val cValue: Int = 7
     override val byteSize: Int = -1
+
+    override def getElementFromByteBuffer(byteBuffer: ByteBuffer, index: Int): Any = ???
   }
 
   object Resource extends DataType {
     override val name: String = "Resource"
     override val cValue: Int = 20
     override val byteSize: Int = 1
+
+    override def getElementFromByteBuffer(byteBuffer: ByteBuffer, index: Int): Any = ???
   }
 
   object Float16Ref extends DataType {
     override val name: String = "Float16Ref"
     override val cValue: Int = 119
     override val byteSize: Int = 2
+
+    override def getElementFromByteBuffer(byteBuffer: ByteBuffer, index: Int): Float = {
+      byteBuffer.getShort(index).asInstanceOf[Float]
+    }
   }
 
   object Float32Ref extends DataType {
     override val name: String = "Float32Ref"
     override val cValue: Int = 101
     override val byteSize: Int = 4
+
+    override def getElementFromByteBuffer(byteBuffer: ByteBuffer, index: Int): Float = {
+      byteBuffer.getFloat(index)
+    }
   }
 
   object Float64Ref extends DataType {
     override val name: String = "Float64Ref"
     override val cValue: Int = 102
     override val byteSize: Int = 8
+
+    override def getElementFromByteBuffer(byteBuffer: ByteBuffer, index: Int): Double = {
+      byteBuffer.getDouble(index)
+    }
   }
 
   object BFloat16Ref extends DataType {
     override val name: String = "BFloat16Ref"
     override val cValue: Int = 114
     override val byteSize: Int = 2
+
+    override def getElementFromByteBuffer(byteBuffer: ByteBuffer, index: Int): Float = {
+      byteBuffer.getShort(index).asInstanceOf[Float]
+    }
   }
 
   object Complex64Ref extends DataType {
     override val name: String = "Complex64Ref"
     override val cValue: Int = 108
     override val byteSize: Int = 8
+
+    override def getElementFromByteBuffer(byteBuffer: ByteBuffer, index: Int): Any = ???
   }
 
   object Complex128Ref extends DataType {
     override val name: String = "Complex128Ref"
     override val cValue: Int = 118
     override val byteSize: Int = 16
+
+    override def getElementFromByteBuffer(byteBuffer: ByteBuffer, index: Int): Any = ???
   }
 
   object Int8Ref extends DataType {
     override val name: String = "Int8Ref"
     override val cValue: Int = 106
     override val byteSize: Int = 1
+
+    override def getElementFromByteBuffer(byteBuffer: ByteBuffer, index: Int): Byte = {
+      byteBuffer.get(index)
+    }
   }
 
   object Int16Ref extends DataType {
     override val name: String = "Int16Ref"
     override val cValue: Int = 105
     override val byteSize: Int = 2
+
+    override def getElementFromByteBuffer(byteBuffer: ByteBuffer, index: Int): Short = {
+      byteBuffer.getShort(index)
+    }
   }
 
   object Int32Ref extends DataType {
     override val name: String = "Int32Ref"
     override val cValue: Int = 103
     override val byteSize: Int = 4
+
+    override def getElementFromByteBuffer(byteBuffer: ByteBuffer, index: Int): Int = {
+      byteBuffer.getInt(index)
+    }
   }
 
   object Int64Ref extends DataType {
     override val name: String = "Int64Ref"
     override val cValue: Int = 109
     override val byteSize: Int = 8
+
+    override def getElementFromByteBuffer(byteBuffer: ByteBuffer, index: Int): Long = {
+      byteBuffer.getLong(index)
+    }
   }
 
   object UInt8Ref extends DataType {
     override val name: String = "UInt8Ref"
     override val cValue: Int = 104
     override val byteSize: Int = 1
+
+    override def getElementFromByteBuffer(byteBuffer: ByteBuffer, index: Int): Short = {
+      byteBuffer.getShort(index)
+    }
   }
 
   object UInt16Ref extends DataType {
     override val name: String = "UInt16Ref"
     override val cValue: Int = 117
     override val byteSize: Int = 2
+
+    override def getElementFromByteBuffer(byteBuffer: ByteBuffer, index: Int): Int = {
+      byteBuffer.getInt(index)
+    }
   }
 
   object QInt8Ref extends DataType {
     override val name: String = "QInt8Ref"
     override val cValue: Int = 111
     override val byteSize: Int = 1
+
+    override def getElementFromByteBuffer(byteBuffer: ByteBuffer, index: Int): Byte = {
+      byteBuffer.get(index)
+    }
   }
 
   object QInt16Ref extends DataType {
     override val name: String = "QInt16Ref"
     override val cValue: Int = 115
     override val byteSize: Int = 2
+
+    override def getElementFromByteBuffer(byteBuffer: ByteBuffer, index: Int): Short = {
+      byteBuffer.getShort(index)
+    }
   }
 
   object QInt32Ref extends DataType {
     override val name: String = "QInt32Ref"
     override val cValue: Int = 113
     override val byteSize: Int = 4
+
+    override def getElementFromByteBuffer(byteBuffer: ByteBuffer, index: Int): Int = {
+      byteBuffer.getInt(index)
+    }
   }
 
   object QUInt8Ref extends DataType {
     override val name: String = "QUInt8Ref"
     override val cValue: Int = 112
     override val byteSize: Int = 1
+
+    override def getElementFromByteBuffer(byteBuffer: ByteBuffer, index: Int): Short = {
+      byteBuffer.getShort(index)
+    }
   }
 
   object QUInt16Ref extends DataType {
     override val name: String = "QUInt16Ref"
     override val cValue: Int = 116
     override val byteSize: Int = 2
+
+    override def getElementFromByteBuffer(byteBuffer: ByteBuffer, index: Int): Int = {
+      byteBuffer.getInt(index)
+    }
   }
 
   object BooleanRef extends DataType {
     override val name: String = "BooleanRef"
     override val cValue: Int = 110
     override val byteSize: Int = 1
+
+    override def getElementFromByteBuffer(byteBuffer: ByteBuffer, index: Int): Boolean = {
+      byteBuffer.get(index).asInstanceOf[Boolean]
+    }
   }
 
   object StringRef extends DataType {
     override val name: String = "StringRef"
     override val cValue: Int = 107
     override val byteSize: Int = -1
+
+    override def getElementFromByteBuffer(byteBuffer: ByteBuffer, index: Int): Any = ???
   }
 
   object ResourceRef extends DataType {
     override val name: String = "ResourceRef"
     override val cValue: Int = 120
     override val byteSize: Int = 1
+
+    override def getElementFromByteBuffer(byteBuffer: ByteBuffer, index: Int): Any = ???
   }
 
   /** Set of all floating-point data types. */

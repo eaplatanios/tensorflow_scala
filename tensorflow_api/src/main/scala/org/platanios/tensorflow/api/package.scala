@@ -7,6 +7,8 @@ import scala.util.matching.Regex
   * @author Emmanouil Antonios Platanios
   */
 package object api {
+  private[api] val DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER = Tensor.RowMajorOrder
+
   type Op = ops.Op
   val Op = ops.Op
 
@@ -56,5 +58,6 @@ package object api {
 
   //endregion Indexer Implicits
 
+  // TODO: Need to be able to reset and close this session.
   private[api] val defaultSession: Session = Session(defaultGraph)
 }

@@ -434,6 +434,17 @@ class DataTypeSpec extends FlatSpec with Matchers {
     assert(DataType.ResourceRef.isUnsigned === false)
   }
 
+  "'DataType.isCompatibleWith'" must "always work correctly" in {
+    assert(DataType.Float16.isCompatibleWith(DataType.Float16))
+    assert(DataType.Float16.isCompatibleWith(DataType.Float16Ref))
+    assert(!DataType.Float16Ref.isCompatibleWith(DataType.Float16))
+    assert(DataType.Float16Ref.isCompatibleWith(DataType.Float16Ref))
+    assert(!DataType.Float16.isCompatibleWith(DataType.Float32))
+    assert(!DataType.Float16.isCompatibleWith(DataType.Float32Ref))
+    assert(!DataType.Float16Ref.isCompatibleWith(DataType.Float32))
+    assert(!DataType.Float16Ref.isCompatibleWith(DataType.Float32Ref))
+  }
+
   "'DataType.isRef'" must "always work correctly" in {
     assert(DataType.Float16.isRef === false)
     assert(DataType.Float32.isRef === false)
@@ -606,14 +617,5 @@ class DataTypeSpec extends FlatSpec with Matchers {
     assert(DataType.ResourceRef.real === DataType.ResourceRef)
   }
 
-  "'DataType.isCompatibleWith'" must "always work correctly" in {
-    assert(DataType.Float16.isCompatibleWith(DataType.Float16))
-    assert(DataType.Float16.isCompatibleWith(DataType.Float16Ref))
-    assert(!DataType.Float16Ref.isCompatibleWith(DataType.Float16))
-    assert(DataType.Float16Ref.isCompatibleWith(DataType.Float16Ref))
-    assert(!DataType.Float16.isCompatibleWith(DataType.Float32))
-    assert(!DataType.Float16.isCompatibleWith(DataType.Float32Ref))
-    assert(!DataType.Float16Ref.isCompatibleWith(DataType.Float32))
-    assert(!DataType.Float16Ref.isCompatibleWith(DataType.Float32Ref))
-  }
+  // TODO: Add tests for 'DataType.getElementFromByteBuffer'.
 }

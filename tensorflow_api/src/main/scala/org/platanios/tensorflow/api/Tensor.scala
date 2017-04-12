@@ -9,13 +9,23 @@ import org.platanios.tensorflow.api.Exception.InvalidShapeException
 /**
   * @author Emmanouil Antonios Platanios
   */
-final case class Tensor(dataType: DataType, shape: Shape, private[api] var nativeHandle: Long)
-    extends Closeable {
+final case class Tensor(
+    dataType: DataType, shape: Shape, order: Tensor.Order = DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER,
+    private[api] var nativeHandle: Long) extends Closeable {
   def rank: Int = shape.rank
   def numElements: Long = shape.numElements.get
   def numBytes: Int = buffer.remaining()
 
-  private[api] def buffer: ByteBuffer = NativeTensor.buffer(nativeHandle).order(ByteOrder.nativeOrder())
+  private[api] lazy val buffer: ByteBuffer = NativeTensor.buffer(nativeHandle).order(ByteOrder.nativeOrder())
+
+  def apply(indexers: Indexer*): Any = {
+    if (dataType.byteSize == -1)
+      throw new IllegalStateException("Cannot index a tensor whose elements have unknown byte size.")
+    // TODO: Add checks for whether the indexers provided are within bounds.
+    dataType.getElementFromByteBuffer(byteBuffer = buffer, index = order.index(shape, indexers: _*) * dataType.byteSize)
+  }
+
+  // TODO: Use this for creating slices: Buffer.slice().position(sliceStart).limit(sliceSize).
 
   def scalarValue: Any = dataType match {
     case DataType.Float32 => NativeTensor.scalarFloat(nativeHandle)
@@ -91,6 +101,58 @@ final case class Tensor(dataType: DataType, shape: Shape, private[api] var nativ
 }
 
 object Tensor {
+  sealed trait Order {
+    def index(shape: Shape, indexers: Indexer*): Int
+  }
+
+  object RowMajorOrder extends Order {
+    override def index(shape: Shape, indexers: Indexer*): Int = {
+      if (!indexers.forall(_.isInstanceOf[Index]))
+        throw new IllegalArgumentException("Only integer indexers are supported for tensors.")
+      if (indexers.length != shape.rank)
+        throw new IllegalArgumentException("Only integer indexers over all dimensions of the tensor are supported.")
+      val indices: Array[Int] = indexers.map(_.asInstanceOf[Index].index).toArray
+      val shapeArray: Array[Int] = shape.asArray.map(_.asInstanceOf[Int]) // TODO: Make shapes integer based.
+      var index: Int = 0
+      var dimension: Int = 0
+      while (dimension < shape.rank) {
+        var sizesProduct: Int = 1
+        var k: Int = dimension + 1
+        while (k < shape.rank) {
+          sizesProduct *= shapeArray(k)
+          k += 1
+        }
+        index += sizesProduct * indices(dimension)
+        dimension += 1
+      }
+      index
+    }
+  }
+
+  object ColumnMajorOrder extends Order {
+    override def index(shape: Shape, indexers: Indexer*): Int = {
+      if (!indexers.forall(_.isInstanceOf[Index]))
+        throw new IllegalArgumentException("Only integer indexers are supported for tensors.")
+      if (indexers.length != shape.rank)
+        throw new IllegalArgumentException("Only integer indexers over all dimensions of the tensor are supported.")
+      val indices: Array[Int] = indexers.map(_.asInstanceOf[Index].index).toArray
+      val shapeArray: Array[Int] = shape.asArray.map(_.asInstanceOf[Int]) // TODO: Make shapes integer based.
+      var index: Int = 0
+      var dimension: Int = 0
+      while (dimension < shape.rank) {
+        var sizesProduct: Int = 1
+        var k: Int = 0
+        while (k < dimension) {
+          sizesProduct *= shapeArray(k)
+          k += 1
+        }
+        index += sizesProduct * indices(dimension)
+        dimension += 1
+      }
+      index
+    }
+  }
+
   /** Creates a [[Tensor]].
     *
     * The resulting tensor is populated with values of type `dataType`, as specified by the arguments `value` and

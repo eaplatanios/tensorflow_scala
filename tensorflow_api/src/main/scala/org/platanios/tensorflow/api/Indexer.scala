@@ -143,7 +143,7 @@ object Ellipsis extends Indexer
   * in the documentation of [[Indexer]]. */
 object NewAxis extends Indexer
 
-case class Index private[api] (index: Int) extends Indexer
+case class Index private[api] (index: Int) extends Indexer // TODO: Add an 'assertWithinBounds' method.
 
 // TODO: Assertions and index computations may be doable in a more efficient manner, in this class.
 // TODO: Maybe use options for the one number case (for the 'end' argument). This would ensure more type safety.
