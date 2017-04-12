@@ -76,7 +76,7 @@ final case class Session private (graph: Graph, private var nativeHandle: Long) 
               return
           }
         }
-        NativeGraph.delete(nativeHandle)
+        NativeSession.delete(nativeHandle)
         nativeHandle = 0
       }
     }

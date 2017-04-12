@@ -1,7 +1,7 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.Exception.IllegalNameException
-import org.platanios.tensorflow.api.{Graph, Tensor}
+import org.platanios.tensorflow.api.{Graph, Session}
 import org.platanios.tensorflow.api.ops.ArrayOps.constant
 import org.platanios.tensorflow.api.ops.MathOps.matMul
 import org.platanios.tensorflow.api.ops.Op._
@@ -197,11 +197,13 @@ class OpSpec extends FlatSpec with Matchers {
       else
         "/CPU:0"
     }
-    createWith(device = matMulOnGPU) {
-      val c = constant(1.0)
-      assert(c.device === "/device:CPU:0")
-      val m = matMul(c, constant(2.0))
-      assert(m.device === "/device:GPU:0")
+    createWith(graph = Graph()) {
+      createWith(device = matMulOnGPU) {
+        val c = constant(1.0)
+        assert(c.device === "/device:CPU:0")
+        val m = matMul(c, constant(2.0))
+        assert(m.device === "/device:GPU:0")
+      }
     }
   }
 
@@ -210,18 +212,20 @@ class OpSpec extends FlatSpec with Matchers {
   //region createWith(colocationOps = ...) Specification
 
   it must "be able to colocate ops" in {
-    val a = createWith(device = "/CPU:0")(constant(1.0))
-    val b = createWith(device = "/GPU:0")(constant(1.0))
-    assert(a.colocationOps === Set.empty[Op])
-    assert(b.colocationOps === Set.empty[Op])
-    val c = createWith(colocationOps = Set(a))(constant(1.0))
-    assert(c.colocationOps === Set[Op](a))
-    createWith(colocationOps = Set[Op](b)) {
-      val d = constant(1.0)
-      assert(d.colocationOps === Set[Op](b))
-      createWith(colocationOps = Set[Op](a, d)) {
-        val e = constant(1.0)
-        assert(e.colocationOps === Set[Op](a, b, d))
+    createWith(graph = Graph()) {
+      val a = createWith(device = "/CPU:0")(constant(1.0))
+      val b = createWith(device = "/GPU:0")(constant(1.0))
+      assert(a.colocationOps === Set.empty[Op])
+      assert(b.colocationOps === Set.empty[Op])
+      val c = createWith(colocationOps = Set(a))(constant(1.0))
+      assert(c.colocationOps === Set[Op](a))
+      createWith(colocationOps = Set[Op](b)) {
+        val d = constant(1.0)
+        assert(d.colocationOps === Set[Op](b))
+        createWith(colocationOps = Set[Op](a, d)) {
+          val e = constant(1.0)
+          assert(e.colocationOps === Set[Op](a, b, d))
+        }
       }
     }
   }
@@ -395,39 +399,42 @@ class OpSpec extends FlatSpec with Matchers {
   }
 
   "'Op.OutputIndexedSlices'" must "be convertible to 'Op.Output'" in {
-    val values = ArrayOps.constant(Array(Array(2, 3), Array(5, 7)))
-    val indices = ArrayOps.constant(Array(0, 2))
-    val denseShape = ArrayOps.constant(Array(3, 2))
-    val indexedSlices = Op.OutputIndexedSlices(values, indices, denseShape)
-    // TODO: Simplify this after we standardize our tensor interface.
-    val resultTensor = indexedSlices.toOpOutput().value()
-    val resultArray = Array.ofDim[Int](resultTensor.shape(0).asInstanceOf[Int], resultTensor.shape(1).asInstanceOf[Int])
-    resultTensor.copyTo(resultArray)
-    assert(resultArray === Array(Array(2, 3), Array(0, 0), Array(5, 7)))
-
-//    def testToTensor(self):
-//    with self.test_session():
-//        values = constant_op.constant([2, 3, 5, 7], shape=[2, 2])
-//    indices = constant_op.constant([0, 2])
-//    dense_shape = constant_op.constant([3, 2])
-//    x = ops.IndexedSlices(values, indices, dense_shape)
-//    tensor = ops.convert_to_tensor(x, name="tensor")
-//    self.assertAllEqual(tensor.eval(), [[2, 3], [0, 0], [5, 7]])
-//
-//    def testNegation(self):
-//    with self.test_session():
-//        values = constant_op.constant([2, 3, 5, 7], shape=[2, 2])
-//    indices = constant_op.constant([0, 2])
-//    x = -ops.IndexedSlices(values, indices)
-//    self.assertAllEqual(x.values.eval(), [[-2, -3], [-5, -7]])
-//    self.assertAllEqual(x.indices.eval(), [0, 2])
-//
-//    def testScalarMul(self):
-//    with self.test_session():
-//        values = constant_op.constant([2, 3, 5, 7], shape=[2, 2])
-//    indices = constant_op.constant([0, 2])
-//    x = math_ops.scalar_mul(-2, ops.IndexedSlices(values, indices))
-//    self.assertAllEqual(x.values.eval(), [[-4, -6], [-10, -14]])
-//    self.assertAllEqual(x.indices.eval(), [0, 2])
+    createWith(graph = Graph()) {
+      val values = ArrayOps.constant(Array(Array(2, 3), Array(5, 7)))
+      val indices = ArrayOps.constant(Array(0, 2))
+      val denseShape = ArrayOps.constant(Array(3, 2))
+      val indexedSlices = Op.OutputIndexedSlices(values, indices, denseShape)
+      // TODO: Simplify this after we standardize our tensor interface.
+      val resultTensor = indexedSlices.toOpOutput().value()
+      val resultArray = Array.ofDim[Int](resultTensor.shape(0).asInstanceOf[Int],
+                                         resultTensor.shape(1).asInstanceOf[Int])
+      resultTensor.copyTo(resultArray)
+      assert(resultArray === Array(Array(2, 3), Array(0, 0), Array(5, 7)))
+    }
   }
+
+  //    def testToTensor(self):
+  //    with self.test_session():
+  //        values = constant_op.constant([2, 3, 5, 7], shape=[2, 2])
+  //    indices = constant_op.constant([0, 2])
+  //    dense_shape = constant_op.constant([3, 2])
+  //    x = ops.IndexedSlices(values, indices, dense_shape)
+  //    tensor = ops.convert_to_tensor(x, name="tensor")
+  //    self.assertAllEqual(tensor.eval(), [[2, 3], [0, 0], [5, 7]])
+  //
+  //    def testNegation(self):
+  //    with self.test_session():
+  //        values = constant_op.constant([2, 3, 5, 7], shape=[2, 2])
+  //    indices = constant_op.constant([0, 2])
+  //    x = -ops.IndexedSlices(values, indices)
+  //    self.assertAllEqual(x.values.eval(), [[-2, -3], [-5, -7]])
+  //    self.assertAllEqual(x.indices.eval(), [0, 2])
+  //
+  //    def testScalarMul(self):
+  //    with self.test_session():
+  //        values = constant_op.constant([2, 3, 5, 7], shape=[2, 2])
+  //    indices = constant_op.constant([0, 2])
+  //    x = math_ops.scalar_mul(-2, ops.IndexedSlices(values, indices))
+  //    self.assertAllEqual(x.values.eval(), [[-4, -6], [-10, -14]])
+  //    self.assertAllEqual(x.indices.eval(), [0, 2])
 }

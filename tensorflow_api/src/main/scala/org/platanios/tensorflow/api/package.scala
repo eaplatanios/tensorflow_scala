@@ -57,7 +57,4 @@ package object api {
     Indexer.indexerConstructionWithThreeNumbersToSlice(construction)
 
   //endregion Indexer Implicits
-
-  // TODO: Need to be able to reset and close this session.
-  private[api] val defaultSession: Session = Session(defaultGraph)
 }

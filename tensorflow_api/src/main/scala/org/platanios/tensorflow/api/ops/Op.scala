@@ -695,7 +695,7 @@ object Op {
       * @return Value of this op output, for this evaluation.
       */
     def value(feeds: Map[Op.Output, Tensor] = Map.empty, session: Session = null): Tensor = {
-      val effectiveSession = if (session == null) defaultSession else session
+      val effectiveSession = if (session == null) graph.defaultSession else session
       effectiveSession.run(feeds, Array(this))(0)
     }
 
@@ -849,39 +849,37 @@ object Op {
       op.controlInputs.foreach(pruneControlDependencies(controlDeps, _))
     }
 
-    def build(): Op = using(graph.reference) { _ =>
-      if (built)
-        throw OpBuilderUsedException("This op builder has already been used to built an op and cannot be re-used.")
-      device = Option(context.device(OpSpecification(name = name, opType = opType)))
-      graph.synchronized {
-        using(graph.reference) { r =>
-          val nativeHandle: Long = NativeOp.allocate(
-            r.nativeHandle, opType, uniqueName(graph = graph, name = opName))
-          inputs.foreach(input => NativeOp.addInput(nativeHandle, input.op.nativeHandle, input.index))
-          inputLists.foreach(inputList => NativeOp.addInputList(
-            nativeHandle, inputList.map(_.nativeHandle), inputList.map(_.index)))
-          val controlDependencies: mutable.Set[Op] = mutable.Set(context.controlDependencies.toSeq: _*)
-          inputs.foreach(input => pruneControlDependencies(controlDependencies, input.op))
-          inputLists.foreach(_.foreach(input => pruneControlDependencies(controlDependencies, input.op)))
-          controlDependencies.foreach(op => NativeOp.addControlInput(nativeHandle, op.nativeHandle))
-          device.foreach(NativeOp.setDevice(nativeHandle, _))
-          context.colocationOps.foreach(op => NativeOp.colocateWith(nativeHandle, op.nativeHandle))
-          byteArrayAttributes.foreach(a => NativeOp.setAttrString(nativeHandle, a._1, a._2))
-          longAttributes.foreach(a => NativeOp.setAttrInt(nativeHandle, a._1, a._2))
-          longArrayAttributes.foreach(a => NativeOp.setAttrIntList(nativeHandle, a._1, a._2))
-          floatAttributes.foreach(a => NativeOp.setAttrFloat(nativeHandle, a._1, a._2))
-          floatArrayAttributes.foreach(a => NativeOp.setAttrFloatList(nativeHandle, a._1, a._2))
-          booleanAttributes.foreach(a => NativeOp.setAttrBool(nativeHandle, a._1, a._2))
-          booleanArrayAttributes.foreach(a => NativeOp.setAttrBoolList(nativeHandle, a._1, a._2))
-          dataTypeAttributes.foreach(a => NativeOp.setAttrType(nativeHandle, a._1, a._2))
-          dataTypeArrayAttributes.foreach(a => NativeOp.setAttrTypeList(nativeHandle, a._1, a._2))
-          tensorAttributes.foreach(a => NativeOp.setAttrTensor(nativeHandle, a._1, a._2))
-          tensorArrayAttributes.foreach(a => NativeOp.setAttrTensorList(nativeHandle, a._1, a._2))
-          shapeAttributes.foreach(a => NativeOp.setAttrShape(nativeHandle, a._1, a._2.asArray, a._2.rank))
-          val operation = Op(graph, NativeOp.finish(nativeHandle))
-          built = true
-          operation
-        }
+    def build(): Op = graph.synchronized {
+      using(graph.reference) { r =>
+        if (built)
+          throw OpBuilderUsedException("This op builder has already been used to built an op and cannot be re-used.")
+        device = Option(context.device(OpSpecification(name = name, opType = opType)))
+        val nativeHandle: Long = NativeOp.allocate(
+          r.nativeHandle, opType, uniqueName(graph = graph, name = opName))
+        inputs.foreach(input => NativeOp.addInput(nativeHandle, input.op.nativeHandle, input.index))
+        inputLists.foreach(inputList => NativeOp.addInputList(
+          nativeHandle, inputList.map(_.nativeHandle), inputList.map(_.index)))
+        val controlDependencies: mutable.Set[Op] = mutable.Set(context.controlDependencies.toSeq: _*)
+        inputs.foreach(input => pruneControlDependencies(controlDependencies, input.op))
+        inputLists.foreach(_.foreach(input => pruneControlDependencies(controlDependencies, input.op)))
+        controlDependencies.foreach(op => NativeOp.addControlInput(nativeHandle, op.nativeHandle))
+        device.foreach(NativeOp.setDevice(nativeHandle, _))
+        context.colocationOps.foreach(op => NativeOp.colocateWith(nativeHandle, op.nativeHandle))
+        byteArrayAttributes.foreach(a => NativeOp.setAttrString(nativeHandle, a._1, a._2))
+        longAttributes.foreach(a => NativeOp.setAttrInt(nativeHandle, a._1, a._2))
+        longArrayAttributes.foreach(a => NativeOp.setAttrIntList(nativeHandle, a._1, a._2))
+        floatAttributes.foreach(a => NativeOp.setAttrFloat(nativeHandle, a._1, a._2))
+        floatArrayAttributes.foreach(a => NativeOp.setAttrFloatList(nativeHandle, a._1, a._2))
+        booleanAttributes.foreach(a => NativeOp.setAttrBool(nativeHandle, a._1, a._2))
+        booleanArrayAttributes.foreach(a => NativeOp.setAttrBoolList(nativeHandle, a._1, a._2))
+        dataTypeAttributes.foreach(a => NativeOp.setAttrType(nativeHandle, a._1, a._2))
+        dataTypeArrayAttributes.foreach(a => NativeOp.setAttrTypeList(nativeHandle, a._1, a._2))
+        tensorAttributes.foreach(a => NativeOp.setAttrTensor(nativeHandle, a._1, a._2))
+        tensorArrayAttributes.foreach(a => NativeOp.setAttrTensorList(nativeHandle, a._1, a._2))
+        shapeAttributes.foreach(a => NativeOp.setAttrShape(nativeHandle, a._1, a._2.asArray, a._2.rank))
+        val operation = Op(graph, NativeOp.finish(nativeHandle))
+        built = true
+        operation
       }
     }
 

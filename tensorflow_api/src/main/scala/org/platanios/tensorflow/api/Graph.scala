@@ -9,6 +9,9 @@ import scala.collection.mutable
   * @author Emmanouil Antonios Platanios
   */
 final case class Graph(private var nativeHandle: Long) extends Closeable {
+  // TODO: Need to be able to reset and close this session.
+  private[api] val defaultSession: Session = Session(this)
+
   private[api] val opsCache: mutable.Map[Long, Op] = mutable.LongMap[Op]()
 
   /** Returns the op with the specified name.
@@ -135,6 +138,7 @@ final case class Graph(private var nativeHandle: Long) extends Closeable {
     */
   override def close(): Unit = {
     NativeHandleLock.synchronized {
+      defaultSession.close()
       if (nativeHandle != 0) {
         while (referenceCount > 0) {
           try {
