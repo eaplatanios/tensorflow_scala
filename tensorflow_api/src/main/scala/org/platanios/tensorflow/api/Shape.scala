@@ -1,6 +1,8 @@
 package org.platanios.tensorflow.api
 
-import org.platanios.tensorflow.api.Exception.InvalidShapeException
+import org.platanios.tensorflow.api.Exception.{InvalidIndexerException, InvalidShapeException}
+
+import scala.collection.mutable.ArrayBuffer
 
 // TODO: Should shapes really use longs or could we do with integers?
 // TODO: What about an Op.Output.setShape method (for the documentation)?
@@ -230,6 +232,35 @@ final class Shape private (private val array: Array[Long]) {
       Shape.fromSeq(slice.toArray(rank).map(i => array(i)))
     else
       Shape.unknown(slice.length(rank))
+  }
+
+  // TODO: Clean this up!
+  def applyIndexers(indexers: Indexer*): Shape = {
+    val dimensions = ArrayBuffer[Long]()
+    var ellipsisIndex: Int = -1
+    var ellipsisBegin: Int = -1
+    var newAxesCount: Int = 0
+    indexers.zipWithIndex foreach {
+      case (Ellipsis, i) =>
+        if (ellipsisIndex > -1)
+          throw InvalidIndexerException("At most one ellipsis ('---') can be used per indexers sequence.")
+        ellipsisIndex = i + newAxesCount
+        ellipsisBegin = i
+      case (NewAxis, _) =>
+        dimensions += 1
+        newAxesCount += 1
+      case (_: Index, _) =>
+        dimensions += 1
+      case (s: Slice, i) =>
+        if (ellipsisIndex > -1)
+          dimensions += s.length(this.size(i - newAxesCount + 1).asInstanceOf[Int])
+        else
+          dimensions += s.length(this.size(i - newAxesCount).asInstanceOf[Int])
+    }
+    if (ellipsisIndex > -1)
+      dimensions.insertAll(
+        ellipsisIndex, this (ellipsisBegin :: (ellipsisBegin + this.rank - dimensions.length + newAxesCount)).asArray)
+    Shape.fromSeq(dimensions)
   }
 
   override def toString: String = if (array == null) "<unknown>" else s"[${array.mkString(", ").replace("-1", "?")}]"

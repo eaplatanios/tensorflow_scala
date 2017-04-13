@@ -1,8 +1,9 @@
 package org.platanios.tensorflow.api
 
-import Slice._
 import org.platanios.tensorflow.api.Exception.InvalidIndexerException
 import org.platanios.tensorflow.api.ops.ArrayOps
+
+import scala.language.postfixOps
 
 /** Represents an indexer object. Indexers are used to index tensors.
   *
@@ -228,7 +229,7 @@ case class Slice private[api] (start: Int, end: Int, step: Int = 1, inclusive: B
             s"(i.e., '-1').")
     val end = exclusiveEnd(underlyingSequenceLength)
     if (underlyingSequenceLength < 0) {
-      val result = ceilDiv(end - start, step)
+      val result = Slice.ceilDiv(end - start, step)
       if (result >= 0)
         result
       else if ((start > 0 && end > 0 && step < 0) || (start < 0 && end < 0 && step > 0))
@@ -241,7 +242,7 @@ case class Slice private[api] (start: Int, end: Int, step: Int = 1, inclusive: B
       assertWithinBounds(underlyingSequenceLength)
       val floorStart = Math.floorMod(start, underlyingSequenceLength)
       val floorEnd = if (end < underlyingSequenceLength) Math.floorMod(end, underlyingSequenceLength) else end
-      val result = ceilDiv(floorEnd - floorStart, step)
+      val result = Slice.ceilDiv(floorEnd - floorStart, step)
       if (result >= 0)
         result
       else

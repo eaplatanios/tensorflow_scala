@@ -1,9 +1,10 @@
 package org.platanios.tensorflow.api
 
 import org.platanios.tensorflow.jni.{TensorFlow, Tensor => NativeTensor}
+import org.platanios.tensorflow.api.Exception.{InvalidIndexerException, InvalidShapeException}
 import java.nio._
 
-import org.platanios.tensorflow.api.Exception.InvalidShapeException
+import scala.collection.mutable.ArrayBuffer
 
 // TODO: Make this class internal to the API so we do not have to expose memory management for it.
 /**
@@ -22,8 +23,14 @@ final case class Tensor(
     if (dataType.byteSize == -1)
       throw new IllegalStateException("Cannot index a tensor whose elements have unknown byte size.")
     // TODO: Add checks for whether the indexers provided are within bounds.
-    dataType.getElementFromByteBuffer(byteBuffer = buffer, index = order.index(shape, indexers: _*) * dataType.byteSize)
+    if (indexers.length == rank && indexers.forall(_.isInstanceOf[Index]))
+      dataType.getElementFromBuffer(
+        buffer = buffer, index = order.index(shape, indexers: _*) * dataType.byteSize)
+    else
+      slice(indexers: _*)
   }
+
+  def slice(indexers: Indexer*): TensorSlice = TensorSlice(tensor = this, indexers = indexers)
 
   // TODO: Use this for creating slices: Buffer.slice().position(sliceStart).limit(sliceSize).
 
@@ -100,9 +107,28 @@ final case class Tensor(
   override def toString: String = s"$dataType Tensor with shape [${shape.asArray.mkString(", ")}]."
 }
 
+final case class TensorSlice(tensor: Tensor, indexers: Seq[Indexer]) {
+  val shape: Shape = tensor.shape.applyIndexers(indexers: _*)
+
+  def rank: Int = shape.rank
+  def numElements: Long = shape.numElements.get
+//  def numBytes: Int = tensor.buffer.remaining() // TODO: This is wrong
+
+  private[api] lazy val buffer: ByteBuffer = NativeTensor.buffer(tensor.nativeHandle).order(ByteOrder.nativeOrder())
+
+  def apply(indexers: Indexer*): Any = {
+    if (tensor.dataType.byteSize == -1)
+      throw new IllegalStateException("Cannot index a tensor whose elements have unknown byte size.")
+    // TODO: Add checks for whether the indexers provided are within bounds.
+    val elementIndex = tensor.order.index(tensor.shape, this.indexers, indexers: _*) * tensor.dataType.byteSize
+    tensor.dataType.getElementFromBuffer(buffer = buffer, index = elementIndex)
+  }
+}
+
 object Tensor {
   sealed trait Order {
     def index(shape: Shape, indexers: Indexer*): Int
+    def index(shape: Shape, existingIndexers: Seq[Indexer], indexers: Indexer*): Int
   }
 
   object RowMajorOrder extends Order {
@@ -111,7 +137,10 @@ object Tensor {
         throw new IllegalArgumentException("Only integer indexers are supported for tensors.")
       if (indexers.length != shape.rank)
         throw new IllegalArgumentException("Only integer indexers over all dimensions of the tensor are supported.")
-      val indices: Array[Int] = indexers.map(_.asInstanceOf[Index].index).toArray
+      val indices: Array[Int] = indexers.zipWithIndex.map(index => {
+        val i = index._1.asInstanceOf[Index].index
+        if (i < 0) i + shape(index._2).asInstanceOf[Int] - 1 else i
+      }).toArray
       val shapeArray: Array[Int] = shape.asArray.map(_.asInstanceOf[Int]) // TODO: Make shapes integer based.
       var index: Int = 0
       var dimension: Int = 0
@@ -127,6 +156,60 @@ object Tensor {
       }
       index
     }
+
+    override def index(shape: Shape, existingIndexers: Seq[Indexer], indexers: Indexer*): Int = {
+      val newShape = shape.applyIndexers(existingIndexers: _*)
+      val begin = ArrayBuffer[Int]()
+      val stride = ArrayBuffer[Int]()
+      val indices = ArrayBuffer[Int]()
+      var newAxesIndices = ArrayBuffer[Int]()
+      var ellipsisIndex: Int = -1
+      // TODO: Implicitly added ellipsis to the end of the indexers sequence.
+      existingIndexers.zipWithIndex foreach {
+        case (Ellipsis, i) =>
+          if (ellipsisIndex > -1)
+            throw InvalidIndexerException("At most one ellipsis ('---') can be used per indexers sequence.")
+          ellipsisIndex = i
+        case (NewAxis, i) =>
+          newAxesIndices += i
+        case (Index(j), i) =>
+          begin += (if (j < 0) j + shape(i).asInstanceOf[Int] - 1 else j)
+          stride += 1
+        case (Slice(sliceBegin, _, sliceStep, _), i) =>
+          begin += (if (sliceBegin < 0) sliceBegin + shape(i).asInstanceOf[Int] - 1 else sliceBegin)
+          stride += sliceStep
+      }
+      if (ellipsisIndex > -1) {
+        val ellipsisLength = shape.rank - begin.length
+        begin.insertAll(ellipsisIndex, Array.fill[Int](ellipsisLength)(0))
+        stride.insertAll(ellipsisIndex, Array.fill[Int](ellipsisLength)(1))
+        newAxesIndices = newAxesIndices.map(newAxisIndex => {
+          if (newAxisIndex > ellipsisIndex)
+            newAxisIndex + ellipsisLength
+          else
+            newAxisIndex
+        })
+      }
+      indexers.zipWithIndex foreach {
+        case (Index(k), i) =>
+          if (!newAxesIndices.contains(i))
+            indices += (if (k < 0) k + newShape(i).asInstanceOf[Int] - 1 else k)
+      }
+      val shapeArray: Array[Int] = shape.asArray.map(_.asInstanceOf[Int]) // TODO: Make shapes integer based.
+      var index: Int = 0
+      var dimension: Int = 0
+      while (dimension < shape.rank) {
+        var sizesProduct: Int = 1
+        var k: Int = dimension + 1
+        while (k < shape.rank) {
+          sizesProduct *= shapeArray(k)
+          k += 1
+        }
+        index += sizesProduct * (begin(dimension) + indices(dimension) * stride(dimension))
+        dimension += 1
+      }
+      index
+    }
   }
 
   object ColumnMajorOrder extends Order {
@@ -135,7 +218,10 @@ object Tensor {
         throw new IllegalArgumentException("Only integer indexers are supported for tensors.")
       if (indexers.length != shape.rank)
         throw new IllegalArgumentException("Only integer indexers over all dimensions of the tensor are supported.")
-      val indices: Array[Int] = indexers.map(_.asInstanceOf[Index].index).toArray
+      val indices: Array[Int] = indexers.zipWithIndex.map(index => {
+        val i = index._1.asInstanceOf[Index].index
+        if (i < 0) i + shape(index._2).asInstanceOf[Int] - 1 else i
+      }).toArray
       val shapeArray: Array[Int] = shape.asArray.map(_.asInstanceOf[Int]) // TODO: Make shapes integer based.
       var index: Int = 0
       var dimension: Int = 0
@@ -150,6 +236,54 @@ object Tensor {
         dimension += 1
       }
       index
+    }
+
+    override def index(shape: Shape, existingIndexers: Seq[Indexer], indexers: Indexer*): Int = {
+      var begin = ArrayBuffer[Int]()
+      var stride = ArrayBuffer[Int]()
+      var indices = ArrayBuffer[Int]()
+      existingIndexers.zip(indexers).zipWithIndex foreach {
+        case ((Ellipsis, Index(_)), _) =>
+          ???
+        case ((NewAxis, Index(k)), _) =>
+          assert(k == 0)
+        case ((Index(j), Index(k)), i) =>
+          assert(k == 0)
+          begin += (if (j < 0) j + shape(i).asInstanceOf[Int] - 1 else j)
+          stride += 1
+          indices += k
+        case ((s@Slice(sliceBegin, _, sliceStep, _), Index(k)), i) =>
+          begin += (if (sliceBegin < 0) sliceBegin + shape(i).asInstanceOf[Int] - 1 else sliceBegin)
+          stride += sliceStep
+          indices += (if (k < 0) k + s.length(shape(i).asInstanceOf[Int]) - 1 else k)
+      }
+      val shapeArray: Array[Int] = shape.asArray.map(_.asInstanceOf[Int]) // TODO: Make shapes integer based.
+      var index: Int = 0
+      var dimension: Int = 0
+      while (dimension < shape.rank) {
+        var sizesProduct: Int = 1
+        var k: Int = 0
+        while (k < dimension) {
+          sizesProduct *= shapeArray(k)
+          k += 1
+        }
+        index += sizesProduct * (begin(dimension) + indices(dimension) * stride(dimension))
+        dimension += 1
+      }
+      index
+    }
+  }
+
+  def apply[T: DataType.SupportedScalaTypes#Member](values: T*): Tensor = {
+    val valueDataType: DataType = DataType.dataTypeOf(values.head)
+    val shape: Shape = Shape(values.length)
+    if (valueDataType != DataType.String) {
+      null
+    } else {
+      // TODO: Support String tensors.
+      throw new UnsupportedOperationException(
+        s"Non-scalar DataType.String tensors are not supported yet (version ${TensorFlow.version}). Please file a " +
+            s"feature request at https://github.com/tensorflow/tensorflow/issues/new.")
     }
   }
 
@@ -181,15 +315,24 @@ object Tensor {
     *                               the provided `shape`.
     */
   def create(value: Any, dataType: DataType = null, shape: Shape = null, verifyShape: Boolean = false): Tensor = {
-    val inferredDataType: DataType = if (dataType == null) DataType.dataTypeOf(value) else dataType
+    val valueDataType: DataType = DataType.dataTypeOf(value)
+    val inferredDataType: DataType = if (dataType == null) valueDataType else dataType
     val inferredShape: Shape = if (shape == null) Tensor.shape(value) else shape
     // TODO: !!! Fix this so that it actually does verify the shape and the data type and does appropriate type casts.
     if (inferredDataType != DataType.String) {
-      val byteSize = inferredDataType.byteSize * inferredShape.numElements.get
+      val numElements = inferredShape.numElements.get.asInstanceOf[Int]
+      val byteSize = inferredDataType.byteSize * numElements
       val nativeHandle = NativeTensor.allocate(inferredDataType.cValue, inferredShape.asArray, byteSize)
-      NativeTensor.setValue(nativeHandle, value)
-      Tensor(dataType = inferredDataType, shape = inferredShape, nativeHandle = nativeHandle)
+      if (inferredDataType != valueDataType) {
+        val tensor: Tensor = allocateForBuffer(dataType, inferredShape, numElements)
+        castAndWriteTo(tensor.buffer, value, dataType)
+        tensor
+      } else {
+        NativeTensor.setValue(nativeHandle, value)
+        Tensor(dataType = inferredDataType, shape = inferredShape, nativeHandle = nativeHandle)
+      }
     } else if (inferredShape.rank != 0) {
+      // TODO: Support String tensors.
       throw new UnsupportedOperationException(
         s"Non-scalar DataType.String tensors are not supported yet (version ${TensorFlow.version}). Please file a " +
             s"feature request at https://github.com/tensorflow/tensorflow/issues/new.")
@@ -197,6 +340,26 @@ object Tensor {
       val nativeHandle = NativeTensor.allocateScalarBytes(value.asInstanceOf[Array[Byte]])
       Tensor(dataType = inferredDataType, shape = inferredShape, nativeHandle = nativeHandle)
     }
+  }
+
+  private[this] def castAndWriteTo(buffer: ByteBuffer, value: Any, dataType: DataType): Unit = {
+    // TODO: May be doable more efficiently.
+    def writeToHelper(buffer: ByteBuffer, bufferIndex: Int, value: Any, dataType: DataType): Int = {
+      value match {
+        case array: Array[_] =>
+          var bytesWritten = 0
+          var i = 0
+          while (i < array.length) {
+            bytesWritten += writeToHelper(buffer, bufferIndex + bytesWritten, array(i), dataType)
+            i += 1
+          }
+          bytesWritten
+        case scalar =>
+          dataType.putElementInBuffer(buffer, bufferIndex, dataType.cast(scalar))
+          dataType.byteSize
+      }
+    }
+    writeToHelper(buffer, 0, value, dataType)
   }
 
   def create(shape: Shape, data: FloatBuffer): Tensor = {

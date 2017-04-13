@@ -122,6 +122,7 @@ sealed trait DataType {
 
 /** Contains all supported data types. */
 object DataType {
+  // TODO: Figure out how to use this throughout the library.
   type SupportedScalaTypes = ∅ ∨ Boolean ∨ Byte ∨ Short ∨ Int ∨ Long ∨ Float ∨ Double ∨ Char ∨ String
 
   // TODO: How to issue a warning/error when negative values are fed into unsigned types.
