@@ -617,5 +617,5 @@ class DataTypeSpec extends FlatSpec with Matchers {
     assert(DataType.ResourceRef.real === DataType.ResourceRef)
   }
 
-  // TODO: Add tests for 'DataType.getElementFromByteBuffer'.
+  // TODO: Add tests for 'DataType.cast', 'DataType.putElementInBuffer', and 'DataType.getElementFromBuffer'.
 }
