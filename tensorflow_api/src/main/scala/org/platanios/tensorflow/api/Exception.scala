@@ -4,6 +4,9 @@ package org.platanios.tensorflow.api
   * @author Emmanouil Antonios Platanios
   */
 object Exception {
+  case class InvalidCastException(message: String = null, cause: Throwable = null)
+      extends IllegalArgumentException(message, cause)
+
   case class GraphMismatchException(message: String = null, cause: Throwable = null)
       extends IllegalStateException(message, cause)
 

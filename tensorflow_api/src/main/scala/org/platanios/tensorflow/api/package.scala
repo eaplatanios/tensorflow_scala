@@ -1,5 +1,7 @@
 package org.platanios.tensorflow
 
+import spire.math.{UByte, UShort}
+
 import scala.util.DynamicVariable
 import scala.util.matching.Regex
 
@@ -8,6 +10,37 @@ import scala.util.matching.Regex
   */
 package object api {
   private[api] val DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER = Tensor.RowMajorOrder
+
+  //region Data Types
+
+  type Float16 = Float
+  type Float32 = Float
+  type Float64 = Double
+  type BFloat16 = Float
+  // type Complex64 = Complex[Float]
+  // type Complex128 = Complex[Double]
+  type Int8 = Byte
+  type Int16 = Short
+  type Int32 = Int
+  type Int64 = Long
+  type UInt8 = UByte
+  type UInt16 = UShort
+  type QInt8 = Byte
+  type QInt16 = Short
+  type QInt32 = Int
+  type QUInt8 = UByte
+  type QUInt16 = UShort
+
+  def UInt8(number: Byte): UInt8 = UByte(number)
+  def UInt16(number: Short): UInt16 = UShort(number)
+  // def Complex[@specialized(Float, Double) T](real: T, imag: T): Complex[T] = Complex(real = real, imag = imag)
+
+  // implicit def intToComplex(n: Int): Complex[Double] = n
+  // implicit def longToComplex(n: Long): Complex[Double] = n
+  // implicit def floatToComplex(n: Float): Complex[Float] = n
+  // implicit def doubleToComplex(n: Double): Complex[Double] = n
+
+  //endregion Data Types
 
   type Op = ops.Op
   val Op = ops.Op

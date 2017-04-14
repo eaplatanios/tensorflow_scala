@@ -1,16 +1,29 @@
 package org.platanios.tensorflow.api
 
+import org.platanios.tensorflow.api.Exception.InvalidCastException
 import org.platanios.tensorflow.jni.{TensorFlow => NativeLibrary}
-import org.platanios.tensorflow.utilities.UnionTypes._
+
+import spire.math.{UByte, UShort}
+
 import java.nio.ByteBuffer
 
-import org.platanios.tensorflow.api.DataType.Float16.ScalaType
+// TODO: Figure out how to build a type hierarchy to use when constructing tensors.
+// TODO: Improve handling of the String data type (e.g., in the dataTypeOf function).
+// TODO: Add support for complex numbers.
+// TODO: How to issue a warning/error when negative values are fed into unsigned types.
+// TODO: Is spire necessary?
+// TODO: Casts are unsafe (i.e., downcasting is allowed).
+// TODO: Figure out how to deal with reference data types.
+
+// TODO: Unstable types: Float16, BFloat16, Complex, and UInts.
 
 /** Represents the data type of the elements in a tensor.
   *
   * @author Emmanouil Antonios Platanios
   */
 sealed trait DataType {
+  //region Data Type Properties
+
   /** Name of the data type (mainly useful for logging purposes). */
   val name: String
 
@@ -26,122 +39,232 @@ sealed trait DataType {
     * Note that this value is currently not used anywhere within the TensorFlow Scala API.
     */
   private[api] lazy val nativeByteSize: Option[Int] = {
-    val nativeLibrarySize = NativeLibrary.dataTypeSize(base.cValue)
+    val nativeLibrarySize = NativeLibrary.dataTypeSize(cValue)
     if (nativeLibrarySize == 0)
       None
     else
       Some(nativeLibrarySize)
   }
 
+  //endregion Data Type Properties
+
+  //region Data Type Set Helper Methods
+
   /** Returns `true` if this data type represents a non-quantized floating-point data type. */
-  def isFloatingPoint: Boolean = !isQuantized && DataType.floatingPointDataTypes.contains(base)
+  def isFloatingPoint: Boolean = !isQuantized && DataType.floatingPointDataTypes.contains(this)
 
   /** Returns `true` if this data type represents a complex data types. */
-  def isComplex: Boolean = DataType.complexDataTypes.contains(base)
+  def isComplex: Boolean = DataType.complexDataTypes.contains(this)
 
   /** Returns `true` if this data type represents a non-quantized integer data type. */
-  def isInteger: Boolean = !isQuantized && DataType.integerDataTypes.contains(base)
+  def isInteger: Boolean = !isQuantized && DataType.integerDataTypes.contains(this)
 
   /** Returns `true` if this data type represents a quantized data type. */
-  def isQuantized: Boolean = DataType.quantizedDataTypes.contains(base)
+  def isQuantized: Boolean = DataType.quantizedDataTypes.contains(this)
 
   /** Returns `true` if this data type represents a non-quantized unsigned data type. */
-  def isUnsigned: Boolean = !isQuantized && DataType.unsignedDataTypes.contains(base)
+  def isUnsigned: Boolean = !isQuantized && DataType.unsignedDataTypes.contains(this)
 
   /** Returns `true` if this data type represents a numeric data type. */
-  def isNumeric: Boolean = DataType.numericDataTypes.contains(base)
+  def isNumeric: Boolean = DataType.numericDataTypes.contains(this)
 
   /** Returns `true` if this data type represents a boolean data type. */
-  def isBoolean: Boolean = base == DataType.Boolean
+  def isBoolean: Boolean = this == DataType.Boolean
 
-  /** Returns `true` if the `other` data type can be converted to this data type.
-    *
-    * The conversion rules are as follows:
-    * {{{
-    *   DataType(cValue = T)      .isCompatibleWith(DataType(cValue = T))       == true
-    *   DataType(cValue = T)      .isCompatibleWith(DataType(cValue = T).asRef) == true
-    *   DataType(cValue = T).asRef.isCompatibleWith(DataType(cValue = T))       == false
-    *   DataType(cValue = T).asRef.isCompatibleWith(DataType(cValue = T).asRef) == true
-    * }}}
-    *
-    * @param  other Data type to check compatibility with.
-    * @return Result of the compatibility check.
-    */
-  def isCompatibleWith(other: DataType): Boolean = cValue == other.cValue || cValue == other.base.cValue
-
-  /** Returns `true` if this data type represents a reference data type. */
-  def isRef: Boolean = cValue > 100
-
-  /** Returns a reference data type based on this data type. */
-  def ref: DataType = if (isRef) this else DataType.fromCValue(cValue + 100)
-
-  /** Returns a non-reference data type based on this data type. */
-  def base: DataType = if (isRef) DataType.fromCValue(cValue - 100) else this
+  //endregion Data Type Set Helper Methods
 
   /** Returns a data type that corresponds to this data type's real part. */
   def real: DataType = this match {
     case DataType.Complex64 => DataType.Float32
     case DataType.Complex128 => DataType.Float64
-    case DataType.Complex64Ref => DataType.Float32Ref
-    case DataType.Complex128Ref => DataType.Float64Ref
     case _ => this
   }
 
+  /** Scala type corresponding to this TensorFlow data type. */
   type ScalaType
 
-  // TODO: To avoid boxing, can we make "cast" take "AnyVal" arguments only? or use specialization?
-  def cast(value: Any): ScalaType = value match {
-    case v: Boolean => cast(v)
-    case v: Byte => cast(v)
-    case v: Short => cast(v)
-    case v: Int => cast(v)
-    case v: Long => cast(v)
-    case v: Float => cast(v)
-    case v: Double => cast(v)
-    case v: Char => cast(v)
-    case v: String => cast(v)
-    case v: Any => castAny(v)
+  private[this] implicit val scalaTypeImplicit: DataType.SupportedScalaType[ScalaType] =
+    implicitly[DataType.SupportedScalaType[ScalaType]]
+
+  /** Casts the provided value to this data type.
+    *
+    * Note that this method allows downcasting.
+    *
+    * @param  value Value to cast.
+    * @return Casted value.
+    */
+  @inline def cast[T: DataType.SupportedScalaType](value: T): ScalaType = {
+    implicitly[DataType.SupportedScalaType[T]].cast(value, this)
   }
 
-  def cast(value: Boolean): ScalaType = castAny(value)
-  def cast(value: Byte): ScalaType = castAny(value)
-  def cast(value: Short): ScalaType = castAny(value)
-  def cast(value: Int): ScalaType = castAny(value)
-  def cast(value: Long): ScalaType = castAny(value)
-  def cast(value: Float): ScalaType = castAny(value)
-  def cast(value: Double): ScalaType = castAny(value)
-  def cast(value: Char): ScalaType = castAny(value)
-  def cast(value: String): ScalaType = castAny(value)
-  def castAny(value: Any): ScalaType
+  //region Specialized Scala Primitives Casting Methods
+
+  @inline protected def cast(value: Float): ScalaType =
+    throw InvalidCastException(s"'Float' cannot be cast to 'DataType.$name'.")
+  @inline protected def cast(value: Double): ScalaType =
+    throw InvalidCastException(s"'Double' cannot be cast to 'DataType.$name'.")
+  // @inline protected def cast(value: Complex64): ScalaType =
+  //   throw InvalidCastException(s"'Complex64' cannot be cast to 'DataType.$name'.")
+  // @inline protected def cast(value: Complex128): ScalaType =
+  //   throw InvalidCastException(s"'Complex128' cannot be cast to 'DataType.$name'.")
+  @inline protected def cast(value: Byte): ScalaType =
+  throw InvalidCastException(s"'Byte' cannot be cast to 'DataType.$name'.")
+  @inline protected def cast(value: Short): ScalaType =
+    throw InvalidCastException(s"'Short' cannot be cast to 'DataType.$name'.")
+  @inline protected def cast(value: Int): ScalaType =
+    throw InvalidCastException(s"'Int' cannot be cast to 'DataType.$name'.")
+  @inline protected def cast(value: Long): ScalaType =
+    throw InvalidCastException(s"'Long' cannot be cast to 'DataType.$name'.")
+  @inline protected def cast(value: Char): ScalaType =
+    throw InvalidCastException(s"'Char' cannot be cast to 'DataType.$name'.")
+  @inline protected def cast(value: Boolean): ScalaType =
+    throw InvalidCastException(s"'Boolean' cannot be cast to 'DataType.$name'.")
+  @inline protected def cast(value: String): ScalaType =
+    throw InvalidCastException(s"'String' cannot be cast to 'DataType.$name'.")
+
+  //endregion Specialized Scala Primitives Casting Methods
+
+  def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType, copies: Int): Unit = {
+    require(copies > 0, "'copies' needs to be a positive integer.")
+    var count: Int = 0
+    while (count < copies) {
+      putElementInBuffer(buffer = buffer, index = index + byteSize * count, element = element)
+      count += 1
+    }
+  }
 
   def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit
   def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType
 
   override def toString: String = name
+
+  override def equals(that: Any): Boolean = that match {
+    case that: DataType => this.cValue == that.cValue
+    case _ => false
+  }
+
+  override def hashCode: Int = cValue
 }
 
-/** Contains all supported data types. */
+/** Contains all supported data types along with some helper functions for dealing with them. */
 object DataType {
-  // TODO: Figure out how to use this throughout the library.
-  type SupportedScalaTypes = ∅ ∨ Boolean ∨ Byte ∨ Short ∨ Int ∨ Long ∨ Float ∨ Double ∨ Char ∨ String
+  @annotation.implicitNotFound(msg = "Scala type '${T}' cannot be converted to a TensorFlow data type.")
+  trait SupportedScalaType[T] {
+    @inline private[DataType] val dataType: DataType
+    @inline private[DataType] def cast(value: T, dataType: DataType): dataType.ScalaType
+  }
 
-  // TODO: How to issue a warning/error when negative values are fed into unsigned types.
+  //region Supported Scala Type Implicits
+
+  implicit val floatScalaType: SupportedScalaType[Float] = new SupportedScalaType[Float] {
+    @inline private[DataType] override val dataType: DataType = DataType.Float32
+    @inline private[DataType] override def cast(value: Float, dataType: DataType): dataType.ScalaType = {
+      dataType.cast(value)
+    }
+  }
+
+  implicit val doubleScalaType: SupportedScalaType[Double] = new SupportedScalaType[Double] {
+    @inline private[DataType] override val dataType: DataType = DataType.Float64
+    @inline private[DataType] override def cast(value: Double, dataType: DataType): dataType.ScalaType = {
+      dataType.cast(value)
+    }
+  }
+
+  // implicit val complexScalaType: SupportedScalaType[Complex[_]] = new SupportedScalaType[Complex[_]] {
+  //   @inline private[DataType] override def cast(value: Complex[_], dataType: DataType): dataType.ScalaType = {
+  //     dataType.cast(value)
+  //   }
+  // }
+
+  implicit val byteScalaType: SupportedScalaType[Byte] = new SupportedScalaType[Byte] {
+    @inline private[DataType] override val dataType: DataType = DataType.Int8
+    @inline private[DataType] override def cast(value: Byte, dataType: DataType): dataType.ScalaType = {
+      dataType.cast(value)
+    }
+  }
+
+  implicit val shortScalaType: SupportedScalaType[Short] = new SupportedScalaType[Short] {
+    @inline private[DataType] override val dataType: DataType = DataType.Int16
+    @inline private[DataType] override def cast(value: Short, dataType: DataType): dataType.ScalaType = {
+      dataType.cast(value)
+    }
+  }
+
+  implicit val intScalaType: SupportedScalaType[Int] = new SupportedScalaType[Int] {
+    @inline private[DataType] override val dataType: DataType = DataType.Int32
+    @inline private[DataType] override def cast(value: Int, dataType: DataType): dataType.ScalaType = {
+      dataType.cast(value)
+    }
+  }
+
+  implicit val longScalaType: SupportedScalaType[Long] = new SupportedScalaType[Long] {
+    @inline private[DataType] override val dataType: DataType = DataType.Int64
+    @inline private[DataType] override def cast(value: Long, dataType: DataType): dataType.ScalaType = {
+      dataType.cast(value)
+    }
+  }
+
+  implicit val ubyteScalaType: SupportedScalaType[UByte] = new SupportedScalaType[UByte] {
+    @inline private[DataType] override val dataType: DataType = DataType.UInt8
+    @inline private[DataType] override def cast(value: UByte, dataType: DataType): dataType.ScalaType = {
+      dataType.cast(value.toByte)
+    }
+  }
+
+  implicit val ushortScalaType: SupportedScalaType[UShort] = new SupportedScalaType[UShort] {
+    @inline private[DataType] override val dataType: DataType = DataType.UInt16
+    @inline private[DataType] override def cast(value: UShort, dataType: DataType): dataType.ScalaType = {
+      dataType.cast(value.toShort)
+    }
+  }
+
+  implicit val charScalaType: SupportedScalaType[Char] = new SupportedScalaType[Char] {
+    @inline private[DataType] override val dataType: DataType = DataType.UInt16
+    @inline private[DataType] override def cast(value: Char, dataType: DataType): dataType.ScalaType = {
+      dataType.cast(value)
+    }
+  }
+
+  implicit val booleanScalaType: SupportedScalaType[Boolean] = new SupportedScalaType[Boolean] {
+    @inline private[DataType] override val dataType: DataType = DataType.Boolean
+    @inline private[DataType] override def cast(value: Boolean, dataType: DataType): dataType.ScalaType = {
+      dataType.cast(value)
+    }
+  }
+
+  implicit val stringScalaType: SupportedScalaType[String] = new SupportedScalaType[String] {
+    @inline private[DataType] override val dataType: DataType = DataType.String
+    @inline private[DataType] override def cast(value: String, dataType: DataType): dataType.ScalaType = {
+      dataType.cast(value)
+    }
+  }
+
+  //endregion Supported Scala Type Implicits
+
+  //region Supported TensorFlow Data Types Definitions
 
   object Float16 extends DataType {
     override val name: String = "Float16"
     override val cValue: Int = 19
     override val byteSize: Int = 2
 
-    override type ScalaType = Float
+    override type ScalaType = Float // TODO: What data type should we actually use for this?
 
-    override def castAny(value: Any): ScalaType = value.asInstanceOf[Number].floatValue()
+    @inline protected override def cast(value: Float): ScalaType = value
+    @inline protected override def cast(value: Double): ScalaType = value.toFloat
+    @inline protected override def cast(value: Byte): ScalaType = value.toFloat
+    @inline protected override def cast(value: Short): ScalaType = value.toFloat
+    @inline protected override def cast(value: Int): ScalaType = value.toFloat
+    @inline protected override def cast(value: Long): ScalaType = value.toFloat
+    @inline protected override def cast(value: Char): ScalaType = value.toFloat
+    @inline protected override def cast(value: Boolean): ScalaType = if (value) 1.0f else 0.0f
 
     override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = {
-      buffer.putFloat(index, element)
+      buffer.putShort(index, element.asInstanceOf[Short]) // TODO: Something is off here.
     }
 
     override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
-      buffer.getShort(index).asInstanceOf[Float]
+      buffer.getShort(index).asInstanceOf[Float] // TODO: Something is off here.
     }
   }
 
@@ -152,7 +275,14 @@ object DataType {
 
     override type ScalaType = Float
 
-    override def castAny(value: Any): ScalaType = value.asInstanceOf[Number].floatValue()
+    @inline protected override def cast(value: Float): ScalaType = value
+    @inline protected override def cast(value: Double): ScalaType = value.toFloat
+    @inline protected override def cast(value: Byte): ScalaType = value.toFloat
+    @inline protected override def cast(value: Short): ScalaType = value.toFloat
+    @inline protected override def cast(value: Int): ScalaType = value.toFloat
+    @inline protected override def cast(value: Long): ScalaType = value.toFloat
+    @inline protected override def cast(value: Char): ScalaType = value.toFloat
+    @inline protected override def cast(value: Boolean): ScalaType = if (value) 1.0f else 0.0f
 
     override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = {
       buffer.putFloat(index, element)
@@ -170,8 +300,14 @@ object DataType {
 
     override type ScalaType = Double
 
-    override def castAny(value: Any): ScalaType = value.asInstanceOf[Number].doubleValue()
-    override def cast(value: Int): ScalaType = value.asInstanceOf[ScalaType]
+    @inline protected override def cast(value: Float): ScalaType = value.toDouble
+    @inline protected override def cast(value: Double): ScalaType = value
+    @inline protected override def cast(value: Byte): ScalaType = value.toDouble
+    @inline protected override def cast(value: Short): ScalaType = value.toDouble
+    @inline protected override def cast(value: Int): ScalaType = value.toDouble
+    @inline protected override def cast(value: Long): ScalaType = value.toDouble
+    @inline protected override def cast(value: Char): ScalaType = value.toDouble
+    @inline protected override def cast(value: Boolean): ScalaType = if (value) 1.0 else 0.0
 
     override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = {
       buffer.putDouble(index, element)
@@ -187,16 +323,23 @@ object DataType {
     override val cValue: Int = 14
     override val byteSize: Int = 2
 
-    override type ScalaType = Float
+    override type ScalaType = Float // TODO: What data type should we actually use for this?
 
-    override def castAny(value: Any): ScalaType = value.asInstanceOf[Number].floatValue()
+    @inline protected override def cast(value: Float): ScalaType = value
+    @inline protected override def cast(value: Double): ScalaType = value.toFloat
+    @inline protected override def cast(value: Byte): ScalaType = value.toFloat
+    @inline protected override def cast(value: Short): ScalaType = value.toFloat
+    @inline protected override def cast(value: Int): ScalaType = value.toFloat
+    @inline protected override def cast(value: Long): ScalaType = value.toFloat
+    @inline protected override def cast(value: Char): ScalaType = value.toFloat
+    @inline protected override def cast(value: Boolean): ScalaType = if (value) 1.0f else 0.0f
 
     override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = {
-      buffer.putFloat(index, element)
+      buffer.putShort(index, element.asInstanceOf[Short]) // TODO: Something is off here.
     }
 
     override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
-      buffer.getShort(index).asInstanceOf[Float]
+      buffer.getShort(index).asInstanceOf[Float] // TODO: Something is off here.
     }
   }
 
@@ -207,11 +350,27 @@ object DataType {
 
     override type ScalaType = Any
 
-    override def castAny(value: Any): ScalaType = ???
+    // @inline protected override def cast(value: Float): ScalaType = Complex[Float](value, 0.0f)
+    // @inline protected override def cast(value: Double): ScalaType = Complex[Float](value.toFloat, 0.0f)
+    // @inline protected override def cast(value: Complex64): ScalaType = value
+    // @inline protected override def cast(value: Complex128): ScalaType = Complex[Float](value.real.toFloat, value.imag.toFloat)
+    // @inline protected override def cast(value: Byte): ScalaType = Complex[Float](value.toFloat, 0.0f)
+    // @inline protected override def cast(value: Short): ScalaType = Complex[Float](value.toFloat, 0.0f)
+    // @inline protected override def cast(value: Int): ScalaType = Complex[Float](value.toFloat, 0.0f)
+    // @inline protected override def cast(value: Long): ScalaType = Complex[Float](value.toFloat, 0.0f)
+    // @inline protected override def cast(value: Char): ScalaType = Complex[Float](value.toFloat, 0.0f)
+    // @inline protected override def cast(value: Boolean): ScalaType = Complex[Float](if (value) 1.0f else 0.0f, 0.0f)
 
     override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = ???
+    // {
+    //   buffer.putFloat(index, element.real)
+    //   buffer.putFloat(index + 4, element.imag)
+    // }
 
     override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = ???
+    // {
+    //   Complex[Float](real = buffer.getFloat(index), imag = buffer.getFloat(index + 4))
+    // }
   }
 
   object Complex128 extends DataType {
@@ -221,11 +380,27 @@ object DataType {
 
     override type ScalaType = Any
 
-    override def castAny(value: Any): ScalaType = ???
+    // @inline protected override def cast(value: Float): ScalaType = Complex[Double](value.toDouble, 0.0)
+    // @inline protected override def cast(value: Double): ScalaType = Complex[Double](value, 0.0)
+    // @inline protected override def cast(value: Complex64): ScalaType = Complex[Double](value.toDouble, 0.0)
+    // @inline protected override def cast(value: Complex128): ScalaType = value
+    // @inline protected override def cast(value: Byte): ScalaType = Complex[Double](value.toDouble, 0.0)
+    // @inline protected override def cast(value: Short): ScalaType = Complex[Double](value.toDouble, 0.0)
+    // @inline protected override def cast(value: Int): ScalaType = Complex[Double](value.toDouble, 0.0)
+    // @inline protected override def cast(value: Long): ScalaType = Complex[Double](value.toDouble, 0.0)
+    // @inline protected override def cast(value: Char): ScalaType = Complex[Double](value.toDouble, 0.0)
+    // @inline protected override def cast(value: Boolean): ScalaType = Complex[Double](if (value) 1.0 else 0.0, 0.0)
 
     override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = ???
+    // {
+    //   buffer.putDouble(index, element.real)
+    //   buffer.putDouble(index + 8, element.imag)
+    // }
 
     override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = ???
+    // {
+    //   Complex[Double](real = buffer.getDouble(index), imag = buffer.getDouble(index + 8))
+    // }
   }
 
   object Int8 extends DataType {
@@ -235,7 +410,14 @@ object DataType {
 
     override type ScalaType = Byte
 
-    override def castAny(value: Any): ScalaType = value.asInstanceOf[Number].byteValue()
+    @inline protected override def cast(value: Float): ScalaType = value.toByte
+    @inline protected override def cast(value: Double): ScalaType = value.toByte
+    @inline protected override def cast(value: Byte): ScalaType = value
+    @inline protected override def cast(value: Short): ScalaType = value.toByte
+    @inline protected override def cast(value: Int): ScalaType = value.toByte
+    @inline protected override def cast(value: Long): ScalaType = value.toByte
+    @inline protected override def cast(value: Char): ScalaType = value.toByte
+    @inline protected override def cast(value: Boolean): ScalaType = if (value) 1.toByte else 0.toByte
 
     override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = {
       buffer.put(index, element)
@@ -253,7 +435,14 @@ object DataType {
 
     override type ScalaType = Short
 
-    override def castAny(value: Any): ScalaType = value.asInstanceOf[Number].shortValue()
+    @inline protected override def cast(value: Float): ScalaType = value.toShort
+    @inline protected override def cast(value: Double): ScalaType = value.toShort
+    @inline protected override def cast(value: Byte): ScalaType = value.toShort
+    @inline protected override def cast(value: Short): ScalaType = value
+    @inline protected override def cast(value: Int): ScalaType = value.toShort
+    @inline protected override def cast(value: Long): ScalaType = value.toShort
+    @inline protected override def cast(value: Char): ScalaType = value.toShort
+    @inline protected override def cast(value: Boolean): ScalaType = if (value) 1.toShort else 0.toShort
 
     override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = {
       buffer.putShort(index, element)
@@ -271,7 +460,14 @@ object DataType {
 
     override type ScalaType = Int
 
-    override def castAny(value: Any): ScalaType = value.asInstanceOf[Number].intValue()
+    @inline protected override def cast(value: Float): ScalaType = value.toInt
+    @inline protected override def cast(value: Double): ScalaType = value.toInt
+    @inline protected override def cast(value: Byte): ScalaType = value.toInt
+    @inline protected override def cast(value: Short): ScalaType = value.toInt
+    @inline protected override def cast(value: Int): ScalaType = value
+    @inline protected override def cast(value: Long): ScalaType = value.toInt
+    @inline protected override def cast(value: Char): ScalaType = value.toInt
+    @inline protected override def cast(value: Boolean): ScalaType = if (value) 1 else 0
 
     override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = {
       buffer.putInt(index, element)
@@ -289,7 +485,14 @@ object DataType {
 
     override type ScalaType = Long
 
-    override def castAny(value: Any): ScalaType = value.asInstanceOf[Number].longValue()
+    @inline protected override def cast(value: Float): ScalaType = value.toLong
+    @inline protected override def cast(value: Double): ScalaType = value.toLong
+    @inline protected override def cast(value: Byte): ScalaType = value.toLong
+    @inline protected override def cast(value: Short): ScalaType = value.toLong
+    @inline protected override def cast(value: Int): ScalaType = value.toLong
+    @inline protected override def cast(value: Long): ScalaType = value
+    @inline protected override def cast(value: Char): ScalaType = value.toLong
+    @inline protected override def cast(value: Boolean): ScalaType = if (value) 1L else 0L
 
     override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = {
       buffer.putLong(index, element)
@@ -305,16 +508,23 @@ object DataType {
     override val cValue: Int = 4
     override val byteSize: Int = 1
 
-    override type ScalaType = Short
+    override type ScalaType = UByte
 
-    override def castAny(value: Any): ScalaType = value.asInstanceOf[Number].shortValue()
+    @inline protected override def cast(value: Float): ScalaType = UByte(value.toByte)
+    @inline protected override def cast(value: Double): ScalaType = UByte(value.toByte)
+    @inline protected override def cast(value: Byte): ScalaType = UByte(value)
+    @inline protected override def cast(value: Short): ScalaType = UByte(value.toByte)
+    @inline protected override def cast(value: Int): ScalaType = UByte(value.toByte)
+    @inline protected override def cast(value: Long): ScalaType = UByte(value.toByte)
+    @inline protected override def cast(value: Char): ScalaType = UByte(value.toByte)
+    @inline protected override def cast(value: Boolean): ScalaType = if (value) UByte(1) else UByte(0)
 
     override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = {
-      buffer.putShort(index, element)
+      buffer.put(index, element.toByte)
     }
 
     override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
-      buffer.getShort(index)
+      UByte(buffer.get(index))
     }
   }
 
@@ -323,16 +533,23 @@ object DataType {
     override val cValue: Int = 17
     override val byteSize: Int = 2
 
-    override type ScalaType = Int
+    override type ScalaType = UShort
 
-    override def castAny(value: Any): ScalaType = value.asInstanceOf[Number].intValue()
+    @inline protected override def cast(value: Float): ScalaType = UShort(value.toShort)
+    @inline protected override def cast(value: Double): ScalaType = UShort(value.toShort)
+    @inline protected override def cast(value: Byte): ScalaType = UShort(value.toShort)
+    @inline protected override def cast(value: Short): ScalaType = UShort(value)
+    @inline protected override def cast(value: Int): ScalaType = UShort(value.toShort)
+    @inline protected override def cast(value: Long): ScalaType = UShort(value.toShort)
+    @inline protected override def cast(value: Char): ScalaType = UShort(value.toShort)
+    @inline protected override def cast(value: Boolean): ScalaType = if (value) UShort(1) else UShort(0)
 
     override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = {
-      buffer.putInt(index, element)
+      buffer.putShort(index, element.toShort)
     }
 
     override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
-      buffer.getInt(index)
+      UShort(buffer.getShort(index))
     }
   }
 
@@ -343,7 +560,14 @@ object DataType {
 
     override type ScalaType = Byte
 
-    override def castAny(value: Any): ScalaType = value.asInstanceOf[Number].byteValue()
+    @inline protected override def cast(value: Float): ScalaType = value.toByte
+    @inline protected override def cast(value: Double): ScalaType = value.toByte
+    @inline protected override def cast(value: Byte): ScalaType = value
+    @inline protected override def cast(value: Short): ScalaType = value.toByte
+    @inline protected override def cast(value: Int): ScalaType = value.toByte
+    @inline protected override def cast(value: Long): ScalaType = value.toByte
+    @inline protected override def cast(value: Char): ScalaType = value.toByte
+    @inline protected override def cast(value: Boolean): ScalaType = if (value) 1.toByte else 0.toByte
 
     override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = {
       buffer.put(index, element)
@@ -361,7 +585,14 @@ object DataType {
 
     override type ScalaType = Short
 
-    override def castAny(value: Any): ScalaType = value.asInstanceOf[Number].shortValue()
+    @inline protected override def cast(value: Float): ScalaType = value.toShort
+    @inline protected override def cast(value: Double): ScalaType = value.toShort
+    @inline protected override def cast(value: Byte): ScalaType = value.toShort
+    @inline protected override def cast(value: Short): ScalaType = value
+    @inline protected override def cast(value: Int): ScalaType = value.toShort
+    @inline protected override def cast(value: Long): ScalaType = value.toShort
+    @inline protected override def cast(value: Char): ScalaType = value.toShort
+    @inline protected override def cast(value: Boolean): ScalaType = if (value) 1.toShort else 0.toShort
 
     override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = {
       buffer.putShort(index, element)
@@ -379,7 +610,14 @@ object DataType {
 
     override type ScalaType = Int
 
-    override def castAny(value: Any): ScalaType = value.asInstanceOf[Number].intValue()
+    @inline protected override def cast(value: Float): ScalaType = value.toInt
+    @inline protected override def cast(value: Double): ScalaType = value.toInt
+    @inline protected override def cast(value: Byte): ScalaType = value.toInt
+    @inline protected override def cast(value: Short): ScalaType = value.toInt
+    @inline protected override def cast(value: Int): ScalaType = value
+    @inline protected override def cast(value: Long): ScalaType = value.toInt
+    @inline protected override def cast(value: Char): ScalaType = value.toInt
+    @inline protected override def cast(value: Boolean): ScalaType = if (value) 1 else 0
 
     override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = {
       buffer.putInt(index, element)
@@ -395,16 +633,23 @@ object DataType {
     override val cValue: Int = 12
     override val byteSize: Int = 1
 
-    override type ScalaType = Short
+    override type ScalaType = UByte
 
-    override def castAny(value: Any): ScalaType = value.asInstanceOf[Number].shortValue()
+    @inline protected override def cast(value: Float): ScalaType = UByte(value.toByte)
+    @inline protected override def cast(value: Double): ScalaType = UByte(value.toByte)
+    @inline protected override def cast(value: Byte): ScalaType = UByte(value)
+    @inline protected override def cast(value: Short): ScalaType = UByte(value.toByte)
+    @inline protected override def cast(value: Int): ScalaType = UByte(value.toByte)
+    @inline protected override def cast(value: Long): ScalaType = UByte(value.toByte)
+    @inline protected override def cast(value: Char): ScalaType = UByte(value.toByte)
+    @inline protected override def cast(value: Boolean): ScalaType = if (value) UByte(1) else UByte(0)
 
     override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = {
-      buffer.putShort(index, element)
+      buffer.put(index, element.toByte)
     }
 
     override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
-      buffer.getShort(index)
+      UByte(buffer.get(index))
     }
   }
 
@@ -413,16 +658,23 @@ object DataType {
     override val cValue: Int = 16
     override val byteSize: Int = 2
 
-    override type ScalaType = Int
+    override type ScalaType = UShort
 
-    override def castAny(value: Any): ScalaType = value.asInstanceOf[Number].intValue()
+    @inline protected override def cast(value: Float): ScalaType = UShort(value.toShort)
+    @inline protected override def cast(value: Double): ScalaType = UShort(value.toShort)
+    @inline protected override def cast(value: Byte): ScalaType = UShort(value.toShort)
+    @inline protected override def cast(value: Short): ScalaType = UShort(value)
+    @inline protected override def cast(value: Int): ScalaType = UShort(value.toShort)
+    @inline protected override def cast(value: Long): ScalaType = UShort(value.toShort)
+    @inline protected override def cast(value: Char): ScalaType = UShort(value.toShort)
+    @inline protected override def cast(value: Boolean): ScalaType = if (value) UShort(1) else UShort(0)
 
     override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = {
-      buffer.putInt(index, element)
+      buffer.putShort(index, element.toShort)
     }
 
     override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
-      buffer.getInt(index)
+      UShort(buffer.getShort(index))
     }
   }
 
@@ -433,14 +685,14 @@ object DataType {
 
     override type ScalaType = Boolean
 
-    override def castAny(value: Any): ScalaType = value.asInstanceOf[Number].byteValue().asInstanceOf[Boolean]
+    @inline protected override def cast(value: Boolean): ScalaType = value
 
     override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = {
-      buffer.put(index, element.asInstanceOf[Byte])
+      buffer.put(index, if (element) 1 else 0)
     }
 
     override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
-      buffer.get(index).asInstanceOf[Boolean]
+      buffer.get(index) == 1
     }
   }
 
@@ -449,9 +701,17 @@ object DataType {
     override val cValue: Int = 7
     override val byteSize: Int = -1
 
-    override type ScalaType = Any
+    override type ScalaType = String
 
-    override def castAny(value: Any): ScalaType = ???
+    @inline protected override def cast(value: Float): ScalaType = value.toString
+    @inline protected override def cast(value: Double): ScalaType = value.toString
+    @inline protected override def cast(value: Byte): ScalaType = value.toString
+    @inline protected override def cast(value: Short): ScalaType = value.toString
+    @inline protected override def cast(value: Int): ScalaType = value.toString
+    @inline protected override def cast(value: Long): ScalaType = value.toString
+    @inline protected override def cast(value: Char): ScalaType = value.toString
+    @inline protected override def cast(value: Boolean): ScalaType = value.toString
+    @inline protected override def cast(value: String): ScalaType = value
 
     override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = ???
 
@@ -461,298 +721,22 @@ object DataType {
   object Resource extends DataType {
     override val name: String = "Resource"
     override val cValue: Int = 20
-    override val byteSize: Int = 1
-
-    override type ScalaType = Any
-
-    override def castAny(value: Any): ScalaType = ???
-
-    override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = ???
-
-    override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = ???
-  }
-
-  // TODO: Figure out how to deal with reference data types.
-
-  object Float16Ref extends DataType {
-    override val name: String = "Float16Ref"
-    override val cValue: Int = 119
-    override val byteSize: Int = 2
-
-    override type ScalaType = Any
-
-    override def castAny(value: Any): ScalaType = ???
-
-    override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = ???
-
-    override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = ???
-  }
-
-  object Float32Ref extends DataType {
-    override val name: String = "Float32Ref"
-    override val cValue: Int = 101
-    override val byteSize: Int = 4
-
-    override type ScalaType = Any
-
-    override def castAny(value: Any): ScalaType = ???
-
-    override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = ???
-
-    override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = ???
-  }
-
-  object Float64Ref extends DataType {
-    override val name: String = "Float64Ref"
-    override val cValue: Int = 102
-    override val byteSize: Int = 8
-
-    override type ScalaType = Any
-
-    override def castAny(value: Any): ScalaType = ???
-
-    override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = ???
-
-    override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = ???
-  }
-
-  object BFloat16Ref extends DataType {
-    override val name: String = "BFloat16Ref"
-    override val cValue: Int = 114
-    override val byteSize: Int = 2
-
-    override type ScalaType = Any
-
-    override def castAny(value: Any): ScalaType = ???
-
-    override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = ???
-
-    override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = ???
-  }
-
-  object Complex64Ref extends DataType {
-    override val name: String = "Complex64Ref"
-    override val cValue: Int = 108
-    override val byteSize: Int = 8
-
-    override type ScalaType = Any
-
-    override def castAny(value: Any): ScalaType = ???
-
-    override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = ???
-
-    override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = ???
-  }
-
-  object Complex128Ref extends DataType {
-    override val name: String = "Complex128Ref"
-    override val cValue: Int = 118
-    override val byteSize: Int = 16
-
-    override type ScalaType = Any
-
-    override def castAny(value: Any): ScalaType = ???
-
-    override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = ???
-
-    override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = ???
-  }
-
-  object Int8Ref extends DataType {
-    override val name: String = "Int8Ref"
-    override val cValue: Int = 106
-    override val byteSize: Int = 1
-
-    override type ScalaType = Any
-
-    override def castAny(value: Any): ScalaType = ???
-
-    override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = ???
-
-    override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = ???
-  }
-
-  object Int16Ref extends DataType {
-    override val name: String = "Int16Ref"
-    override val cValue: Int = 105
-    override val byteSize: Int = 2
-
-    override type ScalaType = Any
-
-    override def castAny(value: Any): ScalaType = ???
-
-    override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = ???
-
-    override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = ???
-  }
-
-  object Int32Ref extends DataType {
-    override val name: String = "Int32Ref"
-    override val cValue: Int = 103
-    override val byteSize: Int = 4
-
-    override type ScalaType = Any
-
-    override def castAny(value: Any): ScalaType = ???
-
-    override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = ???
-
-    override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = ???
-  }
-
-  object Int64Ref extends DataType {
-    override val name: String = "Int64Ref"
-    override val cValue: Int = 109
-    override val byteSize: Int = 8
-
-    override type ScalaType = Any
-
-    override def castAny(value: Any): ScalaType = ???
-
-    override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = ???
-
-    override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = ???
-  }
-
-  object UInt8Ref extends DataType {
-    override val name: String = "UInt8Ref"
-    override val cValue: Int = 104
-    override val byteSize: Int = 1
-
-    override type ScalaType = Any
-
-    override def castAny(value: Any): ScalaType = ???
-
-    override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = ???
-
-    override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = ???
-  }
-
-  object UInt16Ref extends DataType {
-    override val name: String = "UInt16Ref"
-    override val cValue: Int = 117
-    override val byteSize: Int = 2
-
-    override type ScalaType = Any
-
-    override def castAny(value: Any): ScalaType = ???
-
-    override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = ???
-
-    override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = ???
-  }
-
-  object QInt8Ref extends DataType {
-    override val name: String = "QInt8Ref"
-    override val cValue: Int = 111
-    override val byteSize: Int = 1
-
-    override type ScalaType = Any
-
-    override def castAny(value: Any): ScalaType = ???
-
-    override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = ???
-
-    override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = ???
-  }
-
-  object QInt16Ref extends DataType {
-    override val name: String = "QInt16Ref"
-    override val cValue: Int = 115
-    override val byteSize: Int = 2
-
-    override type ScalaType = Any
-
-    override def castAny(value: Any): ScalaType = ???
-
-    override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = ???
-
-    override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = ???
-  }
-
-  object QInt32Ref extends DataType {
-    override val name: String = "QInt32Ref"
-    override val cValue: Int = 113
-    override val byteSize: Int = 4
-
-    override type ScalaType = Any
-
-    override def castAny(value: Any): ScalaType = ???
-
-    override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = ???
-
-    override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = ???
-  }
-
-  object QUInt8Ref extends DataType {
-    override val name: String = "QUInt8Ref"
-    override val cValue: Int = 112
-    override val byteSize: Int = 1
-
-    override type ScalaType = Any
-
-    override def castAny(value: Any): ScalaType = ???
-
-    override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = ???
-
-    override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = ???
-  }
-
-  object QUInt16Ref extends DataType {
-    override val name: String = "QUInt16Ref"
-    override val cValue: Int = 116
-    override val byteSize: Int = 2
-
-    override type ScalaType = Any
-
-    override def castAny(value: Any): ScalaType = ???
-
-    override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = ???
-
-    override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = ???
-  }
-
-  object BooleanRef extends DataType {
-    override val name: String = "BooleanRef"
-    override val cValue: Int = 110
-    override val byteSize: Int = 1
-
-    override type ScalaType = Any
-
-    override def castAny(value: Any): ScalaType = ???
-
-    override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = ???
-
-    override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = ???
-  }
-
-  object StringRef extends DataType {
-    override val name: String = "StringRef"
-    override val cValue: Int = 107
     override val byteSize: Int = -1
 
-    override type ScalaType = Any
+    override type ScalaType = Any // TODO: Not supported on the Scala side.
 
-    override def castAny(value: Any): ScalaType = ???
+    override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit =
+      throw InvalidCastException(s"Tensors with data type '$name' cannot be represented in the Scala API. You should " +
+                                     s"never need to feed or fetch '$name' tensors.")
 
-    override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = ???
-
-    override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = ???
+    override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType =
+      throw InvalidCastException(s"Tensors with data type '$name' cannot be represented in the Scala API. You should " +
+                                     s"never need to feed or fetch '$name' tensors.")
   }
 
-  object ResourceRef extends DataType {
-    override val name: String = "ResourceRef"
-    override val cValue: Int = 120
-    override val byteSize: Int = 1
+  //endregion Supported TensorFlow Data Types Definitions
 
-    override type ScalaType = Any
-
-    override def castAny(value: Any): ScalaType = ???
-
-    override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = ???
-
-    override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = ???
-  }
+  //region TensorFlow Data Type Sets
 
   /** Set of all floating-point data types. */
   val floatingPointDataTypes: Set[DataType] = {
@@ -784,6 +768,26 @@ object DataType {
     floatingPointDataTypes ++ complexDataTypes ++ integerDataTypes ++ quantizedDataTypes
   }
 
+  //endregion TensorFlow Data Type Sets
+
+  //region Helper Methods
+
+  /** Returns the [[DataType]] of the provided value.
+    *
+    * @param  value Value whose data type to return.
+    * @return Data type of the provided value.
+    */
+  @inline private[api] def dataTypeOf[T: SupportedScalaType](value: T): DataType = {
+    implicitly[DataType.SupportedScalaType[T]].dataType
+  }
+
+  /** Returns the [[DataType]] of the provided [[Tensor]].
+    *
+    * @param  tensor Tensor whose data type to return.
+    * @return Data type of the provided tensor.
+    */
+  @inline private[api] def dataTypeOf(tensor: Tensor): DataType = tensor.dataType
+
   /** Returns the data type corresponding to the provided C value.
     *
     * By C value here we refer to an integer representing a data type in the `TF_DataType` enum of the TensorFlow C API.
@@ -814,26 +818,6 @@ object DataType {
     case Boolean.cValue => Boolean
     case String.cValue => String
     case Resource.cValue => Resource
-    case Float16Ref.cValue => Float16Ref
-    case Float32Ref.cValue => Float32Ref
-    case Float64Ref.cValue => Float64Ref
-    case BFloat16Ref.cValue => BFloat16Ref
-    case Complex64Ref.cValue => Complex64Ref
-    case Complex128Ref.cValue => Complex128Ref
-    case Int8Ref.cValue => Int8Ref
-    case Int16Ref.cValue => Int16Ref
-    case Int32Ref.cValue => Int32Ref
-    case Int64Ref.cValue => Int64Ref
-    case UInt8Ref.cValue => UInt8Ref
-    case UInt16Ref.cValue => UInt16Ref
-    case QInt8Ref.cValue => QInt8Ref
-    case QInt16Ref.cValue => QInt16Ref
-    case QInt32Ref.cValue => QInt32Ref
-    case QUInt8Ref.cValue => QUInt8Ref
-    case QUInt16Ref.cValue => QUInt16Ref
-    case BooleanRef.cValue => BooleanRef
-    case StringRef.cValue => StringRef
-    case ResourceRef.cValue => ResourceRef
     case value => throw new IllegalArgumentException(
       s"Data type C value '$value' is not recognized in Scala (TensorFlow version ${NativeLibrary.version}).")
   }
@@ -866,57 +850,9 @@ object DataType {
     case "Boolean" => Boolean
     case "String" => String
     case "Resource" => Resource
-    case "Float16Ref" => Float16Ref
-    case "Float32Ref" => Float32Ref
-    case "Float64Ref" => Float64Ref
-    case "BFloat16Ref" => BFloat16Ref
-    case "Complex64Ref" => Complex64Ref
-    case "Complex128Ref" => Complex128Ref
-    case "Int8Ref" => Int8Ref
-    case "Int16Ref" => Int16Ref
-    case "Int32Ref" => Int32Ref
-    case "Int64Ref" => Int64Ref
-    case "UInt8Ref" => UInt8Ref
-    case "UInt16Ref" => UInt16Ref
-    case "QInt8Ref" => QInt8Ref
-    case "QInt16Ref" => QInt16Ref
-    case "QInt32Ref" => QInt32Ref
-    case "QUInt8Ref" => QUInt8Ref
-    case "QUInt16Ref" => QUInt16Ref
-    case "BooleanRef" => BooleanRef
-    case "StringRef" => StringRef
-    case "ResourceRef" => ResourceRef
     case value => throw new IllegalArgumentException(
       s"Data type name '$value' is not recognized in Scala (TensorFlow version ${NativeLibrary.version}).")
   }
 
-  /** Returns the [[DataType]] of the provided value.
-    *
-    * @param  value Value whose data type to return.
-    * @return Data type of the provided value.
-    * @throws IllegalArgumentException If the data type of the provided value is not supported as a TensorFlow
-    *                                  [[DataType]].
-    */
-  @throws[IllegalArgumentException]
-  private[api] def dataTypeOf(value: Any): DataType = {
-    value match {
-      // Array[Byte] is a DataType.String scalar
-      case value: Array[Byte] =>
-        if (value.length == 0)
-          throw new IllegalArgumentException("Cannot create a tensor of size 0.")
-        DataType.String
-      case value: Array[_] =>
-        if (value.length == 0)
-          throw new IllegalArgumentException("Cannot create a tensor of size 0.")
-        dataTypeOf(value(0)) // TODO: What if different array elements have different values? Throw an exception?
-      case _: Float => DataType.Float32
-      case _: Double => DataType.Float64
-      case _: Byte => DataType.Int8
-      case _: Short => DataType.Int16
-      case _: Int => DataType.Int32
-      case _: Long => DataType.Int64
-      case _: Boolean => DataType.Boolean
-      case _ => throw new IllegalArgumentException(s"Cannot create a tensor of type '${value.getClass.getName}'.")
-    }
-  }
+  //endregion Helper Methods
 }
