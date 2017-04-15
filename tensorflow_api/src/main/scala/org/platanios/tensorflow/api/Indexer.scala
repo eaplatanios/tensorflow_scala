@@ -82,6 +82,120 @@ object Indexer {
 
   //endregion Implicits
 
+  /** Decodes the provided indexers sequence into a new set of dimension sizes, begin offsets, end offsets, and strides,
+    * for the provided tensor shape.
+    *
+    * This function returns a tuple of four integer arrays:
+    *
+    *   - Dimension sizes (one for each dimension)
+    *   - Begin offsets (one for each dimension)
+    *   - End offsets (one for each dimension)
+    *   - Strides (one for each dimension)
+    *
+    * @param  shape    Shape of the tensor being indexed.
+    * @param  indexers Sequence of indexers to use.
+    * @return Tuple containing the decoded indexing sequence information.
+    * @throws InvalidIndexerException If an invalid indexing sequence is provided.
+    */
+  @throws[InvalidIndexerException]
+  private[api] def decode(shape: Shape, indexers: Seq[Indexer]): (Array[Int], Array[Int], Array[Int], Array[Int]) = {
+    // TODO: Make this more efficient.
+    val newAxesCount = indexers.count(_ == NewAxis)
+    val ellipsesCount = if (indexers.contains(Ellipsis)) 1 else 0
+    val newRank = Math.max(shape.rank + newAxesCount, shape.rank + newAxesCount - ellipsesCount)
+    if (newRank + ellipsesCount < indexers.length)
+      throw InvalidIndexerException(
+        s"Provided indexing sequence (${indexers.mkString(", ")}) is too large for shape $shape.")
+    val dimensions = Array.ofDim[Int](newRank)
+    val beginOffsets = Array.ofDim[Int](newRank)
+    val endOffsets = Array.ofDim[Int](newRank)
+    val strides = Array.ofDim[Int](newRank)
+    var i: Int = 0
+    var newAxesCounter: Int = 0
+    var ellipsisFound = false
+    while (i < indexers.length && !ellipsisFound) {
+      val oldDimSize = shape(i - newAxesCounter).asInstanceOf[Int]
+      indexers(i) match {
+        case Ellipsis =>
+          var j: Int = newRank - 1
+          newAxesCounter = 0
+          while (indexers.length - newRank + j > i) {
+            val oldDimSize = shape(shape.rank - newRank + j + newAxesCounter).asInstanceOf[Int]
+            indexers(indexers.length - newRank + j) match {
+              case Ellipsis =>
+                throw InvalidIndexerException("Only one ellipsis ('---') is allowed per indexing sequence.")
+              case NewAxis =>
+                beginOffsets(j) = 0
+                endOffsets(j) = 1
+                strides(j) = 1
+                dimensions(j) = 1
+                newAxesCounter += 1
+              case Index(index) =>
+                beginOffsets(j) = if (index < 0) index + oldDimSize else index
+                endOffsets(j) = beginOffsets(j) + 1
+                strides(j) = 1
+                dimensions(j) = 1
+              case s@Slice(begin, end, step, inclusive) =>
+                beginOffsets(j) = if (begin < 0) begin + oldDimSize else begin
+                val effectiveEnd = if (end < 0) end + oldDimSize else end
+                endOffsets(j) = if (inclusive) effectiveEnd + 1 else effectiveEnd
+                strides(j) = step
+                dimensions(j) = s.length(oldDimSize)
+            }
+            if (beginOffsets(j) < 0 || beginOffsets(j) >= oldDimSize)
+              throw InvalidIndexerException(
+                s"Indexer '${indexers(j)}' is invalid for a dimension with size '$oldDimSize'.")
+            if (endOffsets(j) < 0 || endOffsets(j) > oldDimSize)
+              throw InvalidIndexerException(
+                s"Indexer '${indexers(j)}' is invalid for a dimension with size '$oldDimSize'.")
+            j -= 1
+          }
+          while (j >= i) {
+            beginOffsets(j) = 0
+            endOffsets(j) = shape(shape.rank - newRank + j + newAxesCounter).asInstanceOf[Int]
+            strides(j) = 1
+            dimensions(j) = shape(shape.rank - newRank + j + newAxesCounter).asInstanceOf[Int]
+            j -= 1
+          }
+          ellipsisFound = true
+        case NewAxis =>
+          beginOffsets(i) = 0
+          endOffsets(i) = 1
+          strides(i) = 1
+          dimensions(i) = 1
+          newAxesCounter += 1
+        case Index(index) =>
+          beginOffsets(i) = if (index < 0) index + oldDimSize else index
+          endOffsets(i) = beginOffsets(i) + 1
+          strides(i) = 1
+          dimensions(i) = 1
+        case s@Slice(begin, end, step, inclusive) =>
+          beginOffsets(i) = if (begin < 0) begin + oldDimSize else begin
+          val effectiveEnd = if (end < 0) end + oldDimSize else end
+          endOffsets(i) = if (inclusive) effectiveEnd + 1 else effectiveEnd
+          strides(i) = step
+          dimensions(i) = s.length(oldDimSize)
+      }
+      if (!ellipsisFound && (beginOffsets(i) < 0 || beginOffsets(i) >= oldDimSize))
+        throw InvalidIndexerException(
+          s"Indexer '${indexers(i)}' is invalid for a dimension with size '$oldDimSize'.")
+      if (!ellipsisFound && (endOffsets(i) < 0 || endOffsets(i) > oldDimSize))
+        throw InvalidIndexerException(
+          s"Indexer '${indexers(i)}' is invalid for a dimension with size '$oldDimSize'.")
+      i += 1
+    }
+    if (!ellipsisFound) {
+      while (i < newRank) {
+        beginOffsets(i) = 0
+        endOffsets(i) = shape(i - newAxesCounter).asInstanceOf[Int]
+        strides(i) = 1
+        dimensions(i) = shape(i - newAxesCounter).asInstanceOf[Int]
+        i += 1
+      }
+    }
+    (dimensions, beginOffsets, endOffsets, strides)
+  }
+
   /** Converts a sequence of indexers into a function that takes an [[Op.Output]], applies the strided slice native op
     * on it for the provided sequence of indexers, and returns a new (indexed) [[Op.Output]].
     *
@@ -93,9 +207,9 @@ object Indexer {
   private[api] def toStridedSlice(indexers: Indexer*): Op.Output => Op.Output = {
     if (indexers.count(_ == Ellipsis) > 1)
       throw InvalidIndexerException("Only one 'Ellipsis' ('---') is allowed per indexing sequence.")
-    val begin = Array.fill[Int](indexers.length)(0)
-    val end = Array.fill[Int](indexers.length)(0)
-    val strides = Array.fill[Int](indexers.length)(1)
+    val begin = Tensor.fill(shape = Shape(indexers.length))(value = 0)
+    val end = Tensor.fill(shape = Shape(indexers.length))(value = 0)
+    val strides = Tensor.fill(shape = Shape(indexers.length))(value = 0)
     var beginMask: Int = 0 // TODO: Use this.
     var endMask: Int = 0
     var ellipsisMask: Int = 0
@@ -138,13 +252,20 @@ object Indexer {
 /** Ellipsis indexer used to represent a full slice over multiple dimensions of a tensor. Ellipses are used to represent
   * zero or more dimensions of a full-dimension indexer sequence. Usage examples are providedin the documentation of
   * [[Indexer]]. */
-object Ellipsis extends Indexer
+object Ellipsis extends Indexer {
+  override def toString: String = "---"
+}
 
 /** New axis indexer used to represent the addition of a new axis in a sequence of indexers. Usage examples are provided
   * in the documentation of [[Indexer]]. */
-object NewAxis extends Indexer
+object NewAxis extends Indexer {
+  override def toString: String = "NewAxis"
+}
 
-case class Index private[api] (index: Int) extends Indexer // TODO: Add an 'assertWithinBounds' method.
+case class Index private[api] (index: Int) extends Indexer {
+  // TODO: Add an 'assertWithinBounds' method.
+  override def toString: String = index.toString
+}
 
 // TODO: Assertions and index computations may be doable in a more efficient manner, in this class.
 // TODO: Maybe use options for the one number case (for the 'end' argument). This would ensure more type safety.
@@ -304,7 +425,11 @@ case class Slice private[api] (start: Int, end: Int, step: Int = 1, inclusive: B
         s"Slice end index '$end' is outside the bounds for a sequence length of '$underlyingSequenceLength'.")
   }
 
-  override def toString: String = s"[$start::$step::$end" + (if (inclusive) "]" else ")")
+  override def toString: String = {
+    if (inclusive && start == 0 && end == -1 && step == 1) "::"
+    else if (step == 1) s"[$start::$end" + (if (inclusive) "]" else ")")
+    else s"[$start::$step::$end" + (if (inclusive) "]" else ")")
+  }
 }
 
 /** Contains helper functions for creating [[Slice]] objects. */

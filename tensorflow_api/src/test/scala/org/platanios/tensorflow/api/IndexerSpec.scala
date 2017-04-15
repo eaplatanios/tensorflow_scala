@@ -1,7 +1,10 @@
 package org.platanios.tensorflow.api
 
 import org.platanios.tensorflow.api.Exception.InvalidIndexerException
+
 import org.scalatest._
+
+import scala.languageFeature.postfixOps
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -103,13 +106,13 @@ class IndexerSpec extends FlatSpec with Matchers {
 
   it must "throw an exception when an error occurs" in {
     assert(intercept[IllegalArgumentException]((3 :: -1).length).getMessage ===
-               "Slice '[3::1::-1)' length cannot be inferred without knowing the underlying sequence length.")
+               "Slice '[3::-1)' length cannot be inferred without knowing the underlying sequence length.")
     assert(intercept[IllegalArgumentException]((5 :: -1 :: 7).length).getMessage ===
                "Slice '[5::-1::7)' is invalid. It can never get to its end from its start, using the specified step.")
     assert(intercept[IllegalArgumentException]((-6 :: 2 :: -8).length).getMessage ===
                "Slice '[-6::2::-8)' is invalid. It can never get to its end from its start, using the specified step.")
     assert(intercept[IllegalArgumentException]((-3 :: 1).length(175)).getMessage ===
-               "For the provided sequence length of '175', slice '[-3::1::1)' is invalid. It can never get to its " +
+               "For the provided sequence length of '175', slice '[-3::1)' is invalid. It can never get to its " +
                    "end from its start, using the specified step.")
     assert(intercept[IndexOutOfBoundsException]((4 :: 3 :: -10).length(8)).getMessage ===
                "Slice end index '-10' is outside the bounds for a sequence length of '8'.")
@@ -143,7 +146,7 @@ class IndexerSpec extends FlatSpec with Matchers {
                "For the provided sequence length of '175', slice '[-6::2::-8)' is invalid. It can never get to its " +
                    "end from its start, using the specified step.")
     assert(intercept[IllegalArgumentException]((-3 :: 1).toArray(175)).getMessage ===
-               "For the provided sequence length of '175', slice '[-3::1::1)' is invalid. It can never get to its " +
+               "For the provided sequence length of '175', slice '[-3::1)' is invalid. It can never get to its " +
                    "end from its start, using the specified step.")
     assert(intercept[IndexOutOfBoundsException]((4 :: 3 :: -10).toArray(8)).getMessage ===
                "Slice end index '-10' is outside the bounds for a sequence length of '8'.")
@@ -159,6 +162,106 @@ class IndexerSpec extends FlatSpec with Matchers {
                "Slice end index '-10' is outside the bounds for a sequence length of '8'.")
     assert(intercept[IndexOutOfBoundsException](slice.assertWithinBounds(10)).getMessage ===
                "Slice end index '-10' is outside the bounds for a sequence length of '10'.")
+  }
+
+  "'Indexer.decode'" must "work correctly for valid inputs" in {
+    val shape1 = Shape(10, 25, 3, 1)
+    val index1 = Seq[Indexer](0)
+    val (dimensions1, beginOffsets1, endOffsets1, strides1) = Indexer.decode(shape1, index1)
+    assert(dimensions1 === Array(1, 25, 3, 1))
+    assert(beginOffsets1 === Array(0, 0, 0, 0))
+    assert(endOffsets1 === Array(1, 25, 3, 1))
+    assert(strides1 === Array(1, 1, 1, 1))
+    val index2 = Seq[Indexer](3 :: 6, ---)
+    val (dimensions2, beginOffsets2, endOffsets2, strides2) = Indexer.decode(shape1, index2)
+    assert(dimensions2 === Array(3, 25, 3, 1))
+    assert(beginOffsets2 === Array(3, 0, 0, 0))
+    assert(endOffsets2 === Array(6, 25, 3, 1))
+    assert(strides2 === Array(1, 1, 1, 1))
+    val index3 = Seq[Indexer](---)
+    val (dimensions3, beginOffsets3, endOffsets3, strides3) = Indexer.decode(shape1, index3)
+    assert(dimensions3 === Array(10, 25, 3, 1))
+    assert(beginOffsets3 === Array(0, 0, 0, 0))
+    assert(endOffsets3 === Array(10, 25, 3, 1))
+    assert(strides3 === Array(1, 1, 1, 1))
+    val index4 = Seq[Indexer](---, 1 :: 2, ::)
+    val (dimensions4, beginOffsets4, endOffsets4, strides4) = Indexer.decode(shape1, index4)
+    assert(dimensions4 === Array(10, 25, 1, 1))
+    assert(beginOffsets4 === Array(0, 0, 1, 0))
+    assert(endOffsets4 === Array(10, 25, 2, 1))
+    assert(strides4 === Array(1, 1, 1, 1))
+    val shape2 = Shape(10, 25, 3, 5)
+    val index5 = Seq[Indexer](2 :: 2 :: 7, ---, 1 :: 4)
+    val (dimensions5, beginOffsets5, endOffsets5, strides5) = Indexer.decode(shape2, index5)
+    assert(dimensions5 === Array(3, 25, 3, 3))
+    assert(beginOffsets5 === Array(2, 0, 0, 1))
+    assert(endOffsets5 === Array(7, 25, 3, 4))
+    assert(strides5 === Array(2, 1, 1, 1))
+    val index6 = Seq[Indexer](2 :: 2 :: 8, ::, NewAxis, ---, ::, 1 :: 4)
+    val (dimensions6, beginOffsets6, endOffsets6, strides6) = Indexer.decode(shape2, index6)
+    assert(dimensions6 === Array(3, 25, 1, 3, 3))
+    assert(beginOffsets6 === Array(2, 0, 0, 0, 1))
+    assert(endOffsets6 === Array(8, 25, 1, 3, 4))
+    assert(strides6 === Array(2, 1, 1, 1, 1))
+    val index7 = Seq[Indexer](2 :: 2 :: 8, ::, NewAxis, ---, NewAxis, ::, 1 :: 4)
+    val (dimensions7, beginOffsets7, endOffsets7, strides7) = Indexer.decode(shape2, index7)
+    assert(dimensions7 === Array(3, 25, 1, 1, 3, 3))
+    assert(beginOffsets7 === Array(2, 0, 0, 0, 0, 1))
+    assert(endOffsets7 === Array(8, 25, 1, 1, 3, 4))
+    assert(strides7 === Array(2, 1, 1, 1, 1, 1))
+    val index8 = Seq[Indexer](2 :: 2 :: 8, ::, NewAxis, ---, ::, NewAxis, 1 :: 4)
+    val (dimensions8, beginOffsets8, endOffsets8, strides8) = Indexer.decode(shape2, index8)
+    assert(dimensions8 === Array(3, 25, 1, 3, 1, 3))
+    assert(beginOffsets8 === Array(2, 0, 0, 0, 0, 1))
+    assert(endOffsets8 === Array(8, 25, 1, 3, 1, 4))
+    assert(strides8 === Array(2, 1, 1, 1, 1, 1))
+    val index9 = Seq[Indexer](NewAxis)
+    val (dimensions9, beginOffsets9, endOffsets9, strides9) = Indexer.decode(shape1, index9)
+    assert(dimensions9 === Array(1, 10, 25, 3, 1))
+    assert(beginOffsets9 === Array(0, 0, 0, 0, 0))
+    assert(endOffsets9 === Array(1, 10, 25, 3, 1))
+    assert(strides9 === Array(1, 1, 1, 1, 1))
+    val index10 = Seq[Indexer](---, NewAxis)
+    val (dimensions10, beginOffsets10, endOffsets10, strides10) = Indexer.decode(shape1, index10)
+    assert(dimensions10 === Array(10, 25, 3, 1, 1))
+    assert(beginOffsets10 === Array(0, 0, 0, 0, 0))
+    assert(endOffsets10 === Array(10, 25, 3, 1, 1))
+    assert(strides10 === Array(1, 1, 1, 1, 1))
+    val index11 = Seq[Indexer](NewAxis, NewAxis, ---, NewAxis)
+    val (dimensions11, beginOffsets11, endOffsets11, strides11) = Indexer.decode(shape1, index11)
+    assert(dimensions11 === Array(1, 1, 10, 25, 3, 1, 1))
+    assert(beginOffsets11 === Array(0, 0, 0, 0, 0, 0, 0))
+    assert(endOffsets11 === Array(1, 1, 10, 25, 3, 1, 1))
+    assert(strides11 === Array(1, 1, 1, 1, 1, 1, 1))
+    val index12 = Seq[Indexer](-1 :: -2 :: -8, ::, NewAxis, ---, ::, NewAxis, 1 :: 4)
+    val (dimensions12, beginOffsets12, endOffsets12, strides12) = Indexer.decode(shape2, index12)
+    assert(dimensions12 === Array(4, 25, 1, 3, 1, 3))
+    assert(beginOffsets12 === Array(9, 0, 0, 0, 0, 1))
+    assert(endOffsets12 === Array(2, 25, 1, 3, 1, 4))
+    assert(strides12 === Array(-2, 1, 1, 1, 1, 1))
+  }
+
+  it must "throw an 'InvalidIndexerException' for invalid inputs" in {
+    val shape = Shape(10, 25, 3, 5)
+    val index1 = Seq[Indexer](-1 :: -2 :: -8, ::, NewAxis, ---, ::, ::, NewAxis, 1 :: 4)
+    assert(intercept[InvalidIndexerException](Indexer.decode(shape, index1)).getMessage ===
+               s"Provided indexing sequence ([-1::-2::-8), ::, NewAxis, ---, ::, ::, NewAxis, [1::4)) is too large " +
+                   s"for shape [10, 25, 3, 5].")
+    val index2 = Seq[Indexer](0, 0, 0, 0, 0)
+    assert(intercept[InvalidIndexerException](Indexer.decode(shape, index2)).getMessage ===
+               s"Provided indexing sequence (0, 0, 0, 0, 0) is too large for shape [10, 25, 3, 5].")
+    val index3 = Seq[Indexer](---, ---)
+    assert(intercept[InvalidIndexerException](Indexer.decode(shape, index3)).getMessage ===
+               "Only one ellipsis ('---') is allowed per indexing sequence.")
+    val index4 = Seq[Indexer](::, 27, ---)
+    assert(intercept[InvalidIndexerException](Indexer.decode(shape, index4)).getMessage ===
+               "Indexer '27' is invalid for a dimension with size '25'.")
+    val index5 = Seq[Indexer](-11)
+    assert(intercept[InvalidIndexerException](Indexer.decode(shape, index5)).getMessage ===
+               "Indexer '-11' is invalid for a dimension with size '10'.")
+    val index6 = Seq[Indexer](0 :: 12)
+    assert(intercept[IndexOutOfBoundsException](Indexer.decode(shape, index6)).getMessage ===
+               "Slice end index '12' is outside the bounds for a sequence length of '10'.")
   }
 
   // TODO: Add tests for "toStridedSlice".
