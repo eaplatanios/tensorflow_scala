@@ -1,14 +1,13 @@
 package org.platanios.tensorflow.jni
 
-import ch.jodersky.jni.nativeLoader
-
 /**
   * @author Emmanouil Antonios Platanios
   */
 case class OpOutput(opHandle: Long, outputIndex: Int)
 
-@nativeLoader("tensorflow_jni")
 object Op {
+  TensorFlow.load()
+
   // Operation
   @native def name(handle: Long): String
   @native def opType(handle: Long): String

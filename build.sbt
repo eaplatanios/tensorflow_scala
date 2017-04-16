@@ -25,6 +25,8 @@ lazy val loggingDependencies = Seq(
   "org.apache.logging.log4j" % "log4j-slf4j-impl" % "2.8"
 )
 
+disablePlugins(JniLoad) // Remove dependence on Scala macros
+
 lazy val tensorflow = (project in file("."))
     .aggregate(tensorflow_jni, tensorflow_api) // Ignoring tensorflow_macros for now
     .settings(
@@ -81,6 +83,7 @@ lazy val tensorflow_api = (project in file("./tensorflow_api"))
     .dependsOn(tensorflow_jni) // Ignoring tensorflow_macros for now
     .settings(
       name := "tensorflow_api",
+//      libraryDependencies += "org.spire-math" %% "spire" % "0.13.0",
       // Test dependencies
       libraryDependencies += "org.scalactic" %% "scalactic" % "3.0.1",
       libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1" % "test"
