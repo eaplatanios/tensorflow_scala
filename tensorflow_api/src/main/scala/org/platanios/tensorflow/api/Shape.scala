@@ -1,10 +1,7 @@
 package org.platanios.tensorflow.api
 
-import org.platanios.tensorflow.api.Exception.{InvalidIndexerException, InvalidShapeException}
+import org.platanios.tensorflow.api.Exception.InvalidShapeException
 
-import scala.collection.mutable.ArrayBuffer
-
-// TODO: Should shapes really use longs or could we do with integers?
 // TODO: What about an Op.Output.setShape method (for the documentation)?
 /** Represents the shape of a tensor computed by an op.
   *
@@ -12,7 +9,7 @@ import scala.collection.mutable.ArrayBuffer
   *
   *  - Fully known shape: It has a known number of dimensions and a known size for each dimension.
   *  - Partially known shape: It has a known number of dimensions and an unknown size for one or more dimension.
-  *  - Uknown shape: It has an unknown number of dimensions and an unknown size for all its dimensions.
+  *  - Unknown shape: It has an unknown number of dimensions and an unknown size for all its dimensions.
   *
   * Unknown dimensions are represented as having a size of `-1` and two shapes are considered equal only if they are
   * fully known and all their dimension sizes match.
@@ -25,7 +22,7 @@ import scala.collection.mutable.ArrayBuffer
   *
   * @author Emmanouil Antonios Platanios
   */
-final class Shape private (private val array: Array[Long]) {
+final class Shape private (private val array: Array[Int]) {
   /** Returns a boolean value indicating whether this shape is fully defined.
     *
     * If the size of any dimension is equal to `-1` or if the shape is completely unknown, then it is not considered
@@ -40,17 +37,18 @@ final class Shape private (private val array: Array[Long]) {
     *
     * @param  dimension Dimension whose size to return.
     */
-  def size(dimension: Int): Long = array(dimension)
+  def size(dimension: Int): Int = array(dimension)
 
   /** Gets the total number of elements in tensors of this shape.
     *
     * If the shape is not fully defined, then `None` is returned, otherwise, the product of the sizes for each dimension
     * of this shape is returned.
     */
-  def numElements: Option[Long] = if (!isFullyDefined) None else Some(array.product)
+  def numElements: Option[Int] = if (!isFullyDefined) None else Some(array.product)
 
-  /** Returns an array representation of this shape. */
-  def asArray: Array[Long] = array
+  /** Returns an array representation of this shape. This method does not perform a copy or an array creation. It simply
+    * returns the underlying array representation of this shape. Its cost is thus the same as that of a field access. */
+  def asArray: Array[Int] = array
 
   /** Checks if `other` is compatible with this shape.
     *
@@ -219,7 +217,7 @@ final class Shape private (private val array: Array[Long]) {
     *
     * @param  dimension Dimension whose size to return.
     */
-  def apply(dimension: Int): Long = size(dimension)
+  def apply(dimension: Int): Int = size(dimension)
 
   /** Gets a slice of this shape.
     *
@@ -258,19 +256,19 @@ object Shape {
     *
     * @param  dimensions Dimension sizes.
     */
-  def create(dimensions: Long*): Shape = new Shape(Array(dimensions: _*))
+  def create(dimensions: Int*): Shape = new Shape(Array(dimensions: _*))
 
   /** Creates a shape with the specified dimension sizes.
     *
     * @param  dimensions Dimension sizes.
     */
-  def fromSeq(dimensions: Seq[Long]): Shape = new Shape(dimensions.toArray)
+  def fromSeq(dimensions: Seq[Int]): Shape = new Shape(dimensions.toArray)
 
   /** Creates an unknown shape, optionally with a known rank.
     *
     * @param  rank Optional rank of the shape to create. If set to `-1`, then it is considered unknown.
     */
-  def unknown(rank: Int = -1): Shape = if (rank == -1) new Shape(null) else new Shape(Array.fill[Long](rank)(-1))
+  def unknown(rank: Int = -1): Shape = if (rank == -1) new Shape(null) else new Shape(Array.fill[Int](rank)(-1))
 
   /** Creates a shape representing a scalar. */
   def scalar(): Shape = Shape()
@@ -279,18 +277,18 @@ object Shape {
     *
     * @param  length Vector length.
     */
-  def vector(length: Long): Shape = Shape(length)
+  def vector(length: Int): Shape = Shape(length)
 
   /** Creates a shape representing a matrix with the specified number of rows and columns.
     *
     * @param  numRows    Matrix number of rows.
     * @param  numColumns Matrix number of columns.
     */
-  def matrix(numRows: Long, numColumns: Long): Shape = Shape(numRows, numColumns)
+  def matrix(numRows: Int, numColumns: Int): Shape = Shape(numRows, numColumns)
 
   /** Creates a shape with the specified dimension sizes.
     *
     * @param  dimensions Dimension sizes.
     */
-  def apply(dimensions: Long*): Shape = create(dimensions: _*)
+  def apply(dimensions: Int*): Shape = create(dimensions: _*)
 }

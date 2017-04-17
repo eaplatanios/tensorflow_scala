@@ -100,6 +100,7 @@ object Indexer {
   @throws[InvalidIndexerException]
   private[api] def decode(shape: Shape, indexers: Seq[Indexer]): (Array[Int], Array[Int], Array[Int], Array[Int]) = {
     // TODO: Make this more efficient.
+    // TODO: Add tests for when providing an empty shape.
     val newAxesCount = indexers.count(_ == NewAxis)
     val ellipsesCount = if (indexers.contains(Ellipsis)) 1 else 0
     val newRank = Math.max(shape.rank + newAxesCount, shape.rank + newAxesCount - ellipsesCount)
@@ -114,13 +115,13 @@ object Indexer {
     var newAxesCounter: Int = 0
     var ellipsisFound = false
     while (i < indexers.length && !ellipsisFound) {
-      val oldDimSize = shape(i - newAxesCounter).asInstanceOf[Int]
+      val oldDimSize = shape(i - newAxesCounter)
       indexers(i) match {
         case Ellipsis =>
           var j: Int = newRank - 1
           newAxesCounter = 0
           while (indexers.length - newRank + j > i) {
-            val oldDimSize = shape(shape.rank - newRank + j + newAxesCounter).asInstanceOf[Int]
+            val oldDimSize = shape(shape.rank - newRank + j + newAxesCounter)
             indexers(indexers.length - newRank + j) match {
               case Ellipsis =>
                 throw InvalidIndexerException("Only one ellipsis ('---') is allowed per indexing sequence.")
@@ -152,9 +153,9 @@ object Indexer {
           }
           while (j >= i) {
             beginOffsets(j) = 0
-            endOffsets(j) = shape(shape.rank - newRank + j + newAxesCounter).asInstanceOf[Int]
+            endOffsets(j) = shape(shape.rank - newRank + j + newAxesCounter)
             strides(j) = 1
-            dimensions(j) = shape(shape.rank - newRank + j + newAxesCounter).asInstanceOf[Int]
+            dimensions(j) = shape(shape.rank - newRank + j + newAxesCounter)
             j -= 1
           }
           ellipsisFound = true
@@ -187,9 +188,9 @@ object Indexer {
     if (!ellipsisFound) {
       while (i < newRank) {
         beginOffsets(i) = 0
-        endOffsets(i) = shape(i - newAxesCounter).asInstanceOf[Int]
+        endOffsets(i) = shape(i - newAxesCounter)
         strides(i) = 1
-        dimensions(i) = shape(i - newAxesCounter).asInstanceOf[Int]
+        dimensions(i) = shape(i - newAxesCounter)
         i += 1
       }
     }
@@ -207,9 +208,9 @@ object Indexer {
   private[api] def toStridedSlice(indexers: Indexer*): Op.Output => Op.Output = {
     if (indexers.count(_ == Ellipsis) > 1)
       throw InvalidIndexerException("Only one 'Ellipsis' ('---') is allowed per indexing sequence.")
-    val begin = Tensor.fill(shape = Shape(indexers.length))(value = 0)
-    val end = Tensor.fill(shape = Shape(indexers.length))(value = 0)
-    val strides = Tensor.fill(shape = Shape(indexers.length))(value = 0)
+    val begin = Tensor.fill(dataType = DataType.Int32, shape = Shape(indexers.length))(value = 0)
+    val end = Tensor.fill(dataType = DataType.Int32, shape = Shape(indexers.length))(value = 0)
+    val strides = Tensor.fill(dataType = DataType.Int32, shape = Shape(indexers.length))(value = 0)
     var beginMask: Int = 0 // TODO: Use this.
     var endMask: Int = 0
     var ellipsisMask: Int = 0
@@ -221,17 +222,17 @@ object Indexer {
       case (NewAxis, i) =>
         newAxisMask |= (1 << i)
       case (Index(index), i) =>
-        begin(i) = index
-        end(i) = index + 1
+        begin(i).fill(index)
+        end(i).fill(index + 1)
         shrinkAxisMask |= (1 << i)
       case (Slice(sliceBegin, sliceEnd, sliceStep, false), i) =>
-        begin(i) = sliceBegin
-        end(i) = sliceEnd
-        strides(i) = sliceStep
+        begin(i).fill(sliceBegin)
+        end(i).fill(sliceEnd)
+        strides(i).fill(sliceStep)
       case (Slice(sliceBegin, sliceEnd, sliceStep, true), i) =>
-        begin(i) = sliceBegin
-        end(i) = sliceEnd + 1
-        strides(i) = sliceStep
+        begin(i).fill(sliceBegin)
+        end(i).fill(sliceEnd + 1)
+        strides(i).fill(sliceStep)
         if (sliceEnd == -1)
           endMask |= (1 << i)
     }

@@ -16,37 +16,37 @@ class ShapeSpec extends FlatSpec with Matchers {
   it must "work for unknown shapes with known rank" in {
     val shape = Shape.unknown(rank = 145)
     assert(shape.rank === 145)
-    assert(shape.asArray === Array.fill[Long](145)(-1))
+    assert(shape.asArray === Array.fill[Int](145)(-1))
   }
 
   it must "work for scalar shapes" in {
     val shape = Shape.scalar()
     assert(shape.rank === 0)
-    assert(shape.asArray === Array.empty[Long])
+    assert(shape.asArray === Array.empty[Int])
   }
 
   it must "work for vector shapes" in {
     val shape = Shape.vector(length = 67)
     assert(shape.rank === 1)
-    assert(shape.asArray === Array[Long](67))
+    assert(shape.asArray === Array[Int](67))
   }
 
   it must "work for matrix shapes" in {
     val shape = Shape.matrix(numRows = 32, numColumns = 784)
     assert(shape.rank === 2)
-    assert(shape.asArray === Array[Long](32, 784))
+    assert(shape.asArray === Array[Int](32, 784))
   }
 
   it must "work for arbitrary shapes" in {
     val shape = Shape(45, 2356, 54, 2)
     assert(shape.rank === 4)
-    assert(shape.asArray === Array[Long](45, 2356, 54, 2))
+    assert(shape.asArray === Array[Int](45, 2356, 54, 2))
   }
 
   it must "work when creating shapes from sequences" in {
-    val shape = Shape.fromSeq(Array[Long](45, 2356, 54, 2))
+    val shape = Shape.fromSeq(Array[Int](45, 2356, 54, 2))
     assert(shape.rank === 4)
-    assert(shape.asArray === Array[Long](45, 2356, 54, 2))
+    assert(shape.asArray === Array[Int](45, 2356, 54, 2))
   }
 
   "'Shape.isFullyDefined'" must "always work correctly" in {
