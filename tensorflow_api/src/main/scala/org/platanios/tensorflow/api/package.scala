@@ -1,7 +1,5 @@
 package org.platanios.tensorflow
 
-import spire.math.{UByte, UShort}
-
 import scala.util.DynamicVariable
 import scala.util.matching.Regex
 
@@ -13,32 +11,60 @@ package object api {
 
   //region Data Types
 
-  type Float16 = Float
-  type Float32 = Float
-  type Float64 = Double
-  type BFloat16 = Float
-  // type Complex64 = Complex[Float]
-  // type Complex128 = Complex[Double]
-  type Int8 = Byte
-  type Int16 = Short
-  type Int32 = Int
-  type Int64 = Long
-  type UInt8 = UByte
-  type UInt16 = UShort
-  type QInt8 = Byte
-  type QInt16 = Short
-  type QInt32 = Int
-  type QUInt8 = UByte
-  type QUInt16 = UShort
+  type SupportedScalaType = types.SupportedScalaType
+  type DataType = types.DataType
 
-  def UInt8(number: Byte): UInt8 = UByte(number)
-  def UInt16(number: Short): UInt16 = UShort(number)
-  // def Complex[@specialized(Float, Double) T](real: T, imag: T): Complex[T] = Complex(real = real, imag = imag)
+  val DataType = types.DataType
 
-  // implicit def intToComplex(n: Int): Complex[Double] = n
-  // implicit def longToComplex(n: Long): Complex[Double] = n
-  // implicit def floatToComplex(n: Float): Complex[Float] = n
-  // implicit def doubleToComplex(n: Double): Complex[Double] = n
+  type Bool = types.Bool
+  // type Float16 = types.Float16
+  type Float32 = types.Float32
+  type Float64 = types.Float64
+  // type BFloat16 = types.BFloat16
+  // type Complex64 = types.Complex64
+  // type Complex128 = types.Complex128
+  type Int8 = types.Int8
+  type Int16 = types.Int16
+  type Int32 = types.Int32
+  type Int64 = types.Int64
+  type UInt8 = types.UInt8
+  type UInt16 = types.UInt16
+  // type String = types.String
+  // type Resource = types.Resource
+
+  val Bool = types.Bool
+  // val Float16 = types.Float16
+  val Float32 = types.Float32
+  val Float64 = types.Float64
+  // val BFloat16 = types.BFloat16
+  // val Complex64 = types.Complex64
+  // val Complex128 = types.Complex128
+  val Int8 = types.Int8
+  val Int16 = types.Int16
+  val Int32 = types.Int32
+  val Int64 = types.Int64
+  val UInt8 = types.UInt8
+  val UInt16 = types.UInt16
+  // val String = types.String
+  // val Resource = types.Resource
+
+  @inline implicit def valueToSupportedScalaType(value: Boolean): Bool = Bool(value)
+  @inline implicit def valueToSupportedScalaType(value: Float): Float32 = Float32(value)
+  @inline implicit def valueToSupportedScalaType(value: Double): Float64 = Float64(value)
+  @inline implicit def valueToSupportedScalaType(value: Byte): Int8 = Int8(value)
+  @inline implicit def valueToSupportedScalaType(value: Short): Int16 = Int16(value)
+  @inline implicit def valueToSupportedScalaType(value: Int): Int32 = Int32(value)
+  @inline implicit def valueToSupportedScalaType(value: Long): Int64 = Int64(value)
+  @inline implicit def valueToSupportedScalaType(value: Char): UInt16 = UInt16(value)
+
+  @inline implicit def supportedScalaTypeToValue(value: Bool): Boolean = value.value
+  @inline implicit def supportedScalaTypeToValue(value: Float32): Float = value.value
+  @inline implicit def supportedScalaTypeToValue(value: Float64): Double = value.value
+  @inline implicit def supportedScalaTypeToValue(value: Int8): Byte = value.value
+  @inline implicit def supportedScalaTypeToValue(value: Int16): Short = value.value
+  @inline implicit def supportedScalaTypeToValue(value: Int32): Int = value.value
+  @inline implicit def supportedScalaTypeToValue(value: Int64): Long = value.value
+  @inline implicit def supportedScalaTypeToValue(value: UInt16): Char = value.value
 
   //endregion Data Types
 

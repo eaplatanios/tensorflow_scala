@@ -1,19 +1,13 @@
 package org.platanios.tensorflow.api.types
 
-import org.platanios.tensorflow.api.Exception.InvalidCastException
 import org.platanios.tensorflow.jni.{TensorFlow => NativeLibrary}
 
 import java.nio.ByteBuffer
 
 // TODO: Figure out how to build a type hierarchy to use when constructing tensors.
 // TODO: Improve handling of the String data type (e.g., in the dataTypeOf function).
-// TODO: Add support for unsigned numbers and for complex numbers.
-// TODO: How to issue a warning/error when negative values are fed into unsigned types.
-// TODO: Is spire necessary?
+// TODO: Add support for half-precision floating-point numbers and for complex numbers.
 // TODO: Casts are unsafe (i.e., downcasting is allowed).
-// TODO: Figure out how to deal with reference data types.
-
-// TODO: Unstable types: Float16, BFloat16, Complex, and UInts.
 
 /** Represents the data type of the elements in a tensor.
   *
@@ -48,36 +42,35 @@ sealed trait DataType {
 
   //region Data Type Set Helper Methods
 
-//  /** Returns `true` if this data type represents a non-quantized floating-point data type. */
-//  def isFloatingPoint: Boolean = !isQuantized && DataType.floatingPointDataTypes.contains(this)
-//
-//  /** Returns `true` if this data type represents a complex data types. */
-//  def isComplex: Boolean = DataType.complexDataTypes.contains(this)
-//
-//  /** Returns `true` if this data type represents a non-quantized integer data type. */
-//  def isInteger: Boolean = !isQuantized && DataType.integerDataTypes.contains(this)
-//
-//  /** Returns `true` if this data type represents a quantized data type. */
-//  def isQuantized: Boolean = DataType.quantizedDataTypes.contains(this)
-//
-//  /** Returns `true` if this data type represents a non-quantized unsigned data type. */
-//  def isUnsigned: Boolean = !isQuantized && DataType.unsignedDataTypes.contains(this)
-//
-//  /** Returns `true` if this data type represents a numeric data type. */
-//  def isNumeric: Boolean = DataType.numericDataTypes.contains(this)
-  def isNumeric: Boolean = true
+  /** Returns `true` if this data type represents a non-quantized floating-point data type. */
+  def isFloatingPoint: Boolean = !isQuantized && DataType.floatingPointDataTypes.contains(this)
+
+  /** Returns `true` if this data type represents a complex data types. */
+  def isComplex: Boolean = DataType.complexDataTypes.contains(this)
+
+  /** Returns `true` if this data type represents a non-quantized integer data type. */
+  def isInteger: Boolean = !isQuantized && DataType.integerDataTypes.contains(this)
+
+  /** Returns `true` if this data type represents a quantized data type. */
+  def isQuantized: Boolean = DataType.quantizedDataTypes.contains(this)
+
+  /** Returns `true` if this data type represents a non-quantized unsigned data type. */
+  def isUnsigned: Boolean = !isQuantized && DataType.unsignedDataTypes.contains(this)
+
+  /** Returns `true` if this data type represents a numeric data type. */
+  def isNumeric: Boolean = DataType.numericDataTypes.contains(this)
 
   /** Returns `true` if this data type represents a boolean data type. */
   def isBoolean: Boolean = this == DataType.Bool
 
   //endregion Data Type Set Helper Methods
 
-//  /** Returns a data type that corresponds to this data type's real part. */
-//  def real: DataType = this match {
-//    case DataType.Complex64 => DataType.Float32
-//    case DataType.Complex128 => DataType.Float64
-//    case _ => this
-//  }
+  //  /** Returns a data type that corresponds to this data type's real part. */
+  //  def real: DataType = this match {
+  //    case DataType.Complex64 => DataType.Float32
+  //    case DataType.Complex128 => DataType.Float64
+  //    case _ => this
+  //  }
 
   /** Scala type corresponding to this TensorFlow data type. */
   type ScalaType <: SupportedScalaType
@@ -98,7 +91,7 @@ sealed trait DataType {
 
   override def equals(that: Any): Boolean = that match {
     case that: DataType => this.cValue == that.cValue
-    case _ => false
+    case _              => false
   }
 
   override def hashCode: Int = cValue
@@ -108,21 +101,37 @@ sealed trait DataType {
 object DataType {
   //region Supported TensorFlow Data Types Definitions
 
-//  object Float16 extends DataType {
-//    override val name    : String = "Float16"
-//    override val cValue  : Int    = 19
-//    override val byteSize: Int    = 2
-//
-//    override type ScalaType = Float32 // TODO: What data type should we actually use for this?
-//
-//    override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = {
-//      buffer.putFloat(index, element)
-//    }
-//
-//    override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
-//      org.platanios.tensorflow.api.types.Float32(buffer.getFloat(index))
-//    }
-//  }
+  object Bool extends DataType {
+    override val name    : String = "Bool"
+    override val cValue  : Int    = 10
+    override val byteSize: Int    = 1
+
+    override type ScalaType = Bool
+
+    override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = {
+      buffer.put(index, if (element) 1 else 0)
+    }
+
+    override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
+      org.platanios.tensorflow.api.types.Bool(buffer.get(index) == 1)
+    }
+  }
+
+  // object Float16 extends DataType {
+  //   override val name    : String = "Float16"
+  //   override val cValue  : Int    = 19
+  //   override val byteSize: Int    = 2
+  //
+  //   override type ScalaType = Float32 // TODO: What data type should we actually use for this?
+  //
+  //   override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = {
+  //     buffer.putFloat(index, element)
+  //   }
+  //
+  //   override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
+  //     org.platanios.tensorflow.api.types.Float32(buffer.getFloat(index))
+  //   }
+  // }
 
   object Float32 extends DataType {
     override val name    : String = "Float32"
@@ -156,24 +165,24 @@ object DataType {
     }
   }
 
+  // object BFloat16 extends DataType {
+  //   override val name    : String = "BFloat16"
+  //   override val cValue  : Int    = 14
+  //   override val byteSize: Int    = 2
+  //
+  //   override type ScalaType = Float32 // TODO: What data type should we actually use for this?
+  //
+  //   override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = {
+  //     buffer.putFloat(index, element)
+  //   }
+  //
+  //   override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
+  //     org.platanios.tensorflow.api.types.Float32(buffer.getFloat(index))
+  //   }
+  // }
+
   // TODO: Add Complex64(cValue = 8, byteSize = 8).
   // TODO: Add Complex128(cValue = 18, byteSize = 16).
-
-//  object BFloat16 extends DataType {
-//    override val name    : String = "BFloat16"
-//    override val cValue  : Int    = 14
-//    override val byteSize: Int    = 2
-//
-//    override type ScalaType = Float32 // TODO: What data type should we actually use for this?
-//
-//    override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = {
-//      buffer.putFloat(index, element)
-//    }
-//
-//    override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
-//      org.platanios.tensorflow.api.types.Float32(buffer.getFloat(index))
-//    }
-//  }
 
   object Int8 extends DataType {
     override val name    : String = "Int8"
@@ -239,21 +248,21 @@ object DataType {
     }
   }
 
-//  object UInt8 extends DataType {
-//    override val name    : String = "UInt8"
-//    override val cValue  : Int    = 4
-//    override val byteSize: Int    = 1
-//
-//    override type ScalaType = UInt16
-//
-//    override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = {
-//      buffer.putChar(index, element)
-//    }
-//
-//    override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
-//      org.platanios.tensorflow.api.types.UInt16(buffer.getChar(index))
-//    }
-//  }
+  object UInt8 extends DataType {
+    override val name    : String = "UInt8"
+    override val cValue  : Int    = 4
+    override val byteSize: Int    = 1
+
+    override type ScalaType = UInt8
+
+    override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = {
+      buffer.put(index, element.value)
+    }
+
+    override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
+      org.platanios.tensorflow.api.types.UInt8(buffer.get(index))
+    }
+  }
 
   object UInt16 extends DataType {
     override val name    : String = "UInt16"
@@ -319,21 +328,21 @@ object DataType {
     }
   }
 
-//  object QUInt8 extends DataType {
-//    override val name    : String = "QUInt8"
-//    override val cValue  : Int    = 12
-//    override val byteSize: Int    = 1
-//
-//    override type ScalaType = UInt16
-//
-//    override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = {
-//      buffer.putChar(index, element)
-//    }
-//
-//    override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
-//      org.platanios.tensorflow.api.types.UInt16(buffer.getChar(index))
-//    }
-//  }
+  object QUInt8 extends DataType {
+    override val name    : String = "QUInt8"
+    override val cValue  : Int    = 12
+    override val byteSize: Int    = 1
+
+    override type ScalaType = UInt8
+
+    override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = {
+      buffer.put(index, element.value)
+    }
+
+    override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
+      org.platanios.tensorflow.api.types.UInt8(buffer.get(index))
+    }
+  }
 
   object QUInt16 extends DataType {
     override val name    : String = "QUInt16"
@@ -351,22 +360,6 @@ object DataType {
     }
   }
 
-  object Bool extends DataType {
-    override val name    : String = "Bool"
-    override val cValue  : Int    = 10
-    override val byteSize: Int    = 1
-
-    override type ScalaType = Bool
-
-    override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = {
-      buffer.put(index, if (element) 1 else 0)
-    }
-
-    override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
-      org.platanios.tensorflow.api.types.Bool(buffer.get(index) == 1)
-    }
-  }
-
   // TODO: Add String(cValue = 7, byteSize = -1).
   // TODO: Add Resource(cValue = 20, byteSize = -1).
 
@@ -374,35 +367,35 @@ object DataType {
 
   //region TensorFlow Data Type Sets
 
-//  /** Set of all floating-point data types. */
-//  val floatingPointDataTypes: Set[DataType] = {
-//    Set(Float16, Float32, Float64, BFloat16)
-//  }
-//
-//  /** Set of all complex data types. */
-//  val complexDataTypes: Set[DataType] = {
-//    Set(Complex64, Complex128)
-//  }
-//
-//  /** Set of all integer data types. */
-//  val integerDataTypes: Set[DataType] = {
-//    Set(Int8, Int16, Int32, Int64, UInt8, UInt16, QInt8, QInt16, QInt32, QUInt8, QUInt16)
-//  }
-//
-//  /** Set of all quantized data types. */
-//  val quantizedDataTypes: Set[DataType] = {
-//    Set(BFloat16, QInt8, QInt16, QInt32, QUInt8, QUInt16)
-//  }
-//
-//  /** Set of all unsigned data types. */
-//  val unsignedDataTypes: Set[DataType] = {
-//    Set(UInt8, UInt16, QUInt8, QUInt16)
-//  }
-//
-//  /** Set of all numeric data types. */
-//  val numericDataTypes: Set[DataType] = {
-//    floatingPointDataTypes ++ complexDataTypes ++ integerDataTypes ++ quantizedDataTypes
-//  }
+  /** Set of all floating-point data types. */
+  val floatingPointDataTypes: Set[DataType] = {
+    Set(Float32, Float64) // TODO: Float16, BFloat16.
+  }
+
+  /** Set of all complex data types. */
+  val complexDataTypes: Set[DataType] = {
+    Set() // TODO: Complex64, Complex128.
+  }
+
+  /** Set of all integer data types. */
+  val integerDataTypes: Set[DataType] = {
+    Set(Int8, Int16, Int32, Int64, UInt8, UInt16, QInt8, QInt16, QInt32, QUInt8, QUInt16)
+  }
+
+  /** Set of all quantized data types. */
+  val quantizedDataTypes: Set[DataType] = {
+    Set(QInt8, QInt16, QInt32, QUInt8, QUInt16) // TODO: BFloat16.
+  }
+
+  /** Set of all unsigned data types. */
+  val unsignedDataTypes: Set[DataType] = {
+    Set(UInt8, UInt16, QUInt8, QUInt16)
+  }
+
+  /** Set of all numeric data types. */
+  val numericDataTypes: Set[DataType] = {
+    floatingPointDataTypes ++ complexDataTypes ++ integerDataTypes ++ quantizedDataTypes
+  }
 
   //endregion TensorFlow Data Type Sets
 
@@ -432,26 +425,26 @@ object DataType {
     */
   @throws[IllegalArgumentException]
   private[api] def fromCValue(cValue: Int): DataType = cValue match {
-//    case Float16.cValue => Float16
+    // case Float16.cValue => Float16
     case Float32.cValue => Float32
-//    case Float64.cValue => Float64
-//    case BFloat16.cValue => BFloat16
-//    case Complex64.cValue => Complex64
-//    case Complex128.cValue => Complex128
-//    case Int8.cValue => Int8
-//    case Int16.cValue => Int16
-//    case Int32.cValue => Int32
-//    case Int64.cValue => Int64
-//    case UInt8.cValue => UInt8
-//    case UInt16.cValue => UInt16
-//    case QInt8.cValue => QInt8
-//    case QInt16.cValue => QInt16
-//    case QInt32.cValue => QInt32
-//    case QUInt8.cValue => QUInt8
-//    case QUInt16.cValue => QUInt16
-//    case Boolean.cValue => Boolean
-//    case String.cValue => String
-//    case Resource.cValue => Resource
+    case Float64.cValue => Float64
+    // case BFloat16.cValue => BFloat16
+    // case Complex64.cValue => Complex64
+    // case Complex128.cValue => Complex128
+    case Int8.cValue    => Int8
+    case Int16.cValue   => Int16
+    case Int32.cValue   => Int32
+    case Int64.cValue   => Int64
+    case UInt8.cValue   => UInt8
+    case UInt16.cValue  => UInt16
+    case QInt8.cValue   => QInt8
+    case QInt16.cValue  => QInt16
+    case QInt32.cValue  => QInt32
+    case QUInt8.cValue  => QUInt8
+    case QUInt16.cValue => QUInt16
+    case Bool.cValue    => Bool
+    // case String.cValue => String
+    // case Resource.cValue => Resource
     case value => throw new IllegalArgumentException(
       s"Data type C value '$value' is not recognized in Scala (TensorFlow version ${NativeLibrary.version}).")
   }
@@ -464,26 +457,26 @@ object DataType {
     */
   @throws[IllegalArgumentException]
   private[api] def fromName(name: String): DataType = name match {
-//    case "Float16" => Float16
+    // case "Float16" => Float16
     case "Float32" => Float32
-//    case "Float64" => Float64
-//    case "BFloat16" => BFloat16
-//    case "Complex64" => Complex64
-//    case "Complex128" => Complex128
-//    case "Int8" => Int8
-//    case "Int16" => Int16
-//    case "Int32" => Int32
-//    case "Int64" => Int64
-//    case "UInt8" => UInt8
-//    case "UInt16" => UInt16
-//    case "QInt8" => QInt8
-//    case "QInt16" => QInt16
-//    case "QInt32" => QInt32
-//    case "QUInt8" => QUInt8
-//    case "QUInt16" => QUInt16
-//    case "Boolean" => Boolean
-//    case "String" => String
-//    case "Resource" => Resource
+    case "Float64" => Float64
+    // case "BFloat16" => BFloat16
+    // case "Complex64" => Complex64
+    // case "Complex128" => Complex128
+    case "Int8"    => Int8
+    case "Int16"   => Int16
+    case "Int32"   => Int32
+    case "Int64"   => Int64
+    case "UInt8"   => UInt8
+    case "UInt16"  => UInt16
+    case "QInt8"   => QInt8
+    case "QInt16"  => QInt16
+    case "QInt32"  => QInt32
+    case "QUInt8"  => QUInt8
+    case "QUInt16" => QUInt16
+    case "Boolean" => Bool
+    // case "String" => String
+    // case "Resource" => Resource
     case value => throw new IllegalArgumentException(
       s"Data type name '$value' is not recognized in Scala (TensorFlow version ${NativeLibrary.version}).")
   }
