@@ -38,6 +38,8 @@ sealed trait DataType {
       Some(nativeLibrarySize)
   }
 
+  val priority: Int
+
   //endregion Data Type Properties
 
   //region Data Type Set Helper Methods
@@ -105,6 +107,7 @@ object DataType {
     override val name    : String = "Bool"
     override val cValue  : Int    = 10
     override val byteSize: Int    = 1
+    override val priority: Int    = 0
 
     override type ScalaType = Bool
 
@@ -121,6 +124,7 @@ object DataType {
   //   override val name    : String = "Float16"
   //   override val cValue  : Int    = 19
   //   override val byteSize: Int    = 2
+  //   override val priority: Int    = 210
   //
   //   override type ScalaType = Float32 // TODO: What data type should we actually use for this?
   //
@@ -137,6 +141,7 @@ object DataType {
     override val name    : String = "Float32"
     override val cValue  : Int    = 1
     override val byteSize: Int    = 4
+    override val priority: Int    = 220
 
     override type ScalaType = Float32
 
@@ -153,6 +158,7 @@ object DataType {
     override val name    : String = "Float64"
     override val cValue  : Int    = 2
     override val byteSize: Int    = 8
+    override val priority: Int    = 230
 
     override type ScalaType = Float64
 
@@ -169,6 +175,7 @@ object DataType {
   //   override val name    : String = "BFloat16"
   //   override val cValue  : Int    = 14
   //   override val byteSize: Int    = 2
+  //   override val priority: Int    = 200
   //
   //   override type ScalaType = Float32 // TODO: What data type should we actually use for this?
   //
@@ -188,6 +195,7 @@ object DataType {
     override val name    : String = "Int8"
     override val cValue  : Int    = 6
     override val byteSize: Int    = 1
+    override val priority: Int    = 40
 
     override type ScalaType = Int8
 
@@ -204,6 +212,7 @@ object DataType {
     override val name    : String = "Int16"
     override val cValue  : Int    = 5
     override val byteSize: Int    = 2
+    override val priority: Int    = 80
 
     override type ScalaType = Int16
 
@@ -220,6 +229,7 @@ object DataType {
     override val name    : String = "Int32"
     override val cValue  : Int    = 3
     override val byteSize: Int    = 4
+    override val priority: Int    = 100
 
     override type ScalaType = Int32
 
@@ -236,6 +246,7 @@ object DataType {
     override val name    : String = "Int64"
     override val cValue  : Int    = 9
     override val byteSize: Int    = 8
+    override val priority: Int    = 110
 
     override type ScalaType = Int64
 
@@ -252,6 +263,7 @@ object DataType {
     override val name    : String = "UInt8"
     override val cValue  : Int    = 4
     override val byteSize: Int    = 1
+    override val priority: Int    = 20
 
     override type ScalaType = UInt8
 
@@ -268,6 +280,7 @@ object DataType {
     override val name    : String = "UInt16"
     override val cValue  : Int    = 17
     override val byteSize: Int    = 2
+    override val priority: Int    = 60
 
     override type ScalaType = UInt16
 
@@ -284,6 +297,7 @@ object DataType {
     override val name    : String = "QInt8"
     override val cValue  : Int    = 11
     override val byteSize: Int    = 1
+    override val priority: Int    = 30
 
     override type ScalaType = Int8
 
@@ -300,6 +314,7 @@ object DataType {
     override val name    : String = "QInt16"
     override val cValue  : Int    = 15
     override val byteSize: Int    = 2
+    override val priority: Int    = 70
 
     override type ScalaType = Int16
 
@@ -316,6 +331,7 @@ object DataType {
     override val name    : String = "QInt32"
     override val cValue  : Int    = 13
     override val byteSize: Int    = 4
+    override val priority: Int    = 90
 
     override type ScalaType = Int32
 
@@ -332,6 +348,7 @@ object DataType {
     override val name    : String = "QUInt8"
     override val cValue  : Int    = 12
     override val byteSize: Int    = 1
+    override val priority: Int    = 10
 
     override type ScalaType = UInt8
 
@@ -348,6 +365,7 @@ object DataType {
     override val name    : String = "QUInt16"
     override val cValue  : Int    = 16
     override val byteSize: Int    = 2
+    override val priority: Int    = 50
 
     override type ScalaType = UInt16
 

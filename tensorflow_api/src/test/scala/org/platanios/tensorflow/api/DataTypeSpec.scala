@@ -113,6 +113,8 @@ class DataTypeSpec extends FlatSpec with Matchers {
     // assert(DataType.Resource.byteSize === -1)
   }
 
+  // TODO: Add checks for data type priorities.
+
   "'DataType.isBoolean'" must "always work correctly" in {
     // assert(DataType.Float16.isBoolean === false)
     assert(DataType.Float32.isBoolean === false)
