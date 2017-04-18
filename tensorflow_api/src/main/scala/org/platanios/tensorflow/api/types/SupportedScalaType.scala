@@ -8,6 +8,17 @@ sealed trait SupportedScalaType extends Any {
   @inline def cast(dataType: DataType): dataType.ScalaType
 }
 
+object SupportedScalaType {
+  @inline implicit def supportedScalaTypeToValue(value: Bool): Boolean = value.value
+  @inline implicit def supportedScalaTypeToValue(value: Float32): Float = value.value
+  @inline implicit def supportedScalaTypeToValue(value: Float64): Double = value.value
+  @inline implicit def supportedScalaTypeToValue(value: Int8): Byte = value.value
+  @inline implicit def supportedScalaTypeToValue(value: Int16): Short = value.value
+  @inline implicit def supportedScalaTypeToValue(value: Int32): Int = value.value
+  @inline implicit def supportedScalaTypeToValue(value: Int64): Long = value.value
+  @inline implicit def supportedScalaTypeToValue(value: UInt16): Char = value.value
+}
+
 sealed trait ComparableSupportedScalaType[C <: ComparableSupportedScalaType[C]] extends Any with SupportedScalaType {
   def ==(that: C): Boolean
   def <(that: C): Boolean

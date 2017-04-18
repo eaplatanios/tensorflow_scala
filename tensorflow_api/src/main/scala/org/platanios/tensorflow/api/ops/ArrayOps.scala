@@ -22,9 +22,9 @@ object ArrayOps {
     * The argument `shape` is optional. If present, it specifies the dimensions of the resulting tensor. If not present,
     * the shape of `value` is used.
     *
-    * @param  value       A constant value of data type `dataType`.
-    * @param  dataType    Data type of the resulting tensor. If not provided, its value will be inferred from the type of
-    *                     `value`.
+    * @param  tensor      A constant value of data type `dataType`.
+    * @param  dataType    Data type of the resulting tensor. If not provided, its value will be inferred from the type
+    *                     of `value`.
     * @param  shape       Shape of the resulting tensor.
     * @param  verifyShape If `true` and `shape` is not `null`, then the shape of `value` will be verified (i.e., checked
     *                     to see if it is equal to the provided shape.
@@ -35,11 +35,12 @@ object ArrayOps {
     */
   @throws[InvalidShapeException]
   def constant(
-      value: Any, dataType: DataType = null, shape: Shape = null, verifyShape: Boolean = false,
+      tensor: Tensor, dataType: DataType = null, shape: Shape = null, verifyShape: Boolean = false,
       name: String = "Constant"): Op.Output = {
-    using(Tensor.create(value = value, dataType = dataType, shape = shape, verifyShape = verifyShape)) { tensor =>
+    // TODO: Use all provided arguments.
+    using(tensor.nativeView) { nativeTensor =>
       Op.Builder(opType = "Const", name = name)
-          .setAttribute(name = "value", value = tensor)
+          .setAttribute(name = "value", value = nativeTensor)
           .setAttribute(name = "dtype", value = tensor.dataType)
           .build().outputs(0)
     }
@@ -108,9 +109,9 @@ object ArrayOps {
     * @param  name         Name for the created op.
     * @return Created op.
     */
-  def placeholderWithDefault(defaultValue: Any, shape: Shape, name: String = "PlaceholderWithDefault"): Op.Output = {
+  def placeholderWithDefault(defaultValue: Tensor, shape: Shape, name: String = "PlaceholderWithDefault"): Op.Output = {
     Op.Builder(opType = "PlaceholderWithDefault", name = name)
-        .addInput(Op.createWith(nameScope = name)(constant(value = defaultValue, name = "DefaultValue")))
+        .addInput(Op.createWith(nameScope = name)(constant(tensor = defaultValue, name = "DefaultValue")))
         .setAttribute(name = "shape", value = shape)
         .build().outputs(0)
   }
@@ -162,7 +163,7 @@ object ArrayOps {
   def expandDims(input: Op.Output, axis: Int, name: String = "ExpandDims"): Op.Output = {
     Op.Builder(opType = "ExpandDims", name = name)
         .addInput(input)
-        .addInput(Op.createWith(nameScope = name)(constant(value = axis, name = "Axis")))
+        .addInput(Op.createWith(nameScope = name)(constant(tensor = axis, name = "Axis")))
         .build().outputs(0)
   }
 
@@ -266,7 +267,7 @@ object ArrayOps {
   def parallelStack(inputs: Array[Op.Output], name: String = "ParallelStack"): Op.Output = {
     val inputsShape = inputs.head.shape
     inputs.tail.foreach(_.shape.assertIsCompatibleWith(inputsShape))
-    val outputShape = Shape(inputs.length.asInstanceOf[Long]).concatenateWith(inputsShape)
+    val outputShape = Shape(inputs.length).concatenateWith(inputsShape)
     Op.Builder(opType = "ParallelConcat", name = name)
         .addInputList(inputs)
         .setAttribute("shape", outputShape)
@@ -353,7 +354,7 @@ object ArrayOps {
     * @return Created op.
     */
   def concatenate(inputs: Array[Op.Output], axis: Int = 0, name: String = "Concatenate"): Op.Output = {
-    val axisConstant = Op.createWith(nameScope = name)(constant(value = axis, name = "Axis"))
+    val axisConstant = Op.createWith(nameScope = name)(constant(tensor = axis, name = "Axis"))
     if (inputs.length == 1) {
       Op.createWith(nameScope = name)(identity(inputs.head))
     } else {
@@ -389,7 +390,7 @@ object ArrayOps {
     */
   def splitEvenly(input: Op.Output, numSplits: Int, axis: Int = 0, name: String = "Split"): Array[Op.Output] = {
     Op.Builder(opType = "Split", name = name)
-        .addInput(Op.createWith(nameScope = name)(constant(value = axis, name = "Axis")))
+        .addInput(Op.createWith(nameScope = name)(constant(tensor = axis, name = "Axis")))
         .addInput(input)
         .setAttribute("num_split", numSplits)
         .build().outputs
@@ -417,11 +418,11 @@ object ArrayOps {
     * @param  name       Name for the created op.
     * @return Created op.
     */
-  def split(input: Op.Output, splitSizes: Array[Int], axis: Int = 0, name: String = "Split"): Array[Op.Output] = {
+  def split(input: Op.Output, splitSizes: Tensor, axis: Int = 0, name: String = "Split"): Array[Op.Output] = {
     Op.Builder(opType = "SplitV", name = name)
         .addInput(input)
-        .addInput(Op.createWith(nameScope = name)(constant(value = splitSizes, name = "Sizes")))
-        .addInput(Op.createWith(nameScope = name)(constant(value = axis, name = "Axis")))
+        .addInput(Op.createWith(nameScope = name)(constant(tensor = splitSizes, name = "Sizes")))
+        .addInput(Op.createWith(nameScope = name)(constant(tensor = axis, name = "Axis")))
         .build().outputs
   }
 

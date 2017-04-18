@@ -679,7 +679,7 @@ object Op {
 
     /** Shape of the tensor that this op output represents. */
     def shape: Shape = Shape.fromSeq(using(op.graph.reference) { r =>
-      NativeOp.shape(r.nativeHandle, op.nativeHandle, index)
+      NativeOp.shape(r.nativeHandle, op.nativeHandle, index).map(_.toInt)
     })
 
     /** Evaluates this op output.
@@ -785,7 +785,7 @@ object Op {
     def device: String = values.device
 
     private[api] def toOpOutput(dataType: DataType = null): Op.Output = {
-      if (dataType != null && !dataType.isCompatibleWith(this.dataType))
+      if (dataType != null && dataType != this.dataType)
         throw new IllegalArgumentException(
           s"Op output conversion requested data type '$dataType' for op output, '$this', with data type: " +
               s"'${this.dataType}.")
@@ -876,7 +876,7 @@ object Op {
         dataTypeArrayAttributes.foreach(a => NativeOp.setAttrTypeList(nativeHandle, a._1, a._2))
         tensorAttributes.foreach(a => NativeOp.setAttrTensor(nativeHandle, a._1, a._2))
         tensorArrayAttributes.foreach(a => NativeOp.setAttrTensorList(nativeHandle, a._1, a._2))
-        shapeAttributes.foreach(a => NativeOp.setAttrShape(nativeHandle, a._1, a._2.asArray, a._2.rank))
+        shapeAttributes.foreach(a => NativeOp.setAttrShape(nativeHandle, a._1, a._2.asArray.map(_.toLong), a._2.rank))
         val operation = Op(graph, NativeOp.finish(nativeHandle))
         built = true
         operation
@@ -953,12 +953,12 @@ object Op {
       this
     }
 
-    def setAttribute(name: String, value: Tensor): Builder = {
+    def setAttribute(name: String, value: Tensor.NativeView): Builder = {
       tensorAttributes += name -> value.nativeHandle
       this
     }
 
-    def setAttribute(name: String, value: Array[Tensor]): Builder = {
+    def setAttribute(name: String, value: Array[Tensor.NativeView]): Builder = {
       tensorArrayAttributes += name -> value.map(_.nativeHandle)
       this
     }

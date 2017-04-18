@@ -26,7 +26,8 @@ final case class Session private (graph: Graph, private var nativeHandle: Long) 
       targets: Array[Op.Output] = Array.empty, runOptions: Option[Array[Byte]] = None,
       wantMetadata: Boolean = false): (Array[Tensor], Array[Byte]) = {
     val (inputs, inputTensors) = feeds.toArray.unzip
-    val inputTensorHandles: Array[Long] = inputTensors.map(_.nativeHandle)
+    val inputTensorNativeViews = inputTensors.map(_.nativeView)
+    val inputTensorHandles: Array[Long] = inputTensorNativeViews.map(_.nativeHandle)
     val inputOpHandles: Array[Long] = inputs.map(_.op.nativeHandle)
     val inputOpIndices: Array[Int] = inputs.map(_.index)
     val outputOpHandles: Array[Long] = fetches.map(_.op.nativeHandle)
@@ -51,7 +52,8 @@ final case class Session private (graph: Graph, private var nativeHandle: Long) 
         targetOpHandles = targetOpHandles,
         wantRunMetadata = wantMetadata,
         outputTensorHandles = outputTensorHandles)
-    val outputs: Array[Tensor] = outputTensorHandles.map(h => Tensor.fromNativeHandle(nativeHandle = h))
+//    val outputs: Array[Tensor] = outputTensorHandles.map(h => Tensor.fromNativeHandle(nativeHandle = h))
+    val outputs: Array[Tensor] = null // TODO: Fix this.
     NativeHandleLock.synchronized {
       if (nativeHandle != 0) {
         referenceCount -= 1
@@ -59,6 +61,7 @@ final case class Session private (graph: Graph, private var nativeHandle: Long) 
           NativeHandleLock.notifyAll()
       }
     }
+    inputTensorNativeViews.foreach(_.close())
     (outputs, metadata)
   }
 

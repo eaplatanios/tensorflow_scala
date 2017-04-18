@@ -61,23 +61,20 @@ case class IndexerConstructionWithThreeNumbers private (n1: Int, n2: Int, n3: In
 
 /** Contains helper functions for dealing with indexers. */
 object Indexer {
-  private[api] val --- : Indexer = Ellipsis
+  val --- : Indexer = Ellipsis
 
   //region Implicits
 
-  // TODO: Add begin mask support (this one is tough).
+  // TODO: Add begin mask support (not simple).
 
-  private[api] implicit def intToIndex(index: Int): Index = Index(index = index)
-  private[api] implicit def intToIndexerConstructionWithOneNumber(n: Int): IndexerConstructionWithOneNumber =
+  implicit def intToIndex(index: Int): Index = Index(index = index)
+  implicit def intToIndexerConstructionWithOneNumber(n: Int): IndexerConstructionWithOneNumber =
     IndexerConstructionWithOneNumber(n)
-  private[api] implicit def indexerConstructionWithOneNumberToIndex(
-      construction: IndexerConstructionWithOneNumber): Index =
+  implicit def indexerConstructionWithOneNumberToIndex(construction: IndexerConstructionWithOneNumber): Index =
     Index(index = construction.n)
-  private[api] implicit def indexerConstructionWithTwoNumbersToSlice(
-      construction: IndexerConstructionWithTwoNumbers): Slice =
+  implicit def indexerConstructionWithTwoNumbersToSlice(construction: IndexerConstructionWithTwoNumbers): Slice =
     Slice(start = construction.n1, end = construction.n2)
-  private[api] implicit def indexerConstructionWithThreeNumbersToSlice(
-      construction: IndexerConstructionWithThreeNumbers): Slice =
+  implicit def indexerConstructionWithThreeNumbersToSlice(construction: IndexerConstructionWithThreeNumbers): Slice =
     Slice(start = construction.n1, end = construction.n3, step = construction.n2)
 
   //endregion Implicits
@@ -98,7 +95,8 @@ object Indexer {
     * @throws InvalidIndexerException If an invalid indexing sequence is provided.
     */
   @throws[InvalidIndexerException]
-  private[api] def decode(shape: Shape, indexers: Seq[Indexer]): (Array[Int], Array[Int], Array[Int], Array[Int]) = {
+  private[api] def decode(
+      shape: Shape, indexers: Seq[Indexer]): (Array[Int], Array[Int], Array[Int], Array[Int], Array[Int]) = {
     // TODO: Make this more efficient.
     // TODO: Add tests for when providing an empty shape.
     val newAxesCount = indexers.count(_ == NewAxis)
@@ -107,6 +105,7 @@ object Indexer {
     if (newRank + ellipsesCount < indexers.length)
       throw InvalidIndexerException(
         s"Provided indexing sequence (${indexers.mkString(", ")}) is too large for shape $shape.")
+    val oldDimensions = Array.ofDim[Int](newRank)
     val dimensions = Array.ofDim[Int](newRank)
     val beginOffsets = Array.ofDim[Int](newRank)
     val endOffsets = Array.ofDim[Int](newRank)
@@ -130,18 +129,21 @@ object Indexer {
                 endOffsets(j) = 1
                 strides(j) = 1
                 dimensions(j) = 1
+                oldDimensions(j) = 1
                 newAxesCounter += 1
               case Index(index) =>
                 beginOffsets(j) = if (index < 0) index + oldDimSize else index
                 endOffsets(j) = beginOffsets(j) + 1
                 strides(j) = 1
                 dimensions(j) = 1
+                oldDimensions(j) = oldDimSize
               case s@Slice(begin, end, step, inclusive) =>
                 beginOffsets(j) = if (begin < 0) begin + oldDimSize else begin
                 val effectiveEnd = if (end < 0) end + oldDimSize else end
                 endOffsets(j) = if (inclusive) effectiveEnd + 1 else effectiveEnd
                 strides(j) = step
                 dimensions(j) = s.length(oldDimSize)
+                oldDimensions(j) = oldDimSize
             }
             if (beginOffsets(j) < 0 || beginOffsets(j) >= oldDimSize)
               throw InvalidIndexerException(
@@ -156,6 +158,7 @@ object Indexer {
             endOffsets(j) = shape(shape.rank - newRank + j + newAxesCounter)
             strides(j) = 1
             dimensions(j) = shape(shape.rank - newRank + j + newAxesCounter)
+            oldDimensions(j) = dimensions(j)
             j -= 1
           }
           ellipsisFound = true
@@ -164,18 +167,21 @@ object Indexer {
           endOffsets(i) = 1
           strides(i) = 1
           dimensions(i) = 1
+          oldDimensions(i) = 1
           newAxesCounter += 1
         case Index(index) =>
           beginOffsets(i) = if (index < 0) index + oldDimSize else index
           endOffsets(i) = beginOffsets(i) + 1
           strides(i) = 1
           dimensions(i) = 1
+          oldDimensions(i) = oldDimSize
         case s@Slice(begin, end, step, inclusive) =>
           beginOffsets(i) = if (begin < 0) begin + oldDimSize else begin
           val effectiveEnd = if (end < 0) end + oldDimSize else end
           endOffsets(i) = if (inclusive) effectiveEnd + 1 else effectiveEnd
           strides(i) = step
           dimensions(i) = s.length(oldDimSize)
+          oldDimensions(i) = oldDimSize
       }
       if (!ellipsisFound && (beginOffsets(i) < 0 || beginOffsets(i) >= oldDimSize))
         throw InvalidIndexerException(
@@ -191,10 +197,11 @@ object Indexer {
         endOffsets(i) = shape(i - newAxesCounter)
         strides(i) = 1
         dimensions(i) = shape(i - newAxesCounter)
+        oldDimensions(i) = dimensions(i)
         i += 1
       }
     }
-    (dimensions, beginOffsets, endOffsets, strides)
+    (oldDimensions, dimensions, beginOffsets, endOffsets, strides)
   }
 
   /** Converts a sequence of indexers into a function that takes an [[Op.Output]], applies the strided slice native op

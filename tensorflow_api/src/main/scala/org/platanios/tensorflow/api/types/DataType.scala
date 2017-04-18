@@ -4,7 +4,7 @@ import org.platanios.tensorflow.jni.{TensorFlow => NativeLibrary}
 
 import java.nio.ByteBuffer
 
-// TODO: Figure out how to build a type hierarchy to use when constructing tensors.
+// TODO: Add min/max-value and "isSigned" information.
 // TODO: Improve handling of the String data type (e.g., in the dataTypeOf function).
 // TODO: Add support for half-precision floating-point numbers and for complex numbers.
 // TODO: Casts are unsafe (i.e., downcasting is allowed).
