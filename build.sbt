@@ -1,8 +1,8 @@
-//import sbtprotobuf.{ProtobufPlugin => PB}
-
 organization in ThisBuild := "org.platanios"
 version in ThisBuild := "1.0"
 scalaVersion in ThisBuild := "2.12.1"
+
+val tensorFlowVersion = "1.1.0-rc2"
 
 scalacOptions in ThisBuild ++= Seq(
   "-feature",
@@ -26,7 +26,7 @@ lazy val loggingDependencies = Seq(
 )
 
 lazy val tensorflow = (project in file("."))
-    .aggregate(tensorflow_jni, tensorflow_api) // Ignoring tensorflow_macros for now
+    .aggregate(tensorflow_jni, tensorflow_api)
     .settings(
       sourcesInBase := false,
       unmanagedSourceDirectories in Compile := Nil,
@@ -47,20 +47,13 @@ lazy val tensorflow_jni = (project in file("./tensorflow_jni"))
       target in javah := sourceDirectory.value / "main" / "native" / "include",
       sourceDirectory in nativeCompile := sourceDirectory.value / "main" / "native",
       target in nativeCompile := target.value / "native" / nativePlatform.value
-      // Protobuf settings
-      // PB.protobufSettings,
-      // version in PB.protobufConfig := "3.2.0",
-      // libraryDependencies += "com.google.protobuf" % "protobuf-java" % (version in PB.protobufConfig).value % PB.protobufConfig.name,
-      // sourceDirectory in PB.protobufConfig := sourceDirectory.value / "main" / "protobuf",
-      // javaSource in PB.protobufConfig := ((sourceDirectory in Compile).value / "generated" / "java"),
-      // sourceDirectories in Compile += sourceDirectory.value / "main" / "generated" / "java"
     )
 
 lazy val tensorflow_api = (project in file("./tensorflow_api"))
-    .dependsOn(tensorflow_jni) // Ignoring tensorflow_macros for now
+    .dependsOn(tensorflow_jni)
     .settings(
       name := "tensorflow_api",
-//      libraryDependencies += "org.spire-math" %% "spire" % "0.13.0",
+      libraryDependencies += "org.tensorflow" % "proto" % tensorFlowVersion,
       // Test dependencies
       libraryDependencies += "org.scalactic" %% "scalactic" % "3.0.1",
       libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1" % "test"
