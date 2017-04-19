@@ -47,6 +47,30 @@ JNIEXPORT jobject JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_buffer
 JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_delete
   (JNIEnv *, jobject, jlong);
 
+/*
+ * Class:     org_platanios_tensorflow_jni_Tensor__
+ * Method:    getEncodedStringSize
+ * Signature: (I)I
+ */
+JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_getEncodedStringSize
+  (JNIEnv *, jobject, jint);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Tensor__
+ * Method:    setStringBytes
+ * Signature: ([BL)I
+ */
+JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_setStringBytes
+  (JNIEnv *, jobject, jbyteArray, jobject);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Tensor__
+ * Method:    getStringBytes
+ * Signature: (L)V
+ */
+JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_getStringBytes
+  (JNIEnv *, jobject, jobject);
+
 ///*
 // * Class:     org_platanios_tensorflow_jni_Tensor__
 // * Method:    allocate

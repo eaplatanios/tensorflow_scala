@@ -6,10 +6,15 @@ package org.platanios.tensorflow.api.types
 sealed trait SupportedScalaType extends Any {
   @inline def dataType: DataType
   @inline def cast(dataType: DataType): dataType.ScalaType
+
+  def toStr: Str = Str(toString)
+
+  override def toString: String
 }
 
 object SupportedScalaType {
   @inline implicit def supportedScalaTypeToValue(value: Bool): Boolean = value.value
+  @inline implicit def supportedScalaTypeToValue(value: Str): String = value.value
   @inline implicit def supportedScalaTypeToValue(value: Float32): Float = value.value
   @inline implicit def supportedScalaTypeToValue(value: Float64): Double = value.value
   @inline implicit def supportedScalaTypeToValue(value: Int8): Byte = value.value
@@ -53,11 +58,44 @@ final case class Bool(value: Boolean) extends AnyVal with ComparableSupportedSca
       case DataType.QUInt8  => if (value) UInt8(1) else UInt8(0)
       case DataType.QUInt16 => if (value) UInt16(1) else UInt16(0)
       case DataType.Bool    => this
+      case DataType.Str     => toString
     }).asInstanceOf[dataType.ScalaType]
   }
 
   override def ==(that: Bool): Boolean = this.value == that.value
   override def <(that: Bool): Boolean = this.value < that.value
+
+  override def toString: String = value.toString
+}
+
+final case class Str(value: String) extends AnyVal with ComparableSupportedScalaType[Str] {
+  override def dataType: DataType = DataType.Str
+  override def cast(dataType: DataType): dataType.ScalaType = {
+    (dataType match {
+      // case DataType.Float16 => ???
+      case DataType.Float32 => Float32(value.toFloat)
+      case DataType.Float64 => Float64(value.toDouble)
+      // case DataType.BFloat16 => ???
+      case DataType.Int8    => Int8(value.toByte)
+      case DataType.Int16   => Int16(value.toShort)
+      case DataType.Int32   => Int32(value.toInt)
+      case DataType.Int64   => Int64(value.toLong)
+      case DataType.UInt8   => UInt8(value.toByte)
+      case DataType.UInt16  => UInt16(value.toShort)
+      case DataType.QInt8   => Int8(value.toByte)
+      case DataType.QInt16  => Int16(value.toShort)
+      case DataType.QInt32  => Int32(value.toInt)
+      case DataType.QUInt8  => UInt8(value.toByte)
+      case DataType.QUInt16 => UInt16(value.toShort)
+      case DataType.Bool    => Bool(value.toBoolean)
+      case DataType.Str     => this
+    }).asInstanceOf[dataType.ScalaType]
+  }
+
+  override def ==(that: Str): Boolean = this.value == that.value
+  override def <(that: Str): Boolean = this.value < that.value
+
+  override def toString: String = value
 }
 
 private[types] trait SupportedScalaNumberType[N <: SupportedScalaNumberType[N]]
@@ -79,6 +117,7 @@ private[types] trait SupportedScalaNumberType[N <: SupportedScalaNumberType[N]]
     case DataType.QUInt8  => toQUInt8.asInstanceOf[dataType.ScalaType]
     case DataType.QUInt16 => toQUInt16.asInstanceOf[dataType.ScalaType]
     case DataType.Bool    => toBool.asInstanceOf[dataType.ScalaType]
+    case DataType.Str     => toStr.asInstanceOf[dataType.ScalaType]
   }
 
   def toByte: Byte = toInt8.value
@@ -139,6 +178,8 @@ final case class Float32(value: Float) extends AnyVal with SupportedScalaNumberT
   override def /(that: Float32): Float32 = Float32(this.value / that.value)
   override def %(that: Float32): Float32 = Float32(this.value % that.value)
   override def **(that: Float32): Float32 = Float32(math.pow(this.value, that.value).toFloat)
+
+  override def toString: String = value.toString
 }
 
 final case class Float64(value: Double) extends AnyVal with SupportedScalaNumberType[Float64] {
@@ -164,6 +205,8 @@ final case class Float64(value: Double) extends AnyVal with SupportedScalaNumber
   override def /(that: Float64): Float64 = Float64(this.value / that.value)
   override def %(that: Float64): Float64 = Float64(this.value % that.value)
   override def **(that: Float64): Float64 = Float64(math.pow(this.value, that.value))
+
+  override def toString: String = value.toString
 }
 
 final case class Int8(value: Byte) extends AnyVal with SupportedScalaNumberType[Int8] {
@@ -189,6 +232,8 @@ final case class Int8(value: Byte) extends AnyVal with SupportedScalaNumberType[
   override def /(that: Int8): Int8 = Int8((this.value / that.value).toByte)
   override def %(that: Int8): Int8 = Int8((this.value % that.value).toByte)
   override def **(that: Int8): Int8 = Int8(math.pow(this.value, that.value).toByte)
+
+  override def toString: String = value.toString
 }
 
 final case class Int16(value: Short) extends AnyVal with SupportedScalaNumberType[Int16] {
@@ -214,6 +259,8 @@ final case class Int16(value: Short) extends AnyVal with SupportedScalaNumberTyp
   override def /(that: Int16): Int16 = Int16((this.value / that.value).toShort)
   override def %(that: Int16): Int16 = Int16((this.value % that.value).toShort)
   override def **(that: Int16): Int16 = Int16(math.pow(this.value, that.value).toShort)
+
+  override def toString: String = value.toString
 }
 
 final case class Int32(value: Int) extends AnyVal with SupportedScalaNumberType[Int32] {
@@ -239,6 +286,8 @@ final case class Int32(value: Int) extends AnyVal with SupportedScalaNumberType[
   override def /(that: Int32): Int32 = Int32(this.value / that.value)
   override def %(that: Int32): Int32 = Int32(this.value % that.value)
   override def **(that: Int32): Int32 = Int32(math.pow(this.value, that.value).toInt)
+
+  override def toString: String = value.toString
 }
 
 final case class Int64(value: Long) extends AnyVal with SupportedScalaNumberType[Int64] {
@@ -264,6 +313,8 @@ final case class Int64(value: Long) extends AnyVal with SupportedScalaNumberType
   override def /(that: Int64): Int64 = Int64(this.value / that.value)
   override def %(that: Int64): Int64 = Int64(this.value % that.value)
   override def **(that: Int64): Int64 = Int64(math.pow(this.value, that.value).toLong)
+
+  override def toString: String = value.toString
 }
 
 final case class UInt8(value: Byte) extends AnyVal with SupportedScalaNumberType[UInt8] {
@@ -289,6 +340,8 @@ final case class UInt8(value: Byte) extends AnyVal with SupportedScalaNumberType
   override def /(that: UInt8): UInt8 = UInt8((this.toInt / that.toInt).toByte)
   override def %(that: UInt8): UInt8 = UInt8((this.toInt % that.toInt).toByte)
   override def **(that: UInt8): UInt8 = UInt8(math.pow(this.toLong, that.toLong).toByte)
+
+  override def toString: String = value.toString
 }
 
 object UInt8 {
@@ -321,6 +374,8 @@ final case class UInt16(value: Char) extends AnyVal with SupportedScalaNumberTyp
   override def /(that: UInt16): UInt16 = UInt16((this.toInt / that.toInt).toChar)
   override def %(that: UInt16): UInt16 = UInt16((this.toInt % that.toInt).toChar)
   override def **(that: UInt16): UInt16 = UInt16(math.pow(this.toLong, that.toLong).toChar)
+
+  override def toString: String = value.toString
 }
 
 object UInt16 {

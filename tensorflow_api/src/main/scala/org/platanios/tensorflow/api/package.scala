@@ -17,6 +17,7 @@ package object api extends Implicits {
   val DataType = types.DataType
 
   type Bool = types.Bool
+  type Str = types.Str
   // type Float16 = types.Float16
   type Float32 = types.Float32
   type Float64 = types.Float64
@@ -29,10 +30,10 @@ package object api extends Implicits {
   type Int64 = types.Int64
   type UInt8 = types.UInt8
   type UInt16 = types.UInt16
-  // type String = types.String
   // type Resource = types.Resource
 
   val Bool    = types.Bool
+  val Str     = types.Str
   // val Float16 = types.Float16
   val Float32 = types.Float32
   val Float64 = types.Float64
@@ -45,7 +46,6 @@ package object api extends Implicits {
   val Int64   = types.Int64
   val UInt8   = types.UInt8
   val UInt16  = types.UInt16
-  // val String = types.String
   // val Resource = types.Resource
 
   //endregion Data Types

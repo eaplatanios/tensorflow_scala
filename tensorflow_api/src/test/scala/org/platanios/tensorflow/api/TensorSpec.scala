@@ -8,7 +8,7 @@ import scala.language.postfixOps
   * @author Emmanouil Antonios Platanios
   */
 class TensorSpec extends FlatSpec with Matchers {
-  "'Tensor.create'" must "create a valid Tensor when provided no data type or shape" in {
+  "'Tensor.create'" must "create a valid numeric tensors when provided no data type or shape" in {
     val tensor1: Tensor = -2
     assert(tensor1.dataType === DataType.Int32)
     assert(tensor1.shape === Shape())
@@ -30,6 +30,61 @@ class TensorSpec extends FlatSpec with Matchers {
     assert(tensor4.shape === Shape(2))
     assert(tensor4(0).scalar === Float64(5.0))
     assert(tensor4(1).scalar === Float64(6.0))
+    val tensor5: Tensor = "foo"
+    assert(tensor5.dataType === DataType.Str)
+    assert(tensor5.shape === Shape())
+    assert(tensor5(0).scalar === Str("foo"))
+    val tensor6: Tensor = Tensor("foo", "bar")
+    assert(tensor6.dataType === DataType.Str)
+    assert(tensor6.shape === Shape(2))
+    assert(tensor6(0).scalar === Str("foo"))
+    assert(tensor6(1).scalar === Str("bar"))
+    val tensor7 = Tensor(Tensor(Tensor("0,0,0", "0,0,1"), Tensor("0,1,0", "0,1,1"), Tensor("0,2,0", "0,2,1")),
+                         Tensor(Tensor("1,0,0", "1,0,1"), Tensor("1,1,0", "1,1,1"), Tensor("1,2,0", "1,2,1")),
+                         Tensor(Tensor("2,0,0", "2,0,1"), Tensor("2,1,0", "2,1,1"), Tensor("2,2,0", "2,2,1")))
+    assert(tensor7.dataType === DataType.Str)
+    assert(tensor7.shape === Shape(3, 3, 2))
+    assert(tensor7(0, 0, 0).scalar === Str("0,0,0"))
+    assert(tensor7(0, 0, 1).scalar === Str("0,0,1"))
+    assert(tensor7(0, 1, 0).scalar === Str("0,1,0"))
+    assert(tensor7(0, 1, 1).scalar === Str("0,1,1"))
+    assert(tensor7(0, 2, 0).scalar === Str("0,2,0"))
+    assert(tensor7(0, 2, 1).scalar === Str("0,2,1"))
+    assert(tensor7(2, 0, 0).scalar === Str("2,0,0"))
+    assert(tensor7(2, 0, 1).scalar === Str("2,0,1"))
+    assert(tensor7(2, 1, 0).scalar === Str("2,1,0"))
+    assert(tensor7(2, 1, 1).scalar === Str("2,1,1"))
+    assert(tensor7(2, 2, 0).scalar === Str("2,2,0"))
+    assert(tensor7(2, 2, 1).scalar === Str("2,2,1"))
+  }
+
+  it must "create a valid string tensors when provided no data type or shape" in {
+    val tensor1: Tensor = "foo"
+    assert(tensor1.dataType === DataType.Str)
+    assert(tensor1.shape === Shape())
+    assert(tensor1(0).scalar === Str("foo"))
+    val tensor2: Tensor = Tensor("foo", "bar")
+    assert(tensor2.dataType === DataType.Str)
+    assert(tensor2.shape === Shape(2))
+    assert(tensor2(0).scalar === Str("foo"))
+    assert(tensor2(1).scalar === Str("bar"))
+    val tensor3 = Tensor(Tensor(Tensor("0,0,0", "0,0,1"), Tensor("0,1,0", "0,1,1"), Tensor("0,2,0", "0,2,1")),
+                         Tensor(Tensor("1,0,0", "1,0,1"), Tensor("1,1,0", "1,1,1"), Tensor("1,2,0", "1,2,1")),
+                         Tensor(Tensor("2,0,0", "2,0,1"), Tensor("2,1,0", "2,1,1"), Tensor("2,2,0", "2,2,1")))
+    assert(tensor3.dataType === DataType.Str)
+    assert(tensor3.shape === Shape(3, 3, 2))
+    assert(tensor3(0, 0, 0).scalar === Str("0,0,0"))
+    assert(tensor3(0, 0, 1).scalar === Str("0,0,1"))
+    assert(tensor3(0, 1, 0).scalar === Str("0,1,0"))
+    assert(tensor3(0, 1, 1).scalar === Str("0,1,1"))
+    assert(tensor3(0, 2, 0).scalar === Str("0,2,0"))
+    assert(tensor3(0, 2, 1).scalar === Str("0,2,1"))
+    assert(tensor3(2, 0, 0).scalar === Str("2,0,0"))
+    assert(tensor3(2, 0, 1).scalar === Str("2,0,1"))
+    assert(tensor3(2, 1, 0).scalar === Str("2,1,0"))
+    assert(tensor3(2, 1, 1).scalar === Str("2,1,1"))
+    assert(tensor3(2, 2, 0).scalar === Str("2,2,0"))
+    assert(tensor3(2, 2, 1).scalar === Str("2,2,1"))
   }
 
   it must "not compile when invalid Scala data types are used for its arguments" in {

@@ -13,6 +13,9 @@ object Tensor {
   @native def shape(handle: Long): Array[Long]
   @native def buffer(handle: Long): ByteBuffer
   @native def delete(handle: Long): Unit
+  @native def getEncodedStringSize(numStringBytes: Int): Int
+  @native def setStringBytes(stringBytes: Array[Byte], buffer: ByteBuffer): Int
+  @native def getStringBytes(buffer: ByteBuffer): Array[Byte]
 
   //  @native def allocate(dataType: Int, shape: Array[Long], byteSize: Long): Long
   //  @native def allocateScalarBytes(value: Array[Byte]): Long

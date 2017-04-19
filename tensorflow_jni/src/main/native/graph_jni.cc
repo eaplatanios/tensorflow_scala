@@ -6,7 +6,7 @@
 #include "include/exception_jni.h"
 
 namespace {
-TF_Graph* requireHandle(JNIEnv* env, jlong handle) {
+TF_Graph* require_handle(JNIEnv* env, jlong handle) {
   static_assert(sizeof(jlong) >= sizeof(TF_Graph*),
                 "Cannot package C object pointers as a Java long");
   if (handle == 0) {
@@ -31,7 +31,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_findOp(JNI
                                                                             jobject object,
                                                                             jlong handle,
                                                                             jstring name) {
-  TF_Graph* g = requireHandle(env, handle);
+  TF_Graph* g = require_handle(env, handle);
   if (g == nullptr) return 0;
   const char* cname = env->GetStringUTFChars(name, nullptr);
   TF_Operation* op = TF_GraphOperationByName(g, cname);
@@ -42,7 +42,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_findOp(JNI
 JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_ops(JNIEnv* env,
                                                                             jobject object,
                                                                             jlong handle) {
-  TF_Graph* g = requireHandle(env, handle);
+  TF_Graph* g = require_handle(env, handle);
   if (g == nullptr) return 0;
   std::vector<TF_Operation*> ops;
   size_t pos = 0;
@@ -62,7 +62,7 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_ops(J
 JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_importGraphDef(
     JNIEnv* env, jobject object, jlong handle, jbyteArray graph_def,
     jstring prefix) {
-  TF_Graph* g = requireHandle(env, handle);
+  TF_Graph* g = require_handle(env, handle);
   if (g == nullptr) return;
 
   TF_ImportGraphDefOptions* opts = TF_NewImportGraphDefOptions();
@@ -92,7 +92,7 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_importGraph
 JNIEXPORT jbyteArray JNICALL
 Java_org_platanios_tensorflow_jni_Graph_00024_toGraphDef(JNIEnv* env, jobject object, jlong handle) {
   jbyteArray ret = nullptr;
-  TF_Graph* g = requireHandle(env, handle);
+  TF_Graph* g = require_handle(env, handle);
   if (g == nullptr) return ret;
 
   TF_Buffer* buf = TF_NewBuffer();

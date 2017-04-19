@@ -1,11 +1,11 @@
 package org.platanios.tensorflow.api.types
 
-import org.platanios.tensorflow.jni.{TensorFlow => NativeLibrary}
+import org.platanios.tensorflow.jni.{TensorFlow => NativeLibrary, Tensor => NativeTensor}
 
 import java.nio.ByteBuffer
+import java.nio.charset.Charset
 
 // TODO: Add min/max-value and "isSigned" information.
-// TODO: Improve handling of the String data type (e.g., in the dataTypeOf function).
 // TODO: Add support for half-precision floating-point numbers and for complex numbers.
 // TODO: Casts are unsafe (i.e., downcasting is allowed).
 
@@ -86,8 +86,23 @@ sealed trait DataType {
     */
   @inline def cast(value: SupportedScalaType): ScalaType = value.cast(this)
 
-  def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit
-  def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType
+  /** Puts an element of this data type into the provided byte buffer.
+    *
+    * @param  buffer  Byte buffer in which to put the element.
+    * @param  index   Index of the element in the byte buffer (i.e., byte index where the element's bytes start).
+    * @param  element Element to put into the provided byte buffer.
+    * @return Number of bytes written. For all data types with a known byte size (i.e., not equal to `-1`), the return
+    *         value is equal to the byte size.
+    */
+  private[api] def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int
+
+  /** Gets an element of this data type from the provided byte buffer.
+    *
+    * @param  buffer Byte buffer from which to get an element.
+    * @param  index  Index of the element in the byte buffer (i.e., byte index where the element's bytes start).
+    * @return Obtained element.
+    */
+  private[api] def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType
 
   override def toString: String = name
 
@@ -111,12 +126,32 @@ object DataType {
 
     override type ScalaType = Bool
 
-    override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = {
+    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
       buffer.put(index, if (element) 1 else 0)
+      byteSize
     }
 
-    override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
+    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
       org.platanios.tensorflow.api.types.Bool(buffer.get(index) == 1)
+    }
+  }
+
+  object Str extends DataType {
+    override val name    : String = "String"
+    override val cValue  : Int    = 7
+    override val byteSize: Int    = -1
+    override val priority: Int    = 1000
+
+    override type ScalaType = Str
+
+    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
+      val stringBytes = element.getBytes(Charset.forName("UTF-8"))
+      NativeTensor.setStringBytes(stringBytes, buffer.duplicate().position(index).asInstanceOf[ByteBuffer].slice())
+    }
+
+    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
+      val stringBytes = NativeTensor.getStringBytes(buffer.duplicate().position(index).asInstanceOf[ByteBuffer].slice())
+      org.platanios.tensorflow.api.types.Str(new String(stringBytes, Charset.forName("UTF-8")))
     }
   }
 
@@ -128,11 +163,11 @@ object DataType {
   //
   //   override type ScalaType = Float32 // TODO: What data type should we actually use for this?
   //
-  //   override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = {
+  //   private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = {
   //     buffer.putFloat(index, element)
   //   }
   //
-  //   override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
+  //   private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
   //     org.platanios.tensorflow.api.types.Float32(buffer.getFloat(index))
   //   }
   // }
@@ -145,11 +180,12 @@ object DataType {
 
     override type ScalaType = Float32
 
-    override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = {
+    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
       buffer.putFloat(index, element)
+      byteSize
     }
 
-    override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
+    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
       org.platanios.tensorflow.api.types.Float32(buffer.getFloat(index))
     }
   }
@@ -162,11 +198,12 @@ object DataType {
 
     override type ScalaType = Float64
 
-    override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = {
+    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
       buffer.putDouble(index, element)
+      byteSize
     }
 
-    override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
+    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
       org.platanios.tensorflow.api.types.Float64(buffer.getDouble(index))
     }
   }
@@ -179,11 +216,12 @@ object DataType {
   //
   //   override type ScalaType = Float32 // TODO: What data type should we actually use for this?
   //
-  //   override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = {
+  //   private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
   //     buffer.putFloat(index, element)
+  //     byteSize
   //   }
   //
-  //   override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
+  //   private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
   //     org.platanios.tensorflow.api.types.Float32(buffer.getFloat(index))
   //   }
   // }
@@ -199,11 +237,12 @@ object DataType {
 
     override type ScalaType = Int8
 
-    override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = {
+    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
       buffer.put(index, element)
+      byteSize
     }
 
-    override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
+    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
       org.platanios.tensorflow.api.types.Int8(buffer.get(index))
     }
   }
@@ -216,11 +255,12 @@ object DataType {
 
     override type ScalaType = Int16
 
-    override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = {
+    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
       buffer.putShort(index, element)
+      byteSize
     }
 
-    override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
+    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
       org.platanios.tensorflow.api.types.Int16(buffer.getShort(index))
     }
   }
@@ -233,11 +273,12 @@ object DataType {
 
     override type ScalaType = Int32
 
-    override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = {
+    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
       buffer.putInt(index, element)
+      byteSize
     }
 
-    override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
+    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
       org.platanios.tensorflow.api.types.Int32(buffer.getInt(index))
     }
   }
@@ -250,11 +291,12 @@ object DataType {
 
     override type ScalaType = Int64
 
-    override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = {
+    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
       buffer.putLong(index, element)
+      byteSize
     }
 
-    override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
+    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
       org.platanios.tensorflow.api.types.Int64(buffer.getLong(index))
     }
   }
@@ -267,11 +309,12 @@ object DataType {
 
     override type ScalaType = UInt8
 
-    override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = {
+    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
       buffer.put(index, element.value)
+      byteSize
     }
 
-    override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
+    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
       org.platanios.tensorflow.api.types.UInt8(buffer.get(index))
     }
   }
@@ -284,11 +327,12 @@ object DataType {
 
     override type ScalaType = UInt16
 
-    override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = {
+    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
       buffer.putChar(index, element)
+      byteSize
     }
 
-    override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
+    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
       org.platanios.tensorflow.api.types.UInt16(buffer.getChar(index))
     }
   }
@@ -301,11 +345,12 @@ object DataType {
 
     override type ScalaType = Int8
 
-    override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = {
+    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
       buffer.put(index, element)
+      byteSize
     }
 
-    override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
+    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
       org.platanios.tensorflow.api.types.Int8(buffer.get(index))
     }
   }
@@ -318,11 +363,12 @@ object DataType {
 
     override type ScalaType = Int16
 
-    override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = {
+    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
       buffer.putShort(index, element)
+      byteSize
     }
 
-    override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
+    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
       org.platanios.tensorflow.api.types.Int16(buffer.getShort(index))
     }
   }
@@ -335,11 +381,12 @@ object DataType {
 
     override type ScalaType = Int32
 
-    override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = {
+    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
       buffer.putInt(index, element)
+      byteSize
     }
 
-    override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
+    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
       org.platanios.tensorflow.api.types.Int32(buffer.getInt(index))
     }
   }
@@ -352,11 +399,12 @@ object DataType {
 
     override type ScalaType = UInt8
 
-    override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = {
+    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
       buffer.put(index, element.value)
+      byteSize
     }
 
-    override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
+    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
       org.platanios.tensorflow.api.types.UInt8(buffer.get(index))
     }
   }
@@ -369,16 +417,16 @@ object DataType {
 
     override type ScalaType = UInt16
 
-    override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Unit = {
+    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
       buffer.putChar(index, element)
+      byteSize
     }
 
-    override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
+    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
       org.platanios.tensorflow.api.types.UInt16(buffer.getChar(index))
     }
   }
 
-  // TODO: Add String(cValue = 7, byteSize = -1).
   // TODO: Add Resource(cValue = 20, byteSize = -1).
 
   //endregion Supported TensorFlow Data Types Definitions
@@ -443,6 +491,8 @@ object DataType {
     */
   @throws[IllegalArgumentException]
   private[api] def fromCValue(cValue: Int): DataType = cValue match {
+    case Bool.cValue => Bool
+    case Str.cValue  => Str
     // case Float16.cValue => Float16
     case Float32.cValue => Float32
     case Float64.cValue => Float64
@@ -460,8 +510,6 @@ object DataType {
     case QInt32.cValue  => QInt32
     case QUInt8.cValue  => QUInt8
     case QUInt16.cValue => QUInt16
-    case Bool.cValue    => Bool
-    // case String.cValue => String
     // case Resource.cValue => Resource
     case value => throw new IllegalArgumentException(
       s"Data type C value '$value' is not recognized in Scala (TensorFlow version ${NativeLibrary.version}).")
@@ -475,6 +523,8 @@ object DataType {
     */
   @throws[IllegalArgumentException]
   private[api] def fromName(name: String): DataType = name match {
+    case "Boolean" => Bool
+    case "String" => Str
     // case "Float16" => Float16
     case "Float32" => Float32
     case "Float64" => Float64
@@ -492,8 +542,6 @@ object DataType {
     case "QInt32"  => QInt32
     case "QUInt8"  => QUInt8
     case "QUInt16" => QUInt16
-    case "Boolean" => Bool
-    // case "String" => String
     // case "Resource" => Resource
     case value => throw new IllegalArgumentException(
       s"Data type name '$value' is not recognized in Scala (TensorFlow version ${NativeLibrary.version}).")

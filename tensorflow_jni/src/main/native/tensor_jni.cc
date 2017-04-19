@@ -26,7 +26,7 @@ limitations under the License.
 #include "include/exception_jni.h"
 
 namespace {
-  TF_Tensor* requireHandle(JNIEnv* env, jlong handle) {
+  TF_Tensor* require_handle(JNIEnv* env, jlong handle) {
     static_assert(sizeof(jlong) >= sizeof(TF_Tensor*),
                   "Scala \"Long\" cannot be used to represent TensorFlow C API pointers.");
     if (handle == 0) {
@@ -83,14 +83,14 @@ JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_dataType(
     JNIEnv* env, jobject object, jlong handle) {
   static_assert(sizeof(jint) >= sizeof(TF_DataType),
                 "\"TF_DataType\" in C cannot be represented as an \"Int\" in Scala.");
-  TF_Tensor* tensor = requireHandle(env, handle);
+  TF_Tensor* tensor = require_handle(env, handle);
   if (tensor == nullptr) return 0;
   return static_cast<jint>(TF_TensorType(tensor));
 }
 
 JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_shape(
     JNIEnv* env, jobject object, jlong handle) {
-  TF_Tensor* tensor = requireHandle(env, handle);
+  TF_Tensor* tensor = require_handle(env, handle);
   if (tensor == nullptr) return nullptr;
   static_assert(sizeof(jlong) == sizeof(int64_t), "Scala \"Long\" is not compatible with the TensorFlow C API.");
   const jsize num_dims = TF_NumDims(tensor);
@@ -104,7 +104,7 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_shap
 
 JNIEXPORT jobject JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_buffer(
     JNIEnv* env, jobject object, jlong handle) {
-  TF_Tensor* tensor = requireHandle(env, handle);
+  TF_Tensor* tensor = require_handle(env, handle);
   if (tensor == nullptr) return nullptr;
   void* data = TF_TensorData(tensor);
   const size_t byte_size = TF_TensorByteSize(tensor);
@@ -115,6 +115,42 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_delete(
     JNIEnv* env, jobject object, jlong handle) {
   if (handle == 0) return;
   TF_DeleteTensor(reinterpret_cast<TF_Tensor*>(handle));
+}
+
+JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_getEncodedStringSize(
+    JNIEnv* env, jobject object, jint string_num_bytes) {
+  return static_cast<jint>(TF_StringEncodedSize(static_cast<size_t>(string_num_bytes)));
+}
+
+JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_setStringBytes(
+    JNIEnv* env, jobject object, jbyteArray string, jobject string_buffer) {
+  char* dst_buffer = reinterpret_cast<char*>(env->GetDirectBufferAddress(string_buffer));
+  size_t src_len = static_cast<size_t>(env->GetArrayLength(string));
+  size_t dst_len = TF_StringEncodedSize(src_len);
+  std::unique_ptr<char[]> buffer(new char[src_len]);
+  env->GetByteArrayRegion(string, 0, static_cast<jsize>(src_len), reinterpret_cast<jbyte*>(buffer.get()));
+  TF_Status* status = TF_NewStatus();
+  size_t num_bytes_written = TF_StringEncode(buffer.get(), src_len, dst_buffer, dst_len, status);
+  throwExceptionIfNotOK(env, status);
+  TF_DeleteStatus(status);
+  return static_cast<jsize>(num_bytes_written);
+}
+
+JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_getStringBytes(
+    JNIEnv* env, jobject object, jobject string_buffer) {
+  char* src_buffer = reinterpret_cast<char*>(env->GetDirectBufferAddress(string_buffer));
+  jbyteArray return_array = nullptr;
+  const char* dst = nullptr;
+  size_t dst_len = 0;
+  TF_Status* status = TF_NewStatus();
+  size_t src_len = static_cast<size_t>(env->GetDirectBufferCapacity(string_buffer));
+  TF_StringDecode(src_buffer, src_len, &dst, &dst_len, status);
+  if (throwExceptionIfNotOK(env, status)) {
+    return_array = env->NewByteArray(static_cast<jsize>(dst_len));
+    env->SetByteArrayRegion(return_array, 0, static_cast<jsize>(dst_len), reinterpret_cast<const jbyte*>(dst));
+  }
+  TF_DeleteStatus(status);
+  return return_array;
 }
 
 //namespace {
@@ -375,16 +411,6 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_delete(
 //  }
 //  TF_DeleteStatus(status);
 //  return reinterpret_cast<jlong>(t);
-//}
-//
-//JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_dataType(JNIEnv* env,
-//                                                                           jobject object,
-//                                                                           jlong handle) {
-//  static_assert(sizeof(jint) >= sizeof(TF_DataType),
-//                "TF_DataType in C cannot be represented as an int in Java");
-//  TF_Tensor* t = requireHandle(env, handle);
-//  if (t == nullptr) return 0;
-//  return static_cast<jint>(TF_TensorType(t));
 //}
 //
 //JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_setValue(JNIEnv* env,
