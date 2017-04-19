@@ -16,7 +16,7 @@ import scala.annotation.tailrec
   */
 sealed class Tensor protected (
     val dataType: DataType, val shape: Shape, private[api] val buffer: ByteBuffer,
-    val order: Tensor.Order = DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER) {
+    val order: Tensor.Order = DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER, private[api] val nativeHandle: Long = 0) {
   require(shape.numElements.get > 0, "")
   require(shape.isFullyDefined, s"The shape of a Tensor object must be fully defined. Shape '$shape' is not.")
 
@@ -126,7 +126,8 @@ sealed class Tensor protected (
 
   // TODO: This will sometimes copy sometimes not (e.g., for TensorSlice, the data are copied -- non-contiguous).
   private[api] def nativeView: Tensor.NativeView = {
-    Tensor.NativeView(NativeTensor.fromBuffer(buffer, dataType.cValue, shape.asArray.map(_.toLong), dataType.byteSize))
+    Tensor.NativeView(NativeTensor.fromBuffer(
+      buffer, dataType.cValue, shape.asArray.map(_.toLong), numElements * dataType.byteSize))
   }
 
   override def toString: String = s"$dataType Tensor with shape [${shape.asArray.mkString(", ")}]."
@@ -146,7 +147,8 @@ final case class TensorSlice(tensor: Tensor, indexers: Seq[Indexer])
 
   // TODO: This has to make a copy.
   private[api] override def nativeView: Tensor.NativeView = {
-    Tensor.NativeView(NativeTensor.fromBuffer(buffer, dataType.cValue, shape.asArray.map(_.toLong), dataType.byteSize))
+    Tensor.NativeView(NativeTensor.fromBuffer(
+      buffer, dataType.cValue, shape.asArray.map(_.toLong), numElements * dataType.byteSize))
   }
 
   //  def numBytes: Int = tensor.buffer.remaining() // TODO: This is wrong
@@ -172,11 +174,24 @@ object Tensor {
     }
   }
 
+  private[api] def fromNativeHandle(nativeHandle: Long): Tensor = {
+    val tensor = new Tensor(
+      dataType = DataType.fromCValue(NativeTensor.dataType(nativeHandle)),
+      shape = Shape.fromSeq(NativeTensor.shape(nativeHandle).map(_.toInt)),
+      buffer = NativeTensor.buffer(nativeHandle).order(ByteOrder.nativeOrder),
+      order = RowMajorOrder, nativeHandle = nativeHandle)
+    // Keep track of references in the Scala side and notify the native library when the tensor is not referenced
+    // anymore anywhere in the Scala side. This will let the native library free the allocated resources and prevent a
+    // potential memory leak.
+    Disposer.add(tensor, () => NativeTensor.delete(nativeHandle))
+    tensor
+  }
+
   private def allocate(
       dataType: DataType, shape: Shape, order: Order = DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER): Tensor = {
     val numBytes: Int = dataType.byteSize * shape.numElements.get
-    val buffer: ByteBuffer = ByteBuffer.allocateDirect(numBytes)
-    new Tensor(dataType = dataType, shape = shape, order = order, buffer = buffer)
+    val buffer: ByteBuffer = ByteBuffer.allocateDirect(numBytes).order(ByteOrder.nativeOrder)
+    new Tensor(dataType = dataType, shape = shape, buffer = buffer, order = order)
   }
 
   def fill(dataType: DataType = null, shape: Shape = null)(value: SupportedScalaType): Tensor = {
@@ -187,19 +202,19 @@ object Tensor {
   }
 
   // TODO: Find a way to add this method for performance benefits.
-//  def apply(value: SupportedScalaType, values: SupportedScalaType*): Tensor = {
-//    val allValues = value +: values
-//    val dataType = allValues.map(DataType.dataTypeOf).maxBy(_.priority)
-//    val shape = if (allValues.length > 1) Shape(allValues.length) else Shape()
-//    val tensor = allocate(dataType = dataType, shape = shape)
-//    val tensorIndexIterator = tensor.flattenedIndexIterator
-//    var i = 0
-//    while (i < allValues.length) {
-//      tensor.setElementAtFlattenedIndex(tensorIndexIterator.next(), allValues(i))
-//      i += 1
-//    }
-//    tensor
-//  }
+  //  def apply(value: SupportedScalaType, values: SupportedScalaType*): Tensor = {
+  //    val allValues = value +: values
+  //    val dataType = allValues.map(DataType.dataTypeOf).maxBy(_.priority)
+  //    val shape = if (allValues.length > 1) Shape(allValues.length) else Shape()
+  //    val tensor = allocate(dataType = dataType, shape = shape)
+  //    val tensorIndexIterator = tensor.flattenedIndexIterator
+  //    var i = 0
+  //    while (i < allValues.length) {
+  //      tensor.setElementAtFlattenedIndex(tensorIndexIterator.next(), allValues(i))
+  //      i += 1
+  //    }
+  //    tensor
+  //  }
 
   def apply(tensors: Tensor*): Tensor = apply(dataType = tensors.map(_.dataType).maxBy(_.priority), tensors: _*)
 
@@ -469,13 +484,6 @@ object Tensor {
   //    tensor.buffer.put(data)
   //    tensor
   //  }
-  //
-  //  def fromNativeHandle(nativeHandle: Long): Tensor = {
-  //    val dataType: DataType = DataType.fromCValue(NativeTensor.dataType(nativeHandle))
-  //    val shape: Array[Long] = NativeTensor.shape(nativeHandle)
-  //    Tensor(dataType = dataType, shape = Shape.fromSeq(shape), nativeHandle = nativeHandle)
-  //  }
-  //
   //  // Helper function to allocate a Tensor for the create() methods that create a Tensor from
   //  // a java.nio.Buffer.
   //  private def allocateForBuffer(dataType: DataType, shape: Shape, numBuffered: Int): Tensor = {

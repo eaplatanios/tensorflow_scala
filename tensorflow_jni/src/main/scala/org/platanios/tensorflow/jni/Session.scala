@@ -9,10 +9,9 @@ object Session {
   @native def allocate(graphHandle: Long): Long
   @native def delete(handle: Long): Unit
 
-  /**
-    * Execute a session.
+  /** Executes a computation in a session.
     *
-    * <p>The author apologizes for the ugliness of the long argument list of this method. However,
+    * The author apologizes for the ugliness of the long argument list of this method. However,
     * take solace in the fact that this is a private method meant to cross the JNI boundary.
     *
     * @param handle              to the C API TF_Session object (Session.nativeHandle)

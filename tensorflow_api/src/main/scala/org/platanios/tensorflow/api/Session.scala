@@ -1,6 +1,6 @@
 package org.platanios.tensorflow.api
 
-import org.platanios.tensorflow.jni.{Graph => NativeGraph, Session => NativeSession}
+import org.platanios.tensorflow.jni.{Session => NativeSession}
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -12,10 +12,10 @@ final case class Session private (graph: Graph, private var nativeHandle: Long) 
   def run(
       feeds: Map[Op.Output, Tensor] = Map.empty, fetches: Array[Op.Output] = Array.empty,
       targets: Array[Op.Output] = Array.empty, runOptions: Option[Array[Byte]] = None): Array[Tensor] = {
-    runHelper(feeds = feeds, fetches = fetches, targets = targets, runOptions = runOptions, wantMetadata = false)._1
+    runHelper(feeds = feeds, fetches = fetches, targets = targets, runOptions = runOptions)._1
   }
 
-  def runWithMetaData(
+  def runWithMetadata(
       feeds: Map[Op.Output, Tensor] = Map.empty, fetches: Array[Op.Output] = Array.empty,
       targets: Array[Op.Output] = Array.empty, runOptions: Option[Array[Byte]] = None): (Array[Tensor], Array[Byte]) = {
     runHelper(feeds = feeds, fetches = fetches, targets = targets, runOptions = runOptions, wantMetadata = true)
@@ -42,18 +42,17 @@ final case class Session private (graph: Graph, private var nativeHandle: Long) 
     // It's okay to use Operation.getUnsafeNativeHandle() here since the safety depends on the
     // validity of the Graph and the graph reference ensures that.
     val metadata: Array[Byte] = NativeSession.run(
-        handle = nativeHandle,
-        runOptions = runOptions.getOrElse(Array.empty[Byte]),
-        inputTensorHandles = inputTensorHandles,
-        inputOpHandles = inputOpHandles,
-        inputOpIndices = inputOpIndices,
-        outputOpHandles = outputOpHandles,
-        outputOpIndices = outputOpIndices,
-        targetOpHandles = targetOpHandles,
-        wantRunMetadata = wantMetadata,
-        outputTensorHandles = outputTensorHandles)
-//    val outputs: Array[Tensor] = outputTensorHandles.map(h => Tensor.fromNativeHandle(nativeHandle = h))
-    val outputs: Array[Tensor] = null // TODO: Fix this.
+      handle = nativeHandle,
+      runOptions = runOptions.getOrElse(Array.empty[Byte]),
+      inputTensorHandles = inputTensorHandles,
+      inputOpHandles = inputOpHandles,
+      inputOpIndices = inputOpIndices,
+      outputOpHandles = outputOpHandles,
+      outputOpIndices = outputOpIndices,
+      targetOpHandles = targetOpHandles,
+      wantRunMetadata = wantMetadata,
+      outputTensorHandles = outputTensorHandles)
+    val outputs: Array[Tensor] = outputTensorHandles.map(Tensor.fromNativeHandle)
     NativeHandleLock.synchronized {
       if (nativeHandle != 0) {
         referenceCount -= 1

@@ -78,6 +78,8 @@ package object api extends Implicits {
 
   //endregion Op Creation
 
+  //region Utilities
+
   trait Closeable {
     def close(): Unit
   }
@@ -90,4 +92,8 @@ package object api extends Implicits {
         resource.close()
     }
   }
+
+  private[api] val Disposer = utilities.Disposer
+
+  //endregion Utilities
 }

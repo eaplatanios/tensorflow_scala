@@ -17,6 +17,30 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_fromBuffe
 
 /*
  * Class:     org_platanios_tensorflow_jni_Tensor__
+ * Method:    dataType
+ * Signature: (J)I
+ */
+JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_dataType
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Tensor__
+ * Method:    shape
+ * Signature: (J)[J
+ */
+JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_shape
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Tensor__
+ * Method:    buffer
+ * Signature: (J)Ljava/nio/ByteBuffer;
+ */
+JNIEXPORT jobject JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_buffer
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Tensor__
  * Method:    delete
  * Signature: (J)V
  */
@@ -39,29 +63,6 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_delete
 //JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_allocateScalarBytes
 //  (JNIEnv *, jobject, jbyteArray);
 //
-///*
-// * Class:     org_platanios_tensorflow_jni_Tensor__
-// * Method:    buffer
-// * Signature: (J)Ljava/nio/ByteBuffer;
-// */
-//JNIEXPORT jobject JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_buffer
-//  (JNIEnv *, jobject, jlong);
-//
-///*
-// * Class:     org_platanios_tensorflow_jni_Tensor__
-// * Method:    dataType
-// * Signature: (J)I
-// */
-//JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_dataType
-//  (JNIEnv *, jobject, jlong);
-//
-///*
-// * Class:     org_platanios_tensorflow_jni_Tensor__
-// * Method:    shape
-// * Signature: (J)[J
-// */
-//JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_shape
-//  (JNIEnv *, jobject, jlong);
 //
 ///*
 // * Class:     org_platanios_tensorflow_jni_Tensor__
