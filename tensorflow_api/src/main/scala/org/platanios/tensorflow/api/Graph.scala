@@ -19,14 +19,13 @@ final case class Graph(private var nativeHandle: Long) extends Closeable {
     * @param  name Op name.
     * @return Option containing the op corresponding to that name (`None` if such an op does not exist in this graph).
     */
-  private[api] def findOp(name: String): Option[Op] =
-    NativeHandleLock.synchronized {
-      val opHandle: Long = NativeGraph.findOp(nativeHandle, name)
-      if (opHandle == 0)
-        None
-      else
-        Some(opsCache.getOrElseUpdate(opHandle, Op(this, opHandle)))
-    }
+  private[api] def findOp(name: String): Option[Op] = NativeHandleLock.synchronized {
+    val opHandle: Long = NativeGraph.findOp(nativeHandle, name)
+    if (opHandle == 0)
+      None
+    else
+      Some(opsCache.getOrElseUpdate(opHandle, Op(this, opHandle)))
+  }
 
   /** Returns all ops of this graph.
     *
@@ -34,10 +33,9 @@ final case class Graph(private var nativeHandle: Long) extends Closeable {
     *
     * @return Array containing all ops of this graph.
     */
-  def ops: Array[Op] =
-    NativeHandleLock.synchronized {
-      NativeGraph.ops(nativeHandle).map(handle => opsCache.getOrElseUpdate(handle, Op(this, handle)))
-    }
+  def ops: Array[Op] = NativeHandleLock.synchronized {
+    NativeGraph.ops(nativeHandle).map(handle => opsCache.getOrElseUpdate(handle, Op(this, handle)))
+  }
 
   /** Returns the op referred to by the provided name, in this graph.
     *
@@ -49,8 +47,9 @@ final case class Graph(private var nativeHandle: Long) extends Closeable {
     * @return Op, from this graph, corresponding to that name.
     */
   @throws[InvalidGraphElementException]
-  def opByName(name: String): Op =
-    graphElementByName(name = name, allowOp = true, allowOpOutput = false).left.get
+  def getOpByName(name: String): Op = {
+    getByName(name = name, allowOp = true, allowOpOutput = false).left.get
+  }
 
   /** Returns the op output referred to by the provided name, in this graph.
     *
@@ -62,8 +61,9 @@ final case class Graph(private var nativeHandle: Long) extends Closeable {
     * @return Op output, from this graph, corresponding to that name.
     */
   @throws[InvalidGraphElementException]
-  def opOutputByName(name: String): Op.Output =
-    graphElementByName(name = name, allowOp = false, allowOpOutput = true).right.get
+  def getOpOutputByName(name: String): Op.Output = {
+    getByName(name = name, allowOp = false, allowOpOutput = true).right.get
+  }
 
   /** Returns the [[Op]] or [[Op.Output]] referred to by the provided name, in this graph.
     *
@@ -75,14 +75,14 @@ final case class Graph(private var nativeHandle: Long) extends Closeable {
     * @note This function may be called concurrently from multiple threads (i.e., it is thread-safe).
     *
     * @param  name          Name of the graph element being looked up.
-    * @param  allowOpOutput Allow op outputs to be considered for the graph element to return.
     * @param  allowOp       Allow ops to be considered for the graph element to return.
+    * @param  allowOpOutput Allow op outputs to be considered for the graph element to return.
     * @return Graph element named `name`.
     * @throws InvalidGraphElementException  If the provided name cannot be associated with an element of this graph.
     */
   @throws[InvalidGraphElementException]
-  private[api] def graphElementByName(
-      name: String, allowOpOutput: Boolean = true, allowOp: Boolean = true): Either[Op, Op.Output] =
+  private[api] def getByName(
+      name: String, allowOp: Boolean = true, allowOpOutput: Boolean = true): Either[Op, Op.Output] = {
     NativeHandleLock.synchronized {
       if (!allowOpOutput && !allowOp)
         throw new IllegalArgumentException("'allowOpOutput' and 'allowOp' cannot both be set to 'false'.")
@@ -97,7 +97,7 @@ final case class Graph(private var nativeHandle: Long) extends Closeable {
           val opOutputIndex = nameParts(1).toInt
           val graphOp = findOp(opName) match {
             case Some(o) => o
-            case None => throw InvalidGraphElementException(
+            case None    => throw InvalidGraphElementException(
               s"Name '$name' refers to an op output which does not exist in the graph. More specifically, op, " +
                   s"'$opName', does not exist in the graph.")
           }
@@ -113,20 +113,21 @@ final case class Graph(private var nativeHandle: Long) extends Closeable {
       } else if (allowOp) {
         findOp(name) match {
           case Some(o) => Left(o)
-          case None => throw InvalidGraphElementException(
+          case None    => throw InvalidGraphElementException(
             s"Name '$name' refers to an op which does not exist in the graph.")
         }
       } else {
         findOp(name) match {
           case Some(_) => throw InvalidGraphElementException(
             s"Name '$name' appears to refer to an op, but 'allowOp' was set to 'false'.")
-          case None =>
+          case None    =>
         }
         throw InvalidGraphElementException(
           s"Name '$name' looks like an (invalid) op name, and not an op output name. Op output names must be of the " +
               "form \"<op_name>:<output_index>\".")
       }
     }
+  }
 
   private object NativeHandleLock
   private var referenceCount: Int = 0

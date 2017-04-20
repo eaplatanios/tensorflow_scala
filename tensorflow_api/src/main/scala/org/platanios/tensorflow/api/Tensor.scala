@@ -19,7 +19,7 @@ import scala.annotation.tailrec
 sealed class Tensor protected (
     val dataType: DataType, val shape: Shape, private[api] val buffer: ByteBuffer,
     val order: Tensor.Order = DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER, private[api] val nativeHandle: Long = 0) {
-  require(shape.numElements.get > 0, "")
+  require(shape.numElements.get > 0, "Empty tensors are not supported in the TensorFlow Scala API.")
   require(shape.isFullyDefined, s"The shape of a Tensor object must be fully defined. Shape '$shape' is not.")
 
   // TODO: Remove these from the plain tensor --- use them only for slices.

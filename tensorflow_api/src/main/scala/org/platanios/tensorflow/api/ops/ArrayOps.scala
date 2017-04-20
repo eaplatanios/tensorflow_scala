@@ -67,9 +67,9 @@ object ArrayOps {
     */
   def onesLike(input: Op.Output, name: String = "OnesLike"): Op.Output = {
     // TODO: Add support for changing the dataType and for the "optimize" flag.
-    Op.Builder(opType = "ZerosLike", name = name)
+    Op.Builder(opType = "OnesLike", name = name)
         .addInput(input)
-        .build().outputs(0) + constant(1, dataType = input.dataType)
+        .build().outputs(0)
   }
 
   // TODO: Add support for "ImmutableConst".
@@ -89,16 +89,11 @@ object ArrayOps {
     * @return Created op.
     */
   def placeholder(dataType: DataType, shape: Shape = null, name: String = "Placeholder"): Op.Output = {
-    if (shape != null) {
-      Op.Builder(opType = "PlaceholderV2", name = name)
-          .setAttribute(name = "dtype", value = dataType)
-          .setAttribute(name = "shape", value = shape)
-          .build().outputs(0)
-    } else {
-      Op.Builder(opType = "Placeholder", name = name)
-          .setAttribute(name = "dtype", value = dataType)
-          .build().outputs(0)
-    }
+    val opBuilder = Op.Builder(opType = "Placeholder", name = name)
+        .setAttribute(name = "dtype", value = dataType)
+    if (shape != null)
+      opBuilder.setAttribute(name = "shape", value = shape)
+    opBuilder.build().outputs(0)
   }
 
   /** Creates a placeholder op that passes through `defaultValue` when its input is not fed.
@@ -114,6 +109,101 @@ object ArrayOps {
         .addInput(Op.createWith(nameScope = name)(constant(tensor = defaultValue, name = "DefaultValue")))
         .setAttribute(name = "shape", value = shape)
         .build().outputs(0)
+  }
+
+  /** Creates an op that returns the rank of a tensor.
+    *
+    * The op returns an integer representing the rank of `input`.
+    *
+    * For example:
+    * {{{
+    *   // 't' is [[[1, 1, 1], [2, 2, 2]], [[3, 3, 3], [4, 4, 4]]]
+    *   // 't' has shape [2, 2, 3]
+    *   rank(t) == 3
+    * }}}
+    *
+    * Note that the rank of a tensor is not the same as the rank of a matrix. The rank of a tensor is the number of
+    * indices required to uniquely select each element of the tensor. Rank is also known as order, degree, or number of
+    * dimensions.
+    *
+    * @param  input    Tensor whose rank to return.
+    * @param  optimize Boolean flag indicating whether to optimize this op creation by using a constant op with the
+    *                  rank value that `input` has at graph creation time (instead of execution time), if known.
+    * @param  name     Name for the created op.
+    * @return Created op.
+    */
+  def rank(input: Op.Output, optimize: Boolean = true, name: String = "Rank"): Op.Output = {
+    // TODO: [SPARSE]
+    val inputRank = input.shape.rank
+    if (optimize && inputRank != -1)
+      constant(Tensor.fill(DataType.Int32, Shape())(inputRank), name = name)
+    else
+      Op.Builder(opType = "Rank", name = name)
+          .addInput(input)
+          .build().outputs(0)
+  }
+
+  /** Creates an op that returns the size of a tensor.
+    *
+    * The op returns a number representing the number of elements in `input`.
+    *
+    * For example:
+    * {{{
+    *   // 't' is [[[1, 1,, 1], [2, 2, 2]], [[3, 3, 3], [4, 4, 4]]]]
+    *   size(t) == 12
+    * }}}
+    *
+    * @param  input    Tensor whose size to return.
+    * @param  dataType Optional data type to use for the output of this op.
+    * @param  optimize Boolean flag indicating whether to optimize this op creation by using a constant op with the
+    *                  number of elements provided by the shape of that `input` at graph creation time (instead of
+    *                  execution time), if known.
+    * @param  name     Name for the created op.
+    * @return Created op.
+    */
+  def size(
+      input: Op.Output, dataType: DataType = DataType.Int32, optimize: Boolean = true,
+      name: String = "Size"): Op.Output = {
+    // TODO: [SPARSE]
+    val inputShape = input.shape
+    if (optimize && inputShape.isFullyDefined)
+      constant(Tensor.fill(dataType, Shape())(inputShape.numElements.get), name = name)
+    else
+      Op.Builder(opType = "Size", name = name)
+          .addInput(input)
+          .setAttribute("out_type", dataType)
+          .build().outputs(0)
+  }
+
+  /** Creates an op that returns the shape of a tensor.
+    *
+    * This op returns a one-dimensional tensor representing the shape of `input`.
+    *
+    * For example:
+    * {{{
+    *   // 't' is [[[1, 1, 1], [2, 2, 2]], [[3, 3, 3], [4, 4, 4]]]
+    *   shape(t) == [2, 2, 3]
+    * }}}
+    *
+    * @param  input    Tensor whose shape to return.
+    * @param  dataType Optional data type to use for the output of this op.
+    * @param  optimize Boolean flag indicating whether to optimize this op creation by using a constant op with the
+    *                  shape of that `input` at graph creation time (instead of execution time), if known.
+    * @param  name     Name for the created op.
+    * @return Created op.
+    */
+  def shape(
+      input: Op.Output, dataType: DataType = DataType.Int32, optimize: Boolean = true,
+      name: String = "Shape"): Op.Output = {
+    // TODO: [SPARSE]
+    val inputShape = input.shape
+    if (optimize && inputShape.isFullyDefined)
+      constant(Tensor(dataType, inputShape.asArray.map(Tensor(_)): _*), name = name) // TODO: [OPTIMIZE]
+    else
+      Op.Builder(opType = "Shape", name = name)
+          .addInput(input)
+          .setAttribute("out_type", dataType)
+          .build().outputs(0)
   }
 
   /** Creates an op that returns a tensor with the same shape and contents as the input tensor or value.
@@ -582,4 +672,68 @@ object ArrayOps {
   }
 
   //endregion Slice Ops
+
+  /** Creates an op that tiles the provided input tensor.
+    *
+    * The op creates a new tensor by replicating `input` `multiples` times. The output tensor's `i`th dimension has
+    * `input.shape(i) * multiples(i)` elements, and the values of `input` are replicated `multiples(i)` times along
+    * the `i`th dimension. For example, tiling `[a b c d]` by `[2]` produces `[a b c d a b c d]`.
+    *
+    * @param  input     Tensor to tile.
+    * @param  multiples One-dimensional tensor containing the tiling multiples. Its length must be the same as the rank
+    *                   of `input`.
+    * @param  name      Name for the created op.
+    * @return Created op.
+    */
+  def tile(input: Op.Output, multiples: Op.Output, name: String = "Tile"): Op.Output = {
+    Op.Builder(opType = "Tile", name = name)
+        .addInput(input)
+        .addInput(multiples)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that returns locations of `true` values in a boolean tensor.
+    *
+    * The op returns the coordinates of true elements in `input`. The coordinates are returned in a 2-D tensor where the
+    * first dimension (rows) represents the number of true elements, and the second dimension (columns) represents the
+    * coordinates of the true elements. Note that the shape of the output tensor can vary depending on how many true
+    * values there are in `input`. Indices are output in row-major order.
+    *
+    * For example:
+    * {{{
+    *   // 'input' tensor is [[true, false]
+    *   //                    [true, false]]
+    *   // 'input' has two 'true' values and so the output has two coordinates
+    *   // 'input' has rank 2 and so each coordinate has two indices
+    *   where(input) == [[0, 0],
+    *                    [1, 0]]
+    *
+    *   // `input` tensor is [[[true, false]
+    *   //                     [true, false]]
+    *   //                    [[false, true]
+    *   //                     [false, true]]
+    *   //                    [[false, false]
+    *   //                     [false, true]]]
+    *   // 'input' has 5 'true' values and so the output has 5 coordinates
+    *   // 'input' has rank 3 and so each coordinate has three indices
+    *   where(input) == [[0, 0, 0],
+    *                    [0, 1, 0],
+    *                    [1, 0, 1],
+    *                    [1, 1, 1],
+    *                    [2, 1, 1]]
+    * }}}
+    *
+    * @param  input Input boolean tensor.
+    * @param  name  Name for the created op.
+    * @return Created op.
+    */
+  def where(input: Op.Output, name: String = "Where"): Op.Output = {
+    // TODO: Add "select" behavior.
+    if (input.dataType != DataType.Bool)
+      throw InvalidDataTypeException(
+        s"The 'where' op only supports boolean tensors as inputs. It does not support ${input.dataType} tensors.")
+    Op.Builder(opType = "Where", name = name)
+        .addInput(input)
+        .build().outputs(0)
+  }
 }

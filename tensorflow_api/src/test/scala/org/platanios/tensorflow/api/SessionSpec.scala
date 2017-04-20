@@ -18,8 +18,8 @@ class SessionSpec extends FlatSpec with Matchers {
       subtract(constant(1), matMul(a = a, b = x, transposeB = true), name = "Y")
     }
     val session = Session(graph = graph)
-    val feeds = Map(graph.opOutputByName("X:0") -> Tensor(Tensor(5, 7)))
-    val fetches = Array(graph.opOutputByName("Y:0"))
+    val feeds = Map(graph.getOpOutputByName("X:0") -> Tensor(Tensor(5, 7)))
+    val fetches = Array(graph.getOpOutputByName("Y:0"))
     val outputs = session.run(feeds, fetches)
     assert(outputs.size == 1)
     val expectedResult = Tensor(Tensor(-30))
