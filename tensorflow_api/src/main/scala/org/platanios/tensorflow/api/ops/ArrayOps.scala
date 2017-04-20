@@ -752,6 +752,71 @@ object ArrayOps {
     MathOps.select(condition, x, y, name)
   }
 
+  /** Creates an op that reverses variable length slices.
+    *
+    * This op first slices `input` along the dimension `batchAxis`, and for each slice `i`, it reverses the first
+    * `sequenceLengths(i)` elements along the dimension `sequenceAxis`.
+    *
+    * The elements of `sequenceLengths` must obey `sequenceLengths(i) <= input.shape(sequenceAxis)`, and it must be a
+    * vector of length `input.shape(batchAxis)`.
+    *
+    * The output slice `i` along dimension `batchAxis` is then given by input slice `i`, with the first
+    * `sequenceLengths(i)` slices along dimension `sequenceAxis` reversed.
+    *
+    * For example:
+    * {{{
+    *   // Given:
+    *   // sequenceAxis = 1
+    *   // batchAxis = 0
+    *   // input.shape = [4, 8, ...]
+    *   // sequenceLengths = [7, 2, 3, 5]
+    *   // slices of 'input' are reversed on 'sequenceAxis', but only up to 'sequenceLengths':
+    *   output(0, 0::7, ---) == input(0, 6::-1::, ---)
+    *   output(1, 0::2, ---) == input(1, 1::-1::, ---)
+    *   output(2, 0::3, ---) == input(2, 2::-1::, ---)
+    *   output(3, 0::5, ---) == input(3, 4::-1::, ---)
+    *   // while entries past 'sequenceLengths' are copied through:
+    *   output(0, 7::, ---) == input(0, 7::, ---)
+    *   output(1, 7::, ---) == input(1, 7::, ---)
+    *   output(2, 7::, ---) == input(2, 7::, ---)
+    *   output(3, 7::, ---) == input(3, 7::, ---)
+    *
+    *   // In contrast, given:
+    *   // sequenceAxis = 0
+    *   // batchAxis = 2
+    *   // input.shape = [8, ?, 4, ...]
+    *   // sequenceLengths = [7, 2, 3, 5]
+    *   // slices of 'input' are reversed on 'sequenceAxis', but only up to 'sequenceLengths':
+    *   output(0::7, ::, 0, ---) == input(6::-1::, ::, 0, ---)
+    *   output(0::2, ::, 1, ---) == input(1::-1::, ::, 1, ---)
+    *   output(0::3, ::, 2, ---) == input(2::-1::, ::, 2, ---)
+    *   output(0::5, ::, 3, ---) == input(4::-1::, ::, 3, ---)
+    *   // while entries past 'sequenceLengths' are copied through:
+    *   output(7::, ::, 0, ---) == input(7::, ::, 0, ---)
+    *   output(2::, ::, 1, ---) == input(2::, ::, 1, ---)
+    *   output(3::, ::, 2, ---) == input(3::, ::, 2, ---)
+    *   output(5::, ::, 3, ---) == input(5::, ::, 3, ---)
+    * }}}
+    *
+    * @param  input           Input tensor to reverse.
+    * @param  sequenceLengths One-dimensional tensor with length `input.shape(batchAxis)` and
+    *                         `max(sequenceLengths) <= input.shape(sequenceAxis)`.
+    * @param  sequenceAxis    Tensor dimension which is partially reversed.
+    * @param  batchAxis       Tensor dimension along which the reversal is performed.
+    * @param  name            Created op name.
+    * @return Created op output which has the same shape as `input`.
+    */
+  def reverseSequence(
+      input: Op.Output, sequenceLengths: Op.Output, sequenceAxis: Int, batchAxis: Int = 0,
+      name: String = "ReverseSequence"): Op.Output = {
+    Op.Builder(opType = "ReverseSequence", name = name)
+        .addInput(input)
+        .addInput(sequenceLengths)
+        .setAttribute("seq_dim", sequenceAxis)
+        .setAttribute("batch_dim", batchAxis)
+        .build().outputs(0)
+  }
+
   /** Creates an op that computes the difference between two lists of numbers or strings.
     *
     * Given a list `x` and a list `y`, this operation returns a list `out` that represents all values that are in `x`
