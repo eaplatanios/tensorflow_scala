@@ -29,7 +29,7 @@ object ArrayOps {
     * @param  verifyShape If `true` and `shape` is not `null`, then the shape of `value` will be verified (i.e., checked
     *                     to see if it is equal to the provided shape.
     * @param  name        Name for the created op.
-    * @return Created op.
+    * @return Created op output.
     * @throws InvalidShapeException If `shape != null`, `verifyShape == true`, and the shape of values does not match
     *                               the provided `shape`.
     */
@@ -50,7 +50,7 @@ object ArrayOps {
     *
     * @param  input Input.
     * @param  name  Name for the created op.
-    * @return Created op.
+    * @return Created op output.
     */
   def zerosLike(input: Op.Output, name: String = "ZerosLike"): Op.Output = {
     // TODO: Add support for changing the dataType and for the "optimize" flag.
@@ -63,7 +63,7 @@ object ArrayOps {
     *
     * @param  input Input.
     * @param  name  Name for the created op.
-    * @return Created op.
+    * @return Created op output.
     */
   def onesLike(input: Op.Output, name: String = "OnesLike"): Op.Output = {
     // TODO: Add support for changing the dataType and for the "optimize" flag.
@@ -86,7 +86,7 @@ object ArrayOps {
     * @param  shape    Shape of the tensor that will be fed. The shape can be any partially-specified, or even
     *                  completely unknown.
     * @param  name     Name for the created op.
-    * @return Created op.
+    * @return Created op output.
     */
   def placeholder(dataType: DataType, shape: Shape = null, name: String = "Placeholder"): Op.Output = {
     val opBuilder = Op.Builder(opType = "Placeholder", name = name)
@@ -102,7 +102,7 @@ object ArrayOps {
     * @param  shape        Shape of the tensor that will be fed. The shape can be any partially-specified, or even
     *                      completely unknown.
     * @param  name         Name for the created op.
-    * @return Created op.
+    * @return Created op output.
     */
   def placeholderWithDefault(defaultValue: Tensor, shape: Shape, name: String = "PlaceholderWithDefault"): Op.Output = {
     Op.Builder(opType = "PlaceholderWithDefault", name = name)
@@ -110,6 +110,8 @@ object ArrayOps {
         .setAttribute(name = "shape", value = shape)
         .build().outputs(0)
   }
+
+  // TODO: [[SPARSE]] Add sparse placeholder.
 
   /** Creates an op that returns the rank of a tensor.
     *
@@ -130,7 +132,7 @@ object ArrayOps {
     * @param  optimize Boolean flag indicating whether to optimize this op creation by using a constant op with the
     *                  rank value that `input` has at graph creation time (instead of execution time), if known.
     * @param  name     Name for the created op.
-    * @return Created op.
+    * @return Created op output.
     */
   def rank(input: Op.Output, optimize: Boolean = true, name: String = "Rank"): Op.Output = {
     // TODO: [SPARSE]
@@ -159,7 +161,7 @@ object ArrayOps {
     *                  number of elements provided by the shape of that `input` at graph creation time (instead of
     *                  execution time), if known.
     * @param  name     Name for the created op.
-    * @return Created op.
+    * @return Created op output.
     */
   def size(
       input: Op.Output, dataType: DataType = DataType.Int32, optimize: Boolean = true,
@@ -190,7 +192,7 @@ object ArrayOps {
     * @param  optimize Boolean flag indicating whether to optimize this op creation by using a constant op with the
     *                  shape of that `input` at graph creation time (instead of execution time), if known.
     * @param  name     Name for the created op.
-    * @return Created op.
+    * @return Created op output.
     */
   def shape(
       input: Op.Output, dataType: DataType = DataType.Int32, optimize: Boolean = true,
@@ -210,7 +212,7 @@ object ArrayOps {
     *
     * @param  input Input tensor.
     * @param  name  Name for the created op.
-    * @return Created op.
+    * @return Created op output.
     */
   def identity(input: Op.Output, name: String = "Identity"): Op.Output = {
     Op.Builder(opType = "Identity", name = name)
@@ -248,7 +250,7 @@ object ArrayOps {
     * @param  input Input tensor.
     * @param  axis  Dimension index at which to expand the shape of `input`.
     * @param  name  Name for the created op.
-    * @return Created op.
+    * @return Created op output.
     */
   def expandDims(input: Op.Output, axis: Int, name: String = "ExpandDims"): Op.Output = {
     Op.Builder(opType = "ExpandDims", name = name)
@@ -274,7 +276,7 @@ object ArrayOps {
     * @param  axes  Dimensions of size 1 to squeeze. If this argument is not provided, then all dimensions of size 1
     *               will be squeezed.
     * @param  name  Name for the created op.
-    * @return Created op.
+    * @return Created op output.
     */
   def squeeze(input: Op.Output, axes: Array[Int] = null, name: String = "Squeeze"): Op.Output = {
     val builder = Op.Builder(opType = "Squeeze", name = name)
@@ -307,7 +309,7 @@ object ArrayOps {
     * @param  inputs Input tensors to be stacked.
     * @param  axis   Dimension along which to stack the input tensors.
     * @param  name   Name for the created op.
-    * @return Created op.
+    * @return Created op output.
     * @throws InvalidShapeException     If the input tensor shapes are not compatible with each other.
     * @throws IndexOutOfBoundsException If `axis` is not within the expected output tensor shape rank.
     */
@@ -350,7 +352,7 @@ object ArrayOps {
     *
     * @param  inputs Input tensors to be stacked.
     * @param  name   Name for the created op.
-    * @return Created op.
+    * @return Created op output.
     * @throws InvalidShapeException If the input tensor shapes are not compatible with each other.
     */
   @throws[InvalidShapeException]
@@ -385,7 +387,7 @@ object ArrayOps {
     * @param  number Number of tensors to unstack. If set to `-1` (the default value), its value will be inferred.
     * @param  axis   Dimension along which to unstack the input tensor.
     * @param  name   Name for the created op.
-    * @return Created op.
+    * @return Created op outputs.
     * @throws IndexOutOfBoundsException If `axis` is not within the range [-R, R).
     * @throws IllegalArgumentException  If `number` is not specified and its value cannot be inferred.
     */
@@ -441,7 +443,7 @@ object ArrayOps {
     * @param  inputs Input tensors to be concatenated.
     * @param  axis   Dimension along which to concatenate the input tensors.
     * @param  name   Name for the created op.
-    * @return Created op.
+    * @return Created op output.
     */
   def concatenate(inputs: Array[Op.Output], axis: Int = 0, name: String = "Concatenate"): Op.Output = {
     val axisConstant = Op.createWith(nameScope = name)(constant(tensor = axis, name = "Axis"))
@@ -476,7 +478,7 @@ object ArrayOps {
     * @param  numSplits Number of splits to obtain along the `axis` dimension.
     * @param  axis      Dimension along which to split the input tensor.
     * @param  name      Name for the created op.
-    * @return Created op.
+    * @return Created op outputs.
     */
   def splitEvenly(input: Op.Output, numSplits: Int, axis: Int = 0, name: String = "Split"): Array[Op.Output] = {
     Op.Builder(opType = "Split", name = name)
@@ -506,7 +508,7 @@ object ArrayOps {
     * @param  splitSizes Sizes for the splits to obtain.
     * @param  axis       Dimension along which to split the input tensor.
     * @param  name       Name for the created op.
-    * @return Created op.
+    * @return Created op outputs.
     */
   def split(input: Op.Output, splitSizes: Tensor, axis: Int = 0, name: String = "Split"): Array[Op.Output] = {
     Op.Builder(opType = "SplitV", name = name)
@@ -536,7 +538,7 @@ object ArrayOps {
     *               elements in dimension `i` are included in the slice (i.e., this is equivalent to setting
     *               `size(i) = input.shape(i) - begin(i)`).
     * @param  name  Name for the created op.
-    * @return Created op.
+    * @return Created op output.
     */
   def slice(input: Op.Output, begin: Op.Output, size: Op.Output, name: String = "Slice"): Op.Output = {
     if (begin.dataType != DataType.Int32 && begin.dataType != DataType.Int64)
@@ -652,7 +654,7 @@ object ArrayOps {
     *                        size `1` in the dimension. For example, in `foo(0 :: 4, 3, 0 :: 2)` would result in a
     *                        tensor with shape `[4, 2]`.
     * @param  name           Name for the created op.
-    * @return Created op.
+    * @return Created op output.
     */
   def stridedSlice(
       input: Op.Output, begin: Op.Output, end: Op.Output, strides: Op.Output = null, beginMask: Int = 0,
@@ -683,7 +685,7 @@ object ArrayOps {
     * @param  multiples One-dimensional tensor containing the tiling multiples. Its length must be the same as the rank
     *                   of `input`.
     * @param  name      Name for the created op.
-    * @return Created op.
+    * @return Created op output.
     */
   def tile(input: Op.Output, multiples: Op.Output, name: String = "Tile"): Op.Output = {
     Op.Builder(opType = "Tile", name = name)
@@ -725,15 +727,59 @@ object ArrayOps {
     *
     * @param  input Input boolean tensor.
     * @param  name  Name for the created op.
-    * @return Created op.
+    * @return Created op output.
     */
   def where(input: Op.Output, name: String = "Where"): Op.Output = {
-    // TODO: Add "select" behavior.
     if (input.dataType != DataType.Bool)
       throw InvalidDataTypeException(
-        s"The 'where' op only supports boolean tensors as inputs. It does not support ${input.dataType} tensors.")
+        s"The 'where' op only supports boolean tensors as inputs. It does not support '${input.dataType}' tensors.")
     Op.Builder(opType = "Where", name = name)
         .addInput(input)
         .build().outputs(0)
+  }
+
+  /** This method is an alias for the [[MathOps.select]] method (for consistency with respect to the Python API).
+    * Please refer to that method's documentation for details.
+    *
+    * @param  condition Boolean condition tensor.
+    * @param  x         Tensor which may have the same shape as `condition`. If `condition` has rank `1`, then `t` may
+    *                   have a higher rank, but its first dimension must match the size of `condition`.
+    * @param  y         Tensor with the same data type and shape as `t`.
+    * @param  name      Name for the created op.
+    * @return Created op output.
+    */
+  def where(condition: Op.Output, x: Op.Output, y: Op.Output, name: String = "Where"): Op.Output = {
+    MathOps.select(condition, x, y, name)
+  }
+
+  /** Creates an op that computes the difference between two lists of numbers or strings.
+    *
+    * Given a list `x` and a list `y`, this operation returns a list `out` that represents all values that are in `x`
+    * but not in `y`. The returned list `output` is sorted in the same order that the numbers appear in `x` (duplicates
+    * are preserved). This operation also returns a list `indices` that represents the position of each `out` element in
+    * `x`. In other words, `output(i) = x(indices(i))`, for `i` in `[0, 1, ..., output.length - 1]`.
+    *
+    * For example, given inputs `x = [1, 2, 3, 4, 5, 6]` and `y = [1, 3, 5]`, this op would return
+    * `output = [2, 4, 6]` and `indices = [1, 3, 5]`.
+    *
+    * @param  x             One-dimensional tensor containing the values to keep.
+    * @param  y             One-dimensional tensor containing the values to remove.
+    * @param  indexDataType Optional data type to use for the output indices of this op. It has to be either 'Int32' or
+    *                       'Int64'.
+    * @param  name          Name for the created op.
+    * @return Tuple containing `output` and `indices`, from the method description.
+    */
+  def listDiff(
+      x: Op.Output, y: Op.Output, indexDataType: DataType = DataType.Int32,
+      name: String = "ListDiff"): (Op.Output, Op.Output) = {
+    if (indexDataType != DataType.Int32 && indexDataType != DataType.Int64)
+      throw InvalidDataTypeException(
+        s"The index data type cannot be '$indexDataType'. It has to be either 'Int32' or 'Int64'.")
+    val outputs = Op.Builder(opType = "ListDiff", name = name)
+        .addInput(x)
+        .addInput(y)
+        .setAttribute("out_idx", indexDataType)
+        .build().outputs
+    (outputs(0), outputs(1))
   }
 }

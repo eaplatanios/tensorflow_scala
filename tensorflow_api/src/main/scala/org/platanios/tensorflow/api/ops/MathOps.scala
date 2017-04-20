@@ -7,6 +7,49 @@ import org.platanios.tensorflow.api.Exception.InvalidDataTypeException
   * @author Emmanouil Antonios Platanios
   */
 object MathOps {
+  /** Creates an op that selects elements from `x` or `y`, depending on `condition`.
+    *
+    * The `x`, and `y` tensors must have the same shape. The output tensor will also have the same shape.
+    *
+    * The `condition` tensor must be a scalar if `x` and `y` are scalars. If `x` and `y` are vectors or higher rank,
+    * then `condition` must be either a scalar, or a vector with size matching the first dimension of `x`, or it must
+    * have the same shape as `x`.
+    *
+    * The `condition` tensor acts as a mask that chooses, based on the value at each element, whether the corresponding
+    * element / row in the output should be taken from `x` (if true) or `y` (if false).
+    *
+    * If `condition` is a vector and `x` and `y` are higher rank matrices, then it chooses which row (outer dimension)
+    * to copy from `x` and `y`. If `condition` has the same shape as `x` and `y`, then it chooses which element to copy
+    * from `x` and `y`.
+    *
+    * For example:
+    * {{{
+    *   // 'condition' tensor is [[true,  false], [false, true]]
+    *   // 'x' is [[1, 2], [3, 4]]
+    *   // 'y' is [[5, 6], [7, 8]]
+    *   select(condition, x, y) == [[1, 6], [7, 4]]
+    *
+    *   // 'condition' tensor is [true, false]
+    *   // 'x' is [[1, 2], [3, 4]]
+    *   // 'y' is [[5, 6], [7, 8]]
+    *   select(condition, x, y) == [[1, 2], [7, 8]]
+    * }}}
+    *
+    * @param  condition Boolean condition tensor.
+    * @param  x         Tensor which may have the same shape as `condition`. If `condition` has rank `1`, then `t` may
+    *                   have a higher rank, but its first dimension must match the size of `condition`.
+    * @param  y         Tensor with the same data type and shape as `t`.
+    * @param  name      Name for the created op.
+    * @return Created op output.
+    */
+  def select(condition: Op.Output, x: Op.Output, y: Op.Output, name: String = "Select"): Op.Output = {
+    Op.Builder(opType = "Select", name = name)
+        .addInput(condition)
+        .addInput(x)
+        .addInput(y)
+        .build().outputs(0)
+  }
+
   def addN(inputs: Array[Op.Output], name: String = "AddN"): Op.Output =
     Op.Builder(opType = "AddN", name = name)
         .addInputs(inputs)
