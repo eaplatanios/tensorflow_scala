@@ -27,52 +27,67 @@ final case class Graph(private var nativeHandle: Long) extends Closeable {
   /** Set of all unfetchable ops in this graph. */
   private[this] val unfetchableOpOutputs: mutable.Set[Op.Output] = mutable.Set.empty
 
-  /** Adds `value` to the collection with name `collection`.
+  /** Adds `value` to the collection with name `key`.
     *
-    * @param  value      Value to add to the collection.
-    * @param  collection Collection name.
+    * @param  value Value to add to the collection.
+    * @param  key   Collection name.
     * @throws GraphMismatchException If the provided op output does not belong to this graph.
     */
   @throws[GraphMismatchException]
-  private[api] def addToCollection(value: Op.Output, collection: String): Unit = {
+  private[api] def addToCollection(value: Op.Output, key: String): Unit = {
     if (value.graph != this)
       throw GraphMismatchException("The provided op output does not belong in this graph.")
-    collections.getOrElseUpdate(collection, mutable.Set.empty[Any]) += value
+    collections.getOrElseUpdate(key, mutable.Set.empty[Any]) += value
   }
 
-  /** Adds `value` to the collections specified by the names in `collections`.
+  /** Adds `value` to the collections specified by the names in `keys`.
     *
-    * @param  value       Value to add to the collections.
-    * @param  collections Collection names.
+    * @param  value Value to add to the collections.
+    * @param  keys  Collection names.
     * @throws GraphMismatchException If the provided op output does not belong to this graph.
     */
-  private[api] def addToCollections(value: Op.Output, collections: String*): Unit = {
-    collections.foreach(addToCollection(value, _))
+  private[api] def addToCollections(value: Op.Output, keys: String*): Unit = {
+    keys.foreach(addToCollection(value, _))
   }
 
   // TODO: [VARIABLE] Add "addToCollection" methods for variables.
 
-  /** Gets the set of objects contained in the collection with name `collection`.
+  /** Gets the set of objects contained in the collection with name `key`.
     *
     * Note that this method returns an immutable copy of the set.
     *
-    * @param  collection Collection name.
+    * @param  key Collection name.
     * @return Set of objects contained in the collection with name `collection`.
     */
-  private[api] def getCollection(collection: String): Set[Any] = {
-    collections.getOrElse(collection, mutable.Set.empty[Any]).toSet[Any]
+  private[api] def getCollection(key: String): Set[Any] = {
+    collections.getOrElse(key, mutable.Set.empty[Any]).toSet[Any]
   }
 
-  /** Gets the set of objects that corresponds to the collection with name `collection`.
+  /** Gets the set of objects that corresponds to the collection with name `key`.
     *
     * Note that this method returns a reference to the underlying mutable set and so any changes made to that set will
     * be reflected in the corresponding collection.
     *
-    * @param  collection Collection name.
+    * @param  key Collection name.
     * @return Mutable set of objects that corresponds to the collection with name `collection`.
     */
-  private[api] def getCollectionReference(collection: String): mutable.Set[Any] = {
-    collections.getOrElseUpdate(collection, mutable.Set.empty[Any])
+  private[api] def getCollectionReference(key: String): mutable.Set[Any] = {
+    collections.getOrElseUpdate(key, mutable.Set.empty[Any])
+  }
+
+  /** Returns all the collection keys used in this graph.
+    *
+    * @return Set containing all the collection keys used in this graph.
+    */
+  private[api] def getCollectionKeys: Set[String] = collections.filter(_._2.nonEmpty).keys.toSet[String]
+
+  /** Clears the collection with name `key`. This means that the corresponding collection is removed entirely from this
+    * graph.
+    *
+    * @param  key Collection name.
+    */
+  private[api] def clearCollection(key: String): Unit = {
+    collections -= key
   }
 
   /** Prevents the feeding of values to the provided op output, while running in a session.
