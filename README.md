@@ -43,7 +43,7 @@ sbt compile
   - [x] Device op creation context
   - [x] Colocation op creation context
   - [x] Control dependencies op creation context
-  - [ ] Attribute op creation context
+  - [x] Attribute op creation context
   - [ ] Container op creation context
   - [ ] Variables support
   - [ ] Gradients support

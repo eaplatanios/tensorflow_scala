@@ -129,13 +129,46 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
     })
   }
 
+  /** Gets the value of a string-valued attribute of this op with name `name`.
+    *
+    * @param  name Attribute name.
+    * @return Attribute value.
+    * @throws IllegalArgumentException If the no attribute with name `name` can be found for this op.
+    */
+  @throws[IllegalArgumentException]
+  def stringAttribute(name: String): String = using(graph.reference) { _ =>
+    try {
+      NativeOp.getAttrString(nativeHandle, name)
+    } catch {
+      case e: Exception => throw new IllegalArgumentException(
+        s"Op has no attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
+    }
+  }
+
+  /** Gets the value of a string-array-valued attribute of this op with name `name`.
+    *
+    * @param  name Attribute name.
+    * @return Attribute value.
+    * @throws IllegalArgumentException If the no attribute with name `name` can be found for this op.
+    */
+  @throws[IllegalArgumentException]
+  def stringArrayAttribute(name: String): Array[String] = using(graph.reference) { _ =>
+    try {
+      NativeOp.getAttrStringList(nativeHandle, name)
+    } catch {
+      case e: Exception => throw new IllegalArgumentException(
+        s"Op has no attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
+    }
+  }
+
   override def toString: String = name
 }
 
 private[ops] final case class OpSpecification(name: String, opType: String)
 private[api] final case class OpCreationContext(
     graph: Graph = Graph(), nameScope: String = "", device: OpSpecification => String = _ => "",
-    colocationOps: Set[Op] = Set.empty[Op], controlDependencies: Set[Op] = Set.empty[Op])
+    colocationOps: Set[Op] = Set.empty, controlDependencies: Set[Op] = Set.empty,
+    attributes: Map[String, String] = Map.empty) // TODO: Is it useful to support other than string attributes here?
 
 object Op {
   /** Convenient implicit conversion function used to convert devices specified as [[String]]s for use with the
@@ -164,9 +197,11 @@ object Op {
     *   - The current name scope used for naming these new ops.
     *   - A device function, used to decide in which device (e.g., CPU) the new ops should be placed and executed.
     *   - A set of colocation ops for the newly constructed ops. This means that the newly created ops will be placed on
-    * the same device as these colocation ops.
+    *     the same device as these colocation ops.
     *   - A set of ops defining control dependencies for the newly constructed ops. This means that the newly
-    * constructed ops are constrained to only execute after the provided set of ops has finished executing.
+    *     constructed ops are constrained to only execute after the provided set of ops has finished executing.
+    *   - A map from op attribute names to values for the newly constructed ops. These attributes will be applied to all
+    *     newly constructed ops.
     *
     * Note that all arguments of this function are optional. If they are not provided, then the corresponding option in
     * current op creation context is left unchanged.
@@ -349,6 +384,33 @@ object Op {
     * Note that transitive dependencies are eliminated (e.g., if `a` depends on `b` and `c`, and `b` depends on `c`,
     * then the dependency of `a` on `c` is ignored) in order not to add redundant control dependencies to the graph.
     *
+    * == Attributes ==
+    *
+    * When `createWith(...)` is used with a set of attributes, then all ops created within its code block will have
+    * those attributes set to the provided values when constructed. Note that if a map from attribute names to values
+    * already exists in the current op creation context, then the two maps are merged. If a name exists in both, then
+    * the provided value overrides the existing one, otherwise, the union of the two maps is used. Note that if the
+    * value for an attribute in the provided map is set to `null`, then that attribute name-value pair is completely
+    * removed from the op creation context.
+    *
+    * For example:
+    * {{{
+    *   val a = constant(1.0)
+    *   assert(a.stringAttribute("_a") == null)
+    *   createWith(attributes = Map("_a" -> "foo")) {
+    *     val b = constant(1.0)
+    *     assert(b.stringAttribute("_a") == "foo")
+    *     createWith(attributes = Map("_a" -> "bar")) {
+    *       val c = constant(1.0)
+    *       assert(c.stringAttribute("_a") == "bar")
+    *       createWith(attributes = Map("_a" -> null)) {
+    *         val d = constant(1.0)
+    *         assert(d.stringAttribute("_a") == null)
+    *       }
+    *     }
+    *   }
+    * }}}
+    *
     * == Combining Arguments ==
     *
     * Multiple arguments can be provided to change several aspects of the current op creation scope.
@@ -377,16 +439,17 @@ object Op {
   @throws[IllegalNameException]
   def createWith[R](
       graph: Graph = null, nameScope: String = null, device: OpSpecification => String = _ => "",
-      colocationOps: Set[Op] = null, controlDependencies: Set[Op] = null)
+      colocationOps: Set[Op] = null, controlDependencies: Set[Op] = null, attributes: Map[String, String] = null)
       (block: => R)(implicit context: DynamicVariable[OpCreationContext]): R = {
     val newGraph: Graph = mergeGraph(graph, context)
     val newNameScope: String = mergeNameScope(nameScope, context)
     val newDevice: OpSpecification => String = mergeDevice(device, context)
     val newColocationOps: Set[Op] = mergeColocationOps(colocationOps, context)
     val newControlDependencies: Set[Op] = mergeControlDependencies(controlDependencies, context)
+    val newAttributes: Map[String, String] = mergeAttributes(attributes, context)
     context.withValue(context.copy(
       graph = newGraph, nameScope = newNameScope, device = newDevice, colocationOps = newColocationOps,
-      controlDependencies = newControlDependencies))(block)
+      controlDependencies = newControlDependencies, attributes = newAttributes))(block)
   }
 
   /** Creates a context that can be used for creating ops.
@@ -413,7 +476,7 @@ object Op {
   }
 
   /** Merges a graph to the provided op creation context graph and returns the graph to use when specifying the updated
-    * op creation context. The merging rules are specified in the documentation of [[createWith]] function.
+    * op creation context. The merging rules are specified in the documentation of the [[createWith]] function.
     *
     * @param  graph   Graph to merge.
     * @param  context Op creation context whose graph needs to be updated.
@@ -424,8 +487,8 @@ object Op {
   }
 
   /** Merges a name scope to the provided op creation context name scope and returns the name scope to use when
-    * specifying the updated op creation context. The merging rules are specified in the documentation of [[createWith]]
-    * function.
+    * specifying the updated op creation context. The merging rules are specified in the documentation of the
+    * [[createWith]] function.
     *
     * @param  nameScope Name scope to merge.
     * @param  context   Op creation context whose name scope needs to be updated.
@@ -451,7 +514,7 @@ object Op {
   }
 
   /** Merges a device to the provided op creation context device and returns the device to use when specifying the
-    * updated op creation context. The merging rules are specified in the documentation of [[createWith]] function.
+    * updated op creation context. The merging rules are specified in the documentation of the [[createWith]] function.
     *
     * @param  device  Device to merge.
     * @param  context Op creation context whose device needs to be updated.
@@ -476,7 +539,7 @@ object Op {
 
   /** Merges a set of colocation ops to the provided op creation context set of colocation ops and returns the
     * set of colocation ops to use when specifying the updated op creation context. The merging rules are
-    * specified in the documentation of [[createWith]] function.
+    * specified in the documentation of the [[createWith]] function.
     *
     * @param  colocationOps Set of colocation ops to merge.
     * @param  context       Op creation context whose colocation ops need to be updated.
@@ -491,7 +554,7 @@ object Op {
 
   /** Merges a set of control dependencies to the provided op creation context set of control dependencies and returns
     * the set of control dependencies to use when specifying the updated op creation context. The merging rules are
-    * specified in the documentation of [[createWith]] function.
+    * specified in the documentation of the [[createWith]] function.
     *
     * @param  controlDependencies Set of control dependencies to merge.
     * @param  context             Op creation context whose control dependencies needs to be updated.
@@ -504,6 +567,32 @@ object Op {
       controlDependencies
     else
       context.controlDependencies ++ controlDependencies
+  }
+
+  /** Merges a set of attributes to the provided op creation context set of attributes and returns the set of attributes
+    * to use when specifying the updated op creation context. The merging rules are specified in the documentation of
+    * the [[createWith]] function.
+    *
+    * @param  attributes Set of attributes to merge.
+    * @param  context    Op creation context whose attributes needs to be updated.
+    * @return Set of attributes to use for the new op creation context.
+    */
+  private[this] def mergeAttributes(
+      attributes: Map[String, String], context: OpCreationContext): Map[String, String] = {
+    if (attributes == null)
+      context.attributes
+    else if (attributes == Map.empty[String, String])
+      attributes.filter(attribute => attribute._2 != null)
+    else {
+      var mergedMap = Map[String, String](context.attributes.toSeq: _*)
+      attributes.foreach(attribute => {
+        if (attribute._2 == null && mergedMap.contains(attribute._1))
+          mergedMap -= attribute._1
+        else if (attribute._2 != null)
+          mergedMap += attribute
+      })
+      mergedMap
+    }
   }
 
   /** Checks whether the provided string is a valid op name.
@@ -846,17 +935,17 @@ object Op {
     * where `N` and `rank` are the number of values and number of dimensions in the `SparseTensor`, respectively:
     *
     *   - `indices`: Two-dimensional `Int64` tensor with shape `[N, rank]`, which specifies the indices of the elements
-    *     in the sparse tensor that have nonzero values (elements are zero-indexed). For example,
-    *     `indices = [[1, 3], [2, 4]]` specifies that the elements with indexes `[1, 3]` and `[2, 4]` have nonzero
-    *     values.
+    * in the sparse tensor that have nonzero values (elements are zero-indexed). For example,
+    * `indices = [[1, 3], [2, 4]]` specifies that the elements with indexes `[1, 3]` and `[2, 4]` have nonzero
+    * values.
     *   - `values`: One-dimensional tensor of any type, with shape `[N]`, which supplies the values for each element in
-    *     `indices`. For example, given `indices = [[1, 3], [2, 4]]`, the parameter `values = [18, 3.6]` specifies that
-    *     element `[1, 3]` of the sparse tensor has a value of `18`, and element `[2, 4]` of the tensor has a value of
-    *     `3.6`.
+    * `indices`. For example, given `indices = [[1, 3], [2, 4]]`, the parameter `values = [18, 3.6]` specifies that
+    * element `[1, 3]` of the sparse tensor has a value of `18`, and element `[2, 4]` of the tensor has a value of
+    * `3.6`.
     *   - `denseShape`: One-dimensional `Int64` tensor with shape `[rank]`, which specifies the dense shape of the
-    *     sparse tensor.  For example, `denseShape = [3, 6]` specifies a two-dimensional 3x6 tensor,
-    *     `denseShape = [2, 3, 4]` specifies a three-dimensional 2x3x4 tensor, and `denseShape = [9]` specifies a
-    *     one-dimensional tensor with 9 elements.
+    * sparse tensor.  For example, `denseShape = [3, 6]` specifies a two-dimensional 3x6 tensor,
+    * `denseShape = [2, 3, 4]` specifies a three-dimensional 2x3x4 tensor, and `denseShape = [9]` specifies a
+    * one-dimensional tensor with 9 elements.
     *
     * The corresponding dense tensor, `dense`, satisfies:
     * {{{
@@ -1062,15 +1151,15 @@ object Op {
       Shape.scalar()
     } else {
       tensor.op.opType match {
-        case "Shape"  => tensor.op.inputs(0).shape
-        case "Pack"   =>
+        case "Shape"    => tensor.op.inputs(0).shape
+        case "Pack"     =>
           var returnShape = Shape.scalar()
           tensor.op.inputs.foreach(input => {
             // 'input' must be a scalar. Attempt to evaluate it, and append it to 'returnShape'.
             returnShape = returnShape.concatenateWith(Shape(constantValue(input).scalar.asInstanceOf[Int]))
           })
           returnShape
-        case "Concat" =>
+        case "Concat"   =>
           // We assume that 'tensor.op.inputs(0)' evaluates to 0, as this is the only legal value when concatenating
           // vectors, and it will have been checked by a previous shape function.
           var returnShape = Shape.scalar()
@@ -1088,7 +1177,7 @@ object Op {
             returnShape = returnShape.concatenateWith(constantValueAsShape(input))
           })
           returnShape
-        case _        =>
+        case _          =>
           var returnShape = Shape.unknown(shape(0))
           val value = constantValue(tensor)
           if (value != null) {
@@ -1105,27 +1194,27 @@ object Op {
 
   private[ops] final case class Builder(opType: String, name: String)
       (implicit context: DynamicVariable[OpCreationContext]) {
-    private val graph: Graph = context.graph
+    private val graph : Graph  = context.graph
     private val opName: String = if (context.nameScope == "") name else s"${context.nameScope}/$name"
     if (!checkName(name = opName))
       throw IllegalNameException(s"Illegal op name '$opName'.")
 
-    private var built: Boolean = false
-    private var inputs: Seq[Output] = Seq[Output]()
-    private var inputLists: Seq[Array[Output]] = Seq[Array[Output]]()
-    private var device: Option[String] = None
-    private var byteArrayAttributes: Map[String, Array[Byte]] = Map[String, Array[Byte]]()
-    private var longAttributes: Map[String, Long] = Map[String, Long]()
-    private var longArrayAttributes: Map[String, Array[Long]] = Map[String, Array[Long]]()
-    private var floatAttributes: Map[String, Float] = Map[String, Float]()
-    private var floatArrayAttributes: Map[String, Array[Float]] = Map[String, Array[Float]]()
-    private var booleanAttributes: Map[String, Boolean] = Map[String, Boolean]()
-    private var booleanArrayAttributes: Map[String, Array[Boolean]] = Map[String, Array[Boolean]]()
-    private var dataTypeAttributes: Map[String, Int] = Map[String, Int]()
-    private var dataTypeArrayAttributes: Map[String, Array[Int]] = Map[String, Array[Int]]()
-    private var tensorAttributes: Map[String, Long] = Map[String, Long]()
-    private var tensorArrayAttributes: Map[String, Array[Long]] = Map[String, Array[Long]]()
-    private var shapeAttributes: Map[String, Shape] = Map[String, Shape]()
+    private var built                  : Boolean                     = false
+    private var inputs                 : Seq[Output]                 = Seq.empty
+    private var inputLists             : Seq[Array[Output]]          = Seq.empty
+    private var device                 : Option[String]              = None
+    private var stringAttributes       : Map[String, String]         = Map.empty
+    private var longAttributes         : Map[String, Long]           = Map.empty
+    private var longArrayAttributes    : Map[String, Array[Long]]    = Map.empty
+    private var floatAttributes        : Map[String, Float]          = Map.empty
+    private var floatArrayAttributes   : Map[String, Array[Float]]   = Map.empty
+    private var booleanAttributes      : Map[String, Boolean]        = Map.empty
+    private var booleanArrayAttributes : Map[String, Array[Boolean]] = Map.empty
+    private var dataTypeAttributes     : Map[String, Int]            = Map.empty
+    private var dataTypeArrayAttributes: Map[String, Array[Int]]     = Map.empty
+    private var tensorAttributes       : Map[String, Long]           = Map.empty
+    private var tensorArrayAttributes  : Map[String, Array[Long]]    = Map.empty
+    private var shapeAttributes        : Map[String, Shape]          = Map.empty
 
     /** Prunes control dependencies from the provided set, given that the op for which these control dependencies are
       * specified uses `op` as direct or indirect (through other ops) input or control input. This eliminates redundant
@@ -1161,7 +1250,10 @@ object Op {
         controlDependencies.foreach(op => NativeOp.addControlInput(nativeHandle, op.nativeHandle))
         device.foreach(NativeOp.setDevice(nativeHandle, _))
         context.colocationOps.foreach(op => NativeOp.colocateWith(nativeHandle, op.nativeHandle))
-        byteArrayAttributes.foreach(a => NativeOp.setAttrString(nativeHandle, a._1, a._2))
+        context.attributes.foreach(
+          a => NativeOp.setAttrString(nativeHandle, a._1, a._2.getBytes(Charset.forName("UTF-8"))))
+        stringAttributes.foreach(
+          a => NativeOp.setAttrString(nativeHandle, a._1, a._2.getBytes(Charset.forName("UTF-8"))))
         longAttributes.foreach(a => NativeOp.setAttrInt(nativeHandle, a._1, a._2))
         longArrayAttributes.foreach(a => NativeOp.setAttrIntList(nativeHandle, a._1, a._2))
         floatAttributes.foreach(a => NativeOp.setAttrFloat(nativeHandle, a._1, a._2))
@@ -1200,12 +1292,7 @@ object Op {
     }
 
     def setAttribute(name: String, value: String): Builder = {
-      byteArrayAttributes += name -> value.getBytes(Charset.forName("UTF-8"))
-      this
-    }
-
-    def setAttribute(name: String, value: Array[Byte]): Builder = {
-      byteArrayAttributes += name -> value
+      stringAttributes += name -> value
       this
     }
 

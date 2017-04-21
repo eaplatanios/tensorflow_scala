@@ -91,7 +91,7 @@ class OpSpec extends FlatSpec with Matchers {
     }
   }
 
-  //endregion
+  //endregion createWith(nameScope = ...) Specification
 
   //region createWith(device = ...) Specification
 
@@ -207,7 +207,7 @@ class OpSpec extends FlatSpec with Matchers {
     }
   }
 
-  //endregion
+  //endregion createWith(device = ...) Specification
 
   //region createWith(colocationOps = ...) Specification
 
@@ -230,7 +230,7 @@ class OpSpec extends FlatSpec with Matchers {
     }
   }
 
-  //endregion
+  //endregion createWith(colocationOps = ...) Specification
 
   //region createWith(controlDependencies = ...) Specification
 
@@ -317,7 +317,34 @@ class OpSpec extends FlatSpec with Matchers {
     }
   }
 
-  //endregion
+  //endregion createWith(controlDependencies = ...) Specification
+
+  //region createWith(attributes = ...) Specification
+
+  it must "change the attributes for newly created ops (only) for its code block" in {
+    createWith(graph = Graph()) {
+      val a = constant(1.0)
+      assert(intercept[IllegalArgumentException](a.stringAttribute("_a")).getMessage ===
+                 "Op has no attribute named '_a'. " +
+                     "TensorFlow native library error message: Operation has no attr named '_a'.")
+      createWith(attributes = Map("_a" -> "foo")) {
+        val b = constant(1.0)
+        assert(b.stringAttribute("_a") === "foo")
+        createWith(attributes = Map("_a" -> "bar")) {
+          val c = constant(1.0)
+          assert(c.stringAttribute("_a") === "bar")
+          createWith(attributes = Map("_a" -> null)) {
+            val d = constant(1.0)
+            assert(intercept[IllegalArgumentException](d.stringAttribute("_a")).getMessage ===
+                       "Op has no attribute named '_a'. " +
+                           "TensorFlow native library error message: Operation has no attr named '_a'.")
+          }
+        }
+      }
+    }
+  }
+
+  //endregion createWith(attributes = ...) Specification
 
   it must "allow changing, the graph, the name scope, and the device used for its code block simultaneously" in {
     val graph1 = Graph()
@@ -343,7 +370,7 @@ class OpSpec extends FlatSpec with Matchers {
     }
   }
 
-  //endregion
+  //endregion createWith(...) Specification
 
   "Ops created using the same name" must "have their name made unique by appending an index to it" in {
     createWith(graph = Graph()) {
