@@ -1160,7 +1160,7 @@ object Op {
     }
     if (value != null) {
       // The caller may now depend on the constant value of 'tensor', so conservatively prevent it from being fed.
-      ??? // TODO: !!! Graph prevent feeding.
+      tensor.graph.preventFeeding(tensor)
     }
     value
   }

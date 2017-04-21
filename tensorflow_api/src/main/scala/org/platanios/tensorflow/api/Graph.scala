@@ -1,6 +1,6 @@
 package org.platanios.tensorflow.api
 
-import org.platanios.tensorflow.api.Exception.InvalidGraphElementException
+import org.platanios.tensorflow.api.Exception.{GraphMismatchException, InvalidGraphElementException}
 import org.platanios.tensorflow.jni.{Graph => NativeGraph}
 
 import scala.collection.mutable
@@ -12,7 +12,65 @@ final case class Graph(private var nativeHandle: Long) extends Closeable {
   // TODO: Need to be able to reset and close this session.
   private[api] val defaultSession: Session = Session(this)
 
+  /** Map from native op handle to op object in the Scala side. Used for caching ops that have already been obtained
+    * from the native library. */
   private[api] val opsCache: mutable.Map[Long, Op] = mutable.LongMap[Op]()
+
+  /** Set of all unfeedable ops in this graph. */
+  private[this] val unfeedableOpOutputs: mutable.Set[Op.Output] = mutable.Set.empty
+
+  /** Set of all unfetchable ops in this graph. */
+  private[this] val unfetchableOpOutputs: mutable.Set[Op.Output] = mutable.Set.empty
+
+  /** Prevents the feeding of values to the provided op output, while running in a session.
+    *
+    * @param  opOutput Op output whose feeding is prevented.
+    * @throws GraphMismatchException If the provided op output does not belong to this graph.
+    */
+  @throws[GraphMismatchException]
+  private[api] def preventFeeding(opOutput: Op.Output): Unit = {
+    if (opOutput.graph != this)
+      throw GraphMismatchException("The provided op output does not belong in this graph.")
+    unfeedableOpOutputs += opOutput
+  }
+
+  /** Prevents the fetching of values to the provided op output, while running in a session.
+    *
+    * @param  opOutput Op output whose fetching is prevented.
+    * @throws GraphMismatchException If the provided op output does not belong to this graph.
+    */
+  @throws[GraphMismatchException]
+  private[api] def preventFetching(opOutput: Op.Output): Unit = {
+    if (opOutput.graph != this)
+      throw GraphMismatchException("The provided op output does not belong in this graph.")
+    unfetchableOpOutputs += opOutput
+  }
+
+  /** Returns `true` if the provided op output is allowed to be fed values, while running in a session.
+    *
+    * @param  opOutput Op output to check.
+    * @return Boolean value indicating whether `opOutput` is allowed to be fed values, while running in a session.
+    * @throws GraphMismatchException If the provided op output does not belong to this graph.
+    */
+  @throws[GraphMismatchException]
+  private[api] def isFeedable(opOutput: Op.Output): Boolean = {
+    if (opOutput.graph != this)
+      throw GraphMismatchException("The provided op output does not belong in this graph.")
+    !unfeedableOpOutputs.contains(opOutput)
+  }
+
+  /** Returns `true` if the provided op output's value is allowed to be fetched, while running in a session.
+    *
+    * @param  opOutput Op output to check.
+    * @return Boolean value indicating whether `opOutput`'s value is allowed to be fetched, while running in a session.
+    * @throws GraphMismatchException If the provided op output does not belong to this graph.
+    */
+  @throws[GraphMismatchException]
+  private[api] def isFetchable(opOutput: Op.Output): Boolean = {
+    if (opOutput.graph != this)
+      throw GraphMismatchException("The provided op output does not belong in this graph.")
+    !unfetchableOpOutputs.contains(opOutput)
+  }
 
   /** Returns the op with the specified name.
     *

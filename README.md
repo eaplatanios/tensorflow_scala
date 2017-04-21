@@ -44,7 +44,8 @@ sbt compile
   - [x] Colocation op creation context
   - [x] Control dependencies op creation context
   - [x] Attribute op creation context
-  - [ ] Container op creation context
+  - [x] Container op creation context
+  - [ ] Graph collections
   - [ ] Variables support
   - [ ] Gradients support
   - [ ] Gradient override map op creation context (need gradient support first)
@@ -52,6 +53,7 @@ sbt compile
 - Execution API helpers:
   - [ ] Default session
   - [ ] Session execution context
+  - [ ] Session reset functionality
 - Tensor API:
   - [ ] More flexible/efficient slicing for obtaining and assigning elements
   - [ ] More numpy-like operations for tensors
@@ -71,7 +73,6 @@ sbt compile
   - Get graph from inputs
   - Assert same graph for inputs and control inputs
   - Convert to tensor function (use implicit conversions?)
-  - Graph collections
   - Set Op.Output shape
   - Support re-entering existing name scopes
   - Reset default graph
