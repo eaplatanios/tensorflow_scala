@@ -817,6 +817,17 @@ object Op {
       NativeOp.shape(r.nativeHandle, op.nativeHandle, index).map(_.toInt)
     })
 
+    /** Sets the shape of this op output to the provided shape.
+      *
+      * This method can be useful in cases when shape inference fails, but the shape of the op output is known by the
+      * user of the library.
+      *
+      * @param  shape Shape to use.
+      */
+    def setShape(shape: Shape): Unit = using(op.graph.reference) { r =>
+      NativeOp.setShape(r.nativeHandle, op.nativeHandle, index, shape.asArray.map(_.toLong), shape.rank)
+    }
+
     /** Evaluates this op output.
       *
       * If `feeds` is non-empty, then the provided feed values are fed into the session for computing the value of this

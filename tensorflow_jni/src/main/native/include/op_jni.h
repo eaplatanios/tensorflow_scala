@@ -7,7 +7,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 /*
  * Class:     org_platanios_tensorflow_jni_Op__
  * Method:    name
@@ -127,6 +126,14 @@ JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Op_00024_outputDataType
  */
 JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_shape
   (JNIEnv *, jobject, jlong, jlong, jint);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Op__
+ * Method:    setShape
+ * Signature: (JJI[JI)V
+ */
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_setShape
+        (JNIEnv *, jobject, jlong, jlong, jint, jlongArray, jint);
 
 /*
  * Class:     org_platanios_tensorflow_jni_Op__

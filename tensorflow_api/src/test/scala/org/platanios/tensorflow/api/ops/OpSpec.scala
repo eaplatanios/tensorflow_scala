@@ -1,16 +1,28 @@
 package org.platanios.tensorflow.api.ops
 
+import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.Exception.IllegalNameException
-import org.platanios.tensorflow.api.{Graph, Session}
-import org.platanios.tensorflow.api.ops.ArrayOps.constant
+import org.platanios.tensorflow.api.ops.ArrayOps.{constant, placeholder}
 import org.platanios.tensorflow.api.ops.MathOps.matMul
 import org.platanios.tensorflow.api.ops.Op._
+
 import org.scalatest._
 
 /**
   * @author Emmanouil Antonios Platanios
   */
 class OpSpec extends FlatSpec with Matchers {
+  "'Op.Output.setShape'" must "always work" in {
+    createWith(graph = Graph()) {
+      val a = placeholder(DataType.Int32, Shape(-1, -1, 3))
+      assert(!a.shape.isFullyDefined)
+      assert(a.shape === Shape(-1, -1, 3))
+      a.setShape(Shape(2, 4, 3))
+      assert(a.shape.isFullyDefined)
+      assert(a.shape === Shape(2, 4, 3))
+    }
+  }
+
   //region createWith(...) Specification
 
   "The 'createWith' function" must "change the default graph (only) for its code block" in {

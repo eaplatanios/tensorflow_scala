@@ -286,22 +286,22 @@ JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Op_00024_outputDataType
 
 JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_shape(
     JNIEnv* env, jobject object, jlong graph_handle, jlong op_handle, jint output_index) {
-  TF_Graph* graph = requireGraphHandle(env, graph_handle);
+  TF_Graph *graph = requireGraphHandle(env, graph_handle);
   if (graph == nullptr) return nullptr;
-  TF_Operation* op = requireOperationHandle(env, op_handle);
+  TF_Operation *op = requireOperationHandle(env, op_handle);
   if (op == nullptr) return nullptr;
 
   int num_outputs = TF_OperationNumOutputs(op);
   if (output_index < 0 || output_index >= num_outputs) {
     throwException(
-        env, kIndexOutOfBoundsException,
-        "invalid output index (%d) for an operation that has %d outputs",
-        output_index, num_outputs);
+            env, kIndexOutOfBoundsException,
+            "invalid output index (%d) for an operation that has %d outputs",
+            output_index, num_outputs);
     return nullptr;
   }
 
   TF_Output output{op, output_index};
-  TF_Status* status = TF_NewStatus();
+  TF_Status *status = TF_NewStatus();
   jsize num_dims = TF_GraphGetTensorNumDims(graph, output, status);
   if (!throwExceptionIfNotOK(env, status)) {
     TF_DeleteStatus(status);
@@ -326,12 +326,37 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_shape(
   TF_DeleteStatus(status);
 
   jlongArray ret = env->NewLongArray(num_dims);
-  jlong* dims = env->GetLongArrayElements(ret, nullptr);
+  jlong *dims = env->GetLongArrayElements(ret, nullptr);
   for (int i = 0; i < num_dims; ++i) {
     dims[i] = static_cast<jlong>(cdims[i]);
   }
   env->ReleaseLongArrayElements(ret, dims, 0);
   return ret;
+}
+
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_setShape(
+        JNIEnv* env, jobject object, jlong graph_handle, jlong op_handle, jint output_index, jlongArray shape,
+        jint num_dims) {
+  TF_Graph *graph = requireGraphHandle(env, graph_handle);
+  if (graph == nullptr) return;
+  TF_Operation *op = requireOperationHandle(env, op_handle);
+  if (op == nullptr) return;
+  TF_Output output{op, output_index};
+  std::unique_ptr<int64_t[]> dims;
+  if (num_dims > 0) {
+    dims.reset(new int64_t[num_dims]);
+    jlong *elems = env->GetLongArrayElements(shape, nullptr);
+    for (int i = 0; i < num_dims; ++i) {
+      dims[i] = static_cast<int64_t>(elems[i]);
+    }
+    env->ReleaseLongArrayElements(shape, elems, JNI_ABORT);
+  }
+  TF_Status *status = TF_NewStatus();
+  TF_GraphSetTensorShape(graph, output, dims.get(), num_dims, status);
+  if (!throwExceptionIfNotOK(env, status)) {
+    TF_DeleteStatus(status);
+    return;
+  }
 }
 
 JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttrString(
