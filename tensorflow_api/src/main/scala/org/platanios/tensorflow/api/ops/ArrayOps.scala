@@ -23,11 +23,11 @@ object ArrayOps {
     * The argument `shape` is optional. If present, it specifies the dimensions of the resulting tensor. If not present,
     * the shape of `value` is used.
     *
-    * @param  tensor      A constant value of data type `dataType`.
-    * @param  dataType    Data type of the resulting tensor. If not provided, its value will be inferred from the type
-    *                     of `value`.
-    * @param  shape       Shape of the resulting tensor.
-    * @param  name        Name for the created op.
+    * @param  tensor   A constant value of data type `dataType`.
+    * @param  dataType Data type of the resulting tensor. If not provided, its value will be inferred from the type
+    *                  of `value`.
+    * @param  shape    Shape of the resulting tensor.
+    * @param  name     Name for the created op.
     * @return Created op output.
     * @throws InvalidShapeException If `shape != null`, `verifyShape == true`, and the shape of values does not match
     *                               the provided `shape`.
@@ -354,8 +354,8 @@ object ArrayOps {
     * indices required to uniquely select each element of the tensor. Rank is also known as order, degree, or number of
     * dimensions.
     *
-    * @param  input    Tensor whose rank to return.
-    * @param  name     Name for the created op.
+    * @param  input Tensor whose rank to return.
+    * @param  name  Name for the created op.
     * @return Created op output.
     */
   def sparseRank(input: Op.SparseOutput, name: String = "Rank"): Op.Output = {
@@ -973,46 +973,32 @@ object ArrayOps {
     }
   }
 
-  /** Creates an op that returns locations of `true` values in a boolean tensor.
+  /** Creates an op that computes the inverse permutation of a tensor.
     *
-    * The op returns the coordinates of true elements in `input`. The coordinates are returned in a 2-D tensor where the
-    * first dimension (rows) represents the number of true elements, and the second dimension (columns) represents the
-    * coordinates of the true elements. Note that the shape of the output tensor can vary depending on how many true
-    * values there are in `input`. Indices are output in row-major order.
+    * This op computes the inverse of an index permutation. It takes a one-dimensional integer tensor `input`, which
+    * represents indices of a zero-based array, and swaps each value with its index position. In other words, for an
+    * output tensor `y` and an input tensor `x`, this op computes `y(x(i)) = i`, for `i` in `[0, 1, ..., x.length - 1]`.
     *
     * For example:
     * {{{
-    *   // 'input' tensor is [[true, false]
-    *   //                    [true, false]]
-    *   // 'input' has two 'true' values and so the output has two coordinates
-    *   // 'input' has rank 2 and so each coordinate has two indices
-    *   where(input) == [[0, 0],
-    *                    [1, 0]]
-    *
-    *   // `input` tensor is [[[true, false]
-    *   //                     [true, false]]
-    *   //                    [[false, true]
-    *   //                     [false, true]]
-    *   //                    [[false, false]
-    *   //                     [false, true]]]
-    *   // 'input' has 5 'true' values and so the output has 5 coordinates
-    *   // 'input' has rank 3 and so each coordinate has three indices
-    *   where(input) == [[0, 0, 0],
-    *                    [0, 1, 0],
-    *                    [1, 0, 1],
-    *                    [1, 1, 1],
-    *                    [2, 1, 1]]
+    *   // Tensor 't' is [3, 4, 0, 2, 1]
+    *   invertPermutation(t) == [2, 4, 3, 0, 1]
     * }}}
     *
-    * @param  input Input boolean tensor.
+    * @param  input One-dimensional `Int32` or `Int64` input tensor
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def where(input: Op.Output, name: String = "Where"): Op.Output = {
-    if (input.dataType != DataType.Bool)
+  def invertPermutation(input: Op.Output, name: String = "InvertPermutation"): Op.Output = {
+    if (input.dataType != DataType.Int32 && input.dataType != DataType.Int64)
       throw InvalidDataTypeException(
-        s"The 'where' op only supports boolean tensors as inputs. It does not support '${input.dataType}' tensors.")
-    Op.Builder(opType = "Where", name = name)
+        s"Data type '${input.dataType}' is not supported for the permutation inversion op input. " +
+            s"Only 'Int32' and 'Int64' are supported.")
+    if (input.shape.rank != 1 && input.shape.rank != -1)
+      throw InvalidShapeException(
+        s"Shape '${input.shape}' is not supported for the permutation inversion op input. " +
+            s"Only one-dimensional tensors are supported.")
+    Op.Builder(opType = "InvertPermutation", name = name)
         .addInput(input)
         .build().outputs(0)
   }
@@ -1155,6 +1141,111 @@ object ArrayOps {
         .build().outputs(0)
   }
 
+  //endregion Tensor Manipulation Ops
+
+  /** Creates an op that returns locations of `true` values in a boolean tensor.
+    *
+    * The op returns the coordinates of true elements in `input`. The coordinates are returned in a 2-D tensor where the
+    * first dimension (rows) represents the number of true elements, and the second dimension (columns) represents the
+    * coordinates of the true elements. Note that the shape of the output tensor can vary depending on how many true
+    * values there are in `input`. Indices are output in row-major order.
+    *
+    * For example:
+    * {{{
+    *   // 'input' tensor is [[true, false]
+    *   //                    [true, false]]
+    *   // 'input' has two 'true' values and so the output has two coordinates
+    *   // 'input' has rank 2 and so each coordinate has two indices
+    *   where(input) == [[0, 0],
+    *                    [1, 0]]
+    *
+    *   // `input` tensor is [[[true, false]
+    *   //                     [true, false]]
+    *   //                    [[false, true]
+    *   //                     [false, true]]
+    *   //                    [[false, false]
+    *   //                     [false, true]]]
+    *   // 'input' has 5 'true' values and so the output has 5 coordinates
+    *   // 'input' has rank 3 and so each coordinate has three indices
+    *   where(input) == [[0, 0, 0],
+    *                    [0, 1, 0],
+    *                    [1, 0, 1],
+    *                    [1, 1, 1],
+    *                    [2, 1, 1]]
+    * }}}
+    *
+    * @param  input Input boolean tensor.
+    * @param  name  Name for the created op.
+    * @return Created op output.
+    */
+  def where(input: Op.Output, name: String = "Where"): Op.Output = {
+    if (input.dataType != DataType.Bool)
+      throw InvalidDataTypeException(
+        s"The 'where' op only supports boolean tensors as inputs. It does not support '${input.dataType}' tensors.")
+    Op.Builder(opType = "Where", name = name)
+        .addInput(input)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that finds unique elements in a one-dimensional tensor.
+    *
+    * The op returns a tensor `output` containing all of the unique elements of `input` sorted in the same order that
+    * they occur in `input`. This op also returns a tensor `indices` the same size as `input` that contains the
+    * index of each value of `input` in the unique output `output`. In other words `output(indices(i)) = input(i)`, for
+    * `i` in `[0, 1, ..., input.rank - 1]`.
+    *
+    * For example:
+    * {{{
+    *   // Tensor 't' is [1, 1, 2, 4, 4, 4, 7, 8, 8]
+    *   (output, indices) = unique(t)
+    *   // 'output' is [1, 2, 4, 7, 8]
+    *   // 'indices' is [0, 0, 1, 2, 2, 2, 3, 4, 4]
+    * }}}
+    *
+    * @param  input One-dimensional input tensor.
+    * @param  name  Name for the created op.
+    * @return Created op output.
+    */
+  def unique(input: Op.Output, name: String = "Unique"): (Op.Output, Op.Output) = {
+    if (input.shape.rank != 1 && input.shape.rank != -1)
+      throw InvalidShapeException(
+        s"Shape '${input.shape}' is not supported for the unique op input. Only one-dimensional tensors are supported.")
+    val outputs = Op.Builder(opType = "Unique", name = name)
+        .addInput(input)
+        .build().outputs
+    (outputs(0), outputs(1))
+  }
+
+  /** Creates an op that finds unique elements in a one-dimensional tensor.
+    *
+    * The op returns a tensor `output` containing all of the unique elements of `input` sorted in the same order that
+    * they occur in `input`. This op also returns a tensor `indices` the same size as `input` that contains the
+    * index of each value of `input` in the unique output `output`. Finally, it returns a third tensor `counts` that
+    * contains the count of each element of `output` in `input`.
+    *
+    * For example:
+    * {{{
+    *   // Tensor 't' is [1, 1, 2, 4, 4, 4, 7, 8, 8]
+    *   (output, indices, counts) = uniqueWithCounts(t)
+    *   // 'output' is [1, 2, 4, 7, 8]
+    *   // 'indices' is [0, 0, 1, 2, 2, 2, 3, 4, 4]
+    *   // 'counts' is [2, 1, 3, 1, 2]
+    * }}}
+    *
+    * @param  input One-dimensional input tensor.
+    * @param  name  Name for the created op.
+    * @return Created op output.
+    */
+  def uniqueWithCounts(input: Op.Output, name: String = "UniqueWithCounts"): (Op.Output, Op.Output, Op.Output) = {
+    if (input.shape.rank != 1 && input.shape.rank != -1)
+      throw InvalidShapeException(
+        s"Shape '${input.shape}' is not supported for the unique op input. Only one-dimensional tensors are supported.")
+    val outputs = Op.Builder(opType = "UniqueWithCounts", name = name)
+        .addInput(input)
+        .build().outputs
+    (outputs(0), outputs(1), outputs(2))
+  }
+
   /** Creates an op that computes the difference between two lists of numbers or strings.
     *
     * Given a list `x` and a list `y`, this operation returns a list `out` that represents all values that are in `x`
@@ -1185,8 +1276,6 @@ object ArrayOps {
         .build().outputs
     (outputs(0), outputs(1))
   }
-
-  //endregion Tensor Manipulation Ops
 
   //region Slice Ops
 
@@ -1364,6 +1453,8 @@ object ArrayOps {
         .build().outputs(0)
   }
 
+  // TODO: Add support for the "editDistance" op.
+
   //region Gradients Ops
 
   /** Creates an op that stops gradient execution, but otherwise acts as an identity op.
@@ -1380,7 +1471,7 @@ object ArrayOps {
     *
     *   - The *EM* algorithm where the *M-step* should not involve backpropagation through the output of the *E-step*.
     *   - Contrastive divergence training of Boltzmann machines where, when differentiating the energy function, the
-    *     training must not backpropagate through the graph that generated the samples from the model.
+    * training must not backpropagate through the graph that generated the samples from the model.
     *   - Adversarial training, where no backprop should happen through the adversarial example generation process.
     *
     * @param  input Input tensor.
