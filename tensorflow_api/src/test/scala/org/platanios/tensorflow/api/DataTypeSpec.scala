@@ -35,7 +35,7 @@ class DataTypeSpec extends FlatSpec with Matchers {
     assert(DataType.fromCValue(4) === DataType.UInt8)
     assert(DataType.fromCValue(5) === DataType.Int16)
     assert(DataType.fromCValue(6) === DataType.Int8)
-    // assert(DataType.fromCValue(7) === DataType.String)
+    assert(DataType.fromCValue(7) === DataType.Str)
     // assert(DataType.fromCValue(8) === DataType.Complex64)
     assert(DataType.fromCValue(9) === DataType.Int64)
     assert(DataType.fromCValue(10) === DataType.Bool)
@@ -48,7 +48,7 @@ class DataTypeSpec extends FlatSpec with Matchers {
     assert(DataType.fromCValue(17) === DataType.UInt16)
     // assert(DataType.fromCValue(18) === DataType.Complex128)
     // assert(DataType.fromCValue(19) === DataType.Float16)
-    // assert(DataType.fromCValue(20) === DataType.Resource)
+    assert(DataType.fromCValue(20) === DataType.Resource)
   }
 
   it must "throw an 'IllegalArgumentException' when invalid C values are provided" in {
@@ -67,7 +67,7 @@ class DataTypeSpec extends FlatSpec with Matchers {
     assert(DataType.fromName("UInt8") === DataType.UInt8)
     assert(DataType.fromName("Int16") === DataType.Int16)
     assert(DataType.fromName("Int8") === DataType.Int8)
-    // assert(DataType.fromName("String") === DataType.String)
+    assert(DataType.fromName("String") === DataType.Str)
     // assert(DataType.fromName("Complex64") === DataType.Complex64)
     assert(DataType.fromName("Int64") === DataType.Int64)
     assert(DataType.fromName("Boolean") === DataType.Bool)
@@ -80,7 +80,7 @@ class DataTypeSpec extends FlatSpec with Matchers {
     assert(DataType.fromName("UInt16") === DataType.UInt16)
     // assert(DataType.fromName("Complex128") === DataType.Complex128)
     // assert(DataType.fromName("Float16") === DataType.Float16)
-    // assert(DataType.fromName("Resource") === DataType.Resource)
+    assert(DataType.fromName("Resource") === DataType.Resource)
   }
 
   it must "throw an 'IllegalArgumentException' when invalid data type names are provided" in {
@@ -91,6 +91,8 @@ class DataTypeSpec extends FlatSpec with Matchers {
   }
 
   "'DataType.size'" must "give the correct result" in {
+    assert(DataType.Str.byteSize === -1)
+    assert(DataType.Bool.byteSize === 1)
     // assert(DataType.Float16.byteSize === 2)
     assert(DataType.Float32.byteSize === 4)
     assert(DataType.Float64.byteSize === 8)
@@ -108,14 +110,14 @@ class DataTypeSpec extends FlatSpec with Matchers {
     assert(DataType.QInt32.byteSize === 4)
     assert(DataType.QUInt8.byteSize === 1)
     assert(DataType.QUInt16.byteSize === 2)
-    assert(DataType.Bool.byteSize === 1)
-    // assert(DataType.String.byteSize === -1)
-    // assert(DataType.Resource.byteSize === -1)
+    assert(DataType.Resource.byteSize === -1)
   }
 
   // TODO: Add checks for data type priorities.
 
   "'DataType.isBoolean'" must "always work correctly" in {
+    assert(DataType.Bool.isBoolean === true)
+    assert(DataType.Str.isBoolean === false)
     // assert(DataType.Float16.isBoolean === false)
     assert(DataType.Float32.isBoolean === false)
     assert(DataType.Float64.isBoolean === false)
@@ -133,12 +135,12 @@ class DataTypeSpec extends FlatSpec with Matchers {
     assert(DataType.QInt32.isBoolean === false)
     assert(DataType.QUInt8.isBoolean === false)
     assert(DataType.QUInt16.isBoolean === false)
-    // assert(DataType.Boolean.isBoolean === true)
-    // assert(DataType.String.isBoolean === false)
-    // assert(DataType.Resource.isBoolean === false)
+    assert(DataType.Resource.isBoolean === false)
   }
 
   "'DataType.isFloatingPoint'" must "always work correctly" in {
+    assert(DataType.Bool.isFloatingPoint === false)
+    assert(DataType.Str.isFloatingPoint === false)
     // assert(DataType.Float16.isFloatingPoint === true)
     assert(DataType.Float32.isFloatingPoint === true)
     assert(DataType.Float64.isFloatingPoint === true)
@@ -156,12 +158,12 @@ class DataTypeSpec extends FlatSpec with Matchers {
     assert(DataType.QInt32.isFloatingPoint === false)
     assert(DataType.QUInt8.isFloatingPoint === false)
     assert(DataType.QUInt16.isFloatingPoint === false)
-    assert(DataType.Bool.isFloatingPoint === false)
-    // assert(DataType.String.isFloatingPoint === false)
-    // assert(DataType.Resource.isFloatingPoint === false)
+    assert(DataType.Resource.isFloatingPoint === false)
   }
 
   "'DataType.isInteger'" must "always work correctly" in {
+    assert(DataType.Bool.isInteger === false)
+    assert(DataType.Str.isInteger === false)
     // assert(DataType.Float16.isInteger === false)
     assert(DataType.Float32.isInteger === false)
     assert(DataType.Float64.isInteger === false)
@@ -179,12 +181,12 @@ class DataTypeSpec extends FlatSpec with Matchers {
     assert(DataType.QInt32.isInteger === false)
     assert(DataType.QUInt8.isInteger === false)
     assert(DataType.QUInt16.isInteger === false)
-    // assert(DataType.Boolean.isInteger === false)
-    // assert(DataType.String.isInteger === false)
-    // assert(DataType.Resource.isInteger === false)
+    assert(DataType.Resource.isInteger === false)
   }
 
   "'DataType.isComplex'" must "always work correctly" in {
+    assert(DataType.Bool.isComplex === false)
+    assert(DataType.Str.isComplex === false)
     // assert(DataType.Float16.isComplex === false)
     assert(DataType.Float32.isComplex === false)
     assert(DataType.Float64.isComplex === false)
@@ -202,12 +204,12 @@ class DataTypeSpec extends FlatSpec with Matchers {
     assert(DataType.QInt32.isComplex === false)
     assert(DataType.QUInt8.isComplex === false)
     assert(DataType.QUInt16.isComplex === false)
-    assert(DataType.Bool.isComplex === false)
-    // assert(DataType.String.isComplex === false)
-    // assert(DataType.Resource.isComplex === false)
+    assert(DataType.Resource.isComplex === false)
   }
 
   "'DataType.isQuantized'" must "always work correctly" in {
+    assert(DataType.Bool.isQuantized === false)
+    assert(DataType.Str.isQuantized === false)
     // assert(DataType.Float16.isQuantized === false)
     assert(DataType.Float32.isQuantized === false)
     assert(DataType.Float64.isQuantized === false)
@@ -225,12 +227,12 @@ class DataTypeSpec extends FlatSpec with Matchers {
     assert(DataType.QInt32.isQuantized === true)
     assert(DataType.QUInt8.isQuantized === true)
     assert(DataType.QUInt16.isQuantized === true)
-    assert(DataType.Bool.isQuantized === false)
-    // assert(DataType.String.isQuantized === false)
-    // assert(DataType.Resource.isQuantized === false)
+    assert(DataType.Resource.isQuantized === false)
   }
 
   "'DataType.isUnsigned'" must "always work correctly" in {
+    assert(DataType.Bool.isUnsigned === false)
+    assert(DataType.Str.isUnsigned === false)
     // assert(DataType.Float16.isUnsigned === false)
     assert(DataType.Float32.isUnsigned === false)
     assert(DataType.Float64.isUnsigned === false)
@@ -248,12 +250,12 @@ class DataTypeSpec extends FlatSpec with Matchers {
     assert(DataType.QInt32.isUnsigned === false)
     assert(DataType.QUInt8.isUnsigned === false)
     assert(DataType.QUInt16.isUnsigned === false)
-    assert(DataType.Bool.isUnsigned === false)
-    // assert(DataType.String.isUnsigned === false)
-    // assert(DataType.Resource.isUnsigned === false)
+    assert(DataType.Resource.isUnsigned === false)
   }
 
   // "'DataType.real'" must "always work correctly" in {
+  //   assert(DataType.Bool.real === DataType.Bool)
+  //   assert(DataType.Str.real === DataType.Str)
   //   assert(DataType.Float16.real === DataType.Float16)
   //   assert(DataType.Float32.real === DataType.Float32)
   //   assert(DataType.Float64.real === DataType.Float64)
@@ -271,8 +273,6 @@ class DataTypeSpec extends FlatSpec with Matchers {
   //   assert(DataType.QInt32.real === DataType.QInt32)
   //   assert(DataType.QUInt8.real === DataType.QUInt8)
   //   assert(DataType.QUInt16.real === DataType.QUInt16)
-  //   assert(DataType.Boolean.real === DataType.Boolean)
-  //   assert(DataType.String.real === DataType.String)
   //   assert(DataType.Resource.real === DataType.Resource)
   // }
 
@@ -284,6 +284,13 @@ class DataTypeSpec extends FlatSpec with Matchers {
   }
 
   "'DataType.cast'" must "work correctly when provided values of supported types" in {
+    assert(DataType.Bool.cast(false) === false)
+    assert(DataType.Bool.cast(true) === true)
+    assert(DataType.Str.cast("foo") === "foo")
+    // assert(DataType.Str.cast(false) === "false")
+    // assert(DataType.Str.cast(1.0) === "1.0")
+    // assert(DataType.Str.cast(1f) === "1.0")
+    // assert(DataType.Str.cast(-2L) === "-2")
     // assert(DataType.Float16.cast(-2.0) === -2f)
     // assert(DataType.Float16.cast(-2L) === -2f)
     assert(DataType.Float32.cast(-2.0) === -2f)
@@ -321,13 +328,6 @@ class DataTypeSpec extends FlatSpec with Matchers {
     assert(DataType.QUInt16.cast(UInt16(2)) === UInt16(2))
     assert(DataType.QUInt16.cast(2L) === UInt16(2))
     assert(DataType.QUInt16.cast(2.0) === UInt16(2))
-    assert(DataType.Bool.cast(false) === false)
-    assert(DataType.Bool.cast(true) === true)
-    // assert(DataType.String.cast("foo") === "foo")
-    // assert(DataType.String.cast(false) === "false")
-    // assert(DataType.String.cast(1.0) === "1.0")
-    // assert(DataType.String.cast(1f) === "1.0")
-    // assert(DataType.String.cast(-2L) === "-2")
   }
 
   // TODO: Add 'InvalidCastException' checks.

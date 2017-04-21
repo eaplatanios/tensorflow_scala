@@ -427,7 +427,22 @@ object DataType {
     }
   }
 
-  // TODO: Add Resource(cValue = 20, byteSize = -1).
+  object Resource extends DataType {
+    override val name    : String = "Resource"
+    override val cValue  : Int    = 20
+    override val byteSize: Int    = -1
+    override val priority: Int    = -1
+
+    override type ScalaType = Int64
+
+    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
+      throw new UnsupportedOperationException("The resource data type is not supported on the Scala side.")
+    }
+
+    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
+      throw new UnsupportedOperationException("The resource data type is not supported on the Scala side.")
+    }
+  }
 
   //endregion Supported TensorFlow Data Types Definitions
 
@@ -499,19 +514,19 @@ object DataType {
     // case BFloat16.cValue => BFloat16
     // case Complex64.cValue => Complex64
     // case Complex128.cValue => Complex128
-    case Int8.cValue    => Int8
-    case Int16.cValue   => Int16
-    case Int32.cValue   => Int32
-    case Int64.cValue   => Int64
-    case UInt8.cValue   => UInt8
-    case UInt16.cValue  => UInt16
-    case QInt8.cValue   => QInt8
-    case QInt16.cValue  => QInt16
-    case QInt32.cValue  => QInt32
-    case QUInt8.cValue  => QUInt8
-    case QUInt16.cValue => QUInt16
-    // case Resource.cValue => Resource
-    case value => throw new IllegalArgumentException(
+    case Int8.cValue     => Int8
+    case Int16.cValue    => Int16
+    case Int32.cValue    => Int32
+    case Int64.cValue    => Int64
+    case UInt8.cValue    => UInt8
+    case UInt16.cValue   => UInt16
+    case QInt8.cValue    => QInt8
+    case QInt16.cValue   => QInt16
+    case QInt32.cValue   => QInt32
+    case QUInt8.cValue   => QUInt8
+    case QUInt16.cValue  => QUInt16
+    case Resource.cValue => Resource
+    case value           => throw new IllegalArgumentException(
       s"Data type C value '$value' is not recognized in Scala (TensorFlow version ${NativeLibrary.version}).")
   }
 
@@ -524,26 +539,26 @@ object DataType {
   @throws[IllegalArgumentException]
   private[api] def fromName(name: String): DataType = name match {
     case "Boolean" => Bool
-    case "String" => Str
+    case "String"  => Str
     // case "Float16" => Float16
     case "Float32" => Float32
     case "Float64" => Float64
     // case "BFloat16" => BFloat16
     // case "Complex64" => Complex64
     // case "Complex128" => Complex128
-    case "Int8"    => Int8
-    case "Int16"   => Int16
-    case "Int32"   => Int32
-    case "Int64"   => Int64
-    case "UInt8"   => UInt8
-    case "UInt16"  => UInt16
-    case "QInt8"   => QInt8
-    case "QInt16"  => QInt16
-    case "QInt32"  => QInt32
-    case "QUInt8"  => QUInt8
-    case "QUInt16" => QUInt16
-    // case "Resource" => Resource
-    case value => throw new IllegalArgumentException(
+    case "Int8"     => Int8
+    case "Int16"    => Int16
+    case "Int32"    => Int32
+    case "Int64"    => Int64
+    case "UInt8"    => UInt8
+    case "UInt16"   => UInt16
+    case "QInt8"    => QInt8
+    case "QInt16"   => QInt16
+    case "QInt32"   => QInt32
+    case "QUInt8"   => QUInt8
+    case "QUInt16"  => QUInt16
+    case "Resource" => Resource
+    case value      => throw new IllegalArgumentException(
       s"Data type name '$value' is not recognized in Scala (TensorFlow version ${NativeLibrary.version}).")
   }
 
