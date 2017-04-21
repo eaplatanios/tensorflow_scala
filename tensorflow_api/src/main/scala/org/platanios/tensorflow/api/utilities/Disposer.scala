@@ -28,8 +28,8 @@ private[api] object Disposer {
 
   AccessController.doPrivileged(new PrivilegedAction[Unit] {
     override def run(): Unit = {
-      /* The thread must be a member of a thread group which will not get GCed before VM exit, Make its parent the
-       * top-level thread group. */
+      // The thread must be a member of a thread group which will not get GCed before the VM exit. For this reason, we
+      // make its parent the top-level thread group.
       val rootThreadGroup: ThreadGroup = ThreadGroupUtils.getRootThreadGroup
       val thread: Thread = new Thread(rootThreadGroup, new Disposer(), "TensorFlow Scala API Disposer")
       thread.setContextClassLoader(null)
@@ -40,10 +40,11 @@ private[api] object Disposer {
   })
 }
 
+/** Disposer thread runnable. */
 private class Disposer extends Runnable {
   override def run(): Unit = {
     while (true) {
-      var referenceToBeDisposed = Disposer.queue.remove
+      var referenceToBeDisposed = Disposer.queue.remove // Blocks until there is a reference in the queue
       referenceToBeDisposed.clear()
       var disposer = Disposer.records.remove(referenceToBeDisposed)
       disposer()
