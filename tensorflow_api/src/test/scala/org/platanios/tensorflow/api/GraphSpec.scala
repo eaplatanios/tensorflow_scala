@@ -23,6 +23,8 @@ class GraphSpec extends FlatSpec with Matchers {
     (graph, ops)
   }
 
+  // TODO: Add collections specification.
+
   "'preventFeeding'" must "prevent valid ops from being fetched" in {
     val (graph, ops) = prepareGraph()
     assert(graph.isFeedable(ops(0).outputs(0)))

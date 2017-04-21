@@ -3,6 +3,7 @@ package org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.jni.{Op => NativeOp}
 import org.platanios.tensorflow.api.Exception.{GraphMismatchException, IllegalNameException, InvalidDataTypeException, OpBuilderUsedException}
+
 import java.nio.charset.Charset
 
 import scala.collection.mutable
@@ -1282,6 +1283,7 @@ object Op {
         context.colocationOps.foreach(op => NativeOp.colocateWith(nativeHandle, op.nativeHandle))
         context.attributes.foreach(
           a => NativeOp.setAttrString(nativeHandle, a._1, a._2.getBytes(Charset.forName("UTF-8"))))
+        // TODO: Set the "container" attribute when necessary. Need a way to check for statefulness.
         stringAttributes.foreach(
           a => NativeOp.setAttrString(nativeHandle, a._1, a._2.getBytes(Charset.forName("UTF-8"))))
         longAttributes.foreach(a => NativeOp.setAttrInt(nativeHandle, a._1, a._2))

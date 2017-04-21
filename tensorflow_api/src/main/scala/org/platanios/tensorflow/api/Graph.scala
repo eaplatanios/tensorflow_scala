@@ -14,13 +14,43 @@ final case class Graph(private var nativeHandle: Long) extends Closeable {
 
   /** Map from native op handle to op object in the Scala side. Used for caching ops that have already been obtained
     * from the native library. */
-  private[api] val opsCache: mutable.Map[Long, Op] = mutable.LongMap[Op]()
+  private[api] val opsCache: mutable.Map[Long, Op] = mutable.LongMap.empty[Op]
+
+  // TODO: Sacrificing type-safety here.
+  /** Map from collection name to set of objects in that collection. */
+  private[this] val collections: mutable.Map[String, Set[Any]] = mutable.Map.empty[String, Set[Any]]
 
   /** Set of all unfeedable ops in this graph. */
   private[this] val unfeedableOpOutputs: mutable.Set[Op.Output] = mutable.Set.empty
 
+  // TODO: Maybe this should contain ops rather than op outputs.
   /** Set of all unfetchable ops in this graph. */
   private[this] val unfetchableOpOutputs: mutable.Set[Op.Output] = mutable.Set.empty
+
+  /** Adds `value` to the collection with name `collection`.
+    *
+    * @param  value      Value to add to the collection.
+    * @param  collection Collection name.
+    * @throws GraphMismatchException If the provided op output does not belong to this graph.
+    */
+  @throws[GraphMismatchException]
+  private[api] def addToCollection(value: Op.Output, collection: String): Unit = {
+    if (value.graph != this)
+      throw GraphMismatchException("The provided op output does not belong in this graph.")
+    collections.getOrElseUpdate(collection, Set.empty[Any]) += value
+  }
+
+  /** Adds `value` to the collections specified by the names in `collections`.
+    *
+    * @param  value       Value to add to the collections.
+    * @param  collections Collection names.
+    * @throws GraphMismatchException If the provided op output does not belong to this graph.
+    */
+  private[api] def addToCollections(value: Op.Output, collections: String*): Unit = {
+    collections.foreach(addToCollection(value, _))
+  }
+
+  // TODO: [VARIABLE] Add "addToCollection" methods for variables.
 
   /** Prevents the feeding of values to the provided op output, while running in a session.
     *
@@ -291,4 +321,94 @@ final case class Graph(private var nativeHandle: Long) extends Closeable {
 
 object Graph {
   def apply(): Graph = Graph(nativeHandle = NativeGraph.allocate())
+
+  /** Contains standard names to use for graph collections.
+    *
+    * The standard library uses various well-known names to collect and retrieve values associated with a graph. For
+    * example, the optimizers default to optimizing the variables collected under `Graph.Keys.TRAINABLE_VARIABLES` if
+    * none is specified, but it is also possible to pass an explicit list of variables.
+    */
+  object Keys {
+    /** Key to collect the default collection of `Variable` objects, shared across distributed environment (model
+      * variables are subset of these). Commonly, all `TRAINABLE_VARIABLES` variables will be in `MODEL_VARIABLES`, and
+      * all `MODEL_VARIABLES` variables will be in `GLOBAL_VARIABLES`. */
+    val GLOBAL_VARIABLES = "variables"
+
+    /** Key to collect the subset of `Variable` objects that are local to each machine. Usually used for temporary
+      * variables, like counters.
+      * TODO: Note: use `tf.contrib.framework.local_variable` to add to this collection. */
+    val LOCAL_VARIABLES = "local_variables"
+
+    /** Key to collect the subset of `Variable` objects that are used in models for inference (feed forward).
+      * TODO: Note: use `tf.contrib.framework.model_variable` to add to this collection. */
+    val MODEL_VARIABLES = "model_variables"
+
+    /** Key to collect the subset of `Variable` objects that will be trained using an optimizer. */
+    val TRAINABLE_VARIABLES = "trainable_variables"
+
+    /** Key to collect the summary `Op.Output` objects that have been created in the graph. */
+    val SUMMARIES = "summaries"
+
+    /** Key to collect the `QueueRunner` objects that are used to produce inputs for a computation. */
+    val QUEUE_RUNNERS = "queue_runners"
+
+    /** Key to collect table initializer objects. */
+    val TABLE_INITIALIZERS = "table_initializer"
+
+    /** Key to collect asset filepaths. An asset represents an external resource like a vocabulary file. */
+    val ASSET_FILEPATHS = "asset_filepaths"
+
+    /** Key to collect the subset of `Variable` objects that will also keep moving averages. */
+    val MOVING_AVERAGE_VARIABLES = "moving_average_variables"
+
+    /** Key to collect regularization losses at graph construction. */
+    val REGULARIZATION_LOSSES = "regularization_losses"
+
+    /** Key to collect concatenated sharded variables. */
+    val CONCATENATED_VARIABLES = "concatenated_variables"
+
+    /** Key to collect savers. */
+    val SAVERS = "savers"
+
+    /** Key to collect weights. */
+    val WEIGHTS = "weights"
+
+    /** Key to collect biases. */
+    val BIASES = "biases"
+
+    /** Key to collect activations. */
+    val ACTIVATIONS = "activations"
+
+    /** Key to collect update ops. */
+    val UPDATE_OPS = "update_ops"
+
+    /** Key to collect losses. */
+    val LOSSES = "losses"
+
+    /** Key to collect saveable objects used for checkpoints. */
+    val SAVEABLE_OBJECTS = "saveable_objects"
+
+    /** Key to collect all shared resources used by the graph which need to be initialized once per cluster. */
+    val RESOURCES = "resources"
+
+    /** Key to collect all shared resources used in this graph which need to be initialized once per session. */
+    val LOCAL_RESOURCES = "local_resources"
+
+    /** Key to collect all trainable resource-style variables. */
+    val TRAINABLE_RESOURCE_VARIABLES = "trainable_resource_variables"
+
+    // Keys to indicate various ops.
+    val INIT_OP = "init_op"
+    val LOCAL_INIT_OP = "local_init_op"
+    val READY_OP = "ready_op"
+    val READY_FOR_LOCAL_INIT_OP = "ready_for_local_init_op"
+    val SUMMARY_OP = "summary_op"
+    val GLOBAL_STEP = "global_step"
+    val EVAL_STEP = "eval_step" // Used to count the number of evaluations performed during a single evaluation run.
+    val TRAIN_OP = "train_op"
+
+    // Keys for control flow management.
+    val COND_CONTEXT = "cond_context"
+    val WHILE_CONTEXT = "while_context"
+  }
 }
