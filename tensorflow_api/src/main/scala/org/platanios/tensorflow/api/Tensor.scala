@@ -31,11 +31,11 @@ sealed class Tensor protected (
   def rank: Int = shape.rank
   def numElements: Int = shape.numElements.get // TODO: Convert this to an option?
 
-  protected def flattenedIndex(indices: Array[Int]): Int = {
+  private[api] def flattenedIndex(indices: Array[Int]): Int = {
     order.index(underlyingTensorDimensions, beginOffsets, strides, indices)
   }
 
-  protected def flattenedIndexIterator: Iterator[Int] = {
+  private[api] def flattenedIndexIterator: Iterator[Int] = {
     order.flattenedIndexIterator(underlyingTensorDimensions, beginOffsets, endOffsets, strides)
   }
 
@@ -197,7 +197,7 @@ object Tensor {
     tensor
   }
 
-  private def allocate(
+  private[api] def allocate(
       dataType: DataType, shape: Shape, order: Order = DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER): Tensor = {
     if (dataType.byteSize < 0)
       throw new IllegalArgumentException(s"Unsupported data type '$dataType'.")

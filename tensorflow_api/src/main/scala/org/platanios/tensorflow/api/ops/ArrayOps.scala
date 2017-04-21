@@ -14,10 +14,8 @@ object ArrayOps {
     * The resulting tensor is populated with values of type `dataType`, as specified by the arguments `value` and
     * (optionally) `shape` (see examples below).
     *
-    * The argument `value` can be a constant value, or an array (potentially multi-dimensional) with elements of type
-    * `dataType`. If `value` is a one-dimensional array, then its length should be less than or equal to the number of
-    * elements implied by the `shape` argument (if specified). In the case where the array length is less than the
-    * number of elements specified by `shape`, the last element in the array will be used to fill the remaining entries.
+    * The argument `value` can be a constant value, or a tensor. If `value` is a one-dimensional tensor, then its length
+    * should be equal to the number of elements implied by the `shape` argument (if specified).
     *
     * The argument `dataType` is optional. If not specified, then its value is inferred from the type of `value`.
     *
@@ -39,11 +37,25 @@ object ArrayOps {
   def constant(
       tensor: Tensor, dataType: DataType = null, shape: Shape = null, verifyShape: Boolean = false,
       name: String = "Constant"): Op.Output = {
-    // TODO: Use all provided arguments.
-    using(tensor.nativeView) { nativeTensor =>
+    val inferredDataType = if (dataType == null) tensor.dataType else dataType
+    val inferredShape = if (shape == null) tensor.shape else shape
+    val constantTensor = {
+      if (inferredDataType != tensor.dataType || inferredShape != tensor.shape) {
+        if (inferredShape.numElements.get != tensor.shape.numElements.get)
+          throw InvalidShapeException(
+            s"Shape '${tensor.shape}' tensor is not valid for shape '$inferredShape' constant op creation.")
+        val t = Tensor.allocate(inferredDataType, shape, order = Tensor.RowMajorOrder)
+        for ((thisIndex, tensorIndex) <- t.flattenedIndexIterator zip tensor.flattenedIndexIterator)
+          t.setElementAtFlattenedIndex(thisIndex, tensor.getElementAtFlattenedIndex(tensorIndex))
+        t
+      } else {
+        tensor
+      }
+    }
+    using(constantTensor.nativeView) { nativeTensor =>
       Op.Builder(opType = "Const", name = name)
           .setAttribute(name = "value", value = nativeTensor)
-          .setAttribute(name = "dtype", value = tensor.dataType)
+          .setAttribute(name = "dtype", value = inferredDataType)
           .build().outputs(0)
     }
   }
