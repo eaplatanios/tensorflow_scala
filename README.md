@@ -34,8 +34,9 @@ sbt compile
 
 - General features:
   - [x] Slice creation
-    - [ ] Support int-based slicing too (rather than just long)
-  - [ ] Op output slicing
+  - [x] Op output slicing
+  - [ ] Variables slicing
+  - [ ] Slice assignment
 - Op creation API helpers:
   - [x] Graph op creation context
   - [x] Name scope op creation context
@@ -44,16 +45,19 @@ sbt compile
   - [x] Control dependencies op creation context
   - [ ] Attribute op creation context
   - [ ] Container op creation context
+  - [ ] Variables support
+  - [ ] Gradients support
   - [ ] Gradient override map op creation context (need gradient support first)
   - [ ] Kernel label map op creation context (may be unnecessary)
 - Execution API helpers:
   - [ ] Default session
   - [ ] Session execution context
+- Tensor API:
+  - [ ] More flexible/efficient slicing for obtaining and assigning elements
+  - [ ] More numpy-like operations for tensors
 - General API features:
-  - [ ] Support for all data types.
+  - [x] Support for all data types.
   - [ ] Summaries
-  - [ ] Variables
-  - [ ] Gradients
   - [ ] Optimizers
   - [ ] Estimators
   - [ ] tfprof / op statistics collection
@@ -61,12 +65,12 @@ sbt compile
 ## TODOs
 
 - Tensors:
-  - Support for all data types and avoidance of memory copy by using an underlying C++ structure.
+  - More efficient slicing (specialized contiguous slicing)
 - Op creation:
   - Add tests for all of the op functions
   - Get graph from inputs
   - Assert same graph for inputs and control inputs
-  - Convert to tensor function
+  - Convert to tensor function (use implicit conversions?)
   - Graph collections
   - Set Op.Output shape
   - Support re-entering existing name scopes
@@ -74,5 +78,3 @@ sbt compile
   - Register op statistics
 - Execution:
   - Revamp the session API
-- General API:
-  - Find a way to expose inner functions and implicits to the root API package.
