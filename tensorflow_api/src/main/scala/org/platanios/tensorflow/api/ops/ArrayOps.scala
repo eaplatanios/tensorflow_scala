@@ -896,6 +896,10 @@ object ArrayOps {
     * @return Created op output.
     */
   def transposeDynamic(input: Op.Output, permutation: Op.Output, name: String = "Transpose"): Op.Output = {
+    if (permutation.dataType != DataType.Int32 && permutation.dataType != DataType.Int64)
+      throw InvalidDataTypeException(
+        s"Data type '${permutation.dataType}' is not supported for the transpose op permutation. " +
+            s"Only 'Int32' and 'Int64' are supported.")
     Op.Builder(opType = "Transpose", name = name)
         .addInput(input)
         .addInput(permutation)
@@ -989,6 +993,79 @@ object ArrayOps {
         s"The 'where' op only supports boolean tensors as inputs. It does not support '${input.dataType}' tensors.")
     Op.Builder(opType = "Where", name = name)
         .addInput(input)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that reverses specific dimensions of a tensor.
+    *
+    * Given an `input` tensor, and an integer array of axes representing the set of dimensions of `input` to reverse,
+    * this op reverses each dimension `i` of `input`, for which there exists `j` such that  `axes(j) == i`.
+    *
+    * `input` can have up to 8 dimensions. The number of dimensions specified in `axes` may be 0 or more entries. If an
+    * index is specified more than once, an 'InvalidArgument' error will be raised.
+    *
+    * For example:
+    * {{{
+    *   // Tensor 't' is [[[[ 0,  1,  2,  3],
+    *   //                  [ 4,  5,  6,  7],
+    *   //                  [ 8,  9, 10, 11]],
+    *   //                 [[12, 13, 14, 15],
+    *   //                  [16, 17, 18, 19],
+    *   //                  [20, 21, 22, 23]]]] => It has shape [1, 2, 3, 4]
+    *
+    *   // 'axes' is [3] or [-1]
+    *   reverse(t, axes) == [[[[ 3,  2,  1,  0],
+    *                          [ 7,  6,  5,  4],
+    *                          [ 11, 10, 9,  8]],
+    *                         [[15, 14, 13, 12],
+    *                          [19, 18, 17, 16],
+    *                          [23, 22, 21, 20]]]]
+    *
+    *   // 'axes' is [1] or [-3]
+    *   reverse(t, axes) == [[[[12, 13, 14, 15],
+    *                          [16, 17, 18, 19],
+    *                          [20, 21, 22, 23]],
+    *                         [[ 0,  1,  2,  3],
+    *                          [ 4,  5,  6,  7],
+    *                          [ 8,  9, 10, 11]]]]
+    *
+    *   // 'axes' is [2] or [-2]
+    *   reverse(t, axes) == [[[[ 8,  9, 10, 11],
+    *                          [ 4,  5,  6,  7],
+    *                          [ 0,  1,  2,  3]],
+    *                         [[20, 21, 22, 23],
+    *                          [16, 17, 18, 19],
+    *                          [12, 13, 14, 15]]]]
+    * }}}
+    *
+    * @param  input Input tensor to reverse. It must have rank at most 8.
+    * @param  axes  Dimensions of the input tensor to reverse.
+    * @param  name  Name for the created op.
+    * @return Created op output that has the same shape as `input`.
+    */
+  def reverse(input: Op.Output, axes: Array[Int], name: String = "Reverse"): Op.Output = {
+    Op.Builder(opType = "Reverse", name = name)
+        .addInput(input)
+        .addInput(ArrayOps.constant(Tensor(axes.map(Tensor(_)): _*)))
+        .build().outputs(0)
+  }
+
+  /** Creates an identical op to [[reverse]], except for the fact that the provided `axes` are themselves represented as
+    * an op output. as opposed to an integer array.
+    *
+    * @param  input Input tensor to reverse.
+    * @param  axes  Int32 or Int64 tensor containing the dimensions of the input tensor to reverse.
+    * @param  name  Name for the created op.
+    * @return Created op output.
+    */
+  def reverseDynamic(input: Op.Output, axes: Op.Output, name: String = "Reverse"): Op.Output = {
+    if (axes.dataType != DataType.Int32 && axes.dataType != DataType.Int64)
+      throw InvalidDataTypeException(
+        s"Data type '${axes.dataType}' is not supported for the reverse op axes. " +
+            s"Only 'Int32' and 'Int64' are supported.")
+    Op.Builder(opType = "Reverse", name = name)
+        .addInput(input)
+        .addInput(axes)
         .build().outputs(0)
   }
 
