@@ -346,6 +346,8 @@ class OpSpec extends FlatSpec with Matchers {
 
   //endregion createWith(attributes = ...) Specification
 
+  // TODO: [VARIABLE] Add "createWtih(container = ...)" specification.
+
   it must "allow changing, the graph, the name scope, and the device used for its code block simultaneously" in {
     val graph1 = Graph()
     val graph2 = Graph()

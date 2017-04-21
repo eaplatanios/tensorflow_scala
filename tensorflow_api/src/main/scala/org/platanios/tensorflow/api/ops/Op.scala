@@ -168,7 +168,7 @@ private[ops] final case class OpSpecification(name: String, opType: String)
 private[api] final case class OpCreationContext(
     graph: Graph = Graph(), nameScope: String = "", device: OpSpecification => String = _ => "",
     colocationOps: Set[Op] = Set.empty, controlDependencies: Set[Op] = Set.empty,
-    attributes: Map[String, String] = Map.empty) // TODO: Is it useful to support other than string attributes here?
+    attributes: Map[String, String] = Map.empty, container: String = "") // TODO: Is it useful to support other than string attributes here?
 
 object Op {
   /** Convenient implicit conversion function used to convert devices specified as [[String]]s for use with the
@@ -202,6 +202,8 @@ object Op {
     *     constructed ops are constrained to only execute after the provided set of ops has finished executing.
     *   - A map from op attribute names to values for the newly constructed ops. These attributes will be applied to all
     *     newly constructed ops.
+    *   - A container name for the newly constructed resource ops. All newly constructed resource ops will be placed in
+    *     the provided container.
     *
     * Note that all arguments of this function are optional. If they are not provided, then the corresponding option in
     * current op creation context is left unchanged.
@@ -411,6 +413,18 @@ object Op {
     *   }
     * }}}
     *
+    * == Container ==
+    *
+    * Stateful operations, such as variables and queues, can maintain their states on devices so that they can be shared
+    * by multiple processes. A resource container is a string name under which these stateful operations are tracked.
+    * These resources can be released or cleared with `Session.reset`. // TODO: [SESSION] Add that function reference.
+    *
+    * When `createWith(...)` is used with a container, then all resource ops created within its code block will be
+    * placed in the provided container. A new value for the container always overrides the previous value, except if
+    * `null`, meaning that the previous value is used. The default root container name is `""`.
+    *
+    * TODO: [VARIABLE] Add example when we have support for variables.
+    *
     * == Combining Arguments ==
     *
     * Multiple arguments can be provided to change several aspects of the current op creation scope.
@@ -439,17 +453,18 @@ object Op {
   @throws[IllegalNameException]
   def createWith[R](
       graph: Graph = null, nameScope: String = null, device: OpSpecification => String = _ => "",
-      colocationOps: Set[Op] = null, controlDependencies: Set[Op] = null, attributes: Map[String, String] = null)
-      (block: => R)(implicit context: DynamicVariable[OpCreationContext]): R = {
+      colocationOps: Set[Op] = null, controlDependencies: Set[Op] = null, attributes: Map[String, String] = null,
+      container: String = null)(block: => R)(implicit context: DynamicVariable[OpCreationContext]): R = {
     val newGraph: Graph = mergeGraph(graph, context)
     val newNameScope: String = mergeNameScope(nameScope, context)
     val newDevice: OpSpecification => String = mergeDevice(device, context)
     val newColocationOps: Set[Op] = mergeColocationOps(colocationOps, context)
     val newControlDependencies: Set[Op] = mergeControlDependencies(controlDependencies, context)
     val newAttributes: Map[String, String] = mergeAttributes(attributes, context)
+    val newContainer: String = mergeContainer(container, context)
     context.withValue(context.copy(
       graph = newGraph, nameScope = newNameScope, device = newDevice, colocationOps = newColocationOps,
-      controlDependencies = newControlDependencies, attributes = newAttributes))(block)
+      controlDependencies = newControlDependencies, attributes = newAttributes, container = newContainer))(block)
   }
 
   /** Creates a context that can be used for creating ops.
@@ -593,6 +608,21 @@ object Op {
       })
       mergedMap
     }
+  }
+
+  /** Merges a container to the provided op creation context container and returns the container to use when specifying
+    * the updated op creation context. The merging rules are specified in the documentation of the [[createWith]]
+    * function.
+    *
+    * @param  container Container to merge.
+    * @param  context   Op creation context whose container needs to be updated.
+    * @return Container to use for the new op creation context.
+    */
+  private[this] def mergeContainer(container: String, context: OpCreationContext): String = {
+    if (container == null)
+      context.container
+    else
+      container
   }
 
   /** Checks whether the provided string is a valid op name.
