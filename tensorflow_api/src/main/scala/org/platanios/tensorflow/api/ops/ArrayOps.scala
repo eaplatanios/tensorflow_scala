@@ -814,6 +814,10 @@ object ArrayOps {
         .build().outputs(0)
   }
 
+  // TODO: Add support for the "pad", the "mirrorPad", and the "meshGrid" ops.
+  // TODO: Add support for the "spaceToBatch", the "batchToSpace", the "spaceToDepth", and the "depthToSpace" ops.
+  // TODO: Add support for the "extractImagePatches" op (maybe in an "ImageOps" object).
+
   /** Creates an op that reshapes a tensor.
     *
     * Given `input`, this operation returns a tensor that has the same values as `input` but has shape `shape`. If one
@@ -1202,6 +1206,8 @@ object ArrayOps {
         .build().outputs(0)
   }
 
+  // TODO: Add support for the "booleanMask", the "sparseMask", and the "sequenceMask" ops.
+
   /** Creates an op that finds unique elements in a one-dimensional tensor.
     *
     * The op returns a tensor `output` containing all of the unique elements of `input` sorted in the same order that
@@ -1219,7 +1225,7 @@ object ArrayOps {
     *
     * @param  input One-dimensional input tensor.
     * @param  name  Name for the created op.
-    * @return Created op output.
+    * @return Tuple containing `output` and `indices`.
     */
   def unique(input: Op.Output, name: String = "Unique"): (Op.Output, Op.Output) = {
     if (input.shape.rank != 1 && input.shape.rank != -1)
@@ -1249,7 +1255,7 @@ object ArrayOps {
     *
     * @param  input One-dimensional input tensor.
     * @param  name  Name for the created op.
-    * @return Created op output.
+    * @return Tuple containing `output`, `indices`, and `counts`.
     */
   def uniqueWithCounts(input: Op.Output, name: String = "UniqueWithCounts"): (Op.Output, Op.Output, Op.Output) = {
     if (input.shape.rank != 1 && input.shape.rank != -1)
@@ -1295,6 +1301,7 @@ object ArrayOps {
   //region Slice Ops
 
   // TODO: Add support for the "gather" and "gatherND" ops.
+  // TODO: Add support for the "scatterND" op.
 
   /** Creates an op that returns a slice from `input`.
     *
@@ -1449,6 +1456,8 @@ object ArrayOps {
         .build().outputs(0)
   }
 
+  // TODO: Add support for the "stridedSliceAssign" op.
+
   //endregion Slice Ops
 
   /** Creates an op that checks a tensor for `NaN` and `Inf` values.
@@ -1468,7 +1477,46 @@ object ArrayOps {
         .build().outputs(0)
   }
 
+  // TODO: Add support for the "bitCast" and the "oneHot" ops.
   // TODO: Add support for the "editDistance" op.
+  // TODO: Add support for all the quantization ops.
+
+  //region Broadcasting Ops
+
+  // TODO: Add support for "broadcastShape" (static). Implement the main method in the "Shape" object.
+
+  /** Creates an op that returns the broadcasted dynamic shape between two provided shapes, corresponding to the shapes
+    * of the two arguments provided to an op that supports broadcasting.
+    *
+    * @param  shape1 One-dimensional integer tensor representing the shape of the first argument.
+    * @param  shape2 One-dimensional integer tensor representing the shape of the first argument.
+    * @param  name   Name for the created op.
+    * @return Created op output, which is a one-dimensional integer tensor representing the broadcasted shape.
+    */
+  def broadcastShapeDynamic(shape1: Op.Output, shape2: Op.Output, name: String = "BroadcastShape"): Op.Output = {
+    if (shape1.dataType != DataType.Int32 && shape1.dataType != DataType.Int64)
+      throw InvalidDataTypeException(
+        s"Data type '${shape1.dataType}' is not supported for the shape broadcasting op inputs. " +
+            s"Only 'Int32' and 'Int64' are supported.")
+    if (shape1.shape.rank != 1 && shape1.shape.rank != -1)
+      throw InvalidShapeException(
+        s"Shape '${shape1.shape}' is not supported for the shape broadcasting op inputs. " +
+            s"Only one-dimensional tensors are supported.")
+    if (shape2.dataType != DataType.Int32 && shape2.dataType != DataType.Int64)
+      throw InvalidDataTypeException(
+        s"Data type '${shape2.dataType}' is not supported for the shape broadcasting op inputs. " +
+            s"Only 'Int32' and 'Int64' are supported.")
+    if (shape2.shape.rank != 1 && shape2.shape.rank != -1)
+      throw InvalidShapeException(
+        s"Shape '${shape2.shape}' is not supported for the shape broadcasting op inputs. " +
+            s"Only one-dimensional tensors are supported.")
+    Op.Builder(opType = "BroadcastArgs", name = name)
+        .addInput(shape1)
+        .addInput(shape2)
+        .build().outputs(0)
+  }
+
+  //endregion Broadcasting Ops
 
   //region Gradients Ops
 
