@@ -1,6 +1,7 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.Exception.{InvalidDataTypeException, InvalidShapeException}
+import org.platanios.tensorflow.api.types.SupportedScalaType
 import org.platanios.tensorflow.api.{DataType, Shape, Tensor, using}
 
 /**
@@ -171,6 +172,26 @@ object ArrayOps {
     }
   }
 
+  /** Creates an op that returns a tensor filled with the provided scalar value.
+    *
+    * The op creates a tensor of shape `shape` and fills it with `value`.
+    *
+    * For example:
+    * {{{
+    *   fill(Shape(2, 3), 9) == [[9, 9, 9], [9, 9, 9]]
+    * }}}
+    *
+    * @param  shape Shape of the output tensor.
+    * @param  value Value to fill the output tensor.
+    * @param  name  Name for the created op.
+    * @return Created op output.
+    */
+  def fill(shape: Shape, value: SupportedScalaType, name: String = "Fill"): Op.Output = {
+    Op.Builder(opType = "Fill", name = name)
+        .addInput(constant(shape.toTensor(DataType.Int32)))
+        .build().outputs(0)
+  }
+
   /** Creates a placeholder op for a tensor that will always be fed.
     *
     * IMPORTANT NOTE: This op will produce an error if evaluated. Its value must be fed when using `Session.run`. It is
@@ -225,7 +246,7 @@ object ArrayOps {
       indices = placeholder(dataType, Shape(-1), name + "/Indices"),
       values = placeholder(DataType.Int64, Shape(-1, -1), name + "/Values"),
       denseShape =
-          if (shape == null) placeholder(DataType.Int64, Shape(-1), name + "/Shape") else constant(shape.toTensor)
+          if (shape == null) placeholder(DataType.Int64, Shape(-1), name + "/Shape") else constant(shape.toTensor())
     )
   }
 
@@ -891,7 +912,7 @@ object ArrayOps {
     * output as opposed to an integer array.
     *
     * @param  input       Input tensor to transpose.
-    * @param  permutation Permutation of the input tensor dimensions.
+    * @param  permutation `Int32` or `Int64` tensor containing the permutation of the input tensor dimensions.
     * @param  name        Name for the created op.
     * @return Created op output.
     */
@@ -1054,7 +1075,7 @@ object ArrayOps {
     * an op output. as opposed to an integer array.
     *
     * @param  input Input tensor to reverse.
-    * @param  axes  Int32 or Int64 tensor containing the dimensions of the input tensor to reverse.
+    * @param  axes  `Int32` or `Int64` tensor containing the dimensions of the input tensor to reverse.
     * @param  name  Name for the created op.
     * @return Created op output.
     */
@@ -1146,8 +1167,8 @@ object ArrayOps {
     *
     * @param  x             One-dimensional tensor containing the values to keep.
     * @param  y             One-dimensional tensor containing the values to remove.
-    * @param  indexDataType Optional data type to use for the output indices of this op. It has to be either 'Int32' or
-    *                       'Int64'.
+    * @param  indexDataType Optional data type to use for the output indices of this op. It has to be either `Int32` or
+    *                       `Int64`.
     * @param  name          Name for the created op.
     * @return Tuple containing `output` and `indices`, from the method description.
     */
@@ -1168,6 +1189,8 @@ object ArrayOps {
   //endregion Tensor Manipulation Ops
 
   //region Slice Ops
+
+  // TODO: Add support for the "gather" and "gatherND" ops.
 
   /** Creates an op that returns a slice from `input`.
     *

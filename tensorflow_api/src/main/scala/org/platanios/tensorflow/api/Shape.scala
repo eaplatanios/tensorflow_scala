@@ -232,11 +232,12 @@ final class Shape private (private val array: Array[Int]) {
       Shape.unknown(slice.length(rank))
   }
 
-  /** Converts this shape to a one-dimensional `Int64` tensor.
+  /** Converts this shape to a one-dimensional tensor.
     *
+    * @param  dataType Data type to use for the tensor. Defaults to `Int64`.
     * @return One-dimensional `Int64` tensor representing this shape.
     */
-  def toTensor: Tensor = Tensor(DataType.Int64, asArray.map(Tensor(_)): _*)
+  def toTensor(dataType: DataType = DataType.Int64): Tensor = Tensor(dataType, asArray.map(Tensor(_)): _*)
 
   override def toString: String = if (array == null) "<unknown>" else s"[${array.mkString(", ").replace("-1", "?")}]"
 
