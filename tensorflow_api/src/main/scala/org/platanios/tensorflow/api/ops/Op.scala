@@ -162,10 +162,27 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
     }
   }
 
+  /** Gets the value of a shape-valued attribute of this op with name `name`.
+    *
+    * @param  name Attribute name.
+    * @return Attribute value.
+    * @throws IllegalArgumentException If the no attribute with name `name` can be found for this op.
+    */
+  @throws[IllegalArgumentException]
+  def shapeAttribute(name: String): Shape = using(graph.reference) { _ =>
+    try {
+      Shape.fromSeq(NativeOp.getAttrShape(nativeHandle, name).map(_.toInt))
+    } catch {
+      case e: Exception => throw new IllegalArgumentException(
+        s"Op has no attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
+    }
+  }
+
   override def toString: String = name
 }
 
-private[ops] final case class OpSpecification(name: String, opType: String)
+final case class OpSpecification(name: String, opType: String)
+
 private[api] final case class OpCreationContext(
     graph: Graph = Graph(), nameScope: String = "", device: OpSpecification => String = _ => "",
     colocationOps: Set[Op] = Set.empty, controlDependencies: Set[Op] = Set.empty,

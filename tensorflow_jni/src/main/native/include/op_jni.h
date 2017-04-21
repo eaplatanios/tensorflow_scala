@@ -153,6 +153,14 @@ JNIEXPORT jobjectArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAtt
 
 /*
  * Class:     org_platanios_tensorflow_jni_Op__
+ * Method:    getAttrShape
+ * Signature: (JLjava/lang/String;Ljava/lang/String;)[J
+ */
+JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttrShape
+  (JNIEnv *, jobject, jlong, jstring);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Op__
  * Method:    listAll
  * Signature: ()[B
  */

@@ -27,6 +27,7 @@ object Op {
   @native def setShape(graphHandle: Long, opHandle: Long, output: Int, shape: Array[Long], rank: Int): Unit
   @native def getAttrString(handle: Long, name: String): String
   @native def getAttrStringList(handle: Long, name: String): Array[String]
+  @native def getAttrShape(handle: Long, name: String): Array[Long]
   @native def allOps: Array[Byte]
 
   // Operation Builder

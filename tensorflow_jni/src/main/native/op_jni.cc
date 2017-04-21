@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <stdint.h>
 
 #include "include/c_api.h"
 #include "include/exception_jni.h"
@@ -302,23 +303,20 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_shape(
 
   TF_Output output{op, output_index};
   TF_Status *status = TF_NewStatus();
-  jsize num_dims = TF_GraphGetTensorNumDims(graph, output, status);
+  int num_dims = TF_GraphGetTensorNumDims(graph, output, status);
   if (!throwExceptionIfNotOK(env, status)) {
     TF_DeleteStatus(status);
     return nullptr;
   }
   if (num_dims < 0) return nullptr;
-  static_assert(sizeof(jlong) == sizeof(int64_t),
-                "Java long is not compatible with the TensorFlow C API");
+  static_assert(sizeof(jlong) == sizeof(int64_t), "Java long is not compatible with the TensorFlow C API");
   // One might have trivially wanted to do:
   // TF_GraphGetTensorShape(graph, output, static_cast<int64_t*>(dims), ...)
   // but on some platforms this fails with:
-  // static_cast from 'jlong *' (aka 'long *') to 'int64_t *' (aka 'long long
-  // *') is not allowed
-  // For now, do the expensive but safe thing of copying.
+  // static_cast from 'jlong *' (aka 'long *') to 'int64_t *' (aka 'long long *') is not allowed
+  // For now, we do the expensive but safe thing of copying.
   std::unique_ptr<int64_t[]> cdims(new int64_t[num_dims]);
-  TF_GraphGetTensorShape(graph, output, cdims.get(), static_cast<int>(num_dims),
-                         status);
+  TF_GraphGetTensorShape(graph, output, cdims.get(), num_dims, status);
   if (!throwExceptionIfNotOK(env, status)) {
     TF_DeleteStatus(status);
     return nullptr;
@@ -327,9 +325,8 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_shape(
 
   jlongArray ret = env->NewLongArray(num_dims);
   jlong *dims = env->GetLongArrayElements(ret, nullptr);
-  for (int i = 0; i < num_dims; ++i) {
+  for (int i = 0; i < num_dims; ++i)
     dims[i] = static_cast<jlong>(cdims[i]);
-  }
   env->ReleaseLongArrayElements(ret, dims, 0);
   return ret;
 }
@@ -366,63 +363,123 @@ JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttrStri
     const char* attrNameString = env->GetStringUTFChars(attrName, nullptr);
     TF_Status* status = TF_NewStatus();
     TF_AttrMetadata attr_metadata = TF_OperationGetAttrMetadata(op, attrNameString, status);
-    if (throwExceptionIfNotOK(env, status)) {
-        if (attr_metadata.total_size < 0) return nullptr;
-        if (attr_metadata.type != TF_ATTR_STRING || attr_metadata.is_list == 1)
-            throwException(
-                    env, "java/lang/IllegalArgumentException", "Attribute '%s' is not a string. It is a '%s', instead.",
-                    attrNameString, attrTypeToString(attr_metadata.type, attr_metadata.is_list));
-        if (attr_metadata.total_size < 0) return nullptr;
-        char* attrValue = new char[attr_metadata.total_size];
-        TF_Status* status = TF_NewStatus();
-        TF_OperationGetAttrString(op, attrNameString, attrValue, (size_t) attr_metadata.total_size, status);
-        if (throwExceptionIfNotOK(env, status)) {
-            env->ReleaseStringUTFChars(attrName, attrNameString);
-            return env->NewStringUTF(attrValue);
-        }
-        return nullptr;
-    }
+
+  if (!throwExceptionIfNotOK(env, status)) {
+    TF_DeleteStatus(status);
     return nullptr;
+  }
+  TF_DeleteStatus(status);
+
+  if (attr_metadata.total_size < 0) return nullptr;
+  if (attr_metadata.type != TF_ATTR_STRING || attr_metadata.is_list == 1)
+    throwException(
+            env, "java/lang/IllegalArgumentException", "Attribute '%s' is not a string. It is a '%s', instead.",
+            attrNameString, attrTypeToString(attr_metadata.type, attr_metadata.is_list));
+  if (attr_metadata.total_size < 0) return nullptr;
+  char* attrValue = new char[attr_metadata.total_size];
+  status = TF_NewStatus();
+  TF_OperationGetAttrString(op, attrNameString, attrValue, static_cast<size_t>(attr_metadata.total_size), status);
+
+  if (!throwExceptionIfNotOK(env, status)) {
+    TF_DeleteStatus(status);
+    return nullptr;
+  }
+  TF_DeleteStatus(status);
+
+  env->ReleaseStringUTFChars(attrName, attrNameString);
+  return env->NewStringUTF(attrValue);
 }
 
 JNIEXPORT jobjectArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttrStringList(
-  JNIEnv* env, jobject object, jlong opHandle, jstring attrName) {
-    TF_Operation *op = requireOperationHandle(env, opHandle);
-    if (op == nullptr) return nullptr;
-    const char *attrNameString = env->GetStringUTFChars(attrName, nullptr);
-    TF_Status *status = TF_NewStatus();
-    TF_AttrMetadata attr_metadata = TF_OperationGetAttrMetadata(op, attrNameString, status);
-    if (throwExceptionIfNotOK(env, status)) {
-        if (attr_metadata.total_size < 0) return nullptr;
-        if (attr_metadata.type != TF_ATTR_STRING || attr_metadata.is_list == 0)
-            throwException(
-                    env, "java/lang/IllegalArgumentException",
-                    "Attribute '%s' is not a string list. It is a '%s', instead.",
-                    attrNameString, attrTypeToString(attr_metadata.type, attr_metadata.is_list));
-        size_t storageSize = (size_t) attr_metadata.total_size;
-        int list_size = (int) attr_metadata.list_size;
-        if (list_size <= 0) return nullptr;
-        void **attrValuePointers = new void *[list_size];
-        size_t *attrValueLengths = new size_t[list_size];
-        void *storage = new char[storageSize];
-        TF_Status *status = TF_NewStatus();
-        TF_OperationGetAttrStringList(
-                op, attrNameString, attrValuePointers, attrValueLengths, list_size, storage, storageSize, status);
-        if (throwExceptionIfNotOK(env, status)) {
-            jobjectArray ret;
-            ret = env->NewObjectArray(list_size, env->FindClass("java/lang/String"), env->NewStringUTF(""));
-            for (int i = 0; i < list_size; i++) {
-                char *value = new char[attrValueLengths[i] + 1];
-                strncpy(value, reinterpret_cast<const char *>(attrValuePointers[i]), attrValueLengths[i]);
-                value[attrValueLengths[i]] = '\0';
-                env->SetObjectArrayElement(ret, i, env->NewStringUTF(value));
-            }
-            env->ReleaseStringUTFChars(attrName, attrNameString);
-            return ret;
-        }
-        return nullptr;
-    }
+        JNIEnv* env, jobject object, jlong opHandle, jstring attrName) {
+  TF_Operation *op = requireOperationHandle(env, opHandle);
+  if (op == nullptr) return nullptr;
+  const char *attrNameString = env->GetStringUTFChars(attrName, nullptr);
+  TF_Status *status = TF_NewStatus();
+  TF_AttrMetadata attr_metadata = TF_OperationGetAttrMetadata(op, attrNameString, status);
+
+  if (!throwExceptionIfNotOK(env, status)) {
+    TF_DeleteStatus(status);
     return nullptr;
+  }
+  TF_DeleteStatus(status);
+
+  if (attr_metadata.total_size < 0) return nullptr;
+  if (attr_metadata.type != TF_ATTR_STRING || attr_metadata.is_list == 0)
+    throwException(
+            env, "java/lang/IllegalArgumentException",
+            "Attribute '%s' is not a string list. It is a '%s', instead.",
+            attrNameString, attrTypeToString(attr_metadata.type, attr_metadata.is_list));
+  size_t storageSize = static_cast<size_t>(attr_metadata.total_size);
+  int list_size = static_cast<int>(attr_metadata.list_size);
+  if (list_size <= 0) return nullptr;
+  void **attrValuePointers = new void *[list_size];
+  size_t *attrValueLengths = new size_t[list_size];
+  void *storage = new char[storageSize];
+  status = TF_NewStatus();
+  TF_OperationGetAttrStringList(
+          op, attrNameString, attrValuePointers, attrValueLengths, list_size, storage, storageSize, status);
+
+  if (!throwExceptionIfNotOK(env, status)) {
+    TF_DeleteStatus(status);
+    return nullptr;
+  }
+  TF_DeleteStatus(status);
+
+  jobjectArray ret;
+  ret = env->NewObjectArray(list_size, env->FindClass("java/lang/String"), env->NewStringUTF(""));
+  for (int i = 0; i < list_size; i++) {
+    char *value = new char[attrValueLengths[i] + 1];
+    strncpy(value, reinterpret_cast<const char *>(attrValuePointers[i]), attrValueLengths[i]);
+    value[attrValueLengths[i]] = '\0';
+    env->SetObjectArrayElement(ret, i, env->NewStringUTF(value));
+  }
+  env->ReleaseStringUTFChars(attrName, attrNameString);
+  return ret;
+}
+
+JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttrShape(
+        JNIEnv* env, jobject object, jlong opHandle, jstring attrName) {
+  TF_Operation *op = requireOperationHandle(env, opHandle);
+  if (op == nullptr) return nullptr;
+  const char *attr_name = env->GetStringUTFChars(attrName, nullptr);
+  TF_Status *status = TF_NewStatus();
+  TF_AttrMetadata attr_metadata = TF_OperationGetAttrMetadata(op, attr_name, status);
+
+  if (!throwExceptionIfNotOK(env, status)) {
+    TF_DeleteStatus(status);
+    return nullptr;
+  }
+  TF_DeleteStatus(status);
+
+  if (attr_metadata.total_size < 0) return nullptr;
+  if (attr_metadata.type != TF_ATTR_SHAPE || attr_metadata.is_list == 1)
+    throwException(
+            env, "java/lang/IllegalArgumentException", "Attribute '%s' is not a shape. It is a '%s', instead.",
+            attr_name, attrTypeToString(attr_metadata.type, attr_metadata.is_list));
+  int num_dims = static_cast<int>(attr_metadata.total_size);
+  static_assert(sizeof(jlong) == sizeof(int64_t), "Java long is not compatible with the TensorFlow C API");
+  // One might have trivially wanted to do:
+  // TF_OperationGetAttrShape(op, attr_name, static_cast<int64_t*>(dims), ...)
+  // but on some platforms this fails with:
+  // static_cast from 'jlong *' (aka 'long *') to 'int64_t *' (aka 'long long *') is not allowed
+  // For now, we do the expensive but safe thing of copying.
+  std::unique_ptr<int64_t[]> cdims(new int64_t[num_dims]);
+  status = TF_NewStatus();
+  TF_OperationGetAttrShape(op, attr_name, cdims.get(), num_dims, status);
+
+  if (!throwExceptionIfNotOK(env, status)) {
+    TF_DeleteStatus(status);
+    return nullptr;
+  }
+  TF_DeleteStatus(status);
+
+  jlongArray ret = env->NewLongArray(num_dims);
+  jlong *dims = env->GetLongArrayElements(ret, nullptr);
+  for (int i = 0; i < num_dims; ++i)
+    dims[i] = static_cast<jlong>(cdims[i]);
+  env->ReleaseLongArrayElements(ret, dims, 0);
+  return ret;
 }
 
 JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_allOps(JNIEnv* env,
