@@ -430,7 +430,7 @@ object ArrayOps {
     * @param  optimize Boolean flag indicating whether to optimize this op creation by using a constant op with the
     *                  shape of that `input` at graph creation time (instead of execution time), if known.
     * @param  name     Name for the created op.
-    * @return Created op output.
+    * @return Created op output, which is one-dimensional.
     */
   def shape(
       input: Op.Output, dataType: DataType = DataType.Int32, optimize: Boolean = true,
@@ -457,14 +457,29 @@ object ArrayOps {
     *
     * @param  input    Tensor whose shape to return.
     * @param  dataType Optional data type to use for the output of this op.
-    * @return Created op output.
+    * @return Created op output, which is one-dimensional.
     */
   def sparseShape(
       input: Op.SparseOutput, dataType: DataType = DataType.Int32, name: String = "SparseShape"): Op.Output = {
     MathOps.cast(input.denseShape, dataType, name = name)
   }
 
-  // TODO: Add "ShapeN" op support.
+  /** Creates an op that returns the shape of an array of tensors.
+    *
+    * This op returns an array of one-dimensional tensors, each one representing the shape of the corresponding tensor
+    * in `inputs`.
+    *
+    * @param  inputs   Tensors whose shapes to return.
+    * @param  dataType Optional data type to use for the outputs of this op.
+    * @return Created op outputs, all of which are one-dimensional.
+    */
+  def shapeN(inputs: Array[Op.Output], dataType: DataType = DataType.Int32,
+      name: String = "ShapeN"): Array[Op.Output] = {
+    Op.Builder(opType = "Shape", name = name)
+        .addInputs(inputs)
+        .setAttribute("out_type", dataType)
+        .build().outputs
+  }
 
   //endregion Tensor Shape Ops
 
