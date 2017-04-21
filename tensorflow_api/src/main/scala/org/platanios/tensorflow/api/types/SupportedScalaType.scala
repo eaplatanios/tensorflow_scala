@@ -5,6 +5,8 @@ package org.platanios.tensorflow.api.types
   */
 sealed trait SupportedScalaType extends Any {
   @inline def dataType: DataType
+
+  @throws[UnsupportedOperationException]
   @inline def cast(dataType: DataType): dataType.ScalaType
 
   def toStr: Str = Str(toString)
@@ -46,19 +48,21 @@ final case class Bool(value: Boolean) extends AnyVal with ComparableSupportedSca
       case DataType.Float32 => if (value) Float32(1.0f) else Float32(0.0f)
       case DataType.Float64 => if (value) Float64(1.0) else Float64(0.0)
       // case DataType.BFloat16 => if (value) BFloat16(1.0f) else BFloat16(0.0f)
-      case DataType.Int8    => if (value) Int8(1) else Int8(0)
-      case DataType.Int16   => if (value) Int16(1) else Int16(0)
-      case DataType.Int32   => if (value) Int32(1) else Int32(0)
-      case DataType.Int64   => if (value) Int64(1) else Int64(0)
-      case DataType.UInt8   => if (value) UInt8(1) else UInt8(0)
-      case DataType.UInt16  => if (value) UInt16(1) else UInt16(0)
-      case DataType.QInt8   => if (value) Int8(1) else Int8(0)
-      case DataType.QInt16  => if (value) Int16(1) else Int16(0)
-      case DataType.QInt32  => if (value) Int32(1) else Int32(0)
-      case DataType.QUInt8  => if (value) UInt8(1) else UInt8(0)
-      case DataType.QUInt16 => if (value) UInt16(1) else UInt16(0)
-      case DataType.Bool    => this
-      case DataType.Str     => toString
+      case DataType.Int8     => if (value) Int8(1) else Int8(0)
+      case DataType.Int16    => if (value) Int16(1) else Int16(0)
+      case DataType.Int32    => if (value) Int32(1) else Int32(0)
+      case DataType.Int64    => if (value) Int64(1) else Int64(0)
+      case DataType.UInt8    => if (value) UInt8(1) else UInt8(0)
+      case DataType.UInt16   => if (value) UInt16(1) else UInt16(0)
+      case DataType.QInt8    => if (value) Int8(1) else Int8(0)
+      case DataType.QInt16   => if (value) Int16(1) else Int16(0)
+      case DataType.QInt32   => if (value) Int32(1) else Int32(0)
+      case DataType.QUInt8   => if (value) UInt8(1) else UInt8(0)
+      case DataType.QUInt16  => if (value) UInt16(1) else UInt16(0)
+      case DataType.Bool     => this
+      case DataType.Str      => toString
+      case DataType.Resource =>
+        throw new UnsupportedOperationException("The resource data type is not supported on the Scala side.")
     }).asInstanceOf[dataType.ScalaType]
   }
 
@@ -76,19 +80,21 @@ final case class Str(value: String) extends AnyVal with ComparableSupportedScala
       case DataType.Float32 => Float32(value.toFloat)
       case DataType.Float64 => Float64(value.toDouble)
       // case DataType.BFloat16 => ???
-      case DataType.Int8    => Int8(value.toByte)
-      case DataType.Int16   => Int16(value.toShort)
-      case DataType.Int32   => Int32(value.toInt)
-      case DataType.Int64   => Int64(value.toLong)
-      case DataType.UInt8   => UInt8(value.toByte)
-      case DataType.UInt16  => UInt16(value.toShort)
-      case DataType.QInt8   => Int8(value.toByte)
-      case DataType.QInt16  => Int16(value.toShort)
-      case DataType.QInt32  => Int32(value.toInt)
-      case DataType.QUInt8  => UInt8(value.toByte)
-      case DataType.QUInt16 => UInt16(value.toShort)
-      case DataType.Bool    => Bool(value.toBoolean)
-      case DataType.Str     => this
+      case DataType.Int8     => Int8(value.toByte)
+      case DataType.Int16    => Int16(value.toShort)
+      case DataType.Int32    => Int32(value.toInt)
+      case DataType.Int64    => Int64(value.toLong)
+      case DataType.UInt8    => UInt8(value.toByte)
+      case DataType.UInt16   => UInt16(value.toShort)
+      case DataType.QInt8    => Int8(value.toByte)
+      case DataType.QInt16   => Int16(value.toShort)
+      case DataType.QInt32   => Int32(value.toInt)
+      case DataType.QUInt8   => UInt8(value.toByte)
+      case DataType.QUInt16  => UInt16(value.toShort)
+      case DataType.Bool     => Bool(value.toBoolean)
+      case DataType.Str      => this
+      case DataType.Resource =>
+        throw new UnsupportedOperationException("The resource data type is not supported on the Scala side.")
     }).asInstanceOf[dataType.ScalaType]
   }
 
@@ -105,19 +111,21 @@ private[types] trait SupportedScalaNumberType[N <: SupportedScalaNumberType[N]]
     case DataType.Float32 => toFloat32.asInstanceOf[dataType.ScalaType]
     case DataType.Float64 => toFloat64.asInstanceOf[dataType.ScalaType]
     // case DataType.BFloat16 => toBFloat16.asInstanceOf[dataType.ScalaType]
-    case DataType.Int8    => toInt8.asInstanceOf[dataType.ScalaType]
-    case DataType.Int16   => toInt16.asInstanceOf[dataType.ScalaType]
-    case DataType.Int32   => toInt32.asInstanceOf[dataType.ScalaType]
-    case DataType.Int64   => toInt64.asInstanceOf[dataType.ScalaType]
-    case DataType.UInt8   => toUInt8.asInstanceOf[dataType.ScalaType]
-    case DataType.UInt16  => toUInt16.asInstanceOf[dataType.ScalaType]
-    case DataType.QInt8   => toQInt8.asInstanceOf[dataType.ScalaType]
-    case DataType.QInt16  => toQInt16.asInstanceOf[dataType.ScalaType]
-    case DataType.QInt32  => toQInt32.asInstanceOf[dataType.ScalaType]
-    case DataType.QUInt8  => toQUInt8.asInstanceOf[dataType.ScalaType]
-    case DataType.QUInt16 => toQUInt16.asInstanceOf[dataType.ScalaType]
-    case DataType.Bool    => toBool.asInstanceOf[dataType.ScalaType]
-    case DataType.Str     => toStr.asInstanceOf[dataType.ScalaType]
+    case DataType.Int8     => toInt8.asInstanceOf[dataType.ScalaType]
+    case DataType.Int16    => toInt16.asInstanceOf[dataType.ScalaType]
+    case DataType.Int32    => toInt32.asInstanceOf[dataType.ScalaType]
+    case DataType.Int64    => toInt64.asInstanceOf[dataType.ScalaType]
+    case DataType.UInt8    => toUInt8.asInstanceOf[dataType.ScalaType]
+    case DataType.UInt16   => toUInt16.asInstanceOf[dataType.ScalaType]
+    case DataType.QInt8    => toQInt8.asInstanceOf[dataType.ScalaType]
+    case DataType.QInt16   => toQInt16.asInstanceOf[dataType.ScalaType]
+    case DataType.QInt32   => toQInt32.asInstanceOf[dataType.ScalaType]
+    case DataType.QUInt8   => toQUInt8.asInstanceOf[dataType.ScalaType]
+    case DataType.QUInt16  => toQUInt16.asInstanceOf[dataType.ScalaType]
+    case DataType.Bool     => toBool.asInstanceOf[dataType.ScalaType]
+    case DataType.Str      => toStr.asInstanceOf[dataType.ScalaType]
+    case DataType.Resource =>
+      throw new UnsupportedOperationException("The resource data type is not supported on the Scala side.")
   }
 
   def toByte: Byte = toInt8.value

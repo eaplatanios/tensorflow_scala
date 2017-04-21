@@ -18,7 +18,7 @@ final case class Graph(private var nativeHandle: Long) extends Closeable {
 
   // TODO: Sacrificing type-safety here.
   /** Map from collection name to set of objects in that collection. */
-  private[this] val collections: mutable.Map[String, Set[Any]] = mutable.Map.empty[String, Set[Any]]
+  private[this] val collections: mutable.Map[String, mutable.Set[Any]] = mutable.Map.empty[String, mutable.Set[Any]]
 
   /** Set of all unfeedable ops in this graph. */
   private[this] val unfeedableOpOutputs: mutable.Set[Op.Output] = mutable.Set.empty
@@ -37,7 +37,7 @@ final case class Graph(private var nativeHandle: Long) extends Closeable {
   private[api] def addToCollection(value: Op.Output, collection: String): Unit = {
     if (value.graph != this)
       throw GraphMismatchException("The provided op output does not belong in this graph.")
-    collections.getOrElseUpdate(collection, Set.empty[Any]) += value
+    collections.getOrElseUpdate(collection, mutable.Set.empty[Any]) += value
   }
 
   /** Adds `value` to the collections specified by the names in `collections`.
@@ -51,6 +51,29 @@ final case class Graph(private var nativeHandle: Long) extends Closeable {
   }
 
   // TODO: [VARIABLE] Add "addToCollection" methods for variables.
+
+  /** Gets the set of objects contained in the collection with name `collection`.
+    *
+    * Note that this method returns an immutable copy of the set.
+    *
+    * @param  collection Collection name.
+    * @return Set of objects contained in the collection with name `collection`.
+    */
+  private[api] def getCollection(collection: String): Set[Any] = {
+    collections.getOrElse(collection, mutable.Set.empty[Any]).toSet[Any]
+  }
+
+  /** Gets the set of objects that corresponds to the collection with name `collection`.
+    *
+    * Note that this method returns a reference to the underlying mutable set and so any changes made to that set will
+    * be reflected in the corresponding collection.
+    *
+    * @param  collection Collection name.
+    * @return Mutable set of objects that corresponds to the collection with name `collection`.
+    */
+  private[api] def getCollectionReference(collection: String): mutable.Set[Any] = {
+    collections.getOrElseUpdate(collection, mutable.Set.empty[Any])
+  }
 
   /** Prevents the feeding of values to the provided op output, while running in a session.
     *

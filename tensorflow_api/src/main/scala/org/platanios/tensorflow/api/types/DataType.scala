@@ -83,7 +83,9 @@ sealed trait DataType {
     *
     * @param  value Value to cast.
     * @return Casted value.
+    * @throws UnsupportedOperationException For unsupported data types on the Scala side.
     */
+  @throws[UnsupportedOperationException]
   @inline def cast(value: SupportedScalaType): ScalaType = value.cast(this)
 
   /** Puts an element of this data type into the provided byte buffer.
@@ -93,7 +95,9 @@ sealed trait DataType {
     * @param  element Element to put into the provided byte buffer.
     * @return Number of bytes written. For all data types with a known byte size (i.e., not equal to `-1`), the return
     *         value is equal to the byte size.
+    * @throws UnsupportedOperationException For unsupported data types on the Scala side.
     */
+  @throws[UnsupportedOperationException]
   private[api] def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int
 
   /** Gets an element of this data type from the provided byte buffer.
@@ -101,7 +105,9 @@ sealed trait DataType {
     * @param  buffer Byte buffer from which to get an element.
     * @param  index  Index of the element in the byte buffer (i.e., byte index where the element's bytes start).
     * @return Obtained element.
+    * @throws UnsupportedOperationException For unsupported data types on the Scala side.
     */
+  @throws[UnsupportedOperationException]
   private[api] def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType
 
   override def toString: String = name
