@@ -7,6 +7,8 @@ import org.platanios.tensorflow.api.{DataType, Shape, Tensor, using}
   * @author Emmanouil Antonios Platanios
   */
 object ArrayOps {
+  //region Tensor Creation Ops
+
   /** Creates an op that returns a constant tensor.
     *
     * The resulting tensor is populated with values of type `dataType`, as specified by the arguments `value` and
@@ -46,35 +48,120 @@ object ArrayOps {
     }
   }
 
-  /** Creates an op that returns a tensor of zeros with the same shape and data type as `input`.
+  // TODO: Add support for "ImmutableConst".
+
+  /** Creates an op that returns a tensor with all elements set to zero.
     *
-    * @param  input Input.
-    * @param  name  Name for the created op.
+    * This operation returns a tensor of type `dataType` with shape `shape` and all elements set to zero.
+    *
+    * For example:
+    * {{{
+    *   zeros(Shape(3, 4), Int32) == [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
+    * }}}
+    *
+    * @param  shape    Shape of the output tensor.
+    * @param  dataType Data type of the output tensor.
+    * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def zerosLike(input: Op.Output, name: String = "ZerosLike"): Op.Output = {
-    // TODO: Add support for changing the dataType and for the "optimize" flag.
-    Op.Builder(opType = "ZerosLike", name = name)
-        .addInput(input)
-        .build().outputs(0)
+  def zeros(shape: Shape, dataType: DataType = DataType.Float32, name: String = "Zeros"): Op.Output = {
+    dataType match {
+      case DataType.Bool => constant(false, DataType.Bool, shape)
+      case DataType.Str  => constant("", DataType.Str, shape)
+      case _             => constant(0, dataType, shape)
+    }
+  }
+
+  /** Creates an op that returns a tensor of zeros with the same shape and data type as `input`.
+    *
+    * Given a single tensor (`input`), this op returns a tensor of the same type and shape as `input` but with all
+    * elements set to zero. Optionally, you can use `dataType` to specify a new type for the returned tensor.
+    *
+    * For example:
+    * {{{
+    *   // 't' is [[1, 2, 3], [4, 5, 6]]
+    *   zerosLike(t) == [[0, 0, 0], [0, 0, 0]]
+    * }}}
+    *
+    * @param  input    Input tensor.
+    * @param  dataType Data type of the output tensor.
+    * @param  optimize Booelan flag indicating whether to optimize this op if the shape of `input` is known at graph
+    *                  creation time.
+    * @param  name     Name for the created op.
+    * @return Created op output.
+    */
+  def zerosLike(
+      input: Op.Output, dataType: DataType = null, optimize: Boolean = true, name: String = "ZerosLike"): Op.Output = {
+    val outputDataType = if (dataType != null) dataType else input.dataType
+    if (input.shape.isFullyDefined) {
+      // We can produce a zeros tensor independent of the value of 'tensor' since the shape is known statically.
+      zeros(input.shape, outputDataType, name)
+    } else if (outputDataType != input.dataType) {
+      Op.Builder(opType = "ZerosLike", name = name)
+          .addInput(MathOps.cast(input, outputDataType))
+          .build().outputs(0)
+    } else {
+      Op.Builder(opType = "ZerosLike", name = name)
+          .addInput(input)
+          .build().outputs(0)
+    }
+  }
+
+  /** Creates an op that returns a tensor with all elements set to one.
+    *
+    * This operation returns a tensor of type `dataType` with shape `shape` and all elements set to one.
+    *
+    * For example:
+    * {{{
+    *   ones(Shape(3, 4), Int32) == [[1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1]]
+    * }}}
+    *
+    * @param  shape    Shape of the output tensor.
+    * @param  dataType Data type of the output tensor.
+    * @param  name     Name for the created op.
+    * @return Created op output.
+    */
+  def ones(shape: Shape, dataType: DataType = DataType.Float32, name: String = "Ones"): Op.Output = {
+    dataType match {
+      case DataType.Bool => constant(true, DataType.Bool, shape)
+      case _             => constant(1, dataType, shape)
+    }
   }
 
   /** Creates an op that returns a tensor of ones with the same shape and data type as `input`.
     *
-    * @param  input Input.
-    * @param  name  Name for the created op.
+    * Given a single tensor (`input`), this op returns a tensor of the same type and shape as `input` but with all
+    * elements set to one. Optionally, you can use `dataType` to specify a new type for the returned tensor.
+    *
+    * For example:
+    * {{{
+    *   // 't' is [[1, 2, 3], [4, 5, 6]]
+    *   onesLike(t) == [[1, 1, 1], [1, 1, 1]]
+    * }}}
+    *
+    * @param  input    Input tensor.
+    * @param  dataType Data type of the output tensor.
+    * @param  optimize Booelan flag indicating whether to optimize this op if the shape of `input` is known at graph
+    *                  creation time.
+    * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def onesLike(input: Op.Output, name: String = "OnesLike"): Op.Output = {
-    // TODO: Add support for changing the dataType and for the "optimize" flag.
-    Op.Builder(opType = "OnesLike", name = name)
-        .addInput(input)
-        .build().outputs(0)
+  def onesLike(
+      input: Op.Output, dataType: DataType = null, optimize: Boolean = true, name: String = "OnesLike"): Op.Output = {
+    val outputDataType = if (dataType != null) dataType else input.dataType
+    if (input.shape.isFullyDefined) {
+      // We can produce a ones tensor independent of the value of 'tensor' since the shape is known statically.
+      ones(input.shape, outputDataType, name)
+    } else if (outputDataType != input.dataType) {
+      Op.Builder(opType = "OnesLike", name = name)
+          .addInput(MathOps.cast(input, outputDataType))
+          .build().outputs(0)
+    } else {
+      Op.Builder(opType = "OnesLike", name = name)
+          .addInput(input)
+          .build().outputs(0)
+    }
   }
-
-  // TODO: Add support for "ImmutableConst".
-
-  // TODO: Add support for "zeros" and "ones", after fixing "Tensor.create".
 
   /** Creates a placeholder op for a tensor that will always be fed.
     *
@@ -111,7 +198,32 @@ object ArrayOps {
         .build().outputs(0)
   }
 
-  // TODO: [[SPARSE]] Add sparse placeholder.
+  /** Creates a placeholder op for a sparse tensor that will always be fed.
+    *
+    * IMPORTANT NOTE: This op will produce an error if evaluated. Its value must be fed when using `Session.run`. It is
+    * intended as a way to represent a value that will always be fed, and to provide attributes that enable the fed
+    * value to be checked at runtime.
+    *
+    * @param  dataType Data type of the elements in the tensor that will be fed.
+    * @param  shape    Shape of the tensor that will be fed. The shape can be any partially-specified, or even
+    *                  completely unknown. This represents the shape of the dense tensor that corresponds to the sparse
+    *                  tensor that this placeholder refers to.
+    * @param  name     Name for the created op.
+    * @return Created op output.
+    */
+  def sparsePlaceholder(
+      dataType: DataType, shape: Shape = null, name: String = "SparsePlaceholder"): Op.SparseOutput = {
+    Op.SparseOutput(
+      indices = placeholder(dataType, Shape(-1), name + "/Indices"),
+      values = placeholder(DataType.Int64, Shape(-1, -1), name + "/Values"),
+      denseShape =
+          if (shape == null) placeholder(DataType.Int64, Shape(-1), name + "/Shape") else constant(shape.toTensor)
+    )
+  }
+
+  //endregion Tensor Creation Ops
+
+  //region Tensor Shape Ops
 
   /** Creates an op that returns the rank of a tensor.
     *
@@ -135,7 +247,6 @@ object ArrayOps {
     * @return Created op output.
     */
   def rank(input: Op.Output, optimize: Boolean = true, name: String = "Rank"): Op.Output = {
-    // TODO: [SPARSE]
     val inputRank = input.shape.rank
     if (optimize && inputRank != -1)
       constant(Tensor.fill(DataType.Int32, Shape())(inputRank), name = name)
@@ -143,6 +254,29 @@ object ArrayOps {
       Op.Builder(opType = "Rank", name = name)
           .addInput(input)
           .build().outputs(0)
+  }
+
+  /** Creates an op that returns the rank of a sparse tensor.
+    *
+    * The op returns an integer representing the rank of `input`.
+    *
+    * For example:
+    * {{{
+    *   // 't' is [[[1, 1, 1], [2, 2, 2]], [[3, 3, 3], [4, 4, 4]]]
+    *   // 't' has shape [2, 2, 3]
+    *   rank(t) == 3
+    * }}}
+    *
+    * Note that the rank of a tensor is not the same as the rank of a matrix. The rank of a tensor is the number of
+    * indices required to uniquely select each element of the tensor. Rank is also known as order, degree, or number of
+    * dimensions.
+    *
+    * @param  input    Tensor whose rank to return.
+    * @param  name     Name for the created op.
+    * @return Created op output.
+    */
+  def sparseRank(input: Op.SparseOutput, name: String = "Rank"): Op.Output = {
+    size(input.denseShape, name = name)
   }
 
   /** Creates an op that returns the size of a tensor.
@@ -166,7 +300,6 @@ object ArrayOps {
   def size(
       input: Op.Output, dataType: DataType = DataType.Int32, optimize: Boolean = true,
       name: String = "Size"): Op.Output = {
-    // TODO: [SPARSE]
     val inputShape = input.shape
     if (optimize && inputShape.isFullyDefined)
       constant(Tensor.fill(dataType, Shape())(inputShape.numElements.get), name = name)
@@ -175,6 +308,28 @@ object ArrayOps {
           .addInput(input)
           .setAttribute("out_type", dataType)
           .build().outputs(0)
+  }
+
+  /** Creates an op that returns the size of a sparse tensor.
+    *
+    * The op returns a number representing the number of elements in `input`.
+    *
+    * For example:
+    * {{{
+    *   // 't' is [[[1, 1,, 1], [2, 2, 2]], [[3, 3, 3], [4, 4, 4]]]]
+    *   size(t) == 12
+    * }}}
+    *
+    * @param  input    Tensor whose size to return.
+    * @param  dataType Optional data type to use for the output of this op.
+    * @param  name     Name for the created op.
+    * @return Created op output.
+    */
+  def sparseSize(
+      input: Op.SparseOutput, dataType: DataType = DataType.Int32, name: String = "SparseSize"): Op.Output = {
+    Op.createWith(nameScope = name) {
+      MathOps.reduceProd(MathOps.cast(input.denseShape, dataType), Array(0))
+    }
   }
 
   /** Creates an op that returns the shape of a tensor.
@@ -197,7 +352,6 @@ object ArrayOps {
   def shape(
       input: Op.Output, dataType: DataType = DataType.Int32, optimize: Boolean = true,
       name: String = "Shape"): Op.Output = {
-    // TODO: [SPARSE]
     val inputShape = input.shape
     if (optimize && inputShape.isFullyDefined)
       constant(Tensor(dataType, inputShape.asArray.map(Tensor(_)): _*), name = name) // TODO: [OPTIMIZE]
@@ -207,6 +361,31 @@ object ArrayOps {
           .setAttribute("out_type", dataType)
           .build().outputs(0)
   }
+
+  /** Creates an op that returns the shape of a sparse tensor.
+    *
+    * This op returns a one-dimensional tensor representing the shape of `input`.
+    *
+    * For example:
+    * {{{
+    *   // 't' is [[[1, 1, 1], [2, 2, 2]], [[3, 3, 3], [4, 4, 4]]]
+    *   shape(t) == [2, 2, 3]
+    * }}}
+    *
+    * @param  input    Tensor whose shape to return.
+    * @param  dataType Optional data type to use for the output of this op.
+    * @return Created op output.
+    */
+  def sparseShape(
+      input: Op.SparseOutput, dataType: DataType = DataType.Int32, name: String = "SparseShape"): Op.Output = {
+    MathOps.cast(input.denseShape, dataType, name = name)
+  }
+
+  // TODO: Add "ShapeN" op support.
+
+  //endregion Tensor Shape Ops
+
+  //region Tensor Manipulation Ops
 
   /** Creates an op that returns a tensor with the same shape and contents as the input tensor or value.
     *
@@ -403,7 +582,7 @@ object ArrayOps {
         if (inputShapeRank != -1 && (axis < -inputShapeRank || axis >= inputShapeRank))
           throw new IndexOutOfBoundsException(
             s"Provided axis, $axis, is not in [${-inputShapeRank}, $inputShapeRank).")
-        inputShape(axis).asInstanceOf[Int] // TODO: Make shapes integer-valued instead?
+        inputShape(axis)
       }
     }
     if (num == -1)
@@ -517,6 +696,337 @@ object ArrayOps {
         .addInput(Op.createWith(nameScope = name)(constant(tensor = axis, name = "Axis")))
         .build().outputs
   }
+
+  /** Creates an op that tiles the provided input tensor.
+    *
+    * The op creates a new tensor by replicating `input` `multiples` times. The output tensor's `i`th dimension has
+    * `input.shape(i) * multiples(i)` elements, and the values of `input` are replicated `multiples(i)` times along
+    * the `i`th dimension. For example, tiling `[a b c d]` by `[2]` produces `[a b c d a b c d]`.
+    *
+    * @param  input     Tensor to tile.
+    * @param  multiples One-dimensional tensor containing the tiling multiples. Its length must be the same as the rank
+    *                   of `input`.
+    * @param  name      Name for the created op.
+    * @return Created op output.
+    */
+  def tile(input: Op.Output, multiples: Op.Output, name: String = "Tile"): Op.Output = {
+    Op.Builder(opType = "Tile", name = name)
+        .addInput(input)
+        .addInput(multiples)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that reshapes a tensor.
+    *
+    * Given `input`, this operation returns a tensor that has the same values as `input` but has shape `shape`. If one
+    * component of `shape` is the special value `-1`, then the size of that dimension is computed so that the total size
+    * remains constant. In particular, a `shape` of `[-1]` flattens a tensor into a one-dimensional tensor. At most one
+    * component of `shape` can be set to `-1`.
+    *
+    * If `shape` is a one-dimensional or higher tensor, then the operation returns a tensor with shape `shape` filled
+    * with the values of `input`. In this case, the number of elements implied by `shape` must be the same as the number
+    * of elements in `input`.
+    *
+    * For example:
+    * {{{
+    *   // Tensor 't' is [1, 2, 3, 4, 5, 6, 7, 8, 9] => It has shape [9]
+    *   reshape(t, [3, 3]) == [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+    *
+    *   // Tensor 't' is [[[1, 1], [2, 2]],
+    *   //                [[3, 3], [4, 4]]] => It has shape [2, 2, 2]
+    *   reshape(t, [2, 4] == [[1, 1, 2, 2],
+    *                         [3, 3, 4, 4]]
+    *
+    *   // Tensor 't' is [[[1, 1, 1],
+    *                      [2, 2, 2]],
+    *                     [[3, 3, 3],
+    *                      [4, 4, 4]],
+    *                     [[5, 5, 5],
+    *                      [6, 6, 6]]] => It has shape [3, 2, 3]
+    *   reshape(t, [-1]) == [1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 6]
+    *
+    *   // '-1' can also be used to infer the shape. Some examples follow.
+    *
+    *   // '-1' is inferred to be 9:
+    *   reshape(t, [2, -1]) ==> [[1, 1, 1, 2, 2, 2, 3, 3, 3],
+    *                            [4, 4, 4, 5, 5, 5, 6, 6, 6]]
+    *
+    *   // '-1' is inferred to be 2:
+    *   reshape(t, [-1, 9]) ==> [[1, 1, 1, 2, 2, 2, 3, 3, 3],
+    *                            [4, 4, 4, 5, 5, 5, 6, 6, 6]]
+    *
+    *   // '-1' is inferred to be 3:
+    *   reshape(t, [ 2, -1, 3]) ==> [[[1, 1, 1],
+    *                                 [2, 2, 2],
+    *                                 [3, 3, 3]],
+    *                                [[4, 4, 4],
+    *                                 [5, 5, 5],
+    *                                 [6, 6, 6]]]
+    *
+    *   // Tensor 't' is [7]
+    *   // An empty shape passed to 'reshape' will result in a scalar
+    *   reshape(t, []) == 7
+    * }}}
+    *
+    * @param  input Input tensor.
+    * @param  shape Shape of the output tensor.
+    * @param  name  Name for the created op.
+    * @return Created op output.
+    */
+  def reshape(input: Op.Output, shape: Op.Output, name: String = "Reshape"): Op.Output = {
+    Op.Builder(opType = "Reshape", name = name)
+        .addInput(input)
+        .addInput(shape)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that transposes `input`. THe op permutes the dimensions of `input` according to `permutation`.
+    *
+    * The returned tensor's dimension `i` will correspond to `input` dimension `permutation(i)`. If `permutation` is not
+    * provided, then it is set to `(n - 1, ..., 0)`, where `n` is the rank of the input tensor. Hence by default, this
+    * op performs a regular matrix transpose on two-dimensional input tensors.
+    *
+    * For example:
+    * {{{
+    *   // Tensor 'x' is [[1, 2, 3], [4, 5, 6]]
+    *   transpose(x) == [[1, 4], [2, 5], [3, 6]]
+    *   transpose(x, permutation = Array(1, 0)) == [[1, 4], [2, 5], [3, 6]]
+    *
+    *   // Tensor 'x' is [[[1, 2, 3],
+    *   //                 [4, 5, 6]],
+    *   //                [[7, 8, 9],
+    *   //                 [10, 11, 12]]]
+    *   transpose(x, permutation = Array(0, 2, 1)) == [[[1,  4], [2,  5], [3,  6]],
+    *                                                  [[7, 10], [8, 11], [9, 12]]]
+    *
+    * }}}
+    *
+    * @param  input       Input tensor to transpose.
+    * @param  permutation Permutation of the input tensor dimensions.
+    * @param  name        Name for the created op.
+    * @return Created op output.
+    */
+  def transpose(input: Op.Output, permutation: Array[Int] = null, name: String = "Transpose"): Op.Output = {
+    if (permutation == null) {
+      Op.createWith(nameScope = name) {
+        val inputRank = rank(input)
+        val reversePermutation = inputRank - constant(1) - MathOps.range(constant(0), inputRank, constant(1))
+        Op.Builder(opType = "Transpose", name = name)
+            .addInput(input)
+            .addInput(reversePermutation)
+            .build().outputs(0)
+        // TODO: !!! Set the shape explicitly?
+      }
+    } else {
+      Op.Builder(opType = "Transpose", name = name)
+          .addInput(input)
+          .addInput(constant(Tensor(permutation.map(Tensor(_)): _*)))
+          .build().outputs(0)
+    }
+  }
+
+  /** Creates an identical op to [[transpose]], except for the fact that the provided `permutation` is itself an op
+    * output as opposed to an integer array.
+    *
+    * @param  input       Input tensor to transpose.
+    * @param  permutation Permutation of the input tensor dimensions.
+    * @param  name        Name for the created op.
+    * @return Created op output.
+    */
+  def transposeDynamic(input: Op.Output, permutation: Op.Output, name: String = "Transpose"): Op.Output = {
+    Op.Builder(opType = "Transpose", name = name)
+        .addInput(input)
+        .addInput(permutation)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that transposes the last two dimensions of tensor `input`.
+    *
+    * For example:
+    * {{{
+    *   // Tensor 'x' is [[1, 2, 3], [4, 5, 6]]
+    *   matrixTranspose(x) == [[1, 4], [2, 5], [3, 6]]
+    *
+    *   // Tensor 'x' has shape [1, 2, 3, 4]
+    *   // matrixTranspose(x) has shape [1, 2, 4, 3]
+    * }}}
+    *
+    * Note that [[MathOps.matMul]] provides named arguments allowing for transposing the matrices involved in the
+    * multiplication. This is done with minimal cost, and is preferable to using this function. For example:
+    * {{{
+    *   matMul(a, b, transposeB = true) // is preferable to:
+    *   matMul(a, matrixTranspose(b))
+    * }}}
+    *
+    * @param  input Input tensor to transpose.
+    * @param  name  Name for the created op.
+    * @return Created op output.
+    */
+  def matrixTranspose(input: Op.Output, name: String = "MatrixTranspose"): Op.Output = {
+    Op.createWith(nameScope = name) {
+      // If we know the number of dimensions statically, we can do two things:
+      //   1. Check that `input` is a (batch) matrix.
+      //   2. Use a Scala array for the permutation. This preserves static shape information and avoids extra
+      //      computation.
+      val inputShape = input.shape
+      val inputRank = inputShape.rank
+      if (inputRank != -1) {
+        if (inputRank < 2)
+          throw InvalidShapeException(s"'input' should be a (batch) matrix, with rank > 2. Found shape '$inputShape'.")
+        val permutation = Range(0, inputRank - 2).toArray ++ Array(inputRank - 1, inputRank - 2)
+        transpose(input, permutation)
+      } else {
+        val inputRank = rank(input)
+        val inputRankMinus1 = inputRank - constant(1)
+        val inputRankMinus2 = inputRank - constant(2)
+        val permutation = concatenate(
+          Array(MathOps.range(constant(0), inputRankMinus2, constant(1)), inputRankMinus1, inputRankMinus2))
+        transposeDynamic(input, permutation)
+      }
+    }
+  }
+
+  /** Creates an op that returns locations of `true` values in a boolean tensor.
+    *
+    * The op returns the coordinates of true elements in `input`. The coordinates are returned in a 2-D tensor where the
+    * first dimension (rows) represents the number of true elements, and the second dimension (columns) represents the
+    * coordinates of the true elements. Note that the shape of the output tensor can vary depending on how many true
+    * values there are in `input`. Indices are output in row-major order.
+    *
+    * For example:
+    * {{{
+    *   // 'input' tensor is [[true, false]
+    *   //                    [true, false]]
+    *   // 'input' has two 'true' values and so the output has two coordinates
+    *   // 'input' has rank 2 and so each coordinate has two indices
+    *   where(input) == [[0, 0],
+    *                    [1, 0]]
+    *
+    *   // `input` tensor is [[[true, false]
+    *   //                     [true, false]]
+    *   //                    [[false, true]
+    *   //                     [false, true]]
+    *   //                    [[false, false]
+    *   //                     [false, true]]]
+    *   // 'input' has 5 'true' values and so the output has 5 coordinates
+    *   // 'input' has rank 3 and so each coordinate has three indices
+    *   where(input) == [[0, 0, 0],
+    *                    [0, 1, 0],
+    *                    [1, 0, 1],
+    *                    [1, 1, 1],
+    *                    [2, 1, 1]]
+    * }}}
+    *
+    * @param  input Input boolean tensor.
+    * @param  name  Name for the created op.
+    * @return Created op output.
+    */
+  def where(input: Op.Output, name: String = "Where"): Op.Output = {
+    if (input.dataType != DataType.Bool)
+      throw InvalidDataTypeException(
+        s"The 'where' op only supports boolean tensors as inputs. It does not support '${input.dataType}' tensors.")
+    Op.Builder(opType = "Where", name = name)
+        .addInput(input)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that reverses variable length slices.
+    *
+    * This op first slices `input` along the dimension `batchAxis`, and for each slice `i`, it reverses the first
+    * `sequenceLengths(i)` elements along the dimension `sequenceAxis`.
+    *
+    * The elements of `sequenceLengths` must obey `sequenceLengths(i) <= input.shape(sequenceAxis)`, and it must be a
+    * vector of length `input.shape(batchAxis)`.
+    *
+    * The output slice `i` along dimension `batchAxis` is then given by input slice `i`, with the first
+    * `sequenceLengths(i)` slices along dimension `sequenceAxis` reversed.
+    *
+    * For example:
+    * {{{
+    *   // Given:
+    *   // sequenceAxis = 1
+    *   // batchAxis = 0
+    *   // input.shape = [4, 8, ...]
+    *   // sequenceLengths = [7, 2, 3, 5]
+    *   // slices of 'input' are reversed on 'sequenceAxis', but only up to 'sequenceLengths':
+    *   output(0, 0::7, ---) == input(0, 6::-1::, ---)
+    *   output(1, 0::2, ---) == input(1, 1::-1::, ---)
+    *   output(2, 0::3, ---) == input(2, 2::-1::, ---)
+    *   output(3, 0::5, ---) == input(3, 4::-1::, ---)
+    *   // while entries past 'sequenceLengths' are copied through:
+    *   output(0, 7::, ---) == input(0, 7::, ---)
+    *   output(1, 7::, ---) == input(1, 7::, ---)
+    *   output(2, 7::, ---) == input(2, 7::, ---)
+    *   output(3, 7::, ---) == input(3, 7::, ---)
+    *
+    *   // In contrast, given:
+    *   // sequenceAxis = 0
+    *   // batchAxis = 2
+    *   // input.shape = [8, ?, 4, ...]
+    *   // sequenceLengths = [7, 2, 3, 5]
+    *   // slices of 'input' are reversed on 'sequenceAxis', but only up to 'sequenceLengths':
+    *   output(0::7, ::, 0, ---) == input(6::-1::, ::, 0, ---)
+    *   output(0::2, ::, 1, ---) == input(1::-1::, ::, 1, ---)
+    *   output(0::3, ::, 2, ---) == input(2::-1::, ::, 2, ---)
+    *   output(0::5, ::, 3, ---) == input(4::-1::, ::, 3, ---)
+    *   // while entries past 'sequenceLengths' are copied through:
+    *   output(7::, ::, 0, ---) == input(7::, ::, 0, ---)
+    *   output(2::, ::, 1, ---) == input(2::, ::, 1, ---)
+    *   output(3::, ::, 2, ---) == input(3::, ::, 2, ---)
+    *   output(5::, ::, 3, ---) == input(5::, ::, 3, ---)
+    * }}}
+    *
+    * @param  input           Input tensor to reverse.
+    * @param  sequenceLengths One-dimensional tensor with length `input.shape(batchAxis)` and
+    *                         `max(sequenceLengths) <= input.shape(sequenceAxis)`.
+    * @param  sequenceAxis    Tensor dimension which is partially reversed.
+    * @param  batchAxis       Tensor dimension along which the reversal is performed.
+    * @param  name            Created op name.
+    * @return Created op output which has the same shape as `input`.
+    */
+  def reverseSequence(
+      input: Op.Output, sequenceLengths: Op.Output, sequenceAxis: Int, batchAxis: Int = 0,
+      name: String = "ReverseSequence"): Op.Output = {
+    Op.Builder(opType = "ReverseSequence", name = name)
+        .addInput(input)
+        .addInput(sequenceLengths)
+        .setAttribute("seq_dim", sequenceAxis)
+        .setAttribute("batch_dim", batchAxis)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that computes the difference between two lists of numbers or strings.
+    *
+    * Given a list `x` and a list `y`, this operation returns a list `out` that represents all values that are in `x`
+    * but not in `y`. The returned list `output` is sorted in the same order that the numbers appear in `x` (duplicates
+    * are preserved). This operation also returns a list `indices` that represents the position of each `out` element in
+    * `x`. In other words, `output(i) = x(indices(i))`, for `i` in `[0, 1, ..., output.length - 1]`.
+    *
+    * For example, given inputs `x = [1, 2, 3, 4, 5, 6]` and `y = [1, 3, 5]`, this op would return
+    * `output = [2, 4, 6]` and `indices = [1, 3, 5]`.
+    *
+    * @param  x             One-dimensional tensor containing the values to keep.
+    * @param  y             One-dimensional tensor containing the values to remove.
+    * @param  indexDataType Optional data type to use for the output indices of this op. It has to be either 'Int32' or
+    *                       'Int64'.
+    * @param  name          Name for the created op.
+    * @return Tuple containing `output` and `indices`, from the method description.
+    */
+  def listDiff(
+      x: Op.Output, y: Op.Output, indexDataType: DataType = DataType.Int32,
+      name: String = "ListDiff"): (Op.Output, Op.Output) = {
+    if (indexDataType != DataType.Int32 && indexDataType != DataType.Int64)
+      throw InvalidDataTypeException(
+        s"The index data type cannot be '$indexDataType'. It has to be either 'Int32' or 'Int64'.")
+    val outputs = Op.Builder(opType = "ListDiff", name = name)
+        .addInput(x)
+        .addInput(y)
+        .setAttribute("out_idx", indexDataType)
+        .build().outputs
+    (outputs(0), outputs(1))
+  }
+
+  //endregion Tensor Manipulation Ops
 
   //region Slice Ops
 
@@ -664,7 +1174,7 @@ object ArrayOps {
         .addInput(input)
         .addInput(begin)
         .addInput(end)
-        .addInput(if (strides == null) onesLike(begin) else strides)
+        .addInput(if (!strides.equals(null)) onesLike(begin) else strides)
         .setAttribute("begin_mask", beginMask)
         .setAttribute("end_mask", endMask)
         .setAttribute("ellipsis_mask", ellipsisMask)
@@ -675,176 +1185,71 @@ object ArrayOps {
 
   //endregion Slice Ops
 
-  /** Creates an op that tiles the provided input tensor.
+  /** Creates an op that checks a tensor for `NaN` and `Inf` values.
     *
-    * The op creates a new tensor by replicating `input` `multiples` times. The output tensor's `i`th dimension has
-    * `input.shape(i) * multiples(i)` elements, and the values of `input` are replicated `multiples(i)` times along
-    * the `i`th dimension. For example, tiling `[a b c d]` by `[2]` produces `[a b c d a b c d]`.
+    * When run, reports an `InvalidArgument` error if `input` has any values that are not-a-number (`NaN`) or infinity
+    * (`Inf`). Otherwise, it acts as an identity op and passes `input` to the output, as-is.
     *
-    * @param  input     Tensor to tile.
-    * @param  multiples One-dimensional tensor containing the tiling multiples. Its length must be the same as the rank
-    *                   of `input`.
-    * @param  name      Name for the created op.
-    * @return Created op output.
+    * @param  input   Input tensor.
+    * @param  message Prefix to print for the error message.
+    * @param  name    Name for the created op.
+    * @return Created op output, which has the same value as the input tensor.
     */
-  def tile(input: Op.Output, multiples: Op.Output, name: String = "Tile"): Op.Output = {
-    Op.Builder(opType = "Tile", name = name)
+  def checkNumerics(input: Op.Output, message: String = "", name: String = "CheckNumerics"): Op.Output = {
+    Op.Builder(opType = "CheckNumerics", name = name)
         .addInput(input)
-        .addInput(multiples)
+        .setAttribute("message", message)
         .build().outputs(0)
   }
 
-  /** Creates an op that returns locations of `true` values in a boolean tensor.
+  //region Gradients Ops
+
+  /** Creates an op that stops gradient execution, but otherwise acts as an identity op.
     *
-    * The op returns the coordinates of true elements in `input`. The coordinates are returned in a 2-D tensor where the
-    * first dimension (rows) represents the number of true elements, and the second dimension (columns) represents the
-    * coordinates of the true elements. Note that the shape of the output tensor can vary depending on how many true
-    * values there are in `input`. Indices are output in row-major order.
+    * When executed in a graph, this op outputs its input tensor as-is.
     *
-    * For example:
-    * {{{
-    *   // 'input' tensor is [[true, false]
-    *   //                    [true, false]]
-    *   // 'input' has two 'true' values and so the output has two coordinates
-    *   // 'input' has rank 2 and so each coordinate has two indices
-    *   where(input) == [[0, 0],
-    *                    [1, 0]]
+    * When building ops to compute gradients, this op prevents the contribution of its inputs to be taken into account.
+    * Normally, the gradient generator adds ops to a graph to compute the derivatives of a specified 'loss' by
+    * recursively finding out inputs that contributed to its computation. If you insert this op in the graph its inputs
+    * are masked from the gradient generator. They are not taken into account for computing gradients.
     *
-    *   // `input` tensor is [[[true, false]
-    *   //                     [true, false]]
-    *   //                    [[false, true]
-    *   //                     [false, true]]
-    *   //                    [[false, false]
-    *   //                     [false, true]]]
-    *   // 'input' has 5 'true' values and so the output has 5 coordinates
-    *   // 'input' has rank 3 and so each coordinate has three indices
-    *   where(input) == [[0, 0, 0],
-    *                    [0, 1, 0],
-    *                    [1, 0, 1],
-    *                    [1, 1, 1],
-    *                    [2, 1, 1]]
-    * }}}
+    * This is useful any time you want to compute a value with TensorFlow but need to pretend that the value was a
+    * constant. Some examples include:
     *
-    * @param  input Input boolean tensor.
+    *   - The *EM* algorithm where the *M-step* should not involve backpropagation through the output of the *E-step*.
+    *   - Contrastive divergence training of Boltzmann machines where, when differentiating the energy function, the
+    *     training must not backpropagate through the graph that generated the samples from the model.
+    *   - Adversarial training, where no backprop should happen through the adversarial example generation process.
+    *
+    * @param  input Input tensor.
     * @param  name  Name for the created op.
-    * @return Created op output.
+    * @return Created op output, which has the same value as the input tensor.
     */
-  def where(input: Op.Output, name: String = "Where"): Op.Output = {
-    if (input.dataType != DataType.Bool)
-      throw InvalidDataTypeException(
-        s"The 'where' op only supports boolean tensors as inputs. It does not support '${input.dataType}' tensors.")
-    Op.Builder(opType = "Where", name = name)
+  def stopGradient(input: Op.Output, name: String = "StopGradient"): Op.Output = {
+    Op.Builder(opType = "StopGradient", name = name)
         .addInput(input)
         .build().outputs(0)
   }
 
-  /** This method is an alias for the [[MathOps.select]] method (for consistency with respect to the Python API).
-    * Please refer to that method's documentation for details.
+  /** Creates an identity op that triggers an error if a gradient is requested.
     *
-    * @param  condition Boolean condition tensor.
-    * @param  x         Tensor which may have the same shape as `condition`. If `condition` has rank `1`, then `t` may
-    *                   have a higher rank, but its first dimension must match the size of `condition`.
-    * @param  y         Tensor with the same data type and shape as `t`.
-    * @param  name      Name for the created op.
-    * @return Created op output.
+    * When executed in a graph, this op outputs its input tensor as-is.
+    *
+    * When building ops to compute gradients, the TensorFlow gradient system ill return an error when trying to lookup
+    * the gradient of this op, because no gradient must ever be registered for this function. This op exists to prevent
+    * subtle bugs from silently returning unimplemented gradients in some corner cases.
+    *
+    * @param  input   Input tensor.
+    * @param  message Message to print along with the error.
+    * @param  name    Name for the created op.
+    * @return Created op output, which has the same value as the input tensor.
     */
-  def where(condition: Op.Output, x: Op.Output, y: Op.Output, name: String = "Where"): Op.Output = {
-    MathOps.select(condition, x, y, name)
-  }
-
-  /** Creates an op that reverses variable length slices.
-    *
-    * This op first slices `input` along the dimension `batchAxis`, and for each slice `i`, it reverses the first
-    * `sequenceLengths(i)` elements along the dimension `sequenceAxis`.
-    *
-    * The elements of `sequenceLengths` must obey `sequenceLengths(i) <= input.shape(sequenceAxis)`, and it must be a
-    * vector of length `input.shape(batchAxis)`.
-    *
-    * The output slice `i` along dimension `batchAxis` is then given by input slice `i`, with the first
-    * `sequenceLengths(i)` slices along dimension `sequenceAxis` reversed.
-    *
-    * For example:
-    * {{{
-    *   // Given:
-    *   // sequenceAxis = 1
-    *   // batchAxis = 0
-    *   // input.shape = [4, 8, ...]
-    *   // sequenceLengths = [7, 2, 3, 5]
-    *   // slices of 'input' are reversed on 'sequenceAxis', but only up to 'sequenceLengths':
-    *   output(0, 0::7, ---) == input(0, 6::-1::, ---)
-    *   output(1, 0::2, ---) == input(1, 1::-1::, ---)
-    *   output(2, 0::3, ---) == input(2, 2::-1::, ---)
-    *   output(3, 0::5, ---) == input(3, 4::-1::, ---)
-    *   // while entries past 'sequenceLengths' are copied through:
-    *   output(0, 7::, ---) == input(0, 7::, ---)
-    *   output(1, 7::, ---) == input(1, 7::, ---)
-    *   output(2, 7::, ---) == input(2, 7::, ---)
-    *   output(3, 7::, ---) == input(3, 7::, ---)
-    *
-    *   // In contrast, given:
-    *   // sequenceAxis = 0
-    *   // batchAxis = 2
-    *   // input.shape = [8, ?, 4, ...]
-    *   // sequenceLengths = [7, 2, 3, 5]
-    *   // slices of 'input' are reversed on 'sequenceAxis', but only up to 'sequenceLengths':
-    *   output(0::7, ::, 0, ---) == input(6::-1::, ::, 0, ---)
-    *   output(0::2, ::, 1, ---) == input(1::-1::, ::, 1, ---)
-    *   output(0::3, ::, 2, ---) == input(2::-1::, ::, 2, ---)
-    *   output(0::5, ::, 3, ---) == input(4::-1::, ::, 3, ---)
-    *   // while entries past 'sequenceLengths' are copied through:
-    *   output(7::, ::, 0, ---) == input(7::, ::, 0, ---)
-    *   output(2::, ::, 1, ---) == input(2::, ::, 1, ---)
-    *   output(3::, ::, 2, ---) == input(3::, ::, 2, ---)
-    *   output(5::, ::, 3, ---) == input(5::, ::, 3, ---)
-    * }}}
-    *
-    * @param  input           Input tensor to reverse.
-    * @param  sequenceLengths One-dimensional tensor with length `input.shape(batchAxis)` and
-    *                         `max(sequenceLengths) <= input.shape(sequenceAxis)`.
-    * @param  sequenceAxis    Tensor dimension which is partially reversed.
-    * @param  batchAxis       Tensor dimension along which the reversal is performed.
-    * @param  name            Created op name.
-    * @return Created op output which has the same shape as `input`.
-    */
-  def reverseSequence(
-      input: Op.Output, sequenceLengths: Op.Output, sequenceAxis: Int, batchAxis: Int = 0,
-      name: String = "ReverseSequence"): Op.Output = {
-    Op.Builder(opType = "ReverseSequence", name = name)
+  def preventGradient(input: Op.Output, message: String = "", name: String = "PreventGradient"): Op.Output = {
+    Op.Builder(opType = "PreventGradient", name = name)
         .addInput(input)
-        .addInput(sequenceLengths)
-        .setAttribute("seq_dim", sequenceAxis)
-        .setAttribute("batch_dim", batchAxis)
+        .setAttribute("message", message)
         .build().outputs(0)
   }
 
-  /** Creates an op that computes the difference between two lists of numbers or strings.
-    *
-    * Given a list `x` and a list `y`, this operation returns a list `out` that represents all values that are in `x`
-    * but not in `y`. The returned list `output` is sorted in the same order that the numbers appear in `x` (duplicates
-    * are preserved). This operation also returns a list `indices` that represents the position of each `out` element in
-    * `x`. In other words, `output(i) = x(indices(i))`, for `i` in `[0, 1, ..., output.length - 1]`.
-    *
-    * For example, given inputs `x = [1, 2, 3, 4, 5, 6]` and `y = [1, 3, 5]`, this op would return
-    * `output = [2, 4, 6]` and `indices = [1, 3, 5]`.
-    *
-    * @param  x             One-dimensional tensor containing the values to keep.
-    * @param  y             One-dimensional tensor containing the values to remove.
-    * @param  indexDataType Optional data type to use for the output indices of this op. It has to be either 'Int32' or
-    *                       'Int64'.
-    * @param  name          Name for the created op.
-    * @return Tuple containing `output` and `indices`, from the method description.
-    */
-  def listDiff(
-      x: Op.Output, y: Op.Output, indexDataType: DataType = DataType.Int32,
-      name: String = "ListDiff"): (Op.Output, Op.Output) = {
-    if (indexDataType != DataType.Int32 && indexDataType != DataType.Int64)
-      throw InvalidDataTypeException(
-        s"The index data type cannot be '$indexDataType'. It has to be either 'Int32' or 'Int64'.")
-    val outputs = Op.Builder(opType = "ListDiff", name = name)
-        .addInput(x)
-        .addInput(y)
-        .setAttribute("out_idx", indexDataType)
-        .build().outputs
-    (outputs(0), outputs(1))
-  }
+  //endregion Gradients Ops
 }

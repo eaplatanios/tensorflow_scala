@@ -1,6 +1,6 @@
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api.DataType
+import org.platanios.tensorflow.api.{DataType, Tensor}
 import org.platanios.tensorflow.api.Exception.InvalidDataTypeException
 
 /**
@@ -50,6 +50,104 @@ object MathOps {
         .build().outputs(0)
   }
 
+  /** Creates an op that constructs a sequence of numbers.
+    *
+    * The op creates a sequence of numbers that begins at `start` and extends by increments of `delta` up to but not
+    * including `limit`. The data type of the resulting tensor is inferred from the inputs unless it is provided
+    * explicitly.
+    *
+    * For example:
+    * {{{
+    *   // 'start' is 3
+    *   // 'limit' is 18
+    *   // 'delta' is 3
+    *   range(start, limit, delta) == [3, 6, 9, 12, 15]
+    *
+    *   // 'start' is 3
+    *   // 'limit' is 1
+    *   // 'delta' is -0.5
+    *   range(start, limit, delta) == [3.0, 2.5, 2.0, 1.5]
+    * }}}
+    *
+    * @param  start    Start of the number sequence.
+    * @param  limit    End (exclusive) of the number sequence.
+    * @param  delta    Difference between consecutive numbers in the sequence.
+    * @param  dataType Data type for the created op.
+    * @param  name     Name for the created op.
+    * @return Created op output.
+    */
+  def range(
+      start: Op.Output, limit: Op.Output, delta: Op.Output = ArrayOps.constant(1), dataType: DataType = null,
+      name: String = "Range"): Op.Output = {
+    var castedStart: Op.Output = null
+    var castedLimit: Op.Output = null
+    var castedDelta: Op.Output = null
+    Op.createWith(nameScope = name) {
+      val supportedDataTypes = Set[DataType](DataType.Int32, DataType.Int64, DataType.Float32, DataType.Float64)
+      require(supportedDataTypes.contains(start.dataType), s"Unsupported data type '${start.dataType}'.")
+      require(supportedDataTypes.contains(limit.dataType), s"Unsupported data type '${limit.dataType}'.")
+      require(supportedDataTypes.contains(delta.dataType), s"Unsupported data type '${delta.dataType}'.")
+      val inferredDataType = {
+        if (dataType != null)
+          dataType
+        else
+          Set(start.dataType, limit.dataType, delta.dataType).maxBy(_.priority)
+      }
+      if (start.dataType != inferredDataType)
+        castedStart = cast(start, inferredDataType)
+      if (limit.dataType != inferredDataType)
+        castedLimit = cast(limit, inferredDataType)
+      if (delta.dataType != inferredDataType)
+        castedDelta = cast(delta, inferredDataType)
+    }
+    Op.Builder(opType = "Range", name = name)
+        .addInput(castedStart)
+        .addInput(castedLimit)
+        .addInput(castedDelta)
+        .build().outputs(0)
+  }
+
+  // TODO: Add the "linspace" op.
+
+  /** Creates an op that casts a tensor to a new data type.
+    *
+    * The op casts `x` to the provided data type.
+    *
+    * For example:
+    * {{{
+    *   // `a` is a tensor with values [1.8, 2.2], and data type Float32
+    *   cast(a, Int32) == [1, 2] // with data type Int32
+    * }}}
+    *
+    * @param  x        Tensor to cast.
+    * @param  dataType Target data type.
+    * @param  name     Name for the created op.
+    * @return Created op output.
+    */
+  def cast(x: Op.Output, dataType: DataType, name: String = "Cast"): Op.Output = {
+    Op.Builder(opType = "Cast", name = name)
+        .addInput(x)
+        .setAttribute(name = "DstT", value = dataType)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that casts a sparse tensor to a new data type.
+    *
+    * The op casts `x.values` to the provided data type.
+    *
+    * @param  x        Tensor to cast.
+    * @param  dataType Target data type.
+    * @param  name     Name for the created op.
+    * @return Created op output.
+    */
+  def sparseCast(x: Op.SparseOutput, dataType: DataType, name: String = "Cast"): Op.SparseOutput = {
+    val castedValues = Op.Builder(opType = "Cast", name = name)
+        .addInput(x.values)
+        .setAttribute(name = "DstT", value = dataType)
+        .build().outputs(0)
+    Op.SparseOutput(x.indices, castedValues, x.denseShape)
+  }
+
   def addN(inputs: Array[Op.Output], name: String = "AddN"): Op.Output =
     Op.Builder(opType = "AddN", name = name)
         .addInputs(inputs)
@@ -74,12 +172,6 @@ object MathOps {
         .addInput(y)
         .setAttribute(name = "adj_x", value = adjointX)
         .setAttribute(name = "adj_y", value = adjointY)
-        .build().outputs(0)
-
-  def cast(x: Op.Output, dataType: DataType, name: String = "Cast"): Op.Output =
-    Op.Builder(opType = "Cast", name = name)
-        .addInput(x)
-        .setAttribute(name = "DstT", value = dataType)
         .build().outputs(0)
 
   //region Unary Ops
@@ -355,6 +447,491 @@ object MathOps {
         .addInput(x)
         .build().outputs(0)
 
+  //region Logical Ops
+
+  /** Creates an op that computes the truth value of `!x` element-wise.
+    *
+    * @param  x    Input tensor.
+    * @param  name Name for the created op.
+    * @return Created op output.
+    */
+  def logicalNot(x: Op.Output, name: String = "LogicalNot"): Op.Output = {
+    Op.Builder(opType = "LogicalNot", name = name)
+        .addInput(x)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that computes the truth value of `x && y` element-wise.
+    *
+    * NOTE: This op supports broadcasting. More information about broadcasting can be found
+    * [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
+    *
+    * @param  x    First input tensor.
+    * @param  y    Second input tensor.
+    * @param  name Name for the created op.
+    * @return Created op output.
+    */
+  def logicalAnd(x: Op.Output, y: Op.Output, name: String = "LogicalAnd"): Op.Output = {
+    Op.Builder(opType = "LogicalAnd", name = name)
+        .addInput(x)
+        .addInput(y)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that computes the truth value of `x || y` element-wise.
+    *
+    * NOTE: This op supports broadcasting. More information about broadcasting can be found
+    * [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
+    *
+    * @param  x    First input tensor.
+    * @param  y    Second input tensor.
+    * @param  name Name for the created op.
+    * @return Created op output.
+    */
+  def logicalOr(x: Op.Output, y: Op.Output, name: String = "LogicalOr"): Op.Output = {
+    Op.Builder(opType = "LogicalOr", name = name)
+        .addInput(x)
+        .addInput(y)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that computes the truth value of `(x || y) && !(x && y)` element-wise.
+    *
+    * NOTE: This op supports broadcasting. More information about broadcasting can be found
+    * [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
+    *
+    * @param  x    First input tensor.
+    * @param  y    Second input tensor.
+    * @param  name Name for the created op.
+    * @return Created op output.
+    */
+  def logicalXor(x: Op.Output, y: Op.Output, name: String = "LogicalXor"): Op.Output = {
+    logicalAnd(logicalOr(x, y), logicalNot(logicalAnd(x, y)), name = name)
+  }
+
+  //endregion Logical Ops
+
+  //region Comparison Ops
+
+  /** Creates an op that computes the truth value of `x == y` element-wise.
+    *
+    * NOTE: This op supports broadcasting. More information about broadcasting can be found
+    * [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
+    *
+    * @param  x    First input tensor.
+    * @param  y    Second input tensor.
+    * @param  name Name for the created op.
+    * @return Created op output.
+    */
+  def equal(x: Op.Output, y: Op.Output, name: String = "Equal"): Op.Output = {
+    Op.Builder(opType = "Equal", name = name)
+        .addInput(x)
+        .addInput(y)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that computes the truth value of `x != y` element-wise.
+    *
+    * NOTE: This op supports broadcasting. More information about broadcasting can be found
+    * [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
+    *
+    * @param  x    First input tensor.
+    * @param  y    Second input tensor.
+    * @param  name Name for the created op.
+    * @return Created op output.
+    */
+  def notEqual(x: Op.Output, y: Op.Output, name: String = "NotEqual"): Op.Output = {
+    Op.Builder(opType = "NotEqual", name = name)
+        .addInput(x)
+        .addInput(y)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that computes the truth value of `abs(x - y) < tolerance`  element-wise.
+    *
+    * @param  x         First input tensor.
+    * @param  y         Second input tensor.
+    * @param  tolerance Comparison tolerance value.
+    * @param  name      Name for the created op.
+    * @return Created op output.
+    */
+  def approximatelyEqual(
+      x: Op.Output, y: Op.Output, tolerance: Float = 0.00001f, name: String = "ApproximatelyEqual"): Op.Output = {
+    Op.Builder(opType = "ApproximateEqual", name = name)
+        .addInput(x)
+        .addInput(y)
+        .setAttribute("tolerance", tolerance)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that computes the truth value of `x < y` element-wise.
+    *
+    * NOTE: This op supports broadcasting. More information about broadcasting can be found
+    * [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
+    *
+    * @param  x    First input tensor.
+    * @param  y    Second input tensor.
+    * @param  name Name for the created op.
+    * @return Created op output.
+    */
+  def less(x: Op.Output, y: Op.Output, name: String = "Less"): Op.Output = {
+    Op.Builder(opType = "Less", name = name)
+        .addInput(x)
+        .addInput(y)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that computes the truth value of `x <= y` element-wise.
+    *
+    * NOTE: This op supports broadcasting. More information about broadcasting can be found
+    * [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
+    *
+    * @param  x    First input tensor.
+    * @param  y    Second input tensor.
+    * @param  name Name for the created op.
+    * @return Created op output.
+    */
+  def lessEqual(x: Op.Output, y: Op.Output, name: String = "LessEqual"): Op.Output = {
+    Op.Builder(opType = "LessEqual", name = name)
+        .addInput(x)
+        .addInput(y)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that computes the truth value of `x > y` element-wise.
+    *
+    * NOTE: This op supports broadcasting. More information about broadcasting can be found
+    * [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
+    *
+    * @param  x    First input tensor.
+    * @param  y    Second input tensor.
+    * @param  name Name for the created op.
+    * @return Created op output.
+    */
+  def greater(x: Op.Output, y: Op.Output, name: String = "Greater"): Op.Output = {
+    Op.Builder(opType = "Greater", name = name)
+        .addInput(x)
+        .addInput(y)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that computes the truth value of `x >= y` element-wise.
+    *
+    * NOTE: This op supports broadcasting. More information about broadcasting can be found
+    * [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
+    *
+    * @param  x    First input tensor.
+    * @param  y    Second input tensor.
+    * @param  name Name for the created op.
+    * @return Created op output.
+    */
+  def greaterEqual(x: Op.Output, y: Op.Output, name: String = "GreaterEqual"): Op.Output = {
+    Op.Builder(opType = "GreaterEqual", name = name)
+        .addInput(x)
+        .addInput(y)
+        .build().outputs(0)
+  }
+
+  //endregion Comparison Ops
+
+  //region Reduction Ops
+
+  private[this] def reductionAxes(tensor: Op.Output, axes: Array[Int]): Op.Output = {
+    if (axes != null)
+      ArrayOps.constant(Tensor(axes.map(Tensor(_)): _*))
+    else
+      ArrayOps.constant(Tensor((0 until tensor.shape.rank).map(Tensor(_)): _*))
+  }
+
+  /** Creates an op that computes the sum of elements across dimensions of a tensor.
+    *
+    * Reduces `input` along the dimensions given in `axes`. Unless `keepDims` is `true`, the rank of the tensor is
+    * reduced by 1 for each entry in `axes`. If `keepDims` is `true`, the reduced dimensions are retained with size 1.
+    *
+    * If `axis` is `null`, then all dimensions are reduced, and a tensor with a single element is returned.
+    *
+    * For example:
+    * {{{
+    *   // 'x' is [[1, 1, 1]], [1, 1, 1]]
+    *   reduceSum(x) == 6
+    *   reduceSum(x, 0) == [2, 2, 2]
+    *   reduceSum(x, 1) == [3, 3]
+    *   reduceSum(x, 1, keepDims = true) == [[3], [3]]
+    *   reduceSum(x, [0, 1]) == 6
+    * }}}
+    *
+    * @param  input    Input tensor to reduce.
+    * @param  axes     Integer array containing the dimensions to reduce. If `null`, then all dimensions are reduced.
+    * @param  keepDims If `true`, retain the reduced dimensions.
+    * @param  name     Name for the created op.
+    * @return Created op output.
+    */
+  def reduceSum(
+      input: Op.Output, axes: Array[Int] = null, keepDims: Boolean = false, name: String = "ReduceSum"): Op.Output = {
+    Op.Builder(opType = "Sum", name = name)
+        .addInput(input)
+        .addInput(reductionAxes(input, axes))
+        .setAttribute(name = "keep_dims", value = keepDims)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that computes the mean of elements across dimensions of a tensor.
+    *
+    * Reduces `input` along the dimensions given in `axes`. Unless `keepDims` is `true`, the rank of the tensor is
+    * reduced by 1 for each entry in `axes`. If `keepDims` is `true`, the reduced dimensions are retained with size 1.
+    *
+    * If `axis` is `null`, then all dimensions are reduced, and a tensor with a single element is returned.
+    *
+    * For example:
+    * {{{
+    *   // 'x' is [[1.0, 1.0], [2.0, 2.0]]
+    *   reduceMean(x) == 1.5
+    *   reduceMean(x, 0) == [1.5, 1.5]
+    *   reduceMean(x, 1) == [1.0, 2.0]
+    * }}}
+    *
+    * @param  input    Input tensor to reduce.
+    * @param  axes     Integer array containing the dimensions to reduce. If `null`, then all dimensions are reduced.
+    * @param  keepDims If `true`, retain the reduced dimensions.
+    * @param  name     Name for the created op.
+    * @return Created op output.
+    */
+  def reduceMean(
+      input: Op.Output, axes: Array[Int] = null, keepDims: Boolean = false, name: String = "ReduceMean"): Op.Output = {
+    Op.Builder(opType = "Mean", name = name)
+        .addInput(input)
+        .addInput(reductionAxes(input, axes))
+        .setAttribute(name = "keep_dims", value = keepDims)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that computes the product of elements across dimensions of a tensor.
+    *
+    * Reduces `input` along the dimensions given in `axes`. Unless `keepDims` is `true`, the rank of the tensor is
+    * reduced by 1 for each entry in `axes`. If `keepDims` is `true`, the reduced dimensions are retained with size 1.
+    *
+    * If `axis` is `null`, then all dimensions are reduced, and a tensor with a single element is returned.
+    *
+    * For example:
+    * {{{
+    *   // 'x' is [[1, 1, 1]], [1, 1, 1]]
+    *   reduceProd(x) == 1
+    *   reduceProd(x, 0) == [1, 1, 1]
+    *   reduceProd(x, 1) == [1, 1]
+    *   reduceProd(x, 1, keepDims = true) == [[1], [1]]
+    *   reduceProd(x, [0, 1]) == 1
+    * }}}
+    *
+    * @param  input    Input tensor to reduce.
+    * @param  axes     Integer array containing the dimensions to reduce. If `null`, then all dimensions are reduced.
+    * @param  keepDims If `true`, retain the reduced dimensions.
+    * @param  name     Name for the created op.
+    * @return Created op output.
+    */
+  def reduceProd(
+      input: Op.Output, axes: Array[Int] = null, keepDims: Boolean = false, name: String = "ReduceProd"): Op.Output = {
+    Op.Builder(opType = "Prod", name = name)
+        .addInput(input)
+        .addInput(reductionAxes(input, axes))
+        .setAttribute(name = "keep_dims", value = keepDims)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that computes the minimum of elements across dimensions of a tensor.
+    *
+    * Reduces `input` along the dimensions given in `axes`. Unless `keepDims` is `true`, the rank of the tensor is
+    * reduced by 1 for each entry in `axes`. If `keepDims` is `true`, the reduced dimensions are retained with size 1.
+    *
+    * If `axis` is `null`, then all dimensions are reduced, and a tensor with a single element is returned.
+    *
+    * For example:
+    * {{{
+    *   // 'x' is [[1.0, 1.0], [2.0, 2.0]]
+    *   reduceMin(x) == 1.0
+    *   reduceMin(x, 0) == [1.0, 1.0]
+    *   reduceMin(x, 1) == [1.0, 2.0]
+    * }}}
+    *
+    * @param  input    Input tensor to reduce.
+    * @param  axes     Integer array containing the dimensions to reduce. If `null`, then all dimensions are reduced.
+    * @param  keepDims If `true`, retain the reduced dimensions.
+    * @param  name     Name for the created op.
+    * @return Created op output.
+    */
+  def reduceMin(
+      input: Op.Output, axes: Array[Int] = null, keepDims: Boolean = false, name: String = "ReduceMin"): Op.Output = {
+    Op.Builder(opType = "Min", name = name)
+        .addInput(input)
+        .addInput(reductionAxes(input, axes))
+        .setAttribute(name = "keep_dims", value = keepDims)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that computes the maximum of elements across dimensions of a tensor.
+    *
+    * Reduces `input` along the dimensions given in `axes`. Unless `keepDims` is `true`, the rank of the tensor is
+    * reduced by 1 for each entry in `axes`. If `keepDims` is `true`, the reduced dimensions are retained with size 1.
+    *
+    * If `axis` is `null`, then all dimensions are reduced, and a tensor with a single element is returned.
+    *
+    * For example:
+    * {{{
+    *   // 'x' is [[1.0, 1.0], [2.0, 2.0]]
+    *   reduceMax(x) == 2.0
+    *   reduceMax(x, 0) == [2.0, 2.0]
+    *   reduceMax(x, 1) == [1.0, 2.0]
+    * }}}
+    *
+    * @param  input    Input tensor to reduce.
+    * @param  axes     Integer array containing the dimensions to reduce. If `null`, then all dimensions are reduced.
+    * @param  keepDims If `true`, retain the reduced dimensions.
+    * @param  name     Name for the created op.
+    * @return Created op output.
+    */
+  def reduceMax(
+      input: Op.Output, axes: Array[Int] = null, keepDims: Boolean = false, name: String = "ReduceMax"): Op.Output = {
+    Op.Builder(opType = "Max", name = name)
+        .addInput(input)
+        .addInput(reductionAxes(input, axes))
+        .setAttribute(name = "keep_dims", value = keepDims)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that computes the logical AND of elements across dimensions of a tensor.
+    *
+    * Reduces `input` along the dimensions given in `axes`. Unless `keepDims` is `true`, the rank of the tensor is
+    * reduced by 1 for each entry in `axes`. If `keepDims` is `true`, the reduced dimensions are retained with size 1.
+    *
+    * If `axis` is `null`, then all dimensions are reduced, and a tensor with a single element is returned.
+    *
+    * For example:
+    * {{{
+    *   // 'x' is [[true, true], [false, false]]
+    *   reduceAll(x) == false
+    *   reduceAll(x, 0) == [false, false]
+    *   reduceAll(x, 1) == [true, false]
+    * }}}
+    *
+    * @param  input    Input tensor to reduce.
+    * @param  axes     Integer array containing the dimensions to reduce. If `null`, then all dimensions are reduced.
+    * @param  keepDims If `true`, retain the reduced dimensions.
+    * @param  name     Name for the created op.
+    * @return Created op output.
+    */
+  def reduceAll(
+      input: Op.Output, axes: Array[Int] = null, keepDims: Boolean = false, name: String = "ReduceAll"): Op.Output = {
+    Op.Builder(opType = "All", name = name)
+        .addInput(input)
+        .addInput(reductionAxes(input, axes))
+        .setAttribute(name = "keep_dims", value = keepDims)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that computes the logical OR of elements across dimensions of a tensor.
+    *
+    * Reduces `input` along the dimensions given in `axes`. Unless `keepDims` is `true`, the rank of the tensor is
+    * reduced by 1 for each entry in `axes`. If `keepDims` is `true`, the reduced dimensions are retained with size 1.
+    *
+    * If `axis` is `null`, then all dimensions are reduced, and a tensor with a single element is returned.
+    *
+    * For example:
+    * {{{
+    *   // 'x' is [[true, true], [false, false]]
+    *   reduceAll(x) == true
+    *   reduceAll(x, 0) == [true, true]
+    *   reduceAll(x, 1) == [true, false]
+    * }}}
+    *
+    * @param  input    Input tensor to reduce.
+    * @param  axes     Integer array containing the dimensions to reduce. If `null`, then all dimensions are reduced.
+    * @param  keepDims If `true`, retain the reduced dimensions.
+    * @param  name     Name for the created op.
+    * @return Created op output.
+    */
+  def reduceAny(
+      input: Op.Output, axes: Array[Int] = null, keepDims: Boolean = false, name: String = "ReduceAny"): Op.Output = {
+    Op.Builder(opType = "Any", name = name)
+        .addInput(input)
+        .addInput(reductionAxes(input, axes))
+        .setAttribute(name = "keep_dims", value = keepDims)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that computes the log-sum-exp of elements across dimensions of a tensor.
+    *
+    * Reduces `input` along the dimensions given in `axes`. Unless `keepDims` is `true`, the rank of the tensor is
+    * reduced by 1 for each entry in `axes`. If `keepDims` is `true`, the reduced dimensions are retained with size 1.
+    *
+    * If `axis` is `null`, then all dimensions are reduced, and a tensor with a single element is returned.
+    *
+    * This function is more numerically stable than `log(sum(exp(input)))`. It avoids overflows caused by computing the
+    * exponential of large inputs, and underflows caused by computing the logarithm of small inputs.
+    *
+    * For example:
+    * {{{
+    *   // 'x' is [[0, 0, 0], [0, 0, 0]]
+    *   reduceLogSumExp(x) == log(6)
+    *   reduceLogSumExp(x, 0) == [log(2), log(2), log(2)]
+    *   reduceLogSumExp(x, 1) == [log(3), log(3)]
+    *   reduceLogSumExp(x, 1, keepDims = true) == [[log(3)], [log(3)]]
+    *   reduceLogSumExp(x, [0, 1]) == log(6)
+    * }}}
+    *
+    * @param  input    Input tensor to reduce.
+    * @param  axes     Integer array containing the dimensions to reduce. If `null`, then all dimensions are reduced.
+    * @param  keepDims If `true`, retain the reduced dimensions.
+    * @param  name     Name for the created op.
+    * @return Created op output.
+    */
+  def reduceLogSumExp(
+      input: Op.Output, axes: Array[Int] = null, keepDims: Boolean = false,
+      name: String = "ReduceLogSumExp"): Op.Output = {
+    Op.createWith(nameScope = name) {
+      val max = ArrayOps.stopGradient(reduceMax(input, axes, keepDims = true))
+      val result = log(reduceSum(exp(input - max), axes, keepDims = true)) + max
+      if (keepDims)
+        result
+      else
+        ArrayOps.squeeze(result, axes)
+    }
+  }
+
+  /** Creates an op that computes the number of non-zero elements across dimensions of a tensor.
+    *
+    * Reduces `input` along the dimensions given in `axes`. Unless `keepDims` is `true`, the rank of the tensor is
+    * reduced by 1 for each entry in `axes`. If `keepDims` is `true`, the reduced dimensions are retained with size 1.
+    *
+    * If `axis` is `null`, then all dimensions are reduced, and a tensor with a single element is returned.
+    *
+    * IMPORTANT NOTE: Floating point comparison to zero is done by exact floating point equality check. Small values are
+    * **not** rounded to zero for the purposes of the non-zero check.
+    *
+    * For example:
+    * {{{
+    *   // 'x' is [[0, 1, 0], [1, 1, 0]]
+    *   countNonZero(x) == 3
+    *   countNonZero(x, 0) == [1, 2, 0]
+    *   countNonZero(x, 1) == [1, 2]
+    *   countNonZero(x, 1, keepDims = true) == [[1], [2]]
+    *   countNonZero(x, [0, 1]) == 3
+    * }}}
+    *
+    * @param  input    Input tensor to reduce.
+    * @param  axes     Integer array containing the dimensions to reduce. If `null`, then all dimensions are reduced.
+    * @param  keepDims If `true`, retain the reduced dimensions.
+    * @param  dataType Output tensor data type.
+    * @param  name     Name for the created op.
+    * @return Created op output.
+    */
+  def countNonZero(input: Op.Output, axes: Array[Int] = null, keepDims: Boolean = false,
+      dataType: DataType = DataType.Int64, name: String = "CountNonZero"): Op.Output = {
+    Op.createWith(nameScope = name) {
+      cast(reduceSum(cast(notEqual(input, ArrayOps.constant(0)), DataType.Int64), axes, keepDims), dataType)
+    }
+  }
+
+  //endregion Reduction Ops
+
   //region Segment Ops
 
   /** Creates an op that computes the sum along segments of a tensor.
@@ -572,7 +1149,7 @@ object MathOps {
         .build().outputs(0)
   }
 
-  // TODO: Add sparse segment ops.
+  // TODO: [SPARSE] Add sparse segment ops.
 
   //endregion Segment Ops
 }
