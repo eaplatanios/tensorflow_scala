@@ -328,9 +328,10 @@ object Op {
     * == Colocation Ops ==
     *
     * When `createWith(...)` is used with a set of colocation ops, then all ops created within its code block will be
-    * placed on the same device as the provided colocation ops. Note that if a set of colocation ops already exist in
+    * placed on the same device as the provided colocation ops. Note that if a set of colocation ops already exists in
     * the current op creation context (e.g., as the result of nesting multiple `createWith(colocationOps = ...)` calls),
-    * then the new set of colocation ops will be the union of the two sets.
+    * then the new set of colocation ops will be the union of the two sets. If provided an empty colocation ops set,
+    * then the new set of colocation ops will also be empty (i.e., it is being reset).
     *
     * Note that using a non-empty set of colocation ops resets any existing device constraints. In other words,
     * colocation ops override any other device placement specification.
@@ -339,13 +340,21 @@ object Op {
     * {{{
     *   val a = createWith(device = "/CPU:0")(constant(1.0))
     *   val b = createWith(device = "/GPU:0")(constant(1.0))
-    *   createWith(colocationOps = Set(a)) {
-    *     val c = constant(1.0)
-    *     assert(c.device == a.device)
-    *   }
-    *   createWith(colocationOps = Set(b)) {
+    *   assert(a.colocationOps === Set.empty[Op])
+    *   assert(b.colocationOps === Set.empty[Op])
+    *   val c = createWith(colocationOps = Set(a))(constant(1.0))
+    *   assert(c.colocationOps === Set[Op](a))
+    *   createWith(colocationOps = Set[Op](b)) {
     *     val d = constant(1.0)
-    *     assert(d.device == b.device)
+    *     assert(d.colocationOps === Set[Op](b))
+    *     createWith(colocationOps = Set[Op](a, d)) {
+    *       val e = constant(1.0)
+    *       assert(e.colocationOps === Set[Op](a, b, d))
+    *       createWith(colocationOps = Set.empty[Op]) {
+    *         val f = constant(1.0)
+    *         assert(f.colocationOps === Set.empty[Op])
+    *       }
+    *     }
     *   }
     * }}}
     *
@@ -484,7 +493,7 @@ object Op {
     * @throws GraphMismatchException If any two of the values provided lie in different graphs.
     */
   @throws[GraphMismatchException]
-  private[ops] def createWith[R](nameScope: String, values: Array[Op.Output])(block: => R)
+  private[ops] def createWithNameScope[R](nameScope: String, values: Array[Op.Output])(block: => R)
       (implicit context: DynamicVariable[OpCreationContext]): R = {
     val newGraph: Graph = mergeGraph(getGraphFromInputs(values), context)
     val newNameScope: String = mergeNameScope(nameScope, context)
@@ -564,6 +573,8 @@ object Op {
   private[this] def mergeColocationOps(colocationOps: Set[Op], context: OpCreationContext): Set[Op] = {
     if (colocationOps == null)
       context.colocationOps
+    else if (colocationOps.isEmpty)
+      Set.empty[Op]
     else
       context.colocationOps ++ colocationOps
   }
@@ -673,7 +684,7 @@ object Op {
     * @param  nameScope Name scope to convert.
     * @return Name obtained from the provided name scope.
     */
-  private[this] def convertNameScopeToName(nameScope: String): String = {
+  private[ops] def convertNameScopeToName(nameScope: String): String = {
     if (nameScope.endsWith("/"))
       nameScope.substring(0, nameScope.length - 1)
     else
