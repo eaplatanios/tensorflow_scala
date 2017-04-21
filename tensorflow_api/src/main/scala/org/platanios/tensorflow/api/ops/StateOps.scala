@@ -17,7 +17,7 @@ object StateOps {
     *                    container is used.
     * @param  sharedName If non-empty, the created variable is named in the given bucket with this shared name.
     *                    Otherwise, the op name is used, instead.
-    * @param  name       Name for the generated variable op.
+    * @param  name       Name for the created op.
     * @return Created variable op.
     */
   def variable(
@@ -36,7 +36,7 @@ object StateOps {
     *
     * @param  variable Variable being checked that may be uninitialized.
     * @param  dataType Data type of the elements in the variable tensor.
-    * @param  name     Name for the generated variable op.
+    * @param  name     Name for the created op.
     * @return Created op.
     */
   def isVariableInitialized(
@@ -56,7 +56,7 @@ object StateOps {
     *                       being referenced by `variable`.
     * @param  useLocking    If `true`, the assignment will be protected by a lock. Otherwise, the behavior is undefined,
     *                       but may exhibit less contention.
-    * @param  name          Name for the generated variable op.
+    * @param  name          Name for the created op.
     * @return Created op.
     */
   def assign(
@@ -78,7 +78,7 @@ object StateOps {
     * @param  value      Value to be added to the variable.
     * @param  useLocking If `true`, the assignment will be protected by a lock. Otherwise, the behavior is undefined,
     *                    but may exhibit less contention.
-    * @param  name       Name for the generated variable op.
+    * @param  name       Name for the created op.
     * @return Created op.
     */
   def assignAdd(
@@ -95,10 +95,10 @@ object StateOps {
     * the assigned value.
     *
     * @param  variable   Variable whose value is being assigned and that may be uninitialized.
-    * @param  value      Value to be subtracting to the variable.
+    * @param  value      Value to be subtracted from the variable.
     * @param  useLocking If `true`, the assignment will be protected by a lock. Otherwise, the behavior is undefined,
     *                    but may exhibit less contention.
-    * @param  name       Name for the generated variable op.
+    * @param  name       Name for the created op.
     * @return Created op.
     */
   def assignSub(
