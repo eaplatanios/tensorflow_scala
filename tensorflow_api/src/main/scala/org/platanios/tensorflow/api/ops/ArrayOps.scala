@@ -26,17 +26,13 @@ object ArrayOps {
     * @param  dataType    Data type of the resulting tensor. If not provided, its value will be inferred from the type
     *                     of `value`.
     * @param  shape       Shape of the resulting tensor.
-    * @param  verifyShape If `true` and `shape` is not `null`, then the shape of `value` will be verified (i.e., checked
-    *                     to see if it is equal to the provided shape.
     * @param  name        Name for the created op.
     * @return Created op output.
     * @throws InvalidShapeException If `shape != null`, `verifyShape == true`, and the shape of values does not match
     *                               the provided `shape`.
     */
   @throws[InvalidShapeException]
-  def constant(
-      tensor: Tensor, dataType: DataType = null, shape: Shape = null, verifyShape: Boolean = false,
-      name: String = "Constant"): Op.Output = {
+  def constant(tensor: Tensor, dataType: DataType = null, shape: Shape = null, name: String = "Constant"): Op.Output = {
     val inferredDataType = if (dataType == null) tensor.dataType else dataType
     val inferredShape = if (shape == null) tensor.shape else shape
     val constantTensor = {
@@ -232,6 +228,60 @@ object ArrayOps {
           if (shape == null) placeholder(DataType.Int64, Shape(-1), name + "/Shape") else constant(shape.toTensor)
     )
   }
+
+  /** Creates an op that constructs a diagonal tensor using the provided diagonal values.
+    *
+    * Given a `diagonal`, this op returns a tensor with that `diagonal` and everything else padded with zeros. The
+    * diagonal is computed as follows:
+    *
+    * Assume that `diagonal` has shape `[D1,..., DK]`. Then the output tensor, `output`, is a rank-`2K` tensor with
+    * shape `[D1, ..., DK, D1, ..., DK]`, where `output(i1, ..., iK, i1, ..., iK) = diagonal(i1, ..., iK)` and `0`
+    * everywhere else.
+    *
+    * For example:
+    * {{{
+    *   // Tensor 'diagonal' is [1, 2, 3, 4]
+    *   diag(diagonal) == [[1, 0, 0, 0], [0, 2, 0, 0], [0, 0, 3, 0], [0, 0, 0, 4]]
+    * }}}
+    *
+    * This op is the inverse of [[diagPart]].
+    *
+    * @param  diagonal Diagonal values, represented as a rank-`K` tensor, where `K` can be at most `3`.
+    * @param  name     Name for the created op.
+    * @return Created op output.
+    */
+  def diag(diagonal: Op.Output, name: String = "Diag"): Op.Output = {
+    Op.Builder(opType = "Diag", name = name)
+        .addInput(diagonal)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that returns the diagonal part of a tensor.
+    *
+    * This op returns a tensor with the `diagonal` part of the `input`. The `diagonal` part is computed as follows:
+    *
+    * Assume `input` has shape `[D1, ..., DK, D1, ..., DK]`. Then the output is a rank-`K` tensor with shape
+    * `[D1,..., DK]`, where `diagonal(i1, ..., iK) = output(i1, ..., iK, i1, ..., iK)`.
+    *
+    * For example:
+    * {{{
+    *   // Tensor 'input' is [[1, 0, 0, 0], [0, 2, 0, 0], [0, 0, 3, 0], [0, 0, 0, 4]]
+    *   diagPart(input) == [1, 2, 3, 4]
+    * }}}
+    *
+    * This op is the inverse of [[diag]].
+    *
+    * @param  input Rank-`K` input tensor, where `K` is either `2`, `4`, or `6`.
+    * @param  name  Name for the created op.
+    * @return Created op output.
+    */
+  def diagPart(input: Op.Output, name: String = "DiagPart"): Op.Output = {
+    Op.Builder(opType = "DiagPart", name = name)
+        .addInput(input)
+        .build().outputs(0)
+  }
+
+  // TODO: Add "matrixDiag", "matrixSetDiag", "matrixDiagPart", and "matrixBandPart" ops.
 
   //endregion Tensor Creation Ops
 
