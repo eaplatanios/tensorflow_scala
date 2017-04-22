@@ -438,6 +438,38 @@ JNIEXPORT jobjectArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAtt
   return ret;
 }
 
+JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttrType(
+        JNIEnv* env, jobject object, jlong opHandle, jstring attrName) {
+  TF_Operation *op = requireOperationHandle(env, opHandle);
+  if (op == nullptr) return -1;
+  const char *attr_name = env->GetStringUTFChars(attrName, nullptr);
+  TF_Status *status = TF_NewStatus();
+  TF_AttrMetadata attr_metadata = TF_OperationGetAttrMetadata(op, attr_name, status);
+
+  if (!throwExceptionIfNotOK(env, status)) {
+    TF_DeleteStatus(status);
+    return -1;
+  }
+  TF_DeleteStatus(status);
+
+  if (attr_metadata.total_size < 0) return -1;
+  if (attr_metadata.type != TF_ATTR_TYPE || attr_metadata.is_list == 1)
+    throwException(
+            env, "java/lang/IllegalArgumentException", "Attribute '%s' is not a shape. It is a '%s', instead.",
+            attr_name, attrTypeToString(attr_metadata.type, attr_metadata.is_list));
+
+  TF_DataType *value = new TF_DataType;
+  TF_OperationGetAttrType(op, attr_name, value, status);
+
+  if (!throwExceptionIfNotOK(env, status)) {
+    TF_DeleteStatus(status);
+    return -1;
+  }
+  TF_DeleteStatus(status);
+
+  return *value;
+}
+
 JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttrShape(
         JNIEnv* env, jobject object, jlong opHandle, jstring attrName) {
   TF_Operation *op = requireOperationHandle(env, opHandle);

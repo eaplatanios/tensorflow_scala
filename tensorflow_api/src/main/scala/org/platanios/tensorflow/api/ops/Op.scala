@@ -162,6 +162,22 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
     }
   }
 
+  /** Gets the value of a data type-valued attribute of this op with name `name`.
+    *
+    * @param  name Attribute name.
+    * @return Attribute value.
+    * @throws IllegalArgumentException If the no attribute with name `name` can be found for this op.
+    */
+  @throws[IllegalArgumentException]
+  def dataTypeAttribute(name: String): DataType = using(graph.reference) { _ =>
+    try {
+      DataType.fromCValue(NativeOp.getAttrType(nativeHandle, name))
+    } catch {
+      case e: Exception => throw new IllegalArgumentException(
+        s"Op has no attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
+    }
+  }
+
   /** Gets the value of a shape-valued attribute of this op with name `name`.
     *
     * @param  name Attribute name.
@@ -868,7 +884,7 @@ object Op {
       * @param  session Optional session to use for the evaluation.
       * @return Value of this op output, for this evaluation.
       */
-    def value(feeds: Map[Op.Output, Tensor] = Map.empty, session: Session = null): Tensor = {
+    def evaluate(feeds: Map[Op.Output, Tensor] = Map.empty, session: Session = null): Tensor = {
       val effectiveSession = if (session == null) graph.defaultSession else session
       effectiveSession.run(feeds, Array(this))(0)
     }
