@@ -36,7 +36,7 @@ final case class Graph(private var nativeHandle: Long) extends Closeable {
   @throws[GraphMismatchException]
   private[api] def addToCollection(value: Op.Output, key: String): Unit = {
     if (value.graph != this)
-      throw GraphMismatchException("The provided op output does not belong in this graph.")
+      throw GraphMismatchException("The provided op output does not belong to this graph.")
     collections.getOrElseUpdate(key, mutable.Set.empty[Any]) += value
   }
 
@@ -46,11 +46,34 @@ final case class Graph(private var nativeHandle: Long) extends Closeable {
     * @param  keys  Collection names.
     * @throws GraphMismatchException If the provided op output does not belong to this graph.
     */
-  private[api] def addToCollections(value: Op.Output, keys: String*): Unit = {
+  @throws[GraphMismatchException]
+  private[api] def addToCollections(value: Op.Output, keys: Set[String]): Unit = {
     keys.foreach(addToCollection(value, _))
   }
 
-  // TODO: [VARIABLE] Add "addToCollection" methods for variables.
+  /** Adds `variable` to the collection with name `key`.
+    *
+    * @param  variable Variable to add to the collection.
+    * @param  key      Collection name.
+    * @throws GraphMismatchException If the provided variable does not belong to this graph.
+    */
+  @throws[GraphMismatchException]
+  private[api] def addToCollection(variable: Variable, key: String): Unit = {
+    if (variable.graph != this)
+      throw GraphMismatchException("The provided variable does not belong to this graph.")
+    collections.getOrElseUpdate(key, mutable.Set.empty[Any]) += variable
+  }
+
+  /** Adds `variable` to the collections specified by the names in `keys`.
+    *
+    * @param  variable Variable to add to the collections.
+    * @param  keys     Collection names.
+    * @throws GraphMismatchException If the provided variable does not belong to this graph.
+    */
+  @throws[GraphMismatchException]
+  private[api] def addToCollections(variable: Variable, keys: Set[String]): Unit = {
+    keys.foreach(addToCollection(variable, _))
+  }
 
   /** Gets the set of objects contained in the collection with name `key`.
     *
@@ -98,7 +121,7 @@ final case class Graph(private var nativeHandle: Long) extends Closeable {
   @throws[GraphMismatchException]
   private[api] def preventFeeding(opOutput: Op.Output): Unit = {
     if (opOutput.graph != this)
-      throw GraphMismatchException("The provided op output does not belong in this graph.")
+      throw GraphMismatchException("The provided op output does not belong to this graph.")
     unfeedableOpOutputs += opOutput
   }
 
@@ -110,7 +133,7 @@ final case class Graph(private var nativeHandle: Long) extends Closeable {
   @throws[GraphMismatchException]
   private[api] def preventFetching(opOutput: Op.Output): Unit = {
     if (opOutput.graph != this)
-      throw GraphMismatchException("The provided op output does not belong in this graph.")
+      throw GraphMismatchException("The provided op output does not belong to this graph.")
     unfetchableOpOutputs += opOutput
   }
 
@@ -123,7 +146,7 @@ final case class Graph(private var nativeHandle: Long) extends Closeable {
   @throws[GraphMismatchException]
   private[api] def isFeedable(opOutput: Op.Output): Boolean = {
     if (opOutput.graph != this)
-      throw GraphMismatchException("The provided op output does not belong in this graph.")
+      throw GraphMismatchException("The provided op output does not belong to this graph.")
     !unfeedableOpOutputs.contains(opOutput)
   }
 
@@ -136,7 +159,7 @@ final case class Graph(private var nativeHandle: Long) extends Closeable {
   @throws[GraphMismatchException]
   private[api] def isFetchable(opOutput: Op.Output): Boolean = {
     if (opOutput.graph != this)
-      throw GraphMismatchException("The provided op output does not belong in this graph.")
+      throw GraphMismatchException("The provided op output does not belong to this graph.")
     !unfetchableOpOutputs.contains(opOutput)
   }
 

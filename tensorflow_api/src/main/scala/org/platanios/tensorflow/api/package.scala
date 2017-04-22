@@ -62,6 +62,9 @@ package object api extends Implicits {
   type Op = ops.Op
   val Op = ops.Op
 
+  type Variable = ops.Variable
+  val Variable = ops.Variable
+
   private[api] val COLOCATION_OPS_ATTRIBUTE_NAME   = "_class"
   private[api] val COLOCATION_OPS_ATTRIBUTE_PREFIX = "loc:@"
   private[api] val VALID_OP_NAME_REGEX   : Regex   = "^[A-Za-z0-9.][A-Za-z0-9_.\\-/]*$".r
@@ -77,6 +80,12 @@ package object api extends Implicits {
       context: DynamicVariable[OpCreationContext]): OpCreationContext = context.value
 
   //endregion Op Creation
+
+  //region ProtoBuf
+
+  type ProtoSerializable = utilities.Proto.Serializable
+
+  //endregion ProtoBuf
 
   //region Utilities
 

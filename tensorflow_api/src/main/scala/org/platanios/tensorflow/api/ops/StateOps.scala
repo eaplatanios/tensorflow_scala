@@ -2,8 +2,6 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.{DataType, Shape}
 
-import scala.util.DynamicVariable
-
 /**
   * @author Emmanouil Antonios Platanios
   */

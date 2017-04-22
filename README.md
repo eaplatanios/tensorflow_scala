@@ -45,8 +45,9 @@ sbt compile
   - [x] Control dependencies op creation context
   - [x] Attribute op creation context
   - [x] Container op creation context
-  - [ ] Graph collections
-  - [ ] Variables support
+  - [x] Graph collections
+  - [x] Variables support
+  - [ ] Control flow ops support
   - [ ] Gradients support
   - [ ] Gradient override map op creation context (need gradient support first)
   - [ ] Kernel label map op creation context (may be unnecessary)

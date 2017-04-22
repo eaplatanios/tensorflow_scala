@@ -1,12 +1,370 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.Exception.InvalidDataTypeException
-import org.platanios.tensorflow.api.{DataType, Shape}
+import org.platanios.tensorflow.api.{DataType, Graph, ProtoSerializable, Session, Shape, Tensor}
+
+import org.tensorflow.framework.{SaveSliceInfoDef, VariableDef}
+
+import scala.util.DynamicVariable
 
 /**
+  *
   * @author Emmanouil Antonios Platanios
   */
+case class Variable private(
+    variableOp: Op.Output, initializeOp: Op, cachedValueOp: Op.Output = null) extends ProtoSerializable {
+  /** Contains the save slice information for this variable. */
+  private[api] var saveSliceInformation: Variable.SaveSliceInformation = _
+
+  /** Sets the slice information used for saving this variable.
+    *
+    * @param  saveSliceInformation Save slice information to use.
+    */
+  private[api] def setSaveSliceInformation(saveSliceInformation: Variable.SaveSliceInformation): Unit = {
+    this.saveSliceInformation = saveSliceInformation
+  }
+
+  /** Graph where this variable is defined. */
+  val graph: Graph = initializeOp.graph
+
+  /** Name of this variable. */
+  val name: String = variableOp.op.name
+
+  /** Data type of this variable. */
+  val dataType: DataType = variableOp.op.dataTypeAttribute("dtype")
+
+  /** Device where this variable resides. */
+  val device: String = variableOp.device
+
+  /** Shape of this variable. */
+  val shape: Shape = variableOp.op.shapeAttribute("shape")
+
+  /** Op corresponding to this variable. */
+  val op: Op = variableOp.op
+
+  // /** Op output that holds the variable reference (i.e., handle to the variable).
+  //   *
+  //   * NOTE: You usually do not need to use this field as all ops that need a reference to the variable call it
+  //   * automatically.
+  //   */
+  // private[this] val handle: Op.Output = variableOp
+
+  // /** Op responsible for creating/initializing this variable. */
+  // val create: Op = initializeOp
+
+  /** Op responsible for initializing this variable. */
+  val initializer: Op = initializeOp
+
+  /** Op output that is `true` when the variable has been initialized and `false` otherwise. */
+  val isInitialized: Op.Output = Variable.isVariableInitialized(variableOp, name = "IsInitialized")
+
+  /** Returns the value of the initialized variable. You should use this instead of the variable itself to initialize
+    * another variable with a value that depends on the value of this variable.
+    *
+    * TODO: Add example.
+    */
+  val initializedValue: Op.Output = ??? // TODO: [CONTROL_FLOW] !!! We need control flow ops for this.
+
+  /** Returns a cached op which reads the last value of this variable.
+    *
+    * You can not assign a new value to the returned tensor as it is not a reference to the variable.
+    *
+    * NOTE: You usually do not need to call this method directly, as all ops that use variables do so by internally
+    * converting them to tensors.
+    */
+  val value: Op.Output = {
+    if (!cachedValueOp.equals(null)) {
+      cachedValueOp
+    } else {
+      Op.createWith(nameScope = name, colocationOps = Set.empty[Op], device = null) {
+        // Manually assign reads to the handle's device to avoid log messages
+        Op.createWith(device = variableOp.device)(Variable.readVariable(variableOp, dataType))
+      }
+    }
+  }
+
+  /** Creates an op that reads the value of this variable.
+    *
+    * This method should be used when there are multiple reads, or when it is desirable to read the value only after
+    * some condition is true.
+    *
+    * The returned value may be different from that of [[value]] depending on the device being used, the control
+    * dependencies, etc.
+    *
+    * @return Created op.
+    */
+  def read(name: String = "Read"): Op.Output = {
+    val value = Op.createWith(nameScope = this.name, device = variableOp.device) { // TODO: Reset colocation ops?
+      Variable.readVariable(variableOp, dataType, name)
+    }
+    // Return an identity op so that it can get placed on whatever device the context specifies instead of the device
+    // where the variable is.
+    ArrayOps.identity(value)
+  }
+
+  /** Creates an op that reads the value of this variable sparsely, using the provided `indices`.
+    *
+    * This method should be used when there are multiple reads, or when it is desirable to read the value only after
+    * some condition is true.
+    *
+    * @param  indices Indices to use for the sparse read.
+    * @param  name    Name for the created op.
+    * @return Created op.
+    */
+  def sparseRead(indices: Op.Output, name: String = "Gather"): Op.Output = {
+    val value = Op.createWith(nameScope = this.name, device = variableOp.device) { // TODO: Reset colocation ops?
+      Variable.gather(variableOp, indices, dataType, validateIndices = true, name)
+    }
+    // Return an identity op so that it can get placed on whatever device the context specifies instead of the device
+    // where the variable is.
+    ArrayOps.identity(value)
+  }
+
+  /** Evaluates the value of this variable.
+    *
+    * If `feeds` is non-empty, then the provided feed values are fed into the session for computing the value of this
+    * variable.
+    *
+    * If `session` is `null` (i.e., not provided), then the default session is used. Otherwise, `session` is used for
+    * the evaluation.
+    *
+    * @param  feeds   Tensors to feed into the session for this evaluation.
+    * @param  session Optional session to use for the evaluation.
+    * @return Value of this variable, for this evaluation.
+    */
+  def evaluate(feeds: Map[Op.Output, Tensor] = Map.empty, session: Session = null): Tensor = {
+    toOpOutput.evaluate(feeds, session)
+  }
+
+  // TODO: [VARIABLE] Add support for slice assignment.
+
+  //region Assignment Ops
+
+  // TODO: [TF_UPDATE] The following ops are not atomic. Consider making atomic if there is a way to do so without a
+  // performance cost for those who don't need it.
+
+  /** Creates an op that assigns the provided value to this variable and returns its value.
+    *
+    * @param  value Value to assign the variable to.
+    * @param  name  Name for created op.
+    * @return Variable value read op, after the assignment.
+    */
+  def assign(value: Op.Output, name: String = "Assign"): Op.Output = {
+    Op.createWith(controlDependencies = Set[Op](Variable.assign(variableOp, value, name))) {
+      read()
+    }
+  }
+
+  /** Creates an op that adds the provided value to the current value of the variable and returns its value.
+    *
+    * @param  value Value to add to the current variable value.
+    * @param  name  Name for created op.
+    * @return Variable value read op, after the addition.
+    */
+  def assignAdd(value: Op.Output, name: String = "AssignAdd"): Op.Output = {
+    Op.createWith(controlDependencies = Set[Op](Variable.assignAdd(variableOp, value, name))) {
+      read()
+    }
+  }
+
+  /** Creates an op that subtracts the provided value from the current value of the variable and returns its value.
+    *
+    * @param  value Value to subtract from the current variable value.
+    * @param  name  Name for created op.
+    * @return Variable value read op, after the subtraction.
+    */
+  def assignSub(value: Op.Output, name: String = "AssignAdd"): Op.Output = {
+    Op.createWith(controlDependencies = Set[Op](Variable.assignSub(variableOp, value, name))) {
+      read()
+    }
+  }
+
+  // Useful operator overloads for the assignment methods:
+
+  def update(value: Op.Output): Unit = assign(value)
+
+  def +=(value: Op.Output): Unit = assignAdd(value)
+  def -=(value: Op.Output): Unit = assignSub(value)
+
+  //endregion Assignment Ops
+
+  /** Converts this variable to an op output. This function simply returns an op corresponding to the variable value. */
+  def toOpOutput: Op.Output = value
+
+  override def toProto(exportScope: String = null): VariableDef = {
+    if (exportScope == null || variableOp.name.startsWith(exportScope)) {
+      val variableDefBuilder = VariableDef.newBuilder()
+      variableDefBuilder.setVariableName(Op.stripNameScope(exportScope, variableOp.name))
+      variableDefBuilder.setInitializerName(Op.stripNameScope(exportScope, initializeOp.name))
+      if (!cachedValueOp.equals(null))
+        variableDefBuilder.setSnapshotName(Op.stripNameScope(exportScope, cachedValueOp.name))
+      variableDefBuilder.setIsResource(true)
+      if (saveSliceInformation != null)
+        variableDefBuilder.mergeSaveSliceInfoDef(saveSliceInformation.toProto(exportScope))
+      variableDefBuilder.build()
+    } else {
+      null
+    }
+  }
+}
+
+/** Contains helper functions and classes for creating and dealing with [[Variable]] objects. */
 object Variable {
+  /** Creates a variable.
+    *
+    * @param  initialValueFunction A function that takes no arguments and returns an op output that will be used as the
+    *                              initial value of this variable.
+    * @param  trainable            If `true`, the default, the variable is added to the graph collection
+    *                              `Graph.Keys.TRAINABLE_VARIABLES`. This collection is used as the default set of
+    *                              variables to use by the optimizers.
+    * @param  collections          Set of graph collections keys. The new variable is added to these collections.
+    *                              Defaults to `Set(Graph.Keys.GLOBAL_VARIABLES)`.
+    * @param  cachingDevice        Optional device specification describing where the variable should be cached for
+    *                              reading. Defaults to the variable's device. Typical use is to cache on the device
+    *                              where the ops using the Variable reside, to deduplicate copying through `Switch` and
+    *                              other conditional statements.
+    * @param  valueDataType        Data type for the value of the created variable. If not provided, its value is
+    *                              inferred from the provided initial value. If provided, then the provided initial
+    *                              value will be converted to this data type.
+    * @param  name                 Created variable name.
+    * @return Created variable.
+    */
+  def apply(
+      initialValueFunction: () => Op.Output, trainable: Boolean = true, collections: Set[String] = Set.empty,
+      cachingDevice: OpSpecification => String = null, valueDataType: DataType = null,
+      name: String = "Variable"): Variable = {
+    Op.createWith(nameScope = name, controlDependencies = Set.empty[Op]) {
+      val trueName = Op.convertNameScopeToName(name)
+      // Use a custom op creation context with attribute "_class" set to the colocation op name and device set to "null"
+      // to simulate the behavior of colocation ops for when the variable we want to colocate with doesn't yet exist.
+      val (initValue, variableOp) = Op.createWith(attributes = Map("_class" -> s"loc:@$trueName")) {
+        val initValue = Op.createWith(nameScope = "Initializer", device = null) {
+          val value = initialValueFunction()
+          if (valueDataType == null || value.dataType == valueDataType)
+            value
+          else
+            MathOps.cast(value, valueDataType, name = "InitialValueCast")
+        }
+        val variableOp = variable(initValue.shape, initValue.dataType, sharedName = trueName, name = name)
+        (initValue, variableOp)
+      }
+
+      val initializeOp = assign(variableOp, initValue, name = "InitializationAssign")
+      val cachedValueOp = Op.createWith(nameScope = "Read", colocationOps = Set[Op](variableOp.op)) {
+        val cachedValueOp = {
+          if (cachingDevice != null) {
+            // Manually assign reads to the handle's device to avoid log messages
+            val valueOp = Op.createWith(device = variableOp.device)(readVariable(variableOp, valueDataType))
+            // Variables may be created in a "createWith(device = ...)" block or a "createWith(colocationOps = ...)"
+            // block. At the same time, users would expect the caching device to be independent of this context, and/or
+            // would not expect the current device context to be merged with the caching device specification.
+            // Therefore, we reset the colocation stack before creating the cached value. Note that resetting the
+            // colocation stack will also reset the device stack.
+            Op.createWith(colocationOps = Set.empty[Op], device = null)(ArrayOps.identity(valueOp))
+          } else {
+            null
+          }
+        }
+        cachedValueOp
+      }
+
+      val createdVariable = Variable(variableOp, initializeOp, cachedValueOp)
+      var effectiveCollections = collections
+      if (effectiveCollections.isEmpty)
+        effectiveCollections += Graph.Keys.GLOBAL_VARIABLES
+      if (trainable)
+        effectiveCollections += Graph.Keys.TRAINABLE_VARIABLES
+      createdVariable.graph.addToCollections(createdVariable, effectiveCollections)
+      createdVariable
+    }
+  }
+
+  /** Creates a variable from the provided ProtoBuf object.
+    *
+    * @param  protoDef    ProtoBuf object.
+    * @param  importScope Name scope to use for all imported ops.
+    * @param  context     Op creation context to use while creating the variable.
+    * @return Constructed [[Variable]] object.
+    */
+  def fromProto(protoDef: VariableDef, importScope: String = null)
+      (implicit context: DynamicVariable[OpCreationContext]): Variable = {
+    if (!protoDef.getIsResource)
+      throw new IllegalArgumentException("Trying to restore a reference-based variable as a resource-based variable.")
+
+    def prependNameScope(name: String) = if (importScope == null) name else Op.prependNameScope(importScope, name)
+
+    val variableOp = context.graph.getOpOutputByName(prependNameScope(protoDef.getVariableName))
+    val initializeOp = context.graph.getOpByName(prependNameScope(protoDef.getInitializerName))
+    val cachedValueOp = {
+      if (protoDef.getSnapshotName == null)
+        null
+      else
+        context.graph.getOpOutputByName(prependNameScope(protoDef.getSnapshotName))
+    }
+    val saveSliceInformation = {
+      if (protoDef.hasSaveSliceInfoDef)
+        SaveSliceInformation.fromProto(protoDef.getSaveSliceInfoDef)
+      else
+        null
+    }
+    val createdVariable = Variable(variableOp, initializeOp, cachedValueOp)
+    createdVariable.setSaveSliceInformation(saveSliceInformation)
+    createdVariable
+  }
+
+  /** Class that information on how to save a variable as a slice.
+    *
+    * This class provides internal support for saving variables as slices of a larger variable. This API is not public
+    * and is subject to change.
+    *
+    * @param  fullName       Name of the full variable, of which the variable is a slice.
+    * @param  fullShape      Shape of the full variable, of which the variable is a slice.
+    * @param  variableOffset Offset of the variable into the full variable.
+    * @param  variableShape  Shape of the variable.
+    */
+  private[api] case class SaveSliceInformation(
+      fullName: String = null, fullShape: Shape = null, variableOffset: Array[Int] = null,
+      variableShape: Array[Int] = null) extends ProtoSerializable {
+    /** Returns the spec string used for saving. */
+    def spec: String = {
+      val shapeString = fullShape.asArray.mkString(" ")
+      val sliceString = variableOffset.zip(variableShape).map(p => s"${p._1},${p._2}").mkString(":")
+      s"$shapeString $sliceString"
+    }
+
+    override def toProto(exportScope: String = null): SaveSliceInfoDef = {
+      if (exportScope == null || fullName.startsWith(exportScope)) {
+        val saveSliceInfoDefBuilder = SaveSliceInfoDef.newBuilder()
+        saveSliceInfoDefBuilder.setFullName(Op.stripNameScope(exportScope, fullName))
+        fullShape.asArray.zipWithIndex.foreach(p => saveSliceInfoDefBuilder.setFullShape(p._2, p._1.toLong))
+        variableOffset.zipWithIndex.foreach(p => saveSliceInfoDefBuilder.setVarOffset(p._2, p._1.toLong))
+        variableShape.zipWithIndex.foreach(p => saveSliceInfoDefBuilder.setVarShape(p._2, p._1.toLong))
+        saveSliceInfoDefBuilder.build()
+      } else {
+        null
+      }
+    }
+  }
+
+  /** Contains helper functions for creating and dealing with [[SaveSliceInformation]] objects. */
+  private[api] object SaveSliceInformation {
+    /** Creates a new [[SaveSliceInformation]] from the provided ProtoBuf object.
+      *
+      * @param  protoDef    ProtoBuf object.
+      * @param  importScope Name scope to use for all imported ops.
+      * @return Constructed [[SaveSliceInformation]] object.
+      */
+    def fromProto(protoDef: SaveSliceInfoDef, importScope: String = null): SaveSliceInformation = {
+      val fullName = {
+        if (importScope == null) protoDef.getFullName else Op.prependNameScope(importScope, protoDef.getFullName)
+      }
+      val fullShape = Shape.fromSeq((0 until protoDef.getFullShapeCount).map(protoDef.getFullShape(_).toInt))
+      val variableOffset = (0 until protoDef.getVarOffsetCount).map(protoDef.getVarOffset(_).toInt).toArray
+      val variableShape = (0 until protoDef.getVarShapeCount).map(protoDef.getVarShape(_).toInt).toArray
+      SaveSliceInformation(fullName, fullShape, variableOffset, variableShape)
+    }
+  }
+
   /** Creates an op that holds a handle to a variable resource.
     *
     * Variables hold state in the form of a tensor that persists across steps. The output of this op is a reference to
@@ -173,12 +531,13 @@ object Variable {
     *
     * @param  variable        Variable to slice.
     * @param  indices         Indices tensor, which must be an `Int32` or `Int64` tensor.
+    * @param  dataType        Data type for the created op.
     * @param  validateIndices Boolean value indicating whether to validate the provided indices.
     * @param  name            Name for the created op.
     * @return Created op.
     */
   private def gather(
-      variable: Op.Output, indices: Op.Output, validateIndices: Boolean = true,
+      variable: Op.Output, indices: Op.Output, dataType: DataType = null, validateIndices: Boolean = true,
       name: String = "VariableGather"): Op.Output = {
     if (indices.dataType != DataType.Int32 && indices.dataType != DataType.Int64)
       throw InvalidDataTypeException(
@@ -187,6 +546,7 @@ object Variable {
     Op.Builder(opType = "ResourceGather", name = name)
         .addInput(variable)
         .addInput(indices)
+        .setAttribute("dtype", if (dataType == null) variable.dataType else dataType)
         .setAttribute("validate_indices", validateIndices)
         .build().outputs(0)
   }

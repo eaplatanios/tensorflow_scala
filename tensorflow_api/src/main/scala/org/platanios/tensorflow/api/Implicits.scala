@@ -1,5 +1,7 @@
 package org.platanios.tensorflow.api
 
+import org.platanios.tensorflow.api.ops.OpSpecification
+
 /**
   * @author Emmanouil Antonios Platanios
   */
@@ -23,6 +25,10 @@ trait Implicits extends LowPriorityImplicits {
     Indexer.indexerConstructionWithTwoNumbersToSlice(construction)
   implicit def indexerConstructionWithThreeNumbersToSlice(construction: IndexerConstructionWithThreeNumbers): Slice =
     Indexer.indexerConstructionWithThreeNumbersToSlice(construction)
+
+  implicit def deviceImplicitConversion(device: String): OpSpecification => String = Op.deviceImplicitConversion(device)
+
+  implicit def variableToOpOutput(variable: Variable): Op.Output = variable.value
 }
 
 trait LowPriorityImplicits {
