@@ -47,9 +47,9 @@ class GraphSpec extends FlatSpec with Matchers {
     val (graph, ops) = prepareGraph()
     createWith(graph = Graph()) {
       assert(intercept[GraphMismatchException](graph.isFeedable(constant(1.0))).getMessage ===
-                 "The provided op output does not belong in this graph.")
+                 "The provided op output does not belong to this graph.")
       assert(intercept[GraphMismatchException](graph.preventFeeding(constant(1.0))).getMessage ===
-                 "The provided op output does not belong in this graph.")
+                 "The provided op output does not belong to this graph.")
     }
   }
 
@@ -75,9 +75,9 @@ class GraphSpec extends FlatSpec with Matchers {
     val (graph, ops) = prepareGraph()
     createWith(graph = Graph()) {
       assert(intercept[GraphMismatchException](graph.isFetchable(constant(1.0))).getMessage ===
-                 "The provided op output does not belong in this graph.")
+                 "The provided op output does not belong to this graph.")
       assert(intercept[GraphMismatchException](graph.preventFetching(constant(1.0))).getMessage ===
-                 "The provided op output does not belong in this graph.")
+                 "The provided op output does not belong to this graph.")
     }
   }
 

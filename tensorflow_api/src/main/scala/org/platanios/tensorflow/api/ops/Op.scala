@@ -526,7 +526,7 @@ object Op {
     * @throws GraphMismatchException If any two of the values provided lie in different graphs.
     */
   @throws[GraphMismatchException]
-  private[ops] def createWithNameScope[R](nameScope: String, values: Array[Op.Output])(block: => R)
+  private[ops] def createWithNameScope[R](nameScope: String, values: Array[Op])(block: => R)
       (implicit context: DynamicVariable[OpCreationContext]): R = {
     val newGraph: Graph = mergeGraph(getGraphFromInputs(values), context)
     val newNameScope: String = mergeNameScope(nameScope, context)
@@ -751,13 +751,13 @@ object Op {
     *                                at least one of the `inputs` is not defined in it.
     */
   @throws[GraphMismatchException]
-  private[this] def getGraphFromInputs(inputs: Array[Op.Output], graph: Graph = null): Graph = {
+  private[this] def getGraphFromInputs(inputs: Array[Op], graph: Graph = null): Graph = {
     val returnGraph = if (graph == null) inputs.head.graph else graph
     inputs.foreach(i => {
       if (graph == null)
         assertSameGraph(inputs.head, i)
       else if (i.graph != returnGraph)
-        throw GraphMismatchException(s"'${i.op}' is not defined in the passed-in graph.")
+        throw GraphMismatchException(s"'$i' is not defined in the passed-in graph.")
     })
     returnGraph
   }
@@ -793,7 +793,7 @@ object Op {
   }
 
   /** Trait representing outputs of an `Op`'s computation. */
-  private[api] sealed trait OutputLike {
+  sealed trait OutputLike {
     /** Graph where the op belongs. */
     def graph: Graph
 
@@ -808,9 +808,21 @@ object Op {
 
     /** Op that generates this output. */
     def op: Op
+  }
 
-    /** Returns an [[Op.Output]] that this [[Op.OutputLike]] object represents. */
-    private[api] def toOpOutput(dataType: DataType = null): Op.Output
+  sealed trait OutputConvertible {
+    /** Returns the [[Op.Output]] that this [[Op.OutputLike]] object represents. */
+    def toOpOutput: Op.Output
+  }
+
+  sealed trait OutputIndexedSlicesConvertible {
+    /** Returns an [[Op.OutputIndexedSlices]] that has the same value as this [[Op.OutputLike]].
+      *
+      * @param  optimize Boolean flag indicating whether to optimize this conversion by using a constant op with the
+      *                  shape of this tensor at graph creation time (instead of execution time), if known.
+      * @return [[Op.OutputIndexedSlices]] that has the same value as this [[Op.OutputLike]].
+      */
+    def toOpOutputIndexedSlices(optimize: Boolean = true): Op.OutputIndexedSlices
   }
 
   /** Representation of one of the outputs of an `Op`'s computation.
@@ -839,7 +851,8 @@ object Op {
     * @param  op    Op whose output this class represents.
     * @param  index Output index.
     */
-  final case class Output private(op: Op, index: Int) extends OutputLike {
+  final case class Output private(op: Op, index: Int)
+      extends OutputLike with OutputConvertible with OutputIndexedSlicesConvertible {
     /** Graph where the op belongs. */
     override def graph: Graph = op.graph
 
@@ -924,12 +937,19 @@ object Op {
 
     //endregion Ops
 
-    /** Returns an [[Op.Output]] that this [[Op.OutputLike]] object represents. */
-    private[api] def toOpOutput(dataType: DataType = null): Op.Output = {
-      throw new IllegalArgumentException(
-        s"Op output conversion requested data type '$dataType' for op output, '$this', with data type: " +
-            s"'${this.dataType}.")
-      this
+    /** Returns the [[Op.Output]] that this [[Op.OutputLike]] object represents. */
+    override def toOpOutput: Op.Output = this
+
+    /** Returns an [[Op.OutputIndexedSlices]] that has the same value as this [[Op.OutputLike]].
+      *
+      * @param  optimize Boolean flag indicating whether to optimize this conversion by using a constant op with the
+      *                  shape of this tensor at graph creation time (instead of execution time), if known.
+      * @return [[Op.OutputIndexedSlices]] that has the same value as this [[Op.OutputLike]].
+      */
+    override def toOpOutputIndexedSlices(optimize: Boolean = true): Op.OutputIndexedSlices = {
+      val denseShape = ArrayOps.shape(this, optimize = optimize)
+      val indices = MathOps.range(ArrayOps.constant(0), denseShape(0))
+      OutputIndexedSlices(indices = indices, values = this, denseShape = denseShape)
     }
 
     /** Creates an op that slices this op according to the provided indexers.
@@ -947,8 +967,8 @@ object Op {
   /** Sparse representation of one of the outputs of an `Op`'s computation. of a set of tensor slices at given indices.
     *
     * This class if a simple wrapper for a pair (or a set of three) of [[Op.Output]] objects:
-    *   - `values`: An [[Op.Output]] of any data type, with shape `[D0, D1, ..., Dn]`.
     *   - `indices`: A one-dimensional integer [[Op.Output]] with shape `[D0]`.
+    *   - `values`: An [[Op.Output]] of any data type, with shape `[D0, D1, ..., Dn]`.
     *   - `denseShape`: Optionally, an integer [[Op.Output]] with shape `[LARGE0, D1, ..., Dn]`.
     *
     * An [[Op.OutputIndexedSlices]] is typically used to represent a subset of a larger [[Op.Output]], `dense`, of shape
@@ -970,7 +990,7 @@ object Op {
     * @param  denseShape Shape of the corresponding dense [[Op.Output]].
     */
   final case class OutputIndexedSlices private(indices: Op.Output, values: Op.Output, denseShape: Op.Output = null)
-      extends OutputLike {
+      extends OutputLike with OutputConvertible with OutputIndexedSlicesConvertible {
     /** Graph that contains `values`, `indices`, and `denseShape`. */
     override def graph: Graph = getGraphFromInputs(Array(values, indices, denseShape))
 
@@ -987,12 +1007,8 @@ object Op {
     /** Op that outputs these indexed slices. */
     override def op: Op = values.op
 
-    /** Returns an [[Op.Output]] that this [[Op.OutputLike]] object represents. */
-    private[api] def toOpOutput(dataType: DataType = null): Op.Output = {
-      if (dataType != null && dataType != this.dataType)
-        throw new IllegalArgumentException(
-          s"Op output conversion requested data type '$dataType' for op output, '$this', with data type: " +
-              s"'${this.dataType}.")
+    /** Returns the [[Op.Output]] that this [[Op.OutputLike]] object represents. */
+    override def toOpOutput: Op.Output = {
       if (denseShape ne null)
         throw new IllegalStateException(
           s"Op output conversion requested the conversion of 'Op.OutputIndexedSlices', '$this', which has no dense " +
@@ -1002,6 +1018,14 @@ object Op {
         MathOps.unsortedSegmentSum(data = values, segmentIndices = indices, segmentsNumber = denseShape(0))
       }
     }
+
+    /** Returns an [[Op.OutputIndexedSlices]] that has the same value as this [[Op.OutputLike]].
+      *
+      * @param  optimize Boolean flag indicating whether to optimize this conversion by using a constant op with the
+      *                  shape of this tensor at graph creation time (instead of execution time), if known.
+      * @return [[Op.OutputIndexedSlices]] that has the same value as this [[Op.OutputLike]].
+      */
+    override def toOpOutputIndexedSlices(optimize: Boolean = true): Op.OutputIndexedSlices = this
 
     override def toString: String = {
       s"Op.OutputIndexedSlices(values = ${values.name}, indices = ${indices.name}, denseShape = ${denseShape.name}, " +
@@ -1107,9 +1131,6 @@ object Op {
       val fetches = effectiveSession.run(feeds, Array(indices, values, denseShape))
       (fetches(0), fetches(1), fetches(2))
     }
-
-    /** Returns an [[Op.Output]] that this [[Op.OutputLike]] object represents. */
-    override private[api] def toOpOutput(dataType: DataType): Op.Output = ???
 
     override def toString: String = {
       s"Op.OutputIndexedSlices(values = ${values.name}, indices = ${indices.name}, denseShape = ${denseShape.name}, " +
