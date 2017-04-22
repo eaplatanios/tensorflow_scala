@@ -965,11 +965,11 @@ object Op {
     *
     * Note that this is different than [[Op.SparseOutput]] which uses multi-dimensional indices and scalar values.
     *
-    * @param  values     Values corresponding to the provided indices.
     * @param  indices    Indices along the first dimension of the corresponding dense [[Op.Output]].
+    * @param  values     Values corresponding to the provided indices.
     * @param  denseShape Shape of the corresponding dense [[Op.Output]].
     */
-  final case class OutputIndexedSlices private(values: Op.Output, indices: Op.Output, denseShape: Op.Output = null)
+  final case class OutputIndexedSlices private(indices: Op.Output, values: Op.Output, denseShape: Op.Output = null)
       extends OutputLike {
     /** Graph that contains `values`, `indices`, and `denseShape`. */
     override def graph: Graph = getGraphFromInputs(Array(values, indices, denseShape))

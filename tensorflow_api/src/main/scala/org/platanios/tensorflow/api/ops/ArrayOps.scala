@@ -485,7 +485,7 @@ object ArrayOps {
 
   //region Tensor Manipulation Ops
 
-  /** Creates an op that returns a tensor with the same shape and contents as the input tensor or value.
+  /** Creates an op that returns a tensor with the same shape and contents as the input tensor.
     *
     * @param  input Input tensor.
     * @param  name  Name for the created op.
@@ -495,6 +495,41 @@ object ArrayOps {
     Op.Builder(opType = "Identity", name = name)
         .addInput(input)
         .build().outputs(0)
+  }
+
+  /** Creates an op that returns a tensor with the same shape and contents as the input tensor.
+    *
+    * @param  input Input tensor.
+    * @param  name  Name for the created op.
+    * @return Created op output.
+    */
+  def identity(input: Op.OutputIndexedSlices, name: String = "Identity"): Op.OutputIndexedSlices = {
+    Op.createWith(nameScope = name) {
+      val values = identity(input.values, name = "ValuesIdentity")
+      val indices = identity(input.indices, name = "IndicesIdentity")
+      val denseShape = {
+        if (input.denseShape ne null)
+          identity(input.denseShape, name = "DenseShapeIdentity")
+        else
+          null
+      }
+      Op.OutputIndexedSlices(indices = indices, values = values, denseShape = denseShape)
+    }
+  }
+
+  /** Creates an op that returns a tensor with the same shape and contents as the input tensor.
+    *
+    * @param  input Input tensor.
+    * @param  name  Name for the created op.
+    * @return Created op output.
+    */
+  def identity(input: Op.SparseOutput, name: String = "Identity"): Op.SparseOutput = {
+    Op.createWith(nameScope = name) {
+      val values = identity(input.values, name = "ValuesIdentity")
+      val indices = identity(input.indices, name = "IndicesIdentity")
+      val denseShape = identity(input.denseShape, name = "DenseShapeIdentity")
+      Op.SparseOutput(indices = indices, values = values, denseShape = denseShape)
+    }
   }
 
   /** Creates an op that inserts a dimension of size 1 into a tensor's shape.
