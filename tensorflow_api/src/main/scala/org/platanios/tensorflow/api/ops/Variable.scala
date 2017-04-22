@@ -387,10 +387,10 @@ object Variable {
       shape: Shape, dataType: DataType, container: String = "", sharedName: String = "",
       name: String = "Variable"): Op.Output = {
     Op.Builder(opType = "VarHandleOp", name = name)
-        .setAttribute(name = "shape", value = shape)
-        .setAttribute(name = "dtype", value = dataType)
-        .setAttribute(name = "container", value = container)
-        .setAttribute(name = "shared_name", value = sharedName)
+        .setAttribute("shape", shape)
+        .setAttribute("dtype", dataType)
+        .setAttribute("container", container)
+        .setAttribute("shared_name", sharedName)
         .build().outputs(0)
   }
 
@@ -424,7 +424,7 @@ object Variable {
   private def readVariable(variable: Op.Output, dataType: DataType, name: String = "ReadVariable"): Op.Output = {
     Op.Builder(opType = "ReadVariableOp", name = name)
         .addInput(variable)
-        .setAttribute(name = "dtype", value = dataType)
+        .setAttribute("dtype", dataType)
         .build().outputs(0)
   }
 
@@ -444,7 +444,7 @@ object Variable {
       variable: Op.Output, dataType: DataType, name: String = "UnsafeReadVariable"): Op.Output = {
     Op.Builder(opType = "_UnsafeReadVariable", name = name)
         .addInput(variable)
-        .setAttribute(name = "dtype", value = dataType)
+        .setAttribute("dtype", dataType)
         .build().outputs(0)
   }
 
@@ -462,7 +462,7 @@ object Variable {
       variable: Op.Output, ignoreLookupError: Boolean = true, name: String = "DestroyVariable"): Op = {
     Op.Builder(opType = "DestroyResourceOp", name = name)
         .addInput(variable)
-        .setAttribute(name = "ignore_lookup_error", value = ignoreLookupError)
+        .setAttribute("ignore_lookup_error", ignoreLookupError)
         .build()
   }
 
@@ -480,7 +480,7 @@ object Variable {
     Op.Builder(opType = "AssignVariableOp", name = name)
         .addInput(variable)
         .addInput(value)
-        .setAttribute(name = "dtype", value = value.dataType)
+        .setAttribute("dtype", value.dataType)
         .build()
   }
 

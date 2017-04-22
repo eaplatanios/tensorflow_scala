@@ -127,7 +127,7 @@ object MathOps {
   def cast(x: Op.Output, dataType: DataType, name: String = "Cast"): Op.Output = {
     Op.Builder(opType = "Cast", name = name)
         .addInput(x)
-        .setAttribute(name = "DstT", value = dataType)
+        .setAttribute("DstT", dataType)
         .build().outputs(0)
   }
 
@@ -143,7 +143,7 @@ object MathOps {
   def sparseCast(x: Op.SparseOutput, dataType: DataType, name: String = "Cast"): Op.SparseOutput = {
     val castedValues = Op.Builder(opType = "Cast", name = name)
         .addInput(x.values)
-        .setAttribute(name = "DstT", value = dataType)
+        .setAttribute("DstT", dataType)
         .build().outputs(0)
     Op.SparseOutput(x.indices, castedValues, x.denseShape)
   }
@@ -159,8 +159,8 @@ object MathOps {
     Op.Builder(opType = "MatMul", name = name)
         .addInput(a)
         .addInput(b)
-        .setAttribute(name = "transpose_a", value = transposeA)
-        .setAttribute(name = "transpose_b", value = transposeB)
+        .setAttribute("transpose_a", transposeA)
+        .setAttribute("transpose_b", transposeB)
         .build().outputs(0)
   }
 
@@ -170,8 +170,8 @@ object MathOps {
     Op.Builder(opType = "BatchMatMul", name = name)
         .addInput(x)
         .addInput(y)
-        .setAttribute(name = "adj_x", value = adjointX)
-        .setAttribute(name = "adj_y", value = adjointY)
+        .setAttribute("adj_x", adjointX)
+        .setAttribute("adj_y", adjointY)
         .build().outputs(0)
 
   //region Unary Ops
@@ -671,7 +671,7 @@ object MathOps {
     Op.Builder(opType = "Sum", name = name)
         .addInput(input)
         .addInput(reductionAxes(input, axes))
-        .setAttribute(name = "keep_dims", value = keepDims)
+        .setAttribute("keep_dims", keepDims)
         .build().outputs(0)
   }
 
@@ -701,7 +701,7 @@ object MathOps {
     Op.Builder(opType = "Mean", name = name)
         .addInput(input)
         .addInput(reductionAxes(input, axes))
-        .setAttribute(name = "keep_dims", value = keepDims)
+        .setAttribute("keep_dims", keepDims)
         .build().outputs(0)
   }
 
@@ -733,7 +733,7 @@ object MathOps {
     Op.Builder(opType = "Prod", name = name)
         .addInput(input)
         .addInput(reductionAxes(input, axes))
-        .setAttribute(name = "keep_dims", value = keepDims)
+        .setAttribute("keep_dims", keepDims)
         .build().outputs(0)
   }
 
@@ -763,7 +763,7 @@ object MathOps {
     Op.Builder(opType = "Min", name = name)
         .addInput(input)
         .addInput(reductionAxes(input, axes))
-        .setAttribute(name = "keep_dims", value = keepDims)
+        .setAttribute("keep_dims", keepDims)
         .build().outputs(0)
   }
 
@@ -793,7 +793,7 @@ object MathOps {
     Op.Builder(opType = "Max", name = name)
         .addInput(input)
         .addInput(reductionAxes(input, axes))
-        .setAttribute(name = "keep_dims", value = keepDims)
+        .setAttribute("keep_dims", keepDims)
         .build().outputs(0)
   }
 
@@ -823,7 +823,7 @@ object MathOps {
     Op.Builder(opType = "All", name = name)
         .addInput(input)
         .addInput(reductionAxes(input, axes))
-        .setAttribute(name = "keep_dims", value = keepDims)
+        .setAttribute("keep_dims", keepDims)
         .build().outputs(0)
   }
 
@@ -853,7 +853,7 @@ object MathOps {
     Op.Builder(opType = "Any", name = name)
         .addInput(input)
         .addInput(reductionAxes(input, axes))
-        .setAttribute(name = "keep_dims", value = keepDims)
+        .setAttribute("keep_dims", keepDims)
         .build().outputs(0)
   }
 

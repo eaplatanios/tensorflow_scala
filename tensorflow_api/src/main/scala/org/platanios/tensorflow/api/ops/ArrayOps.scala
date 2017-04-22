@@ -51,8 +51,8 @@ object ArrayOps {
     }
     using(constantTensor.nativeView) { nativeTensor =>
       Op.Builder(opType = "Const", name = name)
-          .setAttribute(name = "value", value = nativeTensor)
-          .setAttribute(name = "dtype", value = inferredDataType)
+          .setAttribute("value", nativeTensor)
+          .setAttribute("dtype", inferredDataType)
           .build().outputs(0)
     }
   }
@@ -206,9 +206,9 @@ object ArrayOps {
     */
   def placeholder(dataType: DataType, shape: Shape = null, name: String = "Placeholder"): Op.Output = {
     val opBuilder = Op.Builder(opType = "Placeholder", name = name)
-        .setAttribute(name = "dtype", value = dataType)
+        .setAttribute("dtype", dataType)
     if (shape != null)
-      opBuilder.setAttribute(name = "shape", value = shape)
+      opBuilder.setAttribute("shape", shape)
     opBuilder.build().outputs(0)
   }
 
@@ -223,7 +223,7 @@ object ArrayOps {
   def placeholderWithDefault(defaultValue: Tensor, shape: Shape, name: String = "PlaceholderWithDefault"): Op.Output = {
     Op.Builder(opType = "PlaceholderWithDefault", name = name)
         .addInput(Op.createWith(nameScope = name)(constant(tensor = defaultValue, name = "DefaultValue")))
-        .setAttribute(name = "shape", value = shape)
+        .setAttribute("shape", shape)
         .build().outputs(0)
   }
 
