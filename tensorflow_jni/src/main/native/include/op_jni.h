@@ -241,6 +241,14 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_setAttrString
 
 /*
  * Class:     org_platanios_tensorflow_jni_Op__
+ * Method:    setAttrStringList
+ * Signature: (JLjava/lang/String;[L)V
+ */
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_setAttrStringList
+  (JNIEnv *, jobject, jlong, jstring, jobjectArray);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Op__
  * Method:    setAttrInt
  * Signature: (JLjava/lang/String;J)V
  */

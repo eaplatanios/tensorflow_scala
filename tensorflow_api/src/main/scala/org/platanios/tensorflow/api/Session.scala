@@ -11,19 +11,19 @@ final case class Session private (graph: Graph, private var nativeHandle: Long) 
 
   def run(
       feeds: Map[Op.Output, Tensor] = Map.empty, fetches: Array[Op.Output] = Array.empty,
-      targets: Array[Op.Output] = Array.empty, runOptions: Option[Array[Byte]] = None): Array[Tensor] = {
+      targets: Array[Op] = Array.empty, runOptions: Option[Array[Byte]] = None): Array[Tensor] = {
     runHelper(feeds = feeds, fetches = fetches, targets = targets, runOptions = runOptions)._1
   }
 
   def runWithMetadata(
       feeds: Map[Op.Output, Tensor] = Map.empty, fetches: Array[Op.Output] = Array.empty,
-      targets: Array[Op.Output] = Array.empty, runOptions: Option[Array[Byte]] = None): (Array[Tensor], Array[Byte]) = {
+      targets: Array[Op] = Array.empty, runOptions: Option[Array[Byte]] = None): (Array[Tensor], Array[Byte]) = {
     runHelper(feeds = feeds, fetches = fetches, targets = targets, runOptions = runOptions, wantMetadata = true)
   }
 
   private def runHelper(
       feeds: Map[Op.Output, Tensor] = Map.empty, fetches: Array[Op.Output] = Array.empty,
-      targets: Array[Op.Output] = Array.empty, runOptions: Option[Array[Byte]] = None,
+      targets: Array[Op] = Array.empty, runOptions: Option[Array[Byte]] = None,
       wantMetadata: Boolean = false): (Array[Tensor], Array[Byte]) = {
     val (inputs, inputTensors) = feeds.toArray.unzip
     val inputTensorNativeViews = inputTensors.map(_.nativeView)

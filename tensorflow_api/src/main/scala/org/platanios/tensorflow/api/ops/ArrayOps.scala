@@ -41,7 +41,7 @@ object ArrayOps {
         if (inferredShape.numElements.get != tensor.shape.numElements.get)
           throw InvalidShapeException(
             s"Shape '${tensor.shape}' tensor is not valid for shape '$inferredShape' constant op creation.")
-        val t = Tensor.allocate(inferredDataType, shape, order = Tensor.RowMajorOrder)
+        val t = Tensor.allocate(inferredDataType, inferredShape, order = Tensor.RowMajorOrder)
         for ((thisIndex, tensorIndex) <- t.flattenedIndexIterator zip tensor.flattenedIndexIterator)
           t.setElementAtFlattenedIndex(thisIndex, tensor.getElementAtFlattenedIndex(tensorIndex))
         t
@@ -1447,7 +1447,7 @@ object ArrayOps {
         .addInput(input)
         .addInput(begin)
         .addInput(end)
-        .addInput(if (!strides.equals(null)) onesLike(begin) else strides)
+        .addInput(if (strides ne null) onesLike(begin) else strides)
         .setAttribute("begin_mask", beginMask)
         .setAttribute("end_mask", endMask)
         .setAttribute("ellipsis_mask", ellipsisMask)

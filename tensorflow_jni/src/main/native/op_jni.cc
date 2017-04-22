@@ -358,11 +358,11 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_setShape(
 
 JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttrString(
         JNIEnv* env, jobject object, jlong opHandle, jstring attrName) {
-    TF_Operation* op = requireOperationHandle(env, opHandle);
-    if (op == nullptr) return nullptr;
-    const char* attrNameString = env->GetStringUTFChars(attrName, nullptr);
-    TF_Status* status = TF_NewStatus();
-    TF_AttrMetadata attr_metadata = TF_OperationGetAttrMetadata(op, attrNameString, status);
+  TF_Operation* op = requireOperationHandle(env, opHandle);
+  if (op == nullptr) return nullptr;
+  const char* attrNameString = env->GetStringUTFChars(attrName, nullptr);
+  TF_Status* status = TF_NewStatus();
+  TF_AttrMetadata attr_metadata = TF_OperationGetAttrMetadata(op, attrNameString, status);
 
   if (!throwExceptionIfNotOK(env, status)) {
     TF_DeleteStatus(status);
@@ -490,6 +490,7 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttrS
             env, "java/lang/IllegalArgumentException", "Attribute '%s' is not a shape. It is a '%s', instead.",
             attr_name, attrTypeToString(attr_metadata.type, attr_metadata.is_list));
   int num_dims = static_cast<int>(attr_metadata.total_size);
+  printf("%d", num_dims);
   static_assert(sizeof(jlong) == sizeof(int64_t), "Java long is not compatible with the TensorFlow C API");
   // One might have trivially wanted to do:
   // TF_OperationGetAttrShape(op, attr_name, static_cast<int64_t*>(dims), ...)
@@ -618,15 +619,35 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_colocateWith(
 
 JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_setAttrString(
     JNIEnv* env, jobject object, jlong handle, jstring name, jbyteArray value) {
-  static_assert(sizeof(jbyte) == 1,
-                "Require Java byte to be represented as a single byte");
-  TF_OperationDescription* d = requireOperationDescriptionHandle(env, handle);
+  static_assert(
+          sizeof(jbyte) == 1, "Require Java byte to be represented as a single byte.");
+  TF_OperationDescription *d = requireOperationDescriptionHandle(env, handle);
   if (d == nullptr) return;
-  const char* cname = env->GetStringUTFChars(name, nullptr);
-  jbyte* cvalue = env->GetByteArrayElements(value, nullptr);
-  TF_SetAttrString(d, cname, cvalue, env->GetArrayLength(value));
-  env->ReleaseByteArrayElements(value, cvalue, JNI_ABORT);
-  env->ReleaseStringUTFChars(name, cname);
+  const char *c_name = env->GetStringUTFChars(name, nullptr);
+  jbyte *c_value = env->GetByteArrayElements(value, nullptr);
+  TF_SetAttrString(d, c_name, c_value, static_cast<size_t>(env->GetArrayLength(value)));
+  env->ReleaseByteArrayElements(value, c_value, JNI_ABORT);
+  env->ReleaseStringUTFChars(name, c_name);
+}
+
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_setAttrStringList(
+        JNIEnv* env, jobject object, jlong handle, jstring name, jobjectArray values) {
+  static_assert(
+          sizeof(jbyte) == 1, "Require Java byte to be represented as a single byte.");
+  TF_OperationDescription *d = requireOperationDescriptionHandle(env, handle);
+  if (d == nullptr) return;
+  const char *c_name = env->GetStringUTFChars(name, nullptr);
+  int num_strings = env->GetArrayLength(values);
+  size_t *lengths = new size_t[num_strings];
+  jbyte **strings = new jbyte *[num_strings];
+  for (int i = 0; i < num_strings; i++) {
+    jbyteArray value = (jbyteArray) env->GetObjectArrayElement(values, i);
+    lengths[i] = static_cast<size_t>(env->GetArrayLength(value));
+    strings[i] = env->GetByteArrayElements(value, nullptr);
+    // TODO: We do not release the array elements because we assume the arrays will be small enough.
+  }
+  TF_SetAttrStringList(d, c_name, reinterpret_cast<const void *const *>(strings), lengths, num_strings);
+  env->ReleaseStringUTFChars(name, c_name);
 }
 
 #define DEFINE_SET_ATTR_SCALAR(name, jtype, ctype)                                           \

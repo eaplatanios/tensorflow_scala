@@ -12,7 +12,7 @@ import scala.util.DynamicVariable
   * @author Emmanouil Antonios Platanios
   */
 case class Variable private(
-    variableOp: Op.Output, initializeOp: Op, cachedValueOp: Op.Output = null) extends ProtoSerializable {
+    dataType: DataType, variableOp: Op.Output, initializeOp: Op, cachedValueOp: Op.Output) extends ProtoSerializable {
   /** Contains the save slice information for this variable. */
   private[api] var saveSliceInformation: Variable.SaveSliceInformation = _
 
@@ -29,9 +29,6 @@ case class Variable private(
 
   /** Name of this variable. */
   val name: String = variableOp.op.name
-
-  /** Data type of this variable. */
-  val dataType: DataType = variableOp.op.dataTypeAttribute("dtype")
 
   /** Device where this variable resides. */
   val device: String = variableOp.device
@@ -58,12 +55,12 @@ case class Variable private(
   /** Op output that is `true` when the variable has been initialized and `false` otherwise. */
   val isInitialized: Op.Output = Variable.isVariableInitialized(variableOp, name = "IsInitialized")
 
-  /** Returns the value of the initialized variable. You should use this instead of the variable itself to initialize
-    * another variable with a value that depends on the value of this variable.
-    *
-    * TODO: Add example.
-    */
-  val initializedValue: Op.Output = ??? // TODO: [CONTROL_FLOW] !!! We need control flow ops for this.
+  // /** Returns the value of the initialized variable. You should use this instead of the variable itself to initialize
+  //   * another variable with a value that depends on the value of this variable.
+  //   *
+  //   * TODO: Add example.
+  //   */
+  // val initializedValue: Op.Output = ??? // TODO: [CONTROL_FLOW] !!! We need control flow ops for this.
 
   /** Returns a cached op which reads the last value of this variable.
     *
@@ -73,7 +70,7 @@ case class Variable private(
     * converting them to tensors.
     */
   val value: Op.Output = {
-    if (!cachedValueOp.equals(null)) {
+    if (cachedValueOp ne null) {
       cachedValueOp
     } else {
       Op.createWith(nameScope = name, colocationOps = Set.empty[Op], device = null) {
@@ -150,6 +147,8 @@ case class Variable private(
     * @return Variable value read op, after the assignment.
     */
   def assign(value: Op.Output, name: String = "Assign"): Op.Output = {
+    if (value.dataType != dataType)
+      throw InvalidDataTypeException(s"Expected '$dataType', but got '${value.dataType}'.")
     Op.createWith(controlDependencies = Set[Op](Variable.assign(variableOp, value, name))) {
       read()
     }
@@ -162,6 +161,8 @@ case class Variable private(
     * @return Variable value read op, after the addition.
     */
   def assignAdd(value: Op.Output, name: String = "AssignAdd"): Op.Output = {
+    if (value.dataType != dataType)
+      throw InvalidDataTypeException(s"Expected '$dataType', but got '${value.dataType}'.")
     Op.createWith(controlDependencies = Set[Op](Variable.assignAdd(variableOp, value, name))) {
       read()
     }
@@ -174,6 +175,8 @@ case class Variable private(
     * @return Variable value read op, after the subtraction.
     */
   def assignSub(value: Op.Output, name: String = "AssignAdd"): Op.Output = {
+    if (value.dataType != dataType)
+      throw InvalidDataTypeException(s"Expected '$dataType', but got '${value.dataType}'.")
     Op.createWith(controlDependencies = Set[Op](Variable.assignSub(variableOp, value, name))) {
       read()
     }
@@ -196,7 +199,7 @@ case class Variable private(
       val variableDefBuilder = VariableDef.newBuilder()
       variableDefBuilder.setVariableName(Op.stripNameScope(exportScope, variableOp.name))
       variableDefBuilder.setInitializerName(Op.stripNameScope(exportScope, initializeOp.name))
-      if (!cachedValueOp.equals(null))
+      if (cachedValueOp ne null)
         variableDefBuilder.setSnapshotName(Op.stripNameScope(exportScope, cachedValueOp.name))
       variableDefBuilder.setIsResource(true)
       if (saveSliceInformation != null)
@@ -237,24 +240,24 @@ object Variable {
       val trueName = Op.convertNameScopeToName(name)
       // Use a custom op creation context with attribute "_class" set to the colocation op name and device set to "null"
       // to simulate the behavior of colocation ops for when the variable we want to colocate with doesn't yet exist.
-      val (initValue, variableOp) = Op.createWith(attributes = Map("_class" -> s"loc:@$trueName")) {
-        val initValue = Op.createWith(nameScope = "Initializer", device = null) {
+      val initValue = Op.createWith(attributes = Map("_class" -> Array[String](s"loc:@$trueName"))) {
+        Op.createWith(nameScope = "Initializer", device = null) {
           val value = initialValueFunction()
           if (valueDataType == null || value.dataType == valueDataType)
             value
           else
             MathOps.cast(value, valueDataType, name = "InitialValueCast")
         }
-        val variableOp = variable(initValue.shape, initValue.dataType, sharedName = trueName, name = name)
-        (initValue, variableOp)
       }
+
+      val variableOp = variable(initValue.shape, initValue.dataType, sharedName = trueName, name = name)
 
       val initializeOp = assign(variableOp, initValue, name = "InitializationAssign")
       val cachedValueOp = Op.createWith(nameScope = "Read", colocationOps = Set[Op](variableOp.op)) {
         val cachedValueOp = {
           if (cachingDevice != null) {
             // Manually assign reads to the handle's device to avoid log messages
-            val valueOp = Op.createWith(device = variableOp.device)(readVariable(variableOp, valueDataType))
+            val valueOp = Op.createWith(device = variableOp.device)(readVariable(variableOp, initValue.dataType))
             // Variables may be created in a "createWith(device = ...)" block or a "createWith(colocationOps = ...)"
             // block. At the same time, users would expect the caching device to be independent of this context, and/or
             // would not expect the current device context to be merged with the caching device specification.
@@ -268,7 +271,7 @@ object Variable {
         cachedValueOp
       }
 
-      val createdVariable = Variable(variableOp, initializeOp, cachedValueOp)
+      val createdVariable = Variable(initValue.dataType, variableOp, initializeOp, cachedValueOp)
       var effectiveCollections = collections
       if (effectiveCollections.isEmpty)
         effectiveCollections += Graph.Keys.GLOBAL_VARIABLES
@@ -294,6 +297,7 @@ object Variable {
     def prependNameScope(name: String) = if (importScope == null) name else Op.prependNameScope(importScope, name)
 
     val variableOp = context.graph.getOpOutputByName(prependNameScope(protoDef.getVariableName))
+    val dataType = variableOp.op.dataTypeAttribute("dtype")
     val initializeOp = context.graph.getOpByName(prependNameScope(protoDef.getInitializerName))
     val cachedValueOp = {
       if (protoDef.getSnapshotName == null)
@@ -307,7 +311,7 @@ object Variable {
       else
         null
     }
-    val createdVariable = Variable(variableOp, initializeOp, cachedValueOp)
+    val createdVariable = Variable(dataType, variableOp, initializeOp, cachedValueOp)
     createdVariable.setSaveSliceInformation(saveSliceInformation)
     createdVariable
   }

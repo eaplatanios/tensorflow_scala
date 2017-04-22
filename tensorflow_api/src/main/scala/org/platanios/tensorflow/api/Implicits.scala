@@ -28,6 +28,7 @@ trait Implicits extends LowPriorityImplicits {
 
   implicit def deviceImplicitConversion(device: String): OpSpecification => String = Op.deviceImplicitConversion(device)
 
+  implicit def opOutputToInitialValueFunction(opOutput: Op.Output): () => Op.Output = () => opOutput
   implicit def variableToOpOutput(variable: Variable): Op.Output = variable.value
 }
 

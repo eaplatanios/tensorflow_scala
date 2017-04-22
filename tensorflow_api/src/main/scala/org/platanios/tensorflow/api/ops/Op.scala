@@ -202,7 +202,7 @@ final case class OpSpecification(name: String, opType: String)
 private[api] final case class OpCreationContext(
     graph: Graph = Graph(), nameScope: String = "", device: OpSpecification => String = _ => "",
     colocationOps: Set[Op] = Set.empty, controlDependencies: Set[Op] = Set.empty,
-    attributes: Map[String, String] = Map.empty, container: String = "") // TODO: Is it useful to support other than string attributes here?
+    attributes: Map[String, Any] = Map.empty, container: String = "")
 
 object Op {
   /** Convenient implicit conversion function used to convert devices specified as [[String]]s for use with the
@@ -496,14 +496,14 @@ object Op {
   @throws[IllegalNameException]
   def createWith[R](
       graph: Graph = null, nameScope: String = null, device: OpSpecification => String = _ => "",
-      colocationOps: Set[Op] = null, controlDependencies: Set[Op] = null, attributes: Map[String, String] = null,
+      colocationOps: Set[Op] = null, controlDependencies: Set[Op] = null, attributes: Map[String, Any] = null,
       container: String = null)(block: => R)(implicit context: DynamicVariable[OpCreationContext]): R = {
     val newGraph: Graph = mergeGraph(graph, context)
     val newNameScope: String = mergeNameScope(nameScope, context)
     val newDevice: OpSpecification => String = mergeDevice(device, context)
     val newColocationOps: Set[Op] = mergeColocationOps(colocationOps, context)
     val newControlDependencies: Set[Op] = mergeControlDependencies(controlDependencies, context)
-    val newAttributes: Map[String, String] = mergeAttributes(attributes, context)
+    val newAttributes: Map[String, Any] = mergeAttributes(attributes, context)
     val newContainer: String = mergeContainer(container, context)
     context.withValue(context.copy(
       graph = newGraph, nameScope = newNameScope, device = newDevice, colocationOps = newColocationOps,
@@ -637,14 +637,13 @@ object Op {
     * @param  context    Op creation context whose attributes needs to be updated.
     * @return Set of attributes to use for the new op creation context.
     */
-  private[this] def mergeAttributes(
-      attributes: Map[String, String], context: OpCreationContext): Map[String, String] = {
+  private[this] def mergeAttributes(attributes: Map[String, Any], context: OpCreationContext): Map[String, Any] = {
     if (attributes == null)
       context.attributes
-    else if (attributes == Map.empty[String, String])
+    else if (attributes == Map.empty[String, Any])
       attributes.filter(attribute => attribute._2 != null)
     else {
-      var mergedMap = Map[String, String](context.attributes.toSeq: _*)
+      var mergedMap = Map[String, Any](context.attributes.toSeq: _*)
       attributes.foreach(attribute => {
         if (attribute._2 == null && mergedMap.contains(attribute._1))
           mergedMap -= attribute._1
@@ -977,7 +976,7 @@ object Op {
 
     /** Name of this op output indexed slices. */
     override def name: String = s"${values.name}[${indices.name}]" +
-        (if (!denseShape.equals(null)) s"(shape = ${denseShape.name})" else "")
+        (if (denseShape ne null) s"(shape = ${denseShape.name})" else "")
 
     /** Data type of this op output indexed slices. */
     override def dataType: DataType = values.dataType
@@ -994,7 +993,7 @@ object Op {
         throw new IllegalArgumentException(
           s"Op output conversion requested data type '$dataType' for op output, '$this', with data type: " +
               s"'${this.dataType}.")
-      if (!denseShape.equals(null))
+      if (denseShape ne null)
         throw new IllegalStateException(
           s"Op output conversion requested the conversion of 'Op.OutputIndexedSlices', '$this', which has no dense " +
               s"shape information available.")
@@ -1073,7 +1072,7 @@ object Op {
 
     /** Name of this sparse op output. */
     override def name: String = s"${values.name}[${indices.name}]" +
-        (if (!denseShape.equals(null)) s"(shape = ${denseShape.name})" else "")
+        (if (denseShape ne null) s"(shape = ${denseShape.name})" else "")
 
     /** Data type of this sparse op output. */
     override def dataType: DataType = values.dataType
@@ -1285,22 +1284,11 @@ object Op {
     if (!checkName(name = opName))
       throw IllegalNameException(s"Illegal op name '$opName'.")
 
-    private var built                  : Boolean                     = false
-    private var inputs                 : Seq[Output]                 = Seq.empty
-    private var inputLists             : Seq[Array[Output]]          = Seq.empty
-    private var device                 : Option[String]              = None
-    private var stringAttributes       : Map[String, String]         = Map.empty
-    private var longAttributes         : Map[String, Long]           = Map.empty
-    private var longArrayAttributes    : Map[String, Array[Long]]    = Map.empty
-    private var floatAttributes        : Map[String, Float]          = Map.empty
-    private var floatArrayAttributes   : Map[String, Array[Float]]   = Map.empty
-    private var booleanAttributes      : Map[String, Boolean]        = Map.empty
-    private var booleanArrayAttributes : Map[String, Array[Boolean]] = Map.empty
-    private var dataTypeAttributes     : Map[String, Int]            = Map.empty
-    private var dataTypeArrayAttributes: Map[String, Array[Int]]     = Map.empty
-    private var tensorAttributes       : Map[String, Long]           = Map.empty
-    private var tensorArrayAttributes  : Map[String, Array[Long]]    = Map.empty
-    private var shapeAttributes        : Map[String, Shape]          = Map.empty
+    private var built     : Boolean             = false
+    private var inputs    : Seq[Output]         = Seq.empty
+    private var inputLists: Seq[Array[Output]]  = Seq.empty
+    private var device    : Option[String]      = None
+    private var attributes: Map[String, Any]    = Map.empty
 
     /** Prunes control dependencies from the provided set, given that the op for which these control dependencies are
       * specified uses `op` as direct or indirect (through other ops) input or control input. This eliminates redundant
@@ -1336,27 +1324,56 @@ object Op {
         controlDependencies.foreach(op => NativeOp.addControlInput(nativeHandle, op.nativeHandle))
         device.foreach(NativeOp.setDevice(nativeHandle, _))
         context.colocationOps.foreach(op => NativeOp.colocateWith(nativeHandle, op.nativeHandle))
-        context.attributes.foreach(
-          a => NativeOp.setAttrString(nativeHandle, a._1, a._2.getBytes(Charset.forName("UTF-8"))))
+        mergeAttributes(context.attributes)
+        setAttributes(nativeHandle)
         // TODO: Set the "container" attribute when necessary. Need a way to check for statefulness.
-        stringAttributes.foreach(
-          a => NativeOp.setAttrString(nativeHandle, a._1, a._2.getBytes(Charset.forName("UTF-8"))))
-        longAttributes.foreach(a => NativeOp.setAttrInt(nativeHandle, a._1, a._2))
-        longArrayAttributes.foreach(a => NativeOp.setAttrIntList(nativeHandle, a._1, a._2))
-        floatAttributes.foreach(a => NativeOp.setAttrFloat(nativeHandle, a._1, a._2))
-        floatArrayAttributes.foreach(a => NativeOp.setAttrFloatList(nativeHandle, a._1, a._2))
-        booleanAttributes.foreach(a => NativeOp.setAttrBool(nativeHandle, a._1, a._2))
-        booleanArrayAttributes.foreach(a => NativeOp.setAttrBoolList(nativeHandle, a._1, a._2))
-        dataTypeAttributes.foreach(a => NativeOp.setAttrType(nativeHandle, a._1, a._2))
-        dataTypeArrayAttributes.foreach(a => NativeOp.setAttrTypeList(nativeHandle, a._1, a._2))
-        tensorAttributes.foreach(a => NativeOp.setAttrTensor(nativeHandle, a._1, a._2))
-        tensorArrayAttributes.foreach(a => NativeOp.setAttrTensorList(nativeHandle, a._1, a._2))
-        shapeAttributes.foreach(a => NativeOp.setAttrShape(nativeHandle, a._1, a._2.asArray.map(_.toLong), a._2.rank))
         val operation = Op(graph, NativeOp.finish(nativeHandle))
         built = true
         operation
       }
     }
+
+    private def mergeAttributes(attributes: Map[String, Any]): Unit = {
+      attributes.foreach(this.attributes += _)
+    }
+
+    private def setAttributes(nativeHandle: Long): Unit = {
+      attributes.foreach(attribute => {
+        attribute._2 match {
+          case value: String        =>
+            NativeOp.setAttrString(nativeHandle, attribute._1, encodeString(value))
+          case value: Array[String] =>
+            NativeOp.setAttrStringList(nativeHandle, attribute._1, value.map(encodeString))
+          case value: Long                     =>
+            NativeOp.setAttrInt(nativeHandle, attribute._1, value)
+          case value: Array[Long]              =>
+            NativeOp.setAttrIntList(nativeHandle, attribute._1, value)
+          case value: Float                    =>
+            NativeOp.setAttrFloat(nativeHandle, attribute._1, value)
+          case value: Array[Float]             =>
+            NativeOp.setAttrFloatList(nativeHandle, attribute._1, value)
+          case value: Boolean                  =>
+            NativeOp.setAttrBool(nativeHandle, attribute._1, value)
+          case value: Array[Boolean]           =>
+            NativeOp.setAttrBoolList(nativeHandle, attribute._1, value)
+          case value: DataType                 =>
+            NativeOp.setAttrType(nativeHandle, attribute._1, value.cValue)
+          case value: Array[DataType]          =>
+            NativeOp.setAttrTypeList(nativeHandle, attribute._1, value.map(_.cValue))
+          case value: Tensor.NativeView        =>
+            NativeOp.setAttrTensor(nativeHandle, attribute._1, value.nativeHandle)
+          case value: Array[Tensor.NativeView] =>
+            NativeOp.setAttrTensorList(nativeHandle, attribute._1, value.map(_.nativeHandle))
+          case value: Shape                    =>
+            NativeOp.setAttrShape(nativeHandle, attribute._1, value.asArray.map(_.toLong), value.rank)
+          case value: Array[Shape]             => ??? // TODO: !!!
+          case _                               =>
+            throw new IllegalArgumentException(s"Unsupported attribute type for attribute named '${attribute._1}.'")
+        }
+      })
+    }
+
+    private def encodeString(value: String): Array[Byte] = value.getBytes(Charset.forName("UTF-8"))
 
     def addInput(input: Output): Builder = {
       inputs :+= input
@@ -1379,62 +1396,67 @@ object Op {
     }
 
     def setAttribute(name: String, value: String): Builder = {
-      stringAttributes += name -> value
+      attributes += name -> value
+      this
+    }
+
+    def setAttribute(name: String, value: Array[String]): Builder = {
+      attributes += name -> value
       this
     }
 
     def setAttribute(name: String, value: Long): Builder = {
-      longAttributes += name -> value
+      attributes += name -> value
       this
     }
 
     def setAttribute(name: String, value: Array[Long]): Builder = {
-      longArrayAttributes += name -> value
+      attributes += name -> value
       this
     }
 
     def setAttribute(name: String, value: Float): Builder = {
-      floatAttributes += name -> value
+      attributes += name -> value
       this
     }
 
     def setAttribute(name: String, value: Array[Float]): Builder = {
-      floatArrayAttributes += name -> value
+      attributes += name -> value
       this
     }
 
     def setAttribute(name: String, value: Boolean): Builder = {
-      booleanAttributes += name -> value
+      attributes += name -> value
       this
     }
 
     def setAttribute(name: String, value: Array[Boolean]): Builder = {
-      booleanArrayAttributes += name -> value
+      attributes += name -> value
       this
     }
 
     def setAttribute(name: String, value: DataType): Builder = {
-      dataTypeAttributes += name -> value.cValue
+      attributes += name -> value
       this
     }
 
     def setAttribute(name: String, value: Array[DataType]): Builder = {
-      dataTypeArrayAttributes += name -> value.map(_.cValue)
+      attributes += name -> value
       this
     }
 
     def setAttribute(name: String, value: Tensor.NativeView): Builder = {
-      tensorAttributes += name -> value.nativeHandle
+      attributes += name -> value
       this
     }
 
     def setAttribute(name: String, value: Array[Tensor.NativeView]): Builder = {
-      tensorArrayAttributes += name -> value.map(_.nativeHandle)
+      attributes += name -> value
       this
     }
 
     def setAttribute(name: String, value: Shape): Builder = {
-      shapeAttributes += name -> value
+      attributes += name -> value
       this
     }
   }
