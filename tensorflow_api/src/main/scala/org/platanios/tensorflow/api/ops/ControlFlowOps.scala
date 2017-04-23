@@ -13,7 +13,7 @@ object ControlFlowOps {
     * @return Created op output, which is the same as `input`.
     */
   private[this] def nextIteration[T <: Op.OutputLike](input: T, name: String = "NextIteration"): T = {
-    Op.createWithNameScope(nameScope = name, Array(input.op)) {
+    Op.createWithNameScope(nameScope = name, Set(input.op)) {
       // @formatter:off
       input match {
         case i: Op.Output =>
@@ -57,7 +57,7 @@ object ControlFlowOps {
   private[this] def enter[T <: Op.OutputLike](
       input: T, frameName: String, isConstant: Boolean = false, parallelIterations: Int = 10,
       useInputShape: Boolean = true, name: String = "Enter"): T = {
-    Op.createWithNameScope(nameScope = name, Array(input.op)) {
+    Op.createWithNameScope(nameScope = name, Set(input.op)) {
       // @formatter:off
       input match {
         case i: Op.Output  =>
@@ -97,7 +97,7 @@ object ControlFlowOps {
     * @return Created op output, which is the same as `input`.
     */
   private[this] def exit[T <: Op.OutputLike](input: T, name: String = "Exit"): T = {
-    Op.createWithNameScope(nameScope = name, Array(input.op)) {
+    Op.createWithNameScope(nameScope = name, Set(input.op)) {
       // @formatter:off
       input match {
         case i: Op.Output =>
@@ -134,7 +134,7 @@ object ControlFlowOps {
     * @return Tuple containing `outputFalse` and `outputTrue`, in that order.
     */
   private[this] def switch[T <: Op.OutputLike](input: T, predicate: Op.Output, name: String = "Switch"): (T, T) = {
-    Op.createWithNameScope(nameScope = name, Array(input.op, predicate.op)) {
+    Op.createWithNameScope(nameScope = name, Set(input.op, predicate.op)) {
       // @formatter:off
       input match {
         case i: Op.Output =>
@@ -185,7 +185,7 @@ object ControlFlowOps {
     */
   private[this] def merge[T <: Op.OutputLike : TypeTag](
       inputs: Array[T], name: String = "Merge"): (Op.OutputLike, Op.Output) = {
-    Op.createWithNameScope(nameScope = name, inputs.map(_.op)) {
+    Op.createWithNameScope(nameScope = name, inputs.map(_.op).toSet) {
       // @formatter:off
       inputs match {
         case i if typeOf[T] =:= typeOf[Op.Output] =>

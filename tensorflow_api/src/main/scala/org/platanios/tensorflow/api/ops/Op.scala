@@ -526,7 +526,7 @@ object Op {
     * @throws GraphMismatchException If any two of the values provided lie in different graphs.
     */
   @throws[GraphMismatchException]
-  private[ops] def createWithNameScope[R](nameScope: String, values: Array[Op])(block: => R)
+  private[ops] def createWithNameScope[R](nameScope: String, values: Set[Op])(block: => R)
       (implicit context: DynamicVariable[OpCreationContext]): R = {
     val newGraph: Graph = mergeGraph(getGraphFromInputs(values), context)
     val newNameScope: String = mergeNameScope(nameScope, context)
@@ -751,7 +751,7 @@ object Op {
     *                                at least one of the `inputs` is not defined in it.
     */
   @throws[GraphMismatchException]
-  private[this] def getGraphFromInputs(inputs: Array[Op], graph: Graph = null): Graph = {
+  private[this] def getGraphFromInputs(inputs: Set[Op], graph: Graph = null): Graph = {
     val returnGraph = if (graph == null) inputs.head.graph else graph
     inputs.foreach(i => {
       if (graph == null)
@@ -992,7 +992,7 @@ object Op {
   final case class OutputIndexedSlices private(indices: Op.Output, values: Op.Output, denseShape: Op.Output = null)
       extends OutputLike with OutputConvertible with OutputIndexedSlicesConvertible {
     /** Graph that contains `values`, `indices`, and `denseShape`. */
-    override def graph: Graph = getGraphFromInputs(Array(values, indices, denseShape))
+    override def graph: Graph = getGraphFromInputs(Set(values, indices, denseShape))
 
     /** Name of this op output indexed slices. */
     override def name: String = s"${values.name}[${indices.name}]" +
@@ -1092,7 +1092,7 @@ object Op {
     Shape(indices.shape.withRank(2)(1)).assertIsCompatibleWith(Shape(denseShape.shape.withRank(1)(0)))
 
     /** Graph that contains `values`, `indices`, and `denseShape`. */
-    override def graph: Graph = getGraphFromInputs(Array(values, indices, denseShape))
+    override def graph: Graph = getGraphFromInputs(Set(values, indices, denseShape))
 
     /** Name of this sparse op output. */
     override def name: String = s"${values.name}[${indices.name}]" +

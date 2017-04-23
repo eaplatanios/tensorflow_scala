@@ -492,7 +492,7 @@ object ArrayOps {
     * @return Created op output.
     */
   def identity[T <: Op.OutputLike](input: T, name: String = "Identity"): T = {
-    Op.createWithNameScope(nameScope = name, Array(input.op)) {
+    Op.createWithNameScope(nameScope = name, Set(input.op)) {
       input match {
         case i: Op.Output              =>
           Op.Builder(opType = "Identity", name = name)
