@@ -464,7 +464,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAtt
           name, attr_name, attrTypeToString(attr_metadata.type, attr_metadata.is_list));     \
                                                                                              \
     ctype *value = new ctype;                                                                \
-    TF_OperationGetAttr##name(op, attr_name, value, status);                                   \
+    TF_OperationGetAttr##name(op, attr_name, value, status);                                 \
                                                                                              \
     if (!throwExceptionIfNotOK(env, status)) {                                               \
       TF_DeleteStatus(status);                                                               \
