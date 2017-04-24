@@ -438,37 +438,116 @@ JNIEXPORT jobjectArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAtt
   return ret;
 }
 
-JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttrType(
-        JNIEnv* env, jobject object, jlong opHandle, jstring attrName) {
-  TF_Operation *op = requireOperationHandle(env, opHandle);
-  if (op == nullptr) return -1;
-  const char *attr_name = env->GetStringUTFChars(attrName, nullptr);
-  TF_Status *status = TF_NewStatus();
-  TF_AttrMetadata attr_metadata = TF_OperationGetAttrMetadata(op, attr_name, status);
-
-  if (!throwExceptionIfNotOK(env, status)) {
-    TF_DeleteStatus(status);
-    return -1;
+#define DEFINE_GET_ATTR_SCALAR(name, jtype, ctype, tf_type)                                  \
+  JNIEXPORT jtype JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttr##name(          \
+      JNIEnv* env, jobject object, jlong handle, jstring name) {                             \
+    static_assert(                                                                           \
+        sizeof(ctype) >= sizeof(jtype),                                                      \
+        "Information loss when converting between Java and C types.");                       \
+    TF_Operation *op = requireOperationHandle(env, handle);                                  \
+    if (op == nullptr) return -1;                                                            \
+    const char *attr_name = env->GetStringUTFChars(name, nullptr);                           \
+    TF_Status *status = TF_NewStatus();                                                      \
+    TF_AttrMetadata attr_metadata = TF_OperationGetAttrMetadata(op, attr_name, status);      \
+                                                                                             \
+    if (!throwExceptionIfNotOK(env, status)) {                                               \
+      TF_DeleteStatus(status);                                                               \
+      return -1;                                                                             \
+    }                                                                                        \
+    TF_DeleteStatus(status);                                                                 \
+                                                                                             \
+    if (attr_metadata.total_size < 0) return -1;                                             \
+    if (attr_metadata.type != tf_type || attr_metadata.is_list == 1)                         \
+      throwException(                                                                        \
+          env, "java/lang/IllegalArgumentException",                                         \
+          "Attribute '%s' is not a %s. It is a '%s', instead.",                              \
+          name, attr_name, attrTypeToString(attr_metadata.type, attr_metadata.is_list));     \
+                                                                                             \
+    ctype *value = new ctype;                                                                \
+    TF_OperationGetAttr##name(op, attr_name, value, status);                                   \
+                                                                                             \
+    if (!throwExceptionIfNotOK(env, status)) {                                               \
+      TF_DeleteStatus(status);                                                               \
+      return -1;                                                                             \
+    }                                                                                        \
+    TF_DeleteStatus(status);                                                                 \
+                                                                                             \
+    return *value;                                                                           \
   }
-  TF_DeleteStatus(status);
 
-  if (attr_metadata.total_size < 0) return -1;
-  if (attr_metadata.type != TF_ATTR_TYPE || attr_metadata.is_list == 1)
-    throwException(
-            env, "java/lang/IllegalArgumentException", "Attribute '%s' is not a shape. It is a '%s', instead.",
-            attr_name, attrTypeToString(attr_metadata.type, attr_metadata.is_list));
+#define DEFINE_GET_ATTR(name, jname, jtype, ctype, tf_type)                                  \
+  DEFINE_GET_ATTR_SCALAR(name, jtype, ctype, tf_type)
 
-  TF_DataType *value = new TF_DataType;
-  TF_OperationGetAttrType(op, attr_name, value, status);
+DEFINE_GET_ATTR(Int, Long, jlong, int64_t, TF_ATTR_INT);
+DEFINE_GET_ATTR(Float, Float, jfloat, float, TF_ATTR_FLOAT);
+DEFINE_GET_ATTR(Bool, Boolean, jboolean, unsigned char, TF_ATTR_BOOL);
+DEFINE_GET_ATTR(Type, Int, jint, TF_DataType, TF_ATTR_TYPE);
+#undef DEFINE_GET_ATTR
+#undef DEFINE_GET_ATTR_SCALAR
 
-  if (!throwExceptionIfNotOK(env, status)) {
-    TF_DeleteStatus(status);
-    return -1;
-  }
-  TF_DeleteStatus(status);
-
-  return *value;
-}
+//JNIEXPORT jboolean JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttrBool(
+//        JNIEnv* env, jobject object, jlong opHandle, jstring attrName) {
+//  TF_Operation *op = requireOperationHandle(env, opHandle);
+//  if (op == nullptr) return -1;
+//  const char *attr_name = env->GetStringUTFChars(attrName, nullptr);
+//  TF_Status *status = TF_NewStatus();
+//  TF_AttrMetadata attr_metadata = TF_OperationGetAttrMetadata(op, attr_name, status);
+//
+//  if (!throwExceptionIfNotOK(env, status)) {
+//    TF_DeleteStatus(status);
+//    return -1;
+//  }
+//  TF_DeleteStatus(status);
+//
+//  if (attr_metadata.total_size < 0) return -1;
+//  if (attr_metadata.type != TF_ATTR_BOOL || attr_metadata.is_list == 1)
+//    throwException(
+//            env, "java/lang/IllegalArgumentException", "Attribute '%s' is not a boolean. It is a '%s', instead.",
+//            attr_name, attrTypeToString(attr_metadata.type, attr_metadata.is_list));
+//
+//  unsigned char *value = new unsigned char;
+//  TF_OperationGetAttrType(op, attr_name, value, status);
+//
+//  if (!throwExceptionIfNotOK(env, status)) {
+//    TF_DeleteStatus(status);
+//    return -1;
+//  }
+//  TF_DeleteStatus(status);
+//
+//  return *value;
+//}
+//
+//JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttrType(
+//        JNIEnv* env, jobject object, jlong opHandle, jstring attrName) {
+//  TF_Operation *op = requireOperationHandle(env, opHandle);
+//  if (op == nullptr) return -1;
+//  const char *attr_name = env->GetStringUTFChars(attrName, nullptr);
+//  TF_Status *status = TF_NewStatus();
+//  TF_AttrMetadata attr_metadata = TF_OperationGetAttrMetadata(op, attr_name, status);
+//
+//  if (!throwExceptionIfNotOK(env, status)) {
+//    TF_DeleteStatus(status);
+//    return -1;
+//  }
+//  TF_DeleteStatus(status);
+//
+//  if (attr_metadata.total_size < 0) return -1;
+//  if (attr_metadata.type != TF_ATTR_TYPE || attr_metadata.is_list == 1)
+//    throwException(
+//            env, "java/lang/IllegalArgumentException", "Attribute '%s' is not a data type. It is a '%s', instead.",
+//            attr_name, attrTypeToString(attr_metadata.type, attr_metadata.is_list));
+//
+//  TF_DataType *value = new TF_DataType;
+//  TF_OperationGetAttrType(op, attr_name, value, status);
+//
+//  if (!throwExceptionIfNotOK(env, status)) {
+//    TF_DeleteStatus(status);
+//    return -1;
+//  }
+//  TF_DeleteStatus(status);
+//
+//  return *value;
+//}
 
 JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttrShape(
         JNIEnv* env, jobject object, jlong opHandle, jstring attrName) {

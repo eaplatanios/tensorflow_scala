@@ -162,6 +162,54 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
     }
   }
 
+  /** Gets the value of a long-valued attribute of this op with name `name`.
+    *
+    * @param  name Attribute name.
+    * @return Attribute value.
+    * @throws IllegalArgumentException If the no attribute with name `name` can be found for this op.
+    */
+  @throws[IllegalArgumentException]
+  def longAttribute(name: String): Long = using(graph.reference) { _ =>
+    try {
+      NativeOp.getAttrInt(nativeHandle, name)
+    } catch {
+      case e: Exception => throw new IllegalArgumentException(
+        s"Op has no attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
+    }
+  }
+
+  /** Gets the value of a float-valued attribute of this op with name `name`.
+    *
+    * @param  name Attribute name.
+    * @return Attribute value.
+    * @throws IllegalArgumentException If the no attribute with name `name` can be found for this op.
+    */
+  @throws[IllegalArgumentException]
+  def floatAttribute(name: String): Float = using(graph.reference) { _ =>
+    try {
+      NativeOp.getAttrFloat(nativeHandle, name)
+    } catch {
+      case e: Exception => throw new IllegalArgumentException(
+        s"Op has no attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
+    }
+  }
+
+  /** Gets the value of a boolean-valued attribute of this op with name `name`.
+    *
+    * @param  name Attribute name.
+    * @return Attribute value.
+    * @throws IllegalArgumentException If the no attribute with name `name` can be found for this op.
+    */
+  @throws[IllegalArgumentException]
+  def booleanAttribute(name: String): Boolean = using(graph.reference) { _ =>
+    try {
+      NativeOp.getAttrBool(nativeHandle, name)
+    } catch {
+      case e: Exception => throw new IllegalArgumentException(
+        s"Op has no attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
+    }
+  }
+
   /** Gets the value of a data type-valued attribute of this op with name `name`.
     *
     * @param  name Attribute name.

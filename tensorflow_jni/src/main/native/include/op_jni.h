@@ -153,11 +153,35 @@ JNIEXPORT jobjectArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAtt
 
 /*
  * Class:     org_platanios_tensorflow_jni_Op__
+ * Method:    getAttrInt
+ * Signature: (JLjava/lang/String;Ljava/lang/String;)L
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttrInt
+  (JNIEnv *, jobject, jlong, jstring);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Op__
+ * Method:    getAttrFloat
+ * Signature: (JLjava/lang/String;Ljava/lang/String;)F
+ */
+JNIEXPORT jfloat JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttrFloat
+  (JNIEnv *, jobject, jlong, jstring);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Op__
+ * Method:    getAttrBool
+ * Signature: (JLjava/lang/String;Ljava/lang/String;)B
+ */
+JNIEXPORT jboolean JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttrBool
+  (JNIEnv *, jobject, jlong, jstring);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Op__
  * Method:    getAttrType
  * Signature: (JLjava/lang/String;Ljava/lang/String;)I
  */
 JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttrType
-        (JNIEnv *, jobject, jlong, jstring);
+  (JNIEnv *, jobject, jlong, jstring);
 
 /*
  * Class:     org_platanios_tensorflow_jni_Op__
