@@ -569,7 +569,6 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttrS
             env, "java/lang/IllegalArgumentException", "Attribute '%s' is not a shape. It is a '%s', instead.",
             attr_name, attrTypeToString(attr_metadata.type, attr_metadata.is_list));
   int num_dims = static_cast<int>(attr_metadata.total_size);
-  printf("%d", num_dims);
   static_assert(sizeof(jlong) == sizeof(int64_t), "Java long is not compatible with the TensorFlow C API");
   // One might have trivially wanted to do:
   // TF_OperationGetAttrShape(op, attr_name, static_cast<int64_t*>(dims), ...)
