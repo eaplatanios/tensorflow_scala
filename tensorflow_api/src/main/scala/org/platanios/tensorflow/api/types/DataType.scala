@@ -67,12 +67,12 @@ sealed trait DataType {
 
   //endregion Data Type Set Helper Methods
 
-  //  /** Returns a data type that corresponds to this data type's real part. */
-  //  def real: DataType = this match {
-  //    case DataType.Complex64 => DataType.Float32
-  //    case DataType.Complex128 => DataType.Float64
-  //    case _ => this
-  //  }
+  /** Returns a data type that corresponds to this data type's real part. */
+  def real: DataType = this match {
+    // case DataType.Complex64 => DataType.Float32 TODO: [COMPLEX]
+    // case DataType.Complex128 => DataType.Float64
+    case _ => this
+  }
 
   /** Scala type corresponding to this TensorFlow data type. */
   type ScalaType <: SupportedScalaType
@@ -461,7 +461,7 @@ object DataType {
 
   /** Set of all complex data types. */
   val complexDataTypes: Set[DataType] = {
-    Set() // TODO: Complex64, Complex128.
+    Set() // TODO: [COMPLEX] Complex64, Complex128.
   }
 
   /** Set of all integer data types. */
@@ -495,12 +495,12 @@ object DataType {
     */
   @inline private[api] def dataTypeOf(value: SupportedScalaType): DataType = value.dataType
 
-  //  /** Returns the [[DataType]] of the provided [[Tensor]].
-  //    *
-  //    * @param  tensor Tensor whose data type to return.
-  //    * @return Data type of the provided tensor.
-  //    */
-  //  @inline private[api] def dataTypeOf(tensor: Tensor): DataType = tensor.dataType
+  // /** Returns the [[DataType]] of the provided [[Tensor]].
+  //   *
+  //   * @param  tensor Tensor whose data type to return.
+  //   * @return Data type of the provided tensor.
+  //   */
+  // @inline private[api] def dataTypeOf(tensor: Tensor): DataType = tensor.dataType
 
   /** Returns the data type corresponding to the provided C value.
     *

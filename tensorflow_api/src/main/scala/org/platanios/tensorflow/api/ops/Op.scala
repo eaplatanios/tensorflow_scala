@@ -250,7 +250,7 @@ final case class OpSpecification(name: String, opType: String)
 private[api] final case class OpCreationContext(
     graph: Graph = Graph(), nameScope: String = "", device: OpSpecification => String = _ => "",
     colocationOps: Set[Op] = Set.empty, controlDependencies: Set[Op] = Set.empty,
-    attributes: Map[String, Any] = Map.empty, container: String = "")
+    attributes: Map[String, Any] = Map.empty, container: String = "") // TODO: !!! Use containers.
 
 object Op {
   /** Convenient implicit conversion function used to convert devices specified as [[String]]s for use with the
@@ -812,11 +812,19 @@ object Op {
 
   //region ProtoBuf Helper Functions
 
-  private[ops] def stripNameScope(nameScope: String, name: String): String =
-    name.replaceFirst(s"([\\^]|loc:@|^)$nameScope[\\/]+(.*)", "$1$2")
+  private[ops] def stripNameScope(nameScope: String, name: String): String = {
+    if (nameScope != null)
+      name.replaceFirst(s"([\\^]|loc:@|^)$nameScope[\\/]+(.*)", "$1$2")
+    else
+      name
+  }
 
-  private[ops] def prependNameScope(nameScope: String, name: String): String =
-    name.replaceFirst("([\\^]|loc:@|^)(.*)", "$1" + nameScope + "/$2")
+  private[ops] def prependNameScope(nameScope: String, name: String): String = {
+    if (nameScope != null)
+      name.replaceFirst("([\\^]|loc:@|^)(.*)", "$1" + nameScope + "/$2")
+    else
+      name
+  }
 
   //endregion ProtoBuf Helper Functions
 
