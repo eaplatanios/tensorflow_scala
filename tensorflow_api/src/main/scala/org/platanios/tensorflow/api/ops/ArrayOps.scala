@@ -181,14 +181,38 @@ object ArrayOps {
     *   fill(Shape(2, 3), 9) == [[9, 9, 9], [9, 9, 9]]
     * }}}
     *
-    * @param  shape Shape of the output tensor.
-    * @param  value Value to fill the output tensor.
-    * @param  name  Name for the created op.
+    * @param  shape    Shape of the output tensor.
+    * @param  value    Value to fill the output tensor.
+    * @param  dataType Optional data type for the created tensor.
+    * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def fill(shape: Shape, value: SupportedScalaType, name: String = "Fill"): Op.Output = {
+  def fill(shape: Shape, value: SupportedScalaType, dataType: DataType = null, name: String = "Fill"): Op.Output = {
     Op.Builder(opType = "Fill", name = name)
         .addInput(constant(shape.toTensor(DataType.Int32)))
+        .addInput(constant(Tensor.fill()(value)))
+        .build().outputs(0)
+  }
+
+  /** Creates an op that returns a tensor filled with the provided scalar value.
+    *
+    * The op creates a tensor of shape `shape` and fills it with `value`.
+    *
+    * For example:
+    * {{{
+    *   fill(Shape(2, 3), 9) == [[9, 9, 9], [9, 9, 9]]
+    * }}}
+    *
+    * @param  shape    Shape of the output tensor.
+    * @param  value    Value to fill the output tensor.
+    * @param  dataType Optional data type for the created tensor.
+    * @param  name     Name for the created op.
+    * @return Created op output.
+    */
+  def fillDynamic(shape: Op.Output, value: Op.Output, dataType: DataType = null, name: String = "Fill"): Op.Output = {
+    Op.Builder(opType = "Fill", name = name)
+        .addInput(shape)
+        .addInput(if (dataType == null) value else MathOps.cast(value, dataType))
         .build().outputs(0)
   }
 
