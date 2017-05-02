@@ -190,7 +190,7 @@ object ArrayOps {
   def fill(shape: Op.Output, value: Op.Output, dataType: DataType = null, name: String = "Fill"): Op.Output = {
     Op.Builder(opType = "Fill", name = name)
         .addInput(shape)
-        .addInput(if (dataType == null) value else MathOps.cast(value, dataType))
+        .addInput(if (dataType == null || dataType == value.dataType) value else MathOps.cast(value, dataType))
         .build().outputs(0)
   }
 
