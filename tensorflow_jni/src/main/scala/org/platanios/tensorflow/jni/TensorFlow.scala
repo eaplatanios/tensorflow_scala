@@ -6,6 +6,8 @@ import java.nio.file.{Files, Path}
   * @author Emmanouil Antonios Platanios
   */
 object TensorFlow {
+  final class NativeException(message: String) extends RuntimeException(message)
+
   private[this] val nativeLibraryName = "tensorflow_jni"
 
   def loadPackaged(): Unit = {

@@ -2,6 +2,7 @@
 
 #include <limits>
 #include <vector>
+
 #include "include/c_api.h"
 #include "include/exception_jni.h"
 
@@ -11,7 +12,7 @@ namespace {
     static_assert(sizeof(jlong) >= sizeof(T *),
                   "Cannot package C object pointers as a Java long");
     if (handle == 0) {
-      throwException(env, kNullPointerException, closed_error_msg);
+      throw_exception(env, jvm_null_pointer_exception, closed_error_msg);
       return nullptr;
     }
     return reinterpret_cast<T *>(handle);
@@ -110,7 +111,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_add
   // Call the C API "TF_AddGradients" function and throw an exception if an error occurs
   TF_Status *status = TF_NewStatus();
   TF_AddGradients(g, y.get(), ny, x.get(), nx, dx.get(), status, dy.get());
-  if (!throwExceptionIfNotOK(env, status)) {
+  if (!throw_exception_if_not_ok(env, status)) {
     TF_DeleteStatus(status);
     return nullptr;
   }
@@ -145,7 +146,7 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_importGraph
   // Call the C API "TF_GraphImportGraphDef" function and throw an exception if an error occurs
   TF_Status *status = TF_NewStatus();
   TF_GraphImportGraphDef(g, buffer, options, status);
-  throwExceptionIfNotOK(env, status);
+  throw_exception_if_not_ok(env, status);
 
   // Continue cleaning up resources even if an exception was thrown
   TF_DeleteStatus(status);
@@ -164,10 +165,11 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_toGra
   TF_Buffer *buf = TF_NewBuffer();
   TF_Status *status = TF_NewStatus();
   TF_GraphToGraphDef(g, buf, status);
-  if (throwExceptionIfNotOK(env, status)) {
+  if (throw_exception_if_not_ok(env, status)) {
     // sizeof(jsize) is less than sizeof(size_t) on some platforms.
     if (buf->length > std::numeric_limits<jint>::max()) {
-      throwException(env, kIndexOutOfBoundsException, "GraphDef is too large to serialize into a Java byte array.");
+      throw_exception(env, jvm_index_out_of_bounds_exception,
+                      "GraphDef is too large to serialize into a Java byte array.");
     } else {
       static_assert(sizeof(jbyte) == 1, "Unexpected size of the Java byte type.");
       jint return_array_length = static_cast<jint>(buf->length);

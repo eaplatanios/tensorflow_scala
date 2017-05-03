@@ -26,7 +26,7 @@ namespace {
     static_assert(sizeof(jlong) >= sizeof(TF_Session*),
                   "Scala \"Long\" cannot be used to represent TensorFlow C API pointers.");
     if (handle == 0) {
-      throwException(env, kNullPointerException, "This session has already been disposed.");
+      throw_exception(env, jvm_null_pointer_exception, "This session has already been disposed.");
       return nullptr;
     }
     return reinterpret_cast<TF_Session*>(handle);
@@ -37,8 +37,9 @@ namespace {
     if (env->ExceptionCheck()) return;
     jint len = env->GetArrayLength(src_array);
     if (len != src_array_length) {
-      throwException(
-          env, kIllegalArgumentException, "Expected %d handles, but got %d %s handles, instead.", src_array_length, len,
+      throw_exception(
+          env, jvm_illegal_argument_exception, "Expected %d handles, but got %d %s handles, instead.", src_array_length,
+          len,
           type);
       return;
     }
@@ -46,7 +47,7 @@ namespace {
     jlong* src = src_start;
     for (int i = 0; i < src_array_length; ++i, ++src, ++dst_array) {
       if (*src == 0) {
-        throwException(env, kNullPointerException, "Invalid %s handle (#%d of %d).", type, i, src_array_length);
+        throw_exception(env, jvm_null_pointer_exception, "Invalid %s handle (#%d of %d).", type, i, src_array_length);
         break;
       }
       *dst_array = reinterpret_cast<T*>(*src);
@@ -59,14 +60,15 @@ namespace {
     if (env->ExceptionCheck()) return;
     jint len = env->GetArrayLength(src_ops);
     if (len != src_ops_length) {
-      throwException(
-          env, kIllegalArgumentException, "Expected %d ops, but got %d %s ops, instead.", src_ops_length, len, type);
+      throw_exception(
+          env, jvm_illegal_argument_exception, "Expected %d ops, but got %d %s ops, instead.", src_ops_length, len,
+          type);
       return;
     }
     len = env->GetArrayLength(src_index);
     if (len != src_ops_length) {
-      throwException(
-          env, kIllegalArgumentException, "Expected %d op output indices, got %d %s op output indices, instead.",
+      throw_exception(
+          env, jvm_illegal_argument_exception, "Expected %d op output indices, got %d %s op output indices, instead.",
           src_ops_length, len, type);
       return;
     }
@@ -74,7 +76,7 @@ namespace {
     jint* indices = env->GetIntArrayElements(src_index, nullptr);
     for (int i = 0; i < src_ops_length; ++i) {
       if (op_handles[i] == 0) {
-        throwException(env, kNullPointerException, "Invalid %s op handle (#%d of %d).", type, i, src_ops_length);
+        throw_exception(env, jvm_null_pointer_exception, "Invalid %s op handle (#%d of %d).", type, i, src_ops_length);
         break;
       }
       dst[i] = TF_Output{reinterpret_cast<TF_Operation*>(op_handles[i]), static_cast<int>(indices[i])};
@@ -98,7 +100,7 @@ namespace {
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Session_00024_allocate(
     JNIEnv* env, jobject object, jlong graph_handle) {
   if (graph_handle == 0) {
-    throwException(env, kNullPointerException, "Graph has been close()d");
+    throw_exception(env, jvm_null_pointer_exception, "Graph has been close()d");
     return 0;
   }
   TF_Graph* graph = reinterpret_cast<TF_Graph*>(graph_handle);
@@ -106,7 +108,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Session_00024_allocate
   TF_SessionOptions* options = TF_NewSessionOptions();
   TF_Session* session = TF_NewSession(graph, options, status);
   TF_DeleteSessionOptions(options);
-  bool ok = throwExceptionIfNotOK(env, status);
+  bool ok = throw_exception_if_not_ok(env, status);
   TF_DeleteStatus(status);
   return ok ? reinterpret_cast<jlong>(session) : 0;
 }
@@ -119,7 +121,7 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Session_00024_delete(
   TF_CloseSession(session, status);
   // Result of close is ignored, delete anyway.
   TF_DeleteSession(session, status);
-  throwExceptionIfNotOK(env, status);
+  throw_exception_if_not_ok(env, status);
   TF_DeleteStatus(status);
 }
 
@@ -167,7 +169,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Session_00024_run
   if (jrun_options_data != nullptr)
     env->ReleaseByteArrayElements(jrun_options, jrun_options_data, JNI_ABORT);
 
-  if (!throwExceptionIfNotOK(env, status))
+  if (!throw_exception_if_not_ok(env, status))
     return nullptr;
 
   jlong* output_tensor_handles_array = env->GetLongArrayElements(output_tensor_handles, nullptr);

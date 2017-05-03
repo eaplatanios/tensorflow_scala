@@ -30,7 +30,7 @@ namespace {
     static_assert(sizeof(jlong) >= sizeof(TF_Tensor*),
                   "Scala \"Long\" cannot be used to represent TensorFlow C API pointers.");
     if (handle == 0) {
-      throwException(env, kNullPointerException, "This tensor has already been disposed.");
+      throw_exception(env, jvm_null_pointer_exception, "This tensor has already been disposed.");
       return nullptr;
     }
     return reinterpret_cast<TF_Tensor*>(handle);
@@ -73,7 +73,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_fromBuffe
   if (dims != nullptr)
     env->ReleaseLongArrayElements(shape, dims, JNI_ABORT);
   if (tensor_handle == nullptr) {
-    throwException(env, kNullPointerException, "Unable to create new native Tensor.");
+    throw_exception(env, jvm_null_pointer_exception, "Unable to create new native Tensor.");
     return 0;
   }
   return reinterpret_cast<jlong>(tensor_handle);
@@ -131,7 +131,7 @@ JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_setStringB
   env->GetByteArrayRegion(string, 0, static_cast<jsize>(src_len), reinterpret_cast<jbyte*>(buffer.get()));
   TF_Status* status = TF_NewStatus();
   size_t num_bytes_written = TF_StringEncode(buffer.get(), src_len, dst_buffer, dst_len, status);
-  throwExceptionIfNotOK(env, status);
+  throw_exception_if_not_ok(env, status);
   TF_DeleteStatus(status);
   return static_cast<jsize>(num_bytes_written);
 }
@@ -145,7 +145,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_getS
   TF_Status* status = TF_NewStatus();
   size_t src_len = static_cast<size_t>(env->GetDirectBufferCapacity(string_buffer));
   TF_StringDecode(src_buffer, src_len, &dst, &dst_len, status);
-  if (throwExceptionIfNotOK(env, status)) {
+  if (throw_exception_if_not_ok(env, status)) {
     return_array = env->NewByteArray(static_cast<jsize>(dst_len));
     env->SetByteArrayRegion(return_array, 0, static_cast<jsize>(dst_len), reinterpret_cast<const jbyte*>(dst));
   }
@@ -157,7 +157,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_getS
 //
 //TF_Tensor* requireHandle(JNIEnv* env, jlong handle) {
 //  if (handle == 0) {
-//    throwException(env, kNullPointerException,
+//    throw_exception(env, kNullPointerException,
 //                   "close() was called on the Tensor");
 //    return nullptr;
 //  }
@@ -196,7 +196,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_getS
 //                 size_t dst_size) {
 //  size_t sz = elemByteSize(dtype);
 //  if (sz != dst_size) {
-//    throwException(
+//    throw_exception(
 //        env, kIllegalStateException,
 //        "scalar (%d bytes) not compatible with allocated tensor (%d bytes)", sz,
 //        dst_size);
@@ -228,7 +228,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_getS
 //      return;
 //    }
 //    default:
-//      throwException(env, kIllegalStateException, "invalid DataType(%d)",
+//      throw_exception(env, kIllegalStateException, "invalid DataType(%d)",
 //                     dtype);
 //      return;
 //  }
@@ -247,7 +247,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_getS
 //    jtype* values = env->Get##get_type##ArrayElements(a, &is_copy);    \
 //    size_t to_copy = nelems * elemByteSize(dtype);                     \
 //    if (to_copy > dst_size) {                                          \
-//      throwException(                                                  \
+//      throw_exception(                                                  \
 //          env, kIllegalStateException,                                 \
 //          "cannot write Java array of %d bytes to Tensor of %d bytes", \
 //          to_copy, dst_size);                                          \
@@ -265,7 +265,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_getS
 //    CASE(TF_BOOL, jboolean, Boolean);
 //#undef CASE
 //    default:
-//      throwException(env, kIllegalStateException, "invalid DataType(%d)",
+//      throw_exception(env, kIllegalStateException, "invalid DataType(%d)",
 //                     dtype);
 //      return 0;
 //  }
@@ -278,7 +278,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_getS
 //  const int len = env->GetArrayLength(dst);
 //  const size_t sz = len * elemByteSize(dtype);
 //  if (sz > src_size) {
-//    throwException(
+//    throw_exception(
 //        env, kIllegalStateException,
 //        "cannot fill a Java array of %d bytes with a Tensor of %d bytes", sz,
 //        src_size);
@@ -299,7 +299,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_getS
 //    CASE(TF_BOOL, jboolean, Boolean);
 //#undef CASE
 //    default:
-//      throwException(env, kIllegalStateException, "invalid DataType(%d)",
+//      throw_exception(env, kIllegalStateException, "invalid DataType(%d)",
 //                     dtype);
 //  }
 //  return 0;
@@ -376,7 +376,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_getS
 //    env->ReleaseLongArrayElements(shape, dims, JNI_ABORT);
 //  }
 //  if (t == nullptr) {
-//    throwException(env, kNullPointerException,
+//    throw_exception(env, kNullPointerException,
 //                   "unable to allocate memory for the Tensor");
 //    return 0;
 //  }
@@ -405,7 +405,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_getS
 //
 //  TF_Status* status = TF_NewStatus();
 //  TF_StringEncode(src.get(), src_len, dst + 8, dst_len, status);
-//  if (!throwExceptionIfNotOK(env, status)) {
+//  if (!throw_exception_if_not_ok(env, status)) {
 //    TF_DeleteStatus(status);
 //    return 0;
 //  }
@@ -440,7 +440,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_getS
 //    if (TF_NumDims(t) != 0) {                                                                  \
 //      throwException(env, kIllegalStateException, "Tensor is not a scalar");                   \
 //    } else if (TF_TensorType(t) != dtype) {                                                    \
-//      throwException(env, kIllegalStateException, "Tensor is not a %s scalar",                 \
+//      throw_exception(env, kIllegalStateException, "Tensor is not a %s scalar",                 \
 //                     #method_suffix);                                                          \
 //    } else {                                                                                   \
 //      memcpy(&ret, TF_TensorData(t), elemByteSize(dtype));                                     \
@@ -459,11 +459,11 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_getS
 //  TF_Tensor* t = requireHandle(env, handle);
 //  if (t == nullptr) return nullptr;
 //  if (TF_NumDims(t) != 0) {
-//    throwException(env, kIllegalStateException, "Tensor is not a scalar");
+//    throw_exception(env, kIllegalStateException, "Tensor is not a scalar");
 //    return nullptr;
 //  }
 //  if (TF_TensorType(t) != TF_STRING) {
-//    throwException(env, kIllegalArgumentException,
+//    throw_exception(env, kIllegalArgumentException,
 //                   "Tensor is not a string/bytes scalar");
 //    return nullptr;
 //  }
@@ -473,7 +473,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_getS
 //  uint64_t offset = 0;
 //  memcpy(&offset, data, sizeof(offset));
 //  if (offset >= src_len) {
-//    throwException(env, kIllegalArgumentException,
+//    throw_exception(env, kIllegalArgumentException,
 //                   "invalid tensor encoding: bad offsets");
 //    return nullptr;
 //  }
@@ -482,7 +482,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_getS
 //  size_t dst_len = 0;
 //  TF_Status* status = TF_NewStatus();
 //  TF_StringDecode(src, src_len, &dst, &dst_len, status);
-//  if (throwExceptionIfNotOK(env, status)) {
+//  if (throw_exception_if_not_ok(env, status)) {
 //    ret = env->NewByteArray(dst_len);
 //    jbyte* cpy = env->GetByteArrayElements(ret, nullptr);
 //    memcpy(cpy, dst, dst_len);
@@ -503,7 +503,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_getS
 //  const void* data = TF_TensorData(t);
 //  const size_t sz = TF_TensorByteSize(t);
 //  if (num_dims == 0) {
-//    throwException(env, kIllegalArgumentException,
+//    throw_exception(env, kIllegalArgumentException,
 //                   "copyTo() is not meant for scalar Tensors, use the scalar "
 //                   "accessor (floatValue(), intValue() etc.) instead");
 //    return;
