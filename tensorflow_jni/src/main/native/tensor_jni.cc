@@ -26,7 +26,7 @@ limitations under the License.
 #include "include/exception_jni.h"
 
 namespace {
-  TF_Tensor* require_handle(JNIEnv* env, jlong handle) {
+  TF_Tensor* require_graph_handle(JNIEnv *env, jlong handle) {
     static_assert(sizeof(jlong) >= sizeof(TF_Tensor*),
                   "Scala \"Long\" cannot be used to represent TensorFlow C API pointers.");
     if (handle == 0) {
@@ -83,14 +83,14 @@ JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_dataType(
     JNIEnv* env, jobject object, jlong handle) {
   static_assert(sizeof(jint) >= sizeof(TF_DataType),
                 "\"TF_DataType\" in C cannot be represented as an \"Int\" in Scala.");
-  TF_Tensor* tensor = require_handle(env, handle);
+  TF_Tensor* tensor = require_graph_handle(env, handle);
   if (tensor == nullptr) return 0;
   return static_cast<jint>(TF_TensorType(tensor));
 }
 
 JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_shape(
     JNIEnv* env, jobject object, jlong handle) {
-  TF_Tensor* tensor = require_handle(env, handle);
+  TF_Tensor* tensor = require_graph_handle(env, handle);
   if (tensor == nullptr) return nullptr;
   static_assert(sizeof(jlong) == sizeof(int64_t), "Scala \"Long\" is not compatible with the TensorFlow C API.");
   const jsize num_dims = TF_NumDims(tensor);
@@ -104,7 +104,7 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_shap
 
 JNIEXPORT jobject JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_buffer(
     JNIEnv* env, jobject object, jlong handle) {
-  TF_Tensor* tensor = require_handle(env, handle);
+  TF_Tensor* tensor = require_graph_handle(env, handle);
   if (tensor == nullptr) return nullptr;
   void* data = TF_TensorData(tensor);
   const size_t byte_size = TF_TensorByteSize(tensor);

@@ -22,7 +22,7 @@ limitations under the License.
 #include "include/exception_jni.h"
 
 namespace {
-  TF_Session* require_handle(JNIEnv* env, jlong handle) {
+  TF_Session* require_graph_handle(JNIEnv *env, jlong handle) {
     static_assert(sizeof(jlong) >= sizeof(TF_Session*),
                   "Scala \"Long\" cannot be used to represent TensorFlow C API pointers.");
     if (handle == 0) {
@@ -113,7 +113,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Session_00024_allocate
 
 JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Session_00024_delete(
     JNIEnv* env, jobject object, jlong handle) {
-  TF_Session* session = require_handle(env, handle);
+  TF_Session* session = require_graph_handle(env, handle);
   if (session == nullptr) return;
   TF_Status* status = TF_NewStatus();
   TF_CloseSession(session, status);
@@ -127,7 +127,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Session_00024_run
     JNIEnv* env, jobject object, jlong handle, jbyteArray jrun_options, jlongArray input_tensor_handles,
     jlongArray input_op_handles, jintArray input_op_indices, jlongArray output_op_handles, jintArray output_op_indices,
     jlongArray target_op_handles, jboolean want_run_metadata, jlongArray output_tensor_handles) {
-  TF_Session* session = require_handle(env, handle);
+  TF_Session* session = require_graph_handle(env, handle);
   if (session == nullptr) return nullptr;
 
   const jint ninputs = env->GetArrayLength(input_tensor_handles);

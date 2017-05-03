@@ -7,7 +7,7 @@ case class OpOutput(opHandle: Long, outputIndex: Int)
 
 object Op {
   TensorFlow.load()
-
+  
   // Operation
   @native def name(handle: Long): String
   @native def opType(handle: Long): String
