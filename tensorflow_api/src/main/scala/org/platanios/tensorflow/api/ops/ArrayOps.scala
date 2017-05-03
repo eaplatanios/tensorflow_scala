@@ -75,9 +75,9 @@ object ArrayOps {
     */
   def zeros(shape: Shape, dataType: DataType = DataType.Float32, name: String = "Zeros"): Op.Output = {
     dataType match {
-      case DataType.Bool => constant(false, DataType.Bool, shape)
-      case DataType.Str  => constant("", DataType.Str, shape)
-      case _             => constant(0, dataType, shape)
+      case DataType.Bool => constant(Tensor.fill(DataType.Bool, shape)(true))
+      case DataType.Str  => constant(Tensor.fill(DataType.Str, shape)(""))
+      case _             => constant(Tensor.fill(dataType, shape)(0))
     }
   }
 
@@ -132,8 +132,8 @@ object ArrayOps {
     */
   def ones(shape: Shape, dataType: DataType = DataType.Float32, name: String = "Ones"): Op.Output = {
     dataType match {
-      case DataType.Bool => constant(true, DataType.Bool, shape)
-      case _             => constant(1, dataType, shape)
+      case DataType.Bool => constant(Tensor.fill(DataType.Bool, shape)(true))
+      case _             => constant(Tensor.fill(dataType, shape)(1))
     }
   }
 
