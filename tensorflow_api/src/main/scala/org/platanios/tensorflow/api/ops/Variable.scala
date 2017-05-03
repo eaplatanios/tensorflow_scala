@@ -39,12 +39,12 @@ case class Variable private(
   /** Op corresponding to this variable. */
   val op: Op = variableOp.op
 
-  // /** Op output that holds the variable reference (i.e., handle to the variable).
-  //   *
-  //   * NOTE: You usually do not need to use this field as all ops that need a reference to the variable call it
-  //   * automatically.
-  //   */
-  // private[this] val handle: Op.Output = variableOp
+  /** Op output that holds the variable reference (i.e., handle to the variable).
+    *
+    * NOTE: You usually do not need to use this field as all ops that need a reference to the variable call it
+    * automatically.
+    */
+  private[api] val handle: Op.Output = variableOp
 
   // /** Op responsible for creating/initializing this variable. */
   // val create: Op = initializeOp

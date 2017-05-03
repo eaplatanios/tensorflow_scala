@@ -8,7 +8,7 @@ import scala.collection.mutable
 /**
   * @author Emmanouil Antonios Platanios
   */
-final case class Graph(private var nativeHandle: Long) extends Closeable {
+final case class Graph(private[api] var nativeHandle: Long) extends Closeable {
   // TODO: Need to be able to reset and close this session.
   private[api] val defaultSession: Session = Session(this)
 

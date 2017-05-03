@@ -49,9 +49,10 @@
 //    *         loops.
 //    */
 //  private[this] def countBackPropagationInputs(
-//      sources: Set[Op], destinations: Set[Op], colocateGradientsWithOps: Boolean): (Map[Op, Int], Any) = { // TODO: [CONTROL_FLOW]
-//  // Mark ops reached when going from 'sources' to 'destinations'
-//  val reached = mutable.Set[Op](destinations.toSeq: _*)
+//      sources: Set[Op], destinations: Set[Op], colocateGradientsWithOps: Boolean): (Map[Op, Int], Any) = {
+//    // TODO: [CONTROL_FLOW]
+//    // Mark ops reached when going from 'sources' to 'destinations'
+//    val reached = mutable.Set[Op](destinations.toSeq: _*)
 //    val reachedQueue = mutable.Queue[Op](sources.toSeq: _*)
 //    while (reachedQueue.nonEmpty) {
 //      val op = reachedQueue.dequeue()
@@ -119,53 +120,50 @@
 //
 //  /** Fills in default values for the provided gradients, and checks whether their data types are correct.
 //    *
-//    * @param  gradients                Sequence containing tensor gradients.
-//    * @param  variables                Sequence containing the variables corresponding to `gradients`.
+//    * @param  dys                      Sequence containing tensor gradients.
+//    * @param  ys                       Sequence containing the variables corresponding to `dys`.
 //    * @param  colocateGradientsWithOps Boolean value indicating whether to colocate the gradient ops with the original
 //    *                                  ops.
 //    * @return Sequence containing the gradients tensors filled with the default value of `1`.
 //    * @throws InvalidDataTypeException If the gradient tensor data types are not compatible with the input data types.
 //    */
 //  @throws[InvalidDataTypeException]
-//  private[this] def setDefaultGradients( // TODO: Take op as input rather than its inputs.
-//      gradients: mutable.Seq[Op.OutputLike], variables: Seq[Op.OutputLike],
-//      colocateGradientsWithOps: Boolean): Seq[Op.OutputLike] = {
-//    for (((variable, gradient), index) <- variables.zip(gradients).zipWithIndex) {
-//      if (gradient eq null) {
-//        if (variable.dataType.isComplex)
+//  private[this] def setDefaultGradients(
+//      dys: mutable.Seq[Op.OutputLike], ys: Seq[Op.OutputLike], colocateGradientsWithOps: Boolean): Unit = {
+//    for (((y, dy), index) <- ys.zip(dys).zipWithIndex) {
+//      if (dy eq null) {
+//        if (y.dataType.isComplex)
 //          throw InvalidDataTypeException(
-//            s"Gradients of complex tensors must set 'gradients' (variable.dataType = '${variable.dataType}').")
-//        maybeColocateWith(variable.op, colocateGradientsWithOps) {
-//          variable match {
-//            case v: Op.Output => gradients(index) = ArrayOps.onesLike(v)
-//            case v: Op.OutputIndexedSlices =>
-//              if (v.denseShape eq null)
+//            s"Gradients of complex tensors must set 'gradients' (variable.dataType = '${y.dataType}').")
+//        maybeColocateWith(y.op, colocateGradientsWithOps) {
+//          y match {
+//            case o: Op.Output => dys(index) = ArrayOps.onesLike(o)
+//            case o: Op.OutputIndexedSlices =>
+//              if (o.denseShape eq null)
 //                throw new IllegalArgumentException(
 //                  "The dense shape of output indexed slices must be known in order to obtain their gradients.")
-//              val values = ArrayOps.fill(v.denseShape, 1.0)
-//              Op.OutputIndexedSlices(indices = v.indices, values = values, denseShape = v.denseShape)
-//            case v: Op.SparseOutput =>
-//              val values = ArrayOps.fill(v.denseShape, 1.0)
-//              Op.SparseOutput(indices = v.indices, values = values, denseShape = v.denseShape)
+//              val values = ArrayOps.fill(o.denseShape, 1.0)
+//              dys(index) = Op.OutputIndexedSlices(indices = o.indices, values = values, denseShape = o.denseShape)
+//            case o: Op.SparseOutput =>
+//              val values = ArrayOps.fill(o.denseShape, 1.0)
+//              dys(index) = Op.SparseOutput(indices = o.indices, values = values, denseShape = o.denseShape)
 //          }
 //        }
-//      } else if ((variable.dataType.isFloatingPoint || variable.dataType.isInteger) &&
-//          !gradient.dataType.isFloatingPoint &&
-//          !gradient.dataType.isInteger) {
+//      } else if ((y.dataType.isFloatingPoint || y.dataType.isInteger) &&
+//          !dy.dataType.isFloatingPoint &&
+//          !dy.dataType.isInteger) {
 //        throw InvalidDataTypeException(
-//          s"Gradient data type '${gradient.dataType}' generated for real or integer-valued tensor '$variable' with " +
-//              s"data type '${variable.dataType}' must be real or integer.")
-//      } else if (variable.dataType.isComplex && !gradient.dataType.isComplex) {
+//          s"Gradient data type '${dy.dataType}' generated for real or integer-valued tensor '$y' with data type " +
+//              s"'${y.dataType}' must be real or integer.")
+//      } else if (y.dataType.isComplex && !dy.dataType.isComplex) {
 //        throw InvalidDataTypeException(
-//          s"Gradient data type '${gradient.dataType}' generated for complex-valued tensor '$variable' with " +
-//              s"data type '${variable.dataType}' must be complex.")
+//          s"Gradient data type '${dy.dataType}' generated for complex-valued tensor '$y' with data type " +
+//              s"'${y.dataType}' must be complex.")
 //      } else {
 //        throw InvalidDataTypeException(
-//          s"Tensor '$variable' with data type '${variable.dataType}' must be numeric in order to obtain a default " +
-//              s"gradient.")
+//          s"Tensor '$y' with data type '${y.dataType}' must be numeric in order to obtain a default gradient.")
 //      }
 //    }
-//    gradients
 //  }
 //
 //  /** Verifies that the provided `gradients` are valid in number and data type.
@@ -234,7 +232,40 @@
 //    }
 //  }
 //
-//  private[this] def getGradients(op: Op, gradients: Map[Op, Seq[Op.Output]]): Seq[Op.Output] = {
+//  // TODO: Convert variable to op output by using its handle.
+//  private[this] def getGradients(
+//      ys: Seq[Op.OutputLike], xs: Seq[Op.OutputLike], initialGradients: Seq[Op.OutputLike] = null,
+//      colocateGradientsWithOps: Boolean = false, gateGradients: Boolean = false,
+//      name: String = "Gradients"): Seq[Op.Output] = {
+//    val (ops, dys) = {
+//      if (initialGradients != null) {
+//        val ops = ys.map(_.op).toSet ++ xs.map(_.op).toSet ++ initialGradients.map(_.op).toSet
+//        val dys = mutable.Seq[Op.OutputLike](initialGradients: _*)
+//        (ops, dys)
+//      } else {
+//        val ops = ys.map(_.op).toSet ++ xs.map(_.op).toSet
+//        val dys = mutable.Seq.fill[Op.OutputLike](ys.length)(null)
+//        (ops, dys)
+//      }
+//    }
+//    Op.createWithNameScope(name, ops) {
+//      setDefaultGradients(dys, ys, colocateGradientsWithOps)
+//      // The approach we take here is as follows: Create a list of all ops in the sub-graph between the ys and xs. Visit
+//      // these ops in reverse order of ids to ensure that when we visit an op the gradients with respect to its outputs
+//      // have been collected. Then, aggregate these gradients if needed, call the op's gradient function, and add the
+//      // generated gradients to the gradients for its input.
 //
+//      // Initialize the pending count for ops in the connected sub-graph between the ys and xs.
+//      if (ys.length > 1)
+//        ys = ys.map(y => if (y.consumers()) ArrayOps.identity(y) else y)
+//
+//      if len(ys) > 1:
+//          ys = [array_ops.identity(y) if y.consumers() else y for y in ys]
+//      to_ops = [t.op for t in ys]
+//      from_ops = [t.op for t in xs]
+//      pending_count, loop_state = _PendingCount(ops.get_default_graph(), to_ops,
+//        from_ops,
+//        colocate_gradients_with_ops)
+//    }
 //  }
 //}
