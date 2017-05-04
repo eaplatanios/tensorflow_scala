@@ -1608,9 +1608,8 @@ object ArrayOps {
     registerGradientFunction("Pack", stackGradient)
 
     def stackGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
-      val outputGradient = outputGradients.head.asInstanceOf[Op.OutputConvertible].toOpOutput
       unstack(
-        input = g.toOpOutput,
+        input = outputGradients.head.asInstanceOf[Op.OutputConvertible].toOpOutput,
         number = op.longAttribute("N").toInt,
         axis = op.longAttribute("axis").toInt).toSeq
     }

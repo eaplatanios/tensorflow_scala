@@ -35,6 +35,15 @@ object Gradients {
 
   /** Registers the provided op type as non-differentiable (i.e., having `null` as its registered gradient function).
     *
+    * This function should *not* be used for ops that have a well-defined gradient that is not yet implemented. It
+    * should only be used when defining a new op type. It may be used for ops such as `size` that are not
+    * differentiable.
+    *
+    * The gradient computed for 'opType' will then propagate zeros.
+    *
+    * For ops that have a well-defined gradient but are not yet implemented, no declaration should be made, and an error
+    * *must* be thrown if an attempt to request their gradient is made.
+    *
     * @param  opType Op type to register as non-differentiable.
     */
   def registerNonDifferentiable(opType: String): Unit = {
