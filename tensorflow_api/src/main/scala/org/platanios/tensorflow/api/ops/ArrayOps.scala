@@ -75,9 +75,9 @@ object ArrayOps {
     */
   def zeros(shape: Shape, dataType: DataType = DataType.Float32, name: String = "Zeros"): Op.Output = {
     dataType match {
-      case DataType.Bool => constant(Tensor.fill(DataType.Bool, shape)(true))
-      case DataType.Str  => constant(Tensor.fill(DataType.Str, shape)(""))
-      case _             => constant(Tensor.fill(dataType, shape)(0))
+      case DataType.Bool => constant(Tensor.fill(DataType.Bool, shape)(true), name = name)
+      case DataType.Str  => constant(Tensor.fill(DataType.Str, shape)(""), name = name)
+      case _             => constant(Tensor.fill(dataType, shape)(0), name = name)
     }
   }
 
@@ -102,7 +102,7 @@ object ArrayOps {
   def zerosLike(
       input: Op.Output, dataType: DataType = null, optimize: Boolean = true, name: String = "ZerosLike"): Op.Output = {
     val outputDataType = if (dataType != null) dataType else input.dataType
-    if (input.shape.isFullyDefined) {
+    if (optimize && input.shape.isFullyDefined) {
       // We can produce a zeros tensor independent of the value of 'tensor' since the shape is known statically.
       zeros(input.shape, outputDataType, name)
     } else if (outputDataType != input.dataType) {
@@ -132,8 +132,8 @@ object ArrayOps {
     */
   def ones(shape: Shape, dataType: DataType = DataType.Float32, name: String = "Ones"): Op.Output = {
     dataType match {
-      case DataType.Bool => constant(Tensor.fill(DataType.Bool, shape)(true))
-      case _             => constant(Tensor.fill(dataType, shape)(1))
+      case DataType.Bool => constant(Tensor.fill(DataType.Bool, shape)(true), name = name)
+      case _             => constant(Tensor.fill(dataType, shape)(1), name = name)
     }
   }
 
@@ -158,7 +158,7 @@ object ArrayOps {
   def onesLike(
       input: Op.Output, dataType: DataType = null, optimize: Boolean = true, name: String = "OnesLike"): Op.Output = {
     val outputDataType = if (dataType != null) dataType else input.dataType
-    if (input.shape.isFullyDefined) {
+    if (optimize && input.shape.isFullyDefined) {
       // We can produce a ones tensor independent of the value of 'tensor' since the shape is known statically.
       ones(input.shape, outputDataType, name)
     } else if (outputDataType != input.dataType) {
