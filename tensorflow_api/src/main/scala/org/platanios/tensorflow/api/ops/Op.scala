@@ -538,7 +538,10 @@ object Op {
     * @param  graph               Graph to use as default for new ops.
     * @param  nameScope           Name scope to use.
     * @param  device              Device function to use.
+    * @param  colocationOps       Colocation ops to use.
     * @param  controlDependencies Control dependencies to use.
+    * @param  attributes          Attributes to use.
+    * @param  container           Container to use for resources.
     * @param  block               Code block to run using the provided options.
     * @param  context             Current op creation context.
     * @tparam R Return type of the code block.
@@ -583,6 +586,29 @@ object Op {
     val newGraph: Graph = mergeGraph(getGraphFromInputs(values), context)
     val newNameScope: String = mergeNameScope(nameScope, context)
     context.withValue(context.copy(graph = newGraph, nameScope = newNameScope))(block)
+  }
+
+  /** Creates a context that can be used for creating ops and placing them on the same device as `colocationOps`.
+    *
+    * Details on the op creation context can be found in the documentation of the public API [[createWith]] function of
+    * this library.
+    *
+    * @param  colocationOps  Colocation ops to use.
+    * @param  ignoreExisting Boolean value indicating whether to ignore the colocation ops in the current context.
+    * @param  block          Code block to run using the provided options.
+    * @param  context        Current op creation context.
+    * @tparam R Return type of the code block.
+    * @return Return value of the code block.
+    */
+  def colocateWith[R](colocationOps: Set[Op], ignoreExisting: Boolean = false)
+      (block: => R)(implicit context: DynamicVariable[OpCreationContext]): R = {
+    val newColocationOps: Set[Op] = {
+      if (ignoreExisting)
+        colocationOps
+      else
+        mergeColocationOps(colocationOps, context)
+    }
+    context.withValue(context.copy(colocationOps = newColocationOps))(block)
   }
 
   /** Merges a graph to the provided op creation context graph and returns the graph to use when specifying the updated
