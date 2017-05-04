@@ -1,7 +1,6 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.Exception.{InvalidDataTypeException, InvalidShapeException}
-import org.platanios.tensorflow.api.types.SupportedScalaType
 import org.platanios.tensorflow.api.{DataType, Shape, Tensor, using}
 
 /**
@@ -76,8 +75,8 @@ object ArrayOps {
   def zeros(shape: Shape, dataType: DataType = DataType.Float32, name: String = "Zeros"): Op.Output = {
     dataType match {
       case DataType.Bool => constant(Tensor.fill(DataType.Bool, shape)(true), name = name)
-      case DataType.Str  => constant(Tensor.fill(DataType.Str, shape)(""), name = name)
-      case _             => constant(Tensor.fill(dataType, shape)(0), name = name)
+      case DataType.Str => constant(Tensor.fill(DataType.Str, shape)(""), name = name)
+      case _ => constant(Tensor.fill(dataType, shape)(0), name = name)
     }
   }
 
@@ -133,7 +132,7 @@ object ArrayOps {
   def ones(shape: Shape, dataType: DataType = DataType.Float32, name: String = "Ones"): Op.Output = {
     dataType match {
       case DataType.Bool => constant(Tensor.fill(DataType.Bool, shape)(true), name = name)
-      case _             => constant(Tensor.fill(dataType, shape)(1), name = name)
+      case _ => constant(Tensor.fill(dataType, shape)(1), name = name)
     }
   }
 
@@ -496,7 +495,7 @@ object ArrayOps {
   def identity[T <: Op.OutputLike](input: T, name: String = "Identity"): T = {
     Op.createWithNameScope(nameScope = name, Set(input.op)) {
       input match {
-        case i: Op.Output              =>
+        case i: Op.Output =>
           Op.Builder(opType = "Identity", name = name)
               .addInput(i)
               .build().outputs(0)
@@ -510,7 +509,7 @@ object ArrayOps {
               null
           }
           Op.OutputIndexedSlices(indices = indices, values = values, denseShape = denseShape)
-        case i: Op.SparseOutput        =>
+        case i: Op.SparseOutput =>
           val values = identity(i.values, name = "ValuesIdentity")
           val indices = identity(i.indices, name = "IndicesIdentity")
           val denseShape = identity(i.denseShape, name = "DenseShapeIdentity")
@@ -1590,4 +1589,30 @@ object ArrayOps {
   }
 
   //endregion Gradients Ops
+
+  object Gradients {
+    registerNonDifferentiable("Const")
+    registerNonDifferentiable("ZerosLike")
+    registerNonDifferentiable("OnesLike")
+    registerNonDifferentiable("Rank")
+    registerNonDifferentiable("Size")
+    registerNonDifferentiable("Shape")
+    registerNonDifferentiable("ShapeN")
+    registerNonDifferentiable("ConcatOffset") // TODO: [OP]
+    registerNonDifferentiable("InvertPermutation")
+    registerNonDifferentiable("OneHot") // TODO: [OP]
+    registerNonDifferentiable("EditDistance") // TODO: [OP]
+    registerNonDifferentiable("BroadcastGradientArgs") // TODO: [OP]
+    registerNonDifferentiable("StopGradient")
+
+    registerGradientFunction("Pack", stackGradient)
+
+    def stackGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+      val outputGradient = outputGradients.head.asInstanceOf[Op.OutputConvertible].toOpOutput
+      unstack(
+        input = g.toOpOutput,
+        number = op.longAttribute("N").toInt,
+        axis = op.longAttribute("axis").toInt).toSeq
+    }
+  }
 }

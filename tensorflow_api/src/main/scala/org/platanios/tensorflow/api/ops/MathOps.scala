@@ -148,6 +148,19 @@ object MathOps {
     Op.SparseOutput(x.indices, castedValues, x.denseShape)
   }
 
+  @throws[IllegalArgumentException]
+  def conjugate(input: Op.Output, name: String = "Conjugate"): Op.Output = {
+    if (input.dataType.isComplex) {
+      Op.Builder(opType = "Conj", name = name)
+          .addInput(input)
+          .build().outputs(0)
+    } else if (input.dataType.isNumeric) {
+      input
+    } else {
+      throw new IllegalArgumentException("'conjugate' can only take numeric tensors as input.")
+    }
+  }
+
   def addN(inputs: Array[Op.Output], name: String = "AddN"): Op.Output =
     Op.Builder(opType = "AddN", name = name)
         .addInputs(inputs)
@@ -1152,4 +1165,25 @@ object MathOps {
   // TODO: [SPARSE] Add sparse segment ops.
 
   //endregion Segment Ops
+
+  object Gradients {
+    registerGradientFunction("MatMul", matMulGradient)
+
+    def matMulGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+      val transposeA = op.booleanAttribute("transpose_a")
+      val transposeB = op.booleanAttribute("transpose_b")
+      val a = conjugate(op.inputs(0))
+      val b = conjugate(op.inputs(1))
+      val outputGradient = outputGradients.head.asInstanceOf[Op.OutputConvertible].toOpOutput
+      if (!transposeA && !transposeB)
+        Seq[Op.OutputLike](matMul(outputGradient, b, transposeB = true), matMul(a, outputGradient, transposeA = true))
+      else if (!transposeA && transposeB)
+        Seq[Op.OutputLike](matMul(outputGradient, b), matMul(outputGradient, a, transposeA = true))
+      else if (transposeA && !transposeB)
+        Seq[Op.OutputLike](matMul(b, outputGradient, transposeB = true), matMul(a, outputGradient))
+      else
+        Seq[Op.OutputLike](matMul(b, outputGradient, transposeA = true, transposeB = true),
+                           matMul(outputGradient, a, transposeA = true, transposeB = true))
+    }
+  }
 }
