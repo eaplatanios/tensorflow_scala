@@ -124,10 +124,14 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
     * @return Current consumers of the specified output.
     */
   private def outputConsumers(index: Int): Array[Op.Input] = using(graph.reference) { _ =>
-    NativeOp.consumers(nativeHandle, index).map(jniOpOutput => {
-      val op = graph.opsCache.getOrElseUpdate(jniOpOutput.opHandle, Op(graph, jniOpOutput.opHandle))
-      Op.Input(op = op, index = index)
-    })
+    val array = NativeOp.consumers(nativeHandle, index)
+    if (array == null)
+      Array.empty[Op.Input]
+    else
+      array.map(jniOpOutput => {
+        val op = graph.opsCache.getOrElseUpdate(jniOpOutput.opHandle, Op(graph, jniOpOutput.opHandle))
+        Op.Input(op = op, index = index)
+      })
   }
 
   /** Gets the value of a string-valued attribute of this op with name `name`.
