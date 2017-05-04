@@ -864,6 +864,9 @@ object Op {
 
     /** Op that generates this output. */
     def op: Op
+
+    /** Consumers of this op output (i.e., ops that use this op output as one of their inputs). */
+    def consumers: Array[Op.Input]
   }
 
   sealed trait OutputConvertible {
@@ -922,7 +925,7 @@ object Op {
     override def device: String = op.device
 
     /** Consumers of this op output (i.e., ops that use this op output as one of their inputs). */
-    lazy val consumers: Array[Op.Input] = op.outputConsumers(index)
+    override def consumers: Array[Op.Input] = op.outputConsumers(index)
 
     /** Shape of the tensor that this op output represents. */
     def shape: Shape = Shape.fromSeq(using(op.graph.reference) { r =>
@@ -1063,6 +1066,9 @@ object Op {
     /** Op that outputs these indexed slices. */
     override def op: Op = values.op
 
+    /** Consumers of these indexed slices (i.e., ops that use this op output as one of their inputs). */
+    override def consumers: Array[Op.Input] = values.consumers
+
     /** Returns the [[Op.Output]] that this [[Op.OutputLike]] object represents. */
     override def toOpOutput: Op.Output = {
       if (denseShape ne null)
@@ -1162,6 +1168,9 @@ object Op {
 
     /** Op that outputs this sparse tensor. */
     override def op: Op = values.op
+
+    /** Consumers of these indexed slices (i.e., ops that use this op output as one of their inputs). */
+    override def consumers: Array[Op.Input] = values.consumers
 
     /** Gets the [[Shape]] corresponding to the shape of the dense tensor that this sparse tensor represents.
       *
