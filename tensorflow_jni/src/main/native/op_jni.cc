@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <stdint.h>
+#include <iostream>
 
 #include "include/c_api.h"
 #include "include/exception_jni.h"
@@ -456,7 +457,6 @@ JNIEXPORT jobjectArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAtt
     }                                                                                        \
     TF_DeleteStatus(status);                                                                 \
                                                                                              \
-    if (attr_metadata.total_size < 0) return -1;                                             \
     if (attr_metadata.type != tf_type || attr_metadata.is_list == 1)                         \
       throw_exception(                                                                       \
           env, jvm_illegal_argument_exception,                                               \
@@ -465,6 +465,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAtt
                                                                                              \
     ctype *value = new ctype;                                                                \
     TF_OperationGetAttr##name(op, attr_name, value, status);                                 \
+    env->ReleaseStringUTFChars(name, attr_name);                                             \
                                                                                              \
     if (!throw_exception_if_not_ok(env, status)) {                                           \
       TF_DeleteStatus(status);                                                               \
@@ -472,7 +473,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAtt
     }                                                                                        \
     TF_DeleteStatus(status);                                                                 \
                                                                                              \
-    return *value;                                                                           \
+    return static_cast<jtype>(*value);                                                       \
   }
 
 #define DEFINE_GET_ATTR(name, jname, jtype, ctype, tf_type)                                  \
