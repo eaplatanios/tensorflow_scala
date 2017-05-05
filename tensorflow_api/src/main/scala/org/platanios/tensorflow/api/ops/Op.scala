@@ -2,7 +2,7 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.jni.{Op => NativeOp}
-import org.platanios.tensorflow.api.Exception.{GraphMismatchException, IllegalNameException, InvalidDataTypeException, OpBuilderUsedException}
+import org.platanios.tensorflow.api.Exception._
 
 import java.nio.charset.Charset
 
@@ -581,11 +581,15 @@ object Op {
     * @throws GraphMismatchException If any two of the values provided lie in different graphs.
     */
   @throws[GraphMismatchException]
-  private[ops] def createWithNameScope[R](nameScope: String, values: Set[Op])(block: => R)
+  private[ops] def createWithNameScope[R](nameScope: String, values: Set[Op] = Set.empty[Op])(block: => R)
       (implicit context: DynamicVariable[OpCreationContext]): R = {
-    val newGraph: Graph = mergeGraph(getGraphFromInputs(values), context)
     val newNameScope: String = mergeNameScope(nameScope, context)
-    context.withValue(context.copy(graph = newGraph, nameScope = newNameScope))(block)
+    if (values.nonEmpty) {
+      val newGraph: Graph = mergeGraph(getGraphFromInputs(values), context)
+      context.withValue(context.copy(graph = newGraph, nameScope = newNameScope))(block)
+    } else {
+      context.withValue(context.copy(nameScope = newNameScope))(block)
+    }
   }
 
   /** Creates a context that can be used for creating ops and placing them on the same device as `colocationOps`.
@@ -808,7 +812,7 @@ object Op {
     * @throws GraphMismatchException If the two ops lie in different graphs.
     */
   @throws[GraphMismatchException]
-  private[this] def assertSameGraph(op1: Op, op2: Op): Unit = {
+  private[ops] def assertSameGraph(op1: Op, op2: Op): Unit = {
     if (op1.graph != op2.graph)
       throw GraphMismatchException(s"'$op1' and '$op2' must be defined in the same graph.")
   }
