@@ -325,6 +325,8 @@ final case class Int64(value: Long) extends AnyVal with SupportedScalaNumberType
   override def toString: String = value.toString
 }
 
+// TODO: [DATA_TYPE] There might be some issues with the unsigned data types.
+
 final case class UInt8(value: Byte) extends AnyVal with SupportedScalaNumberType[UInt8] {
   @inline override def dataType: DataType = DataType.UInt8
 
