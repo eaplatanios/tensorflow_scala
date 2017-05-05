@@ -1,8 +1,8 @@
 organization in ThisBuild := "org.platanios"
-version in ThisBuild := "1.0"
+version in ThisBuild := "1.1.0"
 scalaVersion in ThisBuild := "2.12.1"
 
-val tensorFlowVersion = "1.1.0-rc2"
+val tensorFlowVersion = "1.1.0"
 
 scalacOptions in ThisBuild ++= Seq(
   "-feature",
