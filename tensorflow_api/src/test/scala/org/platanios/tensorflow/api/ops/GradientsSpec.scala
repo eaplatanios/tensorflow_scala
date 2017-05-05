@@ -1,10 +1,191 @@
 package org.platanios.tensorflow.api.ops
 
+import org.platanios.tensorflow.api.{Graph, Tensor}
+import org.scalatest._
+
 import scala.collection.mutable
 
 /**
   * @author Emmanouil Antonios Platanios
   */
+class GradientsSpec extends FlatSpec with Matchers {
+  "'Op.gradients'" must "work when gradients are defined for the ops being used" in {
+    val graph = Graph()
+    val expectedGraph = Graph()
+    val (inputs, output) = buildSuccessGraph(graph)
+    val gradients = Gradients.gradients(Array(output), inputs)
+    val expectedGradients = buildExpectedGraph(expectedGraph, gradientInputsProvided = false)
+    val graphDef = graph.toGraphDef
+    val expectedGraphDef = expectedGraph.toGraphDef
+    val (equal, difference) = Graph.equalGraphDef(graphDef, expectedGraphDef)
+    assert(equal)
+  }
+
+  "'Op.cc_gradients'" must "work when gradients are defined for the ops being used" in {
+    val graph = Graph()
+    val expectedGraph = Graph()
+    val (inputs, output) = buildSuccessGraph(graph)
+    val gradients = Gradients.cc_gradients(Array(output), inputs)
+    val expectedGradients = buildExpectedCCGraph(expectedGraph, gradientInputsProvided = false)
+    val graphDef = graph.toGraphDef
+    val expectedGraphDef = expectedGraph.toGraphDef
+    val (equal, difference) = Graph.equalGraphDef(graphDef, expectedGraphDef)
+    assert(equal)
+  }
+
+  private[this] def noGradientOp(input: Op.Output, name: String = "NoGradientOp"): Op.Output = {
+    ???
+  }
+
+  private[this] def buildErrorGraph(graph: Graph): (Op.Output, Op.Output) = {
+    Op.createWith(graph) {
+      val constant = ArrayOps.constant(Tensor(Tensor(1.0, 2.0), Tensor(3.0, 4.0)), name = "Constant_0")
+      val noGradient = noGradientOp(constant)
+      // TODO: Check for error or something.
+      (constant, noGradient)
+    }
+  }
+
+  /** Constructs the following graph:
+    * {{{
+    *               ^
+    *               |
+    *              z|
+    *               |
+    *             MatMul
+    *         --------------
+    *         ^            ^
+    *         |            |
+    *         |            |
+    *        x|           y|
+    *         |            |
+    *         |            |
+    *     Constant_0   Constant_1
+    * }}}
+    *
+    * @param  graph Graph in which to place the newly constructed ops.
+    * @return Tuple containing the input and output tensors, respectively.
+    */
+  private[this] def buildSuccessGraph(graph: Graph): (Array[Op.Output], Op.Output) = {
+    Op.createWith(graph) {
+      val constant0 = ArrayOps.constant(Tensor(Tensor(1.0, 2.0), Tensor(3.0, 4.0)), name = "Constant_0")
+      val constant1 = ArrayOps.constant(Tensor(Tensor(1.0, 0.0), Tensor(0.0, 1.0)), name = "Constant_1")
+      val matMul = MathOps.matMul(constant0, constant1, name = "MatMul")
+      (Array[Op.Output](constant0, constant1), matMul)
+    }
+  }
+
+  /** Constructs the following graph:
+    * {{{
+    *     ^                    ^
+    *     |                    |
+    *   dy|                  dx|
+    *     |                    |
+    *  MatMul_2             MatMul_1
+    *  --------            ---------
+    *  ^      ^            ^       ^
+    *  |      |            |       |
+    *  |      --------------       |
+    *  |            ^              |
+    *  |            |              |
+    *  |          dz|              |
+    *  |            |              |
+    *  |        Constant_2         |
+    *  |            ^              |
+    *  |            |              |
+    *  |           z|              |
+    *  |            |              |
+    *  |          MatMul           |
+    *  |      --------------       |
+    *  |      ^            ^       |
+    *  |      |            |       |
+    *  |      |            |       |
+    *  |     x|           y|       |
+    *  |      |            |       |
+    *  |      |            |       |
+    *  -- Constant_0   Constant_1 --
+    * }}}
+    *
+    * @param  graph                  Graph in which to place the newly constructed ops.
+    * @param  gradientInputsProvided Boolean value indicating whether the output gradients are initialized with some
+    *                                pre-existing values. If `false`, they are initialized with ones.
+    * @return Array containing the gradient tensors.
+    */
+  private[this] def buildExpectedGraph(graph: Graph, gradientInputsProvided: Boolean): Array[Op.Output] = {
+    Op.createWith(graph) {
+      val constant0 = ArrayOps.constant(Tensor(Tensor(1.0, 2.0), Tensor(3.0, 4.0)), name = "Constant_0")
+      val constant1 = ArrayOps.constant(Tensor(Tensor(1.0, 0.0), Tensor(0.0, 1.0)), name = "Constant_1")
+      val matMul = MathOps.matMul(constant0, constant1, name = "MatMul")
+      Op.createWithNameScope("Gradients") {
+        val constant2 = {
+          if (gradientInputsProvided)
+            ArrayOps.constant(Tensor(Tensor(1.0, 1.0), Tensor(1.0, 1.0)), name = "GradientInputs")
+          else
+            ArrayOps.ones(matMul.shape, matMul.dataType, name = "OnesLike")
+        }
+        Op.createWithNameScope("MatMulGradient") {
+          val matMul1 = MathOps.matMul(constant2, constant1, transposeA = false, transposeB = true, name = "MatMul_1")
+          val matMul2 = MathOps.matMul(constant0, constant2, transposeA = true, transposeB = false, name = "MatMul_2")
+          Array[Op.Output](matMul1, matMul2)
+        }
+      }
+    }
+  }
+
+  /** Constructs the following graph:
+    * {{{
+    *     ^                    ^
+    *     |                    |
+    *   dy|                  dx|
+    *     |                    |
+    *  MatMul_2             MatMul_1
+    *  --------            ---------
+    *  ^      ^            ^       ^
+    *  |      |            |       |
+    *  |      --------------       |
+    *  |            ^              |
+    *  |            |              |
+    *  |          dz|              |
+    *  |            |              |
+    *  |        Constant_2         |
+    *  |            ^              |
+    *  |            |              |
+    *  |           z|              |
+    *  |            |              |
+    *  |          MatMul           |
+    *  |      --------------       |
+    *  |      ^            ^       |
+    *  |      |            |       |
+    *  |      |            |       |
+    *  |     x|           y|       |
+    *  |      |            |       |
+    *  |      |            |       |
+    *  -- Constant_0   Constant_1 --
+    * }}}
+    *
+    * @param  graph                  Graph in which to place the newly constructed ops.
+    * @param  gradientInputsProvided Boolean value indicating whether the output gradients are initialized with some
+    *                                pre-existing values. If `false`, they are initialized with ones.
+    * @return Array containing the gradient tensors.
+    */
+  private[this] def buildExpectedCCGraph(graph: Graph, gradientInputsProvided: Boolean): Array[Op.Output] = {
+    Op.createWith(graph) {
+      val constant0 = ArrayOps.constant(Tensor(Tensor(1.0, 2.0), Tensor(3.0, 4.0)), name = "Constant_0")
+      val constant1 = ArrayOps.constant(Tensor(Tensor(1.0, 0.0), Tensor(0.0, 1.0)), name = "Constant_1")
+      val matMul = MathOps.matMul(constant0, constant1, name = "MatMul")
+      val constant2 = {
+        if (gradientInputsProvided)
+          ArrayOps.constant(Tensor(Tensor(1.0, 1.0), Tensor(1.0, 1.0)), name = "GradientInputs")
+        else
+          ArrayOps.onesLike(matMul, optimize = false, name = "OnesLike")
+      }
+      val matMul1 = MathOps.matMul(constant2, constant1, transposeA = false, transposeB = true, name = "MatMul_1")
+      val matMul2 = MathOps.matMul(constant0, constant2, transposeA = true, transposeB = false, name = "MatMul_2")
+      Array[Op.Output](matMul1, matMul2)
+    }
+  }
+}
+
 object GradientsSpec {
   /** Gathers and returns all inputs of `destinations` (recursively) that have been reached.
     *

@@ -1168,22 +1168,54 @@ object MathOps {
 
   object Gradients {
     registerGradientFunction("MatMul", matMulGradient)
+    registerGradientFunction("BatchMatMul", batchMatMulGradient)
 
     def matMulGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
-      val transposeA = op.booleanAttribute("transpose_a")
-      val transposeB = op.booleanAttribute("transpose_b")
+      matMulGradientCommon(op, outputGradients, "transpose_a", "transpose_b", isBatch = false)
+    }
+
+    def batchMatMulGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+      matMulGradientCommon(op, outputGradients, "adj_x", "adj_y", isBatch = true)
+    }
+
+    private[this] def matMulGradientCommon(
+        op: Op, outputGradients: Seq[Op.OutputLike], transposeAAttribute: String, transposeBAttribute: String,
+        isBatch: Boolean): Seq[Op.OutputLike] = {
+      val transposeA = op.booleanAttribute(transposeAAttribute)
+      val transposeB = op.booleanAttribute(transposeBAttribute)
       val a = conjugate(op.inputs(0))
       val b = conjugate(op.inputs(1))
       val outputGradient = outputGradients.head.asInstanceOf[Op.OutputConvertible].toOpOutput
       if (!transposeA && !transposeB)
-        Seq[Op.OutputLike](matMul(outputGradient, b, transposeB = true), matMul(a, outputGradient, transposeA = true))
+        matMulGradientHelper(
+          outputGradient, b, a, outputGradient,
+          transposeX0 = false, transposeX1 = true, transposeY0 = true, transposeY1 = false, isBatch = isBatch)
       else if (!transposeA && transposeB)
-        Seq[Op.OutputLike](matMul(outputGradient, b), matMul(outputGradient, a, transposeA = true))
+        matMulGradientHelper(
+          outputGradient, b, outputGradient, a,
+          transposeX0 = false, transposeX1 = false, transposeY0 = true, transposeY1 = false, isBatch = isBatch)
       else if (transposeA && !transposeB)
-        Seq[Op.OutputLike](matMul(b, outputGradient, transposeB = true), matMul(a, outputGradient))
+        matMulGradientHelper(
+          b, outputGradient, a, outputGradient,
+          transposeX0 = false, transposeX1 = true, transposeY0 = false, transposeY1 = false, isBatch = isBatch)
       else
-        Seq[Op.OutputLike](matMul(b, outputGradient, transposeA = true, transposeB = true),
-                           matMul(outputGradient, a, transposeA = true, transposeB = true))
+        matMulGradientHelper(
+          b, outputGradient, outputGradient, a,
+          transposeX0 = true, transposeX1 = true, transposeY0 = true, transposeY1 = true, isBatch = isBatch)
+    }
+
+    private[this] def matMulGradientHelper(
+        x0: Op.Output, x1: Op.Output, y0: Op.Output, y1: Op.Output, transposeX0: Boolean, transposeX1: Boolean,
+        transposeY0: Boolean, transposeY1: Boolean, isBatch: Boolean): Seq[Op.OutputLike] = {
+      if (!isBatch) {
+        val gradientX = matMul(x0, x1, transposeA = transposeX0, transposeB = transposeX1, name = "MatMul_1")
+        val gradientY = matMul(y0, y1, transposeA = transposeY0, transposeB = transposeY1, name = "MatMul_2")
+        Seq[Op.OutputLike](gradientX, gradientY)
+      } else {
+        val gradientX = batchMatMul(x0, x1, adjointX = transposeX0, adjointY = transposeX1, name = "MatMul_1")
+        val gradientY = batchMatMul(y0, y1, adjointX = transposeY0, adjointY = transposeY1, name = "MatMul_2")
+        Seq[Op.OutputLike](gradientX, gradientY)
+      }
     }
   }
 }

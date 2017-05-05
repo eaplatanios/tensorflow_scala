@@ -53,6 +53,7 @@ lazy val tensorflow_api = (project in file("./tensorflow_api"))
     .dependsOn(tensorflow_jni)
     .settings(
       name := "tensorflow_api",
+      libraryDependencies ++= loggingDependencies,
       libraryDependencies += "org.tensorflow" % "proto" % tensorFlowVersion,
       // Test dependencies
       libraryDependencies += "org.scalactic" %% "scalactic" % "3.0.1",

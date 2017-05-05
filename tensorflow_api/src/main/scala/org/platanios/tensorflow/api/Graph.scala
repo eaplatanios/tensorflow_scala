@@ -2,7 +2,9 @@ package org.platanios.tensorflow.api
 
 import org.platanios.tensorflow.api.Exception.{GraphMismatchException, InvalidGraphElementException}
 import org.platanios.tensorflow.jni.{Graph => NativeGraph}
+import org.tensorflow.framework.{GraphDef, NodeDef}
 
+import scala.collection.JavaConverters._
 import scala.collection.mutable
 
 /**
@@ -338,10 +340,9 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable {
     * @see #importGraphDef(byte[])
     * @see #importGraphDef(byte[], String)
     */
-  def toGraphDef: Array[Byte] = {
-    NativeHandleLock.synchronized {
-      NativeGraph.toGraphDef(nativeHandle)
-    }
+  def toGraphDef: GraphDef = {
+    // TODO: Rename to "toProto".
+    GraphDef.parseFrom(NativeHandleLock.synchronized(NativeGraph.toGraphDef(nativeHandle)))
   }
 
   def reference: Reference = Reference()
@@ -382,6 +383,103 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable {
 
 object Graph {
   def apply(): Graph = Graph(nativeHandle = NativeGraph.allocate())
+
+  // TODO: [DOC] Complete documentation.
+  /**
+    *
+    * @param  graphDef1
+    * @param  graphDef2
+    * @param  ignoreInternalAttributes Boolean value indicating whether to ignore internal attributes (i.e., attributes
+    *                                  whose names start with `'_'`.
+    * @return
+    */
+  def equalGraphDef(
+      graphDef1: GraphDef, graphDef2: GraphDef, ignoreInternalAttributes: Boolean = true): (Boolean, String) = {
+    // We intentionally do not check that the versions of the two GraphDefs match so that this function can be used for
+    // less brittle golden file tests.
+    var graph1Index = mutable.Map.empty[String, NodeDef]
+    var index = 0
+    while (index < graphDef1.getNodeCount) {
+      val nodeDef = graphDef1.getNode(index)
+      graph1Index.update(nodeDef.getName, nodeDef)
+      index += 1
+    }
+    graph1Index.toMap
+    index = 0
+    while (index < graphDef2.getNodeCount) {
+      val node2Def = graphDef2.getNode(index)
+      if (!graph1Index.contains(node2Def.getName))
+        return (false, s"Graph 1 does not contain node '${node2Def.getName}' which graph 2 does.")
+      val (equal, difference) = equalNodeDef(graph1Index(node2Def.getName), node2Def, ignoreInternalAttributes)
+      if (!equal)
+        return (equal, difference)
+      graph1Index -= node2Def.getName
+      index += 1
+    }
+
+    (true, null)
+  }
+
+  def equalNodeDef(
+      nodeDef1: NodeDef, nodeDef2: NodeDef, ignoreInternalAttributes: Boolean = true): (Boolean, String) = {
+    if (nodeDef1.getName != nodeDef2.getName)
+      return (false, s"Node 1 name '${nodeDef1.getName}' does not match node 2 name '${nodeDef2.getName}'.")
+    if (nodeDef1.getOp != nodeDef2.getOp)
+      return (false, s"Node 1 named '${nodeDef1.getName}' has op '${nodeDef1.getOp}' which does not match node 2's " +
+          s"op '${nodeDef2.getOp}'.")
+    if (nodeDef1.getDevice != nodeDef2.getDevice)
+      return (false, s"Node 1 named '${nodeDef1.getName}' has device '${nodeDef1.getDevice}' which does not match " +
+          s"node 2's device '${nodeDef2.getDevice}'.")
+    if (nodeDef1.getInputCount != nodeDef2.getInputCount)
+      return (false, s"Node 1 named '${nodeDef1.getName}' has '${nodeDef1.getInputCount}' inputs which does not " +
+          s"match node 2's '${nodeDef2.getInputCount}' inputs.")
+
+    // Check the inputs
+    var firstControlInput = -1
+    var index = 0
+    while (index < nodeDef1.getInputCount && firstControlInput < 0) {
+      val node1Input = nodeDef1.getInput(index)
+      val node2Input = nodeDef2.getInput(index)
+      if (node1Input.startsWith("^"))
+        firstControlInput = index
+      else if (node1Input != node2Input)
+        return (false, s"Node 1 named '${nodeDef1.getName}' has input $index '$node1Input' which does not match " +
+            s"node 2's input '$node2Input'.")
+      index += 1
+    }
+
+    // Check the control inputs
+    if (firstControlInput > 0) {
+      var node1ControlInputs = (firstControlInput until nodeDef1.getInputCount).map(nodeDef1.getInput).toSet
+      val node2ControlInputs = (firstControlInput until nodeDef2.getInputCount).map(nodeDef2.getInput).toSet
+      for (node <- node2ControlInputs) {
+        if (!node1ControlInputs.contains(node))
+          return (false, s"Node 1 named '${nodeDef1.getName}' does not have control input '$node' that node 2 has.")
+        node1ControlInputs -= node
+      }
+      if (node1ControlInputs.nonEmpty)
+        return (false, s"Node 1 named '${nodeDef1.getName}' has control input '${node1ControlInputs.head}' that node 2 " +
+            s"does not have.")
+    }
+
+    // Check the attributes
+    var node1Attributes = nodeDef1.getAttrMap.asScala.filterKeys(k => !ignoreInternalAttributes || !k.startsWith("_"))
+    for ((name, value) <- nodeDef2.getAttrMap.asScala) {
+      if (!ignoreInternalAttributes || !name.startsWith("_")) {
+        if (!node1Attributes.contains(name))
+          return (false, s"Node 1 named '${nodeDef1.getName}' does not contain attribute '$name' that node 2 does.")
+        // TODO: [PROTO] Implement attr_value_utils and node_def_utils to provide better summaries.
+        if (node1Attributes(name).toString != value.toString)
+          return (false, s"Node 1 named '${nodeDef1.getName}' has different value for attribute '$name' than node 2.")
+        node1Attributes -= name
+      }
+    }
+    if (node1Attributes.nonEmpty)
+      return (false, s"Node 1 named '${nodeDef1.getName}' has attribute '${node1Attributes.head}' that node 2 " +
+          s"does not have.")
+
+    (true, null)
+  }
 
   /** Contains standard names to use for graph collections.
     *

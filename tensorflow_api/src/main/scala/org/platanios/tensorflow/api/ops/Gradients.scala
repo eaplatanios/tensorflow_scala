@@ -2,6 +2,7 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.Exception.InvalidDataTypeException
 import org.platanios.tensorflow.api.types.DataType
+import org.platanios.tensorflow.jni.{Graph => NativeGraph, OpOutput => NativeOpOutput}
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
@@ -99,12 +100,12 @@ object Gradients {
 
       // Initialize the ops queue with the destination ops. We filter the destination ops based on whether one output
       // gradient relies on another output's gradient.
-      val opsQueue = mutable.Queue[Op](destinationOps.filter(pendingCounts(_) == 0).toSeq: _*)
+      val opsQueue = mutable.Queue[Op](destinationOps.filter(pendingCounts.getOrElse(_, 0) == 0).toSeq: _*)
 
       // Stop ops form the frontier of the forward graph before which back-propagation should stop. Ops in this set will
       // not be differentiated. This set is defined as the subset of `sourceOps` containing ops that have no predecessor
       // in `sourceOps`. An op has predecessors in `sourceOps` if and only if `pendingCounts(op) > 0`.
-      val stopOps = sourceOps.filter(op => op.inputs.forall(i => pendingCounts(i.op) <= 0))
+      val stopOps = sourceOps.filter(op => op.inputs.forall(i => pendingCounts.getOrElse(i.op, 0) <= 0))
 
       while (opsQueue.nonEmpty) {
         val op = opsQueue.dequeue()
@@ -131,7 +132,7 @@ object Gradients {
             }
 
             // Compute the actual op gradients.
-            Op.createWith(nameScope = s"${op.name}Grad") {
+            Op.createWith(nameScope = s"${op.name}Gradient") {
               // TODO: [CONTEXT] Add support for original op context.
               val outputGradients = opGradients.map(_.head)
               val inputGradients = maybeCompile(name, op, () => gradientFunction(op, outputGradients))
@@ -354,18 +355,21 @@ object Gradients {
             s"(${op.inputs.length}).")
     for ((input, gradient) <- op.inputs.zip(gradients)) {
       if (gradient ne null) {
-        if (gradient.dataType.isFloatingPoint && !input.dataType.isFloatingPoint)
-          throw InvalidDataTypeException(
-            s"Gradient data type '${gradient.dataType}' generated for real-valued op '$op' with data type " +
-                s"'${input.dataType}' must be real.")
-        else if (gradient.dataType.isComplex && !input.dataType.isComplex)
-          throw InvalidDataTypeException(
-            s"Gradient data type '${gradient.dataType}' generated for complex-valued op '$op' with data type " +
-                s"'${input.dataType}' must be complex.")
-        else
+        if (gradient.dataType.isFloatingPoint) {
+          if (!input.dataType.isFloatingPoint)
+            throw InvalidDataTypeException(
+              s"Gradient data type '${gradient.dataType}' generated for real-valued op '$op' with data type " +
+                  s"'${input.dataType}' must be real.")
+        } else if (gradient.dataType.isComplex) {
+          if (!input.dataType.isComplex)
+            throw InvalidDataTypeException(
+              s"Gradient data type '${gradient.dataType}' generated for complex-valued op '$op' with data type " +
+                  s"'${input.dataType}' must be complex.")
+        } else {
           throw InvalidDataTypeException(
             s"Gradient data type '${gradient.dataType}' generated for op '$op' with data type '${input.dataType}' " +
                 s"must be either real or complex.")
+        }
       }
     }
   }
@@ -432,4 +436,44 @@ object Gradients {
   }
 
   // TODO: [GRADIENTS] Add support for more aggregation methods.
+
+  /** Adds ops to the graph to compute the partial derivatives of the sum of `y`s with respect to the `x`s, using the
+    * C++ gradients support of the TensorFlow native library.
+    *
+    * Note that the C++ gradients support of the TensorFlow native library is incomplete and will not be sufficient for
+    * many use cases. It is mainly exposed as means of comparison to the Scala API functionality.
+    *
+    * The result of this function is an array containing: `d(y_1 + y_2 + ...)/dx_1`, `d(y_1 + y_2 + ...)/dx_2`, `...`.
+    *
+    * @param  y  Tensors whose partial derivatives are computed.
+    * @param  x  Tensors with respect to which the gradients are computed.
+    * @param  dx Tensors to use as the initial gradients. They represent the symbolic partial derivatives of some loss
+    *            function `L` with respect to `y`. If `null`, then ones are used. The number of tensors in `dx` must
+    *            match the number of tensors in `y`.
+    * @return Partial derivatives of the `y`s given each one of the `x`s.
+    */
+  def cc_gradients(y: Array[Op.Output], x: Array[Op.Output], dx: Array[Op.Output] = null): Array[Op.Output] = {
+    // TODO: Overload this method with all possible uses for it.
+    if (dx != null && dx.length != y.length)
+      throw new IllegalArgumentException(s"The number of ys (${y.length}) must match the number of dxs (${dx.length}).")
+
+    // Obtain the graph and verify that all provided op outputs are defined over the same graph
+    val graph = y.head.graph
+    y.foreach(o => Op.assertSameGraph(o.op, y.head.op))
+    x.foreach(o => Op.assertSameGraph(o.op, y.head.op))
+    if (dx != null)
+      dx.foreach(o => Op.assertSameGraph(o.op, y.head.op))
+
+    // Map all arrays to the corresponding data structures used by the JNI layer
+    val yJNI = y.map(o => NativeOpOutput(o.op.nativeHandle, o.index))
+    val xJNI = x.map(o => NativeOpOutput(o.op.nativeHandle, o.index))
+    val dxJNI = if (dx == null) null else dx.map(o => NativeOpOutput(o.op.nativeHandle, o.index))
+
+    // Add the gradients to the graph and collect them to the array that is returned
+    val jniGradients = NativeGraph.addGradients(graph.nativeHandle, yJNI, xJNI, dxJNI)
+    jniGradients.map(o => {
+      val op = graph.opsCache.getOrElseUpdate(o.opHandle, Op(graph, o.opHandle))
+      Op.Output(op, o.outputIndex)
+    })
+  }
 }
