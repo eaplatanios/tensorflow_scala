@@ -3,7 +3,7 @@ package org.platanios.tensorflow.api.ops
 /**
   * @author Emmanouil Antonios Platanios
   */
-object LoggingOps {
+object Logging {
   // TODO: Look into control flow ops for the "Assert" op.
 //  /** Asserts that the provided condition is true.
 //    *

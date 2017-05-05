@@ -7,7 +7,7 @@ import org.platanios.tensorflow.api.{DataType, Shape, Tensor, using}
 /**
   * @author Emmanouil Antonios Platanios
   */
-object ArrayOps {
+object Basic {
   //region Tensor Creation Ops
 
   /** Creates an op that returns a constant tensor.
@@ -107,7 +107,7 @@ object ArrayOps {
       zeros(input.shape, outputDataType, name)
     } else if (outputDataType != input.dataType) {
       Op.Builder(opType = "ZerosLike", name = name)
-          .addInput(MathOps.cast(input, outputDataType))
+          .addInput(Math.cast(input, outputDataType))
           .build().outputs(0)
     } else {
       Op.Builder(opType = "ZerosLike", name = name)
@@ -163,7 +163,7 @@ object ArrayOps {
       ones(input.shape, outputDataType, name)
     } else if (outputDataType != input.dataType) {
       Op.Builder(opType = "OnesLike", name = name)
-          .addInput(MathOps.cast(input, outputDataType))
+          .addInput(Math.cast(input, outputDataType))
           .build().outputs(0)
     } else {
       Op.Builder(opType = "OnesLike", name = name)
@@ -190,7 +190,7 @@ object ArrayOps {
   def fill(shape: Op.Output, value: Op.Output, dataType: DataType = null, name: String = "Fill"): Op.Output = {
     Op.Builder(opType = "Fill", name = name)
         .addInput(shape)
-        .addInput(if (dataType == null || dataType == value.dataType) value else MathOps.cast(value, dataType))
+        .addInput(if (dataType == null || dataType == value.dataType) value else Math.cast(value, dataType))
         .build().outputs(0)
   }
 
@@ -413,7 +413,7 @@ object ArrayOps {
   def sparseSize(
       input: Op.SparseOutput, dataType: DataType = DataType.Int32, name: String = "SparseSize"): Op.Output = {
     Op.createWith(nameScope = name) {
-      MathOps.reduceProd(MathOps.cast(input.denseShape, dataType), Array(0))
+      Math.reduceProd(Math.cast(input.denseShape, dataType), Array(0))
     }
   }
 
@@ -463,7 +463,7 @@ object ArrayOps {
     */
   def sparseShape(
       input: Op.SparseOutput, dataType: DataType = DataType.Int32, name: String = "SparseShape"): Op.Output = {
-    MathOps.cast(input.denseShape, dataType, name = name)
+    Math.cast(input.denseShape, dataType, name = name)
   }
 
   /** Creates an op that returns the shape of an array of tensors.
@@ -934,7 +934,7 @@ object ArrayOps {
     if (permutation == null) {
       Op.createWith(nameScope = name) {
         val inputRank = rank(input)
-        val reversePermutation = inputRank - constant(1) - MathOps.range(constant(0), inputRank, constant(1))
+        val reversePermutation = inputRank - constant(1) - Math.range(constant(0), inputRank, constant(1))
         Op.Builder(opType = "Transpose", name = name)
             .addInput(input)
             .addInput(reversePermutation)
@@ -979,7 +979,7 @@ object ArrayOps {
     *   // matrixTranspose(x) has shape [1, 2, 4, 3]
     * }}}
     *
-    * Note that [[MathOps.matMul]] provides named arguments allowing for transposing the matrices involved in the
+    * Note that [[Math.matMul]] provides named arguments allowing for transposing the matrices involved in the
     * multiplication. This is done with minimal cost, and is preferable to using this function. For example:
     * {{{
     *   matMul(a, b, transposeB = true) // is preferable to:
@@ -1008,7 +1008,7 @@ object ArrayOps {
         val inputRankMinus1 = inputRank - constant(1)
         val inputRankMinus2 = inputRank - constant(2)
         val permutation = concatenate(
-          Array(MathOps.range(constant(0), inputRankMinus2, constant(1)), inputRankMinus1, inputRankMinus2))
+          Array(Math.range(constant(0), inputRankMinus2, constant(1)), inputRankMinus1, inputRankMinus2))
         transposeDynamic(input, permutation)
       }
     }
@@ -1094,7 +1094,7 @@ object ArrayOps {
   def reverse(input: Op.Output, axes: Array[Int], name: String = "Reverse"): Op.Output = {
     Op.Builder(opType = "Reverse", name = name)
         .addInput(input)
-        .addInput(ArrayOps.constant(Tensor(axes.map(Tensor(_)): _*)))
+        .addInput(Basic.constant(Tensor(axes.map(Tensor(_)): _*)))
         .build().outputs(0)
   }
 

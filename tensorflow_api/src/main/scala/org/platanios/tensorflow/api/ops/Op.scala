@@ -13,7 +13,7 @@ import scala.util.DynamicVariable
   *
   * An `Op` is a symbolic representation of the computation it performs. It is a node in a TensorFlow [[Graph]] that
   * takes zero or more `Op.Output` objects as input, and produces zero or more `Op.Output` objects as output. `Op`
-  * objects are constructed by calling op creation functions, such as [[ArrayOps.constant]] or [[MathOps.matMul]].
+  * objects are constructed by calling op creation functions, such as [[Basic.constant]] or [[Math.matMul]].
   *
   * For example, `val c = MathOps.matMul(a, b)` creates an `Op` of type `"MatMul"` that takes `Op.Output`s `a` and
   * `b` as input, and produces `Op.Output` `c` as output.
@@ -25,7 +25,6 @@ import scala.util.DynamicVariable
   * After the graph has been launched in a [[Session]], an `Op` can be executed by using [[Session.run]].
   *
   * TODO: Add `Op.run` use example, once that is supported.
-  *
   * @author Emmanouil Antonios Platanios
   */
 final case class Op private (graph: Graph, private[api] val nativeHandle: Long) {
@@ -1032,22 +1031,22 @@ object Op {
     //region Ops
 
     def unary_- : Output = ??? // TODO: !!!
-    def +(other: Output): Output = MathOps.add(x = this, y = other) // TODO: [SPARSE]
-    def -(other: Output): Output = MathOps.subtract(x = this, y = other) // TODO: [SPARSE]
-    def *(other: Output): Output = MathOps.multiply(x = this, y = other) // TODO: [SPARSE]
-    def /(other: Output): Output = MathOps.divide(x = this, y = other) // TODO: [SPARSE]
-    def **(other: Output): Output = MathOps.pow(x = this, y = other) // TODO: [SPARSE]
+    def +(other: Output): Output = Math.add(x = this, y = other) // TODO: [SPARSE]
+    def -(other: Output): Output = Math.subtract(x = this, y = other) // TODO: [SPARSE]
+    def *(other: Output): Output = Math.multiply(x = this, y = other) // TODO: [SPARSE]
+    def /(other: Output): Output = Math.divide(x = this, y = other) // TODO: [SPARSE]
+    def **(other: Output): Output = Math.pow(x = this, y = other) // TODO: [SPARSE]
 
-    def unary_! : Output = MathOps.logicalNot(x = this)
-    def &&(other: Output): Output = MathOps.logicalAnd(x = this, y = other)
-    def ||(other: Output): Output = MathOps.logicalOr(x = this, y = other)
+    def unary_! : Output = Math.logicalNot(x = this)
+    def &&(other: Output): Output = Math.logicalAnd(x = this, y = other)
+    def ||(other: Output): Output = Math.logicalOr(x = this, y = other)
 
-    def ==(other: Output): Output = MathOps.equal(x = this, y = other)
-    def !=(other: Output): Output = MathOps.notEqual(x = this, y = other)
-    def <(other: Output): Output = MathOps.less(x = this, y = other)
-    def <=(other: Output): Output = MathOps.lessEqual(x = this, y = other)
-    def >(other: Output): Output = MathOps.greater(x = this, y = other)
-    def >=(other: Output): Output = MathOps.greaterEqual(x = this, y = other)
+    def ==(other: Output): Output = Math.equal(x = this, y = other)
+    def !=(other: Output): Output = Math.notEqual(x = this, y = other)
+    def <(other: Output): Output = Math.less(x = this, y = other)
+    def <=(other: Output): Output = Math.lessEqual(x = this, y = other)
+    def >(other: Output): Output = Math.greater(x = this, y = other)
+    def >=(other: Output): Output = Math.greaterEqual(x = this, y = other)
 
     //endregion Ops
 
@@ -1061,8 +1060,8 @@ object Op {
       * @return [[Op.OutputIndexedSlices]] that has the same value as this [[Op.OutputLike]].
       */
     override def toOpOutputIndexedSlices(optimize: Boolean = true): Op.OutputIndexedSlices = {
-      val denseShape = ArrayOps.shape(this, optimize = optimize)
-      val indices = MathOps.range(ArrayOps.constant(0), denseShape(0))
+      val denseShape = Basic.shape(this, optimize = optimize)
+      val indices = Math.range(Basic.constant(0), denseShape(0))
       OutputIndexedSlices(indices = indices, values = this, denseShape = denseShape)
     }
 
@@ -1145,7 +1144,7 @@ object Op {
               s"shape information available.")
       // TODO: Add check for large number of elements (e.g., > 100000000).
       createWith(nameScope = "IndexedSlicesToOutput") {
-        MathOps.unsortedSegmentSum(data = values, segmentIndices = indices, segmentsNumber = denseShape(0))
+        Math.unsortedSegmentSum(data = values, segmentIndices = indices, segmentsNumber = denseShape(0))
       }
     }
 
@@ -1279,8 +1278,8 @@ object Op {
     */
   private[api] def convertToSparseOutput(sparseOutputValue: (Tensor, Tensor, Tensor)): SparseOutput = {
     SparseOutput(
-      ArrayOps.constant(sparseOutputValue._1), ArrayOps.constant(sparseOutputValue._2),
-      ArrayOps.constant(sparseOutputValue._3))
+      Basic.constant(sparseOutputValue._1), Basic.constant(sparseOutputValue._2),
+      Basic.constant(sparseOutputValue._3))
   }
 
   // TODO: !!!

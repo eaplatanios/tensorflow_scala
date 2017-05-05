@@ -33,10 +33,10 @@ trait Implicits extends LowPriorityImplicits {
 }
 
 trait LowPriorityImplicits {
-  implicit def tensorToOpOutput(tensor: Tensor): Op.Output = ops.ArrayOps.constant(tensor)
+  implicit def tensorToOpOutput(tensor: Tensor): Op.Output = ops.Basic.constant(tensor)
 
   implicit def shapeToTensor(shape: Shape): Tensor = shape.toTensor()
-  implicit def shapeToOpOutput(shape: Shape): Op.Output = ops.ArrayOps.constant(shape.toTensor())
+  implicit def shapeToOpOutput(shape: Shape): Op.Output = ops.Basic.constant(shape.toTensor())
 
   implicit def scalaValueToTensor(value: Boolean): Tensor = Tensor.fill(dataType = DataType.Bool)(Bool(value))
   implicit def scalaValueToTensor(value: String): Tensor = Tensor.fill(dataType = DataType.Str)(Str(value))
@@ -48,13 +48,13 @@ trait LowPriorityImplicits {
   implicit def scalaValueToTensor(value: Long): Tensor = Tensor.fill(dataType = DataType.Int64)(Int64(value))
   implicit def scalaValueToTensor(value: Char): Tensor = Tensor.fill(dataType = DataType.UInt16)(UInt16(value))
 
-  implicit def scalaValueToOpOutput(value: Boolean): Op.Output = ops.ArrayOps.constant(scalaValueToTensor(value))
-  implicit def scalaValueToOpOutput(value: String): Op.Output = ops.ArrayOps.constant(scalaValueToTensor(value))
-  implicit def scalaValueToOpOutput(value: Float): Op.Output = ops.ArrayOps.constant(scalaValueToTensor(value))
-  implicit def scalaValueToOpOutput(value: Double): Op.Output = ops.ArrayOps.constant(scalaValueToTensor(value))
-  implicit def scalaValueToOpOutput(value: Byte): Op.Output = ops.ArrayOps.constant(scalaValueToTensor(value))
-  implicit def scalaValueToOpOutput(value: Short): Op.Output = ops.ArrayOps.constant(scalaValueToTensor(value))
-  implicit def scalaValueToOpOutput(value: Int): Op.Output = ops.ArrayOps.constant(scalaValueToTensor(value))
-  implicit def scalaValueToOpOutput(value: Long): Op.Output = ops.ArrayOps.constant(scalaValueToTensor(value))
-  implicit def scalaValueToOpOutput(value: Char): Op.Output = ops.ArrayOps.constant(scalaValueToTensor(value))
+  implicit def scalaValueToOpOutput(value: Boolean): Op.Output = ops.Basic.constant(scalaValueToTensor(value))
+  implicit def scalaValueToOpOutput(value: String): Op.Output = ops.Basic.constant(scalaValueToTensor(value))
+  implicit def scalaValueToOpOutput(value: Float): Op.Output = ops.Basic.constant(scalaValueToTensor(value))
+  implicit def scalaValueToOpOutput(value: Double): Op.Output = ops.Basic.constant(scalaValueToTensor(value))
+  implicit def scalaValueToOpOutput(value: Byte): Op.Output = ops.Basic.constant(scalaValueToTensor(value))
+  implicit def scalaValueToOpOutput(value: Short): Op.Output = ops.Basic.constant(scalaValueToTensor(value))
+  implicit def scalaValueToOpOutput(value: Int): Op.Output = ops.Basic.constant(scalaValueToTensor(value))
+  implicit def scalaValueToOpOutput(value: Long): Op.Output = ops.Basic.constant(scalaValueToTensor(value))
+  implicit def scalaValueToOpOutput(value: Char): Op.Output = ops.Basic.constant(scalaValueToTensor(value))
 }

@@ -1,7 +1,7 @@
 package org.platanios.tensorflow.api
 
 import org.platanios.tensorflow.api.Exception.InvalidIndexerException
-import org.platanios.tensorflow.api.ops.ArrayOps
+import org.platanios.tensorflow.api.ops.Basic
 
 import scala.language.postfixOps
 
@@ -244,11 +244,11 @@ object Indexer {
           endMask |= (1 << i)
     }
     input: Op.Output =>
-      ArrayOps.stridedSlice(
+      Basic.stridedSlice(
         input = input,
-        begin = ArrayOps.constant(begin),
-        end = ArrayOps.constant(end),
-        strides = ArrayOps.constant(strides),
+        begin = Basic.constant(begin),
+        end = Basic.constant(end),
+        strides = Basic.constant(strides),
         beginMask = beginMask,
         endMask = endMask,
         ellipsisMask = ellipsisMask,

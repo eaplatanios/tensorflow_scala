@@ -1,7 +1,7 @@
 package org.platanios.tensorflow.api
 
-import org.platanios.tensorflow.api.ops.ArrayOps._
-import org.platanios.tensorflow.api.ops.MathOps._
+import org.platanios.tensorflow.api.ops.Basic._
+import org.platanios.tensorflow.api.ops.Math._
 import org.platanios.tensorflow.api.ops.Op.createWith
 
 import org.scalatest._

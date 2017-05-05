@@ -52,7 +52,7 @@ case class TensorArray private(
     *         control dependencies for writes, reads, etc. Use this object for all subsequent operations.
     */
   def identity: TensorArray = {
-    TensorArray(this.handle, ArrayOps.identity(this.flow), this.dataType, this.inferShape, this.elementShape)
+    TensorArray(this.handle, Basic.identity(this.flow), this.dataType, this.inferShape, this.elementShape)
   }
 
   /** Creates an op that reads an element from this tensor array.
@@ -141,7 +141,7 @@ case class TensorArray private(
   def stack(name: String = "TensorArrayStack"): Op.Output = {
     Op.createWithNameScope(name, Set(handle.op)) {
       Op.createWith(colocationOps = Set(handle.op)) {
-        gather(MathOps.range(ArrayOps.constant(0), size()), name)
+        gather(Math.range(Basic.constant(0), size()), name)
       }
     }
   }
@@ -159,7 +159,7 @@ case class TensorArray private(
   def unstack(value: Op.Output, name: String = "TensorArrayUnstack"): TensorArray = {
     Op.createWithNameScope(name, Set(handle.op, value.op)) {
       // TODO: No colocation with the handle op here? This was also missing from the Python API.
-      scatter(MathOps.range(ArrayOps.constant(0), ArrayOps.shape(value)(0)), value, name)
+      scatter(Math.range(Basic.constant(0), Basic.shape(value)(0)), value, name)
     }
   }
 
@@ -262,7 +262,7 @@ case class TensorArray private(
       Op.createWith(colocationOps = Set(handle.op)) {
         val (gradientHandle, _) = TensorArray.gradientOp(handle, flow, source)
         val gradientFlow = Op.createWith(controlDependencies = Set(gradientHandle)) {
-          ArrayOps.identity(flow, name = "GradientFlow")
+          Basic.identity(flow, name = "GradientFlow")
         }
         TensorArray(gradientHandle, gradientFlow, this.dataType, this.inferShape, this.elementShape)
       }

@@ -2,8 +2,8 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.Exception.IllegalNameException
-import org.platanios.tensorflow.api.ops.ArrayOps.{constant, placeholder}
-import org.platanios.tensorflow.api.ops.MathOps.matMul
+import org.platanios.tensorflow.api.ops.Basic.{constant, placeholder}
+import org.platanios.tensorflow.api.ops.Math.matMul
 import org.platanios.tensorflow.api.ops.Op._
 
 import org.scalatest._

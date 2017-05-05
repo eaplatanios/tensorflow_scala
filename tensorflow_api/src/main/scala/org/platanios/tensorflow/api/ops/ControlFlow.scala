@@ -5,7 +5,7 @@ import scala.reflect.ClassTag
 /**
   * @author Emmanouil Antonios Platanios
   */
-object ControlFlowOps {
+object ControlFlow {
   /** Creates an op that produces the content of `input` only after all ops in `dependencies` have finished executing.
     *
     * In some cases, a user may want the output of an op to be consumed externally only after some other dependencies
@@ -22,7 +22,7 @@ object ControlFlowOps {
     Op.createWithNameScope(name, dependencies + input.op) {
       Op.colocateWith(Set[Op](input.op)) {
         Op.createWith(controlDependencies = dependencies) {
-          ArrayOps.identity(input)
+          Basic.identity(input)
         }
       }
     }

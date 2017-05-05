@@ -97,7 +97,7 @@ case class Variable private(
     }
     // Return an identity op so that it can get placed on whatever device the context specifies instead of the device
     // where the variable is.
-    ArrayOps.identity(value)
+    Basic.identity(value)
   }
 
   /** Creates an op that reads the value of this variable sparsely, using the provided `indices`.
@@ -115,7 +115,7 @@ case class Variable private(
     }
     // Return an identity op so that it can get placed on whatever device the context specifies instead of the device
     // where the variable is.
-    ArrayOps.identity(value)
+    Basic.identity(value)
   }
 
   /** Evaluates the value of this variable.
@@ -247,7 +247,7 @@ object Variable {
           if (valueDataType == null || value.dataType == valueDataType)
             value
           else
-            MathOps.cast(value, valueDataType, name = "InitialValueCast")
+            Math.cast(value, valueDataType, name = "InitialValueCast")
         }
       }
 
@@ -264,7 +264,7 @@ object Variable {
             // would not expect the current device context to be merged with the caching device specification.
             // Therefore, we reset the colocation stack before creating the cached value. Note that resetting the
             // colocation stack will also reset the device stack.
-            Op.createWith(colocationOps = Set.empty[Op], device = null)(ArrayOps.identity(valueOp))
+            Op.createWith(colocationOps = Set.empty[Op], device = null)(Basic.identity(valueOp))
           } else {
             null
           }

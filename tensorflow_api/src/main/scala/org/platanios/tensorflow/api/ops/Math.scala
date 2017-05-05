@@ -7,7 +7,7 @@ import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry
 /**
   * @author Emmanouil Antonios Platanios
   */
-object MathOps {
+object Math {
   /** Creates an op that selects elements from `x` or `y`, depending on `condition`.
     *
     * The `x`, and `y` tensors must have the same shape. The output tensor will also have the same shape.
@@ -78,7 +78,7 @@ object MathOps {
     * @return Created op output.
     */
   def range(
-      start: Op.Output, limit: Op.Output, delta: Op.Output = ArrayOps.constant(1), dataType: DataType = null,
+      start: Op.Output, limit: Op.Output, delta: Op.Output = Basic.constant(1), dataType: DataType = null,
       name: String = "Range"): Op.Output = {
     var castedStart: Op.Output = null
     var castedLimit: Op.Output = null
@@ -652,9 +652,9 @@ object MathOps {
 
   private[this] def reductionAxes(tensor: Op.Output, axes: Array[Int]): Op.Output = {
     if (axes != null)
-      ArrayOps.constant(Tensor(axes.map(Tensor(_)): _*))
+      Basic.constant(Tensor(axes.map(Tensor(_)): _*))
     else
-      ArrayOps.constant(Tensor((0 until tensor.shape.rank).map(Tensor(_)): _*))
+      Basic.constant(Tensor((0 until tensor.shape.rank).map(Tensor(_)): _*))
   }
 
   /** Creates an op that computes the sum of elements across dimensions of a tensor.
@@ -901,12 +901,12 @@ object MathOps {
       input: Op.Output, axes: Array[Int] = null, keepDims: Boolean = false,
       name: String = "ReduceLogSumExp"): Op.Output = {
     Op.createWith(nameScope = name) {
-      val max = ArrayOps.stopGradient(reduceMax(input, axes, keepDims = true))
+      val max = Basic.stopGradient(reduceMax(input, axes, keepDims = true))
       val result = log(reduceSum(exp(input - max), axes, keepDims = true)) + max
       if (keepDims)
         result
       else
-        ArrayOps.squeeze(result, axes)
+        Basic.squeeze(result, axes)
     }
   }
 
@@ -940,7 +940,7 @@ object MathOps {
   def countNonZero(input: Op.Output, axes: Array[Int] = null, keepDims: Boolean = false,
       dataType: DataType = DataType.Int64, name: String = "CountNonZero"): Op.Output = {
     Op.createWith(nameScope = name) {
-      cast(reduceSum(cast(notEqual(input, ArrayOps.constant(0)), DataType.Int64), axes, keepDims), dataType)
+      cast(reduceSum(cast(notEqual(input, Basic.constant(0)), DataType.Int64), axes, keepDims), dataType)
     }
   }
 

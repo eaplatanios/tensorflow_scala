@@ -37,7 +37,7 @@ object Gradients {
       val sourceOps = xs.map(_.op).toSet
       val destinationOps = {
         if (ys.length > 1)
-          ys.map(y => if (y.consumers.nonEmpty) ArrayOps.identity(y).op else y.op).toSet
+          ys.map(y => if (y.consumers.nonEmpty) Basic.identity(y).op else y.op).toSet
         else
           ys.map(_.op).toSet
       }
@@ -81,7 +81,7 @@ object Gradients {
               // other outputs.
               val output = op.outputs(outputIndex)
               if (gradient.isEmpty && isTrainable(output))
-                opGradients(outputIndex) = Seq(ArrayOps.zerosLike(output.toOpOutput))
+                opGradients(outputIndex) = Seq(Basic.zerosLike(output.toOpOutput))
             }
 
             // Compute the actual op gradients.
@@ -91,7 +91,7 @@ object Gradients {
               var inputGradients = maybeCompile(name, op, () => gradientFunction(op, outputGradients))
               verifyGradients(op, inputGradients)
               if (gateGradients && inputGradients.count(_ ne null) > 1)
-                inputGradients = ControlFlowOps.tuple(inputGradients.toArray).toSeq
+                inputGradients = ControlFlow.tuple(inputGradients.toArray).toSeq
               logGradients(op, outputGradients, inputGradients)
               op.inputs.zip(inputGradients).filter(_._2 ne null).foreach(i => {
                 i._2 match {
@@ -200,15 +200,15 @@ object Gradients {
               s"Gradients of complex tensors must set 'gradients' (variable.dataType = '${y.dataType}').")
           maybeColocateWith(y.op, colocateGradientsWithOps) {
             y match {
-              case o: Op.Output => ArrayOps.onesLike(o)
+              case o: Op.Output => Basic.onesLike(o)
               case o: Op.OutputIndexedSlices =>
                 if (o.denseShape eq null)
                   throw new IllegalArgumentException(
                     "The dense shape of output indexed slices must be known in order to obtain their gradients.")
-                val values = ArrayOps.fill(o.denseShape, 1.0)
+                val values = Basic.fill(o.denseShape, 1.0)
                 Op.OutputIndexedSlices(indices = o.indices, values = values, denseShape = o.denseShape)
               case o: Op.SparseOutput =>
-                val values = ArrayOps.fill(o.denseShape, 1.0)
+                val values = Basic.fill(o.denseShape, 1.0)
                 Op.SparseOutput(indices = o.indices, values = values, denseShape = o.denseShape)
             }
           }
@@ -380,10 +380,10 @@ object Gradients {
           val deviceContributions = g.groupBy(_.device).toSeq.sortBy(_._1).map {
             case (_, outputs) =>
               Op.colocateWith(Set[Op](g.head.op), ignoreExisting = true) {
-                MathOps.addN(outputs.map(_.toOpOutput).toArray)
+                Math.addN(outputs.map(_.toOpOutput).toArray)
               }
           }
-          MathOps.addN(deviceContributions.toArray)
+          Math.addN(deviceContributions.toArray)
         case g: Seq[Op.OutputIndexedSlices] =>
           ???
         case _ => throw new IllegalArgumentException(
@@ -403,8 +403,8 @@ object Gradients {
 
     private[this] val registry = mutable.Map.empty[String, GradientFunction]
 
-    ArrayOps.Gradients
-    MathOps.Gradients
+    Basic.Gradients
+    Math.Gradients
 
     /** Registers the provided gradient function to the gradient function registry.
       *
