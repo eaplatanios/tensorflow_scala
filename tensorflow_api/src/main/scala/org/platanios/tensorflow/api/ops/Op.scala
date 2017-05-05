@@ -38,7 +38,13 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
   lazy val opType: String = using(graph.reference) { _ => NativeOp.opType(nativeHandle) }
 
   /** Device in which the op tensors are stored and where all computations for this op are performed. */
-  lazy val device: String = using(graph.reference) { _ => NativeOp.device(nativeHandle) }
+  lazy val device: String = using(graph.reference) { _ =>
+    val nativeDevice = NativeOp.device(nativeHandle)
+    if (nativeDevice == null)
+      ""
+    else
+      nativeDevice
+  }
 
   /** Colocation ops for this op (i.e., ops guaranteed to be placed on the same device). */
   lazy val colocationOps: Set[Op] = using(graph.reference) { _ =>
