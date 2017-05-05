@@ -15,66 +15,16 @@ import scala.collection.mutable
 object Gradients {
   val logger = Logger(LoggerFactory.getLogger("Gradients"))
 
-  //region Gradient Functions Registry
-
-  private[this] val gradientFunctionRegistry = mutable.Map.empty[String, (Op, Seq[Op.OutputLike]) => Seq[Op.OutputLike]]
-
-  ArrayOps.Gradients
-  MathOps.Gradients
-
-  /** Registers the provided gradient function to the gradient function registry.
-    *
-    * Note that if a gradient function for an op of the same type already exists in the registry, then it will be
-    * overriden by the provided gradient function.
-    *
-    * @param  opType   Op type for which a gradient function is being registered.
-    * @param  function Gradient function (takes op and output gradients as inputs and returns the input gradients).
-    */
-  def registerGradientFunction(opType: String, function: (Op, Seq[Op.OutputLike]) => Seq[Op.OutputLike]): Unit = {
-    gradientFunctionRegistry.update(opType, function)
-  }
-
-  /** Registers the provided op type as non-differentiable (i.e., having `null` as its registered gradient function).
-    *
-    * This function should *not* be used for ops that have a well-defined gradient that is not yet implemented. It
-    * should only be used when defining a new op type. It may be used for ops such as `size` that are not
-    * differentiable.
-    *
-    * The gradient computed for 'opType' will then propagate zeros.
-    *
-    * For ops that have a well-defined gradient but are not yet implemented, no declaration should be made, and an error
-    * *must* be thrown if an attempt to request their gradient is made.
-    *
-    * @param  opType Op type to register as non-differentiable.
-    */
-  def registerNonDifferentiable(opType: String): Unit = {
-    gradientFunctionRegistry.update(opType, null)
-  }
-
-  /** Gets the registered gradient function for the provided op type.
-    *
-    * @param  opType Op type whose gradient function is being looked up.
-    * @return Gradient function registered for the provided op type.
-    * @throws NoSuchElementException If no gradient has been registered for the provided op type.
-    */
-  @throws[NoSuchElementException]
-  def getGradientFunction(opType: String): (Op, Seq[Op.OutputLike]) => Seq[Op.OutputLike] = {
-    if (!gradientFunctionRegistry.contains(opType))
-      throw new NoSuchElementException(s"No gradient registered for op type '$opType'.")
-    gradientFunctionRegistry(opType)
-  }
-
-  //endregion Gradient Functions Registry
-
-  // TODO: Convert variable to op output by using its handle.
+  // TODO: [DOC] Document the "gradients" function.
   def gradients(
       ys: Seq[Op.Output], xs: Seq[Op.Output], dys: Seq[Op.OutputLike] = null, colocateGradientsWithOps: Boolean = false,
-      aggregationMethod: AggregationMethod = AddAggregationMethod, name: String = "Gradients"): Seq[Op.OutputLike] = {
-    // TODO: [CONTROL_FLOW] Gradients gating option.
-    // The `gradients` variable collects the gradients received on each output endpoint of the op. The gradients for
-    // each endpoint are initially collected as a sequence. When it is time to call the op's gradient function, for each
-    // endpoint we aggregate the list of received gradients into a "add" operation, if there is more than one.
-    val gradients = mutable.Map.empty[Op, mutable.Seq[Seq[Op.OutputLike]]]
+      gateGradients: Boolean = false, aggregationMethod: AggregationMethod = AddAggregationMethod,
+      name: String = "Gradients"): Seq[Op.OutputLike] = {
+    // The `accumulatedGradients` variable collects the gradients received on each output endpoint of the op. The
+    // gradients for each endpoint are initially collected as a sequence. When it is time to call the op's gradient
+    // function, for each endpoint we aggregate the list of received gradients into a "add" operation, if there is more
+    // than one.
+    val accumulatedGradients = mutable.Map.empty[Op, mutable.Seq[Seq[Op.OutputLike]]]
 
     val ops = ys.map(_.op).toSet ++ xs.map(_.op).toSet ++ (if (dys != null) dys.map(_.op).toSet else Set.empty)
     Op.createWithNameScope(name, ops) {
@@ -84,37 +34,40 @@ object Gradients {
       // generated gradients to the gradients for its input.
 
       // Initialize the pending counts for ops in the connected sub-graph between the ys and xs.
+      val sourceOps = xs.map(_.op).toSet
       val destinationOps = {
         if (ys.length > 1)
           ys.map(y => if (y.consumers.nonEmpty) ArrayOps.identity(y).op else y.op).toSet
         else
           ys.map(_.op).toSet
       }
-      val sourceOps = xs.map(_.op).toSet
+
+      // `pendingCounts(op)` is a count-down counter for the expected gradients to accumulate for `op`. When
+      // `pendingCounts(op)` becomes zero, we have collected all the backpropagation gradients for all outputs of `op`.
       val pendingCounts = initialPendingCounts(sourceOps, destinationOps, colocateGradientsWithOps)
 
-      // Add the initial gradients for the ys.
-      val dyInitial = defaultGradients(dys, ys, colocateGradientsWithOps)
-      for ((y, dy) <- (ys, dyInitial).zipped)
-        setGradient(gradients, y, dy)
-
-      // Initialize the ops queue with the destination ops. We filter the destination ops based on whether one output
-      // gradient relies on another output's gradient.
-      val opsQueue = mutable.Queue[Op](destinationOps.filter(pendingCounts.getOrElse(_, 0) == 0).toSeq: _*)
+      // `readyOps` keeps track of ops that have been completely processed. We initialize it with the destination ops.
+      // We filter the destination ops based on whether one output gradient relies on another output's gradient.
+      val readyOps = mutable.Queue[Op](destinationOps.filter(pendingCounts.getOrElse(_, 0) == 0).toSeq: _*)
 
       // Stop ops form the frontier of the forward graph before which back-propagation should stop. Ops in this set will
       // not be differentiated. This set is defined as the subset of `sourceOps` containing ops that have no predecessor
       // in `sourceOps`. An op has predecessors in `sourceOps` if and only if `pendingCounts(op) > 0`.
       val stopOps = sourceOps.filter(op => op.inputs.forall(i => pendingCounts.getOrElse(i.op, 0) <= 0))
 
-      while (opsQueue.nonEmpty) {
-        val op = opsQueue.dequeue()
+      // Add the initial gradients for the ys.
+      val dyInitial = initialGradients(ys, dys, colocateGradientsWithOps)
+      for ((y, dy) <- (ys, dyInitial).zipped)
+        setGradient(accumulatedGradients, y, dy)
+
+      while (readyOps.nonEmpty) {
+        val op = readyOps.dequeue()
         maybeColocateWith(op, colocateGradientsWithOps) {
-          val opGradients = aggregationMethod.aggregateGradients(gradients, op)
+          val opGradients = aggregationMethod.aggregateGradients(accumulatedGradients, op)
           val hasOutputGradients = opGradients.nonEmpty
-          val gradientFunction: (Op, Seq[Op.OutputLike]) => Seq[Op.OutputLike] = {
+          val gradientFunction: Registry.GradientFunction = {
             if (hasOutputGradients && !stopOps.contains(op)) {
-              getGradientFunction(op.opType)
+              Registry(op.opType)
             } else {
               null
             }
@@ -135,15 +88,17 @@ object Gradients {
             Op.createWith(nameScope = s"${op.name}Gradient") {
               // TODO: [CONTEXT] Add support for original op context.
               val outputGradients = opGradients.map(_.head)
-              val inputGradients = maybeCompile(name, op, () => gradientFunction(op, outputGradients))
+              var inputGradients = maybeCompile(name, op, () => gradientFunction(op, outputGradients))
               verifyGradients(op, inputGradients)
+              if (gateGradients && inputGradients.count(_ ne null) > 1)
+                inputGradients = ControlFlowOps.tuple(inputGradients.toArray).toSeq
               logGradients(op, outputGradients, inputGradients)
               op.inputs.zip(inputGradients).filter(_._2 ne null).foreach(i => {
                 i._2 match {
                   case gradient: Op.Output if i._1.dataType != DataType.Resource => gradient.setShape(i._1.shape)
                   case _ =>
                 }
-                setGradient(gradients, i._1, i._2)
+                setGradient(accumulatedGradients, i._1, i._2)
               })
             }
           }
@@ -153,7 +108,7 @@ object Gradients {
         op.inputs.foreach(input => {
           pendingCounts.update(input.op, pendingCounts(input.op) - 1)
           if (pendingCounts(input.op) == 0)
-            opsQueue.enqueue(input.op)
+            readyOps.enqueue(input.op)
           // TODO: [CONTROL_FLOW] Some control flow gradient logic should go here.
         })
       }
@@ -161,10 +116,10 @@ object Gradients {
 
     // Collect the aggregated gradients for the requested tensors and return them.
     xs.map(x => {
-      val collectedGradients = gradients.get(x.op).map(_.apply(x.index))
-      if (collectedGradients.isDefined && collectedGradients.get.length > 1)
+      val gradients = accumulatedGradients.get(x.op).map(_.apply(x.index))
+      if (gradients.isDefined && gradients.get.length > 1)
         throw new IllegalArgumentException("The gradients should have been aggregated by now.")
-      collectedGradients.map(_.head).orNull
+      gradients.map(_.head).orNull
     })
   }
 
@@ -225,18 +180,18 @@ object Gradients {
     // TODO: !! FLOAT16, COMPLEX64, COMPLEX128.
   }
 
-  /** Computes default values for the provided gradients, and checks whether their data types are correct.
+  /** Computes inditial values for the provided gradients, and checks whether their data types are correct.
     *
-    * @param  dys                      Sequence containing tensor gradients.
     * @param  ys                       Sequence containing the variables corresponding to `dys`.
+    * @param  dys                      Sequence containing tensor gradients.
     * @param  colocateGradientsWithOps Boolean value indicating whether to colocate the gradient ops with the original
     *                                  ops.
     * @return Sequence containing the default gradient values.
     * @throws InvalidDataTypeException If the gradient tensor data types are not compatible with the input data types.
     */
   @throws[InvalidDataTypeException]
-  private[this] def defaultGradients(
-      dys: Seq[Op.OutputLike], ys: Seq[Op.OutputLike], colocateGradientsWithOps: Boolean): Seq[Op.OutputLike] = {
+  private[this] def initialGradients(
+      ys: Seq[Op.OutputLike], dys: Seq[Op.OutputLike], colocateGradientsWithOps: Boolean): Seq[Op.OutputLike] = {
     ys.zip(if (dys != null) dys else Seq.fill[Op.OutputLike](ys.length)(null)).map {
       case (y, dy) =>
         if (dy eq null) {
@@ -422,11 +377,13 @@ object Gradients {
         case g: Seq[Op.Output] =>
           // This function adds op outputs from potentially different devices.
           // We add the tensors of each device separately first, and we then add up the partial results.
-          MathOps.addN(g.groupBy(_.device).values.map(
-            deviceGradients =>
+          val deviceContributions = g.groupBy(_.device).toSeq.sortBy(_._1).map {
+            case (_, outputs) =>
               Op.colocateWith(Set[Op](g.head.op), ignoreExisting = true) {
-                MathOps.addN(deviceGradients.map(_.toOpOutput).toArray)
-              }).toArray)
+                MathOps.addN(outputs.map(_.toOpOutput).toArray)
+              }
+          }
+          MathOps.addN(deviceContributions.toArray)
         case g: Seq[Op.OutputIndexedSlices] =>
           ???
         case _ => throw new IllegalArgumentException(
@@ -436,6 +393,57 @@ object Gradients {
   }
 
   // TODO: [GRADIENTS] Add support for more aggregation methods.
+
+  /** Registry that contains the gradient functions to be used when creating gradient ops. Gradient functions for all
+    * types of ops that are being differentiated need to be registered using either the [[Registry.register]] or the
+    * [[Registry.registerNonDifferentiable]] functions. In an attempt to obtain the gradient of an op whose type has no
+    * gradient function registered, a [[NoSuchElementException]] will be thrown. */
+  object Registry {
+    type GradientFunction = (Op, Seq[Op.OutputLike]) => Seq[Op.OutputLike]
+
+    private[this] val registry = mutable.Map.empty[String, GradientFunction]
+
+    ArrayOps.Gradients
+    MathOps.Gradients
+
+    /** Registers the provided gradient function to the gradient function registry.
+      *
+      * Note that if a gradient function for an op of the same type already exists in the registry, then it will be
+      * overriden by the provided gradient function.
+      *
+      * @param  opType   Op type for which a gradient function is being registered.
+      * @param  function Gradient function (takes op and output gradients as inputs and returns the input gradients).
+      */
+    def register(opType: String, function: GradientFunction): Unit = registry.update(opType, function)
+
+    /** Registers the provided op type as non-differentiable (i.e., having `null` as its registered gradient function).
+      *
+      * This function should *not* be used for ops that have a well-defined gradient that is not yet implemented. It
+      * should only be used when defining a new op type. It may be used for ops such as `size` that are not
+      * differentiable.
+      *
+      * The gradient computed for 'opType' will then propagate zeros.
+      *
+      * For ops that have a well-defined gradient but are not yet implemented, no declaration should be made, and an error
+      * *must* be thrown if an attempt to request their gradient is made.
+      *
+      * @param  opType Op type to register as non-differentiable.
+      */
+    def registerNonDifferentiable(opType: String): Unit = registry.update(opType, null)
+
+    /** Gets the registered gradient function for the provided op type.
+      *
+      * @param  opType Op type whose gradient function is being looked up.
+      * @return Gradient function registered for the provided op type.
+      * @throws NoSuchElementException If no gradient has been registered for the provided op type.
+      */
+    @throws[NoSuchElementException]
+    def apply(opType: String): GradientFunction = {
+      if (!registry.contains(opType))
+        throw new NoSuchElementException(s"No gradient registered for op type '$opType'.")
+      registry(opType)
+    }
+  }
 
   /** Adds ops to the graph to compute the partial derivatives of the sum of `y`s with respect to the `x`s, using the
     * C++ gradients support of the TensorFlow native library.

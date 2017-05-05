@@ -30,7 +30,6 @@ package object api extends Implicits {
   type Int64 = types.Int64
   type UInt8 = types.UInt8
   type UInt16 = types.UInt16
-  // type Resource = types.Resource
 
   val Bool    = types.Bool
   val Str     = types.Str
@@ -46,7 +45,6 @@ package object api extends Implicits {
   val Int64   = types.Int64
   val UInt8   = types.UInt8
   val UInt16  = types.UInt16
-  // val Resource = types.Resource
 
   //endregion Data Types
 
@@ -64,6 +62,9 @@ package object api extends Implicits {
 
   type Variable = ops.Variable
   val Variable = ops.Variable
+
+  val Gradients = ops.Gradients
+  val GradientsRegistry = ops.Gradients.Registry
 
   private[api] val COLOCATION_OPS_ATTRIBUTE_NAME   = "_class"
   private[api] val COLOCATION_OPS_ATTRIBUTE_PREFIX = "loc:@"

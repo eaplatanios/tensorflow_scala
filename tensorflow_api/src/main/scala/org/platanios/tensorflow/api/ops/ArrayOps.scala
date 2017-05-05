@@ -1,6 +1,7 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.Exception.{InvalidDataTypeException, InvalidShapeException}
+import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.{DataType, Shape, Tensor, using}
 
 /**
@@ -1555,7 +1556,7 @@ object ArrayOps {
     *
     *   - The *EM* algorithm where the *M-step* should not involve backpropagation through the output of the *E-step*.
     *   - Contrastive divergence training of Boltzmann machines where, when differentiating the energy function, the
-    * training must not backpropagate through the graph that generated the samples from the model.
+    *     training must not backpropagate through the graph that generated the samples from the model.
     *   - Adversarial training, where no backprop should happen through the adversarial example generation process.
     *
     * @param  input Input tensor.
@@ -1591,21 +1592,21 @@ object ArrayOps {
   //endregion Gradients Ops
 
   object Gradients {
-    registerNonDifferentiable("Const")
-    registerNonDifferentiable("ZerosLike")
-    registerNonDifferentiable("OnesLike")
-    registerNonDifferentiable("Rank")
-    registerNonDifferentiable("Size")
-    registerNonDifferentiable("Shape")
-    registerNonDifferentiable("ShapeN")
-    registerNonDifferentiable("ConcatOffset") // TODO: [OP]
-    registerNonDifferentiable("InvertPermutation")
-    registerNonDifferentiable("OneHot") // TODO: [OP]
-    registerNonDifferentiable("EditDistance") // TODO: [OP]
-    registerNonDifferentiable("BroadcastGradientArgs") // TODO: [OP]
-    registerNonDifferentiable("StopGradient")
+    GradientsRegistry.registerNonDifferentiable("Const")
+    GradientsRegistry.registerNonDifferentiable("ZerosLike")
+    GradientsRegistry.registerNonDifferentiable("OnesLike")
+    GradientsRegistry.registerNonDifferentiable("Rank")
+    GradientsRegistry.registerNonDifferentiable("Size")
+    GradientsRegistry.registerNonDifferentiable("Shape")
+    GradientsRegistry.registerNonDifferentiable("ShapeN")
+    GradientsRegistry.registerNonDifferentiable("ConcatOffset") // TODO: [OP]
+    GradientsRegistry.registerNonDifferentiable("InvertPermutation")
+    GradientsRegistry.registerNonDifferentiable("OneHot") // TODO: [OP]
+    GradientsRegistry.registerNonDifferentiable("EditDistance") // TODO: [OP]
+    GradientsRegistry.registerNonDifferentiable("BroadcastGradientArgs") // TODO: [OP]
+    GradientsRegistry.registerNonDifferentiable("StopGradient")
 
-    registerGradientFunction("Pack", stackGradient)
+    GradientsRegistry.register("Pack", stackGradient)
 
     def stackGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
       unstack(

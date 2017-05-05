@@ -48,7 +48,7 @@ sbt compile
   - [x] Graph collections
   - [x] Variables support
   - [ ] Control flow ops support
-  - [ ] Gradients support
+  - [x] Gradients support
   - [ ] Gradient override map op creation context (need gradient support first)
   - [ ] Kernel label map op creation context (may be unnecessary)
 - Execution API helpers:
@@ -67,6 +67,7 @@ sbt compile
 
 ## TODOs
 
+- Switch to using "Seq" instead of "Array" wherever possible
 - Tensors:
   - More efficient slicing (specialized contiguous slicing)
 - Op creation:

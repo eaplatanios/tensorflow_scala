@@ -2,6 +2,7 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.{DataType, Tensor}
 import org.platanios.tensorflow.api.Exception.InvalidDataTypeException
+import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -1167,8 +1168,8 @@ object MathOps {
   //endregion Segment Ops
 
   object Gradients {
-    registerGradientFunction("MatMul", matMulGradient)
-    registerGradientFunction("BatchMatMul", batchMatMulGradient)
+    GradientsRegistry.register("MatMul", matMulGradient)
+    GradientsRegistry.register("BatchMatMul", batchMatMulGradient)
 
     def matMulGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
       matMulGradientCommon(op, outputGradients, "transpose_a", "transpose_b", isBatch = false)
