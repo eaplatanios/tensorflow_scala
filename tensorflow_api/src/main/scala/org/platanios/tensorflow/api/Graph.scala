@@ -181,7 +181,6 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable {
   /** Returns all ops of this graph.
     *
     * @note This function may be called concurrently from multiple threads (i.e., it is thread-safe).
-    *
     * @return Array containing all ops of this graph.
     */
   def ops: Array[Op] = NativeHandleLock.synchronized {
@@ -193,7 +192,6 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable {
     * If such an op cannot be found, an informative exception is thrown.
     *
     * @note This function may be called concurrently from multiple threads (i.e., it is thread-safe).
-    *
     * @param  name Op name.
     * @return Op, from this graph, corresponding to that name.
     */
@@ -207,7 +205,6 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable {
     * If such an op output cannot be found, an informative exception is thrown.
     *
     * @note This function may be called concurrently from multiple threads (i.e., it is thread-safe).
-    *
     * @param  name Op output name.
     * @return Op output, from this graph, corresponding to that name.
     */
@@ -224,12 +221,11 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable {
     * wrong, so that we can give helpful error messages.
     *
     * @note This function may be called concurrently from multiple threads (i.e., it is thread-safe).
-    *
     * @param  name          Name of the graph element being looked up.
     * @param  allowOp       Allow ops to be considered for the graph element to return.
     * @param  allowOpOutput Allow op outputs to be considered for the graph element to return.
     * @return Graph element named `name`.
-    * @throws InvalidGraphElementException  If the provided name cannot be associated with an element of this graph.
+    * @throws InvalidGraphElementException If the provided name cannot be associated with an element of this graph.
     */
   @throws[InvalidGraphElementException]
   private[api] def getByName(
@@ -248,7 +244,7 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable {
           val opOutputIndex = nameParts(1).toInt
           val graphOp = findOp(opName) match {
             case Some(o) => o
-            case None    => throw InvalidGraphElementException(
+            case None => throw InvalidGraphElementException(
               s"Name '$name' refers to an op output which does not exist in the graph. More specifically, op, " +
                   s"'$opName', does not exist in the graph.")
           }
@@ -264,14 +260,14 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable {
       } else if (allowOp) {
         findOp(name) match {
           case Some(o) => Left(o)
-          case None    => throw InvalidGraphElementException(
+          case None => throw InvalidGraphElementException(
             s"Name '$name' refers to an op which does not exist in the graph.")
         }
       } else {
         findOp(name) match {
           case Some(_) => throw InvalidGraphElementException(
             s"Name '$name' appears to refer to an op, but 'allowOp' was set to 'false'.")
-          case None    =>
+          case None =>
         }
         throw InvalidGraphElementException(
           s"Name '$name' looks like an (invalid) op name, and not an op output name. Op output names must be of the " +
@@ -379,6 +375,15 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable {
       }
     }
   }
+
+  // TODO: [GRAPH] Better implementations for equals and hashCode.
+
+  override def equals(that: Any): Boolean = that match {
+    case that: Graph => this.nativeHandle == that.nativeHandle
+    case _ => false
+  }
+
+  override def hashCode(): Int = nativeHandle.hashCode
 }
 
 object Graph {

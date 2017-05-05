@@ -247,6 +247,21 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
   }
 
   override def toString: String = name
+
+  // TODO: [OP] Better implementations for equals and hashCode.
+
+  override def equals(that: Any): Boolean = that match {
+    case that: Op => this.graph == that.graph && this.nativeHandle == that.nativeHandle
+    case _ => false
+  }
+
+  override def hashCode(): Int = {
+    val prime = 31
+    var result = 1
+    result = prime * result + graph.hashCode
+    result = prime * result + nativeHandle.hashCode
+    result
+  }
 }
 
 final case class OpSpecification(name: String, opType: String)
@@ -1055,6 +1070,19 @@ object Op {
     def apply(indexers: Indexer*): Op.Output = slice(indexers: _*)
 
     override def toString: String = s"Op.Output(name = $name, shape = $shape, dataType = $dataType, device = $device)"
+
+    override def equals(that: Any): Boolean = that match {
+      case that: Output => this.op == that.op && this.index == that.index
+      case _ => false
+    }
+
+    override def hashCode(): Int = {
+      val prime = 31
+      var result = 1
+      result = prime * result + op.hashCode
+      result = prime * result + index
+      result
+    }
   }
 
   /** Sparse representation of one of the outputs of an `Op`'s computation. of a set of tensor slices at given indices.
