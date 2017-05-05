@@ -924,7 +924,7 @@ object Op {
     def consumers: Array[Op.Input]
   }
 
-  sealed trait OutputConvertible {
+  trait OutputConvertible {
     /** Returns the [[Op.Output]] that this [[Op.OutputLike]] object represents. */
     def toOpOutput: Op.Output
   }

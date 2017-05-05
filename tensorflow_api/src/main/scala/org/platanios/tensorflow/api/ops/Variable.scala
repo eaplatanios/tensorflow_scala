@@ -12,7 +12,8 @@ import scala.util.DynamicVariable
   * @author Emmanouil Antonios Platanios
   */
 case class Variable private(
-    dataType: DataType, variableOp: Op.Output, initializeOp: Op, cachedValueOp: Op.Output) extends ProtoSerializable {
+    dataType: DataType, variableOp: Op.Output, initializeOp: Op, cachedValueOp: Op.Output)
+    extends Op.OutputConvertible with ProtoSerializable {
   /** Contains the save slice information for this variable. */
   private[api] var saveSliceInformation: Variable.SaveSliceInformation = _
 
