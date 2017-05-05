@@ -27,8 +27,11 @@ include_directories(.)
 include_directories(include)
 include_directories(${JNI_INCLUDE_DIRS})
 
-# Link directories
-link_directories(${LD_LIBRARY_PATH})
+# Find Native TensorFlow Library to Link
+find_library(LIBTENSORFLOW Tensorflow HINTS ${LD_LIBRARY_PATH})
+if(NOT LIBTENSORFLOW)
+  message(FATAL_ERROR "Library `Tensorflow` not found.")
+endif()
 
 # Sources
 file(GLOB LIB_SRC
@@ -42,5 +45,5 @@ file(GLOB LIB_SRC
 #
 set (LIB_NAME ${PROJECT_NAME}) # ${PROJECT_VERSION_MAJOR})
 add_library(${LIB_NAME} SHARED ${LIB_SRC})
-target_link_libraries(${LIB_NAME} "tensorflow")
+target_link_libraries(${LIB_NAME} ${LIBTENSORFLOW})
 install(TARGETS ${LIB_NAME} LIBRARY DESTINATION .)
