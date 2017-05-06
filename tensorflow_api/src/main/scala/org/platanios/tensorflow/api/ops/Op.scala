@@ -1030,7 +1030,7 @@ object Op {
 
     //region Ops
 
-    def unary_- : Output = ??? // TODO: !!!
+    def unary_- : Output = Math.negate(this)
     def +(other: Output): Output = Math.add(x = this, y = other) // TODO: [SPARSE]
     def -(other: Output): Output = Math.subtract(x = this, y = other) // TODO: [SPARSE]
     def *(other: Output): Output = Math.multiply(x = this, y = other) // TODO: [SPARSE]

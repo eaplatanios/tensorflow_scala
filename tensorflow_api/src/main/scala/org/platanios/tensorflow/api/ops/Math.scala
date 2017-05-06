@@ -190,6 +190,12 @@ object Math {
 
   //region Unary Ops
 
+  def negate(x: Op.Output, name: String = "Negate"): Op.Output = {
+    Op.Builder(opType = "Neg", name = name)
+        .addInput(x)
+        .build().outputs(0)
+  }
+
   def abs(x: Op.Output, name: String = "Abs"): Op.Output =
     Op.Builder(opType = "Abs", name = name)
         .addInput(x)
