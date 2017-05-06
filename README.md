@@ -61,7 +61,7 @@ sbt compile
 - General API features:
   - [x] Support for all data types.
   - [ ] Summaries
-  - [ ] Optimizers
+  - [x] Optimizers
   - [ ] Estimators
   - [ ] tfprof / op statistics collection
 
@@ -69,6 +69,8 @@ sbt compile
 
 - Switch to using "Seq" instead of "Array" wherever possible
 - Tensors:
+  - Overloaded unary, binary, and comparison operators (data type aware)
+  - Convenient string conversion methods
   - More efficient slicing (specialized contiguous slicing)
 - Op creation:
   - Add tests for all of the op functions
@@ -80,3 +82,4 @@ sbt compile
   - Register op statistics
 - Execution:
   - Revamp the session API
+    - Multiple overloaded versions of "run" covering all of the most common use cases
