@@ -90,7 +90,7 @@ object ControlFlow {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  private[this] def noOp(name: String = "NoOp"): Op = {
+  private[ops] def noOp(name: String = "NoOp"): Op = {
     Op.Builder(opType = "NoOp", name = name).build()
   }
 

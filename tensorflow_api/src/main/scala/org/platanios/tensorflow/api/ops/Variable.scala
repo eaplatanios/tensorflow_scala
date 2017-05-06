@@ -14,17 +14,6 @@ import scala.util.DynamicVariable
 case class Variable private(
     dataType: DataType, variableOp: Op.Output, initializeOp: Op, cachedValueOp: Op.Output)
     extends Op.OutputConvertible with ProtoSerializable {
-  /** Contains the save slice information for this variable. */
-  private[api] var saveSliceInformation: Variable.SaveSliceInformation = _
-
-  /** Sets the slice information used for saving this variable.
-    *
-    * @param  saveSliceInformation Save slice information to use.
-    */
-  private[api] def setSaveSliceInformation(saveSliceInformation: Variable.SaveSliceInformation): Unit = {
-    this.saveSliceInformation = saveSliceInformation
-  }
-
   /** Graph where this variable is defined. */
   val graph: Graph = initializeOp.graph
 
@@ -79,6 +68,17 @@ case class Variable private(
         Op.createWith(device = variableOp.device)(Variable.readVariable(variableOp, dataType))
       }
     }
+  }
+
+  /** Contains the save slice information for this variable. */
+  private[api] var saveSliceInformation: Variable.SaveSliceInformation = _
+
+  /** Sets the slice information used for saving this variable.
+    *
+    * @param  saveSliceInformation Save slice information to use.
+    */
+  private[api] def setSaveSliceInformation(saveSliceInformation: Variable.SaveSliceInformation): Unit = {
+    this.saveSliceInformation = saveSliceInformation
   }
 
   /** Creates an op that reads the value of this variable.
@@ -210,55 +210,54 @@ case class Variable private(
       null
     }
   }
+
+  override def toString: String = op.toString
+
+  override def equals(that: Any): Boolean = that match {
+    case that: Variable => this.op == that.op
+    case _ => false
+  }
+
+  override def hashCode(): Int = op.hashCode()
 }
 
 /** Contains helper functions and classes for creating and dealing with [[Variable]] objects. */
 object Variable {
   /** Creates a variable.
     *
-    * @param  initialValueFunction A function that takes no arguments and returns an op output that will be used as the
-    *                              initial value of this variable.
-    * @param  trainable            If `true`, the default, the variable is added to the graph collection
-    *                              `Graph.Keys.TRAINABLE_VARIABLES`. This collection is used as the default set of
-    *                              variables to use by the optimizers.
-    * @param  collections          Set of graph collections keys. The new variable is added to these collections.
-    *                              Defaults to `Set(Graph.Keys.GLOBAL_VARIABLES)`.
-    * @param  cachingDevice        Optional device specification describing where the variable should be cached for
-    *                              reading. Defaults to the variable's device. Typical use is to cache on the device
-    *                              where the ops using the Variable reside, to deduplicate copying through `Switch` and
-    *                              other conditional statements.
-    * @param  valueDataType        Data type for the value of the created variable. If not provided, its value is
-    *                              inferred from the provided initial value. If provided, then the provided initial
-    *                              value will be converted to this data type.
-    * @param  name                 Created variable name.
+    * @param  initializer   Initializer that generates the op output that will be used as the initial value of this
+    *                       variable.
+    * @param  shape         Shape for the value of the created variable.
+    * @param  dataType      Data type for the value of the created variable. If not provided, its value is inferred from
+    *                       the provided initial value.
+    * @param  trainable     If `true`, the default, the variable is added to the graph collection
+    *                       `Graph.Keys.TRAINABLE_VARIABLES`. This collection is used as the default set of variables to
+    *                       use by the optimizers.
+    * @param  collections   Set of graph collections keys. The new variable is added to these collections. Defaults to
+    *                       `Set(Graph.Keys.GLOBAL_VARIABLES)`.
+    * @param  cachingDevice Optional device specification describing where the variable should be cached for reading.
+    *                       Defaults to the variable's device. Typical use is to cache on the device where the ops using
+    *                       the Variable reside, to deduplicate copying through `Switch` and other conditional
+    *                       statements.
+    * @param  name          Created variable name.
     * @return Created variable.
     */
   def apply(
-      initialValueFunction: () => Op.Output, trainable: Boolean = true, collections: Set[String] = Set.empty,
-      cachingDevice: OpSpecification => String = null, valueDataType: DataType = null,
+      initializer: Initializer, shape: Shape, dataType: DataType, trainable: Boolean = true,
+      collections: Set[String] = Set.empty, cachingDevice: OpSpecification => String = null,
       name: String = "Variable"): Variable = {
     Op.createWith(nameScope = name, controlDependencies = Set.empty[Op]) {
       val trueName = Op.convertNameScopeToName(name)
-      // Use a custom op creation context with attribute "_class" set to the colocation op name and device set to "null"
-      // to simulate the behavior of colocation ops for when the variable we want to colocate with doesn't yet exist.
-      val initValue = Op.createWith(attributes = Map("_class" -> Array[String](s"loc:@$trueName"))) {
-        Op.createWith(nameScope = "Initializer", device = null) {
-          val value = initialValueFunction()
-          if (valueDataType == null || value.dataType == valueDataType)
-            value
-          else
-            Math.cast(value, valueDataType, name = "InitialValueCast")
-        }
+      val variableOp = variable(shape, dataType, sharedName = trueName, name = name)
+      val initialValue = Op.createWith(nameScope = "Initializer", colocationOps = Set[Op](variableOp.op)) {
+        initializer(shape, dataType, null)
       }
-
-      val variableOp = variable(initValue.shape, initValue.dataType, sharedName = trueName, name = name)
-
-      val initializeOp = assign(variableOp, initValue, name = "InitializationAssign")
+      val initializeOp = assign(variableOp, initialValue, name = "InitializationAssign")
       val cachedValueOp = Op.createWith(nameScope = "Read", colocationOps = Set[Op](variableOp.op)) {
         val cachedValueOp = {
           if (cachingDevice != null) {
             // Manually assign reads to the handle's device to avoid log messages
-            val valueOp = Op.createWith(device = variableOp.device)(readVariable(variableOp, initValue.dataType))
+            val valueOp = Op.createWith(device = variableOp.device)(readVariable(variableOp, dataType))
             // Variables may be created in a "createWith(device = ...)" block or a "createWith(colocationOps = ...)"
             // block. At the same time, users would expect the caching device to be independent of this context, and/or
             // would not expect the current device context to be merged with the caching device specification.
@@ -272,7 +271,7 @@ object Variable {
         cachedValueOp
       }
 
-      val createdVariable = Variable(initValue.dataType, variableOp, initializeOp, cachedValueOp)
+      val createdVariable = Variable(dataType, variableOp, initializeOp, cachedValueOp)
       var effectiveCollections = collections
       if (effectiveCollections.isEmpty)
         effectiveCollections += Graph.Keys.GLOBAL_VARIABLES
@@ -316,6 +315,11 @@ object Variable {
     createdVariable.setSaveSliceInformation(saveSliceInformation)
     createdVariable
   }
+
+  // TODO: [VARIABLES] Add PartitionInfo and variable scope support.
+  // TODO: [VARIABLES] Add partitioned variables support.
+
+  case class PartitionInfo(fullShape: Shape, offsets: Array[Int])
 
   /** Class that information on how to save a variable as a slice.
     *
@@ -369,6 +373,60 @@ object Variable {
       SaveSliceInformation(fullName, fullShape, variableOffset, variableShape)
     }
   }
+
+  /** Creates an op that initializes the provided variables.
+    *
+    * @param  variables Set of variables to initialize.
+    * @param  name      Name for the created op.
+    * @return Created op.
+    */
+  def initializer(variables: Set[Variable], name: String = "Initializer"): Op = {
+    if (variables != null && variables.nonEmpty)
+      ControlFlow.group(variables.map(_.initializer), name)
+    else
+      ControlFlow.noOp(name)
+  }
+
+  /** Base trait for all variable initializers. */
+  trait Initializer {
+    def apply(shape: Shape, dataType: DataType, partitionInfo: PartitionInfo): Op.Output = {
+      initialValue(shape, dataType, partitionInfo)
+    }
+
+    /** Generates an initial value op.
+      *
+      * @param  shape         Shape for the output tensor.
+      * @param  dataType      Data type for the output tensor.
+      * @param  partitionInfo [[PartitionInfo]] object holding additional information about how the variable is
+      *                       partitioned. May be `null` if the variable is not partitioned.
+      * @return Created op output.
+      */
+    def initialValue(shape: Shape, dataType: DataType, partitionInfo: PartitionInfo): Op.Output
+  }
+
+  /** Initializer that sets all elements of the variable tensor to zeros. */
+  object ZerosInitializer extends Initializer {
+    override def initialValue(shape: Shape, dataType: DataType, partitionInfo: PartitionInfo): Op.Output = {
+      Basic.zeros(shape, dataType)
+    }
+  }
+
+  /** Initializer that sets all elements of the variable tensor to ones. */
+  object OnesInitializer extends Initializer {
+    override def initialValue(shape: Shape, dataType: DataType, partitionInfo: PartitionInfo): Op.Output = {
+      Basic.ones(shape, dataType)
+    }
+  }
+
+  /** Initializer that sets the value of the variable to the provided `value`. */
+  case class ConstantInitializer(value: Tensor) extends Initializer {
+    override def initialValue(shape: Shape, dataType: DataType, partitionInfo: PartitionInfo): Op.Output = {
+      Basic.constant(value, dataType, shape)
+    }
+  }
+
+  // TODO: [VARIABLE_INITIALIZERS] RandomUniform/Normal, TruncatedNormal, UniformUnitScaling, Orthogonal.
+  // TODO: [VARIABLE_INITIALIZERS] VarianceScaling, Glorot/Xavier Uniform and Normal
 
   /** Creates an op that holds a handle to a variable resource.
     *
