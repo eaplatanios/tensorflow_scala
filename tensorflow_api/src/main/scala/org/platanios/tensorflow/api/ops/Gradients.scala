@@ -17,8 +17,8 @@ object Gradients {
 
   // TODO: [DOC] Document the "gradients" function.
   def gradients(
-      ys: Seq[Op.Output], xs: Seq[Op.Output], dys: Seq[Op.OutputLike] = null, colocateGradientsWithOps: Boolean = false,
-      gateGradients: Boolean = false, aggregationMethod: AggregationMethod = AddAggregationMethod,
+      ys: Seq[Op.Output], xs: Seq[Op.Output], dys: Seq[Op.OutputLike] = null, gateGradients: Boolean = false,
+      aggregationMethod: AggregationMethod = AddAggregationMethod, colocateGradientsWithOps: Boolean = false,
       name: String = "Gradients"): Seq[Op.OutputLike] = {
     // The `accumulatedGradients` variable collects the gradients received on each output endpoint of the op. The
     // gradients for each endpoint are initially collected as a sequence. When it is time to call the op's gradient
@@ -341,6 +341,11 @@ object Gradients {
     logger.debug(s"  in  --> ${outputGradients.filter(_ != null).map(_.name).mkString(", ")}")
     logger.debug(s"  out --> ${inputGradients.filter(_ != null).map(_.name).mkString(", ")}")
   }
+
+  sealed trait GatingMethod
+  object NoGating extends GatingMethod
+  object OpGating extends GatingMethod
+  object GraphGating extends GatingMethod
 
   /** Aggregation method used to combine gradients.
     *

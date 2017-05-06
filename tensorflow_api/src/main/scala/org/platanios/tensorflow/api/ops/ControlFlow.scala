@@ -36,7 +36,7 @@ object ControlFlow {
     * @param  name   Name for the created op (used mainly as a name scope).
     * @return Created op output, which in this case is the result of a `noOp`.
     */
-  def group(inputs: Set[Op], name: String = "GroupDependencies"): Op.Output = {
+  def group(inputs: Set[Op], name: String = "GroupDependencies"): Op = {
     Op.createWithNameScope(name, inputs) {
       val inputsByDevice = inputs.groupBy(_.device)
       if (inputsByDevice.size == 1) {
@@ -51,9 +51,9 @@ object ControlFlow {
         val dependencies = inputsByDevice.toSeq.sortBy(_._1).map {
           case (device, ops) =>
             if (device != null && device != "")
-              Op.createWith(device = device, controlDependencies = ops)(noOp(name).op)
+              Op.createWith(device = device, controlDependencies = ops)(noOp(name))
             else
-              Op.createWith(controlDependencies = ops)(noOp(name).op)
+              Op.createWith(controlDependencies = ops)(noOp(name))
         }
         Op.createWith(controlDependencies = dependencies.toSet)(noOp(name))
       }
@@ -90,8 +90,8 @@ object ControlFlow {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  private[this] def noOp(name: String = "NoOp"): Op.Output = {
-    Op.Builder(opType = "NoOp", name = name).build().outputs(0)
+  private[this] def noOp(name: String = "NoOp"): Op = {
+    Op.Builder(opType = "NoOp", name = name).build()
   }
 
   //  /** Creates an op that raises an exception to abort the process when called.
