@@ -85,17 +85,18 @@ class OpSpec extends FlatSpec with Matchers {
       val c = constant(1.0, name = "C")
       assert(c.op.name === "C")
       createWith(nameScope = "Nested") {
+        val nameScope = Op.currentNameScope
         val nestedC1 = constant(2.0, name = "C_1")
         assert(nestedC1.op.name === "Nested/C_1")
         createWith(nameScope = "Inner") {
           val nestedInnerC = constant(3.0, name = "C_1")
           assert(nestedInnerC.op.name === "Nested/Inner/C_1")
-          createWith(nameScope = "") {
-            val c1 = constant(4.0, name = "C_1")
-            assert(c1.op.name === "C_1")
-            createWith(nameScope = "Nested") {
-              val nestedC2 = constant(5.0, name = "C_2")
-              assert(nestedC2.op.name === "Nested/C_2")
+          createWith(nameScope = nameScope) {
+            val nestedC2 = constant(5.0, name = "C_2")
+            assert(nestedC2.op.name === "Nested/C_2")
+            createWith(nameScope = "") {
+              val c1 = constant(4.0, name = "C_1")
+              assert(c1.op.name === "C_1")
             }
           }
         }

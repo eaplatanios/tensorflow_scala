@@ -18,6 +18,57 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable {
     * from the native library. */
   private[api] val opsCache: mutable.Map[Long, Op] = mutable.LongMap.empty[Op]
 
+  /** Map that contains the current names in use in this graph as keys and their counts (i.e., how many times they have
+    * been used) as values. */
+  private[this] val namesInUse: mutable.Map[String, Int] = mutable.Map.empty[String, Int]
+
+  /** Marks `name` as a used name in this graph (i.e., increments its usage counter). */
+  private[api] def markNameAsUsed(name: String): Unit = namesInUse synchronized {
+    // TODO: !!! [PROTO] [GRAPH] [OP] Make sure to mark names as used when loading graphs from proto files.
+    namesInUse.update(name, namesInUse.getOrElse(name, 0) + 1)
+  }
+
+  /** Returns a unique op name in this graph, based on the provided `name`.
+    *
+    * @note Operation names are displayed in error messages reported by the TensorFlow runtime, and in various
+    *       visualization tools such as TensorBoard.
+    * @note You rarely need to call `uniqueName` directly. Most of the time you just need to create
+    *       `Op.createWithNameScope(...)` (which is also thread-safe) blocks to generate structured names.
+    *
+    * @param  name       Name in which to base the generated unique name.
+    * @param  markAsUsed If `true`, which is the default, a new unique name is created and marked as in use. If `false`,
+    *                    the unique name is returned without actually being marked as used. This is useful when the
+    *                    caller simply wants to know what the name to be created will be.
+    * @return Unique name.
+    */
+  private[api] def uniqueName(name: String, markAsUsed: Boolean = true): String = namesInUse synchronized {
+    val nameScope = Op.convertNameScopeToName(Op.currentNameScope)
+    val fullName = {
+      if (nameScope == null || nameScope == "")
+        name
+      else
+        s"$nameScope/$name"
+    }
+    var count = namesInUse.getOrElse(fullName, 0)
+    // Increment the counter for the provided name.
+    if (markAsUsed)
+      namesInUse.update(fullName, count + 1)
+    if (count > 0) {
+      var uniqueName = fullName
+      // Make sure the composed name is not already being used.
+      while (namesInUse.contains(uniqueName)) {
+        uniqueName = s"${fullName}_$count"
+        count += 1
+      }
+      // Mark the composed name as used.
+      if (markAsUsed)
+        namesInUse.update(uniqueName, 1)
+      uniqueName
+    } else {
+      fullName
+    }
+  }
+
   // TODO: Sacrificing type-safety here.
   /** Map from collection name to set of objects in that collection. */
   private[this] val collections: mutable.Map[String, mutable.Set[Any]] = mutable.Map.empty[String, mutable.Set[Any]]
@@ -113,6 +164,28 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable {
     */
   private[api] def clearCollection(key: String): Unit = {
     collections -= key
+  }
+
+  // TODO: [DOC] [GRAPH]
+
+  private[api] def globalVariables: Set[Variable] = {
+    getCollection(Graph.Keys.GLOBAL_VARIABLES).map(_.asInstanceOf[Variable])
+  }
+
+  private[api] def localVariables: Set[Variable] = {
+    getCollection(Graph.Keys.LOCAL_VARIABLES).map(_.asInstanceOf[Variable])
+  }
+
+  private[api] def trainableVariables: Set[Variable] = {
+    getCollection(Graph.Keys.TRAINABLE_VARIABLES).map(_.asInstanceOf[Variable])
+  }
+
+  private[api] def summaries: Set[Op.Output] = {
+    getCollection(Graph.Keys.SUMMARIES).map(_.asInstanceOf[Op.Output])
+  }
+
+  private[api] def trainOps: Set[Op] = {
+    getCollection(Graph.Keys.TRAIN_OP).map(_.asInstanceOf[Op])
   }
 
   /** Prevents the feeding of values to the provided op output, while running in a session.
@@ -574,5 +647,8 @@ object Graph {
     // Keys for control flow management.
     val COND_CONTEXT = "cond_context"
     val WHILE_CONTEXT = "while_context"
+
+    /** Key to collect streaming model ports. */
+    val STREAMING_MODEL_PORTS = "streaming_model_ports"
   }
 }

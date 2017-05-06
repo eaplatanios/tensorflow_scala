@@ -183,6 +183,37 @@ case class Variable private(
     }
   }
 
+  /** Creates an op that adds the provided sparse value to the current value of the variable and returns its value.
+    *
+    * @param  indices Indices corresponding to the `values` being added.
+    * @param  values  Values to be added, corresponding to the provided `indices`.
+    * @param  name    Name for created op.
+    * @return Variable value read op, after the addition.
+    */
+  def assignScatterAdd(indices: Op.Output, values: Op.Output, name: String = "AssignScatterAdd"): Op.Output = {
+    if (values.dataType != dataType)
+      throw InvalidDataTypeException(s"Expected '$dataType', but got '${values.dataType}'.")
+    Op.createWith(controlDependencies = Set[Op](Variable.scatterAdd(variableOp, indices, values, name))) {
+      read()
+    }
+  }
+
+  /** Creates an op that subtracts the provided sparse value from the current value of the variable and returns its
+    * value.
+    *
+    * @param  indices Indices corresponding to the `values` being subtracted.
+    * @param  values  Values to be subtracted, corresponding to the provided `indices`.
+    * @param  name    Name for created op.
+    * @return Variable value read op, after the addition.
+    */
+  def assignScatterSub(indices: Op.Output, values: Op.Output, name: String = "AssignScatterAdd"): Op.Output = {
+    if (values.dataType != dataType)
+      throw InvalidDataTypeException(s"Expected '$dataType', but got '${values.dataType}'.")
+    Op.createWith(controlDependencies = Set[Op](Variable.scatterAdd(variableOp, indices, -values, name))) {
+      read()
+    }
+  }
+
   // Useful operator overloads for the assignment methods:
 
   def update(value: Op.Output): Unit = assign(value)
@@ -247,8 +278,9 @@ object Variable {
       collections: Set[String] = Set.empty, cachingDevice: OpSpecification => String = null,
       name: String = "Variable"): Variable = {
     Op.createWith(nameScope = name, controlDependencies = Set.empty[Op]) {
-      val trueName = Op.convertNameScopeToName(name)
-      val variableOp = variable(shape, dataType, sharedName = trueName, name = name)
+      val nameScope = Op.currentNameScope
+      val trueName = Op.convertNameScopeToName(nameScope)
+      val variableOp = variable(shape, dataType, sharedName = trueName, name = nameScope)
       val initialValue = Op.createWith(nameScope = "Initializer", colocationOps = Set[Op](variableOp.op)) {
         initializer(shape, dataType, null)
       }

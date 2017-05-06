@@ -294,6 +294,17 @@ object Op {
     */
   implicit def opOutputToOpImplicitConversion(opOutput: Op.Output): Op = opOutput.op
 
+  /** Returns the graph of the current op creation context. */
+  private[api] def currentGraph(implicit context: DynamicVariable[OpCreationContext]): Graph = context.graph
+
+  /** Returns the name scope of the current op creation context. */
+  private[api] def currentNameScope(implicit context: DynamicVariable[OpCreationContext]): String = {
+    if (context.nameScope == "")
+      ""
+    else
+      s"${context.nameScope}/"
+  }
+
   /** Creates a context that can be used for creating ops according to the provided options.
     *
     * = General Information =
@@ -339,9 +350,12 @@ object Op {
     * When `createWith(...)` is used with a name scope, the provided name scope is appended to the context name scope,
     * generating a new op creation context. This new context is used for all ops created within the code block provided
     * in the `createWith(...)` function. The `nameScope` argument will be interpreted as follows:
-    *   - A string will create a new name scope, in which `nameScope` is appended to the prefix of all operations
-    * created in the provided code block. If `nameScope` has been used before, it will be made unique by calling
-    * `uniqueName(graph = context.graph, name = nameScope)`.
+    *   - A string not ending with `"/"` will create a new name scope, in which `nameScope` is appended to the prefix of
+    *     all operations created in the provided code block. If `nameScope` has been used before, it will be made unique
+    *     by calling `uniqueName(graph = context.graph, name = nameScope)`.
+    *   - A string ending with `"/"` will be treated as an "absolute" name scope, which makes it possible to re-enter
+    *     existing scopes. Such absolute name scopes can be obtained by using the `currentNameScope` function, from
+    *     within the appropriate context.
     *   - A value of `""` will reset the current name scope to the top-level (i.e., empty) name scope.
     *
     * This function checks the provided `nameScope` for validity by checking whether it matches: (i) the regular
@@ -358,6 +372,7 @@ object Op {
     *
     *   // Create a name scope called "Nested"
     *   createWith(nameScope = "Nested") {
+    *     val nameScope = currentNameScope
     *     val nestedC = constant(3.0, name = "C")
     *     assert(nestedC.op.name == "Nested/C")
     *
@@ -372,10 +387,15 @@ object Op {
     *       val nestedInner1C = constant(5.0, name = "C")
     *       assert(nestedInner1C.op.name == "Nested/Inner_1/C")
     *
-    *       // Reset the name scope using ""
-    *       createWith(nameScope = "") {
-    *         val c2 = constant(6.0, name = "C_2")
-    *         assert(c2.op.name == "C_2")
+    *       createWith(nameScope = nameScope) {
+    *         val nestedC1 = constant(6.0, name = "C_1")
+    *         assert(nestedC1.op.name == "Nested/C_1")
+    *
+    *         // Reset the name scope using ""
+    *         createWith(nameScope = "") {
+    *           val c2 = constant(7.0, name = "C_2")
+    *           assert(c2.op.name == "C_2")
+    *         }
     *       }
     *     }
     *   }
@@ -666,10 +686,10 @@ object Op {
         throw IllegalNameException(s"Illegal name scope '$nameScope'.")
       if (nameScope == "")
         ""
-      else if (context.nameScope == "")
-        uniqueName(graph = context.graph, name = s"${convertNameScopeToName(nameScope)}")
+      else if (nameScope.endsWith("/"))
+        convertNameScopeToName(nameScope)
       else
-        uniqueName(graph = context.graph, name = s"${context.nameScope}/${convertNameScopeToName(nameScope)}")
+        context.graph.uniqueName(nameScope)
     }
   }
 
@@ -776,33 +796,8 @@ object Op {
     * @param  name String to check.
     * @return Boolean value indicating whether the check was successful.
     */
-  private[this] def checkName(name: String): Boolean =
+  private[this] def checkName(name: String): Boolean = {
     VALID_OP_NAME_REGEX.pattern.matcher(name).matches
-
-  /** Returns a unique operation name in a graph, based on the provided `name`.
-    *
-    * `uniqueName` first checks if an op named `name` exists in `graph`. If it doesn't, then `name` is returned.
-    * Otherwise, `{name}_{i}` is returned, where `i` is the first non-zero integer for which no op with that name exists
-    * in the `graph`.
-    *
-    * @note If this function is called while creating a new op, the graph needs to be locked while generating a unique
-    *       name and adding the new op to the graph, so that no other op with the same name is added to the graph in the
-    *       meantime. You rarely need to call `uniqueName` directly. Most of the time you just need to create
-    *       `usingNameScope(...)` (which is also thread-safe) blocks to generate structured names.
-    * @note Operation names are displayed in error messages reported by the TensorFlow runtime, and in various
-    *       visualization tools such as TensorBoard.
-    * @param  graph   Graph for which the unique name is generated.
-    * @param  name    Name in which to base the generated unique name.
-    * @param  counter Current counter value `i`.
-    * @return Unique name.
-    */
-  private[this] def uniqueName(graph: Graph, name: String, counter: Int = 1): String = {
-    if (graph.findOp(name).isEmpty)
-      name
-    else if (graph.findOp(s"${name}_$counter").isEmpty)
-      s"${name}_$counter"
-    else
-      uniqueName(graph = graph, name = name, counter = counter + 1)
   }
 
   /** Checks whether the provided string is a valid name scope for creating ops.
@@ -810,15 +805,16 @@ object Op {
     * @param  nameScope String to check.
     * @return Boolean value indicating whether the check was successful.
     */
-  private[this] def checkNameScope(nameScope: String): Boolean =
+  private[this] def checkNameScope(nameScope: String): Boolean = {
     VALID_NAME_SCOPE_REGEX.pattern.matcher(nameScope).matches
+  }
 
   /** Converts the provided name scope to a valid op name, by removing a trailing `"/"` if there exists one.
     *
     * @param  nameScope Name scope to convert.
     * @return Name obtained from the provided name scope.
     */
-  private[ops] def convertNameScopeToName(nameScope: String): String = {
+  private[api] def convertNameScopeToName(nameScope: String): String = {
     if (nameScope.endsWith("/"))
       nameScope.substring(0, nameScope.length - 1)
     else
@@ -1432,10 +1428,10 @@ object Op {
 
   private[ops] final case class Builder(opType: String, name: String)
       (implicit context: DynamicVariable[OpCreationContext]) {
+    if (!checkName(name))
+      throw IllegalNameException(s"Illegal op name '$name'.")
+
     private val graph : Graph  = context.graph
-    private val opName: String = if (context.nameScope == "") name else s"${context.nameScope}/$name"
-    if (!checkName(name = opName))
-      throw IllegalNameException(s"Illegal op name '$opName'.")
 
     private var built     : Boolean             = false
     private var inputs    : Seq[Output]         = Seq.empty
@@ -1465,9 +1461,16 @@ object Op {
       using(graph.reference) { r =>
         if (built)
           throw OpBuilderUsedException("This op builder has already been used to built an op and cannot be re-used.")
-        device = Option(context.device(OpSpecification(name = name, opType = opType)))
-        val nativeHandle: Long = NativeOp.allocate(
-          r.nativeHandle, opType, uniqueName(graph = graph, name = opName))
+        // TODO: [OP] Using just "this.name" here feels kind of awkward.
+        device = Option(context.device(OpSpecification(name = this.name, opType = opType)))
+        val name = {
+          // If a name ends with a "/" then it is a name scope and we use it as-is, after removing the trailing "/".
+          if (this.name.endsWith("/"))
+            convertNameScopeToName(this.name)
+          else
+            graph.uniqueName(this.name)
+        }
+        val nativeHandle: Long = NativeOp.allocate(r.nativeHandle, opType, name)
         inputs.foreach(input => NativeOp.addInput(nativeHandle, input.op.nativeHandle, input.index))
         inputLists.foreach(inputList => NativeOp.addInputList(
           nativeHandle, inputList.map(_.nativeHandle), inputList.map(_.index)))
