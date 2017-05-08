@@ -89,7 +89,10 @@ object Gradients {
               // TODO: [CONTEXT] Add support for original op context.
               val outputGradients = opGradients.map(_.head)
               var inputGradients = maybeCompile(name, op, () => gradientFunction(op, outputGradients))
-              verifyGradients(op, inputGradients)
+              if (op.inputs.length != inputGradients.length)
+                throw new IllegalStateException(
+                  s"The number of gradients (${inputGradients.length}) generated for op '$op' do not match its " +
+                      s"number of inputs (${op.inputs.length}).")
               if (gateGradients && inputGradients.count(_ ne null) > 1)
                 inputGradients = ControlFlow.tuple(inputGradients.toArray).toSeq
               logGradients(op, outputGradients, inputGradients)
@@ -292,41 +295,6 @@ object Gradients {
     val opGradients = gradients.getOrElseUpdate(
       output.op, mutable.Seq(output.op.outputs.map(_ => Seq.empty[Op.OutputLike]): _*))
     opGradients(output.index) :+= gradient
-  }
-
-  /** Verifies that the provided `gradients` are valid in number and data type.
-    *
-    * @param  op        Op for which the gradients are being generated.
-    * @param  gradients Sequence containing the generated gradients.
-    * @throws IllegalStateException    If the generated gradients are not valid in number.
-    * @throws InvalidDataTypeException If the generated gradients are not valid in data type.
-    */
-  @throws[IllegalStateException]
-  @throws[InvalidDataTypeException]
-  private[this] def verifyGradients(op: Op, gradients: Seq[Op.OutputLike]): Unit = {
-    if (op.inputs.length != gradients.length)
-      throw new IllegalStateException(
-        s"The number of gradients (${gradients.length}) generated for op '$op' do not match its number of inputs " +
-            s"(${op.inputs.length}).")
-    for ((input, gradient) <- op.inputs.zip(gradients)) {
-      if (gradient ne null) {
-        if (gradient.dataType.isFloatingPoint) {
-          if (!input.dataType.isFloatingPoint)
-            throw InvalidDataTypeException(
-              s"Gradient data type '${gradient.dataType}' generated for real-valued op '$op' with data type " +
-                  s"'${input.dataType}' must be real.")
-        } else if (gradient.dataType.isComplex) {
-          if (!input.dataType.isComplex)
-            throw InvalidDataTypeException(
-              s"Gradient data type '${gradient.dataType}' generated for complex-valued op '$op' with data type " +
-                  s"'${input.dataType}' must be complex.")
-        } else {
-          throw InvalidDataTypeException(
-            s"Gradient data type '${gradient.dataType}' generated for op '$op' with data type '${input.dataType}' " +
-                s"must be either real or complex.")
-        }
-      }
-    }
   }
 
   /** Logs the input and output gradients of the provided op.
