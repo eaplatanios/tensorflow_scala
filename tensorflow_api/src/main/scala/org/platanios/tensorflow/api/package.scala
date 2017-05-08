@@ -12,8 +12,8 @@ package object api extends Implicits {
   //region Data Types
 
   type SupportedType[T] = types.SupportedType[T]
-  type DataType[T] = types.DataType[T]
 
+  type DataType = types.DataType
   val DataType = types.DataType
 
 //  type Bool = types.Bool
@@ -60,7 +60,7 @@ package object api extends Implicits {
   type Op = ops.Op
   val Op = ops.Op
 
-  type Variable[T] = ops.Variable[T]
+  type Variable = ops.Variable
   val Variable = ops.Variable
 
   val Gradients = ops.Gradients

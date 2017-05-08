@@ -16,13 +16,14 @@ import scala.annotation.tailrec
 /**
   * @author Emmanouil Antonios Platanios
   */
-sealed class Tensor[T: SupportedType] protected (
-    val dataType: DataType[T], val shape: Shape, private[api] val buffer: ByteBuffer,
+sealed class Tensor protected (
+    val dataType: DataType, val shape: Shape, private[api] val buffer: ByteBuffer,
     val order: Tensor.Order = DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER, private[api] val nativeHandle: Long = 0) {
   require(shape.numElements.get > 0, "Empty tensors are not supported in the TensorFlow Scala API.")
   require(shape.isFullyDefined, s"The shape of a Tensor object must be fully defined. Shape '$shape' is not.")
 
   // TODO: Remove these from the plain tensor --- use them only for slices.
+  // TODO: What about unknown rank?
   private[api] val underlyingTensorDimensions: Array[Int] = shape.asArray
   val beginOffsets: Array[Int] = Array.fill(shape.rank)(0)
   val endOffsets  : Array[Int] = shape.asArray
@@ -39,7 +40,7 @@ sealed class Tensor[T: SupportedType] protected (
     order.indexIterator(underlyingTensorDimensions, beginOffsets, endOffsets, strides)
   }
 
-  private[api] def elementIterator: Iterator[T] = {
+  private[api] def elementIterator: Iterator[dataType.ScalaType] = {
     flattenedIndexIterator.map(getElementAtFlattenedIndex)
   }
 
@@ -59,10 +60,10 @@ sealed class Tensor[T: SupportedType] protected (
   //
   // def update(indexers: Seq[Indexer], tensor: Tensor): Unit = slice(indexers: _*).set(tensor)
 
-  def fill[S: SupportedType](value: S): Tensor[T] = {
+  def fill[T: SupportedType](value: T): Tensor = {
     val castedValue = dataType.cast(value)
     dataType match {
-      case _: DataType[String] =>
+      case DataType.Str =>
         throw new UnsupportedOperationException("String tensors are immutable in the TensorFlow Scala API.")
       case _ =>
         for (index <- flattenedIndexIterator)
@@ -74,11 +75,12 @@ sealed class Tensor[T: SupportedType] protected (
   // TODO: Find a way to add this method for performance benefits.
   // def set(value: SupportedScalaType): Tensor = fill(value)
 
-  def set[S: SupportedType](tensor: Tensor[S]): Tensor[T] = {
+  def set(tensor: Tensor): Tensor = {
+    import tensor.dataType.supportedScalaType
     if (shape != tensor.shape && tensor.numElements != 1)
       throw ShapeMismatchException(s"Assigned tensor shape '${tensor.shape}' does not match assignee shape '$shape'")
     dataType match {
-      case _: DataType[String] =>
+      case DataType.Str =>
         throw new UnsupportedOperationException("String tensors are immutable in the TensorFlow Scala API.")
       case _ =>
         if (tensor.numElements == 1) {
@@ -91,24 +93,24 @@ sealed class Tensor[T: SupportedType] protected (
     this
   }
 
-  def setElementAtFlattenedIndex[S: SupportedType](index: Int, value: S): Tensor[T] = {
+  def setElementAtFlattenedIndex[T: SupportedType](index: Int, value: T): Tensor = {
     dataType match {
-      case _: DataType[String] =>
+      case DataType.Str =>
         throw new UnsupportedOperationException("String tensors are immutable in the TensorFlow Scala API.")
       case _ => dataType.putElementInBuffer(buffer, index * dataType.byteSize, dataType.cast(value))
     }
     this
   }
 
-  def scalar: T = {
+  def scalar: dataType.ScalaType = {
     if (numElements != 1)
       throw new IllegalStateException(s"Cannot obtain a scalar value from a non-scalar tensor with shape '$shape'.")
-    getElementAtFlattenedIndex(beginOffsets(0))
+    getElementAtFlattenedIndex(flattenedIndex(Array.fill[Int](shape.rank)(0))) // TODO: Fix this.
   }
 
-  def getElementAtFlattenedIndex(index: Int): T = {
+  def getElementAtFlattenedIndex(index: Int): dataType.ScalaType = {
     dataType match {
-      case _: DataType[String] =>
+      case DataType.Str =>
         val numElements = underlyingTensorDimensions.product
         val offset = DataType.Int64.byteSize * numElements +
             DataType.Int64.getElementFromBuffer(buffer, index * DataType.Int64.byteSize).toInt
@@ -117,7 +119,7 @@ sealed class Tensor[T: SupportedType] protected (
     }
   }
 
-  def apply(indexers: Indexer*): Tensor[T] = {
+  def apply(indexers: Indexer*): Tensor = {
     if (shape.rank == 0 && indexers.length == 1
         && indexers.head.isInstanceOf[Index] && indexers.head.asInstanceOf[Index].index == 0)
       this
@@ -137,7 +139,7 @@ sealed class Tensor[T: SupportedType] protected (
   }
 
   // TODO: Return Tensor objects for contiguous slices.
-  def slice(indexers: Indexer*): Tensor[T] = TensorSlice[T](tensor = this, indexers = indexers)
+  def slice(indexers: Indexer*): Tensor = TensorSlice(tensor = this, indexers = indexers)
 
   // TODO: Use this for creating slices: Buffer.slice().position(sliceStart).limit(sliceSize).
 
@@ -149,16 +151,16 @@ sealed class Tensor[T: SupportedType] protected (
 
   override def toString: String = s"Tensor[${shape.asArray.mkString(", ")}]$dataType"
 
-  private[Tensor] var tolerance: T = _
+  private[Tensor] var tolerance: dataType.ScalaType = _
 
-  def +-(tolerance: Double): Tensor[T] = {
+  def +-(tolerance: Double): Tensor = {
     if (!dataType.isNumeric)
       throw InvalidDataTypeException("Comparison tolerance can only be set for numeric tensors.")
     this.tolerance = dataType.cast(tolerance)
     this
   }
 
-  def ===(that: Tensor[_]): Boolean = {
+  def ===(that: Tensor): Boolean = {
     if (this.shape != that.shape) {
       false
     } else if (this.dataType != that.dataType) {
@@ -167,7 +169,7 @@ sealed class Tensor[T: SupportedType] protected (
       dataType match {
         case d if !d.isNumeric => this.elementIterator.zip(that.elementIterator).forall(p => p._1 == p._2)
         case _ => this.elementIterator.zip(that.elementIterator).forall(p => p._1 == p._2)
-          
+
 //          this.elementIterator.zip(that.elementIterator).forall(p => {
 //
 //
@@ -187,10 +189,10 @@ sealed class Tensor[T: SupportedType] protected (
     }
   }
 
-  def =!=(that: Tensor[_]): Boolean = !(this === that)
+  def =!=(that: Tensor): Boolean = !(this === that)
 
   override def equals(that: Any): Boolean = that match {
-    case that: Tensor[_] =>
+    case that: Tensor =>
       this.dataType == that.dataType &&
           this.shape != that.shape &&
           this.elementIterator.zip(that.elementIterator).forall(p => p._1 == p._2)
@@ -209,8 +211,8 @@ sealed class Tensor[T: SupportedType] protected (
   // TODO: Add implementations for equals and hashCode.
 }
 
-final case class TensorSlice[T: SupportedType](tensor: Tensor[T], indexers: Seq[Indexer])
-    extends Tensor[T](tensor.dataType, tensor.shape, tensor.buffer, tensor.order) {
+final case class TensorSlice(tensor: Tensor, indexers: Seq[Indexer])
+    extends Tensor(tensor.dataType, tensor.shape, tensor.buffer, tensor.order) {
   override val (underlyingTensorDimensions, shape, beginOffsets, endOffsets, strides) = {
     val decoded = Indexer.decode(tensor.shape, indexers)
     (decoded._1, Shape.fromSeq(decoded._2), decoded._3, decoded._4, decoded._5)
@@ -244,7 +246,7 @@ object Tensor {
     }
   }
 
-  private[api] def fromNativeHandle(nativeHandle: Long): Tensor[_] = {
+  private[api] def fromNativeHandle(nativeHandle: Long): Tensor = {
     val tensor = new Tensor(
       dataType = DataType.fromCValue(NativeTensor.dataType(nativeHandle)),
       shape = Shape.fromSeq(NativeTensor.shape(nativeHandle).map(_.toInt)),
@@ -257,8 +259,8 @@ object Tensor {
     tensor
   }
 
-  private[api] def allocate[T: SupportedType](
-      dataType: DataType[T], shape: Shape, order: Order = DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER): Tensor[T] = {
+  private[api] def allocate(
+      dataType: DataType, shape: Shape, order: Order = DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER): Tensor = {
     if (dataType.byteSize < 0)
       throw new IllegalArgumentException(s"Unsupported data type '$dataType'.")
     val numBytes: Int = dataType.byteSize * shape.numElements.get
@@ -266,7 +268,7 @@ object Tensor {
     new Tensor(dataType = dataType, shape = shape, buffer = buffer, order = order)
   }
 
-  def fill[T: SupportedType, S: SupportedType](dataType: DataType[T], shape: Shape = null)(value: S): Tensor[T] = {
+  def fill[T: SupportedType](dataType: DataType, shape: Shape = null)(value: T): Tensor = {
     // TODO: Add downcasting warnings.
     val inferredShape = if (shape == null) Shape() else shape
     dataType match {
@@ -305,15 +307,18 @@ object Tensor {
   //    tensor
   //  }
 
-  def apply[T: SupportedType](tensors: Tensor[T]*): Tensor[T] = {
+  def apply(tensors: Tensor*): Tensor = {
+    if (tensors.isEmpty)
+      throw new IllegalArgumentException("A data type needs to be provided to construct empty tensors.")
     apply(dataType = tensors.map(_.dataType).maxBy(_.priority), tensors: _*)
   }
 
-  def apply[T: SupportedType, S: SupportedType](dataType: DataType[T], tensors: Tensor[S]*): Tensor[T] = {
+  def apply(dataType: DataType, tensors: Tensor*): Tensor = {
     // TODO: What about column-major string tensors?
-    val shape = tensors.head.shape
-    require(tensors.tail.forall(_.shape == shape), "All provided tensor shapes must match.")
-    val newShape = Shape(tensors.length +: shape.asArray: _*)
+    val shape = if (tensors.nonEmpty) tensors.head.shape else Shape()
+    if (tensors.nonEmpty)
+      require(tensors.tail.forall(_.shape == shape), "All provided tensor shapes must match.")
+    val newShape = if (tensors.nonEmpty) Shape(tensors.length +: shape.asArray: _*) else Shape()
     dataType match {
       case DataType.Str =>
         // TODO: Make this more efficient.
@@ -350,6 +355,7 @@ object Tensor {
         val tensor = allocate(dataType, newShape)
         val newTensorIndexIterator = tensor.flattenedIndexIterator
         tensors.foreach(t => t.flattenedIndexIterator.foreach(index => {
+          import t.dataType.supportedScalaType
           tensor.setElementAtFlattenedIndex(newTensorIndexIterator.next(), t.getElementAtFlattenedIndex(index))
         }))
         tensor

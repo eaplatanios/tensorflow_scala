@@ -107,20 +107,18 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
     * @param  index Input index.
     * @return Data type of the specified input.
     */
-  private def inputDataType(index: Int): DataType[_] =
-    using(graph.reference) { r =>
-      DataType.fromCValue(NativeOp.inputDataType(r.nativeHandle, nativeHandle, index))
-    }
+  private def inputDataType(index: Int): DataType = using(graph.reference) { r =>
+    DataType.fromCValue(NativeOp.inputDataType(r.nativeHandle, nativeHandle, index))
+  }
 
   /** Gets the data type of the specified output of this op.
     *
     * @param  index Output index.
     * @return Data type of the specified output.
     */
-  private def outputDataType(index: Int): DataType[_] =
-    using(graph.reference) { r =>
-      DataType.fromCValue(NativeOp.outputDataType(r.nativeHandle, nativeHandle, index))
-    }
+  private def outputDataType(index: Int): DataType = using(graph.reference) { r =>
+    DataType.fromCValue(NativeOp.outputDataType(r.nativeHandle, nativeHandle, index))
+  }
 
   /** Gets the (current) number of consumers of the specified output of this op. These are other ops that use the
     * specified output as one of their inputs.
@@ -226,7 +224,7 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
     * @throws IllegalArgumentException If the no attribute with name `name` can be found for this op.
     */
   @throws[IllegalArgumentException]
-  def dataTypeAttribute(name: String): DataType[_] = using(graph.reference) { _ =>
+  def dataTypeAttribute(name: String): DataType = using(graph.reference) { _ =>
     try {
       DataType.fromCValue(NativeOp.getAttrType(nativeHandle, name))
     } catch {
@@ -890,7 +888,7 @@ object Op {
     lazy val name: String = s"${op.name}:$index"
 
     /** Data type of this op input. */
-    lazy val dataType: DataType[_] = op.inputDataType(index)
+    lazy val dataType: DataType = op.inputDataType(index)
 
     /** Graph where the op belongs. */
     def graph: Graph = op.graph
@@ -907,7 +905,7 @@ object Op {
     def name: String
 
     /** Data type of this op output. */
-    def dataType: DataType[_]
+    def dataType: DataType
 
     /** Device on which this op output will be placed. */
     def device: String
@@ -969,7 +967,7 @@ object Op {
     override def name: String = s"${op.name}:$index"
 
     /** Data type of this op output. */
-    override def dataType: DataType[_] = op.outputDataType(index)
+    override def dataType: DataType = op.outputDataType(index)
 
     /** Device on which this op output will be placed. */
     override def device: String = op.device
@@ -1005,7 +1003,7 @@ object Op {
       * @param  session Optional session to use for the evaluation.
       * @return Value of this op output, for this evaluation.
       */
-    def evaluate(feeds: Map[Op.Output, Tensor[_]] = Map.empty, session: Session = null): Tensor[_] = {
+    def evaluate(feeds: Map[Op.Output, Tensor] = Map.empty, session: Session = null): Tensor = {
       val effectiveSession = if (session == null) graph.defaultSession else session
       effectiveSession.run(feeds, Array(this))(0)
     }
@@ -1056,7 +1054,7 @@ object Op {
       * @return [[Op.OutputIndexedSlices]] that has the same value as this [[Op.OutputLike]].
       */
     override def toOpOutputIndexedSlices(optimize: Boolean = true): Op.OutputIndexedSlices = {
-      val denseShape = Basic.shape(this, optimize = optimize)
+      val denseShape = Basic.shape(this, dataType = DataType.Int32, optimize = optimize)
       val indices = Math.range(Basic.constant(0), denseShape(0))
       OutputIndexedSlices(indices = indices, values = this, denseShape = denseShape)
     }
@@ -1121,7 +1119,7 @@ object Op {
         (if (denseShape ne null) s"(shape = ${denseShape.name})" else "")
 
     /** Data type of this op output indexed slices. */
-    override def dataType: DataType[_] = values.dataType
+    override def dataType: DataType = values.dataType
 
     /** Device on which these op output indexed slices will be placed. */
     override def device: String = values.device
@@ -1224,7 +1222,7 @@ object Op {
         (if (denseShape ne null) s"(shape = ${denseShape.name})" else "")
 
     /** Data type of this sparse op output. */
-    override def dataType: DataType[_] = values.dataType
+    override def dataType: DataType = values.dataType
 
     /** Device on which this sparse op output will be placed. */
     override def device: String = values.device
@@ -1255,7 +1253,7 @@ object Op {
       *         values, and the dense shape.
       */
     def value(
-        feeds: Map[Op.Output, Tensor[_]] = Map.empty, session: Session = null): (Tensor[_], Tensor[_], Tensor[_]) = {
+        feeds: Map[Op.Output, Tensor] = Map.empty, session: Session = null): (Tensor, Tensor, Tensor) = {
       val effectiveSession = if (session == null) graph.defaultSession else session
       val fetches = effectiveSession.run(feeds, Array(indices, values, denseShape))
       (fetches(0), fetches(1), fetches(2))
@@ -1273,7 +1271,7 @@ object Op {
     *                           dense shape.
     * @return Sparse op output.
     */
-  private[api] def convertToSparseOutput(sparseOutputValue: (Tensor[_], Tensor[_], Tensor[_])): SparseOutput = {
+  private[api] def convertToSparseOutput(sparseOutputValue: (Tensor, Tensor, Tensor)): SparseOutput = {
     SparseOutput(
       Basic.constant(sparseOutputValue._1), Basic.constant(sparseOutputValue._2),
       Basic.constant(sparseOutputValue._3))
@@ -1281,7 +1279,7 @@ object Op {
 
   // TODO: !!!
 
-  private[api] def constantValue(tensor: Op.Output): Tensor[_] = {
+  private[api] def constantValue(tensor: Op.Output): Tensor = {
     val value = tensor.op.opType match {
       case "Const"    => ??? // TODO: !!! Needs MakeNdArray()
       case "Shape"    =>
@@ -1357,6 +1355,7 @@ object Op {
       case "Fill"     =>
         val fillShape = tensor.shape
         val fillValue = constantValue(tensor.op.inputs(0))
+        import fillValue.dataType.supportedScalaType
         if (fillShape.isFullyDefined && fillValue != null)
           Tensor.fill(fillValue.dataType, fillShape)(fillValue.scalar)
         else
@@ -1418,6 +1417,7 @@ object Op {
           if (value != null) {
             require(value.rank == 1, "Only rank-1 tensors can be converted to shapes.")
             // TODO: !!! Does this work?
+            import value.dataType.supportedScalaType
             val shape = Shape(
               (0 until value.numElements).map(value.getElementAtFlattenedIndex(_).toInt): _*)
             returnShape = returnShape.mergeWith(shape)
@@ -1513,9 +1513,9 @@ object Op {
             NativeOp.setAttrBool(nativeHandle, attribute._1, value)
           case value: Array[Boolean] =>
             NativeOp.setAttrBoolList(nativeHandle, attribute._1, value)
-          case value: DataType[_] =>
+          case value: DataType =>
             NativeOp.setAttrType(nativeHandle, attribute._1, value.cValue)
-          case value: Array[DataType[_]] =>
+          case value: Array[DataType] =>
             NativeOp.setAttrTypeList(nativeHandle, attribute._1, value.map(_.cValue))
           case value: Tensor.NativeView =>
             NativeOp.setAttrTensor(nativeHandle, attribute._1, value.nativeHandle)
@@ -1592,12 +1592,12 @@ object Op {
       this
     }
 
-    def setAttribute(name: String, value: DataType[_]): Builder = {
+    def setAttribute(name: String, value: DataType): Builder = {
       attributes += name -> value
       this
     }
 
-    def setAttribute(name: String, value: Array[DataType[_]]): Builder = {
+    def setAttribute(name: String, value: Array[DataType]): Builder = {
       attributes += name -> value
       this
     }

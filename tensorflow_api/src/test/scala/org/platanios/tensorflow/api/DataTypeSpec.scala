@@ -3,6 +3,7 @@ package org.platanios.tensorflow.api
 import java.nio.ByteBuffer
 
 import org.scalatest._
+import spire.math.{UByte, UShort}
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -15,8 +16,8 @@ class DataTypeSpec extends FlatSpec with Matchers {
     assert(DataType.dataTypeOf(1.asInstanceOf[Short]) === DataType.Int16)
     assert(DataType.dataTypeOf(1) === DataType.Int32)
     assert(DataType.dataTypeOf(1L) === DataType.Int64)
-    assert(DataType.dataTypeOf(UInt8(1)) === DataType.UInt8)
-    assert(DataType.dataTypeOf(UInt16(1)) === DataType.UInt16)
+    assert(DataType.dataTypeOf(UByte(1)) === DataType.UInt8)
+    assert(DataType.dataTypeOf(UShort(1)) === DataType.UInt16)
     // assert(DataType.dataTypeOf('a') === DataType.UInt16)
     assert(DataType.dataTypeOf(true) === DataType.Bool)
     // assert(DataType.dataTypeOf("foo") === DataType.String)
@@ -302,32 +303,32 @@ class DataTypeSpec extends FlatSpec with Matchers {
     // TODO: Add complex data type checks.
     assert(DataType.Int8.cast(-2L) === -2.toByte)
     assert(DataType.Int8.cast(-2.0) === -2.toByte)
-    assert(DataType.Int8.cast(UInt8(2)) === 2.toByte)
+    assert(DataType.Int8.cast(UByte(2)) === 2.toByte)
     assert(DataType.Int16.cast(-2L) === -2.toShort)
     assert(DataType.Int32.cast(-2L) === -2)
     assert(DataType.Int64.cast(-2.0) === -2L)
-    assert(DataType.Int64.cast(UInt8(2)) === 2L)
-    assert(DataType.UInt8.cast(UInt8(2)) === UInt8(2))
-    assert(DataType.UInt8.cast(UInt16(2)) === UInt8(2))
-    assert(DataType.UInt8.cast(2L) === UInt8(2))
-    assert(DataType.UInt8.cast(-2.0) === UInt8(254)) // TODO: Should this throw an error?
-    assert(DataType.UInt16.cast(-UInt8(2)) === UInt16(65534)) // TODO: Should this throw an error?
-    assert(DataType.UInt16.cast(UInt16(2)) === UInt16(2))
-    assert(DataType.UInt16.cast(2L) === UInt16(2))
-    assert(DataType.UInt16.cast(2.0) === UInt16(2))
+    assert(DataType.Int64.cast(UByte(2)) === 2L)
+    assert(DataType.UInt8.cast(UByte(2)) === UByte(2))
+    assert(DataType.UInt8.cast(UShort(2)) === UByte(2))
+    assert(DataType.UInt8.cast(2L) === UByte(2))
+    assert(DataType.UInt8.cast(-2.0) === UByte(254)) // TODO: Should this throw an error?
+    assert(DataType.UInt16.cast(-UByte(2)) === UShort(254)) // TODO: Should this throw an error?
+    assert(DataType.UInt16.cast(UShort(2)) === UShort(2))
+    assert(DataType.UInt16.cast(2L) === UShort(2))
+    assert(DataType.UInt16.cast(2.0) === UShort(2))
     assert(DataType.QInt8.cast(-2L) === -2.toByte)
     assert(DataType.QInt8.cast(-2.0) === -2.toByte)
-    assert(DataType.QInt8.cast(UInt8(2)) === 2.toByte)
+    assert(DataType.QInt8.cast(UByte(2)) === 2.toByte)
     assert(DataType.QInt16.cast(-2L) === -2.toShort)
     assert(DataType.QInt32.cast(-2L) === -2)
-    assert(DataType.QUInt8.cast(UInt8(2)) === UInt8(2))
-    assert(DataType.QUInt8.cast(UInt16(2)) === UInt8(2))
-    assert(DataType.QUInt8.cast(2L) === UInt8(2))
-    assert(DataType.QUInt8.cast(-2.0) === UInt8(254)) // TODO: Should this throw an error?
-    assert(DataType.QUInt16.cast(-UInt8(2)) === UInt16(65534)) // TODO: Should this throw an error?
-    assert(DataType.QUInt16.cast(UInt16(2)) === UInt16(2))
-    assert(DataType.QUInt16.cast(2L) === UInt16(2))
-    assert(DataType.QUInt16.cast(2.0) === UInt16(2))
+    assert(DataType.QUInt8.cast(UByte(2)) === UByte(2))
+    assert(DataType.QUInt8.cast(UShort(2)) === UByte(2))
+    assert(DataType.QUInt8.cast(2L) === UByte(2))
+    assert(DataType.QUInt8.cast(-2.0) === UByte(254)) // TODO: Should this throw an error?
+    assert(DataType.QUInt16.cast(-UByte(2)) === UShort(254)) // TODO: Should this throw an error?
+    assert(DataType.QUInt16.cast(UShort(2)) === UShort(2))
+    assert(DataType.QUInt16.cast(2L) === UShort(2))
+    assert(DataType.QUInt16.cast(2.0) === UShort(2))
   }
 
   // TODO: Add 'InvalidCastException' checks.
@@ -342,18 +343,18 @@ class DataTypeSpec extends FlatSpec with Matchers {
     DataType.Int32.putElementInBuffer(buffer, 0, 1)
     DataType.Int32.putElementInBuffer(buffer, 4, 16)
     DataType.Int32.putElementInBuffer(buffer, 8, 257)
-    assert(buffer.get(0) === Int8(0x00))
-    assert(buffer.get(1) === Int8(0x00))
-    assert(buffer.get(2) === Int8(0x00))
-    assert(buffer.get(3) === Int8(0x01))
-    assert(buffer.get(4) === Int8(0x00))
-    assert(buffer.get(5) === Int8(0x00))
-    assert(buffer.get(6) === Int8(0x00))
-    assert(buffer.get(7) === Int8(0x10))
-    assert(buffer.get(8) === Int8(0x00))
-    assert(buffer.get(9) === Int8(0x00))
-    assert(buffer.get(10) === Int8(0x01))
-    assert(buffer.get(11) === Int8(0x01))
+    assert(buffer.get(0) === 0x00.toByte)
+    assert(buffer.get(1) === 0x00.toByte)
+    assert(buffer.get(2) === 0x00.toByte)
+    assert(buffer.get(3) === 0x01.toByte)
+    assert(buffer.get(4) === 0x00.toByte)
+    assert(buffer.get(5) === 0x00.toByte)
+    assert(buffer.get(6) === 0x00.toByte)
+    assert(buffer.get(7) === 0x10.toByte)
+    assert(buffer.get(8) === 0x00.toByte)
+    assert(buffer.get(9) === 0x00.toByte)
+    assert(buffer.get(10) === 0x01.toByte)
+    assert(buffer.get(11) === 0x01.toByte)
     // TODO: Add checks for other data types.
   }
 
@@ -374,13 +375,13 @@ class DataTypeSpec extends FlatSpec with Matchers {
     DataType.Int16.putElementInBuffer(buffer, 17, (-2).toShort)
     DataType.Int32.putElementInBuffer(buffer, 19, 54)
     DataType.Int64.putElementInBuffer(buffer, 23, -3416L)
-    DataType.UInt8.putElementInBuffer(buffer, 31, UInt8(34))
-    DataType.UInt16.putElementInBuffer(buffer, 32, UInt16(657))
+    DataType.UInt8.putElementInBuffer(buffer, 31, UByte(34))
+    DataType.UInt16.putElementInBuffer(buffer, 32, UShort(657))
     DataType.QInt8.putElementInBuffer(buffer, 34, (-4).toByte)
     DataType.QInt16.putElementInBuffer(buffer, 35, 32.toShort)
     DataType.QInt32.putElementInBuffer(buffer, 37, -548979)
-    DataType.QUInt8.putElementInBuffer(buffer, 41, UInt8(254))
-    DataType.QUInt16.putElementInBuffer(buffer, 42, UInt16(765))
+    DataType.QUInt8.putElementInBuffer(buffer, 41, UByte(254))
+    DataType.QUInt16.putElementInBuffer(buffer, 42, UShort(765))
     DataType.Bool.putElementInBuffer(buffer, 44, true)
     DataType.Bool.putElementInBuffer(buffer, 45, false)
     // TODO: Add checks for the string data type.
@@ -392,13 +393,13 @@ class DataTypeSpec extends FlatSpec with Matchers {
     assert(DataType.Int16.getElementFromBuffer(buffer, 17) === (-2).toShort)
     assert(DataType.Int32.getElementFromBuffer(buffer, 19) === 54)
     assert(DataType.Int64.getElementFromBuffer(buffer, 23) === -3416L)
-    assert(DataType.UInt8.getElementFromBuffer(buffer, 31) === UInt8(34))
-    assert(DataType.UInt16.getElementFromBuffer(buffer, 32) === UInt16(657))
+    assert(DataType.UInt8.getElementFromBuffer(buffer, 31) === UByte(34))
+    assert(DataType.UInt16.getElementFromBuffer(buffer, 32) === UShort(657))
     assert(DataType.QInt8.getElementFromBuffer(buffer, 34) === (-4).toByte)
     assert(DataType.QInt16.getElementFromBuffer(buffer, 35) === 32.toShort)
     assert(DataType.QInt32.getElementFromBuffer(buffer, 37) === -548979)
-    assert(DataType.QUInt8.getElementFromBuffer(buffer, 41) === UInt8(254))
-    assert(DataType.QUInt16.getElementFromBuffer(buffer, 42) === UInt16(765))
+    assert(DataType.QUInt8.getElementFromBuffer(buffer, 41) === UByte(254))
+    assert(DataType.QUInt16.getElementFromBuffer(buffer, 42) === UShort(765))
     assert(DataType.Bool.getElementFromBuffer(buffer, 44) === true)
     assert(DataType.Bool.getElementFromBuffer(buffer, 45) === false)
   }

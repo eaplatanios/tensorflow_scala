@@ -10,8 +10,7 @@ import scala.util.DynamicVariable
   *
   * @author Emmanouil Antonios Platanios
   */
-case class Variable[T: SupportedType] private(
-    dataType: DataType[T], variableOp: Op.Output, initializeOp: Op, cachedValueOp: Op.Output)
+case class Variable private(dataType: DataType, variableOp: Op.Output, initializeOp: Op, cachedValueOp: Op.Output)
     extends Op.OutputConvertible with ProtoSerializable {
   /** Graph where this variable is defined. */
   val graph: Graph = initializeOp.graph
@@ -129,7 +128,7 @@ case class Variable[T: SupportedType] private(
     * @param  session Optional session to use for the evaluation.
     * @return Value of this variable, for this evaluation.
     */
-  def evaluate(feeds: Map[Op.Output, Tensor[_]] = Map.empty, session: Session = null): Tensor[_] = {
+  def evaluate(feeds: Map[Op.Output, Tensor] = Map.empty, session: Session = null): Tensor = {
     toOpOutput.evaluate(feeds, session)
   }
 
@@ -244,7 +243,7 @@ case class Variable[T: SupportedType] private(
   override def toString: String = op.toString
 
   override def equals(that: Any): Boolean = that match {
-    case that: Variable[T] => this.op == that.op
+    case that: Variable => this.op == that.op
     case _ => false
   }
 
@@ -272,10 +271,10 @@ object Variable {
     * @param  name          Created variable name.
     * @return Created variable.
     */
-  def apply[T: SupportedType](
-      initializer: Initializer, shape: Shape, dataType: DataType[T], trainable: Boolean = true,
+  def apply(
+      initializer: Initializer, shape: Shape, dataType: DataType, trainable: Boolean = true,
       collections: Set[String] = Set.empty, cachingDevice: OpSpecification => String = null,
-      name: String = "Variable"): Variable[T] = {
+      name: String = "Variable"): Variable = {
     Op.createWith(nameScope = name, controlDependencies = Set.empty[Op]) {
       val nameScope = Op.currentNameScope
       val trueName = Op.convertNameScopeToName(nameScope)
@@ -321,7 +320,7 @@ object Variable {
     * @return Constructed [[Variable]] object.
     */
   def fromProto(protoDef: VariableDef, importScope: String = null)
-      (implicit context: DynamicVariable[OpCreationContext]): Variable[_] = {
+      (implicit context: DynamicVariable[OpCreationContext]): Variable = {
     if (!protoDef.getIsResource)
       throw new IllegalArgumentException("Trying to restore a reference-based variable as a resource-based variable.")
 
@@ -411,7 +410,7 @@ object Variable {
     * @param  name      Name for the created op.
     * @return Created op.
     */
-  def initializer(variables: Set[Variable[_]], name: String = "Initializer"): Op = {
+  def initializer(variables: Set[Variable], name: String = "Initializer"): Op = {
     if (variables != null && variables.nonEmpty)
       ControlFlow.group(variables.map(_.initializer), name)
     else
@@ -420,7 +419,7 @@ object Variable {
 
   /** Base trait for all variable initializers. */
   trait Initializer {
-    def apply[T: SupportedType](shape: Shape, dataType: DataType[T], partitionInfo: PartitionInfo): Op.Output = {
+    def apply(shape: Shape, dataType: DataType, partitionInfo: PartitionInfo): Op.Output = {
       initialValue(shape, dataType, partitionInfo)
     }
 
@@ -432,29 +431,26 @@ object Variable {
       *                       partitioned. May be `null` if the variable is not partitioned.
       * @return Created op output.
       */
-    def initialValue[T: SupportedType](shape: Shape, dataType: DataType[T], partitionInfo: PartitionInfo): Op.Output
+    def initialValue(shape: Shape, dataType: DataType, partitionInfo: PartitionInfo): Op.Output
   }
 
   /** Initializer that sets all elements of the variable tensor to zeros. */
   object ZerosInitializer extends Initializer {
-    override def initialValue[T: SupportedType](
-        shape: Shape, dataType: DataType[T], partitionInfo: PartitionInfo): Op.Output = {
+    override def initialValue(shape: Shape, dataType: DataType, partitionInfo: PartitionInfo): Op.Output = {
       Basic.zeros(shape, dataType)
     }
   }
 
   /** Initializer that sets all elements of the variable tensor to ones. */
   object OnesInitializer extends Initializer {
-    override def initialValue[T: SupportedType](
-        shape: Shape, dataType: DataType[T], partitionInfo: PartitionInfo): Op.Output = {
+    override def initialValue(shape: Shape, dataType: DataType, partitionInfo: PartitionInfo): Op.Output = {
       Basic.ones(shape, dataType)
     }
   }
 
   /** Initializer that sets the value of the variable to the provided `value`. */
-  case class ConstantInitializer[T: SupportedType](value: Tensor[T]) extends Initializer {
-    override def initialValue[S: SupportedType](
-        shape: Shape, dataType: DataType[S], partitionInfo: PartitionInfo): Op.Output = {
+  case class ConstantInitializer(value: Tensor) extends Initializer {
+    override def initialValue(shape: Shape, dataType: DataType, partitionInfo: PartitionInfo): Op.Output = {
       Basic.constant(value, dataType, shape)
     }
   }
@@ -476,8 +472,8 @@ object Variable {
     * @param  name       Name for the created variable op.
     * @return Created variable op.
     */
-  private def variable[T: SupportedType](
-      shape: Shape, dataType: DataType[T], container: String = "", sharedName: String = "",
+  private def variable(
+      shape: Shape, dataType: DataType, container: String = "", sharedName: String = "",
       name: String = "Variable"): Op.Output = {
     Op.Builder(opType = "VarHandleOp", name = name)
         .setAttribute("shape", shape)
@@ -514,8 +510,7 @@ object Variable {
     * @param  name     Name for the created op.
     * @return Created op.
     */
-  private def readVariable[T: SupportedType](
-      variable: Op.Output, dataType: DataType[T], name: String = "ReadVariable"): Op.Output = {
+  private def readVariable(variable: Op.Output, dataType: DataType, name: String = "ReadVariable"): Op.Output = {
     Op.Builder(opType = "ReadVariableOp", name = name)
         .addInput(variable)
         .setAttribute("dtype", dataType)
@@ -534,8 +529,8 @@ object Variable {
     * @param  name     Name for the created op.
     * @return Created op.
     */
-  private def unsafeReadVariable[T: SupportedType](
-      variable: Op.Output, dataType: DataType[T], name: String = "UnsafeReadVariable"): Op.Output = {
+  private def unsafeReadVariable(
+      variable: Op.Output, dataType: DataType, name: String = "UnsafeReadVariable"): Op.Output = {
     Op.Builder(opType = "_UnsafeReadVariable", name = name)
         .addInput(variable)
         .setAttribute("dtype", dataType)
@@ -634,8 +629,8 @@ object Variable {
     * @param  name            Name for the created op.
     * @return Created op.
     */
-  private def gather[T: SupportedType](
-      variable: Op.Output, indices: Op.Output, dataType: DataType[T] = null, validateIndices: Boolean = true,
+  private def gather(
+      variable: Op.Output, indices: Op.Output, dataType: DataType = null, validateIndices: Boolean = true,
       name: String = "VariableGather"): Op.Output = {
     if (indices.dataType != DataType.Int32 && indices.dataType != DataType.Int64)
       throw InvalidDataTypeException(

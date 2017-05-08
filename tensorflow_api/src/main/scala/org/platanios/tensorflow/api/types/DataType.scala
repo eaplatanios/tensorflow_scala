@@ -1,7 +1,7 @@
 package org.platanios.tensorflow.api.types
 
-import org.platanios.tensorflow.api.types.SupportedType._
 import org.platanios.tensorflow.jni.{Tensor => NativeTensor, TensorFlow => NativeLibrary}
+
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
 
@@ -15,7 +15,10 @@ import spire.math.{UByte, UShort}
   *
   * @author Emmanouil Antonios Platanios
   */
-sealed abstract class DataType[T: SupportedType] {
+sealed trait DataType {
+  type ScalaType
+  implicit val supportedScalaType: SupportedType[ScalaType]
+
   //region Data Type Properties
 
   /** Name of the data type (mainly useful for logging purposes). */
@@ -70,7 +73,7 @@ sealed abstract class DataType[T: SupportedType] {
   //endregion Data Type Set Helper Methods
 
   /** Returns a data type that corresponds to this data type's real part. */
-  def real: DataType[_] = this match {
+  def real: DataType = this match {
     // case DataType.Complex64 => DataType.Float32 TODO: [COMPLEX]
     // case DataType.Complex128 => DataType.Float64
     case _ => this
@@ -85,7 +88,7 @@ sealed abstract class DataType[T: SupportedType] {
     * @throws UnsupportedOperationException For unsupported data types on the Scala side.
     */
   @throws[UnsupportedOperationException]
-  @inline def cast[R: SupportedType](value: R): T = value.cast(this)
+  @inline def cast[R: SupportedType](value: R): ScalaType = value.cast(this)
 
   /** Puts an element of this data type into the provided byte buffer.
     *
@@ -97,7 +100,7 @@ sealed abstract class DataType[T: SupportedType] {
     * @throws UnsupportedOperationException For unsupported data types on the Scala side.
     */
   @throws[UnsupportedOperationException]
-  private[api] def putElementInBuffer(buffer: ByteBuffer, index: Int, element: T): Int
+  private[api] def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int
 
   /** Gets an element of this data type from the provided byte buffer.
     *
@@ -107,12 +110,12 @@ sealed abstract class DataType[T: SupportedType] {
     * @throws UnsupportedOperationException For unsupported data types on the Scala side.
     */
   @throws[UnsupportedOperationException]
-  private[api] def getElementFromBuffer(buffer: ByteBuffer, index: Int): T
+  private[api] def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType
 
   override def toString: String = name
 
   override def equals(that: Any): Boolean = that match {
-    case that: DataType[_] => this.cValue == that.cValue
+    case that: DataType => this.cValue == that.cValue
     case _ => false
   }
 
@@ -123,34 +126,40 @@ sealed abstract class DataType[T: SupportedType] {
 object DataType {
   //region Supported TensorFlow Data Types Definitions
 
-  object Bool extends DataType[Boolean] {
+  object Bool extends DataType {
+    override type ScalaType = Boolean
+    override implicit val supportedScalaType = BooleanIsSupportedType
+    
     override val name    : String = "Bool"
     override val cValue  : Int    = 10
     override val byteSize: Int    = 1
     override val priority: Int    = 0
 
-    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: Boolean): Int = {
+    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
       buffer.put(index, if (element) 1 else 0)
       byteSize
     }
 
-    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Boolean = {
+    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
       buffer.get(index) == 1
     }
   }
 
-  object Str extends DataType[String] {
+  object Str extends DataType {
+    override type ScalaType = String
+    override implicit val supportedScalaType = StringIsSupportedType
+
     override val name    : String = "String"
     override val cValue  : Int    = 7
     override val byteSize: Int    = -1
     override val priority: Int    = 1000
 
-    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: String): Int = {
+    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
       val stringBytes = element.getBytes(Charset.forName("UTF-8"))
       NativeTensor.setStringBytes(stringBytes, buffer.duplicate().position(index).asInstanceOf[ByteBuffer].slice())
     }
 
-    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): String = {
+    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
       val stringBytes = NativeTensor.getStringBytes(buffer.duplicate().position(index).asInstanceOf[ByteBuffer].slice())
       new String(stringBytes, Charset.forName("UTF-8"))
     }
@@ -173,34 +182,40 @@ object DataType {
   //   }
   // }
 
-  object Float32 extends DataType[Float] {
+  object Float32 extends DataType {
+    override type ScalaType = Float
+    override implicit val supportedScalaType = FloatIsSupportedType
+
     override val name    : String = "Float32"
     override val cValue  : Int    = 1
     override val byteSize: Int    = 4
     override val priority: Int    = 220
 
-    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: Float): Int = {
+    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
       buffer.putFloat(index, element)
       byteSize
     }
 
-    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Float = {
+    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
       buffer.getFloat(index)
     }
   }
 
-  object Float64 extends DataType[Double] {
+  object Float64 extends DataType {
+    override type ScalaType = Double
+    override implicit val supportedScalaType = DoubleIsSupportedType
+
     override val name    : String = "Float64"
     override val cValue  : Int    = 2
     override val byteSize: Int    = 8
     override val priority: Int    = 230
 
-    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: Double): Int = {
+    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
       buffer.putDouble(index, element)
       byteSize
     }
 
-    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Double = {
+    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
       buffer.getDouble(index)
     }
   }
@@ -226,193 +241,229 @@ object DataType {
   // TODO: Add Complex64(cValue = 8, byteSize = 8).
   // TODO: Add Complex128(cValue = 18, byteSize = 16).
 
-  object Int8 extends DataType[Byte] {
+  object Int8 extends DataType {
+    override type ScalaType = Byte
+    override implicit val supportedScalaType = ByteIsSupportedType
+
     override val name    : String = "Int8"
     override val cValue  : Int    = 6
     override val byteSize: Int    = 1
     override val priority: Int    = 40
 
-    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: Byte): Int = {
+    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
       buffer.put(index, element)
       byteSize
     }
 
-    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Byte = {
+    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
       buffer.get(index)
     }
   }
 
-  object Int16 extends DataType[Short] {
+  object Int16 extends DataType {
+    override type ScalaType = Short
+    override implicit val supportedScalaType = ShortIsSupportedType
+
     override val name    : String = "Int16"
     override val cValue  : Int    = 5
     override val byteSize: Int    = 2
     override val priority: Int    = 80
 
-    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: Short): Int = {
+    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
       buffer.putShort(index, element)
       byteSize
     }
 
-    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Short = {
+    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
       buffer.getShort(index)
     }
   }
 
-  object Int32 extends DataType[Int] {
+  object Int32 extends DataType {
+    override type ScalaType = Int
+    override implicit val supportedScalaType = IntIsSupportedType
+
     override val name    : String = "Int32"
     override val cValue  : Int    = 3
     override val byteSize: Int    = 4
     override val priority: Int    = 100
 
-    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: Int): Int = {
+    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
       buffer.putInt(index, element)
       byteSize
     }
 
-    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Int = {
+    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
       buffer.getInt(index)
     }
   }
 
-  object Int64 extends DataType[Long] {
+  object Int64 extends DataType {
+    override type ScalaType = Long
+    override implicit val supportedScalaType = LongIsSupportedType
+
     override val name    : String = "Int64"
     override val cValue  : Int    = 9
     override val byteSize: Int    = 8
     override val priority: Int    = 110
 
-    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: Long): Int = {
+    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
       buffer.putLong(index, element)
       byteSize
     }
 
-    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Long = {
+    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
       buffer.getLong(index)
     }
   }
 
-  object UInt8 extends DataType[UByte] {
+  object UInt8 extends DataType {
+    override type ScalaType = UByte
+    override implicit val supportedScalaType = UByteIsSupportedType
+
     override val name    : String = "UInt8"
     override val cValue  : Int    = 4
     override val byteSize: Int    = 1
     override val priority: Int    = 20
 
-    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: UByte): Int = {
+    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
       buffer.put(index, element.toByte)
       byteSize
     }
 
-    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): UByte = {
+    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
       UByte(buffer.get(index))
     }
   }
 
-  object UInt16 extends DataType[UShort] {
+  object UInt16 extends DataType {
+    override type ScalaType = UShort
+    override implicit val supportedScalaType = UShortIsSupportedType
+
     override val name    : String = "UInt16"
     override val cValue  : Int    = 17
     override val byteSize: Int    = 2
     override val priority: Int    = 60
 
-    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: UShort): Int = {
+    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
       buffer.putChar(index, element.toChar)
       byteSize
     }
 
-    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): UShort = {
+    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
       UShort(buffer.getChar(index))
     }
   }
 
-  object QInt8 extends DataType[Byte] {
+  object QInt8 extends DataType {
+    override type ScalaType = Byte
+    override implicit val supportedScalaType = ByteIsSupportedType
+
     override val name    : String = "QInt8"
     override val cValue  : Int    = 11
     override val byteSize: Int    = 1
     override val priority: Int    = 30
 
-    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: Byte): Int = {
+    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
       buffer.put(index, element)
       byteSize
     }
 
-    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Byte = {
+    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
       buffer.get(index)
     }
   }
 
-  object QInt16 extends DataType[Short] {
+  object QInt16 extends DataType {
+    override type ScalaType = Short
+    override implicit val supportedScalaType = ShortIsSupportedType
+
     override val name    : String = "QInt16"
     override val cValue  : Int    = 15
     override val byteSize: Int    = 2
     override val priority: Int    = 70
 
-    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: Short): Int = {
+    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
       buffer.putShort(index, element)
       byteSize
     }
 
-    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Short = {
+    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
       buffer.getShort(index)
     }
   }
 
-  object QInt32 extends DataType[Int] {
+  object QInt32 extends DataType {
+    override type ScalaType = Int
+    override implicit val supportedScalaType = IntIsSupportedType
+
     override val name    : String = "QInt32"
     override val cValue  : Int    = 13
     override val byteSize: Int    = 4
     override val priority: Int    = 90
 
-    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: Int): Int = {
+    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
       buffer.putInt(index, element)
       byteSize
     }
 
-    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Int = {
+    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
       buffer.getInt(index)
     }
   }
 
-  object QUInt8 extends DataType[UByte] {
+  object QUInt8 extends DataType {
+    override type ScalaType = UByte
+    override implicit val supportedScalaType = UByteIsSupportedType
+
     override val name    : String = "QUInt8"
     override val cValue  : Int    = 12
     override val byteSize: Int    = 1
     override val priority: Int    = 10
 
-    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: UByte): Int = {
+    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
       buffer.put(index, element.toByte)
       byteSize
     }
 
-    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): UByte = {
+    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
       UByte(buffer.get(index))
     }
   }
 
-  object QUInt16 extends DataType[UShort] {
+  object QUInt16 extends DataType {
+    override type ScalaType = UShort
+    override implicit val supportedScalaType = UShortIsSupportedType
+
     override val name    : String = "QUInt16"
     override val cValue  : Int    = 16
     override val byteSize: Int    = 2
     override val priority: Int    = 50
 
-    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: UShort): Int = {
+    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
       buffer.putChar(index, element.toChar)
       byteSize
     }
 
-    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): UShort = {
+    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
       UShort(buffer.getChar(index))
     }
   }
 
-  object Resource extends DataType[Long] {
+  object Resource extends DataType {
+    override type ScalaType = Long
+    override implicit val supportedScalaType = LongIsSupportedType
+
     override val name    : String = "Resource"
     override val cValue  : Int    = 20
     override val byteSize: Int    = -1
     override val priority: Int    = -1
 
-    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: Long): Int = {
+    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
       throw new UnsupportedOperationException("The resource data type is not supported on the Scala side.")
     }
 
-    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Long = {
+    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
       throw new UnsupportedOperationException("The resource data type is not supported on the Scala side.")
     }
   }
@@ -422,32 +473,32 @@ object DataType {
   //region TensorFlow Data Type Sets
 
   /** Set of all floating-point data types. */
-  val floatingPointDataTypes: Set[DataType[_]] = {
+  val floatingPointDataTypes: Set[DataType] = {
     Set(Float32, Float64) // TODO: Float16, BFloat16.
   }
 
   /** Set of all complex data types. */
-  val complexDataTypes: Set[DataType[_]] = {
+  val complexDataTypes: Set[DataType] = {
     Set() // TODO: [COMPLEX] Complex64, Complex128.
   }
 
   /** Set of all integer data types. */
-  val integerDataTypes: Set[DataType[_]] = {
+  val integerDataTypes: Set[DataType] = {
     Set(Int8, Int16, Int32, Int64, UInt8, UInt16, QInt8, QInt16, QInt32, QUInt8, QUInt16)
   }
 
   /** Set of all quantized data types. */
-  val quantizedDataTypes: Set[DataType[_]] = {
+  val quantizedDataTypes: Set[DataType] = {
     Set(QInt8, QInt16, QInt32, QUInt8, QUInt16) // TODO: BFloat16.
   }
 
   /** Set of all unsigned data types. */
-  val unsignedDataTypes: Set[DataType[_]] = {
+  val unsignedDataTypes: Set[DataType] = {
     Set(UInt8, UInt16, QUInt8, QUInt16)
   }
 
   /** Set of all numeric data types. */
-  val numericDataTypes: Set[DataType[_]] = {
+  val numericDataTypes: Set[DataType] = {
     floatingPointDataTypes ++ complexDataTypes ++ integerDataTypes ++ quantizedDataTypes
   }
 
@@ -460,7 +511,7 @@ object DataType {
     * @param  value Value whose data type to return.
     * @return Data type of the provided value.
     */
-  @inline private[api] def dataTypeOf[T: SupportedType](value: T): DataType[T] = value.dataType
+  @inline private[api] def dataTypeOf[T: SupportedType](value: T): DataType = value.dataType
 
   // /** Returns the [[DataType]] of the provided [[Tensor]].
   //   *
@@ -478,7 +529,7 @@ object DataType {
     * @throws IllegalArgumentException If an invalid C value is provided.
     */
   @throws[IllegalArgumentException]
-  private[api] def fromCValue(cValue: Int): DataType[_] = cValue match {
+  private[api] def fromCValue(cValue: Int): DataType = cValue match {
     case Bool.cValue => Bool
     case Str.cValue => Str
     // case Float16.cValue => Float16
@@ -510,7 +561,7 @@ object DataType {
     * @throws IllegalArgumentException If an invalid data type name is provided.
     */
   @throws[IllegalArgumentException]
-  private[api] def fromName(name: String): DataType[_] = name match {
+  private[api] def fromName(name: String): DataType = name match {
     case "Boolean" => Bool
     case "String" => Str
     // case "Float16" => Float16

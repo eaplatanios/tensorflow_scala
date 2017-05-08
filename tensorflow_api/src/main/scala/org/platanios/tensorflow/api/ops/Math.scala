@@ -78,16 +78,22 @@ object Math {
     * @return Created op output.
     */
   def range(
-      start: Op.Output, limit: Op.Output, delta: Op.Output = Basic.constant(1), name: String = "Range"): Op.Output = {
+      start: Op.Output, limit: Op.Output, delta: Op.Output = Basic.constant(1), dataType: DataType = null,
+      name: String = "Range"): Op.Output = {
     var castedStart: Op.Output = null
     var castedLimit: Op.Output = null
     var castedDelta: Op.Output = null
     Op.createWith(nameScope = name) {
-      val supportedDataTypes = Set[DataType[_]](DataType.Int32, DataType.Int64, DataType.Float32, DataType.Float64)
+      val supportedDataTypes = Set[DataType](DataType.Int32, DataType.Int64, DataType.Float32, DataType.Float64)
       require(supportedDataTypes.contains(start.dataType), s"Unsupported data type '${start.dataType}'.")
       require(supportedDataTypes.contains(limit.dataType), s"Unsupported data type '${limit.dataType}'.")
       require(supportedDataTypes.contains(delta.dataType), s"Unsupported data type '${delta.dataType}'.")
-      val inferredDataType = Set(start.dataType, limit.dataType, delta.dataType).maxBy(_.priority)
+      val inferredDataType = {
+        if (dataType != null)
+          dataType
+        else
+          Set(start.dataType, limit.dataType, delta.dataType).maxBy(_.priority)
+      }
       if (start.dataType != inferredDataType)
         castedStart = cast(start, inferredDataType)
       if (limit.dataType != inferredDataType)
@@ -119,7 +125,7 @@ object Math {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def cast[T: SupportedType](x: Op.Output, dataType: DataType[T], name: String = "Cast"): Op.Output = {
+  def cast(x: Op.Output, dataType: DataType, name: String = "Cast"): Op.Output = {
     Op.Builder(opType = "Cast", name = name)
         .addInput(x)
         .setAttribute("DstT", dataType)
@@ -135,8 +141,7 @@ object Math {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def sparseCast[T: SupportedType](
-      x: Op.SparseOutput, dataType: DataType[T], name: String = "Cast"): Op.SparseOutput = {
+  def sparseCast(x: Op.SparseOutput, dataType: DataType, name: String = "Cast"): Op.SparseOutput = {
     val castedValues = Op.Builder(opType = "Cast", name = name)
         .addInput(x.values)
         .setAttribute("DstT", dataType)
