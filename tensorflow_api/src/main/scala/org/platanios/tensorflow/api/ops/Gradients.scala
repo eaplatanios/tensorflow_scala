@@ -346,20 +346,20 @@ object Gradients {
   /** Gradient aggregation method that simply adds up the collected gradients. */
   object AddAggregationMethod extends AggregationMethod {
     override private[Gradients] def aggregateGradients(gradients: Seq[Op.OutputLike]): Op.OutputLike = {
-      gradients match {
-        case g: Seq[Op.Output] =>
-          // This function adds op outputs from potentially different devices.
-          // We add the tensors of each device separately first, and we then add up the partial results.
-          val deviceContributions = g.groupBy(_.device).toSeq.sortBy(_._1).map {
-            case (_, outputs) =>
-              Op.colocateWith(Set[Op](g.head.op), ignoreExisting = true) {
-                Math.addN(outputs.map(_.toOpOutput).toArray)
-              }
-          }
-          Math.addN(deviceContributions.toArray)
-        case g: Seq[Op.OutputIndexedSlices] =>
-          ???
-        case _ => throw new IllegalArgumentException(
+      if (gradients.forall(_.isInstanceOf[Op.Output])) {
+        // This function adds op outputs from potentially different devices.
+        // We add the tensors of each device separately first, and we then add up the partial results.
+        val deviceContributions = gradients.groupBy(_.device).toSeq.sortBy(_._1).map {
+          case (_, outputs) =>
+            Op.colocateWith(Set[Op](gradients.head.op), ignoreExisting = true) {
+              Math.addN(outputs.map(_.asInstanceOf[Op.Output]).toArray)
+            }
+        }
+        Math.addN(deviceContributions.toArray)
+      } else if (gradients.forall(_.isInstanceOf[Op.OutputIndexedSlices])) {
+        ???
+      } else {
+        throw new IllegalArgumentException(
           "The gradients being aggregated need to be all of type 'Op.Output' or 'Op.OutputIndexedSlices'.")
       }
     }
