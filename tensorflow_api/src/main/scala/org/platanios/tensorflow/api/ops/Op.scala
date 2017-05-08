@@ -107,7 +107,7 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
     * @param  index Input index.
     * @return Data type of the specified input.
     */
-  private def inputDataType(index: Int): DataType =
+  private def inputDataType(index: Int): DataType[_] =
     using(graph.reference) { r =>
       DataType.fromCValue(NativeOp.inputDataType(r.nativeHandle, nativeHandle, index))
     }
@@ -117,7 +117,7 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
     * @param  index Output index.
     * @return Data type of the specified output.
     */
-  private def outputDataType(index: Int): DataType =
+  private def outputDataType(index: Int): DataType[_] =
     using(graph.reference) { r =>
       DataType.fromCValue(NativeOp.outputDataType(r.nativeHandle, nativeHandle, index))
     }
@@ -226,7 +226,7 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
     * @throws IllegalArgumentException If the no attribute with name `name` can be found for this op.
     */
   @throws[IllegalArgumentException]
-  def dataTypeAttribute(name: String): DataType = using(graph.reference) { _ =>
+  def dataTypeAttribute(name: String): DataType[_] = using(graph.reference) { _ =>
     try {
       DataType.fromCValue(NativeOp.getAttrType(nativeHandle, name))
     } catch {
@@ -890,7 +890,7 @@ object Op {
     lazy val name: String = s"${op.name}:$index"
 
     /** Data type of this op input. */
-    lazy val dataType: DataType = op.inputDataType(index)
+    lazy val dataType: DataType[_] = op.inputDataType(index)
 
     /** Graph where the op belongs. */
     def graph: Graph = op.graph
@@ -907,7 +907,7 @@ object Op {
     def name: String
 
     /** Data type of this op output. */
-    def dataType: DataType
+    def dataType: DataType[_]
 
     /** Device on which this op output will be placed. */
     def device: String
@@ -969,7 +969,7 @@ object Op {
     override def name: String = s"${op.name}:$index"
 
     /** Data type of this op output. */
-    override def dataType: DataType = op.outputDataType(index)
+    override def dataType: DataType[_] = op.outputDataType(index)
 
     /** Device on which this op output will be placed. */
     override def device: String = op.device
@@ -1005,7 +1005,7 @@ object Op {
       * @param  session Optional session to use for the evaluation.
       * @return Value of this op output, for this evaluation.
       */
-    def evaluate(feeds: Map[Op.Output, Tensor] = Map.empty, session: Session = null): Tensor = {
+    def evaluate(feeds: Map[Op.Output, Tensor[_]] = Map.empty, session: Session = null): Tensor[_] = {
       val effectiveSession = if (session == null) graph.defaultSession else session
       effectiveSession.run(feeds, Array(this))(0)
     }
@@ -1121,7 +1121,7 @@ object Op {
         (if (denseShape ne null) s"(shape = ${denseShape.name})" else "")
 
     /** Data type of this op output indexed slices. */
-    override def dataType: DataType = values.dataType
+    override def dataType: DataType[_] = values.dataType
 
     /** Device on which these op output indexed slices will be placed. */
     override def device: String = values.device
@@ -1224,7 +1224,7 @@ object Op {
         (if (denseShape ne null) s"(shape = ${denseShape.name})" else "")
 
     /** Data type of this sparse op output. */
-    override def dataType: DataType = values.dataType
+    override def dataType: DataType[_] = values.dataType
 
     /** Device on which this sparse op output will be placed. */
     override def device: String = values.device
@@ -1254,7 +1254,8 @@ object Op {
       * @return Value of this sparse op output, for this evaluation, represented as tuple containing the indices, the
       *         values, and the dense shape.
       */
-    def value(feeds: Map[Op.Output, Tensor] = Map.empty, session: Session = null): (Tensor, Tensor, Tensor) = {
+    def value(
+        feeds: Map[Op.Output, Tensor[_]] = Map.empty, session: Session = null): (Tensor[_], Tensor[_], Tensor[_]) = {
       val effectiveSession = if (session == null) graph.defaultSession else session
       val fetches = effectiveSession.run(feeds, Array(indices, values, denseShape))
       (fetches(0), fetches(1), fetches(2))
@@ -1272,7 +1273,7 @@ object Op {
     *                           dense shape.
     * @return Sparse op output.
     */
-  private[api] def convertToSparseOutput(sparseOutputValue: (Tensor, Tensor, Tensor)): SparseOutput = {
+  private[api] def convertToSparseOutput(sparseOutputValue: (Tensor[_], Tensor[_], Tensor[_])): SparseOutput = {
     SparseOutput(
       Basic.constant(sparseOutputValue._1), Basic.constant(sparseOutputValue._2),
       Basic.constant(sparseOutputValue._3))
@@ -1280,7 +1281,7 @@ object Op {
 
   // TODO: !!!
 
-  private[api] def constantValue(tensor: Op.Output): Tensor = {
+  private[api] def constantValue(tensor: Op.Output): Tensor[_] = {
     val value = tensor.op.opType match {
       case "Const"    => ??? // TODO: !!! Needs MakeNdArray()
       case "Shape"    =>
@@ -1418,7 +1419,7 @@ object Op {
             require(value.rank == 1, "Only rank-1 tensors can be converted to shapes.")
             // TODO: !!! Does this work?
             val shape = Shape(
-              (0 until value.numElements).map(value.getElementAtFlattenedIndex(_).asInstanceOf[Int32].toInt): _*)
+              (0 until value.numElements).map(value.getElementAtFlattenedIndex(_).toInt): _*)
             returnShape = returnShape.mergeWith(shape)
           }
           returnShape
@@ -1496,34 +1497,34 @@ object Op {
     private def setAttributes(nativeHandle: Long): Unit = {
       attributes.foreach(attribute => {
         attribute._2 match {
-          case value: String        =>
+          case value: String =>
             NativeOp.setAttrString(nativeHandle, attribute._1, encodeString(value))
           case value: Array[String] =>
             NativeOp.setAttrStringList(nativeHandle, attribute._1, value.map(encodeString))
-          case value: Long                     =>
+          case value: Long =>
             NativeOp.setAttrInt(nativeHandle, attribute._1, value)
-          case value: Array[Long]              =>
+          case value: Array[Long] =>
             NativeOp.setAttrIntList(nativeHandle, attribute._1, value)
-          case value: Float                    =>
+          case value: Float =>
             NativeOp.setAttrFloat(nativeHandle, attribute._1, value)
-          case value: Array[Float]             =>
+          case value: Array[Float] =>
             NativeOp.setAttrFloatList(nativeHandle, attribute._1, value)
-          case value: Boolean                  =>
+          case value: Boolean =>
             NativeOp.setAttrBool(nativeHandle, attribute._1, value)
-          case value: Array[Boolean]           =>
+          case value: Array[Boolean] =>
             NativeOp.setAttrBoolList(nativeHandle, attribute._1, value)
-          case value: DataType                 =>
+          case value: DataType[_] =>
             NativeOp.setAttrType(nativeHandle, attribute._1, value.cValue)
-          case value: Array[DataType]          =>
+          case value: Array[DataType[_]] =>
             NativeOp.setAttrTypeList(nativeHandle, attribute._1, value.map(_.cValue))
-          case value: Tensor.NativeView        =>
+          case value: Tensor.NativeView =>
             NativeOp.setAttrTensor(nativeHandle, attribute._1, value.nativeHandle)
           case value: Array[Tensor.NativeView] =>
             NativeOp.setAttrTensorList(nativeHandle, attribute._1, value.map(_.nativeHandle))
-          case value: Shape                    =>
+          case value: Shape =>
             NativeOp.setAttrShape(nativeHandle, attribute._1, value.asArray.map(_.toLong), value.rank)
-          case value: Array[Shape]             => ??? // TODO: !!!
-          case _                               =>
+          case value: Array[Shape] => ??? // TODO: !!!
+          case _ =>
             throw new IllegalArgumentException(s"Unsupported attribute type for attribute named '${attribute._1}.'")
         }
       })
@@ -1591,12 +1592,12 @@ object Op {
       this
     }
 
-    def setAttribute(name: String, value: DataType): Builder = {
+    def setAttribute(name: String, value: DataType[_]): Builder = {
       attributes += name -> value
       this
     }
 
-    def setAttribute(name: String, value: Array[DataType]): Builder = {
+    def setAttribute(name: String, value: Array[DataType[_]]): Builder = {
       attributes += name -> value
       this
     }

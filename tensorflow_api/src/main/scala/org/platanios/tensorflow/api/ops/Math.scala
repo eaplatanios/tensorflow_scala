@@ -1,8 +1,9 @@
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api.{DataType, Tensor}
+import org.platanios.tensorflow.api.{DataType, SupportedType, Tensor}
 import org.platanios.tensorflow.api.Exception.InvalidDataTypeException
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
+import org.platanios.tensorflow.api.types.SupportedType
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -73,27 +74,20 @@ object Math {
     * @param  start    Start of the number sequence.
     * @param  limit    End (exclusive) of the number sequence.
     * @param  delta    Difference between consecutive numbers in the sequence.
-    * @param  dataType Data type for the created op.
     * @param  name     Name for the created op.
     * @return Created op output.
     */
   def range(
-      start: Op.Output, limit: Op.Output, delta: Op.Output = Basic.constant(1), dataType: DataType = null,
-      name: String = "Range"): Op.Output = {
+      start: Op.Output, limit: Op.Output, delta: Op.Output = Basic.constant(1), name: String = "Range"): Op.Output = {
     var castedStart: Op.Output = null
     var castedLimit: Op.Output = null
     var castedDelta: Op.Output = null
     Op.createWith(nameScope = name) {
-      val supportedDataTypes = Set[DataType](DataType.Int32, DataType.Int64, DataType.Float32, DataType.Float64)
+      val supportedDataTypes = Set[DataType[_]](DataType.Int32, DataType.Int64, DataType.Float32, DataType.Float64)
       require(supportedDataTypes.contains(start.dataType), s"Unsupported data type '${start.dataType}'.")
       require(supportedDataTypes.contains(limit.dataType), s"Unsupported data type '${limit.dataType}'.")
       require(supportedDataTypes.contains(delta.dataType), s"Unsupported data type '${delta.dataType}'.")
-      val inferredDataType = {
-        if (dataType != null)
-          dataType
-        else
-          Set(start.dataType, limit.dataType, delta.dataType).maxBy(_.priority)
-      }
+      val inferredDataType = Set(start.dataType, limit.dataType, delta.dataType).maxBy(_.priority)
       if (start.dataType != inferredDataType)
         castedStart = cast(start, inferredDataType)
       if (limit.dataType != inferredDataType)
@@ -125,7 +119,7 @@ object Math {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def cast(x: Op.Output, dataType: DataType, name: String = "Cast"): Op.Output = {
+  def cast[T: SupportedType](x: Op.Output, dataType: DataType[T], name: String = "Cast"): Op.Output = {
     Op.Builder(opType = "Cast", name = name)
         .addInput(x)
         .setAttribute("DstT", dataType)
@@ -141,7 +135,8 @@ object Math {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def sparseCast(x: Op.SparseOutput, dataType: DataType, name: String = "Cast"): Op.SparseOutput = {
+  def sparseCast[T: SupportedType](
+      x: Op.SparseOutput, dataType: DataType[T], name: String = "Cast"): Op.SparseOutput = {
     val castedValues = Op.Builder(opType = "Cast", name = name)
         .addInput(x.values)
         .setAttribute("DstT", dataType)
@@ -939,14 +934,14 @@ object Math {
     * @param  input    Input tensor to reduce.
     * @param  axes     Integer array containing the dimensions to reduce. If `null`, then all dimensions are reduced.
     * @param  keepDims If `true`, retain the reduced dimensions.
-    * @param  dataType Output tensor data type.
     * @param  name     Name for the created op.
-    * @return Created op output.
+    * @return Created op output with `Int64` data type.
     */
-  def countNonZero(input: Op.Output, axes: Array[Int] = null, keepDims: Boolean = false,
-      dataType: DataType = DataType.Int64, name: String = "CountNonZero"): Op.Output = {
+  def countNonZero(
+      input: Op.Output, axes: Array[Int] = null, keepDims: Boolean = false,
+      name: String = "CountNonZero"): Op.Output = {
     Op.createWith(nameScope = name) {
-      cast(reduceSum(cast(notEqual(input, Basic.constant(0)), DataType.Int64), axes, keepDims), dataType)
+      reduceSum(cast(notEqual(input, Basic.constant(0)), DataType.Int64), axes, keepDims)
     }
   }
 

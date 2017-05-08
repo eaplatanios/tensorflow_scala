@@ -111,7 +111,7 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable {
     * @throws GraphMismatchException If the provided variable does not belong to this graph.
     */
   @throws[GraphMismatchException]
-  private[api] def addToCollection(variable: Variable, key: String): Unit = {
+  private[api] def addToCollection[T: SupportedType](variable: Variable[T], key: String): Unit = {
     if (variable.graph != this)
       throw GraphMismatchException("The provided variable does not belong to this graph.")
     collections.getOrElseUpdate(key, mutable.Set.empty[Any]) += variable
@@ -124,7 +124,7 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable {
     * @throws GraphMismatchException If the provided variable does not belong to this graph.
     */
   @throws[GraphMismatchException]
-  private[api] def addToCollections(variable: Variable, keys: Set[String]): Unit = {
+  private[api] def addToCollections[T: SupportedType](variable: Variable[T], keys: Set[String]): Unit = {
     keys.foreach(addToCollection(variable, _))
   }
 
@@ -168,16 +168,16 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable {
 
   // TODO: [DOC] [GRAPH]
 
-  private[api] def globalVariables: Set[Variable] = {
-    getCollection(Graph.Keys.GLOBAL_VARIABLES).map(_.asInstanceOf[Variable])
+  private[api] def globalVariables: Set[Variable[_]] = {
+    getCollection(Graph.Keys.GLOBAL_VARIABLES).map(_.asInstanceOf[Variable[_]])
   }
 
-  private[api] def localVariables: Set[Variable] = {
-    getCollection(Graph.Keys.LOCAL_VARIABLES).map(_.asInstanceOf[Variable])
+  private[api] def localVariables: Set[Variable[_]] = {
+    getCollection(Graph.Keys.LOCAL_VARIABLES).map(_.asInstanceOf[Variable[_]])
   }
 
-  private[api] def trainableVariables: Set[Variable] = {
-    getCollection(Graph.Keys.TRAINABLE_VARIABLES).map(_.asInstanceOf[Variable])
+  private[api] def trainableVariables: Set[Variable[_]] = {
+    getCollection(Graph.Keys.TRAINABLE_VARIABLES).map(_.asInstanceOf[Variable[_]])
   }
 
   private[api] def summaries: Set[Op.Output] = {
