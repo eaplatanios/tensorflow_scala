@@ -23,7 +23,7 @@ object Basic {
     * The argument `shape` is optional. If present, it specifies the dimensions of the resulting tensor. If not present,
     * the shape of `value` is used.
     *
-    * @param  tensor   A constant value of data type `dataType`.
+    * @param  tensor   Constant value.
     * @param  dataType Data type of the resulting tensor. If not provided, its value will be inferred from the type
     *                  of `value`.
     * @param  shape    Shape of the resulting tensor.
@@ -43,7 +43,8 @@ object Basic {
             s"Shape '${tensor.shape}' tensor is not valid for shape '$inferredShape' constant op creation.")
         val t = Tensor.allocate(inferredDataType, inferredShape, order = Tensor.RowMajorOrder)
         for ((thisIndex, tensorIndex) <- t.flattenedIndexIterator zip tensor.flattenedIndexIterator)
-          t.setElementAtFlattenedIndex(thisIndex, tensor.getElementAtFlattenedIndex(tensorIndex))
+          t.setElementAtFlattenedIndex(
+            thisIndex, tensor.getElementAtFlattenedIndex(tensorIndex))(tensor.dataType.supportedType)
         t
       } else {
         tensor
@@ -150,7 +151,7 @@ object Basic {
     *
     * @param  input    Input tensor.
     * @param  dataType Data type of the output tensor.
-    * @param  optimize Booelan flag indicating whether to optimize this op if the shape of `input` is known at graph
+    * @param  optimize Boolean flag indicating whether to optimize this op if the shape of `input` is known at graph
     *                  creation time.
     * @param  name     Name for the created op.
     * @return Created op output.
@@ -187,7 +188,8 @@ object Basic {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def fill(shape: Op.Output, value: Op.Output, dataType: DataType = null, name: String = "Fill"): Op.Output = {
+  def fill(
+      shape: Op.Output, value: Op.Output, dataType: DataType = null, name: String = "Fill"): Op.Output = {
     Op.Builder(opType = "Fill", name = name)
         .addInput(shape)
         .addInput(if (dataType == null || dataType == value.dataType) value else Math.cast(value, dataType))
@@ -248,8 +250,7 @@ object Basic {
       indices = placeholder(dataType, Shape(-1), name + "/Indices"),
       values = placeholder(DataType.Int64, Shape(-1, -1), name + "/Values"),
       denseShape =
-          if (shape == null) placeholder(DataType.Int64, Shape(-1), name + "/Shape") else constant(shape.toTensor())
-    )
+          if (shape == null) placeholder(DataType.Int64, Shape(-1), name + "/Shape") else constant(shape.toTensor()))
   }
 
   /** Creates an op that constructs a diagonal tensor using the provided diagonal values.
@@ -360,8 +361,8 @@ object Basic {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def sparseRank(input: Op.SparseOutput, name: String = "Rank"): Op.Output = {
-    size(input.denseShape, name = name)
+  def sparseRank(input: Op.SparseOutput, dataType: DataType = DataType.Int32, name: String = "Rank"): Op.Output = {
+    size(input.denseShape, dataType, name = name)
   }
 
   /** Creates an op that returns the size of a tensor.
@@ -439,7 +440,7 @@ object Basic {
       name: String = "Shape"): Op.Output = {
     val inputShape = input.shape
     if (optimize && inputShape.isFullyDefined)
-      constant(Tensor(dataType, inputShape.asArray.map(Tensor(_)): _*), name = name) // TODO: [OPTIMIZE]
+      constant(inputShape.toTensor(dataType), name = name) // TODO: [OPTIMIZE]
     else
       Op.Builder(opType = "Shape", name = name)
           .addInput(input)
@@ -475,8 +476,8 @@ object Basic {
     * @param  dataType Optional data type to use for the outputs of this op.
     * @return Created op outputs, all of which are one-dimensional.
     */
-  def shapeN(inputs: Array[Op.Output], dataType: DataType = DataType.Int32,
-      name: String = "ShapeN"): Array[Op.Output] = {
+  def shapeN(
+      inputs: Array[Op.Output], dataType: DataType = DataType.Int32, name: String = "ShapeN"): Array[Op.Output] = {
     Op.Builder(opType = "Shape", name = name)
         .addInputs(inputs)
         .setAttribute("out_type", dataType)
@@ -1469,7 +1470,7 @@ object Basic {
         .addInput(input)
         .addInput(begin)
         .addInput(end)
-        .addInput(if (strides ne null) onesLike(begin) else strides)
+        .addInput(if (strides ne null) onesLike(begin, begin.dataType) else strides)
         .setAttribute("begin_mask", beginMask)
         .setAttribute("end_mask", endMask)
         .setAttribute("ellipsis_mask", ellipsisMask)

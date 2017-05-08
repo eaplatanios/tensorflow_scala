@@ -62,22 +62,24 @@ case class IndexerConstructionWithThreeNumbers private (n1: Int, n2: Int, n3: In
 /** Contains helper functions for dealing with indexers. */
 object Indexer {
   val --- : Indexer = Ellipsis
+  val ::  : Slice   = Slice.::
 
-  //region Implicits
+  trait Implicits {
+    val --- : Indexer = Indexer.---
+    val ::  : Slice   = Indexer.::
 
-  // TODO: Add begin mask support (not simple).
+    // TODO: Add begin mask support (not simple).
 
-  implicit def intToIndex(index: Int): Index = Index(index = index)
-  implicit def intToIndexerConstructionWithOneNumber(n: Int): IndexerConstructionWithOneNumber =
-    IndexerConstructionWithOneNumber(n)
-  implicit def indexerConstructionWithOneNumberToIndex(construction: IndexerConstructionWithOneNumber): Index =
-    Index(index = construction.n)
-  implicit def indexerConstructionWithTwoNumbersToSlice(construction: IndexerConstructionWithTwoNumbers): Slice =
-    Slice(start = construction.n1, end = construction.n2)
-  implicit def indexerConstructionWithThreeNumbersToSlice(construction: IndexerConstructionWithThreeNumbers): Slice =
-    Slice(start = construction.n1, end = construction.n3, step = construction.n2)
-
-  //endregion Implicits
+    implicit def intToIndex(index: Int): Index = Index(index = index)
+    implicit def intToIndexerConstructionWithOneNumber(n: Int): IndexerConstructionWithOneNumber =
+      IndexerConstructionWithOneNumber(n)
+    implicit def indexerConstructionWithOneNumberToIndex(construction: IndexerConstructionWithOneNumber): Index =
+      Index(index = construction.n)
+    implicit def indexerConstructionWithTwoNumbersToSlice(construction: IndexerConstructionWithTwoNumbers): Slice =
+      Slice(start = construction.n1, end = construction.n2)
+    implicit def indexerConstructionWithThreeNumbersToSlice(construction: IndexerConstructionWithThreeNumbers): Slice =
+      Slice(start = construction.n1, end = construction.n3, step = construction.n2)
+  }
 
   /** Decodes the provided indexers sequence into a new set of dimension sizes, begin offsets, end offsets, and strides,
     * for the provided tensor shape.

@@ -1,7 +1,7 @@
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api.Exception.InvalidDataTypeException
 import org.platanios.tensorflow.api.{DataType, Graph, ProtoSerializable, Session, Shape, Tensor}
+import org.platanios.tensorflow.api.Exception.InvalidDataTypeException
 
 import org.tensorflow.framework.{SaveSliceInfoDef, VariableDef}
 
@@ -11,8 +11,7 @@ import scala.util.DynamicVariable
   *
   * @author Emmanouil Antonios Platanios
   */
-case class Variable private(
-    dataType: DataType, variableOp: Op.Output, initializeOp: Op, cachedValueOp: Op.Output)
+case class Variable private(dataType: DataType, variableOp: Op.Output, initializeOp: Op, cachedValueOp: Op.Output)
     extends Op.OutputConvertible with ProtoSerializable {
   /** Graph where this variable is defined. */
   val graph: Graph = initializeOp.graph

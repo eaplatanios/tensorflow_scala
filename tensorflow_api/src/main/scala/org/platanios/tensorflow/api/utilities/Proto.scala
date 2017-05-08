@@ -13,4 +13,8 @@ object Proto {
       */
     def toProto(exportScope: String = null): com.google.protobuf.GeneratedMessageV3
   }
+
+  trait Implicits {
+    type ProtoSerializable = Serializable
+  }
 }

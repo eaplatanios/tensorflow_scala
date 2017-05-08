@@ -1,12 +1,13 @@
 package org.platanios.tensorflow.api
 
 import org.platanios.tensorflow.jni.{Tensor => NativeTensor}
-import org.platanios.tensorflow.api.Exception.ShapeMismatchException
+import org.platanios.tensorflow.api.Exception.{InvalidDataTypeException, ShapeMismatchException}
 
 import java.nio._
 import java.nio.charset.Charset
 
 import scala.annotation.tailrec
+import spire.math.UShort
 
 // TODO: Specialized slices (e.g., contiguous).
 // TODO: Is there a need to complicate the flattened index function for the plain tensor?
@@ -23,6 +24,7 @@ sealed class Tensor protected (
   require(shape.isFullyDefined, s"The shape of a Tensor object must be fully defined. Shape '$shape' is not.")
 
   // TODO: Remove these from the plain tensor --- use them only for slices.
+  // TODO: What about unknown rank?
   private[api] val underlyingTensorDimensions: Array[Int] = shape.asArray
   val beginOffsets: Array[Int] = Array.fill(shape.rank)(0)
   val endOffsets  : Array[Int] = shape.asArray
@@ -36,7 +38,11 @@ sealed class Tensor protected (
   }
 
   private[api] def flattenedIndexIterator: Iterator[Int] = {
-    order.flattenedIndexIterator(underlyingTensorDimensions, beginOffsets, endOffsets, strides)
+    order.indexIterator(underlyingTensorDimensions, beginOffsets, endOffsets, strides)
+  }
+
+  private[api] def elementIterator: Iterator[dataType.ScalaType] = {
+    flattenedIndexIterator.map(getElementAtFlattenedIndex)
   }
 
   // def update(indices: Array[Int], value: DataType.SupportedScalaType): Unit = {
@@ -55,12 +61,12 @@ sealed class Tensor protected (
   //
   // def update(indexers: Seq[Indexer], tensor: Tensor): Unit = slice(indexers: _*).set(tensor)
 
-  def fill(value: SupportedScalaType): Tensor = {
-    val castedValue: dataType.ScalaType = dataType.cast(value)
+  def fill[T](value: T)(implicit evidence: SupportedType[T]): Tensor = {
+    val castedValue = dataType.cast(value)
     dataType match {
       case DataType.Str =>
         throw new UnsupportedOperationException("String tensors are immutable in the TensorFlow Scala API.")
-      case _: DataType  =>
+      case _ =>
         for (index <- flattenedIndexIterator)
           dataType.putElementInBuffer(buffer = buffer, index = index, element = castedValue)
     }
@@ -76,22 +82,23 @@ sealed class Tensor protected (
     dataType match {
       case DataType.Str =>
         throw new UnsupportedOperationException("String tensors are immutable in the TensorFlow Scala API.")
-      case _: DataType  =>
+      case _ =>
         if (tensor.numElements == 1) {
-          dataType.putElementInBuffer(buffer = buffer, index = 0, element = dataType.cast(tensor.scalar))
+          val value = dataType.cast(tensor.scalar)(tensor.dataType.supportedType)
+          dataType.putElementInBuffer(buffer = buffer, index = 0, element = value)
         } else {
-          for ((thisIndex, tensorIndex) <- flattenedIndexIterator zip tensor.flattenedIndexIterator)
-            setElementAtFlattenedIndex(thisIndex, tensor.getElementAtFlattenedIndex(tensorIndex))
+          for ((index, value) <- flattenedIndexIterator zip tensor.elementIterator)
+            setElementAtFlattenedIndex(index, value)(tensor.dataType.supportedType)
         }
     }
     this
   }
 
-  def setElementAtFlattenedIndex(index: Int, value: SupportedScalaType): Tensor = {
+  def setElementAtFlattenedIndex[T](index: Int, value: T)(implicit evidence: SupportedType[T]): Tensor = {
     dataType match {
       case DataType.Str =>
         throw new UnsupportedOperationException("String tensors are immutable in the TensorFlow Scala API.")
-      case _: DataType  => dataType.putElementInBuffer(buffer, index * dataType.byteSize, dataType.cast(value))
+      case _ => dataType.putElementInBuffer(buffer, index * dataType.byteSize, dataType.cast(value))
     }
     this
   }
@@ -109,7 +116,7 @@ sealed class Tensor protected (
         val offset = DataType.Int64.byteSize * numElements +
             DataType.Int64.getElementFromBuffer(buffer, index * DataType.Int64.byteSize).toInt
         dataType.getElementFromBuffer(buffer, offset)
-      case _: DataType  => dataType.getElementFromBuffer(buffer, index * dataType.byteSize)
+      case _ => dataType.getElementFromBuffer(buffer, index * dataType.byteSize)
     }
   }
 
@@ -143,8 +150,64 @@ sealed class Tensor protected (
       buffer, dataType.cValue, shape.asArray.map(_.toLong), numElements * dataType.byteSize))
   }
 
-  // TODO: Change the string representation of tensor objects.
-  override def toString: String = s"$dataType Tensor with shape [${shape.asArray.mkString(", ")}]."
+  override def toString: String = s"Tensor[${shape.asArray.mkString(", ")}]$dataType"
+
+  private[Tensor] var tolerance: dataType.ScalaType = _
+
+  def +-(tolerance: Double): Tensor = {
+    if (!dataType.isNumeric)
+      throw InvalidDataTypeException("Comparison tolerance can only be set for numeric tensors.")
+    this.tolerance = dataType.cast(tolerance)
+    this
+  }
+
+  def ===(that: Tensor): Boolean = {
+    if (this.shape != that.shape) {
+      false
+    } else if (this.dataType != that.dataType) {
+      false
+    } else {
+      dataType match {
+        case d if !d.isNumeric => this.elementIterator.zip(that.elementIterator).forall(p => p._1 == p._2)
+        case _ => this.elementIterator.zip(that.elementIterator).forall(p => p._1 == p._2)
+
+//          this.elementIterator.zip(that.elementIterator).forall(p => {
+//
+//
+//            val value1 = p._1.asNumeric
+//            val value2 = p._2.asNumeric
+//            if (this.tolerance != null && that.tolerance != null)
+//              (value1 - this.tolerance.asNumeric) <= (value2 + that.tolerance.asNumeric) &&
+//                  (value1 + this.tolerance.asNumeric) >= (value2 - that.tolerance.asNumeric)
+//            else if (this.tolerance != null)
+//              (value1 - this.tolerance.asNumeric) <= value2 && (value1 + this.tolerance.asNumeric) >= value2
+//            else if (that.tolerance != null)
+//              value1 <= (value2 + that.tolerance.asNumeric) && value1 >= (value2 - that.tolerance.asNumeric)
+//            else
+//              value1 == value2
+//          })
+      }
+    }
+  }
+
+  def =!=(that: Tensor): Boolean = !(this === that)
+
+  override def equals(that: Any): Boolean = that match {
+    case that: Tensor =>
+      this.dataType == that.dataType &&
+          this.shape != that.shape &&
+          this.elementIterator.zip(that.elementIterator).forall(p => p._1 == p._2)
+    case _ => false
+  }
+
+  override def hashCode(): Int = {
+    val prime = 31
+    var result = 1
+    result = prime * result + dataType.hashCode
+    result = prime * result + shape.hashCode
+    flattenedIndexIterator.foreach(index => result = prime * result + getElementAtFlattenedIndex(index).hashCode)
+    result
+  }
 
   // TODO: Add implementations for equals and hashCode.
 }
@@ -206,28 +269,27 @@ object Tensor {
     new Tensor(dataType = dataType, shape = shape, buffer = buffer, order = order)
   }
 
-  def fill(dataType: DataType = null, shape: Shape = null)(value: SupportedScalaType): Tensor = {
+  def fill[T](dataType: DataType, shape: Shape = null)(value: T)(implicit evidence: SupportedType[T]): Tensor = {
     // TODO: Add downcasting warnings.
-    val inferredDataType = if (dataType == null) DataType.dataTypeOf(value) else dataType
     val inferredShape = if (shape == null) Shape() else shape
-    inferredDataType match {
+    dataType match {
       case DataType.Str =>
         val numStringBytes = value.toString.getBytes(Charset.forName("UTF-8")).length
         val numEncodedBytes = NativeTensor.getEncodedStringSize(numStringBytes)
         val numBytes = inferredShape.numElements.get * (DataType.Int64.byteSize + numEncodedBytes)
         val buffer: ByteBuffer = ByteBuffer.allocateDirect(numBytes).order(ByteOrder.nativeOrder)
-        val tensor = new Tensor(DataType.Str, inferredShape, buffer, DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER)
+        val tensor = new Tensor(dataType, inferredShape, buffer, DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER)
         val baseOffset = DataType.Int64.byteSize * tensor.numElements
         var index = 0
         var i = 0
         while (i < tensor.numElements) {
-          DataType.Str.putElementInBuffer(buffer, baseOffset + index, value.toStr)
+          DataType.Str.putElementInBuffer(buffer, baseOffset + index, DataType.Str.cast(value))
           DataType.Int64.putElementInBuffer(buffer, i * DataType.Int64.byteSize, index.toLong)
           index += numEncodedBytes
           i += 1
         }
         tensor
-      case _: DataType  => allocate(dataType = inferredDataType, shape = inferredShape).fill(value)
+      case _ => allocate(dataType = dataType, shape = inferredShape).fill(value)
     }
   }
 
@@ -246,13 +308,18 @@ object Tensor {
   //    tensor
   //  }
 
-  def apply(tensors: Tensor*): Tensor = apply(dataType = tensors.map(_.dataType).maxBy(_.priority), tensors: _*)
+  def apply(tensors: Tensor*): Tensor = {
+    if (tensors.isEmpty)
+      throw new IllegalArgumentException("A data type needs to be provided to construct empty tensors.")
+    apply(dataType = tensors.map(_.dataType).maxBy(_.priority), tensors: _*)
+  }
 
   def apply(dataType: DataType, tensors: Tensor*): Tensor = {
     // TODO: What about column-major string tensors?
-    val shape = tensors.head.shape
-    require(tensors.tail.forall(_.shape == shape), "All provided tensor shapes must match.")
-    val newShape = Shape(tensors.length +: shape.asArray: _*)
+    val shape = if (tensors.nonEmpty) tensors.head.shape else Shape()
+    if (tensors.nonEmpty)
+      require(tensors.tail.forall(_.shape == shape), "All provided tensor shapes must match.")
+    val newShape = if (tensors.nonEmpty) Shape(tensors.length +: shape.asArray: _*) else Shape()
     dataType match {
       case DataType.Str =>
         // TODO: Make this more efficient.
@@ -264,7 +331,7 @@ object Tensor {
           t += 1
         }
         val buffer: ByteBuffer = ByteBuffer.allocateDirect(size).order(ByteOrder.nativeOrder)
-        val tensor = new Tensor(DataType.Str, newShape, buffer, DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER)
+        val tensor = new Tensor(dataType, newShape, buffer, DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER)
         val baseOffset = DataType.Int64.byteSize * tensor.numElements
         var byteIndex = 0
         var elementIndex = 0
@@ -285,25 +352,24 @@ object Tensor {
           t += 1
         }
         tensor
-      case _: DataType  =>
+      case _ =>
         val tensor = allocate(dataType, newShape)
         val newTensorIndexIterator = tensor.flattenedIndexIterator
         tensors.foreach(t => t.flattenedIndexIterator.foreach(index => {
-          tensor.setElementAtFlattenedIndex(newTensorIndexIterator.next(), t.getElementAtFlattenedIndex(index))
+          tensor.setElementAtFlattenedIndex(
+            newTensorIndexIterator.next(), t.getElementAtFlattenedIndex(index))(t.dataType.supportedType)
         }))
         tensor
     }
   }
 
   private[api] sealed trait Order {
-    def index(dimensions: Array[Int], beginOffsets: Array[Int], strides: Array[Int], indices: Array[Int]): Int
-    def flattenedIndexIterator(
-        dimensions: Array[Int], beginOffsets: Array[Int], endOffsets: Array[Int], strides: Array[Int]): Iterator[Int]
+    def index(dimensions: Array[Int], starts: Array[Int], strides: Array[Int], indices: Array[Int]): Int
+    def indexIterator(dimensions: Array[Int], starts: Array[Int], ends: Array[Int], strides: Array[Int]): Iterator[Int]
   }
 
   private[api] object RowMajorOrder extends Order {
-    override def index(
-        dimensions: Array[Int], beginOffsets: Array[Int], strides: Array[Int], indices: Array[Int]): Int = {
+    override def index(dimensions: Array[Int], starts: Array[Int], strides: Array[Int], indices: Array[Int]): Int = {
       var index: Int = 0
       var dimension: Int = 0
       while (dimension < dimensions.length) {
@@ -313,44 +379,43 @@ object Tensor {
           sizesProduct *= dimensions(k)
           k += 1
         }
-        index += sizesProduct * (beginOffsets(dimension) + indices(dimension) * strides(dimension))
+        index += sizesProduct * (starts(dimension) + indices(dimension) * strides(dimension))
         dimension += 1
       }
       index
     }
 
-    override def flattenedIndexIterator(
-        dimensions: Array[Int], beginOffsets: Array[Int], endOffsets: Array[Int],
-        strides: Array[Int]): Iterator[Int] = {
+    override def indexIterator(
+        dimensions: Array[Int], starts: Array[Int], ends: Array[Int], strides: Array[Int]): Iterator[Int] = {
       if (dimensions.length > 0) {
         new Iterator[Int] {
-          private val dimCount: Array[Int] = beginOffsets.clone()
+          private val dimCount: Array[Int] = starts.clone()
           private val dimSizes: Array[Int] = dimensions.scanRight(1)(_ * _).takeRight(dimensions.length)
           private var dim     : Int        = dimensions.length - 1
           private var index   : Int        = {
             var i = 0
             var sum = 0
             while (i < dimensions.length) {
-              sum += beginOffsets(i) * dimSizes(i)
+              sum += starts(i) * dimSizes(i)
               i += 1
             }
             sum
           }
 
-          override def hasNext: Boolean = dimCount.head < endOffsets.head
+          override def hasNext: Boolean = dimCount.head < ends.head
 
           @tailrec
           override def next(): Int = {
-            if (dim < dimensions.length - 1 && dimCount(dim) < endOffsets(dim)) {
+            if (dim < dimensions.length - 1 && dimCount(dim) < ends(dim)) {
               dim += 1
               next()
-            } else if (dimCount(dim) < endOffsets(dim)) {
+            } else if (dimCount(dim) < ends(dim)) {
               val nextIndex = index
               dimCount(dim) += strides(dim)
               index += strides(dim)
-              while (dim > 0 && dimCount(dim) >= endOffsets(dim)) {
-                index += dimSizes(dim) * (strides(dim - 1) * dimensions(dim) - dimCount(dim) + beginOffsets(dim))
-                dimCount(dim) = beginOffsets(dim)
+              while (dim > 0 && dimCount(dim) >= ends(dim)) {
+                index += dimSizes(dim) * (strides(dim - 1) * dimensions(dim) - dimCount(dim) + starts(dim))
+                dimCount(dim) = starts(dim)
                 dim -= 1
                 dimCount(dim) += strides(dim)
               }
@@ -367,8 +432,7 @@ object Tensor {
   }
 
   private[api] object ColumnMajorOrder extends Order {
-    override def index(
-        dimensions: Array[Int], beginOffsets: Array[Int], strides: Array[Int], indices: Array[Int]): Int = {
+    override def index(dimensions: Array[Int], starts: Array[Int], strides: Array[Int], indices: Array[Int]): Int = {
       var index: Int = 0
       var dimension: Int = 0
       while (dimension < dimensions.length) {
@@ -378,36 +442,35 @@ object Tensor {
           sizesProduct *= dimensions(k)
           k += 1
         }
-        index += sizesProduct * (beginOffsets(dimension) + indices(dimension) * strides(dimension))
+        index += sizesProduct * (starts(dimension) + indices(dimension) * strides(dimension))
         dimension += 1
       }
       index
     }
 
-    override def flattenedIndexIterator(
-        dimensions: Array[Int], beginOffsets: Array[Int], endOffsets: Array[Int],
-        strides: Array[Int]): Iterator[Int] = {
+    override def indexIterator(
+        dimensions: Array[Int], starts: Array[Int], ends: Array[Int], strides: Array[Int]): Iterator[Int] = {
       if (dimensions.length > 0) {
         new Iterator[Int] {
-          private val dimCount: Array[Int] = beginOffsets.clone()
+          private val dimCount: Array[Int] = starts.clone()
           private val dimSizes: Array[Int] = dimensions.scanLeft(1)(_ * _).take(dimensions.length)
           private var dim     : Int        = 0
-          private var index   : Int        = beginOffsets.head * dimSizes.head
+          private var index   : Int        = starts.head * dimSizes.head
 
-          override def hasNext: Boolean = dimCount.head < endOffsets.head
+          override def hasNext: Boolean = dimCount.head < ends.head
 
           @tailrec
           override def next(): Int = {
-            if (dim > 0 && dimCount(dim) < endOffsets(dim)) {
+            if (dim > 0 && dimCount(dim) < ends(dim)) {
               dim -= 1
               next()
-            } else if (dimCount(dim) < endOffsets(dim)) {
+            } else if (dimCount(dim) < ends(dim)) {
               val nextIndex = index
               dimCount(dim) += strides(dim)
               index += strides(dim)
-              while (dim < dimensions.length - 1 && dimCount(dim) >= endOffsets(dim)) {
-                index += dimSizes(dim) * (strides(dim + 1) * dimensions(dim) - dimCount(dim) + beginOffsets(dim))
-                dimCount(dim) = beginOffsets(dim)
+              while (dim < dimensions.length - 1 && dimCount(dim) >= ends(dim)) {
+                index += dimSizes(dim) * (strides(dim + 1) * dimensions(dim) - dimCount(dim) + starts(dim))
+                dimCount(dim) = starts(dim)
                 dim += 1
                 dimCount(dim) += strides(dim)
               }
@@ -618,4 +681,16 @@ object Tensor {
   //    fillShape(value = value, axis = 0, shape = shapeArray)
   //    Shape.fromSeq(shapeArray)
   //  }
+
+  trait Implicits {
+    implicit def scalaValueToTensor(value: Boolean): Tensor = Tensor.fill(dataType = DataType.Bool)(value)
+    implicit def scalaValueToTensor(value: String): Tensor = Tensor.fill(dataType = DataType.Str)(value)
+    implicit def scalaValueToTensor(value: Float): Tensor = Tensor.fill(dataType = DataType.Float32)(value)
+    implicit def scalaValueToTensor(value: Double): Tensor = Tensor.fill(dataType = DataType.Float64)(value)
+    implicit def scalaValueToTensor(value: Byte): Tensor = Tensor.fill(dataType = DataType.Int8)(value)
+    implicit def scalaValueToTensor(value: Short): Tensor = Tensor.fill(dataType = DataType.Int16)(value)
+    implicit def scalaValueToTensor(value: Int): Tensor = Tensor.fill(dataType = DataType.Int32)(value)
+    implicit def scalaValueToTensor(value: Long): Tensor = Tensor.fill(dataType = DataType.Int64)(value)
+    implicit def scalaValueToTensor(value: UShort): Tensor = Tensor.fill(dataType = DataType.UInt16)(value)
+  }
 }

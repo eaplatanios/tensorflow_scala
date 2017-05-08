@@ -1,13 +1,14 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api._
-import org.platanios.tensorflow.jni.{Op => NativeOp}
 import org.platanios.tensorflow.api.Exception._
+import org.platanios.tensorflow.jni.{Op => NativeOp}
 
 import java.nio.charset.Charset
 
 import scala.collection.mutable
 import scala.util.DynamicVariable
+import spire.math.UShort
 
 /** Represents a graph node, or as we shall call it, an operation, that performs computation on tensors.
   *
@@ -107,20 +108,18 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
     * @param  index Input index.
     * @return Data type of the specified input.
     */
-  private def inputDataType(index: Int): DataType =
-    using(graph.reference) { r =>
-      DataType.fromCValue(NativeOp.inputDataType(r.nativeHandle, nativeHandle, index))
-    }
+  private def inputDataType(index: Int): DataType = using(graph.reference) { r =>
+    DataType.fromCValue(NativeOp.inputDataType(r.nativeHandle, nativeHandle, index))
+  }
 
   /** Gets the data type of the specified output of this op.
     *
     * @param  index Output index.
     * @return Data type of the specified output.
     */
-  private def outputDataType(index: Int): DataType =
-    using(graph.reference) { r =>
-      DataType.fromCValue(NativeOp.outputDataType(r.nativeHandle, nativeHandle, index))
-    }
+  private def outputDataType(index: Int): DataType = using(graph.reference) { r =>
+    DataType.fromCValue(NativeOp.outputDataType(r.nativeHandle, nativeHandle, index))
+  }
 
   /** Gets the (current) number of consumers of the specified output of this op. These are other ops that use the
     * specified output as one of their inputs.
@@ -1056,7 +1055,7 @@ object Op {
       * @return [[Op.OutputIndexedSlices]] that has the same value as this [[Op.OutputLike]].
       */
     override def toOpOutputIndexedSlices(optimize: Boolean = true): Op.OutputIndexedSlices = {
-      val denseShape = Basic.shape(this, optimize = optimize)
+      val denseShape = Basic.shape(this, dataType = DataType.Int32, optimize = optimize)
       val indices = Math.range(Basic.constant(0), denseShape(0))
       OutputIndexedSlices(indices = indices, values = this, denseShape = denseShape)
     }
@@ -1254,7 +1253,8 @@ object Op {
       * @return Value of this sparse op output, for this evaluation, represented as tuple containing the indices, the
       *         values, and the dense shape.
       */
-    def value(feeds: Map[Op.Output, Tensor] = Map.empty, session: Session = null): (Tensor, Tensor, Tensor) = {
+    def value(
+        feeds: Map[Op.Output, Tensor] = Map.empty, session: Session = null): (Tensor, Tensor, Tensor) = {
       val effectiveSession = if (session == null) graph.defaultSession else session
       val fetches = effectiveSession.run(feeds, Array(indices, values, denseShape))
       (fetches(0), fetches(1), fetches(2))
@@ -1357,7 +1357,7 @@ object Op {
         val fillShape = tensor.shape
         val fillValue = constantValue(tensor.op.inputs(0))
         if (fillShape.isFullyDefined && fillValue != null)
-          Tensor.fill(fillValue.dataType, fillShape)(fillValue.scalar)
+          Tensor.fill(fillValue.dataType, fillShape)(fillValue.scalar)(fillValue.dataType.supportedType)
         else
           null
       case _          => null
@@ -1417,8 +1417,9 @@ object Op {
           if (value != null) {
             require(value.rank == 1, "Only rank-1 tensors can be converted to shapes.")
             // TODO: !!! Does this work?
+            import value.dataType.supportedType
             val shape = Shape(
-              (0 until value.numElements).map(value.getElementAtFlattenedIndex(_).asInstanceOf[Int32].toInt): _*)
+              (0 until value.numElements).map(value.getElementAtFlattenedIndex(_).toInt): _*)
             returnShape = returnShape.mergeWith(shape)
           }
           returnShape
@@ -1496,34 +1497,34 @@ object Op {
     private def setAttributes(nativeHandle: Long): Unit = {
       attributes.foreach(attribute => {
         attribute._2 match {
-          case value: String        =>
+          case value: String =>
             NativeOp.setAttrString(nativeHandle, attribute._1, encodeString(value))
           case value: Array[String] =>
             NativeOp.setAttrStringList(nativeHandle, attribute._1, value.map(encodeString))
-          case value: Long                     =>
+          case value: Long =>
             NativeOp.setAttrInt(nativeHandle, attribute._1, value)
-          case value: Array[Long]              =>
+          case value: Array[Long] =>
             NativeOp.setAttrIntList(nativeHandle, attribute._1, value)
-          case value: Float                    =>
+          case value: Float =>
             NativeOp.setAttrFloat(nativeHandle, attribute._1, value)
-          case value: Array[Float]             =>
+          case value: Array[Float] =>
             NativeOp.setAttrFloatList(nativeHandle, attribute._1, value)
-          case value: Boolean                  =>
+          case value: Boolean =>
             NativeOp.setAttrBool(nativeHandle, attribute._1, value)
-          case value: Array[Boolean]           =>
+          case value: Array[Boolean] =>
             NativeOp.setAttrBoolList(nativeHandle, attribute._1, value)
-          case value: DataType                 =>
+          case value: DataType =>
             NativeOp.setAttrType(nativeHandle, attribute._1, value.cValue)
-          case value: Array[DataType]          =>
+          case value: Array[DataType] =>
             NativeOp.setAttrTypeList(nativeHandle, attribute._1, value.map(_.cValue))
-          case value: Tensor.NativeView        =>
+          case value: Tensor.NativeView =>
             NativeOp.setAttrTensor(nativeHandle, attribute._1, value.nativeHandle)
           case value: Array[Tensor.NativeView] =>
             NativeOp.setAttrTensorList(nativeHandle, attribute._1, value.map(_.nativeHandle))
-          case value: Shape                    =>
+          case value: Shape =>
             NativeOp.setAttrShape(nativeHandle, attribute._1, value.asArray.map(_.toLong), value.rank)
-          case value: Array[Shape]             => ??? // TODO: !!!
-          case _                               =>
+          case value: Array[Shape] => ??? // TODO: !!!
+          case _ =>
             throw new IllegalArgumentException(s"Unsupported attribute type for attribute named '${attribute._1}.'")
         }
       })
@@ -1615,5 +1616,21 @@ object Op {
       attributes += name -> value
       this
     }
+  }
+
+  trait Implicits extends Tensor.Implicits {
+    implicit def scalaValueToOpOutput(value: Boolean): Op.Output = ops.Basic.constant(scalaValueToTensor(value))
+    implicit def scalaValueToOpOutput(value: String): Op.Output = ops.Basic.constant(scalaValueToTensor(value))
+    implicit def scalaValueToOpOutput(value: Float): Op.Output = ops.Basic.constant(scalaValueToTensor(value))
+    implicit def scalaValueToOpOutput(value: Double): Op.Output = ops.Basic.constant(scalaValueToTensor(value))
+    implicit def scalaValueToOpOutput(value: Byte): Op.Output = ops.Basic.constant(scalaValueToTensor(value))
+    implicit def scalaValueToOpOutput(value: Short): Op.Output = ops.Basic.constant(scalaValueToTensor(value))
+    implicit def scalaValueToOpOutput(value: Int): Op.Output = ops.Basic.constant(scalaValueToTensor(value))
+    implicit def scalaValueToOpOutput(value: Long): Op.Output = ops.Basic.constant(scalaValueToTensor(value))
+    implicit def scalaValueToOpOutput(value: UShort): Op.Output = ops.Basic.constant(scalaValueToTensor(value))
+
+    implicit def tensorToOpOutput(tensor: Tensor): Op.Output = ops.Basic.constant(tensor)
+
+    implicit def variableToOpOutput(variable: Variable): Op.Output = variable.toOpOutput
   }
 }

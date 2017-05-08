@@ -2,6 +2,7 @@ package org.platanios.tensorflow.api
 
 import org.platanios.tensorflow.api.Exception.{GraphMismatchException, InvalidGraphElementException}
 import org.platanios.tensorflow.jni.{Graph => NativeGraph}
+
 import org.tensorflow.framework.{GraphDef, NodeDef}
 
 import scala.collection.JavaConverters._

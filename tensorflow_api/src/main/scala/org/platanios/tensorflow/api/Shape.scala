@@ -234,10 +234,10 @@ final class Shape private (private val array: Array[Int]) {
 
   /** Converts this shape to a one-dimensional tensor.
     *
-    * @param  dataType Data type to use for the tensor. Defaults to `Int64`.
-    * @return One-dimensional `Int64` tensor representing this shape.
+    * @param  dataType Data type to use for the tensor.
+    * @return One-dimensional tensor representing this shape.
     */
-  def toTensor(dataType: DataType = DataType.Int64): Tensor = Tensor(dataType, asArray.map(Tensor(_)): _*)
+  def toTensor(dataType: DataType = DataType.Int32): Tensor = Tensor(dataType, asArray.map(Tensor(_)): _*)
 
   override def toString: String = if (array == null) "<unknown>" else s"[${array.mkString(", ").replace("-1", "?")}]"
 
@@ -298,4 +298,9 @@ object Shape {
     * @param  dimensions Dimension sizes.
     */
   def apply(dimensions: Int*): Shape = create(dimensions: _*)
+
+  trait Implicits {
+    implicit def shapeToTensor(shape: Shape): Tensor = shape.toTensor()
+    implicit def shapeToOpOutput(shape: Shape): Op.Output = ops.Basic.constant(shape.toTensor())
+  }
 }
