@@ -1,6 +1,6 @@
 package org.platanios.tensorflow.api.types
 
-import org.platanios.tensorflow.api.types.TypeImplicits._
+import org.platanios.tensorflow.api.types.SupportedType.Implicits._
 import org.platanios.tensorflow.jni.{Tensor => NativeTensor, TensorFlow => NativeLibrary}
 
 import java.nio.ByteBuffer
@@ -130,7 +130,7 @@ object DataType {
   object Bool extends DataType {
     override type ScalaType = Boolean
     override implicit val supportedType = BooleanIsSupportedType
-    
+
     override val name    : String = "Bool"
     override val cValue  : Int    = 10
     override val byteSize: Int    = 1

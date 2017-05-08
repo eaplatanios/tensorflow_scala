@@ -7,6 +7,7 @@ import java.nio._
 import java.nio.charset.Charset
 
 import scala.annotation.tailrec
+import spire.math.UShort
 
 // TODO: Specialized slices (e.g., contiguous).
 // TODO: Is there a need to complicate the flattened index function for the plain tensor?
@@ -680,4 +681,16 @@ object Tensor {
   //    fillShape(value = value, axis = 0, shape = shapeArray)
   //    Shape.fromSeq(shapeArray)
   //  }
+
+  trait Implicits {
+    implicit def scalaValueToTensor(value: Boolean): Tensor = Tensor.fill(dataType = DataType.Bool)(value)
+    implicit def scalaValueToTensor(value: String): Tensor = Tensor.fill(dataType = DataType.Str)(value)
+    implicit def scalaValueToTensor(value: Float): Tensor = Tensor.fill(dataType = DataType.Float32)(value)
+    implicit def scalaValueToTensor(value: Double): Tensor = Tensor.fill(dataType = DataType.Float64)(value)
+    implicit def scalaValueToTensor(value: Byte): Tensor = Tensor.fill(dataType = DataType.Int8)(value)
+    implicit def scalaValueToTensor(value: Short): Tensor = Tensor.fill(dataType = DataType.Int16)(value)
+    implicit def scalaValueToTensor(value: Int): Tensor = Tensor.fill(dataType = DataType.Int32)(value)
+    implicit def scalaValueToTensor(value: Long): Tensor = Tensor.fill(dataType = DataType.Int64)(value)
+    implicit def scalaValueToTensor(value: UShort): Tensor = Tensor.fill(dataType = DataType.UInt16)(value)
+  }
 }

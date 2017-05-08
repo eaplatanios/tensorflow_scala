@@ -1,13 +1,14 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api._
-import org.platanios.tensorflow.jni.{Op => NativeOp}
 import org.platanios.tensorflow.api.Exception._
+import org.platanios.tensorflow.jni.{Op => NativeOp}
 
 import java.nio.charset.Charset
 
 import scala.collection.mutable
 import scala.util.DynamicVariable
+import spire.math.UShort
 
 /** Represents a graph node, or as we shall call it, an operation, that performs computation on tensors.
   *
@@ -1615,5 +1616,21 @@ object Op {
       attributes += name -> value
       this
     }
+  }
+
+  trait Implicits extends Tensor.Implicits {
+    implicit def scalaValueToOpOutput(value: Boolean): Op.Output = ops.Basic.constant(scalaValueToTensor(value))
+    implicit def scalaValueToOpOutput(value: String): Op.Output = ops.Basic.constant(scalaValueToTensor(value))
+    implicit def scalaValueToOpOutput(value: Float): Op.Output = ops.Basic.constant(scalaValueToTensor(value))
+    implicit def scalaValueToOpOutput(value: Double): Op.Output = ops.Basic.constant(scalaValueToTensor(value))
+    implicit def scalaValueToOpOutput(value: Byte): Op.Output = ops.Basic.constant(scalaValueToTensor(value))
+    implicit def scalaValueToOpOutput(value: Short): Op.Output = ops.Basic.constant(scalaValueToTensor(value))
+    implicit def scalaValueToOpOutput(value: Int): Op.Output = ops.Basic.constant(scalaValueToTensor(value))
+    implicit def scalaValueToOpOutput(value: Long): Op.Output = ops.Basic.constant(scalaValueToTensor(value))
+    implicit def scalaValueToOpOutput(value: UShort): Op.Output = ops.Basic.constant(scalaValueToTensor(value))
+
+    implicit def tensorToOpOutput(tensor: Tensor): Op.Output = ops.Basic.constant(tensor)
+
+    implicit def variableToOpOutput(variable: Variable): Op.Output = variable.toOpOutput
   }
 }

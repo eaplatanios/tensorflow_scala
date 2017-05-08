@@ -298,4 +298,9 @@ object Shape {
     * @param  dimensions Dimension sizes.
     */
   def apply(dimensions: Int*): Shape = create(dimensions: _*)
+
+  trait Implicits {
+    implicit def shapeToTensor(shape: Shape): Tensor = shape.toTensor()
+    implicit def shapeToOpOutput(shape: Shape): Op.Output = ops.Basic.constant(shape.toTensor())
+  }
 }

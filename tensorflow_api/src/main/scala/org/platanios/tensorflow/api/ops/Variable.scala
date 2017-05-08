@@ -1,7 +1,8 @@
 package org.platanios.tensorflow.api.ops
 
+import org.platanios.tensorflow.api.{DataType, Graph, ProtoSerializable, Session, Shape, Tensor}
 import org.platanios.tensorflow.api.Exception.InvalidDataTypeException
-import org.platanios.tensorflow.api.{DataType, Graph, ProtoSerializable, Session, Shape, SupportedType, Tensor}
+
 import org.tensorflow.framework.{SaveSliceInfoDef, VariableDef}
 
 import scala.util.DynamicVariable
