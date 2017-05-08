@@ -7,8 +7,10 @@ import spire.math.{UByte, UShort}
 /**
   * @author Emmanouil Antonios Platanios
   */
-trait Implicits {
-  implicit def toSupportedTypeOps[T: SupportedType](value: T): SupportedTypeOps[T] = new SupportedTypeOps(value)
+trait TypeImplicits {
+  implicit def toSupportedTypeOps[@specialized T: SupportedType](value: T): SupportedTypeOps[T] = {
+    new SupportedTypeOps(value)
+  }
 
   implicit final val BooleanIsSupportedType: SupportedType[Boolean] = new BooleanIsSupportedType
   implicit final val StringIsSupportedType : SupportedType[String]  = new StringIsSupportedType
@@ -21,3 +23,5 @@ trait Implicits {
   implicit final val UByteIsSupportedType  : SupportedType[UByte]   = new UByteIsSupportedType
   implicit final val UShortIsSupportedType : SupportedType[UShort]  = new UShortIsSupportedType
 }
+
+object TypeImplicits extends TypeImplicits

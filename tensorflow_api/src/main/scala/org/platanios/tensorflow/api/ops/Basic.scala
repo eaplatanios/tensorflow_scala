@@ -2,7 +2,7 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.Exception.{InvalidDataTypeException, InvalidShapeException}
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
-import org.platanios.tensorflow.api.{DataType, Shape, SupportedType, Tensor, using}
+import org.platanios.tensorflow.api.{DataType, Shape, Tensor, using}
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -34,7 +34,6 @@ object Basic {
     */
   @throws[InvalidShapeException]
   def constant(tensor: Tensor, dataType: DataType = null, shape: Shape = null, name: String = "Constant"): Op.Output = {
-    import tensor.dataType.supportedScalaType
     val inferredDataType = if (dataType == null) tensor.dataType else dataType
     val inferredShape = if (shape == null) tensor.shape else shape
     val constantTensor = {
@@ -44,7 +43,8 @@ object Basic {
             s"Shape '${tensor.shape}' tensor is not valid for shape '$inferredShape' constant op creation.")
         val t = Tensor.allocate(inferredDataType, inferredShape, order = Tensor.RowMajorOrder)
         for ((thisIndex, tensorIndex) <- t.flattenedIndexIterator zip tensor.flattenedIndexIterator)
-          t.setElementAtFlattenedIndex(thisIndex, tensor.getElementAtFlattenedIndex(tensorIndex))
+          t.setElementAtFlattenedIndex(
+            thisIndex, tensor.getElementAtFlattenedIndex(tensorIndex))(tensor.dataType.supportedType)
         t
       } else {
         tensor

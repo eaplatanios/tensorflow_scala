@@ -1355,9 +1355,8 @@ object Op {
       case "Fill"     =>
         val fillShape = tensor.shape
         val fillValue = constantValue(tensor.op.inputs(0))
-        import fillValue.dataType.supportedScalaType
         if (fillShape.isFullyDefined && fillValue != null)
-          Tensor.fill(fillValue.dataType, fillShape)(fillValue.scalar)
+          Tensor.fill(fillValue.dataType, fillShape)(fillValue.scalar)(fillValue.dataType.supportedType)
         else
           null
       case _          => null
@@ -1417,7 +1416,7 @@ object Op {
           if (value != null) {
             require(value.rank == 1, "Only rank-1 tensors can be converted to shapes.")
             // TODO: !!! Does this work?
-            import value.dataType.supportedScalaType
+            import value.dataType.supportedType
             val shape = Shape(
               (0 until value.numElements).map(value.getElementAtFlattenedIndex(_).toInt): _*)
             returnShape = returnShape.mergeWith(shape)

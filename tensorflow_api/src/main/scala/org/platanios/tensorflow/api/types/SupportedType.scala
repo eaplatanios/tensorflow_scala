@@ -55,7 +55,7 @@ object SupportedType {
     def toUShort(implicit evidence: SupportedType[T]): UShort = evidence.toUShort(value)
   }
 
-  @inline final def apply[T: SupportedType]: SupportedType[T] = implicitly[SupportedType[T]]
+  @inline final def apply[T](implicit evidence: SupportedType[T]): SupportedType[T] = evidence
 
   private[types] class BooleanIsSupportedType extends SupportedType[Boolean] {
     override def dataType: DataType = DataType.Bool

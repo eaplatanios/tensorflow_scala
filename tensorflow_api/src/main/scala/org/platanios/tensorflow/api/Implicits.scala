@@ -1,13 +1,14 @@
 package org.platanios.tensorflow.api
 
 import org.platanios.tensorflow.api.ops.OpSpecification
+import org.platanios.tensorflow.api.types.TypeImplicits
 
 import spire.math.UShort
 
 /**
   * @author Emmanouil Antonios Platanios
   */
-trait Implicits extends LowPriorityImplicits with types.Implicits {
+trait Implicits extends LowPriorityImplicits with TypeImplicits {
   // TODO: [IMPLICITS] Create Indexed implicits trait.
   implicit def intToIndex(index: Int): Index = Indexer.intToIndex(index)
   implicit def intToIndexerConstructionWithOneNumber(n: Int): IndexerConstructionWithOneNumber =

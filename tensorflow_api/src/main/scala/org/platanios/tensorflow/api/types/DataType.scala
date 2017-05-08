@@ -1,5 +1,6 @@
 package org.platanios.tensorflow.api.types
 
+import org.platanios.tensorflow.api.types.TypeImplicits._
 import org.platanios.tensorflow.jni.{Tensor => NativeTensor, TensorFlow => NativeLibrary}
 
 import java.nio.ByteBuffer
@@ -17,7 +18,7 @@ import spire.math.{UByte, UShort}
   */
 sealed trait DataType {
   type ScalaType
-  implicit val supportedScalaType: SupportedType[ScalaType]
+  implicit val supportedType: SupportedType[ScalaType]
 
   //region Data Type Properties
 
@@ -88,7 +89,7 @@ sealed trait DataType {
     * @throws UnsupportedOperationException For unsupported data types on the Scala side.
     */
   @throws[UnsupportedOperationException]
-  @inline def cast[R: SupportedType](value: R): ScalaType = value.cast(this)
+  @inline def cast[T](value: T)(implicit evidence: SupportedType[T]): ScalaType = value.cast(this)
 
   /** Puts an element of this data type into the provided byte buffer.
     *
@@ -128,7 +129,7 @@ object DataType {
 
   object Bool extends DataType {
     override type ScalaType = Boolean
-    override implicit val supportedScalaType = BooleanIsSupportedType
+    override implicit val supportedType = BooleanIsSupportedType
     
     override val name    : String = "Bool"
     override val cValue  : Int    = 10
@@ -147,7 +148,7 @@ object DataType {
 
   object Str extends DataType {
     override type ScalaType = String
-    override implicit val supportedScalaType = StringIsSupportedType
+    override implicit val supportedType = StringIsSupportedType
 
     override val name    : String = "String"
     override val cValue  : Int    = 7
@@ -184,7 +185,7 @@ object DataType {
 
   object Float32 extends DataType {
     override type ScalaType = Float
-    override implicit val supportedScalaType = FloatIsSupportedType
+    override implicit val supportedType = FloatIsSupportedType
 
     override val name    : String = "Float32"
     override val cValue  : Int    = 1
@@ -203,7 +204,7 @@ object DataType {
 
   object Float64 extends DataType {
     override type ScalaType = Double
-    override implicit val supportedScalaType = DoubleIsSupportedType
+    override implicit val supportedType = DoubleIsSupportedType
 
     override val name    : String = "Float64"
     override val cValue  : Int    = 2
@@ -243,7 +244,7 @@ object DataType {
 
   object Int8 extends DataType {
     override type ScalaType = Byte
-    override implicit val supportedScalaType = ByteIsSupportedType
+    override implicit val supportedType = ByteIsSupportedType
 
     override val name    : String = "Int8"
     override val cValue  : Int    = 6
@@ -262,7 +263,7 @@ object DataType {
 
   object Int16 extends DataType {
     override type ScalaType = Short
-    override implicit val supportedScalaType = ShortIsSupportedType
+    override implicit val supportedType = ShortIsSupportedType
 
     override val name    : String = "Int16"
     override val cValue  : Int    = 5
@@ -281,7 +282,7 @@ object DataType {
 
   object Int32 extends DataType {
     override type ScalaType = Int
-    override implicit val supportedScalaType = IntIsSupportedType
+    override implicit val supportedType = IntIsSupportedType
 
     override val name    : String = "Int32"
     override val cValue  : Int    = 3
@@ -300,7 +301,7 @@ object DataType {
 
   object Int64 extends DataType {
     override type ScalaType = Long
-    override implicit val supportedScalaType = LongIsSupportedType
+    override implicit val supportedType = LongIsSupportedType
 
     override val name    : String = "Int64"
     override val cValue  : Int    = 9
@@ -319,7 +320,7 @@ object DataType {
 
   object UInt8 extends DataType {
     override type ScalaType = UByte
-    override implicit val supportedScalaType = UByteIsSupportedType
+    override implicit val supportedType = UByteIsSupportedType
 
     override val name    : String = "UInt8"
     override val cValue  : Int    = 4
@@ -338,7 +339,7 @@ object DataType {
 
   object UInt16 extends DataType {
     override type ScalaType = UShort
-    override implicit val supportedScalaType = UShortIsSupportedType
+    override implicit val supportedType = UShortIsSupportedType
 
     override val name    : String = "UInt16"
     override val cValue  : Int    = 17
@@ -357,7 +358,7 @@ object DataType {
 
   object QInt8 extends DataType {
     override type ScalaType = Byte
-    override implicit val supportedScalaType = ByteIsSupportedType
+    override implicit val supportedType = ByteIsSupportedType
 
     override val name    : String = "QInt8"
     override val cValue  : Int    = 11
@@ -376,7 +377,7 @@ object DataType {
 
   object QInt16 extends DataType {
     override type ScalaType = Short
-    override implicit val supportedScalaType = ShortIsSupportedType
+    override implicit val supportedType = ShortIsSupportedType
 
     override val name    : String = "QInt16"
     override val cValue  : Int    = 15
@@ -395,7 +396,7 @@ object DataType {
 
   object QInt32 extends DataType {
     override type ScalaType = Int
-    override implicit val supportedScalaType = IntIsSupportedType
+    override implicit val supportedType = IntIsSupportedType
 
     override val name    : String = "QInt32"
     override val cValue  : Int    = 13
@@ -414,7 +415,7 @@ object DataType {
 
   object QUInt8 extends DataType {
     override type ScalaType = UByte
-    override implicit val supportedScalaType = UByteIsSupportedType
+    override implicit val supportedType = UByteIsSupportedType
 
     override val name    : String = "QUInt8"
     override val cValue  : Int    = 12
@@ -433,7 +434,7 @@ object DataType {
 
   object QUInt16 extends DataType {
     override type ScalaType = UShort
-    override implicit val supportedScalaType = UShortIsSupportedType
+    override implicit val supportedType = UShortIsSupportedType
 
     override val name    : String = "QUInt16"
     override val cValue  : Int    = 16
@@ -452,7 +453,7 @@ object DataType {
 
   object Resource extends DataType {
     override type ScalaType = Long
-    override implicit val supportedScalaType = LongIsSupportedType
+    override implicit val supportedType = LongIsSupportedType
 
     override val name    : String = "Resource"
     override val cValue  : Int    = 20

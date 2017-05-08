@@ -60,7 +60,7 @@ sealed class Tensor protected (
   //
   // def update(indexers: Seq[Indexer], tensor: Tensor): Unit = slice(indexers: _*).set(tensor)
 
-  def fill[T: SupportedType](value: T): Tensor = {
+  def fill[T](value: T)(implicit evidence: SupportedType[T]): Tensor = {
     val castedValue = dataType.cast(value)
     dataType match {
       case DataType.Str =>
@@ -76,7 +76,6 @@ sealed class Tensor protected (
   // def set(value: SupportedScalaType): Tensor = fill(value)
 
   def set(tensor: Tensor): Tensor = {
-    import tensor.dataType.supportedScalaType
     if (shape != tensor.shape && tensor.numElements != 1)
       throw ShapeMismatchException(s"Assigned tensor shape '${tensor.shape}' does not match assignee shape '$shape'")
     dataType match {
@@ -84,16 +83,17 @@ sealed class Tensor protected (
         throw new UnsupportedOperationException("String tensors are immutable in the TensorFlow Scala API.")
       case _ =>
         if (tensor.numElements == 1) {
-          dataType.putElementInBuffer(buffer = buffer, index = 0, element = dataType.cast(tensor.scalar))
+          val value = dataType.cast(tensor.scalar)(tensor.dataType.supportedType)
+          dataType.putElementInBuffer(buffer = buffer, index = 0, element = value)
         } else {
           for ((index, value) <- flattenedIndexIterator zip tensor.elementIterator)
-            setElementAtFlattenedIndex(index, value)
+            setElementAtFlattenedIndex(index, value)(tensor.dataType.supportedType)
         }
     }
     this
   }
 
-  def setElementAtFlattenedIndex[T: SupportedType](index: Int, value: T): Tensor = {
+  def setElementAtFlattenedIndex[T](index: Int, value: T)(implicit evidence: SupportedType[T]): Tensor = {
     dataType match {
       case DataType.Str =>
         throw new UnsupportedOperationException("String tensors are immutable in the TensorFlow Scala API.")
@@ -268,7 +268,7 @@ object Tensor {
     new Tensor(dataType = dataType, shape = shape, buffer = buffer, order = order)
   }
 
-  def fill[T: SupportedType](dataType: DataType, shape: Shape = null)(value: T): Tensor = {
+  def fill[T](dataType: DataType, shape: Shape = null)(value: T)(implicit evidence: SupportedType[T]): Tensor = {
     // TODO: Add downcasting warnings.
     val inferredShape = if (shape == null) Shape() else shape
     dataType match {
@@ -355,8 +355,8 @@ object Tensor {
         val tensor = allocate(dataType, newShape)
         val newTensorIndexIterator = tensor.flattenedIndexIterator
         tensors.foreach(t => t.flattenedIndexIterator.foreach(index => {
-          import t.dataType.supportedScalaType
-          tensor.setElementAtFlattenedIndex(newTensorIndexIterator.next(), t.getElementAtFlattenedIndex(index))
+          tensor.setElementAtFlattenedIndex(
+            newTensorIndexIterator.next(), t.getElementAtFlattenedIndex(index))(t.dataType.supportedType)
         }))
         tensor
     }
