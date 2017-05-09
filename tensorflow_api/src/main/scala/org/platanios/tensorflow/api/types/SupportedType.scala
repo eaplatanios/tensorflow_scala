@@ -283,7 +283,7 @@ object SupportedType {
   }
 
   trait Implicits {
-    implicit def toSupportedTypeOps[@specialized T: SupportedType](value: T): SupportedTypeOps[T] = {
+    implicit def toSupportedTypeOps[@specialized T](value: T): SupportedTypeOps[T] = {
       new SupportedTypeOps(value)
     }
 
