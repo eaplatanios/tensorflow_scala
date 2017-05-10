@@ -11,7 +11,7 @@ import scala.util.DynamicVariable
   * @author Emmanouil Antonios Platanios
   */
 case class Variable private(dataType: DataType, variableOp: Op.Output, initializeOp: Op, cachedValueOp: Op.Output)
-    extends Op.OutputConvertible with ProtoSerializable {
+    extends ProtoSerializable {
   /** Graph where this variable is defined. */
   val graph: Graph = initializeOp.graph
 
