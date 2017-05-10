@@ -26,7 +26,7 @@ lazy val loggingDependencies = Seq(
 )
 
 lazy val tensorflow = (project in file("."))
-    .aggregate(tensorflow_jni, tensorflow_api)
+    .aggregate(tensorflow_jni, tensorflow_api, tensorflow_data, tensorflow_examples)
     .settings(
       sourcesInBase := false,
       unmanagedSourceDirectories in Compile := Nil,
@@ -59,4 +59,21 @@ lazy val tensorflow_api = (project in file("./tensorflow_api"))
       // Test dependencies
       libraryDependencies += "org.scalactic" %% "scalactic" % "3.0.1",
       libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1" % "test"
+    )
+
+lazy val tensorflow_data = (project in file("./tensorflow_data"))
+    .dependsOn(tensorflow_api)
+    .settings(
+      name := "tensorflow_data",
+      libraryDependencies ++= loggingDependencies,
+      // Test dependencies
+      libraryDependencies += "org.scalactic" %% "scalactic" % "3.0.1",
+      libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1" % "test"
+    )
+
+lazy val tensorflow_examples = (project in file("./tensorflow_examples"))
+    .dependsOn(tensorflow_api, tensorflow_data)
+    .settings(
+      name := "tensorflow_examples",
+      libraryDependencies ++= loggingDependencies
     )

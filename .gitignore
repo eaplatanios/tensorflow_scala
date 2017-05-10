@@ -1,3 +1,7 @@
+# Project Specific
+temp/
+tensorflow/
+
 # Scala Specific
 *.class
 *.log
