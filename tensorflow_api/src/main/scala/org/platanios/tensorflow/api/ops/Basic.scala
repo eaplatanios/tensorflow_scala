@@ -1610,12 +1610,16 @@ object Basic {
     GradientsRegistry.registerNonDifferentiable("StopGradient")
 
     GradientsRegistry.register("Pack", stackGradient)
+    GradientsRegistry.register("Reshape", reshapeGradient)
 
     def stackGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
       unstack(
-        input = outputGradients.head.asInstanceOf[Op.OutputConvertible].toOpOutput,
-        number = op.longAttribute("N").toInt,
+        input = outputGradients.head, number = op.longAttribute("N").toInt,
         axis = op.longAttribute("axis").toInt).toSeq
+    }
+
+    def reshapeGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+      Seq[Op.OutputLike](reshape(outputGradients.head, shape(op.inputs(0))), null)
     }
   }
 }

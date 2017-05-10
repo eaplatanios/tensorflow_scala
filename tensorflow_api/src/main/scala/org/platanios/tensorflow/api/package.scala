@@ -80,12 +80,15 @@ package object api extends Implicits {
 
   import org.platanios.tensorflow.api.ops.OpCreationContext
 
-  private[api] val defaultGraph: Graph = Graph()
+  val defaultGraph: Graph = Graph()
 
-  private[api] implicit val opCreationContext: DynamicVariable[OpCreationContext] =
+  implicit val opCreationContext: DynamicVariable[OpCreationContext] = {
     new DynamicVariable[OpCreationContext](OpCreationContext(graph = defaultGraph))
-  private[api] implicit def dynamicVariableToOpCreationContext(
-      context: DynamicVariable[OpCreationContext]): OpCreationContext = context.value
+  }
+
+  implicit def dynamicVariableToOpCreationContext(context: DynamicVariable[OpCreationContext]): OpCreationContext = {
+    context.value
+  }
 
   //endregion Op Creation
 

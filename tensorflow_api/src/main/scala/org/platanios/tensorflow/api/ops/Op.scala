@@ -2,7 +2,6 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.Exception._
-import org.platanios.tensorflow.api.tensors.Tensor.{Implicits => TensorImplicits}
 import org.platanios.tensorflow.api.tensors.TensorFlowNative.{NativeView => TensorNativeView}
 import org.platanios.tensorflow.jni.{Op => NativeOp}
 
@@ -920,14 +919,10 @@ object Op {
 
     /** Consumers of this op output (i.e., ops that use this op output as one of their inputs). */
     def consumers: Array[Op.Input]
-  }
 
-  trait OutputConvertible {
     /** Returns the [[Op.Output]] that this [[Op.OutputLike]] object represents. */
     def toOpOutput: Op.Output
-  }
 
-  sealed trait OutputIndexedSlicesConvertible {
     /** Returns an [[Op.OutputIndexedSlices]] that has the same value as this [[Op.OutputLike]].
       *
       * @param  optimize Boolean flag indicating whether to optimize this conversion by using a constant op with the
@@ -963,8 +958,7 @@ object Op {
     * @param  op    Op whose output this class represents.
     * @param  index Output index.
     */
-  final case class Output private(op: Op, index: Int)
-      extends OutputLike with OutputConvertible with OutputIndexedSlicesConvertible {
+  final case class Output private(op: Op, index: Int) extends OutputLike {
     /** Graph where the op belongs. */
     override def graph: Graph = op.graph
 
@@ -1115,7 +1109,7 @@ object Op {
     * @param  denseShape Shape of the corresponding dense [[Op.Output]].
     */
   final case class OutputIndexedSlices private(indices: Op.Output, values: Op.Output, denseShape: Op.Output = null)
-      extends OutputLike with OutputConvertible with OutputIndexedSlicesConvertible {
+      extends OutputLike {
     /** Graph that contains `values`, `indices`, and `denseShape`. */
     override def graph: Graph = getGraphFromInputs(Set(values, indices, denseShape))
 
@@ -1264,6 +1258,14 @@ object Op {
       val effectiveSession = if (session == null) graph.defaultSession else session
       val fetches = effectiveSession.run(feeds, Array(indices, values, denseShape))
       (fetches(0), fetches(1), fetches(2))
+    }
+
+    override def toOpOutput: Op.Output = {
+      throw new UnsupportedOperationException(s"Cannot convert sparse output '$this' to a dense output.")
+    }
+
+    override def toOpOutputIndexedSlices(optimize: Boolean = true): Op.OutputIndexedSlices = {
+      throw new UnsupportedOperationException(s"Cannot convert sparse output '$this' to output indexed slices.")
     }
 
     override def toString: String = {
@@ -1636,7 +1638,7 @@ object Op {
     implicit def scalaValueToOpOutput(value: UShort): Op.Output = ops.Basic.constant(scalaValueToTensor(value))
 
     implicit def tensorToOpOutput(tensor: Tensor): Op.Output = ops.Basic.constant(tensor)
-
+    implicit def opOutputLikeToOpOutput(outputLike: OutputLike): Op.Output = outputLike.toOpOutput
     implicit def variableToOpOutput(variable: Variable): Op.Output = variable.toOpOutput
   }
 }

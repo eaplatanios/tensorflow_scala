@@ -1173,8 +1173,21 @@ object Math {
   //endregion Segment Ops
 
   object Gradients {
+    GradientsRegistry.register("Cast", castGradient)
     GradientsRegistry.register("MatMul", matMulGradient)
     GradientsRegistry.register("BatchMatMul", batchMatMulGradient)
+    GradientsRegistry.register("Square", squareGradient)
+    GradientsRegistry.register("Sum", reduceSumGradient)
+
+    def castGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+      val supportedDataTypes = Seq(TFFloat32, TFFloat64) // TODO: [TYPES] Float16 and complex.
+      val sourceDataType = op.inputs(0).dataType
+      val destinationDataType = outputGradients.head.dataType
+      if (supportedDataTypes.contains(sourceDataType) && supportedDataTypes.contains(destinationDataType))
+        Seq(cast(outputGradients.head, sourceDataType))
+      else
+        Seq(null)
+    }
 
     def matMulGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
       matMulGradientCommon(op, outputGradients, "transpose_a", "transpose_b", isBatch = false)
@@ -1191,7 +1204,7 @@ object Math {
       val transposeB = op.booleanAttribute(transposeBAttribute)
       val a = conjugate(op.inputs(0))
       val b = conjugate(op.inputs(1))
-      val outputGradient = outputGradients.head.asInstanceOf[Op.OutputConvertible].toOpOutput
+      val outputGradient = outputGradients.head
       if (!transposeA && !transposeB)
         matMulGradientHelper(
           outputGradient, b, a, outputGradient,
@@ -1221,6 +1234,33 @@ object Math {
         val gradientX = batchMatMul(x0, x1, adjointX = transposeX0, adjointY = transposeX1, name = "MatMul_1")
         val gradientY = batchMatMul(y0, y1, adjointX = transposeY0, adjointY = transposeY1, name = "MatMul_2")
         Seq[Op.OutputLike](gradientX, gradientY)
+      }
+    }
+
+    def squareGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+      var x = op.inputs(0)
+      val outputGradient = outputGradients.head
+      // Using control dependencies to prevent 2*x from being computed too early.
+      Op.createWith(controlDependencies = Set(outputGradient.op)) {
+        x = conjugate(x)
+        Seq(outputGradient * (2 * x))
+      }
+    }
+
+    def reduceSumGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+      // Fast path for when reducing to a scalar and rank is known, which adds only reshape and tile ops (and possibly a
+      // shape op too).
+      if (op.inputs(0).shape.rank != -1 && op.inputs(1).op.opType == "Const") {
+        val rank = op.inputs(0).shape.rank
+        // TODO: !!! Missing a pretty important if statement here.
+        val gradient = Basic.reshape(outputGradients.head, Shape.fromSeq(Seq.fill(rank)(1)))
+        // If shape is not fully defined (but rank is), we use a shape op.
+        if (op.inputs(0).shape.isFullyDefined)
+          Seq(Basic.tile(gradient, op.inputs(0).shape), null)
+        else
+          Seq(Basic.tile(gradient, Basic.shape(op.inputs(0))), null)
+      } else {
+        ???
       }
     }
   }
