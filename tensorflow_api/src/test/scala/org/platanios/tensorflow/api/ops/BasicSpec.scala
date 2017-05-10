@@ -1,6 +1,6 @@
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api.{DataType, Shape, Tensor}
+import org.platanios.tensorflow.api.{DataType, Shape}
 
 import org.scalatest._
 

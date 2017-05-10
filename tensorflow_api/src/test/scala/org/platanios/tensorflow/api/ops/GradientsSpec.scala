@@ -1,6 +1,7 @@
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api.{Graph, Tensor}
+import org.platanios.tensorflow.api.Graph
+import org.platanios.tensorflow.api.tensors.Tensor
 import org.scalatest._
 
 import scala.collection.mutable

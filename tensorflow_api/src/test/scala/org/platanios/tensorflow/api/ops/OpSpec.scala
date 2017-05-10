@@ -14,7 +14,7 @@ import org.scalatest._
 class OpSpec extends FlatSpec with Matchers {
   "'Op.Output.setShape'" must "always work" in {
     createWith(graph = Graph()) {
-      val a = placeholder(DataType.Int32, Shape(-1, -1, 3))
+      val a = placeholder(TFInt32, Shape(-1, -1, 3))
       assert(!a.shape.isFullyDefined)
       assert(a.shape === Shape(-1, -1, 3))
       a.setShape(Shape(2, 4, 3))

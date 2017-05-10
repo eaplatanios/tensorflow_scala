@@ -1,9 +1,10 @@
 package org.platanios.tensorflow.api.ops.optimizers
 
+import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.Exception.InvalidDataTypeException
 import org.platanios.tensorflow.api.ops.optimizers.Optimizer._
 import org.platanios.tensorflow.api.ops.{Basic, ControlFlow, Gradients, Math, Op, Variable}
-import org.platanios.tensorflow.api.{DataType, Graph}
+import org.platanios.tensorflow.api.types.TFResource
 
 import scala.collection.mutable
 
@@ -100,7 +101,7 @@ trait Optimizer {
     }
     val gradientsAndVariables: Seq[(Op.OutputLike, Variable)] = gradients.zip(collectedVariables)
     assertSupportedDataTypes(
-      gradientsAndVariables.filter(p => (p._1 ne null) && p._2.dataType != DataType.Resource).map(_._2.value))
+      gradientsAndVariables.filter(p => (p._1 ne null) && p._2.dataType != TFResource).map(_._2.value))
     gradientsAndVariables
   }
 
@@ -156,7 +157,7 @@ trait Optimizer {
           Op.createWith(
             colocationOps = Set[Op](globalStep.op),
             controlDependencies = Set[Op](finish(updateOps.toSet, "Update"))) {
-            globalStep.assignAdd(Basic.constant(1, dataType = DataType.Int32), name).op
+            globalStep.assignAdd(Basic.constant(1, dataType = TFInt32), name).op
           }
         }
       }
@@ -170,7 +171,7 @@ trait Optimizer {
 
   /** Supported data types for the loss function, the variables, and the gradients. Subclasses should override this
     * field allow other float types. */
-  protected val supportedDataTypes: Set[DataType] = Set[DataType](DataType.Float32, DataType.Float64)
+  protected val supportedDataTypes: Set[DataType] = Set[DataType](TFFloat32, TFFloat64)
 
   /** Asserts that the provided `outputs` all have data types that are supported by this optimizer.
     *

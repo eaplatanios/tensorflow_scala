@@ -1,8 +1,7 @@
 package org.platanios.tensorflow.api.ops.optimizers
 
-import org.platanios.tensorflow.api.{Graph, Session, Shape, Tensor}
+import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.ops.{Basic, Op, Variable}
-import org.platanios.tensorflow.api.types.DataType
 
 import org.scalatest._
 
@@ -11,7 +10,7 @@ import org.scalatest._
   */
 class GradientDescentSpec extends FlatSpec with Matchers {
   "Gradient descent" must "work for dense updates to resource-based variables" in {
-    for (dataType <- Set[DataType](DataType.Float32, DataType.Float64)) {
+    for (dataType <- Set[DataType](TFFloat32, TFFloat64)) {
       val value0 = Tensor(dataType, 1.0, 2.0)
       val value1 = Tensor(dataType, 3.0, 4.0)
       val updatedValue0 = Tensor(dataType, 1.0 - 3.0 * 0.1, 2.0 - 3.0 * 0.1)

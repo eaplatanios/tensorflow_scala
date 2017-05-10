@@ -5,31 +5,31 @@ package org.platanios.tensorflow.api.ops
   */
 object Logging {
   // TODO: Look into control flow ops for the "Assert" op.
-//  /** Asserts that the provided condition is true.
-//    *
-//    * If `condition` evaluates to `false`, then the op prints all the op outputs in `data`. `summarize` determines how
-//    * many entries of the tensors to print.
-//    *
-//    * @param  condition Condition to assert.
-//    * @param  data      Op outputs whose values are printed if `condition` is `false`.
-//    * @param  summarize Number of tensor entries to print.
-//    * @param  name      Name for the created op.
-//    * @return Created op.
-//    */
-//  def assert(condition: Op.Output, data: Array[Op.Output], summarize: Int = 3, name: String = "Assert"): Op.Output = {
-//    createWith(nameScope = name, values = condition +: data) {
-//      internalAssert(condition = condition, data = data, summarize = summarize)
-//    }
-//  }
-//
-//  private[this] def internalAssert(
-//      condition: Op.Output, data: Array[Op.Output], summarize: Int = 3, name: String = "Assert")
-//      (implicit context: DynamicVariable[OpCreationContext]): Op.Output =
-//    Op.Builder(context = context, opType = "Assert", name = name)
-//        .addInput(condition)
-//        .addInputList(data)
-//        .setAttribute("summarize", summarize)
-//        .build().outputs(0)
+  //  /** Asserts that the provided condition is true.
+  //    *
+  //    * If `condition` evaluates to `false`, then the op prints all the op outputs in `data`. `summarize` determines how
+  //    * many entries of the tensors to print.
+  //    *
+  //    * @param  condition Condition to assert.
+  //    * @param  data      Op outputs whose values are printed if `condition` is `false`.
+  //    * @param  summarize Number of tensor entries to print.
+  //    * @param  name      Name for the created op.
+  //    * @return Created op.
+  //    */
+  //  def assert(condition: Op.Output, data: Array[Op.Output], summarize: Int = 3, name: String = "Assert"): Op.Output = {
+  //    createWith(nameScope = name, values = condition +: data) {
+  //      internalAssert(condition = condition, data = data, summarize = summarize)
+  //    }
+  //  }
+  //
+  //  private[this] def internalAssert(
+  //      condition: Op.Output, data: Array[Op.Output], summarize: Int = 3, name: String = "Assert")
+  //      (implicit context: DynamicVariable[OpCreationContext]): Op.Output =
+  //    Op.Builder(context = context, opType = "Assert", name = name)
+  //        .addInput(condition)
+  //        .addInputList(data)
+  //        .setAttribute("summarize", summarize)
+  //        .build().outputs(0)
 
   /** Creates an op that prints a list of tensors.
     *

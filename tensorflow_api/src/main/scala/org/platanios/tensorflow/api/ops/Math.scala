@@ -1,9 +1,8 @@
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api.{DataType, SupportedType, Tensor}
+import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.Exception.InvalidDataTypeException
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
-import org.platanios.tensorflow.api.types.SupportedType
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -84,7 +83,7 @@ object Math {
     var castedLimit: Op.Output = null
     var castedDelta: Op.Output = null
     Op.createWith(nameScope = name) {
-      val supportedDataTypes = Set[DataType](DataType.Int32, DataType.Int64, DataType.Float32, DataType.Float64)
+      val supportedDataTypes = Set[DataType](TFInt32, TFInt64, TFFloat32, TFFloat64)
       require(supportedDataTypes.contains(start.dataType), s"Unsupported data type '${start.dataType}'.")
       require(supportedDataTypes.contains(limit.dataType), s"Unsupported data type '${limit.dataType}'.")
       require(supportedDataTypes.contains(delta.dataType), s"Unsupported data type '${delta.dataType}'.")
@@ -940,13 +939,13 @@ object Math {
     * @param  axes     Integer array containing the dimensions to reduce. If `null`, then all dimensions are reduced.
     * @param  keepDims If `true`, retain the reduced dimensions.
     * @param  name     Name for the created op.
-    * @return Created op output with `Int64` data type.
+    * @return Created op output with `TFInt64` data type.
     */
   def countNonZero(
       input: Op.Output, axes: Array[Int] = null, keepDims: Boolean = false,
       name: String = "CountNonZero"): Op.Output = {
     Op.createWith(nameScope = name) {
-      reduceSum(cast(notEqual(input, Basic.constant(0)), DataType.Int64), axes, keepDims)
+      reduceSum(cast(notEqual(input, Basic.constant(0)), TFInt64), axes, keepDims)
     }
   }
 
@@ -965,17 +964,17 @@ object Math {
     * distinct segment indices.
     *
     * @param  data           Data (must have a numeric data type -- i.e., representing a number).
-    * @param  segmentIndices Segment indices (must have data type of `int32` or `int64`). Values should be sorted and
-    *                        can be repeated.
+    * @param  segmentIndices Segment indices (must have data type of `TFInt32` or `TFInt64`). Values should be sorted
+    *                        and can be repeated.
     * @param  name           Name for the created op.
     * @return Created op.
     */
   def segmentSum(data: Op.Output, segmentIndices: Op.Output, name: String = "SegmentSum"): Op.Output = {
     if (!data.dataType.isNumeric)
       throw InvalidDataTypeException(s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
-    if (segmentIndices.dataType != DataType.Int32 && segmentIndices.dataType != DataType.Int64)
+    if (segmentIndices.dataType != TFInt32 && segmentIndices.dataType != TFInt64)
       throw InvalidDataTypeException(
-        s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'int32' or 'int64', as required.")
+        s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'TFInt32' or 'TFInt64', as required.")
     Op.Builder(opType = "SegmentSum", name = name)
         .addInput(data)
         .addInput(segmentIndices)
@@ -994,17 +993,17 @@ object Math {
     * distinct segment indices.
     *
     * @param  data           Data (must have a numeric data type -- i.e., representing a number).
-    * @param  segmentIndices Segment indices (must have data type of `int32` or `int64`). Values should be sorted and
-    *                        can be repeated.
+    * @param  segmentIndices Segment indices (must have data type of `TFInt32` or `TFInt64`). Values should be sorted
+    *                        and can be repeated.
     * @param  name           Name for the created op.
     * @return Created op.
     */
   def segmentMean(data: Op.Output, segmentIndices: Op.Output, name: String = "SegmentMean"): Op.Output = {
     if (!data.dataType.isNumeric)
       throw InvalidDataTypeException(s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
-    if (segmentIndices.dataType != DataType.Int32 && segmentIndices.dataType != DataType.Int64)
+    if (segmentIndices.dataType != TFInt32 && segmentIndices.dataType != TFInt64)
       throw InvalidDataTypeException(
-        s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'int32' or 'int64', as required.")
+        s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'TFInt32' or 'TFInt64', as required.")
     Op.Builder(opType = "SegmentMean", name = name)
         .addInput(data)
         .addInput(segmentIndices)
@@ -1022,17 +1021,17 @@ object Math {
     * distinct segment indices.
     *
     * @param  data           Data (must have a numeric data type -- i.e., representing a number).
-    * @param  segmentIndices Segment indices (must have data type of `int32` or `int64`). Values should be sorted and
-    *                        can be repeated.
+    * @param  segmentIndices Segment indices (must have data type of `TFInt32` or `TFInt64`). Values should be sorted
+    *                        and can be repeated.
     * @param  name           Name for the created op.
     * @return Created op.
     */
   def segmentProd(data: Op.Output, segmentIndices: Op.Output, name: String = "SegmentProd"): Op.Output = {
     if (!data.dataType.isNumeric)
       throw InvalidDataTypeException(s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
-    if (segmentIndices.dataType != DataType.Int32 && segmentIndices.dataType != DataType.Int64)
+    if (segmentIndices.dataType != TFInt32 && segmentIndices.dataType != TFInt64)
       throw InvalidDataTypeException(
-        s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'int32' or 'int64', as required.")
+        s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'TFInt32' or 'TFInt64', as required.")
     Op.Builder(opType = "SegmentProd", name = name)
         .addInput(data)
         .addInput(segmentIndices)
@@ -1050,17 +1049,17 @@ object Math {
     * distinct segment indices.
     *
     * @param  data           Data (must have a numeric data type -- i.e., representing a number).
-    * @param  segmentIndices Segment indices (must have data type of `int32` or `int64`). Values should be sorted and
-    *                        can be repeated.
+    * @param  segmentIndices Segment indices (must have data type of `TFInt32` or `TFInt64`). Values should be sorted
+    *                        and can be repeated.
     * @param  name           Name for the created op.
     * @return Created op.
     */
   def segmentMin(data: Op.Output, segmentIndices: Op.Output, name: String = "SegmentMin"): Op.Output = {
     if (!data.dataType.isNumeric)
       throw InvalidDataTypeException(s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
-    if (segmentIndices.dataType != DataType.Int32 && segmentIndices.dataType != DataType.Int64)
+    if (segmentIndices.dataType != TFInt32 && segmentIndices.dataType != TFInt64)
       throw InvalidDataTypeException(
-        s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'int32' or 'int64', as required.")
+        s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'TFInt32' or 'TFInt64', as required.")
     Op.Builder(opType = "SegmentMin", name = name)
         .addInput(data)
         .addInput(segmentIndices)
@@ -1078,17 +1077,17 @@ object Math {
     * distinct segment indices.
     *
     * @param  data           Data (must have a numeric data type -- i.e., representing a number).
-    * @param  segmentIndices Segment indices (must have data type of `int32` or `int64`). Values should be sorted and
-    *                        can be repeated.
+    * @param  segmentIndices Segment indices (must have data type of `TFInt32` or `TFInt64`). Values should be sorted
+    *                        and can be repeated.
     * @param  name           Name for the created op.
     * @return Created op.
     */
   def segmentMax(data: Op.Output, segmentIndices: Op.Output, name: String = "SegmentMax"): Op.Output = {
     if (!data.dataType.isNumeric)
       throw InvalidDataTypeException(s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
-    if (segmentIndices.dataType != DataType.Int32 && segmentIndices.dataType != DataType.Int64)
+    if (segmentIndices.dataType != TFInt32 && segmentIndices.dataType != TFInt64)
       throw InvalidDataTypeException(
-        s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'int32' or 'int64', as required.")
+        s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'TFInt32' or 'TFInt64', as required.")
     Op.Builder(opType = "SegmentMax", name = name)
         .addInput(data)
         .addInput(segmentIndices)
@@ -1109,8 +1108,8 @@ object Math {
     * distinct segment indices.
     *
     * @param  data           Data (must have a numeric data type -- i.e., representing a number).
-    * @param  segmentIndices Segment indices (must have data type of `int32` or `int64`).
-    * @param  segmentsNumber Number of segments (must have data type of `int32`).
+    * @param  segmentIndices Segment indices (must have data type of `TFInt32` or `TFInt64`).
+    * @param  segmentsNumber Number of segments (must have data type of `TFInt32`).
     * @param  name           Name for the created op.
     * @return Created op.
     */
@@ -1119,12 +1118,12 @@ object Math {
       name: String = "UnsortedSegmentSum"): Op.Output = {
     if (!data.dataType.isNumeric)
       throw InvalidDataTypeException(s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
-    if (segmentIndices.dataType != DataType.Int32 && segmentIndices.dataType != DataType.Int64)
+    if (segmentIndices.dataType != TFInt32 && segmentIndices.dataType != TFInt64)
       throw InvalidDataTypeException(
-        s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'int32' or 'int64', as required.")
-    if (segmentsNumber.dataType != DataType.Int32)
+        s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'TFInt32' or 'TFInt64', as required.")
+    if (segmentsNumber.dataType != TFInt32)
       throw InvalidDataTypeException(
-        s"'segmentIndices' data type, '${segmentsNumber.dataType}', is not 'int32', as required.")
+        s"'segmentIndices' data type, '${segmentsNumber.dataType}', is not 'TFInt32', as required.")
     Op.Builder(opType = "UnsortedSegmentSum", name = name)
         .addInput(data)
         .addInput(segmentIndices)
@@ -1146,8 +1145,8 @@ object Math {
     * distinct segment indices.
     *
     * @param  data           Data (must have a numeric data type -- i.e., representing a number).
-    * @param  segmentIndices Segment indices (must have data type of `int32` or `int64`).
-    * @param  segmentsNumber Number of segments (must have data type of `int32`).
+    * @param  segmentIndices Segment indices (must have data type of `TFInt32` or `TFInt64`).
+    * @param  segmentsNumber Number of segments (must have data type of `TFInt32`).
     * @param  name           Name for the created op.
     * @return Created op.
     */
@@ -1156,12 +1155,12 @@ object Math {
       name: String = "UnsortedSegmentMax"): Op.Output = {
     if (!data.dataType.isNumeric)
       throw InvalidDataTypeException(s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
-    if (segmentIndices.dataType != DataType.Int32 && segmentIndices.dataType != DataType.Int64)
+    if (segmentIndices.dataType != TFInt32 && segmentIndices.dataType != TFInt64)
       throw InvalidDataTypeException(
-        s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'int32' or 'int64', as required.")
-    if (segmentsNumber.dataType != DataType.Int32)
+        s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'TFInt32' or 'TFInt64', as required.")
+    if (segmentsNumber.dataType != TFInt32)
       throw InvalidDataTypeException(
-        s"'segmentIndices' data type, '${segmentsNumber.dataType}', is not 'int32', as required.")
+        s"'segmentIndices' data type, '${segmentsNumber.dataType}', is not 'TFInt32', as required.")
     Op.Builder(opType = "UnsortedSegmentMax", name = name)
         .addInput(data)
         .addInput(segmentIndices)

@@ -3,7 +3,8 @@ package org.platanios.tensorflow.api
 import org.platanios.tensorflow.api.Exception.{GraphMismatchException, InvalidGraphElementException}
 import org.platanios.tensorflow.api.ops.Basic.constant
 import org.platanios.tensorflow.api.ops.Op.createWith
-import org.scalatest.{FlatSpec, Matchers}
+
+import org.scalatest._
 
 /**
   * @author Emmanouil Antonios Platanios

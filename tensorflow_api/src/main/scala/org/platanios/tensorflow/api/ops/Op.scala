@@ -2,12 +2,16 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.Exception._
+import org.platanios.tensorflow.api.tensors.Tensor.{Implicits => TensorImplicits}
+import org.platanios.tensorflow.api.tensors.TensorFlowNative.{NativeView => TensorNativeView}
 import org.platanios.tensorflow.jni.{Op => NativeOp}
 
 import java.nio.charset.Charset
 
 import scala.collection.mutable
 import scala.util.DynamicVariable
+
+import spire.implicits._
 import spire.math.UShort
 
 /** Represents a graph node, or as we shall call it, an operation, that performs computation on tensors.
@@ -313,13 +317,13 @@ object Op {
     *   - The current name scope used for naming these new ops.
     *   - A device function, used to decide in which device (e.g., CPU) the new ops should be placed and executed.
     *   - A set of colocation ops for the newly constructed ops. This means that the newly created ops will be placed on
-    *     the same device as these colocation ops.
+    * the same device as these colocation ops.
     *   - A set of ops defining control dependencies for the newly constructed ops. This means that the newly
-    *     constructed ops are constrained to only execute after the provided set of ops has finished executing.
+    * constructed ops are constrained to only execute after the provided set of ops has finished executing.
     *   - A map from op attribute names to values for the newly constructed ops. These attributes will be applied to all
-    *     newly constructed ops.
+    * newly constructed ops.
     *   - A container name for the newly constructed resource ops. All newly constructed resource ops will be placed in
-    *     the provided container.
+    * the provided container.
     *
     * Note that all arguments of this function are optional. If they are not provided, then the corresponding option in
     * current op creation context is left unchanged.
@@ -350,11 +354,11 @@ object Op {
     * generating a new op creation context. This new context is used for all ops created within the code block provided
     * in the `createWith(...)` function. The `nameScope` argument will be interpreted as follows:
     *   - A string not ending with `"/"` will create a new name scope, in which `nameScope` is appended to the prefix of
-    *     all operations created in the provided code block. If `nameScope` has been used before, it will be made unique
-    *     by calling `uniqueName(graph = context.graph, name = nameScope)`.
+    * all operations created in the provided code block. If `nameScope` has been used before, it will be made unique
+    * by calling `uniqueName(graph = context.graph, name = nameScope)`.
     *   - A string ending with `"/"` will be treated as an "absolute" name scope, which makes it possible to re-enter
-    *     existing scopes. Such absolute name scopes can be obtained by using the `currentNameScope` function, from
-    *     within the appropriate context.
+    * existing scopes. Such absolute name scopes can be obtained by using the `currentNameScope` function, from
+    * within the appropriate context.
     *   - A value of `""` will reset the current name scope to the top-level (i.e., empty) name scope.
     *
     * This function checks the provided `nameScope` for validity by checking whether it matches: (i) the regular
@@ -1055,7 +1059,7 @@ object Op {
       * @return [[Op.OutputIndexedSlices]] that has the same value as this [[Op.OutputLike]].
       */
     override def toOpOutputIndexedSlices(optimize: Boolean = true): Op.OutputIndexedSlices = {
-      val denseShape = Basic.shape(this, dataType = DataType.Int32, optimize = optimize)
+      val denseShape = Basic.shape(this, dataType = TFInt32, optimize = optimize)
       val indices = Math.range(Basic.constant(0), denseShape(0))
       OutputIndexedSlices(indices = indices, values = this, denseShape = denseShape)
     }
@@ -1207,10 +1211,12 @@ object Op {
   final case class SparseOutput private(indices: Op.Output, values: Op.Output, denseShape: Op.Output)
       extends OutputLike {
     // TODO: Add constructor from scala arrays?
-    if (indices.dataType != DataType.Int64)
-      throw InvalidDataTypeException(s"Indices cannot have '${indices.dataType}' data type. They have to be 'Int64'.")
-    if (denseShape.dataType != DataType.Int64)
-      throw InvalidDataTypeException(s"Dense shape cannot have '${indices.dataType}' data type. It has to be 'Int64'.")
+    if (indices.dataType != TFInt64)
+      throw InvalidDataTypeException(
+        s"Indices cannot have '${indices.dataType}' data type. They have to be 'TFInt64'.")
+    if (denseShape.dataType != TFInt64)
+      throw InvalidDataTypeException(
+        s"Dense shape cannot have '${denseShape.dataType}' data type. It has to be 'TFInt64'.")
     // TODO: Add a "subShape" method?
     Shape(indices.shape.withRank(2)(0)).assertIsCompatibleWith(Shape(values.shape.withRank(1)(0)))
     Shape(indices.shape.withRank(2)(1)).assertIsCompatibleWith(Shape(denseShape.shape.withRank(1)(0)))
@@ -1282,23 +1288,23 @@ object Op {
 
   private[api] def constantValue(tensor: Op.Output): Tensor = {
     val value = tensor.op.opType match {
-      case "Const"    => ??? // TODO: !!! Needs MakeNdArray()
-      case "Shape"    =>
+      case "Const" => ??? // TODO: !!! Needs MakeNdArray()
+      case "Shape" =>
         val inputShape = tensor.op.inputs(0).shape
         if (inputShape.isFullyDefined)
           Tensor(tensor.dataType, inputShape.asArray.map(Tensor(_)): _*)
         null
-      case "Size"     =>
+      case "Size" =>
         val inputShape = tensor.op.inputs(0).shape
         if (inputShape.isFullyDefined)
-          Tensor(DataType.Int32, Tensor(inputShape.asArray.product))
+          Tensor(TFInt32, Tensor(inputShape.asArray.product))
         null
-      case "Rank"     =>
+      case "Rank" =>
         val inputShape = tensor.op.inputs(0).shape
         if (inputShape.numElements.isDefined)
-          Tensor(DataType.Int32, Tensor(inputShape.numElements.get))
+          Tensor(TFInt32, Tensor(inputShape.numElements.get))
         null
-      case "Range"    =>
+      case "Range" =>
         val start = constantValue(tensor.op.inputs(0))
         if (start == null) {
           null
@@ -1315,14 +1321,14 @@ object Op {
             }
           }
         }
-      case "Cast"     =>
+      case "Cast" =>
         val preCast = constantValue(tensor.op.inputs(0))
         if (preCast == null) {
           null
         } else {
           ??? // TODO: !!! Get data type attribute from op.
         }
-      case "Concat"   =>
+      case "Concat" =>
         val axis = constantValue(tensor.op.inputs(0))
         if (axis == null) {
           null
@@ -1346,21 +1352,21 @@ object Op {
             ??? // TODO: !!! Concatenate tensors.
           }
         }
-      case "Pack"     =>
+      case "Pack" =>
         val values = tensor.op.inputs.map(constantValue)
         if (values.contains(null)) {
           null
         } else {
           ??? // TODO: !!! Concatenate tensors.
         }
-      case "Fill"     =>
+      case "Fill" =>
         val fillShape = tensor.shape
         val fillValue = constantValue(tensor.op.inputs(0))
         if (fillShape.isFullyDefined && fillValue != null)
           Tensor.fill(fillValue.dataType, fillShape)(fillValue.scalar)(fillValue.dataType.supportedType)
         else
           null
-      case _          => null
+      case _ => null
     }
     if (value != null) {
       // The caller may now depend on the constant value of 'tensor', so conservatively prevent it from being fed.
@@ -1385,15 +1391,15 @@ object Op {
       Shape.scalar()
     } else {
       tensor.op.opType match {
-        case "Shape"    => tensor.op.inputs(0).shape
-        case "Pack"     =>
+        case "Shape" => tensor.op.inputs(0).shape
+        case "Pack" =>
           var returnShape = Shape.scalar()
           tensor.op.inputs.foreach(input => {
             // 'input' must be a scalar. Attempt to evaluate it, and append it to 'returnShape'.
             returnShape = returnShape.concatenateWith(Shape(constantValue(input).scalar.asInstanceOf[Int]))
           })
           returnShape
-        case "Concat"   =>
+        case "Concat" =>
           // We assume that 'tensor.op.inputs(0)' evaluates to 0, as this is the only legal value when concatenating
           // vectors, and it will have been checked by a previous shape function.
           var returnShape = Shape.scalar()
@@ -1411,9 +1417,9 @@ object Op {
             returnShape = returnShape.concatenateWith(constantValueAsShape(input))
           })
           returnShape
-        case _          =>
+        case _ =>
           var returnShape = Shape.unknown(shape(0))
-          val value = constantValue(tensor)
+          val value = constantValue(tensor).asNumeric
           if (value != null) {
             require(value.rank == 1, "Only rank-1 tensors can be converted to shapes.")
             // TODO: !!! Does this work?
@@ -1432,13 +1438,13 @@ object Op {
     if (!checkName(name))
       throw IllegalNameException(s"Illegal op name '$name'.")
 
-    private val graph : Graph  = context.graph
+    private val graph: Graph = context.graph
 
-    private var built     : Boolean             = false
-    private var inputs    : Seq[Output]         = Seq.empty
-    private var inputLists: Seq[Array[Output]]  = Seq.empty
-    private var device    : Option[String]      = None
-    private var attributes: Map[String, Any]    = Map.empty
+    private var built     : Boolean            = false
+    private var inputs    : Seq[Output]        = Seq.empty
+    private var inputLists: Seq[Array[Output]] = Seq.empty
+    private var device    : Option[String]     = None
+    private var attributes: Map[String, Any]   = Map.empty
 
     /** Prunes control dependencies from the provided set, given that the op for which these control dependencies are
       * specified uses `op` as direct or indirect (through other ops) input or control input. This eliminates redundant
@@ -1517,9 +1523,9 @@ object Op {
             NativeOp.setAttrType(nativeHandle, attribute._1, value.cValue)
           case value: Array[DataType] =>
             NativeOp.setAttrTypeList(nativeHandle, attribute._1, value.map(_.cValue))
-          case value: Tensor.NativeView =>
+          case value: TensorNativeView =>
             NativeOp.setAttrTensor(nativeHandle, attribute._1, value.nativeHandle)
-          case value: Array[Tensor.NativeView] =>
+          case value: Array[TensorNativeView] =>
             NativeOp.setAttrTensorList(nativeHandle, attribute._1, value.map(_.nativeHandle))
           case value: Shape =>
             NativeOp.setAttrShape(nativeHandle, attribute._1, value.asArray.map(_.toLong), value.rank)
@@ -1602,12 +1608,12 @@ object Op {
       this
     }
 
-    def setAttribute(name: String, value: Tensor.NativeView): Builder = {
+    def setAttribute(name: String, value: TensorNativeView): Builder = {
       attributes += name -> value
       this
     }
 
-    def setAttribute(name: String, value: Array[Tensor.NativeView]): Builder = {
+    def setAttribute(name: String, value: Array[TensorNativeView]): Builder = {
       attributes += name -> value
       this
     }
@@ -1618,7 +1624,7 @@ object Op {
     }
   }
 
-  trait Implicits extends Tensor.Implicits {
+  trait Implicits {
     implicit def scalaValueToOpOutput(value: Boolean): Op.Output = ops.Basic.constant(scalaValueToTensor(value))
     implicit def scalaValueToOpOutput(value: String): Op.Output = ops.Basic.constant(scalaValueToTensor(value))
     implicit def scalaValueToOpOutput(value: Float): Op.Output = ops.Basic.constant(scalaValueToTensor(value))

@@ -2,302 +2,330 @@ package org.platanios.tensorflow.api.types
 
 import org.platanios.tensorflow.api.Exception.InvalidDataTypeException
 
-import spire.math.{UByte, UShort}
+import spire.algebra._
+import spire.math._
+import spire.std._
 
 /**
   * @author Emmanouil Antonios Platanios
   */
-sealed trait SupportedType[@specialized T] extends Any {
-  @inline def dataType: DataType = {
-    throw InvalidDataTypeException("The Scala type of this data type is not supported.")
-  }
+sealed trait SupportedType[@specialized T]
+    extends Any {
+  @inline def dataType: DataType
 
   @throws[UnsupportedOperationException]
   @inline def cast[R: SupportedType](value: R, dataType: DataType): T = {
     throw InvalidDataTypeException("The Scala type of this data type is not supported.")
   }
+}
 
-  private[this] def invalidConversionException(value: T, t: String): Exception = {
-    new IllegalArgumentException(s"Value '$value' cannot be converted to $t.")
-  }
+sealed trait FixedSizeSupportedType[@specialized T]
+    extends Any
+        with SupportedType[T] {
+  @inline override def dataType: FixedSizeDataType
+}
 
-  def toBoolean(value: T): Boolean = throw invalidConversionException(value, "a boolean")
-  def toFloat(value: T): Float = throw invalidConversionException(value, "a float")
-  def toDouble(value: T): Double = throw invalidConversionException(value, "a double")
-  def toByte(value: T): Byte = throw invalidConversionException(value, "a byte")
-  def toShort(value: T): Short = throw invalidConversionException(value, "a short")
-  def toInt(value: T): Int = throw invalidConversionException(value, "an int")
-  def toLong(value: T): Long = throw invalidConversionException(value, "a long")
-  def toUByte(value: T): UByte = throw invalidConversionException(value, "an unsigned byte")
-  def toUShort(value: T): UShort = throw invalidConversionException(value, "an unsigned short")
+sealed trait NumericSupportedType[@specialized T]
+    extends Any
+        with FixedSizeSupportedType[T]
+        with Rig[T]
+        with Order[T]
+        // TODO: Add Trig[T] here.
+        with ConvertableFrom[T]
+        with ConvertableTo[T] {
+  @inline override def dataType: NumericDataType
+}
 
-  def toString(value: T): String = value.toString
+sealed trait SignedNumericSupportedType[@specialized T]
+    extends Any
+        with NumericSupportedType[T]
+        with Signed[T] {
+  @inline override def dataType: SignedNumericDataType
+}
+
+// TODO: [TYPES] Separate integral types from the rest.
+
+sealed trait RealNumericSupportedType[@specialized T]
+    extends Any
+        with SignedNumericSupportedType[T]
+        with Ring[T]
+        with IsRational[T] {
+  @inline override def dataType: RealNumericDataType
+}
+
+sealed trait ComplexNumericSupportedType[@specialized T]
+    extends Any
+        with SignedNumericSupportedType[T]
+        with Trig[T] {
+  @inline override def dataType: ComplexNumericDataType
 }
 
 object SupportedType {
   class SupportedTypeOps[T](val value: T) extends AnyVal {
-    def dataType(implicit evidence: SupportedType[T]): DataType = evidence.dataType
+    @inline def dataType(implicit evidence: SupportedType[T]): DataType = evidence.dataType
 
-    def cast(dataType: DataType)
+    @inline def cast(dataType: DataType)
         (implicit evidence: SupportedType[T],
             dataTypeEvidence: SupportedType[dataType.ScalaType]): dataType.ScalaType = {
       dataTypeEvidence.cast(value, dataType)
     }
-
-    def toBoolean(implicit evidence: SupportedType[T]): Boolean = evidence.toBoolean(value)
-    def toFloat(implicit evidence: SupportedType[T]): Float = evidence.toFloat(value)
-    def toDouble(implicit evidence: SupportedType[T]): Double = evidence.toDouble(value)
-    def toByte(implicit evidence: SupportedType[T]): Byte = evidence.toByte(value)
-    def toShort(implicit evidence: SupportedType[T]): Short = evidence.toShort(value)
-    def toInt(implicit evidence: SupportedType[T]): Int = evidence.toInt(value)
-    def toLong(implicit evidence: SupportedType[T]): Long = evidence.toLong(value)
-    def toUByte(implicit evidence: SupportedType[T]): UByte = evidence.toUByte(value)
-    def toUShort(implicit evidence: SupportedType[T]): UShort = evidence.toUShort(value)
   }
 
   @inline final def apply[T](implicit evidence: SupportedType[T]): SupportedType[T] = evidence
-
-  private[types] class BooleanIsSupportedType extends SupportedType[Boolean] {
-    override def dataType: DataType = DataType.Bool
-    override def cast[R: SupportedType](value: R, dataType: DataType): Boolean = value match {
-      case value: Boolean => value
-      case _ => throw InvalidDataTypeException("Cannot convert the provided value to a boolean.")
-    }
-
-    override def toBoolean(value: Boolean): Boolean = value
-    override def toFloat(value: Boolean): Float = if (value) 1.0f else 0.0f
-    override def toDouble(value: Boolean): Double = if (value) 1.0 else 0.0
-    override def toByte(value: Boolean): Byte = if (value) 1 else 0
-    override def toShort(value: Boolean): Short = if (value) 1 else 0
-    override def toInt(value: Boolean): Int = if (value) 1 else 0
-    override def toLong(value: Boolean): Long = if (value) 1L else 0L
-    override def toUByte(value: Boolean): UByte = if (value) UByte(1) else UByte(0)
-    override def toUShort(value: Boolean): UShort = if (value) UShort(1) else UShort(0)
-  }
-
-  private[types] class StringIsSupportedType extends SupportedType[String] {
-    override def dataType: DataType = DataType.Str
-    override def cast[R: SupportedType](value: R, dataType: DataType): String = value.toString
-
-    override def toString(value: String): String = value
-  }
-
-  private[types] class FloatIsSupportedType extends SupportedType[Float] {
-    override def dataType: DataType = DataType.Float32
-    override def cast[R: SupportedType](value: R, dataType: DataType): Float = value match {
-      case value: Boolean => if (value) 1.0f else 0.0f
-      case value: Float => value.toFloat
-      case value: Double => value.toFloat
-      case value: Byte => value.toFloat
-      case value: Short => value.toFloat
-      case value: Int => value.toFloat
-      case value: Long => value.toFloat
-      case value: UByte => value.toFloat
-      case value: UShort => value.toFloat
-      case _ => throw InvalidDataTypeException("Cannot convert the provided value to a float.")
-    }
-
-    override def toFloat(value: Float): Float = value
-    override def toDouble(value: Float): Double = value.toDouble
-    override def toByte(value: Float): Byte = value.toByte
-    override def toShort(value: Float): Short = value.toShort
-    override def toInt(value: Float): Int = value.toInt
-    override def toLong(value: Float): Long = value.toLong
-    override def toUByte(value: Float): UByte = UByte(value.toByte)
-    override def toUShort(value: Float): UShort = UShort(value.toChar)
-  }
-
-  private[types] class DoubleIsSupportedType extends SupportedType[Double] {
-    override def dataType: DataType = DataType.Float64
-    override def cast[R: SupportedType](value: R, dataType: DataType): Double = value match {
-      case value: Boolean => if (value) 1.0 else 0.0
-      case value: Float => value.toDouble
-      case value: Double => value.toDouble
-      case value: Byte => value.toDouble
-      case value: Short => value.toDouble
-      case value: Int => value.toDouble
-      case value: Long => value.toDouble
-      case value: UByte => value.toDouble
-      case value: UShort => value.toDouble
-      case _ => throw InvalidDataTypeException("Cannot convert the provided value to a double.")
-    }
-
-    override def toFloat(value: Double): Float = value.toFloat
-    override def toDouble(value: Double): Double = value
-    override def toByte(value: Double): Byte = value.toByte
-    override def toShort(value: Double): Short = value.toShort
-    override def toInt(value: Double): Int = value.toInt
-    override def toLong(value: Double): Long = value.toLong
-    override def toUByte(value: Double): UByte = UByte(value.toByte)
-    override def toUShort(value: Double): UShort = UShort(value.toChar)
-  }
-
-  private[types] class ByteIsSupportedType extends SupportedType[Byte] {
-    override def dataType: DataType = DataType.Int8
-    override def cast[R: SupportedType](value: R, dataType: DataType): Byte = value match {
-      case value: Boolean => if (value) 1 else 0
-      case value: Float => value.toByte
-      case value: Double => value.toByte
-      case value: Byte => value.toByte
-      case value: Short => value.toByte
-      case value: Int => value.toByte
-      case value: Long => value.toByte
-      case value: UByte => value.toByte
-      case value: UShort => value.toByte
-      case _ => throw InvalidDataTypeException("Cannot convert the provided value to a byte.")
-    }
-
-    override def toFloat(value: Byte): Float = value.toFloat
-    override def toDouble(value: Byte): Double = value.toDouble
-    override def toByte(value: Byte): Byte = value
-    override def toShort(value: Byte): Short = value.toShort
-    override def toInt(value: Byte): Int = value.toInt
-    override def toLong(value: Byte): Long = value.toLong
-    override def toUByte(value: Byte): UByte = UByte(value)
-    override def toUShort(value: Byte): UShort = UShort(value.toChar)
-  }
-
-  private[types] class ShortIsSupportedType extends SupportedType[Short] {
-    override def dataType: DataType = DataType.Int16
-    override def cast[R: SupportedType](value: R, dataType: DataType): Short = value match {
-      case value: Boolean => if (value) 1 else 0
-      case value: Float => value.toShort
-      case value: Double => value.toShort
-      case value: Byte => value.toShort
-      case value: Short => value.toShort
-      case value: Int => value.toShort
-      case value: Long => value.toShort
-      case value: UByte => value.toShort
-      case value: UShort => value.toShort
-      case _ => throw InvalidDataTypeException("Cannot convert the provided value to a short.")
-    }
-
-    override def toFloat(value: Short): Float = value.toFloat
-    override def toDouble(value: Short): Double = value.toDouble
-    override def toByte(value: Short): Byte = value.toByte
-    override def toShort(value: Short): Short = value
-    override def toInt(value: Short): Int = value.toInt
-    override def toLong(value: Short): Long = value.toLong
-    override def toUByte(value: Short): UByte = UByte(value.toByte)
-    override def toUShort(value: Short): UShort = UShort(value.toChar)
-  }
-
-  private[types] class IntIsSupportedType extends SupportedType[Int] {
-    override def dataType: DataType = DataType.Int32
-    override def cast[R: SupportedType](value: R, dataType: DataType): Int = value match {
-      case value: Boolean => if (value) 1 else 0
-      case value: Float => value.toInt
-      case value: Double => value.toInt
-      case value: Byte => value.toInt
-      case value: Short => value.toInt
-      case value: Int => value.toInt
-      case value: Long => value.toInt
-      case value: UByte => value.toInt
-      case value: UShort => value.toInt
-      case _ => throw InvalidDataTypeException("Cannot convert the provided value to an integer.")
-    }
-
-    override def toFloat(value: Int): Float = value.toFloat
-    override def toDouble(value: Int): Double = value.toDouble
-    override def toByte(value: Int): Byte = value.toByte
-    override def toShort(value: Int): Short = value.toShort
-    override def toInt(value: Int): Int = value
-    override def toLong(value: Int): Long = value.toLong
-    override def toUByte(value: Int): UByte = UByte(value.toByte)
-    override def toUShort(value: Int): UShort = UShort(value.toChar)
-  }
-
-  private[types] class LongIsSupportedType extends SupportedType[Long] {
-    override def dataType: DataType = DataType.Int64
-    override def cast[R: SupportedType](value: R, dataType: DataType): Long = value match {
-      case value: Boolean => if (value) 1L else 0L
-      case value: Float => value.toLong
-      case value: Double => value.toLong
-      case value: Byte => value.toLong
-      case value: Short => value.toLong
-      case value: Int => value.toLong
-      case value: Long => value.toLong
-      case value: UByte => value.toLong
-      case value: UShort => value.toLong
-      case _ => throw InvalidDataTypeException("Cannot convert the provided value to a long.")
-    }
-
-    override def toFloat(value: Long): Float = value.toFloat
-    override def toDouble(value: Long): Double = value.toDouble
-    override def toByte(value: Long): Byte = value.toByte
-    override def toShort(value: Long): Short = value.toShort
-    override def toInt(value: Long): Int = value.toInt
-    override def toLong(value: Long): Long = value
-    override def toUByte(value: Long): UByte = UByte(value.toByte)
-    override def toUShort(value: Long): UShort = UShort(value.toChar)
-  }
-
-  private[types] class UByteIsSupportedType extends SupportedType[UByte] {
-    override def dataType: DataType = DataType.UInt8
-    override def cast[R: SupportedType](value: R, dataType: DataType): UByte = value match {
-      case value: Boolean => if (value) UByte(1) else UByte(0)
-      case value: Float => UByte(value.toInt)
-      case value: Double => UByte(value.toInt)
-      case value: Byte => UByte(value)
-      case value: Short => UByte(value)
-      case value: Int => UByte(value)
-      case value: Long => UByte(value.toInt)
-      case value: UByte => value
-      case value: UShort => UByte(value.toInt)
-      case _ => throw InvalidDataTypeException("Cannot convert the provided value to an unsigned byte.")
-    }
-
-    override def toFloat(value: UByte): Float = value.toFloat
-    override def toDouble(value: UByte): Double = value.toDouble
-    override def toByte(value: UByte): Byte = value.toByte
-    override def toShort(value: UByte): Short = value.toShort
-    override def toInt(value: UByte): Int = value.toInt
-    override def toLong(value: UByte): Long = value.toLong
-    override def toUByte(value: UByte): UByte = value
-    override def toUShort(value: UByte): UShort = UShort(value.toChar)
-  }
-
-  private[types] class UShortIsSupportedType extends SupportedType[UShort] {
-    override def dataType: DataType = DataType.UInt16
-    override def cast[R: SupportedType](value: R, dataType: DataType): UShort = value match {
-      case value: Boolean => if (value) UShort(1) else UShort(0)
-      case value: Float => UShort(value.toInt)
-      case value: Double => UShort(value.toInt)
-      case value: Byte => UShort(value)
-      case value: Short => UShort(value)
-      case value: Int => UShort(value)
-      case value: Long => UShort(value.toInt)
-      case value: UByte => UShort(value.toShort)
-      case value: UShort => value
-      case _ => throw InvalidDataTypeException("Cannot convert the provided value to an unsigned short.")
-    }
-
-    override def toFloat(value: UShort): Float = value.toFloat
-    override def toDouble(value: UShort): Double = value.toDouble
-    override def toByte(value: UShort): Byte = value.toByte
-    override def toShort(value: UShort): Short = value.toShort
-    override def toInt(value: UShort): Int = value.toInt
-    override def toLong(value: UShort): Long = value.toLong
-    override def toUByte(value: UShort): UByte = UByte(value.toByte)
-    override def toUShort(value: UShort): UShort = value
-  }
 
   trait Implicits {
     implicit def toSupportedTypeOps[@specialized T](value: T): SupportedTypeOps[T] = {
       new SupportedTypeOps(value)
     }
 
-    implicit final val BooleanIsSupportedType: SupportedType[Boolean] = new BooleanIsSupportedType
-    implicit final val StringIsSupportedType : SupportedType[String]  = new StringIsSupportedType
-    implicit final val FloatIsSupportedType  : SupportedType[Float]   = new FloatIsSupportedType
-    implicit final val DoubleIsSupportedType : SupportedType[Double]  = new DoubleIsSupportedType
-    implicit final val ByteIsSupportedType   : SupportedType[Byte]    = new ByteIsSupportedType
-    implicit final val ShortIsSupportedType  : SupportedType[Short]   = new ShortIsSupportedType
-    implicit final val IntIsSupportedType    : SupportedType[Int]     = new IntIsSupportedType
-    implicit final val LongIsSupportedType   : SupportedType[Long]    = new LongIsSupportedType
-    implicit final val UByteIsSupportedType  : SupportedType[UByte]   = new UByteIsSupportedType
-    implicit final val UShortIsSupportedType : SupportedType[UShort]  = new UShortIsSupportedType
+    implicit final val StringIsSupportedType : SupportedType[String]            = new StringIsSupportedType
+    implicit final val BooleanIsSupportedType: FixedSizeSupportedType[Boolean]  = new BooleanIsSupportedType
+    implicit final val FloatIsSupportedType  : RealNumericSupportedType[Float]  = new FloatIsSupportedType
+    implicit final val DoubleIsSupportedType : RealNumericSupportedType[Double] = new DoubleIsSupportedType
+    implicit final val ByteIsSupportedType   : RealNumericSupportedType[Byte]   = new ByteIsSupportedType
+    implicit final val ShortIsSupportedType  : RealNumericSupportedType[Short]  = new ShortIsSupportedType
+    implicit final val IntIsSupportedType    : RealNumericSupportedType[Int]    = new IntIsSupportedType
+    implicit final val LongIsSupportedType   : RealNumericSupportedType[Long]   = new LongIsSupportedType
+    implicit final val UByteIsSupportedType  : NumericSupportedType[UByte]      = new UByteIsSupportedType
+    implicit final val UShortIsSupportedType : NumericSupportedType[UShort]     = new UShortIsSupportedType
   }
 
-  object Implicits extends Implicits
+  private[types] object Implicits extends Implicits
+}
+
+private[types] class StringIsSupportedType extends SupportedType[String] {
+  @inline override def dataType: DataType = TFString
+  @inline override def cast[R: SupportedType](value: R, dataType: DataType): String = value.toString
+}
+
+private[types] class BooleanIsSupportedType extends FixedSizeSupportedType[Boolean] {
+  @inline override def dataType: FixedSizeDataType = TFBoolean
+  @inline override def cast[R: SupportedType](value: R, dataType: DataType): Boolean = value match {
+    case value: Boolean => value
+    case _ => throw InvalidDataTypeException("Cannot convert the provided value to a boolean.")
+  }
+}
+
+private[types] class FloatIsSupportedType
+    extends RealNumericSupportedType[Float]
+        with FloatIsField
+        with FloatIsReal
+        with ConvertableFromFloat
+        with ConvertableToFloat {
+  @inline override def dataType: RealNumericDataType = TFFloat32
+  @inline override def cast[R: SupportedType](value: R, dataType: DataType): Float = value match {
+    case value: Boolean => if (value) 1.0f else 0.0f
+    case value: Float => value.toFloat
+    case value: Double => value.toFloat
+    case value: Byte => value.toFloat
+    case value: Short => value.toFloat
+    case value: Int => value.toFloat
+    case value: Long => value.toFloat
+    case value: UByte => value.toFloat
+    case value: UShort => value.toFloat
+    case _ => throw InvalidDataTypeException("Cannot convert the provided value to a float.")
+  }
+}
+
+private[types] class DoubleIsSupportedType
+    extends RealNumericSupportedType[Double]
+        with DoubleIsField
+        with DoubleIsReal
+        with ConvertableFromDouble
+        with ConvertableToDouble {
+  @inline override def dataType: RealNumericDataType = TFFloat64
+  @inline override def cast[R: SupportedType](value: R, dataType: DataType): Double = value match {
+    case value: Boolean => if (value) 1.0 else 0.0
+    case value: Float => value.toDouble
+    case value: Double => value.toDouble
+    case value: Byte => value.toDouble
+    case value: Short => value.toDouble
+    case value: Int => value.toDouble
+    case value: Long => value.toDouble
+    case value: UByte => value.toDouble
+    case value: UShort => value.toDouble
+    case _ => throw InvalidDataTypeException("Cannot convert the provided value to a double.")
+  }
+}
+
+private[types] class ByteIsSupportedType
+    extends RealNumericSupportedType[Byte]
+        with ByteIsEuclideanRing
+        with ByteIsReal
+        with ConvertableFromByte
+        with ConvertableToByte {
+  @inline override def dataType: RealNumericDataType = TFInt8
+  @inline override def cast[R: SupportedType](value: R, dataType: DataType): Byte = value match {
+    case value: Boolean => if (value) 1 else 0
+    case value: Float => value.toByte
+    case value: Double => value.toByte
+    case value: Byte => value.toByte
+    case value: Short => value.toByte
+    case value: Int => value.toByte
+    case value: Long => value.toByte
+    case value: UByte => value.toByte
+    case value: UShort => value.toByte
+    case _ => throw InvalidDataTypeException("Cannot convert the provided value to a byte.")
+  }
+}
+
+private[types] class ShortIsSupportedType
+    extends RealNumericSupportedType[Short]
+        with ShortIsEuclideanRing
+        with ShortIsReal
+        with ConvertableFromShort
+        with ConvertableToShort {
+  @inline override def dataType: RealNumericDataType = TFInt16
+  @inline override def cast[R: SupportedType](value: R, dataType: DataType): Short = value match {
+    case value: Boolean => if (value) 1 else 0
+    case value: Float => value.toShort
+    case value: Double => value.toShort
+    case value: Byte => value.toShort
+    case value: Short => value.toShort
+    case value: Int => value.toShort
+    case value: Long => value.toShort
+    case value: UByte => value.toShort
+    case value: UShort => value.toShort
+    case _ => throw InvalidDataTypeException("Cannot convert the provided value to a short.")
+  }
+}
+
+private[types] class IntIsSupportedType
+    extends RealNumericSupportedType[Int]
+        with IntIsEuclideanRing
+        with IntIsReal
+        with ConvertableFromInt
+        with ConvertableToInt {
+  @inline override def dataType: RealNumericDataType = TFInt32
+  @inline override def cast[R: SupportedType](value: R, dataType: DataType): Int = value match {
+    case value: Boolean => if (value) 1 else 0
+    case value: Float => value.toInt
+    case value: Double => value.toInt
+    case value: Byte => value.toInt
+    case value: Short => value.toInt
+    case value: Int => value.toInt
+    case value: Long => value.toInt
+    case value: UByte => value.toInt
+    case value: UShort => value.toInt
+    case _ => throw InvalidDataTypeException("Cannot convert the provided value to an integer.")
+  }
+}
+
+private[types] class LongIsSupportedType
+    extends RealNumericSupportedType[Long]
+        with LongIsEuclideanRing
+        with LongIsReal
+        with ConvertableFromLong
+        with ConvertableToLong {
+  @inline override def dataType: RealNumericDataType = TFInt64
+  @inline override def cast[R: SupportedType](value: R, dataType: DataType): Long = value match {
+    case value: Boolean => if (value) 1L else 0L
+    case value: Float => value.toLong
+    case value: Double => value.toLong
+    case value: Byte => value.toLong
+    case value: Short => value.toLong
+    case value: Int => value.toLong
+    case value: Long => value.toLong
+    case value: UByte => value.toLong
+    case value: UShort => value.toLong
+    case _ => throw InvalidDataTypeException("Cannot convert the provided value to a long.")
+  }
+}
+
+private[types] class UByteIsSupportedType
+    extends NumericSupportedType[UByte]
+        with UByteIsCRig
+        with UByteIsReal
+        with ConvertableFromUByte
+        with ConvertableToUByte {
+  @inline override def dataType: NumericDataType = TFUInt8
+  @inline override def cast[R: SupportedType](value: R, dataType: DataType): UByte = value match {
+    case value: Boolean => if (value) UByte(1) else UByte(0)
+    case value: Float => UByte(value.toInt)
+    case value: Double => UByte(value.toInt)
+    case value: Byte => UByte(value)
+    case value: Short => UByte(value)
+    case value: Int => UByte(value)
+    case value: Long => UByte(value.toInt)
+    case value: UByte => value
+    case value: UShort => UByte(value.toInt)
+    case _ => throw InvalidDataTypeException("Cannot convert the provided value to an unsigned byte.")
+  }
+}
+
+private[this] trait UByteIsCRig extends CRig[UByte] {
+  override def zero: UByte = UByte(0)
+  override def one: UByte = UByte(1)
+  override def plus(a: UByte, b: UByte): UByte = a + b
+  override def times(a: UByte, b: UByte): UByte = a * b
+  override def pow(a: UByte, b: Int): UByte = {
+    if (b < 0)
+      throw new IllegalArgumentException("negative exponent: %s" format b)
+    a ** UByte(b)
+  }
+}
+
+private[this] trait UByteSigned extends SignedAdditiveCMonoid[UByte] {
+  override def eqv(x: UByte, y: UByte): Boolean = x == y
+  override def neqv(x: UByte, y: UByte): Boolean = x != y
+  override def gt(x: UByte, y: UByte): Boolean = x > y
+  override def gteqv(x: UByte, y: UByte): Boolean = x >= y
+  override def lt(x: UByte, y: UByte): Boolean = x < y
+  override def lteqv(x: UByte, y: UByte): Boolean = x <= y
+  override def compare(x: UByte, y: UByte): Int = if (x < y) -1 else if (x > y) 1 else 0
+  override def abs(x: UByte): UByte = x
+}
+
+private[this] trait UByteIsReal extends IsIntegral[UByte] with UByteSigned {
+  def toDouble(n: UByte): Double = n.toDouble
+  def toBigInt(n: UByte): BigInt = n.toBigInt
+}
+
+private[types] class UShortIsSupportedType
+    extends NumericSupportedType[UShort]
+        with UShortIsCRig
+        with UShortIsReal
+        with ConvertableFromUShort
+        with ConvertableToUShort {
+  @inline override def dataType: NumericDataType = TFUInt16
+  @inline override def cast[R: SupportedType](value: R, dataType: DataType): UShort = value match {
+    case value: Boolean => if (value) UShort(1) else UShort(0)
+    case value: Float => UShort(value.toInt)
+    case value: Double => UShort(value.toInt)
+    case value: Byte => UShort(value)
+    case value: Short => UShort(value)
+    case value: Int => UShort(value)
+    case value: Long => UShort(value.toInt)
+    case value: UByte => UShort(value.toShort)
+    case value: UShort => value
+    case _ => throw InvalidDataTypeException("Cannot convert the provided value to an unsigned short.")
+  }
+}
+
+private[this] trait UShortIsCRig extends CRig[UShort] {
+  override def zero: UShort = UShort(0)
+  override def one: UShort = UShort(1)
+  override def plus(a: UShort, b: UShort): UShort = a + b
+  override def times(a: UShort, b: UShort): UShort = a * b
+  override def pow(a: UShort, b: Int): UShort = {
+    if (b < 0)
+      throw new IllegalArgumentException("negative exponent: %s" format b)
+    a ** UShort(b)
+  }
+}
+
+private[this] trait UShortSigned extends SignedAdditiveCMonoid[UShort] {
+  override def eqv(x: UShort, y: UShort): Boolean = x == y
+  override def neqv(x: UShort, y: UShort): Boolean = x != y
+  override def gt(x: UShort, y: UShort): Boolean = x > y
+  override def gteqv(x: UShort, y: UShort): Boolean = x >= y
+  override def lt(x: UShort, y: UShort): Boolean = x < y
+  override def lteqv(x: UShort, y: UShort): Boolean = x <= y
+  override def compare(x: UShort, y: UShort): Int = if (x < y) -1 else if (x > y) 1 else 0
+  override def abs(x: UShort): UShort = x
+}
+
+private[this] trait UShortIsReal extends IsIntegral[UShort] with UShortSigned {
+  def toDouble(n: UShort): Double = n.toDouble
+  def toBigInt(n: UShort): BigInt = n.toBigInt
 }

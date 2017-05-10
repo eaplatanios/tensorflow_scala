@@ -1,8 +1,8 @@
 package org.platanios.tensorflow.api.ops
 
+import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.Exception.{InvalidDataTypeException, InvalidShapeException}
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
-import org.platanios.tensorflow.api.{DataType, Shape, Tensor, using}
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -41,7 +41,7 @@ object Basic {
         if (inferredShape.numElements.get != tensor.shape.numElements.get)
           throw InvalidShapeException(
             s"Shape '${tensor.shape}' tensor is not valid for shape '$inferredShape' constant op creation.")
-        val t = Tensor.allocate(inferredDataType, inferredShape, order = Tensor.RowMajorOrder)
+        val t = Tensor.allocate(inferredDataType, inferredShape, order = RowMajorOrder)
         for ((thisIndex, tensorIndex) <- t.flattenedIndexIterator zip tensor.flattenedIndexIterator)
           t.setElementAtFlattenedIndex(
             thisIndex, tensor.getElementAtFlattenedIndex(tensorIndex))(tensor.dataType.supportedType)
@@ -74,10 +74,10 @@ object Basic {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def zeros(shape: Shape, dataType: DataType = DataType.Float32, name: String = "Zeros"): Op.Output = {
+  def zeros(shape: Shape, dataType: DataType = TFFloat32, name: String = "Zeros"): Op.Output = {
     dataType match {
-      case DataType.Bool => constant(Tensor.fill(DataType.Bool, shape)(true), name = name)
-      case DataType.Str => constant(Tensor.fill(DataType.Str, shape)(""), name = name)
+      case TFBoolean => constant(Tensor.fill(TFBoolean, shape)(true), name = name)
+      case TFString => constant(Tensor.fill(TFString, shape)(""), name = name)
       case _ => constant(Tensor.fill(dataType, shape)(0), name = name)
     }
   }
@@ -131,9 +131,9 @@ object Basic {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def ones(shape: Shape, dataType: DataType = DataType.Float32, name: String = "Ones"): Op.Output = {
+  def ones(shape: Shape, dataType: DataType = TFFloat32, name: String = "Ones"): Op.Output = {
     dataType match {
-      case DataType.Bool => constant(Tensor.fill(DataType.Bool, shape)(true), name = name)
+      case TFBoolean => constant(Tensor.fill(TFBoolean, shape)(true), name = name)
       case _ => constant(Tensor.fill(dataType, shape)(1), name = name)
     }
   }
@@ -248,9 +248,9 @@ object Basic {
       dataType: DataType, shape: Shape = null, name: String = "SparsePlaceholder"): Op.SparseOutput = {
     Op.SparseOutput(
       indices = placeholder(dataType, Shape(-1), name + "/Indices"),
-      values = placeholder(DataType.Int64, Shape(-1, -1), name + "/Values"),
+      values = placeholder(TFInt64, Shape(-1, -1), name + "/Values"),
       denseShape =
-          if (shape == null) placeholder(DataType.Int64, Shape(-1), name + "/Shape") else constant(shape.toTensor()))
+          if (shape == null) placeholder(TFInt64, Shape(-1), name + "/Shape") else constant(shape.toTensor()))
   }
 
   /** Creates an op that constructs a diagonal tensor using the provided diagonal values.
@@ -335,7 +335,7 @@ object Basic {
   def rank(input: Op.Output, optimize: Boolean = true, name: String = "Rank"): Op.Output = {
     val inputRank = input.shape.rank
     if (optimize && inputRank != -1)
-      constant(Tensor.fill(DataType.Int32, Shape())(inputRank), name = name)
+      constant(Tensor.fill(TFInt32, Shape())(inputRank), name = name)
     else
       Op.Builder(opType = "Rank", name = name)
           .addInput(input)
@@ -361,7 +361,7 @@ object Basic {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def sparseRank(input: Op.SparseOutput, dataType: DataType = DataType.Int32, name: String = "Rank"): Op.Output = {
+  def sparseRank(input: Op.SparseOutput, dataType: DataType = TFInt32, name: String = "Rank"): Op.Output = {
     size(input.denseShape, dataType, name = name)
   }
 
@@ -384,7 +384,7 @@ object Basic {
     * @return Created op output.
     */
   def size(
-      input: Op.Output, dataType: DataType = DataType.Int32, optimize: Boolean = true,
+      input: Op.Output, dataType: DataType = TFInt32, optimize: Boolean = true,
       name: String = "Size"): Op.Output = {
     val inputShape = input.shape
     if (optimize && inputShape.isFullyDefined)
@@ -412,7 +412,7 @@ object Basic {
     * @return Created op output.
     */
   def sparseSize(
-      input: Op.SparseOutput, dataType: DataType = DataType.Int32, name: String = "SparseSize"): Op.Output = {
+      input: Op.SparseOutput, dataType: DataType = TFInt32, name: String = "SparseSize"): Op.Output = {
     Op.createWith(nameScope = name) {
       Math.reduceProd(Math.cast(input.denseShape, dataType), Array(0))
     }
@@ -436,7 +436,7 @@ object Basic {
     * @return Created op output, which is one-dimensional.
     */
   def shape(
-      input: Op.Output, dataType: DataType = DataType.Int32, optimize: Boolean = true,
+      input: Op.Output, dataType: DataType = TFInt32, optimize: Boolean = true,
       name: String = "Shape"): Op.Output = {
     val inputShape = input.shape
     if (optimize && inputShape.isFullyDefined)
@@ -463,7 +463,7 @@ object Basic {
     * @return Created op output, which is one-dimensional.
     */
   def sparseShape(
-      input: Op.SparseOutput, dataType: DataType = DataType.Int32, name: String = "SparseShape"): Op.Output = {
+      input: Op.SparseOutput, dataType: DataType = TFInt32, name: String = "SparseShape"): Op.Output = {
     Math.cast(input.denseShape, dataType, name = name)
   }
 
@@ -477,7 +477,7 @@ object Basic {
     * @return Created op outputs, all of which are one-dimensional.
     */
   def shapeN(
-      inputs: Array[Op.Output], dataType: DataType = DataType.Int32, name: String = "ShapeN"): Array[Op.Output] = {
+      inputs: Array[Op.Output], dataType: DataType = TFInt32, name: String = "ShapeN"): Array[Op.Output] = {
     Op.Builder(opType = "Shape", name = name)
         .addInputs(inputs)
         .setAttribute("out_type", dataType)
@@ -954,12 +954,12 @@ object Basic {
     * output as opposed to an integer array.
     *
     * @param  input       Input tensor to transpose.
-    * @param  permutation `Int32` or `Int64` tensor containing the permutation of the input tensor dimensions.
+    * @param  permutation `TFInt32` or `TFInt64` tensor containing the permutation of the input tensor dimensions.
     * @param  name        Name for the created op.
     * @return Created op output.
     */
   def transposeDynamic(input: Op.Output, permutation: Op.Output, name: String = "Transpose"): Op.Output = {
-    if (permutation.dataType != DataType.Int32 && permutation.dataType != DataType.Int64)
+    if (permutation.dataType != TFInt32 && permutation.dataType != TFInt64)
       throw InvalidDataTypeException(
         s"Data type '${permutation.dataType}' is not supported for the transpose op permutation. " +
             s"Only 'Int32' and 'Int64' are supported.")
@@ -1027,12 +1027,12 @@ object Basic {
     *   invertPermutation(t) == [2, 4, 3, 0, 1]
     * }}}
     *
-    * @param  input One-dimensional `Int32` or `Int64` input tensor
+    * @param  input One-dimensional `TFInt32` or `TFInt64` input tensor
     * @param  name  Name for the created op.
     * @return Created op output.
     */
   def invertPermutation(input: Op.Output, name: String = "InvertPermutation"): Op.Output = {
-    if (input.dataType != DataType.Int32 && input.dataType != DataType.Int64)
+    if (input.dataType != TFInt32 && input.dataType != TFInt64)
       throw InvalidDataTypeException(
         s"Data type '${input.dataType}' is not supported for the permutation inversion op input. " +
             s"Only 'Int32' and 'Int64' are supported.")
@@ -1103,12 +1103,12 @@ object Basic {
     * an op output. as opposed to an integer array.
     *
     * @param  input Input tensor to reverse.
-    * @param  axes  `Int32` or `Int64` tensor containing the dimensions of the input tensor to reverse.
+    * @param  axes  `TFInt32` or `TFInt64` tensor containing the dimensions of the input tensor to reverse.
     * @param  name  Name for the created op.
     * @return Created op output.
     */
   def reverseDynamic(input: Op.Output, axes: Op.Output, name: String = "Reverse"): Op.Output = {
-    if (axes.dataType != DataType.Int32 && axes.dataType != DataType.Int64)
+    if (axes.dataType != TFInt32 && axes.dataType != TFInt64)
       throw InvalidDataTypeException(
         s"Data type '${axes.dataType}' is not supported for the reverse op axes. " +
             s"Only 'Int32' and 'Int64' are supported.")
@@ -1221,7 +1221,7 @@ object Basic {
     * @return Created op output.
     */
   def where(input: Op.Output, name: String = "Where"): Op.Output = {
-    if (input.dataType != DataType.Bool)
+    if (input.dataType != TFBoolean)
       throw InvalidDataTypeException(
         s"The 'where' op only supports boolean tensors as inputs. It does not support '${input.dataType}' tensors.")
     Op.Builder(opType = "Where", name = name)
@@ -1302,17 +1302,17 @@ object Basic {
     *
     * @param  x             One-dimensional tensor containing the values to keep.
     * @param  y             One-dimensional tensor containing the values to remove.
-    * @param  indexDataType Optional data type to use for the output indices of this op. It has to be either `Int32` or
-    *                       `Int64`.
+    * @param  indexDataType Optional data type to use for the output indices of this op. It has to be either `TFInt32`
+    *                       or `TFInt64`.
     * @param  name          Name for the created op.
     * @return Tuple containing `output` and `indices`, from the method description.
     */
   def listDiff(
-      x: Op.Output, y: Op.Output, indexDataType: DataType = DataType.Int32,
+      x: Op.Output, y: Op.Output, indexDataType: DataType = TFInt32,
       name: String = "ListDiff"): (Op.Output, Op.Output) = {
-    if (indexDataType != DataType.Int32 && indexDataType != DataType.Int64)
+    if (indexDataType != TFInt32 && indexDataType != TFInt64)
       throw InvalidDataTypeException(
-        s"The index data type cannot be '$indexDataType'. It has to be either 'Int32' or 'Int64'.")
+        s"The index data type cannot be '$indexDataType'. It has to be either 'TFInt32' or 'TFInt64'.")
     val outputs = Op.Builder(opType = "ListDiff", name = name)
         .addInput(x)
         .addInput(y)
@@ -1337,9 +1337,9 @@ object Basic {
     * the `i`th dimension of `input` and `n` corresponds to the rank of `input`.
     *
     * @param  input Tensor to slice.
-    * @param  begin Begin index tensor (must have data type of `int32` or `int64`). `begin(i)` specifies the offset into
-    *               the `i`th dimension of `input` to slice from.
-    * @param  size  Slice size tensor (must have data type of `int32` or `int64`). `size(i)` specifies the number of
+    * @param  begin Begin index tensor (must have data type of `TFInt32` or `TFInt64`). `begin(i)` specifies the offset
+    *               into the `i`th dimension of `input` to slice from.
+    * @param  size  Slice size tensor (must have data type of `TFInt32` or `TFInt64`). `size(i)` specifies the number of
     *               elements of the `i`th dimension of `input` to slice. If `size(i) == -1`, then all the remaining
     *               elements in dimension `i` are included in the slice (i.e., this is equivalent to setting
     *               `size(i) = input.shape(i) - begin(i)`).
@@ -1347,10 +1347,12 @@ object Basic {
     * @return Created op output.
     */
   def slice(input: Op.Output, begin: Op.Output, size: Op.Output, name: String = "Slice"): Op.Output = {
-    if (begin.dataType != DataType.Int32 && begin.dataType != DataType.Int64)
-      throw InvalidDataTypeException(s"'begin' data type, '${begin.dataType}', is not 'int32' or 'int64', as required.")
-    if (size.dataType != DataType.Int32 && size.dataType != DataType.Int64)
-      throw InvalidDataTypeException(s"'size' data type, '${size.dataType}', is not 'int32' or 'int64', as required.")
+    if (begin.dataType != TFInt32 && begin.dataType != TFInt64)
+      throw InvalidDataTypeException(
+        s"'begin' data type, '${begin.dataType}', is not 'TFInt32' or 'TFInt64', as required.")
+    if (size.dataType != TFInt32 && size.dataType != TFInt64)
+      throw InvalidDataTypeException(
+        s"'size' data type, '${size.dataType}', is not 'TFInt32' or 'TFInt64', as required.")
     Op.Builder(opType = "Slice", name = name)
         .addInput(input)
         .addInput(begin)
@@ -1517,18 +1519,18 @@ object Basic {
     * @return Created op output, which is a one-dimensional integer tensor representing the broadcasted shape.
     */
   def broadcastShapeDynamic(shape1: Op.Output, shape2: Op.Output, name: String = "BroadcastShape"): Op.Output = {
-    if (shape1.dataType != DataType.Int32 && shape1.dataType != DataType.Int64)
+    if (shape1.dataType != TFInt32 && shape1.dataType != TFInt64)
       throw InvalidDataTypeException(
         s"Data type '${shape1.dataType}' is not supported for the shape broadcasting op inputs. " +
-            s"Only 'Int32' and 'Int64' are supported.")
+            s"Only 'TFInt32' and 'TFInt64' are supported.")
     if (shape1.shape.rank != 1 && shape1.shape.rank != -1)
       throw InvalidShapeException(
         s"Shape '${shape1.shape}' is not supported for the shape broadcasting op inputs. " +
             s"Only one-dimensional tensors are supported.")
-    if (shape2.dataType != DataType.Int32 && shape2.dataType != DataType.Int64)
+    if (shape2.dataType != TFInt32 && shape2.dataType != TFInt64)
       throw InvalidDataTypeException(
         s"Data type '${shape2.dataType}' is not supported for the shape broadcasting op inputs. " +
-            s"Only 'Int32' and 'Int64' are supported.")
+            s"Only 'TFInt32' and 'TFInt64' are supported.")
     if (shape2.shape.rank != 1 && shape2.shape.rank != -1)
       throw InvalidShapeException(
         s"Shape '${shape2.shape}' is not supported for the shape broadcasting op inputs. " +

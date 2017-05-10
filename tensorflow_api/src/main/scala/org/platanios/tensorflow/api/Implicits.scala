@@ -2,9 +2,10 @@ package org.platanios.tensorflow.api
 
 import org.platanios.tensorflow.api.Indexer.{Implicits => IndexerImplicits}
 import org.platanios.tensorflow.api.Shape.{Implicits => ShapeImplicits}
-import org.platanios.tensorflow.api.Tensor.{Implicits => TensorImplicits}
 import org.platanios.tensorflow.api.ops.OpSpecification
 import org.platanios.tensorflow.api.ops.Op.{Implicits => OpImplicits}
+import org.platanios.tensorflow.api.tensors.Tensor.{Implicits => TensorImplicits}
+import org.platanios.tensorflow.api.tensors.TensorFlowNative.{Implicits => TensorNativeImplicits}
 import org.platanios.tensorflow.api.types.SupportedType.{Implicits => SupportedTypeImplicits}
 import org.platanios.tensorflow.api.utilities.Proto.{Implicits => ProtoImplicits}
 
@@ -14,9 +15,11 @@ import org.platanios.tensorflow.api.utilities.Proto.{Implicits => ProtoImplicits
 trait Implicits
     extends LowPriorityImplicits
         with IndexerImplicits
-        with SupportedTypeImplicits
         with ProtoImplicits {
-  implicit def deviceImplicitConversion(device: String): OpSpecification => String = Op.deviceImplicitConversion(device)
+  implicit def deviceImplicitConversion(device: String): (OpSpecification => String) = {
+    Op.deviceImplicitConversion(device)
+  }
+
   implicit def opOutputToInitialValueFunction(opOutput: Op.Output): () => Op.Output = () => opOutput
 }
 
@@ -25,4 +28,7 @@ trait LowPriorityImplicits
         with ShapeImplicits
         with OpImplicits
 
-trait LowestPriorityImplicits extends TensorImplicits
+trait LowestPriorityImplicits
+    extends TensorImplicits
+        with TensorNativeImplicits
+        with SupportedTypeImplicits
