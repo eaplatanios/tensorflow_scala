@@ -56,7 +56,6 @@ package object api extends Implicits {
 
   type Order = tensors.Order
   val RowMajorOrder = tensors.RowMajorOrder
-  val ColumnMajorOrder = tensors.ColumnMajorOrder
 
   private[api] val DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER = RowMajorOrder
 

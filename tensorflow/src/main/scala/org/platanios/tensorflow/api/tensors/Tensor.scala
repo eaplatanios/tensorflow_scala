@@ -27,10 +27,11 @@ trait Tensor {
   require(shape.numElements.get > 0, "Empty tensors are not supported in the TensorFlow Scala API.")
 
   def rank: Int = shape.rank
-  def numElements: Int = shape.numElements.get // TODO: Convert this to an option?
+  def numElements: Int = shape.numElements.get
 
-  private[api] def flattenedIndex(indices: Array[Int]): Int
-  private[api] def flattenedIndexIterator: Iterator[Int]
+  private[api] def flattenedIndex(indices: Array[Int]): Int = order.index(shape.asArray, indices)
+  private[api] def flattenedIndexIterator: Iterator[Int] = order.indexIterator(shape.asArray)
+
   private[api] def setElementAtFlattenedIndex[T](index: Int, value: T)(implicit evidence: SupportedType[T]): this.type
   private[api] def getElementAtFlattenedIndex(index: Int): dataType.ScalaType
 
@@ -41,13 +42,22 @@ trait Tensor {
   //   val index = order.index(shape.asArray, beginOffsets, strides, indices)
   //   dataType.putElementInBuffer(buffer = buffer, index = index, element = dataType.cast(value))
   // }
-  //
-  // def update(indexers: Seq[Indexer], value: DataType.SupportedScalaType): Unit = {
-  //   val castedValue = dataType.cast(value)
-  //   for (index <- slice(indexers: _*).flattenedIndexIterator)
-  //     dataType.putElementInBuffer(buffer = buffer, index = index, element = castedValue)
-  // }
-  //
+
+  // TODO: Need to improve the syntax here (maybe using implicit conversion to indexer sequences).
+  def update(indexers: Seq[Indexer], tensor: Tensor): Unit = {
+    val decoded = Indexer.decode(shape, indexers)
+    val sliceShape = Shape.fromSeq(decoded._2)
+    if (sliceShape != tensor.shape)
+      throw ShapeMismatchException(
+        s"Tensor slice shape '$sliceShape' does not match assigned tensor shape '${tensor.shape}'.")
+    val stridedIndexIterator = order.indexIterator(decoded._1, decoded._3, decoded._4, decoded._5)
+    for ((index, stridedIndex) <- tensor.flattenedIndexIterator zip stridedIndexIterator) {
+      // TODO: Avoid casting for tensors with the same data type.
+      val castedValue = dataType.cast(tensor.getElementAtFlattenedIndex(index))(tensor.dataType.supportedType)
+      setElementAtFlattenedIndex(stridedIndex, castedValue)(dataType.supportedType)
+    }
+  }
+
   // def update(index: Int, tensor: Tensor): Unit = update(Seq[Indexer](index), tensor)
   //
   // def update(indexers: Seq[Indexer], tensor: Tensor): Unit = slice(indexers: _*).set(tensor)
@@ -71,6 +81,7 @@ trait Tensor {
     getElementAtFlattenedIndex(flattenedIndex(Array.fill[Int](shape.rank)(0))) // TODO: Fix this.
   }
 
+  // TODO: !!! Make this return the sub-class tensor type instead.
   def apply(indexers: Indexer*): Tensor = {
     slice(indexers: _*)
     //    if (dataType.byteSize == -1)
@@ -86,7 +97,29 @@ trait Tensor {
     //    }
   }
 
-  def slice(indexers: Indexer*): Tensor // TODO: What about the type of the returned tensor?
+  // TODO: Make more efficient for contiguous slices.
+  def slice(indexers: Indexer*): Tensor = {
+    if (shape.rank == 0 && indexers.length == 1
+        && indexers.head.isInstanceOf[Index] && indexers.head.asInstanceOf[Index].index == 0) {
+      this
+    } else {
+      val decoded = Indexer.decode(shape, indexers)
+      val tensor = newTensor(Shape.fromSeq(decoded._2))
+      stridedAssign(tensor, decoded._1, decoded._3, decoded._4, decoded._5)
+    }
+  }
+  // TODO: Use this for creating slices: Buffer.slice().position(sliceStart).limit(sliceSize)
+
+  private[tensors] def newTensor(shape: Shape): Tensor
+
+  private[tensors] def stridedAssign(
+      tensor: Tensor, underlyingTensorDimensions: Array[Int], beginOffsets: Array[Int], endOffsets: Array[Int],
+      strides: Array[Int]): Tensor = {
+    val stridedIndexIterator = order.indexIterator(underlyingTensorDimensions, beginOffsets, endOffsets, strides)
+    for ((newIndex, stridedIndex) <- tensor.flattenedIndexIterator zip stridedIndexIterator)
+      tensor.setElementAtFlattenedIndex(newIndex, getElementAtFlattenedIndex(stridedIndex))(dataType.supportedType)
+    tensor
+  }
 
   def summarize(maxEntries: Int = numElements): String = {
     // TODO: Fix this by nesting dimensions.
@@ -120,7 +153,6 @@ trait Tensor {
     result
   }
 
-  // TODO: [TENSORS] Possible implicits.
   def asNumeric: NumericTensor
   def asRealNumeric: RealNumericTensor
 }
@@ -263,18 +295,9 @@ object Tensor {
       dataType: DataType, shape: Shape, order: Order = DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER): Tensor = dataType match {
     case TFString => throw new IllegalArgumentException(
       "Cannot pre-allocate string tensors because their size is not known.")
-    case d: RealNumericDataType =>
-      val numBytes: Int = dataType.byteSize * shape.numElements.get
-      val buffer: ByteBuffer = ByteBuffer.allocateDirect(numBytes).order(ByteOrder.nativeOrder)
-      new RealNumericTensor(dataType = d, shape = shape, buffer = buffer, order = order)
-    case d: NumericDataType =>
-      val numBytes: Int = dataType.byteSize * shape.numElements.get
-      val buffer: ByteBuffer = ByteBuffer.allocateDirect(numBytes).order(ByteOrder.nativeOrder)
-      new NumericTensor(dataType = d, shape = shape, buffer = buffer, order = order)
-    case d: FixedSizeDataType =>
-      val numBytes: Int = dataType.byteSize * shape.numElements.get
-      val buffer: ByteBuffer = ByteBuffer.allocateDirect(numBytes).order(ByteOrder.nativeOrder)
-      new FixedSizeTensor(dataType = d, shape = shape, buffer = buffer, order = order)
+    case d: RealNumericDataType => RealNumericTensor.allocate(d, shape, order)
+    case d: NumericDataType => NumericTensor.allocate(d, shape, order)
+    case d: FixedSizeDataType => FixedSizeTensor.allocate(d, shape, order)
     case d => throw InvalidDataTypeException(s"Tensors with data type '$d' are not supported on the Scala side.")
   }
 
