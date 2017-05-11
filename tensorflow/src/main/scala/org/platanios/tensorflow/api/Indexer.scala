@@ -84,8 +84,9 @@ object Indexer {
   /** Decodes the provided indexers sequence into a new set of dimension sizes, begin offsets, end offsets, and strides,
     * for the provided tensor shape.
     *
-    * This function returns a tuple of four integer arrays:
+    * This function returns a tuple of five integer arrays:
     *
+    *   - Old dimension sizes (one for each dimension of the original tensor shape)
     *   - Dimension sizes (one for each dimension)
     *   - Begin offsets (one for each dimension)
     *   - End offsets (one for each dimension)
