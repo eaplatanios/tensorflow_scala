@@ -14,7 +14,7 @@ then perform the following steps:
 
      ```bash
      ./configure
-     bazel build --config=opt --copt=-mavx --copt=-mavx2 --copt=-mfma --copt=-msse3 --copt=-msse4.1 --copt=-msse4.2 //tensorflow:libtensorflow.so
+     bazel build --config=opt //tensorflow:libtensorflow.so
      ```
 
      Make sure to add the `--config=cuda` option when running the last
