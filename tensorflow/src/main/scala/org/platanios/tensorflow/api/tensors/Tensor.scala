@@ -160,20 +160,22 @@ trait Tensor {
 object Tensor {
   // TODO: [TENSORS] Add constructor methods for numeric tensors and other specific types of tensors.
 
-  // TODO: Find a way to add this method for performance benefits.
-  //  def apply(value: SupportedScalaType, values: SupportedScalaType*): Tensor = {
-  //    val allValues = value +: values
-  //    val dataType = allValues.map(DataType.dataTypeOf).maxBy(_.priority)
-  //    val shape = if (allValues.length > 1) Shape(allValues.length) else Shape()
-  //    val tensor = allocate(dataType = dataType, shape = shape)
-  //    val tensorIndexIterator = tensor.flattenedIndexIterator
-  //    var i = 0
-  //    while (i < allValues.length) {
-  //      tensor.setElementAtFlattenedIndex(tensorIndexIterator.next(), allValues(i))
-  //      i += 1
-  //    }
-  //    tensor
-  //  }
+  def fromSeq[T](values: T*)(implicit evidence: FixedSizeSupportedType[T]): Tensor = {
+    val tensor = allocate(values.head.dataType, Shape(values.length))
+    val tensorIndexIterator = tensor.flattenedIndexIterator
+    values.foreach(value => tensor.setElementAtFlattenedIndex(tensorIndexIterator.next(), value))
+    tensor
+  }
+
+  def fromSeq[T](dataType: DataType, values: T*)(implicit evidence: FixedSizeSupportedType[T]): Tensor = {
+    val tensor = allocate(dataType, Shape(values.length))
+    val tensorIndexIterator = tensor.flattenedIndexIterator
+    values.foreach(value => {
+      val castedValue = dataType.cast(value)
+      tensor.setElementAtFlattenedIndex(tensorIndexIterator.next(), castedValue)(dataType.supportedType)
+    })
+    tensor
+  }
 
   def apply(tensors: Tensor*): Tensor = {
     if (tensors.isEmpty)
@@ -315,6 +317,16 @@ object Tensor {
     implicit def scalaValueToTensor(value: Int): Tensor = Tensor.fill(dataType = TFInt32)(value)
     implicit def scalaValueToTensor(value: Long): Tensor = Tensor.fill(dataType = TFInt64)(value)
     implicit def scalaValueToTensor(value: UShort): Tensor = Tensor.fill(dataType = TFUInt16)(value)
+
+    implicit def scalaArrayToTensor(value: Array[Boolean]): Tensor = Tensor.fromSeq(value: _*)(TFBoolean.supportedType)
+    // implicit def scalaArrayToTensor(value: Array[String]): Tensor = Tensor.fromSeq(value: _*)(TFString.supportedType)
+    implicit def scalaArrayToTensor(value: Array[Float]): Tensor = Tensor.fromSeq(value: _*)(TFFloat32.supportedType)
+    implicit def scalaArrayToTensor(value: Array[Double]): Tensor = Tensor.fromSeq(value: _*)(TFFloat64.supportedType)
+    implicit def scalaArrayToTensor(value: Array[Byte]): Tensor = Tensor.fromSeq(value: _*)(TFInt8.supportedType)
+    implicit def scalaArrayToTensor(value: Array[Short]): Tensor = Tensor.fromSeq(value: _*)(TFInt16.supportedType)
+    implicit def scalaArrayToTensor(value: Array[Int]): Tensor = Tensor.fromSeq(value: _*)(TFInt32.supportedType)
+    implicit def scalaArrayToTensor(value: Array[Long]): Tensor = Tensor.fromSeq(value: _*)(TFInt64.supportedType)
+    implicit def scalaArrayToTensor(value: Array[UShort]): Tensor = Tensor.fromSeq(value: _*)(TFUInt16.supportedType)
 
     implicit def tensorToNumeric(tensor: Tensor): NumericTensor = tensor.asNumeric
     implicit def tensorToRealNumeric(tensor: Tensor): RealNumericTensor = tensor.asRealNumeric

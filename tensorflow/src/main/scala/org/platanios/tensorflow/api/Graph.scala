@@ -169,23 +169,23 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable {
 
   // TODO: [DOC] [GRAPH]
 
-  private[api] def globalVariables: Set[Variable] = {
+  def globalVariables: Set[Variable] = {
     getCollection(Graph.Keys.GLOBAL_VARIABLES).map(_.asInstanceOf[Variable])
   }
 
-  private[api] def localVariables: Set[Variable] = {
+  def localVariables: Set[Variable] = {
     getCollection(Graph.Keys.LOCAL_VARIABLES).map(_.asInstanceOf[Variable])
   }
 
-  private[api] def trainableVariables: Set[Variable] = {
+  def trainableVariables: Set[Variable] = {
     getCollection(Graph.Keys.TRAINABLE_VARIABLES).map(_.asInstanceOf[Variable])
   }
 
-  private[api] def summaries: Set[Op.Output] = {
+  def summaries: Set[Op.Output] = {
     getCollection(Graph.Keys.SUMMARIES).map(_.asInstanceOf[Op.Output])
   }
 
-  private[api] def trainOps: Set[Op] = {
+  def trainOps: Set[Op] = {
     getCollection(Graph.Keys.TRAIN_OP).map(_.asInstanceOf[Op])
   }
 

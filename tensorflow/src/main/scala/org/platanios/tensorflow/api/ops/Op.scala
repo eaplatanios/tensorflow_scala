@@ -1637,6 +1637,16 @@ object Op {
     implicit def scalaValueToOpOutput(value: Long): Op.Output = ops.Basic.constant(scalaValueToTensor(value))
     implicit def scalaValueToOpOutput(value: UShort): Op.Output = ops.Basic.constant(scalaValueToTensor(value))
 
+    implicit def scalaArrayToOpOutput(value: Array[Boolean]): Op.Output = ops.Basic.constant(scalaArrayToTensor(value))
+    // implicit def scalaArrayToOpOutput(value: Array[String]): Op.Output = ops.Basic.constant(scalaArrayToTensor(value))
+    implicit def scalaArrayToOpOutput(value: Array[Float]): Op.Output = ops.Basic.constant(scalaArrayToTensor(value))
+    implicit def scalaArrayToOpOutput(value: Array[Double]): Op.Output = ops.Basic.constant(scalaArrayToTensor(value))
+    implicit def scalaArrayToOpOutput(value: Array[Byte]): Op.Output = ops.Basic.constant(scalaArrayToTensor(value))
+    implicit def scalaArrayToOpOutput(value: Array[Short]): Op.Output = ops.Basic.constant(scalaArrayToTensor(value))
+    implicit def scalaArrayToOpOutput(value: Array[Int]): Op.Output = ops.Basic.constant(scalaArrayToTensor(value))
+    implicit def scalaArrayToOpOutput(value: Array[Long]): Op.Output = ops.Basic.constant(scalaArrayToTensor(value))
+    implicit def scalaArrayToOpOutput(value: Array[UShort]): Op.Output = ops.Basic.constant(scalaArrayToTensor(value))
+
     implicit def tensorToOpOutput(tensor: Tensor): Op.Output = ops.Basic.constant(tensor)
     implicit def opOutputLikeToOpOutput(outputLike: OutputLike): Op.Output = outputLike.toOpOutput
     implicit def variableToOpOutput(variable: Variable): Op.Output = variable.toOpOutput

@@ -237,7 +237,7 @@ final class Shape private (private val array: Array[Int]) {
     * @param  dataType Data type to use for the tensor.
     * @return One-dimensional tensor representing this shape.
     */
-  def toTensor(dataType: DataType = TFInt32): Tensor = Tensor(dataType, asArray.map(Tensor(_)): _*)
+  def toTensor(dataType: DataType = TFInt32): Tensor = Tensor.fromSeq(dataType, asArray: _*)
 
   override def toString: String = if (array == null) "<unknown>" else s"[${array.mkString(", ").replace("-1", "?")}]"
 

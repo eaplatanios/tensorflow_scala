@@ -2,6 +2,7 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.Exception.InvalidDataTypeException
+import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 
 import org.tensorflow.framework.{SaveSliceInfoDef, VariableDef}
 
@@ -680,5 +681,13 @@ object Variable {
         .addInput(indices)
         .addInput(updates)
         .build()
+  }
+
+  object Gradients {
+    GradientsRegistry.register("ReadVariableOp", readGradient)
+
+    def readGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+      Seq(outputGradients.head)
+    }
   }
 }

@@ -655,11 +655,11 @@ object Math {
 
   //region Reduction Ops
 
-  private[this] def reductionAxes(tensor: Op.Output, axes: Array[Int]): Op.Output = {
-    if (axes != null)
-      Basic.constant(Tensor(axes.map(Tensor(_)): _*))
+  private[this] def reductionAxes(tensor: Op.Output, axes: Op.Output): Op.Output = {
+    if (axes ne null)
+      axes
     else
-      Basic.constant(Tensor((0 until tensor.shape.rank).map(Tensor(_)): _*))
+      Basic.constant(Tensor.fromSeq(0 until tensor.shape.rank: _*)(TFInt32.supportedType))
   }
 
   /** Creates an op that computes the sum of elements across dimensions of a tensor.
@@ -680,13 +680,13 @@ object Math {
     * }}}
     *
     * @param  input    Input tensor to reduce.
-    * @param  axes     Integer array containing the dimensions to reduce. If `null`, then all dimensions are reduced.
+    * @param  axes     Integer tensor containing the dimensions to reduce. If `null`, then all dimensions are reduced.
     * @param  keepDims If `true`, retain the reduced dimensions.
     * @param  name     Name for the created op.
     * @return Created op output.
     */
   def reduceSum(
-      input: Op.Output, axes: Array[Int] = null, keepDims: Boolean = false, name: String = "ReduceSum"): Op.Output = {
+      input: Op.Output, axes: Op.Output = null, keepDims: Boolean = false, name: String = "ReduceSum"): Op.Output = {
     Op.Builder(opType = "Sum", name = name)
         .addInput(input)
         .addInput(reductionAxes(input, axes))
@@ -710,13 +710,13 @@ object Math {
     * }}}
     *
     * @param  input    Input tensor to reduce.
-    * @param  axes     Integer array containing the dimensions to reduce. If `null`, then all dimensions are reduced.
+    * @param  axes     Integer tensor containing the dimensions to reduce. If `null`, then all dimensions are reduced.
     * @param  keepDims If `true`, retain the reduced dimensions.
     * @param  name     Name for the created op.
     * @return Created op output.
     */
   def reduceMean(
-      input: Op.Output, axes: Array[Int] = null, keepDims: Boolean = false, name: String = "ReduceMean"): Op.Output = {
+      input: Op.Output, axes: Op.Output = null, keepDims: Boolean = false, name: String = "ReduceMean"): Op.Output = {
     Op.Builder(opType = "Mean", name = name)
         .addInput(input)
         .addInput(reductionAxes(input, axes))
@@ -742,13 +742,13 @@ object Math {
     * }}}
     *
     * @param  input    Input tensor to reduce.
-    * @param  axes     Integer array containing the dimensions to reduce. If `null`, then all dimensions are reduced.
+    * @param  axes     Integer tensor containing the dimensions to reduce. If `null`, then all dimensions are reduced.
     * @param  keepDims If `true`, retain the reduced dimensions.
     * @param  name     Name for the created op.
     * @return Created op output.
     */
   def reduceProd(
-      input: Op.Output, axes: Array[Int] = null, keepDims: Boolean = false, name: String = "ReduceProd"): Op.Output = {
+      input: Op.Output, axes: Op.Output = null, keepDims: Boolean = false, name: String = "ReduceProd"): Op.Output = {
     Op.Builder(opType = "Prod", name = name)
         .addInput(input)
         .addInput(reductionAxes(input, axes))
@@ -772,13 +772,13 @@ object Math {
     * }}}
     *
     * @param  input    Input tensor to reduce.
-    * @param  axes     Integer array containing the dimensions to reduce. If `null`, then all dimensions are reduced.
+    * @param  axes     Integer tensor containing the dimensions to reduce. If `null`, then all dimensions are reduced.
     * @param  keepDims If `true`, retain the reduced dimensions.
     * @param  name     Name for the created op.
     * @return Created op output.
     */
   def reduceMin(
-      input: Op.Output, axes: Array[Int] = null, keepDims: Boolean = false, name: String = "ReduceMin"): Op.Output = {
+      input: Op.Output, axes: Op.Output = null, keepDims: Boolean = false, name: String = "ReduceMin"): Op.Output = {
     Op.Builder(opType = "Min", name = name)
         .addInput(input)
         .addInput(reductionAxes(input, axes))
@@ -802,13 +802,13 @@ object Math {
     * }}}
     *
     * @param  input    Input tensor to reduce.
-    * @param  axes     Integer array containing the dimensions to reduce. If `null`, then all dimensions are reduced.
+    * @param  axes     Integer tensor containing the dimensions to reduce. If `null`, then all dimensions are reduced.
     * @param  keepDims If `true`, retain the reduced dimensions.
     * @param  name     Name for the created op.
     * @return Created op output.
     */
   def reduceMax(
-      input: Op.Output, axes: Array[Int] = null, keepDims: Boolean = false, name: String = "ReduceMax"): Op.Output = {
+      input: Op.Output, axes: Op.Output = null, keepDims: Boolean = false, name: String = "ReduceMax"): Op.Output = {
     Op.Builder(opType = "Max", name = name)
         .addInput(input)
         .addInput(reductionAxes(input, axes))
@@ -832,13 +832,13 @@ object Math {
     * }}}
     *
     * @param  input    Input tensor to reduce.
-    * @param  axes     Integer array containing the dimensions to reduce. If `null`, then all dimensions are reduced.
+    * @param  axes     Integer tensor containing the dimensions to reduce. If `null`, then all dimensions are reduced.
     * @param  keepDims If `true`, retain the reduced dimensions.
     * @param  name     Name for the created op.
     * @return Created op output.
     */
   def reduceAll(
-      input: Op.Output, axes: Array[Int] = null, keepDims: Boolean = false, name: String = "ReduceAll"): Op.Output = {
+      input: Op.Output, axes: Op.Output = null, keepDims: Boolean = false, name: String = "ReduceAll"): Op.Output = {
     Op.Builder(opType = "All", name = name)
         .addInput(input)
         .addInput(reductionAxes(input, axes))
@@ -862,13 +862,13 @@ object Math {
     * }}}
     *
     * @param  input    Input tensor to reduce.
-    * @param  axes     Integer array containing the dimensions to reduce. If `null`, then all dimensions are reduced.
+    * @param  axes     Integer tensor containing the dimensions to reduce. If `null`, then all dimensions are reduced.
     * @param  keepDims If `true`, retain the reduced dimensions.
     * @param  name     Name for the created op.
     * @return Created op output.
     */
   def reduceAny(
-      input: Op.Output, axes: Array[Int] = null, keepDims: Boolean = false, name: String = "ReduceAny"): Op.Output = {
+      input: Op.Output, axes: Op.Output = null, keepDims: Boolean = false, name: String = "ReduceAny"): Op.Output = {
     Op.Builder(opType = "Any", name = name)
         .addInput(input)
         .addInput(reductionAxes(input, axes))
@@ -905,6 +905,7 @@ object Math {
   def reduceLogSumExp(
       input: Op.Output, axes: Array[Int] = null, keepDims: Boolean = false,
       name: String = "ReduceLogSumExp"): Op.Output = {
+    // TODO: !!! Can we support a dynamic version for the axes argument?
     Op.createWith(nameScope = name) {
       val max = Basic.stopGradient(reduceMax(input, axes, keepDims = true))
       val result = log(reduceSum(exp(input - max), axes, keepDims = true)) + max
@@ -942,7 +943,7 @@ object Math {
     * @return Created op output with `TFInt64` data type.
     */
   def countNonZero(
-      input: Op.Output, axes: Array[Int] = null, keepDims: Boolean = false,
+      input: Op.Output, axes: Op.Output = null, keepDims: Boolean = false,
       name: String = "CountNonZero"): Op.Output = {
     Op.createWith(nameScope = name) {
       reduceSum(cast(notEqual(input, Basic.constant(0)), TFInt64), axes, keepDims)
@@ -1177,6 +1178,7 @@ object Math {
     GradientsRegistry.register("MatMul", matMulGradient)
     GradientsRegistry.register("BatchMatMul", batchMatMulGradient)
     GradientsRegistry.register("Square", squareGradient)
+    GradientsRegistry.register("Sub", subtractGradient)
     GradientsRegistry.register("Sum", reduceSumGradient)
 
     def castGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
@@ -1243,8 +1245,30 @@ object Math {
       // Using control dependencies to prevent 2*x from being computed too early.
       Op.createWith(controlDependencies = Set(outputGradient.op)) {
         x = conjugate(x)
-        Seq(outputGradient * (2 * x))
+        // TODO: !!! Automatic casting for mathematic operations? At least print nicely formatted exception?
+        Seq(outputGradient * (Basic.constant(2, x.dataType) * x))
       }
+    }
+
+    private[this] def broadcastGradientArguments(
+        shape0: Op.Output, shape1: Op.Output, name: String = "BroadcastGradientArguments"): (Op.Output, Op.Output) = {
+      val outputs = Op.Builder(opType = "BroadcastGradientArgs", name = name)
+          .addInput(shape0)
+          .addInput(shape1)
+          .build().outputs
+      (outputs(0), outputs(1))
+    }
+
+    def subtractGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+      val x = op.inputs(0)
+      val y = op.inputs(1)
+      val xShape = Basic.shape(x)
+      val yShape = Basic.shape(y)
+      val (rx, ry) = broadcastGradientArguments(xShape, yShape)
+      val outputGradient = outputGradients.head
+      val gradientX = Basic.reshape(reduceSum(outputGradient, rx), xShape)
+      val gradientY = -Basic.reshape(reduceSum(outputGradient, ry), yShape)
+      Seq(gradientX, gradientY)
     }
 
     def reduceSumGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {

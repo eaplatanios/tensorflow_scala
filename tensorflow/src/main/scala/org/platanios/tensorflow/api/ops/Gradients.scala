@@ -109,7 +109,7 @@ object Gradients {
 
         // Update the pending counts for the inputs of `op` and enqueue ready ops.
         op.inputs.foreach(input => {
-          pendingCounts.update(input.op, pendingCounts(input.op) - 1)
+          pendingCounts.update(input.op, pendingCounts.getOrElse(input.op, 0) - 1)
           if (pendingCounts(input.op) == 0)
             readyOps.enqueue(input.op)
           // TODO: [CONTROL_FLOW] Some control flow gradient logic should go here.
@@ -378,6 +378,7 @@ object Gradients {
 
     Basic.Gradients
     Math.Gradients
+    Variable.Gradients
 
     /** Registers the provided gradient function to the gradient function registry.
       *
