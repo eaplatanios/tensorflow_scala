@@ -1,6 +1,6 @@
 # Project Specific
 temp/
-tensorflow/
+tensorflow_library/
 
 # Scala Specific
 *.class

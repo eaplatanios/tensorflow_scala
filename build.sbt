@@ -25,8 +25,8 @@ lazy val loggingDependencies = Seq(
   "org.apache.logging.log4j" % "log4j-slf4j-impl" % "2.8"
 )
 
-lazy val tensorflow = (project in file("."))
-    .aggregate(tensorflow_jni, tensorflow_api, tensorflow_data, tensorflow_examples)
+lazy val all = (project in file("."))
+    .aggregate(tensorflow, data, examples)
     .settings(
       sourcesInBase := false,
       unmanagedSourceDirectories in Compile := Nil,
@@ -36,10 +36,23 @@ lazy val tensorflow = (project in file("."))
       packagedArtifacts in file(".") := Map.empty
     )
 
-lazy val tensorflow_jni = (project in file("./tensorflow_jni"))
+lazy val data = (project in file("./data"))
+    .dependsOn(tensorflow) // TODO: Remove tensorflow dependency once tensors are moved there.
+    .settings(
+      name := "data",
+      libraryDependencies ++= loggingDependencies,
+      // Test dependencies
+      libraryDependencies += "org.scalactic" %% "scalactic" % "3.0.1",
+      libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1" % "test"
+    )
+
+lazy val tensorflow = (project in file("./tensorflow"))
     .enablePlugins(JniNative)
     .settings(
-      name := "tensorflow_jni",
+      name := "tensorflow",
+      libraryDependencies ++= loggingDependencies,
+      libraryDependencies += "org.typelevel" %% "spire" % "0.14.1",
+      libraryDependencies += "org.tensorflow" % "proto" % tensorFlowVersion,
       // Test dependencies
       libraryDependencies += "org.scalactic" %% "scalactic" % "3.0.1",
       libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1" % "test",
@@ -49,31 +62,9 @@ lazy val tensorflow_jni = (project in file("./tensorflow_jni"))
       target in nativeCompile := target.value / "native" / nativePlatform.value
     )
 
-lazy val tensorflow_api = (project in file("./tensorflow_api"))
-    .dependsOn(tensorflow_jni)
+lazy val examples = (project in file("./examples"))
+    .dependsOn(tensorflow, data)
     .settings(
-      name := "tensorflow_api",
-      libraryDependencies ++= loggingDependencies,
-      libraryDependencies += "org.typelevel" %% "spire" % "0.14.1",
-      libraryDependencies += "org.tensorflow" % "proto" % tensorFlowVersion,
-      // Test dependencies
-      libraryDependencies += "org.scalactic" %% "scalactic" % "3.0.1",
-      libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1" % "test"
-    )
-
-lazy val tensorflow_data = (project in file("./tensorflow_data"))
-    .dependsOn(tensorflow_api)
-    .settings(
-      name := "tensorflow_data",
-      libraryDependencies ++= loggingDependencies,
-      // Test dependencies
-      libraryDependencies += "org.scalactic" %% "scalactic" % "3.0.1",
-      libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1" % "test"
-    )
-
-lazy val tensorflow_examples = (project in file("./tensorflow_examples"))
-    .dependsOn(tensorflow_api, tensorflow_data)
-    .settings(
-      name := "tensorflow_examples",
+      name := "examples",
       libraryDependencies ++= loggingDependencies
     )
