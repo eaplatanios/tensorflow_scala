@@ -1,5 +1,7 @@
 # TensorFlow Scala
 
+[![Build Status](https://travis-ci.com/eaplatanios/tensorflow_scala.svg?token=VBPxqvcGXTuwbjkVyN68&branch=master)](https://travis-ci.com/eaplatanios/tensorflow_scala)
+
 TensorFlow API for the Scala Programming Language
 
 ## Set Up for Development
