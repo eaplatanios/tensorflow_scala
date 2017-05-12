@@ -16,5 +16,5 @@ before_install:
   - wget https://github.com/bazelbuild/bazel/releases/download/0.4.4/bazel_0.4.4-linux-x86_64.deb
   - sudo dpkg -i bazel_0.4.4-linux-x86_64.deb
   - cd tensorflow_library
-  - bin/bazel build --config=opt //tensorflow:libtensorflow.so
+  - bazel build --config=opt //tensorflow:libtensorflow.so
   - cp bazel-bin/tensorflow/libtensorflow.so lib/libtensorflow.so
