@@ -1,9 +1,10 @@
 package org.platanios.tensorflow.api
 
 import org.platanios.tensorflow.api.Exception.{GraphMismatchException, InvalidGraphElementException}
+import org.platanios.tensorflow.api.ops.{Basic, Math}
+import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.tf.{Op, Variable}
 import org.platanios.tensorflow.jni.{Graph => NativeGraph}
-
 import org.tensorflow.framework.{GraphDef, NodeDef}
 
 import scala.collection.JavaConverters._
@@ -229,6 +230,68 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable {
     */
   def trainOps: Set[Op] = {
     getCollection(Graph.Keys.TRAIN_OP).map(_.asInstanceOf[Op])
+  }
+
+  /** Returns an op that initializes all global variables of this graph.
+    *
+    * For more information, refer to [[globalVariables]] and [[Variable.initializer]].
+    *
+    * @param  name Name for the created op.
+    * @return Created op.
+    */
+  def globalVariablesInitializer(name: String = "GlobalVariablesInitializer"): Op = {
+    Variable.initializer(globalVariables, name)
+  }
+
+  /** Returns an op that initializes all local variables of this graph.
+    *
+    * For more information, refer to [[localVariables]] and [[Variable.initializer]].
+    *
+    * @param  name Name for the created op.
+    * @return Created op.
+    */
+  def localVariablesInitializer(name: String = "LocalVariablesInitializer"): Op = {
+    Variable.initializer(localVariables, name)
+  }
+
+  /** Returns an op that initializes all model variables of this graph.
+    *
+    * For more information, refer to [[modelVariables]] and [[Variable.initializer]].
+    *
+    * @param  name Name for the created op.
+    * @return Created op.
+    */
+  def modelVariablesInitializer(name: String = "ModelVariablesInitializer"): Op = {
+    Variable.initializer(modelVariables, name)
+  }
+
+  /** Creates an op that lists the names of uninitialized variables.
+    *
+    * When run, it returns a one-dimensional tensor containing the names of uninitialized variables if there are any, or
+    * an empty tensor if there are none.
+    *
+    * @param  variables Optional set of variables to check. If `null`, the value of `globalVariables ++ localVariables`
+    *                   is used. Defaults to `null`.
+    * @param  name      Name for the created op.
+    * @return Created op.
+    */
+  def reportUninitializedVariables(
+      variables: Set[Variable] = null, name: String = "ReportUninitializedVariables"): Op.Output = {
+    val actualVariables = if (variables != null) variables else globalVariables ++ localVariables
+    Op.createWithNameScope(name) {
+      if (actualVariables.isEmpty) {
+        // Return an empty tensor so we only need to check for returned tensor size being equal to zero as an indication
+        // of the model being ready.
+        Basic.constant(Tensor(tf.STRING))
+      } else {
+        // Get a one-dimensional boolean tensor listing whether each variable is initialized.
+        val variablesMask = Math.logicalNot(Basic.stack(variables.map(_.isInitialized).toArray))
+        // Get a one-dimensional string tensor containing all the variable names.
+        val variableNames = Basic.constant(Tensor.fromSeq(variables.map(_.op.name)))
+        // Return a one-dimensional tensor containing the names of all uninitialized variables.
+        Basic.booleanMask(variableNames, variablesMask)
+      }
+    }
   }
 
   /** Prevents the feeding of values to the provided op output, while running in a session.
@@ -678,17 +741,17 @@ object Graph {
     val TRAINABLE_RESOURCE_VARIABLES = "trainable_resource_variables"
 
     // Keys to indicate various ops.
-    val INIT_OP = "init_op"
-    val LOCAL_INIT_OP = "local_init_op"
-    val READY_OP = "ready_op"
+    val INIT_OP                 = "init_op"
+    val LOCAL_INIT_OP           = "local_init_op"
+    val READY_OP                = "ready_op"
     val READY_FOR_LOCAL_INIT_OP = "ready_for_local_init_op"
-    val SUMMARY_OP = "summary_op"
-    val GLOBAL_STEP = "global_step"
-    val EVAL_STEP = "eval_step" // Used to count the number of evaluations performed during a single evaluation run.
+    val SUMMARY_OP              = "summary_op"
+    val GLOBAL_STEP             = "global_step"
+    val EVAL_STEP               = "eval_step" // Used to count the number of evaluations performed during a single evaluation run.
     val TRAIN_OP = "train_op"
 
     // Keys for control flow management.
-    val COND_CONTEXT = "cond_context"
+    val COND_CONTEXT  = "cond_context"
     val WHILE_CONTEXT = "while_context"
 
     /** Key to collect streaming model ports. */
