@@ -673,11 +673,11 @@ object Math {
     * For example:
     * {{{
     *   // 'x' is [[1, 1, 1]], [1, 1, 1]]
-    *   reduceSum(x) == 6
-    *   reduceSum(x, 0) == [2, 2, 2]
-    *   reduceSum(x, 1) == [3, 3]
-    *   reduceSum(x, 1, keepDims = true) == [[3], [3]]
-    *   reduceSum(x, [0, 1]) == 6
+    *   sum(x) == 6
+    *   sum(x, 0) == [2, 2, 2]
+    *   sum(x, 1) == [3, 3]
+    *   sum(x, 1, keepDims = true) == [[3], [3]]
+    *   sum(x, [0, 1]) == 6
     * }}}
     *
     * @param  input    Input tensor to reduce.
@@ -686,7 +686,7 @@ object Math {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def reduceSum(
+  def sum(
       input: Op.Output, axes: Op.Output = null, keepDims: Boolean = false, name: String = "ReduceSum"): Op.Output = {
     Op.Builder(opType = "Sum", name = name)
         .addInput(input)
@@ -705,9 +705,9 @@ object Math {
     * For example:
     * {{{
     *   // 'x' is [[1.0, 1.0], [2.0, 2.0]]
-    *   reduceMean(x) == 1.5
-    *   reduceMean(x, 0) == [1.5, 1.5]
-    *   reduceMean(x, 1) == [1.0, 2.0]
+    *   mean(x) == 1.5
+    *   mean(x, 0) == [1.5, 1.5]
+    *   mean(x, 1) == [1.0, 2.0]
     * }}}
     *
     * @param  input    Input tensor to reduce.
@@ -716,7 +716,7 @@ object Math {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def reduceMean(
+  def mean(
       input: Op.Output, axes: Op.Output = null, keepDims: Boolean = false, name: String = "ReduceMean"): Op.Output = {
     Op.Builder(opType = "Mean", name = name)
         .addInput(input)
@@ -735,11 +735,11 @@ object Math {
     * For example:
     * {{{
     *   // 'x' is [[1, 1, 1]], [1, 1, 1]]
-    *   reduceProd(x) == 1
-    *   reduceProd(x, 0) == [1, 1, 1]
-    *   reduceProd(x, 1) == [1, 1]
-    *   reduceProd(x, 1, keepDims = true) == [[1], [1]]
-    *   reduceProd(x, [0, 1]) == 1
+    *   product(x) == 1
+    *   product(x, 0) == [1, 1, 1]
+    *   product(x, 1) == [1, 1]
+    *   product(x, 1, keepDims = true) == [[1], [1]]
+    *   product(x, [0, 1]) == 1
     * }}}
     *
     * @param  input    Input tensor to reduce.
@@ -748,7 +748,7 @@ object Math {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def reduceProd(
+  def product(
       input: Op.Output, axes: Op.Output = null, keepDims: Boolean = false, name: String = "ReduceProd"): Op.Output = {
     Op.Builder(opType = "Prod", name = name)
         .addInput(input)
@@ -767,9 +767,9 @@ object Math {
     * For example:
     * {{{
     *   // 'x' is [[1.0, 1.0], [2.0, 2.0]]
-    *   reduceMin(x) == 1.0
-    *   reduceMin(x, 0) == [1.0, 1.0]
-    *   reduceMin(x, 1) == [1.0, 2.0]
+    *   min(x) == 1.0
+    *   min(x, 0) == [1.0, 1.0]
+    *   min(x, 1) == [1.0, 2.0]
     * }}}
     *
     * @param  input    Input tensor to reduce.
@@ -778,7 +778,7 @@ object Math {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def reduceMin(
+  def min(
       input: Op.Output, axes: Op.Output = null, keepDims: Boolean = false, name: String = "ReduceMin"): Op.Output = {
     Op.Builder(opType = "Min", name = name)
         .addInput(input)
@@ -797,9 +797,9 @@ object Math {
     * For example:
     * {{{
     *   // 'x' is [[1.0, 1.0], [2.0, 2.0]]
-    *   reduceMax(x) == 2.0
-    *   reduceMax(x, 0) == [2.0, 2.0]
-    *   reduceMax(x, 1) == [1.0, 2.0]
+    *   max(x) == 2.0
+    *   max(x, 0) == [2.0, 2.0]
+    *   max(x, 1) == [1.0, 2.0]
     * }}}
     *
     * @param  input    Input tensor to reduce.
@@ -808,7 +808,7 @@ object Math {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def reduceMax(
+  def max(
       input: Op.Output, axes: Op.Output = null, keepDims: Boolean = false, name: String = "ReduceMax"): Op.Output = {
     Op.Builder(opType = "Max", name = name)
         .addInput(input)
@@ -827,9 +827,9 @@ object Math {
     * For example:
     * {{{
     *   // 'x' is [[true, true], [false, false]]
-    *   reduceAll(x) == false
-    *   reduceAll(x, 0) == [false, false]
-    *   reduceAll(x, 1) == [true, false]
+    *   all(x) == false
+    *   all(x, 0) == [false, false]
+    *   all(x, 1) == [true, false]
     * }}}
     *
     * @param  input    Input tensor to reduce.
@@ -838,7 +838,7 @@ object Math {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def reduceAll(
+  def all(
       input: Op.Output, axes: Op.Output = null, keepDims: Boolean = false, name: String = "ReduceAll"): Op.Output = {
     Op.Builder(opType = "All", name = name)
         .addInput(input)
@@ -857,9 +857,9 @@ object Math {
     * For example:
     * {{{
     *   // 'x' is [[true, true], [false, false]]
-    *   reduceAll(x) == true
-    *   reduceAll(x, 0) == [true, true]
-    *   reduceAll(x, 1) == [true, false]
+    *   any(x) == true
+    *   any(x, 0) == [true, true]
+    *   any(x, 1) == [true, false]
     * }}}
     *
     * @param  input    Input tensor to reduce.
@@ -868,7 +868,7 @@ object Math {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def reduceAny(
+  def any(
       input: Op.Output, axes: Op.Output = null, keepDims: Boolean = false, name: String = "ReduceAny"): Op.Output = {
     Op.Builder(opType = "Any", name = name)
         .addInput(input)
@@ -890,11 +890,11 @@ object Math {
     * For example:
     * {{{
     *   // 'x' is [[0, 0, 0], [0, 0, 0]]
-    *   reduceLogSumExp(x) == log(6)
-    *   reduceLogSumExp(x, 0) == [log(2), log(2), log(2)]
-    *   reduceLogSumExp(x, 1) == [log(3), log(3)]
-    *   reduceLogSumExp(x, 1, keepDims = true) == [[log(3)], [log(3)]]
-    *   reduceLogSumExp(x, [0, 1]) == log(6)
+    *   logSumExp(x) == log(6)
+    *   logSumExp(x, 0) == [log(2), log(2), log(2)]
+    *   logSumExp(x, 1) == [log(3), log(3)]
+    *   logSumExp(x, 1, keepDims = true) == [[log(3)], [log(3)]]
+    *   logSumExp(x, [0, 1]) == log(6)
     * }}}
     *
     * @param  input    Input tensor to reduce.
@@ -903,13 +903,13 @@ object Math {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def reduceLogSumExp(
+  def logSumExp(
       input: Op.Output, axes: Array[Int] = null, keepDims: Boolean = false,
       name: String = "ReduceLogSumExp"): Op.Output = {
     // TODO: !!! Can we support a dynamic version for the axes argument?
     Op.createWith(nameScope = name) {
-      val max = Basic.stopGradient(reduceMax(input, axes, keepDims = true))
-      val result = log(reduceSum(exp(input - max), axes, keepDims = true)) + max
+      val maxValue = Basic.stopGradient(max(input, axes, keepDims = true))
+      val result = log(sum(exp(input - maxValue), axes, keepDims = true)) + maxValue
       if (keepDims)
         result
       else
@@ -947,7 +947,7 @@ object Math {
       input: Op.Output, axes: Op.Output = null, keepDims: Boolean = false,
       name: String = "CountNonZero"): Op.Output = {
     Op.createWith(nameScope = name) {
-      reduceSum(cast(notEqual(input, Basic.constant(0)), INT64), axes, keepDims)
+      sum(cast(notEqual(input, Basic.constant(0)), INT64), axes, keepDims)
     }
   }
 
@@ -1267,8 +1267,8 @@ object Math {
       val yShape = Basic.shape(y)
       val (rx, ry) = broadcastGradientArguments(xShape, yShape)
       val outputGradient = outputGradients.head
-      val gradientX = Basic.reshape(reduceSum(outputGradient, rx), xShape)
-      val gradientY = -Basic.reshape(reduceSum(outputGradient, ry), yShape)
+      val gradientX = Basic.reshape(sum(outputGradient, rx), xShape)
+      val gradientY = -Basic.reshape(sum(outputGradient, ry), yShape)
       Seq(gradientX, gradientY)
     }
 

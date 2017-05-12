@@ -2,7 +2,7 @@ package org.platanios.tensorflow.examples
 
 import com.typesafe.scalalogging.Logger
 import org.platanios.tensorflow.api._
-import org.platanios.tensorflow.api.ops.Math.{matMul, reduceSum, square}
+import org.platanios.tensorflow.api.ops.Math.{matMul, sum, square}
 import org.slf4j.LoggerFactory
 
 import scala.collection.mutable.ArrayBuffer
@@ -20,14 +20,13 @@ object LinearRegression {
   def main(args: Array[String]): Unit = {
     logger.info("Building linear regression model.")
     val graph = Graph()
-    val (inputs, outputs, weights, loss, trainOp) = tf.Op.createWith(graph) {
+    val (inputs, outputs, weights, loss, trainOp) = tf.createWith(graph) {
       val optimizer = tf.train.GradientDescent(0.0001)
       val inputs = tf.placeholder(tf.FLOAT32, Shape(-1, 1))
       val outputs = tf.placeholder(tf.FLOAT32, Shape(-1, 1))
-      val initialWeights = tf.Tensor.fill(tf.FLOAT32, Shape(1, 1))(0.0f)
-      val weights = tf.Variable(tf.Variable.ConstantInitializer(initialWeights), Shape(1, 1), tf.FLOAT32)
+      val weights = tf.Variable(tf.zerosInitializer, Shape(1, 1), tf.FLOAT32)
       val predictions = matMul(inputs, weights)
-      val loss = reduceSum(square(predictions - outputs))
+      val loss = sum(square(predictions - outputs))
       val trainOp = optimizer.minimize(loss)
       (inputs, outputs, weights, loss, trainOp)
     }

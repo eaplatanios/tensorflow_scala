@@ -420,7 +420,7 @@ object Basic {
   def sparseSize(
       input: Op.SparseOutput, dataType: DataType = INT32, name: String = "SparseSize"): Op.Output = {
     Op.createWith(nameScope = name) {
-      Math.reduceProd(Math.cast(input.denseShape, dataType), Array(0))
+      Math.product(Math.cast(input.denseShape, dataType), Array(0))
     }
   }
 
