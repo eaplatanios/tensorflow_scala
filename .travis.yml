@@ -17,4 +17,5 @@ before_install:
   - sudo dpkg -i bazel_0.4.4-linux-x86_64.deb
   - cd tensorflow_library
   - bazel build --config=opt //tensorflow:libtensorflow.so
+  - echo $'build:opt --cxxopt=-march=native --copt=-march=native\nbuild --action_env TF_NEED_CUDA="0"\nbuild --action_env TF_NEED_OPENCL="0"' > .tf_configure.bazelrc
   - cp bazel-bin/tensorflow/libtensorflow.so lib/libtensorflow.so
