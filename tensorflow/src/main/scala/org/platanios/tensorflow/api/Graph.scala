@@ -167,24 +167,66 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable {
     collections -= key
   }
 
-  // TODO: [DOC] [GRAPH]
-
+  /** Returns the set of global variables in this graph.
+    *
+    * Global variables are variables that are shared across machines in a distributed environment. The `Variable()`
+    * constructor and the function `getVariable()` automatically add new variables to the graph collection with key
+    * `Graph.Keys.GLOBAL_VARIABLES`. This convenience function returns the contents of that collection.
+    *
+    * An alternative to global variables are local variables.
+    *
+    * @return Set of global variables in this graph.
+    */
   def globalVariables: Set[Variable] = {
     getCollection(Graph.Keys.GLOBAL_VARIABLES).map(_.asInstanceOf[Variable])
   }
 
+  /** Returns the set of local variables in this graph.
+    *
+    * Local variables (or per-process variables), are usually not saved/restored to/from checkpoints and are used for
+    * temporary or intermediate values. For example, they can be used as counters for metrics computations or number of
+    * epochs this machine has read data. This convenience function returns the contents of that collection.
+    *
+    * An alternative to local variables are global variables.
+    *
+    * @return Set of local variables in this graph.
+    */
   def localVariables: Set[Variable] = {
     getCollection(Graph.Keys.LOCAL_VARIABLES).map(_.asInstanceOf[Variable])
   }
 
+  /** Returns the subset of `Variable` objects that are used in models for inference (feed forward), in this graph.
+    *
+    * @return Set of model variables in this graph.
+    */
+  def modelVariables: Set[Variable] = {
+    getCollection(Graph.Keys.MODEL_VARIABLES).map(_.asInstanceOf[Variable])
+  }
+
+  /** Returns the set of all variables created with `trainable = true`.
+    *
+    * When passed `trainable = true`, the `Variable()` constructor automatically adds new variables to the graph
+    * collection with key `Graph.Keys.TRAINABLE_VARIABLES`. This convenience function returns the contents of that
+    * collection.
+    *
+    * @return Set of trainable variables in this graph.
+    */
   def trainableVariables: Set[Variable] = {
     getCollection(Graph.Keys.TRAINABLE_VARIABLES).map(_.asInstanceOf[Variable])
   }
 
+  /** Returns the set of all the summary `Op.Output`s that have been created in the graph.
+    *
+    * @return Set of summary op outputs in this graph.
+    */
   def summaries: Set[Op.Output] = {
     getCollection(Graph.Keys.SUMMARIES).map(_.asInstanceOf[Op.Output])
   }
 
+  /** Returns the set of all the train `Op`s (i.e., optimizer update ops) that have been created in the graph.
+    *
+    * @return Set of train ops in this graph.
+    */
   def trainOps: Set[Op] = {
     getCollection(Graph.Keys.TRAIN_OP).map(_.asInstanceOf[Op])
   }
