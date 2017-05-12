@@ -1235,7 +1235,14 @@ object Basic {
         .build().outputs(0)
   }
 
-  // TODO: Add support for the "booleanMask", the "sparseMask", and the "sequenceMask" ops.
+//  def booleanMask(input: Op.Output, mask: Op.Output, name: String = "BooleanMask"): Op.Output = {
+//    private def applyMask1D(reshapedTensor: Op.Output, mask: Op.Output): Op.Output = {
+//      val indices = squeeze(where(mask), axes = Array(1))
+//      gather(reshapedTensor, indices)
+//    }
+//  }
+
+  // TODO: [OPS] Add support for the "sparseMask", and the "sequenceMask" ops.
 
   /** Creates an op that finds unique elements in a one-dimensional tensor.
     *
@@ -1329,8 +1336,125 @@ object Basic {
 
   //region Slice Ops
 
-  // TODO: Add support for the "gather" and "gatherND" ops.
-  // TODO: Add support for the "scatterND" op.
+  /** Creates an op that gathers slices from `input` according to `indices`.
+    *
+    * `indices` must be an integer tensor of any dimension (usually 0-D or 1-D). The op produces an output tensor with
+    * shape `indices.shape + params.shape(1::)`, where:
+    * {{{
+    *   // Scalar indices
+    *   output(::, ---) = input(indices, ::, ---)
+    *
+    *   // Vector indices
+    *   output(i, ::, ---) = input(indices(i), ::, ---)
+    *
+    *   // Higher rank indices
+    *   output(i, ..., j, ::, ---) = input(indices(i, ..., j), ::, ---)
+    * }}}
+    *
+    * If `indices` is a permutation and `indices.length == input.shape(0)`, then this op will permute `input`
+    * accordingly.
+    *
+    * @param  input   Tensor from which to gather values.
+    * @param  indices Tensor containing indices to gather.
+    * @param  name    Name for the created op.
+    * @return Created op output.
+    */
+  def gather(input: Op.Output, indices: Op.Output, name: String = "Gather"): Op.Output = {
+    Op.Builder(opType = "Gather", name = name)
+        .addInput(input)
+        .addInput(indices)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that gathers values or slices from `input` according to `indices`.
+    *
+    * `indices` is an integer tensor containing indices into `input`.  The last dimension of `indices` can be equal to
+    * at most the rank of `input`, `indices.shape(-1) <= input.rank`. The last dimension of `indices` corresponds to
+    * elements (if `indices.shape(-1) == input.rank`), or slices (if `indices.shape(-1) < input.rank`) along dimension
+    * `indices.shape(-1)` of `input`. The output has shape `indices.shape(::-1) + input.shape(indices.shape(-1)::)`.
+    *
+    * Some examples follow.
+    *
+    * Simple indexing into a matrix:
+    * {{{
+    *   input = [['a', 'b'], ['c', 'd']]
+    *   indices = [[0, 0], [1, 1]]
+    *   output = ['a', 'd']
+    * }}}
+    *
+    * Slice indexing into a matrix:
+    * {{{
+    *   input = [['a', 'b'], ['c', 'd']]
+    *   indices = [[1], [0]]
+    *   output = [['c', 'd'], ['a', 'b']]
+    * }}}
+    *
+    * Indexing into a three-dimensional tensor:
+    * {{{
+    *   input = [[['a0', 'b0'], ['c0', 'd0']],
+    *            [['a1', 'b1'], ['c1', 'd1']]]
+    *   indices = [[1]]
+    *   output = [[['a1', 'b1'], ['c1', 'd1']]]
+    *
+    *   input = [[['a0', 'b0'], ['c0', 'd0']],
+    *            [['a1', 'b1'], ['c1', 'd1']]]
+    *   indices = [[0, 1], [1, 0]]
+    *   output = [['c0', 'd0'], ['a1', 'b1']]
+    *
+    *   input = [[['a0', 'b0'], ['c0', 'd0']],
+    *            [['a1', 'b1'], ['c1', 'd1']]]
+    *   indices = [[0, 0, 1], [1, 0, 1]]
+    *   output = ['b0', 'b1']
+    * }}}
+    *
+    * Batched indexing into a matrix:
+    * {{{
+    *   input = [['a', 'b'], ['c', 'd']]
+    *   indices = [[[0, 0]], [[0, 1]]]
+    *   output = [['a'], ['b']]
+    * }}}
+    *
+    * Batched slice indexing into a matrix:
+    * {{{
+    *   input = [['a', 'b'], ['c', 'd']]
+    *   indices = [[[1]], [[0]]]
+    *   output = [[['c', 'd']], [['a', 'b']]]
+    * }}}
+    *
+    * Batched indexing into a three-dimensional tensor:
+    * {{{
+    *   input = [[['a0', 'b0'], ['c0', 'd0']],
+    *            [['a1', 'b1'], ['c1', 'd1']]]
+    *   indices = [[[1]], [[0]]]
+    *   output = [[[['a1', 'b1'], ['c1', 'd1']]],
+    *             [[['a0', 'b0'], ['c0', 'd0']]]]
+    *
+    *   input = [[['a0', 'b0'], ['c0', 'd0']],
+    *            [['a1', 'b1'], ['c1', 'd1']]]
+    *   indices = [[[0, 1], [1, 0]], [[0, 0], [1, 1]]]
+    *   output = [[['c0', 'd0'], ['a1', 'b1']],
+    *             [['a0', 'b0'], ['c1', 'd1']]]
+    *
+    *   input = [[['a0', 'b0'], ['c0', 'd0']],
+    *            [['a1', 'b1'], ['c1', 'd1']]]
+    *   indices = [[[0, 0, 1], [1, 0, 1]], [[0, 1, 1], [1, 1, 0]]]
+    *   output = [['b0', 'b1'], ['d0', 'c1']]
+    * }}}
+    *
+    * @param  input   Tensor from which to gather values.
+    * @param  indices Tensor containing indices to gather.
+    * @param  name
+    * @return Created op output that contains the values from `input` gathered from indices given by `indices`, with
+    *         shape `indices.shape(::-1) + input.shape(indices.shape(-1)::)`.
+    */
+  def gatherND(input: Op.Output, indices: Op.Output, name: String = "GatherND"): Op.Output = {
+    Op.Builder(opType = "GatherNd", name = name)
+        .addInput(input)
+        .addInput(indices)
+        .build().outputs(0)
+  }
+
+  // TODO: [OPS] Add support for the "scatterND" op.
 
   /** Creates an op that returns a slice from `input`.
     *
