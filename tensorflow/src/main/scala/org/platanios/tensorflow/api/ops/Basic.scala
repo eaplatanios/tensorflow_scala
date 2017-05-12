@@ -82,7 +82,7 @@ object Basic {
     */
   def zeros(shape: Shape, dataType: DataType = FLOAT32, name: String = "Zeros"): Op.Output = {
     dataType match {
-      case BOOLEAN => constant(Tensor.fill(BOOLEAN, shape)(true), name = name)
+      case BOOLEAN => constant(Tensor.fill(BOOLEAN, shape)(false), name = name)
       case STRING => constant(Tensor.fill(STRING, shape)(""), name = name)
       case _ => constant(Tensor.fill(dataType, shape)(0), name = name)
     }
