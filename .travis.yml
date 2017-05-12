@@ -1,6 +1,7 @@
 language: scala
-scala:
-  - 2.12.1
+scala: 2.12.1
+
+jdk: oraclejdk8
 
 os: osx
 osx_image: xcode8
