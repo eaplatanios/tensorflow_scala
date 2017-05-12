@@ -5,10 +5,12 @@ import org.platanios.tensorflow.api.ops.{Basic, Math}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.tf.{Op, Variable}
 import org.platanios.tensorflow.jni.{Graph => NativeGraph}
+
 import org.tensorflow.framework.{GraphDef, NodeDef}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
+import scala.language.postfixOps
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -287,7 +289,7 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable {
         // Get a one-dimensional boolean tensor listing whether each variable is initialized.
         val variablesMask = Math.logicalNot(Basic.stack(variables.map(_.isInitialized).toArray))
         // Get a one-dimensional string tensor containing all the variable names.
-        val variableNames = Basic.constant(Tensor.fromSeq(variables.map(_.op.name)))
+        val variableNames = Basic.constant(Tensor(variables.map(v => Tensor(tf.STRING, v.op.name)).toSeq: _*))
         // Return a one-dimensional tensor containing the names of all uninitialized variables.
         Basic.booleanMask(variableNames, variablesMask)
       }
