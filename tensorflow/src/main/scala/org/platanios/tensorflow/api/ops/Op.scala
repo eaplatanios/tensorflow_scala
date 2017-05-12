@@ -901,8 +901,14 @@ object Op {
     override def toString: String = s"Op.Input(name = $name, dataType = $dataType)"
   }
 
+  /** Helper trait for tagging output convertible objects so that implicit conversions to op outputs can be used. */
+  trait OutputConvertible {
+    /** Returns the [[Op.Output]] that this [[Op.OutputConvertible]] object represents. */
+    def toOpOutput: Op.Output
+  }
+
   /** Trait representing outputs of an `Op`'s computation. */
-  sealed trait OutputLike {
+  sealed trait OutputLike extends OutputConvertible {
     /** Graph where the op belongs. */
     def graph: Graph
 
@@ -920,9 +926,6 @@ object Op {
 
     /** Consumers of this op output (i.e., ops that use this op output as one of their inputs). */
     def consumers: Array[Op.Input]
-
-    /** Returns the [[Op.Output]] that this [[Op.OutputLike]] object represents. */
-    def toOpOutput: Op.Output
 
     /** Returns an [[Op.OutputIndexedSlices]] that has the same value as this [[Op.OutputLike]].
       *
@@ -1648,8 +1651,6 @@ object Op {
     implicit def scalaArrayToOpOutput(value: Array[Long]): Op.Output = ops.Basic.constant(scalaArrayToTensor(value))
     implicit def scalaArrayToOpOutput(value: Array[UShort]): Op.Output = ops.Basic.constant(scalaArrayToTensor(value))
 
-    implicit def tensorToOpOutput(tensor: Tensor): Op.Output = ops.Basic.constant(tensor)
-    implicit def opOutputLikeToOpOutput(outputLike: OutputLike): Op.Output = outputLike.toOpOutput
-    implicit def variableToOpOutput(variable: Variable): Op.Output = variable.toOpOutput
+    implicit def opOutputConvertibleToOpOutput(value: OutputConvertible): Op.Output = value.toOpOutput
   }
 }

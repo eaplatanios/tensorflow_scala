@@ -18,7 +18,7 @@ import spire.math.UShort
 /**
   * @author Emmanouil Antonios Platanios
   */
-trait Tensor {
+trait Tensor extends Op.OutputConvertible {
   val dataType: DataType
   val shape   : Shape
   val buffer  : ByteBuffer
@@ -149,6 +149,8 @@ trait Tensor {
 
   def asNumeric: NumericTensor
   def asRealNumeric: RealNumericTensor
+
+  override def toOpOutput: Op.Output = ops.Basic.constant(this)
 }
 
 object Tensor {
