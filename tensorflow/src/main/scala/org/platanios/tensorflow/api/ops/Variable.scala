@@ -437,21 +437,21 @@ object Variable {
   }
 
   /** Initializer that sets all elements of the variable tensor to zeros. */
-  object ZerosInitializer extends Initializer {
+  private[api] object ZerosInitializer extends Initializer {
     override def initialValue(shape: Shape, dataType: DataType, partitionInfo: PartitionInfo): Op.Output = {
       Basic.zeros(shape, dataType)
     }
   }
 
   /** Initializer that sets all elements of the variable tensor to ones. */
-  object OnesInitializer extends Initializer {
+  private[api] object OnesInitializer extends Initializer {
     override def initialValue(shape: Shape, dataType: DataType, partitionInfo: PartitionInfo): Op.Output = {
       Basic.ones(shape, dataType)
     }
   }
 
   /** Initializer that sets the value of the variable to the provided `value`. */
-  case class ConstantInitializer(value: Tensor) extends Initializer {
+  private[api] case class ConstantInitializer(value: Tensor) extends Initializer {
     override def initialValue(shape: Shape, dataType: DataType, partitionInfo: PartitionInfo): Op.Output = {
       Basic.constant(value, dataType, shape)
     }

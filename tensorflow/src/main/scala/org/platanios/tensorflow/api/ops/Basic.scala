@@ -39,14 +39,19 @@ object Basic {
     val inferredShape = if (shape == null) tensor.shape else shape
     val constantTensor = {
       if (inferredDataType != tensor.dataType || inferredShape != tensor.shape) {
-        if (inferredShape.numElements.get != tensor.shape.numElements.get)
-          throw InvalidShapeException(
-            s"Shape '${tensor.shape}' tensor is not valid for shape '$inferredShape' constant op creation.")
-        val t = Tensor.allocate(inferredDataType, inferredShape, order = RowMajorOrder)
-        for ((thisIndex, tensorIndex) <- t.flattenedIndexIterator zip tensor.flattenedIndexIterator)
-          t.setElementAtFlattenedIndex(
-            thisIndex, tensor.getElementAtFlattenedIndex(tensorIndex))(tensor.dataType.supportedType)
-        t
+        // TODO: !!! Add support for reshaping tensor.
+        if (tensor.numElements == 1) {
+          Tensor.fill(inferredDataType, inferredShape)(tensor.scalar)(tensor.dataType.supportedType)
+        } else {
+          if (inferredShape.numElements.get != tensor.shape.numElements.get)
+            throw InvalidShapeException(
+              s"Shape '${tensor.shape}' tensor is not valid for shape '$inferredShape' constant op creation.")
+          val t = Tensor.allocate(inferredDataType, inferredShape, order = RowMajorOrder)
+          for ((thisIndex, tensorIndex) <- t.flattenedIndexIterator zip tensor.flattenedIndexIterator)
+            t.setElementAtFlattenedIndex(
+              thisIndex, tensor.getElementAtFlattenedIndex(tensorIndex))(tensor.dataType.supportedType)
+          t
+        }
       } else {
         tensor
       }

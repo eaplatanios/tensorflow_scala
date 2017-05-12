@@ -95,10 +95,17 @@ package object api extends Implicits {
 
     //endregion Basic Ops
 
-    //endregion Op Construction Aliases
+    //region Variables
 
     type Variable = ops.Variable
     val Variable = ops.Variable
+
+    val zerosInitializer = ops.Variable.ZerosInitializer
+    val onesInitializer = ops.Variable.OnesInitializer
+
+    def constantInitializer(value: Tensor) = ops.Variable.ConstantInitializer(value)
+
+    //endregion Variables
 
     val Gradients         = ops.Gradients
     val GradientsRegistry = ops.Gradients.Registry
@@ -110,6 +117,8 @@ package object api extends Implicits {
       type GradientDescent = ops.optimizers.GradientDescent
       val GradientDescent = ops.optimizers.GradientDescent
     }
+
+    //endregion Op Construction Aliases
   }
 
   private[api] val DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER = tensors.RowMajorOrder
