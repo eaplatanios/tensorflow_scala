@@ -2,7 +2,20 @@ language: scala
 scala:
   - 2.12.1
 
+dist: trusty
+
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - wget
+      - pkg-config
+
 before_install:
+  - wget https://github.com/bazelbuild/bazel/releases/download/0.4.4/bazel_0.4.4-linux-x86_64.deb
+  - sha256sum -c tools/bazel_0.4.4-linux-x86_64.deb.sha256
+  - sudo dpkg -i bazel_0.4.4-linux-x86_64.deb
   - cd tensorflow_library
-  - bazel build --config=opt //tensorflow:libtensorflow.so
-  - cp bazel-bin/tensorflow/libtensorflow.so /usr/local/lib/libtensorflow.so
+  - bin/bazel build --config=opt //tensorflow:libtensorflow.so
+  - cp bazel-bin/tensorflow/libtensorflow.so lib/libtensorflow.so
