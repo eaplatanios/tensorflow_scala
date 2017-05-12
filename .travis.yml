@@ -2,15 +2,7 @@ language: scala
 scala:
   - 2.12.1
 
-dist: trusty
-
-addons:
-  apt:
-    sources:
-      - ubuntu-toolchain-r-test
-    packages:
-      - wget
-      - pkg-config
+os: osx
 
 before_install:
   - wget https://www.dropbox.com/s/zedd75zvay31x6o/libtensorflow.so
