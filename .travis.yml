@@ -3,6 +3,7 @@ scala:
   - 2.12.1
 
 os: osx
+osx_image: xcode8
 
 before_install:
   - wget https://www.dropbox.com/s/zedd75zvay31x6o/libtensorflow.so
