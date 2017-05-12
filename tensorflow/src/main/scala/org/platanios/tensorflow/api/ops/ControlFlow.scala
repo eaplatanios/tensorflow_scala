@@ -17,7 +17,7 @@ object ControlFlow {
     * @param  name         Name for the created op (used mainly as a name scope).
     * @return Created op output.
     */
-  def withControlDependencies[T <: Op.OutputLike](
+  private[api] def withControlDependencies[T <: Op.OutputLike](
       dependencies: Set[Op], input: T, name: String = "WithControlDependencies"): T = {
     Op.createWithNameScope(name, dependencies + input.op) {
       Op.colocateWith(Set[Op](input.op)) {

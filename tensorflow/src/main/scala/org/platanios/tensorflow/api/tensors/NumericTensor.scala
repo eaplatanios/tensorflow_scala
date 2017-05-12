@@ -1,6 +1,7 @@
 package org.platanios.tensorflow.api.tensors
 
 import org.platanios.tensorflow.api._
+import org.platanios.tensorflow.api.tf.{NumericDataType, RealNumericDataType}
 import java.nio.{ByteBuffer, ByteOrder}
 
 import spire.implicits._
@@ -36,24 +37,25 @@ class RealNumericTensor private[tensors] (
     RealNumericTensor.Equality(this, tolerance)
   }
 
-  def ===(that: RealNumericTensor.Equality): Boolean = {
-    if (this.shape != that.tensor.shape) {
-      false
-    } else if (this.dataType != that.tensor.dataType) {
-      false // TODO: Do we want this?
-    } else {
-      this.entriesIterator.zip(that.tensor.entriesIterator).forall(p => {
-        // TODO: This is very ugly.
-        import this.dataType.supportedType
-        val v1 = p._1
-        val v2 = p._2.asInstanceOf[this.dataType.ScalaType]
-        val tol = this.dataType.cast(that.tolerance)
-        v1 <= (v2 + tol) && v1 >= (v2 - tol)
-      })
-    }
+  override def equals(that: Any): Boolean = that match {
+    case that: RealNumericTensor.Equality =>
+      if (this.shape != that.tensor.shape) {
+        false
+      } else if (this.dataType != that.tensor.dataType) {
+        false // TODO: Do we want this?
+      } else {
+        this.entriesIterator.zip(that.tensor.entriesIterator).forall(p => {
+          // TODO: This is very ugly.
+          import this.dataType.supportedType
+          val v1 = p._1
+          val v2 = p._2.asInstanceOf[this.dataType.ScalaType]
+          val tol = this.dataType.cast(that.tolerance)
+          v1 <= (v2 + tol) && v1 >= (v2 - tol)
+        })
+      }
+    case that: Tensor => super.equals(that)
+    case _ => false
   }
-
-  def =!=(that: RealNumericTensor.Equality): Boolean = !(this === that)
 
   override def asNumeric: NumericTensor = this
   override def asRealNumeric: RealNumericTensor = this

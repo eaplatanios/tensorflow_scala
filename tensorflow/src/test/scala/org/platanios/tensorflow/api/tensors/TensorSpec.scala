@@ -12,28 +12,28 @@ import scala.language.postfixOps
 class TensorSpec extends FlatSpec with Matchers {
   "'Tensor.create'" must "create a valid numeric tensors when provided no data type or shape" in {
     val tensor1: Tensor = -2
-    assert(tensor1.dataType === TFInt32)
+    assert(tensor1.dataType === tf.INT32)
     assert(tensor1.shape === Shape())
     assert(tensor1(0).scalar === -2)
     val tensor2 = Tensor(Tensor(Tensor(2, 3), Tensor(0, 0), Tensor(5, 7)),
                          Tensor(Tensor(1, 23), Tensor(4, -5), Tensor(7, 9)),
                          Tensor(Tensor(56, 1), Tensor(-2, -4), Tensor(-7, -9)))
-    assert(tensor2.dataType === TFInt32)
+    assert(tensor2.dataType === tf.INT32)
     assert(tensor2.shape === Shape(3, 3, 2))
     assert(tensor2(1, 1, 1).scalar === -5)
     val tensor3 = Tensor(Tensor(Tensor(2.0, 3.0), Tensor(0.0, 0.0), Tensor(5.0, 7.0)),
                          Tensor(Tensor(1.0, 23.0), Tensor(4.0, -5.0), Tensor(7.0, 9.0)),
                          Tensor(Tensor(56.0, 1.0), Tensor(-2.0, -4.0), Tensor(-7.0, -9.0)))
-    assert(tensor3.dataType === TFFloat64)
+    assert(tensor3.dataType === tf.FLOAT64)
     assert(tensor3.shape === Shape(3, 3, 2))
     assert(tensor3(1, 1, 1).scalar === -5.0)
     val tensor4: Tensor = Tensor(5, 6.0)
-    assert(tensor4.dataType === TFFloat64)
+    assert(tensor4.dataType === tf.FLOAT64)
     assert(tensor4.shape === Shape(2))
     assert(tensor4(0).scalar === 5.0)
     assert(tensor4(1).scalar === 6.0)
     val tensor5: Tensor = "foo"
-    assert(tensor5.dataType === TFString)
+    assert(tensor5.dataType === tf.STRING)
     assert(tensor5.shape === Shape())
     assert(tensor5(0).scalar === "foo")
     // val tensor6: Tensor = Tensor("foo", "bar")
@@ -62,7 +62,7 @@ class TensorSpec extends FlatSpec with Matchers {
 
   it must "create a valid string tensors when provided no data type or shape" in {
     val tensor1: Tensor = "foo"
-    assert(tensor1.dataType === TFString)
+    assert(tensor1.dataType === tf.STRING)
     assert(tensor1.shape === Shape())
     assert(tensor1(0).scalar === "foo")
     // val tensor2: Tensor = Tensor("foo", "bar")
@@ -95,7 +95,7 @@ class TensorSpec extends FlatSpec with Matchers {
 
   "'Tensor.update'" must "work for arbitrary indexing sequences" in {
     val tensor1: Tensor = -2
-    assert(tensor1.dataType === TFInt32)
+    assert(tensor1.dataType === tf.INT32)
     assert(tensor1.shape === Shape())
     assert(tensor1(0).scalar === -2)
     tensor1(0).set(-5)
@@ -103,7 +103,7 @@ class TensorSpec extends FlatSpec with Matchers {
     val tensor2 = Tensor(Tensor(Tensor(2, 3), Tensor(0, 0), Tensor(5, 7)),
                          Tensor(Tensor(1, 23), Tensor(4, -5), Tensor(7, 9)),
                          Tensor(Tensor(56, 1), Tensor(-2, -4), Tensor(-7, -9)))
-    assert(tensor2.dataType === TFInt32)
+    assert(tensor2.dataType === tf.INT32)
     assert(tensor2.shape === Shape(3, 3, 2))
     assert(tensor2(1, 1, 1).scalar === -5)
     tensor2(Seq[Indexer](0, 0, ::)) = Tensor(-4, -9)(NewAxis, NewAxis, ::)

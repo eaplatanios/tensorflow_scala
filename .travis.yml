@@ -1,3 +1,8 @@
 language: scala
 scala:
-    - 2.12.1
+  - 2.12.1
+
+before_install:
+  - cd tensorflow_library
+  - bazel build --config=opt //tensorflow:libtensorflow.so
+  - cp bazel-bin/tensorflow/libtensorflow.so /usr/local/lib/libtensorflow.so

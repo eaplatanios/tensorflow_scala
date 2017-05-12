@@ -1,5 +1,6 @@
 package org.platanios.tensorflow.api
 
+import org.platanios.tensorflow.api.tf.Op
 import org.platanios.tensorflow.api.Indexer.{Implicits => IndexerImplicits}
 import org.platanios.tensorflow.api.Shape.{Implicits => ShapeImplicits}
 import org.platanios.tensorflow.api.ops.OpSpecification

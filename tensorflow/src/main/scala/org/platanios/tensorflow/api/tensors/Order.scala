@@ -6,14 +6,15 @@ import scala.annotation.tailrec
   * @author Emmanouil Antonios Platanios
   */
 sealed trait Order {
-  def index(dimensions: Array[Int], indices: Array[Int]): Int
-  def index(dimensions: Array[Int], starts: Array[Int], strides: Array[Int], indices: Array[Int]): Int
-  def indexIterator(dimensions: Array[Int]): Iterator[Int]
-  def indexIterator(dimensions: Array[Int], starts: Array[Int], ends: Array[Int], strides: Array[Int]): Iterator[Int]
+  private[api] def index(dimensions: Array[Int], indices: Array[Int]): Int
+  private[api] def index(dimensions: Array[Int], starts: Array[Int], strides: Array[Int], indices: Array[Int]): Int
+  private[api] def indexIterator(dimensions: Array[Int]): Iterator[Int]
+  private[api] def indexIterator(
+      dimensions: Array[Int], starts: Array[Int], ends: Array[Int], strides: Array[Int]): Iterator[Int]
 }
 
 object RowMajorOrder extends Order {
-  override def index(dimensions: Array[Int], indices: Array[Int]): Int = {
+  override private[api] def index(dimensions: Array[Int], indices: Array[Int]): Int = {
     var index: Int = 0
     var dimension: Int = 0
     while (dimension < dimensions.length) {
@@ -29,7 +30,8 @@ object RowMajorOrder extends Order {
     index
   }
 
-  override def index(dimensions: Array[Int], starts: Array[Int], strides: Array[Int], indices: Array[Int]): Int = {
+  override private[api] def index(
+      dimensions: Array[Int], starts: Array[Int], strides: Array[Int], indices: Array[Int]): Int = {
     var index: Int = 0
     var dimension: Int = 0
     while (dimension < dimensions.length) {
@@ -45,7 +47,7 @@ object RowMajorOrder extends Order {
     index
   }
 
-  override def indexIterator(dimensions: Array[Int]): Iterator[Int] = {
+  override private[api] def indexIterator(dimensions: Array[Int]): Iterator[Int] = {
     if (dimensions.length > 0) {
       new Iterator[Int] {
         private val numElements: Int = dimensions.product
@@ -68,7 +70,7 @@ object RowMajorOrder extends Order {
     }
   }
 
-  override def indexIterator(
+  override private[api] def indexIterator(
       dimensions: Array[Int], starts: Array[Int], ends: Array[Int], strides: Array[Int]): Iterator[Int] = {
     if (dimensions.length > 0) {
       new Iterator[Int] {

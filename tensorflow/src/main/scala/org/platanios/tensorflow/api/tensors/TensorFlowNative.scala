@@ -1,19 +1,21 @@
 package org.platanios.tensorflow.api.tensors
 
-import java.nio.ByteOrder
-
-import org.platanios.tensorflow.api._
+import org.platanios.tensorflow.api.{Closeable, Shape}
 import org.platanios.tensorflow.api.Exception.InvalidDataTypeException
+import org.platanios.tensorflow.api.tf._
+import org.platanios.tensorflow.api.utilities.Disposer
 import org.platanios.tensorflow.jni.{Tensor => NativeTensor}
+
+import java.nio.ByteOrder
 
 /**
   * @author Emmanouil Antonios Platanios
   */
-object TensorFlowNative {
+private[api] object TensorFlowNative {
   private[api] class DataTypeOps(val dataType: DataType) extends AnyVal {
     private[api] def tensorFromTFNativeHandle(nativeHandle: Long): Tensor = {
       val tensor = dataType match {
-        case TFString =>
+        case STRING =>
           new StringTensor(
             shape = Shape.fromSeq(NativeTensor.shape(nativeHandle).map(_.toInt)),
             buffer = NativeTensor.buffer(nativeHandle).order(ByteOrder.nativeOrder),
@@ -53,7 +55,6 @@ object TensorFlowNative {
   }
 
   private[api] class NativeViewOps(tensor: Tensor) {
-    // TODO: This will sometimes copy sometimes not (e.g., for TensorSlice, the data are copied -- non-contiguous).
     private[api] def nativeView: NativeView = {
       if (tensor.order != RowMajorOrder)
         throw new IllegalArgumentException("Only row-major tensors can be used in the TensorFlow native library.")
@@ -63,10 +64,8 @@ object TensorFlowNative {
     }
   }
 
-  trait Implicits {
+  private[api] trait Implicits {
     private[api] implicit def dataTypeOps(dataType: DataType): DataTypeOps = new DataTypeOps(dataType)
-
-    // TODO: !!! What about the TensorSlice native view? It needs to make a copy.
     private[api] implicit def nativeViewOps(tensor: Tensor): NativeViewOps = new NativeViewOps(tensor)
   }
 }

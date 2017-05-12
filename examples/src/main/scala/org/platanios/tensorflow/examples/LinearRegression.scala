@@ -2,9 +2,7 @@ package org.platanios.tensorflow.examples
 
 import com.typesafe.scalalogging.Logger
 import org.platanios.tensorflow.api._
-import org.platanios.tensorflow.api.ops.Basic.placeholder
 import org.platanios.tensorflow.api.ops.Math.{matMul, reduceSum, square}
-import org.platanios.tensorflow.api.ops.optimizers.GradientDescent
 import org.slf4j.LoggerFactory
 
 import scala.collection.mutable.ArrayBuffer
@@ -22,12 +20,12 @@ object LinearRegression {
   def main(args: Array[String]): Unit = {
     logger.info("Building linear regression model.")
     val graph = Graph()
-    val (inputs, outputs, weights, loss, trainOp) = Op.createWith(graph) {
-      val optimizer = GradientDescent(0.0001)
-      val inputs = placeholder(TFFloat32, Shape(-1, 1))
-      val outputs = placeholder(TFFloat32, Shape(-1, 1))
-      val initialWeights = Tensor.fill(TFFloat32, Shape(1, 1))(0.0f)
-      val weights = Variable(Variable.ConstantInitializer(initialWeights), Shape(1, 1), TFFloat32)
+    val (inputs, outputs, weights, loss, trainOp) = tf.Op.createWith(graph) {
+      val optimizer = tf.train.GradientDescent(0.0001)
+      val inputs = tf.placeholder(tf.FLOAT32, Shape(-1, 1))
+      val outputs = tf.placeholder(tf.FLOAT32, Shape(-1, 1))
+      val initialWeights = tf.Tensor.fill(tf.FLOAT32, Shape(1, 1))(0.0f)
+      val weights = tf.Variable(tf.Variable.ConstantInitializer(initialWeights), Shape(1, 1), tf.FLOAT32)
       val predictions = matMul(inputs, weights)
       val loss = reduceSum(square(predictions - outputs))
       val trainOp = optimizer.minimize(loss)
@@ -36,14 +34,14 @@ object LinearRegression {
 
     logger.info("Training the linear regression model.")
     val session = Session(graph)
-    session.run(targets = Array(Variable.initializer(graph.trainableVariables)))
+    session.run(targets = Array(tf.Variable.initializer(graph.trainableVariables)))
     for (i <- 0 to 50) {
       val trainBatch = batch(10000)
-      val feeds = Map[Op.Output, Tensor](
+      val feeds = Map[tf.Op.Output, tf.Tensor](
         inputs -> trainBatch._1,
         outputs -> trainBatch._2)
-      val fetches = Array[Op.Output](loss)
-      val targets = Array[Op](trainOp)
+      val fetches = Array[tf.Op.Output](loss)
+      val targets = Array[tf.Op](trainOp)
       val trainLoss = session.run(feeds, fetches, targets)(0)
       if (i % 1 == 0)
         logger.info(s"Train loss at iteration $i = ${trainLoss.scalar} " +
@@ -54,7 +52,7 @@ object LinearRegression {
     logger.info(s"True weight value: $weight")
   }
 
-  def batch(batchSize: Int): (Tensor, Tensor) = {
+  def batch(batchSize: Int): (tf.Tensor, tf.Tensor) = {
     val inputs = ArrayBuffer.empty[Float]
     val outputs = ArrayBuffer.empty[Float]
     var i = 0
@@ -64,6 +62,6 @@ object LinearRegression {
       outputs += weight * input
       i += 1
     }
-    (Tensor(inputs.map(Tensor(_)): _*), Tensor(outputs.map(Tensor(_)): _*))
+    (tf.Tensor(inputs.map(tf.Tensor(_)): _*), tf.Tensor(outputs.map(tf.Tensor(_)): _*))
   }
 }

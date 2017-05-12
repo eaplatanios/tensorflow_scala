@@ -4,6 +4,8 @@ import java.nio.ByteBuffer
 
 import org.platanios.tensorflow.api.Exception.InvalidDataTypeException
 import org.platanios.tensorflow.api._
+import org.platanios.tensorflow.api.tf.{DataType, INT64, STRING, SupportedType}
+
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -12,13 +14,13 @@ class StringTensor private[tensors] (
     override val shape: Shape, override val buffer: ByteBuffer,
     override val order: Order = DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER)
     extends Tensor {
-  override val dataType: DataType = TFString
+  override val dataType: DataType = STRING
 
   override private[api] def setElementAtFlattenedIndex[T](
       index: Int, value: T)(implicit evidence: SupportedType[T]): this.type = ???
 
   override private[api] def getElementAtFlattenedIndex(index: Int): dataType.ScalaType = {
-    val offset = TFInt64.byteSize * numElements + TFInt64.getElementFromBuffer(buffer, index * TFInt64.byteSize).toInt
+    val offset = INT64.byteSize * numElements + INT64.getElementFromBuffer(buffer, index * INT64.byteSize).toInt
     dataType.getElementFromBuffer(buffer, offset)
   }
 

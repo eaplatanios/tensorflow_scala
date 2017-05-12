@@ -14,7 +14,7 @@ import org.scalatest._
 class OpSpec extends FlatSpec with Matchers {
   "'Op.Output.setShape'" must "always work" in {
     createWith(graph = Graph()) {
-      val a = placeholder(TFInt32, Shape(-1, -1, 3))
+      val a = placeholder(tf.INT32, Shape(-1, -1, 3))
       assert(!a.shape.isFullyDefined)
       assert(a.shape === Shape(-1, -1, 3))
       a.setShape(Shape(2, 4, 3))
@@ -444,20 +444,20 @@ class OpSpec extends FlatSpec with Matchers {
         })
   }
 
-//  "'Op.OutputIndexedSlices'" must "be convertible to 'Op.Output'" in {
-//    createWith(graph = Graph()) {
-//      val values = ArrayOps.constant(Tensor(Tensor(2, 3), Tensor(5, 7)))
-//      val indices = ArrayOps.constant(Tensor(0, 2))
-//      val denseShape = ArrayOps.constant(Tensor(3, 2))
-//      val indexedSlices = Op.OutputIndexedSlices(values, indices, denseShape)
-//      // TODO: Simplify this after we standardize our tensor interface.
-//      val resultTensor = indexedSlices.toOpOutput().value()
-//      val resultArray = Array.ofDim[Int](resultTensor.shape(0).asInstanceOf[Int],
-//                                         resultTensor.shape(1).asInstanceOf[Int])
-//      resultTensor.copyTo(resultArray)
-//      assert(resultArray === Array(Array(2, 3), Array(0, 0), Array(5, 7)))
-//    }
-//  }
+  //  "'Op.OutputIndexedSlices'" must "be convertible to 'Op.Output'" in {
+  //    createWith(graph = Graph()) {
+  //      val values = ArrayOps.constant(Tensor(Tensor(2, 3), Tensor(5, 7)))
+  //      val indices = ArrayOps.constant(Tensor(0, 2))
+  //      val denseShape = ArrayOps.constant(Tensor(3, 2))
+  //      val indexedSlices = Op.OutputIndexedSlices(values, indices, denseShape)
+  //      // TODO: Simplify this after we standardize our tensor interface.
+  //      val resultTensor = indexedSlices.toOpOutput().value()
+  //      val resultArray = Array.ofDim[Int](resultTensor.shape(0).asInstanceOf[Int],
+  //                                         resultTensor.shape(1).asInstanceOf[Int])
+  //      resultTensor.copyTo(resultArray)
+  //      assert(resultArray === Array(Array(2, 3), Array(0, 0), Array(5, 7)))
+  //    }
+  //  }
 
   //    def testToTensor(self):
   //    with self.test_session():

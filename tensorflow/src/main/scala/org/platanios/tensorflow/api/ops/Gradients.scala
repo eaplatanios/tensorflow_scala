@@ -2,6 +2,7 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.Exception.InvalidDataTypeException
+import org.platanios.tensorflow.api.tf.{DataType, FLOAT32, FLOAT64, RESOURCE}
 import org.platanios.tensorflow.jni.{Graph => NativeGraph, OpOutput => NativeOpOutput}
 
 import com.typesafe.scalalogging.Logger
@@ -98,7 +99,7 @@ object Gradients {
               logGradients(op, outputGradients, inputGradients)
               op.inputs.zip(inputGradients).filter(_._2 ne null).foreach(i => {
                 i._2 match {
-                  case gradient: Op.Output if i._1.dataType != TFResource => gradient.setShape(i._1.shape)
+                  case gradient: Op.Output if i._1.dataType != RESOURCE => gradient.setShape(i._1.shape)
                   case _ =>
                 }
                 setGradient(accumulatedGradients, i._1, i._2)
@@ -179,7 +180,7 @@ object Gradients {
   /** Returns a boolean value indicating whether the data type of `tensor` is trainable. This means whether its
     * gradients can be computed. */
   private[this] def isTrainable(tensor: Op.OutputLike): Boolean = {
-    Set[DataType](TFFloat32, TFFloat64).contains(tensor.dataType)
+    Set[DataType](FLOAT32, FLOAT64).contains(tensor.dataType)
     // TODO: !! FLOAT16, COMPLEX64, COMPLEX128.
   }
 

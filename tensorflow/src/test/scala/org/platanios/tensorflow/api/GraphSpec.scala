@@ -10,15 +10,15 @@ import org.scalatest._
   * @author Emmanouil Antonios Platanios
   */
 class GraphSpec extends FlatSpec with Matchers {
-  private[this] def prepareGraph(): (Graph, Array[Op]) = {
+  private[this] def prepareGraph(): (Graph, Array[tf.Op]) = {
     val graph = Graph()
     val ops = createWith(graph = graph) {
-      val c1 = constant(Tensor(1.0), name = "C_1")
-      val c2 = constant(Tensor(2.0), name = "C_2")
+      val c1 = constant(tf.Tensor(1.0), name = "C_1")
+      val c2 = constant(tf.Tensor(2.0), name = "C_2")
       val c3 = createWith(nameScope = "Nested") {
-        constant(Tensor(3.0), name = "C_3")
+        constant(tf.Tensor(3.0), name = "C_3")
       }
-      val c4 = constant(Tensor(4.0), name = "C_4")
+      val c4 = constant(tf.Tensor(4.0), name = "C_4")
       Array(c1.op, c2.op, c3.op, c4.op)
     }
     (graph, ops)

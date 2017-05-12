@@ -1,8 +1,8 @@
 package org.platanios.tensorflow.api
 
 import org.platanios.tensorflow.api.Exception.InvalidShapeException
+import org.platanios.tensorflow.api.tf.{DataType, INT32, Op, Tensor}
 
-// TODO: What about an Op.Output.setShape method (for the documentation)?
 /** Represents the shape of a tensor computed by an op.
   *
   * A `Shape` represents a possibly-partial shape specification for an op output. It may be one of the following:
@@ -152,7 +152,7 @@ final class Shape private (private val array: Array[Int]) {
     *                               provided value.
     */
   @throws[InvalidShapeException]
-  def withRank(rank: Int): Shape = mergeWith(Shape.unknown(rank))
+  private[api] def withRank(rank: Int): Shape = mergeWith(Shape.unknown(rank))
 
   /** Asserts that this shape is fully defined (i.e., fully known). If it is not, an [[InvalidShapeException]] exception
     * is thrown.
@@ -171,7 +171,7 @@ final class Shape private (private val array: Array[Int]) {
     * @throws InvalidShapeException If this shape has rank lower than `rank`.
     */
   @throws[InvalidShapeException]
-  def assertRankAtLeast(rank: Int): Unit = {
+  private[api] def assertRankAtLeast(rank: Int): Unit = {
     if (this.rank < rank)
       throw InvalidShapeException(s"Shape '$this' must have rank at least $rank.")
   }
@@ -182,7 +182,7 @@ final class Shape private (private val array: Array[Int]) {
     * @throws InvalidShapeException If this shape has rank higher than `rank`.
     */
   @throws[InvalidShapeException]
-  def assertRankAtMost(rank: Int): Unit = {
+  private[api] def assertRankAtMost(rank: Int): Unit = {
     if (this.rank > rank)
       throw InvalidShapeException(s"Shape '$this' must have rank at most $rank.")
   }
@@ -237,7 +237,7 @@ final class Shape private (private val array: Array[Int]) {
     * @param  dataType Data type to use for the tensor.
     * @return One-dimensional tensor representing this shape.
     */
-  def toTensor(dataType: DataType = TFInt32): Tensor = Tensor.fromSeq(dataType, asArray: _*)
+  def toTensor(dataType: DataType = INT32): Tensor = Tensor.fromSeq(dataType, asArray: _*)
 
   override def toString: String = if (array == null) "<unknown>" else s"[${array.mkString(", ").replace("-1", "?")}]"
 
@@ -299,7 +299,7 @@ object Shape {
     */
   def apply(dimensions: Int*): Shape = create(dimensions: _*)
 
-  trait Implicits {
+  private[api] trait Implicits {
     implicit def shapeToTensor(shape: Shape): Tensor = shape.toTensor()
     implicit def shapeToOpOutput(shape: Shape): Op.Output = ops.Basic.constant(shape.toTensor())
   }

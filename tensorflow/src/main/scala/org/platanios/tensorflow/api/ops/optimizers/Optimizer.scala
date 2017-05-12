@@ -2,9 +2,10 @@ package org.platanios.tensorflow.api.ops.optimizers
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.Exception.InvalidDataTypeException
+import org.platanios.tensorflow.api.tf.{DataType, FLOAT32, FLOAT64, INT32}
 import org.platanios.tensorflow.api.ops.optimizers.Optimizer._
 import org.platanios.tensorflow.api.ops.{Basic, ControlFlow, Gradients, Math, Op, Variable}
-import org.platanios.tensorflow.api.types.TFResource
+import org.platanios.tensorflow.api.types.RESOURCE
 
 import scala.collection.mutable
 
@@ -20,10 +21,10 @@ trait Optimizer {
 
   /** Some [[Optimizer]] subclasses use additional variables. For example, `MomentumOptimizer` and `AdaGradOptimizer`
     * use variables to accumulate updates. This map is where these variables are stored. */
-  val slots: Map[String, Map[Variable, Variable]] = Map.empty[String, Map[Variable, Variable]]
+  protected val slots: Map[String, Map[Variable, Variable]] = Map.empty[String, Map[Variable, Variable]]
 
   /** Returns the names of all slots used by this optimizer. */
-  def slotNames: Set[String] = slots.keySet
+  protected def slotNames: Set[String] = slots.keySet
 
   /** Creates an op that makes a step towards minimizing `loss` by updating the values of the variables in `variables`.
     *
@@ -101,7 +102,7 @@ trait Optimizer {
     }
     val gradientsAndVariables: Seq[(Op.OutputLike, Variable)] = gradients.zip(collectedVariables)
     assertSupportedDataTypes(
-      gradientsAndVariables.filter(p => (p._1 ne null) && p._2.dataType != TFResource).map(_._2.value))
+      gradientsAndVariables.filter(p => (p._1 ne null) && p._2.dataType != RESOURCE).map(_._2.value))
     gradientsAndVariables
   }
 
@@ -157,7 +158,7 @@ trait Optimizer {
           Op.createWith(
             colocationOps = Set[Op](globalStep.op),
             controlDependencies = Set[Op](finish(updateOps.toSet, "Update"))) {
-            globalStep.assignAdd(Basic.constant(1, dataType = TFInt32), name).op
+            globalStep.assignAdd(Basic.constant(1, dataType = INT32), name).op
           }
         }
       }
@@ -171,7 +172,7 @@ trait Optimizer {
 
   /** Supported data types for the loss function, the variables, and the gradients. Subclasses should override this
     * field allow other float types. */
-  protected val supportedDataTypes: Set[DataType] = Set[DataType](TFFloat32, TFFloat64)
+  protected val supportedDataTypes: Set[DataType] = Set[DataType](FLOAT32, FLOAT64)
 
   /** Asserts that the provided `outputs` all have data types that are supported by this optimizer.
     *

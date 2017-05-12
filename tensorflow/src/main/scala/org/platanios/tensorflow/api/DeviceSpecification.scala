@@ -85,7 +85,7 @@ private[api] case class DeviceSpecification(
   * @author Emmanouil Antonios Platanios
   */
 private[api] object DeviceSpecification {
-  private val deviceStringRegex: Regex =
+  private val deviceStringRegex: Regex = {
     """
       #^(?:/job:([^/:]+))?
       #(?:/replica:([[0-9]&&[^\:]]+))?
@@ -95,6 +95,7 @@ private[api] object DeviceSpecification {
         .stripMargin('#')
         .replaceAll("\n", "")
         .r("job", "replica", "task", "deviceType", "deviceIndex", "deviceTypeShort", "deviceIndexShort")
+  }
 
   /** Parses a [[DeviceSpecification]] specification from the provided string.
     *
@@ -118,7 +119,7 @@ private[api] object DeviceSpecification {
     * @throws InvalidDeviceSpecificationException If the provided string does not match the appropriate regular expression.
     */
   @throws[InvalidDeviceSpecificationException]
-  def fromString(device: String): DeviceSpecification = {
+  private[api] def fromString(device: String): DeviceSpecification = {
     device match {
       case deviceStringRegex(job, replica, task, deviceType, deviceIndex, deviceTypeShort, deviceIndexShort)
         if (replica == null || replica.matches("\\d+")) &&
@@ -156,7 +157,7 @@ private[api] object DeviceSpecification {
     * @param  dev2 Second device specification being merged.
     * @return Merged device specification.
     */
-  def merge(dev1: DeviceSpecification, dev2: DeviceSpecification): DeviceSpecification = {
+  private[api] def merge(dev1: DeviceSpecification, dev2: DeviceSpecification): DeviceSpecification = {
     DeviceSpecification(
       job = if (dev2.job != null) dev2.job else dev1.job,
       replica = if (dev2.replica != -1) dev2.replica else dev1.replica,

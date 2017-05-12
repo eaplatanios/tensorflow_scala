@@ -1,6 +1,7 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api._
+import org.platanios.tensorflow.api.tf.{DataType, INT32, INT64, Tensor}
 import org.platanios.tensorflow.api.Exception.InvalidDataTypeException
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 
@@ -624,7 +625,7 @@ object Variable {
     * }}}
     *
     * @param  variable        Variable to slice.
-    * @param  indices         Indices tensor, which must be an `TFInt32` or `TFInt64` tensor.
+    * @param  indices         Indices tensor, which must be an `INT32` or `INT64` tensor.
     * @param  dataType        Data type for the created op.
     * @param  validateIndices Boolean value indicating whether to validate the provided indices.
     * @param  name            Name for the created op.
@@ -633,7 +634,7 @@ object Variable {
   private def gather(
       variable: Op.Output, indices: Op.Output, dataType: DataType = null, validateIndices: Boolean = true,
       name: String = "VariableGather"): Op.Output = {
-    if (indices.dataType != TFInt32 && indices.dataType != TFInt64)
+    if (indices.dataType != INT32 && indices.dataType != INT64)
       throw InvalidDataTypeException(
         s"Data type '${indices.dataType}' is not supported for the resource variable gather op indices. " +
             s"Only 'TFInt32' and 'TFInt64' are supported.")
@@ -665,14 +666,14 @@ object Variable {
     * The op requires that `updates.shape = indices.shape + variable.shape(1::)`.
     *
     * @param  variable Variable to be updated.
-    * @param  indices  Indices tensor, which must be an `TFInt32` or `TFInt64` tensor.
+    * @param  indices  Indices tensor, which must be an `INT32` or `INT64` tensor.
     * @param  updates  Updates tensor, which must have a numeric data type.
     * @param  name     Name for the created op.
     * @return Created op.
     */
   private def scatterAdd(
       variable: Op.Output, indices: Op.Output, updates: Op.Output, name: String = "ScatterAdd"): Op = {
-    if (indices.dataType != TFInt32 && indices.dataType != TFInt64)
+    if (indices.dataType != INT32 && indices.dataType != INT64)
       throw InvalidDataTypeException(
         s"Data type '${indices.dataType}' is not supported for the resource variable scatter add op indices. " +
             s"Only 'TFInt32' and 'TFInt64' are supported.")

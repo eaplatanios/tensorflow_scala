@@ -3,6 +3,7 @@ package org.platanios.tensorflow.api.tensors
 import java.nio.{ByteBuffer, ByteOrder}
 
 import org.platanios.tensorflow.api._
+import org.platanios.tensorflow.api.tf.{FixedSizeDataType, NumericDataType, RealNumericDataType, SupportedType}
 import org.platanios.tensorflow.api.Exception.InvalidDataTypeException
 
 /**

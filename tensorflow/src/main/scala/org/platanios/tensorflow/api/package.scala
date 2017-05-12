@@ -7,70 +7,114 @@ import scala.util.matching.Regex
   * @author Emmanouil Antonios Platanios
   */
 package object api extends Implicits {
-  //region Data Types
+  object tf {
+    type SupportedType[T] = types.SupportedType[T]
+    type FixedSizeSupportedType[T] = types.FixedSizeSupportedType[T]
+    type NumericSupportedType[T] = types.NumericSupportedType[T]
+    type SignedNumericSupportedType[T] = types.SignedNumericSupportedType[T]
+    type RealNumericSupportedType[T] = types.RealNumericSupportedType[T]
+    type ComplexNumericSupportedType[T] = types.ComplexNumericSupportedType[T]
 
-  type SupportedType[T] = types.SupportedType[T]
-  type FixedSizeSupportedType[T] = types.FixedSizeSupportedType[T]
-  type NumericSupportedType[T] = types.NumericSupportedType[T]
-  type RealNumericSupportedType[T] = types.RealNumericSupportedType[T]
-  type ComplexNumericSupportedType[T] = types.ComplexNumericSupportedType[T]
+    type DataType = types.DataType
+    type FixedSizeDataType = types.FixedSizeDataType
+    type NumericDataType = types.NumericDataType
+    type SignedNumericDataType = types.SignedNumericDataType
+    type RealNumericDataType = types.RealNumericDataType
+    type ComplexNumericDataType = types.ComplexNumericDataType
 
-  type DataType = types.DataType
-  type FixedSizeDataType = types.FixedSizeDataType
-  type NumericDataType = types.NumericDataType
-  type RealNumericDataType = types.RealNumericDataType
-  type ComplexNumericDataType = types.ComplexNumericDataType
+    val DataType = types.DataType
 
-  val DataType = types.DataType
+    val STRING   = types.STRING
+    val BOOLEAN  = types.BOOLEAN
+    // val FLOAT16 = types.TFFloat16
+    val FLOAT32  = types.FLOAT32
+    val FLOAT64  = types.FLOAT64
+    // val BFLOAT16 = types.TFBFloat16
+    // val COMPLEX64 = types.TFComplex64
+    // val COMPLEX128 = types.TFComplex128
+    val INT8     = types.INT8
+    val INT16    = types.INT16
+    val INT32    = types.INT32
+    val INT64    = types.INT64
+    val UINT8    = types.UINT8
+    val UINT16   = types.UINT16
+    val QINT8    = types.QINT8
+    val QINT16   = types.QINT16
+    val QINT32   = types.QINT32
+    val QUINT8   = types.QUINT8
+    val QUINT16  = types.QUINT16
+    val RESOURCE = types.RESOURCE
 
-  val TFString = types.TFString
-  val TFBoolean = types.TFBoolean
-  // val TFFloat16 = types.TFFloat16
-  val TFFloat32 = types.TFFloat32
-  val TFFloat64 = types.TFFloat64
-  // val TFBFloat16 = types.TFBFloat16
-  // val TFComplex64 = types.TFComplex64
-  // val TFComplex128 = types.TFComplex128
-  val TFInt8 = types.TFInt8
-  val TFInt16 = types.TFInt16
-  val TFInt32 = types.TFInt32
-  val TFInt64 = types.TFInt64
-  val TFUInt8 = types.TFUInt8
-  val TFUInt16 = types.TFUInt16
-  val TFQInt8 = types.TFQInt8
-  val TFQInt16 = types.TFQInt16
-  val TFQInt32 = types.TFQInt32
-  val TFQUInt8 = types.TFQUInt8
-  val TFQUInt16 = types.TFQUInt16
-  val TFResource = types.TFResource
+    type Tensor = tensors.Tensor
+    type FixedSizeTensor = tensors.FixedSizeTensor
+    type NumericTensor = tensors.NumericTensor
 
-  //endregion Data Types
+    val Tensor = tensors.Tensor
 
-  //region Tensors
+    type Order = tensors.Order
+    val RowMajorOrder = tensors.RowMajorOrder
 
-  type Tensor = tensors.Tensor
-  type FixedSizeTensor = tensors.FixedSizeTensor
-  type NumericTensor = tensors.NumericTensor
+    type Graph = api.Graph
+    val Graph = api.Graph
 
-  val Tensor = tensors.Tensor
+    val defaultGraph: Graph = Graph()
 
-  type Order = tensors.Order
-  val RowMajorOrder = tensors.RowMajorOrder
+    type Session = api.Session
+    val Session = api.Session
 
-  private[api] val DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER = RowMajorOrder
+    type Op = ops.Op
+    val Op = ops.Op
 
-  //endregion Tensors
+    //region Op Construction Aliases
+
+    def createWith[R](
+        graph: Graph = null, nameScope: String = null, device: ops.OpSpecification => String = _ => "",
+        colocationOps: Set[Op] = null, controlDependencies: Set[Op] = null, attributes: Map[String, Any] = null,
+        container: String = null)(block: => R): R = {
+      ops.Op.createWith(graph, nameScope, device, colocationOps, controlDependencies, attributes, container)(block)
+    }
+
+    def createWithNameScope[R](nameScope: String, values: Set[Op] = Set.empty[Op])(block: => R): R = {
+      ops.Op.createWithNameScope(nameScope, values)(block)
+    }
+
+    def colocateWith[R](colocationOps: Set[Op], ignoreExisting: Boolean = false)(block: => R): R = {
+      ops.Op.colocateWith(colocationOps, ignoreExisting)(block)
+    }
+
+    //region Basic Ops
+
+    def constant(
+        tensor: Tensor, dataType: DataType = null, shape: Shape = null, name: String = "Constant"): Op.Output = {
+      ops.Basic.constant(tensor, dataType, shape, name)
+    }
+
+    def placeholder(dataType: DataType, shape: Shape = null, name: String = "Placeholder"): Op.Output = {
+      ops.Basic.placeholder(dataType, shape, name)
+    }
+
+    //endregion Basic Ops
+
+    //endregion Op Construction Aliases
+
+    type Variable = ops.Variable
+    val Variable = ops.Variable
+
+    val Gradients         = ops.Gradients
+    val GradientsRegistry = ops.Gradients.Registry
+
+    object train {
+      type Optimizer = ops.optimizers.Optimizer
+      val Optimizer = ops.optimizers.Optimizer
+
+      type GradientDescent = ops.optimizers.GradientDescent
+      val GradientDescent = ops.optimizers.GradientDescent
+    }
+  }
+
+  private[api] val DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER = tensors.RowMajorOrder
 
   //region Op Creation
-
-  type Op = ops.Op
-  val Op = ops.Op
-
-  type Variable = ops.Variable
-  val Variable = ops.Variable
-
-  val Gradients = ops.Gradients
-  val GradientsRegistry = ops.Gradients.Registry
 
   private[api] val COLOCATION_OPS_ATTRIBUTE_NAME   = "_class"
   private[api] val COLOCATION_OPS_ATTRIBUTE_PREFIX = "loc:@"
@@ -79,10 +123,8 @@ package object api extends Implicits {
 
   import org.platanios.tensorflow.api.ops.OpCreationContext
 
-  val defaultGraph: Graph = Graph()
-
   implicit val opCreationContext: DynamicVariable[OpCreationContext] = {
-    new DynamicVariable[OpCreationContext](OpCreationContext(graph = defaultGraph))
+    new DynamicVariable[OpCreationContext](OpCreationContext(graph = tf.defaultGraph))
   }
 
   implicit def dynamicVariableToOpCreationContext(context: DynamicVariable[OpCreationContext]): OpCreationContext = {

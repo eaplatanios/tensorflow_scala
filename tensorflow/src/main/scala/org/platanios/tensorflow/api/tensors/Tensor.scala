@@ -1,11 +1,13 @@
 package org.platanios.tensorflow.api.tensors
 
+import org.platanios.tensorflow.api._
+import org.platanios.tensorflow.api.tf._
+import org.platanios.tensorflow.api.Exception.{InvalidDataTypeException, ShapeMismatchException}
+import org.platanios.tensorflow.jni.{Tensor => NativeTensor}
+
 import java.nio._
 import java.nio.charset.Charset
 
-import org.platanios.tensorflow.api._
-import org.platanios.tensorflow.api.Exception.{InvalidDataTypeException, ShapeMismatchException}
-import org.platanios.tensorflow.jni.{Tensor => NativeTensor}
 import spire.math.UShort
 
 // TODO: Specialized slices (e.g., contiguous).
@@ -128,14 +130,6 @@ trait Tensor {
 
   override def toString: String = s"$dataType[${shape.asArray.mkString(", ")}]"
 
-  def ===(that: Tensor): Boolean = {
-    this.shape == that.shape &&
-        this.dataType == that.dataType &&
-        this.entriesIterator.zip(that.entriesIterator).forall(p => p._1 == p._2)
-  }
-
-  def =!=(that: Tensor): Boolean = !(this === that)
-
   override def equals(that: Any): Boolean = that match {
     case that: Tensor =>
       this.shape == that.shape &&
@@ -190,7 +184,7 @@ object Tensor {
       require(tensors.tail.forall(_.shape == shape), "All provided tensor shapes must match.")
     val newShape = if (tensors.nonEmpty) Shape(tensors.length +: shape.asArray: _*) else Shape()
     dataType match {
-      case TFString =>
+      case STRING =>
         // TODO: Make this more efficient.
         // val numElements = newShape.numElements.get
         var size = 0
@@ -201,19 +195,19 @@ object Tensor {
         }
         val buffer: ByteBuffer = ByteBuffer.allocateDirect(size).order(ByteOrder.nativeOrder)
         val tensor = new StringTensor(newShape, buffer, DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER)
-        val baseOffset = TFInt64.byteSize * tensor.numElements
+        val baseOffset = INT64.byteSize * tensor.numElements
         var byteIndex = 0
         var elementIndex = 0
         t = 0
         while (t < tensors.length) {
-          val otherBaseOffset = tensors(t).numElements * TFInt64.byteSize
+          val otherBaseOffset = tensors(t).numElements * INT64.byteSize
           var i = 0
           while (i < tensors(t).numElements) {
             val otherOffset = otherBaseOffset +
-                TFInt64.getElementFromBuffer(tensors(t).buffer, i * TFInt64.byteSize).toInt
-            val string = TFString.getElementFromBuffer(tensors(t).buffer, otherOffset)
-            val numEncodedBytes = TFString.putElementInBuffer(buffer, baseOffset + byteIndex, string)
-            TFInt64.putElementInBuffer(buffer, elementIndex * TFInt64.byteSize, byteIndex.toLong)
+                INT64.getElementFromBuffer(tensors(t).buffer, i * INT64.byteSize).toInt
+            val string = STRING.getElementFromBuffer(tensors(t).buffer, otherOffset)
+            val numEncodedBytes = STRING.putElementInBuffer(buffer, baseOffset + byteIndex, string)
+            INT64.putElementInBuffer(buffer, elementIndex * INT64.byteSize, byteIndex.toLong)
             byteIndex += numEncodedBytes
             elementIndex += 1
             i += 1
@@ -236,18 +230,18 @@ object Tensor {
     // TODO: Add downcasting warnings.
     val inferredShape = if (shape == null) Shape() else shape
     dataType match {
-      case TFString =>
+      case STRING =>
         val numStringBytes = value.toString.getBytes(Charset.forName("UTF-8")).length
         val numEncodedBytes = NativeTensor.getEncodedStringSize(numStringBytes)
-        val numBytes = inferredShape.numElements.get * (TFInt64.byteSize + numEncodedBytes)
+        val numBytes = inferredShape.numElements.get * (INT64.byteSize + numEncodedBytes)
         val buffer: ByteBuffer = ByteBuffer.allocateDirect(numBytes).order(ByteOrder.nativeOrder)
         val tensor = new StringTensor(inferredShape, buffer, DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER)
-        val baseOffset = TFInt64.byteSize * tensor.numElements
+        val baseOffset = INT64.byteSize * tensor.numElements
         var index = 0
         var i = 0
         while (i < tensor.numElements) {
-          TFString.putElementInBuffer(buffer, baseOffset + index, TFString.cast(value))
-          TFInt64.putElementInBuffer(buffer, i * TFInt64.byteSize, index.toLong)
+          STRING.putElementInBuffer(buffer, baseOffset + index, STRING.cast(value))
+          INT64.putElementInBuffer(buffer, i * INT64.byteSize, index.toLong)
           index += numEncodedBytes
           i += 1
         }
@@ -261,7 +255,7 @@ object Tensor {
   def fromBuffer(
       dataType: DataType, shape: Shape, buffer: ByteBuffer, copy: Boolean = false,
       order: Order = DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER): Tensor = dataType match {
-    case TFString => ??? // TODO: [TENSORS_STRING]
+    case STRING => ??? // TODO: [TENSORS_STRING]
     case d: RealNumericDataType =>
       val bufferCopy = copyBuffer(dataType, shape, buffer, copy, order)
       new RealNumericTensor(dataType = d, shape = shape, buffer = bufferCopy, order)
@@ -295,7 +289,7 @@ object Tensor {
 
   private[api] def allocate(
       dataType: DataType, shape: Shape, order: Order = DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER): Tensor = dataType match {
-    case TFString => throw new IllegalArgumentException(
+    case STRING => throw new IllegalArgumentException(
       "Cannot pre-allocate string tensors because their size is not known.")
     case d: RealNumericDataType => RealNumericTensor.allocate(d, shape, order)
     case d: NumericDataType => NumericTensor.allocate(d, shape, order)
@@ -308,25 +302,25 @@ object Tensor {
   }
 
   trait Implicits {
-    implicit def scalaValueToTensor(value: Boolean): Tensor = Tensor.fill(dataType = TFBoolean)(value)
-    implicit def scalaValueToTensor(value: String): Tensor = Tensor.fill(dataType = TFString)(value)
-    implicit def scalaValueToTensor(value: Float): Tensor = Tensor.fill(dataType = TFFloat32)(value)
-    implicit def scalaValueToTensor(value: Double): Tensor = Tensor.fill(dataType = TFFloat64)(value)
-    implicit def scalaValueToTensor(value: Byte): Tensor = Tensor.fill(dataType = TFInt8)(value)
-    implicit def scalaValueToTensor(value: Short): Tensor = Tensor.fill(dataType = TFInt16)(value)
-    implicit def scalaValueToTensor(value: Int): Tensor = Tensor.fill(dataType = TFInt32)(value)
-    implicit def scalaValueToTensor(value: Long): Tensor = Tensor.fill(dataType = TFInt64)(value)
-    implicit def scalaValueToTensor(value: UShort): Tensor = Tensor.fill(dataType = TFUInt16)(value)
+    implicit def scalaValueToTensor(value: Boolean): Tensor = Tensor.fill(dataType = BOOLEAN)(value)
+    implicit def scalaValueToTensor(value: String): Tensor = Tensor.fill(dataType = STRING)(value)
+    implicit def scalaValueToTensor(value: Float): Tensor = Tensor.fill(dataType = FLOAT32)(value)
+    implicit def scalaValueToTensor(value: Double): Tensor = Tensor.fill(dataType = FLOAT64)(value)
+    implicit def scalaValueToTensor(value: Byte): Tensor = Tensor.fill(dataType = INT8)(value)
+    implicit def scalaValueToTensor(value: Short): Tensor = Tensor.fill(dataType = INT16)(value)
+    implicit def scalaValueToTensor(value: Int): Tensor = Tensor.fill(dataType = INT32)(value)
+    implicit def scalaValueToTensor(value: Long): Tensor = Tensor.fill(dataType = INT64)(value)
+    implicit def scalaValueToTensor(value: UShort): Tensor = Tensor.fill(dataType = UINT16)(value)
 
-    implicit def scalaArrayToTensor(value: Array[Boolean]): Tensor = Tensor.fromSeq(value: _*)(TFBoolean.supportedType)
-    // implicit def scalaArrayToTensor(value: Array[String]): Tensor = Tensor.fromSeq(value: _*)(TFString.supportedType)
-    implicit def scalaArrayToTensor(value: Array[Float]): Tensor = Tensor.fromSeq(value: _*)(TFFloat32.supportedType)
-    implicit def scalaArrayToTensor(value: Array[Double]): Tensor = Tensor.fromSeq(value: _*)(TFFloat64.supportedType)
-    implicit def scalaArrayToTensor(value: Array[Byte]): Tensor = Tensor.fromSeq(value: _*)(TFInt8.supportedType)
-    implicit def scalaArrayToTensor(value: Array[Short]): Tensor = Tensor.fromSeq(value: _*)(TFInt16.supportedType)
-    implicit def scalaArrayToTensor(value: Array[Int]): Tensor = Tensor.fromSeq(value: _*)(TFInt32.supportedType)
-    implicit def scalaArrayToTensor(value: Array[Long]): Tensor = Tensor.fromSeq(value: _*)(TFInt64.supportedType)
-    implicit def scalaArrayToTensor(value: Array[UShort]): Tensor = Tensor.fromSeq(value: _*)(TFUInt16.supportedType)
+    implicit def scalaArrayToTensor(value: Array[Boolean]): Tensor = Tensor.fromSeq(value: _*)(BOOLEAN.supportedType)
+    // implicit def scalaArrayToTensor(value: Array[String]): Tensor = Tensor.fromSeq(value: _*)(String.supportedType)
+    implicit def scalaArrayToTensor(value: Array[Float]): Tensor = Tensor.fromSeq(value: _*)(FLOAT32.supportedType)
+    implicit def scalaArrayToTensor(value: Array[Double]): Tensor = Tensor.fromSeq(value: _*)(FLOAT64.supportedType)
+    implicit def scalaArrayToTensor(value: Array[Byte]): Tensor = Tensor.fromSeq(value: _*)(INT8.supportedType)
+    implicit def scalaArrayToTensor(value: Array[Short]): Tensor = Tensor.fromSeq(value: _*)(INT16.supportedType)
+    implicit def scalaArrayToTensor(value: Array[Int]): Tensor = Tensor.fromSeq(value: _*)(INT32.supportedType)
+    implicit def scalaArrayToTensor(value: Array[Long]): Tensor = Tensor.fromSeq(value: _*)(INT64.supportedType)
+    implicit def scalaArrayToTensor(value: Array[UShort]): Tensor = Tensor.fromSeq(value: _*)(UINT16.supportedType)
 
     implicit def tensorToNumeric(tensor: Tensor): NumericTensor = tensor.asNumeric
     implicit def tensorToRealNumeric(tensor: Tensor): RealNumericTensor = tensor.asRealNumeric

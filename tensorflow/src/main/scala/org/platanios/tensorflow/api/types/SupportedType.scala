@@ -73,7 +73,7 @@ object SupportedType {
 
   @inline final def apply[T](implicit evidence: SupportedType[T]): SupportedType[T] = evidence
 
-  trait Implicits {
+  private[api] trait Implicits {
     implicit def toSupportedTypeOps[@specialized T](value: T): SupportedTypeOps[T] = {
       new SupportedTypeOps(value)
     }
@@ -89,17 +89,15 @@ object SupportedType {
     implicit final val UByteIsSupportedType  : NumericSupportedType[UByte]      = new UByteIsSupportedType
     implicit final val UShortIsSupportedType : NumericSupportedType[UShort]     = new UShortIsSupportedType
   }
-
-  private[types] object Implicits extends Implicits
 }
 
 private[types] class StringIsSupportedType extends SupportedType[String] {
-  @inline override def dataType: DataType = TFString
+  @inline override def dataType: DataType = STRING
   @inline override def cast[R: SupportedType](value: R, dataType: DataType): String = value.toString
 }
 
 private[types] class BooleanIsSupportedType extends FixedSizeSupportedType[Boolean] {
-  @inline override def dataType: FixedSizeDataType = TFBoolean
+  @inline override def dataType: FixedSizeDataType = BOOLEAN
   @inline override def cast[R: SupportedType](value: R, dataType: DataType): Boolean = value match {
     case value: Boolean => value
     case _ => throw InvalidDataTypeException("Cannot convert the provided value to a boolean.")
@@ -112,7 +110,7 @@ private[types] class FloatIsSupportedType
         with FloatIsReal
         with ConvertableFromFloat
         with ConvertableToFloat {
-  @inline override def dataType: RealNumericDataType = TFFloat32
+  @inline override def dataType: RealNumericDataType = FLOAT32
   @inline override def cast[R: SupportedType](value: R, dataType: DataType): Float = value match {
     case value: Boolean => if (value) 1.0f else 0.0f
     case value: Float => value.toFloat
@@ -133,7 +131,7 @@ private[types] class DoubleIsSupportedType
         with DoubleIsReal
         with ConvertableFromDouble
         with ConvertableToDouble {
-  @inline override def dataType: RealNumericDataType = TFFloat64
+  @inline override def dataType: RealNumericDataType = FLOAT64
   @inline override def cast[R: SupportedType](value: R, dataType: DataType): Double = value match {
     case value: Boolean => if (value) 1.0 else 0.0
     case value: Float => value.toDouble
@@ -154,7 +152,7 @@ private[types] class ByteIsSupportedType
         with ByteIsReal
         with ConvertableFromByte
         with ConvertableToByte {
-  @inline override def dataType: RealNumericDataType = TFInt8
+  @inline override def dataType: RealNumericDataType = INT8
   @inline override def cast[R: SupportedType](value: R, dataType: DataType): Byte = value match {
     case value: Boolean => if (value) 1 else 0
     case value: Float => value.toByte
@@ -175,7 +173,7 @@ private[types] class ShortIsSupportedType
         with ShortIsReal
         with ConvertableFromShort
         with ConvertableToShort {
-  @inline override def dataType: RealNumericDataType = TFInt16
+  @inline override def dataType: RealNumericDataType = INT16
   @inline override def cast[R: SupportedType](value: R, dataType: DataType): Short = value match {
     case value: Boolean => if (value) 1 else 0
     case value: Float => value.toShort
@@ -196,7 +194,7 @@ private[types] class IntIsSupportedType
         with IntIsReal
         with ConvertableFromInt
         with ConvertableToInt {
-  @inline override def dataType: RealNumericDataType = TFInt32
+  @inline override def dataType: RealNumericDataType = INT32
   @inline override def cast[R: SupportedType](value: R, dataType: DataType): Int = value match {
     case value: Boolean => if (value) 1 else 0
     case value: Float => value.toInt
@@ -217,7 +215,7 @@ private[types] class LongIsSupportedType
         with LongIsReal
         with ConvertableFromLong
         with ConvertableToLong {
-  @inline override def dataType: RealNumericDataType = TFInt64
+  @inline override def dataType: RealNumericDataType = INT64
   @inline override def cast[R: SupportedType](value: R, dataType: DataType): Long = value match {
     case value: Boolean => if (value) 1L else 0L
     case value: Float => value.toLong
@@ -238,7 +236,7 @@ private[types] class UByteIsSupportedType
         with UByteIsReal
         with ConvertableFromUByte
         with ConvertableToUByte {
-  @inline override def dataType: NumericDataType = TFUInt8
+  @inline override def dataType: NumericDataType = UINT8
   @inline override def cast[R: SupportedType](value: R, dataType: DataType): UByte = value match {
     case value: Boolean => if (value) UByte(1) else UByte(0)
     case value: Float => UByte(value.toInt)
@@ -287,7 +285,7 @@ private[types] class UShortIsSupportedType
         with UShortIsReal
         with ConvertableFromUShort
         with ConvertableToUShort {
-  @inline override def dataType: NumericDataType = TFUInt16
+  @inline override def dataType: NumericDataType = UINT16
   @inline override def cast[R: SupportedType](value: R, dataType: DataType): UShort = value match {
     case value: Boolean => if (value) UShort(1) else UShort(0)
     case value: Float => UShort(value.toInt)

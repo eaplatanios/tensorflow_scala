@@ -1,6 +1,7 @@
 package org.platanios.tensorflow.api
 
 import org.platanios.tensorflow.api.Exception.{GraphMismatchException, InvalidGraphElementException}
+import org.platanios.tensorflow.api.tf.{Op, Variable}
 import org.platanios.tensorflow.jni.{Graph => NativeGraph}
 
 import org.tensorflow.framework.{GraphDef, NodeDef}
@@ -35,7 +36,6 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable {
     *       visualization tools such as TensorBoard.
     * @note You rarely need to call `uniqueName` directly. Most of the time you just need to create
     *       `Op.createWithNameScope(...)` (which is also thread-safe) blocks to generate structured names.
-    *
     * @param  name       Name in which to base the generated unique name.
     * @param  markAsUsed If `true`, which is the default, a new unique name is created and marked as in use. If `false`,
     *                    the unique name is returned without actually being marked as used. This is useful when the
@@ -350,8 +350,8 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable {
     }
   }
 
-  private object NativeHandleLock
-  private var referenceCount: Int = 0
+  private[this] object NativeHandleLock
+  private[this] var referenceCount: Int = 0
 
   /** Release resources associated with the Graph.
     *
@@ -423,7 +423,7 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable {
   //
   // Instances of the Reference class should be used to ensure the Graph has not been closed
   // while dependent handles are in use.
-  final case class Reference() extends Closeable {
+  final case class Reference private() extends Closeable {
     NativeHandleLock.synchronized {
       if (Graph.this.nativeHandle == 0)
         throw new IllegalStateException("close() has been called on the Graph")
@@ -440,7 +440,7 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable {
       }
     }
 
-    def nativeHandle: Long = {
+    private[api] def nativeHandle: Long = {
       NativeHandleLock.synchronized {
         if (Graph.this.nativeHandle != 0)
           Graph.this.nativeHandle
@@ -472,7 +472,7 @@ object Graph {
     *                                  whose names start with `'_'`.
     * @return
     */
-  def equalGraphDef(
+  private[api] def equalGraphDef(
       graphDef1: GraphDef, graphDef2: GraphDef, ignoreInternalAttributes: Boolean = true): (Boolean, String) = {
     // We intentionally do not check that the versions of the two GraphDefs match so that this function can be used for
     // less brittle golden file tests.
@@ -499,7 +499,7 @@ object Graph {
     (true, null)
   }
 
-  def equalNodeDef(
+  private[api] def equalNodeDef(
       nodeDef1: NodeDef, nodeDef2: NodeDef, ignoreInternalAttributes: Boolean = true): (Boolean, String) = {
     if (nodeDef1.getName != nodeDef2.getName)
       return (false, s"Node 1 name '${nodeDef1.getName}' does not match node 2 name '${nodeDef2.getName}'.")

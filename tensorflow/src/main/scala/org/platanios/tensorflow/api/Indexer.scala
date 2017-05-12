@@ -2,6 +2,7 @@ package org.platanios.tensorflow.api
 
 import org.platanios.tensorflow.api.Exception.InvalidIndexerException
 import org.platanios.tensorflow.api.ops.Basic
+import org.platanios.tensorflow.api.tf.{INT32, Op, Tensor}
 
 import scala.language.postfixOps
 
@@ -64,7 +65,7 @@ object Indexer {
   val --- : Indexer = Ellipsis
   val ::  : Slice   = Slice.::
 
-  trait Implicits {
+  private[api] trait Implicits {
     val --- : Indexer = Indexer.---
     val ::  : Slice   = Indexer.::
 
@@ -218,9 +219,9 @@ object Indexer {
   private[api] def toStridedSlice(indexers: Indexer*): Op.Output => Op.Output = {
     if (indexers.count(_ == Ellipsis) > 1)
       throw InvalidIndexerException("Only one 'Ellipsis' ('---') is allowed per indexing sequence.")
-    val begin = Tensor.fill(dataType = TFInt32, shape = Shape(indexers.length))(value = 0)
-    val end = Tensor.fill(dataType = TFInt32, shape = Shape(indexers.length))(value = 0)
-    val strides = Tensor.fill(dataType = TFInt32, shape = Shape(indexers.length))(value = 0)
+    val begin = Tensor.fill(dataType = INT32, shape = Shape(indexers.length))(value = 0)
+    val end = Tensor.fill(dataType = INT32, shape = Shape(indexers.length))(value = 0)
+    val strides = Tensor.fill(dataType = INT32, shape = Shape(indexers.length))(value = 0)
     var beginMask: Int = 0 // TODO: Use this.
     var endMask: Int = 0
     var ellipsisMask: Int = 0

@@ -2,6 +2,7 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.Exception._
+import org.platanios.tensorflow.api.tf.{DataType, Graph, INT32, INT64, Session, Tensor}
 import org.platanios.tensorflow.api.tensors.TensorFlowNative.{NativeView => TensorNativeView}
 import org.platanios.tensorflow.jni.{Op => NativeOp}
 
@@ -26,7 +27,7 @@ import spire.math.UShort
   *       have type `Op.Output` since they represent outputs of other ops. Currently, `Op.Input` is only useful for
   *       representing consumers of an `Op`'s outputs.
   *
-  * After the graph has been launched in a [[Session]], an `Op` can be executed by using [[Session.run]].
+  * After the graph has been launched in a [[Session]], an `Op` can be executed by using `Session.run`.
   *
   * TODO: Add `Op.run` use example, once that is supported.
   * @author Emmanouil Antonios Platanios
@@ -623,7 +624,7 @@ object Op {
     * @throws GraphMismatchException If any two of the values provided lie in different graphs.
     */
   @throws[GraphMismatchException]
-  private[ops] def createWithNameScope[R](nameScope: String, values: Set[Op] = Set.empty[Op])(block: => R)
+  def createWithNameScope[R](nameScope: String, values: Set[Op] = Set.empty[Op])(block: => R)
       (implicit context: DynamicVariable[OpCreationContext]): R = {
     val newNameScope: String = mergeNameScope(nameScope, context)
     if (values.nonEmpty) {
@@ -1053,7 +1054,7 @@ object Op {
       * @return [[Op.OutputIndexedSlices]] that has the same value as this [[Op.OutputLike]].
       */
     override def toOpOutputIndexedSlices(optimize: Boolean = true): Op.OutputIndexedSlices = {
-      val denseShape = Basic.shape(this, dataType = TFInt32, optimize = optimize)
+      val denseShape = Basic.shape(this, dataType = INT32, optimize = optimize)
       val indices = Math.range(Basic.constant(0), denseShape(0))
       OutputIndexedSlices(indices = indices, values = this, denseShape = denseShape)
     }
@@ -1205,10 +1206,10 @@ object Op {
   final case class SparseOutput private(indices: Op.Output, values: Op.Output, denseShape: Op.Output)
       extends OutputLike {
     // TODO: Add constructor from scala arrays?
-    if (indices.dataType != TFInt64)
+    if (indices.dataType != INT64)
       throw InvalidDataTypeException(
         s"Indices cannot have '${indices.dataType}' data type. They have to be 'TFInt64'.")
-    if (denseShape.dataType != TFInt64)
+    if (denseShape.dataType != INT64)
       throw InvalidDataTypeException(
         s"Dense shape cannot have '${denseShape.dataType}' data type. It has to be 'TFInt64'.")
     // TODO: Add a "subShape" method?
@@ -1299,12 +1300,12 @@ object Op {
       case "Size" =>
         val inputShape = tensor.op.inputs(0).shape
         if (inputShape.isFullyDefined)
-          Tensor(TFInt32, Tensor(inputShape.asArray.product))
+          Tensor(INT32, Tensor(inputShape.asArray.product))
         null
       case "Rank" =>
         val inputShape = tensor.op.inputs(0).shape
         if (inputShape.numElements.isDefined)
-          Tensor(TFInt32, Tensor(inputShape.numElements.get))
+          Tensor(INT32, Tensor(inputShape.numElements.get))
         null
       case "Range" =>
         val start = constantValue(tensor.op.inputs(0))

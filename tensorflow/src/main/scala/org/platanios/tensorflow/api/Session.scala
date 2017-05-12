@@ -1,13 +1,17 @@
 package org.platanios.tensorflow.api
 
+import org.platanios.tensorflow.api.ops.OpCreationContext
+import org.platanios.tensorflow.api.tf.{Op, Tensor}
 import org.platanios.tensorflow.jni.{Session => NativeSession}
+
+import scala.util.DynamicVariable
 
 /**
   * @author Emmanouil Antonios Platanios
   */
 final case class Session private (graph: Graph, private var nativeHandle: Long) extends Closeable {
-  private object NativeHandleLock
-  private var referenceCount: Int = 0
+  private[this] object NativeHandleLock
+  private[this] var referenceCount: Int = 0
 
   def run(
       feeds: Map[Op.Output, Tensor] = Map.empty, fetches: Array[Op.Output] = Array.empty,
@@ -172,6 +176,11 @@ final case class Session private (graph: Graph, private var nativeHandle: Long) 
 
 object Session {
   def apply(graph: Graph): Session = {
+    Session(graph = graph, nativeHandle = using(graph.reference)(r => NativeSession.allocate(r.nativeHandle)))
+  }
+
+  def apply(implicit context: DynamicVariable[OpCreationContext]): Session = {
+    val graph = context.graph
     Session(graph = graph, nativeHandle = using(graph.reference)(r => NativeSession.allocate(r.nativeHandle)))
   }
 }

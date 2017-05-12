@@ -1,12 +1,16 @@
 package org.platanios.tensorflow.api.types
 
-import org.platanios.tensorflow.api.types.SupportedType.Implicits._
+import org.platanios.tensorflow.api.types.SupportedType.Implicits
 import org.platanios.tensorflow.jni.{Tensor => NativeTensor, TensorFlow => NativeLibrary}
 
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
 
 import spire.math.{UByte, UShort}
+
+// Import the supported type implicits that are used throughout this file.
+private[this] object Implicits extends Implicits
+import Implicits._
 
 // TODO: Add min/max-value and "isSigned" information.
 // TODO: Add support for half-precision floating-point numbers and for complex numbers.
@@ -26,7 +30,7 @@ sealed trait DataType {
   val name: String
 
   /** Integer representing this data type in the `TF_DataType` enum of the TensorFlow C API. */
-  val cValue: Int
+  private[api] val cValue: Int
 
   /** Size in bytes of each value with this data type. Returns `-1` if the size is not available. */
   val byteSize: Int
@@ -44,7 +48,7 @@ sealed trait DataType {
       Some(nativeLibrarySize)
   }
 
-  val priority: Int
+  private[api] val priority: Int
 
   //endregion Data Type Properties
 
@@ -69,7 +73,7 @@ sealed trait DataType {
   def isNumeric: Boolean = DataType.numericDataTypes.contains(this)
 
   /** Returns `true` if this data type represents a boolean data type. */
-  def isBoolean: Boolean = this == TFBoolean
+  def isBoolean: Boolean = this == BOOLEAN
 
   //endregion Data Type Set Helper Methods
 
@@ -141,11 +145,11 @@ sealed trait ComplexNumericDataType extends SignedNumericDataType {
   override implicit val supportedType: ComplexNumericSupportedType[ScalaType]
 }
 
-object TFString extends DataType {
+private[api] object STRING extends DataType {
   override type ScalaType = String
   override implicit val supportedType = StringIsSupportedType
 
-  override val name    : String = "TFString"
+  override val name    : String = "STRING"
   override val cValue  : Int    = 7
   override val byteSize: Int    = -1
   override val priority: Int    = 1000
@@ -161,11 +165,11 @@ object TFString extends DataType {
   }
 }
 
-object TFBoolean extends FixedSizeDataType {
+private[api] object BOOLEAN extends FixedSizeDataType {
   override type ScalaType = Boolean
   override implicit val supportedType = BooleanIsSupportedType
 
-  override val name    : String = "TFBool"
+  override val name    : String = "BOOLEAN"
   override val cValue  : Int    = 10
   override val byteSize: Int    = 1
   override val priority: Int    = 0
@@ -182,11 +186,11 @@ object TFBoolean extends FixedSizeDataType {
 
 // TODO: Add Float16(cValue = 19, byteSize = 2).
 
-object TFFloat32 extends RealNumericDataType {
+private[api] object FLOAT32 extends RealNumericDataType {
   override type ScalaType = Float
   override implicit val supportedType = FloatIsSupportedType
 
-  override val name    : String = "TFFloat32"
+  override val name    : String = "FLOAT32"
   override val cValue  : Int    = 1
   override val byteSize: Int    = 4
   override val priority: Int    = 220
@@ -201,11 +205,11 @@ object TFFloat32 extends RealNumericDataType {
   }
 }
 
-object TFFloat64 extends RealNumericDataType {
+private[api] object FLOAT64 extends RealNumericDataType {
   override type ScalaType = Double
   override implicit val supportedType = DoubleIsSupportedType
 
-  override val name    : String = "TFFloat64"
+  override val name    : String = "FLOAT64"
   override val cValue  : Int    = 2
   override val byteSize: Int    = 8
   override val priority: Int    = 230
@@ -220,15 +224,15 @@ object TFFloat64 extends RealNumericDataType {
   }
 }
 
-// TODO: Add TFBFloat16(cValue = 14, byteSize = 2).
-// TODO: Add TFComplex64(cValue = 8, byteSize = 8).
-// TODO: Add TFComplex128(cValue = 18, byteSize = 16).
+// TODO: Add BFLOAT16(cValue = 14, byteSize = 2).
+// TODO: Add COMPLEX64(cValue = 8, byteSize = 8).
+// TODO: Add COMPLEX128(cValue = 18, byteSize = 16).
 
-object TFInt8 extends RealNumericDataType {
+private[api] object INT8 extends RealNumericDataType {
   override type ScalaType = Byte
   override implicit val supportedType = ByteIsSupportedType
 
-  override val name    : String = "TFInt8"
+  override val name    : String = "INT8"
   override val cValue  : Int    = 6
   override val byteSize: Int    = 1
   override val priority: Int    = 40
@@ -243,11 +247,11 @@ object TFInt8 extends RealNumericDataType {
   }
 }
 
-object TFInt16 extends RealNumericDataType {
+private[api] object INT16 extends RealNumericDataType {
   override type ScalaType = Short
   override implicit val supportedType = ShortIsSupportedType
 
-  override val name    : String = "TFInt16"
+  override val name    : String = "INT16"
   override val cValue  : Int    = 5
   override val byteSize: Int    = 2
   override val priority: Int    = 80
@@ -262,11 +266,11 @@ object TFInt16 extends RealNumericDataType {
   }
 }
 
-object TFInt32 extends RealNumericDataType {
+private[api] object INT32 extends RealNumericDataType {
   override type ScalaType = Int
   override implicit val supportedType = IntIsSupportedType
 
-  override val name    : String = "TFInt32"
+  override val name    : String = "INT32"
   override val cValue  : Int    = 3
   override val byteSize: Int    = 4
   override val priority: Int    = 100
@@ -281,11 +285,11 @@ object TFInt32 extends RealNumericDataType {
   }
 }
 
-object TFInt64 extends RealNumericDataType {
+private[api] object INT64 extends RealNumericDataType {
   override type ScalaType = Long
   override implicit val supportedType = LongIsSupportedType
 
-  override val name    : String = "TFInt64"
+  override val name    : String = "INT64"
   override val cValue  : Int    = 9
   override val byteSize: Int    = 8
   override val priority: Int    = 110
@@ -300,11 +304,11 @@ object TFInt64 extends RealNumericDataType {
   }
 }
 
-object TFUInt8 extends NumericDataType {
+private[api] object UINT8 extends NumericDataType {
   override type ScalaType = UByte
   override implicit val supportedType = UByteIsSupportedType
 
-  override val name    : String = "TFUInt8"
+  override val name    : String = "UINT8"
   override val cValue  : Int    = 4
   override val byteSize: Int    = 1
   override val priority: Int    = 20
@@ -319,11 +323,11 @@ object TFUInt8 extends NumericDataType {
   }
 }
 
-object TFUInt16 extends NumericDataType {
+private[api] object UINT16 extends NumericDataType {
   override type ScalaType = UShort
   override implicit val supportedType = UShortIsSupportedType
 
-  override val name    : String = "TFUInt16"
+  override val name    : String = "UINT16"
   override val cValue  : Int    = 17
   override val byteSize: Int    = 2
   override val priority: Int    = 60
@@ -338,11 +342,11 @@ object TFUInt16 extends NumericDataType {
   }
 }
 
-object TFQInt8 extends RealNumericDataType {
+private[api] object QINT8 extends RealNumericDataType {
   override type ScalaType = Byte
   override implicit val supportedType = ByteIsSupportedType
 
-  override val name    : String = "TFQInt8"
+  override val name    : String = "QINT8"
   override val cValue  : Int    = 11
   override val byteSize: Int    = 1
   override val priority: Int    = 30
@@ -357,11 +361,11 @@ object TFQInt8 extends RealNumericDataType {
   }
 }
 
-object TFQInt16 extends RealNumericDataType {
+private[api] object QINT16 extends RealNumericDataType {
   override type ScalaType = Short
   override implicit val supportedType = ShortIsSupportedType
 
-  override val name    : String = "TFQInt16"
+  override val name    : String = "QINT16"
   override val cValue  : Int    = 15
   override val byteSize: Int    = 2
   override val priority: Int    = 70
@@ -376,11 +380,11 @@ object TFQInt16 extends RealNumericDataType {
   }
 }
 
-object TFQInt32 extends RealNumericDataType {
+private[api] object QINT32 extends RealNumericDataType {
   override type ScalaType = Int
   override implicit val supportedType = IntIsSupportedType
 
-  override val name    : String = "TFQInt32"
+  override val name    : String = "QINT32"
   override val cValue  : Int    = 13
   override val byteSize: Int    = 4
   override val priority: Int    = 90
@@ -395,11 +399,11 @@ object TFQInt32 extends RealNumericDataType {
   }
 }
 
-object TFQUInt8 extends NumericDataType {
+private[api] object QUINT8 extends NumericDataType {
   override type ScalaType = UByte
   override implicit val supportedType = UByteIsSupportedType
 
-  override val name    : String = "TFQUInt8"
+  override val name    : String = "QUINT8"
   override val cValue  : Int    = 12
   override val byteSize: Int    = 1
   override val priority: Int    = 10
@@ -414,11 +418,11 @@ object TFQUInt8 extends NumericDataType {
   }
 }
 
-object TFQUInt16 extends NumericDataType {
+private[api] object QUINT16 extends NumericDataType {
   override type ScalaType = UShort
   override implicit val supportedType = UShortIsSupportedType
 
-  override val name    : String = "TFQUInt16"
+  override val name    : String = "QUINT16"
   override val cValue  : Int    = 16
   override val byteSize: Int    = 2
   override val priority: Int    = 50
@@ -433,11 +437,11 @@ object TFQUInt16 extends NumericDataType {
   }
 }
 
-object TFResource extends DataType {
+private[api] object RESOURCE extends DataType {
   override type ScalaType = Long
   override implicit val supportedType = LongIsSupportedType
 
-  override val name    : String = "TFResource"
+  override val name    : String = "RESOURCE"
   override val cValue  : Int    = 20
   override val byteSize: Int    = -1
   override val priority: Int    = -1
@@ -452,36 +456,36 @@ object TFResource extends DataType {
 }
 
 /** Contains all supported data types along with some helper functions for dealing with them. */
-object DataType {
+private[api] object DataType {
   //region Data Type Sets
 
   /** Set of all floating-point data types. */
-  val floatingPointDataTypes: Set[DataType] = {
-    Set(TFFloat32, TFFloat64) // TODO: TFFloat16, TFBFloat16.
+  private[api] val floatingPointDataTypes: Set[DataType] = {
+    Set(FLOAT32, FLOAT64) // TODO: TFFloat16, TFBFloat16.
   }
 
   /** Set of all complex data types. */
-  val complexDataTypes: Set[DataType] = {
+  private[api] val complexDataTypes: Set[DataType] = {
     Set() // TODO: [COMPLEX] TFComplex64, TFComplex128.
   }
 
   /** Set of all integer data types. */
-  val integerDataTypes: Set[DataType] = {
-    Set(TFInt8, TFInt16, TFInt32, TFInt64, TFUInt8, TFUInt16, TFQInt8, TFQInt16, TFQInt32, TFQUInt8, TFQUInt16)
+  private[api] val integerDataTypes: Set[DataType] = {
+    Set(INT8, INT16, INT32, INT64, UINT8, UINT16, QINT8, QINT16, QINT32, QUINT8, QUINT16)
   }
 
   /** Set of all quantized data types. */
-  val quantizedDataTypes: Set[DataType] = {
-    Set(TFQInt8, TFQInt16, TFQInt32, TFQUInt8, TFQUInt16) // TODO: TFBFloat16.
+  private[api] val quantizedDataTypes: Set[DataType] = {
+    Set(QINT8, QINT16, QINT32, QUINT8, QUINT16) // TODO: TFBFloat16.
   }
 
   /** Set of all unsigned data types. */
-  val unsignedDataTypes: Set[DataType] = {
-    Set(TFUInt8, TFUInt16, TFQUInt8, TFQUInt16)
+  private[api] val unsignedDataTypes: Set[DataType] = {
+    Set(UINT8, UINT16, QUINT8, QUINT16)
   }
 
   /** Set of all numeric data types. */
-  val numericDataTypes: Set[DataType] = {
+  private[api] val numericDataTypes: Set[DataType] = {
     floatingPointDataTypes ++ complexDataTypes ++ integerDataTypes ++ quantizedDataTypes
   }
 
@@ -506,26 +510,26 @@ object DataType {
     */
   @throws[IllegalArgumentException]
   private[api] def fromCValue(cValue: Int): DataType = cValue match {
-    case TFBoolean.cValue => TFBoolean
-    case TFString.cValue => TFString
+    case BOOLEAN.cValue => BOOLEAN
+    case STRING.cValue => STRING
     // case TFFloat16.cValue => TFFloat16
-    case TFFloat32.cValue => TFFloat32
-    case TFFloat64.cValue => TFFloat64
+    case FLOAT32.cValue => FLOAT32
+    case FLOAT64.cValue => FLOAT64
     // case TFBFloat16.cValue => TFBFloat16
     // case TFComplex64.cValue => TFComplex64
     // case TFComplex128.cValue => TFComplex128
-    case TFInt8.cValue => TFInt8
-    case TFInt16.cValue => TFInt16
-    case TFInt32.cValue => TFInt32
-    case TFInt64.cValue => TFInt64
-    case TFUInt8.cValue => TFUInt8
-    case TFUInt16.cValue => TFUInt16
-    case TFQInt8.cValue => TFQInt8
-    case TFQInt16.cValue => TFQInt16
-    case TFQInt32.cValue => TFQInt32
-    case TFQUInt8.cValue => TFQUInt8
-    case TFQUInt16.cValue => TFQUInt16
-    case TFResource.cValue => TFResource
+    case INT8.cValue => INT8
+    case INT16.cValue => INT16
+    case INT32.cValue => INT32
+    case INT64.cValue => INT64
+    case UINT8.cValue => UINT8
+    case UINT16.cValue => UINT16
+    case QINT8.cValue => QINT8
+    case QINT16.cValue => QINT16
+    case QINT32.cValue => QINT32
+    case QUINT8.cValue => QUINT8
+    case QUINT16.cValue => QUINT16
+    case RESOURCE.cValue => RESOURCE
     case value => throw new IllegalArgumentException(
       s"Data type C value '$value' is not recognized in Scala (TensorFlow version ${NativeLibrary.version}).")
   }
@@ -538,26 +542,26 @@ object DataType {
     */
   @throws[IllegalArgumentException]
   private[api] def fromName(name: String): DataType = name match {
-    case "TFBoolean" => TFBoolean
-    case "TFString" => TFString
-    // case "TFFloat16" => TFFloat16
-    case "TFFloat32" => TFFloat32
-    case "TFFloat64" => TFFloat64
-    // case "TFBFloat16" => TFBFloat16
-    // case "TFComplex64" => TFComplex64
-    // case "TFComplex128" => TFComplex128
-    case "TFInt8" => TFInt8
-    case "TFInt16" => TFInt16
-    case "TFInt32" => TFInt32
-    case "TFInt64" => TFInt64
-    case "TFUInt8" => TFUInt8
-    case "TFUInt16" => TFUInt16
-    case "TFQInt8" => TFQInt8
-    case "TFQInt16" => TFQInt16
-    case "TFQInt32" => TFQInt32
-    case "TFQUInt8" => TFQUInt8
-    case "TFQUInt16" => TFQUInt16
-    case "TFResource" => TFResource
+    case "BOOLEAN" => BOOLEAN
+    case "STRING" => STRING
+    // case "FLOAT16" => TFFloat16
+    case "FLOAT32" => FLOAT32
+    case "FLOAT64" => FLOAT64
+    // case "BFLOAT16" => TFBFloat16
+    // case "COMPLEX64" => TFComplex64
+    // case "COMPLEX128" => TFComplex128
+    case "INT8" => INT8
+    case "INT16" => INT16
+    case "INT32" => INT32
+    case "INT64" => INT64
+    case "UINT8" => UINT8
+    case "UINT16" => UINT16
+    case "QINT8" => QINT8
+    case "QINT16" => QINT16
+    case "QINT32" => QINT32
+    case "QUINT8" => QUINT8
+    case "QUINT16" => QUINT16
+    case "RESOURCE" => RESOURCE
     case value => throw new IllegalArgumentException(
       s"Data type name '$value' is not recognized in Scala (TensorFlow version ${NativeLibrary.version}).")
   }
