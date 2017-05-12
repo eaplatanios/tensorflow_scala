@@ -13,5 +13,5 @@ addons:
       - pkg-config
 
 before_install:
-  - wget https://www.dropbox.com/s/zedd75zvay31x6o/libtensorflow.so?dl=0
+  - wget https://www.dropbox.com/s/zedd75zvay31x6o/libtensorflow.so
   - sudo cp libtensorflow.so /usr/lib/libtensorflow.so
