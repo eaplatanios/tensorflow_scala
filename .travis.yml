@@ -13,9 +13,5 @@ addons:
       - pkg-config
 
 before_install:
-  - wget https://github.com/bazelbuild/bazel/releases/download/0.4.4/bazel_0.4.4-linux-x86_64.deb
-  - sudo dpkg -i bazel_0.4.4-linux-x86_64.deb
-  - cd tensorflow_library
-  - bazel build --config=opt //tensorflow:libtensorflow.so
-  - echo $'build:opt --cxxopt=-march=native --copt=-march=native\nbuild --action_env TF_NEED_CUDA="0"\nbuild --action_env TF_NEED_OPENCL="0"' > .tf_configure.bazelrc
-  - cp bazel-bin/tensorflow/libtensorflow.so lib/libtensorflow.so
+  - wget https://www.dropbox.com/s/zedd75zvay31x6o/libtensorflow.so?dl=0
+  - sudo cp libtensorflow.so /usr/lib/libtensorflow.so

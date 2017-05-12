@@ -1251,6 +1251,15 @@ object Math {
       }
     }
 
+    /** Returns the reduction indices for computing the gradients of `shape0` `[operator]` `shape1` with broadcasting.
+      *
+      * This is typically used by gradient computations for broadcasting operations.
+      *
+      * @param  shape0 First operand shape.
+      * @param  shape1 Second operand shape.
+      * @param  name   Name for the created op.
+      * @return Tuple containing two op outputs, each containing the reduction indices for the corresponding op.
+      */
     private[this] def broadcastGradientArguments(
         shape0: Op.Output, shape1: Op.Output, name: String = "BroadcastGradientArguments"): (Op.Output, Op.Output) = {
       val outputs = Op.Builder(opType = "BroadcastGradientArgs", name = name)
