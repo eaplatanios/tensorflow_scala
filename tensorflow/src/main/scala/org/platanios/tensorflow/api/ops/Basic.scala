@@ -1235,12 +1235,52 @@ object Basic {
         .build().outputs(0)
   }
 
-//  def booleanMask(input: Op.Output, mask: Op.Output, name: String = "BooleanMask"): Op.Output = {
-//    private def applyMask1D(reshapedTensor: Op.Output, mask: Op.Output): Op.Output = {
-//      val indices = squeeze(where(mask), axes = Array(1))
-//      gather(reshapedTensor, indices)
-//    }
-//  }
+  /** Creates an op that applies the provided boolean mask to `input`.
+    *
+    * In general, `0 < mask.rank = K <= tensor.rank`, and `mask`'s shape must match the first `K` dimensions of
+    * `tensor`'s shape. We then have: `booleanMask(tensor, mask)(i, j1, --- , jd) = tensor(i1, --- , iK, j1, ---, jd)`,
+    * where `(i1, ---, iK)` is the `i`th `true` entry of `mask` (in row-major order).
+    *
+    * For example:
+    * {{{
+    *   // 1-D example
+    *   tensor = [0, 1, 2, 3]
+    *   mask = [True, False, True, False]
+    *   booleanMask(tensor, mask) == [0, 2]
+    *
+    *   // 2-D example
+    *   tensor = [[1, 2], [3, 4], [5, 6]]
+    *   mask = [True, False, True]
+    *   booleanMask(tensor, mask) == [[1, 2], [5, 6]]
+    * }}}
+    *
+    * @param  input `N`-dimensional tensor.
+    * @param  mask  `K`-dimensional boolean tensor, where `K <= N` and `K` must be known statically.
+    * @param  name  Name for the created op output.
+    * @return Created op output.
+    * @throws InvalidShapeException If the shapes of `input` and `mask` are not compatible.
+    */
+  @throws[InvalidShapeException]
+  def booleanMask(input: Op.Output, mask: Op.Output, name: String = "BooleanMask"): Op.Output = {
+    Op.createWithNameScope(name, Set[Op](input.op, mask.op)) {
+      val inputShape: Shape = input.shape
+      val maskShape: Shape = mask.shape
+      val maskRank: Int = maskShape.rank
+      if (maskRank < 0)
+        throw InvalidShapeException(
+          "The rank of the boolean mask must be known, even if some dimension sizes are unknown. For example, " +
+              "'Shape(-1)' is fine, but 'Shape.unknown()' is not.")
+      if (maskRank == 0)
+        throw InvalidShapeException("The boolean mask cannot be a scalar.")
+      inputShape(0 :: maskRank).assertIsCompatibleWith(maskShape)
+      val dynamicInputShape = shape(input)
+      val leadingSize = Math.product(dynamicInputShape(0 :: maskRank), Array(0))
+      val reshapedInput = reshape(input, concatenate(Array[Op.Output](leadingSize, dynamicInputShape(maskRank ::)), 0))
+      val firstDimension = inputShape(0 :: maskRank).rank
+      reshapedInput.setShape(Shape(firstDimension).concatenateWith(inputShape(maskRank ::)))
+      gather(reshapedInput, squeeze(where(reshape(mask, Array(-1))), axes = Array(1)))
+    }
+  }
 
   // TODO: [OPS] Add support for the "sparseMask", and the "sequenceMask" ops.
 
