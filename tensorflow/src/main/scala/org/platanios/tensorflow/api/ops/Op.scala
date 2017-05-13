@@ -295,7 +295,9 @@ object Op {
     * @param  opOutput Op output.
     * @return Op corresponding to the provided op output.
     */
-  implicit def opOutputToOpImplicitConversion(opOutput: Op.Output): Op = opOutput.op
+  implicit def opOutputToOpImplicitConversion(opOutput: Op.Output): Op = {
+    opOutput.op
+  }
 
   /** Returns the graph of the current op creation context. */
   private[api] def currentGraph(implicit context: DynamicVariable[OpCreationContext]): Graph = context.graph
@@ -306,6 +308,31 @@ object Op {
       ""
     else
       s"${context.nameScope}/"
+  }
+
+  /** Returns the device of the current op creation context. */
+  private[api] def currentDevice(implicit context: DynamicVariable[OpCreationContext]): OpSpecification => String = {
+    context.device
+  }
+
+  /** Returns the colocation ops of the current op creation context. */
+  private[api] def currentColocationOps(implicit context: DynamicVariable[OpCreationContext]): Set[Op] = {
+    context.colocationOps
+  }
+
+  /** Returns the control dependencies of the current op creation context. */
+  private[api] def currentControlDependencies(implicit context: DynamicVariable[OpCreationContext]): Set[Op] = {
+    context.controlDependencies
+  }
+
+  /** Returns the attributes of the current op creation context. */
+  private[api] def currentAttributes(implicit context: DynamicVariable[OpCreationContext]): Map[String, Any] = {
+    context.attributes
+  }
+
+  /** Returns the container of the current op creation context. */
+  private[api] def currentContainer(implicit context: DynamicVariable[OpCreationContext]): String = {
+    context.container
   }
 
   /** Creates a context that can be used for creating ops according to the provided options.
@@ -354,11 +381,11 @@ object Op {
     * generating a new op creation context. This new context is used for all ops created within the code block provided
     * in the `createWith(...)` function. The `nameScope` argument will be interpreted as follows:
     *   - A string not ending with `"/"` will create a new name scope, in which `nameScope` is appended to the prefix of
-    * all operations created in the provided code block. If `nameScope` has been used before, it will be made unique
-    * by calling `uniqueName(graph = context.graph, name = nameScope)`.
+    *     all operations created in the provided code block. If `nameScope` has been used before, it will be made unique
+    *     by calling `uniqueName(graph = context.graph, name = nameScope)`.
     *   - A string ending with `"/"` will be treated as an "absolute" name scope, which makes it possible to re-enter
-    * existing scopes. Such absolute name scopes can be obtained by using the `currentNameScope` function, from
-    * within the appropriate context.
+    *     existing scopes. Such absolute name scopes can be obtained by using the `currentNameScope` function, from
+    *     within the appropriate context.
     *   - A value of `""` will reset the current name scope to the top-level (i.e., empty) name scope.
     *
     * This function checks the provided `nameScope` for validity by checking whether it matches: (i) the regular
@@ -596,6 +623,7 @@ object Op {
       graph: Graph = null, nameScope: String = null, device: OpSpecification => String = _ => "",
       colocationOps: Set[Op] = null, controlDependencies: Set[Op] = null, attributes: Map[String, Any] = null,
       container: String = null)(block: => R)(implicit context: DynamicVariable[OpCreationContext]): R = {
+    // TODO: Move this to a separate scope class.
     val newGraph: Graph = mergeGraph(graph, context)
     val newNameScope: String = mergeNameScope(nameScope, context)
     val newDevice: OpSpecification => String = mergeDevice(device, context)
