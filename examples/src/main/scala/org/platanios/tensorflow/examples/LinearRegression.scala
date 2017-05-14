@@ -22,7 +22,8 @@ object LinearRegression {
     logger.info("Building linear regression model.")
     val graph = Graph()
     val (inputs, outputs, weights, loss, trainOp) = tf.createWith(graph) {
-      val optimizer = tf.train.GradientDescent(0.0001)
+      // val optimizer = tf.train.GradientDescent(0.0001)
+      val optimizer = tf.train.AdaGrad(1.0)
       val inputs = tf.placeholder(tf.FLOAT32, Shape(-1, 1))
       val outputs = tf.placeholder(tf.FLOAT32, Shape(-1, 1))
       val weights = tf.Variable(tf.zerosInitializer, Shape(1, 1), tf.FLOAT32)
@@ -34,7 +35,7 @@ object LinearRegression {
 
     logger.info("Training the linear regression model.")
     val session = Session(graph)
-    session.run(targets = Array(tf.Variable.initializer(graph.trainableVariables)))
+    session.run(targets = Array(graph.globalVariablesInitializer()))
     for (i <- 0 to 50) {
       val trainBatch = batch(10000)
       val feeds = Map[tf.Op.Output, tf.Tensor](

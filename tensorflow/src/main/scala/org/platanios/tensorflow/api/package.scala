@@ -194,6 +194,9 @@ package object api extends Implicits {
 
       type GradientDescent = ops.optimizers.GradientDescent
       val GradientDescent = ops.optimizers.GradientDescent
+
+      type AdaGrad = ops.optimizers.AdaGrad
+      val AdaGrad = ops.optimizers.AdaGrad
     }
 
     //endregion Op Construction Aliases

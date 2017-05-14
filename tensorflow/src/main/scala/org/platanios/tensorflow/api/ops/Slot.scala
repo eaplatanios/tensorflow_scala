@@ -55,12 +55,19 @@ object Slot {
     // name, so that the scope name of the slot variable user can be shared when reuse is 'true'. Meanwhile, when reuse
     // is 'false' and the same name has been previously used, the scope name will be made unique by appending an integer
     // to it.
-    val shape = if (primary.shape.isFullyDefined) primary.shape else initializer.shape
-    tf.createWithVariableScope(s"${primary.op.name}/name", isDefaultName = true) {
-      if (colocateWithPrimary)
-        tf.colocateWith(Set[Op](primary.op))(createSlotVariable(primary, initializer, "", shape, dataType))
+    val inferredShape = {
+      if (shape != null)
+        shape
+      else if (primary.shape.isFullyDefined)
+        primary.shape
       else
-        createSlotVariable(primary, initializer, "", shape, dataType)
+        initializer.shape
+    }
+    tf.createWithVariableScope(s"${primary.op.name}/$name", isDefaultName = true) {
+      if (colocateWithPrimary)
+        tf.colocateWith(Set[Op](primary.op))(createSlotVariable(primary, initializer, "", inferredShape, dataType))
+      else
+        createSlotVariable(primary, initializer, "", inferredShape, dataType)
     }
   }
 

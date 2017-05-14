@@ -722,7 +722,7 @@ object Op {
       // Check whether the provided name scope is valid.
       // If the root name scope is being set, then stricter checks are performed on it (i.e., op naming checks). This
       // makes sure the name scope does not start with any illegal characters (e.g., '_', '-', '\', and '/').
-      if ((context.nameScope == "" && !checkName(nameScope))
+      if ((context.nameScope == "" && nameScope != "" && !checkName(nameScope))
           || (context.nameScope != "" && !checkNameScope(nameScope)))
         throw IllegalNameException(s"Illegal name scope '$nameScope'.")
       if (nameScope == "")

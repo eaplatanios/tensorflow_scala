@@ -186,7 +186,7 @@ trait Optimizer {
     })
   }
 
-  /** Create all slots needed by the variables. */
+  /** Create all slots needed by this optimizer. */
   protected def createSlots(variables: Seq[Variable]): Unit = {
     // No slots are created by default.
   }
@@ -274,6 +274,16 @@ trait Optimizer {
       name: String, variable: Variable, initializer: VariableInitializer, shape: Shape, dataType: DataType,
       variableScope: String): Variable = {
     slotMap(name).getOrElseUpdate(variable, Slot.create(variable, initializer, variableScope, dataType, shape))
+  }
+
+  /** Gets an existing slot.
+    *
+    * @param  name          Slot name.
+    * @param  variable      Slot primary variable.
+    * @return Requested slot variable, or `null` if it cannot be found.
+    */
+  protected def getSlot(name: String, variable: Variable): Variable = {
+    slots.getOrElse(name, Map.empty[Variable, Variable]).getOrElse(variable, null)
   }
 
   /** Gets an existing slot or creates a new one using an initial value of zeros, if none exists.
