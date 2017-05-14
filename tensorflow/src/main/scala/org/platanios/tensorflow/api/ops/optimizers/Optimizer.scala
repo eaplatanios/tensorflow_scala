@@ -2,9 +2,9 @@ package org.platanios.tensorflow.api.ops.optimizers
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.Exception.InvalidDataTypeException
-import org.platanios.tensorflow.api.tf.{DataType, FLOAT32, FLOAT64, INT32, RESOURCE, Variable}
+import org.platanios.tensorflow.api.tf.{DataType, INT32, FLOAT32, FLOAT64, RESOURCE, Variable, VariableInitializer}
 import org.platanios.tensorflow.api.ops.optimizers.Optimizer._
-import org.platanios.tensorflow.api.ops.{Basic, ControlFlow, Gradients, Math, Op}
+import org.platanios.tensorflow.api.ops.{Basic, ControlFlow, Gradients, Math, Op, Slot}
 
 import scala.collection.mutable
 
@@ -20,10 +20,10 @@ trait Optimizer {
 
   /** Some [[Optimizer]] subclasses use additional variables. For example, `MomentumOptimizer` and `AdaGradOptimizer`
     * use variables to accumulate updates. This map is where these variables are stored. */
-  protected val slots: Map[String, Map[Variable, Variable]] = Map.empty[String, Map[Variable, Variable]]
+  protected val slots = mutable.Map.empty[String, mutable.Map[Variable, Variable]]
 
   /** Returns the names of all slots used by this optimizer. */
-  protected def slotNames: Set[String] = slots.keySet
+  protected def slotNames: Set[String] = slots.keySet.toSet
 
   /** Creates an op that makes a step towards minimizing `loss` by updating the values of the variables in `variables`.
     *
@@ -250,7 +250,42 @@ trait Optimizer {
     applySparse(deDuplicateOutputIndexedSlices(gradient), variable)
   }
 
-  // TODO: [SLOTS] Add all of the slot creator functionality.
+  /** Gets the map used for caching slots created under the provided name. If the map does not exist, then a new empty
+    * map is created and returned.
+    *
+    * @param  name Slot name.
+    * @return Map used for caching slots created under the provided name.
+    */
+  private[this] def slotMap(name: String): mutable.Map[Variable, Variable] = {
+    slots.getOrElseUpdate(name, mutable.Map.empty[Variable, Variable])
+  }
+
+  /** Gets an existing slot or creates a new one if none exists, for the provided arguments.
+    *
+    * @param  name          Slot name.
+    * @param  variable      Slot primary variable.
+    * @param  initializer   Slot variable initializer.
+    * @param  shape         Slot variable shape.
+    * @param  dataType      Slot variable data type.
+    * @param  variableScope Name to use when scoping the variable that needs to be created for the slot.
+    * @return Requested slot variable.
+    */
+  protected def getSlot(
+      name: String, variable: Variable, initializer: VariableInitializer, shape: Shape, dataType: DataType,
+      variableScope: String): Variable = {
+    slotMap(name).getOrElseUpdate(variable, Slot.create(variable, initializer, variableScope, dataType, shape))
+  }
+
+  /** Gets an existing slot or creates a new one using an initial value of zeros, if none exists.
+    *
+    * @param  name          Slot name.
+    * @param  variable      Slot primary variable.
+    * @param  variableScope Name to use when scoping the variable that needs to be created for the slot.
+    * @return Requested slot variable.
+    */
+  protected def zerosSlot(name: String, variable: Variable, variableScope: String): Variable = {
+    slotMap(name).getOrElseUpdate(variable, Slot.zeros(variable, variableScope))
+  }
 }
 
 object Optimizer {

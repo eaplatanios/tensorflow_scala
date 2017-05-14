@@ -22,6 +22,8 @@ case class VariableStore() {
   /** Map with variable scope names as keys and the corresponding use counts as values. */
   private[this] var variableScopeCounts: Map[String, Int] = Map.empty[String, Int]
 
+  // TODO: [DOC] [VARIABLES]
+
   private[variables] def enterVariableScope(scope: String): Unit = variableScopeCounts synchronized {
     variableScopeCounts += scope -> (variableScopeCounts.getOrElse(scope, 0) + 1)
   }
@@ -134,7 +136,7 @@ case class VariableStore() {
             throw new IllegalArgumentException(
               s"Variable '$name' already exists, but variable scope re-use was set to 'false'.")
           val foundVariable = variables(name)
-          if (!shape.isCompatibleWith(foundVariable.shape))
+          if (shape != null && !shape.isCompatibleWith(foundVariable.shape))
             throw ShapeMismatchException(
               s"Trying to share variable '$name', but the specified shape '$shape' is not compatible with the " +
                   s"existing variable shape '${foundVariable.shape}'.")
@@ -148,7 +150,7 @@ case class VariableStore() {
           if (reuse != null && reuse)
             throw new IllegalArgumentException(
               s"Variable '$name' does not exist, but variable scope re-use was set to 'false'.")
-          if (!shape.isFullyDefined)
+          if (shape != null && !shape.isFullyDefined)
             throw new IllegalArgumentException(
               s"The shape of a new variable ('$name') must be fully defined, but instead it was set to '$shape'.")
           val actualInitializer = if (initializer == null) defaultInitializer(name, dataType) else initializer
@@ -303,7 +305,7 @@ case class VariableStore() {
               collections = collections,
               cachingDevice = cachingDevice)
           }
-          variablePart.setSaveSliceInformation(SaveSliceInformation(name, shape, variableOffset, variableShape))
+          variablePart.saveSliceInformation = SaveSliceInformation(name, shape, variableOffset, variableShape)
           variableParts += variablePart
         }
 

@@ -61,9 +61,10 @@ sbt compile
   - [ ] More flexible/efficient slicing for obtaining and assigning elements
   - [ ] More numpy-like operations for tensors
 - General API features:
-  - [x] Support for all data types.
-  - [ ] Summaries
+  - [x] Support for all data types
   - [x] Optimizers
+  - [ ] Savers
+  - [ ] Summaries
   - [ ] Estimators
   - [ ] tfprof / op statistics collection
 
@@ -71,6 +72,8 @@ sbt compile
 
 - Create a "Scope" class and companion object.
 - Change all of the "ne" and "eq" for op outputs to "!=" and "==".
+- Make casting more efficient with a conditional on the data type and an optional identity op.
+- Add casting (considering type priorities) to the operator overloads.
 - Variables API:
   - Clean up the implementation of variable scopes and stores and integrate it with "Scope".
   - Make 'PartitionedVariable' extend 'Variable'.

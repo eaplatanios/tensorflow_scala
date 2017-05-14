@@ -149,6 +149,7 @@ package object api extends Implicits {
     val onesInitializer  = ops.variables.OnesInitializer
 
     def constantInitializer(value: Tensor) = ops.variables.ConstantInitializer(value)
+    def constantInitializer(value: Op.Output) = ops.variables.DynamicConstantInitializer(value)
 
     def variable(
         name: String, shape: Shape = null, dataType: tf.DataType = tf.FLOAT32, initializer: VariableInitializer = null,

@@ -1,8 +1,9 @@
 package org.platanios.tensorflow.examples
 
-import com.typesafe.scalalogging.Logger
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.ops.Math.{matMul, sum, square}
+
+import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
 
 import scala.collection.mutable.ArrayBuffer

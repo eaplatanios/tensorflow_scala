@@ -1,11 +1,10 @@
 package org.platanios.tensorflow.api.ops.variables
 
-import org.platanios.tensorflow.api.Exception.InvalidDataTypeException
+import org.platanios.tensorflow.api.Exception.{InvalidDataTypeException, ShapeMismatchException}
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.tf.{DataType, INT32, INT64, Tensor}
-
 import org.tensorflow.framework.{SaveSliceInfoDef, VariableDef}
 
 import scala.util.DynamicVariable
@@ -55,7 +54,7 @@ case class Variable private(
   //   *
   //   * TODO: Add example.
   //   */
-  // val initializedValue: Op.Output = ??? // TODO: [CONTROL_FLOW] !!! We need control flow ops for this.
+  // val initializedValue: Op.Output = ??? // TODO: [VARIABLES] [CONTROL_FLOW] !!! We need control flow ops for this.
 
   /** Returns a cached op which reads the last value of this variable.
     *
@@ -77,14 +76,6 @@ case class Variable private(
 
   /** Contains the save slice information for this variable. */
   private[api] var saveSliceInformation: Variable.SaveSliceInformation = _
-
-  /** Sets the slice information used for saving this variable.
-    *
-    * @param  saveSliceInformation Save slice information to use.
-    */
-  private[api] def setSaveSliceInformation(saveSliceInformation: Variable.SaveSliceInformation): Unit = {
-    this.saveSliceInformation = saveSliceInformation
-  }
 
   /** Creates an op that reads the value of this variable.
     *
@@ -416,9 +407,9 @@ object Variable {
 
   /** Creates a variable.
     *
-    * @param  initializer   Initializer that generates the op output that will be used as the initial value of this
-    *                       variable.
-    * @param  shape         Shape for the value of the created variable.
+    * @param  initializer   Initializer that creates the tensor that will be used as the initial value of this variable.
+    * @param  shape         Shape for the value of the created variable. If `null`, an attempt will be made to infer the
+    *                       shape of the variable from the provided initializer.
     * @param  dataType      Data type for the value of the created variable. If not provided, its value is inferred from
     *                       the provided initial value.
     * @param  trainable     If `true`, the default, the variable is added to the graph collection
@@ -434,15 +425,19 @@ object Variable {
     * @return Created variable.
     */
   def apply(
-      initializer: Initializer, shape: Shape, dataType: DataType, trainable: Boolean = true,
+      initializer: Initializer, shape: Shape = null, dataType: DataType = tf.FLOAT32, trainable: Boolean = true,
       collections: Set[String] = Set.empty, cachingDevice: OpSpecification => String = null,
       name: String = "Variable"): Variable = {
+    val inferredShape = if (shape == null) initializer.shape else shape
+    if (inferredShape == null)
+      throw ShapeMismatchException(
+        "No shape was provided for the new variable and it could not be inferred from the provided initializer.")
     Op.createWith(nameScope = name, controlDependencies = Set.empty[Op]) {
       val nameScope = Op.currentNameScope
       val trueName = Op.convertNameScopeToName(nameScope)
-      val variableOp = variable(shape, dataType, sharedName = trueName, name = nameScope)
+      val variableOp = variable(inferredShape, dataType, sharedName = trueName, name = nameScope)
       val initialValue = Op.createWith(nameScope = "Initializer", colocationOps = Set[Op](variableOp.op)) {
-        initializer(shape, dataType, null)
+        initializer(inferredShape, dataType, null)
       }
       val initializeOp = assign(variableOp, initialValue, name = "InitializationAssign")
       val cachedValueOp = Op.createWith(nameScope = "Read", colocationOps = Set[Op](variableOp.op)) {
@@ -504,7 +499,7 @@ object Variable {
         null
     }
     val createdVariable = Variable(dataType, variableOp, initializeOp, cachedValueOp)
-    createdVariable.setSaveSliceInformation(saveSliceInformation)
+    createdVariable.saveSliceInformation = saveSliceInformation
     createdVariable
   }
 
