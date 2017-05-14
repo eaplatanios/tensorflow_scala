@@ -634,7 +634,7 @@ object Op {
     * @throws IllegalNameException If the provided name scope does not pass the regular expression validity checks.
     */
   @throws[IllegalNameException]
-  def createWith[R](
+  private[api] def createWith[R](
       graph: Graph = null, nameScope: String = null, device: OpSpecification => String = _ => "",
       colocationOps: Set[Op] = null, controlDependencies: Set[Op] = null, attributes: Map[String, Any] = null,
       container: String = null)(block: => R)(implicit context: DynamicVariable[OpCreationContext]): R = {
@@ -674,7 +674,7 @@ object Op {
     * @throws GraphMismatchException If any two of the values provided lie in different graphs.
     */
   @throws[GraphMismatchException]
-  def createWithNameScope[R](nameScope: String, values: Set[Op] = Set.empty[Op])(block: => R)
+  private[api] def createWithNameScope[R](nameScope: String, values: Set[Op] = Set.empty[Op])(block: => R)
       (implicit context: DynamicVariable[OpCreationContext]): R = {
     if (values.nonEmpty) {
       val newGraph: Graph = mergeGraph(getGraphFromInputs(values), context)
@@ -698,7 +698,7 @@ object Op {
     * @tparam R Return type of the code block.
     * @return Return value of the code block.
     */
-  def colocateWith[R](colocationOps: Set[Op], ignoreExisting: Boolean = false)
+  private[api] def colocateWith[R](colocationOps: Set[Op], ignoreExisting: Boolean = false)
       (block: => R)(implicit context: DynamicVariable[OpCreationContext]): R = {
     val newColocationOps: Set[Op] = {
       if (ignoreExisting)
