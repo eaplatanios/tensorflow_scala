@@ -102,7 +102,7 @@ trait Optimizer {
     }
     val gradientsAndVariables: Seq[(Op.OutputLike, Variable)] = gradients.zip(collectedVariables)
     assertSupportedDataTypes(
-      gradientsAndVariables.filter(p => (p._1 ne null) && p._2.dataType != RESOURCE).map(_._2.value))
+      gradientsAndVariables.filter(p => (p._1 != null) && p._2.dataType != RESOURCE).map(_._2.value))
     gradientsAndVariables
   }
 
@@ -118,7 +118,7 @@ trait Optimizer {
       name: String = this.name): Op = {
     // This is a default implementation of `applyGradients` that is shared by most optimizers. It relies on the subclass
     // implementing the following methods: `createSlots`, `prepare`, `finish`, `applyDense`, and `applySparse`.
-    val variables: Seq[Variable] = gradientsAndVariables.filter(_._1 ne null).map(_._2)
+    val variables: Seq[Variable] = gradientsAndVariables.filter(_._1 != null).map(_._2)
     if (variables.isEmpty)
       throw new IllegalArgumentException(
         s"No gradients were provided for any of the variables: ${gradientsAndVariables.map(_._2).mkString(", ")}.")
@@ -143,7 +143,7 @@ trait Optimizer {
 
       // Collect the update ops for all variables.
       val updateOps = mutable.Set.empty[Op]
-      for ((g, v, p) <- gradientsAndVariables.map(p => (p._1, p._2, getVariableProcessor(p._2))).filter(_._1 ne null)) {
+      for ((g, v, p) <- gradientsAndVariables.map(p => (p._1, p._2, getVariableProcessor(p._2))).filter(_._1 != null)) {
         // We colocate all ops created for variable application on the same device as the variable.
         Op.createWith(nameScope = s"${v.op.name}Update", colocationOps = Set[Op](v.op)) {
           updateOps.add(p.updateOp(this, g))

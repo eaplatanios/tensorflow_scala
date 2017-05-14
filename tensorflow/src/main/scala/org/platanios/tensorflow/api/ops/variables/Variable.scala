@@ -67,7 +67,7 @@ case class Variable private(
     * converting them to tensors.
     */
   val value: Op.Output = {
-    if (cachedValueOp ne null) {
+    if (cachedValueOp != null) {
       cachedValueOp
     } else {
       Op.createWith(nameScope = name, colocationOps = Set.empty[Op], device = null) {
@@ -230,7 +230,7 @@ case class Variable private(
       val variableDefBuilder = VariableDef.newBuilder()
       variableDefBuilder.setVariableName(Op.stripNameScope(exportScope, variableOp.name))
       variableDefBuilder.setInitializerName(Op.stripNameScope(exportScope, initializeOp.name))
-      if (cachedValueOp ne null)
+      if (cachedValueOp != null)
         variableDefBuilder.setSnapshotName(Op.stripNameScope(exportScope, cachedValueOp.name))
       variableDefBuilder.setIsResource(true)
       if (saveSliceInformation != null)

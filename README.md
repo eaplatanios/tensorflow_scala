@@ -71,7 +71,6 @@ sbt compile
 ## TODOs
 
 - Create a "Scope" class and companion object.
-- Change all of the "ne" and "eq" for op outputs to "!=" and "==".
 - Make casting more efficient with a conditional on the data type and an optional identity op.
 - Add casting (considering type priorities) to the operator overloads.
 - Variables API:

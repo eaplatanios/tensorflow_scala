@@ -161,7 +161,7 @@ case class VariableStore() {
           if (regularizer != null) {
             Op.createWith(colocationOps = Set[Op](variable.op)) {
               val loss = Op.createWithNameScope(s"$name/Regularizer")(regularizer(variable.value))
-              if (loss ne null)
+              if (loss != null)
                 Op.currentGraph.addToCollection(loss, Graph.Keys.REGULARIZATION_LOSSES)
             }
           }

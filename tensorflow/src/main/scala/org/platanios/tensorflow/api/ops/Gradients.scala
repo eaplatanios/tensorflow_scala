@@ -93,10 +93,10 @@ object Gradients {
                 throw new IllegalStateException(
                   s"The number of gradients (${inputGradients.length}) generated for op '$op' do not match its " +
                       s"number of inputs (${op.inputs.length}).")
-              if (gateGradients && inputGradients.count(_ ne null) > 1)
+              if (gateGradients && inputGradients.count(_ != null) > 1)
                 inputGradients = ControlFlow.tuple(inputGradients.toArray).toSeq
               logGradients(op, outputGradients, inputGradients)
-              op.inputs.zip(inputGradients).filter(_._2 ne null).foreach(i => {
+              op.inputs.zip(inputGradients).filter(_._2 != null).foreach(i => {
                 i._2 match {
                   case gradient: Op.Output if i._1.dataType != RESOURCE => gradient.setShape(i._1.shape)
                   case _ =>
@@ -197,7 +197,7 @@ object Gradients {
       ys: Seq[Op.OutputLike], dys: Seq[Op.OutputLike], colocateGradientsWithOps: Boolean): Seq[Op.OutputLike] = {
     ys.zip(if (dys != null) dys else Seq.fill[Op.OutputLike](ys.length)(null)).map {
       case (y, dy) =>
-        if (dy eq null) {
+        if (dy == null) {
           if (y.dataType.isComplex)
             throw InvalidDataTypeException(
               s"Gradients of complex tensors must set 'gradients' (variable.dataType = '${y.dataType}').")
@@ -205,7 +205,7 @@ object Gradients {
             y match {
               case o: Op.Output => Basic.onesLike(o)
               case o: Op.OutputIndexedSlices =>
-                if (o.denseShape eq null)
+                if (o.denseShape == null)
                   throw new IllegalArgumentException(
                     "The dense shape of output indexed slices must be known in order to obtain their gradients.")
                 val values = Basic.fill(o.denseShape, 1.0)

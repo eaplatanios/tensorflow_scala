@@ -516,7 +516,7 @@ object Basic {
           val values = identity(i.values, name = "ValuesIdentity")
           val indices = identity(i.indices, name = "IndicesIdentity")
           val denseShape = {
-            if (i.denseShape ne null)
+            if (i.denseShape != null)
               identity(i.denseShape, name = "DenseShapeIdentity")
             else
               null
@@ -1647,7 +1647,7 @@ object Basic {
         .addInput(input)
         .addInput(begin)
         .addInput(end)
-        .addInput(if (strides ne null) onesLike(begin, begin.dataType) else strides)
+        .addInput(if (strides != null) onesLike(begin, begin.dataType) else strides)
         .setAttribute("begin_mask", beginMask)
         .setAttribute("end_mask", endMask)
         .setAttribute("ellipsis_mask", ellipsisMask)

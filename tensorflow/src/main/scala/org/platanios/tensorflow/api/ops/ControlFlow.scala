@@ -217,7 +217,7 @@ object ControlFlow {
   //                  s"the specified shape invariant is '$shape'.")
   //          e.values.setShape(shape)
   //          e.indices.setShape(Shape(shape(0)))
-  //          if (e.denseShape ne null)
+  //          if (e.denseShape != null)
   //            e.denseShape.setShape(Shape(shape.rank))
   //        case (i: Op.SparseOutput, e: Op.SparseOutput) =>
   //          if (!shapeLessThenOrEqual(i.denseShape.shape, shape))
@@ -261,10 +261,10 @@ object ControlFlow {
   //      case (merge: Op.OutputIndexedSlices, next: Op.OutputIndexedSlices) =>
   //        val mergeValuesShape = merge.values.shape
   //        val mergeIndicesShape = merge.indices.shape
-  //        val mergeDenseShapeShape = if (merge.denseShape ne null) merge.denseShape.shape else Shape.unknown()
+  //        val mergeDenseShapeShape = if (merge.denseShape != null) merge.denseShape.shape else Shape.unknown()
   //        val nextValuesShape = next.values.shape
   //        val nextIndicesShape = next.indices.shape
-  //        val nextDenseShapeShape = if (next.denseShape ne null) next.denseShape.shape else Shape.unknown()
+  //        val nextDenseShapeShape = if (next.denseShape != null) next.denseShape.shape else Shape.unknown()
   //        // TODO: !!! The Python API does not include all these checks.
   //        if (!shapeLessThenOrEqual(nextValuesShape, mergeValuesShape) ||
   //            !shapeLessThenOrEqual(nextIndicesShape, mergeIndicesShape) ||
@@ -321,7 +321,7 @@ object ControlFlow {
   //          val values = nextIteration(i.values, name = "ValuesNextIteration")
   //          val indices = nextIteration(i.indices, name = "IndicesNextIteration")
   //          val denseShape = {
-  //            if (i.denseShape ne null)
+  //            if (i.denseShape != null)
   //              nextIteration(i.denseShape, name = "DenseShapeNextIteration")
   //            else
   //              null
@@ -368,7 +368,7 @@ object ControlFlow {
   //          val values = enter(i.values, frameName, isConstant, parallelIterations, useInputShape, "ValuesEnter")
   //          val indices = enter(i.indices, frameName, isConstant, parallelIterations, useInputShape, "IndicesEnter")
   //          val denseShape = {
-  //            if (i.denseShape ne null)
+  //            if (i.denseShape != null)
   //              enter(i.denseShape, frameName, isConstant, parallelIterations, useInputShape, "DenseShapeEnter")
   //            else
   //              null
@@ -405,7 +405,7 @@ object ControlFlow {
   //          val values = exit(i.values, name = "ValuesExit")
   //          val indices = exit(i.indices, name = "IndicesExit")
   //          val denseShape = {
-  //            if (i.denseShape ne null)
+  //            if (i.denseShape != null)
   //              exit(i.denseShape, name = "DenseShapeExit")
   //            else
   //              null
@@ -444,7 +444,7 @@ object ControlFlow {
   //          val (valuesFalse, valuesTrue) = switch(i.values, predicate, name = "ValuesSwitch")
   //          val (indicesFalse, indicesTrue) = switch(i.indices, predicate, name = "IndicesSwitch")
   //          val (denseShapeFalse, denseShapeTrue) = {
-  //            if (i.denseShape ne null)
+  //            if (i.denseShape != null)
   //              switch(i.denseShape, predicate, name = "DenseShapeSwitch")
   //            else
   //              (null, null)
@@ -502,8 +502,8 @@ object ControlFlow {
   //          val ii = i.map(_.asInstanceOf[Op.OutputIndexedSlicesConvertible].toOpOutputIndexedSlices(optimize = true))
   //          val (values, _) = merge(ii.map(_.values), "ValuesMerge")
   //          val (indices, chosenIndex) = merge(ii.map(_.indices), "IndicesMerge")
-  //          val denseShape = if (ii.map(_.denseShape).exists(_ ne null)) {
-  //            if (ii.map(_.denseShape).exists(_ eq null))
+  //          val denseShape = if (ii.map(_.denseShape).exists(_ != null)) {
+  //            if (ii.map(_.denseShape).exists(_ == null))
   //              throw new IllegalArgumentException(
   //                "Either all merged 'Op.OutputIndexedSlices' must have a known dense shape, or none of them.")
   //            merge(ii.map(_.denseShape), "DenseShapeMerge")

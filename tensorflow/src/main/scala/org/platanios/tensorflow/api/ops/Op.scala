@@ -3,11 +3,10 @@ package org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.core.{DeviceSpecification, Graph, Indexer, Session, Shape}
 import org.platanios.tensorflow.api.core.exception._
-import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.ops.variables.{VariableScope, VariableStore}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.tensors.TensorFlowNative.{NativeView => TensorNativeView}
-import org.platanios.tensorflow.api.types.{DataType, FLOAT32, INT32, INT64}
+import org.platanios.tensorflow.api.types.{DataType, INT32, INT64}
 import org.platanios.tensorflow.jni.{Op => NativeOp}
 
 import java.nio.charset.Charset
@@ -19,6 +18,8 @@ import spire.implicits._
 import spire.math.UShort
 
 /** Represents a graph node, or as we shall call it, an operation, that performs computation on tensors.
+  *
+  * TODO: Add Op.run method and Op.Output.eval method.
   *
   * An `Op` is a symbolic representation of the computation it performs. It is a node in a TensorFlow [[Graph]] that
   * takes zero or more `Op.Output` objects as input, and produces zero or more `Op.Output` objects as output. `Op`
@@ -1088,8 +1089,8 @@ object Op {
     def &&(other: Output): Output = Math.logicalAnd(x = this, y = other)
     def ||(other: Output): Output = Math.logicalOr(x = this, y = other)
 
-    def ==(other: Output): Output = Math.equal(x = this, y = other)
-    def !=(other: Output): Output = Math.notEqual(x = this, y = other)
+    // def ===(other: Output): Output = Math.equal(x = this, y = other)
+    // def =!=(other: Output): Output = Math.notEqual(x = this, y = other)
     def <(other: Output): Output = Math.less(x = this, y = other)
     def <=(other: Output): Output = Math.lessEqual(x = this, y = other)
     def >(other: Output): Output = Math.greater(x = this, y = other)
@@ -1169,7 +1170,7 @@ object Op {
 
     /** Name of this op output indexed slices. */
     override def name: String = s"${values.name}[${indices.name}]" +
-        (if (denseShape ne null) s"(shape = ${denseShape.name})" else "")
+        (if (denseShape != null) s"(shape = ${denseShape.name})" else "")
 
     /** Data type of this op output indexed slices. */
     override def dataType: DataType = values.dataType
@@ -1185,7 +1186,7 @@ object Op {
 
     /** Returns the [[Op.Output]] that this [[Op.OutputLike]] object represents. */
     override def toOpOutput: Op.Output = {
-      if (denseShape ne null)
+      if (denseShape != null)
         throw new IllegalStateException(
           s"Op output conversion requested the conversion of 'Op.OutputIndexedSlices', '$this', which has no dense " +
               s"shape information available.")
@@ -1274,7 +1275,7 @@ object Op {
 
     /** Name of this sparse op output. */
     override def name: String = s"${values.name}[${indices.name}]" +
-        (if (denseShape ne null) s"(shape = ${denseShape.name})" else "")
+        (if (denseShape != null) s"(shape = ${denseShape.name})" else "")
 
     /** Data type of this sparse op output. */
     override def dataType: DataType = values.dataType

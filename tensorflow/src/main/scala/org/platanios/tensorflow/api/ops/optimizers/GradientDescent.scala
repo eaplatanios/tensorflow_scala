@@ -12,7 +12,7 @@ case class GradientDescent(
   private[this] var learningRateTensor: Op.Output = _
 
   private[this] def getLearningRate(variable: Variable): Op.Output = {
-    if (learningRateTensor eq null)
+    if (learningRateTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
     Math.cast(learningRateTensor, variable.dataType)
   }

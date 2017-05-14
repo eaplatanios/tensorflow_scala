@@ -180,7 +180,7 @@ object Session {
     Session(graph = graph, nativeHandle = using(graph.reference)(r => NativeSession.allocate(r.nativeHandle)))
   }
 
-  def apply(implicit context: DynamicVariable[OpCreationContext]): Session = {
+  def apply()(implicit context: DynamicVariable[OpCreationContext]): Session = {
     val graph = context.graph
     Session(graph = graph, nativeHandle = using(graph.reference)(r => NativeSession.allocate(r.nativeHandle)))
   }

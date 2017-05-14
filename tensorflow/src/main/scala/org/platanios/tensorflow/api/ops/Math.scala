@@ -658,7 +658,7 @@ object Math {
   //region Reduction Ops
 
   private[this] def reductionAxes(tensor: Op.Output, axes: Op.Output): Op.Output = {
-    if (axes ne null)
+    if (axes != null)
       axes
     else
       Basic.constant(Tensor.fromSeq(0 until tensor.shape.rank: _*)(INT32.supportedType))

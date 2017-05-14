@@ -118,9 +118,24 @@ package object api extends Implicits {
     def currentContainer: String = ops.Op.currentContainer
 
     // TODO: Maybe remove "current" from the above names.
-    // TODO: Add aliases for "trainableVariablesInitializer", etc.
 
     private[api] def currentVariableStore: VariableStore = ops.Op.currentVariableStore
+
+    def globalVariablesInitializer(name: String = "GlobalVariablesInitializer"): Op = {
+      ops.Op.currentGraph.globalVariablesInitializer(name)
+    }
+
+    def localVariablesInitializer(name: String = "LocalVariablesInitializer"): Op = {
+      ops.Op.currentGraph.localVariablesInitializer(name)
+    }
+
+    def modelVariablesInitializer(name: String = "ModelVariablesInitializer"): Op = {
+      ops.Op.currentGraph.modelVariablesInitializer(name)
+    }
+
+    def trainableVariablesInitializer(name: String = "TrainableVariablesInitializer"): Op = {
+      ops.Op.currentGraph.trainableVariablesInitializer(name)
+    }
 
     def createWith[R](
         graph: Graph = null, nameScope: String = null, device: ops.OpSpecification => String = _ => "",
