@@ -1,8 +1,7 @@
 package org.platanios.tensorflow.api
 
-import org.platanios.tensorflow.api.Exception.{GraphMismatchException, InvalidGraphElementException}
+import org.platanios.tensorflow.api.tf.{createWith, Graph, GraphMismatchException, InvalidGraphElementException}
 import org.platanios.tensorflow.api.ops.Basic.constant
-import org.platanios.tensorflow.api.ops.Op.createWith
 
 import org.scalatest._
 

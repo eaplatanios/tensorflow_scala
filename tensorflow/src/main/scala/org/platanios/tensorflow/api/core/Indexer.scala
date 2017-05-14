@@ -1,8 +1,9 @@
-package org.platanios.tensorflow.api
+package org.platanios.tensorflow.api.core
 
-import org.platanios.tensorflow.api.Exception.InvalidIndexerException
-import org.platanios.tensorflow.api.ops.Basic
-import org.platanios.tensorflow.api.tf.{INT32, Op, Tensor}
+import org.platanios.tensorflow.api.core.exception.InvalidIndexerException
+import org.platanios.tensorflow.api.ops.{Basic, Op}
+import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.api.types.INT32
 
 import scala.language.postfixOps
 
@@ -81,6 +82,8 @@ object Indexer {
     implicit def indexerConstructionWithThreeNumbersToSlice(construction: IndexerConstructionWithThreeNumbers): Slice =
       Slice(start = construction.n1, end = construction.n3, step = construction.n2)
   }
+
+  private[api] object Implicits extends Implicits
 
   /** Decodes the provided indexers sequence into a new set of dimension sizes, begin offsets, end offsets, and strides,
     * for the provided tensor shape.

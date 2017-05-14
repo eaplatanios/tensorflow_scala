@@ -1,11 +1,11 @@
 package org.platanios.tensorflow.api.tensors
 
+import org.platanios.tensorflow.api.DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER
+import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api.core.exception.InvalidDataTypeException
+import org.platanios.tensorflow.api.types._
+
 import java.nio.ByteBuffer
-
-import org.platanios.tensorflow.api.Exception.InvalidDataTypeException
-import org.platanios.tensorflow.api._
-import org.platanios.tensorflow.api.tf.{DataType, INT64, STRING, SupportedType}
-
 
 /**
   * @author Emmanouil Antonios Platanios

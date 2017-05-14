@@ -1,6 +1,6 @@
 package org.platanios.tensorflow.api
 
-import org.platanios.tensorflow.api.Exception.InvalidShapeException
+import org.platanios.tensorflow.api.tf.{InvalidShapeException, Shape}
 
 import org.scalatest._
 

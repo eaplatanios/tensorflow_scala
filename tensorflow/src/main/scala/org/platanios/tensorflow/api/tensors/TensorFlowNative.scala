@@ -1,8 +1,9 @@
 package org.platanios.tensorflow.api.tensors
 
-import org.platanios.tensorflow.api.{Closeable, Shape}
-import org.platanios.tensorflow.api.Exception.InvalidDataTypeException
-import org.platanios.tensorflow.api.tf._
+import org.platanios.tensorflow.api.Closeable
+import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api.core.exception.InvalidDataTypeException
+import org.platanios.tensorflow.api.types._
 import org.platanios.tensorflow.api.utilities.Disposer
 import org.platanios.tensorflow.jni.{Tensor => NativeTensor}
 
@@ -68,4 +69,6 @@ private[api] object TensorFlowNative {
     private[api] implicit def dataTypeOps(dataType: DataType): DataTypeOps = new DataTypeOps(dataType)
     private[api] implicit def nativeViewOps(tensor: Tensor): NativeViewOps = new NativeViewOps(tensor)
   }
+
+  private[api] object Implicits extends Implicits
 }

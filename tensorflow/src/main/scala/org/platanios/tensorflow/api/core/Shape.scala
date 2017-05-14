@@ -1,7 +1,9 @@
-package org.platanios.tensorflow.api
+package org.platanios.tensorflow.api.core
 
-import org.platanios.tensorflow.api.Exception.InvalidShapeException
-import org.platanios.tensorflow.api.tf.{DataType, INT32, Op, Tensor}
+import org.platanios.tensorflow.api.core.exception.InvalidShapeException
+import org.platanios.tensorflow.api.ops.{Basic, Op}
+import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.api.types.{DataType, INT32}
 
 /** Represents the shape of a tensor computed by an op.
   *
@@ -301,6 +303,8 @@ object Shape {
 
   private[api] trait Implicits {
     implicit def shapeToTensor(shape: Shape): Tensor = shape.toTensor()
-    implicit def shapeToOpOutput(shape: Shape): Op.Output = ops.Basic.constant(shape.toTensor())
+    implicit def shapeToOpOutput(shape: Shape): Op.Output = Basic.constant(shape.toTensor())
   }
+
+  private[api] object Implicits extends Implicits
 }

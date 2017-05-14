@@ -1,8 +1,7 @@
 package org.platanios.tensorflow.api.ops.optimizers
 
 import org.platanios.tensorflow.api.ops.{Basic, Math, Op}
-import org.platanios.tensorflow.api.tf
-import org.platanios.tensorflow.api.tf.Variable
+import org.platanios.tensorflow.api.ops.variables.{ConstantInitializer, Variable}
 
 /** Optimizer that implements the AdaGrad optimization algorithm.
   *
@@ -18,7 +17,7 @@ case class AdaGrad(
 
   override protected def createSlots(variables: Seq[Variable]): Unit = {
     variables.foreach(v => {
-      val initializer = tf.constantInitializer(initialAccumulatorValue)
+      val initializer = ConstantInitializer(initialAccumulatorValue)
       getSlot("accumulator", v, initializer, v.shape, v.dataType, s"${this.name}/Accumulator")
     })
   }

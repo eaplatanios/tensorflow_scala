@@ -1,6 +1,7 @@
 package org.platanios.tensorflow.api.tensors
 
 import org.platanios.tensorflow.api._
+import org.platanios.tensorflow.api.tf._
 
 import org.scalatest._
 

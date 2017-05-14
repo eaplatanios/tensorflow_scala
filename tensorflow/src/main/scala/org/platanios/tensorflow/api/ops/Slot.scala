@@ -1,8 +1,8 @@
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api._
-import org.platanios.tensorflow.api.ops.variables.Variable.SaveSliceInformation
-import org.platanios.tensorflow.api.tf.{DataType, Variable, VariableInitializer}
+import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api.ops.variables._
+import org.platanios.tensorflow.api.types.DataType
 
 /** Contains helper functions for creating slots.
   *
@@ -28,11 +28,11 @@ object Slot {
     val inferredDataType = if (dataType == null) primary.dataType else dataType
     // TODO: [VARIABLES] What if the shape is not fully defined?
     if (primary.shape.isFullyDefined) {
-      create(primary, tf.zerosInitializer, name, inferredDataType, primary.shape, colocateWithPrimary)
+      create(primary, ZerosInitializer, name, inferredDataType, primary.shape, colocateWithPrimary)
     } else {
       // TODO: [VARIABLES] Maybe this should use 'primary.initializedValue' instead.
       val initialValue = Basic.zerosLike(primary.value, dataType)
-      create(primary, tf.constantInitializer(initialValue), name, inferredDataType, null, colocateWithPrimary)
+      create(primary, DynamicConstantInitializer(initialValue), name, inferredDataType, null, colocateWithPrimary)
     }
   }
 
@@ -49,7 +49,7 @@ object Slot {
     * @return Created slot variable.
     */
   def create(
-      primary: Variable, initializer: VariableInitializer, name: String, dataType: DataType, shape: Shape = null,
+      primary: Variable, initializer: Initializer, name: String, dataType: DataType, shape: Shape = null,
       colocateWithPrimary: Boolean = true): Variable = {
     // Scope the slot name in the namespace of the primary variable. Set "primary.op.name + '/' + name" as the default
     // name, so that the scope name of the slot variable user can be shared when reuse is 'true'. Meanwhile, when reuse
@@ -63,9 +63,9 @@ object Slot {
       else
         initializer.shape
     }
-    tf.createWithVariableScope(s"${primary.op.name}/$name", isDefaultName = true) {
+    VariableScope.createWithVariableScope(s"${primary.op.name}/$name", isDefaultName = true) {
       if (colocateWithPrimary)
-        tf.colocateWith(Set[Op](primary.op))(createSlotVariable(primary, initializer, "", inferredShape, dataType))
+        Op.colocateWith(Set[Op](primary.op))(createSlotVariable(primary, initializer, "", inferredShape, dataType))
       else
         createSlotVariable(primary, initializer, "", inferredShape, dataType)
     }
@@ -73,18 +73,18 @@ object Slot {
 
   /** Helper function for creating slot variables. */
   private[this] def createSlotVariable(
-      primary: Variable, initializer: VariableInitializer, scope: String, shape: Shape,
+      primary: Variable, initializer: Initializer, scope: String, shape: Shape,
       dataType: DataType): Variable = {
     // TODO: [VARIABLES] When variables and partitioned variables are merged, makes sure this returns a normal variable.
     // TODO: [VARIABLES] When we support more variable types, match the returned variable type to the primary one.
-    val slot = tf.variable(scope, shape, dataType, initializer, trainable = false)
+    val slot = Variable.getVariable(scope, shape, dataType, initializer, trainable = false)
     if (primary.saveSliceInformation != null) {
       // Primary is a partitioned variable, and so we need to also indicate that the slot is also a partitioned
       // variable. Slots have the same partitioning as their primaries. For example, when using the Adam optimizer for a
       // linear model, 'slot.name' could be "linear//weights/Adam:0", while 'primary.op.name' is "linear//weight". We
       // want to get "Adam" as the real slot name, and so we remove "linear//weights/" and ":0".
       val realSlotName = slot.name.substring(primary.op.name.length + 1, slot.name.length - 2)
-      slot.saveSliceInformation = SaveSliceInformation(
+      slot.saveSliceInformation = Variable.SaveSliceInformation(
         fullName = s"${primary.saveSliceInformation.fullName}/$realSlotName",
         fullShape = primary.saveSliceInformation.fullShape,
         variableOffset = primary.saveSliceInformation.variableOffset,

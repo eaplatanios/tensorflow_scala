@@ -1,7 +1,7 @@
 package org.platanios.tensorflow.api.ops.optimizers
 
 import org.platanios.tensorflow.api.ops.{Basic, Math, Op}
-import org.platanios.tensorflow.api.tf.Variable
+import org.platanios.tensorflow.api.ops.variables.Variable
 
 /** Optimizer that implements the gradient descent algorithm.
   *

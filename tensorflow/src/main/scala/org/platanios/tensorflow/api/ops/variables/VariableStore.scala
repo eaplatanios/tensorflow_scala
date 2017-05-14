@@ -1,10 +1,10 @@
 package org.platanios.tensorflow.api.ops.variables
 
-import org.platanios.tensorflow.api.Exception.{InvalidDataTypeException, ShapeMismatchException}
-import org.platanios.tensorflow.api.{Graph, Shape, tf}
-import org.platanios.tensorflow.api.ops.OpSpecification
+import org.platanios.tensorflow.api.core.{Graph, Shape}
+import org.platanios.tensorflow.api.core.exception.{InvalidDataTypeException, ShapeMismatchException}
+import org.platanios.tensorflow.api.ops.{Op, OpSpecification}
 import org.platanios.tensorflow.api.ops.variables.Variable._
-import org.platanios.tensorflow.api.tf.{DataType, Op}
+import org.platanios.tensorflow.api.types.{DataType, FLOAT32}
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -57,7 +57,7 @@ case class VariableStore() {
     * @return Unique name with the provided prefix.
     */
   private[variables] def uniqueVariableScope(prefix: String): String = {
-    val currentScope = Op.convertNameScopeToName(tf.currentVariableScope.name)
+    val currentScope = Op.convertNameScopeToName(Op.currentVariableScope.name)
     val name = {
       if (currentScope == null || currentScope == "")
         prefix
@@ -115,7 +115,7 @@ case class VariableStore() {
   @throws[ShapeMismatchException]
   @throws[InvalidDataTypeException]
   def getVariable(
-      name: String, shape: Shape = null, dataType: tf.DataType = tf.FLOAT32, initializer: Initializer = null,
+      name: String, shape: Shape = null, dataType: DataType = FLOAT32, initializer: Initializer = null,
       regularizer: Regularizer = null, trainable: Boolean = true, reuse: java.lang.Boolean = null,
       collections: Set[String] = Set.empty, cachingDevice: OpSpecification => String = null,
       customGetter: VariableGetter = null): Variable = {
@@ -159,10 +159,10 @@ case class VariableStore() {
           // TODO: [LOGGING]
           // Run the regularizer if specified and save the resulting loss.
           if (regularizer != null) {
-            tf.createWith(colocationOps = Set[Op](variable.op)) {
-              val loss = tf.createWithNameScope(s"$name/Regularizer")(regularizer(variable.value))
+            Op.createWith(colocationOps = Set[Op](variable.op)) {
+              val loss = Op.createWithNameScope(s"$name/Regularizer")(regularizer(variable.value))
               if (loss ne null)
-                tf.currentGraph.addToCollection(loss, Graph.Keys.REGULARIZATION_LOSSES)
+                Op.currentGraph.addToCollection(loss, Graph.Keys.REGULARIZATION_LOSSES)
             }
           }
           variable
@@ -215,11 +215,11 @@ case class VariableStore() {
   @throws[ShapeMismatchException]
   @throws[InvalidDataTypeException]
   def getPartitionedVariable(
-      name: String, shape: Shape = null, dataType: tf.DataType = tf.FLOAT32, initializer: Initializer = null,
+      name: String, shape: Shape = null, dataType: DataType = FLOAT32, initializer: Initializer = null,
       regularizer: Regularizer = null, partitioner: Partitioner = null, trainable: Boolean = true,
       reuse: java.lang.Boolean = null, collections: Set[String] = Set.empty,
       cachingDevice: OpSpecification => String = null): PartitionedVariable = {
-    tf.createWithNameScope("") {
+    Op.createWithNameScope("") {
       if (variables.contains(name))
         throw new IllegalArgumentException(
           s"A partitioner was provided, but an unpartitioned version of the variable was found: '$name'. " +
@@ -293,7 +293,7 @@ case class VariableStore() {
           partOffset(sliceDimension) += variableShape(sliceDimension)
           val actualInitializer = if (initializer == null) defaultInitializer(name, dataType) else initializer
           val partitionInfo = PartitionInformation(shape, variableOffset)
-          val variablePart = tf.createWithNameScope("") {
+          val variablePart = Op.createWithNameScope("") {
             getVariable(
               name = s"$name/part_$i",
               shape = Shape.fromSeq(variableShape),
@@ -326,7 +326,7 @@ case class VariableStore() {
     * @throws IllegalArgumentException If no default initializer is defined for the specified data type.
     */
   @throws[IllegalArgumentException]
-  private[this] def defaultInitializer(name: String, dataType: DataType = tf.FLOAT32): Initializer = {
+  private[this] def defaultInitializer(name: String, dataType: DataType = FLOAT32): Initializer = {
     if (dataType.isFloatingPoint || dataType.isInteger || dataType.isUnsigned || dataType.isBoolean)
       ZerosInitializer
     else

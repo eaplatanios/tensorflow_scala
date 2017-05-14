@@ -1,10 +1,8 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api._
-import org.platanios.tensorflow.api.Exception.IllegalNameException
-import org.platanios.tensorflow.api.ops.Basic.{constant, placeholder}
 import org.platanios.tensorflow.api.ops.Math.matMul
-import org.platanios.tensorflow.api.ops.Op._
+import org.platanios.tensorflow.api.tf._
 
 import org.scalatest._
 
@@ -14,7 +12,7 @@ import org.scalatest._
 class OpSpec extends FlatSpec with Matchers {
   "'Op.Output.setShape'" must "always work" in {
     createWith(graph = Graph()) {
-      val a = placeholder(tf.INT32, Shape(-1, -1, 3))
+      val a = placeholder(INT32, Shape(-1, -1, 3))
       assert(!a.shape.isFullyDefined)
       assert(a.shape === Shape(-1, -1, 3))
       a.setShape(Shape(2, 4, 3))
@@ -437,8 +435,8 @@ class OpSpec extends FlatSpec with Matchers {
     val nameScopeToPrepend = "hidden2"
     (names, expectedStripedNames, expectedPrependedNames).zipped
         .foreach((name, expectedStripedName, expectedPrependedName) => {
-          val strippedName = stripNameScope(nameScope = nameScopeToStrip, name = name)
-          val prependedName = prependNameScope(nameScope = nameScopeToPrepend, name = strippedName)
+          val strippedName = Op.stripNameScope(nameScope = nameScopeToStrip, name = name)
+          val prependedName = Op.prependNameScope(nameScope = nameScopeToPrepend, name = strippedName)
           assert(strippedName === expectedStripedName)
           assert(prependedName === expectedPrependedName)
         })

@@ -1,10 +1,13 @@
 package org.platanios.tensorflow.api.ops.variables
 
-import org.platanios.tensorflow.api.Exception.{InvalidDataTypeException, ShapeMismatchException}
-import org.platanios.tensorflow.api._
+import org.platanios.tensorflow.api.ProtoSerializable
+import org.platanios.tensorflow.api.core.{Graph, Session, Shape}
+import org.platanios.tensorflow.api.core.exception.{InvalidDataTypeException, ShapeMismatchException}
+import org.platanios.tensorflow.api.ops.{Basic, ControlFlow, Op, OpCreationContext, OpSpecification}
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
-import org.platanios.tensorflow.api.ops._
-import org.platanios.tensorflow.api.tf.{DataType, INT32, INT64, Tensor}
+import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.api.types.{DataType, FLOAT32, INT32, INT64}
+
 import org.tensorflow.framework.{SaveSliceInfoDef, VariableDef}
 
 import scala.util.DynamicVariable
@@ -279,11 +282,11 @@ object Variable {
     * @return Requested variable.
     */
   def getVariable(
-      name: String, shape: Shape = null, dataType: tf.DataType = tf.FLOAT32, initializer: Initializer = null,
+      name: String, shape: Shape = null, dataType: DataType = FLOAT32, initializer: Initializer = null,
       regularizer: Regularizer = null, trainable: Boolean = true, reuse: java.lang.Boolean = null,
       collections: Set[String] = Set.empty, cachingDevice: OpSpecification => String = null): Variable = {
-    tf.currentVariableScope.getVariable(
-      tf.currentVariableStore, name, shape, dataType, initializer, regularizer, trainable, reuse, collections,
+    Op.currentVariableScope.getVariable(
+      Op.currentVariableStore, name, shape, dataType, initializer, regularizer, trainable, reuse, collections,
       cachingDevice)
   }
 
@@ -320,12 +323,12 @@ object Variable {
     * @return Requested variable.
     */
   def getPartitionedVariable(
-      name: String, shape: Shape = null, dataType: tf.DataType = tf.FLOAT32, initializer: Initializer = null,
+      name: String, shape: Shape = null, dataType: DataType = FLOAT32, initializer: Initializer = null,
       regularizer: Regularizer = null, partitioner: Partitioner = null, trainable: Boolean = true,
       reuse: java.lang.Boolean = null, collections: Set[String] = Set.empty,
       cachingDevice: OpSpecification => String = null): PartitionedVariable = {
-    tf.currentVariableScope.getPartitionedVariable(
-      tf.currentVariableStore, name, shape, dataType, initializer, regularizer, partitioner, trainable, reuse,
+    Op.currentVariableScope.getPartitionedVariable(
+      Op.currentVariableStore, name, shape, dataType, initializer, regularizer, partitioner, trainable, reuse,
       collections, cachingDevice)
   }
 
@@ -357,11 +360,11 @@ object Variable {
     * @return Requested variable.
     */
   def getLocalVariable(
-      name: String, shape: Shape = null, dataType: tf.DataType = tf.FLOAT32, initializer: Initializer = null,
+      name: String, shape: Shape = null, dataType: DataType = FLOAT32, initializer: Initializer = null,
       regularizer: Regularizer = null, reuse: java.lang.Boolean = null, collections: Set[String] = Set.empty,
       cachingDevice: OpSpecification => String = null): Variable = {
-    tf.currentVariableScope.getVariable(
-      tf.currentVariableStore, name, shape, dataType, initializer, regularizer, trainable = false, reuse,
+    Op.currentVariableScope.getVariable(
+      Op.currentVariableStore, name, shape, dataType, initializer, regularizer, trainable = false, reuse,
       collections + Graph.Keys.LOCAL_VARIABLES, cachingDevice)
   }
 
@@ -397,11 +400,11 @@ object Variable {
     * @return Requested variable.
     */
   def getLocalPartitionedVariable(
-      name: String, shape: Shape, dataType: tf.DataType = tf.FLOAT32, initializer: Initializer = null,
+      name: String, shape: Shape, dataType: DataType = FLOAT32, initializer: Initializer = null,
       regularizer: Regularizer = null, partitioner: Partitioner = null, reuse: java.lang.Boolean = null,
       collections: Set[String] = Set.empty, cachingDevice: OpSpecification => String = null): PartitionedVariable = {
-    tf.currentVariableScope.getPartitionedVariable(
-      tf.currentVariableStore, name, shape, dataType, initializer, regularizer, partitioner, trainable = false, reuse,
+    Op.currentVariableScope.getPartitionedVariable(
+      Op.currentVariableStore, name, shape, dataType, initializer, regularizer, partitioner, trainable = false, reuse,
       collections + Graph.Keys.LOCAL_VARIABLES, cachingDevice)
   }
 
@@ -425,7 +428,7 @@ object Variable {
     * @return Created variable.
     */
   def apply(
-      initializer: Initializer, shape: Shape = null, dataType: DataType = tf.FLOAT32, trainable: Boolean = true,
+      initializer: Initializer, shape: Shape = null, dataType: DataType = FLOAT32, trainable: Boolean = true,
       collections: Set[String] = Set.empty, cachingDevice: OpSpecification => String = null,
       name: String = "Variable"): Variable = {
     val inferredShape = if (shape == null) initializer.shape else shape
@@ -519,7 +522,7 @@ object Variable {
           => Variable
 
     def apply(
-        name: String, shape: Shape = null, dataType: tf.DataType = tf.FLOAT32, initializer: Initializer = null,
+        name: String, shape: Shape = null, dataType: DataType = FLOAT32, initializer: Initializer = null,
         regularizer: Regularizer = null, trainable: Boolean = true, reuse: java.lang.Boolean = null,
         collections: Set[String] = Set.empty, cachingDevice: OpSpecification => String = null,
         customGetter: VariableGetter = null): Variable
@@ -839,7 +842,7 @@ object Variable {
         .build()
   }
 
-  object Gradients {
+  private[api] object Gradients {
     GradientsRegistry.register("ReadVariableOp", readGradient)
 
     def readGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {

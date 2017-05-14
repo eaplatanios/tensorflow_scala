@@ -1,10 +1,11 @@
 package org.platanios.tensorflow.api.ops.optimizers
 
-import org.platanios.tensorflow.api._
-import org.platanios.tensorflow.api.Exception.InvalidDataTypeException
-import org.platanios.tensorflow.api.tf.{DataType, INT32, FLOAT32, FLOAT64, RESOURCE, Variable, VariableInitializer}
-import org.platanios.tensorflow.api.ops.optimizers.Optimizer._
+import org.platanios.tensorflow.api.core.{Graph, Shape}
+import org.platanios.tensorflow.api.core.exception.InvalidDataTypeException
 import org.platanios.tensorflow.api.ops.{Basic, ControlFlow, Gradients, Math, Op, Slot}
+import org.platanios.tensorflow.api.ops.optimizers.Optimizer._
+import org.platanios.tensorflow.api.ops.variables.{Initializer, Variable}
+import org.platanios.tensorflow.api.types.{DataType, INT32, FLOAT32, FLOAT64, RESOURCE}
 
 import scala.collection.mutable
 
@@ -271,7 +272,7 @@ trait Optimizer {
     * @return Requested slot variable.
     */
   protected def getSlot(
-      name: String, variable: Variable, initializer: VariableInitializer, shape: Shape, dataType: DataType,
+      name: String, variable: Variable, initializer: Initializer, shape: Shape, dataType: DataType,
       variableScope: String): Variable = {
     slotMap(name).getOrElseUpdate(variable, Slot.create(variable, initializer, variableScope, dataType, shape))
   }

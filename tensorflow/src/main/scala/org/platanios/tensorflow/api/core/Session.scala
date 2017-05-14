@@ -1,7 +1,8 @@
-package org.platanios.tensorflow.api
+package org.platanios.tensorflow.api.core
 
-import org.platanios.tensorflow.api.ops.OpCreationContext
-import org.platanios.tensorflow.api.tf.{Op, Tensor}
+import org.platanios.tensorflow.api.ops.{Op, OpCreationContext}
+import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.api.{Closeable, using}
 import org.platanios.tensorflow.jni.{Session => NativeSession}
 
 import scala.util.DynamicVariable

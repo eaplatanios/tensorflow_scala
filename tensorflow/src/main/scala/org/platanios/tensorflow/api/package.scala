@@ -7,7 +7,53 @@ import scala.util.matching.Regex
   * @author Emmanouil Antonios Platanios
   */
 package object api extends Implicits {
+  private[api] val defaultGraph: core.Graph = core.Graph()
+
   object tf {
+    type Graph = core.Graph
+    val Graph = core.Graph
+
+    val defaultGraph: core.Graph = api.defaultGraph
+
+    type Indexer = core.Indexer
+    type Index = core.Index
+    type Slice = core.Slice
+
+    val Indexer  = core.Indexer
+    val Index    = core.Index
+    val Slice    = core.Slice
+    val NewAxis  = core.NewAxis
+    val Ellipsis = core.Ellipsis
+
+    type Session = core.Session
+    val Session = core.Session
+
+    type Shape = core.Shape
+    val Shape = core.Shape
+
+    type DeviceSpecification = core.DeviceSpecification
+    val DeviceSpecification = core.DeviceSpecification
+
+    private[api] type ShapeMismatchException = core.exception.ShapeMismatchException
+    private[api] type GraphMismatchException = core.exception.GraphMismatchException
+    private[api] type IllegalNameException = core.exception.IllegalNameException
+    private[api] type InvalidDeviceSpecificationException = core.exception.InvalidDeviceSpecificationException
+    private[api] type InvalidGraphElementException = core.exception.InvalidGraphElementException
+    private[api] type InvalidShapeException = core.exception.InvalidShapeException
+    private[api] type InvalidIndexerException = core.exception.InvalidIndexerException
+    private[api] type InvalidDataTypeException = core.exception.InvalidDataTypeException
+    private[api] type OpBuilderUsedException = core.exception.OpBuilderUsedException
+
+    private[api] val ShapeMismatchException              = core.exception.ShapeMismatchException
+    private[api] val GraphMismatchException              = core.exception.GraphMismatchException
+    private[api] val IllegalNameException                = core.exception.IllegalNameException
+    private[api] val InvalidDeviceSpecificationException = core.exception.InvalidDeviceSpecificationException
+    private[api] val InvalidGraphElementException        = core.exception.InvalidGraphElementException
+    private[api] val InvalidShapeException               = core.exception.InvalidShapeException
+    private[api] val InvalidIndexerException             = core.exception.InvalidIndexerException
+    private[api] val InvalidDataTypeException            = core.exception.InvalidDataTypeException
+    private[api] val OpBuilderUsedException              = core.exception.OpBuilderUsedException
+
     type SupportedType[T] = types.SupportedType[T]
     type FixedSizeSupportedType[T] = types.FixedSizeSupportedType[T]
     type NumericSupportedType[T] = types.NumericSupportedType[T]
@@ -54,15 +100,10 @@ package object api extends Implicits {
     type Order = tensors.Order
     val RowMajorOrder = tensors.RowMajorOrder
 
-    type Graph = api.Graph
-    val Graph = api.Graph
-
-    type Session = api.Session
-    val Session = api.Session
-
     type Op = ops.Op
     val Op = ops.Op
 
+    type OpCreationContext = ops.OpCreationContext
     type OpSpecification = ops.OpSpecification
 
     //region Op Construction Aliases
@@ -188,6 +229,10 @@ package object api extends Implicits {
     val Gradients         = ops.Gradients
     val GradientsRegistry = ops.Gradients.Registry
 
+    ops.Basic.Gradients
+    ops.Math.Gradients
+    ops.variables.Variable.Gradients
+
     object train {
       type Optimizer = ops.optimizers.Optimizer
       val Optimizer = ops.optimizers.Optimizer
@@ -200,8 +245,6 @@ package object api extends Implicits {
     }
 
     //endregion Op Construction Aliases
-
-    val defaultGraph: Graph = api.Graph()
   }
 
   private[api] val DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER = tensors.RowMajorOrder
@@ -216,7 +259,7 @@ package object api extends Implicits {
   import org.platanios.tensorflow.api.ops.OpCreationContext
 
   implicit val opCreationContext: DynamicVariable[OpCreationContext] = {
-    new DynamicVariable[OpCreationContext](OpCreationContext(graph = tf.defaultGraph))
+    new DynamicVariable[OpCreationContext](OpCreationContext(graph = defaultGraph))
   }
 
   implicit def dynamicVariableToOpCreationContext(context: DynamicVariable[OpCreationContext]): OpCreationContext = {
@@ -241,6 +284,8 @@ package object api extends Implicits {
   }
 
   private[api] val Disposer = utilities.Disposer
+
+  type ProtoSerializable = utilities.Proto.Serializable
 
   //endregion Utilities
 }

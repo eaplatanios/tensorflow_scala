@@ -1,9 +1,10 @@
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api._
-import org.platanios.tensorflow.api.Exception.InvalidDataTypeException
-import org.platanios.tensorflow.api.tf.{DataType, FLOAT32, FLOAT64, INT32, INT64, Tensor}
+import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api.core.exception.InvalidDataTypeException
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
+import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.api.types.{DataType, FLOAT32, FLOAT64, INT32, INT64}
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -1174,7 +1175,7 @@ object Math {
 
   //endregion Segment Ops
 
-  object Gradients {
+  private[api] object Gradients {
     GradientsRegistry.register("Cast", castGradient)
     GradientsRegistry.register("MatMul", matMulGradient)
     GradientsRegistry.register("BatchMatMul", batchMatMulGradient)

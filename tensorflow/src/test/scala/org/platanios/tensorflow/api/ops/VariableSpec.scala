@@ -1,8 +1,8 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api._
+import org.platanios.tensorflow.api.tf._
 import org.platanios.tensorflow.api.ops.Basic.constant
-import org.platanios.tensorflow.api.ops.Op.createWith
 
 import org.scalatest._
 

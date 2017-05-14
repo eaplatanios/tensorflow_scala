@@ -1,8 +1,11 @@
 package org.platanios.tensorflow.api.tensors
 
-import org.platanios.tensorflow.api._
-import org.platanios.tensorflow.api.tf._
-import org.platanios.tensorflow.api.Exception.{InvalidDataTypeException, ShapeMismatchException}
+import org.platanios.tensorflow.api.DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER
+import org.platanios.tensorflow.api.Implicits._
+import org.platanios.tensorflow.api.core.{Index, Indexer, Shape}
+import org.platanios.tensorflow.api.core.exception.{InvalidDataTypeException, ShapeMismatchException}
+import org.platanios.tensorflow.api.ops.{Basic, Op}
+import org.platanios.tensorflow.api.types._
 import org.platanios.tensorflow.jni.{Tensor => NativeTensor}
 
 import java.nio._
@@ -150,7 +153,7 @@ trait Tensor extends Op.OutputConvertible {
   def asNumeric: NumericTensor
   def asRealNumeric: RealNumericTensor
 
-  override def toOpOutput: Op.Output = ops.Basic.constant(this)
+  override def toOpOutput: Op.Output = Basic.constant(this)
 }
 
 object Tensor {
@@ -303,7 +306,7 @@ object Tensor {
     DataType.fromCValue(NativeTensor.dataType(nativeHandle)).tensorFromTFNativeHandle(nativeHandle)
   }
 
-  trait Implicits {
+  private[api] trait Implicits {
     implicit def scalaValueToTensor(value: Boolean): Tensor = Tensor.fill(dataType = BOOLEAN)(value)
     implicit def scalaValueToTensor(value: String): Tensor = Tensor.fill(dataType = STRING)(value)
     implicit def scalaValueToTensor(value: Float): Tensor = Tensor.fill(dataType = FLOAT32)(value)
@@ -327,6 +330,8 @@ object Tensor {
     implicit def tensorToNumeric(tensor: Tensor): NumericTensor = tensor.asNumeric
     implicit def tensorToRealNumeric(tensor: Tensor): RealNumericTensor = tensor.asRealNumeric
   }
+
+  private[api] object Implicits extends Implicits
 
   //  def apply[T: DataType.SupportedScalaTypes#Member](values: T*): Tensor = {
   //    val valueDataType: DataType = DataType.dataTypeOf(values.head)

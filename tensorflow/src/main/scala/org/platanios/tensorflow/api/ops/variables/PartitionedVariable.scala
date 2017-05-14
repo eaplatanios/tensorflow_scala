@@ -1,8 +1,8 @@
 package org.platanios.tensorflow.api.ops.variables
 
-import org.platanios.tensorflow.api.Shape
+import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.ops.{Basic, Op}
-import org.platanios.tensorflow.api.tf.DataType
+import org.platanios.tensorflow.api.types.DataType
 
 import scala.math.Ordering.Implicits._
 

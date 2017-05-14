@@ -1,8 +1,7 @@
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api._
-import org.platanios.tensorflow.api.Exception.InvalidDataTypeException
-import org.platanios.tensorflow.api.tf.{DataType, FLOAT32, FLOAT64, RESOURCE, Variable}
+import org.platanios.tensorflow.api.core.exception.InvalidDataTypeException
+import org.platanios.tensorflow.api.types.{DataType, FLOAT32, FLOAT64, RESOURCE}
 import org.platanios.tensorflow.jni.{Graph => NativeGraph, OpOutput => NativeOpOutput}
 
 import com.typesafe.scalalogging.Logger
@@ -376,10 +375,6 @@ object Gradients {
     type GradientFunction = (Op, Seq[Op.OutputLike]) => Seq[Op.OutputLike]
 
     private[this] val registry = mutable.Map.empty[String, GradientFunction]
-
-    Basic.Gradients
-    Math.Gradients
-    Variable.Gradients
 
     /** Registers the provided gradient function to the gradient function registry.
       *

@@ -1,7 +1,9 @@
 package org.platanios.tensorflow.api.tensors
 
-import org.platanios.tensorflow.api._
-import org.platanios.tensorflow.api.tf.{NumericDataType, RealNumericDataType}
+import org.platanios.tensorflow.api.DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER
+import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api.types.{NumericDataType, RealNumericDataType}
+
 import java.nio.{ByteBuffer, ByteOrder}
 
 import spire.implicits._

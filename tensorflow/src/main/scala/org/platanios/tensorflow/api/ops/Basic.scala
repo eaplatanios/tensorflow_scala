@@ -1,9 +1,12 @@
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api._
-import org.platanios.tensorflow.api.Exception.{InvalidDataTypeException, InvalidShapeException}
-import org.platanios.tensorflow.api.tf.{BOOLEAN, DataType, FLOAT32, INT32, INT64, RowMajorOrder, STRING, Tensor}
+import org.platanios.tensorflow.api.using
+import org.platanios.tensorflow.api.Implicits._
+import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api.core.exception.{InvalidDataTypeException, InvalidShapeException}
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
+import org.platanios.tensorflow.api.tensors.{RowMajorOrder, Tensor}
+import org.platanios.tensorflow.api.types.{DataType, BOOLEAN, FLOAT32, INT32, INT64, STRING}
 
 import scala.language.postfixOps
 
@@ -1766,7 +1769,7 @@ object Basic {
 
   //endregion Gradients Ops
 
-  object Gradients {
+  private[api] object Gradients {
     GradientsRegistry.registerNonDifferentiable("Const")
     GradientsRegistry.registerNonDifferentiable("ZerosLike")
     GradientsRegistry.registerNonDifferentiable("OnesLike")

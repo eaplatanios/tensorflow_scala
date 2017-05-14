@@ -1,10 +1,10 @@
 package org.platanios.tensorflow.api.ops.variables
 
-import org.platanios.tensorflow.api.Exception.{InvalidDataTypeException, ShapeMismatchException}
-import org.platanios.tensorflow.api.{Shape, tf}
-import org.platanios.tensorflow.api.ops.{OpCreationContext, OpSpecification}
+import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api.core.exception.{InvalidDataTypeException, ShapeMismatchException}
+import org.platanios.tensorflow.api.ops.{Op, OpCreationContext, OpSpecification}
 import org.platanios.tensorflow.api.ops.variables.Variable.VariableGetter
-import org.platanios.tensorflow.api.tf.DataType
+import org.platanios.tensorflow.api.types.DataType
 
 import scala.util.DynamicVariable
 
@@ -85,7 +85,7 @@ case class VariableScope(
     val fullName = if (this.name != null && this.name != "") s"${this.name}/$name" else name
     // Variable names only depend on the variable scope and not the name scope, so we reset it below for the time of
     // variable creation.
-    tf.createWith(nameScope = "") {
+    Op.createWith(nameScope = "") {
       store.getVariable(
         fullName, shape, dataType, initializer, regularizer, trainable, reuse, collections, cachingDevice)
     }
@@ -143,7 +143,7 @@ case class VariableScope(
     val fullName = if (this.name != null && this.name != "") s"${this.name}/$name" else name
     // Variable names only depend on the variable scope and not the name scope, so we reset it below for the time of
     // variable creation.
-    tf.createWith(nameScope = "") {
+    Op.createWith(nameScope = "") {
       store.getPartitionedVariable(
         fullName, shape, dataType, initializer, regularizer, partitioner, trainable, reuse, collections, cachingDevice)
     }

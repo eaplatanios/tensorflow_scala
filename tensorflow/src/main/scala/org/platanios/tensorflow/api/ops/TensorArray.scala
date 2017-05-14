@@ -1,8 +1,8 @@
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api._
-import org.platanios.tensorflow.api.Exception.InvalidShapeException
-import org.platanios.tensorflow.api.tf.DataType
+import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api.core.exception.InvalidShapeException
+import org.platanios.tensorflow.api.types.DataType
 
 /** Class wrapping dynamic-sized, per-time-step, write-once tensor arrays.
   *
@@ -33,7 +33,6 @@ private[api] case class TensorArray private(
     */
   @throws[InvalidShapeException]
   private def mergeElementShape(shape: Shape): Unit = {
-    // @formatter:off
     elementShape match {
       case Some(currentShape) =>
         if (!shape.isCompatibleWith(currentShape))
@@ -42,7 +41,6 @@ private[api] case class TensorArray private(
       case None =>
         elementShape = Some(shape)
     }
-    // @formatter:on
   }
 
   /** Returns a tensor array with the same content and properties as this one.

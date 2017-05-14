@@ -1,6 +1,6 @@
 package org.platanios.tensorflow.api.types
 
-import org.platanios.tensorflow.api.Exception.InvalidDataTypeException
+import org.platanios.tensorflow.api.core.exception.InvalidDataTypeException
 
 import spire.algebra._
 import spire.math._
@@ -89,6 +89,8 @@ object SupportedType {
     implicit final val UByteIsSupportedType  : NumericSupportedType[UByte]      = new UByteIsSupportedType
     implicit final val UShortIsSupportedType : NumericSupportedType[UShort]     = new UShortIsSupportedType
   }
+
+  private[api] object Implicits extends Implicits
 }
 
 private[types] class StringIsSupportedType extends SupportedType[String] {

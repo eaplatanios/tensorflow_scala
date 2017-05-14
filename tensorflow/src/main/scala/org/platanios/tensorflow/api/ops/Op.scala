@@ -1,9 +1,13 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api._
-import org.platanios.tensorflow.api.Exception._
-import org.platanios.tensorflow.api.tf.{DataType, Graph, INT32, INT64, Session, Tensor, VariableScope, VariableStore}
+import org.platanios.tensorflow.api.core.{DeviceSpecification, Graph, Indexer, Session, Shape}
+import org.platanios.tensorflow.api.core.exception._
+import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
+import org.platanios.tensorflow.api.ops.variables.{VariableScope, VariableStore}
+import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.tensors.TensorFlowNative.{NativeView => TensorNativeView}
+import org.platanios.tensorflow.api.types.{DataType, FLOAT32, INT32, INT64}
 import org.platanios.tensorflow.jni.{Op => NativeOp}
 
 import java.nio.charset.Charset
@@ -27,9 +31,9 @@ import spire.math.UShort
   *       have type `Op.Output` since they represent outputs of other ops. Currently, `Op.Input` is only useful for
   *       representing consumers of an `Op`'s outputs.
   *
-  * After the graph has been launched in a [[Session]], an `Op` can be executed by using `Session.run`.
+  *       After the graph has been launched in a [[Session]], an `Op` can be executed by using `Session.run`.
   *
-  * TODO: Add `Op.run` use example, once that is supported.
+  *       TODO: Add `Op.run` use example, once that is supported.
   * @author Emmanouil Antonios Platanios
   */
 final case class Op private (graph: Graph, private[api] val nativeHandle: Long) {
@@ -634,16 +638,23 @@ object Op {
       colocationOps: Set[Op] = null, controlDependencies: Set[Op] = null, attributes: Map[String, Any] = null,
       container: String = null)(block: => R)(implicit context: DynamicVariable[OpCreationContext]): R = {
     // TODO: Move this to a separate scope class.
-    val newGraph: Graph = mergeGraph(graph, context)
-    val newNameScope: String = mergeNameScope(nameScope, context)
-    val newDevice: OpSpecification => String = mergeDevice(device, context)
-    val newColocationOps: Set[Op] = mergeColocationOps(colocationOps, context)
-    val newControlDependencies: Set[Op] = mergeControlDependencies(controlDependencies, context)
-    val newAttributes: Map[String, Any] = mergeAttributes(attributes, context)
-    val newContainer: String = mergeContainer(container, context)
-    context.withValue(context.copy(
-      graph = newGraph, nameScope = newNameScope, device = newDevice, colocationOps = newColocationOps,
-      controlDependencies = newControlDependencies, attributes = newAttributes, container = newContainer))(block)
+    // TODO: !!! The order of the updates matters here so let's make sure everything is fine.
+    var updatedContext = context.value
+    val newGraph: Graph = mergeGraph(graph, updatedContext)
+    updatedContext = updatedContext.copy(graph = newGraph)
+    val newNameScope: String = mergeNameScope(nameScope, updatedContext)
+    updatedContext = updatedContext.copy(nameScope = newNameScope)
+    val newDevice: OpSpecification => String = mergeDevice(device, updatedContext)
+    updatedContext = updatedContext.copy(device = newDevice)
+    val newColocationOps: Set[Op] = mergeColocationOps(colocationOps, updatedContext)
+    updatedContext = updatedContext.copy(colocationOps = newColocationOps)
+    val newControlDependencies: Set[Op] = mergeControlDependencies(controlDependencies, updatedContext)
+    updatedContext = updatedContext.copy(controlDependencies = newControlDependencies)
+    val newAttributes: Map[String, Any] = mergeAttributes(attributes, updatedContext)
+    updatedContext = updatedContext.copy(attributes = newAttributes)
+    val newContainer: String = mergeContainer(container, updatedContext)
+    updatedContext = updatedContext.copy(container = newContainer)
+    context.withValue(updatedContext)(block)
   }
 
   /** Creates a context that can be used for creating ops.
@@ -664,11 +675,12 @@ object Op {
   @throws[GraphMismatchException]
   def createWithNameScope[R](nameScope: String, values: Set[Op] = Set.empty[Op])(block: => R)
       (implicit context: DynamicVariable[OpCreationContext]): R = {
-    val newNameScope: String = mergeNameScope(nameScope, context)
     if (values.nonEmpty) {
       val newGraph: Graph = mergeGraph(getGraphFromInputs(values), context)
+      val newNameScope: String = mergeNameScope(nameScope, context.copy(graph = newGraph))
       context.withValue(context.copy(graph = newGraph, nameScope = newNameScope))(block)
     } else {
+      val newNameScope: String = mergeNameScope(nameScope, context)
       context.withValue(context.copy(nameScope = newNameScope))(block)
     }
   }
@@ -1668,7 +1680,7 @@ object Op {
     }
   }
 
-  trait Implicits {
+  private[api] trait Implicits {
     implicit def scalaValueToOpOutput(value: Boolean): Op.Output = ops.Basic.constant(scalaValueToTensor(value))
     implicit def scalaValueToOpOutput(value: String): Op.Output = ops.Basic.constant(scalaValueToTensor(value))
     implicit def scalaValueToOpOutput(value: Float): Op.Output = ops.Basic.constant(scalaValueToTensor(value))
@@ -1691,4 +1703,6 @@ object Op {
 
     implicit def opOutputConvertibleToOpOutput(value: OutputConvertible): Op.Output = value.toOpOutput
   }
+
+  private[api] object Implicits extends Implicits
 }

@@ -1,10 +1,11 @@
 package org.platanios.tensorflow.api.ops.variables
 
-import org.platanios.tensorflow.api.Exception.ShapeMismatchException
-import org.platanios.tensorflow.api.Shape
+import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api.core.exception.ShapeMismatchException
 import org.platanios.tensorflow.api.ops.{Basic, Op}
 import org.platanios.tensorflow.api.ops.variables.Variable.PartitionInformation
-import org.platanios.tensorflow.api.tf.{DataType, Tensor}
+import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.api.types.DataType
 
 // TODO: [VARIABLE_INITIALIZERS] RandomUniform/Normal, TruncatedNormal, UniformUnitScaling, Orthogonal.
 // TODO: [VARIABLE_INITIALIZERS] VarianceScaling, Glorot/Xavier Uniform and Normal.

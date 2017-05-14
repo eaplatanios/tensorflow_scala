@@ -1,7 +1,7 @@
 package org.platanios.tensorflow.examples
 
 import org.platanios.tensorflow.api._
-import org.platanios.tensorflow.api.ops.Math.{matMul, sum, square}
+import org.platanios.tensorflow.api.ops.Math.{matMul, square, sum}
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
@@ -20,13 +20,13 @@ object LinearRegression {
 
   def main(args: Array[String]): Unit = {
     logger.info("Building linear regression model.")
-    val graph = Graph()
+    val graph = tf.Graph()
     val (inputs, outputs, weights, loss, trainOp) = tf.createWith(graph) {
       // val optimizer = tf.train.GradientDescent(0.0001)
       val optimizer = tf.train.AdaGrad(1.0)
-      val inputs = tf.placeholder(tf.FLOAT32, Shape(-1, 1))
-      val outputs = tf.placeholder(tf.FLOAT32, Shape(-1, 1))
-      val weights = tf.Variable(tf.zerosInitializer, Shape(1, 1), tf.FLOAT32)
+      val inputs = tf.placeholder(tf.FLOAT32, tf.Shape(-1, 1))
+      val outputs = tf.placeholder(tf.FLOAT32, tf.Shape(-1, 1))
+      val weights = tf.Variable(tf.zerosInitializer, tf.Shape(1, 1), tf.FLOAT32)
       val predictions = matMul(inputs, weights)
       val loss = sum(square(predictions - outputs))
       val trainOp = optimizer.minimize(loss)
@@ -34,7 +34,7 @@ object LinearRegression {
     }
 
     logger.info("Training the linear regression model.")
-    val session = Session(graph)
+    val session = tf.Session(graph)
     session.run(targets = Array(graph.globalVariablesInitializer()))
     for (i <- 0 to 50) {
       val trainBatch = batch(10000)

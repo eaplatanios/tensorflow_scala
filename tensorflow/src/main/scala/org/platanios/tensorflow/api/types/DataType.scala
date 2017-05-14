@@ -1,16 +1,12 @@
 package org.platanios.tensorflow.api.types
 
-import org.platanios.tensorflow.api.types.SupportedType.Implicits
+import org.platanios.tensorflow.api.types.SupportedType.Implicits._
 import org.platanios.tensorflow.jni.{Tensor => NativeTensor, TensorFlow => NativeLibrary}
 
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
 
 import spire.math.{UByte, UShort}
-
-// Import the supported type implicits that are used throughout this file.
-private[this] object Implicits extends Implicits
-import Implicits._
 
 // TODO: Add min/max-value and "isSigned" information.
 // TODO: Add support for half-precision floating-point numbers and for complex numbers.

@@ -1,6 +1,6 @@
-package org.platanios.tensorflow.api
+package org.platanios.tensorflow.api.core
 
-import org.platanios.tensorflow.api.Exception.InvalidDeviceSpecificationException
+import org.platanios.tensorflow.api.core.exception.InvalidDeviceSpecificationException
 
 import scala.util.matching.Regex
 
