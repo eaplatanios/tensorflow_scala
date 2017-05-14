@@ -2,7 +2,7 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.Exception._
-import org.platanios.tensorflow.api.tf.{DataType, Graph, INT32, INT64, Session, Tensor}
+import org.platanios.tensorflow.api.tf.{DataType, Graph, INT32, INT64, Session, Tensor, VariableScope, VariableStore}
 import org.platanios.tensorflow.api.tensors.TensorFlowNative.{NativeView => TensorNativeView}
 import org.platanios.tensorflow.jni.{Op => NativeOp}
 
@@ -275,9 +275,9 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
 final case class OpSpecification(name: String, opType: String)
 
 private[api] final case class OpCreationContext(
-    graph: Graph = Graph(), nameScope: String = "", device: OpSpecification => String = _ => "",
-    colocationOps: Set[Op] = Set.empty, controlDependencies: Set[Op] = Set.empty,
-    attributes: Map[String, Any] = Map.empty, container: String = "") // TODO: !!! Use containers.
+    graph: Graph = Graph(), nameScope: String = "", variableScope: VariableScope = VariableScope(reuse = false),
+    device: OpSpecification => String = _ => "", colocationOps: Set[Op] = Set.empty,
+    controlDependencies: Set[Op] = Set.empty, attributes: Map[String, Any] = Map.empty, container: String = "") // TODO: !!! Use containers.
 
 object Op {
   /** Convenient implicit conversion function used to convert devices specified as [[String]]s for use with the
@@ -310,6 +310,11 @@ object Op {
       s"${context.nameScope}/"
   }
 
+  /** Returns the variable scope of the current op creation context. */
+  private[api] def currentVariableScope(implicit context: DynamicVariable[OpCreationContext]): VariableScope = {
+    context.variableScope
+  }
+
   /** Returns the device of the current op creation context. */
   private[api] def currentDevice(implicit context: DynamicVariable[OpCreationContext]): OpSpecification => String = {
     context.device
@@ -333,6 +338,11 @@ object Op {
   /** Returns the container of the current op creation context. */
   private[api] def currentContainer(implicit context: DynamicVariable[OpCreationContext]): String = {
     context.container
+  }
+
+  /** Returns the variable store of the current op creation context. */
+  private[api] def currentVariableStore(implicit context: DynamicVariable[OpCreationContext]): VariableStore = {
+    context.graph.variableStore
   }
 
   /** Creates a context that can be used for creating ops according to the provided options.

@@ -57,15 +57,29 @@ package object api extends Implicits {
     type Graph = api.Graph
     val Graph = api.Graph
 
-    val defaultGraph: Graph = Graph()
-
     type Session = api.Session
     val Session = api.Session
 
     type Op = ops.Op
     val Op = ops.Op
 
+    type OpSpecification = ops.OpSpecification
+
     //region Op Construction Aliases
+
+    def currentGraph: Graph = ops.Op.currentGraph
+    def currentNameScope: String = ops.Op.currentNameScope
+    def currentVariableScope: VariableScope = ops.Op.currentVariableScope
+    def currentDevice: OpSpecification => String = ops.Op.currentDevice
+    def currentColocationOps: Set[Op] = ops.Op.currentColocationOps
+    def currentControlDependencies: Set[Op] = ops.Op.currentControlDependencies
+    def currentAttributes: Map[String, Any] = ops.Op.currentAttributes
+    def currentContainer: String = ops.Op.currentContainer
+
+    // TODO: Maybe remove "current" from the above names.
+    // TODO: Add aliases for "trainableVariablesInitializer", etc.
+
+    private[api] def currentVariableStore: VariableStore = ops.Op.currentVariableStore
 
     def createWith[R](
         graph: Graph = null, nameScope: String = null, device: ops.OpSpecification => String = _ => "",
@@ -76,6 +90,27 @@ package object api extends Implicits {
 
     def createWithNameScope[R](nameScope: String, values: Set[Op] = Set.empty[Op])(block: => R): R = {
       ops.Op.createWithNameScope(nameScope, values)(block)
+    }
+
+    def createWithVariableScope[R](
+        name: String, reuse: java.lang.Boolean = null, dataType: DataType = null,
+        initializer: VariableInitializer = null, regularizer: VariableRegularizer = null,
+        partitioner: VariablePartitioner = null, cachingDevice: OpSpecification => String = null,
+        customGetter: VariableGetter = null, isDefaultName: Boolean = false, isPure: Boolean = false)
+        (block: => R): R = {
+      ops.variables.VariableScope.createWithVariableScope(
+        name, reuse, dataType, initializer, regularizer, partitioner, cachingDevice, customGetter, isDefaultName,
+        isPure)(block)
+    }
+
+    def createWithUpdatedVariableScope[R](
+        variableScope: VariableScope, reuse: java.lang.Boolean = null, dataType: DataType = null,
+        initializer: VariableInitializer = null, regularizer: VariableRegularizer = null,
+        partitioner: VariablePartitioner = null, cachingDevice: OpSpecification => String = null,
+        customGetter: VariableGetter = null, isPure: Boolean = false)(block: => R): R = {
+      ops.variables.VariableScope.createWithUpdatedVariableScope(
+        variableScope, reuse, dataType, initializer, regularizer, partitioner, cachingDevice, customGetter,
+        isPure)(block)
     }
 
     def colocateWith[R](colocationOps: Set[Op], ignoreExisting: Boolean = false)(block: => R): R = {
@@ -97,13 +132,55 @@ package object api extends Implicits {
 
     //region Variables
 
-    type Variable = ops.Variable
-    val Variable = ops.Variable
+    type Variable = ops.variables.Variable
+    type PartitionedVariable = ops.variables.PartitionedVariable
+    type VariableGetter = ops.variables.Variable.VariableGetter
+    type VariableInitializer = ops.variables.Initializer
+    type VariableRegularizer = ops.variables.Regularizer
+    type VariablePartitioner = ops.variables.Partitioner
+    type VariableStore = ops.variables.VariableStore
+    type VariableScope = ops.variables.VariableScope
 
-    val zerosInitializer = ops.Variable.ZerosInitializer
-    val onesInitializer = ops.Variable.OnesInitializer
+    val Variable      = ops.variables.Variable
+    val VariableStore = ops.variables.VariableStore
+    val VariableScope = ops.variables.VariableScope
 
-    def constantInitializer(value: Tensor) = ops.Variable.ConstantInitializer(value)
+    val zerosInitializer = ops.variables.ZerosInitializer
+    val onesInitializer  = ops.variables.OnesInitializer
+
+    def constantInitializer(value: Tensor) = ops.variables.ConstantInitializer(value)
+
+    def variable(
+        name: String, shape: Shape = null, dataType: tf.DataType = tf.FLOAT32, initializer: VariableInitializer = null,
+        regularizer: VariableRegularizer = null, trainable: Boolean = true, reuse: java.lang.Boolean = null,
+        collections: Set[String] = Set.empty, cachingDevice: OpSpecification => String = null): Variable = {
+      Variable.getVariable(
+        name, shape, dataType, initializer, regularizer, trainable, reuse, collections, cachingDevice)
+    }
+
+    def partitionedVariable(
+        name: String, shape: Shape = null, dataType: tf.DataType = tf.FLOAT32, initializer: VariableInitializer = null,
+        regularizer: VariableRegularizer = null, partitioner: VariablePartitioner, trainable: Boolean = true,
+        reuse: java.lang.Boolean = null, collections: Set[String] = Set.empty,
+        cachingDevice: OpSpecification => String = null): PartitionedVariable = {
+      Variable.getPartitionedVariable(
+        name, shape, dataType, initializer, regularizer, partitioner, trainable, reuse, collections, cachingDevice)
+    }
+
+    def localVariable(
+        name: String, shape: Shape = null, dataType: tf.DataType = tf.FLOAT32, initializer: VariableInitializer = null,
+        regularizer: VariableRegularizer = null, reuse: java.lang.Boolean = null, collections: Set[String] = Set.empty,
+        cachingDevice: OpSpecification => String = null): Variable = {
+      Variable.getLocalVariable(name, shape, dataType, initializer, regularizer, reuse, collections, cachingDevice)
+    }
+
+    def localPartitionedVariable(
+        name: String, shape: Shape = null, dataType: tf.DataType = tf.FLOAT32, initializer: VariableInitializer = null,
+        regularizer: VariableRegularizer = null, partitioner: VariablePartitioner, reuse: java.lang.Boolean = null,
+        collections: Set[String] = Set.empty, cachingDevice: OpSpecification => String = null): PartitionedVariable = {
+      Variable.getLocalPartitionedVariable(
+        name, shape, dataType, initializer, regularizer, partitioner, reuse, collections, cachingDevice)
+    }
 
     //endregion Variables
 
@@ -119,6 +196,8 @@ package object api extends Implicits {
     }
 
     //endregion Op Construction Aliases
+
+    val defaultGraph: Graph = api.Graph()
   }
 
   private[api] val DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER = tensors.RowMajorOrder

@@ -2,10 +2,9 @@ package org.platanios.tensorflow.api.ops.optimizers
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.Exception.InvalidDataTypeException
-import org.platanios.tensorflow.api.tf.{DataType, FLOAT32, FLOAT64, INT32}
+import org.platanios.tensorflow.api.tf.{DataType, FLOAT32, FLOAT64, INT32, RESOURCE, Variable}
 import org.platanios.tensorflow.api.ops.optimizers.Optimizer._
-import org.platanios.tensorflow.api.ops.{Basic, ControlFlow, Gradients, Math, Op, Variable}
-import org.platanios.tensorflow.api.types.RESOURCE
+import org.platanios.tensorflow.api.ops.{Basic, ControlFlow, Gradients, Math, Op}
 
 import scala.collection.mutable
 

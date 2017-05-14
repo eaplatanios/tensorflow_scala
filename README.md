@@ -69,7 +69,14 @@ sbt compile
 
 ## TODOs
 
-- Switch to using "Seq" instead of "Array" wherever possible
+- Create a "Scope" class and companion object.
+- Change all of the "ne" and "eq" for op outputs to "!=" and "==".
+- Variables API:
+  - Clean up the implementation of variable scopes and stores and integrate it with "Scope".
+  - Make 'PartitionedVariable' extend 'Variable'.
+  - After that change, all 'getPartitionedVariable' methods can be integrated with the 'getVariable' methods, which will simplify the variables API.
+  - Add tests.
+- Switch to using "Seq" instead of "Array" wherever possible.
 - Tensors:
   - Overloaded unary, binary, and comparison operators (data type aware)
   - Convenient string conversion methods

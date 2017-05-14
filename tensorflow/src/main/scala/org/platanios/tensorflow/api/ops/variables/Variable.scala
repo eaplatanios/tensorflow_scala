@@ -1,9 +1,10 @@
-package org.platanios.tensorflow.api.ops
+package org.platanios.tensorflow.api.ops.variables
 
-import org.platanios.tensorflow.api._
-import org.platanios.tensorflow.api.tf.{DataType, INT32, INT64, Tensor}
 import org.platanios.tensorflow.api.Exception.InvalidDataTypeException
+import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
+import org.platanios.tensorflow.api.ops._
+import org.platanios.tensorflow.api.tf.{DataType, INT32, INT64, Tensor}
 
 import org.tensorflow.framework.{SaveSliceInfoDef, VariableDef}
 
@@ -12,10 +13,14 @@ import scala.util.DynamicVariable
 /**
   * @author Emmanouil Antonios Platanios
   */
-case class Variable private(dataType: DataType, variableOp: Op.Output, initializeOp: Op, cachedValueOp: Op.Output)
-    extends ProtoSerializable {
+case class Variable private(
+    dataType: DataType,
+    private val variableOp: Op.Output,
+    private val initializeOp: Op,
+    private val cachedValueOp: Op.Output)
+    extends Op.OutputConvertible with ProtoSerializable {
   /** Graph where this variable is defined. */
-  val graph: Graph = initializeOp.graph
+  val graph: Graph = variableOp.graph
 
   /** Name of this variable. */
   val name: String = variableOp.op.name
@@ -254,6 +259,161 @@ case class Variable private(dataType: DataType, variableOp: Op.Output, initializ
 
 /** Contains helper functions and classes for creating and dealing with [[Variable]] objects. */
 object Variable {
+  /** Gets an existing variable with the specified name or creates a new one.
+    *
+    * This function prefixes the name with the current variable scope and performs variable reuse checks.
+    *
+    * TODO: Add example.
+    *
+    * @param  name          Variable name.
+    * @param  shape         Variable shape.
+    * @param  dataType      Variable data type.
+    * @param  initializer   Variable initializer. If `initializer` is `null` (the default), the default initializer
+    *                       passed in the constructor is used. If that one is `null` too, then we use a new
+    *                       `glorotUniformInitializer`. The initializer will be called for each part of the partitioned
+    *                       variable separately.
+    * @param  regularizer   Variable regularizer.
+    * @param  trainable     If `true`, the default, the variable is added to the graph collection
+    *                       `Graph.Keys.TRAINABLE_VARIABLES`. This collection is used as the default set of variables
+    *                       to use by the optimizers.
+    * @param  reuse         Boolean value indicating whether to re-use an existing variable with the same name.
+    *                       - Set `reuse` to `true` when you only want to reuse existing variables.
+    *                       - Set `reuse` to `false` when you only want to create new variables.
+    *                       - If `reuse` is `null` (the default), both new and existing variables are returned.
+    * @param  collections   Set of graph collections keys. The variable is added to these collections. Defaults to
+    *                       `Set(Graph.Keys.GLOBAL_VARIABLES)`.
+    * @param  cachingDevice Device specification describing where the variable should be cached for reading. Defaults
+    *                       to the variable's device. Typical use is to cache on the device where the ops using the
+    *                       variable reside, to deduplicate copying through `Switch` and other conditional statements.
+    * @return Requested variable.
+    */
+  def getVariable(
+      name: String, shape: Shape = null, dataType: tf.DataType = tf.FLOAT32, initializer: Initializer = null,
+      regularizer: Regularizer = null, trainable: Boolean = true, reuse: java.lang.Boolean = null,
+      collections: Set[String] = Set.empty, cachingDevice: OpSpecification => String = null): Variable = {
+    tf.currentVariableScope.getVariable(
+      tf.currentVariableStore, name, shape, dataType, initializer, regularizer, trainable, reuse, collections,
+      cachingDevice)
+  }
+
+  /** Gets an existing partitioned variable with the specified name or creates a new one.
+    *
+    * This function prefixes the name with the current variable scope and performs variable reuse checks.
+    *
+    * TODO: Add example.
+    *
+    * @param  name          Variable name.
+    * @param  shape         Variable shape.
+    * @param  dataType      Variable data type.
+    * @param  initializer   Variable initializer. If `initializer` is `null` (the default), the default initializer
+    *                       passed in the constructor is used. If that one is `null` too, then we use a new
+    *                       `glorotUniformInitializer`. The initializer will be called for each part of the partitioned
+    *                       variable separately.
+    * @param  regularizer   Variable regularizer.
+    * @param  partitioner   Function that accepts a fully defined `Shape` and returns a sequence of integers (i.e., the
+    *                       `partitions`). These integers describe how to partition the given variable, along the each
+    *                       dimension. That is, `partitions(1) = 3` means that we split the variable into `3` parts
+    *                       along dimension `1`. Currently, partitioning along only a single axis is supported.
+    * @param  trainable     If `true`, the default, the variable is added to the graph collection
+    *                       `Graph.Keys.TRAINABLE_VARIABLES`. This collection is used as the default set of variables
+    *                       to use by the optimizers.
+    * @param  reuse         Boolean value indicating whether to re-use an existing variable with the same name.
+    *                       - Set `reuse` to `true` when you only want to reuse existing variables.
+    *                       - Set `reuse` to `false` when you only want to create new variables.
+    *                       - If `reuse` is `null` (the default), both new and existing variables are returned.
+    * @param  collections   Set of graph collections keys. The variable is added to these collections. Defaults to
+    *                       `Set(Graph.Keys.GLOBAL_VARIABLES)`.
+    * @param  cachingDevice Device specification describing where the variable should be cached for reading. Defaults
+    *                       to the variable's device. Typical use is to cache on the device where the ops using the
+    *                       variable reside, to deduplicate copying through `Switch` and other conditional statements.
+    * @return Requested variable.
+    */
+  def getPartitionedVariable(
+      name: String, shape: Shape = null, dataType: tf.DataType = tf.FLOAT32, initializer: Initializer = null,
+      regularizer: Regularizer = null, partitioner: Partitioner = null, trainable: Boolean = true,
+      reuse: java.lang.Boolean = null, collections: Set[String] = Set.empty,
+      cachingDevice: OpSpecification => String = null): PartitionedVariable = {
+    tf.currentVariableScope.getPartitionedVariable(
+      tf.currentVariableStore, name, shape, dataType, initializer, regularizer, partitioner, trainable, reuse,
+      collections, cachingDevice)
+  }
+
+  /** Gets an existing local variable with the specified name or creates a new one.
+    *
+    * Local variables are not trainable (i.e., `trainable` argument of [[getVariable]] would be set to `false`) and are
+    * added to the graph collection with key [[Graph.Keys.LOCAL_VARIABLES]].
+    *
+    * This function prefixes the name with the current variable scope and performs variable reuse checks. Please refer
+    * to the documentation of [[getVariable]] for more details.
+    *
+    * @param  name          Variable name.
+    * @param  shape         Variable shape.
+    * @param  dataType      Variable data type.
+    * @param  initializer   Variable initializer. If `initializer` is `null` (the default), the default initializer
+    *                       passed in the constructor is used. If that one is `null` too, then we use a new
+    *                       `glorotUniformInitializer`. The initializer will be called for each part of the partitioned
+    *                       variable separately.
+    * @param  regularizer   Variable regularizer.
+    * @param  reuse         Boolean value indicating whether to re-use an existing variable with the same name.
+    *                       - Set `reuse` to `true` when you only want to reuse existing variables.
+    *                       - Set `reuse` to `false` when you only want to create new variables.
+    *                       - If `reuse` is `null` (the default), both new and existing variables are returned.
+    * @param  collections   Set of graph collections keys. The variable is added to these collections. Defaults to
+    *                       `Set(Graph.Keys.GLOBAL_VARIABLES)`.
+    * @param  cachingDevice Device specification describing where the variable should be cached for reading. Defaults
+    *                       to the variable's device. Typical use is to cache on the device where the ops using the
+    *                       variable reside, to deduplicate copying through `Switch` and other conditional statements.
+    * @return Requested variable.
+    */
+  def getLocalVariable(
+      name: String, shape: Shape = null, dataType: tf.DataType = tf.FLOAT32, initializer: Initializer = null,
+      regularizer: Regularizer = null, reuse: java.lang.Boolean = null, collections: Set[String] = Set.empty,
+      cachingDevice: OpSpecification => String = null): Variable = {
+    tf.currentVariableScope.getVariable(
+      tf.currentVariableStore, name, shape, dataType, initializer, regularizer, trainable = false, reuse,
+      collections + Graph.Keys.LOCAL_VARIABLES, cachingDevice)
+  }
+
+  /** Gets an existing local partitioned variable with the specified name or creates a new one.
+    *
+    * Local variables are not trainable (i.e., `trainable` argument of [[getVariable]] would be set to `false`) and are
+    * added to the graph collection with key [[Graph.Keys.LOCAL_VARIABLES]].
+    *
+    * This function prefixes the name with the current variable scope and performs variable reuse checks. Please refer
+    * to the documentation of [[getPartitionedVariable]] for more details.
+    *
+    * @param  name          Variable name.
+    * @param  shape         Variable shape.
+    * @param  dataType      Variable data type.
+    * @param  initializer   Variable initializer. If `initializer` is `null` (the default), the default initializer
+    *                       passed in the constructor is used. If that one is `null` too, then we use a new
+    *                       `glorotUniformInitializer`. The initializer will be called for each part of the partitioned
+    *                       variable separately.
+    * @param  regularizer   Variable regularizer.
+    * @param  partitioner   Function that accepts a fully defined `Shape` and returns a sequence of integers (i.e., the
+    *                       `partitions`). These integers describe how to partition the given variable, along the each
+    *                       dimension. That is, `partitions(1) = 3` means that we split the variable into `3` parts
+    *                       along dimension `1`. Currently, partitioning along only a single axis is supported.
+    * @param  reuse         Boolean value indicating whether to re-use an existing variable with the same name.
+    *                       - Set `reuse` to `true` when you only want to reuse existing variables.
+    *                       - Set `reuse` to `false` when you only want to create new variables.
+    *                       - If `reuse` is `null` (the default), both new and existing variables are returned.
+    * @param  collections   Set of graph collections keys. The variable is added to these collections. Defaults to
+    *                       `Set(Graph.Keys.GLOBAL_VARIABLES)`.
+    * @param  cachingDevice Device specification describing where the variable should be cached for reading. Defaults
+    *                       to the variable's device. Typical use is to cache on the device where the ops using the
+    *                       variable reside, to deduplicate copying through `Switch` and other conditional statements.
+    * @return Requested variable.
+    */
+  def getLocalPartitionedVariable(
+      name: String, shape: Shape, dataType: tf.DataType = tf.FLOAT32, initializer: Initializer = null,
+      regularizer: Regularizer = null, partitioner: Partitioner = null, reuse: java.lang.Boolean = null,
+      collections: Set[String] = Set.empty, cachingDevice: OpSpecification => String = null): PartitionedVariable = {
+    tf.currentVariableScope.getPartitionedVariable(
+      tf.currentVariableStore, name, shape, dataType, initializer, regularizer, partitioner, trainable = false, reuse,
+      collections + Graph.Keys.LOCAL_VARIABLES, cachingDevice)
+  }
+
   /** Creates a variable.
     *
     * @param  initializer   Initializer that generates the op output that will be used as the initial value of this
@@ -268,7 +428,7 @@ object Variable {
     *                       `Set(Graph.Keys.GLOBAL_VARIABLES)`.
     * @param  cachingDevice Optional device specification describing where the variable should be cached for reading.
     *                       Defaults to the variable's device. Typical use is to cache on the device where the ops using
-    *                       the Variable reside, to deduplicate copying through `Switch` and other conditional
+    *                       the variable reside, to deduplicate copying through `Switch` and other conditional
     *                       statements.
     * @param  name          Created variable name.
     * @return Created variable.
@@ -348,10 +508,43 @@ object Variable {
     createdVariable
   }
 
-  // TODO: [VARIABLES] Add PartitionInfo and variable scope support.
-  // TODO: [VARIABLES] Add partitioned variables support.
+  /** Variable getter type, useful for defining custom variable getters and stacking them. */
+  trait VariableGetter {
+    private type CustomVariableGetter =
+      (String, // name
+          Shape, // shape
+          DataType, // dataType
+          Initializer, // initializer
+          Regularizer, // regularizer
+          Boolean, // trainable
+          java.lang.Boolean, // reuse
+          Set[String], // collections
+          OpSpecification => String, // cachingDevice
+          VariableGetter) // variableGetter
+          => Variable
 
-  case class PartitionInfo(fullShape: Shape, offsets: Array[Int])
+    def apply(
+        name: String, shape: Shape = null, dataType: tf.DataType = tf.FLOAT32, initializer: Initializer = null,
+        regularizer: Regularizer = null, trainable: Boolean = true, reuse: java.lang.Boolean = null,
+        collections: Set[String] = Set.empty, cachingDevice: OpSpecification => String = null,
+        customGetter: VariableGetter = null): Variable
+  }
+
+  /** Holds the partition information used by initializer functions.
+    *
+    * @param  fullShape Full combined shape of the partitioned variables.
+    * @param  offsets   Integer array specifying the offsets of this partition with respect to the full variable for
+    *                   each dimension.
+    */
+  private[variables] case class PartitionInformation(fullShape: Shape, offsets: Array[Int]) {
+    // TODO: !!! Are we using this class at all?
+    if (fullShape.rank != offsets.length)
+      throw new IllegalArgumentException(
+        s"The number of offsets provided (${offsets.length}) does not match the full shape rank (${fullShape.rank}).")
+    if (fullShape.asArray.zip(offsets).exists(p => p._2 < 0 || p._1 <= p._2))
+      throw new IllegalArgumentException(
+        s"Offset out of bounds exception for offsets '$offsets' and full shape '$fullShape'.")
+  }
 
   /** Class that information on how to save a variable as a slice.
     *
@@ -408,6 +601,14 @@ object Variable {
 
   /** Creates an op that initializes the provided variables.
     *
+    * After you launch the graph in a session, you can run the returned op to initialize all the variables in
+    * `variables`. This op runs all the initializers of the variables in `variables`, in parallel.
+    *
+    * Calling `initializer` is equivalent to passing the list of initializers to [[ControlFlow.group]].
+    *
+    * If `variables` is empty, the function still returns an op that can be run. That op has no effect (i.e., it is a
+    * [[ControlFlow.noOp]]).
+    *
     * @param  variables Set of variables to initialize.
     * @param  name      Name for the created op.
     * @return Created op.
@@ -418,47 +619,6 @@ object Variable {
     else
       ControlFlow.noOp(name)
   }
-
-  /** Base trait for all variable initializers. */
-  trait Initializer {
-    def apply(shape: Shape, dataType: DataType, partitionInfo: PartitionInfo): Op.Output = {
-      initialValue(shape, dataType, partitionInfo)
-    }
-
-    /** Generates an initial value op.
-      *
-      * @param  shape         Shape for the output tensor.
-      * @param  dataType      Data type for the output tensor.
-      * @param  partitionInfo [[PartitionInfo]] object holding additional information about how the variable is
-      *                       partitioned. May be `null` if the variable is not partitioned.
-      * @return Created op output.
-      */
-    def initialValue(shape: Shape, dataType: DataType, partitionInfo: PartitionInfo): Op.Output
-  }
-
-  /** Initializer that sets all elements of the variable tensor to zeros. */
-  private[api] object ZerosInitializer extends Initializer {
-    override def initialValue(shape: Shape, dataType: DataType, partitionInfo: PartitionInfo): Op.Output = {
-      Basic.zeros(shape, dataType)
-    }
-  }
-
-  /** Initializer that sets all elements of the variable tensor to ones. */
-  private[api] object OnesInitializer extends Initializer {
-    override def initialValue(shape: Shape, dataType: DataType, partitionInfo: PartitionInfo): Op.Output = {
-      Basic.ones(shape, dataType)
-    }
-  }
-
-  /** Initializer that sets the value of the variable to the provided `value`. */
-  private[api] case class ConstantInitializer(value: Tensor) extends Initializer {
-    override def initialValue(shape: Shape, dataType: DataType, partitionInfo: PartitionInfo): Op.Output = {
-      Basic.constant(value, dataType, shape)
-    }
-  }
-
-  // TODO: [VARIABLE_INITIALIZERS] RandomUniform/Normal, TruncatedNormal, UniformUnitScaling, Orthogonal.
-  // TODO: [VARIABLE_INITIALIZERS] VarianceScaling, Glorot/Xavier Uniform and Normal
 
   /** Creates an op that holds a handle to a variable resource.
     *

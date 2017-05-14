@@ -5,6 +5,8 @@ import org.platanios.tensorflow.api.Exception.{InvalidDataTypeException, Invalid
 import org.platanios.tensorflow.api.tf.{BOOLEAN, DataType, FLOAT32, INT32, INT64, RowMajorOrder, STRING, Tensor}
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 
+import scala.language.postfixOps
+
 /**
   * @author Emmanouil Antonios Platanios
   */

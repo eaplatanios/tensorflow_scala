@@ -2,7 +2,7 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.Exception.InvalidDataTypeException
-import org.platanios.tensorflow.api.tf.{DataType, FLOAT32, FLOAT64, RESOURCE}
+import org.platanios.tensorflow.api.tf.{DataType, FLOAT32, FLOAT64, RESOURCE, Variable}
 import org.platanios.tensorflow.jni.{Graph => NativeGraph, OpOutput => NativeOpOutput}
 
 import com.typesafe.scalalogging.Logger

@@ -2,8 +2,7 @@ package org.platanios.tensorflow.api
 
 import org.platanios.tensorflow.api.Exception.{GraphMismatchException, InvalidGraphElementException}
 import org.platanios.tensorflow.api.ops.{Basic, Math}
-import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.tf.{Op, Variable}
+import org.platanios.tensorflow.api.tf.{Op, Tensor, Variable, VariableStore, VariableScope}
 import org.platanios.tensorflow.jni.{Graph => NativeGraph}
 
 import org.tensorflow.framework.{GraphDef, NodeDef}
@@ -22,6 +21,9 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable {
   /** Map from native op handle to op object in the Scala side. Used for caching ops that have already been obtained
     * from the native library. */
   private[api] val opsCache: mutable.Map[Long, Op] = mutable.LongMap.empty[Op]
+
+  /** Variable store object of this graph, used to store created variables and keep track of variable scope usages. */
+  private[api] val variableStore: VariableStore = VariableStore()
 
   /** Map that contains the current names in use in this graph as keys and their counts (i.e., how many times they have
     * been used) as values. */
@@ -130,6 +132,42 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable {
   @throws[GraphMismatchException]
   private[api] def addToCollections(variable: Variable, keys: Set[String]): Unit = {
     keys.foreach(addToCollection(variable, _))
+  }
+
+  /** Adds `store` to the collection with name `key`.
+    *
+    * @param  store Variable store to add to the collection.
+    * @param  key   Collection name.
+    */
+  private[api] def addToCollection(store: VariableStore, key: String): Unit = {
+    collections.getOrElseUpdate(key, mutable.Set.empty[Any]) += store
+  }
+
+  /** Adds `store` to the collections specified by the names in `keys`.
+    *
+    * @param  store Variable store to add to the collections.
+    * @param  keys  Collection names.
+    */
+  private[api] def addToCollections(store: VariableStore, keys: Set[String]): Unit = {
+    keys.foreach(addToCollection(store, _))
+  }
+
+  /** Adds `scope` to the collection with name `key`.
+    *
+    * @param  scope Variable scope to add to the collection.
+    * @param  key   Collection name.
+    */
+  private[api] def addToCollection(scope: VariableScope, key: String): Unit = {
+    collections.getOrElseUpdate(key, mutable.Set.empty[Any]) += scope
+  }
+
+  /** Adds `scope` to the collections specified by the names in `keys`.
+    *
+    * @param  scope Variable scope to add to the collections.
+    * @param  keys  Collection names.
+    */
+  private[api] def addToCollections(scope: VariableScope, keys: Set[String]): Unit = {
+    keys.foreach(addToCollection(scope, _))
   }
 
   /** Gets the set of objects contained in the collection with name `key`.
@@ -265,6 +303,17 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable {
     */
   def modelVariablesInitializer(name: String = "ModelVariablesInitializer"): Op = {
     Variable.initializer(modelVariables, name)
+  }
+
+  /** Returns an op that initializes all trainable variables of this graph.
+    *
+    * For more information, refer to [[trainableVariables]] and [[Variable.initializer]].
+    *
+    * @param  name Name for the created op.
+    * @return Created op.
+    */
+  def trainableVariablesInitializer(name: String = "TrainableVariablesInitializer"): Op = {
+    Variable.initializer(trainableVariables, name)
   }
 
   /** Creates an op that lists the names of uninitialized variables.
