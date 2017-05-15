@@ -29,14 +29,12 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable wi
   /** Variable store object of this graph, used to store created variables and keep track of variable scope usages. */
   private[api] val variableStore: VariableStore = VariableStore()
 
-  /** Map that contains the current names in use in this graph as keys and their counts (i.e., how many times they have
-    * been used) as values. */
-  private[this] val namesInUse: mutable.Map[String, Int] = mutable.Map.empty[String, Int]
+  /** Set that contains the current names in use in this graph. */
+  private[this] val namesInUse: mutable.Set[String] = mutable.Set.empty[String]
 
   /** Marks `name` as a used name in this graph (i.e., increments its usage counter). */
   private[api] def markNameAsUsed(name: String): Unit = namesInUse synchronized {
-    // TODO: !!! [PROTO] [GRAPH] [OP] Make sure to mark names as used when loading graphs from proto files.
-    namesInUse.update(name, namesInUse.getOrElse(name, 0) + 1)
+    namesInUse += name
   }
 
   /** Returns a unique op name in this graph, based on the provided `name`.
@@ -59,10 +57,10 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable wi
       else
         s"$nameScope/$name"
     }
-    var count = namesInUse.getOrElse(fullName, 0)
+    var count = if (namesInUse.contains(fullName)) 1 else 0
     // Increment the counter for the provided name.
     if (markAsUsed)
-      namesInUse.update(fullName, count + 1)
+      namesInUse += fullName
     if (count > 0) {
       var uniqueName = fullName
       // Make sure the composed name is not already being used.
@@ -72,7 +70,7 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable wi
       }
       // Mark the composed name as used.
       if (markAsUsed)
-        namesInUse.update(uniqueName, 1)
+        namesInUse += uniqueName
       uniqueName
     } else {
       fullName
@@ -555,6 +553,8 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable wi
         inputsMapDestinationOpHandles, inputsMapDestinationOpOutputIndices, controlDependenciesMapSourceOpNames,
         controlDependenciesMapDestinationOpHandles, controlDependenciesOpHandles)
     }
+    // TODO: [PERFORMANCE] Make this faster?
+    namesInUse synchronized ops.foreach(op => markNameAsUsed(op.name))
   }
 
   override def toProto: GraphDef = {
