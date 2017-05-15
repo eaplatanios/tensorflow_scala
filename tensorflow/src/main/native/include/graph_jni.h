@@ -50,10 +50,10 @@ JNIEXPORT jobjectArray JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_add
 /*
  * Class:     org_platanios_tensorflow_jni_Graph__
  * Method:    importGraphDef
- * Signature: (J[BLjava/lang/String;)V
+ * Signature: (J[BLjava/lang/String;[Ljava/lang/String;[I[J[I[Ljava/lang/String;[J[J)V
  */
 JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_importGraphDef
-  (JNIEnv *, jobject, jlong, jbyteArray, jstring);
+  (JNIEnv *, jobject, jlong, jbyteArray, jstring, jobjectArray, jintArray, jlongArray, jintArray, jobjectArray, jlongArray, jlongArray);
 
 /*
  * Class:     org_platanios_tensorflow_jni_Graph__

@@ -5,9 +5,8 @@ import org.platanios.tensorflow.api.ops.{Basic, Math, Op}
 import org.platanios.tensorflow.api.ops.variables.{Variable, VariableScope, VariableStore}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.STRING
-import org.platanios.tensorflow.api.Closeable
+import org.platanios.tensorflow.api.{Closeable, ProtoSerializable}
 import org.platanios.tensorflow.jni.{Graph => NativeGraph}
-
 import org.tensorflow.framework.{GraphDef, NodeDef}
 
 import scala.collection.JavaConverters._
@@ -17,7 +16,9 @@ import scala.language.postfixOps
 /**
   * @author Emmanouil Antonios Platanios
   */
-final case class Graph(private[api] var nativeHandle: Long) extends Closeable {
+final case class Graph(private[api] var nativeHandle: Long) extends Closeable with ProtoSerializable {
+  private[this] object NativeHandleLock
+
   // TODO: Need to be able to reset and close this session.
   private[api] val defaultSession: Session = Session(this)
 
@@ -509,70 +510,58 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable {
     }
   }
 
-  private[this] object NativeHandleLock
-  private[this] var referenceCount: Int = 0
-
-  /** Release resources associated with the Graph.
+  /** Imports a serialized representation of a graph into the current graph.
     *
-    * <p>Blocks until there are no active {@link Session} instances referring to this Graph. A Graph
-    * is not usable after close returns.
+    * @param  graphDef               Serialized representation of a graph that will be imported into this graph.
+    * @param  nameScope              Optional prefix that will be prepended to all node names in the graph that is
+    *                                being imported to this graph.
+    * @param  inputsMap              Optional inputs mapping. For each
+    *                                `(source_op_name, source_op_output_index) -> destination_op_output` mapping, the
+    *                                importer will  set any imported nodes with input named
+    *                                `source_op_name:source_op_output_index` to have that input replaced with
+    *                                `destination_op_output`. `source_op_name` refers to a node in the graph to be
+    *                                imported, whereas `destination_op_output` references a node already existing in
+    *                                this graph.
+    * @param  controlDependenciesMap Optional control dependencies mapping. For each `source_op_name -> destination_op`
+    *                                mapping, the importer will set any imported ops with control input named
+    *                                `source_op_name` to have that input replaced with `destination_op`.
+    *                                `source_op_name` refers to a node in the graph to be imported, whereas
+    *                                `destination_op` references an op already existing in this graph.
+    * @param  controlDependencies    Optional control dependencies set. The importer will make sure that the imported
+    *                                graph has a control dependency on all ops in this set. All such ops, should
+    *                                therefore be defined in this graph.
     */
-  override def close(): Unit = {
+  def importGraphDef(
+      graphDef: GraphDef, nameScope: String = null, inputsMap: Map[(String, Int), Op.Output] = Map.empty,
+      controlDependenciesMap: Map[String, Op] = Map.empty, controlDependencies: Set[Op] = Set.empty): Unit = {
+    val prefix = {
+      if (nameScope == null || nameScope == "")
+        ""
+      else if (nameScope.endsWith("/"))
+        nameScope
+      else
+        s"$nameScope/"
+    }
+    val inputsMapSourceOpNames = inputsMap.map(_._1._1).toArray
+    val inputsMapSourceOpOutputIndices = inputsMap.map(_._1._2).toArray
+    val inputsMapDestinationOpHandles = inputsMap.map(_._2.op.nativeHandle).toArray
+    val inputsMapDestinationOpOutputIndices = inputsMap.map(_._2.index).toArray
+    val controlDependenciesMapSourceOpNames = controlDependenciesMap.keys.toArray
+    val controlDependenciesMapDestinationOpHandles = controlDependenciesMap.map(_._2.nativeHandle).toArray
+    val controlDependenciesOpHandles = controlDependencies.map(_.nativeHandle).toArray
     NativeHandleLock.synchronized {
-      defaultSession.close()
-      if (nativeHandle != 0) {
-        while (referenceCount > 0) {
-          try {
-            NativeHandleLock.wait()
-          } catch {
-            case _: InterruptedException =>
-              Thread.currentThread().interrupt()
-              // Possible leak of the graph in this case?
-              return
-          }
-        }
-        NativeGraph.delete(nativeHandle)
-        nativeHandle = 0
-      }
+      NativeGraph.importGraphDef(
+        nativeHandle, graphDef.toByteArray, prefix, inputsMapSourceOpNames, inputsMapSourceOpOutputIndices,
+        inputsMapDestinationOpHandles, inputsMapDestinationOpOutputIndices, controlDependenciesMapSourceOpNames,
+        controlDependenciesMapDestinationOpHandles, controlDependenciesOpHandles)
     }
   }
 
-  /** Import a serialized representation of a TensorFlow graph.
-    *
-    * @param graphDef the serialized representation of a TensorFlow graph.
-    * @param prefix   a prefix that will be prepended to names in graphDef
-    * @throws IllegalArgumentException if graphDef is not a recognized serialization of a graph.
-    * @see #importGraphDef(byte[])
-    */
-  @throws[IllegalArgumentException]
-  def importGraphDef(graphDef: Array[Byte], prefix: String): Unit = {
-    if (graphDef == null || prefix == null)
-      throw new IllegalArgumentException("graphDef and prefix cannot be null.")
-    NativeHandleLock.synchronized {
-      NativeGraph.importGraphDef(nativeHandle, graphDef, prefix)
-    }
-  }
-
-  /** Import a serialized representation of a TensorFlow graph.
-    *
-    * <p>The serialized representation of the graph, often referred to as a <i>GraphDef</i>, can be
-    * generated by {@link #toGraphDef()} and equivalents in other language APIs.
-    *
-    * @throws IllegalArgumentException if graphDef is not a recognized serialization of a graph.
-    * @see #importGraphDef(byte[], String)
-    */
-  @throws[IllegalArgumentException]
-  def importGraphDef(graphDef: Array[Byte]): Unit = importGraphDef(graphDef, "")
-
-  /** Generate a serialized representation of the Graph.
-    *
-    * @see #importGraphDef(byte[])
-    * @see #importGraphDef(byte[], String)
-    */
-  def toGraphDef: GraphDef = {
-    // TODO: Rename to "toProto".
+  override def toProto: GraphDef = {
     GraphDef.parseFrom(NativeHandleLock.synchronized(NativeGraph.toGraphDef(nativeHandle)))
   }
+
+  private[this] var referenceCount: Int = 0
 
   def reference: Reference = Reference()
 
@@ -609,6 +598,31 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable {
     }
   }
 
+  /** Release resources associated with the Graph.
+    *
+    * Blocks until there are no active [[Session]] instances referring to this Graph. A Graph
+    * is not usable after close returns.
+    */
+  override def close(): Unit = {
+    NativeHandleLock.synchronized {
+      defaultSession.close()
+      if (nativeHandle != 0) {
+        while (referenceCount > 0) {
+          try {
+            NativeHandleLock.wait()
+          } catch {
+            case _: InterruptedException =>
+              Thread.currentThread().interrupt()
+              // Possible leak of the graph in this case?
+              return
+          }
+        }
+        NativeGraph.delete(nativeHandle)
+        nativeHandle = 0
+      }
+    }
+  }
+
   // TODO: [GRAPH] Better implementations for equals and hashCode.
 
   override def equals(that: Any): Boolean = that match {
@@ -621,6 +635,18 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable {
 
 object Graph {
   def apply(): Graph = Graph(nativeHandle = NativeGraph.allocate())
+
+  /** Imports a graph from the provided serialized graph object.
+    *
+    * @param  graphDef    ProtoBuf-serialized graph object.
+    * @param  importScope Name scope to use for all imported ops.
+    * @return Constructed [[Graph]] object.
+    */
+  def fromProto(graphDef: GraphDef, importScope: String = null): Graph = {
+    val graph = Graph()
+    graph.importGraphDef(graphDef, importScope)
+    graph
+  }
 
   // TODO: [DOC] Complete documentation.
   /**

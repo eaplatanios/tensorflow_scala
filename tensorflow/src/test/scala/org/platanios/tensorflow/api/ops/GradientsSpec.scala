@@ -16,8 +16,8 @@ class GradientsSpec extends FlatSpec with Matchers {
     val (inputs, output) = buildSuccessGraph(graph)
     val gradients = Gradients.gradients(Array(output), inputs)
     val expectedGradients = buildExpectedGraph(expectedGraph, gradientInputsProvided = false)
-    val graphDef = graph.toGraphDef
-    val expectedGraphDef = expectedGraph.toGraphDef
+    val graphDef = graph.toProto
+    val expectedGraphDef = expectedGraph.toProto
     val (equal, difference) = Graph.equalGraphDef(graphDef, expectedGraphDef)
     assert(equal)
   }
@@ -28,8 +28,8 @@ class GradientsSpec extends FlatSpec with Matchers {
     val (inputs, output) = buildSuccessGraph(graph)
     val gradients = Gradients.cc_gradients(Array(output), inputs)
     val expectedGradients = buildExpectedCCGraph(expectedGraph, gradientInputsProvided = false)
-    val graphDef = graph.toGraphDef
-    val expectedGraphDef = expectedGraph.toGraphDef
+    val graphDef = graph.toProto
+    val expectedGraphDef = expectedGraph.toProto
     val (equal, difference) = Graph.equalGraphDef(graphDef, expectedGraphDef)
     assert(equal)
   }

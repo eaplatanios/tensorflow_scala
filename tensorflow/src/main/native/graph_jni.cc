@@ -130,20 +130,87 @@ JNIEXPORT jobjectArray JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_add
 }
 
 JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_importGraphDef(
-    JNIEnv* env, jobject object, jlong graph_handle, jbyteArray graph_def, jstring name_prefix) {
+    JNIEnv* env, jobject object, jlong graph_handle, jbyteArray graph_def, jstring name_prefix,
+    jobjectArray input_map_key_ops, jintArray input_map_key_outputs, jlongArray input_map_value_ops,
+    jintArray input_map_value_outputs,
+    jobjectArray control_dependency_map_key_ops, jlongArray control_dependency_map_value_ops,
+    jlongArray control_dependencies) {
   TF_Graph *g = require_graph_handle(env, graph_handle);
   if (g == nullptr) return;
 
   TF_ImportGraphDefOptions *options = TF_NewImportGraphDefOptions();
-  jboolean is_copy;
-  const char *name_prefix_c_string = env->GetStringUTFChars(name_prefix, &is_copy);
+
+  // Handle the name prefix argument
+  const char *name_prefix_c_string = env->GetStringUTFChars(name_prefix, nullptr);
   TF_ImportGraphDefOptionsSetPrefix(options, name_prefix_c_string);
   env->ReleaseStringUTFChars(name_prefix, name_prefix_c_string);
-  static_assert(sizeof(jbyte) == 1, "unexpected size of the jbyte type");
-  jbyte *bytes = env->GetByteArrayElements(graph_def, &is_copy);
-  TF_Buffer *buffer = TF_NewBufferFromString(bytes, static_cast<size_t>(env->GetArrayLength(graph_def)));
+
+  // Handle the input map arguments
+  if (input_map_key_ops != nullptr) {
+    int input_map_length = env->GetArrayLength(input_map_key_ops);
+    if (input_map_length != env->GetArrayLength(input_map_key_outputs) ||
+          input_map_length != env->GetArrayLength(input_map_value_ops) ||
+          input_map_length != env->GetArrayLength(input_map_value_outputs))
+      throw_exception(env, jvm_illegal_argument_exception, "All input map arguments must have the same length.");
+    jint *input_map_key_outputs_elements = env->GetIntArrayElements(input_map_key_outputs, 0);
+    jlong *input_map_value_ops_elements = env->GetLongArrayElements(input_map_value_ops, 0);
+    jint *input_map_value_outputs_elements = env->GetIntArrayElements(input_map_value_outputs, 0);
+    for (int i = 0; i < input_map_length; ++i) {
+      jstring input_map_key_op = reinterpret_cast<jstring>(env->GetObjectArrayElement(input_map_key_ops, i));
+      const char *input_map_key_op_c_string = env->GetStringUTFChars(input_map_key_op, nullptr);
+      int input_map_key_output = reinterpret_cast<int>(input_map_key_outputs_elements[i]);
+      TF_Operation *op = require_operation_handle(env, input_map_value_ops_elements[i]);
+      if (op == nullptr)
+        throw_exception(env, jvm_illegal_argument_exception, "Provided input map destination op cannot be found.");
+      int output_index = reinterpret_cast<int>(input_map_value_outputs_elements[i]);
+      TF_Output output{op, output_index};
+      TF_ImportGraphDefOptionsAddInputMapping(options, input_map_key_op_c_string, input_map_key_output, output);
+      env->ReleaseStringUTFChars(input_map_key_op, input_map_key_op_c_string);
+    }
+    env->ReleaseIntArrayElements(input_map_key_outputs, input_map_key_outputs_elements, 0);
+    env->ReleaseLongArrayElements(input_map_value_ops, input_map_value_ops_elements, 0);
+    env->ReleaseIntArrayElements(input_map_value_outputs, input_map_value_outputs_elements, 0);
+  }
+
+  // Handle the control dependency map arguments
+  if (control_dependency_map_key_ops != nullptr) {
+    int control_dependency_map_length = env->GetArrayLength(control_dependency_map_key_ops);
+    if (control_dependency_map_length != env->GetArrayLength(control_dependency_map_value_ops))
+      throw_exception(
+        env, jvm_illegal_argument_exception, "All control dependency map arguments must have the same length.");
+     jlong *control_dependency_map_value_ops_elements = env->GetLongArrayElements(control_dependency_map_value_ops, 0);
+     for (int i = 0; i < control_dependency_map_length; ++i) {
+      jstring control_dependency_map_key_op =
+        reinterpret_cast<jstring>(env->GetObjectArrayElement(control_dependency_map_key_ops, i));
+      const char *control_dependency_map_key_op_c_string =
+        env->GetStringUTFChars(control_dependency_map_key_op, nullptr);
+      TF_Operation *op = require_operation_handle(env, control_dependency_map_value_ops_elements[i]);
+      if (op == nullptr)
+        throw_exception(
+          env, jvm_illegal_argument_exception, "Provided control dependency map destination op cannot be found.");
+      TF_ImportGraphDefOptionsRemapControlDependency(options, control_dependency_map_key_op_c_string, op);
+      env->ReleaseStringUTFChars(control_dependency_map_key_op, control_dependency_map_key_op_c_string);
+    }
+    env->ReleaseLongArrayElements(control_dependency_map_value_ops, control_dependency_map_value_ops_elements, 0);
+  }
+
+  // Handle the control dependencies argument
+  if (control_dependencies != nullptr) {
+    int control_dependencies_length = env->GetArrayLength(control_dependencies);
+    jlong *control_dependencies_elements = env->GetLongArrayElements(control_dependencies, 0);
+    for (int i = 0; i < control_dependencies_length; ++i) {
+      TF_Operation *op = require_operation_handle(env, control_dependencies_elements[i]);
+      if (op == nullptr)
+        throw_exception(env, jvm_illegal_argument_exception, "Provided control dependency op cannot be found.");
+      TF_ImportGraphDefOptionsAddControlDependency(options, op);
+    }
+    env->ReleaseLongArrayElements(control_dependencies, control_dependencies_elements, 0);
+  }
 
   // Call the C API "TF_GraphImportGraphDef" function and throw an exception if an error occurs
+  static_assert(sizeof(jbyte) == 1, "unexpected size of the jbyte type");
+  jbyte *bytes = env->GetByteArrayElements(graph_def, nullptr);
+  TF_Buffer *buffer = TF_NewBufferFromString(bytes, static_cast<size_t>(env->GetArrayLength(graph_def)));
   TF_Status *status = TF_NewStatus();
   TF_GraphImportGraphDef(g, buffer, options, status);
   throw_exception_if_not_ok(env, status);

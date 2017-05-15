@@ -225,7 +225,15 @@ case class Variable private(
   /** Converts this variable to an op output. This function simply returns an op corresponding to the variable value. */
   def toOpOutput: Op.Output = value
 
-  override def toProto(exportScope: String = null): VariableDef = {
+  override def toProto: VariableDef = toProto(null)
+
+  /** Convert this object to its corresponding ProtoBuf object.
+    *
+    * @param  exportScope Optional string specifying the name scope to remove. All ops within that name scope will not
+    *                     be included in the resulting ProtoBuf object.
+    * @return ProtoBuf object corresponding to this object.
+    */
+  def toProto(exportScope: String): VariableDef = {
     if (exportScope == null || variableOp.name.startsWith(exportScope)) {
       val variableDefBuilder = VariableDef.newBuilder()
       variableDefBuilder.setVariableName(Op.stripNameScope(exportScope, variableOp.name))
@@ -474,30 +482,30 @@ object Variable {
 
   /** Creates a variable from the provided ProtoBuf object.
     *
-    * @param  protoDef    ProtoBuf object.
+    * @param  variableDef ProtoBuf-serialized variable object.
     * @param  importScope Name scope to use for all imported ops.
     * @param  context     Op creation context to use while creating the variable.
     * @return Constructed [[Variable]] object.
     */
-  def fromProto(protoDef: VariableDef, importScope: String = null)
+  def fromProto(variableDef: VariableDef, importScope: String = null)
       (implicit context: DynamicVariable[OpCreationContext]): Variable = {
-    if (!protoDef.getIsResource)
+    if (!variableDef.getIsResource)
       throw new IllegalArgumentException("Trying to restore a reference-based variable as a resource-based variable.")
 
     def prependNameScope(name: String) = if (importScope == null) name else Op.prependNameScope(importScope, name)
 
-    val variableOp = context.graph.getOpOutputByName(prependNameScope(protoDef.getVariableName))
+    val variableOp = context.graph.getOpOutputByName(prependNameScope(variableDef.getVariableName))
     val dataType = variableOp.op.dataTypeAttribute("dtype")
-    val initializeOp = context.graph.getOpByName(prependNameScope(protoDef.getInitializerName))
+    val initializeOp = context.graph.getOpByName(prependNameScope(variableDef.getInitializerName))
     val cachedValueOp = {
-      if (protoDef.getSnapshotName == null)
+      if (variableDef.getSnapshotName == null)
         null
       else
-        context.graph.getOpOutputByName(prependNameScope(protoDef.getSnapshotName))
+        context.graph.getOpOutputByName(prependNameScope(variableDef.getSnapshotName))
     }
     val saveSliceInformation = {
-      if (protoDef.hasSaveSliceInfoDef)
-        SaveSliceInformation.fromProto(protoDef.getSaveSliceInfoDef)
+      if (variableDef.hasSaveSliceInfoDef)
+        SaveSliceInformation.fromProto(variableDef.getSaveSliceInfoDef)
       else
         null
     }
@@ -564,7 +572,15 @@ object Variable {
       s"$shapeString $sliceString"
     }
 
-    override def toProto(exportScope: String = null): SaveSliceInfoDef = {
+    override def toProto: SaveSliceInfoDef = toProto(null)
+
+    /** Convert this object to its corresponding ProtoBuf object.
+      *
+      * @param  exportScope Optional string specifying the name scope to remove. All ops within that name scope will not
+      *                     be included in the resulting ProtoBuf object.
+      * @return ProtoBuf object corresponding to this object.
+      */
+    def toProto(exportScope: String): SaveSliceInfoDef = {
       if (exportScope == null || fullName.startsWith(exportScope)) {
         val saveSliceInfoDefBuilder = SaveSliceInfoDef.newBuilder()
         saveSliceInfoDefBuilder.setFullName(Op.stripNameScope(exportScope, fullName))
@@ -582,18 +598,22 @@ object Variable {
   private[api] object SaveSliceInformation {
     /** Creates a new [[SaveSliceInformation]] from the provided ProtoBuf object.
       *
-      * @param  protoDef    ProtoBuf object.
-      * @param  importScope Name scope to use for all imported ops.
+      * @param  saveSliceInfoDef ProtoBuf-serialized variable object.
+      * @param  importScope      Name scope to use for all imported ops.
       * @return Constructed [[SaveSliceInformation]] object.
       */
-    def fromProto(protoDef: SaveSliceInfoDef, importScope: String = null): SaveSliceInformation = {
+   def fromProto(saveSliceInfoDef: SaveSliceInfoDef, importScope: String = null): SaveSliceInformation = {
       val fullName = {
-        if (importScope == null) protoDef.getFullName else Op.prependNameScope(importScope, protoDef.getFullName)
+        if (importScope == null)
+          saveSliceInfoDef.getFullName
+        else
+          Op.prependNameScope(importScope, saveSliceInfoDef.getFullName)
       }
-      val fullShape = Shape.fromSeq((0 until protoDef.getFullShapeCount).map(protoDef.getFullShape(_).toInt))
-      val variableOffset = (0 until protoDef.getVarOffsetCount).map(protoDef.getVarOffset(_).toInt).toArray
-      val variableShape = (0 until protoDef.getVarShapeCount).map(protoDef.getVarShape(_).toInt).toArray
-      SaveSliceInformation(fullName, fullShape, variableOffset, variableShape)
+      SaveSliceInformation(
+        fullName,
+        Shape.fromSeq((0 until saveSliceInfoDef.getFullShapeCount).map(saveSliceInfoDef.getFullShape(_).toInt)),
+        (0 until saveSliceInfoDef.getVarOffsetCount).map(saveSliceInfoDef.getVarOffset(_).toInt).toArray,
+        (0 until saveSliceInfoDef.getVarShapeCount).map(saveSliceInfoDef.getVarShape(_).toInt).toArray)
     }
   }
 
