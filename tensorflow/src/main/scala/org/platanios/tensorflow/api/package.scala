@@ -210,7 +210,8 @@ package object api extends Implicits {
     def variable(
         name: String, shape: Shape = null, dataType: tf.DataType = tf.FLOAT32, initializer: VariableInitializer = null,
         regularizer: VariableRegularizer = null, trainable: Boolean = true, reuse: java.lang.Boolean = null,
-        collections: Set[String] = Set.empty, cachingDevice: OpSpecification => String = null): Variable = {
+        collections: Set[Graph.Key[Variable]] = Set.empty,
+        cachingDevice: OpSpecification => String = null): Variable = {
       Variable.getVariable(
         name, shape, dataType, initializer, regularizer, trainable, reuse, collections, cachingDevice)
     }
@@ -218,7 +219,7 @@ package object api extends Implicits {
     def partitionedVariable(
         name: String, shape: Shape = null, dataType: tf.DataType = tf.FLOAT32, initializer: VariableInitializer = null,
         regularizer: VariableRegularizer = null, partitioner: VariablePartitioner, trainable: Boolean = true,
-        reuse: java.lang.Boolean = null, collections: Set[String] = Set.empty,
+        reuse: java.lang.Boolean = null, collections: Set[Graph.Key[Variable]] = Set.empty,
         cachingDevice: OpSpecification => String = null): PartitionedVariable = {
       Variable.getPartitionedVariable(
         name, shape, dataType, initializer, regularizer, partitioner, trainable, reuse, collections, cachingDevice)
@@ -226,7 +227,8 @@ package object api extends Implicits {
 
     def localVariable(
         name: String, shape: Shape = null, dataType: tf.DataType = tf.FLOAT32, initializer: VariableInitializer = null,
-        regularizer: VariableRegularizer = null, reuse: java.lang.Boolean = null, collections: Set[String] = Set.empty,
+        regularizer: VariableRegularizer = null, reuse: java.lang.Boolean = null,
+        collections: Set[Graph.Key[Variable]] = Set.empty,
         cachingDevice: OpSpecification => String = null): Variable = {
       Variable.getLocalVariable(name, shape, dataType, initializer, regularizer, reuse, collections, cachingDevice)
     }
@@ -234,7 +236,8 @@ package object api extends Implicits {
     def localPartitionedVariable(
         name: String, shape: Shape = null, dataType: tf.DataType = tf.FLOAT32, initializer: VariableInitializer = null,
         regularizer: VariableRegularizer = null, partitioner: VariablePartitioner, reuse: java.lang.Boolean = null,
-        collections: Set[String] = Set.empty, cachingDevice: OpSpecification => String = null): PartitionedVariable = {
+        collections: Set[Graph.Key[Variable]] = Set.empty,
+        cachingDevice: OpSpecification => String = null): PartitionedVariable = {
       Variable.getLocalPartitionedVariable(
         name, shape, dataType, initializer, regularizer, partitioner, reuse, collections, cachingDevice)
     }
@@ -270,6 +273,8 @@ package object api extends Implicits {
   private[api] val COLOCATION_OPS_ATTRIBUTE_PREFIX = "loc:@"
   private[api] val VALID_OP_NAME_REGEX   : Regex   = "^[A-Za-z0-9.][A-Za-z0-9_.\\-/]*$".r
   private[api] val VALID_NAME_SCOPE_REGEX: Regex   = "^[A-Za-z0-9_.\\-/]*$".r
+
+  private[api] val META_GRAPH_UNBOUND_INPUT_PREFIX: String = "$unbound_inputs_"
 
   import org.platanios.tensorflow.api.ops.OpCreationContext
 

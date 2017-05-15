@@ -916,15 +916,15 @@ object Op {
 
   //region ProtoBuf Helper Functions
 
-  private[ops] def stripNameScope(nameScope: String, name: String): String = {
-    if (nameScope != null)
+  private[api] def stripNameScope(nameScope: String, name: String): String = {
+    if (nameScope != null && nameScope != "")
       name.replaceFirst(s"([\\^]|loc:@|^)$nameScope[\\/]+(.*)", "$1$2")
     else
       name
   }
 
-  private[ops] def prependNameScope(nameScope: String, name: String): String = {
-    if (nameScope != null)
+  private[api] def prependNameScope(nameScope: String, name: String): String = {
+    if (nameScope != null && nameScope != "")
       name.replaceFirst("([\\^]|loc:@|^)(.*)", "$1" + nameScope + "/$2")
     else
       name

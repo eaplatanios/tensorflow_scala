@@ -82,7 +82,7 @@ trait Optimizer {
         else
           variables
       } ++ loss.graph.getCollection(Graph.Keys.STREAMING_MODEL_PORTS)
-    }.map(_.asInstanceOf[Variable]).toSeq
+    }.toSeq
     if (collectedVariables.isEmpty)
       throw new IllegalArgumentException("There are no variables to optimize.")
     val variableProcessors: Seq[VariableProcessor] = collectedVariables.map(getVariableProcessor)

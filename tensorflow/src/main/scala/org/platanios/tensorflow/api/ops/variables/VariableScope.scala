@@ -1,6 +1,6 @@
 package org.platanios.tensorflow.api.ops.variables
 
-import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.exception.{InvalidDataTypeException, ShapeMismatchException}
 import org.platanios.tensorflow.api.ops.{Op, OpCreationContext, OpSpecification}
 import org.platanios.tensorflow.api.ops.variables.Variable.VariableGetter
@@ -80,7 +80,8 @@ case class VariableScope(
   private[variables] def getVariable(
       store: VariableStore, name: String, shape: Shape = null, dataType: DataType = this.dataType,
       initializer: Initializer = this.initializer, regularizer: Regularizer = this.regularizer,
-      trainable: Boolean = true, reuse: java.lang.Boolean = this.reuse, collections: Set[String] = Set.empty,
+      trainable: Boolean = true, reuse: java.lang.Boolean = this.reuse,
+      collections: Set[Graph.Key[Variable]] = Set.empty,
       cachingDevice: OpSpecification => String = this.cachingDevice): Variable = {
     val fullName = if (this.name != null && this.name != "") s"${this.name}/$name" else name
     // Variable names only depend on the variable scope and not the name scope, so we reset it below for the time of
@@ -133,7 +134,7 @@ case class VariableScope(
       store: VariableStore, name: String, shape: Shape = null, dataType: DataType = this.dataType,
       initializer: Initializer = this.initializer, regularizer: Regularizer = this.regularizer,
       partitioner: Partitioner = this.partitioner, trainable: Boolean = true,
-      reuse: java.lang.Boolean = this.reuse, collections: Set[String] = Set.empty,
+      reuse: java.lang.Boolean = this.reuse, collections: Set[Graph.Key[Variable]] = Set.empty,
       cachingDevice: OpSpecification => String = this.cachingDevice): PartitionedVariable = {
     if (customGetter != null)
       throw new IllegalArgumentException(
@@ -178,6 +179,7 @@ object VariableScope {
       regularizer: Regularizer = null, partitioner: Partitioner = null, cachingDevice: OpSpecification => String = null,
       customGetter: VariableGetter = null, isDefaultName: Boolean = false, isPure: Boolean = false)
       (block: => R)(implicit context: DynamicVariable[OpCreationContext]): R = {
+    // TODO: !!! REUSE CANNOT BE FALSE. SEE THE PYTHON API DOCUMENTATION FOR REFERENCE.
     if (reuse != null && reuse && isDefaultName)
       throw new IllegalArgumentException("'reuse' and 'isDefaultName' cannot both be 'false'.")
     val variableStore = context.graph.variableStore
@@ -283,10 +285,11 @@ object VariableScope {
       oldGetter
     } else {
       (name: String, shape: Shape, dataType: DataType, initializer: Initializer, regularizer: Regularizer,
-          trainable: Boolean, reuse: java.lang.Boolean, collections: Set[String],
+          trainable: Boolean, reuse: java.lang.Boolean, collections: Set[Graph.Key[Variable]],
           cachingDevice: (OpSpecification) => String, customGetter: VariableGetter) => {
         val g: VariableGetter = (n: String, s: Shape, dt: DataType, init: Initializer, reg: Regularizer, train: Boolean,
-            reuse: java.lang.Boolean, colls: Set[String], cDevice: (OpSpecification) => String, _: VariableGetter) => {
+            reuse: java.lang.Boolean, colls: Set[Graph.Key[Variable]],
+            cDevice: (OpSpecification) => String, _: VariableGetter) => {
           oldGetter(n, s, dt, init, reg, train, reuse, colls, cDevice, customGetter)
         }
         getter(name, shape, dataType, initializer, regularizer, trainable, reuse, collections, cachingDevice, g)

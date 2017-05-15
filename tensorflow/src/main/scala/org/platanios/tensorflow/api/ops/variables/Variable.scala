@@ -229,8 +229,9 @@ case class Variable private(
 
   /** Convert this object to its corresponding ProtoBuf object.
     *
-    * @param  exportScope Optional string specifying the name scope to remove. All ops within that name scope will not
-    *                     be included in the resulting ProtoBuf object.
+    * @param  exportScope Optional string specifying the name scope to remove. Only the ops within this name scope will
+    *                     be included in the resulting ProtoBuf object and the export scope will be stripped from their
+    *                     names to allow for easy import into new name scopes.
     * @return ProtoBuf object corresponding to this object.
     */
   def toProto(exportScope: String): VariableDef = {
@@ -292,7 +293,7 @@ object Variable {
   def getVariable(
       name: String, shape: Shape = null, dataType: DataType = FLOAT32, initializer: Initializer = null,
       regularizer: Regularizer = null, trainable: Boolean = true, reuse: java.lang.Boolean = null,
-      collections: Set[String] = Set.empty, cachingDevice: OpSpecification => String = null): Variable = {
+      collections: Set[Graph.Key[Variable]] = Set.empty, cachingDevice: OpSpecification => String = null): Variable = {
     Op.currentVariableScope.getVariable(
       Op.currentVariableStore, name, shape, dataType, initializer, regularizer, trainable, reuse, collections,
       cachingDevice)
@@ -333,7 +334,7 @@ object Variable {
   def getPartitionedVariable(
       name: String, shape: Shape = null, dataType: DataType = FLOAT32, initializer: Initializer = null,
       regularizer: Regularizer = null, partitioner: Partitioner = null, trainable: Boolean = true,
-      reuse: java.lang.Boolean = null, collections: Set[String] = Set.empty,
+      reuse: java.lang.Boolean = null, collections: Set[Graph.Key[Variable]] = Set.empty,
       cachingDevice: OpSpecification => String = null): PartitionedVariable = {
     Op.currentVariableScope.getPartitionedVariable(
       Op.currentVariableStore, name, shape, dataType, initializer, regularizer, partitioner, trainable, reuse,
@@ -369,8 +370,8 @@ object Variable {
     */
   def getLocalVariable(
       name: String, shape: Shape = null, dataType: DataType = FLOAT32, initializer: Initializer = null,
-      regularizer: Regularizer = null, reuse: java.lang.Boolean = null, collections: Set[String] = Set.empty,
-      cachingDevice: OpSpecification => String = null): Variable = {
+      regularizer: Regularizer = null, reuse: java.lang.Boolean = null,
+      collections: Set[Graph.Key[Variable]] = Set.empty, cachingDevice: OpSpecification => String = null): Variable = {
     Op.currentVariableScope.getVariable(
       Op.currentVariableStore, name, shape, dataType, initializer, regularizer, trainable = false, reuse,
       collections + Graph.Keys.LOCAL_VARIABLES, cachingDevice)
@@ -410,7 +411,8 @@ object Variable {
   def getLocalPartitionedVariable(
       name: String, shape: Shape, dataType: DataType = FLOAT32, initializer: Initializer = null,
       regularizer: Regularizer = null, partitioner: Partitioner = null, reuse: java.lang.Boolean = null,
-      collections: Set[String] = Set.empty, cachingDevice: OpSpecification => String = null): PartitionedVariable = {
+      collections: Set[Graph.Key[Variable]] = Set.empty,
+      cachingDevice: OpSpecification => String = null): PartitionedVariable = {
     Op.currentVariableScope.getPartitionedVariable(
       Op.currentVariableStore, name, shape, dataType, initializer, regularizer, partitioner, trainable = false, reuse,
       collections + Graph.Keys.LOCAL_VARIABLES, cachingDevice)
@@ -437,7 +439,7 @@ object Variable {
     */
   def apply(
       initializer: Initializer, shape: Shape = null, dataType: DataType = FLOAT32, trainable: Boolean = true,
-      collections: Set[String] = Set.empty, cachingDevice: OpSpecification => String = null,
+      collections: Set[Graph.Key[Variable]] = Set.empty, cachingDevice: OpSpecification => String = null,
       name: String = "Variable"): Variable = {
     val inferredShape = if (shape == null) initializer.shape else shape
     if (inferredShape == null)
@@ -475,7 +477,7 @@ object Variable {
         effectiveCollections += Graph.Keys.GLOBAL_VARIABLES
       if (trainable)
         effectiveCollections += Graph.Keys.TRAINABLE_VARIABLES
-      createdVariable.graph.addToCollections(createdVariable, effectiveCollections)
+      effectiveCollections.foreach(key => createdVariable.graph.addToCollection(createdVariable, key))
       createdVariable
     }
   }
@@ -524,7 +526,7 @@ object Variable {
           Regularizer, // regularizer
           Boolean, // trainable
           java.lang.Boolean, // reuse
-          Set[String], // collections
+          Set[Graph.Key[Variable]], // collections
           OpSpecification => String, // cachingDevice
           VariableGetter) // variableGetter
           => Variable
@@ -532,7 +534,7 @@ object Variable {
     def apply(
         name: String, shape: Shape = null, dataType: DataType = FLOAT32, initializer: Initializer = null,
         regularizer: Regularizer = null, trainable: Boolean = true, reuse: java.lang.Boolean = null,
-        collections: Set[String] = Set.empty, cachingDevice: OpSpecification => String = null,
+        collections: Set[Graph.Key[Variable]] = Set.empty, cachingDevice: OpSpecification => String = null,
         customGetter: VariableGetter = null): Variable
   }
 
@@ -576,8 +578,9 @@ object Variable {
 
     /** Convert this object to its corresponding ProtoBuf object.
       *
-      * @param  exportScope Optional string specifying the name scope to remove. All ops within that name scope will not
-      *                     be included in the resulting ProtoBuf object.
+      * @param  exportScope Optional string specifying the name scope to remove. Only the ops within this name scope
+      *                     will be included in the resulting ProtoBuf object and the export scope will be stripped from
+      *                     their names to allow for easy import into new name scopes.
       * @return ProtoBuf object corresponding to this object.
       */
     def toProto(exportScope: String): SaveSliceInfoDef = {

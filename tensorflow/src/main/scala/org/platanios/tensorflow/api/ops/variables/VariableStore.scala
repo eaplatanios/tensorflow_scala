@@ -117,13 +117,13 @@ case class VariableStore() {
   def getVariable(
       name: String, shape: Shape = null, dataType: DataType = FLOAT32, initializer: Initializer = null,
       regularizer: Regularizer = null, trainable: Boolean = true, reuse: java.lang.Boolean = null,
-      collections: Set[String] = Set.empty, cachingDevice: OpSpecification => String = null,
+      collections: Set[Graph.Key[Variable]] = Set.empty, cachingDevice: OpSpecification => String = null,
       customGetter: VariableGetter = null): Variable = {
     /** This function defines the main logic of 'getVariable'. However, 'customGetter' may override this logic. That is
       * why we pass it as an argument to the 'customGetter'. */
     val trueGetter: VariableGetter =
       (name: String, shape: Shape, dataType: DataType, initializer: Initializer, regularizer: Regularizer,
-          trainable: Boolean, reuse: java.lang.Boolean, collections: Set[String],
+          trainable: Boolean, reuse: java.lang.Boolean, collections: Set[Graph.Key[Variable]],
           cachingDevice: (OpSpecification) => String, _: VariableGetter) => {
         // Single variable case.
         if (variables.contains(s"$name/part_0"))
@@ -217,7 +217,7 @@ case class VariableStore() {
   def getPartitionedVariable(
       name: String, shape: Shape = null, dataType: DataType = FLOAT32, initializer: Initializer = null,
       regularizer: Regularizer = null, partitioner: Partitioner = null, trainable: Boolean = true,
-      reuse: java.lang.Boolean = null, collections: Set[String] = Set.empty,
+      reuse: java.lang.Boolean = null, collections: Set[Graph.Key[Variable]] = Set.empty,
       cachingDevice: OpSpecification => String = null): PartitionedVariable = {
     Op.createWithNameScope("") {
       if (variables.contains(name))
