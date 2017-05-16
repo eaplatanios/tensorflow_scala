@@ -91,5 +91,5 @@ private[api] trait OpAPI
     Op.colocateWith(colocationOps, ignoreExisting)(block)
   }
 
-  object train extends optimizers.OptimizerAPI
+  object train extends training.TrainingAPI
 }

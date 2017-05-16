@@ -1,6 +1,6 @@
-package org.platanios.tensorflow.api.ops.optimizers
+package org.platanios.tensorflow.api.ops.training.optimizers
 
-import org.platanios.tensorflow.api.ops.optimizers
+import org.platanios.tensorflow.api.ops.training.optimizers
 
 /**
   * @author Emmanouil Antonios Platanios

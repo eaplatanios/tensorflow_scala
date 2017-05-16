@@ -1,4 +1,4 @@
-package org.platanios.tensorflow.api.ops.optimizers
+package org.platanios.tensorflow.api.ops.training.optimizers
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.ops.{Basic, Op}

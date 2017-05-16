@@ -1,4 +1,4 @@
-package org.platanios.tensorflow.api.ops.optimizers
+package org.platanios.tensorflow.api.ops.training.optimizers
 
 import org.platanios.tensorflow.api.ops.{Basic, Math, Op}
 import org.platanios.tensorflow.api.ops.variables.{ConstantInitializer, Variable}
