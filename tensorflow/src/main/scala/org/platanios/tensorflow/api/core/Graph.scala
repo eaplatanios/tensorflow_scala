@@ -5,14 +5,20 @@ import org.platanios.tensorflow.api.ops.{Basic, Math, Op}
 import org.platanios.tensorflow.api.ops.variables.{Variable, VariableStore}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.STRING
-import org.platanios.tensorflow.api.{Closeable, ProtoSerializable}
-import org.platanios.tensorflow.jni.{Graph => NativeGraph}
+import org.platanios.tensorflow.api.{Closeable, META_GRAPH_UNBOUND_INPUT_PREFIX, ProtoSerializable}
+import org.platanios.tensorflow.jni.{Graph => NativeGraph, TensorFlow => NativeLibrary}
 
-import org.tensorflow.framework.{GraphDef, MetaGraphDef, NodeDef, VariableDef}
+import com.google.protobuf.ByteString
+import org.tensorflow.framework.CollectionDef.{BytesList, NodeList}
+import org.tensorflow.framework.MetaGraphDef.MetaInfoDef
+import org.tensorflow.framework._
+import org.tensorflow.util.SaverDef
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.language.postfixOps
+import scala.reflect.runtime.universe.{typeOf, TypeTag}
+import scala.util.matching.Regex
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -20,7 +26,7 @@ import scala.language.postfixOps
 final case class Graph(private[api] var nativeHandle: Long) extends Closeable with ProtoSerializable {
   private[this] object NativeHandleLock
 
-  // TODO: Need to be able to reset and close this session.
+  // TODO: [SESSION] Need to be able to reset and close this session.
   private[api] val defaultSession: Session = Session(this)
 
   /** Map from native op handle to op object in the Scala side. Used for caching ops that have already been obtained
@@ -34,7 +40,7 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable wi
   private[this] val namesInUse: mutable.Set[String] = mutable.Set.empty[String]
 
   /** Marks `name` as a used name in this graph (i.e., increments its usage counter). */
-  private[api] def markNameAsUsed(name: String): Unit = namesInUse synchronized {
+  private[this] def markNameAsUsed(name: String): Unit = namesInUse synchronized {
     namesInUse += name
   }
 
@@ -81,12 +87,19 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable wi
   /** Map from collection key to set of values in that collection. */
   private[this] val collections: mutable.Map[Graph.Key[_], mutable.Set[_]] = mutable.Map.empty
 
+  // TODO: [GRAPH] Should we keep track of this and the field that follows in a collection? MetaGraphDef.
   /** Set of all unfeedable ops in this graph. */
   private[this] val unfeedableOpOutputs: mutable.Set[Op.Output] = mutable.Set.empty
 
-  // TODO: Maybe this should contain ops rather than op outputs.
+  // TODO: [GRAPH] Maybe this should contain ops rather than op outputs.
   /** Set of all unfetchable ops in this graph. */
   private[this] val unfetchableOpOutputs: mutable.Set[Op.Output] = mutable.Set.empty
+
+  /** Removes the specified collection from this graph.
+    *
+    * @param  key Collection key.
+    */
+  private[api] def clearCollection[K](key: Graph.Key[K]): Unit = collections -= key
 
   /** Adds `value` to the collection with name `key`.
     *
@@ -531,22 +544,22 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable wi
         if (restoreCollectionsPredicate(key)) {
           val kind = collectionDef.getKindCase.getNumber
           key match {
-            case k @ (GLOBAL_VARIABLES | LOCAL_VARIABLES | MODEL_VARIABLES | TRAINABLE_VARIABLES |
-                      MOVING_AVERAGE_VARIABLES | WEIGHTS | BIASES | TRAINABLE_RESOURCE_VARIABLES | GLOBAL_STEP |
-                      EVAL_STEP | STREAMING_MODEL_PORTS) =>
+            case k@(GLOBAL_VARIABLES | LOCAL_VARIABLES | MODEL_VARIABLES | TRAINABLE_VARIABLES |
+                    MOVING_AVERAGE_VARIABLES | WEIGHTS | BIASES | TRAINABLE_RESOURCE_VARIABLES | GLOBAL_STEP |
+                    EVAL_STEP | STREAMING_MODEL_PORTS) =>
               if (kind != 2)
                 throw new IllegalArgumentException(s"The '$name' collection is stored with the wrong type.")
               collectionDef.getBytesList.getValueList.asScala.foreach(v => {
                 addToCollection(Variable.fromProto(VariableDef.parseFrom(v), importScope), k)
               })
-            case k @ (ACTIVATIONS | UPDATE_OPS | INIT_OP | LOCAL_INIT_OP | READY_OP | READY_FOR_LOCAL_INIT_OP |
-                      SUMMARY_OP | TRAIN_OP) =>
+            case k@(ACTIVATIONS | UPDATE_OPS | INIT_OP | LOCAL_INIT_OP | READY_OP | READY_FOR_LOCAL_INIT_OP |
+                    SUMMARY_OP | TRAIN_OP) =>
               if (kind != 1)
                 throw new IllegalArgumentException(s"The '$name' collection is stored with the wrong type.")
               collectionDef.getNodeList.getValueList.asScala.foreach(o => {
                 addToCollection(getOpByName(Op.prependNameScope(importScope, o)), k)
               })
-            case k @ (SUMMARIES | REGULARIZATION_LOSSES | LOSSES) =>
+            case k@(SUMMARIES | REGULARIZATION_LOSSES | LOSSES) =>
               if (kind != 1)
                 throw new IllegalArgumentException(s"The '$name' collection is stored with the wrong type.")
               collectionDef.getNodeList.getValueList.asScala.foreach(o => {
@@ -558,23 +571,175 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable wi
     }
   }
 
+  /** Constructs and returns a [[GraphDef]] object, which is a serialized version of this graph.
+    *
+    * Note that the [[GraphDef]] does not contain any meta-information about the graph (such as collections information,
+    * for example). For a serialized representation of the graph that contains such information, please refer to
+    * [[Graph.toMetaGraphDef]].
+    */
   def toGraphDef: GraphDef = GraphDef.parseFrom(NativeHandleLock.synchronized(NativeGraph.toGraphDef(nativeHandle)))
 
-  def toMetaGraphDef: MetaGraphDef = ???
+  /** Constructs and returns a [[MetaGraphDef]] object using the provided arguments.
+    *
+    * In combination with [[importMetaGraphDef]], this function can be used to:
+    *   - Serialize a graph along with other objects stored in its collections, into a [[MetaGraphDef]].
+    *   - Restart training from saved graphs and checkpoints.
+    *   - Run inference from saved graphs and checkpoints.
+    *
+    * @param  exportScope                Optional string specifying the name scope to remove. Only the ops within this
+    *                                    name scope will be included in the resulting ProtoBuf object and the export
+    *                                    scope will be stripped from their names to allow for easy import into new name
+    *                                    scopes.
+    * @param  metaInfoDef                [[MetaInfoDef]] associated with the [[MetaGraphDef]] that will be constructed.
+    * @param  saverDef                   [[SaverDef]] associated with the [[MetaGraphDef]] that will be constructed.
+    * @param  collections                Graph collection keys specifying the collections to include in the
+    *                                    [[MetaGraphDef]].
+    * @param  unboundInputsCollectionKey Collection key for storing unbound inputs. If provided, a string collection
+    *                                    with the given name will be added to the returned [[MetaGraphDef]], containing
+    *                                    the names of tensors that must be remapped when importing the [[MetaGraphDef]].
+    * @param  clearDevices               Boolean value indicating whether to clear the device information from the
+    *                                    returned node definitions.
+    * @return Constructed [[MetaGraphDef]].
+    */
+  def toMetaGraphDef(
+      exportScope: String = null, metaInfoDef: MetaInfoDef = null, saverDef: SaverDef = null,
+      collections: Set[Graph.Key[_]] = Set.empty,
+      unboundInputsCollectionKey: Graph.Key[String] = Graph.Keys.UNBOUND_INPUTS,
+      clearDevices: Boolean = false): MetaGraphDef = {
+    val unboundInputs = mutable.Set.empty[String]
+    val graphDef = {
+      val originalGraphDef = toGraphDef
+      if (exportScope != null || clearDevices) {
+        val graphDefBuilder = GraphDef.newBuilder()
+        graphDefBuilder.setVersions(originalGraphDef.getVersions)
+        originalGraphDef.getNodeList.asScala
+            .filter(n => Graph.shouldIncludeNode(n.getName, exportScope))
+            .foreach(n => graphDefBuilder.addNode(Graph.processNodeDef(n, exportScope, unboundInputs, clearDevices)))
+        graphDefBuilder.build()
+      } else {
+        originalGraphDef
+      }
+    }
+    if (exportScope != null && unboundInputsCollectionKey != null) {
+      // It's possible that not all the inputs are in the export scope. If we would like such information included in
+      // the exported graph meta-information, we add them to a special collection.
+      clearCollection(unboundInputsCollectionKey)
+      unboundInputs.foreach(addToCollection(_, unboundInputsCollectionKey))
+    }
 
+    // Create the 'MetaGraphDef' object.
+    val metaGraphDefBuilder = MetaGraphDef.newBuilder()
+    metaGraphDefBuilder.setGraphDef(graphDef)
+
+    // Add the meta information.
+    val metaInfoDefBuilder = if (metaInfoDef == null) MetaInfoDef.newBuilder() else MetaInfoDef.newBuilder(metaInfoDef)
+    metaInfoDefBuilder.setTensorflowVersion(NativeLibrary.version)
+    metaGraphDefBuilder.mergeMetaInfoDef(metaInfoDefBuilder.build())
+
+    // Add the saver information.
+    if (saverDef != null)
+      metaGraphDefBuilder.mergeSaverDef(saverDef)
+
+    // Add the collections.
+    if (collections != null)
+      collections.foreach(key => addCollectionDefToMetaGraphDefBuilder(metaGraphDefBuilder, key, exportScope))
+
+    metaGraphDefBuilder.build()
+  }
+
+  /** Adds a collection named `name` in a [[MetaGraphDef.Builder]].
+    *
+    * @param  metaGraphDefBuilder [[MetaGraphDef.Builder]] in which to add the collection.
+    * @param  key                 Collection key.
+    * @param  exportScope         Optional string specifying the name scope to remove. Only the ops within this name
+    *                             scope will be included in the resulting ProtoBuf object and the export scope will be
+    *                             stripped from their names to allow for easy import into new name scopes.
+    * @return Updated [[MetaGraphDef.Builder]].
+    */
+  private[this] def addCollectionDefToMetaGraphDefBuilder[K: TypeTag](
+      metaGraphDefBuilder: MetaGraphDef.Builder, key: Graph.Key[K],
+      exportScope: String = null): MetaGraphDef.Builder = {
+    val values = getCollection(key)
+    val collectionDef = typeOf[K] match {
+      case t if t =:= typeOf[String] =>
+        val bytesListBuilder = {
+          if (metaGraphDefBuilder.containsCollectionDef(key.name))
+            BytesList.newBuilder(metaGraphDefBuilder.getCollectionDefOrThrow(key.name).getBytesList)
+          else
+            BytesList.newBuilder()
+        }
+        values.map(_.asInstanceOf[String]).foreach(s => bytesListBuilder.addValue(ByteString.copyFromUtf8(s)))
+        CollectionDef.newBuilder().setBytesList(bytesListBuilder.build()).build()
+      case t if t =:= typeOf[Op] =>
+        val nodeListBuilder = {
+          if (metaGraphDefBuilder.containsCollectionDef(key.name))
+            NodeList.newBuilder(metaGraphDefBuilder.getCollectionDefOrThrow(key.name).getNodeList)
+          else
+            NodeList.newBuilder()
+        }
+        values.asInstanceOf[Set[Op]]
+            .filter(o => Graph.shouldIncludeNode(o.name, exportScope))
+            .filter(o => exportScope == null || o.name.startsWith(exportScope)).foreach(o => {
+          nodeListBuilder.addValue(Op.stripNameScope(exportScope, o.name))
+        })
+        CollectionDef.newBuilder().setNodeList(nodeListBuilder.build()).build()
+      case t if t =:= typeOf[Op.Output] =>
+        val nodeListBuilder = {
+          if (metaGraphDefBuilder.containsCollectionDef(key.name))
+            NodeList.newBuilder(metaGraphDefBuilder.getCollectionDefOrThrow(key.name).getNodeList)
+          else
+            NodeList.newBuilder()
+        }
+        values.asInstanceOf[Set[Op.Output]]
+            .filter(o => Graph.shouldIncludeNode(o.name, exportScope))
+            .filter(o => exportScope == null || o.name.startsWith(exportScope)).foreach(o => {
+          nodeListBuilder.addValue(Op.stripNameScope(exportScope, o.name))
+        })
+        CollectionDef.newBuilder().setNodeList(nodeListBuilder.build()).build()
+      case t if t =:= typeOf[Variable] =>
+        val bytesListBuilder = {
+          if (metaGraphDefBuilder.containsCollectionDef(key.name))
+            BytesList.newBuilder(metaGraphDefBuilder.getCollectionDefOrThrow(key.name).getBytesList)
+          else
+            BytesList.newBuilder()
+        }
+        values.asInstanceOf[Set[Variable]].filter(v => Graph.shouldIncludeNode(v.name, exportScope)).foreach(v => {
+          bytesListBuilder.addValue(v.toProto(exportScope).toByteString)
+        })
+        CollectionDef.newBuilder().setBytesList(bytesListBuilder.build()).build()
+      case t => throw new IllegalArgumentException(s"Cannot serialize collection with type '$t'.")
+    }
+    metaGraphDefBuilder.putCollectionDef(key.name, collectionDef)
+    metaGraphDefBuilder
+  }
+
+  /** Constructs and returns a [[GraphDef]] object, which is a serialized version of this graph.
+    *
+    * Note that the [[GraphDef]] does not contain any meta-information about the graph (such as collections information,
+    * for example). For a serialized representation of the graph that contains such information, please refer to
+    * [[Graph.toMetaGraphDef]].
+    */
   override def toProto: GraphDef = toGraphDef
 
+  /** Reference counter for this graph instance. */
   private[this] var referenceCount: Int = 0
 
-  def reference: Reference = Reference()
+  /** Returns a new reference to this graph. This method should be used by all classes whose corresponding native
+    * objects (such as the `TF_Operation` object backing an [[Op]] instance) have a validity tied to that of the graph.
+    *
+    * That is because, the handles to those native objects are not valid after [[Graph.close]] has been invoked and the
+    * references returned by this method help account for this behavior.
+    */
+  private[api] def reference: Reference = Reference()
 
-  // Related native objects (such as the TF_Operation object backing an Operation instance)
-  // have a validity tied to that of the Graph. The handles to those native objects are not
-  // valid after Graph.close() has been invoked.
-  //
-  // Instances of the Reference class should be used to ensure the Graph has not been closed
-  // while dependent handles are in use.
-  final case class Reference private() extends Closeable {
+  /** Helper class for keeping track of references to this graph.
+    *
+    * Related native objects (such as the `TF_Operation` object backing an [[Op]] instance) have a validity tied to that
+    * of the graph. The handles to those native objects are not valid after [[Graph.close]] has been invoked.
+    *
+    * Instances of the `Reference` class should be used to ensure the graph has not been closed while dependent handles
+    * are in use. */
+  private[api] final case class Reference private() extends Closeable {
     NativeHandleLock.synchronized {
       if (Graph.this.nativeHandle == 0)
         throw new IllegalStateException("close() has been called on the Graph")
@@ -591,7 +756,7 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable wi
       }
     }
 
-    private[api] def nativeHandle: Long = {
+    def nativeHandle: Long = {
       NativeHandleLock.synchronized {
         if (Graph.this.nativeHandle != 0)
           Graph.this.nativeHandle
@@ -601,28 +766,26 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable wi
     }
   }
 
-  /** Release resources associated with the Graph.
+  /** Releases the native resources associated with this graph instance.
     *
-    * Blocks until there are no active [[Session]] instances referring to this Graph. A Graph
-    * is not usable after close returns.
+    * This method blocks until there are no active [[Session]] (or other) instances referring to this graph instance. A
+    * graph is not usable after this method returns.
     */
-  override def close(): Unit = {
-    NativeHandleLock.synchronized {
-      defaultSession.close()
-      if (nativeHandle != 0) {
-        while (referenceCount > 0) {
-          try {
-            NativeHandleLock.wait()
-          } catch {
-            case _: InterruptedException =>
-              Thread.currentThread().interrupt()
-              // Possible leak of the graph in this case?
-              return
-          }
+  override def close(): Unit = NativeHandleLock.synchronized {
+    defaultSession.close()
+    if (nativeHandle != 0) {
+      while (referenceCount > 0) {
+        try {
+          NativeHandleLock.wait()
+        } catch {
+          case _: InterruptedException =>
+            Thread.currentThread().interrupt()
+            // TODO: Possible leak of the graph in this case?
+            return
         }
-        NativeGraph.delete(nativeHandle)
-        nativeHandle = 0
       }
+      NativeGraph.delete(nativeHandle)
+      nativeHandle = 0
     }
   }
 
@@ -637,19 +800,144 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable wi
 }
 
 object Graph {
+  /** Constructs and returns an empty new graph. */
   def apply(): Graph = Graph(nativeHandle = NativeGraph.allocate())
 
   /** Imports a graph from the provided serialized graph object.
     *
-    * @param  graphDef    ProtoBuf-serialized graph object.
-    * @param  importScope Name scope to use for all imported ops.
+    * @param  graphDef    Serialized representation of the graph that will be imported.
+    * @param  importScope Optional prefix that will be prepended to all node names in the graph that is being imported
+    *                     to this graph.
     * @return Constructed [[Graph]] object.
     */
-  def fromProto(graphDef: GraphDef, importScope: String = null): Graph = {
+  def fromGraphDef(graphDef: GraphDef, importScope: String = null): Graph = {
     val graph = Graph()
     graph.importGraphDef(graphDef, importScope)
     graph
   }
+
+  /** Imports a graph and its meta-information from the provided serialized graph meta-information object.
+    *
+    * This function takes a [[MetaGraphDef]] protocol buffer as input and it adds all the nodes from its `graph_def`
+    * field to a new graph. It also recreates the desired collections stored in that protocol buffer.
+    *
+    * In combination with [[Graph.toMetaGraphDef]], this function can be used to:
+    *   - Serialize a graph along with other objects stored in its collections, into a [[MetaGraphDef]].
+    *   - Restart training from saved graphs and checkpoints.
+    *   - Run inference from saved graphs and checkpoints.
+    *
+    * @param  metaGraphDef                Serialized representation of the graph and its meta-information, that will be
+    *                                     imported into the new graph.
+    * @param  importScope                 Optional prefix that will be prepended to all node names in the graph that is
+    *                                     being imported to the new graph.
+    * @param  clearDevices                Boolean value indicating whether to clear the device information from the
+    *                                     returned node definition.
+    * @param  unboundInputsCollectionKey  Collection key for looking up unbound inputs.
+    * @param  restoreCollectionsPredicate Function that takes as input a graph collection key and returns a boolean
+    *                                     value indicating whether or not to load that collection. Note that the
+    *                                     collection specified by `unboundInputsCollectionKey` is never loaded.
+    *                                     Defaults to a function that returns `true` for all inputs.
+    * @return Constructed [[Graph]] object.
+    */
+  def fromMetaGraphDef(
+      metaGraphDef: MetaGraphDef, importScope: String = null, clearDevices: Boolean = false,
+      unboundInputsCollectionKey: Graph.Key[String] = Graph.Keys.UNBOUND_INPUTS,
+      restoreCollectionsPredicate: Graph.Key[_] => Boolean = _ => true): Graph = {
+    val graph = Graph()
+    graph.importMetaGraphDef(
+      metaGraphDef, importScope, clearDevices = clearDevices, unboundInputsCollectionKey = unboundInputsCollectionKey,
+      restoreCollectionsPredicate = restoreCollectionsPredicate)
+    graph
+  }
+
+  /** Imports a graph from the provided serialized graph object.
+    *
+    * @param  graphDef    Serialized representation of the graph that will be imported.
+    * @param  importScope Optional prefix that will be prepended to all node names in the graph that is being imported
+    *                     to this graph.
+    * @return Constructed [[Graph]] object.
+    */
+  def fromProto(graphDef: GraphDef, importScope: String = null): Graph = fromGraphDef(graphDef, importScope)
+
+  //region MetaGraphDef Helpers
+
+  private[this] val nodeDefNamePrefixRegex: Regex = "^\\^+".r
+  private[this] val nodeDefRenameRegex    : Regex = "([\\^]|^)(.*)".r
+
+  /** Returns `true` if a node should be included.
+    *
+    * @param  name        Node name.
+    * @param  exportScope Optional string specifying the name scope to remove. Only the ops within this name scope will
+    *                     be included in the resulting ProtoBuf object and the export scope will be stripped from their
+    *                     names to allow for easy import into new name scopes.
+    * @return Boolean value indicating whether the node with the provided name should be included.
+    */
+  private def shouldIncludeNode(name: String, exportScope: String = null): Boolean = {
+    name.startsWith(META_GRAPH_UNBOUND_INPUT_PREFIX) || exportScope == null || name.startsWith(exportScope)
+  }
+
+  /** Processes a node definition according the provided arguments and returns a new node definition.
+    *
+    * @param nodeDef       Node definition to process.
+    * @param exportScope   Optional string specifying the name scope to remove. Only the ops within this name scope will
+    *                      be included in the resulting ProtoBuf object and the export scope will be stripped from their
+    *                      names to allow for easy import into new name scopes.
+    * @param unboundInputs Set containing unbound input names if they exist.
+    * @param clearDevices  Boolean value indicating whether to clear the device information from the returned node
+    *                      definition.
+    * @return New processed node definition.
+    */
+  private def processNodeDef(
+      nodeDef: NodeDef, exportScope: String = null, unboundInputs: mutable.Set[String] = mutable.Set.empty,
+      clearDevices: Boolean = false): NodeDef = {
+    val nodeDefBuilder = NodeDef.newBuilder(nodeDef)
+    nodeDefBuilder.setName(Op.stripNameScope(exportScope, nodeDef.getName))
+    val numberOfInputs = nodeDef.getInputCount
+    var inputIndex = 0
+    while (inputIndex < numberOfInputs) {
+      val input = nodeDef.getInput(inputIndex)
+      if (exportScope != null && nodeDefNamePrefixRegex.pattern.matcher(input).replaceAll("").startsWith(exportScope)) {
+        // Add a prefix to the unbound name so that they are easily identifiable.
+        val newInput = nodeDefRenameRegex.pattern.matcher(input).replaceFirst(s"$$1$META_GRAPH_UNBOUND_INPUT_PREFIX$$2")
+        nodeDefBuilder.setInput(inputIndex, newInput)
+        unboundInputs += newInput
+      } else {
+        nodeDefBuilder.setInput(inputIndex, Op.stripNameScope(exportScope, input))
+      }
+      inputIndex += 1
+    }
+    val attributes = nodeDef.getAttrMap.asScala
+    for ((name, value) <- attributes) {
+      if (name == "_class") {
+        val values = value.getList.getSList.asScala
+            .filter(exportScope == null || _.toStringUtf8.split("@")(1).startsWith(exportScope))
+            .map(v => ByteString.copyFromUtf8(Op.stripNameScope(exportScope, v.toStringUtf8)))
+        nodeDefBuilder.putAttr(
+          name, AttrValue.newBuilder().setList(AttrValue.ListValue.newBuilder().addAllS(values.asJava)).build())
+      } else {
+        nodeDefBuilder.putAttr(name, AttrValue.newBuilder(value).build())
+      }
+    }
+    if (clearDevices)
+      nodeDefBuilder.setDevice("")
+    nodeDefBuilder.build()
+  }
+
+  /** Copies a graph and its meta-information from `fromGraph` to `toGraph`, according to the provided scopes.
+    *
+    * @param  fromGraph From/source graph.
+    * @param  toGraph   To/destination graph.
+    * @param  fromScope From/source name scope. Only ops within this name scope are copied.
+    * @param  toScope   To/destination name scope. The copied ops are placed under this name scope in `toGraph`.
+    */
+  def copyMetaGraph(fromGraph: Graph, toGraph: Graph, fromScope: String, toScope: String): Unit = {
+    if (fromGraph == toGraph && fromScope == toScope)
+      throw new IllegalArgumentException(
+        "The 'fromScope' and the 'toScope' must be different when copying within the same graph.")
+    toGraph.importMetaGraphDef(fromGraph.toMetaGraphDef(exportScope = fromScope), importScope = toScope)
+  }
+
+  //endregion MetaGraphDef Helpers
 
   // TODO: [DOC] Complete documentation.
   /**
@@ -797,8 +1085,7 @@ object Graph {
     }
 
     /** Key to collect the subset of `Variable` objects that are local to each machine. Usually used for temporary
-      * variables, like counters.
-      * TODO: Note: use `tf.contrib.framework.local_variable` to add to this collection. */
+      * variables, like counters. */
     object LOCAL_VARIABLES extends Key[Variable] {
       override val name: String = "local_variables"
     }
