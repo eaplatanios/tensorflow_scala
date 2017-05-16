@@ -9,7 +9,7 @@ import org.platanios.tensorflow.api.types.{DataType, FLOAT32, FLOAT64, INT32, IN
 /**
   * @author Emmanouil Antonios Platanios
   */
-object Math {
+trait Math {
   /** Creates an op that selects elements from `x` or `y`, depending on `condition`.
     *
     * The `x`, and `y` tensors must have the same shape. The output tensor will also have the same shape.
@@ -72,10 +72,10 @@ object Math {
     *   range(start, limit, delta) == [3.0, 2.5, 2.0, 1.5]
     * }}}
     *
-    * @param  start    Start of the number sequence.
-    * @param  limit    End (exclusive) of the number sequence.
-    * @param  delta    Difference between consecutive numbers in the sequence.
-    * @param  name     Name for the created op.
+    * @param  start Start of the number sequence.
+    * @param  limit End (exclusive) of the number sequence.
+    * @param  delta Difference between consecutive numbers in the sequence.
+    * @param  name  Name for the created op.
     * @return Created op output.
     */
   def range(
@@ -1174,7 +1174,9 @@ object Math {
   // TODO: [SPARSE] Add sparse segment ops.
 
   //endregion Segment Ops
+}
 
+object Math extends Math {
   private[api] object Gradients {
     GradientsRegistry.register("Cast", castGradient)
     GradientsRegistry.register("MatMul", matMulGradient)
@@ -1183,7 +1185,7 @@ object Math {
     GradientsRegistry.register("Sub", subtractGradient)
     GradientsRegistry.register("Sum", reduceSumGradient)
 
-    def castGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+    private[this] def castGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
       val supportedDataTypes = Seq(FLOAT32, FLOAT64) // TODO: [TYPES] Float16 and complex.
       val sourceDataType = op.inputs(0).dataType
       val destinationDataType = outputGradients.head.dataType
@@ -1193,11 +1195,11 @@ object Math {
         Seq(null)
     }
 
-    def matMulGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+    private[this] def matMulGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
       matMulGradientCommon(op, outputGradients, "transpose_a", "transpose_b", isBatch = false)
     }
 
-    def batchMatMulGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+    private[this] def batchMatMulGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
       matMulGradientCommon(op, outputGradients, "adj_x", "adj_y", isBatch = true)
     }
 
@@ -1241,7 +1243,7 @@ object Math {
       }
     }
 
-    def squareGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+    private[this] def squareGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
       var x = op.inputs(0)
       val outputGradient = outputGradients.head
       // Using control dependencies to prevent 2*x from being computed too early.
@@ -1270,7 +1272,7 @@ object Math {
       (outputs(0), outputs(1))
     }
 
-    def subtractGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+    private[this] def subtractGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
       val x = op.inputs(0)
       val y = op.inputs(1)
       val xShape = Basic.shape(x)
@@ -1282,7 +1284,7 @@ object Math {
       Seq(gradientX, gradientY)
     }
 
-    def reduceSumGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+    private[this] def reduceSumGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
       // Fast path for when reducing to a scalar and rank is known, which adds only reshape and tile ops (and possibly a
       // shape op too).
       if (op.inputs(0).shape.rank != -1 && op.inputs(1).op.opType == "Const") {

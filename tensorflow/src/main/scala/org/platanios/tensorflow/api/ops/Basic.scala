@@ -13,7 +13,7 @@ import scala.language.postfixOps
 /**
   * @author Emmanouil Antonios Platanios
   */
-object Basic {
+trait Basic {
   //region Tensor Creation Ops
 
   /** Creates an op that returns a constant tensor.
@@ -1734,7 +1734,7 @@ object Basic {
     *
     *   - The *EM* algorithm where the *M-step* should not involve backpropagation through the output of the *E-step*.
     *   - Contrastive divergence training of Boltzmann machines where, when differentiating the energy function, the
-    *     training must not backpropagate through the graph that generated the samples from the model.
+    * training must not backpropagate through the graph that generated the samples from the model.
     *   - Adversarial training, where no backprop should happen through the adversarial example generation process.
     *
     * @param  input Input tensor.
@@ -1768,7 +1768,9 @@ object Basic {
   }
 
   //endregion Gradients Ops
+}
 
+object Basic extends Basic {
   private[api] object Gradients {
     GradientsRegistry.registerNonDifferentiable("Const")
     GradientsRegistry.registerNonDifferentiable("ZerosLike")
@@ -1787,13 +1789,13 @@ object Basic {
     GradientsRegistry.register("Pack", stackGradient)
     GradientsRegistry.register("Reshape", reshapeGradient)
 
-    def stackGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+    private[this] def stackGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
       unstack(
         input = outputGradients.head, number = op.longAttribute("N").toInt,
         axis = op.longAttribute("axis").toInt).toSeq
     }
 
-    def reshapeGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+    private[this] def reshapeGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
       Seq[Op.OutputLike](reshape(outputGradients.head, shape(op.inputs(0))), null)
     }
   }

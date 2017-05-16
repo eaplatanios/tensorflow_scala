@@ -87,7 +87,6 @@ sbt compile
   - Add tests for all of the op functions
   - Get graph from inputs
   - Assert same graph for inputs and control inputs
-  - Convert to tensor function (use implicit conversions?)
   - Support re-entering existing name scopes
   - Reset default graph
   - Register op statistics

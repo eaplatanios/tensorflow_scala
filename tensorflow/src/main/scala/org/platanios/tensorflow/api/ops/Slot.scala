@@ -23,7 +23,7 @@ object Slot {
     *                             variable.
     * @return Created slot variable.
     */
-  def zeros(
+  private[api] def zeros(
       primary: Variable, name: String, dataType: DataType = null, colocateWithPrimary: Boolean = true): Variable = {
     val inferredDataType = if (dataType == null) primary.dataType else dataType
     // TODO: [VARIABLES] What if the shape is not fully defined?
@@ -48,7 +48,7 @@ object Slot {
     *                             variable.
     * @return Created slot variable.
     */
-  def create(
+  private[ops] def create(
       primary: Variable, initializer: Initializer, name: String, dataType: DataType, shape: Shape = null,
       colocateWithPrimary: Boolean = true): Variable = {
     // Scope the slot name in the namespace of the primary variable. Set "primary.op.name + '/' + name" as the default

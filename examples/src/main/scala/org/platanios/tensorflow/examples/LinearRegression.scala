@@ -1,7 +1,6 @@
 package org.platanios.tensorflow.examples
 
 import org.platanios.tensorflow.api._
-import org.platanios.tensorflow.api.ops.Math.{matMul, square, sum}
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
@@ -25,8 +24,8 @@ object LinearRegression {
     val inputs = tf.placeholder(tf.FLOAT32, tf.Shape(-1, 1))
     val outputs = tf.placeholder(tf.FLOAT32, tf.Shape(-1, 1))
     val weights = tf.Variable(tf.zerosInitializer, tf.Shape(1, 1), tf.FLOAT32)
-    val predictions = matMul(inputs, weights)
-    val loss = sum(square(predictions - outputs))
+    val predictions = tf.matMul(inputs, weights)
+    val loss = tf.sum(tf.square(predictions - outputs))
     val trainOp = optimizer.minimize(loss)
 
     val testOp = tf.placeholder(tf.FLOAT32, tf.Shape(-1, 34, 65))

@@ -3,7 +3,7 @@ package org.platanios.tensorflow.api.ops
 /**
   * @author Emmanouil Antonios Platanios
   */
-object Logging {
+trait Logging {
   // TODO: Look into control flow ops for the "Assert" op.
   //  /** Asserts that the provided condition is true.
   //    *
@@ -57,3 +57,5 @@ object Logging {
         .build().outputs(0)
   }
 }
+
+object Logging extends Logging
