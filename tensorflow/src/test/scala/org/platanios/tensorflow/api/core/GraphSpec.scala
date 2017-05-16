@@ -1,7 +1,13 @@
-package org.platanios.tensorflow.api
+package org.platanios.tensorflow.api.core
 
-import org.platanios.tensorflow.api.tf.{createWith, Graph, GraphMismatchException, InvalidGraphElementException}
-import org.platanios.tensorflow.api.ops.Basic.constant
+import org.platanios.tensorflow.api.using
+import org.platanios.tensorflow.api.core.exception.{GraphMismatchException, InvalidGraphElementException}
+import org.platanios.tensorflow.api.ops.Op
+import org.platanios.tensorflow.api.ops.Op.createWith
+import org.platanios.tensorflow.api.ops.Basic.{constant, placeholder}
+import org.platanios.tensorflow.api.ops.Math.add
+import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.api.types.FLOAT32
 
 import org.scalatest._
 
@@ -9,15 +15,15 @@ import org.scalatest._
   * @author Emmanouil Antonios Platanios
   */
 class GraphSpec extends FlatSpec with Matchers {
-  private[this] def prepareGraph(): (Graph, Array[tf.Op]) = {
+  private[this] def prepareGraph(): (Graph, Array[Op]) = {
     val graph = Graph()
     val ops = createWith(graph = graph) {
-      val c1 = constant(tf.Tensor(1.0), name = "C_1")
-      val c2 = constant(tf.Tensor(2.0), name = "C_2")
+      val c1 = constant(Tensor(1.0), name = "C_1")
+      val c2 = constant(Tensor(2.0), name = "C_2")
       val c3 = createWith(nameScope = "Nested") {
-        constant(tf.Tensor(3.0), name = "C_3")
+        constant(Tensor(3.0), name = "C_3")
       }
-      val c4 = constant(tf.Tensor(4.0), name = "C_4")
+      val c4 = constant(Tensor(4.0), name = "C_4")
       Array(c1.op, c2.op, c3.op, c4.op)
     }
     (graph, ops)
@@ -159,7 +165,63 @@ class GraphSpec extends FlatSpec with Matchers {
                === "Name 'C_2:5' refers to an op output which does not exist in the graph. " +
         "More specifically, op, 'C_2', does exist in the graph, but it only has 1 output(s).")
     assert(intercept[IllegalArgumentException](
-      graph.getByName("A", allowOp = false, allowOpOutput = false)).getMessage()
+      graph.getByName("A", allowOp = false, allowOpOutput = false)).getMessage
                === "'allowOpOutput' and 'allowOp' cannot both be set to 'false'.")
+  }
+
+  object INPUTS extends Graph.Keys.StringCollectionKey {
+    override def name: String = "inputs"
+  }
+
+  object OUTPUTS extends Graph.Keys.StringCollectionKey {
+    override def name: String = "outputs"
+  }
+
+  "'Graph.toMetaGraphDef'" must "work when no scope is provided" in {
+    val graph = Graph()
+    val session = Session(graph)
+
+    Op.createWith(graph) {
+      // Create a minimal graph with zero variables.
+      val input = placeholder(FLOAT32, Shape(), name = "Input")
+      val offset = constant(42, FLOAT32, name = "Offset")
+      val output = add(input, offset, name = "AddOffset")
+
+      // Add input and output tensors to graph collections.
+      graph.addToCollection(input, Graph.Keys.LOSSES)
+      graph.addToCollection(output, Graph.Keys.LOSSES)
+
+      val outputValue = session.run(fetches = Array(output), feeds = Map(input -> -10f))(0)
+      assert(outputValue.scalar === 32)
+    }
+
+    // Generate the 'MetaGraphDef' object.
+    val metaGraphDef = graph.toMetaGraphDef(collections = Set(Graph.Keys.LOSSES))
+    assert(metaGraphDef.hasMetaInfoDef)
+    assert(metaGraphDef.getMetaInfoDef.getTensorflowVersion !== "")
+    // assert(metaGraphDef.getMetaInfoDef.getTensorflowGitVersion !== "")
+
+    session.close()
+
+    // Create a clean graph and import the 'MetaGraphDef' object.
+    val newGraph = Graph()
+    val newSession = Session(newGraph)
+
+    newGraph.importMetaGraphDef(metaGraphDef)
+
+    // Re-exports the current graph state for comparison to the original.
+    val newMetaGraphDef = newGraph.toMetaGraphDef()
+    // TODO: [PROTO] Utility functions for ProtoBuf comparisons.
+    // assert(newMetaGraphDef.equals(metaGraphDef))
+
+    // Ensure that we can still get a reference to our graph collections.
+    val newInput = newGraph.getCollection(Graph.Keys.LOSSES).head
+    val newOutput = newGraph.getCollection(Graph.Keys.LOSSES).last
+
+    // Verify that the new graph computes the same result as the original.
+    val newOutputValue = newSession.run(fetches = Array(newOutput), feeds = Map(newInput -> -10f))(0)
+    assert(newOutputValue.scalar === 32)
+
+    newSession.close()
   }
 }

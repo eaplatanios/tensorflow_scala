@@ -1,5 +1,6 @@
 package org.platanios.tensorflow.api.core
 
+import org.platanios.tensorflow.api.core.Graph.Keys._
 import org.platanios.tensorflow.api.core.exception.{GraphMismatchException, InvalidGraphElementException}
 import org.platanios.tensorflow.api.ops.{Basic, Math, Op}
 import org.platanios.tensorflow.api.ops.variables.{Variable, VariableStore}
@@ -17,7 +18,6 @@ import org.tensorflow.util.SaverDef
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.language.postfixOps
-import scala.reflect.runtime.universe.{typeOf, TypeTag}
 import scala.util.matching.Regex
 
 /**
@@ -541,33 +541,8 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable wi
       case (name, collectionDef) =>
         import Graph.Keys._
         val key = Graph.Keys.fromName(name)
-        if (restoreCollectionsPredicate(key)) {
-          val kind = collectionDef.getKindCase.getNumber
-          key match {
-            case k@(GLOBAL_VARIABLES | LOCAL_VARIABLES | MODEL_VARIABLES | TRAINABLE_VARIABLES |
-                    MOVING_AVERAGE_VARIABLES | WEIGHTS | BIASES | TRAINABLE_RESOURCE_VARIABLES | GLOBAL_STEP |
-                    EVAL_STEP | STREAMING_MODEL_PORTS) =>
-              if (kind != 2)
-                throw new IllegalArgumentException(s"The '$name' collection is stored with the wrong type.")
-              collectionDef.getBytesList.getValueList.asScala.foreach(v => {
-                addToCollection(Variable.fromProto(VariableDef.parseFrom(v), importScope), k)
-              })
-            case k@(ACTIVATIONS | UPDATE_OPS | INIT_OP | LOCAL_INIT_OP | READY_OP | READY_FOR_LOCAL_INIT_OP |
-                    SUMMARY_OP | TRAIN_OP) =>
-              if (kind != 1)
-                throw new IllegalArgumentException(s"The '$name' collection is stored with the wrong type.")
-              collectionDef.getNodeList.getValueList.asScala.foreach(o => {
-                addToCollection(getOpByName(Op.prependNameScope(importScope, o)), k)
-              })
-            case k@(SUMMARIES | REGULARIZATION_LOSSES | LOSSES) =>
-              if (kind != 1)
-                throw new IllegalArgumentException(s"The '$name' collection is stored with the wrong type.")
-              collectionDef.getNodeList.getValueList.asScala.foreach(o => {
-                addToCollection(getOpOutputByName(Op.prependNameScope(importScope, o)), k)
-              })
-            case UNBOUND_INPUTS =>
-          }
-        }
+        if (restoreCollectionsPredicate(key) && key != UNBOUND_INPUTS)
+          key.parseCollectionDef(collectionDef, this, importScope)
     }
   }
 
@@ -649,6 +624,9 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable wi
 
   /** Adds a collection named `name` in a [[MetaGraphDef.Builder]].
     *
+    * Note that if a collection with the same name already exists in the provided `metaGraphDefBuilder`, then that
+    * collection will be overwritten by the new one being added.
+    *
     * @param  metaGraphDefBuilder [[MetaGraphDef.Builder]] in which to add the collection.
     * @param  key                 Collection key.
     * @param  exportScope         Optional string specifying the name scope to remove. Only the ops within this name
@@ -656,60 +634,10 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable wi
     *                             stripped from their names to allow for easy import into new name scopes.
     * @return Updated [[MetaGraphDef.Builder]].
     */
-  private[this] def addCollectionDefToMetaGraphDefBuilder[K: TypeTag](
+  private[this] def addCollectionDefToMetaGraphDefBuilder[K](
       metaGraphDefBuilder: MetaGraphDef.Builder, key: Graph.Key[K],
       exportScope: String = null): MetaGraphDef.Builder = {
-    val values = getCollection(key)
-    val collectionDef = typeOf[K] match {
-      case t if t =:= typeOf[String] =>
-        val bytesListBuilder = {
-          if (metaGraphDefBuilder.containsCollectionDef(key.name))
-            BytesList.newBuilder(metaGraphDefBuilder.getCollectionDefOrThrow(key.name).getBytesList)
-          else
-            BytesList.newBuilder()
-        }
-        values.map(_.asInstanceOf[String]).foreach(s => bytesListBuilder.addValue(ByteString.copyFromUtf8(s)))
-        CollectionDef.newBuilder().setBytesList(bytesListBuilder.build()).build()
-      case t if t =:= typeOf[Op] =>
-        val nodeListBuilder = {
-          if (metaGraphDefBuilder.containsCollectionDef(key.name))
-            NodeList.newBuilder(metaGraphDefBuilder.getCollectionDefOrThrow(key.name).getNodeList)
-          else
-            NodeList.newBuilder()
-        }
-        values.asInstanceOf[Set[Op]]
-            .filter(o => Graph.shouldIncludeNode(o.name, exportScope))
-            .filter(o => exportScope == null || o.name.startsWith(exportScope)).foreach(o => {
-          nodeListBuilder.addValue(Op.stripNameScope(exportScope, o.name))
-        })
-        CollectionDef.newBuilder().setNodeList(nodeListBuilder.build()).build()
-      case t if t =:= typeOf[Op.Output] =>
-        val nodeListBuilder = {
-          if (metaGraphDefBuilder.containsCollectionDef(key.name))
-            NodeList.newBuilder(metaGraphDefBuilder.getCollectionDefOrThrow(key.name).getNodeList)
-          else
-            NodeList.newBuilder()
-        }
-        values.asInstanceOf[Set[Op.Output]]
-            .filter(o => Graph.shouldIncludeNode(o.name, exportScope))
-            .filter(o => exportScope == null || o.name.startsWith(exportScope)).foreach(o => {
-          nodeListBuilder.addValue(Op.stripNameScope(exportScope, o.name))
-        })
-        CollectionDef.newBuilder().setNodeList(nodeListBuilder.build()).build()
-      case t if t =:= typeOf[Variable] =>
-        val bytesListBuilder = {
-          if (metaGraphDefBuilder.containsCollectionDef(key.name))
-            BytesList.newBuilder(metaGraphDefBuilder.getCollectionDefOrThrow(key.name).getBytesList)
-          else
-            BytesList.newBuilder()
-        }
-        values.asInstanceOf[Set[Variable]].filter(v => Graph.shouldIncludeNode(v.name, exportScope)).foreach(v => {
-          bytesListBuilder.addValue(v.toProto(exportScope).toByteString)
-        })
-        CollectionDef.newBuilder().setBytesList(bytesListBuilder.build()).build()
-      case t => throw new IllegalArgumentException(s"Cannot serialize collection with type '$t'.")
-    }
-    metaGraphDefBuilder.putCollectionDef(key.name, collectionDef)
+    metaGraphDefBuilder.putCollectionDef(key.name, key.createCollectionDef(getCollection(key), exportScope))
     metaGraphDefBuilder
   }
 
@@ -1038,7 +966,29 @@ object Graph {
 
   /** Key to a graph collection. */
   sealed trait Key[K] {
-    val name: String
+    /** Name of this collection key. */
+    def name: String
+
+    /** Creates a [[CollectionDef]] from the provided set of values.
+      *
+      * @param  values      Values to serialize in the [[CollectionDef]].
+      * @param  exportScope Optional string specifying the name scope to remove. Only the ops within this name scope
+      *                     will be included in the resulting ProtoBuf object and the export scope will be stripped from
+      *                     their names to allow for easy import into new name scopes.
+      * @return Serialized `values` in a new [[CollectionDef]].
+      */
+    def createCollectionDef(values: Set[K], exportScope: String = null): CollectionDef
+
+    /** Parses a [[CollectionDef]] and adds the collection values to the corresponding collection in the graph.
+      *
+      * @param  collectionDef [[CollectionDef]] being parsed.
+      * @param  graph         Graph in which the collection should be added.
+      * @param  importScope   Optional prefix that will be prepended to all node names in the graph that is being
+      *                       imported to this graph.
+      */
+    def parseCollectionDef(collectionDef: CollectionDef, graph: Graph, importScope: String): Unit
+
+    Keys.registry += name -> this
   }
 
   /** Contains standard names to use for graph collections.
@@ -1047,175 +997,233 @@ object Graph {
     * example, the optimizers default to optimizing the variables collected under `Graph.Keys.TRAINABLE_VARIABLES` if
     * none is specified, but it is also possible to pass an explicit list of variables.
     *
-    * Note: Whenever a new key is added, appropriate edits need to be made to the [[Keys.fromName]] function, the
-    * [[Graph.importMetaGraphDef]] function, and the [[MetaGraphDef]] exporting function.
+    * Note: Whenever a new key is added, appropriate edits need to be made to the [[Keys.fromName]] function.
     */
   object Keys {
-    private[api] def fromName(name: String): Key[_] = name match {
-      case "variables" => GLOBAL_VARIABLES
-      case "local_variables" => LOCAL_VARIABLES
-      case "model_variables" => MODEL_VARIABLES
-      case "trainable_variables" => TRAINABLE_VARIABLES
-      case "summaries" => SUMMARIES
-      case "moving_average_variables" => MOVING_AVERAGE_VARIABLES
-      case "regularization_losses" => REGULARIZATION_LOSSES
-      case "weights" => WEIGHTS
-      case "biases" => BIASES
-      case "activations" => ACTIVATIONS
-      case "update_ops" => UPDATE_OPS
-      case "losses" => LOSSES
-      case "trainable_resource_variables" => TRAINABLE_RESOURCE_VARIABLES
-      case "init_op" => INIT_OP
-      case "local_init_op" => LOCAL_INIT_OP
-      case "ready_op" => READY_OP
-      case "ready_for_local_init_op" => READY_FOR_LOCAL_INIT_OP
-      case "summary_op" => SUMMARY_OP
-      case "global_step" => GLOBAL_STEP
-      case "eval_step" => EVAL_STEP
-      case "train_op" => TRAIN_OP
-      case "streaming_model_ports" => STREAMING_MODEL_PORTS
-      case "unbound_inputs" => UNBOUND_INPUTS
+    private[api] val registry = mutable.Map.empty[String, Key[_]]
+
+    private[api] def fromName(name: String): Key[_] = {
+      registry.getOrElse(name, throw new IllegalArgumentException(s"Cannot find graph collection key named '$name'."))
+    }
+
+    /** Key for collections of strings. */
+    trait StringCollectionKey extends Key[String] {
+      override def createCollectionDef(values: Set[String], exportScope: String = null): CollectionDef = {
+        val bytesListBuilder = BytesList.newBuilder()
+        values.foreach(s => bytesListBuilder.addValue(ByteString.copyFromUtf8(s)))
+        CollectionDef.newBuilder().setBytesList(bytesListBuilder.build()).build()
+      }
+
+      override def parseCollectionDef(collectionDef: CollectionDef, graph: Graph, importScope: String): Unit = {
+        val kind = collectionDef.getKindCase.getNumber
+        if (kind != 2)
+          throw new IllegalArgumentException(s"The '$name' collection should be stored as a byte list.")
+        collectionDef.getBytesList.getValueList.asScala.foreach(s => graph.addToCollection(s.toStringUtf8, this))
+      }
+    }
+
+    /** Key for collections of ops. */
+    trait OpCollectionKey extends Key[Op] {
+      override def createCollectionDef(values: Set[Op], exportScope: String = null): CollectionDef = {
+        val nodeListBuilder = NodeList.newBuilder()
+        values.asInstanceOf[Set[Op]]
+            .filter(o => Graph.shouldIncludeNode(o.name, exportScope))
+            .filter(o => exportScope == null || o.name.startsWith(exportScope)).foreach(o => {
+          nodeListBuilder.addValue(Op.stripNameScope(exportScope, o.name))
+        })
+        CollectionDef.newBuilder().setNodeList(nodeListBuilder.build()).build()
+      }
+
+      override def parseCollectionDef(collectionDef: CollectionDef, graph: Graph, importScope: String): Unit = {
+        val kind = collectionDef.getKindCase.getNumber
+        if (kind != 1)
+          throw new IllegalArgumentException(s"The '$name' collection should be stored as a node list.")
+        collectionDef.getNodeList.getValueList.asScala
+            .foreach(o => graph.addToCollection(graph.getOpByName(Op.prependNameScope(importScope, o)), this))
+      }
+    }
+
+    /** Key for collections of op outputs. */
+    trait OpOutputCollectionKey extends Key[Op.Output] {
+      override def createCollectionDef(values: Set[Op.Output], exportScope: String): CollectionDef = {
+        val nodeListBuilder = NodeList.newBuilder()
+        values.asInstanceOf[Set[Op.Output]]
+            .filter(o => Graph.shouldIncludeNode(o.name, exportScope))
+            .filter(o => exportScope == null || o.name.startsWith(exportScope)).foreach(o => {
+          nodeListBuilder.addValue(Op.stripNameScope(exportScope, o.name))
+        })
+        CollectionDef.newBuilder().setNodeList(nodeListBuilder.build()).build()
+      }
+
+      override def parseCollectionDef(
+          collectionDef: CollectionDef, graph: Graph, importScope: String): Unit = {
+        val kind = collectionDef.getKindCase.getNumber
+        if (kind != 1)
+          throw new IllegalArgumentException(s"The '$name' collection should be stored as a node list.")
+        collectionDef.getNodeList.getValueList.asScala
+            .foreach(o => graph.addToCollection(graph.getOpOutputByName(Op.prependNameScope(importScope, o)), this))
+      }
+    }
+
+    /** Key for collections of variables. */
+    trait VariableCollectionKey extends Key[Variable] {
+      override def createCollectionDef(values: Set[Variable], exportScope: String = null): CollectionDef = {
+        val bytesListBuilder = BytesList.newBuilder()
+        values.asInstanceOf[Set[Variable]].filter(v => Graph.shouldIncludeNode(v.name, exportScope)).foreach(v => {
+          bytesListBuilder.addValue(v.toProto(exportScope).toByteString)
+        })
+        CollectionDef.newBuilder().setBytesList(bytesListBuilder.build()).build()
+      }
+
+      override def parseCollectionDef(
+          collectionDef: CollectionDef, graph: Graph, importScope: String): Unit = {
+        val kind = collectionDef.getKindCase.getNumber
+        if (kind != 1)
+          throw new IllegalArgumentException(s"The '$name' collection should be stored as a byte list.")
+        collectionDef.getBytesList.getValueList.asScala
+            .foreach(v => graph.addToCollection(Variable.fromProto(VariableDef.parseFrom(v), importScope), this))
+      }
     }
 
     /** Key to collect the default collection of `Variable` objects, shared across distributed environment (model
       * variables are subset of these). Commonly, all `TRAINABLE_VARIABLES` variables will be in `MODEL_VARIABLES`, and
       * all `MODEL_VARIABLES` variables will be in `GLOBAL_VARIABLES`. */
-    object GLOBAL_VARIABLES extends Key[Variable] {
-      override val name: String = "variables"
+    object GLOBAL_VARIABLES extends VariableCollectionKey {
+      override def name: String = "variables"
     }
 
     /** Key to collect the subset of `Variable` objects that are local to each machine. Usually used for temporary
       * variables, like counters. */
-    object LOCAL_VARIABLES extends Key[Variable] {
-      override val name: String = "local_variables"
+    object LOCAL_VARIABLES extends VariableCollectionKey {
+      override def name: String = "local_variables"
     }
 
     /** Key to collect the subset of `Variable` objects that are used in models for inference (feed forward).
       * TODO: Note: use `tf.contrib.framework.model_variable` to add to this collection. */
-    object MODEL_VARIABLES extends Key[Variable] {
-      override val name: String = "model_variables"
+    object MODEL_VARIABLES extends VariableCollectionKey {
+      override def name: String = "model_variables"
     }
 
     /** Key to collect the subset of `Variable` objects that will be trained using an optimizer. */
-    object TRAINABLE_VARIABLES extends Key[Variable] {
-      override val name: String = "trainable_variables"
+    object TRAINABLE_VARIABLES extends VariableCollectionKey {
+      override def name: String = "trainable_variables"
     }
 
     /** Key to collect the summary `Op.Output` objects that have been created in the graph. */
-    object SUMMARIES extends Key[Op.Output] {
-      override val name: String = "summaries"
+    object SUMMARIES extends OpOutputCollectionKey {
+      override def name: String = "summaries"
     }
 
     // /** Key to collect the `QueueRunner` objects that are used to produce inputs for a computation. */
-    // object QUEUE_RUNNERS extends Key {override val name: String = "queue_runners"}
+    // object QUEUE_RUNNERS extends Key {override def name: String = "queue_runners"}
 
     // /** Key to collect table initializer objects. */
-    // object TABLE_INITIALIZERS extends Key {override val name: String = "table_initializer"}
+    // object TABLE_INITIALIZERS extends Key {override def name: String = "table_initializer"}
 
     // /** Key to collect asset filepaths. An asset represents an external resource like a vocabulary file. */
-    // object ASSET_FILEPATHS extends Key {override val name: String = "asset_filepaths"}
+    // object ASSET_FILEPATHS extends Key {override def name: String = "asset_filepaths"}
 
     /** Key to collect the subset of `Variable` objects that will also keep moving averages. */
-    object MOVING_AVERAGE_VARIABLES extends Key[Variable] {
-      override val name: String = "moving_average_variables"
+    object MOVING_AVERAGE_VARIABLES extends VariableCollectionKey {
+      override def name: String = "moving_average_variables"
     }
 
     /** Key to collect regularization losses at graph construction. */
-    object REGULARIZATION_LOSSES extends Key[Op.Output] {
-      override val name: String = "regularization_losses"
+    object REGULARIZATION_LOSSES extends OpOutputCollectionKey {
+      override def name: String = "regularization_losses"
     }
 
     // /** Key to collect concatenated sharded variables. */
-    // object CONCATENATED_VARIABLES extends Key {override val name: String = "concatenated_variables"}
+    // object CONCATENATED_VARIABLES extends Key {override def name: String = "concatenated_variables"}
 
     // /** Key to collect savers. */
-    // object SAVERS extends Key {override val name: String = "savers"}
+    // object SAVERS extends Key {override def name: String = "savers"}
 
     /** Key to collect weights. */
-    object WEIGHTS extends Key[Variable] {
-      override val name: String = "weights"
+    object WEIGHTS extends VariableCollectionKey {
+      override def name: String = "weights"
     }
 
     /** Key to collect biases. */
-    object BIASES extends Key[Variable] {
-      override val name: String = "biases"
+    object BIASES extends VariableCollectionKey {
+      override def name: String = "biases"
     }
 
     /** Key to collect activations. */
-    object ACTIVATIONS extends Key[Op] {
-      override val name: String = "activations"
+    object ACTIVATIONS extends OpCollectionKey {
+      override def name: String = "activations"
     }
 
     /** Key to collect update ops. */
-    object UPDATE_OPS extends Key[Op] {
-      override val name: String = "update_ops"
+    object UPDATE_OPS extends OpCollectionKey {
+      override def name: String = "update_ops"
     }
 
     /** Key to collect losses. */
-    object LOSSES extends Key[Op.Output] {
-      override val name: String = "losses"
+    object LOSSES extends OpOutputCollectionKey {
+      override def name: String = "losses"
     }
 
     // /** Key to collect saveable objects used for checkpoints. */
-    // object SAVEABLE_OBJECTS extends Key {override val name: String = "saveable_objects"}
+    // object SAVEABLE_OBJECTS extends Key {override def name: String = "saveable_objects"}
 
     // /** Key to collect all shared resources used by the graph which need to be initialized once per cluster. */
-    // object RESOURCES extends Key {override val name: String = "resources"}
+    // object RESOURCES extends Key {override def name: String = "resources"}
 
     // /** Key to collect all shared resources used in this graph which need to be initialized once per session. */
-    // object LOCAL_RESOURCES extends Key {override val name: String = "local_resources"}
+    // object LOCAL_RESOURCES extends Key {override def name: String = "local_resources"}
 
     /** Key to collect all trainable resource-style variables. */
-    object TRAINABLE_RESOURCE_VARIABLES extends Key[Variable] {
-      override val name: String = "trainable_resource_variables"
+    object TRAINABLE_RESOURCE_VARIABLES extends VariableCollectionKey {
+      override def name: String = "trainable_resource_variables"
     }
 
     // Keys to indicate various ops.
 
-    object INIT_OP extends Key[Op] {
-      override val name: String = "init_op"
+    object INIT_OP extends OpCollectionKey {
+      override def name: String = "init_op"
     }
 
-    object LOCAL_INIT_OP extends Key[Op] {
-      override val name: String = "local_init_op"
+    object LOCAL_INIT_OP extends OpCollectionKey {
+      override def name: String = "local_init_op"
     }
 
-    object READY_OP extends Key[Op] {
-      override val name: String = "ready_op"
+    object READY_OP extends OpCollectionKey {
+      override def name: String = "ready_op"
     }
 
-    object READY_FOR_LOCAL_INIT_OP extends Key[Op] {
-      override val name: String = "ready_for_local_init_op"
+    object READY_FOR_LOCAL_INIT_OP extends OpCollectionKey {
+      override def name: String = "ready_for_local_init_op"
     }
 
-    object SUMMARY_OP extends Key[Op] {
-      override val name: String = "summary_op"
+    object SUMMARY_OP extends OpCollectionKey {
+      override def name: String = "summary_op"
     }
 
-    object GLOBAL_STEP extends Key[Variable] {
-      override val name: String = "global_step"
+    object GLOBAL_STEP extends VariableCollectionKey {
+      override def name: String = "global_step"
     }
 
-    object EVAL_STEP extends Key[Variable] {
-      override val name: String = "eval_step"
+    object EVAL_STEP extends VariableCollectionKey {
+      override def name: String = "eval_step"
     }
 
-    object TRAIN_OP extends Key[Op] {
-      override val name: String = "train_op"
+    object TRAIN_OP extends OpCollectionKey {
+      override def name: String = "train_op"
     }
 
     // Keys for control flow management.
-    // object COND_CONTEXT extends Key {override val name: String = "cond_context"}
-    // object WHILE_CONTEXT extends Key {override val name: String = "while_context"}
+    // object COND_CONTEXT extends Key {override def name: String = "cond_context"}
+    // object WHILE_CONTEXT extends Key {override def name: String = "while_context"}
 
     /** Key to collect streaming model ports. */
-    object STREAMING_MODEL_PORTS extends Key[Variable] {
-      override val name: String = "streaming_model_ports"
+    object STREAMING_MODEL_PORTS extends VariableCollectionKey {
+      override def name: String = "streaming_model_ports"
     }
 
     /** Key to collect the unbound inputs when serializing/deserializing graphs. */
-    object UNBOUND_INPUTS extends Key[String] {
-      override val name: String = "unbound_inputs"
+    object UNBOUND_INPUTS extends StringCollectionKey {
+      override def name: String = "unbound_inputs"
     }
   }
 }

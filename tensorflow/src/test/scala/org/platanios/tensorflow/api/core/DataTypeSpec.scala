@@ -1,11 +1,9 @@
-package org.platanios.tensorflow.api
-
-import org.platanios.tensorflow.api.tf._
+package org.platanios.tensorflow.api.core
 
 import java.nio.ByteBuffer
 
+import org.platanios.tensorflow.api.tf._
 import org.scalatest._
-
 import spire.math.{UByte, UShort}
 
 /**

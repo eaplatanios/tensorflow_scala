@@ -1,7 +1,6 @@
-package org.platanios.tensorflow.api
+package org.platanios.tensorflow.api.core
 
-import org.platanios.tensorflow.api.tf.{DeviceSpecification, InvalidDeviceSpecificationException}
-
+import org.platanios.tensorflow.api.tf.InvalidDeviceSpecificationException
 import org.scalatest._
 
 /**

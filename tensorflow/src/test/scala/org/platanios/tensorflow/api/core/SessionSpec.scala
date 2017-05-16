@@ -1,9 +1,9 @@
-package org.platanios.tensorflow.api
+package org.platanios.tensorflow.api.core
 
-import org.platanios.tensorflow.api.tf.{createWith, Graph, Session}
 import org.platanios.tensorflow.api.ops.Basic._
 import org.platanios.tensorflow.api.ops.Math._
-
+import org.platanios.tensorflow.api.tf
+import org.platanios.tensorflow.api.tf.createWith
 import org.scalatest._
 
 /**

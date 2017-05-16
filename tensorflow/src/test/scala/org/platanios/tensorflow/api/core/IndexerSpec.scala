@@ -1,6 +1,7 @@
-package org.platanios.tensorflow.api
+package org.platanios.tensorflow.api.core
 
-import org.platanios.tensorflow.api.tf.{Indexer, Index, Slice, Shape, NewAxis, Ellipsis, InvalidIndexerException}
+import org.platanios.tensorflow.api._
+import org.platanios.tensorflow.api.tf.{Index, InvalidIndexerException}
 
 import org.scalatest._
 
