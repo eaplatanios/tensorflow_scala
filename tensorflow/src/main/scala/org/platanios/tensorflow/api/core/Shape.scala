@@ -24,7 +24,7 @@ import org.platanios.tensorflow.api.types.{DataType, INT32}
   *
   * @author Emmanouil Antonios Platanios
   */
-final class Shape private (private val array: Array[Int]) {
+final class Shape private (private val array: Array[Int]) extends Op.OutputConvertible {
   /** Returns a boolean value indicating whether this shape is fully defined.
     *
     * If the size of any dimension is equal to `-1` or if the shape is completely unknown, then it is not considered
@@ -240,6 +240,21 @@ final class Shape private (private val array: Array[Int]) {
     * @return One-dimensional tensor representing this shape.
     */
   def toTensor(dataType: DataType = INT32): Tensor = Tensor.fromSeq(dataType, asArray: _*)
+
+  /** Converts this shape to a one-dimensional "symbolic" tensor (i.e., a constant-valued op output).
+    *
+    * @return One-dimensional op output tensor representing this shape.
+    */
+  def toOpOutput: Op.Output = toOpOutput()
+
+  /** Converts this shape to a one-dimensional "symbolic" tensor (i.e., a constant-valued op output).
+    *
+    * @param  dataType Data type to use for the tensor.
+    * @return One-dimensional op output tensor representing this shape.
+    */
+  def toOpOutput(dataType: DataType = INT32, name: String = "Shape"): Op.Output = {
+    Basic.constant(toTensor(dataType), name = name)
+  }
 
   override def toString: String = if (array == null) "<unknown>" else s"[${array.mkString(", ").replace("-1", "?")}]"
 

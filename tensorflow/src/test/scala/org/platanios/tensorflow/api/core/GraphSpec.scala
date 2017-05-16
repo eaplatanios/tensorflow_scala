@@ -1,6 +1,5 @@
 package org.platanios.tensorflow.api.core
 
-import org.platanios.tensorflow.api.using
 import org.platanios.tensorflow.api.core.exception.{GraphMismatchException, InvalidGraphElementException}
 import org.platanios.tensorflow.api.ops.Op
 import org.platanios.tensorflow.api.ops.Op.createWith
@@ -169,11 +168,11 @@ class GraphSpec extends FlatSpec with Matchers {
                === "'allowOpOutput' and 'allowOp' cannot both be set to 'false'.")
   }
 
-  object INPUTS extends Graph.Keys.StringCollectionKey {
+  object INPUTS extends Graph.Keys.OpOutputCollectionKey {
     override def name: String = "inputs"
   }
 
-  object OUTPUTS extends Graph.Keys.StringCollectionKey {
+  object OUTPUTS extends Graph.Keys.OpOutputCollectionKey {
     override def name: String = "outputs"
   }
 
@@ -188,15 +187,15 @@ class GraphSpec extends FlatSpec with Matchers {
       val output = add(input, offset, name = "AddOffset")
 
       // Add input and output tensors to graph collections.
-      graph.addToCollection(input, Graph.Keys.LOSSES)
-      graph.addToCollection(output, Graph.Keys.LOSSES)
+      graph.addToCollection(input, INPUTS)
+      graph.addToCollection(output, OUTPUTS)
 
       val outputValue = session.run(fetches = Array(output), feeds = Map(input -> -10f))(0)
       assert(outputValue.scalar === 32)
     }
 
     // Generate the 'MetaGraphDef' object.
-    val metaGraphDef = graph.toMetaGraphDef(collections = Set(Graph.Keys.LOSSES))
+    val metaGraphDef = graph.toMetaGraphDef(collections = Set(INPUTS, OUTPUTS))
     assert(metaGraphDef.hasMetaInfoDef)
     assert(metaGraphDef.getMetaInfoDef.getTensorflowVersion !== "")
     // assert(metaGraphDef.getMetaInfoDef.getTensorflowGitVersion !== "")
@@ -215,8 +214,8 @@ class GraphSpec extends FlatSpec with Matchers {
     // assert(newMetaGraphDef.equals(metaGraphDef))
 
     // Ensure that we can still get a reference to our graph collections.
-    val newInput = newGraph.getCollection(Graph.Keys.LOSSES).head
-    val newOutput = newGraph.getCollection(Graph.Keys.LOSSES).last
+    val newInput = newGraph.getCollection(INPUTS).head
+    val newOutput = newGraph.getCollection(OUTPUTS).head
 
     // Verify that the new graph computes the same result as the original.
     val newOutputValue = newSession.run(fetches = Array(newOutput), feeds = Map(newInput -> -10f))(0)

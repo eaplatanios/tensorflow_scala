@@ -1,6 +1,6 @@
 package org.platanios.tensorflow.api.ops.variables
 
-import org.platanios.tensorflow.api.ProtoSerializable
+import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.core.{Graph, Session, Shape}
 import org.platanios.tensorflow.api.core.exception.{InvalidDataTypeException, ShapeMismatchException}
 import org.platanios.tensorflow.api.ops.{Basic, ControlFlow, Op, OpCreationContext, OpSpecification}
@@ -10,6 +10,7 @@ import org.platanios.tensorflow.api.types.{DataType, FLOAT32, INT32, INT64}
 
 import org.tensorflow.framework.{SaveSliceInfoDef, VariableDef}
 
+import scala.language.postfixOps
 import scala.util.DynamicVariable
 
 /**
@@ -605,7 +606,7 @@ object Variable {
       * @param  importScope      Name scope to use for all imported ops.
       * @return Constructed [[SaveSliceInformation]] object.
       */
-   def fromProto(saveSliceInfoDef: SaveSliceInfoDef, importScope: String = null): SaveSliceInformation = {
+    def fromProto(saveSliceInfoDef: SaveSliceInfoDef, importScope: String = null): SaveSliceInformation = {
       val fullName = {
         if (importScope == null)
           saveSliceInfoDef.getFullName
@@ -867,9 +868,25 @@ object Variable {
 
   private[api] object Gradients {
     GradientsRegistry.register("ReadVariableOp", readGradient)
+    GradientsRegistry.register("ResourceGather", gatherGradient)
 
-    def readGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+    private[this] def readGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
       Seq(outputGradients.head)
+    }
+
+    private[this] def gatherGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+      // Build appropriately shaped indexed slices.
+      // Walk graph back until the original handle is found.
+      // TODO: Find a more robust way to get the shape.
+      var handle = op.inputs(0)
+      while (handle.op.opType != "VarHandleOp")
+        handle = handle.op.inputs(0)
+      val parametersShape = handle.op.shapeAttribute("shape").toOpOutput
+      val indices = op.inputs(1)
+      val size = Basic.expandDims(Basic.size(indices), 0)
+      val valuesShape = Basic.concatenate(Array(size, parametersShape(1 ::)), 0)
+      val values = Basic.reshape(indices, valuesShape)
+      Seq(Op.OutputIndexedSlices(indices = indices, values = values, denseShape = parametersShape), null)
     }
   }
 }

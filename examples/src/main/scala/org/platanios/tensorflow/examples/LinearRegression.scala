@@ -29,9 +29,9 @@ object LinearRegression {
     val trainOp = optimizer.minimize(loss)
 
     val testOp = tf.placeholder(tf.FLOAT32, tf.Shape(-1, 34, 65))
-    val reshapedTestOp = ops.Basic.reshape(testOp, tf.Shape(-1, 1, 65, 2, 17))
+    val reshapedTestOp = tf.reshape(testOp, tf.Shape(-1, 1, 65, 2, 17))
 
-    val graphDef = tf.defaultGraph.toProto
+    val graphDef = tf.defaultGraph.toGraphDef
     val graph1 = tf.Graph()
     graph1.importGraphDef(graphDef)
     val graph0 = tf.defaultGraph
