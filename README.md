@@ -63,13 +63,15 @@ sbt compile
 - General API features:
   - [x] Support for all data types
   - [x] Optimizers
-  - [ ] Savers
+  - [x] Savers
   - [ ] Summaries
   - [ ] Estimators
   - [ ] tfprof / op statistics collection
 
 ## TODOs
 
+- Improve support for creating string tensors.
+- Revamp the Session API (e.g., using feed mapping implicits).
 - Create a "Scope" class and companion object.
 - Make casting more efficient with a conditional on the data type and an optional identity op.
 - Add casting (considering type priorities) to the operator overloads.

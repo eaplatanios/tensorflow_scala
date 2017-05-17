@@ -1,3 +1,5 @@
+import sbtprotobuf.{ProtobufPlugin => PB}
+
 organization in ThisBuild := "org.platanios"
 version in ThisBuild := "1.1.0"
 scalaVersion in ThisBuild := "2.12.1"
@@ -53,13 +55,21 @@ lazy val tensorflow = (project in file("./tensorflow"))
       libraryDependencies ++= loggingDependencies,
       libraryDependencies += "org.typelevel" %% "spire" % "0.14.1",
       libraryDependencies += "org.tensorflow" % "proto" % tensorFlowVersion,
+      libraryDependencies += "org.apache.commons" % "commons-lang3" % "3.5",
       // Test dependencies
       libraryDependencies += "org.scalactic" %% "scalactic" % "3.0.1",
       libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1" % "test",
       // Native bindings compilation settings
       target in javah := sourceDirectory.value / "main" / "native" / "include",
       sourceDirectory in nativeCompile := sourceDirectory.value / "main" / "native",
-      target in nativeCompile := target.value / "native" / nativePlatform.value
+      target in nativeCompile := target.value / "native" / nativePlatform.value,
+      // Protobuf settings
+      PB.protobufSettings,
+      version in PB.protobufConfig := "3.2.0",
+      libraryDependencies += "com.google.protobuf" % "protobuf-java" % (version in PB.protobufConfig).value % PB.protobufConfig.name,
+      sourceDirectory in PB.protobufConfig := sourceDirectory.value / "main" / "proto",
+      javaSource in PB.protobufConfig := ((sourceDirectory in Compile).value / "generated" / "java"),
+      sourceDirectories in Compile += sourceDirectory.value / "main" / "generated" / "java"
     )
 
 lazy val examples = (project in file("./examples"))

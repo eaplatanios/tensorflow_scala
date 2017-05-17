@@ -64,7 +64,7 @@ case class PartitionedVariable private[variables] (
             s"Cannot concatenate along more than one dimension: $partitionAxes. " +
                 "Multi-axis partition concatenation is not supported.")
         Op.createWithNameScope(s"$name/ConcatenatedPartitions") {
-          Basic.concatenate(variables.map(_.toOpOutput).toArray, partitionAxes(0))
+          Basic.concatenate(variables.map(_.toOpOutput), partitionAxes(0))
         }
       }
     }

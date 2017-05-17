@@ -656,7 +656,7 @@ object Variable {
     * @param  name       Name for the created variable op.
     * @return Created variable op.
     */
-  private def variable(
+  private[ops] def variable(
       shape: Shape, dataType: DataType, container: String = "", sharedName: String = "",
       name: String = "Variable"): Op.Output = {
     Op.Builder(opType = "VarHandleOp", name = name)
@@ -694,7 +694,7 @@ object Variable {
     * @param  name     Name for the created op.
     * @return Created op.
     */
-  private def readVariable(variable: Op.Output, dataType: DataType, name: String = "ReadVariable"): Op.Output = {
+  private[ops] def readVariable(variable: Op.Output, dataType: DataType, name: String = "ReadVariable"): Op.Output = {
     Op.Builder(opType = "ReadVariableOp", name = name)
         .addInput(variable)
         .setAttribute("dtype", dataType)
@@ -713,7 +713,7 @@ object Variable {
     * @param  name     Name for the created op.
     * @return Created op.
     */
-  private def unsafeReadVariable(
+  private[ops] def unsafeReadVariable(
       variable: Op.Output, dataType: DataType, name: String = "UnsafeReadVariable"): Op.Output = {
     Op.Builder(opType = "_UnsafeReadVariable", name = name)
         .addInput(variable)
@@ -731,7 +731,7 @@ object Variable {
     * @param  name              Name for the created op.
     * @return Created op.
     */
-  private def destroyVariable(
+  private[ops] def destroyVariable(
       variable: Op.Output, ignoreLookupError: Boolean = true, name: String = "DestroyVariable"): Op = {
     Op.Builder(opType = "DestroyResourceOp", name = name)
         .addInput(variable)
@@ -749,7 +749,7 @@ object Variable {
     * @param  name     Name for the created op.
     * @return Created op.
     */
-  private def assign(variable: Op.Output, value: Op.Output, name: String = "AssignVariable"): Op = {
+  private[ops] def assign(variable: Op.Output, value: Op.Output, name: String = "AssignVariable"): Op = {
     Op.Builder(opType = "AssignVariableOp", name = name)
         .addInput(variable)
         .addInput(value)
@@ -767,7 +767,7 @@ object Variable {
     * @param  name     Name for the created op.
     * @return Created op.
     */
-  private def assignAdd(variable: Op.Output, value: Op.Output, name: String = "AssignAddVariable"): Op = {
+  private[ops] def assignAdd(variable: Op.Output, value: Op.Output, name: String = "AssignAddVariable"): Op = {
     Op.Builder(opType = "AssignAddVariableOp", name = name)
         .addInput(variable)
         .addInput(value)
@@ -784,7 +784,7 @@ object Variable {
     * @param  name     Name for the created op.
     * @return Created op.
     */
-  private def assignSub(variable: Op.Output, value: Op.Output, name: String = "AssignSubVariable"): Op = {
+  private[ops] def assignSub(variable: Op.Output, value: Op.Output, name: String = "AssignSubVariable"): Op = {
     Op.Builder(opType = "AssignSubVariableOp", name = name)
         .addInput(variable)
         .addInput(value)
@@ -813,7 +813,7 @@ object Variable {
     * @param  name            Name for the created op.
     * @return Created op.
     */
-  private def gather(
+  private[ops] def gather(
       variable: Op.Output, indices: Op.Output, dataType: DataType = null, validateIndices: Boolean = true,
       name: String = "VariableGather"): Op.Output = {
     if (indices.dataType != INT32 && indices.dataType != INT64)
@@ -853,7 +853,7 @@ object Variable {
     * @param  name     Name for the created op.
     * @return Created op.
     */
-  private def scatterAdd(
+  private[ops] def scatterAdd(
       variable: Op.Output, indices: Op.Output, updates: Op.Output, name: String = "ScatterAdd"): Op = {
     if (indices.dataType != INT32 && indices.dataType != INT64)
       throw InvalidDataTypeException(

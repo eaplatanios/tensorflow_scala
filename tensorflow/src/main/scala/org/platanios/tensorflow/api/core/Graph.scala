@@ -1,9 +1,8 @@
 package org.platanios.tensorflow.api.core
 
-import org.platanios.tensorflow.api.core.Graph.Keys._
 import org.platanios.tensorflow.api.core.exception.{GraphMismatchException, InvalidGraphElementException}
 import org.platanios.tensorflow.api.ops.{Basic, Math, Op}
-import org.platanios.tensorflow.api.ops.variables.{Variable, VariableStore}
+import org.platanios.tensorflow.api.ops.variables.{Saver, Variable, VariableStore}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.STRING
 import org.platanios.tensorflow.api.{Closeable, META_GRAPH_UNBOUND_INPUT_PREFIX, ProtoSerializable}
@@ -1055,8 +1054,7 @@ object Graph {
         CollectionDef.newBuilder().setNodeList(nodeListBuilder.build()).build()
       }
 
-      override def parseCollectionDef(
-          collectionDef: CollectionDef, graph: Graph, importScope: String): Unit = {
+      override def parseCollectionDef(collectionDef: CollectionDef, graph: Graph, importScope: String): Unit = {
         val kind = collectionDef.getKindCase.getNumber
         if (kind != 1)
           throw new IllegalArgumentException(s"The '$name' collection should be stored as a node list.")
@@ -1075,13 +1073,31 @@ object Graph {
         CollectionDef.newBuilder().setBytesList(bytesListBuilder.build()).build()
       }
 
-      override def parseCollectionDef(
-          collectionDef: CollectionDef, graph: Graph, importScope: String): Unit = {
+      override def parseCollectionDef(collectionDef: CollectionDef, graph: Graph, importScope: String): Unit = {
         val kind = collectionDef.getKindCase.getNumber
         if (kind != 1)
           throw new IllegalArgumentException(s"The '$name' collection should be stored as a byte list.")
         collectionDef.getBytesList.getValueList.asScala
             .foreach(v => graph.addToCollection(Variable.fromProto(VariableDef.parseFrom(v), importScope), this))
+      }
+    }
+
+    /** Key for collections of savers. */
+    trait SaverCollectionKey extends Key[Saver] {
+      override def createCollectionDef(values: Set[Saver], exportScope: String = null): CollectionDef = {
+        val bytesListBuilder = BytesList.newBuilder()
+        values.asInstanceOf[Set[Variable]].filter(v => Graph.shouldIncludeNode(v.name, exportScope)).foreach(v => {
+          bytesListBuilder.addValue(v.toProto(exportScope).toByteString)
+        })
+        CollectionDef.newBuilder().setBytesList(bytesListBuilder.build()).build()
+      }
+
+      override def parseCollectionDef(collectionDef: CollectionDef, graph: Graph, importScope: String): Unit = {
+        val kind = collectionDef.getKindCase.getNumber
+        if (kind != 1)
+          throw new IllegalArgumentException(s"The '$name' collection should be stored as a byte list.")
+        collectionDef.getBytesList.getValueList.asScala
+            .foreach(v => graph.addToCollection(Saver.fromProto(SaverDef.parseFrom(v), importScope), this))
       }
     }
 
@@ -1136,8 +1152,10 @@ object Graph {
     // /** Key to collect concatenated sharded variables. */
     // object CONCATENATED_VARIABLES extends Key {override def name: String = "concatenated_variables"}
 
-    // /** Key to collect savers. */
-    // object SAVERS extends Key {override def name: String = "savers"}
+     /** Key to collect savers. */
+     object SAVERS extends SaverCollectionKey {
+       override def name: String = "savers"
+     }
 
     /** Key to collect weights. */
     object WEIGHTS extends VariableCollectionKey {

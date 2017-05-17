@@ -29,6 +29,9 @@ private[api] trait VariableAPI {
   def constantInitializer(value: Tensor) = variables.ConstantInitializer(value)
   def constantInitializer(value: Op.Output) = variables.DynamicConstantInitializer(value)
 
+  type Saver = variables.Saver
+  val Saver = variables.Saver
+
   def variable(
       name: String, shape: Shape = null, dataType: DataType = FLOAT32, initializer: VariableInitializer = null,
       regularizer: VariableRegularizer = null, trainable: Boolean = true, reuse: java.lang.Boolean = null,

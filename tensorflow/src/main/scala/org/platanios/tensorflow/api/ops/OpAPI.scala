@@ -12,6 +12,7 @@ private[api] trait OpAPI
         with ControlFlow
         with Logging
         with Math
+        with Text
         with variables.VariableAPI {
   type Op = ops.Op
   val Op = ops.Op

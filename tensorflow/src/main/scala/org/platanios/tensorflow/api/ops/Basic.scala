@@ -756,7 +756,7 @@ trait Basic {
     * @param  name   Name for the created op.
     * @return Created op output.
     */
-  def concatenate(inputs: Array[Op.Output], axis: Int = 0, name: String = "Concatenate"): Op.Output = {
+  def concatenate(inputs: Seq[Op.Output], axis: Int = 0, name: String = "Concatenate"): Op.Output = {
     val axisConstant = Op.createWith(nameScope = name)(constant(tensor = axis, name = "Axis"))
     if (inputs.length == 1) {
       Op.createWith(nameScope = name)(identity(inputs.head))
