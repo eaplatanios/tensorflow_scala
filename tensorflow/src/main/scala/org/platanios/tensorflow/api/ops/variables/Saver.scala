@@ -333,6 +333,7 @@ object Saver {
       saveRelativePaths: Boolean = false, padGlobalStep: Boolean = false, name: String = "Saver"): Saver = {
     val collectedSaveables: Set[Saveable] = {
       if (saveables == null) {
+        // TODO: [VARIABLES] Use a better default for this.
         Op.currentGraph.getCollection(Graph.Keys.GLOBAL_VARIABLES).map(VariableSaveable)
       } else {
         saveables

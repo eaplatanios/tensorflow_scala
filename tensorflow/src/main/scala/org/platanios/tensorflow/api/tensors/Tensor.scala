@@ -21,18 +21,10 @@ import spire.math.UShort
 /**
   * @author Emmanouil Antonios Platanios
   */
-trait Tensor extends Op.OutputConvertible {
-  val dataType: DataType
-  val shape   : Shape
+trait Tensor extends TensorLike with Op.OutputConvertible {
   val buffer  : ByteBuffer
 
   val order: Order = DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER
-
-  require(shape.isFullyDefined, s"The shape of a Tensor object must be fully defined. Shape '$shape' is not.")
-  require(shape.numElements.get > 0, "Empty tensors are not supported in the TensorFlow Scala API.")
-
-  def rank: Int = shape.rank
-  def numElements: Int = shape.numElements.get
 
   private[api] def flattenedIndex(indices: Array[Int]): Int = order.index(shape.asArray, indices)
   private[api] def flattenedIndexIterator: Iterator[Int] = order.indexIterator(shape.asArray)
@@ -126,7 +118,7 @@ trait Tensor extends Op.OutputConvertible {
     tensor
   }
 
-  def summarize(maxEntries: Int = numElements): String = {
+  override def summarize(maxEntries: Int = numElements): String = {
     // TODO: Fix this by nesting dimensions.
     s"[${entriesIterator.take(maxEntries).mkString(", ")}${if (maxEntries < numElements) ", ..." else ""}]"
   }
@@ -153,6 +145,7 @@ trait Tensor extends Op.OutputConvertible {
   def asNumeric: NumericTensor
   def asRealNumeric: RealNumericTensor
 
+  override def toTensor: Tensor = this
   override def toOpOutput: Op.Output = Basic.constant(this)
 }
 
