@@ -2,6 +2,7 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.core.{DeviceSpecification, Graph, Indexer, Session, Shape}
+import org.platanios.tensorflow.api.core.client.Fetchable
 import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.ops.variables.{VariableScope, VariableStore}
 import org.platanios.tensorflow.api.tensors.Tensor
@@ -13,7 +14,6 @@ import java.nio.charset.Charset
 
 import scala.collection.mutable
 import scala.util.DynamicVariable
-
 import spire.implicits._
 import spire.math.UShort
 
@@ -1013,7 +1013,7 @@ object Op {
     * @param  op    Op whose output this class represents.
     * @param  index Output index.
     */
-  final case class Output private(op: Op, index: Int) extends OutputLike {
+  final case class Output private(op: Op, index: Int) extends OutputLike with Fetchable[Tensor] {
     /** Graph where the op belongs. */
     override def graph: Graph = op.graph
 
@@ -1122,6 +1122,10 @@ object Op {
       */
     def apply(indexers: Indexer*): Op.Output = slice(indexers: _*)
 
+    override def uniqueFetches: Seq[Output] = Seq(this)
+
+    override def buildResult(values: Seq[Tensor]): Tensor = values.head
+
     override def toString: String = s"Op.Output(name = $name, shape = $shape, dataType = $dataType, device = $device)"
 
     override def equals(that: Any): Boolean = that match {
@@ -1164,7 +1168,7 @@ object Op {
     * @param  denseShape Shape of the corresponding dense [[Op.Output]].
     */
   final case class OutputIndexedSlices private(indices: Op.Output, values: Op.Output, denseShape: Op.Output = null)
-      extends OutputLike {
+      extends OutputLike with Fetchable[(Tensor, Tensor, Tensor)] {
     /** Graph that contains `values`, `indices`, and `denseShape`. */
     override def graph: Graph = getGraphFromInputs(Set(values, indices, denseShape))
 
@@ -1203,6 +1207,11 @@ object Op {
       * @return [[Op.OutputIndexedSlices]] that has the same value as this [[Op.OutputLike]].
       */
     override def toOpOutputIndexedSlices(optimize: Boolean = true): Op.OutputIndexedSlices = this
+
+    override def uniqueFetches: Seq[Output] = Seq(indices, values, denseShape)
+
+    // TODO: [TENSORS] Switch to something like "TensorIndexedSlices".
+    override def buildResult(values: Seq[Tensor]): (Tensor, Tensor, Tensor) = (values(0), values(1), values(2))
 
     override def toString: String = {
       s"Op.OutputIndexedSlices(values = ${values.name}, indices = ${indices.name}, denseShape = ${denseShape.name}, " +
@@ -1258,7 +1267,7 @@ object Op {
     * @param  denseShape One-dimensional `Int64` tensor with shape `[rank]`.
     */
   final case class SparseOutput private(indices: Op.Output, values: Op.Output, denseShape: Op.Output)
-      extends OutputLike {
+      extends OutputLike with Fetchable[(Tensor, Tensor, Tensor)] {
     // TODO: Add constructor from scala arrays?
     if (indices.dataType != INT64)
       throw InvalidDataTypeException(
@@ -1322,6 +1331,11 @@ object Op {
     override def toOpOutputIndexedSlices(optimize: Boolean = true): Op.OutputIndexedSlices = {
       throw new UnsupportedOperationException(s"Cannot convert sparse output '$this' to output indexed slices.")
     }
+
+    override def uniqueFetches: Seq[Output] = Seq(indices, values, denseShape)
+
+    // TODO: [TENSORS] Switch to something like "SparseTensor".
+    override def buildResult(values: Seq[Tensor]): (Tensor, Tensor, Tensor) = (values(0), values(1), values(2))
 
     override def toString: String = {
       s"Op.OutputIndexedSlices(values = ${values.name}, indices = ${indices.name}, denseShape = ${denseShape.name}, " +
