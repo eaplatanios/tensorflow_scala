@@ -1,9 +1,11 @@
 package org.platanios.tensorflow.api.core
 
+import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.ops.Basic._
 import org.platanios.tensorflow.api.ops.Math._
 import org.platanios.tensorflow.api.tf
 import org.platanios.tensorflow.api.tf.createWith
+
 import org.scalatest._
 
 /**
@@ -19,11 +21,10 @@ class SessionSpec extends FlatSpec with Matchers {
     }
     val session = Session(graph = graph)
     val feeds = Map(graph.getOpOutputByName("X:0") -> tf.Tensor(tf.Tensor(5, 7)))
-    val fetches = Array(graph.getOpOutputByName("Y:0"))
-    val outputs = session.run(feeds, fetches)
-    assert(outputs.length == 1)
+    val fetches = graph.getOpOutputByName("Y:0")
+    val output = session.run(feeds, fetches)
     val expectedResult = tf.Tensor(tf.Tensor(-30))
-    assert(outputs.head.scalar === expectedResult.scalar)
+    assert(output.scalar === expectedResult.scalar)
     graph.close()
   }
 }

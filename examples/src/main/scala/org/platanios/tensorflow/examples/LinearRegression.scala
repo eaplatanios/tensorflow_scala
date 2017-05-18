@@ -23,7 +23,7 @@ object LinearRegression {
     val optimizer = tf.train.AdaGrad(1.0)
     val inputs = tf.placeholder(tf.FLOAT32, tf.Shape(-1, 1))
     val outputs = tf.placeholder(tf.FLOAT32, tf.Shape(-1, 1))
-    val weights = tf.Variable(tf.zerosInitializer, tf.Shape(1, 1), tf.FLOAT32)
+    val weights = tf.variable("weights", tf.Shape(1, 1), tf.FLOAT32, tf.zerosInitializer)
     val predictions = tf.matMul(inputs, weights)
     val loss = tf.sum(tf.square(predictions - outputs))
     val trainOp = optimizer.minimize(loss)
@@ -38,21 +38,21 @@ object LinearRegression {
 
     logger.info("Training the linear regression model.")
     val session = tf.Session()
-    session.run(targets = Array(tf.globalVariablesInitializer()))
+    session.run(targets = tf.globalVariablesInitializer())
     for (i <- 0 to 50) {
       val trainBatch = batch(10000)
       val feeds = Map[tf.Op.Output, tf.Tensor](
         inputs -> trainBatch._1,
         outputs -> trainBatch._2)
-      val fetches = Array[tf.Op.Output](loss)
-      val targets = Array[tf.Op](trainOp)
-      val trainLoss = session.run(feeds, fetches, targets)(0)
+      val fetches = loss
+      val targets = trainOp
+      val trainLoss = session.run(feeds, fetches, targets)
       if (i % 1 == 0)
         logger.info(s"Train loss at iteration $i = ${trainLoss.scalar} " +
-                        s"(weight = ${session.run(fetches = Array(weights.value))(0).scalar})")
+                        s"(weight = ${session.run(fetches = weights.value).scalar})")
     }
 
-    logger.info(s"Trained weight value: ${session.run(fetches = Array(weights.value))(0).scalar}")
+    logger.info(s"Trained weight value: ${session.run(fetches = weights.value).scalar}")
     logger.info(s"True weight value: $weight")
   }
 

@@ -1,7 +1,8 @@
 package org.platanios.tensorflow.api.ops.variables
 
 import org.platanios.tensorflow.api._
-import org.platanios.tensorflow.api.core.{DeviceSpecification, Graph, Session}
+import org.platanios.tensorflow.api.core.{DeviceSpecification, Graph}
+import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.ops.{Basic, ControlFlow, Op, Text}
 import org.platanios.tensorflow.api.ops.variables.CheckpointStateProto.CheckpointState
 import org.platanios.tensorflow.api.tensors.Tensor
@@ -159,7 +160,7 @@ class Saver private (saverDef: SaverDef, saveRelativePaths: Boolean = false, pad
           // TODO: [SESSION] !!! Feed mappers for string inputs.
           session.run(
             feeds = Map(filenameTensor -> Tensor(checkpointFile.toString)),
-            fetches = Array(saveTensor))(0).scalar.asInstanceOf[String])
+            fetches = saveTensor).scalar.asInstanceOf[String])
         if (writeCheckpointState) {
           maybeDeleteOldCheckpoints(modelCheckpointPath, metaGraphSuffix)
           Saver.updateCheckpointStateFile(
@@ -203,7 +204,7 @@ class Saver private (saverDef: SaverDef, saveRelativePaths: Boolean = false, pad
     val filenameTensor = session.graph.getOpOutputByName(saverDef.getFilenameTensorName)
     val restoreOp = session.graph.getOpByName(saverDef.getRestoreOpName)
     // TODO: [SESSION] !!! Feed mappers for string inputs.
-    session.run(feeds = Map(filenameTensor -> Tensor(savePath.toString)), targets = Array(restoreOp))
+    session.run(feeds = Map(filenameTensor -> Tensor(savePath.toString)), targets = restoreOp)
   }
 
   /** Returns the sequence of the latest and not-yet-deleted checkpoint filenames, sorted from oldest to newest. You can

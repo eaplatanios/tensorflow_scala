@@ -25,14 +25,14 @@ class GradientDescentSpec extends FlatSpec with Matchers {
         (variable0, variable1, gdOp)
       }
       val session = tf.Session(graph)
-      session.run(targets = Array(graph.trainableVariablesInitializer()))
-      var variable0Value = session.run(fetches = Array(variable0.value)).head
-      var variable1Value = session.run(fetches = Array(variable1.value)).head
+      session.run(targets = graph.trainableVariablesInitializer())
+      var variable0Value = session.run(fetches = variable0.value)
+      var variable1Value = session.run(fetches = variable1.value)
       assert(variable0Value === value0 +- 1e-6)
       assert(variable1Value === value1 +- 1e-6)
-      session.run(targets = Array(gdOp))
-      variable0Value = session.run(fetches = Array(variable0.value)).head
-      variable1Value = session.run(fetches = Array(variable1.value)).head
+      session.run(targets = gdOp)
+      variable0Value = session.run(fetches = variable0.value)
+      variable1Value = session.run(fetches = variable1.value)
       assert(variable0Value === updatedValue0 +- 1e-6)
       assert(variable1Value === updatedValue1 +- 1e-6)
     }

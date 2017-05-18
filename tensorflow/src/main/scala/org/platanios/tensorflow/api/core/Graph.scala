@@ -1,5 +1,6 @@
 package org.platanios.tensorflow.api.core
 
+import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception.{GraphMismatchException, InvalidGraphElementException}
 import org.platanios.tensorflow.api.ops.{Basic, Math, Op}
 import org.platanios.tensorflow.api.ops.variables.{Saver, Variable, VariableStore}

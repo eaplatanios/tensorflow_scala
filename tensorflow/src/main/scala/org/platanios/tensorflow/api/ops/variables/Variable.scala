@@ -1,7 +1,8 @@
 package org.platanios.tensorflow.api.ops.variables
 
 import org.platanios.tensorflow.api._
-import org.platanios.tensorflow.api.core.{Graph, Session, Shape}
+import org.platanios.tensorflow.api.core.client.Session
+import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.exception.{InvalidDataTypeException, ShapeMismatchException}
 import org.platanios.tensorflow.api.ops.{Basic, ControlFlow, Op, OpCreationContext, OpSpecification}
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}

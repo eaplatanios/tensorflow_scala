@@ -6,7 +6,7 @@ import org.platanios.tensorflow.api.core
 /**
   * @author Emmanouil Antonios Platanios
   */
-private[api] trait CoreAPI {
+private[api] trait CoreAPI extends client.ClientAPI {
   type Graph = core.Graph
   val Graph = core.Graph
 
@@ -21,9 +21,6 @@ private[api] trait CoreAPI {
   val Slice    = core.Slice
   val NewAxis  = core.NewAxis
   val Ellipsis = core.Ellipsis
-
-  type Session = core.Session
-  val Session = core.Session
 
   type Shape = core.Shape
   val Shape = core.Shape

@@ -142,7 +142,7 @@ class FetchableSuite extends JUnitSuite {
       assert(results._1.isInstanceOf[Tensor])
     }
   }
-Tuple10
+
   @Test def testFetchableTuple2(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
       val fetchable1 = DummyFetchable(1)

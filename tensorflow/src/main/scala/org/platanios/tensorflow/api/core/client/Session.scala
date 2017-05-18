@@ -1,6 +1,7 @@
-package org.platanios.tensorflow.api.core
+package org.platanios.tensorflow.api.core.client
 
 import org.platanios.tensorflow.api.Closeable
+import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.ops.{Op, OpCreationContext}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.jni.{Session => NativeSession}
@@ -15,31 +16,34 @@ final case class Session private (
   private[this] object NativeHandleLock
   private[this] var referenceCount: Int = 0
 
-  def run(
-      feeds: Map[Op.Output, Tensor] = Map.empty, fetches: Array[Op.Output] = Array.empty,
-      targets: Array[Op] = Array.empty, runOptions: Option[Array[Byte]] = None): Array[Tensor] = {
+  def run[T >: Null](
+      feeds: FeedMap = FeedMap.empty, fetches: Fetchable[T] = Fetchable.Empty[T](),
+      targets: Executable = Executable.Empty, runOptions: Option[Array[Byte]] = None): T = {
     runHelper(feeds = feeds, fetches = fetches, targets = targets, runOptions = runOptions)._1
   }
 
-  def runWithMetadata(
-      feeds: Map[Op.Output, Tensor] = Map.empty, fetches: Array[Op.Output] = Array.empty,
-      targets: Array[Op] = Array.empty, runOptions: Option[Array[Byte]] = None): (Array[Tensor], Array[Byte]) = {
-    runHelper(feeds = feeds, fetches = fetches, targets = targets, runOptions = runOptions, wantMetadata = true)
+  def runWithMetadata[T >: Null](
+      feeds: FeedMap = FeedMap.empty, fetches: Fetchable[T] = Fetchable.Empty[T](),
+      targets: Executable = Executable.Empty, runOptions: Option[Array[Byte]] = None): (T, Array[Byte]) = {
+    runHelper(
+      feeds = feeds, fetches = fetches, targets = targets, runOptions = runOptions, wantMetadata = true)
   }
 
-  private def runHelper(
-      feeds: Map[Op.Output, Tensor] = Map.empty, fetches: Array[Op.Output] = Array.empty,
-      targets: Array[Op] = Array.empty, runOptions: Option[Array[Byte]] = None,
-      wantMetadata: Boolean = false): (Array[Tensor], Array[Byte]) = {
-    val (inputs, inputTensors) = feeds.toArray.unzip
+  private def runHelper[T >: Null](
+      feeds: FeedMap = FeedMap.empty, fetches: Fetchable[T] = Fetchable.Empty[T](),
+      targets: Executable = Executable.Empty, runOptions: Option[Array[Byte]] = None,
+      wantMetadata: Boolean = false): (T, Array[Byte]) = {
+    val (inputs, inputTensors) = feeds.values.toSeq.unzip
     val inputTensorNativeViews = inputTensors.map(_.nativeView)
-    val inputTensorHandles: Array[Long] = inputTensorNativeViews.map(_.nativeHandle)
-    val inputOpHandles: Array[Long] = inputs.map(_.op.nativeHandle)
-    val inputOpIndices: Array[Int] = inputs.map(_.index)
-    val outputOpHandles: Array[Long] = fetches.map(_.op.nativeHandle)
-    val outputOpIndices: Array[Int] = fetches.map(_.index)
-    val targetOpHandles: Array[Long] = targets.map(_.nativeHandle)
-    val outputTensorHandles: Array[Long] = Array.ofDim[Long](fetches.length)
+    val inputTensorHandles: Array[Long] = inputTensorNativeViews.map(_.nativeHandle).toArray
+    val inputOpHandles: Array[Long] = inputs.map(_.op.nativeHandle).toArray
+    val inputOpIndices: Array[Int] = inputs.map(_.index).toArray
+    val uniqueFetches: Seq[Op.Output] = fetches.uniqueFetches
+    val outputOpHandles: Array[Long] = uniqueFetches.map(_.op.nativeHandle).toArray
+    val outputOpIndices: Array[Int] = uniqueFetches.map(_.index).toArray
+    val outputTensorHandles: Array[Long] = Array.ofDim[Long](uniqueFetches.length)
+    val targetOpHandles: Array[Long] = targets.ops.map(_.nativeHandle).toArray
+
     NativeHandleLock.synchronized {
       if (nativeHandle == 0)
         throw new IllegalStateException("close() has been called on the session.")
@@ -58,7 +62,12 @@ final case class Session private (
       targetOpHandles = targetOpHandles,
       wantRunMetadata = wantMetadata,
       outputTensorHandles = outputTensorHandles)
-    val outputs: Array[Tensor] = outputTensorHandles.map(Tensor.fromTFNativeHandle)
+    val outputs: T = {
+      if (outputTensorHandles.length == 0)
+        null
+      else
+        fetches.buildResult(outputTensorHandles.map(Tensor.fromTFNativeHandle))
+    }
     NativeHandleLock.synchronized {
       if (nativeHandle != 0) {
         referenceCount -= 1

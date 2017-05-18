@@ -5,7 +5,7 @@ import org.platanios.tensorflow.api.tensors.Tensor
 
 import scala.collection.mutable
 
-// TODO: [CLIENT] --- Add support for bigger tuples than Tuple5 (up to Tuple22).
+// TODO: [CLIENT] --- Add support for bigger tuples than Tuple6 (up to Tuple22).
 // TODO: [CLIENT] Handle nested sequences and maps.
 
 /**
@@ -17,6 +17,13 @@ trait Fetchable[+T] {
 }
 
 object Fetchable {
+  case class Empty[T]() extends Fetchable[T] {
+    override def uniqueFetches: Seq[Op.Output] = Seq.empty
+    override def buildResult(values: Seq[Tensor]): T = {
+      throw new IllegalArgumentException("Cannot fetch values from an empty fetchable.")
+    }
+  }
+
   /** Uniquifies fetches from a sequences of [[Fetchable]]s.
     *
     * This is a helper function used by [[FetchableSeq]] and [[FetchableMap]]. It gathers all the unique fetches from a
@@ -213,6 +220,34 @@ private[client] class FetchableTuple5[+T1, +T2, +T3, +T4, +T5] private (
 private[client] object FetchableTuple5 {
   def apply[T1, T2, T3, T4, T5](fetchables: (Fetchable[T1], Fetchable[T2], Fetchable[T3], Fetchable[T4], Fetchable[T5])): FetchableTuple5[T1, T2, T3, T4, T5] = {
     new FetchableTuple5(fetchables)
+  }
+}
+
+private[client] class FetchableTuple6[+T1, +T2, +T3, +T4, +T5, +T6] private (
+    fetchables: (Fetchable[T1], Fetchable[T2], Fetchable[T3], Fetchable[T4], Fetchable[T5], Fetchable[T6]))
+    extends Fetchable[(T1, T2, T3, T4, T5, T6)] {
+  private[this] val (fetches, indices) = {
+    Fetchable.uniquifyFetches(Seq(fetchables._1, fetchables._2, fetchables._3, fetchables._4, fetchables._5, fetchables._6))
+  }
+
+  override def uniqueFetches: Seq[Op.Output] = fetches
+
+  override def buildResult(values: Seq[Tensor]): (T1, T2, T3, T4, T5, T6) = {
+    if (fetches.length != values.length)
+      throw new IllegalArgumentException(
+        s"The number of values (${values.length}) must match the number of unique fetches (${fetches.length}).")
+    (fetchables._1.buildResult(indices(0).map(values(_))),
+        fetchables._2.buildResult(indices(1).map(values(_))),
+        fetchables._3.buildResult(indices(2).map(values(_))),
+        fetchables._4.buildResult(indices(3).map(values(_))),
+        fetchables._5.buildResult(indices(4).map(values(_))),
+        fetchables._6.buildResult(indices(5).map(values(_))))
+  }
+}
+
+private[client] object FetchableTuple6 {
+  def apply[T1, T2, T3, T4, T5, T6](fetchables: (Fetchable[T1], Fetchable[T2], Fetchable[T3], Fetchable[T4], Fetchable[T5], Fetchable[T6])): FetchableTuple6[T1, T2, T3, T4, T5, T6] = {
+    new FetchableTuple6(fetchables)
   }
 }
 

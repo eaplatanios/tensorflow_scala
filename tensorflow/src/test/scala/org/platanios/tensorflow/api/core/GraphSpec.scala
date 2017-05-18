@@ -1,5 +1,7 @@
 package org.platanios.tensorflow.api.core
 
+import org.platanios.tensorflow.api._
+import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception.{GraphMismatchException, InvalidGraphElementException}
 import org.platanios.tensorflow.api.ops.Op
 import org.platanios.tensorflow.api.ops.Op.createWith
@@ -190,7 +192,7 @@ class GraphSpec extends FlatSpec with Matchers {
       graph.addToCollection(input, INPUTS)
       graph.addToCollection(output, OUTPUTS)
 
-      val outputValue = session.run(fetches = Array(output), feeds = Map(input -> -10f))(0)
+      val outputValue = session.run(Map(input -> Tensor(-10f)), output)
       assert(outputValue.scalar === 32)
     }
 
@@ -218,7 +220,7 @@ class GraphSpec extends FlatSpec with Matchers {
     val newOutput = newGraph.getCollection(OUTPUTS).head
 
     // Verify that the new graph computes the same result as the original.
-    val newOutputValue = newSession.run(fetches = Array(newOutput), feeds = Map(newInput -> -10f))(0)
+    val newOutputValue = newSession.run(Map(newInput -> Tensor(-10f)), newOutput)
     assert(newOutputValue.scalar === 32)
 
     newSession.close()
