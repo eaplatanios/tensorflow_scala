@@ -12,6 +12,11 @@ have already implemented is likely to stay as is. Most of the code is
 ported from the Python API with changes to make it more Scala-friendly 
 and to make use of useful Scala features and strong-typing.
 
+People who are new to TensorFlow should first go through the official 
+Python API documentation at 
+[https://www.tensorflow.org](https://www.tensorflow.org). Most of what 
+you read there applies here too.
+
 ## Main Features
 
 - Exposed API namespace similar to that of the Python API. For example:
@@ -53,7 +58,7 @@ and to make use of useful Scala features and strong-typing.
   tensor(2 :: 5, ---, 1) // is equivalent to numpy's 'tensor[2:5, ..., 1]'
   ```
 - Useful implicits that make using the library almost as simple as using 
-  the Python API, which retaining type-safety (for the most part).
+  the Python API, while retaining type-safety (for the most part).
   
 ## How to Start
 
@@ -77,7 +82,7 @@ This is a list of some of the things that are likely to change:
   the fact that we need to support lots of numpy-like operations to make 
   this API useful.
 - **Session API:** Improvements can be made to the `Fetchable` trait 
-  (potentially using Shapeless).
+  (potentially using [Shapeless](https://github.com/milessabin/shapeless)).
 
 ## High-Priority TODOs
 
@@ -88,10 +93,10 @@ the features, I would really appreciate contributions on the following:
   library and it would be extremely useful if we had those.
 - **Op Implementations:** The process of implementing ops and their 
   gradients in the `org.platanios.tensorflow.api.ops` package is pretty 
-  simply and self-explanatory by looking at `Basic.scala` and 
+  simple and self-explanatory by looking at `Basic.scala` and 
   `Math.scala`. It would be great if we could get better coverage of 
   the Python API ops. Porting them is simple, but tedious, and I plan 
-  to do it mainly on a need basis.
+  to do it mainly on an on-demand basis.
 - **Examples:** Examples of code using the library would be great and 
   would also make issues come up early so they can be fixed.
 
