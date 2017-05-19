@@ -26,8 +26,13 @@ import scala.language.higherKinds
   * Currently supported executable types are:
   *   - Single [[Op]] object.
   *   - Single [[Op.OutputLike]] object.
-  *   - Sets of other [[Executable]]s.
+  *   - Traversables of other [[Executable]]s (e.g., `Set`s, `List`s, etc.).
+  *     - Note that, even though `Set(List(op1), List(op1, op2))` is supported, `Set(Set(op1), List(op1, op2))` is not.
+  *     - Traversables that are not homogeneous are not supported (e.g., `Set(op1, Set(op1, op2))`).
+  *   - Arrays of other [[Executable]]s.
   *   - Sequences of other [[Executable]]s.
+  * Internally, the executable provided to a session will be de-duplicated to prevent redundant computation. This means
+  * that ops that appear more than once in the executable, will only be executed once by the session.
   *
   * @author Emmanouil Antonios Platanios
   */

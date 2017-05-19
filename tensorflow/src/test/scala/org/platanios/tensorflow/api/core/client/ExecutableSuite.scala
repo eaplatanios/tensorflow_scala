@@ -97,13 +97,23 @@ class ExecutableSuite extends JUnitSuite {
     }
   }
 
-  // @Test def testOpNestedHeterogeneousSetExecutable(): Unit = using(Graph()) { graph =>
-  //   Op.createWith(graph) {
-  //     val op1 = ControlFlow.noOp(name = "NoOp_1")
-  //     val op2 = ControlFlow.noOp(name = "NoOp_2")
-  //     val op3 = ControlFlow.noOp(name = "NoOp_3")
-  //     executable(Set(op1, Set(op2, op3)))
-  //     succeed
-  //   }
-  // }
+  @Test def testOpNestedSetArrayExecutable(): Unit = using(Graph()) { graph =>
+    Op.createWith(graph) {
+      val op1 = ControlFlow.noOp(name = "NoOp_1")
+      val op2 = ControlFlow.noOp(name = "NoOp_2")
+      val op3 = ControlFlow.noOp(name = "NoOp_3")
+      executable(Set(Array(op1), Array(op2, op3)))
+      succeed
+    }
+  }
+
+  @Test def testOpNestedHeterogeneousSetExecutable(): Unit = using(Graph()) { graph =>
+    Op.createWith(graph) {
+      // TODO: [CLIENT] Maybe support this in hte future?
+      val op1 = ControlFlow.noOp(name = "NoOp_1")
+      val op2 = ControlFlow.noOp(name = "NoOp_2")
+      val op3 = ControlFlow.noOp(name = "NoOp_3")
+      assertDoesNotCompile("executable(Set(op1, Set(op2, op3))")
+    }
+  }
 }
