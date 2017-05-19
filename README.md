@@ -8,7 +8,9 @@ working on for my personal research purposes. The API is thus very
 likely to keep changing until I settle with something that makes me 
 happy. Having said that, I try to stick as close as possible to the 
 Python API usage to make transition easy for users and much of what I 
-have already implemented is likely to stay as is.
+have already implemented is likely to stay as is. Most of the code is 
+ported from the Python API with changes to make it more Scala-friendly 
+and to make use of useful Scala features and strong-typing.
 
 ## Main Features
 
@@ -52,8 +54,48 @@ have already implemented is likely to stay as is.
   ```
 - Useful implicits that make using the library almost as simple as using 
   the Python API, which retaining type-safety (for the most part).
+  
+## How to Start
 
-## Set Up for Development
+I would suggest you first follow the installation instructions, further 
+down in this document, and then move on to look at the `examples` package 
+and the unit tests of the main library. There is no user guide yet, as 
+it's super early for this project, but knowing how to use the TensorFlow 
+Python API and reading the code should be sufficient to get you started.
+
+## Things Likely to Change
+
+This is a list of some of the things that are likely to change:
+- **Data Types API:** The current implementation is cumbersome and can be 
+  much more elegant in my opinion. The main challenge lies in the fact 
+  that we need to be able to deal with both string and numeric tensors of 
+  different types, with one interface (or using implicit conversions that 
+  may fail at runtime -- as is currently being done). I think there is 
+  no way to avoid the runtime checks due to the interface of the native 
+  library not being tensor-type aware.
+- **Tensor API:** Related to the comments about the data type API, plus 
+  the fact that we need to support lots of numpy-like operations to make 
+  this API useful.
+- **Session API:** Improvements can be made to the `Fetchable` trait 
+  (potentially using Shapeless).
+
+## High-Priority TODOs
+
+It would be awesome if people could contribute to this library. Given 
+its scope and its early state, before I settle on the API for some of 
+the features, I would really appreciate contributions on the following:
+- **Unit Tests:** Currently unit tests are missing for a big part of the 
+  library and it would be extremely useful if we had those.
+- **Op Implementations:** The process of implementing ops and their 
+  gradients in the `org.platanios.tensorflow.api.ops` package is pretty 
+  simply and self-explanatory by looking at `Basic.scala` and 
+  `Math.scala`. It would be great if we could get better coverage of 
+  the Python API ops. Porting them is simple, but tedious, and I plan 
+  to do it mainly on a need basis.
+- **Examples:** Examples of code using the library would be great and 
+  would also make issues come up early so they can be fixed.
+
+## Installation
 
 Make sure you have [CMake](https://cmake.org/install/) installed and
 then perform the following steps:
