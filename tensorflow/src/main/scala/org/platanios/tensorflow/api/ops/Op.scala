@@ -16,7 +16,7 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.core.{DeviceSpecification, Graph, Indexer, Shape}
-import org.platanios.tensorflow.api.core.client.{Executable, Feedable, Fetchable, Session}
+import org.platanios.tensorflow.api.core.client.{Feedable, Fetchable, Session}
 import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.ops.variables.{VariableScope, VariableStore}
 import org.platanios.tensorflow.api.tensors.Tensor
@@ -52,7 +52,7 @@ import scala.util.DynamicVariable
   *       TODO: Add `Op.run` use example, once that is supported.
   * @author Emmanouil Antonios Platanios
   */
-final case class Op private (graph: Graph, private[api] val nativeHandle: Long) extends Executable {
+final case class Op private (graph: Graph, private[api] val nativeHandle: Long) {
   graph.opsCache.update(nativeHandle, this) // Update the ops cache of the graph with the current op
 
   /** Name of the op. */
@@ -273,8 +273,6 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
         s"Op has no attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
     }
   }
-
-  override def ops: Set[Op] = Set(this)
 
   override def toString: String = name
 
@@ -1032,7 +1030,6 @@ object Op {
     */
   final case class Output private(op: Op, index: Int)
       extends OutputLike
-          with Executable
           with Feedable[Tensor]
           with Fetchable[Tensor] {
     /** Graph where the op belongs. */
@@ -1143,8 +1140,6 @@ object Op {
       */
     def apply(indexers: Indexer*): Op.Output = slice(indexers: _*)
 
-    override def ops: Set[Op] = Set(op)
-
     override def toFeedMap(value: Tensor): Map[Op.Output, Tensor] = Map(this -> value)
 
     override def uniqueFetches: Seq[Output] = Seq(this)
@@ -1194,7 +1189,6 @@ object Op {
     */
   final case class OutputIndexedSlices private(indices: Op.Output, values: Op.Output, denseShape: Op.Output = null)
       extends OutputLike
-          with Executable
           with Feedable[(Tensor, Tensor, Tensor)]
           with Fetchable[(Tensor, Tensor, Tensor)] {
     /** Graph that contains `values`, `indices`, and `denseShape`. */
@@ -1235,8 +1229,6 @@ object Op {
       * @return [[Op.OutputIndexedSlices]] that has the same value as this [[Op.OutputLike]].
       */
     override def toOpOutputIndexedSlices(optimize: Boolean = true): Op.OutputIndexedSlices = this
-
-    override def ops: Set[Op] = Set(op)
 
     // TODO: [TENSORS] Switch to something like "TensorIndexedSlices".
     override def toFeedMap(value: (Tensor, Tensor, Tensor)): Map[Op.Output, Tensor] = {
@@ -1302,7 +1294,6 @@ object Op {
     */
   final case class SparseOutput private(indices: Op.Output, values: Op.Output, denseShape: Op.Output)
       extends OutputLike
-          with Executable
           with Feedable[(Tensor, Tensor, Tensor)]
           with Fetchable[(Tensor, Tensor, Tensor)] {
     // TODO: Add constructor from scala arrays?
@@ -1367,8 +1358,6 @@ object Op {
     override def toOpOutputIndexedSlices(optimize: Boolean = true): Op.OutputIndexedSlices = {
       throw new UnsupportedOperationException(s"Cannot convert sparse output '$this' to output indexed slices.")
     }
-
-    override def ops: Set[Op] = Set(op)
 
     // TODO: [TENSORS] Switch to something like "SparseTensor".
     override def toFeedMap(value: (Tensor, Tensor, Tensor)): Map[Op.Output, Tensor] = {

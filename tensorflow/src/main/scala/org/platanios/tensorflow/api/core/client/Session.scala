@@ -30,22 +30,22 @@ final case class Session private (
   private[this] object NativeHandleLock
   private[this] var referenceCount: Int = 0
 
-  def run[T >: Null](
+  def run[T >: Null, E: Executable](
       feeds: FeedMap = FeedMap.empty, fetches: Fetchable[T] = Fetchable.Empty[T](),
-      targets: Executable = Executable.Empty, runOptions: Option[Array[Byte]] = None): T = {
+      targets: E = Traversable.empty[Op], runOptions: Option[Array[Byte]] = None): T = {
     runHelper(feeds = feeds, fetches = fetches, targets = targets, runOptions = runOptions)._1
   }
 
-  def runWithMetadata[T >: Null](
+  def runWithMetadata[T >: Null, E: Executable](
       feeds: FeedMap = FeedMap.empty, fetches: Fetchable[T] = Fetchable.Empty[T](),
-      targets: Executable = Executable.Empty, runOptions: Option[Array[Byte]] = None): (T, Array[Byte]) = {
+      targets: E = Traversable.empty[Op], runOptions: Option[Array[Byte]] = None): (T, Array[Byte]) = {
     runHelper(
       feeds = feeds, fetches = fetches, targets = targets, runOptions = runOptions, wantMetadata = true)
   }
 
-  private def runHelper[T >: Null](
+  private def runHelper[T >: Null, E: Executable](
       feeds: FeedMap = FeedMap.empty, fetches: Fetchable[T] = Fetchable.Empty[T](),
-      targets: Executable = Executable.Empty, runOptions: Option[Array[Byte]] = None,
+      targets: E = Traversable.empty[Op], runOptions: Option[Array[Byte]] = None,
       wantMetadata: Boolean = false): (T, Array[Byte]) = {
     val (inputs, inputTensors) = feeds.values.toSeq.unzip
     val inputTensorNativeViews = inputTensors.map(_.nativeView)
@@ -56,7 +56,7 @@ final case class Session private (
     val outputOpHandles: Array[Long] = uniqueFetches.map(_.op.nativeHandle).toArray
     val outputOpIndices: Array[Int] = uniqueFetches.map(_.index).toArray
     val outputTensorHandles: Array[Long] = Array.ofDim[Long](uniqueFetches.length)
-    val targetOpHandles: Array[Long] = targets.ops.map(_.nativeHandle).toArray
+    val targetOpHandles: Array[Long] = implicitly[Executable[E]].ops(targets).map(_.nativeHandle).toArray
 
     NativeHandleLock.synchronized {
       if (nativeHandle == 0)

@@ -16,34 +16,44 @@ package org.platanios.tensorflow.api.core.client
 
 import org.platanios.tensorflow.api.ops.Op
 
+import scala.collection.TraversableLike
+import scala.language.higherKinds
+
 /** Executables can be executed within a TensorFlow session, but their results (if any) are not returned.
   *
   * For example, variable initializers are executable.
   *
+  * Currently supported executable types are:
+  *   - Single [[Op]] object.
+  *   - Single [[Op.OutputLike]] object.
+  *   - Sets of other [[Executable]]s.
+  *   - Sequences of other [[Executable]]s.
+  *
   * @author Emmanouil Antonios Platanios
   */
-trait Executable {
+trait Executable[T] {
   /** Target ops to execute. */
-  def ops: Set[Op]
+  def ops(executable: T): Set[Op]
 }
 
 object Executable {
-  object Empty extends Executable {
-    override def ops: Set[Op] = Set.empty
+  implicit val opExecutable = new Executable[Op] {
+    override def ops(executable: Op): Set[Op] = Set(executable)
   }
 
-  trait Implicits {
-    implicit def executableSet(executables: Set[Executable]): Executable = new ExecutableSet(executables)
-    implicit def executableSeq(executables: Seq[Executable]): Executable = new ExecutableSeq(executables)
+  implicit def opOutputLikeExecutable[O <: Op.OutputLike] = new Executable[O] {
+    override def ops(executable: O): Set[Op] = Set(executable.op)
   }
 
-  object Implicits extends Implicits
-}
+  implicit def arrayExecutable[T: Executable] = new Executable[Array[T]] {
+    override def ops(executable: Array[T]): Set[Op] = {
+      executable.flatMap(e => implicitly[Executable[T]].ops(e)).toSet
+    }
+  }
 
-private[client] class ExecutableSet private[client] (executables: Set[Executable]) extends Executable {
-  override def ops: Set[Op] = executables.flatMap(_.ops)
-}
-
-private[client] class ExecutableSeq private[client] (executables: Seq[Executable]) extends Executable {
-  override def ops: Set[Op] = executables.flatMap(_.ops).toSet
+  implicit def traversableExecutable[T: Executable, CC[A] <: TraversableLike[A, CC[A]]] = new Executable[CC[T]] {
+    override def ops(executable: CC[T]): Set[Op] = {
+      executable.flatMap(e => implicitly[Executable[T]].ops(e)).toSet
+    }
+  }
 }

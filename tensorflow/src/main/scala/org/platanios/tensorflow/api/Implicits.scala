@@ -16,7 +16,6 @@ package org.platanios.tensorflow.api
 
 import org.platanios.tensorflow.api.core.Indexer.{Implicits => IndexerImplicits}
 import org.platanios.tensorflow.api.core.Shape.{Implicits => ShapeImplicits}
-import org.platanios.tensorflow.api.core.client.Executable.{Implicits => ExecutableImplicits}
 import org.platanios.tensorflow.api.core.client.FeedMap.{Implicits => FeedMapImplicits}
 import org.platanios.tensorflow.api.core.client.Fetchable.{Implicits => FetchableImplicits}
 import org.platanios.tensorflow.api.ops.{Op, OpSpecification}
@@ -44,7 +43,6 @@ private[api] trait LowPriorityImplicits
     extends LowestPriorityImplicits
         with ShapeImplicits
         with OpImplicits
-        with ExecutableImplicits
         with FeedMapImplicits
         with FetchableImplicits
 
