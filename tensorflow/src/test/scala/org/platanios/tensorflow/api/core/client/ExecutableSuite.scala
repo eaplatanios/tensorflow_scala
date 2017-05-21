@@ -47,7 +47,7 @@ class ExecutableSuite extends JUnitSuite {
     }
   }
 
-  @Test def testOpSetExecutable(): Unit = using(Graph()) { graph =>
+  @Test def testSetExecutable(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
       val op1 = ControlFlow.noOp(name = "NoOp_1")
       val op2 = ControlFlow.noOp(name = "NoOp_2")
@@ -57,7 +57,7 @@ class ExecutableSuite extends JUnitSuite {
     }
   }
 
-  @Test def testOpSeqExecutable(): Unit = using(Graph()) { graph =>
+  @Test def testSeqExecutable(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
       val op1 = ControlFlow.noOp(name = "NoOp_1")
       val op2 = ControlFlow.noOp(name = "NoOp_2")
@@ -67,7 +67,7 @@ class ExecutableSuite extends JUnitSuite {
     }
   }
 
-  @Test def testOpListExecutable(): Unit = using(Graph()) { graph =>
+  @Test def testListExecutable(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
       val op1 = ControlFlow.noOp(name = "NoOp_1")
       val op2 = ControlFlow.noOp(name = "NoOp_2")
@@ -77,7 +77,7 @@ class ExecutableSuite extends JUnitSuite {
     }
   }
 
-  @Test def testOpArrayExecutable(): Unit = using(Graph()) { graph =>
+  @Test def testArrayExecutable(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
       val op1 = ControlFlow.noOp(name = "NoOp_1")
       val op2 = ControlFlow.noOp(name = "NoOp_2")
@@ -87,7 +87,7 @@ class ExecutableSuite extends JUnitSuite {
     }
   }
 
-  @Test def testOpNestedSetExecutable(): Unit = using(Graph()) { graph =>
+  @Test def testNestedSetExecutable(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
       val op1 = ControlFlow.noOp(name = "NoOp_1")
       val op2 = ControlFlow.noOp(name = "NoOp_2")
@@ -97,7 +97,7 @@ class ExecutableSuite extends JUnitSuite {
     }
   }
 
-  @Test def testOpNestedSetArrayExecutable(): Unit = using(Graph()) { graph =>
+  @Test def testNestedSetArrayExecutable(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
       val op1 = ControlFlow.noOp(name = "NoOp_1")
       val op2 = ControlFlow.noOp(name = "NoOp_2")
@@ -107,13 +107,43 @@ class ExecutableSuite extends JUnitSuite {
     }
   }
 
-  @Test def testOpNestedHeterogeneousSetExecutable(): Unit = using(Graph()) { graph =>
+  @Test def testNestedHeterogeneousSetExecutable(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
-      // TODO: [CLIENT] Maybe support this in hte future?
+      // TODO: [CLIENT] Maybe support this in the future?
       val op1 = ControlFlow.noOp(name = "NoOp_1")
       val op2 = ControlFlow.noOp(name = "NoOp_2")
       val op3 = ControlFlow.noOp(name = "NoOp_3")
       assertDoesNotCompile("executable(Set(op1, Set(op2, op3))")
+    }
+  }
+
+  @Test def testTupleExecutable(): Unit = using(Graph()) { graph =>
+    Op.createWith(graph) {
+      val op1 = ControlFlow.noOp(name = "NoOp_1")
+      val op2 = ControlFlow.noOp(name = "NoOp_2")
+      val op3 = ControlFlow.noOp(name = "NoOp_3")
+      executable((op1, op2, op3))
+      succeed
+    }
+  }
+
+  @Test def testHeterogeneousNestedTupleExecutable(): Unit = using(Graph()) { graph =>
+    Op.createWith(graph) {
+      val op1 = ControlFlow.noOp(name = "NoOp_1")
+      val op2 = ControlFlow.noOp(name = "NoOp_2")
+      val op3 = ControlFlow.noOp(name = "NoOp_3")
+      executable((op1, (op2, op3)))
+      succeed
+    }
+  }
+
+  @Test def testHeterogeneousNestedTupleSeqExecutable(): Unit = using(Graph()) { graph =>
+    Op.createWith(graph) {
+      val op1 = ControlFlow.noOp(name = "NoOp_1")
+      val op2 = ControlFlow.noOp(name = "NoOp_2")
+      val op3 = ControlFlow.noOp(name = "NoOp_3")
+      executable((op1, Seq(op2, op3)))
+      succeed
     }
   }
 }
