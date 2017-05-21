@@ -16,7 +16,7 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.core.{DeviceSpecification, Graph, Indexer, Shape}
-import org.platanios.tensorflow.api.core.client.{Feedable, Fetchable, Session}
+import org.platanios.tensorflow.api.core.client.{Feedable, Session}
 import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.ops.variables.{VariableScope, VariableStore}
 import org.platanios.tensorflow.api.tensors.Tensor
@@ -1028,10 +1028,7 @@ object Op {
     * @param  op    Op whose output this class represents.
     * @param  index Output index.
     */
-  final case class Output private(op: Op, index: Int)
-      extends OutputLike
-          with Feedable[Tensor]
-          with Fetchable[Tensor] {
+  final case class Output private(op: Op, index: Int) extends OutputLike with Feedable[Tensor] {
     /** Graph where the op belongs. */
     override def graph: Graph = op.graph
 
@@ -1142,10 +1139,6 @@ object Op {
 
     override def toFeedMap(value: Tensor): Map[Op.Output, Tensor] = Map(this -> value)
 
-    override def uniqueFetches: Seq[Output] = Seq(this)
-
-    override def buildResult(values: Seq[Tensor]): Tensor = values.head
-
     override def toString: String = s"Op.Output(name = $name, shape = $shape, dataType = $dataType, device = $device)"
 
     override def equals(that: Any): Boolean = that match {
@@ -1188,9 +1181,7 @@ object Op {
     * @param  denseShape Shape of the corresponding dense [[Op.Output]].
     */
   final case class OutputIndexedSlices private(indices: Op.Output, values: Op.Output, denseShape: Op.Output = null)
-      extends OutputLike
-          with Feedable[(Tensor, Tensor, Tensor)]
-          with Fetchable[(Tensor, Tensor, Tensor)] {
+      extends OutputLike with Feedable[(Tensor, Tensor, Tensor)] {
     /** Graph that contains `values`, `indices`, and `denseShape`. */
     override def graph: Graph = getGraphFromInputs(Set(values, indices, denseShape))
 
@@ -1234,10 +1225,6 @@ object Op {
     override def toFeedMap(value: (Tensor, Tensor, Tensor)): Map[Op.Output, Tensor] = {
       Map(indices -> value._1, values -> value._2, denseShape -> value._3)
     }
-
-    override def uniqueFetches: Seq[Output] = Seq(indices, values, denseShape)
-
-    override def buildResult(values: Seq[Tensor]): (Tensor, Tensor, Tensor) = (values(0), values(1), values(2))
 
     override def toString: String = {
       s"Op.OutputIndexedSlices(values = ${values.name}, indices = ${indices.name}, denseShape = ${denseShape.name}, " +
@@ -1293,9 +1280,7 @@ object Op {
     * @param  denseShape One-dimensional `Int64` tensor with shape `[rank]`.
     */
   final case class SparseOutput private(indices: Op.Output, values: Op.Output, denseShape: Op.Output)
-      extends OutputLike
-          with Feedable[(Tensor, Tensor, Tensor)]
-          with Fetchable[(Tensor, Tensor, Tensor)] {
+      extends OutputLike with Feedable[(Tensor, Tensor, Tensor)] {
     // TODO: Add constructor from scala arrays?
     if (indices.dataType != INT64)
       throw InvalidDataTypeException(
@@ -1345,10 +1330,9 @@ object Op {
       * @return Value of this sparse op output, for this evaluation, represented as tuple containing the indices, the
       *         values, and the dense shape.
       */
-    def value(
-        feeds: Map[Op.Output, Tensor] = Map.empty, session: Session = null): (Tensor, Tensor, Tensor) = {
+    def value(feeds: Map[Op.Output, Tensor] = Map.empty, session: Session = null): (Tensor, Tensor, Tensor) = {
       val effectiveSession = if (session == null) graph.defaultSession else session
-      effectiveSession.run(feeds, (indices, values, denseShape))
+      effectiveSession.run(feeds, this)
     }
 
     override def toOpOutput: Op.Output = {
@@ -1363,10 +1347,6 @@ object Op {
     override def toFeedMap(value: (Tensor, Tensor, Tensor)): Map[Op.Output, Tensor] = {
       Map(indices -> value._1, values -> value._2, denseShape -> value._3)
     }
-
-    override def uniqueFetches: Seq[Output] = Seq(indices, values, denseShape)
-
-    override def buildResult(values: Seq[Tensor]): (Tensor, Tensor, Tensor) = (values(0), values(1), values(2))
 
     override def toString: String = {
       s"Op.OutputIndexedSlices(values = ${values.name}, indices = ${indices.name}, denseShape = ${denseShape.name}, " +

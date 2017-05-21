@@ -30,33 +30,34 @@ final case class Session private (
   private[this] object NativeHandleLock
   private[this] var referenceCount: Int = 0
 
-  def run[T >: Null, E: Executable](
-      feeds: FeedMap = FeedMap.empty, fetches: Fetchable[T] = Fetchable.Empty[T](),
-      targets: E = Traversable.empty[Op], runOptions: Option[Array[Byte]] = None): T = {
+  def run[F, E, R](
+      feeds: FeedMap = FeedMap.empty, fetches: F = Seq.empty[Op.Output],
+      targets: E = Traversable.empty[Op], runOptions: Option[Array[Byte]] = None)
+      (implicit executable: Executable[E], fetchable: Fetchable.Aux[F, R]): R = {
     runHelper(feeds = feeds, fetches = fetches, targets = targets, runOptions = runOptions)._1
   }
 
-  def runWithMetadata[T >: Null, E: Executable](
-      feeds: FeedMap = FeedMap.empty, fetches: Fetchable[T] = Fetchable.Empty[T](),
-      targets: E = Traversable.empty[Op], runOptions: Option[Array[Byte]] = None): (T, Array[Byte]) = {
-    runHelper(
-      feeds = feeds, fetches = fetches, targets = targets, runOptions = runOptions, wantMetadata = true)
+  def runWithMetadata[F, E, R](
+      feeds: FeedMap = FeedMap.empty, fetches: F = Seq.empty[Op.Output],
+      targets: E = Traversable.empty[Op], runOptions: Option[Array[Byte]] = None)
+      (implicit executable: Executable[E], fetchable: Fetchable.Aux[F, R]): (R, Array[Byte]) = {
+    runHelper(feeds = feeds, fetches = fetches, targets = targets, runOptions = runOptions, wantMetadata = true)
   }
 
-  private def runHelper[T >: Null, E: Executable](
-      feeds: FeedMap = FeedMap.empty, fetches: Fetchable[T] = Fetchable.Empty[T](),
-      targets: E = Traversable.empty[Op], runOptions: Option[Array[Byte]] = None,
-      wantMetadata: Boolean = false): (T, Array[Byte]) = {
+  private def runHelper[F, E, R](
+      feeds: FeedMap = FeedMap.empty, fetches: F = Seq.empty[Op.Output],
+      targets: E = Traversable.empty[Op], runOptions: Option[Array[Byte]] = None, wantMetadata: Boolean = false)
+      (implicit executable: Executable[E], fetchable: Fetchable.Aux[F, R]): (R, Array[Byte]) = {
     val (inputs, inputTensors) = feeds.values.toSeq.unzip
     val inputTensorNativeViews = inputTensors.map(_.nativeView)
     val inputTensorHandles: Array[Long] = inputTensorNativeViews.map(_.nativeHandle).toArray
     val inputOpHandles: Array[Long] = inputs.map(_.op.nativeHandle).toArray
     val inputOpIndices: Array[Int] = inputs.map(_.index).toArray
-    val uniqueFetches: Seq[Op.Output] = fetches.uniqueFetches
+    val (uniqueFetches, resultsBuilder) = fetchable.process(fetches)
     val outputOpHandles: Array[Long] = uniqueFetches.map(_.op.nativeHandle).toArray
     val outputOpIndices: Array[Int] = uniqueFetches.map(_.index).toArray
     val outputTensorHandles: Array[Long] = Array.ofDim[Long](uniqueFetches.length)
-    val targetOpHandles: Array[Long] = implicitly[Executable[E]].ops(targets).map(_.nativeHandle).toArray
+    val targetOpHandles: Array[Long] = executable.ops(targets).map(_.nativeHandle).toArray
 
     NativeHandleLock.synchronized {
       if (nativeHandle == 0)
@@ -76,12 +77,7 @@ final case class Session private (
       targetOpHandles = targetOpHandles,
       wantRunMetadata = wantMetadata,
       outputTensorHandles = outputTensorHandles)
-    val outputs: T = {
-      if (outputTensorHandles.length == 0)
-        null
-      else
-        fetches.buildResult(outputTensorHandles.map(Tensor.fromTFNativeHandle))
-    }
+    val outputs: fetchable.R = resultsBuilder(outputTensorHandles.map(Tensor.fromTFNativeHandle))
     NativeHandleLock.synchronized {
       if (nativeHandle != 0) {
         referenceCount -= 1

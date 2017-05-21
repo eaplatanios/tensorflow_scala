@@ -28,47 +28,73 @@ import scala.collection.immutable.TreeMap
   * @author Emmanouil Antonios Platanios
   */
 class FetchableSuite extends JUnitSuite {
-  case class DummyFetchable(uniqueFetchesNumber: Int) extends Fetchable[Tensor] {
-    private[this] val fetches = (0 until uniqueFetchesNumber).map(Basic.constant(_))
-
-    override def uniqueFetches: Seq[Op.Output] = fetches
-    override def buildResult(values: Seq[Tensor]): Tensor = Tensor(values: _*)
+  def process[F, R](fetchable: F)(implicit ev: Fetchable.Aux[F, R]): (Seq[Op.Output], Seq[Tensor] => R) = {
+    ev.process(fetchable)
   }
 
   @Test def testFetchable(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
-      val fetchable1 = DummyFetchable(1)
-      val fetchable2 = DummyFetchable(2)
-      val fetchable3 = DummyFetchable(3)
-      assert(fetchable1.uniqueFetches.length === 1)
-      assert(fetchable1.uniqueFetches(0).name === "Constant:0")
-      assert(fetchable1.buildResult(Seq.fill(1)(Tensor(0))).isInstanceOf[Tensor])
-      assert(fetchable2.uniqueFetches.length === 2)
-      assert(fetchable2.uniqueFetches(0).name === "Constant_1:0")
-      assert(fetchable2.uniqueFetches(1).name === "Constant_2:0")
-      assert(fetchable2.buildResult(Seq.fill(2)(Tensor(0))).isInstanceOf[Tensor])
-      assert(fetchable3.uniqueFetches.length === 3)
-      assert(fetchable3.uniqueFetches(0).name === "Constant_3:0")
-      assert(fetchable3.uniqueFetches(1).name === "Constant_4:0")
-      assert(fetchable3.uniqueFetches(2).name === "Constant_5:0")
-      assert(fetchable3.buildResult(Seq.fill(3)(Tensor(0))).isInstanceOf[Tensor])
+      val fetchable1 = Basic.constant(1.0)
+      val fetchable2 = Op.OutputIndexedSlices(Basic.constant(2.0), Basic.constant(2.0), Basic.constant(2.0))
+      val fetchable3 = Op.SparseOutput(
+        Basic.constant(Tensor(Tensor(2L), Tensor(1L))), Basic.constant(Tensor(2L, 1L)), Basic.constant(Tensor(3L)))
+      val processed1 = process(fetchable1)
+      val processed2 = process(fetchable2)
+      val processed3 = process(fetchable3)
+      assert(processed1._1.length === 1)
+      assert(processed1._1(0).name === "Constant:0")
+      assert(processed1._2(Seq.fill(1)(Tensor(0))).isInstanceOf[Tensor])
+      assert(processed2._1.length === 3)
+      assert(processed2._1(0).name === "Constant_1:0")
+      assert(processed2._1(1).name === "Constant_2:0")
+      assert(processed2._1(2).name === "Constant_3:0")
+      assert(processed2._2(Seq.fill(3)(Tensor(0))).isInstanceOf[(Tensor, Tensor, Tensor)])
+      assert(processed3._1.length === 3)
+      assert(processed3._1(0).name === "Constant_4:0")
+      assert(processed3._1(1).name === "Constant_5:0")
+      assert(processed3._1(2).name === "Constant_6:0")
+      assert(processed3._2(Seq.fill(3)(Tensor(0))).isInstanceOf[(Tensor, Tensor, Tensor)])
     }
   }
 
   @Test def testFetchableSeq(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
-      val fetchable1 = DummyFetchable(1)
-      val fetchable2 = DummyFetchable(2)
-      val fetchable3 = DummyFetchable(3)
-      val fetchableSeqUnique: Fetchable[Seq[Tensor]] = Seq(fetchable1, fetchable2, fetchable3)
-      assert(fetchableSeqUnique.uniqueFetches.length === 6)
-      assert(fetchableSeqUnique.uniqueFetches(0).name === "Constant:0")
-      assert(fetchableSeqUnique.uniqueFetches(1).name === "Constant_1:0")
-      assert(fetchableSeqUnique.uniqueFetches(2).name === "Constant_2:0")
-      assert(fetchableSeqUnique.uniqueFetches(3).name === "Constant_3:0")
-      assert(fetchableSeqUnique.uniqueFetches(4).name === "Constant_4:0")
-      assert(fetchableSeqUnique.uniqueFetches(5).name === "Constant_5:0")
-      val results = fetchableSeqUnique.buildResult(Seq.fill(6)(Tensor(0)))
+      val processedSeq = process(Seq(Basic.constant(1.0), Basic.constant(2.0), Basic.constant(3.0)))
+      assert(processedSeq._1.length === 3)
+      assert(processedSeq._1(0).name === "Constant:0")
+      assert(processedSeq._1(1).name === "Constant_1:0")
+      assert(processedSeq._1(2).name === "Constant_2:0")
+      val results = processedSeq._2(Seq.fill(3)(Tensor(0)))
+      assert(results.length === 3)
+      assert(results(0).isInstanceOf[Tensor])
+      assert(results(1).isInstanceOf[Tensor])
+      assert(results(2).isInstanceOf[Tensor])
+    }
+  }
+
+  @Test def testFetchableList(): Unit = using(Graph()) { graph =>
+    Op.createWith(graph) {
+      val processedList = process(List(Basic.constant(1.0), Basic.constant(2.0), Basic.constant(3.0)))
+      assert(processedList._1.length === 3)
+      assert(processedList._1(0).name === "Constant:0")
+      assert(processedList._1(1).name === "Constant_1:0")
+      assert(processedList._1(2).name === "Constant_2:0")
+      val results = processedList._2(Seq.fill(3)(Tensor(0)))
+      assert(results.length === 3)
+      assert(results(0).isInstanceOf[Tensor])
+      assert(results(1).isInstanceOf[Tensor])
+      assert(results(2).isInstanceOf[Tensor])
+    }
+  }
+
+  @Test def testFetchableArray(): Unit = using(Graph()) { graph =>
+    Op.createWith(graph) {
+      val processedList = process(Array(Basic.constant(1.0), Basic.constant(2.0), Basic.constant(3.0)))
+      assert(processedList._1.length === 3)
+      assert(processedList._1(0).name === "Constant:0")
+      assert(processedList._1(1).name === "Constant_1:0")
+      assert(processedList._1(2).name === "Constant_2:0")
+      val results = processedList._2(Seq.fill(3)(Tensor(0)))
       assert(results.length === 3)
       assert(results(0).isInstanceOf[Tensor])
       assert(results(1).isInstanceOf[Tensor])
@@ -78,19 +104,13 @@ class FetchableSuite extends JUnitSuite {
 
   @Test def testFetchableMap(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
-      val fetchable1 = DummyFetchable(1)
-      val fetchable2 = DummyFetchable(2)
-      val fetchable3 = DummyFetchable(3)
-      val fetchableSeqUnique: Fetchable[Map[String, Tensor]] =
-        Map("1" -> fetchable1, "2" -> fetchable2, "3" -> fetchable3)
-      assert(fetchableSeqUnique.uniqueFetches.length === 6)
-      assert(fetchableSeqUnique.uniqueFetches(0).name === "Constant:0")
-      assert(fetchableSeqUnique.uniqueFetches(1).name === "Constant_1:0")
-      assert(fetchableSeqUnique.uniqueFetches(2).name === "Constant_2:0")
-      assert(fetchableSeqUnique.uniqueFetches(3).name === "Constant_3:0")
-      assert(fetchableSeqUnique.uniqueFetches(4).name === "Constant_4:0")
-      assert(fetchableSeqUnique.uniqueFetches(5).name === "Constant_5:0")
-      val results = fetchableSeqUnique.buildResult(Seq.fill(6)(Tensor(0)))
+      val processedMap = process(
+        TreeMap("1" -> Basic.constant(1.0), "2" -> Basic.constant(2.0), "3" -> Basic.constant(3.0)))
+      assert(processedMap._1.length === 3)
+      assert(processedMap._1(0).name === "Constant:0")
+      assert(processedMap._1(1).name === "Constant_1:0")
+      assert(processedMap._1(2).name === "Constant_2:0")
+      val results = processedMap._2(Seq.fill(3)(Tensor(0)))
       assert(results.size === 3)
       assert(results("1").isInstanceOf[Tensor])
       assert(results("2").isInstanceOf[Tensor])
@@ -100,18 +120,15 @@ class FetchableSuite extends JUnitSuite {
 
   @Test def testFetchableSeqWithDuplicates(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
-      val fetchable1 = DummyFetchable(1)
-      val fetchable2 = DummyFetchable(2)
-      val fetchable3 = DummyFetchable(3)
-      val fetchableSeqUnique: Fetchable[Seq[Tensor]] = Seq(fetchable1, fetchable1, fetchable2, fetchable2, fetchable3)
-      assert(fetchableSeqUnique.uniqueFetches.length === 6)
-      assert(fetchableSeqUnique.uniqueFetches(0).name === "Constant:0")
-      assert(fetchableSeqUnique.uniqueFetches(1).name === "Constant_1:0")
-      assert(fetchableSeqUnique.uniqueFetches(2).name === "Constant_2:0")
-      assert(fetchableSeqUnique.uniqueFetches(3).name === "Constant_3:0")
-      assert(fetchableSeqUnique.uniqueFetches(4).name === "Constant_4:0")
-      assert(fetchableSeqUnique.uniqueFetches(5).name === "Constant_5:0")
-      val results = fetchableSeqUnique.buildResult(Seq.fill(6)(Tensor(0)))
+      val fetchable1 = Basic.constant(1.0)
+      val fetchable2 = Basic.constant(2.0)
+      val fetchable3 = Basic.constant(3.0)
+      val processedSeq = process(Seq(fetchable1, fetchable1, fetchable2, fetchable2, fetchable3))
+      assert(processedSeq._1.length === 3)
+      assert(processedSeq._1(0).name === "Constant:0")
+      assert(processedSeq._1(1).name === "Constant_1:0")
+      assert(processedSeq._1(2).name === "Constant_2:0")
+      val results = processedSeq._2(Seq.fill(3)(Tensor(0)))
       assert(results.length === 5)
       assert(results(0).isInstanceOf[Tensor])
       assert(results(1).isInstanceOf[Tensor])
@@ -123,19 +140,16 @@ class FetchableSuite extends JUnitSuite {
 
   @Test def testFetchableMapWithDuplicates(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
-      val fetchable1 = DummyFetchable(1)
-      val fetchable2 = DummyFetchable(2)
-      val fetchable3 = DummyFetchable(3)
-      val fetchableSeqUnique: Fetchable[Map[String, Tensor]] =
-        TreeMap("1_1" -> fetchable1, "1_2" -> fetchable1, "2_1" -> fetchable2, "2_2" -> fetchable2, "3" -> fetchable3)
-      assert(fetchableSeqUnique.uniqueFetches.length === 6)
-      assert(fetchableSeqUnique.uniqueFetches(0).name === "Constant:0")
-      assert(fetchableSeqUnique.uniqueFetches(1).name === "Constant_1:0")
-      assert(fetchableSeqUnique.uniqueFetches(2).name === "Constant_2:0")
-      assert(fetchableSeqUnique.uniqueFetches(3).name === "Constant_3:0")
-      assert(fetchableSeqUnique.uniqueFetches(4).name === "Constant_4:0")
-      assert(fetchableSeqUnique.uniqueFetches(5).name === "Constant_5:0")
-      val results = fetchableSeqUnique.buildResult(Seq.fill(6)(Tensor(0)))
+      val fetchable1 = Basic.constant(1.0)
+      val fetchable2 = Basic.constant(2.0)
+      val fetchable3 = Basic.constant(3.0)
+      val processedMap = process(
+        TreeMap("1_1" -> fetchable1, "1_2" -> fetchable1, "2_1" -> fetchable2, "2_2" -> fetchable2, "3" -> fetchable3))
+      assert(processedMap._1.length === 3)
+      assert(processedMap._1(0).name === "Constant:0")
+      assert(processedMap._1(1).name === "Constant_1:0")
+      assert(processedMap._1(2).name === "Constant_2:0")
+      val results = processedMap._2(Seq.fill(3)(Tensor(0)))
       assert(results.size === 5)
       assert(results("1_1").isInstanceOf[Tensor])
       assert(results("1_2").isInstanceOf[Tensor])
@@ -145,105 +159,74 @@ class FetchableSuite extends JUnitSuite {
     }
   }
 
-  @Test def testFetchableTuple1(): Unit = using(Graph()) { graph =>
+  @Test def testFetchableNestedSeq(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
-      val fetchable1 = DummyFetchable(1)
-      val fetchableTupleUnique: Fetchable[Tuple1[Tensor]] = Tuple1(fetchable1)
-      assert(fetchableTupleUnique.uniqueFetches.length === 1)
-      assert(fetchableTupleUnique.uniqueFetches(0).name === "Constant:0")
-      val results = fetchableTupleUnique.buildResult(Seq.fill(1)(Tensor(0)))
-      assert(results.isInstanceOf[Tuple1[Tensor]])
-      assert(results._1.isInstanceOf[Tensor])
+      val processedSeq = process(Seq(Seq(Basic.constant(1.0)), Seq(Basic.constant(2.0), Basic.constant(3.0))))
+      assert(processedSeq._1.length === 3)
+      assert(processedSeq._1(0).name === "Constant:0")
+      assert(processedSeq._1(1).name === "Constant_1:0")
+      assert(processedSeq._1(2).name === "Constant_2:0")
+      val results = processedSeq._2(Seq.fill(3)(Tensor(0)))
+      assert(results.length === 2)
+      assert(results(0).length === 1)
+      assert(results(1).length === 2)
+      assert(results(0)(0).isInstanceOf[Tensor])
+      assert(results(1)(0).isInstanceOf[Tensor])
+      assert(results(1)(1).isInstanceOf[Tensor])
     }
   }
 
-  @Test def testFetchableTuple2(): Unit = using(Graph()) { graph =>
+  @Test def testFetchableNestedSeqArray(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
-      val fetchable1 = DummyFetchable(1)
-      val fetchable2 = DummyFetchable(2)
-      val fetchableTupleUnique: Fetchable[(Tensor, Tensor)] = (fetchable1, fetchable2)
-      assert(fetchableTupleUnique.uniqueFetches.length === 3)
-      assert(fetchableTupleUnique.uniqueFetches(0).name === "Constant:0")
-      assert(fetchableTupleUnique.uniqueFetches(1).name === "Constant_1:0")
-      assert(fetchableTupleUnique.uniqueFetches(2).name === "Constant_2:0")
-      val results = fetchableTupleUnique.buildResult(Seq.fill(3)(Tensor(0)))
-      assert(results.isInstanceOf[(Tensor, Tensor)])
-      assert(results._1.isInstanceOf[Tensor])
-      assert(results._2.isInstanceOf[Tensor])
+      val processedSeq = process(Seq(Array(Basic.constant(1.0)), Array(Basic.constant(2.0), Basic.constant(3.0))))
+      assert(processedSeq._1.length === 3)
+      assert(processedSeq._1(0).name === "Constant:0")
+      assert(processedSeq._1(1).name === "Constant_1:0")
+      assert(processedSeq._1(2).name === "Constant_2:0")
+      val results = processedSeq._2(Seq.fill(3)(Tensor(0)))
+      assert(results.length === 2)
+      assert(results(0).length === 1)
+      assert(results(1).length === 2)
+      assert(results(0)(0).isInstanceOf[Tensor])
+      assert(results(1)(0).isInstanceOf[Tensor])
+      assert(results(1)(1).isInstanceOf[Tensor])
     }
   }
 
-  @Test def testFetchableTuple3(): Unit = using(Graph()) { graph =>
+  @Test def testFetchableNestedMapArray(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
-      val fetchable1 = DummyFetchable(1)
-      val fetchable2 = DummyFetchable(2)
-      val fetchable3 = DummyFetchable(3)
-      val fetchableTupleUnique: Fetchable[(Tensor, Tensor, Tensor)] = (fetchable1, fetchable2, fetchable3)
-      assert(fetchableTupleUnique.uniqueFetches.length === 6)
-      assert(fetchableTupleUnique.uniqueFetches(0).name === "Constant:0")
-      assert(fetchableTupleUnique.uniqueFetches(1).name === "Constant_1:0")
-      assert(fetchableTupleUnique.uniqueFetches(2).name === "Constant_2:0")
-      assert(fetchableTupleUnique.uniqueFetches(3).name === "Constant_3:0")
-      assert(fetchableTupleUnique.uniqueFetches(4).name === "Constant_4:0")
-      assert(fetchableTupleUnique.uniqueFetches(5).name === "Constant_5:0")
-      val results = fetchableTupleUnique.buildResult(Seq.fill(6)(Tensor(0)))
-      assert(results.isInstanceOf[(Tensor, Tensor, Tensor)])
-      assert(results._1.isInstanceOf[Tensor])
-      assert(results._2.isInstanceOf[Tensor])
-      assert(results._3.isInstanceOf[Tensor])
+      val processedMap = process(
+        TreeMap("1" -> TreeMap("1" -> Basic.constant(1.0)),
+                "2" -> TreeMap("2" -> Basic.constant(2.0), "3" -> Basic.constant(3.0))))
+      assert(processedMap._1.length === 3)
+      assert(processedMap._1(0).name === "Constant:0")
+      assert(processedMap._1(1).name === "Constant_1:0")
+      assert(processedMap._1(2).name === "Constant_2:0")
+      val results = processedMap._2(Seq.fill(3)(Tensor(0)))
+      assert(results.size === 2)
+      assert(results("1").size === 1)
+      assert(results("2").size === 2)
+      assert(results("1")("1").isInstanceOf[Tensor])
+      assert(results("2")("2").isInstanceOf[Tensor])
+      assert(results("2")("3").isInstanceOf[Tensor])
     }
   }
 
-  @Test def testFetchableTuple4(): Unit = using(Graph()) { graph =>
+  @Test def testFetchableNestedMapSeq(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
-      val fetchable1 = DummyFetchable(1)
-      val fetchable2 = DummyFetchable(2)
-      val fetchable3 = DummyFetchable(3)
-      val fetchable4 = DummyFetchable(1)
-      val fetchableTupleUnique: Fetchable[(Tensor, Tensor, Tensor, Tensor)] =
-        (fetchable1, fetchable2, fetchable3, fetchable4)
-      assert(fetchableTupleUnique.uniqueFetches.length === 7)
-      assert(fetchableTupleUnique.uniqueFetches(0).name === "Constant:0")
-      assert(fetchableTupleUnique.uniqueFetches(1).name === "Constant_1:0")
-      assert(fetchableTupleUnique.uniqueFetches(2).name === "Constant_2:0")
-      assert(fetchableTupleUnique.uniqueFetches(3).name === "Constant_3:0")
-      assert(fetchableTupleUnique.uniqueFetches(4).name === "Constant_4:0")
-      assert(fetchableTupleUnique.uniqueFetches(5).name === "Constant_5:0")
-      assert(fetchableTupleUnique.uniqueFetches(6).name === "Constant_6:0")
-      val results = fetchableTupleUnique.buildResult(Seq.fill(7)(Tensor(0)))
-      assert(results.isInstanceOf[(Tensor, Tensor, Tensor, Tensor)])
-      assert(results._1.isInstanceOf[Tensor])
-      assert(results._2.isInstanceOf[Tensor])
-      assert(results._3.isInstanceOf[Tensor])
-      assert(results._4.isInstanceOf[Tensor])
-    }
-  }
-
-  @Test def testFetchableTuple5(): Unit = using(Graph()) { graph =>
-    Op.createWith(graph) {
-      val fetchable1 = DummyFetchable(1)
-      val fetchable2 = DummyFetchable(2)
-      val fetchable3 = DummyFetchable(3)
-      val fetchable4 = DummyFetchable(1)
-      val fetchable5 = DummyFetchable(1)
-      val fetchableTupleUnique: Fetchable[(Tensor, Tensor, Tensor, Tensor, Tensor)] =
-        (fetchable1, fetchable2, fetchable3, fetchable4, fetchable5)
-      assert(fetchableTupleUnique.uniqueFetches.length === 8)
-      assert(fetchableTupleUnique.uniqueFetches(0).name === "Constant:0")
-      assert(fetchableTupleUnique.uniqueFetches(1).name === "Constant_1:0")
-      assert(fetchableTupleUnique.uniqueFetches(2).name === "Constant_2:0")
-      assert(fetchableTupleUnique.uniqueFetches(3).name === "Constant_3:0")
-      assert(fetchableTupleUnique.uniqueFetches(4).name === "Constant_4:0")
-      assert(fetchableTupleUnique.uniqueFetches(5).name === "Constant_5:0")
-      assert(fetchableTupleUnique.uniqueFetches(6).name === "Constant_6:0")
-      assert(fetchableTupleUnique.uniqueFetches(7).name === "Constant_7:0")
-      val results = fetchableTupleUnique.buildResult(Seq.fill(8)(Tensor(0)))
-      assert(results.isInstanceOf[(Tensor, Tensor, Tensor, Tensor, Tensor)])
-      assert(results._1.isInstanceOf[Tensor])
-      assert(results._2.isInstanceOf[Tensor])
-      assert(results._3.isInstanceOf[Tensor])
-      assert(results._4.isInstanceOf[Tensor])
-      assert(results._5.isInstanceOf[Tensor])
+      val processedMap = process(
+        TreeMap("1" -> Seq(Basic.constant(1.0)), "2" -> Seq(Basic.constant(2.0), Basic.constant(3.0))))
+      assert(processedMap._1.length === 3)
+      assert(processedMap._1(0).name === "Constant:0")
+      assert(processedMap._1(1).name === "Constant_1:0")
+      assert(processedMap._1(2).name === "Constant_2:0")
+      val results = processedMap._2(Seq.fill(3)(Tensor(0)))
+      assert(results.size === 2)
+      assert(results("1").length === 1)
+      assert(results("2").length === 2)
+      assert(results("1")(0).isInstanceOf[Tensor])
+      assert(results("2")(0).isInstanceOf[Tensor])
+      assert(results("2")(1).isInstanceOf[Tensor])
     }
   }
 }
