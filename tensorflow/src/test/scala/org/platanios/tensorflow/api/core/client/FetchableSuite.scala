@@ -212,7 +212,7 @@ class FetchableSuite extends JUnitSuite {
 
   @Test def testFetchableNestedMapSeq(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
-      val processedMap Fetchable.process(
+      val processedMap = Fetchable.process(
         TreeMap("1" -> Seq(Basic.constant(1.0)), "2" -> Seq(Basic.constant(2.0), Basic.constant(3.0))))
       assert(processedMap._1.length === 3)
       assert(processedMap._1(0).name === "Constant:0")
