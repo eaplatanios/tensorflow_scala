@@ -1,9 +1,11 @@
 language: scala
 scala: 2.12.1
 
-os: osx
-osx_image: xcode8.3
+dist: trusty
+sudo: required
+jdk: oraclejdk8
 
 before_install:
-  - wget https://www.dropbox.com/s/zedd75zvay31x6o/libtensorflow.so
-  - sudo cp libtensorflow.so /usr/lib/libtensorflow.so
+  - wget https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-linux-x86_64-1.2.0-rc0.tar.gz
+  - tar xvf libtensorflow-cpu-linux-x86_64-1.2.0-rc0.tar.gz
+  - sudo cp libtensorflow-cpu-linux-x86_64-1.2.0-rc0/lib/libtensorflow.so /usr/lib/libtensorflow.so
