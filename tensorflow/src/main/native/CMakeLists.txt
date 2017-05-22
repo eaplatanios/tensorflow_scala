@@ -28,9 +28,9 @@ include_directories(include)
 include_directories(${JNI_INCLUDE_DIRS})
 
 # Find Native TensorFlow Library to Link
-find_library(LIBTENSORFLOW Tensorflow HINTS ${LD_LIBRARY_PATH})
+find_library(LIBTENSORFLOW tensorflow HINTS ${LD_LIBRARY_PATH})
 if(NOT LIBTENSORFLOW)
-  message(FATAL_ERROR "Library `Tensorflow` not found.")
+  message(FATAL_ERROR "Library `tensorflow` not found.")
 endif()
 
 # Sources
