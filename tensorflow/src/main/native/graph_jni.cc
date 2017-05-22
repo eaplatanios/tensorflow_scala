@@ -15,7 +15,8 @@
 
 #include "include/graph_jni.h"
 
-#include <limits.h>
+#include <limits>
+#include <memory>
 #include <vector>
 
 #include "include/c_api.h"
