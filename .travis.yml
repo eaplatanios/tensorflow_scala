@@ -5,7 +5,9 @@ dist: trusty
 sudo: required
 jdk: oraclejdk8
 
+env:
+  - LD_LIBRARY_PATH=$LD_LIBRARY_PATH:`pwd`/libtensorflow-cpu-linux-x86_64-1.2.0-rc0/lib
+
 before_install:
   - wget https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-linux-x86_64-1.2.0-rc0.tar.gz
   - tar xvf libtensorflow-cpu-linux-x86_64-1.2.0-rc0.tar.gz
-  - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:`pwd`/libtensorflow-cpu-linux-x86_64-1.2.0-rc0/lib
