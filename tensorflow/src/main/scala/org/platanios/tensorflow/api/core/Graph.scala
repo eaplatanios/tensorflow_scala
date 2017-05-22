@@ -683,6 +683,8 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable wi
     * Instances of the `Reference` class should be used to ensure the graph has not been closed while dependent handles
     * are in use. */
   private[api] final case class Reference private() extends Closeable {
+    val graph: Graph = Graph.this
+
     NativeHandleLock.synchronized {
       if (Graph.this.nativeHandle == 0)
         throw new IllegalStateException("close() has been called on the Graph")

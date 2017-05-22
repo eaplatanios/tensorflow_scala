@@ -21,34 +21,95 @@ import org.platanios.tensorflow.api.ops.{Op, OpCreationContext}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.jni.{Session => NativeSession}
 
+import org.tensorflow.framework.{RunMetadata, RunOptions}
+
 import scala.util.DynamicVariable
 
-/**
+/** Sessions provide the client interface for interacting with TensorFlow computations.
+  *
+  * The [[Session]] class enables incremental graph building with inline execution of ops and evaluation of tensors.
+  *
   * @author Emmanouil Antonios Platanios
   */
 final case class Session private (
-    graph: Graph, private val graphReference: Graph#Reference, private var nativeHandle: Long) extends Closeable {
+    private val graphReference: Graph#Reference, private var nativeHandle: Long) extends Closeable {
+  val graph: Graph = graphReference.graph
+
   private[this] object NativeHandleLock
   private[this] var referenceCount: Int = 0
 
+  /** Runs ops and evaluates tensors in `fetches`, and returns the values of the evaluated tensors.
+    *
+    * This method runs one "step" of TensorFlow computation, by running the necessary graph fragment to execute every
+    * `Op` and evaluate every `Op.Output` in `fetches`, substituting the values in `feeds` for the corresponding input
+    * values.
+    *
+    * @param  feeds   Optional feed map. This argument can be used to feed values into a TensorFlow session. It is a map
+    *                 from graph nodes to their corresponding [[Tensor]] values. More specifically, for all allowed
+    *                 types for this argument, please refer to the documentation of the [[Feedable]] type class.
+    * @param  fetches Optional argument specifying which values to fetch from the TensorFlow session. This argument can
+    *                 have various forms and its type defines the return type of this function. Please refer to the
+    *                 documentation of the [[Fetchable]] type class for details on the allowed types.
+    * @param  targets Optional argument specifying which ops to execute in the TensorFlow graph, without returning their
+    *                 value. Please refer to the documentation of the [[Executable]] type class for details on the
+    *                 allowed types of `targets`.
+    * @param  options Optional [[RunOptions]] protocol buffer that allows controlling the behavior of this particular
+    *                 run (e.g., turning tracing on).
+    * @return The evaluated tensors using the structure of `fetches`. For more details on the return type, please refer
+    *         to the documentation of the [[Fetchable]] type class.
+    * @throws IllegalStateException If this session has already been closed.
+    */
+  @throws[IllegalStateException]
   def run[F, E, R](
       feeds: FeedMap = FeedMap.empty, fetches: F = Seq.empty[Op.Output],
-      targets: E = Traversable.empty[Op], runOptions: Option[Array[Byte]] = None)
+      targets: E = Traversable.empty[Op], options: RunOptions = null)
       (implicit executable: Executable[E], fetchable: Fetchable.Aux[F, R]): R = {
-    runHelper(feeds = feeds, fetches = fetches, targets = targets, runOptions = runOptions)._1
+    runHelper(feeds = feeds, fetches = fetches, targets = targets, options = options)._1
   }
 
+  /** Runs ops and evaluates tensors in `fetches`, and returns the values of the evaluated tensors, along with any run
+    * metadata that may have been collected.
+    *
+    * This method runs one "step" of TensorFlow computation, by running the necessary graph fragment to execute every
+    * `Op` and evaluate every `Op.Output` in `fetches`, substituting the values in `feeds` for the corresponding input
+    * values.
+    *
+    * When appropriate (e.g., when users turn on tracing in `options`), the run metadata output of this run will be
+    * collected in a [[RunMetadata]] protocol buffer and returned by this function.
+    *
+    * @param  feeds   Optional feed map. This argument can be used to feed values into a TensorFlow session. It is a map
+    *                 from graph nodes to their corresponding [[Tensor]] values. More specifically, for all allowed
+    *                 types for this argument, please refer to the documentation of the [[Feedable]] type class.
+    * @param  fetches Optional argument specifying which values to fetch from the TensorFlow session. This argument can
+    *                 have various forms and its type defines the return type of this function. Please refer to the
+    *                 documentation of the [[Fetchable]] type class for details on the allowed types.
+    * @param  targets Optional argument specifying which ops to execute in the TensorFlow graph, without returning their
+    *                 value. Please refer to the documentation of the [[Executable]] type class for details on the
+    *                 allowed types of `targets`.
+    * @param  options Optional [[RunOptions]] protocol buffer that allows controlling the behavior of this particular
+    *                 run (e.g., turning tracing on).
+    * @return A tuple containing two elements:
+    *         - The evaluated tensors using the structure of `fetches`. For more details on the return type, please
+    *           refer to the documentation of the [[Fetchable]] type class.
+    *         - A [[RunMetadata]] protocol buffer option containing the collected run metadata, if any.
+    * @throws IllegalStateException If the session has already been closed.
+    */
+  @throws[IllegalStateException]
   def runWithMetadata[F, E, R](
       feeds: FeedMap = FeedMap.empty, fetches: F = Seq.empty[Op.Output],
-      targets: E = Traversable.empty[Op], runOptions: Option[Array[Byte]] = None)
-      (implicit executable: Executable[E], fetchable: Fetchable.Aux[F, R]): (R, Array[Byte]) = {
-    runHelper(feeds = feeds, fetches = fetches, targets = targets, runOptions = runOptions, wantMetadata = true)
+      targets: E = Traversable.empty[Op], options: RunOptions = null)
+      (implicit executable: Executable[E], fetchable: Fetchable.Aux[F, R]): (R, Option[RunMetadata]) = {
+    runHelper(feeds = feeds, fetches = fetches, targets = targets, options = options, wantMetadata = true)
   }
 
-  private def runHelper[F, E, R](
+  /** Helper method for [[run]] and [[runWithMetadata]]. */
+  @throws[IllegalStateException]
+  private[this] def runHelper[F, E, R](
       feeds: FeedMap = FeedMap.empty, fetches: F = Seq.empty[Op.Output],
-      targets: E = Traversable.empty[Op], runOptions: Option[Array[Byte]] = None, wantMetadata: Boolean = false)
-      (implicit executable: Executable[E], fetchable: Fetchable.Aux[F, R]): (R, Array[Byte]) = {
+      targets: E = Traversable.empty[Op], options: RunOptions = null, wantMetadata: Boolean = false)
+      (implicit executable: Executable[E], fetchable: Fetchable.Aux[F, R]): (R, Option[RunMetadata]) = {
+    if (nativeHandle == 0)
+      throw new IllegalStateException("This session has already been closed.")
     val (inputs, inputTensors) = feeds.values.toSeq.unzip
     val inputTensorNativeViews = inputTensors.map(_.nativeView)
     val inputTensorHandles: Array[Long] = inputTensorNativeViews.map(_.nativeHandle).toArray
@@ -59,17 +120,14 @@ final case class Session private (
     val outputOpIndices: Array[Int] = uniqueFetches.map(_.index).toArray
     val outputTensorHandles: Array[Long] = Array.ofDim[Long](uniqueFetches.length)
     val targetOpHandles: Array[Long] = executable.ops(targets).map(_.nativeHandle).toArray
-
     NativeHandleLock.synchronized {
       if (nativeHandle == 0)
         throw new IllegalStateException("close() has been called on the session.")
       referenceCount += 1
     }
-    // It's okay to use Operation.getUnsafeNativeHandle() here since the safety depends on the
-    // validity of the Graph and the graph reference ensures that.
     val metadata: Array[Byte] = NativeSession.run(
       handle = nativeHandle,
-      runOptions = runOptions.getOrElse(Array.empty[Byte]),
+      runOptions = if (options != null) options.toByteArray else Array.empty[Byte],
       inputTensorHandles = inputTensorHandles,
       inputOpHandles = inputOpHandles,
       inputOpIndices = inputOpIndices,
@@ -87,9 +145,11 @@ final case class Session private (
       }
     }
     inputTensorNativeViews.foreach(_.close())
-    (outputs, metadata)
+    (outputs, Option(metadata).map(RunMetadata.parseFrom))
   }
 
+  /** Closes this [[Session]] and releases any resources associated with it. Note that a [[Session]] is not usable after
+    * it has been closed. */
   override def close(): Unit = {
     graphReference.close()
     NativeHandleLock.synchronized {
@@ -100,7 +160,7 @@ final case class Session private (
           } catch {
             case _: InterruptedException =>
               Thread.currentThread().interrupt()
-              // Possible leak of the session and graph in this case?
+              // TODO: [CLIENT] Possible leak of the session and graph in this case?
               return
           }
         }
@@ -111,15 +171,16 @@ final case class Session private (
   }
 }
 
+/** Contains helper functions for managing [[Session]] instances. */
 object Session {
-  def apply(graph: Graph): Session = {
-    val graphReference = graph.reference
-    Session(graph, graphReference, NativeSession.allocate(graphReference.nativeHandle))
-  }
-
   def apply()(implicit context: DynamicVariable[OpCreationContext]): Session = {
     val graph = context.graph
     val graphReference = graph.reference
-    Session(graph, graphReference, NativeSession.allocate(graphReference.nativeHandle))
+    Session(graphReference, NativeSession.allocate(graphReference.nativeHandle))
+  }
+
+  def apply(graph: Graph): Session = {
+    val graphReference = graph.reference
+    Session(graphReference, NativeSession.allocate(graphReference.nativeHandle))
   }
 }

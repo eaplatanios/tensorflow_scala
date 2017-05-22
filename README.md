@@ -138,7 +138,7 @@ then perform the following steps::
      directory that is in `LD_LIBRARY_PATH`, or set `LD_LIBRARY_PATH`
      appropriately.
 
-### Compile the TensorFlow Scala API
+### Compiling the TensorFlow Scala API
 
 After making sure that the TensorFlow dynamic library is in the path, you 
 can compile the Scala API by running the following command from within 

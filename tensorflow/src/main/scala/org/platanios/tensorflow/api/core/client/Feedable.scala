@@ -70,6 +70,8 @@ object Feedable {
 
 /** Represents TensorFlow feed maps for sessions.
   *
+  * TODO: [CLIENT] !!! Use strings as keys.
+  * 
   * @param  values Map from tensors in a graph to their values.
   */
 class FeedMap private[client] (val values: Map[Op.Output, Tensor] = Map.empty) {
