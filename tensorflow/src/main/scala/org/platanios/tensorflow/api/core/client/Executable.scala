@@ -65,7 +65,7 @@ object Executable {
     override def ops(executable: CC[T]): Set[Op] = executable.flatMap(e => Executable[T].ops(e)).toSet
   }
 
-  // This also covers `Op.OutputIndexedSlices` and `Op.SparseOutput` as they are case classes.
+  // This also covers `Op.OutputIndexedSlices` and `Op.SparseOutput` as they are case classes (i.e., products).
   implicit def productExecutable[T <: Product, L <: HList, Ops <: HList](implicit
       gen: Generic.Aux[T, L],
       mapper: Mapper.Aux[getExecutableOps.type, L, Ops],
@@ -79,6 +79,6 @@ object Executable {
 
 private[client] object getExecutableOps extends Poly1 {
   implicit def cases[T](implicit executable: Executable[T]): getExecutableOps.Case.Aux[T, Set[Op]] = {
-    at[T](t => executable.ops(t))
+    at[T](executable.ops)
   }
 }

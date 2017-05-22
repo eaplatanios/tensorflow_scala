@@ -53,7 +53,7 @@ final case class Session private (
     val inputTensorHandles: Array[Long] = inputTensorNativeViews.map(_.nativeHandle).toArray
     val inputOpHandles: Array[Long] = inputs.map(_.op.nativeHandle).toArray
     val inputOpIndices: Array[Int] = inputs.map(_.index).toArray
-    val (uniqueFetches, resultsBuilder) = fetchable.process(fetches)
+    val (uniqueFetches, resultsBuilder) = Fetchable.process(fetches)(fetchable)
     val outputOpHandles: Array[Long] = uniqueFetches.map(_.op.nativeHandle).toArray
     val outputOpIndices: Array[Int] = uniqueFetches.map(_.index).toArray
     val outputTensorHandles: Array[Long] = Array.ofDim[Long](uniqueFetches.length)
@@ -77,7 +77,7 @@ final case class Session private (
       targetOpHandles = targetOpHandles,
       wantRunMetadata = wantMetadata,
       outputTensorHandles = outputTensorHandles)
-    val outputs: fetchable.R = resultsBuilder(outputTensorHandles.map(Tensor.fromTFNativeHandle))
+    val outputs: R = resultsBuilder(outputTensorHandles.map(Tensor.fromTFNativeHandle))
     NativeHandleLock.synchronized {
       if (nativeHandle != 0) {
         referenceCount -= 1

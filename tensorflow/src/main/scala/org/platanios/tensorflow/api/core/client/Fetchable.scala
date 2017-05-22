@@ -16,12 +16,14 @@ package org.platanios.tensorflow.api.core.client
 
 import org.platanios.tensorflow.api.ops.Op
 import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.api.utilities.Collections
+
+import shapeless._
+import shapeless.ops.hlist.Tupler
 
 import scala.collection.{MapLike, SeqLike, mutable}
 import scala.language.higherKinds
 import scala.reflect.ClassTag
-
-// TODO: [CLIENT] !!! Add support for tuples.
 
 /** Fetchables can be executed within a TensorFlow session and have their results returned from [[Session.run]].
   *
@@ -36,6 +38,9 @@ import scala.reflect.ClassTag
   *     - A sequence containing both [[Op.Output]]s and [[Op.SparseOutput]]s, for example, is considered heterogeneous.
   *       For such cases, it is advisable to use tuples.
   *   - Arrays of other [[Fetchable]]s.
+  *   - Products of other [[Fetchable]]s (e.g., tuples).
+  *     - Note that with tuples, heterogeneous types are supported, due to the tuple type being a kind of heterogeneous
+  *       collection.
   * Internally, the fetchable provided to a session will be de-duplicated to prevent redundant computation. This means
   * that ops that appear more than once in the fetchable, will only be executed once by the session.
   *
@@ -46,96 +51,123 @@ import scala.reflect.ClassTag
   * @author Emmanouil Antonios Platanios
   */
 trait Fetchable[T] {
-  type R
-  def process(fetchable: T): (Seq[Op.Output], Seq[Tensor] => R)
+  type ResultType
+
+  def numberOfFetches(fetchable: T): Int
+  def fetches(fetchable: T): Seq[Op.Output]
+  def resultsBuilder(fetchable: T, values: Seq[Tensor]): ResultType = segment(fetchable, values)._1
+  def segment(fetchable: T, values: Seq[Tensor]): (ResultType, Seq[Tensor])
 }
 
 object Fetchable {
-  type Aux[T, Res] = Fetchable[T] {type R = Res}
-
-  // def apply[T](implicit instance: Fetchable[T]): Aux[T, instance.R] = instance
-
-  def instance[T, Res](processor: T => (Seq[Op.Output], Seq[Tensor] => Res)): Aux[T, Res] = {
-    new Fetchable[T] {
-      override type R = Res
-      override def process(fetchable: T): (Seq[Op.Output], Seq[Tensor] => R) = processor(fetchable)
-    }
+  private[client] def process[F, R](fetchable: F)(implicit ev: Aux[F, R]): (Seq[Op.Output], Seq[Tensor] => R) = {
+    val fetches = ev.fetches(fetchable)
+    val (uniqueFetches, indices) = Fetchable.uniquifyFetches(fetches)
+    val resultsBuilder = (values: Seq[Tensor]) => ev.resultsBuilder(fetchable, indices.map(values(_)))
+    (uniqueFetches, resultsBuilder)
   }
 
-  implicit val opOutputFetchable: Aux[Op.Output, Tensor] = instance(f => (Seq(f), v => v.head))
-
-  implicit val opOutputIndexedSlicesFetchable: Aux[Op.OutputIndexedSlices, (Tensor, Tensor, Tensor)] = {
-    instance(f => (Seq(f.indices, f.values, f.denseShape), v => (v(0), v(1), v(2))))
+  private[Fetchable] def uniquifyFetches(fetches: Seq[Op.Output]): (Seq[Op.Output], Seq[Int]) = {
+    val uniqueFetches = mutable.ArrayBuffer.empty[Op.Output]
+    val seenFetches = mutable.Map.empty[Op.Output, Int]
+    val indices = fetches.map(f => seenFetches.getOrElseUpdate(f, {uniqueFetches += f; uniqueFetches.length - 1}))
+    (uniqueFetches, indices)
   }
 
-  implicit val opSparseOutputFetchable: Aux[Op.SparseOutput, (Tensor, Tensor, Tensor)] = {
-    instance(f => (Seq(f.indices, f.values, f.denseShape), v => (v(0), v(1), v(2))))
+  type Aux[T, R] = Fetchable[T] {type ResultType = R}
+
+  implicit val opOutputFetchable: Aux[Op.Output, Tensor] = new Fetchable[Op.Output] {
+    override type ResultType = Tensor
+    override def numberOfFetches(fetchable: Op.Output): Int = 1
+    override def fetches(fetchable: Op.Output): Seq[Op.Output] = Seq(fetchable)
+    override def segment(fetchable: Op.Output, values: Seq[Tensor]): (Tensor, Seq[Tensor]) = (values.head, values.tail)
   }
 
   implicit def fetchableSeq[T, R, CC[A] <: SeqLike[A, CC[A]]](implicit ev: Aux[T, R]): Aux[CC[T], Seq[R]] = {
-    // TODO: [CLIENT] Return CC type instead of Seq.
-    instance(f => {
-      val (fetches, indices, resultsBuilders) = Fetchable.uniquifyFetches(f.toSeq)
-      def resultsBuilder(values: Seq[Tensor]): Seq[R] = {
-        if (fetches.length != values.length)
-          throw new IllegalArgumentException(
-            s"The number of values (${values.length}) must match the number of unique fetches (${fetches.length}).")
-        resultsBuilders.zip(indices).map(f => f._1(f._2.map(values(_))))
+    new Fetchable[CC[T]] {
+      // TODO: [CLIENT] Return CC type instead of Seq.
+      override type ResultType = Seq[R]
+      override def numberOfFetches(fetchable: CC[T]): Int = fetchable.map(ev.numberOfFetches).sum
+      override def fetches(fetchable: CC[T]): Seq[Op.Output] = fetchable.flatMap(ev.fetches).toSeq
+      override def segment(fetchable: CC[T], values: Seq[Tensor]): (Seq[R], Seq[Tensor]) = {
+        val n = numberOfFetches(fetchable)
+        (fetchable.zip(Collections.segment(values.take(n), fetchable.map(ev.numberOfFetches).toSeq))
+            .map(f => ev.resultsBuilder(f._1, f._2)).toSeq, values.drop(n))
       }
-      (fetches, resultsBuilder)
-    })
+    }
   }
 
   implicit def fetchableArray[T, R: ClassTag](implicit ev: Aux[T, R]): Aux[Array[T], Array[R]] = {
-    instance(f => {
-      val (fetches, indices, resultsBuilders) = Fetchable.uniquifyFetches(f)
-      def resultsBuilder(values: Seq[Tensor]): Array[R] = {
-        if (fetches.length != values.length)
-          throw new IllegalArgumentException(
-            s"The number of values (${values.length}) must match the number of unique fetches (${fetches.length}).")
-        resultsBuilders.zip(indices).map(f => f._1(f._2.map(values(_)))).toArray
+    new Fetchable[Array[T]] {
+      override type ResultType = Array[R]
+      override def numberOfFetches(fetchable: Array[T]): Int = fetchable.map(ev.numberOfFetches).sum
+      override def fetches(fetchable: Array[T]): Seq[Op.Output] = fetchable.flatMap(ev.fetches).toSeq
+      override def segment(fetchable: Array[T], values: Seq[Tensor]): (Array[R], Seq[Tensor]) = {
+        val n = numberOfFetches(fetchable)
+        (fetchable.zip(Collections.segment(values.take(n), fetchable.map(ev.numberOfFetches).toSeq))
+            .map(f => ev.resultsBuilder(f._1, f._2)).toArray, values.drop(n))
       }
-      (fetches, resultsBuilder)
-    })
+    }
   }
 
-  implicit def fetchableMap[T, R, CC[K, V] <: MapLike[K, V, CC[K, V]] with Map[K, V]](
-      implicit ev: Aux[T, R]): Aux[CC[String, T], Map[String, R]] = {
-    // TODO: [CLIENT] Return CC type instead of Map.
-    instance(f => {
-      val ff = f.toSeq
-      val (fetches, indices, resultsBuilders) = Fetchable.uniquifyFetches(ff.map(_._2))
-      def resultsBuilder(values: Seq[Tensor]): Map[String, R] = {
-        if (fetches.length != values.length)
-          throw new IllegalArgumentException(
-            s"The number of values (${values.length}) must match the number of unique fetches (${fetches.length}).")
-        ff.map(_._1).zip(resultsBuilders).zip(indices).map(f => f._1._1 -> f._1._2(f._2.map(values(_)))).toMap
+  implicit def fetchableMap[T, R, CC[K, V] <: MapLike[K, V, CC[K, V]] with Map[K, V]]
+  (implicit ev: Aux[T, R]): Aux[CC[String, T], Map[String, R]] = {
+    new Fetchable[CC[String, T]] {
+      // TODO: [CLIENT] Return CC type instead of Map.
+      // TODO: [CLIENT] Make sure key-value pairs order is handled correctly here.
+      override type ResultType = Map[String, R]
+      override def numberOfFetches(fetchable: CC[String, T]): Int = fetchable.values.map(ev.numberOfFetches).sum
+      override def fetches(fetchable: CC[String, T]): Seq[Op.Output] = fetchable.values.flatMap(ev.fetches).toSeq
+      override def segment(fetchable: CC[String, T], values: Seq[Tensor]): (Map[String, R], Seq[Tensor]) = {
+        val n = numberOfFetches(fetchable)
+        (fetchable.keys.zip(
+          fetchable.values
+              .zip(Collections.segment(values.take(n), fetchable.values.map(ev.numberOfFetches).toSeq))
+              .map(f => ev.resultsBuilder(f._1, f._2))).toMap, values.drop(n))
       }
-      (fetches, resultsBuilder)
-    })
+    }
   }
 
-  /** Uniquifies fetches from a sequences of [[Fetchable]]s.
-    *
-    * This is a helper function used by `fetchableSeq` and `fetchableMap`. It gathers all the unique fetches from a
-    * sequence of fetchables and builds a sequence containing all of them, but without duplicates (`fetches`).
-    *
-    * It also returns a nested sequence of integers (`indices`) indicating at which index in `uniqueFetches` the fetches
-    * of the individual fetchables are located. I.e.,
-    * {{{
-    *   indices(fetchableIndex)(fetchableFetchIndex) = fetchesIndex
-    * }}}
-    *
-    * @param  fetchables Sequence of fetchables.
-    * @return Tuple containing a sequence containing the unique fetches and a nested sequence of integers containing the
-    *         value indices.
-    */
-  private[client] def uniquifyFetches[T, R](fetchables: Seq[T])
-      (implicit ev: Fetchable.Aux[T, R]): (Seq[Op.Output], Seq[Seq[Int]], Seq[Seq[Tensor] => R]) = {
-    val fetches = mutable.ArrayBuffer.empty[Op.Output]
-    val seenFetches = mutable.Map.empty[Op.Output, Int]
-    val processed = fetchables.map(ev.process)
-    val indices = processed.map(_._1.map(f => seenFetches.getOrElseUpdate(f, {fetches += f; fetches.length - 1})))
-    (fetches, indices, processed.map(_._2))
+  implicit val hnil: Aux[HNil, HNil] = new Fetchable[HNil] {
+    override type ResultType = HNil
+    override def numberOfFetches(fetchable: HNil): Int = 0
+    override def fetches(fetchable: HNil): Seq[Op.Output] = Seq.empty
+    override def segment(fetchable: HNil, values: Seq[Tensor]): (HNil, Seq[Tensor]) = (HNil, values)
+  }
+
+  implicit def recursiveConstructor[H, R, T <: HList, TO <: HList](implicit
+      fetchableHead: Aux[H, R],
+      fetchableTail: Aux[T, TO]
+  ): Aux[H :: T, R :: TO] = new Fetchable[H :: T] {
+    override type ResultType = R :: TO
+
+    override def numberOfFetches(fetchable: H :: T): Int = {
+      fetchableHead.numberOfFetches(fetchable.head) + fetchableTail.numberOfFetches(fetchable.tail)
+    }
+
+    override def fetches(fetchable: H :: T): Seq[Op.Output] = {
+      fetchableHead.fetches(fetchable.head) ++ fetchableTail.fetches(fetchable.tail)
+    }
+
+    override def segment(fetchable: H :: T, tensors: Seq[Tensor]): (R :: TO, Seq[Tensor]) = {
+      val (headOut, headRemaining) = fetchableHead.segment(fetchable.head, tensors)
+      val (tailOut, tailRemaining) = fetchableTail.segment(fetchable.tail, headRemaining)
+      (headOut :: tailOut, tailRemaining)
+    }
+  }
+
+  // This also covers `Op.OutputIndexedSlices` and `Op.SparseOutput` as they are case classes (i.e., products).
+  implicit def productConstructor[P <: Product, L <: HList, LO <: HList, R](implicit
+      gen: Generic.Aux[P, L],
+      fetchableL: Aux[L, LO],
+      tupler: Tupler.Aux[LO, R]
+  ): Aux[P, R] = new Fetchable[P] {
+    override type ResultType = R
+    override def numberOfFetches(fetchable: P): Int = fetchableL.numberOfFetches(gen.to(fetchable))
+    override def fetches(fetchable: P): Seq[Op.Output] = fetchableL.fetches(gen.to(fetchable))
+    override def segment(p: P, tensors: Seq[Tensor]): (R, Seq[Tensor]) = {
+      val (out, remaining) = fetchableL.segment(gen.to(p), tensors)
+      (tupler(out), remaining)
+    }
   }
 }

@@ -56,6 +56,7 @@ lazy val tensorflow = (project in file("./tensorflow"))
       libraryDependencies += "org.typelevel" %% "spire" % "0.14.1",
       libraryDependencies += "org.tensorflow" % "proto" % tensorFlowVersion,
       libraryDependencies += "org.apache.commons" % "commons-lang3" % "3.5",
+      libraryDependencies += "com.chuusai" %% "shapeless" % "2.3.2",
       // Test dependencies
       libraryDependencies += "junit" % "junit" % "4.12",
       libraryDependencies += "org.scalactic" %% "scalactic" % "3.0.1",

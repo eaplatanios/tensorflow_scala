@@ -29,7 +29,7 @@ import scala.collection.immutable.TreeMap
   */
 class FetchableSuite extends JUnitSuite {
   def process[F, R](fetchable: F)(implicit ev: Fetchable.Aux[F, R]): (Seq[Op.Output], Seq[Tensor] => R) = {
-    ev.process(fetchable)
+    Fetchable.process(fetchable)(ev)
   }
 
   @Test def testFetchable(): Unit = using(Graph()) { graph =>
@@ -227,6 +227,64 @@ class FetchableSuite extends JUnitSuite {
       assert(results("1")(0).isInstanceOf[Tensor])
       assert(results("2")(0).isInstanceOf[Tensor])
       assert(results("2")(1).isInstanceOf[Tensor])
+    }
+  }
+
+  @Test def testFetchableTuple(): Unit = using(Graph()) { graph =>
+    Op.createWith(graph) {
+      val processedTuple = process((Basic.constant(1.0), Basic.constant(2.0)))
+      assert(processedTuple._1.length === 2)
+      assert(processedTuple._1(0).name === "Constant:0")
+      assert(processedTuple._1(1).name === "Constant_1:0")
+      val results = processedTuple._2(Seq.fill(2)(Tensor(0)))
+      assert(results.isInstanceOf[(Tensor, Tensor)])
+      assert(results._1.isInstanceOf[Tensor])
+      assert(results._2.isInstanceOf[Tensor])
+    }
+  }
+
+  @Test def testFetchableNestedTuple(): Unit = using(Graph()) { graph =>
+    Op.createWith(graph) {
+      val processedTuple = process((Basic.constant(1.0), (Basic.constant(2.0), Basic.constant(3.0))))
+      assert(processedTuple._1.length === 3)
+      assert(processedTuple._1(0).name === "Constant:0")
+      assert(processedTuple._1(1).name === "Constant_1:0")
+      assert(processedTuple._1(2).name === "Constant_2:0")
+      val results = processedTuple._2(Seq.fill(3)(Tensor(0)))
+      assert(results.isInstanceOf[(Tensor, (Tensor, Tensor))])
+      assert(results._1.isInstanceOf[Tensor])
+      assert(results._2._1.isInstanceOf[Tensor])
+      assert(results._2._2.isInstanceOf[Tensor])
+    }
+  }
+
+  @Test def testFetchableNestedTupleArray(): Unit = using(Graph()) { graph =>
+    Op.createWith(graph) {
+      val processedTuple = process((Basic.constant(1.0), Array(Basic.constant(2.0), Basic.constant(3.0))))
+      assert(processedTuple._1.length === 3)
+      assert(processedTuple._1(0).name === "Constant:0")
+      assert(processedTuple._1(1).name === "Constant_1:0")
+      assert(processedTuple._1(2).name === "Constant_2:0")
+      val results = processedTuple._2(Seq.fill(3)(Tensor(0)))
+      assert(results.isInstanceOf[(Tensor, Array[Tensor])])
+      assert(results._1.isInstanceOf[Tensor])
+      assert(results._2(0).isInstanceOf[Tensor])
+      assert(results._2(1).isInstanceOf[Tensor])
+    }
+  }
+
+  @Test def testFetchableNestedTupleMap(): Unit = using(Graph()) { graph =>
+    Op.createWith(graph) {
+      val processedTuple = process((Basic.constant(1.0), Map("2" -> Basic.constant(2.0), "3" -> Basic.constant(3.0))))
+      assert(processedTuple._1.length === 3)
+      assert(processedTuple._1(0).name === "Constant:0")
+      assert(processedTuple._1(1).name === "Constant_1:0")
+      assert(processedTuple._1(2).name === "Constant_2:0")
+      val results = processedTuple._2(Seq.fill(3)(Tensor(0)))
+      assert(results.isInstanceOf[(Tensor, Map[String, Tensor])])
+      assert(results._1.isInstanceOf[Tensor])
+      assert(results._2("2").isInstanceOf[Tensor])
+      assert(results._2("3").isInstanceOf[Tensor])
     }
   }
 }
