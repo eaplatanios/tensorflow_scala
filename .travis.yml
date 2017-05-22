@@ -20,7 +20,7 @@ before_install:
   - sudo apt-get install autoconf automake libtool curl make g++ unzip
   - git clone https://github.com/google/protobuf.git
   - cd protobuf
-  - ./configure --prefix=/usr && make & sudo make install && sudo ldconfig
+  - ./autogen.sh && ./configure --prefix=/usr && make & sudo make install && sudo ldconfig
   - wget https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-linux-x86_64-1.2.0-rc0.tar.gz
   - tar xvf libtensorflow-cpu-linux-x86_64-1.2.0-rc0.tar.gz
   - sudo cp lib/libtensorflow.so /usr/lib/libtensorflow.so
