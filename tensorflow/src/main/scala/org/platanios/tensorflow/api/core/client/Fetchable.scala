@@ -39,6 +39,7 @@ import scala.reflect.ClassTag
   *     - A sequence containing both [[Op.Output]]s and [[Op.SparseOutput]]s, for example, is considered heterogeneous.
   *       For such cases, it is advisable to use tuples.
   *   - Arrays of other [[Fetchable]]s.
+  *   - Maps with arbitrary key types and [[Fetchable]] value types.
   *   - Products of other [[Fetchable]]s (e.g., tuples).
   *     - Note that with tuples, heterogeneous types are supported, due to the tuple type being a kind of heterogeneous
   *       collection.
@@ -111,15 +112,15 @@ object Fetchable {
     }
   }
 
-  implicit def fetchableMap[T, R, CC[K, V] <: MapLike[K, V, CC[K, V]] with Map[K, V]]
-  (implicit ev: Aux[T, R]): Aux[CC[String, T], Map[String, R]] = {
-    new Fetchable[CC[String, T]] {
+  implicit def fetchableMap[T, R, MK, CC[K, V] <: MapLike[K, V, CC[K, V]] with Map[K, V]]
+  (implicit ev: Aux[T, R]): Aux[CC[MK, T], Map[MK, R]] = {
+    new Fetchable[CC[MK, T]] {
       // TODO: [CLIENT] Return CC type instead of Map.
       // TODO: [CLIENT] Make sure key-value pairs order is handled correctly here.
-      override type ResultType = Map[String, R]
-      override def numberOfFetches(fetchable: CC[String, T]): Int = fetchable.values.map(ev.numberOfFetches).sum
-      override def fetches(fetchable: CC[String, T]): Seq[Op.Output] = fetchable.values.flatMap(ev.fetches).toSeq
-      override def segment(fetchable: CC[String, T], values: Seq[Tensor]): (Map[String, R], Seq[Tensor]) = {
+      override type ResultType = Map[MK, R]
+      override def numberOfFetches(fetchable: CC[MK, T]): Int = fetchable.values.map(ev.numberOfFetches).sum
+      override def fetches(fetchable: CC[MK, T]): Seq[Op.Output] = fetchable.values.flatMap(ev.fetches).toSeq
+      override def segment(fetchable: CC[MK, T], values: Seq[Tensor]): (Map[MK, R], Seq[Tensor]) = {
         val n = numberOfFetches(fetchable)
         (fetchable.keys.zip(
           fetchable.values
