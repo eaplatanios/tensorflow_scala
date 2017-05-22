@@ -102,8 +102,25 @@ the features, I would really appreciate contributions on the following:
 
 ## Installation
 
+You first need to make sure you have the TensorFlow dynamic library 
+installed. You can either download pre-compiled versions of it, or you 
+can compile it yourself from the TensorFlow sources:
+
+### Downloading the TensorFlow Dynamic Library
+
+You can download it from one of the following links:
+  - **Linux:**
+    - CPU-only: [https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-linux-x86_64-1.2.0-rc0.tar.gz](https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-linux-x86_64-1.2.0-rc0.tar.gz)
+    - GPU-enabled: [https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-gpu-linux-x86_64-1.2.0-rc0.tar.gz](https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-gpu-linux-x86_64-1.2.0-rc0.tar.gz)
+  - **Mac:**
+    - CPU-only: [https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-darwin-x86_64-1.2.0-rc0.tar.gz](https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-darwin-x86_64-1.2.0-rc0.tar.gz)
+  - **Windows:** 
+    - CPU-only: [https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-windows-x86_64-1.2.0-rc0.zip](https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-windows-x86_64-1.2.0-rc0.zip)
+
+### Compiling the TensorFlow Dynamic Library
+
 Make sure you have [CMake](https://cmake.org/install/) installed and
-then perform the following steps:
+then perform the following steps::
   1. Clone this repository in a directory (e.g., `tensorflow_scala`).
   2. Compile the TensorFlow dynamic library by running the following
      commands in the
@@ -121,8 +138,11 @@ then perform the following steps:
      directory that is in `LD_LIBRARY_PATH`, or set `LD_LIBRARY_PATH`
      appropriately.
 
-In order to compile, run the following command from within the
-`tensorflow_scala` directory:
+### Compile the TensorFlow Scala API
+
+After making sure that the TensorFlow dynamic library is in the path, you 
+can compile the Scala API by running the following command from within 
+the `tensorflow_scala` directory:
 
 ```bash
 sbt compile

@@ -1,10 +1,10 @@
 import sbtprotobuf.{ProtobufPlugin => PB}
 
 organization in ThisBuild := "org.platanios"
-version in ThisBuild := "1.1.0"
+version in ThisBuild := "1.2.0-rc0"
 scalaVersion in ThisBuild := "2.12.1"
 
-val tensorFlowVersion = "1.1.0"
+val tensorFlowVersion = "1.2.0-rc0"
 
 scalacOptions in ThisBuild ++= Seq(
   "-feature",
