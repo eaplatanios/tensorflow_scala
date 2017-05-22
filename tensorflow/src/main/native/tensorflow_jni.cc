@@ -15,7 +15,7 @@
 
 #include "include/tensorflow_jni.h"
 
-#include <memory.h>
+#include <memory>
 
 #include "include/c_api.h"
 

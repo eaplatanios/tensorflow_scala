@@ -15,7 +15,7 @@
 
 #include "include/op_jni.h"
 
-#include <memory.h>
+#include <memory>
 #include <string.h>
 #include <stdint.h>
 #include <iostream>
