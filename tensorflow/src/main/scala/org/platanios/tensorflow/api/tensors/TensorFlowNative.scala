@@ -81,8 +81,8 @@ private[api] object TensorFlowNative {
   }
 
   private[api] trait Implicits {
-    private[api] implicit def dataTypeOps(dataType: DataType): DataTypeOps = new DataTypeOps(dataType)
-    private[api] implicit def nativeViewOps(tensor: Tensor): NativeViewOps = new NativeViewOps(tensor)
+    implicit def dataTypeOps(dataType: DataType): DataTypeOps = new DataTypeOps(dataType)
+    implicit def nativeViewOps(tensor: Tensor): NativeViewOps = new NativeViewOps(tensor)
   }
 
   private[api] object Implicits extends Implicits
