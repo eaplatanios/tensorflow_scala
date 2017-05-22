@@ -16,6 +16,7 @@
 #include "include/tensor_jni.h"
 
 #include <algorithm>
+#include <memory>
 
 #include "include/c_api.h"
 #include "include/exception_jni.h"
