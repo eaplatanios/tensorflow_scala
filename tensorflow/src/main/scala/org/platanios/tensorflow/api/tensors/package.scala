@@ -13,20 +13,20 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.ops.training.optimizers
-
-import org.platanios.tensorflow.api.ops.training.optimizers
+package org.platanios.tensorflow.api
 
 /**
   * @author Emmanouil Antonios Platanios
   */
-private[api] trait OptimizerAPI {
-  type Optimizer = optimizers.Optimizer
-  val Optimizer = optimizers.Optimizer
+package object tensors {
+  private[api] trait API {
+    type Tensor = tensors.Tensor
+    type FixedSizeTensor = tensors.FixedSizeTensor
+    type NumericTensor = tensors.NumericTensor
 
-  type GradientDescent = optimizers.GradientDescent
-  val GradientDescent = optimizers.GradientDescent
+    val Tensor = tensors.Tensor
 
-  type AdaGrad = optimizers.AdaGrad
-  val AdaGrad = optimizers.AdaGrad
+    type Order = tensors.Order
+    val RowMajorOrder = tensors.RowMajorOrder
+  }
 }

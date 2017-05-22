@@ -70,6 +70,12 @@ package object api extends Implicits {
 
   //region Public API
 
+  private[api] trait API
+      extends core.API
+          with ops.API
+          with tensors.API
+          with types.API
+
   object tf extends API
 
   //endregion Public API

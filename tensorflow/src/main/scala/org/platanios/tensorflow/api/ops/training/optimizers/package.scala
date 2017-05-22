@@ -13,14 +13,20 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.core.client
-
-import org.platanios.tensorflow.api.core.client
+package org.platanios.tensorflow.api.ops.training
 
 /**
   * @author Emmanouil Antonios Platanios
   */
-trait ClientAPI {
-  type Session = client.Session
-  val Session = client.Session
+package object optimizers {
+  private[api] trait API {
+    type Optimizer = optimizers.Optimizer
+    val Optimizer = optimizers.Optimizer
+
+    type GradientDescent = optimizers.GradientDescent
+    val GradientDescent = optimizers.GradientDescent
+
+    type AdaGrad = optimizers.AdaGrad
+    val AdaGrad = optimizers.AdaGrad
+  }
 }

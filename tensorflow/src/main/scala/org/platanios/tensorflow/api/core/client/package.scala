@@ -13,9 +13,14 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.ops.training
+package org.platanios.tensorflow.api.core
 
 /**
   * @author Emmanouil Antonios Platanios
   */
-private[api] trait TrainingAPI extends optimizers.OptimizerAPI
+package object client {
+  private[api] trait API {
+    type Session = client.Session
+    val Session = client.Session
+  }
+}

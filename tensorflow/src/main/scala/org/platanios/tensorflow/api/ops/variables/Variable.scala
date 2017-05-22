@@ -307,7 +307,7 @@ object Variable {
     *                       variable reside, to deduplicate copying through `Switch` and other conditional statements.
     * @return Requested variable.
     */
-  def getVariable(
+  private[ops] def getVariable(
       name: String, shape: Shape = null, dataType: DataType = FLOAT32, initializer: Initializer = null,
       regularizer: Regularizer = null, trainable: Boolean = true, reuse: java.lang.Boolean = null,
       collections: Set[Graph.Key[Variable]] = Set.empty, cachingDevice: OpSpecification => String = null): Variable = {
@@ -348,7 +348,7 @@ object Variable {
     *                       variable reside, to deduplicate copying through `Switch` and other conditional statements.
     * @return Requested variable.
     */
-  def getPartitionedVariable(
+  private[ops] def getPartitionedVariable(
       name: String, shape: Shape = null, dataType: DataType = FLOAT32, initializer: Initializer = null,
       regularizer: Regularizer = null, partitioner: Partitioner = null, trainable: Boolean = true,
       reuse: java.lang.Boolean = null, collections: Set[Graph.Key[Variable]] = Set.empty,
@@ -385,7 +385,7 @@ object Variable {
     *                       variable reside, to deduplicate copying through `Switch` and other conditional statements.
     * @return Requested variable.
     */
-  def getLocalVariable(
+  private[ops] def getLocalVariable(
       name: String, shape: Shape = null, dataType: DataType = FLOAT32, initializer: Initializer = null,
       regularizer: Regularizer = null, reuse: java.lang.Boolean = null,
       collections: Set[Graph.Key[Variable]] = Set.empty, cachingDevice: OpSpecification => String = null): Variable = {
@@ -425,7 +425,7 @@ object Variable {
     *                       variable reside, to deduplicate copying through `Switch` and other conditional statements.
     * @return Requested variable.
     */
-  def getLocalPartitionedVariable(
+  private[ops] def getLocalPartitionedVariable(
       name: String, shape: Shape, dataType: DataType = FLOAT32, initializer: Initializer = null,
       regularizer: Regularizer = null, partitioner: Partitioner = null, reuse: java.lang.Boolean = null,
       collections: Set[Graph.Key[Variable]] = Set.empty,
@@ -454,7 +454,7 @@ object Variable {
     * @param  name          Created variable name.
     * @return Created variable.
     */
-  def apply(
+  private[ops] def apply(
       initializer: Initializer, shape: Shape = null, dataType: DataType = FLOAT32, trainable: Boolean = true,
       collections: Set[Graph.Key[Variable]] = Set.empty, cachingDevice: OpSpecification => String = null,
       name: String = "Variable"): Variable = {

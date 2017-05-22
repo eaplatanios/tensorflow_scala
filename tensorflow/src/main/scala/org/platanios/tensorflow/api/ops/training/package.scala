@@ -13,20 +13,11 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.tensors
-
-import org.platanios.tensorflow.api.tensors
+package org.platanios.tensorflow.api.ops
 
 /**
   * @author Emmanouil Antonios Platanios
   */
-private[api] trait TensorAPI {
-  type Tensor = tensors.Tensor
-  type FixedSizeTensor = tensors.FixedSizeTensor
-  type NumericTensor = tensors.NumericTensor
-
-  val Tensor = tensors.Tensor
-
-  type Order = tensors.Order
-  val RowMajorOrder = tensors.RowMajorOrder
+package object training {
+  private[api] trait API extends optimizers.API
 }
