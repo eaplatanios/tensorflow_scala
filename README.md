@@ -193,8 +193,8 @@ sbt compile
 ## TODOs
 
 - Improve support for creating string tensors.
-- Revamp the Session API (e.g., using feed mapping implicits).
 - Switch to using JUnit for all tests.
+- Add convenience implicit conversions for shapes (e.g., from tuples or sequences of integers).
 - Create a "Scope" class and companion object.
 - Make casting more efficient with a conditional on the data type and an optional identity op.
 - Add casting (considering type priorities) to the operator overloads.
