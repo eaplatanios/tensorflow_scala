@@ -84,7 +84,25 @@ trait Basic {
     }
   }
 
-  // TODO: Add support for "ImmutableConst".
+  /** Creates an op that returns an immutable tensor from the provided memory region.
+    *
+    * The current implementation memory-maps the tensor from a file.
+    *
+    * @param  dataType         Data type of the resulting tensor.
+    * @param  shape            Shape of the resulting tensor.
+    * @param  memoryRegionName Name of the read-only memory region used by the tensor. Please refer to the C++
+    *                          `NewReadOnlyMemoryRegionFromFile` function in `tensorflow::Env`.
+    * @param  name             Name for the created op.
+    * @return Created op output.
+    */
+  private[ops] def immutableConstant(
+      dataType: DataType, shape: Shape, memoryRegionName: String, name: String = "ImmutableConstant"): Op.Output = {
+    Op.Builder(opType = "ImmutableConst", name = name)
+        .setAttribute("dtype", dataType)
+        .setAttribute("shape", shape)
+        .setAttribute("memory_region_name", memoryRegionName)
+        .build().outputs(0)
+  }
 
   /** Creates an op that returns a tensor with all elements set to zero.
     *
