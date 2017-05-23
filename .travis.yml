@@ -5,12 +5,13 @@ os: linux
 sudo: required
 jdk: oraclejdk8
 
-compiler: clang
-  addons:
-    apt:
-      sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-precise-3.7', 'kalakris-cmake']
-      packages: ['clang-3.7', 'cmake']
-  env: CXX=clang++-3.7
+include:
+  - compiler: clang
+    addons:
+      apt:
+        sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-precise-3.7', 'kalakris-cmake']
+        packages: ['clang-3.7', 'cmake']
+    env: CXX=clang++-3.7
 
 before_install:
   - wget https://github.com/google/protobuf/releases/download/v3.3.0/protoc-3.3.0-linux-x86_64.zip
