@@ -10,13 +10,10 @@ include:
     addons:
       apt:
         sources:
-          - llvm-toolchain-precise
           - ubuntu-toolchain-r-test
         packages:
-          - clang-3.7
-          - g++-5
-          - gcc-5
-    env: CXX=g++-5
+          - g++-4.9
+    env: CXX=g++-4.9
 
 before_install:
   - wget https://cmake.org/files/v3.7/cmake-3.7.2-Linux-x86_64.sh
