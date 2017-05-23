@@ -27,8 +27,8 @@ class MNISTLoaderSpec extends FlatSpec with Matchers {
   Files.createDirectories(directory)
 
   "The MNIST data set loader" must "work" in {
-    val dataSet = MNISTLoader.load(directory)
-    val label0 = dataSet.trainLabels.summarize(10)
-    print(dataSet)
+    // val dataSet = MNISTLoader.load(directory)
+    // val label0 = dataSet.trainLabels.summarize(10)
+    // print(dataSet)
   }
 }
