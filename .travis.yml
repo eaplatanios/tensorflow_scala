@@ -6,14 +6,22 @@ sudo: required
 jdk: oraclejdk8
 
 include:
-  - compiler: clang
+  - compiler: gcc
     addons:
       apt:
-        sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-precise-3.7', 'kalakris-cmake']
-        packages: ['clang-3.7', 'cmake']
-    env: CXX=clang++-3.7
+        sources:
+          - llvm-toolchain-precise
+          - ubuntu-toolchain-r-test
+        packages:
+          - clang-3.7
+          - g++-5
+          - gcc-5
+    env: CXX=g++-5
 
 before_install:
+  - wget https://cmake.org/files/v3.7/cmake-3.7.2-Linux-x86_64.sh
+  - chmod +x cmake-3.7.2-Linux-x86_64.sh
+  - ./cmake-3.7.2-Linux-x86_64.sh --prefix=/usr --exclude-subdir --skip-license
   - wget https://github.com/google/protobuf/releases/download/v3.3.0/protoc-3.3.0-linux-x86_64.zip
   - sudo unzip protoc-3.3.0-linux-x86_64.zip -d /usr
   - wget https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-linux-x86_64-1.2.0-rc0.tar.gz
