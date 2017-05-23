@@ -2,7 +2,6 @@ language: scala
 scala: 2.12.1
 
 os: linux
-sudo: required
 jdk: oraclejdk8
 
 include:
