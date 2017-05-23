@@ -67,7 +67,7 @@ lazy val tensorflow = (project in file("./tensorflow"))
       target in nativeCompile := target.value / "native" / nativePlatform.value,
       // Protobuf settings
       PB.protobufSettings,
-      version in PB.protobufConfig := "3.2.0",
+      version in PB.protobufConfig := "3.3.1",
       libraryDependencies += "com.google.protobuf" % "protobuf-java" % (version in PB.protobufConfig).value % PB.protobufConfig.name,
       sourceDirectory in PB.protobufConfig := sourceDirectory.value / "main" / "proto",
       javaSource in PB.protobufConfig := ((sourceDirectory in Compile).value / "generated" / "java"),

@@ -5,22 +5,18 @@ dist: trusty
 sudo: required
 jdk: oraclejdk8
 
-matrix:
-  include:
-    - compiler: gcc
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
-            - g++-4.9
-      env: CXX=g++-4.9
+include:
+  - compiler: gcc
+    addons:
+      apt:
+        sources:
+          - ubuntu-toolchain-r-test
+        packages:
+          - g++-4.9
+    env: CXX=g++-4.9
 
 before_install:
-  - sudo apt-get install autoconf automake libtool curl make g++ unzip
-  - git clone https://github.com/google/protobuf.git
-  - cd protobuf
-  - ./autogen.sh && ./configure --prefix=/usr && make & sudo make install && sudo ldconfig
+  - wget https://github.com/google/protobuf/releases/download/v3.3.0/protoc-3.3.0-linux-x86_64.zip
+  - sudo unzip protoc-3.3.0-linux-x86_64.zip -d /usr
   - wget https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-linux-x86_64-1.2.0-rc0.tar.gz
-  - tar xvf libtensorflow-cpu-linux-x86_64-1.2.0-rc0.tar.gz
-  - sudo cp lib/libtensorflow.so /usr/lib/libtensorflow.so
+  - sudo tar xvf libtensorflow-cpu-linux-x86_64-1.2.0-rc0.tar.gz -C /usr
