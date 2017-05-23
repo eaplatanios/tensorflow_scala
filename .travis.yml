@@ -1,7 +1,8 @@
 language: scala
 scala: 2.12.1
 
-os: linux
+dist: trusty
+sudo: required
 jdk: oraclejdk8
 
 include:
@@ -15,10 +16,10 @@ include:
     env: CXX=g++-4.9
 
 before_install:
-  - wget https://cmake.org/files/v3.7/cmake-3.7.2-Linux-x86_64.sh
-  - chmod +x cmake-3.7.2-Linux-x86_64.sh
-  - sudo ./cmake-3.7.2-Linux-x86_64.sh --prefix=/usr --exclude-subdir --skip-license
   - wget https://github.com/google/protobuf/releases/download/v3.3.0/protoc-3.3.0-linux-x86_64.zip
   - sudo unzip protoc-3.3.0-linux-x86_64.zip -d /usr
   - wget https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-linux-x86_64-1.2.0-rc0.tar.gz
   - sudo tar xvf libtensorflow-cpu-linux-x86_64-1.2.0-rc0.tar.gz -C /usr
+
+script:
+  - sbt compile
