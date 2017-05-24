@@ -68,6 +68,230 @@ trait Math {
         .build().outputs(0)
   }
 
+  /** Creates an op that constructs a diagonal tensor using the provided diagonal values.
+    *
+    * Given a `diagonal`, this op returns a tensor with that `diagonal` and everything else padded with zeros. The
+    * diagonal is computed as follows:
+    *
+    * Assume that `diagonal` has shape `[D1,..., DK]`. Then the output tensor, `output`, is a rank-`2K` tensor with
+    * shape `[D1, ..., DK, D1, ..., DK]`, where `output(i1, ..., iK, i1, ..., iK) = diagonal(i1, ..., iK)` and `0`
+    * everywhere else.
+    *
+    * For example:
+    * {{{
+    *   // Tensor 'diagonal' is [1, 2, 3, 4]
+    *   diag(diagonal) == [[1, 0, 0, 0], [0, 2, 0, 0], [0, 0, 3, 0], [0, 0, 0, 4]]
+    * }}}
+    *
+    * This op is the inverse of [[diagPart]].
+    *
+    * @param  diagonal Diagonal values, represented as a rank-`K` tensor, where `K` can be at most `3`.
+    * @param  name     Name for the created op.
+    * @return Created op output.
+    * @throws IllegalArgumentException If `diagonal` has rank higher than `3`.
+    */
+  @throws[IllegalArgumentException]
+  def diag(diagonal: Op.Output, name: String = "Diag"): Op.Output = {
+    if (diagonal.rank > 3)
+      throw new IllegalArgumentException(s"The provided tensor (rank = ${diagonal.rank}) can have rank at most 3.")
+    Op.Builder(opType = "Diag", name = name)
+        .addInput(diagonal)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that returns the diagonal part of a tensor.
+    *
+    * This op returns a tensor with the `diagonal` part of the `input`. The `diagonal` part is computed as follows:
+    *
+    * Assume `input` has shape `[D1, ..., DK, D1, ..., DK]`. Then the output is a rank-`K` tensor with shape
+    * `[D1,..., DK]`, where `diagonal(i1, ..., iK) = output(i1, ..., iK, i1, ..., iK)`.
+    *
+    * For example:
+    * {{{
+    *   // Tensor 'input' is [[1, 0, 0, 0], [0, 2, 0, 0], [0, 0, 3, 0], [0, 0, 0, 4]]
+    *   diagPart(input) == [1, 2, 3, 4]
+    * }}}
+    *
+    * This op is the inverse of [[diag]].
+    *
+    * @param  input Rank-`K` input tensor, where `K` is either `2`, `4`, or `6`.
+    * @param  name  Name for the created op.
+    * @return Created op output.
+    * @throws IllegalArgumentException If `input` has rank other than `2`, `4`, or `6`.
+    */
+  @throws[IllegalArgumentException]
+  def diagPart(input: Op.Output, name: String = "DiagPart"): Op.Output = {
+    if (input.rank != 2 && input.rank != 4 && input.rank != 6)
+      throw new IllegalArgumentException(s"The provided tensor (rank = ${input.rank}) can only be 2, 4, or 6.")
+    Op.Builder(opType = "DiagPart", name = name)
+        .addInput(input)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that returns a batched diagonal tensor with the provided batched diagonal values.
+    *
+    * Given a `diagonal`, the op returns a tensor with that `diagonal` and everything else padded with zeros. Assuming
+    * that `diagonal` has `k` dimensions `[I, J, K, ..., N]`, the output is a tensor of rank `k + 1` with dimensions
+    * `[I, J, K, ..., N, N]`, where: `output[i, j, k, ..., m, n] = 1{m=n} * diagonal[i, j, k, ..., n]`.
+    *
+    * For example:
+    * {{{
+    *   // 'diagonal' is a tensor containing the values: [[1, 2, 3, 4], [5, 6, 7, 8]] (shape = [2, 4])
+    *   tf.matrixDiag(diagonal) ==> [[[1, 0, 0, 0]
+    *                                 [0, 2, 0, 0]
+    *                                 [0, 0, 3, 0]
+    *                                 [0, 0, 0, 4]],
+    *                                [[5, 0, 0, 0]
+    *                                 [0, 6, 0, 0]
+    *                                 [0, 0, 7, 0]
+    *                                 [0, 0, 0, 8]]]  // with shape [2, 4, 4]
+    * }}}
+    *
+    * @param  diagonal Rank-`K` input tensor, where `K >= 1`.
+    * @param  name     Name for the created op.
+    * @return Created op output with rank equal to `K + 1` and shape equal to the shape of `diagonal`, with its last
+    *         dimension duplicated.
+    * @throws IllegalArgumentException If `input` has rank higher than `K < 1`.
+    */
+  @throws[IllegalArgumentException]
+  def matrixDiag(diagonal: Op.Output, name: String = "MatrixDiag"): Op.Output = {
+    if (diagonal.rank > -1 && diagonal.rank < 1)
+      throw new IllegalArgumentException(s"The provided tensor (rank = ${diagonal.rank}) must have rank at least 1.")
+    Op.Builder(opType = "MatrixDiag", name = name)
+        .addInput(diagonal)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that returns a batched matrix tensor with new batched diagonal values.
+    *
+    * Given `input` and `diagonal`, the op returns a tensor with the same shape and values as `input`, except for the
+    * main diagonal of its innermost matrices. These diagonals will be overwritten by the values in `diagonal`. Assuming
+    * that `input` has `k + 1` dimensions, `[I, J, K, ..., M, N]`, and `diagonal` has `k` dimensions,
+    * `[I, J, K, ..., min(M, N)]`, then the output is a tensor of rank `k + 1` with dimensions `[I, J, K, ..., M, N]`,
+    * where:
+    *   - `output[i, j, k, ..., m, n] == diagonal[i, j, k, ..., n]`, for `m == n`, and
+    *   - `output[i, j, k, ..., m, n] == input[i, j, k, ..., m, n]`, for `m != n`.
+    *
+    * @param  input    Rank-`K+1` tensor, where `K >= 1`.
+    * @param  diagonal Rank-`K` tensor, where `K >= 1`.
+    * @param  name     Name for the created op.
+    * @return Created op output with rank equal to `K + 1` and shape equal to the shape of `input`.
+    * @throws IllegalArgumentException If `input` has rank `K < 2`, or `diagonal` has rank `K < 1`.
+    */
+  @throws[IllegalArgumentException]
+  def matrixSetDiag(input: Op.Output, diagonal: Op.Output, name: String = "MatrixSetDiag"): Op.Output = {
+    if (input.rank > -1 && input.rank < 2)
+      throw new IllegalArgumentException(s"The provided input tensor (rank = ${input.rank}) must have rank at least 2.")
+    if (diagonal.rank > -1 && diagonal.rank < 1)
+      throw new IllegalArgumentException(
+        s"The provided diagonal tensor (rank = ${diagonal.rank}) must have rank at least 1.")
+    Op.Builder(opType = "MatrixSetDiag", name = name)
+        .addInput(input)
+        .addInput(diagonal)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that returns the batched diagonal part of a batched tensor.
+    *
+    * The op returns a tensor with the `diagonal` part of the batched `input`. Assuming that `input` has `k` dimensions,
+    * `[I, J, K, ..., M, N]`, then the output is a tensor of rank `k - 1` with dimensions `[I, J, K, ..., min(M, N)]`,
+    * where `diagonal[i, j, k, ..., n] == input[i, j, k, ..., n, n]`.
+    *
+    * Note that `input` must have rank of at least `2`.
+    *
+    * For example:
+    * {{{
+    *   // 'input' is a tensor containing the values:
+    *   //   [[[1, 0, 0, 0]
+    *   //     [0, 2, 0, 0]
+    *   //     [0, 0, 3, 0]
+    *   //     [0, 0, 0, 4]],
+    *   //    [[5, 0, 0, 0]
+    *   //     [0, 6, 0, 0]
+    *   //     [0, 0, 7, 0]
+    *   //     [0, 0, 0, 8]]]  with shape [2, 4, 4]
+    *   tf.matrixDiagPart(input) ==> [[1, 2, 3, 4], [5, 6, 7, 8]]  // with shape [2, 4]
+    * }}}
+    *
+    * @param  input Rank-`K` tensor, where `K >= 2`.
+    * @param  name  Name for the created op.
+    * @return Created op output containing the diagonal(s) and having shape equal to
+    *         `input.shape[:-2] + [min(input.shape[-2:])]`.
+    * @throws IllegalArgumentException If `input` has rank `K < 2`.
+    */
+  @throws[IllegalArgumentException]
+  def matrixDiagPart(input: Op.Output, name: String = "MatrixDiagPart"): Op.Output = {
+    if (input.rank > -1 && input.rank < 2)
+      throw new IllegalArgumentException(s"The provided input tensor (rank = ${input.rank}) must have rank at least 2.")
+    Op.Builder(opType = "MatrixDiagPart", name = name)
+        .addInput(input)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that copies a tensor, while setting everything outside a central band in each innermost matrix of
+    * the tensor, to zero.
+    *
+    * Assuming that `input` has `k` dimensions, `[I, J, K, ..., M, N]`, the output is a tensor with the same shape,
+    * where `band[i, j, k, ..., m, n] == indicatorBand(m, n) * input[i, j, k, ..., m, n]`. The indicator function is
+    * defined as:
+    * {{{
+    *   indicatorBand(m, n) = (numSubDiagonals < 0 || m - n <= numSubDiagonals) &&
+    *                         (numSuperDiagonals < 0 || n - m <= numSuperDiagonals)
+    * }}}
+    *
+    * For example:
+    * {{{
+    *   // 'input' is a tensor containing the values:
+    *   //   [[ 0,  1,  2, 3]
+    *   //    [-1,  0,  1, 2]
+    *   //    [-2, -1,  0, 1]
+    *   //    [-3, -2, -1, 0]]
+    *   tf.matrixBandPart(input, 1, -1) ==> [[ 0,  1,  2, 3]
+    *                                        [-1,  0,  1, 2]
+    *                                        [ 0, -1,  0, 1]
+    *                                        [ 0,  0, -1, 0]]
+    *   tf.matrixBandPart(input, 2, 1) ==>  [[ 0,  1,  0, 0]
+    *                                        [-1,  0,  1, 0]
+    *                                        [-2, -1,  0, 1]
+    *                                        [ 0, -2, -1, 0]]
+    * }}}
+    *
+    * Useful special cases:
+    * {{{
+    *   tf.matrixBandPart(input, 0, -1) ==> Upper triangular part
+    *   tf.matrixBandPart(input, -1, 0) ==> Lower triangular part
+    *   tf.matrixBandPart(input, 0, 0)  ==> Diagonal
+    * }}}
+    *
+    * @param  input             Input tensor.
+    * @param  numSubDiagonals   Scalar `INT64` tensor that contains the number of sub-diagonals to keep. If negative,
+    *                           the entire lower triangle is kept.
+    * @param  numSuperDiagonals Scalar `INT64` tensor that contains the number of super-diagonals to keep. If negative,
+    *                           the entire upper triangle is kept.
+    * @param  name              Name for the created op.
+    * @return Created op output which contains the expected banded tensor and has rank `K` and same shape as `input`.
+    * @throws IllegalArgumentException If `numSubDiagonals` or `numSuperDiagonals` are not scalar, or if their data type
+    *                                  is not `INT64`.
+    */
+  @throws[IllegalArgumentException]
+  def matrixBandPart(
+      input: Op.Output, numSubDiagonals: Op.Output, numSuperDiagonals: Op.Output,
+      name: String = "MatrixBandPart"): Op.Output = {
+    if (numSubDiagonals.rank != 0 || numSubDiagonals.dataType != INT64)
+      throw new IllegalArgumentException(
+        s"'numSubDiagonals' (rank = ${numSubDiagonals.rank}, dataType = ${numSubDiagonals.dataType}) " +
+            s"must be a scalar INT64 tensor.")
+    if (numSuperDiagonals.rank != 0 || numSuperDiagonals.dataType != INT64)
+      throw new IllegalArgumentException(
+        s"'numSuperDiagonals' (rank = ${numSuperDiagonals.rank}, dataType = ${numSuperDiagonals.dataType}) " +
+            s"must be a scalar INT64 tensor.")
+    Op.Builder(opType = "MatrixBandPart", name = name)
+        .addInput(input)
+        .addInput(numSubDiagonals)
+        .addInput(numSuperDiagonals)
+        .build().outputs(0)
+  }
+
   /** Creates an op that constructs a sequence of numbers.
     *
     * The op creates a sequence of numbers that begins at `start` and extends by increments of `delta` up to but not

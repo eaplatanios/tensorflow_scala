@@ -297,60 +297,6 @@ trait Basic {
           if (shape == null) placeholder(INT64, Shape(-1), name + "/Shape") else constant(shape.toTensor()))
   }
 
-  /** Creates an op that constructs a diagonal tensor using the provided diagonal values.
-    *
-    * Given a `diagonal`, this op returns a tensor with that `diagonal` and everything else padded with zeros. The
-    * diagonal is computed as follows:
-    *
-    * Assume that `diagonal` has shape `[D1,..., DK]`. Then the output tensor, `output`, is a rank-`2K` tensor with
-    * shape `[D1, ..., DK, D1, ..., DK]`, where `output(i1, ..., iK, i1, ..., iK) = diagonal(i1, ..., iK)` and `0`
-    * everywhere else.
-    *
-    * For example:
-    * {{{
-    *   // Tensor 'diagonal' is [1, 2, 3, 4]
-    *   diag(diagonal) == [[1, 0, 0, 0], [0, 2, 0, 0], [0, 0, 3, 0], [0, 0, 0, 4]]
-    * }}}
-    *
-    * This op is the inverse of [[diagPart]].
-    *
-    * @param  diagonal Diagonal values, represented as a rank-`K` tensor, where `K` can be at most `3`.
-    * @param  name     Name for the created op.
-    * @return Created op output.
-    */
-  def diag(diagonal: Op.Output, name: String = "Diag"): Op.Output = {
-    Op.Builder(opType = "Diag", name = name)
-        .addInput(diagonal)
-        .build().outputs(0)
-  }
-
-  /** Creates an op that returns the diagonal part of a tensor.
-    *
-    * This op returns a tensor with the `diagonal` part of the `input`. The `diagonal` part is computed as follows:
-    *
-    * Assume `input` has shape `[D1, ..., DK, D1, ..., DK]`. Then the output is a rank-`K` tensor with shape
-    * `[D1,..., DK]`, where `diagonal(i1, ..., iK) = output(i1, ..., iK, i1, ..., iK)`.
-    *
-    * For example:
-    * {{{
-    *   // Tensor 'input' is [[1, 0, 0, 0], [0, 2, 0, 0], [0, 0, 3, 0], [0, 0, 0, 4]]
-    *   diagPart(input) == [1, 2, 3, 4]
-    * }}}
-    *
-    * This op is the inverse of [[diag]].
-    *
-    * @param  input Rank-`K` input tensor, where `K` is either `2`, `4`, or `6`.
-    * @param  name  Name for the created op.
-    * @return Created op output.
-    */
-  def diagPart(input: Op.Output, name: String = "DiagPart"): Op.Output = {
-    Op.Builder(opType = "DiagPart", name = name)
-        .addInput(input)
-        .build().outputs(0)
-  }
-
-  // TODO: Add "matrixDiag", "matrixSetDiag", "matrixDiagPart", and "matrixBandPart" ops.
-
   //endregion Tensor Creation Ops
 
   //region Tensor Shape Ops

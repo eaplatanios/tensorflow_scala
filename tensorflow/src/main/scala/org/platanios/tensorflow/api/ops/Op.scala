@@ -1050,6 +1050,9 @@ object Op {
       NativeOp.shape(r.nativeHandle, op.nativeHandle, index).map(_.toInt)
     })
 
+    /** Rank of the tensor that this op output represents. */
+    def rank: Int = shape.rank
+
     /** Sets the shape of this op output to the provided shape.
       *
       * This method can be useful in cases when shape inference fails, but the shape of the op output is known by the
