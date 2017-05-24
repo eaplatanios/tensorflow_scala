@@ -1300,7 +1300,54 @@ trait Basic {
     }
   }
 
-  // TODO: [OPS] Add support for the "sparseMask", and the "sequenceMask" ops.
+  // TODO: [OPS] Add support for the "sparseMask" op.
+
+  /** Creates an op that returns a mask tensor representing the first `N` positions of each row of a matrix.
+    *
+    * For example:
+    * {{{
+    *   // 'lengths' = [1, 3, 2]
+    *   // 'maxLength' = 5
+    *   tf.sequenceMask(lengths, maxLength) ==>
+    *     [[true, false, false, false, false],
+    *      [true,  true,  true, false, false],
+    *      [true,  true, false, false, false]]
+    * }}}
+    *
+    * @param  lengths   One-dimensional integer tensor containing the lengths to keep for each row. If `maxLength` is
+    *                   provided, then all values in `lengths` must be smaller than `maxLength`.
+    * @param  maxLength Scalar integer tensor representing the maximum length of each row. Defaults to the maximum value
+    *                   in `lengths`.
+    * @param  dataType  Data type for the output tensor.
+    * @param  name      Name for the created op.
+    * @return Created op output.
+    * @throws IllegalArgumentException If either `lengths` or `maxLength` have invalid rank.
+    */
+  @throws[IllegalArgumentException]
+  def sequenceMask(
+      lengths: Op.Output, maxLength: Op.Output = null, dataType: DataType = BOOLEAN,
+      name: String = "SequenceMask"): Op.Output = {
+    if (lengths.rank != 1)
+      throw new IllegalArgumentException(s"'lengths' (shape = ${lengths.shape}) must be a one-dimensional tensor.")
+    if (maxLength != null && maxLength.rank != 0)
+      throw new IllegalArgumentException(s"'maxLength' (shape = ${maxLength.shape}) must be a scalar tensor.")
+    val ops = if (maxLength == null) Set(lengths.op) else Set(lengths.op, maxLength.op)
+    Op.createWithNameScope(name, ops) {
+      val maxLen = if (maxLength != null) maxLength else Math.max(lengths)
+      // The basic idea is to compare a range row vector of size 'maxLen', [0, 1, 2, 3, 4], to 'lengths' as a matrix
+      // with one column, [[1], [3], [2]]. Because of broadcasting on both arguments, this comparison results in a
+      // matrix of size [lengths.shape(0), maxLen].
+      val rowVector = Math.range(constant(0, maxLen.dataType), maxLen, constant(1, maxLen.dataType))
+      // Since 'maxLen' >= max(lengths), it is safe to use 'maxLen' as a cast authoritative type. Whenever 'maxLen' fits
+      // into INT32, then so do the elements of 'lengths'.
+      val matrix = Math.cast(expandDims(lengths, 1), maxLen.dataType)
+      val result = Math.less(rowVector, matrix)
+      if (result.dataType == dataType)
+        result
+      else
+        Math.cast(result, dataType)
+    }
+  }
 
   /** Creates an op that finds unique elements in a one-dimensional tensor.
     *
