@@ -21,7 +21,7 @@ import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.{InvalidDataTypeException, InvalidShapeException}
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.tensors.{RowMajorOrder, Tensor}
-import org.platanios.tensorflow.api.types.{BooleanIsSupportedType => _, IntIsSupportedType => _, StringIsSupportedType => _, _}
+import org.platanios.tensorflow.api.types._
 
 import scala.language.postfixOps
 
@@ -430,7 +430,7 @@ trait Basic {
       name: String = "Shape"): Op.Output = {
     val inputShape = input.shape
     if (optimize && inputShape.isFullyDefined)
-      constant(inputShape.toTensor(dataType), name = name) // TODO: [OPTIMIZE]
+      constant(inputShape.toTensor(dataType), name = name)
     else
       Op.Builder(opType = "Shape", name = name)
           .addInput(input)
@@ -960,11 +960,15 @@ trait Basic {
       Op.createWith(nameScope = name) {
         val inputRank = rank(input)
         val reversePermutation = inputRank - constant(1) - Math.range(constant(0), inputRank, constant(1))
-        Op.Builder(opType = "Transpose", name = name)
+        val transposed = Op.Builder(opType = "Transpose", name = name)
             .addInput(input)
             .addInput(reversePermutation)
             .build().outputs(0)
-        // TODO: !!! Set the shape explicitly?
+        // Setting the shape explicitly because tranpose is not handled by the shape function.
+        val inputShape = transposed.op.inputs(0).shape
+        if (inputShape != null && inputShape.rank != -1)
+          transposed.setShape(Shape(inputShape.asArray.reverse: _*))
+        transposed
       }
     } else {
       Op.Builder(opType = "Transpose", name = name)
@@ -1598,7 +1602,83 @@ trait Basic {
         .build().outputs(0)
   }
 
-  // TODO: [OPS] Add support for the "scatterND" op.
+  /** Creates an op that scatters `updates` into a new (initially zero-valued) tensor, according to `indices`.
+    *
+    * The op creates a new tensor by applying sparse `updates` to individual values or slices within a zero-valued
+    * tensor of the given `shape`, according to indices. It is the inverse of the [[gatherND]] op, which extracts values
+    * or slices from a given tensor.
+    *
+    * **WARNING:** The order in which the updates are applied is non-deterministic, and so the output will be
+    * non-deterministic if `indices` contains duplicates.
+    *
+    * `indices` is an integer tensor containing indices into a new tensor of shape `shape`. The last dimension of
+    * `indices` can be at most the rank of `shape`: `indices.shape(-1) <= shape.rank`. The last dimension of `indices`
+    * corresponds to indices into elements (if `indices.shape(-1) == shape.rank`) or slices (if
+    * `indices.shape(-1) < shape.rank`) along dimension `indices.shape(-1)` of `shape`.
+    *
+    * `updates` is a tensor with shape `indices.shape(::-1) + shape(indices.shape(-1)::)`.
+    *
+    * The simplest form of scatter is to insert individual elements in a tensor by index. For example, say we want to
+    * insert `4` scattered elements in a rank-`1` tensor with `8` elements.
+    *
+    * <div style="width:70%; margin:auto; margin-bottom:10px; margin-top:20px;">
+    *   <img style="width:100%" src="https://www.tensorflow.org/images/ScatterNd1.png" alt>
+    * </div>
+    *
+    * In Scala, this scatter operation would look like this:
+    * {{{
+    *   val indices = tf.constant(Tensor(Tensor(4), Tensor(3), Tensor(1), Tensor(7)))
+    *   val updates = tf.constant(Tensor(9, 10, 11, 12))
+    *   val shape = tf.constant(Tensor(8))
+    *   tf.scatterND(indices, updates, shape) ==> [0, 11, 0, 10, 9, 0, 0, 12]
+    * }}}
+    *
+    * We can also, insert entire slices of a higher rank tensor all at once. For example, say we want to insert two
+    * slices in the first dimension of a rank-`3` tensor with two matrices of new values.
+    *
+    * <div style="width:70%; margin:auto; margin-bottom:10px; margin-top:20px;">
+    *   <img style="width:100%" src="https://www.tensorflow.org/images/ScatterNd2.png" alt>
+    * </div>
+    *
+    * In Scala, this scatter operation would look like this:
+    * {{{
+    *   val indices = tf.constant(Tensor(Tensor(0), Tensor(2)))
+    *   val updates = tf.constant(Tensor(Tensor(Tensor(5, 5, 5, 5), Tensor(6, 6, 6, 6),
+    *                                           Tensor(7, 7, 7, 7), Tensor(8, 8, 8, 8))
+    *                                    Tensor(Tensor(5, 5, 5, 5), Tensor(6, 6, 6, 6),
+    *                                           Tensor(7, 7, 7, 7), Tensor(8, 8, 8, 8))))
+    *   val shape = tf.constant(Tensor(4, 4, 4))
+    *   tf.scatterND(indices, updates, shape) ==>
+    *     [[[5, 5, 5, 5], [6, 6, 6, 6], [7, 7, 7, 7], [8, 8, 8, 8]],
+    *      [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]],
+    *      [[5, 5, 5, 5], [6, 6, 6, 6], [7, 7, 7, 7], [8, 8, 8, 8]],
+    *      [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]]
+    * }}}
+    *
+    * @param  indices Indices tensor (must have `INT32` or `INT64` data type).
+    * @param  updates Updates to scatter into the output tensor.
+    * @param  shape   One-dimensional `INT32` or `INT64` tensor specifying the shape of the output tensor.
+    * @param  name    Name for the created op.
+    * @return Created op output.
+    * @throws IllegalArgumentException If `indices` or `shape` have invalid data type, or if `shape` is not a
+    *                                  one-dimensional tensor.
+    */
+  @throws[IllegalArgumentException]
+  def scatterND(indices: Op.Output, updates: Op.Output, shape: Op.Output, name: String = "ScatterND"): Op.Output = {
+    if (indices.dataType != INT32 && indices.dataType != INT64)
+      throw new IllegalArgumentException(
+        s"'indices' (dataType = ${indices.dataType}) must have INT32 or INT64 data type.")
+    if (shape.dataType != INT32 && shape.dataType != INT64)
+      throw new IllegalArgumentException(
+        s"'shape' (dataType = ${shape.dataType}) must have INT32 or INT64 data type.")
+    if (shape.rank > 1)
+      throw new IllegalArgumentException(s"'shape' (shape = ${shape.shape}) must be a one-dimensional tensor.")
+    Op.Builder(opType = "ScatterNd", name = name)
+        .addInput(indices)
+        .addInput(updates)
+        .addInput(shape)
+        .build().outputs(0)
+  }
 
   /** Creates an op that returns a slice from `input`.
     *
@@ -1738,7 +1818,7 @@ trait Basic {
     * @param  name           Name for the created op.
     * @return Created op output.
     */
-  def stridedSlice(
+  private[ops] def stridedSlice(
       input: Op.Output, begin: Op.Output, end: Op.Output, strides: Op.Output = null, beginMask: Int = 0,
       endMask: Int = 0, ellipsisMask: Int = 0, newAxisMask: Int = 0, shrinkAxisMask: Int = 0,
       name: String = "StridedSlice"): Op.Output = {
@@ -1755,7 +1835,66 @@ trait Basic {
         .build().outputs(0)
   }
 
-  // TODO: Add support for the "stridedSliceAssign" op.
+  /** Creates an op that assigns a value to a slice of `input`.
+    *
+    * Note that, currently, `input` is required to be a resource. The arguments of this function work in the same way as
+    * the corresponding arguments of `stridedSlice`.
+    *
+    * **NOTE:** The created op currently does not support broadcasting and so `value`'s shape must be equal to the shape
+    * produced by the slice of `input`.
+    *
+    * @param  input          Resource whose slice is being assigned `value`.
+    * @param  value          Value to assign to the slice of `input`.
+    * @param  begin          One-dimensional integer tensor. `begin(i)` specifies the begin offset into the `i`th range
+    *                        specification. The exact dimension this corresponds to will be determined by context.
+    *                        Out-of-bounds values will be silently clamped. If the `i`th bit of `beginMask` is `1`, then
+    *                        `begin(i)` is ignored and the full range of the appropriate dimension is used instead.
+    *                        Negative values causes indexing to start from the highest element.
+    * @param  end            One-dimensional integer tensor. `end(i)` is like `begin(i)` with the exception that it
+    *                        determines the end offset into the `i`th range specification, and that `endMask` is used to
+    *                        determine full ranges.
+    * @param  strides        One-dimensional integer tensor. `strides(i)` specifies the increment in the `i`th range
+    *                        specification after extracting a given element. Negative indices will reverse the original
+    *                        order. Out-of-bounds values are clamped to `[0, shape(i)) if slice(i) > 0` or
+    *                        `[-1, shape(i) - 1] if slice(i) < 0`.
+    * @param  beginMask      Integer value representing a bitmask where bit `i` being `1` means to ignore the begin
+    *                        value and instead use the largest interval possible. At runtime `begin(i)` will be replaced
+    *                        with `[0, shape(i) - 1) if stride(i) > 0` or `[-1, shape(i) - 1]` if `stride(i) < 0`.
+    * @param  endMask        Integer value analogous to `beginMask`, but for specifying the end offset of the slice.
+    * @param  ellipsisMask   Integer value representing a bitmask where bit `i` being `1` means that the `i`th position
+    *                        is actually an ellipsis. At most one bit can be `1`. If `ellipsisMask == 0`, then an
+    *                        implicit ellipsis mask with value `1 << (m + 1)` is provided. This means that
+    *                        `foo(3 :: 5) == foo(3 :: 5, ---)`. An ellipsis implicitly creates as many range
+    *                        specifications as necessary to fully specify the sliced range for every dimension. For
+    *                        example, for a 4-dimensional tensor `foo` the slice `foo(2, ---, 5 :: 8)` implies
+    *                        `foo(2, ::, ::, 5 :: 8)`.
+    * @param  newAxisMask    Integer value representing a bitmask where bit `i` being `1` means that the `i`th range
+    *                        specification creates a new dimension with size `1`. For example,
+    *                        `foo(0 :: 4, NewAxis, 0 :: 2)` will produce a tensor with shape `[4, 1, 2]`.
+    * @param  shrinkAxisMask Integer value representing a bitmask where bit `i` being `1` means that the `i`th range
+    *                        specification should shrink the dimensionality. `begin` and `end` must imply a slice of
+    *                        size `1` in the dimension. For example, in `foo(0 :: 4, 3, 0 :: 2)` would result in a
+    *                        tensor with shape `[4, 2]`.
+    * @param  name           Name for the created op.
+    * @return Created op output.
+    */
+  private[ops] def stridedSliceAssign(
+      input: Op.Output, value: Op.Output, begin: Op.Output, end: Op.Output, strides: Op.Output = null,
+      beginMask: Int = 0, endMask: Int = 0, ellipsisMask: Int = 0, newAxisMask: Int = 0, shrinkAxisMask: Int = 0,
+      name: String = "StridedSliceAssign"): Op.Output = {
+    Op.Builder(opType = "ResourceStridedSliceAssign", name = name)
+        .addInput(input)
+        .addInput(begin)
+        .addInput(end)
+        .addInput(if (strides != null) onesLike(begin, begin.dataType) else strides)
+        .addInput(value)
+        .setAttribute("begin_mask", beginMask)
+        .setAttribute("end_mask", endMask)
+        .setAttribute("ellipsis_mask", ellipsisMask)
+        .setAttribute("new_axis_mask", newAxisMask)
+        .setAttribute("shrink_axis_mask", shrinkAxisMask)
+        .build().outputs(0)
+  }
 
   //endregion Slice Ops
 
