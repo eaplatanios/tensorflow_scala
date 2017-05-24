@@ -21,7 +21,7 @@ import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.{InvalidDataTypeException, InvalidShapeException}
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.tensors.{RowMajorOrder, Tensor}
-import org.platanios.tensorflow.api.types.{DataType, BOOLEAN, FLOAT32, INT32, INT64, STRING}
+import org.platanios.tensorflow.api.types.{BooleanIsSupportedType => _, IntIsSupportedType => _, StringIsSupportedType => _, _}
 
 import scala.language.postfixOps
 
@@ -1743,7 +1743,124 @@ trait Basic {
         .build().outputs(0)
   }
 
-  // TODO: Add support for the "oneHot" op.
+  /** Creates an op that returns a one-hot tensor.
+    *
+    * The locations represented by indices in `indices` take value `onValue`, while all other locations take value
+    * `offValue`. `onValue` and `offValue` must have matching data types. If `dataType` is also provided, they must be
+    * the same data type as specified by `dataType`.
+    *
+    * If the input `indices` is rank `N`, the output will have rank `N+1`. The new axis is created at dimension `axis`
+    * (which defaults to the last axis).
+    *
+    * If `indices` is a scalar the output shape will be a vector of length `depth`.
+    *
+    * If `indices` is a vector of length `features`, the output shape will be:
+    *   - `[features, depth]`, if `axis == -1`, and
+    *   - `[depth, features]`, if `axis == 0`.
+    *
+    * If `indices` is a matrix (batch) with shape `[batch, features]`, the output shape will be:
+    *   - `[batch, features, depth]`, if `axis == -1`,
+    *   - `[batch, depth, features]`, if `axis == 1`, and
+    *   - `[depth, batch, features]`, if `axis == 0`.
+    *
+    * If `dataType` is not provided, the function will attempt to assume the data type of `onValue` or `offValue`, if
+    * one or both are passed in. If none of `onValue`, `offValue`, or `dataType` are provided, `dataType` will default
+    * to the `FLOAT32` data type.
+    *
+    * Note: If a non-numeric data type output is desired (e.g., `STRING` or `BOOLEAN`), both `onValue` and `offValue`
+    * **must** be provided to `oneHot`.
+    *
+    * For example:
+    * {{{
+    *   // 'indices' = [0, 2, -1, 1]
+    *   // 'depth' = 3
+    *   // 'onValue' = 5.0
+    *   // 'offValue' = 0.0
+    *   // 'axis' = -1
+    *   // The output tensor has shape [4, 3]
+    *   tf.oneHot(indices, depth, onValue, offValue, axis) ==>
+    *     [[5.0, 0.0, 0.0],  // oneHot(0)
+    *      [0.0, 0.0, 5.0],  // oneHot(2)
+    *      [0.0, 0.0, 0.0],  // oneHot(-1)
+    *      [0.0, 5.0, 0.0]]  // oneHot(1)
+    *
+    *   // 'indices' = [[0, 2], [1, -1]]
+    *   // 'depth' = 3
+    *   // 'onValue' = 1.0
+    *   // 'offValue' = 0.0
+    *   // 'axis' = -1
+    *   // The output tensor has shape [2, 2, 3]
+    *   tf.oneHot(indices, depth, onValue, offValue, axis) ==>
+    *     [[[1.0, 0.0, 0.0],   // oneHot(0)
+    *       [0.0, 0.0, 1.0]],  // oneHot(2)
+    *      [[0.0, 1.0, 0.0],   // oneHot(1)
+    *       [0.0, 0.0, 0.0]]]  // oneHot(-1)
+    * }}}
+    *
+    * @param  indices  Tensor containing the indices for the "on" values.
+    * @param  depth    Scalar tensor defining the depth of the one-hot dimension.
+    * @param  onValue  Scalar tensor defining the value to fill in the output `i`th value, when `indices[j] = i`.
+    *                  Defaults to the value `1` with type `dataType`.
+    * @param  offValue Scalar tensor defining the value to fill in the output `i`th value, when `indices[j] != i`.
+    *                  Defaults to the value `0` with type `dataType`.
+    * @param  axis     Axis to fill. Defaults to `-1`, representing the last axis.
+    * @param  dataType Data type of the output tensor. If not provided, the function will attempt to assume the data
+    *                  type of `onValue` or `offValue`, if one or both are passed in. If none of `onValue`, `offValue`,
+    *                  or `dataType` are provided, `dataType` will default to the `FLOAT32` data type.
+    * @param  name     Name for the created op.
+    * @return Created op output.
+    * @throws IllegalArgumentException If the `onValue` data type, the `offValue` data type, and `dataType` are
+    *                                  incompatible, or if `indices` or `depth` have invalid data types or shapes.
+    */
+  @throws[IllegalArgumentException]
+  def oneHot(
+      indices: Op.Output, depth: Op.Output, onValue: Op.Output = null, offValue: Op.Output = null, axis: Int = -1,
+      dataType: DataType = null, name: String = "OneHot"): Op.Output = {
+    if (indices.dataType != UINT8 && indices.dataType != INT32 && indices.dataType != INT64)
+      throw new IllegalArgumentException(s"The indices data type (${indices.dataType}) must be UINT8, INT32, or INT64.")
+    if (depth.dataType != INT32)
+      throw new IllegalArgumentException(s"The depth data type (${depth.dataType}) must be INT32.")
+    if (depth.shape.rank > 0)
+      throw new IllegalArgumentException(s"The depth (shape = ${depth.shape}) must be a scalar tensor.")
+    if (onValue != null && onValue.shape.rank > 0)
+      throw new IllegalArgumentException(s"The 'on' value (shape = ${onValue.shape}) must be a scalar tensor.")
+    if (offValue != null && offValue.shape.rank > 0)
+      throw new IllegalArgumentException(s"The 'off' value (shape = ${offValue.shape}) must be a scalar tensor.")
+    val inferredDataType = {
+      if (dataType != null) {
+        dataType
+      } else {
+        if (onValue != null)
+          onValue.dataType
+        else if (offValue != null)
+          offValue.dataType
+        else
+          FLOAT32
+      }
+    }
+    if (onValue != null && offValue != null && onValue.dataType != offValue.dataType)
+      throw new IllegalArgumentException(
+        s"The provided on value data type (${onValue.dataType}) must match " +
+            s"the provided off value data type (${offValue.dataType}).")
+    Op.createWithNameScope(name, Set(indices.op, depth.op, onValue.op, offValue.op)) {
+      val actualOnValue = if (onValue != null) onValue else constant(1, inferredDataType)
+      val actualOffValue = if (offValue != null) offValue else constant(1, inferredDataType)
+      if (actualOnValue.dataType != inferredDataType)
+        throw new IllegalArgumentException(
+          s"On value data type (${actualOnValue.dataType}) must match the data type $inferredDataType.")
+      if (actualOffValue.dataType != inferredDataType)
+        throw new IllegalArgumentException(
+          s"Off value data type (${actualOffValue.dataType}) must match the data type $inferredDataType.")
+      Op.Builder(opType = "OneHot", name = Op.convertNameScopeToName(Op.currentNameScope))
+          .addInput(indices)
+          .addInput(depth)
+          .addInput(actualOnValue)
+          .addInput(actualOffValue)
+          .setAttribute("axis", axis)
+          .build().outputs(0)
+    }
+  }
+
   // TODO: Add support for all the quantization ops.
 
   //region Broadcasting Ops
