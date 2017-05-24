@@ -1501,7 +1501,7 @@ trait Basic {
     *
     * @param  input   Tensor from which to gather values.
     * @param  indices Tensor containing indices to gather.
-    * @param  name
+    * @param  name    Name for the created op.
     * @return Created op output that contains the values from `input` gathered from indices given by `indices`, with
     *         shape `indices.shape(::-1) + input.shape(indices.shape(-1)::)`.
     */
@@ -1743,7 +1743,7 @@ trait Basic {
         .build().outputs(0)
   }
 
-  // TODO: Add support for the "bitCast" and the "oneHot" ops.
+  // TODO: Add support for the "oneHot" op.
   // TODO: Add support for all the quantization ops.
 
   //region Broadcasting Ops

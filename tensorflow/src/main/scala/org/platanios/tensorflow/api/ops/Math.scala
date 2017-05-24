@@ -389,6 +389,29 @@ trait Math {
     Op.SparseOutput(x.indices, castedValues, x.denseShape)
   }
 
+  /** Creates an op that bitcasts a tensor from one type to another without copying data.
+    *
+    * Given a tensor `input`, the op returns a tensor that has the same buffer data as `input`, but with data type
+    * `dataType`. If the input data type `T` is larger (in terms of number of bytes), then the output data type
+    * `dataType`, then the shape changes from `[...]` to `[..., sizeof(T)/sizeof(dataType)]`. If `T` is smaller than
+    * `dataType`, then the op requires that the rightmost dimension be equal to `sizeof(dataType)/sizeof(T)`. The
+    * shape then changes from `[..., sizeof(type)/sizeof(T)]` to `[...]`.
+    *
+    * *NOTE*: Bitcast is implemented as a low-level cast, so machines with different endian orderings will give
+    * different results.
+    *
+    * @param  input    Input tensor.
+    * @param  dataType Target data type.
+    * @param  name     Name for the created op.
+    * @return Created op output.
+    */
+  def bitcast(input: Op.Output, dataType: DataType, name: String = "Bitcast"): Op.Output = {
+    Op.Builder(opType = "Bitcast", name = name)
+        .addInput(input)
+        .setAttribute("type", dataType)
+        .build().outputs(0)
+  }
+
   @throws[IllegalArgumentException]
   def conjugate(input: Op.Output, name: String = "Conjugate"): Op.Output = {
     if (input.dataType.isComplex) {
