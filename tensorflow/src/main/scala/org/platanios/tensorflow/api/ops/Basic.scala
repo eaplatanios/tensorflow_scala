@@ -1284,7 +1284,406 @@ trait Basic {
         .build().outputs(0)
   }
 
-  // TODO: Add support for the "spaceToBatch", the "batchToSpace", the "spaceToDepth", and the "depthToSpace" ops.
+  /** Creates an op that zero-pads and then rearranges (permutes) blocks of spatial data into batches.
+    *
+    * More specifically, the op outputs a copy of the input tensor where values from the `height` and `width`
+    * dimensions are moved to the `batch` dimension. After the zero-padding, both `height` and `width` of the input must
+    * be divisible by `blockSize` (which must be greater than `1`). This is the reverse functionality to that of
+    * [[batchToSpace]].
+    *
+    * `input` is a `4`-dimensional input tensor with shape `[batch, height, width, depth]`.
+    *
+    * `paddings` has shape `[2, 2]`. It specifies the padding of the input with zeros across the spatial dimensions as
+    * follows: `paddings = [[padTop, padBottom], [padLeft, padRight]]`. The effective spatial dimensions of the
+    * zero-padded input tensor will be:
+    *   - `heightPad = padTop + height + padBottom`
+    *   - `widthPad = padLeft + width + padRight`
+    *
+    * `blockSize` indicates the block size:
+    *   - Non-overlapping blocks of size `blockSize x blockSize` in the height and width dimensions are rearranged into
+    *     the batch dimension at each location.
+    *   - The batch size of the output tensor is `batch * blockSize * blockSize`.
+    *   - Both `heightPad` and `widthPad` must be divisible by `blockSize`.
+    *
+    * The shape of the output will be:
+    * `[batch * blockSize * blockSize, heightPad / blockSize, widthPad / blockSize, depth]`
+    *
+    * Some examples:
+    * {{{
+    *   // === Example #1 ===
+    *   // input = [[[[1], [2]], [[3], [4]]]]  (shape = [1, 2, 2, 1])
+    *   // blockSize = 2
+    *   // paddings = [[0, 0], [0, 0]]
+    *   tf.spaceToBatch(input, blockSize, paddings) ==> [[[[1]]], [[[2]]], [[[3]]], [[[4]]]]  (shape = [4, 1, 1, 1])
+    *
+    *   // === Example #2 ===
+    *   // input = [[[[1, 2, 3], [4,   5,  6]],
+    *   //           [[7, 8, 9], [10, 11, 12]]]]  (shape = [1, 2, 2, 3])
+    *   // blockSize = 2
+    *   // paddings = [[0, 0], [0, 0]]
+    *   tf.spaceToBatch(input, blockSize, paddings) ==>
+    *     [[[1, 2, 3]], [[4, 5, 6]], [[7, 8, 9]], [[10, 11, 12]]]  (shape = [4, 1, 1, 3])
+    *
+    *   // === Example #3 ===
+    *   // input = [[[[ 1],  [2],  [3],  [ 4]],
+    *   //           [[ 5],  [6],  [7],  [ 8]],
+    *   //           [[ 9], [10], [11],  [12]],
+    *   //           [[13], [14], [15],  [16]]]]  (shape = [1, 4, 4, 1])
+    *   // blockSize = 2
+    *   // paddings = [[0, 0], [0, 0]]
+    *   tf.spaceToBatch(input, blockSize, paddings) ==>
+    *     [[[[1], [3]], [[ 9], [11]]],
+    *      [[[2], [4]], [[10], [12]]],
+    *      [[[5], [7]], [[13], [15]]],
+    *      [[[6], [8]], [[14], [16]]]]  (shape = [4, 2, 2, 1])
+    *
+    *   // === Example #4 ===
+    *   // input = [[[[ 1],  [2],  [3],  [ 4]],
+    *   //           [[ 5],  [6],  [7],  [ 8]]],
+    *   //          [[[ 9], [10], [11],  [12]],
+    *   //           [[13], [14], [15],  [16]]]]  (shape = [2, 2, 4, 1])
+    *   // blockSize = 2
+    *   // paddings = [[0, 0], [2, 0]]
+    *   tf.spaceToBatch(input, blockSize, paddings) ==>
+    *     [[[[0], [1], [3]]], [[[0], [ 9], [11]]],
+    *      [[[0], [2], [4]]], [[[0], [10], [12]]],
+    *      [[[0], [5], [7]]], [[[0], [13], [15]]],
+    *      [[[0], [6], [8]]], [[[0], [14], [16]]]]  (shape = [8, 1, 3, 1])
+    * }}}
+    *
+    * @param  input     `4`-dimensional input tensor with shape `[batch, height, width, depth]`.
+    * @param  blockSize Block size which must be greater than `1`.
+    * @param  paddings  `2`-dimensional `INT32` or `INT64` tensor containing non-negative integers with shape `[2, 2]`.
+    * @param  name      Name for the created op.
+    * @return Created op output.
+    * @throws IllegalArgumentException If `input` or `paddings` has an invalid data type or shape.
+    */
+  @throws[IllegalArgumentException]
+  def spaceToBatch(input: Op.Output, blockSize: Int, paddings: Op.Output, name: String = "SpaceToBatch"): Op.Output = {
+    if (input.rank != -1 && input.rank != 4)
+      throw new IllegalArgumentException(s"'input' (shape = ${input.dataType}) must have rank equal to 4.")
+    if (paddings.dataType != INT32 && paddings.dataType != INT64)
+      throw new IllegalArgumentException(
+        s"'paddings' (dataType = ${paddings.dataType}) must have INT32 or INT64 data type.")
+    if (paddings.rank != -1 && paddings.rank != 2)
+      throw new IllegalArgumentException(s"'paddings' (shape = ${paddings.dataType}) must have rank equal to 2.")
+    val result = spaceToBatchND(input, constant(Tensor(blockSize, blockSize)), paddings, name)
+    result.setShape(result.shape.withRank(4))
+    result
+  }
+
+  /** Creates an op that divides "spatial" dimensions `[1, ..., M]` of `input` into a grid of blocks with shape
+    * `blockShape`, and interleaves these blocks with the "batch" dimension (`0`) such that, in the output, the spatial
+    * dimensions `[1, ..., M]` correspond to the position within the grid, and the batch dimension combines both the
+    * position within a spatial block and the original batch position. Prior to division into blocks, the spatial
+    * dimensions of the input are optionally zero padded according to `paddings`. This is the reverse functionality to
+    * that of [[batchToSpaceND]].
+    *
+    * `input` is an `N`-dimensional tensor with shape `inputShape = [batch] + spatialShape + remainingShape`, where
+    * `spatialShape` has `M` dimensions.
+    *
+    * The op is equivalent to the following steps:
+    *   1. Zero-pad the start and end of dimensions `[1, ..., M]` of `input` according to `paddings` to produce `padded`
+    *      of shape `paddedShape`.
+    *   2. Reshape `padded` to `reshapedPadded` of shape:
+    *      {{{
+    *        [batch] +
+    *        [[paddedShape(1) / blockShape(0), blockShape(0), ..., paddedShape(M) / blockShape(M-1), blockShape(M-1)]` +
+    *        remainingShape
+    *      }}}
+    *   3. Permute the dimensions of `reshapedPadded` to produce `permutedReshapedPadded` of shape:
+    *      {{{
+    *        blockShape +
+    *        [batch] +
+    *        [paddedShape(1) / blockShape(0), ..., paddedShape(M) / blockShape(M-1)] +
+    *        remainingShape
+    *      }}}
+    *   4. Reshape `permutedReshapedPadded` to flatten `blockShape` into the batch dimension, producing an output tensor
+    *      of shape:
+    *      {{{
+    *        [batch * product(blockShape)] +
+    *        [paddedShape(1) / blockShape(0), ..., paddedShape(M) / blockShape(M-1)] +
+    *        remainingShape
+    *      }}}
+    *
+    * Among others, this op is useful for reducing atrous convolution to regular convolution.
+    *
+    * Some examples:
+    * {{{
+    *   // === Example #1 ===
+    *   // input = [[[[1], [2]], [[3], [4]]]]  (shape = [1, 2, 2, 1])
+    *   // blockShape = [2, 2]
+    *   // paddings = [[0, 0], [0, 0]]
+    *   tf.spaceToBatchND(input, blockShape, paddings) ==> [[[[1]]], [[[2]]], [[[3]]], [[[4]]]]  (shape = [4, 1, 1, 1])
+    *
+    *   // === Example #2 ===
+    *   // input = [[[[1, 2, 3], [4, 5, 6]],
+    *   //           [[7, 8, 9], [10, 11, 12]]]]  (shape = [1, 2, 2, 3])
+    *   // blockShape = [2, 2]
+    *   // paddings = [[0, 0], [0, 0]]
+    *   tf.spaceToBatchND(input, blockShape, paddings) ==>
+    *     [[[1, 2, 3]], [[4, 5, 6]], [[7, 8, 9]], [[10, 11, 12]]]  (shape = [4, 1, 1, 3])
+    *
+    *   // === Example #3 ===
+    *   // input = [[[[ 1],  [2],  [3],  [ 4]],
+    *   //           [[ 5],  [6],  [7],  [ 8]],
+    *   //           [[ 9], [10], [11],  [12]],
+    *   //           [[13], [14], [15],  [16]]]]  (shape = [1, 4, 4, 1])
+    *   // blockShape = [2, 2]
+    *   // paddings = [[0, 0], [0, 0]]
+    *   tf.spaceToBatchND(input, blockShape, paddings) ==>
+    *     [[[[1], [3]], [[ 9], [11]]],
+    *      [[[2], [4]], [[10], [12]]],
+    *      [[[5], [7]], [[13], [15]]],
+    *      [[[6], [8]], [[14], [16]]]]  (shape = [4, 2, 2, 1])
+    *
+    *   // === Example #4 ===
+    *   // input = [[[[ 1],  [2],  [3],  [ 4]],
+    *   //           [[ 5],  [6],  [7],  [ 8]]],
+    *   //          [[[ 9], [10], [11],  [12]],
+    *   //           [[13], [14], [15],  [16]]]]  (shape = [2, 2, 4, 1])
+    *   // blockShape = [2, 2]
+    *   // paddings = [[0, 0], [2, 0]]
+    *   tf.spaceToBatchND(input, blockShape, paddings) ==>
+    *     [[[[0], [1], [3]]], [[[0], [ 9], [11]]],
+    *      [[[0], [2], [4]]], [[[0], [10], [12]]],
+    *      [[[0], [5], [7]]], [[[0], [13], [15]]],
+    *      [[[0], [6], [8]]], [[[0], [14], [16]]]]  (shape = [8, 1, 3, 1])
+    * }}}
+    *
+    * @param  input      `N`-dimensional tensor with shape `inputShape = [batch] + spatialShape + remainingShape`, where
+    *                    spatialShape has `M` dimensions.
+    * @param  blockShape One-dimensional `INT32` or `INT64` tensor with shape `[M]` whose elements must all be `>= 1`.
+    * @param  paddings   Two-dimensional `INT32` or `INT64` tensor with shape `[M, 2]` whose elements must all be
+    *                    non-negative. `paddings(i) = [padStart, padEnd]` specifies the padding for input dimension
+    *                    `i + 1`, which corresponds to spatial dimension `i`. It is required that `blockShape(i)`
+    *                    divides `inputShape(i + 1) + padStart + padEnd`.
+    * @param  name       Name for the created op.
+    * @return Created op output.
+    * @throws IllegalArgumentException If `blockShape` or `paddings` has an invalid data type or shape.
+    */
+  @throws[IllegalArgumentException]
+  def spaceToBatchND(
+      input: Op.Output, blockShape: Op.Output, paddings: Op.Output, name: String = "SpaceToBatchND"): Op.Output = {
+    if (blockShape.dataType != INT32 && blockShape.dataType != INT64)
+      throw new IllegalArgumentException(
+        s"'blockShape' (dataType = ${blockShape.dataType}) must have INT32 or INT64 data type.")
+    if (blockShape.rank != -1 && blockShape.rank != 1)
+      throw new IllegalArgumentException(s"'blockShape' (shape = ${blockShape.dataType}) must have rank equal to 1.")
+    if (paddings.dataType != INT32 && paddings.dataType != INT64)
+      throw new IllegalArgumentException(
+        s"'paddings' (dataType = ${paddings.dataType}) must have INT32 or INT64 data type.")
+    if (paddings.rank != -1 && paddings.rank != 2)
+      throw new IllegalArgumentException(s"'paddings' (shape = ${paddings.dataType}) must have rank equal to 2.")
+    Op.Builder(opType = "SpaceToBatchND", name = name)
+        .addInput(input)
+        .addInput(blockShape)
+        .addInput(paddings)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that rearranges (permutes) data from batches into blocks of spatial data, followed by cropping.
+    *
+    * More specifically, the op outputs a copy of the input tensor where values from the `batch` dimension are moved in
+    * spatial blocks to the `height` and `width` dimensions, followed by cropping along the `height` and `width`
+    * dimensions. This is the reverse functionality to that of [[spaceToBatch]].
+    *
+    * `input` is a `4`-dimensional input tensor with shape
+    * `[batch * blockSize * blockSize, heightPad / blockSize, widthPad / blockSize, depth]`.
+    *
+    * `crops` has shape `[2, 2]`. It specifies how many elements to crop from the intermediate result across the spatial
+    * dimensions as follows: `crops = [[cropTom, cropBottom], [cropLeft, cropRight]]`. The shape of the output will be:
+    * `[batch, heightPad - cropTom - cropBottom, widthPad - cropLeft - cropRight, depth]`
+    *
+    * Some examples:
+    * {{{
+    *   // === Example #1 ===
+    *   // input = [[[[1]]], [[[2]]], [[[3]]], [[[4]]]]  (shape = [4, 1, 1, 1])
+    *   // blockSize = 2
+    *   // crops = [[0, 0], [0, 0]]
+    *   tf.batchToSpace(input, blockSize, crops) ==> [[[[1], [2]], [[3], [4]]]]  (shape = [1, 2, 2, 1])
+    *
+    *   // === Example #2 ===
+    *   // input = [[[1, 2, 3]], [[4, 5, 6]], [[7, 8, 9]], [[10, 11, 12]]]  (shape = [4, 1, 1, 3])
+    *   // blockSize = 2
+    *   // crops = [[0, 0], [0, 0]]
+    *   tf.batchToSpace(input, blockSize, crops) ==>
+    *     [[[[1, 2, 3], [4,   5,  6]],
+    *       [[7, 8, 9], [10, 11, 12]]]]  (shape = [1, 2, 2, 3])
+    *
+    *   // === Example #3 ===
+    *   // input = [[[[1], [3]], [[ 9], [11]]],
+    *   //          [[[2], [4]], [[10], [12]]],
+    *   //          [[[5], [7]], [[13], [15]]],
+    *   //          [[[6], [8]], [[14], [16]]]]  (shape = [4, 2, 2, 1])
+    *   // blockSize = 2
+    *   // crops = [[0, 0], [0, 0]]
+    *   tf.batchToSpace(input, blockSize, crops) ==>
+    *     [[[[ 1],  [2],  [3],  [ 4]],
+    *       [[ 5],  [6],  [7],  [ 8]],
+    *       [[ 9], [10], [11],  [12]],
+    *       [[13], [14], [15],  [16]]]]  (shape = [1, 4, 4, 1])
+    *
+    *   // === Example #4 ===
+    *   // input = [[[[0], [1], [3]]], [[[0], [ 9], [11]]],
+    *   //          [[[0], [2], [4]]], [[[0], [10], [12]]],
+    *   //          [[[0], [5], [7]]], [[[0], [13], [15]]],
+    *   //          [[[0], [6], [8]]], [[[0], [14], [16]]]]  (shape = [8, 1, 3, ])
+    *   // blockSize = 2
+    *   // crops = [[0, 0], [2, 0]]
+    *   tf.batchToSpace(input, blockSize, crops) ==>
+    *     [[[[ 1],  [2],  [3],  [ 4]],
+    *       [[ 5],  [6],  [7],  [ 8]]],
+    *      [[[ 9], [10], [11],  [12]],
+    *       [[13], [14], [15],  [16]]]]  (shape = [2, 2, 4, 1])
+    * }}}
+    *
+    * @param  input     `4`-dimensional input tensor with shape `[batch, height, width, depth]`.
+    * @param  blockSize Block size which must be greater than `1`.
+    * @param  crops     `2`-dimensional `INT32` or `INT64` tensor containing non-negative integers with shape `[2, 2]`.
+    * @param  name      Name for the created op.
+    * @return Created op output.
+    * @throws IllegalArgumentException If `input` or `crops` has an invalid data type or shape.
+    */
+  @throws[IllegalArgumentException]
+  def batchToSpace(input: Op.Output, blockSize: Int, crops: Op.Output, name: String = "BatchToSpace"): Op.Output = {
+    if (input.rank != -1 && input.rank != 4)
+      throw new IllegalArgumentException(s"'input' (shape = ${input.dataType}) must have rank equal to 4.")
+    if (crops.dataType != INT32 && crops.dataType != INT64)
+      throw new IllegalArgumentException(
+        s"'crops' (dataType = ${crops.dataType}) must have INT32 or INT64 data type.")
+    if (crops.rank != -1 && crops.rank != 2)
+      throw new IllegalArgumentException(s"'crops' (shape = ${crops.dataType}) must have rank equal to 2.")
+    val result = batchToSpaceND(input, constant(Tensor(blockSize, blockSize)), crops, name)
+    result.setShape(result.shape.withRank(4))
+    result
+  }
+
+  /** Creates an op that reshapes the "batch" dimension `0` into `M + 1` dimensions of shape `blockShape + [batch]` and
+    * interleaves these blocks back into the grid defined by the spatial dimensions `[1, ..., M]`, to obtain a result
+    * with the same rank as the input. The spatial dimensions of this intermediate result are then optionally cropped
+    * according to `crops` to produce the output. This is the reverse functionality to that of [[spaceToBatchND]].
+    *
+    * `input` is an `N`-dimensional tensor with shape `inputShape = [batch] + spatialShape + remainingShape`, where
+    * `spatialShape` has `M` dimensions.
+    *
+    * The op is equivalent to the following steps:
+    *   1. Reshape `input` to `reshaped` of shape:
+    *      {{{
+    *        [blockShape(0), ..., blockShape(M-1),
+    *        batch / product(blockShape),
+    *        inputShape(1), ..., inputShape(N-1)]
+    *      }}}
+    *   2. Permute dimensions of `reshaped` to produce `permuted` of shape:
+    *      {{{
+    *        [batch / product(blockShape),
+    *        inputShape(1), blockShape(0),
+    *        ...,
+    *        inputShape(N-1), blockShape(M-1),
+    *        inputShape(M+1),
+    *        ...,
+    *        inputShape(N-1)]
+    *      }}}
+    *   3. Reshape `permuted` to produce `reshapedPermuted` of shape:
+    *      {{{
+    *        [batch / product(blockShape),
+    *        inputShape(1) * blockShape(0),
+    *        ...,
+    *        inputShape(M) * blockShape(M-1),
+    *        ...,
+    *        inputShape(M+1),
+    *        ...,
+    *        inputShape(N-1)]
+    *      }}}
+    *   4. Crop the start and end of dimensions `[1, ..., M]` of `reshapedPermuted` according to `crops` to produce the
+    *      output of shape:
+    *      {{{
+    *        [batch / product(blockShape),
+    *         inputShape(1) * blockShape(0) - crops(0, 0) - crops(0, 1),
+    *        ...,
+    *        inputShape(M) * blockShape(M-1) - crops(M-1, 0) - crops(M-1, 1),
+    *        inputShape(M+1),
+    *        ...,
+    *        inputShape(N-1)]
+    *      }}}
+    *
+    * Some examples:
+    * {{{
+    *   // === Example #1 ===
+    *   // input = [[[[1]]], [[[2]]], [[[3]]], [[[4]]]]  (shape = [4, 1, 1, 1])
+    *   // blockShape = [2, 2]
+    *   // crops = [[0, 0], [0, 0]]
+    *   tf.batchToSpaceND(input, blockShape, crops) ==> [[[[1], [2]], [[3], [4]]]]  (shape = [1, 2, 2, 1])
+    *
+    *   // === Example #2 ===
+    *   // input = [[[1, 2, 3]], [[4, 5, 6]], [[7, 8, 9]], [[10, 11, 12]]]  (shape = [4, 1, 1, 3])
+    *   // blockShape = [2, 2]
+    *   // crops = [[0, 0], [0, 0]]
+    *   tf.batchToSpaceND(input, blockShape, crops) ==>
+    *     [[[[1, 2, 3], [ 4,  5,  6]],
+    *       [[7, 8, 9], [10, 11, 12]]]]  (shape = [1, 2, 2, 3])
+    *
+    *   // === Example #3 ===
+    *   // input = [[[[1], [3]], [[ 9], [11]]],
+    *   //          [[[2], [4]], [[10], [12]]],
+    *   //          [[[5], [7]], [[13], [15]]],
+    *   //          [[[6], [8]], [[14], [16]]]]  (shape = [4, 2, 2, 1])
+    *   // blockShape = [2, 2]
+    *   // crops = [[0, 0], [0, 0]]
+    *   tf.batchToSpaceND(input, blockShape, crops) ==>
+    *     [[[[ 1],  [2],  [3],  [ 4]],
+    *       [[ 5],  [6],  [7],  [ 8]],
+    *       [[ 9], [10], [11],  [12]],
+    *       [[13], [14], [15],  [16]]]]  (shape = [1, 4, 4, 1])
+    *
+    *   // === Example #4 ===
+    *   // input = [[[[0], [1], [3]]], [[[0], [ 9], [11]]],
+    *   //          [[[0], [2], [4]]], [[[0], [10], [12]]],
+    *   //          [[[0], [5], [7]]], [[[0], [13], [15]]],
+    *   //          [[[0], [6], [8]]], [[[0], [14], [16]]]]  (shape = [8, 1, 3, 1])
+    *   // blockShape = [2, 2]
+    *   // crops = [[0, 0], [2, 0]]
+    *   tf.batchToSpaceND(input, blockShape, crops) ==>
+    *     [[[[[ 1],  [2],  [3],  [ 4]],
+    *        [[ 5],  [6],  [7],  [ 8]]],
+    *       [[[ 9], [10], [11],  [12]],
+    *        [[13], [14], [15],  [16]]]]  (shape = [2, 2, 4, 1])
+    * }}}
+    *
+    * @param  input      `N`-dimensional tensor with shape `inputShape = [batch] + spatialShape + remainingShape`, where
+    *                    spatialShape has `M` dimensions.
+    * @param  blockShape One-dimensional `INT32` or `INT64` tensor with shape `[M]` whose elements must all be `>= 1`.
+    * @param  crops      Two-dimensional `INT32` or `INT64` tensor with shape `[M, 2]` whose elements must all be
+    *                    non-negative. `crops(i) = [cropStart, cropEnd]` specifies the amount to crop from input
+    *                    dimension `i + 1`, which corresponds to spatial dimension `i`. It is required that
+    *                    `cropStart(i) + cropEnd(i) <= blockShape(i) * inputShape(i + 1)`.
+    * @param  name       Name for the created op.
+    * @return Created op output.
+    * @throws IllegalArgumentException If `blockShape` or `crops` has an invalid data type or shape.
+    */
+  @throws[IllegalArgumentException]
+  def batchToSpaceND(
+      input: Op.Output, blockShape: Op.Output, crops: Op.Output, name: String = "BatchToSpaceND"): Op.Output = {
+    if (blockShape.dataType != INT32 && blockShape.dataType != INT64)
+      throw new IllegalArgumentException(
+        s"'blockShape' (dataType = ${blockShape.dataType}) must have INT32 or INT64 data type.")
+    if (blockShape.rank != -1 && blockShape.rank != 1)
+      throw new IllegalArgumentException(s"'blockShape' (shape = ${blockShape.dataType}) must have rank equal to 1.")
+    if (crops.dataType != INT32 && crops.dataType != INT64)
+      throw new IllegalArgumentException(
+        s"'crops' (dataType = ${crops.dataType}) must have INT32 or INT64 data type.")
+    if (crops.rank != -1 && crops.rank != 2)
+      throw new IllegalArgumentException(s"'crops' (shape = ${crops.dataType}) must have rank equal to 2.")
+    Op.Builder(opType = "BatchToSpaceND", name = name)
+        .addInput(input)
+        .addInput(blockShape)
+        .addInput(crops)
+        .build().outputs(0)
+  }
+
+  // TODO: Add support for the "spaceToDepth" and the "depthToSpace" ops.
+
+  // TODO: Add support for the "requiredSpaceToBatchPaddings" function.
 
   //endregion Tensor Manipulation Ops
 
