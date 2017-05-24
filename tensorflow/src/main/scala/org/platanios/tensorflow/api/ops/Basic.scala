@@ -747,7 +747,41 @@ trait Basic {
     }
   }
 
-  // TODO: Add support for "ConcatOffset".
+  /** Creates an op that computes offsets of `concatenate` inputs within its output.
+    *
+    * For example:
+    * {{{
+    *   // 'x' is a tensor containing values [2, 2, 7]
+    *   // 'y' is a tensor containing values [2, 3, 7]
+    *   // 'z' is a tensor containing values [2, 5, 7]
+    *   tf.concatenateOffset(Seq(x, y, z), 2) ==> [0, 0, 0], [0, 2, 0], [0, 5, 0]
+    * }}}
+    *
+    * This function is typically used by gradient computations for a `concatenate` op.
+    *
+    * @param  shapes Sequence of `N` `INT32` vectors representing the shapes of the tensors being concatenated.
+    * @param  axis   `INT32` scalar representing the dimension along which to concatenate.
+    * @param  name   Name for the created op.
+    * @return Sequence of `N` `INT32` vectors representing the starting offset of the input tensors within the
+    *         concatenated output.
+    * @throws IllegalArgumentException If any of the `shapes` is not an `INT32` vector or if `axis` is not an `INT32`
+    *                                  scalar.
+    */
+  @throws[IllegalArgumentException]
+  private[ops] def concatenateOffset(
+      shapes: Seq[Op.Output], axis: Op.Output, name: String = "ConcatenateOffset"): Seq[Op.Output] = {
+    if (shapes.length < 2)
+      throw new IllegalArgumentException(s"At least 2 shapes need to be provided (actual provided = ${shapes.length}).")
+    if (shapes.exists(s => s.dataType != INT32 || s.shape.rank > 1))
+      throw new IllegalArgumentException("The provided shapes need to be INT32 vectors.")
+    if (axis.dataType != INT32 || axis.shape.rank != 0)
+      throw new IllegalArgumentException(
+        s"The provided axis (dataType = ${axis.dataType}, shape = ${axis.shape}) needs to be an INT32 scalar.")
+    Op.Builder(opType = "ConcatOffset", name = name)
+        .addInput(axis)
+        .addInputs(shapes)
+        .build().outputs.toSeq
+  }
 
   /** Creates an op that splits a tensor into sub-tensors.
     *
@@ -1692,7 +1726,7 @@ trait Basic {
     * @param  truth      Sparse tensor that contains the truth sequences.
     * @param  normalize  Optional boolean value indicating whether to normalize the Levenshtein distance by the length
     *                    of `truth`.
-    * @param  name    Name for the created op.
+    * @param  name       Name for the created op.
     * @return Created op output.
     */
   def editDistance(
