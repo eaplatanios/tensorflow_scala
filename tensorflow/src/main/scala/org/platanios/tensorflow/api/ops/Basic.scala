@@ -605,7 +605,7 @@ trait Basic {
     */
   @throws[InvalidShapeException]
   @throws[IndexOutOfBoundsException]
-  def stack(inputs: Array[Op.Output], axis: Int = 0, name: String = "Stack"): Op.Output = {
+  def stack(inputs: Seq[Op.Output], axis: Int = 0, name: String = "Stack"): Op.Output = {
     val inputsShape = inputs.head.shape
     inputs.tail.foreach(_.shape.assertIsCompatibleWith(inputsShape))
     if (inputsShape.rank != -1) {
@@ -938,7 +938,6 @@ trait Basic {
         .build().outputs(0)
   }
 
-  // TODO: Add support for the "meshGrid" op.
   // TODO: Add support for the "spaceToBatch", the "batchToSpace", the "spaceToDepth", and the "depthToSpace" ops.
   // TODO: Add support for the "extractImagePatches" op (maybe in an "ImageOps" object).
 
@@ -2198,6 +2197,65 @@ trait Basic {
         .addInput(shape1)
         .addInput(shape2)
         .build().outputs(0)
+  }
+
+  /** Creates an op that broadcasts parameters for evaluation on an `N`-dimensional grid.
+    *
+    * Given `N` one-dimensional coordinate arrays `inputs`, the op returns a list, `outputs`, of `N`-dimensional
+    * coordinate arrays for evaluating expressions on an `N`-dimensional grid.
+    *
+    * **NOTE:** If `useCartesianIndexing` is set to `true` (the default value), the broadcasting instructions for the
+    * first two dimensions are swapped.
+    *
+    * For example:
+    * {{{
+    *   // 'x' = [1, 2, 3]
+    *   // 'y' = [4, 5, 6]
+    *   tf.meshGrid(x, y) = (xx, yy)
+    *   xx ==> [[1, 2, 3],
+    *           [1, 2, 3],
+    *           [1, 2, 3]]
+    *   yy ==> [[4, 5, 6],
+    *           [4, 5, 6],
+    *           [4, 5, 6]]
+    * }}}
+    *
+    * @param  inputs               Sequence containing `N` input rank-`1` tensors.
+    * @param  useCartesianIndexing If `true` (the default value), the broadcasting instructions for the first two
+    *                              dimensions are swapped.
+    * @param  name                 Name for the created op.
+    * @return Created op outputs, each with rank `N`.
+    */
+  def meshGrid(
+      inputs: Seq[Op.Output], useCartesianIndexing: Boolean = true, name: String = "MeshGrid"): Seq[Op.Output] = {
+    if (inputs.exists(_.rank > 1))
+      throw new IllegalArgumentException("All input tensors to 'meshGrid' must have rank equal to 1.")
+    Op.createWithNameScope(name, inputs.map(_.op).toSet) {
+      val rank = inputs.length
+      val (outputs, shapes) = {
+        // Prepare reshape by inserting dimensions with size 1 where needed.
+        val outputs = inputs.zipWithIndex.map(i => {
+          val shape = Shape.fromSeq(Seq.fill[Int](i._2)(1) ++ (-1 +: Seq.fill[Int](rank - i._2 - 1)(1)))
+          reshape(i._1, shape)
+        })
+        // Create parameters for broadcasting each tensor to the full size.
+        val shapes = inputs.map(size(_))
+        if (useCartesianIndexing) {
+          outputs.zip(shapes).zipWithIndex.map(o => o._2 match {
+            case 0 =>
+              (reshape(o._1._1, Shape.fromSeq(Seq[Int](1, -1) ++ Seq.fill[Int](rank - 2)(1))), shapes(1))
+            case 1 =>
+              (reshape(o._1._1, Shape.fromSeq(Seq[Int](-1, 1) ++ Seq.fill[Int](rank - 2)(1))), shapes(0))
+            case _ => o._1
+          }).unzip
+        } else {
+          (outputs, shapes)
+        }
+      }
+      // TODO: Improve performance with a broadcast.
+      val multiplicativeFactor = fill(stack(shapes), 1, inputs.head.dataType)
+      outputs.map(Math.multiply(_, multiplicativeFactor))
+    }
   }
 
   //endregion Broadcasting Ops
