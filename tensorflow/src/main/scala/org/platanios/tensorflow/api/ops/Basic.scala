@@ -1300,8 +1300,6 @@ trait Basic {
     }
   }
 
-  // TODO: [OPS] Add support for the "sparseMask" op.
-
   /** Creates an op that returns a mask tensor representing the first `N` positions of each row of a matrix.
     *
     * For example:
@@ -1346,6 +1344,47 @@ trait Basic {
         result
       else
         Math.cast(result, dataType)
+    }
+  }
+
+  /** Creates an op that masks elements of [[Op.OutputIndexedSlices]].
+    *
+    * Given an [[Op.OutputIndexedSlices]] instance `input`, this function returns another [[Op.OutputIndexedSlices]]
+    * that contains a subset of the slices of `input`. Only the slices at indices not specified in `maskIndices` are
+    * returned.
+    *
+    * This is useful when you need to extract a subset of slices from an [[Op.OutputIndexedSlices]] object.
+    *
+    * For example:
+    * {{{
+    *   // 'input' contains slices at indices [12, 26, 37, 45] from a large tensor with shape [1000, 10]
+    *   input.indices ==> [12, 26, 37, 45]
+    *   input.values.shape ==> [4, 10]
+    *
+    *   // `output` will be the subset of `input` slices at its second and third indices, and so we want to mask its
+    *   // first and last indices (which are at absolute indices 12 and 45)
+    *   val output = tf.indexedSlicesMask(input, [12, 45])
+    *   output.indices ==> [26, 37]
+    *   output.values.shape ==> [2, 10]
+    * }}}
+    *
+    * @param  input       Input indexed slices.
+    * @param  maskIndices One-dimensional tensor containing the indices of the elements to mask.
+    * @param  name        Name for the created op.
+    * @return Created op output.
+    * @throws IllegalArgumentException If `maskIndices` is not a one-dimensional tensor.
+    */
+  @throws[IllegalArgumentException]
+  def indexedSlicesMask(
+      input: Op.OutputIndexedSlices, maskIndices: Op.Output,
+      name: String = "IndexedSlicesMask"): Op.OutputIndexedSlices = {
+    if (maskIndices.rank > 1)
+      throw new IllegalArgumentException(
+        s"'maskIndices' (shape = ${maskIndices.shape}) must be a one-dimensional tensor.")
+    Op.createWithNameScope(name, Set(input.indices.op, input.values.op, input.denseShape.op, maskIndices.op)) {
+      val (outputIndices, toGather) = listDiff(input.indices, maskIndices)
+      val outputValues = gather(input.values, toGather)
+      Op.OutputIndexedSlices(indices = outputIndices, values = outputValues, denseShape = input.denseShape)
     }
   }
 
