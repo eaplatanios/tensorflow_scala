@@ -1710,8 +1710,60 @@ trait Basic {
         .build().outputs(0)
   }
 
+  /** Creates an op that computes the Levenshtein distance between sequences.
+    *
+    * The op takes variable-length sequences (`hypothesis` and `truth`), each provided as a `SparseTensor`, and computes
+    * the Levenshtein distance between them. The op can also normalize the edit distance using the length of `truth` by
+    * setting `normalize` to `true`.
+    *
+    * For example:
+    * {{{
+    *   // 'hypothesis' is a tensor of shape `[2, 1]` with variable-length values:
+    *   //   [0, 0] = ["a"]
+    *   //   [0, 1] = ["b"]
+    *   val hypothesis = SparseOutput(Tensor(Tensor(0, 0, 0), Tensor(1, 0, 0)), Tensor("a", "b"), Tensor(2, 1, 1))
+    *   // 'truth' is a tensor of shape `[2, 2]` with variable-length values:
+    *   //   [0, 0] = []
+    *   //   [0, 1] = ["a"]
+    *   //   [1, 0] = ["b", "c"]
+    *   //   [1, 1] = ["a"]
+    *   val truth = tf.SparseOutput(
+    *       Tensor(Tensor(0, 1, 0), Tensor(1, 0, 0), Tensor(1, 0, 1), Tensor(1, 1, 0)),
+    *       Tensor("a", "b", "c", "a"),
+    *       Tensor(2, 2, 2))
+    *   val normalize = true
+    *
+    *   // 'output' is a tensor of shape `[2, 2]` with edit distances normalized by the `truth` lengths, and contains
+    *   // the values `[[inf, 1.0], [0.5, 1.0]]`. The reason behind each value is:
+    *   //   - (0, 0): no truth,
+    *   //   - (0, 1): no hypothesis,
+    *   //   - (1, 0): addition,
+    *   //   - (1, 1): no hypothesis.
+    *   val output = tf.editDistance(hypothesis, truth, normalize)
+    * }}}
+    *
+    * @param  hypothesis Sparse tensor that contains the hypothesis sequences.
+    * @param  truth      Sparse tensor that contains the truth sequences.
+    * @param  normalize  Optional boolean value indicating whether to normalize the Levenshtein distance by the length
+    *                    of `truth`.
+    * @param  name    Name for the created op.
+    * @return Created op output.
+    */
+  def editDistance(
+      hypothesis: Op.SparseOutput, truth: Op.SparseOutput, normalize: Boolean = true,
+      name: String = "EditDistance"): Op.Output = {
+    Op.Builder(opType = "EditDistance", name = name)
+        .addInput(hypothesis.indices)
+        .addInput(hypothesis.values)
+        .addInput(hypothesis.denseShape)
+        .addInput(truth.indices)
+        .addInput(truth.values)
+        .addInput(truth.denseShape)
+        .setAttribute("normalize", normalize)
+        .build().outputs(0)
+  }
+
   // TODO: Add support for the "bitCast" and the "oneHot" ops.
-  // TODO: Add support for the "editDistance" op.
   // TODO: Add support for all the quantization ops.
 
   //region Broadcasting Ops
