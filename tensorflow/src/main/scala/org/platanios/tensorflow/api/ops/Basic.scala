@@ -861,7 +861,84 @@ trait Basic {
         .build().outputs(0)
   }
 
-  // TODO: Add support for the "pad", the "mirrorPad", and the "meshGrid" ops.
+  /** Creates an op that pads a tensor with zeros.
+    *
+    * The op pads `input` with zeros according to the `paddings` you specify. `paddings` is an integer tensor with shape
+    * `[n, 2]`, where `n` is the rank of `input`. For each dimension `D` of `input`, `paddings(D, 0)` indicates how many
+    * zeros to add before the contents of `input` in that dimension, and `paddings(D, 1)` indicates how many zeros to
+    * add after the contents of `input` in that dimension.
+    *
+    * The padded size of each dimension `D` of the output is equal to
+    * `paddings(D, 0) + input.shape(D) + paddings(D, 1)`.
+    *
+    * For example:
+    * {{{
+    *   // 'input' = [[1, 1], [2, 2]]
+    *   // 'paddings' = [[1, 1], [2, 2]]
+    *   tf.pad(input, paddings) ==>
+    *     [[0, 0, 0, 0, 0, 0]
+    *      [0, 0, 1, 1, 0, 0]
+    *      [0, 0, 2, 2, 0, 0]
+    *      [0, 0, 0, 0, 0, 0]]
+    * }}}
+    *
+    * @param  input    Input tensor to be padded.
+    * @param  paddings `INT32` or `INT64` tensor containing the paddings.
+    * @param  name     Name for the created op.
+    * @return Created op output.
+    * @throws IllegalArgumentException If `paddings` has an invalid data type.
+    */
+  @throws[IllegalArgumentException]
+  def pad(input: Op.Output, paddings: Op.Output, name: String = "Pad"): Op.Output = {
+    if (paddings.dataType != INT32 && paddings.dataType != INT64)
+      throw new IllegalArgumentException(
+        s"'paddings' (dataType = ${paddings.dataType}) must have INT32 or INT64 data type.")
+    Op.Builder(opType = "Pad", name = name)
+        .addInput(input)
+        .addInput(paddings)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that pads a tensor with mirrored values.
+    *
+    * The op pads `input` with mirrored values according to the `paddings` you specify. `paddings` is an integer tensor
+    * with shape `[n, 2]`, where `n` is the rank of `input`. For each dimension `D` of `input`, `paddings(D, 0)`
+    * indicates how many values to add before the contents of `input` in that dimension, and `paddings(D, 1)` indicates
+    * how many values to add after the contents of `input` in that dimension. Both `paddings(D, 0)` and `paddings(D, 1)`
+    * must be no greater than `input.shape(D)`.
+    *
+    * The padded size of each dimension `D` of the output is equal to
+    * `paddings(D, 0) + input.shape(D) + paddings(D, 1)`.
+    *
+    * For example:
+    * {{{
+    *   // 'input' = [[1, 2, 3], [4, 5, 6]]
+    *   // 'paddings' = [[1, 1]], [2, 2]]
+    *   tf.pad(input, paddings) ==>
+    *     [[2, 1, 1, 2, 3, 3, 2]
+    *      [2, 1, 1, 2, 3, 3, 2]
+    *      [5, 4, 4, 5, 6, 6, 5]
+    *      [5, 4, 4, 5, 6, 6, 5]]
+    * }}}
+    *
+    * @param  input    Input tensor to be padded.
+    * @param  paddings `INT32` or `INT64` tensor containing the paddings.
+    * @param  name     Name for the created op.
+    * @return Created op output.
+    * @throws IllegalArgumentException If `paddings` has an invalid data type.
+    */
+  @throws[IllegalArgumentException]
+  def mirrorPad(input: Op.Output, paddings: Op.Output, name: String = "MirrorPad"): Op.Output = {
+    if (paddings.dataType != INT32 && paddings.dataType != INT64)
+      throw new IllegalArgumentException(
+        s"'paddings' (dataType = ${paddings.dataType}) must have INT32 or INT64 data type.")
+    Op.Builder(opType = "MirrorPad", name = name)
+        .addInput(input)
+        .addInput(paddings)
+        .build().outputs(0)
+  }
+
+  // TODO: Add support for the "meshGrid" op.
   // TODO: Add support for the "spaceToBatch", the "batchToSpace", the "spaceToDepth", and the "depthToSpace" ops.
   // TODO: Add support for the "extractImagePatches" op (maybe in an "ImageOps" object).
 
@@ -2186,10 +2263,10 @@ object Basic extends Basic {
     GradientsRegistry.registerNonDifferentiable("Size")
     GradientsRegistry.registerNonDifferentiable("Shape")
     GradientsRegistry.registerNonDifferentiable("ShapeN")
-    GradientsRegistry.registerNonDifferentiable("ConcatOffset") // TODO: [OP]
+    GradientsRegistry.registerNonDifferentiable("ConcatOffset")
     GradientsRegistry.registerNonDifferentiable("InvertPermutation")
-    GradientsRegistry.registerNonDifferentiable("OneHot") // TODO: [OP]
-    GradientsRegistry.registerNonDifferentiable("EditDistance") // TODO: [OP]
+    GradientsRegistry.registerNonDifferentiable("OneHot")
+    GradientsRegistry.registerNonDifferentiable("EditDistance")
     GradientsRegistry.registerNonDifferentiable("BroadcastGradientArgs") // TODO: [OP]
     GradientsRegistry.registerNonDifferentiable("StopGradient")
 
