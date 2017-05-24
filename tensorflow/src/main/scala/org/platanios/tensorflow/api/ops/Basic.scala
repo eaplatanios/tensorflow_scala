@@ -938,9 +938,6 @@ trait Basic {
         .build().outputs(0)
   }
 
-  // TODO: Add support for the "spaceToBatch", the "batchToSpace", the "spaceToDepth", and the "depthToSpace" ops.
-  // TODO: Add support for the "extractImagePatches" op (maybe in an "ImageOps" object).
-
   /** Creates an op that reshapes a tensor.
     *
     * Given `input`, this operation returns a tensor that has the same values as `input` but has shape `shape`. If one
@@ -1286,6 +1283,8 @@ trait Basic {
         .setAttribute("batch_dim", batchAxis)
         .build().outputs(0)
   }
+
+  // TODO: Add support for the "spaceToBatch", the "batchToSpace", the "spaceToDepth", and the "depthToSpace" ops.
 
   //endregion Tensor Manipulation Ops
 
@@ -1894,7 +1893,7 @@ trait Basic {
     * @param  name           Name for the created op.
     * @return Created op output.
     */
-  private[ops] def stridedSlice(
+  private[api] def stridedSlice(
       input: Op.Output, begin: Op.Output, end: Op.Output, strides: Op.Output = null, beginMask: Int = 0,
       endMask: Int = 0, ellipsisMask: Int = 0, newAxisMask: Int = 0, shrinkAxisMask: Int = 0,
       name: String = "StridedSlice"): Op.Output = {
@@ -1954,7 +1953,7 @@ trait Basic {
     * @param  name           Name for the created op.
     * @return Created op output.
     */
-  private[ops] def stridedSliceAssign(
+  private[api] def stridedSliceAssign(
       input: Op.Output, value: Op.Output, begin: Op.Output, end: Op.Output, strides: Op.Output = null,
       beginMask: Int = 0, endMask: Int = 0, ellipsisMask: Int = 0, newAxisMask: Int = 0, shrinkAxisMask: Int = 0,
       name: String = "StridedSliceAssign"): Op.Output = {
@@ -2225,7 +2224,9 @@ trait Basic {
     *                              dimensions are swapped.
     * @param  name                 Name for the created op.
     * @return Created op outputs, each with rank `N`.
+    * @throws IllegalArgumentException If any of the provided inputs is not a rank-`1` tensor.
     */
+  @throws[IllegalArgumentException]
   def meshGrid(
       inputs: Seq[Op.Output], useCartesianIndexing: Boolean = true, name: String = "MeshGrid"): Seq[Op.Output] = {
     if (inputs.exists(_.rank > 1))

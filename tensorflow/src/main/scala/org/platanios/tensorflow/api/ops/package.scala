@@ -25,6 +25,7 @@ package object ops {
   private[api] trait API
       extends Basic
           with ControlFlow
+          with Image
           with Logging
           with Math
           with Text

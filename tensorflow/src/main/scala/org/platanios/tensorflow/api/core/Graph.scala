@@ -264,7 +264,7 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable wi
         Basic.constant(Tensor(STRING))
       } else {
         // Get a one-dimensional boolean tensor listing whether each variable is initialized.
-        val variablesMask = Math.logicalNot(Basic.stack(variables.map(_.isInitialized).toArray))
+        val variablesMask = Math.logicalNot(Basic.stack(variables.map(_.isInitialized).toSeq))
         // Get a one-dimensional string tensor containing all the variable names.
         val variableNames = Basic.constant(Tensor(variables.map(v => Tensor(STRING, v.op.name)).toSeq: _*))
         // Return a one-dimensional tensor containing the names of all uninitialized variables.
