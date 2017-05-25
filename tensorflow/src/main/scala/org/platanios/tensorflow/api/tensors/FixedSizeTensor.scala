@@ -48,6 +48,14 @@ class FixedSizeTensor private[tensors] (
 
   override private[tensors] def newTensor(shape: Shape): Tensor = FixedSizeTensor.allocate(dataType, shape, order)
 
+  override def reshape(shape: Shape, copyData: Boolean = true): FixedSizeTensor = {
+    val newShape = this.shape.reshape(shape)
+    if (copyData)
+      new FixedSizeTensor(dataType, newShape, Tensor.copyBuffer(dataType, newShape, buffer, copy = true, order), order)
+    else
+      new FixedSizeTensor(dataType, newShape, buffer, order)
+  }
+
   override def asNumeric: NumericTensor = dataType match {
     case d: NumericDataType => new NumericTensor(d, shape, buffer, order)
     case _ => throw InvalidDataTypeException(s"Data type '$dataType' of this tensor is not numeric.")

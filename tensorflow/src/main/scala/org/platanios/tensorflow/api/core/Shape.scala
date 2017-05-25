@@ -63,6 +63,39 @@ final class Shape private (private val array: Array[Int]) extends Op.OutputConve
     */
   def numElements: Option[Int] = if (!isFullyDefined) None else Some(array.product)
 
+  /** Reshapes this shape to the provided shape.
+    *
+    * This function first checks that this shape can be reshaped in the specified way and then:
+    *   - If `shape` has an unknown dimension, then its value is computed, filled in, and the new shape is returned.
+    *   - Otherwise, `shape` is returned.
+    *
+    * @param  shape Shape to reshape to.
+    * @return New shape.
+    * @throws IllegalArgumentException If this shape cannot be reshaped to `shape`.
+    */
+  @throws[IllegalArgumentException]
+  def reshape(shape: Shape): Shape = {
+    this.assertFullyDefined("Only fully defined shapes can be reshaped.")
+    val unknownDimensions = shape.asArray.count(_ == -1)
+    if (shape.rank == -1 || unknownDimensions > 1)
+      throw new IllegalArgumentException(
+        s"The new shape ($shape) must have known rank and at most one unknown dimension.")
+    if (unknownDimensions == 0 && this.numElements.get != shape.numElements.get) {
+      throw new IllegalArgumentException(
+        s"Shape '$this' cannot be reshaped to '$shape' (different number of elements).")
+    } else if (unknownDimensions == 0) {
+      shape
+    } else {
+      val unknownIndex = shape.asArray.indexWhere(_ == -1)
+      val otherNumElements = shape.asArray.filter(_ == -1).product
+      if (this.numElements.get % otherNumElements != 0)
+        throw new IllegalArgumentException(s"Shape '$this' cannot be reshaped to '$shape'.")
+      val newShape = shape.asArray
+      newShape(unknownIndex) = this.numElements.get / otherNumElements
+      new Shape(newShape)
+    }
+  }
+
   /** Returns an array representation of this shape. This method does not perform a copy or an array creation. It simply
     * returns the underlying array representation of this shape. Its cost is thus the same as that of a field access. */
   def asArray: Array[Int] = array
@@ -177,9 +210,20 @@ final class Shape private (private val array: Array[Int]) extends Op.OutputConve
     * @throws InvalidShapeException If this shape is not fully defined.
     */
   @throws[InvalidShapeException]
-  private[api] def assertFullyDefined(): Unit = {
+  private[api] def assertFullyDefined(message: String = s"Shape '$this' must be fully defined."): Unit = {
     if (!this.isFullyDefined)
-      throw InvalidShapeException(s"Shape '$this' must be fully defined.")
+      throw InvalidShapeException(message)
+  }
+
+  /** Asserts that this shape has the specified rank.
+    *
+    * @param  rank Rank.
+    * @throws InvalidShapeException If this shape has rank other than `rank`.
+    */
+  @throws[InvalidShapeException]
+  private[api] def assertHasRank(rank: Int): Unit = {
+    if (this.rank != -1 && this.rank != rank)
+      throw InvalidShapeException(s"Shape '$this' must have rank $rank.")
   }
 
   /** Asserts that this shape has rank at least `rank` and throws an exception if it does not.

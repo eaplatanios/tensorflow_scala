@@ -32,6 +32,14 @@ class NumericTensor private[tensors] (
     extends FixedSizeTensor(dataType, shape, buffer, order) {
   override private[tensors] def newTensor(shape: Shape): Tensor = NumericTensor.allocate(dataType, shape, order)
 
+  override def reshape(shape: Shape, copyData: Boolean = true): NumericTensor = {
+    val newShape = this.shape.reshape(shape)
+    if (copyData)
+      new NumericTensor(dataType, newShape, Tensor.copyBuffer(dataType, newShape, buffer, copy = true, order), order)
+    else
+      new NumericTensor(dataType, newShape, buffer, order)
+  }
+
   override def asNumeric: NumericTensor = this
 }
 
@@ -49,6 +57,15 @@ class RealNumericTensor private[tensors] (
     override val order: Order = DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER)
     extends NumericTensor(dataType, shape, buffer, order) {
   override private[tensors] def newTensor(shape: Shape): Tensor = RealNumericTensor.allocate(dataType, shape, order)
+
+  override def reshape(shape: Shape, copyData: Boolean = true): RealNumericTensor = {
+    val newShape = this.shape.reshape(shape)
+    if (copyData)
+      new RealNumericTensor(
+        dataType, newShape, Tensor.copyBuffer(dataType, newShape, buffer, copy = true, order), order)
+    else
+      new RealNumericTensor(dataType, newShape, buffer, order)
+  }
 
   def +-(tolerance: Double): RealNumericTensor.Equality = {
     RealNumericTensor.Equality(this, tolerance)

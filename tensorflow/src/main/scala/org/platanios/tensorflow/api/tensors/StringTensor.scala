@@ -43,6 +43,8 @@ class StringTensor private[tensors] (
 
   override private[tensors] def newTensor(shape: Shape): Tensor = ???
 
+  override def reshape(shape: Shape, copyData: Boolean = true): StringTensor = ???
+
   override def asNumeric: NumericTensor = {
     throw InvalidDataTypeException(s"Data type '$dataType' of this tensor is not numeric.")
   }

@@ -133,6 +133,8 @@ trait Tensor extends TensorLike with Op.OutputConvertible {
     tensor
   }
 
+  def reshape(shape: Shape, copyData: Boolean = true): Tensor
+
   override def summarize(maxEntries: Int = numElements): String = {
     // TODO: Fix this by nesting dimensions.
     s"[${entriesIterator.take(maxEntries).mkString(", ")}${if (maxEntries < numElements) ", ..." else ""}]"
@@ -281,7 +283,7 @@ object Tensor {
     case d => throw InvalidDataTypeException(s"Tensors with data type '$d' are not supported on the Scala side.")
   }
 
-  private[this] def copyBuffer(
+  private[tensors] def copyBuffer(
       dataType: DataType, shape: Shape, buffer: ByteBuffer, copy: Boolean = false,
       order: Order = DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER): ByteBuffer = {
     val limit = dataType.byteSize * shape.numElements.get
