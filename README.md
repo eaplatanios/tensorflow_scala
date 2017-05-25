@@ -163,7 +163,7 @@ sbt compile
   - [x] Gradients support
   - [ ] Kernel label map op creation context (may be unnecessary)
   - Ops:
-    - [ ] Basic array ops (missing some)
+    - [x] Basic array ops (missing quantization ops)
     - [ ] Basic array ops gradients (missing most)
     - [ ] Math (missing some)
     - [ ] Math gradients (missing most)

@@ -1687,7 +1687,79 @@ trait Basic {
         .build().outputs(0)
   }
 
-  // TODO: Add support for the "requiredSpaceToBatchPaddings" function.
+  /** Creates ops that calculate the paddings and crops required to make `blockShape` divide `inputShape`.
+    *
+    * This function can be used to calculate a suitable `paddings`/`crops` argument for use with the
+    * [[spaceToBatchND]]/[[batchToSpaceND]] functions.
+    *
+    * The returned tensors, `paddings` and `crops` satisfy:
+    *   - `paddings(i, 0) == basePaddings(i, 0)`,
+    *   - `0 <= paddings(i, 1) - basePaddings(i, 1) < blockShape(i)`,
+    *   - `(inputShape(i) + paddings(i, 0) + paddings(i, 1)) % blockShape(i) == 0`,
+    *   - `crops(i, 0) == 0`, and
+    *   - `crops(i, 1) == paddings(i, 1) - basePaddings(i, 1)`.
+    *
+    * @param  inputShape   `INT32` tensor with shape `[N]`.
+    * @param  blockShape   `INT32` tensor with shape `[N]`.
+    * @param  basePaddings Optional `INT32` tensor with shape `[N, 2]` that specifies the minimum amount of padding to
+    *                      use. All elements must be non-negative. Defaults to a tensor containing all zeros.
+    * @param  name         Created op name.
+    * @return Tuple containing the paddings and crops required.
+    * @throws IllegalArgumentException If `inputShape`, `blockShape`, or `basePaddings`, has invalid data type or shape.
+    */
+  @throws[IllegalArgumentException]
+  def requiredSpaceToBatchPaddingsAndCrops(
+      inputShape: Op.Output, blockShape: Op.Output, basePaddings: Op.Output = null,
+      name: String = "RequiredSpaceToBatchPaddings"): (Op.Output, Op.Output) = {
+    if (inputShape.dataType != INT32 || (inputShape.rank != -1 && inputShape.rank != 1))
+      throw new IllegalArgumentException(
+        s"'inputShape' (dataType = ${inputShape.dataType}, shape = ${inputShape.shape}) " +
+            s"must be an INT32 one-dimensional tensor.")
+    if (blockShape.dataType != INT32 || (blockShape.rank != -1 && blockShape.rank != 1))
+      throw new IllegalArgumentException(
+        s"'blockShape' (dataType = ${blockShape.dataType}, shape = ${blockShape.shape}) " +
+            s"must be an INT32 one-dimensional tensor.")
+    if (basePaddings != null && (basePaddings.dataType != INT32 || (basePaddings.rank != -1 && basePaddings.rank != 2)))
+      throw new IllegalArgumentException(
+        s"'basePaddings' (dataType = ${basePaddings.dataType}, shape = ${basePaddings.shape}) " +
+            s"must be an INT32 two-dimensional tensor, or 'null'.")
+    Op.createWithNameScope(name, Set(inputShape.op, blockShape.op)) {
+      blockShape.shape.assertFullyDefined()
+      blockShape.shape.assertHasRank(1)
+      val numBlockDims = blockShape.shape(0)
+      if (numBlockDims == 0) {
+        (zeros(Shape(0, 2), INT32), zeros(Shape(0, 2), INT32))
+      } else {
+        inputShape.shape.assertIsCompatibleWith(Shape(numBlockDims))
+        val actualBasePaddings = {
+          if (basePaddings != null) {
+            basePaddings.shape.assertIsCompatibleWith(Shape(numBlockDims, 2))
+            basePaddings
+          } else {
+            zeros(Shape(numBlockDims, 2), INT32)
+          }
+        }
+        val constantInputShape = Op.constantValue(inputShape)
+        val constantBlockShape = Op.constantValue(blockShape)
+        val constantBasePaddings = Op.constantValue(actualBasePaddings)
+        if (constantInputShape != null && constantBlockShape != null && constantBasePaddings != null) {
+          ??? // TODO: [TENSORS] Replicate the behavior of the 'else' branch using tensors.
+        } else {
+          val padStart = actualBasePaddings(::, 0)
+          val originalPadEnd = actualBasePaddings(::, 1)
+          val fullInputShape = inputShape + padStart + originalPadEnd
+          val extraPadEnd = (blockShape - (fullInputShape % blockShape)) % blockShape
+          val padEnd = originalPadEnd + extraPadEnd
+          val resultPaddings = stack(
+            (0 until numBlockDims).map(i => concatenate(Seq(padStart(i), padEnd(i)))), name = "Paddings")
+          val zero = constant(Tensor(padStart.dataType, 0))
+          val resultCrops = stack(
+            (0 until numBlockDims).map(i => concatenate(Seq(zero, extraPadEnd(i)))), name = "Crops")
+          (resultPaddings, resultCrops)
+        }
+      }
+    }
+  }
 
   /** Creates an op that rearranges blocks of spatial data, into depth.
     *
