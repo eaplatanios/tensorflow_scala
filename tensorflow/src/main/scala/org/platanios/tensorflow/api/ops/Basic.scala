@@ -1302,7 +1302,7 @@ trait Basic {
     * `blockSize` indicates the block size:
     *   - Non-overlapping blocks of size `blockSize x blockSize` in the height and width dimensions are rearranged into
     *     the batch dimension at each location.
-    *   - The batch size of the output tensor is `batch * blockSize * blockSize`.
+    *   - The batch dimension size of the output tensor is `batch * blockSize * blockSize`.
     *   - Both `heightPad` and `widthPad` must be divisible by `blockSize`.
     *
     * The shape of the output will be:
@@ -1356,12 +1356,15 @@ trait Basic {
     * @param  paddings  `2`-dimensional `INT32` or `INT64` tensor containing non-negative integers with shape `[2, 2]`.
     * @param  name      Name for the created op.
     * @return Created op output.
-    * @throws IllegalArgumentException If `input` or `paddings` has an invalid data type or shape.
+    * @throws IllegalArgumentException If `input` or `paddings` has an invalid data type or shape or if `blockSize` is
+    *                                  not greater than `1`.
     */
   @throws[IllegalArgumentException]
   def spaceToBatch(input: Op.Output, blockSize: Int, paddings: Op.Output, name: String = "SpaceToBatch"): Op.Output = {
     if (input.rank != -1 && input.rank != 4)
       throw new IllegalArgumentException(s"'input' (shape = ${input.dataType}) must have rank equal to 4.")
+    if (blockSize <= 1)
+      throw new IllegalArgumentException(s"'blockSize' ($blockSize) must be greater than 1.")
     if (paddings.dataType != INT32 && paddings.dataType != INT64)
       throw new IllegalArgumentException(
         s"'paddings' (dataType = ${paddings.dataType}) must have INT32 or INT64 data type.")
@@ -1528,7 +1531,7 @@ trait Basic {
     *   // input = [[[[0], [1], [3]]], [[[0], [ 9], [11]]],
     *   //          [[[0], [2], [4]]], [[[0], [10], [12]]],
     *   //          [[[0], [5], [7]]], [[[0], [13], [15]]],
-    *   //          [[[0], [6], [8]]], [[[0], [14], [16]]]]  (shape = [8, 1, 3, ])
+    *   //          [[[0], [6], [8]]], [[[0], [14], [16]]]]  (shape = [8, 1, 3, 1])
     *   // blockSize = 2
     *   // crops = [[0, 0], [2, 0]]
     *   tf.batchToSpace(input, blockSize, crops) ==>
@@ -1543,12 +1546,15 @@ trait Basic {
     * @param  crops     `2`-dimensional `INT32` or `INT64` tensor containing non-negative integers with shape `[2, 2]`.
     * @param  name      Name for the created op.
     * @return Created op output.
-    * @throws IllegalArgumentException If `input` or `crops` has an invalid data type or shape.
+    * @throws IllegalArgumentException If `input` or `crops` has an invalid data type or shape or if `blockSize` is not
+    *                                  greater than `1`.
     */
   @throws[IllegalArgumentException]
   def batchToSpace(input: Op.Output, blockSize: Int, crops: Op.Output, name: String = "BatchToSpace"): Op.Output = {
     if (input.rank != -1 && input.rank != 4)
       throw new IllegalArgumentException(s"'input' (shape = ${input.dataType}) must have rank equal to 4.")
+    if (blockSize <= 1)
+      throw new IllegalArgumentException(s"'blockSize' ($blockSize) must be greater than 1.")
     if (crops.dataType != INT32 && crops.dataType != INT64)
       throw new IllegalArgumentException(
         s"'crops' (dataType = ${crops.dataType}) must have INT32 or INT64 data type.")
@@ -1681,9 +1687,124 @@ trait Basic {
         .build().outputs(0)
   }
 
-  // TODO: Add support for the "spaceToDepth" and the "depthToSpace" ops.
-
   // TODO: Add support for the "requiredSpaceToBatchPaddings" function.
+
+  /** Creates an op that rearranges blocks of spatial data, into depth.
+    *
+    * More specifically, the op outputs a copy of the input tensor where values from the `height` and `width` dimensions
+    * are moved to the `depth` dimension. `blockSize` indicates the input block size and how the data is moved:
+    *   - Non-overlapping blocks of size `blockSize x blockSize` in the height and width dimensions are rearranged into
+    *     the depth dimension at each location.
+    *   - The depth of the output tensor is `inputDepth * blockSize * blockSize`.
+    *   - The input tensor's `height` and `width` must be divisible by `blockSize`.
+    *
+    * That is, assuming that `input` is in the shape `[batch, height, width, depth]`, the shape of the output will be:
+    * `[batch, height / blockSize, width / blockSize, depth * block_size * block_size]`.
+    *
+    * This op is useful for resizing the activations between convolutions (but keeping all data), e.g., instead of
+    * pooling. It is also useful for training purely convolutional models.
+    *
+    * Some examples:
+    * {{{
+    *   // === Example #1 ===
+    *   // input = [[[[1], [2]], [[3], [4]]]]  (shape = [1, 2, 2, 1])
+    *   // blockSize = 2
+    *   tf.spaceToDepth(input, blockSize) ==> [[[[1, 2, 3, 4]]]]  (shape = [1, 1, 1, 4])
+    *
+    *   // === Example #2 ===
+    *   // input =  [[[[1, 2, 3], [4, 5, 6]], [[7, 8, 9]], [[10, 11, 12]]]  (shape = [1, 2, 2, 3])
+    *   // blockSize = 2
+    *   tf.spaceToDepth(input, blockSize) ==>
+    *     [[[[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]]]]  (shape = [1, 1, 1, 12])
+    *
+    *   // === Example #3 ===
+    *   // input = [[[[ 1], [ 2], [ 5], [ 6]],
+    *   //           [[ 3], [ 4], [ 7], [ 8]],
+    *   //           [[ 9], [10], [13], [14]],
+    *   //           [[11], [12], [15], [16]]]]  (shape = [1, 4, 4, 1])
+    *   // blockSize = 2
+    *   tf.spaceToDepth(input, blockSize) ==>
+    *     [[[[ 1,  2,  3,  4],
+    *        [ 5,  6,  7,  8]],
+    *       [[ 9, 10, 11, 12],
+    *        [13, 14, 15, 16]]]]  (shape = [1, 2, 2, 4])
+    * }}}
+    *
+    * @param  input     `4`-dimensional input tensor with shape `[batch, height, width, depth]`.
+    * @param  blockSize Block size which must be greater than `1`.
+    * @param  name      Name for the created op.
+    * @return Created op output.
+    * @throws IllegalArgumentException If `input` has an invalid shape or if `blockSize` is not greater than `1`.
+    */
+  def spaceToDepth(input: Op.Output, blockSize: Int, name: String = "SpaceToDepth"): Op.Output = {
+    if (input.rank != -1 && input.rank != 4)
+      throw new IllegalArgumentException(s"'input' (shape = ${input.dataType}) must have rank equal to 4.")
+    if (blockSize <= 1)
+      throw new IllegalArgumentException(s"'blockSize' ($blockSize) must be greater than 1.")
+    Op.Builder(opType = "SpaceToDepth", name = name)
+        .addInput(input)
+        .setAttribute("block_size", blockSize.toLong)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that rearranges data from depth into blocks of spatial data.
+    *
+    * More specifically, the op outputs a copy of the input tensor where values from the `depth` dimension are moved in
+    * spatial blocks to the `height` and `width` dimensions. `blockSize` indicates the input block size and how the data
+    * us moved:
+    *   - Chunks of data of size `blockSize * blockSize` from depth are rearranged into non-overlapping blocks of size
+    *     `blockSize x blockSize`.
+    *   - The width the output tensor is `inputDepth * blockSize`, whereas the height is `inputHeight * blockSize`.
+    *   - The depth of the input tensor must be divisible by `blockSize * blockSize`.
+    *
+    * That is, assuming that `input` is in the shape `[batch, height, width, depth]`, the shape of the output will be:
+    * `[batch, height * blockSize, width * blockSize, depth / (block_size * block_size)]`.
+    *
+    * This op is useful for resizing the activations between convolutions (but keeping all data), e.g., instead of
+    * pooling. It is also useful for training purely convolutional models.
+    *
+    * Some examples:
+    * {{{
+    *   // === Example #1 ===
+    *   // input = [[[[1, 2, 3, 4]]]]  (shape = [1, 1, 1, 4])
+    *   // blockSize = 2
+    *   tf.depthToSpace(input, blockSize) ==> [[[[1], [2]], [[3], [4]]]]  (shape = [1, 2, 2, 1])
+    *
+    *   // === Example #2 ===
+    *   // input =  [[[[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]]]]  (shape = [1, 1, 1, 12])
+    *   // blockSize = 2
+    *   tf.depthToSpace(input, blockSize) ==>
+    *     [[[[1, 2, 3], [4, 5, 6]], [[7, 8, 9]], [[10, 11, 12]]]  (shape = [1, 2, 2, 3])
+    *
+    *   // === Example #3 ===
+    *   // input = [[[[ 1,  2,  3,  4],
+    *   //            [ 5,  6,  7,  8]],
+    *   //           [[ 9, 10, 11, 12],
+    *   //            [13, 14, 15, 16]]]]  (shape = [1, 2, 2, 4])
+    *   // blockSize = 2
+    *   tf.depthToSpace(input, blockSize) ==>
+    *     [[[[ 1], [ 2], [ 5], [ 6]],
+    *       [[ 3], [ 4], [ 7], [ 8]],
+    *       [[ 9], [10], [13], [14]],
+    *       [[11], [12], [15], [16]]]]  (shape = [1, 4, 4, 1,])
+    * }}}
+    *
+    * @param  input     `4`-dimensional input tensor with shape `[batch, height, width, depth]`.
+    * @param  blockSize Block size which must be greater than `1`.
+    * @param  name      Name for the created op.
+    * @return Created op output.
+    * @throws IllegalArgumentException If `input` has an invalid shape or if `blockSize` is not greater than `1`.
+    */
+  def depthToSpace(input: Op.Output, blockSize: Int, name: String = "DepthToSpace"): Op.Output = {
+    if (input.rank != -1 && input.rank != 4)
+      throw new IllegalArgumentException(s"'input' (shape = ${input.dataType}) must have rank equal to 4.")
+    if (blockSize <= 1)
+      throw new IllegalArgumentException(s"'blockSize' ($blockSize) must be greater than 1.")
+    Op.Builder(opType = "DepthToSpace", name = name)
+        .addInput(input)
+        .setAttribute("block_size", blockSize.toLong)
+        .build().outputs(0)
+  }
 
   //endregion Tensor Manipulation Ops
 
