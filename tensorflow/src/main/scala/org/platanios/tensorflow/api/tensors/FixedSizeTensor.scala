@@ -71,7 +71,8 @@ object FixedSizeTensor {
   private[api] def allocate(
       dataType: FixedSizeDataType, shape: Shape,
       order: Order = DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER): FixedSizeTensor = {
-    val numBytes: Int = dataType.byteSize * shape.numElements.get
+    shape.assertFullyDefined()
+    val numBytes: Int = dataType.byteSize * shape.numElements
     val buffer: ByteBuffer = ByteBuffer.allocateDirect(numBytes).order(ByteOrder.nativeOrder)
     new FixedSizeTensor(dataType = dataType, shape = shape, buffer = buffer, order = order)
   }

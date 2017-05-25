@@ -58,10 +58,10 @@ final class Shape private (private val array: Array[Int]) extends Op.OutputConve
 
   /** Gets the total number of elements in tensors of this shape.
     *
-    * If the shape is not fully defined, then `None` is returned, otherwise, the product of the sizes for each dimension
+    * If the shape is not fully defined, then `-1` is returned, otherwise, the product of the sizes for each dimension
     * of this shape is returned.
     */
-  def numElements: Option[Int] = if (!isFullyDefined) None else Some(array.product)
+  def numElements: Int = if (!isFullyDefined) -1 else array.product
 
   /** Reshapes this shape to the provided shape.
     *
@@ -80,7 +80,7 @@ final class Shape private (private val array: Array[Int]) extends Op.OutputConve
     if (shape.rank == -1 || unknownDimensions > 1)
       throw new IllegalArgumentException(
         s"The new shape ($shape) must have known rank and at most one unknown dimension.")
-    if (unknownDimensions == 0 && this.numElements.get != shape.numElements.get) {
+    if (unknownDimensions == 0 && this.numElements != shape.numElements) {
       throw new IllegalArgumentException(
         s"Shape '$this' cannot be reshaped to '$shape' (different number of elements).")
     } else if (unknownDimensions == 0) {
@@ -88,10 +88,10 @@ final class Shape private (private val array: Array[Int]) extends Op.OutputConve
     } else {
       val unknownIndex = shape.asArray.indexWhere(_ == -1)
       val otherNumElements = shape.asArray.filter(_ == -1).product
-      if (this.numElements.get % otherNumElements != 0)
+      if (this.numElements % otherNumElements != 0)
         throw new IllegalArgumentException(s"Shape '$this' cannot be reshaped to '$shape'.")
       val newShape = shape.asArray
-      newShape(unknownIndex) = this.numElements.get / otherNumElements
+      newShape(unknownIndex) = this.numElements / otherNumElements
       new Shape(newShape)
     }
   }

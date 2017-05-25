@@ -26,10 +26,10 @@ trait TensorLike extends TensorConvertible {
   val shape   : Shape
 
   require(shape.isFullyDefined, s"The shape of a Tensor object must be fully defined. Shape '$shape' is not.")
-  require(shape.numElements.get > 0, "Empty tensors are not supported in the TensorFlow Scala API.")
+  require(shape.numElements > 0, "Empty tensors are not supported in the TensorFlow Scala API.")
 
   def rank: Int = shape.rank
-  def numElements: Int = shape.numElements.get
+  def numElements: Int = shape.numElements
 
   def summarize(maxEntries: Int = numElements): String
 }

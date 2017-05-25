@@ -244,11 +244,12 @@ object Tensor {
   def fill[T](dataType: DataType, shape: Shape = null)(value: T)(implicit evidence: SupportedType[T]): Tensor = {
     // TODO: Add downcasting warnings.
     val inferredShape = if (shape == null) Shape() else shape
+    inferredShape.assertFullyDefined()
     dataType match {
       case STRING =>
         val numStringBytes = value.toString.getBytes(Charset.forName("UTF-8")).length
         val numEncodedBytes = NativeTensor.getEncodedStringSize(numStringBytes)
-        val numBytes = inferredShape.numElements.get * (INT64.byteSize + numEncodedBytes)
+        val numBytes = inferredShape.numElements * (INT64.byteSize + numEncodedBytes)
         val buffer: ByteBuffer = ByteBuffer.allocateDirect(numBytes).order(ByteOrder.nativeOrder)
         val tensor = new StringTensor(inferredShape, buffer, DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER)
         val baseOffset = INT64.byteSize * tensor.numElements
@@ -286,7 +287,8 @@ object Tensor {
   private[tensors] def copyBuffer(
       dataType: DataType, shape: Shape, buffer: ByteBuffer, copy: Boolean = false,
       order: Order = DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER): ByteBuffer = {
-    val limit = dataType.byteSize * shape.numElements.get
+    shape.assertFullyDefined()
+    val limit = dataType.byteSize * shape.numElements
     if (!copy && buffer.isDirect) {
       val bufferDuplicate = buffer.duplicate
       bufferDuplicate.limit(limit)

@@ -1376,8 +1376,8 @@ object Op {
         null
       case "Rank" =>
         val inputShape = tensor.op.inputs(0).shape
-        if (inputShape.numElements.isDefined)
-          Tensor(INT32, Tensor(inputShape.numElements.get))
+        if (inputShape.numElements != -1)
+          Tensor(INT32, Tensor(inputShape.numElements))
         null
       case "Range" =>
         val start = constantValue(tensor.op.inputs(0))

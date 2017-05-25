@@ -63,7 +63,7 @@ trait Basic {
         if (tensor.numElements == 1) {
           Tensor.fill(inferredDataType, inferredShape)(tensor.scalar)(tensor.dataType.supportedType)
         } else {
-          if (inferredShape.numElements.get != tensor.shape.numElements.get)
+          if (inferredShape.numElements != tensor.shape.numElements)
             throw InvalidShapeException(
               s"Shape '${tensor.shape}' tensor is not valid for shape '$inferredShape' constant op creation.")
           val t = Tensor.allocate(inferredDataType, inferredShape, order = RowMajorOrder)
@@ -378,7 +378,7 @@ trait Basic {
       name: String = "Size"): Op.Output = {
     val inputShape = input.shape
     if (optimize && inputShape.isFullyDefined)
-      constant(Tensor.fill(dataType, Shape())(inputShape.numElements.get), name = name)
+      constant(Tensor.fill(dataType, Shape())(inputShape.numElements), name = name)
     else
       Op.Builder(opType = "Size", name = name)
           .addInput(input)

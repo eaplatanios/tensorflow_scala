@@ -89,14 +89,14 @@ class ShapeSpec extends FlatSpec with Matchers {
   }
 
   "'Shape.numElements'" must "always work correctly" in {
-    assert(Shape().numElements === Some(1))
-    assert(Shape(0).numElements === Some(0))
-    assert(Shape(1).numElements === Some(1))
-    assert(Shape(34, 6, 356, 89).numElements === Some(6463536))
-    assert(Shape(-1, 4, 3).numElements === None)
-    assert(Shape(34, 4, -1).numElements === None)
-    assert(Shape.unknown().numElements === None)
-    assert(Shape.unknown(rank = 5).numElements === None)
+    assert(Shape().numElements === 1)
+    assert(Shape(0).numElements === 0)
+    assert(Shape(1).numElements === 1)
+    assert(Shape(34, 6, 356, 89).numElements === 6463536)
+    assert(Shape(-1, 4, 3).numElements === -1)
+    assert(Shape(34, 4, -1).numElements === -1)
+    assert(Shape.unknown().numElements === -1)
+    assert(Shape.unknown(rank = 5).numElements === -1)
   }
 
   "'Shape.isCompatibleWith'" must "always work correctly" in {

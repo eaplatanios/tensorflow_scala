@@ -46,7 +46,8 @@ class NumericTensor private[tensors] (
 object NumericTensor {
   private[api] def allocate(
       dataType: NumericDataType, shape: Shape, order: Order = DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER): NumericTensor = {
-    val numBytes: Int = dataType.byteSize * shape.numElements.get
+    shape.assertFullyDefined()
+    val numBytes: Int = dataType.byteSize * shape.numElements
     val buffer: ByteBuffer = ByteBuffer.allocateDirect(numBytes).order(ByteOrder.nativeOrder)
     new NumericTensor(dataType = dataType, shape = shape, buffer = buffer, order = order)
   }
@@ -99,7 +100,8 @@ object RealNumericTensor {
   private[api] def allocate(
       dataType: RealNumericDataType, shape: Shape,
       order: Order = DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER): RealNumericTensor = {
-    val numBytes: Int = dataType.byteSize * shape.numElements.get
+    shape.assertFullyDefined()
+    val numBytes: Int = dataType.byteSize * shape.numElements
     val buffer: ByteBuffer = ByteBuffer.allocateDirect(numBytes).order(ByteOrder.nativeOrder)
     new RealNumericTensor(dataType = dataType, shape = shape, buffer = buffer, order = order)
   }
