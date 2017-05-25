@@ -15,6 +15,7 @@
 
 package org.platanios.tensorflow.api.ops
 
+import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidDataTypeException
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
@@ -1440,12 +1441,66 @@ trait Math {
 
 object Math extends Math {
   private[api] object Gradients {
+    GradientsRegistry.register("Diag", diagGradient)
+    GradientsRegistry.register("DiagPart", diagPartGradient)
+    GradientsRegistry.register("MatrixDiag", matrixDiagGradient)
+    GradientsRegistry.register("MatrixSetDiag", matrixSetDiagGradient)
+    GradientsRegistry.register("MatrixDiagPart", matrixDiagPartGradient)
+    GradientsRegistry.register("MatrixBandPart", matrixBandPartGradient)
     GradientsRegistry.register("Cast", castGradient)
     GradientsRegistry.register("MatMul", matMulGradient)
     GradientsRegistry.register("BatchMatMul", batchMatMulGradient)
     GradientsRegistry.register("Square", squareGradient)
     GradientsRegistry.register("Sub", subtractGradient)
     GradientsRegistry.register("Sum", reduceSumGradient)
+
+    private[this] def diagGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+      Seq(diagPart(outputGradients.head))
+    }
+
+    private[this] def diagPartGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+      Seq(diag(outputGradients.head))
+    }
+
+    private[this] def matrixDiagGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+      Seq(matrixDiagPart(outputGradients.head))
+    }
+
+    private[this] def matrixSetDiagGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+      val gradient = outputGradients.head
+      val inputShape = op.inputs(0).shape.mergeWith(gradient.shape)
+      val batchShape = inputShape(0 :: -2).mergeWith(op.inputs(1).shape(0 :: -1))
+      val matrixShape = inputShape(-2 ::)
+      val diagShape = {
+        if (batchShape.isFullyDefined && matrixShape.isFullyDefined) {
+          Basic.constant(Tensor((batchShape.asArray :+ matrixShape.asArray.min).map(Tensor(_)): _*))
+        } else {
+          Op.colocateWith(Set(gradient.op)) {
+            val gradShape = Basic.shape(gradient)
+            val gradRank = Basic.rank(gradient)
+            val batchShape = Basic.slice(gradShape, 0, gradRank - 2)
+            val matrixShape = Basic.slice(gradShape, gradRank - 2, 2)
+            val minDim = min(matrixShape)
+            Basic.concatenate(Seq(batchShape, minDim), 0)
+          }
+        }
+      }
+      val gradInput = matrixSetDiag(gradient, Basic.fill(diagShape, Tensor(gradient.dataType, 0)))
+      val gradDiag = matrixDiagPart(gradient)
+      Seq(gradInput, gradDiag)
+    }
+
+    private[this] def matrixDiagPartGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+      val matrixShape = op.inputs(0).shape(-2 ::)
+      if (matrixShape.isFullyDefined && matrixShape(0) == matrixShape(1))
+        Seq(matrixDiag(outputGradients.head))
+      else
+        Seq(matrixSetDiag(Basic.zerosLike(op.inputs(0)), outputGradients.head))
+    }
+
+    private[this] def matrixBandPartGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+      Seq(matrixBandPart(outputGradients.head, op.inputs(1), op.inputs(2)), null, null)
+    }
 
     private[this] def castGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
       val supportedDataTypes = Seq(FLOAT32, FLOAT64) // TODO: [TYPES] Float16 and complex.

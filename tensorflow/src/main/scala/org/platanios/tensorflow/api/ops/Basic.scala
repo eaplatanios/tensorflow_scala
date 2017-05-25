@@ -467,11 +467,11 @@ trait Basic {
     * @return Created op outputs, all of which are one-dimensional.
     */
   def shapeN(
-      inputs: Array[Op.Output], dataType: DataType = INT32, name: String = "ShapeN"): Array[Op.Output] = {
+      inputs: Seq[Op.Output], dataType: DataType = INT32, name: String = "ShapeN"): Seq[Op.Output] = {
     Op.Builder(opType = "Shape", name = name)
         .addInputs(inputs)
         .setAttribute("out_type", dataType)
-        .build().outputs
+        .build().outputs.toSeq
   }
 
   //endregion Tensor Shape Ops
@@ -735,14 +735,13 @@ trait Basic {
     * @param  name   Name for the created op.
     * @return Created op output.
     */
-  def concatenate(inputs: Seq[Op.Output], axis: Int = 0, name: String = "Concatenate"): Op.Output = {
-    val axisConstant = Op.createWith(nameScope = name)(constant(tensor = axis, name = "Axis"))
+  def concatenate(inputs: Seq[Op.Output], axis: Op.Output = constant(0), name: String = "Concatenate"): Op.Output = {
     if (inputs.length == 1) {
       Op.createWith(nameScope = name)(identity(inputs.head))
     } else {
       Op.Builder(opType = "ConcatV2", name = name)
           .addInputs(inputs)
-          .addInput(axisConstant)
+          .addInput(axis)
           .build().outputs(0)
     }
   }
@@ -834,12 +833,14 @@ trait Basic {
     * @param  name       Name for the created op.
     * @return Created op outputs.
     */
-  def split(input: Op.Output, splitSizes: Tensor, axis: Int = 0, name: String = "Split"): Array[Op.Output] = {
+  def split(
+      input: Op.Output, splitSizes: Op.Output, axis: Op.Output = constant(Tensor(0)),
+      name: String = "Split"): Seq[Op.Output] = {
     Op.Builder(opType = "SplitV", name = name)
         .addInput(input)
-        .addInput(Op.createWith(nameScope = name)(constant(tensor = splitSizes, name = "Sizes")))
-        .addInput(Op.createWith(nameScope = name)(constant(tensor = axis, name = "Axis")))
-        .build().outputs
+        .addInput(Op.createWith(nameScope = name)(splitSizes))
+        .addInput(Op.createWith(nameScope = name)(axis))
+        .build().outputs.toSeq
   }
 
   /** Creates an op that tiles the provided input tensor.
@@ -861,7 +862,38 @@ trait Basic {
         .build().outputs(0)
   }
 
-  /** Creates an op that pads a tensor with zeros.
+  /** Padding mode. */
+  sealed trait PaddingMode {
+    /** Creates an op that pads a tensor with zeros.
+      *
+      * The op pads `input` with values specified by this padding mode, `mode`, according to the `paddings` you specify.
+      *
+      * `paddings` is an integer tensor with shape `[n, 2]`, where `n` is the rank of `input`. For each dimension `D` of
+      * `input`, `paddings(D, 0)` indicates how many zeros to add before the contents of `input` in that dimension, and
+      * `paddings(D, 1)` indicates how many zeros to add after the contents of `input` in that dimension.
+      *
+      * The padded size of each dimension `D` of the output is equal to
+      * `paddings(D, 0) + input.shape(D) + paddings(D, 1)`.
+      *
+      * @param  input    Input tensor to be padded.
+      * @param  paddings `INT32` or `INT64` tensor containing the paddings.
+      * @param  name     Name for the created op.
+      * @return Created op output.
+      * @throws IllegalArgumentException If `paddings` has an invalid data type.
+      */
+    def pad(input: Op.Output, paddings: Op.Output, name: String = "Pad"): Op.Output
+  }
+
+  private[ops] object PaddingMode {
+    def fromString(name: String): PaddingMode = name match {
+      case "CONSTANT" => ConstantPadding
+      case "REFLECT" => ReflectivePadding
+      case "SYMMETRIC" => SymmetricPadding
+      case _ => throw new IllegalArgumentException(s"Invalid padding mode '$name' provided.")
+    }
+  }
+
+  /** Constant padding mode.
     *
     * The op pads `input` with zeros according to the `paddings` you specify. `paddings` is an integer tensor with shape
     * `[n, 2]`, where `n` is the rank of `input`. For each dimension `D` of `input`, `paddings(D, 0)` indicates how many
@@ -873,33 +905,57 @@ trait Basic {
     *
     * For example:
     * {{{
-    *   // 'input' = [[1, 1], [2, 2]]
+    *   // 'input' = [[1, 2, 3], [4, 5, 6]]
     *   // 'paddings' = [[1, 1], [2, 2]]
-    *   tf.pad(input, paddings) ==>
-    *     [[0, 0, 0, 0, 0, 0]
-    *      [0, 0, 1, 1, 0, 0]
-    *      [0, 0, 2, 2, 0, 0]
-    *      [0, 0, 0, 0, 0, 0]]
+    *   tf.pad(input, paddings, tf.ConstantPadding) ==>
+    *     [[0, 0, 0, 0, 0, 0, 0],
+    *      [0, 0, 1, 2, 3, 0, 0],
+    *      [0, 0, 4, 5, 6, 0, 0],
+    *      [0, 0, 0, 0, 0, 0, 0]]
     * }}}
-    *
-    * @param  input    Input tensor to be padded.
-    * @param  paddings `INT32` or `INT64` tensor containing the paddings.
-    * @param  name     Name for the created op.
-    * @return Created op output.
-    * @throws IllegalArgumentException If `paddings` has an invalid data type.
     */
-  @throws[IllegalArgumentException]
-  def pad(input: Op.Output, paddings: Op.Output, name: String = "Pad"): Op.Output = {
-    if (paddings.dataType != INT32 && paddings.dataType != INT64)
-      throw new IllegalArgumentException(
-        s"'paddings' (dataType = ${paddings.dataType}) must have INT32 or INT64 data type.")
-    Op.Builder(opType = "Pad", name = name)
-        .addInput(input)
-        .addInput(paddings)
-        .build().outputs(0)
+  object ConstantPadding extends PaddingMode {
+    override def pad(input: Op.Output, paddings: Op.Output, name: String = "Pad"): Op.Output = {
+      Op.Builder(opType = "Pad", name = name)
+          .addInput(input)
+          .addInput(paddings)
+          .build().outputs(0)
+    }
   }
 
-  /** Creates an op that pads a tensor with mirrored values.
+  /** Reflective padding mode.
+    *
+    * The op pads `input` with mirrored values according to the `paddings` you specify. `paddings` is an integer tensor
+    * with shape `[n, 2]`, where `n` is the rank of `input`. For each dimension `D` of `input`, `paddings(D, 0)`
+    * indicates how many values to add before the contents of `input` in that dimension, and `paddings(D, 1)` indicates
+    * how many values to add after the contents of `input` in that dimension. Both `paddings(D, 0)` and `paddings(D, 1)`
+    * must be no greater than `input.shape(D) - 1`.
+    *
+    * The padded size of each dimension `D` of the output is equal to
+    * `paddings(D, 0) + input.shape(D) + paddings(D, 1)`.
+    *
+    * For example:
+    * {{{
+    *   // 'input' = [[1, 2, 3], [4, 5, 6]]
+    *   // 'paddings' = [[1, 1], [2, 2]]
+    *   tf.pad(input, paddings, tf.ReflectivePadding) ==>
+    *     [[6, 5, 4, 5, 6, 5, 4],
+    *      [3, 2, 1, 2, 3, 2, 1],
+    *      [6, 5, 4, 5, 6, 5, 4],
+    *      [3, 2, 1, 2, 3, 2, 1]]
+    * }}}
+    */
+  object ReflectivePadding extends PaddingMode {
+    override def pad(input: Op.Output, paddings: Op.Output, name: String = "Pad"): Op.Output = {
+      Op.Builder(opType = "MirrorPad", name = name)
+          .addInput(input)
+          .addInput(paddings)
+          .setAttribute("mode", "REFLECT")
+          .build().outputs(0)
+    }
+  }
+
+  /** Symmetric padding mode.
     *
     * The op pads `input` with mirrored values according to the `paddings` you specify. `paddings` is an integer tensor
     * with shape `[n, 2]`, where `n` is the rank of `input`. For each dimension `D` of `input`, `paddings(D, 0)`
@@ -913,29 +969,77 @@ trait Basic {
     * For example:
     * {{{
     *   // 'input' = [[1, 2, 3], [4, 5, 6]]
-    *   // 'paddings' = [[1, 1]], [2, 2]]
-    *   tf.pad(input, paddings) ==>
-    *     [[2, 1, 1, 2, 3, 3, 2]
-    *      [2, 1, 1, 2, 3, 3, 2]
-    *      [5, 4, 4, 5, 6, 6, 5]
+    *   // 'paddings' = [[1, 1], [2, 2]]
+    *   tf.pad(input, paddings, tf.SymmetricPadding) ==>
+    *     [[2, 1, 1, 2, 3, 3, 2],
+    *      [2, 1, 1, 2, 3, 3, 2],
+    *      [5, 4, 4, 5, 6, 6, 5],
+    *      [5, 4, 4, 5, 6, 6, 5]]
+    * }}}
+    */
+  object SymmetricPadding extends PaddingMode {
+    override def pad(input: Op.Output, paddings: Op.Output, name: String = "Pad"): Op.Output = {
+      Op.Builder(opType = "MirrorPad", name = name)
+          .addInput(input)
+          .addInput(paddings)
+          .setAttribute("mode", "SYMMETRIC")
+          .build().outputs(0)
+    }
+  }
+
+  /** Creates an op that pads a tensor with zeros.
+    *
+    * The op pads `input` with values specified by the padding mode, `mode`, according to the `paddings` you specify.
+    *
+    * `paddings` is an integer tensor with shape `[n, 2]`, where `n` is the rank of `input`. For each dimension `D` of
+    * `input`, `paddings(D, 0)` indicates how many zeros to add before the contents of `input` in that dimension, and
+    * `paddings(D, 1)` indicates how many zeros to add after the contents of `input` in that dimension.
+    *
+    * If `mode` is [[ReflectivePadding]] then both `paddings(D, 0)` and `paddings(D, 1)` must be no greater than
+    * `input.shape(D) - 1`. If `mode` is [[SymmetricPadding]] then both `paddings(D, 0)` and `paddings(D, 1)` must be
+    * no greater than `input.shape(D)`.
+    *
+    * The padded size of each dimension `D` of the output is equal to
+    * `paddings(D, 0) + input.shape(D) + paddings(D, 1)`.
+    *
+    * For example:
+    * {{{
+    *   // 'input' = [[1, 2, 3], [4, 5, 6]]
+    *   // 'paddings' = [[1, 1], [2, 2]]
+    *
+    *   tf.pad(input, paddings, tf.ConstantPadding) ==>
+    *     [[0, 0, 0, 0, 0, 0, 0],
+    *      [0, 0, 1, 2, 3, 0, 0],
+    *      [0, 0, 4, 5, 6, 0, 0],
+    *      [0, 0, 0, 0, 0, 0, 0]]
+    *
+    *   tf.pad(input, paddings, tf.ReflectivePadding) ==>
+    *     [[6, 5, 4, 5, 6, 5, 4],
+    *      [3, 2, 1, 2, 3, 2, 1],
+    *      [6, 5, 4, 5, 6, 5, 4],
+    *      [3, 2, 1, 2, 3, 2, 1]]
+    *
+    *   tf.pad(input, paddings, tf.SymmetricPadding) ==>
+    *     [[2, 1, 1, 2, 3, 3, 2],
+    *      [2, 1, 1, 2, 3, 3, 2],
+    *      [5, 4, 4, 5, 6, 6, 5],
     *      [5, 4, 4, 5, 6, 6, 5]]
     * }}}
     *
     * @param  input    Input tensor to be padded.
     * @param  paddings `INT32` or `INT64` tensor containing the paddings.
+    * @param  mode     Padding mode to use.
     * @param  name     Name for the created op.
     * @return Created op output.
     * @throws IllegalArgumentException If `paddings` has an invalid data type.
     */
   @throws[IllegalArgumentException]
-  def mirrorPad(input: Op.Output, paddings: Op.Output, name: String = "MirrorPad"): Op.Output = {
+  def pad(
+      input: Op.Output, paddings: Op.Output, mode: PaddingMode = ConstantPadding, name: String = "Pad"): Op.Output = {
     if (paddings.dataType != INT32 && paddings.dataType != INT64)
       throw new IllegalArgumentException(
         s"'paddings' (dataType = ${paddings.dataType}) must have INT32 or INT64 data type.")
-    Op.Builder(opType = "MirrorPad", name = name)
-        .addInput(input)
-        .addInput(paddings)
-        .build().outputs(0)
+    mode.pad(input, paddings, name)
   }
 
   /** Creates an op that reshapes a tensor.
@@ -1028,7 +1132,7 @@ trait Basic {
     * @param  name        Name for the created op.
     * @return Created op output.
     */
-  def transpose(input: Op.Output, permutation: Array[Int] = null, name: String = "Transpose"): Op.Output = {
+  def transpose(input: Op.Output, permutation: Op.Output = null, name: String = "Transpose"): Op.Output = {
     if (permutation == null) {
       Op.createWith(nameScope = name) {
         val inputRank = rank(input)
@@ -1037,7 +1141,7 @@ trait Basic {
             .addInput(input)
             .addInput(reversePermutation)
             .build().outputs(0)
-        // Setting the shape explicitly because tranpose is not handled by the shape function.
+        // Setting the shape explicitly because transpose is not handled by the shape function.
         val inputShape = transposed.op.inputs(0).shape
         if (inputShape != null && inputShape.rank != -1)
           transposed.setShape(Shape(inputShape.asArray.reverse: _*))
@@ -1046,7 +1150,7 @@ trait Basic {
     } else {
       Op.Builder(opType = "Transpose", name = name)
           .addInput(input)
-          .addInput(constant(Tensor(permutation.map(Tensor(_)): _*)))
+          .addInput(permutation)
           .build().outputs(0)
     }
   }
@@ -1193,27 +1297,12 @@ trait Basic {
     * @param  name  Name for the created op.
     * @return Created op output that has the same shape as `input`.
     */
-  def reverse(input: Op.Output, axes: Array[Int], name: String = "Reverse"): Op.Output = {
-    Op.Builder(opType = "Reverse", name = name)
-        .addInput(input)
-        .addInput(Basic.constant(Tensor(axes.map(Tensor(_)): _*)))
-        .build().outputs(0)
-  }
-
-  /** Creates an identical op to [[reverse]], except for the fact that the provided `axes` are themselves represented as
-    * an op output. as opposed to an integer array.
-    *
-    * @param  input Input tensor to reverse.
-    * @param  axes  `INT32` or `INT64` tensor containing the dimensions of the input tensor to reverse.
-    * @param  name  Name for the created op.
-    * @return Created op output.
-    */
-  def reverseDynamic(input: Op.Output, axes: Op.Output, name: String = "Reverse"): Op.Output = {
+  def reverse(input: Op.Output, axes: Op.Output, name: String = "Reverse"): Op.Output = {
     if (axes.dataType != INT32 && axes.dataType != INT64)
       throw InvalidDataTypeException(
         s"Data type '${axes.dataType}' is not supported for the reverse op axes. " +
             s"Only 'Int32' and 'Int64' are supported.")
-    Op.Builder(opType = "Reverse", name = name)
+    Op.Builder(opType = "ReverseV2", name = name)
         .addInput(input)
         .addInput(axes)
         .build().outputs(0)
@@ -2757,6 +2846,7 @@ trait Basic {
 
   //region Broadcasting Ops
 
+  // TODO: Add support for the "broadcastGradientArguments" op.
   // TODO: Add support for "broadcastShape" (static). Implement the main method in the "Shape" object.
 
   /** Creates an op that returns the broadcasted dynamic shape between two provided shapes, corresponding to the shapes
@@ -2918,11 +3008,64 @@ object Basic extends Basic {
     GradientsRegistry.registerNonDifferentiable("InvertPermutation")
     GradientsRegistry.registerNonDifferentiable("OneHot")
     GradientsRegistry.registerNonDifferentiable("EditDistance")
-    GradientsRegistry.registerNonDifferentiable("BroadcastGradientArgs") // TODO: [OP]
+    GradientsRegistry.registerNonDifferentiable("BroadcastGradientArgs")
     GradientsRegistry.registerNonDifferentiable("StopGradient")
 
+    GradientsRegistry.register("Fill", fillGradient)
+    GradientsRegistry.register("PlaceholderWithDefault", identityGradient)
+    GradientsRegistry.register("Identity", identityGradient)
+    GradientsRegistry.register("ExpandDims", expandDimsGradient)
+    GradientsRegistry.register("Squeeze", squeezeGradient)
     GradientsRegistry.register("Pack", stackGradient)
+    GradientsRegistry.register("Unpack", unstackGradient)
+    GradientsRegistry.register("ConcatV2", concatenateGradient)
+    GradientsRegistry.register("Split", splitEvenlyGradient)
+    GradientsRegistry.register("SplitV", splitGradient)
+    GradientsRegistry.register("Tile", tileGradient)
+    GradientsRegistry.register("Pad", padGradient)
+    GradientsRegistry.register("MirrorPad", mirrorPadGradient)
+    GradientsRegistry.register("MirrorPadGrad", mirrorPadHessian)
     GradientsRegistry.register("Reshape", reshapeGradient)
+    GradientsRegistry.register("Transpose", transposeGradient)
+    GradientsRegistry.register("ReverseV2", reverseGradient)
+    GradientsRegistry.register("ReverseSequence", reverseSequenceGradient)
+    GradientsRegistry.register("SpaceToBatch", spaceToBatchGradient)
+    GradientsRegistry.register("SpaceToBatchND", spaceToBatchNDGradient)
+    GradientsRegistry.register("BatchToSpace", batchToSpaceGradient)
+    GradientsRegistry.register("BatchToSpaceND", batchToSpaceNDGradient)
+    GradientsRegistry.register("SpaceToDepth", spaceToDepthGradient)
+    GradientsRegistry.register("DepthToSpace", depthToSpaceGradient)
+    GradientsRegistry.register("Gather", gatherGradient)
+    GradientsRegistry.register("GatherNd", gatherNDGradient)
+    GradientsRegistry.register("ScatterNd", scatterNDGradient)
+    GradientsRegistry.register("Slice", sliceGradient)
+    GradientsRegistry.register("StridedSlice", stridedSliceGradient)
+    GradientsRegistry.register("StridedSliceGrad", stridedSliceHessian)
+    GradientsRegistry.register("CheckNumerics", checkNumericsGradient)
+    GradientsRegistry.register("QuantizeAndDequantize", identityGradient)
+    GradientsRegistry.register("QuantizeAndDequantizeV2", quantizeAndDequantizeGradient)
+    GradientsRegistry.register("PreventGradient", preventGradientGradient)
+
+    private[this] def fillGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+      Seq(null, Math.sum(outputGradients.head))
+    }
+
+    private[this] def identityGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+      outputGradients
+    }
+
+    /** Reshapes the gradient to the shape of the original input. */
+    private[this] def reshapeToInput(op: Op, gradient: Op.Output): Op.Output = {
+      reshape(gradient, shape(op.inputs(0)))
+    }
+
+    private[this] def expandDimsGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+      Seq(reshapeToInput(op, outputGradients.head), null)
+    }
+
+    private[this] def squeezeGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+      Seq(reshapeToInput(op, outputGradients.head))
+    }
 
     private[this] def stackGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
       unstack(
@@ -2930,8 +3073,259 @@ object Basic extends Basic {
         axis = op.longAttribute("axis").toInt).toSeq
     }
 
-    private[this] def reshapeGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
-      Seq[Op.OutputLike](reshape(outputGradients.head, shape(op.inputs(0))), null)
+    private[this] def unstackGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+      Seq(stack(inputs = outputGradients.map(_.toOpOutput), axis = op.longAttribute("axis").toInt))
     }
+
+    private[this] def concatenateGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+      val gradient = outputGradients.head
+      if (op.inputs.length == 2) {
+        // Degenerate concatenation.
+        Seq(gradient, null)
+      } else {
+        val concatenationAxis = op.inputs.last
+        val inputValues = op.inputs.take(op.inputs.length - 1)
+        // Using modulus here for convenience since the 'concatenationAxis' value is already verified in the concatenate
+        // op implementation to be within the allowed '[-rank, rank)' range.
+        val nonNegativeConcatenationAxis = concatenationAxis % rank(inputValues(0))
+        val outputGradients = gradient match {
+          case g: Op.Output =>
+            // Get the inputs' tensor shapes.
+            val shapes = shapeN(inputValues)
+            // The magic number of '16' was found through benchmarking a range of sizes on CPUs and a Maxwell Titan X
+            // GPU. A speedup was seen in a large majority of cases when switching implementations at N = 16, but it is
+            // possible that there will be a small number of performance regressions.
+            if (shapes.length > 16) {
+              // Extract the size of each input along the concatenation axis.
+              val sizes = squeeze(slice(stack(shapes, 1), stack(Seq(nonNegativeConcatenationAxis, 0)), Tensor(1, -1)))
+              split(g, sizes, nonNegativeConcatenationAxis)
+            } else {
+              val offset = concatenateOffset(shapes, nonNegativeConcatenationAxis)
+              offset.zip(shapes).map(t => slice(g, t._1, t._2))
+            }
+          case _: Op.OutputIndexedSlices => ??? // TODO: [GRADIENTS] [TENSORS] Can be done after we settle on tensors.
+          // val staticConcatenationAxis = {
+          //   val axis = Op.constantValue(concatenationAxis)
+          //   if (axis == null)
+          //     throw new IllegalArgumentException(
+          //       "Can only compute 'Op.OutputIndexedSlices' gradients for the concatenation op when the " +
+          //           "concatenation axis is statically-known.")
+          //   val realNumericAxis = axis.asRealNumeric
+          //   if (realNumericAxis.scalar < 0) {
+          //     val staticRank = Op.constantValue(rank(inputValues(0)))
+          //     if (staticRank == null)
+          //       throw new IllegalArgumentException(
+          //         "Can only compute 'Op.OutputIndexedSlices' gradients for the concatenation op when the " +
+          //             "first value rank is statically-known.")
+          //     realNumericAxis % staticRank.asRealNumeric.scalar
+          //  } else {
+          //     realNumericAxis
+          //   }
+          // }
+          //
+          // Get the input tensor shapes.
+          // val shapes = inputValues.map(shape(_))
+          // if (staticConcatenationAxis > 0) {
+          //   /* Creates variables for iteratively slicing a dense gradients tensor. */
+          //   // Since shape is 1-D, 'shapeOfShape' is a scalar containing the rank of the inputs.
+          //   val shapeOfShape = shape(shapes(0))
+          //   // Make a vector of length equal to the input rank, with 0's everywhere and 1 in the concatenation axis index.
+          //   val zero = constant(Tensor(INT32, 0))
+          //   val one = constant(Tensor(INT32, 1))
+          //   val mask = concatenate(Seq(
+          //    fill(expandDims(nonNegativeConcatenationAxis, 0), zero, INT32),
+          //     constant(Tensor(INT32, 1)),
+          //    fill(shapeOfShape - nonNegativeConcatenationAxis - one, zero, INT32)
+          //   ), zero)
+          //   val begin = fill(shapeOfShape, zero, INT32)
+          // }
+          case _ => throw new IllegalArgumentException(
+            "Only 'Op.Output' and 'Op.OutputIndexedSlices' gradients are supported for the concatenation op.")
+        }
+        outputGradients :+ null
+      }
+    }
+
+    private[this] def splitEvenlyGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+      Seq(null, concatenate(outputGradients.map(_.toOpOutput), axis = op.inputs(0)))
+    }
+
+    private[this] def splitGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+      concatenate(outputGradients.map(_.toOpOutput), axis = op.inputs(2)) +: Seq.fill(op.inputs.length - 1)(null)
+    }
+
+    private[this] def tileGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+      val inputShape = shape(op.inputs(0))
+      // We interleave 'multiples' and 'inputShape' to get 'splitShape', reshape the output gradient to 'splitShape',
+      // and reduce along all even dimensions (the tiled dimensions) to get the result with shape 'inputShape'.
+      // For example:
+      //   inputShape = [20, 30, 40]
+      //   multiples = [2, 3, 4]
+      //   splitShape = [2, 20, 3, 30, 4, 40]
+      //   axes = [0, 2, 4]
+      val splitShape = reshape(transpose(stack(Seq(op.inputs(1), inputShape))), -1)
+      val axes = Math.range(0, size(splitShape), 2)
+      val inputGradient = Math.sum(reshape(outputGradients.head, splitShape), axes)
+      // Fix shape inference.
+      inputGradient.setShape(op.inputs(0).shape)
+      Seq(inputGradient, null)
+    }
+
+    private[this] def padGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+      // Pad introduces values around the original tensor, and so the gradient function slices the original shape out of
+      // the gradient.
+      val x = op.inputs(0)
+      val a = op.inputs(1) // == [rank(x), 2]
+      // Take a slice of 'a' (the 1st column: [rank(x), 1]).
+      val padBefore = slice(a, Tensor(0, 0), stack(Seq(rank(x), 1)))
+      // Make it a one-dimensional tensor and return it.
+      Seq(slice(outputGradients.head, reshape(padBefore, -1), shape(x)), null)
+    }
+
+    private[this] def mirrorPadGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+      val gradient = Op.Builder(opType = "MirrorPadGrad", name = "MirrorPadGradient")
+          .addInput(outputGradients.head)
+          .addInput(op.inputs(1))
+          .setAttribute("mode", op.stringAttribute("mode"))
+          .build().outputs(0)
+      Seq(gradient, null)
+    }
+
+    private[this] def mirrorPadHessian(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+      Seq(pad(outputGradients.head, op.inputs(1), PaddingMode.fromString(op.stringAttribute("mode"))), null)
+    }
+
+    private[this] def reshapeGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+      Seq(reshape(outputGradients.head, shape(op.inputs(0))), null)
+    }
+
+    private[this] def transposeGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+      Seq(transpose(outputGradients.head, invertPermutation(op.inputs(1))), null)
+    }
+
+    private[this] def reverseGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+      Seq(reverse(outputGradients.head, op.inputs(1)), null)
+    }
+
+    private[this] def reverseSequenceGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+      Seq(reverseSequence(
+        input = outputGradients.head,
+        sequenceLengths = op.inputs(1),
+        sequenceAxis = op.longAttribute("seq_dim").toInt,
+        batchAxis = op.longAttribute("batch_dim").toInt), null)
+    }
+
+    private[this] def spaceToBatchGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+      Seq(batchToSpace(outputGradients.head, op.longAttribute("block_size").toInt, op.inputs(1)), null)
+    }
+
+    private[this] def spaceToBatchNDGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+      Seq(batchToSpaceND(outputGradients.head, op.inputs(1), op.inputs(2)), null, null)
+    }
+
+    private[this] def batchToSpaceGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+      Seq(spaceToBatch(outputGradients.head, op.longAttribute("block_size").toInt, op.inputs(1)), null)
+    }
+
+    private[this] def batchToSpaceNDGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+      Seq(spaceToBatchND(outputGradients.head, op.inputs(1), op.inputs(2)), null, null)
+    }
+
+    private[this] def spaceToDepthGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+      Seq(depthToSpace(outputGradients.head, op.longAttribute("block_size").toInt))
+    }
+
+    private[this] def depthToSpaceGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+      Seq(spaceToDepth(outputGradients.head, op.longAttribute("block_size").toInt))
+    }
+
+    private[this] def gatherGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+      // The input can be large, so we colocate the shape calculation with it.
+      // The input can be very large for sparse models and 'shape' raises an exception on the Windows platform whenever
+      // any dimension is larger than INT32. 'inputShape' is not used in the optimizer 'applySparse' gradients method
+      // and so it's fine to convert it back to INT32 regardless of the truncation.
+      val input = op.inputs(0)
+      val inputShape = Op.colocateWith(Set(input.op)) {
+        val inputShape = shape(input, INT64)
+        Math.cast(inputShape, INT32)
+      }
+      // Build appropriately shaped 'Op.OutputIndexedSlices'.
+      val indices = op.inputs(1)
+      val indicesSize = expandDims(size(indices), 0)
+      val valuesShape = concatenate(Seq(indicesSize, inputShape(1 ::)), 0)
+      val values = reshape(outputGradients.head, valuesShape)
+      val gradient = Op.OutputIndexedSlices(
+        indices = reshape(indices, indicesSize), values = values, denseShape = inputShape)
+      Seq(gradient, null)
+    }
+
+    private[this] def gatherNDGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+      val input = op.inputs(0)
+      val indices = op.inputs(1)
+      val inputShape = shape(input, indices.dataType)
+      val inputGradient = scatterND(indices, outputGradients.head, inputShape)
+      Seq(inputGradient, null)
+    }
+
+    private[this] def scatterNDGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+      Seq(null, gatherND(outputGradients.head, op.inputs(0)), null)
+    }
+
+    private[this] def sliceGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+      // Create an N x 2 padding where the first column represents how many zeros are to be prepended for each
+      // dimension, and the second column indicates how many zeros are to be appended. The number of zeros to append
+      // corresponds to the shape of the input elementwise-subtracted by both the begin vector and sizes vector. Some
+      // more reshaping is needed to assemble this tensor with the right dimensions.
+      val inputVector = op.inputs(0)
+      val beginVector = op.inputs(1)
+      val inputRank = rank(inputVector)
+      val padShape = stack(Seq(inputRank, constant(Tensor(inputRank.dataType, 1))))
+      val beforePad = reshape(beginVector, padShape)
+      val afterPad = reshape(shape(inputVector) - shape(op.outputs(0)) - beginVector, padShape)
+      val paddings = concatenate(Seq(beforePad, afterPad), axis = 1)
+      Seq(pad(outputGradients.head, paddings), null, null)
+    }
+  }
+
+  private[this] def stridedSliceGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+    val gradient = Op.Builder(opType = "StridedSliceGrad", name = "StridedSliceGradient")
+        .addInput(shape(op.inputs(0)))
+        .addInput(op.inputs(1))
+        .addInput(op.inputs(2))
+        .addInput(op.inputs(3))
+        .addInput(outputGradients.head)
+        .setAttribute("begin_mask", op.longAttribute("begin_mask"))
+        .setAttribute("end_mask", op.longAttribute("end_mask"))
+        .setAttribute("ellipsis_mask", op.longAttribute("ellipsis_mask"))
+        .setAttribute("new_axis_mask", op.longAttribute("new_axis_mask"))
+        .setAttribute("shrink_axis_mask", op.longAttribute("shrink_axis_mask"))
+        .build().outputs(0)
+    Seq(gradient, null, null, null)
+  }
+
+  private[this] def stridedSliceHessian(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+    val gradient = stridedSlice(
+      input = outputGradients.head,
+      begin = op.inputs(1),
+      end = op.inputs(2),
+      strides = op.inputs(3),
+      beginMask = op.longAttribute("begin_mask").toInt,
+      endMask = op.longAttribute("end_mask").toInt,
+      ellipsisMask = op.longAttribute("ellipsis_mask").toInt,
+      newAxisMask = op.longAttribute("new_axis_mask").toInt,
+      shrinkAxisMask = op.longAttribute("shrink_axis_mask").toInt)
+    Seq(null, null, null, null, gradient)
+  }
+
+  private[this] def checkNumericsGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+    Seq(checkNumerics(outputGradients.head, "Not a number (NaN) or infinity (Inf) values detected in the gradient."))
+  }
+
+  private[this] def quantizeAndDequantizeGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+    Seq(outputGradients.head, null, null)
+  }
+
+  private[this] def preventGradientGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+    throw new IllegalArgumentException(s"Gradient explicitly disabled. Reason: ${op.stringAttribute("message")}.")
   }
 }

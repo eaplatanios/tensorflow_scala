@@ -375,6 +375,12 @@ object Shape {
     */
   def apply(dimensions: Int*): Shape = create(dimensions: _*)
 
+  /** Creates a shape with the specified dimension sizes.
+    *
+    * @param  dimensions Dimension sizes.
+    */
+  def apply(dimensions: Array[Int]): Shape = new Shape(dimensions)
+
   private[api] trait Implicits {
     implicit def shapeToTensor(shape: Shape): Tensor = shape.toTensor()
     implicit def shapeToOpOutput(shape: Shape): Op.Output = Basic.constant(shape.toTensor())

@@ -164,7 +164,8 @@ sbt compile
   - [ ] Kernel label map op creation context (may be unnecessary)
   - Ops:
     - [x] Basic array ops (missing quantization ops)
-    - [ ] Basic array ops gradients (missing most)
+    - [x] Basic array ops gradients 
+          (missing the concatenate op gradient for indexed slices -- need better Tensors API for that)
     - [ ] Math (missing some)
     - [ ] Math gradients (missing most)
     - [ ] NN

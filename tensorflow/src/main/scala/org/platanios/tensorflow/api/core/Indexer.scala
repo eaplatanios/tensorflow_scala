@@ -82,6 +82,8 @@ object Indexer {
   val ::  : Slice   = Slice.::
 
   private[api] trait Implicits {
+    implicit lazy val postfixOps: scala.languageFeature.postfixOps = scala.language.postfixOps
+
     val --- : Indexer = Indexer.---
     val ::  : Slice   = Indexer.::
 

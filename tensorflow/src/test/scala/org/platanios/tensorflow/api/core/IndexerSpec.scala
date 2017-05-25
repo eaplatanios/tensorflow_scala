@@ -20,8 +20,6 @@ import org.platanios.tensorflow.api.core.exception.InvalidIndexerException
 
 import org.scalatest._
 
-import scala.languageFeature.postfixOps
-
 /**
   * @author Emmanouil Antonios Platanios
   */
