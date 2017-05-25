@@ -1102,6 +1102,7 @@ object Op {
     def -(other: Output): Output = Math.subtract(x = this, y = other) // TODO: [SPARSE]
     def *(other: Output): Output = Math.multiply(x = this, y = other) // TODO: [SPARSE]
     def /(other: Output): Output = Math.divide(x = this, y = other) // TODO: [SPARSE]
+    def %(other: Output): Output = Math.mod(x = this, y = other) // TODO: [SPARSE]
     def **(other: Output): Output = Math.pow(x = this, y = other) // TODO: [SPARSE]
 
     def unary_! : Output = Math.logicalNot(x = this)
