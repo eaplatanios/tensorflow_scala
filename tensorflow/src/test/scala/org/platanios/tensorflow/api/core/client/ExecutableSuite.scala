@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.core.client
 
 import org.platanios.tensorflow.api.using
 import org.platanios.tensorflow.api.core.Graph
-import org.platanios.tensorflow.api.ops.{Basic, ControlFlow, Op}
+import org.platanios.tensorflow.api.ops.{Basic, ControlFlow, Op, OutputIndexedSlices, SparseOutput}
 import org.platanios.tensorflow.api.tensors.Tensor
 
 import org.scalatest.junit.JUnitSuite
@@ -36,14 +36,14 @@ class ExecutableSuite extends JUnitSuite {
     }
   }
 
-  @Test def testOpOutputLikeExecutable(): Unit = using(Graph()) { graph =>
+  @Test def testOutputLikeExecutable(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
       val output1 = Basic.constant(Tensor(Tensor(2L), Tensor(1L)), name = "Constant_1")
       val output2 = Basic.constant(Tensor(2L, 1L), name = "Constant_2")
       val output3 = Basic.constant(Tensor(3L), name = "Constant_3")
       executable(output1)
-      executable(Op.OutputIndexedSlices(output1, output2, output3))
-      executable(Op.SparseOutput(output1, output2, output3))
+      executable(OutputIndexedSlices(output1, output2, output3))
+      executable(SparseOutput(output1, output2, output3))
       succeed
     }
   }

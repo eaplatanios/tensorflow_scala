@@ -41,10 +41,12 @@ package object variables {
     val onesInitializer  = variables.OnesInitializer
 
     def constantInitializer(value: Tensor) = variables.ConstantInitializer(value)
-    def constantInitializer(value: Op.Output) = variables.DynamicConstantInitializer(value)
+    def constantInitializer(value: Output) = variables.DynamicConstantInitializer(value)
 
     type Saver = variables.Saver
     val Saver = variables.Saver
+
+    // TODO: !!! [VARIABLES] Change the order of the arguments in the following functions.
 
     def variable(
         name: String, shape: Shape = null, dataType: DataType = FLOAT32, initializer: VariableInitializer = null,
@@ -81,5 +83,4 @@ package object variables {
         name, shape, dataType, initializer, regularizer, partitioner, reuse, collections, cachingDevice)
     }
   }
-
 }

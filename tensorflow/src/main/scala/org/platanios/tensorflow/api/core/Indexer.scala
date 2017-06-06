@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.core
 
 import org.platanios.tensorflow.api.core.exception.InvalidIndexerException
-import org.platanios.tensorflow.api.ops.{Basic, Op}
+import org.platanios.tensorflow.api.ops.{Basic, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.INT32
 
@@ -33,7 +33,7 @@ import scala.language.postfixOps
   * Examples of constructing and using indexers are provided in the [[Ellipsis]] and the  [[Slice]] class documentation.
   * Here we provide examples of indexing over tensors using indexers:
   * {{{
-  *   // 't' is a tensor (i.e., Op.Output) with shape [4, 2, 3, 8]
+  *   // 't' is a tensor (i.e., Output) with shape [4, 2, 3, 8]
   *   t(::, ::, 1, ::)            // Tensor with shape [4, 2, 1, 8]
   *   t(1 :: -2, ---, 2)          // Tensor with shape [1, 2, 3, 1]
   *   t(---)                      // Tensor with shape [4, 2, 3, 8]
@@ -228,15 +228,15 @@ object Indexer {
     (oldDimensions, dimensions, beginOffsets, endOffsets, strides)
   }
 
-  /** Converts a sequence of indexers into a function that takes an [[Op.Output]], applies the strided slice native op
-    * on it for the provided sequence of indexers, and returns a new (indexed) [[Op.Output]].
+  /** Converts a sequence of indexers into a function that takes an [[Output]], applies the strided slice native op on
+    * it for the provided sequence of indexers, and returns a new (indexed) [[Output]].
     *
     * Note that `indexers` is only allowed to contain at most one [[Ellipsis]].
     *
     * @param  indexers Sequence of indexers to convert.
-    * @return Function that indexes an [[Op.Output]] and returns a new (indexed) [[Op.Output]].
+    * @return Function that indexes an [[Output]] and returns a new (indexed) [[Output]].
     */
-  private[api] def toStridedSlice(indexers: Indexer*): Op.Output => Op.Output = {
+  private[api] def toStridedSlice(indexers: Indexer*): Output => Output = {
     if (indexers.count(_ == Ellipsis) > 1)
       throw InvalidIndexerException("Only one 'Ellipsis' ('---') is allowed per indexing sequence.")
     val begin = Tensor.fill(dataType = INT32, shape = Shape(indexers.length))(value = 0)
@@ -267,7 +267,7 @@ object Indexer {
         if (sliceEnd == -1)
           endMask |= (1 << i)
     }
-    input: Op.Output =>
+    input: Output =>
       Basic.stridedSlice(
         input = input,
         begin = Basic.constant(begin),

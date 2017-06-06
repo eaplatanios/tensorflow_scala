@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.core.client
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.core.Graph
-import org.platanios.tensorflow.api.ops.{Basic, Op}
+import org.platanios.tensorflow.api.ops.{Basic, Op, OutputIndexedSlices}
 import org.platanios.tensorflow.api.tensors.Tensor
 
 import org.scalatest.junit.JUnitSuite
@@ -36,7 +36,7 @@ class FeedableSuite extends JUnitSuite {
       val tensor2 = Tensor(2.0f)
       val tensor3 = Tensor(3.0f)
       val feedable1 = Basic.placeholder(tf.FLOAT32)
-      val feedable2 = Op.OutputIndexedSlices(
+      val feedable2 = OutputIndexedSlices(
         Basic.placeholder(tf.FLOAT32), Basic.placeholder(tf.FLOAT32), Basic.placeholder(tf.FLOAT32))
       val feedable1FeedMap = feedMapIdentity(Map(feedable1 -> tensor0))
       val feedable2FeedMap = feedMapIdentity(Map(feedable2 -> (tensor1, tensor2, tensor3)))
@@ -53,7 +53,7 @@ class FeedableSuite extends JUnitSuite {
       val tensor2 = Tensor(2.0f)
       val tensor3 = Tensor(3.0f)
       val feedable1 = Basic.placeholder(tf.FLOAT32)
-      val feedable2 = Op.OutputIndexedSlices(
+      val feedable2 = OutputIndexedSlices(
         Basic.placeholder(tf.FLOAT32), Basic.placeholder(tf.FLOAT32), Basic.placeholder(tf.FLOAT32))
       val feedable1FeedMap: FeedMap = feedMapIdentity(Map(feedable1 -> tensor0))
       val feedable2FeedMap: FeedMap = feedMapIdentity(Map(feedable2 -> (tensor1, tensor2, tensor3)))

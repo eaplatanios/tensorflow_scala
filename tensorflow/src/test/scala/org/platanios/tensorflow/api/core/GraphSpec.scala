@@ -129,30 +129,30 @@ class GraphSpec extends FlatSpec with Matchers {
     assert(intercept[InvalidGraphElementException](graph.getOpByName("A")).getMessage
                === "Name 'A' refers to an op which does not exist in the graph.")
     assert(intercept[InvalidGraphElementException](graph.getOpByName("A:0")).getMessage
-               === "Name 'A:0' appears to refer to an op output, but 'allowOpOutput' was set to 'false'.")
+               === "Name 'A:0' appears to refer to an op output, but 'allowOutput' was set to 'false'.")
   }
 
-  "'opOutputByName'" must "return an existing op output in a graph" in {
+  "'outputByName'" must "return an existing op output in a graph" in {
     val (graph, ops) = prepareGraph()
-    assert(graph.getOpOutputByName("C_2:0") === ops(1).outputs(0))
+    assert(graph.getOutputByName("C_2:0") === ops(1).outputs(0))
   }
 
   it must "throw an 'InvalidGraphElementException' exception with an informative message " +
       "if an op output name does not exist in the graph" in {
     val (graph, _) = prepareGraph()
-    assert(intercept[InvalidGraphElementException](graph.getOpOutputByName("A:0:3")).getMessage
+    assert(intercept[InvalidGraphElementException](graph.getOutputByName("A:0:3")).getMessage
                === "Name 'A:0:3' looks a like an op output name, but it is not a valid one. " +
         "Op output names must be of the form \"<op_name>:<output_index>\".")
-    assert(intercept[InvalidGraphElementException](graph.getOpOutputByName("A:0")).getMessage
+    assert(intercept[InvalidGraphElementException](graph.getOutputByName("A:0")).getMessage
                === "Name 'A:0' refers to an op output which does not exist in the graph. " +
         "More specifically, op, 'A', does not exist in the graph.")
-    assert(intercept[InvalidGraphElementException](graph.getOpOutputByName("C_2:5")).getMessage
+    assert(intercept[InvalidGraphElementException](graph.getOutputByName("C_2:5")).getMessage
                === "Name 'C_2:5' refers to an op output which does not exist in the graph. " +
         "More specifically, op, 'C_2', does exist in the graph, but it only has 1 output(s).")
-    assert(intercept[InvalidGraphElementException](graph.getOpOutputByName("A")).getMessage
+    assert(intercept[InvalidGraphElementException](graph.getOutputByName("A")).getMessage
                === "Name 'A' looks like an (invalid) op name, and not an op output name. " +
         "Op output names must be of the form \"<op_name>:<output_index>\".")
-    assert(intercept[InvalidGraphElementException](graph.getOpOutputByName("C_2")).getMessage
+    assert(intercept[InvalidGraphElementException](graph.getOutputByName("C_2")).getMessage
                === "Name 'C_2' appears to refer to an op, but 'allowOp' was set to 'false'.")
   }
 
@@ -166,30 +166,30 @@ class GraphSpec extends FlatSpec with Matchers {
       "if an element name does not exist in the graph" in {
     val (graph, _) = prepareGraph()
     assert(intercept[InvalidGraphElementException](
-      graph.getByName("A", allowOp = true, allowOpOutput = true)).getMessage
+      graph.getByName("A", allowOp = true, allowOutput = true)).getMessage
                === "Name 'A' refers to an op which does not exist in the graph.")
     assert(intercept[InvalidGraphElementException](
-      graph.getByName("A:0:3", allowOp = true, allowOpOutput = true)).getMessage
+      graph.getByName("A:0:3", allowOp = true, allowOutput = true)).getMessage
                === "Name 'A:0:3' looks a like an op output name, but it is not a valid one. " +
         "Op output names must be of the form \"<op_name>:<output_index>\".")
     assert(intercept[InvalidGraphElementException](
-      graph.getByName("A:0", allowOp = true, allowOpOutput = true)).getMessage
+      graph.getByName("A:0", allowOp = true, allowOutput = true)).getMessage
                === "Name 'A:0' refers to an op output which does not exist in the graph. " +
         "More specifically, op, 'A', does not exist in the graph.")
     assert(intercept[InvalidGraphElementException](
-      graph.getByName("C_2:5", allowOp = true, allowOpOutput = true)).getMessage
+      graph.getByName("C_2:5", allowOp = true, allowOutput = true)).getMessage
                === "Name 'C_2:5' refers to an op output which does not exist in the graph. " +
         "More specifically, op, 'C_2', does exist in the graph, but it only has 1 output(s).")
     assert(intercept[IllegalArgumentException](
-      graph.getByName("A", allowOp = false, allowOpOutput = false)).getMessage
-               === "'allowOpOutput' and 'allowOp' cannot both be set to 'false'.")
+      graph.getByName("A", allowOp = false, allowOutput = false)).getMessage
+               === "'allowOutput' and 'allowOp' cannot both be set to 'false'.")
   }
 
-  object INPUTS extends Graph.Keys.OpOutputCollectionKey {
+  object INPUTS extends Graph.Keys.OutputCollectionKey {
     override def name: String = "inputs"
   }
 
-  object OUTPUTS extends Graph.Keys.OpOutputCollectionKey {
+  object OUTPUTS extends Graph.Keys.OutputCollectionKey {
     override def name: String = "outputs"
   }
 

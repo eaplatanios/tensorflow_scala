@@ -26,7 +26,7 @@ trait Text {
     *                   scalars. Scalars may be mixed in; these will be broadcast to the shape of the non-scalar inputs.
     * @param  separator Separator string.
     */
-  def stringJoin(inputs: Seq[Op.Output], separator: String = "", name: String = "StringJoin"): Op.Output = {
+  def stringJoin(inputs: Seq[Output], separator: String = "", name: String = "StringJoin"): Output = {
     Op.Builder(opType = "StringJoin", name = name)
         .addInputs(inputs)
         .setAttribute("separator", separator)

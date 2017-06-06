@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.ops.variables
 
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.ops.{Basic, Op}
+import org.platanios.tensorflow.api.ops.{Basic, Op, Output, OutputConvertible}
 import org.platanios.tensorflow.api.types.DataType
 
 import scala.math.Ordering.Implicits._
@@ -26,7 +26,7 @@ import scala.math.Ordering.Implicits._
   * Variables passed via `wrappedVariables` must contain a non-null save slice information field. Concatenation and
   * iteration is in lexicographic order according to the `variableOffset` property of the save slice information.
   *
-  * Accessing this object as an [[Op.Output]] returns the variable parts concatenated along the partition axis.
+  * Accessing this object as an [[Output]] returns the variable parts concatenated along the partition axis.
   *
   * @param  name             Overall name of the variables.
   * @param  shape            Overall shape of the variables.
@@ -42,7 +42,7 @@ import scala.math.Ordering.Implicits._
 @throws[IllegalArgumentException]
 case class PartitionedVariable private[variables] (
     name: String, shape: Shape, dataType: DataType, private val wrappedVariables: Seq[Variable],
-    partitions: Array[Int]) extends Op.OutputConvertible with Iterable[Variable] {
+    partitions: Array[Int]) extends OutputConvertible with Iterable[Variable] {
   // TODO: !!! Check on the data type.
   if (shape.rank != partitions.length)
     throw new IllegalArgumentException(
@@ -60,17 +60,17 @@ case class PartitionedVariable private[variables] (
     throw new IllegalArgumentException("All variables' data type must match the provided data type.")
   val variables: Seq[Variable] = wrappedVariables.sortBy(_.saveSliceInformation.variableOffset.toList)
 
-  /** Returns the overall concatenated value as an [[Op.Output]].
+  /** Returns the overall concatenated value as an [[Output]].
     *
     * This is different from using the partitioned variable directly as an op output (through implicit conversion or
-    * `toOpOutput`) in that it creates a new set of ops that retain the control dependencies from its scope.
+    * `toOutput`) in that it creates a new set of ops that retain the control dependencies from its scope.
     *
     * @return Concatenated op output.
     * @throws IllegalArgumentException If having more than one partition axes.
     */
   @throws[IllegalArgumentException]
-  private[this] def concatenated: Op.Output = {
-    val concatenated: Op.Output = {
+  private[this] def concatenated: Output = {
+    val concatenated: Output = {
       if (variables.length == 1) {
         variables.head
       } else {
@@ -79,7 +79,7 @@ case class PartitionedVariable private[variables] (
             s"Cannot concatenate along more than one dimension: $partitionAxes. " +
                 "Multi-axis partition concatenation is not supported.")
         Op.createWithNameScope(s"$name/ConcatenatedPartitions") {
-          Basic.concatenate(variables.map(_.toOpOutput), partitionAxes(0))
+          Basic.concatenate(variables.map(_.toOutput), partitionAxes(0))
         }
       }
     }
@@ -93,7 +93,7 @@ case class PartitionedVariable private[variables] (
     * The returned op output will not inherit the control dependencies from the scope where the value is used, which is
     * equivalent behavior to that of getting the value of a variable.
     */
-  def toOpOutput: Op.Output = {
+  def toOutput: Output = {
     Op.createWith(controlDependencies = Set.empty[Op]) {
       concatenated
     }

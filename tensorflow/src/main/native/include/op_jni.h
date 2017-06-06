@@ -74,7 +74,7 @@ JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Op_00024_numConsumers
 /*
  * Class:     org_platanios_tensorflow_jni_Op__
  * Method:    input
- * Signature: (JI)Lorg/platanios/tensorflow/jni/OpOutput;
+ * Signature: (JI)Lorg/platanios/tensorflow/jni/Output;
  */
 JNIEXPORT jobject JNICALL Java_org_platanios_tensorflow_jni_Op_00024_input
   (JNIEnv *, jobject, jlong, jint);
@@ -98,7 +98,7 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_controlO
 /*
  * Class:     org_platanios_tensorflow_jni_Op__
  * Method:    consumers
- * Signature: (JI)[Lorg/platanios/tensorflow/jni/OpOutput;
+ * Signature: (JI)[Lorg/platanios/tensorflow/jni/Output;
  */
 JNIEXPORT jobjectArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_consumers
   (JNIEnv *, jobject, jlong, jint);

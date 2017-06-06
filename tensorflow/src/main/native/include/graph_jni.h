@@ -42,7 +42,7 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_ops
 /*
  * Class:     org_platanios_tensorflow_jni_Graph__
  * Method:    addGradients
- * Signature: (J[Lorg/platanios/tensorflow/jni/OpOutput;[Lorg/platanios/tensorflow/jni/OpOutput;[Lorg/platanios/tensorflow/jni/OpOutput;)[Lorg/platanios/tensorflow/jni/OpOutput;
+ * Signature: (J[Lorg/platanios/tensorflow/jni/Output;[Lorg/platanios/tensorflow/jni/Output;[Lorg/platanios/tensorflow/jni/Output;)[Lorg/platanios/tensorflow/jni/Output;
  */
 JNIEXPORT jobjectArray JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_addGradients
   (JNIEnv *, jobject, jlong, jobjectArray, jobjectArray, jobjectArray);

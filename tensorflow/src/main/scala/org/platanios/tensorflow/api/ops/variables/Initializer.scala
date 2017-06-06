@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops.variables
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.ShapeMismatchException
-import org.platanios.tensorflow.api.ops.{Basic, Op}
+import org.platanios.tensorflow.api.ops.{Basic, Output}
 import org.platanios.tensorflow.api.ops.variables.Variable.PartitionInformation
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.DataType
@@ -34,7 +34,7 @@ trait Initializer {
     * shape. */
   val shape: Shape = null
 
-  def apply(shape: Shape, dataType: DataType, partitionInfo: PartitionInformation): Op.Output = {
+  def apply(shape: Shape, dataType: DataType, partitionInfo: PartitionInformation): Output = {
     initialValue(shape, dataType, partitionInfo)
   }
 
@@ -48,13 +48,13 @@ trait Initializer {
     * @throws ShapeMismatchException If the initializer cannot produce a value with the requested shape.
     */
   @throws[ShapeMismatchException]
-  def initialValue(shape: Shape, dataType: DataType, partitionInfo: PartitionInformation): Op.Output
+  def initialValue(shape: Shape, dataType: DataType, partitionInfo: PartitionInformation): Output
 }
 
 private[api] case class InitializerWithPartitionInformation(
     initializer: Initializer, partitionInfo: PartitionInformation) extends Initializer {
   @throws[ShapeMismatchException]
-  override def initialValue(shape: Shape, dataType: DataType, partitionInfo: PartitionInformation): Op.Output = {
+  override def initialValue(shape: Shape, dataType: DataType, partitionInfo: PartitionInformation): Output = {
     if (partitionInfo == null)
       initializer.initialValue(shape, dataType, this.partitionInfo)
     else
@@ -65,7 +65,7 @@ private[api] case class InitializerWithPartitionInformation(
 /** Initializer that sets all elements of the variable tensor to zeros. */
 private[api] object ZerosInitializer extends Initializer {
   @throws[ShapeMismatchException]
-  override def initialValue(shape: Shape, dataType: DataType, partitionInfo: PartitionInformation): Op.Output = {
+  override def initialValue(shape: Shape, dataType: DataType, partitionInfo: PartitionInformation): Output = {
     Basic.zeros(shape, dataType, name = "ZerosInitializer")
   }
 }
@@ -73,7 +73,7 @@ private[api] object ZerosInitializer extends Initializer {
 /** Initializer that sets all elements of the variable tensor to ones. */
 private[api] object OnesInitializer extends Initializer {
   @throws[ShapeMismatchException]
-  override def initialValue(shape: Shape, dataType: DataType, partitionInfo: PartitionInformation): Op.Output = {
+  override def initialValue(shape: Shape, dataType: DataType, partitionInfo: PartitionInformation): Output = {
     Basic.ones(shape, dataType, name = "OnesInitializer")
   }
 }
@@ -81,17 +81,17 @@ private[api] object OnesInitializer extends Initializer {
 /** Initializer that sets the value of the variable to the provided `value`. */
 private[api] case class ConstantInitializer(value: Tensor) extends Initializer {
   @throws[ShapeMismatchException]
-  override def initialValue(shape: Shape, dataType: DataType, partitionInfo: PartitionInformation): Op.Output = {
+  override def initialValue(shape: Shape, dataType: DataType, partitionInfo: PartitionInformation): Output = {
     Basic.constant(value, dataType, shape, name = "ConstantInitializer")
   }
 }
 
 /** Initializer that sets the value of the variable to the provided `value`. */
-private[api] case class DynamicConstantInitializer(value: Op.Output) extends Initializer {
+private[api] case class DynamicConstantInitializer(value: Output) extends Initializer {
   override val shape: Shape = value.shape
 
   @throws[ShapeMismatchException]
-  override def initialValue(shape: Shape, dataType: DataType, partitionInfo: PartitionInformation): Op.Output = {
+  override def initialValue(shape: Shape, dataType: DataType, partitionInfo: PartitionInformation): Output = {
     if (this.shape == null) {
       Basic.fill(shape, value, dataType, name = "ConstantInitializer")
     } else if (shape.isCompatibleWith(this.shape)) {

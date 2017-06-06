@@ -31,15 +31,15 @@ trait Logging {
   //    * @param  name      Name for the created op.
   //    * @return Created op.
   //    */
-  //  def assert(condition: Op.Output, data: Array[Op.Output], summarize: Int = 3, name: String = "Assert"): Op.Output = {
+  //  def assert(condition: Output, data: Array[Output], summarize: Int = 3, name: String = "Assert"): Output = {
   //    createWith(nameScope = name, values = condition +: data) {
   //      internalAssert(condition = condition, data = data, summarize = summarize)
   //    }
   //  }
   //
   //  private[this] def internalAssert(
-  //      condition: Op.Output, data: Array[Op.Output], summarize: Int = 3, name: String = "Assert")
-  //      (implicit context: DynamicVariable[OpCreationContext]): Op.Output =
+  //      condition: Output, data: Array[Output], summarize: Int = 3, name: String = "Assert")
+  //      (implicit context: DynamicVariable[OpCreationContext]): Output =
   //    Op.Builder(context = context, opType = "Assert", name = name)
   //        .addInput(condition)
   //        .addInputList(data)
@@ -61,8 +61,8 @@ trait Logging {
     * @return Created op.
     */
   def print(
-      input: Op.Output, data: Array[Op.Output], message: String = "", firstN: Int = -1, summarize: Int = 3,
-      name: String = "Print"): Op.Output = {
+      input: Output, data: Array[Output], message: String = "", firstN: Int = -1, summarize: Int = 3,
+      name: String = "Print"): Output = {
     Op.Builder(opType = "Print", name = name)
         .addInput(input)
         .addInputList(data)

@@ -18,11 +18,11 @@ package org.platanios.tensorflow.jni
 /**
   * @author Emmanouil Antonios Platanios
   */
-case class OpOutput(opHandle: Long, outputIndex: Int)
+case class Output(opHandle: Long, outputIndex: Int)
 
 object Op {
   TensorFlow.load()
-  
+
   // Operation
   @native def name(handle: Long): String
   @native def opType(handle: Long): String
@@ -32,10 +32,10 @@ object Op {
   @native def numOutputs(handle: Long): Int
   @native def numControlOutputs(handle: Long): Int
   @native def numConsumers(handle: Long, output: Int): Int
-  @native def input(handle: Long, inputIndex: Int): OpOutput
+  @native def input(handle: Long, inputIndex: Int): Output
   @native def controlInputs(handle: Long): Array[Long]
   @native def controlOutputs(handle: Long): Array[Long]
-  @native def consumers(handle: Long, outputIndex: Int): Array[OpOutput]
+  @native def consumers(handle: Long, outputIndex: Int): Array[Output]
   @native def inputDataType(graphHandle: Long, opHandle: Long, inputIndex: Int): Int
   @native def outputDataType(graphHandle: Long, opHandle: Long, outputIndex: Int): Int
   @native def shape(graphHandle: Long, opHandle: Long, output: Int): Array[Long]

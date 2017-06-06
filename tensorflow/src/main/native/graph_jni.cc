@@ -108,7 +108,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_add
   if (g == nullptr) return nullptr;
 
   // Convert the inputs to their C API equivalent data structures
-  jclass output_class = env->FindClass("org/platanios/tensorflow/jni/OpOutput");
+  jclass output_class = env->FindClass("org/platanios/tensorflow/jni/Output");
   jfieldID output_op_handle_field_id = env->GetFieldID(output_class, "opHandle", "J");
   jfieldID output_op_index_field_id = env->GetFieldID(output_class, "outputIndex", "I");
 
@@ -135,7 +135,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_add
 
   // Construct the return gradients array
   jmethodID output_class_constructor = env->GetStaticMethodID(
-      output_class, "apply", "(JI)Lorg/platanios/tensorflow/jni/OpOutput;");
+      output_class, "apply", "(JI)Lorg/platanios/tensorflow/jni/Output;");
   jobjectArray gradients_array = env->NewObjectArray(nx, output_class, NULL);
   for (int i = 0; i < nx; ++i) {
     env->SetObjectArrayElement(

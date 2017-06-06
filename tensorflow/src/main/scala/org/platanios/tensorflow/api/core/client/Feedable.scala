@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.core.client
 
-import org.platanios.tensorflow.api.ops.Op
+import org.platanios.tensorflow.api.ops.{Output, OutputIndexedSlices, SparseOutput}
 import org.platanios.tensorflow.api.tensors.Tensor
 
 /** Feedables can be fed into a TensorFlow session to fix the values of certain tensors to the provided values.
@@ -23,9 +23,9 @@ import org.platanios.tensorflow.api.tensors.Tensor
   * For example, values for placeholder ops can be fed into TensorFlow sessions.
   *
   * Currently supported feedable types are:
-  *   - [[Op.Output]] whose fed value should be a single [[Tensor]].
-  *   - [[Op.OutputIndexedSlices]] whose fed value should be tuple [[(Tensor, Tensor, Tensor)]].
-  *   - [[Op.SparseOutput]] whose fed value should be tuple [[(Tensor, Tensor, Tensor)]].
+  *   - [[Output]] whose fed value should be a single [[Tensor]].
+  *   - [[OutputIndexedSlices]] whose fed value should be tuple [[(Tensor, Tensor, Tensor)]].
+  *   - [[SparseOutput]] whose fed value should be tuple [[(Tensor, Tensor, Tensor)]].
   *
   * Feedables are fed into TensorFlow sessions through the use of [[FeedMap]]s. Any [[Map]] that uses a feedable type as
   * the keys type and its corresponding value type as its values type is a valid feed map.
@@ -34,7 +34,7 @@ import org.platanios.tensorflow.api.tensors.Tensor
   */
 trait Feedable[T] {
   type ValueType
-  def feed(feedable: T, value: ValueType): Map[Op.Output, Tensor]
+  def feed(feedable: T, value: ValueType): Map[Output, Tensor]
 }
 
 object Feedable {
@@ -42,26 +42,26 @@ object Feedable {
 
   def apply[T, V](implicit ev: Aux[T, V]): Aux[T, V] = ev
 
-  implicit val opOutputFeedable: Aux[Op.Output, Tensor] = new Feedable[Op.Output] {
+  implicit val outputFeedable: Aux[Output, Tensor] = new Feedable[Output] {
     override type ValueType = Tensor
-    override def feed(feedable: Op.Output, value: ValueType): Map[Op.Output, Tensor] = Map(feedable -> value)
+    override def feed(feedable: Output, value: ValueType): Map[Output, Tensor] = Map(feedable -> value)
   }
 
   // TODO: [TENSORS] Switch to something like "TensorIndexedSlices".
-  implicit val opOutputIndexedSlicesFeedable: Aux[Op.OutputIndexedSlices, (Tensor, Tensor, Tensor)] = {
-    new Feedable[Op.OutputIndexedSlices] {
+  implicit val outputIndexedSlicesFeedable: Aux[OutputIndexedSlices, (Tensor, Tensor, Tensor)] = {
+    new Feedable[OutputIndexedSlices] {
       override type ValueType = (Tensor, Tensor, Tensor)
-      override def feed(feedable: Op.OutputIndexedSlices, value: ValueType): Map[Op.Output, Tensor] = {
+      override def feed(feedable: OutputIndexedSlices, value: ValueType): Map[Output, Tensor] = {
         Map(feedable.indices -> value._1, feedable.values -> value._2, feedable.denseShape -> value._3)
       }
     }
   }
 
   // TODO: [TENSORS] Switch to something like "SparseTensor".
-  implicit val opSparseOutputFeedable: Aux[Op.SparseOutput, (Tensor, Tensor, Tensor)] = {
-    new Feedable[Op.SparseOutput] {
+  implicit val sparseOutputFeedable: Aux[SparseOutput, (Tensor, Tensor, Tensor)] = {
+    new Feedable[SparseOutput] {
       override type ValueType = (Tensor, Tensor, Tensor)
-      override def feed(feedable: Op.SparseOutput, value: ValueType): Map[Op.Output, Tensor] = {
+      override def feed(feedable: SparseOutput, value: ValueType): Map[Output, Tensor] = {
         Map(feedable.indices -> value._1, feedable.values -> value._2, feedable.denseShape -> value._3)
       }
     }
@@ -71,10 +71,10 @@ object Feedable {
 /** Represents TensorFlow feed maps for sessions.
   *
   * TODO: [CLIENT] !!! Use strings as keys.
-  * 
+  *
   * @param  values Map from tensors in a graph to their values.
   */
-class FeedMap private[client] (val values: Map[Op.Output, Tensor] = Map.empty) {
+class FeedMap private[client] (val values: Map[Output, Tensor] = Map.empty) {
   def feed[T, V](feedable: T, value: V)(implicit ev: Feedable.Aux[T, V]): FeedMap = {
     FeedMap(values ++ ev.feed(feedable, value))
   }
@@ -83,7 +83,7 @@ class FeedMap private[client] (val values: Map[Op.Output, Tensor] = Map.empty) {
 }
 
 object FeedMap {
-  def apply(values: Map[Op.Output, Tensor]): FeedMap = new FeedMap(values)
+  def apply(values: Map[Output, Tensor]): FeedMap = new FeedMap(values)
 
   val empty = new FeedMap()
 
