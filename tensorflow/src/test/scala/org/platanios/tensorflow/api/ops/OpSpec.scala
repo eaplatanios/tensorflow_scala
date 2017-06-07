@@ -25,7 +25,7 @@ import org.scalatest._
   * @author Emmanouil Antonios Platanios
   */
 class OpSpec extends FlatSpec with Matchers {
-  "'Op.Output.setShape'" must "always work" in {
+  "'Output.setShape'" must "always work" in {
     createWith(graph = Graph()) {
       val a = placeholder(INT32, Shape(-1, -1, 3))
       assert(!a.shape.isFullyDefined)
@@ -457,14 +457,14 @@ class OpSpec extends FlatSpec with Matchers {
         })
   }
 
-  //  "'Op.OutputIndexedSlices'" must "be convertible to 'Op.Output'" in {
+  //  "'OutputIndexedSlices'" must "be convertible to 'Output'" in {
   //    createWith(graph = Graph()) {
   //      val values = ArrayOps.constant(Tensor(Tensor(2, 3), Tensor(5, 7)))
   //      val indices = ArrayOps.constant(Tensor(0, 2))
   //      val denseShape = ArrayOps.constant(Tensor(3, 2))
-  //      val indexedSlices = Op.OutputIndexedSlices(values, indices, denseShape)
+  //      val indexedSlices = OutputIndexedSlices(values, indices, denseShape)
   //      // TODO: Simplify this after we standardize our tensor interface.
-  //      val resultTensor = indexedSlices.toOpOutput().value()
+  //      val resultTensor = indexedSlices.toOutput().value()
   //      val resultArray = Array.ofDim[Int](resultTensor.shape(0).asInstanceOf[Int],
   //                                         resultTensor.shape(1).asInstanceOf[Int])
   //      resultTensor.copyTo(resultArray)

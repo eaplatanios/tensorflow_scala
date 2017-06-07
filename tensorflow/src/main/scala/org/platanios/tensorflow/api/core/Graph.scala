@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.core
 
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception.{GraphMismatchException, InvalidGraphElementException}
-import org.platanios.tensorflow.api.ops.{Basic, Math, Op}
+import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output}
 import org.platanios.tensorflow.api.ops.variables.{Saver, Variable, VariableStore}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.STRING
@@ -104,11 +104,11 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable wi
 
   // TODO: [GRAPH] Should we keep track of this and the field that follows in a collection? MetaGraphDef.
   /** Set of all unfeedable ops in this graph. */
-  private[this] val unfeedableOpOutputs: mutable.Set[Op.Output] = mutable.Set.empty
+  private[this] val unfeedableOutputs: mutable.Set[Output] = mutable.Set.empty
 
   // TODO: [GRAPH] Maybe this should contain ops rather than op outputs.
   /** Set of all unfetchable ops in this graph. */
-  private[this] val unfetchableOpOutputs: mutable.Set[Op.Output] = mutable.Set.empty
+  private[this] val unfetchableOutputs: mutable.Set[Output] = mutable.Set.empty
 
   /** Removes the specified collection from this graph.
     *
@@ -188,11 +188,11 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable wi
     */
   def trainableVariables: Set[Variable] = getCollection(Graph.Keys.TRAINABLE_VARIABLES)
 
-  /** Returns the set of all the summary `Op.Output`s that have been created in the graph.
+  /** Returns the set of all the summary `Output`s that have been created in the graph.
     *
     * @return Set of summary op outputs in this graph.
     */
-  def summaries: Set[Op.Output] = getCollection(Graph.Keys.SUMMARIES)
+  def summaries: Set[Output] = getCollection(Graph.Keys.SUMMARIES)
 
   /** Returns the set of all the train `Op`s (i.e., optimizer update ops) that have been created in the graph.
     *
@@ -255,7 +255,7 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable wi
     * @return Created op.
     */
   def reportUninitializedVariables(
-      variables: Set[Variable] = null, name: String = "ReportUninitializedVariables"): Op.Output = {
+      variables: Set[Variable] = null, name: String = "ReportUninitializedVariables"): Output = {
     val actualVariables = if (variables != null) variables else globalVariables ++ localVariables
     Op.createWithNameScope(name) {
       if (actualVariables.isEmpty) {
@@ -275,52 +275,52 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable wi
 
   /** Prevents the feeding of values to the provided op output, while running in a session.
     *
-    * @param  opOutput Op output whose feeding is prevented.
+    * @param  output Op output whose feeding is prevented.
     * @throws GraphMismatchException If the provided op output does not belong to this graph.
     */
   @throws[GraphMismatchException]
-  private[api] def preventFeeding(opOutput: Op.Output): Unit = {
-    if (opOutput.graph != this)
+  private[api] def preventFeeding(output: Output): Unit = {
+    if (output.graph != this)
       throw GraphMismatchException("The provided op output does not belong to this graph.")
-    unfeedableOpOutputs += opOutput
+    unfeedableOutputs += output
   }
 
   /** Prevents the fetching of values to the provided op output, while running in a session.
     *
-    * @param  opOutput Op output whose fetching is prevented.
+    * @param  output Op output whose fetching is prevented.
     * @throws GraphMismatchException If the provided op output does not belong to this graph.
     */
   @throws[GraphMismatchException]
-  private[api] def preventFetching(opOutput: Op.Output): Unit = {
-    if (opOutput.graph != this)
+  private[api] def preventFetching(output: Output): Unit = {
+    if (output.graph != this)
       throw GraphMismatchException("The provided op output does not belong to this graph.")
-    unfetchableOpOutputs += opOutput
+    unfetchableOutputs += output
   }
 
   /** Returns `true` if the provided op output is allowed to be fed values, while running in a session.
     *
-    * @param  opOutput Op output to check.
-    * @return Boolean value indicating whether `opOutput` is allowed to be fed values, while running in a session.
+    * @param  output Op output to check.
+    * @return Boolean value indicating whether `output` is allowed to be fed values, while running in a session.
     * @throws GraphMismatchException If the provided op output does not belong to this graph.
     */
   @throws[GraphMismatchException]
-  private[api] def isFeedable(opOutput: Op.Output): Boolean = {
-    if (opOutput.graph != this)
+  private[api] def isFeedable(output: Output): Boolean = {
+    if (output.graph != this)
       throw GraphMismatchException("The provided op output does not belong to this graph.")
-    !unfeedableOpOutputs.contains(opOutput)
+    !unfeedableOutputs.contains(output)
   }
 
   /** Returns `true` if the provided op output's value is allowed to be fetched, while running in a session.
     *
-    * @param  opOutput Op output to check.
-    * @return Boolean value indicating whether `opOutput`'s value is allowed to be fetched, while running in a session.
+    * @param  output Op output to check.
+    * @return Boolean value indicating whether `output`'s value is allowed to be fetched, while running in a session.
     * @throws GraphMismatchException If the provided op output does not belong to this graph.
     */
   @throws[GraphMismatchException]
-  private[api] def isFetchable(opOutput: Op.Output): Boolean = {
-    if (opOutput.graph != this)
+  private[api] def isFetchable(output: Output): Boolean = {
+    if (output.graph != this)
       throw GraphMismatchException("The provided op output does not belong to this graph.")
-    !unfetchableOpOutputs.contains(opOutput)
+    !unfetchableOutputs.contains(output)
   }
 
   /** Returns the op with the specified name.
@@ -355,7 +355,7 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable wi
     */
   @throws[InvalidGraphElementException]
   def getOpByName(name: String): Op = {
-    getByName(name = name, allowOp = true, allowOpOutput = false).left.get
+    getByName(name = name, allowOp = true, allowOutput = false).left.get
   }
 
   /** Returns the op output referred to by the provided name, in this graph.
@@ -367,53 +367,53 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable wi
     * @return Op output, from this graph, corresponding to that name.
     */
   @throws[InvalidGraphElementException]
-  def getOpOutputByName(name: String): Op.Output = {
-    getByName(name = name, allowOp = false, allowOpOutput = true).right.get
+  def getOutputByName(name: String): Output = {
+    getByName(name = name, allowOp = false, allowOutput = true).right.get
   }
 
-  /** Returns the [[Op]] or [[Op.Output]] referred to by the provided name, in this graph.
+  /** Returns the [[Op]] or [[Output]] referred to by the provided name, in this graph.
     *
     * This function validates that `name` refers to an element of this graph, and gives an informative error message if
-    * it does not. It is the canonical way to get/validate an [[Op]] or [[Op.Output]] from an external argument
+    * it does not. It is the canonical way to get/validate an [[Op]] or [[Output]] from an external argument
     * reference in the Session API. The vast majority of this function is figuring out what an API user might be doing
     * wrong, so that we can give helpful error messages.
     *
     * @note This function may be called concurrently from multiple threads (i.e., it is thread-safe).
-    * @param  name          Name of the graph element being looked up.
-    * @param  allowOp       Allow ops to be considered for the graph element to return.
-    * @param  allowOpOutput Allow op outputs to be considered for the graph element to return.
+    * @param  name        Name of the graph element being looked up.
+    * @param  allowOp     Allow ops to be considered for the graph element to return.
+    * @param  allowOutput Allow op outputs to be considered for the graph element to return.
     * @return Graph element named `name`.
     * @throws InvalidGraphElementException If the provided name cannot be associated with an element of this graph.
     */
   @throws[InvalidGraphElementException]
   private[api] def getByName(
-      name: String, allowOp: Boolean = true, allowOpOutput: Boolean = true): Either[Op, Op.Output] = {
+      name: String, allowOp: Boolean = true, allowOutput: Boolean = true): Either[Op, Output] = {
     NativeHandleLock.synchronized {
-      if (!allowOpOutput && !allowOp)
-        throw new IllegalArgumentException("'allowOpOutput' and 'allowOp' cannot both be set to 'false'.")
+      if (!allowOutput && !allowOp)
+        throw new IllegalArgumentException("'allowOutput' and 'allowOp' cannot both be set to 'false'.")
       if (name.contains(':')) {
-        if (allowOpOutput) {
+        if (allowOutput) {
           val nameParts = name.split(':')
           if (nameParts.length != 2 || !nameParts(1).matches("\\d+"))
             throw InvalidGraphElementException(
               s"Name '$name' looks a like an op output name, but it is not a valid one. Op output names must be of " +
                   "the form \"<op_name>:<output_index>\".")
           val opName = nameParts(0)
-          val opOutputIndex = nameParts(1).toInt
+          val outputIndex = nameParts(1).toInt
           val graphOp = findOp(opName) match {
             case Some(o) => o
             case None => throw InvalidGraphElementException(
               s"Name '$name' refers to an op output which does not exist in the graph. More specifically, op, " +
                   s"'$opName', does not exist in the graph.")
           }
-          if (opOutputIndex > graphOp.numOutputs - 1)
+          if (outputIndex > graphOp.numOutputs - 1)
             throw InvalidGraphElementException(
               s"Name '$name' refers to an op output which does not exist in the graph. More specifically, op, " +
                   s"'$opName', does exist in the graph, but it only has ${graphOp.numOutputs} output(s).")
-          Right(graphOp.outputs(opOutputIndex))
+          Right(graphOp.outputs(outputIndex))
         } else {
           throw InvalidGraphElementException(
-            s"Name '$name' appears to refer to an op output, but 'allowOpOutput' was set to 'false'.")
+            s"Name '$name' appears to refer to an op output, but 'allowOutput' was set to 'false'.")
         }
       } else if (allowOp) {
         findOp(name) match {
@@ -456,7 +456,7 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable wi
     *                                therefore be defined in this graph.
     */
   def importGraphDef(
-      graphDef: GraphDef, importScope: String = null, inputsMap: Map[(String, Int), Op.Output] = Map.empty,
+      graphDef: GraphDef, importScope: String = null, inputsMap: Map[(String, Int), Output] = Map.empty,
       controlDependenciesMap: Map[String, Op] = Map.empty, controlDependencies: Set[Op] = Set.empty): Unit = {
     val prefix = {
       if (importScope == null || importScope == "")
@@ -467,16 +467,16 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable wi
         s"$importScope/"
     }
     val inputsMapSourceOpNames = inputsMap.map(_._1._1).toArray
-    val inputsMapSourceOpOutputIndices = inputsMap.map(_._1._2).toArray
+    val inputsMapSourceOutputIndices = inputsMap.map(_._1._2).toArray
     val inputsMapDestinationOpHandles = inputsMap.map(_._2.op.nativeHandle).toArray
-    val inputsMapDestinationOpOutputIndices = inputsMap.map(_._2.index).toArray
+    val inputsMapDestinationOutputIndices = inputsMap.map(_._2.index).toArray
     val controlDependenciesMapSourceOpNames = controlDependenciesMap.keys.toArray
     val controlDependenciesMapDestinationOpHandles = controlDependenciesMap.map(_._2.nativeHandle).toArray
     val controlDependenciesOpHandles = controlDependencies.map(_.nativeHandle).toArray
     NativeHandleLock.synchronized {
       NativeGraph.importGraphDef(
-        nativeHandle, graphDef.toByteArray, prefix, inputsMapSourceOpNames, inputsMapSourceOpOutputIndices,
-        inputsMapDestinationOpHandles, inputsMapDestinationOpOutputIndices, controlDependenciesMapSourceOpNames,
+        nativeHandle, graphDef.toByteArray, prefix, inputsMapSourceOpNames, inputsMapSourceOutputIndices,
+        inputsMapDestinationOpHandles, inputsMapDestinationOutputIndices, controlDependenciesMapSourceOpNames,
         controlDependenciesMapDestinationOpHandles, controlDependenciesOpHandles)
     }
     // TODO: [PERFORMANCE] Make this faster?
@@ -522,7 +522,7 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable wi
     *                                     Defaults to a function that returns `true` for all inputs.
     */
   def importMetaGraphDef(
-      metaGraphDef: MetaGraphDef, importScope: String = null, inputsMap: Map[(String, Int), Op.Output] = Map.empty,
+      metaGraphDef: MetaGraphDef, importScope: String = null, inputsMap: Map[(String, Int), Output] = Map.empty,
       controlDependenciesMap: Map[String, Op] = Map.empty, controlDependencies: Set[Op] = Set.empty,
       clearDevices: Boolean = false, unboundInputsCollectionKey: Graph.Key[String] = Graph.Keys.UNBOUND_INPUTS,
       restoreCollectionsPredicate: Graph.Key[_] => Boolean = _ => true): Unit = {
@@ -1061,10 +1061,10 @@ object Graph {
     }
 
     /** Key for collections of op outputs. */
-    trait OpOutputCollectionKey extends Key[Op.Output] {
-      override def createCollectionDef(values: Set[Op.Output], exportScope: String): CollectionDef = {
+    trait OutputCollectionKey extends Key[Output] {
+      override def createCollectionDef(values: Set[Output], exportScope: String): CollectionDef = {
         val nodeListBuilder = NodeList.newBuilder()
-        values.asInstanceOf[Set[Op.Output]]
+        values.asInstanceOf[Set[Output]]
             .filter(o => Graph.shouldIncludeNode(o.name, exportScope))
             .filter(o => exportScope == null || o.name.startsWith(exportScope)).foreach(o => {
           nodeListBuilder.addValue(Op.stripNameScope(exportScope, o.name))
@@ -1077,7 +1077,7 @@ object Graph {
         if (kind != 1)
           throw new IllegalArgumentException(s"The '$name' collection should be stored as a node list.")
         collectionDef.getNodeList.getValueList.asScala
-            .foreach(o => graph.addToCollection(graph.getOpOutputByName(Op.prependNameScope(importScope, o)), this))
+            .foreach(o => graph.addToCollection(graph.getOutputByName(Op.prependNameScope(importScope, o)), this))
       }
     }
 
@@ -1143,8 +1143,8 @@ object Graph {
       override def name: String = "trainable_variables"
     }
 
-    /** Key to collect the summary `Op.Output` objects that have been created in the graph. */
-    object SUMMARIES extends OpOutputCollectionKey {
+    /** Key to collect the summary `Output` objects that have been created in the graph. */
+    object SUMMARIES extends OutputCollectionKey {
       override def name: String = "summaries"
     }
 
@@ -1163,7 +1163,7 @@ object Graph {
     }
 
     /** Key to collect regularization losses at graph construction. */
-    object REGULARIZATION_LOSSES extends OpOutputCollectionKey {
+    object REGULARIZATION_LOSSES extends OutputCollectionKey {
       override def name: String = "regularization_losses"
     }
 
@@ -1196,7 +1196,7 @@ object Graph {
     }
 
     /** Key to collect losses. */
-    object LOSSES extends OpOutputCollectionKey {
+    object LOSSES extends OutputCollectionKey {
       override def name: String = "losses"
     }
 

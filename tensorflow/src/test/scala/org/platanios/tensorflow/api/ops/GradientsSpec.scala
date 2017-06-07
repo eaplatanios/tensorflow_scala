@@ -49,11 +49,11 @@ class GradientsSpec extends FlatSpec with Matchers {
     assert(equal)
   }
 
-  private[this] def noGradientOp(input: Op.Output, name: String = "NoGradientOp"): Op.Output = {
+  private[this] def noGradientOp(input: Output, name: String = "NoGradientOp"): Output = {
     ???
   }
 
-  private[this] def buildErrorGraph(graph: Graph): (Op.Output, Op.Output) = {
+  private[this] def buildErrorGraph(graph: Graph): (Output, Output) = {
     Op.createWith(graph) {
       val constant = Basic.constant(Tensor(Tensor(1.0, 2.0), Tensor(3.0, 4.0)), name = "Constant_0")
       val noGradient = noGradientOp(constant)
@@ -82,12 +82,12 @@ class GradientsSpec extends FlatSpec with Matchers {
     * @param  graph Graph in which to place the newly constructed ops.
     * @return Tuple containing the input and output tensors, respectively.
     */
-  private[this] def buildSuccessGraph(graph: Graph): (Array[Op.Output], Op.Output) = {
+  private[this] def buildSuccessGraph(graph: Graph): (Array[Output], Output) = {
     Op.createWith(graph) {
       val constant0 = Basic.constant(Tensor(Tensor(1.0, 2.0), Tensor(3.0, 4.0)), name = "Constant_0")
       val constant1 = Basic.constant(Tensor(Tensor(1.0, 0.0), Tensor(0.0, 1.0)), name = "Constant_1")
       val matMul = Math.matMul(constant0, constant1, name = "MatMul")
-      (Array[Op.Output](constant0, constant1), matMul)
+      (Array[Output](constant0, constant1), matMul)
     }
   }
 
@@ -127,7 +127,7 @@ class GradientsSpec extends FlatSpec with Matchers {
     *                                pre-existing values. If `false`, they are initialized with ones.
     * @return Array containing the gradient tensors.
     */
-  private[this] def buildExpectedGraph(graph: Graph, gradientInputsProvided: Boolean): Array[Op.Output] = {
+  private[this] def buildExpectedGraph(graph: Graph, gradientInputsProvided: Boolean): Array[Output] = {
     Op.createWith(graph) {
       val constant0 = Basic.constant(Tensor(Tensor(1.0, 2.0), Tensor(3.0, 4.0)), name = "Constant_0")
       val constant1 = Basic.constant(Tensor(Tensor(1.0, 0.0), Tensor(0.0, 1.0)), name = "Constant_1")
@@ -142,7 +142,7 @@ class GradientsSpec extends FlatSpec with Matchers {
         Op.createWithNameScope("MatMulGradient") {
           val matMul1 = Math.matMul(constant2, constant1, transposeA = false, transposeB = true, name = "MatMul_1")
           val matMul2 = Math.matMul(constant0, constant2, transposeA = true, transposeB = false, name = "MatMul_2")
-          Array[Op.Output](matMul1, matMul2)
+          Array[Output](matMul1, matMul2)
         }
       }
     }
@@ -184,7 +184,7 @@ class GradientsSpec extends FlatSpec with Matchers {
     *                                pre-existing values. If `false`, they are initialized with ones.
     * @return Array containing the gradient tensors.
     */
-  private[this] def buildExpectedCCGraph(graph: Graph, gradientInputsProvided: Boolean): Array[Op.Output] = {
+  private[this] def buildExpectedCCGraph(graph: Graph, gradientInputsProvided: Boolean): Array[Output] = {
     Op.createWith(graph) {
       val constant0 = Basic.constant(Tensor(Tensor(1.0, 2.0), Tensor(3.0, 4.0)), name = "Constant_0")
       val constant1 = Basic.constant(Tensor(Tensor(1.0, 0.0), Tensor(0.0, 1.0)), name = "Constant_1")
@@ -197,7 +197,7 @@ class GradientsSpec extends FlatSpec with Matchers {
       }
       val matMul1 = Math.matMul(constant2, constant1, transposeA = false, transposeB = true, name = "MatMul_1")
       val matMul2 = Math.matMul(constant0, constant2, transposeA = true, transposeB = false, name = "MatMul_2")
-      Array[Op.Output](matMul1, matMul2)
+      Array[Output](matMul1, matMul2)
     }
   }
 }

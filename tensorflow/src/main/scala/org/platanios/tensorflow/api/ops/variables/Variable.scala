@@ -19,7 +19,7 @@ import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.exception.{InvalidDataTypeException, ShapeMismatchException}
-import org.platanios.tensorflow.api.ops.{Basic, ControlFlow, Op, OpCreationContext, OpSpecification}
+import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.{DataType, FLOAT32, INT32, INT64}
@@ -34,10 +34,10 @@ import scala.util.DynamicVariable
   */
 case class Variable private(
     dataType: DataType,
-    private val variableOp: Op.Output,
+    private val variableOp: Output,
     private val initializeOp: Op,
-    private val cachedValueOp: Op.Output)
-    extends Op.OutputConvertible with ProtoSerializable {
+    private val cachedValueOp: Output)
+    extends OutputConvertible with ProtoSerializable {
   /** Graph where this variable is defined. */
   val graph: Graph = variableOp.graph
 
@@ -58,7 +58,7 @@ case class Variable private(
     * NOTE: You usually do not need to use this field as all ops that need a reference to the variable call it
     * automatically.
     */
-  private[api] val handle: Op.Output = variableOp
+  private[api] val handle: Output = variableOp
 
   // /** Op responsible for creating/initializing this variable. */
   // val create: Op = initializeOp
@@ -67,14 +67,14 @@ case class Variable private(
   val initializer: Op = initializeOp
 
   /** Op output that is `true` when the variable has been initialized and `false` otherwise. */
-  val isInitialized: Op.Output = Variable.isVariableInitialized(variableOp, name = "IsInitialized")
+  val isInitialized: Output = Variable.isVariableInitialized(variableOp, name = "IsInitialized")
 
   // /** Returns the value of the initialized variable. You should use this instead of the variable itself to initialize
   //   * another variable with a value that depends on the value of this variable.
   //   *
   //   * TODO: Add example.
   //   */
-  // val initializedValue: Op.Output = ??? // TODO: [VARIABLES] [CONTROL_FLOW] !!! We need control flow ops for this.
+  // val initializedValue: Output = ??? // TODO: [VARIABLES] [CONTROL_FLOW] !!! We need control flow ops for this.
 
   /** Returns a cached op which reads the last value of this variable.
     *
@@ -83,7 +83,7 @@ case class Variable private(
     * NOTE: You usually do not need to call this method directly, as all ops that use variables do so by internally
     * converting them to tensors.
     */
-  val value: Op.Output = {
+  val value: Output = {
     if (cachedValueOp != null) {
       cachedValueOp
     } else {
@@ -107,7 +107,7 @@ case class Variable private(
     *
     * @return Created op.
     */
-  def read(name: String = "Read"): Op.Output = {
+  def read(name: String = "Read"): Output = {
     val value = Op.createWith(nameScope = this.name, device = variableOp.device) { // TODO: Reset colocation ops?
       Variable.readVariable(variableOp, dataType, name)
     }
@@ -125,7 +125,7 @@ case class Variable private(
     * @param  name    Name for the created op.
     * @return Created op.
     */
-  def sparseRead(indices: Op.Output, name: String = "Gather"): Op.Output = {
+  def sparseRead(indices: Output, name: String = "Gather"): Output = {
     val value = Op.createWith(nameScope = this.name, device = variableOp.device) { // TODO: Reset colocation ops?
       Variable.gather(variableOp, indices, dataType, validateIndices = true, name)
     }
@@ -146,8 +146,8 @@ case class Variable private(
     * @param  session Optional session to use for the evaluation.
     * @return Value of this variable, for this evaluation.
     */
-  def evaluate(feeds: Map[Op.Output, Tensor] = Map.empty, session: Session = null): Tensor = {
-    toOpOutput.evaluate(feeds, session)
+  def evaluate(feeds: Map[Output, Tensor] = Map.empty, session: Session = null): Tensor = {
+    toOutput.evaluate(feeds, session)
   }
 
   // TODO: [VARIABLE] Add support for slice assignment.
@@ -163,7 +163,7 @@ case class Variable private(
     * @param  name  Name for created op.
     * @return Variable value read op, after the assignment.
     */
-  def assign(value: Op.Output, name: String = "Assign"): Op.Output = {
+  def assign(value: Output, name: String = "Assign"): Output = {
     if (value.dataType != dataType)
       throw InvalidDataTypeException(s"Expected '$dataType', but got '${value.dataType}'.")
     Op.createWith(controlDependencies = Set[Op](Variable.assign(variableOp, value, name))) {
@@ -177,7 +177,7 @@ case class Variable private(
     * @param  name  Name for created op.
     * @return Variable value read op, after the addition.
     */
-  def assignAdd(value: Op.Output, name: String = "AssignAdd"): Op.Output = {
+  def assignAdd(value: Output, name: String = "AssignAdd"): Output = {
     if (value.dataType != dataType)
       throw InvalidDataTypeException(s"Expected '$dataType', but got '${value.dataType}'.")
     Op.createWith(controlDependencies = Set[Op](Variable.assignAdd(variableOp, value, name))) {
@@ -191,7 +191,7 @@ case class Variable private(
     * @param  name  Name for created op.
     * @return Variable value read op, after the subtraction.
     */
-  def assignSub(value: Op.Output, name: String = "AssignAdd"): Op.Output = {
+  def assignSub(value: Output, name: String = "AssignAdd"): Output = {
     if (value.dataType != dataType)
       throw InvalidDataTypeException(s"Expected '$dataType', but got '${value.dataType}'.")
     Op.createWith(controlDependencies = Set[Op](Variable.assignSub(variableOp, value, name))) {
@@ -206,7 +206,7 @@ case class Variable private(
     * @param  name    Name for created op.
     * @return Variable value read op, after the addition.
     */
-  def assignScatterAdd(indices: Op.Output, values: Op.Output, name: String = "AssignScatterAdd"): Op.Output = {
+  def assignScatterAdd(indices: Output, values: Output, name: String = "AssignScatterAdd"): Output = {
     if (values.dataType != dataType)
       throw InvalidDataTypeException(s"Expected '$dataType', but got '${values.dataType}'.")
     Op.createWith(controlDependencies = Set[Op](Variable.scatterAdd(variableOp, indices, values, name))) {
@@ -222,7 +222,7 @@ case class Variable private(
     * @param  name    Name for created op.
     * @return Variable value read op, after the addition.
     */
-  def assignScatterSub(indices: Op.Output, values: Op.Output, name: String = "AssignScatterAdd"): Op.Output = {
+  def assignScatterSub(indices: Output, values: Output, name: String = "AssignScatterAdd"): Output = {
     if (values.dataType != dataType)
       throw InvalidDataTypeException(s"Expected '$dataType', but got '${values.dataType}'.")
     Op.createWith(controlDependencies = Set[Op](Variable.scatterAdd(variableOp, indices, -values, name))) {
@@ -232,15 +232,15 @@ case class Variable private(
 
   // Useful operator overloads for the assignment methods:
 
-  def update(value: Op.Output): Unit = assign(value)
+  def update(value: Output): Unit = assign(value)
 
-  def +=(value: Op.Output): Unit = assignAdd(value)
-  def -=(value: Op.Output): Unit = assignSub(value)
+  def +=(value: Output): Unit = assignAdd(value)
+  def -=(value: Output): Unit = assignSub(value)
 
   //endregion Assignment Ops
 
   /** Converts this variable to an op output. This function simply returns an op corresponding to the variable value. */
-  def toOpOutput: Op.Output = value
+  def toOutput: Output = value
 
   override def toProto: VariableDef = toProto(null)
 
@@ -513,14 +513,14 @@ object Variable {
 
     def prependNameScope(name: String) = if (importScope == null) name else Op.prependNameScope(importScope, name)
 
-    val variableOp = context.graph.getOpOutputByName(prependNameScope(variableDef.getVariableName))
+    val variableOp = context.graph.getOutputByName(prependNameScope(variableDef.getVariableName))
     val dataType = variableOp.op.dataTypeAttribute("dtype")
     val initializeOp = context.graph.getOpByName(prependNameScope(variableDef.getInitializerName))
     val cachedValueOp = {
       if (variableDef.getSnapshotName == null)
         null
       else
-        context.graph.getOpOutputByName(prependNameScope(variableDef.getSnapshotName))
+        context.graph.getOutputByName(prependNameScope(variableDef.getSnapshotName))
     }
     val saveSliceInformation = {
       if (variableDef.hasSaveSliceInfoDef)
@@ -674,7 +674,7 @@ object Variable {
     */
   private[ops] def variable(
       shape: Shape, dataType: DataType, container: String = "", sharedName: String = "",
-      name: String = "Variable"): Op.Output = {
+      name: String = "Variable"): Output = {
     Op.Builder(opType = "VarHandleOp", name = name)
         .setAttribute("shape", shape)
         .setAttribute("dtype", dataType)
@@ -691,7 +691,7 @@ object Variable {
     * @param  name     Name for the created op.
     * @return Created op.
     */
-  def isVariableInitialized(variable: Op.Output, name: String = "IsVariableInitialized"): Op.Output = {
+  def isVariableInitialized(variable: Output, name: String = "IsVariableInitialized"): Output = {
     Op.Builder(opType = "VarIsInitializedOp", name = name)
         .addInput(variable)
         .build().outputs(0)
@@ -710,7 +710,7 @@ object Variable {
     * @param  name     Name for the created op.
     * @return Created op.
     */
-  private[ops] def readVariable(variable: Op.Output, dataType: DataType, name: String = "ReadVariable"): Op.Output = {
+  private[ops] def readVariable(variable: Output, dataType: DataType, name: String = "ReadVariable"): Output = {
     Op.Builder(opType = "ReadVariableOp", name = name)
         .addInput(variable)
         .setAttribute("dtype", dataType)
@@ -730,7 +730,7 @@ object Variable {
     * @return Created op.
     */
   private[ops] def unsafeReadVariable(
-      variable: Op.Output, dataType: DataType, name: String = "UnsafeReadVariable"): Op.Output = {
+      variable: Output, dataType: DataType, name: String = "UnsafeReadVariable"): Output = {
     Op.Builder(opType = "_UnsafeReadVariable", name = name)
         .addInput(variable)
         .setAttribute("dtype", dataType)
@@ -748,7 +748,7 @@ object Variable {
     * @return Created op.
     */
   private[ops] def destroyVariable(
-      variable: Op.Output, ignoreLookupError: Boolean = true, name: String = "DestroyVariable"): Op = {
+      variable: Output, ignoreLookupError: Boolean = true, name: String = "DestroyVariable"): Op = {
     Op.Builder(opType = "DestroyResourceOp", name = name)
         .addInput(variable)
         .setAttribute("ignore_lookup_error", ignoreLookupError)
@@ -765,7 +765,7 @@ object Variable {
     * @param  name     Name for the created op.
     * @return Created op.
     */
-  private[ops] def assign(variable: Op.Output, value: Op.Output, name: String = "AssignVariable"): Op = {
+  private[ops] def assign(variable: Output, value: Output, name: String = "AssignVariable"): Op = {
     Op.Builder(opType = "AssignVariableOp", name = name)
         .addInput(variable)
         .addInput(value)
@@ -783,7 +783,7 @@ object Variable {
     * @param  name     Name for the created op.
     * @return Created op.
     */
-  private[ops] def assignAdd(variable: Op.Output, value: Op.Output, name: String = "AssignAddVariable"): Op = {
+  private[ops] def assignAdd(variable: Output, value: Output, name: String = "AssignAddVariable"): Op = {
     Op.Builder(opType = "AssignAddVariableOp", name = name)
         .addInput(variable)
         .addInput(value)
@@ -800,7 +800,7 @@ object Variable {
     * @param  name     Name for the created op.
     * @return Created op.
     */
-  private[ops] def assignSub(variable: Op.Output, value: Op.Output, name: String = "AssignSubVariable"): Op = {
+  private[ops] def assignSub(variable: Output, value: Output, name: String = "AssignSubVariable"): Op = {
     Op.Builder(opType = "AssignSubVariableOp", name = name)
         .addInput(variable)
         .addInput(value)
@@ -830,8 +830,8 @@ object Variable {
     * @return Created op.
     */
   private[ops] def gather(
-      variable: Op.Output, indices: Op.Output, dataType: DataType = null, validateIndices: Boolean = true,
-      name: String = "VariableGather"): Op.Output = {
+      variable: Output, indices: Output, dataType: DataType = null, validateIndices: Boolean = true,
+      name: String = "VariableGather"): Output = {
     if (indices.dataType != INT32 && indices.dataType != INT64)
       throw InvalidDataTypeException(
         s"Data type '${indices.dataType}' is not supported for the resource variable gather op indices. " +
@@ -869,8 +869,7 @@ object Variable {
     * @param  name     Name for the created op.
     * @return Created op.
     */
-  private[ops] def scatterAdd(
-      variable: Op.Output, indices: Op.Output, updates: Op.Output, name: String = "ScatterAdd"): Op = {
+  private[ops] def scatterAdd(variable: Output, indices: Output, updates: Output, name: String = "ScatterAdd"): Op = {
     if (indices.dataType != INT32 && indices.dataType != INT64)
       throw InvalidDataTypeException(
         s"Data type '${indices.dataType}' is not supported for the resource variable scatter add op indices. " +
@@ -886,23 +885,23 @@ object Variable {
     GradientsRegistry.register("ReadVariableOp", readGradient)
     GradientsRegistry.register("ResourceGather", gatherGradient)
 
-    private[this] def readGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+    private[this] def readGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       Seq(outputGradients.head)
     }
 
-    private[this] def gatherGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+    private[this] def gatherGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       // Build appropriately shaped indexed slices.
       // Walk graph back until the original handle is found.
       // TODO: Find a more robust way to get the shape.
       var handle = op.inputs(0)
       while (handle.op.opType != "VarHandleOp")
         handle = handle.op.inputs(0)
-      val parametersShape = handle.op.shapeAttribute("shape").toOpOutput
+      val parametersShape = handle.op.shapeAttribute("shape").toOutput
       val indices = op.inputs(1)
       val size = Basic.expandDims(Basic.size(indices), 0)
       val valuesShape = Basic.concatenate(Array(size, parametersShape(1 ::)), 0)
       val values = Basic.reshape(indices, valuesShape)
-      Seq(Op.OutputIndexedSlices(indices = indices, values = values, denseShape = parametersShape), null)
+      Seq(OutputIndexedSlices(indices = indices, values = values, denseShape = parametersShape), null)
     }
   }
 }

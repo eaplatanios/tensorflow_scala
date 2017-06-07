@@ -22,6 +22,8 @@ import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.{DataType, FLOAT32, FLOAT64, INT32, INT64}
 
+import scala.language.postfixOps
+
 /**
   * @author Emmanouil Antonios Platanios
   */
@@ -61,7 +63,7 @@ trait Math {
     * @param  name      Name for the created op.
     * @return Created op output.
     */
-  def select(condition: Op.Output, x: Op.Output, y: Op.Output, name: String = "Select"): Op.Output = {
+  def select(condition: Output, x: Output, y: Output, name: String = "Select"): Output = {
     Op.Builder(opType = "Select", name = name)
         .addInput(condition)
         .addInput(x)
@@ -92,7 +94,7 @@ trait Math {
     * @throws IllegalArgumentException If `diagonal` has rank higher than `3`.
     */
   @throws[IllegalArgumentException]
-  def diag(diagonal: Op.Output, name: String = "Diag"): Op.Output = {
+  def diag(diagonal: Output, name: String = "Diag"): Output = {
     if (diagonal.rank > 3)
       throw new IllegalArgumentException(s"The provided tensor (rank = ${diagonal.rank}) can have rank at most 3.")
     Op.Builder(opType = "Diag", name = name)
@@ -121,7 +123,7 @@ trait Math {
     * @throws IllegalArgumentException If `input` has rank other than `2`, `4`, or `6`.
     */
   @throws[IllegalArgumentException]
-  def diagPart(input: Op.Output, name: String = "DiagPart"): Op.Output = {
+  def diagPart(input: Output, name: String = "DiagPart"): Output = {
     if (input.rank != 2 && input.rank != 4 && input.rank != 6)
       throw new IllegalArgumentException(s"The provided tensor (rank = ${input.rank}) can only be 2, 4, or 6.")
     Op.Builder(opType = "DiagPart", name = name)
@@ -155,7 +157,7 @@ trait Math {
     * @throws IllegalArgumentException If `input` has rank higher than `K < 1`.
     */
   @throws[IllegalArgumentException]
-  def matrixDiag(diagonal: Op.Output, name: String = "MatrixDiag"): Op.Output = {
+  def matrixDiag(diagonal: Output, name: String = "MatrixDiag"): Output = {
     if (diagonal.rank > -1 && diagonal.rank < 1)
       throw new IllegalArgumentException(s"The provided tensor (rank = ${diagonal.rank}) must have rank at least 1.")
     Op.Builder(opType = "MatrixDiag", name = name)
@@ -180,7 +182,7 @@ trait Math {
     * @throws IllegalArgumentException If `input` has rank `K < 2`, or `diagonal` has rank `K < 1`.
     */
   @throws[IllegalArgumentException]
-  def matrixSetDiag(input: Op.Output, diagonal: Op.Output, name: String = "MatrixSetDiag"): Op.Output = {
+  def matrixSetDiag(input: Output, diagonal: Output, name: String = "MatrixSetDiag"): Output = {
     if (input.rank > -1 && input.rank < 2)
       throw new IllegalArgumentException(s"The provided input tensor (rank = ${input.rank}) must have rank at least 2.")
     if (diagonal.rank > -1 && diagonal.rank < 1)
@@ -221,7 +223,7 @@ trait Math {
     * @throws IllegalArgumentException If `input` has rank `K < 2`.
     */
   @throws[IllegalArgumentException]
-  def matrixDiagPart(input: Op.Output, name: String = "MatrixDiagPart"): Op.Output = {
+  def matrixDiagPart(input: Output, name: String = "MatrixDiagPart"): Output = {
     if (input.rank > -1 && input.rank < 2)
       throw new IllegalArgumentException(s"The provided input tensor (rank = ${input.rank}) must have rank at least 2.")
     Op.Builder(opType = "MatrixDiagPart", name = name)
@@ -276,8 +278,7 @@ trait Math {
     */
   @throws[IllegalArgumentException]
   def matrixBandPart(
-      input: Op.Output, numSubDiagonals: Op.Output, numSuperDiagonals: Op.Output,
-      name: String = "MatrixBandPart"): Op.Output = {
+      input: Output, numSubDiagonals: Output, numSuperDiagonals: Output, name: String = "MatrixBandPart"): Output = {
     if (numSubDiagonals.rank != 0 || numSubDiagonals.dataType != INT64)
       throw new IllegalArgumentException(
         s"'numSubDiagonals' (rank = ${numSubDiagonals.rank}, dataType = ${numSubDiagonals.dataType}) " +
@@ -319,11 +320,11 @@ trait Math {
     * @return Created op output.
     */
   def range(
-      start: Op.Output, limit: Op.Output, delta: Op.Output = Basic.constant(1), dataType: DataType = null,
-      name: String = "Range"): Op.Output = {
-    var castedStart: Op.Output = null
-    var castedLimit: Op.Output = null
-    var castedDelta: Op.Output = null
+      start: Output, limit: Output, delta: Output = Basic.constant(1), dataType: DataType = null,
+      name: String = "Range"): Output = {
+    var castedStart: Output = null
+    var castedLimit: Output = null
+    var castedDelta: Output = null
     Op.createWith(nameScope = name) {
       val supportedDataTypes = Set[DataType](FLOAT32, FLOAT64, INT32, INT64)
       require(supportedDataTypes.contains(start.dataType), s"Unsupported data type '${start.dataType}'.")
@@ -366,7 +367,7 @@ trait Math {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def cast(x: Op.Output, dataType: DataType, name: String = "Cast"): Op.Output = {
+  def cast(x: Output, dataType: DataType, name: String = "Cast"): Output = {
     Op.Builder(opType = "Cast", name = name)
         .addInput(x)
         .setAttribute("DstT", dataType)
@@ -382,12 +383,12 @@ trait Math {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def sparseCast(x: Op.SparseOutput, dataType: DataType, name: String = "Cast"): Op.SparseOutput = {
+  def sparseCast(x: SparseOutput, dataType: DataType, name: String = "Cast"): SparseOutput = {
     val castedValues = Op.Builder(opType = "Cast", name = name)
         .addInput(x.values)
         .setAttribute("DstT", dataType)
         .build().outputs(0)
-    Op.SparseOutput(x.indices, castedValues, x.denseShape)
+    SparseOutput(x.indices, castedValues, x.denseShape)
   }
 
   /** Creates an op that bitcasts a tensor from one type to another without copying data.
@@ -406,7 +407,7 @@ trait Math {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def bitcast(input: Op.Output, dataType: DataType, name: String = "Bitcast"): Op.Output = {
+  def bitcast(input: Output, dataType: DataType, name: String = "Bitcast"): Output = {
     Op.Builder(opType = "Bitcast", name = name)
         .addInput(input)
         .setAttribute("type", dataType)
@@ -414,7 +415,7 @@ trait Math {
   }
 
   @throws[IllegalArgumentException]
-  def conjugate(input: Op.Output, name: String = "Conjugate"): Op.Output = {
+  def conjugate(input: Output, name: String = "Conjugate"): Output = {
     if (input.dataType.isComplex) {
       Op.Builder(opType = "Conj", name = name)
           .addInput(input)
@@ -426,14 +427,14 @@ trait Math {
     }
   }
 
-  def addN(inputs: Array[Op.Output], name: String = "AddN"): Op.Output =
+  def addN(inputs: Array[Output], name: String = "AddN"): Output =
     Op.Builder(opType = "AddN", name = name)
-        .addInputs(inputs)
+        .addInputList(inputs)
         .build().outputs(0)
 
   def matMul(
-      a: Op.Output, b: Op.Output, transposeA: Boolean = false, transposeB: Boolean = false,
-      name: String = "MatMul"): Op.Output = {
+      a: Output, b: Output, transposeA: Boolean = false, transposeB: Boolean = false,
+      name: String = "MatMul"): Output = {
     Op.Builder(opType = "MatMul", name = name)
         .addInput(a)
         .addInput(b)
@@ -443,8 +444,8 @@ trait Math {
   }
 
   def batchMatMul(
-      x: Op.Output, y: Op.Output, adjointX: Boolean = false, adjointY: Boolean = false,
-      name: String = "BatchMatMul"): Op.Output =
+      x: Output, y: Output, adjointX: Boolean = false, adjointY: Boolean = false,
+      name: String = "BatchMatMul"): Output =
     Op.Builder(opType = "BatchMatMul", name = name)
         .addInput(x)
         .addInput(y)
@@ -454,158 +455,158 @@ trait Math {
 
   //region Unary Ops
 
-  def negate(x: Op.Output, name: String = "Negate"): Op.Output = {
+  def negate(x: Output, name: String = "Negate"): Output = {
     Op.Builder(opType = "Neg", name = name)
         .addInput(x)
         .build().outputs(0)
   }
 
-  def abs(x: Op.Output, name: String = "Abs"): Op.Output =
+  def abs(x: Output, name: String = "Abs"): Output =
     Op.Builder(opType = "Abs", name = name)
         .addInput(x)
         .build().outputs(0)
 
-  def complexAbs(x: Op.Output, name: String = "ComplexAbs"): Op.Output =
+  def complexAbs(x: Output, name: String = "ComplexAbs"): Output =
     Op.Builder(opType = "ComplexAbs", name = name)
         .addInput(x)
         .build().outputs(0)
 
-  def reciprocal(x: Op.Output, name: String = "Reciprocal"): Op.Output =
+  def reciprocal(x: Output, name: String = "Reciprocal"): Output =
     Op.Builder(opType = "Reciprocal", name = name)
         .addInput(x)
         .build().outputs(0)
 
-  def square(x: Op.Output, name: String = "Square"): Op.Output =
+  def square(x: Output, name: String = "Square"): Output =
     Op.Builder(opType = "Square", name = name)
         .addInput(x)
         .build().outputs(0)
 
-  def sqrt(x: Op.Output, name: String = "Sqrt"): Op.Output =
+  def sqrt(x: Output, name: String = "Sqrt"): Output =
     Op.Builder(opType = "Sqrt", name = name)
         .addInput(x)
         .build().outputs(0)
 
-  def reciprocalSqrt(x: Op.Output, name: String = "Rsqrt"): Op.Output =
+  def reciprocalSqrt(x: Output, name: String = "Rsqrt"): Output =
     Op.Builder(opType = "Rsqrt", name = name)
         .addInput(x)
         .build().outputs(0)
 
-  def round(x: Op.Output, name: String = "Round"): Op.Output =
+  def round(x: Output, name: String = "Round"): Output =
     Op.Builder(opType = "Round", name = name)
         .addInput(x)
         .build().outputs(0)
 
-  def exp(x: Op.Output, name: String = "Exp"): Op.Output =
+  def exp(x: Output, name: String = "Exp"): Output =
     Op.Builder(opType = "Exp", name = name)
         .addInput(x)
         .build().outputs(0)
 
-  def expMinus1(x: Op.Output, name: String = "Expm1"): Op.Output =
+  def expMinus1(x: Output, name: String = "Expm1"): Output =
     Op.Builder(opType = "Expm1", name = name)
         .addInput(x)
         .build().outputs(0)
 
-  def log(x: Op.Output, name: String = "Log"): Op.Output =
+  def log(x: Output, name: String = "Log"): Output =
     Op.Builder(opType = "Log", name = name)
         .addInput(x)
         .build().outputs(0)
 
-  def log1Plus(x: Op.Output, name: String = "Log1p"): Op.Output =
+  def log1Plus(x: Output, name: String = "Log1p"): Output =
     Op.Builder(opType = "Log1p", name = name)
         .addInput(x)
         .build().outputs(0)
 
-  def tanh(x: Op.Output, name: String = "Tanh"): Op.Output =
+  def tanh(x: Output, name: String = "Tanh"): Output =
     Op.Builder(opType = "Tanh", name = name)
         .addInput(x)
         .build().outputs(0)
 
-  def logGamma(x: Op.Output, name: String = "Lgamma"): Op.Output =
+  def logGamma(x: Output, name: String = "Lgamma"): Output =
     Op.Builder(opType = "Lgamma", name = name)
         .addInput(x)
         .build().outputs(0)
 
-  def digamma(x: Op.Output, name: String = "Digamma"): Op.Output =
+  def digamma(x: Output, name: String = "Digamma"): Output =
     Op.Builder(opType = "Digamma", name = name)
         .addInput(x)
         .build().outputs(0)
 
-  def erf(x: Op.Output, name: String = "Erf"): Op.Output =
+  def erf(x: Output, name: String = "Erf"): Output =
     Op.Builder(opType = "Erf", name = name)
         .addInput(x)
         .build().outputs(0)
 
-  def complementaryErf(x: Op.Output, name: String = "Erfc"): Op.Output =
+  def complementaryErf(x: Output, name: String = "Erfc"): Output =
     Op.Builder(opType = "Erfc", name = name)
         .addInput(x)
         .build().outputs(0)
 
-  def sigmoid(x: Op.Output, name: String = "Sigmoid"): Op.Output =
+  def sigmoid(x: Output, name: String = "Sigmoid"): Output =
     Op.Builder(opType = "Sigmoid", name = name)
         .addInput(x)
         .build().outputs(0)
 
-  def sin(x: Op.Output, name: String = "Sin"): Op.Output =
+  def sin(x: Output, name: String = "Sin"): Output =
     Op.Builder(opType = "Sin", name = name)
         .addInput(x)
         .build().outputs(0)
 
-  def cos(x: Op.Output, name: String = "Cos"): Op.Output =
+  def cos(x: Output, name: String = "Cos"): Output =
     Op.Builder(opType = "Cos", name = name)
         .addInput(x)
         .build().outputs(0)
 
-  def tan(x: Op.Output, name: String = "Tan"): Op.Output =
+  def tan(x: Output, name: String = "Tan"): Output =
     Op.Builder(opType = "Tan", name = name)
         .addInput(x)
         .build().outputs(0)
 
-  def asin(x: Op.Output, name: String = "Asin"): Op.Output =
+  def asin(x: Output, name: String = "Asin"): Output =
     Op.Builder(opType = "Asin", name = name)
         .addInput(x)
         .build().outputs(0)
 
-  def acos(x: Op.Output, name: String = "Acos"): Op.Output =
+  def acos(x: Output, name: String = "Acos"): Output =
     Op.Builder(opType = "Acos", name = name)
         .addInput(x)
         .build().outputs(0)
 
-  def atan(x: Op.Output, name: String = "Atan"): Op.Output =
+  def atan(x: Output, name: String = "Atan"): Output =
     Op.Builder(opType = "Atan", name = name)
         .addInput(x)
         .build().outputs(0)
 
-  def isNaN(x: Op.Output, name: String = "IsNan"): Op.Output =
+  def isNaN(x: Output, name: String = "IsNan"): Output =
     Op.Builder(opType = "IsNan", name = name)
         .addInput(x)
         .build().outputs(0)
 
-  def isInf(x: Op.Output, name: String = "IsInf"): Op.Output =
+  def isInf(x: Output, name: String = "IsInf"): Output =
     Op.Builder(opType = "IsInf", name = name)
         .addInput(x)
         .build().outputs(0)
 
-  def isFinite(x: Op.Output, name: String = "IsFinite"): Op.Output =
+  def isFinite(x: Output, name: String = "IsFinite"): Output =
     Op.Builder(opType = "IsFinite", name = name)
         .addInput(x)
         .build().outputs(0)
 
-  def sign(x: Op.Output, name: String = "Sign"): Op.Output =
+  def sign(x: Output, name: String = "Sign"): Output =
     Op.Builder(opType = "Sign", name = name)
         .addInput(x)
         .build().outputs(0)
 
-  def floor(x: Op.Output, name: String = "Floor"): Op.Output =
+  def floor(x: Output, name: String = "Floor"): Output =
     Op.Builder(opType = "Floor", name = name)
         .addInput(x)
         .build().outputs(0)
 
-  def ceil(x: Op.Output, name: String = "Ceil"): Op.Output =
+  def ceil(x: Output, name: String = "Ceil"): Output =
     Op.Builder(opType = "Ceil", name = name)
         .addInput(x)
         .build().outputs(0)
 
-  def roundInt(x: Op.Output, name: String = "Rint"): Op.Output =
+  def roundInt(x: Output, name: String = "Rint"): Output =
     Op.Builder(opType = "Rint", name = name)
         .addInput(x)
         .build().outputs(0)
@@ -614,109 +615,109 @@ trait Math {
 
   //region Binary Ops
 
-  def add(x: Op.Output, y: Op.Output, name: String = "Add"): Op.Output =
+  def add(x: Output, y: Output, name: String = "Add"): Output =
     Op.Builder(opType = "Add", name = name)
         .addInput(x)
         .addInput(y)
         .build().outputs(0)
 
-  def subtract(x: Op.Output, y: Op.Output, name: String = "Sub"): Op.Output =
+  def subtract(x: Output, y: Output, name: String = "Sub"): Output =
     Op.Builder(opType = "Sub", name = name)
         .addInput(x)
         .addInput(y)
         .build().outputs(0)
 
-  def multiply(x: Op.Output, y: Op.Output, name: String = "Mul"): Op.Output =
+  def multiply(x: Output, y: Output, name: String = "Mul"): Output =
     Op.Builder(opType = "Mul", name = name)
         .addInput(x)
         .addInput(y)
         .build().outputs(0)
 
-  def divide(x: Op.Output, y: Op.Output, name: String = "Div"): Op.Output =
+  def divide(x: Output, y: Output, name: String = "Div"): Output =
     Op.Builder(opType = "Div", name = name)
         .addInput(x)
         .addInput(y)
         .build().outputs(0)
 
-  def floorDivide(x: Op.Output, y: Op.Output, name: String = "FloorDiv"): Op.Output =
+  def floorDivide(x: Output, y: Output, name: String = "FloorDiv"): Output =
     Op.Builder(opType = "FloorDiv", name = name)
         .addInput(x)
         .addInput(y)
         .build().outputs(0)
 
-  def truncateDivide(x: Op.Output, y: Op.Output, name: String = "TruncateDiv"): Op.Output =
+  def truncateDivide(x: Output, y: Output, name: String = "TruncateDiv"): Output =
     Op.Builder(opType = "TruncateDiv", name = name)
         .addInput(x)
         .addInput(y)
         .build().outputs(0)
 
-  def realDivide(x: Op.Output, y: Op.Output, name: String = "RealDiv"): Op.Output =
+  def realDivide(x: Output, y: Output, name: String = "RealDiv"): Output =
     Op.Builder(opType = "RealDiv", name = name)
         .addInput(x)
         .addInput(y)
         .build().outputs(0)
 
-  def squaredDifference(x: Op.Output, y: Op.Output, name: String = "SquaredDifference"): Op.Output =
+  def squaredDifference(x: Output, y: Output, name: String = "SquaredDifference"): Output =
     Op.Builder(opType = "SquaredDifference", name = name)
         .addInput(x)
         .addInput(y)
         .build().outputs(0)
 
-  def maximum(x: Op.Output, y: Op.Output, name: String = "Maximum"): Op.Output =
+  def maximum(x: Output, y: Output, name: String = "Maximum"): Output =
     Op.Builder(opType = "Maximum", name = name)
         .addInput(x)
         .addInput(y)
         .build().outputs(0)
 
-  def minimum(x: Op.Output, y: Op.Output, name: String = "Minimum"): Op.Output =
+  def minimum(x: Output, y: Output, name: String = "Minimum"): Output =
     Op.Builder(opType = "Minimum", name = name)
         .addInput(x)
         .addInput(y)
         .build().outputs(0)
 
-  def mod(x: Op.Output, y: Op.Output, name: String = "Mod"): Op.Output =
+  def mod(x: Output, y: Output, name: String = "Mod"): Output =
     Op.Builder(opType = "Mod", name = name)
         .addInput(x)
         .addInput(y)
         .build().outputs(0)
 
-  def floorMod(x: Op.Output, y: Op.Output, name: String = "FloorMod"): Op.Output =
+  def floorMod(x: Output, y: Output, name: String = "FloorMod"): Output =
     Op.Builder(opType = "FloorMod", name = name)
         .addInput(x)
         .addInput(y)
         .build().outputs(0)
 
-  def truncateMod(x: Op.Output, y: Op.Output, name: String = "TruncateMod"): Op.Output =
+  def truncateMod(x: Output, y: Output, name: String = "TruncateMod"): Output =
     Op.Builder(opType = "TruncateMod", name = name)
         .addInput(x)
         .addInput(y)
         .build().outputs(0)
 
-  def pow(x: Op.Output, y: Op.Output, name: String = "Pow"): Op.Output =
+  def pow(x: Output, y: Output, name: String = "Pow"): Output =
     Op.Builder(opType = "Pow", name = name)
         .addInput(x)
         .addInput(y)
         .build().outputs(0)
 
-  def igammac(a: Op.Output, x: Op.Output, name: String = "Igammac"): Op.Output =
+  def igammac(a: Output, x: Output, name: String = "Igammac"): Output =
     Op.Builder(opType = "Igammac", name = name)
         .addInput(a)
         .addInput(x)
         .build().outputs(0)
 
-  def igamma(a: Op.Output, x: Op.Output, name: String = "Igamma"): Op.Output =
+  def igamma(a: Output, x: Output, name: String = "Igamma"): Output =
     Op.Builder(opType = "Igamma", name = name)
         .addInput(a)
         .addInput(x)
         .build().outputs(0)
 
-  def zeta(x: Op.Output, q: Op.Output, name: String = "Zeta"): Op.Output =
+  def zeta(x: Output, q: Output, name: String = "Zeta"): Output =
     Op.Builder(opType = "Zeta", name = name)
         .addInput(x)
         .addInput(q)
         .build().outputs(0)
 
-  def polygamma(a: Op.Output, x: Op.Output, name: String = "Polygamma"): Op.Output =
+  def polygamma(a: Output, x: Output, name: String = "Polygamma"): Output =
     Op.Builder(opType = "Polygamma", name = name)
         .addInput(a)
         .addInput(x)
@@ -724,7 +725,7 @@ trait Math {
 
   //endregion Binary Ops
 
-  def betainc(a: Op.Output, b: Op.Output, x: Op.Output, name: String = "Betainc"): Op.Output =
+  def betainc(a: Output, b: Output, x: Output, name: String = "Betainc"): Output =
     Op.Builder(opType = "Betainc", name = name)
         .addInput(a)
         .addInput(b)
@@ -739,7 +740,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def logicalNot(x: Op.Output, name: String = "LogicalNot"): Op.Output = {
+  def logicalNot(x: Output, name: String = "LogicalNot"): Output = {
     Op.Builder(opType = "LogicalNot", name = name)
         .addInput(x)
         .build().outputs(0)
@@ -755,7 +756,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def logicalAnd(x: Op.Output, y: Op.Output, name: String = "LogicalAnd"): Op.Output = {
+  def logicalAnd(x: Output, y: Output, name: String = "LogicalAnd"): Output = {
     Op.Builder(opType = "LogicalAnd", name = name)
         .addInput(x)
         .addInput(y)
@@ -772,7 +773,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def logicalOr(x: Op.Output, y: Op.Output, name: String = "LogicalOr"): Op.Output = {
+  def logicalOr(x: Output, y: Output, name: String = "LogicalOr"): Output = {
     Op.Builder(opType = "LogicalOr", name = name)
         .addInput(x)
         .addInput(y)
@@ -789,7 +790,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def logicalXor(x: Op.Output, y: Op.Output, name: String = "LogicalXor"): Op.Output = {
+  def logicalXor(x: Output, y: Output, name: String = "LogicalXor"): Output = {
     logicalAnd(logicalOr(x, y), logicalNot(logicalAnd(x, y)), name = name)
   }
 
@@ -807,7 +808,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def equal(x: Op.Output, y: Op.Output, name: String = "Equal"): Op.Output = {
+  def equal(x: Output, y: Output, name: String = "Equal"): Output = {
     Op.Builder(opType = "Equal", name = name)
         .addInput(x)
         .addInput(y)
@@ -824,7 +825,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def notEqual(x: Op.Output, y: Op.Output, name: String = "NotEqual"): Op.Output = {
+  def notEqual(x: Output, y: Output, name: String = "NotEqual"): Output = {
     Op.Builder(opType = "NotEqual", name = name)
         .addInput(x)
         .addInput(y)
@@ -840,7 +841,7 @@ trait Math {
     * @return Created op output.
     */
   def approximatelyEqual(
-      x: Op.Output, y: Op.Output, tolerance: Float = 0.00001f, name: String = "ApproximatelyEqual"): Op.Output = {
+      x: Output, y: Output, tolerance: Float = 0.00001f, name: String = "ApproximatelyEqual"): Output = {
     Op.Builder(opType = "ApproximateEqual", name = name)
         .addInput(x)
         .addInput(y)
@@ -858,7 +859,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def less(x: Op.Output, y: Op.Output, name: String = "Less"): Op.Output = {
+  def less(x: Output, y: Output, name: String = "Less"): Output = {
     Op.Builder(opType = "Less", name = name)
         .addInput(x)
         .addInput(y)
@@ -875,7 +876,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def lessEqual(x: Op.Output, y: Op.Output, name: String = "LessEqual"): Op.Output = {
+  def lessEqual(x: Output, y: Output, name: String = "LessEqual"): Output = {
     Op.Builder(opType = "LessEqual", name = name)
         .addInput(x)
         .addInput(y)
@@ -892,7 +893,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def greater(x: Op.Output, y: Op.Output, name: String = "Greater"): Op.Output = {
+  def greater(x: Output, y: Output, name: String = "Greater"): Output = {
     Op.Builder(opType = "Greater", name = name)
         .addInput(x)
         .addInput(y)
@@ -909,7 +910,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def greaterEqual(x: Op.Output, y: Op.Output, name: String = "GreaterEqual"): Op.Output = {
+  def greaterEqual(x: Output, y: Output, name: String = "GreaterEqual"): Output = {
     Op.Builder(opType = "GreaterEqual", name = name)
         .addInput(x)
         .addInput(y)
@@ -920,7 +921,7 @@ trait Math {
 
   //region Reduction Ops
 
-  private[this] def reductionAxes(tensor: Op.Output, axes: Op.Output): Op.Output = {
+  private[this] def reductionAxes(tensor: Output, axes: Output): Output = {
     if (axes != null)
       axes
     else
@@ -950,8 +951,7 @@ trait Math {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def sum(
-      input: Op.Output, axes: Op.Output = null, keepDims: Boolean = false, name: String = "ReduceSum"): Op.Output = {
+  def sum(input: Output, axes: Output = null, keepDims: Boolean = false, name: String = "Sum"): Output = {
     Op.Builder(opType = "Sum", name = name)
         .addInput(input)
         .addInput(reductionAxes(input, axes))
@@ -980,8 +980,7 @@ trait Math {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def mean(
-      input: Op.Output, axes: Op.Output = null, keepDims: Boolean = false, name: String = "ReduceMean"): Op.Output = {
+  def mean(input: Output, axes: Output = null, keepDims: Boolean = false, name: String = "Mean"): Output = {
     Op.Builder(opType = "Mean", name = name)
         .addInput(input)
         .addInput(reductionAxes(input, axes))
@@ -1012,8 +1011,7 @@ trait Math {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def product(
-      input: Op.Output, axes: Op.Output = null, keepDims: Boolean = false, name: String = "ReduceProd"): Op.Output = {
+  def product(input: Output, axes: Output = null, keepDims: Boolean = false, name: String = "Product"): Output = {
     Op.Builder(opType = "Prod", name = name)
         .addInput(input)
         .addInput(reductionAxes(input, axes))
@@ -1042,8 +1040,7 @@ trait Math {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def min(
-      input: Op.Output, axes: Op.Output = null, keepDims: Boolean = false, name: String = "ReduceMin"): Op.Output = {
+  def min(input: Output, axes: Output = null, keepDims: Boolean = false, name: String = "Min"): Output = {
     Op.Builder(opType = "Min", name = name)
         .addInput(input)
         .addInput(reductionAxes(input, axes))
@@ -1072,8 +1069,7 @@ trait Math {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def max(
-      input: Op.Output, axes: Op.Output = null, keepDims: Boolean = false, name: String = "ReduceMax"): Op.Output = {
+  def max(input: Output, axes: Output = null, keepDims: Boolean = false, name: String = "Max"): Output = {
     Op.Builder(opType = "Max", name = name)
         .addInput(input)
         .addInput(reductionAxes(input, axes))
@@ -1102,8 +1098,7 @@ trait Math {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def all(
-      input: Op.Output, axes: Op.Output = null, keepDims: Boolean = false, name: String = "ReduceAll"): Op.Output = {
+  def all(input: Output, axes: Output = null, keepDims: Boolean = false, name: String = "All"): Output = {
     Op.Builder(opType = "All", name = name)
         .addInput(input)
         .addInput(reductionAxes(input, axes))
@@ -1132,8 +1127,7 @@ trait Math {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def any(
-      input: Op.Output, axes: Op.Output = null, keepDims: Boolean = false, name: String = "ReduceAny"): Op.Output = {
+  def any(input: Output, axes: Output = null, keepDims: Boolean = false, name: String = "Any"): Output = {
     Op.Builder(opType = "Any", name = name)
         .addInput(input)
         .addInput(reductionAxes(input, axes))
@@ -1168,8 +1162,7 @@ trait Math {
     * @return Created op output.
     */
   def logSumExp(
-      input: Op.Output, axes: Array[Int] = null, keepDims: Boolean = false,
-      name: String = "ReduceLogSumExp"): Op.Output = {
+      input: Output, axes: Array[Int] = null, keepDims: Boolean = false, name: String = "LogSumExp"): Output = {
     // TODO: !!! Can we support a dynamic version for the axes argument?
     Op.createWith(nameScope = name) {
       val maxValue = Basic.stopGradient(max(input, axes, keepDims = true))
@@ -1208,8 +1201,7 @@ trait Math {
     * @return Created op output with `INT64` data type.
     */
   def countNonZero(
-      input: Op.Output, axes: Op.Output = null, keepDims: Boolean = false,
-      name: String = "CountNonZero"): Op.Output = {
+      input: Output, axes: Output = null, keepDims: Boolean = false, name: String = "CountNonZero"): Output = {
     Op.createWith(nameScope = name) {
       sum(cast(notEqual(input, Basic.constant(0)), INT64), axes, keepDims)
     }
@@ -1235,7 +1227,7 @@ trait Math {
     * @param  name           Name for the created op.
     * @return Created op.
     */
-  def segmentSum(data: Op.Output, segmentIndices: Op.Output, name: String = "SegmentSum"): Op.Output = {
+  def segmentSum(data: Output, segmentIndices: Output, name: String = "SegmentSum"): Output = {
     if (!data.dataType.isNumeric)
       throw InvalidDataTypeException(s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
     if (segmentIndices.dataType != INT32 && segmentIndices.dataType != INT64)
@@ -1264,7 +1256,7 @@ trait Math {
     * @param  name           Name for the created op.
     * @return Created op.
     */
-  def segmentMean(data: Op.Output, segmentIndices: Op.Output, name: String = "SegmentMean"): Op.Output = {
+  def segmentMean(data: Output, segmentIndices: Output, name: String = "SegmentMean"): Output = {
     if (!data.dataType.isNumeric)
       throw InvalidDataTypeException(s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
     if (segmentIndices.dataType != INT32 && segmentIndices.dataType != INT64)
@@ -1292,7 +1284,7 @@ trait Math {
     * @param  name           Name for the created op.
     * @return Created op.
     */
-  def segmentProd(data: Op.Output, segmentIndices: Op.Output, name: String = "SegmentProd"): Op.Output = {
+  def segmentProd(data: Output, segmentIndices: Output, name: String = "SegmentProd"): Output = {
     if (!data.dataType.isNumeric)
       throw InvalidDataTypeException(s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
     if (segmentIndices.dataType != INT32 && segmentIndices.dataType != INT64)
@@ -1320,7 +1312,7 @@ trait Math {
     * @param  name           Name for the created op.
     * @return Created op.
     */
-  def segmentMin(data: Op.Output, segmentIndices: Op.Output, name: String = "SegmentMin"): Op.Output = {
+  def segmentMin(data: Output, segmentIndices: Output, name: String = "SegmentMin"): Output = {
     if (!data.dataType.isNumeric)
       throw InvalidDataTypeException(s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
     if (segmentIndices.dataType != INT32 && segmentIndices.dataType != INT64)
@@ -1348,7 +1340,7 @@ trait Math {
     * @param  name           Name for the created op.
     * @return Created op.
     */
-  def segmentMax(data: Op.Output, segmentIndices: Op.Output, name: String = "SegmentMax"): Op.Output = {
+  def segmentMax(data: Output, segmentIndices: Output, name: String = "SegmentMax"): Output = {
     if (!data.dataType.isNumeric)
       throw InvalidDataTypeException(s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
     if (segmentIndices.dataType != INT32 && segmentIndices.dataType != INT64)
@@ -1380,8 +1372,7 @@ trait Math {
     * @return Created op.
     */
   def unsortedSegmentSum(
-      data: Op.Output, segmentIndices: Op.Output, segmentsNumber: Op.Output,
-      name: String = "UnsortedSegmentSum"): Op.Output = {
+      data: Output, segmentIndices: Output, segmentsNumber: Output, name: String = "UnsortedSegmentSum"): Output = {
     if (!data.dataType.isNumeric)
       throw InvalidDataTypeException(s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
     if (segmentIndices.dataType != INT32 && segmentIndices.dataType != INT64)
@@ -1417,8 +1408,7 @@ trait Math {
     * @return Created op.
     */
   def unsortedSegmentProd(
-      data: Op.Output, segmentIndices: Op.Output, segmentsNumber: Op.Output,
-      name: String = "UnsortedSegmentMax"): Op.Output = {
+      data: Output, segmentIndices: Output, segmentsNumber: Output, name: String = "UnsortedSegmentMax"): Output = {
     if (!data.dataType.isNumeric)
       throw InvalidDataTypeException(s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
     if (segmentIndices.dataType != INT32 && segmentIndices.dataType != INT64)
@@ -1454,19 +1444,19 @@ object Math extends Math {
     GradientsRegistry.register("Sub", subtractGradient)
     GradientsRegistry.register("Sum", reduceSumGradient)
 
-    private[this] def diagGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+    private[this] def diagGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       Seq(diagPart(outputGradients.head))
     }
 
-    private[this] def diagPartGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+    private[this] def diagPartGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       Seq(diag(outputGradients.head))
     }
 
-    private[this] def matrixDiagGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+    private[this] def matrixDiagGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       Seq(matrixDiagPart(outputGradients.head))
     }
 
-    private[this] def matrixSetDiagGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+    private[this] def matrixSetDiagGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       val gradient = outputGradients.head
       val inputShape = op.inputs(0).shape.mergeWith(gradient.shape)
       val batchShape = inputShape(0 :: -2).mergeWith(op.inputs(1).shape(0 :: -1))
@@ -1490,7 +1480,7 @@ object Math extends Math {
       Seq(gradInput, gradDiag)
     }
 
-    private[this] def matrixDiagPartGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+    private[this] def matrixDiagPartGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       val matrixShape = op.inputs(0).shape(-2 ::)
       if (matrixShape.isFullyDefined && matrixShape(0) == matrixShape(1))
         Seq(matrixDiag(outputGradients.head))
@@ -1498,11 +1488,11 @@ object Math extends Math {
         Seq(matrixSetDiag(Basic.zerosLike(op.inputs(0)), outputGradients.head))
     }
 
-    private[this] def matrixBandPartGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+    private[this] def matrixBandPartGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       Seq(matrixBandPart(outputGradients.head, op.inputs(1), op.inputs(2)), null, null)
     }
 
-    private[this] def castGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+    private[this] def castGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       val supportedDataTypes = Seq(FLOAT32, FLOAT64) // TODO: [TYPES] Float16 and complex.
       val sourceDataType = op.inputs(0).dataType
       val destinationDataType = outputGradients.head.dataType
@@ -1512,17 +1502,17 @@ object Math extends Math {
         Seq(null)
     }
 
-    private[this] def matMulGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+    private[this] def matMulGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       matMulGradientCommon(op, outputGradients, "transpose_a", "transpose_b", isBatch = false)
     }
 
-    private[this] def batchMatMulGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+    private[this] def batchMatMulGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       matMulGradientCommon(op, outputGradients, "adj_x", "adj_y", isBatch = true)
     }
 
     private[this] def matMulGradientCommon(
-        op: Op, outputGradients: Seq[Op.OutputLike], transposeAAttribute: String, transposeBAttribute: String,
-        isBatch: Boolean): Seq[Op.OutputLike] = {
+        op: Op, outputGradients: Seq[OutputLike], transposeAAttribute: String, transposeBAttribute: String,
+        isBatch: Boolean): Seq[OutputLike] = {
       val transposeA = op.booleanAttribute(transposeAAttribute)
       val transposeB = op.booleanAttribute(transposeBAttribute)
       val a = conjugate(op.inputs(0))
@@ -1547,20 +1537,20 @@ object Math extends Math {
     }
 
     private[this] def matMulGradientHelper(
-        x0: Op.Output, x1: Op.Output, y0: Op.Output, y1: Op.Output, transposeX0: Boolean, transposeX1: Boolean,
-        transposeY0: Boolean, transposeY1: Boolean, isBatch: Boolean): Seq[Op.OutputLike] = {
+        x0: Output, x1: Output, y0: Output, y1: Output, transposeX0: Boolean, transposeX1: Boolean,
+        transposeY0: Boolean, transposeY1: Boolean, isBatch: Boolean): Seq[OutputLike] = {
       if (!isBatch) {
         val gradientX = matMul(x0, x1, transposeA = transposeX0, transposeB = transposeX1, name = "MatMul_1")
         val gradientY = matMul(y0, y1, transposeA = transposeY0, transposeB = transposeY1, name = "MatMul_2")
-        Seq[Op.OutputLike](gradientX, gradientY)
+        Seq[OutputLike](gradientX, gradientY)
       } else {
         val gradientX = batchMatMul(x0, x1, adjointX = transposeX0, adjointY = transposeX1, name = "MatMul_1")
         val gradientY = batchMatMul(y0, y1, adjointX = transposeY0, adjointY = transposeY1, name = "MatMul_2")
-        Seq[Op.OutputLike](gradientX, gradientY)
+        Seq[OutputLike](gradientX, gradientY)
       }
     }
 
-    private[this] def squareGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+    private[this] def squareGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       var x = op.inputs(0)
       val outputGradient = outputGradients.head
       // Using control dependencies to prevent 2*x from being computed too early.
@@ -1581,7 +1571,7 @@ object Math extends Math {
       * @return Tuple containing two op outputs, each containing the reduction indices for the corresponding op.
       */
     private[this] def broadcastGradientArguments(
-        shape0: Op.Output, shape1: Op.Output, name: String = "BroadcastGradientArguments"): (Op.Output, Op.Output) = {
+        shape0: Output, shape1: Output, name: String = "BroadcastGradientArguments"): (Output, Output) = {
       val outputs = Op.Builder(opType = "BroadcastGradientArgs", name = name)
           .addInput(shape0)
           .addInput(shape1)
@@ -1589,7 +1579,7 @@ object Math extends Math {
       (outputs(0), outputs(1))
     }
 
-    private[this] def subtractGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+    private[this] def subtractGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       val x = op.inputs(0)
       val y = op.inputs(1)
       val xShape = Basic.shape(x)
@@ -1601,7 +1591,7 @@ object Math extends Math {
       Seq(gradientX, gradientY)
     }
 
-    private[this] def reduceSumGradient(op: Op, outputGradients: Seq[Op.OutputLike]): Seq[Op.OutputLike] = {
+    private[this] def reduceSumGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       // Fast path for when reducing to a scalar and rank is known, which adds only reshape and tile ops (and possibly a
       // shape op too).
       if (op.inputs(0).shape.rank != -1 && op.inputs(1).op.opType == "Const") {

@@ -19,7 +19,7 @@ import org.platanios.tensorflow.api.DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER
 import org.platanios.tensorflow.api.Implicits._
 import org.platanios.tensorflow.api.core.{Index, Indexer, Shape}
 import org.platanios.tensorflow.api.core.exception.{InvalidDataTypeException, ShapeMismatchException}
-import org.platanios.tensorflow.api.ops.{Basic, Op}
+import org.platanios.tensorflow.api.ops.{Basic, Output, OutputConvertible}
 import org.platanios.tensorflow.api.types._
 import org.platanios.tensorflow.jni.{Tensor => NativeTensor}
 
@@ -36,8 +36,8 @@ import spire.math.UShort
 /**
   * @author Emmanouil Antonios Platanios
   */
-trait Tensor extends TensorLike with Op.OutputConvertible {
-  val buffer  : ByteBuffer
+trait Tensor extends TensorLike with OutputConvertible {
+  val buffer: ByteBuffer
 
   val order: Order = DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER
 
@@ -163,7 +163,7 @@ trait Tensor extends TensorLike with Op.OutputConvertible {
   def asRealNumeric: RealNumericTensor
 
   override def toTensor: Tensor = this
-  override def toOpOutput: Op.Output = Basic.constant(this)
+  override def toOutput: Output = Basic.constant(this)
 }
 
 object Tensor {

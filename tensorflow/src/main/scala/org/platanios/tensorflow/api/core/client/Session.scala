@@ -17,10 +17,9 @@ package org.platanios.tensorflow.api.core.client
 
 import org.platanios.tensorflow.api.Closeable
 import org.platanios.tensorflow.api.core.Graph
-import org.platanios.tensorflow.api.ops.{Op, OpCreationContext}
+import org.platanios.tensorflow.api.ops.{Op, OpCreationContext, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.jni.{Session => NativeSession}
-
 import org.tensorflow.framework.{RunMetadata, RunOptions}
 
 import scala.util.DynamicVariable
@@ -41,7 +40,7 @@ final case class Session private (
   /** Runs ops and evaluates tensors in `fetches`, and returns the values of the evaluated tensors.
     *
     * This method runs one "step" of TensorFlow computation, by running the necessary graph fragment to execute every
-    * `Op` and evaluate every `Op.Output` in `fetches`, substituting the values in `feeds` for the corresponding input
+    * `Op` and evaluate every `Output` in `fetches`, substituting the values in `feeds` for the corresponding input
     * values.
     *
     * @param  feeds   Optional feed map. This argument can be used to feed values into a TensorFlow session. It is a map
@@ -61,7 +60,7 @@ final case class Session private (
     */
   @throws[IllegalStateException]
   def run[F, E, R](
-      feeds: FeedMap = FeedMap.empty, fetches: F = Seq.empty[Op.Output],
+      feeds: FeedMap = FeedMap.empty, fetches: F = Seq.empty[Output],
       targets: E = Traversable.empty[Op], options: RunOptions = null)
       (implicit executable: Executable[E], fetchable: Fetchable.Aux[F, R]): R = {
     runHelper(feeds = feeds, fetches = fetches, targets = targets, options = options)._1
@@ -71,7 +70,7 @@ final case class Session private (
     * metadata that may have been collected.
     *
     * This method runs one "step" of TensorFlow computation, by running the necessary graph fragment to execute every
-    * `Op` and evaluate every `Op.Output` in `fetches`, substituting the values in `feeds` for the corresponding input
+    * [[Op]] and evaluate every [[Output]] in `fetches`, substituting the values in `feeds` for the corresponding input
     * values.
     *
     * When appropriate (e.g., when users turn on tracing in `options`), the run metadata output of this run will be
@@ -96,8 +95,8 @@ final case class Session private (
     */
   @throws[IllegalStateException]
   def runWithMetadata[F, E, R](
-      feeds: FeedMap = FeedMap.empty, fetches: F = Seq.empty[Op.Output],
-      targets: E = Traversable.empty[Op], options: RunOptions = null)
+      feeds: FeedMap = FeedMap.empty, fetches: F = Seq.empty[Output], targets: E = Traversable.empty[Op],
+      options: RunOptions = null)
       (implicit executable: Executable[E], fetchable: Fetchable.Aux[F, R]): (R, Option[RunMetadata]) = {
     runHelper(feeds = feeds, fetches = fetches, targets = targets, options = options, wantMetadata = true)
   }
@@ -105,8 +104,8 @@ final case class Session private (
   /** Helper method for [[run]] and [[runWithMetadata]]. */
   @throws[IllegalStateException]
   private[this] def runHelper[F, E, R](
-      feeds: FeedMap = FeedMap.empty, fetches: F = Seq.empty[Op.Output],
-      targets: E = Traversable.empty[Op], options: RunOptions = null, wantMetadata: Boolean = false)
+      feeds: FeedMap = FeedMap.empty, fetches: F = Seq.empty[Output], targets: E = Traversable.empty[Op],
+      options: RunOptions = null, wantMetadata: Boolean = false)
       (implicit executable: Executable[E], fetchable: Fetchable.Aux[F, R]): (R, Option[RunMetadata]) = {
     if (nativeHandle == 0)
       throw new IllegalStateException("This session has already been closed.")

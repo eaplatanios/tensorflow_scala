@@ -197,9 +197,9 @@ JNIEXPORT jobject JNICALL Java_org_platanios_tensorflow_jni_Op_00024_input(JNIEn
   }
 
   TF_Output output = TF_OperationInput(TF_Input{op, input_index});
-  jclass outputClass = env->FindClass("org/platanios/tensorflow/jni/OpOutput");
+  jclass outputClass = env->FindClass("org/platanios/tensorflow/jni/Output");
   jmethodID outputClassConstructor = env->GetStaticMethodID(
-    outputClass, "apply", "(JI)Lorg/platanios/tensorflow/jni/OpOutput;");
+    outputClass, "apply", "(JI)Lorg/platanios/tensorflow/jni/Output;");
   return env->CallStaticObjectMethod(
     outputClass, outputClassConstructor, reinterpret_cast<jlong>(output.oper), output.index);
 }
@@ -251,9 +251,9 @@ JNIEXPORT jobjectArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_consum
   int numConsumers = TF_OperationOutputNumConsumers(output);
   std::unique_ptr<TF_Input[]> consumers(new TF_Input[numConsumers]);
   TF_OperationOutputConsumers(output, consumers.get(), numConsumers);
-  jclass outputClass = env->FindClass("org/platanios/tensorflow/jni/OpOutput");
+  jclass outputClass = env->FindClass("org/platanios/tensorflow/jni/Output");
   jmethodID outputClassConstructor = env->GetStaticMethodID(
-    outputClass, "apply", "(JI)Lorg/platanios/tensorflow/jni/OpOutput;");
+    outputClass, "apply", "(JI)Lorg/platanios/tensorflow/jni/Output;");
   jobjectArray ret = env->NewObjectArray(numConsumers, outputClass, NULL);
   for (int i = 0; i < numConsumers; ++i) {
     env->SetObjectArrayElement(

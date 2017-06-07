@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.core.client
 
-import org.platanios.tensorflow.api.ops.Op
+import org.platanios.tensorflow.api.ops.{Op, Output, OutputLike}
 
 import shapeless._
 import shapeless.ops.hlist.{Mapper, ToList}
@@ -29,7 +29,7 @@ import scala.language.higherKinds
   *
   * Currently supported executable types are:
   *   - Single [[Op]] object.
-  *   - Single [[Op.OutputLike]] object.
+  *   - Single [[OutputLike]] object.
   *   - Traversables of other [[Executable]]s (e.g., `Set`s, `List`s, etc.).
   *     - Note that, even though `Set(List(op1), List(op1, op2))` is supported, `Set(Set(op1), List(op1, op2))` is not.
   *     - Traversables that are not homogeneous are not supported (e.g., `Set(op1, Set(op1, op2))`).
@@ -54,8 +54,8 @@ object Executable {
     override def ops(executable: Op): Set[Op] = Set(executable)
   }
 
-  implicit def opOutputExecutable = new Executable[Op.Output] {
-    override def ops(executable: Op.Output): Set[Op] = Set(executable.op)
+  implicit def outputExecutable = new Executable[Output] {
+    override def ops(executable: Output): Set[Op] = Set(executable.op)
   }
 
   implicit def arrayExecutable[T: Executable] = new Executable[Array[T]] {
@@ -66,7 +66,7 @@ object Executable {
     override def ops(executable: CC[T]): Set[Op] = executable.flatMap(e => Executable[T].ops(e)).toSet
   }
 
-  // This also covers `Op.OutputIndexedSlices` and `Op.SparseOutput` as they are case classes (i.e., products).
+  // This also covers `OutputIndexedSlices` and `SparseOutput` as they are case classes (i.e., products).
   implicit def productExecutable[T <: Product, L <: HList, Ops <: HList](implicit
       gen: Generic.Aux[T, L],
       mapper: Mapper.Aux[getExecutableOps.type, L, Ops],

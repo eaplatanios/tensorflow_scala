@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops.training.optimizers
 
 import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.exception.InvalidDataTypeException
-import org.platanios.tensorflow.api.ops.{Basic, ControlFlow, Gradients, Math, Op, Slot}
+import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.training.optimizers.Optimizer._
 import org.platanios.tensorflow.api.ops.variables.{Initializer, Variable}
 import org.platanios.tensorflow.api.types.{DataType, INT32, FLOAT32, FLOAT64, RESOURCE}
@@ -59,7 +59,7 @@ trait Optimizer {
     * @param  name                       Name for the created op.
     * @return Created op.
     */
-  def minimize(loss: Op.Output, lossGradients: Seq[Op.OutputLike] = null, variables: Set[Variable] = null,
+  def minimize(loss: Output, lossGradients: Seq[OutputLike] = null, variables: Set[Variable] = null,
       gradientsGatingMethod: Gradients.GatingMethod = Gradients.OpGating,
       gradientsAggregationMethod: Gradients.AggregationMethod = Gradients.AddAggregationMethod,
       colocateGradientsWithOps: Boolean = false, globalStep: Variable = null, name: String = "Minimize"): Op = {
@@ -82,11 +82,11 @@ trait Optimizer {
     * @return Sequence of gradient-variable pairs.
     */
   def computeGradients(
-      loss: Op.Output, lossGradients: Seq[Op.OutputLike] = null, variables: Set[Variable] = null,
+      loss: Output, lossGradients: Seq[OutputLike] = null, variables: Set[Variable] = null,
       gradientsGatingMethod: Gradients.GatingMethod = Gradients.OpGating,
       gradientsAggregationMethod: Gradients.AggregationMethod = Gradients.AddAggregationMethod,
-      colocateGradientsWithOps: Boolean = false): Seq[(Op.OutputLike, Variable)] = {
-    assertSupportedDataTypes(Iterable[Op.OutputLike](loss))
+      colocateGradientsWithOps: Boolean = false): Seq[(OutputLike, Variable)] = {
+    assertSupportedDataTypes(Iterable[OutputLike](loss))
     if (lossGradients != null)
       assertSupportedDataTypes(lossGradients)
     // TODO: [VARIABLES] Settle on what keys to use for variables.
@@ -101,10 +101,10 @@ trait Optimizer {
     if (collectedVariables.isEmpty)
       throw new IllegalArgumentException("There are no variables to optimize.")
     val variableProcessors: Seq[VariableProcessor] = collectedVariables.map(getVariableProcessor)
-    val variableTargets: Seq[Op.Output] = variableProcessors.map(_.target)
-    val gradients: Seq[Op.OutputLike] = {
+    val variableTargets: Seq[Output] = variableProcessors.map(_.target)
+    val gradients: Seq[OutputLike] = {
       val gradients = Gradients.gradients(
-        ys = Seq[Op.Output](loss),
+        ys = Seq[Output](loss),
         xs = variableTargets,
         dys = lossGradients,
         gateGradients = gradientsGatingMethod == Gradients.OpGating,
@@ -115,7 +115,7 @@ trait Optimizer {
       else
         gradients
     }
-    val gradientsAndVariables: Seq[(Op.OutputLike, Variable)] = gradients.zip(collectedVariables)
+    val gradientsAndVariables: Seq[(OutputLike, Variable)] = gradients.zip(collectedVariables)
     assertSupportedDataTypes(
       gradientsAndVariables.filter(p => (p._1 != null) && p._2.dataType != RESOURCE).map(_._2.value))
     gradientsAndVariables
@@ -129,8 +129,7 @@ trait Optimizer {
     * @return Created op.
     */
   def applyGradients(
-      gradientsAndVariables: Seq[(Op.OutputLike, Variable)], globalStep: Variable = null,
-      name: String = this.name): Op = {
+      gradientsAndVariables: Seq[(OutputLike, Variable)], globalStep: Variable = null, name: String = this.name): Op = {
     // This is a default implementation of `applyGradients` that is shared by most optimizers. It relies on the subclass
     // implementing the following methods: `createSlots`, `prepare`, `finish`, `applyDense`, and `applySparse`.
     val variables: Seq[Variable] = gradientsAndVariables.filter(_._1 != null).map(_._2)
@@ -195,7 +194,7 @@ trait Optimizer {
     * @throws InvalidDataTypeException If any of the provided outputs has an unsupported data type.
     */
   @throws[InvalidDataTypeException]
-  private[this] def assertSupportedDataTypes(outputs: Iterable[Op.OutputLike]): Unit = {
+  private[this] def assertSupportedDataTypes(outputs: Iterable[OutputLike]): Unit = {
     outputs.foreach(output => {
       if (!supportedDataTypes.contains(output.dataType))
         throw InvalidDataTypeException(s"Data type '${output.dataType}' is not supported by this optimizer.")
@@ -228,11 +227,11 @@ trait Optimizer {
     * @param  variable Variable.
     * @return Created op that applies the provided gradient to the provided variable.
     */
-  protected def applyDense(gradient: Op.Output, variable: Variable): Op
+  protected def applyDense(gradient: Output, variable: Variable): Op
 
   /** Applies the updates corresponding to the provided gradient, to the provided variable.
     *
-    * The [[Op.OutputIndexedSlices]] object specified by `gradient` in this function is by default pre-processed in
+    * The [[OutputIndexedSlices]] object specified by `gradient` in this function is by default pre-processed in
     * `applySparseDuplicateIndices` to remove duplicate indices (refer to that function's documentation for details).
     * Optimizers which can tolerate or have correct special cases for duplicate sparse indices may override
     * `applySparseDuplicateIndices` instead of this function, avoiding that overhead.
@@ -241,18 +240,18 @@ trait Optimizer {
     * @param  variable Variable.
     * @return Created op that applies the provided gradient to the provided variable.
     */
-  protected def applySparse(gradient: Op.OutputIndexedSlices, variable: Variable): Op
+  protected def applySparse(gradient: OutputIndexedSlices, variable: Variable): Op
 
   /** Applies the updates corresponding to the provided gradient (with potentially duplicate indices), to the provided
     * variable.
     *
-    * Optimizers which override this method must deal with [[Op.OutputIndexedSlices]] objects such as the following:
-    * `Op.OutputIndexedSlices(indices=[0, 0], values=[1, 1], denseShape=[1])`, which contain duplicate indices. The
+    * Optimizers which override this method must deal with [[OutputIndexedSlices]] objects such as the following:
+    * `OutputIndexedSlices(indices=[0, 0], values=[1, 1], denseShape=[1])`, which contain duplicate indices. The
     * correct interpretation in that case should be: `OutputIndexedSlices(values=[2], indices=[0], denseShape=[1])`.
     *
     * Many optimizers deal incorrectly with repeated indices when updating based on sparse gradients (e.g. summing
     * squares rather than squaring the sum, or applying momentum terms multiple times). Adding first is always the
-    * correct behavior, so this is enforced here by reconstructing the [[Op.OutputIndexedSlices]] to have only unique
+    * correct behavior, so this is enforced here by reconstructing the [[OutputIndexedSlices]] to have only unique
     * indices, and then calling [[applySparse]].
     *
     * Optimizers which deal correctly with repeated indices may instead override this method to avoid the induced
@@ -262,7 +261,7 @@ trait Optimizer {
     * @param  variable Variable.
     * @return Created op that applies the provided gradient to the provided variable.
     */
-  protected def applySparseDuplicateIndices(gradient: Op.OutputIndexedSlices, variable: Variable): Op = {
+  protected def applySparseDuplicateIndices(gradient: OutputIndexedSlices, variable: Variable): Op = {
     applySparse(deDuplicateOutputIndexedSlices(gradient), variable)
   }
 
@@ -326,30 +325,30 @@ object Optimizer {
   /** Trait for abstracting over variables in the optimizers. */
   private[Optimizer] sealed trait VariableProcessor {
     /** Returns the optimization target for this variable. */
-    def target: Op.Output
+    def target: Output
 
     /** Returns the update ops for updating this variable using the gradient provided by `gradient`. */
-    def updateOp(optimizer: Optimizer, gradient: Op.OutputLike): Op
+    def updateOp(optimizer: Optimizer, gradient: OutputLike): Op
   }
 
   /** Variable processor for resource-based variables. */
   private[Optimizer] case class ResourceVariableProcessor(variable: Variable) extends VariableProcessor {
-    override def target: Op.Output = variable.handle
+    override def target: Output = variable.handle
 
-    override def updateOp(optimizer: Optimizer, gradient: Op.OutputLike): Op = gradient match {
-      case g: Op.Output => optimizer.applyDense(g, variable)
-      case g: Op.OutputIndexedSlices => optimizer.applySparseDuplicateIndices(g, variable)
+    override def updateOp(optimizer: Optimizer, gradient: OutputLike): Op = gradient match {
+      case g: Output => optimizer.applyDense(g, variable)
+      case g: OutputIndexedSlices => optimizer.applySparseDuplicateIndices(g, variable)
       case _ => throw new IllegalArgumentException(
-        "Unsupported gradient type. Currently only 'Op.Output' and 'Op.OutputIndexedSlices' are supported.")
+        "Unsupported gradient type. Currently only 'Output' and 'OutputIndexedSlices' are supported.")
     }
   }
 
   /** Variable processor for streaming model ports. */
   private[Optimizer] case class StreamingModelPortProcessor(variable: Variable) extends VariableProcessor {
     // TODO: [VARIABLES] This is probably wrong.
-    override def target: Op.Output = variable.handle
+    override def target: Output = variable.handle
 
-    override def updateOp(optimizer: Optimizer, gradient: Op.OutputLike): Op = gradient.op
+    override def updateOp(optimizer: Optimizer, gradient: OutputLike): Op = gradient.op
   }
 
   /** Sums the values of the provided indexed slices associated with any non-unique indices and returns the resulting
@@ -358,9 +357,9 @@ object Optimizer {
     * @param  input Indexed slices with potentially duplicate indices.
     * @return Indexed slices with de-duplicated indices and summed values slices associated with each unique index.
     */
-  private[Optimizer] def deDuplicateOutputIndexedSlices(input: Op.OutputIndexedSlices): Op.OutputIndexedSlices = {
+  private[Optimizer] def deDuplicateOutputIndexedSlices(input: OutputIndexedSlices): OutputIndexedSlices = {
     val (uniqueIndices, newIndexPositions) = Basic.unique(input.indices)
     val summedValues = Math.unsortedSegmentSum(input.values, newIndexPositions, Basic.shape(uniqueIndices)(0))
-    Op.OutputIndexedSlices(indices = uniqueIndices, values = summedValues, denseShape = input.denseShape)
+    OutputIndexedSlices(indices = uniqueIndices, values = summedValues, denseShape = input.denseShape)
   }
 }

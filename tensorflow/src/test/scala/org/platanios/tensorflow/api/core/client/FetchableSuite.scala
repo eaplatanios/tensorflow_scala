@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.core.client
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.core.Graph
-import org.platanios.tensorflow.api.ops.{Basic, Op}
+import org.platanios.tensorflow.api.ops.{Basic, Op, OutputIndexedSlices, SparseOutput}
 import org.platanios.tensorflow.api.tensors.Tensor
 
 import org.scalatest.junit.JUnitSuite
@@ -32,8 +32,8 @@ class FetchableSuite extends JUnitSuite {
   @Test def testFetchable(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
       val fetchable1 = Basic.constant(1.0)
-      val fetchable2 = Op.OutputIndexedSlices(Basic.constant(2.0), Basic.constant(2.0), Basic.constant(2.0))
-      val fetchable3 = Op.SparseOutput(
+      val fetchable2 = OutputIndexedSlices(Basic.constant(2.0), Basic.constant(2.0), Basic.constant(2.0))
+      val fetchable3 = SparseOutput(
         Basic.constant(Tensor(Tensor(2L), Tensor(1L))), Basic.constant(Tensor(2L, 1L)), Basic.constant(Tensor(3L)))
       val processed1 = Fetchable.process(fetchable1)
       val processed2 = Fetchable.process(fetchable2)

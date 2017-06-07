@@ -32,7 +32,7 @@ trait ControlFlow {
     * @param  name         Name for the created op (used mainly as a name scope).
     * @return Created op output.
     */
-  private[api] def withControlDependencies[T <: Op.OutputLike](
+  private[api] def withControlDependencies[T <: OutputLike](
       dependencies: Set[Op], input: T, name: String = "WithControlDependencies"): T = {
     Op.createWithNameScope(name, dependencies + input.op) {
       Op.colocateWith(Set[Op](input.op)) {
@@ -90,7 +90,7 @@ trait ControlFlow {
     * @param  name          Name for the created ops (used mainly as a name scope).
     * @return Created op outputs, which in this case are the values of `inputs`.
     */
-  def tuple[T <: Op.OutputLike](
+  def tuple[T <: OutputLike](
       inputs: Array[T], controlInputs: Set[Op] = Set.empty, name: String = "Tuple")
       (implicit tag: ClassTag[T]): Array[T] = {
     val gatingOps = inputs.map(_.op).toSet
@@ -118,7 +118,7 @@ trait ControlFlow {
   //    * @return Created op output.
   //    */
   //  private[this] def abort(
-  //      errorMessage: String = "", exitWithoutError: Boolean = false, name: String = "Abort"): Op.Output = {
+  //      errorMessage: String = "", exitWithoutError: Boolean = false, name: String = "Abort"): Output = {
   //    Op.Builder(opType = "Abort", name = name)
   //        .setAttribute("error_message", errorMessage)
   //        .setAttribute("exit_without_error", exitWithoutError)
@@ -131,7 +131,7 @@ trait ControlFlow {
   //    * @param  name Name for the created op.
   //    * @return Created op output.
   //    */
-  //  private[this] def controlTrigger(name: String = "ControlTrigger"): Op.Output = {
+  //  private[this] def controlTrigger(name: String = "ControlTrigger"): Output = {
   //    Op.Builder(opType = "ControlTrigger", name = name).build().outputs(0)
   //  }
   //
@@ -143,14 +143,14 @@ trait ControlFlow {
   //    * @param  name  Name for the created op.
   //    * @return Created op output, which has the same value as the input tensor.
   //    */
-  //  private[this] def loopCond(input: Op.Output, name: String = "LoopCond"): Op.Output = {
+  //  private[this] def loopCond(input: Output, name: String = "LoopCond"): Output = {
   //    Op.Builder(opType = "LoopCond", name = name)
   //        .addInput(input)
   //        .build().outputs(0)
   //  }
   //
   //  abstract class Context private(
-  //      val values: Seq[String] = Seq.empty, val externalValues: Map[String, Op.Output] = Map.empty)
+  //      val values: Seq[String] = Seq.empty, val externalValues: Map[String, Output] = Map.empty)
   //      (implicit context: DynamicVariable[OpCreationContext]) extends ProtoSerializable {
   //    private[this] var contextStack = List.empty[Context]
   //
@@ -174,7 +174,7 @@ trait ControlFlow {
   //  }
   //
   //  /** Returns the enter op if we can infer `value` to be a loop invariant. Otherwise, returns [[None]]. */
-  //  private[this] def getLoopConstantEnter(value: Op.Output): Option[Op] = {
+  //  private[this] def getLoopConstantEnter(value: Output): Option[Op] = {
   //    val identityOpTypes = Set("Identity", "Switch")
   //    var op = value.op
   //    while (identityOpTypes.contains(op.opType))
@@ -211,20 +211,20 @@ trait ControlFlow {
   //  @throws[ShapeMismatchException]
   //  @throws[IllegalArgumentException]
   //  private[this] def setShapeInvariants(
-  //      inputTensors: Array[Op.OutputLike], enterTensors: Array[Op.OutputLike], shapes: Array[Shape]): Unit = {
+  //      inputTensors: Array[OutputLike], enterTensors: Array[OutputLike], shapes: Array[Shape]): Unit = {
   //    // Check that the shapes of the inputs are less than the shape invariants, and set the shapes of the enter tensors
   //    // to the shape invariants.
   //    for ((input, enter, shape) <- (inputTensors, enterTensors, shapes).zipped) {
   //      // @formatter:off
   //      (input, enter) match {
-  //        case (i: Op.Output, e: Op.Output) =>
+  //        case (i: Output, e: Output) =>
   //          if (!shapeLessThenOrEqual(i.shape, shape))
   //            throw ShapeMismatchException(
   //              s"The shape invariant specified for '${i.name}' is not compatible with the initial shape of the " +
   //                  s"loop variable. It enters the loop with shape '${i.shape}', but the specified shape invariant " +
   //                  s"is '$shape'.")
   //          e.setShape(shape)
-  //        case (i: Op.OutputIndexedSlices, e: Op.OutputIndexedSlices) =>
+  //        case (i: OutputIndexedSlices, e: OutputIndexedSlices) =>
   //          if (!shapeLessThenOrEqual(i.values.shape, shape))
   //            throw ShapeMismatchException(
   //              s"The shape invariant specified for '${i.values.name}' is not compatible the initial shape of the " +
@@ -245,7 +245,7 @@ trait ControlFlow {
   //          e.denseShape.setShape(shape)
   //        case (_, _) =>
   //          throw new IllegalArgumentException(
-  //            "Only 'Op.Output', 'Op.OutputIndexedSlices', and 'Op.SparseOutput' are supported. Also, the input tensor " +
+  //            "Only 'Output', 'OutputIndexedSlices', and 'Op.SparseOutput' are supported. Also, the input tensor " +
   //                "and the enter tensor types must match.")
   //      }
   //      // @formatter:on
@@ -263,17 +263,17 @@ trait ControlFlow {
   //    */
   //  @throws[ShapeMismatchException]
   //  @throws[IllegalArgumentException]
-  //  private[this] def enforceShapeInvariant(mergeTensor: Op.OutputLike, nextTensor: Op.OutputLike): Unit = {
+  //  private[this] def enforceShapeInvariant(mergeTensor: OutputLike, nextTensor: OutputLike): Unit = {
   //    // @formatter:off
   //    (mergeTensor, nextTensor) match {
-  //      case (merge: Op.Output, next: Op.Output) =>
+  //      case (merge: Output, next: Output) =>
   //        if (!shapeLessThenOrEqual(next.shape, merge.shape))
   //          throw ShapeMismatchException(
   //            s"The shape for '${merge.name}' is not an invariant for the loop. The tensor enters the loop with shape " +
   //                s"'${merge.shape}', but has shape '${next.shape}' after one iteration. Please provide shape " +
   //                s"invariants using either the 'shapeInvariants' argument of 'whileLoop' or the 'setShape' method of " +
   //                s"the loop variables.")
-  //      case (merge: Op.OutputIndexedSlices, next: Op.OutputIndexedSlices) =>
+  //      case (merge: OutputIndexedSlices, next: OutputIndexedSlices) =>
   //        val mergeValuesShape = merge.values.shape
   //        val mergeIndicesShape = merge.indices.shape
   //        val mergeDenseShapeShape = if (merge.denseShape != null) merge.denseShape.shape else Shape.unknown()
@@ -308,7 +308,7 @@ trait ControlFlow {
   //                s"method of the loop variables.")
   //      case (_, _) =>
   //        throw new IllegalArgumentException(
-  //          "Only 'Op.Output', 'Op.OutputIndexedSlices', and 'Op.SparseOutput' are supported. Also, the merge tensor " +
+  //          "Only 'Output', 'OutputIndexedSlices', and 'Op.SparseOutput' are supported. Also, the merge tensor " +
   //              "and the next tensor types must match>")
   //    }
   //    // @formatter:on
@@ -324,15 +324,15 @@ trait ControlFlow {
   //    * @param  name  Name for the created op.
   //    * @return Created op output, which is the same as `input`.
   //    */
-  //  private[this] def nextIteration[T <: Op.OutputLike](input: T, name: String = "NextIteration"): T = {
+  //  private[this] def nextIteration[T <: OutputLike](input: T, name: String = "NextIteration"): T = {
   //    Op.createWithNameScope(nameScope = name, Set(input.op)) {
   //      // @formatter:off
   //      input match {
-  //        case i: Op.Output =>
+  //        case i: Output =>
   //          Op.Builder(opType = "NextIteration", name = name)
   //              .addInput(i)
   //              .build().outputs(0)
-  //        case i: Op.OutputIndexedSlices =>
+  //        case i: OutputIndexedSlices =>
   //          val values = nextIteration(i.values, name = "ValuesNextIteration")
   //          val indices = nextIteration(i.indices, name = "IndicesNextIteration")
   //          val denseShape = {
@@ -341,7 +341,7 @@ trait ControlFlow {
   //            else
   //              null
   //          }
-  //          Op.OutputIndexedSlices(indices = indices, values = values, denseShape = denseShape)
+  //          OutputIndexedSlices(indices = indices, values = values, denseShape = denseShape)
   //        case i: Op.SparseOutput =>
   //          val values = nextIteration(i.values, name = "ValuesNextIteration")
   //          val indices = nextIteration(i.indices, name = "IndicesNextIteration")
@@ -366,20 +366,20 @@ trait ControlFlow {
   //    * @param  name               Name for the created op.
   //    * @return Created op output, which is the same as `input`.
   //    */
-  //  private[this] def enter[T <: Op.OutputLike](
+  //  private[this] def enter[T <: OutputLike](
   //      input: T, frameName: String, isConstant: Boolean = false, parallelIterations: Int = 10,
   //      useInputShape: Boolean = true, name: String = "Enter"): T = {
   //    Op.createWithNameScope(nameScope = name, Set(input.op)) {
   //      // @formatter:off
   //      input match {
-  //        case i: Op.Output  =>
+  //        case i: Output  =>
   //          val result = Op.Builder(opType = "NextIteration", name = name)
   //              .addInput(i)
   //              .build().outputs(0)
   //          if (useInputShape)
   //            result.setShape(i.shape)
   //          result
-  //        case i: Op.OutputIndexedSlices =>
+  //        case i: OutputIndexedSlices =>
   //          val values = enter(i.values, frameName, isConstant, parallelIterations, useInputShape, "ValuesEnter")
   //          val indices = enter(i.indices, frameName, isConstant, parallelIterations, useInputShape, "IndicesEnter")
   //          val denseShape = {
@@ -388,7 +388,7 @@ trait ControlFlow {
   //            else
   //              null
   //          }
-  //          Op.OutputIndexedSlices(indices = indices, values = values, denseShape = denseShape)
+  //          OutputIndexedSlices(indices = indices, values = values, denseShape = denseShape)
   //        case i: Op.SparseOutput =>
   //          val values = enter(i.values, frameName, isConstant, parallelIterations, useInputShape, "ValuesEnter")
   //          val indices = enter(i.indices, frameName, isConstant, parallelIterations, useInputShape, "IndicesEnter")
@@ -408,15 +408,15 @@ trait ControlFlow {
   //    * @param  name  Name for the created op.
   //    * @return Created op output, which is the same as `input`.
   //    */
-  //  private[this] def exit[T <: Op.OutputLike](input: T, name: String = "Exit"): T = {
+  //  private[this] def exit[T <: OutputLike](input: T, name: String = "Exit"): T = {
   //    Op.createWithNameScope(nameScope = name, Set(input.op)) {
   //      // @formatter:off
   //      input match {
-  //        case i: Op.Output =>
+  //        case i: Output =>
   //          Op.Builder(opType = "Exit", name = name)
   //              .addInput(i)
   //              .build().outputs(0)
-  //        case i: Op.OutputIndexedSlices =>
+  //        case i: OutputIndexedSlices =>
   //          val values = exit(i.values, name = "ValuesExit")
   //          val indices = exit(i.indices, name = "IndicesExit")
   //          val denseShape = {
@@ -425,7 +425,7 @@ trait ControlFlow {
   //            else
   //              null
   //          }
-  //          Op.OutputIndexedSlices(indices = indices, values = values, denseShape = denseShape)
+  //          OutputIndexedSlices(indices = indices, values = values, denseShape = denseShape)
   //        case i: Op.SparseOutput =>
   //          val values = exit(i.values, name = "ValuesExit")
   //          val indices = exit(i.indices, name = "IndicesExit")
@@ -445,17 +445,17 @@ trait ControlFlow {
   //    * @param  name      Name for the created op.
   //    * @return Tuple containing `outputFalse` and `outputTrue`, in that order.
   //    */
-  //  private[this] def switch[T <: Op.OutputLike](input: T, predicate: Op.Output, name: String = "Switch"): (T, T) = {
+  //  private[this] def switch[T <: OutputLike](input: T, predicate: Output, name: String = "Switch"): (T, T) = {
   //    Op.createWithNameScope(nameScope = name, Set(input.op, predicate.op)) {
   //      // @formatter:off
   //      input match {
-  //        case i: Op.Output =>
+  //        case i: Output =>
   //          val outputs = Op.Builder(opType = "Switch", name = name)
   //              .addInput(i)
   //              .addInput(predicate)
   //              .build().outputs
   //          (outputs(0), outputs(1))
-  //        case i: Op.OutputIndexedSlices =>
+  //        case i: OutputIndexedSlices =>
   //          val (valuesFalse, valuesTrue) = switch(i.values, predicate, name = "ValuesSwitch")
   //          val (indicesFalse, indicesTrue) = switch(i.indices, predicate, name = "IndicesSwitch")
   //          val (denseShapeFalse, denseShapeTrue) = {
@@ -464,8 +464,8 @@ trait ControlFlow {
   //            else
   //              (null, null)
   //          }
-  //          (Op.OutputIndexedSlices(indices = indicesFalse, values = valuesFalse, denseShape = denseShapeFalse),
-  //              Op.OutputIndexedSlices(indices = indicesTrue, values = valuesTrue, denseShape = denseShapeTrue))
+  //          (OutputIndexedSlices(indices = indicesFalse, values = valuesFalse, denseShape = denseShapeFalse),
+  //              OutputIndexedSlices(indices = indicesTrue, values = valuesTrue, denseShape = denseShapeTrue))
   //        case i: Op.SparseOutput =>
   //          val (valuesFalse, valuesTrue) = switch(i.values, predicate, name = "ValuesSwitch")
   //          val (indicesFalse, indicesTrue) = switch(i.indices, predicate, name = "IndicesSwitch")
@@ -488,21 +488,21 @@ trait ControlFlow {
   //    * This op is usually combined with `switch` to implement branching.
   //    *
   //    * IMPORTANT NOTE: The input tensors can either all be of type [[Op.SparseOutput]] or of mixed types that extend
-  //    * [[Op.OutputIndexedSlicesConvertible]]. If they are all of type [[Op.Output]], then that is also the return op
-  //    * type. Otherwise, they will all be converted to [[Op.OutputIndexedSlices]] first.
+  //    * [[OutputIndexedSlicesConvertible]]. If they are all of type [[Output]], then that is also the return op
+  //    * type. Otherwise, they will all be converted to [[OutputIndexedSlices]] first.
   //    *
   //    * @param  inputs Input tensors.
   //    * @param  name   Name for the created op.
   //    * @return Tuple containing `output` and `outputIndex`, in that order.
   //    */
-  //  private[this] def merge[T <: Op.OutputLike : TypeTag](
-  //      inputs: Array[T], name: String = "Merge"): (Op.OutputLike, Op.Output) = {
+  //  private[this] def merge[T <: OutputLike : TypeTag](
+  //      inputs: Array[T], name: String = "Merge"): (OutputLike, Output) = {
   //    Op.createWithNameScope(nameScope = name, inputs.map(_.op).toSet) {
   //      // @formatter:off
   //      inputs match {
-  //        case i if typeOf[T] =:= typeOf[Op.Output] =>
+  //        case i if typeOf[T] =:= typeOf[Output] =>
   //          val outputs = Op.Builder(opType = "Merge", name = name)
-  //              .addInputs(i.asInstanceOf[Array[Op.Output]])
+  //              .addInputs(i.asInstanceOf[Array[Output]])
   //              .build().outputs
   //          (outputs(0), outputs(1))
   //        case i if typeOf[T] =:= typeOf[Op.SparseOutput] =>
@@ -510,29 +510,29 @@ trait ControlFlow {
   //          val (indices, chosenIndex) = merge(i.map(_.asInstanceOf[Op.SparseOutput].indices), "IndicesMerge")
   //          val (denseShape, _) = merge(i.map(_.asInstanceOf[Op.SparseOutput].denseShape), "DenseShapeMerge")
   //          (Op.SparseOutput(
-  //            indices = indices.asInstanceOf[Op.Output],
-  //            values = values.asInstanceOf[Op.Output],
-  //            denseShape = denseShape.asInstanceOf[Op.Output]), chosenIndex)
-  //        case i if typeOf[T] =:= typeOf[Op.OutputIndexedSlicesConvertible] =>
-  //          val ii = i.map(_.asInstanceOf[Op.OutputIndexedSlicesConvertible].toOpOutputIndexedSlices(optimize = true))
+  //            indices = indices.asInstanceOf[Output],
+  //            values = values.asInstanceOf[Output],
+  //            denseShape = denseShape.asInstanceOf[Output]), chosenIndex)
+  //        case i if typeOf[T] =:= typeOf[OutputIndexedSlicesConvertible] =>
+  //          val ii = i.map(_.asInstanceOf[OutputIndexedSlicesConvertible].toOutputIndexedSlices(optimize = true))
   //          val (values, _) = merge(ii.map(_.values), "ValuesMerge")
   //          val (indices, chosenIndex) = merge(ii.map(_.indices), "IndicesMerge")
   //          val denseShape = if (ii.map(_.denseShape).exists(_ != null)) {
   //            if (ii.map(_.denseShape).exists(_ == null))
   //              throw new IllegalArgumentException(
-  //                "Either all merged 'Op.OutputIndexedSlices' must have a known dense shape, or none of them.")
+  //                "Either all merged 'OutputIndexedSlices' must have a known dense shape, or none of them.")
   //            merge(ii.map(_.denseShape), "DenseShapeMerge")
   //          } else {
   //            null
   //          }
-  //          (Op.OutputIndexedSlices(
-  //            indices = indices.asInstanceOf[Op.Output],
-  //            values = values.asInstanceOf[Op.Output],
-  //            denseShape = denseShape.asInstanceOf[Op.Output]), chosenIndex)
+  //          (OutputIndexedSlices(
+  //            indices = indices.asInstanceOf[Output],
+  //            values = values.asInstanceOf[Output],
+  //            denseShape = denseShape.asInstanceOf[Output]), chosenIndex)
   //        case _ => throw new IllegalArgumentException("Invalid inputs passed to 'merge'.")
   //      }
   //      // @formatter:on
-  //    }.asInstanceOf[(T, Op.Output)]
+  //    }.asInstanceOf[(T, Output)]
   //  }
   //
   //  //endregion Low Level Ops
