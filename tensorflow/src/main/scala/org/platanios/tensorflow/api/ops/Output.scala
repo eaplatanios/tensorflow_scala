@@ -221,7 +221,12 @@ final case class Output private(op: Op, index: Int) extends OutputLike {
     */
   def apply(indexers: Indexer*): Output = slice(indexers: _*)
 
-  override def toString: String = s"Output(name = $name, shape = $shape, dataType = $dataType, device = $device)"
+  override def toString: String = {
+    if (device != "")
+      s"Output(name = $name, shape = $shape, dataType = $dataType, device = $device)"
+    else
+      s"Output(name = $name, shape = $shape, dataType = $dataType)"
+  }
 
   override def equals(that: Any): Boolean = that match {
     case that: Output => this.op == that.op && this.index == that.index

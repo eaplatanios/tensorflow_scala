@@ -908,11 +908,13 @@ object Op {
 
     private val graph: Graph = context.graph
 
-    private var built     : Boolean            = false
-    private var inputs    : Seq[Output]        = Seq.empty
-    private var inputLists: Seq[Array[Output]] = Seq.empty
-    private var device    : Option[String]     = None
-    private var attributes: Map[String, Any]   = Map.empty
+    private var built         : Boolean           = false
+    // TODO: [OP] Avoid using this extra input functions sequence.
+    private var inputFunctions: Seq[Long => Unit] = Seq.empty
+    private var inputs        : Seq[Output]       = Seq.empty
+    private var inputLists    : Seq[Seq[Output]]  = Seq.empty
+    private var device        : Option[String]    = None
+    private var attributes    : Map[String, Any]  = Map.empty
 
     /** Prunes control dependencies from the provided set, given that the op for which these control dependencies are
       * specified uses `op` as direct or indirect (through other ops) input or control input. This eliminates redundant
@@ -946,9 +948,7 @@ object Op {
             graph.uniqueName(this.name)
         }
         val nativeHandle: Long = NativeOp.allocate(r.nativeHandle, opType, name)
-        inputs.foreach(input => NativeOp.addInput(nativeHandle, input.op.nativeHandle, input.index))
-        inputLists.foreach(inputList => NativeOp.addInputList(
-          nativeHandle, inputList.map(_.nativeHandle), inputList.map(_.index)))
+        inputFunctions.foreach(_(nativeHandle))
         val controlDependencies: mutable.Set[Op] = mutable.Set(context.controlDependencies.toSeq: _*)
         inputs.foreach(input => pruneControlDependencies(controlDependencies, input.op))
         inputLists.foreach(_.foreach(input => pruneControlDependencies(controlDependencies, input.op)))
@@ -1007,17 +1007,19 @@ object Op {
     private def encodeString(value: String): Array[Byte] = value.getBytes(Charset.forName("UTF-8"))
 
     def addInput(input: Output): Builder = {
-      inputs :+= input
+      this.inputFunctions :+= {
+        (nativeHandle: Long) => NativeOp.addInput(nativeHandle, input.op.nativeHandle, input.index)
+      }
+      this.inputs :+= input
       this
     }
 
-    def addInputs(inputs: Seq[Output]): Builder = {
-      this.inputs ++= inputs
-      this
-    }
-
-    def addInputList(inputs: Seq[Output]): Builder = {
-      this.inputLists :+= inputs.toArray
+    def addInputList(inputList: Seq[Output]): Builder = {
+      this.inputFunctions :+= {
+        (nativeHandle: Long) =>
+          NativeOp.addInputList(nativeHandle, inputList.map(_.nativeHandle).toArray, inputList.map(_.index).toArray)
+      }
+      this.inputLists :+= inputList
       this
     }
 

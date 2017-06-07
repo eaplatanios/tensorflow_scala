@@ -1114,7 +1114,7 @@ object SaverDefBuilder {
     Op.Builder(opType = "Save", name = name)
         .addInput(filename)
         .addInput(Tensor(tensorNames.map(Tensor(_)): _*).toOutput) // TODO: [TENSORS] Improve.
-        .addInputs(tensors)
+        .addInputList(tensors)
         .build()
   }
 
@@ -1169,7 +1169,7 @@ object SaverDefBuilder {
         .addInput(filename)
         .addInput(Tensor(tensorNames.map(Tensor(_)): _*).toOutput) // TODO: [TENSORS] Improve.
         .addInput(Tensor(slices.map(Tensor(_)): _*).toOutput) // TODO: [TENSORS] Improve.
-        .addInputs(tensors)
+        .addInputList(tensors)
         .build()
   }
 
@@ -1274,7 +1274,7 @@ object SaverDefBuilder {
         .addInput(prefix)
         .addInput(Tensor(tensorNames.map(Tensor(_)): _*).toOutput) // TODO: [TENSORS] Improve.
         .addInput(Tensor(slices.map(Tensor(_)): _*).toOutput) // TODO: [TENSORS] Improve.
-        .addInputs(tensors)
+        .addInputList(tensors)
         .build()
   }
 

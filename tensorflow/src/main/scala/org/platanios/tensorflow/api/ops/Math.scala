@@ -429,7 +429,7 @@ trait Math {
 
   def addN(inputs: Array[Output], name: String = "AddN"): Output =
     Op.Builder(opType = "AddN", name = name)
-        .addInputs(inputs)
+        .addInputList(inputs)
         .build().outputs(0)
 
   def matMul(

@@ -463,7 +463,7 @@ trait Basic {
   def shapeN(
       inputs: Seq[Output], dataType: DataType = INT32, name: String = "ShapeN"): Seq[Output] = {
     Op.Builder(opType = "Shape", name = name)
-        .addInputs(inputs)
+        .addInputList(inputs)
         .setAttribute("out_type", dataType)
         .build().outputs.toSeq
   }
@@ -710,18 +710,18 @@ trait Basic {
     * {{{
     *   // 't1' is equal to [[1, 2, 3], [4, 5, 6]]
     *   // 't2' is equal to [[7, 8, 9], [10, 11, 12]]
-    *   concat(Array(t1, t2), 0) == [[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12]]
-    *   concat(Array(t1, t2), 1) == [[1, 2, 3, 7, 8, 9], [4, 5, 6, 10, 11, 12]]
+    *   concatenate(Array(t1, t2), 0) == [[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12]]
+    *   concatenate(Array(t1, t2), 1) == [[1, 2, 3, 7, 8, 9], [4, 5, 6, 10, 11, 12]]
     *
     *   // 't3' has shape [2, 3]
     *   // 't4' has shape [2, 3]
-    *   shape(concat(Array(t3, t4), 0)) == [4, 3]
-    *   shape(concat(Array(t3, t4), 1)) == [2, 6]
+    *   shape(concatenate(Array(t3, t4), 0)) == [4, 3]
+    *   shape(concatenate(Array(t3, t4), 1)) == [2, 6]
     * }}}
     *
     * Note that, if you want to concatenate along a new axis, it may be better to use the `stack` op instead:
     * {{{
-    *   concat(tensors.map(t => expandDims(t, axis)), axis) == stack(tensors, axis)
+    *   concatenate(tensors.map(t => expandDims(t, axis)), axis) == stack(tensors, axis)
     * }}}
     *
     * @param  inputs Input tensors to be concatenated.
@@ -734,7 +734,7 @@ trait Basic {
       Op.createWith(nameScope = name)(identity(inputs.head))
     } else {
       Op.Builder(opType = "ConcatV2", name = name)
-          .addInputs(inputs)
+          .addInputList(inputs)
           .addInput(axis)
           .build().outputs(0)
     }
@@ -772,7 +772,7 @@ trait Basic {
         s"The provided axis (dataType = ${axis.dataType}, shape = ${axis.shape}) needs to be an INT32 scalar.")
     Op.Builder(opType = "ConcatOffset", name = name)
         .addInput(axis)
-        .addInputs(shapes)
+        .addInputList(shapes)
         .build().outputs.toSeq
   }
 

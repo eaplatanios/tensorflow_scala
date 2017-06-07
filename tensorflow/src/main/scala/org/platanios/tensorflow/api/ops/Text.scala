@@ -28,7 +28,7 @@ trait Text {
     */
   def stringJoin(inputs: Seq[Output], separator: String = "", name: String = "StringJoin"): Output = {
     Op.Builder(opType = "StringJoin", name = name)
-        .addInputs(inputs)
+        .addInputList(inputs)
         .setAttribute("separator", separator)
         .build().outputs(0)
   }
