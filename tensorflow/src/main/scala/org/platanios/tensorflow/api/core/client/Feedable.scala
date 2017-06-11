@@ -89,7 +89,7 @@ object FeedMap {
 
   trait Implicits {
     implicit def feedMap[T, V](feeds: Map[T, V])(implicit ev: Feedable.Aux[T, V]): FeedMap = {
-      FeedMap(feeds.toSeq.map(f => ev.feed(f._1, f._2)).reduce(_ ++ _))
+      FeedMap(feeds.flatMap { case (k, v) => ev.feed(k, v) })
     }
   }
 
