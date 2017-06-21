@@ -28,6 +28,7 @@ package object ops {
           with Image
           with Logging
           with Math
+          with Random
           with Text
           with variables.API {
     type Op = ops.Op
