@@ -15,6 +15,8 @@
 
 package org.platanios.tensorflow.api.ops
 
+import org.platanios.tensorflow.api.types.DataType
+
 /**
   * @author Emmanouil Antonios Platanios
   */
@@ -26,7 +28,7 @@ trait Text {
     *                   scalars. Scalars may be mixed in; these will be broadcast to the shape of the non-scalar inputs.
     * @param  separator Separator string.
     */
-  def stringJoin(inputs: Seq[Output], separator: String = "", name: String = "StringJoin"): Output = {
+  def stringJoin(inputs: Seq[Output[DataType]], separator: String = "", name: String = "StringJoin"): Output[DataType] = {
     Op.Builder(opType = "StringJoin", name = name)
         .addInputList(inputs)
         .setAttribute("separator", separator)

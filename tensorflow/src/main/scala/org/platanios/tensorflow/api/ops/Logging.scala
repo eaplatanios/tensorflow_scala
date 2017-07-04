@@ -15,6 +15,8 @@
 
 package org.platanios.tensorflow.api.ops
 
+import org.platanios.tensorflow.api.types.DataType
+
 /**
   * @author Emmanouil Antonios Platanios
   */
@@ -61,8 +63,8 @@ trait Logging {
     * @return Created op.
     */
   def print(
-      input: Output, data: Array[Output], message: String = "", firstN: Int = -1, summarize: Int = 3,
-      name: String = "Print"): Output = {
+      input: Output[DataType], data: Array[Output[DataType]], message: String = "", firstN: Int = -1, summarize: Int = 3,
+      name: String = "Print"): Output[DataType] = {
     Op.Builder(opType = "Print", name = name)
         .addInput(input)
         .addInputList(data)

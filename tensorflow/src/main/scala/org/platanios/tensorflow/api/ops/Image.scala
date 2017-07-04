@@ -15,6 +15,8 @@
 
 package org.platanios.tensorflow.api.ops
 
+import org.platanios.tensorflow.api.types.DataType
+
 /** Contains functions for constructing ops related to processing image data.
   *
   * @author Emmanouil Antonios Platanios
@@ -36,8 +38,8 @@ trait Image {
     */
   @throws[IllegalArgumentException]
   def extractImagePatches(
-      images: Output, slidingWindowSizes: Seq[Int], strides: Seq[Int], rates: Seq[Int],
-      name: String = "ExtractImagePatches"): Output = {
+      images: Output[DataType], slidingWindowSizes: Seq[Int], strides: Seq[Int], rates: Seq[Int],
+      name: String = "ExtractImagePatches"): Output[DataType] = {
     if (images.rank != 4 && images.rank != -1)
       throw new IllegalArgumentException("'images' must have rank equal to 4.")
     if (slidingWindowSizes.length != 4)

@@ -16,9 +16,8 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.exception.InvalidDataTypeException
-import org.platanios.tensorflow.api.types.{DataType, FLOAT32, FLOAT64, RESOURCE}
+import org.platanios.tensorflow.api.types.{DataType, FLOAT32, FLOAT64, INT32, RESOURCE}
 import org.platanios.tensorflow.jni.{Graph => NativeGraph, Output => NativeOutput}
-
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
 
@@ -32,14 +31,14 @@ object Gradients {
 
   // TODO: [DOC] Document the "gradients" function.
   def gradients(
-      ys: Seq[Output], xs: Seq[Output], dys: Seq[OutputLike] = null, gateGradients: Boolean = false,
+      ys: Seq[Output[DataType]], xs: Seq[Output[DataType]], dys: Seq[OutputLike[DataType]] = null, gateGradients: Boolean = false,
       aggregationMethod: AggregationMethod = AddAggregationMethod, colocateGradientsWithOps: Boolean = false,
-      name: String = "Gradients"): Seq[OutputLike] = {
+      name: String = "Gradients"): Seq[OutputLike[DataType]] = {
     // The `accumulatedGradients` variable collects the gradients received on each output endpoint of the op. The
     // gradients for each endpoint are initially collected as a sequence. When it is time to call the op's gradient
     // function, for each endpoint we aggregate the list of received gradients into a "add" operation, if there is more
     // than one.
-    val accumulatedGradients = mutable.Map.empty[Op, mutable.Seq[Seq[OutputLike]]]
+    val accumulatedGradients = mutable.Map.empty[Op, mutable.Seq[Seq[OutputLike[DataType]]]]
 
     val ops = ys.map(_.op).toSet ++ xs.map(_.op).toSet ++ (if (dys != null) dys.map(_.op).toSet else Set.empty)
     Op.createWithNameScope(name, ops) {
@@ -96,7 +95,7 @@ object Gradients {
               // other outputs.
               val output = op.outputs(outputIndex)
               if (gradient.isEmpty && isTrainable(output))
-                opGradients(outputIndex) = Seq(Basic.zerosLike(output.toOutput))
+                opGradients(outputIndex) = Seq(Basic.zerosLike(output.toOutput)())
             }
 
             // Compute the actual op gradients.
@@ -113,7 +112,7 @@ object Gradients {
               logGradients(op, outputGradients, inputGradients)
               op.inputs.zip(inputGradients).filter(_._2 != null).foreach(i => {
                 i._2 match {
-                  case gradient: Output if i._1.dataType != RESOURCE => gradient.setShape(i._1.shape)
+                  case gradient: Output[DataType] if i._1.dataType != RESOURCE => gradient.setShape(i._1.shape)
                   case _ =>
                 }
                 setGradient(accumulatedGradients, i._1, i._2)
@@ -167,7 +166,7 @@ object Gradients {
     * @return Created gradients op.
     */
   private[this] def maybeCompile(
-      nameScope: String, op: Op, gradientFunction: () => Seq[OutputLike]): Seq[OutputLike] = {
+      nameScope: String, op: Op, gradientFunction: () => Seq[OutputLike[DataType]]): Seq[OutputLike[DataType]] = {
     // TODO: [FUNCTIONAL] Add extra 'func' argument.
     val cleanNameScope = nameScope.stripSuffix("/").replace('/', '_')
     try {
@@ -193,7 +192,7 @@ object Gradients {
 
   /** Returns a boolean value indicating whether the data type of `tensor` is trainable. This means whether its
     * gradients can be computed. */
-  private[this] def isTrainable(tensor: OutputLike): Boolean = {
+  private[this] def isTrainable(tensor: OutputLike[DataType]): Boolean = {
     Set[DataType](FLOAT32, FLOAT64).contains(tensor.dataType)
     // TODO: !! FLOAT16, COMPLEX64, COMPLEX128.
   }
@@ -209,8 +208,8 @@ object Gradients {
     */
   @throws[InvalidDataTypeException]
   private[this] def initialGradients(
-      ys: Seq[OutputLike], dys: Seq[OutputLike], colocateGradientsWithOps: Boolean): Seq[OutputLike] = {
-    ys.zip(if (dys != null) dys else Seq.fill[OutputLike](ys.length)(null)).map {
+      ys: Seq[OutputLike[DataType]], dys: Seq[OutputLike[DataType]], colocateGradientsWithOps: Boolean): Seq[OutputLike[DataType]] = {
+    ys.zip(if (dys != null) dys else Seq.fill[OutputLike[DataType]](ys.length)(null)).map {
       case (y, dy) =>
         if (dy == null) {
           if (y.dataType.isComplex)
@@ -218,15 +217,15 @@ object Gradients {
               s"Gradients of complex tensors must set 'gradients' (variable.dataType = '${y.dataType}').")
           maybeColocateWith(y.op, colocateGradientsWithOps) {
             y match {
-              case o: Output => Basic.onesLike(o)
-              case o: OutputIndexedSlices =>
+              case o: Output[_] => Basic.onesLike(o)()
+              case o: OutputIndexedSlices[_] =>
                 if (o.denseShape == null)
                   throw new IllegalArgumentException(
                     "The dense shape of output indexed slices must be known in order to obtain their gradients.")
                 val values = Basic.fill(o.denseShape, 1.0)
                 OutputIndexedSlices(indices = o.indices, values = values, denseShape = o.denseShape)
-              case o: SparseOutput =>
-                val values = Basic.fill(o.denseShape, 1.0)
+              case o: SparseOutput[_] =>
+                val values = Basic.fill(Math.cast(o.denseShape, INT32), 1.0)
                 SparseOutput(indices = o.indices, values = values, denseShape = o.denseShape)
             }
           }
@@ -306,9 +305,9 @@ object Gradients {
     * @param  gradient  Gradient of `output` to add to the collected gradients.
     */
   private[this] def setGradient(
-      gradients: mutable.Map[Op, mutable.Seq[Seq[OutputLike]]], output: Output, gradient: OutputLike): Unit = {
+      gradients: mutable.Map[Op, mutable.Seq[Seq[OutputLike[DataType]]]], output: Output[DataType], gradient: OutputLike[DataType]): Unit = {
     val opGradients = gradients.getOrElseUpdate(
-      output.op, mutable.Seq(output.op.outputs.map(_ => Seq.empty[OutputLike]): _*))
+      output.op, mutable.Seq(output.op.outputs.map(_ => Seq.empty[OutputLike[DataType]]): _*))
     opGradients(output.index) :+= gradient
   }
 
@@ -319,7 +318,7 @@ object Gradients {
     * @param  inputGradients  Input gradients of op.
     */
   private[this] def logGradients(
-      op: Op, outputGradients: Seq[OutputLike], inputGradients: Seq[OutputLike]): Unit = {
+      op: Op, outputGradients: Seq[OutputLike[DataType]], inputGradients: Seq[OutputLike[DataType]]): Unit = {
     logger.debug(s"Gradients for op '${op.name}':")
     logger.debug(s"  in  --> ${outputGradients.filter(_ != null).map(_.name).mkString(", ")}")
     logger.debug(s"  out --> ${inputGradients.filter(_ != null).map(_.name).mkString(", ")}")
@@ -344,9 +343,9 @@ object Gradients {
       * @param  op        Op whose gradients to aggregate.
       */
     private[Gradients] def aggregateGradients(
-        gradients: mutable.Map[Op, mutable.Seq[Seq[OutputLike]]], op: Op): mutable.Seq[Seq[OutputLike]] = {
-      val grads = gradients.getOrElse(op, mutable.Seq.empty[Seq[OutputLike]])
-      grads.filter(_.length > 1).zipWithIndex.foreach(g => grads(g._2) = Seq[OutputLike](aggregateGradients(g._1)))
+        gradients: mutable.Map[Op, mutable.Seq[Seq[OutputLike[DataType]]]], op: Op): mutable.Seq[Seq[OutputLike[DataType]]] = {
+      val grads = gradients.getOrElse(op, mutable.Seq.empty[Seq[OutputLike[DataType]]])
+      grads.filter(_.length > 1).zipWithIndex.foreach(g => grads(g._2) = Seq[OutputLike[DataType]](aggregateGradients(g._1)))
       grads
     }
 
@@ -355,23 +354,23 @@ object Gradients {
       * @param  gradients Sequence of gradients to aggregate.
       * @return Aggregated gradient tensor.
       */
-    private[Gradients] def aggregateGradients(gradients: Seq[OutputLike]): OutputLike
+    private[Gradients] def aggregateGradients(gradients: Seq[OutputLike[DataType]]): OutputLike[DataType]
   }
 
   /** Gradient aggregation method that simply adds up the collected gradients. */
   object AddAggregationMethod extends AggregationMethod {
-    override private[Gradients] def aggregateGradients(gradients: Seq[OutputLike]): OutputLike = {
-      if (gradients.forall(_.isInstanceOf[Output])) {
+    override private[Gradients] def aggregateGradients(gradients: Seq[OutputLike[DataType]]): OutputLike[DataType] = {
+      if (gradients.forall(_.isInstanceOf[Output[DataType]])) {
         // This function adds op outputs from potentially different devices.
         // We add the tensors of each device separately first, and we then add up the partial results.
         val deviceContributions = gradients.groupBy(_.device).toSeq.sortBy(_._1).map {
           case (_, outputs) =>
             Op.colocateWith(Set[Op](gradients.head.op), ignoreExisting = true) {
-              Math.addN(outputs.map(_.asInstanceOf[Output]).toArray)
+              Math.addN(outputs.map(_.asInstanceOf[Output[DataType]]).toArray)
             }
         }
         Math.addN(deviceContributions.toArray)
-      } else if (gradients.forall(_.isInstanceOf[OutputIndexedSlices])) {
+      } else if (gradients.forall(_.isInstanceOf[OutputIndexedSlices[DataType]])) {
         ???
       } else {
         throw new IllegalArgumentException(
@@ -387,7 +386,7 @@ object Gradients {
     * [[Registry.registerNonDifferentiable]] functions. In an attempt to obtain the gradient of an op whose type has no
     * gradient function registered, a [[NoSuchElementException]] will be thrown. */
   object Registry {
-    type GradientFunction = (Op, Seq[OutputLike]) => Seq[OutputLike]
+    type GradientFunction = (Op, Seq[OutputLike[DataType]]) => Seq[OutputLike[DataType]]
 
     private[this] val registry = mutable.Map.empty[String, GradientFunction]
 
@@ -445,7 +444,7 @@ object Gradients {
     *            match the number of tensors in `y`.
     * @return Partial derivatives of the `y`s given each one of the `x`s.
     */
-  def cc_gradients(y: Array[Output], x: Array[Output], dx: Array[Output] = null): Array[Output] = {
+  def cc_gradients(y: Array[Output[DataType]], x: Array[Output[DataType]], dx: Array[Output[DataType]] = null): Array[Output[DataType]] = {
     // TODO: Overload this method with all possible uses for it.
     if (dx != null && dx.length != y.length)
       throw new IllegalArgumentException(s"The number of ys (${y.length}) must match the number of dxs (${dx.length}).")

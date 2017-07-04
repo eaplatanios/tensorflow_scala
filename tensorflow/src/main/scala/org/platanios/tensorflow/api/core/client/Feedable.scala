@@ -17,6 +17,7 @@ package org.platanios.tensorflow.api.core.client
 
 import org.platanios.tensorflow.api.ops.{Output, OutputIndexedSlices, SparseOutput}
 import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.api.types.DataType
 
 /** Feedables can be fed into a TensorFlow session to fix the values of certain tensors to the provided values.
   *
@@ -34,7 +35,7 @@ import org.platanios.tensorflow.api.tensors.Tensor
   */
 trait Feedable[T] {
   type ValueType
-  def feed(feedable: T, value: ValueType): Map[Output, Tensor]
+  def feed(feedable: T, value: ValueType): Map[Output[DataType], Tensor]
 }
 
 object Feedable {
@@ -42,26 +43,26 @@ object Feedable {
 
   def apply[T, V](implicit ev: Aux[T, V]): Aux[T, V] = ev
 
-  implicit val outputFeedable: Aux[Output, Tensor] = new Feedable[Output] {
+  implicit val outputFeedable: Aux[Output[DataType], Tensor] = new Feedable[Output[DataType]] {
     override type ValueType = Tensor
-    override def feed(feedable: Output, value: ValueType): Map[Output, Tensor] = Map(feedable -> value)
+    override def feed(feedable: Output[DataType], value: ValueType): Map[Output[DataType], Tensor] = Map(feedable -> value)
   }
 
   // TODO: [TENSORS] Switch to something like "TensorIndexedSlices".
-  implicit val outputIndexedSlicesFeedable: Aux[OutputIndexedSlices, (Tensor, Tensor, Tensor)] = {
-    new Feedable[OutputIndexedSlices] {
+  implicit val outputIndexedSlicesFeedable: Aux[OutputIndexedSlices[DataType], (Tensor, Tensor, Tensor)] = {
+    new Feedable[OutputIndexedSlices[DataType]] {
       override type ValueType = (Tensor, Tensor, Tensor)
-      override def feed(feedable: OutputIndexedSlices, value: ValueType): Map[Output, Tensor] = {
+      override def feed(feedable: OutputIndexedSlices[DataType], value: ValueType): Map[Output[DataType], Tensor] = {
         Map(feedable.indices -> value._1, feedable.values -> value._2, feedable.denseShape -> value._3)
       }
     }
   }
 
   // TODO: [TENSORS] Switch to something like "SparseTensor".
-  implicit val sparseOutputFeedable: Aux[SparseOutput, (Tensor, Tensor, Tensor)] = {
-    new Feedable[SparseOutput] {
+  implicit val sparseOutputFeedable: Aux[SparseOutput[DataType], (Tensor, Tensor, Tensor)] = {
+    new Feedable[SparseOutput[DataType]] {
       override type ValueType = (Tensor, Tensor, Tensor)
-      override def feed(feedable: SparseOutput, value: ValueType): Map[Output, Tensor] = {
+      override def feed(feedable: SparseOutput[DataType], value: ValueType): Map[Output[DataType], Tensor] = {
         Map(feedable.indices -> value._1, feedable.values -> value._2, feedable.denseShape -> value._3)
       }
     }
@@ -74,7 +75,7 @@ object Feedable {
   *
   * @param  values Map from tensors in a graph to their values.
   */
-class FeedMap private[client] (val values: Map[Output, Tensor] = Map.empty) {
+class FeedMap private[client] (val values: Map[Output[DataType], Tensor] = Map.empty) {
   def feed[T, V](feedable: T, value: V)(implicit ev: Feedable.Aux[T, V]): FeedMap = {
     FeedMap(values ++ ev.feed(feedable, value))
   }
@@ -83,7 +84,7 @@ class FeedMap private[client] (val values: Map[Output, Tensor] = Map.empty) {
 }
 
 object FeedMap {
-  def apply(values: Map[Output, Tensor]): FeedMap = new FeedMap(values)
+  def apply(values: Map[Output[DataType], Tensor]): FeedMap = new FeedMap(values)
 
   val empty = new FeedMap()
 

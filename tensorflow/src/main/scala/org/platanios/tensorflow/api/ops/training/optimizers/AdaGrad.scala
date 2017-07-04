@@ -17,6 +17,7 @@ package org.platanios.tensorflow.api.ops.training.optimizers
 
 import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output, OutputIndexedSlices}
 import org.platanios.tensorflow.api.ops.variables.{ConstantInitializer, Variable}
+import org.platanios.tensorflow.api.types.DataType
 
 /** Optimizer that implements the AdaGrad optimization algorithm.
   *
@@ -28,7 +29,7 @@ import org.platanios.tensorflow.api.ops.variables.{ConstantInitializer, Variable
 case class AdaGrad(
     learningRate: Double = 1.0, initialAccumulatorValue: Double = 0.1, useLocking: Boolean = false,
     name: String = "AdaGradOptimizer") extends Optimizer {
-  private[this] var learningRateTensor: Output = _
+  private[this] var learningRateTensor: Output[DataType] = _
 
   override protected def createSlots(variables: Seq[Variable]): Unit = {
     variables.foreach(v => {
@@ -37,22 +38,22 @@ case class AdaGrad(
     })
   }
 
-  private[this] def getLearningRate(variable: Variable): Output = {
+  private[this] def getLearningRate(variable: Variable): Output[DataType] = {
     if (learningRateTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
     Math.cast(learningRateTensor, variable.dataType)
   }
 
   override def prepare(): Unit = {
-    learningRateTensor = Basic.constant(learningRate, name = "LearningRate")
+    learningRateTensor = Basic.constant(learningRate, name = "LearningRate")()
   }
 
-  override def applyDense(gradient: Output, variable: Variable): Op = {
+  override def applyDense(gradient: Output[DataType], variable: Variable): Op = {
     val accumulator = getSlot("accumulator", variable)
     AdaGrad.resourceApplyDense(variable, accumulator, getLearningRate(variable), gradient, useLocking)
   }
 
-  override def applySparse(gradient: OutputIndexedSlices, variable: Variable): Op = {
+  override def applySparse(gradient: OutputIndexedSlices[DataType], variable: Variable): Op = {
     val accumulator = getSlot("accumulator", variable)
     AdaGrad.resourceApplySparse(
       variable, accumulator, getLearningRate(variable), gradient.values, gradient.indices, useLocking)
@@ -78,7 +79,7 @@ object AdaGrad {
     * @return Created op.
     */
   private[AdaGrad] def resourceApplyDense(
-      variable: Variable, accumulator: Variable, stepSize: Output, gradient: Output, useLocking: Boolean = false,
+      variable: Variable, accumulator: Variable, stepSize: Output[DataType], gradient: Output[DataType], useLocking: Boolean = false,
       name: String = "ResourceApplyAdaGrad"): Op = {
     Op.Builder(opType = "ResourceApplyAdagrad", name = name)
         .addInput(variable.handle)
@@ -108,7 +109,7 @@ object AdaGrad {
     * @return Created op.
     */
   private[AdaGrad] def resourceApplySparse(
-      variable: Variable, accumulator: Variable, stepSize: Output, gradient: Output, indices: Output,
+      variable: Variable, accumulator: Variable, stepSize: Output[DataType], gradient: Output[DataType], indices: Output[DataType],
       useLocking: Boolean = false, name: String = "ResourceSparseApplyAdaGrad"): Op = {
     Op.Builder(opType = "ResourceSparseApplyAdagrad", name = name)
         .addInput(variable.handle)

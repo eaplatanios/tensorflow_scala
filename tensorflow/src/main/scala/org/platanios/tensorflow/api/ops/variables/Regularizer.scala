@@ -16,6 +16,7 @@
 package org.platanios.tensorflow.api.ops.variables
 
 import org.platanios.tensorflow.api.ops.Output
+import org.platanios.tensorflow.api.types.DataType
 
 /** A variable regularizer is simply a function that takes an `Op.Output` representing the variable value as input, and
   * returns another [[Output]] representing the regularizer value as output.
@@ -23,5 +24,5 @@ import org.platanios.tensorflow.api.ops.Output
   * @author Emmanouil Antonios Platanios
   */
 trait Regularizer {
-  def apply(value: Output): Output
+  def apply(value: Output[DataType]): Output[DataType]
 }

@@ -21,9 +21,8 @@ import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception.InvalidDataTypeException
 import org.platanios.tensorflow.api.ops.Op.{createWith, getGraphFromInputs}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{DataType, INT32, INT64}
+import org.platanios.tensorflow.api.types.{BOOLEAN, FLOAT32, FLOAT64, INT16, INT32, INT64, INT8, STRING, UINT16, _}
 import org.platanios.tensorflow.jni.{Op => NativeOp}
-
 import spire.implicits._
 import spire.math.UShort
 
@@ -33,14 +32,14 @@ import spire.math.UShort
   */
 trait OutputConvertible {
   /** Returns the [[Output]] that this [[OutputConvertible]] object represents. */
-  def toOutput: Output
+  def toOutput: Output[DataType]
 }
 
 /** Trait representing outputs of an [[Op]]'s computation.
   *
   * @author Emmanouil Antonios Platanios
   */
-sealed trait OutputLike extends OutputConvertible {
+sealed trait OutputLike[+T <: DataType] extends OutputConvertible {
   /** Graph where the op belongs. */
   def graph: Graph
 
@@ -59,13 +58,13 @@ sealed trait OutputLike extends OutputConvertible {
   /** Consumers of this op output (i.e., ops that use this op output as one of their inputs). */
   def consumers: Array[Input]
 
-  /** Returns an [[OutputIndexedSlices]] that has the same value as this [[OutputLike]].
+  /** Returns an [[OutputIndexedSlices]] that has the same value as this [[OutputLike[DataType]]].
     *
     * @param  optimize Boolean flag indicating whether to optimize this conversion by using a constant op with the
     *                  shape of this tensor at graph creation time (instead of execution time), if known.
     * @return [[OutputIndexedSlices]] that has the same value as this [[OutputLike]].
     */
-  def toOutputIndexedSlices(optimize: Boolean = true): OutputIndexedSlices
+  def toOutputIndexedSlices(optimize: Boolean = true): OutputIndexedSlices[T]
 }
 
 /** Representation of one of the outputs of an [[Op]]'s computation.
@@ -96,16 +95,16 @@ sealed trait OutputLike extends OutputConvertible {
   *
   * @author Emmanouil Antonios Platanios
   */
-final case class Output private(op: Op, index: Int) extends OutputLike {
-  /** Graph where the op belongs. */
+final case class Output[+T <: DataType] private(op: Op, private[api] val index: Int) extends OutputLike[T] {
+    /** Graph where the op belongs. */
   override def graph: Graph = op.graph
 
   /** Name of this op output. This is simply set to `"<op.name>:<index>"`. */
   override def name: String = s"${op.name}:$index"
 
   /** Data type of this op output. */
-  override def dataType: DataType = using(graph.reference) { r =>
-    DataType.fromCValue(NativeOp.outputDataType(r.nativeHandle, op.nativeHandle, index))
+  override def dataType: T = using(graph.reference) { r =>
+    DataType.fromCValue(NativeOp.outputDataType(r.nativeHandle, op.nativeHandle, index)).asInstanceOf[T] // TODO check if this cast is valid in all cases
   }
 
   /** Device on which this op output will be placed. */
@@ -155,9 +154,9 @@ final case class Output private(op: Op, index: Int) extends OutputLike {
     * @param  session Optional session to use for the evaluation.
     * @return Value of this op output, for this evaluation.
     */
-  def evaluate(feeds: Map[Output, Tensor] = Map.empty, session: Session = null): Tensor = {
+  def evaluate(feeds: Map[Output[DataType], Tensor] = Map.empty, session: Session = null): Tensor = {
     val effectiveSession = if (session == null) graph.defaultSession else session
-    effectiveSession.run(feeds, this)
+    effectiveSession.run(feeds, this: Output[DataType])
   }
 
   //region Slicing
@@ -170,35 +169,47 @@ final case class Output private(op: Op, index: Int) extends OutputLike {
     * @param  indexers Sequence of indexers to use.
     * @return Created op.
     */
-  def slice(indexers: Indexer*): Output = Indexer.toStridedSlice(indexers: _*)(this)
+  def slice(indexers: Indexer*): Output[T] = Indexer.toStridedSlice(indexers: _*)(this)
 
   //endregion Slicing
 
   //region Ops
 
-  def unary_- : Output = Math.negate(this)
-  def +(other: Output): Output = Math.add(x = this, y = other) // TODO: [SPARSE]
-  def -(other: Output): Output = Math.subtract(x = this, y = other) // TODO: [SPARSE]
-  def *(other: Output): Output = Math.multiply(x = this, y = other) // TODO: [SPARSE]
-  def /(other: Output): Output = Math.divide(x = this, y = other) // TODO: [SPARSE]
-  def %(other: Output): Output = Math.mod(x = this, y = other) // TODO: [SPARSE]
-  def **(other: Output): Output = Math.pow(x = this, y = other) // TODO: [SPARSE]
+  def unary_-[U >: T <: DataType] : Output[U] = Math.negate(this)
+  def +[U >: T <: DataType](other: Output[U]): Output[U] = Math.add[U](x = this, y = other) // TODO: [SPARSE]
+  def -[U >: T <: DataType](other: Output[U]): Output[U] = Math.subtract[U](x = this, y = other) // TODO: [SPARSE]
+  def *[U >: T <: DataType](other: Output[U]): Output[U] = Math.multiply[U](x = this, y = other) // TODO: [SPARSE]
+  def /[U >: T <: DataType](other: Output[U]): Output[U] = Math.divide[U](x = this, y = other) // TODO: [SPARSE]
+  def %[U >: T <: DataType](other: Output[U]): Output[U] = Math.mod[U](x = this, y = other) // TODO: [SPARSE]
+  def **[U <: NumericDataType](other: Output[U]): Output[T] = Math.pow[T, U](x = this, y = other) // TODO: [SPARSE]
 
-  def unary_! : Output = Math.logicalNot(x = this)
-  def &&(other: Output): Output = Math.logicalAnd(x = this, y = other)
-  def ||(other: Output): Output = Math.logicalOr(x = this, y = other)
+  def unary_!(implicit ev: T <:< BOOLEAN): Output[BOOLEAN] = Math.logicalNot[T](x = this)
+  def &&[U >: T <: DataType](other: Output[U])(implicit ev: T <:< BOOLEAN, ev2: U <:< BOOLEAN): Output[BOOLEAN] =
+    Math.logicalAnd[U](x = this, y = other)
+  def ||[U >: T <: DataType](other: Output[U])(implicit ev: T <:< BOOLEAN, ev2: U <:< BOOLEAN): Output[BOOLEAN] =
+    Math.logicalOr[U](x = this, y = other)
 
-  // def ===(other: Output): Output = Math.equal(x = this, y = other)
-  // def =!=(other: Output): Output = Math.notEqual(x = this, y = other)
-  def <(other: Output): Output = Math.less(x = this, y = other)
-  def <=(other: Output): Output = Math.lessEqual(x = this, y = other)
-  def >(other: Output): Output = Math.greater(x = this, y = other)
-  def >=(other: Output): Output = Math.greaterEqual(x = this, y = other)
+  // def ===(other: Output[T]): Output[T] = Math.equal(x = this, y = other)
+  // def =!=(other: Output[T]): Output[T] = Math.notEqual(x = this, y = other)
+  def <[U >: T <: DataType](other: Output[U]): Output[U] = Math.less[U](x = this, y = other)
+  def <=[U >: T <: DataType](other: Output[U]): Output[U] = Math.lessEqual[U](x = this, y = other)
+  def >[U >: T <: DataType](other: Output[U]): Output[U] = Math.greater[U](x = this, y = other)
+  def >=[U >: T <: DataType](other: Output[U]): Output[U] = Math.greaterEqual[U](x = this, y = other)
 
   //endregion Ops
 
   /** Returns the [[Output]] that this [[OutputLike]] object represents. */
-  override def toOutput: Output = this
+  // TODO better runtime check and error msg
+  override def toOutput: Output[T] = this.asInstanceOf[Output[T]]
+  /**
+    * Treat an Output[T] as an Output[U].
+    * I.e. cast an Output[DataType] to a concrete data type.
+    * Warning: This is an unchecked operation that will fail at runtime if the runtime type does not match U.
+    *
+    * @tparam U the target type
+    * @return
+    */
+  private[api] def asOutput[U <: DataType]: Output[U] = this.asInstanceOf[Output[U]]
 
   /** Returns an [[OutputIndexedSlices]] that has the same value as this [[OutputLike]].
     *
@@ -206,10 +217,10 @@ final case class Output private(op: Op, index: Int) extends OutputLike {
     *                  shape of this tensor at graph creation time (instead of execution time), if known.
     * @return [[OutputIndexedSlices]] that has the same value as this [[OutputLike]].
     */
-  override def toOutputIndexedSlices(optimize: Boolean = true): OutputIndexedSlices = {
+  override def toOutputIndexedSlices(optimize: Boolean = true): OutputIndexedSlices[T] = {
     val denseShape = Basic.shape(this, dataType = INT32, optimize = optimize)
-    val indices = Math.range(Basic.constant(0), denseShape(0))
-    OutputIndexedSlices(indices = indices, values = this, denseShape = denseShape)
+    val indices = Math.range(Basic.constant(0)(INT64), denseShape(0))(INT64)
+    OutputIndexedSlices[T](indices = indices, values = this, denseShape = denseShape)
   }
 
   /** Creates an op that slices this op according to the provided indexers.
@@ -219,7 +230,7 @@ final case class Output private(op: Op, index: Int) extends OutputLike {
     * @param  indexers Sequence of indexers to use.
     * @return Created op.
     */
-  def apply(indexers: Indexer*): Output = slice(indexers: _*)
+  def apply(indexers: Indexer*): Output[T] = slice(indexers: _*)
 
   override def toString: String = {
     if (device != "")
@@ -229,7 +240,7 @@ final case class Output private(op: Op, index: Int) extends OutputLike {
   }
 
   override def equals(that: Any): Boolean = that match {
-    case that: Output => this.op == that.op && this.index == that.index
+    case that: Output[T] => this.op == that.op && this.index == that.index
     case _ => false
   }
 
@@ -245,7 +256,7 @@ final case class Output private(op: Op, index: Int) extends OutputLike {
 object Output {
   // TODO: !!!
 
-  private[api] def constantValue(tensor: Output): Tensor = {
+  private[api] def constantValue(tensor: Output[DataType]): Tensor = {
     val value = tensor.op.opType match {
       case "Const" => ??? // TODO: !!! Needs MakeNdArray()
       case "Shape" =>
@@ -343,7 +354,7 @@ object Output {
     * @param  tensor One-dimensional tensor to be evaluated.
     * @return [[Shape]] based on the constant value of `tensor`.
     */
-  private[api] def constantValueAsShape(tensor: Output): Shape = {
+  private[api] def constantValueAsShape(tensor: Output[DataType]): Shape = {
     // TODO: !!! Do we really need this function?
     val shape = tensor.shape.withRank(1)
     if (shape == Shape(0)) {
@@ -398,30 +409,30 @@ object Output {
     * @param  output Op output.
     * @return Op corresponding to the provided op output.
     */
-  implicit def outputToOpImplicitConversion(output: Output): Op = output.op
+  implicit def outputToOpImplicitConversion(output: Output[DataType]): Op = output.op
 
   private[api] trait Implicits {
-    implicit def scalaValueToOutput(value: Boolean): Output = Basic.constant(scalaValueToTensor(value))
-    implicit def scalaValueToOutput(value: String): Output = Basic.constant(scalaValueToTensor(value))
-    implicit def scalaValueToOutput(value: Float): Output = Basic.constant(scalaValueToTensor(value))
-    implicit def scalaValueToOutput(value: Double): Output = Basic.constant(scalaValueToTensor(value))
-    implicit def scalaValueToOutput(value: Byte): Output = Basic.constant(scalaValueToTensor(value))
-    implicit def scalaValueToOutput(value: Short): Output = Basic.constant(scalaValueToTensor(value))
-    implicit def scalaValueToOutput(value: Int): Output = Basic.constant(scalaValueToTensor(value))
-    implicit def scalaValueToOutput(value: Long): Output = Basic.constant(scalaValueToTensor(value))
-    implicit def scalaValueToOutput(value: UShort): Output = Basic.constant(scalaValueToTensor(value))
+    implicit def scalaValueToOutput(value: Boolean): Output[BOOLEAN] = Basic.constant(scalaValueToTensor(value))(BOOLEAN)
+    implicit def scalaValueToOutput(value: String): Output[STRING] = Basic.constant(scalaValueToTensor(value))(STRING)
+    implicit def scalaValueToOutput(value: Float): Output[FLOAT32] = Basic.constant(scalaValueToTensor(value))(FLOAT32)
+    implicit def scalaValueToOutput(value: Double): Output[FLOAT64] = Basic.constant(scalaValueToTensor(value))(FLOAT64)
+    implicit def scalaValueToOutput(value: Byte): Output[INT8] = Basic.constant(scalaValueToTensor(value))(INT8)
+    implicit def scalaValueToOutput(value: Short): Output[INT16] = Basic.constant(scalaValueToTensor(value))(INT16)
+    implicit def scalaValueToOutput(value: Int): Output[INT32] = Basic.constant(scalaValueToTensor(value))(INT32)
+    implicit def scalaValueToOutput(value: Long): Output[INT64] = Basic.constant(scalaValueToTensor(value))(INT64)
+    implicit def scalaValueToOutput(value: UShort): Output[UINT16] = Basic.constant(scalaValueToTensor(value))(UINT16)
 
-    implicit def scalaArrayToOutput(value: Array[Boolean]): Output = Basic.constant(scalaArrayToTensor(value))
+    implicit def scalaArrayToOutput(value: Array[Boolean]): Output[BOOLEAN] = Basic.constant(scalaArrayToTensor(value))(BOOLEAN)
     // implicit def scalaArrayToOutput(value: Array[String]): Output = Basic.constant(scalaArrayToTensor(value))
-    implicit def scalaArrayToOutput(value: Array[Float]): Output = Basic.constant(scalaArrayToTensor(value))
-    implicit def scalaArrayToOutput(value: Array[Double]): Output = Basic.constant(scalaArrayToTensor(value))
-    implicit def scalaArrayToOutput(value: Array[Byte]): Output = Basic.constant(scalaArrayToTensor(value))
-    implicit def scalaArrayToOutput(value: Array[Short]): Output = Basic.constant(scalaArrayToTensor(value))
-    implicit def scalaArrayToOutput(value: Array[Int]): Output = Basic.constant(scalaArrayToTensor(value))
-    implicit def scalaArrayToOutput(value: Array[Long]): Output = Basic.constant(scalaArrayToTensor(value))
-    implicit def scalaArrayToOutput(value: Array[UShort]): Output = Basic.constant(scalaArrayToTensor(value))
+    implicit def scalaArrayToOutput(value: Array[Float]): Output[FLOAT32] = Basic.constant(scalaArrayToTensor(value))(FLOAT32)
+    implicit def scalaArrayToOutput(value: Array[Double]): Output[FLOAT64] = Basic.constant(scalaArrayToTensor(value))(FLOAT64)
+    implicit def scalaArrayToOutput(value: Array[Byte]): Output[INT8] = Basic.constant(scalaArrayToTensor(value))(INT8)
+    implicit def scalaArrayToOutput(value: Array[Short]): Output[INT16] = Basic.constant(scalaArrayToTensor(value))(INT16)
+    implicit def scalaArrayToOutput(value: Array[Int]): Output[INT32] = Basic.constant(scalaArrayToTensor(value))(INT32)
+    implicit def scalaArrayToOutput(value: Array[Long]): Output[INT64] = Basic.constant(scalaArrayToTensor(value))(INT64)
+    implicit def scalaArrayToOutput(value: Array[UShort]): Output[UINT16] = Basic.constant(scalaArrayToTensor(value))(UINT16)
 
-    implicit def outputConvertibleToOutput(value: OutputConvertible): Output = value.toOutput
+    implicit def outputConvertibleToOutput(value: OutputConvertible): Output[DataType] = value.toOutput
   }
 
   private[api] object Implicits extends Implicits
@@ -453,11 +464,12 @@ object Output {
   * @param  denseShape Shape of the corresponding dense [[Output]].
   *
   * @author Emmanouil Antonios Platanios
+  * TODO what are the restrictions for indices and denseShape types?
   */
-final case class OutputIndexedSlices private(indices: Output, values: Output, denseShape: Output = null)
-    extends OutputLike {
+final case class OutputIndexedSlices[+T <: DataType] private(indices: Output[INT64], values: Output[T], denseShape: Output[INT32] = null)
+    extends OutputLike[DataType] {
   /** Graph that contains `values`, `indices`, and `denseShape`. */
-  override def graph: Graph = getGraphFromInputs(Set(values, indices, denseShape))
+  override def graph: Graph = getGraphFromInputs(Set(values.op, indices.op, denseShape.op))
 
   /** Name of this op output indexed slices. */
   override def name: String = s"${values.name}[${indices.name}]" +
@@ -476,14 +488,18 @@ final case class OutputIndexedSlices private(indices: Output, values: Output, de
   override def consumers: Array[Input] = values.consumers
 
   /** Returns the [[Output]] that this [[OutputLike]] object represents. */
-  override def toOutput: Output = {
+  override def toOutput: Output[T] = {
     if (denseShape != null)
       throw new IllegalStateException(
         s"Op output conversion requested the conversion of 'OutputIndexedSlices', '$this', which has no dense " +
             s"shape information available.")
+    if (!dataType.isNumeric)
+      throw InvalidDataTypeException(s"'data' data type, '$dataType', is not a numeric data type, as required.")
     // TODO: Add check for large number of elements (e.g., > 100000000).
     createWith(nameScope = "IndexedSlicesToOutput") {
-      Math.unsortedSegmentSum(data = values, segmentIndices = indices, segmentsNumber = denseShape(0))
+      Math.unsortedSegmentSum[NumericDataType, INT64](
+        data = values.asOutput[NumericDataType], segmentIndices = indices, segmentsNumber = denseShape(0))
+        .asOutput[T]
     }
   }
 
@@ -493,7 +509,7 @@ final case class OutputIndexedSlices private(indices: Output, values: Output, de
     *                  shape of this tensor at graph creation time (instead of execution time), if known.
     * @return [[OutputIndexedSlices]] that has the same value as this [[OutputLike]].
     */
-  override def toOutputIndexedSlices(optimize: Boolean = true): OutputIndexedSlices = this
+  override def toOutputIndexedSlices(optimize: Boolean = true): OutputIndexedSlices[T] = this
 
   override def toString: String = {
     s"OutputIndexedSlices(values = ${values.name}, indices = ${indices.name}, denseShape = ${denseShape.name}, " +
@@ -550,8 +566,8 @@ final case class OutputIndexedSlices private(indices: Output, values: Output, de
   *
   * @author Emmanouil Antonios Platanios
   */
-final case class SparseOutput private(indices: Output, values: Output, denseShape: Output)
-    extends OutputLike {
+final case class SparseOutput[+T <: DataType] private(indices: Output[INT64], values: Output[T], denseShape: Output[INT64])
+    extends OutputLike[DataType] {
   // TODO: Add constructor from scala arrays?
   if (indices.dataType != INT64)
     throw InvalidDataTypeException(
@@ -564,7 +580,7 @@ final case class SparseOutput private(indices: Output, values: Output, denseShap
   Shape(indices.shape.withRank(2)(1)).assertIsCompatibleWith(Shape(denseShape.shape.withRank(1)(0)))
 
   /** Graph that contains `values`, `indices`, and `denseShape`. */
-  override def graph: Graph = getGraphFromInputs(Set(values, indices, denseShape))
+  override def graph: Graph = getGraphFromInputs(Set(values.op, indices.op, denseShape.op))
 
   /** Name of this sparse op output. */
   override def name: String = s"${values.name}[${indices.name}]" +
@@ -601,16 +617,16 @@ final case class SparseOutput private(indices: Output, values: Output, denseShap
     * @return Value of this sparse op output, for this evaluation, represented as tuple containing the indices, the
     *         values, and the dense shape.
     */
-  def value(feeds: Map[Output, Tensor] = Map.empty, session: Session = null): (Tensor, Tensor, Tensor) = {
+  def value(feeds: Map[Output[DataType], Tensor] = Map.empty, session: Session = null): (Tensor, Tensor, Tensor) = {
     val effectiveSession = if (session == null) graph.defaultSession else session
-    effectiveSession.run(feeds, this)
+    effectiveSession.run(feeds, (this.indices: Output[DataType], this.values: Output[DataType], this.denseShape: Output[DataType]))
   }
 
-  override def toOutput: Output = {
+  override def toOutput: Output[T] = {
     throw new UnsupportedOperationException(s"Cannot convert sparse output '$this' to a dense output.")
   }
 
-  override def toOutputIndexedSlices(optimize: Boolean = true): OutputIndexedSlices = {
+  override def toOutputIndexedSlices(optimize: Boolean = true): OutputIndexedSlices[T] = {
     throw new UnsupportedOperationException(s"Cannot convert sparse output '$this' to output indexed slices.")
   }
 
@@ -627,9 +643,9 @@ object SparseOutput {
     *                           dense shape.
     * @return Sparse op output.
     */
-  private[api] def convertToSparseOutput(sparseOutputValue: (Tensor, Tensor, Tensor)): SparseOutput = {
-    SparseOutput(
-      Basic.constant(sparseOutputValue._1), Basic.constant(sparseOutputValue._2),
-      Basic.constant(sparseOutputValue._3))
+  private[api] def convertToSparseOutput(sparseOutputValue: (Tensor, Tensor, Tensor)): SparseOutput[DataType] = {
+    SparseOutput[DataType](
+      Basic.constant(sparseOutputValue._1)(INT64), Basic.constant[DataType](sparseOutputValue._2)(),
+      Basic.constant(sparseOutputValue._3)(INT64))
   }
 }

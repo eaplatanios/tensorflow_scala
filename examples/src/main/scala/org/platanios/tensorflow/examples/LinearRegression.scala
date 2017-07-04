@@ -16,8 +16,10 @@
 package org.platanios.tensorflow.examples
 
 import org.platanios.tensorflow.api._
-
 import com.typesafe.scalalogging.Logger
+import org.platanios.tensorflow.api.ops.Output
+import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.api.types.DataType
 import org.slf4j.LoggerFactory
 
 import scala.collection.mutable.ArrayBuffer
@@ -46,7 +48,7 @@ object LinearRegression {
     session.run(targets = tf.globalVariablesInitializer())
     for (i <- 0 to 50) {
       val trainBatch = batch(10000)
-      val feeds = Map(inputs -> trainBatch._1, outputs -> trainBatch._2)
+      val feeds: Map[Output[DataType], Tensor] = Map(inputs -> trainBatch._1, outputs -> trainBatch._2)
       val trainLoss = session.run(feeds = feeds, fetches = loss, targets = trainOp)
       if (i % 1 == 0)
         logger.info(s"Train loss at iteration $i = ${trainLoss.scalar} " +

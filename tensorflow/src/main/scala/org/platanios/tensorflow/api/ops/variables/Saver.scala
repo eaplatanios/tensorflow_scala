@@ -469,7 +469,7 @@ object Saver {
     * @return Constructed [[Saver]].
     */
   def fromMetaGraphDef(metaGraphDef: MetaGraphDef, importScope: String = null, saveRelativePaths: Boolean = false,
-      padGlobalStep: Boolean = true, inputsMap: Map[(String, Int), Output] = Map.empty,
+      padGlobalStep: Boolean = true, inputsMap: Map[(String, Int), Output[DataType]] = Map.empty,
       controlDependenciesMap: Map[String, Op] = Map.empty, controlDependencies: Set[Op] = Set.empty,
       clearDevices: Boolean = false, unboundInputsCollectionKey: Graph.Key[String] = Graph.Keys.UNBOUND_INPUTS,
       restoreCollectionsPredicate: Graph.Key[_] => Boolean = _ => true): Saver = {
@@ -809,11 +809,11 @@ trait SaverDefBuilder {
     * @throws IllegalArgumentException If an unsupported checkpoint format version is being used.
     */
   @throws[IllegalArgumentException]
-  protected def save(prefix: Output, saveables: Set[Saveable], name: String = "Save"): Op = {
+  protected def save(prefix: Output[DataType], saveables: Set[Saveable], name: String = "Save"): Op = {
     val (tensorNames, tensors, slices) =
       saveables.flatMap(_.saveSpecifications)
           .map(s => (s.name, s.value, s.saveSliceSpecification))
-          .toSeq.unzip3[String, Output, String]
+          .toSeq.unzip3[String, Output[DataType], String]
     checkpointFormatVersion match {
       case SaverDef.CheckpointFormatVersion.V1 =>
         SaverDefBuilder.saveSlicesOp(prefix, tensorNames, tensors, slices, name)
@@ -835,7 +835,7 @@ trait SaverDefBuilder {
     * @param  name     Name for the created op.
     * @return Created op outputs (restored tensors that constitute `saveable`).
     */
-  protected def restore(prefix: Output, saveable: Saveable, name: String = "Restore"): Seq[Output] = {
+  protected def restore(prefix: Output[DataType], saveable: Saveable, name: String = "Restore"): Seq[Output[DataType]] = {
     val (tensorNames, slices, dataTypes) =
       saveable.saveSpecifications
           .map(s => (s.name, s.saveSliceSpecification, s.value.dataType))
@@ -854,7 +854,7 @@ trait SaverDefBuilder {
     * @param  name      Name for the created op.
     * @return Scalar string tensor containing the filename used for the save operation.
     */
-  protected def addSaveOps(prefix: Output, saveables: Set[Saveable], name: String = "Save"): Output = {
+  protected def addSaveOps(prefix: Output[DataType], saveables: Set[Saveable], name: String = "Save"): Output[DataType] = {
     val saveOp = save(prefix, saveables, name)
     ControlFlow.withControlDependencies(Set(saveOp), prefix)
   }
@@ -872,7 +872,7 @@ trait SaverDefBuilder {
     *                           of the [[SaverDefBuilder.groupByDevice]] method.
     * @return Scalar string tensor containing the filename used for the save operation.
     */
-  protected def addShardedSaveOps(prefix: Output, saveablesByDevice: Seq[(String, Set[Saveable])]): Output = {
+  protected def addShardedSaveOps(prefix: Output[DataType], saveablesByDevice: Seq[(String, Set[Saveable])]): Output[DataType] = {
     checkpointFormatVersion match {
       case SaverDef.CheckpointFormatVersion.V1 =>
         val numberOfShards = Tensor(INT32, saveablesByDevice.length).toOutput
@@ -938,7 +938,7 @@ trait SaverDefBuilder {
     * @return Created op.
     */
   protected def addRestoreOps(
-      prefix: Output, saveables: Set[Saveable], reshape: Boolean, restoreSequentially: Boolean,
+      prefix: Output[DataType], saveables: Set[Saveable], reshape: Boolean, restoreSequentially: Boolean,
       name: String = "Restore"): Op = {
     /** Creates a new device string based on `device_string` but using `/CPU:0`. */
     def setCPU0(device: String): String = {
@@ -989,7 +989,7 @@ trait SaverDefBuilder {
     * @return Created op.
     */
   protected def addShardedRestoreOps(
-      prefix: Output, saveablesByDevice: Seq[(String, Set[Saveable])], reshape: Boolean, restoreSequentially: Boolean,
+      prefix: Output[DataType], saveablesByDevice: Seq[(String, Set[Saveable])], reshape: Boolean, restoreSequentially: Boolean,
       name: String = "Restore"): Op = {
     val restoreOps = saveablesByDevice.map { case (device, saveables) =>
       Op.createWith(device = device)(addRestoreOps(prefix, saveables, restoreSequentially, reshape, name))
@@ -1106,7 +1106,7 @@ object SaverDefBuilder {
     */
   @deprecated("The V1 checkpoint format version has been deprecated.")
   @throws[IllegalArgumentException]
-  private def saveOp(filename: Output, tensorNames: Seq[String], tensors: Seq[Output], name: String = "Save"): Op = {
+  private def saveOp(filename: Output[DataType], tensorNames: Seq[String], tensors: Seq[Output[DataType]], name: String = "Save"): Op = {
     if (tensorNames.length != tensors.length)
       throw new IllegalArgumentException(
         s"The number of tensor names provided (${tensorNames.length}) does not match the number of tensors in " +
@@ -1155,7 +1155,7 @@ object SaverDefBuilder {
   @deprecated("The V1 checkpoint format version has been deprecated.")
   @throws[IllegalArgumentException]
   private def saveSlicesOp(
-      filename: Output, tensorNames: Seq[String], tensors: Seq[Output], slices: Seq[String],
+      filename: Output[DataType], tensorNames: Seq[String], tensors: Seq[Output[DataType]], slices: Seq[String],
       name: String = "Save"): Op = {
     if (tensorNames.length != tensors.length)
       throw new IllegalArgumentException(
@@ -1194,7 +1194,7 @@ object SaverDefBuilder {
     */
   @deprecated("The V1 checkpoint format version has been deprecated.")
   private def restoreOp(
-      filenamePattern: Output, tensorName: String, preferredShard: Int = -1, name: String = "Restore"): Output = {
+      filenamePattern: Output[DataType], tensorName: String, preferredShard: Int = -1, name: String = "Restore"): Output[DataType] = {
     Op.Builder(opType = "Restore", name = name)
         .addInput(filenamePattern)
         .addInput(Tensor(tensorName).toOutput)
@@ -1218,8 +1218,8 @@ object SaverDefBuilder {
     */
   @deprecated("The V1 checkpoint format version has been deprecated.")
   private def restoreSliceOp(
-      filenamePattern: Output, tensorName: String, slice: String, preferredShard: Int = -1,
-      name: String = "Restore"): Output = {
+      filenamePattern: Output[DataType], tensorName: String, slice: String, preferredShard: Int = -1,
+      name: String = "Restore"): Output[DataType] = {
     Op.Builder(opType = "RestoreSlice", name = name)
         .addInput(filenamePattern)
         .addInput(Tensor(tensorName).toOutput)
@@ -1260,7 +1260,7 @@ object SaverDefBuilder {
     */
   @throws[IllegalArgumentException]
   private def saveV2Op(
-      prefix: Output, tensorNames: Seq[String], tensors: Seq[Output], slices: Seq[String],
+      prefix: Output[DataType], tensorNames: Seq[String], tensors: Seq[Output[DataType]], slices: Seq[String],
       name: String = "Save"): Op = {
     if (tensorNames.length != tensors.length)
       throw new IllegalArgumentException(
@@ -1310,8 +1310,8 @@ object SaverDefBuilder {
     */
   @throws[IllegalArgumentException]
   private def restoreV2Op(
-      prefix: Output, tensorNames: Seq[String], slices: Seq[String], dataTypes: Seq[DataType],
-      name: String = "Restore"): Seq[Output] = {
+      prefix: Output[DataType], tensorNames: Seq[String], slices: Seq[String], dataTypes: Seq[DataType],
+      name: String = "Restore"): Seq[Output[DataType]] = {
     if (tensorNames.length != slices.length)
       throw new IllegalArgumentException(
         s"The number of tensor names provided (${tensorNames.length}) does not match the number of slices in " +
@@ -1343,7 +1343,7 @@ object SaverDefBuilder {
     * @return Created op.
     */
   private def mergeV2Checkpoints(
-      checkpointPrefixes: Output, destinationPrefix: Output, deleteOldDirectories: Boolean = true,
+      checkpointPrefixes: Output[DataType], destinationPrefix: Output[DataType], deleteOldDirectories: Boolean = true,
       name: String = "MergeV2Checkpoints"): Op = {
     Op.Builder(opType = "MergeV2Checkpoints", name = name)
         .addInput(checkpointPrefixes)
@@ -1362,7 +1362,7 @@ object SaverDefBuilder {
     * @return Created scalar op output containing the sharded filename.
     */
   private def shardedFilenameOp(
-      filename: Output, shard: Output, numberOfShards: Output, name: String = "ShardedFilename"): Output = {
+      filename: Output[DataType], shard: Output[DataType], numberOfShards: Output[DataType], name: String = "ShardedFilename"): Output[DataType] = {
     Op.Builder(opType = "ShardedFilename", name = name)
         .addInput(filename)
         .addInput(shard)
@@ -1378,7 +1378,7 @@ object SaverDefBuilder {
     * @return Created scalar op output containing a filename pattern string.
     */
   private def shardedFilenameSpecificationOp(
-      filename: Output, numberOfShards: Output, name: String = "ShardedFilenameSpecification"): Output = {
+      filename: Output[DataType], numberOfShards: Output[DataType], name: String = "ShardedFilenameSpecification"): Output[DataType] = {
     Op.Builder(opType = "ShardedFilespec", name = name)
         .addInput(filename)
         .addInput(numberOfShards)
@@ -1395,7 +1395,7 @@ object DefaultSaverDefBuilder extends SaverDefBuilder
   * @param  value                  Value that needs to be saved.
   * @param  saveSliceSpecification Slice specification string used for saving.
   */
-case class SaveSpecification(name: String, value: Output, saveSliceSpecification: String)
+case class SaveSpecification(name: String, value: Output[DataType], saveSliceSpecification: String)
 
 /** Base class for defining objects that be saved and restored.
   *
@@ -1424,7 +1424,7 @@ abstract class Saveable(val saveSpecifications: Seq[SaveSpecification]) {
     *                         ignored.
     * @return Op that restores the state of this saveable object.
     */
-  private[api] def restore(restoredTensors: Seq[Output], restoredShapes: Seq[Output] = null): Op
+  private[api] def restore(restoredTensors: Seq[Output[DataType]], restoredShapes: Seq[Output[DataType]] = null): Op
 }
 
 /** Wrapper saveable object that allows variables to be saved. */
@@ -1443,7 +1443,7 @@ case class VariableSaveable(variable: Variable)
 
   override val producerOps: Set[Op] = Set(variable.op)
 
-  override private[api] def restore(restoredTensors: Seq[Output], restoredShapes: Seq[Output] = null): Op = {
+  override private[api] def restore(restoredTensors: Seq[Output[DataType]], restoredShapes: Seq[Output[DataType]] = null): Op = {
     val restoredTensor = {
       if (restoredShapes != null)
         Basic.reshape(restoredTensors.head, restoredShapes.head)
@@ -1465,8 +1465,8 @@ case class PartitionedVariableSaveable(variable: PartitionedVariable)
 
   override val producerOps: Set[Op] = variable.map(_.op).toSet
 
-  override private[api] def restore(restoredTensors: Seq[Output], restoredShapes: Seq[Output] = null): Op = {
-    val tensors: Seq[Output] = {
+  override private[api] def restore(restoredTensors: Seq[Output[DataType]], restoredShapes: Seq[Output[DataType]] = null): Op = {
+    val tensors: Seq[Output[DataType]] = {
       if (restoredShapes != null)
         restoredTensors.zip(restoredShapes).map(p => Basic.reshape(p._1, p._2))
       else

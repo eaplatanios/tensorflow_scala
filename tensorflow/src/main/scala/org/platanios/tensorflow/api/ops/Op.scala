@@ -82,7 +82,7 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
   lazy val numInputs: Int = using(graph.reference) { _ => NativeOp.numInputs(nativeHandle) }
 
   /** Inputs of this op. Note that these inputs are outputs of other ops and thus have type [[Output]]. */
-  lazy val inputs: Array[Output] = (0 until numInputs).map(index => using(graph.reference) { _ =>
+  lazy val inputs: Array[Output[DataType]] = (0 until numInputs).map(index => using(graph.reference) { _ =>
     val jniOutput = NativeOp.input(nativeHandle, index)
     val op = graph.opsCache.getOrElseUpdate(
       jniOutput.opHandle,
@@ -105,7 +105,7 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
   lazy val numOutputs: Int = using(graph.reference) { _ => NativeOp.numOutputs(nativeHandle) }
 
   /** Outputs of this op. */
-  lazy val outputs: Array[Output] = (0 until numOutputs).map(i => Output(op = this, index = i)).toArray
+  lazy val outputs: Array[Output[DataType]] = (0 until numOutputs).map(i => Output[DataType](op = this, index = i)).toArray
 
   /** Gets the (current) number of control outputs of this op. These are ops that are guaranteed to start executing
     * after this op finishes executing.
@@ -911,8 +911,8 @@ object Op {
     private var built         : Boolean           = false
     // TODO: [OP] Avoid using this extra input functions sequence.
     private var inputFunctions: Seq[Long => Unit] = Seq.empty
-    private var inputs        : Seq[Output]       = Seq.empty
-    private var inputLists    : Seq[Seq[Output]]  = Seq.empty
+    private var inputs        : Seq[Output[DataType]]       = Seq.empty
+    private var inputLists    : Seq[Seq[Output[DataType]]]  = Seq.empty
     private var device        : Option[String]    = None
     private var attributes    : Map[String, Any]  = Map.empty
 
@@ -1006,7 +1006,7 @@ object Op {
 
     private def encodeString(value: String): Array[Byte] = value.getBytes(Charset.forName("UTF-8"))
 
-    def addInput(input: Output): Builder = {
+    def addInput(input: Output[DataType]): Builder = {
       this.inputFunctions :+= {
         (nativeHandle: Long) => NativeOp.addInput(nativeHandle, input.op.nativeHandle, input.index)
       }
@@ -1014,7 +1014,7 @@ object Op {
       this
     }
 
-    def addInputList(inputList: Seq[Output]): Builder = {
+    def addInputList(inputList: Seq[Output[DataType]]): Builder = {
       this.inputFunctions :+= {
         (nativeHandle: Long) =>
           NativeOp.addInputList(nativeHandle, inputList.map(_.nativeHandle).toArray, inputList.map(_.index).toArray)

@@ -163,7 +163,7 @@ trait Tensor extends TensorLike with OutputConvertible {
   def asRealNumeric: RealNumericTensor
 
   override def toTensor: Tensor = this
-  override def toOutput: Output = Basic.constant(this)
+  override def toOutput: Output[DataType] = Basic.constant(this)()
 }
 
 object Tensor {

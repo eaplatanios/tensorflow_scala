@@ -19,6 +19,7 @@ import org.platanios.tensorflow.api.Closeable
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.ops.{Op, OpCreationContext, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.api.types.DataType
 import org.platanios.tensorflow.jni.{Session => NativeSession}
 import org.tensorflow.framework.{RunMetadata, RunOptions}
 
@@ -60,7 +61,7 @@ final case class Session private (
     */
   @throws[IllegalStateException]
   def run[F, E, R](
-      feeds: FeedMap = FeedMap.empty, fetches: F = Seq.empty[Output],
+      feeds: FeedMap = FeedMap.empty, fetches: F = Seq.empty[Output[DataType]],
       targets: E = Traversable.empty[Op], options: RunOptions = null)
       (implicit executable: Executable[E], fetchable: Fetchable.Aux[F, R]): R = {
     runHelper(feeds = feeds, fetches = fetches, targets = targets, options = options)._1
@@ -95,7 +96,7 @@ final case class Session private (
     */
   @throws[IllegalStateException]
   def runWithMetadata[F, E, R](
-      feeds: FeedMap = FeedMap.empty, fetches: F = Seq.empty[Output], targets: E = Traversable.empty[Op],
+      feeds: FeedMap = FeedMap.empty, fetches: F = Seq.empty[Output[DataType]], targets: E = Traversable.empty[Op],
       options: RunOptions = null)
       (implicit executable: Executable[E], fetchable: Fetchable.Aux[F, R]): (R, Option[RunMetadata]) = {
     runHelper(feeds = feeds, fetches = fetches, targets = targets, options = options, wantMetadata = true)
@@ -104,7 +105,7 @@ final case class Session private (
   /** Helper method for [[run]] and [[runWithMetadata]]. */
   @throws[IllegalStateException]
   private[this] def runHelper[F, E, R](
-      feeds: FeedMap = FeedMap.empty, fetches: F = Seq.empty[Output], targets: E = Traversable.empty[Op],
+      feeds: FeedMap = FeedMap.empty, fetches: F = Seq.empty[Output[DataType]], targets: E = Traversable.empty[Op],
       options: RunOptions = null, wantMetadata: Boolean = false)
       (implicit executable: Executable[E], fetchable: Fetchable.Aux[F, R]): (R, Option[RunMetadata]) = {
     if (nativeHandle == 0)

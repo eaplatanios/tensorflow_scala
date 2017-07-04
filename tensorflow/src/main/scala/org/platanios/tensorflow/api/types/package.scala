@@ -36,25 +36,47 @@ package object types {
 
     val DataType = types.DataType
 
-    val STRING   = types.STRING
-    val BOOLEAN  = types.BOOLEAN
-    // val FLOAT16 = types.TFFloat16
-    val FLOAT32  = types.FLOAT32
-    val FLOAT64  = types.FLOAT64
-    // val BFLOAT16 = types.TFBFloat16
-    // val COMPLEX64 = types.TFComplex64
-    // val COMPLEX128 = types.TFComplex128
-    val INT8     = types.INT8
-    val INT16    = types.INT16
-    val INT32    = types.INT32
-    val INT64    = types.INT64
-    val UINT8    = types.UINT8
-    val UINT16   = types.UINT16
-    val QINT8    = types.QINT8
-    val QINT16   = types.QINT16
-    val QINT32   = types.QINT32
-    val QUINT8   = types.QUINT8
-    val QUINT16  = types.QUINT16
-    val RESOURCE = types.RESOURCE
+    val STRING  : STRING   = types.STRING
+    val BOOLEAN : BOOLEAN  = types.BOOLEAN
+    // val FLOAT16 : FLOAT16 = types.TFFloat16
+    val FLOAT32 : FLOAT32  = types.FLOAT32
+    val FLOAT64 : FLOAT64  = types.FLOAT64
+    // val BFLOAT16 : BFLOAT16 = types.TFBFloat16
+    // val COMPLEX64 : COMPLEX64 = types.TFComplex64
+    // val COMPLEX128 : COMPLEX128 = types.TFComplex128
+    val INT8    : INT8     = types.INT8
+    val INT16   : INT16    = types.INT16
+    val INT32   : INT32    = types.INT32
+    val INT64   : INT64    = types.INT64
+    val UINT8   : UINT8    = types.UINT8
+    val UINT16  : UINT16   = types.UINT16
+    val QINT8   : QINT8    = types.QINT8
+    val QINT16  : QINT16   = types.QINT16
+    val QINT32  : QINT32   = types.QINT32
+    val QUINT8  : QUINT8   = types.QUINT8
+    val QUINT16 : QUINT16  = types.QUINT16
+    val RESOURCE: RESOURCE = types.RESOURCE
   }
+
+  type STRING   = types.STRING.type
+  type BOOLEAN  = types.BOOLEAN.type
+  // type FLOAT16 = types.TFFloat16.type
+  type FLOAT32  = types.FLOAT32.type
+  type FLOAT64  = types.FLOAT64.type
+  // type BFLOAT16 = types.TFBFloat16.type
+  // type COMPLEX64 = types.TFComplex64.type
+  // type COMPLEX128 = types.TFComplex128.type
+  type INT8     = types.INT8.type
+  type INT16    = types.INT16.type
+  type INT32    = types.INT32.type
+  type INT64    = types.INT64.type
+  type UINT8    = types.UINT8.type
+  type UINT16   = types.UINT16.type
+  type QINT8    = types.QINT8.type
+  type QINT16   = types.QINT16.type
+  type QINT32   = types.QINT32.type
+  type QUINT8   = types.QUINT8.type
+  type QUINT16  = types.QUINT16.type
+  type RESOURCE = types.RESOURCE.type
+
 }

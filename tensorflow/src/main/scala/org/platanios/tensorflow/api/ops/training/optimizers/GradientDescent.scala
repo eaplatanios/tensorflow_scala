@@ -17,6 +17,7 @@ package org.platanios.tensorflow.api.ops.training.optimizers
 
 import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output, OutputIndexedSlices}
 import org.platanios.tensorflow.api.ops.variables.Variable
+import org.platanios.tensorflow.api.types.{DataType, NumericDataType}
 
 /** Optimizer that implements the gradient descent algorithm.
   *
@@ -24,27 +25,27 @@ import org.platanios.tensorflow.api.ops.variables.Variable
   */
 case class GradientDescent(
     learningRate: Double, useLocking: Boolean = false, name: String = "GradientDescentOptimizer") extends Optimizer {
-  private[this] var learningRateTensor: Output = _
+  private[this] var learningRateTensor: Output[DataType] = _
 
-  private[this] def getLearningRate(variable: Variable): Output = {
+  private[this] def getLearningRate(variable: Variable): Output[DataType] = {
     if (learningRateTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
     Math.cast(learningRateTensor, variable.dataType)
   }
 
   override def prepare(): Unit = {
-    learningRateTensor = Basic.constant(learningRate, name = "LearningRate")
+    learningRateTensor = Basic.constant(learningRate, name = "LearningRate")()
   }
 
-  override def applyDense(gradient: Output, variable: Variable): Op = {
+  override def applyDense(gradient: Output[DataType], variable: Variable): Op = {
     GradientDescent.resourceApplyDense(variable, getLearningRate(variable), gradient, useLocking)
   }
 
-  override def applySparse(gradient: OutputIndexedSlices, variable: Variable): Op = {
+  override def applySparse(gradient: OutputIndexedSlices[DataType], variable: Variable): Op = {
     variable.assignScatterSub(gradient.indices, -gradient.values * getLearningRate(variable)).op
   }
 
-  override def applySparseDuplicateIndices(gradient: OutputIndexedSlices, variable: Variable): Op = {
+  override def applySparseDuplicateIndices[T <: NumericDataType](gradient: OutputIndexedSlices[T], variable: Variable): Op = {
     applySparse(gradient, variable)
   }
 }
@@ -61,7 +62,7 @@ object GradientDescent {
     * @return Created op.
     */
   private[GradientDescent] def resourceApplyDense(
-      variable: Variable, stepSize: Output, gradient: Output, useLocking: Boolean = false,
+      variable: Variable, stepSize: Output[DataType], gradient: Output[DataType], useLocking: Boolean = false,
       name: String = "ResourceApplyGradientDescent"): Op = {
     Op.Builder(opType = "ResourceApplyGradientDescent", name = name)
         .addInput(variable.handle)

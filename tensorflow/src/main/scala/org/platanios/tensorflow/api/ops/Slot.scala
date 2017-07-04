@@ -46,7 +46,7 @@ object Slot {
       create(primary, ZerosInitializer, name, inferredDataType, primary.shape, colocateWithPrimary)
     } else {
       // TODO: [VARIABLES] Maybe this should use 'primary.initializedValue' instead.
-      val initialValue = Basic.zerosLike(primary.value, dataType)
+      val initialValue = Basic.zerosLike(primary.value)(dataType)
       create(primary, DynamicConstantInitializer(initialValue), name, inferredDataType, null, colocateWithPrimary)
     }
   }

@@ -22,6 +22,7 @@ import org.platanios.tensorflow.api.ops.{Op, OpSpecification, Output}
 import org.platanios.tensorflow.api.ops.Output.{Implicits => OutputImplicits}
 import org.platanios.tensorflow.api.tensors.Tensor.{Implicits => TensorImplicits}
 import org.platanios.tensorflow.api.tensors.TensorFlowNative.{Implicits => TensorNativeImplicits}
+import org.platanios.tensorflow.api.types.DataType
 import org.platanios.tensorflow.api.types.SupportedType.{Implicits => SupportedTypeImplicits}
 
 /**
@@ -34,7 +35,7 @@ private[api] trait Implicits
     Op.deviceImplicitConversion(device)
   }
 
-  implicit def outputToInitialValueFunction(output: Output): () => Output = () => output
+  implicit def outputToInitialValueFunction(output: Output[DataType]): () => Output[DataType] = () => output
 }
 
 object Implicits extends Implicits

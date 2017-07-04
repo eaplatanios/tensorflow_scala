@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
-import org.platanios.tensorflow.api.types.DataType
+import org.platanios.tensorflow.api.types.{DataType, INT32}
 
 /** Class wrapping dynamic-sized, per-time-step, write-once tensor arrays.
   *
@@ -39,7 +39,7 @@ import org.platanios.tensorflow.api.types.DataType
   * @author Emmanouil Antonios Platanios
   */
 private[api] case class TensorArray private(
-    handle: Output, flow: Output, dataType: DataType, inferShape: Boolean, private var elementShape: Option[Shape]) {
+    handle: Output[DataType], flow: Output[DataType], dataType: DataType, inferShape: Boolean, private var elementShape: Option[Shape]) {
   /** Changes the element shape of the array given a shape to merge with.
     *
     * @param  shape Shape to merge with.
@@ -72,7 +72,7 @@ private[api] case class TensorArray private(
     * @param  name  Name for the created op.
     * @return Tensor in the specified position of the tensor array.
     */
-  private[api] def read(index: Output, name: String = "TensorArrayRead"): Output = {
+  private[api] def read(index: Output[DataType], name: String = "TensorArrayRead"): Output[DataType] = {
     Op.createWith(colocationOps = Set(handle.op)) {
       val value = TensorArray.readOp(handle, index, flow, name)
       elementShape.foreach(value.setShape)
@@ -89,7 +89,7 @@ private[api] case class TensorArray private(
     * @param  name  Name for the created op.
     * @return Output flow of the tensor array, used to enforce proper chaining of operations.
     */
-  private[api] def write(index: Output, value: Output, name: String = "TensorArrayWrite"): TensorArray = {
+  private[api] def write(index: Output[DataType], value: Output[DataType], name: String = "TensorArrayWrite"): TensorArray = {
     val writeFlow = Op.createWith(colocationOps = Set(handle.op)) {
       TensorArray.writeOp(handle, index, value, flow, name)
     }
@@ -108,7 +108,7 @@ private[api] case class TensorArray private(
     * @param  name    Name for the created op.
     * @return Tensor containing the gathered elements, concatenated along a new axis (the new dimension `0`).
     */
-  private[api] def gather(indices: Output, name: String = "TensorArrayGather"): Output = {
+  private[api] def gather(indices: Output[DataType], name: String = "TensorArrayGather"): Output[DataType] = {
     Op.createWith(colocationOps = Set(handle.op)) {
       val value = TensorArray.gatherOp(handle, indices, flow, dataType, elementShape.getOrElse(Shape.unknown()), name)
       if (elementShape.isDefined)
@@ -127,7 +127,7 @@ private[api] case class TensorArray private(
     * @param  name    Name for the created op.
     * @return Output flow of the tensor array, used to enforce proper chaining of operations.
     */
-  private[api] def scatter(indices: Output, value: Output, name: String = "TensorArrayScatter"): TensorArray = {
+  private[api] def scatter(indices: Output[DataType], value: Output[DataType], name: String = "TensorArrayScatter"): TensorArray = {
     val scatterFlow = Op.createWith(colocationOps = Set(handle.op)) {
       TensorArray.scatterOp(handle, indices, value, flow, name)
     }
@@ -149,10 +149,10 @@ private[api] case class TensorArray private(
     * @param  name Name for the created op.
     * @return Stacked tensor.
     */
-  private[api] def stack(name: String = "TensorArrayStack"): Output = {
+  private[api] def stack(name: String = "TensorArrayStack"): Output[DataType] = {
     Op.createWithNameScope(name, Set(handle.op)) {
       Op.createWith(colocationOps = Set(handle.op)) {
-        gather(Math.range(Basic.constant(0), size()), name)
+        gather(Math.range(Basic.constant(0)(INT32), size())(), name)
       }
     }
   }
@@ -167,10 +167,10 @@ private[api] case class TensorArray private(
     * @return New tensor array object with flow that ensures the unstack occurs. Use this object for all subsequent
     *         operations.
     */
-  private[api] def unstack(value: Output, name: String = "TensorArrayUnstack"): TensorArray = {
+  private[api] def unstack(value: Output[DataType], name: String = "TensorArrayUnstack"): TensorArray = {
     Op.createWithNameScope(name, Set(handle.op, value.op)) {
       // TODO: No colocation with the handle op here? This was also missing from the Python API.
-      scatter(Math.range(Basic.constant(0), Basic.shape(value)(0)), value, name)
+      scatter(Math.range(Basic.constant(0)(INT32), Basic.shape(value)(0))(), value, name)
     }
   }
 
@@ -184,7 +184,7 @@ private[api] case class TensorArray private(
     * @param  name Name for the created op.
     * @return Tensor with all of the elements in the tensor array, concatenated along the first axis.
     */
-  private[api] def concatenate(name: String = "TensorArrayConcatenate"): Output = {
+  private[api] def concatenate(name: String = "TensorArrayConcatenate"): Output[DataType] = {
     Op.createWith(colocationOps = Set(handle.op)) {
       val shape = elementShape.map(s => Shape.fromSeq(s.asArray.tail)).getOrElse(Shape.unknown())
       val (value, _) = TensorArray.concatenateOp(handle, flow, dataType, shape, name)
@@ -222,7 +222,7 @@ private[api] case class TensorArray private(
     * @param  name Name for the created op.
     * @return Created op output, containing the current size of the tensor array.
     */
-  private[api] def size(name: String = "TensorArraySize"): Output = {
+  private[api] def size(name: String = "TensorArraySize"): Output[INT32] = {
     Op.createWith(colocationOps = Set(handle.op)) {
       TensorArray.sizeOp(handle, flow, name)
     }
@@ -267,7 +267,7 @@ private[api] case class TensorArray private(
     * @return Gradient tensor array.
     */
   private[api] def gradient(
-      source: String, flow: Output = this.flow, name: String = "TensorArrayGradient"): TensorArray = {
+      source: String, flow: Output[DataType] = this.flow, name: String = "TensorArrayGradient"): TensorArray = {
     // 'TensorArray.gradientOp' requires a flow input when forward tensor arrays are dynamically sized. This forces the
     // creation of the gradient tensor array only once the final forward array's size is fixed.
     Op.createWithNameScope(name, Set(handle.op)) {
@@ -315,7 +315,7 @@ private[api] object TensorArray {
     * @return Created tensor array.
     */
   private[api] def create(
-      size: Output, dataType: DataType, dynamicSize: Boolean = false, clearAfterRead: Boolean = true,
+      size: Output[DataType], dataType: DataType, dynamicSize: Boolean = false, clearAfterRead: Boolean = true,
       tensorArrayName: String = "", inferShape: Boolean = true, elementShape: Shape = Shape.unknown(),
       name: String = "TensorArray"): TensorArray = {
     // We construct the tensor array with an empty device. The first write into the tensor array from a tensor with a
@@ -340,7 +340,7 @@ private[api] object TensorArray {
     * @return Created tensor array.
     */
   private[api] def createFromHandle(
-      handle: Output, flow: Output, dataType: DataType, inferShape: Boolean = true,
+      handle: Output[DataType], flow: Output[DataType], dataType: DataType, inferShape: Boolean = true,
       elementShape: Shape = Shape.unknown()): TensorArray = {
     // Record the current static shape for the array elements. The element shape is defined either by 'elementShape' or
     // by the shape of the tensor of the first write. If 'inferShape' is 'true', then all writes check for shape
@@ -370,9 +370,9 @@ private[api] object TensorArray {
     * @return Tuple containing the resource handle to the tensor array and a scalar used to control gradient flow.
     */
   private[TensorArray] def createOp(
-      size: Output, dataType: DataType, elementShape: Shape = Shape.unknown(), dynamicSize: Boolean = false,
+      size: Output[DataType], dataType: DataType, elementShape: Shape = Shape.unknown(), dynamicSize: Boolean = false,
       clearAfterRead: Boolean = true, tensorArrayName: String = "",
-      name: String = "TensorArray"): (Output, Output) = {
+      name: String = "TensorArray"): (Output[DataType], Output[DataType]) = {
     val outputs = Op.Builder(opType = "TensorArrayV3", name = name)
         .addInput(size)
         .setAttribute("dtype", dataType)
@@ -393,7 +393,7 @@ private[api] object TensorArray {
     * @return Tensor in the specified position of the tensor array.
     */
   private[TensorArray] def readOp(
-      handle: Output, index: Output, flow: Output, name: String = "TensorArrayRead"): Output = {
+      handle: Output[DataType], index: Output[DataType], flow: Output[DataType], name: String = "TensorArrayRead"): Output[DataType] = {
     Op.Builder(opType = "TensorArrayReadV3", name = name)
         .addInput(handle)
         .addInput(index)
@@ -411,8 +411,8 @@ private[api] object TensorArray {
     * @return Output flow of the tensor array, used to enforce proper chaining of operations.
     */
   private[TensorArray] def writeOp(
-      handle: Output, index: Output, value: Output, flow: Output,
-      name: String = "TensorArrayWrite"): Output = {
+      handle: Output[DataType], index: Output[DataType], value: Output[DataType], flow: Output[DataType],
+      name: String = "TensorArrayWrite"): Output[DataType] = {
     Op.Builder(opType = "TensorArrayWriteV3", name = name)
         .addInput(handle)
         .addInput(index)
@@ -435,8 +435,8 @@ private[api] object TensorArray {
     * @return Tensor containing the gathered elements, concatenated along a new axis (the new dimension `0`).
     */
   private[TensorArray] def gatherOp(
-      handle: Output, indices: Output, flow: Output, dataType: DataType, shape: Shape = Shape.unknown(),
-      name: String = "TensorArrayGather"): Output = {
+      handle: Output[DataType], indices: Output[DataType], flow: Output[DataType], dataType: DataType, shape: Shape = Shape.unknown(),
+      name: String = "TensorArrayGather"): Output[DataType] = {
     Op.Builder(opType = "TensorArrayGatherV3", name = name)
         .addInput(handle)
         .addInput(indices)
@@ -458,8 +458,8 @@ private[api] object TensorArray {
     * @return Output flow of the tensor array, used to enforce proper chaining of operations.
     */
   private[TensorArray] def scatterOp(
-      handle: Output, indices: Output, value: Output, flow: Output,
-      name: String = "TensorArrayScatter"): Output = {
+      handle: Output[DataType], indices: Output[DataType], value: Output[DataType], flow: Output[DataType],
+      name: String = "TensorArrayScatter"): Output[DataType] = {
     Op.Builder(opType = "TensorArrayScatterV3", name = name)
         .addInput(handle)
         .addInput(indices)
@@ -487,8 +487,8 @@ private[api] object TensorArray {
     *         this would be the values `n1, n2, ..., n(T-1)`.
     */
   private[TensorArray] def concatenateOp(
-      handle: Output, flow: Output, dataType: DataType, shapeTail: Shape = Shape.unknown(),
-      name: String = "TensorArrayConcatenate"): (Output, Output) = {
+      handle: Output[DataType], flow: Output[DataType], dataType: DataType, shapeTail: Shape = Shape.unknown(),
+      name: String = "TensorArrayConcatenate"): (Output[DataType], Output[DataType]) = {
     val outputs = Op.Builder(opType = "TensorArrayConcatV3", name = name)
         .addInput(handle)
         .addInput(flow)
@@ -514,8 +514,8 @@ private[api] object TensorArray {
     * @return Output flow of the tensor array, used to enforce proper chaining of operations.
     */
   private[TensorArray] def splitOp(
-      handle: Output, value: Output, lengths: Output, flow: Output,
-      name: String = "TensorArraySplit"): Output = {
+      handle: Output[DataType], value: Output[DataType], lengths: Output[DataType], flow: Output[DataType],
+      name: String = "TensorArraySplit"): Output[DataType] = {
     Op.Builder(opType = "TensorArraySplitV3", name = name)
         .addInput(handle)
         .addInput(value)
@@ -531,11 +531,11 @@ private[api] object TensorArray {
     * @param  name   Name for the created op.
     * @return Created op output, containing the current size of the tensor array.
     */
-  private[TensorArray] def sizeOp(handle: Output, flow: Output, name: String = "TensorArraySize"): Output = {
+  private[TensorArray] def sizeOp(handle: Output[DataType], flow: Output[DataType], name: String = "TensorArraySize"): Output[INT32] = {
     Op.Builder(opType = "TensorArraySizeV3", name = name)
         .addInput(handle)
         .addInput(flow)
-        .build().outputs(0)
+        .build().outputs(0).asOutput[INT32]
   }
 
   /** Creates an op that constructs a tensor array for storing the gradients of values in the provided tensor array
@@ -580,7 +580,7 @@ private[api] object TensorArray {
     *         flow.
     */
   private[TensorArray] def gradientOp(
-      handle: Output, flow: Output, source: String, name: String = "TensorArrayGrad"): (Output, Output) = {
+      handle: Output[DataType], flow: Output[DataType], source: String, name: String = "TensorArrayGrad"): (Output[DataType], Output[DataType]) = {
     val outputs = Op.Builder(opType = "TensorArrayGradV3", name = name)
         .addInput(handle)
         .addInput(flow)
@@ -597,7 +597,7 @@ private[api] object TensorArray {
     * @param  name   Name for the created op.
     * @return Created op.
     */
-  private[TensorArray] def closeOp(handle: Output, name: String = "TensorArrayClose"): Op = {
+  private[TensorArray] def closeOp(handle: Output[DataType], name: String = "TensorArrayClose"): Op = {
     Op.Builder(opType = "TensorArrayCloseV3", name = name)
         .addInput(handle)
         .build()

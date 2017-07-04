@@ -52,21 +52,21 @@ trait Basic {
     * @return Created op output.
     * @throws InvalidShapeException If `shape != null`, `verifyShape == true`, and the shape of values does not match
     *                               the provided `shape`.
+    * TODO revisit dataType type inference once we have statically typed tensors
     */
   @throws[InvalidShapeException]
-  def constant(tensor: Tensor, dataType: DataType = null, shape: Shape = null, name: String = "Constant"): Output = {
-    val inferredDataType = if (dataType == null) tensor.dataType else dataType
+  def constant[T <: DataType](tensor: Tensor, shape: Shape = null, name: String = "Constant")(dataType: T = tensor.dataType): Output[T] = {
     val inferredShape = if (shape == null) tensor.shape else shape
     val constantTensor = {
-      if (inferredDataType != tensor.dataType || inferredShape != tensor.shape) {
+      if (dataType != tensor.dataType || inferredShape != tensor.shape) {
         // TODO: !!! Add support for reshaping tensor.
         if (tensor.numElements == 1) {
-          Tensor.fill(inferredDataType, inferredShape)(tensor.scalar)(tensor.dataType.supportedType)
+          Tensor.fill(dataType, inferredShape)(tensor.scalar)(tensor.dataType.supportedType)
         } else {
           if (inferredShape.numElements != tensor.shape.numElements)
             throw InvalidShapeException(
               s"Shape '${tensor.shape}' tensor is not valid for shape '$inferredShape' constant op creation.")
-          val t = Tensor.allocate(inferredDataType, inferredShape, order = RowMajorOrder)
+          val t = Tensor.allocate(dataType, inferredShape, order = RowMajorOrder)
           for ((thisIndex, tensorIndex) <- t.flattenedIndexIterator zip tensor.flattenedIndexIterator)
             t.setElementAtFlattenedIndex(
               thisIndex, tensor.getElementAtFlattenedIndex(tensorIndex))(tensor.dataType.supportedType)
@@ -79,8 +79,8 @@ trait Basic {
     using(constantTensor.nativeView) { nativeTensor =>
       Op.Builder(opType = "Const", name = name)
           .setAttribute("value", nativeTensor)
-          .setAttribute("dtype", inferredDataType)
-          .build().outputs(0)
+          .setAttribute("dtype", dataType)
+          .build().outputs(0).asOutput[T]
     }
   }
 
@@ -96,7 +96,7 @@ trait Basic {
     * @return Created op output.
     */
   private[ops] def immutableConstant(
-      dataType: DataType, shape: Shape, memoryRegionName: String, name: String = "ImmutableConstant"): Output = {
+    dataType: DataType, shape: Shape, memoryRegionName: String, name: String = "ImmutableConstant"): Output[DataType] = {
     Op.Builder(opType = "ImmutableConst", name = name)
         .setAttribute("dtype", dataType)
         .setAttribute("shape", shape)
@@ -118,11 +118,11 @@ trait Basic {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def zeros(shape: Shape, dataType: DataType = FLOAT32, name: String = "Zeros"): Output = {
+  def zeros[T <: DataType](shape: Shape, dataType: T = FLOAT32, name: String = "Zeros"): Output[T] = {
     dataType match {
-      case BOOLEAN => constant(Tensor.fill(BOOLEAN, shape)(false), name = name)
-      case STRING => constant(Tensor.fill(STRING, shape)(""), name = name)
-      case _ => constant(Tensor.fill(dataType, shape)(0), name = name)
+      case BOOLEAN => constant(Tensor.fill(BOOLEAN, shape)(false), name = name)(dataType)
+      case STRING => constant(Tensor.fill(STRING, shape)(""), name = name)(dataType)
+      case _ => constant[T](Tensor.fill(dataType, shape)(0), name = name)(dataType)
     }
   }
 
@@ -144,20 +144,19 @@ trait Basic {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def zerosLike(
-      input: Output, dataType: DataType = null, optimize: Boolean = true, name: String = "ZerosLike"): Output = {
-    val outputDataType = if (dataType != null) dataType else input.dataType
+  def zerosLike[T <: DataType, U <: DataType](
+      input: Output[T], optimize: Boolean = true, name: String = "ZerosLike")(dataType: U = input.dataType): Output[U] = {
     if (optimize && input.shape.isFullyDefined) {
       // We can produce a zeros tensor independent of the value of 'tensor' since the shape is known statically.
-      zeros(input.shape, outputDataType, name)
-    } else if (outputDataType != input.dataType) {
+      zeros[U](input.shape, dataType, name)
+    } else if (dataType != input.dataType) {
       Op.Builder(opType = "ZerosLike", name = name)
-          .addInput(Math.cast(input, outputDataType))
-          .build().outputs(0)
+          .addInput(Math.cast(input, dataType))
+          .build().outputs(0).asOutput[U]
     } else {
       Op.Builder(opType = "ZerosLike", name = name)
           .addInput(input)
-          .build().outputs(0)
+          .build().outputs(0).asOutput[U]
     }
   }
 
@@ -175,10 +174,10 @@ trait Basic {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def ones(shape: Shape, dataType: DataType = FLOAT32, name: String = "Ones"): Output = {
+  def ones[T <: DataType](shape: Shape, dataType: T, name: String = "Ones"): Output[T] = {
     dataType match {
-      case BOOLEAN => constant(Tensor.fill(BOOLEAN, shape)(true), name = name)
-      case _ => constant(Tensor.fill(dataType, shape)(1), name = name)
+      case BOOLEAN => constant(Tensor.fill(BOOLEAN, shape)(true), name = name)(dataType)
+      case _ => constant[T](Tensor.fill(dataType, shape)(1), name = name)(dataType)
     }
   }
 
@@ -199,21 +198,21 @@ trait Basic {
     *                  creation time.
     * @param  name     Name for the created op.
     * @return Created op output.
+    * TODO restrict input to {float, double, int32, int64, complex64, complex128}
     */
-  def onesLike(
-      input: Output, dataType: DataType = null, optimize: Boolean = true, name: String = "OnesLike"): Output = {
-    val outputDataType = if (dataType != null) dataType else input.dataType
+  def onesLike[T <: DataType, U <: DataType](
+      input: Output[T], optimize: Boolean = true, name: String = "OnesLike")(dataType: U = input.dataType): Output[U] = {
     if (optimize && input.shape.isFullyDefined) {
       // We can produce a ones tensor independent of the value of 'tensor' since the shape is known statically.
-      ones(input.shape, outputDataType, name)
-    } else if (outputDataType != input.dataType) {
+      ones[U](input.shape, dataType, name)
+    } else if (dataType != input.dataType) {
       Op.Builder(opType = "OnesLike", name = name)
-          .addInput(Math.cast(input, outputDataType))
-          .build().outputs(0)
+          .addInput(Math.cast(input, dataType))
+          .build().outputs(0).asOutput[U]
     } else {
       Op.Builder(opType = "OnesLike", name = name)
           .addInput(input)
-          .build().outputs(0)
+          .build().outputs(0).asOutput[U]
     }
   }
 
@@ -228,16 +227,15 @@ trait Basic {
     *
     * @param  shape    Shape of the output tensor.
     * @param  value    Value to fill the output tensor.
-    * @param  dataType Optional data type for the created tensor.
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def fill(
-      shape: Output, value: Output, dataType: DataType = null, name: String = "Fill"): Output = {
+  def fill[T <: DataType](shape: Output[INT32], value: Output[T], name: String = "Fill"): Output[T] = {
     Op.Builder(opType = "Fill", name = name)
         .addInput(shape)
-        .addInput(if (dataType == null || dataType == value.dataType) value else Math.cast(value, dataType))
-        .build().outputs(0)
+        .addInput(value)
+        .setAttribute("T", value.dataType)
+        .build().outputs(0).asOutput[T]
   }
 
   /** Creates a placeholder op for a tensor that will always be fed.
@@ -252,12 +250,12 @@ trait Basic {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def placeholder(dataType: DataType, shape: Shape = null, name: String = "Placeholder"): Output = {
+  def placeholder[T <: DataType](dataType: T, shape: Shape = null, name: String = "Placeholder"): Output[T] = {
     val opBuilder = Op.Builder(opType = "Placeholder", name = name)
         .setAttribute("dtype", dataType)
     if (shape != null)
       opBuilder.setAttribute("shape", shape)
-    opBuilder.build().outputs(0)
+    opBuilder.build().outputs(0).asOutput[T]
   }
 
   /** Creates a placeholder op that passes through `defaultValue` when its input is not fed.
@@ -268,9 +266,9 @@ trait Basic {
     * @param  name         Name for the created op.
     * @return Created op output.
     */
-  def placeholderWithDefault(defaultValue: Tensor, shape: Shape, name: String = "PlaceholderWithDefault"): Output = {
+  def placeholderWithDefault(defaultValue: Tensor, shape: Shape, name: String = "PlaceholderWithDefault"): Output[DataType] = {
     Op.Builder(opType = "PlaceholderWithDefault", name = name)
-        .addInput(Op.createWith(nameScope = name)(constant(tensor = defaultValue, name = "DefaultValue")))
+        .addInput(Op.createWith(nameScope = name)(constant(tensor = defaultValue, name = "DefaultValue")()))
         .setAttribute("shape", shape)
         .build().outputs(0)
   }
@@ -288,13 +286,13 @@ trait Basic {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def sparsePlaceholder(
-      dataType: DataType, shape: Shape = null, name: String = "SparsePlaceholder"): SparseOutput = {
+  def sparsePlaceholder[T <: DataType](
+      dataType: T, shape: Shape = null, name: String = "SparsePlaceholder"): SparseOutput[T] = {
     SparseOutput(
-      indices = placeholder(dataType, Shape(-1), name + "/Indices"),
-      values = placeholder(INT64, Shape(-1, -1), name + "/Values"),
+      indices = placeholder(INT64, Shape(-1), name + "/Indices"),
+      values = placeholder(dataType, Shape(-1, -1), name + "/Values"),
       denseShape =
-          if (shape == null) placeholder(INT64, Shape(-1), name + "/Shape") else constant(shape.toTensor()))
+          if (shape == null) placeholder(INT64, Shape(-1), name + "/Shape") else constant(shape.toTensor())(INT64))
   }
 
   //endregion Tensor Creation Ops
@@ -322,14 +320,14 @@ trait Basic {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def rank(input: Output, optimize: Boolean = true, name: String = "Rank"): Output = {
+  def rank[T <: DataType](input: Output[T], optimize: Boolean = true, name: String = "Rank"): Output[INT32] = {
     val inputRank = input.shape.rank
     if (optimize && inputRank != -1)
-      constant(Tensor.fill(INT32, Shape())(inputRank), name = name)
+      constant(Tensor.fill(INT32, Shape())(inputRank), name = name)(INT32)
     else
       Op.Builder(opType = "Rank", name = name)
           .addInput(input)
-          .build().outputs(0)
+          .build().outputs(0).asOutput[INT32]
   }
 
   /** Creates an op that returns the rank of a sparse tensor.
@@ -351,7 +349,7 @@ trait Basic {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def sparseRank(input: SparseOutput, dataType: DataType = INT32, name: String = "Rank"): Output = {
+  def sparseRank(input: SparseOutput[DataType], dataType: DataType = INT32, name: String = "Rank"): Output[DataType] = {
     size(input.denseShape, dataType, name = name)
   }
 
@@ -372,16 +370,17 @@ trait Basic {
     *                  execution time), if known.
     * @param  name     Name for the created op.
     * @return Created op output.
+    * TODO restrict T to INT32|INT64
     */
-  def size(input: Output, dataType: DataType = INT32, optimize: Boolean = true, name: String = "Size"): Output = {
+  def size[T <: DataType](input: Output[DataType], dataType: T = INT32, optimize: Boolean = true, name: String = "Size"): Output[T] = {
     val inputShape = input.shape
     if (optimize && inputShape.isFullyDefined)
-      constant(Tensor.fill(dataType, Shape())(inputShape.numElements), name = name)
+      constant[T](Tensor.fill(dataType, Shape())(inputShape.numElements), name = name)(dataType)
     else
       Op.Builder(opType = "Size", name = name)
           .addInput(input)
           .setAttribute("out_type", dataType)
-          .build().outputs(0)
+          .build().outputs(0).asOutput[T]
   }
 
   /** Creates an op that returns the size of a sparse tensor.
@@ -399,7 +398,7 @@ trait Basic {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def sparseSize(input: SparseOutput, dataType: DataType = INT32, name: String = "SparseSize"): Output = {
+  def sparseSize(input: SparseOutput[DataType], dataType: DataType = INT32, name: String = "SparseSize"): Output[DataType] = {
     Op.createWith(nameScope = name) {
       Math.product(Math.cast(input.denseShape, dataType), Array(0))
     }
@@ -416,21 +415,22 @@ trait Basic {
     * }}}
     *
     * @param  input    Tensor whose shape to return.
-    * @param  dataType Optional data type to use for the output of this op.
+    * @param  dataType Optional data type to use for the output of this op (INT32 or INT64).
     * @param  optimize Boolean flag indicating whether to optimize this op creation by using a constant op with the
     *                  shape of that `input` at graph creation time (instead of execution time), if known.
     * @param  name     Name for the created op.
     * @return Created op output, which is one-dimensional.
+    * TODO restrict U to INT32|INT64
     */
-  def shape(input: Output, dataType: DataType = INT32, optimize: Boolean = true, name: String = "Shape"): Output = {
+  def shape[T <: DataType, U <: DataType](input: Output[T], dataType: U = INT32, optimize: Boolean = true, name: String = "Shape"): Output[U] = {
     val inputShape = input.shape
     if (optimize && inputShape.isFullyDefined)
-      constant(inputShape.toTensor(dataType), name = name)
+      constant[U](inputShape.toTensor(dataType), name = name)(dataType)
     else
       Op.Builder(opType = "Shape", name = name)
           .addInput(input)
           .setAttribute("out_type", dataType)
-          .build().outputs(0)
+          .build().outputs(0).asOutput[U]
   }
 
   /** Creates an op that returns the shape of a sparse tensor.
@@ -446,8 +446,9 @@ trait Basic {
     * @param  input    Tensor whose shape to return.
     * @param  dataType Optional data type to use for the output of this op.
     * @return Created op output, which is one-dimensional.
+    * TODO restrict T to INT32|INT64
     */
-  def sparseShape(input: SparseOutput, dataType: DataType = INT32, name: String = "SparseShape"): Output = {
+  def sparseShape[T <: DataType](input: SparseOutput[DataType], dataType: T = INT32, name: String = "SparseShape"): Output[T] = {
     Math.cast(input.denseShape, dataType, name = name)
   }
 
@@ -461,7 +462,7 @@ trait Basic {
     * @return Created op outputs, all of which are one-dimensional.
     */
   def shapeN(
-      inputs: Seq[Output], dataType: DataType = INT32, name: String = "ShapeN"): Seq[Output] = {
+      inputs: Seq[Output[DataType]], dataType: DataType = INT32, name: String = "ShapeN"): Seq[Output[DataType]] = {
     Op.Builder(opType = "Shape", name = name)
         .addInputList(inputs)
         .setAttribute("out_type", dataType)
@@ -478,14 +479,14 @@ trait Basic {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def identity[T <: OutputLike](input: T, name: String = "Identity"): T = {
+  def identity[T <: OutputLike[_]](input: T, name: String = "Identity"): T = {
     Op.createWithNameScope(nameScope = name, Set(input.op)) {
       input match {
-        case i: Output =>
+        case i: Output[_] =>
           Op.Builder(opType = "Identity", name = name)
               .addInput(i)
               .build().outputs(0)
-        case i: OutputIndexedSlices =>
+        case i: OutputIndexedSlices[_] =>
           val values = identity(i.values, name = "ValuesIdentity")
           val indices = identity(i.indices, name = "IndicesIdentity")
           val denseShape = {
@@ -495,7 +496,7 @@ trait Basic {
               null
           }
           OutputIndexedSlices(indices = indices, values = values, denseShape = denseShape)
-        case i: SparseOutput =>
+        case i: SparseOutput[_] =>
           val values = identity(i.values, name = "ValuesIdentity")
           val indices = identity(i.indices, name = "IndicesIdentity")
           val denseShape = identity(i.denseShape, name = "DenseShapeIdentity")
@@ -536,11 +537,11 @@ trait Basic {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def expandDims(input: Output, axis: Int, name: String = "ExpandDims"): Output = {
+  def expandDims[T <: DataType](input: Output[T], axis: Int, name: String = "ExpandDims"): Output[T] = {
     Op.Builder(opType = "ExpandDims", name = name)
         .addInput(input)
-        .addInput(Op.createWith(nameScope = name)(constant(tensor = axis, name = "Axis")))
-        .build().outputs(0)
+        .addInput(Op.createWith(nameScope = name)(constant(tensor = axis, name = "Axis")()))
+        .build().outputs(0).asOutput[T]
   }
 
   /** Creates an op that removes dimensions of size 1 from the shape of a tensor.
@@ -562,12 +563,12 @@ trait Basic {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def squeeze(input: Output, axes: Array[Int] = null, name: String = "Squeeze"): Output = {
+  def squeeze[T <: DataType](input: Output[T], axes: Array[Int] = null, name: String = "Squeeze"): Output[T] = {
     val builder = Op.Builder(opType = "Squeeze", name = name)
         .addInput(input)
     if (axes != null)
       builder.setAttribute("squeeze_dims", axes.map(_.asInstanceOf[Long]))
-    builder.build().outputs(0)
+    builder.build().outputs(0).asOutput[T]
   }
 
   /** Creates an op that stacks a list of rank-`R` tensors into one rank-`(R+1)` tensor.
@@ -599,7 +600,7 @@ trait Basic {
     */
   @throws[InvalidShapeException]
   @throws[IndexOutOfBoundsException]
-  def stack(inputs: Seq[Output], axis: Int = 0, name: String = "Stack"): Output = {
+  def stack[T <: DataType](inputs: Seq[Output[T]], axis: Int = 0, name: String = "Stack"): Output[T] = {
     val inputsShape = inputs.head.shape
     inputs.tail.foreach(_.shape.assertIsCompatibleWith(inputsShape))
     if (inputsShape.rank != -1) {
@@ -610,7 +611,7 @@ trait Basic {
     Op.Builder(opType = "Pack", name = name)
         .addInputList(inputs)
         .setAttribute("axis", axis)
-        .build().outputs(0)
+        .build().outputs(0).asOutput[T]
   }
 
   /** Creates an op that stacks a list of rank-`R` tensors into one rank-`(R+1)` tensor, in parallel.
@@ -640,7 +641,7 @@ trait Basic {
     * @throws InvalidShapeException If the input tensor shapes are not compatible with each other.
     */
   @throws[InvalidShapeException]
-  def parallelStack(inputs: Array[Output], name: String = "ParallelStack"): Output = {
+  def parallelStack(inputs: Array[Output[DataType]], name: String = "ParallelStack"): Output[DataType] = {
     val inputsShape = inputs.head.shape
     inputs.tail.foreach(_.shape.assertIsCompatibleWith(inputsShape))
     val outputShape = Shape(inputs.length).concatenateWith(inputsShape)
@@ -677,7 +678,7 @@ trait Basic {
     */
   @throws[IndexOutOfBoundsException]
   @throws[IllegalArgumentException]
-  def unstack(input: Output, number: Int = -1, axis: Int = 0, name: String = "Unstack"): Array[Output] = {
+  def unstack[T <: DataType](input: Output[T], number: Int = -1, axis: Int = 0, name: String = "Unstack"): Array[Output[DataType]] = {
     val num: Int = {
       if (number >= 0) {
         number
@@ -728,15 +729,17 @@ trait Basic {
     * @param  axis   Dimension along which to concatenate the input tensors.
     * @param  name   Name for the created op.
     * @return Created op output.
+    * TODO restrict axis to INT32|INT64
     */
-  def concatenate(inputs: Seq[Output], axis: Output = constant(0), name: String = "Concatenate"): Output = {
+  def concatenate[T <: DataType](
+    inputs: Seq[Output[T]], axis: Output[DataType] = constant(0)(INT32), name: String = "Concatenate"): Output[T] = {
     if (inputs.length == 1) {
       Op.createWith(nameScope = name)(identity(inputs.head))
     } else {
       Op.Builder(opType = "ConcatV2", name = name)
           .addInputList(inputs)
           .addInput(axis)
-          .build().outputs(0)
+          .build().outputs(0).asOutput[T]
     }
   }
 
@@ -762,7 +765,7 @@ trait Basic {
     */
   @throws[IllegalArgumentException]
   private[ops] def concatenateOffset(
-      shapes: Seq[Output], axis: Output, name: String = "ConcatenateOffset"): Seq[Output] = {
+      shapes: Seq[Output[DataType]], axis: Output[DataType], name: String = "ConcatenateOffset"): Seq[Output[DataType]] = {
     if (shapes.length < 2)
       throw new IllegalArgumentException(s"At least 2 shapes need to be provided (actual provided = ${shapes.length}).")
     if (shapes.exists(s => s.dataType != INT32 || s.shape.rank > 1))
@@ -797,12 +800,12 @@ trait Basic {
     * @param  name      Name for the created op.
     * @return Created op outputs.
     */
-  def splitEvenly(input: Output, numSplits: Int, axis: Int = 0, name: String = "Split"): Array[Output] = {
+  def splitEvenly[T <: DataType](input: Output[T], numSplits: Int, axis: Int = 0, name: String = "Split"): Array[Output[T]] = {
     Op.Builder(opType = "Split", name = name)
-        .addInput(Op.createWith(nameScope = name)(constant(tensor = axis, name = "Axis")))
+        .addInput(Op.createWith(nameScope = name)(constant(tensor = axis, name = "Axis")()))
         .addInput(input)
         .setAttribute("num_split", numSplits)
-        .build().outputs
+        .build().outputs.map(_.asOutput[T])
   }
 
   /** Creates an op that splits a tensor into sub-tensors.
@@ -828,7 +831,7 @@ trait Basic {
     * @return Created op outputs.
     */
   def split(
-      input: Output, splitSizes: Output, axis: Output = constant(Tensor(0)), name: String = "Split"): Seq[Output] = {
+      input: Output[DataType], splitSizes: Output[DataType], axis:Output[DataType] = constant(Tensor(0))(), name: String = "Split"): Seq[Output[DataType]] = {
     Op.Builder(opType = "SplitV", name = name)
         .addInput(input)
         .addInput(Op.createWith(nameScope = name)(splitSizes))
@@ -848,11 +851,11 @@ trait Basic {
     * @param  name      Name for the created op.
     * @return Created op output.
     */
-  def tile(input: Output, multiples: Output, name: String = "Tile"): Output = {
+  def tile[T <: DataType](input: Output[T], multiples: Output[DataType], name: String = "Tile"): Output[T] = {
     Op.Builder(opType = "Tile", name = name)
         .addInput(input)
         .addInput(multiples)
-        .build().outputs(0)
+        .build().outputs(0).asOutput[T]
   }
 
   /** Padding mode. */
@@ -874,7 +877,7 @@ trait Basic {
       * @return Created op output.
       * @throws IllegalArgumentException If `paddings` has an invalid data type.
       */
-    def pad(input: Output, paddings: Output, name: String = "Pad"): Output
+    def pad[T <: DataType](input: Output[T], paddings: Output[DataType], name: String = "Pad"): Output[T]
   }
 
   private[ops] object PaddingMode {
@@ -908,11 +911,11 @@ trait Basic {
     * }}}
     */
   object ConstantPadding extends PaddingMode {
-    override def pad(input: Output, paddings: Output, name: String = "Pad"): Output = {
+    override def pad[T <: DataType](input: Output[T], paddings: Output[DataType], name: String = "Pad"): Output[T] = {
       Op.Builder(opType = "Pad", name = name)
           .addInput(input)
           .addInput(paddings)
-          .build().outputs(0)
+          .build().outputs(0).asOutput[T]
     }
   }
 
@@ -939,12 +942,12 @@ trait Basic {
     * }}}
     */
   object ReflectivePadding extends PaddingMode {
-    override def pad(input: Output, paddings: Output, name: String = "Pad"): Output = {
+    override def pad[T <: DataType](input: Output[T], paddings: Output[DataType], name: String = "Pad"):Output[T] = {
       Op.Builder(opType = "MirrorPad", name = name)
           .addInput(input)
           .addInput(paddings)
           .setAttribute("mode", "REFLECT")
-          .build().outputs(0)
+          .build().outputs(0).asOutput[T]
     }
   }
 
@@ -971,12 +974,12 @@ trait Basic {
     * }}}
     */
   object SymmetricPadding extends PaddingMode {
-    override def pad(input: Output, paddings: Output, name: String = "Pad"): Output = {
+    override def pad[T <: DataType](input: Output[T], paddings: Output[DataType], name: String = "Pad"): Output[T] = {
       Op.Builder(opType = "MirrorPad", name = name)
           .addInput(input)
           .addInput(paddings)
           .setAttribute("mode", "SYMMETRIC")
-          .build().outputs(0)
+          .build().outputs(0).asOutput[T]
     }
   }
 
@@ -1027,7 +1030,7 @@ trait Basic {
     * @throws IllegalArgumentException If `paddings` has an invalid data type.
     */
   @throws[IllegalArgumentException]
-  def pad(input: Output, paddings: Output, mode: PaddingMode = ConstantPadding, name: String = "Pad"): Output = {
+  def pad[T <: DataType](input: Output[T], paddings: Output[DataType], mode: PaddingMode = ConstantPadding, name: String = "Pad"):Output[T] = {
     if (paddings.dataType != INT32 && paddings.dataType != INT64)
       throw new IllegalArgumentException(
         s"'paddings' (dataType = ${paddings.dataType}) must have INT32 or INT64 data type.")
@@ -1091,11 +1094,11 @@ trait Basic {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def reshape(input: Output, shape: Output, name: String = "Reshape"): Output = {
+  def reshape[T <: DataType](input: Output[T], shape: Output[DataType], name: String = "Reshape"): Output[T] = {
     Op.Builder(opType = "Reshape", name = name)
         .addInput(input)
         .addInput(shape)
-        .build().outputs(0)
+        .build().outputs(0).asOutput[T]
   }
 
   /** Creates an op that transposes `input`. THe op permutes the dimensions of `input` according to `permutation`.
@@ -1124,15 +1127,15 @@ trait Basic {
     * @param  name        Name for the created op.
     * @return Created op output.
     */
-  def transpose(input: Output, permutation: Output = null, name: String = "Transpose"): Output = {
+  def transpose[T <: DataType](input: Output[T], permutation: Output[DataType] = null, name: String = "Transpose"): Output[T] = {
     if (permutation == null) {
       Op.createWith(nameScope = name) {
         val inputRank = rank(input)
-        val reversePermutation = inputRank - constant(1) - Math.range(constant(0), inputRank, constant(1))
+        val reversePermutation = inputRank - constant(1)(INT32) - Math.range(constant(0)(INT32), inputRank, constant(1)(INT32))()
         val transposed = Op.Builder(opType = "Transpose", name = name)
             .addInput(input)
             .addInput(reversePermutation)
-            .build().outputs(0)
+            .build().outputs(0).asOutput[T]
         // Setting the shape explicitly because transpose is not handled by the shape function.
         val inputShape = transposed.op.inputs(0).shape
         if (inputShape != null && inputShape.rank != -1)
@@ -1143,7 +1146,7 @@ trait Basic {
       Op.Builder(opType = "Transpose", name = name)
           .addInput(input)
           .addInput(permutation)
-          .build().outputs(0)
+          .build().outputs(0).asOutput[T]
     }
   }
 
@@ -1155,7 +1158,7 @@ trait Basic {
     * @param  name        Name for the created op.
     * @return Created op output.
     */
-  def transposeDynamic(input: Output, permutation: Output, name: String = "Transpose"): Output = {
+  def transposeDynamic[T <: DataType](input: Output[T], permutation: Output[DataType], name: String = "Transpose"): Output[T] = {
     if (permutation.dataType != INT32 && permutation.dataType != INT64)
       throw InvalidDataTypeException(
         s"Data type '${permutation.dataType}' is not supported for the transpose op permutation. " +
@@ -1163,7 +1166,7 @@ trait Basic {
     Op.Builder(opType = "Transpose", name = name)
         .addInput(input)
         .addInput(permutation)
-        .build().outputs(0)
+        .build().outputs(0).asOutput[T]
   }
 
   /** Creates an op that transposes the last two dimensions of tensor `input`.
@@ -1188,7 +1191,7 @@ trait Basic {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def matrixTranspose(input: Output, name: String = "MatrixTranspose"): Output = {
+  def matrixTranspose[T <: DataType](input: Output[T], name: String = "MatrixTranspose"):Output[T] = {
     Op.createWith(nameScope = name) {
       // If we know the number of dimensions statically, we can do two things:
       //   1. Check that `input` is a (batch) matrix.
@@ -1203,10 +1206,10 @@ trait Basic {
         transpose(input, permutation)
       } else {
         val inputRank = rank(input)
-        val inputRankMinus1 = inputRank - constant(1)
-        val inputRankMinus2 = inputRank - constant(2)
+        val inputRankMinus1 = inputRank - constant(1)(INT32)
+        val inputRankMinus2 = inputRank - constant(2)(INT32)
         val permutation = concatenate(
-          Array(Math.range(constant(0), inputRankMinus2, constant(1)), inputRankMinus1, inputRankMinus2))
+          Array(Math.range(constant(0)(INT32), inputRankMinus2, constant(1)(INT32))(), inputRankMinus1, inputRankMinus2))
         transposeDynamic(input, permutation)
       }
     }
@@ -1228,7 +1231,7 @@ trait Basic {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def invertPermutation(input: Output, name: String = "InvertPermutation"): Output = {
+  def invertPermutation[T <: DataType](input: Output[T], name: String = "InvertPermutation"): Output[T] = {
     if (input.dataType != INT32 && input.dataType != INT64)
       throw InvalidDataTypeException(
         s"Data type '${input.dataType}' is not supported for the permutation inversion op input. " +
@@ -1239,7 +1242,7 @@ trait Basic {
             s"Only one-dimensional tensors are supported.")
     Op.Builder(opType = "InvertPermutation", name = name)
         .addInput(input)
-        .build().outputs(0)
+        .build().outputs(0).asOutput[T]
   }
 
   /** Creates an op that reverses specific dimensions of a tensor.
@@ -1289,7 +1292,7 @@ trait Basic {
     * @param  name  Name for the created op.
     * @return Created op output that has the same shape as `input`.
     */
-  def reverse(input: Output, axes: Output, name: String = "Reverse"): Output = {
+  def reverse[T <: DataType](input: Output[T], axes: Output[DataType], name: String = "Reverse"): Output[T] = {
     if (axes.dataType != INT32 && axes.dataType != INT64)
       throw InvalidDataTypeException(
         s"Data type '${axes.dataType}' is not supported for the reverse op axes. " +
@@ -1297,7 +1300,7 @@ trait Basic {
     Op.Builder(opType = "ReverseV2", name = name)
         .addInput(input)
         .addInput(axes)
-        .build().outputs(0)
+        .build().outputs(0).asOutput[T]
   }
 
   /** Creates an op that reverses variable length slices.
@@ -1355,8 +1358,8 @@ trait Basic {
     * @return Created op output which has the same shape as `input`.
     */
   def reverseSequence(
-      input: Output, sequenceLengths: Output, sequenceAxis: Int, batchAxis: Int = 0,
-      name: String = "ReverseSequence"): Output = {
+      input: Output[DataType], sequenceLengths: Output[DataType], sequenceAxis: Int, batchAxis: Int = 0,
+      name: String = "ReverseSequence"): Output[DataType] = {
     Op.Builder(opType = "ReverseSequence", name = name)
         .addInput(input)
         .addInput(sequenceLengths)
@@ -1441,7 +1444,7 @@ trait Basic {
     *                                  not greater than `1`.
     */
   @throws[IllegalArgumentException]
-  def spaceToBatch(input: Output, blockSize: Int, paddings: Output, name: String = "SpaceToBatch"): Output = {
+  def spaceToBatch[T <: DataType](input: Output[T], blockSize: Int, paddings: Output[DataType], name: String = "SpaceToBatch"): Output[T] = {
     if (input.rank != -1 && input.rank != 4)
       throw new IllegalArgumentException(s"'input' (shape = ${input.dataType}) must have rank equal to 4.")
     if (blockSize <= 1)
@@ -1451,7 +1454,7 @@ trait Basic {
         s"'paddings' (dataType = ${paddings.dataType}) must have INT32 or INT64 data type.")
     if (paddings.rank != -1 && paddings.rank != 2)
       throw new IllegalArgumentException(s"'paddings' (shape = ${paddings.dataType}) must have rank equal to 2.")
-    val result = spaceToBatchND(input, constant(Tensor(blockSize, blockSize)), paddings, name)
+    val result = spaceToBatchND(input, constant(Tensor(blockSize, blockSize))(), paddings, name)
     result.setShape(result.shape.withRank(4))
     result
   }
@@ -1547,7 +1550,7 @@ trait Basic {
     * @throws IllegalArgumentException If `blockShape` or `paddings` has an invalid data type or shape.
     */
   @throws[IllegalArgumentException]
-  def spaceToBatchND(input: Output, blockShape: Output, paddings: Output, name: String = "SpaceToBatchND"): Output = {
+  def spaceToBatchND[T <: DataType](input: Output[T], blockShape: Output[DataType], paddings: Output[DataType], name: String = "SpaceToBatchND"): Output[T] = {
     if (blockShape.dataType != INT32 && blockShape.dataType != INT64)
       throw new IllegalArgumentException(
         s"'blockShape' (dataType = ${blockShape.dataType}) must have INT32 or INT64 data type.")
@@ -1562,7 +1565,7 @@ trait Basic {
         .addInput(input)
         .addInput(blockShape)
         .addInput(paddings)
-        .build().outputs(0)
+        .build().outputs(0).asOutput[T]
   }
 
   /** Creates an op that rearranges (permutes) data from batches into blocks of spatial data, followed by cropping.
@@ -1630,7 +1633,7 @@ trait Basic {
     *                                  greater than `1`.
     */
   @throws[IllegalArgumentException]
-  def batchToSpace(input: Output, blockSize: Int, crops: Output, name: String = "BatchToSpace"): Output = {
+  def batchToSpace[T <: DataType](input: Output[T], blockSize: Int, crops: Output[DataType], name: String = "BatchToSpace"): Output[T] = {
     if (input.rank != -1 && input.rank != 4)
       throw new IllegalArgumentException(s"'input' (shape = ${input.dataType}) must have rank equal to 4.")
     if (blockSize <= 1)
@@ -1640,7 +1643,7 @@ trait Basic {
         s"'crops' (dataType = ${crops.dataType}) must have INT32 or INT64 data type.")
     if (crops.rank != -1 && crops.rank != 2)
       throw new IllegalArgumentException(s"'crops' (shape = ${crops.dataType}) must have rank equal to 2.")
-    val result = batchToSpaceND(input, constant(Tensor(blockSize, blockSize)), crops, name)
+    val result = batchToSpaceND(input, constant(Tensor(blockSize, blockSize))(), crops, name)
     result.setShape(result.shape.withRank(4))
     result
   }
@@ -1748,7 +1751,7 @@ trait Basic {
     * @throws IllegalArgumentException If `blockShape` or `crops` has an invalid data type or shape.
     */
   @throws[IllegalArgumentException]
-  def batchToSpaceND(input: Output, blockShape: Output, crops: Output, name: String = "BatchToSpaceND"): Output = {
+  def batchToSpaceND[T <: DataType](input: Output[T], blockShape: Output[DataType], crops: Output[DataType], name: String = "BatchToSpaceND"): Output[T] = {
     if (blockShape.dataType != INT32 && blockShape.dataType != INT64)
       throw new IllegalArgumentException(
         s"'blockShape' (dataType = ${blockShape.dataType}) must have INT32 or INT64 data type.")
@@ -1763,7 +1766,7 @@ trait Basic {
         .addInput(input)
         .addInput(blockShape)
         .addInput(crops)
-        .build().outputs(0)
+        .build().outputs(0).asOutput[T]
   }
 
   /** Creates ops that calculate the paddings and crops required to make `blockShape` divide `inputShape`.
@@ -1788,8 +1791,8 @@ trait Basic {
     */
   @throws[IllegalArgumentException]
   def requiredSpaceToBatchPaddingsAndCrops(
-      inputShape: Output, blockShape: Output, basePaddings: Output = null,
-      name: String = "RequiredSpaceToBatchPaddings"): (Output, Output) = {
+      inputShape: Output[INT32], blockShape: Output[INT32], basePaddings: Output[INT32] = null,
+      name: String = "RequiredSpaceToBatchPaddings"): (Output[INT32], Output[INT32]) = {
     if (inputShape.dataType != INT32 || (inputShape.rank != -1 && inputShape.rank != 1))
       throw new IllegalArgumentException(
         s"'inputShape' (dataType = ${inputShape.dataType}, shape = ${inputShape.shape}) " +
@@ -1831,7 +1834,7 @@ trait Basic {
           val padEnd = originalPadEnd + extraPadEnd
           val resultPaddings = stack(
             (0 until numBlockDims).map(i => concatenate(Seq(padStart(i), padEnd(i)))), name = "Paddings")
-          val zero = constant(Tensor(padStart.dataType, 0))
+          val zero = constant(Tensor(padStart.dataType, 0))(INT32)
           val resultCrops = stack(
             (0 until numBlockDims).map(i => concatenate(Seq(zero, extraPadEnd(i)))), name = "Crops")
           (resultPaddings, resultCrops)
@@ -1887,7 +1890,7 @@ trait Basic {
     * @return Created op output.
     * @throws IllegalArgumentException If `input` has an invalid shape or if `blockSize` is not greater than `1`.
     */
-  def spaceToDepth(input: Output, blockSize: Int, name: String = "SpaceToDepth"): Output = {
+  def spaceToDepth[T <: DataType](input: Output[T], blockSize: Int, name: String = "SpaceToDepth"): Output[T] = {
     if (input.rank != -1 && input.rank != 4)
       throw new IllegalArgumentException(s"'input' (shape = ${input.dataType}) must have rank equal to 4.")
     if (blockSize <= 1)
@@ -1895,7 +1898,7 @@ trait Basic {
     Op.Builder(opType = "SpaceToDepth", name = name)
         .addInput(input)
         .setAttribute("block_size", blockSize.toLong)
-        .build().outputs(0)
+        .build().outputs(0).asOutput[T]
   }
 
   /** Creates an op that rearranges data from depth into blocks of spatial data.
@@ -1946,7 +1949,7 @@ trait Basic {
     * @return Created op output.
     * @throws IllegalArgumentException If `input` has an invalid shape or if `blockSize` is not greater than `1`.
     */
-  def depthToSpace(input: Output, blockSize: Int, name: String = "DepthToSpace"): Output = {
+  def depthToSpace[T <: DataType](input: Output[T], blockSize: Int, name: String = "DepthToSpace"): Output[T] = {
     if (input.rank != -1 && input.rank != 4)
       throw new IllegalArgumentException(s"'input' (shape = ${input.dataType}) must have rank equal to 4.")
     if (blockSize <= 1)
@@ -1954,7 +1957,7 @@ trait Basic {
     Op.Builder(opType = "DepthToSpace", name = name)
         .addInput(input)
         .setAttribute("block_size", blockSize.toLong)
-        .build().outputs(0)
+        .build().outputs(0).asOutput[T]
   }
 
   //endregion Tensor Manipulation Ops
@@ -1994,13 +1997,13 @@ trait Basic {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def where(input: Output, name: String = "Where"): Output = {
+  def where[T <: DataType](input: Output[BOOLEAN], name: String = "Where"): Output[INT64] = {
     if (input.dataType != BOOLEAN)
       throw InvalidDataTypeException(
         s"The 'where' op only supports boolean tensors as inputs. It does not support '${input.dataType}' tensors.")
     Op.Builder(opType = "Where", name = name)
         .addInput(input)
-        .build().outputs(0)
+        .build().outputs(0).asOutput[INT64]
   }
 
   /** Creates an op that applies the provided boolean mask to `input`.
@@ -2029,7 +2032,7 @@ trait Basic {
     * @throws InvalidShapeException If the shapes of `input` and `mask` are not compatible.
     */
   @throws[InvalidShapeException]
-  def booleanMask(input: Output, mask: Output, name: String = "BooleanMask"): Output = {
+  def booleanMask[T <: DataType](input: Output[T], mask: Output[BOOLEAN], name: String = "BooleanMask"): Output[T] = {
     Op.createWithNameScope(name, Set[Op](input.op, mask.op)) {
       val inputShape: Shape = input.shape
       val maskShape: Shape = mask.shape
@@ -2043,7 +2046,7 @@ trait Basic {
       inputShape(0 :: maskRank).assertIsCompatibleWith(maskShape)
       val dynamicInputShape = shape(input)
       val leadingSize = Math.product(dynamicInputShape(0 :: maskRank), Array(0))
-      val reshapedInput = reshape(input, concatenate(Array[Output](leadingSize, dynamicInputShape(maskRank ::)), 0))
+      val reshapedInput = reshape(input, concatenate(Array[Output[DataType]](leadingSize, dynamicInputShape(maskRank ::)), 0))
       val firstDimension = inputShape(0 :: maskRank).rank
       reshapedInput.setShape(Shape(firstDimension).concatenateWith(inputShape(maskRank ::)))
       gather(reshapedInput, squeeze(where(reshape(mask, Array(-1))), axes = Array(1)))
@@ -2070,11 +2073,12 @@ trait Basic {
     * @param  name      Name for the created op.
     * @return Created op output.
     * @throws IllegalArgumentException If either `lengths` or `maxLength` have invalid rank.
+    * TODO restrict inputs to integral type
     */
   @throws[IllegalArgumentException]
-  def sequenceMask(
-      lengths: Output, maxLength: Output = null, dataType: DataType = BOOLEAN,
-      name: String = "SequenceMask"): Output = {
+  def sequenceMask[T <: RealNumericDataType, U <: RealNumericDataType, V <: RealNumericDataType](
+      lengths: Output[T], maxLength: Output[U] = null, dataType: V = BOOLEAN,
+      name: String = "SequenceMask"): Output[V] = {
     if (lengths.rank != 1)
       throw new IllegalArgumentException(s"'lengths' (shape = ${lengths.shape}) must be a one-dimensional tensor.")
     if (maxLength != null && maxLength.rank != 0)
@@ -2085,13 +2089,13 @@ trait Basic {
       // The basic idea is to compare a range row vector of size 'maxLen', [0, 1, 2, 3, 4], to 'lengths' as a matrix
       // with one column, [[1], [3], [2]]. Because of broadcasting on both arguments, this comparison results in a
       // matrix of size [lengths.shape(0), maxLen].
-      val rowVector = Math.range(constant(0, maxLen.dataType), maxLen, constant(1, maxLen.dataType))
+      val rowVector = Math.range(constant(0)(maxLen.dataType), maxLen, constant(1)(maxLen.dataType))(maxLen.dataType)
       // Since 'maxLen' >= max(lengths), it is safe to use 'maxLen' as a cast authoritative type. Whenever 'maxLen' fits
       // into INT32, then so do the elements of 'lengths'.
       val matrix = Math.cast(expandDims(lengths, 1), maxLen.dataType)
       val result = Math.less(rowVector, matrix)
       if (result.dataType == dataType)
-        result
+        result.asOutput[V] // TODO can we do this in a safer way?
       else
         Math.cast(result, dataType)
     }
@@ -2125,8 +2129,8 @@ trait Basic {
     * @throws IllegalArgumentException If `maskIndices` is not a one-dimensional tensor.
     */
   @throws[IllegalArgumentException]
-  def indexedSlicesMask(
-      input: OutputIndexedSlices, maskIndices: Output, name: String = "IndexedSlicesMask"): OutputIndexedSlices = {
+  def indexedSlicesMask[T <: DataType](
+      input: OutputIndexedSlices[T], maskIndices: Output[INT64], name: String = "IndexedSlicesMask"): OutputIndexedSlices[T] = {
     if (maskIndices.rank > 1)
       throw new IllegalArgumentException(
         s"'maskIndices' (shape = ${maskIndices.shape}) must be a one-dimensional tensor.")
@@ -2155,15 +2159,16 @@ trait Basic {
     * @param  input One-dimensional input tensor.
     * @param  name  Name for the created op.
     * @return Tuple containing `output` and `indices`.
+    * TODO make indices type configurable to {int32, int64} default INT32
     */
-  def unique(input: Output, name: String = "Unique"): (Output, Output) = {
+  def unique[T <: DataType](input: Output[T], name: String = "Unique"): (Output[T], Output[INT32]) = {
     if (input.shape.rank != 1 && input.shape.rank != -1)
       throw InvalidShapeException(
         s"Shape '${input.shape}' is not supported for the unique op input. Only one-dimensional tensors are supported.")
     val outputs = Op.Builder(opType = "Unique", name = name)
         .addInput(input)
         .build().outputs
-    (outputs(0), outputs(1))
+    (outputs(0).asOutput[T], outputs(1).asOutput[INT32])
   }
 
   /** Creates an op that finds unique elements in a one-dimensional tensor.
@@ -2186,14 +2191,14 @@ trait Basic {
     * @param  name  Name for the created op.
     * @return Tuple containing `output`, `indices`, and `counts`.
     */
-  def uniqueWithCounts(input: Output, name: String = "UniqueWithCounts"): (Output, Output, Output) = {
+  def uniqueWithCounts[T <: DataType](input: Output[T], name: String = "UniqueWithCounts"): (Output[T], Output[INT32], Output[INT32]) = {
     if (input.shape.rank != 1 && input.shape.rank != -1)
       throw InvalidShapeException(
         s"Shape '${input.shape}' is not supported for the unique op input. Only one-dimensional tensors are supported.")
     val outputs = Op.Builder(opType = "UniqueWithCounts", name = name)
         .addInput(input)
         .build().outputs
-    (outputs(0), outputs(1), outputs(2))
+    (outputs(0).asOutput[T], outputs(1).asOutput[INT32], outputs(2).asOutput[INT32])
   }
 
   /** Creates an op that computes the difference between two lists of numbers or strings.
@@ -2213,7 +2218,7 @@ trait Basic {
     * @param  name          Name for the created op.
     * @return Tuple containing `output` and `indices`, from the method description.
     */
-  def listDiff(x: Output, y: Output, indexDataType: DataType = INT32, name: String = "ListDiff"): (Output, Output) = {
+  def listDiff[T <: DataType, U <: RealNumericDataType](x: Output[T], y: Output[T], indexDataType: U = INT32, name: String = "ListDiff"): (Output[T], Output[U]) = {
     if (indexDataType != INT32 && indexDataType != INT64)
       throw InvalidDataTypeException(
         s"The index data type cannot be '$indexDataType'. It has to be either 'INT32' or 'INT64'.")
@@ -2222,7 +2227,7 @@ trait Basic {
         .addInput(y)
         .setAttribute("out_idx", indexDataType)
         .build().outputs
-    (outputs(0), outputs(1))
+    (outputs(0).asOutput[T], outputs(1).asOutput[U])
   }
 
   //region Slice Ops
@@ -2250,11 +2255,11 @@ trait Basic {
     * @param  name    Name for the created op.
     * @return Created op output.
     */
-  def gather(input: Output, indices: Output, name: String = "Gather"): Output = {
+  def gather[T <: DataType](input: Output[T], indices: Output[DataType], name: String = "Gather"): Output[T] = {
     Op.Builder(opType = "Gather", name = name)
         .addInput(input)
         .addInput(indices)
-        .build().outputs(0)
+        .build().outputs(0).asOutput[T]
   }
 
   /** Creates an op that gathers values or slices from `input` according to `indices`.
@@ -2338,11 +2343,11 @@ trait Basic {
     * @return Created op output that contains the values from `input` gathered from indices given by `indices`, with
     *         shape `indices.shape(::-1) + input.shape(indices.shape(-1)::)`.
     */
-  def gatherND(input: Output, indices: Output, name: String = "GatherND"): Output = {
+  def gatherND[T <: DataType](input: Output[T], indices: Output[DataType], name: String = "GatherND"): Output[T] = {
     Op.Builder(opType = "GatherNd", name = name)
         .addInput(input)
         .addInput(indices)
-        .build().outputs(0)
+        .build().outputs(0).asOutput[T]
   }
 
   /** Creates an op that scatters `updates` into a new (initially zero-valued) tensor, according to `indices`.
@@ -2407,7 +2412,7 @@ trait Basic {
     *                                  one-dimensional tensor.
     */
   @throws[IllegalArgumentException]
-  def scatterND(indices: Output, updates: Output, shape: Output, name: String = "ScatterND"): Output = {
+  def scatterND(indices: Output[DataType], updates: Output[DataType], shape: Output[DataType], name: String = "ScatterND"): Output[DataType] = {
     if (indices.dataType != INT32 && indices.dataType != INT64)
       throw new IllegalArgumentException(
         s"'indices' (dataType = ${indices.dataType}) must have INT32 or INT64 data type.")
@@ -2443,7 +2448,7 @@ trait Basic {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def slice(input: Output, begin: Output, size: Output, name: String = "Slice"): Output = {
+  def slice[T <: DataType, U <: DataType, V <: DataType](input: Output[T], begin: Output[U], size: Output[V], name: String = "Slice"): Output[T] = {
     if (begin.dataType != INT32 && begin.dataType != INT64)
       throw InvalidDataTypeException(
         s"'begin' data type, '${begin.dataType}', is not 'INT32' or 'INT64', as required.")
@@ -2454,7 +2459,7 @@ trait Basic {
         .addInput(input)
         .addInput(begin)
         .addInput(size)
-        .build().outputs(0)
+        .build().outputs(0).asOutput[T]
   }
 
   /** Creates an op that returns a strided slice from `input`.
@@ -2561,21 +2566,21 @@ trait Basic {
     * @param  name           Name for the created op.
     * @return Created op output.
     */
-  private[api] def stridedSlice(
-      input: Output, begin: Output, end: Output, strides: Output = null, beginMask: Int = 0,
+  private[api] def stridedSlice[T <: DataType](
+      input: Output[T], begin: Output[DataType], end: Output[DataType], strides: Output[DataType] = null, beginMask: Int = 0,
       endMask: Int = 0, ellipsisMask: Int = 0, newAxisMask: Int = 0, shrinkAxisMask: Int = 0,
-      name: String = "StridedSlice"): Output = {
+      name: String = "StridedSlice"): Output[T] = {
     Op.Builder(opType = "StridedSlice", name = name)
         .addInput(input)
         .addInput(begin)
         .addInput(end)
-        .addInput(if (strides != null) onesLike(begin, begin.dataType) else strides)
+        .addInput(if (strides != null) onesLike(begin)() else strides)
         .setAttribute("begin_mask", beginMask)
         .setAttribute("end_mask", endMask)
         .setAttribute("ellipsis_mask", ellipsisMask)
         .setAttribute("new_axis_mask", newAxisMask)
         .setAttribute("shrink_axis_mask", shrinkAxisMask)
-        .build().outputs(0)
+        .build().outputs(0).asOutput[T]
   }
 
   /** Creates an op that assigns a value to a slice of `input`.
@@ -2622,14 +2627,14 @@ trait Basic {
     * @return Created op output.
     */
   private[api] def stridedSliceAssign(
-      input: Output, value: Output, begin: Output, end: Output, strides: Output = null,
+      input: Output[DataType], value: Output[DataType], begin: Output[DataType], end: Output[DataType], strides: Output[DataType] = null,
       beginMask: Int = 0, endMask: Int = 0, ellipsisMask: Int = 0, newAxisMask: Int = 0, shrinkAxisMask: Int = 0,
-      name: String = "StridedSliceAssign"): Output = {
+      name: String = "StridedSliceAssign"): Output[DataType] = {
     Op.Builder(opType = "ResourceStridedSliceAssign", name = name)
         .addInput(input)
         .addInput(begin)
         .addInput(end)
-        .addInput(if (strides != null) onesLike(begin, begin.dataType) else strides)
+        .addInput(if (strides != null) onesLike(begin)() else strides)
         .addInput(value)
         .setAttribute("begin_mask", beginMask)
         .setAttribute("end_mask", endMask)
@@ -2651,11 +2656,11 @@ trait Basic {
     * @param  name    Name for the created op.
     * @return Created op output, which has the same value as the input tensor.
     */
-  def checkNumerics(input: Output, message: String = "", name: String = "CheckNumerics"): Output = {
+  def checkNumerics[T <: DataType](input: Output[T], message: String = "", name: String = "CheckNumerics"): Output[T] = {
     Op.Builder(opType = "CheckNumerics", name = name)
         .addInput(input)
         .setAttribute("message", message)
-        .build().outputs(0)
+        .build().outputs(0).asOutput[T]
   }
 
   /** Creates an op that computes the Levenshtein distance between sequences.
@@ -2698,8 +2703,8 @@ trait Basic {
     * @return Created op output.
     */
   def editDistance(
-      hypothesis: SparseOutput, truth: SparseOutput, normalize: Boolean = true,
-      name: String = "EditDistance"): Output = {
+      hypothesis: SparseOutput[DataType], truth: SparseOutput[DataType], normalize: Boolean = true,
+      name: String = "EditDistance"): Output[DataType] = {
     Op.Builder(opType = "EditDistance", name = name)
         .addInput(hypothesis.indices)
         .addInput(hypothesis.values)
@@ -2782,8 +2787,8 @@ trait Basic {
     */
   @throws[IllegalArgumentException]
   def oneHot(
-      indices: Output, depth: Output, onValue: Output = null, offValue: Output = null, axis: Int = -1,
-      dataType: DataType = null, name: String = "OneHot"): Output = {
+      indices: Output[DataType], depth: Output[DataType], onValue: Output[DataType] = null, offValue: Output[DataType] = null, axis: Int = -1,
+      dataType: DataType = null, name: String = "OneHot"): Output[DataType] = {
     if (indices.dataType != UINT8 && indices.dataType != INT32 && indices.dataType != INT64)
       throw new IllegalArgumentException(s"The indices data type (${indices.dataType}) must be UINT8, INT32, or INT64.")
     if (depth.dataType != INT32)
@@ -2811,8 +2816,8 @@ trait Basic {
         s"The provided on value data type (${onValue.dataType}) must match " +
             s"the provided off value data type (${offValue.dataType}).")
     Op.createWithNameScope(name, Set(indices.op, depth.op, onValue.op, offValue.op)) {
-      val actualOnValue = if (onValue != null) onValue else constant(1, inferredDataType)
-      val actualOffValue = if (offValue != null) offValue else constant(1, inferredDataType)
+      val actualOnValue = if (onValue != null) onValue else constant(1)(inferredDataType)
+      val actualOffValue = if (offValue != null) offValue else constant(1)(inferredDataType)
       if (actualOnValue.dataType != inferredDataType)
         throw new IllegalArgumentException(
           s"On value data type (${actualOnValue.dataType}) must match the data type $inferredDataType.")
@@ -2844,7 +2849,7 @@ trait Basic {
     * @param  name   Name for the created op.
     * @return Created op output, which is a one-dimensional integer tensor representing the broadcasted shape.
     */
-  def broadcastShapeDynamic(shape1: Output, shape2: Output, name: String = "BroadcastShape"): Output = {
+  def broadcastShapeDynamic(shape1: Output[DataType], shape2: Output[DataType], name: String = "BroadcastShape"): Output[DataType] = {
     if (shape1.dataType != INT32 && shape1.dataType != INT64)
       throw InvalidDataTypeException(
         s"Data type '${shape1.dataType}' is not supported for the shape broadcasting op inputs. " +
@@ -2896,7 +2901,7 @@ trait Basic {
     * @throws IllegalArgumentException If any of the provided inputs is not a rank-`1` tensor.
     */
   @throws[IllegalArgumentException]
-  def meshGrid(inputs: Seq[Output], useCartesianIndexing: Boolean = true, name: String = "MeshGrid"): Seq[Output] = {
+  def meshGrid(inputs: Seq[Output[DataType]], useCartesianIndexing: Boolean = true, name: String = "MeshGrid"): Seq[Output[DataType]] = {
     if (inputs.exists(_.rank > 1))
       throw new IllegalArgumentException("All input tensors to 'meshGrid' must have rank equal to 1.")
     Op.createWithNameScope(name, inputs.map(_.op).toSet) {
@@ -2922,7 +2927,7 @@ trait Basic {
         }
       }
       // TODO: Improve performance with a broadcast.
-      val multiplicativeFactor = fill(stack(shapes), 1, inputs.head.dataType)
+      val multiplicativeFactor = fill(stack(shapes), Tensor(inputs.head.dataType, 1))
       outputs.map(Math.multiply(_, multiplicativeFactor))
     }
   }
@@ -2952,10 +2957,10 @@ trait Basic {
     * @param  name  Name for the created op.
     * @return Created op output, which has the same value as the input tensor.
     */
-  def stopGradient(input: Output, name: String = "StopGradient"): Output = {
+  def stopGradient[T <: DataType](input: Output[T], name: String = "StopGradient"): Output[T] = {
     Op.Builder(opType = "StopGradient", name = name)
         .addInput(input)
-        .build().outputs(0)
+        .build().outputs(0).asOutput[T]
   }
 
   /** Creates an identity op that triggers an error if a gradient is requested.
@@ -2971,11 +2976,11 @@ trait Basic {
     * @param  name    Name for the created op.
     * @return Created op output, which has the same value as the input tensor.
     */
-  def preventGradient(input: Output, message: String = "", name: String = "PreventGradient"): Output = {
+  def preventGradient[T <: DataType](input: Output[T], message: String = "", name: String = "PreventGradient"): Output[T] = {
     Op.Builder(opType = "PreventGradient", name = name)
         .addInput(input)
         .setAttribute("message", message)
-        .build().outputs(0)
+        .build().outputs(0).asOutput[T]
   }
 
   //endregion Gradients Ops
@@ -3032,38 +3037,38 @@ object Basic extends Basic {
     GradientsRegistry.register("QuantizeAndDequantizeV2", quantizeAndDequantizeGradient)
     GradientsRegistry.register("PreventGradient", preventGradientGradient)
 
-    private[this] def fillGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    private[this] def fillGradient(op: Op, outputGradients: Seq[OutputLike[DataType]]): Seq[OutputLike[DataType]] = {
       Seq(null, Math.sum(outputGradients.head))
     }
 
-    private[this] def identityGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    private[this] def identityGradient(op: Op, outputGradients: Seq[OutputLike[DataType]]): Seq[OutputLike[DataType]] = {
       outputGradients
     }
 
     /** Reshapes the gradient to the shape of the original input. */
-    private[this] def reshapeToInput(op: Op, gradient: Output): Output = {
+    private[this] def reshapeToInput[T <: DataType](op: Op, gradient: Output[T]): Output[T] = {
       reshape(gradient, shape(op.inputs(0)))
     }
 
-    private[this] def expandDimsGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    private[this] def expandDimsGradient(op: Op, outputGradients: Seq[OutputLike[DataType]]): Seq[OutputLike[DataType]] = {
       Seq(reshapeToInput(op, outputGradients.head), null)
     }
 
-    private[this] def squeezeGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    private[this] def squeezeGradient(op: Op, outputGradients: Seq[OutputLike[DataType]]): Seq[OutputLike[DataType]] = {
       Seq(reshapeToInput(op, outputGradients.head))
     }
 
-    private[this] def stackGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    private[this] def stackGradient(op: Op, outputGradients: Seq[OutputLike[DataType]]): Seq[OutputLike[DataType]] = {
       unstack(
         input = outputGradients.head, number = op.longAttribute("N").toInt,
         axis = op.longAttribute("axis").toInt).toSeq
     }
 
-    private[this] def unstackGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    private[this] def unstackGradient(op: Op, outputGradients: Seq[OutputLike[DataType]]): Seq[OutputLike[DataType]] = {
       Seq(stack(inputs = outputGradients.map(_.toOutput), axis = op.longAttribute("axis").toInt))
     }
 
-    private[this] def concatenateGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    private[this] def concatenateGradient(op: Op, outputGradients: Seq[OutputLike[DataType]]): Seq[OutputLike[DataType]] = {
       val gradient = outputGradients.head
       if (op.inputs.length == 2) {
         // Degenerate concatenation.
@@ -3075,7 +3080,7 @@ object Basic extends Basic {
         // op implementation to be within the allowed '[-rank, rank)' range.
         val nonNegativeConcatenationAxis = concatenationAxis % rank(inputValues(0))
         val outputGradients = gradient match {
-          case g: Output =>
+          case g: Output[_] =>
             // Get the inputs' tensor shapes.
             val shapes = shapeN(inputValues)
             // The magic number of '16' was found through benchmarking a range of sizes on CPUs and a Maxwell Titan X
@@ -3083,13 +3088,13 @@ object Basic extends Basic {
             // possible that there will be a small number of performance regressions.
             if (shapes.length > 16) {
               // Extract the size of each input along the concatenation axis.
-              val sizes = squeeze(slice(stack(shapes, 1), stack(Seq(nonNegativeConcatenationAxis, 0)), Tensor(1, -1)))
+              val sizes = squeeze(slice(stack(shapes, 1), stack(Seq[Output[DataType]](nonNegativeConcatenationAxis, 0)), Tensor(1, -1)))
               split(g, sizes, nonNegativeConcatenationAxis)
             } else {
               val offset = concatenateOffset(shapes, nonNegativeConcatenationAxis)
               offset.zip(shapes).map(t => slice(g, t._1, t._2))
             }
-          case _: OutputIndexedSlices => ??? // TODO: [GRADIENTS] [TENSORS] Can be done after we settle on tensors.
+          case _: OutputIndexedSlices[_] => ??? // TODO: [GRADIENTS] [TENSORS] Can be done after we settle on tensors.
           // val staticConcatenationAxis = {
           //   val axis = Op.constantValue(concatenationAxis)
           //   if (axis == null)
@@ -3132,16 +3137,16 @@ object Basic extends Basic {
       }
     }
 
-    private[this] def splitEvenlyGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      Seq(null, concatenate(outputGradients.map(_.toOutput), axis = op.inputs(0)))
+    private[this] def splitEvenlyGradient(op: Op, outputGradients: Seq[OutputLike[DataType]]): Seq[OutputLike[DataType]] = {
+      Seq(null, concatenate(outputGradients.map(_.asOutput[DataType]), axis = op.inputs(0)))
     }
 
-    private[this] def splitGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      concatenate(outputGradients.map(_.toOutput), axis = op.inputs(2)) +: Seq.fill(op.inputs.length - 1)(null)
+    private[this] def splitGradient(op: Op, outputGradients: Seq[OutputLike[DataType]]): Seq[OutputLike[DataType]] = {
+      concatenate(outputGradients.map(_.asOutput), axis = op.inputs(2)) +: Seq.fill(op.inputs.length - 1)(null)
     }
 
-    private[this] def tileGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      val inputShape = shape(op.inputs(0))
+    private[this] def tileGradient(op: Op, outputGradients: Seq[OutputLike[DataType]]): Seq[OutputLike[DataType]] = {
+      val inputShape = shape(op.inputs(0).asOutput[DataType])
       // We interleave 'multiples' and 'inputShape' to get 'splitShape', reshape the output gradient to 'splitShape',
       // and reduce along all even dimensions (the tiled dimensions) to get the result with shape 'inputShape'.
       // For example:
@@ -3150,25 +3155,25 @@ object Basic extends Basic {
       //   splitShape = [2, 20, 3, 30, 4, 40]
       //   axes = [0, 2, 4]
       val splitShape = reshape(transpose(stack(Seq(op.inputs(1), inputShape))), -1)
-      val axes = Math.range(0, size(splitShape), 2)
+      val axes = Math.range(0, size(splitShape), 2)()
       val inputGradient = Math.sum(reshape(outputGradients.head, splitShape), axes)
       // Fix shape inference.
       inputGradient.setShape(op.inputs(0).shape)
       Seq(inputGradient, null)
     }
 
-    private[this] def padGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    private[this] def padGradient(op: Op, outputGradients: Seq[OutputLike[DataType]]): Seq[OutputLike[DataType]] = {
       // Pad introduces values around the original tensor, and so the gradient function slices the original shape out of
       // the gradient.
       val x = op.inputs(0)
       val a = op.inputs(1) // == [rank(x), 2]
       // Take a slice of 'a' (the 1st column: [rank(x), 1]).
-      val padBefore = slice(a, Tensor(0, 0), stack(Seq(rank(x), 1)))
+      val padBefore = slice(a, Tensor(0, 0), stack(Seq[Output[DataType]](rank(x), 1)))
       // Make it a one-dimensional tensor and return it.
       Seq(slice(outputGradients.head, reshape(padBefore, -1), shape(x)), null)
     }
 
-    private[this] def mirrorPadGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    private[this] def mirrorPadGradient(op: Op, outputGradients: Seq[OutputLike[DataType]]): Seq[OutputLike[DataType]] = {
       val gradient = Op.Builder(opType = "MirrorPadGrad", name = "MirrorPadGradient")
           .addInput(outputGradients.head)
           .addInput(op.inputs(1))
@@ -3177,23 +3182,23 @@ object Basic extends Basic {
       Seq(gradient, null)
     }
 
-    private[this] def mirrorPadHessian(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    private[this] def mirrorPadHessian(op: Op, outputGradients: Seq[OutputLike[DataType]]): Seq[OutputLike[DataType]] = {
       Seq(pad(outputGradients.head, op.inputs(1), PaddingMode.fromString(op.stringAttribute("mode"))), null)
     }
 
-    private[this] def reshapeGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    private[this] def reshapeGradient(op: Op, outputGradients: Seq[OutputLike[DataType]]): Seq[OutputLike[DataType]] = {
       Seq(reshape(outputGradients.head, shape(op.inputs(0))), null)
     }
 
-    private[this] def transposeGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    private[this] def transposeGradient(op: Op, outputGradients: Seq[OutputLike[DataType]]): Seq[OutputLike[DataType]] = {
       Seq(transpose(outputGradients.head, invertPermutation(op.inputs(1))), null)
     }
 
-    private[this] def reverseGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    private[this] def reverseGradient(op: Op, outputGradients: Seq[OutputLike[DataType]]): Seq[OutputLike[DataType]] = {
       Seq(reverse(outputGradients.head, op.inputs(1)), null)
     }
 
-    private[this] def reverseSequenceGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    private[this] def reverseSequenceGradient(op: Op, outputGradients: Seq[OutputLike[DataType]]): Seq[OutputLike[DataType]] = {
       Seq(reverseSequence(
         input = outputGradients.head,
         sequenceLengths = op.inputs(1),
@@ -3201,31 +3206,31 @@ object Basic extends Basic {
         batchAxis = op.longAttribute("batch_dim").toInt), null)
     }
 
-    private[this] def spaceToBatchGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    private[this] def spaceToBatchGradient(op: Op, outputGradients: Seq[OutputLike[DataType]]): Seq[OutputLike[DataType]] = {
       Seq(batchToSpace(outputGradients.head, op.longAttribute("block_size").toInt, op.inputs(1)), null)
     }
 
-    private[this] def spaceToBatchNDGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    private[this] def spaceToBatchNDGradient(op: Op, outputGradients: Seq[OutputLike[DataType]]): Seq[OutputLike[DataType]] = {
       Seq(batchToSpaceND(outputGradients.head, op.inputs(1), op.inputs(2)), null, null)
     }
 
-    private[this] def batchToSpaceGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    private[this] def batchToSpaceGradient(op: Op, outputGradients: Seq[OutputLike[DataType]]): Seq[OutputLike[DataType]] = {
       Seq(spaceToBatch(outputGradients.head, op.longAttribute("block_size").toInt, op.inputs(1)), null)
     }
 
-    private[this] def batchToSpaceNDGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    private[this] def batchToSpaceNDGradient(op: Op, outputGradients: Seq[OutputLike[DataType]]): Seq[OutputLike[DataType]] = {
       Seq(spaceToBatchND(outputGradients.head, op.inputs(1), op.inputs(2)), null, null)
     }
 
-    private[this] def spaceToDepthGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    private[this] def spaceToDepthGradient(op: Op, outputGradients: Seq[OutputLike[DataType]]): Seq[OutputLike[DataType]] = {
       Seq(depthToSpace(outputGradients.head, op.longAttribute("block_size").toInt))
     }
 
-    private[this] def depthToSpaceGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    private[this] def depthToSpaceGradient(op: Op, outputGradients: Seq[OutputLike[DataType]]): Seq[OutputLike[DataType]] = {
       Seq(spaceToDepth(outputGradients.head, op.longAttribute("block_size").toInt))
     }
 
-    private[this] def gatherGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    private[this] def gatherGradient(op: Op, outputGradients: Seq[OutputLike[DataType]]): Seq[OutputLike[DataType]] = {
       // The input can be large, so we colocate the shape calculation with it.
       // The input can be very large for sparse models and 'shape' raises an exception on the Windows platform whenever
       // any dimension is larger than INT32. 'inputShape' is not used in the optimizer 'applySparse' gradients method
@@ -3236,8 +3241,8 @@ object Basic extends Basic {
         Math.cast(inputShape, INT32)
       }
       // Build appropriately shaped 'OutputIndexedSlices'.
-      val indices = op.inputs(1)
-      val indicesSize = expandDims(size(indices), 0)
+      val indices = op.inputs(1).asOutput[INT64]
+      val indicesSize = expandDims(size(indices, INT64), 0)
       val valuesShape = concatenate(Seq(indicesSize, inputShape(1 ::)), 0)
       val values = reshape(outputGradients.head, valuesShape)
       val gradient = OutputIndexedSlices(
@@ -3245,7 +3250,7 @@ object Basic extends Basic {
       Seq(gradient, null)
     }
 
-    private[this] def gatherNDGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    private[this] def gatherNDGradient(op: Op, outputGradients: Seq[OutputLike[DataType]]): Seq[OutputLike[DataType]] = {
       val input = op.inputs(0)
       val indices = op.inputs(1)
       val inputShape = shape(input, indices.dataType)
@@ -3253,11 +3258,11 @@ object Basic extends Basic {
       Seq(inputGradient, null)
     }
 
-    private[this] def scatterNDGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    private[this] def scatterNDGradient(op: Op, outputGradients: Seq[OutputLike[DataType]]): Seq[OutputLike[DataType]] = {
       Seq(null, gatherND(outputGradients.head, op.inputs(0)), null)
     }
 
-    private[this] def sliceGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    private[this] def sliceGradient(op: Op, outputGradients: Seq[OutputLike[DataType]]): Seq[OutputLike[DataType]] = {
       // Create an N x 2 padding where the first column represents how many zeros are to be prepended for each
       // dimension, and the second column indicates how many zeros are to be appended. The number of zeros to append
       // corresponds to the shape of the input elementwise-subtracted by both the begin vector and sizes vector. Some
@@ -3265,7 +3270,7 @@ object Basic extends Basic {
       val inputVector = op.inputs(0)
       val beginVector = op.inputs(1)
       val inputRank = rank(inputVector)
-      val padShape = stack(Seq(inputRank, constant(Tensor(inputRank.dataType, 1))))
+      val padShape = stack(Seq(inputRank, constant(Tensor(inputRank.dataType, 1))()))
       val beforePad = reshape(beginVector, padShape)
       val afterPad = reshape(shape(inputVector) - shape(op.outputs(0)) - beginVector, padShape)
       val paddings = concatenate(Seq(beforePad, afterPad), axis = 1)
@@ -3273,7 +3278,7 @@ object Basic extends Basic {
     }
   }
 
-  private[this] def stridedSliceGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+  private[this] def stridedSliceGradient(op: Op, outputGradients: Seq[OutputLike[DataType]]): Seq[OutputLike[DataType]] = {
     val gradient = Op.Builder(opType = "StridedSliceGrad", name = "StridedSliceGradient")
         .addInput(shape(op.inputs(0)))
         .addInput(op.inputs(1))
@@ -3289,7 +3294,7 @@ object Basic extends Basic {
     Seq(gradient, null, null, null)
   }
 
-  private[this] def stridedSliceHessian(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+  private[this] def stridedSliceHessian(op: Op, outputGradients: Seq[OutputLike[DataType]]): Seq[OutputLike[DataType]] = {
     val gradient = stridedSlice(
       input = outputGradients.head,
       begin = op.inputs(1),
@@ -3303,15 +3308,15 @@ object Basic extends Basic {
     Seq(null, null, null, null, gradient)
   }
 
-  private[this] def checkNumericsGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+  private[this] def checkNumericsGradient(op: Op, outputGradients: Seq[OutputLike[DataType]]): Seq[OutputLike[DataType]] = {
     Seq(checkNumerics(outputGradients.head, "Not a number (NaN) or infinity (Inf) values detected in the gradient."))
   }
 
-  private[this] def quantizeAndDequantizeGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+  private[this] def quantizeAndDequantizeGradient(op: Op, outputGradients: Seq[OutputLike[DataType]]): Seq[OutputLike[DataType]] = {
     Seq(outputGradients.head, null, null)
   }
 
-  private[this] def preventGradientGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+  private[this] def preventGradientGradient(op: Op, outputGradients: Seq[OutputLike[DataType]]): Seq[OutputLike[DataType]] = {
     throw new IllegalArgumentException(s"Gradient explicitly disabled. Reason: ${op.stringAttribute("message")}.")
   }
 }

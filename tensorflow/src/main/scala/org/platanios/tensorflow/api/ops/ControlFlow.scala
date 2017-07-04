@@ -15,6 +15,8 @@
 
 package org.platanios.tensorflow.api.ops
 
+import org.platanios.tensorflow.api.types.DataType
+
 import scala.reflect.ClassTag
 
 /**
@@ -32,7 +34,7 @@ trait ControlFlow {
     * @param  name         Name for the created op (used mainly as a name scope).
     * @return Created op output.
     */
-  private[api] def withControlDependencies[T <: OutputLike](
+  private[api] def withControlDependencies[T <: OutputLike[DataType]](
       dependencies: Set[Op], input: T, name: String = "WithControlDependencies"): T = {
     Op.createWithNameScope(name, dependencies + input.op) {
       Op.colocateWith(Set[Op](input.op)) {
@@ -90,7 +92,7 @@ trait ControlFlow {
     * @param  name          Name for the created ops (used mainly as a name scope).
     * @return Created op outputs, which in this case are the values of `inputs`.
     */
-  def tuple[T <: OutputLike](
+  def tuple[T <: OutputLike[DataType]](
       inputs: Array[T], controlInputs: Set[Op] = Set.empty, name: String = "Tuple")
       (implicit tag: ClassTag[T]): Array[T] = {
     val gatingOps = inputs.map(_.op).toSet
@@ -211,7 +213,7 @@ trait ControlFlow {
   //  @throws[ShapeMismatchException]
   //  @throws[IllegalArgumentException]
   //  private[this] def setShapeInvariants(
-  //      inputTensors: Array[OutputLike], enterTensors: Array[OutputLike], shapes: Array[Shape]): Unit = {
+  //      inputTensors: Array[OutputLike[DataType]], enterTensors: Array[OutputLike[DataType]], shapes: Array[Shape]): Unit = {
   //    // Check that the shapes of the inputs are less than the shape invariants, and set the shapes of the enter tensors
   //    // to the shape invariants.
   //    for ((input, enter, shape) <- (inputTensors, enterTensors, shapes).zipped) {
@@ -263,7 +265,7 @@ trait ControlFlow {
   //    */
   //  @throws[ShapeMismatchException]
   //  @throws[IllegalArgumentException]
-  //  private[this] def enforceShapeInvariant(mergeTensor: OutputLike, nextTensor: OutputLike): Unit = {
+  //  private[this] def enforceShapeInvariant(mergeTensor: OutputLike[DataType], nextTensor: OutputLike[DataType]): Unit = {
   //    // @formatter:off
   //    (mergeTensor, nextTensor) match {
   //      case (merge: Output, next: Output) =>
@@ -324,7 +326,7 @@ trait ControlFlow {
   //    * @param  name  Name for the created op.
   //    * @return Created op output, which is the same as `input`.
   //    */
-  //  private[this] def nextIteration[T <: OutputLike](input: T, name: String = "NextIteration"): T = {
+  //  private[this] def nextIteration[T <: OutputLike[DataType]](input: T, name: String = "NextIteration"): T = {
   //    Op.createWithNameScope(nameScope = name, Set(input.op)) {
   //      // @formatter:off
   //      input match {
@@ -366,7 +368,7 @@ trait ControlFlow {
   //    * @param  name               Name for the created op.
   //    * @return Created op output, which is the same as `input`.
   //    */
-  //  private[this] def enter[T <: OutputLike](
+  //  private[this] def enter[T <: OutputLike[DataType]](
   //      input: T, frameName: String, isConstant: Boolean = false, parallelIterations: Int = 10,
   //      useInputShape: Boolean = true, name: String = "Enter"): T = {
   //    Op.createWithNameScope(nameScope = name, Set(input.op)) {
@@ -408,7 +410,7 @@ trait ControlFlow {
   //    * @param  name  Name for the created op.
   //    * @return Created op output, which is the same as `input`.
   //    */
-  //  private[this] def exit[T <: OutputLike](input: T, name: String = "Exit"): T = {
+  //  private[this] def exit[T <: OutputLike[DataType]](input: T, name: String = "Exit"): T = {
   //    Op.createWithNameScope(nameScope = name, Set(input.op)) {
   //      // @formatter:off
   //      input match {
@@ -445,7 +447,7 @@ trait ControlFlow {
   //    * @param  name      Name for the created op.
   //    * @return Tuple containing `outputFalse` and `outputTrue`, in that order.
   //    */
-  //  private[this] def switch[T <: OutputLike](input: T, predicate: Output, name: String = "Switch"): (T, T) = {
+  //  private[this] def switch[T <: OutputLike[DataType]](input: T, predicate: Output, name: String = "Switch"): (T, T) = {
   //    Op.createWithNameScope(nameScope = name, Set(input.op, predicate.op)) {
   //      // @formatter:off
   //      input match {
@@ -495,8 +497,8 @@ trait ControlFlow {
   //    * @param  name   Name for the created op.
   //    * @return Tuple containing `output` and `outputIndex`, in that order.
   //    */
-  //  private[this] def merge[T <: OutputLike : TypeTag](
-  //      inputs: Array[T], name: String = "Merge"): (OutputLike, Output) = {
+  //  private[this] def merge[T <: OutputLike[DataType] : TypeTag](
+  //      inputs: Array[T], name: String = "Merge"): (OutputLike[DataType], Output) = {
   //    Op.createWithNameScope(nameScope = name, inputs.map(_.op).toSet) {
   //      // @formatter:off
   //      inputs match {

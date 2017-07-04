@@ -41,7 +41,7 @@ package object variables {
     val onesInitializer  = variables.OnesInitializer
 
     def constantInitializer(value: Tensor) = variables.ConstantInitializer(value)
-    def constantInitializer(value: Output) = variables.DynamicConstantInitializer(value)
+    def constantInitializer(value: Output[DataType]) = variables.DynamicConstantInitializer(value)
 
     type Saver = variables.Saver
     val Saver = variables.Saver

@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.core
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
 import org.platanios.tensorflow.api.ops.{Basic, Output, OutputConvertible}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{DataType, INT32}
+import org.platanios.tensorflow.api.types.{DataType, INT32, RealNumericDataType}
 
 /** Represents the shape of a tensor computed by an op.
   *
@@ -304,15 +304,15 @@ final class Shape private (private val array: Array[Int]) extends OutputConverti
     *
     * @return One-dimensional op output tensor representing this shape.
     */
-  def toOutput: Output = toOutput()
+  override def toOutput: Output[INT32] = toOutput()
 
   /** Converts this shape to a one-dimensional "symbolic" tensor (i.e., a constant-valued op output).
     *
     * @param  dataType Data type to use for the tensor.
     * @return One-dimensional op output tensor representing this shape.
     */
-  def toOutput(dataType: DataType = INT32, name: String = "Shape"): Output = {
-    Basic.constant(toTensor(dataType), name = name)
+  def toOutput(name: String = "Shape"): Output[INT32] = {
+    Basic.constant(toTensor(INT32), name = name)(INT32)
   }
 
   override def toString: String = if (array == null) "<unknown>" else s"[${array.mkString(", ").replace("-1", "?")}]"
@@ -383,7 +383,7 @@ object Shape {
 
   private[api] trait Implicits {
     implicit def shapeToTensor(shape: Shape): Tensor = shape.toTensor()
-    implicit def shapeToOutput(shape: Shape): Output = Basic.constant(shape.toTensor())
+    implicit def shapeToOutput(shape: Shape): Output[INT32] = Basic.constant(shape.toTensor())(INT32)
   }
 
   private[api] object Implicits extends Implicits

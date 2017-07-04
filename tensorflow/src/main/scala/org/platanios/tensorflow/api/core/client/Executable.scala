@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.core.client
 
 import org.platanios.tensorflow.api.ops.{Op, Output, OutputLike}
-
+import org.platanios.tensorflow.api.types.DataType
 import shapeless._
 import shapeless.ops.hlist.{Mapper, ToList}
 
@@ -54,8 +54,8 @@ object Executable {
     override def ops(executable: Op): Set[Op] = Set(executable)
   }
 
-  implicit def outputExecutable = new Executable[Output] {
-    override def ops(executable: Output): Set[Op] = Set(executable.op)
+  implicit def outputExecutable = new Executable[Output[DataType]] {
+    override def ops(executable: Output[DataType]): Set[Op] = Set(executable.op)
   }
 
   implicit def arrayExecutable[T: Executable] = new Executable[Array[T]] {

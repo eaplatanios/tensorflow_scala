@@ -69,8 +69,8 @@ case class PartitionedVariable private[variables] (
     * @throws IllegalArgumentException If having more than one partition axes.
     */
   @throws[IllegalArgumentException]
-  private[this] def concatenated: Output = {
-    val concatenated: Output = {
+  private[this] def concatenated: Output[DataType] = {
+    val concatenated: Output[DataType] = {
       if (variables.length == 1) {
         variables.head
       } else {
@@ -93,7 +93,7 @@ case class PartitionedVariable private[variables] (
     * The returned op output will not inherit the control dependencies from the scope where the value is used, which is
     * equivalent behavior to that of getting the value of a variable.
     */
-  def toOutput: Output = {
+  def toOutput: Output[DataType] = {
     Op.createWith(controlDependencies = Set.empty[Op]) {
       concatenated
     }

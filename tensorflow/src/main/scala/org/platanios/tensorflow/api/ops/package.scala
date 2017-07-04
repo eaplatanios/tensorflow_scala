@@ -33,9 +33,9 @@ package object ops {
     type Op = ops.Op
     val Op = ops.Op
 
-    type Output = ops.Output
-    type OutputIndexedSlices = ops.OutputIndexedSlices
-    type SparseOutput = ops.SparseOutput
+    type Output[+T <: DataType] = ops.Output[T]
+    type OutputIndexedSlices[+T <: DataType] = ops.OutputIndexedSlices[T]
+    type SparseOutput[+T <: DataType] = ops.SparseOutput[T]
 
     type OpCreationContext = ops.OpCreationContext
     type OpSpecification = ops.OpSpecification
