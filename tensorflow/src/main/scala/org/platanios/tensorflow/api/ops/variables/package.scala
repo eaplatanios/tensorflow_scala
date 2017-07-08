@@ -46,41 +46,39 @@ package object variables {
     type Saver = variables.Saver
     val Saver = variables.Saver
 
-    // TODO: !!! [VARIABLES] Change the order of the arguments in the following functions.
-
     def variable(
-        name: String, shape: Shape = null, dataType: DataType = FLOAT32, initializer: VariableInitializer = null,
+        name: String, dataType: DataType = FLOAT32, shape: Shape = null, initializer: VariableInitializer = null,
         regularizer: VariableRegularizer = null, trainable: Boolean = true, reuse: java.lang.Boolean = null,
         collections: Set[Graph.Key[Variable]] = Set.empty,
         cachingDevice: OpSpecification => String = null): Variable = {
       Variable.getVariable(
-        name, shape, dataType, initializer, regularizer, trainable, reuse, collections, cachingDevice)
+        name, dataType, shape, initializer, regularizer, trainable, reuse, collections, cachingDevice)
     }
 
     def partitionedVariable(
-        name: String, shape: Shape = null, dataType: DataType = FLOAT32, initializer: VariableInitializer = null,
+        name: String, dataType: DataType = FLOAT32, shape: Shape = null, initializer: VariableInitializer = null,
         regularizer: VariableRegularizer = null, partitioner: VariablePartitioner, trainable: Boolean = true,
         reuse: java.lang.Boolean = null, collections: Set[Graph.Key[Variable]] = Set.empty,
         cachingDevice: OpSpecification => String = null): PartitionedVariable = {
       Variable.getPartitionedVariable(
-        name, shape, dataType, initializer, regularizer, partitioner, trainable, reuse, collections, cachingDevice)
+        name, dataType, shape, initializer, regularizer, partitioner, trainable, reuse, collections, cachingDevice)
     }
 
     def localVariable(
-        name: String, shape: Shape = null, dataType: DataType = FLOAT32, initializer: VariableInitializer = null,
+        name: String, dataType: DataType = FLOAT32, shape: Shape = null, initializer: VariableInitializer = null,
         regularizer: VariableRegularizer = null, reuse: java.lang.Boolean = null,
         collections: Set[Graph.Key[Variable]] = Set.empty,
         cachingDevice: OpSpecification => String = null): Variable = {
-      Variable.getLocalVariable(name, shape, dataType, initializer, regularizer, reuse, collections, cachingDevice)
+      Variable.getLocalVariable(name, dataType, shape, initializer, regularizer, reuse, collections, cachingDevice)
     }
 
     def localPartitionedVariable(
-        name: String, shape: Shape = null, dataType: DataType = FLOAT32, initializer: VariableInitializer = null,
+        name: String, dataType: DataType = FLOAT32, shape: Shape = null, initializer: VariableInitializer = null,
         regularizer: VariableRegularizer = null, partitioner: VariablePartitioner, reuse: java.lang.Boolean = null,
         collections: Set[Graph.Key[Variable]] = Set.empty,
         cachingDevice: OpSpecification => String = null): PartitionedVariable = {
       Variable.getLocalPartitionedVariable(
-        name, shape, dataType, initializer, regularizer, partitioner, reuse, collections, cachingDevice)
+        name, dataType, shape, initializer, regularizer, partitioner, reuse, collections, cachingDevice)
     }
   }
 }

@@ -94,8 +94,8 @@ case class VariableStore() {
   /** Gets or creates a variable.
     *
     * @param  name          Variable name.
-    * @param  shape         Variable shape.
     * @param  dataType      Variable data type.
+    * @param  shape         Variable shape.
     * @param  initializer   Variable initializer. If `initializer` is `null` (the default), the default initializer
     *                       passed in the constructor is used. If that one is `null` too, then we use a new
     *                       `glorotUniformInitializer`. The initializer will be called for each part of the partitioned
@@ -130,14 +130,14 @@ case class VariableStore() {
   @throws[ShapeMismatchException]
   @throws[InvalidDataTypeException]
   def getVariable(
-      name: String, shape: Shape = null, dataType: DataType = FLOAT32, initializer: Initializer = null,
+      name: String, dataType: DataType = FLOAT32, shape: Shape = null, initializer: Initializer = null,
       regularizer: Regularizer = null, trainable: Boolean = true, reuse: java.lang.Boolean = null,
       collections: Set[Graph.Key[Variable]] = Set.empty, cachingDevice: OpSpecification => String = null,
       customGetter: VariableGetter = null): Variable = {
     /** This function defines the main logic of 'getVariable'. However, 'customGetter' may override this logic. That is
       * why we pass it as an argument to the 'customGetter'. */
     val trueGetter: VariableGetter =
-      (name: String, shape: Shape, dataType: DataType, initializer: Initializer, regularizer: Regularizer,
+      (name: String, dataType: DataType, shape: Shape, initializer: Initializer, regularizer: Regularizer,
           trainable: Boolean, reuse: java.lang.Boolean, collections: Set[Graph.Key[Variable]],
           cachingDevice: (OpSpecification) => String, _: VariableGetter) => {
         // Single variable case.
@@ -169,7 +169,7 @@ case class VariableStore() {
             throw new IllegalArgumentException(
               s"The shape of a new variable ('$name') must be fully defined, but instead it was set to '$shape'.")
           val actualInitializer = if (initializer == null) defaultInitializer(name, dataType) else initializer
-          val variable = Variable(actualInitializer, shape, dataType, trainable, collections, cachingDevice, name)
+          val variable = Variable(actualInitializer, dataType, shape, trainable, collections, cachingDevice, name)
           variables += name -> variable
           // TODO: [LOGGING]
           // Run the regularizer if specified and save the resulting loss.
@@ -186,17 +186,17 @@ case class VariableStore() {
 
     if (customGetter != null) {
       customGetter(
-        name, shape, dataType, initializer, regularizer, trainable, reuse, collections, cachingDevice, trueGetter)
+        name, dataType, shape, initializer, regularizer, trainable, reuse, collections, cachingDevice, trueGetter)
     } else {
-      trueGetter(name, shape, dataType, initializer, regularizer, trainable, reuse, collections, cachingDevice, null)
+      trueGetter(name, dataType, shape, initializer, regularizer, trainable, reuse, collections, cachingDevice, null)
     }
   }
 
   /** Gets or creates a partitioned variable.
     *
     * @param  name          Variable name.
-    * @param  shape         Variable shape.
     * @param  dataType      Variable data type.
+    * @param  shape         Variable shape.
     * @param  initializer   Variable initializer. If `initializer` is `null` (the default), the default initializer
     *                       passed in the constructor is used. If that one is `null` too, then we use a new
     *                       `glorotUniformInitializer`. The initializer will be called for each part of the partitioned
@@ -230,7 +230,7 @@ case class VariableStore() {
   @throws[ShapeMismatchException]
   @throws[InvalidDataTypeException]
   def getPartitionedVariable(
-      name: String, shape: Shape = null, dataType: DataType = FLOAT32, initializer: Initializer = null,
+      name: String, dataType: DataType = FLOAT32, shape: Shape = null, initializer: Initializer = null,
       regularizer: Regularizer = null, partitioner: Partitioner = null, trainable: Boolean = true,
       reuse: java.lang.Boolean = null, collections: Set[Graph.Key[Variable]] = Set.empty,
       cachingDevice: OpSpecification => String = null): PartitionedVariable = {
@@ -243,7 +243,7 @@ case class VariableStore() {
         if (partitioner == null) {
           null
         } else {
-          val partitions = partitioner(shape, dataType)
+          val partitions = partitioner(dataType, shape)
           if (partitions.length != shape.rank)
             throw new IllegalArgumentException(
               s"The partitioner returned an array of length (${partitions.length}) that does not match the provided " +
@@ -311,8 +311,8 @@ case class VariableStore() {
           val variablePart = Op.createWithNameScope("") {
             getVariable(
               name = s"$name/part_$i",
-              shape = Shape.fromSeq(variableShape),
               dataType = dataType,
+              shape = Shape.fromSeq(variableShape),
               initializer = InitializerWithPartitionInformation(actualInitializer, partitionInfo),
               regularizer = regularizer,
               trainable = trainable,
@@ -325,7 +325,7 @@ case class VariableStore() {
         }
 
         // Create and return the new partitioned variable.
-        val partitionedVariable = PartitionedVariable(name, shape, dataType, variableParts, partitions)
+        val partitionedVariable = PartitionedVariable(name, dataType, shape, variableParts, partitions)
         partitionedVariables += name -> partitionedVariable
         // TODO: [LOGGING]
         partitionedVariable

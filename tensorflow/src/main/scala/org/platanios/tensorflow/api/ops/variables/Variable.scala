@@ -32,33 +32,33 @@ import scala.util.DynamicVariable
 /**
   * @author Emmanouil Antonios Platanios
   */
-case class Variable private(
+case class Variable private (
     dataType: DataType,
-    private val variableOp: Output,
+    private val variableHandle: Output,
     private val initializeOp: Op,
-    private val cachedValueOp: Output)
+    private val cachedValue: Output)
     extends OutputConvertible with ProtoSerializable {
   /** Graph where this variable is defined. */
-  val graph: Graph = variableOp.graph
+  val graph: Graph = variableHandle.graph
 
   /** Name of this variable. */
-  val name: String = variableOp.op.name
+  val name: String = variableHandle.op.name
 
   /** Device where this variable resides. */
-  val device: String = variableOp.device
+  val device: String = variableHandle.device
 
   /** Shape of this variable. */
-  val shape: Shape = variableOp.op.shapeAttribute("shape")
+  val shape: Shape = variableHandle.op.shapeAttribute("shape")
 
   /** Op corresponding to this variable. */
-  val op: Op = variableOp.op
+  val op: Op = variableHandle.op
 
   /** Op output that holds the variable reference (i.e., handle to the variable).
     *
     * NOTE: You usually do not need to use this field as all ops that need a reference to the variable call it
     * automatically.
     */
-  private[api] val handle: Output = variableOp
+  private[api] val handle: Output = variableHandle
 
   // /** Op responsible for creating/initializing this variable. */
   // val create: Op = initializeOp
@@ -67,7 +67,7 @@ case class Variable private(
   val initializer: Op = initializeOp
 
   /** Op output that is `true` when the variable has been initialized and `false` otherwise. */
-  val isInitialized: Output = Variable.isVariableInitialized(variableOp, name = "IsInitialized")
+  val isInitialized: Output = Variable.isVariableInitialized(handle, name = "IsInitialized")
 
   // /** Returns the value of the initialized variable. You should use this instead of the variable itself to initialize
   //   * another variable with a value that depends on the value of this variable.
@@ -84,12 +84,12 @@ case class Variable private(
     * converting them to tensors.
     */
   val value: Output = {
-    if (cachedValueOp != null) {
-      cachedValueOp
+    if (cachedValue != null) {
+      cachedValue
     } else {
       Op.createWith(nameScope = name, colocationOps = Set.empty[Op], device = null) {
         // Manually assign reads to the handle's device to avoid log messages
-        Op.createWith(device = variableOp.device)(Variable.readVariable(variableOp, dataType))
+        Op.createWith(device = handle.device)(Variable.readVariable(handle, dataType))
       }
     }
   }
@@ -108,8 +108,8 @@ case class Variable private(
     * @return Created op.
     */
   def read(name: String = "Read"): Output = {
-    val value = Op.createWith(nameScope = this.name, device = variableOp.device) { // TODO: Reset colocation ops?
-      Variable.readVariable(variableOp, dataType, name)
+    val value = Op.createWith(nameScope = this.name, device = handle.device) { // TODO: Reset colocation ops?
+      Variable.readVariable(handle, dataType, name)
     }
     // Return an identity op so that it can get placed on whatever device the context specifies instead of the device
     // where the variable is.
@@ -126,8 +126,8 @@ case class Variable private(
     * @return Created op.
     */
   def sparseRead(indices: Output, name: String = "Gather"): Output = {
-    val value = Op.createWith(nameScope = this.name, device = variableOp.device) { // TODO: Reset colocation ops?
-      Variable.gather(variableOp, indices, dataType, validateIndices = true, name)
+    val value = Op.createWith(nameScope = this.name, device = handle.device) { // TODO: Reset colocation ops?
+      Variable.gather(handle, indices, dataType, validateIndices = true, name)
     }
     // Return an identity op so that it can get placed on whatever device the context specifies instead of the device
     // where the variable is.
@@ -166,7 +166,7 @@ case class Variable private(
   def assign(value: Output, name: String = "Assign"): Output = {
     if (value.dataType != dataType)
       throw InvalidDataTypeException(s"Expected '$dataType', but got '${value.dataType}'.")
-    Op.createWith(controlDependencies = Set[Op](Variable.assign(variableOp, value, name))) {
+    Op.createWith(controlDependencies = Set[Op](Variable.assign(handle, value, name))) {
       read()
     }
   }
@@ -180,7 +180,7 @@ case class Variable private(
   def assignAdd(value: Output, name: String = "AssignAdd"): Output = {
     if (value.dataType != dataType)
       throw InvalidDataTypeException(s"Expected '$dataType', but got '${value.dataType}'.")
-    Op.createWith(controlDependencies = Set[Op](Variable.assignAdd(variableOp, value, name))) {
+    Op.createWith(controlDependencies = Set[Op](Variable.assignAdd(handle, value, name))) {
       read()
     }
   }
@@ -194,7 +194,7 @@ case class Variable private(
   def assignSub(value: Output, name: String = "AssignAdd"): Output = {
     if (value.dataType != dataType)
       throw InvalidDataTypeException(s"Expected '$dataType', but got '${value.dataType}'.")
-    Op.createWith(controlDependencies = Set[Op](Variable.assignSub(variableOp, value, name))) {
+    Op.createWith(controlDependencies = Set[Op](Variable.assignSub(handle, value, name))) {
       read()
     }
   }
@@ -209,7 +209,7 @@ case class Variable private(
   def assignScatterAdd(indices: Output, values: Output, name: String = "AssignScatterAdd"): Output = {
     if (values.dataType != dataType)
       throw InvalidDataTypeException(s"Expected '$dataType', but got '${values.dataType}'.")
-    Op.createWith(controlDependencies = Set[Op](Variable.scatterAdd(variableOp, indices, values, name))) {
+    Op.createWith(controlDependencies = Set[Op](Variable.scatterAdd(handle, indices, values, name))) {
       read()
     }
   }
@@ -225,7 +225,7 @@ case class Variable private(
   def assignScatterSub(indices: Output, values: Output, name: String = "AssignScatterAdd"): Output = {
     if (values.dataType != dataType)
       throw InvalidDataTypeException(s"Expected '$dataType', but got '${values.dataType}'.")
-    Op.createWith(controlDependencies = Set[Op](Variable.scatterAdd(variableOp, indices, -values, name))) {
+    Op.createWith(controlDependencies = Set[Op](Variable.scatterAdd(handle, indices, -values, name))) {
       read()
     }
   }
@@ -252,12 +252,12 @@ case class Variable private(
     * @return ProtoBuf object corresponding to this object.
     */
   def toProto(exportScope: String): VariableDef = {
-    if (exportScope == null || variableOp.name.startsWith(exportScope)) {
+    if (exportScope == null || variableHandle.name.startsWith(exportScope)) {
       val variableDefBuilder = VariableDef.newBuilder()
-      variableDefBuilder.setVariableName(Op.stripNameScope(exportScope, variableOp.name))
+      variableDefBuilder.setVariableName(Op.stripNameScope(exportScope, handle.name))
       variableDefBuilder.setInitializerName(Op.stripNameScope(exportScope, initializeOp.name))
-      if (cachedValueOp != null)
-        variableDefBuilder.setSnapshotName(Op.stripNameScope(exportScope, cachedValueOp.name))
+      if (cachedValue != null)
+        variableDefBuilder.setSnapshotName(Op.stripNameScope(exportScope, cachedValue.name))
       variableDefBuilder.setIsResource(true)
       if (saveSliceInformation != null)
         variableDefBuilder.mergeSaveSliceInfoDef(saveSliceInformation.toProto(exportScope))
@@ -286,8 +286,8 @@ object Variable {
     * TODO: Add example.
     *
     * @param  name          Variable name.
-    * @param  shape         Variable shape.
     * @param  dataType      Variable data type.
+    * @param  shape         Variable shape.
     * @param  initializer   Variable initializer. If `initializer` is `null` (the default), the default initializer
     *                       passed in the constructor is used. If that one is `null` too, then we use a new
     *                       `glorotUniformInitializer`. The initializer will be called for each part of the partitioned
@@ -308,11 +308,11 @@ object Variable {
     * @return Requested variable.
     */
   private[ops] def getVariable(
-      name: String, shape: Shape = null, dataType: DataType = FLOAT32, initializer: Initializer = null,
+      name: String, dataType: DataType = FLOAT32, shape: Shape = null, initializer: Initializer = null,
       regularizer: Regularizer = null, trainable: Boolean = true, reuse: java.lang.Boolean = null,
       collections: Set[Graph.Key[Variable]] = Set.empty, cachingDevice: OpSpecification => String = null): Variable = {
     Op.currentVariableScope.getVariable(
-      Op.currentVariableStore, name, shape, dataType, initializer, regularizer, trainable, reuse, collections,
+      Op.currentVariableStore, name, dataType, shape, initializer, regularizer, trainable, reuse, collections,
       cachingDevice)
   }
 
@@ -323,8 +323,8 @@ object Variable {
     * TODO: Add example.
     *
     * @param  name          Variable name.
-    * @param  shape         Variable shape.
     * @param  dataType      Variable data type.
+    * @param  shape         Variable shape.
     * @param  initializer   Variable initializer. If `initializer` is `null` (the default), the default initializer
     *                       passed in the constructor is used. If that one is `null` too, then we use a new
     *                       `glorotUniformInitializer`. The initializer will be called for each part of the partitioned
@@ -349,12 +349,12 @@ object Variable {
     * @return Requested variable.
     */
   private[ops] def getPartitionedVariable(
-      name: String, shape: Shape = null, dataType: DataType = FLOAT32, initializer: Initializer = null,
+      name: String, dataType: DataType = FLOAT32, shape: Shape = null, initializer: Initializer = null,
       regularizer: Regularizer = null, partitioner: Partitioner = null, trainable: Boolean = true,
       reuse: java.lang.Boolean = null, collections: Set[Graph.Key[Variable]] = Set.empty,
       cachingDevice: OpSpecification => String = null): PartitionedVariable = {
     Op.currentVariableScope.getPartitionedVariable(
-      Op.currentVariableStore, name, shape, dataType, initializer, regularizer, partitioner, trainable, reuse,
+      Op.currentVariableStore, name, dataType, shape, initializer, regularizer, partitioner, trainable, reuse,
       collections, cachingDevice)
   }
 
@@ -367,8 +367,8 @@ object Variable {
     * to the documentation of [[getVariable]] for more details.
     *
     * @param  name          Variable name.
-    * @param  shape         Variable shape.
     * @param  dataType      Variable data type.
+    * @param  shape         Variable shape.
     * @param  initializer   Variable initializer. If `initializer` is `null` (the default), the default initializer
     *                       passed in the constructor is used. If that one is `null` too, then we use a new
     *                       `glorotUniformInitializer`. The initializer will be called for each part of the partitioned
@@ -386,11 +386,11 @@ object Variable {
     * @return Requested variable.
     */
   private[ops] def getLocalVariable(
-      name: String, shape: Shape = null, dataType: DataType = FLOAT32, initializer: Initializer = null,
+      name: String, dataType: DataType = FLOAT32, shape: Shape = null, initializer: Initializer = null,
       regularizer: Regularizer = null, reuse: java.lang.Boolean = null,
       collections: Set[Graph.Key[Variable]] = Set.empty, cachingDevice: OpSpecification => String = null): Variable = {
     Op.currentVariableScope.getVariable(
-      Op.currentVariableStore, name, shape, dataType, initializer, regularizer, trainable = false, reuse,
+      Op.currentVariableStore, name, dataType, shape, initializer, regularizer, trainable = false, reuse,
       collections + Graph.Keys.LOCAL_VARIABLES, cachingDevice)
   }
 
@@ -403,8 +403,8 @@ object Variable {
     * to the documentation of [[getPartitionedVariable]] for more details.
     *
     * @param  name          Variable name.
-    * @param  shape         Variable shape.
     * @param  dataType      Variable data type.
+    * @param  shape         Variable shape.
     * @param  initializer   Variable initializer. If `initializer` is `null` (the default), the default initializer
     *                       passed in the constructor is used. If that one is `null` too, then we use a new
     *                       `glorotUniformInitializer`. The initializer will be called for each part of the partitioned
@@ -426,22 +426,22 @@ object Variable {
     * @return Requested variable.
     */
   private[ops] def getLocalPartitionedVariable(
-      name: String, shape: Shape, dataType: DataType = FLOAT32, initializer: Initializer = null,
+      name: String, dataType: DataType = FLOAT32, shape: Shape, initializer: Initializer = null,
       regularizer: Regularizer = null, partitioner: Partitioner = null, reuse: java.lang.Boolean = null,
       collections: Set[Graph.Key[Variable]] = Set.empty,
       cachingDevice: OpSpecification => String = null): PartitionedVariable = {
     Op.currentVariableScope.getPartitionedVariable(
-      Op.currentVariableStore, name, shape, dataType, initializer, regularizer, partitioner, trainable = false, reuse,
+      Op.currentVariableStore, name, dataType, shape, initializer, regularizer, partitioner, trainable = false, reuse,
       collections + Graph.Keys.LOCAL_VARIABLES, cachingDevice)
   }
 
   /** Creates a variable.
     *
     * @param  initializer   Initializer that creates the tensor that will be used as the initial value of this variable.
-    * @param  shape         Shape for the value of the created variable. If `null`, an attempt will be made to infer the
-    *                       shape of the variable from the provided initializer.
     * @param  dataType      Data type for the value of the created variable. If not provided, its value is inferred from
     *                       the provided initial value.
+    * @param  shape         Shape for the value of the created variable. If `null`, an attempt will be made to infer the
+    *                       shape of the variable from the provided initializer.
     * @param  trainable     If `true`, the default, the variable is added to the graph collection
     *                       `Graph.Keys.TRAINABLE_VARIABLES`. This collection is used as the default set of variables to
     *                       use by the optimizers.
@@ -455,7 +455,7 @@ object Variable {
     * @return Created variable.
     */
   private[ops] def apply(
-      initializer: Initializer, shape: Shape = null, dataType: DataType = FLOAT32, trainable: Boolean = true,
+      initializer: Initializer, dataType: DataType = FLOAT32, shape: Shape = null, trainable: Boolean = true,
       collections: Set[Graph.Key[Variable]] = Set.empty, cachingDevice: OpSpecification => String = null,
       name: String = "Variable"): Variable = {
     val inferredShape = if (shape == null) initializer.shape else shape
@@ -465,16 +465,16 @@ object Variable {
     Op.createWith(nameScope = name, controlDependencies = Set.empty[Op]) {
       val nameScope = Op.currentNameScope
       val trueName = Op.convertNameScopeToName(nameScope)
-      val variableOp = variable(inferredShape, dataType, sharedName = trueName, name = nameScope)
-      val initialValue = Op.createWith(nameScope = "Initializer", colocationOps = Set[Op](variableOp.op)) {
+      val variableHandle = variable(inferredShape, dataType, sharedName = trueName, name = nameScope)
+      val initialValue = Op.createWith(nameScope = "Initializer", colocationOps = Set[Op](variableHandle.op)) {
         initializer(inferredShape, dataType, null)
       }
-      val initializeOp = assign(variableOp, initialValue, name = "InitializationAssign")
-      val cachedValueOp = Op.createWith(nameScope = "Read", colocationOps = Set[Op](variableOp.op)) {
+      val initializeOp = assign(variableHandle, initialValue, name = "InitializationAssign")
+      val cachedValue = Op.createWith(nameScope = "Read", colocationOps = Set[Op](variableHandle.op)) {
         val cachedValueOp = {
           if (cachingDevice != null) {
             // Manually assign reads to the handle's device to avoid log messages
-            val valueOp = Op.createWith(device = variableOp.device)(readVariable(variableOp, dataType))
+            val valueOp = Op.createWith(device = variableHandle.device)(readVariable(variableHandle, dataType))
             // Variables may be created in a "createWith(device = ...)" block or a "createWith(colocationOps = ...)"
             // block. At the same time, users would expect the caching device to be independent of this context, and/or
             // would not expect the current device context to be merged with the caching device specification.
@@ -488,7 +488,7 @@ object Variable {
         cachedValueOp
       }
 
-      val createdVariable = Variable(dataType, variableOp, initializeOp, cachedValueOp)
+      val createdVariable = Variable(dataType, variableHandle, initializeOp, cachedValue)
       var effectiveCollections = collections
       if (effectiveCollections.isEmpty)
         effectiveCollections += Graph.Keys.GLOBAL_VARIABLES
@@ -537,8 +537,8 @@ object Variable {
   trait VariableGetter {
     private type CustomVariableGetter =
       (String, // name
-          Shape, // shape
           DataType, // dataType
+          Shape, // shape
           Initializer, // initializer
           Regularizer, // regularizer
           Boolean, // trainable
@@ -549,7 +549,7 @@ object Variable {
           => Variable
 
     def apply(
-        name: String, shape: Shape = null, dataType: DataType = FLOAT32, initializer: Initializer = null,
+        name: String, dataType: DataType = FLOAT32, shape: Shape = null, initializer: Initializer = null,
         regularizer: Regularizer = null, trainable: Boolean = true, reuse: java.lang.Boolean = null,
         collections: Set[Graph.Key[Variable]] = Set.empty, cachingDevice: OpSpecification => String = null,
         customGetter: VariableGetter = null): Variable
@@ -581,7 +581,7 @@ object Variable {
     * @param  variableOffset Offset of the variable into the full variable.
     * @param  variableShape  Shape of the variable.
     */
-  private[api] case class SaveSliceInformation(
+  private[variables] case class SaveSliceInformation(
       fullName: String = null, fullShape: Shape = null, variableOffset: Array[Int] = null,
       variableShape: Array[Int] = null) extends ProtoSerializable {
     /** Returns the spec string used for saving. */

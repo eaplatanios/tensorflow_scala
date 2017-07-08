@@ -80,19 +80,18 @@ object Slot {
     }
     VariableScope.createWithVariableScope(s"${primary.op.name}/$name", isDefaultName = true) {
       if (colocateWithPrimary)
-        Op.colocateWith(Set[Op](primary.op))(createSlotVariable(primary, initializer, "", inferredShape, dataType))
+        Op.colocateWith(Set[Op](primary.op))(createSlotVariable(primary, initializer, "", dataType, inferredShape))
       else
-        createSlotVariable(primary, initializer, "", inferredShape, dataType)
+        createSlotVariable(primary, initializer, "", dataType, inferredShape)
     }
   }
 
   /** Helper function for creating slot variables. */
   private[this] def createSlotVariable(
-      primary: Variable, initializer: Initializer, scope: String, shape: Shape,
-      dataType: DataType): Variable = {
+      primary: Variable, initializer: Initializer, scope: String, dataType: DataType, shape: Shape): Variable = {
     // TODO: [VARIABLES] When variables and partitioned variables are merged, makes sure this returns a normal variable.
     // TODO: [VARIABLES] When we support more variable types, match the returned variable type to the primary one.
-    val slot = Variable.getVariable(scope, shape, dataType, initializer, trainable = false)
+    val slot = Variable.getVariable(scope, dataType, shape, initializer, trainable = false)
     if (primary.saveSliceInformation != null) {
       // Primary is a partitioned variable, and so we need to also indicate that the slot is also a partitioned
       // variable. Slots have the same partitioning as their primaries. For example, when using the Adam optimizer for a

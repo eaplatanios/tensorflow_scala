@@ -62,8 +62,8 @@ case class VariableScope(
     *
     * @param  store         Variable store currently being used to store variables.
     * @param  name          Variable name.
-    * @param  shape         Variable shape.
     * @param  dataType      Variable data type.
+    * @param  shape         Variable shape.
     * @param  initializer   Variable initializer. If `initializer` is `null` (the default), the default initializer
     *                       passed in the constructor is used. If that one is `null` too, then we use a new
     *                       `glorotUniformInitializer`. The initializer will be called for each part of the partitioned
@@ -93,7 +93,7 @@ case class VariableScope(
   @throws[ShapeMismatchException]
   @throws[InvalidDataTypeException]
   private[variables] def getVariable(
-      store: VariableStore, name: String, shape: Shape = null, dataType: DataType = this.dataType,
+      store: VariableStore, name: String, dataType: DataType = this.dataType, shape: Shape = null,
       initializer: Initializer = this.initializer, regularizer: Regularizer = this.regularizer,
       trainable: Boolean = true, reuse: java.lang.Boolean = this.reuse,
       collections: Set[Graph.Key[Variable]] = Set.empty,
@@ -103,7 +103,7 @@ case class VariableScope(
     // variable creation.
     Op.createWith(nameScope = "") {
       store.getVariable(
-        fullName, shape, dataType, initializer, regularizer, trainable, reuse, collections, cachingDevice)
+        fullName, dataType, shape, initializer, regularizer, trainable, reuse, collections, cachingDevice)
     }
   }
 
@@ -111,8 +111,8 @@ case class VariableScope(
     *
     * @param  store         Variable store currently being used to store variables.
     * @param  name          Variable name.
-    * @param  shape         Variable shape.
     * @param  dataType      Variable data type.
+    * @param  shape         Variable shape.
     * @param  initializer   Variable initializer. If `initializer` is `null` (the default), the default initializer
     *                       passed in the constructor is used. If that one is `null` too, then we use a new
     *                       `glorotUniformInitializer`. The initializer will be called for each part of the partitioned
@@ -146,7 +146,7 @@ case class VariableScope(
   @throws[ShapeMismatchException]
   @throws[InvalidDataTypeException]
   private[variables] def getPartitionedVariable(
-      store: VariableStore, name: String, shape: Shape = null, dataType: DataType = this.dataType,
+      store: VariableStore, name: String, dataType: DataType = this.dataType, shape: Shape = null,
       initializer: Initializer = this.initializer, regularizer: Regularizer = this.regularizer,
       partitioner: Partitioner = this.partitioner, trainable: Boolean = true,
       reuse: java.lang.Boolean = this.reuse, collections: Set[Graph.Key[Variable]] = Set.empty,
@@ -161,7 +161,7 @@ case class VariableScope(
     // variable creation.
     Op.createWith(nameScope = "") {
       store.getPartitionedVariable(
-        fullName, shape, dataType, initializer, regularizer, partitioner, trainable, reuse, collections, cachingDevice)
+        fullName, dataType, shape, initializer, regularizer, partitioner, trainable, reuse, collections, cachingDevice)
     }
   }
 }
@@ -299,15 +299,15 @@ object VariableScope {
     if (getter == null) {
       oldGetter
     } else {
-      (name: String, shape: Shape, dataType: DataType, initializer: Initializer, regularizer: Regularizer,
+      (name: String, dataType: DataType, shape: Shape, initializer: Initializer, regularizer: Regularizer,
           trainable: Boolean, reuse: java.lang.Boolean, collections: Set[Graph.Key[Variable]],
           cachingDevice: (OpSpecification) => String, customGetter: VariableGetter) => {
-        val g: VariableGetter = (n: String, s: Shape, dt: DataType, init: Initializer, reg: Regularizer, train: Boolean,
+        val g: VariableGetter = (n: String, dt: DataType, s: Shape, init: Initializer, reg: Regularizer, train: Boolean,
             reuse: java.lang.Boolean, colls: Set[Graph.Key[Variable]],
             cDevice: (OpSpecification) => String, _: VariableGetter) => {
-          oldGetter(n, s, dt, init, reg, train, reuse, colls, cDevice, customGetter)
+          oldGetter(n, dt, s, init, reg, train, reuse, colls, cDevice, customGetter)
         }
-        getter(name, shape, dataType, initializer, regularizer, trainable, reuse, collections, cachingDevice, g)
+        getter(name, dataType, shape, initializer, regularizer, trainable, reuse, collections, cachingDevice, g)
       }
     }
   }

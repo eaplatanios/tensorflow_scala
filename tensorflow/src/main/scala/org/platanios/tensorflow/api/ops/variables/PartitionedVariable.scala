@@ -29,10 +29,10 @@ import scala.math.Ordering.Implicits._
   * Accessing this object as an [[Output]] returns the variable parts concatenated along the partition axis.
   *
   * @param  name             Overall name of the variables.
-  * @param  shape            Overall shape of the variables.
   * @param  dataType         Data type of the variables.
+  * @param  shape            Overall shape of the variables.
   * @param  wrappedVariables Variables that comprise this partitioned variable.
-  * @param  partitions       Number of partitions for each dimension.
+  * @param  partitions       Number of partitions for each axis/dimension.
   * @throws IllegalArgumentException If the provided variables sequence is empty, or if their shapes do not match with
   *                                  `shape`, or if their data types do not match `dataType`., or if they have
   *                                  `null`-valued save slice information
@@ -41,9 +41,8 @@ import scala.math.Ordering.Implicits._
   */
 @throws[IllegalArgumentException]
 case class PartitionedVariable private[variables] (
-    name: String, shape: Shape, dataType: DataType, private val wrappedVariables: Seq[Variable],
+    name: String, dataType: DataType, shape: Shape, private val wrappedVariables: Seq[Variable],
     partitions: Array[Int]) extends OutputConvertible with Iterable[Variable] {
-  // TODO: !!! Check on the data type.
   if (shape.rank != partitions.length)
     throw new IllegalArgumentException(
       s"The number of partitions provided (${partitions.length}) does not match the shape rank (${shape.rank}).")
@@ -53,11 +52,11 @@ case class PartitionedVariable private[variables] (
     throw new IllegalArgumentException("The provided variables list may not be empty.")
   if (wrappedVariables.exists(_.saveSliceInformation == null))
     throw new IllegalArgumentException(s"All variables must have save slice information available.")
+  if (wrappedVariables.exists(_.dataType != dataType))
+    throw new IllegalArgumentException("All variables' data type must match the provided data type.")
   if (wrappedVariables.exists(_.saveSliceInformation.fullShape != shape))
     throw new IllegalArgumentException(
       "All variables' save slice information full shape must match the provided shape.")
-  if (wrappedVariables.exists(_.dataType != dataType))
-    throw new IllegalArgumentException("All variables' data type must match the provided data type.")
   val variables: Seq[Variable] = wrappedVariables.sortBy(_.saveSliceInformation.variableOffset.toList)
 
   /** Returns the overall concatenated value as an [[Output]].
@@ -72,14 +71,14 @@ case class PartitionedVariable private[variables] (
   private[this] def concatenated: Output = {
     val concatenated: Output = {
       if (variables.length == 1) {
-        variables.head
+        variables.head.value
       } else {
         if (partitionAxes.length > 1)
           throw new IllegalArgumentException(
             s"Cannot concatenate along more than one dimension: $partitionAxes. " +
                 "Multi-axis partition concatenation is not supported.")
         Op.createWithNameScope(s"$name/ConcatenatedPartitions") {
-          Basic.concatenate(variables.map(_.toOutput), partitionAxes(0))
+          Basic.concatenate(variables.map(_.value), partitionAxes(0))
         }
       }
     }
@@ -88,20 +87,28 @@ case class PartitionedVariable private[variables] (
     }
   }
 
-  /** Converts this partitioned variable to an op output.
+  /** Returns a cached op which reads the last value of this partitioned variable.
+    *
+    * You can not assign a new value to the returned tensor as it is not a reference to the variable.
     *
     * The returned op output will not inherit the control dependencies from the scope where the value is used, which is
     * equivalent behavior to that of getting the value of a variable.
+    *
+    * NOTE: You usually do not need to call this method directly, as all ops that use variables do so by internally
+    * converting them to tensors.
     */
-  def toOutput: Output = {
+  val value: Output = {
     Op.createWith(controlDependencies = Set.empty[Op]) {
       concatenated
     }
   }
 
-  /** Returns an array of integers contining the partition axes of this partitioned variable. */
+  /** Converts this variable to an op output. This function simply returns an op corresponding to the variable value. */
+  def toOutput: Output = value
+
+  /** Returns an array of integers containing the partition axes of this partitioned variable. */
   private[this] val partitionAxes: Array[Int] = {
-    val filteredPartitions = partitions.filter(_ > 1)
+    val filteredPartitions = partitions.zipWithIndex.filter(_._1 > 1).map(_._2)
     if (filteredPartitions.isEmpty)
       Array[Int](0)
     else
