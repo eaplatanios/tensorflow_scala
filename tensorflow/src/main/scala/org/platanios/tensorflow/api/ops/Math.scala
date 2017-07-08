@@ -362,6 +362,9 @@ trait Math {
     *   cast(a, Int32) == [1, 2] // with data type Int32
     * }}}
     *
+    * **NOTE**: Only a smaller number of types are supported by the `cast` op. The exact casting rule is TBD. The
+    * current implementation uses C++ static cast rules for numeric types, which may be changed in the future.
+    *
     * @param  x        Tensor to cast.
     * @param  dataType Target data type.
     * @param  name     Name for the created op.
@@ -427,10 +430,17 @@ trait Math {
     }
   }
 
-  def addN(inputs: Array[Output], name: String = "AddN"): Output =
+  /** Creates an op that adds all input tensors element-wise.
+    *
+    * @param  inputs Input tensors (must all have the same shape and size).
+    * @param  name   Created op name.
+    * @return Created op output.
+    */
+  def addN(inputs: Array[Output], name: String = "AddN"): Output = {
     Op.Builder(opType = "AddN", name = name)
         .addInputList(inputs)
         .build().outputs(0)
+  }
 
   def matMul(
       a: Output, b: Output, transposeA: Boolean = false, transposeB: Boolean = false,
@@ -445,26 +455,40 @@ trait Math {
 
   def batchMatMul(
       x: Output, y: Output, adjointX: Boolean = false, adjointY: Boolean = false,
-      name: String = "BatchMatMul"): Output =
+      name: String = "BatchMatMul"): Output = {
     Op.Builder(opType = "BatchMatMul", name = name)
         .addInput(x)
         .addInput(y)
         .setAttribute("adj_x", adjointX)
         .setAttribute("adj_y", adjointY)
         .build().outputs(0)
+  }
 
   //region Unary Ops
+
+  /** Creates an op that computes the absolute value of a tensor.
+    *
+    * Given a tensor `x`, the op returns a tensor containing the absolute value of each element in `x`. For example, if
+    * `x` is an input element and `y` is an output element, the op computes `y = |x|`.
+    *
+    * @param  x    Input tensor.
+    * @param  name Name for the created op.
+    * @return Created op output.
+    */
+  def abs[T: OutputOps](x: T, name: String = "Abs"): T = {
+    implicitly[OutputOps[T]]
+        .unaryOp(x, o =>
+          Op.Builder(opType = "Abs", name = name)
+              .addInput(o)
+              .build()
+              .outputs(0))
+  }
 
   def negate(x: Output, name: String = "Negate"): Output = {
     Op.Builder(opType = "Neg", name = name)
         .addInput(x)
         .build().outputs(0)
   }
-
-  def abs(x: Output, name: String = "Abs"): Output =
-    Op.Builder(opType = "Abs", name = name)
-        .addInput(x)
-        .build().outputs(0)
 
   def complexAbs(x: Output, name: String = "ComplexAbs"): Output =
     Op.Builder(opType = "ComplexAbs", name = name)

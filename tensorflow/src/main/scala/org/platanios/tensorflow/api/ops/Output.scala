@@ -32,6 +32,8 @@ import spire.math.UShort
   * @author Emmanouil Antonios Platanios
   */
 trait OutputConvertible {
+  // TODO: !!! [TYPE-TRAIT] Convert this to a type trait.
+
   /** Returns the [[Output]] that this [[OutputConvertible]] object represents. */
   def toOutput: Output
 }
@@ -66,6 +68,40 @@ sealed trait OutputLike extends OutputConvertible {
     * @return [[OutputIndexedSlices]] that has the same value as this [[OutputLike]].
     */
   def toOutputIndexedSlices(optimize: Boolean = true): OutputIndexedSlices
+}
+
+/** Type trait for defining functions operating on and returning op outputs. */
+private[ops] trait OutputOps[T] {
+  /** Applies a unary op function to the provided output and returns the result.
+    *
+    * @param  outputLike Output-like object to apply the unary op function on.
+    * @param  opFunction Unary op function to apply.
+    * @return Resulting output-like object that matches the type of `outputLike`.
+    */
+  @inline
+  def unaryOp(outputLike: T, opFunction: Output => Output): T
+}
+
+/** Companion object that defines supported [[OutputOps]] implicit values. */
+private[ops] object OutputOps {
+  implicit val outputOps = new OutputOps[Output] {
+    @inline
+    override def unaryOp(outputLike: Output, opFunction: (Output) => Output): Output = opFunction(outputLike)
+  }
+
+  implicit val outputIndexedSlicesOps = new OutputOps[OutputIndexedSlices] {
+    @inline
+    override def unaryOp(outputLike: OutputIndexedSlices, opFunction: Output => Output): OutputIndexedSlices = {
+      outputLike.copy(values = opFunction(outputLike.values))
+    }
+  }
+
+  implicit val sparseOutputOps = new OutputOps[SparseOutput] {
+    @inline
+    override def unaryOp(outputLike: SparseOutput, opFunction: Output => Output): SparseOutput = {
+      outputLike.copy(values = opFunction(outputLike.values))
+    }
+  }
 }
 
 /** Representation of one of the outputs of an [[Op]]'s computation.
@@ -550,8 +586,7 @@ final case class OutputIndexedSlices private(indices: Output, values: Output, de
   *
   * @author Emmanouil Antonios Platanios
   */
-final case class SparseOutput private(indices: Output, values: Output, denseShape: Output)
-    extends OutputLike {
+final case class SparseOutput private(indices: Output, values: Output, denseShape: Output) extends OutputLike {
   // TODO: Add constructor from scala arrays?
   if (indices.dataType != INT64)
     throw InvalidDataTypeException(
@@ -629,7 +664,8 @@ object SparseOutput {
     */
   private[api] def convertToSparseOutput(sparseOutputValue: (Tensor, Tensor, Tensor)): SparseOutput = {
     SparseOutput(
-      Basic.constant(sparseOutputValue._1), Basic.constant(sparseOutputValue._2),
+      Basic.constant(sparseOutputValue._1),
+      Basic.constant(sparseOutputValue._2),
       Basic.constant(sparseOutputValue._3))
   }
 }

@@ -318,8 +318,7 @@ object Gradients {
     * @param  outputGradients Output gradients of op.
     * @param  inputGradients  Input gradients of op.
     */
-  private[this] def logGradients(
-      op: Op, outputGradients: Seq[OutputLike], inputGradients: Seq[OutputLike]): Unit = {
+  private[this] def logGradients(op: Op, outputGradients: Seq[OutputLike], inputGradients: Seq[OutputLike]): Unit = {
     logger.debug(s"Gradients for op '${op.name}':")
     logger.debug(s"  in  --> ${outputGradients.filter(_ != null).map(_.name).mkString(", ")}")
     logger.debug(s"  out --> ${inputGradients.filter(_ != null).map(_.name).mkString(", ")}")

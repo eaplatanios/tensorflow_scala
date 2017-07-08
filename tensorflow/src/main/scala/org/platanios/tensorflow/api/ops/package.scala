@@ -33,6 +33,7 @@ package object ops {
     type Op = ops.Op
     val Op = ops.Op
 
+    type OutputLike = ops.OutputLike
     type Output = ops.Output
     type OutputIndexedSlices = ops.OutputIndexedSlices
     type SparseOutput = ops.SparseOutput

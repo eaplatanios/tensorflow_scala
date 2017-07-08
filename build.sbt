@@ -39,7 +39,7 @@ lazy val all = (project in file("."))
     )
 
 lazy val data = (project in file("./data"))
-    .dependsOn(tensorflow) // TODO: Remove tensorflow dependency once tensors are moved there.
+    .dependsOn(tensorflow)
     .settings(
       name := "data",
       libraryDependencies ++= loggingDependencies,

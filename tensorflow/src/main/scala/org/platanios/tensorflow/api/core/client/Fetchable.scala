@@ -107,7 +107,7 @@ object Fetchable {
       override def segment(fetchable: Array[T], values: Seq[Tensor]): (Array[R], Seq[Tensor]) = {
         val n = numberOfFetches(fetchable)
         (fetchable.zip(Collections.segment(values.take(n), fetchable.map(ev.numberOfFetches).toSeq))
-            .map(f => ev.resultsBuilder(f._1, f._2)).toArray, values.drop(n))
+            .map(f => ev.resultsBuilder(f._1, f._2)), values.drop(n))
       }
     }
   }
