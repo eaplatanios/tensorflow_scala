@@ -60,9 +60,6 @@ case class Variable private (
     */
   private[api] val handle: Output = variableHandle
 
-  // /** Op responsible for creating/initializing this variable. */
-  // val create: Op = initializeOp
-
   /** Op responsible for initializing this variable. */
   val initializer: Op = initializeOp
 
@@ -94,8 +91,8 @@ case class Variable private (
     }
   }
 
-  /** Contains the save slice information for this variable. */
-  private[api] var saveSliceInformation: Variable.SaveSliceInformation = _
+  /** Contains the partition/save-slice information for this variable. */
+  private[api] var partitionInformation: Variable.PartitionInformation = _
 
   /** Creates an op that reads the value of this variable.
     *
@@ -259,8 +256,8 @@ case class Variable private (
       if (cachedValue != null)
         variableDefBuilder.setSnapshotName(Op.stripNameScope(exportScope, cachedValue.name))
       variableDefBuilder.setIsResource(true)
-      if (saveSliceInformation != null)
-        variableDefBuilder.mergeSaveSliceInfoDef(saveSliceInformation.toProto(exportScope))
+      if (partitionInformation != null)
+        variableDefBuilder.mergeSaveSliceInfoDef(partitionInformation.toSaveSliceInformationProto(exportScope))
       variableDefBuilder.build()
     } else {
       null
@@ -524,12 +521,12 @@ object Variable {
     }
     val saveSliceInformation = {
       if (variableDef.hasSaveSliceInfoDef)
-        SaveSliceInformation.fromProto(variableDef.getSaveSliceInfoDef)
+        PartitionInformation.fromProto(variableDef.getSaveSliceInfoDef)
       else
         null
     }
     val createdVariable = Variable(dataType, variableOp, initializeOp, cachedValueOp)
-    createdVariable.saveSliceInformation = saveSliceInformation
+    createdVariable.partitionInformation = saveSliceInformation
     createdVariable
   }
 
@@ -555,58 +552,46 @@ object Variable {
         customGetter: VariableGetter = null): Variable
   }
 
-  /** Holds the partition information used by initializer functions.
+  /** Class that contains partitioning information for a variable that can also be used to save it as a slice.
     *
-    * @param  fullShape Full combined shape of the partitioned variables.
-    * @param  offsets   Integer array specifying the offsets of this partition with respect to the full variable for
-    *                   each dimension.
+    * @param  fullName         Name of the full variable, of which the variable is a partition.
+    * @param  fullShape        Shape of the full variable, of which the variable is a partition.
+    * @param  partitionOffsets Offsets of the partition into the full variable.
+    * @param  partitionShape   Shape of the variable.
     */
-  private[variables] case class PartitionInformation(fullShape: Shape, offsets: Array[Int]) {
-    // TODO: !!! Are we using this class at all?
-    if (fullShape.rank != offsets.length)
+  private[variables] case class PartitionInformation(
+      fullName: String = null, fullShape: Shape = null, partitionOffsets: Array[Int] = null,
+      partitionShape: Array[Int] = null) extends ProtoSerializable {
+    if (fullShape.rank != partitionOffsets.length)
       throw new IllegalArgumentException(
-        s"The number of offsets provided (${offsets.length}) does not match the full shape rank (${fullShape.rank}).")
-    if (fullShape.asArray.zip(offsets).exists(p => p._2 < 0 || p._1 <= p._2))
+        s"The number of offsets provided (${partitionOffsets.length}) does not match the full shape rank (${fullShape.rank}).")
+    if (fullShape.asArray.zip(partitionOffsets).exists(p => p._2 < 0 || p._1 <= p._2))
       throw new IllegalArgumentException(
-        s"Offset out of bounds exception for offsets '$offsets' and full shape '$fullShape'.")
-  }
+        s"Offset out of bounds exception for offsets '$partitionOffsets' and full shape '$fullShape'.")
 
-  /** Class that information on how to save a variable as a slice.
-    *
-    * This class provides internal support for saving variables as slices of a larger variable. This API is not public
-    * and is subject to change.
-    *
-    * @param  fullName       Name of the full variable, of which the variable is a slice.
-    * @param  fullShape      Shape of the full variable, of which the variable is a slice.
-    * @param  variableOffset Offset of the variable into the full variable.
-    * @param  variableShape  Shape of the variable.
-    */
-  private[variables] case class SaveSliceInformation(
-      fullName: String = null, fullShape: Shape = null, variableOffset: Array[Int] = null,
-      variableShape: Array[Int] = null) extends ProtoSerializable {
     /** Returns the spec string used for saving. */
-    def spec: String = {
+    def saveSpecString: String = {
       val shapeString = fullShape.asArray.mkString(" ")
-      val sliceString = variableOffset.zip(variableShape).map(p => s"${p._1},${p._2}").mkString(":")
+      val sliceString = partitionOffsets.zip(partitionShape).map(p => s"${p._1},${p._2}").mkString(":")
       s"$shapeString $sliceString"
     }
 
-    override def toProto: SaveSliceInfoDef = toProto(null)
+    override def toProto: SaveSliceInfoDef = toSaveSliceInformationProto(null)
 
-    /** Convert this object to its corresponding ProtoBuf object.
+    /** Convert this object to a `SaveSliceInfoDef` ProtoBuf object.
       *
       * @param  exportScope Optional string specifying the name scope to remove. Only the ops within this name scope
       *                     will be included in the resulting ProtoBuf object and the export scope will be stripped from
       *                     their names to allow for easy import into new name scopes.
       * @return ProtoBuf object corresponding to this object.
       */
-    def toProto(exportScope: String): SaveSliceInfoDef = {
+    def toSaveSliceInformationProto(exportScope: String): SaveSliceInfoDef = {
       if (exportScope == null || fullName.startsWith(exportScope)) {
         val saveSliceInfoDefBuilder = SaveSliceInfoDef.newBuilder()
         saveSliceInfoDefBuilder.setFullName(Op.stripNameScope(exportScope, fullName))
         fullShape.asArray.zipWithIndex.foreach(p => saveSliceInfoDefBuilder.setFullShape(p._2, p._1.toLong))
-        variableOffset.zipWithIndex.foreach(p => saveSliceInfoDefBuilder.setVarOffset(p._2, p._1.toLong))
-        variableShape.zipWithIndex.foreach(p => saveSliceInfoDefBuilder.setVarShape(p._2, p._1.toLong))
+        partitionOffsets.zipWithIndex.foreach(p => saveSliceInfoDefBuilder.setVarOffset(p._2, p._1.toLong))
+        partitionShape.zipWithIndex.foreach(p => saveSliceInfoDefBuilder.setVarShape(p._2, p._1.toLong))
         saveSliceInfoDefBuilder.build()
       } else {
         null
@@ -614,22 +599,22 @@ object Variable {
     }
   }
 
-  /** Contains helper functions for creating and dealing with [[SaveSliceInformation]] objects. */
-  private[api] object SaveSliceInformation {
-    /** Creates a new [[SaveSliceInformation]] from the provided ProtoBuf object.
+  /** Contains helper functions for creating and dealing with [[PartitionInformation]] objects. */
+  private[api] object PartitionInformation {
+    /** Creates a new [[PartitionInformation]] from the provided ProtoBuf object.
       *
       * @param  saveSliceInfoDef ProtoBuf-serialized variable object.
       * @param  importScope      Name scope to use for all imported ops.
-      * @return Constructed [[SaveSliceInformation]] object.
+      * @return Constructed [[PartitionInformation]] object.
       */
-    def fromProto(saveSliceInfoDef: SaveSliceInfoDef, importScope: String = null): SaveSliceInformation = {
+    def fromProto(saveSliceInfoDef: SaveSliceInfoDef, importScope: String = null): PartitionInformation = {
       val fullName = {
         if (importScope == null)
           saveSliceInfoDef.getFullName
         else
           Op.prependNameScope(importScope, saveSliceInfoDef.getFullName)
       }
-      SaveSliceInformation(
+      PartitionInformation(
         fullName,
         Shape.fromSeq((0 until saveSliceInfoDef.getFullShapeCount).map(saveSliceInfoDef.getFullShape(_).toInt)),
         (0 until saveSliceInfoDef.getVarOffsetCount).map(saveSliceInfoDef.getVarOffset(_).toInt).toArray,

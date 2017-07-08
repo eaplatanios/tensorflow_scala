@@ -92,17 +92,17 @@ object Slot {
     // TODO: [VARIABLES] When variables and partitioned variables are merged, makes sure this returns a normal variable.
     // TODO: [VARIABLES] When we support more variable types, match the returned variable type to the primary one.
     val slot = Variable.getVariable(scope, dataType, shape, initializer, trainable = false)
-    if (primary.saveSliceInformation != null) {
+    if (primary.partitionInformation != null) {
       // Primary is a partitioned variable, and so we need to also indicate that the slot is also a partitioned
       // variable. Slots have the same partitioning as their primaries. For example, when using the Adam optimizer for a
       // linear model, 'slot.name' could be "linear//weights/Adam:0", while 'primary.op.name' is "linear//weight". We
       // want to get "Adam" as the real slot name, and so we remove "linear//weights/" and ":0".
       val realSlotName = slot.name.substring(primary.op.name.length + 1, slot.name.length - 2)
-      slot.saveSliceInformation = Variable.SaveSliceInformation(
-        fullName = s"${primary.saveSliceInformation.fullName}/$realSlotName",
-        fullShape = primary.saveSliceInformation.fullShape,
-        variableOffset = primary.saveSliceInformation.variableOffset,
-        variableShape = primary.saveSliceInformation.variableShape)
+      slot.partitionInformation = Variable.PartitionInformation(
+        fullName = s"${primary.partitionInformation.fullName}/$realSlotName",
+        fullShape = primary.partitionInformation.fullShape,
+        partitionOffsets = primary.partitionInformation.partitionOffsets,
+        partitionShape = primary.partitionInformation.partitionShape)
     }
     slot
   }

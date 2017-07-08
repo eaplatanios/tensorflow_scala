@@ -50,14 +50,14 @@ case class PartitionedVariable private[variables] (
     throw new IllegalArgumentException(s"All partitions must be positive: $partitions.")
   if (wrappedVariables.isEmpty)
     throw new IllegalArgumentException("The provided variables list may not be empty.")
-  if (wrappedVariables.exists(_.saveSliceInformation == null))
+  if (wrappedVariables.exists(_.partitionInformation == null))
     throw new IllegalArgumentException(s"All variables must have save slice information available.")
   if (wrappedVariables.exists(_.dataType != dataType))
     throw new IllegalArgumentException("All variables' data type must match the provided data type.")
-  if (wrappedVariables.exists(_.saveSliceInformation.fullShape != shape))
+  if (wrappedVariables.exists(_.partitionInformation.fullShape != shape))
     throw new IllegalArgumentException(
       "All variables' save slice information full shape must match the provided shape.")
-  val variables: Seq[Variable] = wrappedVariables.sortBy(_.saveSliceInformation.variableOffset.toList)
+  val variables: Seq[Variable] = wrappedVariables.sortBy(_.partitionInformation.partitionOffsets.toList)
 
   /** Returns the overall concatenated value as an [[Output]].
     *

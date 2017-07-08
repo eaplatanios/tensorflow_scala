@@ -84,10 +84,11 @@ case class VariableStore() {
     } else {
       var uniqueName = name
       var count = 1
-      while (variableScopeCounts.getOrElse(s"${name}_$count", 0) > 0) {
+      while (variableScopeCounts.getOrElse(uniqueName, 0) > 0) {
+        uniqueName = s"${name}_$count"
         count += 1
       }
-      s"${name}_$count"
+      uniqueName
     }
   }
 
@@ -303,16 +304,16 @@ case class VariableStore() {
         val partOffset = ArrayBuffer.fill[Int](shape.rank)(0)
         val numberOfPartsWithExcess = shape(sliceDimension) % numberOfParts
         for (i <- 0 until numberOfParts) {
-          val variableShape: Array[Int] = sliceShape.asArray.map(s => if (i < numberOfPartsWithExcess) s + 1 else s)
-          val variableOffset: Array[Int] = partOffset.toArray
-          partOffset(sliceDimension) += variableShape(sliceDimension)
+          val partitionShape: Array[Int] = sliceShape.asArray.map(s => if (i < numberOfPartsWithExcess) s + 1 else s)
+          val partitionOffsets: Array[Int] = partOffset.toArray
+          partOffset(sliceDimension) += partitionShape(sliceDimension)
           val actualInitializer = if (initializer == null) defaultInitializer(name, dataType) else initializer
-          val partitionInfo = PartitionInformation(shape, variableOffset)
+          val partitionInfo = PartitionInformation(name, shape, partitionOffsets, partitionShape)
           val variablePart = Op.createWithNameScope("") {
             getVariable(
               name = s"$name/part_$i",
               dataType = dataType,
-              shape = Shape.fromSeq(variableShape),
+              shape = Shape.fromSeq(partitionShape),
               initializer = InitializerWithPartitionInformation(actualInitializer, partitionInfo),
               regularizer = regularizer,
               trainable = trainable,
@@ -320,7 +321,7 @@ case class VariableStore() {
               collections = collections,
               cachingDevice = cachingDevice)
           }
-          variablePart.saveSliceInformation = SaveSliceInformation(name, shape, variableOffset, variableShape)
+          variablePart.partitionInformation = partitionInfo
           variableParts += variablePart
         }
 

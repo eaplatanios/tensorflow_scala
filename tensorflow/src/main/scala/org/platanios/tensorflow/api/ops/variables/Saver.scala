@@ -1431,12 +1431,12 @@ abstract class Saveable(val saveSpecifications: Seq[SaveSpecification]) {
 case class VariableSaveable(variable: Variable)
     extends Saveable(
       Seq(SaveSpecification(
-        if (variable.saveSliceInformation != null) variable.saveSliceInformation.fullName else variable.name,
+        if (variable.partitionInformation != null) variable.partitionInformation.fullName else variable.name,
         variable.value,
-        Option(variable.saveSliceInformation).map(_.spec).getOrElse("")))) {
+        Option(variable.partitionInformation).map(_.saveSpecString).getOrElse("")))) {
   override val name: String = {
-    if (variable.saveSliceInformation != null)
-      variable.saveSliceInformation.fullName
+    if (variable.partitionInformation != null)
+      variable.partitionInformation.fullName
     else
       variable.name
   }
@@ -1458,9 +1458,9 @@ case class VariableSaveable(variable: Variable)
 case class PartitionedVariableSaveable(variable: PartitionedVariable)
     extends Saveable(
       variable.map(v => SaveSpecification(
-        v.saveSliceInformation.fullName,
+        v.partitionInformation.fullName,
         v.value,
-        v.saveSliceInformation.spec)).toSeq) {
+        v.partitionInformation.saveSpecString)).toSeq) {
   override val name: String = variable.name
 
   override val producerOps: Set[Op] = variable.map(_.op).toSet
