@@ -81,8 +81,6 @@ This is a list of some of the things that are likely to change:
 - **Tensor API:** Related to the comments about the data type API, plus 
   the fact that we need to support lots of numpy-like operations to make 
   this API useful.
-- **Session API:** Improvements can be made to the `Fetchable` trait 
-  (potentially using [Shapeless](https://github.com/milessabin/shapeless)).
 
 ## High-Priority TODOs
 
