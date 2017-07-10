@@ -124,7 +124,14 @@ JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_setStringB
   size_t src_len = static_cast<size_t>(env->GetArrayLength(string));
   size_t dst_len = TF_StringEncodedSize(src_len);
   std::unique_ptr<char[]> buffer(new char[src_len]);
-  env->GetByteArrayRegion(string, 0, static_cast<jsize>(src_len), reinterpret_cast<jbyte*>(buffer.get()));
+  // jbyte is a signed char, while the C standard doesn't require char and
+  // signed char to be the same. As a result, static_cast<char*>(src) will
+  // complain. We copy the string instead.
+  jbyte* src = env->GetByteArrayElements(string, nullptr);
+  static_assert(sizeof(jbyte) == sizeof(char), "Cannot convert Java byte to a C char.");
+  memcpy(buffer.get(), src, src_len);
+  env->ReleaseByteArrayElements(string, src, JNI_ABORT);
+  // env->GetByteArrayRegion(string, 0, static_cast<jsize>(src_len), reinterpret_cast<jbyte*>(buffer.get()));
   TF_Status* status = TF_NewStatus();
   size_t num_bytes_written = TF_StringEncode(buffer.get(), src_len, dst_buffer, dst_len, status);
   throw_exception_if_not_ok(env, status);

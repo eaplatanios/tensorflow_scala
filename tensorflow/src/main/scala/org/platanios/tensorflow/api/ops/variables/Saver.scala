@@ -21,7 +21,7 @@ import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.ops.{Basic, ControlFlow, Op, Output, Text}
 import org.platanios.tensorflow.api.ops.variables.CheckpointStateProto.CheckpointState
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{DataType, INT32}
+import org.platanios.tensorflow.api.types.{DataType, INT32, STRING}
 import org.platanios.tensorflow.api.utilities.{FileIO, Proto}
 
 import com.google.protobuf.TextFormat
@@ -810,16 +810,21 @@ trait SaverDefBuilder {
     */
   @throws[IllegalArgumentException]
   protected def save(prefix: Output, saveables: Set[Saveable], name: String = "Save"): Op = {
-    val (tensorNames, tensors, slices) =
-      saveables.flatMap(_.saveSpecifications)
-          .map(s => (s.name, s.value, s.saveSliceSpecification))
-          .toSeq.unzip3[String, Output, String]
-    checkpointFormatVersion match {
-      case SaverDef.CheckpointFormatVersion.V1 =>
-        SaverDefBuilder.saveSlicesOp(prefix, tensorNames, tensors, slices, name)
-      case SaverDef.CheckpointFormatVersion.V2 =>
-        SaverDefBuilder.saveV2Op(prefix, tensorNames, tensors, slices, name)
-      case _ => throw new IllegalArgumentException(s"Unsupported checkpoint format version '$checkpointFormatVersion'.")
+    if (saveables.nonEmpty) {
+      val (tensorNames, tensors, slices) =
+        saveables.flatMap(_.saveSpecifications)
+            .map(s => (s.name, s.value, s.saveSliceSpecification))
+            .toSeq.unzip3[String, Output, String]
+      checkpointFormatVersion match {
+        case SaverDef.CheckpointFormatVersion.V1 =>
+          SaverDefBuilder.saveSlicesOp(prefix, tensorNames, tensors, slices, name)
+        case SaverDef.CheckpointFormatVersion.V2 =>
+          SaverDefBuilder.saveV2Op(prefix, tensorNames, tensors, slices, name)
+        case _ => throw new IllegalArgumentException(
+          s"Unsupported checkpoint format version '$checkpointFormatVersion'.")
+      }
+    } else {
+      ControlFlow.noOp(name)
     }
   }
 
@@ -1039,15 +1044,6 @@ trait SaverDefBuilder {
         (filenameOutput, saveOutput, restoreOp)
       }
     }
-
-    // In the following use case, it's possible to have restore ops be called something else:
-    //   - Build inference graph and export a meta_graph.
-    //   - Import the inference meta_graph
-    //   - Extend the inference graph to a train graph.
-    //   - Export a new meta_graph.
-    // Now the second restore op will be called "Restore_1".
-    // As such, comment out the assert for now until we know whether supporting such usage model makes sense.
-    assert(restoreOp.name.endsWith("Restore"), restoreOp.name)
 
     SaverDef.newBuilder()
         .setFilenameTensorName(filenameOutput.name)
@@ -1275,6 +1271,7 @@ object SaverDefBuilder {
         .addInput(Tensor(tensorNames.map(Tensor(_)): _*).toOutput) // TODO: [TENSORS] Improve.
         .addInput(Tensor(slices.map(Tensor(_)): _*).toOutput) // TODO: [TENSORS] Improve.
         .addInputList(tensors)
+        .setAttribute("dtypes", tensors.map(_.dataType).toArray)
         .build()
   }
 

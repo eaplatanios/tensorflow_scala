@@ -75,8 +75,7 @@ private[api] object TensorFlowNative {
       if (tensor.order != RowMajorOrder)
         throw new IllegalArgumentException("Only row-major tensors can be used in the TensorFlow native library.")
       new NativeView(NativeTensor.fromBuffer(
-        tensor.buffer, tensor.dataType.cValue, tensor.shape.asArray.map(_.toLong),
-        tensor.numElements * tensor.dataType.byteSize))
+        tensor.buffer, tensor.dataType.cValue, tensor.shape.asArray.map(_.toLong), tensor.buffer.capacity()))
     }
   }
 

@@ -197,7 +197,7 @@ object Tensor {
     val shape = if (tensors.nonEmpty) tensors.head.shape else Shape()
     if (tensors.nonEmpty)
       require(tensors.tail.forall(_.shape == shape), "All provided tensor shapes must match.")
-    val newShape = if (tensors.nonEmpty) Shape(tensors.length +: shape.asArray: _*) else Shape()
+    val newShape = if (tensors.nonEmpty) Shape(tensors.length +: shape.asArray: _*) else Shape(0)
     dataType match {
       case STRING =>
         // TODO: Make this more efficient.
