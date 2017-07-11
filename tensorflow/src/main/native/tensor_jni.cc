@@ -16,6 +16,7 @@
 #include "include/tensor_jni.h"
 
 #include <algorithm>
+#include <cstring>
 #include <memory>
 
 #include "include/c_api.h"
@@ -129,7 +130,7 @@ JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_setStringB
   // complain. We copy the string instead.
   jbyte* src = env->GetByteArrayElements(string, nullptr);
   static_assert(sizeof(jbyte) == sizeof(char), "Cannot convert Java byte to a C char.");
-  memcpy(buffer.get(), src, src_len);
+  std::memcpy(buffer.get(), src, src_len);
   env->ReleaseByteArrayElements(string, src, JNI_ABORT);
   // env->GetByteArrayRegion(string, 0, static_cast<jsize>(src_len), reinterpret_cast<jbyte*>(buffer.get()));
   TF_Status* status = TF_NewStatus();
