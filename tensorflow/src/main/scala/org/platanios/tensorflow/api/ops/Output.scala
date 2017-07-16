@@ -161,9 +161,10 @@ final case class Output private(op: Op, index: Int) extends OutputLike {
   }
 
   /** Shape of the tensor that this op output represents. */
-  def shape: Shape = Shape.fromSeq(using(op.graph.reference) { r =>
-    NativeOp.shape(r.nativeHandle, op.nativeHandle, index).map(_.toInt)
-  })
+  def shape: Shape = {
+    val s = using(op.graph.reference)(r => NativeOp.shape(r.nativeHandle, op.nativeHandle, index))
+    if (s == null) Shape.unknown() else Shape.fromSeq(s.map(_.toInt))
+  }
 
   /** Rank of the tensor that this op output represents. */
   def rank: Int = shape.rank
