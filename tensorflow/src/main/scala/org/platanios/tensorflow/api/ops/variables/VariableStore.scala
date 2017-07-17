@@ -138,50 +138,53 @@ case class VariableStore() {
     /** This function defines the main logic of 'getVariable'. However, 'customGetter' may override this logic. That is
       * why we pass it as an argument to the 'customGetter'. */
     val trueGetter: VariableGetter =
-      (name: String, dataType: DataType, shape: Shape, initializer: Initializer, regularizer: Regularizer,
-          trainable: Boolean, reuse: java.lang.Boolean, collections: Set[Graph.Key[Variable]],
-          cachingDevice: (OpSpecification) => String, _: VariableGetter) => {
-        // Single variable case.
-        if (variables.contains(s"$name/part_0"))
-          throw new IllegalArgumentException(
-            s"No partitioner was provided, but a partitioned version of the variable ('$name/part_0') was found in " +
-                s"the variable store. Perhaps a variable of the same name was already created with partitioning?")
-        if (variables.contains(name)) {
-          // Here we handle the case of returning an existing variable.
-          if (reuse != null && !reuse)
+      new VariableGetter {
+        override def apply(
+            name: String, dataType: DataType, shape: Shape, initializer: Initializer, regularizer: Regularizer,
+            trainable: Boolean, reuse: java.lang.Boolean, collections: Set[Graph.Key[Variable]],
+            cachingDevice: (OpSpecification) => String, customGetter: VariableGetter): Variable = {
+          // Single variable case.
+          if (variables.contains(s"$name/part_0"))
             throw new IllegalArgumentException(
-              s"Variable '$name' already exists, but variable scope re-use was set to 'false'.")
-          val foundVariable = variables(name)
-          if (shape != null && !shape.isCompatibleWith(foundVariable.shape))
-            throw ShapeMismatchException(
-              s"Trying to share variable '$name', but the specified shape '$shape' is not compatible with the " +
-                  s"existing variable shape '${foundVariable.shape}'.")
-          if (dataType != foundVariable.dataType)
-            throw InvalidDataTypeException(
-              s"Trying to share variable '$name', but the specified data type '$dataType' is not compatible with the " +
-                  s"existing variable data type '${foundVariable.dataType}'.")
-          foundVariable
-        } else {
-          // Here we handle the case of creating a new variable.
-          if (reuse != null && reuse)
-            throw new IllegalArgumentException(
-              s"Variable '$name' does not exist, but variable scope re-use was set to 'false'.")
-          if (shape != null && !shape.isFullyDefined)
-            throw new IllegalArgumentException(
-              s"The shape of a new variable ('$name') must be fully defined, but instead it was set to '$shape'.")
-          val actualInitializer = if (initializer == null) defaultInitializer(name, dataType) else initializer
-          val variable = Variable(actualInitializer, dataType, shape, trainable, collections, cachingDevice, name)
-          variables += name -> variable
-          // TODO: [LOGGING]
-          // Run the regularizer if specified and save the resulting loss.
-          if (regularizer != null) {
-            Op.createWith(colocationOps = Set[Op](variable.op)) {
-              val loss = Op.createWithNameScope(s"$name/Regularizer")(regularizer(variable.value))
-              if (loss != null)
-                Op.currentGraph.addToCollection(loss, Graph.Keys.REGULARIZATION_LOSSES)
+              s"No partitioner was provided, but a partitioned version of the variable ('$name/part_0') was found in " +
+                  s"the variable store. Perhaps a variable of the same name was already created with partitioning?")
+          if (variables.contains(name)) {
+            // Here we handle the case of returning an existing variable.
+            if (reuse != null && !reuse)
+              throw new IllegalArgumentException(
+                s"Variable '$name' already exists, but variable scope re-use was set to 'false'.")
+            val foundVariable = variables(name)
+            if (shape != null && !shape.isCompatibleWith(foundVariable.shape))
+              throw ShapeMismatchException(
+                s"Trying to share variable '$name', but the specified shape '$shape' is not compatible with the " +
+                    s"existing variable shape '${foundVariable.shape}'.")
+            if (dataType != foundVariable.dataType)
+              throw InvalidDataTypeException(
+                s"Trying to share variable '$name', but the specified data type '$dataType' is not compatible with the " +
+                    s"existing variable data type '${foundVariable.dataType}'.")
+            foundVariable
+          } else {
+            // Here we handle the case of creating a new variable.
+            if (reuse != null && reuse)
+              throw new IllegalArgumentException(
+                s"Variable '$name' does not exist, but variable scope re-use was set to 'false'.")
+            if (shape != null && !shape.isFullyDefined)
+              throw new IllegalArgumentException(
+                s"The shape of a new variable ('$name') must be fully defined, but instead it was set to '$shape'.")
+            val actualInitializer = if (initializer == null) defaultInitializer(name, dataType) else initializer
+            val variable = Variable(actualInitializer, dataType, shape, trainable, collections, cachingDevice, name)
+            variables += name -> variable
+            // TODO: [LOGGING]
+            // Run the regularizer if specified and save the resulting loss.
+            if (regularizer != null) {
+              Op.createWith(colocationOps = Set[Op](variable.op)) {
+                val loss = Op.createWithNameScope(s"$name/Regularizer")(regularizer(variable.value))
+                if (loss != null)
+                  Op.currentGraph.addToCollection(loss, Graph.Keys.REGULARIZATION_LOSSES)
+              }
             }
+            variable
           }
-          variable
         }
       }
 

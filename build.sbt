@@ -2,7 +2,9 @@ import sbtprotobuf.{ProtobufPlugin => PB}
 
 organization in ThisBuild := "org.platanios"
 version in ThisBuild := "1.2.0-rc0"
-scalaVersion in ThisBuild := "2.12.1"
+scalaVersion in ThisBuild := "2.12.2"
+
+crossScalaVersions := Seq("2.11.8", "2.12.2")
 
 val tensorFlowVersion = "1.2.0-rc0"
 

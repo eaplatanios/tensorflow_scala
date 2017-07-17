@@ -30,7 +30,7 @@ you read there applies here too.
   val inputs = tf.placeholder(tf.FLOAT32, tf.Shape(-1, 10))
   val outputs = tf.placeholder(tf.FLOAT32, tf.Shape(-1, 10))
   val predictions = tf.createWith(nameScope = "Linear") {
-    val weights = tf.variable("weights", tf.Shape(10, 1), tf.FLOAT32, tf.zerosInitializer)
+    val weights = tf.variable("weights", tf.FLOAT32, tf.Shape(10, 1), tf.zerosInitializer)
     val predictions = tf.matMul(inputs, weights)
     predictions
   }

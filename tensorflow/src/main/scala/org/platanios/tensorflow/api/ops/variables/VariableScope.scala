@@ -299,15 +299,20 @@ object VariableScope {
     if (getter == null) {
       oldGetter
     } else {
-      (name: String, dataType: DataType, shape: Shape, initializer: Initializer, regularizer: Regularizer,
-          trainable: Boolean, reuse: java.lang.Boolean, collections: Set[Graph.Key[Variable]],
-          cachingDevice: (OpSpecification) => String, customGetter: VariableGetter) => {
-        val g: VariableGetter = (n: String, dt: DataType, s: Shape, init: Initializer, reg: Regularizer, train: Boolean,
-            reuse: java.lang.Boolean, colls: Set[Graph.Key[Variable]],
-            cDevice: (OpSpecification) => String, _: VariableGetter) => {
-          oldGetter(n, dt, s, init, reg, train, reuse, colls, cDevice, customGetter)
+      new VariableGetter {
+        override def apply(
+            name: String, dataType: DataType, shape: Shape, initializer: Initializer, regularizer: Regularizer,
+            trainable: Boolean, reuse: java.lang.Boolean, collections: Set[Graph.Key[Variable]],
+            cachingDevice: (OpSpecification) => String, customGetter: VariableGetter): Variable = {
+          val g: VariableGetter = new VariableGetter {
+            override def apply(n: String, dt: DataType, s: Shape, init: Initializer, reg: Regularizer,
+                train: Boolean, reuse: java.lang.Boolean, colls: Set[Graph.Key[Variable]],
+                cDevice: (OpSpecification) => String, cg: VariableGetter): Variable = {
+              oldGetter(n, dt, s, init, reg, train, reuse, colls, cDevice, customGetter)
+            }
+          }
+          getter(name, dataType, shape, initializer, regularizer, trainable, reuse, collections, cachingDevice, g)
         }
-        getter(name, dataType, shape, initializer, regularizer, trainable, reuse, collections, cachingDevice, g)
       }
     }
   }
