@@ -445,6 +445,10 @@ trait Math {
   def matMul(
       a: Output, b: Output, transposeA: Boolean = false, transposeB: Boolean = false,
       name: String = "MatMul"): Output = {
+    if (a.rank != 2)
+      throw new IllegalArgumentException(s"Expected a two-dimensional tensor as input, but 'a' has rank ${a.rank}.")
+    if (b.rank != 2)
+      throw new IllegalArgumentException(s"Expected a two-dimensional tensor as input, but 'b' has rank ${b.rank}.")
     Op.Builder(opType = "MatMul", name = name)
         .addInput(a)
         .addInput(b)

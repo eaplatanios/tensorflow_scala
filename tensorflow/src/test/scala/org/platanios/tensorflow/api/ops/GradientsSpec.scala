@@ -189,15 +189,17 @@ class GradientsSpec extends FlatSpec with Matchers {
       val constant0 = Basic.constant(Tensor(Tensor(1.0, 2.0), Tensor(3.0, 4.0)), name = "Constant_0")
       val constant1 = Basic.constant(Tensor(Tensor(1.0, 0.0), Tensor(0.0, 1.0)), name = "Constant_1")
       val matMul = Math.matMul(constant0, constant1, name = "MatMul")
-      val constant2 = {
-        if (gradientInputsProvided)
-          Basic.constant(Tensor(Tensor(1.0, 1.0), Tensor(1.0, 1.0)), name = "GradientInputs")
-        else
-          Basic.onesLike(matMul, optimize = false, name = "OnesLike")
+      Op.createWithNameScope("gradients") {
+        val constant2 = {
+          if (gradientInputsProvided)
+            Basic.constant(Tensor(Tensor(1.0, 1.0), Tensor(1.0, 1.0)), name = "GradientInputs")
+          else
+            Basic.onesLike(matMul, optimize = false, name = "OnesLike")
+        }
+        val matMul1 = Math.matMul(constant2, constant1, transposeA = false, transposeB = true, name = "MatMul")
+        val matMul2 = Math.matMul(constant0, constant2, transposeA = true, transposeB = false, name = "MatMul_1")
+        Array[Output](matMul1, matMul2)
       }
-      val matMul1 = Math.matMul(constant2, constant1, transposeA = false, transposeB = true, name = "MatMul_1")
-      val matMul2 = Math.matMul(constant0, constant2, transposeA = true, transposeB = false, name = "MatMul_2")
-      Array[Output](matMul1, matMul2)
     }
   }
 }

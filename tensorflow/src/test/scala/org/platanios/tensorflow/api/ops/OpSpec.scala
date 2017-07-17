@@ -225,9 +225,9 @@ class OpSpec extends FlatSpec with Matchers {
     }
     createWith(graph = Graph()) {
       createWith(device = matMulOnGPU) {
-        val c = constant(1.0)
+        val c = constant(Tensor(Tensor(1.0), Tensor(1.0)))
         assert(c.device === "/device:CPU:0")
-        val m = matMul(c, constant(2.0))
+        val m = matMul(c, constant(Tensor(Tensor(2.0))))
         assert(m.device === "/device:GPU:0")
       }
     }
