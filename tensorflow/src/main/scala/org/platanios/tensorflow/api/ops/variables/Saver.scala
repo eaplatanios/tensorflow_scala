@@ -174,7 +174,7 @@ class Saver private (saverDef: SaverDef, saveRelativePaths: Boolean = false, pad
         val modelCheckpointPath = savePath.getFileSystem.getPath(
           // TODO: [SESSION] !!! Feed mappers for string inputs.
           session.run(
-            feeds = Map(filenameTensor -> Tensor(checkpointFile.toString)),
+            feeds = Map(filenameTensor -> Tensor.fromSeq(checkpointFile.toString)),
             fetches = saveTensor).scalar.asInstanceOf[String])
         if (writeCheckpointState) {
           maybeDeleteOldCheckpoints(modelCheckpointPath, metaGraphSuffix)
@@ -219,7 +219,7 @@ class Saver private (saverDef: SaverDef, saveRelativePaths: Boolean = false, pad
     val filenameTensor = session.graph.getOutputByName(saverDef.getFilenameTensorName)
     val restoreOp = session.graph.getOpByName(saverDef.getRestoreOpName)
     // TODO: [SESSION] !!! Feed mappers for string inputs.
-    session.run(feeds = Map(filenameTensor -> Tensor(savePath.toString)), targets = restoreOp)
+    session.run(feeds = Map(filenameTensor -> Tensor.fromSeq(savePath.toString)), targets = restoreOp)
   }
 
   /** Returns the sequence of the latest and not-yet-deleted checkpoint filenames, sorted from oldest to newest. You can
@@ -350,7 +350,7 @@ object Saver {
     val collectedSaveables: Set[Saveable] = {
       if (saveables == null) {
         // TODO: [VARIABLES] Use a better default for this.
-        Op.currentGraph.getCollection(Graph.Keys.GLOBAL_VARIABLES).map(VariableSaveable)
+        Op.currentGraph.getCollection(Graph.Keys.GLOBAL_VARIABLES).map(new Saveable.VariableSaveable(_))
       } else {
         saveables
       }
@@ -880,7 +880,7 @@ trait SaverDefBuilder {
   protected def addShardedSaveOps(prefix: Output, saveablesByDevice: Seq[(String, Set[Saveable])]): Output = {
     checkpointFormatVersion match {
       case SaverDef.CheckpointFormatVersion.V1 =>
-        val numberOfShards = Tensor(INT32, saveablesByDevice.length).toOutput
+        val numberOfShards = Tensor.fromSeq(INT32, saveablesByDevice.length).toOutput
         val shardedSaves = saveablesByDevice.zipWithIndex.map { case ((device, saveables), shard) =>
           Op.createWith(device = device) {
             addSaveOps(SaverDefBuilder.shardedFilenameOp(prefix, shard, numberOfShards), saveables)
@@ -892,7 +892,7 @@ trait SaverDefBuilder {
         }
       case SaverDef.CheckpointFormatVersion.V2 =>
         // Suffix for any well-formed 'prefix', when sharded.
-        val _SHARDED_SUFFIX = Tensor(s"_temp_${UUID.randomUUID().toString}/part").toOutput
+        val _SHARDED_SUFFIX = Tensor.fromSeq(s"_temp_${UUID.randomUUID().toString}/part").toOutput
         // Transformations:
         //   - Users pass in "save_path_" in the save and restore methods. E.g., "myckpt".
         //   - 'prefix' gets fed <save_path><_SHARDED_SUFFIX>.
@@ -909,7 +909,7 @@ trait SaverDefBuilder {
         //
         // On failure and  subsequent restore, an outdated and orphaned temporary directory can be safely removed.
         val temporaryCheckpointPrefix = Text.stringJoin(Seq(prefix, _SHARDED_SUFFIX))
-        val numberOfShards = Tensor(INT32, saveablesByDevice.length).toOutput
+        val numberOfShards = Tensor.fromSeq(INT32, saveablesByDevice.length).toOutput
         val (shardedPrefixes, shardedSaves) = saveablesByDevice.zipWithIndex.map { case ((device, saveables), shard) =>
           Op.createWith(device = device) {
             val prefix = SaverDefBuilder.shardedFilenameOp(temporaryCheckpointPrefix, shard, numberOfShards)
@@ -1031,7 +1031,7 @@ trait SaverDefBuilder {
     SaverDefBuilder.checkSaveables(saveables)
     val (filenameOutput, saveOutput, restoreOp) = Op.createWithNameScope(name, saveables.flatMap(_.producerOps)) {
       // Add the constant string tensor for the filename.
-      val filenameOutput = Tensor(filename).toOutput
+      val filenameOutput = Tensor.fromSeq(filename).toOutput
       // Add the save ops.
       if (sharded) {
         val saveablesByDevice = SaverDefBuilder.groupByDevice(saveables)
@@ -1109,7 +1109,7 @@ object SaverDefBuilder {
             s"'tensors' (${tensors.length}).")
     Op.Builder(opType = "Save", name = name)
         .addInput(filename)
-        .addInput(Tensor(tensorNames.map(Tensor(_)): _*).toOutput) // TODO: [TENSORS] Improve.
+        .addInput(Tensor(Tensor.fromSeq(tensorNames: _*)).toOutput) // TODO: [TENSORS] Improve.
         .addInputList(tensors)
         .build()
   }
@@ -1163,8 +1163,8 @@ object SaverDefBuilder {
             s"'slices' (${slices.length}).")
     Op.Builder(opType = "SaveSlices", name = name)
         .addInput(filename)
-        .addInput(Tensor(tensorNames.map(Tensor(_)): _*).toOutput) // TODO: [TENSORS] Improve.
-        .addInput(Tensor(slices.map(Tensor(_)): _*).toOutput) // TODO: [TENSORS] Improve.
+        .addInput(Tensor(Tensor.fromSeq(tensorNames: _*)).toOutput) // TODO: [TENSORS] Improve.
+        .addInput(Tensor(Tensor.fromSeq(slices: _*)).toOutput) // TODO: [TENSORS] Improve.
         .addInputList(tensors)
         .build()
   }
@@ -1193,7 +1193,7 @@ object SaverDefBuilder {
       filenamePattern: Output, tensorName: String, preferredShard: Int = -1, name: String = "Restore"): Output = {
     Op.Builder(opType = "Restore", name = name)
         .addInput(filenamePattern)
-        .addInput(Tensor(tensorName).toOutput)
+        .addInput(Tensor.fromSeq(tensorName).toOutput)
         .setAttribute("preferred_shard", preferredShard)
         .build().outputs(0)
   }
@@ -1218,8 +1218,8 @@ object SaverDefBuilder {
       name: String = "Restore"): Output = {
     Op.Builder(opType = "RestoreSlice", name = name)
         .addInput(filenamePattern)
-        .addInput(Tensor(tensorName).toOutput)
-        .addInput(Tensor(slice).toOutput)
+        .addInput(Tensor.fromSeq(tensorName).toOutput)
+        .addInput(Tensor.fromSeq(slice).toOutput)
         .setAttribute("preferred_shard", preferredShard)
         .build().outputs(0)
   }
@@ -1268,8 +1268,8 @@ object SaverDefBuilder {
             s"'slices' (${slices.length}).")
     Op.Builder(opType = "SaveV2", name = name)
         .addInput(prefix)
-        .addInput(Tensor(tensorNames.map(Tensor(_)): _*).toOutput) // TODO: [TENSORS] Improve.
-        .addInput(Tensor(slices.map(Tensor(_)): _*).toOutput) // TODO: [TENSORS] Improve.
+        .addInput(Tensor(Tensor.fromSeq(tensorNames: _*)).toOutput) // TODO: [TENSORS] Improve.
+        .addInput(Tensor(Tensor.fromSeq(slices: _*)).toOutput) // TODO: [TENSORS] Improve.
         .addInputList(tensors)
         .setAttribute("dtypes", tensors.map(_.dataType).toArray)
         .build()
@@ -1319,8 +1319,8 @@ object SaverDefBuilder {
             s"'dataTypes' (${dataTypes.length}).")
     Op.Builder(opType = "RestoreV2", name = name)
         .addInput(prefix)
-        .addInput(Tensor(tensorNames.map(Tensor(_)): _*).toOutput) // TODO: [TENSORS] Improve.
-        .addInput(Tensor(slices.map(Tensor(_)): _*).toOutput) // TODO: [TENSORS] Improve.
+        .addInput(Tensor(Tensor.fromSeq(tensorNames: _*)).toOutput) // TODO: [TENSORS] Improve.
+        .addInput(Tensor(Tensor.fromSeq(slices: _*)).toOutput) // TODO: [TENSORS] Improve.
         .setAttribute("dtypes", dataTypes.toArray)
         .build().outputs.toSeq
   }
@@ -1424,53 +1424,55 @@ abstract class Saveable(val saveSpecifications: Seq[SaveSpecification]) {
   private[api] def restore(restoredTensors: Seq[Output], restoredShapes: Seq[Output] = null): Op
 }
 
-/** Wrapper saveable object that allows variables to be saved. */
-case class VariableSaveable(variable: Variable)
-    extends Saveable(
-      Seq(SaveSpecification(
-        if (variable.partitionInformation != null) variable.partitionInformation.fullName else variable.name,
-        variable.value,
-        Option(variable.partitionInformation).map(_.saveSpecString).getOrElse("")))) {
-  override val name: String = {
-    if (variable.partitionInformation != null)
-      variable.partitionInformation.fullName
-    else
-      variable.name
+object Saveable {
+  /** Wrapper saveable object that allows variables to be saved. */
+  implicit class VariableSaveable(variable: Variable)
+      extends Saveable(
+        Seq(SaveSpecification(
+          if (variable.partitionInformation != null) variable.partitionInformation.fullName else variable.name,
+          variable.value,
+          Option(variable.partitionInformation).map(_.saveSpecString).getOrElse("")))) {
+    override val name: String = {
+      if (variable.partitionInformation != null)
+        variable.partitionInformation.fullName
+      else
+        variable.name
+    }
+
+    override val producerOps: Set[Op] = Set(variable.op)
+
+    override private[api] def restore(restoredTensors: Seq[Output], restoredShapes: Seq[Output] = null): Op = {
+      val restoredTensor = {
+        if (restoredShapes != null)
+          Basic.reshape(restoredTensors.head, restoredShapes.head)
+        else
+          restoredTensors.head
+      }
+      Variable.assign(variable.handle, restoredTensor)
+    }
   }
 
-  override val producerOps: Set[Op] = Set(variable.op)
+  /** Wrapper saveable object that allows partitioned variables to be saved. */
+  implicit class PartitionedVariableSaveable(variable: PartitionedVariable)
+      extends Saveable(
+        variable.map(v => SaveSpecification(
+          v.partitionInformation.fullName,
+          v.value,
+          v.partitionInformation.saveSpecString)).toSeq) {
+    override val name: String = variable.name
 
-  override private[api] def restore(restoredTensors: Seq[Output], restoredShapes: Seq[Output] = null): Op = {
-    val restoredTensor = {
-      if (restoredShapes != null)
-        Basic.reshape(restoredTensors.head, restoredShapes.head)
-      else
-        restoredTensors.head
+    override val producerOps: Set[Op] = variable.map(_.op).toSet
+
+    override private[api] def restore(restoredTensors: Seq[Output], restoredShapes: Seq[Output] = null): Op = {
+      val tensors: Seq[Output] = {
+        if (restoredShapes != null)
+          restoredTensors.zip(restoredShapes).map(p => Basic.reshape(p._1, p._2))
+        else
+          restoredTensors
+      }
+      val restoreOps = variable.zip(tensors).map(p => Variable.assign(p._1.handle, p._2))
+      // Create a no-op that has control dependencies for all the updates.
+      ControlFlow.group(restoreOps.toSet)
     }
-    Variable.assign(variable.handle, restoredTensor)
-  }
-}
-
-/** Wrapper saveable object that allows partitioned variables to be saved. */
-case class PartitionedVariableSaveable(variable: PartitionedVariable)
-    extends Saveable(
-      variable.map(v => SaveSpecification(
-        v.partitionInformation.fullName,
-        v.value,
-        v.partitionInformation.saveSpecString)).toSeq) {
-  override val name: String = variable.name
-
-  override val producerOps: Set[Op] = variable.map(_.op).toSet
-
-  override private[api] def restore(restoredTensors: Seq[Output], restoredShapes: Seq[Output] = null): Op = {
-    val tensors: Seq[Output] = {
-      if (restoredShapes != null)
-        restoredTensors.zip(restoredShapes).map(p => Basic.reshape(p._1, p._2))
-      else
-        restoredTensors
-    }
-    val restoreOps = variable.zip(tensors).map(p => Variable.assign(p._1.handle, p._2))
-    // Create a no-op that has control dependencies for all the updates.
-    ControlFlow.group(restoreOps.toSet)
   }
 }
