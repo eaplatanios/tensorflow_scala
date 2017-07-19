@@ -53,14 +53,14 @@ class TensorSpec extends FlatSpec with Matchers {
     assert(tensor5.shape === Shape())
     assert(tensor5(0).scalar === "foo")
     // val tensor6: Tensor = Tensor("foo", "bar")
-    // assert(tensor6.dataType === TFString)
+    // assert(tensor6.dataType === tf.STRING)
     // assert(tensor6.shape === Shape(2))
     // assert(tensor6(0).scalar === "foo")
     // assert(tensor6(1).scalar === "bar")
     // val tensor7 = Tensor(Tensor(Tensor("0,0,0", "0,0,1"), Tensor("0,1,0", "0,1,1"), Tensor("0,2,0", "0,2,1")),
     //                      Tensor(Tensor("1,0,0", "1,0,1"), Tensor("1,1,0", "1,1,1"), Tensor("1,2,0", "1,2,1")),
     //                      Tensor(Tensor("2,0,0", "2,0,1"), Tensor("2,1,0", "2,1,1"), Tensor("2,2,0", "2,2,1")))
-    // assert(tensor7.dataType === TFString)
+    // assert(tensor7.dataType === tf.STRING)
     // assert(tensor7.shape === Shape(3, 3, 2))
     // assert(tensor7(0, 0, 0).scalar === "0,0,0")
     // assert(tensor7(0, 0, 1).scalar === "0,0,1")

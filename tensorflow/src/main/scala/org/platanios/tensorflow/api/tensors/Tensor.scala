@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.tensors
 
-import org.platanios.tensorflow.api.DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER
+import org.platanios.tensorflow.api.{DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER, tensors}
 import org.platanios.tensorflow.api.Implicits._
 import org.platanios.tensorflow.api.core.{Index, Indexer, Shape}
 import org.platanios.tensorflow.api.core.exception.{InvalidDataTypeException, ShapeMismatchException}
@@ -23,10 +23,10 @@ import org.platanios.tensorflow.api.ops.{Basic, Output, OutputConvertible}
 import org.platanios.tensorflow.api.types._
 import org.platanios.tensorflow.jni.{Tensor => NativeTensor}
 
+import spire.math.UShort
+
 import java.nio._
 import java.nio.charset.Charset
-
-import spire.math.UShort
 
 // TODO: Specialized slices (e.g., contiguous).
 // TODO: Is there a need to complicate the flattened index function for the plain tensor?
@@ -169,21 +169,70 @@ trait Tensor extends TensorLike with OutputConvertible {
 object Tensor {
   // TODO: [TENSORS] Add constructor methods for numeric tensors and other specific types of tensors.
 
-  def fromSeq[T](values: T*)(implicit evidence: FixedSizeSupportedType[T]): Tensor = {
-    val tensor = allocate(values.head.dataType, Shape(values.length))
-    val tensorIndexIterator = tensor.flattenedIndexIterator
-    values.foreach(value => tensor.setElementAtFlattenedIndex(tensorIndexIterator.next(), value))
-    tensor
+  def fromSeq[T](values: T*)(implicit evidence: SupportedType[T]): Tensor = {
+    val shape = if (values.length > 1) Shape(values.length) else Shape()
+    values.head match {
+      case _: String =>
+        // TODO: !!! Make more efficient.
+        val v = values.asInstanceOf[Seq[String]]
+        var size = INT64.byteSize * v.length
+        var i = 0
+        while (i < v.length) {
+          size += NativeTensor.getEncodedStringSize(v(i).getBytes(Charset.forName("UTF-8")).length)
+          i += 1
+        }
+        val buffer: ByteBuffer = ByteBuffer.allocateDirect(size).order(ByteOrder.nativeOrder)
+        val tensor = new StringTensor(shape, buffer, DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER)
+        val baseOffset = INT64.byteSize * tensor.numElements
+        var byteIndex = 0
+        i = 0
+        while (i < v.length) {
+          val numEncodedBytes = STRING.putElementInBuffer(buffer, baseOffset + byteIndex, v(i))
+          INT64.putElementInBuffer(buffer, INT64.byteSize * i, byteIndex.toLong)
+          byteIndex += numEncodedBytes
+          i += 1
+        }
+        tensor
+      case _ =>
+        val tensor = allocate(values.head.dataType, shape)
+        val tensorIndexIterator = tensor.flattenedIndexIterator
+        values.foreach(value => tensor.setElementAtFlattenedIndex(tensorIndexIterator.next(), value))
+        tensor
+    }
   }
 
-  def fromSeq[T](dataType: DataType, values: T*)(implicit evidence: FixedSizeSupportedType[T]): Tensor = {
-    val tensor = allocate(dataType, Shape(values.length))
-    val tensorIndexIterator = tensor.flattenedIndexIterator
-    values.foreach(value => {
-      val castedValue = dataType.cast(value)
-      tensor.setElementAtFlattenedIndex(tensorIndexIterator.next(), castedValue)(dataType.supportedType)
-    })
-    tensor
+  def fromSeq[T](dataType: DataType, values: T*)(implicit evidence: SupportedType[T]): Tensor = {
+    val shape = if (values.length > 1) Shape(values.length) else Shape()
+    dataType match {
+      case STRING =>
+        val v = values.map(STRING.cast(_)(evidence))
+        var size = INT64.byteSize * v.length
+        var i = 0
+        while (i < v.length) {
+          size += NativeTensor.getEncodedStringSize(v(i).getBytes(Charset.forName("UTF-8")).length)
+          i += 1
+        }
+        val buffer: ByteBuffer = ByteBuffer.allocateDirect(size).order(ByteOrder.nativeOrder)
+        val tensor = new StringTensor(shape, buffer, DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER)
+        val baseOffset = INT64.byteSize * tensor.numElements
+        var byteIndex = 0
+        i = 0
+        while (i < v.length) {
+          val numEncodedBytes = STRING.putElementInBuffer(buffer, baseOffset + byteIndex, v(i))
+          INT64.putElementInBuffer(buffer, INT64.byteSize * i, byteIndex.toLong)
+          byteIndex += numEncodedBytes
+          i += 1
+        }
+        tensor
+      case _ =>
+        val tensor = allocate(dataType, shape)
+        val tensorIndexIterator = tensor.flattenedIndexIterator
+        values.foreach(value => {
+          val castedValue = dataType.cast(value)
+          tensor.setElementAtFlattenedIndex(tensorIndexIterator.next(), castedValue)(dataType.supportedType)
+        })
+        tensor
+    }
   }
 
   def apply(tensors: Tensor*): Tensor = {
