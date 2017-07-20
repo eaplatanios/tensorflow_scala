@@ -406,7 +406,7 @@ trait Basic {
     */
   def sparseSize(input: SparseOutput, dataType: DataType = INT32, name: String = "SparseSize"): Output = {
     Op.createWith(nameScope = name) {
-      Math.product(Math.cast(input.denseShape, dataType), Array(0))
+      Math.prod(Math.cast(input.denseShape, dataType), Array(0))
     }
   }
 
@@ -2047,7 +2047,7 @@ trait Basic {
         throw InvalidShapeException("The boolean mask cannot be a scalar.")
       inputShape(0 :: maskRank).assertIsCompatibleWith(maskShape)
       val dynamicInputShape = shape(input)
-      val leadingSize = Math.product(dynamicInputShape(0 :: maskRank), Array(0))
+      val leadingSize = Math.prod(dynamicInputShape(0 :: maskRank), Array(0))
       val reshapedInput = reshape(input, concatenate(Array[Output](leadingSize, dynamicInputShape(maskRank ::)), 0))
       val firstDimension = inputShape(0 :: maskRank).rank
       reshapedInput.setShape(Shape(firstDimension).concatenateWith(inputShape(maskRank ::)))

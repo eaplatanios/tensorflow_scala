@@ -919,7 +919,7 @@ trait Math {
   /** Creates an op that truncate-divides two integer tensors element-wise.
     *
     * Truncation designates that negative numbers will round fractional quantities toward zero. I.e. `-7 / 5 = 1`. This
-    * matches C semantics but it is different than Python semantics. See [[floorDivide]] for a division function that
+    * matches C semantics but it is different than Python semantics. See `floorDivide` for a division function that
     * matches Python semantics.
     *
     * I.e., `z = x / y`, for `x` and `y` being integer tensors.
@@ -1434,13 +1434,19 @@ trait Math {
 
   //region Reduction Ops
 
-  // TODO: [OPS] Add support for sparse outputs and indexed slices to the reduction op    s.
-
-  private[this] def reductionAxes(tensor: Output, axes: Output): Output = {
-    if (axes != null)
+  private[this] def reductionAxes[T <: OutputLike](tensor: T, axes: Output): Output = {
+    if (axes != null) {
       axes
-    else
-      Basic.constant(Tensor.fromSeq(0 until tensor.shape.rank: _*)(INT32.supportedType))
+    } else {
+      tensor match { // Fast path: Avoid creating range and rank ops if the rank is known statically.
+        case t: Output if t.rank > -1 =>
+          Basic.constant(Tensor.fromSeq(0 until t.rank: _*)(INT32.supportedType))
+        case o: SparseOutput if o.denseShape.shape.isFullyDefined =>
+          Basic.constant(Tensor.fromSeq(0 until o.denseShape.shape(0): _*)(INT32.supportedType))
+        case _ => // Otherwise, we rely on range and rank to do the right thing at run-time.
+          range(0, Basic.rank(tensor))
+      }
+    }
   }
 
   /** Creates an op that computes the sum of elements across axes of a tensor.
@@ -1513,11 +1519,11 @@ trait Math {
     * For example:
     * {{{
     *   // 'x' is [[1, 1, 1]], [1, 1, 1]]
-    *   product(x) == 1
-    *   product(x, 0) == [1, 1, 1]
-    *   product(x, 1) == [1, 1]
-    *   product(x, 1, keepDims = true) == [[1], [1]]
-    *   product(x, [0, 1]) == 1
+    *   prod(x) == 1
+    *   prod(x, 0) == [1, 1, 1]
+    *   prod(x, 1) == [1, 1]
+    *   prod(x, 1, keepDims = true) == [[1], [1]]
+    *   prod(x, [0, 1]) == 1
     * }}}
     *
     * @param  input    Input tensor to reduce.
@@ -1526,7 +1532,7 @@ trait Math {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def product(input: Output, axes: Output = null, keepDims: Boolean = false, name: String = "Product"): Output = {
+  def prod(input: Output, axes: Output = null, keepDims: Boolean = false, name: String = "Prod"): Output = {
     Op.Builder(opType = "Prod", name = name)
         .addInput(input)
         .addInput(reductionAxes(input, axes))
@@ -1791,7 +1797,7 @@ trait Math {
       input: Output, weights: Output = null, minLength: Output = null, maxLength: Output = null,
       dataType: DataType = INT32, name: String = "BinCount"): Output = {
     require(input.dataType == INT32, s"'input' (dataType = ${input.dataType}) must have INT32 data type.")
-    val inputNonEmpty = greater(product(Basic.shape(input)), 0)
+    val inputNonEmpty = greater(prod(Basic.shape(input)), 0)
     var outputSize = cast(inputNonEmpty, INT32) * (max(input) + 1)
     if (minLength != null)
       outputSize = maximum(minLength, outputSize)
@@ -2114,7 +2120,6 @@ trait Math {
         .build().outputs(0)
   }
 
-  // TODO: !!! Rename "prod" to "product" above.
   // TODO: [SPARSE] Add sparse segment ops.
 
   //endregion Segment Ops
