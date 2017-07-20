@@ -1434,6 +1434,8 @@ trait Math {
 
   //region Reduction Ops
 
+  // TODO: [OPS] Add support for sparse outputs and indexed slices to the reduction op    s.
+
   private[this] def reductionAxes(tensor: Output, axes: Output): Output = {
     if (axes != null)
       axes
@@ -2512,7 +2514,7 @@ trait Math {
     * @throws IllegalArgumentException If the provided tensor is not numeric.
     */
   @throws[IllegalArgumentException]
-  def conjugate[T: OutputOps](input: T, name: String = "Conjugate"): T = {
+  def conjugate[T <: OutputLike : OutputOps](input: T, name: String = "Conjugate"): T = {
     implicitly[OutputOps[T]]
         .unaryOp(input, o => {
           if (input.dataType.isComplex) {

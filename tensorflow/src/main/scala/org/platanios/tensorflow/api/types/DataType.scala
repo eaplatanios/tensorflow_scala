@@ -204,7 +204,7 @@ private[api] object FLOAT16 extends RealNumericDataType {
   override val name    : String = "FLOAT16"
   override val cValue  : Int    = 19
   override val byteSize: Int    = 2
-  override val priority: Int    = ???
+  override val priority: Int    = -1
 
   private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
     ???
@@ -260,7 +260,7 @@ private[api] object BFLOAT16 extends RealNumericDataType {
   override val name    : String = "BFLOAT16"
   override val cValue  : Int    = 14
   override val byteSize: Int    = 2
-  override val priority: Int    = ???
+  override val priority: Int    = -1
 
   private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
     ???
@@ -278,7 +278,7 @@ private[api] object COMPLEX64 extends RealNumericDataType {
   override val name    : String = "COMPLEX64"
   override val cValue  : Int    = 8
   override val byteSize: Int    = 8
-  override val priority: Int    = ???
+  override val priority: Int    = -1
 
   private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
     ???
@@ -296,7 +296,7 @@ private[api] object COMPLEX128 extends RealNumericDataType {
   override val name    : String = "COMPLEX128"
   override val cValue  : Int    = 18
   override val byteSize: Int    = 16
-  override val priority: Int    = ???
+  override val priority: Int    = -1
 
   private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
     ???
