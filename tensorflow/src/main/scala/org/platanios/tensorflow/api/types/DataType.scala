@@ -90,8 +90,8 @@ sealed trait DataType {
 
   /** Returns a data type that corresponds to this data type's real part. */
   def real: DataType = this match {
-    // case DataType.Complex64 => DataType.Float32 TODO: [COMPLEX]
-    // case DataType.Complex128 => DataType.Float64
+    case COMPLEX64 => FLOAT32
+    case COMPLEX128 => FLOAT64
     case _ => this
   }
 
@@ -195,7 +195,25 @@ private[api] object BOOLEAN extends FixedSizeDataType {
   }
 }
 
-// TODO: Add Float16(cValue = 19, byteSize = 2).
+// TODO: Complete the following implementations for FLOAT16, BFLOAT16, COMPLEX64, and COMPLEX128.
+
+private[api] object FLOAT16 extends ComplexNumericDataType {
+  override type ScalaType = Float
+  override implicit val supportedType = FloatIsSupportedType
+
+  override val name    : String = "FLOAT16"
+  override val cValue  : Int    = 19
+  override val byteSize: Int    = 2
+  override val priority: Int    = ???
+
+  private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
+    ???
+  }
+
+  private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
+    ???
+  }
+}
 
 private[api] object FLOAT32 extends RealNumericDataType {
   override type ScalaType = Float
@@ -235,9 +253,59 @@ private[api] object FLOAT64 extends RealNumericDataType {
   }
 }
 
-// TODO: Add BFLOAT16(cValue = 14, byteSize = 2).
-// TODO: Add COMPLEX64(cValue = 8, byteSize = 8).
-// TODO: Add COMPLEX128(cValue = 18, byteSize = 16).
+private[api] object BFLOAT16 extends ComplexNumericDataType {
+  override type ScalaType = Float
+  override implicit val supportedType = FloatIsSupportedType
+
+  override val name    : String = "BFLOAT16"
+  override val cValue  : Int    = 14
+  override val byteSize: Int    = 2
+  override val priority: Int    = ???
+
+  private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
+    ???
+  }
+
+  private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
+    ???
+  }
+}
+
+private[api] object COMPLEX64 extends ComplexNumericDataType {
+  override type ScalaType = Double
+  override implicit val supportedType = DoubleIsSupportedType
+
+  override val name    : String = "COMPLEX64"
+  override val cValue  : Int    = 8
+  override val byteSize: Int    = 8
+  override val priority: Int    = ???
+
+  private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
+    ???
+  }
+
+  private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
+    ???
+  }
+}
+
+private[api] object COMPLEX128 extends ComplexNumericDataType {
+  override type ScalaType = Double
+  override implicit val supportedType = DoubleIsSupportedType
+
+  override val name    : String = "COMPLEX128"
+  override val cValue  : Int    = 18
+  override val byteSize: Int    = 16
+  override val priority: Int    = ???
+
+  private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
+    ???
+  }
+
+  private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType = {
+    ???
+  }
+}
 
 private[api] object INT8 extends RealNumericDataType {
   override type ScalaType = Byte

@@ -102,6 +102,17 @@ private[ops] object OutputOps {
       outputLike.copy(values = opFunction(outputLike.values))
     }
   }
+
+  implicit val outputLikeOps = new OutputOps[OutputLike] {
+    @inline
+    override def unaryOp(outputLike: OutputLike, opFunction: (Output) => Output): OutputLike = {
+      outputLike match {
+        case o: Output => opFunction(o)
+        case o: OutputIndexedSlices => o.copy(values = opFunction(o.values))
+        case o: SparseOutput => o.copy(values = opFunction(o.values))
+      }
+    }
+  }
 }
 
 /** Representation of one of the outputs of an [[Op]]'s computation.

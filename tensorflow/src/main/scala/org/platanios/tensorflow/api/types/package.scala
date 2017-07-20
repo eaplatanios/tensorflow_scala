@@ -36,25 +36,25 @@ package object types {
 
     val DataType = types.DataType
 
-    val STRING   = types.STRING
-    val BOOLEAN  = types.BOOLEAN
-    // val FLOAT16 = types.TFFloat16
-    val FLOAT32  = types.FLOAT32
-    val FLOAT64  = types.FLOAT64
-    // val BFLOAT16 = types.TFBFloat16
-    // val COMPLEX64 = types.TFComplex64
-    // val COMPLEX128 = types.TFComplex128
-    val INT8     = types.INT8
-    val INT16    = types.INT16
-    val INT32    = types.INT32
-    val INT64    = types.INT64
-    val UINT8    = types.UINT8
-    val UINT16   = types.UINT16
-    val QINT8    = types.QINT8
-    val QINT16   = types.QINT16
-    val QINT32   = types.QINT32
-    val QUINT8   = types.QUINT8
-    val QUINT16  = types.QUINT16
-    val RESOURCE = types.RESOURCE
+    val STRING     = types.STRING
+    val BOOLEAN    = types.BOOLEAN
+    val FLOAT16    = types.FLOAT16
+    val FLOAT32    = types.FLOAT32
+    val FLOAT64    = types.FLOAT64
+    val BFLOAT16   = types.BFLOAT16
+    val COMPLEX64  = types.COMPLEX64
+    val COMPLEX128 = types.COMPLEX128
+    val INT8       = types.INT8
+    val INT16      = types.INT16
+    val INT32      = types.INT32
+    val INT64      = types.INT64
+    val UINT8      = types.UINT8
+    val UINT16     = types.UINT16
+    val QINT8      = types.QINT8
+    val QINT16     = types.QINT16
+    val QINT32     = types.QINT32
+    val QUINT8     = types.QUINT8
+    val QUINT16    = types.QUINT16
+    val RESOURCE   = types.RESOURCE
   }
 }
