@@ -2232,19 +2232,19 @@ trait Basic {
 
   //region Slice Ops
 
-  /** Creates an op that gathers slices from `input` according to `indices`.
+  /** Creates an op that gathers slices from `input` axis `axis`, according to `indices`.
     *
     * `indices` must be an integer tensor of any dimension (usually 0-D or 1-D). The op produces an output tensor with
-    * shape `indices.shape + params.shape(1::)`, where:
+    * shape `input.shape[::axis] + indices.shape + input.shape(axis + 1::)`, where:
     * {{{
-    *   // Scalar indices
-    *   output(::, ---) = input(indices, ::, ---)
+    *   // Scalar indices (output has rank = rank(input) - 1)
+    *   output(a_0, ..., a_n, b_0, ..., b_n) = input(a_0, ..., a_n, indices, b_0, ..., b_n)
     *
-    *   // Vector indices
-    *   output(i, ::, ---) = input(indices(i), ::, ---)
+    *   // Vector indices (output has rank = rank(input))
+    *   output(a_0, ..., a_n, i, b_0, ..., b_n) = input(a_0, ..., a_n, indices(i), b_0, ..., b_n)
     *
-    *   // Higher rank indices
-    *   output(i, ..., j, ::, ---) = input(indices(i, ..., j), ::, ---)
+    *   // Higher rank indices (output has rank = rank(input) + rank(indices) - 1)
+    *   output(a_0, ..., a_n, i, ..., j, b_0, ..., b_n) = input(a_0, ..., a_n, indices(i, ..., j), b_0, ..., b_n)
     * }}}
     *
     * If `indices` is a permutation and `indices.length == input.shape(0)`, then this op will permute `input`
@@ -2252,13 +2252,15 @@ trait Basic {
     *
     * @param  input   Tensor from which to gather values.
     * @param  indices Tensor containing indices to gather.
+    * @param  axis    Tensor containing the axis along which to gather.
     * @param  name    Name for the created op.
     * @return Created op output.
     */
-  def gather(input: Output, indices: Output, name: String = "Gather"): Output = {
-    Op.Builder(opType = "Gather", name = name)
+  def gather(input: Output, indices: Output, axis: Output = 0, name: String = "Gather"): Output = {
+    Op.Builder(opType = "GatherV2", name = name)
         .addInput(input)
         .addInput(indices)
+        .addInput(axis)
         .build().outputs(0)
   }
 
