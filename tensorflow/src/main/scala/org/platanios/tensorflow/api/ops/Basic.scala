@@ -322,14 +322,19 @@ trait Basic {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def rank(input: Output, optimize: Boolean = true, name: String = "Rank"): Output = {
-    val inputRank = input.shape.rank
-    if (optimize && inputRank != -1)
-      constant(Tensor.fill(INT32, Shape())(inputRank), name = name)
-    else
-      Op.Builder(opType = "Rank", name = name)
-          .addInput(input)
-          .build().outputs(0)
+  def rank[T <: OutputLike](input: T, optimize: Boolean = true, name: String = "Rank"): Output = {
+    input match {
+      case o: Output =>
+        val inputRank = o.shape.rank
+        if (optimize && inputRank != -1)
+          constant(Tensor.fill(INT32, Shape())(inputRank), name = name)
+        else
+          Op.Builder(opType = "Rank", name = name)
+              .addInput(o)
+              .build().outputs(0)
+      case o: OutputIndexedSlices => size(o.denseShape, optimize = optimize, name = name)
+      case o: SparseOutput => size(o.denseShape, optimize = optimize, name = name)
+    }
   }
 
   /** Creates an op that returns the rank of a sparse tensor.
