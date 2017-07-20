@@ -195,9 +195,9 @@ private[api] object BOOLEAN extends FixedSizeDataType {
   }
 }
 
-// TODO: Complete the following implementations for FLOAT16, BFLOAT16, COMPLEX64, and COMPLEX128.
+// TODO: Fix/complete the following implementations for FLOAT16, BFLOAT16, COMPLEX64, and COMPLEX128.
 
-private[api] object FLOAT16 extends ComplexNumericDataType {
+private[api] object FLOAT16 extends RealNumericDataType {
   override type ScalaType = Float
   override implicit val supportedType = FloatIsSupportedType
 
@@ -253,7 +253,7 @@ private[api] object FLOAT64 extends RealNumericDataType {
   }
 }
 
-private[api] object BFLOAT16 extends ComplexNumericDataType {
+private[api] object BFLOAT16 extends RealNumericDataType {
   override type ScalaType = Float
   override implicit val supportedType = FloatIsSupportedType
 
@@ -271,7 +271,7 @@ private[api] object BFLOAT16 extends ComplexNumericDataType {
   }
 }
 
-private[api] object COMPLEX64 extends ComplexNumericDataType {
+private[api] object COMPLEX64 extends RealNumericDataType {
   override type ScalaType = Double
   override implicit val supportedType = DoubleIsSupportedType
 
@@ -289,7 +289,7 @@ private[api] object COMPLEX64 extends ComplexNumericDataType {
   }
 }
 
-private[api] object COMPLEX128 extends ComplexNumericDataType {
+private[api] object COMPLEX128 extends RealNumericDataType {
   override type ScalaType = Double
   override implicit val supportedType = DoubleIsSupportedType
 
