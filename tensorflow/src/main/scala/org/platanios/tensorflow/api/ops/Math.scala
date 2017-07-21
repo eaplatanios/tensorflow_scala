@@ -2349,6 +2349,41 @@ trait Math {
         .build().outputs(0)
   }
 
+  /** Creates an op that computes the trace of a tensor.
+    *
+    * The trace of a tensor is defined as the sum along the main diagonal of each inner-most matrix in it. If the tensor
+    * is of rank `k` with shape `[I, J, K, ..., L, M, N]`, then output is a tensor of rank `k - 2` with dimensions
+    * `[I, J, K, ..., L]` where: `output[i, j, k, ..., l] = trace(x[i, j, i, ..., l, :, :])`.
+    *
+    * For example:
+    * {{{
+    *   // Tensor 'x' is [[1, 2], [3, 4]]
+    *   trace(x) ==> 5
+    *
+    *   // Tensor 'x' is [[1, 2, 3],
+    *                     [4, 5, 6],
+    *                     [7, 8, 9]]
+    *   trace(x) ==> 15
+    *
+    *   // Tensor 'x' is [[[ 1,  2,  3],
+    *                      [ 4,  5,  6],
+    *                      [ 7,  8,  9]],
+    *                     [[-1, -2, -3],
+    *                      [-4, -5, -6],
+    *                      [-7, -8, -9]]]
+    *   trace(x) ==> [15, -15]
+    * }}}
+    *
+    * @param  input Input tensor.
+    * @param  name  Name for the created op.
+    * @return Created op output.
+    */
+  def trace(input: Output, name: String = "Trace"): Output = {
+    Op.createWithNameScope(name) {
+      sum(matrixDiagPart(input), axes = -1)
+    }
+  }
+
   // TODO: !!! matMul documentation plus sparse matMul.
 
   def matMul(
