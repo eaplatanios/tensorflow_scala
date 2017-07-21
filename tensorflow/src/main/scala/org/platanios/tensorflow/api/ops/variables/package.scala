@@ -16,6 +16,8 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.{Graph, Shape}
+import org.platanios.tensorflow.api.ops.variables.Saver
+import org.platanios.tensorflow.api.ops.variables.Saver.{V2, WriterVersion}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.{DataType, FLOAT32}
 
@@ -45,6 +47,17 @@ package object variables {
 
     type Saver = variables.Saver
     val Saver = variables.Saver
+
+    def saver(
+        saveables: Set[Saveable] = null, reshape: Boolean = false, sharded: Boolean = false, maxToKeep: Int = 5,
+        keepCheckpointEveryNHours: Float = 10000.0f, restoreSequentially: Boolean = false, filename: String = "model",
+        builder: SaverDefBuilder = DefaultSaverDefBuilder, allowEmpty: Boolean = false,
+        writerVersion: WriterVersion = V2, saveRelativePaths: Boolean = false, padGlobalStep: Boolean = false,
+        name: String = "Saver"): Saver = {
+      Saver(
+        saveables, reshape, sharded, maxToKeep, keepCheckpointEveryNHours, restoreSequentially, filename, builder,
+        allowEmpty, writerVersion, saveRelativePaths, padGlobalStep, name)
+    }
 
     def variable(
         name: String, dataType: DataType = FLOAT32, shape: Shape = null, initializer: VariableInitializer = null,

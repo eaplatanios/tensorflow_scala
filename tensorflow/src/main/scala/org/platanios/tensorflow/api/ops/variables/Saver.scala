@@ -16,12 +16,12 @@
 package org.platanios.tensorflow.api.ops.variables
 
 import org.platanios.tensorflow.api._
-import org.platanios.tensorflow.api.core.{DeviceSpecification, Graph}
+import org.platanios.tensorflow.api.core.{DeviceSpecification, Graph, Shape}
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.ops.{Basic, ControlFlow, Op, Output, Text}
 import org.platanios.tensorflow.api.ops.variables.CheckpointStateProto.CheckpointState
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{DataType, INT32, STRING}
+import org.platanios.tensorflow.api.types.{DataType, INT32}
 import org.platanios.tensorflow.api.utilities.{FileIO, Proto}
 
 import com.google.protobuf.TextFormat
@@ -342,7 +342,7 @@ object Saver {
     *                                   is set to `false`.
     */
   @throws[IllegalArgumentException]
-  def apply(
+  private[api] def apply(
       saveables: Set[Saveable] = null, reshape: Boolean = false, sharded: Boolean = false, maxToKeep: Int = 5,
       keepCheckpointEveryNHours: Float = 10000.0f, restoreSequentially: Boolean = false, filename: String = "model",
       builder: SaverDefBuilder = DefaultSaverDefBuilder, allowEmpty: Boolean = false, writerVersion: WriterVersion = V2,
@@ -1078,7 +1078,7 @@ object SaverDefBuilder {
       s.producerOps.foreach(producer => {
         if (seenProducers.contains(producer))
           throw new IllegalArgumentException(
-            s"The same saveable object has been provided with two names ('${producer.name}').")
+            s"The same saveable object has been provided twice or with two different names ('${producer.name}').")
         seenProducers += producer
       })
     })
@@ -1107,9 +1107,10 @@ object SaverDefBuilder {
       throw new IllegalArgumentException(
         s"The number of tensor names provided (${tensorNames.length}) does not match the number of tensors in " +
             s"'tensors' (${tensors.length}).")
+    // TODO: [TENSORS] !!! Can we avoid all the tensor reshapes in the future? Maybe have a "withRank" function.
     Op.Builder(opType = "Save", name = name)
         .addInput(filename)
-        .addInput(Tensor(Tensor.fromSeq(tensorNames: _*)).toOutput) // TODO: [TENSORS] Improve.
+        .addInput(Tensor.fromSeq(tensorNames: _*).reshape(Shape(tensorNames.length), copyData = false).toOutput)
         .addInputList(tensors)
         .build()
   }
@@ -1163,8 +1164,8 @@ object SaverDefBuilder {
             s"'slices' (${slices.length}).")
     Op.Builder(opType = "SaveSlices", name = name)
         .addInput(filename)
-        .addInput(Tensor(Tensor.fromSeq(tensorNames: _*)).toOutput) // TODO: [TENSORS] Improve.
-        .addInput(Tensor(Tensor.fromSeq(slices: _*)).toOutput) // TODO: [TENSORS] Improve.
+        .addInput(Tensor.fromSeq(tensorNames: _*).reshape(Shape(tensorNames.length), copyData = false).toOutput)
+        .addInput(Tensor.fromSeq(slices: _*).reshape(Shape(slices.length), copyData = false).toOutput)
         .addInputList(tensors)
         .build()
   }
@@ -1268,8 +1269,8 @@ object SaverDefBuilder {
             s"'slices' (${slices.length}).")
     Op.Builder(opType = "SaveV2", name = name)
         .addInput(prefix)
-        .addInput(Tensor(Tensor.fromSeq(tensorNames: _*)).toOutput) // TODO: [TENSORS] Improve.
-        .addInput(Tensor(Tensor.fromSeq(slices: _*)).toOutput) // TODO: [TENSORS] Improve.
+        .addInput(Tensor.fromSeq(tensorNames: _*).reshape(Shape(tensorNames.length), copyData = false).toOutput)
+        .addInput(Tensor.fromSeq(slices: _*).reshape(Shape(slices.length), copyData = false).toOutput)
         .addInputList(tensors)
         .setAttribute("dtypes", tensors.map(_.dataType).toArray)
         .build()
@@ -1319,8 +1320,8 @@ object SaverDefBuilder {
             s"'dataTypes' (${dataTypes.length}).")
     Op.Builder(opType = "RestoreV2", name = name)
         .addInput(prefix)
-        .addInput(Tensor(Tensor.fromSeq(tensorNames: _*)).toOutput) // TODO: [TENSORS] Improve.
-        .addInput(Tensor(Tensor.fromSeq(slices: _*)).toOutput) // TODO: [TENSORS] Improve.
+        .addInput(Tensor.fromSeq(tensorNames: _*).reshape(Shape(tensorNames.length), copyData = false).toOutput)
+        .addInput(Tensor.fromSeq(slices: _*).reshape(Shape(slices.length), copyData = false).toOutput)
         .setAttribute("dtypes", dataTypes.toArray)
         .build().outputs.toSeq
   }
