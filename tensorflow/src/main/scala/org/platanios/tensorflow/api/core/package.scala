@@ -40,6 +40,18 @@ package object core {
     type Shape = core.Shape
     val Shape = core.Shape
 
+    /** Creates a shape with the specified dimension sizes.
+      *
+      * @param  dimensions Dimension sizes.
+      */
+    def shape(dimensions: Int*): Shape = Shape(dimensions: _*)
+
+    /** Creates a shape with the specified dimension sizes.
+      *
+      * @param  dimensions Dimension sizes.
+      */
+    def shape(dimensions: Array[Int]): Shape = Shape(dimensions)
+
     type DeviceSpecification = core.DeviceSpecification
     val DeviceSpecification = core.DeviceSpecification
 

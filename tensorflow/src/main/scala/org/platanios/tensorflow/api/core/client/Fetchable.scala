@@ -101,6 +101,7 @@ object Fetchable {
 
   implicit def fetchableArray[T, R: ClassTag](implicit ev: Aux[T, R]): Aux[Array[T], Array[R]] = {
     new Fetchable[Array[T]] {
+      // TODO: !!! Uniquify fetches.
       override type ResultType = Array[R]
       override def numberOfFetches(fetchable: Array[T]): Int = fetchable.map(ev.numberOfFetches).sum
       override def fetches(fetchable: Array[T]): Seq[Output] = fetchable.flatMap(ev.fetches).toSeq

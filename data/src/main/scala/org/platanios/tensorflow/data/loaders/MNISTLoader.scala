@@ -75,7 +75,7 @@ object MNISTLoader extends Loader {
     val numberOfImages = (byteBuffer.getInt & 0xffffffffL).toInt
     val numberOfRows = (byteBuffer.getInt & 0xffffffffL).toInt
     val numberOfColumns = (byteBuffer.getInt & 0xffffffffL).toInt
-    tf.Tensor.fromBuffer(tf.UINT8, tf.Shape(numberOfImages, numberOfRows, numberOfColumns), byteBuffer)
+    tf.Tensor.fromBuffer(tf.UINT8, tf.shape(numberOfImages, numberOfRows, numberOfColumns), byteBuffer)
   }
 
   private[this] def extractLabels(path: Path, bufferSize: Int = 8192): tf.Tensor = {
@@ -91,7 +91,7 @@ object MNISTLoader extends Loader {
     if (magicNumber != 2049)
       throw new IllegalStateException(s"Invalid magic number '$magicNumber' in MNIST labels file '$path'.")
     val numberOfLabels = (byteBuffer.getInt & 0xffffffffL).toInt
-    tf.Tensor.fromBuffer(tf.UINT8, tf.Shape(numberOfLabels), byteBuffer)
+    tf.Tensor.fromBuffer(tf.UINT8, tf.shape(numberOfLabels), byteBuffer)
   }
 }
 

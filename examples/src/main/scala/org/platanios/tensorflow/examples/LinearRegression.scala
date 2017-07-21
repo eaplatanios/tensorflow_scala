@@ -34,9 +34,9 @@ object LinearRegression {
 
   def main(args: Array[String]): Unit = {
     logger.info("Building linear regression model.")
-    val inputs = tf.placeholder(tf.FLOAT32, tf.Shape(-1, 1))
-    val outputs = tf.placeholder(tf.FLOAT32, tf.Shape(-1, 1))
-    val weights = tf.variable("weights", tf.FLOAT32, tf.Shape(1, 1), tf.zerosInitializer)
+    val inputs = tf.placeholder(tf.FLOAT32, (-1, 1))
+    val outputs = tf.placeholder(tf.FLOAT32, (-1, 1))
+    val weights = tf.variable("weights", tf.FLOAT32, (1, 1), tf.zerosInitializer)
     val predictions = tf.matMul(inputs, weights)
     val loss = tf.sum(tf.square(predictions - outputs))
     val trainOp = tf.train.AdaGrad(1.0).minimize(loss)
