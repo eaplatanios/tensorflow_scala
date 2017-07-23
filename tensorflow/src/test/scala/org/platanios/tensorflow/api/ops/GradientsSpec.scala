@@ -139,7 +139,7 @@ class GradientsSpec extends FlatSpec with Matchers {
           else
             Basic.ones(matmul.shape, matmul.dataType, name = "OnesLike")
         }
-        Op.createWithNameScope("MatMul/MatMulGradient") {
+        Op.createWithNameScope("MatMulGradient") {
           val matmul1 = Math.matmul(constant2, constant1, transposeA = false, transposeB = true, name = "MatMul")
           val matmul2 = Math.matmul(constant0, constant2, transposeA = true, transposeB = false, name = "MatMul_1")
           Array[Output](matmul1, matmul2)
@@ -196,18 +196,8 @@ class GradientsSpec extends FlatSpec with Matchers {
           else
             Basic.onesLike(matmul, optimize = false, name = "OnesLike")
         }
-        val matmul1 = Op.Builder(opType = "MatMul", name = "MatMul")
-            .addInput(constant2)
-            .addInput(constant1)
-            .setAttribute("transpose_a", value = false)
-            .setAttribute("transpose_b", value = true)
-            .build().outputs(0)
-        val matmul2 = Op.Builder(opType = "MatMul", name = "MatMul_1")
-            .addInput(constant0)
-            .addInput(constant2)
-            .setAttribute("transpose_a", value = true)
-            .setAttribute("transpose_b", value = false)
-            .build().outputs(0)
+        val matmul1 = Math.matmul(constant2, constant1, transposeB = true, name = "MatMul")
+        val matmul2 = Math.matmul(constant0, constant2, transposeA = true, name = "MatMul_1")
         Array[Output](matmul1, matmul2)
       }
     }

@@ -2482,42 +2482,40 @@ trait Math {
       throw new IllegalArgumentException(
         s"The data types of 'a' (dataType = ${a.dataType}) and 'b' (dataType = ${b.dataType}) must match.")
     val sparseMatMulDataTypes = Set[DataType](BFLOAT16, FLOAT32)
-    Op.createWithNameScope(name, Set(a.op, b.op)) {
-      if (!aIsSparse && !bIsSparse && (a.rank == -1 || a.rank > 2) && (b.rank == -1 || b.rank > 2)) {
-        // "BatchMatMul" does not support transpose, so we conjugate the matrix and use adjoint instead.
-        // The "conj" op is a no-op for real matrices.
-        val (x, adjointX) = transposeConjugateToAdjoint(a, transposeA, conjugateA)
-        val (y, adjointY) = transposeConjugateToAdjoint(b, transposeB, conjugateB)
-        Op.Builder(opType = "BatchMatMul", name = "BatchMatMul")
-            .addInput(x)
-            .addInput(y)
-            .setAttribute("adj_x", adjointX)
-            .setAttribute("adj_y", adjointY)
-            .build().outputs(0)
-      } else if (a.dataType == BFLOAT16 || b.dataType == BFLOAT16 || // "MatMul" does not currently support this type.
-          ((aIsSparse || bIsSparse) &&
-              sparseMatMulDataTypes.contains(a.dataType) &&
-              sparseMatMulDataTypes.contains(b.dataType))) {
-        val (x, transposeX) = transposeConjugateToTranspose(a, transposeA, conjugateA)
-        val (y, transposeY) = transposeConjugateToTranspose(b, transposeB, conjugateB)
-        Op.Builder(opType = "SparseMatMul", name = "SparseMatMul")
-            .addInput(x)
-            .addInput(y)
-            .setAttribute("transpose_a", transposeX)
-            .setAttribute("transpose_b", transposeY)
-            .setAttribute("a_is_sparse", aIsSparse)
-            .setAttribute("b_is_sparse", bIsSparse)
-            .build().outputs(0)
-      } else {
-        val (x, transposeX) = transposeConjugateToTranspose(a, transposeA, conjugateA)
-        val (y, transposeY) = transposeConjugateToTranspose(b, transposeB, conjugateB)
-        Op.Builder(opType = "MatMul", name = "MatMul")
-            .addInput(x)
-            .addInput(y)
-            .setAttribute("transpose_a", transposeX)
-            .setAttribute("transpose_b", transposeY)
-            .build().outputs(0)
-      }
+    if (!aIsSparse && !bIsSparse && (a.rank == -1 || a.rank > 2) && (b.rank == -1 || b.rank > 2)) {
+      // "BatchMatMul" does not support transpose, so we conjugate the matrix and use adjoint instead.
+      // The "conj" op is a no-op for real matrices.
+      val (x, adjointX) = transposeConjugateToAdjoint(a, transposeA, conjugateA)
+      val (y, adjointY) = transposeConjugateToAdjoint(b, transposeB, conjugateB)
+      Op.Builder(opType = "BatchMatMul", name = name)
+          .addInput(x)
+          .addInput(y)
+          .setAttribute("adj_x", adjointX)
+          .setAttribute("adj_y", adjointY)
+          .build().outputs(0)
+    } else if (a.dataType == BFLOAT16 || b.dataType == BFLOAT16 || // "MatMul" does not currently support this type.
+        ((aIsSparse || bIsSparse) &&
+            sparseMatMulDataTypes.contains(a.dataType) &&
+            sparseMatMulDataTypes.contains(b.dataType))) {
+      val (x, transposeX) = transposeConjugateToTranspose(a, transposeA, conjugateA)
+      val (y, transposeY) = transposeConjugateToTranspose(b, transposeB, conjugateB)
+      Op.Builder(opType = "SparseMatMul", name = name)
+          .addInput(x)
+          .addInput(y)
+          .setAttribute("transpose_a", transposeX)
+          .setAttribute("transpose_b", transposeY)
+          .setAttribute("a_is_sparse", aIsSparse)
+          .setAttribute("b_is_sparse", bIsSparse)
+          .build().outputs(0)
+    } else {
+      val (x, transposeX) = transposeConjugateToTranspose(a, transposeA, conjugateA)
+      val (y, transposeY) = transposeConjugateToTranspose(b, transposeB, conjugateB)
+      Op.Builder(opType = "MatMul", name = name)
+          .addInput(x)
+          .addInput(y)
+          .setAttribute("transpose_a", transposeX)
+          .setAttribute("transpose_b", transposeY)
+          .build().outputs(0)
     }
   }
 
