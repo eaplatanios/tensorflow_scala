@@ -2743,16 +2743,67 @@ object Math extends Math {
     GradientsRegistry.register("Select", selectGradient)
     GradientsRegistry.register("Cast", castGradient)
     GradientsRegistry.register("AddN", addNGradient)
-    // TODO: Abs gradient.
+    GradientsRegistry.register("Abs", absGradient)
+    GradientsRegistry.register("ComplexAbs", complexAbsGradient)
     GradientsRegistry.register("Neg", negateGradient)
     GradientsRegistry.register("Reciprocal", reciprocalGradient)
+    GradientsRegistry.register("ReciprocalGrad", reciprocalHessian)
     GradientsRegistry.register("Square", squareGradient)
     GradientsRegistry.register("Sqrt", sqrtGradient)
+    GradientsRegistry.register("SqrtGrad", sqrtHessian)
     GradientsRegistry.register("Rsqrt", rsqrtGradient)
+    GradientsRegistry.register("RsqrtGrad", rsqrtHessian)
+    GradientsRegistry.register("Exp", expGradient)
+    GradientsRegistry.register("Expm1", expm1Gradient)
+    GradientsRegistry.register("Log", logGradient)
+    GradientsRegistry.register("Log1p", log1pGradient)
+    GradientsRegistry.register("Sin", sinGradient)
+    GradientsRegistry.register("Cos", cosGradient)
+    GradientsRegistry.register("Tan", tanGradient)
+    GradientsRegistry.register("Asin", asinGradient)
+    GradientsRegistry.register("Acos", acosGradient)
+    GradientsRegistry.register("Atan", atanGradient)
+    GradientsRegistry.register("Sinh", sinhGradient)
+    GradientsRegistry.register("Cosh", coshGradient)
     GradientsRegistry.register("Tanh", tanhGradient)
+    GradientsRegistry.register("TanhGrad", tanhHessian)
+    GradientsRegistry.register("Asinh", asinhGradient)
+    GradientsRegistry.register("Acosh", acoshGradient)
+    GradientsRegistry.register("Atanh", atanhGradient)
+    GradientsRegistry.register("Lgamma", lgammaGradient)
+    GradientsRegistry.register("Digamma", digammaGradient)
+    GradientsRegistry.register("Erf", erfGradient)
+    GradientsRegistry.register("Erfc", erfcGradient)
     GradientsRegistry.register("Sigmoid", sigmoidGradient)
-    GradientsRegistry.register("Sub", subtractGradient)
+    GradientsRegistry.register("SigmoidGrad", sigmoidHessian)
+    GradientsRegistry.register("Sign", signGradient)
+    GradientsRegistry.register("Round", roundGradient)
+    GradientsRegistry.register("Rint", rintGradient)
+    GradientsRegistry.register("Floor", floorGradient)
+    GradientsRegistry.register("Ceil", ceilGradient)
+    GradientsRegistry.register("Add", addGradient)
+    GradientsRegistry.register("Sub", subGradient)
+    GradientsRegistry.register("Mul", mulGradient)
+    GradientsRegistry.register("Div", divGradient)
+    GradientsRegistry.register("FloorDiv", floorDivGradient)
+    GradientsRegistry.register("TruncateDiv", truncateDivGradient)
+    GradientsRegistry.register("RealDiv", realDivGradient)
+    GradientsRegistry.register("SquaredDifference", squaredDifferenceGradient)
+    // TODO: [GRADIENTS] mod, floorMod, truncateMod
+    GradientsRegistry.register("Pow", powGradient)
+    GradientsRegistry.register("Igammac", igammacGradient)
+    GradientsRegistry.register("Igamma", igammaGradient)
+    GradientsRegistry.register("Zeta", zetaGradient)
+    GradientsRegistry.register("Polygamma", polygammaGradient)
+    GradientsRegistry.register("Atan2", atan2Gradient)
+    GradientsRegistry.register("Maximum", maximumGradient)
+    GradientsRegistry.register("Minimum", minimumGradient)
+    GradientsRegistry.register("Betainc", betaIncGradient)
     GradientsRegistry.register("Sum", sumGradient)
+    // TODO: [GRADIENTS] Reduction ops.
+    GradientsRegistry.register("Cumsum", cumsumGradient)
+    GradientsRegistry.register("Cumprod", cumprodGradient)
+    // TODO: [GRADIENTS] Segmentation ops.
     GradientsRegistry.register("Diag", diagGradient)
     GradientsRegistry.register("DiagPart", diagPartGradient)
     GradientsRegistry.register("MatrixDiag", matrixDiagGradient)
@@ -2762,11 +2813,17 @@ object Math extends Math {
     GradientsRegistry.register("BatchMatMul", batchMatMulGradient)
     GradientsRegistry.register("MatMul", matMulGradient)
     GradientsRegistry.register("SparseMatMul", sparseMatMulGradient)
-    GradientsRegistry.register("Conj", conjugateGradient)
+    GradientsRegistry.register("Cross", crossGradient)
+    GradientsRegistry.register("Complex", complexGradient)
+    GradientsRegistry.register("Real", realGradient)
+    GradientsRegistry.register("Imag", imagGradient)
+    GradientsRegistry.register("Conj", conjGradient)
 
     GradientsRegistry.registerNonDifferentiable("Range")
     GradientsRegistry.registerNonDifferentiable("LinSpace")
-    // Logical operations have no gradients.
+    GradientsRegistry.registerNonDifferentiable("IsNan")
+    GradientsRegistry.registerNonDifferentiable("IsInf")
+    GradientsRegistry.registerNonDifferentiable("IsFinite")
     GradientsRegistry.registerNonDifferentiable("LogicalNot")
     GradientsRegistry.registerNonDifferentiable("LogicalAnd")
     GradientsRegistry.registerNonDifferentiable("LogicalOr")
@@ -2784,6 +2841,33 @@ object Math extends Math {
       val x = op.inputs(1)
       val zeros = Basic.zerosLike(x)
       Seq[OutputLike](null, select(c, grad, zeros), select(c, zeros, grad))
+    }
+
+    private[this] def castGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val supportedDataTypes = Seq(FLOAT16, FLOAT32, FLOAT64, BFLOAT16, COMPLEX64, COMPLEX128)
+      val sourceDataType = op.inputs(0).dataType
+      val destinationDataType = outputGradients.head.dataType
+      if (supportedDataTypes.contains(sourceDataType) && supportedDataTypes.contains(destinationDataType))
+        Seq(cast(outputGradients.head, sourceDataType))
+      else
+        Seq(null)
+    }
+
+    private[this] def addNGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      Seq.fill(op.numInputs)(outputGradients.head)
+    }
+
+    private[this] def absGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      Seq(multiply(outputGradients.head.toOutput, sign(op.inputs(0))))
+    }
+
+    private[this] def complexAbsGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val outputGradient = outputGradients.head.toOutput
+      Seq(multiply(complex(outputGradient, Basic.zerosLike(outputGradient)), sign(op.inputs(0))))
+    }
+
+    private[this] def negateGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      Seq(negate(outputGradients.head))
     }
 
     private[this] def unaryGradientOp(
@@ -2811,38 +2895,28 @@ object Math extends Math {
       Seq(gradient)
     }
 
-    private[this] def castGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      val supportedDataTypes = Seq(FLOAT32, FLOAT64) // TODO: [TYPES] Float16 and complex.
-      val sourceDataType = op.inputs(0).dataType
-      val destinationDataType = outputGradients.head.dataType
-      if (supportedDataTypes.contains(sourceDataType) && supportedDataTypes.contains(destinationDataType))
-        Seq(cast(outputGradients.head, sourceDataType))
-      else
-        Seq(null)
-    }
-
-    private[this] def addNGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      Seq.fill(op.numInputs)(outputGradients.head)
-    }
-
-    // TODO: !!! absGradient.
-
-    private[this] def negateGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      Seq(negate(outputGradients.head))
-    }
-
     private[this] def reciprocalGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       unaryGradientOp(op.outputs(0), outputGradients, opType = "ReciprocalGrad", name = "ReciprocalGradient")
     }
 
+    private[this] def reciprocalHessian(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val a = op.inputs(0)
+      val b = op.inputs(1)
+      val outputGradient = outputGradients.head
+      Op.createWith(controlDependencies = Set(outputGradient.op)) {
+        val ca = conjugate(a)
+        val cg = conjugate(outputGradient)
+        val rg = unaryGradientOp(ca, outputGradients, opType = "ReciprocalGrad", name = "ReciprocalGradient")
+        Seq(Basic.constant(-2, cg.dataType) * cg * b * ca, rg.head)
+      }
+    }
+
     private[this] def squareGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      var x = op.inputs(0)
+      val x = op.inputs(0)
       val outputGradient = outputGradients.head
       // Using control dependencies to prevent 2*x from being computed too early.
       Op.createWith(controlDependencies = Set(outputGradient.op)) {
-        x = conjugate(x)
-        // TODO: !!! Automatic casting for mathematic operations? At least print nicely formatted exception?
-        Seq(outputGradient * (Basic.constant(2, x.dataType) * x))
+        Seq(outputGradient * (Basic.constant(2, x.dataType) * conjugate(x)))
       }
     }
 
@@ -2850,8 +2924,126 @@ object Math extends Math {
       unaryGradientOp(op.outputs(0), outputGradients, opType = "SqrtGrad", name = "SqrtGradient")
     }
 
+    private[this] def sqrtHessian(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val a = op.inputs(0)
+      val y = op.outputs(0)
+      val outputGradient = outputGradients.head.toOutput
+      Op.createWith(controlDependencies = Set(outputGradient.op)) {
+        val ga = divide(outputGradient, a)
+        Seq(negate(conjugate(ga)) * y, Basic.constant(0.5, ga.dataType) * ga)
+      }
+    }
+
     private[this] def rsqrtGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       unaryGradientOp(op.outputs(0), outputGradients, opType = "RsqrtGrad", name = "RSqrtGradient")
+    }
+
+    private[this] def rsqrtHessian(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val a = op.inputs(0)
+      val b = op.inputs(1)
+      val outputGradient = outputGradients.head
+      Op.createWith(controlDependencies = Set(outputGradient.op)) {
+        val ca = conjugate(a)
+        val cg = conjugate(outputGradient)
+        val rg = unaryGradientOp(ca, outputGradients, opType = "RsqrtGrad", name = "RSqrtGradient")
+        Seq(Basic.constant(-1.5, cg.dataType) * cg * b * square(ca), rg.head)
+      }
+    }
+
+    private[this] def expGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val y = op.outputs(0)
+      val outputGradient = outputGradients.head
+      Op.createWith(controlDependencies = Set(outputGradient.op)) {
+        Seq(outputGradient * conjugate(y))
+      }
+    }
+
+    private[this] def expm1Gradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val x = op.inputs(0)
+      val outputGradient = outputGradients.head
+      Op.createWith(controlDependencies = Set(outputGradient.op)) {
+        Seq(outputGradient * exp(conjugate(x)))
+      }
+    }
+
+    private[this] def logGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val x = op.inputs(0)
+      val outputGradient = outputGradients.head
+      Op.createWith(controlDependencies = Set(outputGradient.op)) {
+        Seq(outputGradient * reciprocal(conjugate(x)))
+      }
+    }
+
+    private[this] def log1pGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val x = op.inputs(0)
+      val outputGradient = outputGradients.head
+      Op.createWith(controlDependencies = Set(outputGradient.op)) {
+        Seq(outputGradient * reciprocal(Basic.constant(1, x.dataType) + conjugate(x)))
+      }
+    }
+
+    private[this] def sinGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val x = op.inputs(0)
+      val outputGradient = outputGradients.head
+      Op.createWith(controlDependencies = Set(outputGradient.op)) {
+        Seq(outputGradient * cos(conjugate(x)))
+      }
+    }
+
+    private[this] def cosGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val x = op.inputs(0)
+      val outputGradient = outputGradients.head
+      Op.createWith(controlDependencies = Set(outputGradient.op)) {
+        Seq(negate(outputGradient) * sin(conjugate(x)))
+      }
+    }
+
+    private[this] def tanGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val x = op.inputs(0)
+      val outputGradient = outputGradients.head
+      Op.createWith(controlDependencies = Set(outputGradient.op)) {
+        Seq(outputGradient * square(reciprocal(cos(conjugate(x)))))
+      }
+    }
+
+    private[this] def asinGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val x = op.inputs(0)
+      val outputGradient = outputGradients.head
+      Op.createWith(controlDependencies = Set(outputGradient.op)) {
+        Seq(outputGradient * reciprocal(sqrt(Basic.constant(1, x.dataType) - square(conjugate(x)))))
+      }
+    }
+
+    private[this] def acosGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val x = op.inputs(0)
+      val outputGradient = outputGradients.head
+      Op.createWith(controlDependencies = Set(outputGradient.op)) {
+        Seq(negate(outputGradient) * reciprocal(sqrt(Basic.constant(1, x.dataType) - square(conjugate(x)))))
+      }
+    }
+
+    private[this] def atanGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val x = op.inputs(0)
+      val outputGradient = outputGradients.head
+      Op.createWith(controlDependencies = Set(outputGradient.op)) {
+        Seq(outputGradient * reciprocal(Basic.constant(1, x.dataType) + square(conjugate(x))))
+      }
+    }
+
+    private[this] def sinhGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val x = op.inputs(0)
+      val outputGradient = outputGradients.head
+      Op.createWith(controlDependencies = Set(outputGradient.op)) {
+        Seq(outputGradient * cosh(conjugate(x)))
+      }
+    }
+
+    private[this] def coshGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val x = op.inputs(0)
+      val outputGradient = outputGradients.head
+      Op.createWith(controlDependencies = Set(outputGradient.op)) {
+        Seq(outputGradient * sinh(conjugate(x)))
+      }
     }
 
     private[this] def tanhGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
@@ -2863,6 +3055,76 @@ object Math extends Math {
       }
     }
 
+    private[this] def tanhHessian(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val a = op.inputs(0)
+      val b = op.inputs(1)
+      val outputGradient = outputGradients.head
+      Op.createWith(controlDependencies = Set(outputGradient.op)) {
+        val ca = conjugate(a)
+        val cb = conjugate(b)
+        val rg = unaryGradientOp(ca, outputGradients, opType = "TanhGrad", name = "TanhGradient")
+        Seq(Basic.constant(-2.0, outputGradient.dataType) * outputGradient * cb * ca, rg.head)
+      }
+    }
+
+    private[this] def asinhGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val y = op.outputs(0)
+      val outputGradient = outputGradients.head
+      Op.createWith(controlDependencies = Set(outputGradient.op)) {
+        Seq(outputGradient / cosh(conjugate(y)))
+      }
+    }
+
+    private[this] def acoshGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val y = op.outputs(0)
+      val outputGradient = outputGradients.head
+      Op.createWith(controlDependencies = Set(outputGradient.op)) {
+        Seq(outputGradient / sinh(conjugate(y)))
+      }
+    }
+
+    private[this] def atanhGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val x = op.inputs(0)
+      val outputGradient = outputGradients.head
+      Op.createWith(controlDependencies = Set(outputGradient.op)) {
+        Seq(outputGradient * reciprocal(Basic.constant(1, x.dataType) - square(conjugate(x))))
+      }
+    }
+
+    private[this] def lgammaGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val x = op.inputs(0)
+      val outputGradient = outputGradients.head
+      Op.createWith(controlDependencies = Set(outputGradient.op)) {
+        Seq(outputGradient * digamma(conjugate(x)))
+      }
+    }
+
+    private[this] def digammaGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val x = op.inputs(0)
+      val outputGradient = outputGradients.head
+      Op.createWith(controlDependencies = Set(outputGradient.op)) {
+        Seq(outputGradient * polygamma(Basic.constant(1, x.dataType), conjugate(x)))
+      }
+    }
+
+    private[this] def erfGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val x = op.inputs(0)
+      val outputGradient = outputGradients.head
+      val twoOverRootPi = Basic.constant(2.0 / math.sqrt(math.Pi), outputGradient.dataType)
+      Op.createWith(controlDependencies = Set(outputGradient.op)) {
+        Seq(outputGradient * twoOverRootPi * exp(negate(square(conjugate(x)))))
+      }
+    }
+
+    private[this] def erfcGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val x = op.inputs(0)
+      val outputGradient = outputGradients.head
+      val minusTwoOverRootPi = Basic.constant(-2.0 / math.sqrt(math.Pi), outputGradient.dataType)
+      Op.createWith(controlDependencies = Set(outputGradient.op)) {
+        Seq(outputGradient * minusTwoOverRootPi * exp(negate(square(conjugate(x)))))
+      }
+    }
+
     private[this] def sigmoidGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       var y = op.outputs(0)
       val outputGradient = outputGradients.head
@@ -2870,6 +3132,39 @@ object Math extends Math {
         y = conjugate(y)
         unaryGradientOp(y, outputGradients, opType = "SigmoidGrad", name = "SigmoidGradient")
       }
+    }
+
+    private[this] def sigmoidHessian(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val a = op.inputs(0)
+      val b = op.inputs(1)
+      val outputGradient = outputGradients.head
+      Op.createWith(controlDependencies = Set(outputGradient.op)) {
+        val ca = conjugate(a)
+        val cb = conjugate(b)
+        val gb = outputGradient * cb
+        val rg = unaryGradientOp(ca, outputGradients, opType = "SigmoidGrad", name = "SigmoidGradient")
+        Seq(subtract(gb, Basic.constant(-2.0, outputGradient.dataType) * gb * ca), rg.head)
+      }
+    }
+
+    private[this] def signGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      Seq(Basic.zerosLike(op.inputs(0)))
+    }
+
+    private[this] def roundGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      Seq(null)
+    }
+
+    private[this] def rintGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      Seq(null)
+    }
+
+    private[this] def floorGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      Seq(null)
+    }
+
+    private[this] def ceilGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      Seq(null)
     }
 
     /** Returns the reduction indices for computing the gradients of `shape0` `[operator]` `shape1` with broadcasting.
@@ -2890,16 +3185,215 @@ object Math extends Math {
       (outputs(0), outputs(1))
     }
 
-    private[this] def subtractGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    private[this] def addGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       val x = op.inputs(0)
       val y = op.inputs(1)
       val xShape = Basic.shape(x)
       val yShape = Basic.shape(y)
       val (rx, ry) = broadcastGradientArguments(xShape, yShape)
-      val outputGradient = outputGradients.head
-      val gradientX = Basic.reshape(sum(outputGradient, rx), xShape)
-      val gradientY = -Basic.reshape(sum(outputGradient, ry), yShape)
-      Seq(gradientX, gradientY)
+      val outputGradient = outputGradients.head.toOutput
+      Seq(
+        Basic.reshape(sum(outputGradient, rx), xShape),
+        Basic.reshape(sum(outputGradient, ry), yShape))
+    }
+
+    private[this] def subGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val x = op.inputs(0)
+      val y = op.inputs(1)
+      val xShape = Basic.shape(x)
+      val yShape = Basic.shape(y)
+      val (rx, ry) = broadcastGradientArguments(xShape, yShape)
+      val outputGradient = outputGradients.head.toOutput
+      Seq(
+        Basic.reshape(sum(outputGradient, rx), xShape),
+        -Basic.reshape(sum(outputGradient, ry), yShape))
+    }
+
+    private[this] def mulGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val x = conjugate(op.inputs(0))
+      val y = conjugate(op.inputs(1))
+      val xShape = Basic.shape(x)
+      val yShape = Basic.shape(y)
+      val (rx, ry) = broadcastGradientArguments(xShape, yShape)
+      val outputGradient = outputGradients.head.toOutput
+      Seq(
+        Basic.reshape(sum(multiply(outputGradient, y), rx), xShape),
+        Basic.reshape(sum(multiply(x, outputGradient), ry), yShape))
+    }
+
+    private[this] def divGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val x = conjugate(op.inputs(0))
+      val y = conjugate(op.inputs(1))
+      val xShape = Basic.shape(x)
+      val yShape = Basic.shape(y)
+      val (rx, ry) = broadcastGradientArguments(xShape, yShape)
+      val outputGradient = outputGradients.head.toOutput
+      Seq(
+        Basic.reshape(sum(divide(outputGradient, y), rx), xShape),
+        Basic.reshape(sum(multiply(outputGradient, divide(divide(negate(x), y), y)), ry), yShape))
+    }
+
+    private[this] def floorDivGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      Seq(null, null)
+    }
+
+    private[this] def truncateDivGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      Seq(null, null)
+    }
+
+    private[this] def realDivGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val x = conjugate(op.inputs(0))
+      val y = conjugate(op.inputs(1))
+      val xShape = Basic.shape(x)
+      val yShape = Basic.shape(y)
+      val (rx, ry) = broadcastGradientArguments(xShape, yShape)
+      val outputGradient = outputGradients.head.toOutput
+      Seq(
+        Basic.reshape(sum(realDivide(outputGradient, y), rx), xShape),
+        Basic.reshape(sum(multiply(outputGradient, realDivide(realDivide(negate(x), y), y)), ry), yShape))
+    }
+
+    private[this] def squaredDifferenceGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val x = op.inputs(0)
+      val y = op.inputs(1)
+      val xShape = Basic.shape(x)
+      val yShape = Basic.shape(y)
+      val (rx, ry) = broadcastGradientArguments(xShape, yShape)
+      val outputGradient = outputGradients.head.toOutput
+      val xGradient = Op.createWith(controlDependencies = Set(outputGradient.op)) {
+        multiply(scalarMul(Basic.constant(2, outputGradient.dataType), outputGradient), subtract(x, y))
+      }
+      Seq(
+        Basic.reshape(sum(xGradient, rx), xShape),
+        Basic.reshape(sum(xGradient, ry), yShape))
+    }
+
+    private[this] def powGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val x = conjugate(op.inputs(0))
+      val y = conjugate(op.inputs(1))
+      val z = conjugate(op.outputs(0))
+      val xShape = Basic.shape(x)
+      val yShape = Basic.shape(y)
+      val (rx, ry) = broadcastGradientArguments(xShape, yShape)
+      val outputGradient = outputGradients.head.toOutput
+      // Avoid false singularity at x = 0.
+      val logX = {
+        if (x.dataType.isComplex) {
+          // real(x) < 0 is fine for the complex case.
+          select(notEqual(x, Basic.constant(0, x.dataType)), log(x), Basic.zerosLike(x))
+        } else {
+          // There's no sensible real value to return if x < 0, so we return 0.
+          select(greater(x, Basic.constant(0, x.dataType)), log(x), Basic.zerosLike(x))
+        }
+      }
+      Seq(
+        Basic.reshape(sum(outputGradient * y * pow(x, subtract(y, Basic.constant(1, y.dataType))), rx), xShape),
+        Basic.reshape(sum(outputGradient * z * logX, ry), yShape))
+    }
+
+    private[this] def igammacGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      Seq(null, negate(igammaGradient(op, outputGradients)(1)))
+    }
+
+    private[this] def igammaGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      // TODO: [GRADIENTS] Mark the derivative w.r.t. a as not implemented somehow, or implement it.
+      val a = op.inputs(0)
+      val x = op.inputs(1)
+      val aShape = Basic.shape(a)
+      val xShape = Basic.shape(x)
+      val (_, rx) = broadcastGradientArguments(aShape, xShape)
+      val outputGradient = outputGradients.head.toOutput
+      // Perform operations in log space before summing, because Gamma(a) and Gamma'(a) can grow large.
+      val partialX = exp(negate(x) + multiply(subtract(a, Basic.constant(1, a.dataType)), log(x)) - logGamma(a))
+      Seq(null, Basic.reshape(sum(multiply(partialX, outputGradient), rx), xShape))
+    }
+
+    private[this] def zetaGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      // TODO: [GRADIENTS] Mark the derivative w.r.t. x as not implemented somehow, or implement it.
+      val outputGradient = outputGradients.head.toOutput
+      Op.createWith(controlDependencies = Set(outputGradient.op)) {
+        val x = conjugate(op.inputs(0))
+        val q = conjugate(op.inputs(1))
+        val xShape = Basic.shape(x)
+        val qShape = Basic.shape(q)
+        val (_, rq) = broadcastGradientArguments(xShape, qShape)
+        val partialQ = negate(x) * zeta(add(x, Basic.constant(1, x.dataType)), q)
+        Seq(null, Basic.reshape(sum(multiply(partialQ, outputGradient), rq), qShape))
+      }
+    }
+
+    private[this] def polygammaGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      // TODO: [GRADIENTS] Mark the derivative w.r.t. n as not implemented somehow, or implement it.
+      val outputGradient = outputGradients.head.toOutput
+      Op.createWith(controlDependencies = Set(outputGradient.op)) {
+        val n = conjugate(op.inputs(0))
+        val x = conjugate(op.inputs(1))
+        val nShape = Basic.shape(n)
+        val xShape = Basic.shape(x)
+        val (_, rx) = broadcastGradientArguments(nShape, xShape)
+        val partialX = polygamma(add(n, Basic.constant(1, n.dataType)), x)
+        Seq(null, Basic.reshape(sum(multiply(partialX, outputGradient), rx), xShape))
+      }
+    }
+
+    private[this] def atan2Gradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val x = op.inputs(0)
+      val y = op.inputs(1)
+      val outputGradient = outputGradients.head.toOutput
+      Op.createWith(controlDependencies = Set(outputGradient.op)) {
+        val gradientInverse = divide(outputGradient, add(square(x), square(y)))
+        Seq(
+          multiply(x, gradientInverse),
+          multiply(negate(y), gradientInverse))
+      }
+    }
+
+    private[this] def maximumGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val x = op.inputs(0)
+      val y = op.inputs(1)
+      val xShape = Basic.shape(x)
+      val yShape = Basic.shape(y)
+      val outputGradient = outputGradients.head.toOutput
+      val zeros = Basic.zerosLike(outputGradient)
+      val xMask = greaterEqual(x, y)
+      val (rx, ry) = broadcastGradientArguments(xShape, yShape)
+      val xGradient = select(xMask, outputGradient, zeros)
+      val yGradient = select(logicalNot(xMask), outputGradient, zeros)
+      Seq(
+        Basic.reshape(sum(xGradient, rx), xShape),
+        Basic.reshape(sum(yGradient, ry), yShape))
+    }
+
+    private[this] def minimumGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val x = op.inputs(0)
+      val y = op.inputs(1)
+      val xShape = Basic.shape(x)
+      val yShape = Basic.shape(y)
+      val outputGradient = outputGradients.head.toOutput
+      val zeros = Basic.zerosLike(outputGradient)
+      val xMask = lessEqual(x, y)
+      val (rx, ry) = broadcastGradientArguments(xShape, yShape)
+      val xGradient = select(xMask, outputGradient, zeros)
+      val yGradient = select(logicalNot(xMask), outputGradient, zeros)
+      Seq(
+        Basic.reshape(sum(xGradient, rx), xShape),
+        Basic.reshape(sum(yGradient, ry), yShape))
+    }
+
+    private[this] def betaIncGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      // TODO: [GRADIENTS] Mark the derivative w.r.t. a and b as not implemented somehow, or implement it.
+      val a = conjugate(op.inputs(0))
+      val b = conjugate(op.inputs(1))
+      val x = conjugate(op.inputs(2))
+      val aShape = Basic.shape(a)
+      val xShape = Basic.shape(x)
+      val outputGradient = outputGradients.head.toOutput
+      val (_, rx) = broadcastGradientArguments(aShape, xShape)
+      // Perform operations in log space before summing, because terms can grow large.
+      val logBeta = logGamma(a) + logGamma(b) - logGamma(a + b)
+      val one = Basic.constant(1, b.dataType)
+      val partialX = exp(((b - 1) * log(one - x)) + ((a - one) * log(x)) - logBeta)
+      Seq(null, null, Basic.reshape(sum(multiply(partialX, outputGradient), rx), xShape))
     }
 
     private[this] def sumGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
@@ -2917,6 +3411,26 @@ object Math extends Math {
       } else {
         ???
       }
+    }
+
+    private[this] def cumsumGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val axis = op.inputs(1)
+      val exclusive = op.booleanAttribute("exclusive")
+      val reverse = op.booleanAttribute("reverse")
+      val outputGradient = outputGradients.head
+      Seq(cumsum(outputGradient, axis, exclusive = exclusive, reverse = !reverse), null)
+    }
+
+    private[this] def cumprodGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val x = op.inputs(0)
+      val axis = op.inputs(1)
+      val exclusive = op.booleanAttribute("exclusive")
+      val reverse = op.booleanAttribute("reverse")
+      val outputGradient = outputGradients.head
+      // TODO: [GRADIENTS] !!! This fails when x contains 0 and should be fixed.
+      val product = cumprod(x, axis, exclusive = exclusive, reverse = reverse)
+      val result = cumsum(product * outputGradient, axis, exclusive = exclusive, reverse = !reverse)
+      Seq(divide(result, x), null)
     }
 
     private[this] def diagGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
@@ -3065,7 +3579,36 @@ object Math extends Math {
       }
     }
 
-    private[this] def conjugateGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    private[this] def crossGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val u = op.inputs(0)
+      val v = op.inputs(1)
+      val outputGradient = outputGradients.head.toOutput
+      Seq(cross(v, outputGradient), cross(outputGradient, u))
+    }
+
+    private[this] def complexGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val x = op.inputs(0)
+      val y = op.inputs(1)
+      val xShape = Basic.shape(x)
+      val yShape = Basic.shape(y)
+      val outputGradient = outputGradients.head.toOutput
+      val (rx, ry) = broadcastGradientArguments(xShape, yShape)
+      Seq(
+        Basic.reshape(sum(real(outputGradient), rx), xShape),
+        Basic.reshape(sum(imag(outputGradient), ry), yShape))
+    }
+
+    private[this] def realGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val outputGradient = outputGradients.head.toOutput
+      Seq(complex(outputGradient, Basic.constant(0, outputGradient.dataType)))
+    }
+
+    private[this] def imagGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val outputGradient = outputGradients.head.toOutput
+      Seq(complex(Basic.constant(0, outputGradient.dataType), outputGradient))
+    }
+
+    private[this] def conjGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       Seq(conjugate(outputGradients.head))
     }
   }
