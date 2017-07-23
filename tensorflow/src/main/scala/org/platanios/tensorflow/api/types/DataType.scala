@@ -95,6 +95,12 @@ sealed trait DataType {
     case _ => this
   }
 
+  /** Returns the smallest value that can be represented by this data type. */
+  def min: ScalaType = throw new UnsupportedOperationException(s"Cannot determine max value for '$this' data type.")
+
+  /** Returns the largest value that can be represented by this data type. */
+  def max: ScalaType = throw new UnsupportedOperationException(s"Cannot determine max value for '$this' data type.")
+
   /** Casts the provided value to this data type.
     *
     * Note that this method allows downcasting.
@@ -206,6 +212,9 @@ private[api] object FLOAT16 extends RealNumericDataType {
   override val byteSize: Int    = 2
   override val priority: Int    = -1
 
+  override def min: ScalaType = -65504f
+  override def max: ScalaType = 65504f
+
   private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
     ???
   }
@@ -223,6 +232,9 @@ private[api] object FLOAT32 extends RealNumericDataType {
   override val cValue  : Int    = 1
   override val byteSize: Int    = 4
   override val priority: Int    = 220
+
+  override def min: ScalaType = -3.4028235e+38f
+  override def max: ScalaType = 3.4028235e+38f
 
   private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
     buffer.putFloat(index, element)
@@ -243,6 +255,9 @@ private[api] object FLOAT64 extends RealNumericDataType {
   override val byteSize: Int    = 8
   override val priority: Int    = 230
 
+  override def min: ScalaType = -1.7976931348623157e+308
+  override def max: ScalaType = 1.7976931348623157e+308
+
   private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
     buffer.putDouble(index, element)
     byteSize
@@ -262,6 +277,9 @@ private[api] object BFLOAT16 extends RealNumericDataType {
   override val byteSize: Int    = 2
   override val priority: Int    = -1
 
+  override def min: ScalaType = ???
+  override def max: ScalaType = ???
+
   private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
     ???
   }
@@ -279,6 +297,9 @@ private[api] object COMPLEX64 extends RealNumericDataType {
   override val cValue  : Int    = 8
   override val byteSize: Int    = 8
   override val priority: Int    = -1
+
+  override def min: ScalaType = ???
+  override def max: ScalaType = ???
 
   private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
     ???
@@ -298,6 +319,9 @@ private[api] object COMPLEX128 extends RealNumericDataType {
   override val byteSize: Int    = 16
   override val priority: Int    = -1
 
+  override def min: ScalaType = ???
+  override def max: ScalaType = ???
+
   private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
     ???
   }
@@ -315,6 +339,9 @@ private[api] object INT8 extends RealNumericDataType {
   override val cValue  : Int    = 6
   override val byteSize: Int    = 1
   override val priority: Int    = 40
+
+  override def min: ScalaType = (-128).toByte
+  override def max: ScalaType = 127.toByte
 
   private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
     buffer.put(index, element)
@@ -335,6 +362,9 @@ private[api] object INT16 extends RealNumericDataType {
   override val byteSize: Int    = 2
   override val priority: Int    = 80
 
+  override def min: ScalaType = (-32768).toShort
+  override def max: ScalaType = 32767.toShort
+
   private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
     buffer.putShort(index, element)
     byteSize
@@ -353,6 +383,9 @@ private[api] object INT32 extends RealNumericDataType {
   override val cValue  : Int    = 3
   override val byteSize: Int    = 4
   override val priority: Int    = 100
+
+  override def min: ScalaType = -2147483648
+  override def max: ScalaType = 2147483647
 
   private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
     buffer.putInt(index, element)
@@ -373,6 +406,9 @@ private[api] object INT64 extends RealNumericDataType {
   override val byteSize: Int    = 8
   override val priority: Int    = 110
 
+  override def min: ScalaType = -9223372036854775808L
+  override def max: ScalaType = 9223372036854775807L
+
   private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
     buffer.putLong(index, element)
     byteSize
@@ -392,6 +428,9 @@ private[api] object UINT8 extends NumericDataType {
   override val byteSize: Int    = 1
   override val priority: Int    = 20
 
+  override def min: ScalaType = UByte(0)
+  override def max: ScalaType = UByte(255)
+
   private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
     buffer.put(index, element.toByte)
     byteSize
@@ -410,6 +449,9 @@ private[api] object UINT16 extends NumericDataType {
   override val cValue  : Int    = 17
   override val byteSize: Int    = 2
   override val priority: Int    = 60
+
+  override def min: ScalaType = UShort(0)
+  override def max: ScalaType = UShort(65535)
 
   private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
     buffer.putChar(index, element.toChar)

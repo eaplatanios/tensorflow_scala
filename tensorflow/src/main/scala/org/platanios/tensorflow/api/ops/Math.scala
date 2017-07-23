@@ -20,7 +20,7 @@ import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidDataTypeException
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{DataType, FLOAT32, FLOAT64, COMPLEX64, COMPLEX128, INT32, INT64}
+import org.platanios.tensorflow.api.types._
 
 import scala.language.postfixOps
 
@@ -185,13 +185,19 @@ trait Math {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def cast[T: OutputOps](x: T, dataType: DataType, name: String = "Cast"): T = {
-    implicitly[OutputOps[T]]
-        .unaryOp(x, o => Op.Builder(opType = "Cast", name = name)
-            .addInput(o)
-            .setAttribute("DstT", dataType)
-            .build().outputs(0))
+  def cast[T <: OutputLike : OutputOps](x: T, dataType: DataType, name: String = "Cast"): T = {
+    if (x.dataType == dataType) {
+      x
+    } else {
+      implicitly[OutputOps[T]]
+          .unaryOp(x, o => Op.Builder(opType = "Cast", name = name)
+              .addInput(o)
+              .setAttribute("DstT", dataType)
+              .build().outputs(0))
+    }
   }
+
+  // TODO: [OPS] saturateCast
 
   /** Creates an op that bitcasts a tensor from one type to another without copying data.
     *
@@ -681,8 +687,11 @@ trait Math {
 
   /** Creates an op that returns an element-wise indication of the sign of a tensor.
     *
-    * I.e., `y = sign(x) = -1` if `x < 0`; `0` if `x == 0`; `1` if `x > 0`. For complex numbers,
-    * `y = sign(x) = x / |x|` if `x != 0`, otherwise `y = 0`.
+    * I.e., `y = sign(x) = -1` if `x < 0`; `0` if `x == 0`; `1` if `x > 0`.
+    *
+    * Zero is returned for `NaN` inputs.
+    *
+    * For complex numbers, `y = sign(x) = x / |x|` if `x != 0`, otherwise `y = 0`.
     *
     * @param  x    Input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`, `INT64`,
     *              `COMPLEX64`, or `COMPLEX128`.
@@ -2384,6 +2393,26 @@ trait Math {
     }
   }
 
+  /** Creates an op that multiplies a scalar tensor with another, potentially sparse, tensor.
+    *
+    * This function is intended for use in gradient code which might deal with [[OutputIndexedSlices]] objects, which
+    * are easy to multiply by a scalar but more expensive to multiply with arbitrary tensors.
+    *
+    * @param  scalar Scalar tensor.
+    * @param  tensor Tensor to multiply the scalar tensor with.
+    * @param  name   Name for the created op.
+    * @return Created op output.
+    * @throws IllegalArgumentException  If the scalar tensor has rank different than `0`.
+    */
+  @throws[IllegalArgumentException]
+  def scalarMul[T: OutputOps](scalar: Output, tensor: T, name: String = "ScalarMul"): T = {
+    if (scalar.rank != 0)
+      throw new IllegalArgumentException(s"'scalar' (rank = ${scalar.rank}) must have rank equal to 0.")
+    Op.createWithNameScope(name) {
+      implicitly[OutputOps[T]].unaryOp(tensor, o => multiply(scalar, o))
+    }
+  }
+
   // TODO: !!! matMul documentation plus sparse matMul.
 
   def matMul(
@@ -2576,6 +2605,31 @@ trait Math {
   // TODO: [OPS] quantization
 
   //endregion Quantization Ops
+
+  //region Bucketization Ops
+
+  /** Creates an op that bucketizes a tensor based on the provided boundaries.
+    *
+    * For example:
+    * {{{
+    *   // 'input' tensor is [[-5, 10000], [150, 10], [5, 100]]
+    *   // 'boundaries' are [0, 10, 100]
+    *   bucketize(input, boundaries) ==> [[0, 3], [3, 2], [1, 3]]
+    * }}}
+    *
+    * @param  input      Numeric tensor to bucketize.
+    * @param  boundaries Sorted array of `Float`s specifying the boundaries of the buckets.
+    * @param  name       Name for the created op.
+    * @return Created op output.
+    */
+  def bucketize(input: Output, boundaries: Array[Float], name: String = "Bucketize"): Output = {
+    Op.Builder(opType = "Bucketize", name = name)
+        .addInput(input)
+        .setAttribute("boundaries", boundaries)
+        .build().outputs(0)
+  }
+
+  //endregion Bucketization Ops
 }
 
 object Math extends Math {
