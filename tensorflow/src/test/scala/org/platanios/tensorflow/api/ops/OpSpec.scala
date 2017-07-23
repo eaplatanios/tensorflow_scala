@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api._
-import org.platanios.tensorflow.api.ops.Math.matMul
+import org.platanios.tensorflow.api.ops.Math.matmul
 import org.platanios.tensorflow.api.tf._
 
 import org.scalatest._
@@ -217,17 +217,17 @@ class OpSpec extends FlatSpec with Matchers {
   }
 
   it must "be able to use device functions for setting op devices individually" in {
-    def matMulOnGPU(opSpecification: OpSpecification): String = {
+    def matmulOnGPU(opSpecification: OpSpecification): String = {
       if (opSpecification.opType == "MatMul")
         "/GPU:0"
       else
         "/CPU:0"
     }
     createWith(graph = Graph()) {
-      createWith(device = matMulOnGPU) {
+      createWith(device = matmulOnGPU) {
         val c = constant(Tensor(Tensor(1.0), Tensor(1.0)))
         assert(c.device === "/device:CPU:0")
-        val m = matMul(c, constant(Tensor(Tensor(2.0))))
+        val m = matmul(c, constant(Tensor(Tensor(2.0))))
         assert(m.device === "/device:GPU:0")
       }
     }

@@ -86,8 +86,8 @@ class GradientsSpec extends FlatSpec with Matchers {
     Op.createWith(graph) {
       val constant0 = Basic.constant(Tensor(Tensor(1.0, 2.0), Tensor(3.0, 4.0)), name = "Constant_0")
       val constant1 = Basic.constant(Tensor(Tensor(1.0, 0.0), Tensor(0.0, 1.0)), name = "Constant_1")
-      val matMul = Math.matMul(constant0, constant1, name = "MatMul")
-      (Array[Output](constant0, constant1), matMul)
+      val matmul = Math.matmul(constant0, constant1, name = "MatMul")
+      (Array[Output](constant0, constant1), matmul)
     }
   }
 
@@ -131,18 +131,18 @@ class GradientsSpec extends FlatSpec with Matchers {
     Op.createWith(graph) {
       val constant0 = Basic.constant(Tensor(Tensor(1.0, 2.0), Tensor(3.0, 4.0)), name = "Constant_0")
       val constant1 = Basic.constant(Tensor(Tensor(1.0, 0.0), Tensor(0.0, 1.0)), name = "Constant_1")
-      val matMul = Math.matMul(constant0, constant1, name = "MatMul")
+      val matmul = Math.matmul(constant0, constant1, name = "MatMul")
       Op.createWithNameScope("Gradients") {
         val constant2 = {
           if (gradientInputsProvided)
             Basic.constant(Tensor(Tensor(1.0, 1.0), Tensor(1.0, 1.0)), name = "GradientInputs")
           else
-            Basic.ones(matMul.shape, matMul.dataType, name = "OnesLike")
+            Basic.ones(matmul.shape, matmul.dataType, name = "OnesLike")
         }
-        Op.createWithNameScope("MatMulGradient") {
-          val matMul1 = Math.matMul(constant2, constant1, transposeA = false, transposeB = true, name = "MatMul_1")
-          val matMul2 = Math.matMul(constant0, constant2, transposeA = true, transposeB = false, name = "MatMul_2")
-          Array[Output](matMul1, matMul2)
+        Op.createWithNameScope("MatMul/MatMulGradient") {
+          val matmul1 = Math.matmul(constant2, constant1, transposeA = false, transposeB = true, name = "MatMul")
+          val matmul2 = Math.matmul(constant0, constant2, transposeA = true, transposeB = false, name = "MatMul_1")
+          Array[Output](matmul1, matmul2)
         }
       }
     }
@@ -188,17 +188,27 @@ class GradientsSpec extends FlatSpec with Matchers {
     Op.createWith(graph) {
       val constant0 = Basic.constant(Tensor(Tensor(1.0, 2.0), Tensor(3.0, 4.0)), name = "Constant_0")
       val constant1 = Basic.constant(Tensor(Tensor(1.0, 0.0), Tensor(0.0, 1.0)), name = "Constant_1")
-      val matMul = Math.matMul(constant0, constant1, name = "MatMul")
+      val matmul = Math.matmul(constant0, constant1, name = "MatMul")
       Op.createWithNameScope("gradients") {
         val constant2 = {
           if (gradientInputsProvided)
             Basic.constant(Tensor(Tensor(1.0, 1.0), Tensor(1.0, 1.0)), name = "GradientInputs")
           else
-            Basic.onesLike(matMul, optimize = false, name = "OnesLike")
+            Basic.onesLike(matmul, optimize = false, name = "OnesLike")
         }
-        val matMul1 = Math.matMul(constant2, constant1, transposeA = false, transposeB = true, name = "MatMul")
-        val matMul2 = Math.matMul(constant0, constant2, transposeA = true, transposeB = false, name = "MatMul_1")
-        Array[Output](matMul1, matMul2)
+        val matmul1 = Op.Builder(opType = "MatMul", name = "MatMul")
+            .addInput(constant2)
+            .addInput(constant1)
+            .setAttribute("transpose_a", value = false)
+            .setAttribute("transpose_b", value = true)
+            .build().outputs(0)
+        val matmul2 = Op.Builder(opType = "MatMul", name = "MatMul_1")
+            .addInput(constant0)
+            .addInput(constant2)
+            .setAttribute("transpose_a", value = true)
+            .setAttribute("transpose_b", value = false)
+            .build().outputs(0)
+        Array[Output](matmul1, matmul2)
       }
     }
   }

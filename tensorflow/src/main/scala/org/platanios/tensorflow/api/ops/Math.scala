@@ -2413,32 +2413,132 @@ trait Math {
     }
   }
 
-  // TODO: !!! matMul documentation plus sparse matMul.
-
-  def matMul(
-      a: Output, b: Output, transposeA: Boolean = false, transposeB: Boolean = false,
+  /** Creates an op that multiples two matrices.
+    *
+    * The inputs must, following any transpositions, be tensors of rank >= 2, where the inner 2 dimensions specify valid
+    * matrix multiplication arguments and any further outer dimensions match.
+    *
+    * Note that this op corresponds to a matrix product and not an element-wise product. For example:
+    * `output[..., i, j] = sum_k (a[..., i, k] * b[..., k, j])`, for all indices `i` and `j`.
+    *
+    * Both matrices must be of the same data type. The supported types are: `BFLOAT16`, `FLOAT16`, `FLOAT32`, `FLOAT64`,
+    * `INT32`, `COMPLEX64`, `COMPLEX128`.
+    *
+    * Either matrix can be transposed and/or conjugated on the fly by setting one of the corresponding flags to `true`.
+    * These are set to `false` by default.
+    *
+    * If one or both of the matrices contain a lot of zeros, a more efficient multiplication algorithm can be used by
+    * setting the corresponding `aIsSparse` or `bIsSparse` flag to `true`. These are also set to `false` by default.
+    * This optimization is only available for plain matrices (i.e., rank-2 tensors) with data type `BFLOAT16` or
+    * `FLOAT32`. The break-even for using this versus a dense matrix multiply on one platform was 30% zero values in the
+    * sparse matrix. The gradient computation of the sparse op will only take advantage of sparsity in the input
+    * gradient when that gradient comes from a ReLU.
+    *
+    * For example:
+    * {{{
+    *   // 2-D tensor 'a' is [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]
+    *
+    *   // 2-D tensor 'b' is [[7.0, 8.0], [9.0, 10.0], [11.0, 12.0]]
+    *
+    *   matmul(a, b) ==> [[58.0, 64.0], [139.0, 154.0]]
+    *
+    *   // 3-D tensor 'a' is [[[ 1.0,  2.0,  3.0],
+    *   //                     [ 4.0,  5.0,  6.0]],
+    *   //                    [[ 7.0,  8.0,  9.0],
+    *   //                     [10.0, 11.0, 12.0]]]
+    *
+    *   // 3-D tensor 'b' is [[[13.0, 14.0],
+    *   //                     [15.0, 16.0],
+    *   //                     [17.0, 18.0]],
+    *   //                    [[19.0, 20.0],
+    *   //                     [21.0, 22.0],
+    *   //                     [23.0, 24.0]]]
+    *
+    *   matmul(a, b) ==> [[[ 94.0, 100.0], [229.0, 244.0]],
+    *                     [[508.0, 532.0], [697.0, 730.0]]]
+    * }}}
+    *
+    * @param  a          First input tensor with data type one of: `BFLOAT16`, `FLOAT16`, `FLOAT32`, `FLOAT64`,
+    *                    `INT32`, `COMPLEX64`, `COMPLEX128`.
+    * @param  b          Second input tensor with data type one of: `BFLOAT16`, `FLOAT16`, `FLOAT32`, `FLOAT64`,
+    *                    `INT32`, `COMPLEX64`, `COMPLEX128`.
+    * @param  transposeA If `true`, `a` is transposed before the multiplication.
+    * @param  transposeB If `true`, `b` is transposed before the multiplication.
+    * @param  conjugateA If `true`, `a` is conjugated before the multiplication.
+    * @param  conjugateB If `true`, `b` is conjugated before the multiplication.
+    * @param  aIsSparse  If `true`, `a` is treated as a sparse matrix (i.e., it is assumed it contains many zeros).
+    * @param  bIsSparse  If `true`, `b` is treated as a sparse matrix (i.e., it is assumed it contains many zeros).
+    * @param  name       Name for the created op.
+    * @return Created op output that has the same data type as `a` and `b` and where each inner-most matrix is the
+    *         product of the corresponding matrices in `a` and `b`.
+    * @throws IllegalArgumentException  If the data types of `a` and `b` do not match.
+    */
+  @throws[IllegalArgumentException]
+  def matmul(
+      a: Output, b: Output, transposeA: Boolean = false, transposeB: Boolean = false, conjugateA: Boolean = false,
+      conjugateB: Boolean = false, aIsSparse: Boolean = false, bIsSparse: Boolean = false,
       name: String = "MatMul"): Output = {
-    if (a.rank != 2)
-      throw new IllegalArgumentException(s"Expected a two-dimensional tensor as input, but 'a' has rank ${a.rank}.")
-    if (b.rank != 2)
-      throw new IllegalArgumentException(s"Expected a two-dimensional tensor as input, but 'b' has rank ${b.rank}.")
-    Op.Builder(opType = "MatMul", name = name)
-        .addInput(a)
-        .addInput(b)
-        .setAttribute("transpose_a", transposeA)
-        .setAttribute("transpose_b", transposeB)
-        .build().outputs(0)
+    if (a.dataType != b.dataType)
+      throw new IllegalArgumentException(
+        s"The data types of 'a' (dataType = ${a.dataType}) and 'b' (dataType = ${b.dataType}) must match.")
+    val sparseMatMulDataTypes = Set[DataType](BFLOAT16, FLOAT32)
+    Op.createWithNameScope(name, Set(a.op, b.op)) {
+      if (!aIsSparse && !bIsSparse && (a.rank == -1 || a.rank > 2) && (b.rank == -1 || b.rank > 2)) {
+        // "BatchMatMul" does not support transpose, so we conjugate the matrix and use adjoint instead.
+        // The "conj" op is a no-op for real matrices.
+        val (x, adjointX) = transposeConjugateToAdjoint(a, transposeA, conjugateA)
+        val (y, adjointY) = transposeConjugateToAdjoint(b, transposeB, conjugateB)
+        Op.Builder(opType = "BatchMatMul", name = "BatchMatMul")
+            .addInput(x)
+            .addInput(y)
+            .setAttribute("adj_x", adjointX)
+            .setAttribute("adj_y", adjointY)
+            .build().outputs(0)
+      } else if (a.dataType == BFLOAT16 || b.dataType == BFLOAT16 || // "MatMul" does not currently support this type.
+          ((aIsSparse || bIsSparse) &&
+              sparseMatMulDataTypes.contains(a.dataType) &&
+              sparseMatMulDataTypes.contains(b.dataType))) {
+        val (x, transposeX) = transposeConjugateToTranspose(a, transposeA, conjugateA)
+        val (y, transposeY) = transposeConjugateToTranspose(b, transposeB, conjugateB)
+        Op.Builder(opType = "SparseMatMul", name = "SparseMatMul")
+            .addInput(x)
+            .addInput(y)
+            .setAttribute("transpose_a", transposeX)
+            .setAttribute("transpose_b", transposeY)
+            .setAttribute("a_is_sparse", aIsSparse)
+            .setAttribute("b_is_sparse", bIsSparse)
+            .build().outputs(0)
+      } else {
+        val (x, transposeX) = transposeConjugateToTranspose(a, transposeA, conjugateA)
+        val (y, transposeY) = transposeConjugateToTranspose(b, transposeB, conjugateB)
+        Op.Builder(opType = "MatMul", name = "MatMul")
+            .addInput(x)
+            .addInput(y)
+            .setAttribute("transpose_a", transposeX)
+            .setAttribute("transpose_b", transposeY)
+            .build().outputs(0)
+      }
+    }
   }
 
-  def batchMatMul(
-      x: Output, y: Output, adjointX: Boolean = false, adjointY: Boolean = false,
-      name: String = "BatchMatMul"): Output = {
-    Op.Builder(opType = "BatchMatMul", name = name)
-        .addInput(x)
-        .addInput(y)
-        .setAttribute("adj_x", adjointX)
-        .setAttribute("adj_y", adjointY)
-        .build().outputs(0)
+  private[this] def transposeConjugateToAdjoint(
+      tensor: Output, transpose: Boolean, conj: Boolean): (Output, Boolean) = {
+    (transpose, conj) match {
+      case (false, false) => (tensor, false)
+      case (false, true) => (conjugate(tensor), false)
+      case (true, false) => (conjugate(tensor), true)
+      case (true, true) => (tensor, true)
+    }
+  }
+
+  private[this] def transposeConjugateToTranspose(
+      tensor: Output, transpose: Boolean, conj: Boolean): (Output, Boolean) = {
+    (transpose, conj) match {
+      case (false, false) => (tensor, false)
+      case (false, true) => (conjugate(tensor), false)
+      case (true, false) => (tensor, true)
+      case (true, true) => (conjugate(tensor), true)
+    }
   }
 
   /** Creates an op that computes the pairwise cross product between two tensors.
@@ -2653,8 +2753,9 @@ object Math extends Math {
     GradientsRegistry.register("MatrixSetDiag", matrixSetDiagGradient)
     GradientsRegistry.register("MatrixDiagPart", matrixDiagPartGradient)
     GradientsRegistry.register("MatrixBandPart", matrixBandPartGradient)
-    GradientsRegistry.register("MatMul", matMulGradient)
     GradientsRegistry.register("BatchMatMul", batchMatMulGradient)
+    GradientsRegistry.register("MatMul", matMulGradient)
+    GradientsRegistry.register("SparseMatMul", sparseMatMulGradient)
     GradientsRegistry.register("Conj", conjugateGradient)
 
     GradientsRegistry.registerNonDifferentiable("Range")
@@ -2860,51 +2961,101 @@ object Math extends Math {
       Seq(matrixBandPart(outputGradients.head, op.inputs(1), op.inputs(2)), null, null)
     }
 
-    private[this] def matMulGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      matMulGradientCommon(op, outputGradients, "transpose_a", "transpose_b", isBatch = false)
-    }
-
     private[this] def batchMatMulGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      matMulGradientCommon(op, outputGradients, "adj_x", "adj_y", isBatch = true)
+      val x = op.inputs(0)
+      val y = op.inputs(1)
+      val adjointX = op.booleanAttribute("adj_x")
+      val adjointY = op.booleanAttribute("adj_y")
+      val outputGradient = outputGradients.head.toOutput
+      (adjointX, adjointY) match {
+        case (false, false) =>
+          Seq[OutputLike](
+            matmul(outputGradient, y, transposeA = false, transposeB = true, conjugateA = false, conjugateB = true),
+            matmul(x, outputGradient, transposeA = true, transposeB = false, conjugateA = true, conjugateB = false))
+        case (false, true) =>
+          Seq[OutputLike](
+            matmul(outputGradient, y, transposeA = false, transposeB = false, conjugateA = false, conjugateB = false),
+            matmul(outputGradient, x, transposeA = true, transposeB = false, conjugateA = true, conjugateB = false))
+        case (true, false) =>
+          Seq[OutputLike](
+            matmul(y, outputGradient, transposeA = false, transposeB = true, conjugateA = false, conjugateB = true),
+            matmul(x, outputGradient, transposeA = false, transposeB = false, conjugateA = false, conjugateB = false))
+        case (true, true) =>
+          Seq[OutputLike](
+            matmul(y, outputGradient, transposeA = true, transposeB = true, conjugateA = true, conjugateB = true),
+            matmul(outputGradient, x, transposeA = true, transposeB = true, conjugateA = true, conjugateB = true))
+      }
     }
 
-    private[this] def matMulGradientCommon(
-        op: Op, outputGradients: Seq[OutputLike], transposeAAttribute: String, transposeBAttribute: String,
-        isBatch: Boolean): Seq[OutputLike] = {
-      val transposeA = op.booleanAttribute(transposeAAttribute)
-      val transposeB = op.booleanAttribute(transposeBAttribute)
+    private[this] def matMulGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       val a = conjugate(op.inputs(0))
       val b = conjugate(op.inputs(1))
-      val outputGradient = outputGradients.head
-      if (!transposeA && !transposeB)
-        matMulGradientHelper(
-          outputGradient, b, a, outputGradient,
-          transposeX0 = false, transposeX1 = true, transposeY0 = true, transposeY1 = false, isBatch = isBatch)
-      else if (!transposeA && transposeB)
-        matMulGradientHelper(
-          outputGradient, b, outputGradient, a,
-          transposeX0 = false, transposeX1 = false, transposeY0 = true, transposeY1 = false, isBatch = isBatch)
-      else if (transposeA && !transposeB)
-        matMulGradientHelper(
-          b, outputGradient, a, outputGradient,
-          transposeX0 = false, transposeX1 = true, transposeY0 = false, transposeY1 = false, isBatch = isBatch)
-      else
-        matMulGradientHelper(
-          b, outputGradient, outputGradient, a,
-          transposeX0 = true, transposeX1 = true, transposeY0 = true, transposeY1 = true, isBatch = isBatch)
+      val transposeA = op.booleanAttribute("transpose_a")
+      val transposeB = op.booleanAttribute("transpose_b")
+      val outputGradient = outputGradients.head.toOutput
+      (transposeA, transposeB) match {
+        case (false, false) =>
+          Seq[OutputLike](
+            matmul(outputGradient, b, transposeA = false, transposeB = true, conjugateA = false, conjugateB = false),
+            matmul(a, outputGradient, transposeA = true, transposeB = false, conjugateA = false, conjugateB = false))
+        case (false, true) =>
+          Seq[OutputLike](
+            matmul(outputGradient, b, transposeA = false, transposeB = false, conjugateA = false, conjugateB = false),
+            matmul(outputGradient, a, transposeA = true, transposeB = false, conjugateA = false, conjugateB = false))
+        case (true, false) =>
+          Seq[OutputLike](
+            matmul(b, outputGradient, transposeA = false, transposeB = true, conjugateA = false, conjugateB = false),
+            matmul(a, outputGradient, transposeA = false, transposeB = false, conjugateA = false, conjugateB = false))
+        case (true, true) =>
+          Seq[OutputLike](
+            matmul(b, outputGradient, transposeA = true, transposeB = true, conjugateA = false, conjugateB = false),
+            matmul(outputGradient, a, transposeA = true, transposeB = true, conjugateA = false, conjugateB = false))
+      }
     }
 
-    private[this] def matMulGradientHelper(
-        x0: Output, x1: Output, y0: Output, y1: Output, transposeX0: Boolean, transposeX1: Boolean,
-        transposeY0: Boolean, transposeY1: Boolean, isBatch: Boolean): Seq[OutputLike] = {
-      if (!isBatch) {
-        val gradientX = matMul(x0, x1, transposeA = transposeX0, transposeB = transposeX1, name = "MatMul_1")
-        val gradientY = matMul(y0, y1, transposeA = transposeY0, transposeB = transposeY1, name = "MatMul_2")
-        Seq[OutputLike](gradientX, gradientY)
-      } else {
-        val gradientX = batchMatMul(x0, x1, adjointX = transposeX0, adjointY = transposeX1, name = "MatMul_1")
-        val gradientY = batchMatMul(y0, y1, adjointX = transposeY0, adjointY = transposeY1, name = "MatMul_2")
-        Seq[OutputLike](gradientX, gradientY)
+    private[this] def sparseMatMulGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val a = op.inputs(0)
+      val b = op.inputs(1)
+      val transposeA = op.booleanAttribute("transpose_a")
+      val transposeB = op.booleanAttribute("transpose_b")
+      val outputGradient = outputGradients.head.toOutput
+      val aIsSparse = op.booleanAttribute("a_is_sparse")
+      val bIsSparse = op.booleanAttribute("b_is_sparse")
+      // Use heuristic to figure out if the gradient may be sparse.
+      val gradIsSparse = outputGradient.op.opType == "ReluGrad"
+
+      def helper(
+          a: Output, b: Output, dataType: DataType,
+          tA: Boolean = false, tB: Boolean = false,
+          sA: Boolean = false, sB: Boolean = false): Output = {
+        cast(matmul(
+          a = a,
+          b = if (tB) Basic.transpose(b) else b,
+          transposeA = tA,
+          transposeB = false,
+          conjugateA = false,
+          conjugateB = false,
+          aIsSparse = sA,
+          bIsSparse = sB), dataType)
+      }
+
+      (transposeA, transposeB) match {
+        case (false, false) =>
+          Seq[OutputLike](
+            helper(outputGradient, b, a.dataType, tA = false, tB = true, sA = gradIsSparse, sB = bIsSparse),
+            helper(a, outputGradient, b.dataType, tA = true, tB = false, sA = aIsSparse, sB = gradIsSparse))
+        case (false, true) =>
+          Seq[OutputLike](
+            helper(outputGradient, b, a.dataType, tA = false, tB = false, sA = gradIsSparse, sB = bIsSparse),
+            helper(outputGradient, a, b.dataType, tA = true, tB = false, sA = gradIsSparse, sB = aIsSparse))
+        case (true, false) =>
+          Seq[OutputLike](
+            helper(b, outputGradient, a.dataType, tA = false, tB = true, sA = bIsSparse, sB = gradIsSparse),
+            helper(a, outputGradient, b.dataType, tA = false, tB = false, sA = aIsSparse, sB = gradIsSparse))
+        case (true, true) =>
+          Seq[OutputLike](
+            helper(b, outputGradient, a.dataType, tA = true, tB = true, sA = bIsSparse, sB = gradIsSparse),
+            helper(outputGradient, a, b.dataType, tA = true, tB = true, sA = gradIsSparse, sB = aIsSparse))
       }
     }
 

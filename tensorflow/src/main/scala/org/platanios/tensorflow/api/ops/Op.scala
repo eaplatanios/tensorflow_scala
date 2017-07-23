@@ -37,9 +37,9 @@ import scala.util.DynamicVariable
   *
   * An `Op` is a symbolic representation of the computation it performs. It is a node in a TensorFlow [[Graph]] that
   * takes zero or more `Op.Output` objects as input, and produces zero or more `Op.Output` objects as output. `Op`
-  * objects are constructed by calling op creation functions, such as [[Basic.constant]] or [[Math.matMul]].
+  * objects are constructed by calling op creation functions, such as [[Basic.constant]] or [[Math.matmul]].
   *
-  * For example, `val c = MathOps.matMul(a, b)` creates an `Op` of type `"MatMul"` that takes `Op.Output`s `a` and
+  * For example, `val c = MathOps.matmul(a, b)` creates an `Op` of type `"MatMul"` that takes `Op.Output`s `a` and
   * `b` as input, and produces `Op.Output` `c` as output.
   *
   * @note The `Op.Input` class is simply a wrapper around an `Op` meant to represent one of its inputs. Actual op inputs
@@ -447,19 +447,19 @@ object Op {
     *   }
     *
     *   // Using a device function
-    *   def matMulOnGPU(opSpecification: OpSpecification): String = {
+    *   def matmulOnGPU(opSpecification: OpSpecification): String = {
     *     if (opSpecification.opType == "MatMul")
     *       "/GPU:0"
     *     else
     *       "/CPU:0"
     *   }
     *
-    *   createWith(device = matMulOnGPU) {
+    *   createWith(device = matmulOnGPU) {
     *     // All ops of type "MatMul" constructed in this code block will be placed on GPU 0. All other operations will
     *     // be placed on CPU 0.
     *     val c = constant(9.0)
     *     assert(c.device == "/device:CPU:0")
-    *     val m = matMul(c, constant(10.0))
+    *     val m = matmul(c, constant(10.0))
     *     assert(m.device == "/device:GPU:0")
     *   }
     * }}}

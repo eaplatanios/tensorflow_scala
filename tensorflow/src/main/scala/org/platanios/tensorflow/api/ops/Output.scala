@@ -134,7 +134,7 @@ private[ops] object OutputOps {
   * {{{
   *   val c = constant(Array(Array(1.0, 2.0), Array(3.0, 4.0)))
   *   val d = constant(Array(Array(1.0, 1.0), Array(0.0, 1.0)))
-  *   val e = matMul(c, d)
+  *   val e = matmul(c, d)
   *   val result = e.evaluate() // 'result' now holds the result of the matrix multiplication.
   * }}}
   *

@@ -31,7 +31,7 @@ you read there applies here too.
   val outputs = tf.placeholder(tf.FLOAT32, tf.shape(-1, 10))
   val predictions = tf.createWith(nameScope = "Linear") {
     val weights = tf.variable("weights", tf.FLOAT32, tf.shape(10, 1), tf.zerosInitializer)
-    val predictions = tf.matMul(inputs, weights)
+    val predictions = tf.matmul(inputs, weights)
     predictions
   }
   val loss = tf.sum(tf.square(predictions - outputs))

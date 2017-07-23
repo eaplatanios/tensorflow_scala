@@ -1182,11 +1182,11 @@ trait Basic {
     *   // matrixTranspose(x) has shape [1, 2, 4, 3]
     * }}}
     *
-    * Note that [[Math.matMul]] provides named arguments allowing for transposing the matrices involved in the
+    * Note that [[Math.matmul]] provides named arguments allowing for transposing the matrices involved in the
     * multiplication. This is done with minimal cost, and is preferable to using this function. For example:
     * {{{
-    *   matMul(a, b, transposeB = true) // is preferable to:
-    *   matMul(a, matrixTranspose(b))
+    *   matmul(a, b, transposeB = true) // is preferable to:
+    *   matmul(a, matrixTranspose(b))
     * }}}
     *
     * @param  input Input tensor to transpose.
