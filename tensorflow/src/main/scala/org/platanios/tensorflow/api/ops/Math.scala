@@ -245,28 +245,36 @@ trait Math {
 
   /** Creates an op that computes the absolute value of a tensor.
     *
-    * Given a tensor `x`, the op returns a tensor containing the absolute value of each element in `x`. For example, if
-    * `x` is an input element and `y` is an output element, the op computes `y = |x|`.
+    * Given a tensor `x` of real numbers, the op returns a tensor containing the absolute value of each element in `x`.
+    * For example, if `x` is an input element and `y` is an output element, the op computes `y = |x|`.
+    *
+    * Given a tensor `x` of complex numbers, the op returns a tensor of type `FLOAT32` or `FLOAT64` that is the
+    * magnitude value of each element in `x`. All elements in `x` must be complex numbers of the form `a + bj`. The
+    * magnitude is computed as `\sqrt{a^2 + b^2}`. For example:
+    * {{{
+    *   // Tensor 'x' is [[-2.25 + 4.75j], [-3.25 + 5.75j]]
+    *   abs(x) ==> [5.25594902, 6.60492229]
+    * }}}
     *
     * @param  x    Input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`, `INT64`,
     *              `COMPLEX64`, or `COMPLEX128`.
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def abs[T: OutputOps](x: T, name: String = "Abs"): T = {
-    // TODO: [COMPLEX]
-    implicitly[OutputOps[T]]
-        .unaryOp(x, o =>
-          Op.Builder(opType = "Abs", name = name)
+  def abs[T <: OutputLike : OutputOps](x: T, name: String = "Abs"): T = {
+    if (x.dataType.isComplex) {
+      implicitly[OutputOps[T]]
+          .unaryOp(x, o => Op.Builder(opType = "ComplexAbs", name = name)
               .addInput(o)
+              .setAttribute("Tout", x.dataType.real)
               .build().outputs(0))
-  }
-
-  def complexAbs[T : OutputOps](x: T, name: String = "ComplexAbs"): T = {
-    implicitly[OutputOps[T]]
-        .unaryOp(x, o => Op.Builder(opType = "ComplexAbs", name = name)
-            .addInput(o)
-            .build().outputs(0))
+    } else {
+      implicitly[OutputOps[T]]
+          .unaryOp(x, o =>
+            Op.Builder(opType = "Abs", name = name)
+                .addInput(o)
+                .build().outputs(0))
+    }
   }
 
   /** Creates an op that computes the numerical negative value of a tensor element-wise.
