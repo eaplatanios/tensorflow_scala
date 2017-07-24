@@ -2800,7 +2800,10 @@ object Math extends Math {
     GradientsRegistry.register("Minimum", minimumGradient)
     GradientsRegistry.register("Betainc", betaIncGradient)
     GradientsRegistry.register("Sum", sumGradient)
-    // TODO: [GRADIENTS] Reduction ops.
+    GradientsRegistry.register("Mean", meanGradient)
+    GradientsRegistry.register("Prod", prodGradient)
+    GradientsRegistry.register("Min", minOrMaxGradient)
+    GradientsRegistry.register("Max", minOrMaxGradient)
     GradientsRegistry.register("Cumsum", cumsumGradient)
     GradientsRegistry.register("Cumprod", cumprodGradient)
     // TODO: [GRADIENTS] Segmentation ops.
@@ -3412,9 +3415,9 @@ object Math extends Math {
     private[this] def reducedShape(inputShape: Output, axes: Output): Output = {
       // Cast needed for SparseOutput reductions.
       val intInputShape = cast(inputShape, INT32)
-      val inputRank = Basic.size(intInputShape) // = 4
+      val inputRank = Basic.size(intInputShape)
       val intAxes = floorMod(add(cast(axes, INT32), inputRank), inputRank)
-      val axesShape = Basic.shape(intAxes) // = 2
+      val axesShape = Basic.shape(intAxes)
       DataFlow.dynamicStitch(
         Seq(range(Basic.constant(0), inputRank), intAxes),
         Seq(intInputShape, Basic.fill(axesShape, 1)))
@@ -3452,6 +3455,71 @@ object Math extends Math {
         outputGradient = Basic.reshape(outputGradient, outputShapeKeptDimensions)
         Seq(Basic.tile(outputGradient, tileScaling), null)
       }
+    }
+
+    private[this] def meanGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val sumGrad = sumGradient(op, outputGradients).head.toOutput
+      val inputShape = Basic.shape(op.inputs(0))
+      val outputShape = Basic.shape(op.outputs(0))
+      val factor = safeShapeDiv(prod(inputShape), prod(outputShape))
+      Seq(divide(sumGrad, cast(factor, sumGrad.dataType)), null)
+    }
+
+    private[this] def prodGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      // The gradient can be expressed by dividing the product by each entry of the input tensor, but this approach
+      // can't deal with zeros in the input. Here, we avoid this problem by composing the output as a product of two
+      // cumulative product operations.
+      val inputShape = Basic.shape(op.inputs(0))
+      // Expand the gradient to the full input shape
+      val outputShapeKeptDims = reducedShape(inputShape, op.inputs(1))
+      val tileScaling = safeShapeDiv(inputShape, outputShapeKeptDims)
+      var gradient = outputGradients.head.toOutput
+      gradient = Basic.reshape(gradient, outputShapeKeptDims)
+      gradient = Basic.tile(gradient, tileScaling)
+
+      // Pack all reduced dimensions into a single one, so we can perform the cumulative product ops. If the reduction
+      // dimensions list is empty, it defaults to FLOAT32 data type, so we need to cast here. We place all the
+      // shape-related ops on the CPU to avoid copying back and forth, and since "listdiff" is a CPU-only op.
+      val (permutation, reducedNum, otherNum) = Op.createWith(device = "/cpu:0") {
+        val rank = Basic.rank(op.inputs(0))
+        // Reshape the reduction indices for the case where the parameters is a scalar.
+        val reductionIndices = floorMod(add(Basic.reshape(op.inputs(1), -1), rank), rank)
+        val reduced = cast(reductionIndices, INT32)
+        val indices = range(Basic.constant(0), rank)
+        val (other, _) = Basic.listDiff(indices, reduced)
+        (Basic.concatenate(Seq(reduced, other), 0),
+            prod(Basic.gather(inputShape, reduced)),
+            prod(Basic.gather(inputShape, other)))
+      }
+
+      val permuted = Basic.transpose(op.inputs(0), permutation)
+      val permutedShape = Basic.shape(permuted)
+      val reshaped = Basic.reshape(permuted, Basic.concatenate(Seq(reducedNum, otherNum)))
+
+      // Calculate the product, leaving out the current entry.
+      val left = cumprod(reshaped, axis = 0, exclusive = true)
+      val right = cumprod(reshaped, axis = 0, exclusive = true, reverse = true)
+      val y = Basic.reshape(multiply(left, right), permutedShape)
+
+      // Invert the transpose and reshape operations.
+      val output = multiply(gradient, Basic.transpose(y, Basic.invertPermutation(permutation)))
+      // Make sure to set the statically known shape information through a reshape.
+      Seq(Basic.reshape(output, inputShape), null)
+    }
+
+    private[this] def minOrMaxGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val inputShape = Basic.shape(op.inputs(0))
+      val outputShapeKeptDims = reducedShape(inputShape, op.inputs(1))
+      val y = Basic.reshape(op.outputs(0), outputShapeKeptDims)
+      var gradient = outputGradients.head.toOutput
+      gradient = Basic.reshape(gradient, outputShapeKeptDims)
+
+      // Compute the number of selected (maximum or minimum) elements in each reduction dimension. If there are multiple
+      // minimum or maximum elements then the gradient will be divided among them.
+      val indicators = cast(equal(y, op.inputs(0)), gradient.dataType)
+      val numberOfSelected = Basic.reshape(sum(indicators, op.inputs(1)), outputShapeKeptDims)
+
+      Seq(multiply(divide(indicators, numberOfSelected), gradient), null)
     }
 
     private[this] def cumsumGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
