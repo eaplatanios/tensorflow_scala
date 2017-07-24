@@ -15,6 +15,8 @@
 
 package org.platanios.tensorflow.api.ops
 
+import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
+
 /**
   * @author Emmanouil Antonios Platanios
   */
@@ -73,4 +75,12 @@ trait Logging {
   }
 }
 
-object Logging extends Logging
+object Logging extends Logging {
+  private[api] object Gradients {
+    GradientsRegistry.register("Print", printGradient)
+
+    private[this] def printGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      outputGradients ++ Seq.fill(op.inputs.length)(null)
+    }
+  }
+}

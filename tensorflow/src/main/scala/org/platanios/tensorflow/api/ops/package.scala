@@ -47,6 +47,7 @@ package object ops {
 
     ops.Basic.Gradients
     ops.DataFlow.Gradients
+    ops.Logging.Gradients
     ops.Math.Gradients
     ops.variables.Variable.Gradients
 
