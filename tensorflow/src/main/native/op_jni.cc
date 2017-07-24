@@ -502,6 +502,38 @@ DEFINE_GET_ATTR(Type, Int, jint, TF_DataType, TF_ATTR_TYPE);
 #undef DEFINE_GET_ATTR
 #undef DEFINE_GET_ATTR_SCALAR
 
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttrTensor(
+        JNIEnv* env, jobject object, jlong opHandle, jstring attrName) {
+  TF_Operation *op = require_operation_handle(env, opHandle);
+  if (op == nullptr) return 0;
+  const char *attr_name = env->GetStringUTFChars(attrName, nullptr);
+  TF_Status *status = TF_NewStatus();
+  TF_AttrMetadata attr_metadata = TF_OperationGetAttrMetadata(op, attr_name, status);
+
+  if (!throw_exception_if_not_ok(env, status)) {
+    TF_DeleteStatus(status);
+    return 0;
+  }
+  TF_DeleteStatus(status);
+
+  if (attr_metadata.type != TF_ATTR_TENSOR || attr_metadata.is_list == 1)
+    throw_exception(
+        env, jvm_illegal_argument_exception, "Attribute '%s' is not a tensor. It is a '%s', instead.",
+        attr_name, attrTypeToString(attr_metadata.type, attr_metadata.is_list));
+  TF_Tensor* value;
+  status = TF_NewStatus();
+  TF_OperationGetAttrTensor(op, attr_name, &value, status);
+  jlong tensor_handle = reinterpret_cast<jlong>(value);
+
+  if (!throw_exception_if_not_ok(env, status)) {
+    TF_DeleteStatus(status);
+    return 0;
+  }
+  TF_DeleteStatus(status);
+
+  return tensor_handle;
+}
+
 JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttrShape(
         JNIEnv* env, jobject object, jlong opHandle, jstring attrName) {
   TF_Operation *op = require_operation_handle(env, opHandle);

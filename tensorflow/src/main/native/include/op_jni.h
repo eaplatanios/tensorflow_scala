@@ -185,6 +185,14 @@ JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttrType
 
 /*
  * Class:     org_platanios_tensorflow_jni_Op__
+ * Method:    getAttrTensor
+ * Signature: (JLjava/lang/String;Ljava/lang/String;)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttrTensor
+  (JNIEnv *, jobject, jlong, jstring);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Op__
  * Method:    getAttrShape
  * Signature: (JLjava/lang/String;Ljava/lang/String;)[J
  */

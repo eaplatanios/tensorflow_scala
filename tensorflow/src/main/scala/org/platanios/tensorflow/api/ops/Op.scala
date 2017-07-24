@@ -23,10 +23,10 @@ import org.platanios.tensorflow.api.ops.variables.{VariableScope, VariableStore}
 import org.platanios.tensorflow.api.tensors.TensorFlowNative.{NativeView => TensorNativeView}
 import org.platanios.tensorflow.api.types.DataType
 import org.platanios.tensorflow.jni.{Op => NativeOp}
-
 import spire.implicits._
-
 import java.nio.charset.Charset
+
+import org.platanios.tensorflow.api.tensors.Tensor
 
 import scala.collection.mutable
 import scala.util.DynamicVariable
@@ -130,7 +130,7 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
     *
     * @param  name Attribute name.
     * @return Attribute value.
-    * @throws IllegalArgumentException If the no attribute with name `name` can be found for this op.
+    * @throws IllegalArgumentException If no string attribute with name `name` can be found for this op.
     */
   @throws[IllegalArgumentException]
   def stringAttribute(name: String): String = using(graph.reference) { _ =>
@@ -138,7 +138,7 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
       NativeOp.getAttrString(nativeHandle, name)
     } catch {
       case e: Exception => throw new IllegalArgumentException(
-        s"Op has no attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
+        s"Op has no string attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
     }
   }
 
@@ -146,7 +146,7 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
     *
     * @param  name Attribute name.
     * @return Attribute value.
-    * @throws IllegalArgumentException If the no attribute with name `name` can be found for this op.
+    * @throws IllegalArgumentException If no string array attribute with name `name` can be found for this op.
     */
   @throws[IllegalArgumentException]
   def stringArrayAttribute(name: String): Array[String] = using(graph.reference) { _ =>
@@ -154,7 +154,7 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
       NativeOp.getAttrStringList(nativeHandle, name)
     } catch {
       case e: Exception => throw new IllegalArgumentException(
-        s"Op has no attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
+        s"Op has no string array attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
     }
   }
 
@@ -162,7 +162,7 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
     *
     * @param  name Attribute name.
     * @return Attribute value.
-    * @throws IllegalArgumentException If the no attribute with name `name` can be found for this op.
+    * @throws IllegalArgumentException If the no long attribute with name `name` can be found for this op.
     */
   @throws[IllegalArgumentException]
   def longAttribute(name: String): Long = using(graph.reference) { _ =>
@@ -170,7 +170,7 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
       NativeOp.getAttrInt(nativeHandle, name)
     } catch {
       case e: Exception => throw new IllegalArgumentException(
-        s"Op has no attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
+        s"Op has no long attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
     }
   }
 
@@ -178,7 +178,7 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
     *
     * @param  name Attribute name.
     * @return Attribute value.
-    * @throws IllegalArgumentException If the no attribute with name `name` can be found for this op.
+    * @throws IllegalArgumentException If no float attribute with name `name` can be found for this op.
     */
   @throws[IllegalArgumentException]
   def floatAttribute(name: String): Float = using(graph.reference) { _ =>
@@ -186,7 +186,7 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
       NativeOp.getAttrFloat(nativeHandle, name)
     } catch {
       case e: Exception => throw new IllegalArgumentException(
-        s"Op has no attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
+        s"Op has no float attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
     }
   }
 
@@ -194,7 +194,7 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
     *
     * @param  name Attribute name.
     * @return Attribute value.
-    * @throws IllegalArgumentException If the no attribute with name `name` can be found for this op.
+    * @throws IllegalArgumentException If no boolean attribute with name `name` can be found for this op.
     */
   @throws[IllegalArgumentException]
   def booleanAttribute(name: String): Boolean = using(graph.reference) { _ =>
@@ -202,7 +202,7 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
       NativeOp.getAttrBool(nativeHandle, name)
     } catch {
       case e: Exception => throw new IllegalArgumentException(
-        s"Op has no attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
+        s"Op has no boolean attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
     }
   }
 
@@ -210,7 +210,7 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
     *
     * @param  name Attribute name.
     * @return Attribute value.
-    * @throws IllegalArgumentException If the no attribute with name `name` can be found for this op.
+    * @throws IllegalArgumentException If no data type attribute with name `name` can be found for this op.
     */
   @throws[IllegalArgumentException]
   def dataTypeAttribute(name: String): DataType = using(graph.reference) { _ =>
@@ -218,7 +218,23 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
       DataType.fromCValue(NativeOp.getAttrType(nativeHandle, name))
     } catch {
       case e: Exception => throw new IllegalArgumentException(
-        s"Op has no attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
+        s"Op has no data type attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
+    }
+  }
+
+  /** Gets the value of a tensor-valued attribute of this op with name `name`.
+    *
+    * @param  name Attribute name.
+    * @return Attribute value.
+    * @throws IllegalArgumentException If no tensor attribute with name `name` can be found for this op.
+    */
+  @throws[IllegalArgumentException]
+  def tensorAttribute(name: String): Tensor = using(graph.reference) { _ =>
+    try {
+      Tensor.fromTFNativeHandle(NativeOp.getAttrTensor(nativeHandle, name))
+    } catch {
+      case e: Exception => throw new IllegalArgumentException(
+        s"Op has no tensor attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
     }
   }
 
@@ -226,7 +242,7 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
     *
     * @param  name Attribute name.
     * @return Attribute value.
-    * @throws IllegalArgumentException If the no attribute with name `name` can be found for this op.
+    * @throws IllegalArgumentException If no shape attribute with name `name` can be found for this op.
     */
   @throws[IllegalArgumentException]
   def shapeAttribute(name: String): Shape = using(graph.reference) { _ =>
@@ -234,7 +250,7 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
       Shape.fromSeq(NativeOp.getAttrShape(nativeHandle, name).map(_.toInt))
     } catch {
       case e: Exception => throw new IllegalArgumentException(
-        s"Op has no attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
+        s"Op has no shape attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
     }
   }
 

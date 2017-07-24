@@ -46,6 +46,7 @@ object Op {
   @native def getAttrFloat(handle: Long, name: String): Float
   @native def getAttrBool(handle: Long, name: String): Boolean
   @native def getAttrType(handle: Long, name: String): Int
+  @native def getAttrTensor(handle: Long, name: String): Long
   @native def getAttrShape(handle: Long, name: String): Array[Long]
   @native def allOps: Array[Byte]
 
