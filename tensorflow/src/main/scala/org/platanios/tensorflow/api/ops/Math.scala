@@ -2137,7 +2137,135 @@ trait Math {
         .build().outputs(0)
   }
 
-  // TODO: [SPARSE] Add sparse segment ops.
+  /** Creates an op that computes the sum along sparse segments of a tensor.
+    *
+    * The op is similar to that of [[segmentSum]], with the difference that `segmentIndices` can have rank less than
+    * `data`'s first dimension, selecting a subset of dimension `0`, specified by `indices`.
+    *
+    * For example:
+    * {{{
+    *   // Violating Scala syntax for brevity, but keeping clarity.
+    *   val c = tf.constant([[1, 2, 3, 4], [-1, -2, -3, -4], [5, 6, 7, 8]])
+    *
+    *   // Select two rows, one segment.
+    *   tf.sparseSegmentSum(c, tf.constant([0, 1]), tf.constant([0, 0])) ==> [[0, 0, 0, 0]]
+    *
+    *   // Select two rows, two segments.
+    *   tf.sparseSegmentSum(c, tf.constant([0, 1]), tf.constant([0, 1])) ==> [[1, 2, 3, 4], [-1, -2, -3, -4]]
+    *
+    *   // Select all rows, two segments.
+    *   tf.sparseSegmentSum(c, tf.constant([0, 1, 2]), tf.constant([0, 0, 1])) ==> [[0, 0, 0, 0], [5, 6, 7, 8]]
+    *   // which is equivalent to:
+    *   tf.segmentSum(c, tf.constant([0, 0, 1]))
+    * }}}
+    *
+    * The result tensor has the same data type as `data`, but its first dimension size is equal to the number of
+    * distinct segment indices.
+    *
+    * @param  data           Data (must have a numeric data type -- i.e., representing a number).
+    * @param  indices        One-dimensional tensor with rank equal to that of `segmentIndices`.
+    * @param  segmentIndices Segment indices (must have data type of `INT32` or `INT64`). Values should be sorted
+    *                        and can be repeated.
+    * @param  name           Name for the created op.
+    * @return Created op.
+    */
+  def sparseSegmentSum(
+      data: Output, indices: Output, segmentIndices: Output, name: String = "SparseSegmentSum"): Output = {
+    if (!data.dataType.isNumeric)
+      throw InvalidDataTypeException(s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
+    if (indices.dataType != INT32 && indices.dataType != INT64)
+      throw InvalidDataTypeException(
+        s"'indices' data type, '${indices.dataType}', is not 'INT32' or 'INT64', as required.")
+    if (segmentIndices.dataType != INT32)
+      throw InvalidDataTypeException(
+        s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'INT32', as required.")
+    Op.Builder(opType = "SparseSegmentSum", name = name)
+        .addInput(data)
+        .addInput(indices)
+        .addInput(segmentIndices)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that computes the mean along sparse segments of a tensor.
+    *
+    * The op is similar to that of [[segmentMean]], with the difference that `segmentIndices` can have rank less than
+    * `data`'s first dimension, selecting a subset of dimension `0`, specified by `indices`.
+    *
+    * For example:
+    * {{{
+    *   // Violating Scala syntax for brevity, but keeping clarity.
+    *   val c = tf.constant([[1, 2, 3, 4], [-1, -2, -3, -4], [5, 6, 7, 8]])
+    *
+    *   // Select two rows, one segment.
+    *   tf.sparseSegmentMean(c, tf.constant([0, 1]), tf.constant([0, 0])) ==> [[0, 0, 0, 0]]
+    *
+    *   // Select two rows, two segments.
+    *   tf.sparseSegmentMean(c, tf.constant([0, 1]), tf.constant([0, 1])) ==> [[1, 2, 3, 4], [-1, -2, -3, -4]]
+    *
+    *   // Select all rows, two segments.
+    *   tf.sparseSegmentMean(c, tf.constant([0, 1, 2]), tf.constant([0, 0, 1])) ==> [[0, 0, 0, 0], [5, 6, 7, 8]]
+    *   // which is equivalent to:
+    *   tf.segmentMean(c, tf.constant([0, 0, 1]))
+    * }}}
+    *
+    * The result tensor has the same data type as `data`, but its first dimension size is equal to the number of
+    * distinct segment indices.
+    *
+    * @param  data           Data (must have a numeric data type -- i.e., representing a number).
+    * @param  indices        One-dimensional tensor with rank equal to that of `segmentIndices`.
+    * @param  segmentIndices Segment indices (must have data type of `INT32` or `INT64`). Values should be sorted
+    *                        and can be repeated.
+    * @param  name           Name for the created op.
+    * @return Created op.
+    */
+  def sparseSegmentMean(
+      data: Output, indices: Output, segmentIndices: Output, name: String = "SparseSegmentMean"): Output = {
+    if (!data.dataType.isNumeric)
+      throw InvalidDataTypeException(s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
+    if (indices.dataType != INT32 && indices.dataType != INT64)
+      throw InvalidDataTypeException(
+        s"'indices' data type, '${indices.dataType}', is not 'INT32' or 'INT64', as required.")
+    if (segmentIndices.dataType != INT32)
+      throw InvalidDataTypeException(
+        s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'INT32', as required.")
+    Op.Builder(opType = "SparseSegmentMean", name = name)
+        .addInput(data)
+        .addInput(indices)
+        .addInput(segmentIndices)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that computes the sum along sparse segments of a tensor, divided by the square root of the number of
+    * elements being summed.
+    *
+    * Similar to [[sparseSegmentSum]].
+    *
+    * The result tensor has the same data type as `data`, but its first dimension size is equal to the number of
+    * distinct segment indices.
+    *
+    * @param  data           Data (must have a numeric data type -- i.e., representing a number).
+    * @param  indices        One-dimensional tensor with rank equal to that of `segmentIndices`.
+    * @param  segmentIndices Segment indices (must have data type of `INT32` or `INT64`). Values should be sorted
+    *                        and can be repeated.
+    * @param  name           Name for the created op.
+    * @return Created op.
+    */
+  def sparseSegmentSumSqrtN(
+      data: Output, indices: Output, segmentIndices: Output, name: String = "SparseSegmentSumSqrtN"): Output = {
+    if (!data.dataType.isNumeric)
+      throw InvalidDataTypeException(s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
+    if (indices.dataType != INT32 && indices.dataType != INT64)
+      throw InvalidDataTypeException(
+        s"'indices' data type, '${indices.dataType}', is not 'INT32' or 'INT64', as required.")
+    if (segmentIndices.dataType != INT32)
+      throw InvalidDataTypeException(
+        s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'INT32', as required.")
+    Op.Builder(opType = "SparseSegmentSqrtN", name = name)
+        .addInput(data)
+        .addInput(indices)
+        .addInput(segmentIndices)
+        .build().outputs(0)
+  }
 
   //endregion Segment Ops
 
@@ -2812,7 +2940,8 @@ object Math extends Math {
     GradientsRegistry.register("UnsortedSegmentSum", unsortedSegmentSumGradient)
     GradientsRegistry.register("UnsortedSegmentMax", segmentMinOrMaxGradient(_, _, isSorted = false))
     GradientsRegistry.register("SparseSegmentSum", sparseSegmentSumGradient)
-    // TODO: [GRADIENTS] Sparse segmentation ops.
+    GradientsRegistry.register("SparseSegmentMean", sparseSegmentMeanGradient)
+    GradientsRegistry.register("SparseSegmentSqrtN", sparseSegmentSumSqrtNGradient)
     GradientsRegistry.register("Diag", diagGradient)
     GradientsRegistry.register("DiagPart", diagPartGradient)
     GradientsRegistry.register("MatrixDiag", matrixDiagGradient)
@@ -3600,6 +3729,30 @@ object Math extends Math {
       val outputGradient = outputGradients.head.toOutput
       val inputRows = Basic.shape(op.inputs(0))(0)
       Seq(unsortedSegmentSum(Basic.gather(outputGradient, op.inputs(2)), op.inputs(1), inputRows), null, null)
+    }
+
+    private[this] def sparseSegmentMeanGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val outputGradient = outputGradients.head.toOutput
+      val inputRows = Basic.shape(op.inputs(0))(0)
+      val gradient = Op.Builder(opType = "SparseSegmentMeanGrad", name = "SparseSegmentMeanGrad")
+          .addInput(outputGradient)
+          .addInput(op.inputs(1))
+          .addInput(op.inputs(2))
+          .addInput(inputRows)
+          .build().outputs(0)
+      Seq(gradient, null, null)
+    }
+
+    private[this] def sparseSegmentSumSqrtNGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val outputGradient = outputGradients.head.toOutput
+      val inputRows = Basic.shape(op.inputs(0))(0)
+      val gradient = Op.Builder(opType = "SparseSegmentSqrtNGrad", name = "SparseSegmentSumSqrtNGrad")
+          .addInput(outputGradient)
+          .addInput(op.inputs(1))
+          .addInput(op.inputs(2))
+          .addInput(inputRows)
+          .build().outputs(0)
+      Seq(gradient, null, null)
     }
 
     private[this] def diagGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
