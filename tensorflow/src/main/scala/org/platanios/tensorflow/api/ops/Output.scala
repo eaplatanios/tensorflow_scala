@@ -224,13 +224,27 @@ final case class Output private(op: Op, index: Int) extends OutputLike {
 
   //region Ops
 
-  def unary_- : Output = Math.negate(this)
-  def +(other: Output): Output = Math.add(x = this, y = other) // TODO: [SPARSE]
-  def -(other: Output): Output = Math.subtract(x = this, y = other) // TODO: [SPARSE]
-  def *(other: Output): Output = Math.multiply(x = this, y = other) // TODO: [SPARSE]
-  def /(other: Output): Output = Math.divide(x = this, y = other) // TODO: [SPARSE]
-  def %(other: Output): Output = Math.mod(x = this, y = other) // TODO: [SPARSE]
-  def **(other: Output): Output = Math.pow(x = this, y = other) // TODO: [SPARSE]
+  private[this] def binaryOperatorHelper(other: Output, operator: (Output, Output) => Output): Output = {
+    if (this.dataType.priority >= other.dataType.priority)
+      operator(this, Math.cast(other, this.dataType))
+    else
+      operator(Math.cast(this, other.dataType), other)
+  }
+
+  private[this] def divHelper(x: Output, y: Output): Output = {
+    if (x.dataType.isFloatingPoint || x.dataType.isComplex)
+      Math.divide(x, y)
+    else
+      Math.truncateDivide(x, y)
+  }
+
+  def unary_- : Output = Math.negate(x = this)
+  def +(other: Output): Output = binaryOperatorHelper(other, Math.add(_, _))
+  def -(other: Output): Output = binaryOperatorHelper(other, Math.subtract(_, _))
+  def *(other: Output): Output = binaryOperatorHelper(other, Math.multiply(_, _)) // TODO: [SPARSE]
+  def /(other: Output): Output = binaryOperatorHelper(other, divHelper)           // TODO: [SPARSE]
+  def %(other: Output): Output = binaryOperatorHelper(other, Math.floorMod(_, _))
+  def **(other: Output): Output = binaryOperatorHelper(other, Math.pow(_, _))
 
   def unary_! : Output = Math.logicalNot(x = this)
   def &&(other: Output): Output = Math.logicalAnd(x = this, y = other)
