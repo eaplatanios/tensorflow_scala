@@ -131,9 +131,6 @@ trait DataFlow {
 
 object DataFlow extends DataFlow {
   private[api] object Gradients {
-    GradientsRegistry.register("DynamicPartition", dynamicPartitionGradient)
-    GradientsRegistry.register("DynamicStitch", dynamicStitchGradient)
-
     GradientsRegistry.registerNonDifferentiable("Queue")
     GradientsRegistry.registerNonDifferentiable("QueueEnqueue")
     GradientsRegistry.registerNonDifferentiable("QueueEnqueueMany")
@@ -152,6 +149,9 @@ object DataFlow extends DataFlow {
     GradientsRegistry.registerNonDifferentiable("GetSessionHandleV2")
     GradientsRegistry.registerNonDifferentiable("GetSessionTensor")
     GradientsRegistry.registerNonDifferentiable("DeleteSessionTensor")
+
+    GradientsRegistry.register("DynamicPartition", dynamicPartitionGradient)
+    GradientsRegistry.register("DynamicStitch", dynamicStitchGradient)
 
     private[this] def dynamicPartitionGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       val data = op.inputs(0)

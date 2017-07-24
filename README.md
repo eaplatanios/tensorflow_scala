@@ -161,6 +161,8 @@ sbt compile
 
 ## Supported Features
 
+- Learn API:
+  - [ ] Design
 - Op Creation API:
   - [x] Graph op creation context
   - [x] Name scope op creation context
@@ -177,8 +179,8 @@ sbt compile
     - [x] Basic array ops (missing quantization ops)
     - [x] Basic array ops gradients 
           (missing the concatenate op gradient for indexed slices -- need better Tensors API for that)
-    - [ ] Math (missing some)
-    - [ ] Math gradients (missing most)
+    - [x] Math
+    - [x] Math gradients
     - [ ] NN
     - [ ] NN gradients
     - [ ] Control flow

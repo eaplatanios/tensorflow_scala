@@ -2868,6 +2868,22 @@ trait Math {
 
 object Math extends Math {
   private[api] object Gradients {
+    GradientsRegistry.registerNonDifferentiable("Range")
+    GradientsRegistry.registerNonDifferentiable("LinSpace")
+    GradientsRegistry.registerNonDifferentiable("IsNan")
+    GradientsRegistry.registerNonDifferentiable("IsInf")
+    GradientsRegistry.registerNonDifferentiable("IsFinite")
+    GradientsRegistry.registerNonDifferentiable("LogicalNot")
+    GradientsRegistry.registerNonDifferentiable("LogicalAnd")
+    GradientsRegistry.registerNonDifferentiable("LogicalOr")
+    GradientsRegistry.registerNonDifferentiable("Equal")
+    GradientsRegistry.registerNonDifferentiable("NotEqual")
+    GradientsRegistry.registerNonDifferentiable("ApproximateEqual")
+    GradientsRegistry.registerNonDifferentiable("Less")
+    GradientsRegistry.registerNonDifferentiable("LessEqual")
+    GradientsRegistry.registerNonDifferentiable("Greater")
+    GradientsRegistry.registerNonDifferentiable("GreaterEqual")
+
     GradientsRegistry.register("Select", selectGradient)
     GradientsRegistry.register("Cast", castGradient)
     GradientsRegistry.register("AddN", addNGradient)
@@ -2956,22 +2972,6 @@ object Math extends Math {
     GradientsRegistry.register("Real", realGradient)
     GradientsRegistry.register("Imag", imagGradient)
     GradientsRegistry.register("Conj", conjGradient)
-
-    GradientsRegistry.registerNonDifferentiable("Range")
-    GradientsRegistry.registerNonDifferentiable("LinSpace")
-    GradientsRegistry.registerNonDifferentiable("IsNan")
-    GradientsRegistry.registerNonDifferentiable("IsInf")
-    GradientsRegistry.registerNonDifferentiable("IsFinite")
-    GradientsRegistry.registerNonDifferentiable("LogicalNot")
-    GradientsRegistry.registerNonDifferentiable("LogicalAnd")
-    GradientsRegistry.registerNonDifferentiable("LogicalOr")
-    GradientsRegistry.registerNonDifferentiable("Equal")
-    GradientsRegistry.registerNonDifferentiable("NotEqual")
-    GradientsRegistry.registerNonDifferentiable("ApproximateEqual")
-    GradientsRegistry.registerNonDifferentiable("Less")
-    GradientsRegistry.registerNonDifferentiable("LessEqual")
-    GradientsRegistry.registerNonDifferentiable("Greater")
-    GradientsRegistry.registerNonDifferentiable("GreaterEqual")
 
     private[this] def selectGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       val grad = outputGradients.head
