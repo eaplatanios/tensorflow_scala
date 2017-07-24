@@ -3396,20 +3396,61 @@ object Math extends Math {
       Seq(null, null, Basic.reshape(sum(multiply(partialX, outputGradient), rx), xShape))
     }
 
+    /** Helper function for reduction ops that computes the reduction output shape, assuming `keepDims` is `true`.
+      *
+      * For example:
+      * {{{
+      *   // inputShape == [2, 3, 5, 7]
+      *   // axes = [1, 2]
+      *   reducedShape(inputShape, axes) ==> [2, 1, 1, 7]
+      * }}}
+      *
+      * @param  inputShape Shape of the tensor being reduced.
+      * @param  axes       Reduction axes.
+      * @return One-dimensional tensor representing the reduction output shape, assuming `keepDims` is `true`.
+      */
+    private[this] def reducedShape(inputShape: Output, axes: Output): Output = {
+      // Cast needed for SparseOutput reductions.
+      val intInputShape = cast(inputShape, INT32)
+      val inputRank = Basic.size(intInputShape) // = 4
+      val intAxes = floorMod(add(cast(axes, INT32), inputRank), inputRank)
+      val axesShape = Basic.shape(intAxes) // = 2
+      DataFlow.dynamicStitch(
+        Seq(range(Basic.constant(0), inputRank), intAxes),
+        Seq(intInputShape, Basic.fill(axesShape, 1)))
+    }
+
+    private[this] def safeShapeDiv(x: Output, y: Output): Output = {
+      truncateDivide(x, maximum(y, Basic.constant(1, y.dataType)))
+    }
+
     private[this] def sumGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val input = op.inputs(0)
+      val axes = op.inputs(1)
+      val rank = input.shape.rank
       // Fast path for when reducing to a scalar and rank is known, which adds only reshape and tile ops (and possibly a
       // shape op too).
-      if (op.inputs(0).shape.rank != -1 && op.inputs(1).op.opType == "Const") {
-        val rank = op.inputs(0).shape.rank
-        // TODO: !!! Missing a pretty important if statement here.
-        val gradient = Basic.reshape(outputGradients.head, Shape.fromSeq(Seq.fill(rank)(1)))
-        // If shape is not fully defined (but rank is), we use a shape op.
-        if (op.inputs(0).shape.isFullyDefined)
-          Seq(Basic.tile(gradient, op.inputs(0).shape), null)
-        else
-          Seq(Basic.tile(gradient, Basic.shape(op.inputs(0))), null)
+      if (rank != -1
+          && axes.op.opType == "Const"
+          && axes.op.tensorAttribute("value") == Tensor.fromSeq(axes.dataType, 0 until rank: _*)) {
+        // In this case the reduction was over all dimensions.
+        var outputGradient = outputGradients.head.toOutput
+        outputGradient = Basic.reshape(outputGradient, Array.fill(rank)(1))
+        val inputShape = {
+          // If the shape is not fully defined but the rank is, we use the shape op.
+          if (input.shape.isFullyDefined)
+            input.shape.toOutput
+          else
+            Basic.shape(input)
+        }
+        Seq(Basic.tile(outputGradient, inputShape), null)
       } else {
-        ???
+        val inputShape = Basic.shape(input)
+        val outputShapeKeptDimensions = reducedShape(inputShape, axes)
+        val tileScaling = safeShapeDiv(inputShape, outputShapeKeptDimensions)
+        var outputGradient = outputGradients.head.toOutput
+        outputGradient = Basic.reshape(outputGradient, outputShapeKeptDimensions)
+        Seq(Basic.tile(outputGradient, tileScaling), null)
       }
     }
 
