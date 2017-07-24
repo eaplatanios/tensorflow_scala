@@ -2120,7 +2120,7 @@ trait Math {
     * @param  name           Name for the created op.
     * @return Created op.
     */
-  def unsortedSegmentProd(
+  def unsortedSegmentMax(
       data: Output, segmentIndices: Output, segmentsNumber: Output, name: String = "UnsortedSegmentMax"): Output = {
     if (!data.dataType.isNumeric)
       throw InvalidDataTypeException(s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
@@ -2789,7 +2789,6 @@ object Math extends Math {
     GradientsRegistry.register("TruncateDiv", truncateDivGradient)
     GradientsRegistry.register("RealDiv", realDivGradient)
     GradientsRegistry.register("SquaredDifference", squaredDifferenceGradient)
-    // TODO: [GRADIENTS] mod, floorMod, truncateMod
     GradientsRegistry.register("Pow", powGradient)
     GradientsRegistry.register("Igammac", igammacGradient)
     GradientsRegistry.register("Igamma", igammaGradient)
@@ -2806,7 +2805,14 @@ object Math extends Math {
     GradientsRegistry.register("Max", minOrMaxGradient)
     GradientsRegistry.register("Cumsum", cumsumGradient)
     GradientsRegistry.register("Cumprod", cumprodGradient)
-    // TODO: [GRADIENTS] Segmentation ops.
+    GradientsRegistry.register("SegmentSum", segmentSumGradient)
+    GradientsRegistry.register("SegmentMean", segmentMeanGradient)
+    GradientsRegistry.register("SegmentMin", segmentMinOrMaxGradient(_, _, isSorted = true))
+    GradientsRegistry.register("SegmentMax", segmentMinOrMaxGradient(_, _, isSorted = true))
+    GradientsRegistry.register("UnsortedSegmentSum", unsortedSegmentSumGradient)
+    GradientsRegistry.register("UnsortedSegmentMax", segmentMinOrMaxGradient(_, _, isSorted = false))
+    GradientsRegistry.register("SparseSegmentSum", sparseSegmentSumGradient)
+    // TODO: [GRADIENTS] Sparse segmentation ops.
     GradientsRegistry.register("Diag", diagGradient)
     GradientsRegistry.register("DiagPart", diagPartGradient)
     GradientsRegistry.register("MatrixDiag", matrixDiagGradient)
@@ -3540,6 +3546,60 @@ object Math extends Math {
       val product = cumprod(x, axis, exclusive = exclusive, reverse = reverse)
       val result = cumsum(product * outputGradient, axis, exclusive = exclusive, reverse = !reverse)
       Seq(divide(result, x), null)
+    }
+
+    private[this] def segmentSumGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val outputGradient = outputGradients.head.toOutput
+      Seq(Basic.gather(outputGradient, op.inputs(1)), null)
+    }
+
+    private[this] def segmentMeanGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val outputGradient = outputGradients.head.toOutput
+      val inputRank = Basic.rank(op.inputs(0))
+      val onesShape = Basic.concatenate(Seq(
+        Basic.shape(op.inputs(1)),
+        Basic.fill(Basic.expandDims(subtract(inputRank, Basic.constant(1, inputRank.dataType)), 0),
+                   Basic.constant(1, inputRank.dataType))))
+      val ones = Basic.fill(onesShape, Basic.constant(1, outputGradient.dataType))
+      val scaledGradient = divide(outputGradient, segmentSum(ones, op.inputs(1)))
+      Seq(Basic.gather(scaledGradient, op.inputs(1)), null)
+    }
+
+    private[this] def segmentMinOrMaxGradient(
+        op: Op, outputGradients: Seq[OutputLike], isSorted: Boolean): Seq[OutputLike] = {
+      val outputGradient = outputGradients.head.toOutput
+      val zeros = Basic.zerosLike(op.inputs(0))
+      // Get the number of selected (minimum or maximum) elements in each segment.
+      val gatheredOutputs = Basic.gather(op.outputs(0), op.inputs(1))
+      val isSelected = equal(op.inputs(0), gatheredOutputs)
+
+      val numSelected = {
+        if (isSorted)
+          segmentSum(cast(isSelected, outputGradient.dataType), op.inputs(1))
+        else
+          unsortedSegmentSum(cast(isSelected, outputGradient.dataType), op.inputs(1), op.inputs(2))
+      }
+
+      // Compute the gradient for each segment. The gradient for the ith segment is divided evenly among the selected
+      // elements in that segment.
+      val weightedGradients = divide(outputGradient, numSelected)
+      val gatheredGradients = Basic.gather(weightedGradients, op.inputs(1))
+
+      if (isSorted)
+        Seq(select(isSelected, gatheredGradients, zeros), null)
+      else
+        Seq(select(isSelected, gatheredGradients, zeros), null, null)
+    }
+
+    private[this] def unsortedSegmentSumGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val outputGradient = outputGradients.head.toOutput
+      Seq(Basic.gather(outputGradient, op.inputs(1)), null, null)
+    }
+
+    private[this] def sparseSegmentSumGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val outputGradient = outputGradients.head.toOutput
+      val inputRows = Basic.shape(op.inputs(0))(0)
+      Seq(unsortedSegmentSum(Basic.gather(outputGradient, op.inputs(2)), op.inputs(1), inputRows), null, null)
     }
 
     private[this] def diagGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
