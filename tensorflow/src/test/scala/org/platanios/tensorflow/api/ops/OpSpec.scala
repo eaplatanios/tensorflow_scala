@@ -355,7 +355,7 @@ class OpSpec extends FlatSpec with Matchers {
     createWith(graph = Graph()) {
       val a = constant(1.0)
       assert(intercept[IllegalArgumentException](a.stringAttribute("_a")).getMessage ===
-                 "Op has no attribute named '_a'. " +
+                 "Op has no string attribute named '_a'. " +
                      "TensorFlow native library error message: Operation has no attr named '_a'.")
       createWith(attributes = Map("_a" -> "foo")) {
         val b = constant(1.0)
@@ -366,7 +366,7 @@ class OpSpec extends FlatSpec with Matchers {
           createWith(attributes = Map("_a" -> null)) {
             val d = constant(1.0)
             assert(intercept[IllegalArgumentException](d.stringAttribute("_a")).getMessage ===
-                       "Op has no attribute named '_a'. " +
+                       "Op has no string attribute named '_a'. " +
                            "TensorFlow native library error message: Operation has no attr named '_a'.")
           }
         }
