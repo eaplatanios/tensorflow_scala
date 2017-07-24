@@ -25,6 +25,7 @@ package object ops {
   private[api] trait API
       extends Basic
           with ControlFlow
+          with DataFlow
           with Image
           with Logging
           with Math
@@ -45,6 +46,7 @@ package object ops {
     val GradientsRegistry = ops.Gradients.Registry
 
     ops.Basic.Gradients
+    ops.DataFlow.Gradients
     ops.Math.Gradients
     ops.variables.Variable.Gradients
 
