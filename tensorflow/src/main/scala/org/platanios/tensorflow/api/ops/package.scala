@@ -29,6 +29,7 @@ package object ops {
           with Image
           with Logging
           with Math
+          with NN
           with Text
           with variables.API {
     type Op = ops.Op
@@ -49,6 +50,7 @@ package object ops {
     ops.DataFlow.Gradients
     ops.Logging.Gradients
     ops.Math.Gradients
+    ops.NN.Gradients
     ops.variables.Variable.Gradients
 
     //region Op Construction Aliases
