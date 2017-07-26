@@ -54,6 +54,21 @@ trait NN {
         .setAttribute("data_format", cNNDataFormat.toString)
         .build().outputs(0)
   }
+
+  /** Creates an op that computes the rectified linear activation function.
+    *
+    * The rectified linear activation function is defined as `relu(x) = max(x, 0)`.
+    *
+    * @param  input Input tensor.
+    * @param  name  Name for the created op.
+    * @return Created op output.
+    */
+  def relu[T: OutputOps](input: T, name: String = "ReLU"): T = {
+    implicitly[OutputOps[T]]
+        .unaryOp(input, o => Op.Builder(opType = "Relu", name = name)
+            .addInput(o)
+            .build().outputs(0))
+  }
 }
 
 object NN extends NN {
@@ -80,6 +95,8 @@ object NN extends NN {
   private[api] object Gradients {
     GradientsRegistry.register("BiasAdd", biasAddGradient)
     GradientsRegistry.register("BiasAddGrad", biasAddHessian)
+    GradientsRegistry.register("Relu", reluGradient)
+    GradientsRegistry.register("ReluGrad", reluHessian)
 
     private[this] def biasAddGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       val outputGradient = outputGradients.head.toOutput
@@ -123,6 +140,23 @@ object NN extends NN {
           (expandedShape, tileMultiples)
       }
       Seq(Basic.tile(Basic.reshape(outputGradient, expandedShape), tileMultiples))
+    }
+
+    private[this] def reluGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val outputGradient = outputGradients.head.toOutput
+      Seq(Op.Builder(opType = "ReluGrad", name = "ReLUGradient")
+              .addInput(outputGradient)
+              .addInput(op.outputs(0))
+              .build().outputs(0))
+    }
+
+    private[this] def reluHessian(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val outputGradient = outputGradients.head.toOutput
+      val x = op.inputs(1)
+      Seq(Op.Builder(opType = "ReluGrad", name = "ReLUHessian")
+              .addInput(outputGradient)
+              .addInput(x)
+              .build().outputs(0), Basic.zerosLike(x))
     }
   }
 }
