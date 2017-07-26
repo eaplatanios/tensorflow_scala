@@ -42,7 +42,7 @@ class FixedSizeTensor private[tensors] (
   override def fill[T](value: T)(implicit evidence: SupportedType[T]): this.type = {
     val castedValue = dataType.cast(value)
     for (index <- flattenedIndexIterator)
-      dataType.putElementInBuffer(buffer = buffer, index = index, element = castedValue)
+      dataType.putElementInBuffer(buffer = buffer, index = index * dataType.byteSize, element = castedValue)
     this
   }
 
