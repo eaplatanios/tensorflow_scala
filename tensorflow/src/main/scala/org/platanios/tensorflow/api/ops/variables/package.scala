@@ -94,4 +94,6 @@ package object variables {
         name, dataType, shape, initializer, regularizer, partitioner, reuse, collections, cachingDevice)
     }
   }
+
+  private[api] object API extends API
 }

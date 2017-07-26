@@ -54,7 +54,12 @@ final class Shape private (private val array: Array[Int]) extends OutputConverti
     *
     * @param  dimension Dimension whose size to return.
     */
-  def size(dimension: Int): Int = array(dimension)
+  def size(dimension: Int): Int = {
+    if (dimension < 0)
+      array(array.length + dimension)
+    else
+      array(dimension)
+  }
 
   /** Gets the total number of elements in tensors of this shape.
     *
@@ -164,6 +169,9 @@ final class Shape private (private val array: Array[Int]) extends OutputConverti
       }))
     }
   }
+
+  def +(dimension: Int): Shape = new Shape(this.array :+ dimension)
+  def ++(other: Shape): Shape = concatenateWith(other)
 
   // TODO: Support merging an unknown shape with a (partially) known one and vice-versa.
   /** Concatenates this shape with another shape and returns the result as a new shape.
@@ -298,20 +306,25 @@ final class Shape private (private val array: Array[Int]) extends OutputConverti
     * @param  dataType Data type to use for the tensor.
     * @return One-dimensional tensor representing this shape.
     */
-  def toTensor(dataType: DataType = INT32): Tensor = Tensor.fromSeq(dataType, asArray: _*)
+  def toTensor(dataType: DataType = INT32): Tensor = {
+    if (rank == 1)
+      Tensor(dataType, array(0))
+    else
+      Tensor.fromSeq(dataType, asArray: _*)
+  }
 
   /** Converts this shape to a one-dimensional "symbolic" tensor (i.e., a constant-valued op output).
     *
     * @return One-dimensional op output tensor representing this shape.
     */
-  def toOutput: Output = toOutput()
+  def toOutput: Output = toOutput(dataType = INT32, name = "Shape")
 
   /** Converts this shape to a one-dimensional "symbolic" tensor (i.e., a constant-valued op output).
     *
     * @param  dataType Data type to use for the tensor.
     * @return One-dimensional op output tensor representing this shape.
     */
-  def toOutput(dataType: DataType = INT32, name: String = "Shape"): Output = {
+  def toOutput(dataType: DataType, name: String = "Shape"): Output = {
     Basic.constant(toTensor(dataType), name = name)
   }
 
@@ -388,68 +401,68 @@ object Shape {
   private[api] def apply(dimensions: Array[Int]): Shape = create(dimensions)
 
   private[api] trait Implicits {
-    implicit def shapeToTensor(shape: Shape): Tensor = shape.toTensor()
-    implicit def shapeToOutput(shape: Shape): Output = Basic.constant(shape.toTensor())
+    // implicit def shapeToTensor(shape: Shape): Tensor = shape.toTensor()
+    implicit def shapeToOutput(shape: Shape): Output = shape.toOutput()
 
-    implicit def tupleToShape(t: Tuple1[Int]): Shape = create(t._1)
-    implicit def tupleToShape(t: (Int, Int)): Shape = create(t._1, t._2)
-    implicit def tupleToShape(t: (Int, Int, Int)): Shape = create(t._1, t._2, t._3)
-    implicit def tupleToShape(t: (Int, Int, Int, Int)): Shape = create(t._1, t._2, t._3, t._4)
-    implicit def tupleToShape(t: (Int, Int, Int, Int, Int)): Shape = create(t._1, t._2, t._3, t._4, t._5)
-    implicit def tupleToShape(t: (Int, Int, Int, Int, Int, Int)): Shape = create(t._1, t._2, t._3, t._4, t._5, t._6)
-    implicit def tupleToShape(t: (Int, Int, Int, Int, Int, Int, Int)): Shape =
-      create(t._1, t._2, t._3, t._4, t._5, t._6, t._7)
-    implicit def tupleToShape(t: (Int, Int, Int, Int, Int, Int, Int, Int)): Shape =
-      create(t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8)
-    implicit def tupleToShape(t: (Int, Int, Int, Int, Int, Int, Int, Int, Int)): Shape =
-      create(t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9)
-    implicit def tupleToShape(t: (Int, Int, Int, Int, Int, Int, Int, Int, Int, Int)): Shape =
-      create(t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10)
-    implicit def tupleToShape(t: (Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int)): Shape =
-      create(t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10, t._11)
-    implicit def tupleToShape(t: (Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int)): Shape =
-      create(t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10, t._11, t._12)
-    implicit def tupleToShape(t: (Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int)): Shape =
-      create(t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10, t._11, t._12, t._13)
-    implicit def tupleToShape(t: (Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int)): Shape =
-      create(t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10, t._11, t._12, t._13, t._14)
-    implicit def tupleToShape(t: (Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int)): Shape =
-      create(t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10, t._11, t._12, t._13, t._14, t._15)
-    implicit def tupleToShape(
-        t: (Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int)): Shape =
-      create(t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10, t._11, t._12, t._13, t._14, t._15, t._16)
-    implicit def tupleToShape(
-        t: (Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int)): Shape =
-      create(
-        t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10, t._11, t._12, t._13, t._14, t._15, t._16, t._17)
-    implicit def tupleToShape(
-        t: (Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int)): Shape =
-      create(
-        t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10, t._11, t._12, t._13, t._14, t._15, t._16, t._17,
-        t._18)
-    implicit def tupleToShape(
-        t: (Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int)): Shape =
-      create(
-        t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10, t._11, t._12, t._13, t._14, t._15, t._16, t._17,
-        t._18, t._19)
-    implicit def tupleToShape(
-        t: (Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int,
-            Int, Int, Int, Int, Int, Int, Int, Int, Int)): Shape =
-      create(
-        t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10, t._11, t._12, t._13, t._14, t._15, t._16, t._17,
-        t._18, t._19, t._20)
-    implicit def tupleToShape(
-        t: (Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int,
-            Int, Int, Int, Int, Int, Int, Int, Int, Int, Int)): Shape =
-      create(
-        t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10, t._11, t._12, t._13, t._14, t._15, t._16, t._17,
-        t._18, t._19, t._20, t._21)
-    implicit def tupleToShape(
-        t: (Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int,
-            Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int)): Shape =
-      create(
-        t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10, t._11, t._12, t._13, t._14, t._15, t._16, t._17,
-        t._18, t._19, t._20, t._21, t._22)
+    // implicit def tupleToShape(t: Tuple1[Int]): Shape = create(t._1)
+    // implicit def tupleToShape(t: (Int, Int)): Shape = create(t._1, t._2)
+    // implicit def tupleToShape(t: (Int, Int, Int)): Shape = create(t._1, t._2, t._3)
+    // implicit def tupleToShape(t: (Int, Int, Int, Int)): Shape = create(t._1, t._2, t._3, t._4)
+    // implicit def tupleToShape(t: (Int, Int, Int, Int, Int)): Shape = create(t._1, t._2, t._3, t._4, t._5)
+    // implicit def tupleToShape(t: (Int, Int, Int, Int, Int, Int)): Shape = create(t._1, t._2, t._3, t._4, t._5, t._6)
+    // implicit def tupleToShape(t: (Int, Int, Int, Int, Int, Int, Int)): Shape =
+    //   create(t._1, t._2, t._3, t._4, t._5, t._6, t._7)
+    // implicit def tupleToShape(t: (Int, Int, Int, Int, Int, Int, Int, Int)): Shape =
+    //   create(t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8)
+    // implicit def tupleToShape(t: (Int, Int, Int, Int, Int, Int, Int, Int, Int)): Shape =
+    //   create(t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9)
+    // implicit def tupleToShape(t: (Int, Int, Int, Int, Int, Int, Int, Int, Int, Int)): Shape =
+    //   create(t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10)
+    // implicit def tupleToShape(t: (Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int)): Shape =
+    //   create(t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10, t._11)
+    // implicit def tupleToShape(t: (Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int)): Shape =
+    //   create(t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10, t._11, t._12)
+    // implicit def tupleToShape(t: (Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int)): Shape =
+    //   create(t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10, t._11, t._12, t._13)
+    // implicit def tupleToShape(t: (Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int)): Shape =
+    //   create(t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10, t._11, t._12, t._13, t._14)
+    // implicit def tupleToShape(t: (Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int)): Shape =
+    //   create(t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10, t._11, t._12, t._13, t._14, t._15)
+    // implicit def tupleToShape(
+    //     t: (Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int)): Shape =
+    //   create(t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10, t._11, t._12, t._13, t._14, t._15, t._16)
+    // implicit def tupleToShape(
+    //     t: (Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int)): Shape =
+    //   create(
+    //     t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10, t._11, t._12, t._13, t._14, t._15, t._16, t._17)
+    // implicit def tupleToShape(
+    //     t: (Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int)): Shape =
+    //   create(
+    //     t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10, t._11, t._12, t._13, t._14, t._15, t._16, t._17,
+    //     t._18)
+    // implicit def tupleToShape(
+    //     t: (Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int)): Shape =
+    //   create(
+    //     t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10, t._11, t._12, t._13, t._14, t._15, t._16, t._17,
+    //     t._18, t._19)
+    // implicit def tupleToShape(
+    //     t: (Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int,
+    //         Int, Int, Int, Int, Int, Int, Int, Int, Int)): Shape =
+    //   create(
+    //     t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10, t._11, t._12, t._13, t._14, t._15, t._16, t._17,
+    //     t._18, t._19, t._20)
+    // implicit def tupleToShape(
+    //     t: (Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int,
+    //         Int, Int, Int, Int, Int, Int, Int, Int, Int, Int)): Shape =
+    //   create(
+    //     t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10, t._11, t._12, t._13, t._14, t._15, t._16, t._17,
+    //     t._18, t._19, t._20, t._21)
+    // implicit def tupleToShape(
+    //     t: (Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int,
+    //         Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int)): Shape =
+    //   create(
+    //     t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10, t._11, t._12, t._13, t._14, t._15, t._16, t._17,
+    //     t._18, t._19, t._20, t._21, t._22)
   }
 
   private[api] object Implicits extends Implicits

@@ -20,4 +20,5 @@ package org.platanios.tensorflow.api.ops
   */
 package object training {
   private[api] trait API extends optimizers.API
+  private[api] object API extends API
 }

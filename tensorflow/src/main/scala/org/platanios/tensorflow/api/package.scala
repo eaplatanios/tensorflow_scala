@@ -72,11 +72,14 @@ package object api extends Implicits {
 
   private[api] trait API
       extends core.API
+          with layers.API
           with ops.API
           with tensors.API
           with types.API
 
-  object tf extends API
+  private[api] object API extends API
+
+  val tf = API
 
   //endregion Public API
 }

@@ -33,6 +33,7 @@ trait Loader {
     } else {
       try {
         logger.info(s"Downloading file '$url'.")
+        Files.createDirectories(path.getParent)
         // TODO: [DATA] Add progress bar.
         val inputStream = new URL(url).openStream()
         val outputStream = Files.newOutputStream(path)

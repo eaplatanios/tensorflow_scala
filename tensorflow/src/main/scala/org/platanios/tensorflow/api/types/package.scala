@@ -57,4 +57,6 @@ package object types {
     val QUINT16    = types.QUINT16
     val RESOURCE   = types.RESOURCE
   }
+
+  private[api] object API extends API
 }

@@ -104,4 +104,6 @@ package object core {
     case class OpBuilderUsedException(message: String = null, cause: Throwable = null)
         extends IllegalStateException(message, cause)
   }
+
+  private[api] object API extends API
 }

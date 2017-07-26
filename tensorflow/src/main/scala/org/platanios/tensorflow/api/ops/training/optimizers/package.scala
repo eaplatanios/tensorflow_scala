@@ -29,4 +29,6 @@ package object optimizers {
     type AdaGrad = optimizers.AdaGrad
     val AdaGrad = optimizers.AdaGrad
   }
+
+  private[api] object API extends API
 }

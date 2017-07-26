@@ -120,4 +120,6 @@ package object ops {
 
     object train extends training.API
   }
+
+  private[api] object API extends API
 }

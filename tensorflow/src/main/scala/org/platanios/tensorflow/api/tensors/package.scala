@@ -29,4 +29,6 @@ package object tensors {
     type Order = tensors.Order
     val RowMajorOrder = tensors.RowMajorOrder
   }
+
+  private[api] object API extends API
 }
