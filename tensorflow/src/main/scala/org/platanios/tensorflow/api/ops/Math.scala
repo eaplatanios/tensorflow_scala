@@ -103,9 +103,9 @@ trait Math {
     require(start.rank == 0, s"'start' (rank = ${start.rank}) must have rank 0 (i.e., must be a scalar tensor).")
     require(limit.rank == 0, s"'limit' (rank = ${limit.rank}) must have rank 0 (i.e., must be a scalar tensor).")
     require(delta.rank == 0, s"'delta' (rank = ${delta.rank}) must have rank 0 (i.e., must be a scalar tensor).")
-    var castedStart: Output = null
-    var castedLimit: Output = null
-    var castedDelta: Output = null
+    var castedStart: Output = start
+    var castedLimit: Output = limit
+    var castedDelta: Output = delta
     Op.createWith(nameScope = name) {
       val supportedDataTypes = Set[DataType](FLOAT32, FLOAT64, INT32, INT64)
       require(supportedDataTypes.contains(start.dataType), s"Unsupported data type '${start.dataType}'.")
@@ -1490,11 +1490,14 @@ trait Math {
     * @return Created op output.
     */
   def sum(input: Output, axes: Output = null, keepDims: Boolean = false, name: String = "Sum"): Output = {
-    Op.Builder(opType = "Sum", name = name)
-        .addInput(input)
-        .addInput(reductionAxes(input, axes))
-        .setAttribute("keep_dims", keepDims)
-        .build().outputs(0)
+    if (input.rank == 0)
+      input
+    else
+      Op.Builder(opType = "Sum", name = name)
+          .addInput(input)
+          .addInput(reductionAxes(input, axes))
+          .setAttribute("keep_dims", keepDims)
+          .build().outputs(0)
   }
 
   /** Creates an op that computes the mean of elements across axes of a tensor.
@@ -1519,7 +1522,10 @@ trait Math {
     * @return Created op output.
     */
   def mean(input: Output, axes: Output = null, keepDims: Boolean = false, name: String = "Mean"): Output = {
-    Op.Builder(opType = "Mean", name = name)
+    if (input.rank == 0)
+      input
+    else
+      Op.Builder(opType = "Mean", name = name)
         .addInput(input)
         .addInput(reductionAxes(input, axes))
         .setAttribute("keep_dims", keepDims)
@@ -1550,7 +1556,10 @@ trait Math {
     * @return Created op output.
     */
   def prod(input: Output, axes: Output = null, keepDims: Boolean = false, name: String = "Prod"): Output = {
-    Op.Builder(opType = "Prod", name = name)
+    if (input.rank == 0)
+      input
+    else
+      Op.Builder(opType = "Prod", name = name)
         .addInput(input)
         .addInput(reductionAxes(input, axes))
         .setAttribute("keep_dims", keepDims)
@@ -1579,7 +1588,10 @@ trait Math {
     * @return Created op output.
     */
   def min(input: Output, axes: Output = null, keepDims: Boolean = false, name: String = "Min"): Output = {
-    Op.Builder(opType = "Min", name = name)
+    if (input.rank == 0)
+      input
+    else
+      Op.Builder(opType = "Min", name = name)
         .addInput(input)
         .addInput(reductionAxes(input, axes))
         .setAttribute("keep_dims", keepDims)
@@ -1608,7 +1620,10 @@ trait Math {
     * @return Created op output.
     */
   def max(input: Output, axes: Output = null, keepDims: Boolean = false, name: String = "Max"): Output = {
-    Op.Builder(opType = "Max", name = name)
+    if (input.rank == 0)
+      input
+    else
+      Op.Builder(opType = "Max", name = name)
         .addInput(input)
         .addInput(reductionAxes(input, axes))
         .setAttribute("keep_dims", keepDims)
@@ -1701,7 +1716,10 @@ trait Math {
     */
   def logSumExp(
       input: Output, axes: Array[Int] = null, keepDims: Boolean = false, name: String = "LogSumExp"): Output = {
-    Op.createWith(nameScope = name) {
+    if (input.rank == 0)
+      input
+    else
+      Op.createWith(nameScope = name) {
       val maxValue = Basic.stopGradient(max(input, axes, keepDims = true))
       val result = log(sum(exp(input - maxValue), axes, keepDims = true)) + maxValue
       if (keepDims)
@@ -3551,7 +3569,13 @@ object Math extends Math {
       // Cast needed for SparseOutput reductions.
       val intInputShape = cast(inputShape, INT32)
       val inputRank = Basic.size(intInputShape)
-      val intAxes = floorMod(add(cast(axes, INT32), inputRank), inputRank)
+      val reshapedAxes = {
+        if (axes.rank == 0)
+          Basic.reshape(axes, Tensor(1))
+        else
+          axes
+      }
+      val intAxes = floorMod(add(cast(reshapedAxes, INT32), inputRank), inputRank)
       val axesShape = Basic.shape(intAxes)
       DataFlow.dynamicStitch(
         Seq(range(Basic.constant(0), inputRank), intAxes),
@@ -3568,12 +3592,14 @@ object Math extends Math {
       val rank = input.shape.rank
       // Fast path for when reducing to a scalar and rank is known, which adds only reshape and tile ops (and possibly a
       // shape op too).
-      if (rank != -1
+      if (rank == 0) {
+        Seq(outputGradients.head, null)
+      } else if (rank != -1
           && axes.op.opType == "Const"
           && axes.op.tensorAttribute("value") == Tensor.fromSeq(axes.dataType, 0 until rank: _*)) {
         // In this case the reduction was over all dimensions.
         var outputGradient = outputGradients.head.toOutput
-        outputGradient = Basic.reshape(outputGradient, Array.fill(rank)(1))
+        outputGradient = Basic.reshape(outputGradient, Shape(Array.fill(rank)(1)))
         val inputShape = {
           // If the shape is not fully defined but the rank is, we use the shape op.
           if (input.shape.isFullyDefined)

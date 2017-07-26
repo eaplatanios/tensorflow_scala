@@ -80,7 +80,7 @@ object Logging extends Logging {
     GradientsRegistry.register("Print", printGradient)
 
     private[this] def printGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      outputGradients ++ Seq.fill(op.inputs.length)(null)
+      outputGradients ++ Seq.fill(op.inputs.length - 1)(null)
     }
   }
 }

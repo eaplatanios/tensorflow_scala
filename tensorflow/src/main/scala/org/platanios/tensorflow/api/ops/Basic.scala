@@ -2817,9 +2817,14 @@ trait Basic {
       throw new IllegalArgumentException(
         s"The provided on value data type (${onValue.dataType}) must match " +
             s"the provided off value data type (${offValue.dataType}).")
-    Op.createWithNameScope(name, Set(indices.op, depth.op, onValue.op, offValue.op)) {
+    var dependencyOps = Set(indices.op, depth.op)
+    if (onValue != null)
+      dependencyOps += onValue.op
+    if (offValue != null)
+      dependencyOps += offValue.op
+    Op.createWithNameScope(name, dependencyOps) {
       val actualOnValue = if (onValue != null) onValue else constant(1, inferredDataType)
-      val actualOffValue = if (offValue != null) offValue else constant(1, inferredDataType)
+      val actualOffValue = if (offValue != null) offValue else constant(0, inferredDataType)
       if (actualOnValue.dataType != inferredDataType)
         throw new IllegalArgumentException(
           s"On value data type (${actualOnValue.dataType}) must match the data type $inferredDataType.")
