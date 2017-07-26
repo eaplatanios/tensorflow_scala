@@ -937,17 +937,22 @@ object Op {
       * control dependencies due to transitive dependencies (e.g., if `a` depends on `b` and `c`, and `b` depends on
       * `c`, then the dependency of `a` on `c` is pruned).
       *
-      * @param  controlDeps Current set of control dependencies for the op that is being built.
-      * @param  op          Op that is a direct or indirect (through other ops) input or control input, for the op that
-      *                     is being built.
+      * @param  controlDeps  Current set of control dependencies for the op that is being built.
+      * @param  op           Op that is a direct or indirect (through other ops) input or control input, for the op that
+      *                      is being built.
+      * @param  processedOps Already processed ops (provided for efficiency purposes so that we do not go through them
+      *                      a second time).
       */
-    private[this] def pruneControlDependencies(controlDeps: mutable.Set[Op], op: Op): Unit = {
-      // TODO: Check if this is too expensive for large graphs.
-      // Prune op that is already used as input to the dependant op
-      controlDeps -= op
-      // Prune transitive control dependencies
-      op.inputs.foreach(input => pruneControlDependencies(controlDeps, input.op))
-      op.controlInputs.foreach(pruneControlDependencies(controlDeps, _))
+    private[this] def pruneControlDependencies(
+        controlDeps: mutable.Set[Op], op: Op, processedOps: mutable.Set[Op] = mutable.Set.empty[Op]): Unit = {
+      if (processedOps.contains(op)) {
+        // Prune op that is already used as input to the dependant op
+        controlDeps -= op
+        processedOps += op
+        // Prune transitive control dependencies
+        op.inputs.foreach(input => pruneControlDependencies(controlDeps, input.op, processedOps))
+        op.controlInputs.foreach(pruneControlDependencies(controlDeps, _, processedOps))
+      }
     }
 
     def build(): Op = graph.synchronized {
