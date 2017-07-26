@@ -16,6 +16,7 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.Indexer.Implicits._
+import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.ops.NN._
 
@@ -61,17 +62,147 @@ trait NN {
     *
     * @param  input Input tensor.
     * @param  name  Name for the created op.
+    * @param  alpha Slope of the negative section, also known as leakage parameter. If other than `0.0f`, the negative
+    *               part will be equal to `alpha * x` instead of `0`. Defaults to `0`.
     * @return Created op output.
     */
-  def relu[T: OutputOps](input: T, name: String = "ReLU"): T = {
+  def relu(input: Output, alpha: Float = 0.0f, name: String = "ReLU"): Output = {
+    def reluOp[T: OutputOps](i: T, n: String): T = {
+      implicitly[OutputOps[T]]
+          .unaryOp(i, o => Op.Builder(opType = "Relu", name = n)
+              .addInput(o)
+              .build().outputs(0))
+    }
+    if (alpha == 0.0) {
+      reluOp(input, name)
+    } else {
+      Op.createWithNameScope(name) {
+        val positive = reluOp(input, s"$name/PositivePart")
+        val negative = reluOp(-input, s"$name/NegativePart")
+        positive - (Basic.constant(alpha, negative.dataType, Shape(1)) * negative)
+      }
+    }
+  }
+
+  /** Creates an op that computes the rectified linear 6 activation function.
+    *
+    * The rectified linear activation function is defined as `relu6(x) = min(max(x, 0), 6)`.
+    *
+    * Source: [Convolutional Deep Belief Networks on CIFAR-10. A. Krizhevsky](http://www.cs.utoronto.ca/~kriz/conv-cifar10-aug2010.pdf)
+    *
+    * @param  input Input tensor.
+    * @param  name  Name for the created op.
+    * @return Created op output.
+    */
+  def relu6[T: OutputOps](input: T, name: String = "ReLU6"): T = {
     implicitly[OutputOps[T]]
-        .unaryOp(input, o => Op.Builder(opType = "Relu", name = name)
+        .unaryOp(input, o => Op.Builder(opType = "Relu6", name = name)
             .addInput(o)
             .build().outputs(0))
+  }
+
+  /** Helper function for [[softmax]] and [[logSoftmax]] that reshapes and transposes the input logits into
+    * two-dimensional tensors and then creates the corresponding native op. The output is transposed and reshaped
+    * back. */
+  private[this] def softmaxHelper(logits: Output, opType: String, axis: Int = -1, name: String = "Softmax"): Output = {
+    // We need the original shape of the logits for shape inference.
+    val shape = logits.shape
+    val isLastAxis = axis == -1 || axis == shape.rank - 1
+    if (shape.rank == 2 && isLastAxis) {
+      Op.Builder(opType = opType, name = name)
+          .addInput(logits)
+          .build().outputs(0)
+    } else if (isLastAxis) {
+      Op.createWithNameScope(name) {
+        // If axis is the last axis, we simply reshape the logits to a matrix and apply the internal softmax.
+        val inputShape = Basic.shape(logits)
+        val flattenedLogits = flattenOuterAxes(logits)
+        val output = Op.Builder(opType = opType, name = name)
+            .addInput(flattenedLogits)
+            .build().outputs(0)
+        Basic.reshape(output, inputShape)
+      }
+    } else {
+      Op.createWithNameScope(name) {
+        // If axis is not the last dimension, we have to do a reshape and transpose so that we can still perform softmax
+        // on its last dimension.
+        // We swap the logits' axis of axis and its last axis.
+        val inputRank = Basic.rank(logits)
+        val swappedLogits = swapAxes(logits, axis, Math.subtract(inputRank, 1))
+        val shapeAfterSwap = Basic.shape(swappedLogits)
+        // We reshape the logits into a matrix.
+        val flattenedLogits = flattenOuterAxes(swappedLogits)
+        // We perform the actual softmax on the last axis.
+        var output = Op.Builder(opType = opType, name = name)
+            .addInput(flattenedLogits)
+            .build().outputs(0)
+        // We transform back the output tensor.
+        output = Basic.reshape(output, shapeAfterSwap)
+        output = swapAxes(output, axis, Math.subtract(inputRank, 1))
+        // We make shape inference work since the reshape and the transpose may erase the static shape information.
+        output.setShape(shape)
+        output
+      }
+    }
+  }
+
+  /** Creates an op that computes softmax activations.
+    *
+    * For each batch `i` and class `j` we have `softmax = exp(logits) / sum(exp(logits), axis)`, where `axis` indicates
+    * the axis the softmax should be performed on.
+    *
+    * @param  logits Tensor containing the logits with data type `HALF`, `FLOAT32`, or `FLOAT64`.
+    * @param  axis   Axis along which to perform the softmax. Defaults to `-1` denoting the last axis.
+    * @param  name   Name for the created op.
+    * @return Created op output.
+    */
+  def softmax(logits: Output, axis: Int = -1, name: String = "Softmax"): Output = {
+    softmaxHelper(logits, "Softmax", axis, name)
+  }
+
+  /** Creates an op that computes log-softmax activations.
+    *
+    * For each batch `i` and class `j` we have `log_softmax = logits - log(sum(exp(logits), axis))`, where `axis`
+    * indicates the axis the log-softmax should be performed on.
+    *
+    * @param  logits Tensor containing the logits with data type `HALF`, `FLOAT32`, or `FLOAT64`.
+    * @param  axis   Axis along which to perform the log-softmax. Defaults to `-1` denoting the last axis.
+    * @param  name   Name for the created op.
+    * @return Created op output.
+    */
+  def logSoftmax(logits: Output, axis: Int = -1, name: String = "LogSoftmax"): Output = {
+    softmaxHelper(logits, "LogSoftmax", axis, name)
   }
 }
 
 object NN extends NN {
+  /** Creates an op that flattens the outer axes of `input` and keeps its last axis. */
+  private[ops] def flattenOuterAxes(input: Output): Output = {
+    val rank = Basic.rank(input)
+    val lastAxisSize = Basic.slice(Basic.shape(input), Math.subtract(rank, 1), 1)
+    val output = Basic.reshape(input, Basic.concatenate(Seq(-1, lastAxisSize), 0))
+    // Set the output shape, if known.
+    val shape = input.shape
+    if (shape.rank != -1) {
+      val product = shape(0 :: -1).asArray.product
+      if (product > -1)
+        output.setShape(Shape(product, shape(-1)))
+    }
+    output
+  }
+
+  /** Creates an op that swaps the axes `axis1` and `axis2` in `input` and ignores all axes after `axis2`. */
+  private[ops] def swapAxes(input: Output, axis1: Output, axis2: Output, name: String = "SwapAxes"): Output = {
+    Basic.transpose(
+      input,
+      Basic.concatenate(Seq(
+        Math.range(0, axis1),
+        axis2,
+        Math.range(axis1 + 1, axis2),
+        axis1), 0),
+      name)
+  }
+
   sealed trait CNNDataFormat {
     val name: String
     override def toString: String = name
@@ -97,6 +228,10 @@ object NN extends NN {
     GradientsRegistry.register("BiasAddGrad", biasAddHessian)
     GradientsRegistry.register("Relu", reluGradient)
     GradientsRegistry.register("ReluGrad", reluHessian)
+    GradientsRegistry.register("Relu6", relu6Gradient)
+    GradientsRegistry.register("Relu6Grad", relu6Hessian)
+    GradientsRegistry.register("Softmax", softmaxGradient)
+    GradientsRegistry.register("LogSoftmax", logSoftmaxGradient)
 
     private[this] def biasAddGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       val outputGradient = outputGradients.head.toOutput
@@ -157,6 +292,35 @@ object NN extends NN {
               .addInput(outputGradient)
               .addInput(x)
               .build().outputs(0), Basic.zerosLike(x))
+    }
+
+    private[this] def relu6Gradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val outputGradient = outputGradients.head.toOutput
+      Seq(Op.Builder(opType = "Relu6Grad", name = "ReLU6Gradient")
+              .addInput(outputGradient)
+              .addInput(op.outputs(0))
+              .build().outputs(0))
+    }
+
+    private[this] def relu6Hessian(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val outputGradient = outputGradients.head.toOutput
+      val x = op.inputs(1)
+      Seq(Op.Builder(opType = "Relu6Grad", name = "ReLU6Hessian")
+              .addInput(outputGradient)
+              .addInput(x)
+              .build().outputs(0), Basic.zerosLike(x))
+    }
+
+    private[this] def softmaxGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val outputGradient = outputGradients.head.toOutput
+      val softmax = op.outputs(0)
+      Seq((outputGradient - Math.sum(outputGradient * softmax, 1, keepDims = true)) * softmax)
+    }
+
+    private[this] def logSoftmaxGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val outputGradient = outputGradients.head.toOutput
+      val softmax = Math.exp(op.outputs(0))
+      Seq((outputGradient - Math.sum(outputGradient * softmax, 1, keepDims = true)) * softmax)
     }
   }
 }
