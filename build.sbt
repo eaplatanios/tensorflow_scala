@@ -54,16 +54,6 @@ lazy val jni = (project in file("./jni"))
       target in nativeCompile := target.value / "native" / nativePlatform.value
     )
 
-lazy val data = (project in file("./data"))
-    .dependsOn(api)
-    .settings(
-      name := "data",
-      libraryDependencies ++= loggingDependencies,
-      // Test dependencies
-      libraryDependencies += "org.scalactic" %% "scalactic" % "3.0.1",
-      libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1" % "test"
-    )
-
 lazy val api = (project in file("./api"))
     .dependsOn(jni)
     .settings(
@@ -84,6 +74,16 @@ lazy val api = (project in file("./api"))
       sourceDirectory in PB.protobufConfig := sourceDirectory.value / "main" / "proto",
       javaSource in PB.protobufConfig := ((sourceDirectory in Compile).value / "generated" / "java"),
       sourceDirectories in Compile += sourceDirectory.value / "main" / "generated" / "java"
+    )
+
+lazy val data = (project in file("./data"))
+    .dependsOn(api)
+    .settings(
+      name := "data",
+      libraryDependencies ++= loggingDependencies,
+      // Test dependencies
+      libraryDependencies += "org.scalactic" %% "scalactic" % "3.0.1",
+      libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1" % "test"
     )
 
 lazy val examples = (project in file("./examples"))
