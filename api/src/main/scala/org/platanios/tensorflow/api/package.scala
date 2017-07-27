@@ -72,7 +72,7 @@ package object api extends Implicits {
 
   private[api] trait API
       extends core.API
-          with layers.API
+          // with layers.API
           with ops.API
           with tensors.API
           with types.API
