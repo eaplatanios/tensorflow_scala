@@ -117,8 +117,7 @@ You can download it from one of the following links:
 
 ### Compiling the TensorFlow Dynamic Library
 
-Make sure you have [CMake](https://cmake.org/install/) installed and
-then perform the following steps:
+Perform the following steps:
   1. Clone the 
      [TensorFlow repository](https://github.com/tensorflow/tensorflow) 
      in a directory (e.g., `tensorflow`).
@@ -152,9 +151,10 @@ You can also download prebuild binaries from [https://github.com/google/protobuf
 
 ### Compiling the TensorFlow Scala API
 
-After making sure that the TensorFlow dynamic library is in the path, you 
-can compile the Scala API by running the following command from within 
-the `tensorflow_scala` directory:
+First make sure you have [CMake](https://cmake.org/install/) installed, 
+and that the TensorFlow dynamic library is in the path. Then, you can  
+compile the Scala API by running the following command from within the 
+`tensorflow_scala` directory:
 
 ```bash
 sbt compile
