@@ -1,6 +1,7 @@
 logLevel := Level.Warn
 
-addSbtPlugin("ch.jodersky" % "sbt-jni" % "1.2.5")
+libraryDependencies += "org.ow2.asm" % "asm" % "5.0.4"
+
 addSbtPlugin("com.thoughtworks.sbt-api-mappings" % "sbt-api-mappings" % "latest.release")
 addSbtPlugin("com.github.gseitz" % "sbt-protobuf" % "0.5.5")
 

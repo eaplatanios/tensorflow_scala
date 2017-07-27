@@ -18,8 +18,8 @@ include:
 before_install:
   - wget https://github.com/google/protobuf/releases/download/v3.3.0/protoc-3.3.0-linux-x86_64.zip
   - sudo unzip protoc-3.3.0-linux-x86_64.zip -d /usr
-  - wget https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-linux-x86_64-1.2.0-rc0.tar.gz
-  - sudo tar xvf libtensorflow-cpu-linux-x86_64-1.2.0-rc0.tar.gz -C /usr
+  - wget https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-linux-x86_64-1.3.0-rc0.tar.gz
+  - sudo tar xvf libtensorflow-cpu-linux-x86_64-1.3.0-rc0.tar.gz -C /usr
 
 script:
   - sbt compile

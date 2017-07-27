@@ -3,8 +3,8 @@ import sbtprotobuf.{ProtobufPlugin => PB}
 organization in ThisBuild := "org.platanios"
 version in ThisBuild := "1.3.0-rc0"
 scalaVersion in ThisBuild := "2.12.2"
-
 crossScalaVersions := Seq("2.11.8", "2.12.2")
+licenses in ThisBuild := Seq(("Apache License 2.0", url("https://www.apache.org/licenses/LICENSE-2.0.txt")))
 
 val tensorFlowVersion = "1.3.0-rc0"
 
@@ -37,7 +37,7 @@ lazy val all = (project in file("."))
       unmanagedSourceDirectories in Test := Nil,
       unmanagedResourceDirectories in Compile := Nil,
       unmanagedResourceDirectories in Test := Nil,
-      packagedArtifacts in file(".") := Map.empty
+      packagedArtifacts in RootProject(file(".")) := Map.empty
     )
 
 lazy val data = (project in file("./data"))

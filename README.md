@@ -108,22 +108,22 @@ can compile it yourself from the TensorFlow sources:
 
 You can download it from one of the following links:
   - **Linux:**
-    - CPU-only: [https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-linux-x86_64-1.3.0-rc0.tar.gz](https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-linux-x86_64-1.2.1.tar.gz)
-    - GPU-enabled: [https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-gpu-linux-x86_64-1.3.0-rc0.tar.gz](https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-gpu-linux-x86_64-1.2.1.tar.gz)
+    - CPU-only: [https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-linux-x86_64-1.3.0-rc0.tar.gz](https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-linux-x86_64-1.3.0-rc0.tar.gz)
+    - GPU-enabled: [https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-gpu-linux-x86_64-1.3.0-rc0.tar.gz](https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-gpu-linux-x86_64-1.3.0-rc0.tar.gz)
   - **Mac:**
-    - CPU-only: [https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-darwin-x86_64-1.3.0-rc0.tar.gz](https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-darwin-x86_64-1.2.1.tar.gz)
+    - CPU-only: [https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-darwin-x86_64-1.3.0-rc0.tar.gz](https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-darwin-x86_64-1.3.0-rc0.tar.gz)
   - **Windows:** 
-    - CPU-only: [https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-windows-x86_64-1.3.0-rc0.zip](https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-windows-x86_64-1.2.1.zip)
+    - CPU-only: [https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-windows-x86_64-1.3.0-rc0.zip](https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-windows-x86_64-1.3.0-rc0.zip)
 
 ### Compiling the TensorFlow Dynamic Library
 
 Make sure you have [CMake](https://cmake.org/install/) installed and
-then perform the following steps::
-  1. Clone this repository in a directory (e.g., `tensorflow_scala`).
+then perform the following steps:
+  1. Clone the 
+     [TensorFlow repository](https://github.com/tensorflow/tensorflow) 
+     in a directory (e.g., `tensorflow`).
   2. Compile the TensorFlow dynamic library by running the following
-     commands in the
-     [TensorFlow](https://github.com/tensorflow/tensorflow) source code
-     directory:
+     commands in that directory:
 
      ```bash
      ./configure
@@ -132,9 +132,10 @@ then perform the following steps::
 
      Make sure to add the `--config=cuda` option when running the last
      command, if compiling with CUDA support.
-  3. Copy the `bazel-bin/tensorflow/libtensorflow.so` file in a
-     directory that is in `LD_LIBRARY_PATH`, or set `LD_LIBRARY_PATH`
-     appropriately.
+  3. Copy the `bazel-bin/tensorflow/libtensorflow.so` (possibly having 
+     a different extension, depending on the platform you're using) 
+     file in a directory that is in `LD_LIBRARY_PATH`, or set 
+     `LD_LIBRARY_PATH` appropriately.
      
 ### Installing the Protocol Buffers Compiler
 
