@@ -1,7 +1,7 @@
 import sbtprotobuf.{ProtobufPlugin => PB}
 
 organization in ThisBuild := "org.platanios"
-version in ThisBuild := "1.3.0-rc0"
+version in ThisBuild := "0.1"
 scalaVersion in ThisBuild := "2.12.2"
 crossScalaVersions := Seq("2.11.8", "2.12.2")
 licenses in ThisBuild := Seq(("Apache License 2.0", url("https://www.apache.org/licenses/LICENSE-2.0.txt")))
@@ -30,7 +30,7 @@ lazy val loggingDependencies = Seq(
 )
 
 lazy val all = (project in file("."))
-    .aggregate(tensorflow, data, examples)
+    .aggregate(jni, api, data, examples)
     .settings(
       sourcesInBase := false,
       unmanagedSourceDirectories in Compile := Nil,
@@ -40,8 +40,22 @@ lazy val all = (project in file("."))
       packagedArtifacts in RootProject(file(".")) := Map.empty
     )
 
+lazy val jni = (project in file("./jni"))
+    .enablePlugins(JniNative)
+    .settings(
+      name := "tensorflow-jni",
+      // Test dependencies
+      libraryDependencies += "junit" % "junit" % "4.12",
+      libraryDependencies += "org.scalactic" %% "scalactic" % "3.0.1",
+      libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1" % "test",
+      // Native bindings compilation settings
+      target in javah := sourceDirectory.value / "main" / "native" / "include",
+      sourceDirectory in nativeCompile := sourceDirectory.value / "main" / "native",
+      target in nativeCompile := target.value / "native" / nativePlatform.value
+    )
+
 lazy val data = (project in file("./data"))
-    .dependsOn(tensorflow)
+    .dependsOn(api)
     .settings(
       name := "data",
       libraryDependencies ++= loggingDependencies,
@@ -50,8 +64,8 @@ lazy val data = (project in file("./data"))
       libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1" % "test"
     )
 
-lazy val tensorflow = (project in file("./tensorflow"))
-    .enablePlugins(JniNative)
+lazy val api = (project in file("./api"))
+    .dependsOn(jni)
     .settings(
       name := "tensorflow",
       libraryDependencies ++= loggingDependencies,
@@ -63,10 +77,6 @@ lazy val tensorflow = (project in file("./tensorflow"))
       libraryDependencies += "junit" % "junit" % "4.12",
       libraryDependencies += "org.scalactic" %% "scalactic" % "3.0.1",
       libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1" % "test",
-      // Native bindings compilation settings
-      target in javah := sourceDirectory.value / "main" / "native" / "include",
-      sourceDirectory in nativeCompile := sourceDirectory.value / "main" / "native",
-      target in nativeCompile := target.value / "native" / nativePlatform.value,
       // Protobuf settings
       PB.protobufSettings,
       version in PB.protobufConfig := "3.3.1",
@@ -77,7 +87,7 @@ lazy val tensorflow = (project in file("./tensorflow"))
     )
 
 lazy val examples = (project in file("./examples"))
-    .dependsOn(tensorflow, data)
+    .dependsOn(api, data)
     .settings(
       name := "examples",
       libraryDependencies ++= loggingDependencies
