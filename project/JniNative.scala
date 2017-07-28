@@ -15,15 +15,15 @@ object JniNative extends AutoPlugin {
       // We first try to use "uname" and if that fails (e.g., on Windows), we fall back to the JVM information.
       val lines = Process("uname -sm").lines
       if (lines.isEmpty)
-        sys.error("Error occured trying to run 'uname'.")
+        sys.error("An error occured trying to run 'uname'.")
       // uname -sm returns "<kernel> <hardware name>"
       val parts = lines.head.split(" ")
       if (parts.length != 2) {
         sys.error("'uname -sm' returned unexpected string: " + lines.head)
       } else {
         val arch = parts(1).toLowerCase.replaceAll("\\s", "")
-        val kernel = parts(0).toLowerCase.replaceAll("\\s", "")
-        arch + "-" + kernel
+        val name = parts(0).toLowerCase.replaceAll("\\s", "")
+        s"$arch-$name"
       }
     } catch {
       case _: Exception =>

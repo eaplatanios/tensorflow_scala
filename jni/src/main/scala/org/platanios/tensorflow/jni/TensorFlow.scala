@@ -28,20 +28,26 @@ object TensorFlow {
   def loadPackaged(): Unit = {
     val lib: String = System.mapLibraryName(nativeLibraryName)
     val tmp: Path = Files.createTempDirectory("jni-")
-    val plat: String = {
-      val line = try {
-        scala.sys.process.Process("uname -sm").lines.head
-      } catch {
-        case ex: Exception => sys.error("Error running `uname` command")
-      }
+    val plat: String = try {
+      // We first try to use "uname" and if that fails (e.g., on Windows), we fall back to the JVM information.
+      val lineStream = scala.sys.process.Process("uname -sm").lineStream
+      if (lineStream.isEmpty)
+        sys.error("An error occured trying to run 'uname'.")
+      // uname -sm returns "<kernel> <hardware name>"
+      val line = lineStream.head
       val parts = line.split(" ")
       if (parts.length != 2) {
-        sys.error("Could not determine platform: 'uname -sm' returned unexpected string: " + line)
+        sys.error(s"'uname -sm' returned unexpected string: $line")
       } else {
         val arch = parts(1).toLowerCase.replaceAll("\\s", "")
-        val kernel = parts(0).toLowerCase.replaceAll("\\s", "")
-        arch + "-" + kernel
+        val name = parts(0).toLowerCase.replaceAll("\\s", "")
+        s"$arch-$name"
       }
+    } catch {
+      case _: Exception =>
+        val arch = System.getProperty("os.arch").toLowerCase
+        val name = System.getProperty("os.name").toLowerCase.split(' ')(0)
+        s"$arch-$name"
     }
 
     val resourcePath: String = "/native/" + plat + "/" + lib
