@@ -44,6 +44,7 @@ lazy val jni = (project in file("./jni"))
     .enablePlugins(JniNative)
     .settings(
       name := "tensorflow-jni",
+      libraryDependencies ++= loggingDependencies,
       // Test dependencies
       libraryDependencies += "junit" % "junit" % "4.12",
       libraryDependencies += "org.scalactic" %% "scalactic" % "3.0.1",
@@ -57,7 +58,7 @@ lazy val jni = (project in file("./jni"))
 lazy val api = (project in file("./api"))
     .dependsOn(jni)
     .settings(
-      name := "tensorflow",
+      name := "tensorflow-api",
       libraryDependencies ++= loggingDependencies,
       libraryDependencies += "org.typelevel" %% "spire" % "0.14.1",
       libraryDependencies += "org.tensorflow" % "proto" % tensorFlowVersion,

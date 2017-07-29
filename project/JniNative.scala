@@ -10,35 +10,28 @@ import sbt.Keys._
   * @author Emmanouil Antonios Platanios
   */
 object JniNative extends AutoPlugin {
-  private[this] val currentNativePlatform: String = {
-    try {
-      // We first try to use "uname" and if that fails (e.g., on Windows), we fall back to the JVM information.
-      val lines = Process("uname -sm").lines
-      if (lines.isEmpty)
-        sys.error("An error occured trying to run 'uname'.")
-      // uname -sm returns "<kernel> <hardware name>"
-      val parts = lines.head.split(" ")
-      if (parts.length != 2) {
-        sys.error("'uname -sm' returned unexpected string: " + lines.head)
-      } else {
-        val arch = parts(1).toLowerCase.replaceAll("\\s", "")
-        val name = parts(0).toLowerCase.replaceAll("\\s", "")
-        s"$arch-$name"
-      }
-    } catch {
-      case _: Exception =>
-        val arch = System.getProperty("os.arch").toLowerCase
-        val name = System.getProperty("os.name").toLowerCase.split(' ')(0)
-        s"$arch-$name"
-    }
+  private[this] val os = {
+    val name = System.getProperty("os.name").toLowerCase
+    if (name.contains("linux")) "linux"
+    else if (name.contains("os x") || name.contains("darwin")) "darwin"
+    else if (name.contains("windows")) "windows"
+    else name.replaceAll("\\s", "")
   }
+
+  private[this] val architecture = {
+    val arch = System.getProperty("os.arch").toLowerCase
+    if (arch == "amd64") "x86_64"
+    else arch
+  }
+
+  private[this] val currentNativePlatform: String = s"$os-$architecture"
 
   private[this] val jniHeadersLocations: Seq[String] = {
     val javaHome = System.getenv("JAVA_HOME")
     currentNativePlatform match {
-      case p if p.endsWith("linux") => Seq(s"$javaHome/include", s"$javaHome/include/linux")
-      case p if p.endsWith("darwin") => Seq(s"$javaHome/include", s"$javaHome/include/darwin")
-      case p if p.endsWith("windows") => Seq(s"$javaHome/include", s"$javaHome/include/win32")
+      case p if p.startsWith("linux") => Seq(s"$javaHome/include", s"$javaHome/include/linux")
+      case p if p.startsWith("darwin") => Seq(s"$javaHome/include", s"$javaHome/include/darwin")
+      case p if p.startsWith("windows") => Seq(s"$javaHome/include", s"$javaHome/include/win32")
       case _ => sys.error(s"Unsupported platform: $currentNativePlatform.")
     }
   }

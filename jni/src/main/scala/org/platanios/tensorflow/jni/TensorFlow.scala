@@ -15,7 +15,11 @@
 
 package org.platanios.tensorflow.jni
 
-import java.nio.file.{Files, Path}
+import java.io.{IOException, InputStream}
+
+import com.typesafe.scalalogging.Logger
+import org.slf4j.LoggerFactory
+import java.nio.file.{Files, Path, StandardCopyOption}
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -23,55 +27,94 @@ import java.nio.file.{Files, Path}
 object TensorFlow {
   final class NativeException(message: String) extends RuntimeException(message)
 
-  private[this] val nativeLibraryName = "tensorflow_jni"
+  private[this] val logger          = Logger(LoggerFactory.getLogger("MNIST Data Loader"))
+  private[this] val LIBNAME: String = "tensorflow_jni"
 
-  def loadPackaged(): Unit = {
-    val lib: String = System.mapLibraryName(nativeLibraryName)
-    val tmp: Path = Files.createTempDirectory("jni-")
-    val plat: String = try {
-      // We first try to use "uname" and if that fails (e.g., on Windows), we fall back to the JVM information.
-      val lineStream = scala.sys.process.Process("uname -sm").lineStream
-      if (lineStream.isEmpty)
-        sys.error("An error occured trying to run 'uname'.")
-      // uname -sm returns "<kernel> <hardware name>"
-      val line = lineStream.head
-      val parts = line.split(" ")
-      if (parts.length != 2) {
-        sys.error(s"'uname -sm' returned unexpected string: $line")
-      } else {
-        val arch = parts(1).toLowerCase.replaceAll("\\s", "")
-        val name = parts(0).toLowerCase.replaceAll("\\s", "")
-        s"$arch-$name"
-      }
-    } catch {
-      case _: Exception =>
-        val arch = System.getProperty("os.arch").toLowerCase
-        val name = System.getProperty("os.name").toLowerCase.split(' ')(0)
-        s"$arch-$name"
-    }
+  private[this] val os = {
+    val name = System.getProperty("os.name").toLowerCase
+    if (name.contains("linux")) "linux"
+    else if (name.contains("os x") || name.contains("darwin")) "darwin"
+    else if (name.contains("windows")) "windows"
+    else name.replaceAll("\\s", "")
+  }
 
-    val resourcePath: String = "/native/" + plat + "/" + lib
-    val resourceStream = Option(TensorFlow.getClass.getResourceAsStream(resourcePath)) match {
-      case Some(s) => s
-      case None => throw new UnsatisfiedLinkError(
-        "Native library " + lib + " (" + resourcePath + ") cannot be found on the classpath.")
-    }
-    val extractedPath = tmp.resolve(lib)
-    try {
-      Files.copy(resourceStream, extractedPath)
-    } catch {
-      case ex: Exception => throw new UnsatisfiedLinkError(
-        "Error while extracting native library: " + ex)
-    }
-    System.load(extractedPath.toAbsolutePath.toString)
+  private[this] val architecture = {
+    val arch = System.getProperty("os.arch").toLowerCase
+    if (arch == "amd64") "x86_64"
+    else arch
   }
 
   def load(): Unit = {
-    try {
-      System.loadLibrary(nativeLibraryName)
-    } catch {
-      case ex: UnsatisfiedLinkError => loadPackaged()
+    // If either:
+    // (1) The native library has already been statically loaded, or
+    // (2) The required native code has been statically linked (through a custom launcher), or
+    // (3) The native code is part of another library (such as an application-level library) that has already been
+    //     loaded (for example, tensorflow/examples/android and tensorflow/contrib/android include the required native
+    //     code in differently named libraries).
+    // then it seems that the native library has already been loaded and there is nothing else to do.
+    if (!checkIfLoaded() && !tryLoadLibrary()) {
+      // Native code is not present, perhaps it has been packaged into the JAR file containing this code.
+      val resourceName = makeResourceName()
+      val resourceStream = Option(TensorFlow.getClass.getResourceAsStream(resourceName)) match {
+        case Some(s) => s
+        case None => throw new UnsatisfiedLinkError(
+          s"Cannot find TensorFlow native library for OS: $os, and architecture: $architecture. See " +
+              "https://github.com/eaplatanios/tensorflow_scala/tree/master/README.md for possible solutions (such as " +
+              "building the library from source).")
+      }
+      try {
+        val resourcePath = extractResource(resourceStream)
+        System.load(resourcePath.toAbsolutePath.toString)
+        logger.info("Loaded the TensorFlow native library as a resource.")
+      } catch {
+        case exception: IOException => throw new UnsatisfiedLinkError(
+          s"Unable to extract the TensorFlow native library into a temporary file (${exception.getMessage}).")
+      }
     }
+  }
+
+  private[this] def tryLoadLibrary() = {
+    try {
+      System.loadLibrary(LIBNAME)
+      true
+    } catch {
+      case exception: UnsatisfiedLinkError =>
+        logger.info(
+          s"Failed to load the TensorFlow native library with error: ${exception.getMessage}. " +
+              "Attempting to load it as a resource.")
+        false
+    }
+  }
+
+  private[this] def checkIfLoaded() = {
+    try {
+      TensorFlow.version
+      true
+    } catch {
+      case _: UnsatisfiedLinkError => false
+    }
+  }
+
+  private def makeResourceName() = s"/native/$os-$architecture/${System.mapLibraryName(LIBNAME)}"
+
+  private def extractResource(resourceStream: InputStream): Path = {
+    val sampleFilename = System.mapLibraryName(LIBNAME)
+    val dot = sampleFilename.indexOf(".")
+    val prefix = if (dot < 0) sampleFilename else sampleFilename.substring(0, dot)
+    val suffix = if (dot < 0) null else sampleFilename.substring(dot)
+    val tempFilePath = Files.createTempFile(prefix, suffix)
+    Runtime.getRuntime.addShutdownHook(new Thread() {
+      override def run(): Unit = Files.delete(tempFilePath)
+    })
+    logger.info(s"Extracting TensorFlow native library to ${tempFilePath.toAbsolutePath}.")
+    try {
+      val numBytes = Files.copy(resourceStream, tempFilePath, StandardCopyOption.REPLACE_EXISTING)
+      logger.info(String.format(s"Copied $numBytes bytes to ${tempFilePath.toAbsolutePath}."))
+    } catch {
+      case exception: Exception => throw new UnsatisfiedLinkError(
+        "Error while extracting TensorFlow native library: " + exception)
+    }
+    tempFilePath
   }
 
   load()
