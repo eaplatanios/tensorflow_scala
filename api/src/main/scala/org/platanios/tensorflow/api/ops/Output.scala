@@ -307,92 +307,70 @@ final case class Output private(op: Op, index: Int) extends OutputLike {
 object Output {
   // TODO: !!!
 
-  private[api] def constantValue(tensor: Output): Tensor = {
+  private[api] def constantValue(tensor: Output): Option[Tensor] = {
     val value = tensor.op.opType match {
       case "Const" => ??? // TODO: !!! Needs MakeNdArray()
       case "Shape" =>
         val inputShape = tensor.op.inputs(0).shape
         if (inputShape.isFullyDefined)
-          Tensor(tensor.dataType, inputShape.asArray.map(Tensor(_)): _*)
-        null
+          Some(Tensor(tensor.dataType, inputShape.asArray.map(Tensor(_)): _*))
+        None
       case "Size" =>
         val inputShape = tensor.op.inputs(0).shape
         if (inputShape.isFullyDefined)
-          Tensor(INT32, Tensor(inputShape.asArray.product))
-        null
+          Some(Tensor(INT32, Tensor(inputShape.asArray.product)))
+        None
       case "Rank" =>
         val inputShape = tensor.op.inputs(0).shape
         if (inputShape.numElements != -1)
-          Tensor(INT32, Tensor(inputShape.numElements))
-        null
+          Some(Tensor(INT32, Tensor(inputShape.numElements)))
+        None
       case "Range" =>
-        val start = constantValue(tensor.op.inputs(0))
-        if (start == null) {
-          null
-        } else {
-          val limit = constantValue(tensor.op.inputs(1))
-          if (limit == null) {
-            null
-          } else {
-            val delta = constantValue(tensor.op.inputs(2))
-            if (delta == null) {
-              null
-            } else {
-              ??? // TODO: !!! Create tensor range?
-            }
-          }
-        }
+        constantValue(tensor.op.inputs(0))
+            .flatMap(start => constantValue(tensor.op.inputs(1))
+                .flatMap(limit => constantValue(tensor.op.inputs(2))
+                    .flatMap(delta => ???))) // TODO: !!! Create tensor range?
       case "Cast" =>
-        val preCast = constantValue(tensor.op.inputs(0))
-        if (preCast == null) {
-          null
-        } else {
-          ??? // TODO: !!! Get data type attribute from op.
-        }
+        constantValue(tensor.op.inputs(0)).map(preCast => ???) // TODO: !!! Get data type attribute from op.
       case "Concat" =>
-        val axis = constantValue(tensor.op.inputs(0))
-        if (axis == null) {
-          null
-        } else {
-          val values = tensor.op.inputs.tail.map(constantValue)
-          if (values.contains(null)) {
-            null
+        constantValue(tensor.op.inputs(0)).flatMap(axis => {
+          val values = tensor.op.inputs.tail.flatMap(constantValue)
+          if (values.contains(None)) {
+            None
           } else {
             ??? // TODO: !!! Concatenate tensors.
           }
-        }
+        })
       case "ConcatV2" =>
-        val axis = constantValue(tensor.op.inputs(tensor.op.numInputs - 1))
-        if (axis == null) {
-          null
-        } else {
-          val values = tensor.op.inputs.dropRight(1).map(constantValue)
-          if (values.contains(null)) {
-            null
+        constantValue(tensor.op.inputs(tensor.op.numInputs - 1)).flatMap(axis => {
+          val values = tensor.op.inputs.dropRight(1).flatMap(constantValue)
+          if (values.contains(None)) {
+            None
           } else {
             ??? // TODO: !!! Concatenate tensors.
           }
-        }
+        })
       case "Pack" =>
         val values = tensor.op.inputs.map(constantValue)
-        if (values.contains(null)) {
-          null
+        if (values.contains(None)) {
+          None
         } else {
           ??? // TODO: !!! Concatenate tensors.
         }
       case "Fill" =>
         val fillShape = tensor.shape
         val fillValue = constantValue(tensor.op.inputs(0))
-        if (fillShape.isFullyDefined && fillValue != null)
-          Tensor.fill(fillValue.dataType, fillShape)(fillValue.scalar)(fillValue.dataType.supportedType)
-        else
-          null
-      case _ => null
+        if (fillShape.isFullyDefined && fillValue.isDefined) {
+          val value = fillValue.get
+          Some(Tensor.fill(value.dataType, fillShape)(value.scalar)(value.dataType.supportedType))
+        } else {
+          None
+        }
+      case _ => None
     }
-    if (value != null) {
-      // The caller may now depend on the constant value of 'tensor', so conservatively prevent it from being fed.
+    // If defined, the caller may now depend on the constant value, and so we prevent 'tensor' from being fed.
+    if (value.isDefined)
       tensor.graph.preventFeeding(tensor)
-    }
     value
   }
 
@@ -405,43 +383,44 @@ object Output {
     * @param  tensor One-dimensional tensor to be evaluated.
     * @return [[Shape]] based on the constant value of `tensor`.
     */
-  private[api] def constantValueAsShape(tensor: Output): Shape = {
+  private[api] def constantValueAsShape(tensor: Output): Option[Shape] = {
     // TODO: !!! Do we really need this function?
     val shape = tensor.shape.withRank(1)
     if (shape == Shape(0)) {
-      Shape.scalar()
+      Some(Shape.scalar())
     } else {
       tensor.op.opType match {
-        case "Shape" => tensor.op.inputs(0).shape
+        case "Shape" => Some(tensor.op.inputs(0).shape)
         case "Pack" =>
-          var returnShape = Shape.scalar()
-          tensor.op.inputs.foreach(input => {
-            // 'input' must be a scalar. Attempt to evaluate it, and append it to 'returnShape'.
-            returnShape = returnShape.concatenateWith(Shape(constantValue(input).scalar.asInstanceOf[Int]))
-          })
-          returnShape
+          // 'i' must be a scalar. Attempt to evaluate it.
+          val values = tensor.op.inputs.map(i => constantValue(i).map(v => Shape(v.scalar.asInstanceOf[Int])))
+          if (values.forall(_.isDefined))
+            Some(values.map(_.get).foldLeft(Shape.scalar())((shape, value) => shape.concatenateWith(value)))
+          else
+            None
         case "Concat" =>
           // We assume that 'tensor.op.inputs(0)' evaluates to 0, as this is the only legal value when concatenating
           // vectors, and it will have been checked by a previous shape function.
-          var returnShape = Shape.scalar()
-          tensor.op.inputs.tail.foreach(input => {
-            // 'input' must be a vector. Attempt to evaluate it as a shape, and concatenate it with 'returnShape'.
-            returnShape = returnShape.concatenateWith(constantValueAsShape(input))
-          })
-          returnShape
+          // 'i' must be a vector. Attempt to evaluate it as a shape.
+          val values = tensor.op.inputs.tail.map(i => constantValueAsShape(i))
+          if (values.forall(_.isDefined))
+            Some(values.map(_.get).foldLeft(Shape.scalar())((shape, value) => shape.concatenateWith(value)))
+          else
+            None
         case "ConcatV2" =>
           // We assume that 'tensor.op.inputs(-1)' evaluates to 0, as this is the only legal value when concatenating
           // vectors, and it will have been checked by a previous shape function.
-          var returnShape = Shape.scalar()
-          tensor.op.inputs.dropRight(1).foreach(input => {
-            // 'input' must be a vector. Attempt to evaluate it as a shape, and concatenate it with 'returnShape'.
-            returnShape = returnShape.concatenateWith(constantValueAsShape(input))
-          })
-          returnShape
+          // 'i' must be a vector. Attempt to evaluate it as a shape.
+          val values = tensor.op.inputs.dropRight(1).map(i => constantValueAsShape(i))
+          if (values.forall(_.isDefined))
+            Some(values.map(_.get).foldLeft(Shape.scalar())((shape, value) => shape.concatenateWith(value)))
+          else
+            None
         case _ =>
           var returnShape = Shape.unknown(shape(0))
-          val value = constantValue(tensor).asNumeric
-          if (value != null) {
+          val valueOption = constantValue(tensor)
+          if (valueOption.isDefined) {
+            val value = valueOption.get.asNumeric
             require(value.rank == 1, "Only rank-1 tensors can be converted to shapes.")
             // TODO: !!! Does this work?
             import value.dataType.supportedType
@@ -449,7 +428,7 @@ object Output {
               (0 until value.numElements).map(value.getElementAtFlattenedIndex(_).toInt): _*)
             returnShape = returnShape.mergeWith(shape)
           }
-          returnShape
+          Some(returnShape)
       }
     }
   }
@@ -647,7 +626,7 @@ final case class SparseOutput private(indices: Output, values: Output, denseShap
     *
     * @return Dense tensor shape.
     */
-  def shape: Shape = Output.constantValueAsShape(denseShape)
+  def shape: Shape = Output.constantValueAsShape(denseShape).get
 
   /** Evaluates this sparse op output.
     *

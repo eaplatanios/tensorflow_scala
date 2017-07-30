@@ -395,13 +395,29 @@ object NN extends NN {
       val softmaxGradient = op.outputs(1)
       val outputGradient = broadcastMultiply(lossGradient, softmaxGradient)
 
-      // TODO: !!!
-      val logits = op.inputs(0)
-      val logitsSoftmax = NN.softmax(logits)
-      val gradient = outputGradient + (
-          (gradGradient - Basic.squeeze(
-            Math.matmul(Basic.expandDims(gradGradient, 1), Basic.expandDims(logitsSoftmax, 2)), Array(1))) * logitsSoftmax)
-      Seq(gradient, null)
+      // Some introspection to check if the gradient is feeding zeros.
+      val isGradGradientZero = {
+        if (gradGradient.op.opType == "Zeros" || gradGradient.op.opType == "ZerosLike") {
+          true
+        } else {
+          val constantFillValue = Output.constantValue(gradGradient)
+          constantFillValue.isDefined && constantFillValue.get.entriesIterator.forall(_ == 0)
+        }
+      }
+
+      if (!isGradGradientZero) {
+        val logits = op.inputs(0)
+        val logitsSoftmax = NN.softmax(logits)
+        val gradient = outputGradient + (
+            (gradGradient - Basic.squeeze(
+              Math.matmul(
+                Basic.expandDims(gradGradient, 1),
+                Basic.expandDims(logitsSoftmax, 2)),
+              Array(1))) * logitsSoftmax)
+        Seq(gradient, null)
+      } else {
+        Seq(outputGradient, null)
+      }
     }
   }
 }
