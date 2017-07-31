@@ -35,6 +35,7 @@ package object ops {
           with Text
           with Random
           with Sparse
+          with Statistics
           with variables.API {
     type Op = ops.Op
     val Op = ops.Op
