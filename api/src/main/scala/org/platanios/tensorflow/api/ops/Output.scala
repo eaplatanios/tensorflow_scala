@@ -591,7 +591,7 @@ final case class OutputIndexedSlices private(indices: Output, values: Output, de
   *
   * @author Emmanouil Antonios Platanios
   */
-final case class SparseOutput private(indices: Output, values: Output, denseShape: Output) extends OutputLike {
+final case class SparseOutput(indices: Output, values: Output, denseShape: Output) extends OutputLike {
   // TODO: Add constructor from scala arrays?
   if (indices.dataType != INT64)
     throw InvalidDataTypeException(

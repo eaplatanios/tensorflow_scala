@@ -2884,6 +2884,27 @@ trait Math {
   }
 
   //endregion Bucketization Ops
+
+  //region Other Ops
+
+  /** Creates an op that computes the fraction of zeros in `input`.
+    *
+    * If `input` is empty, the result is `NaN`.
+    *
+    * This is useful in summaries to measure and report sparsity.
+    *
+    * @param  input Input tensor.
+    * @param  name  Name for the created op.
+    * @return Created op output, with `FLOAT32` data type.
+    */
+  def zerosFraction(input: Output, name: String = "ZerosFraction"): Output = {
+    Op.createWithNameScope(name, Set(input.op)) {
+      val zero = Basic.constant(0, input.dataType, name = "Zero")
+      mean(cast(equal(input, zero), FLOAT32))
+    }
+  }
+
+  //endregion Other Ops
 }
 
 object Math extends Math {

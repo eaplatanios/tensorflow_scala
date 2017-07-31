@@ -71,6 +71,30 @@ trait NN {
     }
   }
 
+  /** Creates an op that normalizes along axes `axes` using an L2 norm.
+    *
+    * For a 1-D tensor with `axes = 0`, the op computes:
+    * `output = x / sqrt(max(sum(x^2), epsilon))`
+    *
+    * For higher-dimensional `x`, the op independently normalizes each 1-D slice along axes `axes`.
+    *
+    * @param  x       Input tensor.
+    * @param  axes    Tensor containing the axes along which to normalize.
+    * @param  epsilon Lower bound value for the norm. The created op will use `sqrt(epsilon)` as the divisor, if
+    *                 `norm < sqrt(epsilon)`.
+    * @param  name    Name for the created op.
+    * @return Created op output.
+    */
+  def l2Normalize(x: Output, axes: Output, epsilon: Float = 1e-12f, name: String = "L2Normalize"): Output = {
+    Op.createWithNameScope(name, Set(x.op)) {
+      val dataType = DataType.mostPrecise(x.dataType, FLOAT32)
+      val preciseX = Math.cast(x, dataType)
+      val squareSum = Math.sum(Math.square(preciseX), axes = axes, keepDims = true)
+      val xInverseNorm = Math.rsqrt(Math.maximum(squareSum, Basic.constant(epsilon, dataType)))
+      Math.cast(Math.multiply(preciseX, xInverseNorm), x.dataType)
+    }
+  }
+
   /** Creates an op that computes the rectified linear unit activation function.
     *
     * The rectified linear unit activation function is defined as `relu(x) = max(x, 0)`.
@@ -268,6 +292,26 @@ trait NN {
     softmaxHelper(logits, "LogSoftmax", axis, name)
   }
 
+  /** Creates an op that computes half of the L2 norm of a tensor without the square root.
+    *
+    * The output is equal to `sum(input^2) / 2`.
+    *
+    * @param  input `FLOAT16`, `FLOAT32`, or `FLOAT64` input tensor.
+    * @param  name  Name for the created op.
+    * @return Created op output.
+    * @throws IllegalArgumentException If `input` has an unsupported data type.
+    */
+  @throws[IllegalArgumentException]
+  def l2Loss(input: Output, name: String = "L2Loss"): Output = {
+    if (input.dataType != FLOAT16 && input.dataType != FLOAT32 && input.dataType != FLOAT64)
+      throw new IllegalArgumentException(
+        s"Encountered unsupported data type: ${input.dataType}. " +
+            "'input' must have data type of FLOAT16, FLOAT32, or FLOAT64.")
+    Op.Builder(opType = "L2Loss", name = name)
+        .addInput(input)
+        .build().outputs(0)
+  }
+
   /** Creates an op that computes the softmax cross entropy between `logits` and `labels`.
     *
     * The op measures the probabilistic error in discrete classification tasks in which the classes are mutually
@@ -432,6 +476,181 @@ trait NN {
         output
     }
   }
+
+  /** Creates an op that computes the sigmoid cross entropy between `logits` and `labels`.
+    *
+    * The op measures the probability error in discrete classification tasks in which each class is independent and not
+    * mutually exclusive. For instance, one could perform multi-label classification where a picture can contain both an
+    * elephant and a dog at the same time.
+    *
+    * For brevity, let `x = logits` and `z = labels`. The sigmoid cross entropy (also known as logistic loss) is defined
+    * as:
+    * `  z * -log(sigmoid(x)) + (1 - z) * -log(1 - sigmoid(x))`
+    * `= z * -log(1 / (1 + exp(-x))) + (1 - z) * -log(exp(-x) / (1 + exp(-x)))`
+    * `= z * log(1 + exp(-x)) + (1 - z) * (-log(exp(-x)) + log(1 + exp(-x)))`
+    * `= z * log(1 + exp(-x)) + (1 - z) * (x + log(1 + exp(-x))`
+    * `= (1 - z) * x + log(1 + exp(-x))`
+    * `= x - x * z + log(1 + exp(-x))`
+    *
+    * For `x < 0`, to avoid numerical overflow in `exp(-x)`, we reformulate the above to:
+    * `  x - x * z + log(1 + exp(-x))`
+    * `= log(exp(x)) - x * z + log(1 + exp(-x))`
+    * `= - x * z + log(1 + exp(x))`
+    *
+    * Hence, to ensure stability and avoid numerical overflow, the implementation uses this equivalent formulation:
+    * `max(x, 0) - x * z + log(1 + exp(-abs(x)))`
+    *
+    * If `weights` is not `null`, then the positive examples are weighted and we have the following expression instead
+    * (where `q = weights`, for brevity):
+    * `  qz * -log(sigmoid(x)) + (1 - z) * -log(1 - sigmoid(x))`
+    * `= qz * -log(1 / (1 + exp(-x))) + (1 - z) * -log(exp(-x) / (1 + exp(-x)))`
+    * `= qz * log(1 + exp(-x)) + (1 - z) * (-log(exp(-x)) + log(1 + exp(-x)))`
+    * `= qz * log(1 + exp(-x)) + (1 - z) * (x + log(1 + exp(-x))`
+    * `= (1 - z) * x + (qz +  1 - z) * log(1 + exp(-x))`
+    * `= (1 - z) * x + (1 + (q - 1) * z) * log(1 + exp(-x))`
+    *
+    * Setting `l = 1 + (q - 1) * z`, to ensure stability and avoid numerical overflow, the implementation uses this
+    * equivalent formulation:
+    * `(1 - z) * x + l * (max(-x, 0) + log(1 + exp(-abs(x))))`
+    *
+    * logits` and `labels` must have the same shape.
+    *
+    * @param  logits  Tensor of shape `[D0, D1, ..., Dr-1, numClasses]` and data type `FLOAT16`, `FLOAT32`, or
+    *                 `FLOAT64`, containing unscaled log probabilities.
+    * @param  labels  Tensor of shape `[D0, D1, ..., Dr-1, numClasses]` and data type `FLOAT16`, `FLOAT32`, or
+    *                 `FLOAT64`, where each row must be a valid probability distribution.
+    * @param  weights Optionally, a coefficient to use for the positive examples.
+    * @param  name    Name for the created op.
+    * @return Created op output, with rank one less than that of `logits` and the same data type as `logits`, containing
+    *         the sigmoid cross entropy loss.
+    * @throws IllegalArgumentException If `logits` or `labels` have an unsupported data type or incompatible shapes.
+    */
+  @throws[IllegalArgumentException]
+  def sigmoidCrossEntropy(
+      logits: Output, labels: Output, weights: Output = null, name: String = "SigmoidCrossEntropy"): Output = {
+    if (logits.dataType != FLOAT16 && logits.dataType != FLOAT32 && logits.dataType != FLOAT64)
+      throw new IllegalArgumentException(
+        s"Encountered unsupported data type: ${logits.dataType}. " +
+            "'logits' must have data type of FLOAT16, FLOAT32, or FLOAT64.")
+    if (!logits.shape.isCompatibleWith(labels.shape))
+      throw new IllegalArgumentException(
+        s"The 'logits' shape (${logits.shape}) and the 'labels' shape (${labels.shape}) must be compatible.")
+    Op.createWithNameScope(name, Set(logits.op, labels.op)) {
+      val output = {
+        if (weights == null) {
+          // Labels and logits must be of the same data type.
+          val preciseLogits = if (logits.dataType == FLOAT16) Math.cast(logits, FLOAT32) else logits
+          val preciseLabels = Math.cast(labels, preciseLogits.dataType)
+          // The logistic loss formula from above is:
+          //   x - x * z + log(1 + exp(-x))
+          // For x < 0, a more numerically stable formula is:
+          //   -x * z + log(1 + exp(x))
+          // Note that these two expressions can be combined into the following single expression:
+          //   max(x, 0) - x * z + log(1 + exp(-abs(x)))
+          // To allow computing gradients at zero, we define custom versions of the max and the abs functions.
+          val zeros = Basic.zerosLike(preciseLogits)
+          val condition = Math.greaterEqual(preciseLogits, zeros)
+          val reluLogits = Math.select(condition, preciseLogits, zeros)
+          val negativeAbsLogits = Math.select(condition, -preciseLogits, preciseLogits)
+          Math.add(reluLogits - (preciseLogits * preciseLabels), Math.log1p(Math.exp(negativeAbsLogits)))
+        } else {
+          // Labels and logits must be of the same data type.
+          val preciseLogits = if (logits.dataType == FLOAT16) Math.cast(logits, FLOAT32) else logits
+          val preciseLabels = Math.cast(labels, preciseLogits.dataType)
+          val preciseWeights = Math.cast(weights, preciseLogits.dataType)
+          // The logistic loss formula from above is:
+          //   (1 - z) * x + (1 + (q - 1) * z) * log(1 + exp(-x))
+          // For x < 0, a more numerically stable formula is:
+          //   (1 - z) * x + (1 + (q - 1) * z) * log(1 + exp(x)) - l * x
+          // To avoid branching, we use the following single expression:
+          //   (1 - z) * x + l * (log(1 + exp(-abs(x))) + max(-x, 0))
+          val logWeights = ((preciseWeights - 1) * preciseLabels) + 1
+          Math.add(
+            (1 - preciseLabels) * preciseLogits,
+            (logWeights * Math.log1p(Math.exp(-Math.abs(preciseLogits)))) + relu(-preciseLogits))
+        }
+      }
+      // We cast back to the original logits data type, if necessary.
+      if (logits.dataType == FLOAT16)
+        Math.cast(output, FLOAT16)
+      else
+        output
+    }
+  }
+
+  /** Creates an op that finds values and indices of the `k` largest entries for the last dimension of `input`.
+    *
+    * If `input` is a vector (i.e., rank-1 tensor), the op finds the `k` largest entries in the vector and outputs their
+    * values and their indices as vectors. Thus, `values(j)` will be the `j`-th largest entry in `input`, and
+    * `indices(j)` will be its index.
+    *
+    * For matrices (and respectively, higher rank input tensors), the op computes the top `k` entries in each row (i.e.,
+    * vector along the last dimension of the tensor). Thus, `values.shape = indices.shape = input.shape(0 :: -1) + k`.
+    *
+    * If two elements are equal, the lower-index element appears first.
+    *
+    * @param  input  Input tensor whose last axis has size at least `k`.
+    * @param  k      Scalar `INT32` tensor containing the number of top elements to look for along the last axis of
+    *                `input`.
+    * @param  sorted If `true`, the resulting `k` elements will be sorted by their values in descending order.
+    * @param  name   Name for the created op.
+    * @return Tuple containing the created op outputs: (i) `values`: the `k` largest elements along each last
+    *         dimensional slice, and (ii) `indices`: the indices of `values` within the last axis of `input`.
+    * @throws IllegalArgumentException If `k` is not a scalar `INT32` tensor.
+    */
+  @throws[IllegalArgumentException]
+  def topK(input: Output, k: Output = 1, sorted: Boolean = true, name: String = "TopK"): (Output, Output) = {
+    if (k.dataType != INT32)
+      throw new IllegalArgumentException(s"'k' (dataType = ${k.dataType}) must be a scalar INT32 tensor.")
+    if (k.rank != -1 && k.rank != 0)
+      throw new IllegalArgumentException(s"'k' (rank = ${k.rank}) must be a scalar INT32 tensor.")
+    val outputs = Op.Builder(opType = "TopKV2", name = name)
+        .addInput(input)
+        .addInput(k)
+        .setAttribute("sorted", sorted)
+        .build().outputs
+    (outputs(0), outputs(1))
+  }
+
+  /** Creates an op that checks whether the `targets` are in the top `K` `predictions`.
+    *
+    * The op outputs a boolean tensor with shape `[batchSize]`, with entry `output(i)` being `true` if the target class
+    * is among the top `k` predictions, among all predictions for example `i`. Note that the behavior of [[inTopK]]
+    * differs from [[topK]] in its handling of ties; if multiple classes have the same prediction value and straddle the
+    * top-`k` boundary, then all of those classes are considered to be in the top `k`.
+    *
+    * More formally, let:
+    *   - `predictions(i, ::)` be the predictions for all classes for example `i`,
+    *   - `targets(i)` be the target class for example `i`, and
+    *   - `output(i)` be the output for example `i`.
+    * Then `output(i) = predictions(i, targets(i)) \in TopKIncludingTies(predictions(i))`.
+    *
+    * @param  predictions `FLOAT32` tensor containing the predictions.
+    * @param  targets     `INT32` or `INT64` tensor containing the targets.
+    * @param  k           Scalar `INT32` or `INT64` tensor containing the number of top elements to look at.
+    * @param  name        Name for the created op.
+    * @return Created op output.
+    * @throws IllegalArgumentException If the arguments have invalid data types or if `k` is not a scalar.
+    */
+  @throws[IllegalArgumentException]
+  def inTopK(predictions: Output, targets: Output, k: Output, name: String = "InTopK"): Output = {
+    if (predictions.dataType != FLOAT32)
+      throw new IllegalArgumentException(
+        s"'predictions' (dataType = ${predictions.dataType}) must be a FLOAT32 tensor.")
+    if (targets.dataType != INT32 && targets.dataType != INT64)
+      throw new IllegalArgumentException(
+        s"'targets' (dataType = ${targets.dataType}) must be an INT32 or INT64 tensor.")
+    if (k.dataType != INT32 && k.dataType != INT64)
+      throw new IllegalArgumentException(s"'k' (dataType = ${k.dataType}) must be a scalar INT32 or INT64 tensor.")
+    if (k.rank != -1 && k.rank != 0)
+      throw new IllegalArgumentException(s"'k' (rank = ${k.rank}) must be a scalar INT32 tensor.")
+    val mostPreciseDataType = DataType.mostPrecise(targets.dataType, k.dataType)
+    Op.Builder(opType = "InTopKV2", name = name)
+        .addInput(predictions)
+        .addInput(Math.cast(targets, mostPreciseDataType))
+        .addInput(Math.cast(k, mostPreciseDataType))
+        .build().outputs(0)
+  }
 }
 
 object NN extends NN {
@@ -520,6 +739,11 @@ object NN extends NN {
     GradientsRegistry.register("LogSoftmax", logSoftmaxGradient)
     GradientsRegistry.register("SoftmaxCrossEntropyWithLogits", softmaxCrossEntropyGradient)
     GradientsRegistry.register("SparseSoftmaxCrossEntropyWithLogits", sparseSoftmaxCrossEntropyGradient)
+    GradientsRegistry.register("L2Loss", l2LossGradient)
+    GradientsRegistry.register("TopK", topKGradient)
+    GradientsRegistry.register("TopKV2", topKGradient)
+    GradientsRegistry.register("BatchNormWithGlobalNormalization", batchNormalizationWithGlobalNormalizationGradient)
+    GradientsRegistry.register("FusedBatchNorm", fusedBatchNormalizationGradient)
 
     private[this] def biasAddGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       val outputGradient = outputGradients.head.toOutput
@@ -741,5 +965,64 @@ object NN extends NN {
             "SparseSoftmaxCrossEntropyWithLogits due to the fused implementation's interaction with tf.gradients().")
       Seq(broadcastMultiply(lossGradient, softmaxGradient), null)
     }
+  }
+
+  private[this] def l2LossGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    val outputGradient = outputGradients.head.toOutput
+    Seq(Math.multiply(op.inputs(0), outputGradient))
+  }
+
+  private[this] def topKGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    val outputGradient = outputGradients.head.toOutput
+    // Flatten indices to 2-D.
+    val indicesShape = Basic.shape(op.outputs(1))
+    val indicesLastAxis = Basic.gather(indicesShape, Basic.size(indicesShape) - 1)
+    val indices2D = Basic.reshape(op.outputs(1), Basic.stack(Seq(-1, indicesLastAxis)))
+
+    val inputShape = Basic.shape(op.inputs(0))
+    val inputLastAxis = Basic.gather(inputShape, Basic.size(inputShape) - 1)
+    val outerAxis = Basic.shape(indices2D)(0)
+
+    // Compute linear indices (flattened to 1-D).
+    val flattenedIndices = Basic.reshape(
+      indices2D + Basic.expandDims(Math.range(0, outerAxis * indicesLastAxis, inputLastAxis), -1), -1)
+
+    // Substitute gradient to appropriate locations and fill the rest with zeros, finally reshaping it to the original
+    // input shape.
+    Seq(Basic.reshape(Sparse.sparseToDense(
+      SparseOutput(
+        indices = flattenedIndices,
+        values = Basic.reshape(outputGradient, -1),
+        denseShape = Basic.reshape(Math.prod(inputShape), 1)),
+      validateIndices = false), inputShape), Basic.zeros(Shape.scalar(), INT32))
+  }
+
+  private[this] def batchNormalizationWithGlobalNormalizationGradient(
+      op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    val outputGradient = outputGradients.head.toOutput
+    Op.Builder(
+      opType = "BatchNormWithGlobalNormalizationGrad", name = "BatchNormalizationWithGlobalNormalizationGradient")
+        .addInput(op.inputs(0))
+        .addInput(op.inputs(1))
+        .addInput(op.inputs(2))
+        .addInput(op.inputs(4))
+        .addInput(outputGradient)
+        .setAttribute("variance_epsilon", op.floatAttribute("variance_epsilon"))
+        .setAttribute("scale_after_normalization", op.booleanAttribute("scale_after_normalization"))
+        .build().outputs.asInstanceOf[Seq[OutputLike]]
+  }
+
+  private[this] def fusedBatchNormalizationGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    val outputGradient = outputGradients.head.toOutput
+    Op.Builder(opType = "FusedBatchNormGrad", name = "FusedBatchNormalizationGradient")
+        .addInput(outputGradient)
+        .addInput(op.inputs(0))
+        .addInput(op.inputs(1))
+        .addInput(op.outputs(3))
+        .addInput(op.outputs(4))
+        .setAttribute("epsilon", op.floatAttribute("epsilon"))
+        .setAttribute("data_format", op.stringAttribute("data_format"))
+        .setAttribute("is_training", op.booleanAttribute("is_training"))
+        .build().outputs.asInstanceOf[Seq[OutputLike]]
   }
 }

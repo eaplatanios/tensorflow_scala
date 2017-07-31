@@ -31,6 +31,7 @@ package object ops {
           with Math
           with NN
           with Text
+          with Sparse
           with variables.API {
     type Op = ops.Op
     val Op = ops.Op
