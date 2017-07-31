@@ -114,3 +114,14 @@ private[api] case class RandomUniformInitializer(
       dataType, shape, minValue = minValue, maxValue = maxValue, seed = seed, name = "RandomUniformInitializer")
   }
 }
+
+/** Initializer that sets the value of the variable to a `value` drawn from a Normal distribution. */
+private[api] case class RandomNormalInitializer(
+    mean: Tensor = 0.0, standardDeviation: Tensor = 1.0, seed: Option[Int] = None) extends Initializer {
+  @throws[ShapeMismatchException]
+  override def initialValue(shape: Shape, dataType: DataType, partitionInfo: PartitionInformation): Output = {
+    Random.randomNormal(
+      dataType, shape, mean = mean, standardDeviation = standardDeviation, seed = seed,
+      name = "RandomNormalInitializer")
+  }
+}

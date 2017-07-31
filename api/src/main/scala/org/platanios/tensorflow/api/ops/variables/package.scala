@@ -39,14 +39,20 @@ package object variables {
     val VariableStore = variables.VariableStore
     val VariableScope = variables.VariableScope
 
-    val zerosInitializer = variables.ZerosInitializer
-    val onesInitializer  = variables.OnesInitializer
+    val zerosInitializer: Initializer = variables.ZerosInitializer
+    val onesInitializer : Initializer = variables.OnesInitializer
 
-    def constantInitializer(value: Tensor) = variables.ConstantInitializer(value)
-    def constantInitializer(value: Output) = variables.DynamicConstantInitializer(value)
+    def constantInitializer(value: Tensor): Initializer = variables.ConstantInitializer(value)
+    def constantInitializer(value: Output): Initializer = variables.DynamicConstantInitializer(value)
 
-    def randomUniformInitializer(minValue: Tensor = 0.0, maxValue: Tensor = 1.0, seed: Option[Int] = None) = {
+    def randomUniformInitializer(
+        minValue: Tensor = 0.0, maxValue: Tensor = 1.0, seed: Option[Int] = None): Initializer = {
       variables.RandomUniformInitializer(minValue = minValue, maxValue = maxValue, seed = seed)
+    }
+
+    def randomNormalInitializer(
+        mean: Tensor = 0.0, standardDeviation: Tensor = 1.0, seed: Option[Int] = None): Initializer = {
+      variables.RandomNormalInitializer(mean = mean, standardDeviation = standardDeviation, seed = seed)
     }
 
     type Saver = variables.Saver
