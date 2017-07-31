@@ -148,14 +148,14 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable wi
   }
 
   /** Gets the random seed of this graph. */
-  def randomSeed: Long = {
-    collections.getOrElseUpdate(Graph.Keys.RANDOM_SEEDS, mutable.Set[Long](DEFAULT_GRAPH_RANDOM_SEED))
-        .asInstanceOf[mutable.Set[Long]].head
+  def randomSeed: Option[Int] = {
+    collections.getOrElseUpdate(Graph.Keys.RANDOM_SEEDS, mutable.Set.empty[Int])
+        .asInstanceOf[mutable.Set[Int]].headOption
   }
 
   /** Sets the random seed of this graph to the provided value. */
-  def setRandomSeed(value: Long): Unit = {
-    collections.update(Graph.Keys.RANDOM_SEEDS, mutable.Set[Long](value))
+  def setRandomSeed(value: Int): Unit = {
+    collections.update(Graph.Keys.RANDOM_SEEDS, mutable.Set[Int](value))
   }
 
   /** Returns the set of global variables in this graph.
@@ -1049,9 +1049,9 @@ object Graph {
       }
     }
 
-    /** Key for collections of longs. */
-    trait LongCollectionKey extends Key[Long] {
-      override def createCollectionDef(values: Set[Long], exportScope: String = null): CollectionDef = {
+    /** Key for collections of integers. */
+    trait IntCollectionKey extends Key[Int] {
+      override def createCollectionDef(values: Set[Int], exportScope: String = null): CollectionDef = {
         val int64ListBuilder = Int64List.newBuilder()
         values.foreach(v => int64ListBuilder.addValue(v))
         CollectionDef.newBuilder().setInt64List(int64ListBuilder.build()).build()
@@ -1061,7 +1061,7 @@ object Graph {
         val kind = collectionDef.getKindCase.getNumber
         if (kind != 3)
           throw new IllegalArgumentException(s"The '$name' collection should be stored as an INT64 list.")
-        collectionDef.getInt64List.getValueList.asScala.foreach(v => graph.addToCollection(v, this))
+        collectionDef.getInt64List.getValueList.asScala.foreach(v => graph.addToCollection(v.toInt, this))
       }
     }
 
@@ -1147,7 +1147,7 @@ object Graph {
 
     /** Key to collect the graph random seed values. The seed values collection should have only one element
       * representing the graph random seed value. */
-    object RANDOM_SEEDS extends LongCollectionKey {
+    object RANDOM_SEEDS extends IntCollectionKey {
       override def name: String = "random_seeds"
     }
 

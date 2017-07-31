@@ -22,6 +22,8 @@ import org.platanios.tensorflow.api.types.DataType
   * @author Emmanouil Antonios Platanios
   */
 package object ops {
+  private[ops] val DEFAULT_GRAPH_RANDOM_SEED = 87654321
+
   private[api] trait API
       extends Basic
           with ControlFlow
@@ -59,11 +61,18 @@ package object ops {
     def currentGraph: Graph = Op.currentGraph
     def currentNameScope: String = Op.currentNameScope
     def currentVariableScope: VariableScope = Op.currentVariableScope
+    def currentVariableStore: VariableStore = Op.currentVariableStore
     def currentDevice: OpSpecification => String = Op.currentDevice
     def currentColocationOps: Set[Op] = Op.currentColocationOps
     def currentControlDependencies: Set[Op] = Op.currentControlDependencies
     def currentAttributes: Map[String, Any] = Op.currentAttributes
     def currentContainer: String = Op.currentContainer
+
+    def currentGraphRandomSeed(opSeed: Option[Int] = None): (Option[Int], Option[Int]) = {
+      Op.currentGraphRandomSeed(opSeed)
+    }
+
+    def setCurrentGraphRandomSeed(value: Int): Unit = Op.setCurrentGraphRandomSeed(value)
 
     // TODO: Maybe remove "current" from the above names.
 

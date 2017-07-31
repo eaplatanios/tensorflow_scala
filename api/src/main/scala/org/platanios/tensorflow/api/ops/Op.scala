@@ -305,6 +305,11 @@ object Op {
     context.variableScope
   }
 
+  /** Returns the variable store of the current op creation context. */
+  private[api] def currentVariableStore(implicit context: DynamicVariable[OpCreationContext]): VariableStore = {
+    context.graph.variableStore
+  }
+
   /** Returns the device of the current op creation context. */
   private[api] def currentDevice(implicit context: DynamicVariable[OpCreationContext]): OpSpecification => String = {
     context.device
@@ -330,10 +335,47 @@ object Op {
     context.container
   }
 
-  /** Returns the variable store of the current op creation context. */
-  private[api] def currentVariableStore(implicit context: DynamicVariable[OpCreationContext]): VariableStore = {
-    context.graph.variableStore
+  /** Returns the local seeds an operation should use given an op-specific random seed.
+    *
+    * Given the op-specific seed, `opSeed`, this helper function returns two seeds derived from graph-level and op-level
+    * seeds. Many random operations internally use the two seeds to allow the user to change the seed globally for a
+    * graph, or only for specific operations.
+    *
+    * For details on how the graph-level seed interacts with op seeds, see [[setCurrentGraphRandomSeed]].
+    *
+    * @param  opSeed Op-specific seed value.
+    * @return Tuple of two numbers that should be used for the local seed of this operation.
+    */
+  private[api] def currentGraphRandomSeed(opSeed: Option[Int] = None): (Option[Int], Option[Int]) = {
+    (currentGraph.randomSeed, opSeed) match {
+      // Avoid (0, 0) as the C++ ops interpret it as non-determinism, which would be unexpected.
+      case (Some(0), Some(0)) => (Some(0), Some(Int.MaxValue))
+      case (Some(g), Some(o)) => (Some(g), Some(o))
+      case (Some(g), None) => (Some(g), Some(currentGraph.ops.length))
+      case (None, Some(o)) => (Some(DEFAULT_GRAPH_RANDOM_SEED), Some(o))
+      case (None, None) => (None, None)
+    }
   }
+
+  /** Sets the graph-level random seed.
+    *
+    * Operations that rely on a random seed actually derive it from two seeds: the graph-level and the operation-level
+    * seeds. This function sets the graph-level seed.
+    *
+    * Its interactions with operation-level seeds are as follows:
+    *   1. If neither the graph-level nor the operation-level seed is set, a random seed is used for this op.
+    *   2. If the graph-level seed is set, but the operation-level seed is not, the system deterministically picks an
+    *      operation-level seed in conjunction with the graph-level seed so that it gets a unique random sequence.
+    *   3. If the graph-level seed is not set, but the operation-level seed is set, a default graph-level seed and the
+    *      specified operation-level seed are used to determine the random sequence.
+    *   4. If both the graph-level and the operation-level seed are set, then both seeds are used in conjunction to
+    *      determine the random sequence.
+    *
+    * To generate different sequences across sessions, set neither the graph-level nor the op-level seeds.
+    *
+    * @param  value Value to set the graph-level random seed to.
+    */
+  private[api] def setCurrentGraphRandomSeed(value: Int): Unit = currentGraph.setRandomSeed(value)
 
   /** Creates a context that can be used for creating ops according to the provided options.
     *
