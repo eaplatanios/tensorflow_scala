@@ -19,7 +19,7 @@ import org.platanios.tensorflow.api.core.Indexer.Implicits._
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.ops.NN._
-import org.platanios.tensorflow.api.types.{FLOAT16, FLOAT32, INT32}
+import org.platanios.tensorflow.api.types._
 
 import scala.language.postfixOps
 
@@ -55,6 +55,20 @@ trait NN {
         .addInput(bias)
         .setAttribute("data_format", cNNDataFormat.toString)
         .build().outputs(0)
+  }
+
+  /** Creates an op that computes `x * weights + bias`.
+    *
+    * @param  x       Input tensor.
+    * @param  weights Weights tensor.
+    * @param  bias    Bias tensor.
+    * @param  name    Name for the created op.
+    * @return Created op output.
+    */
+  def linear(x: Output, weights: Output, bias: Output, name: String = "Linear"): Output = {
+    Op.createWithNameScope(name, Set(x.op, weights.op, bias.op)) {
+      addBias(Math.matmul(x, weights), bias)
+    }
   }
 
   /** Creates an op that computes the rectified linear activation function.
@@ -175,11 +189,48 @@ trait NN {
     softmaxHelper(logits, "LogSoftmax", axis, name)
   }
 
+  /** Creates an op that computes the softmax cross entropy between `logits` and `labels`.
+    *
+    * The op measures the probabilistic error in discrete classification tasks in which the classes are mutually
+    * exclusive (each entry belongs to exactly one class). For example, each CIFAR-10 image is labeled with one and only
+    * one label: an image can be a dog or a truck, but not both.
+    *
+    * **NOTE:** While the classes are mutually exclusive, their probabilities need not be. All that is required is that
+    * each row of `labels` is a valid probability distribution. If they are not, the computation of the gradient will be
+    * incorrect. If using exclusive `labels` (wherein one and only one class is true at a time), see
+    * [[sparseSoftmaxCrossEntropy]].
+    *
+    * **WARNING:** The op expects unscaled logits, since it performs a `softmax` on `logits` internally for efficiency.
+    * Do not call this op with the output of `softmax`, as it will produce incorrect results.
+    *
+    * `logits` and `labels` must have the same shape. A common use case if to have `logits` and `labels` of shape
+    * `[batchSize, numClasses]`, but higher dimensions are also supported.
+    *
+    * `logits` and `labels` must have data type `FLOAT16`, `FLOAT32`, or `FLOAT64`.
+    *
+    * @param  logits Tensor of shape `[D0, D1, ..., Dr-1, numClasses]` and data type `FLOAT16`, `FLOAT32`, or `FLOAT64`,
+    *                containing unscaled log probabilities.
+    * @param  labels Tensor of shape `[D0, D1, ..., Dr-1, numClasses]` and data type `FLOAT16`, `FLOAT32`, or `FLOAT64`,
+    *                where each row must be a valid probability distribution.
+    * @param  axis   The class axis, along which the softmax is computed. Defaults to `-1`, which is the last axis.
+    * @param  name   Name for the created op.
+    * @return Created op output, with rank one less than that of `logits` and the same data type as `logits`, containing
+    *         the softmax cross entropy loss.
+    * @throws IllegalArgumentException If `logits` or `labels` have an unsupported data type or incompatible shapes.
+    */
+  @throws[IllegalArgumentException]
   def softmaxCrossEntropy(
       logits: Output, labels: Output, axis: Int = -1, name: String = "SoftmaxCrossEntropy"): Output = {
-    Op.createWithNameScope(name) {
+    if (logits.dataType != FLOAT16 && logits.dataType != FLOAT32 && logits.dataType != FLOAT64)
+      throw new IllegalArgumentException(
+        s"Encountered unsupported data type: ${logits.dataType}. " +
+            "'logits' must have data type of FLOAT16, FLOAT32, or FLOAT64.")
+    if (!logits.shape.isCompatibleWith(labels.shape))
+      throw new IllegalArgumentException(
+        s"The 'logits' shape (${logits.shape}) and the 'labels' shape (${labels.shape}) must be compatible.")
+    Op.createWithNameScope(name, Set(logits.op, labels.op)) {
+      // Labels and logits must be of the same data type.
       val preciseLogits = if (logits.dataType == FLOAT16) Math.cast(logits, FLOAT32) else logits
-      // Labels and logits must be of the same type.
       val preciseLabels = Math.cast(labels, preciseLogits.dataType)
       val inputRank = Basic.rank(preciseLogits)
       // We need the original shape of the logits for shape inference.
@@ -192,7 +243,7 @@ trait NN {
       val flattenedLogits = flattenOuterAxes(transposedLogits)
       val flattenedLabels = flattenOuterAxes(transposedLabels)
       // Create the native op.
-      // The second output tensor contains the gradients. That is used for the gradient computation.
+      // The second output tensor contains the gradients, which is used for the gradient computation.
       val output = Op.Builder(opType = "SoftmaxCrossEntropyWithLogits", name = name)
           .addInput(flattenedLogits)
           .addInput(flattenedLabels)
@@ -203,15 +254,103 @@ trait NN {
         Basic.constant(0, inputShape.dataType, Shape(1)),
         Basic.expandDims(Math.subtract(inputRank, 1), -1))
       val reshapedOutput = Basic.reshape(output, outputShape)
-      val newShape = shape(0 :: axis) ++ shape(axis + 1 ::)
       // We make shape inference work since the reshape and the transpose may erase the static shape information.
-      if (shape.rank > -1)
-        reshapedOutput.setShape(shape.removeAt(axis))
+      if (shape.rank > -1) {
+        def removeAt(array: Array[Int], axis: Int): Array[Int] = axis match {
+          case a if a < 0 => removeAt(array, axis + array.length)
+          case a if a == 0 => array.drop(1)
+          case a if a == array.length => array.dropRight(1)
+          case _ => array.take(axis) ++ array.drop(axis + 1)
+        }
+        reshapedOutput.setShape(Shape(removeAt(shape.asArray, axis): _*))
+      }
       // We cast back to the original logits data type, if necessary.
       if (logits.dataType == FLOAT16)
         Math.cast(reshapedOutput, FLOAT16)
       else
         reshapedOutput
+    }
+  }
+
+  /** Creates an op that computes the sparse softmax cross entropy between `logits` and `labels`.
+    *
+    * The op measures the probabilistic error in discrete classification tasks in which the classes are mutually
+    * exclusive (each entry belongs to exactly one class). For example, each CIFAR-10 image is labeled with one and only
+    * one label: an image can be a dog or a truck, but not both.
+    *
+    * **NOTE:** For the op, the probability of a given label is considered exclusive. That is, soft classes are not
+    * allowed, and the `labels` vector must provide a single specific index for the true class for each row of `logits`
+    * (i.e., each batch instance). For soft softmax classification with a probability distribution for each entry, see
+    * [[softmaxCrossEntropy]].
+    *
+    * **WARNING:** The op expects unscaled logits, since it performs a `softmax` on `logits` internally for efficiency.
+    * Do not call this op with the output of `softmax`, as it will produce incorrect results.
+    *
+    * A common use case if to have `logits` of shape `[batchSize, numClasses]` and `labels` of shape `[batchSize]`, but
+    * higher dimensions are also supported.
+    *
+    * `logits` must have data type `FLOAT16`, `FLOAT32`, or `FLOAT64`, and `labels` must have data type `INT32` or
+    * `INT64`.
+    *
+    * @param  logits Tensor of shape `[D0, D1, ..., Dr-1, numClasses]` (where `r` is the rank of `labels` and of the
+    *                result) and data type `FLOAT16`, `FLOAT32`, or `FLOAT64`, containing unscaled log probabilities.
+    * @param  labels Tensor of shape `[D0, D1, ..., Dr-1]` (where `r` is the rank of `labels` and of the result) and
+    *                data type `INT32` or `INT64`. Each entry in `labels` must be an index in `[0, numClasses)`. Other
+    *                values will raise an exception when this op is run on a CPU, and return `NaN` values for the
+    *                corresponding loss and gradient rows when this op is run on a GPU.
+    * @param  axis   The class axis, along which the softmax is computed. Defaults to `-1`, which is the last axis.
+    * @param  name   Name for the created op.
+    * @return Created op output, with the same shape as `labels` and the same data type as `logits`, containing the
+    *         softmax cross entropy loss.
+    * @throws IllegalArgumentException If `logits` or `labels` have an unsupported data type or incompatible shapes.
+    */
+  @throws[IllegalArgumentException]
+  def sparseSoftmaxCrossEntropy(
+      logits: Output, labels: Output, axis: Int = -1, name: String = "SparseSoftmaxCrossEntropy"): Output = {
+    if (logits.dataType != FLOAT16 && logits.dataType != FLOAT32 && logits.dataType != FLOAT64)
+      throw new IllegalArgumentException(
+        s"Encountered unsupported data type: ${logits.dataType}. " +
+            "'logits' must have data type of FLOAT16, FLOAT32, or FLOAT64.")
+    if (labels.dataType != INT32 && labels.dataType != INT64)
+      throw new IllegalArgumentException(
+        s"Encountered unsupported data type: ${labels.dataType}. 'labels' must have data type of INT32 or INT64.")
+    Op.createWithNameScope(name, Set(logits.op, labels.op)) {
+      val preciseLogits = if (logits.dataType == FLOAT16) Math.cast(logits, FLOAT32) else logits
+      if (logits.rank == 0)
+        throw new IllegalArgumentException(s"The 'logits' (shape = ${logits.shape}) cannot be scalars.")
+      if (labels.rank != logits.rank - 1)
+        throw new IllegalArgumentException(
+          s"The rank of the 'labels' (rank = ${labels.rank}) must be equal to " +
+              s"the rank of 'logits' (rank = ${logits.rank}) minus 1.")
+      // Check if no reshapes are required.
+      val output = {
+        if (logits.rank == 2) {
+          // Create the native op.
+          // The second output tensor contains the gradients, which is used for the gradient computation.
+          Op.Builder(opType = "SparseSoftmaxCrossEntropyWithLogits", name = name)
+              .addInput(preciseLogits)
+              .addInput(labels)
+              .build().outputs(0)
+        } else {
+          // Reshape logits to rank 2 and labels to rank 1.
+          val flattenedLogits = flattenOuterAxes(preciseLogits)
+          val flattenedLabels = Basic.reshape(labels, -1)
+          // Create the native op.
+          // The second output tensor contains the gradients, which is used for the gradient computation.
+          val output = Op.Builder(opType = "SparseSoftmaxCrossEntropyWithLogits", name = name)
+              .addInput(flattenedLogits)
+              .addInput(flattenedLabels)
+              .build().outputs(0)
+          val reshapedOutput = Basic.reshape(output, Basic.shape(labels))
+          reshapedOutput.setShape(labels.shape)
+          reshapedOutput
+        }
+      }
+      // We cast back to the original logits data type, if necessary.
+      if (logits.dataType == FLOAT16)
+        Math.cast(output, FLOAT16)
+      else
+        output
     }
   }
 }
@@ -294,6 +433,7 @@ object NN extends NN {
     GradientsRegistry.register("Softmax", softmaxGradient)
     GradientsRegistry.register("LogSoftmax", logSoftmaxGradient)
     GradientsRegistry.register("SoftmaxCrossEntropyWithLogits", softmaxCrossEntropyGradient)
+    GradientsRegistry.register("SparseSoftmaxCrossEntropyWithLogits", sparseSoftmaxCrossEntropyGradient)
 
     private[this] def biasAddGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       val outputGradient = outputGradients.head.toOutput
@@ -390,6 +530,9 @@ object NN extends NN {
     }
 
     private[this] def softmaxCrossEntropyGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      // outputGradients(0) is the back-propagated gradient for the cross entropy, and we multiply it with the gradients
+      // (which is op.outputs(1)). outputGradients(1) is the back-propagated gradient for the softmax gradient. There is
+      // no gradient for the labels.
       val lossGradient = outputGradients(0).toOutput
       val gradGradient = outputGradients(1).toOutput
       val softmaxGradient = op.outputs(1)
@@ -418,6 +561,19 @@ object NN extends NN {
       } else {
         Seq(outputGradient, null)
       }
+    }
+
+    private[this] def sparseSoftmaxCrossEntropyGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      // outputGradients(0) is the back-propagated gradient for the cross entropy, and we multiply it with the gradients
+      // (which is op.outputs(1)). There is no gradient for the labels.
+      val lossGradient = outputGradients(0).toOutput
+      // Currently there is no way to take the second derivative of this op due to the fused implementation's
+      // interaction with tf.gradients(). Therefore, we make sure we silently prevent incorrect results by raising an
+      // error if the second derivative is requested via Basic.preventGradient().
+      val softmaxGradient = Basic.preventGradient(
+        op.outputs(1), message = "Currently there is no way to take the second derivative of " +
+            "SparseSoftmaxCrossEntropyWithLogits due to the fused implementation's interaction with tf.gradients().")
+      Seq(broadcastMultiply(lossGradient, softmaxGradient), null)
     }
   }
 }

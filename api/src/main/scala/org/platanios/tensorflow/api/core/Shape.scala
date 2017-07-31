@@ -173,13 +173,6 @@ final class Shape private (private val array: Array[Int]) extends OutputConverti
   def +(dimension: Int): Shape = new Shape(this.array :+ dimension)
   def ++(other: Shape): Shape = concatenateWith(other)
 
-  def removeAt(axis: Int): Shape = axis match {
-    case a if a < 0 => removeAt(axis + rank)
-    case a if a == 0 => new Shape(array.drop(1))
-    case a if a == rank => new Shape(array.dropRight(1))
-    case _ => new Shape(array.take(axis) ++ array.drop(axis + 1))
-  }
-
   // TODO: Support merging an unknown shape with a (partially) known one and vice-versa.
   /** Concatenates this shape with another shape and returns the result as a new shape.
     *
