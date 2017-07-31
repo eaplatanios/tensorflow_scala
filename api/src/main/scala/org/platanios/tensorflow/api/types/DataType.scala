@@ -687,5 +687,19 @@ private[api] object DataType {
       s"Data type name '$value' is not recognized in Scala (TensorFlow version ${NativeLibrary.version}).")
   }
 
+  /** Returns the most precise data type out of the provided data types, based on their `priority` field.
+    *
+    * @param  dataTypes Data types out of which to pick the most precise.
+    * @return Most precise data type in `dataTypes`.
+    */
+  def mostPrecise(dataTypes: DataType*): DataType = dataTypes.maxBy(_.priority)
+
+  /** Returns the most precise data type out of the provided data types, based on their `priority` field.
+    *
+    * @param  dataTypes Data types out of which to pick the most precise.
+    * @return Most precise data type in `dataTypes`.
+    */
+  def leastPrecise(dataTypes: DataType*): DataType = dataTypes.minBy(_.priority)
+
   //endregion Helper Methods
 }

@@ -115,7 +115,7 @@ trait Math {
         if (dataType != null)
           dataType
         else
-          Set(start.dataType, limit.dataType, delta.dataType).maxBy(_.priority)
+          DataType.mostPrecise(start.dataType, limit.dataType, delta.dataType)
       }
       if (start.dataType != inferredDataType)
         castedStart = cast(start, inferredDataType)
@@ -826,6 +826,8 @@ trait Math {
   //endregion Unary Ops
 
   //region Binary Ops
+
+  // TODO: !!! [OPS] Automatic casting to most precise for binary ops.
 
   /** Creates an op that adds two tensors element-wise.
     *
