@@ -71,9 +71,9 @@ trait NN {
     }
   }
 
-  /** Creates an op that computes the rectified linear activation function.
+  /** Creates an op that computes the rectified linear unit activation function.
     *
-    * The rectified linear activation function is defined as `relu(x) = max(x, 0)`.
+    * The rectified linear unit activation function is defined as `relu(x) = max(x, 0)`.
     *
     * @param  input Input tensor.
     * @param  name  Name for the created op.
@@ -99,9 +99,9 @@ trait NN {
     }
   }
 
-  /** Creates an op that computes the rectified linear 6 activation function.
+  /** Creates an op that computes the rectified linear unit 6 activation function.
     *
-    * The rectified linear activation function is defined as `relu6(x) = min(max(x, 0), 6)`.
+    * The rectified linear unit 6 activation function is defined as `relu6(x) = min(max(x, 0), 6)`.
     *
     * Source: [Convolutional Deep Belief Networks on CIFAR-10. A. Krizhevsky](http://www.cs.utoronto.ca/~kriz/conv-cifar10-aug2010.pdf)
     *
@@ -109,11 +109,90 @@ trait NN {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def relu6[T: OutputOps](input: T, name: String = "ReLU6"): T = {
-    implicitly[OutputOps[T]]
-        .unaryOp(input, o => Op.Builder(opType = "Relu6", name = name)
-            .addInput(o)
-            .build().outputs(0))
+  def relu6(input: Output, name: String = "ReLU6"): Output = {
+    Op.Builder(opType = "Relu6", name = name)
+        .addInput(input)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that computes the concatenated rectified linear unit activation function.
+    *
+    * The op concatenates a ReLU which selects only the positive part of the activation with a ReLU which selects only
+    * the *negative* part of the activation. Note that as a result this non-linearity doubles the depth of the
+    * activations.
+    *
+    * Source: [Understanding and Improving Convolutional Neural Networks via Concatenated Rectified Linear Units](https://arxiv.org/abs/1603.05201)
+    *
+    * @param  input Input tensor.
+    * @param  name  Name for the created op.
+    * @return Created op output.
+    */
+  def crelu(input: Output, name: String = "CReLU"): Output = {
+    Op.createWithNameScope(name, Set(input.op)) {
+      relu(Basic.concatenate(Seq(input, -input), axis = -1))
+    }
+  }
+
+  /** Creates an op that computes the exponential linear unit activation function.
+    *
+    * The exponential linear unit activation function is defined as `elu(x) = x`, if `x > 0`, and `elu(x) = exp(x) - 1`,
+    * otherwise.
+    *
+    * Source: [Fast and Accurate Deep Network Learning by Exponential Linear Units (ELUs)](http://arxiv.org/abs/1511.07289)
+    *
+    * @param  input Input tensor.
+    * @param  name  Name for the created op.
+    * @return Created op output.
+    */
+  def elu(input: Output, name: String = "ELU"): Output = {
+    Op.Builder(opType = "Elu", name = name)
+        .addInput(input)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that computes the scaled exponential linear unit activation function.
+    *
+    * The scaled exponential linear unit activation function is defined as `selu(x) = scale * x`, if `x > 0`, and
+    * `elu(x) = scale * alpha * (exp(x) - 1)`, otherwise, where `scale = 1.0507` and `alpha = 1.7581`.
+    *
+    * Source: [Self-Normalizing Neural Networks](https://arxiv.org/abs/1706.02515)
+    *
+    * @param  input Input tensor.
+    * @param  name  Name for the created op.
+    * @return Created op output.
+    */
+  def selu(input: Output, name: String = "SELU"): Output = {
+    Op.Builder(opType = "Selu", name = name)
+        .addInput(input)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that computes the softplus activation function.
+    *
+    * The softplus activation function is defined as `softplus(x) = log(exp(x) + 1)`.
+    *
+    * @param  input Input tensor.
+    * @param  name  Name for the created op.
+    * @return Created op output.
+    */
+  def softplus(input: Output, name: String = "Softplus"): Output = {
+    Op.Builder(opType = "Softplus", name = name)
+        .addInput(input)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that computes the softsign activation function.
+    *
+    * The softsign activation function is defined as `softsign(x) = x / (abs(x) + 1)`.
+    *
+    * @param  input Input tensor.
+    * @param  name  Name for the created op.
+    * @return Created op output.
+    */
+  def softsign(input: Output, name: String = "Softsign"): Output = {
+    Op.Builder(opType = "Softsign", name = name)
+        .addInput(input)
+        .build().outputs(0)
   }
 
   /** Helper function for [[softmax]] and [[logSoftmax]] that reshapes and transposes the input logits into
@@ -430,6 +509,13 @@ object NN extends NN {
     GradientsRegistry.register("ReluGrad", reluHessian)
     GradientsRegistry.register("Relu6", relu6Gradient)
     GradientsRegistry.register("Relu6Grad", relu6Hessian)
+    GradientsRegistry.register("Elu", eluGradient)
+    GradientsRegistry.register("EluGrad", eluHessian)
+    GradientsRegistry.register("Selu", seluGradient)
+    GradientsRegistry.register("Softplus", softplusGradient)
+    GradientsRegistry.register("SoftplusGrad", softplusHessian)
+    GradientsRegistry.register("Softsign", softsignGradient)
+    GradientsRegistry.register("SeluGrad", seluHessian)
     GradientsRegistry.register("Softmax", softmaxGradient)
     GradientsRegistry.register("LogSoftmax", logSoftmaxGradient)
     GradientsRegistry.register("SoftmaxCrossEntropyWithLogits", softmaxCrossEntropyGradient)
@@ -500,7 +586,7 @@ object NN extends NN {
       val outputGradient = outputGradients.head.toOutput
       Seq(Op.Builder(opType = "Relu6Grad", name = "ReLU6Gradient")
               .addInput(outputGradient)
-              .addInput(op.outputs(0))
+              .addInput(op.inputs(0))
               .build().outputs(0))
     }
 
@@ -511,6 +597,86 @@ object NN extends NN {
               .addInput(outputGradient)
               .addInput(x)
               .build().outputs(0), Basic.zerosLike(x))
+    }
+
+    private[this] def eluGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val outputGradient = outputGradients.head.toOutput
+      Seq(Op.Builder(opType = "EluGrad", name = "ELUGradient")
+              .addInput(outputGradient)
+              .addInput(op.outputs(0))
+              .build().outputs(0))
+    }
+
+    private[this] def eluHessian(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val outputGradient = outputGradients.head.toOutput
+      val x = op.inputs(1)
+      Op.createWithNameScope("ELUHessian", Set(op)) {
+        Seq(Op.Builder(opType = "EluGrad", name = "ELUGradient")
+                .addInput(outputGradient)
+                .addInput(op.outputs(0))
+                .build().outputs(0),
+            Math.select(
+              Math.less(x, 0),
+              Math.multiply(outputGradient, op.inputs(0)),
+              Basic.zerosLike(x)))
+      }
+    }
+
+    private[this] def seluGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val outputGradient = outputGradients.head.toOutput
+      Seq(Op.Builder(opType = "SeluGrad", name = "SELUGradient")
+              .addInput(outputGradient)
+              .addInput(op.outputs(0))
+              .build().outputs(0))
+    }
+
+    private[this] def seluHessian(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val outputGradient = outputGradients.head.toOutput
+      val x = op.inputs(1)
+      val alpha = 1.7580993408473768599402175208123
+      Op.createWithNameScope("SELUHessian", Set(op)) {
+        Seq(Op.Builder(opType = "EluGrad", name = "ELUGradient")
+                .addInput(outputGradient)
+                .addInput(op.outputs(0))
+                .build().outputs(0),
+            Math.select(
+              Math.less(x, 0),
+              Op.Builder(opType = "EluGrad", name = "ELUGradient")
+                  .addInput(outputGradient)
+                  .addInput(Math.add(op.outputs(0), alpha))
+                  .build().outputs(0),
+              Basic.zerosLike(x)))
+      }
+    }
+
+    private[this] def softplusGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val outputGradient = outputGradients.head.toOutput
+      Seq(Op.Builder(opType = "SoftplusGrad", name = "SoftplusGradient")
+              .addInput(outputGradient)
+              .addInput(op.inputs(0))
+              .build().outputs(0))
+    }
+
+    private[this] def softplusHessian(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val outputGradient = outputGradients.head.toOutput
+      val dy = op.inputs(0)
+      val x = op.inputs(1)
+      Op.createWith(nameScope = "SoftplusHessian", controlDependencies = Set(outputGradient.op)) {
+        val ddy = Op.Builder(opType = "SoftplusGrad", name = "SoftplusGradient")
+            .addInput(outputGradient)
+            .addInput(x)
+            .build().outputs(0)
+        val d2x = Math.multiply(outputGradient, dy) / (Math.exp(-x) + 2.0 + Math.exp(x))
+        Seq(ddy, d2x)
+      }
+    }
+
+    private[this] def softsignGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val outputGradient = outputGradients.head.toOutput
+      Seq(Op.Builder(opType = "SoftsignGrad", name = "SoftsignGradient")
+              .addInput(outputGradient)
+              .addInput(op.inputs(0))
+              .build().outputs(0))
     }
 
     private[this] def softmaxGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
