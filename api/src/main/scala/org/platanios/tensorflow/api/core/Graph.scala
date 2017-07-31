@@ -23,9 +23,8 @@ import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.STRING
 import org.platanios.tensorflow.api.{Closeable, META_GRAPH_UNBOUND_INPUT_PREFIX, ProtoSerializable}
 import org.platanios.tensorflow.jni.{Graph => NativeGraph, TensorFlow => NativeLibrary}
-
 import com.google.protobuf.ByteString
-import org.tensorflow.framework.CollectionDef.{BytesList, NodeList}
+import org.tensorflow.framework.CollectionDef.{BytesList, Int64List, NodeList}
 import org.tensorflow.framework.MetaGraphDef.MetaInfoDef
 import org.tensorflow.framework._
 import org.tensorflow.util.SaverDef
@@ -146,6 +145,17 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable wi
     */
   private[api] def getCollectionReference[K](key: Graph.Key[K]): mutable.Set[K] = {
     collections.getOrElseUpdate(key, mutable.Set.empty[K]).asInstanceOf[mutable.Set[K]]
+  }
+
+  /** Gets the random seed of this graph. */
+  def randomSeed: Long = {
+    collections.getOrElseUpdate(Graph.Keys.RANDOM_SEEDS, mutable.Set[Long](DEFAULT_GRAPH_RANDOM_SEED))
+        .asInstanceOf[mutable.Set[Long]].head
+  }
+
+  /** Sets the random seed of this graph to the provided value. */
+  def setRandomSeed(value: Long): Unit = {
+    collections.update(Graph.Keys.RANDOM_SEEDS, mutable.Set[Long](value))
   }
 
   /** Returns the set of global variables in this graph.
@@ -1039,6 +1049,22 @@ object Graph {
       }
     }
 
+    /** Key for collections of longs. */
+    trait LongCollectionKey extends Key[Long] {
+      override def createCollectionDef(values: Set[Long], exportScope: String = null): CollectionDef = {
+        val int64ListBuilder = Int64List.newBuilder()
+        values.foreach(v => int64ListBuilder.addValue(v))
+        CollectionDef.newBuilder().setInt64List(int64ListBuilder.build()).build()
+      }
+
+      override def parseCollectionDef(collectionDef: CollectionDef, graph: Graph, importScope: String): Unit = {
+        val kind = collectionDef.getKindCase.getNumber
+        if (kind != 3)
+          throw new IllegalArgumentException(s"The '$name' collection should be stored as an INT64 list.")
+        collectionDef.getInt64List.getValueList.asScala.foreach(v => graph.addToCollection(v, this))
+      }
+    }
+
     /** Key for collections of ops. */
     trait OpCollectionKey extends Key[Op] {
       override def createCollectionDef(values: Set[Op], exportScope: String = null): CollectionDef = {
@@ -1117,6 +1143,12 @@ object Graph {
         collectionDef.getBytesList.getValueList.asScala
             .foreach(v => graph.addToCollection(Saver.fromProto(SaverDef.parseFrom(v), importScope), this))
       }
+    }
+
+    /** Key to collect the graph random seed values. The seed values collection should have only one element
+      * representing the graph random seed value. */
+    object RANDOM_SEEDS extends LongCollectionKey {
+      override def name: String = "random_seeds"
     }
 
     /** Key to collect the default collection of `Variable` objects, shared across distributed environment (model

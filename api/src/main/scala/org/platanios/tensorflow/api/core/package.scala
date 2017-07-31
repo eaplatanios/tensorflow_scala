@@ -21,6 +21,8 @@ import org.platanios.tensorflow.api
   * @author Emmanouil Antonios Platanios
   */
 package object core {
+  private[core] val DEFAULT_GRAPH_RANDOM_SEED = 87654321L
+
   private[api] trait API extends client.API {
     type Graph = core.Graph
     val Graph = core.Graph
