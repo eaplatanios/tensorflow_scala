@@ -588,6 +588,60 @@ trait NN {
     }
   }
 
+  /** Creates an op that computes the log-Poisson loss between `logPredictions` and `targets`.
+    *
+    * The op computes the log-likelihood loss between the predictions and the targets under the assumption that the
+    * targets have a Poisson distribution. **Caveat:** By default, this is not the exact loss, but the loss minus a
+    * constant term (`log(z!)`). That has no effect for optimization purposes, but it does not play well with relative
+    * loss comparisons. To compute an approximation of the log factorial term, please set `computeFullLoss` to `true`,
+    * to enable Stirling's Approximation.
+    *
+    * For brevity, let `c = log(x) = logPredictions`, `z = targets`.  The log-Poisson loss is defined as:
+    * `  -log(exp(-x) * (x^z) / z!)`
+    * `= -log(exp(-x) * (x^z)) + log(z!)`
+    * `~ -log(exp(-x)) - log(x^z) [z * log(z) - z + 0.5 * log(2 * pi * z)]` (Note that the second term is Stirling's
+    *                                                                        Approximation for `log(z!)`. It is
+    *                                                                        invariant to `x` and does not affect
+    *                                                                        optimization, though it is important for
+    *                                                                        correct relative loss comparisons. It is
+    *                                                                        only computed when
+    *                                                                        `computeFullLoss == true`)
+    * `= x - z * log(x) [+ z * log(z) - z + 0.5 * log(2 * pi * z)]`
+    * `= exp(c) - z * c [+ z * log(z) - z + 0.5 * log(2 * pi * z)]`
+    *
+    * @param  logPredictions  Tensor containing the log-predictions.
+    * @param  targets         Tensor with the same shape as `logPredictions`, containing the target values.
+    * @param  computeFullLoss If `true`, Stirling's Approximation is used to approximate the full loss. Defaults to
+    *                         `false`, meaning that the constant term is ignored.
+    * @param  name            Name for the created op.
+    * @return Created op output.
+    * @throws IllegalArgumentException If the shapes of `logPredictions` and `targets` do not match.
+    */
+  @throws[IllegalArgumentException]
+  def logPoissonLoss(
+      logPredictions: Output, targets: Output, computeFullLoss: Boolean = false,
+      name: String = "LogPoissonLoss"): Output = {
+    if (!logPredictions.shape.isCompatibleWith(targets.shape))
+      throw new IllegalArgumentException(
+        s"The 'logInputs' shape (${logPredictions.shape}) and the 'targets' shape (${targets.shape}) " +
+            s"must be compatible.")
+    Op.createWithNameScope(name, Set(logPredictions.op, targets.op)) {
+      val output = Math.exp(logPredictions) - (logPredictions * targets)
+      if (computeFullLoss) {
+        // Need to create constant tensors here so that their data types can be matched to that of the targets.
+        val pointFive = Basic.constant(0.5, targets.dataType)
+        val twoPi = Basic.constant(2 * math.Pi, targets.dataType)
+        val stirlingApproximation = (targets * Math.log(targets)) - targets + (pointFive * Math.log(twoPi * targets))
+        val zeros = Basic.zerosLike(targets)
+        val ones = Basic.onesLike(targets)
+        val condition = Math.logicalAnd(Math.greaterEqual(targets, zeros), Math.lessEqual(targets, ones))
+        output + Math.select(condition, zeros, stirlingApproximation)
+      } else {
+        output
+      }
+    }
+  }
+
   //endregion Loss Ops
 
   /** Creates an op that computes a dropout layer.

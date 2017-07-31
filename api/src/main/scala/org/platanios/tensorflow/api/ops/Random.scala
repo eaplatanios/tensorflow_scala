@@ -21,7 +21,7 @@ import org.platanios.tensorflow.api.types._
 
 /** Contains functions for constructing ops related to random numbers and tensors.
   *
-  * @author Emmanouil Antonios Platanios
+  * @author Emmanouil Antonios Platanios, Sören Brunk
   */
 trait Random {
   /** Creates an op that outputs random values from a uniform distribution.
