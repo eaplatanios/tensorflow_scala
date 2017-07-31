@@ -45,6 +45,10 @@ package object variables {
     def constantInitializer(value: Tensor) = variables.ConstantInitializer(value)
     def constantInitializer(value: Output) = variables.DynamicConstantInitializer(value)
 
+    def randomUniformInitializer(minValue: Tensor = 0.0, maxValue: Tensor = 1.0, seed: Option[Int] = None) = {
+      variables.RandomUniformInitializer(minValue = minValue, maxValue = maxValue, seed = seed)
+    }
+
     type Saver = variables.Saver
     val Saver = variables.Saver
 

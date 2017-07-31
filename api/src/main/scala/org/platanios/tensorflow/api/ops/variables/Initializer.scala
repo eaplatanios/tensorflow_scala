@@ -107,7 +107,7 @@ private[api] case class DynamicConstantInitializer(value: Output) extends Initia
 
 /** Initializer that sets the value of the variable to a `value` drawn from a uniform distribution. */
 private[api] case class RandomUniformInitializer(
-    minValue: Tensor, maxValue: Tensor, seed: Option[Int] = None) extends Initializer {
+    minValue: Tensor = 0.0, maxValue: Tensor = 1.0, seed: Option[Int] = None) extends Initializer {
   @throws[ShapeMismatchException]
   override def initialValue(shape: Shape, dataType: DataType, partitionInfo: PartitionInformation): Output = {
     Random.randomUniform(
