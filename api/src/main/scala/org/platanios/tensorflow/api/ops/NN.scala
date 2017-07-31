@@ -28,6 +28,8 @@ import scala.language.postfixOps
   * @author Emmanouil Antonios Platanios
   */
 trait NN {
+  //region Core NN Ops
+
   /** Creates an op that adds `bias` to `value`.
     *
     * The op is (mostly) a special case of `tf.add` where `bias` is restricted to be one-dimensional (i.e., has rank 1).
@@ -94,6 +96,10 @@ trait NN {
       Math.cast(Math.multiply(preciseX, xInverseNorm), x.dataType)
     }
   }
+
+  //endregion Core NN Ops
+
+  //region Activation Ops
 
   /** Creates an op that computes the rectified linear unit activation function.
     *
@@ -219,6 +225,8 @@ trait NN {
         .build().outputs(0)
   }
 
+  //endregion Activation Ops
+
   /** Helper function for [[softmax]] and [[logSoftmax]] that reshapes and transposes the input logits into
     * two-dimensional tensors and then creates the corresponding native op. The output is transposed and reshaped
     * back. */
@@ -291,6 +299,8 @@ trait NN {
   def logSoftmax(logits: Output, axis: Int = -1, name: String = "LogSoftmax"): Output = {
     softmaxHelper(logits, "LogSoftmax", axis, name)
   }
+
+  //region Loss Ops
 
   /** Creates an op that computes half of the L2 norm of a tensor without the square root.
     *
@@ -575,6 +585,58 @@ trait NN {
         Math.cast(output, FLOAT16)
       else
         output
+    }
+  }
+
+  //endregion Loss Ops
+
+  /** Creates an op that computes a dropout layer.
+    *
+    * With probability `keepProbability`, the op outputs the input element scaled up by `1 / keepProbability`, otherwise
+    * it outputs `0`. The scaling is such that the expected sum remains unchanged.
+    *
+    * By default, each element is kept or dropped independently. If `noiseShape` is specified, it must be
+    * [broadcastable](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html) to the shape of `input`, and only
+    * dimensions with `noiseShape(i) == x.shape(i)` will make independent decisions. For example, if
+    * `x.shape = [k, l, m, n]` and `noiseShape = [k, 1, 1, n]`, each batch and channel component will be kept
+    * independently and each row and column will be kept or not kept together.
+    *
+    * @param  input           Input tensor.
+    * @param  keepProbability Probability (i.e., number in the interval `(0, 1]`) that each element is kept.
+    * @param  noiseShape      `INT32` rank-1 tensor representing the shape for the randomly generated keep/drop flags.
+    * @param  seed            Optional random seed, used to generate a random seed pair for the random number
+    *                         generator, when combined with the graph-level seed.
+    * @param  name            Name for the created op.
+    * @return Created op output that has the same shape as `input`.
+    * @throws IllegalArgumentException If `keepProbability` is not in `(0, 1]`, or if noise shape has an invalid shape
+    *                                  or data type.
+    */
+  @throws[IllegalArgumentException]
+  def dropout(
+      input: Output, keepProbability: Float, noiseShape: Output = null, seed: Option[Int] = None,
+      name: String = "Dropout"): Output = {
+    if (keepProbability <= 0.0 || keepProbability > 1.0)
+      throw new IllegalArgumentException(s"'keepProbability' (= $keepProbability) must be in (0, 1].")
+    if (noiseShape != null && noiseShape.rank != -1 && noiseShape.rank != 1)
+      throw new IllegalArgumentException(s"'noiseShape' (rank = ${noiseShape.rank}) must be a rank-1 tensor.")
+    if (noiseShape != null && noiseShape.dataType != INT32)
+      throw new IllegalArgumentException(s"'noiseShape' (dataType = ${noiseShape.dataType}) must be an INT32 tensor.")
+    // Do nothing if we know that keepProbability == 1.
+    if (keepProbability == 1.0) {
+      input
+    } else {
+      Op.createWithNameScope(name, Set(input.op)) {
+        val inferredNoiseShape = if (noiseShape == null) Basic.shape(input) else noiseShape
+        // Uniform random variable in [keepProbability, 1.0 + keepProbability).
+        val probability = Basic.constant(keepProbability, input.dataType)
+        val random = Random.randomUniform(
+          input.dataType, inferredNoiseShape, minValue = probability, maxValue = probability + 1.0, seed = seed)
+        // 0.0 if in [keepProbability, 1.0) and 1.0 if [1.0, 1.0 + keepProbability).
+        val binaryTensor = Math.floor(random)
+        val output = Math.divide(input, probability) * binaryTensor
+        output.setShape(input.shape)
+        output
+      }
     }
   }
 

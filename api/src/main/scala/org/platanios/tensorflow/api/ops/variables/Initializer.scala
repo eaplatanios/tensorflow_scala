@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops.variables
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.ShapeMismatchException
-import org.platanios.tensorflow.api.ops.{Basic, Output}
+import org.platanios.tensorflow.api.ops.{Basic, Output, Random}
 import org.platanios.tensorflow.api.ops.variables.Variable.PartitionInformation
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.DataType
@@ -102,5 +102,15 @@ private[api] case class DynamicConstantInitializer(value: Output) extends Initia
       throw ShapeMismatchException(
         s"The constant value shape '${this.shape}' is not compatible with the requested shape '$shape'.")
     }
+  }
+}
+
+/** Initializer that sets the value of the variable to a `value` drawn from a uniform distribution. */
+private[api] case class RandomUniformInitializer(
+    minValue: Tensor, maxValue: Tensor, seed: Option[Int] = None) extends Initializer {
+  @throws[ShapeMismatchException]
+  override def initialValue(shape: Shape, dataType: DataType, partitionInfo: PartitionInformation): Output = {
+    Random.randomUniform(
+      dataType, shape, minValue = minValue, maxValue = maxValue, seed = seed, name = "RandomUniformInitializer")
   }
 }

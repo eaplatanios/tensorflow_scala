@@ -33,6 +33,7 @@ package object ops {
           with Math
           with NN
           with Text
+          with Random
           with Sparse
           with variables.API {
     type Op = ops.Op
@@ -54,6 +55,7 @@ package object ops {
     ops.Logging.Gradients
     ops.Math.Gradients
     ops.NN.Gradients
+    ops.Random.Gradients
     ops.variables.Variable.Gradients
 
     //region Op Construction Aliases
