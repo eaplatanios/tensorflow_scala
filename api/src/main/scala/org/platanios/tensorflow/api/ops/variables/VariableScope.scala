@@ -217,11 +217,10 @@ object VariableScope {
       cachingDevice = if (cachingDevice == null) variableScope.cachingDevice else cachingDevice,
       nameScope = name,
       customGetter = {
-        if (customGetter == null) {
+        if (customGetter == null)
           variableScope.customGetter
-        } else {
+        else
           maybeWrapCustomVariableGetter(customGetter, variableScope.customGetter)
-        }
       })
     val result = {
       if (isPure)
@@ -272,11 +271,10 @@ object VariableScope {
       cachingDevice = if (cachingDevice == null) variableScope.cachingDevice else cachingDevice,
       nameScope = variableScope.nameScope,
       customGetter = {
-        if (customGetter == null) {
+        if (customGetter == null)
           variableScope.customGetter
-        } else {
+        else
           maybeWrapCustomVariableGetter(customGetter, variableScope.customGetter)
-        }
       })
     val result = {
       if (isPure)
