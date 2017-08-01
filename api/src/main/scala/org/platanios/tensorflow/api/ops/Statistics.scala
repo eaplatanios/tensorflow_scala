@@ -148,17 +148,17 @@ trait Statistics {
         // Note that we use keepDims = true for our reductions regardless of the provided function argument. This is so
         // that the results remain broadcast-compatible with the inputs.
         val weightedInputSum = Math.sum(
-          weights * preciseInput, axes = dynamicAxes, keepDims = true, name = "WeightedInputsSum")
+          preciseWeights * preciseInput, axes = dynamicAxes, keepDims = true, name = "WeightedInputsSum")
         // The shape of the weights isn't necessarily the same as the input shape; it is just broadcast-compatible with
         // it. So, this expression performs broadcasting to give a per-item weight, with the same shape as
         // (weights * input). This avoids having to reason through all the broadcast logic to compute a correct sum of
         // weights.
-        val broadcastedWeights = weights + Basic.zerosLike(preciseInput)
+        val broadcastedWeights = preciseWeights + Basic.zerosLike(preciseInput)
         val weightsSum = Math.sum(broadcastedWeights, axes = dynamicAxes, keepDims = true, name = "WeightsSum")
         val divisor = Math.reciprocal(weightsSum, name = "Divisor")
         var mean = Math.multiply(weightedInputSum, divisor, name = "Mean")
         var variance = Math.multiply(Math.mean(
-          weights * Math.squaredDifference(mean, Basic.stopGradient(preciseInput)),
+          preciseWeights * Math.squaredDifference(mean, Basic.stopGradient(preciseInput)),
           axes = dynamicAxes, keepDims = true), divisor, name = "Variance")
         if (!keepDims) {
           mean = Basic.squeeze(mean, axes)
