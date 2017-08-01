@@ -36,7 +36,8 @@ import scala.util.DynamicVariable
   * Many of the arguments we need for `getVariable` in a variable store are most easily handled with a context.
   * [[VariableScope]] objects are used for the defaults.
   *
-  * @param  reuse         Boolean value indicating whether to reuse existing variables with the same name.
+  * @param  reuse         [[Reuse]] value indicating whether to re-use an existing variable with the same name, create a
+  *                       new variable, or do either.
   * @param  name          Name of the variable scope, used as a prefix in `getVariable`.
   * @param  initializer   Default initializer passed to `getVariable`.
   * @param  regularizer   Default regularizer passed to `getVariable`.
@@ -49,7 +50,7 @@ import scala.util.DynamicVariable
   * @author Emmanouil Antonios Platanios
   */
 case class VariableScope(
-    reuse: java.lang.Boolean,
+    reuse: Reuse,
     name: String = "",
     dataType: DataType = null,
     initializer: Initializer = null,
@@ -72,9 +73,8 @@ case class VariableScope(
     * @param  trainable     If `true`, the default, the variable is added to the graph collection
     *                       `Graph.Keys.TRAINABLE_VARIABLES`. This collection is used as the default set of variables
     *                       to use by the optimizers.
-    * @param  reuse         Boolean value indicating whether to re-use an existing variable with the same name.
-    *                       - Set `reuse` to `true` when you only want to reuse existing variables.
-    *                       - Set `reuse` to `false` when you only want to create new variables.
+    * @param  reuse         [[Reuse]] value indicating whether to re-use an existing variable with the same name, create
+    *                       a new variable, or do either.
     *                       - If `reuse` is `null` (the default), both new and existing variables are returned.
     * @param  collections   Set of graph collections keys. The variable is added to these collections. Defaults to
     *                       `Set(Graph.Keys.GLOBAL_VARIABLES)`.
@@ -95,7 +95,7 @@ case class VariableScope(
   private[variables] def getVariable(
       store: VariableStore, name: String, dataType: DataType = this.dataType, shape: Shape = null,
       initializer: Initializer = this.initializer, regularizer: Regularizer = this.regularizer,
-      trainable: Boolean = true, reuse: java.lang.Boolean = this.reuse,
+      trainable: Boolean = true, reuse: Reuse = this.reuse,
       collections: Set[Graph.Key[Variable]] = Set.empty,
       cachingDevice: OpSpecification => String = this.cachingDevice): Variable = {
     val fullName = if (this.name != null && this.name != "") s"${this.name}/$name" else name
@@ -125,10 +125,8 @@ case class VariableScope(
     * @param  trainable     If `true`, the default, the variable is added to the graph collection
     *                       `Graph.Keys.TRAINABLE_VARIABLES`. This collection is used as the default set of variables
     *                       to use by the optimizers.
-    * @param  reuse         Boolean value indicating whether to re-use an existing variable with the same name.
-    *                       - Set `reuse` to `true` when you only want to reuse existing variables.
-    *                       - Set `reuse` to `false` when you only want to create new variables.
-    *                       - If `reuse` is `null` (the default), both new and existing variables are returned.
+    * @param  reuse         [[Reuse]] value indicating whether to re-use an existing variable with the same name, create
+    *                       a new variable, or do either.
     * @param  collections   Set of graph collections keys. The variable is added to these collections. Defaults to
     *                       `Set(Graph.Keys.GLOBAL_VARIABLES)`.
     * @param  cachingDevice Device specification describing where the variable should be cached for reading. Defaults
@@ -149,7 +147,7 @@ case class VariableScope(
       store: VariableStore, name: String, dataType: DataType = this.dataType, shape: Shape = null,
       initializer: Initializer = this.initializer, regularizer: Regularizer = this.regularizer,
       partitioner: Partitioner = this.partitioner, trainable: Boolean = true,
-      reuse: java.lang.Boolean = this.reuse, collections: Set[Graph.Key[Variable]] = Set.empty,
+      reuse: Reuse = this.reuse, collections: Set[Graph.Key[Variable]] = Set.empty,
       cachingDevice: OpSpecification => String = this.cachingDevice): PartitionedVariable = {
     if (customGetter != null)
       throw new IllegalArgumentException(
@@ -171,8 +169,10 @@ object VariableScope {
     *
     * @param  name          Variable scope name, that may also change the name scope of the op creation context,
     *                       depending on the value of `isPure`.
-    * @param  reuse         If `true`, we go into variable reuse mode for this scope as well as all sub-scopes. If
-    *                       `null`, we just inherit the parent variable scope reuse mode.
+    * @param  reuse         [[Reuse]] value indicating whether to re-use an existing variable with the same name, or do
+    *                       either. Note that this argument cannot be set to [[CreateNewOnly]] in this function. If set
+    *                       to [[ReuseOrCreateNew]], then the parent variable scope `reuse` value is used (i.e..
+    *                       propagated).
     * @param  dataType      Default data type for variables within the scope.
     * @param  initializer   Default initializer for variables within the scope.
     * @param  regularizer   Default regularizer for variables within the scope.
@@ -180,8 +180,8 @@ object VariableScope {
     * @param  cachingDevice Default caching device for variables within the scope.
     * @param  customGetter  Default variable getter for variables within the scope.
     * @param  isDefaultName Boolean value indicating whether `name` is a default name or not. If `true`, then `name`
-    *                       will be made unique before being used. `isDefaultName` and `reuse` cannot both be set to
-    *                       `true` at the same time.
+    *                       will be made unique before being used. `isDefaultName` cannot be set to `true` when `reuse`
+    *                       is set to [[ReuseExistingOnly]].
     * @param  isPure        Boolean value indicating whether to use a "pure" variable scope. That is, a variable scope
     *                       that does not affect the name scope of the current op creation context.
     * @param  block         Code block to run using the provided options.
@@ -190,13 +190,13 @@ object VariableScope {
     * @return Return value of the code block.
     */
   private[api] def createWithVariableScope[R](
-      name: String, reuse: java.lang.Boolean = null, dataType: DataType = null, initializer: Initializer = null,
+      name: String, reuse: ReuseAllowed = ReuseOrCreateNew, dataType: DataType = null, initializer: Initializer = null,
       regularizer: Regularizer = null, partitioner: Partitioner = null, cachingDevice: OpSpecification => String = null,
       customGetter: VariableGetter = null, isDefaultName: Boolean = false, isPure: Boolean = false)
       (block: => R)(implicit context: DynamicVariable[OpCreationContext]): R = {
-    // TODO: !!! REUSE CANNOT BE FALSE. SEE THE PYTHON API DOCUMENTATION FOR REFERENCE.
-    if (reuse != null && reuse && isDefaultName)
-      throw new IllegalArgumentException("'reuse' and 'isDefaultName' cannot both be 'false'.")
+    if (reuse == ReuseExistingOnly && isDefaultName)
+      throw new IllegalArgumentException(
+        "'reuse' cannot be set to 'ReuseExistingOnly' with 'isDefaultName' set to 'true'.")
     val variableStore = context.graph.variableStore
     val variableScope = context.variableScope
     val newName = {
@@ -208,7 +208,7 @@ object VariableScope {
     }
     variableStore.enterVariableScope(variableScope.name)
     val newVariableScope = VariableScope(
-      reuse = if (reuse == null) variableScope.reuse else reuse,
+      reuse = if (reuse == ReuseOrCreateNew) variableScope.reuse else reuse,
       name = newName,
       dataType = if (dataType == null) variableScope.dataType else dataType,
       initializer = if (initializer == null) variableScope.initializer else initializer,
@@ -237,8 +237,10 @@ object VariableScope {
     *
     * @param  variableScope Default variable scope to use. Other arguments of this function can override the
     *                       corresponding parameters of `variableScope`.
-    * @param  reuse         If `true`, we go into variable reuse mode for this scope as well as all sub-scopes. If
-    *                       `null`, we just inherit the parent variable scope reuse mode.
+    * @param  reuse         [[Reuse]] value indicating whether to re-use an existing variable with the same name, or do
+    *                       either. Note that this argument cannot be set to [[CreateNewOnly]] in this function. If set
+    *                       to [[ReuseOrCreateNew]], then the parent variable scope `reuse` value is used (i.e..
+    *                       propagated).
     * @param  dataType      Default data type for variables within the scope.
     * @param  initializer   Default initializer for variables within the scope.
     * @param  regularizer   Default regularizer for variables within the scope.
@@ -253,7 +255,7 @@ object VariableScope {
     * @return Return value of the code block.
     */
   private[api] def createWithUpdatedVariableScope[R](
-      variableScope: VariableScope, reuse: java.lang.Boolean = null, dataType: DataType = null,
+      variableScope: VariableScope, reuse: ReuseAllowed = ReuseOrCreateNew, dataType: DataType = null,
       initializer: Initializer = null, regularizer: Regularizer = null, partitioner: Partitioner = null,
       cachingDevice: OpSpecification => String = null, customGetter: VariableGetter = null, isPure: Boolean = false)
       (block: => R)(implicit context: DynamicVariable[OpCreationContext]): R = {
@@ -261,7 +263,7 @@ object VariableScope {
     val subScopeCounts = variableStore.getVariableSubScopeCounts(variableScope.name)
     variableStore.enterVariableScope(variableScope.name)
     val newVariableScope = VariableScope(
-      reuse = if (reuse == null) variableScope.reuse else reuse,
+      reuse = if (reuse == ReuseOrCreateNew) variableScope.reuse else reuse,
       name = variableScope.name,
       dataType = if (dataType == null) variableScope.dataType else dataType,
       initializer = if (initializer == null) variableScope.initializer else initializer,
@@ -302,12 +304,12 @@ object VariableScope {
       new VariableGetter {
         override def apply(
             name: String, dataType: DataType, shape: Shape, initializer: Initializer, regularizer: Regularizer,
-            trainable: Boolean, reuse: java.lang.Boolean, collections: Set[Graph.Key[Variable]],
+            trainable: Boolean, reuse: Reuse, collections: Set[Graph.Key[Variable]],
             cachingDevice: (OpSpecification) => String, customGetter: VariableGetter): Variable = {
           val g: VariableGetter = new VariableGetter {
             override def apply(n: String, dt: DataType, s: Shape, init: Initializer, reg: Regularizer,
-                train: Boolean, reuse: java.lang.Boolean, colls: Set[Graph.Key[Variable]],
-                cDevice: (OpSpecification) => String, cg: VariableGetter): Variable = {
+                train: Boolean, reuse: Reuse, colls: Set[Graph.Key[Variable]], cDevice: (OpSpecification) => String,
+                cg: VariableGetter): Variable = {
               oldGetter(n, dt, s, init, reg, train, reuse, colls, cDevice, customGetter)
             }
           }

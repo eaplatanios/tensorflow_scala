@@ -16,7 +16,6 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.{Graph, Shape}
-import org.platanios.tensorflow.api.ops.variables.Saver
 import org.platanios.tensorflow.api.ops.variables.Saver.{V2, WriterVersion}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.{DataType, FLOAT32}
@@ -28,6 +27,8 @@ package object variables {
   private[api] trait API {
     type Variable = variables.Variable
     type PartitionedVariable = variables.PartitionedVariable
+    type VariableReuse = variables.Reuse
+    type VariableReuseAllowed = variables.ReuseAllowed
     type VariableGetter = variables.Variable.VariableGetter
     type VariableInitializer = variables.Initializer
     type VariableRegularizer = variables.Regularizer
@@ -35,9 +36,12 @@ package object variables {
     type VariableStore = variables.VariableStore
     type VariableScope = variables.VariableScope
 
-    val Variable      = variables.Variable
-    val VariableStore = variables.VariableStore
-    val VariableScope = variables.VariableScope
+    val Variable                  = variables.Variable
+    val ReuseExistingVariableOnly = variables.ReuseExistingOnly
+    val CreateNewVariableOnly     = variables.CreateNewOnly
+    val ReuseOrCreateNewVariable  = variables.ReuseExistingOnly
+    val VariableStore             = variables.VariableStore
+    val VariableScope             = variables.VariableScope
 
     val zerosInitializer: Initializer = variables.ZerosInitializer
     val onesInitializer : Initializer = variables.OnesInitializer
@@ -71,7 +75,7 @@ package object variables {
 
     def variable(
         name: String, dataType: DataType = FLOAT32, shape: Shape = null, initializer: VariableInitializer = null,
-        regularizer: VariableRegularizer = null, trainable: Boolean = true, reuse: java.lang.Boolean = null,
+        regularizer: VariableRegularizer = null, trainable: Boolean = true, reuse: Reuse = ReuseOrCreateNew,
         collections: Set[Graph.Key[Variable]] = Set.empty,
         cachingDevice: OpSpecification => String = null): Variable = {
       Variable.getVariable(
@@ -81,7 +85,7 @@ package object variables {
     def partitionedVariable(
         name: String, dataType: DataType = FLOAT32, shape: Shape = null, initializer: VariableInitializer = null,
         regularizer: VariableRegularizer = null, partitioner: VariablePartitioner, trainable: Boolean = true,
-        reuse: java.lang.Boolean = null, collections: Set[Graph.Key[Variable]] = Set.empty,
+        reuse: Reuse = ReuseOrCreateNew, collections: Set[Graph.Key[Variable]] = Set.empty,
         cachingDevice: OpSpecification => String = null): PartitionedVariable = {
       Variable.getPartitionedVariable(
         name, dataType, shape, initializer, regularizer, partitioner, trainable, reuse, collections, cachingDevice)
@@ -89,7 +93,7 @@ package object variables {
 
     def localVariable(
         name: String, dataType: DataType = FLOAT32, shape: Shape = null, initializer: VariableInitializer = null,
-        regularizer: VariableRegularizer = null, reuse: java.lang.Boolean = null,
+        regularizer: VariableRegularizer = null, reuse: Reuse = ReuseOrCreateNew,
         collections: Set[Graph.Key[Variable]] = Set.empty,
         cachingDevice: OpSpecification => String = null): Variable = {
       Variable.getLocalVariable(name, dataType, shape, initializer, regularizer, reuse, collections, cachingDevice)
@@ -97,7 +101,7 @@ package object variables {
 
     def localPartitionedVariable(
         name: String, dataType: DataType = FLOAT32, shape: Shape = null, initializer: VariableInitializer = null,
-        regularizer: VariableRegularizer = null, partitioner: VariablePartitioner, reuse: java.lang.Boolean = null,
+        regularizer: VariableRegularizer = null, partitioner: VariablePartitioner, reuse: Reuse = ReuseOrCreateNew,
         collections: Set[Graph.Key[Variable]] = Set.empty,
         cachingDevice: OpSpecification => String = null): PartitionedVariable = {
       Variable.getLocalPartitionedVariable(

@@ -293,10 +293,8 @@ object Variable {
     * @param  trainable     If `true`, the default, the variable is added to the graph collection
     *                       `Graph.Keys.TRAINABLE_VARIABLES`. This collection is used as the default set of variables
     *                       to use by the optimizers.
-    * @param  reuse         Boolean value indicating whether to re-use an existing variable with the same name.
-    *                       - Set `reuse` to `true` when you only want to reuse existing variables.
-    *                       - Set `reuse` to `false` when you only want to create new variables.
-    *                       - If `reuse` is `null` (the default), both new and existing variables are returned.
+    * @param  reuse         [[Reuse]] value indicating whether to re-use an existing variable with the same name, create
+    *                       a new variable, or do either.
     * @param  collections   Set of graph collections keys. The variable is added to these collections. Defaults to
     *                       `Set(Graph.Keys.GLOBAL_VARIABLES)`.
     * @param  cachingDevice Device specification describing where the variable should be cached for reading. Defaults
@@ -306,7 +304,7 @@ object Variable {
     */
   private[ops] def getVariable(
       name: String, dataType: DataType = FLOAT32, shape: Shape = null, initializer: Initializer = null,
-      regularizer: Regularizer = null, trainable: Boolean = true, reuse: java.lang.Boolean = null,
+      regularizer: Regularizer = null, trainable: Boolean = true, reuse: Reuse = ReuseOrCreateNew,
       collections: Set[Graph.Key[Variable]] = Set.empty, cachingDevice: OpSpecification => String = null): Variable = {
     Op.currentVariableScope.getVariable(
       Op.currentVariableStore, name, dataType, shape, initializer, regularizer, trainable, reuse, collections,
@@ -334,10 +332,8 @@ object Variable {
     * @param  trainable     If `true`, the default, the variable is added to the graph collection
     *                       `Graph.Keys.TRAINABLE_VARIABLES`. This collection is used as the default set of variables
     *                       to use by the optimizers.
-    * @param  reuse         Boolean value indicating whether to re-use an existing variable with the same name.
-    *                       - Set `reuse` to `true` when you only want to reuse existing variables.
-    *                       - Set `reuse` to `false` when you only want to create new variables.
-    *                       - If `reuse` is `null` (the default), both new and existing variables are returned.
+    * @param  reuse         [[Reuse]] value indicating whether to re-use an existing variable with the same name, create
+    *                       a new variable, or do either.
     * @param  collections   Set of graph collections keys. The variable is added to these collections. Defaults to
     *                       `Set(Graph.Keys.GLOBAL_VARIABLES)`.
     * @param  cachingDevice Device specification describing where the variable should be cached for reading. Defaults
@@ -348,7 +344,7 @@ object Variable {
   private[ops] def getPartitionedVariable(
       name: String, dataType: DataType = FLOAT32, shape: Shape = null, initializer: Initializer = null,
       regularizer: Regularizer = null, partitioner: Partitioner = null, trainable: Boolean = true,
-      reuse: java.lang.Boolean = null, collections: Set[Graph.Key[Variable]] = Set.empty,
+      reuse: Reuse = ReuseOrCreateNew, collections: Set[Graph.Key[Variable]] = Set.empty,
       cachingDevice: OpSpecification => String = null): PartitionedVariable = {
     Op.currentVariableScope.getPartitionedVariable(
       Op.currentVariableStore, name, dataType, shape, initializer, regularizer, partitioner, trainable, reuse,
@@ -371,10 +367,8 @@ object Variable {
     *                       `glorotUniformInitializer`. The initializer will be called for each part of the partitioned
     *                       variable separately.
     * @param  regularizer   Variable regularizer.
-    * @param  reuse         Boolean value indicating whether to re-use an existing variable with the same name.
-    *                       - Set `reuse` to `true` when you only want to reuse existing variables.
-    *                       - Set `reuse` to `false` when you only want to create new variables.
-    *                       - If `reuse` is `null` (the default), both new and existing variables are returned.
+    * @param  reuse         [[Reuse]] value indicating whether to re-use an existing variable with the same name, create
+    *                       a new variable, or do either.
     * @param  collections   Set of graph collections keys. The variable is added to these collections. Defaults to
     *                       `Set(Graph.Keys.GLOBAL_VARIABLES)`.
     * @param  cachingDevice Device specification describing where the variable should be cached for reading. Defaults
@@ -384,7 +378,7 @@ object Variable {
     */
   private[ops] def getLocalVariable(
       name: String, dataType: DataType = FLOAT32, shape: Shape = null, initializer: Initializer = null,
-      regularizer: Regularizer = null, reuse: java.lang.Boolean = null,
+      regularizer: Regularizer = null, reuse: Reuse = ReuseOrCreateNew,
       collections: Set[Graph.Key[Variable]] = Set.empty, cachingDevice: OpSpecification => String = null): Variable = {
     Op.currentVariableScope.getVariable(
       Op.currentVariableStore, name, dataType, shape, initializer, regularizer, trainable = false, reuse,
@@ -411,10 +405,8 @@ object Variable {
     *                       `partitions`). These integers describe how to partition the given variable, along the each
     *                       dimension. That is, `partitions(1) = 3` means that we split the variable into `3` parts
     *                       along dimension `1`. Currently, partitioning along only a single axis is supported.
-    * @param  reuse         Boolean value indicating whether to re-use an existing variable with the same name.
-    *                       - Set `reuse` to `true` when you only want to reuse existing variables.
-    *                       - Set `reuse` to `false` when you only want to create new variables.
-    *                       - If `reuse` is `null` (the default), both new and existing variables are returned.
+    * @param  reuse         [[Reuse]] value indicating whether to re-use an existing variable with the same name, create
+    *                       a new variable, or do either.
     * @param  collections   Set of graph collections keys. The variable is added to these collections. Defaults to
     *                       `Set(Graph.Keys.GLOBAL_VARIABLES)`.
     * @param  cachingDevice Device specification describing where the variable should be cached for reading. Defaults
@@ -424,7 +416,7 @@ object Variable {
     */
   private[ops] def getLocalPartitionedVariable(
       name: String, dataType: DataType = FLOAT32, shape: Shape, initializer: Initializer = null,
-      regularizer: Regularizer = null, partitioner: Partitioner = null, reuse: java.lang.Boolean = null,
+      regularizer: Regularizer = null, partitioner: Partitioner = null, reuse: Reuse = ReuseOrCreateNew,
       collections: Set[Graph.Key[Variable]] = Set.empty,
       cachingDevice: OpSpecification => String = null): PartitionedVariable = {
     Op.currentVariableScope.getPartitionedVariable(
@@ -539,7 +531,7 @@ object Variable {
           Initializer, // initializer
           Regularizer, // regularizer
           Boolean, // trainable
-          java.lang.Boolean, // reuse
+          Reuse, // reuse
           Set[Graph.Key[Variable]], // collections
           OpSpecification => String, // cachingDevice
           VariableGetter) // variableGetter
@@ -547,7 +539,7 @@ object Variable {
 
     def apply(
         name: String, dataType: DataType = FLOAT32, shape: Shape = null, initializer: Initializer = null,
-        regularizer: Regularizer = null, trainable: Boolean = true, reuse: java.lang.Boolean = null,
+        regularizer: Regularizer = null, trainable: Boolean = true, reuse: Reuse = ReuseOrCreateNew,
         collections: Set[Graph.Key[Variable]] = Set.empty, cachingDevice: OpSpecification => String = null,
         customGetter: VariableGetter = null): Variable
   }

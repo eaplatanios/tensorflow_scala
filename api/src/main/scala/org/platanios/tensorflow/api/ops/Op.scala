@@ -19,7 +19,7 @@ import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.core.{DeviceSpecification, Graph, Shape}
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception._
-import org.platanios.tensorflow.api.ops.variables.{VariableScope, VariableStore}
+import org.platanios.tensorflow.api.ops.variables.{CreateNewOnly, VariableScope, VariableStore}
 import org.platanios.tensorflow.api.tensors.TensorFlowNative.{NativeView => TensorNativeView}
 import org.platanios.tensorflow.api.types.DataType
 import org.platanios.tensorflow.jni.{Op => NativeOp}
@@ -275,7 +275,7 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
 final case class OpSpecification(name: String, opType: String)
 
 private[api] final case class OpCreationContext(
-    graph: Graph = Graph(), nameScope: String = "", variableScope: VariableScope = VariableScope(reuse = false),
+    graph: Graph = Graph(), nameScope: String = "", variableScope: VariableScope = VariableScope(reuse = CreateNewOnly),
     device: OpSpecification => String = _ => "", colocationOps: Set[Op] = Set.empty,
     controlDependencies: Set[Op] = Set.empty, attributes: Map[String, Any] = Map.empty, container: String = "") // TODO: !!! Use containers.
 

@@ -105,10 +105,8 @@ case class VariableStore() {
     * @param  trainable     If `true`, the default, the variable is added to the graph collection
     *                       `Graph.Keys.TRAINABLE_VARIABLES`. This collection is used as the default set of variables
     *                       to use by the optimizers.
-    * @param  reuse         Boolean value indicating whether to re-use an existing variable with the same name.
-    *                       - Set `reuse` to `true` when you only want to reuse existing variables.
-    *                       - Set `reuse` to `false` when you only want to create new variables.
-    *                       - If `reuse` is `null` (the default), both new and existing variables are returned.
+    * @param  reuse         [[Reuse]] value indicating whether to re-use an existing variable with the same name, create
+    *                       a new variable, or do either.
     * @param  collections   Set of graph collections keys. The variable is added to these collections. Defaults to
     *                       `Set(Graph.Keys.GLOBAL_VARIABLES)`.
     * @param  cachingDevice Device specification describing where the variable should be cached for reading. Defaults
@@ -132,7 +130,7 @@ case class VariableStore() {
   @throws[InvalidDataTypeException]
   def getVariable(
       name: String, dataType: DataType = FLOAT32, shape: Shape = null, initializer: Initializer = null,
-      regularizer: Regularizer = null, trainable: Boolean = true, reuse: java.lang.Boolean = null,
+      regularizer: Regularizer = null, trainable: Boolean = true, reuse: Reuse = ReuseOrCreateNew,
       collections: Set[Graph.Key[Variable]] = Set.empty, cachingDevice: OpSpecification => String = null,
       customGetter: VariableGetter = null): Variable = {
     /** This function defines the main logic of 'getVariable'. However, 'customGetter' may override this logic. That is
@@ -141,7 +139,7 @@ case class VariableStore() {
       new VariableGetter {
         override def apply(
             name: String, dataType: DataType, shape: Shape, initializer: Initializer, regularizer: Regularizer,
-            trainable: Boolean, reuse: java.lang.Boolean, collections: Set[Graph.Key[Variable]],
+            trainable: Boolean, reuse: Reuse, collections: Set[Graph.Key[Variable]],
             cachingDevice: (OpSpecification) => String, customGetter: VariableGetter): Variable = {
           // Single variable case.
           if (variables.contains(s"$name/part_0"))
@@ -150,9 +148,9 @@ case class VariableStore() {
                   s"the variable store. Perhaps a variable of the same name was already created with partitioning?")
           if (variables.contains(name)) {
             // Here we handle the case of returning an existing variable.
-            if (reuse != null && !reuse)
+            if (reuse == CreateNewOnly)
               throw new IllegalArgumentException(
-                s"Variable '$name' already exists, but variable scope re-use was set to 'false'.")
+                s"Variable '$name' already exists, but variable scope re-use was set to 'CreateNewOnly'.")
             val foundVariable = variables(name)
             if (shape != null && !shape.isCompatibleWith(foundVariable.shape))
               throw ShapeMismatchException(
@@ -165,9 +163,9 @@ case class VariableStore() {
             foundVariable
           } else {
             // Here we handle the case of creating a new variable.
-            if (reuse != null && reuse)
+            if (reuse == ReuseExistingOnly)
               throw new IllegalArgumentException(
-                s"Variable '$name' does not exist, but variable scope re-use was set to 'false'.")
+                s"Variable '$name' does not exist, but variable scope re-use was set to 'ReuseExistingOnly'.")
             if (shape != null && !shape.isFullyDefined)
               throw new IllegalArgumentException(
                 s"The shape of a new variable ('$name') must be fully defined, but instead it was set to '$shape'.")
@@ -213,10 +211,8 @@ case class VariableStore() {
     * @param  trainable     If `true`, the default, the variable is added to the graph collection
     *                       `Graph.Keys.TRAINABLE_VARIABLES`. This collection is used as the default set of variables
     *                       to use by the optimizers.
-    * @param  reuse         Boolean value indicating whether to re-use an existing variable with the same name.
-    *                       - Set `reuse` to `true` when you only want to reuse existing variables.
-    *                       - Set `reuse` to `false` when you only want to create new variables.
-    *                       - If `reuse` is `null` (the default), both new and existing variables are returned.
+    * @param  reuse         [[Reuse]] value indicating whether to re-use an existing variable with the same name, create
+    *                       a new variable, or do either.
     * @param  collections   Set of graph collections keys. The variable is added to these collections. Defaults to
     *                       `Set(Graph.Keys.GLOBAL_VARIABLES)`.
     * @param  cachingDevice Device specification describing where the variable should be cached for reading. Defaults
@@ -236,7 +232,7 @@ case class VariableStore() {
   def getPartitionedVariable(
       name: String, dataType: DataType = FLOAT32, shape: Shape = null, initializer: Initializer = null,
       regularizer: Regularizer = null, partitioner: Partitioner = null, trainable: Boolean = true,
-      reuse: java.lang.Boolean = null, collections: Set[Graph.Key[Variable]] = Set.empty,
+      reuse: Reuse = ReuseOrCreateNew, collections: Set[Graph.Key[Variable]] = Set.empty,
       cachingDevice: OpSpecification => String = null): PartitionedVariable = {
     Op.createWithNameScope("") {
       if (variables.contains(name))
@@ -260,9 +256,9 @@ case class VariableStore() {
       }
       if (partitionedVariables.contains(name)) {
         // Here we handle the case of returning an existing variable.
-        if (reuse != null && !reuse)
+        if (reuse == CreateNewOnly)
           throw new IllegalArgumentException(
-            s"Partitioned variable '$name' already exists, but variable scope re-use was set to 'false'.")
+            s"Partitioned variable '$name' already exists, but variable scope re-use was set to 'CreateNewOnly'.")
         val foundVariable = partitionedVariables(name)
         if (!shape.isCompatibleWith(foundVariable.shape))
           throw ShapeMismatchException(
@@ -279,9 +275,9 @@ case class VariableStore() {
         foundVariable
       } else {
         // Here we handle the case of creating a new variable.
-        if (reuse != null && reuse)
+        if (reuse == ReuseExistingOnly)
           throw new IllegalArgumentException(
-            s"Partitioned variable '$name' does not exist, but variable scope re-use was set to 'false'.")
+            s"Partitioned variable '$name' does not exist, but variable scope re-use was set to 'ReuseExistingOnly'.")
         if (partitions == null)
           throw new IllegalArgumentException(
             s"Trying to create a new partitioned variable, but the partitioner returned '$partitions'.")

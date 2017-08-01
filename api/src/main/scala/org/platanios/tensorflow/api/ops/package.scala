@@ -107,7 +107,7 @@ package object ops {
     }
 
     def createWithVariableScope[R](
-        name: String, reuse: java.lang.Boolean = null, dataType: DataType = null,
+        name: String, reuse: VariableReuseAllowed = ReuseOrCreateNewVariable, dataType: DataType = null,
         initializer: VariableInitializer = null, regularizer: VariableRegularizer = null,
         partitioner: VariablePartitioner = null, cachingDevice: OpSpecification => String = null,
         customGetter: VariableGetter = null, isDefaultName: Boolean = false, isPure: Boolean = false)
@@ -118,7 +118,7 @@ package object ops {
     }
 
     def createWithUpdatedVariableScope[R](
-        variableScope: VariableScope, reuse: java.lang.Boolean = null, dataType: DataType = null,
+        variableScope: VariableScope, reuse: VariableReuseAllowed = ReuseOrCreateNewVariable, dataType: DataType = null,
         initializer: VariableInitializer = null, regularizer: VariableRegularizer = null,
         partitioner: VariablePartitioner = null, cachingDevice: OpSpecification => String = null,
         customGetter: VariableGetter = null, isPure: Boolean = false)(block: => R): R = {
