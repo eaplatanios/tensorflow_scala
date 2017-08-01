@@ -307,7 +307,9 @@ final class Shape private (private val array: Array[Int]) extends OutputConverti
     * @return One-dimensional tensor representing this shape.
     */
   def toTensor(dataType: DataType = INT32): Tensor = {
-    if (rank == 1)
+    if (rank == 0)
+      Tensor(dataType)
+    else if (rank == 1)
       Tensor(dataType, array(0))
     else
       Tensor.fromSeq(dataType, asArray: _*)
@@ -317,7 +319,7 @@ final class Shape private (private val array: Array[Int]) extends OutputConverti
     *
     * @return One-dimensional op output tensor representing this shape.
     */
-  def toOutput: Output = toOutput(dataType = INT32, name = "Shape")
+  def toOutput: Output = toOutput(dataType = INT32)
 
   /** Converts this shape to a one-dimensional "symbolic" tensor (i.e., a constant-valued op output).
     *
