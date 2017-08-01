@@ -84,7 +84,7 @@ case class Variable private (
     if (cachedValue != null) {
       cachedValue
     } else {
-      Op.createWith(nameScope = name, colocationOps = Set.empty[Op], device = null) {
+      Op.createWith(colocationOps = Set.empty[Op], device = null) {
         // Manually assign reads to the handle's device to avoid log messages
         Op.createWith(device = handle.device)(Variable.readVariable(handle, dataType))
       }
@@ -105,7 +105,7 @@ case class Variable private (
     * @return Created op.
     */
   def read(name: String = "Read"): Output = {
-    val value = Op.createWith(nameScope = this.name, device = handle.device) { // TODO: Reset colocation ops?
+    val value = Op.createWith(nameScope = name, device = handle.device) {
       Variable.readVariable(handle, dataType, name)
     }
     // Return an identity op so that it can get placed on whatever device the context specifies instead of the device
@@ -123,7 +123,7 @@ case class Variable private (
     * @return Created op.
     */
   def sparseRead(indices: Output, name: String = "Gather"): Output = {
-    val value = Op.createWith(nameScope = this.name, device = handle.device) { // TODO: Reset colocation ops?
+    val value = Op.createWith(nameScope = name, device = handle.device) {
       Variable.gather(handle, indices, dataType, validateIndices = true, name)
     }
     // Return an identity op so that it can get placed on whatever device the context specifies instead of the device

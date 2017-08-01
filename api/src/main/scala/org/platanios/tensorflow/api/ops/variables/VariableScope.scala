@@ -208,6 +208,7 @@ object VariableScope {
     }
     variableStore.enterVariableScope(variableScope.name)
     val newVariableScope = VariableScope(
+      // TODO: !!! [VARIABLES] Have 'name' as first argument in order to be consistent.
       reuse = if (reuse == ReuseOrCreateNew) variableScope.reuse else reuse,
       name = newName,
       dataType = if (dataType == null) variableScope.dataType else dataType,

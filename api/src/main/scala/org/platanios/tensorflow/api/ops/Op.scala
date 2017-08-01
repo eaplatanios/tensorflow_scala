@@ -20,13 +20,14 @@ import org.platanios.tensorflow.api.core.{DeviceSpecification, Graph, Shape}
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.ops.variables.{CreateNewOnly, VariableScope, VariableStore}
+import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.tensors.TensorFlowNative.{NativeView => TensorNativeView}
 import org.platanios.tensorflow.api.types.DataType
 import org.platanios.tensorflow.jni.{Op => NativeOp}
-import spire.implicits._
-import java.nio.charset.Charset
 
-import org.platanios.tensorflow.api.tensors.Tensor
+import spire.implicits._
+
+import java.nio.charset.Charset
 
 import scala.collection.mutable
 import scala.util.DynamicVariable
