@@ -77,29 +77,29 @@ class GraphSpec extends FlatSpec with Matchers {
 
   "'preventFetching'" must "prevent valid ops from being fetched" in {
     val (graph, ops) = prepareGraph()
-    assert(graph.isFetchable(ops(0).outputs(0)))
-    assert(graph.isFetchable(ops(1).outputs(0)))
-    assert(graph.isFetchable(ops(2).outputs(0)))
-    assert(graph.isFetchable(ops(3).outputs(0)))
-    graph.preventFetching(ops(0).outputs(0))
-    assert(!graph.isFetchable(ops(0).outputs(0)))
-    assert(graph.isFetchable(ops(1).outputs(0)))
-    assert(graph.isFetchable(ops(2).outputs(0)))
-    assert(graph.isFetchable(ops(3).outputs(0)))
-    graph.preventFetching(ops(2).outputs(0))
-    assert(!graph.isFetchable(ops(0).outputs(0)))
-    assert(graph.isFetchable(ops(1).outputs(0)))
-    assert(!graph.isFetchable(ops(2).outputs(0)))
-    assert(graph.isFetchable(ops(3).outputs(0)))
+    assert(graph.isFetchable(ops(0)))
+    assert(graph.isFetchable(ops(1)))
+    assert(graph.isFetchable(ops(2)))
+    assert(graph.isFetchable(ops(3)))
+    graph.preventFetching(ops(0))
+    assert(!graph.isFetchable(ops(0)))
+    assert(graph.isFetchable(ops(1)))
+    assert(graph.isFetchable(ops(2)))
+    assert(graph.isFetchable(ops(3)))
+    graph.preventFetching(ops(2))
+    assert(!graph.isFetchable(ops(0)))
+    assert(graph.isFetchable(ops(1)))
+    assert(!graph.isFetchable(ops(2)))
+    assert(graph.isFetchable(ops(3)))
   }
 
   it must "throw a 'GraphMismatchException' when provided ops from other graphs" in {
     val (graph, ops) = prepareGraph()
     createWith(graph = Graph()) {
-      assert(intercept[GraphMismatchException](graph.isFetchable(constant(1.0))).getMessage ===
-                 "The provided op output does not belong to this graph.")
-      assert(intercept[GraphMismatchException](graph.preventFetching(constant(1.0))).getMessage ===
-                 "The provided op output does not belong to this graph.")
+      assert(intercept[GraphMismatchException](graph.isFetchable(constant(1.0).op)).getMessage ===
+                 "The provided op does not belong to this graph.")
+      assert(intercept[GraphMismatchException](graph.preventFetching(constant(1.0).op)).getMessage ===
+                 "The provided op does not belong to this graph.")
     }
   }
 

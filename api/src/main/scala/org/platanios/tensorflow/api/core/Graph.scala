@@ -23,6 +23,7 @@ import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.STRING
 import org.platanios.tensorflow.api.{Closeable, META_GRAPH_UNBOUND_INPUT_PREFIX, ProtoSerializable}
 import org.platanios.tensorflow.jni.{Graph => NativeGraph, TensorFlow => NativeLibrary}
+
 import com.google.protobuf.ByteString
 import org.tensorflow.framework.CollectionDef.{BytesList, Int64List, NodeList}
 import org.tensorflow.framework.MetaGraphDef.MetaInfoDef
@@ -105,9 +106,8 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable wi
   /** Set of all unfeedable ops in this graph. */
   private[this] val unfeedableOutputs: mutable.Set[Output] = mutable.Set.empty
 
-  // TODO: [GRAPH] Maybe this should contain ops rather than op outputs.
   /** Set of all unfetchable ops in this graph. */
-  private[this] val unfetchableOutputs: mutable.Set[Output] = mutable.Set.empty
+  private[this] val unfetchableOps: mutable.Set[Op] = mutable.Set.empty
 
   /** Removes the specified collection from this graph.
     *
@@ -295,16 +295,16 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable wi
     unfeedableOutputs += output
   }
 
-  /** Prevents the fetching of values to the provided op output, while running in a session.
+  /** Prevents the fetching of values to the provided op, while running in a session.
     *
-    * @param  output Op output whose fetching is prevented.
-    * @throws GraphMismatchException If the provided op output does not belong to this graph.
+    * @param  op Op whose fetching is prevented.
+    * @throws GraphMismatchException If the provided op does not belong to this graph.
     */
   @throws[GraphMismatchException]
-  private[api] def preventFetching(output: Output): Unit = {
-    if (output.graph != this)
-      throw GraphMismatchException("The provided op output does not belong to this graph.")
-    unfetchableOutputs += output
+  private[api] def preventFetching(op: Op): Unit = {
+    if (op.graph != this)
+      throw GraphMismatchException("The provided op does not belong to this graph.")
+    unfetchableOps += op
   }
 
   /** Returns `true` if the provided op output is allowed to be fed values, while running in a session.
@@ -320,17 +320,17 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable wi
     !unfeedableOutputs.contains(output)
   }
 
-  /** Returns `true` if the provided op output's value is allowed to be fetched, while running in a session.
+  /** Returns `true` if the provided op's value is allowed to be fetched, while running in a session.
     *
-    * @param  output Op output to check.
-    * @return Boolean value indicating whether `output`'s value is allowed to be fetched, while running in a session.
-    * @throws GraphMismatchException If the provided op output does not belong to this graph.
+    * @param  op Op to check.
+    * @return Boolean value indicating whether `op`'s value is allowed to be fetched, while running in a session.
+    * @throws GraphMismatchException If the provided op does not belong to this graph.
     */
   @throws[GraphMismatchException]
-  private[api] def isFetchable(output: Output): Boolean = {
-    if (output.graph != this)
-      throw GraphMismatchException("The provided op output does not belong to this graph.")
-    !unfetchableOutputs.contains(output)
+  private[api] def isFetchable(op: Op): Boolean = {
+    if (op.graph != this)
+      throw GraphMismatchException("The provided op does not belong to this graph.")
+    !unfetchableOps.contains(op)
   }
 
   /** Returns the op with the specified name.
