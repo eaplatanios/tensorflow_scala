@@ -63,7 +63,7 @@ trait Logging {
     * @return Created op.
     */
   def print(
-      input: Output, data: Array[Output], message: String = "", firstN: Int = -1, summarize: Int = 3,
+      input: Output, data: Seq[Output], message: String = "", firstN: Int = -1, summarize: Int = 3,
       name: String = "Print"): Output = {
     Op.Builder(opType = "Print", name = name)
         .addInput(input)

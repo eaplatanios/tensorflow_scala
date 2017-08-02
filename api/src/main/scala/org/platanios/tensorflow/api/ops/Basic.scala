@@ -493,12 +493,7 @@ trait Basic {
         case i: OutputIndexedSlices =>
           val values = identity(i.values, name = "ValuesIdentity")
           val indices = identity(i.indices, name = "IndicesIdentity")
-          val denseShape = {
-            if (i.denseShape != null)
-              identity(i.denseShape, name = "DenseShapeIdentity")
-            else
-              null
-          }
+          val denseShape = if (i.denseShape != null) identity(i.denseShape, name = "DenseShapeIdentity") else null
           OutputIndexedSlices(indices = indices, values = values, denseShape = denseShape)
         case i: SparseOutput =>
           val values = identity(i.values, name = "ValuesIdentity")

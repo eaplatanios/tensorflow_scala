@@ -22,6 +22,8 @@ import org.platanios.tensorflow.api.utilities.Collections
 import shapeless._
 import shapeless.ops.hlist.Tupler
 
+import scala.collection.breakOut
+import scala.collection.generic.CanBuildFrom
 import scala.collection.{MapLike, SeqLike, mutable}
 import scala.language.higherKinds
 import scala.reflect.ClassTag
@@ -85,16 +87,17 @@ object Fetchable {
     override def segment(fetchable: Output, values: Seq[Tensor]): (Tensor, Seq[Tensor]) = (values.head, values.tail)
   }
 
-  implicit def fetchableSeq[T, R, CC[A] <: SeqLike[A, CC[A]]](implicit ev: Aux[T, R]): Aux[CC[T], Seq[R]] = {
+  implicit def fetchableSeq[T, R, CC[A] <: SeqLike[A, CC[A]]](
+      implicit ev: Aux[T, R], cbf: CanBuildFrom[CC[T], R, CC[R]]): Aux[CC[T], CC[R]] = {
     new Fetchable[CC[T]] {
-      // TODO: [CLIENT] Return CC type instead of Seq.
-      override type ResultType = Seq[R]
+      override type ResultType = CC[R]
       override def numberOfFetches(fetchable: CC[T]): Int = fetchable.map(ev.numberOfFetches).sum
       override def fetches(fetchable: CC[T]): Seq[Output] = fetchable.flatMap(ev.fetches).toSeq
-      override def segment(fetchable: CC[T], values: Seq[Tensor]): (Seq[R], Seq[Tensor]) = {
+      override def segment(fetchable: CC[T], values: Seq[Tensor]): (CC[R], Seq[Tensor]) = {
         val n = numberOfFetches(fetchable)
-        (fetchable.zip(Collections.segment(values.take(n), fetchable.map(ev.numberOfFetches).toSeq))
-            .map(f => ev.resultsBuilder(f._1, f._2)).toSeq, values.drop(n))
+        (fetchable
+            .zip(Collections.segment(values.take(n), fetchable.map(ev.numberOfFetches).toSeq))(breakOut)
+            .map(f => ev.resultsBuilder(f._1, f._2)).to[CC](cbf), values.drop(n))
       }
     }
   }
@@ -113,8 +116,8 @@ object Fetchable {
     }
   }
 
-  implicit def fetchableMap[T, R, MK, CC[K, V] <: MapLike[K, V, CC[K, V]] with Map[K, V]]
-  (implicit ev: Aux[T, R]): Aux[CC[MK, T], Map[MK, R]] = {
+  implicit def fetchableMap[T, R, MK, CC[K, V] <: MapLike[K, V, CC[K, V]] with Map[K, V]](
+      implicit ev: Aux[T, R]): Aux[CC[MK, T], Map[MK, R]] = {
     new Fetchable[CC[MK, T]] {
       // TODO: [CLIENT] Return CC type instead of Map.
       // TODO: [CLIENT] Make sure key-value pairs order is handled correctly here.

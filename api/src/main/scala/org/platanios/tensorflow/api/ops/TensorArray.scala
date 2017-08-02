@@ -80,7 +80,7 @@ private[api] case class TensorArray private(
     }
   }
 
-  // TODO: !!! Missing the "maybeSetDevice" functionality.
+  // TODO: !!! Missing the "maybeColocateWith" functionality.
 
   /** Creates an op that writes an element to this tensor array.
     *
