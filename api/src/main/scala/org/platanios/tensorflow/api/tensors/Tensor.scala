@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.tensors
 
-import org.platanios.tensorflow.api.{DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER, tensors}
+import org.platanios.tensorflow.api.DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER
 import org.platanios.tensorflow.api.Implicits._
 import org.platanios.tensorflow.api.core.{Index, Indexer, Shape}
 import org.platanios.tensorflow.api.core.exception.{InvalidDataTypeException, ShapeMismatchException}
@@ -135,9 +135,43 @@ trait Tensor extends TensorLike with OutputConvertible {
 
   def reshape(shape: Shape, copyData: Boolean = true): Tensor
 
-  override def summarize(maxEntries: Int = numElements): String = {
-    // TODO: Fix this by nesting dimensions.
-    s"[${entriesIterator.take(maxEntries).mkString(", ")}${if (maxEntries < numElements) ", ..." else ""}]"
+  /**
+    * Returns a summary of the contents of this tensor.
+    *
+    * @param maxEntries max number of entries to show in each dimension. If the size of a dimension exceeds maxEntries,
+    *                   the output of that dimension will be shortened to the first and last three elements.
+    *                   Defaults to 6. Values below 6 are ignored.
+    * @return the tensor summary.
+    */
+  override def summarize(maxEntries: Int = 6): String = {
+    def summarize(tensor: Tensor, maxEntries: Int): String =
+      tensor.rank match {
+        case 0 => tensor.scalar.toString
+        case 1 =>
+          val slice =
+            if (tensor.numElements <= math.max(maxEntries, 6))
+              tensor.entriesIterator
+            else
+              (tensor(0 :: 3).entriesIterator.toSeq :+ "...") ++ tensor(-3 ::).entriesIterator
+          slice.mkString("[", ", ", "]")
+        case _ =>
+          val innerSummary = {
+            def summarizeSlice(index: Int) = summarize(tensor.slice(index).reshape(tensor.shape(1 ::)), maxEntries)
+
+            if (tensor.shape(0) <= math.max(maxEntries, 6))
+              for (i <- 0 until tensor.shape(0)) yield summarizeSlice(i)
+            else {
+              val start = for (i <- 0 until 3) yield summarizeSlice(i)
+              val end = for (i <- tensor.shape(0) - 3 until tensor.shape(0)) yield summarizeSlice(i)
+              (start :+ "...") ++ end
+            }
+          }
+          val padding = " " * (this.rank - tensor.rank + 1)
+          val extraLine = if (tensor.rank >= 3) "\n" else ""
+          innerSummary.mkString("[", ",\n" + extraLine + padding, "]")
+      }
+
+    toString + "\n" + summarize(this, maxEntries)
   }
 
   override def toString: String = s"$dataType[${shape.asArray.mkString(", ")}]"
