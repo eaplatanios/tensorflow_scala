@@ -31,5 +31,5 @@ trait TensorLike extends TensorConvertible {
   def rank: Int = shape.rank
   def numElements: Int = shape.numElements
 
-  def summarize(maxEntries: Int = numElements): String
+  def summarize(maxEntries: Int = 6): String
 }
