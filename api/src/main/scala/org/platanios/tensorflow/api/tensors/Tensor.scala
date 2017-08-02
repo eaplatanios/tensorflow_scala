@@ -28,6 +28,8 @@ import spire.math.UShort
 import java.nio._
 import java.nio.charset.Charset
 
+import scala.language.postfixOps
+
 // TODO: Specialized slices (e.g., contiguous).
 // TODO: Is there a need to complicate the flattened index function for the plain tensor?
 // TODO: Add casting support.
@@ -135,13 +137,12 @@ trait Tensor extends TensorLike with OutputConvertible {
 
   def reshape(shape: Shape, copyData: Boolean = true): Tensor
 
-  /**
-    * Returns a summary of the contents of this tensor.
+  /** Returns a summary of the contents of this tensor.
     *
-    * @param maxEntries max number of entries to show in each dimension. If the size of a dimension exceeds maxEntries,
-    *                   the output of that dimension will be shortened to the first and last three elements.
-    *                   Defaults to 6. Values below 6 are ignored.
-    * @return the tensor summary.
+    * @param  maxEntries Maximum number of entries to show for each axis/dimension. If the size of an axis exceeds
+    *                    `maxEntries`, the output of that axis will be shortened to the first and last three elements.
+    *                    Defaults to `6`. Values below `6` are ignored.
+    * @return Tensor summary.
     */
   override def summarize(maxEntries: Int = 6): String = {
     def summarize(tensor: Tensor, maxEntries: Int): String =
@@ -170,11 +171,10 @@ trait Tensor extends TensorLike with OutputConvertible {
           val extraLine = if (tensor.rank >= 3) "\n" else ""
           innerSummary.mkString("[", ",\n" + extraLine + padding, "]")
       }
-
     toString + "\n" + summarize(this, maxEntries)
   }
 
-  override def toString: String = s"$dataType[${shape.asArray.mkString(", ")}]"
+  override def toString: String = s"$dataType$shape"
 
   override def equals(that: Any): Boolean = that match {
     case that: Tensor =>
