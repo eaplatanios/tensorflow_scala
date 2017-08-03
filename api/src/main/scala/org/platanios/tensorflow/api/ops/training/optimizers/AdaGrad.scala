@@ -25,7 +25,7 @@ import org.platanios.tensorflow.api.ops.variables.{ConstantInitializer, Variable
   *
   * @author Emmanouil Antonios Platanios
   */
-case class AdaGrad(
+case class AdaGrad private[optimizers](
     learningRate: Double = 0.01, decay: Decay = NoDecay, initialAccumulatorValue: Double = 1e-8,
     useLocking: Boolean = false, name: String = "AdaGradOptimizer") extends Optimizer {
   private[this] var learningRateTensor: Output = _

@@ -22,13 +22,24 @@ package object optimizers {
   private[api] trait API
       extends Decay.API {
     type Optimizer = optimizers.Optimizer
-    val Optimizer = optimizers.Optimizer
-
     type GradientDescent = optimizers.GradientDescent
-    val GradientDescent = optimizers.GradientDescent
-
     type AdaGrad = optimizers.AdaGrad
-    val AdaGrad = optimizers.AdaGrad
+
+    def gradientDescent(
+        learningRate: Double, decay: Decay = NoDecay, momentum: Double = 0.0, useNesterov: Boolean = false,
+        useLocking: Boolean = false, name: String = "GradientDescentOptimizer"): GradientDescent = {
+      GradientDescent(
+        learningRate = learningRate, decay = decay, momentum = momentum, useNesterov = useNesterov,
+        useLocking = useLocking, name = name)
+    }
+
+    def adaGrad(
+        learningRate: Double = 0.01, decay: Decay = NoDecay, initialAccumulatorValue: Double = 1e-8,
+        useLocking: Boolean = false, name: String = "AdaGradOptimizer"): AdaGrad = {
+      AdaGrad(
+        learningRate = learningRate, decay = decay, initialAccumulatorValue = initialAccumulatorValue,
+        useLocking = useLocking, name = name)
+    }
   }
 
   private[api] object API extends API

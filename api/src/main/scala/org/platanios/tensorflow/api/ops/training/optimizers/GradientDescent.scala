@@ -33,7 +33,7 @@ import org.platanios.tensorflow.api.ops.variables.Variable
   *
   * @author Emmanouil Antonios Platanios
   */
-case class GradientDescent(
+case class GradientDescent private[optimizers](
     learningRate: Double, decay: Decay = NoDecay, momentum: Double = 0.0, useNesterov: Boolean = false,
     useLocking: Boolean = false, name: String = "GradientDescentOptimizer") extends Optimizer {
   private[this] var learningRateTensor: Output = _
