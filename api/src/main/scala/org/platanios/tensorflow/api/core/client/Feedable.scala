@@ -114,10 +114,10 @@ object Feedable {
   implicit def productConstructor[P <: Product, L <: HList, LO <: HList, R](implicit
       genP: Generic.Aux[P, L],
       genR: Generic.Aux[R, LO],
-      feedbaleL: Aux[L, LO]
+      feedableL: Aux[L, LO]
   ): Aux[P, R] = new Feedable[P] {
     override type ValueType = R
-    override def feed(feedable: P, value: R): Map[Output, Tensor] = feedbaleL.feed(genP.to(feedable), genR.to(value))
+    override def feed(feedable: P, value: R): Map[Output, Tensor] = feedableL.feed(genP.to(feedable), genR.to(value))
   }
 }
 
