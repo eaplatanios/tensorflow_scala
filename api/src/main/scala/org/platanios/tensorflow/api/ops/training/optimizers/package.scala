@@ -19,7 +19,8 @@ package org.platanios.tensorflow.api.ops.training
   * @author Emmanouil Antonios Platanios
   */
 package object optimizers {
-  private[api] trait API {
+  private[api] trait API
+      extends Decay.API {
     type Optimizer = optimizers.Optimizer
     val Optimizer = optimizers.Optimizer
 

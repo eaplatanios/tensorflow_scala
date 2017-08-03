@@ -17,10 +17,10 @@ package org.platanios.tensorflow.api.ops.training.optimizers
 
 import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.exception.InvalidDataTypeException
-import org.platanios.tensorflow.api.ops._
+import org.platanios.tensorflow.api.ops.{ControlFlow, _}
 import org.platanios.tensorflow.api.ops.training.optimizers.Optimizer._
-import org.platanios.tensorflow.api.ops.variables.{Initializer, Variable}
-import org.platanios.tensorflow.api.types.{DataType, INT32, FLOAT32, FLOAT64, RESOURCE}
+import org.platanios.tensorflow.api.ops.variables.{Initializer, Variable, VariableScope}
+import org.platanios.tensorflow.api.types.{DataType, FLOAT32, FLOAT64, RESOURCE}
 
 import scala.collection.mutable
 
@@ -55,17 +55,17 @@ trait Optimizer {
     * @param  gradientsAggregationMethod Aggregation method used to combine gradient terms.
     * @param  colocateGradientsWithOps   Boolean value indicating whether to colocate the gradient ops with the original
     *                                    ops.
-    * @param  globalStep                 Optional `Variable` to increment by one after the variables have been updated.
+    * @param  iteration                  Optional `Variable` to increment by one after the variables have been updated.
     * @param  name                       Name for the created op.
     * @return Created op.
     */
   def minimize(loss: Output, lossGradients: Seq[OutputLike] = null, variables: Set[Variable] = null,
       gradientsGatingMethod: Gradients.GatingMethod = Gradients.OpGating,
       gradientsAggregationMethod: Gradients.AggregationMethod = Gradients.AddAggregationMethod,
-      colocateGradientsWithOps: Boolean = false, globalStep: Variable = null, name: String = "Minimize"): Op = {
+      colocateGradientsWithOps: Boolean = false, iteration: Option[Variable] = None, name: String = "Minimize"): Op = {
     val gradientsAndVariables = computeGradients(
       loss, lossGradients, variables, gradientsGatingMethod, gradientsAggregationMethod, colocateGradientsWithOps)
-    applyGradients(gradientsAndVariables, globalStep, name)
+    applyGradients(gradientsAndVariables, iteration, name)
   }
 
   /** Computes the gradients of `loss` with respect to the variables in `variables`, if provided, otherwise with respect
@@ -124,12 +124,13 @@ trait Optimizer {
   /** Creates an op that applies the provided gradients to the provided variables.
     *
     * @param  gradientsAndVariables Sequence with gradient-variable pairs.
-    * @param  globalStep            Optional `Variable` to increment by one after the variables have been updated.
+    * @param  iteration             Optional `Variable` to increment by one after the variables have been updated.
     * @param  name                  Name for the created op.
     * @return Created op.
     */
   def applyGradients(
-      gradientsAndVariables: Seq[(OutputLike, Variable)], globalStep: Variable = null, name: String = this.name): Op = {
+      gradientsAndVariables: Seq[(OutputLike, Variable)], iteration: Option[Variable] = None,
+      name: String = this.name): Op = {
     // This is a default implementation of `applyGradients` that is shared by most optimizers. It relies on the subclass
     // implementing the following methods: `createSlots`, `prepare`, `finish`, `applyDense`, and `applySparse`.
     val variables: Seq[Variable] = gradientsAndVariables.filter(_._1 != null).map(_._2)
@@ -149,7 +150,9 @@ trait Optimizer {
           variable
         }
       })
-      createSlots(mappedVariables)
+      VariableScope.createWithVariableScope(name) {
+        createSlots(mappedVariables)
+      }
     }
 
     Op.createWithNameScope(name) {
@@ -160,20 +163,20 @@ trait Optimizer {
       for ((g, v, p) <- gradientsAndVariables.map(p => (p._1, p._2, getVariableProcessor(p._2))).filter(_._1 != null)) {
         // We colocate all ops created for variable application on the same device as the variable.
         Op.createWith(nameScope = s"${v.op.name}Update", colocationOps = Set[Op](v.op)) {
-          updateOps.add(p.updateOp(this, g))
+          updateOps.add(p.updateOp(this, g, iteration))
         }
       }
 
       // Create the op that applies the gradient updates to all variables.
       val applyUpdates = {
-        if (globalStep == null) {
-          finish(updateOps.toSet, name)
-        } else {
-          Op.createWith(
-            colocationOps = Set[Op](globalStep.op),
-            controlDependencies = Set[Op](finish(updateOps.toSet, "Update"))) {
-            globalStep.assignAdd(Basic.constant(1, dataType = INT32), name).op
-          }
+        iteration match {
+          case Some(i) =>
+            Op.createWith(
+              colocationOps = Set[Op](i.op),
+              controlDependencies = Set[Op](finish(updateOps.toSet, "Update"))) {
+              i.assignAdd(Basic.constant(1, dataType = i.dataType), name).op
+            }
+          case None => finish(updateOps.toSet, name)
         }
       }
 
@@ -223,11 +226,12 @@ trait Optimizer {
 
   /** Applies the updates corresponding to the provided gradient, to the provided variable.
     *
-    * @param  gradient Gradient tensor.
-    * @param  variable Variable.
+    * @param  gradient  Gradient tensor.
+    * @param  variable  Variable.
+    * @param  iteration Option containing current iteration in the optimization loop, if one has been provided.
     * @return Created op that applies the provided gradient to the provided variable.
     */
-  protected def applyDense(gradient: Output, variable: Variable): Op
+  protected def applyDense(gradient: Output, variable: Variable, iteration: Option[Variable]): Op
 
   /** Applies the updates corresponding to the provided gradient, to the provided variable.
     *
@@ -236,11 +240,12 @@ trait Optimizer {
     * Optimizers which can tolerate or have correct special cases for duplicate sparse indices may override
     * `applySparseDuplicateIndices` instead of this function, avoiding that overhead.
     *
-    * @param  gradient Gradient tensor.
-    * @param  variable Variable.
+    * @param  gradient  Gradient tensor.
+    * @param  variable  Variable.
+    * @param  iteration Option containing current iteration in the optimization loop, if one has been provided.
     * @return Created op that applies the provided gradient to the provided variable.
     */
-  protected def applySparse(gradient: OutputIndexedSlices, variable: Variable): Op
+  protected def applySparse(gradient: OutputIndexedSlices, variable: Variable, iteration: Option[Variable]): Op
 
   /** Applies the updates corresponding to the provided gradient (with potentially duplicate indices), to the provided
     * variable.
@@ -257,12 +262,14 @@ trait Optimizer {
     * Optimizers which deal correctly with repeated indices may instead override this method to avoid the induced
     * overhead.
     *
-    * @param  gradient Gradient tensor.
-    * @param  variable Variable.
+    * @param  gradient  Gradient tensor.
+    * @param  variable  Variable.
+    * @param  iteration Option containing current iteration in the optimization loop, if one has been provided.
     * @return Created op that applies the provided gradient to the provided variable.
     */
-  protected def applySparseDuplicateIndices(gradient: OutputIndexedSlices, variable: Variable): Op = {
-    applySparse(deDuplicateOutputIndexedSlices(gradient), variable)
+  protected def applySparseDuplicateIndices(
+      gradient: OutputIndexedSlices, variable: Variable, iteration: Option[Variable]): Op = {
+    applySparse(deDuplicateOutputIndexedSlices(gradient), variable, iteration)
   }
 
   /** Gets the map used for caching slots created under the provided name. If the map does not exist, then a new empty
@@ -328,18 +335,20 @@ object Optimizer {
     def target: Output
 
     /** Returns the update ops for updating this variable using the gradient provided by `gradient`. */
-    def updateOp(optimizer: Optimizer, gradient: OutputLike): Op
+    def updateOp(optimizer: Optimizer, gradient: OutputLike, iteration: Option[Variable]): Op
   }
 
   /** Variable processor for resource-based variables. */
   private[Optimizer] case class ResourceVariableProcessor(variable: Variable) extends VariableProcessor {
     override def target: Output = variable.handle
 
-    override def updateOp(optimizer: Optimizer, gradient: OutputLike): Op = gradient match {
-      case g: Output => optimizer.applyDense(g, variable)
-      case g: OutputIndexedSlices => optimizer.applySparseDuplicateIndices(g, variable)
-      case _ => throw new IllegalArgumentException(
-        "Unsupported gradient type. Currently only 'Output' and 'OutputIndexedSlices' are supported.")
+    override def updateOp(optimizer: Optimizer, gradient: OutputLike, iteration: Option[Variable]): Op = {
+      gradient match {
+        case g: Output => optimizer.applyDense(g, variable, iteration)
+        case g: OutputIndexedSlices => optimizer.applySparseDuplicateIndices(g, variable, iteration)
+        case _ => throw new IllegalArgumentException(
+          "Unsupported gradient type. Currently only 'Output' and 'OutputIndexedSlices' are supported.")
+      }
     }
   }
 
@@ -348,7 +357,7 @@ object Optimizer {
     // TODO: [VARIABLES] This is probably wrong.
     override def target: Output = variable.handle
 
-    override def updateOp(optimizer: Optimizer, gradient: OutputLike): Op = gradient.op
+    override def updateOp(optimizer: Optimizer, gradient: OutputLike, iteration: Option[Variable]): Op = gradient.op
   }
 
   /** Sums the values of the provided indexed slices associated with any non-unique indices and returns the resulting

@@ -652,8 +652,8 @@ trait NN {
     * By default, each element is kept or dropped independently. If `noiseShape` is specified, it must be
     * [broadcastable](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html) to the shape of `input`, and only
     * dimensions with `noiseShape(i) == x.shape(i)` will make independent decisions. For example, if
-    * `x.shape = [k, l, m, n]` and `noiseShape = [k, 1, 1, n]`, each batch and channel component will be kept
-    * independently and each row and column will be kept or not kept together.
+    * `x.shape = [k, l, m, n]` and `noiseShape = [k, 1, 1, n]`, each `k` and `n` component will be kept independently
+    * and each `l` and `m` component will be kept or not kept together.
     *
     * @param  input           Input tensor.
     * @param  keepProbability Probability (i.e., number in the interval `(0, 1]`) that each element is kept.

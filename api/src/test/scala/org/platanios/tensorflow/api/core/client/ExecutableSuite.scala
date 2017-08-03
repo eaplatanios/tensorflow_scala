@@ -17,8 +17,7 @@ package org.platanios.tensorflow.api.core.client
 
 import org.platanios.tensorflow.api.using
 import org.platanios.tensorflow.api.core.Graph
-import org.platanios.tensorflow.api.ops.{Basic, Op, OutputIndexedSlices, SparseOutput}
-import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
+import org.platanios.tensorflow.api.ops.{Basic, ControlFlow, Op, OutputIndexedSlices, SparseOutput}
 import org.platanios.tensorflow.api.tensors.Tensor
 
 import org.scalatest.junit.JUnitSuite

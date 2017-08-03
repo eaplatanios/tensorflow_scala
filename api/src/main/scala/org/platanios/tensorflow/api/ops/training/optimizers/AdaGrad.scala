@@ -26,36 +26,37 @@ import org.platanios.tensorflow.api.ops.variables.{ConstantInitializer, Variable
   * @author Emmanouil Antonios Platanios
   */
 case class AdaGrad(
-    learningRate: Double = 1.0, initialAccumulatorValue: Double = 0.1, useLocking: Boolean = false,
-    name: String = "AdaGradOptimizer") extends Optimizer {
+    learningRate: Double = 0.01, decay: Decay = NoDecay, initialAccumulatorValue: Double = 1e-8,
+    useLocking: Boolean = false, name: String = "AdaGradOptimizer") extends Optimizer {
   private[this] var learningRateTensor: Output = _
+
+  private[this] def getLearningRate(variable: Variable, iteration: Option[Variable]): Output = {
+    if (learningRateTensor == null)
+      throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
+    val lr = Math.cast(learningRateTensor, variable.dataType)
+    decay(lr, iteration)
+  }
 
   override protected def createSlots(variables: Seq[Variable]): Unit = {
     variables.foreach(v => {
       val initializer = ConstantInitializer(initialAccumulatorValue)
-      getSlot("accumulator", v, initializer, v.shape, v.dataType, s"${this.name}/Accumulator")
+      getSlot("accumulator", v, initializer, v.shape, v.dataType, "Accumulator")
     })
-  }
-
-  private[this] def getLearningRate(variable: Variable): Output = {
-    if (learningRateTensor == null)
-      throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    Math.cast(learningRateTensor, variable.dataType)
   }
 
   override def prepare(): Unit = {
     learningRateTensor = Basic.constant(learningRate, name = "LearningRate")
   }
 
-  override def applyDense(gradient: Output, variable: Variable): Op = {
+  override def applyDense(gradient: Output, variable: Variable, iteration: Option[Variable]): Op = {
     val accumulator = getSlot("accumulator", variable)
-    AdaGrad.resourceApplyDense(variable, accumulator, getLearningRate(variable), gradient, useLocking)
+    AdaGrad.resourceApplyDense(variable, accumulator, getLearningRate(variable, iteration), gradient, useLocking)
   }
 
-  override def applySparse(gradient: OutputIndexedSlices, variable: Variable): Op = {
+  override def applySparse(gradient: OutputIndexedSlices, variable: Variable, iteration: Option[Variable]): Op = {
     val accumulator = getSlot("accumulator", variable)
     AdaGrad.resourceApplySparse(
-      variable, accumulator, getLearningRate(variable), gradient.values, gradient.indices, useLocking)
+      variable, accumulator, getLearningRate(variable, iteration), gradient.values, gradient.indices, useLocking)
   }
 }
 

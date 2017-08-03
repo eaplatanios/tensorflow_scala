@@ -279,6 +279,8 @@ class Saver private (saverDef: SaverDef, saveRelativePaths: Boolean = false, pad
     }
   }
 
+  // TODO: [PROTO] Add a "toProto" method and extend the ProtoSerializable trait.
+
   /** Constructs and returns a [[SaverDef]] object that represents this saver.
     *
     * @param  exportScope Optional string specifying the name scope to remove. Only the ops within this name scope will

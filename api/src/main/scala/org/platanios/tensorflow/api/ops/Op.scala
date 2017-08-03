@@ -53,7 +53,8 @@ import scala.util.DynamicVariable
   * @author Emmanouil Antonios Platanios
   */
 final case class Op private (graph: Graph, private[api] val nativeHandle: Long) {
-  graph.opsCache.update(nativeHandle, this) // Update the ops cache of the graph with the current op
+  // Update the ops cache of the graph with the current op.
+  graph.opsCache.update(nativeHandle, this)
 
   /** Name of the op. */
   lazy val name: String = using(graph.reference) { _ => NativeOp.name(nativeHandle) }
@@ -291,49 +292,49 @@ object Op {
   implicit def deviceImplicitConversion(device: String): OpSpecification => String = _ => device
 
   /** Returns the graph of the current op creation context. */
-  private[api] def currentGraph(implicit context: DynamicVariable[OpCreationContext]): Graph = context.graph
+  private[api] def currentGraph(implicit context: DynamicVariable[OpCreationContext]): Graph = context.value.graph
 
   /** Returns the name scope of the current op creation context. */
   private[api] def currentNameScope(implicit context: DynamicVariable[OpCreationContext]): String = {
-    if (context.nameScope == "")
+    if (context.value.nameScope == "")
       ""
     else
-      s"${context.nameScope}/"
+      s"${context.value.nameScope}/"
   }
 
   /** Returns the variable scope of the current op creation context. */
   private[api] def currentVariableScope(implicit context: DynamicVariable[OpCreationContext]): VariableScope = {
-    context.variableScope
+    context.value.variableScope
   }
 
   /** Returns the variable store of the current op creation context. */
   private[api] def currentVariableStore(implicit context: DynamicVariable[OpCreationContext]): VariableStore = {
-    context.graph.variableStore
+    context.value.graph.variableStore
   }
 
   /** Returns the device of the current op creation context. */
   private[api] def currentDevice(implicit context: DynamicVariable[OpCreationContext]): OpSpecification => String = {
-    context.device
+    context.value.device
   }
 
   /** Returns the colocation ops of the current op creation context. */
   private[api] def currentColocationOps(implicit context: DynamicVariable[OpCreationContext]): Set[Op] = {
-    context.colocationOps
+    context.value.colocationOps
   }
 
   /** Returns the control dependencies of the current op creation context. */
   private[api] def currentControlDependencies(implicit context: DynamicVariable[OpCreationContext]): Set[Op] = {
-    context.controlDependencies
+    context.value.controlDependencies
   }
 
   /** Returns the attributes of the current op creation context. */
   private[api] def currentAttributes(implicit context: DynamicVariable[OpCreationContext]): Map[String, Any] = {
-    context.attributes
+    context.value.attributes
   }
 
   /** Returns the container of the current op creation context. */
   private[api] def currentContainer(implicit context: DynamicVariable[OpCreationContext]): String = {
-    context.container
+    context.value.container
   }
 
   /** Returns the local seeds an operation should use given an op-specific random seed.
@@ -560,7 +561,7 @@ object Op {
     *
     * When `createWith(...)` is used with a set of control dependencies, then all ops created within its code block will
     * be dependent on the control dependency ops. This means that they will be guaranteed to execute only after all of
-    * the control dependencies ops have finished executing. Note that if a set of control dependencies already exist in
+    * the control dependencies ops have finished executing. Note that if a set of control dependencies already exists in
     * the current op creation context (e.g., as the result of nesting multiple `createWith(controlDependencies = ...)`
     * calls), then the new set of control dependencies will be the union of the two sets. Furthermore, if an empty set
     * is provided, then the control dependencies are cleared, instead of taking the union with the current control
