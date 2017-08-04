@@ -131,15 +131,6 @@ trait DataFlow {
 
 object DataFlow extends DataFlow {
   private[api] object Gradients {
-    GradientsRegistry.registerNonDifferentiable("Queue")
-    GradientsRegistry.registerNonDifferentiable("QueueEnqueue")
-    GradientsRegistry.registerNonDifferentiable("QueueEnqueueMany")
-    GradientsRegistry.registerNonDifferentiable("QueueDequeue")
-    GradientsRegistry.registerNonDifferentiable("QueueDequeueMany")
-    GradientsRegistry.registerNonDifferentiable("QueueDequeueUpTo")
-    GradientsRegistry.registerNonDifferentiable("QueueClose")
-    GradientsRegistry.registerNonDifferentiable("QueueSize")
-
     GradientsRegistry.registerNonDifferentiable("Stack")
     GradientsRegistry.registerNonDifferentiable("StackPush")
     GradientsRegistry.registerNonDifferentiable("StackPop")

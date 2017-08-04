@@ -32,10 +32,11 @@ package object ops {
           with Logging
           with Math
           with NN
-          with Text
+          with Queue
           with Random
           with Sparse
           with Statistics
+          with Text
           with variables.API {
     type Op = ops.Op
     val Op = ops.Op
@@ -56,6 +57,7 @@ package object ops {
     ops.Logging.Gradients
     ops.Math.Gradients
     ops.NN.Gradients
+    ops.Queue.Gradients
     ops.Random.Gradients
     ops.variables.Variable.Gradients
 

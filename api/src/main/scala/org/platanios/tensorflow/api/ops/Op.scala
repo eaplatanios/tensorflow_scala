@@ -1157,5 +1157,7 @@ object Op {
       attributes += name -> value
       this
     }
+
+    def setAttribute(name: String, value: Array[Shape]): Builder = ??? // TODO: !!!!!!!!
   }
 }
