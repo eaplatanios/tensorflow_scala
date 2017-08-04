@@ -32,11 +32,11 @@ package object ops {
           with Logging
           with Math
           with NN
-          with Queue
           with Random
           with Sparse
           with Statistics
           with Text
+          with Queue.API
           with variables.API {
     type Op = ops.Op
     val Op = ops.Op
