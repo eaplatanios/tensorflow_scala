@@ -80,6 +80,8 @@ object Fetchable {
 
   type Aux[T, R] = Fetchable[T] {type ResultType = R}
 
+  def apply[T, V](implicit ev: Aux[T, V]): Aux[T, V] = ev
+
   implicit val outputFetchable: Aux[Output, Tensor] = new Fetchable[Output] {
     override type ResultType = Tensor
     override def numberOfFetches(fetchable: Output): Int = 1
@@ -142,21 +144,21 @@ object Fetchable {
   }
 
   implicit def recursiveConstructor[H, R, T <: HList, TO <: HList](implicit
-      fetchableHead: Aux[H, R],
+      fetchableHead: Lazy[Aux[H, R]],
       fetchableTail: Aux[T, TO]
   ): Aux[H :: T, R :: TO] = new Fetchable[H :: T] {
     override type ResultType = R :: TO
 
     override def numberOfFetches(fetchable: H :: T): Int = {
-      fetchableHead.numberOfFetches(fetchable.head) + fetchableTail.numberOfFetches(fetchable.tail)
+      fetchableHead.value.numberOfFetches(fetchable.head) + fetchableTail.numberOfFetches(fetchable.tail)
     }
 
     override def fetches(fetchable: H :: T): Seq[Output] = {
-      fetchableHead.fetches(fetchable.head) ++ fetchableTail.fetches(fetchable.tail)
+      fetchableHead.value.fetches(fetchable.head) ++ fetchableTail.fetches(fetchable.tail)
     }
 
     override def segment(fetchable: H :: T, tensors: Seq[Tensor]): (R :: TO, Seq[Tensor]) = {
-      val (headOut, headRemaining) = fetchableHead.segment(fetchable.head, tensors)
+      val (headOut, headRemaining) = fetchableHead.value.segment(fetchable.head, tensors)
       val (tailOut, tailRemaining) = fetchableTail.segment(fetchable.tail, headRemaining)
       (headOut :: tailOut, tailRemaining)
     }
@@ -165,14 +167,14 @@ object Fetchable {
   // This also covers `OutputIndexedSlices` and `SparseOutput` as they are case classes (i.e., products).
   implicit def productConstructor[P <: Product, L <: HList, LO <: HList, R](implicit
       gen: Generic.Aux[P, L],
-      fetchableL: Aux[L, LO],
+      fetchableL: Lazy[Aux[L, LO]],
       tupler: Tupler.Aux[LO, R]
   ): Aux[P, R] = new Fetchable[P] {
     override type ResultType = R
-    override def numberOfFetches(fetchable: P): Int = fetchableL.numberOfFetches(gen.to(fetchable))
-    override def fetches(fetchable: P): Seq[Output] = fetchableL.fetches(gen.to(fetchable))
+    override def numberOfFetches(fetchable: P): Int = fetchableL.value.numberOfFetches(gen.to(fetchable))
+    override def fetches(fetchable: P): Seq[Output] = fetchableL.value.fetches(gen.to(fetchable))
     override def segment(p: P, tensors: Seq[Tensor]): (R, Seq[Tensor]) = {
-      val (out, remaining) = fetchableL.segment(gen.to(p), tensors)
+      val (out, remaining) = fetchableL.value.segment(gen.to(p), tensors)
       (tupler(out), remaining)
     }
   }

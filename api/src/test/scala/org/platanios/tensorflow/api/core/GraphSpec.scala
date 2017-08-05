@@ -16,7 +16,6 @@
 package org.platanios.tensorflow.api.core
 
 import org.platanios.tensorflow.api._
-import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception.{GraphMismatchException, InvalidGraphElementException}
 import org.platanios.tensorflow.api.ops.Op
 import org.platanios.tensorflow.api.ops.Op.createWith
@@ -195,7 +194,7 @@ class GraphSpec extends FlatSpec with Matchers {
 
   "'Graph.toMetaGraphDef'" must "work when no scope is provided" in {
     val graph = Graph()
-    val session = Session(graph)
+    val session = tf.session(graph)
 
     Op.createWith(graph) {
       // Create a minimal graph with zero variables.
@@ -221,7 +220,7 @@ class GraphSpec extends FlatSpec with Matchers {
 
     // Create a clean graph and import the 'MetaGraphDef' object.
     val newGraph = Graph()
-    val newSession = Session(newGraph)
+    val newSession = tf.session(newGraph)
 
     newGraph.importMetaGraphDef(metaGraphDef)
 

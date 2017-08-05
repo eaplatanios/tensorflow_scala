@@ -16,7 +16,6 @@
 package org.platanios.tensorflow.api.ops.training.optimizers
 
 import org.platanios.tensorflow.api._
-import org.platanios.tensorflow.api.ops.{Basic, Op}
 
 import org.scalatest._
 
@@ -31,15 +30,15 @@ class GradientDescentSpec extends FlatSpec with Matchers {
       val updatedValue0 = tf.Tensor(dataType, 1.0 - 3.0 * 0.1, 2.0 - 3.0 * 0.1)
       val updatedValue1 = tf.Tensor(dataType, 3.0 - 3.0 * 0.01, 4.0 - 3.0 * 0.01)
       val graph = tf.Graph()
-      val (variable0, variable1, gdOp) = Op.createWith(graph) {
+      val (variable0, variable1, gdOp) = tf.createWith(graph) {
         val variable0 = tf.Variable(tf.constantInitializer(tf.Tensor(1, 2)), shape = tf.Shape(2), dataType = dataType)
         val variable1 = tf.Variable(tf.constantInitializer(tf.Tensor(3, 4)), shape = tf.Shape(2), dataType = dataType)
-        val gradient0 = Basic.constant(tf.Tensor(0.1, 0.1), dataType = dataType)
-        val gradient1 = Basic.constant(tf.Tensor(0.01, 0.01), dataType = dataType)
+        val gradient0 = tf.constant(tf.Tensor(0.1, 0.1), dataType = dataType)
+        val gradient1 = tf.constant(tf.Tensor(0.01, 0.01), dataType = dataType)
         val gdOp = GradientDescent(3.0).applyGradients(Seq((gradient0, variable0), (gradient1, variable1)))
         (variable0, variable1, gdOp)
       }
-      val session = tf.Session(graph)
+      val session = tf.session(graph)
       session.run(targets = graph.trainableVariablesInitializer())
       var variable0Value = session.run(fetches = variable0.value)
       var variable1Value = session.run(fetches = variable1.value)

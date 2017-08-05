@@ -15,11 +15,10 @@
 
 package org.platanios.tensorflow.api.core
 
-import org.platanios.tensorflow.api.core.client.Session
-import org.platanios.tensorflow.api.ops.Basic._
-import org.platanios.tensorflow.api.ops.Math._
 import org.platanios.tensorflow.api.tf
 import org.platanios.tensorflow.api.tf.createWith
+import org.platanios.tensorflow.api.ops.Basic._
+import org.platanios.tensorflow.api.ops.Math._
 
 import org.scalatest._
 
@@ -34,7 +33,7 @@ class SessionSpec extends FlatSpec with Matchers {
       val x = placeholder(dataType = tf.INT32, shape = tf.Shape(1, 2), name = "X")
       subtract(constant(1), matmul(a = a, b = x, transposeB = true), name = "Y")
     }
-    val session = Session(graph = graph)
+    val session = tf.session(graph = graph)
     val feeds = Map(graph.getOutputByName("X:0") -> tf.Tensor(tf.Tensor(5, 7)))
     val fetches = graph.getOutputByName("Y:0")
     val output = session.run(feeds, fetches)

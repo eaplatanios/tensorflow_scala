@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.core.client
 
 import org.platanios.tensorflow.api.Closeable
-import org.platanios.tensorflow.api.core.Graph
+import org.platanios.tensorflow.api.core.{Graph, client}
 import org.platanios.tensorflow.api.ops.{Op, OpCreationContext, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.jni.{Session => NativeSession}
@@ -173,6 +173,15 @@ final case class Session private (
 
 /** Contains helper functions for managing [[Session]] instances. */
 object Session {
+  trait API {
+    type Session = client.Session
+
+    def session(): Session = client.Session()
+    def session(graph: Graph): Session = client.Session(graph)
+  }
+
+  object API extends API
+
   private[client] def apply()(implicit context: DynamicVariable[OpCreationContext]): Session = {
     val graph = context.graph
     val graphReference = graph.reference

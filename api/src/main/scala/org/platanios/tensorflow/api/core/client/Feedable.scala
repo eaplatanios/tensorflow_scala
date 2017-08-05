@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.core.client
 import org.platanios.tensorflow.api.ops.{Output, OutputIndexedSlices, SparseOutput}
 import org.platanios.tensorflow.api.tensors.Tensor
 
-import shapeless.{::, Generic, HList, HNil}
+import shapeless._
 
 import scala.collection.SeqLike
 import scala.language.higherKinds
@@ -102,22 +102,24 @@ object Feedable {
   }
 
   implicit def recursiveConstructor[H, R, T <: HList, TO <: HList](implicit
-      feedableHead: Aux[H, R],
+      feedableHead: Lazy[Aux[H, R]],
       feedableTail: Aux[T, TO]
   ): Aux[H :: T, R :: TO] = new Feedable[H :: T] {
     override type ValueType = R :: TO
     override def feed(feedable: H :: T, value: R :: TO): Map[Output, Tensor] = {
-      feedableHead.feed(feedable.head, value.head) ++ feedableTail.feed(feedable.tail, value.tail)
+      feedableHead.value.feed(feedable.head, value.head) ++ feedableTail.feed(feedable.tail, value.tail)
     }
   }
 
   implicit def productConstructor[P <: Product, L <: HList, LO <: HList, R](implicit
       genP: Generic.Aux[P, L],
       genR: Generic.Aux[R, LO],
-      feedableL: Aux[L, LO]
+      feedableL: Lazy[Aux[L, LO]]
   ): Aux[P, R] = new Feedable[P] {
     override type ValueType = R
-    override def feed(feedable: P, value: R): Map[Output, Tensor] = feedableL.feed(genP.to(feedable), genR.to(value))
+    override def feed(feedable: P, value: R): Map[Output, Tensor] = {
+      feedableL.value.feed(genP.to(feedable), genR.to(value))
+    }
   }
 }
 
@@ -138,17 +140,17 @@ class FeedMap private[client] (val values: Map[Output, Tensor] = Map.empty) {
 object FeedMap {
   def apply(values: Map[Output, Tensor]): FeedMap = new FeedMap(values)
 
-  val empty = new FeedMap()
+  def apply[T, V](feed: (T, V))(implicit ev: Feedable.Aux[T, V]): FeedMap = FeedMap(ev.feed(feed._1, feed._2))
 
-  trait Implicits {
-    implicit def feedMap[T, V](feeds: (T, V)*)(implicit ev: Feedable.Aux[T, V]): FeedMap = {
-      FeedMap(feeds.flatMap { case (k, v) => ev.feed(k, v) }.toMap)
-    }
-
-    implicit def feedMap[T, V](feeds: Map[T, V])(implicit ev: Feedable.Aux[T, V]): FeedMap = {
-      FeedMap(feeds.flatMap { case (k, v) => ev.feed(k, v) })
-    }
+  def apply[T, V](feeds: Map[T, V])(implicit ev: Feedable.Aux[T, V]): FeedMap = {
+    FeedMap(feeds.flatMap { case (k, v) => ev.feed(k, v) })
   }
 
-  object Implicits extends Implicits
+  def apply(feedMaps: Seq[FeedMap]): FeedMap = feedMaps.reduce(_ + _)
+
+  val empty = new FeedMap()
+
+  implicit def feedMap[T, V](feed: (T, V))(implicit ev: Feedable.Aux[T, V]): FeedMap = FeedMap(feed)
+  implicit def feedMap[T, V](feeds: Map[T, V])(implicit ev: Feedable.Aux[T, V]): FeedMap = FeedMap(feeds)
+  implicit def feedMap(feedMaps: Seq[FeedMap]): FeedMap = FeedMap(feedMaps)
 }
