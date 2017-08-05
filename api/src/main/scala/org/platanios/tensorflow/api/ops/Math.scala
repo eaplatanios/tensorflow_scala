@@ -927,7 +927,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  @deprecated("Use `truncateDivide` instead.")
+  @deprecated("Use `truncateDivide` instead.", "0.1")
   def floorDivide(x: Output, y: Output, name: String = "FloorDiv"): Output = {
     Op.Builder(opType = "FloorDiv", name = name)
         .addInput(x)

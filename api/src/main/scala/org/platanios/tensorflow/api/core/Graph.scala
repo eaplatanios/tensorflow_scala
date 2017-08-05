@@ -683,7 +683,7 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable wi
     * That is because, the handles to those native objects are not valid after [[Graph.close]] has been invoked and the
     * references returned by this method help account for this behavior.
     */
-  private[api] def reference: Reference = Reference()
+  private[api] def reference: Reference = new Reference()
 
   /** Helper class for keeping track of references to this graph.
     *
@@ -692,7 +692,7 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable wi
     *
     * Instances of the `Reference` class should be used to ensure the graph has not been closed while dependent handles
     * are in use. */
-  private[api] final case class Reference private() extends Closeable {
+  private[api] final class Reference private[Graph]() extends Closeable {
     val graph: Graph = Graph.this
 
     NativeHandleLock.synchronized {
