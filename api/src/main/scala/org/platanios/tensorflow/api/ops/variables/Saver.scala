@@ -1102,7 +1102,7 @@ object SaverDefBuilder {
     * @return Created op.
     * @throws IllegalArgumentException If the length of `tensorNames` does not match the number of tensors in `tensors`.
     */
-  @deprecated("The V1 checkpoint format version has been deprecated.")
+  @deprecated("The V1 checkpoint format version has been deprecated.", "0.1")
   @throws[IllegalArgumentException]
   private def saveOp(filename: Output, tensorNames: Seq[String], tensors: Seq[Output], name: String = "Save"): Op = {
     if (tensorNames.length != tensors.length)
@@ -1151,7 +1151,7 @@ object SaverDefBuilder {
     * @throws IllegalArgumentException If the length of `tensorNames` does not match the number of tensors in `tensors`,
     *                                  and the number of strings in `slices`.
     */
-  @deprecated("The V1 checkpoint format version has been deprecated.")
+  @deprecated("The V1 checkpoint format version has been deprecated.", "0.1")
   @throws[IllegalArgumentException]
   private def saveSlicesOp(
       filename: Output, tensorNames: Seq[String], tensors: Seq[Output], slices: Seq[String],
@@ -1191,7 +1191,7 @@ object SaverDefBuilder {
     * @param  name            Name for the created op.
     * @return Created op output.
     */
-  @deprecated("The V1 checkpoint format version has been deprecated.")
+  @deprecated("The V1 checkpoint format version has been deprecated.", "0.1")
   private def restoreOp(
       filenamePattern: Output, tensorName: String, preferredShard: Int = -1, name: String = "Restore"): Output = {
     Op.Builder(opType = "Restore", name = name)
@@ -1215,7 +1215,7 @@ object SaverDefBuilder {
     * @param  name            Name for the created op.
     * @return Created op output.
     */
-  @deprecated("The V1 checkpoint format version has been deprecated.")
+  @deprecated("The V1 checkpoint format version has been deprecated.", "0.1")
   private def restoreSliceOp(
       filenamePattern: Output, tensorName: String, slice: String, preferredShard: Int = -1,
       name: String = "Restore"): Output = {

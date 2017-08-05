@@ -9,13 +9,14 @@ licenses in ThisBuild := Seq(("Apache License 2.0", url("https://www.apache.org/
 val tensorFlowVersion = "1.3.0-rc0"
 
 scalacOptions in ThisBuild ++= Seq(
+  "-deprecation",
   "-feature",
-  "-language:implicitConversions"
+  "-language:implicitConversions",
+  "-unchecked"
 )
 
 logBuffered in Test := false
 
-// Scaladoc options
 scalacOptions in (ThisBuild, Compile, doc) ++= Seq("-groups", "-implicits")
 //scalacOptions in (ThisBuild, Compile, doc) ++= Opts.doc.externalAPI((
 //  file(s"${(packageBin in Compile).value}") -> url("http://platanios.org/")) :: Nil)
