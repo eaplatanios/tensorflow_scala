@@ -37,6 +37,7 @@ package object ops {
           with Statistics
           with Text
           with Queue.API
+          with Reader.API
           with variables.API {
     type Op = ops.Op
     val Op = ops.Op
@@ -59,6 +60,7 @@ package object ops {
     ops.NN.Gradients
     ops.Queue.Gradients
     ops.Random.Gradients
+    ops.Reader.Gradients
     ops.variables.Variable.Gradients
 
     //region Op Construction Aliases

@@ -15,13 +15,13 @@
 
 package org.platanios.tensorflow.api.ops
 
-import java.nio.ByteBuffer
-import java.security.MessageDigest
-
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.Indexer.Implicits._
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.types.{DataType, INT64}
+
+import java.nio.ByteBuffer
+import java.security.MessageDigest
 
 import scala.language.postfixOps
 
@@ -40,7 +40,7 @@ import scala.language.postfixOps
   *
   * @author Emmanouil Antonios Platanios
   */
-case class Queue private[Queue](handle: Output, dataTypes: Seq[DataType])
+class Queue private[Queue](val handle: Output, val dataTypes: Seq[DataType])
     (val shapes: Seq[Shape] = Seq.fill(dataTypes.size)(Shape.unknown())) {
   /** Name of this queue. */
   protected val name: String = handle.op.name.split("/").last
@@ -235,7 +235,7 @@ object Queue {
       if (componentTypes.isEmpty)
         throw new IllegalArgumentException("Cannot create a queue when no data types are provided.")
       val handle = createFifoQueue(componentTypes, componentShapes, capacity, sharedName = sharedName, name = name)
-      Queue(handle, componentTypes)(componentShapes)
+      new Queue(handle, componentTypes)(componentShapes)
     }
 
     /** Creates a padding FIFO queue.
@@ -276,7 +276,7 @@ object Queue {
               s"${componentTypes.size} data types and ${componentShapes.size} shapes.")
       val handle = createPaddingFifoQueue(
         componentTypes, componentShapes, capacity, sharedName = sharedName, name = name)
-      Queue(handle, componentTypes)(componentShapes)
+      new Queue(handle, componentTypes)(componentShapes)
     }
 
     /** Creates a priority queue.
@@ -314,7 +314,7 @@ object Queue {
       val handle = createPriorityQueue(componentTypes, componentShapes, capacity, sharedName = sharedName, name = name)
       val dataTypes = INT64 +: componentTypes
       val shapes = if (componentShapes.nonEmpty) Shape() +: componentShapes else componentShapes
-      Queue(handle, dataTypes)(shapes)
+      new Queue(handle, dataTypes)(shapes)
     }
 
     /** Creates a random shuffling queue.
@@ -370,7 +370,7 @@ object Queue {
       }
       val handle = createRandomShuffleQueue(
         componentTypes, componentShapes, capacity, minAfterDequeue, seed1, seed2, sharedName = sharedName, name = name)
-      Queue(handle, componentTypes)(componentShapes)
+      new Queue(handle, componentTypes)(componentShapes)
     }
   }
 
@@ -390,7 +390,7 @@ object Queue {
       throw new IllegalArgumentException("The provided queues do not have matching component data types.")
     val shapes = dataTypes.indices.map(i => queues.map(_.shapes(i)).reduce(commonShape))
     val handle = Basic.gather(Basic.stack(queues.map(_.handle)), index)
-    Queue(handle, dataTypes)(shapes)
+    new Queue(handle, dataTypes)(shapes)
   }
 
   /** Returns the greatest lower bound (ordered by specificity) shape, between `shape1` and `shape2`. */
@@ -418,7 +418,7 @@ object Queue {
     * @param  name            Name for the created op.
     * @return Created op output, which is the handle to constructed queue.
     */
-  private[Queue] def createFifoQueue(
+  private[ops] def createFifoQueue(
       componentTypes: Seq[DataType], componentShapes: Seq[Shape] = Seq.empty, capacity: Int = -1,
       container: String = "", sharedName: String = "", name: String = "FIFOQueue"): Output = {
     Op.Builder(opType = "FIFOQueueV2", name = name)
@@ -452,7 +452,7 @@ object Queue {
     * @param  name            Name for the created op.
     * @return Created op output, which is the handle to constructed queue.
     */
-  private[Queue] def createPaddingFifoQueue(
+  private[ops] def createPaddingFifoQueue(
       componentTypes: Seq[DataType], componentShapes: Seq[Shape] = Seq.empty, capacity: Int = -1,
       container: String = "", sharedName: String = "", name: String = "PaddingFIFOQueue"): Output = {
     Op.Builder(opType = "PaddingFIFOQueueV2", name = name)
@@ -487,7 +487,7 @@ object Queue {
     * @param  name            Name for the created op.
     * @return Created op output, which is the handle to constructed queue.
     */
-  private[Queue] def createPriorityQueue(
+  private[ops] def createPriorityQueue(
       componentTypes: Seq[DataType] = Seq.empty, componentShapes: Seq[Shape] = Seq.empty, capacity: Int = -1,
       container: String = "", sharedName: String = "", name: String = "PriorityQueue"): Output = {
     Op.Builder(opType = "PriorityQueueV2", name = name)
@@ -525,7 +525,7 @@ object Queue {
     * @param  name            Name for the created op.
     * @return Created op output, which is the handle to constructed queue.
     */
-  private[Queue] def createRandomShuffleQueue(
+  private[ops] def createRandomShuffleQueue(
       componentTypes: Seq[DataType], componentShapes: Seq[Shape] = Seq.empty, capacity: Int = -1,
       minAfterDequeue: Int = 0, seed1: Int = 0, seed2: Int = 0, container: String = "", sharedName: String = "",
       name: String = "RandomShuffleQueue"): Output = {
@@ -554,7 +554,7 @@ object Queue {
     * @param  name        Name for the created op.
     * @return Created op.
     */
-  private[Queue] def queueEnqueue(
+  private[ops] def queueEnqueue(
       queueHandle: Output, values: Seq[Output], timeout: Option[Int] = None, name: String = "QueueEnqueue"): Op = {
     Op.Builder(opType = "QueueEnqueueV2", name = name)
         .addInput(queueHandle)
@@ -579,7 +579,7 @@ object Queue {
     * @param  name        Name for the created op.
     * @return Created op.
     */
-  private[Queue] def queueEnqueueMany(
+  private[ops] def queueEnqueueMany(
       queueHandle: Output, values: Seq[Output], timeout: Option[Int] = None, name: String = "QueueEnqueueMany"): Op = {
     Op.Builder(opType = "QueueEnqueueManyV2", name = name)
         .addInput(queueHandle)
@@ -601,7 +601,7 @@ object Queue {
     * @param  name        Name for the created op.
     * @return Created op outputs.
     */
-  private[Queue] def queueDequeue(
+  private[ops] def queueDequeue(
       queueHandle: Output, timeout: Option[Int] = None, name: String = "QueueDequeue"): Seq[Output] = {
     Op.Builder(opType = "QueueDequeueV2", name = name)
         .addInput(queueHandle)
@@ -628,7 +628,7 @@ object Queue {
     * @param  name        Name for the created op.
     * @return Created op outputs.
     */
-  private[Queue] def queueDequeueMany(
+  private[ops] def queueDequeueMany(
       queueHandle: Output, n: Output, timeout: Option[Int] = None, name: String = "QueueDequeueMany"): Seq[Output] = {
     Op.Builder(opType = "QueueDequeueManyV2", name = name)
         .addInput(queueHandle)
@@ -661,7 +661,7 @@ object Queue {
     * @param  name        Name for the created op.
     * @return Created op outputs.
     */
-  private[Queue] def queueDequeueUpTo(
+  private[ops] def queueDequeueUpTo(
       queueHandle: Output, n: Output, timeout: Option[Int] = None, name: String = "QueueDequeueUpTo"): Seq[Output] = {
     Op.Builder(opType = "QueueDequeueUpToV2", name = name)
         .addInput(queueHandle)
@@ -682,7 +682,7 @@ object Queue {
     * @param  name                  Name for the created op.
     * @return Created op.
     */
-  private[Queue] def queueClose(
+  private[ops] def queueClose(
       queueHandle: Output, cancelPendingEnqueues: Boolean = false, name: String = "QueueClose"): Op = {
     Op.Builder(opType = "QueueCloseV2", name = name)
         .addInput(queueHandle)
@@ -698,7 +698,7 @@ object Queue {
     * @param  name        Name for the created op.
     * @return Created op output.
     */
-  private[Queue] def queueIsClosed(queueHandle: Output, name: String = "QueueIsClosed"): Output = {
+  private[ops] def queueIsClosed(queueHandle: Output, name: String = "QueueIsClosed"): Output = {
     Op.Builder(opType = "QueueIsClosedV2", name = name)
         .addInput(queueHandle)
         .build().outputs(0)
@@ -712,7 +712,7 @@ object Queue {
     * @param  name        Name for the created op.
     * @return Created op output.
     */
-  private[Queue] def queueSize(queueHandle: Output, name: String = "QueueSize"): Output = {
+  private[ops] def queueSize(queueHandle: Output, name: String = "QueueSize"): Output = {
     Op.Builder(opType = "QueueSizeV2", name = name)
         .addInput(queueHandle)
         .build().outputs(0)

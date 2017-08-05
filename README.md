@@ -181,11 +181,11 @@ sbt compile
     - [x] Basic array ops gradients 
           (missing the concatenate op gradient for indexed slices -- need better Tensors API for that)
     - [x] Math
-    - [x] Math gradients
-    - [ ] NN
-    - [ ] NN gradients
+    - [x] NN (missing CNN ops)
+    - [ ] RNN
     - [ ] Control flow
     - [ ] Control flow gradients
+    - [x] IO
     - [ ] Summaries
 - Execution API:
   - [x] Default session
