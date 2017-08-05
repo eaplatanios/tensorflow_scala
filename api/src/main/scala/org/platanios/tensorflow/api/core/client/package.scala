@@ -21,6 +21,8 @@ package org.platanios.tensorflow.api.core
 package object client {
   private[api] trait API {
     type Session = client.Session
-    val Session = client.Session
+
+    def session(): Session = client.Session()
+    def session(graph: Graph): Session = client.Session(graph)
   }
 }

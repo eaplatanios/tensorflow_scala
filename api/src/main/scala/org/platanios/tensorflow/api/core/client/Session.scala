@@ -20,6 +20,7 @@ import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.ops.{Op, OpCreationContext, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.jni.{Session => NativeSession}
+
 import org.tensorflow.framework.{RunMetadata, RunOptions}
 
 import scala.util.DynamicVariable
@@ -172,13 +173,13 @@ final case class Session private (
 
 /** Contains helper functions for managing [[Session]] instances. */
 object Session {
-  def apply()(implicit context: DynamicVariable[OpCreationContext]): Session = {
+  private[client] def apply()(implicit context: DynamicVariable[OpCreationContext]): Session = {
     val graph = context.graph
     val graphReference = graph.reference
     Session(graphReference, NativeSession.allocate(graphReference.nativeHandle))
   }
 
-  def apply(graph: Graph): Session = {
+  private[client] def apply(graph: Graph): Session = {
     val graphReference = graph.reference
     Session(graphReference, NativeSession.allocate(graphReference.nativeHandle))
   }

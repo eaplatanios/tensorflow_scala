@@ -133,7 +133,7 @@ class Saver private (saverDef: SaverDef, saveRelativePaths: Boolean = false, pad
     * @return Path of the newly created checkpoint file, if the save operation was successful; `None`, otherwise.
     */
   def save(
-      session: Session, savePath: Path, globalStep: Int = -1, checkpointStateFilename: String = "checkpoint",
+      session: Session, savePath: Path, globalStep: Option[Int] = None, checkpointStateFilename: String = "checkpoint",
       metaGraphSuffix: String = "meta", writeMetaGraph: Boolean = true,
       writeCheckpointState: Boolean = true): Option[Path] = {
     Saver.logger.info(s"Saving parameters to '$savePath'.")
@@ -150,12 +150,12 @@ class Saver private (saverDef: SaverDef, saveRelativePaths: Boolean = false, pad
       throw new IllegalArgumentException(
         s"The 'checkpointStateFilename' must not contain any path components: $checkpointStateFilename.")
     val checkpointFile = {
-      if (globalStep != -1) {
+      if (globalStep.isDefined) {
         // Optionally zero-pads the step numbers so that they are sorted when listed.
         if (padGlobalStep)
-          savePath.resolveSibling(f"${savePath.getFileName}-$globalStep%08d")
+          savePath.resolveSibling(f"${savePath.getFileName}-${globalStep.get}%08d")
         else
-          savePath.resolveSibling(s"${savePath.getFileName}-$globalStep")
+          savePath.resolveSibling(s"${savePath.getFileName}-${globalStep.get}")
       } else if (savePath.getFileName.toString == checkpointStateFilename && !saverDef.getSharded) {
         // Guard against collision between the data file and the checkpoint state file.
         throw new IllegalArgumentException(
@@ -505,7 +505,7 @@ object Saver {
     *                             checkpoints.
     * @return Full path to the latest checkpoint, or `None`, if no checkpoint was found.
     */
-  def latestCheckpoint(directory: Path, checkpointStateFile: String): Option[Path] = {
+  def latestCheckpoint(directory: Path, checkpointStateFile: String = "checkpoint"): Option[Path] = {
     // Pick the latest checkpoint based on the checkpoint state.
     val checkpointState = loadCheckpointState(directory, checkpointStateFile)
     if (checkpointState.isDefined && checkpointState.get.getModelCheckpointPath != null) {
@@ -639,7 +639,7 @@ object Saver {
 
   /** Loads the checkpoint state stored in the file named `checkpointStateFilename`, in the specified directory.
     *
-    * @param  directory               Checkpoints directory.
+    * @param  directory           Checkpoints directory.
     * @param  checkpointStateFile Checkpoint state file name.
     * @return Loaded checkpoint state, or `None` if the state could not be loaded.
     * @throws IllegalArgumentException If the checkpoint state does not have its model checkpoint path set.
