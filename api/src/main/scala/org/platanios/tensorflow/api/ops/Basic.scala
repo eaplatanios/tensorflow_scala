@@ -262,15 +262,15 @@ trait Basic {
 
   /** Creates a placeholder op that passes through `defaultValue` when its input is not fed.
     *
-    * @param  defaultValue Default value to pass through when no input is fed for this placeholder.
-    * @param  shape        Shape of the tensor that will be fed. The shape can be any partially-specified, or even
-    *                      completely unknown.
-    * @param  name         Name for the created op.
+    * @param  default Default value to pass through when no input is fed for this placeholder.
+    * @param  shape   Shape of the tensor that will be fed. The shape can be any partially-specified, or even completely
+    *                 unknown.
+    * @param  name    Name for the created op.
     * @return Created op output.
     */
-  def placeholderWithDefault(defaultValue: Tensor, shape: Shape, name: String = "PlaceholderWithDefault"): Output = {
+  def placeholderWithDefault(default: Output, shape: Shape, name: String = "PlaceholderWithDefault"): Output = {
     Op.Builder(opType = "PlaceholderWithDefault", name = name)
-        .addInput(Op.createWith(nameScope = name)(constant(tensor = defaultValue, name = "DefaultValue")))
+        .addInput(default)
         .setAttribute("shape", shape)
         .build().outputs(0)
   }
