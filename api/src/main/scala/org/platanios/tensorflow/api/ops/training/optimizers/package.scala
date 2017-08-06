@@ -30,8 +30,8 @@ package object optimizers {
         learningRate: Double = 0.01, decay: Decay = NoDecay, initialAccumulatorValue: Double = 1e-8,
         useLocking: Boolean = false, name: String = "AdaGradOptimizer"): AdaGrad = {
       AdaGrad(
-        learningRate = learningRate, decay = decay, initialAccumulatorValue = initialAccumulatorValue,
-        useLocking = useLocking, name = name)
+        learningRate = learningRate, decay = decay, epsilon = initialAccumulatorValue, useLocking = useLocking,
+        name = name)
     }
 
     def AdaDelta(

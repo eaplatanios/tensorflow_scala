@@ -31,7 +31,8 @@ import org.platanios.tensorflow.api.ops.variables.Variable
   * For more information on this algorithm, please refer to this [paper](http://arxiv.org/abs/1212.5701)
   * ([PDF](http://arxiv.org/pdf/1212.5701v1.pdf)).
   *
-  * @param  learningRate Learning rate to use for the AdaDelta update.
+  * @param  learningRate Learning rate. Must be `> 0`. If used with `decay`, then this argument specifies the initial
+  *                      value of the learning rate.
   * @param  decay        Learning rate decay method to use for each update.
   * @param  rho          AdaDelta decay factor.
   * @param  epsilon      AdaDelta constant factor.
@@ -87,7 +88,7 @@ case class AdaDelta private[optimizers](
       variable = variable,
       accumulator = accumulator,
       accumulatorUpdate = accumulatorUpdate,
-      learningRate = getLearningRate(variable, iteration),
+      stepSize = getLearningRate(variable, iteration),
       rho = getRho(variable),
       epsilon = getEpsilon(variable),
       gradient = gradient,
@@ -101,7 +102,7 @@ case class AdaDelta private[optimizers](
       variable = variable,
       accumulator = accumulator,
       accumulatorUpdate = accumulatorUpdate,
-      learningRate = getLearningRate(variable, iteration),
+      stepSize = getLearningRate(variable, iteration),
       rho = getRho(variable),
       epsilon = getEpsilon(variable),
       gradient = gradient.values,
@@ -124,7 +125,7 @@ object AdaDelta {
     * @param  variable          Variable whose value to update.
     * @param  accumulator       AdaDelta accumulator variable.
     * @param  accumulatorUpdate AdaDelta accumulator update variable.
-    * @param  learningRate      Learning rate to use for the AdaDelta update.
+    * @param  stepSize          Step size to use for the AdaDelta update.
     * @param  rho               AdaDelta decay factor.
     * @param  epsilon           AdaDelta constant factor.
     * @param  gradient          Gradient to apply.
@@ -134,13 +135,13 @@ object AdaDelta {
     * @return Created op.
     */
   private[AdaDelta] def resourceApplyDense(
-      variable: Variable, accumulator: Variable, accumulatorUpdate: Variable, learningRate: Output, rho: Output,
+      variable: Variable, accumulator: Variable, accumulatorUpdate: Variable, stepSize: Output, rho: Output,
       epsilon: Output, gradient: Output, useLocking: Boolean = false, name: String = "ResourceApplyAdaDelta"): Op = {
     Op.Builder(opType = "ResourceApplyAdadelta", name = name)
         .addInput(variable.handle)
         .addInput(accumulator.handle)
         .addInput(accumulatorUpdate.handle)
-        .addInput(learningRate)
+        .addInput(stepSize)
         .addInput(rho)
         .addInput(epsilon)
         .addInput(gradient)
@@ -161,7 +162,7 @@ object AdaDelta {
     * @param  variable          Variable whose value to update.
     * @param  accumulator       AdaDelta accumulator variable.
     * @param  accumulatorUpdate AdaDelta accumulator update variable.
-    * @param  learningRate      Learning rate to use for the AdaDelta update.
+    * @param  stepSize          Step size to use for the AdaDelta update.
     * @param  rho               AdaDelta decay factor.
     * @param  epsilon           AdaDelta constant factor.
     * @param  gradient          Gradient to apply.
@@ -172,14 +173,14 @@ object AdaDelta {
     * @return Created op.
     */
   private[AdaDelta] def resourceApplySparse(
-      variable: Variable, accumulator: Variable, accumulatorUpdate: Variable, learningRate: Output, rho: Output,
+      variable: Variable, accumulator: Variable, accumulatorUpdate: Variable, stepSize: Output, rho: Output,
       epsilon: Output, gradient: Output, indices: Output, useLocking: Boolean = false,
       name: String = "ResourceSparseApplyAdaDelta"): Op = {
     Op.Builder(opType = "ResourceSparseApplyAdadelta", name = name)
         .addInput(variable.handle)
         .addInput(accumulator.handle)
         .addInput(accumulatorUpdate.handle)
-        .addInput(learningRate)
+        .addInput(stepSize)
         .addInput(rho)
         .addInput(epsilon)
         .addInput(gradient)

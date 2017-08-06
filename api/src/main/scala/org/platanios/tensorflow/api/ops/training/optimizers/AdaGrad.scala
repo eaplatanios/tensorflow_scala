@@ -20,14 +20,29 @@ import org.platanios.tensorflow.api.ops.variables.{ConstantInitializer, Variable
 
 /** Optimizer that implements the AdaGrad optimization algorithm.
   *
+  * The AdaGrad update is as follows:
+  * {{{
+  *   accumulator += gradient * gradient
+  *   variable -= stepSize * gradient * (1 / sqrt(accumulator))
+  * }}}
+  *
   * For more information on this algorithm, please refer to this
   * [paper](http://www.jmlr.org/papers/volume12/duchi11a/duchi11a.pdf).
+  *
+  * @param  learningRate Learning rate. Must be `> 0`. If used with `decay`, then this argument specifies the initial
+  *                      value of the learning rate.
+  * @param  decay        Learning rate decay method to use for each update.
+  * @param  epsilon      Initial value to use for the accumulator (i.e., to avoid dividing by zero, or a very small
+  *                      value).
+  * @param  useLocking   If `true`, the gradient descent updates will be protected by a lock. Otherwise, the behavior is
+  *                      undefined, but may exhibit less contention.
+  * @param  name         Name for this optimizer.
   *
   * @author Emmanouil Antonios Platanios
   */
 case class AdaGrad private[optimizers](
-    learningRate: Double = 0.01, decay: Decay = NoDecay, initialAccumulatorValue: Double = 1e-8,
-    useLocking: Boolean = false, name: String = "AdaGradOptimizer") extends Optimizer {
+    learningRate: Double = 0.01, decay: Decay = NoDecay, epsilon: Double = 1e-8, useLocking: Boolean = false,
+    name: String = "AdaGradOptimizer") extends Optimizer {
   private[this] var learningRateTensor: Output = _
 
   private[this] def getLearningRate(variable: Variable, iteration: Option[Variable]): Output = {
@@ -39,7 +54,7 @@ case class AdaGrad private[optimizers](
 
   override protected def createSlots(variables: Seq[Variable]): Unit = {
     variables.foreach(v => {
-      val initializer = ConstantInitializer(initialAccumulatorValue)
+      val initializer = ConstantInitializer(epsilon)
       getSlot("accumulator", v, initializer, v.shape, v.dataType, "Accumulator")
     })
   }
@@ -71,7 +86,7 @@ object AdaGrad {
     *
     * @param  variable    Variable whose value to update.
     * @param  accumulator AdaGrad accumulator variable.
-    * @param  stepSize    Step size to use for the gradient descent update.
+    * @param  stepSize    Step size to use for the AdaGrad update.
     * @param  gradient    Gradient to apply.
     * @param  useLocking  If `true`, the subtraction will be protected by a lock. Otherwise, the behavior is undefined,
     *                     but may exhibit less contention.
@@ -100,7 +115,7 @@ object AdaGrad {
     *
     * @param  variable    Variable whose value to update.
     * @param  accumulator AdaGrad accumulator variable.
-    * @param  stepSize    Step size to use for the gradient descent update.
+    * @param  stepSize    Step size to use for the AdaGrad update.
     * @param  gradient    Gradient to apply.
     * @param  indices     Vector of indices into the first dimension of `variable` and `accumulator`.
     * @param  useLocking  If `true`, the subtraction will be protected by a lock. Otherwise, the behavior is undefined,
