@@ -2908,7 +2908,7 @@ trait Math {
 }
 
 object Math extends Math {
-  private[api] object Gradients {
+  private[ops] object Gradients {
     GradientsRegistry.registerNonDifferentiable("Range")
     GradientsRegistry.registerNonDifferentiable("LinSpace")
     GradientsRegistry.registerNonDifferentiable("IsNan")

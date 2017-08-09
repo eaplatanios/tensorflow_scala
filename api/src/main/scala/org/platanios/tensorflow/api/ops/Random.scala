@@ -114,7 +114,7 @@ trait Random {
 }
 
 object Random extends Random {
-  private[api] object Gradients {
+  private[ops] object Gradients {
     GradientsRegistry.registerNonDifferentiable("RandomUniform")
     GradientsRegistry.registerNonDifferentiable("RandomUniformInt")
     GradientsRegistry.registerNonDifferentiable("RandomStandardNormal")

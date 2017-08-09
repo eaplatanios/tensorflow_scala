@@ -837,7 +837,7 @@ object NN extends NN {
     }
   }
 
-  private[api] object Gradients {
+  private[ops] object Gradients {
     GradientsRegistry.register("BiasAdd", biasAddGradient)
     GradientsRegistry.register("BiasAddGrad", biasAddHessian)
     GradientsRegistry.register("Relu", reluGradient)

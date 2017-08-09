@@ -25,6 +25,8 @@ import org.platanios.tensorflow.api.types.{DataType, FLOAT32}
   */
 package object variables {
   private[api] trait API {
+    variables.Variable.Gradients
+
     type Variable = variables.Variable
     type PartitionedVariable = variables.PartitionedVariable
     type VariableReuse = variables.Reuse

@@ -718,7 +718,7 @@ object Queue {
         .build().outputs(0)
   }
 
-  private[api] object Gradients {
+  private[ops] object Gradients {
     GradientsRegistry.registerNonDifferentiable("FIFOQueue")
     GradientsRegistry.registerNonDifferentiable("FIFOQueueV2")
     GradientsRegistry.registerNonDifferentiable("PaddingFIFOQueue")

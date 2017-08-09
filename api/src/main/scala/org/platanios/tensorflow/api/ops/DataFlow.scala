@@ -130,7 +130,7 @@ trait DataFlow {
 }
 
 object DataFlow extends DataFlow {
-  private[api] object Gradients {
+  private[ops] object Gradients {
     GradientsRegistry.registerNonDifferentiable("Stack")
     GradientsRegistry.registerNonDifferentiable("StackPush")
     GradientsRegistry.registerNonDifferentiable("StackPop")

@@ -16,6 +16,7 @@
 package org.platanios.tensorflow.api
 
 import org.platanios.tensorflow.api.core.Graph
+import org.platanios.tensorflow.api.ops.io.{Files, Reader}
 import org.platanios.tensorflow.api.types.DataType
 
 /**
@@ -37,7 +38,7 @@ package object ops {
           with Statistics
           with Text
           with Queue.API
-          with Reader.API
+          with io.API
           with variables.API {
     type Op = ops.Op
     val Op = ops.Op
@@ -55,13 +56,11 @@ package object ops {
 
     ops.Basic.Gradients
     ops.DataFlow.Gradients
-    ops.IO.Gradients
     ops.Logging.Gradients
     ops.Math.Gradients
     ops.NN.Gradients
     ops.Queue.Gradients
     ops.Random.Gradients
-    ops.variables.Variable.Gradients
 
     //region Op Construction Aliases
 

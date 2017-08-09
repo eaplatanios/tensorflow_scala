@@ -858,7 +858,7 @@ object Variable {
         .build()
   }
 
-  private[api] object Gradients {
+  private[variables] object Gradients {
     GradientsRegistry.register("ReadVariableOp", readGradient)
     GradientsRegistry.register("ResourceGather", gatherGradient)
 

@@ -76,7 +76,7 @@ trait Logging {
 }
 
 object Logging extends Logging {
-  private[api] object Gradients {
+  private[ops] object Gradients {
     GradientsRegistry.register("Print", printGradient)
 
     private[this] def printGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {

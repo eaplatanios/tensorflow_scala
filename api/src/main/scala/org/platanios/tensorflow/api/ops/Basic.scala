@@ -2989,7 +2989,7 @@ trait Basic {
 }
 
 object Basic extends Basic {
-  private[api] object Gradients {
+  private[ops] object Gradients {
     GradientsRegistry.registerNonDifferentiable("Const")
     GradientsRegistry.registerNonDifferentiable("ZerosLike")
     GradientsRegistry.registerNonDifferentiable("OnesLike")
