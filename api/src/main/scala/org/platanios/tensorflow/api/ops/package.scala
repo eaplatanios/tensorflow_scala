@@ -55,12 +55,12 @@ package object ops {
 
     ops.Basic.Gradients
     ops.DataFlow.Gradients
+    ops.IO.Gradients
     ops.Logging.Gradients
     ops.Math.Gradients
     ops.NN.Gradients
     ops.Queue.Gradients
     ops.Random.Gradients
-    ops.Reader.Gradients
     ops.variables.Variable.Gradients
 
     //region Op Construction Aliases

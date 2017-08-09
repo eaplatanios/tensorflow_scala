@@ -15,8 +15,6 @@
 
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
-
 /** Class that supports all TensorFlow reader implementations.
   *
   * Conceptually, readers convert string "work units" into records (i.e., key-value pairs). Typically the "work units"
@@ -45,7 +43,7 @@ class Reader private[ops](val handle: Output) {
     * @return Created op outputs as a key-value pair.
     */
   def read(queue: Queue, name: String = s"$name/Read"): (Output, Output) = {
-    Reader.readerRead(handle, queue.handle, name)
+    IO.readerRead(handle, queue.handle, name)
   }
 
   /** Creates an op that reads up to the next `numRecords` records (i.e., key-value pairs) produced by this reader.
@@ -59,7 +57,7 @@ class Reader private[ops](val handle: Output) {
     * @return Created op outputs as a key-value pair of one-dimensional tensors.
     */
   def readUpTo(queue: Queue, numRecords: Output, name: String = s"$name/ReadUpTo"): (Output, Output) = {
-    Reader.readerReadUpTo(handle, queue.handle, numRecords, name)
+    IO.readerReadUpTo(handle, queue.handle, numRecords, name)
   }
 
   /** Creates an op that returns the number of records that this reader has produced.
@@ -70,7 +68,7 @@ class Reader private[ops](val handle: Output) {
     * @return Created op output, which is an `INT64` scalar tensor.
     */
   def numRecordsProduced(name: String = s"$name/NumRecordsProduced"): Output = {
-    Reader.readerNumRecordsProduced(handle, name)
+    IO.readerNumRecordsProduced(handle, name)
   }
 
   /** Creates an op that returns the number of work units that this reader has finished processing.
@@ -79,7 +77,7 @@ class Reader private[ops](val handle: Output) {
     * @return Created op output, which is an `INT64` scalar tensor.
     */
   def numWorkUnitsCompleted(name: String = s"$name/NumWorkUnitsCompleted"): Output = {
-    Reader.readerNumWorkUnitsCompleted(handle, name)
+    IO.readerNumWorkUnitsCompleted(handle, name)
   }
 
   /** Creates an op that restores this reader to its initial clean state.
@@ -88,7 +86,7 @@ class Reader private[ops](val handle: Output) {
     * @return Created op.
     */
   def reset(name: String = s"$name/Reset"): Op = {
-    Reader.readerReset(handle, name)
+    IO.readerReset(handle, name)
   }
 }
 
@@ -99,7 +97,7 @@ class SerializableReader private[ops](override val handle: Output) extends Reade
     * @return Created op output, which is a `STRING` scalar tensor.
     */
   def serializeState(name: String = s"$name/SerializeState"): Output = {
-    Reader.readerSerializeState(handle, name)
+    IO.readerSerializeState(handle, name)
   }
 
   /** Creates an op that restores this reader to a previously serialized state.
@@ -109,7 +107,7 @@ class SerializableReader private[ops](override val handle: Output) extends Reade
     * @return Created op.
     */
   def restoreState(state: Output, name: String = s"$name/RestoreState"): Op = {
-    Reader.readerRestoreState(handle, state, name)
+    IO.readerRestoreState(handle, state, name)
   }
 }
 
@@ -126,7 +124,7 @@ object Reader {
       * @return Constructed reader.
       */
     def wholeFileReader(sharedName: String = "", name: String = "WholeFileReader"): SerializableReader = {
-      new SerializableReader(createWholeFileReader(sharedName = sharedName, name = name))
+      new SerializableReader(IO.createWholeFileReader(sharedName = sharedName, name = name))
     }
 
     /** Creates a reader that outputs the lines of a text file delimited by the new-line character `\n`.
@@ -140,7 +138,7 @@ object Reader {
       * @return Constructed reader.
       */
     def textLineReader(skipHeaderLines: Int = 0, sharedName: String = "", name: String = "TextLineReader"): Reader = {
-      new Reader(createTextLineReader(skipHeaderLines, sharedName = sharedName, name = name))
+      new Reader(IO.createTextLineReader(skipHeaderLines, sharedName = sharedName, name = name))
     }
 
     /** Creates a reader that outputs fixed-length records from a file.
@@ -157,9 +155,9 @@ object Reader {
       */
     def fixedLengthRecordReader(
         recordBytes: Int, headerBytes: Int = 0, footerBytes: Int = 0, hopBytes: Int = 0,
-        compressionType: CompressionType = NoCompression, sharedName: String = "",
+        compressionType: IO.CompressionType = IO.NoCompression, sharedName: String = "",
         name: String = "FixedLengthRecordReader"): Reader = {
-      new Reader(createFixedLengthRecordReader(
+      new Reader(IO.createFixedLengthRecordReader(
         recordBytes, headerBytes, footerBytes, hopBytes, compressionType.name, sharedName = sharedName, name = name))
     }
 
@@ -172,9 +170,9 @@ object Reader {
       * @return Constructed reader.
       */
     def tfRecordReader(
-        compressionType: CompressionType = NoCompression, sharedName: String = "",
+        compressionType: IO.CompressionType = IO.NoCompression, sharedName: String = "",
         name: String = "TFRecordReader"): Reader = {
-      new Reader(createTFRecordReader(compressionType.name, sharedName = sharedName, name = name))
+      new Reader(IO.createTFRecordReader(compressionType.name, sharedName = sharedName, name = name))
     }
 
     /** Creates a reader that outputs the queued work as both the key and value.
@@ -188,325 +186,9 @@ object Reader {
       * @return Constructed reader.
       */
     def identityReader(sharedName: String = "", name: String = "IdentityReader"): Reader = {
-      new Reader(createIdentityReader(sharedName = sharedName, name = name))
+      new Reader(IO.createIdentityReader(sharedName = sharedName, name = name))
     }
   }
 
   object API extends API
-
-  sealed trait CompressionType {
-    val name: String
-  }
-
-  case object NoCompression extends CompressionType {
-    override val name: String = ""
-  }
-
-  case object ZLIBCompression extends CompressionType {
-    override val name: String = "ZLIB"
-  }
-
-  case object GZIPCompression extends CompressionType {
-    override val name: String = "GZIP"
-  }
-
-  /** Creates an op that outputs the entire contents of a file as a value.
-    *
-    * To use, enqueue the filenames in a [[Queue]]. The output of [[readerRead]] will be a filename (key) and the
-    * contents of that file (value).
-    *
-    * @param  container  If non-empty, then the constructed reader is placed in the provided container. Otherwise, a
-    *                    default container is used.
-    * @param  sharedName If non-empty, then the constructed reader will be shared under the the provided name across
-    *                    multiple sessions.
-    * @param  name       Name for the created op.
-    * @return Created op output, which is the handle to constructed reader.
-    */
-  private[ops] def createWholeFileReader(
-      container: String = "", sharedName: String = "", name: String = "WholeFileReader"): Output = {
-    Op.Builder(opType = "WholeFileReaderV2", name = name)
-        .setAttribute("container", container)
-        .setAttribute("shared_name", sharedName)
-        .build().outputs(0)
-  }
-
-  /** Creates an op that outputs the lines of a text file delimited by the new line character `\n`.
-    *
-    * **Note:** New-line characters are stripped from the output.
-    *
-    * @param  skipHeaderLines Number of lines to skip from the beginning of every file.
-    * @param  container       If non-empty, then the constructed reader is placed in the provided container. Otherwise,
-    *                         a default container is used.
-    * @param  sharedName      If non-empty, then the constructed reader will be shared under the the provided name
-    *                         across multiple sessions.
-    * @param  name            Name for the created op.
-    * @return Created op output, which is the handle to constructed reader.
-    */
-  private[ops] def createTextLineReader(
-      skipHeaderLines: Int = 0, container: String = "", sharedName: String = "",
-      name: String = "TextLineReader"): Output = {
-    Op.Builder(opType = "TextLineReaderV2", name = name)
-        .setAttribute("skip_header_lines", skipHeaderLines)
-        .setAttribute("container", container)
-        .setAttribute("shared_name", sharedName)
-        .build().outputs(0)
-  }
-
-  /** Creates an op that outputs fixed-length records from a file.
-    *
-    * @param  recordBytes     Number of bytes in the record.
-    * @param  headerBytes     Number of bytes in the header.
-    * @param  footerBytes     Number of bytes in the footer.
-    * @param  hopBytes        Number of bytes to hop before each read.
-    * @param  compressionType Type of compression for the file. Currently ZLIB and GZIP are supported. Defaults to `""`,
-    *                         meaning no compression.
-    * @param  container       If non-empty, then the constructed reader is placed in the provided container. Otherwise,
-    *                         a default container is used.
-    * @param  sharedName      If non-empty, then the constructed reader will be shared under the the provided name
-    *                         across multiple sessions.
-    * @param  name            Name for the created op.
-    * @return Created op output, which is the handle to constructed reader.
-    */
-  private[ops] def createFixedLengthRecordReader(
-      recordBytes: Int, headerBytes: Int = 0, footerBytes: Int = 0, hopBytes: Int = 0, compressionType: String = "",
-      container: String = "", sharedName: String = "", name: String = "FixedLengthRecordReader"): Output = {
-    Op.Builder(opType = "FixedLengthRecordReaderV2", name = name)
-        .setAttribute("record_bytes", recordBytes)
-        .setAttribute("header_bytes", headerBytes)
-        .setAttribute("footer_bytes", footerBytes)
-        .setAttribute("hop_bytes", hopBytes)
-        .setAttribute("encoding", compressionType)
-        .setAttribute("container", container)
-        .setAttribute("shared_name", sharedName)
-        .build().outputs(0)
-  }
-
-  /** Creates an op that outputs the records from a TensorFlow records file.
-    *
-    * @param  compressionType Type of compression for the file. Currently ZLIB and GZIP are supported. Defaults to `""`,
-    *                         meaning no compression.
-    * @param  container       If non-empty, then the constructed reader is placed in the provided container. Otherwise,
-    *                         a default container is used.
-    * @param  sharedName      If non-empty, then the constructed reader will be shared under the the provided name
-    *                         across multiple sessions.
-    * @param  name            Name for the created op.
-    * @return Created op output, which is the handle to constructed reader.
-    */
-  private[ops] def createTFRecordReader(
-      compressionType: String = "", container: String = "", sharedName: String = "",
-      name: String = "TFRecordReader"): Output = {
-    Op.Builder(opType = "TFRecordReaderV2", name = name)
-        .setAttribute("compression_type", compressionType)
-        .setAttribute("container", container)
-        .setAttribute("shared_name", sharedName)
-        .build().outputs(0)
-  }
-
-  /** Creates an op that outputs the queued work as both the key and value.
-    *
-    * To use, enqueue strings in a [[Queue]]. The output of [[readerRead]] will be a string (key) and the same string
-    * repeated (value).
-    *
-    * @param  container  If non-empty, then the constructed reader is placed in the provided container. Otherwise, a
-    *                    default container is used.
-    * @param  sharedName If non-empty, then the constructed reader will be shared under the the provided name across
-    *                    multiple sessions.
-    * @param  name       Name for the created op.
-    * @return Created op output, which is the handle to constructed reader.
-    */
-  private[ops] def createIdentityReader(
-      container: String = "", sharedName: String = "", name: String = "IdentityReader"): Output = {
-    Op.Builder(opType = "IdentityReaderV2", name = name)
-        .setAttribute("container", container)
-        .setAttribute("shared_name", sharedName)
-        .build().outputs(0)
-  }
-
-  /** Creates an op that reads the next record (i.e., key-value pair) produced by a reader.
-    *
-    * The op will dequeue from the input queue if necessary (e.g., when the reader needs to start reading from a new
-    * file since it has finished with the previous file).
-    *
-    * @param  readerHandle Handle to a reader.
-    * @param  queueHandle  Handle to a queue.
-    * @param  name         Name for the created op.
-    * @return Created op outputs as a key-value pair.
-    */
-  private[ops] def readerRead(
-      readerHandle: Output, queueHandle: Output, name: String = "ReaderRead"): (Output, Output) = {
-    val outputs = Op.Builder(opType = "ReaderReadV2", name = name)
-        .addInput(readerHandle)
-        .addInput(queueHandle)
-        .build().outputs
-    (outputs(0), outputs(1))
-  }
-
-  /** Creates an op that reads up to the next `numRecords` records (i.e., key-value pairs) produced by a reader.
-    *
-    * The op will dequeue from the input queue if necessary (e.g., when the reader needs to start reading from a new
-    * file since it has finished with the previous file).
-    *
-    * @param  readerHandle Handle to a reader.
-    * @param  queueHandle  Handle to a queue.
-    * @param  numRecords   `INT64` scalar tensor specifying how many records to read.
-    * @param  name         Name for the created op.
-    * @return Created op outputs as a key-value pair of one-dimensional tensors,
-    */
-  private[ops] def readerReadUpTo(
-      readerHandle: Output, queueHandle: Output, numRecords: Output,
-      name: String = "ReaderReadUpTo"): (Output, Output) = {
-    val outputs = Op.Builder(opType = "ReaderReadUpToV2", name = name)
-        .addInput(readerHandle)
-        .addInput(queueHandle)
-        .addInput(numRecords)
-        .build().outputs
-    (outputs(0), outputs(1))
-  }
-
-  /** Creates an op that returns the number of records that the provided reader has produced.
-    *
-    * This is the same as the number of [[readerRead]] executions that have succeeded.
-    *
-    * @param  readerHandle Handle to a reader.
-    * @param  name         Name for the created op.
-    * @return Created op output, which is an `INT64` scalar tensor.
-    */
-  private[ops] def readerNumRecordsProduced(readerHandle: Output, name: String = "ReaderNumRecordsProduced"): Output = {
-    Op.Builder(opType = "ReaderNumRecordsProducedV2", name = name)
-        .addInput(readerHandle)
-        .build().outputs(0)
-  }
-
-  /** Creates an op that returns the number of work units that the provided reader has finished processing.
-    *
-    * @param  readerHandle Handle to a reader.
-    * @param  name         Name for the created op.
-    * @return Created op output, which is an `INT64` scalar tensor.
-    */
-  private[ops] def readerNumWorkUnitsCompleted(
-      readerHandle: Output, name: String = "ReaderNumWorkUnitsCompleted"): Output = {
-    Op.Builder(opType = "ReaderNumWorkUnitsCompletedV2", name = name)
-        .addInput(readerHandle)
-        .build().outputs(0)
-  }
-
-  /** Creates an op that produces a string tensor that encodes the state of the provided reader.
-    *
-    * **Note:** Not all readers support being serialized and so this function could result in an `Unimplemented` error
-    * being thrown.
-    *
-    * @param  readerHandle Handle to a reader.
-    * @param  name         Name for the created op.
-    * @return Created op output, which is a `STRING` scalar tensor.
-    */
-  private[ops] def readerSerializeState(readerHandle: Output, name: String = "ReaderSerializeState"): Output = {
-    Op.Builder(opType = "ReaderSerializeStateV2", name = name)
-        .addInput(readerHandle)
-        .build().outputs(0)
-  }
-
-  /** Creates an op that restores the provided reader to a previously serialized state.
-    *
-    * **Note:** Not all readers support being restored and so this function could result in an `Unimplemented` error
-    * being thrown.
-    *
-    * @param  readerHandle Handle to a reader.
-    * @param  state        `STRING` scalar tensor containing the serialized reader state, matching the provided reader
-    *                      type.
-    * @param  name         Name for the created op.
-    * @return Created op.
-    */
-  private[ops] def readerRestoreState(
-      readerHandle: Output, state: Output, name: String = "ReaderRestoreState"): Op = {
-    Op.Builder(opType = "ReaderRestoreStateV2", name = name)
-        .addInput(readerHandle)
-        .addInput(state)
-        .build()
-  }
-
-  /** Creates an op that restores the provided reader to its initial clean state.
-    *
-    * @param  readerHandle Handle to a reader.
-    * @param  name         Name for the created op.
-    * @return Created op.
-    */
-  private[ops] def readerReset(readerHandle: Output, name: String = "ReaderReset"): Op = {
-    Op.Builder(opType = "ReaderResetV2", name = name)
-        .addInput(readerHandle)
-        .build()
-  }
-
-  /** Creates an op that reads and outputs the entire contents of the file pointed to by the input filename.
-    *
-    * @param  filename `STRING` scalar tensor containing the filename.
-    * @param  name     Name for the created op.
-    * @return Created op output, which is a `STRING` scalar tensor containing the file contents.
-    */
-  private[ops] def readFile(filename: Output, name: String = "ReadFile"): Output = {
-    Op.Builder(opType = "ReadFile", name = name)
-        .addInput(filename)
-        .build().outputs(0)
-  }
-
-  /** Creates an op that writes `contents` to the file pointed to by the input filename.
-    *
-    * The op creates the file and recursively creates the directory, if it does not already exist.
-    *
-    * @param  filename `STRING` scalar tensor containing the filename.
-    * @param  contents `STRING` scalar tensor containing the contents to write to the provided file.
-    * @param  name     Name for the created op.
-    * @return Created op output, which is a `STRING` scalar tensor containing the file contents.
-    */
-  private[ops] def writeFile(filename: Output, contents: Output, name: String = "WriteFile"): Op = {
-    Op.Builder(opType = "WriteFile", name = name)
-        .addInput(filename)
-        .addInput(contents)
-        .build()
-  }
-
-  /** Creates an op that returns the set of files matching one or more glob patterns.
-    *
-    * **Note:** The op only supports wildcard characters in the basename portion of the pattern and not in the directory
-    * portion.
-    *
-    * @param  pattern `STRING` scalar or vector tensor containing the shell wildcard pattern(s).
-    * @param  name    Name for the created op.
-    * @return Created op output, which is a `STRING` vector tensor containing the matching filenames.
-    */
-  private[ops] def matchingFiles(pattern: Output, name: String = "MatchingFiles"): Output = {
-    Op.Builder(opType = "MatchingFiles", name = name)
-        .addInput(pattern)
-        .build().outputs(0)
-  }
-
-  private[api] object Gradients {
-    GradientsRegistry.registerNonDifferentiable("WholeFileReader")
-    GradientsRegistry.registerNonDifferentiable("WholeFileReaderV2")
-    GradientsRegistry.registerNonDifferentiable("TextLineReader")
-    GradientsRegistry.registerNonDifferentiable("TextLineReaderV2")
-    GradientsRegistry.registerNonDifferentiable("FixedLengthRecordReader")
-    GradientsRegistry.registerNonDifferentiable("FixedLengthRecordReaderV2")
-    GradientsRegistry.registerNonDifferentiable("TFRecordReader")
-    GradientsRegistry.registerNonDifferentiable("TFRecordReaderV2")
-    GradientsRegistry.registerNonDifferentiable("LMDBReader")
-    GradientsRegistry.registerNonDifferentiable("IdentityReader")
-    GradientsRegistry.registerNonDifferentiable("IdentityReaderV2")
-    GradientsRegistry.registerNonDifferentiable("ReaderRead")
-    GradientsRegistry.registerNonDifferentiable("ReaderReadV2")
-    GradientsRegistry.registerNonDifferentiable("ReaderReadUpTo")
-    GradientsRegistry.registerNonDifferentiable("ReaderReadUpToV2")
-    GradientsRegistry.registerNonDifferentiable("ReaderNumRecordsProduced")
-    GradientsRegistry.registerNonDifferentiable("ReaderNumRecordsProducedV2")
-    GradientsRegistry.registerNonDifferentiable("ReaderNumWorkUnitsCompleted")
-    GradientsRegistry.registerNonDifferentiable("ReaderNumWorkUnitsCompletedV2")
-    GradientsRegistry.registerNonDifferentiable("ReaderSerializeState")
-    GradientsRegistry.registerNonDifferentiable("ReaderSerializeStateV2")
-    GradientsRegistry.registerNonDifferentiable("ReaderRestoreState")
-    GradientsRegistry.registerNonDifferentiable("ReaderRestoreStateV2")
-    GradientsRegistry.registerNonDifferentiable("ReaderReset")
-    GradientsRegistry.registerNonDifferentiable("ReaderResetV2")
-    GradientsRegistry.registerNonDifferentiable("ReadFile")
-    GradientsRegistry.registerNonDifferentiable("WriteFile")
-    GradientsRegistry.registerNonDifferentiable("MatchingFiles")
-  }
 }
