@@ -35,6 +35,8 @@ package object api extends Implicits {
 
   private[api] val META_GRAPH_UNBOUND_INPUT_PREFIX: String = "$unbound_inputs_"
 
+  // TODO: !!! Move inside the ops API?
+
   import org.platanios.tensorflow.api.ops.OpCreationContext
 
   implicit val opCreationContext: DynamicVariable[OpCreationContext] = {
@@ -72,14 +74,15 @@ package object api extends Implicits {
 
   private[api] trait API
       extends core.API
-          // with layers.API
           with ops.API
           with tensors.API
-          with types.API
+          with types.API {
+    object learn extends api.learn.API
+  }
 
   private[api] object API extends API
 
-  val tf = API
+  val tf  = API
 
   //endregion Public API
 }
