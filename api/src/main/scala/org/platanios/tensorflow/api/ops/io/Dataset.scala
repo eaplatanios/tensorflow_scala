@@ -525,6 +525,37 @@ object Dataset {
         .build().outputs(0)
   }
 
+  /** Creates an op representing a dataset that asynchronously prefetches elements from `dataset`.
+    *
+    * A cached dataset will iterate over the input dataset and store the tensors it gets. If the cache already exists,
+    * it will be used. If the cache is inappropriate (e.g., it cannot be opened, or contains tensors of the wrong shape
+    * or size), an error will the returned when used.
+    *
+    * @param  dataset         Handle of the dataset to cache.
+    * @param  bufferSize      `INT64` scalar tensor containing the maximum number of elements to buffer in an iterator
+    *                         over this dataset.
+    * @param  outputDataTypes Output data types of the created dataset.
+    * @param  outputShapes    Output shapes of the created dataset.
+    * @param  name            Name for the created op.
+    * @return Created op output, which is a handle to the created dataset.
+    * @throws IllegalArgumentException If `bufferSize` has invalid data type or rank (i.e., if it not a scalar).
+    */
+  @throws[IllegalArgumentException]
+  private[io] def datasetPrefetch(
+      dataset: Output, bufferSize: Output, outputDataTypes: Seq[DataType], outputShapes: Seq[Shape],
+      name: String = "DatasetPrefetch"): Output = {
+    if (bufferSize.dataType != INT64)
+      throw new IllegalArgumentException(s"'bufferSize' (dataType = ${bufferSize.dataType}) must be an INT64 tensor.")
+    if (bufferSize.rank != -1 && bufferSize.rank != 0)
+      throw new IllegalArgumentException(s"'bufferSize' (rank = ${bufferSize.rank}) must be equal to 0.")
+    Op.Builder(opType = "PrefetchDataset", name = name)
+        .addInput(dataset)
+        .addInput(bufferSize)
+        .setAttribute("output_types", outputDataTypes.toArray)
+        .setAttribute("output_shapes", outputShapes.toArray)
+        .build().outputs(0)
+  }
+
   /** Creates an op representing a dataset that contains all entries from the provided dataset, but ignores all errors.
     *
     * @param  dataset         Handle of the dataset to take entries from.
