@@ -32,7 +32,7 @@ import scala.reflect.ClassTag
   *
   * For example, the result of any mathematical operation can be fetched.
   *
-  * Currently supported executable types are:
+  * Currently supported fetchable types are:
   *   - Single [[Output]], [[OutputIndexedSlices]], [[SparseOutput]] object.
   *   - Sequences of other [[Fetchable]]s (e.g., `Seq`s, `List`s, etc.).
   *     - Sequences that are not homogeneous are not supported (e.g., `Seq(output1, Seq(output1, output2))`).
@@ -89,6 +89,55 @@ object Fetchable {
     override def segment(fetchable: Output, values: Seq[Tensor]): (Tensor, Seq[Tensor]) = (values.head, values.tail)
   }
 
+  // TODO: [TENSORS] Switch to something like "TensorIndexedSlices".
+  implicit val outputIndexedSlicesFetchable: Aux[OutputIndexedSlices, (Tensor, Tensor, Tensor)] = {
+    new Fetchable[OutputIndexedSlices] {
+      override type ResultType = (Tensor, Tensor, Tensor)
+
+      override def numberOfFetches(fetchable: OutputIndexedSlices): Int = 3
+
+      override def fetches(fetchable: OutputIndexedSlices): Seq[Output] = {
+        Seq(fetchable.indices, fetchable.values, fetchable.denseShape)
+      }
+
+      override def segment(
+          fetchable: OutputIndexedSlices, values: Seq[Tensor]): ((Tensor, Tensor, Tensor), Seq[Tensor]) = {
+        ((values(0), values(1), values(2)), values.drop(3))
+      }
+    }
+  }
+
+  // TODO: [TENSORS] Switch to something like "SparseTensor".
+  implicit val sparseOutputFetchable: Aux[SparseOutput, (Tensor, Tensor, Tensor)] = {
+    new Fetchable[SparseOutput] {
+      override type ResultType = (Tensor, Tensor, Tensor)
+
+      override def numberOfFetches(fetchable: SparseOutput): Int = 3
+
+      override def fetches(fetchable: SparseOutput): Seq[Output] = {
+        Seq(fetchable.indices, fetchable.values, fetchable.denseShape)
+      }
+
+      override def segment(
+          fetchable: SparseOutput, values: Seq[Tensor]): ((Tensor, Tensor, Tensor), Seq[Tensor]) = {
+        ((values(0), values(1), values(2)), values.drop(3))
+      }
+    }
+  }
+
+  implicit def fetchableArray[T, R: ClassTag](implicit ev: Aux[T, R]): Aux[Array[T], Array[R]] = {
+    new Fetchable[Array[T]] {
+      override type ResultType = Array[R]
+      override def numberOfFetches(fetchable: Array[T]): Int = fetchable.map(ev.numberOfFetches).sum
+      override def fetches(fetchable: Array[T]): Seq[Output] = fetchable.flatMap(ev.fetches).toSeq
+      override def segment(fetchable: Array[T], values: Seq[Tensor]): (Array[R], Seq[Tensor]) = {
+        val n = numberOfFetches(fetchable)
+        (fetchable.zip(Collections.segment(values.take(n), fetchable.map(ev.numberOfFetches).toSeq))
+            .map(f => ev.resultsBuilder(f._1, f._2)), values.drop(n))
+      }
+    }
+  }
+
   implicit def fetchableSeq[T, R, CC[A] <: SeqLike[A, CC[A]]](
       implicit ev: Aux[T, R], cbf: CanBuildFrom[CC[T], R, CC[R]]): Aux[CC[T], CC[R]] = {
     new Fetchable[CC[T]] {
@@ -100,20 +149,6 @@ object Fetchable {
         (fetchable
             .zip(Collections.segment(values.take(n), fetchable.map(ev.numberOfFetches).toSeq))(breakOut)
             .map(f => ev.resultsBuilder(f._1, f._2)).to[CC](cbf), values.drop(n))
-      }
-    }
-  }
-
-  implicit def fetchableArray[T, R: ClassTag](implicit ev: Aux[T, R]): Aux[Array[T], Array[R]] = {
-    new Fetchable[Array[T]] {
-      // TODO: !!! Uniquify fetches.
-      override type ResultType = Array[R]
-      override def numberOfFetches(fetchable: Array[T]): Int = fetchable.map(ev.numberOfFetches).sum
-      override def fetches(fetchable: Array[T]): Seq[Output] = fetchable.flatMap(ev.fetches).toSeq
-      override def segment(fetchable: Array[T], values: Seq[Tensor]): (Array[R], Seq[Tensor]) = {
-        val n = numberOfFetches(fetchable)
-        (fetchable.zip(Collections.segment(values.take(n), fetchable.map(ev.numberOfFetches).toSeq))
-            .map(f => ev.resultsBuilder(f._1, f._2)), values.drop(n))
       }
     }
   }

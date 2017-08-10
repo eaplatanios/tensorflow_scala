@@ -50,20 +50,26 @@ sealed trait Executable[T] {
 object Executable {
   def apply[T: Executable]: Executable[T] = implicitly[Executable[T]]
 
-  implicit val opExecutable = new Executable[Op] {
+  implicit val opExecutable: Executable[Op] = new Executable[Op] {
     override def ops(executable: Op): Set[Op] = Set(executable)
   }
 
-  implicit def outputExecutable = new Executable[Output] {
+  implicit def outputLikeExecutable: Executable[OutputLike] = new Executable[OutputLike] {
+    override def ops(executable: OutputLike): Set[Op] = Set(executable.op)
+  }
+
+  implicit def outputExecutable: Executable[Output] = new Executable[Output] {
     override def ops(executable: Output): Set[Op] = Set(executable.op)
   }
 
-  implicit def arrayExecutable[T: Executable] = new Executable[Array[T]] {
+  implicit def arrayExecutable[T: Executable]: Executable[Array[T]] = new Executable[Array[T]] {
     override def ops(executable: Array[T]): Set[Op] = executable.flatMap(e => Executable[T].ops(e)).toSet
   }
 
-  implicit def traversableExecutable[T: Executable, CC[A] <: TraversableLike[A, CC[A]]] = new Executable[CC[T]] {
-    override def ops(executable: CC[T]): Set[Op] = executable.flatMap(e => Executable[T].ops(e)).toSet
+  implicit def traversableExecutable[T: Executable, CC[A] <: TraversableLike[A, CC[A]]]: Executable[CC[T]] = {
+    new Executable[CC[T]] {
+      override def ops(executable: CC[T]): Set[Op] = executable.flatMap(e => Executable[T].ops(e)).toSet
+    }
   }
 
   // This also covers `OutputIndexedSlices` and `SparseOutput` as they are case classes (i.e., products).

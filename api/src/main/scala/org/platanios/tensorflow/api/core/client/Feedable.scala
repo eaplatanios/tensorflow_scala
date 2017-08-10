@@ -72,10 +72,10 @@ object Feedable {
     }
   }
 
-  implicit def feedableSeq[T, V, CC[A] <: SeqLike[A, CC[A]]](implicit ev: Aux[T, V]): Aux[CC[T], CC[V]] = {
-    new Feedable[CC[T]] {
-      override type ValueType = CC[V]
-      override def feed(feedable: CC[T], value: CC[V]): Map[Output, Tensor] = {
+  implicit def feedableArray[T, V](implicit ev: Aux[T, V]): Aux[Array[T], Array[V]] = {
+    new Feedable[Array[T]] {
+      override type ValueType = Array[V]
+      override def feed(feedable: Array[T], value: Array[V]): Map[Output, Tensor] = {
         feedable.toSeq.zip(value.toSeq).foldLeft(Map.empty[Output, Tensor])({
           case (feedMap, pair) => feedMap ++ ev.feed(pair._1, pair._2)
         })
@@ -83,10 +83,10 @@ object Feedable {
     }
   }
 
-  implicit def feedableArray[T, V](implicit ev: Aux[T, V]): Aux[Array[T], Array[V]] = {
-    new Feedable[Array[T]] {
-      override type ValueType = Array[V]
-      override def feed(feedable: Array[T], value: Array[V]): Map[Output, Tensor] = {
+  implicit def feedableSeq[T, V, CC[A] <: SeqLike[A, CC[A]]](implicit ev: Aux[T, V]): Aux[CC[T], CC[V]] = {
+    new Feedable[CC[T]] {
+      override type ValueType = CC[V]
+      override def feed(feedable: CC[T], value: CC[V]): Map[Output, Tensor] = {
         feedable.toSeq.zip(value.toSeq).foldLeft(Map.empty[Output, Tensor])({
           case (feedMap, pair) => feedMap ++ ev.feed(pair._1, pair._2)
         })
