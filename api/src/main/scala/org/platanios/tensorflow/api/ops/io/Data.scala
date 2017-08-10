@@ -71,6 +71,10 @@ trait Data[T] {
   def segmentOutputs(dataTypes: DataTypes, s: Seq[Output]): (T, Seq[Output])
   def segmentDataTypes(dataTypes: DataTypes, s: Seq[DataType]): (DataTypes, Seq[DataType])
   def segmentShapes(dataTypes: DataTypes, s: Seq[Shape]): (Shapes, Seq[Shape])
+
+  def dataToString(data: T): String
+  def dataTypesToString(dataTypes: DataTypes): String
+  def shapesToString(shapes: Shapes): String
 }
 
 object Data {
@@ -108,10 +112,17 @@ object Data {
     override def flattenedOutputDataTypes(dataTypes: DataType): Seq[DataType] = Seq(dataTypes)
     override def flattenedOutputShapes(shapes: Shape): Seq[Shape] = Seq(shapes)
     override def numberOfOutputs(dataTypes: DataType): Int = 1
+
     override def segmentOutputs(dataTypes: DataType, s: Seq[Output]): (Output, Seq[Output]) = (s.head, s.tail)
     override def segmentDataTypes(dataTypes: DataType, s: Seq[DataType]): (DataType, Seq[DataType]) = (s.head, s.tail)
     override def segmentShapes(dataTypes: DataType, s: Seq[Shape]): (Shape, Seq[Shape]) = (s.head, s.tail)
+
+    override def dataToString(data: Output): String = data.toString
+    override def dataTypesToString(dataTypes: DataType): String = dataTypes.toString
+    override def shapesToString(shapes: Shape): String = shapes.toString
   }
+
+  // TODO: [DATASETS] "outputIndexedSlicesData" and "sparseOutputData".
 
   implicit def dataArray[T: ClassTag, D: ClassTag, S: ClassTag](implicit
       ev: Aux[T, D, S]
@@ -147,6 +158,18 @@ object Data {
         val n = numberOfOutputs(dataTypes)
         (dataTypes.zip(Collections.segment(s.take(n), dataTypes.map(ev.numberOfOutputs).toSeq))
             .map(f => ev.unflattenShapes(f._1, f._2)), s.drop(n))
+      }
+
+      override def dataToString(data: Array[T]): String = {
+        s"{${data.map(ev.dataToString).mkString(", ")}}"
+      }
+
+      override def dataTypesToString(dataTypes: Array[D]): String = {
+        s"{${dataTypes.map(ev.dataTypesToString).mkString(", ")}}"
+      }
+
+      override def shapesToString(shapes: Array[S]): String = {
+        s"{${shapes.map(ev.shapesToString).mkString(", ")}}"
       }
     }
   }
@@ -193,6 +216,18 @@ object Data {
         (dataTypes
             .zip(Collections.segment(s.take(n), dataTypes.map(ev.numberOfOutputs).toSeq))(breakOut)
             .map(f => ev.unflattenShapes(f._1, f._2)).to[CC](cbfDS), s.drop(n))
+      }
+
+      override def dataToString(data: CC[T]): String = {
+        s"[${data.map(ev.dataToString).mkString(", ")}]"
+      }
+
+      override def dataTypesToString(dataTypes: CC[D]): String = {
+        s"[${dataTypes.map(ev.dataTypesToString).mkString(", ")}]"
+      }
+
+      override def shapesToString(shapes: CC[S]): String = {
+        s"[${shapes.map(ev.shapesToString).mkString(", ")}]"
       }
     }
   }
@@ -244,6 +279,18 @@ object Data {
               .zip(Collections.segment(s.take(n), dataTypes.values.map(ev.numberOfOutputs).toSeq))
               .map(f => ev.unflattenShapes(f._1, f._2))).toMap, s.drop(n))
       }
+
+      override def dataToString(data: CC[K, T]): String = {
+        s"{${data.map(d => s"${d._1.toString} -> ${ev.dataToString(d._2)}").mkString(", ")}}"
+      }
+
+      override def dataTypesToString(dataTypes: Map[K, D]): String = {
+        s"{${dataTypes.map(d => s"${d._1.toString} -> ${ev.dataTypesToString(d._2)}").mkString(", ")}}"
+      }
+
+      override def shapesToString(shapes: Map[K, S]): String = {
+        s"{${shapes.map(d => s"${d._1.toString} -> ${ev.shapesToString(d._2)}").mkString(", ")}}"
+      }
     }
   }
 
@@ -261,6 +308,10 @@ object Data {
     override def segmentOutputs(dataTypes: HNil, s: Seq[Output]): (HNil, Seq[Output]) = (HNil, s)
     override def segmentDataTypes(dataTypes: HNil, s: Seq[DataType]): (HNil, Seq[DataType]) = (HNil, s)
     override def segmentShapes(dataTypes: HNil, s: Seq[Shape]): (HNil, Seq[Shape]) = (HNil, s)
+
+    override def dataToString(data: HNil): String = ""
+    override def dataTypesToString(dataTypes: HNil): String = ""
+    override def shapesToString(shapes: HNil): String = ""
   }
 
   implicit def recursiveConstructor[HT, HD, HS, TT <: HList, TD <: HList, TS <: HList](implicit
@@ -311,6 +362,39 @@ object Data {
       val (tailOut, tailRemaining) = dataTail.segmentShapes(dataTypes.tail, headRemaining)
       (headOut :: tailOut, tailRemaining)
     }
+
+    override def dataToString(data: HT :: TT): String = {
+      val headPart = dataHead.value.dataToString(data.head)
+      val tailPart = dataTail.dataToString(data.tail)
+      if (headPart == "")
+        tailPart
+      else if (tailPart == "")
+        headPart
+      else
+        s"$headPart, $tailPart"
+    }
+
+    override def dataTypesToString(dataTypes: HD :: TD): String = {
+      val headPart = dataHead.value.dataTypesToString(dataTypes.head)
+      val tailPart = dataTail.dataTypesToString(dataTypes.tail)
+      if (headPart == "")
+        tailPart
+      else if (tailPart == "")
+        headPart
+      else
+        s"$headPart, $tailPart"
+    }
+
+    override def shapesToString(shapes: HS :: TS): String = {
+      val headPart = dataHead.value.shapesToString(shapes.head)
+      val tailPart = dataTail.shapesToString(shapes.tail)
+      if (headPart == "")
+        tailPart
+      else if (tailPart == "")
+        headPart
+      else
+        s"$headPart, $tailPart"
+    }
   }
 
   // This also covers `OutputIndexedSlices` and `SparseOutput` as they are case classes (i.e., products).
@@ -354,5 +438,9 @@ object Data {
       val (out, remaining) = dataL.value.segmentShapes(genD.to(dataTypes), s)
       (tuplerS(out), remaining)
     }
+
+    override def dataToString(data: PT): String = dataL.value.dataToString(genT.to(data))
+    override def dataTypesToString(dataTypes: PD): String = dataL.value.dataTypesToString(genD.to(dataTypes))
+    override def shapesToString(shapes: PS): String = dataL.value.shapesToString(genS.to(shapes))
   }
 }

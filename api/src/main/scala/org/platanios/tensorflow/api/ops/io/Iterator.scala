@@ -26,8 +26,8 @@ import org.platanios.tensorflow.api.types.DataType
   * An [[Iterator]] represents the state of iterating through a [[Dataset]].
   *
   * @param  handle          Handle of the iterator.
-  * @param  outputDataTypes Output data types corresponding to each element of the iterator.
-  * @param  outputShapes    Output shapes corresponding to each element of the iterator.
+  * @param  outputDataTypes Data types corresponding to each element of the iterator.
+  * @param  outputShapes    Shapes corresponding to each element of the iterator.
   *
   * @author Emmanouil Antonios Platanios
   */
@@ -125,162 +125,180 @@ class InitializableIterator[T, D, S] private[io](
 /** Contains helper functions for creating iterator-related ops, as well as the iterator API trait. */
 object Iterator {
   trait API {
-    /** Creates a new, uninitialized [[Iterator]] from the provided [[Dataset]].
-      *
-      * To initialize this iterator, you must run its `initializer`:
-      * {{{
-      *   val iterator = Iterator.fromDataset(dataset)
-      *   // ...
-      *   session.run(targets = iterator.initializer)
-      * }}}
-      *
-      * @param  dataset    A dataset for which to create an iterator.
-      * @param  sharedName If non-empty, then the constructed iterator will be shared under the the provided name across
-      *                    multiple sessions that share the same devices (e.g., when using a remote server).
-      * @param  name       Name to use for the created ops.
-      * @return Created iterator.
-      */
-    def iteratorFromDataset[T, D, S](
+    def iterator[T, D, S](
         dataset: Dataset[T, D, S], sharedName: String = "",
-        name: String = "InitializableIterator"): Iterator[T, D, S] = {
-      val (handle, initializer) = Op.createWithNameScope(name) {
-        val handle = createIterator(
-          sharedName = sharedName,
-          outputDataTypes = dataset.flattenedOutputDataTypes,
-          outputShapes = dataset.flattenedOutputShapes)
-        val initializer = makeIterator(datasetHandle = dataset.createResource(), iteratorHandle = handle)
-        (handle, initializer)
-      }
-      new InitializableIterator[T, D, S](
-        handle = handle,
-        initializer = initializer,
-        outputDataTypes = dataset.outputDataTypes,
-        outputShapes = dataset.outputShapes,
-        name = name)
+        name: String = "InitializableIterator"): InitializableIterator[T, D, S] = {
+      fromDataset(dataset, sharedName, name)
     }
 
-    /** Creates a new, uninitialized [[Iterator]] with the provided structure.
-      *
-      * This iterator-constructing function can be used to create an iterator that is reusable with many different
-      * datasets. The returned iterator is not bound to a particular dataset and thus it has no initializer. To
-      * initialize the iterator, the user has to run the op returned by [[Iterator.createInitializer]].
-      *
-      * For example:
-      * {{{
-      *   val iterator = tf.iteratorFromStructure(tf.INT64, tf.shape())
-      *
-      *   val rangeDataset = tf.rangeDataset(10)
-      *   val rangeInitializer = iterator.createInitializer(rangeDataset)
-      *
-      *   val evensDataset = rangeDataset.filter(_ % 2 == 0)
-      *   val evensInitializer = iterator.createInitializer(evenDataset)
-      *
-      *   // Define a model based on the iterator. In this example, 'modelFunction' is expected to take INT64 scalar
-      *   // tensors as input (see the definition of 'iterator' above).
-      *   val (prediction, loss) = modelFunction(iterator.next())
-      *
-      *   // Train for 'numEpochs', where for each epoch, we first iterate over 'rangeDataset', and then iterate over
-      *   // 'evensDataset'.
-      *   (0 until numEpochs).foreach(i => {
-      *     // Initialize the iterator to 'rangeDataset'.
-      *     session.run(targets = rangeInitializer)
-      *     var exhaustedIterator = false
-      *     while (!exhaustedIterator) {
-      *       try {
-      *         val (p, l) = session.run(fetches = (prediction, loss))
-      *       } catch {
-      *         case _: OutOfRangeException => exhaustedIterator = true
-      *       }
-      *     }
-      *
-      *     // Initialize the iterator to 'evensDataset'.
-      *     session.run(targets = evensInitializer)
-      *     var exhaustedIterator = false
-      *     while (!exhaustedIterator) {
-      *       try {
-      *         val (p, l) = session.run(fetches = (prediction, loss))
-      *       } catch {
-      *         case _: OutOfRangeException => exhaustedIterator = true
-      *       }
-      *     }
-      *   })
-      * }}}
-      *
-      * @param  outputDataTypes Output data types corresponding to each element of the iterator.
-      * @param  outputShapes    Output shapes corresponding to each element of the iterator.
-      * @param  sharedName      If non-empty, then the constructed iterator will be shared under the the provided name
-      *                         across multiple sessions that share the same devices (e.g., when using a remote server).
-      * @param  name            Name to use for the created ops.
-      * @return Created iterator.
-      */
-    def iteratorFromStructure[T, D, S](
+    def iterator[T, D, S](
         outputDataTypes: D, outputShapes: S, sharedName: String = "", name: String = "Iterator")(
         implicit ev: Data.Aux[T, D, S]): Iterator[T, D, S] = {
-      // TODO: [DATASETS] Allow for shapes to not be provided.
-      val flattenedOutputDataTypes = ev.flattenedOutputDataTypes(outputDataTypes)
-      val flattenedShapes = ev.flattenedOutputShapes(outputShapes)
-      val handle = createIterator(
-        sharedName = sharedName,
-        outputDataTypes = flattenedOutputDataTypes,
-        outputShapes = flattenedShapes)
-      new Iterator[T, D, S](
-        handle = handle,
-        outputDataTypes = outputDataTypes,
-        outputShapes = outputShapes,
-        name = name)
+      fromStructure(outputDataTypes, outputShapes, sharedName, name)(ev)
     }
 
-    /** Creates a new, uninitialized [[Iterator]] from the provided `STRING` scalar tensor representing a handle of an
-      * existing iterator.
-      *
-      * This method allows you to define a "feedable" iterator where you can choose between concrete iterators by
-      * feeding a value in a [[org.platanios.tensorflow.api.core.client.Session.run]] call. In that case,
-      * `stringHandle` would be a `tf.placeholder`, and you would feed it with the value of an existing iterator's
-      * [[Iterator.toStringHandle]] in each step.
-      *
-      * For example, if you had two iterators that marked the current position in a training dataset and a test dataset,
-      * you could choose which one to use in each step, as follows:
-      * {{{
-      *   val trainIterator = tf.dataset(...).createOneShotIterator()
-      *   val trainIteratorHandle = session.run(fetches = trainIterator.toStringHandle())
-      *
-      *   val testIterator = tf.dataset(...).createOneShotIterator()
-      *   val testIteratorHandle = session.run(fetches = testIterator.toStringHandle())
-      *
-      *   val handle = tf.placeholder(tf.STRING, shape = Shape.scalar)
-      *   val iterator = tf.iteratorFromStringHandle(handle, trainIterator.outputDataTypes)
-      *
-      *   val nextElement = iterator.next()
-      *   val loss = f(nextElement)
-      *
-      *   val trainLoss = session.run(feeds = Map(handle -> trainIteratorHandle), fetches = loss)
-      *   val testLoss = session.run(feeds = Map(handle -> testIteratorHandle), fetches = loss)
-      * }}}
-      *
-      * @param  stringHandle    `STRING` scalar tensor containing the string representation of a handle of an iterator.
-      * @param  outputDataTypes Output data types corresponding to each element of the iterator.
-      * @param  outputShapes    Output shapes corresponding to each element of the iterator.
-      * @param  name            Name to use for the created op.
-      * @return Created iterator.
-      */
-    def iteratorFromStringHandle[T, D, S](
+    def iterator[T, D, S](
         stringHandle: Output, outputDataTypes: D, outputShapes: S, name: String = "IteratorFromStringHandle")(
         implicit ev: Data.Aux[T, D, S]): Iterator[T, D, S] = {
-      // TODO: [DATASETS] Allow for shapes to not be provided.
-      val handle = Iterator.iteratorFromStringHandle(
-        stringHandle = stringHandle,
-        outputDataTypes = ev.flattenedOutputDataTypes(outputDataTypes),
-        outputShapes = ev.flattenedOutputShapes(outputShapes),
-        name = name)
-      new Iterator[T, D, S](
-        handle = handle,
-        outputDataTypes = outputDataTypes,
-        outputShapes = outputShapes,
-        name = name)
+      fromStringHandle(stringHandle, outputDataTypes, outputShapes, name)(ev)
     }
   }
 
   object API extends API
+
+  /** Creates a new, uninitialized [[Iterator]] from the provided [[Dataset]].
+    *
+    * To initialize this iterator, you must run its `initializer`:
+    * {{{
+    *   val iterator = Iterator.fromDataset(dataset)
+    *   // ...
+    *   session.run(targets = iterator.initializer)
+    * }}}
+    *
+    * @param  dataset    A dataset for which to create an iterator.
+    * @param  sharedName If non-empty, then the constructed iterator will be shared under the the provided name across
+    *                    multiple sessions that share the same devices (e.g., when using a remote server).
+    * @param  name       Name to use for the created ops.
+    * @return Created iterator.
+    */
+  private[api] def fromDataset[T, D, S](
+      dataset: Dataset[T, D, S], sharedName: String = "",
+      name: String = "InitializableIterator"): InitializableIterator[T, D, S] = {
+    val (handle, initializer) = Op.createWithNameScope(name) {
+      val handle = createIterator(
+        sharedName = sharedName,
+        outputDataTypes = dataset.flattenedOutputDataTypes,
+        outputShapes = dataset.flattenedOutputShapes)
+      val initializer = makeIterator(datasetHandle = dataset.createResource(), iteratorHandle = handle)
+      (handle, initializer)
+    }
+    new InitializableIterator[T, D, S](
+      handle = handle,
+      initializer = initializer,
+      outputDataTypes = dataset.outputDataTypes,
+      outputShapes = dataset.outputShapes,
+      name = name)
+  }
+
+  /** Creates a new, uninitialized [[Iterator]] with the provided structure.
+    *
+    * This iterator-constructing function can be used to create an iterator that is reusable with many different
+    * datasets. The returned iterator is not bound to a particular dataset and thus it has no initializer. To
+    * initialize the iterator, the user has to run the op returned by [[Iterator.createInitializer]].
+    *
+    * For example:
+    * {{{
+    *   val iterator = tf.iteratorFromStructure(tf.INT64, tf.shape())
+    *
+    *   val rangeDataset = tf.rangeDataset(10)
+    *   val rangeInitializer = iterator.createInitializer(rangeDataset)
+    *
+    *   val evensDataset = rangeDataset.filter(_ % 2 == 0)
+    *   val evensInitializer = iterator.createInitializer(evenDataset)
+    *
+    *   // Define a model based on the iterator. In this example, 'modelFunction' is expected to take INT64 scalar
+    *   // tensors as input (see the definition of 'iterator' above).
+    *   val (prediction, loss) = modelFunction(iterator.next())
+    *
+    *   // Train for 'numEpochs', where for each epoch, we first iterate over 'rangeDataset', and then iterate over
+    *   // 'evensDataset'.
+    *   (0 until numEpochs).foreach(i => {
+    *     // Initialize the iterator to 'rangeDataset'.
+    *     session.run(targets = rangeInitializer)
+    *     var exhaustedIterator = false
+    *     while (!exhaustedIterator) {
+    *       try {
+    *         val (p, l) = session.run(fetches = (prediction, loss))
+    *       } catch {
+    *         case _: OutOfRangeException => exhaustedIterator = true
+    *       }
+    *     }
+    *
+    *     // Initialize the iterator to 'evensDataset'.
+    *     session.run(targets = evensInitializer)
+    *     var exhaustedIterator = false
+    *     while (!exhaustedIterator) {
+    *       try {
+    *         val (p, l) = session.run(fetches = (prediction, loss))
+    *       } catch {
+    *         case _: OutOfRangeException => exhaustedIterator = true
+    *       }
+    *     }
+    *   })
+    * }}}
+    *
+    * @param  outputDataTypes Output data types corresponding to each element of the iterator.
+    * @param  outputShapes    Output shapes corresponding to each element of the iterator.
+    * @param  sharedName      If non-empty, then the constructed iterator will be shared under the the provided name
+    *                         across multiple sessions that share the same devices (e.g., when using a remote server).
+    * @param  name            Name to use for the created ops.
+    * @return Created iterator.
+    */
+  private[api] def fromStructure[T, D, S](
+      outputDataTypes: D, outputShapes: S, sharedName: String = "", name: String = "Iterator")(
+      implicit ev: Data.Aux[T, D, S]): Iterator[T, D, S] = {
+    // TODO: [DATASETS] Allow for shapes to not be provided.
+    val flattenedOutputDataTypes = ev.flattenedOutputDataTypes(outputDataTypes)
+    val flattenedShapes = ev.flattenedOutputShapes(outputShapes)
+    val handle = createIterator(
+      sharedName = sharedName,
+      outputDataTypes = flattenedOutputDataTypes,
+      outputShapes = flattenedShapes)
+    new Iterator[T, D, S](
+      handle = handle,
+      outputDataTypes = outputDataTypes,
+      outputShapes = outputShapes,
+      name = name)
+  }
+
+  /** Creates a new, uninitialized [[Iterator]] from the provided `STRING` scalar tensor representing a handle of an
+    * existing iterator.
+    *
+    * This method allows you to define a "feedable" iterator where you can choose between concrete iterators by
+    * feeding a value in a [[org.platanios.tensorflow.api.core.client.Session.run]] call. In that case,
+    * `stringHandle` would be a `tf.placeholder`, and you would feed it with the value of an existing iterator's
+    * [[Iterator.toStringHandle]] in each step.
+    *
+    * For example, if you had two iterators that marked the current position in a training dataset and a test dataset,
+    * you could choose which one to use in each step, as follows:
+    * {{{
+    *   val trainIterator = tf.dataset(...).createOneShotIterator()
+    *   val trainIteratorHandle = session.run(fetches = trainIterator.toStringHandle())
+    *
+    *   val testIterator = tf.dataset(...).createOneShotIterator()
+    *   val testIteratorHandle = session.run(fetches = testIterator.toStringHandle())
+    *
+    *   val handle = tf.placeholder(tf.STRING, shape = Shape.scalar)
+    *   val iterator = tf.iteratorFromStringHandle(handle, trainIterator.outputDataTypes)
+    *
+    *   val nextElement = iterator.next()
+    *   val loss = f(nextElement)
+    *
+    *   val trainLoss = session.run(feeds = Map(handle -> trainIteratorHandle), fetches = loss)
+    *   val testLoss = session.run(feeds = Map(handle -> testIteratorHandle), fetches = loss)
+    * }}}
+    *
+    * @param  stringHandle    `STRING` scalar tensor containing the string representation of a handle of an iterator.
+    * @param  outputDataTypes Output data types corresponding to each element of the iterator.
+    * @param  outputShapes    Output shapes corresponding to each element of the iterator.
+    * @param  name            Name to use for the created op.
+    * @return Created iterator.
+    */
+  private[api] def fromStringHandle[T, D, S](
+      stringHandle: Output, outputDataTypes: D, outputShapes: S, name: String = "IteratorFromStringHandle")(
+      implicit ev: Data.Aux[T, D, S]): Iterator[T, D, S] = {
+    // TODO: [DATASETS] Allow for shapes to not be provided.
+    val handle = Iterator.iteratorFromStringHandle(
+      stringHandle = stringHandle,
+      outputDataTypes = ev.flattenedOutputDataTypes(outputDataTypes),
+      outputShapes = ev.flattenedOutputShapes(outputShapes),
+      name = name)
+    new Iterator[T, D, S](
+      handle = handle,
+      outputDataTypes = outputDataTypes,
+      outputShapes = outputShapes,
+      name = name)
+  }
 
   /** Creates an op that is a container for an `Iterator` resource.
     *

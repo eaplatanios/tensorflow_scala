@@ -17,6 +17,7 @@ package org.platanios.tensorflow.api.ops.io
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.Indexer.Implicits._
+import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.types.{DataType, INT64, STRING}
@@ -28,9 +29,11 @@ import scala.language.postfixOps
   * A [[Dataset]] can be used to represent an input pipeline as a collection of elements (i.e., nested structures of
   * tensors) and a "logical plan" of transformations that act on those elements.
   *
+  * @param  name Name of this dataset.
+  *
   * @author Emmanouil Antonios Platanios
   */
-abstract class Dataset[T, D, S] private[io](implicit ev: Data.Aux[T, D, S]) {
+abstract class Dataset[T, D, S] private[io](val name: String = "Dataset")(implicit ev: Data.Aux[T, D, S]) {
   /** Creates a `RESOURCE` scalar tensor representing this dataset. This function adds ops to the current graph, that
     * create the dataset resource. */
   def createResource(): Output
@@ -46,21 +49,134 @@ abstract class Dataset[T, D, S] private[io](implicit ev: Data.Aux[T, D, S]) {
     * @return Created iterator.
     */
   def createInitializableIterator(
-      sharedName: String = "", name: String = "InitializableIterator"): InitializableIterator[T, D, S] = ???
+      sharedName: String = "", name: String = "InitializableIterator"): InitializableIterator[T, D, S] = {
+    Iterator.fromDataset(dataset = this, sharedName = sharedName, name = name)
+  }
 
-  def outputDataTypes: D
-  def outputShapes: S
+  // TODO: [DATASETS] "createOneShotIterator".
+
+  /** Returns the data types corresponding to each element of this dataset, matching the structure of the elements. */
+  val outputDataTypes: D
+
+  /** Returns the shapes corresponding to each element of this dataset, matching the structure of the elements. */
+  val outputShapes: S
 
   /** Returns a sequence of [[DataType]]s that correspond to the flattened data types of the nested [[Output]] structure
     * of the elements of this dataset. */
-  private[io] def flattenedOutputDataTypes: Seq[DataType]
+  private[io] def flattenedOutputDataTypes: Seq[DataType] = ev.flattenedOutputDataTypes(outputDataTypes)
 
   /** Returns a sequence of [[Shape]]s that correspond to the flattened shapes of the nested [[Output]] structure of the
     * elements of this dataset. */
-  private[io] def flattenedOutputShapes: Seq[Shape]
+  private[io] def flattenedOutputShapes: Seq[Shape] = ev.flattenedOutputShapes(outputShapes)
+
+  override def toString: String = {
+    "Dataset[" +
+        s"outputDataTypes = ${ev.dataTypesToString(outputDataTypes)}, " +
+        s"outputShapes = ${ev.shapesToString(outputShapes)}" +
+        "]"
+  }
+
+  /** Creates a dataset that batches `batchSize` elements from this dataset.
+    *
+    * @param  batchSize Batch size to use.
+    * @return Created dataset.
+    */
+  def batch(batchSize: Int): BatchDataset[T, D, S] = {
+    BatchDataset(inputDataset = this, batchSize = batchSize, name = s"$name/Batch")
+  }
+}
+
+/** [[Dataset]] with a single element.
+  *
+  * @param  data Data representing the single element of this dataset.
+  * @param  name Name of this dataset.
+  */
+case class TensorDataset[T, D, S] private[io](data: T, override val name: String = "TensorDataset")(implicit
+    ev: Data.Aux[T, D, S]
+) extends Dataset[T, D, S](name)(ev) {
+  /** Creates a `RESOURCE` scalar tensor representing this dataset. This function adds ops to the current graph, that
+    * create the dataset resource. */
+  override def createResource(): Output = {
+    val flattenedOutputs = ev.flattenedOutputs(data)
+    Dataset.createTensorDataset(components = flattenedOutputs, shapes = flattenedOutputShapes, name = name)
+  }
+
+  /** Returns the data types corresponding to each element of this dataset, matching the structure of the elements. */
+  override val outputDataTypes: D = ev.outputDataTypes(data)
+
+  /** Returns the shapes corresponding to each element of this dataset, matching the structure of the elements. */
+  override val outputShapes: S = ev.outputShapes(data)
+}
+
+/** [[Dataset]] with slices from the nested structure of [[Output]]s (i.e., a [[Data]]-supported type). The slices are
+  * taken along the first axis of each [[Output]] in the nested structure.
+  *
+  * @param  data Data representing the elements of this dataset.
+  * @param  name Name of this dataset.
+  */
+case class TensorSliceDataset[T, D, S] private[io](data: T, override val name: String = "TensorDataset")(implicit
+    ev: Data.Aux[T, D, S]
+) extends Dataset[T, D, S](name)(ev) {
+  /** Creates a `RESOURCE` scalar tensor representing this dataset. This function adds ops to the current graph, that
+    * create the dataset resource. */
+  override def createResource(): Output = {
+    val flattenedOutputs = ev.flattenedOutputs(data)
+    Dataset.createTensorSliceDataset(components = flattenedOutputs, shapes = flattenedOutputShapes, name = name)
+  }
+
+  /** Returns the data types corresponding to each element of this dataset, matching the structure of the elements. */
+  override val outputDataTypes: D = ev.outputDataTypes(data)
+
+  /** Returns the shapes corresponding to each element of this dataset, matching the structure of the elements. */
+  override val outputShapes: S = {
+    val flattenedShapes = ev.flattenedOutputShapes(ev.outputShapes(data))
+    ev.unflattenShapes(outputDataTypes, flattenedShapes.map(_ (1 ::)))
+  }
+}
+
+/** [[Dataset]] that batches `batchSize` elements from `inputDataset`.
+  *
+  * @param  inputDataset Data representing the elements of this dataset.
+  * @param  batchSize    Batch size to use.
+  * @param  name Name of this dataset.
+  */
+case class BatchDataset[T, D, S] private[io](
+    inputDataset: Dataset[T, D, S], batchSize: Int, override val name: String = "TensorDataset")(implicit
+    ev: Data.Aux[T, D, S]
+) extends Dataset[T, D, S](name)(ev) {
+  /** Creates a `RESOURCE` scalar tensor representing this dataset. This function adds ops to the current graph, that
+    * create the dataset resource. */
+  override def createResource(): Output = {
+    Dataset.datasetBatch(
+      datasetHandle = Op.createWithNameScope(name)(inputDataset.createResource()),
+      batchSize = Op.createWithNameScope(name)(ops.Basic.constant(batchSize, INT64, name = "BatchSize")),
+      outputDataTypes = flattenedOutputDataTypes,
+      outputShapes = flattenedOutputShapes,
+      name = name)
+  }
+
+  /** Returns the data types corresponding to each element of this dataset, matching the structure of the elements. */
+  override val outputDataTypes: D = inputDataset.outputDataTypes
+
+  /** Returns the shapes corresponding to each element of this dataset, matching the structure of the elements. */
+  override val outputShapes: S = {
+    ev.unflattenShapes(outputDataTypes, inputDataset.flattenedOutputShapes.map(Shape(-1) ++ _))
+  }
 }
 
 object Dataset {
+  private[api] def fromData[T, D, S](
+      data: T, name: String = "TensorDataset")(implicit ev: Data.Aux[T, D, S]): Dataset[T, D, S] = {
+    // TODO: !!! [DATASETS] What happens when one provides a structure with Tensor objects?
+    TensorDataset(data, name = name)(ev)
+  }
+
+  private[api] def fromDataSlices[T, D, S](
+      data: T, name: String = "TensorSliceDataset")(implicit ev: Data.Aux[T, D, S]): Dataset[T, D, S] = {
+    // TODO: !!! [DATASETS] What happens when one provides a structure with Tensor objects?
+    TensorSliceDataset(data, name = name)(ev)
+  }
+
   /** Creates a tensor dataset op.
     *
     * A tensor dataset is a dataset that emits `components` as a tuple of tensors once.
