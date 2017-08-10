@@ -165,6 +165,20 @@ case class BatchDataset[T, D, S] private[io](
 }
 
 object Dataset {
+  trait API {
+    def datasetFromData[T, D, S](
+        data: T, name: String = "TensorDataset")(implicit ev: Data.Aux[T, D, S]): Dataset[T, D, S] = {
+      fromData(data, name)(ev)
+    }
+
+    def datasetFromDataSlices[T, D, S](
+        data: T, name: String = "TensorSliceDataset")(implicit ev: Data.Aux[T, D, S]): Dataset[T, D, S] = {
+      fromDataSlices(data, name)(ev)
+    }
+  }
+
+  object API extends API
+
   private[api] def fromData[T, D, S](
       data: T, name: String = "TensorDataset")(implicit ev: Data.Aux[T, D, S]): Dataset[T, D, S] = {
     // TODO: !!! [DATASETS] What happens when one provides a structure with Tensor objects?
