@@ -30,25 +30,34 @@ import scala.language.postfixOps
   *
   * @author Emmanouil Antonios Platanios
   */
-trait Dataset {
+abstract class Dataset[T, D, S] private[io](implicit ev: Data.Aux[T, D, S]) {
   /** Creates a `RESOURCE` scalar tensor representing this dataset. This function adds ops to the current graph, that
     * create the dataset resource. */
-  def createResource(): Unit
+  def createResource(): Output
 
   /** Creates an [[Iterator]] for enumerating the elements of this dataset.
     *
-    * **Note:** The returned iterator will be in an uninitialized state. You must execute the [[Iterator.initializer]]
-    * op before using it.
+    * **Note:** The returned iterator will be in an uninitialized state. You must execute the
+    * [[InitializableIterator.initializer]] op before using it.
     *
     * @param  sharedName If non-empty, then the constructed reader will be shared under the the provided name across
     *                    multiple sessions that share the same devices (e.g., when using a remote server).
     * @param  name       Name for the op created in relation to the iterator.
     * @return Created iterator.
     */
-  def createInitializableIterator(sharedName: String = "", name: String = "Iterator"): Iterator = ???
+  def createInitializableIterator(
+      sharedName: String = "", name: String = "InitializableIterator"): InitializableIterator[T, D, S] = ???
 
-  private[io] def outputDataTypes: Seq[DataType]
-  private[io] def outputShapes: Seq[Shape]
+  def outputDataTypes: D
+  def outputShapes: S
+
+  /** Returns a sequence of [[DataType]]s that correspond to the flattened data types of the nested [[Output]] structure
+    * of the elements of this dataset. */
+  private[io] def flattenedOutputDataTypes: Seq[DataType]
+
+  /** Returns a sequence of [[Shape]]s that correspond to the flattened shapes of the nested [[Output]] structure of the
+    * elements of this dataset. */
+  private[io] def flattenedOutputShapes: Seq[Shape]
 }
 
 object Dataset {
@@ -300,7 +309,7 @@ object Dataset {
     *
     * A repeated dataset is a dataset that emits the outputs of another dataset a number of times.
     *
-    * @param  dataset         Handle of the dataset to repeat.
+    * @param  datasetHandle   Handle of the dataset to repeat.
     * @param  count           `INT64` scalar tensor containing the number of times to repeat the provided dataset. A
     *                         value of `-1` corresponds to repeating it indefinitely.
     * @param  outputDataTypes Output data types of the created dataset.
@@ -311,14 +320,14 @@ object Dataset {
     */
   @throws[IllegalArgumentException]
   private[io] def datasetRepeat(
-      dataset: Output, count: Output, outputDataTypes: Seq[DataType], outputShapes: Seq[Shape],
+      datasetHandle: Output, count: Output, outputDataTypes: Seq[DataType], outputShapes: Seq[Shape],
       name: String = "DatasetRepeat"): Output = {
     if (count.dataType != INT64)
       throw new IllegalArgumentException(s"'count' (dataType = ${count.dataType}) must be an INT64 tensor.")
     if (count.rank != -1 && count.rank > 0)
       throw new IllegalArgumentException(s"'count' (rank = ${count.rank}) must be equal to 0.")
     Op.Builder(opType = "RepeatDataset", name = name)
-        .addInput(dataset)
+        .addInput(datasetHandle)
         .addInput(count)
         .setAttribute("output_types", outputDataTypes.toArray)
         .setAttribute("output_shapes", outputShapes.toArray)
@@ -327,7 +336,7 @@ object Dataset {
 
   /** Creates an op representing a dataset that contains `count` entries from the provided dataset.
     *
-    * @param  dataset         Handle of the dataset to take entries from.
+    * @param  datasetHandle   Handle of the dataset to take entries from.
     * @param  count           `INT64` scalar tensor containing the number of entries to take from the provided dataset.
     *                         A value of `-1` corresponds to taking all the entries.
     * @param  outputDataTypes Output data types of the created dataset.
@@ -338,14 +347,14 @@ object Dataset {
     */
   @throws[IllegalArgumentException]
   private[io] def datasetTake(
-      dataset: Output, count: Output, outputDataTypes: Seq[DataType], outputShapes: Seq[Shape],
+      datasetHandle: Output, count: Output, outputDataTypes: Seq[DataType], outputShapes: Seq[Shape],
       name: String = "DatasetTake"): Output = {
     if (count.dataType != INT64)
       throw new IllegalArgumentException(s"'count' (dataType = ${count.dataType}) must be an INT64 tensor.")
     if (count.rank != -1 && count.rank > 0)
       throw new IllegalArgumentException(s"'count' (rank = ${count.rank}) must be equal to 0.")
     Op.Builder(opType = "TakeDataset", name = name)
-        .addInput(dataset)
+        .addInput(datasetHandle)
         .addInput(count)
         .setAttribute("output_types", outputDataTypes.toArray)
         .setAttribute("output_shapes", outputShapes.toArray)
@@ -354,7 +363,7 @@ object Dataset {
 
   /** Creates an op representing a dataset that contains all entries from the provided dataset except the first `count`.
     *
-    * @param  dataset         Handle of the dataset to skip entries from.
+    * @param  datasetHandle   Handle of the dataset to skip entries from.
     * @param  count           `INT64` scalar tensor containing the number of entries to skip from the provided dataset.
     *                         A value of `-1` corresponds to skipping all the entries.
     * @param  outputDataTypes Output data types of the created dataset.
@@ -365,14 +374,14 @@ object Dataset {
     */
   @throws[IllegalArgumentException]
   private[io] def datasetSkip(
-      dataset: Output, count: Output, outputDataTypes: Seq[DataType], outputShapes: Seq[Shape],
+      datasetHandle: Output, count: Output, outputDataTypes: Seq[DataType], outputShapes: Seq[Shape],
       name: String = "DatasetSkip"): Output = {
     if (count.dataType != INT64)
       throw new IllegalArgumentException(s"'count' (dataType = ${count.dataType}) must be an INT64 tensor.")
     if (count.rank != -1 && count.rank > 0)
       throw new IllegalArgumentException(s"'count' (rank = ${count.rank}) must be equal to 0.")
     Op.Builder(opType = "SkipDataset", name = name)
-        .addInput(dataset)
+        .addInput(datasetHandle)
         .addInput(count)
         .setAttribute("output_types", outputDataTypes.toArray)
         .setAttribute("output_shapes", outputShapes.toArray)
@@ -381,7 +390,7 @@ object Dataset {
 
   /** Creates an op representing a dataset that batches `batchSize` elements from `dataset`.
     *
-    * @param  dataset         Handle of the dataset to batch elements from.
+    * @param  datasetHandle   Handle of the dataset to batch elements from.
     * @param  batchSize       `INT64` scalar tensor containing the batch size to use.
     * @param  outputDataTypes Output data types of the created dataset.
     * @param  outputShapes    Output shapes of the created dataset.
@@ -391,14 +400,14 @@ object Dataset {
     */
   @throws[IllegalArgumentException]
   private[io] def datasetBatch(
-      dataset: Output, batchSize: Output, outputDataTypes: Seq[DataType], outputShapes: Seq[Shape],
+      datasetHandle: Output, batchSize: Output, outputDataTypes: Seq[DataType], outputShapes: Seq[Shape],
       name: String = "DatasetBatch"): Output = {
     if (batchSize.dataType != INT64)
       throw new IllegalArgumentException(s"'batchSize' (dataType = ${batchSize.dataType}) must be an INT64 tensor.")
     if (batchSize.rank != -1 && batchSize.rank > 0)
       throw new IllegalArgumentException(s"'batchSize' (rank = ${batchSize.rank}) must be equal to 0.")
     Op.Builder(opType = "BatchDataset", name = name)
-        .addInput(dataset)
+        .addInput(datasetHandle)
         .addInput(batchSize)
         .setAttribute("output_types", outputDataTypes.toArray)
         .setAttribute("output_shapes", outputShapes.toArray)
@@ -407,7 +416,7 @@ object Dataset {
 
   /** Creates an op representing a dataset that batches and pads `batchSize` elements from `dataset`.
     *
-    * @param  dataset       Handle of the dataset to batch elements from.
+    * @param  datasetHandle Handle of the dataset to batch elements from.
     * @param  batchSize     `INT64` scalar tensor containing the batch size to use.
     * @param  paddedShapes  Sequence of `INT64` rank-1 tensors (i.e., vectors) representing the desired padded shapes of
     *                       the corresponding output components. These shapes may be partially specified, using `-1` to
@@ -421,7 +430,7 @@ object Dataset {
     */
   @throws[IllegalArgumentException]
   private[io] def datasetPaddedBatch(
-      dataset: Output, batchSize: Output, paddedShapes: Seq[Output], paddingValues: Seq[Output],
+      datasetHandle: Output, batchSize: Output, paddedShapes: Seq[Output], paddingValues: Seq[Output],
       outputShapes: Seq[Shape], name: String = "DatasetPaddedBatch"): Output = {
     if (batchSize.dataType != INT64)
       throw new IllegalArgumentException(s"'batchSize' (dataType = ${batchSize.dataType}) must be an INT64 tensor.")
@@ -442,7 +451,7 @@ object Dataset {
         s"'paddedShapes' (number = ${paddedShapes.size}) and 'outputShapes' (number = ${outputShapes.size}) must " +
             "contain the same number of tensors.")
     Op.Builder(opType = "PaddedBatchDataset", name = name)
-        .addInput(dataset)
+        .addInput(datasetHandle)
         .addInput(batchSize)
         .addInputList(paddedShapes)
         .addInputList(paddingValues)
@@ -455,7 +464,7 @@ object Dataset {
   /** Creates an op representing a dataset that shuffles elements from `dataset` pseudorandomly and batches them in
     * batches with size equal to `batchSize`.
     *
-    * @param  dataset         Handle of the dataset to batch elements from.
+    * @param  datasetHandle   Handle of the dataset to batch elements from.
     * @param  batchSize       `INT64` scalar tensor containing the batch size to use.
     * @param  seed1           `INT64` scalar tensor containing a seed value for the random number generator. If either
     *                         seed or seed2 is set to be non-zero, the random number generator is seeded by the given
@@ -470,7 +479,7 @@ object Dataset {
     */
   @throws[IllegalArgumentException]
   private[io] def datasetShuffle(
-      dataset: Output, batchSize: Output, seed1: Output, seed2: Output, outputDataTypes: Seq[DataType],
+      datasetHandle: Output, batchSize: Output, seed1: Output, seed2: Output, outputDataTypes: Seq[DataType],
       outputShapes: Seq[Shape], name: String = "DatasetShuffle"): Output = {
     if (batchSize.dataType != INT64)
       throw new IllegalArgumentException(s"'batchSize' (dataType = ${batchSize.dataType}) must be an INT64 tensor.")
@@ -485,7 +494,7 @@ object Dataset {
     if (seed2.rank != -1 && seed2.rank > 0)
       throw new IllegalArgumentException(s"'seed2' (rank = ${seed2.rank}) must be equal to 0.")
     Op.Builder(opType = "ShuffleDataset", name = name)
-        .addInput(dataset)
+        .addInput(datasetHandle)
         .addInput(batchSize)
         .addInput(seed1)
         .addInput(seed2)
@@ -500,7 +509,7 @@ object Dataset {
     * it will be used. If the cache is inappropriate (e.g., it cannot be opened, or contains tensors of the wrong shape
     * or size), an error will the returned when used.
     *
-    * @param  dataset         Handle of the dataset to cache.
+    * @param  datasetHandle   Handle of the dataset to cache.
     * @param  filename        `STRING` scalar tensor containing a path in the filesystem where the dataset should be
     *                         cached. Note that this should be a directory and not a file.
     * @param  outputDataTypes Output data types of the created dataset.
@@ -511,14 +520,14 @@ object Dataset {
     */
   @throws[IllegalArgumentException]
   private[io] def datasetCache(
-      dataset: Output, filename: Output, outputDataTypes: Seq[DataType], outputShapes: Seq[Shape],
+      datasetHandle: Output, filename: Output, outputDataTypes: Seq[DataType], outputShapes: Seq[Shape],
       name: String = "DatasetCache"): Output = {
     if (filename.dataType != STRING)
       throw new IllegalArgumentException(s"'filename' (dataType = ${filename.dataType}) must be a STRING tensor.")
     if (filename.rank != -1 && filename.rank > 0)
       throw new IllegalArgumentException(s"'filename' (rank = ${filename.rank}) must be equal to 0.")
     Op.Builder(opType = "CacheDataset", name = name)
-        .addInput(dataset)
+        .addInput(datasetHandle)
         .addInput(filename)
         .setAttribute("output_types", outputDataTypes.toArray)
         .setAttribute("output_shapes", outputShapes.toArray)
@@ -531,7 +540,7 @@ object Dataset {
     * it will be used. If the cache is inappropriate (e.g., it cannot be opened, or contains tensors of the wrong shape
     * or size), an error will the returned when used.
     *
-    * @param  dataset         Handle of the dataset to cache.
+    * @param  datasetHandle   Handle of the dataset to cache.
     * @param  bufferSize      `INT64` scalar tensor containing the maximum number of elements to buffer in an iterator
     *                         over this dataset.
     * @param  outputDataTypes Output data types of the created dataset.
@@ -542,14 +551,14 @@ object Dataset {
     */
   @throws[IllegalArgumentException]
   private[io] def datasetPrefetch(
-      dataset: Output, bufferSize: Output, outputDataTypes: Seq[DataType], outputShapes: Seq[Shape],
+      datasetHandle: Output, bufferSize: Output, outputDataTypes: Seq[DataType], outputShapes: Seq[Shape],
       name: String = "DatasetPrefetch"): Output = {
     if (bufferSize.dataType != INT64)
       throw new IllegalArgumentException(s"'bufferSize' (dataType = ${bufferSize.dataType}) must be an INT64 tensor.")
     if (bufferSize.rank != -1 && bufferSize.rank != 0)
       throw new IllegalArgumentException(s"'bufferSize' (rank = ${bufferSize.rank}) must be equal to 0.")
     Op.Builder(opType = "PrefetchDataset", name = name)
-        .addInput(dataset)
+        .addInput(datasetHandle)
         .addInput(bufferSize)
         .setAttribute("output_types", outputDataTypes.toArray)
         .setAttribute("output_shapes", outputShapes.toArray)
@@ -558,17 +567,17 @@ object Dataset {
 
   /** Creates an op representing a dataset that contains all entries from the provided dataset, but ignores all errors.
     *
-    * @param  dataset         Handle of the dataset to take entries from.
+    * @param  datasetHandle   Handle of the dataset to take entries from.
     * @param  outputDataTypes Output data types of the created dataset.
     * @param  outputShapes    Output shapes of the created dataset.
     * @param  name            Name for the created op.
     * @return Created op output, which is a handle to the created dataset.
     */
   private[io] def datasetIgnoreErrors(
-      dataset: Output, outputDataTypes: Seq[DataType], outputShapes: Seq[Shape],
+      datasetHandle: Output, outputDataTypes: Seq[DataType], outputShapes: Seq[Shape],
       name: String = "DatasetIgnoreErrors"): Output = {
     Op.Builder(opType = "IgnoreErrorsDataset", name = name)
-        .addInput(dataset)
+        .addInput(datasetHandle)
         .setAttribute("output_types", outputDataTypes.toArray)
         .setAttribute("output_shapes", outputShapes.toArray)
         .build().outputs(0)
