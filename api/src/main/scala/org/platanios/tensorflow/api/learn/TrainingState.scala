@@ -18,8 +18,8 @@ package org.platanios.tensorflow.api.learn
 /**
   * @author Emmanouil Antonios Platanios
   */
-case class TrainingState[SI, OI, ST, OT, I, T](
-    model: TrainableModel[SI, OI, ST, OT, I, T], epoch: Int, iteration: Int, maxEpochs: Int, maxIterations: Int,
-    absLossChangeTol: Double, relLossChangeTol: Double, maxIterBelowTol: Int, loss: Double) {
+case class TrainingState[IT, ID, IS, I, TT, TD, TS, ST, T](
+    model: TrainableModel[IT, ID, IS, I, TT, TD, TS, ST, T], epoch: Int, iteration: Int, maxEpochs: Int,
+    maxIterations: Int, absLossChangeTol: Double, relLossChangeTol: Double, maxIterBelowTol: Int, loss: Double) {
 
 }
