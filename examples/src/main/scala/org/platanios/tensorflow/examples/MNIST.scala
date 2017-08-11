@@ -38,7 +38,8 @@ object MNIST {
 
   def main(args: Array[String]): Unit = {
     val dataSet = MNISTLoader.load(Paths.get("/Users/Anthony/Downloads/MNIST"))
-    val dataManager = SimpleDataManager(dataSet.trainImages, dataSet.trainLabels)
+    val trainImages = tf.datasetFromData[tf.Output, tf.DataType, tf.Shape](dataSet.trainImages)
+    val trainLabels = tf.datasetFromData[tf.Output, tf.DataType, tf.Shape](dataSet.trainLabels)
 
     logger.info("Building the logistic regression model.")
     val input = tf.learn.input(tf.UINT8, tf.shape(-1, dataSet.trainImages.shape(1), dataSet.trainImages.shape(2)))
@@ -53,7 +54,7 @@ object MNIST {
 
     logger.info("Training the linear regression model.")
     model.initialize(Model.DefaultInitialization)
-    model.train(dataManager, maxIterations = 1000)
+    model.train(trainImages, trainLabels, maxIterations = 1000)
 
     // val inputs = tf.placeholder(tf.UINT8, tf.shape(-1, numberOfRows, numberOfColumns))
     // val labels = tf.placeholder(tf.UINT8, tf.shape(-1))
