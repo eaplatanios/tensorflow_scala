@@ -19,6 +19,6 @@ package org.platanios.tensorflow.api.learn
   * @author Emmanouil Antonios Platanios
   */
 trait Hook {
-  def initialize[SI, OI, ST, OT, I, T](state: TrainingState[SI, OI, ST, OT, I, T]): Unit
-  def call[SI, OI, ST, OT, I, T](state: TrainingState[SI, OI, ST, OT, I, T]): Boolean
+  def initialize[IT, ID, IS, I, TT, TD, TS, ST, T](state: TrainingState[IT, ID, IS, I, TT, TD, TS, ST, T]): Unit
+  def call[IT, ID, IS, I, TT, TD, TS, ST, T](state: TrainingState[IT, ID, IS, I, TT, TD, TS, ST, T]): Boolean
 }
