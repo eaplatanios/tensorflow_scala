@@ -367,6 +367,14 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_setAttrTensorL
 JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_setAttrShape
   (JNIEnv *, jobject, jlong, jstring, jlongArray, jint);
 
+/*
+ * Class:     org_platanios_tensorflow_jni_Op__
+ * Method:    setAttrShapeList
+ * Signature: (JLjava/lang/String;[J[II)V
+ */
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_setAttrShapeList
+  (JNIEnv *, jobject, jlong, jstring, jobjectArray, jintArray, jint);
+
 #ifdef __cplusplus
 }
 #endif

@@ -1062,7 +1062,9 @@ object Op {
             NativeOp.setAttrTensorList(nativeHandle, attribute._1, value.map(_.nativeHandle))
           case value: Shape =>
             NativeOp.setAttrShape(nativeHandle, attribute._1, value.asArray.map(_.toLong), value.rank)
-          case value: Array[Shape] => ??? // TODO: !!!
+          case value: Array[Shape] =>
+            NativeOp.setAttrShapeList(
+              nativeHandle, attribute._1, value.map(_.asArray.map(_.toLong)), value.map(_.rank), value.length)
           case _ =>
             throw new IllegalArgumentException(s"Unsupported attribute type for attribute named '${attribute._1}.'")
         }
@@ -1158,6 +1160,9 @@ object Op {
       this
     }
 
-    def setAttribute(name: String, value: Array[Shape]): Builder = ??? // TODO: !!!!!!!!
+    def setAttribute(name: String, value: Array[Shape]): Builder = {
+      attributes += name -> value
+      this
+    }
   }
 }

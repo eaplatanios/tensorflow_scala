@@ -61,9 +61,6 @@ object Op {
 
   // The names of all the setAttr* family functions below correspond to the C library types, not the
   // Java library types. Roughly, setAttrFoo calls the TensorFlow C library function: TF_SetAttrFoo.
-  //
-  // TODO:
-  // - setAttrShapeList: Which would take in a long[][]
   @native def setAttrString(handle: Long, name: String, value: Array[Byte]): Unit
   @native def setAttrStringList(handle: Long, name: String, value: Array[Array[Byte]]): Unit
   @native def setAttrInt(handle: Long, name: String, value: Long): Unit
@@ -77,4 +74,6 @@ object Op {
   @native def setAttrTensor(handle: Long, name: String, tensorHandle: Long): Unit
   @native def setAttrTensorList(handle: Long, name: String, tensorHandle: Array[Long]): Unit
   @native def setAttrShape(handle: Long, name: String, shape: Array[Long], numDims: Int): Unit
+  @native def setAttrShapeList(
+      handle: Long, name: String, shapes: Array[Array[Long]], numDims: Array[Int], numShapes: Int): Unit
 }

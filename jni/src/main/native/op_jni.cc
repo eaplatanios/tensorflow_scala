@@ -819,3 +819,37 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_setAttrShape(
   TF_SetAttrShape(d, cname, cvalue.get(), static_cast<int>(num_dims));
   env->ReleaseStringUTFChars(name, cname);
 }
+
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_setAttrShapeList(
+    JNIEnv* env, jobject object, jlong handle, jstring name, jobjectArray shapes, jintArray num_dims, jint num_shapes) {
+  TF_OperationDescription *d = requireOperationDescriptionHandle(env, handle);
+  if (d == nullptr) return;
+  std::unique_ptr<int[]> c_num_dims;
+  std::unique_ptr<int64_t*[]> c_shapes;
+  int c_num_shapes = static_cast<int>(num_shapes);
+  // num_dims[i] and env->GetArrayLength(shapes[i]) are assumed to be consistent.
+  // i.e., either num_dims[i] < 0 or num_dims[i] == env->GetArrayLength(shapes[i]).
+  if (c_num_shapes > 0) {
+    c_num_dims.reset(new int[c_num_shapes]);
+    c_shapes.reset(new int64_t*[c_num_shapes]);
+    jint *num_dims_elems = env->GetIntArrayElements(num_dims, nullptr);
+    for (int j = 0; j < c_num_shapes; ++j) {
+      c_num_dims[j] = static_cast<int>(num_dims_elems[j]);
+      if (c_num_dims[j] > -1) {
+        c_shapes[j] = new int64_t[c_num_dims[j]];
+        jlongArray shapes_elems = (jlongArray) env->GetObjectArrayElement(shapes, j);
+        jlong *shape_elems = env->GetLongArrayElements(shapes_elems, nullptr);
+        for (int i = 0; i < c_num_dims[j]; ++i) {
+          c_shapes[j][i] = static_cast<int64_t>(shape_elems[i]);
+        }
+        env->ReleaseLongArrayElements(shapes_elems, shape_elems, JNI_ABORT);
+      } else {
+        c_shapes[j] = new int64_t[0];
+      }
+    }
+    env->ReleaseIntArrayElements(num_dims, num_dims_elems, JNI_ABORT);
+  }
+  const char *cname = env->GetStringUTFChars(name, nullptr);
+  TF_SetAttrShapeList(d, cname, c_shapes.get(), c_num_dims.get(), c_num_shapes);
+  env->ReleaseStringUTFChars(name, cname);
+}
