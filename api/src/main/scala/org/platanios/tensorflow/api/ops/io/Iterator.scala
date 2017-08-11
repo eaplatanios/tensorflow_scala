@@ -125,19 +125,19 @@ class InitializableIterator[T, D, S] private[io](
 /** Contains helper functions for creating iterator-related ops, as well as the iterator API trait. */
 object Iterator {
   trait API {
-    def iterator[T, D, S](
-        dataset: Dataset[T, D, S], sharedName: String = "",
-        name: String = "InitializableIterator"): InitializableIterator[T, D, S] = {
-      fromDataset(dataset, sharedName, name)
+    def iteratorFromDataset[T, D, S](
+        dataset: Dataset[T, D, S], sharedName: String = "", name: String = "InitializableIterator")(
+        implicit ev: Data.Aux[T, D, S]): InitializableIterator[T, D, S] = {
+      fromDataset(dataset, sharedName, name)(ev)
     }
 
-    def iterator[T, D, S](
+    def iteratorFromStructure[T, D, S](
         outputDataTypes: D, outputShapes: S, sharedName: String = "", name: String = "Iterator")(
         implicit ev: Data.Aux[T, D, S]): Iterator[T, D, S] = {
       fromStructure(outputDataTypes, outputShapes, sharedName, name)(ev)
     }
 
-    def iterator[T, D, S](
+    def iteratorFromStringHandle[T, D, S](
         stringHandle: Output, outputDataTypes: D, outputShapes: S, name: String = "IteratorFromStringHandle")(
         implicit ev: Data.Aux[T, D, S]): Iterator[T, D, S] = {
       fromStringHandle(stringHandle, outputDataTypes, outputShapes, name)(ev)
@@ -162,8 +162,8 @@ object Iterator {
     * @return Created iterator.
     */
   private[api] def fromDataset[T, D, S](
-      dataset: Dataset[T, D, S], sharedName: String = "",
-      name: String = "InitializableIterator"): InitializableIterator[T, D, S] = {
+      dataset: Dataset[T, D, S], sharedName: String = "", name: String = "InitializableIterator")(
+      implicit ev: Data.Aux[T, D, S]): InitializableIterator[T, D, S] = {
     val (handle, initializer) = Op.createWithNameScope(name) {
       val handle = createIterator(
         sharedName = sharedName,
@@ -177,7 +177,7 @@ object Iterator {
       initializer = initializer,
       outputDataTypes = dataset.outputDataTypes,
       outputShapes = dataset.outputShapes,
-      name = name)
+      name = name)(ev)
   }
 
   /** Creates a new, uninitialized [[Iterator]] with the provided structure.
@@ -248,7 +248,7 @@ object Iterator {
       handle = handle,
       outputDataTypes = outputDataTypes,
       outputShapes = outputShapes,
-      name = name)
+      name = name)(ev)
   }
 
   /** Creates a new, uninitialized [[Iterator]] from the provided `STRING` scalar tensor representing a handle of an
@@ -297,7 +297,7 @@ object Iterator {
       handle = handle,
       outputDataTypes = outputDataTypes,
       outputShapes = outputShapes,
-      name = name)
+      name = name)(ev)
   }
 
   /** Creates an op that is a container for an `Iterator` resource.
