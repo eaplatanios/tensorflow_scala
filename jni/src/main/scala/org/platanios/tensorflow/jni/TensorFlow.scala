@@ -19,6 +19,7 @@ import java.io.{IOException, InputStream}
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
+
 import java.nio.file.{Files, Path, StandardCopyOption}
 
 /**
@@ -121,4 +122,13 @@ object TensorFlow {
 
   @native def version: String
   @native def dataTypeSize(dataTypeCValue: Int): Int
+
+  //region Internal API
+
+  @native private[tensorflow] def updateInput(
+      graphHandle: Long, inputOpHandle: Long, inputIndex: Int, outputOpHandle: Long, outputIndex: Int): Unit
+  @native private[tensorflow] def addControlInput(graphHandle: Long, opHandle: Long, inputOpHandle: Long): Int
+  @native private[tensorflow] def clearControlInputs(graphHandle: Long, opHandle: Long): Int
+
+  //endregion Internal API
 }
