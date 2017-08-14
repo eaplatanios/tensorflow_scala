@@ -16,12 +16,13 @@
 package org.platanios.tensorflow.examples
 
 import org.platanios.tensorflow.api._
+import org.platanios.tensorflow.api.learn.Model
 import org.platanios.tensorflow.data.loaders.MNISTLoader
+
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
-import java.nio.file.Paths
 
-import org.platanios.tensorflow.api.learn.{Model, SimpleDataManager}
+import java.nio.file.Paths
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -38,8 +39,8 @@ object MNIST {
 
   def main(args: Array[String]): Unit = {
     val dataSet = MNISTLoader.load(Paths.get("/Users/Anthony/Downloads/MNIST"))
-    val trainImages = tf.datasetFromData[tf.Output, tf.DataType, tf.Shape](dataSet.trainImages)
-    val trainLabels = tf.datasetFromData[tf.Output, tf.DataType, tf.Shape](dataSet.trainLabels)
+    val trainImages = tf.datasetFromSlices(dataSet.trainImages).repeat().batch(1024)
+    val trainLabels = tf.datasetFromSlices(dataSet.trainLabels).repeat().batch(1024)
 
     logger.info("Building the logistic regression model.")
     val input = tf.learn.input(tf.UINT8, tf.shape(-1, dataSet.trainImages.shape(1), dataSet.trainImages.shape(2)))
@@ -54,7 +55,7 @@ object MNIST {
 
     logger.info("Training the linear regression model.")
     model.initialize(Model.DefaultInitialization)
-    model.train(trainImages, trainLabels, maxIterations = 1000)
+    model.train(trainImages, trainLabels, maxIterations = 100000)
 
     // val inputs = tf.placeholder(tf.UINT8, tf.shape(-1, numberOfRows, numberOfColumns))
     // val labels = tf.placeholder(tf.UINT8, tf.shape(-1))

@@ -35,12 +35,12 @@ object Input {
   object API extends API
 }
 
-sealed abstract class SupportedInput[T, D, S](implicit ev: Data.Aux[T, D, S]) {
-  private[this] val cache: mutable.Map[tf.Graph, tf.Iterator[T, D, S]] = mutable.Map.empty
+sealed abstract class SupportedInput[O, D, S](implicit ev: Data.Aux[_, O, D, S]) {
+  private[this] val cache: mutable.Map[tf.Graph, tf.Iterator[O, D, S]] = mutable.Map.empty
 
-  protected def create(): tf.Iterator[T, D, S]
+  protected def create(): tf.Iterator[O, D, S]
 
-  final def apply(): tf.Iterator[T, D, S] = cache.getOrElse(tf.currentGraph, create())
+  final def apply(): tf.Iterator[O, D, S] = cache.getOrElse(tf.currentGraph, create())
 }
 
 class Input private[learn](val dataType: tf.DataType, val shape: tf.Shape, val name: String)
