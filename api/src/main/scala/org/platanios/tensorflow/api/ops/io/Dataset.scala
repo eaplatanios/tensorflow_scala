@@ -33,7 +33,7 @@ import scala.language.postfixOps
   *
   * @author Emmanouil Antonios Platanios
   */
-abstract class Dataset[T, D, S] private[io](val name: String = "Dataset")(implicit ev: Data.Aux[T, D, S]) {
+abstract class Dataset[O, D, S] private[io](val name: String = "Dataset")(implicit ev: Data.Aux[_, O, D, S]) {
   /** Creates a `RESOURCE` scalar tensor representing this dataset. This function adds ops to the current graph, that
     * create the dataset resource. */
   def createResource(): Output
@@ -49,7 +49,7 @@ abstract class Dataset[T, D, S] private[io](val name: String = "Dataset")(implic
     * @return Created iterator.
     */
   def createInitializableIterator(
-      sharedName: String = "", name: String = "InitializableIterator"): InitializableIterator[T, D, S] = {
+      sharedName: String = "", name: String = "InitializableIterator"): InitializableIterator[O, D, S] = {
     Iterator.fromDataset(dataset = this, sharedName = sharedName, name = name)
   }
 
@@ -81,8 +81,17 @@ abstract class Dataset[T, D, S] private[io](val name: String = "Dataset")(implic
     * @param  batchSize Batch size to use.
     * @return Created dataset.
     */
-  def batch(batchSize: Int): BatchDataset[T, D, S] = {
+  def batch(batchSize: Int): BatchDataset[O, D, S] = {
     BatchDataset(inputDataset = this, batchSize = batchSize, name = s"$name/Batch")
+  }
+
+  /** Creates a dataset that repeats the elements of this dataset.
+    *
+    * @param  count Number of times to repeat this dataset. A value of `-1` corresponds to repeating it indefinitely.
+    * @return Created dataset.
+    */
+  def repeat(count: Int = -1): RepeatDataset[O, D, S] = {
+    RepeatDataset(inputDataset = this, count = count, name = s"$name/Repeat")
   }
 }
 
@@ -91,9 +100,9 @@ abstract class Dataset[T, D, S] private[io](val name: String = "Dataset")(implic
   * @param  data Data representing the single element of this dataset.
   * @param  name Name of this dataset.
   */
-case class TensorDataset[T, D, S] private[io](data: T, override val name: String = "TensorDataset")(implicit
-    ev: Data.Aux[T, D, S]
-) extends Dataset[T, D, S](name)(ev) {
+case class TensorDataset[T, O, D, S] private[io](data: T, override val name: String = "TensorDataset")(implicit
+    ev: Data.Aux[T, O, D, S]
+) extends Dataset[O, D, S](name)(ev) {
   /** Creates a `RESOURCE` scalar tensor representing this dataset. This function adds ops to the current graph, that
     * create the dataset resource. */
   override def createResource(): Output = {
@@ -114,9 +123,10 @@ case class TensorDataset[T, D, S] private[io](data: T, override val name: String
   * @param  data Data representing the elements of this dataset.
   * @param  name Name of this dataset.
   */
-case class TensorSliceDataset[T, D, S] private[io](data: T, override val name: String = "TensorDataset")(implicit
-    ev: Data.Aux[T, D, S]
-) extends Dataset[T, D, S](name)(ev) {
+case class TensorSliceDataset[T, O, D, S] private[io](
+    data: T, override val name: String = "TensorSliceDataset")(implicit
+    ev: Data.Aux[T, O, D, S]
+) extends Dataset[O, D, S](name)(ev) {
   /** Creates a `RESOURCE` scalar tensor representing this dataset. This function adds ops to the current graph, that
     * create the dataset resource. */
   override def createResource(): Output = {
@@ -130,7 +140,7 @@ case class TensorSliceDataset[T, D, S] private[io](data: T, override val name: S
   /** Returns the shapes corresponding to each element of this dataset, matching the structure of the elements. */
   override val outputShapes: S = {
     val flattenedShapes = ev.flattenedOutputShapes(ev.outputShapes(data))
-    ev.unflattenShapes(outputDataTypes, flattenedShapes.map(_ (1 ::)))
+    ev.unflattenShapes(outputDataTypes, flattenedShapes.map(s => if (s.rank > 1) s(1 ::) else Shape.scalar()))
   }
 }
 
@@ -140,10 +150,10 @@ case class TensorSliceDataset[T, D, S] private[io](data: T, override val name: S
   * @param  batchSize    Batch size to use.
   * @param  name Name of this dataset.
   */
-case class BatchDataset[T, D, S] private[io](
-    inputDataset: Dataset[T, D, S], batchSize: Int, override val name: String = "TensorDataset")(implicit
-    ev: Data.Aux[T, D, S]
-) extends Dataset[T, D, S](name)(ev) {
+case class BatchDataset[O, D, S] private[io](
+    inputDataset: Dataset[O, D, S], batchSize: Int, override val name: String = "TensorDataset")(implicit
+    ev: Data.Aux[_, O, D, S]
+) extends Dataset[O, D, S](name)(ev) {
   /** Creates a `RESOURCE` scalar tensor representing this dataset. This function adds ops to the current graph, that
     * create the dataset resource. */
   override def createResource(): Output = {
@@ -164,29 +174,58 @@ case class BatchDataset[T, D, S] private[io](
   }
 }
 
+/** [[Dataset]] that repeats the elements from `inputDataset` a specified number of times.
+  *
+  * @param  inputDataset Data representing the elements of this dataset.
+  * @param  count        Number of times to repeat the input dataset. A value of `-1` corresponds to repeating it
+  *                      indefinitely.
+  * @param  name Name of this dataset.
+  */
+case class RepeatDataset[O, D, S] private[io](
+    inputDataset: Dataset[O, D, S], count: Int, override val name: String = "TensorDataset")(implicit
+    ev: Data.Aux[_, O, D, S]
+) extends Dataset[O, D, S](name)(ev) {
+  /** Creates a `RESOURCE` scalar tensor representing this dataset. This function adds ops to the current graph, that
+    * create the dataset resource. */
+  override def createResource(): Output = {
+    Dataset.datasetRepeat(
+      datasetHandle = Op.createWithNameScope(name)(inputDataset.createResource()),
+      count = Op.createWithNameScope(name)(ops.Basic.constant(count, INT64, name = "Count")),
+      outputDataTypes = flattenedOutputDataTypes,
+      outputShapes = flattenedOutputShapes,
+      name = name)
+  }
+
+  /** Returns the data types corresponding to each element of this dataset, matching the structure of the elements. */
+  override val outputDataTypes: D = inputDataset.outputDataTypes
+
+  /** Returns the shapes corresponding to each element of this dataset, matching the structure of the elements. */
+  override val outputShapes: S = inputDataset.outputShapes
+}
+
 object Dataset {
   trait API {
-    def datasetFromData[T, D, S](
-        data: T, name: String = "TensorDataset")(implicit ev: Data.Aux[T, D, S]): Dataset[T, D, S] = {
-      fromData(data, name)(ev)
+    def datasetFrom[T, O, D, S](
+        data: T, name: String = "TensorDataset")(implicit ev: Data.Aux[T, O, D, S]): Dataset[O, D, S] = {
+      from(data, name)(ev)
     }
 
-    def datasetFromDataSlices[T, D, S](
-        data: T, name: String = "TensorSliceDataset")(implicit ev: Data.Aux[T, D, S]): Dataset[T, D, S] = {
-      fromDataSlices(data, name)(ev)
+    def datasetFromSlices[T, O, D, S](
+        data: T, name: String = "TensorSliceDataset")(implicit ev: Data.Aux[T, O, D, S]): Dataset[O, D, S] = {
+      fromSlices(data, name)(ev)
     }
   }
 
   object API extends API
 
-  private[api] def fromData[T, D, S](
-      data: T, name: String = "TensorDataset")(implicit ev: Data.Aux[T, D, S]): Dataset[T, D, S] = {
+  private[api] def from[T, O, D, S](
+      data: T, name: String = "TensorDataset")(implicit ev: Data.Aux[T, O, D, S]): Dataset[O, D, S] = {
     // TODO: !!! [DATASETS] What happens when one provides a structure with Tensor objects?
     TensorDataset(data, name = name)(ev)
   }
 
-  private[api] def fromDataSlices[T, D, S](
-      data: T, name: String = "TensorSliceDataset")(implicit ev: Data.Aux[T, D, S]): Dataset[T, D, S] = {
+  private[api] def fromSlices[T, O, D, S](
+      data: T, name: String = "TensorSliceDataset")(implicit ev: Data.Aux[T, O, D, S]): Dataset[O, D, S] = {
     // TODO: !!! [DATASETS] What happens when one provides a structure with Tensor objects?
     TensorSliceDataset(data, name = name)(ev)
   }
@@ -222,7 +261,10 @@ object Dataset {
     */
   private[io] def createTensorSliceDataset(
       components: Seq[Output], shapes: Seq[Shape], name: String = "TensorSliceDataset"): Output = {
-    if (components.zip(shapes).exists(p => !p._1.shape(1 ::).isCompatibleWith(p._2)))
+    if (components.zip(shapes).exists(p => {
+      (p._1.shape.rank > 1 && !p._1.shape(1 ::).isCompatibleWith(p._2)) ||
+          (p._1.shape.rank == 0 && !Shape().isCompatibleWith(p._2))
+    }))
       throw new IllegalArgumentException(
         "The axis-0 slice of each tensor in 'components' " +
             "must have shape compatible with the corresponding shape in 'shapes'.")

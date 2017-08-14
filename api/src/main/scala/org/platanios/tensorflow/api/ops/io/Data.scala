@@ -16,7 +16,8 @@
 package org.platanios.tensorflow.api.ops.io
 
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.ops.{Output, OutputIndexedSlices, SparseOutput}
+import org.platanios.tensorflow.api.ops.Output
+import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.DataType
 import org.platanios.tensorflow.api.utilities.Collections
 
@@ -32,7 +33,7 @@ import scala.reflect.ClassTag
 /** Data can be emitted by [[Dataset]]s (i.e., the element types of all [[Dataset]]s are [[Data]]).
   *
   * Currently supported data types are:
-  *   - Single [[Output]], [[OutputIndexedSlices]], [[SparseOutput]] object.
+  *   - Single [[Tensor]].
   *   - Sequences of other [[Data]] (e.g., Seq`s, `List`s, etc.).
   *     - Sequences that are not homogeneous are not supported (e.g., `Seq(data1, Seq(data1, data2))`).
   *     - Note that, for that reason, even though `Seq(List(data1), List(data1, data2))` is supported,
@@ -54,6 +55,7 @@ import scala.reflect.ClassTag
   * @author Emmanouil Antonios Platanios
   */
 trait Data[T] {
+  type OutputType
   type DataTypes
   type Shapes
 
@@ -64,11 +66,11 @@ trait Data[T] {
   def flattenedOutputShapes(shapes: Shapes): Seq[Shape]
   def numberOfOutputs(dataTypes: DataTypes): Int
 
-  def unflattenOutputs(dataTypes: DataTypes, s: Seq[Output]): T = segmentOutputs(dataTypes, s)._1
+  def unflattenOutputs(dataTypes: DataTypes, s: Seq[Output]): OutputType = segmentOutputs(dataTypes, s)._1
   def unflattenDataTypes(dataTypes: DataTypes, s: Seq[DataType]): DataTypes = segmentDataTypes(dataTypes, s)._1
   def unflattenShapes(dataTypes: DataTypes, s: Seq[Shape]): Shapes = segmentShapes(dataTypes, s)._1
 
-  def segmentOutputs(dataTypes: DataTypes, s: Seq[Output]): (T, Seq[Output])
+  def segmentOutputs(dataTypes: DataTypes, s: Seq[Output]): (OutputType, Seq[Output])
   def segmentDataTypes(dataTypes: DataTypes, s: Seq[DataType]): (DataTypes, Seq[DataType])
   def segmentShapes(dataTypes: DataTypes, s: Seq[Shape]): (Shapes, Seq[Shape])
 
@@ -78,8 +80,8 @@ trait Data[T] {
 }
 
 object Data {
-  private[io] def process[T, D, S](data: T)(implicit ev: Aux[T, D, S]): (
-      Seq[Output], Seq[DataType], Seq[Shape], Seq[Output] => T, Seq[DataType] => D, Seq[Shape] => S) = {
+  private[io] def process[T, O, D, S](data: T)(implicit ev: Aux[T, O, D, S]): (
+      Seq[Output], Seq[DataType], Seq[Shape], Seq[Output] => O, Seq[DataType] => D, Seq[Shape] => S) = {
     val flattenedOutputs = ev.flattenedOutputs(data)
     val (uniqueOutputs, indices) = Data.uniquifyOutputs(flattenedOutputs)
     val uniqueOutputDataTypes = uniqueOutputs.map(_.dataType)
@@ -98,17 +100,22 @@ object Data {
     (uniqueOutputs, indices)
   }
 
-  type Aux[T, D, S] = Data[T] {type DataTypes = D; type Shapes = S}
+  type Aux[T, O, D, S] = Data[T] {
+    type OutputType = O
+    type DataTypes = D
+    type Shapes = S
+  }
 
-  def apply[T, D, S](implicit ev: Aux[T, D, S]): Aux[T, D, S] = ev
+  def apply[T, O, D, S](implicit ev: Aux[T, O, D, S]): Aux[T, O, D, S] = ev
 
-  implicit val outputData: Aux[Output, DataType, Shape] = new Data[Output] {
+  implicit val tensorData: Aux[Tensor, Output, DataType, Shape] = new Data[Tensor] {
+    override type OutputType = Output
     override type DataTypes = DataType
     override type Shapes = Shape
 
-    override def outputDataTypes(data: Output): DataType = data.dataType
-    override def outputShapes(data: Output): Shape = data.shape
-    override def flattenedOutputs(data: Output): Seq[Output] = Seq(data)
+    override def outputDataTypes(data: Tensor): DataType = data.dataType
+    override def outputShapes(data: Tensor): Shape = data.shape
+    override def flattenedOutputs(data: Tensor): Seq[Output] = Seq(data.toOutput)
     override def flattenedOutputDataTypes(dataTypes: DataType): Seq[DataType] = Seq(dataTypes)
     override def flattenedOutputShapes(shapes: Shape): Seq[Shape] = Seq(shapes)
     override def numberOfOutputs(dataTypes: DataType): Int = 1
@@ -117,17 +124,18 @@ object Data {
     override def segmentDataTypes(dataTypes: DataType, s: Seq[DataType]): (DataType, Seq[DataType]) = (s.head, s.tail)
     override def segmentShapes(dataTypes: DataType, s: Seq[Shape]): (Shape, Seq[Shape]) = (s.head, s.tail)
 
-    override def dataToString(data: Output): String = data.toString
+    override def dataToString(data: Tensor): String = data.toString
     override def dataTypesToString(dataTypes: DataType): String = dataTypes.toString
     override def shapesToString(shapes: Shape): String = shapes.toString
   }
 
-  // TODO: [DATASETS] "outputIndexedSlicesData" and "sparseOutputData".
+  // TODO: [DATASETS] "output", "outputIndexedSlicesData", and "sparseOutputData".
 
-  implicit def dataArray[T: ClassTag, D: ClassTag, S: ClassTag](implicit
-      ev: Aux[T, D, S]
-  ): Aux[Array[T], Array[D], Array[S]] = {
+  implicit def dataArray[T: ClassTag, O: ClassTag, D: ClassTag, S: ClassTag](implicit
+      ev: Aux[T, O, D, S]
+  ): Aux[Array[T], Array[O], Array[D], Array[S]] = {
     new Data[Array[T]] {
+      override type OutputType = Array[O]
       override type DataTypes = Array[D]
       override type Shapes = Array[S]
 
@@ -142,7 +150,7 @@ object Data {
       override def flattenedOutputShapes(shapes: Array[S]): Seq[Shape] = shapes.flatMap(ev.flattenedOutputShapes).toSeq
       override def numberOfOutputs(dataTypes: Array[D]): Int = dataTypes.map(ev.numberOfOutputs).sum
 
-      override def segmentOutputs(dataTypes: Array[D], s: Seq[Output]): (Array[T], Seq[Output]) = {
+      override def segmentOutputs(dataTypes: Array[D], s: Seq[Output]): (Array[O], Seq[Output]) = {
         val n = numberOfOutputs(dataTypes)
         (dataTypes.zip(Collections.segment(s.take(n), dataTypes.map(ev.numberOfOutputs).toSeq))
             .map(f => ev.unflattenOutputs(f._1, f._2)), s.drop(n))
@@ -174,15 +182,16 @@ object Data {
     }
   }
 
-  implicit def dataSeq[T, D, S, CC[A] <: SeqLike[A, CC[A]]](implicit
-      ev: Aux[T, D, S],
+  implicit def dataSeq[T, O, D, S, CC[A] <: SeqLike[A, CC[A]]](implicit
+      ev: Aux[T, O, D, S],
       cbfTD: CanBuildFrom[CC[T], D, CC[D]],
       cbfTS: CanBuildFrom[CC[T], S, CC[S]],
-      cbfDT: CanBuildFrom[CC[D], T, CC[T]],
+      cbfDT: CanBuildFrom[CC[D], O, CC[O]],
       cbfDD: CanBuildFrom[CC[D], D, CC[D]],
       cbfDS: CanBuildFrom[CC[D], S, CC[S]]
-  ): Aux[CC[T], CC[D], CC[S]] = {
+  ): Aux[CC[T], CC[O], CC[D], CC[S]] = {
     new Data[CC[T]] {
+      override type OutputType = CC[O]
       override type DataTypes = CC[D]
       override type Shapes = CC[S]
 
@@ -197,7 +206,7 @@ object Data {
       override def flattenedOutputShapes(shapes: CC[S]): Seq[Shape] = shapes.flatMap(ev.flattenedOutputShapes).toSeq
       override def numberOfOutputs(dataTypes: CC[D]): Int = dataTypes.map(ev.numberOfOutputs).sum
 
-      override def segmentOutputs(dataTypes: CC[D], s: Seq[Output]): (CC[T], Seq[Output]) = {
+      override def segmentOutputs(dataTypes: CC[D], s: Seq[Output]): (CC[O], Seq[Output]) = {
         val n = numberOfOutputs(dataTypes)
         (dataTypes
             .zip(Collections.segment(s.take(n), dataTypes.map(ev.numberOfOutputs).toSeq))(breakOut)
@@ -232,12 +241,13 @@ object Data {
     }
   }
 
-  implicit def dataMap[K, T, D, S, CC[CK, CV] <: MapLike[CK, CV, CC[CK, CV]] with Map[CK, CV]](implicit
-      ev: Aux[T, D, S],
-  ): Aux[CC[K, T], Map[K, D], Map[K, S]] = {
+  implicit def dataMap[K, T, O, D, S, CC[CK, CV] <: MapLike[CK, CV, CC[CK, CV]] with Map[CK, CV]](implicit
+      ev: Aux[T, O, D, S],
+  ): Aux[CC[K, T], CC[K, O], Map[K, D], Map[K, S]] = {
     new Data[CC[K, T]] {
       // TODO: [DATASETS] Return CC type instead of Map.
       // TODO: [DATASETS] Make sure key-value pairs order is handled correctly here.
+      override type OutputType = CC[K, O]
       override type DataTypes = Map[K, D]
       override type Shapes = Map[K, S]
 
@@ -255,13 +265,13 @@ object Data {
 
       override def numberOfOutputs(dataTypes: Map[K, D]): Int = dataTypes.values.map(ev.numberOfOutputs).sum
 
-      override def segmentOutputs(dataTypes: Map[K, D], s: Seq[Output]): (CC[K, T], Seq[Output]) = {
+      override def segmentOutputs(dataTypes: Map[K, D], s: Seq[Output]): (CC[K, O], Seq[Output]) = {
         val n = numberOfOutputs(dataTypes)
         // TODO: [DATASETS] !!! Fix this hacky solution for the return type.
         (dataTypes.keys.zip(
           dataTypes.values
               .zip(Collections.segment(s.take(n), dataTypes.values.map(ev.numberOfOutputs).toSeq))
-              .map(f => ev.unflattenOutputs(f._1, f._2))).toMap.asInstanceOf[CC[K, T]], s.drop(n))
+              .map(f => ev.unflattenOutputs(f._1, f._2))).toMap.asInstanceOf[CC[K, O]], s.drop(n))
       }
 
       override def segmentDataTypes(dataTypes: Map[K, D], s: Seq[DataType]): (Map[K, D], Seq[DataType]) = {
@@ -294,7 +304,8 @@ object Data {
     }
   }
 
-  implicit val hnil: Aux[HNil, HNil, HNil] = new Data[HNil] {
+  implicit val hnil: Aux[HNil, HNil, HNil, HNil] = new Data[HNil] {
+    override type OutputType = HNil
     override type DataTypes = HNil
     override type Shapes = HNil
 
@@ -314,10 +325,11 @@ object Data {
     override def shapesToString(shapes: HNil): String = ""
   }
 
-  implicit def recursiveConstructor[HT, HD, HS, TT <: HList, TD <: HList, TS <: HList](implicit
-      dataHead: Lazy[Aux[HT, HD, HS]],
-      dataTail: Aux[TT, TD, TS]
-  ): Aux[HT :: TT, HD :: TD, HS :: TS] = new Data[HT :: TT] {
+  implicit def recursiveConstructor[HT, HO, HD, HS, TT <: HList, TO <: HList, TD <: HList, TS <: HList](implicit
+      dataHead: Lazy[Aux[HT, HO, HD, HS]],
+      dataTail: Aux[TT, TO, TD, TS]
+  ): Aux[HT :: TT, HO :: TO, HD :: TD, HS :: TS] = new Data[HT :: TT] {
+    override type OutputType = HO :: TO
     override type DataTypes = HD :: TD
     override type Shapes = HS :: TS
 
@@ -345,7 +357,7 @@ object Data {
       dataHead.value.numberOfOutputs(dataTypes.head) + dataTail.numberOfOutputs(dataTypes.tail)
     }
 
-    override def segmentOutputs(dataTypes: HD :: TD, s: Seq[Output]): (HT :: TT, Seq[Output]) = {
+    override def segmentOutputs(dataTypes: HD :: TD, s: Seq[Output]): (HO :: TO, Seq[Output]) = {
       val (headOut, headRemaining) = dataHead.value.segmentOutputs(dataTypes.head, s)
       val (tailOut, tailRemaining) = dataTail.segmentOutputs(dataTypes.tail, headRemaining)
       (headOut :: tailOut, tailRemaining)
@@ -398,15 +410,18 @@ object Data {
   }
 
   // This also covers `OutputIndexedSlices` and `SparseOutput` as they are case classes (i.e., products).
-  implicit def productConstructor[PT <: Product, PD, PS, LT <: HList, LD <: HList, LS <: HList](implicit
+  implicit def productConstructor[
+  PT <: Product, PO <: Product, PD <: Product, PS <: Product,
+  LT <: HList, LO <: HList, LD <: HList, LS <: HList](implicit
       genT: Generic.Aux[PT, LT],
       genD: Generic.Aux[PD, LD],
       genS: Generic.Aux[PS, LS],
-      dataL: Lazy[Aux[LT, LD, LS]],
-      tuplerT: Tupler.Aux[LT, PT],
+      dataL: Lazy[Aux[LT, LO, LD, LS]],
+      tuplerO: Tupler.Aux[LO, PO],
       tuplerD: Tupler.Aux[LD, PD],
       tuplerS: Tupler.Aux[LS, PS]
-  ): Aux[PT, PD, PS] = new Data[PT] {
+  ): Aux[PT, PO, PD, PS] = new Data[PT] {
+    override type OutputType = PO
     override type DataTypes = PD
     override type Shapes = PS
 
@@ -424,9 +439,9 @@ object Data {
 
     override def numberOfOutputs(dataTypes: PD): Int = dataL.value.numberOfOutputs(genD.to(dataTypes))
 
-    override def segmentOutputs(dataTypes: PD, s: Seq[Output]): (PT, Seq[Output]) = {
+    override def segmentOutputs(dataTypes: PD, s: Seq[Output]): (PO, Seq[Output]) = {
       val (out, remaining) = dataL.value.segmentOutputs(genD.to(dataTypes), s)
-      (tuplerT(out), remaining)
+      (tuplerO(out), remaining)
     }
 
     override def segmentDataTypes(dataTypes: PD, s: Seq[DataType]): (PD, Seq[DataType]) = {
