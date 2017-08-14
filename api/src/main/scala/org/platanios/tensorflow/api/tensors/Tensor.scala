@@ -375,12 +375,12 @@ object Tensor {
     if (!copy && buffer.isDirect) {
       val bufferDuplicate = buffer.duplicate
       bufferDuplicate.limit(limit)
+      bufferDuplicate.slice()
       bufferDuplicate
     } else {
-      val bufferCopy = ByteBuffer.allocateDirect(buffer.capacity)
+      val bufferCopy = ByteBuffer.allocateDirect(limit)
       val readOnlyBufferCopy = buffer.asReadOnlyBuffer
       bufferCopy.put(readOnlyBufferCopy)
-      bufferCopy.position(buffer.position)
       bufferCopy.limit(limit)
       bufferCopy.order(buffer.order)
       bufferCopy
