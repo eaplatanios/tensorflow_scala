@@ -25,8 +25,6 @@ import org.platanios.tensorflow.api.types.{DataType, FLOAT32}
   */
 package object variables {
   private[api] trait API {
-    variables.Variable.Gradients
-
     type Variable = variables.Variable
     type PartitionedVariable = variables.PartitionedVariable
     type VariableReuse = variables.Reuse
@@ -38,12 +36,12 @@ package object variables {
     type VariableStore = variables.VariableStore
     type VariableScope = variables.VariableScope
 
-    val Variable                  = variables.Variable
-    val ReuseExistingVariableOnly = variables.ReuseExistingOnly
-    val CreateNewVariableOnly     = variables.CreateNewOnly
-    val ReuseOrCreateNewVariable  = variables.ReuseExistingOnly
-    val VariableStore             = variables.VariableStore
-    val VariableScope             = variables.VariableScope
+    val Variable                 : variables.Variable.type          = variables.Variable
+    val ReuseExistingVariableOnly: variables.ReuseExistingOnly.type = variables.ReuseExistingOnly
+    val CreateNewVariableOnly    : variables.CreateNewOnly.type     = variables.CreateNewOnly
+    val ReuseOrCreateNewVariable : variables.ReuseExistingOnly.type = variables.ReuseExistingOnly
+    val VariableStore            : variables.VariableStore.type     = variables.VariableStore
+    val VariableScope            : variables.VariableScope.type     = variables.VariableScope
 
     val zerosInitializer: Initializer = variables.ZerosInitializer
     val onesInitializer : Initializer = variables.OnesInitializer
@@ -62,7 +60,7 @@ package object variables {
     }
 
     type Saver = variables.Saver
-    val Saver = variables.Saver
+    val Saver: variables.Saver.type = variables.Saver
 
     def saver(
         saveables: Set[Saveable] = null, reshape: Boolean = false, sharded: Boolean = false, maxToKeep: Int = 5,
