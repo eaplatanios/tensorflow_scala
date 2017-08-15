@@ -173,12 +173,10 @@ final case class Session private (
 
 /** Contains helper functions for managing [[Session]] instances. */
 object Session {
-  trait API {
+  private[client] trait API {
     type Session = client.Session
     val Session: client.Session.type = client.Session
   }
-
-  object API extends API
 
   def apply()(implicit context: DynamicVariable[OpCreationContext]): Session = {
     val graph = context.graph

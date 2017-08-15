@@ -19,7 +19,5 @@ package org.platanios.tensorflow.api.core
   * @author Emmanouil Antonios Platanios
   */
 package object client {
-  private[api] trait API extends Session.API
-
-  private[api] object API extends API
+  private[core] trait API extends Session.API
 }

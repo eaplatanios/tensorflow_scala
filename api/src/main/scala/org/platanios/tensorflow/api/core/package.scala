@@ -23,8 +23,6 @@ import org.platanios.tensorflow.api
 package object core {
   private[api] trait API extends Indexer.API
 
-  private[api] object API extends API
-
   private[api] trait ScopedAPI extends client.API {
     type Graph = core.Graph
     type Shape = core.Shape
@@ -44,6 +42,8 @@ package object core {
     type InvalidIndexerException = core.exception.InvalidIndexerException
     type InvalidDataTypeException = core.exception.InvalidDataTypeException
     type OpBuilderUsedException = core.exception.OpBuilderUsedException
+
+    // TODO: [API] Format this nicely.
 
     val ShapeMismatchException             : exception.ShapeMismatchException.type              = core.exception.ShapeMismatchException
     val GraphMismatchException             : exception.GraphMismatchException.type              = core.exception.GraphMismatchException
@@ -84,6 +84,4 @@ package object core {
     case class OpBuilderUsedException(message: String = null, cause: Throwable = null)
         extends IllegalStateException(message, cause)
   }
-
-  private[api] object ScopedAPI extends ScopedAPI
 }
