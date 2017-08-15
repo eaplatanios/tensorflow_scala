@@ -21,11 +21,8 @@ import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.ops.variables.{CreateNewOnly, VariableScope, VariableStore}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.tensors.TensorFlowNative.{NativeView => TensorNativeView}
 import org.platanios.tensorflow.api.types.DataType
 import org.platanios.tensorflow.jni.{Op => NativeOp}
-
-import spire.implicits._
 
 import java.nio.charset.Charset
 
@@ -282,14 +279,60 @@ private[api] final case class OpCreationContext(
     controlDependencies: Set[Op] = Set.empty, attributes: Map[String, Any] = Map.empty, container: String = "") // TODO: !!! Use containers.
 
 object Op {
-  /** Convenient implicit conversion function used to convert devices specified as [[String]]s for use with the
-    * [[createWith]] function, to the expected device function format taking an [[OpSpecification]] as input and
-    * return a device specification string.
-    *
-    * @param  device Device specification string.
-    * @return Function that returns `device` for any [[OpSpecification]] used as input.
-    */
-  implicit def deviceImplicitConversion(device: String): OpSpecification => String = _ => device
+  private[ops] trait API {
+    type Op = ops.Op
+    val Op: Op.type = ops.Op
+
+    type OpCreationContext = ops.OpCreationContext
+    type OpSpecification = ops.OpSpecification
+
+    def currentGraph: Graph = Op.currentGraph
+    def currentNameScope: String = Op.currentNameScope
+    def currentVariableScope: VariableScope = Op.currentVariableScope
+    def currentVariableStore: VariableStore = Op.currentVariableStore
+    def currentDevice: OpSpecification => String = Op.currentDevice
+    def currentColocationOps: Set[Op] = Op.currentColocationOps
+    def currentControlDependencies: Set[Op] = Op.currentControlDependencies
+    def currentAttributes: Map[String, Any] = Op.currentAttributes
+    def currentContainer: String = Op.currentContainer
+
+    def currentGraphRandomSeed(opSeed: Option[Int] = None): (Option[Int], Option[Int]) = {
+      Op.currentGraphRandomSeed(opSeed)
+    }
+
+    def setCurrentGraphRandomSeed(value: Int): Unit = Op.setCurrentGraphRandomSeed(value)
+
+    def createWith[R](
+        graph: Graph = null, nameScope: String = null, device: OpSpecification => String = _ => "",
+        colocationOps: Set[Op] = null, controlDependencies: Set[Op] = null, attributes: Map[String, Any] = null,
+        container: String = null)(block: => R): R = {
+      Op.createWith(graph, nameScope, device, colocationOps, controlDependencies, attributes, container)(block)
+    }
+
+    def createWithNameScope[R](nameScope: String, values: Set[Op] = Set.empty[Op])(block: => R): R = {
+      Op.createWithNameScope(nameScope, values)(block)
+    }
+
+    def colocateWith[R](colocationOps: Set[Op], ignoreExisting: Boolean = false)(block: => R): R = {
+      Op.colocateWith(colocationOps, ignoreExisting)(block)
+    }
+
+    def globalVariablesInitializer(name: String = "GlobalVariablesInitializer"): Op = {
+      Op.currentGraph.globalVariablesInitializer(name)
+    }
+
+    def localVariablesInitializer(name: String = "LocalVariablesInitializer"): Op = {
+      Op.currentGraph.localVariablesInitializer(name)
+    }
+
+    def modelVariablesInitializer(name: String = "ModelVariablesInitializer"): Op = {
+      Op.currentGraph.modelVariablesInitializer(name)
+    }
+
+    def trainableVariablesInitializer(name: String = "TrainableVariablesInitializer"): Op = {
+      Op.currentGraph.trainableVariablesInitializer(name)
+    }
+  }
 
   /** Returns the graph of the current op creation context. */
   private[api] def currentGraph(implicit context: DynamicVariable[OpCreationContext]): Graph = context.value.graph
@@ -1056,9 +1099,9 @@ object Op {
             NativeOp.setAttrType(nativeHandle, attribute._1, value.cValue)
           case value: Array[DataType] =>
             NativeOp.setAttrTypeList(nativeHandle, attribute._1, value.map(_.cValue))
-          case value: TensorNativeView =>
+          case value: Tensor.NativeView =>
             NativeOp.setAttrTensor(nativeHandle, attribute._1, value.nativeHandle)
-          case value: Array[TensorNativeView] =>
+          case value: Array[Tensor.NativeView] =>
             NativeOp.setAttrTensorList(nativeHandle, attribute._1, value.map(_.nativeHandle))
           case value: Shape =>
             NativeOp.setAttrShape(nativeHandle, attribute._1, value.asArray.map(_.toLong), value.rank)
@@ -1145,12 +1188,12 @@ object Op {
       this
     }
 
-    def setAttribute(name: String, value: TensorNativeView): Builder = {
+    def setAttribute(name: String, value: Tensor.NativeView): Builder = {
       attributes += name -> value
       this
     }
 
-    def setAttribute(name: String, value: Array[TensorNativeView]): Builder = {
+    def setAttribute(name: String, value: Array[Tensor.NativeView]): Builder = {
       attributes += name -> value
       this
     }

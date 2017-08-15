@@ -29,7 +29,7 @@ import org.platanios.tensorflow.api.types.DataType
   *
   * @author Emmanouil Antonios Platanios
   */
-object Slot {
+private[ops] object Slot {
   /** Creates a slot initialized with zeros with the same shape as the primary variable.
     *
     * @param  primary             Primary variable.

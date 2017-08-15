@@ -15,9 +15,8 @@
 
 package org.platanios.tensorflow.api
 
-import org.platanios.tensorflow.api.core.Graph
-import org.platanios.tensorflow.api.ops.io.{Files, Reader}
-import org.platanios.tensorflow.api.types.DataType
+import scala.util.DynamicVariable
+import scala.util.matching.Regex
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -25,7 +24,35 @@ import org.platanios.tensorflow.api.types.DataType
 package object ops {
   private[ops] val DEFAULT_GRAPH_RANDOM_SEED = 87654321
 
-  private[api] trait API
+  private[ops] val COLOCATION_OPS_ATTRIBUTE_NAME  : String = "_class"
+  private[ops] val COLOCATION_OPS_ATTRIBUTE_PREFIX: String = "loc:@"
+  private[ops] val VALID_OP_NAME_REGEX            : Regex  = "^[A-Za-z0-9.][A-Za-z0-9_.\\-/]*$".r
+  private[ops] val VALID_NAME_SCOPE_REGEX         : Regex  = "^[A-Za-z0-9_.\\-/]*$".r
+
+  private[ops] val META_GRAPH_UNBOUND_INPUT_PREFIX: String = "$unbound_inputs_"
+
+  private[api] trait API {
+    implicit val opCreationContext: DynamicVariable[OpCreationContext] = {
+      new DynamicVariable[OpCreationContext](OpCreationContext(graph = defaultGraph))
+    }
+
+    implicit def dynamicVariableToOpCreationContext(context: DynamicVariable[OpCreationContext]): OpCreationContext = {
+      context.value
+    }
+
+    /** Convenient implicit conversion function used to convert devices specified as [[String]]s for use with the
+      * [[tf.createWith]] function, to the expected device function format taking an [[OpSpecification]] as input and
+      * return a device specification string.
+      *
+      * @param  device Device specification string.
+      * @return Function that returns `device` for any [[OpSpecification]] used as input.
+      */
+    implicit def deviceImplicitConversion(device: String): (OpSpecification => String) = _ => device
+
+    implicit def outputToInitialValueFunction(output: Output): () => Output = () => output
+  }
+
+  private[api] trait ScopedAPI
       extends Basic
           with ControlFlow
           with DataFlow
@@ -37,23 +64,12 @@ package object ops {
           with Sparse
           with Statistics
           with Text
+          with Gradients.API
+          with Op.API
+          with Output.API
           with Queue.API
           with io.API
           with variables.API {
-    type Op = ops.Op
-    val Op = ops.Op
-
-    type OutputLike = ops.OutputLike
-    type Output = ops.Output
-    type OutputIndexedSlices = ops.OutputIndexedSlices
-    type SparseOutput = ops.SparseOutput
-
-    type OpCreationContext = ops.OpCreationContext
-    type OpSpecification = ops.OpSpecification
-
-    val Gradients         = ops.Gradients
-    val GradientsRegistry = ops.Gradients.Registry
-
     ops.Basic.Gradients
     ops.DataFlow.Gradients
     ops.Logging.Gradients
@@ -62,80 +78,6 @@ package object ops {
     ops.Queue.Gradients
     ops.Random.Gradients
 
-    //region Op Construction Aliases
-
-    def currentGraph: Graph = Op.currentGraph
-    def currentNameScope: String = Op.currentNameScope
-    def currentVariableScope: VariableScope = Op.currentVariableScope
-    def currentVariableStore: VariableStore = Op.currentVariableStore
-    def currentDevice: OpSpecification => String = Op.currentDevice
-    def currentColocationOps: Set[Op] = Op.currentColocationOps
-    def currentControlDependencies: Set[Op] = Op.currentControlDependencies
-    def currentAttributes: Map[String, Any] = Op.currentAttributes
-    def currentContainer: String = Op.currentContainer
-
-    def currentGraphRandomSeed(opSeed: Option[Int] = None): (Option[Int], Option[Int]) = {
-      Op.currentGraphRandomSeed(opSeed)
-    }
-
-    def setCurrentGraphRandomSeed(value: Int): Unit = Op.setCurrentGraphRandomSeed(value)
-
-    // TODO: Maybe remove "current" from the above names.
-
-    def globalVariablesInitializer(name: String = "GlobalVariablesInitializer"): Op = {
-      Op.currentGraph.globalVariablesInitializer(name)
-    }
-
-    def localVariablesInitializer(name: String = "LocalVariablesInitializer"): Op = {
-      Op.currentGraph.localVariablesInitializer(name)
-    }
-
-    def modelVariablesInitializer(name: String = "ModelVariablesInitializer"): Op = {
-      Op.currentGraph.modelVariablesInitializer(name)
-    }
-
-    def trainableVariablesInitializer(name: String = "TrainableVariablesInitializer"): Op = {
-      Op.currentGraph.trainableVariablesInitializer(name)
-    }
-
-    def createWith[R](
-        graph: Graph = null, nameScope: String = null, device: OpSpecification => String = _ => "",
-        colocationOps: Set[Op] = null, controlDependencies: Set[Op] = null, attributes: Map[String, Any] = null,
-        container: String = null)(block: => R): R = {
-      Op.createWith(graph, nameScope, device, colocationOps, controlDependencies, attributes, container)(block)
-    }
-
-    def createWithNameScope[R](nameScope: String, values: Set[Op] = Set.empty[Op])(block: => R): R = {
-      Op.createWithNameScope(nameScope, values)(block)
-    }
-
-    def createWithVariableScope[R](
-        name: String, reuse: VariableReuseAllowed = ReuseOrCreateNewVariable, dataType: DataType = null,
-        initializer: VariableInitializer = null, regularizer: VariableRegularizer = null,
-        partitioner: VariablePartitioner = null, cachingDevice: OpSpecification => String = null,
-        customGetter: VariableGetter = null, isDefaultName: Boolean = false, isPure: Boolean = false)
-        (block: => R): R = {
-      variables.VariableScope.createWithVariableScope(
-        name, reuse, dataType, initializer, regularizer, partitioner, cachingDevice, customGetter, isDefaultName,
-        isPure)(block)
-    }
-
-    def createWithUpdatedVariableScope[R](
-        variableScope: VariableScope, reuse: VariableReuseAllowed = ReuseOrCreateNewVariable, dataType: DataType = null,
-        initializer: VariableInitializer = null, regularizer: VariableRegularizer = null,
-        partitioner: VariablePartitioner = null, cachingDevice: OpSpecification => String = null,
-        customGetter: VariableGetter = null, isPure: Boolean = false)(block: => R): R = {
-      variables.VariableScope.createWithUpdatedVariableScope(
-        variableScope, reuse, dataType, initializer, regularizer, partitioner, cachingDevice, customGetter,
-        isPure)(block)
-    }
-
-    def colocateWith[R](colocationOps: Set[Op], ignoreExisting: Boolean = false)(block: => R): R = {
-      Op.colocateWith(colocationOps, ignoreExisting)(block)
-    }
-
     object train extends training.API
   }
-
-  private[api] object API extends API
 }

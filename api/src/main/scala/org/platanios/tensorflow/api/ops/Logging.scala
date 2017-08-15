@@ -20,7 +20,7 @@ import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry
 /**
   * @author Emmanouil Antonios Platanios
   */
-trait Logging {
+private[ops] trait Logging {
   // TODO: Look into control flow ops for the "Assert" op.
   //  /** Asserts that the provided condition is true.
   //    *
@@ -75,7 +75,7 @@ trait Logging {
   }
 }
 
-object Logging extends Logging {
+private[ops] object Logging extends Logging {
   private[ops] object Gradients {
     GradientsRegistry.register("Print", printGradient)
 

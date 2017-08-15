@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api.tf.{Graph, Tensor}
+import org.platanios.tensorflow.api._
 
 import org.scalatest._
 
@@ -26,26 +26,26 @@ import scala.collection.mutable
   */
 class GradientsSpec extends FlatSpec with Matchers {
   "'Op.gradients'" must "work when gradients are defined for the ops being used" in {
-    val graph = Graph()
-    val expectedGraph = Graph()
+    val graph = tf.Graph()
+    val expectedGraph = tf.Graph()
     val (inputs, output) = buildSuccessGraph(graph)
     val gradients = Gradients.gradients(Array(output), inputs)
     val expectedGradients = buildExpectedGraph(expectedGraph, gradientInputsProvided = false)
     val graphDef = graph.toProto
     val expectedGraphDef = expectedGraph.toProto
-    val (equal, difference) = Graph.equalGraphDef(graphDef, expectedGraphDef)
+    val (equal, difference) = tf.Graph.equalGraphDef(graphDef, expectedGraphDef)
     assert(equal)
   }
 
   "'Op.cc_gradients'" must "work when gradients are defined for the ops being used" in {
-    val graph = Graph()
-    val expectedGraph = Graph()
+    val graph = tf.Graph()
+    val expectedGraph = tf.Graph()
     val (inputs, output) = buildSuccessGraph(graph)
     val gradients = Gradients.cc_gradients(Array(output), inputs)
     val expectedGradients = buildExpectedCCGraph(expectedGraph, gradientInputsProvided = false)
     val graphDef = graph.toProto
     val expectedGraphDef = expectedGraph.toProto
-    val (equal, difference) = Graph.equalGraphDef(graphDef, expectedGraphDef)
+    val (equal, difference) = tf.Graph.equalGraphDef(graphDef, expectedGraphDef)
     assert(equal)
   }
 
@@ -53,9 +53,9 @@ class GradientsSpec extends FlatSpec with Matchers {
     ???
   }
 
-  private[this] def buildErrorGraph(graph: Graph): (Output, Output) = {
+  private[this] def buildErrorGraph(graph: tf.Graph): (Output, Output) = {
     Op.createWith(graph) {
-      val constant = Basic.constant(Tensor(Tensor(1.0, 2.0), Tensor(3.0, 4.0)), name = "Constant_0")
+      val constant = tf.constant(tf.tensor(tf.tensor(1.0, 2.0), tf.tensor(3.0, 4.0)), name = "Constant_0")
       val noGradient = noGradientOp(constant)
       // TODO: Check for error or something.
       (constant, noGradient)
@@ -82,10 +82,10 @@ class GradientsSpec extends FlatSpec with Matchers {
     * @param  graph Graph in which to place the newly constructed ops.
     * @return Tuple containing the input and output tensors, respectively.
     */
-  private[this] def buildSuccessGraph(graph: Graph): (Array[Output], Output) = {
+  private[this] def buildSuccessGraph(graph: tf.Graph): (Array[Output], Output) = {
     Op.createWith(graph) {
-      val constant0 = Basic.constant(Tensor(Tensor(1.0, 2.0), Tensor(3.0, 4.0)), name = "Constant_0")
-      val constant1 = Basic.constant(Tensor(Tensor(1.0, 0.0), Tensor(0.0, 1.0)), name = "Constant_1")
+      val constant0 = Basic.constant(tf.tensor(tf.tensor(1.0, 2.0), tf.tensor(3.0, 4.0)), name = "Constant_0")
+      val constant1 = Basic.constant(tf.tensor(tf.tensor(1.0, 0.0), tf.tensor(0.0, 1.0)), name = "Constant_1")
       val matmul = Math.matmul(constant0, constant1, name = "MatMul")
       (Array[Output](constant0, constant1), matmul)
     }
@@ -127,15 +127,15 @@ class GradientsSpec extends FlatSpec with Matchers {
     *                                pre-existing values. If `false`, they are initialized with ones.
     * @return Array containing the gradient tensors.
     */
-  private[this] def buildExpectedGraph(graph: Graph, gradientInputsProvided: Boolean): Array[Output] = {
+  private[this] def buildExpectedGraph(graph: tf.Graph, gradientInputsProvided: Boolean): Array[Output] = {
     Op.createWith(graph) {
-      val constant0 = Basic.constant(Tensor(Tensor(1.0, 2.0), Tensor(3.0, 4.0)), name = "Constant_0")
-      val constant1 = Basic.constant(Tensor(Tensor(1.0, 0.0), Tensor(0.0, 1.0)), name = "Constant_1")
+      val constant0 = Basic.constant(tf.tensor(tf.tensor(1.0, 2.0), tf.tensor(3.0, 4.0)), name = "Constant_0")
+      val constant1 = Basic.constant(tf.tensor(tf.tensor(1.0, 0.0), tf.tensor(0.0, 1.0)), name = "Constant_1")
       val matmul = Math.matmul(constant0, constant1, name = "MatMul")
       Op.createWithNameScope("Gradients") {
         val constant2 = {
           if (gradientInputsProvided)
-            Basic.constant(Tensor(Tensor(1.0, 1.0), Tensor(1.0, 1.0)), name = "GradientInputs")
+            Basic.constant(tf.tensor(tf.tensor(1.0, 1.0), tf.tensor(1.0, 1.0)), name = "GradientInputs")
           else
             Basic.ones(matmul.shape, matmul.dataType, name = "OnesLike")
         }
@@ -184,15 +184,15 @@ class GradientsSpec extends FlatSpec with Matchers {
     *                                pre-existing values. If `false`, they are initialized with ones.
     * @return Array containing the gradient tensors.
     */
-  private[this] def buildExpectedCCGraph(graph: Graph, gradientInputsProvided: Boolean): Array[Output] = {
+  private[this] def buildExpectedCCGraph(graph: tf.Graph, gradientInputsProvided: Boolean): Array[Output] = {
     Op.createWith(graph) {
-      val constant0 = Basic.constant(Tensor(Tensor(1.0, 2.0), Tensor(3.0, 4.0)), name = "Constant_0")
-      val constant1 = Basic.constant(Tensor(Tensor(1.0, 0.0), Tensor(0.0, 1.0)), name = "Constant_1")
+      val constant0 = Basic.constant(tf.tensor(tf.tensor(1.0, 2.0), tf.tensor(3.0, 4.0)), name = "Constant_0")
+      val constant1 = Basic.constant(tf.tensor(tf.tensor(1.0, 0.0), tf.tensor(0.0, 1.0)), name = "Constant_1")
       val matmul = Math.matmul(constant0, constant1, name = "MatMul")
       Op.createWithNameScope("gradients") {
         val constant2 = {
           if (gradientInputsProvided)
-            Basic.constant(Tensor(Tensor(1.0, 1.0), Tensor(1.0, 1.0)), name = "GradientInputs")
+            Basic.constant(tf.tensor(tf.tensor(1.0, 1.0), tf.tensor(1.0, 1.0)), name = "GradientInputs")
           else
             Basic.onesLike(matmul, optimize = false, name = "OnesLike")
         }

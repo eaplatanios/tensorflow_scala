@@ -67,6 +67,6 @@ object LinearRegression {
       outputs += weight * input
       i += 1
     }
-    (tf.Tensor(inputs.map(tf.Tensor(_)): _*), tf.Tensor(outputs.map(tf.Tensor(_)): _*))
+    (tf.tensor(inputs.map(tf.tensor(_)): _*), tf.tensor(outputs.map(tf.tensor(_)): _*))
   }
 }

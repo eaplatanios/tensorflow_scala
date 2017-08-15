@@ -29,15 +29,15 @@ class SessionSpec extends FlatSpec with Matchers {
   "Session run fetch by name" should "return the correct result" in {
     val graph = Graph()
     createWith(graph = graph) {
-      val a = constant(tf.Tensor(tf.Tensor(2, 3)), name = "A")
+      val a = constant(tf.tensor(tf.tensor(2, 3)), name = "A")
       val x = placeholder(dataType = tf.INT32, shape = tf.Shape(1, 2), name = "X")
       subtract(constant(1), matmul(a = a, b = x, transposeB = true), name = "Y")
     }
     val session = tf.session(graph = graph)
-    val feeds = Map(graph.getOutputByName("X:0") -> tf.Tensor(tf.Tensor(5, 7)))
+    val feeds = Map(graph.getOutputByName("X:0") -> tf.tensor(tf.tensor(5, 7)))
     val fetches = graph.getOutputByName("Y:0")
     val output = session.run(feeds, fetches)
-    val expectedResult = tf.Tensor(tf.Tensor(-30))
+    val expectedResult = tf.tensor(tf.tensor(-30))
     assert(output.scalar === expectedResult.scalar)
     graph.close()
   }

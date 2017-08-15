@@ -17,13 +17,14 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
+import org.platanios.tensorflow.api.ops.Output.Implicits._
 import org.platanios.tensorflow.api.types._
 
 /** Contains functions for constructing ops related to random numbers and tensors.
   *
   * @author Emmanouil Antonios Platanios, Sören Brunk
   */
-trait Random {
+private[ops] trait Random {
   /** Creates an op that outputs random values from a uniform distribution.
     *
     * The generated values follow a uniform distribution in the range `[minValue, maxValue)`. The lower bound
@@ -113,7 +114,7 @@ trait Random {
   }
 }
 
-object Random extends Random {
+private[ops] object Random extends Random {
   private[ops] object Gradients {
     GradientsRegistry.registerNonDifferentiable("RandomUniform")
     GradientsRegistry.registerNonDifferentiable("RandomUniformInt")

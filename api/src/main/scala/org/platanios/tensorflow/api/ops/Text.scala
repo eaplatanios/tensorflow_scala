@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.ops
 /**
   * @author Emmanouil Antonios Platanios
   */
-trait Text {
+private[ops] trait Text {
   /** Creates an op that joins the strings in the given list of string tensors into one tensor, using the provided
     * separator (which defaults to an empty string).
     *
@@ -34,4 +34,4 @@ trait Text {
   }
 }
 
-object Text extends Text
+private[ops] object Text extends Text

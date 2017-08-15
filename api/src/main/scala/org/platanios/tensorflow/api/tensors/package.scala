@@ -19,16 +19,7 @@ package org.platanios.tensorflow.api
   * @author Emmanouil Antonios Platanios
   */
 package object tensors {
-  private[api] trait API {
-    type Tensor = tensors.Tensor
-    type FixedSizeTensor = tensors.FixedSizeTensor
-    type NumericTensor = tensors.NumericTensor
+  private[api] val DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER = tensors.RowMajorOrder
 
-    val Tensor = tensors.Tensor
-
-    type Order = tensors.Order
-    val RowMajorOrder = tensors.RowMajorOrder
-  }
-
-  private[api] object API extends API
+  private[api] trait API extends Tensor.API
 }

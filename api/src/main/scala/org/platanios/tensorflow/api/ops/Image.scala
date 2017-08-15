@@ -19,7 +19,7 @@ package org.platanios.tensorflow.api.ops
   *
   * @author Emmanouil Antonios Platanios
   */
-trait Image {
+private[ops] trait Image {
   /** Creates an op that extracts `patches` from `images` and puts them in the `depth` output dimension.
     *
     * @param  images             `4`-dimensional tensor with shape `[batch, inputRows, inputCols, depth]`.
@@ -55,4 +55,4 @@ trait Image {
   }
 }
 
-object Image extends Image
+private[ops] object Image extends Image

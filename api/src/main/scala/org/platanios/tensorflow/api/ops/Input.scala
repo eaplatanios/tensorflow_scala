@@ -29,7 +29,7 @@ import org.platanios.tensorflow.jni.{Op => NativeOp}
   *
   * @author Emmanouil Antonios Platanios
   */
-final case class Input private[ops] (op: Op, index: Int) {
+final case class Input private[ops](op: Op, index: Int) {
   /** Name of this op input. This is simply set to `"<op.name>:<index>"`. */
   lazy val name: String = s"${op.name}:$index"
 

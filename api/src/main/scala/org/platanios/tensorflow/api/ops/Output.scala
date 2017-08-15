@@ -24,7 +24,6 @@ import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.{DataType, INT32, INT64}
 import org.platanios.tensorflow.jni.{Op => NativeOp}
 
-import spire.implicits._
 import spire.math.UShort
 
 /** Helper trait for tagging output convertible objects so that implicit conversions to op outputs can be used.
@@ -36,6 +35,10 @@ trait OutputConvertible {
 
   /** Returns the [[Output]] that this [[OutputConvertible]] object represents. */
   def toOutput: Output
+}
+
+object OutputConvertible {
+  implicit def outputConvertibleToOutput(value: OutputConvertible): Output = value.toOutput
 }
 
 /** Trait representing outputs of an [[Op]]'s computation.
@@ -224,6 +227,8 @@ final case class Output private(op: Op, index: Int) extends OutputLike {
 
   //region Ops
 
+  // TODO: [OPS] Make all ops separate "enriching" classes (e.g., BasicOps, MathOps, etc.).
+
   private[this] def binaryOperatorHelper(other: Output, operator: (Output, Output) => Output): Output = {
     if (this.dataType.priority >= other.dataType.priority)
       operator(this, Math.cast(other, this.dataType))
@@ -305,6 +310,37 @@ final case class Output private(op: Op, index: Int) extends OutputLike {
 }
 
 object Output {
+  private[ops] trait API extends Implicits {
+    type OutputLike = ops.OutputLike
+    type Output = ops.Output
+    type OutputIndexedSlices = ops.OutputIndexedSlices
+    type SparseOutput = ops.SparseOutput
+  }
+
+  private[ops] trait Implicits {
+    implicit def scalaValueToOutput(value: Boolean): Output = Basic.constant(value)
+    implicit def scalaValueToOutput(value: String): Output = Basic.constant(value)
+    implicit def scalaValueToOutput(value: Float): Output = Basic.constant(value)
+    implicit def scalaValueToOutput(value: Double): Output = Basic.constant(value)
+    implicit def scalaValueToOutput(value: Byte): Output = Basic.constant(value)
+    implicit def scalaValueToOutput(value: Short): Output = Basic.constant(value)
+    implicit def scalaValueToOutput(value: Int): Output = Basic.constant(value)
+    implicit def scalaValueToOutput(value: Long): Output = Basic.constant(value)
+    implicit def scalaValueToOutput(value: UShort): Output = Basic.constant(value)
+
+    implicit def scalaArrayToOutput(value: Array[Boolean]): Output = Basic.constant(value)
+    // implicit def scalaArrayToOutput(value: Array[String]): Output = Basic.constant(value)
+    implicit def scalaArrayToOutput(value: Array[Float]): Output = Basic.constant(value)
+    implicit def scalaArrayToOutput(value: Array[Double]): Output = Basic.constant(value)
+    implicit def scalaArrayToOutput(value: Array[Byte]): Output = Basic.constant(value)
+    implicit def scalaArrayToOutput(value: Array[Short]): Output = Basic.constant(value)
+    implicit def scalaArrayToOutput(value: Array[Int]): Output = Basic.constant(value)
+    implicit def scalaArrayToOutput(value: Array[Long]): Output = Basic.constant(value)
+    implicit def scalaArrayToOutput(value: Array[UShort]): Output = Basic.constant(value)
+  }
+
+  private[api] object Implicits extends Implicits
+
   // TODO: !!!
 
   private[api] def constantValue(tensor: Output): Option[Tensor] = {
@@ -420,12 +456,10 @@ object Output {
           var returnShape = Shape.unknown(shape(0))
           val valueOption = constantValue(tensor)
           if (valueOption.isDefined) {
-            val value = valueOption.get.asNumeric
+            val value = valueOption.get
             require(value.rank == 1, "Only rank-1 tensors can be converted to shapes.")
-            // TODO: !!! Does this work?
-            import value.dataType.supportedType
             val shape = Shape(
-              (0 until value.numElements).map(value.getElementAtFlattenedIndex(_).toInt): _*)
+              (0 until value.numElements).map(value.getElementAtFlattenedIndex(_).asInstanceOf[Int]): _*)
             returnShape = returnShape.mergeWith(shape)
           }
           Some(returnShape)
@@ -440,32 +474,6 @@ object Output {
     * @return Op corresponding to the provided op output.
     */
   implicit def outputToOpImplicitConversion(output: Output): Op = output.op
-
-  private[api] trait Implicits {
-    implicit def scalaValueToOutput(value: Boolean): Output = Basic.constant(scalaValueToTensor(value))
-    implicit def scalaValueToOutput(value: String): Output = Basic.constant(scalaValueToTensor(value))
-    implicit def scalaValueToOutput(value: Float): Output = Basic.constant(scalaValueToTensor(value))
-    implicit def scalaValueToOutput(value: Double): Output = Basic.constant(scalaValueToTensor(value))
-    implicit def scalaValueToOutput(value: Byte): Output = Basic.constant(scalaValueToTensor(value))
-    implicit def scalaValueToOutput(value: Short): Output = Basic.constant(scalaValueToTensor(value))
-    implicit def scalaValueToOutput(value: Int): Output = Basic.constant(scalaValueToTensor(value))
-    implicit def scalaValueToOutput(value: Long): Output = Basic.constant(scalaValueToTensor(value))
-    implicit def scalaValueToOutput(value: UShort): Output = Basic.constant(scalaValueToTensor(value))
-
-    implicit def scalaArrayToOutput(value: Array[Boolean]): Output = Basic.constant(scalaArrayToTensor(value))
-    // implicit def scalaArrayToOutput(value: Array[String]): Output = Basic.constant(scalaArrayToTensor(value))
-    implicit def scalaArrayToOutput(value: Array[Float]): Output = Basic.constant(scalaArrayToTensor(value))
-    implicit def scalaArrayToOutput(value: Array[Double]): Output = Basic.constant(scalaArrayToTensor(value))
-    implicit def scalaArrayToOutput(value: Array[Byte]): Output = Basic.constant(scalaArrayToTensor(value))
-    implicit def scalaArrayToOutput(value: Array[Short]): Output = Basic.constant(scalaArrayToTensor(value))
-    implicit def scalaArrayToOutput(value: Array[Int]): Output = Basic.constant(scalaArrayToTensor(value))
-    implicit def scalaArrayToOutput(value: Array[Long]): Output = Basic.constant(scalaArrayToTensor(value))
-    implicit def scalaArrayToOutput(value: Array[UShort]): Output = Basic.constant(scalaArrayToTensor(value))
-
-    implicit def outputConvertibleToOutput(value: OutputConvertible): Output = value.toOutput
-  }
-
-  private[api] object Implicits extends Implicits
 }
 
 /** Sparse representation of one of the outputs of an `Op`'s computation. of a set of tensor slices at given indices.

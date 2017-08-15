@@ -19,6 +19,7 @@ import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidDataTypeException
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
+import org.platanios.tensorflow.api.ops.Output.Implicits._
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types._
 
@@ -27,7 +28,7 @@ import scala.language.postfixOps
 /**
   * @author Emmanouil Antonios Platanios
   */
-trait Math {
+private[ops] trait Math {
   /** Creates an op that selects elements from `x` or `y`, depending on `condition`.
     *
     * The `x`, and `y` tensors must have the same shape. The output tensor will also have the same shape.
@@ -2907,7 +2908,7 @@ trait Math {
   //endregion Other Ops
 }
 
-object Math extends Math {
+private[ops] object Math extends Math {
   private[ops] object Gradients {
     GradientsRegistry.registerNonDifferentiable("Range")
     GradientsRegistry.registerNonDifferentiable("LinSpace")

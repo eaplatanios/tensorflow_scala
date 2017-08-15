@@ -15,48 +15,34 @@
 
 package org.platanios.tensorflow.api
 
+import spire.math.{UByte, UShort}
+
 /**
   * @author Emmanouil Antonios Platanios
   */
 package object types {
-  private[api] trait API {
-    type SupportedType[T] = types.SupportedType[T]
-    type FixedSizeSupportedType[T] = types.FixedSizeSupportedType[T]
-    type NumericSupportedType[T] = types.NumericSupportedType[T]
-    type SignedNumericSupportedType[T] = types.SignedNumericSupportedType[T]
-    type RealNumericSupportedType[T] = types.RealNumericSupportedType[T]
-    type ComplexNumericSupportedType[T] = types.ComplexNumericSupportedType[T]
-
+  private[api] trait ScopedAPI extends DataType.ScopedAPI {
     type DataType = types.DataType
-    type FixedSizeDataType = types.FixedSizeDataType
-    type NumericDataType = types.NumericDataType
-    type SignedNumericDataType = types.SignedNumericDataType
-    type RealNumericDataType = types.RealNumericDataType
-    type ComplexNumericDataType = types.ComplexNumericDataType
 
-    val DataType = types.DataType
-
-    val STRING     = types.STRING
-    val BOOLEAN    = types.BOOLEAN
-    val FLOAT16    = types.FLOAT16
-    val FLOAT32    = types.FLOAT32
-    val FLOAT64    = types.FLOAT64
-    val BFLOAT16   = types.BFLOAT16
-    val COMPLEX64  = types.COMPLEX64
-    val COMPLEX128 = types.COMPLEX128
-    val INT8       = types.INT8
-    val INT16      = types.INT16
-    val INT32      = types.INT32
-    val INT64      = types.INT64
-    val UINT8      = types.UINT8
-    val UINT16     = types.UINT16
-    val QINT8      = types.QINT8
-    val QINT16     = types.QINT16
-    val QINT32     = types.QINT32
-    val QUINT8     = types.QUINT8
-    val QUINT16    = types.QUINT16
-    val RESOURCE   = types.RESOURCE
+    val STRING    : DataType.Aux[String]  = types.STRING
+    val BOOLEAN   : DataType.Aux[Boolean] = types.BOOLEAN
+    val FLOAT16   : DataType.Aux[Float]   = types.FLOAT16
+    val FLOAT32   : DataType.Aux[Float]   = types.FLOAT32
+    val FLOAT64   : DataType.Aux[Double]  = types.FLOAT64
+    val BFLOAT16  : DataType.Aux[Float]   = types.BFLOAT16
+    val COMPLEX64 : DataType.Aux[Double]  = types.COMPLEX64
+    val COMPLEX128: DataType.Aux[Double]  = types.COMPLEX128
+    val INT8      : DataType.Aux[Byte]    = types.INT8
+    val INT16     : DataType.Aux[Short]   = types.INT16
+    val INT32     : DataType.Aux[Int]     = types.INT32
+    val INT64     : DataType.Aux[Long]    = types.INT64
+    val UINT8     : DataType.Aux[UByte]   = types.UINT8
+    val UINT16    : DataType.Aux[UShort]  = types.UINT16
+    val QINT8     : DataType.Aux[Byte]    = types.QINT8
+    val QINT16    : DataType.Aux[Short]   = types.QINT16
+    val QINT32    : DataType.Aux[Int]     = types.QINT32
+    val QUINT8    : DataType.Aux[UByte]   = types.QUINT8
+    val QUINT16   : DataType.Aux[UShort]  = types.QUINT16
+    val RESOURCE  : DataType.Aux[Long]    = types.RESOURCE
   }
-
-  private[api] object API extends API
 }

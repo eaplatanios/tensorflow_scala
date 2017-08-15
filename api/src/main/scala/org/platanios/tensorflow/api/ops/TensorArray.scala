@@ -38,7 +38,7 @@ import org.platanios.tensorflow.api.types.DataType
   *
   * @author Emmanouil Antonios Platanios
   */
-private[api] case class TensorArray private(
+private[ops] case class TensorArray private(
     handle: Output, flow: Output, dataType: DataType, inferShape: Boolean, private var elementShape: Option[Shape]) {
   /** Changes the element shape of the array given a shape to merge with.
     *
@@ -295,7 +295,7 @@ private[api] case class TensorArray private(
   }
 }
 
-private[api] object TensorArray {
+private[ops] object TensorArray {
   /** Creates a new tensor array.
     *
     * @param  size            Size of the tensor array.

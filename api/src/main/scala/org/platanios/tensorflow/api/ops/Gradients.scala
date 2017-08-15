@@ -16,6 +16,8 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.exception.InvalidDataTypeException
+import org.platanios.tensorflow.api.ops
+import org.platanios.tensorflow.api.ops.Output.Implicits._
 import org.platanios.tensorflow.api.types.{DataType, FLOAT32, FLOAT64, RESOURCE}
 import org.platanios.tensorflow.jni.{Graph => NativeGraph, Output => NativeOutput}
 
@@ -27,8 +29,13 @@ import scala.collection.mutable
 /**
   * @author Emmanouil Antonios Platanios
   */
-object Gradients {
+private[ops] object Gradients {
   val logger = Logger(LoggerFactory.getLogger("Gradients"))
+
+  private[ops] trait API {
+    val Gradients        : ops.Gradients.type          = ops.Gradients
+    val GradientsRegistry: ops.Gradients.Registry.type = ops.Gradients.Registry
+  }
 
   // TODO: [DOC] Document the "gradients" function.
   def gradients(

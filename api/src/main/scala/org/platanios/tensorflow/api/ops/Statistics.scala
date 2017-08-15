@@ -15,13 +15,14 @@
 
 package org.platanios.tensorflow.api.ops
 
+import org.platanios.tensorflow.api.ops.Output.Implicits._
 import org.platanios.tensorflow.api.types.{FLOAT16, FLOAT32}
 
 /** Contains functions for constructing ops related to statistics.
   *
   * @author Emmanouil Antonios Platanios, Sören Brunk
   */
-trait Statistics {
+private[ops] trait Statistics {
   /** Creates an op that calculates the sufficient statistics for the mean and variance of `input`.
     *
     * These sufficient statistics are computed using a one pass algorithm on an input that's optionally shifted.
@@ -174,4 +175,4 @@ trait Statistics {
   }
 }
 
-object Statistics extends Statistics
+private[ops] object Statistics extends Statistics

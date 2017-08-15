@@ -15,39 +15,14 @@
 
 package org.platanios.tensorflow
 
-import scala.util.DynamicVariable
-import scala.util.matching.Regex
-
 /**
   * @author Emmanouil Antonios Platanios
   */
-package object api extends Implicits {
+package object api
+    extends core.API
+        with ops.API
+        with tensors.API {
   private[api] val defaultGraph: core.Graph = core.Graph()
-
-  private[api] val DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER = tensors.RowMajorOrder
-
-  //region Op Creation
-
-  private[api] val COLOCATION_OPS_ATTRIBUTE_NAME   = "_class"
-  private[api] val COLOCATION_OPS_ATTRIBUTE_PREFIX = "loc:@"
-  private[api] val VALID_OP_NAME_REGEX   : Regex   = "^[A-Za-z0-9.][A-Za-z0-9_.\\-/]*$".r
-  private[api] val VALID_NAME_SCOPE_REGEX: Regex   = "^[A-Za-z0-9_.\\-/]*$".r
-
-  private[api] val META_GRAPH_UNBOUND_INPUT_PREFIX: String = "$unbound_inputs_"
-
-  // TODO: !!! Move inside the ops API?
-
-  import org.platanios.tensorflow.api.ops.OpCreationContext
-
-  implicit val opCreationContext: DynamicVariable[OpCreationContext] = {
-    new DynamicVariable[OpCreationContext](OpCreationContext(graph = defaultGraph))
-  }
-
-  implicit def dynamicVariableToOpCreationContext(context: DynamicVariable[OpCreationContext]): OpCreationContext = {
-    context.value
-  }
-
-  //endregion Op Creation
 
   //region Utilities
 
@@ -70,19 +45,16 @@ package object api extends Implicits {
 
   //endregion Utilities
 
-  //region Public API
+  //region Public Scoped API
 
   private[api] trait API
-      extends core.API
-          with ops.API
-          with tensors.API
-          with types.API {
+      extends core.ScopedAPI
+          with ops.ScopedAPI
+          with types.ScopedAPI {
     object learn extends api.learn.API
   }
 
-  private[api] object API extends API
+  object tf extends API
 
-  val tf  = API
-
-  //endregion Public API
+  //endregion Public Scoped API
 }

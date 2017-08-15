@@ -27,7 +27,7 @@ class VariableSpec extends FlatSpec with Matchers {
   "Variable creation" must "work" in {
     val graph = tf.Graph()
     val variable = tf.createWith(graph = graph) {
-      val initializer = tf.constantInitializer(tf.Tensor(tf.Tensor(2, 3)))
+      val initializer = tf.constantInitializer(tf.tensor(tf.tensor(2, 3)))
       tf.Variable(initializer, shape = tf.shape(1, 2), dataType = tf.INT64)
     }
     assert(variable.dataType === tf.INT64)
@@ -36,7 +36,7 @@ class VariableSpec extends FlatSpec with Matchers {
     val session = tf.session(graph = graph)
     session.run(targets = variable.initializer)
     val outputs = session.run(fetches = variable.value)
-    val expectedResult = tf.Tensor(tf.INT64, tf.Tensor(2, 3))
+    val expectedResult = tf.tensor(tf.INT64, tf.tensor(2, 3))
     assert(outputs(0, 0).scalar === expectedResult(0, 0).scalar)
     assert(outputs(0, 1).scalar === expectedResult(0, 1).scalar)
     session.close()
@@ -46,8 +46,8 @@ class VariableSpec extends FlatSpec with Matchers {
   "Variable assignment" must "work" in {
     val graph = tf.Graph()
     val (variable, variableAssignment) = tf.createWith(graph = graph) {
-      val a = constant(tf.Tensor(tf.Tensor(5, 7)), tf.INT64, name = "A")
-      val initializer = tf.constantInitializer(tf.Tensor(tf.Tensor(2, 3)))
+      val a = constant(tf.tensor(tf.tensor(5, 7)), tf.INT64, name = "A")
+      val initializer = tf.constantInitializer(tf.tensor(tf.tensor(2, 3)))
       val variable = tf.Variable(initializer, shape = tf.shape(1, 2), dataType = tf.INT64)
       val variableAssignment = variable.assign(a)
       (variable, variableAssignment)
@@ -59,7 +59,7 @@ class VariableSpec extends FlatSpec with Matchers {
     session.run(targets = variable.initializer)
     val outputs = session.run(fetches = Seq(variableAssignment, variable.value))
     assert(outputs.length == 2)
-    val expectedResult = tf.Tensor(tf.INT64, tf.Tensor(5, 7))
+    val expectedResult = tf.tensor(tf.INT64, tf.tensor(5, 7))
     assert(outputs(1)(0, 0).scalar === expectedResult(0, 0).scalar)
     assert(outputs(1)(0, 1).scalar === expectedResult(0, 1).scalar)
     session.close()

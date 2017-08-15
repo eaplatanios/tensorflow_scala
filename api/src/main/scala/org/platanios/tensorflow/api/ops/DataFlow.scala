@@ -22,7 +22,7 @@ import org.platanios.tensorflow.api.types.INT32
   *
   * @author Emmanouil Antonios Platanios
   */
-trait DataFlow {
+private[ops] trait DataFlow {
   /** Creates an op that partitions `data` into `numberOfPartitions` tensors using indices from `partitions`.
     *
     * For each index tuple `js` of size `partitions.rank`, the slice `data[js, ...]` becomes part of
@@ -129,7 +129,7 @@ trait DataFlow {
   }
 }
 
-object DataFlow extends DataFlow {
+private[ops] object DataFlow extends DataFlow {
   private[ops] object Gradients {
     GradientsRegistry.registerNonDifferentiable("Stack")
     GradientsRegistry.registerNonDifferentiable("StackPush")
