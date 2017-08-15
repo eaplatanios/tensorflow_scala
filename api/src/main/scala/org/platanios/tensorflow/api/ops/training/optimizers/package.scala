@@ -19,7 +19,7 @@ package org.platanios.tensorflow.api.ops.training
   * @author Emmanouil Antonios Platanios
   */
 package object optimizers {
-  private[api] trait API
+  private[training] trait API
       extends Decay.API {
     type Optimizer = optimizers.Optimizer
     type AdaDelta = optimizers.AdaDelta
@@ -49,6 +49,4 @@ package object optimizers {
         useLocking = useLocking, name = name)
     }
   }
-
-  private[api] object API extends API
 }

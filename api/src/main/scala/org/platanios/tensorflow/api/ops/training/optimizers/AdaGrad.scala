@@ -75,7 +75,7 @@ case class AdaGrad private[optimizers](
   }
 }
 
-object AdaGrad {
+private[optimizers] object AdaGrad {
   /** Creates an op that updates `variable` by applying the AdaGrad algorithm update to it.
     *
     * The AdaGrad update is as follows:

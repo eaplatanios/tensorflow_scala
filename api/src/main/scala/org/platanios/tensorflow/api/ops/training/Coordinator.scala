@@ -188,12 +188,10 @@ case class Coordinator private[training]() {
   }
 }
 
-object Coordinator {
-  trait API {
-    def create(): Coordinator = Coordinator()
+private[training] object Coordinator {
+  private[training] trait API {
+    def coordinator(): Coordinator = Coordinator()
   }
-
-  object API extends API
 
   private[Coordinator] case class Event() {
     private[this] val lock: Lock      = new ReentrantLock

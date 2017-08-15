@@ -320,7 +320,7 @@ trait Optimizer {
   }
 }
 
-object Optimizer {
+private[optimizers] object Optimizer {
   /** Gets the appropriate variable processor to use for `variable`. */
   private[Optimizer] def getVariableProcessor(variable: Variable): VariableProcessor = variable match {
     // TODO: [VARIABLES] This is dummy for now.

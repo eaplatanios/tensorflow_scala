@@ -40,11 +40,11 @@ trait Decay {
 }
 
 object Decay {
-  trait API {
+  private[optimizers] trait API {
     type Decay = optimizers.Decay
     type ExponentialDecay = optimizers.ExponentialDecay
 
-    val noDecay = optimizers.NoDecay
+    val noDecay: NoDecay.type = optimizers.NoDecay
 
     def exponentialDecay(
         decayRate: Float, decaySteps: Int, staircase: Boolean = false,
@@ -52,8 +52,6 @@ object Decay {
       ExponentialDecay(decayRate = decayRate, decaySteps = decaySteps, staircase = staircase, name = name)
     }
   }
-
-  object API extends API
 }
 
 /** Dummy decay method representing no decay being used. Useful as a default value for `Decay`-valued function
@@ -79,7 +77,7 @@ case object NoDecay extends Decay {
   * @param  decaySteps Decay steps.
   * @param  staircase  If `true`, the decay will occur at discrete intervals.
   */
-case class ExponentialDecay(
+case class ExponentialDecay private[optimizers](
     decayRate: Float, decaySteps: Int, staircase: Boolean = false, name: String = "ExponentialDecay")
     extends Decay {
   @throws[IllegalArgumentException]

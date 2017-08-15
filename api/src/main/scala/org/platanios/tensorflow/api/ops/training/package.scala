@@ -19,6 +19,5 @@ package org.platanios.tensorflow.api.ops
   * @author Emmanouil Antonios Platanios
   */
 package object training {
-  private[api] trait API extends optimizers.API with Coordinator.API
-  private[api] object API extends API
+  private[ops] trait API extends optimizers.API with Coordinator.API
 }
