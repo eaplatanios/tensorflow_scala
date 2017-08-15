@@ -175,20 +175,18 @@ final case class Session private (
 object Session {
   trait API {
     type Session = client.Session
-
-    def session(): Session = client.Session()
-    def session(graph: Graph): Session = client.Session(graph)
+    val Session: client.Session.type = client.Session
   }
 
   object API extends API
 
-  private[client] def apply()(implicit context: DynamicVariable[OpCreationContext]): Session = {
+  def apply()(implicit context: DynamicVariable[OpCreationContext]): Session = {
     val graph = context.graph
     val graphReference = graph.reference
     Session(graphReference, NativeSession.allocate(graphReference.nativeHandle))
   }
 
-  private[client] def apply(graph: Graph): Session = {
+  def apply(graph: Graph): Session = {
     val graphReference = graph.reference
     Session(graphReference, NativeSession.allocate(graphReference.nativeHandle))
   }
