@@ -17,6 +17,7 @@ package org.platanios.tensorflow.api.ops.variables
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.ops.{Basic, Op, Output, OutputConvertible}
+import org.platanios.tensorflow.api.ops.Output.Implicits._
 import org.platanios.tensorflow.api.types.DataType
 
 import scala.math.Ordering.Implicits._
@@ -40,7 +41,7 @@ import scala.math.Ordering.Implicits._
   * @author Emmanouil Antonios Platanios
   */
 @throws[IllegalArgumentException]
-case class PartitionedVariable private[variables] (
+case class PartitionedVariable private[variables](
     name: String, dataType: DataType, shape: Shape, private val wrappedVariables: Seq[Variable],
     partitions: Array[Int]) extends OutputConvertible with Iterable[Variable] {
   if (shape.rank != partitions.length)

@@ -49,7 +49,7 @@ import scala.util.DynamicVariable
   *
   * @author Emmanouil Antonios Platanios
   */
-case class VariableScope(
+case class VariableScope private[variables](
     reuse: Reuse,
     name: String = "",
     dataType: DataType = null,
@@ -164,7 +164,7 @@ case class VariableScope(
   }
 }
 
-object VariableScope {
+private[ops] object VariableScope {
   /** Sets the variable scope to use for op creation context, for all code in `block`.
     *
     * @param  name          Variable scope name, that may also change the name scope of the op creation context,

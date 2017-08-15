@@ -19,6 +19,7 @@ import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.core.{DeviceSpecification, Graph, Shape}
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.ops.{Basic, ControlFlow, Op, Output, Text}
+import org.platanios.tensorflow.api.ops.Output.Implicits._
 import org.platanios.tensorflow.api.ops.variables.CheckpointStateProto.CheckpointState
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.{DataType, INT32}
@@ -780,12 +781,12 @@ object Saver {
 
   /** Wrapper for [[SaverDef.CheckpointFormatVersion.V1]]. */
   object V1 extends WriterVersion {
-    override protected val checkpointFormatVersion = CheckpointFormatVersion.V1
+    override protected val checkpointFormatVersion: CheckpointFormatVersion = CheckpointFormatVersion.V1
   }
 
   /** Wrapper for [[SaverDef.CheckpointFormatVersion.V2]]. */
   object V2 extends WriterVersion {
-    override protected val checkpointFormatVersion = CheckpointFormatVersion.V2
+    override protected val checkpointFormatVersion: CheckpointFormatVersion = CheckpointFormatVersion.V2
   }
 }
 
@@ -1387,7 +1388,7 @@ object SaverDefBuilder {
 }
 
 /** The default saver builder. */
-object DefaultSaverDefBuilder extends SaverDefBuilder
+private[variables] object DefaultSaverDefBuilder extends SaverDefBuilder
 
 /** Class used to describe tensor slices that need to be saved.
   *
@@ -1395,13 +1396,13 @@ object DefaultSaverDefBuilder extends SaverDefBuilder
   * @param  value                  Value that needs to be saved.
   * @param  saveSliceSpecification Slice specification string used for saving.
   */
-case class SaveSpecification(name: String, value: Output, saveSliceSpecification: String)
+case class SaveSpecification private(name: String, value: Output, saveSliceSpecification: String)
 
 /** Base class for defining objects that be saved and restored.
   *
   * @param  saveSpecifications Sequence containing a save specification per tensor that needs to be saved.
   */
-abstract class Saveable(val saveSpecifications: Seq[SaveSpecification]) {
+abstract class Saveable private(val saveSpecifications: Seq[SaveSpecification]) {
   /** Name to save the object under. */
   val name: String
 
@@ -1427,7 +1428,7 @@ abstract class Saveable(val saveSpecifications: Seq[SaveSpecification]) {
   private[api] def restore(restoredTensors: Seq[Output], restoredShapes: Seq[Output] = null): Op
 }
 
-object Saveable {
+private[variables] object Saveable {
   /** Wrapper saveable object that allows variables to be saved. */
   implicit class VariableSaveable(variable: Variable)
       extends Saveable(

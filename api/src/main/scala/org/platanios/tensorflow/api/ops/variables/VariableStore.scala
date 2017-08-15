@@ -27,7 +27,7 @@ import scala.collection.mutable.ArrayBuffer
   *
   * @author Emmanouil Antonios Platanios
   */
-case class VariableStore() {
+case class VariableStore private[variables]() {
   /** Map with variable names as keys and the corresponding variables as values. */
   private[this] var variables: Map[String, Variable] = Map.empty[String, Variable]
 

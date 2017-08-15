@@ -24,7 +24,7 @@ import org.platanios.tensorflow.api.types.{DataType, FLOAT32}
   * @author Emmanouil Antonios Platanios
   */
 package object variables {
-  private[api] trait API {
+  private[ops] trait API {
     type Variable = variables.Variable
     type PartitionedVariable = variables.PartitionedVariable
     type VariableReuse = variables.Reuse
@@ -35,6 +35,8 @@ package object variables {
     type VariablePartitioner = variables.Partitioner
     type VariableStore = variables.VariableStore
     type VariableScope = variables.VariableScope
+
+    variables.Variable.Gradients
 
     val Variable                 : variables.Variable.type          = variables.Variable
     val ReuseExistingVariableOnly: variables.ReuseExistingOnly.type = variables.ReuseExistingOnly
@@ -107,7 +109,26 @@ package object variables {
       Variable.getLocalPartitionedVariable(
         name, dataType, shape, initializer, regularizer, partitioner, reuse, collections, cachingDevice)
     }
-  }
 
-  private[api] object API extends API
+    def createWithVariableScope[R](
+        name: String, reuse: VariableReuseAllowed = ReuseOrCreateNewVariable, dataType: DataType = null,
+        initializer: VariableInitializer = null, regularizer: VariableRegularizer = null,
+        partitioner: VariablePartitioner = null, cachingDevice: OpSpecification => String = null,
+        customGetter: VariableGetter = null, isDefaultName: Boolean = false, isPure: Boolean = false)
+        (block: => R): R = {
+      variables.VariableScope.createWithVariableScope(
+        name, reuse, dataType, initializer, regularizer, partitioner, cachingDevice, customGetter, isDefaultName,
+        isPure)(block)
+    }
+
+    def createWithUpdatedVariableScope[R](
+        variableScope: VariableScope, reuse: VariableReuseAllowed = ReuseOrCreateNewVariable, dataType: DataType = null,
+        initializer: VariableInitializer = null, regularizer: VariableRegularizer = null,
+        partitioner: VariablePartitioner = null, cachingDevice: OpSpecification => String = null,
+        customGetter: VariableGetter = null, isPure: Boolean = false)(block: => R): R = {
+      variables.VariableScope.createWithUpdatedVariableScope(
+        variableScope, reuse, dataType, initializer, regularizer, partitioner, cachingDevice, customGetter,
+        isPure)(block)
+    }
+  }
 }
