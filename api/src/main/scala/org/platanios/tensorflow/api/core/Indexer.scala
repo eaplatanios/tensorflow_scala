@@ -15,6 +15,7 @@
 
 package org.platanios.tensorflow.api.core
 
+import org.platanios.tensorflow.api.core
 import org.platanios.tensorflow.api.core.exception.InvalidIndexerException
 import org.platanios.tensorflow.api.ops.{Basic, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
@@ -64,6 +65,12 @@ case class IndexerConstructionWithOneNumber private (n: Int) extends IndexerCons
   }
 }
 
+object IndexerConstructionWithOneNumber {
+  implicit def indexerConstructionToIndex(construction: IndexerConstructionWithOneNumber): Index = {
+    Index(index = construction.n)
+  }
+}
+
 /** Helper class for representing a indexer construction phase that has already been provided two numbers. */
 case class IndexerConstructionWithTwoNumbers private (n1: Int, n2: Int) extends IndexerConstruction {
   def :: : Slice = Slice(start = n1, end = -1, step = n2, inclusive = true)
@@ -73,34 +80,49 @@ case class IndexerConstructionWithTwoNumbers private (n1: Int, n2: Int) extends 
   }
 }
 
+object IndexerConstructionWithTwoNumbers {
+  implicit def indexerConstructionToIndex(construction: IndexerConstructionWithTwoNumbers): Slice = {
+    Slice(start = construction.n1, end = construction.n2)
+  }
+}
+
 /** Helper class for representing a indexer construction phase that has already been provided three numbers. */
 case class IndexerConstructionWithThreeNumbers private (n1: Int, n2: Int, n3: Int) extends IndexerConstruction
 
+object IndexerConstructionWithThreeNumbers {
+  implicit def indexerConstructionToIndex(construction: IndexerConstructionWithThreeNumbers): Slice = {
+    Slice(start = construction.n1, end = construction.n3, step = construction.n2)
+  }
+}
+
 /** Contains helper functions for dealing with indexers. */
 object Indexer {
-  val --- : Indexer = Ellipsis
-  val ::  : Slice   = Slice.::
+  val ---    : Indexer = core.Ellipsis
+  val ::     : Slice   = core.Slice.::
 
   private[api] trait Implicits {
-    implicit lazy val postfixOps: scala.languageFeature.postfixOps = scala.language.postfixOps
-
-    val --- : Indexer = Indexer.---
-    val ::  : Slice   = Indexer.::
-
     // TODO: Add begin mask support (not simple).
 
     implicit def intToIndex(index: Int): Index = Index(index = index)
-    implicit def intToIndexerConstructionWithOneNumber(n: Int): IndexerConstructionWithOneNumber =
+
+    implicit def intToIndexerConstruction(n: Int): IndexerConstructionWithOneNumber = {
       IndexerConstructionWithOneNumber(n)
-    implicit def indexerConstructionWithOneNumberToIndex(construction: IndexerConstructionWithOneNumber): Index =
-      Index(index = construction.n)
-    implicit def indexerConstructionWithTwoNumbersToSlice(construction: IndexerConstructionWithTwoNumbers): Slice =
-      Slice(start = construction.n1, end = construction.n2)
-    implicit def indexerConstructionWithThreeNumbersToSlice(construction: IndexerConstructionWithThreeNumbers): Slice =
-      Slice(start = construction.n1, end = construction.n3, step = construction.n2)
+    }
   }
 
   private[api] object Implicits extends Implicits
+
+  private[api] trait API extends Implicits {
+    type Indexer = core.Indexer
+    type Index = core.Index
+    type Slice = core.Slice
+
+    val ---    : Indexer = core.Ellipsis
+    val NewAxis: Indexer = core.NewAxis
+    val ::     : Slice   = core.Slice.::
+  }
+
+  private[api] object API extends API
 
   /** Decodes the provided indexers sequence into a new set of dimension sizes, begin offsets, end offsets, and strides,
     * for the provided tensor shape.

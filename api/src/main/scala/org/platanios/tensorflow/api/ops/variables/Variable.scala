@@ -32,7 +32,7 @@ import scala.util.DynamicVariable
 /**
   * @author Emmanouil Antonios Platanios
   */
-case class Variable private(
+case class Variable private (
     dataType: DataType,
     private val variableHandle: Output,
     private val initializeOp: Op,
