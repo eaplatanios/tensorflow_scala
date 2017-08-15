@@ -20,9 +20,10 @@ package org.platanios.tensorflow.api.ops
   * @author Emmanouil Antonios Platanios
   */
 package object io {
-  trait API extends Dataset.API
-      with Iterator.API
-      with Reader.API {
+  private[api] trait API
+      extends Dataset.API
+          with Iterator.API
+          with Reader.API {
     type Dataset[T, D, S] = io.Dataset[T, D, S]
     type Iterator[T, D, S] = io.Iterator[T, D, S]
     type Reader = io.Reader
@@ -32,6 +33,4 @@ package object io {
     io.Iterator.Gradients
     io.Reader.Gradients
   }
-
-  object API extends API
 }

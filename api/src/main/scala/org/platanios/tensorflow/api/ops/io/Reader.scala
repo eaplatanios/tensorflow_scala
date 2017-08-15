@@ -114,7 +114,7 @@ class SerializableReader private[ops](override val handle: Output) extends Reade
 }
 
 object Reader {
-  trait API {
+  private[io] trait API {
     /** Creates a reader that outputs the entire contents of a file as a value.
       *
       * To use, enqueue the filenames in a [[Queue]]. The output of [[Reader.read]] will be a filename (key) and the
@@ -191,8 +191,6 @@ object Reader {
       new Reader(createIdentityReader(sharedName = sharedName, name = name))
     }
   }
-
-  object API extends API
 
   /** Creates an op that outputs the entire contents of a file as a value.
     *

@@ -124,7 +124,7 @@ class InitializableIterator[O, D, S] private[io](
 
 /** Contains helper functions for creating iterator-related ops, as well as the iterator API trait. */
 object Iterator {
-  trait API {
+  private[io] trait API {
     def iteratorFromDataset[O, D, S](
         dataset: Dataset[O, D, S], sharedName: String = "", name: String = "InitializableIterator")(
         implicit ev: Data.Aux[_, O, D, S]): InitializableIterator[O, D, S] = {
@@ -143,8 +143,6 @@ object Iterator {
       fromStringHandle(stringHandle, outputDataTypes, outputShapes, name)(ev)
     }
   }
-
-  object API extends API
 
   /** Creates a new, uninitialized [[Iterator]] from the provided [[Dataset]].
     *

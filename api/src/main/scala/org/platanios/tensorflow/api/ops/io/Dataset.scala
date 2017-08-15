@@ -15,8 +15,8 @@
 
 package org.platanios.tensorflow.api.ops.io
 
+import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.core.Indexer.Implicits._
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
@@ -204,7 +204,7 @@ case class RepeatDataset[O, D, S] private[io](
 }
 
 object Dataset {
-  trait API {
+  private[io] trait API {
     def datasetFrom[T, O, D, S](
         data: T, name: String = "TensorDataset")(implicit ev: Data.Aux[T, O, D, S]): Dataset[O, D, S] = {
       from(data, name)(ev)
@@ -215,8 +215,6 @@ object Dataset {
       fromSlices(data, name)(ev)
     }
   }
-
-  object API extends API
 
   private[api] def from[T, O, D, S](
       data: T, name: String = "TensorDataset")(implicit ev: Data.Aux[T, O, D, S]): Dataset[O, D, S] = {
