@@ -15,8 +15,8 @@
 
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api.core.Indexer.Implicits._
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.types.{DataType, INT64}
 
@@ -205,7 +205,7 @@ class Queue private[Queue](val handle: Output, val dataTypes: Seq[DataType])
   def size(name: String = s"$name/Size"): Output = Queue.queueSize(handle, name)
 }
 
-private[ops] object Queue {
+private[api] object Queue {
   private[ops] trait API {
     /** Creates a FIFO queue.
       *

@@ -34,15 +34,15 @@ object LinearRegression {
 
   def main(args: Array[String]): Unit = {
     logger.info("Building linear regression model.")
-    val inputs = tf.placeholder(tf.FLOAT32, tf.shape(-1, 1))
-    val outputs = tf.placeholder(tf.FLOAT32, tf.shape(-1, 1))
-    val weights = tf.variable("weights", tf.FLOAT32, tf.shape(1, 1), tf.zerosInitializer)
+    val inputs = tf.placeholder(FLOAT32, Shape(-1, 1))
+    val outputs = tf.placeholder(FLOAT32, Shape(-1, 1))
+    val weights = tf.variable("weights", FLOAT32, Shape(1, 1), tf.zerosInitializer)
     val predictions = tf.matmul(inputs, weights)
     val loss = tf.sum(tf.square(predictions - outputs))
     val trainOp = tf.train.adaGrad(1.0).minimize(loss)
 
     logger.info("Training the linear regression model.")
-    val session = tf.session()
+    val session = tf.Session()
     session.run(targets = tf.globalVariablesInitializer())
     for (i <- 0 to 50) {
       val trainBatch = batch(10000)
@@ -57,7 +57,7 @@ object LinearRegression {
     logger.info(s"True weight value: $weight")
   }
 
-  def batch(batchSize: Int): (tf.Tensor, tf.Tensor) = {
+  def batch(batchSize: Int): (Tensor, Tensor) = {
     val inputs = ArrayBuffer.empty[Float]
     val outputs = ArrayBuffer.empty[Float]
     var i = 0
@@ -67,6 +67,6 @@ object LinearRegression {
       outputs += weight * input
       i += 1
     }
-    (tf.tensor(inputs.map(tf.tensor(_)): _*), tf.tensor(outputs.map(tf.tensor(_)): _*))
+    (Tensor(inputs.map(Tensor(_)): _*), Tensor(outputs.map(Tensor(_)): _*))
   }
 }

@@ -13,11 +13,11 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api
+package org.platanios.tensorflow.api.tensors
 
 /**
   * @author Emmanouil Antonios Platanios
   */
-package object types {
-  private[api] trait API extends DataType.API
-}
+private[api] trait Implicits extends Tensor.Implicits
+
+private[api] object Implicits extends Implicits

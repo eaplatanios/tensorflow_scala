@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.learn
 
-import org.platanios.tensorflow.api.{learn, tf}
+import org.platanios.tensorflow.api.{DataType, Shape, learn, tf}
 import org.platanios.tensorflow.api.ops.io.Data
 
 import scala.collection.mutable
@@ -27,7 +27,7 @@ object Input {
   trait API {
     type Input = learn.Input
 
-    def input(dataType: tf.DataType, shape: tf.Shape, name: String = "Input"): Input = {
+    def input(dataType: DataType, shape: Shape, name: String = "Input"): Input = {
       new Input(dataType = dataType, shape = shape, name = name)
     }
   }
@@ -43,14 +43,14 @@ sealed abstract class SupportedInput[O, D, S](implicit ev: Data.Aux[_, O, D, S])
   final def apply(): tf.Iterator[O, D, S] = cache.getOrElse(tf.currentGraph, create())
 }
 
-class Input private[learn](val dataType: tf.DataType, val shape: tf.Shape, val name: String)
-    extends SupportedInput[tf.Output, tf.DataType, tf.Shape] {
-  override protected def create(): tf.Iterator[tf.Output, tf.DataType, tf.Shape] = {
+class Input private[learn](val dataType: DataType, val shape: Shape, val name: String)
+    extends SupportedInput[tf.Output, DataType, Shape] {
+  override protected def create(): tf.Iterator[tf.Output, DataType, Shape] = {
     tf.iteratorFromStructure(outputDataTypes = dataType, outputShapes = shape)
   }
 }
 
-//class Inputs private[learn](val dataTypes: Seq[tf.DataType], val shapes: Seq[tf.Shape], val names: Seq[String])
+//class Inputs private[learn](val dataTypes: Seq[DataType], val shapes: Seq[tf.Shape], val names: Seq[String])
 //    extends SupportedInput[Seq[tf.Tensor], Seq[tf.Output]] {
 //  override val needsFeeding: Boolean = true
 //  override protected def create(): (Seq[tf.Output], Input.DefaultValueSetter[Seq[tf.Tensor], Seq[tf.Output]]) = {

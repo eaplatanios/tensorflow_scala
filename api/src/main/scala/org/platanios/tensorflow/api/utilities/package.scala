@@ -18,6 +18,17 @@ package org.platanios.tensorflow.api
 /**
   * @author Emmanouil Antonios Platanios
   */
-package object types {
-  private[api] trait API extends DataType.API
+package object utilities {
+  trait Closeable {
+    def close(): Unit
+  }
+
+  def using[T <: Closeable, R](resource: T)(block: T => R): R = {
+    try {
+      block(resource)
+    } finally {
+      if (resource != null)
+        resource.close()
+    }
+  }
 }

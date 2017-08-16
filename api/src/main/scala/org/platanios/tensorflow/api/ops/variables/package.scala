@@ -18,6 +18,7 @@ package org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.ops.variables.Saver.{V2, WriterVersion}
 import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.api.tensors.Implicits._
 import org.platanios.tensorflow.api.types.{DataType, FLOAT32}
 
 /**
@@ -38,7 +39,6 @@ package object variables {
 
     variables.Variable.Gradients
 
-    val Variable                 : variables.Variable.type          = variables.Variable
     val ReuseExistingVariableOnly: variables.ReuseExistingOnly.type = variables.ReuseExistingOnly
     val CreateNewVariableOnly    : variables.CreateNewOnly.type     = variables.CreateNewOnly
     val ReuseOrCreateNewVariable : variables.ReuseExistingOnly.type = variables.ReuseExistingOnly

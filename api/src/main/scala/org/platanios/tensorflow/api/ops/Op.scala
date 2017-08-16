@@ -15,19 +15,21 @@
 
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.core.{DeviceSpecification, Graph, Shape}
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception._
+import org.platanios.tensorflow.api.ops
+import org.platanios.tensorflow.api.ops.Implicits._
 import org.platanios.tensorflow.api.ops.variables.{CreateNewOnly, VariableScope, VariableStore}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.DataType
+import org.platanios.tensorflow.api.utilities.using
 import org.platanios.tensorflow.jni.{Op => NativeOp}
 
 import java.nio.charset.Charset
 
 import scala.collection.mutable
-import scala.util.DynamicVariable
+import scala.util.{DynamicVariable, Try}
 
 /** Represents a graph node, or as we shall call it, an operation, that performs computation on tensors.
   *
@@ -70,7 +72,7 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
 
   /** Colocation ops for this op (i.e., ops guaranteed to be placed on the same device). */
   lazy val colocationOps: Set[Op] = using(graph.reference) { _ =>
-    Option(NativeOp.getAttrStringList(nativeHandle, COLOCATION_OPS_ATTRIBUTE_NAME))
+    Try(NativeOp.getAttrStringList(nativeHandle, COLOCATION_OPS_ATTRIBUTE_NAME))
         .map(_.toSet[String]
                  .filter(_.startsWith(COLOCATION_OPS_ATTRIBUTE_PREFIX))
                  .map(opName => graph.findOp(opName.substring(COLOCATION_OPS_ATTRIBUTE_PREFIX.length)).get))
@@ -281,7 +283,7 @@ private[api] final case class OpCreationContext(
 object Op {
   private[ops] trait API {
     type Op = ops.Op
-    val Op: Op.type = ops.Op
+    val Op: ops.Op.type = ops.Op
 
     type OpCreationContext = ops.OpCreationContext
     type OpSpecification = ops.OpSpecification
@@ -524,10 +526,10 @@ object Op {
     * [[OpSpecification]] as input and returning a string representation of the device where the corresponding op should
     * be placed. This function is invoked every time a new op is created within the provided code block. If the function
     * returns `null` for some op, then all subsequent invocations of `createWith(device = ...)` in the provided code
-    * block will be ignored. Note that, if the [[deviceImplicitConversion]] implicit conversion function is within
-    * scope, then a `String` value (or `null`) can be used directly for the `device` field. In this case, the value
-    * provided will be used as the device for all newly create ops in the provided code block. For information about the
-    * valid syntax of device name strings, see the documentation in
+    * block will be ignored. Note that, if the device implicit conversion function is within scope, then a `String`
+    * value (or `null`) can be used directly for the `device` field. In this case, the value provided will be used as
+    * the device for all newly create ops in the provided code block. For information about the valid syntax of device
+    * name strings, see the documentation in
     * [`DeviceNameUtils`](https://www.tensorflow.org/code/tensorflow/core/util/device_name_utils.h).
     *
     * Note that the device scope may be overridden by op wrappers or other library code. For example, a variable

@@ -15,10 +15,10 @@
 
 package org.platanios.tensorflow.api.core.client
 
-import org.platanios.tensorflow.api.Closeable
 import org.platanios.tensorflow.api.core.{Graph, client}
 import org.platanios.tensorflow.api.ops.{Op, OpCreationContext, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.api.utilities.Closeable
 import org.platanios.tensorflow.jni.{Session => NativeSession}
 
 import org.tensorflow.framework.{RunMetadata, RunOptions}

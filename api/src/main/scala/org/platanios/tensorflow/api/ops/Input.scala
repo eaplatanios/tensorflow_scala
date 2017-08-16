@@ -15,9 +15,9 @@
 
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api.using
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.types.DataType
+import org.platanios.tensorflow.api.utilities.using
 import org.platanios.tensorflow.jni.{Op => NativeOp}
 
 /** Wrapper around an [[Op]] meant to represent one of its inputs. Actual op inputs have type [[Output]] since they

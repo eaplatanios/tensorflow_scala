@@ -15,22 +15,17 @@
 
 package org.platanios.tensorflow.api
 
-import org.platanios.tensorflow.api
-
 /**
   * @author Emmanouil Antonios Platanios
   */
 package object core {
-  private[api] trait API extends Indexer.API
+  private[core] val META_GRAPH_UNBOUND_INPUT_PREFIX: String = "$unbound_inputs_"
 
-  private[api] trait ScopedAPI extends client.API {
+  private[api] val defaultGraph: core.Graph = core.Graph()
+
+  private[api] trait API extends client.API {
     type Graph = core.Graph
-    type Shape = core.Shape
-
     val Graph: core.Graph.type = core.Graph
-    val Shape: core.Shape.type = core.Shape
-
-    val defaultGraph: core.Graph = api.defaultGraph
 
     type DeviceSpecification = core.DeviceSpecification
     type ShapeMismatchException = core.exception.ShapeMismatchException

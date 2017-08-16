@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.learn.layers
 
-import org.platanios.tensorflow.api.tf
+import org.platanios.tensorflow.api.{DataType, Shape, tf}
 import org.platanios.tensorflow.api.learn.layers
 
 /**
@@ -27,7 +27,7 @@ object Math {
     type Mean = layers.Mean
     type Linear = layers.Linear
 
-    def cast(dataType: tf.DataType, name: String = "Cast"): Cast = Cast(dataType = dataType, name = name)
+    def cast(dataType: DataType, name: String = "Cast"): Cast = Cast(dataType = dataType, name = name)
 
     def mean(name: String = "Mean"): Mean = Mean(name = name)
 
@@ -39,7 +39,7 @@ object Math {
   object API extends API
 }
 
-case class Cast private[layers](dataType: tf.DataType, override val name: String = "Cast")
+case class Cast private[layers](dataType: DataType, override val name: String = "Cast")
     extends NetworkLayer[tf.Output, tf.Output] {
   override val layerType: String                 = s"Cast[$dataType]"
   override val forward  : tf.Output => tf.Output = tf.cast(_, dataType, name = name)
@@ -55,10 +55,10 @@ case class Linear private[layers](units: Int, useBias: Boolean = true, override 
   override val layerType: String                 = s"Linear[$units]"
   override val forward  : tf.Output => tf.Output = input => {
     val weights = tf.variable(
-      s"$name.weights", input.dataType, tf.shape(input.shape(-1), units), tf.randomNormalInitializer())
+      s"$name.weights", input.dataType, Shape(input.shape(-1), units), tf.randomNormalInitializer())
     val product = tf.matmul(input, weights)
     if (useBias)
-      tf.addBias(product, tf.variable(s"$name.bias", input.dataType, tf.shape(units), tf.randomNormalInitializer()))
+      tf.addBias(product, tf.variable(s"$name.bias", input.dataType, Shape(units), tf.randomNormalInitializer()))
     else
       product
   }

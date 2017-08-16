@@ -19,7 +19,7 @@ package org.platanios.tensorflow.api.ops.training
   * @author Emmanouil Antonios Platanios
   */
 package object optimizers {
-  private[training] trait API
+  private[api] trait API
       extends Decay.API {
     type Optimizer = optimizers.Optimizer
     type AdaDelta = optimizers.AdaDelta

@@ -24,21 +24,21 @@ import org.scalatest._
   */
 class GradientDescentSpec extends FlatSpec with Matchers {
   "Gradient descent" must "work for dense updates to resource-based variables" in {
-    for (dataType <- Set[tf.DataType](tf.FLOAT32, tf.FLOAT64)) {
-      val value0 = tf.tensor(dataType, 1.0, 2.0)
-      val value1 = tf.tensor(dataType, 3.0, 4.0)
-      val updatedValue0 = tf.tensor(dataType, 1.0 - 3.0 * 0.1, 2.0 - 3.0 * 0.1)
-      val updatedValue1 = tf.tensor(dataType, 3.0 - 3.0 * 0.01, 4.0 - 3.0 * 0.01)
+    for (dataType <- Set[DataType](FLOAT32, FLOAT64)) {
+      val value0 = Tensor(dataType, 1.0, 2.0)
+      val value1 = Tensor(dataType, 3.0, 4.0)
+      val updatedValue0 = Tensor(dataType, 1.0 - 3.0 * 0.1, 2.0 - 3.0 * 0.1)
+      val updatedValue1 = Tensor(dataType, 3.0 - 3.0 * 0.01, 4.0 - 3.0 * 0.01)
       val graph = tf.Graph()
       val (variable0, variable1, gdOp) = tf.createWith(graph) {
-        val variable0 = tf.Variable(tf.constantInitializer(tf.tensor(1, 2)), shape = tf.shape(2), dataType = dataType)
-        val variable1 = tf.Variable(tf.constantInitializer(tf.tensor(3, 4)), shape = tf.shape(2), dataType = dataType)
-        val gradient0 = tf.constant(tf.tensor(0.1, 0.1), dataType = dataType)
-        val gradient1 = tf.constant(tf.tensor(0.01, 0.01), dataType = dataType)
+        val variable0 = tf.variable("v0", dataType, Shape(2), tf.constantInitializer(Tensor(1, 2)))
+        val variable1 = tf.variable("v1", dataType, Shape(2), tf.constantInitializer(Tensor(3, 4)))
+        val gradient0 = tf.constant(Tensor(0.1, 0.1), dataType = dataType)
+        val gradient1 = tf.constant(Tensor(0.01, 0.01), dataType = dataType)
         val gdOp = GradientDescent(3.0).applyGradients(Seq((gradient0, variable0), (gradient1, variable1)))
         (variable0, variable1, gdOp)
       }
-      val session = tf.session(graph)
+      val session = tf.Session(graph)
       session.run(targets = graph.trainableVariablesInitializer())
       var variable0Value = session.run(fetches = variable0.value)
       var variable1Value = session.run(fetches = variable1.value)

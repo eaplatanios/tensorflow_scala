@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.learn.layers
 
-import org.platanios.tensorflow.api.tf
+import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.learn.layers
 
 /**
@@ -42,9 +42,9 @@ case class Flatten private[layers](override val name: String = "Flatten") extend
     if (input.rank == 1)
       input
     else if (input.rank > -1 && input.shape(0) > -1)
-      tf.reshape(input, tf.Shape(input.shape(0), -1), name = name)
+      tf.reshape(input, Shape(input.shape(0), -1), name = name)
     else
-      tf.reshape(input, tf.Shape(-1) + input.shape.asArray.tail.product, name = name)
+      tf.reshape(input, Shape(-1) + input.shape.asArray.tail.product, name = name)
   }
 }
 

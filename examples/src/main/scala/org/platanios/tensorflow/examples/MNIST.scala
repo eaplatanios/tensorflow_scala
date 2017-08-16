@@ -33,7 +33,7 @@ object MNIST {
   def mlpPredictionModel(architecture: Seq[Int]): tf.learn.Layer[tf.Output, tf.Output] = {
     architecture.zipWithIndex
         .map(a => tf.learn.withVariableScope(s"Layer_${a._2}")(tf.learn.linear(a._1) >> tf.learn.relu(0.1f)))
-        .foldLeft(tf.learn.flatten() >> tf.learn.cast(tf.FLOAT32))(_ >> _) >>
+        .foldLeft(tf.learn.flatten() >> tf.learn.cast(FLOAT32))(_ >> _) >>
         tf.learn.withVariableScope("OutputLayer")(tf.learn.linear(10)) // >> tf.learn.logSoftmax())
   }
 
@@ -43,12 +43,12 @@ object MNIST {
     val trainLabels = tf.datasetFromSlices(dataSet.trainLabels).repeat().batch(1024)
 
     logger.info("Building the logistic regression model.")
-    val input = tf.learn.input(tf.UINT8, tf.shape(-1, dataSet.trainImages.shape(1), dataSet.trainImages.shape(2)))
+    val input = tf.learn.input(UINT8, Shape(-1, dataSet.trainImages.shape(1), dataSet.trainImages.shape(2)))
     val layer = tf.learn.flatten() >>
-        tf.learn.cast(tf.FLOAT32) >>
+        tf.learn.cast(FLOAT32) >>
         tf.learn.linear(10) // >> tf.learn.logSoftmax()
-    val trainInput = tf.learn.input(tf.UINT8, tf.shape(-1))
-    val trainingInputLayer = tf.learn.cast(tf.INT64) // tf.learn.oneHot(10) >> tf.learn.cast(tf.FLOAT32)
+    val trainInput = tf.learn.input(UINT8, Shape(-1))
+    val trainingInputLayer = tf.learn.cast(INT64) // tf.learn.oneHot(10) >> tf.learn.cast(FLOAT32)
     val loss = tf.learn.sparseSoftmaxCrossEntropy() >> tf.learn.mean()
     val optimizer = tf.learn.adaGrad()
     val model = tf.learn.model(input, layer, trainInput, trainingInputLayer, loss, optimizer)

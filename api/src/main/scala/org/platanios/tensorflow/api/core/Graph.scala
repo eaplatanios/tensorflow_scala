@@ -15,13 +15,15 @@
 
 package org.platanios.tensorflow.api.core
 
-import org.platanios.tensorflow.api.core.client.API._
+import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception.{GraphMismatchException, InvalidGraphElementException}
 import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output}
 import org.platanios.tensorflow.api.ops.variables.{Saver, Variable, VariableStore}
 import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.api.tensors.Implicits._
 import org.platanios.tensorflow.api.types.STRING
-import org.platanios.tensorflow.api.{Closeable, META_GRAPH_UNBOUND_INPUT_PREFIX, ProtoSerializable}
+import org.platanios.tensorflow.api.utilities.Closeable
+import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
 import org.platanios.tensorflow.jni.{Graph => NativeGraph, TensorFlow => NativeLibrary}
 
 import com.google.protobuf.ByteString
@@ -42,7 +44,7 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable wi
   private[this] object NativeHandleLock
 
   // TODO: [SESSION] Need to be able to reset and close this session.
-  private[api] val defaultSession: Session = session(this)
+  private[api] val defaultSession: Session = Session(this)
 
   /** Map from native op handle to op object in the Scala side. Used for caching ops that have already been obtained
     * from the native library. */

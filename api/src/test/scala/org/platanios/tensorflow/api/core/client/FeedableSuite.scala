@@ -35,9 +35,9 @@ class FeedableSuite extends JUnitSuite {
       val tensor1 = Tensor(1.0f)
       val tensor2 = Tensor(2.0f)
       val tensor3 = Tensor(3.0f)
-      val feedable1 = Basic.placeholder(tf.FLOAT32)
+      val feedable1 = Basic.placeholder(FLOAT32)
       val feedable2 = OutputIndexedSlices(
-        Basic.placeholder(tf.FLOAT32), Basic.placeholder(tf.FLOAT32), Basic.placeholder(tf.FLOAT32))
+        Basic.placeholder(FLOAT32), Basic.placeholder(FLOAT32), Basic.placeholder(FLOAT32))
       val feedable1FeedMap = feedMapIdentity(Map(feedable1 -> tensor0))
       val feedable2FeedMap = feedMapIdentity(Map(feedable2 -> (tensor1, tensor2, tensor3)))
       assert(feedable1FeedMap.values === Map(feedable1 -> tensor0))
@@ -52,9 +52,9 @@ class FeedableSuite extends JUnitSuite {
       val tensor1 = Tensor(1.0f)
       val tensor2 = Tensor(2.0f)
       val tensor3 = Tensor(3.0f)
-      val feedable1 = Basic.placeholder(tf.FLOAT32)
+      val feedable1 = Basic.placeholder(FLOAT32)
       val feedable2 = OutputIndexedSlices(
-        Basic.placeholder(tf.FLOAT32), Basic.placeholder(tf.FLOAT32), Basic.placeholder(tf.FLOAT32))
+        Basic.placeholder(FLOAT32), Basic.placeholder(FLOAT32), Basic.placeholder(FLOAT32))
       val feedable1FeedMap: FeedMap = feedMapIdentity(Map(feedable1 -> tensor0))
       val feedable2FeedMap: FeedMap = feedMapIdentity(Map(feedable2 -> (tensor1, tensor2, tensor3)))
       val feedMap = feedMapIdentity(feedable1FeedMap + feedable2FeedMap)

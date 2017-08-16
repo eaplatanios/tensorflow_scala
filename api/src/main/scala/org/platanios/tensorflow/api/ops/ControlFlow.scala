@@ -24,7 +24,7 @@ import scala.reflect.runtime.universe.{TypeTag, typeOf}
 /**
   * @author Emmanouil Antonios Platanios
   */
-private[ops] trait ControlFlow {
+private[api] trait ControlFlow {
   /** Creates an op that produces the content of `input` only after all ops in `dependencies` have finished executing.
     *
     * In some cases, a user may want the output of an op to be consumed externally only after some other dependencies
@@ -130,7 +130,7 @@ private[ops] trait ControlFlow {
   }
 }
 
-private[ops] object ControlFlow extends ControlFlow {
+private[api] object ControlFlow extends ControlFlow {
   /** Creates an op that does nothing and serves as a control trigger for scheduling. The created op is only useful as
     * a placeholder for control edges.
     *

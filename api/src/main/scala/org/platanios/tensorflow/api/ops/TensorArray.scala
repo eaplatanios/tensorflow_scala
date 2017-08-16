@@ -17,6 +17,7 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
+import org.platanios.tensorflow.api.tensors.Implicits._
 import org.platanios.tensorflow.api.types.DataType
 
 /** Class wrapping dynamic-sized, per-time-step, write-once tensor arrays.
@@ -38,7 +39,7 @@ import org.platanios.tensorflow.api.types.DataType
   *
   * @author Emmanouil Antonios Platanios
   */
-private[ops] case class TensorArray private(
+private[api] case class TensorArray private(
     handle: Output, flow: Output, dataType: DataType, inferShape: Boolean, private var elementShape: Option[Shape]) {
   /** Changes the element shape of the array given a shape to merge with.
     *
@@ -295,7 +296,7 @@ private[ops] case class TensorArray private(
   }
 }
 
-private[ops] object TensorArray {
+private[api] object TensorArray {
   /** Creates a new tensor array.
     *
     * @param  size            Size of the tensor array.

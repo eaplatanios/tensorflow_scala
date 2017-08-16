@@ -18,6 +18,9 @@ package org.platanios.tensorflow.api
 /**
   * @author Emmanouil Antonios Platanios
   */
-package object types {
-  private[api] trait API extends DataType.API
-}
+trait Implicits
+    extends core.Implicits
+        with ops.Implicits
+        with tensors.Implicits
+
+object Implicits extends Implicits

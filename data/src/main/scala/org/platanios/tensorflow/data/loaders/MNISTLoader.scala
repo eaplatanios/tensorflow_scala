@@ -60,7 +60,7 @@ object MNISTLoader extends Loader {
     MNISTDataSet(trainImages, trainLabels, testImages, testLabels)
   }
 
-  private[this] def extractImages(path: Path, bufferSize: Int = 8192): tf.Tensor = {
+  private[this] def extractImages(path: Path, bufferSize: Int = 8192): Tensor = {
     logger.info(s"Extracting images from file '$path'.")
     val inputStream = new GZIPInputStream(Files.newInputStream(path))
     val outputStream = new ByteArrayOutputStream()
@@ -75,10 +75,10 @@ object MNISTLoader extends Loader {
     val numberOfImages = (byteBuffer.getInt & 0xffffffffL).toInt
     val numberOfRows = (byteBuffer.getInt & 0xffffffffL).toInt
     val numberOfColumns = (byteBuffer.getInt & 0xffffffffL).toInt
-    tf.tensorFromBuffer(tf.UINT8, tf.shape(numberOfImages, numberOfRows, numberOfColumns), byteBuffer)
+    Tensor.fromBuffer(UINT8, Shape(numberOfImages, numberOfRows, numberOfColumns), byteBuffer)
   }
 
-  private[this] def extractLabels(path: Path, bufferSize: Int = 8192): tf.Tensor = {
+  private[this] def extractLabels(path: Path, bufferSize: Int = 8192): Tensor = {
     logger.info(s"Extracting labels from file '$path'.")
     val inputStream = new GZIPInputStream(Files.newInputStream(path))
     val outputStream = new ByteArrayOutputStream()
@@ -91,8 +91,8 @@ object MNISTLoader extends Loader {
     if (magicNumber != 2049)
       throw new IllegalStateException(s"Invalid magic number '$magicNumber' in MNIST labels file '$path'.")
     val numberOfLabels = (byteBuffer.getInt & 0xffffffffL).toInt
-    tf.tensorFromBuffer(tf.UINT8, tf.shape(numberOfLabels), byteBuffer)
+    Tensor.fromBuffer(UINT8, Shape(numberOfLabels), byteBuffer)
   }
 }
 
-case class MNISTDataSet(trainImages: tf.Tensor, trainLabels: tf.Tensor, testImages: tf.Tensor, testLabels: tf.Tensor)
+case class MNISTDataSet(trainImages: Tensor, trainLabels: Tensor, testImages: Tensor, testLabels: Tensor)

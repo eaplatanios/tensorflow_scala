@@ -15,10 +15,7 @@
 
 package org.platanios.tensorflow.api.core
 
-import org.platanios.tensorflow.api.tf
-import org.platanios.tensorflow.api.tf.createWith
-import org.platanios.tensorflow.api.ops.Basic._
-import org.platanios.tensorflow.api.ops.Math._
+import org.platanios.tensorflow.api._
 
 import org.scalatest._
 
@@ -28,16 +25,16 @@ import org.scalatest._
 class SessionSpec extends FlatSpec with Matchers {
   "Session run fetch by name" should "return the correct result" in {
     val graph = Graph()
-    createWith(graph = graph) {
-      val a = constant(tf.tensor(tf.tensor(2, 3)), name = "A")
-      val x = placeholder(dataType = tf.INT32, shape = tf.Shape(1, 2), name = "X")
-      subtract(constant(1), matmul(a = a, b = x, transposeB = true), name = "Y")
+    tf.createWith(graph = graph) {
+      val a = tf.constant(Tensor(Tensor(2, 3)), name = "A")
+      val x = tf.placeholder(dataType = INT32, shape = Shape(1, 2), name = "X")
+      tf.subtract(tf.constant(1), tf.matmul(a = a, b = x, transposeB = true), name = "Y")
     }
-    val session = tf.session(graph = graph)
-    val feeds = Map(graph.getOutputByName("X:0") -> tf.tensor(tf.tensor(5, 7)))
+    val session = tf.Session(graph = graph)
+    val feeds = Map(graph.getOutputByName("X:0") -> Tensor(Tensor(5, 7)))
     val fetches = graph.getOutputByName("Y:0")
     val output = session.run(feeds, fetches)
-    val expectedResult = tf.tensor(tf.tensor(-30))
+    val expectedResult = Tensor(Tensor(-30))
     assert(output.scalar === expectedResult.scalar)
     graph.close()
   }

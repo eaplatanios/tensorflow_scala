@@ -275,7 +275,7 @@ object DataType {
 
   //endregion Helper Methods
 
-  private[types] trait ScopedAPI {
+  private[types] trait API {
     @inline def dataTypeOf[T: SupportedType](value: T): DataType = DataType.dataTypeOf(value)
 
     @throws[IllegalArgumentException]

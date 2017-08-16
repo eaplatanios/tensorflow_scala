@@ -15,15 +15,16 @@
 
 package org.platanios.tensorflow.api.ops.variables
 
-import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.{Graph, Shape}
+import org.platanios.tensorflow.api.core.Indexer.Implicits._
 import org.platanios.tensorflow.api.core.exception.{InvalidDataTypeException, ShapeMismatchException}
 import org.platanios.tensorflow.api.ops._
+import org.platanios.tensorflow.api.ops.Implicits._
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
-import org.platanios.tensorflow.api.ops.Output.Implicits._
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.{DataType, FLOAT32, INT32, INT64}
+import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
 
 import org.tensorflow.framework.{SaveSliceInfoDef, VariableDef}
 
@@ -276,7 +277,7 @@ case class Variable private (
 }
 
 /** Contains helper functions and classes for creating and dealing with [[Variable]] objects. */
-private[variables] object Variable {
+private[api] object Variable {
   /** Gets an existing variable with the specified name or creates a new one.
     *
     * This function prefixes the name with the current variable scope and performs variable reuse checks.

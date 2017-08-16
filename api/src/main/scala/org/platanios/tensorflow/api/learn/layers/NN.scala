@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.learn.layers
 
-import org.platanios.tensorflow.api.tf
+import org.platanios.tensorflow.api.{Shape, tf}
 import org.platanios.tensorflow.api.learn.{TrainingMode, layers}
 
 /**
@@ -32,7 +32,7 @@ object NN {
     def logSoftmax(name: String = "LogSoftmax"): LogSoftmax = LogSoftmax(name = name)
 
     def dropout(
-        keepProbability: Float, noiseShape: tf.Shape = null, seed: Option[Int] = None,
+        keepProbability: Float, noiseShape: Shape = null, seed: Option[Int] = None,
         name: String = "Dropout"): Dropout = {
       Dropout(keepProbability = keepProbability, noiseShape = noiseShape, seed = seed, name = name)
     }
@@ -52,7 +52,7 @@ case class LogSoftmax private[layers](override val name: String = "LogSoftmax") 
 }
 
 case class Dropout private[layers](
-    keepProbability: Float, noiseShape: tf.Shape = null, seed: Option[Int] = None, name: String = "Dropout")
+    keepProbability: Float, noiseShape: Shape = null, seed: Option[Int] = None, name: String = "Dropout")
     extends NetworkLayer[tf.Output, tf.Output] with ModeConditionalNetworkLayer {
   override val layerType: String                 = s"Dropout[$keepProbability]"
   override val forward  : tf.Output => tf.Output = input => {

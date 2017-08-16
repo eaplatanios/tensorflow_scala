@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.learn.layers
 
-import org.platanios.tensorflow.api.tf
+import org.platanios.tensorflow.api.{tf, DataType}
 import org.platanios.tensorflow.api.learn._
 import org.platanios.tensorflow.api.learn.layers.Core._
 import org.platanios.tensorflow.api.learn.layers.ModeConditionalNetworkLayer._
@@ -116,7 +116,7 @@ object Core {
       extends LayerCreationContext
 
   private[layers] final case class LayerVariableScope(
-      name: String, reuse: tf.VariableReuseAllowed = tf.ReuseOrCreateNewVariable, dataType: tf.DataType = null,
+      name: String, reuse: tf.VariableReuseAllowed = tf.ReuseOrCreateNewVariable, dataType: DataType = null,
       initializer: tf.VariableInitializer = null, regularizer: tf.VariableRegularizer = null,
       partitioner: tf.VariablePartitioner = null, cachingDevice: tf.OpSpecification => String = null,
       customGetter: tf.VariableGetter = null, isDefaultName: Boolean = false, isPure: Boolean = false)
@@ -124,7 +124,7 @@ object Core {
 
   private[layers] final case class LayerUpdatedVariableScope(
       variableScope: tf.VariableScope, reuse: tf.VariableReuseAllowed = tf.ReuseOrCreateNewVariable,
-      dataType: tf.DataType = null, initializer: tf.VariableInitializer = null,
+      dataType: DataType = null, initializer: tf.VariableInitializer = null,
       regularizer: tf.VariableRegularizer = null, partitioner: tf.VariablePartitioner = null,
       cachingDevice: tf.OpSpecification => String = null, customGetter: tf.VariableGetter = null,
       isPure: Boolean = false) extends LayerCreationContext
@@ -138,7 +138,7 @@ object Core {
     }
 
     def withVariableScope[R](
-        name: String, reuse: tf.VariableReuseAllowed = tf.ReuseOrCreateNewVariable, dataType: tf.DataType = null,
+        name: String, reuse: tf.VariableReuseAllowed = tf.ReuseOrCreateNewVariable, dataType: DataType = null,
         initializer: tf.VariableInitializer = null, regularizer: tf.VariableRegularizer = null,
         partitioner: tf.VariablePartitioner = null, cachingDevice: tf.OpSpecification => String = null,
         customGetter: tf.VariableGetter = null, isDefaultName: Boolean = false, isPure: Boolean = false)(block: => R)
@@ -151,7 +151,7 @@ object Core {
 
     def withUpdatedVariableScope[R](
         variableScope: tf.VariableScope, reuse: tf.VariableReuseAllowed = tf.ReuseOrCreateNewVariable,
-        dataType: tf.DataType = null, initializer: tf.VariableInitializer = null,
+        dataType: DataType = null, initializer: tf.VariableInitializer = null,
         regularizer: tf.VariableRegularizer = null, partitioner: tf.VariablePartitioner = null,
         cachingDevice: tf.OpSpecification => String = null, customGetter: tf.VariableGetter = null,
         isPure: Boolean = false)(block: => R)

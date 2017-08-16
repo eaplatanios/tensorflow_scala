@@ -16,7 +16,6 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api._
-import org.platanios.tensorflow.api.ops.Basic.constant
 
 import org.scalatest._
 
@@ -27,16 +26,16 @@ class VariableSpec extends FlatSpec with Matchers {
   "Variable creation" must "work" in {
     val graph = tf.Graph()
     val variable = tf.createWith(graph = graph) {
-      val initializer = tf.constantInitializer(tf.tensor(tf.tensor(2, 3)))
-      tf.Variable(initializer, shape = tf.shape(1, 2), dataType = tf.INT64)
+      val initializer = tf.constantInitializer(Tensor(Tensor(2, 3)))
+      tf.variable("variable", INT64, Shape(1, 2), initializer)
     }
-    assert(variable.dataType === tf.INT64)
+    assert(variable.dataType === INT64)
     assert(graph.getCollection(tf.Graph.Keys.GLOBAL_VARIABLES).contains(variable))
     assert(graph.getCollection(tf.Graph.Keys.TRAINABLE_VARIABLES).contains(variable))
-    val session = tf.session(graph = graph)
+    val session = tf.Session(graph = graph)
     session.run(targets = variable.initializer)
     val outputs = session.run(fetches = variable.value)
-    val expectedResult = tf.tensor(tf.INT64, tf.tensor(2, 3))
+    val expectedResult = Tensor(INT64, Tensor(2, 3))
     assert(outputs(0, 0).scalar === expectedResult(0, 0).scalar)
     assert(outputs(0, 1).scalar === expectedResult(0, 1).scalar)
     session.close()
@@ -46,20 +45,20 @@ class VariableSpec extends FlatSpec with Matchers {
   "Variable assignment" must "work" in {
     val graph = tf.Graph()
     val (variable, variableAssignment) = tf.createWith(graph = graph) {
-      val a = constant(tf.tensor(tf.tensor(5, 7)), tf.INT64, name = "A")
-      val initializer = tf.constantInitializer(tf.tensor(tf.tensor(2, 3)))
-      val variable = tf.Variable(initializer, shape = tf.shape(1, 2), dataType = tf.INT64)
+      val a = tf.constant(Tensor(Tensor(5, 7)), INT64, name = "A")
+      val initializer = tf.constantInitializer(Tensor(Tensor(2, 3)))
+      val variable = tf.variable("variable", INT64, Shape(1, 2), initializer)
       val variableAssignment = variable.assign(a)
       (variable, variableAssignment)
     }
-    assert(variable.dataType === tf.INT64)
+    assert(variable.dataType === INT64)
     assert(graph.getCollection(tf.Graph.Keys.GLOBAL_VARIABLES).contains(variable))
     assert(graph.getCollection(tf.Graph.Keys.TRAINABLE_VARIABLES).contains(variable))
-    val session = tf.session(graph = graph)
+    val session = tf.Session(graph = graph)
     session.run(targets = variable.initializer)
     val outputs = session.run(fetches = Seq(variableAssignment, variable.value))
     assert(outputs.length == 2)
-    val expectedResult = tf.tensor(tf.INT64, tf.tensor(5, 7))
+    val expectedResult = Tensor(INT64, Tensor(5, 7))
     assert(outputs(1)(0, 0).scalar === expectedResult(0, 0).scalar)
     assert(outputs(1)(0, 1).scalar === expectedResult(0, 1).scalar)
     session.close()

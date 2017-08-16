@@ -15,13 +15,15 @@
 
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.core.{Graph, Indexer, Shape}
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception.InvalidDataTypeException
+import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.Op.{createWith, getGraphFromInputs}
 import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.api.tensors.Implicits._
 import org.platanios.tensorflow.api.types.{DataType, INT32, INT64}
+import org.platanios.tensorflow.api.utilities.using
 import org.platanios.tensorflow.jni.{Op => NativeOp}
 
 import spire.math.UShort
@@ -338,8 +340,6 @@ object Output {
     implicit def scalaArrayToOutput(value: Array[Long]): Output = Basic.constant(value)
     implicit def scalaArrayToOutput(value: Array[UShort]): Output = Basic.constant(value)
   }
-
-  private[api] object Implicits extends Implicits
 
   // TODO: !!!
 

@@ -20,6 +20,7 @@ import org.platanios.tensorflow.api.core.exception.ShapeMismatchException
 import org.platanios.tensorflow.api.ops.{Basic, Output, Random}
 import org.platanios.tensorflow.api.ops.variables.Variable.PartitionInformation
 import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.api.tensors.Implicits._
 import org.platanios.tensorflow.api.types.DataType
 
 // TODO: [VARIABLE_INITIALIZERS] RandomUniform/Normal, TruncatedNormal, UniformUnitScaling, Orthogonal.
@@ -63,7 +64,7 @@ private[variables] case class InitializerWithPartitionInformation(
 }
 
 /** Initializer that sets all elements of the variable tensor to zeros. */
-private[variables] object ZerosInitializer extends Initializer {
+object ZerosInitializer extends Initializer {
   @throws[ShapeMismatchException]
   override def initialValue(shape: Shape, dataType: DataType, partitionInfo: PartitionInformation): Output = {
     Basic.zeros(shape, dataType, name = "ZerosInitializer")
@@ -71,7 +72,7 @@ private[variables] object ZerosInitializer extends Initializer {
 }
 
 /** Initializer that sets all elements of the variable tensor to ones. */
-private[variables] object OnesInitializer extends Initializer {
+object OnesInitializer extends Initializer {
   @throws[ShapeMismatchException]
   override def initialValue(shape: Shape, dataType: DataType, partitionInfo: PartitionInformation): Output = {
     Basic.ones(shape, dataType, name = "OnesInitializer")
@@ -79,7 +80,7 @@ private[variables] object OnesInitializer extends Initializer {
 }
 
 /** Initializer that sets the value of the variable to the provided `value`. */
-private[variables] case class ConstantInitializer(value: Tensor) extends Initializer {
+case class ConstantInitializer(value: Tensor) extends Initializer {
   @throws[ShapeMismatchException]
   override def initialValue(shape: Shape, dataType: DataType, partitionInfo: PartitionInformation): Output = {
     Basic.constant(value, dataType, shape, name = "ConstantInitializer")
@@ -87,7 +88,7 @@ private[variables] case class ConstantInitializer(value: Tensor) extends Initial
 }
 
 /** Initializer that sets the value of the variable to the provided `value`. */
-private[variables] case class DynamicConstantInitializer(value: Output) extends Initializer {
+case class DynamicConstantInitializer(value: Output) extends Initializer {
   override val shape: Shape = value.shape
 
   @throws[ShapeMismatchException]
@@ -106,7 +107,7 @@ private[variables] case class DynamicConstantInitializer(value: Output) extends 
 }
 
 /** Initializer that sets the value of the variable to a `value` drawn from a uniform distribution. */
-private[variables] case class RandomUniformInitializer(
+case class RandomUniformInitializer(
     minValue: Tensor = 0.0, maxValue: Tensor = 1.0, seed: Option[Int] = None) extends Initializer {
   @throws[ShapeMismatchException]
   override def initialValue(shape: Shape, dataType: DataType, partitionInfo: PartitionInformation): Output = {
@@ -116,7 +117,7 @@ private[variables] case class RandomUniformInitializer(
 }
 
 /** Initializer that sets the value of the variable to a `value` drawn from a Normal distribution. */
-private[variables] case class RandomNormalInitializer(
+case class RandomNormalInitializer(
     mean: Tensor = 0.0, standardDeviation: Tensor = 1.0, seed: Option[Int] = None) extends Initializer {
   @throws[ShapeMismatchException]
   override def initialValue(shape: Shape, dataType: DataType, partitionInfo: PartitionInformation): Output = {

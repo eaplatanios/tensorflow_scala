@@ -15,13 +15,13 @@
 
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api.ops.Output.Implicits._
+import org.platanios.tensorflow.api.ops.Implicits._
 
 /** Contains functions for constructing ops related to manipulating sparse tensors.
   *
   * @author Emmanouil Antonios Platanios
   */
-private[ops] trait Sparse {
+private[api] trait Sparse {
   /** Creates an op that converts a sparse tensor to a dense tensor.
     *
     * The op builds a tensor `dense` with shape `input.denseShape`, such that:
@@ -63,4 +63,4 @@ private[ops] trait Sparse {
   }
 }
 
-private[ops] object Sparse extends Sparse
+private[api] object Sparse extends Sparse

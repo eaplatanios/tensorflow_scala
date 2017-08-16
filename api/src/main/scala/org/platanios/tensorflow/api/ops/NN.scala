@@ -15,11 +15,12 @@
 
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api.core.Indexer.Implicits._
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.ops.NN._
-import org.platanios.tensorflow.api.ops.Output.Implicits._
+import org.platanios.tensorflow.api.ops.Implicits._
+import org.platanios.tensorflow.api.tensors.Implicits._
 import org.platanios.tensorflow.api.types._
 
 import scala.language.postfixOps
@@ -28,7 +29,7 @@ import scala.language.postfixOps
   *
   * @author Emmanouil Antonios Platanios
   */
-private[ops] trait NN {
+private[api] trait NN {
   //region Core NN Ops
 
   /** Creates an op that adds `bias` to `value`.
@@ -770,7 +771,7 @@ private[ops] trait NN {
   }
 }
 
-private[ops] object NN extends NN {
+private[api] object NN extends NN {
   /** Creates an op that flattens the outer axes of `input` and keeps its last axis. */
   private[ops] def flattenOuterAxes(input: Output): Output = {
     val rank = Basic.rank(input)

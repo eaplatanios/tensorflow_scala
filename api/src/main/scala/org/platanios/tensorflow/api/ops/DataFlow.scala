@@ -16,13 +16,14 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
+import org.platanios.tensorflow.api.tensors.Implicits._
 import org.platanios.tensorflow.api.types.INT32
 
 /** Contains functions for constructing ops related to data flow.
   *
   * @author Emmanouil Antonios Platanios
   */
-private[ops] trait DataFlow {
+private[api] trait DataFlow {
   /** Creates an op that partitions `data` into `numberOfPartitions` tensors using indices from `partitions`.
     *
     * For each index tuple `js` of size `partitions.rank`, the slice `data[js, ...]` becomes part of
@@ -129,7 +130,7 @@ private[ops] trait DataFlow {
   }
 }
 
-private[ops] object DataFlow extends DataFlow {
+private[api] object DataFlow extends DataFlow {
   private[ops] object Gradients {
     GradientsRegistry.registerNonDifferentiable("Stack")
     GradientsRegistry.registerNonDifferentiable("StackPush")

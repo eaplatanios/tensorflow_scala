@@ -22,6 +22,7 @@ import org.platanios.tensorflow.api.ops.Op.createWith
 import org.platanios.tensorflow.api.ops.Basic.{constant, placeholder}
 import org.platanios.tensorflow.api.ops.Math.add
 import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.api.tensors.Implicits._
 import org.platanios.tensorflow.api.types.FLOAT32
 
 import org.scalatest._
@@ -194,7 +195,7 @@ class GraphSpec extends FlatSpec with Matchers {
 
   "'Graph.toMetaGraphDef'" must "work when no scope is provided" in {
     val graph = Graph()
-    val session = tf.session(graph)
+    val session = tf.Session(graph)
 
     Op.createWith(graph) {
       // Create a minimal graph with zero variables.
@@ -220,7 +221,7 @@ class GraphSpec extends FlatSpec with Matchers {
 
     // Create a clean graph and import the 'MetaGraphDef' object.
     val newGraph = Graph()
-    val newSession = tf.session(newGraph)
+    val newSession = tf.Session(newGraph)
 
     newGraph.importMetaGraphDef(metaGraphDef)
 

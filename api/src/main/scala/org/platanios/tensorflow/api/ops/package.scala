@@ -15,7 +15,6 @@
 
 package org.platanios.tensorflow.api
 
-import scala.util.DynamicVariable
 import scala.util.matching.Regex
 
 /**
@@ -29,30 +28,7 @@ package object ops {
   private[ops] val VALID_OP_NAME_REGEX            : Regex  = "^[A-Za-z0-9.][A-Za-z0-9_.\\-/]*$".r
   private[ops] val VALID_NAME_SCOPE_REGEX         : Regex  = "^[A-Za-z0-9_.\\-/]*$".r
 
-  private[ops] val META_GRAPH_UNBOUND_INPUT_PREFIX: String = "$unbound_inputs_"
-
-  private[api] trait API {
-    implicit val opCreationContext: DynamicVariable[OpCreationContext] = {
-      new DynamicVariable[OpCreationContext](OpCreationContext(graph = defaultGraph))
-    }
-
-    implicit def dynamicVariableToOpCreationContext(context: DynamicVariable[OpCreationContext]): OpCreationContext = {
-      context.value
-    }
-
-    /** Convenient implicit conversion function used to convert devices specified as [[String]]s for use with the
-      * [[tf.createWith]] function, to the expected device function format taking an [[OpSpecification]] as input and
-      * return a device specification string.
-      *
-      * @param  device Device specification string.
-      * @return Function that returns `device` for any [[OpSpecification]] used as input.
-      */
-    implicit def deviceImplicitConversion(device: String): (OpSpecification => String) = _ => device
-
-    implicit def outputToInitialValueFunction(output: Output): () => Output = () => output
-  }
-
-  private[api] trait ScopedAPI
+  private[api] trait API
       extends Basic
           with ControlFlow
           with DataFlow

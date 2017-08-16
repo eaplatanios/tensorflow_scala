@@ -100,16 +100,6 @@ object Indexer {
   val ---    : Indexer = core.Ellipsis
   val ::     : Slice   = core.Slice.::
 
-  private[core] trait API extends Implicits {
-    type Indexer = core.Indexer
-    type Index = core.Index
-    type Slice = core.Slice
-
-    val ---    : Indexer = core.Ellipsis
-    val NewAxis: Indexer = core.NewAxis
-    val ::     : Slice   = core.Slice.::
-  }
-
   private[core] trait Implicits {
     // TODO: Add begin mask support (not simple).
 

@@ -15,9 +15,9 @@
 
 package org.platanios.tensorflow.api.learn
 
-import org.platanios.tensorflow.api.tf
+import org.platanios.tensorflow.api.{FLOAT32, INT32, tf, Shape}
 import org.platanios.tensorflow.api.core.client.FeedMap
-import org.platanios.tensorflow.api.ops.io.{Data, Dataset}
+import org.platanios.tensorflow.api.ops.io.Dataset
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
@@ -164,7 +164,7 @@ object Model {
 
 trait Model {
   private[learn] val graph  : tf.Graph   = tf.Graph()
-  private[learn] var session: tf.Session = tf.session(graph)
+  private[learn] var session: tf.Session = tf.Session(graph)
 
   // TODO: Add "restoreSequentially" support, and other options.
   private[learn] val saver: tf.Saver
@@ -221,8 +221,8 @@ class TrainableModel[IO, ID, IS, I, TO, TD, TS, ST, T] private[learn](
       val tfTrainingInput = trainingInput()
       val tfTrainingOutput = trainingInputLayer(tfTrainingInput.next())
       // TODO: [LEARN] !!! Remove this cast.
-      val tfLoss = tf.cast(loss(tfOutput, tfTrainingOutput), tf.FLOAT32, name = "LearnLossCast")
-      val tfIteration = tf.variable("TrainingIteration", tf.INT32, tf.shape(), tf.zerosInitializer)
+      val tfLoss = tf.cast(loss(tfOutput, tfTrainingOutput), FLOAT32, name = "LearnLossCast")
+      val tfIteration = tf.variable("TrainingIteration", INT32, Shape(), tf.zerosInitializer)
       val tfTrainOp = optimizer.minimize(tfLoss, iteration = Some(tfIteration))
       (tfTrainingInput, tfTrainingOutput, tfLoss, tfIteration, tfTrainOp)
     }

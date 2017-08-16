@@ -15,20 +15,23 @@
 
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api.core.Indexer._
+import org.platanios.tensorflow.api.core.Indexer.Implicits._
 import org.platanios.tensorflow.api.core.exception.{InvalidDataTypeException, InvalidShapeException}
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
-import org.platanios.tensorflow.api.ops.Output.Implicits._
+import org.platanios.tensorflow.api.ops.Implicits._
 import org.platanios.tensorflow.api.tensors.{RowMajorOrder, Tensor}
+import org.platanios.tensorflow.api.tensors.Implicits._
 import org.platanios.tensorflow.api.types._
+import org.platanios.tensorflow.api.utilities.using
 
 import scala.language.postfixOps
 
 /**
   * @author Emmanouil Antonios Platanios
   */
-private[ops] trait Basic {
+private[api] trait Basic {
   //region Tensor Creation Ops
 
   /** Creates an op that returns a constant tensor.
@@ -2988,7 +2991,7 @@ private[ops] trait Basic {
   //endregion Gradients Ops
 }
 
-private[ops] object Basic extends Basic {
+private[api] object Basic extends Basic {
   private[ops] object Gradients {
     GradientsRegistry.registerNonDifferentiable("Const")
     GradientsRegistry.registerNonDifferentiable("ZerosLike")

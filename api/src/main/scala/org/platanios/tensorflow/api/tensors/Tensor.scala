@@ -15,12 +15,12 @@
 
 package org.platanios.tensorflow.api.tensors
 
-import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.core.{Index, Indexer, Shape}
+import org.platanios.tensorflow.api.core.Indexer.Implicits._
 import org.platanios.tensorflow.api.core.exception.ShapeMismatchException
 import org.platanios.tensorflow.api.ops.{Basic, Output, OutputConvertible}
 import org.platanios.tensorflow.api.types._
-import org.platanios.tensorflow.api.utilities.Disposer
+import org.platanios.tensorflow.api.utilities.{Closeable, Disposer}
 import org.platanios.tensorflow.jni.{Tensor => NativeTensor}
 
 import spire.math.UShort
@@ -149,6 +149,7 @@ case class Tensor private[tensors](
       }
     }
   }
+
   // TODO: Use this for creating slices: Buffer.slice().position(sliceStart).limit(sliceSize)
 
   private[tensors] def stridedAssign(
@@ -160,14 +161,16 @@ case class Tensor private[tensors](
     tensor
   }
 
-  def reshape(shape: Shape, copyData: Boolean = true): Tensor = dataType match {
-    case STRING => ???
-    case _ =>
-      val newShape = this.shape.reshape(shape)
-      if (copyData)
-        Tensor(dataType, newShape, Tensor.copyBuffer(dataType, newShape, buffer, copy = true, order), order)
-      else
-        Tensor(dataType, newShape, buffer, order)
+  def reshape(shape: Shape, copyData: Boolean = true): Tensor = {
+    val newShape = this.shape.reshape(shape)
+    if (copyData) {
+      dataType match {
+        case STRING => ???
+        case _ => Tensor(dataType, newShape, Tensor.copyBuffer(dataType, newShape, buffer, copy = true, order), order)
+      }
+    } else {
+      Tensor(dataType, newShape, buffer, order)
+    }
   }
 
   /** Returns a summary of the contents of this tensor.
@@ -436,11 +439,6 @@ object Tensor {
     }
   }
 
-  private[tensors] trait API extends Implicits {
-    type Tensor = tensors.Tensor
-    val Tensor: tensors.Tensor.type = tensors.Tensor
-  }
-
   private[tensors] trait Implicits {
     implicit def scalaValueToTensor(value: Boolean): Tensor = Tensor.fill(dataType = BOOLEAN)(value)
     implicit def scalaValueToTensor(value: String): Tensor = Tensor.fill(dataType = STRING)(value)
@@ -462,8 +460,6 @@ object Tensor {
     implicit def scalaArrayToTensor(value: Array[Long]): Tensor = Tensor.fromSeq(value: _*)
     implicit def scalaArrayToTensor(value: Array[UShort]): Tensor = Tensor.fromSeq(value: _*)
   }
-
-  private[api] object Implicits extends Implicits
 
   private[api] final case class NativeView(private[api] var nativeHandle: Long) extends Closeable {
     override def close(): Unit = {
