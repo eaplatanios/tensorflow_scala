@@ -22,7 +22,7 @@ import org.platanios.tensorflow.api.ops.variables.{Saver, Variable, VariableStor
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.tensors.Implicits._
 import org.platanios.tensorflow.api.types.STRING
-import org.platanios.tensorflow.api.utilities.Closeable
+import org.platanios.tensorflow.api.utilities.{Closeable, Disposer}
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
 import org.platanios.tensorflow.jni.{Graph => NativeGraph, TensorFlow => NativeLibrary}
 
@@ -43,7 +43,12 @@ import scala.util.matching.Regex
 final case class Graph(private[api] var nativeHandle: Long) extends Closeable with ProtoSerializable {
   private[this] object NativeHandleLock
 
-  // TODO: [SESSION] Need to be able to reset and close this session.
+  // Keep track of references in the Scala side and notify the native library when the graph is not referenced
+  // anymore anywhere in the Scala side. This will let the native library free the allocated resources and prevent a
+  // potential memory leak.
+  Disposer.add(this, () => this.close())
+
+  // TODO: [SESSION] Need to be able to reset this session.
   private[api] val defaultSession: Session = Session(this)
 
   /** Map from native op handle to op object in the Scala side. Used for caching ops that have already been obtained

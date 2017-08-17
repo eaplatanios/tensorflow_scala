@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.core.client
 import org.platanios.tensorflow.api.core.{Graph, client}
 import org.platanios.tensorflow.api.ops.{Op, OpCreationContext, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.utilities.Closeable
+import org.platanios.tensorflow.api.utilities.{Closeable, Disposer}
 import org.platanios.tensorflow.jni.{Session => NativeSession}
 
 import org.tensorflow.framework.{RunMetadata, RunOptions}
@@ -37,6 +37,11 @@ final case class Session private (
 
   private[this] object NativeHandleLock
   private[this] var referenceCount: Int = 0
+
+  // Keep track of references in the Scala side and notify the native library when the session is not referenced
+  // anymore anywhere in the Scala side. This will let the native library free the allocated resources and prevent a
+  // potential memory leak.
+  Disposer.add(this, () => this.close())
 
   /** Runs ops and evaluates tensors in `fetches`, and returns the values of the evaluated tensors.
     *
