@@ -138,6 +138,11 @@ Perform the following steps:
      file in a directory that is in `LD_LIBRARY_PATH`, or set 
      `LD_LIBRARY_PATH` appropriately.
      
+     On ubuntu:
+     ```bash
+     sudo cp bazel-bin/tensorflow/libtensorflow.so /usr/local/lib/
+     ```
+     
 ### Installing the Protocol Buffers Compiler
 
 You also need protoc, the Protocol Buffers compiler.
@@ -147,9 +152,27 @@ On Debian/Ubuntu, you can install it with APT:
 ```bash
 apt install protobuf-compiler
 ```
+or
 
 You can also download prebuild binaries from [https://github.com/google/protobuf/releases/](https://github.com/google/protobuf/releases/)
 (choose the protoc variant appropriate for your platform).
+```bash
+# Make sure you grab the latest version
+curl -OL https://github.com/google/protobuf/releases/download/v3.4.0/protoc-3.4.0-linux-x86_64.zip
+
+# Unzip
+unzip protoc-3.4.0-linux-x86_64.zip -d protoc3
+
+# Move protoc to /usr/local/bin/
+sudo mv protoc3/bin/* /usr/local/bin/
+
+# Move protoc3/include to /usr/local/include/
+sudo mv protoc3/include/* /usr/local/include/
+
+# Optional: change owner
+sudo chwon [user] /usr/local/bin/protoc
+sudo chwon -R [user] /usr/local/include/google
+```
 
 ### Compiling the TensorFlow Scala API
 

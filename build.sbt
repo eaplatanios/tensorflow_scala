@@ -94,3 +94,4 @@ lazy val examples = (project in file("./examples"))
       name := "examples",
       libraryDependencies ++= loggingDependencies
     )
+

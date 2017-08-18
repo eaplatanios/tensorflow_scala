@@ -38,7 +38,7 @@ object MNIST {
   }
 
   def main(args: Array[String]): Unit = {
-    val dataSet = MNISTLoader.load(Paths.get("/Users/Anthony/Downloads/MNIST"))
+    val dataSet = MNISTLoader.load(Paths.get("temp/"))
     val trainImages = tf.datasetFromSlices(dataSet.trainImages).repeat().batch(1024)
     val trainLabels = tf.datasetFromSlices(dataSet.trainLabels).repeat().batch(1024)
 

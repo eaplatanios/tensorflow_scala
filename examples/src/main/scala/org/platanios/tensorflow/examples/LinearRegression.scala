@@ -15,8 +15,7 @@
 
 package org.platanios.tensorflow.examples
 
-import org.platanios.tensorflow.api._
-
+import org.platanios.tensorflow.api.{tf, _}
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
 
