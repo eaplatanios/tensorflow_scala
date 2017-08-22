@@ -21,6 +21,7 @@ import org.platanios.tensorflow.api.tensors.Tensor
 //Python Ver:
 //import tensorflow as tf
 //from tensorflow.python.framework import ops
+//sess = tf.Session()
 
 import org.slf4j.LoggerFactory
 

@@ -21,6 +21,7 @@ import org.platanios.tensorflow.api.ops.variables.ConstantInitializer
 //Python Ver:
 //import tensorflow as tf
 //from tensorflow.python.framework import ops
+//sess = tf.Session()
 
 import org.slf4j.LoggerFactory
 
@@ -47,8 +48,8 @@ object Tensors {
     // For example, we can create a zero filled tensor of predefined shape using the tf.zeros() function as follows.
     val myTensor = tf.zeros(Shape(3, 4), INT32)
     //We can evaluate tensors with calling a run() method on our session.
-    logger.info("myTensor info: ", session.run(fetches = myTensor).toString)
-    logger.info("Output of myTensor: ", session.run(fetches = myTensor).summarize())
+    logger.info(s"myTensor info: ${ session.run(fetches = myTensor).toString}")
+    logger.info(s"Output of myTensor: ${ session.run(fetches = myTensor).summarize()}")
 
 
     //PyVer:
@@ -65,12 +66,12 @@ object Tensors {
     // We will see more of this later on. For this script,
     // we can initialize one variable at a time by calling the variable method my_var.initializer.
     session.run(targets = myVar.initializer)
-    logger.info("Output of myVar: ", session.run(fetches = myVar.value).summarize())
+    logger.info(s"Output of myVar: ${session.run(fetches = myVar.value).summarize()}")
 
 
     val fillVar = tf.variable("fillVar", FLOAT32,  Shape(4,4), initializer=ConstantInitializer(-1))
     session.run(targets = fillVar.initializer)
-    logger.info("Output of fillVar: ", session.run(fetches = fillVar.value).summarize())
+    logger.info(s"Output of fillVar: ${session.run(fetches = fillVar.value).summarize()}")
 
     //PyVer:
     //rnorm_var = tf.random_normal([row_dim, col_dim], mean=0.0, stddev=1.0)
@@ -81,7 +82,13 @@ object Tensors {
 
     //Random number Tensors
     val randomNormalizedTensor = tf.randomNormal(shape=Shape(3,3))
-    logger.info("randomNormalizedTensor info: ", session.run(fetches = randomNormalizedTensor).toString)
-    logger.info("Output of randomNormalizedTensor: ", session.run(fetches = randomNormalizedTensor).summarize())
+    logger.info(s"randomNormalizedTensor info: ${session.run(fetches = randomNormalizedTensor).toString}")
+    logger.info(s"Output of randomNormalizedTensor: ${session.run(fetches = randomNormalizedTensor).summarize()}")
+
+
+//    val c = constant(Array(Array(1.0, 2.0), Array(3.0, 4.0)))
+//    val d = constant(Array(Array(1.0, 1.0), Array(0.0, 1.0)))
+//    val e = matmul(c, d)
+//    val result = e.evaluate() // 'result' now holds the result of the matrix multiplication.
   }
 }
