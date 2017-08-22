@@ -1,4 +1,4 @@
-/* Copyright 2017, Mageswaran.D (mageswaran1989@gmail.com). All Rights Reserved.
+/* Copyright 2017, Mageswaran.D <mageswaran1989@gmail.com>. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -17,6 +17,11 @@ package org.platanios.tensorflow.examples
 import com.typesafe.scalalogging.Logger
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.ops.variables.ConstantInitializer
+
+//Python Ver:
+//import tensorflow as tf
+//from tensorflow.python.framework import ops
+
 import org.slf4j.LoggerFactory
 
 /**
@@ -24,21 +29,32 @@ import org.slf4j.LoggerFactory
   */
 object Tensors {
 
-  private[this] val logger = Logger(LoggerFactory.getLogger("Examples / Linear Regression"))
+  private[this] val logger = Logger(LoggerFactory.getLogger("Examples / Tensors"))
 
   def main(args: Array[String]): Unit = {
+
+    //PyVer:
+    // sess = tf.Session()
 
     //Get graph handle with the tf.Session()
     val session = tf.Session()
 
+    //PyVer:
+    // my_tensor = tf.zeros([1,20])
+    // sess.run(my_tensor)
+
     //TensorFlow has built in function to create tensors for use in variables.
     // For example, we can create a zero filled tensor of predefined shape using the tf.zeros() function as follows.
     val myTensor = tf.zeros(Shape(3, 4), INT32)
-
     //We can evaluate tensors with calling a run() method on our session.
-    println("myTensor info: ", session.run(fetches = myTensor).toString)
-    println("Output of myTensor: ", session.run(fetches = myTensor).summarize())
+    logger.info("myTensor info: ", session.run(fetches = myTensor).toString)
+    logger.info("Output of myTensor: ", session.run(fetches = myTensor).summarize())
 
+
+    //PyVer:
+    // my_var = tf.Variable(tf.zeros([1,20]))
+    //sess.run(my_var.initializer)
+    //sess.run(my_var)
 
     //TensorFlow algorithms need to know which objects are variables and which are constants.
     val myVar = tf.variable("myVar", FLOAT32, Shape(3, 4), tf.zerosInitializer)
@@ -49,11 +65,23 @@ object Tensors {
     // We will see more of this later on. For this script,
     // we can initialize one variable at a time by calling the variable method my_var.initializer.
     session.run(targets = myVar.initializer)
-    println("Output of myVar: ", session.run(fetches = myVar.value).summarize())
+    logger.info("Output of myVar: ", session.run(fetches = myVar.value).summarize())
 
 
     val fillVar = tf.variable("fillVar", FLOAT32,  Shape(4,4), initializer=ConstantInitializer(-1))
     session.run(targets = fillVar.initializer)
-    println("Output of fillVar: ", session.run(fetches = fillVar.value).summarize())
+    logger.info("Output of fillVar: ", session.run(fetches = fillVar.value).summarize())
+
+    //PyVer:
+    //rnorm_var = tf.random_normal([row_dim, col_dim], mean=0.0, stddev=1.0)
+    //runif_var = tf.random_uniform([row_dim, col_dim], minval=0, maxval=4)
+
+    //print(sess.run(rnorm_var))
+    //print(sess.run(runif_var))
+
+    //Random number Tensors
+    val randomNormalizedTensor = tf.randomNormal(shape=Shape(3,3))
+    logger.info("randomNormalizedTensor info: ", session.run(fetches = randomNormalizedTensor).toString)
+    logger.info("Output of randomNormalizedTensor: ", session.run(fetches = randomNormalizedTensor).summarize())
   }
 }
