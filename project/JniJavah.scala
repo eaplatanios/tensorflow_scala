@@ -51,7 +51,7 @@ object JniJavah extends AutoPlugin {
         streams.value.log.info("Generating header for " + c)
         val command = s"javah -d ${directory.getAbsolutePath} -classpath $classPath $c"
         val exitCode = Process(command) ! streams.value.log
-        if (exitCode != 0) sys.error(s"An rrror occurred while running javah. Exit code: $exitCode.")
+        if (exitCode != 0) sys.error(s"An error occurred while running javah. Exit code: $exitCode.")
       }
       directory
     }
