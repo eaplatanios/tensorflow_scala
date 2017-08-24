@@ -22,7 +22,6 @@ import org.platanios.tensorflow.api.ops.Op.createWith
 import org.platanios.tensorflow.api.ops.Basic.{constant, placeholder}
 import org.platanios.tensorflow.api.ops.Math.add
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.tensors.Implicits._
 import org.platanios.tensorflow.api.types.FLOAT32
 
 import org.scalatest._

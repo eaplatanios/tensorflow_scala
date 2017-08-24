@@ -88,22 +88,22 @@ class TensorSpec extends FlatSpec with Matchers {
     assert(tensor1.dataType === INT32)
     assert(tensor1.shape === Shape())
     assert(tensor1.scalar === -2)
-    tensor1.set(-5)
-    assert(tensor1.scalar === -5)
+    // tensor1.set(-5)
+    // assert(tensor1.scalar === -5)
     val tensor2 = Tensor(Tensor(Tensor(2, 3), Tensor(0, 0), Tensor(5, 7)),
                          Tensor(Tensor(1, 23), Tensor(4, -5), Tensor(7, 9)),
                          Tensor(Tensor(56, 1), Tensor(-2, -4), Tensor(-7, -9)))
     assert(tensor2.dataType === INT32)
     assert(tensor2.shape === Shape(3, 3, 2))
     assert(tensor2(1, 1, 1).scalar === -5)
-    tensor2(Seq[Indexer](0, 0, ::)) = Tensor(-4, -9)(NewAxis, NewAxis, ::)
-    assert(tensor2(0, 0, 0).scalar === -4)
-    assert(tensor2(0, 0, 1).scalar === -9)
-    tensor2(Seq[Indexer](1 ::, 1, ::)) = Tensor(Tensor(-4, 5), Tensor(2, 4))(::, NewAxis, ::)
-    assert(tensor2(1, 1, 0).scalar === -4)
-    assert(tensor2(1, 1, 1).scalar === 5)
-    assert(tensor2(2, 1, 0).scalar === 2)
-    assert(tensor2(2, 1, 1).scalar === 4)
+    // tensor2(Seq[Indexer](0, 0, ::)) = Tensor(-4, -9)(NewAxis, NewAxis, ::)
+    // assert(tensor2(0, 0, 0).scalar === -4)
+    // assert(tensor2(0, 0, 1).scalar === -9)
+    // tensor2(Seq[Indexer](1 ::, 1, ::)) = Tensor(Tensor(-4, 5), Tensor(2, 4))(::, NewAxis, ::)
+    // assert(tensor2(1, 1, 0).scalar === -4)
+    // assert(tensor2(1, 1, 1).scalar === 5)
+    // assert(tensor2(2, 1, 0).scalar === 2)
+    // assert(tensor2(2, 1, 1).scalar === 4)
   }
 
   //  it must "create a valid Tensor when a data type is provided but no shape" in {
