@@ -9,11 +9,27 @@ extern "C" {
 #endif
 /*
  * Class:     org_platanios_tensorflow_jni_Tensor__
+ * Method:    allocate
+ * Signature: (I[JJ)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_allocate
+  (JNIEnv *, jobject, jint, jlongArray, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Tensor__
  * Method:    fromBuffer
- * Signature: (LI[JJ)J
+ * Signature: (I[JJL)J
  */
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_fromBuffer
-  (JNIEnv *, jobject, jobject, jint, jlongArray, jlong);
+  (JNIEnv *, jobject, jint, jlongArray, jlong, jobject);
+
+///*
+// * Class:     org_platanios_tensorflow_jni_Tensor__
+// * Method:    fromBuffer
+// * Signature: (LI[JJ)J
+// */
+//JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_fromBuffer
+//  (JNIEnv *, jobject, jobject, jint, jlongArray, jlong);
 
 /*
  * Class:     org_platanios_tensorflow_jni_Tensor__
@@ -71,86 +87,269 @@ JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_setStringB
 JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_getStringBytes
   (JNIEnv *, jobject, jobject);
 
-///*
-// * Class:     org_platanios_tensorflow_jni_Tensor__
-// * Method:    allocate
-// * Signature: (I[JJ)J
-// */
-//JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_allocate
-//  (JNIEnv *, jobject, jint, jlongArray, jlong);
-//
-///*
-// * Class:     org_platanios_tensorflow_jni_Tensor__
-// * Method:    allocateScalarBytes
-// * Signature: ([B)J
-// */
-//JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_allocateScalarBytes
-//  (JNIEnv *, jobject, jbyteArray);
-//
-//
-///*
-// * Class:     org_platanios_tensorflow_jni_Tensor__
-// * Method:    setValue
-// * Signature: (JLjava/lang/Object;)V
-// */
-//JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_setValue
-//  (JNIEnv *, jobject, jlong, jobject);
-//
-///*
-// * Class:     org_platanios_tensorflow_jni_Tensor__
-// * Method:    scalarFloat
-// * Signature: (J)F
-// */
-//JNIEXPORT jfloat JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_scalarFloat
-//  (JNIEnv *, jobject, jlong);
-//
-///*
-// * Class:     org_platanios_tensorflow_jni_Tensor__
-// * Method:    scalarDouble
-// * Signature: (J)D
-// */
-//JNIEXPORT jdouble JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_scalarDouble
-//  (JNIEnv *, jobject, jlong);
-//
-///*
-// * Class:     org_platanios_tensorflow_jni_Tensor__
-// * Method:    scalarInt
-// * Signature: (J)I
-// */
-//JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_scalarInt
-//  (JNIEnv *, jobject, jlong);
-//
-///*
-// * Class:     org_platanios_tensorflow_jni_Tensor__
-// * Method:    scalarLong
-// * Signature: (J)J
-// */
-//JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_scalarLong
-//  (JNIEnv *, jobject, jlong);
-//
-///*
-// * Class:     org_platanios_tensorflow_jni_Tensor__
-// * Method:    scalarBoolean
-// * Signature: (J)Z
-// */
-//JNIEXPORT jboolean JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_scalarBoolean
-//  (JNIEnv *, jobject, jlong);
-//
-///*
-// * Class:     org_platanios_tensorflow_jni_Tensor__
-// * Method:    scalarBytes
-// * Signature: (J)[B
-// */
-//JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_scalarBytes
-//  (JNIEnv *, jobject, jlong);
-//
-///*
-// * Class:     org_platanios_tensorflow_jni_Tensor__
-// * Method:    readNDArray
-// * Signature: (JLjava/lang/Object;)V
-// */
-//JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_readNDArray
-//  (JNIEnv *, jobject, jlong, jobject);
+/*
+ * Class:     org_platanios_tensorflow_jni_Tensor__
+ * Method:    eagerAllocateContext
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerAllocateContext
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Tensor__
+ * Method:    eagerDeleteContext
+ * Signature: (J)V
+ */
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerDeleteContext
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Tensor__
+ * Method:    eagerAllocate
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerAllocate
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Tensor__
+ * Method:    eagerDataType
+ * Signature: (J)I
+ */
+JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerDataType
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Tensor__
+ * Method:    eagerShape
+ * Signature: (J)[J
+ */
+JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerShape
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Tensor__
+ * Method:    eagerDevice
+ * Signature: (J)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerDevice
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Tensor__
+ * Method:    eagerDelete
+ * Signature: (J)V
+ */
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerDelete
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Tensor__
+ * Method:    eagerResolve
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerResolve
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Tensor__
+ * Method:    eagerCopyToDevice
+ * Signature: (JJLjava/lang/String;)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerCopyToDevice
+  (JNIEnv *, jobject, jlong, jlong, jstring);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Tensor__
+ * Method:    eagerAllocateOp
+ * Signature: (JLjava/lang/String;)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerAllocateOp
+  (JNIEnv *, jobject, jlong, jstring);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Tensor__
+ * Method:    eagerDeleteOp
+ * Signature: (J)V
+ */
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerDeleteOp
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Tensor__
+ * Method:    eagerSetOpDevice
+ * Signature: (JJLjava/lang/String;)V
+ */
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerSetOpDevice
+  (JNIEnv *, jobject, jlong, jlong, jstring);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Tensor__
+ * Method:    eagerOpAddInput
+ * Signature: (JJ);V
+ */
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerOpAddInput
+  (JNIEnv *, jobject, jlong, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Tensor__
+ * Method:    eagerSetOpAttrString
+ * Signature: (JLjava/lang/String;[B)V
+ */
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerSetOpAttrString
+  (JNIEnv *, jobject, jlong, jstring, jbyteArray);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Tensor__
+ * Method:    eagerSetOpAttrStringList
+ * Signature: (JLjava/lang/String;[L)V
+ */
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerSetOpAttrStringList
+  (JNIEnv *, jobject, jlong, jstring, jobjectArray);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Tensor__
+ * Method:    eagerSetOpAttrInt
+ * Signature: (JLjava/lang/String;J)V
+ */
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerSetOpAttrInt
+  (JNIEnv *, jobject, jlong, jstring, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Tensor__
+ * Method:    eagerSetOpAttrIntList
+ * Signature: (JLjava/lang/String;[J)V
+ */
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerSetOpAttrIntList
+  (JNIEnv *, jobject, jlong, jstring, jlongArray);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Tensor__
+ * Method:    eagerSetOpAttrFloat
+ * Signature: (JLjava/lang/String;F)V
+ */
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerSetOpAttrFloat
+  (JNIEnv *, jobject, jlong, jstring, jfloat);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Tensor__
+ * Method:    eagerSetOpAttrFloatList
+ * Signature: (JLjava/lang/String;[F)V
+ */
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerSetOpAttrFloatList
+  (JNIEnv *, jobject, jlong, jstring, jfloatArray);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Tensor__
+ * Method:    eagerSetOpAttrBool
+ * Signature: (JLjava/lang/String;Z)V
+ */
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerSetOpAttrBool
+  (JNIEnv *, jobject, jlong, jstring, jboolean);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Tensor__
+ * Method:    eagerSetOpAttrBoolList
+ * Signature: (JLjava/lang/String;[Z)V
+ */
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerSetOpAttrBoolList
+  (JNIEnv *, jobject, jlong, jstring, jbooleanArray);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Tensor__
+ * Method:    eagerSetOpAttrType
+ * Signature: (JLjava/lang/String;I)V
+ */
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerSetOpAttrType
+  (JNIEnv *, jobject, jlong, jstring, jint);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Tensor__
+ * Method:    eagerSetOpAttrTypeList
+ * Signature: (JLjava/lang/String;[I)V
+ */
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerSetOpAttrTypeList
+  (JNIEnv *, jobject, jlong, jstring, jintArray);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Tensor__
+ * Method:    eagerSetOpAttrTensor
+ * Signature: (JLjava/lang/String;J)V
+ */
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerSetOpAttrTensor
+  (JNIEnv *, jobject, jlong, jstring, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Tensor__
+ * Method:    eagerSetOpAttrTensorList
+ * Signature: (JLjava/lang/String;[J)V
+ */
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerSetOpAttrTensorList
+  (JNIEnv *, jobject, jlong, jstring, jlongArray);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Tensor__
+ * Method:    eagerSetOpAttrShape
+ * Signature: (JLjava/lang/String;[JI)V
+ */
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerSetOpAttrShape
+  (JNIEnv *, jobject, jlong, jstring, jlongArray, jint);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Tensor__
+ * Method:    eagerSetOpAttrShapeList
+ * Signature: (JLjava/lang/String;[J[II)V
+ */
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerSetOpAttrShapeList
+  (JNIEnv *, jobject, jlong, jstring, jobjectArray, jintArray, jint);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Tensor__
+ * Method:    eagerExecuteOp
+ * Signature: (J)[J
+ */
+JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerExecuteOp
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Tensor__
+ * Method:    cast
+ * Signature: (LJJI)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_cast
+  (JNIEnv *, jobject, jlong, jlong, jint);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Tensor__
+ * Method:    pack
+ * Signature: (LJ[JJ)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_pack
+  (JNIEnv *, jobject, jlong, jlongArray, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Tensor__
+ * Method:    stridedSlice
+ * Signature: (LJJJJJJJJJJ)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_stridedSlice
+  (JNIEnv *, jobject, jlong, jlong, jlong, jlong, jlong, jlong, jlong, jlong, jlong, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Tensor__
+ * Method:    reshape
+ * Signature: (LJJJ)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_reshape
+  (JNIEnv *, jobject, jlong, jlong, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Tensor__
+ * Method:    add
+ * Signature: (LJJJ)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_add
+  (JNIEnv *, jobject, jlong, jlong, jlong);
 
 #ifdef __cplusplus
 }
