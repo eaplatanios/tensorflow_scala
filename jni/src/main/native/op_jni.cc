@@ -666,9 +666,9 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_setDevice(
     JNIEnv* env, jobject object, jlong handle, jstring device) {
   TF_OperationDescription* d = requireOperationDescriptionHandle(env, handle);
   if (d == nullptr) return;
-  const char* cdevice = env->GetStringUTFChars(device, nullptr);
-  TF_SetDevice(d, cdevice);
-  env->ReleaseStringUTFChars(device, cdevice);
+  const char* c_device = env->GetStringUTFChars(device, nullptr);
+  TF_SetDevice(d, c_device);
+  env->ReleaseStringUTFChars(device, c_device);
 }
 
 JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_colocateWith(
@@ -713,46 +713,46 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_setAttrStringL
   env->ReleaseStringUTFChars(name, c_name);
 }
 
-#define DEFINE_SET_ATTR_SCALAR(name, jtype, ctype)                                           \
-  JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_setAttr##name(           \
+#define DEFINE_SET_ATTR_SCALAR(atype, jtype, ctype)                                          \
+  JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_setAttr##atype(          \
       JNIEnv* env, jobject object, jlong handle, jstring name, jtype value) {                \
     static_assert(                                                                           \
         sizeof(ctype) >= sizeof(jtype),                                                      \
         "Information loss when converting between Java and C types");                        \
     TF_OperationDescription* d = requireOperationDescriptionHandle(env, handle);             \
     if (d == nullptr) return;                                                                \
-    const char* cname = env->GetStringUTFChars(name, nullptr);                               \
-    TF_SetAttr##name(d, cname, static_cast<ctype>(value));                                   \
-    env->ReleaseStringUTFChars(name, cname);                                                 \
+    const char* c_name = env->GetStringUTFChars(name, nullptr);                              \
+    TF_SetAttr##atype(d, c_name, static_cast<ctype>(value));                                 \
+    env->ReleaseStringUTFChars(name, c_name);                                                \
   }
 
-#define DEFINE_SET_ATTR_LIST(name, jname, jtype, ctype)                            \
+#define DEFINE_SET_ATTR_LIST(atype, jname, jtype, ctype)                           \
   JNIEXPORT void JNICALL                                                           \
-      Java_org_platanios_tensorflow_jni_Op_00024_setAttr##name##List(              \
+      Java_org_platanios_tensorflow_jni_Op_00024_setAttr##atype##List(             \
           JNIEnv* env, jobject object, jlong handle, jstring name,                 \
           jtype##Array value) {                                                    \
     TF_OperationDescription* d = requireOperationDescriptionHandle(env, handle);   \
     if (d == nullptr) return;                                                      \
-    const char* cname = env->GetStringUTFChars(name, nullptr);                     \
+    const char* c_name = env->GetStringUTFChars(name, nullptr);                    \
     /* Make a copy of the array to paper over any differences */                   \
     /* in byte representations of the jtype and ctype         */                   \
     /* For example, jint vs TF_DataType.                      */                   \
     /* If this copy turns out to be a problem in practice     */                   \
     /* can avoid it for many types.                           */                   \
     const int n = env->GetArrayLength(value);                                      \
-    std::unique_ptr<ctype[]> cvalue(new ctype[n]);                                 \
+    std::unique_ptr<ctype[]> c_value(new ctype[n]);                                \
     jtype* elems = env->Get##jname##ArrayElements(value, nullptr);                 \
     for (int i = 0; i < n; ++i) {                                                  \
-      cvalue[i] = static_cast<ctype>(elems[i]);                                    \
+      c_value[i] = static_cast<ctype>(elems[i]);                                   \
     }                                                                              \
-    TF_SetAttr##name##List(d, cname, cvalue.get(), n);                             \
+    TF_SetAttr##atype##List(d, c_name, c_value.get(), n);                          \
     env->Release##jname##ArrayElements(value, elems, JNI_ABORT);                   \
-    env->ReleaseStringUTFChars(name, cname);                                       \
+    env->ReleaseStringUTFChars(name, c_name);                                      \
   }
 
-#define DEFINE_SET_ATTR(name, jname, jtype, ctype) \
-  DEFINE_SET_ATTR_SCALAR(name, jtype, ctype)       \
-  DEFINE_SET_ATTR_LIST(name, jname, jtype, ctype)
+#define DEFINE_SET_ATTR(atype, jname, jtype, ctype) \
+  DEFINE_SET_ATTR_SCALAR(atype, jtype, ctype)       \
+  DEFINE_SET_ATTR_LIST(atype, jname, jtype, ctype)
 
 DEFINE_SET_ATTR(Int, Long, jlong, int64_t);
 DEFINE_SET_ATTR(Float, Float, jfloat, float);
@@ -763,8 +763,7 @@ DEFINE_SET_ATTR(Type, Int, jint, TF_DataType);
 #undef DEFINE_SET_ATTR_SCALAR
 
 JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_setAttrTensor(
-    JNIEnv* env, jobject object, jlong handle, jstring name,
-    jlong tensor_handle) {
+    JNIEnv* env, jobject object, jlong handle, jstring name, jlong tensor_handle) {
   TF_OperationDescription* d = requireOperationDescriptionHandle(env, handle);
   if (d == nullptr) return;
   TF_Tensor* t = requireTensor(env, tensor_handle);
@@ -777,8 +776,7 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_setAttrTensor(
 }
 
 JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_setAttrTensorList(
-    JNIEnv* env, jobject object, jlong handle, jstring name,
-    jlongArray tensor_handles) {
+    JNIEnv* env, jobject object, jlong handle, jstring name, jlongArray tensor_handles) {
   TF_OperationDescription* d = requireOperationDescriptionHandle(env, handle);
   if (d == nullptr) return;
   const int n = env->GetArrayLength(tensor_handles);

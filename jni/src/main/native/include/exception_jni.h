@@ -38,6 +38,10 @@ void throw_exception(JNIEnv *env, const char *clazz, const char *fmt, ...);
 // Returns true iff TF_GetCode(status) == TF_OK.
 bool throw_exception_if_not_ok(JNIEnv *env, const TF_Status *status);
 
+#define CHECK_STATUS(env, status, null_return_value)     \
+  if (!throw_exception_if_not_ok(env, status))           \
+    return null_return_value;
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif  // __cplusplus
