@@ -20,7 +20,6 @@ import org.platanios.tensorflow.api.core.exception.ShapeMismatchException
 import org.platanios.tensorflow.api.ops.{Basic, Output, Random}
 import org.platanios.tensorflow.api.ops.variables.Variable.PartitionInformation
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.tensors.Implicits._
 import org.platanios.tensorflow.api.types.DataType
 
 // TODO: [VARIABLE_INITIALIZERS] RandomUniform/Normal, TruncatedNormal, UniformUnitScaling, Orthogonal.

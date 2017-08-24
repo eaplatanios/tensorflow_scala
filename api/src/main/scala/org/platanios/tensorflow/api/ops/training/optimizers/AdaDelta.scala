@@ -17,7 +17,6 @@ package org.platanios.tensorflow.api.ops.training.optimizers
 
 import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output, OutputIndexedSlices}
 import org.platanios.tensorflow.api.ops.variables.Variable
-import org.platanios.tensorflow.api.tensors.Implicits._
 
 /** Optimizer that implements the AdaDelta optimization algorithm.
   *

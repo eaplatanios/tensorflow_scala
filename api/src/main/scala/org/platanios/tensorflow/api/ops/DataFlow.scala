@@ -16,7 +16,6 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
-import org.platanios.tensorflow.api.tensors.Implicits._
 import org.platanios.tensorflow.api.types.INT32
 
 /** Contains functions for constructing ops related to data flow.

@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.tensors.eager
 
-import org.platanios.tensorflow.api.tensors.{DeviceTensor, Tensor}
+import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.utilities.Closeable
 import org.platanios.tensorflow.jni.{Tensor => NativeTensor}
 
@@ -26,7 +26,7 @@ private[api] final case class Context private (private[tensors] var nativeHandle
   private[this] object NativeHandleLock
   private[this] var referenceCount: Int = 0
 
-  private[tensors] def execute(opHandle: Long): Seq[DeviceTensor] = {
+  private[tensors] def execute(opHandle: Long): Seq[Tensor] = {
     NativeHandleLock.synchronized {
       if (nativeHandle == 0)
         throw new IllegalStateException("close() has been called on the context.")

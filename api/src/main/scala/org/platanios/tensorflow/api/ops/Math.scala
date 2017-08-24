@@ -20,9 +20,7 @@ import org.platanios.tensorflow.api.core.Indexer.Implicits._
 import org.platanios.tensorflow.api.core.exception.InvalidDataTypeException
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.ops.Implicits._
-import org.platanios.tensorflow.api.ops.Implicits._
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.tensors.Implicits._
 import org.platanios.tensorflow.api.types._
 
 import scala.language.postfixOps
@@ -1462,9 +1460,9 @@ private[api] trait Math {
     } else {
       tensor match { // Fast path: Avoid creating range and rank ops if the rank is known statically.
         case t: Output if t.rank > -1 =>
-          Basic.constant(Tensor.fromSeq(0 until t.rank: _*)(INT32.supportedType))
+          Basic.constant(Tensor(0 until t.rank))
         case o: SparseOutput if o.denseShape.shape.isFullyDefined =>
-          Basic.constant(Tensor.fromSeq(0 until o.denseShape.shape(0): _*)(INT32.supportedType))
+          Basic.constant(Tensor(0 until o.denseShape.shape(0)))
         case _ => // Otherwise, we rely on range and rank to do the right thing at run-time.
           range(0, Basic.rank(tensor))
       }
@@ -3622,7 +3620,7 @@ private[api] object Math extends Math {
         Seq(outputGradients.head, null)
       } else if (rank != -1
           && axes.op.opType == "Const"
-          && axes.op.tensorAttribute("value") == Tensor.fromSeq(axes.dataType, 0 until rank: _*)) {
+          && axes.op.tensorAttribute("value") == Tensor(axes.dataType, 0 until rank)) {
         // In this case the reduction was over all dimensions.
         var outputGradient = outputGradients.head.toOutput
         outputGradient = Basic.reshape(outputGradient, Shape(Array.fill(rank)(1)))
@@ -3826,7 +3824,7 @@ private[api] object Math extends Math {
       val matrixShape = inputShape(-2 ::)
       val diagShape = {
         if (batchShape.isFullyDefined && matrixShape.isFullyDefined) {
-          Basic.constant(Tensor((batchShape.asArray :+ matrixShape.asArray.min).map(Tensor(_)): _*))
+          Basic.constant(Tensor((batchShape.asArray :+ matrixShape.asArray.min).map(Tensor(_))))
         } else {
           Op.colocateWith(Set(gradient.op)) {
             val gradShape = Basic.shape(gradient)

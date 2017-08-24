@@ -20,7 +20,6 @@ import org.platanios.tensorflow.api.core.exception.{GraphMismatchException, Inva
 import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output}
 import org.platanios.tensorflow.api.ops.variables.{Saver, Variable, VariableStore}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.tensors.Implicits._
 import org.platanios.tensorflow.api.types.STRING
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer}
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
@@ -283,7 +282,7 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable wi
         // Get a one-dimensional boolean tensor listing whether each variable is initialized.
         val variablesMask = Math.logicalNot(Basic.stack(variables.map(_.isInitialized).toSeq))
         // Get a one-dimensional string tensor containing all the variable names.
-        val variableNames = Basic.constant(Tensor(variables.map(v => Tensor(STRING, v.op.name)).toSeq: _*))
+        val variableNames = Basic.constant(Tensor(variables.map(v => Tensor(STRING, v.op.name)).toSeq))
         // Return a one-dimensional tensor containing the names of all uninitialized variables.
         Basic.booleanMask(variableNames, variablesMask)
       }

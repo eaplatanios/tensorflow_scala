@@ -20,7 +20,6 @@ import org.platanios.tensorflow.api.core.Indexer.Implicits._
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.ops.NN._
 import org.platanios.tensorflow.api.ops.Implicits._
-import org.platanios.tensorflow.api.tensors.Implicits._
 import org.platanios.tensorflow.api.types._
 
 import scala.language.postfixOps
@@ -1052,7 +1051,7 @@ private[api] object NN extends NN {
           true
         } else {
           val constantFillValue = Output.constantValue(gradGradient)
-          constantFillValue.isDefined && constantFillValue.get.entriesIterator.forall(_ == 0)
+          constantFillValue.isDefined && constantFillValue.get.entriesIterator().forall(_ == 0)
         }
       }
 

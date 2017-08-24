@@ -19,7 +19,7 @@ import org.platanios.tensorflow.api.core.{Graph, client}
 import org.platanios.tensorflow.api.ops.{Op, OpCreationContext, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer}
-import org.platanios.tensorflow.jni.{Session => NativeSession}
+import org.platanios.tensorflow.jni.{Session => NativeSession, Tensor => NativeTensor}
 
 import org.tensorflow.framework.{RunMetadata, RunOptions}
 
@@ -116,8 +116,7 @@ final case class Session private (
     if (nativeHandle == 0)
       throw new IllegalStateException("This session has already been closed.")
     val (inputs, inputTensors) = feeds.values.toSeq.unzip
-    val inputTensorNativeViews = inputTensors.map(_.nativeView)
-    val inputTensorHandles: Array[Long] = inputTensorNativeViews.map(_.nativeHandle).toArray
+    val inputTensorHandles: Array[Long] = inputTensors.map(_.resolve()).toArray
     val inputOpHandles: Array[Long] = inputs.map(_.op.nativeHandle).toArray
     val inputOpIndices: Array[Int] = inputs.map(_.index).toArray
     val (uniqueFetches, resultsBuilder) = Fetchable.process(fetches)(fetchable)
@@ -141,7 +140,11 @@ final case class Session private (
       targetOpHandles = targetOpHandles,
       wantRunMetadata = wantMetadata,
       outputTensorHandles = outputTensorHandles)
-    val outputs: R = resultsBuilder(outputTensorHandles.map(Tensor.fromTFNativeHandle))
+    val outputs: R = resultsBuilder(outputTensorHandles.map(handle => {
+      val tensor = Tensor.fromTFNativeHandle(handle)
+      NativeTensor.delete(handle)
+      tensor
+    }))
     NativeHandleLock.synchronized {
       if (nativeHandle != 0) {
         referenceCount -= 1
@@ -149,7 +152,7 @@ final case class Session private (
           NativeHandleLock.notifyAll()
       }
     }
-    inputTensorNativeViews.foreach(_.close())
+    inputTensorHandles.foreach(NativeTensor.delete)
     (outputs, Option(metadata).map(RunMetadata.parseFrom))
   }
 

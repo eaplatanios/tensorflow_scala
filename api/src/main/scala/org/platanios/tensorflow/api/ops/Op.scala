@@ -24,7 +24,7 @@ import org.platanios.tensorflow.api.ops.variables.{CreateNewOnly, VariableScope,
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.DataType
 import org.platanios.tensorflow.api.utilities.using
-import org.platanios.tensorflow.jni.{Op => NativeOp}
+import org.platanios.tensorflow.jni.{Op => NativeOp, Tensor => NativeTensor}
 
 import java.nio.charset.Charset
 
@@ -1101,10 +1101,14 @@ object Op {
             NativeOp.setAttrType(nativeHandle, attribute._1, value.cValue)
           case value: Array[DataType] =>
             NativeOp.setAttrTypeList(nativeHandle, attribute._1, value.map(_.cValue))
-          case value: Tensor.NativeView =>
-            NativeOp.setAttrTensor(nativeHandle, attribute._1, value.nativeHandle)
-          case value: Array[Tensor.NativeView] =>
-            NativeOp.setAttrTensorList(nativeHandle, attribute._1, value.map(_.nativeHandle))
+          case value: Tensor =>
+            val handle = value.resolve()
+            NativeOp.setAttrTensor(nativeHandle, attribute._1, handle)
+            NativeTensor.delete(handle)
+          case value: Array[Tensor] =>
+            val handles = value.map(_.resolve())
+            NativeOp.setAttrTensorList(nativeHandle, attribute._1, handles)
+            handles.foreach(NativeTensor.delete)
           case value: Shape =>
             NativeOp.setAttrShape(nativeHandle, attribute._1, value.asArray.map(_.toLong), value.rank)
           case value: Array[Shape] =>
@@ -1190,12 +1194,12 @@ object Op {
       this
     }
 
-    def setAttribute(name: String, value: Tensor.NativeView): Builder = {
+    def setAttribute(name: String, value: Tensor): Builder = {
       attributes += name -> value
       this
     }
 
-    def setAttribute(name: String, value: Array[Tensor.NativeView]): Builder = {
+    def setAttribute(name: String, value: Array[Tensor]): Builder = {
       attributes += name -> value
       this
     }

@@ -21,10 +21,8 @@ import org.platanios.tensorflow.api.core.Indexer.Implicits._
 import org.platanios.tensorflow.api.core.exception.{InvalidDataTypeException, InvalidShapeException}
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.ops.Implicits._
-import org.platanios.tensorflow.api.tensors.{RowMajorOrder, Tensor}
-import org.platanios.tensorflow.api.tensors.Implicits._
+import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types._
-import org.platanios.tensorflow.api.utilities.using
 
 import scala.language.postfixOps
 
@@ -62,29 +60,22 @@ private[api] trait Basic {
     val inferredShape = if (shape == null) tensor.shape else shape
     val constantTensor = {
       if (inferredDataType != tensor.dataType || inferredShape != tensor.shape) {
-        // TODO: !!! Add support for reshaping tensor.
         if (tensor.numElements == 1) {
           Tensor.fill(inferredDataType, inferredShape)(tensor.scalar)(tensor.dataType.supportedType)
         } else {
           if (inferredShape.numElements != tensor.shape.numElements)
             throw InvalidShapeException(
               s"Shape '${tensor.shape}' tensor is not valid for shape '$inferredShape' constant op creation.")
-          val t = Tensor.allocate(inferredDataType, inferredShape, order = RowMajorOrder)
-          for ((thisIndex, tensorIndex) <- t.flattenedIndexIterator zip tensor.flattenedIndexIterator)
-            t.setElementAtFlattenedIndex(
-              thisIndex, tensor.getElementAtFlattenedIndex(tensorIndex))(tensor.dataType.supportedType)
-          t
+          tensor.reshape(inferredShape).cast(inferredDataType)
         }
       } else {
         tensor
       }
     }
-    using(constantTensor.nativeView) { nativeTensor =>
-      Op.Builder(opType = "Const", name = name)
-          .setAttribute("value", nativeTensor)
-          .setAttribute("dtype", inferredDataType)
-          .build().outputs(0)
-    }
+    Op.Builder(opType = "Const", name = name)
+        .setAttribute("value", constantTensor)
+        .setAttribute("dtype", inferredDataType)
+        .build().outputs(0)
   }
 
   /** Creates an op that returns an immutable tensor from the provided memory region.
@@ -2567,8 +2558,8 @@ private[api] trait Basic {
     * @return Created op output.
     */
   private[api] def stridedSlice(
-      input: Output, begin: Output, end: Output, strides: Output = null, beginMask: Int = 0,
-      endMask: Int = 0, ellipsisMask: Int = 0, newAxisMask: Int = 0, shrinkAxisMask: Int = 0,
+      input: Output, begin: Output, end: Output, strides: Output = null, beginMask: Long = 0,
+      endMask: Long = 0, ellipsisMask: Long = 0, newAxisMask: Long = 0, shrinkAxisMask: Long = 0,
       name: String = "StridedSlice"): Output = {
     Op.Builder(opType = "StridedSlice", name = name)
         .addInput(input)

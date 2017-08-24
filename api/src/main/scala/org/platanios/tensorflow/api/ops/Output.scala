@@ -21,7 +21,6 @@ import org.platanios.tensorflow.api.core.exception.InvalidDataTypeException
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.Op.{createWith, getGraphFromInputs}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.tensors.Implicits._
 import org.platanios.tensorflow.api.types.{DataType, INT32, INT64}
 import org.platanios.tensorflow.api.utilities.using
 import org.platanios.tensorflow.jni.{Op => NativeOp}
@@ -349,7 +348,7 @@ object Output {
       case "Shape" =>
         val inputShape = tensor.op.inputs(0).shape
         if (inputShape.isFullyDefined)
-          Some(Tensor(tensor.dataType, inputShape.asArray.map(Tensor(_)): _*))
+          Some(Tensor(tensor.dataType, inputShape.asArray.map(Tensor(_))))
         None
       case "Size" =>
         val inputShape = tensor.op.inputs(0).shape

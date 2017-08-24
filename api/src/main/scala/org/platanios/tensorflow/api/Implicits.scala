@@ -21,6 +21,5 @@ package org.platanios.tensorflow.api
 trait Implicits
     extends core.Implicits
         with ops.Implicits
-        with tensors.Implicits
 
 object Implicits extends Implicits

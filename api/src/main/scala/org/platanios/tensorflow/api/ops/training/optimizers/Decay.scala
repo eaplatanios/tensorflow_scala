@@ -18,7 +18,6 @@ package org.platanios.tensorflow.api.ops.training.optimizers
 import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output}
 import org.platanios.tensorflow.api.ops.training.optimizers
 import org.platanios.tensorflow.api.ops.variables.Variable
-import org.platanios.tensorflow.api.tensors.Implicits._
 
 /** Trait for implementing optimization learning rate decay methods.
   *

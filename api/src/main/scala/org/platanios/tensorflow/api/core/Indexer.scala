@@ -18,8 +18,6 @@ package org.platanios.tensorflow.api.core
 import org.platanios.tensorflow.api.core
 import org.platanios.tensorflow.api.core.exception.InvalidIndexerException
 import org.platanios.tensorflow.api.ops.{Basic, Output}
-import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.INT32
 
 import scala.language.postfixOps
 
@@ -249,33 +247,35 @@ object Indexer {
   private[api] def toStridedSlice(indexers: Indexer*): Output => Output = {
     if (indexers.count(_ == Ellipsis) > 1)
       throw InvalidIndexerException("Only one 'Ellipsis' ('---') is allowed per indexing sequence.")
-    val begin = Tensor.fill(dataType = INT32, shape = Shape(indexers.length))(value = 0)
-    val end = Tensor.fill(dataType = INT32, shape = Shape(indexers.length))(value = 0)
-    val strides = Tensor.fill(dataType = INT32, shape = Shape(indexers.length))(value = 0)
-    var beginMask: Int = 0 // TODO: Use this.
-    var endMask: Int = 0
-    var ellipsisMask: Int = 0
-    var newAxisMask: Int = 0
-    var shrinkAxisMask: Int = 0
+    val begin = Array.fill(indexers.length)(0)
+    val end = Array.fill(indexers.length)(0)
+    val strides = Array.fill(indexers.length)(1)
+    var beginMask: Long = 0 // TODO: Use this.
+    var endMask: Long = 0
+    var ellipsisMask: Long = 0
+    var newAxisMask: Long = 0
+    var shrinkAxisMask: Long = 0
     indexers.zipWithIndex foreach {
-      case (Ellipsis, i) =>
-        ellipsisMask |= (1 << i)
-      case (NewAxis, i) =>
-        newAxisMask |= (1 << i)
+      case (Ellipsis, i) => ellipsisMask |= (1 << i)
+      case (NewAxis, i) => newAxisMask |= (1 << i)
       case (Index(index), i) =>
-        begin(i).fill(index)
-        end(i).fill(index + 1)
+        begin(i) = index
+        end(i) = index + 1
+        strides(i) = 1
         shrinkAxisMask |= (1 << i)
       case (Slice(sliceBegin, sliceEnd, sliceStep, false), i) =>
-        begin(i).fill(sliceBegin)
-        end(i).fill(sliceEnd)
-        strides(i).fill(sliceStep)
+        begin(i) = sliceBegin
+        end(i) = sliceEnd
+        strides(i) = sliceStep
       case (Slice(sliceBegin, sliceEnd, sliceStep, true), i) =>
-        begin(i).fill(sliceBegin)
-        end(i).fill(sliceEnd + 1)
-        strides(i).fill(sliceStep)
-        if (sliceEnd == -1)
+        begin(i) = sliceBegin
+        if (sliceEnd == -1) {
+          end(i) = sliceEnd
           endMask |= (1 << i)
+        } else {
+          end(i) = sliceEnd + 1
+        }
+        strides(i) = sliceStep
     }
     input: Output =>
       Basic.stridedSlice(
