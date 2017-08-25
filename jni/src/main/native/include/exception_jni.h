@@ -18,25 +18,35 @@
 
 #include <jni.h>
 
+#include "c_api.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 struct TF_Status;
 
-extern const char jvm_default_exception[];
-extern const char jvm_illegal_argument_exception[];
-extern const char jvm_security_exception[];
-extern const char jvm_illegal_state_exception[];
-extern const char jvm_null_pointer_exception[];
-extern const char jvm_index_out_of_bounds_exception[];
-extern const char jvm_unsupported_operation_exception[];
+const char jvm_default_exception[] = "org/platanios/tensorflow/jni/TensorFlow$NativeException";
+const char jvm_illegal_argument_exception[] = "java/lang/IllegalArgumentException";
+const char jvm_security_exception[] = "java/lang/SecurityException";
+const char jvm_illegal_state_exception[] = "java/lang/IllegalStateException";
+const char jvm_null_pointer_exception[] = "java/lang/NullPointerException";
+const char jvm_index_out_of_bounds_exception[] = "java/lang/IndexOutOfBoundsException";
+const char jvm_unsupported_operation_exception[] = "java/lang/UnsupportedOperationException";
+
+// Map TF_Codes to unchecked exceptions.
+const char *jvm_exception_class_name(TF_Code code);
 
 void throw_exception(JNIEnv *env, const char *clazz, const char *fmt, ...);
 
 // If status is not TF_OK, then throw an appropriate exception.
 // Returns true iff TF_GetCode(status) == TF_OK.
-bool throw_exception_if_not_ok(JNIEnv *env, const TF_Status *status);
+inline bool throw_exception_if_not_ok(JNIEnv *env, const TF_Status *status) {
+  const char *clazz = jvm_exception_class_name(TF_GetCode(status));
+  if (clazz == nullptr) return true;
+  env->ThrowNew(env->FindClass(clazz), TF_Message(status));
+  return false;
+}
 
 #define CHECK_STATUS(env, status, null_return_value)     \
   if (!throw_exception_if_not_ok(env, status))           \
