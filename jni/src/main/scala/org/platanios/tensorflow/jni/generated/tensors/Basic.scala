@@ -64,4 +64,16 @@ object Basic {
   @native def broadcastArgs(contextHandle: Long, s0: Long, s1: Long): Long
   @native def stopGradient(contextHandle: Long, input: Long): Long
   @native def preventGradient(contextHandle: Long, input: Long, message: Array[Byte]): Long
+  @native def identity(contextHandle: Long, input: Long): Long
+  @native def identityN(contextHandle: Long, input: Long): Array[Long]
+  @native def scatterNdNonAliasingAdd(contextHandle: Long, input: Long, indices: Long, updates: Long): Long
+  @native def quantizeAndDequantizeV3(contextHandle: Long, input: Long, input_min: Long, input_max: Long, num_bits: Long, signed_input: Boolean, range_given: Boolean): Long
+  @native def quantizeV2(contextHandle: Long, input: Long, min_range: Long, max_range: Long, t: Int, mode: Array[Byte]): Array[Long]
+  @native def dequantize(contextHandle: Long, input: Long, min_range: Long, max_range: Long, mode: Array[Byte]): Long
+  @native def quantizedConcat(contextHandle: Long, concat_dim: Long, values: Array[Long], input_mins: Array[Long], input_maxes: Array[Long]): Array[Long]
+  @native def quantizedReshape(contextHandle: Long, tensor: Long, shape: Long, input_min: Long, input_max: Long): Array[Long]
+  @native def quantizedInstanceNorm(contextHandle: Long, x: Long, x_min: Long, x_max: Long, output_range_given: Boolean, given_y_min: Float, given_y_max: Float, variance_epsilon: Float, min_separation: Float): Array[Long]
+  @native def fakeQuantWithMinMaxArgs(contextHandle: Long, inputs: Long, min: Float, max: Float, num_bits: Long, narrow_range: Boolean): Long
+  @native def fakeQuantWithMinMaxVars(contextHandle: Long, inputs: Long, min: Long, max: Long, num_bits: Long, narrow_range: Boolean): Long
+  @native def fakeQuantWithMinMaxVarsPerChannel(contextHandle: Long, inputs: Long, min: Long, max: Long, num_bits: Long, narrow_range: Boolean): Long
 }

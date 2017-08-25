@@ -817,6 +817,14 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
 /*
  * Class:     org_platanios_tensorflow_jni_generated_tensors_Math__
+ * Method:    batchMatMul
+ * Signature: (JJJZZ)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math_00024_batchMatMul
+  (JNIEnv *, jobject, jlong, jlong, jlong, jboolean, jboolean);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_Math__
  * Method:    sparseMatMul
  * Signature: (JJJZZZZ)J
  */
@@ -857,6 +865,14 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
 /*
  * Class:     org_platanios_tensorflow_jni_generated_tensors_Math__
+ * Method:    angle
+ * Signature: (JJI)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math_00024_angle
+  (JNIEnv *, jobject, jlong, jlong, jint);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_Math__
  * Method:    conj
  * Signature: (JJ)J
  */
@@ -870,6 +886,62 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
  */
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math_00024_bucketize
   (JNIEnv *, jobject, jlong, jlong, jfloatArray);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_Math__
+ * Method:    quantizedAdd
+ * Signature: (JJJJJJJI)[J
+ */
+JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math_00024_quantizedAdd
+  (JNIEnv *, jobject, jlong, jlong, jlong, jlong, jlong, jlong, jlong, jint);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_Math__
+ * Method:    quantizedMul
+ * Signature: (JJJJJJJI)[J
+ */
+JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math_00024_quantizedMul
+  (JNIEnv *, jobject, jlong, jlong, jlong, jlong, jlong, jlong, jlong, jint);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_Math__
+ * Method:    quantizedMatMul
+ * Signature: (JJJJJJJIZZI)[J
+ */
+JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math_00024_quantizedMatMul
+  (JNIEnv *, jobject, jlong, jlong, jlong, jlong, jlong, jlong, jlong, jint, jboolean, jboolean, jint);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_Math__
+ * Method:    quantizeDownAndShrinkRange
+ * Signature: (JJJJI)[J
+ */
+JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math_00024_quantizeDownAndShrinkRange
+  (JNIEnv *, jobject, jlong, jlong, jlong, jlong, jint);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_Math__
+ * Method:    requantize
+ * Signature: (JJJJJJI)[J
+ */
+JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math_00024_requantize
+  (JNIEnv *, jobject, jlong, jlong, jlong, jlong, jlong, jlong, jint);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_Math__
+ * Method:    requantizationRange
+ * Signature: (JJJJ)[J
+ */
+JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math_00024_requantizationRange
+  (JNIEnv *, jobject, jlong, jlong, jlong, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_Math__
+ * Method:    compareAndBitpack
+ * Signature: (JJJ)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math_00024_compareAndBitpack
+  (JNIEnv *, jobject, jlong, jlong, jlong);
 
 #ifdef __cplusplus
 }

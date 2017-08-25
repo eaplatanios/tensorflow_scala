@@ -343,6 +343,102 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basi
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basic_00024_preventGradient
   (JNIEnv *, jobject, jlong, jlong, jbyteArray);
 
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_Basic__
+ * Method:    identity
+ * Signature: (JJ)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basic_00024_identity
+  (JNIEnv *, jobject, jlong, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_Basic__
+ * Method:    identityN
+ * Signature: (JJ)[J
+ */
+JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basic_00024_identityN
+  (JNIEnv *, jobject, jlong, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_Basic__
+ * Method:    scatterNdNonAliasingAdd
+ * Signature: (JJJJ)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basic_00024_scatterNdNonAliasingAdd
+  (JNIEnv *, jobject, jlong, jlong, jlong, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_Basic__
+ * Method:    quantizeAndDequantizeV3
+ * Signature: (JJJJJZZ)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basic_00024_quantizeAndDequantizeV3
+  (JNIEnv *, jobject, jlong, jlong, jlong, jlong, jlong, jboolean, jboolean);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_Basic__
+ * Method:    quantizeV2
+ * Signature: (JJJJI[B)[J
+ */
+JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basic_00024_quantizeV2
+  (JNIEnv *, jobject, jlong, jlong, jlong, jlong, jint, jbyteArray);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_Basic__
+ * Method:    dequantize
+ * Signature: (JJJJ[B)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basic_00024_dequantize
+  (JNIEnv *, jobject, jlong, jlong, jlong, jlong, jbyteArray);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_Basic__
+ * Method:    quantizedConcat
+ * Signature: (JJ[J[J[J)[J
+ */
+JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basic_00024_quantizedConcat
+  (JNIEnv *, jobject, jlong, jlong, jlongArray, jlongArray, jlongArray);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_Basic__
+ * Method:    quantizedReshape
+ * Signature: (JJJJJ)[J
+ */
+JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basic_00024_quantizedReshape
+  (JNIEnv *, jobject, jlong, jlong, jlong, jlong, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_Basic__
+ * Method:    quantizedInstanceNorm
+ * Signature: (JJJJZFFFF)[J
+ */
+JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basic_00024_quantizedInstanceNorm
+  (JNIEnv *, jobject, jlong, jlong, jlong, jlong, jboolean, jfloat, jfloat, jfloat, jfloat);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_Basic__
+ * Method:    fakeQuantWithMinMaxArgs
+ * Signature: (JJFFJZ)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basic_00024_fakeQuantWithMinMaxArgs
+  (JNIEnv *, jobject, jlong, jlong, jfloat, jfloat, jlong, jboolean);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_Basic__
+ * Method:    fakeQuantWithMinMaxVars
+ * Signature: (JJJJJZ)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basic_00024_fakeQuantWithMinMaxVars
+  (JNIEnv *, jobject, jlong, jlong, jlong, jlong, jlong, jboolean);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_Basic__
+ * Method:    fakeQuantWithMinMaxVarsPerChannel
+ * Signature: (JJJJJZ)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basic_00024_fakeQuantWithMinMaxVarsPerChannel
+  (JNIEnv *, jobject, jlong, jlong, jlong, jlong, jlong, jboolean);
+
 #ifdef __cplusplus
 }
 #endif

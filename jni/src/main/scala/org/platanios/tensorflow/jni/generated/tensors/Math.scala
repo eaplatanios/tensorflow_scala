@@ -123,11 +123,20 @@ object Math {
   @native def matrixDiagPart(contextHandle: Long, input: Long): Long
   @native def matrixBandPart(contextHandle: Long, input: Long, num_lower: Long, num_upper: Long): Long
   @native def matMul(contextHandle: Long, a: Long, b: Long, transpose_a: Boolean, transpose_b: Boolean): Long
+  @native def batchMatMul(contextHandle: Long, x: Long, y: Long, adj_x: Boolean, adj_y: Boolean): Long
   @native def sparseMatMul(contextHandle: Long, a: Long, b: Long, transpose_a: Boolean, transpose_b: Boolean, a_is_sparse: Boolean, b_is_sparse: Boolean): Long
   @native def cross(contextHandle: Long, a: Long, b: Long): Long
   @native def complex(contextHandle: Long, real: Long, imag: Long, tout: Int): Long
   @native def real(contextHandle: Long, input: Long, tout: Int): Long
   @native def imag(contextHandle: Long, input: Long, tout: Int): Long
+  @native def angle(contextHandle: Long, input: Long, tout: Int): Long
   @native def conj(contextHandle: Long, input: Long): Long
   @native def bucketize(contextHandle: Long, input: Long, boundaries: Array[Float]): Long
+  @native def quantizedAdd(contextHandle: Long, x: Long, y: Long, min_x: Long, max_x: Long, min_y: Long, max_y: Long, toutput: Int): Array[Long]
+  @native def quantizedMul(contextHandle: Long, x: Long, y: Long, min_x: Long, max_x: Long, min_y: Long, max_y: Long, toutput: Int): Array[Long]
+  @native def quantizedMatMul(contextHandle: Long, a: Long, b: Long, min_a: Long, max_a: Long, min_b: Long, max_b: Long, toutput: Int, transpose_a: Boolean, transpose_b: Boolean, tactivation: Int): Array[Long]
+  @native def quantizeDownAndShrinkRange(contextHandle: Long, input: Long, input_min: Long, input_max: Long, out_type: Int): Array[Long]
+  @native def requantize(contextHandle: Long, input: Long, input_min: Long, input_max: Long, requested_output_min: Long, requested_output_max: Long, out_type: Int): Array[Long]
+  @native def requantizationRange(contextHandle: Long, input: Long, input_min: Long, input_max: Long): Array[Long]
+  @native def compareAndBitpack(contextHandle: Long, input: Long, threshold: Long): Long
 }
