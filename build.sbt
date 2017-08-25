@@ -59,7 +59,9 @@ lazy val jni = (project in file("./jni"))
           "InvertPermutation", "ReverseV2", "ReverseSequence", "SpaceToBatchND", "BatchToSpaceND", "SpaceToDepth",
           "DepthToSpace", "Where", "Unique", "UniqueWithCounts", "ListDiff", "GatherV2", "GatherNd", "ScatterNd",
           "Slice", "StridedSlice", "CheckNumerics", "EditDistance", "OneHot", "BroadcastArgs", "StopGradient",
-          "PreventGradient"),
+          "PreventGradient", "Identity", "IdentityN", "ScatterNdNonAliasingAdd", "QuantizeAndDequantizeV3",
+          "QuantizeV2", "Dequantize", "QuantizedConcat", "QuantizedReshape", "QuantizedInstanceNorm",
+          "FakeQuantWithMinMaxArgs", "FakeQuantWithMinMaxVars", "FakeQuantWithMinMaxVarsPerChannel"),
         "Math" -> Seq(
           "Select", "Range", "LinSpace", "Cast", "Bitcast", "AddN", "Abs", "ComplexAbs", "Neg", "Reciprocal", "Square",
           "Sqrt", "Rsqrt", "Exp", "Expm1", "Log", "Log1p", "Sin", "Cos", "Tan", "Asin", "Acos", "Atan", "Sinh", "Cosh",
@@ -71,8 +73,9 @@ lazy val jni = (project in file("./jni"))
           "Max", "All", "Any", "ArgMax", "ArgMin", "Bincount", "Cumsum", "Cumprod", "SegmentSum", "SegmentMean",
           "SegmentProd", "SegmentMin", "SegmentMax", "UnsortedSegmentSum", "UnsortedSegmentMax", "SparseSegmentSum",
           "SparseSegmentMean", "SparseSegmentSqrtN", "Diag", "DiagPart", "MatrixDiag", "MatrixSetDiag",
-          "MatrixDiagPart", "MatrixBandPart", "MatMul", "SparseMatMul", "Cross", "Complex", "Real", "Imag", "Conj",
-          "Bucketize"),
+          "MatrixDiagPart", "MatrixBandPart", "MatMul", "BatchMatMul", "SparseMatMul", "Cross", "Complex", "Real",
+          "Imag", "Angle", "Conj", "Bucketize", "QuantizedAdd", "QuantizedMul", "QuantizedMatMul",
+          "QuantizeDownAndShrinkRange", "Requantize", "RequantizationRange", "CompareAndBitpack"),
         "NN" -> Seq(
           "BiasAdd", "Relu", "Relu6", "Elu", "Selu", "Softplus", "Softsign", "Softmax", "LogSoftmax", "L2Loss",
           "SoftmaxCrossEntropyWithLogits", "SparseSoftmaxCrossEntropyWithLogits", "TopKV2", "InTopKV2", "AvgPool",
