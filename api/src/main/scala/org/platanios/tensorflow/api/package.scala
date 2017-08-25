@@ -15,8 +15,9 @@
 
 package org.platanios.tensorflow
 
-import org.platanios.tensorflow.api.tensors.TensorConvertible
+import org.platanios.tensorflow.api.tensors.{Context, TensorConvertible}
 import org.platanios.tensorflow.api.types.DataType
+
 import spire.math.{UByte, UShort}
 
 import scala.util.DynamicVariable
@@ -40,8 +41,8 @@ package object api extends Implicits {
     new DynamicVariable[api.ops.OpCreationContext](api.ops.OpCreationContext(graph = api.core.defaultGraph))
   }
 
-  implicit val tensorEagerExecutionContext: DynamicVariable[api.tensors.eager.Context] = {
-    new DynamicVariable[api.tensors.eager.Context](api.tensors.eager.Context())
+  implicit val tensorEagerExecutionContext: DynamicVariable[Context] = {
+    new DynamicVariable[Context](Context())
   }
 
   type Tensor = tensors.Tensor

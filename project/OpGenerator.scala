@@ -123,8 +123,6 @@ case class OpGenerator(opDef: OpDef) {
   // Check if this op is supported for eager execution.
   if (opDef.getInputArgList.asScala.exists(_.getIsRef))
     setUnsupported()
-  if (opDef.getInputArgList.asScala.exists(a => a.getTypeAttr.isEmpty && a.getTypeListAttr.isEmpty))
-    setUnsupported()
   if (opDef.getOutputArgList.asScala.exists(_.getIsRef))
     setUnsupported()
 
@@ -683,11 +681,18 @@ object OpGenerator {
     (scalaObject, nativeHeader, nativeImplementation)
   }
 
+  private[this] val reservedKeywords = Set(
+    "abstract", "case", "catch", "class", "def", "do", "else", "extends", "false", "final", "finally", "for", "forSome",
+    "if", "implicit", "import", "lazy", "macro", "match", "new", "null", "object", "override", "package", "private",
+    "protected", "return", "sealed", "super", "this", "throw", "trait", "try", "true", "type", "val", "var", "while",
+    "with", "yield")
+
   def processName(name: String): String = {
-    // TODO: [PYTHON -> SCALA] Avoid reserved keywords.
     val c = name.toCharArray.toBuffer[Char]
     c(0) = Character.toLowerCase(c(0))
-    new String(c.toArray)
+    var processedName = new String(c.toArray)
+    if (reservedKeywords.contains(processedName)) processedName = s"_$processedName"
+    processedName
   }
 
   @throws[IllegalArgumentException]

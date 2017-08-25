@@ -19,7 +19,6 @@ import org.platanios.tensorflow.api.core._
 import org.platanios.tensorflow.api.core.Indexer.Implicits._
 import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.ops.{Basic, Output, OutputConvertible}
-import org.platanios.tensorflow.api.tensors.eager.Context
 import org.platanios.tensorflow.api.types._
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer}
 import org.platanios.tensorflow.jni.{Tensor => NativeTensor}
@@ -30,7 +29,7 @@ import shapeless.{Generic, HList, Lazy}
 import java.nio._
 import java.nio.charset.Charset
 
-import scala.collection.{breakOut, TraversableLike}
+import scala.collection.{TraversableLike, breakOut}
 import scala.language.{higherKinds, postfixOps}
 import scala.util.DynamicVariable
 

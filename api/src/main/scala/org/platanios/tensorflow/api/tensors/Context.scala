@@ -13,9 +13,8 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.tensors.eager
+package org.platanios.tensorflow.api.tensors
 
-import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.utilities.Closeable
 import org.platanios.tensorflow.jni.{Tensor => NativeTensor}
 
@@ -25,23 +24,6 @@ import org.platanios.tensorflow.jni.{Tensor => NativeTensor}
 private[api] final case class Context private (private[tensors] var nativeHandle: Long) extends Closeable {
   private[this] object NativeHandleLock
   private[this] var referenceCount: Int = 0
-
-  private[tensors] def execute(opHandle: Long): Seq[Tensor] = {
-    NativeHandleLock.synchronized {
-      if (nativeHandle == 0)
-        throw new IllegalStateException("close() has been called on the context.")
-      referenceCount += 1
-    }
-    val resultHandles = NativeTensor.eagerExecuteOp(opHandle)
-    NativeHandleLock.synchronized {
-      if (nativeHandle != 0) {
-        referenceCount -= 1
-        if (referenceCount == 0)
-          NativeHandleLock.notifyAll()
-      }
-    }
-    resultHandles.map(Tensor(_))
-  }
 
   /** Closes this [[Context]] and releases any resources associated with it. Note that a [[Context]] is not usable after
     * it has been closed. */

@@ -54,13 +54,25 @@ lazy val jni = (project in file("./jni"))
       target in generateTensorOps := sourceDirectory.value / "main",
       ops in generateTensorOps := Map(
         "Basic" -> Seq(
-          "ZerosLike", "OnesLike",/*"Fill",*/"Rank", "Size", "Shape", "ExpandDims", "Squeeze", "Pack", "ParallelConcat",
-          "Unpack", "ConcatV2",/*"ConcatOffset", "Split", "SplitV",*/"Tile", "Pad", "MirrorPad", "Reshape", "Transpose",
+          "ZerosLike", "OnesLike", "Fill", "Rank", "Size", "Shape", "ExpandDims", "Squeeze", "Pack", "ParallelConcat",
+          "Unpack", "ConcatV2", "ConcatOffset", "Split", "SplitV", "Tile", "Pad", "MirrorPad", "Reshape", "Transpose",
           "InvertPermutation", "ReverseV2", "ReverseSequence", "SpaceToBatchND", "BatchToSpaceND", "SpaceToDepth",
-          "DepthToSpace",/*"Where",*/"Unique", "UniqueWithCounts", "ListDiff", "GatherV2", "GatherNd", "ScatterNd",
-          "Slice", "StridedSlice", "CheckNumerics",/*"EditDistance", "OneHot",*/"BroadcastArgs", "StopGradient",
+          "DepthToSpace", "Where", "Unique", "UniqueWithCounts", "ListDiff", "GatherV2", "GatherNd", "ScatterNd",
+          "Slice", "StridedSlice", "CheckNumerics", "EditDistance", "OneHot", "BroadcastArgs", "StopGradient",
           "PreventGradient"),
-        "Math" -> Seq("Cast", "Add", "Sub")
+        "Math" -> Seq(
+          "Select", "Range", "LinSpace", "Cast", "Bitcast", "AddN", "Abs", "ComplexAbs", "Neg", "Reciprocal", "Square",
+          "Sqrt", "Rsqrt", "Exp", "Expm1", "Log", "Log1p", "Sin", "Cos", "Tan", "Asin", "Acos", "Atan", "Sinh", "Cosh",
+          "Tanh", "Asinh", "Acosh", "Atanh", "Lgamma", "Digamma", "Erf", "Erfc", "Sigmoid", "Sign", "Round", "Rint",
+          "Floor", "Ceil", "IsNan", "IsInf", "IsFinite", "Add", "Sub", "Mul", "Div", "FloorDiv", "TruncateDiv",
+          "RealDiv", "SquaredDifference", "Mod", "FloorMod", "TruncateMod", "Pow", "Igammac", "Igamma", "Zeta",
+          "Polygamma", "Atan2", "Maximum", "Minimum", "Betainc", "LogicalNot", "LogicalAnd", "LogicalOr", "Equal",
+          "NotEqual", "ApproximateEqual", "Less", "LessEqual", "Greater", "GreaterEqual", "Sum", "Mean", "Prod", "Min",
+          "Max", "All", "Any", "ArgMax", "ArgMin", "Bincount", "Cumsum", "Cumprod", "SegmentSum", "SegmentMean",
+          "SegmentProd", "SegmentMin", "SegmentMax", "UnsortedSegmentSum", "UnsortedSegmentMax", "SparseSegmentSum",
+          "SparseSegmentMean", "SparseSegmentSqrtN", "Diag", "DiagPart", "MatrixDiag", "MatrixSetDiag",
+          "MatrixDiagPart", "MatrixBandPart", "MatMul", "SparseMatMul", "Cross", "Complex", "Real", "Imag", "Conj",
+          "Bucketize")
       ),
       scalaPackage in generateTensorOps := "tensors",
       // Native bindings compilation settings

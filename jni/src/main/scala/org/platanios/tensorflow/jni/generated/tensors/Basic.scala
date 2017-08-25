@@ -24,6 +24,7 @@ object Basic {
 
   @native def zerosLike(contextHandle: Long, x: Long): Long
   @native def onesLike(contextHandle: Long, x: Long): Long
+  @native def fill(contextHandle: Long, dims: Long, value: Long): Long
   @native def rank(contextHandle: Long, input: Long): Long
   @native def size(contextHandle: Long, input: Long, out_type: Int): Long
   @native def shape(contextHandle: Long, input: Long, out_type: Int): Long
@@ -33,6 +34,9 @@ object Basic {
   @native def parallelConcat(contextHandle: Long, values: Array[Long], shape: Array[Long]): Long
   @native def unpack(contextHandle: Long, value: Long, num: Long, axis: Long): Array[Long]
   @native def concatV2(contextHandle: Long, values: Array[Long], axis: Long): Long
+  @native def concatOffset(contextHandle: Long, concat_dim: Long, shape: Array[Long]): Array[Long]
+  @native def split(contextHandle: Long, split_dim: Long, value: Long, num_split: Long): Array[Long]
+  @native def splitV(contextHandle: Long, value: Long, size_splits: Long, split_dim: Long, num_split: Long): Array[Long]
   @native def tile(contextHandle: Long, input: Long, multiples: Long): Long
   @native def pad(contextHandle: Long, input: Long, paddings: Long): Long
   @native def mirrorPad(contextHandle: Long, input: Long, paddings: Long, mode: Array[Byte]): Long
@@ -45,6 +49,7 @@ object Basic {
   @native def batchToSpaceND(contextHandle: Long, input: Long, block_shape: Long, crops: Long): Long
   @native def spaceToDepth(contextHandle: Long, input: Long, block_size: Long): Long
   @native def depthToSpace(contextHandle: Long, input: Long, block_size: Long): Long
+  @native def where(contextHandle: Long, input: Long): Long
   @native def unique(contextHandle: Long, x: Long, out_idx: Int): Array[Long]
   @native def uniqueWithCounts(contextHandle: Long, x: Long, out_idx: Int): Array[Long]
   @native def listDiff(contextHandle: Long, x: Long, y: Long, out_idx: Int): Array[Long]
@@ -54,6 +59,8 @@ object Basic {
   @native def slice(contextHandle: Long, input: Long, begin: Long, size: Long): Long
   @native def stridedSlice(contextHandle: Long, input: Long, begin: Long, end: Long, strides: Long, begin_mask: Long, end_mask: Long, ellipsis_mask: Long, new_axis_mask: Long, shrink_axis_mask: Long): Long
   @native def checkNumerics(contextHandle: Long, tensor: Long, message: Array[Byte]): Long
+  @native def editDistance(contextHandle: Long, hypothesis_indices: Long, hypothesis_values: Long, hypothesis_shape: Long, truth_indices: Long, truth_values: Long, truth_shape: Long, normalize: Boolean): Long
+  @native def oneHot(contextHandle: Long, indices: Long, depth: Long, on_value: Long, off_value: Long, axis: Long): Long
   @native def broadcastArgs(contextHandle: Long, s0: Long, s1: Long): Long
   @native def stopGradient(contextHandle: Long, input: Long): Long
   @native def preventGradient(contextHandle: Long, input: Long, message: Array[Byte]): Long

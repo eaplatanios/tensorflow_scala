@@ -25,6 +25,14 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basi
 
 /*
  * Class:     org_platanios_tensorflow_jni_generated_tensors_Basic__
+ * Method:    fill
+ * Signature: (JJJ)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basic_00024_fill
+  (JNIEnv *, jobject, jlong, jlong, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_Basic__
  * Method:    rank
  * Signature: (JJ)J
  */
@@ -94,6 +102,30 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors
  */
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basic_00024_concatV2
   (JNIEnv *, jobject, jlong, jlongArray, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_Basic__
+ * Method:    concatOffset
+ * Signature: (JJ[J)[J
+ */
+JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basic_00024_concatOffset
+  (JNIEnv *, jobject, jlong, jlong, jlongArray);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_Basic__
+ * Method:    split
+ * Signature: (JJJJ)[J
+ */
+JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basic_00024_split
+  (JNIEnv *, jobject, jlong, jlong, jlong, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_Basic__
+ * Method:    splitV
+ * Signature: (JJJJJ)[J
+ */
+JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basic_00024_splitV
+  (JNIEnv *, jobject, jlong, jlong, jlong, jlong, jlong);
 
 /*
  * Class:     org_platanios_tensorflow_jni_generated_tensors_Basic__
@@ -193,6 +225,14 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basi
 
 /*
  * Class:     org_platanios_tensorflow_jni_generated_tensors_Basic__
+ * Method:    where
+ * Signature: (JJ)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basic_00024_where
+  (JNIEnv *, jobject, jlong, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_Basic__
  * Method:    unique
  * Signature: (JJI)[J
  */
@@ -262,6 +302,22 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basi
  */
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basic_00024_checkNumerics
   (JNIEnv *, jobject, jlong, jlong, jbyteArray);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_Basic__
+ * Method:    editDistance
+ * Signature: (JJJJJJJZ)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basic_00024_editDistance
+  (JNIEnv *, jobject, jlong, jlong, jlong, jlong, jlong, jlong, jlong, jboolean);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_Basic__
+ * Method:    oneHot
+ * Signature: (JJJJJJ)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basic_00024_oneHot
+  (JNIEnv *, jobject, jlong, jlong, jlong, jlong, jlong, jlong);
 
 /*
  * Class:     org_platanios_tensorflow_jni_generated_tensors_Basic__
