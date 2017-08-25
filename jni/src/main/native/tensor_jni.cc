@@ -13,16 +13,16 @@
  * the License.
  */
 
-#include "include/tensor_jni.h"
+#include "tensor_jni.h"
 
 #include <algorithm>
 #include <cstring>
 #include <memory>
 
-#include "include/c_api.h"
-#include "include/c_eager_api.h"
-#include "include/exception_jni.h"
-#include "include/utilities.h"
+#include "c_api.h"
+#include "c_eager_api.h"
+#include "exception_jni.h"
+#include "utilities.h"
 
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_allocate(
     JNIEnv* env, jobject object, jint data_type, jlongArray shape, jlong num_bytes) {

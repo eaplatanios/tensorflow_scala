@@ -13,13 +13,13 @@
  * the License.
  */
 
-#include "include/session_jni.h"
+#include "session_jni.h"
 
 #include <string.h>
 #include <memory>
 
-#include "include/c_api.h"
-#include "include/exception_jni.h"
+#include "c_api.h"
+#include "exception_jni.h"
 
 namespace {
   TF_Session* require_graph_handle(JNIEnv *env, jlong handle) {

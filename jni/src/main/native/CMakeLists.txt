@@ -15,7 +15,6 @@ endif()
 
 # Include directories
 include_directories(.)
-include_directories(include)
 include_directories(generated)
 include_directories(${JNI_INCLUDE_DIRS})
 

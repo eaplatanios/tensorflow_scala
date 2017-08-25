@@ -13,15 +13,15 @@
  * the License.
  */
 
-#include "include/op_jni.h"
+#include "op_jni.h"
 
 #include <memory>
 #include <string.h>
 #include <stdint.h>
 #include <iostream>
 
-#include "include/c_api.h"
-#include "include/exception_jni.h"
+#include "c_api.h"
+#include "exception_jni.h"
 
 namespace {
 template <class T>

@@ -22,10 +22,10 @@
 #include <memory>
 #include <sstream>
 
-#include "include/c_api.h"
-#include "include/c_eager_api.h"
-#include "include/exception_jni.h"
-#include "include/utilities.h"
+#include "c_api.h"
+#include "c_eager_api.h"
+#include "exception_jni.h"
+#include "utilities.h"
 
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math_00024_select(
     JNIEnv* env, jobject object, jlong context_handle, jlong condition, jlong t, jlong e) {

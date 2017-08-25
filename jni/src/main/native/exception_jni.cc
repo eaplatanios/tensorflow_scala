@@ -13,11 +13,11 @@
  * the License.
  */
 
-#include "include/exception_jni.h"
+#include "exception_jni.h"
 
 #include <stdlib.h>
 
-#include "include/c_api.h"
+#include "c_api.h"
 
 const char *jvm_exception_class_name(TF_Code code) {
   switch (code) {

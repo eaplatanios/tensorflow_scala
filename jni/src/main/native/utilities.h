@@ -16,9 +16,6 @@
 #ifndef TENSORFLOW_JNI_UTILITIES_H_
 #define TENSORFLOW_JNI_UTILITIES_H_
 
-#include "include/c_api.h"
-#include "include/c_eager_api.h"
-
 namespace {
   template <class T>
   inline T* require_handle(JNIEnv* env, jlong handle) {

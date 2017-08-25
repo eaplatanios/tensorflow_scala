@@ -13,14 +13,14 @@
  * the License.
  */
 
-#include "include/graph_jni.h"
+#include "graph_jni.h"
 
 #include <limits>
 #include <memory>
 #include <vector>
 
-#include "include/c_api.h"
-#include "include/exception_jni.h"
+#include "c_api.h"
+#include "exception_jni.h"
 
 namespace {
   template<class T>
