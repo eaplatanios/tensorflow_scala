@@ -42,6 +42,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   REQUIRE_HANDLE(x_attr_SrcT_x_tensor_h, TFE_TensorHandle, x, 0);
   const TF_DataType x_attr_SrcT = TFE_TensorHandleDataType(x_attr_SrcT_x_tensor_h);
+  TFE_OpSetAttrType(op.get(), "SrcT", x_attr_SrcT);
 
   TFE_OpSetAttrType(op.get(), "DstT", static_cast<TF_DataType>(dstT));
 
@@ -73,6 +74,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
   const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
   REQUIRE_HANDLE(x_attr_T_y_tensor_h, TFE_TensorHandle, y, 0);
   const TF_DataType y_attr_T = TFE_TensorHandleDataType(x_attr_T_y_tensor_h);
@@ -115,6 +117,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
   const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
   REQUIRE_HANDLE(x_attr_T_y_tensor_h, TFE_TensorHandle, y, 0);
   const TF_DataType y_attr_T = TFE_TensorHandleDataType(x_attr_T_y_tensor_h);

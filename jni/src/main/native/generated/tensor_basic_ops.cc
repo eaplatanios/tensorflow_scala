@@ -46,28 +46,17 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basi
   env->ReleaseLongArrayElements(values, values_elems, JNI_ABORT);
 
   const int values_attr_N = env->GetArrayLength(values);
+  TFE_OpSetAttrInt(op.get(), "N", static_cast<int64_t>(values_attr_N));
 
   const int values_attr_T_num_tensors = env->GetArrayLength(values);
   jlong *values_attr_T_elems = env->GetLongArrayElements(values, nullptr);
 
-  REQUIRE_HANDLE(values_attr_T_elems_head, TFE_TensorHandle, values_attr_T_elems[0], 0);
-  const TF_DataType values_attr_T = TFE_TensorHandleDataType(values_attr_T_elems_head);
-
+  std::unique_ptr<TF_DataType[]> values_attr_T(new TF_DataType[values_attr_T_num_tensors]);
   for (int i = 0; i < values_attr_T_num_tensors; ++i) {
     REQUIRE_HANDLE(tensor, TFE_TensorHandle, values_attr_T_elems[i], 0);
-    const TF_DataType data_type = TFE_TensorHandleDataType(tensor);
-    if (values_attr_T != data_type) {
-      std::stringstream error_msg;
-      error_msg
-          << "Argument 'values' of 'pack' op with data type '"
-          << data_type
-          << "' must match data type '"
-          << values_attr_T
-          << "' of argument 'values'";
-      throw_exception(env, jvm_illegal_argument_exception, error_msg.str().c_str());
-    }
+    values_attr_T[i] = TFE_TensorHandleDataType(tensor);
   }
-  env->ReleaseLongArrayElements(values, values_attr_T_elems, JNI_ABORT);
+  TFE_OpSetAttrTypeList(op.get(), "T", values_attr_T.get(), values_attr_T_num_tensors);
 
   TFE_OpSetAttrInt(op.get(), "axis", static_cast<int64_t>(axis));
 
@@ -107,9 +96,11 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basi
 
   REQUIRE_HANDLE(input_attr_T_input_tensor_h, TFE_TensorHandle, input, 0);
   const TF_DataType input_attr_T = TFE_TensorHandleDataType(input_attr_T_input_tensor_h);
+  TFE_OpSetAttrType(op.get(), "T", input_attr_T);
 
   REQUIRE_HANDLE(begin_attr_Index_begin_tensor_h, TFE_TensorHandle, begin, 0);
   const TF_DataType begin_attr_Index = TFE_TensorHandleDataType(begin_attr_Index_begin_tensor_h);
+  TFE_OpSetAttrType(op.get(), "Index", begin_attr_Index);
 
   REQUIRE_HANDLE(begin_attr_Index_end_tensor_h, TFE_TensorHandle, end, 0);
   const TF_DataType end_attr_Index = TFE_TensorHandleDataType(begin_attr_Index_end_tensor_h);
@@ -175,9 +166,11 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basi
 
   REQUIRE_HANDLE(tensor_attr_T_tensor_tensor_h, TFE_TensorHandle, tensor, 0);
   const TF_DataType tensor_attr_T = TFE_TensorHandleDataType(tensor_attr_T_tensor_tensor_h);
+  TFE_OpSetAttrType(op.get(), "T", tensor_attr_T);
 
   REQUIRE_HANDLE(shape_attr_Tshape_shape_tensor_h, TFE_TensorHandle, shape, 0);
   const TF_DataType shape_attr_Tshape = TFE_TensorHandleDataType(shape_attr_Tshape_shape_tensor_h);
+  TFE_OpSetAttrType(op.get(), "Tshape", shape_attr_Tshape);
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
