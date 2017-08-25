@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow
 
-import org.platanios.tensorflow.api.tensors.{Context, TensorConvertible}
+import org.platanios.tensorflow.api.tensors.Context
 import org.platanios.tensorflow.api.types.DataType
 
 import spire.math.{UByte, UShort}
@@ -47,8 +47,6 @@ package object api extends Implicits {
 
   type Tensor = tensors.Tensor
   val Tensor: tensors.Tensor.type = tensors.Tensor
-
-  implicit def toTensor[T](value: T)(implicit ev: TensorConvertible[T]): Tensor = ev.toTensor(value)
 
   //region Data Types API
 
@@ -91,4 +89,9 @@ package object api extends Implicits {
           with types.API {
     object learn extends api.learn.API
   }
+
+  object tfe
+      extends core.API
+          with tensors.API
+          with types.API
 }

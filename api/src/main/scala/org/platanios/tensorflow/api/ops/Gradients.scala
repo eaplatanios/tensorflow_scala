@@ -15,9 +15,9 @@
 
 package org.platanios.tensorflow.api.ops
 
+import org.platanios.tensorflow.api.Implicits._
 import org.platanios.tensorflow.api.core.exception.InvalidDataTypeException
 import org.platanios.tensorflow.api.ops
-import org.platanios.tensorflow.api.ops.Implicits._
 import org.platanios.tensorflow.api.types.{DataType, FLOAT32, FLOAT64, RESOURCE}
 import org.platanios.tensorflow.jni.{Graph => NativeGraph, Output => NativeOutput}
 

@@ -15,18 +15,18 @@
 
 package org.platanios.tensorflow.api.ops
 
+import org.platanios.tensorflow.api.Implicits._
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.Indexer._
-import org.platanios.tensorflow.api.core.Indexer.Implicits._
 import org.platanios.tensorflow.api.core.exception.{InvalidDataTypeException, InvalidShapeException}
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
-import org.platanios.tensorflow.api.ops.Implicits._
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types._
 
 import scala.language.postfixOps
 
-/**
+/** Contains functions for constructing ops related to basic tensor manipulation.
+  *
   * @author Emmanouil Antonios Platanios
   */
 private[api] trait Basic {

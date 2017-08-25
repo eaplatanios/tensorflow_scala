@@ -18,8 +18,15 @@ package org.platanios.tensorflow.api
 /**
   * @author Emmanouil Antonios Platanios
   */
-trait Implicits
-    extends core.Implicits
-        with ops.Implicits
+private[api] trait Implicits
+    extends LowPriorityImplicits
+        with core.Implicits
 
-object Implicits extends Implicits
+private[api] trait LowPriorityImplicits
+    extends LowestPriorityImplicits
+        with tensors.Implicits
+
+private[api] trait LowestPriorityImplicits
+    extends ops.Implicits
+
+private[api] object Implicits extends Implicits

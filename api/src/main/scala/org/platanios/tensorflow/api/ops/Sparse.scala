@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api.ops.Implicits._
+import org.platanios.tensorflow.api.Implicits._
 
 /** Contains functions for constructing ops related to manipulating sparse tensors.
   *

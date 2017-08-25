@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api.ops.Implicits._
+import org.platanios.tensorflow.api.Implicits._
 import org.platanios.tensorflow.api.types.{FLOAT16, FLOAT32}
 
 /** Contains functions for constructing ops related to statistics.

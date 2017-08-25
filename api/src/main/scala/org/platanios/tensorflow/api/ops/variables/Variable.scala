@@ -15,12 +15,11 @@
 
 package org.platanios.tensorflow.api.ops.variables
 
+import org.platanios.tensorflow.api.Implicits._
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.{Graph, Shape}
-import org.platanios.tensorflow.api.core.Indexer.Implicits._
 import org.platanios.tensorflow.api.core.exception.{InvalidDataTypeException, ShapeMismatchException}
 import org.platanios.tensorflow.api.ops._
-import org.platanios.tensorflow.api.ops.Implicits._
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.{DataType, FLOAT32, INT32, INT64}

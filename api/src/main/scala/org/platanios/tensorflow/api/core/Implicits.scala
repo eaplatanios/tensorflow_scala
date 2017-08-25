@@ -19,5 +19,3 @@ package org.platanios.tensorflow.api.core
   * @author Emmanouil Antonios Platanios
   */
 private[api] trait Implicits extends Indexer.Implicits
-
-private[api] object Implicits extends Implicits

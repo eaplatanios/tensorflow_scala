@@ -108,8 +108,6 @@ object Indexer {
     }
   }
 
-  private[api] object Implicits extends Implicits
-
   /** Decodes the provided indexers sequence into a new set of dimension sizes, begin offsets, end offsets, and strides,
     * for the provided tensor shape.
     *

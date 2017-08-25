@@ -15,8 +15,8 @@
 
 package org.platanios.tensorflow.api.ops.io
 
+import org.platanios.tensorflow.api.Implicits._
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.core.Indexer.Implicits._
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}

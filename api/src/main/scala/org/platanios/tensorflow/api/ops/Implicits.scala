@@ -36,5 +36,3 @@ private[api] trait Implicits extends Output.Implicits {
 
   implicit def outputToInitialValueFunction(output: Output): () => Output = () => output
 }
-
-private[api] object Implicits extends Implicits
