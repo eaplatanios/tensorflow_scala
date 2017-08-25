@@ -24,29 +24,28 @@ import java.util.Locale
 import scala.collection.mutable
 import scala.collection.JavaConverters._
 
+// TODO: [OP_GEN] Handle default values.
+
 /**
   * @author Emmanouil Antonios Platanios
   */
 case class OpGenerator(opDef: OpDef) {
+  import OpGenerator._
+
   /** Name of this op used to name the generated functions. */
   val name: String = OpGenerator.processName(opDef.getName)
 
-  /** Returns a boolean value indicating whether this op is supported in the Scala API. */
-  def isSupported: Boolean = _isSupported
-
-  def jniNative(className: String): (String, String, String) = {
-    if (!_isSupported)
-      throw new UnsupportedOperationException(s"The '$name' is not supported in the Scala API.")
-
+  def generateCode(className: String): (String, String, String) = {
     val implementationBuilder = StringBuilder.newBuilder
     val deallocationBuilder = StringBuilder.newBuilder
 
     val nullReturnValuePlaceholder = "##NULL_RETURN##"
 
-    val scalaArgs = params.map(_._1).map(p => s"${p._1}: ${p._2}").mkString(", ") // TODO: [SCALA] Defaults.
-    val headArgs = params.map(_._1).map(p => s"${OpGenerator.scalaTypeToJni(p._2)._2}").mkString(", ")
-    val headSignArgs = params.map(_._1).map(p => s"${OpGenerator.scalaTypeToJni(p._2)._1}").mkString("")
-    val implArgs = params.map(_._1).map(p => s"${OpGenerator.scalaTypeToJni(p._2)._2} ${p._1}").mkString(", ")
+    val arguments = inputs ++ parameters
+    val scalaArgs = arguments.map(p => s"${p._2}: ${typeToScalaType(argumentTypes(p._1))}").mkString(", ")
+    val headArgs = arguments.map(_._1).map(p => s"${typeToJni(argumentTypes(p))}").mkString(", ")
+    val headSignArgs = arguments.map(_._1).map(p => s"${typeToShortJni(argumentTypes(p))}").mkString("")
+    val implArgs = arguments.map(p => s"${typeToJni(argumentTypes(p._1))} ${p._2}").mkString(", ")
 
     implementationBuilder.append(
       s"""  REQUIRE_HANDLE(context, TFE_Context, context_handle, $nullReturnValuePlaceholder);
@@ -90,104 +89,101 @@ case class OpGenerator(opDef: OpDef) {
     (scalaFunction, header, implementation)
   }
 
-  private[this] val numInputs = opDef.getInputArgCount
-
-  /** All parameters, including inputs and non-inferred attributes, required, and those with defaults, except for the
-    * `"name"` attribute, paired with their Scala types and their default values. */
-  private[this] val params = mutable.ListBuffer.empty[((String, String), Option[String])]
-
-  /** Map from attribute name to the first input argument it is inferred from. */
-  private[this] val inferredAttrs = mutable.HashMap.empty[String, String]
-
-  /** Names and Scala types of the non-inferred attributes, in parameter order. */
-  private[this] val attrs = mutable.ListBuffer.empty[(String, String)]
-
-  /** Map from attribute name to a list of the argument indices to which it corresponds. */
-  private[this] val attrToArgs = mutable.HashMap.empty[String, mutable.ListBuffer[Int]]
-
-  private[this] val attrExpressions = mutable.HashMap.empty[String, String]
-
-  /** Boolean value indicating whether this op is supported in the Scala API. */
-  private[this] var _isSupported = true
-
-  /** Marks this op as being unsupported in the Scala API. */
-  private[this] def setUnsupported(): Unit = {
-    _isSupported = false
-    params.clear()
-    inferredAttrs.clear()
-    attrs.clear()
-    attrToArgs.clear()
-    attrExpressions.clear()
-  }
-
   // Check if this op is supported for eager execution.
   if (opDef.getInputArgList.asScala.exists(_.getIsRef))
-    setUnsupported()
+    throwUnsupportedException(name, "Op inputs cannot be reference types.")
   if (opDef.getOutputArgList.asScala.exists(_.getIsRef))
-    setUnsupported()
+    throwUnsupportedException(name, "Op outputs cannot be reference types.")
 
-  if (_isSupported)
-    processArgs()
+  private[this] val initializationOutputs = initialize()
 
-  private[this] def addAttributeForArgument(attribute: String, argumentIndex: Int): Unit = {
-    inferredAttrs.getOrElseUpdate(attribute, opDef.getInputArg(argumentIndex).getName)
-    attrToArgs.getOrElseUpdate(attribute, mutable.ListBuffer.empty[Int]).append(argumentIndex)
-  }
+  /** Map from argument (i.e., input or attribute) names to corresponding TensorFlow type. */
+  val argumentTypes: Map[String, String] = initializationOutputs._1
 
-  private[this] def processArgs(): Unit = {
-    // All the input arguments followed by those attributes that don't have defaults.
-    val argsWithoutDefaults = mutable.ListBuffer.empty[(String, String, String)]
+  /** Names of the inputs, paired with their processed (i.e., C-safe and Scala-safe) version. */
+  val inputs: Seq[(String, String)] = initializationOutputs._2
 
-    // Parameters with default values (these have to be listed after those without). No input arguments are included
-    // here, just attributes.
-    val argsWithDefaults = mutable.ListBuffer.empty[((String, String, String), String)]
+  /** All non-inferrable attributes, including those with defaults, except for the `"name"` attribute, paired with their
+    * processed (i.e., C-safe and Scala-safe) names. */
+  val parameters: Seq[(String, String)] = initializationOutputs._3
+
+  /** Map from parameter name (original -- not processed) to their default values. */
+  val parameterDefaults: Map[String, AttrValue] = initializationOutputs._4
+
+  /** Map from attribute name to the first input argument it is inferred from. */
+  val inferrableAttributes: Map[String, String] = initializationOutputs._5
+
+  /** Names of the non-inferrable attributes, in the same order as in `parameters`. */
+  val nonInferrableAttributes: Seq[String] = initializationOutputs._6
+
+  /** Map from attribute name to a list of the parameter indices to which it corresponds. */
+  val attributeToInputs: Map[String, Seq[Int]] = initializationOutputs._7
+
+  /** Map from attribute name to the C expression that computes its value (often simply set to the parameter name). */
+  private[this] val attributeExpressions = mutable.HashMap.empty[String, String]
+
+  private[this] def initialize(): (
+      Map[String, String],        // argumentTypes
+          Seq[(String, String)],  // inputs
+          Seq[(String, String)],  // parameters
+          Map[String, AttrValue], // parameterDefaults
+          Map[String, String],    // inferrableAttributes
+          Seq[String],            // nonInferrableAttributes
+          Map[String, Seq[Int]]   // attributeToParameters
+      ) = {
+    val argumentTypes = mutable.HashMap.empty[String, String]
+    val inputs = mutable.ListBuffer.empty[(String, String)]
+    val parameters = mutable.ListBuffer.empty[(String, String)]
+    val parameterDefaults = mutable.HashMap.empty[String, AttrValue]
+    val inferrableAttributes = mutable.HashMap.empty[String, String]
+    val nonInferrableAttributes = mutable.ListBuffer.empty[String]
+    val attributeToInputs = mutable.HashMap.empty[String, mutable.ListBuffer[Int]]
 
     // Process input arguments.
     opDef.getInputArgList.asScala.zipWithIndex.foreach { case (arg, index) =>
-      var scalaType = "Long"
+      argumentTypes.update(arg.getName, if (!arg.getNumberAttr.isEmpty) "list(tensor)" else "tensor")
+      val inferrableAttrs = mutable.ListBuffer.empty[String]
       if (!arg.getTypeAttr.isEmpty)
-        addAttributeForArgument(arg.getTypeAttr, index)
+        inferrableAttrs.append(arg.getTypeAttr)
       else
-        addAttributeForArgument(arg.getTypeListAttr, index)
-      if (!arg.getNumberAttr.isEmpty) {
-        scalaType = "Array[Long]"
-        addAttributeForArgument(arg.getNumberAttr, index)
-      }
-      argsWithoutDefaults.append((arg.getName, scalaType, "TFE_TensorHandle*"))
+        inferrableAttrs.append(arg.getTypeListAttr)
+      if (!arg.getNumberAttr.isEmpty)
+        inferrableAttrs.append(arg.getNumberAttr)
+      inferrableAttrs.foreach(a => {
+        inferrableAttributes.getOrElseUpdate(a, opDef.getInputArg(index).getName)
+        attributeToInputs.getOrElseUpdate(a, mutable.ListBuffer.empty[Int]).append(index)
+      })
+      inputs.append((arg.getName, OpGenerator.processName(arg.getName)))
     }
 
     // Process attributes that have not been inferred. We do not want add inferred attributes to the Scala function
     // signatures.
-    opDef.getAttrList.asScala.filter(a => !inferredAttrs.contains(a.getName)).foreach { attr =>
-      val scalaType = OpGenerator.attrTypeToScala(attr.getType)
-      if (scalaType.isEmpty)
-        setUnsupported()
-      if (_isSupported) {
-        if (attr.hasDefaultValue) {
-          val scalaValue = OpGenerator.attrValueToScala(attr, attr.getDefaultValue)
-          if (scalaValue.isDefined)
-            argsWithDefaults.append(((attr.getName, scalaType.get, attr.getType), scalaValue.get))
-          else
-            setUnsupported()
-        } else {
-          argsWithoutDefaults.append((attr.getName, scalaType.get, attr.getType))
-        }
+    val attrsWithoutDefaults = mutable.ListBuffer.empty[String]
+    val attrsWithDefaults = mutable.ListBuffer.empty[String]
+    opDef.getAttrList.asScala.filter(a => !inferrableAttributes.contains(a.getName)).foreach { attr =>
+      argumentTypes.update(attr.getName, attr.getType)
+      if (attr.hasDefaultValue) {
+        parameterDefaults.update(attr.getName, attr.getDefaultValue)
+        attrsWithDefaults.append(attr.getName)
+      } else {
+        attrsWithoutDefaults.append(attr.getName)
       }
     }
+    // Save the list of attribute parameters (i.e., attributes that won't be inferred). Those with defaults go at the
+    // end. Get the attributes in the order we want by taking the attributes without defaults from the end of
+    // argsWithoutDefaults, and then adding argsWithDefaults.
+    nonInferrableAttributes.appendAll(attrsWithoutDefaults)
+    nonInferrableAttributes.appendAll(attrsWithDefaults)
+    attrsWithoutDefaults.foreach(a => parameters.append((a, OpGenerator.processName(a))))
+    attrsWithDefaults.foreach(a => parameters.append((a, OpGenerator.processName(a))))
 
-    if (_isSupported) {
-      // Save the list of attribute parameters (i.e., attributes that won't be inferred). Those with defaults go at
-      // the end. Get the attributes in the order we want by taking the attributes without defaults from the end of
-      // argsWithoutDefaults, and then adding argsWithDefaults.
-      attrs.appendAll(argsWithoutDefaults.drop(numInputs).map(a => (a._1, a._3)))
-      attrs.appendAll(argsWithDefaults.map(_._1).map(a => (a._1, a._3)))
-      argsWithoutDefaults.foreach(
-        nameAndType => params.append(((OpGenerator.processName(nameAndType._1), nameAndType._2), None)))
-      argsWithDefaults.foreach(
-        nameTypeAndDefault => params.append(
-          ((OpGenerator.processName(nameTypeAndDefault._1._1), nameTypeAndDefault._1._2),
-              Some(nameTypeAndDefault._2))))
-    }
+    (argumentTypes.toMap,
+        inputs.toList,
+        parameters.toList,
+        parameterDefaults.toMap,
+        inferrableAttributes.toMap,
+        nonInferrableAttributes.toList,
+        attributeToInputs.mapValues(_.toList).toMap)
   }
 
   private[this] def numOutputsExpression(): String = {
@@ -198,15 +194,15 @@ case class OpGenerator(opDef: OpDef) {
     opDef.getOutputArgList.asScala.foreach(outputArg => {
       if (outputArg.getNumberAttr.nonEmpty) {
         if (numOutputsExpression.nonEmpty) numOutputsExpression.append(" + ")
-        numOutputsExpression.append(attrExpressions(outputArg.getNumberAttr))
+        numOutputsExpression.append(attributeExpressions(outputArg.getNumberAttr))
       } else if (outputArg.getTypeListAttr.nonEmpty) {
         if (numOutputsExpression.nonEmpty) numOutputsExpression.append(" + ")
-        // Have to be careful to use an expression that works in both the graph and the eager paths here.
-        val inferred = inferredAttrs.get(outputArg.getTypeListAttr)
-        if (inferred.isDefined)
-          numOutputsExpression.append(inferred.get)
+        val inferred = inferrableAttributes.getOrElse(
+          outputArg.getTypeListAttr, attributeExpressions(outputArg.getTypeListAttr))
+        if (argumentTypes(inferred).startsWith("list("))
+          numOutputsExpression.append(s"env->GetArrayLength($inferred)")
         else
-          numOutputsExpression.append(s"env->GetArrayLength(${attrExpressions(outputArg.getTypeListAttr)})")
+          numOutputsExpression.append(inferred)
       } else {
         numFixedOutputs += 1
       }
@@ -221,19 +217,18 @@ case class OpGenerator(opDef: OpDef) {
   }
 
   private[this] def addInputs(implementationBuilder: mutable.StringBuilder, nullReturnValue: String): Unit = {
-    // TODO: !!! Can manage tensor handles better.
-    params.take(numInputs).foreach(param => {
-      val inputName = param._1._1
-      val inputScalaType = param._1._2
-      inputScalaType match {
-        case "Long" =>
+    inputs.foreach(param => {
+      val inputName = param._2
+      val inputType = argumentTypes(param._1)
+      inputType match {
+        case "tensor" =>
           implementationBuilder.append(
             s"""
                |
                |  REQUIRE_HANDLE(${inputName}_tensor_handle, TFE_TensorHandle, $inputName, $nullReturnValue);
                |  TFE_OpAddInput(op.get(), ${inputName}_tensor_handle, status.get());
                |  CHECK_STATUS(env, status.get(), $nullReturnValue);""".stripMargin)
-        case "Array[Long]" =>
+        case "list(tensor)" =>
           val numTensors = s"${inputName}_num_tensors"
           val tensorElems = s"${inputName}_elems"
           implementationBuilder.append(
@@ -247,7 +242,7 @@ case class OpGenerator(opDef: OpDef) {
                |    CHECK_STATUS(env, status.get(), $nullReturnValue);
                |  }
                |  env->ReleaseLongArrayElements($inputName, $tensorElems, JNI_ABORT);""".stripMargin)
-        case _ => throw new IllegalArgumentException(s"Invalid input argument Scala type '$inputScalaType'.")
+        case _ => throw new IllegalArgumentException(s"Invalid input argument type '$inputType'.")
       }
     })
   }
@@ -256,23 +251,23 @@ case class OpGenerator(opDef: OpDef) {
       implementationBuilder: mutable.StringBuilder, nullReturnValue: String): Unit = {
     // Validate list inputs and infer length attributes.
     opDef.getAttrList.asScala.filter(
-      a => (a.getType == "int" || a.getType == "type") && attrToArgs.contains(a.getName)).foreach(attr => {
+      a => (a.getType == "int" || a.getType == "type") && attributeToInputs.contains(a.getName)).foreach(attr => {
       val attrName = attr.getName
       attr.getType match {
         case "int" =>
           // Inferred int attributes are the lengths of input lists.
           // Check that those inputs are lists of the same length.
-          attrToArgs(attrName).foreach(arg => {
-            val inputName = params(arg)._1._1
-            if (!attrExpressions.contains(attrName)) {
-              val attrValueName = attrExpressions.getOrElseUpdate(attrName, s"${inputName}_attr_$attrName")
+          attributeToInputs(attrName).foreach(inputIndex => {
+            val inputName = inputs(inputIndex)._2
+            if (!attributeExpressions.contains(attrName)) {
+              val attrValueName = attributeExpressions.getOrElseUpdate(attrName, s"${inputName}_attr_$attrName")
               implementationBuilder.append(
                 s"""
                    |
                    |  const int $attrValueName = env->GetArrayLength($inputName);
                    |  TFE_OpSetAttrInt(op.get(), "$attrName", static_cast<int64_t>($attrValueName));""".stripMargin)
             } else {
-              val attrValueName = attrExpressions(attrName)
+              val attrValueName = attributeExpressions(attrName)
               implementationBuilder.append(
                 s"""
                    |
@@ -284,19 +279,19 @@ case class OpGenerator(opDef: OpDef) {
                    |          << ${inputName}_attr_$attrName
                    |          << "' must match length '"
                    |          << $attrValueName
-                   |          << "' of argument '${inferredAttrs(attrName)}'";
+                   |          << "' of argument '${inferrableAttributes(attrName)}'";
                    |      throw_exception(env, jvm_illegal_argument_exception, error_msg.str().c_str());
                    |  }""".stripMargin)
             }
           })
         case "type" =>
-          attrToArgs(attrName).foreach(arg => {
-            val inputName = params(arg)._1._1
-            val inputScalaType = params(arg)._1._2
-            inputScalaType match {
-              case "Long" =>
-                if (!attrExpressions.contains(attrName)) {
-                  val attrValueName = attrExpressions.getOrElseUpdate(attrName, s"${inputName}_attr_$attrName")
+          attributeToInputs(attrName).foreach(input => {
+            val inputName = inputs(input)._2
+            val inputType = argumentTypes(inputs(input)._1)
+            inputType match {
+              case "tensor" =>
+                if (!attributeExpressions.contains(attrName)) {
+                  val attrValueName = attributeExpressions.getOrElseUpdate(attrName, s"${inputName}_attr_$attrName")
                   val tensorHandle = s"${attrValueName}_${inputName}_tensor_h"
                   implementationBuilder.append(
                     s"""
@@ -305,7 +300,7 @@ case class OpGenerator(opDef: OpDef) {
                        |  const TF_DataType $attrValueName = TFE_TensorHandleDataType($tensorHandle);
                        |  TFE_OpSetAttrType(op.get(), "$attrName", $attrValueName);""".stripMargin)
                 } else {
-                  val attrValueName = attrExpressions(attrName)
+                  val attrValueName = attributeExpressions(attrName)
                   val tensorHandle = s"${attrValueName}_${inputName}_tensor_h"
                   implementationBuilder.append(
                     s"""
@@ -319,11 +314,11 @@ case class OpGenerator(opDef: OpDef) {
                        |          << ${inputName}_attr_$attrName
                        |          << "' must match data type '"
                        |          << $attrValueName
-                       |          << "' of argument '${inferredAttrs(attrName)}'";
+                       |          << "' of argument '${inferrableAttributes(attrName)}'";
                        |      throw_exception(env, jvm_illegal_argument_exception, error_msg.str().c_str());
                        |  }""".stripMargin)
                 }
-              case "Array[Long]" =>
+              case "list(tensor)" =>
                 val numTensors = s"${inputName}_attr_${attrName}_num_tensors"
                 val tensorElems = s"${inputName}_attr_${attrName}_elems"
                 implementationBuilder.append(
@@ -331,8 +326,8 @@ case class OpGenerator(opDef: OpDef) {
                      |
                      |  const int $numTensors = env->GetArrayLength($inputName);
                      |  jlong *$tensorElems = env->GetLongArrayElements($inputName, nullptr);""".stripMargin)
-                if (!attrExpressions.contains(attrName)) {
-                  val attrValueName = attrExpressions.getOrElseUpdate(attrName, s"${inputName}_attr_$attrName")
+                if (!attributeExpressions.contains(attrName)) {
+                  val attrValueName = attributeExpressions.getOrElseUpdate(attrName, s"${inputName}_attr_$attrName")
                   implementationBuilder.append(
                     s"""
                        |
@@ -340,7 +335,7 @@ case class OpGenerator(opDef: OpDef) {
                        |  const TF_DataType $attrValueName = TFE_TensorHandleDataType(${tensorElems}_head);
                        |  TFE_OpSetAttrType(op.get(), "$attrName", $attrValueName);""".stripMargin)
                 }
-                val attrValueName = attrExpressions(attrName)
+                val attrValueName = attributeExpressions(attrName)
                 implementationBuilder.append(
                   s"""
                      |
@@ -354,12 +349,12 @@ case class OpGenerator(opDef: OpDef) {
                      |          << data_type
                      |          << "' must match data type '"
                      |          << $attrValueName
-                     |          << "' of argument '${inferredAttrs(attrName)}'";
+                     |          << "' of argument '${inferrableAttributes(attrName)}'";
                      |      throw_exception(env, jvm_illegal_argument_exception, error_msg.str().c_str());
                      |    }
                      |  }
                      |  env->ReleaseLongArrayElements($inputName, $tensorElems, JNI_ABORT);""".stripMargin)
-              case _ => throw new IllegalArgumentException(s"Invalid input argument Scala type '$inputScalaType'.")
+              case _ => throw new IllegalArgumentException(s"Invalid input argument type '$inputType'.")
             }
           })
       }
@@ -370,10 +365,9 @@ case class OpGenerator(opDef: OpDef) {
   private[this] def addAttributes(
       implementationBuilder: mutable.StringBuilder, deallocationBuilder: mutable.StringBuilder,
       nullReturnValue: String): Unit = {
-    attrs.zipWithIndex.foreach({ case (attr, index) =>
-      val attrName = attr._1
-      val attrType = attr._2
-      val value = attrExpressions.getOrElseUpdate(attrName, params(index + numInputs)._1._1)
+    nonInferrableAttributes.zipWithIndex.foreach({ case (attrName, index) =>
+      val attrType = argumentTypes(attrName)
+      val value = attributeExpressions.getOrElseUpdate(attrName, parameters(index)._2)
       attrType match {
         case "string" =>
           implementationBuilder.append(
@@ -600,7 +594,7 @@ object OpGenerator {
   private[this] def code(
       scalaPackage: String, opDefs: Seq[OpDef], headerName: String, objectName: String): (String, String, String) = {
     val jniObjectName = s"$scalaPackage.$objectName".replace(".", "_")
-    val opCode = opDefs.map(OpGenerator(_).jniNative(jniObjectName))
+    val opCode = opDefs.map(OpGenerator(_).generateCode(jniObjectName))
     val scalaObject =
       s"""/* DO NOT EDIT THIS FILE - it is machine generated */
          |
@@ -687,7 +681,7 @@ object OpGenerator {
     "protected", "return", "sealed", "super", "this", "throw", "trait", "try", "true", "type", "val", "var", "while",
     "with", "yield")
 
-  def processName(name: String): String = {
+  private[OpGenerator] def processName(name: String): String = {
     val c = name.toCharArray.toBuffer[Char]
     c(0) = Character.toLowerCase(c(0))
     var processedName = new String(c.toArray)
@@ -695,49 +689,53 @@ object OpGenerator {
     processedName
   }
 
-  @throws[IllegalArgumentException]
-  def scalaTypeToJni(scalaType: String): (String, String) = scalaType match {
-    case "Array[Byte]" => ("[B", "jbyteArray")
-    case "Int" => ("I", "jint")
-    case "Long" => ("J", "jlong")
-    case "Float" => ("F", "jfloat")
-    case "Boolean" => ("Z", "jboolean")
-    case "Array[Array[Byte]]" => ("[L", "jobjectArray")
-    case "Array[Int]" => ("[I", "jintArray")
-    case "Array[Long]" => ("[J", "jlongArray")
-    case "Array[Float]" => ("[F", "jfloatArray")
-    case "Array[Boolean]" => ("[Z", "jbooleanArray")
-    case _ => throw new IllegalArgumentException(s"Unsupported Scala type '$scalaType'.")
-  }
+  private[OpGenerator] val typeToScalaType: Map[String, String] = Map(
+    // "func"
+    // "list(func)"
+    "string" -> "Array[Byte]",
+    "int" -> "Long",
+    "float" -> "Float",
+    "bool" -> "Boolean",
+    "type" -> "Int",
+    "shape" -> "Array[Long]",
+    "tensor" -> "Long",
+    "list(string)" -> "Array[Array[Byte]]",
+    "list(int)" -> "Array[Long]",
+    "list(float)" -> "Array[Float]",
+    "list(bool)" -> "Array[Boolean]",
+    "list(type)" -> "Array[Int]",
+    "list(shape)" -> "Array[Array[Long]]",
+    "list(tensor)" -> "Array[Long]")
 
-  @throws[IllegalArgumentException]
-  def jniNullReturnValue(jniType: String): String = jniType match {
-    case "jlong" => "0"
-    case "jlongArray" => "nullptr"
-    case _ => throw new IllegalArgumentException(s"Invalid JNI return type '$jniType'.")
-  }
+  private[OpGenerator] val scalaTypeToShortJni: Map[String, String] = Map(
+    "Array[Byte]" -> "[B",
+    "Int" -> "I",
+    "Long" -> "J",
+    "Float" -> "F",
+    "Boolean" -> "Z",
+    "Array[Array[Byte]]" -> "[L",
+    "Array[Int]" -> "[I",
+    "Array[Long]" -> "[J",
+    "Array[Float]" -> "[F",
+    "Array[Boolean]" -> "[Z")
 
-  def attrTypeToScala(attrType: String): Option[String] = attrType match {
-    case "string" => Some("Array[Byte]")
-    case "int" => Some("Long")
-    case "float" => Some("Float")
-    case "bool" => Some("Boolean")
-    case "type" => Some("Int")
-    case "shape" => Some("Array[Long]")
-    case "tensor" => None // Some("String")
-    case "func" => None
-    case "list(string)" => Some("Array[Array[Byte]]")
-    case "list(int)" => Some("Array[Long]")
-    case "list(float)" => Some("Array[Float]")
-    case "list(bool)" => Some("Array[Boolean]")
-    case "list(type)" => Some("Array[Int]")
-    case "list(shape)" => Some("Array[Array[Long]]")
-    case "list(tensor)" => None // Some("Array[String]")
-    case "list(func)" => None
-    case _ => None
-  }
+  private[OpGenerator] val typeToShortJni: Map[String, String] = typeToScalaType.mapValues(scalaTypeToShortJni)
 
-  def attrValueToScala(attr: AttrDef, value: AttrValue): Option[String] = {
+  private[OpGenerator] val scalaTypeToJni: Map[String, String] = Map(
+    "Array[Byte]" -> "jbyteArray",
+    "Int" -> "jint",
+    "Long" -> "jlong",
+    "Float" -> "jfloat",
+    "Boolean" -> "jboolean",
+    "Array[Array[Byte]]" -> "jobjectArray",
+    "Array[Int]" -> "jintArray",
+    "Array[Long]" -> "jlongArray",
+    "Array[Float]" -> "jfloatArray",
+    "Array[Boolean]" -> "jbooleanArray")
+
+  private[OpGenerator] val typeToJni: Map[String, String] = typeToScalaType.mapValues(scalaTypeToJni)
+
+  private[OpGenerator] def attrValueToScala(attr: AttrDef, value: AttrValue): Option[String] = {
     // Note that the return value of this function may contain spaces (for example, it could be a string "foo bar"
     // with an embedded space), and thus is not safe to pass it to wordWrap().
     val scalaValue = attr.getType match {
@@ -800,7 +798,7 @@ object OpGenerator {
     Option(scalaValue)
   }
 
-  def escapeString(string: String): String = {
+  private[OpGenerator] def escapeString(string: String): String = {
     def hex(char: Char): String = Integer.toHexString(char).toUpperCase(Locale.ENGLISH)
 
     if (string == null) {
@@ -830,5 +828,9 @@ object OpGenerator {
       }
       writer.toString
     }
+  }
+
+  private[OpGenerator] def throwUnsupportedException(name: String, message: String): Unit = {
+    throw new UnsupportedOperationException(s"Op '$name' is not supported on the Scala API. Error message: $message")
   }
 }
