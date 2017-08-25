@@ -334,19 +334,33 @@ case class OpGenerator(opDef: OpDef) {
                      |  const int $numTensors = env->GetArrayLength($inputName);
                      |  jlong *$tensorElems = env->GetLongArrayElements($inputName, nullptr);""".stripMargin)
                 if (!attrExpressions.contains(attrName)) {
-                  val attrValueName = attrExpressions.getOrElseUpdate(attrName, s"${inputName}_attr_$attrName.get()")
+                  val attrValueName = attrExpressions.getOrElseUpdate(attrName, s"${inputName}_attr_$attrName")
                   implementationBuilder.append(
                     s"""
                        |
-                       |  std::unique_ptr<TF_DataType[]> ${inputName}_attr_$attrName(new TF_DataType[$numTensors]);
-                       |  for (int i = 0; i < $numTensors; ++i) {
-                       |    REQUIRE_HANDLE(tensor, TFE_TensorHandle, $tensorElems[i], 0);
-                       |    ${inputName}_attr_$attrName[i] = TFE_TensorHandleDataType(tensor);
-                       |  }
-                       |  TFE_OpSetAttrTypeList(op.get(), "$attrName", $attrValueName, $numTensors);"""
-                        .stripMargin)
+                       |  REQUIRE_HANDLE(${tensorElems}_head, TFE_TensorHandle, $tensorElems[0], $nullReturnValue);
+                       |  const TF_DataType $attrValueName = TFE_TensorHandleDataType(${tensorElems}_head);
+                       |  TFE_OpSetAttrType(op.get(), "$attrName", $attrValueName);""".stripMargin)
                 }
-                // TODO: !!! Check the rest of the input arguments?
+                val attrValueName = attrExpressions(attrName)
+                implementationBuilder.append(
+                  s"""
+                     |
+                     |  for (int i = 0; i < $numTensors; ++i) {
+                     |    REQUIRE_HANDLE(tensor, TFE_TensorHandle, $tensorElems[i], 0);
+                     |    const TF_DataType data_type = TFE_TensorHandleDataType(tensor);
+                     |    if ($attrValueName != data_type) {
+                     |      std::stringstream error_msg;
+                     |      error_msg
+                     |          << "Argument '$inputName' of '$name' op with data type '"
+                     |          << data_type
+                     |          << "' must match data type '"
+                     |          << $attrValueName
+                     |          << "' of argument '${inferredAttrs(attrName)}'";
+                     |      throw_exception(env, jvm_illegal_argument_exception, error_msg.str().c_str());
+                     |    }
+                     |  }
+                     |  env->ReleaseLongArrayElements($inputName, $tensorElems, JNI_ABORT);""".stripMargin)
               case _ => throw new IllegalArgumentException(s"Invalid input argument Scala type '$inputScalaType'.")
             }
           })
