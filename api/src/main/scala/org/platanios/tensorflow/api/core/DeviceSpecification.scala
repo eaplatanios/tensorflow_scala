@@ -106,7 +106,7 @@ private[api] object DeviceSpecification {
       #(?:/replica:([[0-9]&&[^\:]]+))?
       #(?:/task:([[0-9]&&[^\:]]+))?
       #(?:(?:/device:([^/:]+):([[0-9*]&&[^\:]]+))
-      #|(?:/([^/:]+):([[0-9*]&&[^\:]]+)))?$"""
+      #|(?:/?([^/:]+):([[0-9*]&&[^\:]]+)))?$"""
         .stripMargin('#')
         .replaceAll("\n", "")
         .r("job", "replica", "task", "deviceType", "deviceIndex", "deviceTypeShort", "deviceIndexShort")
