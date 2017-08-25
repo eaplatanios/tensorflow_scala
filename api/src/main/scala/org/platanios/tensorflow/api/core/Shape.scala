@@ -39,7 +39,7 @@ import org.platanios.tensorflow.api.types.{DataType, INT32}
   *
   * @author Emmanouil Antonios Platanios
   */
-final class Shape private (private val array: Array[Int]) extends OutputConvertible {
+final class Shape private (private val array: Array[Int]) {
   /** Returns a boolean value indicating whether this shape is fully defined.
     *
     * If the size of any dimension is equal to `-1` or if the shape is completely unknown, then it is not considered

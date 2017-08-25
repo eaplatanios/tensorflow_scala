@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.ops.variables
 
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.ops.{Basic, Op, Output, OutputConvertible}
+import org.platanios.tensorflow.api.ops.{Basic, Op, Output}
 import org.platanios.tensorflow.api.ops.Implicits._
 import org.platanios.tensorflow.api.types.DataType
 
@@ -43,7 +43,7 @@ import scala.math.Ordering.Implicits._
 @throws[IllegalArgumentException]
 case class PartitionedVariable private[variables](
     name: String, dataType: DataType, shape: Shape, private val wrappedVariables: Seq[Variable],
-    partitions: Array[Int]) extends OutputConvertible with Iterable[Variable] {
+    partitions: Array[Int]) extends Iterable[Variable] {
   if (shape.rank != partitions.length)
     throw new IllegalArgumentException(
       s"The number of partitions provided (${partitions.length}) does not match the shape rank (${shape.rank}).")

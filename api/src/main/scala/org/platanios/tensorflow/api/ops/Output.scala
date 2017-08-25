@@ -20,6 +20,7 @@ import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception.InvalidDataTypeException
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.Op.{createWith, getGraphFromInputs}
+import org.platanios.tensorflow.api.ops.variables.{PartitionedVariable, Variable}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.{DataType, INT32, INT64}
 import org.platanios.tensorflow.api.utilities.using
@@ -27,26 +28,11 @@ import org.platanios.tensorflow.jni.{Op => NativeOp}
 
 import spire.math.UShort
 
-/** Helper trait for tagging output convertible objects so that implicit conversions to op outputs can be used.
-  *
-  * @author Emmanouil Antonios Platanios
-  */
-trait OutputConvertible {
-  // TODO: !!! [TYPE-TRAIT] Convert this to a type trait.
-
-  /** Returns the [[Output]] that this [[OutputConvertible]] object represents. */
-  def toOutput: Output
-}
-
-object OutputConvertible {
-  implicit def outputConvertibleToOutput(value: OutputConvertible): Output = value.toOutput
-}
-
 /** Trait representing outputs of an [[Op]]'s computation.
   *
   * @author Emmanouil Antonios Platanios
   */
-sealed trait OutputLike extends OutputConvertible {
+sealed trait OutputLike {
   /** Graph where the op belongs. */
   def graph: Graph
 
@@ -64,6 +50,9 @@ sealed trait OutputLike extends OutputConvertible {
 
   /** Consumers of this op output (i.e., ops that use this op output as one of their inputs). */
   def consumers: Array[Input]
+
+  /** Returns the [[Output]] that this [[OutputLike]] object represents. */
+  def toOutput: Output
 
   /** Returns an [[OutputIndexedSlices]] that has the same value as this [[OutputLike]].
     *
@@ -319,6 +308,8 @@ object Output {
   }
 
   private[ops] trait Implicits {
+    implicit def outputConvertibleToOutput[T](value: T)(implicit ev: OutputConvertible[T]): Output = ev.toOutput(value)
+
     implicit def scalaValueToOutput(value: Boolean): Output = Basic.constant(value)
     implicit def scalaValueToOutput(value: String): Output = Basic.constant(value)
     implicit def scalaValueToOutput(value: Float): Output = Basic.constant(value)
@@ -679,5 +670,38 @@ object SparseOutput {
       Basic.constant(sparseOutputValue._1),
       Basic.constant(sparseOutputValue._2),
       Basic.constant(sparseOutputValue._3))
+  }
+}
+
+/** Helper type trait for output convertible objects so that implicit conversions to op outputs can be used.
+  *
+  * @author Emmanouil Antonios Platanios
+  */
+trait OutputConvertible[T] {
+  /** Returns the [[Output]] that `value` represents. */
+  def toOutput(value: T): Output
+}
+
+object OutputConvertible {
+  implicit def outputLikeOutputConvertible[T <: OutputLike]: OutputConvertible[T] = new OutputConvertible[T] {
+    override def toOutput(value: T): Output = value.toOutput
+  }
+
+  implicit val variableOutputConvertible: OutputConvertible[Variable] = new OutputConvertible[Variable] {
+    override def toOutput(value: Variable): Output = value.toOutput
+  }
+
+  implicit val partitionedVariableOutputConvertible: OutputConvertible[PartitionedVariable] = {
+    new OutputConvertible[PartitionedVariable] {
+      override def toOutput(value: PartitionedVariable): Output = value.toOutput
+    }
+  }
+
+  implicit val tensorOutputConvertible: OutputConvertible[Tensor] = new OutputConvertible[Tensor] {
+    override def toOutput(value: Tensor): Output = value.toOutput
+  }
+
+  implicit val shapeOutputConvertible: OutputConvertible[Shape] = new OutputConvertible[Shape] {
+    override def toOutput(value: Shape): Output = value.toOutput
   }
 }

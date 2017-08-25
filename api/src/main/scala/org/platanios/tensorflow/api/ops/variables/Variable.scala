@@ -39,7 +39,7 @@ case class Variable private (
     private val variableHandle: Output,
     private val initializeOp: Op,
     private val cachedValue: Output)
-    extends OutputConvertible with ProtoSerializable {
+    extends ProtoSerializable {
   /** Graph where this variable is defined. */
   val graph: Graph = variableHandle.graph
 
