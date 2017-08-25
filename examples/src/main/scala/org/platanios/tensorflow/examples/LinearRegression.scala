@@ -67,6 +67,6 @@ object LinearRegression {
       outputs += weight * input
       i += 1
     }
-    (Tensor(inputs.map(Tensor(_)): _*), Tensor(outputs.map(Tensor(_)): _*))
+    (Tensor(inputs).reshape(Shape(-1, 1)), Tensor(outputs).reshape(Shape(-1, 1)))
   }
 }

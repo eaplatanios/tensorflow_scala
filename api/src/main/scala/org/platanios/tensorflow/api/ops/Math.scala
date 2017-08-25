@@ -1460,9 +1460,9 @@ private[api] trait Math {
     } else {
       tensor match { // Fast path: Avoid creating range and rank ops if the rank is known statically.
         case t: Output if t.rank > -1 =>
-          Basic.constant(Tensor(0 until t.rank))
+          Basic.constant(0 until t.rank)
         case o: SparseOutput if o.denseShape.shape.isFullyDefined =>
-          Basic.constant(Tensor(0 until o.denseShape.shape(0)))
+          Basic.constant(0 until o.denseShape.shape(0))
         case _ => // Otherwise, we rely on range and rank to do the right thing at run-time.
           range(0, Basic.rank(tensor))
       }
