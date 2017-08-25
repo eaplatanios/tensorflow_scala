@@ -625,11 +625,11 @@ object OpGenerator {
     * library. Then, for each group, this function generates three files, with their Scala package set to
     * `<scalaPackage>.<group>`:
     *   - `<path>/scala/<scalaPackage>/<group>.scala`: Contains a Scala object with the native function declarations.
-    * Note that in the file path, the dots in `scalaPackage` are replaced with path separators (e.g., `"/"`).
+    *     Note that in the file path, the dots in `scalaPackage` are replaced with path separators (e.g., `"/"`).
     *   - `<path>/native/generated/tensor_<group.toLowerCase>_ops.h`: Contains the C function declarations for the
-    * generated JNI bindinds.
+    *     generated JNI bindinds.
     *   - `<path>/native/generated/tensor_<group.toLowerCase>_ops.cc`: Contains the C implementations for the functions
-    * defined in the header file.
+    *     defined in the header file.
     *
     * Note that all pre-existing files in the relevant directories will be replaced.
     *
@@ -649,11 +649,11 @@ object OpGenerator {
     *
     * The Scala package of the generated files is set to `<scalaPackage>.<group>`. Three files are generated:
     *   - `<path>/scala/<scalaPackage>/<group>.scala`: Contains a Scala object with the native function declarations.
-    * Note that in the file path, the dots in `scalaPackage` are replaced with path separators (e.g., `"/"`).
+    *     Note that in the file path, the dots in `scalaPackage` are replaced with path separators (e.g., `"/"`).
     *   - `<path>/native/generated/tensor_<group.toLowerCase>_ops.h`: Contains the C function declarations for the
-    * generated JNI bindinds.
+    *     generated JNI bindinds.
     *   - `<path>/native/generated/tensor_<group.toLowerCase>_ops.cc`: Contains the C implementations for the functions
-    * defined in the header file.
+    *     defined in the header file.
     *
     * Note that all pre-existing files in the relevant directories will be replaced.
     *
