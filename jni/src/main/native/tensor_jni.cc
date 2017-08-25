@@ -102,15 +102,13 @@ JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_dataType(
     JNIEnv* env, jobject object, jlong handle) {
   static_assert(sizeof(jint) >= sizeof(TF_DataType),
                 "\"TF_DataType\" in C cannot be represented as an \"Int\" in Scala.");
-  TF_Tensor* tensor = require_handle<TF_Tensor>(env, handle);
-  if (tensor == nullptr) return 0;
+  REQUIRE_HANDLE(tensor, TF_Tensor, handle, 0);
   return static_cast<jint>(TF_TensorType(tensor));
 }
 
 JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_shape(
     JNIEnv* env, jobject object, jlong handle) {
-  TF_Tensor* tensor = require_handle<TF_Tensor>(env, handle);
-  if (tensor == nullptr) return nullptr;
+  REQUIRE_HANDLE(tensor, TF_Tensor, handle, nullptr);
   static_assert(sizeof(jlong) == sizeof(int64_t), "Scala \"Long\" is not compatible with the TensorFlow C API.");
   const jsize num_dims = TF_NumDims(tensor);
   jlongArray return_array = env->NewLongArray(num_dims);
@@ -123,8 +121,7 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_shap
 
 JNIEXPORT jobject JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_buffer(
     JNIEnv* env, jobject object, jlong handle) {
-  TF_Tensor* tensor = require_handle<TF_Tensor>(env, handle);
-  if (tensor == nullptr) return nullptr;
+  REQUIRE_HANDLE(tensor, TF_Tensor, handle, nullptr);
   void* data = TF_TensorData(tensor);
   const size_t byte_size = TF_TensorByteSize(tensor);
   return env->NewDirectByteBuffer(data, static_cast<jlong>(byte_size));
@@ -132,8 +129,7 @@ JNIEXPORT jobject JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_buffer(
 
 JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_delete(
     JNIEnv* env, jobject object, jlong handle) {
-  TF_Tensor* tensor = require_handle<TF_Tensor>(env, handle);
-  if (tensor == nullptr) return;
+  REQUIRE_HANDLE(tensor, TF_Tensor, handle, void());
   TF_DeleteTensor(tensor);
 }
 
@@ -193,8 +189,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerAllo
 
 JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerDeleteContext(
     JNIEnv* env, jobject object, jlong handle) {
-  TFE_Context* context = require_handle<TFE_Context>(env, handle);
-  if (context == nullptr) return;
+  REQUIRE_HANDLE(context, TFE_Context, handle, void());
   TF_Status* status = TF_NewStatus();
   TFE_DeleteContext(context, status);
   throw_exception_if_not_ok(env, status);
@@ -203,8 +198,7 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerDelet
 
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerAllocate(
     JNIEnv* env, jobject object, jlong tensor_handle) {
-  TF_Tensor* tensor = require_handle<TF_Tensor>(env, tensor_handle);
-  if (tensor == nullptr) return 0;
+  REQUIRE_HANDLE(tensor, TF_Tensor, tensor_handle, 0);
   TFE_TensorHandle* eager_tensor = TFE_NewTensorHandle(tensor);
   return reinterpret_cast<jlong>(eager_tensor);
 }
@@ -213,15 +207,13 @@ JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerDataT
     JNIEnv* env, jobject object, jlong handle) {
   static_assert(sizeof(jint) >= sizeof(TF_DataType),
                 "\"TF_DataType\" in C cannot be represented as an \"Int\" in Scala.");
-  TFE_TensorHandle* tensor = require_handle<TFE_TensorHandle>(env, handle);
-  if (tensor == nullptr) return 0;
+  REQUIRE_HANDLE(tensor, TFE_TensorHandle, handle, 0);
   return static_cast<jint>(TFE_TensorHandleDataType(tensor));
 }
 
 JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerShape(
     JNIEnv* env, jobject object, jlong handle) {
-  TFE_TensorHandle* tensor = require_handle<TFE_TensorHandle>(env, handle);
-  if (tensor == nullptr) return nullptr;
+  REQUIRE_HANDLE(tensor, TFE_TensorHandle, handle, nullptr);
   static_assert(sizeof(jlong) == sizeof(int64_t), "Scala \"Long\" is not compatible with the TensorFlow C API.");
   const jsize num_dims = TFE_TensorHandleNumDims(tensor);
   jlongArray return_array = env->NewLongArray(num_dims);
@@ -233,23 +225,20 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eage
 }
 
 JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerDevice(
-    JNIEnv* env,  jobject object,  jlong handle) {
-  TFE_TensorHandle* tensor = require_handle<TFE_TensorHandle>(env, handle);
-  if (tensor == nullptr) return nullptr;
+    JNIEnv* env,  jobject object, jlong handle) {
+  REQUIRE_HANDLE(tensor, TFE_TensorHandle, handle, nullptr);
   return env->NewStringUTF(TFE_TensorHandleDeviceName(tensor));
 }
 
 JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerDelete(
     JNIEnv* env, jobject object, jlong handle) {
-  TFE_TensorHandle* eager_tensor = require_handle<TFE_TensorHandle>(env, handle);
-  if (eager_tensor == nullptr) return;
+  REQUIRE_HANDLE(eager_tensor, TFE_TensorHandle, handle, void());
   TFE_DeleteTensorHandle(eager_tensor);
 }
 
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerResolve(
     JNIEnv* env, jobject object, jlong handle) {
-  TFE_TensorHandle* eager_tensor = require_handle<TFE_TensorHandle>(env, handle);
-  if (eager_tensor == nullptr) return 0;
+  REQUIRE_HANDLE(eager_tensor, TFE_TensorHandle, handle, 0);
   TF_Status* status = TF_NewStatus();
   TF_Tensor* tensor = TFE_TensorHandleResolve(eager_tensor, status);
   bool ok = throw_exception_if_not_ok(env, status);
@@ -259,9 +248,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerReso
 
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerCopyToDevice(
     JNIEnv* env,  jobject object,  jlong tensor_handle, jlong context_handle, jstring device) {
-  TFE_TensorHandle* tensor = require_handle<TFE_TensorHandle>(env, tensor_handle);
-  TFE_Context* context = require_handle<TFE_Context>(env, context_handle);
-  if (tensor == nullptr || context == nullptr) return 0;
+  REQUIRE_HANDLE(tensor, TFE_TensorHandle, tensor_handle, 0);
+  REQUIRE_HANDLE(context, TFE_Context, context_handle, 0);
   const char* c_device = env->GetStringUTFChars(device, nullptr);
   TF_Status* status = TF_NewStatus();
   TFE_TensorHandle* eager_tensor = TFE_TensorHandleCopyToDevice(tensor, context, c_device, status);
@@ -273,9 +261,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerCopy
 
 JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerSetOpDevice(
     JNIEnv* env, jobject object, jlong op_handle, jlong context_handle, jstring device) {
-  TFE_Op* op = require_handle<TFE_Op>(env, op_handle);
-  TFE_Context* context = require_handle<TFE_Context>(env, context_handle);
-  if (op == nullptr || context == nullptr) return;
+  REQUIRE_HANDLE(op, TFE_Op, op_handle, void());
+  REQUIRE_HANDLE(context, TFE_Context, context_handle, void());
   const char* c_device = env->GetStringUTFChars(device, nullptr);
   TF_Status* status = TF_NewStatus();
   TFE_OpSetDevice(op, context, c_device, status);
