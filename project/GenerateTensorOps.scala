@@ -1,0 +1,81 @@
+/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ */
+
+import OpGenerator._
+
+import java.nio.file.{Files, Paths}
+import java.util.Comparator
+
+import scala.collection.JavaConverters._
+
+import sbt._
+import sbt.Keys._
+
+/** Adds functionality for generating JNI header and implementation files for executing TensorFlow eager tensor ops.
+  *
+  * @author Emmanouil Antonios Platanios
+  */
+object GenerateTensorOps extends AutoPlugin {
+  override def requires: Plugins = plugins.JvmPlugin
+
+  object autoImport {
+    val generateTensorOps: TaskKey[Unit] = taskKey[Unit](
+      "Generates the TensorFlow tensor ops bindings. Returns the directory containing generated bindings.")
+
+    val ops: SettingKey[Map[String, Seq[String]]] = settingKey[Map[String, Seq[String]]](
+      "Grouped ops for which to generate bindings.")
+
+    val scalaPackage: SettingKey[String] = settingKey[String](
+      "Grouped ops for which to generate bindings.")
+  }
+
+  import autoImport._
+
+  lazy val settings: Seq[Setting[_]] = Seq(
+    scalaPackage in generateTensorOps := s"tensors",
+    target in generateTensorOps := target.value,
+    ops in generateTensorOps := Map.empty,
+    clean in generateTensorOps := {
+      streams.value.log.info("Cleaning generated TensorFlow tensor op files.")
+      val path = (target in generateTensorOps).value.toPath
+      val scalaPackage = "org.platanios.tensorflow.jni.generated"
+      val scalaPath = path.resolve(Paths.get("scala", scalaPackage.split('.'): _*))
+      val nativePath = path.resolve(Paths.get("native", "generated"))
+      Files.walk(scalaPath)
+          .sorted(Comparator.reverseOrder())
+          .iterator()
+          .asScala
+          .map(_.toFile)
+          .foreach(_.delete)
+      Files.walk(nativePath)
+          .sorted(Comparator.reverseOrder())
+          .iterator()
+          .asScala
+          .map(_.toFile)
+          .foreach(_.delete)
+    },
+    generateTensorOps := {
+      streams.value.log.info("Generating TensorFlow tensor op files.")
+      generateFiles(
+        (target in generateTensorOps).value.toPath,
+        (ops in generateTensorOps).value,
+        s"org.platanios.tensorflow.jni.generated.${(scalaPackage in generateTensorOps).value}")
+    },
+    // Make the SBT clean task also cleans the generated code files.
+    clean := clean.dependsOn(clean in generateTensorOps).value
+  )
+
+  override lazy val projectSettings: Seq[Setting[_]] = settings
+}

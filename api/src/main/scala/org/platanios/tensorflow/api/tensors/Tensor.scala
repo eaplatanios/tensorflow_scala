@@ -23,6 +23,7 @@ import org.platanios.tensorflow.api.tensors.eager.Context
 import org.platanios.tensorflow.api.types._
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer}
 import org.platanios.tensorflow.jni.{Tensor => NativeTensor}
+import org.platanios.tensorflow.jni.generated.tensors.{Basic => NativeTensorBasic, Math => NativeTensorMath}
 
 import shapeless.{Generic, HList, Lazy}
 
@@ -148,7 +149,7 @@ case class Tensor private[tensors](
   }
 
   def cast(dataType: DataType)(implicit context: DynamicVariable[Context]): Tensor = {
-    Tensor(NativeTensor.cast(context.value.nativeHandle, nativeHandle, dataType.cValue))
+    Tensor(NativeTensorMath.cast(context.value.nativeHandle, nativeHandle, dataType.cValue))
   }
 
   def slice(indexers: Indexer*)(implicit context: DynamicVariable[Context]): Tensor = {
@@ -187,7 +188,7 @@ case class Tensor private[tensors](
     val beginTensor: Tensor = begin
     val endTensor: Tensor = end
     val stridesTensor: Tensor = strides
-    val handle = NativeTensor.stridedSlice(
+    val handle = NativeTensorBasic.stridedSlice(
       context.value.nativeHandle, nativeHandle, beginTensor.nativeHandle, endTensor.nativeHandle,
       stridesTensor.nativeHandle, beginMask, endMask, ellipsisMask, newAxisMask, shrinkAxisMask)
     beginTensor.close()
@@ -198,13 +199,13 @@ case class Tensor private[tensors](
 
   def reshape(shape: Shape)(implicit context: DynamicVariable[Context]): Tensor = {
     val shapeTensor = shape.toTensor()
-    val tensor = Tensor(NativeTensor.reshape(context.value.nativeHandle, nativeHandle, shapeTensor.nativeHandle))
+    val tensor = Tensor(NativeTensorBasic.reshape(context.value.nativeHandle, nativeHandle, shapeTensor.nativeHandle))
     shapeTensor.close()
     tensor
   }
 
   def +(other: Tensor)(implicit context: DynamicVariable[Context]): Tensor = {
-    Tensor(NativeTensor.add(context.value.nativeHandle, nativeHandle, other.nativeHandle))
+    Tensor(NativeTensorMath.add(context.value.nativeHandle, nativeHandle, other.nativeHandle))
   }
 
   def apply(indexers: Indexer*): Tensor = slice(indexers: _*)
@@ -311,7 +312,7 @@ object Tensor {
   }
 
   def pack(tensors: Seq[Tensor], axis: Int = 0)(implicit context: DynamicVariable[Context]): Tensor = {
-    Tensor(NativeTensor.pack(context.value.nativeHandle, tensors.map(_.nativeHandle).toArray, axis))
+    Tensor(NativeTensorBasic.pack(context.value.nativeHandle, tensors.map(_.nativeHandle).toArray, axis))
   }
 
   def fill[T](dataType: DataType, shape: Shape = null)(value: T)(implicit ev: SupportedType[T]): Tensor = {

@@ -42,7 +42,7 @@ lazy val all = (project in file("."))
     )
 
 lazy val jni = (project in file("./jni"))
-    .enablePlugins(JniNative, TensorOpsGeneration)
+    .enablePlugins(GenerateTensorOps, JniNative)
     .settings(
       name := "tensorflow-jni",
       libraryDependencies ++= loggingDependencies,
@@ -52,12 +52,18 @@ lazy val jni = (project in file("./jni"))
       libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1" % "test",
       // Tensor op code generation settings
       target in generateTensorOps := sourceDirectory.value / "main",
-      ops in generateTensorOps := Map("Math" -> Seq("Add", "Sub")),
+      ops in generateTensorOps := Map(
+        "Basic" -> Seq("Pack", "StridedSlice", "Reshape"),
+        "Math" -> Seq("Cast", "Add", "Sub")
+      ),
       scalaPackage in generateTensorOps := "tensors",
       // Native bindings compilation settings
       target in javah := sourceDirectory.value / "main" / "native" / "include",
       sourceDirectory in nativeCompile := sourceDirectory.value / "main" / "native",
-      target in nativeCompile := target.value / "native" / nativePlatform.value
+      target in nativeCompile := target.value / "native" / nativePlatform.value,
+      // Specify the order in which the different compilation tasks are executed
+      nativeCompile := nativeCompile.dependsOn(generateTensorOps).value,
+      compile in Compile := (compile in Compile).dependsOn(nativeCompile).value
     )
 
 lazy val api = (project in file("./api"))

@@ -16,6 +16,7 @@ endif()
 # Include directories
 include_directories(.)
 include_directories(include)
+include_directories(generated)
 include_directories(${JNI_INCLUDE_DIRS})
 
 # Find Native TensorFlow Library to Link
@@ -25,7 +26,7 @@ if(NOT LIBTENSORFLOW)
 endif()
 
 # Sources
-file(GLOB LIB_SRC
+file(GLOB_RECURSE LIB_SRC
   "*.c"
   "*.cc"
   "*.cpp"

@@ -10,6 +10,8 @@ import sbt.Keys._
   * @author Emmanouil Antonios Platanios
   */
 object JniNative extends AutoPlugin {
+  override def requires: Plugins = plugins.JvmPlugin
+
   private[this] val os = {
     val name = System.getProperty("os.name").toLowerCase
     if (name.contains("linux")) "linux"
@@ -79,7 +81,7 @@ object JniNative extends AutoPlugin {
         logger = streams.value.log)
     },
     clean in nativeCompile := {
-      streams.value.log.debug("Cleaning native build")
+      streams.value.log.info("Cleaning native build")
       try {
         nativeBuildToolInstance.value.clean()
       } catch {
@@ -98,10 +100,7 @@ object JniNative extends AutoPlugin {
       libraries
     },
     // Make the SBT clean task also cleans the native sources.
-    clean := {
-      (clean in nativeCompile).value
-      clean.value
-    }
+    clean := clean.dependsOn(clean in nativeCompile).value
   )
 
   override lazy val projectSettings: Seq[Setting[_]] = settings
