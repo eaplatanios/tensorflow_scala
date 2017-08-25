@@ -6,7 +6,7 @@ scalaVersion in ThisBuild := "2.12.2"
 crossScalaVersions := Seq("2.11.8", "2.12.2")
 licenses in ThisBuild := Seq(("Apache License 2.0", url("https://www.apache.org/licenses/LICENSE-2.0.txt")))
 
-val tensorFlowVersion = "1.3.0-rc0"
+val tensorFlowVersion = "1.3.0"
 
 scalacOptions in ThisBuild ++= Seq(
   "-deprecation",
@@ -42,7 +42,7 @@ lazy val all = (project in file("."))
     )
 
 lazy val jni = (project in file("./jni"))
-    .enablePlugins(JniNative)
+    .enablePlugins(JniNative, TensorOpsGeneration)
     .settings(
       name := "tensorflow-jni",
       libraryDependencies ++= loggingDependencies,
@@ -50,6 +50,10 @@ lazy val jni = (project in file("./jni"))
       libraryDependencies += "junit" % "junit" % "4.12",
       libraryDependencies += "org.scalactic" %% "scalactic" % "3.0.1",
       libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1" % "test",
+      // Tensor op code generation settings
+      target in generateTensorOps := sourceDirectory.value / "main",
+      ops in generateTensorOps := Map("Math" -> Seq("Add", "Sub")),
+      scalaPackage in generateTensorOps := "tensors",
       // Native bindings compilation settings
       target in javah := sourceDirectory.value / "main" / "native" / "include",
       sourceDirectory in nativeCompile := sourceDirectory.value / "main" / "native",

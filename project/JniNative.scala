@@ -97,7 +97,7 @@ object JniNative extends AutoPlugin {
       streams.value.log.success(s"Libraries built in:\n\t- ${libraries.map(_.getAbsolutePath).mkString("\n\t- ")}")
       libraries
     },
-    // Make the SBT clean task also clean the native sources.
+    // Make the SBT clean task also cleans the native sources.
     clean := {
       (clean in nativeCompile).value
       clean.value
