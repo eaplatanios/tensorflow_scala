@@ -36,24 +36,24 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Select", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(condition_tensor_handle, TFE_TensorHandle, condition, 0);
-  TFE_OpAddInput(op.get(), condition_tensor_handle, status.get());
+  REQUIRE_HANDLE(condition_handle, TFE_TensorHandle, condition, 0);
+  TFE_OpAddInput(op.get(), condition_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(t_tensor_handle, TFE_TensorHandle, t, 0);
-  TFE_OpAddInput(op.get(), t_tensor_handle, status.get());
+  REQUIRE_HANDLE(t_handle, TFE_TensorHandle, t, 0);
+  TFE_OpAddInput(op.get(), t_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(e_tensor_handle, TFE_TensorHandle, e, 0);
-  TFE_OpAddInput(op.get(), e_tensor_handle, status.get());
+  REQUIRE_HANDLE(e_handle, TFE_TensorHandle, e, 0);
+  TFE_OpAddInput(op.get(), e_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(t_attr_T_t_tensor_h, TFE_TensorHandle, t, 0);
-  const TF_DataType t_attr_T = TFE_TensorHandleDataType(t_attr_T_t_tensor_h);
+  REQUIRE_HANDLE(t_attr_T_t_handle, TFE_TensorHandle, t, 0);
+  const TF_DataType t_attr_T = TFE_TensorHandleDataType(t_attr_T_t_handle);
   TFE_OpSetAttrType(op.get(), "T", t_attr_T);
 
-  REQUIRE_HANDLE(t_attr_T_e_tensor_h, TFE_TensorHandle, e, 0);
-  const TF_DataType e_attr_T = TFE_TensorHandleDataType(t_attr_T_e_tensor_h);
+  REQUIRE_HANDLE(t_attr_T_e_handle, TFE_TensorHandle, e, 0);
+  const TF_DataType e_attr_T = TFE_TensorHandleDataType(t_attr_T_e_handle);
   if (t_attr_T != e_attr_T) {
       std::stringstream error_msg;
       error_msg
@@ -83,24 +83,24 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Range", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(start_tensor_handle, TFE_TensorHandle, start, 0);
-  TFE_OpAddInput(op.get(), start_tensor_handle, status.get());
+  REQUIRE_HANDLE(start_handle, TFE_TensorHandle, start, 0);
+  TFE_OpAddInput(op.get(), start_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(limit_tensor_handle, TFE_TensorHandle, limit, 0);
-  TFE_OpAddInput(op.get(), limit_tensor_handle, status.get());
+  REQUIRE_HANDLE(limit_handle, TFE_TensorHandle, limit, 0);
+  TFE_OpAddInput(op.get(), limit_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(delta_tensor_handle, TFE_TensorHandle, delta, 0);
-  TFE_OpAddInput(op.get(), delta_tensor_handle, status.get());
+  REQUIRE_HANDLE(delta_handle, TFE_TensorHandle, delta, 0);
+  TFE_OpAddInput(op.get(), delta_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(start_attr_Tidx_start_tensor_h, TFE_TensorHandle, start, 0);
-  const TF_DataType start_attr_Tidx = TFE_TensorHandleDataType(start_attr_Tidx_start_tensor_h);
+  REQUIRE_HANDLE(start_attr_Tidx_start_handle, TFE_TensorHandle, start, 0);
+  const TF_DataType start_attr_Tidx = TFE_TensorHandleDataType(start_attr_Tidx_start_handle);
   TFE_OpSetAttrType(op.get(), "Tidx", start_attr_Tidx);
 
-  REQUIRE_HANDLE(start_attr_Tidx_limit_tensor_h, TFE_TensorHandle, limit, 0);
-  const TF_DataType limit_attr_Tidx = TFE_TensorHandleDataType(start_attr_Tidx_limit_tensor_h);
+  REQUIRE_HANDLE(start_attr_Tidx_limit_handle, TFE_TensorHandle, limit, 0);
+  const TF_DataType limit_attr_Tidx = TFE_TensorHandleDataType(start_attr_Tidx_limit_handle);
   if (start_attr_Tidx != limit_attr_Tidx) {
       std::stringstream error_msg;
       error_msg
@@ -112,8 +112,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       throw_exception(env, jvm_illegal_argument_exception, error_msg.str().c_str());
   }
 
-  REQUIRE_HANDLE(start_attr_Tidx_delta_tensor_h, TFE_TensorHandle, delta, 0);
-  const TF_DataType delta_attr_Tidx = TFE_TensorHandleDataType(start_attr_Tidx_delta_tensor_h);
+  REQUIRE_HANDLE(start_attr_Tidx_delta_handle, TFE_TensorHandle, delta, 0);
+  const TF_DataType delta_attr_Tidx = TFE_TensorHandleDataType(start_attr_Tidx_delta_handle);
   if (start_attr_Tidx != delta_attr_Tidx) {
       std::stringstream error_msg;
       error_msg
@@ -143,24 +143,28 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "LinSpace", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(start_tensor_handle, TFE_TensorHandle, start, 0);
-  TFE_OpAddInput(op.get(), start_tensor_handle, status.get());
+  REQUIRE_HANDLE(start_handle, TFE_TensorHandle, start, 0);
+  TFE_OpAddInput(op.get(), start_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(stop_tensor_handle, TFE_TensorHandle, stop, 0);
-  TFE_OpAddInput(op.get(), stop_tensor_handle, status.get());
+  REQUIRE_HANDLE(stop_handle, TFE_TensorHandle, stop, 0);
+  TFE_OpAddInput(op.get(), stop_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(num_tensor_handle, TFE_TensorHandle, num, 0);
-  TFE_OpAddInput(op.get(), num_tensor_handle, status.get());
+  REQUIRE_HANDLE(num_handle, TFE_TensorHandle, num, 0);
+  TFE_OpAddInput(op.get(), num_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(start_attr_T_start_tensor_h, TFE_TensorHandle, start, 0);
-  const TF_DataType start_attr_T = TFE_TensorHandleDataType(start_attr_T_start_tensor_h);
+  REQUIRE_HANDLE(start_attr_T_start_handle, TFE_TensorHandle, start, 0);
+  const TF_DataType start_attr_T = TFE_TensorHandleDataType(start_attr_T_start_handle);
   TFE_OpSetAttrType(op.get(), "T", start_attr_T);
 
-  REQUIRE_HANDLE(start_attr_T_stop_tensor_h, TFE_TensorHandle, stop, 0);
-  const TF_DataType stop_attr_T = TFE_TensorHandleDataType(start_attr_T_stop_tensor_h);
+  REQUIRE_HANDLE(num_attr_Tidx_num_handle, TFE_TensorHandle, num, 0);
+  const TF_DataType num_attr_Tidx = TFE_TensorHandleDataType(num_attr_Tidx_num_handle);
+  TFE_OpSetAttrType(op.get(), "Tidx", num_attr_Tidx);
+
+  REQUIRE_HANDLE(start_attr_T_stop_handle, TFE_TensorHandle, stop, 0);
+  const TF_DataType stop_attr_T = TFE_TensorHandleDataType(start_attr_T_stop_handle);
   if (start_attr_T != stop_attr_T) {
       std::stringstream error_msg;
       error_msg
@@ -171,10 +175,6 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
           << "' of argument 'start'";
       throw_exception(env, jvm_illegal_argument_exception, error_msg.str().c_str());
   }
-
-  REQUIRE_HANDLE(num_attr_Tidx_num_tensor_h, TFE_TensorHandle, num, 0);
-  const TF_DataType num_attr_Tidx = TFE_TensorHandleDataType(num_attr_Tidx_num_tensor_h);
-  TFE_OpSetAttrType(op.get(), "Tidx", num_attr_Tidx);
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
@@ -194,12 +194,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Cast", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_SrcT_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_SrcT = TFE_TensorHandleDataType(x_attr_SrcT_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_SrcT_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_SrcT = TFE_TensorHandleDataType(x_attr_SrcT_x_handle);
   TFE_OpSetAttrType(op.get(), "SrcT", x_attr_SrcT);
 
   TFE_OpSetAttrType(op.get(), "DstT", static_cast<TF_DataType>(dstT));
@@ -222,12 +222,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Bitcast", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(input_tensor_handle, TFE_TensorHandle, input, 0);
-  TFE_OpAddInput(op.get(), input_tensor_handle, status.get());
+  REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
+  TFE_OpAddInput(op.get(), input_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(input_attr_T_input_tensor_h, TFE_TensorHandle, input, 0);
-  const TF_DataType input_attr_T = TFE_TensorHandleDataType(input_attr_T_input_tensor_h);
+  REQUIRE_HANDLE(input_attr_T_input_handle, TFE_TensorHandle, input, 0);
+  const TF_DataType input_attr_T = TFE_TensorHandleDataType(input_attr_T_input_handle);
   TFE_OpSetAttrType(op.get(), "T", input_attr_T);
 
   TFE_OpSetAttrType(op.get(), "type", static_cast<TF_DataType>(_type));
@@ -262,27 +262,10 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   const int inputs_attr_N = env->GetArrayLength(inputs);
   TFE_OpSetAttrInt(op.get(), "N", static_cast<int64_t>(inputs_attr_N));
 
-  const int inputs_attr_T_num_tensors = env->GetArrayLength(inputs);
   jlong *inputs_attr_T_elems = env->GetLongArrayElements(inputs, nullptr);
-
   REQUIRE_HANDLE(inputs_attr_T_elems_head, TFE_TensorHandle, inputs_attr_T_elems[0], 0);
   const TF_DataType inputs_attr_T = TFE_TensorHandleDataType(inputs_attr_T_elems_head);
   TFE_OpSetAttrType(op.get(), "T", inputs_attr_T);
-
-  for (int i = 0; i < inputs_attr_T_num_tensors; ++i) {
-    REQUIRE_HANDLE(tensor, TFE_TensorHandle, inputs_attr_T_elems[i], 0);
-    const TF_DataType data_type = TFE_TensorHandleDataType(tensor);
-    if (inputs_attr_T != data_type) {
-      std::stringstream error_msg;
-      error_msg
-          << "Argument 'inputs' of 'addN' op with data type '"
-          << data_type
-          << "' must match data type '"
-          << inputs_attr_T
-          << "' of argument 'inputs'";
-      throw_exception(env, jvm_illegal_argument_exception, error_msg.str().c_str());
-    }
-  }
   env->ReleaseLongArrayElements(inputs, inputs_attr_T_elems, JNI_ABORT);
 
   const int num_outputs = 1;
@@ -303,12 +286,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Abs", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
   const int num_outputs = 1;
@@ -329,12 +312,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "ComplexAbs", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
   TFE_OpSetAttrType(op.get(), "Tout", static_cast<TF_DataType>(tout));
@@ -357,12 +340,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Neg", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
   const int num_outputs = 1;
@@ -383,12 +366,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Reciprocal", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
   const int num_outputs = 1;
@@ -409,12 +392,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Square", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
   const int num_outputs = 1;
@@ -435,12 +418,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Sqrt", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
   const int num_outputs = 1;
@@ -461,12 +444,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Rsqrt", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
   const int num_outputs = 1;
@@ -487,12 +470,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Exp", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
   const int num_outputs = 1;
@@ -513,12 +496,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Expm1", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
   const int num_outputs = 1;
@@ -539,12 +522,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Log", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
   const int num_outputs = 1;
@@ -565,12 +548,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Log1p", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
   const int num_outputs = 1;
@@ -591,12 +574,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Sin", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
   const int num_outputs = 1;
@@ -617,12 +600,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Cos", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
   const int num_outputs = 1;
@@ -643,12 +626,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Tan", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
   const int num_outputs = 1;
@@ -669,12 +652,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Asin", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
   const int num_outputs = 1;
@@ -695,12 +678,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Acos", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
   const int num_outputs = 1;
@@ -721,12 +704,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Atan", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
   const int num_outputs = 1;
@@ -747,12 +730,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Sinh", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
   const int num_outputs = 1;
@@ -773,12 +756,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Cosh", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
   const int num_outputs = 1;
@@ -799,12 +782,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Tanh", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
   const int num_outputs = 1;
@@ -825,12 +808,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Asinh", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
   const int num_outputs = 1;
@@ -851,12 +834,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Acosh", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
   const int num_outputs = 1;
@@ -877,12 +860,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Atanh", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
   const int num_outputs = 1;
@@ -903,12 +886,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Lgamma", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
   const int num_outputs = 1;
@@ -929,12 +912,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Digamma", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
   const int num_outputs = 1;
@@ -955,12 +938,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Erf", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
   const int num_outputs = 1;
@@ -981,12 +964,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Erfc", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
   const int num_outputs = 1;
@@ -1007,12 +990,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Sigmoid", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
   const int num_outputs = 1;
@@ -1033,12 +1016,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Sign", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
   const int num_outputs = 1;
@@ -1059,12 +1042,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Round", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
   const int num_outputs = 1;
@@ -1085,12 +1068,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Rint", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
   const int num_outputs = 1;
@@ -1111,12 +1094,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Floor", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
   const int num_outputs = 1;
@@ -1137,12 +1120,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Ceil", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
   const int num_outputs = 1;
@@ -1163,12 +1146,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "IsNan", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
   const int num_outputs = 1;
@@ -1189,12 +1172,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "IsInf", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
   const int num_outputs = 1;
@@ -1215,12 +1198,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "IsFinite", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
   const int num_outputs = 1;
@@ -1241,20 +1224,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Add", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(y_tensor_handle, TFE_TensorHandle, y, 0);
-  TFE_OpAddInput(op.get(), y_tensor_handle, status.get());
+  REQUIRE_HANDLE(y_handle, TFE_TensorHandle, y, 0);
+  TFE_OpAddInput(op.get(), y_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
-  REQUIRE_HANDLE(x_attr_T_y_tensor_h, TFE_TensorHandle, y, 0);
-  const TF_DataType y_attr_T = TFE_TensorHandleDataType(x_attr_T_y_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_y_handle, TFE_TensorHandle, y, 0);
+  const TF_DataType y_attr_T = TFE_TensorHandleDataType(x_attr_T_y_handle);
   if (x_attr_T != y_attr_T) {
       std::stringstream error_msg;
       error_msg
@@ -1284,20 +1267,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Sub", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(y_tensor_handle, TFE_TensorHandle, y, 0);
-  TFE_OpAddInput(op.get(), y_tensor_handle, status.get());
+  REQUIRE_HANDLE(y_handle, TFE_TensorHandle, y, 0);
+  TFE_OpAddInput(op.get(), y_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
-  REQUIRE_HANDLE(x_attr_T_y_tensor_h, TFE_TensorHandle, y, 0);
-  const TF_DataType y_attr_T = TFE_TensorHandleDataType(x_attr_T_y_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_y_handle, TFE_TensorHandle, y, 0);
+  const TF_DataType y_attr_T = TFE_TensorHandleDataType(x_attr_T_y_handle);
   if (x_attr_T != y_attr_T) {
       std::stringstream error_msg;
       error_msg
@@ -1327,20 +1310,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Mul", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(y_tensor_handle, TFE_TensorHandle, y, 0);
-  TFE_OpAddInput(op.get(), y_tensor_handle, status.get());
+  REQUIRE_HANDLE(y_handle, TFE_TensorHandle, y, 0);
+  TFE_OpAddInput(op.get(), y_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
-  REQUIRE_HANDLE(x_attr_T_y_tensor_h, TFE_TensorHandle, y, 0);
-  const TF_DataType y_attr_T = TFE_TensorHandleDataType(x_attr_T_y_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_y_handle, TFE_TensorHandle, y, 0);
+  const TF_DataType y_attr_T = TFE_TensorHandleDataType(x_attr_T_y_handle);
   if (x_attr_T != y_attr_T) {
       std::stringstream error_msg;
       error_msg
@@ -1370,20 +1353,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Div", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(y_tensor_handle, TFE_TensorHandle, y, 0);
-  TFE_OpAddInput(op.get(), y_tensor_handle, status.get());
+  REQUIRE_HANDLE(y_handle, TFE_TensorHandle, y, 0);
+  TFE_OpAddInput(op.get(), y_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
-  REQUIRE_HANDLE(x_attr_T_y_tensor_h, TFE_TensorHandle, y, 0);
-  const TF_DataType y_attr_T = TFE_TensorHandleDataType(x_attr_T_y_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_y_handle, TFE_TensorHandle, y, 0);
+  const TF_DataType y_attr_T = TFE_TensorHandleDataType(x_attr_T_y_handle);
   if (x_attr_T != y_attr_T) {
       std::stringstream error_msg;
       error_msg
@@ -1413,20 +1396,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "FloorDiv", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(y_tensor_handle, TFE_TensorHandle, y, 0);
-  TFE_OpAddInput(op.get(), y_tensor_handle, status.get());
+  REQUIRE_HANDLE(y_handle, TFE_TensorHandle, y, 0);
+  TFE_OpAddInput(op.get(), y_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
-  REQUIRE_HANDLE(x_attr_T_y_tensor_h, TFE_TensorHandle, y, 0);
-  const TF_DataType y_attr_T = TFE_TensorHandleDataType(x_attr_T_y_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_y_handle, TFE_TensorHandle, y, 0);
+  const TF_DataType y_attr_T = TFE_TensorHandleDataType(x_attr_T_y_handle);
   if (x_attr_T != y_attr_T) {
       std::stringstream error_msg;
       error_msg
@@ -1456,20 +1439,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "TruncateDiv", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(y_tensor_handle, TFE_TensorHandle, y, 0);
-  TFE_OpAddInput(op.get(), y_tensor_handle, status.get());
+  REQUIRE_HANDLE(y_handle, TFE_TensorHandle, y, 0);
+  TFE_OpAddInput(op.get(), y_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
-  REQUIRE_HANDLE(x_attr_T_y_tensor_h, TFE_TensorHandle, y, 0);
-  const TF_DataType y_attr_T = TFE_TensorHandleDataType(x_attr_T_y_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_y_handle, TFE_TensorHandle, y, 0);
+  const TF_DataType y_attr_T = TFE_TensorHandleDataType(x_attr_T_y_handle);
   if (x_attr_T != y_attr_T) {
       std::stringstream error_msg;
       error_msg
@@ -1499,20 +1482,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "RealDiv", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(y_tensor_handle, TFE_TensorHandle, y, 0);
-  TFE_OpAddInput(op.get(), y_tensor_handle, status.get());
+  REQUIRE_HANDLE(y_handle, TFE_TensorHandle, y, 0);
+  TFE_OpAddInput(op.get(), y_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
-  REQUIRE_HANDLE(x_attr_T_y_tensor_h, TFE_TensorHandle, y, 0);
-  const TF_DataType y_attr_T = TFE_TensorHandleDataType(x_attr_T_y_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_y_handle, TFE_TensorHandle, y, 0);
+  const TF_DataType y_attr_T = TFE_TensorHandleDataType(x_attr_T_y_handle);
   if (x_attr_T != y_attr_T) {
       std::stringstream error_msg;
       error_msg
@@ -1542,20 +1525,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "SquaredDifference", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(y_tensor_handle, TFE_TensorHandle, y, 0);
-  TFE_OpAddInput(op.get(), y_tensor_handle, status.get());
+  REQUIRE_HANDLE(y_handle, TFE_TensorHandle, y, 0);
+  TFE_OpAddInput(op.get(), y_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
-  REQUIRE_HANDLE(x_attr_T_y_tensor_h, TFE_TensorHandle, y, 0);
-  const TF_DataType y_attr_T = TFE_TensorHandleDataType(x_attr_T_y_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_y_handle, TFE_TensorHandle, y, 0);
+  const TF_DataType y_attr_T = TFE_TensorHandleDataType(x_attr_T_y_handle);
   if (x_attr_T != y_attr_T) {
       std::stringstream error_msg;
       error_msg
@@ -1585,20 +1568,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Mod", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(y_tensor_handle, TFE_TensorHandle, y, 0);
-  TFE_OpAddInput(op.get(), y_tensor_handle, status.get());
+  REQUIRE_HANDLE(y_handle, TFE_TensorHandle, y, 0);
+  TFE_OpAddInput(op.get(), y_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
-  REQUIRE_HANDLE(x_attr_T_y_tensor_h, TFE_TensorHandle, y, 0);
-  const TF_DataType y_attr_T = TFE_TensorHandleDataType(x_attr_T_y_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_y_handle, TFE_TensorHandle, y, 0);
+  const TF_DataType y_attr_T = TFE_TensorHandleDataType(x_attr_T_y_handle);
   if (x_attr_T != y_attr_T) {
       std::stringstream error_msg;
       error_msg
@@ -1628,20 +1611,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "FloorMod", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(y_tensor_handle, TFE_TensorHandle, y, 0);
-  TFE_OpAddInput(op.get(), y_tensor_handle, status.get());
+  REQUIRE_HANDLE(y_handle, TFE_TensorHandle, y, 0);
+  TFE_OpAddInput(op.get(), y_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
-  REQUIRE_HANDLE(x_attr_T_y_tensor_h, TFE_TensorHandle, y, 0);
-  const TF_DataType y_attr_T = TFE_TensorHandleDataType(x_attr_T_y_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_y_handle, TFE_TensorHandle, y, 0);
+  const TF_DataType y_attr_T = TFE_TensorHandleDataType(x_attr_T_y_handle);
   if (x_attr_T != y_attr_T) {
       std::stringstream error_msg;
       error_msg
@@ -1671,20 +1654,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "TruncateMod", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(y_tensor_handle, TFE_TensorHandle, y, 0);
-  TFE_OpAddInput(op.get(), y_tensor_handle, status.get());
+  REQUIRE_HANDLE(y_handle, TFE_TensorHandle, y, 0);
+  TFE_OpAddInput(op.get(), y_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
-  REQUIRE_HANDLE(x_attr_T_y_tensor_h, TFE_TensorHandle, y, 0);
-  const TF_DataType y_attr_T = TFE_TensorHandleDataType(x_attr_T_y_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_y_handle, TFE_TensorHandle, y, 0);
+  const TF_DataType y_attr_T = TFE_TensorHandleDataType(x_attr_T_y_handle);
   if (x_attr_T != y_attr_T) {
       std::stringstream error_msg;
       error_msg
@@ -1714,20 +1697,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Pow", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(y_tensor_handle, TFE_TensorHandle, y, 0);
-  TFE_OpAddInput(op.get(), y_tensor_handle, status.get());
+  REQUIRE_HANDLE(y_handle, TFE_TensorHandle, y, 0);
+  TFE_OpAddInput(op.get(), y_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
-  REQUIRE_HANDLE(x_attr_T_y_tensor_h, TFE_TensorHandle, y, 0);
-  const TF_DataType y_attr_T = TFE_TensorHandleDataType(x_attr_T_y_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_y_handle, TFE_TensorHandle, y, 0);
+  const TF_DataType y_attr_T = TFE_TensorHandleDataType(x_attr_T_y_handle);
   if (x_attr_T != y_attr_T) {
       std::stringstream error_msg;
       error_msg
@@ -1757,20 +1740,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Igammac", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(a_tensor_handle, TFE_TensorHandle, a, 0);
-  TFE_OpAddInput(op.get(), a_tensor_handle, status.get());
+  REQUIRE_HANDLE(a_handle, TFE_TensorHandle, a, 0);
+  TFE_OpAddInput(op.get(), a_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(a_attr_T_a_tensor_h, TFE_TensorHandle, a, 0);
-  const TF_DataType a_attr_T = TFE_TensorHandleDataType(a_attr_T_a_tensor_h);
+  REQUIRE_HANDLE(a_attr_T_a_handle, TFE_TensorHandle, a, 0);
+  const TF_DataType a_attr_T = TFE_TensorHandleDataType(a_attr_T_a_handle);
   TFE_OpSetAttrType(op.get(), "T", a_attr_T);
 
-  REQUIRE_HANDLE(a_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(a_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(a_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(a_attr_T_x_handle);
   if (a_attr_T != x_attr_T) {
       std::stringstream error_msg;
       error_msg
@@ -1800,20 +1783,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Igamma", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(a_tensor_handle, TFE_TensorHandle, a, 0);
-  TFE_OpAddInput(op.get(), a_tensor_handle, status.get());
+  REQUIRE_HANDLE(a_handle, TFE_TensorHandle, a, 0);
+  TFE_OpAddInput(op.get(), a_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(a_attr_T_a_tensor_h, TFE_TensorHandle, a, 0);
-  const TF_DataType a_attr_T = TFE_TensorHandleDataType(a_attr_T_a_tensor_h);
+  REQUIRE_HANDLE(a_attr_T_a_handle, TFE_TensorHandle, a, 0);
+  const TF_DataType a_attr_T = TFE_TensorHandleDataType(a_attr_T_a_handle);
   TFE_OpSetAttrType(op.get(), "T", a_attr_T);
 
-  REQUIRE_HANDLE(a_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(a_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(a_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(a_attr_T_x_handle);
   if (a_attr_T != x_attr_T) {
       std::stringstream error_msg;
       error_msg
@@ -1843,20 +1826,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Zeta", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(q_tensor_handle, TFE_TensorHandle, q, 0);
-  TFE_OpAddInput(op.get(), q_tensor_handle, status.get());
+  REQUIRE_HANDLE(q_handle, TFE_TensorHandle, q, 0);
+  TFE_OpAddInput(op.get(), q_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
-  REQUIRE_HANDLE(x_attr_T_q_tensor_h, TFE_TensorHandle, q, 0);
-  const TF_DataType q_attr_T = TFE_TensorHandleDataType(x_attr_T_q_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_q_handle, TFE_TensorHandle, q, 0);
+  const TF_DataType q_attr_T = TFE_TensorHandleDataType(x_attr_T_q_handle);
   if (x_attr_T != q_attr_T) {
       std::stringstream error_msg;
       error_msg
@@ -1886,20 +1869,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Polygamma", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(a_tensor_handle, TFE_TensorHandle, a, 0);
-  TFE_OpAddInput(op.get(), a_tensor_handle, status.get());
+  REQUIRE_HANDLE(a_handle, TFE_TensorHandle, a, 0);
+  TFE_OpAddInput(op.get(), a_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(a_attr_T_a_tensor_h, TFE_TensorHandle, a, 0);
-  const TF_DataType a_attr_T = TFE_TensorHandleDataType(a_attr_T_a_tensor_h);
+  REQUIRE_HANDLE(a_attr_T_a_handle, TFE_TensorHandle, a, 0);
+  const TF_DataType a_attr_T = TFE_TensorHandleDataType(a_attr_T_a_handle);
   TFE_OpSetAttrType(op.get(), "T", a_attr_T);
 
-  REQUIRE_HANDLE(a_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(a_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(a_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(a_attr_T_x_handle);
   if (a_attr_T != x_attr_T) {
       std::stringstream error_msg;
       error_msg
@@ -1929,20 +1912,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Atan2", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(y_tensor_handle, TFE_TensorHandle, y, 0);
-  TFE_OpAddInput(op.get(), y_tensor_handle, status.get());
+  REQUIRE_HANDLE(y_handle, TFE_TensorHandle, y, 0);
+  TFE_OpAddInput(op.get(), y_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(y_attr_T_y_tensor_h, TFE_TensorHandle, y, 0);
-  const TF_DataType y_attr_T = TFE_TensorHandleDataType(y_attr_T_y_tensor_h);
+  REQUIRE_HANDLE(y_attr_T_y_handle, TFE_TensorHandle, y, 0);
+  const TF_DataType y_attr_T = TFE_TensorHandleDataType(y_attr_T_y_handle);
   TFE_OpSetAttrType(op.get(), "T", y_attr_T);
 
-  REQUIRE_HANDLE(y_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(y_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(y_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(y_attr_T_x_handle);
   if (y_attr_T != x_attr_T) {
       std::stringstream error_msg;
       error_msg
@@ -1972,20 +1955,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Maximum", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(y_tensor_handle, TFE_TensorHandle, y, 0);
-  TFE_OpAddInput(op.get(), y_tensor_handle, status.get());
+  REQUIRE_HANDLE(y_handle, TFE_TensorHandle, y, 0);
+  TFE_OpAddInput(op.get(), y_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
-  REQUIRE_HANDLE(x_attr_T_y_tensor_h, TFE_TensorHandle, y, 0);
-  const TF_DataType y_attr_T = TFE_TensorHandleDataType(x_attr_T_y_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_y_handle, TFE_TensorHandle, y, 0);
+  const TF_DataType y_attr_T = TFE_TensorHandleDataType(x_attr_T_y_handle);
   if (x_attr_T != y_attr_T) {
       std::stringstream error_msg;
       error_msg
@@ -2015,20 +1998,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Minimum", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(y_tensor_handle, TFE_TensorHandle, y, 0);
-  TFE_OpAddInput(op.get(), y_tensor_handle, status.get());
+  REQUIRE_HANDLE(y_handle, TFE_TensorHandle, y, 0);
+  TFE_OpAddInput(op.get(), y_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
-  REQUIRE_HANDLE(x_attr_T_y_tensor_h, TFE_TensorHandle, y, 0);
-  const TF_DataType y_attr_T = TFE_TensorHandleDataType(x_attr_T_y_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_y_handle, TFE_TensorHandle, y, 0);
+  const TF_DataType y_attr_T = TFE_TensorHandleDataType(x_attr_T_y_handle);
   if (x_attr_T != y_attr_T) {
       std::stringstream error_msg;
       error_msg
@@ -2058,24 +2041,24 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Betainc", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(a_tensor_handle, TFE_TensorHandle, a, 0);
-  TFE_OpAddInput(op.get(), a_tensor_handle, status.get());
+  REQUIRE_HANDLE(a_handle, TFE_TensorHandle, a, 0);
+  TFE_OpAddInput(op.get(), a_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(b_tensor_handle, TFE_TensorHandle, b, 0);
-  TFE_OpAddInput(op.get(), b_tensor_handle, status.get());
+  REQUIRE_HANDLE(b_handle, TFE_TensorHandle, b, 0);
+  TFE_OpAddInput(op.get(), b_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(a_attr_T_a_tensor_h, TFE_TensorHandle, a, 0);
-  const TF_DataType a_attr_T = TFE_TensorHandleDataType(a_attr_T_a_tensor_h);
+  REQUIRE_HANDLE(a_attr_T_a_handle, TFE_TensorHandle, a, 0);
+  const TF_DataType a_attr_T = TFE_TensorHandleDataType(a_attr_T_a_handle);
   TFE_OpSetAttrType(op.get(), "T", a_attr_T);
 
-  REQUIRE_HANDLE(a_attr_T_b_tensor_h, TFE_TensorHandle, b, 0);
-  const TF_DataType b_attr_T = TFE_TensorHandleDataType(a_attr_T_b_tensor_h);
+  REQUIRE_HANDLE(a_attr_T_b_handle, TFE_TensorHandle, b, 0);
+  const TF_DataType b_attr_T = TFE_TensorHandleDataType(a_attr_T_b_handle);
   if (a_attr_T != b_attr_T) {
       std::stringstream error_msg;
       error_msg
@@ -2087,8 +2070,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       throw_exception(env, jvm_illegal_argument_exception, error_msg.str().c_str());
   }
 
-  REQUIRE_HANDLE(a_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(a_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(a_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(a_attr_T_x_handle);
   if (a_attr_T != x_attr_T) {
       std::stringstream error_msg;
       error_msg
@@ -2118,8 +2101,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "LogicalNot", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   const int num_outputs = 1;
@@ -2140,12 +2123,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "LogicalAnd", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(y_tensor_handle, TFE_TensorHandle, y, 0);
-  TFE_OpAddInput(op.get(), y_tensor_handle, status.get());
+  REQUIRE_HANDLE(y_handle, TFE_TensorHandle, y, 0);
+  TFE_OpAddInput(op.get(), y_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   const int num_outputs = 1;
@@ -2166,12 +2149,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "LogicalOr", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(y_tensor_handle, TFE_TensorHandle, y, 0);
-  TFE_OpAddInput(op.get(), y_tensor_handle, status.get());
+  REQUIRE_HANDLE(y_handle, TFE_TensorHandle, y, 0);
+  TFE_OpAddInput(op.get(), y_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   const int num_outputs = 1;
@@ -2192,20 +2175,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Equal", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(y_tensor_handle, TFE_TensorHandle, y, 0);
-  TFE_OpAddInput(op.get(), y_tensor_handle, status.get());
+  REQUIRE_HANDLE(y_handle, TFE_TensorHandle, y, 0);
+  TFE_OpAddInput(op.get(), y_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
-  REQUIRE_HANDLE(x_attr_T_y_tensor_h, TFE_TensorHandle, y, 0);
-  const TF_DataType y_attr_T = TFE_TensorHandleDataType(x_attr_T_y_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_y_handle, TFE_TensorHandle, y, 0);
+  const TF_DataType y_attr_T = TFE_TensorHandleDataType(x_attr_T_y_handle);
   if (x_attr_T != y_attr_T) {
       std::stringstream error_msg;
       error_msg
@@ -2235,20 +2218,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "NotEqual", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(y_tensor_handle, TFE_TensorHandle, y, 0);
-  TFE_OpAddInput(op.get(), y_tensor_handle, status.get());
+  REQUIRE_HANDLE(y_handle, TFE_TensorHandle, y, 0);
+  TFE_OpAddInput(op.get(), y_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
-  REQUIRE_HANDLE(x_attr_T_y_tensor_h, TFE_TensorHandle, y, 0);
-  const TF_DataType y_attr_T = TFE_TensorHandleDataType(x_attr_T_y_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_y_handle, TFE_TensorHandle, y, 0);
+  const TF_DataType y_attr_T = TFE_TensorHandleDataType(x_attr_T_y_handle);
   if (x_attr_T != y_attr_T) {
       std::stringstream error_msg;
       error_msg
@@ -2278,20 +2261,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "ApproximateEqual", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(y_tensor_handle, TFE_TensorHandle, y, 0);
-  TFE_OpAddInput(op.get(), y_tensor_handle, status.get());
+  REQUIRE_HANDLE(y_handle, TFE_TensorHandle, y, 0);
+  TFE_OpAddInput(op.get(), y_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
-  REQUIRE_HANDLE(x_attr_T_y_tensor_h, TFE_TensorHandle, y, 0);
-  const TF_DataType y_attr_T = TFE_TensorHandleDataType(x_attr_T_y_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_y_handle, TFE_TensorHandle, y, 0);
+  const TF_DataType y_attr_T = TFE_TensorHandleDataType(x_attr_T_y_handle);
   if (x_attr_T != y_attr_T) {
       std::stringstream error_msg;
       error_msg
@@ -2323,20 +2306,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Less", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(y_tensor_handle, TFE_TensorHandle, y, 0);
-  TFE_OpAddInput(op.get(), y_tensor_handle, status.get());
+  REQUIRE_HANDLE(y_handle, TFE_TensorHandle, y, 0);
+  TFE_OpAddInput(op.get(), y_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
-  REQUIRE_HANDLE(x_attr_T_y_tensor_h, TFE_TensorHandle, y, 0);
-  const TF_DataType y_attr_T = TFE_TensorHandleDataType(x_attr_T_y_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_y_handle, TFE_TensorHandle, y, 0);
+  const TF_DataType y_attr_T = TFE_TensorHandleDataType(x_attr_T_y_handle);
   if (x_attr_T != y_attr_T) {
       std::stringstream error_msg;
       error_msg
@@ -2366,20 +2349,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "LessEqual", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(y_tensor_handle, TFE_TensorHandle, y, 0);
-  TFE_OpAddInput(op.get(), y_tensor_handle, status.get());
+  REQUIRE_HANDLE(y_handle, TFE_TensorHandle, y, 0);
+  TFE_OpAddInput(op.get(), y_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
-  REQUIRE_HANDLE(x_attr_T_y_tensor_h, TFE_TensorHandle, y, 0);
-  const TF_DataType y_attr_T = TFE_TensorHandleDataType(x_attr_T_y_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_y_handle, TFE_TensorHandle, y, 0);
+  const TF_DataType y_attr_T = TFE_TensorHandleDataType(x_attr_T_y_handle);
   if (x_attr_T != y_attr_T) {
       std::stringstream error_msg;
       error_msg
@@ -2409,20 +2392,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Greater", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(y_tensor_handle, TFE_TensorHandle, y, 0);
-  TFE_OpAddInput(op.get(), y_tensor_handle, status.get());
+  REQUIRE_HANDLE(y_handle, TFE_TensorHandle, y, 0);
+  TFE_OpAddInput(op.get(), y_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
-  REQUIRE_HANDLE(x_attr_T_y_tensor_h, TFE_TensorHandle, y, 0);
-  const TF_DataType y_attr_T = TFE_TensorHandleDataType(x_attr_T_y_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_y_handle, TFE_TensorHandle, y, 0);
+  const TF_DataType y_attr_T = TFE_TensorHandleDataType(x_attr_T_y_handle);
   if (x_attr_T != y_attr_T) {
       std::stringstream error_msg;
       error_msg
@@ -2452,20 +2435,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "GreaterEqual", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(y_tensor_handle, TFE_TensorHandle, y, 0);
-  TFE_OpAddInput(op.get(), y_tensor_handle, status.get());
+  REQUIRE_HANDLE(y_handle, TFE_TensorHandle, y, 0);
+  TFE_OpAddInput(op.get(), y_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
-  REQUIRE_HANDLE(x_attr_T_y_tensor_h, TFE_TensorHandle, y, 0);
-  const TF_DataType y_attr_T = TFE_TensorHandleDataType(x_attr_T_y_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_y_handle, TFE_TensorHandle, y, 0);
+  const TF_DataType y_attr_T = TFE_TensorHandleDataType(x_attr_T_y_handle);
   if (x_attr_T != y_attr_T) {
       std::stringstream error_msg;
       error_msg
@@ -2495,20 +2478,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Sum", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(input_tensor_handle, TFE_TensorHandle, input, 0);
-  TFE_OpAddInput(op.get(), input_tensor_handle, status.get());
+  REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
+  TFE_OpAddInput(op.get(), input_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(reduction_indices_tensor_handle, TFE_TensorHandle, reduction_indices, 0);
-  TFE_OpAddInput(op.get(), reduction_indices_tensor_handle, status.get());
+  REQUIRE_HANDLE(reduction_indices_handle, TFE_TensorHandle, reduction_indices, 0);
+  TFE_OpAddInput(op.get(), reduction_indices_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(input_attr_T_input_tensor_h, TFE_TensorHandle, input, 0);
-  const TF_DataType input_attr_T = TFE_TensorHandleDataType(input_attr_T_input_tensor_h);
+  REQUIRE_HANDLE(input_attr_T_input_handle, TFE_TensorHandle, input, 0);
+  const TF_DataType input_attr_T = TFE_TensorHandleDataType(input_attr_T_input_handle);
   TFE_OpSetAttrType(op.get(), "T", input_attr_T);
 
-  REQUIRE_HANDLE(reduction_indices_attr_Tidx_reduction_indices_tensor_h, TFE_TensorHandle, reduction_indices, 0);
-  const TF_DataType reduction_indices_attr_Tidx = TFE_TensorHandleDataType(reduction_indices_attr_Tidx_reduction_indices_tensor_h);
+  REQUIRE_HANDLE(reduction_indices_attr_Tidx_reduction_indices_handle, TFE_TensorHandle, reduction_indices, 0);
+  const TF_DataType reduction_indices_attr_Tidx = TFE_TensorHandleDataType(reduction_indices_attr_Tidx_reduction_indices_handle);
   TFE_OpSetAttrType(op.get(), "Tidx", reduction_indices_attr_Tidx);
 
   TFE_OpSetAttrBool(op.get(), "keep_dims", static_cast<unsigned char>(keep_dims));
@@ -2531,20 +2514,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Mean", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(input_tensor_handle, TFE_TensorHandle, input, 0);
-  TFE_OpAddInput(op.get(), input_tensor_handle, status.get());
+  REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
+  TFE_OpAddInput(op.get(), input_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(reduction_indices_tensor_handle, TFE_TensorHandle, reduction_indices, 0);
-  TFE_OpAddInput(op.get(), reduction_indices_tensor_handle, status.get());
+  REQUIRE_HANDLE(reduction_indices_handle, TFE_TensorHandle, reduction_indices, 0);
+  TFE_OpAddInput(op.get(), reduction_indices_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(input_attr_T_input_tensor_h, TFE_TensorHandle, input, 0);
-  const TF_DataType input_attr_T = TFE_TensorHandleDataType(input_attr_T_input_tensor_h);
+  REQUIRE_HANDLE(input_attr_T_input_handle, TFE_TensorHandle, input, 0);
+  const TF_DataType input_attr_T = TFE_TensorHandleDataType(input_attr_T_input_handle);
   TFE_OpSetAttrType(op.get(), "T", input_attr_T);
 
-  REQUIRE_HANDLE(reduction_indices_attr_Tidx_reduction_indices_tensor_h, TFE_TensorHandle, reduction_indices, 0);
-  const TF_DataType reduction_indices_attr_Tidx = TFE_TensorHandleDataType(reduction_indices_attr_Tidx_reduction_indices_tensor_h);
+  REQUIRE_HANDLE(reduction_indices_attr_Tidx_reduction_indices_handle, TFE_TensorHandle, reduction_indices, 0);
+  const TF_DataType reduction_indices_attr_Tidx = TFE_TensorHandleDataType(reduction_indices_attr_Tidx_reduction_indices_handle);
   TFE_OpSetAttrType(op.get(), "Tidx", reduction_indices_attr_Tidx);
 
   TFE_OpSetAttrBool(op.get(), "keep_dims", static_cast<unsigned char>(keep_dims));
@@ -2567,20 +2550,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Prod", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(input_tensor_handle, TFE_TensorHandle, input, 0);
-  TFE_OpAddInput(op.get(), input_tensor_handle, status.get());
+  REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
+  TFE_OpAddInput(op.get(), input_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(reduction_indices_tensor_handle, TFE_TensorHandle, reduction_indices, 0);
-  TFE_OpAddInput(op.get(), reduction_indices_tensor_handle, status.get());
+  REQUIRE_HANDLE(reduction_indices_handle, TFE_TensorHandle, reduction_indices, 0);
+  TFE_OpAddInput(op.get(), reduction_indices_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(input_attr_T_input_tensor_h, TFE_TensorHandle, input, 0);
-  const TF_DataType input_attr_T = TFE_TensorHandleDataType(input_attr_T_input_tensor_h);
+  REQUIRE_HANDLE(input_attr_T_input_handle, TFE_TensorHandle, input, 0);
+  const TF_DataType input_attr_T = TFE_TensorHandleDataType(input_attr_T_input_handle);
   TFE_OpSetAttrType(op.get(), "T", input_attr_T);
 
-  REQUIRE_HANDLE(reduction_indices_attr_Tidx_reduction_indices_tensor_h, TFE_TensorHandle, reduction_indices, 0);
-  const TF_DataType reduction_indices_attr_Tidx = TFE_TensorHandleDataType(reduction_indices_attr_Tidx_reduction_indices_tensor_h);
+  REQUIRE_HANDLE(reduction_indices_attr_Tidx_reduction_indices_handle, TFE_TensorHandle, reduction_indices, 0);
+  const TF_DataType reduction_indices_attr_Tidx = TFE_TensorHandleDataType(reduction_indices_attr_Tidx_reduction_indices_handle);
   TFE_OpSetAttrType(op.get(), "Tidx", reduction_indices_attr_Tidx);
 
   TFE_OpSetAttrBool(op.get(), "keep_dims", static_cast<unsigned char>(keep_dims));
@@ -2603,20 +2586,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Min", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(input_tensor_handle, TFE_TensorHandle, input, 0);
-  TFE_OpAddInput(op.get(), input_tensor_handle, status.get());
+  REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
+  TFE_OpAddInput(op.get(), input_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(reduction_indices_tensor_handle, TFE_TensorHandle, reduction_indices, 0);
-  TFE_OpAddInput(op.get(), reduction_indices_tensor_handle, status.get());
+  REQUIRE_HANDLE(reduction_indices_handle, TFE_TensorHandle, reduction_indices, 0);
+  TFE_OpAddInput(op.get(), reduction_indices_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(input_attr_T_input_tensor_h, TFE_TensorHandle, input, 0);
-  const TF_DataType input_attr_T = TFE_TensorHandleDataType(input_attr_T_input_tensor_h);
+  REQUIRE_HANDLE(input_attr_T_input_handle, TFE_TensorHandle, input, 0);
+  const TF_DataType input_attr_T = TFE_TensorHandleDataType(input_attr_T_input_handle);
   TFE_OpSetAttrType(op.get(), "T", input_attr_T);
 
-  REQUIRE_HANDLE(reduction_indices_attr_Tidx_reduction_indices_tensor_h, TFE_TensorHandle, reduction_indices, 0);
-  const TF_DataType reduction_indices_attr_Tidx = TFE_TensorHandleDataType(reduction_indices_attr_Tidx_reduction_indices_tensor_h);
+  REQUIRE_HANDLE(reduction_indices_attr_Tidx_reduction_indices_handle, TFE_TensorHandle, reduction_indices, 0);
+  const TF_DataType reduction_indices_attr_Tidx = TFE_TensorHandleDataType(reduction_indices_attr_Tidx_reduction_indices_handle);
   TFE_OpSetAttrType(op.get(), "Tidx", reduction_indices_attr_Tidx);
 
   TFE_OpSetAttrBool(op.get(), "keep_dims", static_cast<unsigned char>(keep_dims));
@@ -2639,20 +2622,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Max", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(input_tensor_handle, TFE_TensorHandle, input, 0);
-  TFE_OpAddInput(op.get(), input_tensor_handle, status.get());
+  REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
+  TFE_OpAddInput(op.get(), input_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(reduction_indices_tensor_handle, TFE_TensorHandle, reduction_indices, 0);
-  TFE_OpAddInput(op.get(), reduction_indices_tensor_handle, status.get());
+  REQUIRE_HANDLE(reduction_indices_handle, TFE_TensorHandle, reduction_indices, 0);
+  TFE_OpAddInput(op.get(), reduction_indices_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(input_attr_T_input_tensor_h, TFE_TensorHandle, input, 0);
-  const TF_DataType input_attr_T = TFE_TensorHandleDataType(input_attr_T_input_tensor_h);
+  REQUIRE_HANDLE(input_attr_T_input_handle, TFE_TensorHandle, input, 0);
+  const TF_DataType input_attr_T = TFE_TensorHandleDataType(input_attr_T_input_handle);
   TFE_OpSetAttrType(op.get(), "T", input_attr_T);
 
-  REQUIRE_HANDLE(reduction_indices_attr_Tidx_reduction_indices_tensor_h, TFE_TensorHandle, reduction_indices, 0);
-  const TF_DataType reduction_indices_attr_Tidx = TFE_TensorHandleDataType(reduction_indices_attr_Tidx_reduction_indices_tensor_h);
+  REQUIRE_HANDLE(reduction_indices_attr_Tidx_reduction_indices_handle, TFE_TensorHandle, reduction_indices, 0);
+  const TF_DataType reduction_indices_attr_Tidx = TFE_TensorHandleDataType(reduction_indices_attr_Tidx_reduction_indices_handle);
   TFE_OpSetAttrType(op.get(), "Tidx", reduction_indices_attr_Tidx);
 
   TFE_OpSetAttrBool(op.get(), "keep_dims", static_cast<unsigned char>(keep_dims));
@@ -2675,16 +2658,16 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "All", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(input_tensor_handle, TFE_TensorHandle, input, 0);
-  TFE_OpAddInput(op.get(), input_tensor_handle, status.get());
+  REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
+  TFE_OpAddInput(op.get(), input_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(reduction_indices_tensor_handle, TFE_TensorHandle, reduction_indices, 0);
-  TFE_OpAddInput(op.get(), reduction_indices_tensor_handle, status.get());
+  REQUIRE_HANDLE(reduction_indices_handle, TFE_TensorHandle, reduction_indices, 0);
+  TFE_OpAddInput(op.get(), reduction_indices_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(reduction_indices_attr_Tidx_reduction_indices_tensor_h, TFE_TensorHandle, reduction_indices, 0);
-  const TF_DataType reduction_indices_attr_Tidx = TFE_TensorHandleDataType(reduction_indices_attr_Tidx_reduction_indices_tensor_h);
+  REQUIRE_HANDLE(reduction_indices_attr_Tidx_reduction_indices_handle, TFE_TensorHandle, reduction_indices, 0);
+  const TF_DataType reduction_indices_attr_Tidx = TFE_TensorHandleDataType(reduction_indices_attr_Tidx_reduction_indices_handle);
   TFE_OpSetAttrType(op.get(), "Tidx", reduction_indices_attr_Tidx);
 
   TFE_OpSetAttrBool(op.get(), "keep_dims", static_cast<unsigned char>(keep_dims));
@@ -2707,16 +2690,16 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Any", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(input_tensor_handle, TFE_TensorHandle, input, 0);
-  TFE_OpAddInput(op.get(), input_tensor_handle, status.get());
+  REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
+  TFE_OpAddInput(op.get(), input_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(reduction_indices_tensor_handle, TFE_TensorHandle, reduction_indices, 0);
-  TFE_OpAddInput(op.get(), reduction_indices_tensor_handle, status.get());
+  REQUIRE_HANDLE(reduction_indices_handle, TFE_TensorHandle, reduction_indices, 0);
+  TFE_OpAddInput(op.get(), reduction_indices_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(reduction_indices_attr_Tidx_reduction_indices_tensor_h, TFE_TensorHandle, reduction_indices, 0);
-  const TF_DataType reduction_indices_attr_Tidx = TFE_TensorHandleDataType(reduction_indices_attr_Tidx_reduction_indices_tensor_h);
+  REQUIRE_HANDLE(reduction_indices_attr_Tidx_reduction_indices_handle, TFE_TensorHandle, reduction_indices, 0);
+  const TF_DataType reduction_indices_attr_Tidx = TFE_TensorHandleDataType(reduction_indices_attr_Tidx_reduction_indices_handle);
   TFE_OpSetAttrType(op.get(), "Tidx", reduction_indices_attr_Tidx);
 
   TFE_OpSetAttrBool(op.get(), "keep_dims", static_cast<unsigned char>(keep_dims));
@@ -2739,20 +2722,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "ArgMax", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(input_tensor_handle, TFE_TensorHandle, input, 0);
-  TFE_OpAddInput(op.get(), input_tensor_handle, status.get());
+  REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
+  TFE_OpAddInput(op.get(), input_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(dimension_tensor_handle, TFE_TensorHandle, dimension, 0);
-  TFE_OpAddInput(op.get(), dimension_tensor_handle, status.get());
+  REQUIRE_HANDLE(dimension_handle, TFE_TensorHandle, dimension, 0);
+  TFE_OpAddInput(op.get(), dimension_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(input_attr_T_input_tensor_h, TFE_TensorHandle, input, 0);
-  const TF_DataType input_attr_T = TFE_TensorHandleDataType(input_attr_T_input_tensor_h);
+  REQUIRE_HANDLE(input_attr_T_input_handle, TFE_TensorHandle, input, 0);
+  const TF_DataType input_attr_T = TFE_TensorHandleDataType(input_attr_T_input_handle);
   TFE_OpSetAttrType(op.get(), "T", input_attr_T);
 
-  REQUIRE_HANDLE(dimension_attr_Tidx_dimension_tensor_h, TFE_TensorHandle, dimension, 0);
-  const TF_DataType dimension_attr_Tidx = TFE_TensorHandleDataType(dimension_attr_Tidx_dimension_tensor_h);
+  REQUIRE_HANDLE(dimension_attr_Tidx_dimension_handle, TFE_TensorHandle, dimension, 0);
+  const TF_DataType dimension_attr_Tidx = TFE_TensorHandleDataType(dimension_attr_Tidx_dimension_handle);
   TFE_OpSetAttrType(op.get(), "Tidx", dimension_attr_Tidx);
 
   TFE_OpSetAttrType(op.get(), "output_type", static_cast<TF_DataType>(output_type));
@@ -2775,20 +2758,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "ArgMin", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(input_tensor_handle, TFE_TensorHandle, input, 0);
-  TFE_OpAddInput(op.get(), input_tensor_handle, status.get());
+  REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
+  TFE_OpAddInput(op.get(), input_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(dimension_tensor_handle, TFE_TensorHandle, dimension, 0);
-  TFE_OpAddInput(op.get(), dimension_tensor_handle, status.get());
+  REQUIRE_HANDLE(dimension_handle, TFE_TensorHandle, dimension, 0);
+  TFE_OpAddInput(op.get(), dimension_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(input_attr_T_input_tensor_h, TFE_TensorHandle, input, 0);
-  const TF_DataType input_attr_T = TFE_TensorHandleDataType(input_attr_T_input_tensor_h);
+  REQUIRE_HANDLE(input_attr_T_input_handle, TFE_TensorHandle, input, 0);
+  const TF_DataType input_attr_T = TFE_TensorHandleDataType(input_attr_T_input_handle);
   TFE_OpSetAttrType(op.get(), "T", input_attr_T);
 
-  REQUIRE_HANDLE(dimension_attr_Tidx_dimension_tensor_h, TFE_TensorHandle, dimension, 0);
-  const TF_DataType dimension_attr_Tidx = TFE_TensorHandleDataType(dimension_attr_Tidx_dimension_tensor_h);
+  REQUIRE_HANDLE(dimension_attr_Tidx_dimension_handle, TFE_TensorHandle, dimension, 0);
+  const TF_DataType dimension_attr_Tidx = TFE_TensorHandleDataType(dimension_attr_Tidx_dimension_handle);
   TFE_OpSetAttrType(op.get(), "Tidx", dimension_attr_Tidx);
 
   TFE_OpSetAttrType(op.get(), "output_type", static_cast<TF_DataType>(output_type));
@@ -2811,20 +2794,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Bincount", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(arr_tensor_handle, TFE_TensorHandle, arr, 0);
-  TFE_OpAddInput(op.get(), arr_tensor_handle, status.get());
+  REQUIRE_HANDLE(arr_handle, TFE_TensorHandle, arr, 0);
+  TFE_OpAddInput(op.get(), arr_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(size_tensor_handle, TFE_TensorHandle, size, 0);
-  TFE_OpAddInput(op.get(), size_tensor_handle, status.get());
+  REQUIRE_HANDLE(size_handle, TFE_TensorHandle, size, 0);
+  TFE_OpAddInput(op.get(), size_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(weights_tensor_handle, TFE_TensorHandle, weights, 0);
-  TFE_OpAddInput(op.get(), weights_tensor_handle, status.get());
+  REQUIRE_HANDLE(weights_handle, TFE_TensorHandle, weights, 0);
+  TFE_OpAddInput(op.get(), weights_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(weights_attr_T_weights_tensor_h, TFE_TensorHandle, weights, 0);
-  const TF_DataType weights_attr_T = TFE_TensorHandleDataType(weights_attr_T_weights_tensor_h);
+  REQUIRE_HANDLE(weights_attr_T_weights_handle, TFE_TensorHandle, weights, 0);
+  const TF_DataType weights_attr_T = TFE_TensorHandleDataType(weights_attr_T_weights_handle);
   TFE_OpSetAttrType(op.get(), "T", weights_attr_T);
 
   const int num_outputs = 1;
@@ -2845,20 +2828,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Cumsum", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(axis_tensor_handle, TFE_TensorHandle, axis, 0);
-  TFE_OpAddInput(op.get(), axis_tensor_handle, status.get());
+  REQUIRE_HANDLE(axis_handle, TFE_TensorHandle, axis, 0);
+  TFE_OpAddInput(op.get(), axis_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
-  REQUIRE_HANDLE(axis_attr_Tidx_axis_tensor_h, TFE_TensorHandle, axis, 0);
-  const TF_DataType axis_attr_Tidx = TFE_TensorHandleDataType(axis_attr_Tidx_axis_tensor_h);
+  REQUIRE_HANDLE(axis_attr_Tidx_axis_handle, TFE_TensorHandle, axis, 0);
+  const TF_DataType axis_attr_Tidx = TFE_TensorHandleDataType(axis_attr_Tidx_axis_handle);
   TFE_OpSetAttrType(op.get(), "Tidx", axis_attr_Tidx);
 
   TFE_OpSetAttrBool(op.get(), "exclusive", static_cast<unsigned char>(exclusive));
@@ -2883,20 +2866,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Cumprod", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(axis_tensor_handle, TFE_TensorHandle, axis, 0);
-  TFE_OpAddInput(op.get(), axis_tensor_handle, status.get());
+  REQUIRE_HANDLE(axis_handle, TFE_TensorHandle, axis, 0);
+  TFE_OpAddInput(op.get(), axis_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
-  REQUIRE_HANDLE(axis_attr_Tidx_axis_tensor_h, TFE_TensorHandle, axis, 0);
-  const TF_DataType axis_attr_Tidx = TFE_TensorHandleDataType(axis_attr_Tidx_axis_tensor_h);
+  REQUIRE_HANDLE(axis_attr_Tidx_axis_handle, TFE_TensorHandle, axis, 0);
+  const TF_DataType axis_attr_Tidx = TFE_TensorHandleDataType(axis_attr_Tidx_axis_handle);
   TFE_OpSetAttrType(op.get(), "Tidx", axis_attr_Tidx);
 
   TFE_OpSetAttrBool(op.get(), "exclusive", static_cast<unsigned char>(exclusive));
@@ -2921,20 +2904,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "SegmentSum", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(data_tensor_handle, TFE_TensorHandle, data, 0);
-  TFE_OpAddInput(op.get(), data_tensor_handle, status.get());
+  REQUIRE_HANDLE(data_handle, TFE_TensorHandle, data, 0);
+  TFE_OpAddInput(op.get(), data_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(segment_ids_tensor_handle, TFE_TensorHandle, segment_ids, 0);
-  TFE_OpAddInput(op.get(), segment_ids_tensor_handle, status.get());
+  REQUIRE_HANDLE(segment_ids_handle, TFE_TensorHandle, segment_ids, 0);
+  TFE_OpAddInput(op.get(), segment_ids_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(data_attr_T_data_tensor_h, TFE_TensorHandle, data, 0);
-  const TF_DataType data_attr_T = TFE_TensorHandleDataType(data_attr_T_data_tensor_h);
+  REQUIRE_HANDLE(data_attr_T_data_handle, TFE_TensorHandle, data, 0);
+  const TF_DataType data_attr_T = TFE_TensorHandleDataType(data_attr_T_data_handle);
   TFE_OpSetAttrType(op.get(), "T", data_attr_T);
 
-  REQUIRE_HANDLE(segment_ids_attr_Tindices_segment_ids_tensor_h, TFE_TensorHandle, segment_ids, 0);
-  const TF_DataType segment_ids_attr_Tindices = TFE_TensorHandleDataType(segment_ids_attr_Tindices_segment_ids_tensor_h);
+  REQUIRE_HANDLE(segment_ids_attr_Tindices_segment_ids_handle, TFE_TensorHandle, segment_ids, 0);
+  const TF_DataType segment_ids_attr_Tindices = TFE_TensorHandleDataType(segment_ids_attr_Tindices_segment_ids_handle);
   TFE_OpSetAttrType(op.get(), "Tindices", segment_ids_attr_Tindices);
 
   const int num_outputs = 1;
@@ -2955,20 +2938,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "SegmentMean", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(data_tensor_handle, TFE_TensorHandle, data, 0);
-  TFE_OpAddInput(op.get(), data_tensor_handle, status.get());
+  REQUIRE_HANDLE(data_handle, TFE_TensorHandle, data, 0);
+  TFE_OpAddInput(op.get(), data_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(segment_ids_tensor_handle, TFE_TensorHandle, segment_ids, 0);
-  TFE_OpAddInput(op.get(), segment_ids_tensor_handle, status.get());
+  REQUIRE_HANDLE(segment_ids_handle, TFE_TensorHandle, segment_ids, 0);
+  TFE_OpAddInput(op.get(), segment_ids_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(data_attr_T_data_tensor_h, TFE_TensorHandle, data, 0);
-  const TF_DataType data_attr_T = TFE_TensorHandleDataType(data_attr_T_data_tensor_h);
+  REQUIRE_HANDLE(data_attr_T_data_handle, TFE_TensorHandle, data, 0);
+  const TF_DataType data_attr_T = TFE_TensorHandleDataType(data_attr_T_data_handle);
   TFE_OpSetAttrType(op.get(), "T", data_attr_T);
 
-  REQUIRE_HANDLE(segment_ids_attr_Tindices_segment_ids_tensor_h, TFE_TensorHandle, segment_ids, 0);
-  const TF_DataType segment_ids_attr_Tindices = TFE_TensorHandleDataType(segment_ids_attr_Tindices_segment_ids_tensor_h);
+  REQUIRE_HANDLE(segment_ids_attr_Tindices_segment_ids_handle, TFE_TensorHandle, segment_ids, 0);
+  const TF_DataType segment_ids_attr_Tindices = TFE_TensorHandleDataType(segment_ids_attr_Tindices_segment_ids_handle);
   TFE_OpSetAttrType(op.get(), "Tindices", segment_ids_attr_Tindices);
 
   const int num_outputs = 1;
@@ -2989,20 +2972,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "SegmentProd", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(data_tensor_handle, TFE_TensorHandle, data, 0);
-  TFE_OpAddInput(op.get(), data_tensor_handle, status.get());
+  REQUIRE_HANDLE(data_handle, TFE_TensorHandle, data, 0);
+  TFE_OpAddInput(op.get(), data_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(segment_ids_tensor_handle, TFE_TensorHandle, segment_ids, 0);
-  TFE_OpAddInput(op.get(), segment_ids_tensor_handle, status.get());
+  REQUIRE_HANDLE(segment_ids_handle, TFE_TensorHandle, segment_ids, 0);
+  TFE_OpAddInput(op.get(), segment_ids_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(data_attr_T_data_tensor_h, TFE_TensorHandle, data, 0);
-  const TF_DataType data_attr_T = TFE_TensorHandleDataType(data_attr_T_data_tensor_h);
+  REQUIRE_HANDLE(data_attr_T_data_handle, TFE_TensorHandle, data, 0);
+  const TF_DataType data_attr_T = TFE_TensorHandleDataType(data_attr_T_data_handle);
   TFE_OpSetAttrType(op.get(), "T", data_attr_T);
 
-  REQUIRE_HANDLE(segment_ids_attr_Tindices_segment_ids_tensor_h, TFE_TensorHandle, segment_ids, 0);
-  const TF_DataType segment_ids_attr_Tindices = TFE_TensorHandleDataType(segment_ids_attr_Tindices_segment_ids_tensor_h);
+  REQUIRE_HANDLE(segment_ids_attr_Tindices_segment_ids_handle, TFE_TensorHandle, segment_ids, 0);
+  const TF_DataType segment_ids_attr_Tindices = TFE_TensorHandleDataType(segment_ids_attr_Tindices_segment_ids_handle);
   TFE_OpSetAttrType(op.get(), "Tindices", segment_ids_attr_Tindices);
 
   const int num_outputs = 1;
@@ -3023,20 +3006,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "SegmentMin", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(data_tensor_handle, TFE_TensorHandle, data, 0);
-  TFE_OpAddInput(op.get(), data_tensor_handle, status.get());
+  REQUIRE_HANDLE(data_handle, TFE_TensorHandle, data, 0);
+  TFE_OpAddInput(op.get(), data_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(segment_ids_tensor_handle, TFE_TensorHandle, segment_ids, 0);
-  TFE_OpAddInput(op.get(), segment_ids_tensor_handle, status.get());
+  REQUIRE_HANDLE(segment_ids_handle, TFE_TensorHandle, segment_ids, 0);
+  TFE_OpAddInput(op.get(), segment_ids_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(data_attr_T_data_tensor_h, TFE_TensorHandle, data, 0);
-  const TF_DataType data_attr_T = TFE_TensorHandleDataType(data_attr_T_data_tensor_h);
+  REQUIRE_HANDLE(data_attr_T_data_handle, TFE_TensorHandle, data, 0);
+  const TF_DataType data_attr_T = TFE_TensorHandleDataType(data_attr_T_data_handle);
   TFE_OpSetAttrType(op.get(), "T", data_attr_T);
 
-  REQUIRE_HANDLE(segment_ids_attr_Tindices_segment_ids_tensor_h, TFE_TensorHandle, segment_ids, 0);
-  const TF_DataType segment_ids_attr_Tindices = TFE_TensorHandleDataType(segment_ids_attr_Tindices_segment_ids_tensor_h);
+  REQUIRE_HANDLE(segment_ids_attr_Tindices_segment_ids_handle, TFE_TensorHandle, segment_ids, 0);
+  const TF_DataType segment_ids_attr_Tindices = TFE_TensorHandleDataType(segment_ids_attr_Tindices_segment_ids_handle);
   TFE_OpSetAttrType(op.get(), "Tindices", segment_ids_attr_Tindices);
 
   const int num_outputs = 1;
@@ -3057,20 +3040,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "SegmentMax", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(data_tensor_handle, TFE_TensorHandle, data, 0);
-  TFE_OpAddInput(op.get(), data_tensor_handle, status.get());
+  REQUIRE_HANDLE(data_handle, TFE_TensorHandle, data, 0);
+  TFE_OpAddInput(op.get(), data_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(segment_ids_tensor_handle, TFE_TensorHandle, segment_ids, 0);
-  TFE_OpAddInput(op.get(), segment_ids_tensor_handle, status.get());
+  REQUIRE_HANDLE(segment_ids_handle, TFE_TensorHandle, segment_ids, 0);
+  TFE_OpAddInput(op.get(), segment_ids_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(data_attr_T_data_tensor_h, TFE_TensorHandle, data, 0);
-  const TF_DataType data_attr_T = TFE_TensorHandleDataType(data_attr_T_data_tensor_h);
+  REQUIRE_HANDLE(data_attr_T_data_handle, TFE_TensorHandle, data, 0);
+  const TF_DataType data_attr_T = TFE_TensorHandleDataType(data_attr_T_data_handle);
   TFE_OpSetAttrType(op.get(), "T", data_attr_T);
 
-  REQUIRE_HANDLE(segment_ids_attr_Tindices_segment_ids_tensor_h, TFE_TensorHandle, segment_ids, 0);
-  const TF_DataType segment_ids_attr_Tindices = TFE_TensorHandleDataType(segment_ids_attr_Tindices_segment_ids_tensor_h);
+  REQUIRE_HANDLE(segment_ids_attr_Tindices_segment_ids_handle, TFE_TensorHandle, segment_ids, 0);
+  const TF_DataType segment_ids_attr_Tindices = TFE_TensorHandleDataType(segment_ids_attr_Tindices_segment_ids_handle);
   TFE_OpSetAttrType(op.get(), "Tindices", segment_ids_attr_Tindices);
 
   const int num_outputs = 1;
@@ -3091,24 +3074,24 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "UnsortedSegmentSum", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(data_tensor_handle, TFE_TensorHandle, data, 0);
-  TFE_OpAddInput(op.get(), data_tensor_handle, status.get());
+  REQUIRE_HANDLE(data_handle, TFE_TensorHandle, data, 0);
+  TFE_OpAddInput(op.get(), data_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(segment_ids_tensor_handle, TFE_TensorHandle, segment_ids, 0);
-  TFE_OpAddInput(op.get(), segment_ids_tensor_handle, status.get());
+  REQUIRE_HANDLE(segment_ids_handle, TFE_TensorHandle, segment_ids, 0);
+  TFE_OpAddInput(op.get(), segment_ids_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(num_segments_tensor_handle, TFE_TensorHandle, num_segments, 0);
-  TFE_OpAddInput(op.get(), num_segments_tensor_handle, status.get());
+  REQUIRE_HANDLE(num_segments_handle, TFE_TensorHandle, num_segments, 0);
+  TFE_OpAddInput(op.get(), num_segments_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(data_attr_T_data_tensor_h, TFE_TensorHandle, data, 0);
-  const TF_DataType data_attr_T = TFE_TensorHandleDataType(data_attr_T_data_tensor_h);
+  REQUIRE_HANDLE(data_attr_T_data_handle, TFE_TensorHandle, data, 0);
+  const TF_DataType data_attr_T = TFE_TensorHandleDataType(data_attr_T_data_handle);
   TFE_OpSetAttrType(op.get(), "T", data_attr_T);
 
-  REQUIRE_HANDLE(segment_ids_attr_Tindices_segment_ids_tensor_h, TFE_TensorHandle, segment_ids, 0);
-  const TF_DataType segment_ids_attr_Tindices = TFE_TensorHandleDataType(segment_ids_attr_Tindices_segment_ids_tensor_h);
+  REQUIRE_HANDLE(segment_ids_attr_Tindices_segment_ids_handle, TFE_TensorHandle, segment_ids, 0);
+  const TF_DataType segment_ids_attr_Tindices = TFE_TensorHandleDataType(segment_ids_attr_Tindices_segment_ids_handle);
   TFE_OpSetAttrType(op.get(), "Tindices", segment_ids_attr_Tindices);
 
   const int num_outputs = 1;
@@ -3129,24 +3112,24 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "UnsortedSegmentMax", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(data_tensor_handle, TFE_TensorHandle, data, 0);
-  TFE_OpAddInput(op.get(), data_tensor_handle, status.get());
+  REQUIRE_HANDLE(data_handle, TFE_TensorHandle, data, 0);
+  TFE_OpAddInput(op.get(), data_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(segment_ids_tensor_handle, TFE_TensorHandle, segment_ids, 0);
-  TFE_OpAddInput(op.get(), segment_ids_tensor_handle, status.get());
+  REQUIRE_HANDLE(segment_ids_handle, TFE_TensorHandle, segment_ids, 0);
+  TFE_OpAddInput(op.get(), segment_ids_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(num_segments_tensor_handle, TFE_TensorHandle, num_segments, 0);
-  TFE_OpAddInput(op.get(), num_segments_tensor_handle, status.get());
+  REQUIRE_HANDLE(num_segments_handle, TFE_TensorHandle, num_segments, 0);
+  TFE_OpAddInput(op.get(), num_segments_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(data_attr_T_data_tensor_h, TFE_TensorHandle, data, 0);
-  const TF_DataType data_attr_T = TFE_TensorHandleDataType(data_attr_T_data_tensor_h);
+  REQUIRE_HANDLE(data_attr_T_data_handle, TFE_TensorHandle, data, 0);
+  const TF_DataType data_attr_T = TFE_TensorHandleDataType(data_attr_T_data_handle);
   TFE_OpSetAttrType(op.get(), "T", data_attr_T);
 
-  REQUIRE_HANDLE(segment_ids_attr_Tindices_segment_ids_tensor_h, TFE_TensorHandle, segment_ids, 0);
-  const TF_DataType segment_ids_attr_Tindices = TFE_TensorHandleDataType(segment_ids_attr_Tindices_segment_ids_tensor_h);
+  REQUIRE_HANDLE(segment_ids_attr_Tindices_segment_ids_handle, TFE_TensorHandle, segment_ids, 0);
+  const TF_DataType segment_ids_attr_Tindices = TFE_TensorHandleDataType(segment_ids_attr_Tindices_segment_ids_handle);
   TFE_OpSetAttrType(op.get(), "Tindices", segment_ids_attr_Tindices);
 
   const int num_outputs = 1;
@@ -3167,24 +3150,24 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "SparseSegmentSum", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(data_tensor_handle, TFE_TensorHandle, data, 0);
-  TFE_OpAddInput(op.get(), data_tensor_handle, status.get());
+  REQUIRE_HANDLE(data_handle, TFE_TensorHandle, data, 0);
+  TFE_OpAddInput(op.get(), data_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(indices_tensor_handle, TFE_TensorHandle, indices, 0);
-  TFE_OpAddInput(op.get(), indices_tensor_handle, status.get());
+  REQUIRE_HANDLE(indices_handle, TFE_TensorHandle, indices, 0);
+  TFE_OpAddInput(op.get(), indices_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(segment_ids_tensor_handle, TFE_TensorHandle, segment_ids, 0);
-  TFE_OpAddInput(op.get(), segment_ids_tensor_handle, status.get());
+  REQUIRE_HANDLE(segment_ids_handle, TFE_TensorHandle, segment_ids, 0);
+  TFE_OpAddInput(op.get(), segment_ids_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(data_attr_T_data_tensor_h, TFE_TensorHandle, data, 0);
-  const TF_DataType data_attr_T = TFE_TensorHandleDataType(data_attr_T_data_tensor_h);
+  REQUIRE_HANDLE(data_attr_T_data_handle, TFE_TensorHandle, data, 0);
+  const TF_DataType data_attr_T = TFE_TensorHandleDataType(data_attr_T_data_handle);
   TFE_OpSetAttrType(op.get(), "T", data_attr_T);
 
-  REQUIRE_HANDLE(indices_attr_Tidx_indices_tensor_h, TFE_TensorHandle, indices, 0);
-  const TF_DataType indices_attr_Tidx = TFE_TensorHandleDataType(indices_attr_Tidx_indices_tensor_h);
+  REQUIRE_HANDLE(indices_attr_Tidx_indices_handle, TFE_TensorHandle, indices, 0);
+  const TF_DataType indices_attr_Tidx = TFE_TensorHandleDataType(indices_attr_Tidx_indices_handle);
   TFE_OpSetAttrType(op.get(), "Tidx", indices_attr_Tidx);
 
   const int num_outputs = 1;
@@ -3205,24 +3188,24 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "SparseSegmentMean", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(data_tensor_handle, TFE_TensorHandle, data, 0);
-  TFE_OpAddInput(op.get(), data_tensor_handle, status.get());
+  REQUIRE_HANDLE(data_handle, TFE_TensorHandle, data, 0);
+  TFE_OpAddInput(op.get(), data_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(indices_tensor_handle, TFE_TensorHandle, indices, 0);
-  TFE_OpAddInput(op.get(), indices_tensor_handle, status.get());
+  REQUIRE_HANDLE(indices_handle, TFE_TensorHandle, indices, 0);
+  TFE_OpAddInput(op.get(), indices_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(segment_ids_tensor_handle, TFE_TensorHandle, segment_ids, 0);
-  TFE_OpAddInput(op.get(), segment_ids_tensor_handle, status.get());
+  REQUIRE_HANDLE(segment_ids_handle, TFE_TensorHandle, segment_ids, 0);
+  TFE_OpAddInput(op.get(), segment_ids_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(data_attr_T_data_tensor_h, TFE_TensorHandle, data, 0);
-  const TF_DataType data_attr_T = TFE_TensorHandleDataType(data_attr_T_data_tensor_h);
+  REQUIRE_HANDLE(data_attr_T_data_handle, TFE_TensorHandle, data, 0);
+  const TF_DataType data_attr_T = TFE_TensorHandleDataType(data_attr_T_data_handle);
   TFE_OpSetAttrType(op.get(), "T", data_attr_T);
 
-  REQUIRE_HANDLE(indices_attr_Tidx_indices_tensor_h, TFE_TensorHandle, indices, 0);
-  const TF_DataType indices_attr_Tidx = TFE_TensorHandleDataType(indices_attr_Tidx_indices_tensor_h);
+  REQUIRE_HANDLE(indices_attr_Tidx_indices_handle, TFE_TensorHandle, indices, 0);
+  const TF_DataType indices_attr_Tidx = TFE_TensorHandleDataType(indices_attr_Tidx_indices_handle);
   TFE_OpSetAttrType(op.get(), "Tidx", indices_attr_Tidx);
 
   const int num_outputs = 1;
@@ -3243,24 +3226,24 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "SparseSegmentSqrtN", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(data_tensor_handle, TFE_TensorHandle, data, 0);
-  TFE_OpAddInput(op.get(), data_tensor_handle, status.get());
+  REQUIRE_HANDLE(data_handle, TFE_TensorHandle, data, 0);
+  TFE_OpAddInput(op.get(), data_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(indices_tensor_handle, TFE_TensorHandle, indices, 0);
-  TFE_OpAddInput(op.get(), indices_tensor_handle, status.get());
+  REQUIRE_HANDLE(indices_handle, TFE_TensorHandle, indices, 0);
+  TFE_OpAddInput(op.get(), indices_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(segment_ids_tensor_handle, TFE_TensorHandle, segment_ids, 0);
-  TFE_OpAddInput(op.get(), segment_ids_tensor_handle, status.get());
+  REQUIRE_HANDLE(segment_ids_handle, TFE_TensorHandle, segment_ids, 0);
+  TFE_OpAddInput(op.get(), segment_ids_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(data_attr_T_data_tensor_h, TFE_TensorHandle, data, 0);
-  const TF_DataType data_attr_T = TFE_TensorHandleDataType(data_attr_T_data_tensor_h);
+  REQUIRE_HANDLE(data_attr_T_data_handle, TFE_TensorHandle, data, 0);
+  const TF_DataType data_attr_T = TFE_TensorHandleDataType(data_attr_T_data_handle);
   TFE_OpSetAttrType(op.get(), "T", data_attr_T);
 
-  REQUIRE_HANDLE(indices_attr_Tidx_indices_tensor_h, TFE_TensorHandle, indices, 0);
-  const TF_DataType indices_attr_Tidx = TFE_TensorHandleDataType(indices_attr_Tidx_indices_tensor_h);
+  REQUIRE_HANDLE(indices_attr_Tidx_indices_handle, TFE_TensorHandle, indices, 0);
+  const TF_DataType indices_attr_Tidx = TFE_TensorHandleDataType(indices_attr_Tidx_indices_handle);
   TFE_OpSetAttrType(op.get(), "Tidx", indices_attr_Tidx);
 
   const int num_outputs = 1;
@@ -3281,12 +3264,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Diag", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(diagonal_tensor_handle, TFE_TensorHandle, diagonal, 0);
-  TFE_OpAddInput(op.get(), diagonal_tensor_handle, status.get());
+  REQUIRE_HANDLE(diagonal_handle, TFE_TensorHandle, diagonal, 0);
+  TFE_OpAddInput(op.get(), diagonal_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(diagonal_attr_T_diagonal_tensor_h, TFE_TensorHandle, diagonal, 0);
-  const TF_DataType diagonal_attr_T = TFE_TensorHandleDataType(diagonal_attr_T_diagonal_tensor_h);
+  REQUIRE_HANDLE(diagonal_attr_T_diagonal_handle, TFE_TensorHandle, diagonal, 0);
+  const TF_DataType diagonal_attr_T = TFE_TensorHandleDataType(diagonal_attr_T_diagonal_handle);
   TFE_OpSetAttrType(op.get(), "T", diagonal_attr_T);
 
   const int num_outputs = 1;
@@ -3307,12 +3290,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "DiagPart", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(input_tensor_handle, TFE_TensorHandle, input, 0);
-  TFE_OpAddInput(op.get(), input_tensor_handle, status.get());
+  REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
+  TFE_OpAddInput(op.get(), input_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(input_attr_T_input_tensor_h, TFE_TensorHandle, input, 0);
-  const TF_DataType input_attr_T = TFE_TensorHandleDataType(input_attr_T_input_tensor_h);
+  REQUIRE_HANDLE(input_attr_T_input_handle, TFE_TensorHandle, input, 0);
+  const TF_DataType input_attr_T = TFE_TensorHandleDataType(input_attr_T_input_handle);
   TFE_OpSetAttrType(op.get(), "T", input_attr_T);
 
   const int num_outputs = 1;
@@ -3333,12 +3316,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "MatrixDiag", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(diagonal_tensor_handle, TFE_TensorHandle, diagonal, 0);
-  TFE_OpAddInput(op.get(), diagonal_tensor_handle, status.get());
+  REQUIRE_HANDLE(diagonal_handle, TFE_TensorHandle, diagonal, 0);
+  TFE_OpAddInput(op.get(), diagonal_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(diagonal_attr_T_diagonal_tensor_h, TFE_TensorHandle, diagonal, 0);
-  const TF_DataType diagonal_attr_T = TFE_TensorHandleDataType(diagonal_attr_T_diagonal_tensor_h);
+  REQUIRE_HANDLE(diagonal_attr_T_diagonal_handle, TFE_TensorHandle, diagonal, 0);
+  const TF_DataType diagonal_attr_T = TFE_TensorHandleDataType(diagonal_attr_T_diagonal_handle);
   TFE_OpSetAttrType(op.get(), "T", diagonal_attr_T);
 
   const int num_outputs = 1;
@@ -3359,20 +3342,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "MatrixSetDiag", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(input_tensor_handle, TFE_TensorHandle, input, 0);
-  TFE_OpAddInput(op.get(), input_tensor_handle, status.get());
+  REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
+  TFE_OpAddInput(op.get(), input_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(diagonal_tensor_handle, TFE_TensorHandle, diagonal, 0);
-  TFE_OpAddInput(op.get(), diagonal_tensor_handle, status.get());
+  REQUIRE_HANDLE(diagonal_handle, TFE_TensorHandle, diagonal, 0);
+  TFE_OpAddInput(op.get(), diagonal_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(input_attr_T_input_tensor_h, TFE_TensorHandle, input, 0);
-  const TF_DataType input_attr_T = TFE_TensorHandleDataType(input_attr_T_input_tensor_h);
+  REQUIRE_HANDLE(input_attr_T_input_handle, TFE_TensorHandle, input, 0);
+  const TF_DataType input_attr_T = TFE_TensorHandleDataType(input_attr_T_input_handle);
   TFE_OpSetAttrType(op.get(), "T", input_attr_T);
 
-  REQUIRE_HANDLE(input_attr_T_diagonal_tensor_h, TFE_TensorHandle, diagonal, 0);
-  const TF_DataType diagonal_attr_T = TFE_TensorHandleDataType(input_attr_T_diagonal_tensor_h);
+  REQUIRE_HANDLE(input_attr_T_diagonal_handle, TFE_TensorHandle, diagonal, 0);
+  const TF_DataType diagonal_attr_T = TFE_TensorHandleDataType(input_attr_T_diagonal_handle);
   if (input_attr_T != diagonal_attr_T) {
       std::stringstream error_msg;
       error_msg
@@ -3402,12 +3385,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "MatrixDiagPart", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(input_tensor_handle, TFE_TensorHandle, input, 0);
-  TFE_OpAddInput(op.get(), input_tensor_handle, status.get());
+  REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
+  TFE_OpAddInput(op.get(), input_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(input_attr_T_input_tensor_h, TFE_TensorHandle, input, 0);
-  const TF_DataType input_attr_T = TFE_TensorHandleDataType(input_attr_T_input_tensor_h);
+  REQUIRE_HANDLE(input_attr_T_input_handle, TFE_TensorHandle, input, 0);
+  const TF_DataType input_attr_T = TFE_TensorHandleDataType(input_attr_T_input_handle);
   TFE_OpSetAttrType(op.get(), "T", input_attr_T);
 
   const int num_outputs = 1;
@@ -3428,20 +3411,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "MatrixBandPart", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(input_tensor_handle, TFE_TensorHandle, input, 0);
-  TFE_OpAddInput(op.get(), input_tensor_handle, status.get());
+  REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
+  TFE_OpAddInput(op.get(), input_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(num_lower_tensor_handle, TFE_TensorHandle, num_lower, 0);
-  TFE_OpAddInput(op.get(), num_lower_tensor_handle, status.get());
+  REQUIRE_HANDLE(num_lower_handle, TFE_TensorHandle, num_lower, 0);
+  TFE_OpAddInput(op.get(), num_lower_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(num_upper_tensor_handle, TFE_TensorHandle, num_upper, 0);
-  TFE_OpAddInput(op.get(), num_upper_tensor_handle, status.get());
+  REQUIRE_HANDLE(num_upper_handle, TFE_TensorHandle, num_upper, 0);
+  TFE_OpAddInput(op.get(), num_upper_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(input_attr_T_input_tensor_h, TFE_TensorHandle, input, 0);
-  const TF_DataType input_attr_T = TFE_TensorHandleDataType(input_attr_T_input_tensor_h);
+  REQUIRE_HANDLE(input_attr_T_input_handle, TFE_TensorHandle, input, 0);
+  const TF_DataType input_attr_T = TFE_TensorHandleDataType(input_attr_T_input_handle);
   TFE_OpSetAttrType(op.get(), "T", input_attr_T);
 
   const int num_outputs = 1;
@@ -3462,20 +3445,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "MatMul", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(a_tensor_handle, TFE_TensorHandle, a, 0);
-  TFE_OpAddInput(op.get(), a_tensor_handle, status.get());
+  REQUIRE_HANDLE(a_handle, TFE_TensorHandle, a, 0);
+  TFE_OpAddInput(op.get(), a_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(b_tensor_handle, TFE_TensorHandle, b, 0);
-  TFE_OpAddInput(op.get(), b_tensor_handle, status.get());
+  REQUIRE_HANDLE(b_handle, TFE_TensorHandle, b, 0);
+  TFE_OpAddInput(op.get(), b_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(a_attr_T_a_tensor_h, TFE_TensorHandle, a, 0);
-  const TF_DataType a_attr_T = TFE_TensorHandleDataType(a_attr_T_a_tensor_h);
+  REQUIRE_HANDLE(a_attr_T_a_handle, TFE_TensorHandle, a, 0);
+  const TF_DataType a_attr_T = TFE_TensorHandleDataType(a_attr_T_a_handle);
   TFE_OpSetAttrType(op.get(), "T", a_attr_T);
 
-  REQUIRE_HANDLE(a_attr_T_b_tensor_h, TFE_TensorHandle, b, 0);
-  const TF_DataType b_attr_T = TFE_TensorHandleDataType(a_attr_T_b_tensor_h);
+  REQUIRE_HANDLE(a_attr_T_b_handle, TFE_TensorHandle, b, 0);
+  const TF_DataType b_attr_T = TFE_TensorHandleDataType(a_attr_T_b_handle);
   if (a_attr_T != b_attr_T) {
       std::stringstream error_msg;
       error_msg
@@ -3509,20 +3492,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "BatchMatMul", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, 0);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(y_tensor_handle, TFE_TensorHandle, y, 0);
-  TFE_OpAddInput(op.get(), y_tensor_handle, status.get());
+  REQUIRE_HANDLE(y_handle, TFE_TensorHandle, y, 0);
+  TFE_OpAddInput(op.get(), y_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(x_attr_T_x_tensor_h, TFE_TensorHandle, x, 0);
-  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType x_attr_T = TFE_TensorHandleDataType(x_attr_T_x_handle);
   TFE_OpSetAttrType(op.get(), "T", x_attr_T);
 
-  REQUIRE_HANDLE(x_attr_T_y_tensor_h, TFE_TensorHandle, y, 0);
-  const TF_DataType y_attr_T = TFE_TensorHandleDataType(x_attr_T_y_tensor_h);
+  REQUIRE_HANDLE(x_attr_T_y_handle, TFE_TensorHandle, y, 0);
+  const TF_DataType y_attr_T = TFE_TensorHandleDataType(x_attr_T_y_handle);
   if (x_attr_T != y_attr_T) {
       std::stringstream error_msg;
       error_msg
@@ -3556,21 +3539,21 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "SparseMatMul", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(a_tensor_handle, TFE_TensorHandle, a, 0);
-  TFE_OpAddInput(op.get(), a_tensor_handle, status.get());
+  REQUIRE_HANDLE(a_handle, TFE_TensorHandle, a, 0);
+  TFE_OpAddInput(op.get(), a_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(b_tensor_handle, TFE_TensorHandle, b, 0);
-  TFE_OpAddInput(op.get(), b_tensor_handle, status.get());
+  REQUIRE_HANDLE(b_handle, TFE_TensorHandle, b, 0);
+  TFE_OpAddInput(op.get(), b_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(a_attr_Ta_a_tensor_h, TFE_TensorHandle, a, 0);
-  const TF_DataType a_attr_Ta = TFE_TensorHandleDataType(a_attr_Ta_a_tensor_h);
-  TFE_OpSetAttrType(op.get(), "Ta", a_attr_Ta);
-
-  REQUIRE_HANDLE(b_attr_Tb_b_tensor_h, TFE_TensorHandle, b, 0);
-  const TF_DataType b_attr_Tb = TFE_TensorHandleDataType(b_attr_Tb_b_tensor_h);
+  REQUIRE_HANDLE(b_attr_Tb_b_handle, TFE_TensorHandle, b, 0);
+  const TF_DataType b_attr_Tb = TFE_TensorHandleDataType(b_attr_Tb_b_handle);
   TFE_OpSetAttrType(op.get(), "Tb", b_attr_Tb);
+
+  REQUIRE_HANDLE(a_attr_Ta_a_handle, TFE_TensorHandle, a, 0);
+  const TF_DataType a_attr_Ta = TFE_TensorHandleDataType(a_attr_Ta_a_handle);
+  TFE_OpSetAttrType(op.get(), "Ta", a_attr_Ta);
 
   TFE_OpSetAttrBool(op.get(), "transpose_a", static_cast<unsigned char>(transpose_a));
 
@@ -3598,20 +3581,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Cross", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(a_tensor_handle, TFE_TensorHandle, a, 0);
-  TFE_OpAddInput(op.get(), a_tensor_handle, status.get());
+  REQUIRE_HANDLE(a_handle, TFE_TensorHandle, a, 0);
+  TFE_OpAddInput(op.get(), a_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(b_tensor_handle, TFE_TensorHandle, b, 0);
-  TFE_OpAddInput(op.get(), b_tensor_handle, status.get());
+  REQUIRE_HANDLE(b_handle, TFE_TensorHandle, b, 0);
+  TFE_OpAddInput(op.get(), b_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(a_attr_T_a_tensor_h, TFE_TensorHandle, a, 0);
-  const TF_DataType a_attr_T = TFE_TensorHandleDataType(a_attr_T_a_tensor_h);
+  REQUIRE_HANDLE(a_attr_T_a_handle, TFE_TensorHandle, a, 0);
+  const TF_DataType a_attr_T = TFE_TensorHandleDataType(a_attr_T_a_handle);
   TFE_OpSetAttrType(op.get(), "T", a_attr_T);
 
-  REQUIRE_HANDLE(a_attr_T_b_tensor_h, TFE_TensorHandle, b, 0);
-  const TF_DataType b_attr_T = TFE_TensorHandleDataType(a_attr_T_b_tensor_h);
+  REQUIRE_HANDLE(a_attr_T_b_handle, TFE_TensorHandle, b, 0);
+  const TF_DataType b_attr_T = TFE_TensorHandleDataType(a_attr_T_b_handle);
   if (a_attr_T != b_attr_T) {
       std::stringstream error_msg;
       error_msg
@@ -3641,20 +3624,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Complex", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(real_tensor_handle, TFE_TensorHandle, real, 0);
-  TFE_OpAddInput(op.get(), real_tensor_handle, status.get());
+  REQUIRE_HANDLE(real_handle, TFE_TensorHandle, real, 0);
+  TFE_OpAddInput(op.get(), real_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(imag_tensor_handle, TFE_TensorHandle, imag, 0);
-  TFE_OpAddInput(op.get(), imag_tensor_handle, status.get());
+  REQUIRE_HANDLE(imag_handle, TFE_TensorHandle, imag, 0);
+  TFE_OpAddInput(op.get(), imag_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(real_attr_T_real_tensor_h, TFE_TensorHandle, real, 0);
-  const TF_DataType real_attr_T = TFE_TensorHandleDataType(real_attr_T_real_tensor_h);
+  REQUIRE_HANDLE(real_attr_T_real_handle, TFE_TensorHandle, real, 0);
+  const TF_DataType real_attr_T = TFE_TensorHandleDataType(real_attr_T_real_handle);
   TFE_OpSetAttrType(op.get(), "T", real_attr_T);
 
-  REQUIRE_HANDLE(real_attr_T_imag_tensor_h, TFE_TensorHandle, imag, 0);
-  const TF_DataType imag_attr_T = TFE_TensorHandleDataType(real_attr_T_imag_tensor_h);
+  REQUIRE_HANDLE(real_attr_T_imag_handle, TFE_TensorHandle, imag, 0);
+  const TF_DataType imag_attr_T = TFE_TensorHandleDataType(real_attr_T_imag_handle);
   if (real_attr_T != imag_attr_T) {
       std::stringstream error_msg;
       error_msg
@@ -3686,12 +3669,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Real", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(input_tensor_handle, TFE_TensorHandle, input, 0);
-  TFE_OpAddInput(op.get(), input_tensor_handle, status.get());
+  REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
+  TFE_OpAddInput(op.get(), input_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(input_attr_T_input_tensor_h, TFE_TensorHandle, input, 0);
-  const TF_DataType input_attr_T = TFE_TensorHandleDataType(input_attr_T_input_tensor_h);
+  REQUIRE_HANDLE(input_attr_T_input_handle, TFE_TensorHandle, input, 0);
+  const TF_DataType input_attr_T = TFE_TensorHandleDataType(input_attr_T_input_handle);
   TFE_OpSetAttrType(op.get(), "T", input_attr_T);
 
   TFE_OpSetAttrType(op.get(), "Tout", static_cast<TF_DataType>(tout));
@@ -3714,12 +3697,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Imag", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(input_tensor_handle, TFE_TensorHandle, input, 0);
-  TFE_OpAddInput(op.get(), input_tensor_handle, status.get());
+  REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
+  TFE_OpAddInput(op.get(), input_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(input_attr_T_input_tensor_h, TFE_TensorHandle, input, 0);
-  const TF_DataType input_attr_T = TFE_TensorHandleDataType(input_attr_T_input_tensor_h);
+  REQUIRE_HANDLE(input_attr_T_input_handle, TFE_TensorHandle, input, 0);
+  const TF_DataType input_attr_T = TFE_TensorHandleDataType(input_attr_T_input_handle);
   TFE_OpSetAttrType(op.get(), "T", input_attr_T);
 
   TFE_OpSetAttrType(op.get(), "Tout", static_cast<TF_DataType>(tout));
@@ -3742,12 +3725,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Angle", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(input_tensor_handle, TFE_TensorHandle, input, 0);
-  TFE_OpAddInput(op.get(), input_tensor_handle, status.get());
+  REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
+  TFE_OpAddInput(op.get(), input_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(input_attr_T_input_tensor_h, TFE_TensorHandle, input, 0);
-  const TF_DataType input_attr_T = TFE_TensorHandleDataType(input_attr_T_input_tensor_h);
+  REQUIRE_HANDLE(input_attr_T_input_handle, TFE_TensorHandle, input, 0);
+  const TF_DataType input_attr_T = TFE_TensorHandleDataType(input_attr_T_input_handle);
   TFE_OpSetAttrType(op.get(), "T", input_attr_T);
 
   TFE_OpSetAttrType(op.get(), "Tout", static_cast<TF_DataType>(tout));
@@ -3770,12 +3753,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Conj", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(input_tensor_handle, TFE_TensorHandle, input, 0);
-  TFE_OpAddInput(op.get(), input_tensor_handle, status.get());
+  REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
+  TFE_OpAddInput(op.get(), input_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(input_attr_T_input_tensor_h, TFE_TensorHandle, input, 0);
-  const TF_DataType input_attr_T = TFE_TensorHandleDataType(input_attr_T_input_tensor_h);
+  REQUIRE_HANDLE(input_attr_T_input_handle, TFE_TensorHandle, input, 0);
+  const TF_DataType input_attr_T = TFE_TensorHandleDataType(input_attr_T_input_handle);
   TFE_OpSetAttrType(op.get(), "T", input_attr_T);
 
   const int num_outputs = 1;
@@ -3796,12 +3779,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "Bucketize", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(input_tensor_handle, TFE_TensorHandle, input, 0);
-  TFE_OpAddInput(op.get(), input_tensor_handle, status.get());
+  REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
+  TFE_OpAddInput(op.get(), input_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(input_attr_T_input_tensor_h, TFE_TensorHandle, input, 0);
-  const TF_DataType input_attr_T = TFE_TensorHandleDataType(input_attr_T_input_tensor_h);
+  REQUIRE_HANDLE(input_attr_T_input_handle, TFE_TensorHandle, input, 0);
+  const TF_DataType input_attr_T = TFE_TensorHandleDataType(input_attr_T_input_handle);
   TFE_OpSetAttrType(op.get(), "T", input_attr_T);
 
   const int boundaries_n = env->GetArrayLength(boundaries);
@@ -3831,37 +3814,37 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors
       TFE_NewOp(context, "QuantizedAdd", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), nullptr);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, nullptr);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, nullptr);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), nullptr);
 
-  REQUIRE_HANDLE(y_tensor_handle, TFE_TensorHandle, y, nullptr);
-  TFE_OpAddInput(op.get(), y_tensor_handle, status.get());
+  REQUIRE_HANDLE(y_handle, TFE_TensorHandle, y, nullptr);
+  TFE_OpAddInput(op.get(), y_handle, status.get());
   CHECK_STATUS(env, status.get(), nullptr);
 
-  REQUIRE_HANDLE(min_x_tensor_handle, TFE_TensorHandle, min_x, nullptr);
-  TFE_OpAddInput(op.get(), min_x_tensor_handle, status.get());
+  REQUIRE_HANDLE(min_x_handle, TFE_TensorHandle, min_x, nullptr);
+  TFE_OpAddInput(op.get(), min_x_handle, status.get());
   CHECK_STATUS(env, status.get(), nullptr);
 
-  REQUIRE_HANDLE(max_x_tensor_handle, TFE_TensorHandle, max_x, nullptr);
-  TFE_OpAddInput(op.get(), max_x_tensor_handle, status.get());
+  REQUIRE_HANDLE(max_x_handle, TFE_TensorHandle, max_x, nullptr);
+  TFE_OpAddInput(op.get(), max_x_handle, status.get());
   CHECK_STATUS(env, status.get(), nullptr);
 
-  REQUIRE_HANDLE(min_y_tensor_handle, TFE_TensorHandle, min_y, nullptr);
-  TFE_OpAddInput(op.get(), min_y_tensor_handle, status.get());
+  REQUIRE_HANDLE(min_y_handle, TFE_TensorHandle, min_y, nullptr);
+  TFE_OpAddInput(op.get(), min_y_handle, status.get());
   CHECK_STATUS(env, status.get(), nullptr);
 
-  REQUIRE_HANDLE(max_y_tensor_handle, TFE_TensorHandle, max_y, nullptr);
-  TFE_OpAddInput(op.get(), max_y_tensor_handle, status.get());
+  REQUIRE_HANDLE(max_y_handle, TFE_TensorHandle, max_y, nullptr);
+  TFE_OpAddInput(op.get(), max_y_handle, status.get());
   CHECK_STATUS(env, status.get(), nullptr);
 
-  REQUIRE_HANDLE(x_attr_T1_x_tensor_h, TFE_TensorHandle, x, nullptr);
-  const TF_DataType x_attr_T1 = TFE_TensorHandleDataType(x_attr_T1_x_tensor_h);
-  TFE_OpSetAttrType(op.get(), "T1", x_attr_T1);
-
-  REQUIRE_HANDLE(y_attr_T2_y_tensor_h, TFE_TensorHandle, y, nullptr);
-  const TF_DataType y_attr_T2 = TFE_TensorHandleDataType(y_attr_T2_y_tensor_h);
+  REQUIRE_HANDLE(y_attr_T2_y_handle, TFE_TensorHandle, y, nullptr);
+  const TF_DataType y_attr_T2 = TFE_TensorHandleDataType(y_attr_T2_y_handle);
   TFE_OpSetAttrType(op.get(), "T2", y_attr_T2);
+
+  REQUIRE_HANDLE(x_attr_T1_x_handle, TFE_TensorHandle, x, nullptr);
+  const TF_DataType x_attr_T1 = TFE_TensorHandleDataType(x_attr_T1_x_handle);
+  TFE_OpSetAttrType(op.get(), "T1", x_attr_T1);
 
   TFE_OpSetAttrType(op.get(), "Toutput", static_cast<TF_DataType>(toutput));
 
@@ -3889,37 +3872,37 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors
       TFE_NewOp(context, "QuantizedMul", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), nullptr);
 
-  REQUIRE_HANDLE(x_tensor_handle, TFE_TensorHandle, x, nullptr);
-  TFE_OpAddInput(op.get(), x_tensor_handle, status.get());
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, nullptr);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
   CHECK_STATUS(env, status.get(), nullptr);
 
-  REQUIRE_HANDLE(y_tensor_handle, TFE_TensorHandle, y, nullptr);
-  TFE_OpAddInput(op.get(), y_tensor_handle, status.get());
+  REQUIRE_HANDLE(y_handle, TFE_TensorHandle, y, nullptr);
+  TFE_OpAddInput(op.get(), y_handle, status.get());
   CHECK_STATUS(env, status.get(), nullptr);
 
-  REQUIRE_HANDLE(min_x_tensor_handle, TFE_TensorHandle, min_x, nullptr);
-  TFE_OpAddInput(op.get(), min_x_tensor_handle, status.get());
+  REQUIRE_HANDLE(min_x_handle, TFE_TensorHandle, min_x, nullptr);
+  TFE_OpAddInput(op.get(), min_x_handle, status.get());
   CHECK_STATUS(env, status.get(), nullptr);
 
-  REQUIRE_HANDLE(max_x_tensor_handle, TFE_TensorHandle, max_x, nullptr);
-  TFE_OpAddInput(op.get(), max_x_tensor_handle, status.get());
+  REQUIRE_HANDLE(max_x_handle, TFE_TensorHandle, max_x, nullptr);
+  TFE_OpAddInput(op.get(), max_x_handle, status.get());
   CHECK_STATUS(env, status.get(), nullptr);
 
-  REQUIRE_HANDLE(min_y_tensor_handle, TFE_TensorHandle, min_y, nullptr);
-  TFE_OpAddInput(op.get(), min_y_tensor_handle, status.get());
+  REQUIRE_HANDLE(min_y_handle, TFE_TensorHandle, min_y, nullptr);
+  TFE_OpAddInput(op.get(), min_y_handle, status.get());
   CHECK_STATUS(env, status.get(), nullptr);
 
-  REQUIRE_HANDLE(max_y_tensor_handle, TFE_TensorHandle, max_y, nullptr);
-  TFE_OpAddInput(op.get(), max_y_tensor_handle, status.get());
+  REQUIRE_HANDLE(max_y_handle, TFE_TensorHandle, max_y, nullptr);
+  TFE_OpAddInput(op.get(), max_y_handle, status.get());
   CHECK_STATUS(env, status.get(), nullptr);
 
-  REQUIRE_HANDLE(x_attr_T1_x_tensor_h, TFE_TensorHandle, x, nullptr);
-  const TF_DataType x_attr_T1 = TFE_TensorHandleDataType(x_attr_T1_x_tensor_h);
-  TFE_OpSetAttrType(op.get(), "T1", x_attr_T1);
-
-  REQUIRE_HANDLE(y_attr_T2_y_tensor_h, TFE_TensorHandle, y, nullptr);
-  const TF_DataType y_attr_T2 = TFE_TensorHandleDataType(y_attr_T2_y_tensor_h);
+  REQUIRE_HANDLE(y_attr_T2_y_handle, TFE_TensorHandle, y, nullptr);
+  const TF_DataType y_attr_T2 = TFE_TensorHandleDataType(y_attr_T2_y_handle);
   TFE_OpSetAttrType(op.get(), "T2", y_attr_T2);
+
+  REQUIRE_HANDLE(x_attr_T1_x_handle, TFE_TensorHandle, x, nullptr);
+  const TF_DataType x_attr_T1 = TFE_TensorHandleDataType(x_attr_T1_x_handle);
+  TFE_OpSetAttrType(op.get(), "T1", x_attr_T1);
 
   TFE_OpSetAttrType(op.get(), "Toutput", static_cast<TF_DataType>(toutput));
 
@@ -3947,37 +3930,37 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors
       TFE_NewOp(context, "QuantizedMatMul", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), nullptr);
 
-  REQUIRE_HANDLE(a_tensor_handle, TFE_TensorHandle, a, nullptr);
-  TFE_OpAddInput(op.get(), a_tensor_handle, status.get());
+  REQUIRE_HANDLE(a_handle, TFE_TensorHandle, a, nullptr);
+  TFE_OpAddInput(op.get(), a_handle, status.get());
   CHECK_STATUS(env, status.get(), nullptr);
 
-  REQUIRE_HANDLE(b_tensor_handle, TFE_TensorHandle, b, nullptr);
-  TFE_OpAddInput(op.get(), b_tensor_handle, status.get());
+  REQUIRE_HANDLE(b_handle, TFE_TensorHandle, b, nullptr);
+  TFE_OpAddInput(op.get(), b_handle, status.get());
   CHECK_STATUS(env, status.get(), nullptr);
 
-  REQUIRE_HANDLE(min_a_tensor_handle, TFE_TensorHandle, min_a, nullptr);
-  TFE_OpAddInput(op.get(), min_a_tensor_handle, status.get());
+  REQUIRE_HANDLE(min_a_handle, TFE_TensorHandle, min_a, nullptr);
+  TFE_OpAddInput(op.get(), min_a_handle, status.get());
   CHECK_STATUS(env, status.get(), nullptr);
 
-  REQUIRE_HANDLE(max_a_tensor_handle, TFE_TensorHandle, max_a, nullptr);
-  TFE_OpAddInput(op.get(), max_a_tensor_handle, status.get());
+  REQUIRE_HANDLE(max_a_handle, TFE_TensorHandle, max_a, nullptr);
+  TFE_OpAddInput(op.get(), max_a_handle, status.get());
   CHECK_STATUS(env, status.get(), nullptr);
 
-  REQUIRE_HANDLE(min_b_tensor_handle, TFE_TensorHandle, min_b, nullptr);
-  TFE_OpAddInput(op.get(), min_b_tensor_handle, status.get());
+  REQUIRE_HANDLE(min_b_handle, TFE_TensorHandle, min_b, nullptr);
+  TFE_OpAddInput(op.get(), min_b_handle, status.get());
   CHECK_STATUS(env, status.get(), nullptr);
 
-  REQUIRE_HANDLE(max_b_tensor_handle, TFE_TensorHandle, max_b, nullptr);
-  TFE_OpAddInput(op.get(), max_b_tensor_handle, status.get());
+  REQUIRE_HANDLE(max_b_handle, TFE_TensorHandle, max_b, nullptr);
+  TFE_OpAddInput(op.get(), max_b_handle, status.get());
   CHECK_STATUS(env, status.get(), nullptr);
 
-  REQUIRE_HANDLE(a_attr_T1_a_tensor_h, TFE_TensorHandle, a, nullptr);
-  const TF_DataType a_attr_T1 = TFE_TensorHandleDataType(a_attr_T1_a_tensor_h);
-  TFE_OpSetAttrType(op.get(), "T1", a_attr_T1);
-
-  REQUIRE_HANDLE(b_attr_T2_b_tensor_h, TFE_TensorHandle, b, nullptr);
-  const TF_DataType b_attr_T2 = TFE_TensorHandleDataType(b_attr_T2_b_tensor_h);
+  REQUIRE_HANDLE(b_attr_T2_b_handle, TFE_TensorHandle, b, nullptr);
+  const TF_DataType b_attr_T2 = TFE_TensorHandleDataType(b_attr_T2_b_handle);
   TFE_OpSetAttrType(op.get(), "T2", b_attr_T2);
+
+  REQUIRE_HANDLE(a_attr_T1_a_handle, TFE_TensorHandle, a, nullptr);
+  const TF_DataType a_attr_T1 = TFE_TensorHandleDataType(a_attr_T1_a_handle);
+  TFE_OpSetAttrType(op.get(), "T1", a_attr_T1);
 
   TFE_OpSetAttrType(op.get(), "Toutput", static_cast<TF_DataType>(toutput));
 
@@ -4011,20 +3994,20 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors
       TFE_NewOp(context, "QuantizeDownAndShrinkRange", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), nullptr);
 
-  REQUIRE_HANDLE(input_tensor_handle, TFE_TensorHandle, input, nullptr);
-  TFE_OpAddInput(op.get(), input_tensor_handle, status.get());
+  REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, nullptr);
+  TFE_OpAddInput(op.get(), input_handle, status.get());
   CHECK_STATUS(env, status.get(), nullptr);
 
-  REQUIRE_HANDLE(input_min_tensor_handle, TFE_TensorHandle, input_min, nullptr);
-  TFE_OpAddInput(op.get(), input_min_tensor_handle, status.get());
+  REQUIRE_HANDLE(input_min_handle, TFE_TensorHandle, input_min, nullptr);
+  TFE_OpAddInput(op.get(), input_min_handle, status.get());
   CHECK_STATUS(env, status.get(), nullptr);
 
-  REQUIRE_HANDLE(input_max_tensor_handle, TFE_TensorHandle, input_max, nullptr);
-  TFE_OpAddInput(op.get(), input_max_tensor_handle, status.get());
+  REQUIRE_HANDLE(input_max_handle, TFE_TensorHandle, input_max, nullptr);
+  TFE_OpAddInput(op.get(), input_max_handle, status.get());
   CHECK_STATUS(env, status.get(), nullptr);
 
-  REQUIRE_HANDLE(input_attr_Tinput_input_tensor_h, TFE_TensorHandle, input, nullptr);
-  const TF_DataType input_attr_Tinput = TFE_TensorHandleDataType(input_attr_Tinput_input_tensor_h);
+  REQUIRE_HANDLE(input_attr_Tinput_input_handle, TFE_TensorHandle, input, nullptr);
+  const TF_DataType input_attr_Tinput = TFE_TensorHandleDataType(input_attr_Tinput_input_handle);
   TFE_OpSetAttrType(op.get(), "Tinput", input_attr_Tinput);
 
   TFE_OpSetAttrType(op.get(), "out_type", static_cast<TF_DataType>(out_type));
@@ -4053,28 +4036,28 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors
       TFE_NewOp(context, "Requantize", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), nullptr);
 
-  REQUIRE_HANDLE(input_tensor_handle, TFE_TensorHandle, input, nullptr);
-  TFE_OpAddInput(op.get(), input_tensor_handle, status.get());
+  REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, nullptr);
+  TFE_OpAddInput(op.get(), input_handle, status.get());
   CHECK_STATUS(env, status.get(), nullptr);
 
-  REQUIRE_HANDLE(input_min_tensor_handle, TFE_TensorHandle, input_min, nullptr);
-  TFE_OpAddInput(op.get(), input_min_tensor_handle, status.get());
+  REQUIRE_HANDLE(input_min_handle, TFE_TensorHandle, input_min, nullptr);
+  TFE_OpAddInput(op.get(), input_min_handle, status.get());
   CHECK_STATUS(env, status.get(), nullptr);
 
-  REQUIRE_HANDLE(input_max_tensor_handle, TFE_TensorHandle, input_max, nullptr);
-  TFE_OpAddInput(op.get(), input_max_tensor_handle, status.get());
+  REQUIRE_HANDLE(input_max_handle, TFE_TensorHandle, input_max, nullptr);
+  TFE_OpAddInput(op.get(), input_max_handle, status.get());
   CHECK_STATUS(env, status.get(), nullptr);
 
-  REQUIRE_HANDLE(requested_output_min_tensor_handle, TFE_TensorHandle, requested_output_min, nullptr);
-  TFE_OpAddInput(op.get(), requested_output_min_tensor_handle, status.get());
+  REQUIRE_HANDLE(requested_output_min_handle, TFE_TensorHandle, requested_output_min, nullptr);
+  TFE_OpAddInput(op.get(), requested_output_min_handle, status.get());
   CHECK_STATUS(env, status.get(), nullptr);
 
-  REQUIRE_HANDLE(requested_output_max_tensor_handle, TFE_TensorHandle, requested_output_max, nullptr);
-  TFE_OpAddInput(op.get(), requested_output_max_tensor_handle, status.get());
+  REQUIRE_HANDLE(requested_output_max_handle, TFE_TensorHandle, requested_output_max, nullptr);
+  TFE_OpAddInput(op.get(), requested_output_max_handle, status.get());
   CHECK_STATUS(env, status.get(), nullptr);
 
-  REQUIRE_HANDLE(input_attr_Tinput_input_tensor_h, TFE_TensorHandle, input, nullptr);
-  const TF_DataType input_attr_Tinput = TFE_TensorHandleDataType(input_attr_Tinput_input_tensor_h);
+  REQUIRE_HANDLE(input_attr_Tinput_input_handle, TFE_TensorHandle, input, nullptr);
+  const TF_DataType input_attr_Tinput = TFE_TensorHandleDataType(input_attr_Tinput_input_handle);
   TFE_OpSetAttrType(op.get(), "Tinput", input_attr_Tinput);
 
   TFE_OpSetAttrType(op.get(), "out_type", static_cast<TF_DataType>(out_type));
@@ -4103,20 +4086,20 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors
       TFE_NewOp(context, "RequantizationRange", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), nullptr);
 
-  REQUIRE_HANDLE(input_tensor_handle, TFE_TensorHandle, input, nullptr);
-  TFE_OpAddInput(op.get(), input_tensor_handle, status.get());
+  REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, nullptr);
+  TFE_OpAddInput(op.get(), input_handle, status.get());
   CHECK_STATUS(env, status.get(), nullptr);
 
-  REQUIRE_HANDLE(input_min_tensor_handle, TFE_TensorHandle, input_min, nullptr);
-  TFE_OpAddInput(op.get(), input_min_tensor_handle, status.get());
+  REQUIRE_HANDLE(input_min_handle, TFE_TensorHandle, input_min, nullptr);
+  TFE_OpAddInput(op.get(), input_min_handle, status.get());
   CHECK_STATUS(env, status.get(), nullptr);
 
-  REQUIRE_HANDLE(input_max_tensor_handle, TFE_TensorHandle, input_max, nullptr);
-  TFE_OpAddInput(op.get(), input_max_tensor_handle, status.get());
+  REQUIRE_HANDLE(input_max_handle, TFE_TensorHandle, input_max, nullptr);
+  TFE_OpAddInput(op.get(), input_max_handle, status.get());
   CHECK_STATUS(env, status.get(), nullptr);
 
-  REQUIRE_HANDLE(input_attr_Tinput_input_tensor_h, TFE_TensorHandle, input, nullptr);
-  const TF_DataType input_attr_Tinput = TFE_TensorHandleDataType(input_attr_Tinput_input_tensor_h);
+  REQUIRE_HANDLE(input_attr_Tinput_input_handle, TFE_TensorHandle, input, nullptr);
+  const TF_DataType input_attr_Tinput = TFE_TensorHandleDataType(input_attr_Tinput_input_handle);
   TFE_OpSetAttrType(op.get(), "Tinput", input_attr_Tinput);
 
   const int num_outputs = 2;
@@ -4143,20 +4126,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
       TFE_NewOp(context, "CompareAndBitpack", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(input_tensor_handle, TFE_TensorHandle, input, 0);
-  TFE_OpAddInput(op.get(), input_tensor_handle, status.get());
+  REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
+  TFE_OpAddInput(op.get(), input_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(threshold_tensor_handle, TFE_TensorHandle, threshold, 0);
-  TFE_OpAddInput(op.get(), threshold_tensor_handle, status.get());
+  REQUIRE_HANDLE(threshold_handle, TFE_TensorHandle, threshold, 0);
+  TFE_OpAddInput(op.get(), threshold_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(input_attr_T_input_tensor_h, TFE_TensorHandle, input, 0);
-  const TF_DataType input_attr_T = TFE_TensorHandleDataType(input_attr_T_input_tensor_h);
+  REQUIRE_HANDLE(input_attr_T_input_handle, TFE_TensorHandle, input, 0);
+  const TF_DataType input_attr_T = TFE_TensorHandleDataType(input_attr_T_input_handle);
   TFE_OpSetAttrType(op.get(), "T", input_attr_T);
 
-  REQUIRE_HANDLE(input_attr_T_threshold_tensor_h, TFE_TensorHandle, threshold, 0);
-  const TF_DataType threshold_attr_T = TFE_TensorHandleDataType(input_attr_T_threshold_tensor_h);
+  REQUIRE_HANDLE(input_attr_T_threshold_handle, TFE_TensorHandle, threshold, 0);
+  const TF_DataType threshold_attr_T = TFE_TensorHandleDataType(input_attr_T_threshold_handle);
   if (input_attr_T != threshold_attr_T) {
       std::stringstream error_msg;
       error_msg

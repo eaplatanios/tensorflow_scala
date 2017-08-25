@@ -35,11 +35,11 @@ case class OpGenerator(opDef: OpDef) {
   /** Name of this op used to name the generated functions. */
   val name: String = OpGenerator.processName(opDef.getName)
 
-  def generateCode(className: String): (String, String, String) = {
-    val implementationBuilder = StringBuilder.newBuilder
-    val deallocationBuilder = StringBuilder.newBuilder
+  private[this] val cNullValuePlaceholder = "##NULL_RETURN##"
 
-    val nullReturnValuePlaceholder = "##NULL_RETURN##"
+  def generateCode(className: String): (String, String, String) = {
+    val codeBuilder = StringBuilder.newBuilder
+    val deallocationBuilder = StringBuilder.newBuilder
 
     val arguments = inputs ++ parameters
     val scalaArgs = arguments.map(p => s"${p._2}: ${typeToScalaType(argumentTypes(p._1))}").mkString(", ")
@@ -47,17 +47,17 @@ case class OpGenerator(opDef: OpDef) {
     val headSignArgs = arguments.map(_._1).map(p => s"${typeToShortJni(argumentTypes(p))}").mkString("")
     val implArgs = arguments.map(p => s"${typeToJni(argumentTypes(p._1))} ${p._2}").mkString(", ")
 
-    implementationBuilder.append(
-      s"""  REQUIRE_HANDLE(context, TFE_Context, context_handle, $nullReturnValuePlaceholder);
+    codeBuilder.append(
+      s"""  REQUIRE_HANDLE(context, TFE_Context, context_handle, $cNullValuePlaceholder);
          |  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
          |
          |  std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
          |      TFE_NewOp(context, "${opDef.getName}", status.get()), TFE_DeleteOp);
-         |  CHECK_STATUS(env, status.get(), $nullReturnValuePlaceholder);""".stripMargin)
+         |  CHECK_STATUS(env, status.get(), $cNullValuePlaceholder);""".stripMargin)
 
-    addInputs(implementationBuilder, nullReturnValuePlaceholder)
-    addInferredAttributes(implementationBuilder, nullReturnValuePlaceholder)
-    addAttributes(implementationBuilder, deallocationBuilder, nullReturnValuePlaceholder)
+    addInputs(codeBuilder)
+    addInferredAttributes(codeBuilder)
+    addAttributes(codeBuilder, deallocationBuilder)
 
     val numOutputs = numOutputsExpression()
     val (scalaReturnType, returnType, nullValue) = numOutputs match {
@@ -66,7 +66,7 @@ case class OpGenerator(opDef: OpDef) {
       case _ => ("Array[Long]", ("[J", "jlongArray"), "nullptr")
     }
 
-    addExecute(implementationBuilder, deallocationBuilder, numOutputs, nullReturnValuePlaceholder)
+    addExecute(codeBuilder, deallocationBuilder, numOutputs)
 
     val scalaFunction =
       s"""  @native def $name(contextHandle: Long, $scalaArgs): $scalaReturnType""".stripMargin
@@ -83,8 +83,8 @@ case class OpGenerator(opDef: OpDef) {
     val implementation =
       s"""JNIEXPORT ${returnType._2} JNICALL Java_${className}_00024_$name(
          |    JNIEnv* env, jobject object, jlong context_handle, $implArgs) {
-         |${implementationBuilder.mkString}
-         |}""".stripMargin.replace(nullReturnValuePlaceholder, nullValue)
+         |${codeBuilder.mkString}
+         |}""".stripMargin.replace(cNullValuePlaceholder, nullValue)
 
     (scalaFunction, header, implementation)
   }
@@ -110,17 +110,17 @@ case class OpGenerator(opDef: OpDef) {
   /** Map from parameter name (original -- not processed) to their default values. */
   val parameterDefaults: Map[String, AttrValue] = initializationOutputs._4
 
-  /** Map from attribute name to the first input argument it is inferred from. */
+  /** Map from inferrable attribute name to the first input argument it is inferred from. */
   val inferrableAttributes: Map[String, String] = initializationOutputs._5
 
-  /** Names of the non-inferrable attributes, in the same order as in `parameters`. */
-  val nonInferrableAttributes: Seq[String] = initializationOutputs._6
+  /** Map from inferrable attribute name to a list of the parameter indices to which it corresponds. */
+  val inferrableAttributeToInputs: Map[String, Seq[Int]] = initializationOutputs._6
 
-  /** Map from attribute name to a list of the parameter indices to which it corresponds. */
-  val attributeToInputs: Map[String, Seq[Int]] = initializationOutputs._7
+  /** C code expressions that create and initialize all variables related to inferring attribute values. */
+  val inferredAttributeExpressions: Seq[String] = initializationOutputs._7
 
   /** Map from attribute name to the C expression that computes its value (often simply set to the parameter name). */
-  private[this] val attributeExpressions = mutable.HashMap.empty[String, String]
+  val attributeExpressions: Map[String, String] = initializationOutputs._8
 
   private[this] def initialize(): (
       Map[String, String],        // argumentTypes
@@ -128,30 +128,33 @@ case class OpGenerator(opDef: OpDef) {
           Seq[(String, String)],  // parameters
           Map[String, AttrValue], // parameterDefaults
           Map[String, String],    // inferrableAttributes
-          Seq[String],            // nonInferrableAttributes
-          Map[String, Seq[Int]]   // attributeToParameters
+          Map[String, Seq[Int]],  // attributeToParameters
+          Seq[String],            // inferredAttributeExpressions
+          Map[String, String]     // attributeExpressions
       ) = {
     val argumentTypes = mutable.HashMap.empty[String, String]
     val inputs = mutable.ListBuffer.empty[(String, String)]
     val parameters = mutable.ListBuffer.empty[(String, String)]
     val parameterDefaults = mutable.HashMap.empty[String, AttrValue]
     val inferrableAttributes = mutable.HashMap.empty[String, String]
-    val nonInferrableAttributes = mutable.ListBuffer.empty[String]
-    val attributeToInputs = mutable.HashMap.empty[String, mutable.ListBuffer[Int]]
+    val inferrableAttributeToInputs = mutable.HashMap.empty[String, mutable.ListBuffer[Int]]
+    val inferredAttributeExpressions = mutable.ListBuffer.empty[String]
+    val attributeExpressions = mutable.HashMap.empty[String, String]
 
     // Process input arguments.
     opDef.getInputArgList.asScala.zipWithIndex.foreach { case (arg, index) =>
       argumentTypes.update(arg.getName, if (!arg.getNumberAttr.isEmpty) "list(tensor)" else "tensor")
-      val inferrableAttrs = mutable.ListBuffer.empty[String]
+      val inferrableAttrs = mutable.ListBuffer.empty[(String, String)]
       if (!arg.getTypeAttr.isEmpty)
-        inferrableAttrs.append(arg.getTypeAttr)
+        inferrableAttrs.append((arg.getTypeAttr, "type"))
       else
-        inferrableAttrs.append(arg.getTypeListAttr)
+        inferrableAttrs.append((arg.getTypeListAttr, "list(type)"))
       if (!arg.getNumberAttr.isEmpty)
-        inferrableAttrs.append(arg.getNumberAttr)
+        inferrableAttrs.append((arg.getNumberAttr, "int"))
       inferrableAttrs.foreach(a => {
-        inferrableAttributes.getOrElseUpdate(a, opDef.getInputArg(index).getName)
-        attributeToInputs.getOrElseUpdate(a, mutable.ListBuffer.empty[Int]).append(index)
+        argumentTypes.update(a._1, a._2)
+        inferrableAttributes.getOrElseUpdate(a._1, opDef.getInputArg(index).getName)
+        inferrableAttributeToInputs.getOrElseUpdate(a._1, mutable.ListBuffer.empty[Int]).append(index)
       })
       inputs.append((arg.getName, OpGenerator.processName(arg.getName)))
     }
@@ -172,18 +175,70 @@ case class OpGenerator(opDef: OpDef) {
     // Save the list of attribute parameters (i.e., attributes that won't be inferred). Those with defaults go at the
     // end. Get the attributes in the order we want by taking the attributes without defaults from the end of
     // argsWithoutDefaults, and then adding argsWithDefaults.
-    nonInferrableAttributes.appendAll(attrsWithoutDefaults)
-    nonInferrableAttributes.appendAll(attrsWithDefaults)
     attrsWithoutDefaults.foreach(a => parameters.append((a, OpGenerator.processName(a))))
     attrsWithDefaults.foreach(a => parameters.append((a, OpGenerator.processName(a))))
+
+    // Infer attribute values and create the appropriate attribute expressions.
+    inferrableAttributeToInputs.foreach({ case (attrName, inputIndices) =>
+      argumentTypes(attrName) match {
+        case "int" =>
+          // Inferred int attributes are the lengths of input lists.
+          if (!attributeExpressions.contains(attrName)) {
+            val inputName = inputs(inputIndices.head)._2
+            val attrValueName = s"${inputName}_attr_$attrName"
+            val attrValueExpression =
+              s"""
+                 |
+                 |  const int $attrValueName = env->GetArrayLength($inputName);
+                 |  TFE_OpSetAttrInt(op.get(), "$attrName", static_cast<int64_t>($attrValueName));""".stripMargin
+            inferredAttributeExpressions.append(attrValueExpression)
+            attributeExpressions.update(attrName, attrValueName)
+          }
+        case "type" =>
+          if (!attributeExpressions.contains(attrName)) {
+            val inputName = inputs(inputIndices.head)._2
+            val inputType = argumentTypes(inputs(inputIndices.head)._1)
+            val attrValueName = s"${inputName}_attr_$attrName"
+            inputType match {
+              case "tensor" =>
+                val tensorHandle = s"${attrValueName}_${inputName}_handle"
+                val attrValueExpression =
+                  s"""
+                     |
+                     |  REQUIRE_HANDLE($tensorHandle, TFE_TensorHandle, $inputName, $cNullValuePlaceholder);
+                     |  const TF_DataType $attrValueName = TFE_TensorHandleDataType($tensorHandle);
+                     |  TFE_OpSetAttrType(op.get(), "$attrName", $attrValueName);""".stripMargin
+                inferredAttributeExpressions.append(attrValueExpression)
+                attributeExpressions.update(attrName, attrValueName)
+              case "list(tensor)" =>
+                val tensorElems = s"${inputName}_attr_${attrName}_elems"
+                val attrValueExpression =
+                  s"""
+                     |
+                     |  jlong *$tensorElems = env->GetLongArrayElements($inputName, nullptr);
+                     |  REQUIRE_HANDLE(${tensorElems}_head, TFE_TensorHandle, $tensorElems[0], $cNullValuePlaceholder);
+                     |  const TF_DataType $attrValueName = TFE_TensorHandleDataType(${tensorElems}_head);
+                     |  TFE_OpSetAttrType(op.get(), "$attrName", $attrValueName);
+                     |  env->ReleaseLongArrayElements($inputName, $tensorElems, JNI_ABORT);""".stripMargin
+                inferredAttributeExpressions.append(attrValueExpression)
+                attributeExpressions.update(attrName, attrValueName)
+            }
+          }
+        case "list(type)" => // TODO: Manage "list(type)" attributes.
+      }
+    })
+
+    // Add attribute expressions for the non-inferrable attributes (i.e., the parameters).
+    parameters.foreach(p => attributeExpressions.update(p._1, p._2))
 
     (argumentTypes.toMap,
         inputs.toList,
         parameters.toList,
         parameterDefaults.toMap,
         inferrableAttributes.toMap,
-        nonInferrableAttributes.toList,
-        attributeToInputs.mapValues(_.toList).toMap)
+        inferrableAttributeToInputs.mapValues(_.toList).toMap,
+        inferredAttributeExpressions.toList,
+        attributeExpressions.toMap)
   }
 
   private[this] def numOutputsExpression(): String = {
@@ -216,22 +271,22 @@ case class OpGenerator(opDef: OpDef) {
     numOutputsExpression.mkString
   }
 
-  private[this] def addInputs(implementationBuilder: mutable.StringBuilder, nullReturnValue: String): Unit = {
+  private[this] def addInputs(codeBuilder: mutable.StringBuilder): Unit = {
     inputs.foreach(param => {
       val inputName = param._2
       val inputType = argumentTypes(param._1)
       inputType match {
         case "tensor" =>
-          implementationBuilder.append(
+          codeBuilder.append(
             s"""
                |
-               |  REQUIRE_HANDLE(${inputName}_tensor_handle, TFE_TensorHandle, $inputName, $nullReturnValue);
-               |  TFE_OpAddInput(op.get(), ${inputName}_tensor_handle, status.get());
-               |  CHECK_STATUS(env, status.get(), $nullReturnValue);""".stripMargin)
+               |  REQUIRE_HANDLE(${inputName}_handle, TFE_TensorHandle, $inputName, $cNullValuePlaceholder);
+               |  TFE_OpAddInput(op.get(), ${inputName}_handle, status.get());
+               |  CHECK_STATUS(env, status.get(), $cNullValuePlaceholder);""".stripMargin)
         case "list(tensor)" =>
           val numTensors = s"${inputName}_num_tensors"
           val tensorElems = s"${inputName}_elems"
-          implementationBuilder.append(
+          codeBuilder.append(
             s"""
                |
                |  const int $numTensors = env->GetArrayLength($inputName);
@@ -239,7 +294,7 @@ case class OpGenerator(opDef: OpDef) {
                |  for (int i = 0; i < $numTensors; ++i) {
                |    REQUIRE_HANDLE(tensor_handle, TFE_TensorHandle, $tensorElems[i], 0);
                |    TFE_OpAddInput(op.get(), tensor_handle, status.get());
-               |    CHECK_STATUS(env, status.get(), $nullReturnValue);
+               |    CHECK_STATUS(env, status.get(), $cNullValuePlaceholder);
                |  }
                |  env->ReleaseLongArrayElements($inputName, $tensorElems, JNI_ABORT);""".stripMargin)
         case _ => throw new IllegalArgumentException(s"Invalid input argument type '$inputType'.")
@@ -247,98 +302,64 @@ case class OpGenerator(opDef: OpDef) {
     })
   }
 
-  private[this] def addInferredAttributes(
-      implementationBuilder: mutable.StringBuilder, nullReturnValue: String): Unit = {
-    // Validate list inputs and infer length attributes.
-    opDef.getAttrList.asScala.filter(
-      a => (a.getType == "int" || a.getType == "type") && attributeToInputs.contains(a.getName)).foreach(attr => {
-      val attrName = attr.getName
-      attr.getType match {
+  private[this] def addInferredAttributes(codeBuilder: mutable.StringBuilder): Unit = {
+    // Add all attribute value inference code and validate consistence of inferred attribute values with the inputs.
+    inferredAttributeExpressions.foreach(codeBuilder.append)
+    inferrableAttributeToInputs.foreach({ case (attrName, inputIndices) =>
+      argumentTypes(attrName) match {
         case "int" =>
           // Inferred int attributes are the lengths of input lists.
           // Check that those inputs are lists of the same length.
-          attributeToInputs(attrName).foreach(inputIndex => {
+          inputIndices.tail.foreach(inputIndex => {
             val inputName = inputs(inputIndex)._2
-            if (!attributeExpressions.contains(attrName)) {
-              val attrValueName = attributeExpressions.getOrElseUpdate(attrName, s"${inputName}_attr_$attrName")
-              implementationBuilder.append(
-                s"""
-                   |
-                   |  const int $attrValueName = env->GetArrayLength($inputName);
-                   |  TFE_OpSetAttrInt(op.get(), "$attrName", static_cast<int64_t>($attrValueName));""".stripMargin)
-            } else {
-              val attrValueName = attributeExpressions(attrName)
-              implementationBuilder.append(
-                s"""
-                   |
-                   |  const int ${inputName}_attr_$attrName = env->GetArrayLength($inputName);
-                   |  if ($attrValueName != ${inputName}_attr_$attrName) {
-                   |      std::stringstream error_msg;
-                   |      error_msg
-                   |          << "List argument '$inputName' of '$name' op with length '"
-                   |          << ${inputName}_attr_$attrName
-                   |          << "' must match length '"
-                   |          << $attrValueName
-                   |          << "' of argument '${inferrableAttributes(attrName)}'";
-                   |      throw_exception(env, jvm_illegal_argument_exception, error_msg.str().c_str());
-                   |  }""".stripMargin)
-            }
+            val attrValueName = attributeExpressions(attrName)
+            codeBuilder.append(
+              s"""
+                 |
+                 |  const int ${inputName}_attr_$attrName = env->GetArrayLength($inputName);
+                 |  if ($attrValueName != ${inputName}_attr_$attrName) {
+                 |      std::stringstream error_msg;
+                 |      error_msg
+                 |          << "List argument '$inputName' of '$name' op with length '"
+                 |          << ${inputName}_attr_$attrName
+                 |          << "' must match length '"
+                 |          << $attrValueName
+                 |          << "' of argument '${inferrableAttributes(attrName)}'";
+                 |      throw_exception(env, jvm_illegal_argument_exception, error_msg.str().c_str());
+                 |  }""".stripMargin)
           })
         case "type" =>
-          attributeToInputs(attrName).foreach(input => {
+          inputIndices.tail.foreach(input => {
             val inputName = inputs(input)._2
             val inputType = argumentTypes(inputs(input)._1)
             inputType match {
               case "tensor" =>
-                if (!attributeExpressions.contains(attrName)) {
-                  val attrValueName = attributeExpressions.getOrElseUpdate(attrName, s"${inputName}_attr_$attrName")
-                  val tensorHandle = s"${attrValueName}_${inputName}_tensor_h"
-                  implementationBuilder.append(
-                    s"""
-                       |
-                       |  REQUIRE_HANDLE($tensorHandle, TFE_TensorHandle, $inputName, $nullReturnValue);
-                       |  const TF_DataType $attrValueName = TFE_TensorHandleDataType($tensorHandle);
-                       |  TFE_OpSetAttrType(op.get(), "$attrName", $attrValueName);""".stripMargin)
-                } else {
-                  val attrValueName = attributeExpressions(attrName)
-                  val tensorHandle = s"${attrValueName}_${inputName}_tensor_h"
-                  implementationBuilder.append(
-                    s"""
-                       |
-                       |  REQUIRE_HANDLE($tensorHandle, TFE_TensorHandle, $inputName, $nullReturnValue);
-                       |  const TF_DataType ${inputName}_attr_$attrName = TFE_TensorHandleDataType($tensorHandle);
-                       |  if ($attrValueName != ${inputName}_attr_$attrName) {
-                       |      std::stringstream error_msg;
-                       |      error_msg
-                       |          << "Argument '$inputName' of '$name' op with data type '"
-                       |          << ${inputName}_attr_$attrName
-                       |          << "' must match data type '"
-                       |          << $attrValueName
-                       |          << "' of argument '${inferrableAttributes(attrName)}'";
-                       |      throw_exception(env, jvm_illegal_argument_exception, error_msg.str().c_str());
-                       |  }""".stripMargin)
-                }
+                val attrValueName = attributeExpressions(attrName)
+                val tensorHandle = s"${attrValueName}_${inputName}_handle"
+                codeBuilder.append(
+                  s"""
+                     |
+                     |  REQUIRE_HANDLE($tensorHandle, TFE_TensorHandle, $inputName, $cNullValuePlaceholder);
+                     |  const TF_DataType ${inputName}_attr_$attrName = TFE_TensorHandleDataType($tensorHandle);
+                     |  if ($attrValueName != ${inputName}_attr_$attrName) {
+                     |      std::stringstream error_msg;
+                     |      error_msg
+                     |          << "Argument '$inputName' of '$name' op with data type '"
+                     |          << ${inputName}_attr_$attrName
+                     |          << "' must match data type '"
+                     |          << $attrValueName
+                     |          << "' of argument '${inferrableAttributes(attrName)}'";
+                     |      throw_exception(env, jvm_illegal_argument_exception, error_msg.str().c_str());
+                     |  }""".stripMargin)
               case "list(tensor)" =>
+                val attrValueName = attributeExpressions(attrName)
                 val numTensors = s"${inputName}_attr_${attrName}_num_tensors"
                 val tensorElems = s"${inputName}_attr_${attrName}_elems"
-                implementationBuilder.append(
+                codeBuilder.append(
                   s"""
                      |
                      |  const int $numTensors = env->GetArrayLength($inputName);
-                     |  jlong *$tensorElems = env->GetLongArrayElements($inputName, nullptr);""".stripMargin)
-                if (!attributeExpressions.contains(attrName)) {
-                  val attrValueName = attributeExpressions.getOrElseUpdate(attrName, s"${inputName}_attr_$attrName")
-                  implementationBuilder.append(
-                    s"""
-                       |
-                       |  REQUIRE_HANDLE(${tensorElems}_head, TFE_TensorHandle, $tensorElems[0], $nullReturnValue);
-                       |  const TF_DataType $attrValueName = TFE_TensorHandleDataType(${tensorElems}_head);
-                       |  TFE_OpSetAttrType(op.get(), "$attrName", $attrValueName);""".stripMargin)
-                }
-                val attrValueName = attributeExpressions(attrName)
-                implementationBuilder.append(
-                  s"""
-                     |
+                     |  $tensorElems = env->GetLongArrayElements($inputName, nullptr);
                      |  for (int i = 0; i < $numTensors; ++i) {
                      |    REQUIRE_HANDLE(tensor, TFE_TensorHandle, $tensorElems[i], 0);
                      |    const TF_DataType data_type = TFE_TensorHandleDataType(tensor);
@@ -357,47 +378,48 @@ case class OpGenerator(opDef: OpDef) {
               case _ => throw new IllegalArgumentException(s"Invalid input argument type '$inputType'.")
             }
           })
+        case "list(type)" => // TODO: Manage "list(type)" attributes.
       }
     })
   }
 
   @throws[IllegalArgumentException]
   private[this] def addAttributes(
-      implementationBuilder: mutable.StringBuilder, deallocationBuilder: mutable.StringBuilder,
-      nullReturnValue: String): Unit = {
-    nonInferrableAttributes.zipWithIndex.foreach({ case (attrName, index) =>
+      codeBuilder: mutable.StringBuilder, deallocationBuilder: mutable.StringBuilder): Unit = {
+    parameters.foreach(parameter => {
+      val attrName = parameter._1
       val attrType = argumentTypes(attrName)
-      val value = attributeExpressions.getOrElseUpdate(attrName, parameters(index)._2)
+      val value = attributeExpressions(attrName)
       attrType match {
         case "string" =>
-          implementationBuilder.append(
+          codeBuilder.append(
             s"""
                |
                |  jbyte *${attrName}_c_value = env->GetByteArrayElements($value, nullptr);
                |  TFE_OpSetAttrString(op.get(), "$attrName", reinterpret_cast<const char *>(${attrName}_c_value));
                |  env->ReleaseByteArrayElements($value, ${attrName}_c_value, JNI_ABORT);""".stripMargin)
         case "int" =>
-          implementationBuilder.append(
+          codeBuilder.append(
             s"""
                |
                |  TFE_OpSetAttrInt(op.get(), "$attrName", static_cast<int64_t>($value));""".stripMargin)
         case "float" =>
-          implementationBuilder.append(
+          codeBuilder.append(
             s"""
                |
                |  TFE_OpSetAttrFloat(op.get(), "$attrName", static_cast<float>($value));""".stripMargin)
         case "bool" =>
-          implementationBuilder.append(
+          codeBuilder.append(
             s"""
                |
                |  TFE_OpSetAttrBool(op.get(), "$attrName", static_cast<unsigned char>($value));""".stripMargin)
         case "type" =>
-          implementationBuilder.append(
+          codeBuilder.append(
             s"""
                |
                |  TFE_OpSetAttrType(op.get(), "$attrName", static_cast<TF_DataType>($value));""".stripMargin)
         case "shape" =>
-          implementationBuilder.append(
+          codeBuilder.append(
             s"""
                |
                |  std::unique_ptr<int64_t[]> ${attrName}_c_value;
@@ -414,11 +436,11 @@ case class OpGenerator(opDef: OpDef) {
                |  TFE_OpSetAttrShape(
                |      op.get(), "$attrName", ${attrName}_c_value.get(), static_cast<int>(${attrName}_num_dims),
                |      status.get());
-               |  CHECK_STATUS(env, status.get(), $nullReturnValue);""".stripMargin)
+               |  CHECK_STATUS(env, status.get(), $cNullValuePlaceholder);""".stripMargin)
         case "tensor" => throw new UnsupportedOperationException(s"Unsupported attribute type '$attrType'.")
         case "func" => throw new UnsupportedOperationException(s"Unsupported attribute type '$attrType'.")
         case "list(string)" =>
-          implementationBuilder.append(
+          codeBuilder.append(
             s"""
                |
                |  int ${attrName}_num_strings = env->GetArrayLength($value);
@@ -441,7 +463,7 @@ case class OpGenerator(opDef: OpDef) {
           // Make a copy of the array to paper over any differences in byte representations of the JVM type and the
           // corresponding C type. For example, jint vs TF_DataType. If this copy turns out to be a problem in
           // practice, we can avoid it for many types.
-          implementationBuilder.append(
+          codeBuilder.append(
             s"""
                |
                |  const int ${attrName}_n = env->GetArrayLength($value);
@@ -456,7 +478,7 @@ case class OpGenerator(opDef: OpDef) {
           // Make a copy of the array to paper over any differences in byte representations of the JVM type and the
           // corresponding C type. For example, jint vs TF_DataType. If this copy turns out to be a problem in
           // practice, we can avoid it for many types.
-          implementationBuilder.append(
+          codeBuilder.append(
             s"""
                |
                |  const int ${attrName}_n = env->GetArrayLength($value);
@@ -471,7 +493,7 @@ case class OpGenerator(opDef: OpDef) {
           // Make a copy of the array to paper over any differences in byte representations of the JVM type and the
           // corresponding C type. For example, jint vs TF_DataType. If this copy turns out to be a problem in
           // practice, we can avoid it for many types.
-          implementationBuilder.append(
+          codeBuilder.append(
             s"""
                |
                |  const int ${attrName}_n = env->GetArrayLength($value);
@@ -486,7 +508,7 @@ case class OpGenerator(opDef: OpDef) {
           // Make a copy of the array to paper over any differences in byte representations of the JVM type and the
           // corresponding C type. For example, jint vs TF_DataType. If this copy turns out to be a problem in
           // practice, we can avoid it for many types.
-          implementationBuilder.append(
+          codeBuilder.append(
             s"""
                |
                |  const int ${attrName}_n = env->GetArrayLength($value);
@@ -498,7 +520,7 @@ case class OpGenerator(opDef: OpDef) {
                |  TFE_OpSetAttrTypeList(op.get(), "$attrName", ${attrName}_c_value.get(), ${attrName}_n);
                |  env->ReleaseIntArrayElements($value, ${attrName}_elems, JNI_ABORT);""".stripMargin)
         case "list(shape)" =>
-          implementationBuilder.append(
+          codeBuilder.append(
             s"""
                |
                |  std::unique_ptr<int[]> ${attrName}_c_num_dims;
@@ -526,7 +548,7 @@ case class OpGenerator(opDef: OpDef) {
                |  TFE_OpSetAttrShapeList(
                |      op.get(), "$attrName", const_cast<const int64_t **>(${attrName}_c_shapes.get()),
                |      ${attrName}_c_num_dims.get(), ${attrName}_c_num_shapes, status.get());
-               |  CHECK_STATUS(env, status.get(), $nullReturnValue);""".stripMargin)
+               |  CHECK_STATUS(env, status.get(), $cNullValuePlaceholder);""".stripMargin)
         case "list(tensor)" => throw new UnsupportedOperationException(s"Unsupported attribute type '$attrType'.")
         case "list(func)" => throw new UnsupportedOperationException(s"Unsupported attribute type '$attrType'.")
         case _ => throw new IllegalArgumentException(s"Invalid attribute type '$attrType'.")
@@ -535,27 +557,26 @@ case class OpGenerator(opDef: OpDef) {
   }
 
   private[this] def addExecute(
-      implementationBuilder: mutable.StringBuilder, deallocationBuilder: mutable.StringBuilder, numOutputs: String,
-      nullReturnValue: String): Unit = {
-    implementationBuilder.append(
+      codeBuilder: mutable.StringBuilder, deallocationBuilder: mutable.StringBuilder, numOutputs: String): Unit = {
+    codeBuilder.append(
       s"""
          |
          |  const int num_outputs = $numOutputs;
          |  std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
          |  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
          |  TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
-         |  CHECK_STATUS(env, status.get(), $nullReturnValue);
+         |  CHECK_STATUS(env, status.get(), $cNullValuePlaceholder);
          |${if (deallocationBuilder.nonEmpty) "\n" + deallocationBuilder.mkString + "\n" else ""}""".stripMargin)
     numOutputs match {
-      case "0" => implementationBuilder.append(
+      case "0" => codeBuilder.append(
         s"""
            |  return;""".stripMargin)
       case "1" =>
-        implementationBuilder.append(
+        codeBuilder.append(
           s"""
              |  return reinterpret_cast<jlong>(outputs[0]);""".stripMargin)
       case _ =>
-        implementationBuilder.append(
+        codeBuilder.append(
           s"""
              |  jlongArray outputs_array = env->NewLongArray(static_cast<jsize>(num_outputs));
              |  jlong* output_elems = env->GetLongArrayElements(outputs_array, nullptr);
