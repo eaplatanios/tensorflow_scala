@@ -72,7 +72,15 @@ lazy val jni = (project in file("./jni"))
           "SegmentProd", "SegmentMin", "SegmentMax", "UnsortedSegmentSum", "UnsortedSegmentMax", "SparseSegmentSum",
           "SparseSegmentMean", "SparseSegmentSqrtN", "Diag", "DiagPart", "MatrixDiag", "MatrixSetDiag",
           "MatrixDiagPart", "MatrixBandPart", "MatMul", "SparseMatMul", "Cross", "Complex", "Real", "Imag", "Conj",
-          "Bucketize")
+          "Bucketize"),
+        "NN" -> Seq(
+          "BiasAdd", "Relu", "Relu6", "Elu", "Selu", "Softplus", "Softsign", "Softmax", "LogSoftmax", "L2Loss",
+          "SoftmaxCrossEntropyWithLogits", "SparseSoftmaxCrossEntropyWithLogits", "TopKV2", "InTopKV2", "AvgPool",
+          "AvgPool3D", "MaxPoolV2", "MaxPool3D", "MaxPoolWithArgmax", "FractionalAvgPool", "FractionalMaxPool",
+          "Conv2D", "FusedResizeAndPadConv2D", "FusedPadConv2D", "DepthwiseConv2dNative", "Conv3D", "Dilation2D", "LRN",
+          "BatchNormWithGlobalNormalization", "FusedBatchNorm", "QuantizedBiasAdd", "QuantizedRelu", "QuantizedRelu6",
+          "QuantizedReluX", "QuantizedAvgPool", "QuantizedMaxPool", "QuantizedConv2D",
+          "QuantizedBatchNormWithGlobalNormalization")
       ),
       scalaPackage in generateTensorOps := "tensors",
       // Native bindings compilation settings
