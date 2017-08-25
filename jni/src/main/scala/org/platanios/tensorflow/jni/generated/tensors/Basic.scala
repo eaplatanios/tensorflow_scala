@@ -22,7 +22,39 @@ import org.platanios.tensorflow.jni.TensorFlow
 object Basic {
   TensorFlow.load()
 
+  @native def zerosLike(contextHandle: Long, x: Long): Long
+  @native def onesLike(contextHandle: Long, x: Long): Long
+  @native def rank(contextHandle: Long, input: Long): Long
+  @native def size(contextHandle: Long, input: Long, out_type: Int): Long
+  @native def shape(contextHandle: Long, input: Long, out_type: Int): Long
+  @native def expandDims(contextHandle: Long, input: Long, dim: Long): Long
+  @native def squeeze(contextHandle: Long, input: Long, squeeze_dims: Array[Long]): Long
   @native def pack(contextHandle: Long, values: Array[Long], axis: Long): Long
-  @native def stridedSlice(contextHandle: Long, input: Long, begin: Long, end: Long, strides: Long, begin_mask: Long, end_mask: Long, ellipsis_mask: Long, new_axis_mask: Long, shrink_axis_mask: Long): Long
+  @native def parallelConcat(contextHandle: Long, values: Array[Long], shape: Array[Long]): Long
+  @native def unpack(contextHandle: Long, value: Long, num: Long, axis: Long): Array[Long]
+  @native def concatV2(contextHandle: Long, values: Array[Long], axis: Long): Long
+  @native def tile(contextHandle: Long, input: Long, multiples: Long): Long
+  @native def pad(contextHandle: Long, input: Long, paddings: Long): Long
+  @native def mirrorPad(contextHandle: Long, input: Long, paddings: Long, mode: Array[Byte]): Long
   @native def reshape(contextHandle: Long, tensor: Long, shape: Long): Long
+  @native def transpose(contextHandle: Long, x: Long, perm: Long): Long
+  @native def invertPermutation(contextHandle: Long, x: Long): Long
+  @native def reverseV2(contextHandle: Long, tensor: Long, axis: Long): Long
+  @native def reverseSequence(contextHandle: Long, input: Long, seq_lengths: Long, seq_dim: Long, batch_dim: Long): Long
+  @native def spaceToBatchND(contextHandle: Long, input: Long, block_shape: Long, paddings: Long): Long
+  @native def batchToSpaceND(contextHandle: Long, input: Long, block_shape: Long, crops: Long): Long
+  @native def spaceToDepth(contextHandle: Long, input: Long, block_size: Long): Long
+  @native def depthToSpace(contextHandle: Long, input: Long, block_size: Long): Long
+  @native def unique(contextHandle: Long, x: Long, out_idx: Int): Array[Long]
+  @native def uniqueWithCounts(contextHandle: Long, x: Long, out_idx: Int): Array[Long]
+  @native def listDiff(contextHandle: Long, x: Long, y: Long, out_idx: Int): Array[Long]
+  @native def gatherV2(contextHandle: Long, params: Long, indices: Long, axis: Long): Long
+  @native def gatherNd(contextHandle: Long, params: Long, indices: Long): Long
+  @native def scatterNd(contextHandle: Long, indices: Long, updates: Long, shape: Long): Long
+  @native def slice(contextHandle: Long, input: Long, begin: Long, size: Long): Long
+  @native def stridedSlice(contextHandle: Long, input: Long, begin: Long, end: Long, strides: Long, begin_mask: Long, end_mask: Long, ellipsis_mask: Long, new_axis_mask: Long, shrink_axis_mask: Long): Long
+  @native def checkNumerics(contextHandle: Long, tensor: Long, message: Array[Byte]): Long
+  @native def broadcastArgs(contextHandle: Long, s0: Long, s1: Long): Long
+  @native def stopGradient(contextHandle: Long, input: Long): Long
+  @native def preventGradient(contextHandle: Long, input: Long, message: Array[Byte]): Long
 }

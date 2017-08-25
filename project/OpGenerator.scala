@@ -570,7 +570,7 @@ case class OpGenerator(opDef: OpDef) {
              |  for (int i = 0; i < num_outputs; ++i) {
              |    output_elems[i] = reinterpret_cast<jlong>(outputs[i]);
              |  }
-             |  env->ReleaseByteArrayElements(outputs_array, output_elems, JNI_COMMIT);
+             |  env->ReleaseLongArrayElements(outputs_array, output_elems, JNI_COMMIT);
              |  return outputs_array;""".stripMargin)
     }
   }
@@ -692,12 +692,12 @@ object OpGenerator {
 
   @throws[IllegalArgumentException]
   def scalaTypeToJni(scalaType: String): (String, String) = scalaType match {
-    case "String" => ("Ljava/lang/String;", "jstring")
+    case "Array[Byte]" => ("[B", "jbyteArray")
     case "Int" => ("I", "jint")
     case "Long" => ("J", "jlong")
     case "Float" => ("F", "jfloat")
     case "Boolean" => ("Z", "jboolean")
-    case "Array[String]" => ("[Ljava/lang/String;", "jstringArray")
+    case "Array[Array[Byte]]" => ("[L", "jobjectArray")
     case "Array[Int]" => ("[I", "jintArray")
     case "Array[Long]" => ("[J", "jlongArray")
     case "Array[Float]" => ("[F", "jfloatArray")
@@ -713,7 +713,7 @@ object OpGenerator {
   }
 
   def attrTypeToScala(attrType: String): Option[String] = attrType match {
-    case "string" => Some("String")
+    case "string" => Some("Array[Byte]")
     case "int" => Some("Long")
     case "float" => Some("Float")
     case "bool" => Some("Boolean")
@@ -721,7 +721,7 @@ object OpGenerator {
     case "shape" => Some("Array[Long]")
     case "tensor" => None // Some("String")
     case "func" => None
-    case "list(string)" => Some("Array[String]")
+    case "list(string)" => Some("Array[Array[Byte]]")
     case "list(int)" => Some("Array[Long]")
     case "list(float)" => Some("Array[Float]")
     case "list(bool)" => Some("Array[Boolean]")

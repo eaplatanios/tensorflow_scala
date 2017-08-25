@@ -53,7 +53,13 @@ lazy val jni = (project in file("./jni"))
       // Tensor op code generation settings
       target in generateTensorOps := sourceDirectory.value / "main",
       ops in generateTensorOps := Map(
-        "Basic" -> Seq("Pack", "StridedSlice", "Reshape"),
+        "Basic" -> Seq(
+          "ZerosLike", "OnesLike",/*"Fill",*/"Rank", "Size", "Shape", "ExpandDims", "Squeeze", "Pack", "ParallelConcat",
+          "Unpack", "ConcatV2",/*"ConcatOffset", "Split", "SplitV",*/"Tile", "Pad", "MirrorPad", "Reshape", "Transpose",
+          "InvertPermutation", "ReverseV2", "ReverseSequence", "SpaceToBatchND", "BatchToSpaceND", "SpaceToDepth",
+          "DepthToSpace",/*"Where",*/"Unique", "UniqueWithCounts", "ListDiff", "GatherV2", "GatherNd", "ScatterNd",
+          "Slice", "StridedSlice", "CheckNumerics",/*"EditDistance", "OneHot",*/"BroadcastArgs", "StopGradient",
+          "PreventGradient"),
         "Math" -> Seq("Cast", "Add", "Sub")
       ),
       scalaPackage in generateTensorOps := "tensors",
