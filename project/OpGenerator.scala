@@ -26,7 +26,13 @@ import scala.collection.JavaConverters._
 
 // TODO: [OP_GEN] Handle default values.
 
-/**
+/** Code generator for TensorFlow op JNI bindings.
+  *
+  * **NOTE:** This class should generally not be instantiated directly. Instead, users should call the
+  * `OpGenerator.generateFiles` instead.
+  *
+  * @param  opDef Definition of the op for which this generator will generate code.
+  *
   * @author Emmanouil Antonios Platanios
   */
 case class OpGenerator(opDef: OpDef) {
@@ -35,17 +41,15 @@ case class OpGenerator(opDef: OpDef) {
   /** Name of this op used to name the generated functions. */
   val name: String = OpGenerator.processName(opDef.getName)
 
-  private[this] val cNullValuePlaceholder = "##NULL_RETURN##"
-
-  def generateCode(className: String): (String, String, String) = {
+  /** Generates code containing the JNI bindings for the provided [[OpDef]].
+    *
+    * @param  className JNI class name to use for the generated code that includes the package. For example:
+    *                   `"org_platanios_tensorflow_jni_generated_tensors_Basic"`.
+    * @return Generated code that contains function definitions and implementations, but not the complete code files.
+    */
+  def generateCode(className: String): GeneratedCode = {
     val codeBuilder = StringBuilder.newBuilder
     val deallocationBuilder = StringBuilder.newBuilder
-
-    val arguments = inputs ++ parameters
-    val scalaArgs = arguments.map(p => s"${p._2}: ${typeToScalaType(argumentTypes(p._1))}").mkString(", ")
-    val headArgs = arguments.map(_._1).map(p => s"${typeToJni(argumentTypes(p))}").mkString(", ")
-    val headSignArgs = arguments.map(_._1).map(p => s"${typeToShortJni(argumentTypes(p))}").mkString("")
-    val implArgs = arguments.map(p => s"${typeToJni(argumentTypes(p._1))} ${p._2}").mkString(", ")
 
     codeBuilder.append(
       s"""  REQUIRE_HANDLE(context, TFE_Context, context_handle, $cNullValuePlaceholder);
@@ -57,43 +61,52 @@ case class OpGenerator(opDef: OpDef) {
 
     addInputs(codeBuilder)
     addInferredAttributes(codeBuilder)
-    addAttributes(codeBuilder, deallocationBuilder)
+    addParameters(codeBuilder, deallocationBuilder)
+    addExecute(codeBuilder, deallocationBuilder)
 
-    val numOutputs = numOutputsExpression()
-    val (scalaReturnType, returnType, nullValue) = numOutputs match {
-      case "0" => ("Unit", ("V", "void"), "")
-      case "1" => ("Long", ("J", "jlong"), "0")
-      case _ => ("Array[Long]", ("[J", "jlongArray"), "nullptr")
+    val (scalaReturnType, jniReturnType) = numOutputsExpression match {
+      case "0" => ("Unit", ("V", "void"))
+      case "1" => ("Long", ("J", "jlong"))
+      case _ => ("Array[Long]", ("[J", "jlongArray"))
     }
 
-    addExecute(codeBuilder, deallocationBuilder, numOutputs)
+    val arguments = inputs ++ parameters
+    val scalaArguments = arguments.map(p => s"${p._2}: ${typeToScalaType(argumentTypes(p._1))}").mkString(", ")
+    val jniHeaderArguments = arguments.map(_._1).map(p => s"${typeToJni(argumentTypes(p))}").mkString(", ")
+    val jniHeaderSignatureArguments = arguments.map(_._1).map(p => s"${typeToShortJni(argumentTypes(p))}").mkString("")
+    val jniImplementationArguments = arguments.map(p => s"${typeToJni(argumentTypes(p._1))} ${p._2}").mkString(", ")
 
-    val scalaFunction =
-      s"""  @native def $name(contextHandle: Long, $scalaArgs): $scalaReturnType""".stripMargin
+    val scalaFunction = s"""  @native def $name(contextHandle: Long, $scalaArguments): $scalaReturnType""".stripMargin
 
-    val header =
+    val jniHeaderFunction =
       s"""/*
          | * Class:     ${className}__
          | * Method:    $name
-         | * Signature: (J$headSignArgs)${returnType._1}
+         | * Signature: (J$jniHeaderSignatureArguments)${jniReturnType._1}
          | */
-         |JNIEXPORT ${returnType._2} JNICALL Java_${className}_00024_$name
-         |  (JNIEnv *, jobject, jlong, $headArgs);""".stripMargin
+         |JNIEXPORT ${jniReturnType._2} JNICALL Java_${className}_00024_$name
+         |  (JNIEnv *, jobject, jlong, $jniHeaderArguments);""".stripMargin
 
-    val implementation =
-      s"""JNIEXPORT ${returnType._2} JNICALL Java_${className}_00024_$name(
-         |    JNIEnv* env, jobject object, jlong context_handle, $implArgs) {
+    val jniImplementationFunction =
+      s"""JNIEXPORT ${jniReturnType._2} JNICALL Java_${className}_00024_$name(
+         |    JNIEnv* env, jobject object, jlong context_handle, $jniImplementationArguments) {
          |${codeBuilder.mkString}
-         |}""".stripMargin.replace(cNullValuePlaceholder, nullValue)
+         |}""".stripMargin.replace(cNullValuePlaceholder, cNullValue)
 
-    (scalaFunction, header, implementation)
+    GeneratedCode(scalaFunction, jniHeaderFunction, jniImplementationFunction)
   }
 
   // Check if this op is supported for eager execution.
   if (opDef.getInputArgList.asScala.exists(_.getIsRef))
-    throwUnsupportedException(name, "Op inputs cannot be reference types.")
+    throw new UnsupportedOperationException(
+      s"Op '$name' is not supported on the Scala API. Error message: Op inputs cannot be reference types.")
   if (opDef.getOutputArgList.asScala.exists(_.getIsRef))
-    throwUnsupportedException(name, "Op outputs cannot be reference types.")
+    throw new UnsupportedOperationException(
+      s"Op '$name' is not supported on the Scala API. Error message: Op outputs cannot be reference types.")
+
+  /** Placeholder used for the C code expression to return when the op construction/execution fails. Its value in the
+    * generated code will be replaced by the value of [[cNullValue]], once that value is computed. */
+  private[this] val cNullValuePlaceholder: String = "##NULL_VALUE##"
 
   private[this] val initializationOutputs = initialize()
 
@@ -120,8 +133,20 @@ case class OpGenerator(opDef: OpDef) {
   val inferredAttributeExpressions: Seq[String] = initializationOutputs._7
 
   /** Map from attribute name to the C expression that computes its value (often simply set to the parameter name). */
-  val attributeExpressions: Map[String, String] = initializationOutputs._8
+  private[this] val attributeExpressions: Map[String, String] = initializationOutputs._8
 
+  /** C code expression that computes the number of outputs of this op. */
+  private[this] val numOutputsExpression: String = initializationOutputs._9
+
+  /** C code expression to return when the op construction/execution fails. */
+  private[this] val cNullValue: String = numOutputsExpression match {
+    case "0" => ""
+    case "1" => "0"
+    case _ => "nullptr"
+  }
+
+  /** Initializes this op generator. Initialization consists of computing the values of all the fields used by this op
+    * generator, by parsing the provided op definition. */
   private[this] def initialize(): (
       Map[String, String],        // argumentTypes
           Seq[(String, String)],  // inputs
@@ -130,7 +155,8 @@ case class OpGenerator(opDef: OpDef) {
           Map[String, String],    // inferrableAttributes
           Map[String, Seq[Int]],  // attributeToParameters
           Seq[String],            // inferredAttributeExpressions
-          Map[String, String]     // attributeExpressions
+          Map[String, String],    // attributeExpressions
+          String                  // numOutputsExpression
       ) = {
     val argumentTypes = mutable.HashMap.empty[String, String]
     val inputs = mutable.ListBuffer.empty[(String, String)]
@@ -185,7 +211,7 @@ case class OpGenerator(opDef: OpDef) {
           // Inferred int attributes are the lengths of input lists.
           if (!attributeExpressions.contains(attrName)) {
             val inputName = inputs(inputIndices.head)._2
-            val attrValueName = s"${inputName}_attr_$attrName"
+            val attrValueName = s"attr_$attrName"
             val attrValueExpression =
               s"""
                  |
@@ -198,7 +224,7 @@ case class OpGenerator(opDef: OpDef) {
           if (!attributeExpressions.contains(attrName)) {
             val inputName = inputs(inputIndices.head)._2
             val inputType = argumentTypes(inputs(inputIndices.head)._1)
-            val attrValueName = s"${inputName}_attr_$attrName"
+            val attrValueName = s"attr_$attrName"
             inputType match {
               case "tensor" =>
                 val tensorHandle = s"${attrValueName}_${inputName}_handle"
@@ -231,17 +257,7 @@ case class OpGenerator(opDef: OpDef) {
     // Add attribute expressions for the non-inferrable attributes (i.e., the parameters).
     parameters.foreach(p => attributeExpressions.update(p._1, p._2))
 
-    (argumentTypes.toMap,
-        inputs.toList,
-        parameters.toList,
-        parameterDefaults.toMap,
-        inferrableAttributes.toMap,
-        inferrableAttributeToInputs.mapValues(_.toList).toMap,
-        inferredAttributeExpressions.toList,
-        attributeExpressions.toMap)
-  }
-
-  private[this] def numOutputsExpression(): String = {
+    // Create an expression that computes the number of outputs of this op.
     // If output i is list output, outputSizes[i] will be set to a string with the Scala expression that will evaluate
     // to its length. outputSizes[i] is empty for non-list outputs.
     var numFixedOutputs = 0
@@ -268,9 +284,19 @@ case class OpGenerator(opDef: OpDef) {
     } else if (numOutputsExpression.isEmpty) {
       numOutputsExpression.append("0")
     }
-    numOutputsExpression.mkString
+
+    (argumentTypes.toMap,
+        inputs.toList,
+        parameters.toList,
+        parameterDefaults.toMap,
+        inferrableAttributes.toMap,
+        inferrableAttributeToInputs.mapValues(_.toList).toMap,
+        inferredAttributeExpressions.toList,
+        attributeExpressions.toMap,
+        numOutputsExpression.mkString)
   }
 
+  /** Appends code to `codeBuilder` that adds the op inputs in the C implementation. */
   private[this] def addInputs(codeBuilder: mutable.StringBuilder): Unit = {
     inputs.foreach(param => {
       val inputName = param._2
@@ -302,6 +328,7 @@ case class OpGenerator(opDef: OpDef) {
     })
   }
 
+  /** Appends code to `codeBuilder` that adds the inferred attributes in the C implementation. */
   private[this] def addInferredAttributes(codeBuilder: mutable.StringBuilder): Unit = {
     // Add all attribute value inference code and validate consistence of inferred attribute values with the inputs.
     inferredAttributeExpressions.foreach(codeBuilder.append)
@@ -316,12 +343,12 @@ case class OpGenerator(opDef: OpDef) {
             codeBuilder.append(
               s"""
                  |
-                 |  const int ${inputName}_attr_$attrName = env->GetArrayLength($inputName);
-                 |  if ($attrValueName != ${inputName}_attr_$attrName) {
+                 |  const int attr_${attrName}_$inputName = env->GetArrayLength($inputName);
+                 |  if ($attrValueName != attr_${attrName}_$inputName) {
                  |      std::stringstream error_msg;
                  |      error_msg
                  |          << "List argument '$inputName' of '$name' op with length '"
-                 |          << ${inputName}_attr_$attrName
+                 |          << attr_${attrName}_$inputName
                  |          << "' must match length '"
                  |          << $attrValueName
                  |          << "' of argument '${inferrableAttributes(attrName)}'";
@@ -340,12 +367,12 @@ case class OpGenerator(opDef: OpDef) {
                   s"""
                      |
                      |  REQUIRE_HANDLE($tensorHandle, TFE_TensorHandle, $inputName, $cNullValuePlaceholder);
-                     |  const TF_DataType ${inputName}_attr_$attrName = TFE_TensorHandleDataType($tensorHandle);
-                     |  if ($attrValueName != ${inputName}_attr_$attrName) {
+                     |  const TF_DataType attr_${attrName}_$inputName = TFE_TensorHandleDataType($tensorHandle);
+                     |  if ($attrValueName != attr_${attrName}_$inputName) {
                      |      std::stringstream error_msg;
                      |      error_msg
                      |          << "Argument '$inputName' of '$name' op with data type '"
-                     |          << ${inputName}_attr_$attrName
+                     |          << attr_${attrName}_$inputName
                      |          << "' must match data type '"
                      |          << $attrValueName
                      |          << "' of argument '${inferrableAttributes(attrName)}'";
@@ -383,8 +410,9 @@ case class OpGenerator(opDef: OpDef) {
     })
   }
 
+  /** Appends code to `codeBuilder` that adds the parameters (i.e., non-inferred attributes) in the C implementation. */
   @throws[IllegalArgumentException]
-  private[this] def addAttributes(
+  private[this] def addParameters(
       codeBuilder: mutable.StringBuilder, deallocationBuilder: mutable.StringBuilder): Unit = {
     parameters.foreach(parameter => {
       val attrName = parameter._1
@@ -556,18 +584,18 @@ case class OpGenerator(opDef: OpDef) {
     })
   }
 
-  private[this] def addExecute(
-      codeBuilder: mutable.StringBuilder, deallocationBuilder: mutable.StringBuilder, numOutputs: String): Unit = {
+  /** Appends code to `codeBuilder` that adds the op execution code in the C implementation. */
+  private[this] def addExecute(codeBuilder: mutable.StringBuilder, deallocationBuilder: mutable.StringBuilder): Unit = {
     codeBuilder.append(
       s"""
          |
-         |  const int num_outputs = $numOutputs;
+         |  const int num_outputs = $numOutputsExpression;
          |  std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
          |  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
          |  TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
          |  CHECK_STATUS(env, status.get(), $cNullValuePlaceholder);
          |${if (deallocationBuilder.nonEmpty) "\n" + deallocationBuilder.mkString + "\n" else ""}""".stripMargin)
-    numOutputs match {
+    numOutputsExpression match {
       case "0" => codeBuilder.append(
         s"""
            |  return;""".stripMargin)
@@ -589,34 +617,68 @@ case class OpGenerator(opDef: OpDef) {
   }
 }
 
+/** Contains helper functions for generating JNI bindings for eager op execution in TensorFlow. */
 object OpGenerator {
+  /** Generates files for grouped ops.
+    *
+    * `ops` must be a [[Map]] from group names to sequences of op names, as they are defined in the TensorFlow native
+    * library. Then, for each group, this function generates three files, with their Scala package set to
+    * `<scalaPackage>.<group>`:
+    *   - `<path>/scala/<scalaPackage>/<group>.scala`: Contains a Scala object with the native function declarations.
+    * Note that in the file path, the dots in `scalaPackage` are replaced with path separators (e.g., `"/"`).
+    *   - `<path>/native/generated/tensor_<group.toLowerCase>_ops.h`: Contains the C function declarations for the
+    * generated JNI bindinds.
+    *   - `<path>/native/generated/tensor_<group.toLowerCase>_ops.cc`: Contains the C implementations for the functions
+    * defined in the header file.
+    *
+    * Note that all pre-existing files in the relevant directories will be replaced.
+    *
+    * @param  path         Root path for the file generation.
+    * @param  ops          Grouped ops for which bindinds will be generated.
+    * @param  scalaPackage Scala package to use for the generated Scala file.
+    */
   def generateFiles(path: Path, ops: Map[String, Seq[String]], scalaPackage: String): Unit = {
     val opList = OpList.newBuilder()
     TextFormat.merge(
       Files.readAllLines(path.resolve(Paths.get("resources", "ops.pbtxt"))).toArray.mkString("\n"), opList)
     val opDefsMap = opList.getOpList.asScala.map(o => o.getName -> o).toMap
-    ops.foreach(o => generateFiles(path, o._1, o._2.map(opDefsMap), scalaPackage))
+    ops.foreach(o => generateGroupFiles(path, o._1, o._2.map(opDefsMap), scalaPackage))
   }
 
-  private[this] def generateFiles(path: Path, group: String, opDefs: Seq[OpDef], scalaPackage: String): Unit = {
+  /** Generates files for a named group of ops.
+    *
+    * The Scala package of the generated files is set to `<scalaPackage>.<group>`. Three files are generated:
+    *   - `<path>/scala/<scalaPackage>/<group>.scala`: Contains a Scala object with the native function declarations.
+    * Note that in the file path, the dots in `scalaPackage` are replaced with path separators (e.g., `"/"`).
+    *   - `<path>/native/generated/tensor_<group.toLowerCase>_ops.h`: Contains the C function declarations for the
+    * generated JNI bindinds.
+    *   - `<path>/native/generated/tensor_<group.toLowerCase>_ops.cc`: Contains the C implementations for the functions
+    * defined in the header file.
+    *
+    * Note that all pre-existing files in the relevant directories will be replaced.
+    *
+    * @param  path         Root path for the file generation.
+    * @param  group        Ops group name used to name the generated Scala object.
+    * @param  opDefs       Definitions for all the ops for which bindings will be generated.
+    * @param  scalaPackage Scala package to use for the generated Scala file.
+    */
+  def generateGroupFiles(path: Path, group: String, opDefs: Seq[OpDef], scalaPackage: String): Unit = {
+    // Resolve the file paths and set up the directories.
     val headerName = s"tensor_${group.toLowerCase}_ops.h"
-    val (scalaObject, nativeHeader, nativeImplementation) = code(scalaPackage, opDefs, headerName, group)
-    val scalaPath = path.resolve(Paths.get("scala", scalaPackage.split('.') :+ s"$group.scala": _*))
+    val scalaFilePath = path.resolve(Paths.get("scala", scalaPackage.split('.') :+ s"$group.scala": _*))
     val nativePath = path.resolve(Paths.get("native", "generated"))
-    val headerPath = nativePath.resolve(headerName)
-    val implementationPath = nativePath.resolve(s"tensor_${group.toLowerCase}_ops.cc")
-    Files.createDirectories(scalaPath.getParent)
+    val jniHeaderFilePath = nativePath.resolve(headerName)
+    val jniImplementationPath = nativePath.resolve(s"tensor_${group.toLowerCase}_ops.cc")
+    Files.createDirectories(scalaFilePath.getParent)
     Files.createDirectories(nativePath)
-    Files.write(scalaPath, scalaObject.getBytes())
-    Files.write(headerPath, nativeHeader.getBytes())
-    Files.write(implementationPath, nativeImplementation.getBytes())
-  }
 
-  private[this] def code(
-      scalaPackage: String, opDefs: Seq[OpDef], headerName: String, objectName: String): (String, String, String) = {
-    val jniObjectName = s"$scalaPackage.$objectName".replace(".", "_")
+    // Generate the code.
+    val jniObjectName = s"$scalaPackage.$group".replace(".", "_")
     val opCode = opDefs.map(OpGenerator(_).generateCode(jniObjectName))
-    val scalaObject =
+
+    // Create Scala file.
+    Files.write(
+      scalaFilePath,
       s"""/* DO NOT EDIT THIS FILE - it is machine generated */
          |
          |/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
@@ -638,13 +700,16 @@ object OpGenerator {
          |
          |import org.platanios.tensorflow.jni.TensorFlow
          |
-         |object $objectName {
+         |object $group {
          |  TensorFlow.load()
          |
-         |${opCode.map(_._1).mkString("\n")}
+         |${opCode.map(_.scalaFunction).mkString("\n")}
          |}
-         |""".stripMargin
-    val nativeHeader =
+         |""".stripMargin.getBytes())
+
+    // Create the JNI headers file.
+    Files.write(
+      jniHeaderFilePath,
       s"""/* DO NOT EDIT THIS FILE - it is machine generated */
          |#include <jni.h>
          |/* Header for class ${jniObjectName}__ */
@@ -654,14 +719,17 @@ object OpGenerator {
          |#ifdef __cplusplus
          |extern "C" {
          |#endif
-         |${opCode.map(_._2).mkString("\n\n")}
+         |${opCode.map(_.jniHeaderFunction).mkString("\n\n")}
          |
          |#ifdef __cplusplus
          |}
          |#endif
          |#endif
-         |""".stripMargin
-    val nativeImplementation =
+         |""".stripMargin.getBytes())
+
+    // Create the JNI implementation file.
+    Files.write(
+      jniImplementationPath,
       s"""/* DO NOT EDIT THIS FILE - it is machine generated */
          |
          |/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
@@ -691,17 +759,30 @@ object OpGenerator {
          |#include "include/exception_jni.h"
          |#include "include/utilities.h"
          |
-         |${opCode.map(_._3).mkString("\n\n")}
-         |""".stripMargin
-    (scalaObject, nativeHeader, nativeImplementation)
+         |${opCode.map(_.jniImplementationFunction).mkString("\n\n")}
+         |""".stripMargin.getBytes())
   }
 
+  /** Generated code by an [[OpGenerator]].
+    *
+    * @param  scalaFunction             Scala function definition for executing the native op.
+    * @param  jniHeaderFunction         JNI header function declaration for executing the native op.
+    * @param  jniImplementationFunction JNI function implementation for executing the native op.
+    */
+  case class GeneratedCode(scalaFunction: String, jniHeaderFunction: String, jniImplementationFunction: String)
+
+  // TODO: Add C reserved keywords.
+  /** Set which contains all of the Scala language reserved keywords. */
   private[this] val reservedKeywords = Set(
     "abstract", "case", "catch", "class", "def", "do", "else", "extends", "false", "final", "finally", "for", "forSome",
     "if", "implicit", "import", "lazy", "macro", "match", "new", "null", "object", "override", "package", "private",
     "protected", "return", "sealed", "super", "this", "throw", "trait", "try", "true", "type", "val", "var", "while",
     "with", "yield")
 
+  /** Processed the provided name (usually an op, input argument, or attribute name) so that it can be used within C and
+    * Scala code files. The processing consists of lower-casing the first character of the name and then prepending it
+    * with an underscore if it is matches any of the Scala language reserved keywords. The function returns the
+    * processed name. */
   private[OpGenerator] def processName(name: String): String = {
     val c = name.toCharArray.toBuffer[Char]
     c(0) = Character.toLowerCase(c(0))
@@ -710,6 +791,7 @@ object OpGenerator {
     processedName
   }
 
+  /** Map from TensorFlow attribute types to Scala types. */
   private[OpGenerator] val typeToScalaType: Map[String, String] = Map(
     // "func"
     // "list(func)"
@@ -728,6 +810,7 @@ object OpGenerator {
     "list(shape)" -> "Array[Array[Long]]",
     "list(tensor)" -> "Array[Long]")
 
+  /** Map from Scala types to JNI type abbreviations. */
   private[OpGenerator] val scalaTypeToShortJni: Map[String, String] = Map(
     "Array[Byte]" -> "[B",
     "Int" -> "I",
@@ -740,8 +823,10 @@ object OpGenerator {
     "Array[Float]" -> "[F",
     "Array[Boolean]" -> "[Z")
 
+  /** Map from TensorFlow attribute types to JNI type abbreviations. */
   private[OpGenerator] val typeToShortJni: Map[String, String] = typeToScalaType.mapValues(scalaTypeToShortJni)
 
+  /** Map from Scala types to JNI types. */
   private[OpGenerator] val scalaTypeToJni: Map[String, String] = Map(
     "Array[Byte]" -> "jbyteArray",
     "Int" -> "jint",
@@ -754,8 +839,10 @@ object OpGenerator {
     "Array[Float]" -> "jfloatArray",
     "Array[Boolean]" -> "jbooleanArray")
 
+  /** Map from TensorFlow attribute types to JNI types. */
   private[OpGenerator] val typeToJni: Map[String, String] = typeToScalaType.mapValues(scalaTypeToJni)
 
+  /** Converts the provided TensorFlow attribute value to a string representing the same value in Scala. */
   private[OpGenerator] def attrValueToScala(attr: AttrDef, value: AttrValue): Option[String] = {
     // Note that the return value of this function may contain spaces (for example, it could be a string "foo bar"
     // with an embedded space), and thus is not safe to pass it to wordWrap().
@@ -819,6 +906,7 @@ object OpGenerator {
     Option(scalaValue)
   }
 
+  /** Escapes the provided string so that it can be used within C or Scala code. */
   private[OpGenerator] def escapeString(string: String): String = {
     def hex(char: Char): String = Integer.toHexString(char).toUpperCase(Locale.ENGLISH)
 
@@ -849,9 +937,5 @@ object OpGenerator {
       }
       writer.toString
     }
-  }
-
-  private[OpGenerator] def throwUnsupportedException(name: String, message: String): Unit = {
-    throw new UnsupportedOperationException(s"Op '$name' is not supported on the Scala API. Error message: $message")
   }
 }
