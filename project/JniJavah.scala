@@ -14,7 +14,6 @@ import sbt.Keys._
   * @author Emmanouil Antonios Platanios
   */
 object JniJavah extends AutoPlugin {
-
   override def requires: Plugins = plugins.JvmPlugin
   override def trigger: PluginTrigger = allRequirements
 
