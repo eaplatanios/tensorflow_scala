@@ -15,14 +15,14 @@
 
 package org.platanios.tensorflow.api.tensors
 
+import org.platanios.tensorflow.api.Implicits._
 import org.platanios.tensorflow.api.core._
-import org.platanios.tensorflow.api.core.Indexer.Implicits._
 import org.platanios.tensorflow.api.core.exception._
-import org.platanios.tensorflow.api.ops.{Basic, Output, OutputConvertible}
+import org.platanios.tensorflow.api.ops.{Basic, Output}
+import org.platanios.tensorflow.api.tensors.ops.Basic.stack
 import org.platanios.tensorflow.api.types._
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer}
 import org.platanios.tensorflow.jni.{Tensor => NativeTensor}
-import org.platanios.tensorflow.jni.generated.tensors.{Basic => NativeTensorBasic, Math => NativeTensorMath}
 
 import shapeless.{Generic, HList, Lazy}
 
@@ -37,8 +37,7 @@ import scala.util.DynamicVariable
   * @author Emmanouil Antonios Platanios
   */
 case class Tensor private[tensors](
-    private[tensors] var nativeHandle: Long, private[tensors] val _hostBuffer: Option[ByteBuffer])
-    extends Closeable with OutputConvertible {
+    private[tensors] var nativeHandle: Long, private[tensors] val _hostBuffer: Option[ByteBuffer]) extends Closeable {
   private[this] object NativeHandleLock
 
   // Keep track of references in the Scala side and notify the native library when the tensor is not referenced
@@ -147,67 +146,7 @@ case class Tensor private[tensors](
     }
   }
 
-  def cast(dataType: DataType)(implicit context: DynamicVariable[Context]): Tensor = {
-    Tensor(NativeTensorMath.cast(context.value.nativeHandle, nativeHandle, dataType.cValue))
-  }
-
-  def slice(indexers: Indexer*)(implicit context: DynamicVariable[Context]): Tensor = {
-    if (indexers.count(_ == Ellipsis) > 1)
-      throw InvalidIndexerException("Only one 'Ellipsis' ('---') is allowed per indexing sequence.")
-    val begin = Array.fill(indexers.length)(0)
-    val end = Array.fill(indexers.length)(0)
-    val strides = Array.fill(indexers.length)(1)
-    var beginMask: Long = 0 // TODO: Use this.
-    var endMask: Long = 0
-    var ellipsisMask: Long = 0
-    var newAxisMask: Long = 0
-    var shrinkAxisMask: Long = 0
-    indexers.zipWithIndex foreach {
-      case (Ellipsis, i) => ellipsisMask |= (1 << i)
-      case (NewAxis, i) => newAxisMask |= (1 << i)
-      case (Index(index), i) =>
-        begin(i) = index
-        end(i) = index + 1
-        strides(i) = 1
-        shrinkAxisMask |= (1 << i)
-      case (Slice(sliceBegin, sliceEnd, sliceStep, false), i) =>
-        begin(i) = sliceBegin
-        end(i) = sliceEnd
-        strides(i) = sliceStep
-      case (Slice(sliceBegin, sliceEnd, sliceStep, true), i) =>
-        begin(i) = sliceBegin
-        if (sliceEnd == -1) {
-          end(i) = sliceEnd
-          endMask |= (1 << i)
-        } else {
-          end(i) = sliceEnd + 1
-        }
-        strides(i) = sliceStep
-    }
-    val beginTensor: Tensor = begin
-    val endTensor: Tensor = end
-    val stridesTensor: Tensor = strides
-    val handle = NativeTensorBasic.stridedSlice(
-      context.value.nativeHandle, nativeHandle, beginTensor.nativeHandle, endTensor.nativeHandle,
-      stridesTensor.nativeHandle, beginMask, endMask, ellipsisMask, newAxisMask, shrinkAxisMask)
-    beginTensor.close()
-    endTensor.close()
-    stridesTensor.close()
-    Tensor(handle)
-  }
-
-  def reshape(shape: Shape)(implicit context: DynamicVariable[Context]): Tensor = {
-    val shapeTensor = shape.toTensor()
-    val tensor = Tensor(NativeTensorBasic.reshape(context.value.nativeHandle, nativeHandle, shapeTensor.nativeHandle))
-    shapeTensor.close()
-    tensor
-  }
-
-  def +(other: Tensor)(implicit context: DynamicVariable[Context]): Tensor = {
-    Tensor(NativeTensorMath.add(context.value.nativeHandle, nativeHandle, other.nativeHandle))
-  }
-
-  def apply(indexers: Indexer*): Tensor = slice(indexers: _*)
+  def apply(indexers: Indexer*): Tensor = this.slice(indexers: _*)
 
   /** Returns a summary of the contents of this tensor.
     *
@@ -229,7 +168,7 @@ case class Tensor private[tensors](
           slice.mkString("[", ", ", "]")
         case _ =>
           val innerSummary = {
-            def summarizeSlice(index: Int) = summarize(tensor.slice(index).reshape(tensor.shape(1 ::)), maxEntries)
+            def summarizeSlice(index: Int) = summarize(tensor(index).reshape(tensor.shape(1 ::)), maxEntries)
 
             if (tensor.shape(0) <= math.max(maxEntries, 6))
               for (i <- 0 until tensor.shape(0)) yield summarizeSlice(i)
@@ -267,7 +206,7 @@ case class Tensor private[tensors](
     result
   }
 
-  override def toOutput: Output = Basic.constant(this.cpu())
+  def toOutput: Output = Basic.constant(this.cpu())
 
   /** Closes this [[Tensor]] and releases any resources associated with it. Note that an [[Tensor]] is not
     * usable after it has been closed. */
@@ -304,14 +243,10 @@ object Tensor {
 
   def apply[T](dataType: DataType, head: T, tail: T*)(implicit ev: TensorConvertible[T]): Tensor = {
     val tensors = head +: tail map ev.toTensor
-    val tensor = Tensor.pack(tensors.map(_.cast(dataType)), 0)
+    val tensor = stack(tensors.map(_.cast(dataType)), 0)
     val hostHandle = tensor.resolve()
     val buffer = NativeTensor.buffer(hostHandle).order(ByteOrder.nativeOrder)
     Tensor(tensor.nativeHandle, buffer)
-  }
-
-  def pack(tensors: Seq[Tensor], axis: Int = 0)(implicit context: DynamicVariable[Context]): Tensor = {
-    Tensor(NativeTensorBasic.pack(context.value.nativeHandle, tensors.map(_.nativeHandle).toArray, axis))
   }
 
   def fill[T](dataType: DataType, shape: Shape = null)(value: T)(implicit ev: SupportedType[T]): Tensor = {
@@ -384,6 +319,10 @@ object Tensor {
     NativeTensor.delete(hostHandle)
     tensor
   }
+
+  private[tensors] trait Implicits {
+    implicit def tensorConvertibleToTensor[T](value: T)(implicit ev: TensorConvertible[T]): Tensor = ev.toTensor(value)
+  }
 }
 
 trait TensorConvertible[T] {
@@ -395,8 +334,12 @@ object TensorConvertible {
     override def toTensor(value: Tensor): Tensor = value
   }
 
-  implicit val rangeExecutable: TensorConvertible[Range] = new TensorConvertible[Range] {
-    override def toTensor(value: Range): Tensor = Tensor.pack(value.map(Tensor.fill(INT32)(_)))
+  implicit val shapeTensorConvertible: TensorConvertible[Shape] = new TensorConvertible[Shape] {
+    override def toTensor(value: Shape): Tensor = value.toTensor()
+  }
+
+  implicit val rangeTensorConvertible: TensorConvertible[Range] = new TensorConvertible[Range] {
+    override def toTensor(value: Range): Tensor = stack(value.map(Tensor.fill(INT32)(_)))
   }
 
   implicit def supportedTypeTensorConvertible[T](implicit ev: SupportedType[T]): TensorConvertible[T] = {
@@ -407,14 +350,14 @@ object TensorConvertible {
 
   implicit def arrayExecutable[T](implicit ev: TensorConvertible[T]): TensorConvertible[Array[T]] = {
     new TensorConvertible[Array[T]] {
-      override def toTensor(value: Array[T]): Tensor = Tensor.pack(value.map(ev.toTensor))
+      override def toTensor(value: Array[T]): Tensor = stack(value.map(ev.toTensor))
     }
   }
 
   implicit def traversableExecutable[T, CC[A] <: TraversableLike[A, CC[A]]](
       implicit ev: TensorConvertible[T]): TensorConvertible[CC[T]] = {
     new TensorConvertible[CC[T]] {
-      override def toTensor(value: CC[T]): Tensor = Tensor.pack(value.map(ev.toTensor)(breakOut))
+      override def toTensor(value: CC[T]): Tensor = stack(value.map(ev.toTensor)(breakOut))
     }
   }
 

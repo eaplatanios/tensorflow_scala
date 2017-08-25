@@ -13,14 +13,13 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api
+package org.platanios.tensorflow.api.tensors
 
 /**
   * @author Emmanouil Antonios Platanios
   */
-package object tensors {
-  private[api] val DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER = tensors.RowMajorOrder
-
+package object ops {
   private[api] trait API
-      extends ops.API
+      extends Basic
+        with Math
 }
