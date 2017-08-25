@@ -2818,6 +2818,41 @@ private[api] trait Math {
     }
   }
 
+  /** Creates an op that returns the element-wise complex argument of a tensor.
+    *
+    * Given a numeric tensor `input`, the op returns a tensor with numbers that are the complex angle of each element in
+    * `input`. If the numbers in `input` are of the form `a + bj`, where *a* is the real part and *b* is the
+    * imaginary part, then the complex angle returned by this operation is of the form `atan2(b, a)`.
+    *
+    * For example:
+    * {{{
+    *   // Tensor 'input' is [-2.25 + 4.75j, 3.25 + 5.75j]
+    *   angle(input) ==> [2.0132, 1.056]
+    * }}}
+    *
+    * If `input` is real-valued, then a tensor containing zeros is returned.
+    *
+    * @param  input Input tensor.
+    * @param  name  Name for the created op.
+    * @return Created op output.
+    * @throws IllegalArgumentException If the provided tensor is not numeric.
+    */
+  @throws[IllegalArgumentException]
+  def angle[T <: OutputLike : OutputOps](input: T, name: String = "Angle"): T = {
+    implicitly[OutputOps[T]]
+        .unaryOp(input, o => {
+          if (input.dataType.isComplex) {
+            Op.Builder(opType = "Angle", name = name)
+                .addInput(o)
+                .build().outputs(0)
+          } else if (input.dataType.isNumeric) {
+            Basic.zerosLike(o)
+          } else {
+            throw new IllegalArgumentException("'angle' can only take numeric tensors as input.")
+          }
+        })
+  }
+
   /** Creates an op that returns the element-wise complex conjugate of a tensor.
     *
     * Given a numeric tensor `input`, the op returns a tensor with numbers that are the complex conjugate of each
