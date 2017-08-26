@@ -56,7 +56,7 @@ case class Dropout private[layers](
     extends NetworkLayer[tf.Output, tf.Output] with ModeConditionalNetworkLayer {
   override val layerType: String                 = s"Dropout[$keepProbability]"
   override val forward  : tf.Output => tf.Output = input => {
-    val noise = if (noiseShape == null) null else noiseShape.toOutput
+    val noise = if (noiseShape == null) null else noiseShape.toOutput()
     val default: () => tf.Output = () => input
     val applyDropout: () => tf.Output = () => tf.dropout(input, keepProbability, noise, seed, name)
     applyDropout whenIn TrainingMode otherwise default

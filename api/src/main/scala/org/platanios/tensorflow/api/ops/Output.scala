@@ -678,30 +678,31 @@ object SparseOutput {
   * @author Emmanouil Antonios Platanios
   */
 trait OutputConvertible[T] {
+  // TODO: Add data type argument.
   /** Returns the [[Output]] that `value` represents. */
-  def toOutput(value: T): Output
+  @inline def toOutput(value: T): Output
 }
 
 object OutputConvertible {
   implicit def outputLikeOutputConvertible[T <: OutputLike]: OutputConvertible[T] = new OutputConvertible[T] {
-    override def toOutput(value: T): Output = value.toOutput
+    @inline override def toOutput(value: T): Output = value.toOutput
   }
 
   implicit val variableOutputConvertible: OutputConvertible[Variable] = new OutputConvertible[Variable] {
-    override def toOutput(value: Variable): Output = value.toOutput
+    @inline override def toOutput(value: Variable): Output = value.toOutput
   }
 
   implicit val partitionedVariableOutputConvertible: OutputConvertible[PartitionedVariable] = {
     new OutputConvertible[PartitionedVariable] {
-      override def toOutput(value: PartitionedVariable): Output = value.toOutput
+      @inline override def toOutput(value: PartitionedVariable): Output = value.toOutput
     }
   }
 
   implicit val tensorOutputConvertible: OutputConvertible[Tensor] = new OutputConvertible[Tensor] {
-    override def toOutput(value: Tensor): Output = value.toOutput
+    @inline override def toOutput(value: Tensor): Output = value.toOutput
   }
 
   implicit val shapeOutputConvertible: OutputConvertible[Shape] = new OutputConvertible[Shape] {
-    override def toOutput(value: Shape): Output = value.toOutput
+    @inline override def toOutput(value: Shape): Output = value.toOutput()
   }
 }

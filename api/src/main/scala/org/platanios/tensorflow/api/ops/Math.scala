@@ -3662,7 +3662,7 @@ private[api] object Math extends Math {
         val inputShape = {
           // If the shape is not fully defined but the rank is, we use the shape op.
           if (input.shape.isFullyDefined)
-            input.shape.toOutput
+            input.shape.toOutput()
           else
             Basic.shape(input)
         }

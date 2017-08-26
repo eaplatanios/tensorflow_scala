@@ -965,7 +965,7 @@ trait SaverDefBuilder {
             // Compute the shapes and let the restore op decide if and how to do the reshape.
             saveable.saveSpecifications.map(s => {
               if (s.value.shape.isFullyDefined)
-                s.value.shape.toOutput
+                s.value.shape.toOutput()
               else
                 Basic.shape(s.value)
             })

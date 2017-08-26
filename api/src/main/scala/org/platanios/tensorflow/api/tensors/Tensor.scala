@@ -329,38 +329,38 @@ object Tensor {
 
 trait TensorConvertible[T] {
   // TODO: Add data type argument.
-  def toTensor(value: T): Tensor
+  @inline def toTensor(value: T): Tensor
 }
 
 object TensorConvertible {
   implicit val tensorTensorConvertible: TensorConvertible[Tensor] = new TensorConvertible[Tensor] {
-    override def toTensor(value: Tensor): Tensor = value
+    @inline override def toTensor(value: Tensor): Tensor = value
   }
 
   implicit val shapeTensorConvertible: TensorConvertible[Shape] = new TensorConvertible[Shape] {
-    override def toTensor(value: Shape): Tensor = value.toTensor()
+    @inline override def toTensor(value: Shape): Tensor = value.toTensor()
   }
 
   implicit val rangeTensorConvertible: TensorConvertible[Range] = new TensorConvertible[Range] {
-    override def toTensor(value: Range): Tensor = stack(value.map(Tensor.fill(INT32)(_)))
+    @inline override def toTensor(value: Range): Tensor = stack(value.map(Tensor.fill(INT32)(_)))
   }
 
   implicit def supportedTypeTensorConvertible[T](implicit ev: SupportedType[T]): TensorConvertible[T] = {
     new TensorConvertible[T] {
-      override def toTensor(value: T): Tensor = Tensor.fill(ev.dataType, Shape())(value)
+      @inline override def toTensor(value: T): Tensor = Tensor.fill(ev.dataType, Shape())(value)
     }
   }
 
   implicit def arrayExecutable[T](implicit ev: TensorConvertible[T]): TensorConvertible[Array[T]] = {
     new TensorConvertible[Array[T]] {
-      override def toTensor(value: Array[T]): Tensor = stack(value.map(ev.toTensor))
+      @inline override def toTensor(value: Array[T]): Tensor = stack(value.map(ev.toTensor))
     }
   }
 
   implicit def traversableExecutable[T, CC[A] <: TraversableLike[A, CC[A]]](
       implicit ev: TensorConvertible[T]): TensorConvertible[CC[T]] = {
     new TensorConvertible[CC[T]] {
-      override def toTensor(value: CC[T]): Tensor = stack(value.map(ev.toTensor)(breakOut))
+      @inline override def toTensor(value: CC[T]): Tensor = stack(value.map(ev.toTensor)(breakOut))
     }
   }
 
@@ -368,7 +368,7 @@ object TensorConvertible {
       gen: Generic.Aux[T, L],
       ev: Lazy[TensorConvertible[L]]
   ): TensorConvertible[T] = new TensorConvertible[T] {
-    override def toTensor(value: T): Tensor = {
+    @inline override def toTensor(value: T): Tensor = {
       ev.value.toTensor(gen.to(value))
     }
   }

@@ -315,16 +315,10 @@ final class Shape private (private val array: Array[Int]) {
 
   /** Converts this shape to a one-dimensional "symbolic" tensor (i.e., a constant-valued op output).
     *
-    * @return One-dimensional op output tensor representing this shape.
-    */
-  def toOutput: Output = toOutput(dataType = INT32)
-
-  /** Converts this shape to a one-dimensional "symbolic" tensor (i.e., a constant-valued op output).
-    *
     * @param  dataType Data type to use for the tensor.
     * @return One-dimensional op output tensor representing this shape.
     */
-  def toOutput(dataType: DataType, name: String = "Shape"): Output = {
+  def toOutput(dataType: DataType = INT32, name: String = "Shape"): Output = {
     Basic.constant(toTensor(dataType), name = name)
   }
 
@@ -401,7 +395,7 @@ object Shape {
   def apply(dimensions: Array[Int]): Shape = create(dimensions)
 
   // implicit def shapeToTensor(shape: Shape): Tensor = shape.toTensor()
-  implicit def shapeToOutput(shape: Shape): Output = shape.toOutput()
+  // implicit def shapeToOutput(shape: Shape): Output = shape.toOutput()
 
   // implicit def tupleToShape(t: Tuple1[Int]): Shape = create(t._1)
   // implicit def tupleToShape(t: (Int, Int)): Shape = create(t._1, t._2)
