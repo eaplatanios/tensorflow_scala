@@ -118,7 +118,6 @@ object BuildTool {
         "cmake " +
             s"-DCMAKE_INSTALL_PREFIX:PATH=${target.getAbsolutePath} " +
             "-DCMAKE_BUILD_TYPE=Release " +
-            "-DSBT:BOOLEAN=true " +
             baseDirectory.getAbsolutePath,
         buildDirectory)
     }
