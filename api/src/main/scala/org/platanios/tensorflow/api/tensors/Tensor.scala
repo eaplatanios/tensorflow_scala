@@ -36,7 +36,7 @@ import scala.util.DynamicVariable
 /**
   * @author Emmanouil Antonios Platanios
   */
-case class Tensor private[tensors](
+class Tensor private[tensors](
     private[tensors] var nativeHandle: Long, private[tensors] val _hostBuffer: Option[ByteBuffer]) extends Closeable {
   private[this] object NativeHandleLock
 
@@ -225,13 +225,13 @@ object Tensor {
     if (NativeTensor.eagerDevice(nativeHandle) == "CPU:0") {
       val hostHandle = NativeTensor.eagerResolve(nativeHandle)
       val buffer = NativeTensor.buffer(hostHandle).order(ByteOrder.nativeOrder)
-      Tensor(nativeHandle, buffer)
+      new Tensor(nativeHandle, Some(buffer))
     } else {
-      Tensor(nativeHandle, None)
+      new Tensor(nativeHandle, None)
     }
   }
 
-  private[tensors] def apply(nativeHandle: Long, buffer: ByteBuffer): Tensor = new Tensor(nativeHandle, Some(buffer))
+  private[tensors] def apply(nativeHandle: Long, buffer: ByteBuffer): Tensor = new Tensor(nativeHandle, Option(buffer))
 
   def apply[T](head: T, tail: T*)(implicit ev: TensorConvertible[T]): Tensor = {
     val tensors = head +: tail map ev.toTensor
@@ -260,11 +260,11 @@ object Tensor {
         val numBytes = inferredShape.numElements * (INT64.byteSize + numEncodedBytes)
         val tensor = Tensor.allocate(STRING, inferredShape, numBytes)
         val buffer = tensor.hostBuffer()._1
-        val baseOffset = INT64.byteSize * tensor.numElements
+        val baseOffset = INT64.byteSize * inferredShape.numElements
         var index = 0
         var i = 0
-        while (i < tensor.numElements) {
-          STRING.putElementInBuffer(buffer, baseOffset + index, STRING.cast(value))
+        while (i < inferredShape.numElements) {
+          val numEncodedBytes = STRING.putElementInBuffer(buffer, baseOffset + index, STRING.cast(value))
           INT64.putElementInBuffer(buffer, i * INT64.byteSize, index.toLong)
           index += numEncodedBytes
           i += 1
@@ -285,21 +285,15 @@ object Tensor {
   }
 
   private[api] def fromTFNativeHandle(nativeHandle: Long): Tensor = {
-    Tensor(
+    new Tensor(
       NativeTensor.eagerAllocate(nativeHandle),
-      NativeTensor.buffer(nativeHandle).order(ByteOrder.nativeOrder))
+      Some(NativeTensor.buffer(nativeHandle).order(ByteOrder.nativeOrder)))
   }
 
   private[api] def allocate(dataType: DataType, shape: Shape): Tensor = dataType match {
     case STRING => throw new IllegalArgumentException(
       "Cannot pre-allocate string tensors because their size is not known.")
-    case _ =>
-      shape.assertFullyDefined()
-      val numBytes = shape.numElements * dataType.byteSize
-      val hostHandle = NativeTensor.allocate(dataType.cValue, shape.asArray.map(_.toLong), numBytes)
-      val tensor = Tensor.fromTFNativeHandle(hostHandle)
-      NativeTensor.delete(hostHandle)
-      tensor
+    case _ => allocate(dataType, shape, shape.numElements * dataType.byteSize)
   }
 
   private[api] def allocate(dataType: DataType, shape: Shape, numBytes: Long): Tensor = {
@@ -312,9 +306,17 @@ object Tensor {
 
   @throws[IllegalArgumentException]
   def fromBuffer(dataType: DataType, shape: Shape, numBytes: Long, buffer: ByteBuffer): Tensor = {
-    if (!buffer.isDirect)
-      throw new IllegalArgumentException("Can only create tensors from direct byte buffers.")
-    val hostHandle = NativeTensor.fromBuffer(dataType.cValue, shape.asArray.map(_.toLong), numBytes, buffer)
+    // TODO: May behave weirdly for direct byte buffers allocated on the Scala side.
+    val directBuffer = {
+      if (buffer.isDirect) {
+        buffer
+      } else {
+        val direct = ByteBuffer.allocateDirect(buffer.capacity())
+        direct.put(buffer)
+        direct
+      }
+    }
+    val hostHandle = NativeTensor.fromBuffer(dataType.cValue, shape.asArray.map(_.toLong), numBytes, directBuffer)
     val tensor = Tensor.fromTFNativeHandle(hostHandle)
     NativeTensor.delete(hostHandle)
     tensor
@@ -326,6 +328,7 @@ object Tensor {
 }
 
 trait TensorConvertible[T] {
+  // TODO: Add data type argument.
   def toTensor(value: T): Tensor
 }
 

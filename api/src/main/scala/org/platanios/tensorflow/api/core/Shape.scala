@@ -16,8 +16,8 @@
 package org.platanios.tensorflow.api.core
 
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
-import org.platanios.tensorflow.api.ops.{Basic, Output, OutputConvertible}
-import org.platanios.tensorflow.api.tensors.{Tensor, TensorConvertible}
+import org.platanios.tensorflow.api.ops.{Basic, Output}
+import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.{DataType, INT32}
 
 /** Represents the shape of a tensor computed by an op.

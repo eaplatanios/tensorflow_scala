@@ -31,6 +31,15 @@ private[api] trait Basic {
     Tensor(NativeTensorOpsBasic.pack(context.value.nativeHandle, inputs.map(_.nativeHandle).toArray, axis))
   }
 
+  def unstack(
+      input: Tensor, number: Int = -1, axis: Int = 0)(implicit context: DynamicVariable[Context]): Seq[Tensor] = {
+    NativeTensorOpsBasic.unpack(
+      context.value.nativeHandle,
+      input.nativeHandle,
+      if (number == -1) input.shape(axis) else number,
+      axis).map(Tensor(_))
+  }
+
   def reshape(input: Tensor, shape: Tensor)(implicit context: DynamicVariable[Context]): Tensor = {
     Tensor(NativeTensorOpsBasic.reshape(context.value.nativeHandle, input.nativeHandle, shape.nativeHandle))
   }
@@ -51,6 +60,8 @@ private[api] object Basic extends Basic {
   }
 
   case class TensorOps private[ops](tensor: Tensor) {
+    def unstack(number: Int, axis: Int = 0): Seq[Tensor] = Basic.unstack(tensor, number, axis)
+
     def reshape[T: TensorConvertible](shape: T): Tensor = Basic.reshape(tensor, shape)
 
     def slice(indexers: Indexer*): Tensor = {
