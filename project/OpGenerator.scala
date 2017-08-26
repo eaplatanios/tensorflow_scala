@@ -594,7 +594,7 @@ case class OpGenerator(opDef: OpDef) {
          |  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
          |  TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
          |  CHECK_STATUS(env, status.get(), $cNullValuePlaceholder);
-         |${if (deallocationBuilder.nonEmpty) "\n" + deallocationBuilder.mkString + "\n" else ""}""".stripMargin)
+         |${if (deallocationBuilder.nonEmpty) deallocationBuilder.mkString else ""}""".stripMargin)
     numOutputsExpression match {
       case "0" => codeBuilder.append(
         s"""
