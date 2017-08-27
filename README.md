@@ -70,20 +70,6 @@ and the unit tests of the main library. There is no user guide yet, as
 it's super early for this project, but knowing how to use the TensorFlow 
 Python API and reading the code should be sufficient to get you started.
 
-## Things Likely to Change
-
-This is a list of some of the things that are likely to change:
-- **Data Types API:** The current implementation is cumbersome and can be 
-  much more elegant in my opinion. The main challenge lies in the fact 
-  that we need to be able to deal with both string and numeric tensors of 
-  different types, with one interface (or using implicit conversions that 
-  may fail at runtime -- as is currently being done). I think there is 
-  no way to avoid the runtime checks due to the interface of the native 
-  library not being tensor-type aware.
-- **Tensor API:** Related to the comments about the data type API, plus 
-  the fact that we need to support lots of numpy-like operations to make 
-  this API useful.
-
 ## High-Priority TODOs
 
 It would be awesome if people could contribute to this library. Given 
@@ -104,18 +90,24 @@ the features, I would really appreciate contributions on the following:
 
 You first need to make sure you have the TensorFlow dynamic library 
 installed. You can either download pre-compiled versions of it, or you 
-can compile it yourself from the TensorFlow sources:
+can compile it yourself from the TensorFlow sources.
+
+**NOTE:** *The pre-compiled versions that you can download are not 
+currently supported. Please compile the native library yourself. The 
+pre-compiled versions will start working again once their updated as 
+the Scala API depends on some functionality that was added after the 
+last release.*
 
 ### Downloading the TensorFlow Dynamic Library
 
 You can download it from one of the following links:
   - **Linux:**
-    - CPU-only: [https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-linux-x86_64-1.3.0-rc2.tar.gz](https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-linux-x86_64-1.3.0-rc2.tar.gz)
-    - GPU-enabled: [https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-gpu-linux-x86_64-1.3.0-rc2.tar.gz](https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-gpu-linux-x86_64-1.3.0-rc2.tar.gz)
+    - CPU-only: [https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-linux-x86_64-1.3.0.tar.gz](https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-linux-x86_64-1.3.0.tar.gz)
+    - GPU-enabled: [https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-gpu-linux-x86_64-1.3.0.tar.gz](https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-gpu-linux-x86_64-1.3.0.tar.gz)
   - **Mac:**
-    - CPU-only: [https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-darwin-x86_64-1.3.0-rc2.tar.gz](https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-darwin-x86_64-1.3.0-rc2.tar.gz)
+    - CPU-only: [https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-darwin-x86_64-1.3.0.tar.gz](https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-darwin-x86_64-1.3.0.tar.gz)
   - **Windows:** 
-    - CPU-only: [https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-windows-x86_64-1.3.0-rc2.zip](https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-windows-x86_64-1.3.0-rc2.zip)
+    - CPU-only: [https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-windows-x86_64-1.3.0.zip](https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-windows-x86_64-1.3.0.zip)
 
 ### Compiling the TensorFlow Dynamic Library
 
@@ -194,7 +186,7 @@ sbt compile
   - [ ] Session execution context (I'm not sure if that's good to have)
   - [ ] Session reset functionality
 - Tensor API:
-  - [ ] More flexible/efficient slicing for obtaining and assigning elements
+  - [x] Support for the TensorFlow eager op execution API
   - [ ] More numpy-like operations for tensors
 - General API Features:
   - [x] Slice creation
@@ -207,24 +199,20 @@ sbt compile
   - [ ] Estimators
   - [ ] tfprof / op statistics collection
 
-## TODOs
+## Some TODOs
 
-- Improve support for creating string tensors.
+- Find a way to automatically generate the duplicate documentation for symbolic and eager ops.
 - Switch to using JUnit for all tests.
 - Add convenience implicit conversions for shapes (e.g., from tuples or sequences of integers).
 - Create a "Scope" class and companion object.
-- Make casting more efficient with a conditional on the data type and an optional identity op.
-- Add casting (considering type priorities) to the operator overloads.
 - Variables API:
   - Clean up the implementation of variable scopes and stores and integrate it with "Scope".
   - Make 'PartitionedVariable' extend 'Variable'.
   - After that change, all 'getPartitionedVariable' methods can be integrated with the 'getVariable' methods, which will simplify the variables API.
-  - Add tests.
 - Switch to using "Seq" instead of "Array" wherever possible.
 - Tensors:
   - Overloaded unary, binary, and comparison operators (data type aware)
   - Convenient string conversion methods
-  - More efficient slicing (specialized contiguous slicing)
 - Op creation:
   - Add tests for all of the op functions
   - Get graph from inputs
