@@ -1033,7 +1033,7 @@ trait SaverDefBuilder {
     SaverDefBuilder.checkSaveables(saveables)
     val (filenameOutput, saveOutput, restoreOp) = Op.createWithNameScope(name, saveables.flatMap(_.producerOps)) {
       // Add the constant string tensor for the filename.
-      val filenameOutput = filename.toOutput
+      val filenameOutput = filename: Output
       // Add the save ops.
       if (sharded) {
         val saveablesByDevice = SaverDefBuilder.groupByDevice(saveables)

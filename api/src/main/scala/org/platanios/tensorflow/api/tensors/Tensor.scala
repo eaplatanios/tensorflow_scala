@@ -258,8 +258,8 @@ object Tensor {
         val numStringBytes = value.toString.getBytes(Charset.forName("UTF-8")).length
         val numEncodedBytes = NativeTensor.getEncodedStringSize(numStringBytes)
         val numBytes = inferredShape.numElements * (INT64.byteSize + numEncodedBytes)
-        val tensor = Tensor.allocate(STRING, inferredShape, numBytes)
-        val buffer = tensor.hostBuffer()._1
+        val hostHandle = NativeTensor.allocate(STRING.cValue, shape.asArray.map(_.toLong), numBytes)
+        val buffer = NativeTensor.buffer(hostHandle).order(ByteOrder.nativeOrder)
         val baseOffset = INT64.byteSize * inferredShape.numElements
         var index = 0
         var i = 0
@@ -269,6 +269,8 @@ object Tensor {
           index += numEncodedBytes
           i += 1
         }
+        val tensor = Tensor(NativeTensor.eagerAllocate(hostHandle), buffer)
+        NativeTensor.delete(hostHandle)
         tensor
       case _ =>
         val tensor = allocate(dataType = dataType, shape = inferredShape)
@@ -293,15 +295,13 @@ object Tensor {
   private[api] def allocate(dataType: DataType, shape: Shape): Tensor = dataType match {
     case STRING => throw new IllegalArgumentException(
       "Cannot pre-allocate string tensors because their size is not known.")
-    case _ => allocate(dataType, shape, shape.numElements * dataType.byteSize)
-  }
-
-  private[api] def allocate(dataType: DataType, shape: Shape, numBytes: Long): Tensor = {
-    shape.assertFullyDefined()
-    val hostHandle = NativeTensor.allocate(dataType.cValue, shape.asArray.map(_.toLong), numBytes)
-    val tensor = Tensor.fromTFNativeHandle(hostHandle)
-    NativeTensor.delete(hostHandle)
-    tensor
+    case _ =>
+      shape.assertFullyDefined()
+      val numBytes = shape.numElements * dataType.byteSize
+      val hostHandle = NativeTensor.allocate(dataType.cValue, shape.asArray.map(_.toLong), numBytes)
+      val tensor = Tensor.fromTFNativeHandle(hostHandle)
+      NativeTensor.delete(hostHandle)
+      tensor
   }
 
   @throws[IllegalArgumentException]
