@@ -33,7 +33,7 @@ object JniJavah extends AutoPlugin {
     javahClasses in javah := {
       import xsbti.compile._
       val compiled: CompileAnalysis = (compile in Compile).value
-      val classFiles: Set[File] = compiled.readStamps().getAllProductStamps().asScala.keySet.toSet
+      val classFiles: Set[File] = compiled.readStamps.getAllProductStamps.asScala.keySet.toSet
       val nativeClasses = classFiles flatMap { file => JniJavah.nativeClasses(file) }
       nativeClasses
     },
