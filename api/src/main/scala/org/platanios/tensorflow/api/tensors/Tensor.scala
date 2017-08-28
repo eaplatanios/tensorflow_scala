@@ -55,14 +55,14 @@ sealed trait TensorLike {
   *
   * Tensors are the main data structure underlying all operations in TensorFlow. They represent multi-dimensional arrays
   * of various data types (e.g., [[FLOAT32]]). Operations involving tensors can be of two types:
-  *   - **Eager:** Operations directly executed on the tensor arguments, returning a new tensor. For example:
+  *   - '''Eager:''' Operations directly executed on the tensor arguments, returning a new tensor. For example:
   *     {{{
   *       val a = Tensor(2.0, 4.5, 3.0, -1.2)
   *       val b = Tensor(Tensor(0.2, 0.4), Tensor(-2.3, 5.0))
   *       a.reshape(Shape(2, 2)) + b == Tensor(Tensor(2.2, 4.9), Tensor(0.7, 3.8))
   *     }}}
-  *   - **Symbolic:** Operations that need to be constructed as part of a computational [[Graph]] before being executing
-  *     using a [[Session]]. For example:
+  *   - '''Symbolic:''' Operations that need to be constructed as part of a computational [[Graph]] before being
+  *     executing using a [[Session]]. For example:
   *     {{{
   *       val a = tf.placeholder(FLOAT64, Shape(4))               // Symbolic placeholder for value of a
   *       val b = tf.placeholder(FLOAT64, Shape(2, 2))            // Symbolic placeholder for the value of b

@@ -25,7 +25,7 @@ import scala.util.DynamicVariable
 /**
   * @author Emmanouil Antonios Platanios
   */
-package object api extends Implicits {
+package object api extends Implicits with Documentation {
   type Shape = core.Shape
   val Shape: core.Shape.type = core.Shape
 

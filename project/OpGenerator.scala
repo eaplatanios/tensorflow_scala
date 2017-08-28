@@ -414,6 +414,7 @@ case class OpGenerator(opDef: OpDef) {
   @throws[IllegalArgumentException]
   private[this] def addParameters(
       codeBuilder: mutable.StringBuilder, deallocationBuilder: mutable.StringBuilder): Unit = {
+    // TODO: !!! Deal with null-valued parameters.
     parameters.foreach(parameter => {
       val attrName = parameter._1
       val attrType = argumentTypes(attrName)

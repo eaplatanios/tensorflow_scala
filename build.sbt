@@ -15,7 +15,7 @@ scalacOptions in ThisBuild ++= Seq(
 
 logBuffered in Test := false
 
-scalacOptions in (ThisBuild, Compile, doc) ++= Seq("-groups", "-implicits")
+scalacOptions in (ThisBuild, Compile, doc) ++= Seq("-groups", "-implicits", "-implicits-show-all")
 //scalacOptions in (ThisBuild, Compile, doc) ++= Opts.doc.externalAPI((
 //  file(s"${(packageBin in Compile).value}") -> url("http://platanios.org/")) :: Nil)
 autoAPIMappings := true
