@@ -411,6 +411,7 @@ object Tensor {
 
 trait TensorConvertible[T] {
   // TODO: Add data type argument.
+  /** Converts `value` to a dense tensor. */
   @inline def toTensor(value: T): Tensor
 }
 
@@ -420,21 +421,25 @@ object TensorConvertible {
   }
 
   implicit val shapeTensorConvertible: TensorConvertible[Shape] = new TensorConvertible[Shape] {
+    /** Converts `value` to a dense tensor. */
     @inline override def toTensor(value: Shape): Tensor = value.toTensor()
   }
 
   implicit val rangeTensorConvertible: TensorConvertible[Range] = new TensorConvertible[Range] {
+    /** Converts `value` to a dense tensor. */
     @inline override def toTensor(value: Range): Tensor = stack(value.map(Tensor.fill(INT32)(_)))
   }
 
   implicit def supportedTypeTensorConvertible[T](implicit ev: SupportedType[T]): TensorConvertible[T] = {
     new TensorConvertible[T] {
+      /** Converts `value` to a dense tensor. */
       @inline override def toTensor(value: T): Tensor = Tensor.fill(ev.dataType, Shape())(value)
     }
   }
 
   implicit def arrayExecutable[T](implicit ev: TensorConvertible[T]): TensorConvertible[Array[T]] = {
     new TensorConvertible[Array[T]] {
+      /** Converts `value` to a dense tensor. */
       @inline override def toTensor(value: Array[T]): Tensor = stack(value.map(ev.toTensor))
     }
   }
@@ -442,6 +447,7 @@ object TensorConvertible {
   implicit def traversableExecutable[T, CC[A] <: TraversableLike[A, CC[A]]](
       implicit ev: TensorConvertible[T]): TensorConvertible[CC[T]] = {
     new TensorConvertible[CC[T]] {
+      /** Converts `value` to a dense tensor. */
       @inline override def toTensor(value: CC[T]): Tensor = stack(value.map(ev.toTensor)(breakOut))
     }
   }
@@ -450,6 +456,7 @@ object TensorConvertible {
       gen: Generic.Aux[T, L],
       ev: Lazy[TensorConvertible[L]]
   ): TensorConvertible[T] = new TensorConvertible[T] {
+    /** Converts `value` to a dense tensor. */
     @inline override def toTensor(value: T): Tensor = {
       ev.value.toTensor(gen.to(value))
     }

@@ -461,17 +461,17 @@ private[api] trait Basic {
     * For example:
     * {{{
     *   // 't1' is an op output with shape [2]
-    *   shape(expandDims(t1, 0)) == [1, 2]
-    *   shape(expandDims(t1, 1)) == [2, 1]
-    *   shape(expandDims(t1, -1)) == [2, 1]
+    *   tf.shape(tf.expandDims(t1, 0)) ==> [1, 2]
+    *   tf.shape(tf.expandDims(t1, 1)) ==> [2, 1]
+    *   tf.shape(tf.expandDims(t1, -1)) ==> [2, 1]
     *
     *   // 't2' is a tensor of shape [2, 3, 5]
-    *   shape(expandDims(t2, 0)) == [1, 2, 3, 5]
-    *   shape(expandDims(t2, 2)) == [2, 3, 1, 5]
-    *   shape(expandDims(t2, 3)) == [2, 3, 5, 1]
+    *   tf.shape(tf.expandDims(t2, 0)) ==> [1, 2, 3, 5]
+    *   tf.shape(tf.expandDims(t2, 2)) ==> [2, 3, 1, 5]
+    *   tf.shape(tf.expandDims(t2, 3)) ==> [2, 3, 5, 1]
     * }}}
     *
-    * This op requires that `-1 - input.shape.rank <= axis <= input.shape.rank`.
+    * This op requires that `-1 - input.rank <= axis <= input.rank`.
     *
     * This op is related to [[squeeze]], which removes dimensions of size 1.
     *
@@ -496,8 +496,8 @@ private[api] trait Basic {
     * For example:
     * {{{
     *   // 't' is a tensor of shape [1, 2, 1, 3, 1, 1]
-    *   shape(squeeze(t)) == [2, 3]
-    *   shape(squeeze(t, Array(2L, 4L))) ==> [1, 2, 3, 1]
+    *   tf.shape(tf.squeeze(t)) ==> [2, 3]
+    *   tf.shape(tf.squeeze(t, Array(2, 4))) ==> [1, 2, 3, 1]
     * }}}
     *
     * @param  input Input tensor.

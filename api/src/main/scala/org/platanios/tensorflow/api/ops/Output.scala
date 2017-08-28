@@ -173,6 +173,9 @@ final case class Output private(op: Op, index: Int) extends OutputLike {
   /** Rank of the tensor that this op output represents. */
   def rank: Int = shape.rank
 
+  /** Size of the tensor that this op output represents. */
+  def size: Int = shape.numElements
+
   /** Sets the shape of this op output to the provided shape.
     *
     * This method can be useful in cases when shape inference fails, but the shape of the op output is known by the
