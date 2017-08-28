@@ -60,7 +60,7 @@ private[api] trait Basic {
     val inferredShape = if (shape == null) tensor.shape else shape
     val constantTensor = {
       if (inferredDataType != tensor.dataType || inferredShape != tensor.shape) {
-        if (tensor.numElements == 1) {
+        if (tensor.size == 1) {
           Tensor.fill(inferredDataType, inferredShape)(tensor.scalar)(tensor.dataType.supportedType)
         } else {
           if (inferredShape.numElements != tensor.shape.numElements)
@@ -319,29 +319,6 @@ private[api] trait Basic {
     }
   }
 
-  /** Creates an op that returns the rank of a sparse tensor.
-    *
-    * The op returns an integer representing the rank of `input`.
-    *
-    * For example:
-    * {{{
-    *   // 't' is [[[1, 1, 1], [2, 2, 2]], [[3, 3, 3], [4, 4, 4]]]
-    *   // 't' has shape [2, 2, 3]
-    *   rank(t) == 3
-    * }}}
-    *
-    * Note that the rank of a tensor is not the same as the rank of a matrix. The rank of a tensor is the number of
-    * indices required to uniquely select each element of the tensor. Rank is also known as order, degree, or number of
-    * dimensions.
-    *
-    * @param  input Tensor whose rank to return.
-    * @param  name  Name for the created op.
-    * @return Created op output.
-    */
-  def sparseRank(input: SparseOutput, dataType: DataType = INT32, name: String = "Rank"): Output = {
-    size(input.denseShape, dataType, name = name)
-  }
-
   /** Creates an op that returns the size of a tensor.
     *
     * The op returns a number representing the number of elements in `input`.
@@ -360,35 +337,26 @@ private[api] trait Basic {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def size(input: Output, dataType: DataType = INT32, optimize: Boolean = true, name: String = "Size"): Output = {
-    val inputShape = input.shape
-    if (optimize && inputShape.isFullyDefined)
-      constant(Tensor.fill(dataType, Shape())(inputShape.numElements), name = name)
-    else
-      Op.Builder(opType = "Size", name = name)
-          .addInput(input)
-          .setAttribute("out_type", dataType)
-          .build().outputs(0)
-  }
-
-  /** Creates an op that returns the size of a sparse tensor.
-    *
-    * The op returns a number representing the number of elements in `input`.
-    *
-    * For example:
-    * {{{
-    *   // 't' is [[[1, 1,, 1], [2, 2, 2]], [[3, 3, 3], [4, 4, 4]]]]
-    *   size(t) == 12
-    * }}}
-    *
-    * @param  input    Tensor whose size to return.
-    * @param  dataType Optional data type to use for the output of this op.
-    * @param  name     Name for the created op.
-    * @return Created op output.
-    */
-  def sparseSize(input: SparseOutput, dataType: DataType = INT32, name: String = "SparseSize"): Output = {
-    Op.createWith(nameScope = name) {
-      Math.prod(Math.cast(input.denseShape, dataType), Array(0))
+  def size[T <: OutputLike](
+      input: T, dataType: DataType = INT32, optimize: Boolean = true, name: String = "Size"): Output = {
+    input match {
+      case o: Output =>
+        val inputShape = o.shape
+        if (optimize && inputShape.isFullyDefined)
+          constant(Tensor.fill(dataType, Shape())(inputShape.numElements), name = name)
+        else
+          Op.Builder(opType = "Size", name = name)
+              .addInput(o)
+              .setAttribute("out_type", dataType)
+              .build().outputs(0)
+      case o: OutputIndexedSlices =>
+        Op.createWith(nameScope = name) {
+          Math.prod(Math.cast(o.denseShape, dataType), Array(0))
+        }
+      case o: SparseOutput =>
+        Op.createWith(nameScope = name) {
+          Math.prod(Math.cast(o.denseShape, dataType), Array(0))
+        }
     }
   }
 
@@ -409,33 +377,27 @@ private[api] trait Basic {
     * @param  name     Name for the created op.
     * @return Created op output, which is one-dimensional.
     */
-  def shape(input: Output, dataType: DataType = INT32, optimize: Boolean = true, name: String = "Shape"): Output = {
-    val inputShape = input.shape
-    if (optimize && inputShape.isFullyDefined)
-      constant(inputShape.toTensor(dataType), name = name)
-    else
-      Op.Builder(opType = "Shape", name = name)
-          .addInput(input)
-          .setAttribute("out_type", dataType)
-          .build().outputs(0)
-  }
-
-  /** Creates an op that returns the shape of a sparse tensor.
-    *
-    * This op returns a one-dimensional tensor representing the shape of `input`.
-    *
-    * For example:
-    * {{{
-    *   // 't' is [[[1, 1, 1], [2, 2, 2]], [[3, 3, 3], [4, 4, 4]]]
-    *   shape(t) == [2, 2, 3]
-    * }}}
-    *
-    * @param  input    Tensor whose shape to return.
-    * @param  dataType Optional data type to use for the output of this op.
-    * @return Created op output, which is one-dimensional.
-    */
-  def sparseShape(input: SparseOutput, dataType: DataType = INT32, name: String = "SparseShape"): Output = {
-    Math.cast(input.denseShape, dataType, name = name)
+  def shape[T <: OutputLike](
+      input: T, dataType: DataType = INT32, optimize: Boolean = true, name: String = "Shape"): Output = {
+    input match {
+      case o: Output =>
+        val inputShape = o.shape
+        if (optimize && inputShape.isFullyDefined)
+          constant(inputShape.toTensor(dataType), name = name)
+        else
+          Op.Builder(opType = "Shape", name = name)
+              .addInput(o)
+              .setAttribute("out_type", dataType)
+              .build().outputs(0)
+      case o: OutputIndexedSlices =>
+        Op.createWith(nameScope = name) {
+          Math.cast(o.denseShape, dataType, name = name)
+        }
+      case o: SparseOutput =>
+        Op.createWith(nameScope = name) {
+          Math.cast(o.denseShape, dataType, name = name)
+        }
+    }
   }
 
   /** Creates an op that returns the shape of an array of tensors.
