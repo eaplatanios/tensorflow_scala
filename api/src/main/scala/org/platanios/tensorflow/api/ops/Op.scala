@@ -232,7 +232,7 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
   @throws[IllegalArgumentException]
   def tensorAttribute(name: String): Tensor = using(graph.reference) { _ =>
     try {
-      Tensor.fromTFNativeHandle(NativeOp.getAttrTensor(nativeHandle, name))
+      Tensor.fromHostNativeHandle(NativeOp.getAttrTensor(nativeHandle, name))
     } catch {
       case e: Exception => throw new IllegalArgumentException(
         s"Op has no tensor attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")

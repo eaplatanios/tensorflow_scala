@@ -15,7 +15,8 @@
 
 package org.platanios.tensorflow.api.tensors.ops
 
-/**
+/** Groups together all implicits related to tensor ops.
+  *
   * @author Emmanouil Antonios Platanios
   */
 private[tensors] trait Implicits

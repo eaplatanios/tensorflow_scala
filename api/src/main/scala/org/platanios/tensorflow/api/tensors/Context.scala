@@ -18,28 +18,25 @@ package org.platanios.tensorflow.api.tensors
 import org.platanios.tensorflow.api.utilities.Closeable
 import org.platanios.tensorflow.jni.{Tensor => NativeTensor}
 
-/**
+/** Eager tensor op execution context.
+  *
+  * This is equivalent to a [[org.platanios.tensorflow.api.core.client.Session]], with the exception that it facilitates
+  * eager execution of tensor ops (as opposed to symbolic execution which requires a computation graph to be constructed
+  * beforehand).
+  *
+  * @param  nativeHandle Native handle (i.e., pointer) to the underlying native library TensorFlow context.
+  *
   * @author Emmanouil Antonios Platanios
   */
 private[api] final case class Context private (private[tensors] var nativeHandle: Long) extends Closeable {
+  /** Lock for the native handle. */
   private[this] object NativeHandleLock
-  private[this] var referenceCount: Int = 0
 
   /** Closes this [[Context]] and releases any resources associated with it. Note that a [[Context]] is not usable after
     * it has been closed. */
   override def close(): Unit = {
     NativeHandleLock.synchronized {
       if (nativeHandle != 0) {
-        while (referenceCount > 0) {
-          try {
-            NativeHandleLock.wait()
-          } catch {
-            case _: InterruptedException =>
-              Thread.currentThread().interrupt()
-              // TODO: [CLIENT] Possible leak of the session and graph in this case?
-              return
-          }
-        }
         NativeTensor.eagerDeleteContext(nativeHandle)
         nativeHandle = 0
       }
@@ -47,6 +44,8 @@ private[api] final case class Context private (private[tensors] var nativeHandle
   }
 }
 
+/** Contains helper functions for dealing with eager tensor op execution contexts. */
 private[api] object Context {
+  /** Creates a new eager tensor op execution context. */
   def apply(): Context = Context(NativeTensor.eagerAllocateContext())
 }

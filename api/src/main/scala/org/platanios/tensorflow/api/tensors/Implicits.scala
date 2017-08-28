@@ -15,7 +15,8 @@
 
 package org.platanios.tensorflow.api.tensors
 
-/**
+/** Groups together all implicits related to tensors.
+  *
   * @author Emmanouil Antonios Platanios
   */
 private[api] trait Implicits

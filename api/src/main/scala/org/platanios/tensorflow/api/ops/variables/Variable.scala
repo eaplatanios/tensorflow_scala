@@ -457,7 +457,7 @@ private[api] object Variable {
       val trueName = Op.convertNameScopeToName(nameScope)
       val variableHandle = variable(inferredShape, dataType, sharedName = trueName, name = nameScope)
       val initialValue = Op.createWith(nameScope = "Initializer", colocationOps = Set[Op](variableHandle.op)) {
-        initializer(inferredShape, dataType, null)
+        initializer(dataType, inferredShape, null)
       }
       val initializeOp = assign(variableHandle, initialValue, name = "InitializationAssign")
       val cachedValue = Op.createWith(nameScope = "Read", colocationOps = Set[Op](variableHandle.op)) {

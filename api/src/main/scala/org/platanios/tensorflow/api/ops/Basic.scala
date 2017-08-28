@@ -98,26 +98,20 @@ private[api] trait Basic {
         .build().outputs(0)
   }
 
-  /** Creates an op that returns a tensor with all elements set to zero.
-    *
-    * This operation returns a tensor of type `dataType` with shape `shape` and all elements set to zero.
+  /** Creates an op that returns a tensor of type `dataType` with shape `shape` and all elements set to zero.
     *
     * For example:
     * {{{
-    *   zeros(Shape(3, 4), Int32) == [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
+    *   tf.zeros(INT32, Shape(3, 4)) ==> [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
     * }}}
     *
-    * @param  shape    Shape of the output tensor.
-    * @param  dataType Data type of the output tensor.
+    * @param  dataType Tensor data type.
+    * @param  shape    Tensor shape.
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def zeros(shape: Shape, dataType: DataType = FLOAT32, name: String = "Zeros"): Output = {
-    dataType match {
-      case BOOLEAN => constant(Tensor.fill(BOOLEAN, shape)(false), name = name)
-      case STRING => constant(Tensor.fill(STRING, shape)(""), name = name)
-      case _ => constant(Tensor.fill(dataType, shape)(0), name = name)
-    }
+  def zeros(dataType: DataType, shape: Shape, name: String = "Zeros"): Output = {
+    constant(Tensor.zeros(dataType, shape), name = name)
   }
 
   /** Creates an op that returns a tensor of zeros with the same shape and data type as `input`.
@@ -128,7 +122,7 @@ private[api] trait Basic {
     * For example:
     * {{{
     *   // 't' is [[1, 2, 3], [4, 5, 6]]
-    *   zerosLike(t) == [[0, 0, 0], [0, 0, 0]]
+    *   tf.zerosLike(t) == [[0, 0, 0], [0, 0, 0]]
     * }}}
     *
     * @param  input    Input tensor.
@@ -143,7 +137,7 @@ private[api] trait Basic {
     val outputDataType = if (dataType != null) dataType else input.dataType
     if (optimize && input.shape.isFullyDefined) {
       // We can produce a zeros tensor independent of the value of 'tensor' since the shape is known statically.
-      zeros(input.shape, outputDataType, name)
+      zeros(outputDataType, input.shape, name)
     } else if (outputDataType != input.dataType) {
       Op.Builder(opType = "ZerosLike", name = name)
           .addInput(Math.cast(input, outputDataType))
@@ -155,25 +149,20 @@ private[api] trait Basic {
     }
   }
 
-  /** Creates an op that returns a tensor with all elements set to one.
-    *
-    * This operation returns a tensor of type `dataType` with shape `shape` and all elements set to one.
+  /** Creates an op that returns a tensor of type `dataType` with shape `shape` and all elements set to one.
     *
     * For example:
     * {{{
-    *   ones(Shape(3, 4), Int32) == [[1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1]]
+    *   tf.ones(INT32, Shape(3, 4)) ==> [[1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1]]
     * }}}
     *
-    * @param  shape    Shape of the output tensor.
-    * @param  dataType Data type of the output tensor.
+    * @param  dataType Tensor data type.
+    * @param  shape    Tensor shape.
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def ones(shape: Shape, dataType: DataType = FLOAT32, name: String = "Ones"): Output = {
-    dataType match {
-      case BOOLEAN => constant(Tensor.fill(BOOLEAN, shape)(true), name = name)
-      case _ => constant(Tensor.fill(dataType, shape)(1), name = name)
-    }
+  def ones(dataType: DataType, shape: Shape, name: String = "Ones"): Output = {
+    constant(Tensor.ones(dataType, shape), name = name)
   }
 
   /** Creates an op that returns a tensor of ones with the same shape and data type as `input`.
@@ -184,7 +173,7 @@ private[api] trait Basic {
     * For example:
     * {{{
     *   // 't' is [[1, 2, 3], [4, 5, 6]]
-    *   onesLike(t) == [[1, 1, 1], [1, 1, 1]]
+    *   tf.onesLike(t) == [[1, 1, 1], [1, 1, 1]]
     * }}}
     *
     * @param  input    Input tensor.
@@ -199,7 +188,7 @@ private[api] trait Basic {
     val outputDataType = if (dataType != null) dataType else input.dataType
     if (optimize && input.shape.isFullyDefined) {
       // We can produce a ones tensor independent of the value of 'tensor' since the shape is known statically.
-      ones(input.shape, outputDataType, name)
+      ones(outputDataType, input.shape, name)
     } else if (outputDataType != input.dataType) {
       Op.Builder(opType = "OnesLike", name = name)
           .addInput(Math.cast(input, outputDataType))
@@ -220,16 +209,15 @@ private[api] trait Basic {
     *   fill(Shape(2, 3), 9) == [[9, 9, 9], [9, 9, 9]]
     * }}}
     *
+    * @param  dataType Optional data type for the created tensor.
     * @param  shape    Shape of the output tensor.
     * @param  value    Value to fill the output tensor.
-    * @param  dataType Optional data type for the created tensor.
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def fill(
-      shape: Output, value: Output, dataType: DataType = null, name: String = "Fill"): Output = {
+  def fill(dataType: DataType = null, shape: Output = null)(value: Output, name: String = "Fill"): Output = {
     Op.Builder(opType = "Fill", name = name)
-        .addInput(shape)
+        .addInput(if (shape == null) Basic.shape(value) else shape)
         .addInput(if (dataType == null || dataType == value.dataType) value else Math.cast(value, dataType))
         .build().outputs(0)
   }
@@ -1801,7 +1789,7 @@ private[api] trait Basic {
       blockShape.shape.assertHasRank(1)
       val numBlockDims = blockShape.shape(0)
       if (numBlockDims == 0) {
-        (zeros(Shape(0, 2), INT32), zeros(Shape(0, 2), INT32))
+        (zeros(INT32, Shape(0, 2)), zeros(INT32, Shape(0, 2)))
       } else {
         inputShape.shape.assertIsCompatibleWith(Shape(numBlockDims))
         val actualBasePaddings = {
@@ -1809,7 +1797,7 @@ private[api] trait Basic {
             basePaddings.shape.assertIsCompatibleWith(Shape(numBlockDims, 2))
             basePaddings
           } else {
-            zeros(Shape(numBlockDims, 2), INT32)
+            zeros(INT32, Shape(numBlockDims, 2))
           }
         }
         val constantInputShape = Output.constantValue(inputShape)
@@ -2923,7 +2911,7 @@ private[api] trait Basic {
         }
       }
       // TODO: Improve performance with a broadcast.
-      val multiplicativeFactor = fill(stack(shapes), 1, inputs.head.dataType)
+      val multiplicativeFactor = fill(inputs.head.dataType, stack(shapes))(1)
       outputs.map(Math.multiply(_, multiplicativeFactor))
     }
   }

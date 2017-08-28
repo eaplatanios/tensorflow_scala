@@ -1845,7 +1845,7 @@ private[api] trait Math {
       if (weights != null) {
         weights
       } else {
-        Basic.zeros(Shape(), dataType)
+        Basic.zeros(dataType, Shape.scalar())
       }
     }
     Op.Builder(opType = "Bincount", name = name)
@@ -3638,7 +3638,7 @@ private[api] object Math extends Math {
       val axesShape = Basic.shape(intAxes)
       DataFlow.dynamicStitch(
         Seq(range(Basic.constant(0), inputRank), intAxes),
-        Seq(intInputShape, Basic.fill(axesShape, 1)))
+        Seq(intInputShape, Basic.fill(shape = axesShape)(1)))
     }
 
     private[this] def safeShapeDiv(x: Output, y: Output): Output = {
@@ -3772,9 +3772,10 @@ private[api] object Math extends Math {
       val inputRank = Basic.rank(op.inputs(0))
       val onesShape = Basic.concatenate(Seq(
         Basic.shape(op.inputs(1)),
-        Basic.fill(Basic.expandDims(subtract(inputRank, Basic.constant(1, inputRank.dataType)), 0),
-                   Basic.constant(1, inputRank.dataType))))
-      val ones = Basic.fill(onesShape, Basic.constant(1, outputGradient.dataType))
+        Basic.fill(
+          shape = Basic.expandDims(subtract(inputRank, Basic.constant(1, inputRank.dataType)), 0))(
+          Basic.constant(1, inputRank.dataType))))
+      val ones = Basic.fill(shape = onesShape)(Basic.constant(1, outputGradient.dataType))
       val scaledGradient = divide(outputGradient, segmentSum(ones, op.inputs(1)))
       Seq(Basic.gather(scaledGradient, op.inputs(1)), null)
     }
@@ -3871,7 +3872,7 @@ private[api] object Math extends Math {
           }
         }
       }
-      val gradInput = matrixSetDiag(gradient, Basic.fill(diagShape, Tensor(gradient.dataType, 0)))
+      val gradInput = matrixSetDiag(gradient, Basic.fill(shape = diagShape)(Tensor(gradient.dataType, 0)))
       val gradDiag = matrixDiagPart(gradient)
       Seq(gradInput, gradDiag)
     }

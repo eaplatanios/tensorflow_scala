@@ -15,7 +15,8 @@
 
 package org.platanios.tensorflow.api
 
-/**
+/** Groups together all the implicits of the API and takes care of their priorities.
+  *
   * @author Emmanouil Antonios Platanios
   */
 private[api] trait Implicits

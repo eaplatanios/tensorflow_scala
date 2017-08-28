@@ -16,7 +16,6 @@
 package org.platanios.tensorflow.api.tensors
 
 import org.platanios.tensorflow.api._
-import org.platanios.tensorflow.api.tf._
 
 import org.scalatest._
 
@@ -54,7 +53,7 @@ class TensorSpec extends FlatSpec with Matchers {
     val tensor1: Tensor = "foo"
     assert(tensor1.dataType === STRING)
     assert(tensor1.shape === Shape())
-    // assert(tensor1.scalar === "foo")
+    assert(tensor1.scalar === "foo")
     // val tensor2: Tensor = Tensor("foo", "bar")
     // assert(tensor2.dataType === STRING)
     // assert(tensor2.shape === Shape(2))

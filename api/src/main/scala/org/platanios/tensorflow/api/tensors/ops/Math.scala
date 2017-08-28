@@ -27,11 +27,11 @@ import scala.util.DynamicVariable
   */
 private[api] trait Math {
   def cast(x: Tensor, dataType: DataType)(implicit context: DynamicVariable[Context]): Tensor = {
-    Tensor(NativeTensorOpsMath.cast(context.value.nativeHandle, x.nativeHandle, dataType.cValue))
+    Tensor.fromNativeHandle(NativeTensorOpsMath.cast(context.value.nativeHandle, x.nativeHandle, dataType.cValue))
   }
 
   def add(x: Tensor, y: Tensor)(implicit context: DynamicVariable[Context]): Tensor = {
-    Tensor(NativeTensorOpsMath.add(context.value.nativeHandle, x.nativeHandle, y.nativeHandle))
+    Tensor.fromNativeHandle(NativeTensorOpsMath.add(context.value.nativeHandle, x.nativeHandle, y.nativeHandle))
   }
 }
 

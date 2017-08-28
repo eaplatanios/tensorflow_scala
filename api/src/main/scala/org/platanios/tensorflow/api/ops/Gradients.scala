@@ -230,10 +230,10 @@ private[ops] object Gradients {
                 if (o.denseShape == null)
                   throw new IllegalArgumentException(
                     "The dense shape of output indexed slices must be known in order to obtain their gradients.")
-                val values = Basic.fill(o.denseShape, 1.0)
+                val values = Basic.fill(shape = o.denseShape)(1.0)
                 OutputIndexedSlices(indices = o.indices, values = values, denseShape = o.denseShape)
               case o: SparseOutput =>
-                val values = Basic.fill(o.denseShape, 1.0)
+                val values = Basic.fill(shape = o.denseShape)(1.0)
                 SparseOutput(indices = o.indices, values = values, denseShape = o.denseShape)
             }
           }

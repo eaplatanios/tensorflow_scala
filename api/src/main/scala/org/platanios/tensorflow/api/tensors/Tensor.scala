@@ -17,6 +17,7 @@ package org.platanios.tensorflow.api.tensors
 
 import org.platanios.tensorflow.api.Implicits._
 import org.platanios.tensorflow.api.core._
+import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.ops.{Basic, Output}
 import org.platanios.tensorflow.api.tensors.ops.Basic.stack
@@ -33,11 +34,35 @@ import scala.collection.{TraversableLike, breakOut}
 import scala.language.{higherKinds, postfixOps}
 import scala.util.DynamicVariable
 
-/**
+/** Tensor (i.e., multi-dimensional array).
+  *
+  * Tensors are the main data structure underlying all operations in TensorFlow. They represent multi-dimensional arrays
+  * of various data types (e.g., [[FLOAT32]]). Operations involving tensors can be of two types:
+  *   - **Eager:** Operations directly executed on the tensor arguments, returning a new tensor. For example:
+  *     {{{
+  *       val a = Tensor(2.0, 4.5, 3.0, -1.2)
+  *       val b = Tensor(Tensor(0.2, 0.4), Tensor(-2.3, 5.0))
+  *       a.reshape(Shape(2, 2)) + b == Tensor(Tensor(2.2, 4.9), Tensor(0.7, 3.8))
+  *     }}}
+  *   - **Symbolic:** Operations that need to be constructed as part of a computational [[Graph]] before being executing
+  *     using a [[Session]]. For example:
+  *     {{{
+  *       val a = tf.placeholder(FLOAT64, Shape(4))               // Symbolic placeholder for value of a
+  *       val b = tf.placeholder(FLOAT64, Shape(2, 2))            // Symbolic placeholder for the value of b
+  *       val add = tf.reshape(a, Shape(2, 2)) + b                // Symbolic representation of the computation
+  *       val result = Session.run(
+  *         feeds = Map(
+  *           a -> Tensor(2.0, 4.5, 3.0, -1.2),
+  *           b -> Tensor(Tensor(0.2, 0.4), Tensor(-2.3, 5.0))),
+  *         fetches = add)                                        // Performs the actual computation
+  *       result == Tensor(Tensor(2.2, 4.9), Tensor(0.7, 3.8))
+  *     }}}
+  *     // TODO: [OPS] Update doc when we enrich op outputs similarly to tensors.
+  *
   * @author Emmanouil Antonios Platanios
   */
-class Tensor private[tensors](
-    private[tensors] var nativeHandle: Long, private[tensors] val _hostBuffer: Option[ByteBuffer]) extends Closeable {
+class Tensor private[Tensor](private[tensors] var nativeHandle: Long) extends Closeable {
+  /** Lock for the native handle. */
   private[this] object NativeHandleLock
 
   // Keep track of references in the Scala side and notify the native library when the tensor is not referenced
@@ -49,52 +74,41 @@ class Tensor private[tensors](
   val dataType: DataType = DataType.fromCValue(NativeTensor.eagerDataType(nativeHandle))
 
   /** Shape of this tensor. */
-  val shape: Shape = {
-    val s = NativeTensor.eagerShape(nativeHandle)
-    if (s == null) Shape.unknown() else Shape.fromSeq(s.map(_.toInt))
-  }
+  val shape: Shape = Shape.fromSeq(NativeTensor.eagerShape(nativeHandle).map(_.toInt))
 
-  /** Device in which the tensor is stored and where all computations for this tensor are performed. */
-  val device: String = NativeTensor.eagerDevice(nativeHandle)
-
+  /** Rank of this tensor (i.e., number of dimensions). */
   def rank: Int = shape.rank
+
+  /** Number of elements contained in this tensor. */
   def numElements: Int = shape.numElements
 
-  /** Returns a copy of this tensor with its contents backed by host memory. */
+  /** Device in which the tensor is stored. */
+  val device: String = NativeTensor.eagerDevice(nativeHandle)
+
+  /** Returns a copy of this tensor on the CPU. */
   def cpu(): Tensor = copyToDevice("CPU:0")
 
-  /** Returns a copy of this tensor with its contents backed by memory on the GPU.
+  /** Returns a copy of this tensor on the GPU.
     *
     * @param  gpuIndex Index of the GPU to use.
-    * @return Tensor copy with its contents backed by memory on the GPU.
     */
   def gpu(gpuIndex: Int = 0): Tensor = copyToDevice(s"GPU:$gpuIndex")
 
+  /** Returns a copy of this tensor on the provided device.
+    *
+    * @param  device Device name. For example, `"CPU:0"`, or `"GPU:2"`.
+    */
   def copyToDevice(device: String)(implicit context: DynamicVariable[Context]): Tensor = {
-    // TODO: !!! Kind of hacky.
-    val parsedDevice = {
-      val dev = DeviceSpecification.fromString(device).toString
-      if (dev.startsWith("/device:"))
-        dev.substring(8)
-      else
-        dev
-    }
+    val parsedDevice = DeviceSpecification.fromString(device).toString.stripPrefix("/device:")
     val handle = NativeTensor.eagerCopyToDevice(nativeHandle, context.value.nativeHandle, parsedDevice)
     parsedDevice match {
       case "CPU:0" =>
         val hostHandle = NativeTensor.eagerResolve(handle)
-        val tensor = Tensor.fromTFNativeHandle(hostHandle)
+        val tensor = Tensor.fromHostNativeHandle(hostHandle)
         NativeTensor.delete(hostHandle)
         tensor
       case _ => Tensor(handle)
     }
-  }
-
-  private[Tensor] def hostBuffer(): (ByteBuffer, Long) = _hostBuffer match {
-    case Some(buffer) => (buffer, 0)
-    case None =>
-      val resolvedHandle = resolve()
-      (NativeTensor.buffer(resolvedHandle).order(ByteOrder.nativeOrder), resolvedHandle)
   }
 
   private[api] def resolve()(implicit context: DynamicVariable[Context]): Long = {
@@ -108,22 +122,18 @@ class Tensor private[tensors](
     }
   }
 
-  private[api] def getElementAtFlattenedIndex(index: Int, _buffer: Option[ByteBuffer] = None): dataType.ScalaType = {
-    _buffer match {
-      case Some(buffer) =>
-        dataType match {
-          case STRING =>
-            val offset = INT64.byteSize * numElements + INT64.getElementFromBuffer(buffer, index * INT64.byteSize).toInt
-            dataType.getElementFromBuffer(buffer, offset)
-          case _ => dataType.getElementFromBuffer(buffer, index * dataType.byteSize)
-        }
-      case None =>
-        val (buffer, resolvedHandle) = hostBuffer()
-        val value = getElementAtFlattenedIndex(index, Some(buffer))
-        if (resolvedHandle != 0)
-          NativeTensor.delete(resolvedHandle)
-        value
+  private[api] def getElementAtFlattenedIndex(index: Int): dataType.ScalaType = {
+    val resolvedHandle = resolve()
+    val buffer = NativeTensor.buffer(resolvedHandle).order(ByteOrder.nativeOrder)
+    val value = dataType match {
+      case STRING =>
+        val offset = INT64.byteSize * numElements + INT64.getElementFromBuffer(buffer, index * INT64.byteSize).toInt
+        dataType.getElementFromBuffer(buffer, offset)
+      case _ => dataType.getElementFromBuffer(buffer, index * dataType.byteSize)
     }
+    if (resolvedHandle != 0)
+      NativeTensor.delete(resolvedHandle)
+    value
   }
 
   @throws[InvalidShapeException]
@@ -134,16 +144,20 @@ class Tensor private[tensors](
     getElementAtFlattenedIndex(0)
   }
 
-  def entriesIterator(_buffer: Option[ByteBuffer] = None): Iterator[dataType.ScalaType] = {
-    _buffer match {
-      case Some(_) => Iterator.range(0, numElements).map(getElementAtFlattenedIndex(_, _buffer))
-      case None =>
-        val (buffer, resolvedHandle) = hostBuffer()
-        val iterator = entriesIterator(Some(buffer))
-        if (resolvedHandle != 0)
-          NativeTensor.delete(resolvedHandle)
-        iterator
+  def entriesIterator: Iterator[dataType.ScalaType] = {
+    val resolvedHandle = resolve()
+    val buffer = NativeTensor.buffer(resolvedHandle).order(ByteOrder.nativeOrder)
+    val iterator = dataType match {
+      case STRING =>
+        val offset = INT64.byteSize * numElements
+        Iterator.range(0, numElements).map(i => {
+          dataType.getElementFromBuffer(buffer, offset + INT64.getElementFromBuffer(buffer, i * INT64.byteSize).toInt)
+        })
+      case _ => Iterator.range(0, numElements).map(i => dataType.getElementFromBuffer(buffer, i * dataType.byteSize))
     }
+    if (resolvedHandle != 0)
+      NativeTensor.delete(resolvedHandle)
+    iterator
   }
 
   def apply(indexers: Indexer*): Tensor = this.slice(indexers: _*)
@@ -162,9 +176,9 @@ class Tensor private[tensors](
         case 1 =>
           val slice =
             if (tensor.numElements <= math.max(maxEntries, 6))
-              tensor.entriesIterator()
+              tensor.entriesIterator
             else
-              (tensor(0 :: 3).entriesIterator().toSeq :+ "...") ++ tensor(-3 ::).entriesIterator()
+              (tensor(0 :: 3).entriesIterator.toSeq :+ "...") ++ tensor(-3 ::).entriesIterator
           slice.mkString("[", ", ", "]")
         case _ =>
           val innerSummary = {
@@ -192,7 +206,7 @@ class Tensor private[tensors](
     case that: Tensor =>
       this.shape == that.shape &&
           this.dataType == that.dataType &&
-          this.entriesIterator().zip(that.entriesIterator()).forall(p => p._1 == p._2)
+          this.entriesIterator.zip(that.entriesIterator).forall(p => p._1 == p._2)
     case _ => false
   }
 
@@ -202,7 +216,7 @@ class Tensor private[tensors](
     var result = 1
     result = prime * result + dataType.hashCode
     result = prime * result + shape.hashCode
-    entriesIterator().foreach(v => result = prime * result + v.hashCode)
+    entriesIterator.foreach(v => result = prime * result + v.hashCode)
     result
   }
 
@@ -221,17 +235,7 @@ class Tensor private[tensors](
 }
 
 object Tensor {
-  private[tensors] def apply(nativeHandle: Long): Tensor = {
-    if (NativeTensor.eagerDevice(nativeHandle) == "CPU:0") {
-      val hostHandle = NativeTensor.eagerResolve(nativeHandle)
-      val buffer = NativeTensor.buffer(hostHandle).order(ByteOrder.nativeOrder)
-      new Tensor(nativeHandle, Some(buffer))
-    } else {
-      new Tensor(nativeHandle, None)
-    }
-  }
-
-  private[tensors] def apply(nativeHandle: Long, buffer: ByteBuffer): Tensor = new Tensor(nativeHandle, Option(buffer))
+  def fromNativeHandle(nativeHandle: Long): Tensor = new Tensor(nativeHandle)
 
   def apply[T](head: T, tail: T*)(implicit ev: TensorConvertible[T]): Tensor = {
     val tensors = head +: tail map ev.toTensor
@@ -242,54 +246,100 @@ object Tensor {
   def apply[T](dataType: DataType): Tensor = Tensor.allocate(dataType, Shape(0))
 
   def apply[T](dataType: DataType, head: T, tail: T*)(implicit ev: TensorConvertible[T]): Tensor = {
-    val tensors = head +: tail map ev.toTensor
-    val tensor = stack(tensors.map(_.cast(dataType)), 0)
-    val hostHandle = tensor.resolve()
-    val buffer = NativeTensor.buffer(hostHandle).order(ByteOrder.nativeOrder)
-    Tensor(tensor.nativeHandle, buffer)
+    stack((head +: tail).map(ev.toTensor), 0).cast(dataType)
   }
 
-  def fill[T](dataType: DataType, shape: Shape = null)(value: T)(implicit ev: SupportedType[T]): Tensor = {
-    // TODO: Add downcasting warnings.
-    val inferredShape = if (shape == null) Shape() else shape
-    inferredShape.assertFullyDefined()
+  /** Returns a new tensor of type `dataType` with shape `shape` and all elements set to zero.
+    *
+    * For example:
+    * {{{
+    *   Tensor.zeros(INT32, Shape(3, 4)) == Tensor(Tensor(0, 0, 0, 0), Tensor(0, 0, 0, 0), Tensor(0, 0, 0, 0))
+    * }}}
+    *
+    * @param  dataType Tensor data type.
+    * @param  shape    Tensor shape.
+    * @return Constructed tensor.
+    */
+  def zeros(dataType: DataType, shape: Shape): Tensor = {
     dataType match {
+      case BOOLEAN => Tensor.fill(BOOLEAN, shape)(false)
+      case _ => Tensor.fill(dataType, shape)(0)
+    }
+  }
+
+  /** Returns a new tensor of type `dataType` with shape `shape` and all elements set to ones.
+    *
+    * For example:
+    * {{{
+    *   Tensor.ones(INT32, Shape(3, 4)) == Tensor(Tensor(1, 1, 1, 1), Tensor(1, 1, 1, 1), Tensor(1, 1, 1, 1))
+    * }}}
+    *
+    * @param  dataType Tensor data type.
+    * @param  shape    Tensor shape.
+    * @return Constructed tensor.
+    */
+  def ones(dataType: DataType, shape: Shape): Tensor = {
+    dataType match {
+      case BOOLEAN => Tensor.fill(BOOLEAN, shape)(true)
+      case _ => Tensor.fill(dataType, shape)(1)
+    }
+  }
+
+  /** Returns a new tensor of type `dataType` with shape `shape` and all elements set to `value`.
+    *
+    * If `dataType` is not provided, then its value is inferred from `value`.
+    *
+    * For example:
+    * {{{
+    *   Tensor.fill(INT32, Shape(3, 4))(4) == Tensor(Tensor(4, 4, 4, 4), Tensor(4, 4, 4, 4), Tensor(4, 4, 4, 4))
+    * }}}
+    *
+    * @param  dataType Tensor data type.
+    * @param  shape    Tensor shape.
+    * @return Constructed tensor.
+    */
+  def fill[T](dataType: DataType = null, shape: Shape = Shape())(value: T)(implicit ev: SupportedType[T]): Tensor = {
+    // TODO: Add downcasting warnings.
+    val inferredDataType = if (dataType == null) ev.dataType else dataType
+    shape.assertFullyDefined()
+    inferredDataType match {
       case STRING =>
         val numStringBytes = value.toString.getBytes(Charset.forName("UTF-8")).length
         val numEncodedBytes = NativeTensor.getEncodedStringSize(numStringBytes)
-        val numBytes = inferredShape.numElements * (INT64.byteSize + numEncodedBytes)
+        val numBytes = shape.numElements * (INT64.byteSize + numEncodedBytes)
         val hostHandle = NativeTensor.allocate(STRING.cValue, shape.asArray.map(_.toLong), numBytes)
         val buffer = NativeTensor.buffer(hostHandle).order(ByteOrder.nativeOrder)
-        val baseOffset = INT64.byteSize * inferredShape.numElements
+        val baseOffset = INT64.byteSize * shape.numElements
         var index = 0
         var i = 0
-        while (i < inferredShape.numElements) {
+        while (i < shape.numElements) {
           val numEncodedBytes = STRING.putElementInBuffer(buffer, baseOffset + index, STRING.cast(value))
           INT64.putElementInBuffer(buffer, i * INT64.byteSize, index.toLong)
           index += numEncodedBytes
           i += 1
         }
-        val tensor = Tensor(NativeTensor.eagerAllocate(hostHandle), buffer)
+        val tensor = Tensor.fromNativeHandle(NativeTensor.eagerAllocate(hostHandle))
         NativeTensor.delete(hostHandle)
         tensor
       case _ =>
-        val tensor = allocate(dataType = dataType, shape = inferredShape)
-        val buffer = tensor.hostBuffer()._1
+        val numBytes = shape.numElements * inferredDataType.byteSize
+        val hostHandle = NativeTensor.allocate(inferredDataType.cValue, shape.asArray.map(_.toLong), numBytes)
+        val buffer = NativeTensor.buffer(hostHandle).order(ByteOrder.nativeOrder)
         var index = 0
         var i = 0
-        while (i < tensor.numElements) {
-          dataType.putElementInBuffer(buffer, index, dataType.cast(value))
-          index += dataType.byteSize
+        while (i < shape.numElements) {
+          inferredDataType.putElementInBuffer(buffer, index, inferredDataType.cast(value))
+          index += inferredDataType.byteSize
           i += 1
         }
+        val tensor = Tensor.fromNativeHandle(NativeTensor.eagerAllocate(hostHandle))
+        NativeTensor.delete(hostHandle)
         tensor
     }
   }
 
-  private[api] def fromTFNativeHandle(nativeHandle: Long): Tensor = {
-    new Tensor(
-      NativeTensor.eagerAllocate(nativeHandle),
-      Some(NativeTensor.buffer(nativeHandle).order(ByteOrder.nativeOrder)))
+  private[api] def fromHostNativeHandle(nativeHandle: Long): Tensor = {
+    Tensor.fromNativeHandle(NativeTensor.eagerAllocate(nativeHandle))
   }
 
   private[api] def allocate(dataType: DataType, shape: Shape): Tensor = dataType match {
@@ -299,7 +349,7 @@ object Tensor {
       shape.assertFullyDefined()
       val numBytes = shape.numElements * dataType.byteSize
       val hostHandle = NativeTensor.allocate(dataType.cValue, shape.asArray.map(_.toLong), numBytes)
-      val tensor = Tensor.fromTFNativeHandle(hostHandle)
+      val tensor = Tensor.fromHostNativeHandle(hostHandle)
       NativeTensor.delete(hostHandle)
       tensor
   }
@@ -317,7 +367,7 @@ object Tensor {
       }
     }
     val hostHandle = NativeTensor.fromBuffer(dataType.cValue, shape.asArray.map(_.toLong), numBytes, directBuffer)
-    val tensor = Tensor.fromTFNativeHandle(hostHandle)
+    val tensor = Tensor.fromHostNativeHandle(hostHandle)
     NativeTensor.delete(hostHandle)
     tensor
   }

@@ -34,54 +34,54 @@ trait Initializer {
     * shape. */
   val shape: Shape = null
 
-  def apply(shape: Shape, dataType: DataType, partitionInfo: PartitionInformation): Output = {
-    initialValue(shape, dataType, partitionInfo)
+  def apply(dataType: DataType, shape: Shape, partitionInfo: PartitionInformation): Output = {
+    initialValue(dataType, shape, partitionInfo)
   }
 
   /** Generates an initial value op.
     *
-    * @param  shape         Shape for the output tensor.
     * @param  dataType      Data type for the output tensor.
+    * @param  shape         Shape for the output tensor.
     * @param  partitionInfo [[PartitionInformation]] object holding additional information about how the variable is
     *                       partitioned. May be `null` if the variable is not partitioned.
     * @return Created op output.
     * @throws ShapeMismatchException If the initializer cannot produce a value with the requested shape.
     */
   @throws[ShapeMismatchException]
-  def initialValue(shape: Shape, dataType: DataType, partitionInfo: PartitionInformation): Output
+  def initialValue(dataType: DataType, shape: Shape, partitionInfo: PartitionInformation): Output
 }
 
 private[variables] case class InitializerWithPartitionInformation(
     initializer: Initializer, partitionInfo: PartitionInformation) extends Initializer {
   @throws[ShapeMismatchException]
-  override def initialValue(shape: Shape, dataType: DataType, partitionInfo: PartitionInformation): Output = {
+  override def initialValue(dataType: DataType, shape: Shape, partitionInfo: PartitionInformation): Output = {
     if (partitionInfo == null)
-      initializer.initialValue(shape, dataType, this.partitionInfo)
+      initializer.initialValue(dataType, shape, this.partitionInfo)
     else
-      initializer.initialValue(shape, dataType, partitionInfo)
+      initializer.initialValue(dataType, shape, partitionInfo)
   }
 }
 
 /** Initializer that sets all elements of the variable tensor to zeros. */
 object ZerosInitializer extends Initializer {
   @throws[ShapeMismatchException]
-  override def initialValue(shape: Shape, dataType: DataType, partitionInfo: PartitionInformation): Output = {
-    Basic.zeros(shape, dataType, name = "ZerosInitializer")
+  override def initialValue(dataType: DataType, shape: Shape, partitionInfo: PartitionInformation): Output = {
+    Basic.zeros(dataType, shape, name = "ZerosInitializer")
   }
 }
 
 /** Initializer that sets all elements of the variable tensor to ones. */
 object OnesInitializer extends Initializer {
   @throws[ShapeMismatchException]
-  override def initialValue(shape: Shape, dataType: DataType, partitionInfo: PartitionInformation): Output = {
-    Basic.ones(shape, dataType, name = "OnesInitializer")
+  override def initialValue(dataType: DataType, shape: Shape, partitionInfo: PartitionInformation): Output = {
+    Basic.ones(dataType, shape, name = "OnesInitializer")
   }
 }
 
 /** Initializer that sets the value of the variable to the provided `value`. */
 case class ConstantInitializer(value: Tensor) extends Initializer {
   @throws[ShapeMismatchException]
-  override def initialValue(shape: Shape, dataType: DataType, partitionInfo: PartitionInformation): Output = {
+  override def initialValue(dataType: DataType, shape: Shape, partitionInfo: PartitionInformation): Output = {
     Basic.constant(value, dataType, shape, name = "ConstantInitializer")
   }
 }
@@ -91,13 +91,13 @@ case class DynamicConstantInitializer(value: Output) extends Initializer {
   override val shape: Shape = value.shape
 
   @throws[ShapeMismatchException]
-  override def initialValue(shape: Shape, dataType: DataType, partitionInfo: PartitionInformation): Output = {
+  override def initialValue(dataType: DataType, shape: Shape, partitionInfo: PartitionInformation): Output = {
     if (this.shape == null) {
-      Basic.fill(shape, value, dataType, name = "ConstantInitializer")
+      Basic.fill(dataType, shape)(value, name = "ConstantInitializer")
     } else if (shape.isCompatibleWith(this.shape)) {
       Basic.identity(value, name = "ConstantInitializer")
     } else if (shape.rank > 0 && this.shape.rank == 0 || (this.shape.rank == 1 && this.shape(0) == 1)) {
-      Basic.fill(shape, value, dataType, name = "ConstantInitializer")
+      Basic.fill(dataType, shape)(value, name = "ConstantInitializer")
     } else {
       throw ShapeMismatchException(
         s"The constant value shape '${this.shape}' is not compatible with the requested shape '$shape'.")
@@ -109,7 +109,7 @@ case class DynamicConstantInitializer(value: Output) extends Initializer {
 case class RandomUniformInitializer(
     minValue: Tensor = 0.0, maxValue: Tensor = 1.0, seed: Option[Int] = None) extends Initializer {
   @throws[ShapeMismatchException]
-  override def initialValue(shape: Shape, dataType: DataType, partitionInfo: PartitionInformation): Output = {
+  override def initialValue(dataType: DataType, shape: Shape, partitionInfo: PartitionInformation): Output = {
     Random.randomUniform(
       dataType, shape, minValue = minValue, maxValue = maxValue, seed = seed, name = "RandomUniformInitializer")
   }
@@ -119,7 +119,7 @@ case class RandomUniformInitializer(
 case class RandomNormalInitializer(
     mean: Tensor = 0.0, standardDeviation: Tensor = 1.0, seed: Option[Int] = None) extends Initializer {
   @throws[ShapeMismatchException]
-  override def initialValue(shape: Shape, dataType: DataType, partitionInfo: PartitionInformation): Output = {
+  override def initialValue(dataType: DataType, shape: Shape, partitionInfo: PartitionInformation): Output = {
     Random.randomNormal(
       dataType, shape, mean = mean, standardDeviation = standardDeviation, seed = seed,
       name = "RandomNormalInitializer")

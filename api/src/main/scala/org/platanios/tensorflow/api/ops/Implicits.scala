@@ -17,7 +17,8 @@ package org.platanios.tensorflow.api.ops
 
 import scala.util.DynamicVariable
 
-/**
+/** Groups together all implicits related to constructing symbolic ops.
+  *
   * @author Emmanouil Antonios Platanios
   */
 private[api] trait Implicits extends Output.Implicits {

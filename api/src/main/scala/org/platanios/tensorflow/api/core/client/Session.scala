@@ -141,7 +141,7 @@ final case class Session private (
       wantRunMetadata = wantMetadata,
       outputTensorHandles = outputTensorHandles)
     val outputs: R = resultsBuilder(outputTensorHandles.map(handle => {
-      val tensor = Tensor.fromTFNativeHandle(handle)
+      val tensor = Tensor.fromHostNativeHandle(handle)
       NativeTensor.delete(handle)
       tensor
     }))

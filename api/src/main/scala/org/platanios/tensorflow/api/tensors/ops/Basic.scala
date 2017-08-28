@@ -28,7 +28,8 @@ import scala.util.DynamicVariable
   */
 private[api] trait Basic {
   def stack(inputs: Seq[Tensor], axis: Int = 0)(implicit context: DynamicVariable[Context]): Tensor = {
-    Tensor(NativeTensorOpsBasic.pack(context.value.nativeHandle, inputs.map(_.nativeHandle).toArray, axis))
+    Tensor.fromNativeHandle(
+      NativeTensorOpsBasic.pack(context.value.nativeHandle, inputs.map(_.nativeHandle).toArray, axis))
   }
 
   def unstack(
@@ -37,20 +38,22 @@ private[api] trait Basic {
       context.value.nativeHandle,
       input.nativeHandle,
       if (number == -1) input.shape(axis) else number,
-      axis).map(Tensor(_))
+      axis).map(Tensor.fromNativeHandle)
   }
 
   def reshape(input: Tensor, shape: Tensor)(implicit context: DynamicVariable[Context]): Tensor = {
-    Tensor(NativeTensorOpsBasic.reshape(context.value.nativeHandle, input.nativeHandle, shape.nativeHandle))
+    Tensor.fromNativeHandle(
+      NativeTensorOpsBasic.reshape(context.value.nativeHandle, input.nativeHandle, shape.nativeHandle))
   }
 
   private[api] def stridedSlice(
       input: Tensor, begin: Tensor, end: Tensor, strides: Tensor = null, beginMask: Long = 0, endMask: Long = 0,
       ellipsisMask: Long = 0, newAxisMask: Long = 0, shrinkAxisMask: Long = 0)(
       implicit context: DynamicVariable[Context]): Tensor = {
-    Tensor(NativeTensorOpsBasic.stridedSlice(
-      context.value.nativeHandle, input.nativeHandle, begin.nativeHandle, end.nativeHandle, strides.nativeHandle,
-      beginMask, endMask, ellipsisMask, newAxisMask, shrinkAxisMask))
+    Tensor.fromNativeHandle(
+      NativeTensorOpsBasic.stridedSlice(
+        context.value.nativeHandle, input.nativeHandle, begin.nativeHandle, end.nativeHandle, strides.nativeHandle,
+        beginMask, endMask, ellipsisMask, newAxisMask, shrinkAxisMask))
   }
 }
 

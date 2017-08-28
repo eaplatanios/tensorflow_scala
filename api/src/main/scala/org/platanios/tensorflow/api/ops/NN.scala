@@ -1050,7 +1050,7 @@ private[api] object NN extends NN {
           true
         } else {
           val constantFillValue = Output.constantValue(gradGradient)
-          constantFillValue.isDefined && constantFillValue.get.entriesIterator().forall(_ == 0)
+          constantFillValue.isDefined && constantFillValue.get.entriesIterator.forall(_ == 0)
         }
       }
 
@@ -1110,7 +1110,7 @@ private[api] object NN extends NN {
         indices = flattenedIndices,
         values = Basic.reshape(outputGradient, -1),
         denseShape = Basic.reshape(Math.prod(inputShape), 1)),
-      validateIndices = false), inputShape), Basic.zeros(Shape.scalar(), INT32))
+      validateIndices = false), inputShape), Basic.zeros(INT32, Shape.scalar()))
   }
 
   private[this] def batchNormalizationWithGlobalNormalizationGradient(

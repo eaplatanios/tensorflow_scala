@@ -15,7 +15,8 @@
 
 package org.platanios.tensorflow.api.core
 
-/**
+/** Groups together all implicits related to the core package of the API.
+  * 
   * @author Emmanouil Antonios Platanios
   */
 private[api] trait Implicits extends Indexer.Implicits
