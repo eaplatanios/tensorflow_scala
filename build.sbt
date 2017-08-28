@@ -1,5 +1,3 @@
-import sbtprotobuf.{ProtobufPlugin => PB}
-
 organization in ThisBuild := "org.platanios"
 version in ThisBuild := "0.1"
 scalaVersion in ThisBuild := "2.12.2"
@@ -96,7 +94,9 @@ lazy val jni = (project in file("./jni"))
     )
 
 lazy val api = (project in file("./api"))
-    .dependsOn(jni)
+    .dependsOn(jni % Runtime)
+    .dependsOnRun(jni)
+    .enablePlugins(ProtobufPlugin)
     .settings(
       name := "tensorflow-api",
       libraryDependencies ++= loggingDependencies,
@@ -109,11 +109,10 @@ lazy val api = (project in file("./api"))
       libraryDependencies += "org.scalactic" %% "scalactic" % "3.0.1",
       libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1" % "test",
       // Protobuf settings
-      PB.protobufSettings,
-      version in PB.protobufConfig := "3.3.1",
-      libraryDependencies += "com.google.protobuf" % "protobuf-java" % (version in PB.protobufConfig).value % PB.protobufConfig.name,
-      sourceDirectory in PB.protobufConfig := sourceDirectory.value / "main" / "proto",
-      javaSource in PB.protobufConfig := ((sourceDirectory in Compile).value / "generated" / "java"),
+      version in ProtobufConfig := "3.3.1",
+      libraryDependencies += "com.google.protobuf" % "protobuf-java" % (version in ProtobufConfig).value % ProtobufConfig.name,
+      sourceDirectory in ProtobufConfig := sourceDirectory.value / "main" / "proto",
+      javaSource in ProtobufConfig := ((sourceDirectory in Compile).value / "generated" / "java"),
       sourceDirectories in Compile += sourceDirectory.value / "main" / "generated" / "java"
     )
 

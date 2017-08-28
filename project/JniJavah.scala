@@ -2,10 +2,12 @@ import org.objectweb.asm.{ClassReader, ClassVisitor, MethodVisitor, Opcodes}
 
 import java.io.{File, FileInputStream}
 
+import scala.collection.JavaConverters._
 import scala.collection.mutable
 
 import sbt._
 import sbt.Keys._
+import sys.process._
 
 /** Adds functionality for generating JNI header files using the `javah` tool.
   *
@@ -29,8 +31,9 @@ object JniJavah extends AutoPlugin {
 
   lazy val settings: Seq[Setting[_]] = Seq(
     javahClasses in javah := {
-      val compiled: inc.Analysis = (compile in Compile).value
-      val classFiles: Set[File] = compiled.relations.allProducts.toSet
+      import xsbti.compile._
+      val compiled: CompileAnalysis = (compile in Compile).value
+      val classFiles: Set[File] = compiled.readStamps().getAllProductStamps().asScala.keySet.toSet
       val nativeClasses = classFiles flatMap { file => JniJavah.nativeClasses(file) }
       nativeClasses
     },
@@ -44,12 +47,13 @@ object JniJavah extends AutoPlugin {
         Seq((classDirectory in Compile).value)
       }).mkString(sys.props("path.separator"))
       val classes = (javahClasses in javah).value
+      val log = streams.value.log
       if (classes.nonEmpty)
-        streams.value.log.info("Headers will be generated to " + directory.getAbsolutePath)
+        log.info("Headers will be generated to " + directory.getAbsolutePath)
       for (c <- classes) {
-        streams.value.log.info("Generating header for " + c)
+        log.info("Generating header for " + c)
         val command = s"javah -d ${directory.getAbsolutePath} -classpath $classPath $c"
-        val exitCode = Process(command) ! streams.value.log
+        val exitCode = Process(command) ! log
         if (exitCode != 0) sys.error(s"An error occurred while running javah. Exit code: $exitCode.")
       }
       directory
