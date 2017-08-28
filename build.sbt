@@ -94,8 +94,7 @@ lazy val jni = (project in file("./jni"))
     )
 
 lazy val api = (project in file("./api"))
-    .dependsOn(jni % Runtime)
-    .dependsOnRun(jni)
+    .dependsOn(jni)
     .enablePlugins(ProtobufPlugin)
     .settings(
       name := "tensorflow-api",
