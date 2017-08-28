@@ -24,16 +24,32 @@ import org.platanios.tensorflow.api.tensors.ops.Basic.stack
 import org.platanios.tensorflow.api.types._
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer}
 import org.platanios.tensorflow.jni.{Tensor => NativeTensor}
-import shapeless.{Generic, HList, Lazy}
-import java.nio._
-import java.nio.charset.Charset
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
+import shapeless.{Generic, HList, Lazy}
+
+import java.nio._
+import java.nio.charset.Charset
 
 import scala.collection.{TraversableLike, breakOut}
 import scala.language.{higherKinds, postfixOps}
 import scala.util.DynamicVariable
+
+/** Represents tensor-like objects.
+  *
+  * @author Emmanouil Antonios Platanios
+  */
+sealed trait TensorLike {
+  /** Data type of this tensor. */
+  val dataType: DataType
+
+  /** Device on which this tensor is stored. */
+  val device: String
+
+  /** Returns the [[Tensor]] that this [[TensorLike]] object represents. */
+  def toTensor: Tensor
+}
 
 /** Tensor (i.e., multi-dimensional array).
   *
@@ -62,7 +78,7 @@ import scala.util.DynamicVariable
   *
   * @author Emmanouil Antonios Platanios
   */
-class Tensor private[Tensor](private[tensors] var nativeHandle: Long) extends Closeable {
+class Tensor private[Tensor](private[tensors] var nativeHandle: Long) extends TensorLike with Closeable {
   /** Lock for the native handle. */
   private[this] object NativeHandleLock
 
@@ -72,7 +88,7 @@ class Tensor private[Tensor](private[tensors] var nativeHandle: Long) extends Cl
   Disposer.add(this, () => this.close())
 
   /** Data type of this tensor. */
-  val dataType: DataType = DataType.fromCValue(NativeTensor.eagerDataType(nativeHandle))
+  override val dataType: DataType = DataType.fromCValue(NativeTensor.eagerDataType(nativeHandle))
 
   /** Shape of this tensor. */
   val shape: Shape = Shape.fromSeq(NativeTensor.eagerShape(nativeHandle).map(_.toInt))
@@ -81,10 +97,10 @@ class Tensor private[Tensor](private[tensors] var nativeHandle: Long) extends Cl
   def rank: Int = shape.rank
 
   /** Number of elements contained in this tensor. */
-  def numElements: Int = shape.numElements
+  def size: Int = shape.numElements
 
   /** Device in which the tensor is stored. */
-  val device: String = NativeTensor.eagerDevice(nativeHandle)
+  override val device: String = NativeTensor.eagerDevice(nativeHandle)
 
   /** Returns a copy of this tensor on the CPU. */
   def cpu(): Tensor = copyToDevice("CPU:0")
@@ -128,7 +144,7 @@ class Tensor private[Tensor](private[tensors] var nativeHandle: Long) extends Cl
     val buffer = NativeTensor.buffer(resolvedHandle).order(ByteOrder.nativeOrder)
     val value = dataType match {
       case STRING =>
-        val offset = INT64.byteSize * numElements + INT64.getElementFromBuffer(buffer, index * INT64.byteSize).toInt
+        val offset = INT64.byteSize * size + INT64.getElementFromBuffer(buffer, index * INT64.byteSize).toInt
         dataType.getElementFromBuffer(buffer, offset)
       case _ => dataType.getElementFromBuffer(buffer, index * dataType.byteSize)
     }
@@ -139,7 +155,7 @@ class Tensor private[Tensor](private[tensors] var nativeHandle: Long) extends Cl
 
   @throws[InvalidShapeException]
   def scalar: dataType.ScalaType = {
-    if (numElements != 1)
+    if (size != 1)
       throw InvalidShapeException(
         "'Tensor.scalar' can only be called for scalar tensors (i.e., containing only one element).")
     getElementAtFlattenedIndex(0)
@@ -150,11 +166,11 @@ class Tensor private[Tensor](private[tensors] var nativeHandle: Long) extends Cl
     val buffer = NativeTensor.buffer(resolvedHandle).order(ByteOrder.nativeOrder)
     val iterator = dataType match {
       case STRING =>
-        val offset = INT64.byteSize * numElements
-        Iterator.range(0, numElements).map(i => {
+        val offset = INT64.byteSize * size
+        Iterator.range(0, size).map(i => {
           dataType.getElementFromBuffer(buffer, offset + INT64.getElementFromBuffer(buffer, i * INT64.byteSize).toInt)
         })
-      case _ => Iterator.range(0, numElements).map(i => dataType.getElementFromBuffer(buffer, i * dataType.byteSize))
+      case _ => Iterator.range(0, size).map(i => dataType.getElementFromBuffer(buffer, i * dataType.byteSize))
     }
     if (resolvedHandle != 0)
       NativeTensor.delete(resolvedHandle)
@@ -176,7 +192,7 @@ class Tensor private[Tensor](private[tensors] var nativeHandle: Long) extends Cl
         case 0 => tensor.scalar.toString
         case 1 =>
           val slice =
-            if (tensor.numElements <= math.max(maxEntries, 6))
+            if (tensor.size <= math.max(maxEntries, 6))
               tensor.entriesIterator
             else
               (tensor(0 :: 3).entriesIterator.toSeq :+ "...") ++ tensor(-3 ::).entriesIterator
@@ -201,6 +217,9 @@ class Tensor private[Tensor](private[tensors] var nativeHandle: Long) extends Cl
   }
 
   override def toString: String = s"$dataType$shape"
+
+  /** Returns this tensor. */
+  override def toTensor: Tensor = this
 
   override def equals(that: Any): Boolean = that match {
     // TODO: !!! [TENSORS] Replace with equality op and all op.
@@ -238,7 +257,7 @@ class Tensor private[Tensor](private[tensors] var nativeHandle: Long) extends Cl
 object Tensor {
   private[this] val logger = Logger(LoggerFactory.getLogger("Tensor"))
 
-  def fromNativeHandle(nativeHandle: Long): Tensor = new Tensor(nativeHandle)
+  private[tensors] def fromNativeHandle(nativeHandle: Long): Tensor = new Tensor(nativeHandle)
 
   private[api] def fromHostNativeHandle(nativeHandle: Long): Tensor = {
     Tensor.fromNativeHandle(NativeTensor.eagerAllocate(nativeHandle))
@@ -396,8 +415,8 @@ trait TensorConvertible[T] {
 }
 
 object TensorConvertible {
-  implicit val tensorTensorConvertible: TensorConvertible[Tensor] = new TensorConvertible[Tensor] {
-    @inline override def toTensor(value: Tensor): Tensor = value
+  implicit def tensorLikeTensorConvertible[T <: TensorLike]: TensorConvertible[T] = new TensorConvertible[T] {
+    @inline override def toTensor(value: T): Tensor = value.toTensor
   }
 
   implicit val shapeTensorConvertible: TensorConvertible[Shape] = new TensorConvertible[Shape] {

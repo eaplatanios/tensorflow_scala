@@ -27,6 +27,11 @@ import scala.util.DynamicVariable
   * @author Emmanouil Antonios Platanios
   */
 private[api] trait Basic {
+  def expandDims(input: Tensor, axis: Tensor)(implicit context: DynamicVariable[Context]): Tensor = {
+    Tensor.fromNativeHandle(
+      NativeTensorOpsBasic.expandDims(context.value.nativeHandle, input.nativeHandle, axis.nativeHandle))
+  }
+
   def stack(inputs: Seq[Tensor], axis: Int = 0)(implicit context: DynamicVariable[Context]): Tensor = {
     Tensor.fromNativeHandle(
       NativeTensorOpsBasic.pack(context.value.nativeHandle, inputs.map(_.nativeHandle).toArray, axis))
@@ -63,6 +68,8 @@ private[api] object Basic extends Basic {
   }
 
   case class TensorOps private[ops](tensor: Tensor) {
+    def expandDims(axis: Tensor): Tensor = Basic.expandDims(tensor, axis)
+
     def unstack(number: Int, axis: Int = 0): Seq[Tensor] = Basic.unstack(tensor, number, axis)
 
     def reshape[T: TensorConvertible](shape: T): Tensor = Basic.reshape(tensor, shape)
