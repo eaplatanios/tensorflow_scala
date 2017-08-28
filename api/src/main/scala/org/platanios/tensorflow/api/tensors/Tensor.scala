@@ -136,7 +136,7 @@ class Tensor private[tensors](
 
   def entriesIterator(_buffer: Option[ByteBuffer] = None): Iterator[dataType.ScalaType] = {
     _buffer match {
-      case Some(_) => RowMajorOrder.indexIterator(shape.asArray).map(getElementAtFlattenedIndex(_, _buffer))
+      case Some(_) => Iterator.range(0, numElements).map(getElementAtFlattenedIndex(_, _buffer))
       case None =>
         val (buffer, resolvedHandle) = hostBuffer()
         val iterator = entriesIterator(Some(buffer))

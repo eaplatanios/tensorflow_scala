@@ -19,8 +19,6 @@ package org.platanios.tensorflow.api
   * @author Emmanouil Antonios Platanios
   */
 package object tensors {
-  private[api] val DEFAULT_TENSOR_MEMORY_STRUCTURE_ORDER = tensors.RowMajorOrder
-
   private[api] trait API
       extends ops.API
 }
