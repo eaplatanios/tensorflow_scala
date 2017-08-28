@@ -24,11 +24,12 @@ import org.platanios.tensorflow.api.tensors.ops.Basic.stack
 import org.platanios.tensorflow.api.types._
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer}
 import org.platanios.tensorflow.jni.{Tensor => NativeTensor}
-
 import shapeless.{Generic, HList, Lazy}
-
 import java.nio._
 import java.nio.charset.Charset
+
+import com.typesafe.scalalogging.Logger
+import org.slf4j.LoggerFactory
 
 import scala.collection.{TraversableLike, breakOut}
 import scala.language.{higherKinds, postfixOps}
@@ -235,7 +236,13 @@ class Tensor private[Tensor](private[tensors] var nativeHandle: Long) extends Cl
 }
 
 object Tensor {
+  private[this] val logger = Logger(LoggerFactory.getLogger("Tensor"))
+
   def fromNativeHandle(nativeHandle: Long): Tensor = new Tensor(nativeHandle)
+
+  private[api] def fromHostNativeHandle(nativeHandle: Long): Tensor = {
+    Tensor.fromNativeHandle(NativeTensor.eagerAllocate(nativeHandle))
+  }
 
   def apply[T](head: T, tail: T*)(implicit ev: TensorConvertible[T]): Tensor = {
     val tensors = head +: tail map ev.toTensor
@@ -299,8 +306,9 @@ object Tensor {
     * @return Constructed tensor.
     */
   def fill[T](dataType: DataType = null, shape: Shape = Shape())(value: T)(implicit ev: SupportedType[T]): Tensor = {
-    // TODO: Add downcasting warnings.
     val inferredDataType = if (dataType == null) ev.dataType else dataType
+    if (inferredDataType.priority < ev.dataType.priority)
+      logger.warn(s"Downcasting value '$value' while creating tensor with '$dataType' data type.")
     shape.assertFullyDefined()
     inferredDataType match {
       case STRING =>
@@ -338,10 +346,15 @@ object Tensor {
     }
   }
 
-  private[api] def fromHostNativeHandle(nativeHandle: Long): Tensor = {
-    Tensor.fromNativeHandle(NativeTensor.eagerAllocate(nativeHandle))
-  }
-
+  /** Allocates a new tensor without worrying about the values stored in it.
+    *
+    * @param  dataType Tensor data type, which cannot be [[STRING]].
+    * @param  shape    Tensor shape.
+    * @return Allocated tensor.
+    * @throws IllegalArgumentException If `dataType` is [[STRING]], because the number of bytes required for a string
+    *                                  tensor are not known until all its element values are known.
+    */
+  @throws[IllegalArgumentException]
   private[api] def allocate(dataType: DataType, shape: Shape): Tensor = dataType match {
     case STRING => throw new IllegalArgumentException(
       "Cannot pre-allocate string tensors because their size is not known.")
