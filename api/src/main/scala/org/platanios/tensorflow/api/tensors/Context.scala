@@ -28,7 +28,7 @@ import org.platanios.tensorflow.jni.{Tensor => NativeTensor}
   *
   * @author Emmanouil Antonios Platanios
   */
-private[api] final case class Context private (private[tensors] var nativeHandle: Long) extends Closeable {
+private[api] final case class Context private (private[api] var nativeHandle: Long) extends Closeable {
   /** Lock for the native handle. */
   private[this] object NativeHandleLock
 

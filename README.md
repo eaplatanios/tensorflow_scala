@@ -77,12 +77,6 @@ its scope and its early state, before I settle on the API for some of
 the features, I would really appreciate contributions on the following:
 - **Unit Tests:** Currently unit tests are missing for a big part of the 
   library and it would be extremely useful if we had those.
-- **Op Implementations:** The process of implementing ops and their 
-  gradients in the `org.platanios.tensorflow.api.ops` package is pretty 
-  simple and self-explanatory by looking at `Basic.scala` and 
-  `Math.scala`. It would be great if we could get better coverage of 
-  the Python API ops. Porting them is simple, but tedious, and I plan 
-  to do it mainly on an on-demand basis.
 - **Examples:** Examples of code using the library would be great and 
   would also make issues come up early so they can be fixed.
 

@@ -78,7 +78,7 @@ sealed trait TensorLike {
   *
   * @author Emmanouil Antonios Platanios
   */
-class Tensor private[Tensor](private[tensors] var nativeHandle: Long) extends TensorLike with Closeable {
+class Tensor private[Tensor](private[api] var nativeHandle: Long) extends TensorLike with Closeable {
   /** Lock for the native handle. */
   private[this] object NativeHandleLock
 
@@ -257,7 +257,7 @@ class Tensor private[Tensor](private[tensors] var nativeHandle: Long) extends Te
 object Tensor {
   private[this] val logger = Logger(LoggerFactory.getLogger("Tensor"))
 
-  private[tensors] def fromNativeHandle(nativeHandle: Long): Tensor = new Tensor(nativeHandle)
+  private[api] def fromNativeHandle(nativeHandle: Long): Tensor = new Tensor(nativeHandle)
 
   private[api] def fromHostNativeHandle(nativeHandle: Long): Tensor = {
     Tensor.fromNativeHandle(NativeTensor.eagerAllocate(nativeHandle))

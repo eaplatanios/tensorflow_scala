@@ -1,7 +1,7 @@
 organization in ThisBuild := "org.platanios"
 version in ThisBuild := "0.1"
-scalaVersion in ThisBuild := "2.12.2"
-crossScalaVersions := Seq("2.11.8", "2.12.2")
+scalaVersion in ThisBuild := "2.12.3"
+crossScalaVersions := Seq("2.11.8", "2.12.3")
 licenses in ThisBuild := Seq(("Apache License 2.0", url("https://www.apache.org/licenses/LICENSE-2.0.txt")))
 
 val tensorFlowVersion = "1.3.0"
@@ -15,7 +15,6 @@ scalacOptions in ThisBuild ++= Seq(
 
 logBuffered in Test := false
 
-scalacOptions in (ThisBuild, Compile, doc) ++= Seq("-groups", "-implicits", "-implicits-show-all")
 //scalacOptions in (ThisBuild, Compile, doc) ++= Opts.doc.externalAPI((
 //  file(s"${(packageBin in Compile).value}") -> url("http://platanios.org/")) :: Nil)
 autoAPIMappings := true
@@ -112,7 +111,9 @@ lazy val api = (project in file("./api"))
       libraryDependencies += "com.google.protobuf" % "protobuf-java" % (version in ProtobufConfig).value % ProtobufConfig.name,
       sourceDirectory in ProtobufConfig := sourceDirectory.value / "main" / "proto",
       javaSource in ProtobufConfig := ((sourceDirectory in Compile).value / "generated" / "java"),
-      sourceDirectories in Compile += sourceDirectory.value / "main" / "generated" / "java"
+      sourceDirectories in Compile += sourceDirectory.value / "main" / "generated" / "java",
+      // ScalaDoc settings
+      scalacOptions in (Compile, doc) := Seq("-groups", "-implicits-show-all")
     )
 
 lazy val data = (project in file("./data"))

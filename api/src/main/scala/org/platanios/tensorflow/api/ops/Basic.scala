@@ -20,10 +20,12 @@ import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.Indexer._
 import org.platanios.tensorflow.api.core.exception.{InvalidDataTypeException, InvalidShapeException}
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
-import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.api.tensors.{Context, Tensor}
 import org.platanios.tensorflow.api.types._
+import org.platanios.tensorflow.jni.generated.tensors.{Basic => NativeTensorOpsBasic}
 
 import scala.language.postfixOps
+import scala.util.DynamicVariable
 
 /** Contains functions for constructing ops related to basic tensor manipulation.
   *
@@ -260,7 +262,7 @@ private[api] trait Basic {
   def rank[T <: OutputLike](input: T, optimize: Boolean = true, name: String = "Rank"): Output = {
     input match {
       case o: Output =>
-        val inputRank = o.shape.rank
+        val inputRank = o.rank
         if (optimize && inputRank != -1)
           constant(Tensor.fill(INT32, Shape())(inputRank), name = name)
         else
@@ -565,12 +567,12 @@ private[api] trait Basic {
     * @param  name      Name for the created op.
     * @return Created op outputs.
     */
-  def splitEvenly(input: Output, numSplits: Int, axis: Int = 0, name: String = "Split"): Array[Output] = {
+  def splitEvenly(input: Output, numSplits: Int, axis: Tensor = 0, name: String = "Split"): Array[Output] = {
     Op.Builder(opType = "Split", name = name)
-        .addInput(Op.createWith(nameScope = name)(constant(tensor = axis, name = "Axis")))
+        .addInput(axis)
         .addInput(input)
         .setAttribute("num_split", numSplits)
-        .build().outputs
+        .build.outputs
   }
 
   /** $OpDocBasicSplit
@@ -628,7 +630,25 @@ private[api] trait Basic {
       * @return Created op output.
       * @throws IllegalArgumentException If `paddings` has an invalid data type.
       */
-    def pad(input: Output, paddings: Output, name: String = "Pad"): Output
+    private[ops] def pad(input: Output, paddings: Output, name: String): Output
+
+    /** Pads a tensor with zeros.
+      *
+      * The op pads `input` with values specified by this padding mode, `mode`, according to the `paddings` you specify.
+      *
+      * `paddings` is an integer tensor with shape `[n, 2]`, where `n` is the rank of `input`. For each dimension `D` of
+      * `input`, `paddings(D, 0)` indicates how many zeros to add before the contents of `input` in that dimension, and
+      * `paddings(D, 1)` indicates how many zeros to add after the contents of `input` in that dimension.
+      *
+      * The padded size of each dimension `D` of the output is equal to
+      * `paddings(D, 0) + input.shape(D) + paddings(D, 1)`.
+      *
+      * @param  input    Input tensor to be padded.
+      * @param  paddings `INT32` or `INT64` tensor containing the paddings.
+      * @return Result as a new tensor.
+      * @throws IllegalArgumentException If `paddings` has an invalid data type.
+      */
+    private[api] def pad(input: Tensor, paddings: Tensor)(implicit context: DynamicVariable[Context]): Tensor
   }
 
   private[ops] object PaddingMode {
@@ -662,11 +682,16 @@ private[api] trait Basic {
     * }}}
     */
   object ConstantPadding extends PaddingMode {
-    override def pad(input: Output, paddings: Output, name: String = "Pad"): Output = {
+    override def pad(input: Output, paddings: Output, name: String): Output = {
       Op.Builder(opType = "Pad", name = name)
           .addInput(input)
           .addInput(paddings)
           .build().outputs(0)
+    }
+
+    override def pad(input: Tensor, paddings: Tensor)(implicit context: DynamicVariable[Context]): Tensor = {
+      Tensor.fromNativeHandle(
+        NativeTensorOpsBasic.pad(context.value.nativeHandle, input.nativeHandle, paddings.nativeHandle))
     }
   }
 
@@ -700,6 +725,12 @@ private[api] trait Basic {
           .setAttribute("mode", "REFLECT")
           .build().outputs(0)
     }
+
+    override def pad(input: Tensor, paddings: Tensor)(implicit context: DynamicVariable[Context]): Tensor = {
+      Tensor.fromNativeHandle(
+        NativeTensorOpsBasic.mirrorPad(
+          context.value.nativeHandle, input.nativeHandle, paddings.nativeHandle, "REFLECT".getBytes()))
+    }
   }
 
   /** Symmetric padding mode.
@@ -731,6 +762,12 @@ private[api] trait Basic {
           .addInput(paddings)
           .setAttribute("mode", "SYMMETRIC")
           .build().outputs(0)
+    }
+
+    override def pad(input: Tensor, paddings: Tensor)(implicit context: DynamicVariable[Context]): Tensor = {
+      Tensor.fromNativeHandle(
+        NativeTensorOpsBasic.mirrorPad(
+          context.value.nativeHandle, input.nativeHandle, paddings.nativeHandle, "SYMMETRIC".getBytes()))
     }
   }
 
@@ -804,7 +841,7 @@ private[api] trait Basic {
   /** $OpDocBasicMatrixTranspose
     *
     * @group BasicOps
-    * 
+    *
     * @param  input Input tensor to transpose.
     * @param  name  Name for the created op.
     * @return Created op output.
@@ -837,16 +874,20 @@ private[api] trait Basic {
     *
     * @group BasicOps
     *
-    * @param  input One-dimensional `INT32` or `INT64` input tensor
+    * @param  input One-dimensional [[INT32]] or [[INT64]] input tensor.
     * @param  name  Name for the created op.
     * @return Created op output.
+    * @throws InvalidDataTypeException If the input data type is not [[INT32]] or [[INT64]].
+    * @throws InvalidShapeException    If the input is not a rank-1 tensor.
     */
+  @throws[InvalidDataTypeException]
+  @throws[InvalidShapeException]
   def invertPermutation(input: Output, name: String = "InvertPermutation"): Output = {
     if (input.dataType != INT32 && input.dataType != INT64)
       throw InvalidDataTypeException(
         s"Data type '${input.dataType}' is not supported for the permutation inversion op input. " +
             s"Only 'Int32' and 'Int64' are supported.")
-    if (input.shape.rank != 1 && input.shape.rank != -1)
+    if (input.rank != 1 && input.rank != -1)
       throw InvalidShapeException(
         s"Shape '${input.shape}' is not supported for the permutation inversion op input. " +
             s"Only one-dimensional tensors are supported.")
@@ -860,10 +901,12 @@ private[api] trait Basic {
     * @group BasicOps
     *
     * @param  input Input tensor to reverse. It must have rank at most 8.
-    * @param  axes  Dimensions of the input tensor to reverse.
+    * @param  axes  Dimensions of the input tensor to reverse. Has to be [[INT32]] or [[INT64]].
     * @param  name  Name for the created op.
-    * @return Created op output that has the same shape as `input`.
+    * @return Created op output which has the same shape as `input`.
+    * @throws InvalidDataTypeException If the data type of `axes` is not [[INT32]] or [[INT64]].
     */
+  @throws[InvalidDataTypeException]
   def reverse(input: Output, axes: Output, name: String = "Reverse"): Output = {
     if (axes.dataType != INT32 && axes.dataType != INT64)
       throw InvalidDataTypeException(
@@ -901,10 +944,11 @@ private[api] trait Basic {
   /** $OpDocBasicSpaceToBatch
     *
     * @group BasicOps
-    * 
+    *
     * @param  input     `4`-dimensional input tensor with shape `[batch, height, width, depth]`.
     * @param  blockSize Block size which must be greater than `1`.
-    * @param  paddings  `2`-dimensional `INT32` or `INT64` tensor containing non-negative integers with shape `[2, 2]`.
+    * @param  paddings  `2`-dimensional [[INT32]] or [[INT64]] tensor containing non-negative integers with shape
+    *                   `[2, 2]`.
     * @param  name      Name for the created op.
     * @return Created op output.
     * @throws IllegalArgumentException If `input` or `paddings` has an invalid data type or shape or if `blockSize` is
@@ -929,11 +973,12 @@ private[api] trait Basic {
   /** $OpDocBasicSpaceToBatchND
     *
     * @group BasicOps
-    * 
+    *
     * @param  input      `N`-dimensional tensor with shape `inputShape = [batch] + spatialShape + remainingShape`, where
     *                    spatialShape has `M` dimensions.
-    * @param  blockShape One-dimensional `INT32` or `INT64` tensor with shape `[M]` whose elements must all be `>= 1`.
-    * @param  paddings   Two-dimensional `INT32` or `INT64` tensor with shape `[M, 2]` whose elements must all be
+    * @param  blockShape One-dimensional [[INT32]] or [[INT64]] tensor with shape `[M]` whose elements must all be
+    *                    `>= 1`.
+    * @param  paddings   Two-dimensional [[INT32]] or [[INT64]] tensor with shape `[M, 2]` whose elements must all be
     *                    non-negative. `paddings(i) = [padStart, padEnd]` specifies the padding for input dimension
     *                    `i + 1`, which corresponds to spatial dimension `i`. It is required that `blockShape(i)`
     *                    divides `inputShape(i + 1) + padStart + padEnd`.
@@ -966,7 +1011,8 @@ private[api] trait Basic {
     *
     * @param  input     `4`-dimensional input tensor with shape `[batch, height, width, depth]`.
     * @param  blockSize Block size which must be greater than `1`.
-    * @param  crops     `2`-dimensional `INT32` or `INT64` tensor containing non-negative integers with shape `[2, 2]`.
+    * @param  crops     `2`-dimensional [[INT32]] or [[INT64]] tensor containing non-negative integers with shape
+    *                   `[2, 2]`.
     * @param  name      Name for the created op.
     * @return Created op output.
     * @throws IllegalArgumentException If `input` or `crops` has an invalid data type or shape or if `blockSize` is not
@@ -994,8 +1040,9 @@ private[api] trait Basic {
     *
     * @param  input      `N`-dimensional tensor with shape `inputShape = [batch] + spatialShape + remainingShape`, where
     *                    spatialShape has `M` dimensions.
-    * @param  blockShape One-dimensional `INT32` or `INT64` tensor with shape `[M]` whose elements must all be `>= 1`.
-    * @param  crops      Two-dimensional `INT32` or `INT64` tensor with shape `[M, 2]` whose elements must all be
+    * @param  blockShape One-dimensional [[INT32]] or [[INT64]] tensor with shape `[M]` whose elements must all be
+    *                    `>= 1`.
+    * @param  crops      Two-dimensional [[INT32]] or [[INT64]] tensor with shape `[M, 2]` whose elements must all be
     *                    non-negative. `crops(i) = [cropStart, cropEnd]` specifies the amount to crop from input
     *                    dimension `i + 1`, which corresponds to spatial dimension `i`. It is required that
     *                    `cropStart(i) + cropEnd(i) <= blockShape(i) * inputShape(i + 1)`.
@@ -1066,11 +1113,22 @@ private[api] trait Basic {
             zeros(INT32, Shape(numBlockDims, 2))
           }
         }
-        val constantInputShape = Output.constantValue(inputShape)
-        val constantBlockShape = Output.constantValue(blockShape)
-        val constantBasePaddings = Output.constantValue(actualBasePaddings)
-        if (constantInputShape != null && constantBlockShape != null && constantBasePaddings != null) {
-          ??? // TODO: [TENSORS] Replicate the behavior of the 'else' branch using tensors.
+        val cInputShape = Output.constantValue(inputShape)
+        val cBlockShape = Output.constantValue(blockShape)
+        val cBasePaddings = Output.constantValue(actualBasePaddings)
+        if (cInputShape.isDefined && cBlockShape.isDefined && cBasePaddings.isDefined) {
+          val ccInputShape = cInputShape.get
+          val ccBlockShape = cBlockShape.get
+          val ccBasePaddings = cBasePaddings.get
+          val padStart = ccBasePaddings(::, 0)
+          val originalPadEnd = ccBasePaddings(::, 1)
+          val fullInputShape = ccInputShape + padStart + originalPadEnd
+          val extraPadEnd = (ccBlockShape - (fullInputShape % ccBlockShape)) % ccBlockShape
+          val padEnd = originalPadEnd + extraPadEnd
+          val resultPaddings = stack((0 until numBlockDims).map(i => concatenate(Seq(padStart(i), padEnd(i)))))
+          val zero = Tensor(padStart.dataType, 0)
+          val resultCrops = stack((0 until numBlockDims).map(i => concatenate(Seq(zero, extraPadEnd(i)))))
+          (resultPaddings, resultCrops)
         } else {
           val padStart = actualBasePaddings(::, 0)
           val originalPadEnd = actualBasePaddings(::, 1)
@@ -1098,6 +1156,7 @@ private[api] trait Basic {
     * @return Created op output.
     * @throws IllegalArgumentException If `input` has an invalid shape or if `blockSize` is not greater than `1`.
     */
+  @throws[IllegalArgumentException]
   def spaceToDepth(input: Output, blockSize: Int, name: String = "SpaceToDepth"): Output = {
     if (input.rank != -1 && input.rank != 4)
       throw new IllegalArgumentException(s"'input' (shape = ${input.dataType}) must have rank equal to 4.")
@@ -1119,6 +1178,7 @@ private[api] trait Basic {
     * @return Created op output.
     * @throws IllegalArgumentException If `input` has an invalid shape or if `blockSize` is not greater than `1`.
     */
+  @throws[IllegalArgumentException]
   def depthToSpace(input: Output, blockSize: Int, name: String = "DepthToSpace"): Output = {
     if (input.rank != -1 && input.rank != 4)
       throw new IllegalArgumentException(s"'input' (shape = ${input.dataType}) must have rank equal to 4.")
@@ -1132,6 +1192,8 @@ private[api] trait Basic {
 
   //endregion Tensor Manipulation Ops
 
+  //region Tensor Masking Ops
+
   /** $OpDocBasicWhere
     *
     * @group BasicOps
@@ -1139,7 +1201,9 @@ private[api] trait Basic {
     * @param  input Input boolean tensor.
     * @param  name  Name for the created op.
     * @return Created op output.
+    * @throws InvalidDataTypeException If the input tensor is not boolean.
     */
+  @throws[InvalidDataTypeException]
   def where(input: Output, name: String = "Where"): Output = {
     if (input.dataType != BOOLEAN)
       throw InvalidDataTypeException(
@@ -1150,7 +1214,7 @@ private[api] trait Basic {
   }
 
   /** $OpDocBasicBooleanMask
-    * 
+    *
     * @group BasicOps
     *
     * @param  input `N`-dimensional tensor.
@@ -1243,20 +1307,33 @@ private[api] trait Basic {
     }
   }
 
+  //endregion Tensor Masking Ops
+
+  //region Tensor Counting and Set Ops
+
   /** $OpDocBasicUnique
     *
     * @group BasicOps
     *
-    * @param  input One-dimensional input tensor.
-    * @param  name  Name for the created op.
+    * @param  input           One-dimensional input tensor.
+    * @param  indicesDataType Data type of the returned indices. Must be [[INT32]] or [[INT64]].
+    * @param  name            Name for the created op.
     * @return Tuple containing `output` and `indices`.
+    * @throws InvalidShapeException    If the input tensor is not one-dimensional.
+    * @throws InvalidDataTypeException If `indicesDataType` is not [[INT32]] or [[INT64]].
     */
-  def unique(input: Output, name: String = "Unique"): (Output, Output) = {
-    if (input.shape.rank != 1 && input.shape.rank != -1)
+  @throws[InvalidShapeException]
+  @throws[InvalidDataTypeException]
+  def unique(input: Output, indicesDataType: DataType = INT32, name: String = "Unique"): (Output, Output) = {
+    if (input.rank != 1 && input.rank != -1)
       throw InvalidShapeException(
         s"Shape '${input.shape}' is not supported for the unique op input. Only one-dimensional tensors are supported.")
+    if (indicesDataType != INT32 && indicesDataType != INT64)
+      throw InvalidDataTypeException(
+        s"The indices data type cannot be '$indicesDataType'. It has to be either 'INT32' or 'INT64'.")
     val outputs = Op.Builder(opType = "Unique", name = name)
         .addInput(input)
+        .setAttribute("out_idx", indicesDataType)
         .build().outputs
     (outputs(0), outputs(1))
   }
@@ -1265,16 +1342,26 @@ private[api] trait Basic {
     *
     * @group BasicOps
     *
-    * @param  input One-dimensional input tensor.
-    * @param  name  Name for the created op.
+    * @param  input           One-dimensional input tensor.
+    * @param  indicesDataType Data type of the returned indices. Must be [[INT32]] or [[INT64]].
+    * @param  name            Name for the created op.
     * @return Tuple containing `output`, `indices`, and `counts`.
+    * @throws InvalidShapeException    If the input tensor is not one-dimensional.
+    * @throws InvalidDataTypeException If `indicesDataType` is not [[INT32]] or [[INT64]].
     */
-  def uniqueWithCounts(input: Output, name: String = "UniqueWithCounts"): (Output, Output, Output) = {
-    if (input.shape.rank != 1 && input.shape.rank != -1)
+  @throws[InvalidShapeException]
+  @throws[InvalidDataTypeException]
+  def uniqueWithCounts(
+      input: Output, indicesDataType: DataType = INT32, name: String = "UniqueWithCounts"): (Output, Output, Output) = {
+    if (input.rank != 1 && input.rank != -1)
       throw InvalidShapeException(
         s"Shape '${input.shape}' is not supported for the unique op input. Only one-dimensional tensors are supported.")
+    if (indicesDataType != INT32 && indicesDataType != INT64)
+      throw InvalidDataTypeException(
+        s"The indices data type cannot be '$indicesDataType'. It has to be either 'INT32' or 'INT64'.")
     val outputs = Op.Builder(opType = "UniqueWithCounts", name = name)
         .addInput(input)
+        .setAttribute("out_idx", indicesDataType)
         .build().outputs
     (outputs(0), outputs(1), outputs(2))
   }
@@ -1283,26 +1370,29 @@ private[api] trait Basic {
     *
     * @group BasicOps
     *
-    * @param  x             One-dimensional tensor containing the values to keep.
-    * @param  y             One-dimensional tensor containing the values to remove.
-    * @param  indexDataType Optional data type to use for the output indices of this op. It has to be either `INT32` or
-    *                       `INT64`.
-    * @param  name          Name for the created op.
+    * @param  x               One-dimensional tensor containing the values to keep.
+    * @param  y               One-dimensional tensor containing the values to remove.
+    * @param  indicesDataType Data type to use for the output indices of this op. Must be [[INT32]] or [[INT64]].
+    * @param  name            Name for the created op.
     * @return Tuple containing `output` and `indices`, from the method description.
+    * @throws InvalidDataTypeException If `indexDataType` is not [[INT32]] or [[INT64]].
     */
-  def listDiff(x: Output, y: Output, indexDataType: DataType = INT32, name: String = "ListDiff"): (Output, Output) = {
-    if (indexDataType != INT32 && indexDataType != INT64)
+  @throws[InvalidDataTypeException]
+  def listDiff(x: Output, y: Output, indicesDataType: DataType = INT32, name: String = "ListDiff"): (Output, Output) = {
+    if (indicesDataType != INT32 && indicesDataType != INT64)
       throw InvalidDataTypeException(
-        s"The index data type cannot be '$indexDataType'. It has to be either 'INT32' or 'INT64'.")
+        s"The index data type cannot be '$indicesDataType'. It has to be either 'INT32' or 'INT64'.")
     val outputs = Op.Builder(opType = "ListDiff", name = name)
         .addInput(x)
         .addInput(y)
-        .setAttribute("out_idx", indexDataType)
+        .setAttribute("out_idx", indicesDataType)
         .build().outputs
     (outputs(0), outputs(1))
   }
 
-  //region Slice Ops
+  //endregion Tensor Counting and Set Ops
+
+  //region Tensor Slicing Ops
 
   /** $OpDocBasicGather
     *
@@ -1508,7 +1598,9 @@ private[api] trait Basic {
         .build().outputs(0)
   }
 
-  //endregion Slice Ops
+  //endregion Tensor Slicing Ops
+
+  //region Tensor Ungrouped Ops
 
   /** $OpDocBasicCheckNumerics
     *
@@ -1624,9 +1716,11 @@ private[api] trait Basic {
     }
   }
 
+  //endregion Tensor Ungrouped Ops
+
   // TODO: Add support for all the quantization ops.
 
-  //region Broadcasting Ops
+  //region Tensor Broadcasting Ops
 
   // TODO: Add support for the "broadcastGradientArguments" op.
   // TODO: Add support for "broadcastShape" (static). Implement the main method in the "Shape" object.
@@ -1706,9 +1800,9 @@ private[api] trait Basic {
     }
   }
 
-  //endregion Broadcasting Ops
+  //endregion Tensor Broadcasting Ops
 
-  //region Gradients Ops
+  //region Tensor Gradient Ops
 
   /** $OpDocBasicStopGradient
     *
@@ -1740,7 +1834,7 @@ private[api] trait Basic {
         .build().outputs(0)
   }
 
-  //endregion Gradients Ops
+  //endregion Tensor Gradient Ops
 }
 
 private[api] object Basic extends Basic {
