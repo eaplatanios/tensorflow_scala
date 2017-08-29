@@ -27,9 +27,9 @@ import scala.util.DynamicVariable
   * @author Emmanouil Antonios Platanios
   */
 private[api] trait Basic {
-  /** @group BasicOps
+  /** $OpDocBasicExpandDims
     *
-    * $OpDocBasicExpandDims
+    * @group BasicOps
     *
     * @param  input Input tensor.
     * @param  axis  Dimension index at which to expand the shape of `input`.
@@ -40,9 +40,9 @@ private[api] trait Basic {
       NativeTensorOpsBasic.expandDims(context.value.nativeHandle, input.nativeHandle, axis.nativeHandle))
   }
 
-  /** @group BasicOps
+  /** $OpDocBasicSqueeze
     *
-    * $OpDocBasicSqueeze
+    * @group BasicOps
     *
     * @param  input Input tensor.
     * @param  axes  Dimensions of size 1 to squeeze. If this argument is not provided, then all dimensions of size 1
@@ -55,11 +55,44 @@ private[api] trait Basic {
       NativeTensorOpsBasic.squeeze(context.value.nativeHandle, input.nativeHandle, longAxes))
   }
 
+  /** $OpDocBasicStack
+    *
+    * @group BasicOps
+    *
+    * @param  inputs Input tensors to be stacked.
+    * @param  axis   Dimension along which to stack the input tensors.
+    * @return Result as a new tensor.
+    */
   def stack(inputs: Seq[Tensor], axis: Int = 0)(implicit context: DynamicVariable[Context]): Tensor = {
     Tensor.fromNativeHandle(
       NativeTensorOpsBasic.pack(context.value.nativeHandle, inputs.map(_.nativeHandle).toArray, axis))
   }
 
+  /** $OpDocBasicParallelStack
+    *
+    * @group BasicOps
+    *
+    * @param  inputs Input tensors to be stacked.
+    * @return Result as a new tensor.
+    */
+  def parallelStack(inputs: Array[Tensor])(implicit context: DynamicVariable[Context]): Tensor = {
+    val inputsShape = inputs.head.shape
+    inputs.tail.foreach(_.shape.assertIsCompatibleWith(inputsShape))
+    val outputShape = Shape(inputs.length).concatenateWith(inputsShape)
+    Tensor.fromNativeHandle(
+      NativeTensorOpsBasic.parallelConcat(
+        context.value.nativeHandle, inputs.map(_.nativeHandle), outputShape.asArray.map(_.toLong)))
+  }
+
+  /** $OpDocBasicUnstack
+    *
+    * @group BasicOps
+    *
+    * @param  input  Rank `R > 0` `Tensor` to be unstacked.
+    * @param  number Number of tensors to unstack. If set to `-1` (the default value), its value will be inferred.
+    * @param  axis   Dimension along which to unstack the input tensor.
+    * @return Result as a new tensor.
+    */
   def unstack(
       input: Tensor, number: Int = -1, axis: Int = 0)(implicit context: DynamicVariable[Context]): Seq[Tensor] = {
     NativeTensorOpsBasic.unpack(
@@ -67,6 +100,23 @@ private[api] trait Basic {
       input.nativeHandle,
       if (number == -1) input.shape(axis) else number,
       axis).map(Tensor.fromNativeHandle)
+  }
+
+  /** $OpDocBasicConcatenate
+    *
+    * @group BasicOps
+    *
+    * @param  inputs Input tensors to be concatenated.
+    * @param  axis   Dimension along which to concatenate the input tensors.
+    * @return Result as a new tensor.
+    */
+  def concatenate(inputs: Seq[Tensor], axis: Tensor = Tensor(0))(implicit context: DynamicVariable[Context]): Tensor = {
+    if (inputs.length == 1)
+      inputs.head
+    else
+      Tensor.fromNativeHandle(
+        NativeTensorOpsBasic.concatV2(
+          context.value.nativeHandle, inputs.map(_.nativeHandle).toArray, axis.nativeHandle))
   }
 
   def reshape(input: Tensor, shape: Tensor)(implicit context: DynamicVariable[Context]): Tensor = {
@@ -91,18 +141,18 @@ private[api] object Basic extends Basic {
   }
 
   case class TensorOps private[ops](tensor: Tensor) {
-    /** @group BasicOps
+    /** $OpDocBasicExpandDims
       *
-      * $OpDocBasicExpandDims
+      * @group BasicOps
       *
       * @param  axis  Dimension index at which to expand the shape of this tensor.
       * @return Result as a new tensor.
       */
     def expandDims(axis: Tensor): Tensor = Basic.expandDims(tensor, axis)
 
-    /** @group BasicOps
+    /** $OpDocBasicSqueeze
       *
-      * $OpDocBasicSqueeze
+      * @group BasicOps
       *
       * @param  axes  Dimensions of size 1 to squeeze. If this argument is not provided, then all dimensions of size 1
       *               will be squeezed.
@@ -110,6 +160,14 @@ private[api] object Basic extends Basic {
       */
     def squeeze(axes: Array[Int] = null): Tensor = Basic.squeeze(tensor, axes)
 
+    /** $OpDocBasicUnstack
+      *
+      * @group BasicOps
+      *
+      * @param  number Number of tensors to unstack. If set to `-1` (the default value), its value will be inferred.
+      * @param  axis   Dimension along which to unstack the input tensor.
+      * @return Result as a new tensor.
+      */
     def unstack(number: Int, axis: Int = 0): Seq[Tensor] = Basic.unstack(tensor, number, axis)
 
     def reshape[T: TensorConvertible](shape: T): Tensor = Basic.reshape(tensor, shape)

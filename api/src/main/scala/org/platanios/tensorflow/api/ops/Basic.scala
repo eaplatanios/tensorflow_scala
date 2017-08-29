@@ -32,9 +32,9 @@ import scala.language.postfixOps
 private[api] trait Basic {
   //region Tensor Creation Ops
 
-  /** @group BasicOps
+  /** $OpDocBasicConstant
     *
-    * $OpDocBasicConstant
+    * @group BasicOps
     *
     * @param  tensor   Constant value.
     * @param  dataType Data type of the resulting tensor. If not provided, its value will be inferred from the type
@@ -69,9 +69,9 @@ private[api] trait Basic {
         .build().outputs(0)
   }
 
-  /** @group BasicOps
+  /** $OpDocBasicImmutableConstant
     *
-    * $OpDocBasicImmutableConstant
+    * @group BasicOps
     *
     * @param  dataType         Data type of the resulting tensor.
     * @param  shape            Shape of the resulting tensor.
@@ -89,9 +89,9 @@ private[api] trait Basic {
         .build().outputs(0)
   }
 
-  /** @group BasicOps
+  /** $OpDocBasicZeros
     *
-    * $OpDocBasicZeros
+    * @group BasicOps
     *
     * @param  dataType Tensor data type.
     * @param  shape    Tensor shape.
@@ -102,9 +102,9 @@ private[api] trait Basic {
     constant(Tensor.zeros(dataType, shape), name = name)
   }
 
-  /** @group BasicOps
+  /** $OpDocBasicZerosLike
     *
-    * $OpDocBasicZerosLike
+    * @group BasicOps
     *
     * @param  input    Input tensor.
     * @param  dataType Data type of the output tensor.
@@ -130,9 +130,9 @@ private[api] trait Basic {
     }
   }
 
-  /** @group BasicOps
+  /** $OpDocBasicOnes
     *
-    * $OpDocBasicOnes
+    * @group BasicOps
     *
     * @param  dataType Tensor data type.
     * @param  shape    Tensor shape.
@@ -143,9 +143,9 @@ private[api] trait Basic {
     constant(Tensor.ones(dataType, shape), name = name)
   }
 
-  /** @group BasicOps
+  /** $OpDocBasicOnesLike
     *
-    * $OpDocBasicOnesLike
+    * @group BasicOps
     *
     * @param  input    Input tensor.
     * @param  dataType Data type of the output tensor.
@@ -171,9 +171,9 @@ private[api] trait Basic {
     }
   }
 
-  /** @group BasicOps
+  /** $OpDocBasicFill
     *
-    * $OpDocBasicFill
+    * @group BasicOps
     *
     * @param  dataType Optional data type for the created tensor.
     * @param  shape    Shape of the output tensor.
@@ -188,9 +188,9 @@ private[api] trait Basic {
         .build().outputs(0)
   }
 
-  /** @group BasicOps
+  /** $OpDocBasicPlaceholder
     *
-    * $OpDocBasicPlaceholder
+    * @group BasicOps
     *
     * @param  dataType Data type of the elements in the tensor that will be fed.
     * @param  shape    Shape of the tensor that will be fed. The shape can be any partially-specified, or even
@@ -206,9 +206,9 @@ private[api] trait Basic {
     opBuilder.build().outputs(0)
   }
 
-  /** @group BasicOps
+  /** $OpDocBasicPlaceholderWithDefault
     *
-    * $OpDocBasicPlaceholderWithDefault
+    * @group BasicOps
     *
     * @param  default Default value to pass through when no input is fed for this placeholder.
     * @param  shape   Shape of the tensor that will be fed. The shape can be any partially-specified, or even completely
@@ -223,9 +223,9 @@ private[api] trait Basic {
         .build().outputs(0)
   }
 
-  /** @group BasicOps
+  /** $OpDocBasicSparsePlaceholder
     *
-    * $OpDocBasicSparsePlaceholder
+    * @group BasicOps
     *
     * @param  dataType Data type of the elements in the tensor that will be fed.
     * @param  shape    Shape of the tensor that will be fed. The shape can be any partially-specified, or even
@@ -247,9 +247,9 @@ private[api] trait Basic {
 
   //region Tensor Shape Ops
 
-  /** @group BasicOps
+  /** $OpDocBasicRank
     *
-    * $OpDocBasicRank
+    * @group BasicOps
     *
     * @param  input    Tensor whose rank to return.
     * @param  optimize Boolean flag indicating whether to optimize this op creation by using a constant op with the
@@ -272,9 +272,9 @@ private[api] trait Basic {
     }
   }
 
-  /** @group BasicOps
+  /** $OpDocBasicSize
     *
-    * $OpDocBasicSize
+    * @group BasicOps
     *
     * @param  input    Tensor whose size to return.
     * @param  dataType Optional data type to use for the output of this op.
@@ -307,9 +307,9 @@ private[api] trait Basic {
     }
   }
 
-  /** @group BasicOps
+  /** $OpDocBasicShape
     *
-    * $OpDocBasicShape
+    * @group BasicOps
     *
     * @param  input    Tensor whose shape to return.
     * @param  dataType Optional data type to use for the output of this op.
@@ -341,9 +341,9 @@ private[api] trait Basic {
     }
   }
 
-  /** @group BasicOps
+  /** $OpDocBasicShapeN
     *
-    * $OpDocBasicShapeN
+    * @group BasicOps
     *
     * @param  inputs   Tensors whose shapes to return.
     * @param  dataType Optional data type to use for the outputs of this op.
@@ -361,9 +361,9 @@ private[api] trait Basic {
 
   //region Tensor Manipulation Ops
 
-  /** @group BasicOps
+  /** $OpDocBasicIdentity
     *
-    * $OpDocBasicIdentity
+    * @group BasicOps
     *
     * @param  input Input tensor.
     * @param  name  Name for the created op.
@@ -390,9 +390,9 @@ private[api] trait Basic {
     }.asInstanceOf[T]
   }
 
-  /** @group BasicOps
+  /** $OpDocBasicExpandDims
     *
-    * $OpDocBasicExpandDims
+    * @group BasicOps
     *
     * @param  input Input tensor.
     * @param  axis  Dimension index at which to expand the shape of `input`.
@@ -406,9 +406,9 @@ private[api] trait Basic {
         .build().outputs(0)
   }
 
-  /** @group BasicOps
+  /** $OpDocBasicSqueeze
     *
-    * $OpDocBasicSqueeze
+    * @group BasicOps
     *
     * @param  input Input tensor.
     * @param  axes  Dimensions of size 1 to squeeze. If this argument is not provided, then all dimensions of size 1
@@ -424,9 +424,9 @@ private[api] trait Basic {
     builder.build().outputs(0)
   }
 
-  /** @group BasicOps
+  /** $OpDocBasicStack
     *
-    * $OpDocBasicStack
+    * @group BasicOps
     *
     * @param  inputs Input tensors to be stacked.
     * @param  axis   Dimension along which to stack the input tensors.
@@ -451,9 +451,9 @@ private[api] trait Basic {
         .build().outputs(0)
   }
 
-  /** @group BasicOps
+  /** $OpDocBasicParallelStack
     *
-    * $OpDocBasicParallelStack
+    * @group BasicOps
     *
     * @param  inputs Input tensors to be stacked.
     * @param  name   Name for the created op.
@@ -471,9 +471,9 @@ private[api] trait Basic {
         .build().outputs(0)
   }
 
-  /** @group BasicOps
+  /** $OpDocBasicUnstack
     *
-    * $OpDocBasicUnstack
+    * @group BasicOps
     *
     * @param  input  Rank `R > 0` `Tensor` to be unstacked.
     * @param  number Number of tensors to unstack. If set to `-1` (the default value), its value will be inferred.
@@ -507,30 +507,9 @@ private[api] trait Basic {
         .build().outputs
   }
 
-  /** Creates an op that concatenates tensors along one dimension.
+  /** $OpDocBasicConcatenate
     *
-    * The op concatenates the list of tensors `inputs` along the dimension `axis`. If
-    * `inputs(i).shape = [D0, D1, ..., Daxis(i), ..., Dn]`, then the concatenated tensor will have shape
-    * `[D0, D1, ..., Raxis, ..., Dn]`, where `Raxis = sum(Daxis(i))`. That is, the data from the input tensors is joined
-    * along the `axis` dimension.
-    *
-    * For example:
-    * {{{
-    *   // 't1' is equal to [[1, 2, 3], [4, 5, 6]]
-    *   // 't2' is equal to [[7, 8, 9], [10, 11, 12]]
-    *   concatenate(Array(t1, t2), 0) == [[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12]]
-    *   concatenate(Array(t1, t2), 1) == [[1, 2, 3, 7, 8, 9], [4, 5, 6, 10, 11, 12]]
-    *
-    *   // 't3' has shape [2, 3]
-    *   // 't4' has shape [2, 3]
-    *   shape(concatenate(Array(t3, t4), 0)) == [4, 3]
-    *   shape(concatenate(Array(t3, t4), 1)) == [2, 6]
-    * }}}
-    *
-    * Note that, if you want to concatenate along a new axis, it may be better to use the `stack` op instead:
-    * {{{
-    *   concatenate(tensors.map(t => expandDims(t, axis)), axis) == stack(tensors, axis)
-    * }}}
+    * @group BasicOps
     *
     * @param  inputs Input tensors to be concatenated.
     * @param  axis   Dimension along which to concatenate the input tensors.
@@ -548,17 +527,9 @@ private[api] trait Basic {
     }
   }
 
-  /** Creates an op that computes offsets of `concatenate` inputs within its output.
+  /** $OpDocBasicConcatenateOffset
     *
-    * For example:
-    * {{{
-    *   // 'x' is a tensor containing values [2, 2, 7]
-    *   // 'y' is a tensor containing values [2, 3, 7]
-    *   // 'z' is a tensor containing values [2, 5, 7]
-    *   tf.concatenateOffset(Seq(x, y, z), 2) ==> [0, 0, 0], [0, 2, 0], [0, 5, 0]
-    * }}}
-    *
-    * This function is typically used by gradient computations for a `concatenate` op.
+    * @group BasicOps
     *
     * @param  shapes Sequence of `N` `INT32` vectors representing the shapes of the tensors being concatenated.
     * @param  axis   `INT32` scalar representing the dimension along which to concatenate.
@@ -584,20 +555,9 @@ private[api] trait Basic {
         .build().outputs.toSeq
   }
 
-  /** Creates an op that splits a tensor into sub-tensors.
+  /** $OpDocBasicSplitEvenly
     *
-    * The op splits `input` along dimension `axis` into `numSplits` smaller tensors. It requires that `numSplits` evenly
-    * splits `input.shape(axis)`.
-    *
-    * For example:
-    * {{{
-    *   // 't' is a tensor with shape [5, 30]
-    *   // Split 't' into 3 tensors along dimension 1:
-    *   val splits = split(t, numSplits = 3, axis = 1)
-    *   shape(splits(0)) == [5, 10]
-    *   shape(splits(1)) == [5, 10]
-    *   shape(splits(2)) == [5, 10]
-    * }}}
+    * @group BasicOps
     *
     * @param  input     Input tensor to split.
     * @param  numSplits Number of splits to obtain along the `axis` dimension.
@@ -613,21 +573,9 @@ private[api] trait Basic {
         .build().outputs
   }
 
-  /** Creates an op that splits a tensor into sub-tensors.
+  /** $OpDocBasicSplit
     *
-    * The op splits `input` along dimension `axis` into `splitSizes.length` smaller tensors. The shape of the `i`-th
-    * smaller tensor has the same size as the `input` except along dimension `axis` where the size is equal to
-    * `splitSizes(i)`.
-    *
-    * For example:
-    * {{{
-    *   // 't' is a tensor with shape [5, 30]
-    *   // Split 't' into 3 tensors with sizes [4, 5, 11] along dimension 1:
-    *   val splits = split(t, splitSizes = [4, 15, 11], axis = 1)
-    *   shape(splits(0)) == [5, 4]
-    *   shape(splits(1)) == [5, 15]
-    *   shape(splits(2)) == [5, 11]
-    * }}}
+    * @group BasicOps
     *
     * @param  input      Input tensor to split.
     * @param  splitSizes Sizes for the splits to obtain.
@@ -644,11 +592,9 @@ private[api] trait Basic {
         .build().outputs.toSeq
   }
 
-  /** Creates an op that tiles the provided input tensor.
+  /** $OpDocBasicTile
     *
-    * The op creates a new tensor by replicating `input` `multiples` times. The output tensor's `i`th dimension has
-    * `input.shape(i) * multiples(i)` elements, and the values of `input` are replicated `multiples(i)` times along
-    * the `i`th dimension. For example, tiling `[a b c d]` by `[2]` produces `[a b c d a b c d]`.
+    * @group BasicOps
     *
     * @param  input     Tensor to tile.
     * @param  multiples One-dimensional tensor containing the tiling multiples. Its length must be the same as the rank
@@ -788,44 +734,9 @@ private[api] trait Basic {
     }
   }
 
-  /** Creates an op that pads a tensor with zeros.
+  /** $OpDocBasicPad
     *
-    * The op pads `input` with values specified by the padding mode, `mode`, according to the `paddings` you specify.
-    *
-    * `paddings` is an integer tensor with shape `[n, 2]`, where `n` is the rank of `input`. For each dimension `D` of
-    * `input`, `paddings(D, 0)` indicates how many zeros to add before the contents of `input` in that dimension, and
-    * `paddings(D, 1)` indicates how many zeros to add after the contents of `input` in that dimension.
-    *
-    * If `mode` is [[ReflectivePadding]] then both `paddings(D, 0)` and `paddings(D, 1)` must be no greater than
-    * `input.shape(D) - 1`. If `mode` is [[SymmetricPadding]] then both `paddings(D, 0)` and `paddings(D, 1)` must be
-    * no greater than `input.shape(D)`.
-    *
-    * The padded size of each dimension `D` of the output is equal to
-    * `paddings(D, 0) + input.shape(D) + paddings(D, 1)`.
-    *
-    * For example:
-    * {{{
-    *   // 'input' = [[1, 2, 3], [4, 5, 6]]
-    *   // 'paddings' = [[1, 1], [2, 2]]
-    *
-    *   tf.pad(input, paddings, tf.ConstantPadding) ==>
-    *     [[0, 0, 0, 0, 0, 0, 0],
-    *      [0, 0, 1, 2, 3, 0, 0],
-    *      [0, 0, 4, 5, 6, 0, 0],
-    *      [0, 0, 0, 0, 0, 0, 0]]
-    *
-    *   tf.pad(input, paddings, tf.ReflectivePadding) ==>
-    *     [[6, 5, 4, 5, 6, 5, 4],
-    *      [3, 2, 1, 2, 3, 2, 1],
-    *      [6, 5, 4, 5, 6, 5, 4],
-    *      [3, 2, 1, 2, 3, 2, 1]]
-    *
-    *   tf.pad(input, paddings, tf.SymmetricPadding) ==>
-    *     [[2, 1, 1, 2, 3, 3, 2],
-    *      [2, 1, 1, 2, 3, 3, 2],
-    *      [5, 4, 4, 5, 6, 6, 5],
-    *      [5, 4, 4, 5, 6, 6, 5]]
-    * }}}
+    * @group BasicOps
     *
     * @param  input    Input tensor to be padded.
     * @param  paddings `INT32` or `INT64` tensor containing the paddings.
@@ -842,57 +753,9 @@ private[api] trait Basic {
     mode.pad(input, paddings, name)
   }
 
-  /** Creates an op that reshapes a tensor.
+  /** $OpDocBasicReshape
     *
-    * Given `input`, this operation returns a tensor that has the same values as `input` but has shape `shape`. If one
-    * component of `shape` is the special value `-1`, then the size of that dimension is computed so that the total size
-    * remains constant. In particular, a `shape` of `[-1]` flattens a tensor into a one-dimensional tensor. At most one
-    * component of `shape` can be set to `-1`.
-    *
-    * If `shape` is a one-dimensional or higher tensor, then the operation returns a tensor with shape `shape` filled
-    * with the values of `input`. In this case, the number of elements implied by `shape` must be the same as the number
-    * of elements in `input`.
-    *
-    * For example:
-    * {{{
-    *   // Tensor 't' is [1, 2, 3, 4, 5, 6, 7, 8, 9] => It has shape [9]
-    *   reshape(t, [3, 3]) == [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
-    *
-    *   // Tensor 't' is [[[1, 1], [2, 2]],
-    *   //                [[3, 3], [4, 4]]] => It has shape [2, 2, 2]
-    *   reshape(t, [2, 4] == [[1, 1, 2, 2],
-    *                         [3, 3, 4, 4]]
-    *
-    *   // Tensor 't' is [[[1, 1, 1],
-    *                      [2, 2, 2]],
-    *                     [[3, 3, 3],
-    *                      [4, 4, 4]],
-    *                     [[5, 5, 5],
-    *                      [6, 6, 6]]] => It has shape [3, 2, 3]
-    *   reshape(t, [-1]) == [1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 6]
-    *
-    *   // '-1' can also be used to infer the shape. Some examples follow.
-    *
-    *   // '-1' is inferred to be 9:
-    *   reshape(t, [2, -1]) ==> [[1, 1, 1, 2, 2, 2, 3, 3, 3],
-    *                            [4, 4, 4, 5, 5, 5, 6, 6, 6]]
-    *
-    *   // '-1' is inferred to be 2:
-    *   reshape(t, [-1, 9]) ==> [[1, 1, 1, 2, 2, 2, 3, 3, 3],
-    *                            [4, 4, 4, 5, 5, 5, 6, 6, 6]]
-    *
-    *   // '-1' is inferred to be 3:
-    *   reshape(t, [ 2, -1, 3]) ==> [[[1, 1, 1],
-    *                                 [2, 2, 2],
-    *                                 [3, 3, 3]],
-    *                                [[4, 4, 4],
-    *                                 [5, 5, 5],
-    *                                 [6, 6, 6]]]
-    *
-    *   // Tensor 't' is [7]
-    *   // An empty shape passed to 'reshape' will result in a scalar
-    *   reshape(t, []) == 7
-    * }}}
+    * @group BasicOps
     *
     * @param  input Input tensor.
     * @param  shape Shape of the output tensor.
@@ -906,26 +769,9 @@ private[api] trait Basic {
         .build().outputs(0)
   }
 
-  /** Creates an op that transposes `input`. THe op permutes the dimensions of `input` according to `permutation`.
+  /** $OpDocBasicTranspose
     *
-    * The returned tensor's dimension `i` will correspond to `input` dimension `permutation(i)`. If `permutation` is not
-    * provided, then it is set to `(n - 1, ..., 0)`, where `n` is the rank of the input tensor. Hence by default, this
-    * op performs a regular matrix transpose on two-dimensional input tensors.
-    *
-    * For example:
-    * {{{
-    *   // Tensor 'x' is [[1, 2, 3], [4, 5, 6]]
-    *   transpose(x) == [[1, 4], [2, 5], [3, 6]]
-    *   transpose(x, permutation = Array(1, 0)) == [[1, 4], [2, 5], [3, 6]]
-    *
-    *   // Tensor 'x' is [[[1, 2, 3],
-    *   //                 [4, 5, 6]],
-    *   //                [[7, 8, 9],
-    *   //                 [10, 11, 12]]]
-    *   transpose(x, permutation = Array(0, 2, 1)) == [[[1,  4], [2,  5], [3,  6]],
-    *                                                  [[7, 10], [8, 11], [9, 12]]]
-    *
-    * }}}
+    * @group BasicOps
     *
     * @param  input       Input tensor to transpose.
     * @param  permutation Permutation of the input tensor dimensions.
@@ -3130,236 +2976,232 @@ private[api] object Basic extends Basic {
     throw new IllegalArgumentException(s"Gradient explicitly disabled. Reason: ${op.stringAttribute("message")}.")
   }
 
-  /** @groupname BasicOps Basic Tensor Manipulation Ops
-    * @groupprio BasicOps 100
+  /** @define OpDocBasicConstant
+    *   The `constant` op returns a constant tensor.
     *
-    * @define OpDocBasicConstant
-    * The `constant` op returns a constant tensor.
+    *   The resulting tensor is populated with values of type `dataType`, as specified by the arguments `value` and
+    *   (optionally) `shape` (see examples below).
     *
-    * The resulting tensor is populated with values of type `dataType`, as specified by the arguments `value` and
-    * (optionally) `shape` (see examples below).
+    *   The argument `value` can be a constant value, or a tensor. If `value` is a one-dimensional tensor, then its
+    *   length should be equal to the number of elements implied by the `shape` argument (if specified).
     *
-    * The argument `value` can be a constant value, or a tensor. If `value` is a one-dimensional tensor, then its length
-    * should be equal to the number of elements implied by the `shape` argument (if specified).
+    *   The argument `dataType` is optional. If not specified, then its value is inferred from the type of `value`.
     *
-    * The argument `dataType` is optional. If not specified, then its value is inferred from the type of `value`.
-    *
-    * The argument `shape` is optional. If present, it specifies the dimensions of the resulting tensor. If not present,
-    * the shape of `value` is used.
+    *   The argument `shape` is optional. If present, it specifies the dimensions of the resulting tensor. If not
+    *   present, the shape of `value` is used.
     *
     * @define OpDocBasicImmutableConstant
-    * The `immutableConstant` op returns an immutable tensor from the provided memory region.
+    *   The `immutableConstant` op returns an immutable tensor from the provided memory region.
     *
-    * The current implementation memory-maps the tensor from a file.
+    *   The current implementation memory-maps the tensor from a file.
     *
     * @define OpDocBasicZeros
-    * The `zeros` op returns a tensor of type `dataType` with shape `shape` and all elements set to zero.
+    *   The `zeros` op returns a tensor of type `dataType` with shape `shape` and all elements set to zero.
     *
-    * For example:
-    * {{{
-    *   zeros(INT32, Shape(3, 4)) ==> [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
-    * }}}
+    *   For example:
+    *   {{{
+    *      zeros(INT32, Shape(3, 4)) ==> [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
+    *   }}}
     *
     * @define OpDocBasicZerosLike
-    * The `zerosLike` op returns a tensor of zeros with the same shape and data type as `input`.
+    *   The `zerosLike` op returns a tensor of zeros with the same shape and data type as `input`.
     *
-    * Given a single tensor (`input`), the op returns a tensor of the same type and shape as `input` but with all
-    * elements set to zero. Optionally, you can use `dataType` to specify a new type for the returned tensor.
+    *   Given a single tensor (`input`), the op returns a tensor of the same type and shape as `input` but with all
+    *   elements set to zero. Optionally, you can use `dataType` to specify a new type for the returned tensor.
     *
-    * For example:
-    * {{{
-    *   // 't' is [[1, 2, 3], [4, 5, 6]]
-    *   zerosLike(t) ==> [[0, 0, 0], [0, 0, 0]]
-    * }}}
+    *   For example:
+    *   {{{*   // 't' is [[1, 2, 3], [4, 5, 6]]
+    *      zerosLike(t) ==> [[0, 0, 0], [0, 0, 0]]
+    *   }}}
     *
     * @define OpDocBasicOnes
-    * The `ones` op returns a tensor of type `dataType` with shape `shape` and all elements set to one.
+    *   The    `ones` op returns a tensor of type `dataType` with shape `shape` and all elements set to one.
     *
-    * For example:
-    * {{{
-    *   ones(INT32, Shape(3, 4)) ==> [[1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1]]
-    * }}}
+    *   For example:
+    *   {{{
+    *      ones(INT32, Shape(3, 4)) ==> [[1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1]]
+    *   }}}
     *
     * @define OpDocBasicOnesLike
-    * The `onesLike` op returns a tensor of ones with the same shape and data type as `input`.
+    *   The `onesLike` op returns a tensor of ones with the same shape and data type as `input`.
     *
-    * Given a single tensor (`input`), the op returns a tensor of the same type and shape as `input` but with all
-    * elements set to one. Optionally, you can use `dataType` to specify a new type for the returned tensor.
+    *   Given a single tensor (`input`), the op returns a tensor of the same type and shape as `input` but with all
+    *   elements set to one. Optionally, you can use `dataType` to specify a new type for the returned tensor.
     *
-    * For example:
-    * {{{
-    *   // 't' is [[1, 2, 3], [4, 5, 6]]
-    *   onesLike(t) ==> [[1, 1, 1], [1, 1, 1]]
-    * }}}
+    *   For example:
+    *   {{{
+    *      // 't' is [[1, 2, 3], [4, 5, 6]]
+    *      onesLike(t) ==> [[1, 1, 1], [1, 1, 1]]
+    *   }}}
     *
     * @define OpDocBasicFill
-    * The `fill` op returns a tensor filled with the provided scalar value.
+    *   The `fill` op returns a tensor filled with the provided scalar value.
     *
-    * The op creates a tensor of shape `shape` and fills it with `value`.
+    *   The op creates a tensor of shape `shape` and fills it with `value`.
     *
-    * For example:
-    * {{{
-    *   fill(Shape(2, 3), 9) ==> [[9, 9, 9], [9, 9, 9]]
-    * }}}
+    *   For example:
+    *   {{{
+    *      fill(Shape(2, 3), 9) ==> [[9, 9, 9], [9, 9, 9]]
+    *   }}}
     *
     * @define OpDocBasicPlaceholder
-    * The `placeholder` op returns a placeholder for a tensor that will always be fed.
+    *   The `placeholder` op returns a placeholder for a tensor that will always be fed.
     *
-    * '''IMPORTANT NOTE:''' This op will produce an error if evaluated. Its value must be fed when using `Session.run`.
-    * It is intended as a way to represent a value that will always be fed, and to provide attributes that enable the
-    * fed value to be checked at runtime.
+    *   '''IMPORTANT NOTE:''' This op will produce an error if evaluated. Its value must be fed when using
+    *   `Session.run`. It is intended as a way to represent a value that will always be fed, and to provide attributes
+    *   that enable the fed value to be checked at runtime.
     *
     * @define OpDocBasicPlaceholderWithDefault
-    * The `placeholderWithDefault` op returns a placeholder op that passes through a defult value when its input is not
-    * fed.
+    *   The `placeholderWithDefault` op returns a placeholder op that passes through a defult value when its input is
+    *   not fed.
     *
     * @define OpDocBasicSparsePlaceholder
-    * The `sparsePlaceholder` op returns a placeholder for a sparse tensor that will always be fed.
+    *   The `sparsePlaceholder` op returns a placeholder for a sparse tensor that will always be fed.
     *
-    * '''IMPORTANT NOTE:''' This op will produce an error if evaluated. Its value must be fed when using `Session.run`.
-    * It is intended as a way to represent a value that will always be fed, and to provide attributes that enable the
-    * fed value to be checked at runtime.
+    *   '''IMPORTANT NOTE:''' This op will produce an error if evaluated. Its value must be fed when using
+    *   `Session.run`. It is intended as a way to represent a value that will always be fed, and to provide attributes
+    *   that enable the fed value to be checked at runtime.
     *
     * @define OpDocBasicRank
-    * The `rank` op returns the rank of a tensor.
+    *   The `rank` op returns the rank of a tensor.
     *
-    * The op returns an integer representing the rank of `input`.
+    *   The op returns an integer representing the rank of `input`.
     *
-    * For example:
-    * {{{
-    *   // 't' is [[[1, 1, 1], [2, 2, 2]], [[3, 3, 3], [4, 4, 4]]]
-    *   // 't' has shape [2, 2, 3]
-    *   rank(t) ==> 3
-    * }}}
+    *   For example:
+    *   {{{
+    *      // 't' is [[[1, 1, 1], [2, 2, 2]], [[3, 3, 3], [4, 4, 4]]]
+    *      // 't' has shape [2, 2, 3]
+    *      rank(t) ==> 3
+    *   }}}
     *
-    * Note that the rank of a tensor is not the same as the rank of a matrix. The rank of a tensor is the number of
-    * indices required to uniquely select each element of the tensor. Rank is also known as order, degree, or number of
-    * dimensions.
+    *   Note that the rank of a tensor is not the same as the rank of a matrix. The rank of a tensor is the number of
+    *   indices required to uniquely select each element of the tensor. Rank is also known as order, degree, or number
+    *   of dimensions.
     *
     * @define OpDocBasicSize
-    * The `size` op returns the size of a tensor.
+    *   The `size` op returns the size of a tensor.
     *
-    * The op returns a number representing the number of elements in `input`.
+    *   The op returns a number representing the number of elements in `input`.
     *
-    * For example:
-    * {{{
-    *   // 't' is [[[1, 1, 1], [2, 2, 2]], [[3, 3, 3], [4, 4, 4]]]]
-    *   size(t) ==> 12
-    * }}}
+    *   For example:
+    *   {{{
+    *      // 't' is [[[1, 1, 1], [2, 2, 2]], [[3, 3, 3], [4, 4, 4]]]]
+    *      size(t) ==> 12
+    *   }}}
     *
     * @define OpDocBasicShape
-    * The `shape` op returns the shape of a tensor.
+    *   The `shape` op returns the shape of a tensor.
     *
-    * The op returns a one-dimensional tensor representing the shape of `input`.
+    *   The op returns a one-dimensional tensor representing the shape of `input`.
     *
-    * For example:
-    * {{{
-    *   // 't' is [[[1, 1, 1], [2, 2, 2]], [[3, 3, 3], [4, 4, 4]]]
-    *   shape(t) ==> [2, 2, 3]
-    * }}}
+    *   For example:
+    *   {{{
+    *      // 't' is [[[1, 1, 1], [2, 2, 2]], [[3, 3, 3], [4, 4, 4]]]
+    *      shape(t) ==> [2, 2, 3]
+    *   }}}
     *
     * @define OpDocBasicShapeN
-    * The `shapeN` op returns the shape of an array of tensors.
+    *   The `shapeN` op returns the shape of an array of tensors.
     *
-    * The op returns an array of one-dimensional tensors, each one representing the shape of the corresponding tensor in
-    * `inputs`.
+    *   The op returns an array of one-dimensional tensors, each one representing the shape of the corresponding tensor
+    *   in `inputs`.
     *
     * @define OpDocBasicIdentity
-    * The `identity` op returns a tensor with the same shape and contents as the input tensor.
+    *   The `identity` op returns a tensor with the same shape and contents as the input tensor.
     *
     * @define OpDocBasicExpandDims
-    * The `expandDims` op inserts a dimension of size 1 into the tensor's shape and returns the result as a new tensor.
+    *   The `expandDims` op inserts a dimension of size 1 into the tensor's shape and returns the result as a new
+    *   tensor.
     *
-    * Given a tensor `input`, the op inserts a dimension of size 1 at the dimension index `axis` of the tensor's shape.
-    * The dimension index `axis` starts at zero; if you specify a negative number for `axis` it is counted backwards
-    * from the end.
+    *   Given a tensor `input`, the op inserts a dimension of size 1 at the dimension index `axis` of the tensor's
+    *   shape. The dimension index `axis` starts at zero; if you specify a negative number for `axis` it is counted
+    *   backwards from the end.
     *
-    * This op is useful if you want to add a batch dimension to a single element. For example, if you have a single
-    * image of shape `[height, width, channels]`, you can make it a batch of 1 image with `expandDims(image, 0)`,
-    * which will make the shape equal to `[1, height, width, channels]`.
+    *   This op is useful if you want to add a batch dimension to a single element. For example, if you have a single
+    *   image of shape `[height, width, channels]`, you can make it a batch of 1 image with `expandDims(image, 0)`,
+    *   which will make the shape equal to `[1, height, width, channels]`.
     *
-    * For example:
-    * {{{
-    *   // 't1' is a tensor of shape [2]
-    *   t1.expandDims(0).shape == Shape(1, 2)
-    *   t1.expandDims(1).shape == Shape(2, 1)
-    *   t1.expandDims(-1).shape == Shape(2, 1)
+    *   For example:
+    *   {{{*   // 't1' is a tensor of shape [2]
+    *      t1.expandDims(0).shape == Shape(1, 2)
+    *      t1.expandDims(1).shape == Shape(2, 1)
+    *      t1.expandDims(-1).shape == Shape(2, 1)
     *
-    *   // 't2' is a tensor of shape [2, 3, 5]
-    *   t2.expandDims(0).shape == Shape(1, 2, 3, 5)
-    *   t2.expandDims(2).shape == Shape(2, 3, 1, 5)
-    *   t2.expandDims(3).shape == Shape(2, 3, 5, 1)
-    * }}}
+    *      // 't2' is a tensor of shape [2, 3, 5]
+    *      t2.expandDims(0).shape == Shape(1, 2, 3, 5)
+    *      t2.expandDims(2).shape == Shape(2, 3, 1, 5)
+    *      t2.expandDims(3).shape == Shape(2, 3, 5, 1)
+    *   }}}
     *
-    * This op requires that `-1 - input.rank <= axis <= input.rank`.
+    *   This op requires that `-1 - input.rank <= axis <= input.rank`.
     *
-    * This is related to `squeeze`, which removes dimensions of size 1.
+    *   This is related to `squeeze`, which removes dimensions of size 1.
     *
     * @define OpDocBasicSqueeze
-    * The `squeeze` op removes dimensions of size 1 from the shape of a tensor and returns the result as a new tensor.
+    *   The `squeeze` op removes dimensions of size 1 from the shape of a tensor and returns the result as a new tensor.
     *
-    * Given a tensor `input`, the op returns a tensor of the same data type, with all dimensions of size 1 removed. If
-    * `axes` is specified, then only the dimensions specified by that array will be removed. In that case, all these
-    * dimensions need to have size 1.
+    *   Given a tensor `input`, the op returns a tensor of the same data type, with all dimensions of size 1 removed.
+    *   If `axes` is specified, then only the dimensions specified by that array will be removed. In that case, all
+    *   these dimensions need to have size 1.
     *
-    * For example:
-    * {{{
-    *   // 't' is a tensor of shape [1, 2, 1, 3, 1, 1]
-    *   t.squeeze().shape == Shape(2, 3)
-    *   t.squeeze(Array(2, 4)).shape == Shape(1, 2, 3, 1)
-    * }}}
+    *   For example:
+    *   {{{
+    *      // 't' is a tensor of shape [1, 2, 1, 3, 1, 1]
+    *      t.squeeze().shape == Shape(2, 3)
+    *      t.squeeze(Array(2, 4)).shape == Shape(1, 2, 3, 1)
+    *   }}}
     *
     * @define OpDocBasicStack
-    * The `stack` op stacks a list of rank-`R` tensors into one rank-`(R+1)` tensor.
+    *   The `stack` op stacks a list of rank-`R` tensors into one rank-`(R+1)` tensor.
     *
-    * The op packs the list of tensors in `inputs` into a tensor with rank one higher than each tensor in `inputs`, by
-    * packing them along the `axis` dimension. Given a list of `N` tensors of shape `[A, B, C]`:
+    *   The op packs the list of tensors in `inputs` into a tensor with rank one higher than each tensor in `inputs`, by
+    *   packing them along the `axis` dimension. Given a list of `N` tensors of shape `[A, B, C]`:
     *   - If `axis == 0`, then the output tensor will have shape `[N, A, B, C]`.
     *   - If `axis == 1`, then the output tensor will have shape `[A, N, B, C]`.
     *   - If `axis == -1`, then the output tensor will have shape `[A, B, C, N]`.
     *   - etc.
     *
-    * For example:
-    * {{{
-    *   // 'x' is [1, 4]
-    *   // 'y' is [2, 5]
-    *   // 'z' is [3, 6]
-    *   stack(Array(x, y, z)) ==> [[1, 4], [2, 5], [3, 6]]          // Packed along the first dimension.
-    *   stack(Array(x, y, z), axis = 1) ==> [[1, 2, 3], [4, 5, 6]]  // Packed along the second dimension.
-    * }}}
+    *   For example:
+    *   {{{
+    *      // 'x' is [1, 4]
+    *      // 'y' is [2, 5]
+    *      // 'z' is [3, 6]
+    *      stack(Array(x, y, z)) ==> [[1, 4], [2, 5], [3, 6]]          // Packed along the first dimension.
+    *      stack(Array(x, y, z), axis = 1) ==> [[1, 2, 3], [4, 5, 6]]  // Packed along the second dimension.
+    *   }}}
     *
-    * This op is the opposite of `unstack`.
+    *   This op is the opposite of `unstack`.
     *
     * @define OpDocBasicParallelStack
-    * The `parallelStack` op stacks a list of rank-`R` tensors into one rank-`(R+1)` tensor, in parallel.
+    *   The `parallelStack` op stacks a list of rank-`R` tensors into one rank-`(R+1)` tensor, in parallel.
     *
-    * The op packs the list of tensors in `inputs` into a tensor with rank one higher than each tensor in `inputs`, by
-    * packing them along the first dimension. Given a list of `N` tensors of shape `[A, B, C]`, the output tensor will
-    * have shape `[N, A, B, C]`.
+    *   The op packs the list of tensors in `inputs` into a tensor with rank one higher than each tensor in `inputs`, by
+    *   packing them along the first dimension. Given a list of `N` tensors of shape `[A, B, C]`, the output tensor will
+    *   have shape `[N, A, B, C]`.
     *
-    * For example:
-    * {{{
-    *   // 'x' is [1, 4]
-    *   // 'y' is [2, 5]
-    *   // 'z' is [3, 6]
-    *   parallelStack(Array(x, y, z)) ==> [[1, 4], [2, 5], [3, 6]]
-    * }}}
+    *   For example:
+    *   {{{
+    *      // 'x' is [1, 4]
+    *      // 'y' is [2, 5]
+    *      // 'z' is [3, 6]
+    *      parallelStack(Array(x, y, z)) ==> [[1, 4], [2, 5], [3, 6]]
+    *   }}}
     *
-    * The op requires that the shape of all input tensors is known at graph construction time.
+    *   The op requires that the shape of all input tensors is known at graph construction time.
     *
-    * The difference between `stack` and `parallelStack` is that `stack` requires all of the inputs be computed before
-    * the operation will begin executing, but does not require that the input shapes be known during graph construction.
-    * `parallelStack` will copy pieces of the input into the output as they become available. In some situations this
-    * can provide a performance benefit.
+    *   The difference between `stack` and `parallelStack` is that `stack` requires all of the inputs be computed before
+    *   the operation will begin executing, but does not require that the input shapes be known during graph
+    *   construction. `parallelStack` will copy pieces of the input into the output as they become available. In some
+    *   situations this can provide a performance benefit.
     *
     * @define OpDocBasicUnstack
-    * The `unstack` op unpacks the provided dimension of a rank-`R` tensor into a list of rank-`(R-1)` tensors.
+    *   The `unstack` op unpacks the provided dimension of a rank-`R` tensor into a list of rank-`(R-1)` tensors.
     *
-    * The op unpacks `number` tensors from `input` by chipping it along the `axis` dimension. If `number == -1` (i.e.,
-    * unspecified), its value is inferred from the shape of `input`. If `input.shape(axis)` is not known, then an
-    * [[IllegalArgumentException]] is thrown.
+    *   The op unpacks `number` tensors from `input` by chipping it along the `axis` dimension. If `number == -1` (i.e.,
+    *   unspecified), its value is inferred from the shape of `input`. If `input.shape(axis)` is not known, then an
+    *   [[IllegalArgumentException]] is thrown.
     *
-    * For example, given a tensor of shape `[A, B, C, D]`:
+    *   For example, given a tensor of shape `[A, B, C, D]`:
     *   - If `axis == 0`, then the `i`th tensor in the output is the slice `input(i, ::, ::, ::)` and each tensor in the
     *     output will have shape `[B, C, D]`.
     *   - If `axis == 1`, then the `i`th tensor in the output is the slice `input(::, i, ::, ::)` and each tensor in the
@@ -3368,7 +3210,200 @@ private[api] object Basic extends Basic {
     *     the output will have shape `[A, B, C]`.
     *   - etc.
     *
-    * This op is the opposite of `stack`.
+    *   This op is the opposite of `stack`.
+    *
+    * @define OpDocBasicConcatenate
+    *   The `concatenate` op concatenates tensors along one dimension.
+    *
+    *   The op concatenates the list of tensors `inputs` along the dimension `axis`. If
+    *   `inputs(i).shape = [D0, D1, ..., Daxis(i), ..., Dn]`, then the concatenated tensor will have shape
+    *   `[D0, D1, ..., Raxis, ..., Dn]`, where `Raxis = sum(Daxis(i))`. That is, the data from the input tensors is
+    *   joined along the `axis` dimension.
+    *
+    *   For example:
+    *   {{{
+    *      // 't1' is equal to [[1, 2, 3], [4, 5, 6]]
+    *      // 't2' is equal to [[7, 8, 9], [10, 11, 12]]
+    *      concatenate(Array(t1, t2), 0) ==> [[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12]]
+    *      concatenate(Array(t1, t2), 1) ==> [[1, 2, 3, 7, 8, 9], [4, 5, 6, 10, 11, 12]]
+    *
+    *      // 't3' has shape [2, 3]
+    *      // 't4' has shape [2, 3]
+    *      concatenate(Array(t3, t4), 0).shape ==> [4, 3]
+    *      concatenate(Array(t3, t4), 1).shape ==> [2, 6]
+    *   }}}
+    *
+    *   Note that, if you want to concatenate along a new axis, it may be better to use the `stack` op instead:
+    *   {{{
+    *      concatenate(tensors.map(t => expandDims(t, axis)), axis) == stack(tensors, axis)
+    *   }}}
+    *
+    * @define OpDocBasicConcatenateOffset
+    *   The `concatenateOffset` op computes offsets of `concatenate` inputs within its output.
+    *
+    *   For example:
+    *   {{{
+    *      // 'x' is a tensor containing values [2, 2, 7]
+    *      // 'y' is a tensor containing values [2, 3, 7]
+    *      // 'z' is a tensor containing values [2, 5, 7]
+    *      concatenateOffset(Seq(x, y, z), 2) ==> [0, 0, 0], [0, 2, 0], [0, 5, 0]
+    *   }}}
+    *
+    *   This function is typically used by gradient computations for a `concatenate` op.
+    *
+    * @define OpDocBasicSplitEvenly
+    *   The `splitEvenly` op splits a tensor into sub-tensors.
+    *
+    *   The op splits `input` along dimension `axis` into `numSplits` smaller tensors. It requires that `numSplits`
+    *   evenly splits `input.shape(axis)`.
+    *
+    *   For example:
+    *   {{{
+    *      // 't' is a tensor with shape [5, 30]
+    *      // Split 't' into 3 tensors along dimension 1:
+    *      val splits = split(t, numSplits = 3, axis = 1)
+    *      splits(0).shape ==> [5, 10]
+    *      splits(1).shape ==> [5, 10]
+    *      splits(2).shape ==> [5, 10]
+    *   }}}
+    *
+    * @define OpDocBasicSplit
+    *   The `split` op splits a tensor into sub-tensors.
+    *
+    *   The op splits `input` along dimension `axis` into `splitSizes.length` smaller tensors. The shape of the `i`-th
+    *   smaller tensor has the same size as the `input` except along dimension `axis` where the size is equal to
+    *   `   splitSizes(i)`.
+    *
+    *   For example:
+    *   {{{
+    *      // 't' is a tensor with shape [5, 30]
+    *      // Split 't' into 3 tensors with sizes [4, 5, 11] along dimension 1:
+    *      val splits = split(t, splitSizes = [4, 15, 11], axis = 1)
+    *      splits(0).shape ==> [5, 4]
+    *      splits(1).shape ==> [5, 15]
+    *      splits(2).shape ==> [5, 11]
+    *   }}}
+    *
+    * @define OpDocBasicTile
+    *   The `tile` op tiles the provided input tensor.
+    *
+    *   The op creates a new tensor by replicating `input` `multiples` times. The output tensor's `i`th dimension has
+    *   `input.shape(i) * multiples(i)` elements, and the values of `input` are replicated `multiples(i)` times along
+    *   the `i`th dimension. For example, tiling `[a b c d]` by `[2]` produces `[a b c d a b c d]`.
+    *
+    * @define OpDocBasicPad
+    *   The `pad` op pads a tensor with zeros.
+    *
+    *   The op pads `input` with values specified by the padding mode, `mode`, according to the `paddings` you specify.
+    *
+    *   `paddings` is an integer tensor with shape `[n, 2]`, where `n` is the rank of `input`. For each dimension `D` of
+    *   `input`, `paddings(D, 0)` indicates how many zeros to add before the contents of `input` in that dimension, and
+    *   `paddings(D, 1)` indicates how many zeros to add after the contents of `input` in that dimension.
+    *
+    *   If `mode` is [[ReflectivePadding]] then both `paddings(D, 0)` and `paddings(D, 1)` must be no greater than
+    *   `input.shape(D) - 1`. If `mode` is [[SymmetricPadding]] then both `paddings(D, 0)` and `paddings(D, 1)` must be
+    *   no greater than `input.shape(D)`.
+    *
+    *   The padded size of each dimension `D` of the output is equal to
+    *   `paddings(D, 0) + input.shape(D) + paddings(D, 1)`.
+    *
+    *   For example:
+    *   {{{
+    *     // 'input' = [[1, 2, 3], [4, 5, 6]]
+    *     // 'paddings' = [[1, 1], [2, 2]]
+    *
+    *     pad(input, paddings, ConstantPadding) ==>
+    *       [[0, 0, 0, 0, 0, 0, 0],
+    *        [0, 0, 1, 2, 3, 0, 0],
+    *        [0, 0, 4, 5, 6, 0, 0],
+    *        [0, 0, 0, 0, 0, 0, 0]]
+    *
+    *     pad(input, paddings, ReflectivePadding) ==>
+    *       [[6, 5, 4, 5, 6, 5, 4],
+    *        [3, 2, 1, 2, 3, 2, 1],
+    *        [6, 5, 4, 5, 6, 5, 4],
+    *        [3, 2, 1, 2, 3, 2, 1]]
+    *
+    *     pad(input, paddings, SymmetricPadding) ==>
+    *       [[2, 1, 1, 2, 3, 3, 2],
+    *        [2, 1, 1, 2, 3, 3, 2],
+    *        [5, 4, 4, 5, 6, 6, 5],
+    *        [5, 4, 4, 5, 6, 6, 5]]
+    *   }}}
+    * 
+    * @define OpDocBasicReshape
+    *   The `reshape` op reshapes a tensor.
+    *
+    *   Given `input`, the op returns a tensor that has the same values as `input` but has shape `shape`. If one
+    *   component of `shape` is the special value `-1`, then the size of that dimension is computed so that the total
+    *   size remains constant. In particular, a `shape` of `[-1]` flattens a tensor into a one-dimensional tensor. At
+    *   most one component of `shape` can be set to `-1`.
+    *
+    *   If `shape` is a one-dimensional or higher tensor, then the operation returns a tensor with shape `shape` filled
+    *   with the values of `input`. In this case, the number of elements implied by `shape` must be the same as the
+    *   number of elements in `input`.
+    *
+    *   For example:
+    *   {{{
+    *     // Tensor 't' is [1, 2, 3, 4, 5, 6, 7, 8, 9] => It has shape [9]
+    *     reshape(t, [3, 3]) ==> [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+    *
+    *     // Tensor 't' is [[[1, 1], [2, 2]],
+    *     //                [[3, 3], [4, 4]]] => It has shape [2, 2, 2]
+    *     reshape(t, [2, 4] ==> [[1, 1, 2, 2],
+    *                            [3, 3, 4, 4]]
+    *
+    *     // Tensor 't' is [[[1, 1, 1],
+    *                        [2, 2, 2]],
+    *                       [[3, 3, 3],
+    *                        [4, 4, 4]],
+    *                       [[5, 5, 5],
+    *                        [6, 6, 6]]] => It has shape [3, 2, 3]
+    *     reshape(t, [-1]) ==> [1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 6]
+    *
+    *     // '-1' can also be used to infer the shape. Some examples follow.
+    *
+    *     // '-1' is inferred to be 9:
+    *     reshape(t, [2, -1]) ==> [[1, 1, 1, 2, 2, 2, 3, 3, 3],
+    *                              [4, 4, 4, 5, 5, 5, 6, 6, 6]]
+    *
+    *     // '-1' is inferred to be 2:
+    *     reshape(t, [-1, 9]) ==> [[1, 1, 1, 2, 2, 2, 3, 3, 3],
+    *                              [4, 4, 4, 5, 5, 5, 6, 6, 6]]
+    *
+    *     // '-1' is inferred to be 3:
+    *     reshape(t, [ 2, -1, 3]) ==> [[[1, 1, 1],
+    *                                   [2, 2, 2],
+    *                                   [3, 3, 3]],
+    *                                  [[4, 4, 4],
+    *                                   [5, 5, 5],
+    *                                   [6, 6, 6]]]
+    *
+    *     // Tensor 't' is [7]
+    *     // An empty shape passed to 'reshape' will result in a scalar
+    *     reshape(t, []) ==> 7
+    *   }}}
+    *
+    * @define OpDocBasicTranspose
+    *   The `transpose` op permutes the dimensions of a tensor according to a provided permutation.
+    *
+    *   The returned tensor's dimension `i` will correspond to `input` dimension `permutation(i)`. If `permutation` is
+    *   not provided, then it is set to `(n - 1, ..., 0)`, where `n` is the rank of the input tensor. Hence by default,
+    *   the op performs a regular matrix transpose on two-dimensional input tensors.
+    *
+    *   For example:
+    *   {{{
+    *     // Tensor 'x' is [[1, 2, 3], [4, 5, 6]]
+    *     transpose(x) ==> [[1, 4], [2, 5], [3, 6]]
+    *     transpose(x, permutation = Array(1, 0)) ==> [[1, 4], [2, 5], [3, 6]]
+    *
+    *     // Tensor 'x' is [[[1, 2, 3],
+    *     //                 [4, 5, 6]],
+    *     //                [[7, 8, 9],
+    *     //                 [10, 11, 12]]]
+    *     transpose(x, permutation = Array(0, 2, 1)) ==> [[[1,  4], [2,  5], [3,  6]],
+    *                                                     [[7, 10], [8, 11], [9, 12]]]
+    * }}}
     */
   private[ops] trait Documentation
 }

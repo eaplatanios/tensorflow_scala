@@ -83,6 +83,15 @@ package object api extends Implicits with Documentation {
 
   type ProtoSerializable = utilities.Proto.Serializable
 
+  /** @groupname BasicOps Ops / Basic
+    * @groupprio BasicOps 100
+    *
+    * @groupname MathOps  Ops / Math
+    * @groupprio MathOps  200
+    *
+    * @groupname NNOps    Ops / NN
+    * @groupprio NNOps    300
+    */
   object tf
       extends core.API
           with ops.API
@@ -90,6 +99,15 @@ package object api extends Implicits with Documentation {
     object learn extends api.learn.API
   }
 
+  /** @groupname BasicOps Ops / Basic
+    * @groupprio BasicOps 100
+    *
+    * @groupname MathOps  Ops / Math
+    * @groupprio MathOps  200
+    *
+    * @groupname NNOps    Ops / NN
+    * @groupprio NNOps    300
+    */
   object tfe
       extends core.API
           with tensors.API
