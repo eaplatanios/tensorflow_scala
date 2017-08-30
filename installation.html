@@ -1,0 +1,87 @@
+<html><head><title>TensorFlow for Scala</title><meta charset="utf-8" /><meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="author" content="Emmanouil Antonios Platanios" /><meta name="description" content="Scala API for TensorFlow" /><meta name="og:image" content="/tensorflow_scala/img/poster.png" /><meta name="og:title" content="TensorFlow for Scala" /><meta name="og:site_name" content="TensorFlow for Scala" /><meta name="og:url" content="https://platanios.org/tensorflow/" /><meta name="og:type" content="website" /><meta name="og:description" content="Scala API for TensorFlow" /><link rel="icon" type="image/png" href="/tensorflow_scala/img/favicon.png" /><meta name="twitter:title" content="TensorFlow for Scala" /><meta name="twitter:image" content="https://platanios.org/tensorflow/img/poster.png" /><meta name="twitter:description" content="Scala API for TensorFlow" /><meta name="twitter:card" content="summary_large_image" /><link rel="icon" type="image/png" sizes="16x16" href="/tensorflow_scala/img/favicon16x16.png" /><link rel="icon" type="image/png" sizes="24x24" href="/tensorflow_scala/img/favicon24x24.png" /><link rel="icon" type="image/png" sizes="32x32" href="/tensorflow_scala/img/favicon32x32.png" /><link rel="icon" type="image/png" sizes="48x48" href="/tensorflow_scala/img/favicon48x48.png" /><link rel="icon" type="image/png" sizes="57x57" href="/tensorflow_scala/img/favicon57x57.png" /><link rel="icon" type="image/png" sizes="60x60" href="/tensorflow_scala/img/favicon60x60.png" /><link rel="icon" type="image/png" sizes="64x64" href="/tensorflow_scala/img/favicon64x64.png" /><link rel="icon" type="image/png" sizes="70x70" href="/tensorflow_scala/img/favicon70x70.png" /><link rel="icon" type="image/png" sizes="72x72" href="/tensorflow_scala/img/favicon72x72.png" /><link rel="icon" type="image/png" sizes="76x76" href="/tensorflow_scala/img/favicon76x76.png" /><link rel="icon" type="image/png" sizes="96x96" href="/tensorflow_scala/img/favicon96x96.png" /><link rel="icon" type="image/png" sizes="114x114" href="/tensorflow_scala/img/favicon114x114.png" /><link rel="icon" type="image/png" sizes="120x120" href="/tensorflow_scala/img/favicon120x120.png" /><link rel="icon" type="image/png" sizes="128x128" href="/tensorflow_scala/img/favicon128x128.png" /><link rel="icon" type="image/png" sizes="144x144" href="/tensorflow_scala/img/favicon144x144.png" /><link rel="icon" type="image/png" sizes="150x150" href="/tensorflow_scala/img/favicon150x150.png" /><link rel="icon" type="image/png" sizes="152x152" href="/tensorflow_scala/img/favicon152x152.png" /><link rel="icon" type="image/png" sizes="196x196" href="/tensorflow_scala/img/favicon196x196.png" /><link rel="icon" type="image/png" sizes="310x310" href="/tensorflow_scala/img/favicon310x310.png" /><link rel="icon" type="image/png" sizes="310x150" href="/tensorflow_scala/img/favicon310x150.png" /><link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" /><link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" /><link rel="stylesheet" href="/tensorflow_scala/highlight/styles/hybrid.css" /><link rel="stylesheet" href="/tensorflow_scala/css/style.css" /><link rel="stylesheet" href="/tensorflow_scala/css/palette.css" /><link rel="stylesheet" href="/tensorflow_scala/css/codemirror.css" /><link rel="stylesheet" href="/tensorflow_scala/css/kazari-style.css" /><link rel="stylesheet" href="/tensorflow_scala/css/monokai.css" /><link rel="stylesheet" href="/tensorflow_scala/css/override.css" /></head><body><header id="site-header"><div class="navbar-wrapper navbar-inverse"><div class="container"><div class="navbar-header"><button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false"><span class="sr-only">Toggle navigation</span><span class="icon-bar"></span><span class="icon-bar"></span><span class="icon-bar"></span></button><a href="/tensorflow_scala/" class="brand"><div class="icon-wrapper"><span>TensorFlow for Scala</span></div></a></div><nav class="text-right"><ul class=""><li><a href="https://github.com/eaplatanios/tensorflow_scala"><i class="fa fa-github"></i><span class="hidden-xs">GitHub</span></a></li><li><a href="/tensorflow_scala/docs"><i class="fa fa-file-text"></i><span class="hidden-xs">Documentation</span></a></li></ul></nav></div></div><div class="jumbotron" style="background-image:url('/tensorflow_scala/img/jumbotron_pattern.png')"></div><div><ul class="horizontalNav">         <li><a class="" href="/tensorflow_scala/">Home</a></li>  <li><a class=" active " href="/tensorflow_scala/installation.html">Installation</a></li>  <li><a class="" href="/tensorflow_scala/contributing.html">Contributing</a></li> </ul></div></header><main id="site-main"><section class="use"><div class="container"><div id="content"><h1 id="installation">Installation</h1>
+
+<p>You first need to make sure you have the TensorFlow dynamic library 
+installed. You can either download pre-compiled versions of it, or you 
+can compile it yourself from the TensorFlow sources.</p>
+
+<p><strong>NOTE:</strong> <em>The pre-compiled versions that you can download are not 
+currently supported. Please compile the native library yourself. The 
+pre-compiled versions will start working again once their updated as 
+the Scala API depends on some functionality that was added after the 
+last release.</em></p>
+
+<h2 id="downloading-the-tensorflow-dynamic-library">Downloading the TensorFlow Dynamic Library</h2>
+
+<p>You can download it from one of the following links:</p>
+<ul>
+  <li><strong>Linux:</strong>
+    <ul>
+      <li>CPU-only: <a href="https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-linux-x86_64-1.3.0.tar.gz">https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-linux-x86_64-1.3.0.tar.gz</a></li>
+      <li>GPU-enabled: <a href="https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-gpu-linux-x86_64-1.3.0.tar.gz">https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-gpu-linux-x86_64-1.3.0.tar.gz</a></li>
+    </ul>
+  </li>
+  <li><strong>Mac:</strong>
+    <ul>
+      <li>CPU-only: <a href="https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-darwin-x86_64-1.3.0.tar.gz">https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-darwin-x86_64-1.3.0.tar.gz</a></li>
+    </ul>
+  </li>
+  <li><strong>Windows:</strong>
+    <ul>
+      <li>CPU-only: <a href="https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-windows-x86_64-1.3.0.zip">https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-windows-x86_64-1.3.0.zip</a></li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="compiling-the-tensorflow-dynamic-library">Compiling the TensorFlow Dynamic Library</h2>
+
+<p>Perform the following steps:</p>
+<ol>
+  <li>Clone the 
+<a href="https://github.com/tensorflow/tensorflow">TensorFlow repository</a> 
+in a directory (e.g., <code class="highlighter-rouge">tensorflow</code>).</li>
+  <li>
+    <p>Compile the TensorFlow dynamic library by running the following
+commands in that directory:</p>
+
+    <div class="language-bash highlighter-rouge"><pre class="highlight"><code>./configure
+bazel build --config<span class="o">=</span>opt //tensorflow:libtensorflow.so
+</code></pre>
+    </div>
+
+    <p>Make sure to add the <code class="highlighter-rouge">--config=cuda</code> option when running the last
+command, if compiling with CUDA support.</p>
+  </li>
+  <li>Copy the <code class="highlighter-rouge">bazel-bin/tensorflow/libtensorflow.so</code> (possibly having 
+a different extension, depending on the platform you’re using) 
+file in a directory that is in <code class="highlighter-rouge">LD_LIBRARY_PATH</code>, or set 
+<code class="highlighter-rouge">LD_LIBRARY_PATH</code> appropriately.</li>
+</ol>
+
+<h2 id="installing-the-protocol-buffers-compiler">Installing the Protocol Buffers Compiler</h2>
+
+<p>You also need protoc, the Protocol Buffers compiler.</p>
+
+<p>On Debian/Ubuntu, you can install it with APT:</p>
+
+<div class="language-bash highlighter-rouge"><pre class="highlight"><code>apt install protobuf-compiler
+</code></pre>
+</div>
+
+<p>You can also download prebuild binaries from <a href="https://github.com/google/protobuf/releases/">https://github.com/google/protobuf/releases/</a>
+(choose the protoc variant appropriate for your platform).</p>
+
+<h2 id="compiling-the-tensorflow-scala-api">Compiling the TensorFlow Scala API</h2>
+
+<p>First make sure you have <a href="https://cmake.org/install/">CMake</a> installed, 
+and that the TensorFlow dynamic library is in the path. Then, you can<br />
+compile the Scala API by running the following command from within the 
+<code class="highlighter-rouge">tensorflow_scala</code> directory:</p>
+
+<div class="language-bash highlighter-rouge"><pre class="highlight"><code>sbt compile
+</code></pre>
+</div>
+</div></div></section></main><footer id="site-footer"><div class="container"><div class="row"><div class="col-xs-6"><p>TensorFlow for Scala is designed and developed by <a href="http://platanios.org" target="_blank">Emmanouil Antonios Platanios</a></p></div><div class="col-xs-6"><p class="text-right"><a href="https://github.com/eaplatanios/tensorflow_scala"><span class="fa fa-github"></span>View on GitHub</a></p></div></div><div class="row"><div class="col-xs-6"><p>Website built with <a href="https://47deg.github.io/sbt-microsites/" target="_blank">Sbt-microsites</a> - © 2016 <a href="https://www.47deg.com/" target="_blank">47 Degrees</a></p></div></div></div></footer><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script><script src="/tensorflow_scala/highlight/highlight.pack.js"></script><script>hljs.configure({
+languages:['scala','java','bash']
+});
+hljs.initHighlighting();
+             </script></body></html>
