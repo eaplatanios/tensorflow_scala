@@ -367,7 +367,8 @@ private[api] trait Basic {
 
   /** $OpDocBasicBatchToSpace
     *
-    * @group BatchOps
+    * @group BasicOps
+    *
     * @param  input     `4`-dimensional input tensor with shape `[batch, height, width, depth]`.
     * @param  blockSize Block size which must be greater than `1`.
     * @param  crops     `2`-dimensional [[INT32]] or [[INT64]] tensor containing non-negative integers with shape
@@ -996,7 +997,7 @@ private[api] object Basic extends Basic {
 
     /** $OpDocBasicBatchToSpace
       *
-      * @group BatchOps
+      * @group BasicOps
       *
       * @param  blockSize Block size which must be greater than `1`.
       * @param  crops     `2`-dimensional [[INT32]] or [[INT64]] tensor containing non-negative integers with shape

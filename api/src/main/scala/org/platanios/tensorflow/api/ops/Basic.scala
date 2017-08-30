@@ -1007,7 +1007,7 @@ private[api] trait Basic {
 
   /** $OpDocBasicBatchToSpace
     *
-    * @group BatchOps
+    * @group BasicOps
     *
     * @param  input     `4`-dimensional input tensor with shape `[batch, height, width, depth]`.
     * @param  blockSize Block size which must be greater than `1`.
