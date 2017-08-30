@@ -17,7 +17,6 @@ logBuffered in Test := false
 
 //scalacOptions in (ThisBuild, Compile, doc) ++= Opts.doc.externalAPI((
 //  file(s"${(packageBin in Compile).value}") -> url("http://platanios.org/")) :: Nil)
-autoAPIMappings := true
 
 lazy val loggingDependencies = Seq(
   "com.typesafe.scala-logging" %% "scala-logging" % "3.5.0",
@@ -28,7 +27,7 @@ lazy val loggingDependencies = Seq(
 )
 
 lazy val all = (project in file("."))
-    .aggregate(jni, api, data, examples)
+    .aggregate(jni, api, data, examples, site)
     .settings(
       sourcesInBase := false,
       unmanagedSourceDirectories in Compile := Nil,
@@ -131,4 +130,37 @@ lazy val examples = (project in file("./examples"))
     .settings(
       name := "examples",
       libraryDependencies ++= loggingDependencies
+    )
+
+lazy val site = (project in file("./site"))
+    .dependsOn(api)
+    .enablePlugins(MicrositesPlugin)
+    .settings(
+      name := "tensorflow-site",
+      // libraryDependencies += "org.scalameta" %% "scalameta" % "1.8.0" % Provided,
+      // libraryDependencies += "org.scalameta" %% "contrib" % "1.8.0",
+      tutSourceDirectory := (sourceDirectory in Compile).value / "site",
+      micrositeName := "TensorFlow for Scala",
+      micrositeDescription := "Scala API for TensorFlow",
+      micrositeDocumentationUrl := "/docs",
+      micrositeAuthor := "Emmanouil Antonios Platanios",
+      micrositeHomepage := "https://platanios.org/tensorflow/",
+      micrositeOrganizationHomepage := "http://platanios.org",
+      micrositeGithubOwner := "eaplatanios",
+      micrositeGithubRepo := "tensorflow_scala",
+      micrositeGitterChannel := false,
+      micrositeHighlightTheme := "hybrid",
+      micrositeImgDirectory := (resourceDirectory in Compile).value / "site" / "img",
+      micrositeCssDirectory := (resourceDirectory in Compile).value / "site" / "css",
+      micrositeJsDirectory := (resourceDirectory in Compile).value / "site" / "js",
+      micrositePalette := Map(
+        "brand-primary"     -> "#E05236",
+        "brand-secondary"   -> "#455A64",
+        "brand-tertiary"    -> "#39474E", // "#303C42",
+        "gray-dark"         -> "#453E46",
+        "gray"              -> "#837F84",
+        "gray-light"        -> "#E3E2E3",
+        "gray-lighter"      -> "#F4F3F4",
+        "white-color"       -> "#FFFFFF"),
+      autoAPIMappings := true
     )

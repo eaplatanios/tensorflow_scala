@@ -9,6 +9,7 @@ libraryDependencies ++= Seq(
 
 addSbtPlugin("com.thoughtworks.sbt-api-mappings" % "sbt-api-mappings" % "latest.release")
 addSbtPlugin("com.github.gseitz" % "sbt-protobuf" % "0.6.2")
+addSbtPlugin("com.47deg"  % "sbt-microsites" % "0.6.1")
 
 //resolvers += Resolver.bintrayRepo("tek", "maven")
 addCompilerPlugin("io.tryp" %% "splain" % "0.2.4")

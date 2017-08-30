@@ -1,0 +1,8 @@
+options:
+  - title: Getting Started
+    url: docs/index.html
+    menu_section: getting_started
+
+    nested_options:
+      - title: Tensors
+        url: docs/getting_started/tensors.html
