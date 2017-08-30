@@ -14,10 +14,10 @@ matrix:
             - ubuntu-toolchain-r-test
           packages:
             - g++-4.9
-    - os: osx
-      osx_image: xcode8
-      env:
-        - SBT_VERSION_CMD="^validate ^validateUniversal"
+#    - os: osx
+#      osx_image: xcode8
+#      env:
+#        - SBT_VERSION_CMD="^validate ^validateUniversal"
 
 env:
   - CXX=g++-4.9
@@ -42,5 +42,4 @@ install:
   - sudo tar xvf $TF_LIB_NAME -C /usr
 
 script:
-  - sbt compile
-  # - sbt ++$TRAVIS_SCALA_VERSION test
+  - sbt ++$TRAVIS_SCALA_VERSION test
