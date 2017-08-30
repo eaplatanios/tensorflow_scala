@@ -2,13 +2,15 @@ organization in ThisBuild := "org.platanios"
 version in ThisBuild := "0.1"
 scalaVersion in ThisBuild := "2.12.3"
 crossScalaVersions := Seq("2.11.8", "2.12.3")
-licenses in ThisBuild := Seq(("Apache License 2.0", url("https://www.apache.org/licenses/LICENSE-2.0.txt")))
+licenses in ThisBuild := Seq("Apache License 2.0" -> url("https://www.apache.org/licenses/LICENSE-2.0.txt"))
 
 val tensorFlowVersion = "1.3.0"
 
 scalacOptions in ThisBuild ++= Seq(
   "-deprecation",
   "-feature",
+  "-language:existentials",
+  "-language:higherKinds",
   "-language:implicitConversions",
   "-unchecked"
 )
@@ -94,6 +96,7 @@ lazy val jni = (project in file("./jni"))
 lazy val api = (project in file("./api"))
     .dependsOn(jni)
     .enablePlugins(ProtobufPlugin)
+    .settings(publishSettings)
     .settings(
       name := "tensorflow-api",
       libraryDependencies ++= loggingDependencies,
@@ -110,9 +113,7 @@ lazy val api = (project in file("./api"))
       libraryDependencies += "com.google.protobuf" % "protobuf-java" % (version in ProtobufConfig).value % ProtobufConfig.name,
       sourceDirectory in ProtobufConfig := sourceDirectory.value / "main" / "proto",
       javaSource in ProtobufConfig := ((sourceDirectory in Compile).value / "generated" / "java"),
-      sourceDirectories in Compile += sourceDirectory.value / "main" / "generated" / "java",
-      // ScalaDoc settings
-      scalacOptions in (Compile, doc) := Seq("-groups", "-implicits-show-all")
+      sourceDirectories in Compile += sourceDirectory.value / "main" / "generated" / "java"
     )
 
 lazy val data = (project in file("./data"))
@@ -134,12 +135,30 @@ lazy val examples = (project in file("./examples"))
 
 lazy val site = (project in file("./site"))
     .dependsOn(api)
-    .enablePlugins(MicrositesPlugin)
+    .enablePlugins(ScalaUnidocPlugin, MicrositesPlugin)
+    .settings(publishSettings)
+    .settings(noPublishSettings)
     .settings(
       name := "tensorflow-site",
+      autoAPIMappings := true,
+      siteSubdirName in ScalaUnidoc := "api",
+      unidocProjectFilter in (ScalaUnidoc, unidoc) := inProjects(jni, api, data, examples),
+      addMappingsToSiteDir(mappings in (ScalaUnidoc, packageDoc), siteSubdirName in ScalaUnidoc),
+      ghpagesNoJekyll := false,
+      fork in (ScalaUnidoc, unidoc) := true,
+      scalacOptions in (ScalaUnidoc, unidoc) ++= Seq(
+        //"-Xfatal-warnings",
+        "-doc-source-url", scmInfo.value.get.browseUrl + "/tree/master€{FILE_PATH}.scala",
+        "-sourcepath", baseDirectory.in(LocalRootProject).value.getAbsolutePath,
+        // "=diagrams",
+        "-groups",
+        "-implicits-show-all"
+      ),
       // libraryDependencies += "org.scalameta" %% "scalameta" % "1.8.0" % Provided,
       // libraryDependencies += "org.scalameta" %% "contrib" % "1.8.0",
       tutSourceDirectory := (sourceDirectory in Compile).value / "site",
+      fork in tut := true,
+      scalacOptions in Tut ~= (_.filterNot(Set("-Ywarn-unused-import", "-Ywarn-dead-code"))),
       micrositeName := "TensorFlow for Scala",
       micrositeDescription := "Scala API for TensorFlow",
       micrositeBaseUrl := "/tensorflow_scala",
@@ -164,5 +183,21 @@ lazy val site = (project in file("./site"))
         "gray-light"        -> "#E3E2E3",
         "gray-lighter"      -> "#F4F3F4",
         "white-color"       -> "#FFFFFF"),
-      autoAPIMappings := true
+      includeFilter in makeSite := "*.html" | "*.css" | "*.png" | "*.jpg" | "*.gif" | "*.js" | "*.swf" | "*.yml" | "*.md" | "*.svg",
+      includeFilter in Jekyll := (includeFilter in makeSite).value
     )
+
+lazy val noPublishSettings = Seq(
+  publish := (),
+  publishLocal := (),
+  publishArtifact := false
+)
+
+lazy val publishSettings = Seq(
+  homepage := Some(url("https://github.com/eaplatanios/tensorflow_scala")),
+  licenses := Seq("Apache License 2.0" -> url("https://www.apache.org/licenses/LICENSE-2.0.txt")),
+  scmInfo := Some(ScmInfo(url("https://github.com/eaplatanios/tensorflow_scala"),
+                          "scm:git:git@github.com:eaplatanios/tensorflow_scala.git")),
+  autoAPIMappings := true,
+  apiURL := Some(url("http://eaplatanios.github.io/tensorflow_scala/api/"))
+)
