@@ -2742,11 +2742,11 @@ private[api] object Basic extends Basic {
     *   `blockSize` indicates the block size:
     *     - Non-overlapping blocks of size `blockSize x blockSize` in the height and width dimensions are rearranged
     *       into the batch dimension at each location.
-    *     - The batch dimension size of the output tensor is `batch *   blockSize *   blockSize`.
+    *     - The batch dimension size of the output tensor is `batch * blockSize * blockSize`.
     *     - Both `heightPad` and `widthPad` must be divisible by `blockSize`.
     *
     *   The shape of the output will be:
-    *   `[batch *   blockSize *   blockSize, heightPad / blockSize, widthPad / blockSize, depth]`
+    *   `[batch * blockSize * blockSize, heightPad / blockSize, widthPad / blockSize, depth]`
     *
     *   Some examples:
     *   {{{
@@ -2879,7 +2879,7 @@ private[api] object Basic extends Basic {
     *   dimensions. This is the reverse functionality to that of [[spaceToBatch]].
     *
     *   `input` is a `4`-dimensional input tensor with shape
-    *   `[batch *   blockSize *   blockSize, heightPad / blockSize, widthPad / blockSize, depth]`.
+    *   `[batch * blockSize * blockSize, heightPad / blockSize, widthPad / blockSize, depth]`.
     *
     *   `crops` has shape `[2, 2]`. It specifies how many elements to crop from the intermediate result across the
     *   spatial dimensions as follows: `crops = [[cropTom, cropBottom], [cropLeft, cropRight]]`. The shape of the output
@@ -2958,9 +2958,9 @@ private[api] object Basic extends Basic {
     *     3. Reshape `permuted` to produce `reshapedPermuted` of shape:
     *        {{{
     *          [batch / product(blockShape),
-    *          inputShape(1) *   blockShape(0),
+    *          inputShape(1) * blockShape(0),
     *          ...,
-    *          inputShape(M) *   blockShape(M-1),
+    *          inputShape(M) * blockShape(M-1),
     *          ...,
     *          inputShape(M+1),
     *          ...,
@@ -2970,9 +2970,9 @@ private[api] object Basic extends Basic {
     *        the output of shape:
     *        {{{
     *          [batch / product(blockShape),
-    *           inputShape(1) *   blockShape(0) - crops(0, 0) - crops(0, 1),
+    *           inputShape(1) * blockShape(0) - crops(0, 0) - crops(0, 1),
     *          ...,
-    *          inputShape(M) *   blockShape(M-1) - crops(M-1, 0) - crops(M-1, 1),
+    *          inputShape(M) * blockShape(M-1) - crops(M-1, 0) - crops(M-1, 1),
     *          inputShape(M+1),
     *          ...,
     *          inputShape(N-1)]
@@ -3043,11 +3043,11 @@ private[api] object Basic extends Basic {
     *   moved:
     *     - Non-overlapping blocks of size `blockSize x blockSize` in the height and width dimensions are rearranged
     *       into the depth dimension at each location.
-    *     - The depth of the output tensor is `inputDepth *   blockSize *   blockSize`.
+    *     - The depth of the output tensor is `inputDepth * blockSize * blockSize`.
     *     - The input tensor's `height` and `width` must be divisible by `blockSize`.
     *
     *   That is, assuming that `input` is in the shape `[batch, height, width, depth]`, the shape of the output will be:
-    *   `[batch, height / blockSize, width / blockSize, depth *   block_size *   block_size]`.
+    *   `[batch, height / blockSize, width / blockSize, depth * block_size * block_size]`.
     *
     *   This op is useful for resizing the activations between convolutions (but keeping all data), e.g., instead of
     *   pooling. It is also useful for training purely convolutional models.
