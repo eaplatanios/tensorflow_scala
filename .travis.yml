@@ -9,30 +9,34 @@ matrix:
       dist: trusty
       sudo: required
       jdk: oraclejdk8
-      include:
-        - compiler: gcc
-          addons:
-            apt:
-              sources:
-                - ubuntu-toolchain-r-test
-              packages:
-                - g++-4.9
-                - protobuf-compiler
-          env: CXX=g++-4.9
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-4.9
+            - protobuf-compiler
+      env: CXX=g++-4.9
     - os: osx
       osx_image: xcode8.3
+      env: CXX=g++-4.9
 
-install:
+before_install:
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew update; fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew outdated gcc49 || brew upgrade gcc49; fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew install protobuf; fi
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then export TF_LIB_URL=http://ci.tensorflow.org/view/Nightly/job/nightly-libtensorflow/TYPE=cpu-slave/lastSuccessfulBuild/artifact/lib_package/libtensorflow_jni-cpu-linux-x86_64.tar.gz; fi
-  - if [ "$TRAVIS_OS_NAME" == "osx" ];   then export TF_LIB_URL=http://ci.tensorflow.org/view/Nightly/job/nightly-libtensorflow/TYPE=mac-slave/lastSuccessfulBuild/artifact/lib_package/libtensorflow_jni-cpu-darwin-x86_64.tar.gz; fi
-  - wget $TF_LIB_URL -C /usr
   - rvm use 2.2.3 --install --fuzzy
   - gem update --system
   - gem install sass
   - gem install jekyll -v 3.2.1
+
+install:
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then export TF_LIB_NAME=libtensorflow_jni-cpu-linux-x86_64.tar.gz; fi
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then export TF_LIB_URL=http://ci.tensorflow.org/view/Nightly/job/nightly-libtensorflow/TYPE=cpu-slave/lastSuccessfulBuild/artifact/lib_package/$TF_LIB_NAME; fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ];   then export TF_LIB_NAME=libtensorflow_jni-cpu-darwin-x86_64.tar.gz; fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ];   then export TF_LIB_URL=http://ci.tensorflow.org/view/Nightly/job/nightly-libtensorflow/TYPE=mac-slave/lastSuccessfulBuild/artifact/lib_package/$TF_LIB_NAME; fi
+  - wget $TF_LIB_URL
+  - sudo tar xvf $TF_LIB_NAME -C /usr
 
 script:
   - sbt compile
