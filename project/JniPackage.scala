@@ -1,7 +1,7 @@
 import java.io.File
 
 import sbt.{Def, _}
-import sbt.io.Path._
+//import sbt.io.Path._
 import sbt.Keys._
 
 /** Packages libraries built with JniNative. */
