@@ -32,9 +32,9 @@ before_install:
   - gem install jekyll -v 3.2.1
 
 install:
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then export TF_LIB_NAME=libtensorflow_jni-cpu-linux-x86_64.tar.gz; fi
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then export TF_LIB_NAME=libtensorflow-cpu-linux-x86_64.tar.gz; fi
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then export TF_LIB_URL=http://ci.tensorflow.org/view/Nightly/job/nightly-libtensorflow/TYPE=cpu-slave/lastSuccessfulBuild/artifact/lib_package/$TF_LIB_NAME; fi
-  - if [ "$TRAVIS_OS_NAME" == "osx" ];   then export TF_LIB_NAME=libtensorflow_jni-cpu-darwin-x86_64.tar.gz; fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ];   then export TF_LIB_NAME=libtensorflow-cpu-darwin-x86_64.tar.gz; fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ];   then export TF_LIB_URL=http://ci.tensorflow.org/view/Nightly/job/nightly-libtensorflow/TYPE=mac-slave/lastSuccessfulBuild/artifact/lib_package/$TF_LIB_NAME; fi
   - wget $TF_LIB_URL
   - sudo tar xvf $TF_LIB_NAME -C /usr

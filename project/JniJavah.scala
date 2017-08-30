@@ -45,7 +45,6 @@ object JniJavah extends AutoPlugin {
       // The full classpath cannot be used here since it also generates resources. In a project combining JniJavah and
       // JniPackage, we would have a chicken-and-egg problem.
       val classPath: String = ((dependencyClasspath in Compile).value.map(_.data) ++ {
-        (compile in Compile).value
         Seq((classDirectory in Compile).value)
       }).mkString(sys.props("path.separator"))
       val classes = (javahClasses in javah).value
