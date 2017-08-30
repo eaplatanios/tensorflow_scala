@@ -1,7 +1,5 @@
 language: scala
-scala:
-  - 2.11.8
-  - 2.12.3
+scala: 2.12.3
 
 matrix:
   include:
@@ -16,10 +14,11 @@ matrix:
           packages:
             - g++-4.9
             - protobuf-compiler
-      env: CXX=g++-4.9
     - os: osx
       osx_image: xcode8.3
-      env: CXX=g++-4.9
+
+env:
+  - CXX=g++-4.9
 
 before_install:
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew update; fi
