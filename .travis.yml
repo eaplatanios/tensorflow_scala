@@ -16,6 +16,8 @@ matrix:
             - g++-4.9
     - os: osx
       osx_image: xcode8
+      env:
+        - SBT_VERSION_CMD="^validate ^validateUniversal"
 
 env:
   - CXX=g++-4.9
