@@ -3284,68 +3284,68 @@ private[api] object Basic extends Basic {
     *
     *   Simple indexing into a matrix:
     *   {{{
-    *     input = [['a', 'b'], ['c', 'd']]
+    *     input   = [['a', 'b'], ['c', 'd']]
     *     indices = [[0, 0], [1, 1]]
-    *     output = ['a', 'd']
+    *     output  = ['a', 'd']
     *   }}}
     *
     *   Slice indexing into a matrix:
     *   {{{
-    *     input = [['a', 'b'], ['c', 'd']]
+    *     input   = [['a', 'b'], ['c', 'd']]
     *     indices = [[1], [0]]
-    *     output = [['c', 'd'], ['a', 'b']]
+    *     output  = [['c', 'd'], ['a', 'b']]
     *   }}}
     *
     *   Indexing into a three-dimensional tensor:
     *   {{{
-    *     input = [[['a0', 'b0'], ['c0', 'd0']],
-    *              [['a1', 'b1'], ['c1', 'd1']]]
+    *     input   = [[['a0', 'b0'], ['c0', 'd0']],
+    *                [['a1', 'b1'], ['c1', 'd1']]]
     *     indices = [[1]]
-    *     output = [[['a1', 'b1'], ['c1', 'd1']]]
+    *     output  = [[['a1', 'b1'], ['c1', 'd1']]]
     *
-    *     input = [[['a0', 'b0'], ['c0', 'd0']],
-    *              [['a1', 'b1'], ['c1', 'd1']]]
+    *     input   = [[['a0', 'b0'], ['c0', 'd0']],
+    *                [['a1', 'b1'], ['c1', 'd1']]]
     *     indices = [[0, 1], [1, 0]]
-    *     output = [['c0', 'd0'], ['a1', 'b1']]
+    *     output  = [['c0', 'd0'], ['a1', 'b1']]
     *
-    *     input = [[['a0', 'b0'], ['c0', 'd0']],
-    *              [['a1', 'b1'], ['c1', 'd1']]]
+    *     input   = [[['a0', 'b0'], ['c0', 'd0']],
+    *                [['a1', 'b1'], ['c1', 'd1']]]
     *     indices = [[0, 0, 1], [1, 0, 1]]
-    *     output = ['b0', 'b1']
+    *     output  = ['b0', 'b1']
     *   }}}
     *
     *   Batched indexing into a matrix:
     *   {{{
-    *     input = [['a', 'b'], ['c', 'd']]
+    *     input   = [['a', 'b'], ['c', 'd']]
     *     indices = [[[0, 0]], [[0, 1]]]
-    *     output = [['a'], ['b']]
+    *     output  = [['a'], ['b']]
     *   }}}
     *
     *   Batched slice indexing into a matrix:
     *   {{{
-    *     input = [['a', 'b'], ['c', 'd']]
+    *     input   = [['a', 'b'], ['c', 'd']]
     *     indices = [[[1]], [[0]]]
-    *     output = [[['c', 'd']], [['a', 'b']]]
+    *     output  = [[['c', 'd']], [['a', 'b']]]
     *   }}}
     *
     *   Batched indexing into a three-dimensional tensor:
     *   {{{
-    *     input = [[['a0', 'b0'], ['c0', 'd0']],
-    *              [['a1', 'b1'], ['c1', 'd1']]]
+    *     input   = [[['a0', 'b0'], ['c0', 'd0']],
+    *                [['a1', 'b1'], ['c1', 'd1']]]
     *     indices = [[[1]], [[0]]]
-    *     output = [[[['a1', 'b1'], ['c1', 'd1']]],
-    *               [[['a0', 'b0'], ['c0', 'd0']]]]
+    *     output  = [[[['a1', 'b1'], ['c1', 'd1']]],
+    *                [[['a0', 'b0'], ['c0', 'd0']]]]
     *
-    *     input = [[['a0', 'b0'], ['c0', 'd0']],
-    *              [['a1', 'b1'], ['c1', 'd1']]]
+    *     input   = [[['a0', 'b0'], ['c0', 'd0']],
+    *                [['a1', 'b1'], ['c1', 'd1']]]
     *     indices = [[[0, 1], [1, 0]], [[0, 0], [1, 1]]]
-    *     output = [[['c0', 'd0'], ['a1', 'b1']],
+    *     output  = [[['c0', 'd0'], ['a1', 'b1']],
     *               [['a0', 'b0'], ['c1', 'd1']]]
     *
-    *     input = [[['a0', 'b0'], ['c0', 'd0']],
-    *              [['a1', 'b1'], ['c1', 'd1']]]
+    *     input   = [[['a0', 'b0'], ['c0', 'd0']],
+    *                [['a1', 'b1'], ['c1', 'd1']]]
     *     indices = [[[0, 0, 1], [1, 0, 1]], [[0, 1, 1], [1, 1, 0]]]
-    *     output = [['b0', 'b1'], ['d0', 'c1']]
+    *     output  = [['b0', 'b1'], ['d0', 'c1']]
     *   }}}
     *
     * @define OpDocBasicScatterND
