@@ -1,5 +1,4 @@
 language: scala
-scala: 2.12.3
 
 matrix:
   include:
@@ -7,23 +6,31 @@ matrix:
       dist: trusty
       sudo: required
       jdk: oraclejdk8
+      scala:
+        - 2.11.8
+        - 2.12.3
+      compiler: gcc
       addons:
         apt:
           sources:
             - ubuntu-toolchain-r-test
           packages:
-            - g++-4.9
-            - protobuf-compiler
+            -g++-4.9
     - os: osx
       osx_image: xcode8.3
+      scala:
+        - 2.11.8
+        - 2.12.3
 
 env:
   - CXX=g++-4.9
 
 before_install:
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then wget https://github.com/google/protobuf/releases/download/v3.3.0/protoc-3.3.0-linux-x86_64.zip; fi
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo unzip protoc-3.3.0-linux-x86_64.zip -d /usr; fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew update; fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew outdated gcc49 || brew upgrade gcc49; fi
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew install protobuf; fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew outdated protobuf || brew upgrade protobuf; fi
   - rvm use 2.2.3 --install --fuzzy
   - gem update --system
   - gem install sass
