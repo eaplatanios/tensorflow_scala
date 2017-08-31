@@ -40,7 +40,7 @@ lazy val all = (project in file("."))
     )
 
 lazy val jni = (project in file("./jni"))
-    .enablePlugins(GenerateTensorOps, JniNative)
+    .enablePlugins(GenerateTensorOps, JniNative, JniNativeCross)
     .settings(
       name := "tensorflow-jni",
       libraryDependencies ++= loggingDependencies,
@@ -88,6 +88,9 @@ lazy val jni = (project in file("./jni"))
       target in javah := sourceDirectory.value / "main" / "native" / "include",
       sourceDirectory in nativeCompile := sourceDirectory.value / "main" / "native",
       target in nativeCompile := target.value / "native" / nativePlatform.value,
+      target in nativeCrossCompile := target.value / "native",
+      nativePlatforms in nativeCrossCompile := Set(/*"linux-x86_64",*/ "darwin-x86_64", "windows-x86_64"),
+      tensorFlowBinaryVersion in nativeCrossCompile := "nightly", // tensorFlowVersion,
       // Specify the order in which the different compilation tasks are executed
       nativeCompile := nativeCompile.dependsOn(generateTensorOps).value,
       compile in Compile := (compile in Compile).dependsOn(nativeCompile).value
@@ -102,7 +105,6 @@ lazy val api = (project in file("./api"))
       libraryDependencies ++= loggingDependencies,
       libraryDependencies += "org.typelevel" %% "spire" % "0.14.1",
       libraryDependencies += "org.tensorflow" % "proto" % tensorFlowVersion,
-      libraryDependencies += "org.apache.commons" % "commons-lang3" % "3.5",
       libraryDependencies += "com.chuusai" %% "shapeless" % "2.3.2",
       // Test dependencies
       libraryDependencies += "junit" % "junit" % "4.12",
@@ -110,10 +112,10 @@ lazy val api = (project in file("./api"))
       libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1" % "test",
       // Protobuf settings
       version in ProtobufConfig := "3.3.1",
-      libraryDependencies += "com.google.protobuf" % "protobuf-java" % (version in ProtobufConfig).value % ProtobufConfig.name,
       sourceDirectory in ProtobufConfig := sourceDirectory.value / "main" / "proto",
       javaSource in ProtobufConfig := ((sourceDirectory in Compile).value / "generated" / "java"),
-      sourceDirectories in Compile += sourceDirectory.value / "main" / "generated" / "java"
+      sourceDirectories in Compile += sourceDirectory.value / "main" / "generated" / "java",
+      unmanagedResourceDirectories in Compile += (sourceDirectory in ProtobufConfig).value
     )
 
 lazy val data = (project in file("./data"))

@@ -15,8 +15,6 @@
 
 package org.platanios.tensorflow.api.utilities
 
-import org.apache.commons.lang3.StringUtils
-
 import java.nio.file._
 import java.util.UUID
 import java.util.concurrent.TimeUnit
@@ -72,7 +70,7 @@ object FileIO {
     val pathAsString = path.toString
     val glob = pathAsString.replaceAll("([^\\[]*)\\[\\^", "$1\\[!")
     val directory = {
-      val prefix = pathAsString.substring(0, StringUtils.indexOfAny(pathAsString, "*?[\\"))
+      val prefix = pathAsString.substring(0, pathAsString.indexWhere("*?[\\".contains(_)))
       path.getFileSystem.getPath(prefix.substring(0, prefix.lastIndexOf(separator)))
     }
 
