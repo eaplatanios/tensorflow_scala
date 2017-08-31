@@ -53,18 +53,20 @@ object GenerateTensorOps extends AutoPlugin {
       val scalaPackage = "org.platanios.tensorflow.jni.generated"
       val scalaPath = path.resolve(Paths.get("scala", scalaPackage.split('.'): _*))
       val nativePath = path.resolve(Paths.get("native", "generated"))
-      Files.walk(scalaPath)
-          .sorted(Comparator.reverseOrder())
-          .iterator()
-          .asScala
-          .map(_.toFile)
-          .foreach(_.delete)
-      Files.walk(nativePath)
-          .sorted(Comparator.reverseOrder())
-          .iterator()
-          .asScala
-          .map(_.toFile)
-          .foreach(_.delete)
+      if (Files.exists(scalaPath))
+        Files.walk(scalaPath)
+            .sorted(Comparator.reverseOrder())
+            .iterator()
+            .asScala
+            .map(_.toFile)
+            .foreach(_.delete)
+      if (Files.exists(nativePath))
+        Files.walk(nativePath)
+            .sorted(Comparator.reverseOrder())
+            .iterator()
+            .asScala
+            .map(_.toFile)
+            .foreach(_.delete)
     },
     generateTensorOps := {
       streams.value.log.info("Generating TensorFlow tensor op files.")
