@@ -42,4 +42,5 @@ install:
   - sudo tar xvf $TF_LIB_NAME -C /usr
 
 script:
-  - sbt ++$TRAVIS_SCALA_VERSION test
+  - sbt compile
+#  - sbt ++$TRAVIS_SCALA_VERSION test
