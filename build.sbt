@@ -1,3 +1,5 @@
+import TensorFlowNativePackage._
+
 scalaVersion in ThisBuild := "2.12.3"
 crossScalaVersions in ThisBuild := Seq("2.11.8", "2.12.3")
 
@@ -87,7 +89,7 @@ lazy val jni = (project in file("./jni"))
       sourceDirectory in nativeCompile := sourceDirectory.value / "main" / "native",
       target in nativeCompile := target.value / "native" / nativePlatform.value,
       target in nativeCrossCompile := target.value / "native",
-      nativePlatforms in nativeCrossCompile := Set("linux-x86_64", "darwin-x86_64"/*", windows-x86_64"*/),
+      nativePlatforms in nativeCrossCompile := Set(LINUX_x86_64, DARWIN_x86_64/*", WINDOWS_x86_64"*/),
       tensorFlowBinaryVersion in nativeCrossCompile := "nightly", // tensorFlowVersion,
       // Specify the order in which the different compilation tasks are executed
       // nativeCompile := nativeCompile.dependsOn(generateTensorOps).value,
