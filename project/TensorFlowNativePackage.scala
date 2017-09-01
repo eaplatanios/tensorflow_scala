@@ -260,7 +260,6 @@ object TensorFlowNativePackage extends AutoPlugin {
        |
        |# Extract the TensorFlow dynamic library in the container
        |docker exec $$CONTAINER bash -c "$tfLibExtract"
-       |docker exec $$CONTAINER bash -c "cp /usr/x86_64-linux-gnu/${supportedPlatforms(platform)}/lib/tensorflow.dll /usr/x86_64-linux-gnu/${supportedPlatforms(platform)}/lib/tensorflow.dll.a"
        |
        |# Compile and package the JNI bindings
        |docker cp $projectDir/src/main/native $$CONTAINER:/root/src

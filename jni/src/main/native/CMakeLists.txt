@@ -3,14 +3,14 @@ cmake_minimum_required(VERSION 3.1.0)
 set(CMAKE_CXX_STANDARD 11)
 
 # Define project and related variables
-project (tensorflow_jni)
+project(tensorflow_jni)
 set(PROJECT_VERSION_MAJOR 0)
 set(PROJECT_VERSION_MINOR 0)
 set(PROJECT_VERSION_PATCH 0)
 
 # Setup JNI
 find_package(JNI REQUIRED)
-if (JNI_FOUND)
+if(JNI_FOUND)
     message (STATUS "JNI include directories: ${JNI_INCLUDE_DIRS}")
 endif()
 
@@ -33,7 +33,7 @@ file(GLOB_RECURSE LIB_SRC
 )
 
 # Setup installation targets
-set (LIB_NAME ${PROJECT_NAME}) # ${PROJECT_VERSION_MAJOR})
+set(LIB_NAME ${PROJECT_NAME}) # ${PROJECT_VERSION_MAJOR})
 add_library(${LIB_NAME} MODULE ${LIB_SRC})
 target_link_libraries(${LIB_NAME} ${LIB_TENSORFLOW})
 
