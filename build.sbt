@@ -1,4 +1,4 @@
-scalaVersion := "2.12.3"
+scalaVersion in ThisBuild := "2.12.3"
 crossScalaVersions in ThisBuild := Seq("2.11.8", "2.12.3")
 
 organization in ThisBuild := "org.platanios"

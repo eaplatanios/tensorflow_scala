@@ -15,7 +15,6 @@
 
 import java.io.PrintWriter
 import java.nio.file.Files
-import java.util.Comparator
 
 import scala.collection.JavaConverters._
 
