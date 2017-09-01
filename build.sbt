@@ -1,7 +1,8 @@
+scalaVersion := "2.12.3"
+crossScalaVersions in ThisBuild := Seq("2.11.8", "2.12.3")
+
 organization in ThisBuild := "org.platanios"
 version in ThisBuild := "0.1"
-scalaVersion in ThisBuild := "2.12.3"
-crossScalaVersions := Seq("2.11.8", "2.12.3")
 licenses in ThisBuild := Seq("Apache License 2.0" -> url("https://www.apache.org/licenses/LICENSE-2.0.txt"))
 
 val tensorFlowVersion = "1.3.0"
@@ -21,11 +22,8 @@ logBuffered in Test := false
 //  file(s"${(packageBin in Compile).value}") -> url("http://platanios.org/")) :: Nil)
 
 lazy val loggingDependencies = Seq(
-  "com.typesafe.scala-logging" %% "scala-logging" % "3.5.0",
-  "org.slf4j" % "slf4j-api" % "1.7.24",
-  "org.apache.logging.log4j" % "log4j-api" % "2.8",
-  "org.apache.logging.log4j" % "log4j-core" % "2.8",
-  "org.apache.logging.log4j" % "log4j-slf4j-impl" % "2.8"
+  "com.typesafe.scala-logging" %% "scala-logging" % "3.7.2",
+  "ch.qos.logback" % "logback-classic" % "1.2.3"
 )
 
 lazy val all = (project in file("."))
@@ -40,7 +38,7 @@ lazy val all = (project in file("."))
     )
 
 lazy val jni = (project in file("./jni"))
-    .enablePlugins(GenerateTensorOps, JniNative, JniNativeCross)
+    .enablePlugins(JniNative, TensorFlowGenerateTensorOps, TensorFlowNativePackage)
     .settings(
       name := "tensorflow-jni",
       libraryDependencies ++= loggingDependencies,
@@ -89,10 +87,10 @@ lazy val jni = (project in file("./jni"))
       sourceDirectory in nativeCompile := sourceDirectory.value / "main" / "native",
       target in nativeCompile := target.value / "native" / nativePlatform.value,
       target in nativeCrossCompile := target.value / "native",
-      nativePlatforms in nativeCrossCompile := Set(/*"linux-x86_64",*/ "darwin-x86_64", "windows-x86_64"),
+      nativePlatforms in nativeCrossCompile := Set("linux-x86_64", "darwin-x86_64"/*", windows-x86_64"*/),
       tensorFlowBinaryVersion in nativeCrossCompile := "nightly", // tensorFlowVersion,
       // Specify the order in which the different compilation tasks are executed
-      nativeCompile := nativeCompile.dependsOn(generateTensorOps).value,
+      // nativeCompile := nativeCompile.dependsOn(generateTensorOps).value,
       compile in Compile := (compile in Compile).dependsOn(nativeCompile).value
     )
 
@@ -111,7 +109,7 @@ lazy val api = (project in file("./api"))
       libraryDependencies += "org.scalactic" %% "scalactic" % "3.0.1",
       libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1" % "test",
       // Protobuf settings
-      version in ProtobufConfig := "3.3.1",
+      version in ProtobufConfig := "3.4.0",
       sourceDirectory in ProtobufConfig := sourceDirectory.value / "main" / "proto",
       javaSource in ProtobufConfig := ((sourceDirectory in Compile).value / "generated" / "java"),
       sourceDirectories in Compile += sourceDirectory.value / "main" / "generated" / "java",

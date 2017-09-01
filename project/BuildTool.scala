@@ -46,7 +46,7 @@ object BuildTool {
       val baseDirectory : File
       val buildDirectory: File
 
-      def clean(): Unit = Process("make clean", buildDirectory) ! log
+      def clean(): Unit = if (buildDirectory.list().contains("Makefile")) Process("make clean", buildDirectory) ! log
 
       def configure(targetDirectory: File): ProcessBuilder
 

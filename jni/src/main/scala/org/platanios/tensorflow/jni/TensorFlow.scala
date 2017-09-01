@@ -28,7 +28,7 @@ import java.nio.file.{Files, Path, StandardCopyOption}
 object TensorFlow {
   final class NativeException(message: String) extends RuntimeException(message)
 
-  private[this] val logger          = Logger(LoggerFactory.getLogger("TensorFlow Native"))
+  private[this] val logger : Logger = Logger(LoggerFactory.getLogger("TensorFlow Native"))
   private[this] val LIBNAME: String = "tensorflow_jni"
 
   private[this] val os = {

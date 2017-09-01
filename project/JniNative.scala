@@ -28,16 +28,6 @@ object JniNative extends AutoPlugin {
 
   private[this] val currentNativePlatform: String = s"$os-$architecture"
 
-  private[this] val jniHeadersLocations: Seq[String] = {
-    val javaHome = System.getenv("JAVA_HOME")
-    currentNativePlatform match {
-      case p if p.startsWith("linux") => Seq(s"$javaHome/include", s"$javaHome/include/linux")
-      case p if p.startsWith("darwin") => Seq(s"$javaHome/include", s"$javaHome/include/darwin")
-      case p if p.startsWith("windows") => Seq(s"$javaHome/include", s"$javaHome/include/win32")
-      case _ => sys.error(s"Unsupported platform: $currentNativePlatform.")
-    }
-  }
-
   object autoImport {
     val nativeCompile: TaskKey[Seq[File]] =
       taskKey[Seq[File]]("Builds a native library by calling the native build tool.")

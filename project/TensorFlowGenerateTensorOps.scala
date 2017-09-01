@@ -16,7 +16,6 @@
 import OpGenerator._
 
 import java.nio.file.{Files, Paths}
-import java.util.Comparator
 
 import scala.collection.JavaConverters._
 
@@ -27,7 +26,7 @@ import sbt.Keys._
   *
   * @author Emmanouil Antonios Platanios
   */
-object GenerateTensorOps extends AutoPlugin {
+object TensorFlowGenerateTensorOps extends AutoPlugin {
   override def requires: Plugins = plugins.JvmPlugin
 
   object autoImport {
@@ -55,18 +54,18 @@ object GenerateTensorOps extends AutoPlugin {
       val nativePath = path.resolve(Paths.get("native", "generated"))
       if (Files.exists(scalaPath))
         Files.walk(scalaPath)
-            .sorted(Comparator.reverseOrder())
             .iterator()
             .asScala
-            .map(_.toFile)
-            .foreach(_.delete)
+            .toSeq
+            .reverse
+            .foreach(Files.deleteIfExists)
       if (Files.exists(nativePath))
         Files.walk(nativePath)
-            .sorted(Comparator.reverseOrder())
             .iterator()
             .asScala
-            .map(_.toFile)
-            .foreach(_.delete)
+            .toSeq
+            .reverse
+            .foreach(Files.deleteIfExists)
     },
     generateTensorOps := {
       streams.value.log.info("Generating TensorFlow tensor op files.")
@@ -74,9 +73,9 @@ object GenerateTensorOps extends AutoPlugin {
         (target in generateTensorOps).value.toPath,
         (ops in generateTensorOps).value,
         s"org.platanios.tensorflow.jni.generated.${(scalaPackage in generateTensorOps).value}")
-    },
+    }
     // Make the SBT clean task also cleans the generated code files.
-    clean := clean.dependsOn(clean in generateTensorOps).value
+    // clean := clean.dependsOn(clean in generateTensorOps).value
   )
 
   override lazy val projectSettings: Seq[Setting[_]] = settings
