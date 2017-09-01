@@ -221,7 +221,7 @@ class TrainableModel[IO, ID, IS, I, TO, TD, TS, ST, T] private[learn](
       val tfTrainingInput = trainingInput()
       val tfTrainingOutput = trainingInputLayer(tfTrainingInput.next())
       // TODO: [LEARN] !!! Remove this cast.
-      val tfLoss = tf.cast(loss(tfOutput, tfTrainingOutput), FLOAT32, name = "LearnLossCast")
+      val tfLoss = tf.cast(loss((tfOutput, tfTrainingOutput)), FLOAT32, name = "LearnLossCast")
       val tfIteration = tf.variable("TrainingIteration", INT32, Shape(), tf.zerosInitializer)
       val tfTrainOp = optimizer.minimize(tfLoss, iteration = Some(tfIteration))
       (tfTrainingInput, tfTrainingOutput, tfLoss, tfIteration, tfTrainOp)
