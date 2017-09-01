@@ -69,8 +69,11 @@ object TensorFlowNativePackage extends AutoPlugin {
         log.info(s"Using ${baseDirectory.value} as the base directory.")
         val platformTargetDir = targetDir / platform.name
 
-        // Generate Dockerfile
+        IO.createDirectory(platformTargetDir)
         IO.createDirectory(platformTargetDir / "docker")
+        IO.createDirectory(platformTargetDir / "lib")
+
+        // Generate Dockerfile
         val dockerfilePath = platformTargetDir / "docker" / "Dockerfile"
         log.info(s"Generating Dockerfile in '$dockerfilePath'.")
         new PrintWriter(dockerfilePath) {write(dockerfile); close()}
