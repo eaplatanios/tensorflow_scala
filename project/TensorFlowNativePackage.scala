@@ -65,7 +65,7 @@ object TensorFlowNativePackage extends AutoPlugin {
       IO.createDirectory(targetDir)
       (nativePlatforms in nativeCrossCompile).value.map(platform => {
         val log = streams.value.log
-        log.info(s"Cross-compiling '${name.value}' for platform '$platform'.")
+        log.info(s"Cross-compiling '${moduleName.value}' for platform '$platform'.")
         log.info(s"Using ${baseDirectory.value} as the base directory.")
         val platformTargetDir = targetDir / platform.name
 
@@ -91,7 +91,7 @@ object TensorFlowNativePackage extends AutoPlugin {
         if (exitCode == 0) {
           // Compile and generate binaries
           log.info(s"Generating binaries in '$platformTargetDir'.")
-          val dockerImage = s"${name.value}"
+          val dockerImage = s"${moduleName.value}"
           exitCode = platform.build(
             dockerImage, (baseDirectory.value / "src" / "main" / "native").getPath, platformTargetDir.getPath) ! log
           log.info("Cleaning up after build.")
