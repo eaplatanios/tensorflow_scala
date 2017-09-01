@@ -36,4 +36,9 @@ file(GLOB_RECURSE LIB_SRC
 set (LIB_NAME ${PROJECT_NAME}) # ${PROJECT_VERSION_MAJOR})
 add_library(${LIB_NAME} MODULE ${LIB_SRC})
 target_link_libraries(${LIB_NAME} ${LIB_TENSORFLOW})
+
+if(${APPLE})
+  set_target_properties(${LIB_NAME} PROPERTIES SUFFIX ".dylib")
+endif()
+
 install(TARGETS ${LIB_NAME} LIBRARY DESTINATION .)
