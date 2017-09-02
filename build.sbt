@@ -245,6 +245,7 @@ lazy val publishSettings = Seq(
   releasePublishArtifactsAction := PgpKeys.publishSigned.value,
   releaseVcs := Vcs.detect(baseDirectory.value),
   releaseVcsSign := true,
+  releaseIgnoreUntrackedFiles := true,
   useGpg := true,  // Bouncy Castle has bugs with sub-keys, so we use gpg instead
   publishMavenStyle := true,
   publishArtifact in Test := false,
