@@ -352,9 +352,11 @@ object Tensor {
           index += numEncodedBytes
           i += 1
         }
-        val tensor = Tensor.fromNativeHandle(synchronized(NativeTensor.eagerAllocate(hostHandle)))
-        NativeTensor.delete(hostHandle)
-        tensor
+        synchronized {
+          val tensor = Tensor.fromNativeHandle(NativeTensor.eagerAllocate(hostHandle))
+          NativeTensor.delete(hostHandle)
+          tensor
+        }
       case _ =>
         val numBytes = shape.numElements * inferredDataType.byteSize
         val hostHandle = NativeTensor.allocate(inferredDataType.cValue, shape.asArray.map(_.toLong), numBytes)
@@ -366,9 +368,11 @@ object Tensor {
           index += inferredDataType.byteSize
           i += 1
         }
-        val tensor = Tensor.fromNativeHandle(synchronized(NativeTensor.eagerAllocate(hostHandle)))
-        NativeTensor.delete(hostHandle)
-        tensor
+        synchronized {
+          val tensor = Tensor.fromNativeHandle(NativeTensor.eagerAllocate(hostHandle))
+          NativeTensor.delete(hostHandle)
+          tensor
+        }
     }
   }
 
