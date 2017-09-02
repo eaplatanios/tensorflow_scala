@@ -79,7 +79,20 @@ lazy val all = (project in file("."))
       packagedArtifacts := (packagedArtifacts in api).value ++ (packagedArtifacts in jni).value,
       nativeCompile := Seq.empty,
       nativeCrossCompile in CrossCompile := Map.empty,
-      commands ++= Seq(publishLocalCrossCompiled)
+      commands ++= Seq(publishLocalCrossCompiled),
+      releaseProcess := {
+        ReleaseStep(reapply(Seq(
+          nativeCompile in jni := {
+            (nativeCrossCompile in CrossCompile in jni).value
+            Seq.empty
+          },
+          resourceGenerators in Compile in jni += Def.task {
+            jniLibraries(
+              (nativeCrossCompile in CrossCompile in jni).value,
+              (resourceManaged in Compile in jni).value)
+          }.taskValue
+        ), _)) +: releaseProcess.value
+      }
     )
 
 lazy val jni = (project in file("./jni"))
@@ -135,20 +148,7 @@ lazy val jni = (project in file("./jni"))
       nativePlatforms in CrossCompile := Set(LINUX_x86_64, DARWIN_x86_64/*", WINDOWS_x86_64"*/),
       tensorFlowBinaryVersion in CrossCompile := "nightly", // tensorFlowVersion
       // Specify the order in which the different compilation tasks are executed
-      nativeCompile := nativeCompile.dependsOn(generateTensorOps).value,
-      releaseProcess := {
-        ReleaseStep(reapply(Seq(
-          nativeCompile := {
-            (nativeCrossCompile in CrossCompile).value
-            Seq.empty
-          },
-          resourceGenerators in Compile += Def.task {
-            jniLibraries(
-              (nativeCrossCompile in CrossCompile).value,
-              (resourceManaged in Compile).value)
-          }.taskValue
-        ), _)) +: releaseProcess.value
-      }
+      nativeCompile := nativeCompile.dependsOn(generateTensorOps).value
     )
 
 lazy val api = (project in file("./api"))
