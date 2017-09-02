@@ -11,11 +11,6 @@ object JniPackage extends AutoPlugin {
   override def trigger: PluginTrigger = allRequirements
 
   object autoImport {
-    val enableNativeCompilation: SettingKey[Boolean] =
-      settingKey[Boolean](
-        "Determines if native compilation is enabled. If not enabled, only pre-compiled libraries in " +
-            "'unmanagedNativeDirectories' will be packaged.")
-
     val unmanagedNativeDirectories: SettingKey[Seq[File]] =
       settingKey[Seq[File]](
         "Unmanaged directories containing native libraries. The libraries must be regular files contained in a " +
@@ -39,19 +34,14 @@ object JniPackage extends AutoPlugin {
   import autoImport._
 
   lazy val settings: Seq[Setting[_]] = Seq(
-    enableNativeCompilation := true,
     unmanagedNativeDirectories := Seq(baseDirectory.value / "lib_native"),
     unmanagedNativeLibraries := {
       unmanagedNativeDirectories.value.flatMap(dir => (dir ** "*").get.filter(_.isFile).pair(rebase(dir, "/native")))
     },
-    managedNativeLibraries := Def.taskDyn[Seq[(File, String)]] {
-      if (enableNativeCompilation.value) Def.task {
-        val platform: String = JniNative.autoImport.nativePlatform.value
-          JniNative.autoImport.nativeCompile.value.map(l => l -> s"/native/$platform/${l.name}")
-      } else Def.task {
-        Seq.empty
-      }
-    }.value,
+    managedNativeLibraries := {
+      val platform: String = JniNative.autoImport.nativePlatform.value
+      JniNative.autoImport.nativeCompile.value.map(l => l -> s"/native/$platform/${l.name}")
+    },
     nativeLibraries := unmanagedNativeLibraries.value ++ managedNativeLibraries.value,
     resourceGenerators += Def.task {
       val libraries: Seq[(File, String)] = nativeLibraries.value
