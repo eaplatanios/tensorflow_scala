@@ -74,8 +74,6 @@ object TensorFlowGenerateTensorOps extends AutoPlugin {
         (ops in generateTensorOps).value,
         s"org.platanios.tensorflow.jni.generated.${(scalaPackage in generateTensorOps).value}")
     }
-    // Make the SBT clean task also cleans the generated code files.
-    // clean := clean.dependsOn(clean in generateTensorOps).value
   )
 
   override lazy val projectSettings: Seq[Setting[_]] = settings

@@ -20,6 +20,7 @@ import scala.collection.JavaConverters._
 
 import sbt._
 import sbt.Keys._
+
 //import sys.process._
 
 /**
@@ -27,13 +28,10 @@ import sbt.Keys._
   * @author Emmanouil Antonios Platanios
   */
 object TensorFlowNativePackage extends AutoPlugin {
-  override def requires: Plugins = plugins.JvmPlugin
+  override def requires: Plugins = JniNative && plugins.JvmPlugin
 
   object autoImport {
-    val enableNativeCrossCompilation: SettingKey[Boolean] =
-      settingKey[Boolean](
-        "Determines if native cross-compilation is enabled. If not enabled, only pre-compiled libraries in " +
-            "'unmanagedNativeDirectories' will be packaged.")
+    lazy val CrossCompile = config("cross").extend(Test).describedAs("Native code cross-compiling configuration.")
 
     val nativePlatforms: SettingKey[Set[Platform]] =
       settingKey[Set[Platform]]("###")
@@ -51,11 +49,10 @@ object TensorFlowNativePackage extends AutoPlugin {
   import autoImport._
 
   lazy val settings: Seq[Setting[_]] = Seq(
-    enableNativeCrossCompilation := true,
-    nativePlatforms in nativeCrossCompile := Set(LINUX_x86_64, DARWIN_x86_64, WINDOWS_x86_64),
-    tensorFlowBinaryVersion in nativeCrossCompile := "nightly",
-    target in nativeCrossCompile := target.value / "native",
-    clean in nativeCrossCompile := {
+    nativePlatforms := Set(LINUX_x86_64, DARWIN_x86_64, WINDOWS_x86_64),
+    tensorFlowBinaryVersion := "nightly",
+    target := (target in Compile).value / "native",
+    clean := {
       streams.value.log.info("Cleaning generated cross compilation files.")
       val path = (target in nativeCrossCompile).value.toPath
       if (Files.exists(path))
@@ -110,33 +107,31 @@ object TensorFlowNativePackage extends AutoPlugin {
             (platformTargetDir / "bin" ** ("*.so" | "*.dylib" | "*.dll")).get.filter(_.isFile).toSet)
       }).toMap
     },
-    resourceGenerators in Compile += Def.taskDyn[Seq[File]] {
-      val enableCrossCompilation = enableNativeCrossCompilation.value
-      if (enableCrossCompilation) Def.task {
-        val libraries: Map[Platform, (Set[File], Set[File])] = nativeCrossCompile.value
-        val jniLibraries: Seq[(File, String)] = libraries.flatMap { case (platform, (tfLibs, jniLibs)) =>
-          jniLibs.map(l => l -> s"/native/${platform.name}/${l.name}")
-        } toSeq
-        val resources: Seq[File] = for ((file, path) <- jniLibraries) yield {
-          // Native library as a managed resource file.
-          val resource = (resourceManaged in Compile).value / path
-          // Copy native library to a managed resource, so that it is always available on the classpath, even when not
-          // packaged in a JAR file.
-          IO.copyFile(file, resource)
-          resource
-        }
-        resources
-      } else Def.task {
-        Seq.empty
-      }
-    }.taskValue,
+    compile := (compile in Compile).dependsOn(nativeCrossCompile).value,
     // Make the SBT clean task also cleans the generated cross-compilation files
-    clean := clean.dependsOn(clean in nativeCrossCompile).value
+    clean in Compile := (clean in Compile).dependsOn(clean in nativeCrossCompile).value
   )
 
-  override lazy val projectSettings: Seq[Setting[_]] = settings
+  override lazy val projectSettings: Seq[Def.Setting[_]] =
+    inConfig(CrossCompile)(settings) ++
+        Seq(crossPaths := false) // We do not add the Scala version to the native JAR files
 
-  val dockerfile: String = {
+  def jniLibraries(libraries: Map[Platform, (Set[File], Set[File])], resourceManaged: File): Seq[File] = {
+    val jniLibraries: Seq[(File, String)] = libraries.flatMap { case (platform, (_, jniLibs)) =>
+      jniLibs.map(l => l -> s"/native/${platform.name}/${l.name}")
+    } toSeq
+    val resources: Seq[File] = for ((file, path) <- jniLibraries) yield {
+      // Native library as a managed resource file.
+      val resource = resourceManaged / path
+      // Copy native library to a managed resource, so that it is always available on the classpath, even when not
+      // packaged in a JAR file.
+      IO.copyFile(file, resource)
+      resource
+    }
+    resources
+  }
+
+  lazy val dockerfile: String = {
     s"""# Pull base image
        |FROM multiarch/crossbuild
        |
