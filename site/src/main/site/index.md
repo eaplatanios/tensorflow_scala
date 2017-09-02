@@ -68,3 +68,12 @@ you read there applies here too.
   ```
 - Useful implicits that make using the library almost as simple as using 
   the Python API, while retaining type-safety (for the most part).
+
+## Funding
+
+Funding for the development of this library has been generously provided by the following sponsors:
+
+|                             |                                   |                                                 |
+|-----------------------------|-----------------------------------|-------------------------------------------------|
+| CMU Presidential Fellowship | National Science Foundation (NSF) | Air Force Office of Scientific Research (AFOSR) | 
+|                             | Grant #: IIS1250956               | Grant #: FA95501710218                          |
