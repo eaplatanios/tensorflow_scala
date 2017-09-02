@@ -60,8 +60,9 @@ lazy val testSettings = Seq(
     "org.scalatest" %% "scalatest" % "3.0.1" % "test"),
   logBuffered in Test := false,
   fork in test := true,
-  testForkedParallel in Test := true,
-  parallelExecution in Test := true,
+  // TODO: Cannot support parallel tests currently due to a potential TensorFlow bug.
+  testForkedParallel in Test := false,
+  parallelExecution in Test := false,
   testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oDF")
 )
 
