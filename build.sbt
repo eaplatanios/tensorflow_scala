@@ -64,15 +64,15 @@ lazy val testSettings = Seq(
 
 lazy val all = (project in file("."))
     .aggregate(jni, api, data, examples, site)
+    .settings(moduleName := "tensorflow", name := "TensorFlow for Scala")
     .settings(publishSettings)
-    .settings(noPublishSettings)
     .settings(
       sourcesInBase := false,
       unmanagedSourceDirectories in Compile := Nil,
       unmanagedSourceDirectories in Test := Nil,
       unmanagedResourceDirectories in Compile := Nil,
       unmanagedResourceDirectories in Test := Nil,
-      packagedArtifacts in RootProject(file(".")) := Map.empty,
+      packagedArtifacts := (packagedArtifacts in api).value ++ (packagedArtifacts in jni).value,
       nativeCompile := Seq.empty,
       nativeCrossCompile in CrossCompile := Map.empty,
       commands += publishLocalCrossCompiled
@@ -84,7 +84,7 @@ lazy val jni = (project in file("./jni"))
     .settings(moduleName := "tensorflow-jni", name := "TensorFlow for Scala JNI Bindings")
     .settings(loggingSettings)
     .settings(testSettings)
-    .settings(publishSettings)
+    .settings(noPublishSettings)
     .settings(
       // Tensor op code generation settings
       target in generateTensorOps := sourceDirectory.value / "main",
@@ -130,7 +130,8 @@ lazy val jni = (project in file("./jni"))
       nativePlatforms in CrossCompile := Set(LINUX_x86_64, DARWIN_x86_64/*", WINDOWS_x86_64"*/),
       tensorFlowBinaryVersion in CrossCompile := "nightly", // tensorFlowVersion
       // Specify the order in which the different compilation tasks are executed
-      nativeCompile := nativeCompile.dependsOn(generateTensorOps).value
+      nativeCompile := nativeCompile.dependsOn(generateTensorOps).value,
+      publishArtifact := true
     )
 
 lazy val api = (project in file("./api"))
@@ -139,7 +140,7 @@ lazy val api = (project in file("./api"))
     .settings(moduleName := "tensorflow-api", name := "TensorFlow for Scala API")
     .settings(loggingSettings)
     .settings(testSettings)
-    .settings(publishSettings)
+    .settings(noPublishSettings)
     .settings(
       libraryDependencies += "org.typelevel" %% "spire" % "0.14.1",
       libraryDependencies += "org.tensorflow" % "proto" % tensorFlowVersion,
@@ -149,7 +150,8 @@ lazy val api = (project in file("./api"))
       sourceDirectory in ProtobufConfig := sourceDirectory.value / "main" / "proto",
       javaSource in ProtobufConfig := ((sourceDirectory in Compile).value / "generated" / "java"),
       sourceDirectories in Compile += sourceDirectory.value / "main" / "generated" / "java",
-      unmanagedResourceDirectories in Compile += (sourceDirectory in ProtobufConfig).value
+      unmanagedResourceDirectories in Compile += (sourceDirectory in ProtobufConfig).value,
+      publishArtifact := true
     )
 
 lazy val data = (project in file("./data"))
