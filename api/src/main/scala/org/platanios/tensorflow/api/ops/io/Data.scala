@@ -242,7 +242,7 @@ object Data {
   }
 
   implicit def dataMap[K, T, O, D, S, CC[CK, CV] <: MapLike[CK, CV, CC[CK, CV]] with Map[CK, CV]](implicit
-      ev: Aux[T, O, D, S],
+      ev: Aux[T, O, D, S]
   ): Aux[CC[K, T], CC[K, O], Map[K, D], Map[K, S]] = {
     new Data[CC[K, T]] {
       // TODO: [DATASETS] Return CC type instead of Map.

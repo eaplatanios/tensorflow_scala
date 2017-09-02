@@ -356,8 +356,8 @@ private[api] object FLOAT32 extends DataType.Aux[Float] {
   override val byteSize: Int    = 4
   override val priority: Int    = 220
 
-  override def min: ScalaType = -3.4028235e+38f
-  override def max: ScalaType = 3.4028235e+38f
+  override def min: ScalaType = Float.MinValue
+  override def max: ScalaType = Float.MaxValue
 
   private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: Float): Int = {
     buffer.putFloat(index, element)
@@ -377,8 +377,8 @@ private[api] object FLOAT64 extends DataType.Aux[Double] {
   override val byteSize: Int    = 8
   override val priority: Int    = 230
 
-  override def min: ScalaType = -1.7976931348623157e+308
-  override def max: ScalaType = 1.7976931348623157e+308
+  override def min: ScalaType = Double.MinValue
+  override def max: ScalaType = Double.MaxValue
 
   private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: Double): Int = {
     buffer.putDouble(index, element)
