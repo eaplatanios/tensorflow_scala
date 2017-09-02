@@ -30,6 +30,11 @@ object TensorFlowNativePackage extends AutoPlugin {
   override def requires: Plugins = plugins.JvmPlugin
 
   object autoImport {
+    val enableNativeCrossCompilation: SettingKey[Boolean] =
+      settingKey[Boolean](
+        "Determines if native cross-compilation is enabled. If not enabled, only pre-compiled libraries in " +
+            "'unmanagedNativeDirectories' will be packaged.")
+
     val nativePlatforms: SettingKey[Set[Platform]] =
       settingKey[Set[Platform]]("###")
 
@@ -46,6 +51,7 @@ object TensorFlowNativePackage extends AutoPlugin {
   import autoImport._
 
   lazy val settings: Seq[Setting[_]] = Seq(
+    enableNativeCrossCompilation := true,
     nativePlatforms in nativeCrossCompile := Set(LINUX_x86_64, DARWIN_x86_64, WINDOWS_x86_64),
     tensorFlowBinaryVersion in nativeCrossCompile := "nightly",
     target in nativeCrossCompile := target.value / "native",
@@ -104,6 +110,26 @@ object TensorFlowNativePackage extends AutoPlugin {
             (platformTargetDir / "bin" ** ("*.so" | "*.dylib" | "*.dll")).get.filter(_.isFile).toSet)
       }).toMap
     },
+    resourceGenerators in Compile += Def.taskDyn[Seq[File]] {
+      val enableCrossCompilation = enableNativeCrossCompilation.value
+      if (enableCrossCompilation) Def.task {
+        val libraries: Map[Platform, (Set[File], Set[File])] = nativeCrossCompile.value
+        val jniLibraries: Seq[(File, String)] = libraries.flatMap { case (platform, (tfLibs, jniLibs)) =>
+          jniLibs.map(l => l -> s"/native/${platform.name}/${l.name}")
+        } toSeq
+        val resources: Seq[File] = for ((file, path) <- jniLibraries) yield {
+          // Native library as a managed resource file.
+          val resource = (resourceManaged in Compile).value / path
+          // Copy native library to a managed resource, so that it is always available on the classpath, even when not
+          // packaged in a JAR file.
+          IO.copyFile(file, resource)
+          resource
+        }
+        resources
+      } else Def.task {
+        Seq.empty
+      }
+    }.taskValue,
     // Make the SBT clean task also cleans the generated cross-compilation files
     clean := clean.dependsOn(clean in nativeCrossCompile).value
   )
