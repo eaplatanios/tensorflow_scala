@@ -1,3 +1,0 @@
-[submodule "tensorflow_library"]
-	path = tensorflow_library
-	url = https://github.com/tensorflow/tensorflow
