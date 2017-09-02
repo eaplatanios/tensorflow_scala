@@ -270,14 +270,14 @@ lazy val publishSettings = Seq(
     checkSnapshotDependencies,
     inquireVersions,
     ReleaseStep(reapply(Seq(
-      nativeCompile in thisProject := Seq.empty,
-      nativeCrossCompile in CrossCompile in thisProject := {
-        (nativeCrossCompile in CrossCompile in thisProject).dependsOn(nativeCompile in thisProject).value
+      nativeCompile := {
+        (nativeCrossCompile in CrossCompile).value
+        Seq.empty
       },
-      resourceGenerators in Compile in thisProject += Def.task {
+      resourceGenerators in Compile += Def.task {
         jniLibraries(
-          (nativeCrossCompile in CrossCompile in thisProject).value,
-          (resourceManaged in Compile in thisProject).value)
+          (nativeCrossCompile in CrossCompile).value,
+          (resourceManaged in Compile).value)
       }.taskValue
     ), _)),
     runClean,
@@ -300,9 +300,9 @@ lazy val publishSettings = Seq(
 
 lazy val publishLocalCrossCompiled = Command.command("publishLocalCrossCompiled") { state =>
   val newState = reapply(Seq(
-    nativeCompile in jni := Seq.empty,
-    nativeCrossCompile in CrossCompile in jni := {
-      (nativeCrossCompile in CrossCompile in jni).dependsOn(nativeCompile in jni).value
+    nativeCompile in jni := {
+      (nativeCrossCompile in CrossCompile in jni).value
+      Seq.empty
     },
     resourceGenerators in Compile in jni += Def.task {
       jniLibraries((nativeCrossCompile in CrossCompile in jni).value, (resourceManaged in Compile in jni).value)
