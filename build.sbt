@@ -40,6 +40,10 @@ scalacOptions in ThisBuild ++= Seq(
   "-Xfuture"
 )
 
+// TODO: Find a way to better deal with cross-compiling. Current issues:
+//       - publish, publishLocal, publishSigned, and publishLocalSigned do not account for cross-compiling.
+//       - publishLocalCrossCompiled is a sort-of hacky alternative to deal with one of these cases.
+
 //scalacOptions in (ThisBuild, Compile, doc) ++= Opts.doc.externalAPI((
 //  file(s"${(packageBin in Compile).value}") -> url("http://platanios.org/")) :: Nil)
 
@@ -74,9 +78,7 @@ lazy val all = (project in file("."))
       packagedArtifacts := (packagedArtifacts in api).value ++ (packagedArtifacts in jni).value,
       nativeCompile := Seq.empty,
       nativeCrossCompile in CrossCompile := Map.empty,
-      commands ++= Seq(
-        publishCrossCompiled,
-        publishLocalCrossCompiled)
+      commands ++= Seq(publishLocalCrossCompiled)
     )
 
 lazy val jni = (project in file("./jni"))
@@ -85,6 +87,7 @@ lazy val jni = (project in file("./jni"))
     .settings(moduleName := "tensorflow-jni", name := "TensorFlow for Scala JNI Bindings")
     .settings(loggingSettings)
     .settings(testSettings)
+    .settings(publishSettings)
     .settings(noPublishSettings)
     .settings(
       // Tensor op code generation settings
@@ -131,8 +134,7 @@ lazy val jni = (project in file("./jni"))
       nativePlatforms in CrossCompile := Set(LINUX_x86_64, DARWIN_x86_64/*", WINDOWS_x86_64"*/),
       tensorFlowBinaryVersion in CrossCompile := "nightly", // tensorFlowVersion
       // Specify the order in which the different compilation tasks are executed
-      nativeCompile := nativeCompile.dependsOn(generateTensorOps).value,
-      publishArtifact := true
+      nativeCompile := nativeCompile.dependsOn(generateTensorOps).value
     )
 
 lazy val api = (project in file("./api"))
@@ -141,6 +143,7 @@ lazy val api = (project in file("./api"))
     .settings(moduleName := "tensorflow-api", name := "TensorFlow for Scala API")
     .settings(loggingSettings)
     .settings(testSettings)
+    .settings(publishSettings)
     .settings(noPublishSettings)
     .settings(
       libraryDependencies += "org.typelevel" %% "spire" % "0.14.1",
@@ -160,12 +163,14 @@ lazy val data = (project in file("./data"))
     .settings(moduleName := "tensorflow-data", name := "TensorFlow for Scala Data")
     .settings(loggingSettings)
     .settings(testSettings)
+    .settings(publishSettings)
     .settings(noPublishSettings)
 
 lazy val examples = (project in file("./examples"))
     .dependsOn(api, data)
     .settings(moduleName := "tensorflow-examples", name := "TensorFlow for Scala Examples")
     .settings(loggingSettings)
+    .settings(publishSettings)
     .settings(noPublishSettings)
 
 lazy val site = (project in file("./site"))
@@ -263,8 +268,6 @@ lazy val publishSettings = Seq(
   releaseProcess := Seq[ReleaseStep](
     checkSnapshotDependencies,
     inquireVersions,
-    runClean,
-    runTest,
     ReleaseStep(reapply(Seq(
       nativeCompile := Seq.empty,
       nativeCrossCompile in CrossCompile := (nativeCrossCompile in CrossCompile).dependsOn(nativeCompile).value,
@@ -272,10 +275,12 @@ lazy val publishSettings = Seq(
         jniLibraries((nativeCrossCompile in CrossCompile).value, (resourceManaged in Compile).value)
       }.taskValue
     ), _)),
+    runClean,
+    runTest,
     setReleaseVersion,
     commitReleaseVersion,
     tagRelease,
-    releaseStepCommand("publishSigned"),
+    publishArtifacts,
     setNextVersion,
     commitNextVersion,
     ReleaseStep(action = Command.process("sonatypeReleaseAll", _), enableCrossBuild = true),
@@ -287,21 +292,6 @@ lazy val publishSettings = Seq(
     password <- Option(System.getenv().get("SONATYPE_PASSWORD"))
   } yield Credentials("Sonatype Nexus Repository Manager", "oss.sonatype.org", username, password)).toSeq
 )
-
-lazy val publishCrossCompiled = Command.command("publishCrossCompiled") { state =>
-  val newState = reapply(Seq(
-    nativeCompile in jni := Seq.empty,
-    nativeCrossCompile in CrossCompile in jni := {
-      (nativeCrossCompile in CrossCompile in jni).dependsOn(nativeCompile in jni).value
-    },
-    resourceGenerators in Compile in jni += Def.task {
-      jniLibraries((nativeCrossCompile in CrossCompile in jni).value, (resourceManaged in Compile in jni).value)
-    }.taskValue
-  ), state)
-  val extracted = Project.extract(newState)
-  extracted.runAggregated(publish in extracted.get(thisProjectRef), newState)
-  state
-}
 
 lazy val publishLocalCrossCompiled = Command.command("publishLocalCrossCompiled") { state =>
   val newState = reapply(Seq(
@@ -317,5 +307,3 @@ lazy val publishLocalCrossCompiled = Command.command("publishLocalCrossCompiled"
   extracted.runAggregated(publishLocal in extracted.get(thisProjectRef), newState)
   state
 }
-
-// TODO: Add command for the signed publish tasks.
