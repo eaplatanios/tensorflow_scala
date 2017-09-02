@@ -45,15 +45,9 @@ object JniPackage extends AutoPlugin {
       unmanagedNativeDirectories.value.flatMap(dir => (dir ** "*").get.filter(_.isFile).pair(rebase(dir, "/native")))
     },
     managedNativeLibraries := Def.taskDyn[Seq[(File, String)]] {
-      val enableManaged = enableNativeCompilation.value
-      if (enableManaged) Def.task {
+      if (enableNativeCompilation.value) Def.task {
         val platform: String = JniNative.autoImport.nativePlatform.value
-        val libraries: Seq[File] = JniNative.autoImport.nativeCompile.value
-        libraries.map(l => l -> s"/native/$platform/${l.name}")
-        // val libraries: Map[String, Set[File]] = JniNativeCross.autoImport.nativeCrossCompile.value
-        // libraries.flatMap { case (platform, files) =>
-        //   files.map(f => f -> s"/native/$platform/${f.name}")
-        // } toSeq
+          JniNative.autoImport.nativeCompile.value.map(l => l -> s"/native/$platform/${l.name}")
       } else Def.task {
         Seq.empty
       }
