@@ -270,10 +270,14 @@ lazy val publishSettings = Seq(
     checkSnapshotDependencies,
     inquireVersions,
     ReleaseStep(reapply(Seq(
-      nativeCompile := Seq.empty,
-      nativeCrossCompile in CrossCompile := (nativeCrossCompile in CrossCompile).dependsOn(nativeCompile).value,
-      resourceGenerators in Compile += Def.task {
-        jniLibraries((nativeCrossCompile in CrossCompile).value, (resourceManaged in Compile).value)
+      nativeCompile in thisProject := Seq.empty,
+      nativeCrossCompile in CrossCompile in thisProject := {
+        (nativeCrossCompile in CrossCompile in thisProject).dependsOn(nativeCompile in thisProject).value
+      },
+      resourceGenerators in Compile in thisProject += Def.task {
+        jniLibraries(
+          (nativeCrossCompile in CrossCompile in thisProject).value,
+          (resourceManaged in Compile in thisProject).value)
       }.taskValue
     ), _)),
     runClean,
