@@ -134,7 +134,10 @@ class Tensor private[Tensor](private[api] var nativeHandle: Long) extends Tensor
     } else {
       val hostHandle = NativeTensor.eagerCopyToDevice(nativeHandle, context.value.nativeHandle, "CPU:0")
       val resolvedHandle = NativeTensor.eagerResolve(hostHandle)
-      NativeTensor.eagerDelete(hostHandle)
+      NativeHandleLock synchronized {
+        if (hostHandle != 0)
+          NativeTensor.eagerDelete(hostHandle)
+      }
       resolvedHandle
     }
   }
@@ -148,8 +151,10 @@ class Tensor private[Tensor](private[api] var nativeHandle: Long) extends Tensor
         dataType.getElementFromBuffer(buffer, offset)
       case _ => dataType.getElementFromBuffer(buffer, index * dataType.byteSize)
     }
-    if (resolvedHandle != 0)
-      NativeTensor.delete(resolvedHandle)
+    NativeHandleLock synchronized {
+      if (resolvedHandle != 0)
+        NativeTensor.delete(resolvedHandle)
+    }
     value
   }
 
@@ -172,8 +177,10 @@ class Tensor private[Tensor](private[api] var nativeHandle: Long) extends Tensor
         })
       case _ => Iterator.range(0, size).map(i => dataType.getElementFromBuffer(buffer, i * dataType.byteSize))
     }
-    if (resolvedHandle != 0)
-      NativeTensor.delete(resolvedHandle)
+    NativeHandleLock synchronized {
+      if (resolvedHandle != 0)
+        NativeTensor.delete(resolvedHandle)
+    }
     iterator
   }
 
@@ -260,7 +267,7 @@ object Tensor {
   private[api] def fromNativeHandle(nativeHandle: Long): Tensor = new Tensor(nativeHandle)
 
   private[api] def fromHostNativeHandle(nativeHandle: Long): Tensor = {
-    Tensor.fromNativeHandle(NativeTensor.eagerAllocate(nativeHandle))
+    Tensor.fromNativeHandle(synchronized(NativeTensor.eagerAllocate(nativeHandle)))
   }
 
   def apply[T](head: T, tail: T*)(implicit ev: TensorConvertible[T]): Tensor = {
@@ -345,7 +352,7 @@ object Tensor {
           index += numEncodedBytes
           i += 1
         }
-        val tensor = Tensor.fromNativeHandle(NativeTensor.eagerAllocate(hostHandle))
+        val tensor = Tensor.fromNativeHandle(synchronized(NativeTensor.eagerAllocate(hostHandle)))
         NativeTensor.delete(hostHandle)
         tensor
       case _ =>
@@ -359,7 +366,7 @@ object Tensor {
           index += inferredDataType.byteSize
           i += 1
         }
-        val tensor = Tensor.fromNativeHandle(NativeTensor.eagerAllocate(hostHandle))
+        val tensor = Tensor.fromNativeHandle(synchronized(NativeTensor.eagerAllocate(hostHandle)))
         NativeTensor.delete(hostHandle)
         tensor
     }
@@ -387,7 +394,7 @@ object Tensor {
   }
 
   @throws[IllegalArgumentException]
-  def fromBuffer(dataType: DataType, shape: Shape, numBytes: Long, buffer: ByteBuffer): Tensor = {
+  def fromBuffer(dataType: DataType, shape: Shape, numBytes: Long, buffer: ByteBuffer): Tensor = this synchronized {
     // TODO: May behave weirdly for direct byte buffers allocated on the Scala side.
     val directBuffer = {
       if (buffer.isDirect) {
