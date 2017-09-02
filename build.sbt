@@ -135,7 +135,20 @@ lazy val jni = (project in file("./jni"))
       nativePlatforms in CrossCompile := Set(LINUX_x86_64, DARWIN_x86_64/*", WINDOWS_x86_64"*/),
       tensorFlowBinaryVersion in CrossCompile := "nightly", // tensorFlowVersion
       // Specify the order in which the different compilation tasks are executed
-      nativeCompile := nativeCompile.dependsOn(generateTensorOps).value
+      nativeCompile := nativeCompile.dependsOn(generateTensorOps).value,
+      releaseProcess := {
+        ReleaseStep(reapply(Seq(
+          nativeCompile := {
+            (nativeCrossCompile in CrossCompile).value
+            Seq.empty
+          },
+          resourceGenerators in Compile += Def.task {
+            jniLibraries(
+              (nativeCrossCompile in CrossCompile).value,
+              (resourceManaged in Compile).value)
+          }.taskValue
+        ), _)) +: releaseProcess.value
+      }
     )
 
 lazy val api = (project in file("./api"))
@@ -269,17 +282,6 @@ lazy val publishSettings = Seq(
   releaseProcess := Seq[ReleaseStep](
     checkSnapshotDependencies,
     inquireVersions,
-    ReleaseStep(reapply(Seq(
-      nativeCompile := {
-        (nativeCrossCompile in CrossCompile).value
-        Seq.empty
-      },
-      resourceGenerators in Compile += Def.task {
-        jniLibraries(
-          (nativeCrossCompile in CrossCompile).value,
-          (resourceManaged in Compile).value)
-      }.taskValue
-    ), _)),
     runClean,
     runTest,
     setReleaseVersion,
