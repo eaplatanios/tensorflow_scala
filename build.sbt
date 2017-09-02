@@ -64,6 +64,7 @@ lazy val testSettings = Seq(
 
 lazy val all = (project in file("."))
     .aggregate(jni, api, data, examples, site)
+    .settings(publishSettings)
     .settings(noPublishSettings)
     .settings(
       sourcesInBase := false,
