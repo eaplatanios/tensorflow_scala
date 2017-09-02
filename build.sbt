@@ -74,7 +74,9 @@ lazy val all = (project in file("."))
       packagedArtifacts := (packagedArtifacts in api).value ++ (packagedArtifacts in jni).value,
       nativeCompile := Seq.empty,
       nativeCrossCompile in CrossCompile := Map.empty,
-      commands += publishLocalCrossCompiled
+      commands ++= Seq(
+        publishCrossCompiled,
+        publishLocalCrossCompiled)
     )
 
 lazy val jni = (project in file("./jni"))
@@ -286,7 +288,7 @@ lazy val publishSettings = Seq(
   } yield Credentials("Sonatype Nexus Repository Manager", "oss.sonatype.org", username, password)).toSeq
 )
 
-lazy val publishCrossCompiled = Command.command("publishLocalCrossCompiled") { state =>
+lazy val publishCrossCompiled = Command.command("publishCrossCompiled") { state =>
   val newState = reapply(Seq(
     nativeCompile in jni := Seq.empty,
     nativeCrossCompile in CrossCompile in jni := {
@@ -297,7 +299,7 @@ lazy val publishCrossCompiled = Command.command("publishLocalCrossCompiled") { s
     }.taskValue
   ), state)
   val extracted = Project.extract(newState)
-  extracted.runAggregated(publishLocal in extracted.get(thisProjectRef), newState)
+  extracted.runAggregated(publish in extracted.get(thisProjectRef), newState)
   state
 }
 
@@ -315,3 +317,5 @@ lazy val publishLocalCrossCompiled = Command.command("publishLocalCrossCompiled"
   extracted.runAggregated(publishLocal in extracted.get(thisProjectRef), newState)
   state
 }
+
+// TODO: Add command for the signed publish tasks.
