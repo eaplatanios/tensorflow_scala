@@ -245,10 +245,12 @@ lazy val site = (project in file("./site"))
 lazy val noPublishSettings = Seq(
   publish := (),
   publishLocal := (),
-  publishArtifact := false
+  publishArtifact := false,
+  skip in publish := true
 )
 
 lazy val publishSettings = Seq(
+  skip in publish := false,
   homepage := Some(url("https://github.com/eaplatanios/tensorflow_scala")),
   licenses := Seq("Apache License 2.0" -> url("https://www.apache.org/licenses/LICENSE-2.0.txt")),
   scmInfo := Some(ScmInfo(url("https://github.com/eaplatanios/tensorflow_scala"),
