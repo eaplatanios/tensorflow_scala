@@ -63,7 +63,8 @@ object TensorFlow {
             val libPath = extractResource(lib, s).toAbsolutePath.toString
             if (lib == LIB_NAME)
               TensorFlow.loadGlobal(libPath)
-            System.load(libPath)
+            else
+              System.load(libPath)
             logger.info(s"Loaded the $name as a resource.")
           } catch {
             case exception: IOException =>
