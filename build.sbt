@@ -100,7 +100,11 @@ lazy val all = (project in file("."))
       packagedArtifacts := (packagedArtifacts in api).value ++ (packagedArtifacts in jni).value,
       nativeCompile := Seq.empty,
       nativeCrossCompile in CrossCompile := Map.empty,
-      commands ++= Seq(publishLocalCrossCompiled),
+      commands ++= Seq(
+        publishCrossCompiled,
+        publishLocalCrossCompiled,
+        publishSignedCrossCompiled,
+        publishLocalSignedCrossCompiled),
       releaseProcess := ReleaseStep(reapply(crossCompilationPackagingSettings, _)) +: releaseProcess.value
     )
 
@@ -316,9 +320,30 @@ lazy val publishSettings = Seq(
   } yield Credentials("Sonatype Nexus Repository Manager", "oss.sonatype.org", username, password)).toSeq
 )
 
+lazy val publishCrossCompiled = Command.command("publishCrossCompiled") { state =>
+  val newState = reapply(crossCompilationPackagingSettings, state)
+  val extracted = Project.extract(newState)
+  extracted.runAggregated(publish in extracted.get(thisProjectRef), newState)
+  state
+}
+
 lazy val publishLocalCrossCompiled = Command.command("publishLocalCrossCompiled") { state =>
   val newState = reapply(crossCompilationPackagingSettings, state)
   val extracted = Project.extract(newState)
   extracted.runAggregated(publishLocal in extracted.get(thisProjectRef), newState)
+  state
+}
+
+lazy val publishSignedCrossCompiled = Command.command("publishSignedCrossCompiled") { state =>
+  val newState = reapply(crossCompilationPackagingSettings, state)
+  val extracted = Project.extract(newState)
+  extracted.runAggregated(PgpKeys.publishSigned in extracted.get(thisProjectRef), newState)
+  state
+}
+
+lazy val publishLocalSignedCrossCompiled = Command.command("publishLocalSignedCrossCompiled") { state =>
+  val newState = reapply(crossCompilationPackagingSettings, state)
+  val extracted = Project.extract(newState)
+  extracted.runAggregated(PgpKeys.publishLocalSigned in extracted.get(thisProjectRef), newState)
   state
 }
