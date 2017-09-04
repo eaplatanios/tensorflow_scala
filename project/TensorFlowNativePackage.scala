@@ -13,11 +13,11 @@
  * the License.
  */
 
-import java.io.PrintWriter
+import java.io._
 import java.nio.file.{Files, Paths}
+import java.util.jar.{Attributes, JarEntry, JarOutputStream, Manifest}
 
 import scala.collection.JavaConverters._
-
 import sbt._
 import sbt.Keys._
 
@@ -116,6 +116,21 @@ object TensorFlowNativePackage extends AutoPlugin {
     inConfig(CrossCompile)(settings) ++
         Seq(crossPaths := false) // We do not add the Scala version to the native JAR files
 
+  def nativeLibraries(libraries: Map[Platform, (Set[File], Set[File])], resourceManaged: File): Seq[File] = {
+    val nativeLibraries: Seq[(File, String)] = libraries.flatMap { case (platform, (nativeLibs, _)) =>
+      nativeLibs.map(l => l -> s"/native/${platform.name}/${l.name}")
+    } toSeq
+    val resources: Seq[File] = for ((file, path) <- nativeLibraries) yield {
+      // Native library as a managed resource file.
+      val resource = resourceManaged / path
+      // Copy native library to a managed resource, so that it is always available on the classpath, even when not
+      // packaged in a JAR file.
+      IO.copyFile(file, resource)
+      resource
+    }
+    resources
+  }
+
   def jniLibraries(libraries: Map[Platform, (Set[File], Set[File])], resourceManaged: File): Seq[File] = {
     val jniLibraries: Seq[(File, String)] = libraries.flatMap { case (platform, (_, jniLibs)) =>
       jniLibs.map(l => l -> s"/native/${platform.name}/${l.name}")
@@ -129,6 +144,43 @@ object TensorFlowNativePackage extends AutoPlugin {
       resource
     }
     resources
+  }
+
+  def nativeLibToJar(platform: Platform, file: File, tfVersion: String): File = {
+    val jarPath = Paths.get(file.getPath).resolveSibling(s"tensorflow-native-${platform.name}.jar").toString
+    val manifest = new Manifest()
+    val attributes = manifest.getMainAttributes
+    attributes.put(Attributes.Name.MANIFEST_VERSION, "1.0")
+    attributes.put(Attributes.Name.IMPLEMENTATION_TITLE, "TensorFlow Native Library")
+    attributes.put(Attributes.Name.IMPLEMENTATION_VERSION, tfVersion)
+    attributes.put(Attributes.Name.IMPLEMENTATION_VENDOR, "org.tensorflow")
+    attributes.put(Attributes.Name.SPECIFICATION_TITLE, "TensorFlow Native Library")
+    attributes.put(Attributes.Name.SPECIFICATION_VERSION, tfVersion)
+    attributes.put(Attributes.Name.SPECIFICATION_VENDOR, "org.tensorflow")
+
+    var jarFile: File = null
+    var jos: JarOutputStream = null
+    try {
+      jarFile = new File(jarPath)
+      jos = new JarOutputStream(new FileOutputStream(jarFile), manifest)
+    } catch {
+      case e: IOException => e.printStackTrace()
+    }
+
+    val jarEntry = new JarEntry(file.getName)
+    jarEntry.setTime(file.lastModified())
+    jos.putNextEntry(jarEntry)
+
+    val is = new BufferedInputStream(new FileInputStream(file))
+    val buffer = new Array[Byte](1024)
+    var len = is.read(buffer, 0, buffer.length)
+    while (len > 0) {
+      jos.write(buffer, 0, len)
+      len = is.read(buffer, 0, buffer.length)
+    }
+    is.close()
+    jos.closeEntry()
+    jarFile
   }
 
   lazy val dockerfile: String = {
@@ -212,17 +264,21 @@ object TensorFlowNativePackage extends AutoPlugin {
          |set(LIB_NAME $${PROJECT_NAME})
          |add_library($${LIB_NAME} MODULE $${LIB_SRC})
          |target_link_libraries($${LIB_NAME} -ltensorflow)
-         |set_target_properties($${LIB_NAME} PROPERTIES SUFFIX "$cMakeTargetSuffix")
+         |set_target_properties($${LIB_NAME} PROPERTIES SUFFIX ".$cMakeTargetSuffix")
          |install(TARGETS $${LIB_NAME} LIBRARY DESTINATION .)
          |""".stripMargin
     }
 
     def downloadTfLib(targetDir: String, tfVersion: String): ProcessBuilder = {
       val path = s"$targetDir/lib/$tfLibFilename"
-      if (Files.notExists(Paths.get(path)))
-        url(tfLibUrl(tfVersion)) #> file(path)
-      else
-        Process(true)
+      val downloadProcess = {
+        if (Files.notExists(Paths.get(path)))
+          url(tfLibUrl(tfVersion)) #> file(path)
+        else
+          Process(true)
+      }
+      val extractProcess = Process("tar" :: "xf" :: path :: Nil, new File(s"$targetDir/lib/"))
+      downloadProcess #&& extractProcess
     }
 
     def build(dockerImage: String, srcDir: String, targetDir: String): ProcessBuilder = {
@@ -273,7 +329,7 @@ object TensorFlowNativePackage extends AutoPlugin {
     override val crossTriple: String = "x86_64-linux-gnu"
 
     override val tfLibFilename      : String = s"libtensorflow-cpu-$name.tar.gz"
-    override val tfLibExtractCommand: String = s"tar xvf /root/$tfLibFilename -C /usr"
+    override val tfLibExtractCommand: String = s"tar xf /root/$tfLibFilename -C /usr"
 
     override def tfLibUrl(version: String): String = version match {
       case "nightly" => s"$tfLibNightlyUrlPrefix/TYPE=cpu-slave/lastSuccessfulBuild/artifact/lib_package/$tfLibFilename"
@@ -285,7 +341,7 @@ object TensorFlowNativePackage extends AutoPlugin {
     override val cMakeCCompiler   : String = s"$cMakeToolsPath/bin/gcc"
     override val cMakeCXXCompiler : String = s"$cMakeToolsPath/bin/gcc"
     override val cMakeCXXFlags    : String = "-std=c++11"
-    override val cMakeTargetSuffix: String = ".so"
+    override val cMakeTargetSuffix: String = "so"
   }
 
   object DARWIN_x86_64 extends Platform {
@@ -293,7 +349,7 @@ object TensorFlowNativePackage extends AutoPlugin {
     override val crossTriple: String = "x86_64-apple-darwin14"
 
     override val tfLibFilename      : String = s"libtensorflow-cpu-$name.tar.gz"
-    override val tfLibExtractCommand: String = s"tar xvf /root/$tfLibFilename -C /usr/x86_64-linux-gnu/$crossTriple"
+    override val tfLibExtractCommand: String = s"tar xf /root/$tfLibFilename -C /usr/x86_64-linux-gnu/$crossTriple"
 
     override def tfLibUrl(version: String): String = version match {
       case "nightly" => s"$tfLibNightlyUrlPrefix/TYPE=mac-slave/lastSuccessfulBuild/artifact/lib_package/$tfLibFilename"
@@ -305,7 +361,7 @@ object TensorFlowNativePackage extends AutoPlugin {
     override val cMakeCCompiler   : String = s"$cMakeToolsPath/bin/$crossTriple-clang"
     override val cMakeCXXCompiler : String = s"$cMakeToolsPath/bin/$crossTriple-clang++"
     override val cMakeCXXFlags    : String = "-std=c++11 -stdlib=libc++"
-    override val cMakeTargetSuffix: String = ".dylib"
+    override val cMakeTargetSuffix: String = "dylib"
   }
 
   object WINDOWS_x86_64 extends Platform {
@@ -325,7 +381,7 @@ object TensorFlowNativePackage extends AutoPlugin {
     override val cMakeCCompiler     : String = s"$cMakeToolsPath/bin/gcc"
     override val cMakeCXXCompiler   : String = s"$cMakeToolsPath/bin/g++"
     override val cMakeCXXFlags      : String = "-std=c++11"
-    override val cMakeTargetSuffix  : String = ".dll"
+    override val cMakeTargetSuffix  : String = "dll"
     override val cMakeListsAdditions: String = "set(CMAKE_POSITION_INDEPENDENT_CODE OFF)"
   }
 }

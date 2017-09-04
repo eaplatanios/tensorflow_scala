@@ -53,6 +53,8 @@ lazy val loggingSettings = Seq(
     "ch.qos.logback"             %  "logback-classic" % "1.2.3")
 )
 
+lazy val commonSettings = loggingSettings
+
 lazy val testSettings = Seq(
   libraryDependencies ++= Seq(
     "junit"         %  "junit" %   "4.12",
@@ -64,6 +66,25 @@ lazy val testSettings = Seq(
   testForkedParallel in Test := false,
   parallelExecution in Test := false,
   testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oDF")
+)
+
+lazy val crossCompilationPackagingSettings = Seq(
+  nativeCompile in jni := {
+    (nativeCrossCompile in CrossCompile in jni).value
+    Seq.empty
+  },
+  resourceGenerators in Compile in jni += Def.task {
+    jniLibraries(
+      (nativeCrossCompile in CrossCompile in jni).value,
+      (resourceManaged in Compile in jni).value)
+  }.taskValue,
+  packagedArtifacts in jni ++= {
+    (nativeCrossCompile in CrossCompile in jni).value.flatMap { case (platform, (nativeLibs, _)) =>
+      nativeLibs.map(
+        Artifact(s"tensorflow", s"native-${platform.name}") ->
+            nativeLibToJar(platform, _, (tensorFlowBinaryVersion in CrossCompile in jni).value))
+    }
+  }
 )
 
 lazy val all = (project in file("."))
@@ -80,26 +101,14 @@ lazy val all = (project in file("."))
       nativeCompile := Seq.empty,
       nativeCrossCompile in CrossCompile := Map.empty,
       commands ++= Seq(publishLocalCrossCompiled),
-      releaseProcess := {
-        ReleaseStep(reapply(Seq(
-          nativeCompile in jni := {
-            (nativeCrossCompile in CrossCompile in jni).value
-            Seq.empty
-          },
-          resourceGenerators in Compile in jni += Def.task {
-            jniLibraries(
-              (nativeCrossCompile in CrossCompile in jni).value,
-              (resourceManaged in Compile in jni).value)
-          }.taskValue
-        ), _)) +: releaseProcess.value
-      }
+      releaseProcess := ReleaseStep(reapply(crossCompilationPackagingSettings, _)) +: releaseProcess.value
     )
 
 lazy val jni = (project in file("./jni"))
     .enablePlugins(JniNative, TensorFlowGenerateTensorOps, TensorFlowNativePackage)
     .configs(CrossCompile)
     .settings(moduleName := "tensorflow-jni", name := "TensorFlow for Scala JNI Bindings")
-    .settings(loggingSettings)
+    .settings(commonSettings)
     .settings(testSettings)
     .settings(publishSettings)
     .settings(noPublishSettings)
@@ -148,14 +157,16 @@ lazy val jni = (project in file("./jni"))
       nativePlatforms in CrossCompile := Set(LINUX_x86_64, DARWIN_x86_64/*", WINDOWS_x86_64"*/),
       tensorFlowBinaryVersion in CrossCompile := "nightly", // tensorFlowVersion
       // Specify the order in which the different compilation tasks are executed
-      nativeCompile := nativeCompile.dependsOn(generateTensorOps).value
+      nativeCompile := nativeCompile.dependsOn(generateTensorOps).value,
+      publishArtifact := true,
+      crossPaths := false
     )
 
 lazy val api = (project in file("./api"))
     .dependsOn(jni)
     .enablePlugins(ProtobufPlugin)
     .settings(moduleName := "tensorflow-api", name := "TensorFlow for Scala API")
-    .settings(loggingSettings)
+    .settings(commonSettings)
     .settings(testSettings)
     .settings(publishSettings)
     .settings(noPublishSettings)
@@ -175,7 +186,7 @@ lazy val api = (project in file("./api"))
 lazy val data = (project in file("./data"))
     .dependsOn(api)
     .settings(moduleName := "tensorflow-data", name := "TensorFlow for Scala Data")
-    .settings(loggingSettings)
+    .settings(commonSettings)
     .settings(testSettings)
     .settings(publishSettings)
     .settings(noPublishSettings)
@@ -183,7 +194,7 @@ lazy val data = (project in file("./data"))
 lazy val examples = (project in file("./examples"))
     .dependsOn(api, data)
     .settings(moduleName := "tensorflow-examples", name := "TensorFlow for Scala Examples")
-    .settings(loggingSettings)
+    .settings(commonSettings)
     .settings(publishSettings)
     .settings(noPublishSettings)
 
@@ -251,7 +262,6 @@ lazy val noPublishSettings = Seq(
 )
 
 lazy val publishSettings = Seq(
-  skip in publish := false,
   homepage := Some(url("https://github.com/eaplatanios/tensorflow_scala")),
   licenses := Seq("Apache License 2.0" -> url("https://www.apache.org/licenses/LICENSE-2.0.txt")),
   scmInfo := Some(ScmInfo(url("https://github.com/eaplatanios/tensorflow_scala"),
@@ -307,15 +317,7 @@ lazy val publishSettings = Seq(
 )
 
 lazy val publishLocalCrossCompiled = Command.command("publishLocalCrossCompiled") { state =>
-  val newState = reapply(Seq(
-    nativeCompile in jni := {
-      (nativeCrossCompile in CrossCompile in jni).value
-      Seq.empty
-    },
-    resourceGenerators in Compile in jni += Def.task {
-      jniLibraries((nativeCrossCompile in CrossCompile in jni).value, (resourceManaged in Compile in jni).value)
-    }.taskValue
-  ), state)
+  val newState = reapply(crossCompilationPackagingSettings, state)
   val extracted = Project.extract(newState)
   extracted.runAggregated(publishLocal in extracted.get(thisProjectRef), newState)
   state
