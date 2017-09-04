@@ -15,7 +15,6 @@
 
 import java.io._
 import java.nio.file.{Files, Paths}
-import java.util.jar.{Attributes, JarEntry, JarOutputStream, Manifest}
 
 import scala.collection.JavaConverters._
 import sbt._
@@ -146,41 +145,10 @@ object TensorFlowNativePackage extends AutoPlugin {
     resources
   }
 
-  def nativeLibToJar(platform: Platform, file: File, tfVersion: String): File = {
+  def nativeLibToJar(platform: Platform, file: File, tfVersion: String, logger: ProcessLogger): File = {
     val jarPath = Paths.get(file.getPath).resolveSibling(s"tensorflow-native-${platform.name}.jar").toString
-    val manifest = new Manifest()
-    val attributes = manifest.getMainAttributes
-    attributes.put(Attributes.Name.MANIFEST_VERSION, "1.0")
-    attributes.put(Attributes.Name.IMPLEMENTATION_TITLE, "TensorFlow Native Library")
-    attributes.put(Attributes.Name.IMPLEMENTATION_VERSION, tfVersion)
-    attributes.put(Attributes.Name.IMPLEMENTATION_VENDOR, "org.tensorflow")
-    attributes.put(Attributes.Name.SPECIFICATION_TITLE, "TensorFlow Native Library")
-    attributes.put(Attributes.Name.SPECIFICATION_VERSION, tfVersion)
-    attributes.put(Attributes.Name.SPECIFICATION_VENDOR, "org.tensorflow")
-
-    var jarFile: File = null
-    var jos: JarOutputStream = null
-    try {
-      jarFile = new File(jarPath)
-      jos = new JarOutputStream(new FileOutputStream(jarFile), manifest)
-    } catch {
-      case e: IOException => e.printStackTrace()
-    }
-
-    val jarEntry = new JarEntry(file.getName)
-    jarEntry.setTime(file.lastModified())
-    jos.putNextEntry(jarEntry)
-
-    val is = new BufferedInputStream(new FileInputStream(file))
-    val buffer = new Array[Byte](1024)
-    var len = is.read(buffer, 0, buffer.length)
-    while (len > 0) {
-      jos.write(buffer, 0, len)
-      len = is.read(buffer, 0, buffer.length)
-    }
-    is.close()
-    jos.closeEntry()
-    jarFile
+    Process("jar" :: "cf" :: jarPath :: "-C" :: file.getParent :: file.getName :: Nil) ! logger
+    new File(jarPath)
   }
 
   lazy val dockerfile: String = {
