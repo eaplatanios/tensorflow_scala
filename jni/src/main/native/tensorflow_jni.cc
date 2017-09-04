@@ -15,6 +15,8 @@
 
 #include "tensorflow_jni.h"
 
+#include <dlfcn.h>
+#include <iostream>
 #include <memory>
 
 #include "c_api.h"
@@ -42,6 +44,18 @@ TF_Operation* require_operation_handle(JNIEnv *env, jlong handle) {
 TF_Graph* require_graph_handle(JNIEnv *env, jlong handle) {
   return requireHandleImpl<TF_Graph>(env, handle);
 }
+}
+
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_loadGlobal(
+  JNIEnv* env, jobject object, jstring lib_path) {
+  const char *c_lib_path = env->GetStringUTFChars(lib_path, nullptr);
+  void* h = dlopen(c_lib_path, RTLD_LAZY | RTLD_GLOBAL);
+  if (h) {
+    std::cout << "Loading dynamic library '" << c_lib_path << "' succeeded." << std::endl;
+  } else {
+    std::cout << "Loading dynamic library '" << c_lib_path << "' failed." << std::endl;
+  }
+  env->ReleaseStringUTFChars(lib_path, c_lib_path);
 }
 
 JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_version(
