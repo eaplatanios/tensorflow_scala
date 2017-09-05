@@ -13,10 +13,10 @@
  * the License.
  */
 
-import java.io._
 import java.nio.file.{Files, Paths}
 
 import scala.collection.JavaConverters._
+
 import sbt._
 import sbt.Keys._
 
@@ -78,12 +78,12 @@ object TensorFlowNativePackage extends AutoPlugin {
         // Generate Dockerfile
         val dockerfilePath = platformTargetDir / "docker" / "Dockerfile"
         log.info(s"Generating Dockerfile in '$dockerfilePath'.")
-        new PrintWriter(dockerfilePath) {write(dockerfile); close()}
+        IO.write(dockerfilePath, platform.dockerfile)
 
         // Generate CMakeLists.txt
         val cMakeLists = platformTargetDir / "docker" / "CMakeLists.txt"
         log.info(s"Generating CMakeLists in '$cMakeLists'.")
-        new PrintWriter(cMakeLists) {write(platform.cMakeLists); close()}
+        IO.write(cMakeLists, platform.cMakeLists)
 
         // Download the native TensorFlow library
         log.info(s"Downloading the TensorFlow native library.")
@@ -115,20 +115,20 @@ object TensorFlowNativePackage extends AutoPlugin {
     inConfig(CrossCompile)(settings) ++
         Seq(crossPaths := false) // We do not add the Scala version to the native JAR files
 
-  def nativeLibraries(libraries: Map[Platform, (Set[File], Set[File])], resourceManaged: File): Seq[File] = {
-    val nativeLibraries: Seq[(File, String)] = libraries.flatMap { case (platform, (nativeLibs, _)) =>
-      nativeLibs.map(l => l -> s"/native/${platform.name}/${l.name}")
-    } toSeq
-    val resources: Seq[File] = for ((file, path) <- nativeLibraries) yield {
-      // Native library as a managed resource file.
-      val resource = resourceManaged / path
-      // Copy native library to a managed resource, so that it is always available on the classpath, even when not
-      // packaged in a JAR file.
-      IO.copyFile(file, resource)
-      resource
-    }
-    resources
-  }
+  // def nativeLibraries(libraries: Map[Platform, (Set[File], Set[File])], resourceManaged: File): Seq[File] = {
+  //   val nativeLibraries: Seq[(File, String)] = libraries.flatMap { case (platform, (nativeLibs, _)) =>
+  //     nativeLibs.map(l => l -> s"/native/${platform.name}/${l.name}")
+  //   } toSeq
+  //   val resources: Seq[File] = for ((file, path) <- nativeLibraries) yield {
+  //     // Native library as a managed resource file.
+  //     val resource = resourceManaged / path
+  //     // Copy native library to a managed resource, so that it is always available on the classpath, even when not
+  //     // packaged in a JAR file.
+  //     IO.copyFile(file, resource)
+  //     resource
+  //   }
+  //   resources
+  // }
 
   def jniLibraries(libraries: Map[Platform, (Set[File], Set[File])], resourceManaged: File): Seq[File] = {
     val jniLibraries: Seq[(File, String)] = libraries.flatMap { case (platform, (_, jniLibs)) =>
@@ -151,23 +151,6 @@ object TensorFlowNativePackage extends AutoPlugin {
     new File(jarPath)
   }
 
-  lazy val dockerfile: String = {
-    s"""# Pull base image
-       |FROM multiarch/crossbuild
-       |
-       |# Install CMake and Java
-       |RUN echo "deb http://httpredir.debian.org/debian/ jessie-backports main" > \\
-       |  /etc/apt/sources.list.d/jessie-backports.list
-       |RUN apt-get update
-       |RUN apt-get -t jessie-backports -y --no-install-recommends install cmake openjdk-8-jdk
-       |RUN /usr/sbin/update-java-alternatives -s java-1.8.0-openjdk-amd64
-       |ENV JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
-       |
-       |# Define working directory
-       |WORKDIR /root
-       |""".stripMargin
-  }
-
   sealed trait Platform {
     val name       : String
     val crossTriple: String
@@ -186,9 +169,27 @@ object TensorFlowNativePackage extends AutoPlugin {
     val cMakeCXXCompiler : String
     val cMakeTargetSuffix: String
     val cMakeCXXFlags    : String
+    val cMakePath        : String
+    val cMakeLibPath     : String
+
     val cMakeListsAdditions: String = ""
-    val cMakePath          : String = s"/usr/x86_64-linux-gnu/$crossTriple/bin"
-    val cMakeLibPath       : String = s"/usr/x86_64-linux-gnu/$crossTriple/lib"
+
+    val dockerfile: String = {
+      s"""# Pull base image
+         |FROM multiarch/crossbuild
+         |
+         |# Install CMake and Java
+         |RUN echo "deb http://httpredir.debian.org/debian/ jessie-backports main" > \\
+         |  /etc/apt/sources.list.d/jessie-backports.list
+         |RUN apt-get update
+         |RUN apt-get -t jessie-backports -y --no-install-recommends install cmake openjdk-8-jdk
+         |RUN /usr/sbin/update-java-alternatives -s java-1.8.0-openjdk-amd64
+         |ENV JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+         |
+         |# Define working directory
+         |WORKDIR /root
+         |""".stripMargin
+    }
 
     def cMakeLists: String = {
       s"""cmake_minimum_required(VERSION 3.1.0)
@@ -214,12 +215,18 @@ object TensorFlowNativePackage extends AutoPlugin {
          |set(CMAKE_CXX_COMPILER $cMakeCXXCompiler)
          |set(CMAKE_CXX_FLAGS "$${CMAKE_CXX_FLAGS} $cMakeCXXFlags")
          |$cMakeListsAdditions
-         |set(CMAKE_SKIP_RPATH TRUE)
+         |# set(CMAKE_SKIP_RPATH TRUE)
          |
          |# Include directories
          |include_directories(.)
          |include_directories(generated)
          |include_directories($${JNI_INCLUDE_DIRS})
+         |
+         |# Find Native TensorFlow Library to link
+         |find_library(LIB_TENSORFLOW tensorflow HINTS ENV LD_LIBRARY_PATH)
+         |if(NOT LIB_TENSORFLOW)
+         |  message(FATAL_ERROR "Library `tensorflow` not found.")
+         |endif()
          |
          |# Sources
          |file(GLOB_RECURSE LIB_SRC
@@ -231,7 +238,7 @@ object TensorFlowNativePackage extends AutoPlugin {
          |# Setup installation targets
          |set(LIB_NAME $${PROJECT_NAME})
          |add_library($${LIB_NAME} MODULE $${LIB_SRC})
-         |target_link_libraries($${LIB_NAME} -ltensorflow)
+         |target_link_libraries($${LIB_NAME} $${LIB_TENSORFLOW})
          |set_target_properties($${LIB_NAME} PROPERTIES SUFFIX ".$cMakeTargetSuffix")
          |install(TARGETS $${LIB_NAME} LIBRARY DESTINATION .)
          |""".stripMargin
@@ -264,8 +271,9 @@ object TensorFlowNativePackage extends AutoPlugin {
           // Create a new container and copy the repository code in it
           Process("docker" :: "run" :: "--name" :: dockerContainer :: "-dit" :: dockerImage :: "/bin/bash" :: Nil) #&&
           Process("docker" :: "cp" :: hostTfLibPath :: s"$dockerContainer:/root/$tfLibFilename" :: Nil) #&&
+          Process("docker" :: "cp" :: s"$targetDir/lib/lib/." :: s"$dockerContainer:$cMakeLibPath" :: Nil) #&&
           // Extract the TensorFlow dynamic library in the container
-          Process("docker" :: "exec" :: dockerContainer :: "bash" :: "-c" :: tfLibExtractCommand :: Nil) #&&
+          // Process("docker" :: "exec" :: dockerContainer :: "bash" :: "-c" :: tfLibExtractCommand :: Nil) #&&
           // Compile and package the JNI bindings
           Process("docker" :: "cp" :: srcDir :: s"$dockerContainer:/root/src" :: Nil) #&&
           Process("docker" :: "cp" :: hostCMakeListsPath :: s"$dockerContainer:/root/src/CMakeLists.txt" :: Nil) #&&
@@ -310,6 +318,8 @@ object TensorFlowNativePackage extends AutoPlugin {
     override val cMakeCXXCompiler : String = s"$cMakeToolsPath/bin/gcc"
     override val cMakeCXXFlags    : String = "-std=c++11"
     override val cMakeTargetSuffix: String = "so"
+    override val cMakePath        : String = "/usr/bin"
+    override val cMakeLibPath     : String = "/usr/lib"
   }
 
   object DARWIN_x86_64 extends Platform {
@@ -330,6 +340,16 @@ object TensorFlowNativePackage extends AutoPlugin {
     override val cMakeCXXCompiler : String = s"$cMakeToolsPath/bin/$crossTriple-clang++"
     override val cMakeCXXFlags    : String = "-std=c++11 -stdlib=libc++"
     override val cMakeTargetSuffix: String = "dylib"
+    override val cMakePath        : String = s"/usr/x86_64-linux-gnu/$crossTriple/bin"
+    override val cMakeLibPath     : String = s"/usr/x86_64-linux-gnu/$crossTriple/lib"
+
+    // TODO: Remove this when TensorFlow PR #12820 is merged.
+    override def downloadTfLib(targetDir: String, tfVersion: String): ProcessBuilder = {
+      val writePermissionProcess = Process("chmod" :: "+w" :: s"$targetDir/lib/lib/libtensorflow.so" :: Nil)
+      val installNameProcess = Process(
+        "install_name_tool" :: "-id" :: "@rpath/libtensorflow.so" :: s"$targetDir/lib/lib/libtensorflow.so" :: Nil)
+      super.downloadTfLib(targetDir, tfVersion) #&& writePermissionProcess #&& installNameProcess
+    }
   }
 
   object WINDOWS_x86_64 extends Platform {
@@ -344,12 +364,15 @@ object TensorFlowNativePackage extends AutoPlugin {
       case _ => s"$tfLibUrlPrefix/libtensorflow-cpu-$name-$version.tar.gz"
     }
 
-    override val cMakeSystemName    : String = "Windows"
-    override val cMakeToolsPath     : String = s"/usr/$crossTriple"
-    override val cMakeCCompiler     : String = s"$cMakeToolsPath/bin/gcc"
-    override val cMakeCXXCompiler   : String = s"$cMakeToolsPath/bin/g++"
-    override val cMakeCXXFlags      : String = "-std=c++11"
-    override val cMakeTargetSuffix  : String = "dll"
+    override val cMakeSystemName  : String = "Windows"
+    override val cMakeToolsPath   : String = s"/usr/$crossTriple"
+    override val cMakeCCompiler   : String = s"$cMakeToolsPath/bin/gcc"
+    override val cMakeCXXCompiler : String = s"$cMakeToolsPath/bin/g++"
+    override val cMakeCXXFlags    : String = "-std=c++11"
+    override val cMakeTargetSuffix: String = "dll"
+    override val cMakePath        : String = s"/usr/x86_64-linux-gnu/$crossTriple/bin"
+    override val cMakeLibPath     : String = s"/usr/x86_64-linux-gnu/$crossTriple/lib"
+
     override val cMakeListsAdditions: String = "set(CMAKE_POSITION_INDEPENDENT_CODE OFF)"
   }
 }

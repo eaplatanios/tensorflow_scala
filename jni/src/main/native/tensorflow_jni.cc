@@ -46,18 +46,6 @@ TF_Graph* require_graph_handle(JNIEnv *env, jlong handle) {
 }
 }
 
-JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_loadGlobal(
-  JNIEnv* env, jobject object, jstring lib_path) {
-  const char *c_lib_path = env->GetStringUTFChars(lib_path, nullptr);
-  void* h = dlopen(c_lib_path, RTLD_LAZY | RTLD_GLOBAL);
-  if (h) {
-    std::cout << "Loading dynamic library '" << c_lib_path << "' succeeded." << std::endl;
-  } else {
-    std::cout << "Loading dynamic library '" << c_lib_path << "' failed." << std::endl;
-  }
-  env->ReleaseStringUTFChars(lib_path, c_lib_path);
-}
-
 JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_version(
   JNIEnv* env, jobject object) {
   return env->NewStringUTF(TF_Version());

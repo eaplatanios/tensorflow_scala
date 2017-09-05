@@ -9,14 +9,6 @@ extern "C" {
 #endif
 /*
  * Class:     org_platanios_tensorflow_jni_TensorFlow__
- * Method:    loadGlobal
- * Signature: (Ljava/lang/String;)V
- */
-JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_loadGlobal
-  (JNIEnv *, jobject, jstring);
-
-/*
- * Class:     org_platanios_tensorflow_jni_TensorFlow__
  * Method:    version
  * Signature: ()Ljava/lang/String;
  */

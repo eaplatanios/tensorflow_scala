@@ -28,7 +28,6 @@ addSbtPlugin("com.github.gseitz" % "sbt-protobuf" % "0.6.3")
 
 // Plugins used for generating the library website
 addSbtPlugin("com.eed3si9n" % "sbt-unidoc"     % "0.4.1")
-addSbtPlugin("org.tpolecat" % "tut-plugin"     % "0.5.4")
 addSbtPlugin("com.47deg"    % "sbt-microsites" % "0.6.2")
 
 // Packaging and publishing related plugins

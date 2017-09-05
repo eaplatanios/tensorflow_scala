@@ -21,6 +21,8 @@ import org.slf4j.LoggerFactory
 import java.io.{IOException, InputStream}
 import java.nio.file.{Files, Path, StandardCopyOption}
 
+import scala.collection.JavaConverters._
+
 /**
   * @author Emmanouil Antonios Platanios
   */
@@ -28,9 +30,14 @@ object TensorFlow {
   final class NativeException(message: String) extends RuntimeException(message)
 
   private[this] val logger      : Logger = Logger(LoggerFactory.getLogger("TensorFlow Native"))
+
+  /** TensorFlow native library name. */
   private[this] val LIB_NAME    : String = "tensorflow"
+
+  /** TensorFlow JNI bindings library name. */
   private[this] val JNI_LIB_NAME: String = "tensorflow_jni"
 
+  /** Current platform operating system. */
   private[this] val os = {
     val name = System.getProperty("os.name").toLowerCase
     if (name.contains("linux")) "linux"
@@ -39,14 +46,15 @@ object TensorFlow {
     else name.replaceAll("\\s", "")
   }
 
+  /** Current platform architecture. */
   private[this] val architecture = {
     val arch = System.getProperty("os.arch").toLowerCase
     if (arch == "amd64") "x86_64"
     else arch
   }
 
-  def load(lib: String = JNI_LIB_NAME): Unit = {
-    val name = if (lib == LIB_NAME) "TensorFlow native library" else "TensorFlow JNI bindings"
+  /** Loads the TensorFlow JNI bindings library along with the TensorFlow native library, if provided as a resource. */
+  def load(): Unit = {
     // If either:
     // (1) The native library has already been statically loaded, or
     // (2) The required native code has been statically linked (through a custom launcher), or
@@ -54,51 +62,64 @@ object TensorFlow {
     //     loaded (for example, tensorflow/examples/android and tensorflow/contrib/android include the required native
     //     code in differently named libraries).
     // then it seems that the native library has already been loaded and there is nothing else to do.
-    if (!checkIfLoaded() && !tryLoadLibrary(lib)) {
+    if (!checkIfLoaded() && !tryLoadLibrary()) {
       // Native code is not present, perhaps it has been packaged into the JAR file containing this code.
-      val resourceName = makeResourceName(lib)
-      Option(Thread.currentThread.getContextClassLoader.getResourceAsStream(resourceName)) match {
-        case Some(s) =>
-          try {
-            val libPath = extractResource(lib, s).toAbsolutePath.toString
-            if (lib == LIB_NAME)
-              TensorFlow.loadGlobal(libPath)
-            else
-              System.load(libPath)
-            logger.info(s"Loaded the $name as a resource.")
-          } catch {
-            case exception: IOException =>
-              //if (lib != LIB_NAME)
-              throw new UnsatisfiedLinkError(
-                s"Unable to extract the $name into a temporary file (${exception.getMessage}).")
-          }
-        case None =>
-          //if (lib != LIB_NAME)
-          throw new UnsatisfiedLinkError(
-            s"Cannot find the $name for OS: $os, and architecture: $architecture. See " +
-                "https://github.com/eaplatanios/tensorflow_scala/tree/master/README.md for possible solutions " +
-                "(such as building the library from source).")
-      }
+      val tempDirectory = Files.createTempDirectory("tensorflow_scala_native_libraries")
+      Runtime.getRuntime.addShutdownHook(new Thread() {
+        override def run(): Unit = {
+          Files.walk(tempDirectory).iterator().asScala.foreach(Files.deleteIfExists)
+          Files.deleteIfExists(tempDirectory)
+        }
+      })
+      val classLoader = Thread.currentThread.getContextClassLoader
+
+      // Check if a TensorFlow native library resource is provided and load it.
+      val libResourceStream = Option(classLoader.getResourceAsStream(makeResourceName(LIB_NAME)))
+      libResourceStream.map(extractResource(LIB_NAME, _, tempDirectory)).foreach(path => {
+        try {
+          System.load(path.toAbsolutePath.toString)
+        } catch {
+          case exception: IOException => throw new UnsatisfiedLinkError(
+            s"Unable to load the TensorFlow native library from the extracted file: ${exception.getMessage}.")
+        }
+      })
+
+      // Load the TensorFlow JNI bindings from the appropriate resource.
+      val jniResourceStream = Option(classLoader.getResourceAsStream(makeResourceName(JNI_LIB_NAME)))
+      val jniPath = jniResourceStream.map(extractResource(JNI_LIB_NAME, _, tempDirectory))
+      if (jniPath.isEmpty)
+        throw new UnsatisfiedLinkError(
+          s"Cannot find the TensorFlow JNI bindings for OS: $os, and architecture: $architecture. See " +
+              "https://github.com/eaplatanios/tensorflow_scala/tree/master/README.md for possible solutions " +
+              "(such as building the library from source).")
+      jniPath.foreach(path => {
+        try {
+          System.load(path.toAbsolutePath.toString)
+        } catch {
+          case exception: IOException => throw new UnsatisfiedLinkError(
+            "Unable to load the TensorFlow JNI bindings from the extracted file. This could be due to the TensorFlow " +
+                s"native library not being available. Error: ${exception.getMessage}.")
+        }
+      })
     }
   }
 
-  private[this] def tryLoadLibrary(lib: String) = {
-    val name = if (lib == LIB_NAME) "TensorFlow native library" else "TensorFlow JNI bindings"
+  /** Tries to load the TensorFlow JNI bindings library using the system library loader (i.e., not from a resource). */
+  private[this] def tryLoadLibrary() = {
     try {
-      if (lib == LIB_NAME)
-        TensorFlow.loadGlobal(System.mapLibraryName(lib))
-      else
-        System.loadLibrary(lib)
+      System.loadLibrary(JNI_LIB_NAME)
       true
     } catch {
       case exception: UnsatisfiedLinkError =>
         logger.info(
-          s"Failed to load the $name with error: ${exception.getMessage}. Attempting to load it as a resource.")
+          s"Failed to load the TensorFlow native library with error: ${exception.getMessage}. " +
+              s"Attempting to load it as a resource.")
         false
     }
   }
 
-  private[this] def checkIfLoaded() = {
+  /** Checks if the TensorFlow JNI bindings library has been loaded. */
+  private[this] def checkIfLoaded(): Boolean = {
     try {
       TensorFlow.version
       true
@@ -107,37 +128,42 @@ object TensorFlow {
     }
   }
 
+  /** Maps the provided library name to a filename, similar to [[System.mapLibraryName]], but with the only difference
+    * being that for the main TensorFlow native library only, the `.so` extension is used for Mac OS X shared libraries,
+    * as opposed to the `.dylib` extension. */
+  private def mapLibraryName(lib: String): String = {
+    var name = System.mapLibraryName(lib)
+    if (lib == LIB_NAME && os == "darwin" && name.endsWith(".dylib"))
+      name = name.substring(0, name.lastIndexOf(".dylib")) + ".so"
+    name
+  }
+
+  /** Generates the resource name (including the path) for the specified library. */
   private def makeResourceName(lib: String): String = {
     if (lib == LIB_NAME)
-      System.mapLibraryName(lib)
+      mapLibraryName(lib)
     else
-      s"native/$os-$architecture/${System.mapLibraryName(lib)}"
+      s"native/$os-$architecture/${mapLibraryName(lib)}"
   }
 
-  private def extractResource(lib: String, resourceStream: InputStream): Path = {
-    val name = if (lib == LIB_NAME) "TensorFlow native library" else "TensorFlow JNI bindings"
-    val sampleFilename = System.mapLibraryName(lib)
-    val dot = sampleFilename.indexOf(".")
-    val prefix = if (dot < 0) sampleFilename else sampleFilename.substring(0, dot)
-    val suffix = if (dot < 0) null else sampleFilename.substring(dot)
-    val tempFilePath = Files.createTempFile(prefix, suffix)
-    Runtime.getRuntime.addShutdownHook(new Thread() {
-      override def run(): Unit = Files.delete(tempFilePath)
-    })
-    logger.info(s"Extracting the $name to ${tempFilePath.toAbsolutePath}.")
+  /** Extracts the resource provided by `inputStream` to `directory`. The filename is the mapped library name for the
+    * `lib` library. Returns a path pointing to the extracted file. */
+  private def extractResource(lib: String, resourceStream: InputStream, directory: Path): Path = {
+    val sampleFilename = mapLibraryName(lib)
+    val filePath = directory.resolve(sampleFilename)
+    logger.info(s"Extracting the '$lib' native library to ${filePath.toAbsolutePath}.")
     try {
-      val numBytes = Files.copy(resourceStream, tempFilePath, StandardCopyOption.REPLACE_EXISTING)
-      logger.info(String.format(s"Copied $numBytes bytes to ${tempFilePath.toAbsolutePath}."))
+      val numBytes = Files.copy(resourceStream, filePath, StandardCopyOption.REPLACE_EXISTING)
+      logger.info(String.format(s"Copied $numBytes bytes to ${filePath.toAbsolutePath}."))
     } catch {
-      case exception: Exception => throw new UnsatisfiedLinkError(s"Error while extracting the $name: $exception")
+      case exception: Exception =>
+        throw new UnsatisfiedLinkError(s"Error while extracting the '$lib' native library: $exception")
     }
-    tempFilePath
+    filePath
   }
 
-  load(JNI_LIB_NAME)
-  load(LIB_NAME)
+  load()
 
-  @native def loadGlobal(libPath: String): Unit
   @native def version: String
   @native def dataTypeSize(dataTypeCValue: Int): Int
 
