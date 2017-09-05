@@ -44,9 +44,6 @@ scalacOptions in ThisBuild ++= Seq(
 //       - publish, publishLocal, publishSigned, and publishLocalSigned do not account for cross-compiling.
 //       - publishLocalCrossCompiled is a sort-of hacky alternative to deal with one of these cases.
 
-//scalacOptions in (ThisBuild, Compile, doc) ++= Opts.doc.externalAPI((
-//  file(s"${(packageBin in Compile).value}") -> url("http://platanios.org/")) :: Nil)
-
 lazy val loggingSettings = Seq(
   libraryDependencies ++= Seq(
     "com.typesafe.scala-logging" %% "scala-logging"   % "3.7.2",
@@ -81,7 +78,7 @@ lazy val crossCompilationPackagingSettings = Seq(
   packagedArtifacts ++= {
     (nativeCrossCompile in CrossCompile in jni).value.flatMap { case (platform, (nativeLibs, _)) =>
       nativeLibs.map(
-        Artifact(s"tensorflow", s"native-${platform.name}") ->
+        Artifact("tensorflow", platform.tag) ->
             nativeLibToJar(platform, _, (tensorFlowBinaryVersion in CrossCompile in jni).value, streams.value.log))
     }
   }
@@ -159,7 +156,7 @@ lazy val jni = (project in file("./jni"))
       sourceDirectory in nativeCompile := sourceDirectory.value / "main" / "native",
       target in nativeCompile := target.value / "native" / nativePlatform.value,
       target in CrossCompile := target.value / "native",
-      nativePlatforms in CrossCompile := Set(LINUX_x86_64, DARWIN_x86_64/*", WINDOWS_x86_64"*/),
+      nativePlatforms in CrossCompile := Set(LINUX_x86_64, LINUX_GPU_x86_64, DARWIN_x86_64/*", WINDOWS_x86_64"*/),
       tensorFlowBinaryVersion in CrossCompile := "nightly", // tensorFlowVersion
       // Specify the order in which the different compilation tasks are executed
       nativeCompile := nativeCompile.dependsOn(generateTensorOps).value

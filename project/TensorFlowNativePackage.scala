@@ -88,18 +88,19 @@ object TensorFlowNativePackage extends AutoPlugin {
         // Download the native TensorFlow library
         log.info(s"Downloading the TensorFlow native library.")
         val tfVersion = (tensorFlowBinaryVersion in nativeCrossCompile).value
-        var exitCode = platform.downloadTfLib(platformTargetDir.getPath, tfVersion) ! log
+        var exitCode = platform.downloadTfLib(platformTargetDir.getPath, tfVersion).map(_ ! log)
 
-        if (exitCode == 0) {
+        if (exitCode.getOrElse(0) == 0) {
           // Compile and generate binaries
           log.info(s"Generating binaries in '$platformTargetDir'.")
           val dockerImage = s"${moduleName.value}"
           exitCode = platform.build(
-            dockerImage, (baseDirectory.value / "src" / "main" / "native").getPath, platformTargetDir.getPath) ! log
+            dockerImage, (baseDirectory.value / "src" / "main" / "native").getPath, platformTargetDir.getPath)
+              .map(_ ! log)
           log.info("Cleaning up after build.")
-          platform.cleanUpAfterBuild(dockerImage) ! log
+          platform.cleanUpAfterBuild(dockerImage).foreach(_ ! log)
         }
-        if (exitCode != 0)
+        if (exitCode.getOrElse(0) != 0)
           sys.error(s"An error occurred while cross-compiling for '$platform'. Exit code: $exitCode.")
         platform -> (
             (platformTargetDir / "lib" ** ("*.so" | "*.dylib" | "*.dll")).get.filter(_.isFile).toSet,
@@ -153,6 +154,7 @@ object TensorFlowNativePackage extends AutoPlugin {
 
   sealed trait Platform {
     val name       : String
+    val tag        : String
     val crossTriple: String
 
     val tfLibFilename      : String
@@ -244,7 +246,7 @@ object TensorFlowNativePackage extends AutoPlugin {
          |""".stripMargin
     }
 
-    def downloadTfLib(targetDir: String, tfVersion: String): ProcessBuilder = {
+    def downloadTfLib(targetDir: String, tfVersion: String): Option[ProcessBuilder] = {
       val path = s"$targetDir/lib/$tfLibFilename"
       val downloadProcess = {
         if (Files.notExists(Paths.get(path)))
@@ -253,17 +255,18 @@ object TensorFlowNativePackage extends AutoPlugin {
           Process(true)
       }
       val extractProcess = Process("tar" :: "xf" :: path :: Nil, new File(s"$targetDir/lib/"))
-      downloadProcess #&& extractProcess
+      Some(downloadProcess #&& extractProcess)
     }
 
-    def build(dockerImage: String, srcDir: String, targetDir: String): ProcessBuilder = {
+    def build(dockerImage: String, srcDir: String, targetDir: String): Option[ProcessBuilder] = {
       val dockerContainer: String = s"${dockerImage}_$name"
       val hostTfLibPath: String = s"$targetDir/lib/$tfLibFilename"
       val hostCMakeListsPath: String = s"$targetDir/docker/CMakeLists.txt"
       // Create the necessary Docker image
-      Process("/bin/bash" :: "-c" ::
-                  s"(docker images -q $dockerImage | grep -q . || " +
-                      s"docker build -t $dockerImage $targetDir/docker/) || true" :: Nil) #&&
+      val process = Process(
+        "/bin/bash" :: "-c" ::
+            s"(docker images -q $dockerImage | grep -q . || " +
+                s"docker build -t $dockerImage $targetDir/docker/) || true" :: Nil) #&&
           // Delete existing Docker containers that are not running anymore
           Process("/bin/bash" :: "-c" ::
                       "(docker ps -a -q | grep -q . && " +
@@ -285,16 +288,18 @@ object TensorFlowNativePackage extends AutoPlugin {
                           "make VERBOSE=1 && make install" :: Nil) #&&
           // Copy the compiled library back to the host
           Process("docker" :: "cp" :: s"$dockerContainer:/root/bin" :: targetDir :: Nil)
+      Some(process)
     }
 
-    def cleanUpAfterBuild(dockerImage: String): ProcessBuilder = {
+    def cleanUpAfterBuild(dockerImage: String): Option[ProcessBuilder] = {
       // Kill and delete the Docker container
       val dockerContainer: String = s"${dockerImage}_$name"
-      Process(
+      val process = Process(
         "/bin/bash" :: "-c" ::
             s"(docker ps -a -q -f ${'"'}name=$dockerContainer${'"'} | grep -q . && " +
                 s"docker kill $dockerContainer >/dev/null && " +
                 s"docker rm -fv $dockerContainer) >/dev/null || true" :: Nil)
+      Some(process)
     }
 
     override def toString: String = name
@@ -302,6 +307,7 @@ object TensorFlowNativePackage extends AutoPlugin {
 
   object LINUX_x86_64 extends Platform {
     override val name       : String = "linux-x86_64"
+    override val tag        : String = "linux-cpu-x86_64"
     override val crossTriple: String = "x86_64-linux-gnu"
 
     override val tfLibFilename      : String = s"libtensorflow-cpu-$name.tar.gz"
@@ -322,8 +328,35 @@ object TensorFlowNativePackage extends AutoPlugin {
     override val cMakeLibPath     : String = "/usr/lib"
   }
 
+  object LINUX_GPU_x86_64 extends Platform {
+    override val name       : String = "linux-gpu-x86_64"
+    override val tag        : String = "linux-gpu-x86_64"
+    override val crossTriple: String = "x86_64-linux-gnu"
+
+    override val tfLibFilename      : String = s"libtensorflow-gpu-${LINUX_x86_64.name}.tar.gz"
+    override val tfLibExtractCommand: String = s"tar xf /root/$tfLibFilename -C /usr"
+
+    override def tfLibUrl(version: String): String = version match {
+      case "nightly" => s"$tfLibNightlyUrlPrefix/TYPE=gpu-linux/lastSuccessfulBuild/artifact/lib_package/$tfLibFilename"
+      case _ => s"$tfLibUrlPrefix/libtensorflow-gpu-$name-$version.tar.gz"
+    }
+
+    override val cMakeSystemName  : String = "Linux"
+    override val cMakeToolsPath   : String = "/usr"
+    override val cMakeCCompiler   : String = s"$cMakeToolsPath/bin/gcc"
+    override val cMakeCXXCompiler : String = s"$cMakeToolsPath/bin/gcc"
+    override val cMakeCXXFlags    : String = "-std=c++11"
+    override val cMakeTargetSuffix: String = "so"
+    override val cMakePath        : String = "/usr/bin"
+    override val cMakeLibPath     : String = "/usr/lib"
+
+    override def build(dockerImage: String, srcDir: String, targetDir: String): Option[ProcessBuilder] = None
+    override def cleanUpAfterBuild(dockerImage: String): Option[ProcessBuilder] = None
+  }
+
   object DARWIN_x86_64 extends Platform {
     override val name       : String = "darwin-x86_64"
+    override val tag        : String = "darwin-cpu-x86_64"
     override val crossTriple: String = "x86_64-apple-darwin14"
 
     override val tfLibFilename      : String = s"libtensorflow-cpu-$name.tar.gz"
@@ -344,16 +377,17 @@ object TensorFlowNativePackage extends AutoPlugin {
     override val cMakeLibPath     : String = s"/usr/x86_64-linux-gnu/$crossTriple/lib"
 
     // TODO: Remove this when TensorFlow PR #12820 is merged.
-    override def downloadTfLib(targetDir: String, tfVersion: String): ProcessBuilder = {
+    override def downloadTfLib(targetDir: String, tfVersion: String): Option[ProcessBuilder] = {
       val writePermissionProcess = Process("chmod" :: "+w" :: s"$targetDir/lib/lib/libtensorflow.so" :: Nil)
       val installNameProcess = Process(
         "install_name_tool" :: "-id" :: "@rpath/libtensorflow.so" :: s"$targetDir/lib/lib/libtensorflow.so" :: Nil)
-      super.downloadTfLib(targetDir, tfVersion) #&& writePermissionProcess #&& installNameProcess
+      super.downloadTfLib(targetDir, tfVersion).map(_ #&& writePermissionProcess #&& installNameProcess)
     }
   }
 
   object WINDOWS_x86_64 extends Platform {
     override val name       : String = "windows-x86_64"
+    override val tag        : String = "windows-cpu-x86_64"
     override val crossTriple: String = "x86_64-w64-mingw32"
 
     override val tfLibFilename      : String = s"libtensorflow-cpu-$name.zip"
