@@ -67,34 +67,34 @@ class TensorSuite extends JUnitSuite {
     assert(tensor2(1, 1, 1).scalar === -5.0)
   }
 
-//  @Test def testCreateStringTensor(): Unit = {
-//    val tensor1: Tensor = "foo"
-//    assert(tensor1.dataType === STRING)
-//    assert(tensor1.shape === Shape())
-//    assert(tensor1.scalar === "foo")
-//    val tensor2: Tensor = Tensor("foo", "bar")
-//    assert(tensor2.dataType === STRING)
-//    assert(tensor2.shape === Shape(2))
-//    assert(tensor2(0).scalar === "foo")
-//    assert(tensor2(1).scalar === "bar")
-//    val tensor3 = Tensor(Tensor(Tensor("0,0,0", "0,0,1"), Tensor("0,1,0", "0,1,1"), Tensor("0,2,0", "0,2,1")),
-//                         Tensor(Tensor("1,0,0", "1,0,1"), Tensor("1,1,0", "1,1,1"), Tensor("1,2,0", "1,2,1")),
-//                         Tensor(Tensor("2,0,0", "2,0,1"), Tensor("2,1,0", "2,1,1"), Tensor("2,2,0", "2,2,1")))
-//    assert(tensor3.dataType === STRING)
-//    assert(tensor3.shape === Shape(3, 3, 2))
-//    assert(tensor3(0, 0, 0).scalar === "0,0,0")
-//    assert(tensor3(0, 0, 1).scalar === "0,0,1")
-//    assert(tensor3(0, 1, 0).scalar === "0,1,0")
-//    assert(tensor3(0, 1, 1).scalar === "0,1,1")
-//    assert(tensor3(0, 2, 0).scalar === "0,2,0")
-//    assert(tensor3(0, 2, 1).scalar === "0,2,1")
-//    assert(tensor3(2, 0, 0).scalar === "2,0,0")
-//    assert(tensor3(2, 0, 1).scalar === "2,0,1")
-//    assert(tensor3(2, 1, 0).scalar === "2,1,0")
-//    assert(tensor3(2, 1, 1).scalar === "2,1,1")
-//    assert(tensor3(2, 2, 0).scalar === "2,2,0")
-//    assert(tensor3(2, 2, 1).scalar === "2,2,1")
-//  }
+  @Test def testCreateStringTensor(): Unit = {
+    val tensor1: Tensor = "foo"
+    assert(tensor1.dataType === STRING)
+    assert(tensor1.shape === Shape())
+    assert(tensor1.scalar === "foo")
+    val tensor2: Tensor = Tensor("foo", "bar")
+    assert(tensor2.dataType === STRING)
+    assert(tensor2.shape === Shape(2))
+    assert(tensor2(0).scalar === "foo")
+    assert(tensor2(1).scalar === "bar")
+    val tensor3 = Tensor(Tensor(Tensor("0,0,0", "0,0,1"), Tensor("0,1,0", "0,1,1"), Tensor("0,2,0", "0,2,1")),
+                         Tensor(Tensor("1,0,0", "1,0,1"), Tensor("1,1,0", "1,1,1"), Tensor("1,2,0", "1,2,1")),
+                         Tensor(Tensor("2,0,0", "2,0,1"), Tensor("2,1,0", "2,1,1"), Tensor("2,2,0", "2,2,1")))
+    assert(tensor3.dataType === STRING)
+    assert(tensor3.shape === Shape(3, 3, 2))
+    assert(tensor3(0, 0, 0).scalar === "0,0,0")
+    assert(tensor3(0, 0, 1).scalar === "0,0,1")
+    assert(tensor3(0, 1, 0).scalar === "0,1,0")
+    assert(tensor3(0, 1, 1).scalar === "0,1,1")
+    assert(tensor3(0, 2, 0).scalar === "0,2,0")
+    assert(tensor3(0, 2, 1).scalar === "0,2,1")
+    assert(tensor3(2, 0, 0).scalar === "2,0,0")
+    assert(tensor3(2, 0, 1).scalar === "2,0,1")
+    assert(tensor3(2, 1, 0).scalar === "2,1,0")
+    assert(tensor3(2, 1, 1).scalar === "2,1,1")
+    assert(tensor3(2, 2, 0).scalar === "2,2,0")
+    assert(tensor3(2, 2, 1).scalar === "2,2,1")
+  }
 
   @Test def testUnsupportedScalaTypeError(): Unit = {
     assertDoesNotCompile("val tensor: Tensor = Tensor(5.asInstanceOf[Any])")

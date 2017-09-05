@@ -152,10 +152,9 @@ JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_setStringB
   std::memcpy(buffer.get(), src, src_len);
   env->ReleaseByteArrayElements(string, src, JNI_ABORT);
   // env->GetByteArrayRegion(string, 0, static_cast<jsize>(src_len), reinterpret_cast<jbyte*>(buffer.get()));
-  TF_Status* status = TF_NewStatus();
-  size_t num_bytes_written = TF_StringEncode(buffer.get(), src_len, dst_buffer, dst_len, status);
-  throw_exception_if_not_ok(env, status);
-  TF_DeleteStatus(status);
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+  size_t num_bytes_written = TF_StringEncode(buffer.get(), src_len, dst_buffer, dst_len, status.get());
+  CHECK_STATUS(env, status.get(), 0);
   return static_cast<jsize>(num_bytes_written);
 }
 
@@ -165,41 +164,40 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_getS
   jbyteArray return_array = nullptr;
   const char* dst = nullptr;
   size_t dst_len = 0;
-  TF_Status* status = TF_NewStatus();
   size_t src_len = static_cast<size_t>(env->GetDirectBufferCapacity(string_buffer));
-  TF_StringDecode(src_buffer, src_len, &dst, &dst_len, status);
-  if (throw_exception_if_not_ok(env, status)) {
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+  TF_StringDecode(src_buffer, src_len, &dst, &dst_len, status.get());
+  if (throw_exception_if_not_ok(env, status.get())) {
     return_array = env->NewByteArray(static_cast<jsize>(dst_len));
     env->SetByteArrayRegion(return_array, 0, static_cast<jsize>(dst_len), reinterpret_cast<const jbyte*>(dst));
   }
-  TF_DeleteStatus(status);
   return return_array;
 }
 
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerAllocateContext(
     JNIEnv* env, jobject object) {
-  TF_Status* status = TF_NewStatus();
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
   TF_SessionOptions* options = TF_NewSessionOptions();
-  TFE_Context* context = TFE_NewContext(options, status);
+  TFE_Context* context = TFE_NewContext(options, status.get());
   TF_DeleteSessionOptions(options);
-  bool ok = throw_exception_if_not_ok(env, status);
-  TF_DeleteStatus(status);
-  return ok ? reinterpret_cast<jlong>(context) : 0;
+  CHECK_STATUS(env, status.get(), 0);
+  return reinterpret_cast<jlong>(context);
 }
 
 JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerDeleteContext(
     JNIEnv* env, jobject object, jlong handle) {
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
   REQUIRE_HANDLE(context, TFE_Context, handle, void());
-  TF_Status* status = TF_NewStatus();
-  TFE_DeleteContext(context, status);
-  throw_exception_if_not_ok(env, status);
-  TF_DeleteStatus(status);
+  TFE_DeleteContext(context, status.get());
+  CHECK_STATUS(env, status.get(), void());
 }
 
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerAllocate(
     JNIEnv* env, jobject object, jlong tensor_handle) {
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
   REQUIRE_HANDLE(tensor, TF_Tensor, tensor_handle, 0);
-  TFE_TensorHandle* eager_tensor = TFE_NewTensorHandle(tensor);
+  TFE_TensorHandle* eager_tensor = TFE_NewTensorHandle(tensor, status.get());
+  CHECK_STATUS(env, status.get(), 0);
   return reinterpret_cast<jlong>(eager_tensor);
 }
 
@@ -239,11 +237,10 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerDelet
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerResolve(
     JNIEnv* env, jobject object, jlong handle) {
   REQUIRE_HANDLE(eager_tensor, TFE_TensorHandle, handle, 0);
-  TF_Status* status = TF_NewStatus();
-  TF_Tensor* tensor = TFE_TensorHandleResolve(eager_tensor, status);
-  bool ok = throw_exception_if_not_ok(env, status);
-  TF_DeleteStatus(status);
-  return ok ? reinterpret_cast<jlong>(tensor) : 0;
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+  TF_Tensor* tensor = TFE_TensorHandleResolve(eager_tensor, status.get());
+  CHECK_STATUS(env, status.get(), 0);
+  return reinterpret_cast<jlong>(tensor);
 }
 
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerCopyToDevice(
@@ -251,12 +248,11 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerCopy
   REQUIRE_HANDLE(tensor, TFE_TensorHandle, tensor_handle, 0);
   REQUIRE_HANDLE(context, TFE_Context, context_handle, 0);
   const char* c_device = env->GetStringUTFChars(device, nullptr);
-  TF_Status* status = TF_NewStatus();
-  TFE_TensorHandle* eager_tensor = TFE_TensorHandleCopyToDevice(tensor, context, c_device, status);
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+  TFE_TensorHandle* eager_tensor = TFE_TensorHandleCopyToDevice(tensor, context, c_device, status.get());
   env->ReleaseStringUTFChars(device, c_device);
-  bool ok = throw_exception_if_not_ok(env, status);
-  TF_DeleteStatus(status);
-  return ok ? reinterpret_cast<jlong>(eager_tensor) : 0;
+  CHECK_STATUS(env, status.get(), 0);
+  return reinterpret_cast<jlong>(eager_tensor);
 }
 
 JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerSetOpDevice(
@@ -264,9 +260,8 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerSetOp
   REQUIRE_HANDLE(op, TFE_Op, op_handle, void());
   REQUIRE_HANDLE(context, TFE_Context, context_handle, void());
   const char* c_device = env->GetStringUTFChars(device, nullptr);
-  TF_Status* status = TF_NewStatus();
-  TFE_OpSetDevice(op, context, c_device, status);
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+  TFE_OpSetDevice(op, context, c_device, status.get());
   env->ReleaseStringUTFChars(device, c_device);
-  throw_exception_if_not_ok(env, status);
-  TF_DeleteStatus(status);
+  CHECK_STATUS(env, status.get(), void());
 }

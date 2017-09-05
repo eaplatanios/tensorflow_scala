@@ -267,7 +267,7 @@ object Tensor {
   private[api] def fromNativeHandle(nativeHandle: Long): Tensor = new Tensor(nativeHandle)
 
   private[api] def fromHostNativeHandle(nativeHandle: Long): Tensor = {
-    Tensor.fromNativeHandle(synchronized(NativeTensor.eagerAllocate(nativeHandle)))
+    Tensor.fromNativeHandle(NativeTensor.eagerAllocate(nativeHandle))
   }
 
   def apply[T](head: T, tail: T*)(implicit ev: TensorConvertible[T]): Tensor = {
@@ -353,7 +353,7 @@ object Tensor {
           i += 1
         }
         synchronized {
-          val tensor = Tensor.fromNativeHandle(NativeTensor.eagerAllocate(hostHandle))
+          val tensor = Tensor.fromHostNativeHandle(hostHandle)
           NativeTensor.delete(hostHandle)
           tensor
         }
@@ -369,7 +369,7 @@ object Tensor {
           i += 1
         }
         synchronized {
-          val tensor = Tensor.fromNativeHandle(NativeTensor.eagerAllocate(hostHandle))
+          val tensor = Tensor.fromHostNativeHandle(hostHandle)
           NativeTensor.delete(hostHandle)
           tensor
         }

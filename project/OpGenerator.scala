@@ -140,7 +140,7 @@ case class OpGenerator(opDef: OpDef) {
 
   /** C code expression to return when the op construction/execution fails. */
   private[this] val cNullValue: String = numOutputsExpression match {
-    case "0" => ""
+    case "0" => "void()"
     case "1" => "0"
     case _ => "nullptr"
   }
