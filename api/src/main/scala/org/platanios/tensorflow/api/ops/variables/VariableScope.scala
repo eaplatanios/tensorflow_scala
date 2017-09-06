@@ -92,7 +92,7 @@ case class VariableScope private[variables](
   @throws[IllegalArgumentException]
   @throws[ShapeMismatchException]
   @throws[InvalidDataTypeException]
-  private[variables] def getVariable(
+  def getVariable(
       store: VariableStore, name: String, dataType: DataType = this.dataType, shape: Shape = null,
       initializer: Initializer = this.initializer, regularizer: Regularizer = this.regularizer,
       trainable: Boolean = true, reuse: Reuse = this.reuse,
@@ -143,7 +143,7 @@ case class VariableScope private[variables](
   @throws[IllegalArgumentException]
   @throws[ShapeMismatchException]
   @throws[InvalidDataTypeException]
-  private[variables] def getPartitionedVariable(
+  def getPartitionedVariable(
       store: VariableStore, name: String, dataType: DataType = this.dataType, shape: Shape = null,
       initializer: Initializer = this.initializer, regularizer: Regularizer = this.regularizer,
       partitioner: Partitioner = this.partitioner, trainable: Boolean = true,

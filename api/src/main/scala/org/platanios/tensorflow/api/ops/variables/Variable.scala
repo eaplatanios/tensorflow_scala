@@ -65,7 +65,7 @@ case class Variable private (
   val initializer: Op = initializeOp
 
   /** Op output that is `true` when the variable has been initialized and `false` otherwise. */
-  val isInitialized: Output = Variable.isVariableInitialized(handle, name = "IsInitialized")
+  val isInitialized: Output = Op.createWith(graph)(Variable.isVariableInitialized(handle, name = "IsInitialized"))
 
   // /** Returns the value of the initialized variable. You should use this instead of the variable itself to initialize
   //   * another variable with a value that depends on the value of this variable.
@@ -85,7 +85,7 @@ case class Variable private (
     if (cachedValue != null) {
       cachedValue
     } else {
-      Op.createWith(colocationOps = Set.empty[Op], device = null) {
+      Op.createWith(graph = graph, colocationOps = Set.empty[Op], device = null) {
         // Manually assign reads to the handle's device to avoid log messages
         Op.createWith(device = handle.device)(Variable.readVariable(handle, dataType))
       }
@@ -106,12 +106,14 @@ case class Variable private (
     * @return Created op.
     */
   def read(name: String = "Read"): Output = {
-    val value = Op.createWith(nameScope = name, device = handle.device) {
-      Variable.readVariable(handle, dataType, name)
+    Op.createWith(graph) {
+      val value = Op.createWith(nameScope = name, device = handle.device) {
+        Variable.readVariable(handle, dataType, name)
+      }
+      // Return an identity op so that it can get placed on whatever device the context specifies instead of the device
+      // where the variable is.
+      Basic.identity(value)
     }
-    // Return an identity op so that it can get placed on whatever device the context specifies instead of the device
-    // where the variable is.
-    Basic.identity(value)
   }
 
   /** Creates an op that reads the value of this variable sparsely, using the provided `indices`.
@@ -124,12 +126,14 @@ case class Variable private (
     * @return Created op.
     */
   def sparseRead(indices: Output, name: String = "Gather"): Output = {
-    val value = Op.createWith(nameScope = name, device = handle.device) {
-      Variable.gather(handle, indices, dataType, validateIndices = true, name)
+    Op.createWith(graph) {
+      val value = Op.createWith(nameScope = name, device = handle.device) {
+        Variable.gather(handle, indices, dataType, validateIndices = true, name)
+      }
+      // Return an identity op so that it can get placed on whatever device the context specifies instead of the device
+      // where the variable is.
+      Basic.identity(value)
     }
-    // Return an identity op so that it can get placed on whatever device the context specifies instead of the device
-    // where the variable is.
-    Basic.identity(value)
   }
 
   /** Evaluates the value of this variable.
@@ -164,7 +168,7 @@ case class Variable private (
   def assign(value: Output, name: String = "Assign"): Output = {
     if (value.dataType != dataType)
       throw InvalidDataTypeException(s"Expected '$dataType', but got '${value.dataType}'.")
-    Op.createWith(controlDependencies = Set[Op](Variable.assign(handle, value, name))) {
+    Op.createWith(graph = graph, controlDependencies = Set[Op](Variable.assign(handle, value, name))) {
       read()
     }
   }
@@ -178,7 +182,7 @@ case class Variable private (
   def assignAdd(value: Output, name: String = "AssignAdd"): Output = {
     if (value.dataType != dataType)
       throw InvalidDataTypeException(s"Expected '$dataType', but got '${value.dataType}'.")
-    Op.createWith(controlDependencies = Set[Op](Variable.assignAdd(handle, value, name))) {
+    Op.createWith(graph = graph, controlDependencies = Set[Op](Variable.assignAdd(handle, value, name))) {
       read()
     }
   }
@@ -192,7 +196,7 @@ case class Variable private (
   def assignSub(value: Output, name: String = "AssignAdd"): Output = {
     if (value.dataType != dataType)
       throw InvalidDataTypeException(s"Expected '$dataType', but got '${value.dataType}'.")
-    Op.createWith(controlDependencies = Set[Op](Variable.assignSub(handle, value, name))) {
+    Op.createWith(graph = graph, controlDependencies = Set[Op](Variable.assignSub(handle, value, name))) {
       read()
     }
   }
@@ -207,7 +211,7 @@ case class Variable private (
   def assignScatterAdd(indices: Output, values: Output, name: String = "AssignScatterAdd"): Output = {
     if (values.dataType != dataType)
       throw InvalidDataTypeException(s"Expected '$dataType', but got '${values.dataType}'.")
-    Op.createWith(controlDependencies = Set[Op](Variable.scatterAdd(handle, indices, values, name))) {
+    Op.createWith(graph = graph, controlDependencies = Set[Op](Variable.scatterAdd(handle, indices, values, name))) {
       read()
     }
   }
@@ -223,7 +227,7 @@ case class Variable private (
   def assignScatterSub(indices: Output, values: Output, name: String = "AssignScatterAdd"): Output = {
     if (values.dataType != dataType)
       throw InvalidDataTypeException(s"Expected '$dataType', but got '${values.dataType}'.")
-    Op.createWith(controlDependencies = Set[Op](Variable.scatterAdd(handle, indices, -values, name))) {
+    Op.createWith(graph = graph, controlDependencies = Set[Op](Variable.scatterAdd(handle, indices, -values, name))) {
       read()
     }
   }
