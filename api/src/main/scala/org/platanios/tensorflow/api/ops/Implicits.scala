@@ -24,7 +24,8 @@ import scala.util.DynamicVariable
 private[api] trait Implicits
     extends Output.Implicits
         with Basic.Implicits
-        with Math.Implicits {
+        with Math.Implicits
+        with NN.Implicits {
   implicit def dynamicVariableToOpCreationContext(context: DynamicVariable[OpCreationContext]): OpCreationContext = {
     context.value
   }

@@ -95,9 +95,9 @@ private[api] trait NN {
     *
     * @group NNOps
     * @param  input Input tensor.
-    * @param  name  Name for the created op.
     * @param  alpha Slope of the negative section, also known as leakage parameter. If other than `0.0f`, the negative
     *               part will be equal to `alpha * x` instead of `0`. Defaults to `0`.
+    * @param  name  Name for the created op.
     * @return Created op output.
     */
   def relu(input: Output, alpha: Float = 0.0f, name: String = "ReLU"): Output = {
@@ -554,6 +554,154 @@ private[api] trait NN {
 }
 
 private[api] object NN extends NN {
+  private[ops] trait Implicits {
+    implicit def outputToNNOps(value: Output): NNOps = NNOps(value)
+    implicit def outputConvertibleToNNOps[T](value: T)(implicit f: (T) => Output): NNOps = NNOps(f(value))
+  }
+
+  case class NNOps private[ops](output: Output) {
+    //region Core Ops
+
+    /** $OpDocNNAddBias
+      *
+      * @group NNOps
+      * @param  bias          Bias tensor that must be one-dimensional (i.e., it must have rank 1).
+      * @param  cNNDataFormat Data format of the input and output tensors. With the default format [[NHWCFormat]], the
+      *                       `bias` tensor will be added to the last dimension of the `value` tensor. Alternatively, the
+      *                       format could be [[NCHWFormat]], and the `bias` tensor would be added to the third-to-last
+      *                       dimension.
+      * @return Created op output.
+      */
+    def addBias(bias: Output, cNNDataFormat: CNNDataFormat = CNNDataFormat.default): Output = {
+      NN.addBias(output, bias, cNNDataFormat)
+    }
+
+    /** $OpDocNNLinear
+      *
+      * @group NNOps
+      * @param  weights Weights tensor.
+      * @param  bias    Bias tensor.
+      * @return Created op output.
+      */
+    def linear(weights: Output, bias: Output): Output = NN.linear(output, weights, bias)
+
+    /** $OpDocNNL2Normalize
+      *
+      * @group NNOps
+      * @param  axes    Tensor containing the axes along which to normalize.
+      * @param  epsilon Lower bound value for the norm. The created op will use `sqrt(epsilon)` as the divisor, if
+      *                 `norm < sqrt(epsilon)`.
+      * @return Created op output.
+      */
+    def l2Normalize(axes: Output, epsilon: Float = 1e-12f): Output = NN.l2Normalize(output, axes, epsilon)
+
+    //endregion Core Ops
+
+    //region Activation Ops
+
+    /** $OpDocNNRelu
+      *
+      * @group NNOps
+      * @param  alpha Slope of the negative section, also known as leakage parameter. If other than `0.0f`, the negative
+      *               part will be equal to `alpha * x` instead of `0`. Defaults to `0`.
+      * @return Created op output.
+      */
+    def relu(alpha: Float = 0.0f): Output = NN.relu(output, alpha)
+
+    /** $OpDocNNRelu6
+      *
+      * @group NNOps
+      * @return Created op output.
+      */
+    def relu6: Output = NN.relu6(output)
+
+    /** $OpDocNNCrelu
+      *
+      * @group NNOps
+      * @return Created op output.
+      */
+    def crelu: Output = NN.crelu(output)
+
+    /** $OpDocNNElu
+      *
+      * @group NNOps
+      * @return Created op output.
+      */
+    def elu: Output = NN.elu(output)
+
+    /** $OpDocNNSelu
+      *
+      * @group NNOps
+      * @return Created op output.
+      */
+    def selu: Output = NN.selu(output)
+
+    /** $OpDocNNSoftplus
+      *
+      * @group NNOps
+      * @return Created op output.
+      */
+    def softplus: Output = NN.softplus(output)
+
+    /** $OpDocNNSoftsign
+      *
+      * @group NNOps
+      * @return Created op output.
+      */
+    def softsign: Output = NN.softsign(output)
+
+    //endregion Activation Ops
+
+    /** $OpDocNNSoftmax
+      *
+      * @group NNOps
+      * @param  axis Axis along which to perform the softmax. Defaults to `-1` denoting the last axis.
+      * @return Created op output.
+      */
+    def softmax(axis: Int = -1): Output = NN.softmax(output, axis)
+
+    /** $OpDocNNLogSoftmax
+      *
+      * @group NNOps
+      * @param  axis Axis along which to perform the log-softmax. Defaults to `-1` denoting the last axis.
+      * @return Created op output.
+      */
+    def logSoftmax(axis: Int = -1): Output = NN.logSoftmax(output, axis)
+
+    /** $OpDocNNDropout
+      *
+      * @group NNOps
+      * @param  keepProbability Probability (i.e., number in the interval `(0, 1]`) that each element is kept.
+      * @param  noiseShape      [[INT32]] rank-1 tensor representing the shape for the randomly generated keep/drop flags.
+      * @param  seed            Optional random seed, used to generate a random seed pair for the random number
+      *                         generator, when combined with the graph-level seed.
+      * @return Created op output that has the same shape as `input`.
+      */
+    def dropout(keepProbability: Float, noiseShape: Output = null, seed: Option[Int] = None): Output = {
+      NN.dropout(output, keepProbability, noiseShape, seed)
+    }
+
+    /** $OpDocNNTopK
+      *
+      * @group NNOps
+      * @param  k      Scalar [[INT32]] tensor containing the number of top elements to look for along the last axis of
+      *                `input`.
+      * @param  sorted If `true`, the resulting `k` elements will be sorted by their values in descending order.
+      * @return Tuple containing the created op outputs: (i) `values`: the `k` largest elements along each last
+      *         dimensional slice, and (ii) `indices`: the indices of `values` within the last axis of `input`.
+      */
+    def topK(k: Output = 1, sorted: Boolean = true): (Output, Output) = NN.topK(output, k, sorted)
+
+    /** $OpDocNNInTopK
+      *
+      * @group NNOps
+      * @param  targets [[INT32]] or [[INT64]] tensor containing the targets.
+      * @param  k       Scalar [[INT32]] or [[INT64]] tensor containing the number of top elements to look at.
+      * @return Created op output.
+      */
+    def inTopK(targets: Output, k: Output): Output = NN.inTopK(output, targets, k)
+  }
+
   /** Creates an op that flattens the outer axes of `input` and keeps its last axis. */
   private[ops] def flattenOuterAxes(input: Output): Output = {
     val rank = Basic.rank(input)
