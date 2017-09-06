@@ -15,8 +15,6 @@
 
 package org.platanios.tensorflow.api
 
-import org.platanios.tensorflow.api.types.DataType
-
 import scala.util.matching.Regex
 
 /**
@@ -31,17 +29,17 @@ package object ops {
   private[ops] val VALID_NAME_SCOPE_REGEX         : Regex  = "^[A-Za-z0-9_.\\-/]*$".r
 
   @inline private[ops] def castArgs(output1: Output, output2: Output): (Output, Output) = {
-    val dataType = DataType.mostPrecise(output1.dataType, output2.dataType)
+    val dataType = types.DataType.mostPrecise(output1.dataType, output2.dataType)
     (output1.cast(dataType), output2.cast(dataType))
   }
 
   @inline private[ops] def castArgs(output1: Output, output2: Output, output3: Output): (Output, Output, Output) = {
-    val dataType = DataType.mostPrecise(output1.dataType, output2.dataType, output3.dataType)
+    val dataType = types.DataType.mostPrecise(output1.dataType, output2.dataType, output3.dataType)
     (output1.cast(dataType), output2.cast(dataType), output3.cast(dataType))
   }
 
   @inline private[ops] def castArgs(outputs: Seq[Output]): Seq[Output] = {
-    val dataType = DataType.mostPrecise(outputs.map(_.dataType): _*)
+    val dataType = types.DataType.mostPrecise(outputs.map(_.dataType): _*)
     outputs.map(_.cast(dataType))
   }
 
