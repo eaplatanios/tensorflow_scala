@@ -177,9 +177,9 @@ private[api] trait Basic {
   /** $OpDocBasicConcatenateOffset
     *
     * @group BasicOps
-    * @param  shapes Sequence of `N` `INT32` vectors representing the shapes of the tensors being concatenated.
-    * @param  axis   `INT32` scalar representing the dimension along which to concatenate.
-    * @return Sequence of `N` `INT32` vectors representing the starting offset of the input tensors within the
+    * @param  shapes Sequence of `N` [[INT32]] vectors representing the shapes of the tensors being concatenated.
+    * @param  axis   [[INT32]] scalar representing the dimension along which to concatenate.
+    * @return Sequence of `N` [[INT32]] vectors representing the starting offset of the input tensors within the
     *         concatenated tensor.
     */
   private[ops] def concatenateOffset(
@@ -234,7 +234,7 @@ private[api] trait Basic {
     *
     * @group BasicOps
     * @param  input    Input tensor to be padded.
-    * @param  paddings `INT32` or `INT64` tensor containing the paddings.
+    * @param  paddings [[INT32]] or [[INT64]] tensor containing the paddings.
     * @param  mode     Padding mode to use.
     * @return Result as a new tensor.
     */
@@ -784,7 +784,9 @@ private[api] trait Basic {
       if (dataType != null) {
         dataType
       } else {
-        if (onValue != null)
+        if (onValue != null && offValue != null)
+          DataType.mostPrecise(onValue.dataType, offValue.dataType)
+        else if (onValue != null)
           onValue.dataType
         else if (offValue != null)
           offValue.dataType
@@ -792,8 +794,8 @@ private[api] trait Basic {
           FLOAT32
       }
     }
-    val actualOnValue = if (onValue != null) onValue else Tensor(inferredDataType, 1)
-    val actualOffValue = if (offValue != null) offValue else Tensor(inferredDataType, 1)
+    val actualOnValue = if (onValue != null) onValue.cast(inferredDataType) else Tensor(inferredDataType, 1)
+    val actualOffValue = if (offValue != null) offValue.cast(inferredDataType) else Tensor(inferredDataType, 1)
     Tensor.fromNativeHandle(
       NativeTensorOpsBasic.oneHot(
         context.value.nativeHandle, indices.nativeHandle, depth.nativeHandle, actualOnValue.nativeHandle,

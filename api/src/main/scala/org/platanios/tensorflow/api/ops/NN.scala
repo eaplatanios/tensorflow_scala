@@ -28,12 +28,11 @@ import scala.language.postfixOps
   * @author Emmanouil Antonios Platanios
   */
 private[api] trait NN {
-  //region Core NN Ops
+  //region Core Ops
 
   /** $OpDocNNAddBias
     *
     * @group NNOps
-    *
     * @param  value         Value tensor.
     * @param  bias          Bias tensor that must be one-dimensional (i.e., it must have rank 1).
     * @param  cNNDataFormat Data format of the input and output tensors. With the default format [[NHWCFormat]], the
@@ -42,14 +41,10 @@ private[api] trait NN {
     *                       dimension.
     * @param  name          Name for the created op.
     * @return Created op output.
-    * @throws IllegalArgumentException If the `bias` tensor is not one-dimensional.
     */
-  @throws[IllegalArgumentException]
   def addBias(
       value: Output, bias: Output, cNNDataFormat: CNNDataFormat = CNNDataFormat.default,
       name: String = "AddBias"): Output = {
-    if (bias.rank != 1)
-      throw new IllegalArgumentException(s"'bias' (rank = ${bias.rank}) should have rank 1.")
     Op.Builder(opType = "BiasAdd", name = name)
         .addInput(value)
         .addInput(bias)
@@ -60,7 +55,6 @@ private[api] trait NN {
   /** $OpDocNNLinear
     *
     * @group NNOps
-    *
     * @param  x       Input tensor.
     * @param  weights Weights tensor.
     * @param  bias    Bias tensor.
@@ -76,7 +70,6 @@ private[api] trait NN {
   /** $OpDocNNL2Normalize
     *
     * @group NNOps
-    *
     * @param  x       Input tensor.
     * @param  axes    Tensor containing the axes along which to normalize.
     * @param  epsilon Lower bound value for the norm. The created op will use `sqrt(epsilon)` as the divisor, if
@@ -94,14 +87,13 @@ private[api] trait NN {
     }
   }
 
-  //endregion Core NN Ops
+  //endregion Core Ops
 
   //region Activation Ops
 
   /** $OpDocNNRelu
     *
     * @group NNOps
-    *
     * @param  input Input tensor.
     * @param  name  Name for the created op.
     * @param  alpha Slope of the negative section, also known as leakage parameter. If other than `0.0f`, the negative
@@ -129,7 +121,6 @@ private[api] trait NN {
   /** $OpDocNNRelu6
     *
     * @group NNOps
-    *
     * @param  input Input tensor.
     * @param  name  Name for the created op.
     * @return Created op output.
@@ -143,7 +134,6 @@ private[api] trait NN {
   /** $OpDocNNCrelu
     *
     * @group NNOps
-    *
     * @param  input Input tensor.
     * @param  name  Name for the created op.
     * @return Created op output.
@@ -157,7 +147,6 @@ private[api] trait NN {
   /** $OpDocNNElu
     *
     * @group NNOps
-    *
     * @param  input Input tensor.
     * @param  name  Name for the created op.
     * @return Created op output.
@@ -171,7 +160,6 @@ private[api] trait NN {
   /** $OpDocNNSelu
     *
     * @group NNOps
-    *
     * @param  input Input tensor.
     * @param  name  Name for the created op.
     * @return Created op output.
@@ -185,7 +173,6 @@ private[api] trait NN {
   /** $OpDocNNSoftplus
     *
     * @group NNOps
-    *
     * @param  input Input tensor.
     * @param  name  Name for the created op.
     * @return Created op output.
@@ -199,7 +186,6 @@ private[api] trait NN {
   /** $OpDocNNSoftsign
     *
     * @group NNOps
-    *
     * @param  input Input tensor.
     * @param  name  Name for the created op.
     * @return Created op output.
@@ -260,7 +246,6 @@ private[api] trait NN {
   /** $OpDocNNSoftmax
     *
     * @group NNOps
-    *
     * @param  logits Tensor containing the logits with data type [[FLOAT16]], [[FLOAT32]], or [[FLOAT64]].
     * @param  axis   Axis along which to perform the softmax. Defaults to `-1` denoting the last axis.
     * @param  name   Name for the created op.
@@ -273,7 +258,6 @@ private[api] trait NN {
   /** $OpDocNNLogSoftmax
     *
     * @group NNOps
-    *
     * @param  logits Tensor containing the logits with data type [[FLOAT16]], [[FLOAT32]], or [[FLOAT64]].
     * @param  axis   Axis along which to perform the log-softmax. Defaults to `-1` denoting the last axis.
     * @param  name   Name for the created op.
@@ -288,18 +272,11 @@ private[api] trait NN {
   /** $OpDocNNL2Loss
     *
     * @group NNOps
-    *
     * @param  input [[FLOAT16]], [[FLOAT32]], or [[FLOAT64]] input tensor.
     * @param  name  Name for the created op.
     * @return Created op output.
-    * @throws IllegalArgumentException If `input` has an unsupported data type.
     */
-  @throws[IllegalArgumentException]
   def l2Loss(input: Output, name: String = "L2Loss"): Output = {
-    if (input.dataType != FLOAT16 && input.dataType != FLOAT32 && input.dataType != FLOAT64)
-      throw new IllegalArgumentException(
-        s"Encountered unsupported data type: ${input.dataType}. " +
-            "'input' must have data type of FLOAT16, FLOAT32, or FLOAT64.")
     Op.Builder(opType = "L2Loss", name = name)
         .addInput(input)
         .build().outputs(0)
@@ -308,7 +285,6 @@ private[api] trait NN {
   /** $OpDocNNSoftmaxCrossEntropy
     *
     * @group NNOps
-    *
     * @param  logits Tensor of shape `[D0, D1, ..., Dr-1, numClasses]` and data type [[FLOAT16]], [[FLOAT32]], or
     *                [[FLOAT64]], containing unscaled log probabilities.
     * @param  labels Tensor of shape `[D0, D1, ..., Dr-1, numClasses]` and data type [[FLOAT16]], [[FLOAT32]], or
@@ -317,18 +293,9 @@ private[api] trait NN {
     * @param  name   Name for the created op.
     * @return Created op output, with rank one less than that of `logits` and the same data type as `logits`, containing
     *         the softmax cross entropy loss.
-    * @throws IllegalArgumentException If `logits` or `labels` have an unsupported data type or incompatible shapes.
     */
-  @throws[IllegalArgumentException]
   def softmaxCrossEntropy(
       logits: Output, labels: Output, axis: Int = -1, name: String = "SoftmaxCrossEntropy"): Output = {
-    if (logits.dataType != FLOAT16 && logits.dataType != FLOAT32 && logits.dataType != FLOAT64)
-      throw new IllegalArgumentException(
-        s"Encountered unsupported data type: ${logits.dataType}. " +
-            "'logits' must have data type of FLOAT16, FLOAT32, or FLOAT64.")
-    if (!logits.shape.isCompatibleWith(labels.shape))
-      throw new IllegalArgumentException(
-        s"The 'logits' shape (${logits.shape}) and the 'labels' shape (${labels.shape}) must be compatible.")
     Op.createWithNameScope(name, Set(logits.op, labels.op)) {
       // Labels and logits must be of the same data type.
       val preciseLogits = if (logits.dataType == FLOAT16) Math.cast(logits, FLOAT32) else logits
@@ -376,7 +343,6 @@ private[api] trait NN {
   /** $OpDocNNSparseSoftmaxCrossEntropy
     *
     * @group NNOps
-    *
     * @param  logits Tensor of shape `[D0, D1, ..., Dr-1, numClasses]` (where `r` is the rank of `labels` and of the
     *                result) and data type [[FLOAT16]], [[FLOAT32]], or [[FLOAT64]], containing unscaled log
     *                probabilities.
@@ -388,26 +354,11 @@ private[api] trait NN {
     * @param  name   Name for the created op.
     * @return Created op output, with the same shape as `labels` and the same data type as `logits`, containing the
     *         softmax cross entropy loss.
-    * @throws IllegalArgumentException If `logits` or `labels` have an unsupported data type or incompatible shapes.
     */
-  @throws[IllegalArgumentException]
   def sparseSoftmaxCrossEntropy(
       logits: Output, labels: Output, axis: Int = -1, name: String = "SparseSoftmaxCrossEntropy"): Output = {
-    if (logits.dataType != FLOAT16 && logits.dataType != FLOAT32 && logits.dataType != FLOAT64)
-      throw new IllegalArgumentException(
-        s"Encountered unsupported data type: ${logits.dataType}. " +
-            "'logits' must have data type of FLOAT16, FLOAT32, or FLOAT64.")
-    if (labels.dataType != INT32 && labels.dataType != INT64)
-      throw new IllegalArgumentException(
-        s"Encountered unsupported data type: ${labels.dataType}. 'labels' must have data type of INT32 or INT64.")
     Op.createWithNameScope(name, Set(logits.op, labels.op)) {
       val preciseLogits = if (logits.dataType == FLOAT16) Math.cast(logits, FLOAT32) else logits
-      if (logits.rank == 0)
-        throw new IllegalArgumentException(s"The 'logits' (shape = ${logits.shape}) cannot be scalars.")
-      if (labels.rank != logits.rank - 1)
-        throw new IllegalArgumentException(
-          s"The rank of the 'labels' (rank = ${labels.rank}) must be equal to " +
-              s"the rank of 'logits' (rank = ${logits.rank}) minus 1.")
       // Check if no reshapes are required.
       val output = {
         if (logits.rank == 2) {
@@ -443,7 +394,6 @@ private[api] trait NN {
   /** $OpDocNNSigmoidCrossEntropy
     *
     * @group NNOps
-    *
     * @param  logits  Tensor of shape `[D0, D1, ..., Dr-1, numClasses]` and data type [[FLOAT16]], [[FLOAT32]], or
     *                 [[FLOAT64]], containing unscaled log probabilities.
     * @param  labels  Tensor of shape `[D0, D1, ..., Dr-1, numClasses]` and data type [[FLOAT16]], [[FLOAT32]], or
@@ -452,18 +402,9 @@ private[api] trait NN {
     * @param  name    Name for the created op.
     * @return Created op output, with rank one less than that of `logits` and the same data type as `logits`, containing
     *         the sigmoid cross entropy loss.
-    * @throws IllegalArgumentException If `logits` or `labels` have an unsupported data type or incompatible shapes.
     */
-  @throws[IllegalArgumentException]
   def sigmoidCrossEntropy(
       logits: Output, labels: Output, weights: Output = null, name: String = "SigmoidCrossEntropy"): Output = {
-    if (logits.dataType != FLOAT16 && logits.dataType != FLOAT32 && logits.dataType != FLOAT64)
-      throw new IllegalArgumentException(
-        s"Encountered unsupported data type: ${logits.dataType}. " +
-            "'logits' must have data type of FLOAT16, FLOAT32, or FLOAT64.")
-    if (!logits.shape.isCompatibleWith(labels.shape))
-      throw new IllegalArgumentException(
-        s"The 'logits' shape (${logits.shape}) and the 'labels' shape (${labels.shape}) must be compatible.")
     Op.createWithNameScope(name, Set(logits.op, labels.op)) {
       val output = {
         if (weights == null) {
@@ -510,23 +451,16 @@ private[api] trait NN {
   /** $OpDocNNLogPoissonLoss
     *
     * @group NNOps
-    *
     * @param  logPredictions  Tensor containing the log-predictions.
     * @param  targets         Tensor with the same shape as `logPredictions`, containing the target values.
     * @param  computeFullLoss If `true`, Stirling's Approximation is used to approximate the full loss. Defaults to
     *                         `false`, meaning that the constant term is ignored.
     * @param  name            Name for the created op.
     * @return Created op output.
-    * @throws IllegalArgumentException If the shapes of `logPredictions` and `targets` do not match.
     */
-  @throws[IllegalArgumentException]
   def logPoissonLoss(
       logPredictions: Output, targets: Output, computeFullLoss: Boolean = false,
       name: String = "LogPoissonLoss"): Output = {
-    if (!logPredictions.shape.isCompatibleWith(targets.shape))
-      throw new IllegalArgumentException(
-        s"The 'logInputs' shape (${logPredictions.shape}) and the 'targets' shape (${targets.shape}) " +
-            s"must be compatible.")
     Op.createWithNameScope(name, Set(logPredictions.op, targets.op)) {
       val output = Math.exp(logPredictions) - (logPredictions * targets)
       if (computeFullLoss) {
@@ -549,7 +483,6 @@ private[api] trait NN {
   /** $OpDocNNDropout
     *
     * @group NNOps
-    *
     * @param  input           Input tensor.
     * @param  keepProbability Probability (i.e., number in the interval `(0, 1]`) that each element is kept.
     * @param  noiseShape      [[INT32]] rank-1 tensor representing the shape for the randomly generated keep/drop flags.
@@ -557,19 +490,11 @@ private[api] trait NN {
     *                         generator, when combined with the graph-level seed.
     * @param  name            Name for the created op.
     * @return Created op output that has the same shape as `input`.
-    * @throws IllegalArgumentException If `keepProbability` is not in `(0, 1]`, or if noise shape has an invalid shape
-    *                                  or data type.
     */
-  @throws[IllegalArgumentException]
   def dropout(
       input: Output, keepProbability: Float, noiseShape: Output = null, seed: Option[Int] = None,
       name: String = "Dropout"): Output = {
-    if (keepProbability <= 0.0 || keepProbability > 1.0)
-      throw new IllegalArgumentException(s"'keepProbability' (= $keepProbability) must be in (0, 1].")
-    if (noiseShape != null && noiseShape.rank != -1 && noiseShape.rank != 1)
-      throw new IllegalArgumentException(s"'noiseShape' (rank = ${noiseShape.rank}) must be a rank-1 tensor.")
-    if (noiseShape != null && noiseShape.dataType != INT32)
-      throw new IllegalArgumentException(s"'noiseShape' (dataType = ${noiseShape.dataType}) must be an INT32 tensor.")
+    require(keepProbability > 0.0 && keepProbability <= 1.0, s"'keepProbability' ($keepProbability) must be in (0, 1].")
     // Do nothing if we know that keepProbability == 1.
     if (keepProbability == 1.0) {
       input
@@ -592,7 +517,6 @@ private[api] trait NN {
   /** $OpDocNNTopK
     *
     * @group NNOps
-    *
     * @param  input  Input tensor whose last axis has size at least `k`.
     * @param  k      Scalar [[INT32]] tensor containing the number of top elements to look for along the last axis of
     *                `input`.
@@ -600,14 +524,8 @@ private[api] trait NN {
     * @param  name   Name for the created op.
     * @return Tuple containing the created op outputs: (i) `values`: the `k` largest elements along each last
     *         dimensional slice, and (ii) `indices`: the indices of `values` within the last axis of `input`.
-    * @throws IllegalArgumentException If `k` is not a scalar [[INT32]] tensor.
     */
-  @throws[IllegalArgumentException]
   def topK(input: Output, k: Output = 1, sorted: Boolean = true, name: String = "TopK"): (Output, Output) = {
-    if (k.dataType != INT32)
-      throw new IllegalArgumentException(s"'k' (dataType = ${k.dataType}) must be a scalar INT32 tensor.")
-    if (k.rank != -1 && k.rank != 0)
-      throw new IllegalArgumentException(s"'k' (rank = ${k.rank}) must be a scalar INT32 tensor.")
     val outputs = Op.Builder(opType = "TopKV2", name = name)
         .addInput(input)
         .addInput(k)
@@ -619,26 +537,13 @@ private[api] trait NN {
   /** $OpDocNNInTopK
     *
     * @group NNOps
-    *
     * @param  predictions [[FLOAT32]] tensor containing the predictions.
     * @param  targets     [[INT32]] or [[INT64]] tensor containing the targets.
     * @param  k           Scalar [[INT32]] or [[INT64]] tensor containing the number of top elements to look at.
     * @param  name        Name for the created op.
     * @return Created op output.
-    * @throws IllegalArgumentException If the arguments have invalid data types or if `k` is not a scalar.
     */
-  @throws[IllegalArgumentException]
   def inTopK(predictions: Output, targets: Output, k: Output, name: String = "InTopK"): Output = {
-    if (predictions.dataType != FLOAT32)
-      throw new IllegalArgumentException(
-        s"'predictions' (dataType = ${predictions.dataType}) must be a FLOAT32 tensor.")
-    if (targets.dataType != INT32 && targets.dataType != INT64)
-      throw new IllegalArgumentException(
-        s"'targets' (dataType = ${targets.dataType}) must be an INT32 or INT64 tensor.")
-    if (k.dataType != INT32 && k.dataType != INT64)
-      throw new IllegalArgumentException(s"'k' (dataType = ${k.dataType}) must be a scalar INT32 or INT64 tensor.")
-    if (k.rank != -1 && k.rank != 0)
-      throw new IllegalArgumentException(s"'k' (rank = ${k.rank}) must be a scalar INT32 tensor.")
     val mostPreciseDataType = DataType.mostPrecise(targets.dataType, k.dataType)
     Op.Builder(opType = "InTopKV2", name = name)
         .addInput(predictions)

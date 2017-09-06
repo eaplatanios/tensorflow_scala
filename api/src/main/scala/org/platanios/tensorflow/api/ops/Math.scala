@@ -56,24 +56,14 @@ private[api] trait Math {
     *               sequence.
     * @param  name  Name for the created op.
     * @return Created op output.
-    * @throws IllegalArgumentException If `start`, `limit`, or `delta` are not scalar tensors, or if their data type is
-    *                                  not supported.
     */
-  @throws[IllegalArgumentException]
   def range(
       start: Output, limit: Output, delta: Output = Basic.constant(1), dataType: DataType = null,
       name: String = "Range"): Output = {
-    require(start.rank == 0, s"'start' (rank = ${start.rank}) must have rank 0 (i.e., must be a scalar tensor).")
-    require(limit.rank == 0, s"'limit' (rank = ${limit.rank}) must have rank 0 (i.e., must be a scalar tensor).")
-    require(delta.rank == 0, s"'delta' (rank = ${delta.rank}) must have rank 0 (i.e., must be a scalar tensor).")
     var castedStart: Output = start
     var castedLimit: Output = limit
     var castedDelta: Output = delta
     Op.createWith(nameScope = name) {
-      val supportedDataTypes = Set[DataType](FLOAT32, FLOAT64, INT32, INT64)
-      require(supportedDataTypes.contains(start.dataType), s"Unsupported data type '${start.dataType}'.")
-      require(supportedDataTypes.contains(limit.dataType), s"Unsupported data type '${limit.dataType}'.")
-      require(supportedDataTypes.contains(delta.dataType), s"Unsupported data type '${delta.dataType}'.")
       val inferredDataType = {
         if (dataType != null)
           dataType
@@ -103,21 +93,8 @@ private[api] trait Math {
     * @param  numberOfValues Rank 0 (i.e., scalar) tensor that contains the number of values in the number sequence.
     * @param  name           Name for the created op.
     * @return Created op output.
-    * @throws IllegalArgumentException If `start`, `stop`, or `numberOfValues` are not scalar tensors, or if their data
-    *                                  type is not supported.
     */
-  @throws[IllegalArgumentException]
   def linspace(start: Output, stop: Output, numberOfValues: Output, name: String = "LinSpace"): Output = {
-    require(start.rank == 0, s"'start' (rank = ${start.rank}) must have rank 0 (i.e., must be a scalar tensor).")
-    require(stop.rank == 0, s"'stop' (rank = ${stop.rank}) must have rank 0 (i.e., must be a scalar tensor).")
-    require(numberOfValues.rank == 0,
-            s"'numberOfValues' (rank = ${numberOfValues.rank}) must have rank 0 (i.e., must be a scalar tensor).")
-    require(start.dataType == FLOAT32 || start.dataType == FLOAT64,
-            s"Unsupported 'start' data type '${start.dataType}'. Must be 'FLOAT32' or 'FLOAT64'.")
-    require(stop.dataType == FLOAT32 || stop.dataType == FLOAT64,
-            s"Unsupported 'stop' data type '${stop.dataType}'. Must be 'FLOAT32' or 'FLOAT64'.")
-    require(numberOfValues.dataType == INT32 || numberOfValues.dataType == INT64,
-            s"Unsupported 'numberOfValues' data type '${numberOfValues.dataType}'. Must be 'INT32' or 'INT64'.")
     Op.Builder(opType = "LinSpace", name = name)
         .addInput(start)
         .addInput(stop)
@@ -168,11 +145,8 @@ private[api] trait Math {
     * @param  inputs Input tensors.
     * @param  name   Created op name.
     * @return Created op output.
-    * @throws IllegalArgumentException If `inputs` is empty.
     */
-  @throws[IllegalArgumentException]
   def addN(inputs: Seq[Output], name: String = "AddN"): Output = {
-    require(inputs.nonEmpty, "'inputs' must contain at least one tensor.")
     if (inputs.length == 1)
       Basic.identity(inputs(0), name)
     else
@@ -1454,14 +1428,8 @@ private[api] trait Math {
     * @param  outputDataType Data type for the output tensor. Must be `INT32` or `INT64`.
     * @param  name           Name for the created op.
     * @return Created op output.
-    * @throws IllegalArgumentException If `axes` data type or `outputDataType` is not `INT32` or `INT64`.
     */
-  @throws[IllegalArgumentException]
   def argmax(input: Output, axes: Output = 0, outputDataType: DataType = INT64, name: String = "ArgMax"): Output = {
-    require(axes.dataType == INT32 || axes.dataType == INT64,
-            s"'axes.dataType' (${axes.dataType}) must be INT32 or INT64.")
-    require(outputDataType == INT32 || outputDataType == INT64,
-            s"'outputDataType' ($outputDataType) must be INT32 or INT64.")
     Op.Builder(opType = "ArgMax", name = name)
         .addInput(input)
         .addInput(axes)
@@ -1481,10 +1449,6 @@ private[api] trait Math {
     */
   @throws[IllegalArgumentException]
   def argmin(input: Output, axes: Output = 0, outputDataType: DataType = INT64, name: String = "ArgMin"): Output = {
-    require(axes.dataType == INT32 || axes.dataType == INT64,
-            s"'axes.dataType' (${axes.dataType}) must be INT32 or INT64.")
-    require(outputDataType == INT32 || outputDataType == INT64,
-            s"'outputDataType' ($outputDataType) must be INT32 or INT64.")
     Op.Builder(opType = "ArgMin", name = name)
         .addInput(input)
         .addInput(axes)
@@ -1506,13 +1470,10 @@ private[api] trait Math {
     *                   tensor containing the bin counts).
     * @param  name      Name for the created op.
     * @return Created op output.
-    * @throws IllegalArgumentException If the data type of `input` is not [[INT32]].
     */
-  @throws[IllegalArgumentException]
   def binCount(
       input: Output, weights: Output = null, minLength: Output = null, maxLength: Output = null,
       dataType: DataType = INT32, name: String = "BinCount"): Output = {
-    require(input.dataType == INT32, s"'input' (dataType = ${input.dataType}) must have INT32 data type.")
     val inputNonEmpty = greater(prod(Basic.shape(input)), 0)
     var outputSize = cast(inputNonEmpty, INT32) * (max(input) + 1)
     if (minLength != null)
@@ -1542,13 +1503,10 @@ private[api] trait Math {
     * @param  reverse   Boolean value indicating whether to perform a reverse cumulative sum.
     * @param  name      Name for the created op.
     * @return Created op output.
-    * @throws IllegalArgumentException If the data type of `axis` is not [[INT32]].
     */
-  @throws[IllegalArgumentException]
   def cumsum(
       input: Output, axis: Output = 0, exclusive: Boolean = false, reverse: Boolean = false,
       name: String = "CumSum"): Output = {
-    require(axis.dataType == INT32, s"'axis' (dataType = ${axis.dataType}) must have 'INT32' data type.")
     Op.Builder(opType = "Cumsum", name = name)
         .addInput(input)
         .addInput(axis)
@@ -1566,13 +1524,10 @@ private[api] trait Math {
     * @param  reverse   Boolean value indicating whether to perform a reverse cumulative product.
     * @param  name      Name for the created op.
     * @return Created op output.
-    * @throws IllegalArgumentException If the data type of `axis` is not [[INT32]].
     */
-  @throws[IllegalArgumentException]
   def cumprod(
       input: Output, axis: Output = 0, exclusive: Boolean = false, reverse: Boolean = false,
       name: String = "CumProd"): Output = {
-    require(axis.dataType == INT32, s"'axis' (dataType = ${axis.dataType}) must have 'INT32' data type.")
     Op.Builder(opType = "Cumprod", name = name)
         .addInput(input)
         .addInput(axis)
@@ -1591,13 +1546,8 @@ private[api] trait Math {
     *                        and can be repeated.
     * @param  name           Name for the created op.
     * @return Created op output.
-    * @throws IllegalArgumentException If the data type of `data` or `segmentIndices` is not supported.
     */
-  @throws[IllegalArgumentException]
   def segmentSum(data: Output, segmentIndices: Output, name: String = "SegmentSum"): Output = {
-    require(data.dataType.isNumeric, s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
-    require(segmentIndices.dataType == INT32 || segmentIndices.dataType == INT64,
-            s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'INT32' or 'INT64', as required.")
     Op.Builder(opType = "SegmentSum", name = name)
         .addInput(data)
         .addInput(segmentIndices)
@@ -1612,13 +1562,8 @@ private[api] trait Math {
     *                        and can be repeated.
     * @param  name           Name for the created op.
     * @return Created op output.
-    * @throws IllegalArgumentException If the data type of `data` or `segmentIndices` is not supported.
     */
-  @throws[IllegalArgumentException]
   def segmentMean(data: Output, segmentIndices: Output, name: String = "SegmentMean"): Output = {
-    require(data.dataType.isNumeric, s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
-    require(segmentIndices.dataType == INT32 || segmentIndices.dataType == INT64,
-            s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'INT32' or 'INT64', as required.")
     Op.Builder(opType = "SegmentMean", name = name)
         .addInput(data)
         .addInput(segmentIndices)
@@ -1633,13 +1578,8 @@ private[api] trait Math {
     *                        and can be repeated.
     * @param  name           Name for the created op.
     * @return Created op output.
-    * @throws IllegalArgumentException If the data type of `data` or `segmentIndices` is not supported.
     */
-  @throws[IllegalArgumentException]
   def segmentProd(data: Output, segmentIndices: Output, name: String = "SegmentProd"): Output = {
-    require(data.dataType.isNumeric, s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
-    require(segmentIndices.dataType == INT32 || segmentIndices.dataType == INT64,
-            s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'INT32' or 'INT64', as required.")
     Op.Builder(opType = "SegmentProd", name = name)
         .addInput(data)
         .addInput(segmentIndices)
@@ -1654,13 +1594,8 @@ private[api] trait Math {
     *                        and can be repeated.
     * @param  name           Name for the created op.
     * @return Created op output.
-    * @throws IllegalArgumentException If the data type of `data` or `segmentIndices` is not supported.
     */
-  @throws[IllegalArgumentException]
   def segmentMin(data: Output, segmentIndices: Output, name: String = "SegmentMin"): Output = {
-    require(data.dataType.isNumeric, s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
-    require(segmentIndices.dataType == INT32 || segmentIndices.dataType == INT64,
-            s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'INT32' or 'INT64', as required.")
     Op.Builder(opType = "SegmentMin", name = name)
         .addInput(data)
         .addInput(segmentIndices)
@@ -1675,13 +1610,8 @@ private[api] trait Math {
     *                        and can be repeated.
     * @param  name           Name for the created op.
     * @return Created op output.
-    * @throws IllegalArgumentException If the data type of `data` or `segmentIndices` is not supported.
     */
-  @throws[IllegalArgumentException]
   def segmentMax(data: Output, segmentIndices: Output, name: String = "SegmentMax"): Output = {
-    require(data.dataType.isNumeric, s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
-    require(segmentIndices.dataType == INT32 || segmentIndices.dataType == INT64,
-            s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'INT32' or 'INT64', as required.")
     Op.Builder(opType = "SegmentMax", name = name)
         .addInput(data)
         .addInput(segmentIndices)
@@ -1696,17 +1626,9 @@ private[api] trait Math {
     * @param  segmentsNumber Number of segments (must have data type of [[INT32]]).
     * @param  name           Name for the created op.
     * @return Created op output.
-    * @throws IllegalArgumentException If the data type of `data`, `segmentIndices`, or `segmentsNumber` is not
-    *                                  supported.
     */
-  @throws[IllegalArgumentException]
   def unsortedSegmentSum(
       data: Output, segmentIndices: Output, segmentsNumber: Output, name: String = "UnsortedSegmentSum"): Output = {
-    require(data.dataType.isNumeric, s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
-    require(segmentIndices.dataType == INT32 || segmentIndices.dataType == INT64,
-            s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'INT32' or 'INT64', as required.")
-    require(segmentsNumber.dataType == INT32,
-            s"'segmentsNumber' data type, '${segmentsNumber.dataType}', is not 'INT32', as required.")
     Op.Builder(opType = "UnsortedSegmentSum", name = name)
         .addInput(data)
         .addInput(segmentIndices)
@@ -1722,17 +1644,9 @@ private[api] trait Math {
     * @param  segmentsNumber Number of segments (must have data type of [[INT32]]).
     * @param  name           Name for the created op.
     * @return Created op output.
-    * @throws IllegalArgumentException If the data type of `data`, `segmentIndices`, or `segmentsNumber` is not
-    *                                  supported.
     */
-  @throws[IllegalArgumentException]
   def unsortedSegmentMax(
       data: Output, segmentIndices: Output, segmentsNumber: Output, name: String = "UnsortedSegmentMax"): Output = {
-    require(data.dataType.isNumeric, s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
-    require(segmentIndices.dataType == INT32 || segmentIndices.dataType == INT64,
-            s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'INT32' or 'INT64', as required.")
-    require(segmentsNumber.dataType == INT32,
-            s"'segmentsNumber' data type, '${segmentsNumber.dataType}', is not 'INT32', as required.")
     Op.Builder(opType = "UnsortedSegmentMax", name = name)
         .addInput(data)
         .addInput(segmentIndices)
@@ -1749,17 +1663,9 @@ private[api] trait Math {
     *                        and can be repeated.
     * @param  name           Name for the created op.
     * @return Created op output.
-    * @throws IllegalArgumentException If the data type of `data`, `segmentIndices`, or `segmentsNumber` is not
-    *                                  supported.
     */
-  @throws[IllegalArgumentException]
   def sparseSegmentSum(
       data: Output, indices: Output, segmentIndices: Output, name: String = "SparseSegmentSum"): Output = {
-    require(data.dataType.isNumeric, s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
-    require(indices.dataType == INT32 || indices.dataType == INT64,
-            s"'indices' data type, '${segmentIndices.dataType}', is not 'INT32' or 'INT64', as required.")
-    require(segmentIndices.dataType == INT32,
-            s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'INT32', as required.")
     Op.Builder(opType = "SparseSegmentSum", name = name)
         .addInput(data)
         .addInput(indices)
@@ -1776,17 +1682,9 @@ private[api] trait Math {
     *                        and can be repeated.
     * @param  name           Name for the created op.
     * @return Created op output.
-    * @throws IllegalArgumentException If the data type of `data`, `segmentIndices`, or `segmentsNumber` is not
-    *                                  supported.
     */
-  @throws[IllegalArgumentException]
   def sparseSegmentMean(
       data: Output, indices: Output, segmentIndices: Output, name: String = "SparseSegmentMean"): Output = {
-    require(data.dataType.isNumeric, s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
-    require(indices.dataType == INT32 || indices.dataType == INT64,
-            s"'indices' data type, '${segmentIndices.dataType}', is not 'INT32' or 'INT64', as required.")
-    require(segmentIndices.dataType == INT32,
-            s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'INT32', as required.")
     Op.Builder(opType = "SparseSegmentMean", name = name)
         .addInput(data)
         .addInput(indices)
@@ -1803,17 +1701,9 @@ private[api] trait Math {
     *                        and can be repeated.
     * @param  name           Name for the created op.
     * @return Created op output.
-    * @throws IllegalArgumentException If the data type of `data`, `segmentIndices`, or `segmentsNumber` is not
-    *                                  supported.
     */
-  @throws[IllegalArgumentException]
   def sparseSegmentSumSqrtN(
       data: Output, indices: Output, segmentIndices: Output, name: String = "SparseSegmentSumSqrtN"): Output = {
-    require(data.dataType.isNumeric, s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
-    require(indices.dataType == INT32 || indices.dataType == INT64,
-            s"'indices' data type, '${segmentIndices.dataType}', is not 'INT32' or 'INT64', as required.")
-    require(segmentIndices.dataType == INT32,
-            s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'INT32', as required.")
     Op.Builder(opType = "SparseSegmentSqrtN", name = name)
         .addInput(data)
         .addInput(indices)
@@ -1831,11 +1721,8 @@ private[api] trait Math {
     * @param  diagonal Diagonal values, represented as a rank-`K` tensor, where `K` can be at most `3`.
     * @param  name     Name for the created op.
     * @return Created op output.
-    * @throws IllegalArgumentException If `diagonal` has rank higher than `3`.
     */
-  @throws[IllegalArgumentException]
   def diag(diagonal: Output, name: String = "Diag"): Output = {
-    require(diagonal.rank <= 3, s"The provided tensor (rank = ${diagonal.rank}) can have rank at most 3.")
     Op.Builder(opType = "Diag", name = name)
         .addInput(diagonal)
         .build().outputs(0)
@@ -1847,12 +1734,8 @@ private[api] trait Math {
     * @param  input Rank-`K` input tensor, where `K` is either `2`, `4`, or `6`.
     * @param  name  Name for the created op.
     * @return Created op output.
-    * @throws IllegalArgumentException If `input` has rank other than `2`, `4`, or `6`.
     */
-  @throws[IllegalArgumentException]
   def diagPart(input: Output, name: String = "DiagPart"): Output = {
-    require(input.rank == 2 || input.rank == 4 || input.rank == 6,
-            s"The provided tensor (rank = ${input.rank}) can only be 2, 4, or 6.")
     Op.Builder(opType = "DiagPart", name = name)
         .addInput(input)
         .build().outputs(0)
@@ -1865,12 +1748,8 @@ private[api] trait Math {
     * @param  name     Name for the created op.
     * @return Created op output with rank equal to `K + 1` and shape equal to the shape of `diagonal`, with its last
     *         dimension duplicated.
-    * @throws IllegalArgumentException If `input` has rank higher than `K < 1`.
     */
-  @throws[IllegalArgumentException]
   def matrixDiag(diagonal: Output, name: String = "MatrixDiag"): Output = {
-    require(diagonal.rank == -1 || diagonal.rank >= 1,
-            s"The provided tensor (rank = ${diagonal.rank}) must have rank at least 1.")
     Op.Builder(opType = "MatrixDiag", name = name)
         .addInput(diagonal)
         .build().outputs(0)
@@ -1883,14 +1762,8 @@ private[api] trait Math {
     * @param  diagonal Rank-`K` tensor, where `K >= 1`.
     * @param  name     Name for the created op.
     * @return Created op output with rank equal to `K + 1` and shape equal to the shape of `input`.
-    * @throws IllegalArgumentException If `input` has rank `K < 2`, or `diagonal` has rank `K < 1`.
     */
-  @throws[IllegalArgumentException]
   def matrixSetDiag(input: Output, diagonal: Output, name: String = "MatrixSetDiag"): Output = {
-    require(input.rank == -1 || input.rank >= 2,
-            s"The provided input tensor (rank = ${input.rank}) must have rank at least 2.")
-    require(diagonal.rank == -1 || diagonal.rank >= 1,
-            s"The provided diagonal tensor (rank = ${diagonal.rank}) must have rank at least 1.")
     Op.Builder(opType = "MatrixSetDiag", name = name)
         .addInput(input)
         .addInput(diagonal)
@@ -1904,12 +1777,8 @@ private[api] trait Math {
     * @param  name  Name for the created op.
     * @return Created op output containing the diagonal(s) and having shape equal to
     *         `input.shape[:-2] + [min(input.shape[-2:])]`.
-    * @throws IllegalArgumentException If `input` has rank `K < 2`.
     */
-  @throws[IllegalArgumentException]
   def matrixDiagPart(input: Output, name: String = "MatrixDiagPart"): Output = {
-    require(input.rank == -1 || input.rank >= 2,
-            s"The provided input tensor (rank = ${input.rank}) must have rank at least 2.")
     Op.Builder(opType = "MatrixDiagPart", name = name)
         .addInput(input)
         .build().outputs(0)
@@ -1924,19 +1793,9 @@ private[api] trait Math {
     * @param  numSuperDiagonals Scalar `INT64` tensor that contains the number of super-diagonals to keep. If negative,
     *                           the entire upper triangle is kept.
     * @param  name              Name for the created op.
-    * @return Created op output which contains the expected banded tensor and has rank `K` and same shape as `input`.
-    * @throws IllegalArgumentException If `numSubDiagonals` or `numSuperDiagonals` are not scalar, or if their data type
-    *                                  is not `INT64`.
     */
-  @throws[IllegalArgumentException]
   def matrixBandPart(
       input: Output, numSubDiagonals: Output, numSuperDiagonals: Output, name: String = "MatrixBandPart"): Output = {
-    require(numSubDiagonals.rank == 0 && numSubDiagonals.dataType == INT64,
-            s"'numSubDiagonals' (rank = ${numSubDiagonals.rank}, dataType = ${numSubDiagonals.dataType}) " +
-                s"must be a scalar INT64 tensor.")
-    require(numSuperDiagonals.rank == 0 && numSuperDiagonals.dataType == INT64,
-            s"'numSuperDiagonals' (rank = ${numSuperDiagonals.rank}, dataType = ${numSuperDiagonals.dataType}) " +
-                s"must be a scalar INT64 tensor.")
     Op.Builder(opType = "MatrixBandPart", name = name)
         .addInput(input)
         .addInput(numSubDiagonals)
@@ -1964,11 +1823,8 @@ private[api] trait Math {
     * @param  tensor Tensor to multiply the scalar tensor with.
     * @param  name   Name for the created op.
     * @return Created op output.
-    * @throws IllegalArgumentException If the scalar tensor has rank different than `0`.
     */
-  @throws[IllegalArgumentException]
   def scalarMul[T: OutputOps](scalar: Output, tensor: T, name: String = "ScalarMul"): T = {
-    require(scalar.rank == 0, s"'scalar' (rank = ${scalar.rank}) must have rank equal to 0.")
     Op.createWithNameScope(name) {
       implicitly[OutputOps[T]].applyUnary(tensor, o => multiply(scalar, o))
     }
@@ -2061,14 +1917,9 @@ private[api] trait Math {
     * @param  b    Second input tensor.
     * @param  name Name for the created op.
     * @return Created op output.
-    * @throws IllegalArgumentException If the shapes of `a` and `b` do not match and if their inner-most dimension size
-    *                                  is not equal to 3.
     */
-  @throws[IllegalArgumentException]
   def cross(a: Output, b: Output, name: String = "Cross"): Output = {
     val (cA, cB) = castArgs(a, b)
-    require(cA.shape == cB.shape, s"'a' (shape = ${cA.shape}) and 'b' (shape = ${cB.shape}) must have the same shape.")
-    require(cA.shape(-1) == 3, s"The inner-most dimension size of the shape of 'a' and 'b' (${cA.shape}) must be 3.")
     Op.Builder(opType = "Cross", name = name)
         .addInput(cA)
         .addInput(cB)
@@ -2084,16 +1935,12 @@ private[api] trait Math {
   /** $OpDocMathComplex
     *
     * @group MathOps
-    * @param  real Tensor containing the real component. Must have `FLOAT32` or `FLOAT64` data type.
-    * @param  imag Tensor containing the imaginary component. Must have `FLOAT32` or `FLOAT64` data type.
+    * @param  real Tensor containing the real component. Must have [[FLOAT32]] or [[FLOAT64]] data type.
+    * @param  imag Tensor containing the imaginary component. Must have [[FLOAT32]] or [[FLOAT64]] data type.
     * @param  name Name for the created op.
-    * @return Created op output with data type being either `COMPLEX64` or `COMPLEX128`.
-    * @throws IllegalArgumentException If 'real' and 'imag' have different shapes or invalid data types.
+    * @return Created op output with data type being either [[COMPLEX64]] or [[COMPLEX128]].
     */
-  @throws[IllegalArgumentException]
   def complex(real: Output, imag: Output, name: String = "Complex"): Output = {
-    require(real.shape == imag.shape,
-            s"'real' (shape = ${real.shape}) and 'imag' (shape = ${imag.shape}) must have the same shape.")
     val (cReal, cImag) = castArgs(real, imag)
     val outputDataType = (cReal.dataType, cImag.dataType) match {
       case (FLOAT32, FLOAT32) => COMPLEX64

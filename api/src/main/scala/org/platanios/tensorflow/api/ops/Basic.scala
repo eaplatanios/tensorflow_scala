@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.Implicits._
 import org.platanios.tensorflow.api.core.{Indexer, Shape}
 import org.platanios.tensorflow.api.core.Indexer._
-import org.platanios.tensorflow.api.core.exception.{InvalidDataTypeException, InvalidShapeException}
+import org.platanios.tensorflow.api.core.exception.InvalidShapeException
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.tensors.{Context, Tensor}
 import org.platanios.tensorflow.api.types._
@@ -434,19 +434,8 @@ private[api] trait Basic {
     * @param  axis   Dimension along which to stack the input tensors.
     * @param  name   Name for the created op.
     * @return Created op output.
-    * @throws InvalidShapeException     If the input tensor shapes are not compatible with each other.
-    * @throws IndexOutOfBoundsException If `axis` is not within the expected output tensor shape rank.
     */
-  @throws[InvalidShapeException]
-  @throws[IndexOutOfBoundsException]
   def stack(inputs: Seq[Output], axis: Int = 0, name: String = "Stack"): Output = {
-    val inputsShape = inputs.head.shape
-    inputs.tail.foreach(_.shape.assertIsCompatibleWith(inputsShape))
-    if (inputsShape.rank != -1) {
-      val expandedRank = inputsShape.rank + 1
-      if (axis < -expandedRank || axis >= expandedRank)
-        throw new IndexOutOfBoundsException(s"Provided axis, $axis, is not in [${-expandedRank}, $expandedRank).")
-    }
     Op.Builder(opType = "Pack", name = name)
         .addInputList(inputs)
         .setAttribute("axis", axis)
@@ -460,9 +449,7 @@ private[api] trait Basic {
     * @param  inputs Input tensors to be stacked.
     * @param  name   Name for the created op.
     * @return Created op output.
-    * @throws InvalidShapeException If the input tensor shapes are not compatible with each other.
     */
-  @throws[InvalidShapeException]
   def parallelStack(inputs: Array[Output], name: String = "ParallelStack"): Output = {
     val inputsShape = inputs.head.shape
     inputs.tail.foreach(_.shape.assertIsCompatibleWith(inputsShape))
@@ -533,24 +520,14 @@ private[api] trait Basic {
     *
     * @group BasicOps
     *
-    * @param  shapes Sequence of `N` `INT32` vectors representing the shapes of the tensors being concatenated.
-    * @param  axis   `INT32` scalar representing the dimension along which to concatenate.
+    * @param  shapes Sequence of `N` [[INT32]] vectors representing the shapes of the tensors being concatenated.
+    * @param  axis   [[INT32]] scalar representing the dimension along which to concatenate.
     * @param  name   Name for the created op.
-    * @return Sequence of `N` `INT32` vectors representing the starting offset of the input tensors within the
+    * @return Sequence of `N` [[INT32]] vectors representing the starting offset of the input tensors within the
     *         concatenated output.
-    * @throws IllegalArgumentException If any of the `shapes` is not an `INT32` vector or if `axis` is not an `INT32`
-    *                                  scalar.
     */
-  @throws[IllegalArgumentException]
   private[ops] def concatenateOffset(
       shapes: Seq[Output], axis: Output, name: String = "ConcatenateOffset"): Seq[Output] = {
-    if (shapes.length < 2)
-      throw new IllegalArgumentException(s"At least 2 shapes need to be provided (actual provided = ${shapes.length}).")
-    if (shapes.exists(s => s.dataType != INT32 || s.shape.rank > 1))
-      throw new IllegalArgumentException("The provided shapes need to be INT32 vectors.")
-    if (axis.dataType != INT32 || axis.shape.rank != 0)
-      throw new IllegalArgumentException(
-        s"The provided axis (dataType = ${axis.dataType}, shape = ${axis.shape}) needs to be an INT32 scalar.")
     Op.Builder(opType = "ConcatOffset", name = name)
         .addInput(axis)
         .addInputList(shapes)
@@ -627,7 +604,6 @@ private[api] trait Basic {
       * @param  paddings `INT32` or `INT64` tensor containing the paddings.
       * @param  name     Name for the created op.
       * @return Created op output.
-      * @throws IllegalArgumentException If `paddings` has an invalid data type.
       */
     private[ops] def pad(input: Output, paddings: Output, name: String): Output
 
@@ -645,7 +621,6 @@ private[api] trait Basic {
       * @param  input    Input tensor to be padded.
       * @param  paddings `INT32` or `INT64` tensor containing the paddings.
       * @return Result as a new tensor.
-      * @throws IllegalArgumentException If `paddings` has an invalid data type.
       */
     private[api] def pad(input: Tensor, paddings: Tensor)(implicit context: DynamicVariable[Context]): Tensor
   }
@@ -775,17 +750,12 @@ private[api] trait Basic {
     * @group BasicOps
     *
     * @param  input    Input tensor to be padded.
-    * @param  paddings `INT32` or `INT64` tensor containing the paddings.
+    * @param  paddings [[INT32]] or [[INT64]] tensor containing the paddings.
     * @param  mode     Padding mode to use.
     * @param  name     Name for the created op.
     * @return Created op output.
-    * @throws IllegalArgumentException If `paddings` has an invalid data type.
     */
-  @throws[IllegalArgumentException]
   def pad(input: Output, paddings: Output, mode: PaddingMode = ConstantPadding, name: String = "Pad"): Output = {
-    if (paddings.dataType != INT32 && paddings.dataType != INT64)
-      throw new IllegalArgumentException(
-        s"'paddings' (dataType = ${paddings.dataType}) must have INT32 or INT64 data type.")
     mode.pad(input, paddings, name)
   }
 
@@ -854,8 +824,6 @@ private[api] trait Basic {
       val inputShape = input.shape
       val inputRank = inputShape.rank
       if (inputRank != -1) {
-        if (inputRank < 2)
-          throw InvalidShapeException(s"'input' should be a (batch) matrix, with rank > 2. Found shape '$inputShape'.")
         val permutation = Range(0, inputRank - 2).toArray ++ Array(inputRank - 1, inputRank - 2)
         transpose(input, permutation)
       } else {
@@ -876,20 +844,8 @@ private[api] trait Basic {
     * @param  input One-dimensional [[INT32]] or [[INT64]] input tensor.
     * @param  name  Name for the created op.
     * @return Created op output.
-    * @throws InvalidDataTypeException If the input data type is not [[INT32]] or [[INT64]].
-    * @throws InvalidShapeException    If the input is not a rank-1 tensor.
     */
-  @throws[InvalidDataTypeException]
-  @throws[InvalidShapeException]
   def invertPermutation(input: Output, name: String = "InvertPermutation"): Output = {
-    if (input.dataType != INT32 && input.dataType != INT64)
-      throw InvalidDataTypeException(
-        s"Data type '${input.dataType}' is not supported for the permutation inversion op input. " +
-            s"Only 'Int32' and 'Int64' are supported.")
-    if (input.rank != 1 && input.rank != -1)
-      throw InvalidShapeException(
-        s"Shape '${input.shape}' is not supported for the permutation inversion op input. " +
-            s"Only one-dimensional tensors are supported.")
     Op.Builder(opType = "InvertPermutation", name = name)
         .addInput(input)
         .build().outputs(0)
@@ -903,14 +859,8 @@ private[api] trait Basic {
     * @param  axes  Dimensions of the input tensor to reverse. Has to be [[INT32]] or [[INT64]].
     * @param  name  Name for the created op.
     * @return Created op output which has the same shape as `input`.
-    * @throws InvalidDataTypeException If the data type of `axes` is not [[INT32]] or [[INT64]].
     */
-  @throws[InvalidDataTypeException]
   def reverse(input: Output, axes: Output, name: String = "Reverse"): Output = {
-    if (axes.dataType != INT32 && axes.dataType != INT64)
-      throw InvalidDataTypeException(
-        s"Data type '${axes.dataType}' is not supported for the reverse op axes. " +
-            s"Only 'Int32' and 'Int64' are supported.")
     Op.Builder(opType = "ReverseV2", name = name)
         .addInput(input)
         .addInput(axes)
@@ -950,20 +900,8 @@ private[api] trait Basic {
     *                   `[2, 2]`.
     * @param  name      Name for the created op.
     * @return Created op output.
-    * @throws IllegalArgumentException If `input` or `paddings` has an invalid data type or shape or if `blockSize` is
-    *                                  not greater than `1`.
     */
-  @throws[IllegalArgumentException]
   def spaceToBatch(input: Output, blockSize: Int, paddings: Output, name: String = "SpaceToBatch"): Output = {
-    if (input.rank != -1 && input.rank != 4)
-      throw new IllegalArgumentException(s"'input' (shape = ${input.dataType}) must have rank equal to 4.")
-    if (blockSize <= 1)
-      throw new IllegalArgumentException(s"'blockSize' ($blockSize) must be greater than 1.")
-    if (paddings.dataType != INT32 && paddings.dataType != INT64)
-      throw new IllegalArgumentException(
-        s"'paddings' (dataType = ${paddings.dataType}) must have INT32 or INT64 data type.")
-    if (paddings.rank != -1 && paddings.rank != 2)
-      throw new IllegalArgumentException(s"'paddings' (shape = ${paddings.dataType}) must have rank equal to 2.")
     val result = spaceToBatchND(input, constant(Tensor(blockSize, blockSize)), paddings, name)
     result.setShape(result.shape.withRank(4))
     result
@@ -983,20 +921,8 @@ private[api] trait Basic {
     *                    divides `inputShape(i + 1) + padStart + padEnd`.
     * @param  name       Name for the created op.
     * @return Created op output.
-    * @throws IllegalArgumentException If `blockShape` or `paddings` has an invalid data type or shape.
     */
-  @throws[IllegalArgumentException]
   def spaceToBatchND(input: Output, blockShape: Output, paddings: Output, name: String = "SpaceToBatchND"): Output = {
-    if (blockShape.dataType != INT32 && blockShape.dataType != INT64)
-      throw new IllegalArgumentException(
-        s"'blockShape' (dataType = ${blockShape.dataType}) must have INT32 or INT64 data type.")
-    if (blockShape.rank != -1 && blockShape.rank != 1)
-      throw new IllegalArgumentException(s"'blockShape' (shape = ${blockShape.dataType}) must have rank equal to 1.")
-    if (paddings.dataType != INT32 && paddings.dataType != INT64)
-      throw new IllegalArgumentException(
-        s"'paddings' (dataType = ${paddings.dataType}) must have INT32 or INT64 data type.")
-    if (paddings.rank != -1 && paddings.rank != 2)
-      throw new IllegalArgumentException(s"'paddings' (shape = ${paddings.dataType}) must have rank equal to 2.")
     Op.Builder(opType = "SpaceToBatchND", name = name)
         .addInput(input)
         .addInput(blockShape)
@@ -1014,20 +940,8 @@ private[api] trait Basic {
     *                   `[2, 2]`.
     * @param  name      Name for the created op.
     * @return Created op output.
-    * @throws IllegalArgumentException If `input` or `crops` has an invalid data type or shape or if `blockSize` is not
-    *                                  greater than `1`.
     */
-  @throws[IllegalArgumentException]
   def batchToSpace(input: Output, blockSize: Int, crops: Output, name: String = "BatchToSpace"): Output = {
-    if (input.rank != -1 && input.rank != 4)
-      throw new IllegalArgumentException(s"'input' (shape = ${input.dataType}) must have rank equal to 4.")
-    if (blockSize <= 1)
-      throw new IllegalArgumentException(s"'blockSize' ($blockSize) must be greater than 1.")
-    if (crops.dataType != INT32 && crops.dataType != INT64)
-      throw new IllegalArgumentException(
-        s"'crops' (dataType = ${crops.dataType}) must have INT32 or INT64 data type.")
-    if (crops.rank != -1 && crops.rank != 2)
-      throw new IllegalArgumentException(s"'crops' (shape = ${crops.dataType}) must have rank equal to 2.")
     val result = batchToSpaceND(input, constant(Tensor(blockSize, blockSize)), crops, name)
     result.setShape(result.shape.withRank(4))
     result
@@ -1047,20 +961,9 @@ private[api] trait Basic {
     *                    `cropStart(i) + cropEnd(i) <= blockShape(i) * inputShape(i + 1)`.
     * @param  name       Name for the created op.
     * @return Created op output.
-    * @throws IllegalArgumentException If `blockShape` or `crops` has an invalid data type or shape.
     */
   @throws[IllegalArgumentException]
   def batchToSpaceND(input: Output, blockShape: Output, crops: Output, name: String = "BatchToSpaceND"): Output = {
-    if (blockShape.dataType != INT32 && blockShape.dataType != INT64)
-      throw new IllegalArgumentException(
-        s"'blockShape' (dataType = ${blockShape.dataType}) must have INT32 or INT64 data type.")
-    if (blockShape.rank != -1 && blockShape.rank != 1)
-      throw new IllegalArgumentException(s"'blockShape' (shape = ${blockShape.dataType}) must have rank equal to 1.")
-    if (crops.dataType != INT32 && crops.dataType != INT64)
-      throw new IllegalArgumentException(
-        s"'crops' (dataType = ${crops.dataType}) must have INT32 or INT64 data type.")
-    if (crops.rank != -1 && crops.rank != 2)
-      throw new IllegalArgumentException(s"'crops' (shape = ${crops.dataType}) must have rank equal to 2.")
     Op.Builder(opType = "BatchToSpaceND", name = name)
         .addInput(input)
         .addInput(blockShape)
@@ -1078,24 +981,10 @@ private[api] trait Basic {
     *                      use. All elements must be non-negative. Defaults to a tensor containing all zeros.
     * @param  name         Created op name.
     * @return Tuple containing the paddings and crops required.
-    * @throws IllegalArgumentException If `inputShape`, `blockShape`, or `basePaddings`, has invalid data type or shape.
     */
-  @throws[IllegalArgumentException]
   def requiredSpaceToBatchPaddingsAndCrops(
       inputShape: Output, blockShape: Output, basePaddings: Output = null,
       name: String = "RequiredSpaceToBatchPaddings"): (Output, Output) = {
-    if (inputShape.dataType != INT32 || (inputShape.rank != -1 && inputShape.rank != 1))
-      throw new IllegalArgumentException(
-        s"'inputShape' (dataType = ${inputShape.dataType}, shape = ${inputShape.shape}) " +
-            s"must be an INT32 one-dimensional tensor.")
-    if (blockShape.dataType != INT32 || (blockShape.rank != -1 && blockShape.rank != 1))
-      throw new IllegalArgumentException(
-        s"'blockShape' (dataType = ${blockShape.dataType}, shape = ${blockShape.shape}) " +
-            s"must be an INT32 one-dimensional tensor.")
-    if (basePaddings != null && (basePaddings.dataType != INT32 || (basePaddings.rank != -1 && basePaddings.rank != 2)))
-      throw new IllegalArgumentException(
-        s"'basePaddings' (dataType = ${basePaddings.dataType}, shape = ${basePaddings.shape}) " +
-            s"must be an INT32 two-dimensional tensor, or 'null'.")
     Op.createWithNameScope(name, Set(inputShape.op, blockShape.op)) {
       blockShape.shape.assertFullyDefined()
       blockShape.shape.assertHasRank(1)
@@ -1153,14 +1042,8 @@ private[api] trait Basic {
     * @param  blockSize Block size which must be greater than `1`.
     * @param  name      Name for the created op.
     * @return Created op output.
-    * @throws IllegalArgumentException If `input` has an invalid shape or if `blockSize` is not greater than `1`.
     */
-  @throws[IllegalArgumentException]
   def spaceToDepth(input: Output, blockSize: Int, name: String = "SpaceToDepth"): Output = {
-    if (input.rank != -1 && input.rank != 4)
-      throw new IllegalArgumentException(s"'input' (shape = ${input.dataType}) must have rank equal to 4.")
-    if (blockSize <= 1)
-      throw new IllegalArgumentException(s"'blockSize' ($blockSize) must be greater than 1.")
     Op.Builder(opType = "SpaceToDepth", name = name)
         .addInput(input)
         .setAttribute("block_size", blockSize.toLong)
@@ -1175,14 +1058,8 @@ private[api] trait Basic {
     * @param  blockSize Block size which must be greater than `1`.
     * @param  name      Name for the created op.
     * @return Created op output.
-    * @throws IllegalArgumentException If `input` has an invalid shape or if `blockSize` is not greater than `1`.
     */
-  @throws[IllegalArgumentException]
   def depthToSpace(input: Output, blockSize: Int, name: String = "DepthToSpace"): Output = {
-    if (input.rank != -1 && input.rank != 4)
-      throw new IllegalArgumentException(s"'input' (shape = ${input.dataType}) must have rank equal to 4.")
-    if (blockSize <= 1)
-      throw new IllegalArgumentException(s"'blockSize' ($blockSize) must be greater than 1.")
     Op.Builder(opType = "DepthToSpace", name = name)
         .addInput(input)
         .setAttribute("block_size", blockSize.toLong)
@@ -1200,13 +1077,8 @@ private[api] trait Basic {
     * @param  input Input boolean tensor.
     * @param  name  Name for the created op.
     * @return Created op output.
-    * @throws InvalidDataTypeException If the input tensor is not boolean.
     */
-  @throws[InvalidDataTypeException]
   def where(input: Output, name: String = "Where"): Output = {
-    if (input.dataType != BOOLEAN)
-      throw InvalidDataTypeException(
-        s"The 'where' op only supports boolean tensors as inputs. It does not support '${input.dataType}' tensors.")
     Op.Builder(opType = "Where", name = name)
         .addInput(input)
         .build().outputs(0)
@@ -1220,9 +1092,7 @@ private[api] trait Basic {
     * @param  mask  `K`-dimensional boolean tensor, where `K <= N` and `K` must be known statically.
     * @param  name  Name for the created op output.
     * @return Created op output.
-    * @throws InvalidShapeException If the shapes of `input` and `mask` are not compatible.
     */
-  @throws[InvalidShapeException]
   def booleanMask(input: Output, mask: Output, name: String = "BooleanMask"): Output = {
     Op.createWithNameScope(name, Set[Op](input.op, mask.op)) {
       val inputShape: Shape = input.shape
@@ -1232,8 +1102,6 @@ private[api] trait Basic {
         throw InvalidShapeException(
           "The rank of the boolean mask must be known, even if some dimension sizes are unknown. For example, " +
               "'Shape(-1)' is fine, but 'Shape.unknown()' is not.")
-      if (maskRank == 0)
-        throw InvalidShapeException("The boolean mask cannot be a scalar.")
       inputShape(0 :: maskRank).assertIsCompatibleWith(maskShape)
       val dynamicInputShape = shape(input)
       val leadingSize = Math.prod(dynamicInputShape(0 :: maskRank), Array(0))
@@ -1255,16 +1123,10 @@ private[api] trait Basic {
     * @param  dataType  Data type for the output tensor.
     * @param  name      Name for the created op.
     * @return Created op output.
-    * @throws IllegalArgumentException If either `lengths` or `maxLength` have invalid rank.
     */
-  @throws[IllegalArgumentException]
   def sequenceMask(
       lengths: Output, maxLength: Output = null, dataType: DataType = BOOLEAN,
       name: String = "SequenceMask"): Output = {
-    if (lengths.rank != 1)
-      throw new IllegalArgumentException(s"'lengths' (shape = ${lengths.shape}) must be a one-dimensional tensor.")
-    if (maxLength != null && maxLength.rank != 0)
-      throw new IllegalArgumentException(s"'maxLength' (shape = ${maxLength.shape}) must be a scalar tensor.")
     val ops = if (maxLength == null) Set(lengths.op) else Set(lengths.op, maxLength.op)
     Op.createWithNameScope(name, ops) {
       val maxLen = if (maxLength != null) maxLength else Math.max(lengths)
@@ -1291,14 +1153,9 @@ private[api] trait Basic {
     * @param  maskIndices One-dimensional tensor containing the indices of the elements to mask.
     * @param  name        Name for the created op.
     * @return Created op output.
-    * @throws IllegalArgumentException If `maskIndices` is not a one-dimensional tensor.
     */
-  @throws[IllegalArgumentException]
   def indexedSlicesMask(
       input: OutputIndexedSlices, maskIndices: Output, name: String = "IndexedSlicesMask"): OutputIndexedSlices = {
-    if (maskIndices.rank > 1)
-      throw new IllegalArgumentException(
-        s"'maskIndices' (shape = ${maskIndices.shape}) must be a one-dimensional tensor.")
     Op.createWithNameScope(name, Set(input.indices.op, input.values.op, input.denseShape.op, maskIndices.op)) {
       val (outputIndices, toGather) = listDiff(input.indices, maskIndices)
       val outputValues = gather(input.values, toGather)
@@ -1318,18 +1175,8 @@ private[api] trait Basic {
     * @param  indicesDataType Data type of the returned indices. Must be [[INT32]] or [[INT64]].
     * @param  name            Name for the created op.
     * @return Tuple containing `output` and `indices`.
-    * @throws InvalidShapeException    If the input tensor is not one-dimensional.
-    * @throws InvalidDataTypeException If `indicesDataType` is not [[INT32]] or [[INT64]].
     */
-  @throws[InvalidShapeException]
-  @throws[InvalidDataTypeException]
   def unique(input: Output, indicesDataType: DataType = INT32, name: String = "Unique"): (Output, Output) = {
-    if (input.rank != 1 && input.rank != -1)
-      throw InvalidShapeException(
-        s"Shape '${input.shape}' is not supported for the unique op input. Only one-dimensional tensors are supported.")
-    if (indicesDataType != INT32 && indicesDataType != INT64)
-      throw InvalidDataTypeException(
-        s"The indices data type cannot be '$indicesDataType'. It has to be either 'INT32' or 'INT64'.")
     val outputs = Op.Builder(opType = "Unique", name = name)
         .addInput(input)
         .setAttribute("out_idx", indicesDataType)
@@ -1345,19 +1192,9 @@ private[api] trait Basic {
     * @param  indicesDataType Data type of the returned indices. Must be [[INT32]] or [[INT64]].
     * @param  name            Name for the created op.
     * @return Tuple containing `output`, `indices`, and `counts`.
-    * @throws InvalidShapeException    If the input tensor is not one-dimensional.
-    * @throws InvalidDataTypeException If `indicesDataType` is not [[INT32]] or [[INT64]].
     */
-  @throws[InvalidShapeException]
-  @throws[InvalidDataTypeException]
   def uniqueWithCounts(
       input: Output, indicesDataType: DataType = INT32, name: String = "UniqueWithCounts"): (Output, Output, Output) = {
-    if (input.rank != 1 && input.rank != -1)
-      throw InvalidShapeException(
-        s"Shape '${input.shape}' is not supported for the unique op input. Only one-dimensional tensors are supported.")
-    if (indicesDataType != INT32 && indicesDataType != INT64)
-      throw InvalidDataTypeException(
-        s"The indices data type cannot be '$indicesDataType'. It has to be either 'INT32' or 'INT64'.")
     val outputs = Op.Builder(opType = "UniqueWithCounts", name = name)
         .addInput(input)
         .setAttribute("out_idx", indicesDataType)
@@ -1374,13 +1211,8 @@ private[api] trait Basic {
     * @param  indicesDataType Data type to use for the output indices of this op. Must be [[INT32]] or [[INT64]].
     * @param  name            Name for the created op.
     * @return Tuple containing `output` and `indices`, from the method description.
-    * @throws InvalidDataTypeException If `indexDataType` is not [[INT32]] or [[INT64]].
     */
-  @throws[InvalidDataTypeException]
   def listDiff(x: Output, y: Output, indicesDataType: DataType = INT32, name: String = "ListDiff"): (Output, Output) = {
-    if (indicesDataType != INT32 && indicesDataType != INT64)
-      throw InvalidDataTypeException(
-        s"The index data type cannot be '$indicesDataType'. It has to be either 'INT32' or 'INT64'.")
     val outputs = Op.Builder(opType = "ListDiff", name = name)
         .addInput(x)
         .addInput(y)
@@ -1437,19 +1269,8 @@ private[api] trait Basic {
     * @param  shape   One-dimensional `INT32` or `INT64` tensor specifying the shape of the output tensor.
     * @param  name    Name for the created op.
     * @return Created op output.
-    * @throws IllegalArgumentException If `indices` or `shape` have invalid data type, or if `shape` is not a
-    *                                  one-dimensional tensor.
     */
-  @throws[IllegalArgumentException]
   def scatterND(indices: Output, updates: Output, shape: Output, name: String = "ScatterND"): Output = {
-    if (indices.dataType != INT32 && indices.dataType != INT64)
-      throw new IllegalArgumentException(
-        s"'indices' (dataType = ${indices.dataType}) must have INT32 or INT64 data type.")
-    if (shape.dataType != INT32 && shape.dataType != INT64)
-      throw new IllegalArgumentException(
-        s"'shape' (dataType = ${shape.dataType}) must have INT32 or INT64 data type.")
-    if (shape.rank > 1)
-      throw new IllegalArgumentException(s"'shape' (shape = ${shape.shape}) must be a one-dimensional tensor.")
     Op.Builder(opType = "ScatterNd", name = name)
         .addInput(indices)
         .addInput(updates)
@@ -1472,12 +1293,6 @@ private[api] trait Basic {
     * @return Created op output.
     */
   def slice(input: Output, begin: Output, size: Output, name: String = "Slice"): Output = {
-    if (begin.dataType != INT32 && begin.dataType != INT64)
-      throw InvalidDataTypeException(
-        s"'begin' data type, '${begin.dataType}', is not 'INT32' or 'INT64', as required.")
-    if (size.dataType != INT32 && size.dataType != INT64)
-      throw InvalidDataTypeException(
-        s"'size' data type, '${size.dataType}', is not 'INT32' or 'INT64', as required.")
     Op.Builder(opType = "Slice", name = name)
         .addInput(input)
         .addInput(begin)
@@ -1658,28 +1473,17 @@ private[api] trait Basic {
     *                  or `dataType` are provided, `dataType` will default to the `FLOAT32` data type.
     * @param  name     Name for the created op.
     * @return Created op output.
-    * @throws IllegalArgumentException If the `onValue` data type, the `offValue` data type, and `dataType` are
-    *                                  incompatible, or if `indices` or `depth` have invalid data types or shapes.
     */
-  @throws[IllegalArgumentException]
   def oneHot(
       indices: Output, depth: Output, onValue: Output = null, offValue: Output = null, axis: Int = -1,
       dataType: DataType = null, name: String = "OneHot"): Output = {
-    if (indices.dataType != UINT8 && indices.dataType != INT32 && indices.dataType != INT64)
-      throw new IllegalArgumentException(s"The indices data type (${indices.dataType}) must be UINT8, INT32, or INT64.")
-    if (depth.dataType != INT32)
-      throw new IllegalArgumentException(s"The depth data type (${depth.dataType}) must be INT32.")
-    if (depth.shape.rank > 0)
-      throw new IllegalArgumentException(s"The depth (shape = ${depth.shape}) must be a scalar tensor.")
-    if (onValue != null && onValue.shape.rank > 0)
-      throw new IllegalArgumentException(s"The 'on' value (shape = ${onValue.shape}) must be a scalar tensor.")
-    if (offValue != null && offValue.shape.rank > 0)
-      throw new IllegalArgumentException(s"The 'off' value (shape = ${offValue.shape}) must be a scalar tensor.")
     val inferredDataType = {
       if (dataType != null) {
         dataType
       } else {
-        if (onValue != null)
+        if (onValue != null && offValue != null)
+          DataType.mostPrecise(onValue.dataType, offValue.dataType)
+        else if (onValue != null)
           onValue.dataType
         else if (offValue != null)
           offValue.dataType
@@ -1687,24 +1491,14 @@ private[api] trait Basic {
           FLOAT32
       }
     }
-    if (onValue != null && offValue != null && onValue.dataType != offValue.dataType)
-      throw new IllegalArgumentException(
-        s"The provided on value data type (${onValue.dataType}) must match " +
-            s"the provided off value data type (${offValue.dataType}).")
     var dependencyOps = Set(indices.op, depth.op)
     if (onValue != null)
       dependencyOps += onValue.op
     if (offValue != null)
       dependencyOps += offValue.op
     Op.createWithNameScope(name, dependencyOps) {
-      val actualOnValue = if (onValue != null) onValue else constant(1, inferredDataType)
-      val actualOffValue = if (offValue != null) offValue else constant(0, inferredDataType)
-      if (actualOnValue.dataType != inferredDataType)
-        throw new IllegalArgumentException(
-          s"On value data type (${actualOnValue.dataType}) must match the data type $inferredDataType.")
-      if (actualOffValue.dataType != inferredDataType)
-        throw new IllegalArgumentException(
-          s"Off value data type (${actualOffValue.dataType}) must match the data type $inferredDataType.")
+      val actualOnValue = if (onValue != null) onValue.cast(inferredDataType) else constant(1, inferredDataType)
+      val actualOffValue = if (offValue != null) offValue.cast(inferredDataType) else constant(0, inferredDataType)
       Op.Builder(opType = "OneHot", name = Op.convertNameScopeToName(Op.currentNameScope))
           .addInput(indices)
           .addInput(depth)
@@ -1734,22 +1528,6 @@ private[api] trait Basic {
     * @return Created op output, which is a one-dimensional integer tensor representing the broadcasted shape.
     */
   def broadcastShapeDynamic(shape1: Output, shape2: Output, name: String = "BroadcastShape"): Output = {
-    if (shape1.dataType != INT32 && shape1.dataType != INT64)
-      throw InvalidDataTypeException(
-        s"Data type '${shape1.dataType}' is not supported for the shape broadcasting op inputs. " +
-            s"Only 'INT32' and 'INT64' are supported.")
-    if (shape1.shape.rank != 1 && shape1.shape.rank != -1)
-      throw InvalidShapeException(
-        s"Shape '${shape1.shape}' is not supported for the shape broadcasting op inputs. " +
-            s"Only one-dimensional tensors are supported.")
-    if (shape2.dataType != INT32 && shape2.dataType != INT64)
-      throw InvalidDataTypeException(
-        s"Data type '${shape2.dataType}' is not supported for the shape broadcasting op inputs. " +
-            s"Only 'INT32' and 'INT64' are supported.")
-    if (shape2.shape.rank != 1 && shape2.shape.rank != -1)
-      throw InvalidShapeException(
-        s"Shape '${shape2.shape}' is not supported for the shape broadcasting op inputs. " +
-            s"Only one-dimensional tensors are supported.")
     Op.Builder(opType = "BroadcastArgs", name = name)
         .addInput(shape1)
         .addInput(shape2)
@@ -1765,12 +1543,8 @@ private[api] trait Basic {
     *                              dimensions are swapped.
     * @param  name                 Name for the created op.
     * @return Created op outputs, each with rank `N`.
-    * @throws IllegalArgumentException If any of the provided inputs is not a rank-`1` tensor.
     */
-  @throws[IllegalArgumentException]
   def meshGrid(inputs: Seq[Output], useCartesianIndexing: Boolean = true, name: String = "MeshGrid"): Seq[Output] = {
-    if (inputs.exists(_.rank > 1))
-      throw new IllegalArgumentException("All input tensors to 'meshGrid' must have rank equal to 1.")
     Op.createWithNameScope(name, inputs.map(_.op).toSet) {
       val rank = inputs.length
       val (outputs, shapes) = {
@@ -2290,7 +2064,7 @@ private[api] object Basic extends Basic {
     private[this] def stackGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       unstack(
         input = outputGradients.head, number = op.longAttribute("N").toInt,
-        axis = op.longAttribute("axis").toInt).toSeq
+        axis = op.longAttribute("axis").toInt)
     }
 
     private[this] def unstackGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {

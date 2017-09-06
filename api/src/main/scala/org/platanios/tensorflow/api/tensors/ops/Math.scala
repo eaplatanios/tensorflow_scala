@@ -137,7 +137,7 @@ private[api] trait Math {
 
   // TODO: [OPS] accumulateN
 
-  //region Math Unary Ops
+  //region Unary Ops
 
   /** $OpDocMathAbs
     *
@@ -597,9 +597,9 @@ private[api] trait Math {
           Tensor.fromNativeHandle(NativeTensorOpsMath.isFinite(context.value.nativeHandle, t.nativeHandle)))
   }
 
-  //endregion Math Unary Ops
+  //endregion Unary Ops
 
-  //region Math Binary Ops
+  //region Binary Ops
 
   /** $OpDocMathAdd
     *
@@ -855,7 +855,7 @@ private[api] trait Math {
     Tensor.fromNativeHandle(NativeTensorOpsMath.minimum(context.value.nativeHandle, cX.nativeHandle, cY.nativeHandle))
   }
 
-  //endregion Math Binary Ops
+  //endregion Binary Ops
 
   /** $OpDocMathIncompleteBeta
     *
@@ -871,7 +871,7 @@ private[api] trait Math {
       context.value.nativeHandle, cA.nativeHandle, cB.nativeHandle, cX.nativeHandle))
   }
 
-  //region Math Logical Ops
+  //region Logical Ops
 
   /** $OpDocMathLogicalNot
     *
@@ -916,9 +916,9 @@ private[api] trait Math {
     logicalAnd(logicalOr(x, y), logicalNot(logicalAnd(x, y)))
   }
 
-  //endregion Math Logical Ops
+  //endregion Logical Ops
 
-  //region Math Comparison Ops
+  //region Comparison Ops
 
   /** $OpDocMathEqual
     *
@@ -1008,9 +1008,9 @@ private[api] trait Math {
       context.value.nativeHandle, cX.nativeHandle, cY.nativeHandle))
   }
 
-  //endregion Math Comparison Ops
+  //endregion Comparison Ops
 
-  //region Math Reduction Ops
+  //region Reduction Ops
 
   private[this] def reductionAxes[T <: TensorLike](tensor: T, axes: Tensor): Tensor = {
     if (axes != null) {
@@ -1186,7 +1186,7 @@ private[api] trait Math {
     sum(cast(notEqual(input, 0), INT64), axes, keepDims)
   }
 
-  //endregion Math Reduction Ops
+  //endregion Reduction Ops
 
   /** $OpDocMathArgmax
     *
@@ -1284,7 +1284,7 @@ private[api] trait Math {
       context.value.nativeHandle, input.nativeHandle, axis.nativeHandle, exclusive, reverse))
   }
 
-  //region Math Segment Ops
+  //region Segment Ops
 
   /** $OpDocMathSegmentSum
     *
@@ -1436,9 +1436,9 @@ private[api] trait Math {
       context.value.nativeHandle, data.nativeHandle, indices.nativeHandle, segmentIndices.nativeHandle))
   }
 
-  //endregion Math Segment Ops
+  //endregion Segment Ops
 
-  //region Math Matrix Ops
+  //region Matrix Ops
 
   /** $OpDocMathDiag
     *
@@ -1619,17 +1619,17 @@ private[api] trait Math {
 
   // TODO: [OPS] tensorDot
 
-  //endregion Math Matrix Ops
+  //endregion Matrix Ops
 
-  //region Math Complex Ops
+  //region Complex Ops
 
   /** $OpDocMathComplex
     *
     * @group MathOps
     *
-    * @param  real Tensor containing the real component. Must have `FLOAT32` or `FLOAT64` data type.
-    * @param  imag Tensor containing the imaginary component. Must have `FLOAT32` or `FLOAT64` data type.
-    * @return Result as a new tensor.
+    * @param  real Tensor containing the real component. Must have [[FLOAT32]] or [[FLOAT64]] data type.
+    * @param  imag Tensor containing the imaginary component. Must have [[FLOAT32]] or [[FLOAT64]] data type.
+    * @return Result as a new tensor with data type being either [[COMPLEX64]] or [[COMPLEX128]].
     * @throws IllegalArgumentException If 'real' and 'imag' have invalid data types.
     */
   @throws[IllegalArgumentException]
@@ -1723,15 +1723,15 @@ private[api] trait Math {
         })
   }
 
-  //endregion Math Complex Ops
+  //endregion Complex Ops
 
-  //region Math Quantization Ops
+  //region Quantization Ops
 
   // TODO: [OPS] quantization
 
-  //endregion Math Quantization Ops
+  //endregion Quantization Ops
 
-  //region Math Bucketization Ops
+  //region Bucketization Ops
 
   /** $OpDocMathBucketize
     *
@@ -1746,9 +1746,9 @@ private[api] trait Math {
       context.value.nativeHandle, input.nativeHandle, boundaries.toArray))
   }
 
-  //endregion Math Bucketization Ops
+  //endregion Bucketization Ops
 
-  //region Math Other Ops
+  //region Other Ops
 
   /** $OpDocMathZerosFraction
     *
@@ -1761,7 +1761,7 @@ private[api] trait Math {
     mean(cast(equal(input, Tensor.fill(input.dataType)(0)), FLOAT32))
   }
 
-  //endregion Math Other Ops
+  //endregion Other Ops
 }
 
 private[api] object Math extends Math {
@@ -1771,7 +1771,7 @@ private[api] object Math extends Math {
   }
 
   case class MathOps private[ops](tensor: Tensor) {
-    //region Math Operators
+    //region Operators
 
     /** $OpDocMathNegate
       *
@@ -1899,7 +1899,7 @@ private[api] object Math extends Math {
       */
     def >=(other: Tensor): Tensor = greaterEqual(other)
 
-    //endregion Math Operators
+    //endregion Operators
 
     /** $OpDocMathCast
       *
@@ -1917,7 +1917,7 @@ private[api] object Math extends Math {
       */
     def bitcast(dataType: DataType): Tensor = Math.bitcast(tensor, dataType)
 
-    //region Math Unary Ops
+    //region Unary Ops
 
     /** $OpDocMathAbs
       *
@@ -2164,9 +2164,9 @@ private[api] object Math extends Math {
       */
     def isFinite: Tensor = Math.isFinite(tensor)
 
-    //endregion Math Unary Ops
+    //endregion Unary Ops
 
-    //region Math Binary Ops
+    //region Binary Ops
 
     /** $OpDocMathAdd
       *
@@ -2301,9 +2301,9 @@ private[api] object Math extends Math {
       */
     def minimum(other: Tensor): Tensor = Math.minimum(tensor, other)
 
-    //endregion Math Binary Ops
+    //endregion Binary Ops
 
-    //region Math Logical Ops
+    //region Logical Ops
 
     /** $OpDocMathLogicalNot
       *
@@ -2333,9 +2333,9 @@ private[api] object Math extends Math {
       */
     def logicalXOr(other: Tensor): Tensor = Math.logicalXOr(tensor, other)
 
-    //endregion Math Logical Ops
+    //endregion Logical Ops
 
-    //region Math Comparison Ops
+    //region Comparison Ops
 
     /** $OpDocMathEqual
       *
@@ -2386,9 +2386,9 @@ private[api] object Math extends Math {
       */
     def greaterEqual(other: Tensor): Tensor = Math.greaterEqual(tensor, other)
 
-    //endregion Math Comparison Ops
+    //endregion Comparison Ops
 
-    //region Math Reduction Ops
+    //region Reduction Ops
 
     /** $OpDocMathSum
       *
@@ -2471,7 +2471,7 @@ private[api] object Math extends Math {
       */
     def countNonZero(axes: Tensor = null, keepDims: Boolean = false): Tensor = Math.countNonZero(tensor, axes, keepDims)
 
-    //endregion Math Reduction Ops
+    //endregion Reduction Ops
 
     /** $OpDocMathArgmax
       *
@@ -2534,7 +2534,7 @@ private[api] object Math extends Math {
       Math.cumprod(tensor, axis, exclusive, reverse)
     }
 
-    //region Math Segment Ops
+    //region Segment Ops
 
     /** $OpDocMathSegmentSum
       *
@@ -2649,9 +2649,9 @@ private[api] object Math extends Math {
       Math.sparseSegmentSumSqrtN(tensor, indices, segmentIndices)
     }
 
-    //endregion Math Segment Ops
+    //endregion Segment Ops
 
-    //region Math Matrix Ops
+    //region Matrix Ops
 
     /** $OpDocMathDiag
       *
@@ -2750,9 +2750,9 @@ private[api] object Math extends Math {
 
     // TODO: [OPS] tensorDot
 
-    //endregion Math Matrix Ops
+    //endregion Matrix Ops
 
-    //region Math Complex Ops
+    //region Complex Ops
 
     /** $OpDocMathReal
       *
@@ -2786,15 +2786,15 @@ private[api] object Math extends Math {
       */
     def conjugate: Tensor = Math.conjugate(tensor)
 
-    //endregion Math Complex Ops
+    //endregion Complex Ops
 
-    //region Math Quantization Ops
+    //region Quantization Ops
 
     // TODO: [OPS] quantization
 
-    //endregion Math Quantization Ops
+    //endregion Quantization Ops
 
-    //region Math Bucketization Ops
+    //region Bucketization Ops
 
     /** $OpDocMathBucketize
       *
@@ -2805,9 +2805,9 @@ private[api] object Math extends Math {
       */
     def bucketize(boundaries: Seq[Float]): Tensor = Math.bucketize(tensor, boundaries)
 
-    //endregion Math Bucketization Ops
+    //endregion Bucketization Ops
 
-    //region Math Other Ops
+    //region Other Ops
 
     /** $OpDocMathZerosFraction
       *
@@ -2817,6 +2817,6 @@ private[api] object Math extends Math {
       */
     def zerosFraction: Tensor = Math.zerosFraction(tensor)
 
-    //endregion Math Other Ops
+    //endregion Other Ops
   }
 }
