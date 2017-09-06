@@ -69,11 +69,11 @@ private[api] trait NN {
     * @return Result as a new tensor.
     */
   def l2Normalize(
-      x: Tensor, axes: Tensor, epsilon: Float = 1e-12f)(implicit context: DynamicVariable[Context]): Tensor = {
+      x: Tensor, axes: Tensor, epsilon: Float = 1e-12f): Tensor = {
     val dataType = DataType.mostPrecise(x.dataType, FLOAT32)
     val preciseX = Math.cast(x, dataType)
     val squareSum = Math.sum(Math.square(preciseX), axes = axes, keepDims = true)
-    val xInverseNorm = Math.rsqrt(Math.maximum(squareSum, Tensor(dataType.cast(epsilon))))
+    val xInverseNorm = Math.rsqrt(Math.maximum(squareSum, Tensor(dataType, epsilon)))
     Math.cast(Math.multiply(preciseX, xInverseNorm), x.dataType)
   }
 
@@ -120,9 +120,7 @@ private[api] trait NN {
     * @param  input Input tensor.
     * @return Result as a new tensor.
     */
-  def crelu(input: Tensor)(implicit context: DynamicVariable[Context]): Tensor = {
-    relu(Basic.concatenate(Seq(input, -input), axis = -1))
-  }
+  def crelu(input: Tensor): Tensor = relu(Basic.concatenate(Seq(input, -input), axis = -1))
 
   /** $OpDocNNElu
     *
@@ -169,19 +167,17 @@ private[api] trait NN {
   /** Helper function for [[softmax]] and [[logSoftmax]] that reshapes and transposes the input logits into
     * two-dimensional tensors and then creates the corresponding native op. The output is transposed and reshaped
     * back. */
-  private[this] def softmaxHelper(
-      logits: Tensor, opFunction: (Long, Long) => Long, axis: Int = -1)(
-      implicit context: DynamicVariable[Context]): Tensor = {
+  private[this] def softmaxHelper(logits: Tensor, opFunction: (Long) => Long, axis: Int = -1): Tensor = {
     // We need the original shape of the logits for shape inference.
     val shape = logits.shape
     val isLastAxis = axis == -1 || axis == shape.rank - 1
     if (shape.rank == 2 && isLastAxis) {
-      Tensor.fromNativeHandle(opFunction(context.value.nativeHandle, logits.nativeHandle))
+      Tensor.fromNativeHandle(opFunction(logits.nativeHandle))
     } else if (isLastAxis) {
       // If axis is the last axis, we simply reshape the logits to a matrix and apply the internal softmax.
       val inputShape = Basic.shape(logits)
       val flattenedLogits = NN.flattenOuterAxes(logits)
-      val output = Tensor.fromNativeHandle(opFunction(context.value.nativeHandle, flattenedLogits.nativeHandle))
+      val output = Tensor.fromNativeHandle(opFunction(flattenedLogits.nativeHandle))
       Basic.reshape(output, inputShape)
     } else {
       // If axis is not the last dimension, we have to do a reshape and transpose so that we can still perform softmax
@@ -193,7 +189,7 @@ private[api] trait NN {
       // We reshape the logits into a matrix.
       val flattenedLogits = NN.flattenOuterAxes(swappedLogits)
       // We perform the actual softmax on the last axis.
-      var output = Tensor.fromNativeHandle(opFunction(context.value.nativeHandle, flattenedLogits.nativeHandle))
+      var output = Tensor.fromNativeHandle(opFunction(flattenedLogits.nativeHandle))
       // We transform back the output tensor.
       output = Basic.reshape(output, shapeAfterSwap)
       output = NN.swapAxes(output, axis, Math.subtract(inputRank, 1))
@@ -208,8 +204,8 @@ private[api] trait NN {
     * @param  axis   Axis along which to perform the softmax. Defaults to `-1` denoting the last axis.
     * @return Result as a new tensor.
     */
-  def softmax(logits: Tensor, axis: Int = -1): Tensor = {
-    softmaxHelper(logits, NativeTensorOpsNN.softmax, axis)
+  def softmax(logits: Tensor, axis: Int = -1)(implicit context: DynamicVariable[Context]): Tensor = {
+    softmaxHelper(logits, NativeTensorOpsNN.softmax(context.value.nativeHandle, _), axis)
   }
 
   /** $OpDocNNLogSoftmax
@@ -219,8 +215,8 @@ private[api] trait NN {
     * @param  axis   Axis along which to perform the log-softmax. Defaults to `-1` denoting the last axis.
     * @return Result as a new tensor.
     */
-  def logSoftmax(logits: Tensor, axis: Int = -1): Tensor = {
-    softmaxHelper(logits, NativeTensorOpsNN.logSoftmax, axis)
+  def logSoftmax(logits: Tensor, axis: Int = -1)(implicit context: DynamicVariable[Context]): Tensor = {
+    softmaxHelper(logits, NativeTensorOpsNN.logSoftmax(context.value.nativeHandle, _), axis)
   }
 
   //region Loss Ops
@@ -235,6 +231,12 @@ private[api] trait NN {
     Tensor.fromNativeHandle(NativeTensorOpsNN.l2Loss(context.value.nativeHandle, input.nativeHandle))
   }
 
+  private[this] def nativeCrossEntropyProxy(
+      features: Long, labels: Long, function: (Long, Long, Long) => Array[Long])(
+      implicit context: DynamicVariable[Context]): Array[Long] = {
+    function(context.value.nativeHandle, features, labels)
+  }
+
   /** $OpDocNNSoftmaxCrossEntropy
     *
     * @group NNOps
@@ -246,8 +248,7 @@ private[api] trait NN {
     * @return Result as a new tensor, with rank one less than that of `logits` and the same data type as `logits`,
     *         containing the softmax cross entropy loss.
     */
-  def softmaxCrossEntropy(
-      logits: Tensor, labels: Tensor, axis: Int = -1)(implicit context: DynamicVariable[Context]): Tensor = {
+  def softmaxCrossEntropy(logits: Tensor, labels: Tensor, axis: Int = -1): Tensor = {
     // Labels and logits must be of the same data type.
     val preciseLogits = if (logits.dataType == FLOAT16) Math.cast(logits, FLOAT32) else logits
     val preciseLabels = Math.cast(labels, preciseLogits.dataType)
@@ -261,8 +262,9 @@ private[api] trait NN {
     val flattenedLabels = NN.flattenOuterAxes(transposedLabels)
     // Create the native op.
     // The second output tensor contains the gradients, which is used for the gradient computation.
-    val output = Tensor.fromNativeHandle(NativeTensorOpsNN.softmaxCrossEntropyWithLogits(
-      context.value.nativeHandle, flattenedLogits.nativeHandle, flattenedLabels.nativeHandle)(0))
+    val output = Tensor.fromNativeHandle(nativeCrossEntropyProxy(
+      flattenedLogits.nativeHandle, flattenedLabels.nativeHandle,
+      NativeTensorOpsNN.softmaxCrossEntropyWithLogits).apply(0))
     // The output shape should be the input shape without the axis over which the cross entropy was computed.
     val outputShape = Basic.slice(
       inputShape,
@@ -290,24 +292,25 @@ private[api] trait NN {
     * @return Result as a new tensor, with the same shape as `labels` and the same data type as `logits`, containing the
     *         softmax cross entropy loss.
     */
-  def sparseSoftmaxCrossEntropy(
-      logits: Tensor, labels: Tensor, axis: Int = -1)(implicit context: DynamicVariable[Context]): Tensor = {
+  def sparseSoftmaxCrossEntropy(logits: Tensor, labels: Tensor, axis: Int = -1): Tensor = {
     val preciseLogits = if (logits.dataType == FLOAT16) Math.cast(logits, FLOAT32) else logits
     // Check if no reshapes are required.
     val output = {
       if (logits.rank == 2) {
         // Create the native op.
         // The second output tensor contains the gradients, which is used for the gradient computation.
-        Tensor.fromNativeHandle(NativeTensorOpsNN.sparseSoftmaxCrossEntropyWithLogits(
-          context.value.nativeHandle, preciseLogits.nativeHandle, labels.nativeHandle)(0))
+        Tensor.fromNativeHandle(nativeCrossEntropyProxy(
+          preciseLogits.nativeHandle, labels.nativeHandle,
+          NativeTensorOpsNN.sparseSoftmaxCrossEntropyWithLogits).apply(0))
       } else {
         // Reshape logits to rank 2 and labels to rank 1.
         val flattenedLogits = NN.flattenOuterAxes(preciseLogits)
         val flattenedLabels = Basic.reshape(labels, -1)
         // Create the native op.
         // The second output tensor contains the gradients, which is used for the gradient computation.
-        val output = Tensor.fromNativeHandle(NativeTensorOpsNN.sparseSoftmaxCrossEntropyWithLogits(
-          context.value.nativeHandle, flattenedLogits.nativeHandle, flattenedLabels.nativeHandle)(0))
+        val output = Tensor.fromNativeHandle(nativeCrossEntropyProxy(
+          flattenedLogits.nativeHandle, flattenedLabels.nativeHandle,
+          NativeTensorOpsNN.sparseSoftmaxCrossEntropyWithLogits).apply(0))
         Basic.reshape(output, Basic.shape(labels))
       }
     }
@@ -329,8 +332,7 @@ private[api] trait NN {
     * @return Result as a new tensor, with rank one less than that of `logits` and the same data type as `logits`,
     *         containing the sigmoid cross entropy loss.
     */
-  def sigmoidCrossEntropy(
-      logits: Tensor, labels: Tensor, weights: Tensor = null)(implicit context: DynamicVariable[Context]): Tensor = {
+  def sigmoidCrossEntropy(logits: Tensor, labels: Tensor, weights: Tensor = null): Tensor = {
     val output = {
       if (weights == null) {
         // Labels and logits must be of the same data type.
@@ -381,9 +383,7 @@ private[api] trait NN {
     *                         `false`, meaning that the constant term is ignored.
     * @return Result as a new tensor.
     */
-  def logPoissonLoss(
-      logPredictions: Tensor, targets: Tensor, computeFullLoss: Boolean = false)(
-      implicit context: DynamicVariable[Context]): Tensor = {
+  def logPoissonLoss(logPredictions: Tensor, targets: Tensor, computeFullLoss: Boolean = false): Tensor = {
     val output = Math.exp(logPredictions) - (logPredictions * targets)
     if (computeFullLoss) {
       // Need to create constant tensors here so that their data types can be matched to that of the targets.
@@ -411,9 +411,7 @@ private[api] trait NN {
     *                         generator, when combined with the graph-level seed.
     * @return Result as a new tensor that has the same shape as `input`.
     */
-  def dropout(
-      input: Tensor, keepProbability: Float, noiseShape: Tensor = null, seed: Option[Int] = None)(
-      implicit context: DynamicVariable[Context]): Tensor = {
+  def dropout(input: Tensor, keepProbability: Float, noiseShape: Tensor = null, seed: Option[Int] = None): Tensor = {
     require(keepProbability > 0.0 && keepProbability <= 1.0, s"'keepProbability' ($keepProbability) must be in (0, 1].")
     // Do nothing if we know that keepProbability == 1.
     if (keepProbability == 1.0) {
