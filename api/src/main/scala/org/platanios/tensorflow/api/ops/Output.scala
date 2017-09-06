@@ -634,7 +634,44 @@ final case class SparseOutput(indices: Output, values: Output, denseShape: Outpu
   }
 
   /** Returns the [[Output]] that this [[OutputLike]] object represents. */
-  override def toOutput: Output = Sparse.sparseToDense(this)
+  override def toOutput: Output = toOutput()
+
+  /** Converts this sparse tensor to a dense tensor.
+    *
+    * The constructed op builds a tensor `dense` with shape `input.denseShape`, such that:
+    * {{{
+    *   // If input.indices is scalar:
+    *   dense(i) ==> (i == input.indices ? input.values : defaultValue)
+    *
+    *   // If input.indices is a vector, then for each i:
+    *   dense(input.indices(i)) ==> input.values(i)
+    *
+    *   // If input.indices is an n by d matrix, then for each i in [0, n):
+    *   dense(input.indices(i)(0), ..., input.indices(i)(d-1)) ==> input.values(i)
+    * }}}
+    *
+    * All other values in `dense` are set to `defaultValue`. If `input.values` is a scalar, then all sparse indices
+    * are set to that single value.
+    *
+    * `input.indices` should be sorted in lexicographic order and they must not contain any repeats. If
+    * `validateIndices` is `true`, then these properties are checked during execution.
+    *
+    * @param  defaultValue    Scalar tensor with the same data type as `input.values`, containing the value set for
+    *                         indices that are not specified in `input.indices`.
+    * @param  validateIndices If `true`, the indices in `input.indices` are checked to make sure that they are sorted in
+    *                         lexicographic order and that there are no repeats.
+    * @param  name            Name for the created op.
+    * @return Created op output, with the same data type as `input.values` and shape `input.denseShape`.
+    */
+  def toOutput(defaultValue: Output = 0, validateIndices: Boolean = true, name: String = "SparseToDense"): Output = {
+    Op.Builder(opType = "SparseToDense", name = name)
+        .addInput(indices)
+        .addInput(denseShape)
+        .addInput(values)
+        .addInput(defaultValue)
+        .setAttribute("validate_indices", validateIndices)
+        .build().outputs(0)
+  }
 
   /** Returns an [[OutputIndexedSlices]] that has the same value as this [[OutputLike]].
     *
@@ -642,6 +679,7 @@ final case class SparseOutput(indices: Output, values: Output, denseShape: Outpu
     *                  shape of this tensor at graph creation time (instead of execution time), if known.
     * @return [[OutputIndexedSlices]] that has the same value as this [[OutputLike]].
     */
+  @throws[UnsupportedOperationException]
   override def toOutputIndexedSlices(optimize: Boolean = true): OutputIndexedSlices = {
     throw new UnsupportedOperationException(s"Cannot convert sparse output '$this' to output indexed slices.")
   }

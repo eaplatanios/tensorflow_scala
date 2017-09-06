@@ -52,7 +52,6 @@ package object ops {
           with Math
           with NN
           with Random
-          with Sparse
           with Statistics
           with Text
           with Gradients.API

@@ -1037,12 +1037,12 @@ private[api] object NN extends NN {
 
     // Substitute gradient to appropriate locations and fill the rest with zeros, finally reshaping it to the original
     // input shape.
-    Seq(Basic.reshape(Sparse.sparseToDense(
+    Seq(Basic.reshape(
       SparseOutput(
         indices = flattenedIndices,
         values = Basic.reshape(outputGradient, -1),
-        denseShape = Basic.reshape(Math.prod(inputShape), 1)),
-      validateIndices = false), inputShape), Basic.zeros(INT32, Shape.scalar()))
+        denseShape = Basic.reshape(Math.prod(inputShape), 1)).toOutput(validateIndices = false),
+      inputShape), Basic.zeros(INT32, Shape.scalar()))
   }
 
   private[this] def batchNormalizationWithGlobalNormalizationGradient(
