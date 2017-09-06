@@ -67,8 +67,7 @@ object TensorFlow {
       val tempDirectory = Files.createTempDirectory("tensorflow_scala_native_libraries")
       Runtime.getRuntime.addShutdownHook(new Thread() {
         override def run(): Unit = {
-          Files.walk(tempDirectory).iterator().asScala.foreach(Files.deleteIfExists)
-          Files.deleteIfExists(tempDirectory)
+          Files.walk(tempDirectory).iterator().asScala.toSeq.reverse.foreach(Files.deleteIfExists)
         }
       })
       val classLoader = Thread.currentThread.getContextClassLoader
