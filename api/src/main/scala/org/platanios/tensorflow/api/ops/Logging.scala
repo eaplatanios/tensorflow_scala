@@ -48,11 +48,9 @@ private[api] trait Logging {
   //        .setAttribute("summarize", summarize)
   //        .build().outputs(0)
 
-  /** Creates an op that prints a list of tensors.
+  /** $OpDocLoggingPrint
     *
-    * The created op returns `input` as its output (i.e., it is effectively an identity op) and prints all the op output
-    * values in `data` while evaluating.
-    *
+    * @group LoggingOps
     * @param  input     Input op output to pass through this op and return as its output.
     * @param  data      List of tensors whose values to print when the op is evaluated.
     * @param  message   Prefix of the printed values.
@@ -83,4 +81,12 @@ private[api] object Logging extends Logging {
       outputGradients ++ Seq.fill(op.inputs.length - 1)(null)
     }
   }
+
+  /** @define OpDocLoggingPrint
+    *   The `print` op prints a list of tensors.
+    *
+    *   The created op returns `input` as its output (i.e., it is effectively an identity op) and prints all the op
+    *   output values in `data` while evaluating.
+    */
+  private[ops] trait Documentation
 }

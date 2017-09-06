@@ -23,16 +23,14 @@ import org.platanios.tensorflow.api.types.{FLOAT16, FLOAT32}
   * @author Emmanouil Antonios Platanios, Sören Brunk
   */
 private[api] trait Statistics {
-  /** Creates an op that calculates the sufficient statistics for the mean and variance of `input`.
+  /** $OpDocStatisticsSufficientStatistics
     *
-    * These sufficient statistics are computed using a one pass algorithm on an input that's optionally shifted.
-    * Source: [https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Computing_shifted_data](https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Computing_shifted_data)
-    *
+    * @group StatisticsOps
     * @param  input    Input tensor.
-    * @param  axes     Axes along which to compute the mean and variance.
-    * @param  shift    Optional tensor containing the value by which to shift the data for numerical stability. Defaults
-    *                  to `null`, meaning that no shift needs to be performed. A shift close to the true mean provides
-    *                  the most numerically stable results.
+    * @param  axes     Tensor containing the axes along which to compute the mean and variance.
+    * @param  shift    Optional tensor containing the value by which to shift the data for numerical stability.
+    *                  Defaults to `null`, meaning that no shift needs to be performed. A shift close to the true mean
+    *                  provides the most numerically stable results.
     * @param  keepDims If `true`, retain the reduced axes.
     * @param  name     Name for the created op.
     * @return Tuple containing the following created op outputs:
@@ -42,17 +40,11 @@ private[api] trait Statistics {
     *         - Shift: The shift by which the mean must be corrected, or `null` if no shift was used.
     */
   def sufficientStatistics(
-      input: Output, axes: Array[Int], shift: Output = null, keepDims: Boolean = false,
+      input: Output, axes: Output, shift: Output = null, keepDims: Boolean = false,
       name: String = "SufficientStatistics"): (Output, Output, Output, Output) = {
     Op.createWithNameScope(name, Set(input.op)) {
       val dynamicAxes: Output = axes
-      val inputShape = input.shape
-      val counts = {
-        if (axes.map(inputShape(_)).forall(_ > -1))
-          Basic.constant(axes.map(inputShape(_)).product, input.dataType)
-        else
-          Math.prod(Basic.gather(Math.cast(Basic.shape(input), input.dataType), dynamicAxes))
-      }
+      val counts = Math.prod(Basic.gather(Math.cast(Basic.shape(input), input.dataType), dynamicAxes))
       val mSS = if (shift == null) input else input - shift
       val vSS = if (shift == null) Math.square(input) else Math.squaredDifference(input, shift)
       val meanSS = Math.sum(mSS, axes = dynamicAxes, keepDims = keepDims, name = "MeanSS")
@@ -61,10 +53,9 @@ private[api] trait Statistics {
     }
   }
 
-  /** Creates an op that calculates mean and variance based on some sufficient statistics.
+  /** $OpDocStatisticsMomentsFromSufficientStatistics
     *
-    * This function can be directly applied to the values that the [[sufficientStatistics]] function returns.
-    *
+    * @group StatisticsOps
     * @param  counts Total number of elements over which the provided sufficient statistics were computed.
     * @param  meanSS Mean sufficient statistics: the (possibly shifted) sum of the elements.
     * @param  varSS  Variance sufficient statistics: the (possibly shifted) sum of squares of the elements.
@@ -92,16 +83,9 @@ private[api] trait Statistics {
     }
   }
 
-  /** Creates an op that calculates the mean and variance of `input`, across the `axes` dimensions.
+  /** $OpDocStatisticsMoments
     *
-    * The mean and variance are calculated by aggregating the contents of `input` across `axes`. If `input` is 1-D and
-    * `axes = [0]` this is just the mean and variance of a vector.
-    *
-    * When using these moments for batch normalization:
-    *   - for so-called "global normalization", used with convolutional filters with shape
-    *     `[batch, height, width, depth]`, pass `axes = [0, 1, 2]`.
-    *   - for simple batch normalization pass `axes = [0]` (batch only).
-    *
+    * @group StatisticsOps
     * @param  input    Input tensor.
     * @param  axes     Axes along which to compute the mean and variance.
     * @param  weights  Optional tensor of positive weights that can be broadcast with `input`, to weigh the samples.
@@ -112,7 +96,7 @@ private[api] trait Statistics {
     * @return Tuple containing the created op outputs: (i) the mean tensor, and (ii) the variance tensor.
     */
   def moments(
-      input: Output, axes: Array[Int], weights: Output = null, keepDims: Boolean = false,
+      input: Output, axes: Seq[Int], weights: Output = null, keepDims: Boolean = false,
       name: String = "Moments"): (Output, Output) = {
     if (weights == null) {
       Op.createWithNameScope(name, Set(input.op)) {
@@ -175,4 +159,70 @@ private[api] trait Statistics {
   }
 }
 
-private[api] object Statistics extends Statistics
+private[api] object Statistics extends Statistics {
+  private[ops] trait Implicits {
+    implicit def outputToStatisticsOps(value: Output): StatisticsOps = StatisticsOps(value)
+    implicit def outputConvertibleToStatisticsOps[T](value: T)(implicit f: (T) => Output): StatisticsOps = {
+      StatisticsOps(f(value))
+    }
+  }
+
+  case class StatisticsOps private[ops](output: Output) {
+    /** $OpDocStatisticsSufficientStatistics
+      *
+      * @group StatisticsOps
+      * @param  axes     Tensor containing the axes along which to compute the mean and variance.
+      * @param  shift    Optional tensor containing the value by which to shift the data for numerical stability.
+      *                  Defaults to `null`, meaning that no shift needs to be performed. A shift close to the true mean
+      *                  provides the most numerically stable results.
+      * @param  keepDims If `true`, retain the reduced axes.
+      * @return Tuple containing the following created op outputs:
+      *         - Count: The number of elements to average over.
+      *         - Mean Sufficient Statistic: The (possibly shifted) sum of the elements in the tensor.
+      *         - Variance Sufficient Statistic: The (possibly shifted) sum of squares of the elements in the tensor.
+      *         - Shift: The shift by which the mean must be corrected, or `null` if no shift was used.
+      */
+    def sufficientStatistics(
+        axes: Output, shift: Output = null, keepDims: Boolean = false): (Output, Output, Output, Output) = {
+      Statistics.sufficientStatistics(output, axes, shift, keepDims)
+    }
+
+    /** $OpDocStatisticsMoments
+      *
+      * @group StatisticsOps
+      * @param  axes     Axes along which to compute the mean and variance.
+      * @param  weights  Optional tensor of positive weights that can be broadcast with `input`, to weigh the samples.
+      *                  Defaults to `null`, meaning that equal weighting is used (i.e., all samples have weight equal to
+      *                  `1`).
+      * @param  keepDims If `true`, retain the reduced axes.
+      * @return Tuple containing the created op outputs: (i) the mean tensor, and (ii) the variance tensor.
+      */
+    def moments(axes: Seq[Int], weights: Output = null, keepDims: Boolean = false): (Output, Output) = {
+      Statistics.moments(output, axes, weights, keepDims)
+    }
+  }
+
+  /** @define OpDocStatisticsSufficientStatistics
+    *   The `sufficientStatistics` op calculates the sufficient statistics for the mean and variance of `input`.
+    *
+    *   These sufficient statistics are computed using a one pass algorithm on an input that's optionally shifted.
+    *   Source: https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Computing_shifted_data](https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Computing_shifted_data)
+    *
+    * @define OpDocStatisticsMomentsFromSufficientStatistics
+    *   The `momentsFromSufficientStatistics` op calculates mean and variance based on some sufficient statistics.
+    *
+    *   This function can be directly applied to the values that the [[sufficientStatistics]] function returns.
+    *
+    * @define OpDocStatisticsMoments
+    *   The `moments` op calculates the mean and variance of `input`, across the `axes` dimensions.
+    *
+    *   The mean and variance are calculated by aggregating the contents of `input` across `axes`. If `input` is 1-D and
+    *   `axes = [0]` this is just the mean and variance of a vector.
+    *
+    *   When using these moments for batch normalization:
+    *     - for so-called "global normalization", used with convolutional filters with shape
+    *       `[batch, height, width, depth]`, pass `axes = [0, 1, 2]`.
+    *     - for simple batch normalization pass `axes = [0]` (batch only).
+    */
+  private[ops] trait Documentation
+}

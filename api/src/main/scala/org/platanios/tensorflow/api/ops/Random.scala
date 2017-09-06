@@ -25,17 +25,11 @@ import org.platanios.tensorflow.api.types._
   * @author Emmanouil Antonios Platanios, Sören Brunk
   */
 private[api] trait Random {
-  /** Creates an op that outputs random values from a uniform distribution.
+  /** $OpDocRandomRandomUniform
     *
-    * The generated values follow a uniform distribution in the range `[minValue, maxValue)`. The lower bound
-    * `minValue` is included in the range, while the upper bound `maxValue` is not.
-    *
-    * In the integer case, the random integers are slightly biased unless `maxValue - minValue` is an exact power of
-    * two. The bias is small for values of `maxValue - minValue` significantly smaller than the range of the output
-    * (either `2^32` or `2^64`, depending on the data type).
-    *
-    * @param  dataType Data type for the output tensor. Must be one of: `FLOAT16`, `FLOAT32`, `FLOAT64`, `INT32`, or
-    *                  `INT64`.
+    * @group RandomOps
+    * @param  dataType Data type for the output tensor. Must be one of: [[FLOAT16]], [[FLOAT32]], [[FLOAT64]],
+    *                  [[INT32]], or [[INT64]].
     * @param  shape    Rank-1 tensor containing the shape of the output tensor. Defaults to a scalar tensor.
     * @param  minValue Scalar tensor containing the inclusive lower bound on the random of random values to generate.
     *                  Defaults to `0`.
@@ -78,11 +72,11 @@ private[api] trait Random {
     }
   }
 
-  /** Creates an op that outputs random values from a Normal distribution.
+  /** $OpDocRandomRandomNormal
     *
-    * The generated values follow a Normal distribution with mean `mean` and standard deviation `standardDeviation`.
-    *
-    * @param  dataType          Data type for the output tensor. Must be one of: `FLOAT16`, `FLOAT32`, or `FLOAT64`.
+    * @group RandomOps
+    * @param  dataType          Data type for the output tensor. Must be one of: [[FLOAT16]], [[FLOAT32]], or
+    *                           [[FLOAT64]].
     * @param  shape             Rank-1 tensor containing the shape of the output tensor. Defaults to a scalar tensor.
     * @param  mean              Scalar tensor containing the mean of the Normal distribution. Defaults to `0`.
     * @param  standardDeviation Scalar tensor containing the standard deviation of the Normal distribution. Defaults to
@@ -120,4 +114,21 @@ private[api] object Random extends Random {
     GradientsRegistry.registerNonDifferentiable("RandomUniformInt")
     GradientsRegistry.registerNonDifferentiable("RandomStandardNormal")
   }
+
+  /** @define OpDocRandomRandomUniform
+    *   The `randomUniform` op outputs random values drawn from a uniform distribution.
+    *
+    *   The generated values follow a uniform distribution in the range `[minValue, maxValue)`. The lower bound
+    *   `minValue` is included in the range, while the upper bound `maxValue` is not.
+    *
+    *   In the integer case, the random integers are slightly biased unless `maxValue - minValue` is an exact power of
+    *   two. The bias is small for values of `maxValue - minValue` significantly smaller than the range of the output
+    *   (either `2^32` or `2^64`, depending on the data type).
+    *
+    * @define OpDocRandomRandomNormal
+    *   The `randomUniform` op outputs random values drawn from a Normal distribution.
+    *
+    *   The generated values follow a Normal distribution with mean `mean` and standard deviation `standardDeviation`.
+    */
+  private[ops] trait Documentation
 }

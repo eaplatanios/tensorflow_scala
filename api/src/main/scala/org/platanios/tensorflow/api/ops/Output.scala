@@ -633,10 +633,15 @@ final case class SparseOutput(indices: Output, values: Output, denseShape: Outpu
     effectiveSession.run(feeds, this)
   }
 
-  override def toOutput: Output = {
-    throw new UnsupportedOperationException(s"Cannot convert sparse output '$this' to a dense output.")
-  }
+  /** Returns the [[Output]] that this [[OutputLike]] object represents. */
+  override def toOutput: Output = Sparse.sparseToDense(this)
 
+  /** Returns an [[OutputIndexedSlices]] that has the same value as this [[OutputLike]].
+    *
+    * @param  optimize Boolean flag indicating whether to optimize this conversion by using a constant op with the
+    *                  shape of this tensor at graph creation time (instead of execution time), if known.
+    * @return [[OutputIndexedSlices]] that has the same value as this [[OutputLike]].
+    */
   override def toOutputIndexedSlices(optimize: Boolean = true): OutputIndexedSlices = {
     throw new UnsupportedOperationException(s"Cannot convert sparse output '$this' to output indexed slices.")
   }

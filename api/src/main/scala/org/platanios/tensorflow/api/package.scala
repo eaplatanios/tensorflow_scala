@@ -83,14 +83,24 @@ package object api extends Implicits with Documentation {
 
   type ProtoSerializable = utilities.Proto.Serializable
 
-  /** @groupname BasicOps Ops / Basic
-    * @groupprio BasicOps 100
-    *
-    * @groupname MathOps  Ops / Math
-    * @groupprio MathOps  200
-    *
-    * @groupname NNOps    Ops / NN
-    * @groupprio NNOps    300
+  /** @groupname BasicOps      Ops / Basic
+    * @groupprio BasicOps      100
+    * @groupname MathOps       Ops / Math
+    * @groupprio MathOps       200
+    * @groupname NNOps         Ops / NN
+    * @groupprio NNOps         300
+    * @groupname StatisticsOps Ops / Statistics
+    * @groupprio StatisticsOps 400
+    * @groupname RandomOps     Ops / Random
+    * @groupprio RandomOps     500
+    * @groupname SparseOps     Ops / Sparse
+    * @groupprio SparseOps     600
+    * @groupname TextOps       Ops / Text
+    * @groupprio TextOps       700
+    * @groupname ImageOps      Ops / Image
+    * @groupprio ImageOps      800
+    * @groupname LoggingOps    Ops / Logging
+    * @groupprio LoggingOps    900
     */
   object tf
       extends core.API
@@ -99,14 +109,24 @@ package object api extends Implicits with Documentation {
     object learn extends api.learn.API
   }
 
-  /** @groupname BasicOps Ops / Basic
-    * @groupprio BasicOps 100
-    *
-    * @groupname MathOps  Ops / Math
-    * @groupprio MathOps  200
-    *
-    * @groupname NNOps    Ops / NN
-    * @groupprio NNOps    300
+  /** @groupname BasicOps      Ops / Basic
+    * @groupprio BasicOps      100
+    * @groupname MathOps       Ops / Math
+    * @groupprio MathOps       200
+    * @groupname NNOps         Ops / NN
+    * @groupprio NNOps         300
+    * @groupname StatisticsOps Ops / Statistics
+    * @groupprio StatisticsOps 400
+    * @groupname RandomOps     Ops / Random
+    * @groupprio RandomOps     500
+    * @groupname SparseOps     Ops / Sparse
+    * @groupprio SparseOps     600
+    * @groupname TextOps       Ops / Text
+    * @groupprio TextOps       700
+    * @groupname ImageOps      Ops / Image
+    * @groupprio ImageOps      800
+    * @groupname LoggingOps    Ops / Logging
+    * @groupprio LoggingOps    900
     */
   object tfi
       extends core.API

@@ -22,26 +22,9 @@ import org.platanios.tensorflow.api.Implicits._
   * @author Emmanouil Antonios Platanios
   */
 private[api] trait Sparse {
-  /** Creates an op that converts a sparse tensor to a dense tensor.
+  /** $OpDocSparseSparseToDense
     *
-    * The op builds a tensor `dense` with shape `input.denseShape`, such that:
-    * {{{
-    *   // If input.indices is scalar:
-    *   dense(i) ==> (i == input.indices ? input.values : defaultValue)
-    *
-    *   // If input.indices is a vector, then for each i:
-    *   dense(input.indices(i)) ==> input.values(i)
-    *
-    *   // If input.indices is an n by d matrix, then for each i in [0, n):
-    *   dense(input.indices(i)(0), ..., input.indices(i)(d-1)) ==> input.values(i)
-    * }}}
-    *
-    * All other values in `dense` are set to `defaultValue`. If `input.values` is a scalar, then all sparse indices are
-    * set to that single value.
-    *
-    * `input.indices` should be sorted in lexicographic order and they must not contain any repeats. If
-    * `validateIndices` is `true`, then these properties are checked during execution.
-    *
+    * @group SparseOps
     * @param  input           Sparse tensor to convert.
     * @param  defaultValue    Scalar tensor with the same data type as `input.values`, containing the value set for
     *                         indices that are not specified in `input.indices`.
@@ -50,7 +33,7 @@ private[api] trait Sparse {
     * @param  name            Name for the created op.
     * @return Created op output, with the same data type as `input.values` and shape `input.denseShape`.
     */
-  def sparseToDense(
+  private[ops] def sparseToDense(
       input: SparseOutput, defaultValue: Output = 0, validateIndices: Boolean = true,
       name: String = "SparseToDense"): Output = {
     Op.Builder(opType = "SparseToDense", name = name)
@@ -63,4 +46,27 @@ private[api] trait Sparse {
   }
 }
 
-private[api] object Sparse extends Sparse
+private[api] object Sparse extends Sparse {
+  /** @define OpDocSparseSparseToDense
+    *   The `sparseToDense` op converts a sparse tensor to a dense tensor.
+    *
+    *   The op builds a tensor `dense` with shape `input.denseShape`, such that:
+    *   {{{
+    *     // If input.indices is scalar:
+    *     dense(i) ==> (i == input.indices ? input.values : defaultValue)
+    *
+    *     // If input.indices is a vector, then for each i:
+    *     dense(input.indices(i)) ==> input.values(i)
+    *
+    *     // If input.indices is an n by d matrix, then for each i in [0, n):
+    *     dense(input.indices(i)(0), ..., input.indices(i)(d-1)) ==> input.values(i)
+    *   }}}
+    *
+    *   All other values in `dense` are set to `defaultValue`. If `input.values` is a scalar, then all sparse indices
+    *   are set to that single value.
+    *
+    *   `input.indices` should be sorted in lexicographic order and they must not contain any repeats. If
+    *   `validateIndices` is `true`, then these properties are checked during execution.
+    */
+  private[ops] trait Documentation
+}

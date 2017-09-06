@@ -19,8 +19,9 @@ package org.platanios.tensorflow.api.ops
   * @author Emmanouil Antonios Platanios
   */
 private[api] trait Text {
-  /** Creates an op that joins the strings in the given list of string tensors into one tensor, using the provided
-    * separator (which defaults to an empty string).
+  /** $OpDocTextStringJoin
+    *
+    * @group TextOps
     *
     * @param  inputs    Sequence of string tensors that will be joined. The tensors must all have the same shape, or be
     *                   scalars. Scalars may be mixed in; these will be broadcast to the shape of the non-scalar inputs.
@@ -34,4 +35,10 @@ private[api] trait Text {
   }
 }
 
-private[api] object Text extends Text
+private[api] object Text extends Text {
+  /** @define OpDocTextStringJoin
+    *   The `stringJoin` op joins the strings in the given list of string tensors into one tensor, using the provided
+    *   separator (which defaults to an empty string).
+    */
+  private[ops] trait Documentation
+}

@@ -25,7 +25,8 @@ private[api] trait Implicits
     extends Output.Implicits
         with Basic.Implicits
         with Math.Implicits
-        with NN.Implicits {
+        with NN.Implicits
+        with Statistics.Implicits {
   implicit def dynamicVariableToOpCreationContext(context: DynamicVariable[OpCreationContext]): OpCreationContext = {
     context.value
   }
