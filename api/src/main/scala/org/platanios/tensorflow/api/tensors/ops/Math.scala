@@ -1766,7 +1766,8 @@ private[api] trait Math {
 
 private[api] object Math extends Math {
   private[ops] trait Implicits {
-    implicit def tensorToMathOps(tensor: Tensor): MathOps = MathOps(tensor)
+    implicit def tensorToMathOps(value: Tensor): MathOps = MathOps(value)
+    implicit def tensorConvertibleToMathOps[T](value: T)(implicit f: (T) => Tensor): MathOps = MathOps(f(value))
   }
 
   case class MathOps private[ops](tensor: Tensor) {
@@ -1784,49 +1785,56 @@ private[api] object Math extends Math {
       * @group MathOps
       * @return Result as a new tensor.
       */
-    def +[T: TensorConvertible](other: T): Tensor = add(other)
+    def +(other: Tensor): Tensor = add(other)
 
     /** $OpDocMathSubtract
       *
       * @group MathOps
       * @return Result as a new tensor.
       */
-    def -[T: TensorConvertible](other: T): Tensor = subtract(other)
+    def -(other: Tensor): Tensor = subtract(other)
 
     /** $OpDocMathMultiply
       *
       * @group MathOps
       * @return Result as a new tensor.
       */
-    def *[T: TensorConvertible](other: T): Tensor = multiply(other)
+    def *(other: Tensor): Tensor = multiply(other)
+
+    private[this] def divHelper(x: Tensor, y: Tensor): Tensor = {
+      if (x.dataType.isFloatingPoint || x.dataType.isComplex)
+        Math.divide(x, y)
+      else
+        Math.truncateDivide(x, y)
+    }
 
     /** $OpDocMathDivide
       *
       * @group MathOps
       * @return Result as a new tensor.
       */
-    def /[T: TensorConvertible](other: T): Tensor = divide(other)
+    def /(other: Tensor): Tensor = divHelper(tensor, other)
 
     /** $OpDocMathMod
       *
       * @group MathOps
       * @return Result as a new tensor.
       */
-    def %[T: TensorConvertible](other: T): Tensor = mod(other)
+    def %(other: Tensor): Tensor = mod(other)
 
     /** $OpDocMathPow
       *
       * @group MathOps
       * @return Result as a new tensor.
       */
-    def **[T: TensorConvertible](other: T): Tensor = pow(other)
+    def **(other: Tensor): Tensor = pow(other)
 
     /** $OpDocMathPow
       *
       * @group MathOps
       * @return Result as a new tensor.
       */
-    def ^[T: TensorConvertible](other: T): Tensor = pow(other)
+    def ^(other: Tensor): Tensor = pow(other)
 
     /** $OpDocMathLogicalNot
       *
@@ -1840,56 +1848,56 @@ private[api] object Math extends Math {
       * @group MathOps
       * @return Result as a new tensor.
       */
-    def &&[T: TensorConvertible](other: T): Tensor = logicalAnd(other)
+    def &&(other: Tensor): Tensor = logicalAnd(other)
 
     /** $OpDocMathLogicalOr
       *
       * @group MathOps
       * @return Result as a new tensor.
       */
-    def ||[T: TensorConvertible](other: T): Tensor = logicalOr(other)
+    def ||(other: Tensor): Tensor = logicalOr(other)
 
     /** $OpDocMathEqual
       *
       * @group MathOps
       * @return Result as a new tensor.
       */
-    def ==[T: TensorConvertible](other: T): Tensor = equal(other)
+    def ==(other: Tensor): Tensor = equal(other)
 
     /** $OpDocMathNotEqual
       *
       * @group MathOps
       * @return Result as a new tensor.
       */
-    def !=[T: TensorConvertible](other: T): Tensor = notEqual(other)
+    def !=(other: Tensor): Tensor = notEqual(other)
 
     /** $OpDocMathLess
       *
       * @group MathOps
       * @return Result as a new tensor.
       */
-    def <[T: TensorConvertible](other: T): Tensor = less(other)
+    def <(other: Tensor): Tensor = less(other)
 
     /** $OpDocMathLessEqual
       *
       * @group MathOps
       * @return Result as a new tensor.
       */
-    def <=[T: TensorConvertible](other: T): Tensor = lessEqual(other)
+    def <=(other: Tensor): Tensor = lessEqual(other)
 
     /** $OpDocMathGreater
       *
       * @group MathOps
       * @return Result as a new tensor.
       */
-    def >[T: TensorConvertible](other: T): Tensor = greater(other)
+    def >(other: Tensor): Tensor = greater(other)
 
     /** $OpDocMathGreaterEqual
       *
       * @group MathOps
       * @return Result as a new tensor.
       */
-    def >=[T: TensorConvertible](other: T): Tensor = greaterEqual(other)
+    def >=(other: Tensor): Tensor = greaterEqual(other)
 
     //endregion Math Operators
 
@@ -2165,133 +2173,133 @@ private[api] object Math extends Math {
       * @group MathOps
       * @return Result as a new tensor.
       */
-    def add[T: TensorConvertible](other: T): Tensor = Math.add(tensor, other)
+    def add(other: Tensor): Tensor = Math.add(tensor, other)
 
     /** $OpDocMathSubtract
       *
       * @group MathOps
       * @return Result as a new tensor.
       */
-    def subtract[T: TensorConvertible](other: T): Tensor = Math.subtract(tensor, other)
+    def subtract(other: Tensor): Tensor = Math.subtract(tensor, other)
 
     /** $OpDocMathMultiply
       *
       * @group MathOps
       * @return Result as a new tensor.
       */
-    def multiply[T: TensorConvertible](other: T): Tensor = Math.multiply(tensor, other)
+    def multiply(other: Tensor): Tensor = Math.multiply(tensor, other)
 
     /** $OpDocMathDivide
       *
       * @group MathOps
       * @return Result as a new tensor.
       */
-    def divide[T: TensorConvertible](other: T): Tensor = Math.divide(tensor, other)
+    def divide(other: Tensor): Tensor = Math.divide(tensor, other)
 
     /** $OpDocMathFloorDivide
       *
       * @group MathOps
       * @return Result as a new tensor.
       */
-    def floorDivide[T: TensorConvertible](other: T): Tensor = Math.floorDivide(tensor, other)
+    def floorDivide(other: Tensor): Tensor = Math.floorDivide(tensor, other)
 
     /** $OpDocMathTruncateDivide
       *
       * @group MathOps
       * @return Result as a new tensor.
       */
-    def truncateDivide[T: TensorConvertible](other: T): Tensor = Math.truncateDivide(tensor, other)
+    def truncateDivide(other: Tensor): Tensor = Math.truncateDivide(tensor, other)
 
     /** $OpDocMathRealDivide
       *
       * @group MathOps
       * @return Result as a new tensor.
       */
-    def realDivide[T: TensorConvertible](other: T): Tensor = Math.realDivide(tensor, other)
+    def realDivide(other: Tensor): Tensor = Math.realDivide(tensor, other)
 
     /** $OpDocMathSquaredDifference
       *
       * @group MathOps
       * @return Result as a new tensor.
       */
-    def squaredDifference[T: TensorConvertible](other: T): Tensor = Math.squaredDifference(tensor, other)
+    def squaredDifference(other: Tensor): Tensor = Math.squaredDifference(tensor, other)
 
     /** $OpDocMathMod
       *
       * @group MathOps
       * @return Result as a new tensor.
       */
-    def mod[T: TensorConvertible](other: T): Tensor = Math.mod(tensor, other)
+    def mod(other: Tensor): Tensor = Math.mod(tensor, other)
 
     /** $OpDocMathFloorMod
       *
       * @group MathOps
       * @return Result as a new tensor.
       */
-    def floorMod[T: TensorConvertible](other: T): Tensor = Math.floorMod(tensor, other)
+    def floorMod(other: Tensor): Tensor = Math.floorMod(tensor, other)
 
     /** $OpDocMathTruncateMod
       *
       * @group MathOps
       * @return Result as a new tensor.
       */
-    def truncateMod[T: TensorConvertible](other: T): Tensor = Math.truncateMod(tensor, other)
+    def truncateMod(other: Tensor): Tensor = Math.truncateMod(tensor, other)
 
     /** $OpDocMathPow
       *
       * @group MathOps
       * @return Result as a new tensor.
       */
-    def pow[T: TensorConvertible](other: T): Tensor = Math.pow(tensor, other)
+    def pow(other: Tensor): Tensor = Math.pow(tensor, other)
 
     /** $OpDocMathIgammac
       *
       * @group MathOps
       * @return Result as a new tensor.
       */
-    def igammac[T: TensorConvertible](other: T): Tensor = Math.igammac(tensor, other)
+    def igammac(other: Tensor): Tensor = Math.igammac(tensor, other)
 
     /** $OpDocMathIgamma
       *
       * @group MathOps
       * @return Result as a new tensor.
       */
-    def igamma[T: TensorConvertible](other: T): Tensor = Math.igamma(tensor, other)
+    def igamma(other: Tensor): Tensor = Math.igamma(tensor, other)
 
     /** $OpDocMathZeta
       *
       * @group MathOps
       * @return Result as a new tensor.
       */
-    def zeta[T: TensorConvertible](other: T): Tensor = Math.zeta(tensor, other)
+    def zeta(other: Tensor): Tensor = Math.zeta(tensor, other)
 
     /** $OpDocMathPolygamma
       *
       * @group MathOps
       * @return Result as a new tensor.
       */
-    def polygamma[T: TensorConvertible](other: T): Tensor = Math.polygamma(tensor, other)
+    def polygamma(other: Tensor): Tensor = Math.polygamma(tensor, other)
 
     /** $OpDocMathAtan2
       *
       * @group MathOps
       * @return Result as a new tensor.
       */
-    def atan2[T: TensorConvertible](other: T): Tensor = Math.atan2(tensor, other)
+    def atan2(other: Tensor): Tensor = Math.atan2(tensor, other)
 
     /** $OpDocMathMaximum
       *
       * @group MathOps
       * @return Result as a new tensor.
       */
-    def maximum[T: TensorConvertible](other: T): Tensor = Math.maximum(tensor, other)
+    def maximum(other: Tensor): Tensor = Math.maximum(tensor, other)
 
     /** $OpDocMathMinimum
       *
       * @group MathOps
       * @return Result as a new tensor.
       */
-    def minimum[T: TensorConvertible](other: T): Tensor = Math.minimum(tensor, other)
+    def minimum(other: Tensor): Tensor = Math.minimum(tensor, other)
 
     //endregion Math Binary Ops
 
@@ -2309,21 +2317,21 @@ private[api] object Math extends Math {
       * @group MathOps
       * @return Result as a new tensor.
       */
-    def logicalAnd[T: TensorConvertible](other: T): Tensor = Math.logicalAnd(tensor, other)
+    def logicalAnd(other: Tensor): Tensor = Math.logicalAnd(tensor, other)
 
     /** $OpDocMathLogicalOr
       *
       * @group MathOps
       * @return Result as a new tensor.
       */
-    def logicalOr[T: TensorConvertible](other: T): Tensor = Math.logicalOr(tensor, other)
+    def logicalOr(other: Tensor): Tensor = Math.logicalOr(tensor, other)
 
     /** $OpDocMathLogicalXOr
       *
       * @group MathOps
       * @return Result as a new tensor.
       */
-    def logicalXOr[T: TensorConvertible](other: T): Tensor = Math.logicalXOr(tensor, other)
+    def logicalXOr(other: Tensor): Tensor = Math.logicalXOr(tensor, other)
 
     //endregion Math Logical Ops
 
@@ -2334,49 +2342,49 @@ private[api] object Math extends Math {
       * @group MathOps
       * @return Result as a new tensor.
       */
-    def equal[T: TensorConvertible](other: T): Tensor = Math.equal(tensor, other)
+    def equal(other: Tensor): Tensor = Math.equal(tensor, other)
 
     /** $OpDocMathNotEqual
       *
       * @group MathOps
       * @return Result as a new tensor.
       */
-    def notEqual[T: TensorConvertible](other: T): Tensor = Math.notEqual(tensor, other)
+    def notEqual(other: Tensor): Tensor = Math.notEqual(tensor, other)
 
     /** $OpDocMathApproximatelyEqual
       *
       * @group MathOps
       * @return Result as a new tensor.
       */
-    def approximatelyEqual[T: TensorConvertible](other: T): Tensor = Math.approximatelyEqual(tensor, other)
+    def approximatelyEqual(other: Tensor): Tensor = Math.approximatelyEqual(tensor, other)
 
     /** $OpDocMathLess
       *
       * @group MathOps
       * @return Result as a new tensor.
       */
-    def less[T: TensorConvertible](other: T): Tensor = Math.less(tensor, other)
+    def less(other: Tensor): Tensor = Math.less(tensor, other)
 
     /** $OpDocMathLessEqual
       *
       * @group MathOps
       * @return Result as a new tensor.
       */
-    def lessEqual[T: TensorConvertible](other: T): Tensor = Math.lessEqual(tensor, other)
+    def lessEqual(other: Tensor): Tensor = Math.lessEqual(tensor, other)
 
     /** $OpDocMathGreater
       *
       * @group MathOps
       * @return Result as a new tensor.
       */
-    def greater[T: TensorConvertible](other: T): Tensor = Math.greater(tensor, other)
+    def greater(other: Tensor): Tensor = Math.greater(tensor, other)
 
     /** $OpDocMathGreaterEqual
       *
       * @group MathOps
       * @return Result as a new tensor.
       */
-    def greaterEqual[T: TensorConvertible](other: T): Tensor = Math.greaterEqual(tensor, other)
+    def greaterEqual(other: Tensor): Tensor = Math.greaterEqual(tensor, other)
 
     //endregion Math Comparison Ops
 

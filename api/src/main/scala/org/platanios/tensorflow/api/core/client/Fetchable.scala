@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.core.client
 
 import org.platanios.tensorflow.api.ops.{Output, OutputIndexedSlices, SparseOutput}
-import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.api.tensors.{SparseTensor, Tensor, TensorIndexedSlices}
 import org.platanios.tensorflow.api.utilities.Collections
 
 import shapeless._
@@ -89,10 +89,9 @@ object Fetchable {
     override def segment(fetchable: Output, values: Seq[Tensor]): (Tensor, Seq[Tensor]) = (values.head, values.tail)
   }
 
-  // TODO: [TENSORS] Switch to something like "TensorIndexedSlices".
-  implicit val outputIndexedSlicesFetchable: Aux[OutputIndexedSlices, (Tensor, Tensor, Tensor)] = {
+  implicit val outputIndexedSlicesFetchable: Aux[OutputIndexedSlices, TensorIndexedSlices] = {
     new Fetchable[OutputIndexedSlices] {
-      override type ResultType = (Tensor, Tensor, Tensor)
+      override type ResultType = TensorIndexedSlices
 
       override def numberOfFetches(fetchable: OutputIndexedSlices): Int = 3
 
@@ -101,16 +100,15 @@ object Fetchable {
       }
 
       override def segment(
-          fetchable: OutputIndexedSlices, values: Seq[Tensor]): ((Tensor, Tensor, Tensor), Seq[Tensor]) = {
-        ((values(0), values(1), values(2)), values.drop(3))
+          fetchable: OutputIndexedSlices, values: Seq[Tensor]): (TensorIndexedSlices, Seq[Tensor]) = {
+        (TensorIndexedSlices(values(0), values(1), values(2)), values.drop(3))
       }
     }
   }
 
-  // TODO: [TENSORS] Switch to something like "SparseTensor".
-  implicit val sparseOutputFetchable: Aux[SparseOutput, (Tensor, Tensor, Tensor)] = {
+  implicit val sparseOutputFetchable: Aux[SparseOutput, SparseTensor] = {
     new Fetchable[SparseOutput] {
-      override type ResultType = (Tensor, Tensor, Tensor)
+      override type ResultType = SparseTensor
 
       override def numberOfFetches(fetchable: SparseOutput): Int = 3
 
@@ -119,8 +117,8 @@ object Fetchable {
       }
 
       override def segment(
-          fetchable: SparseOutput, values: Seq[Tensor]): ((Tensor, Tensor, Tensor), Seq[Tensor]) = {
-        ((values(0), values(1), values(2)), values.drop(3))
+          fetchable: SparseOutput, values: Seq[Tensor]): (SparseTensor, Seq[Tensor]) = {
+        (SparseTensor(values(0), values(1), values(2)), values.drop(3))
       }
     }
   }

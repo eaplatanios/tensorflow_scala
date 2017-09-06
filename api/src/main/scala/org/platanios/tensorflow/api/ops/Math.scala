@@ -17,7 +17,6 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.Implicits._
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.core.exception.InvalidDataTypeException
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types._
@@ -139,7 +138,7 @@ private[api] trait Math {
       x
     } else {
       implicitly[OutputOps[T]]
-          .unaryOp(x, o => Op.Builder(opType = "Cast", name = name)
+          .applyUnary(x, o => Op.Builder(opType = "Cast", name = name)
               .addInput(o)
               .setAttribute("DstT", dataType)
               .build().outputs(0))
@@ -197,13 +196,13 @@ private[api] trait Math {
   def abs[T <: OutputLike : OutputOps](x: T, name: String = "Abs"): T = {
     if (x.dataType.isComplex) {
       implicitly[OutputOps[T]]
-          .unaryOp(x, o => Op.Builder(opType = "ComplexAbs", name = name)
+          .applyUnary(x, o => Op.Builder(opType = "ComplexAbs", name = name)
               .addInput(o)
               .setAttribute("Tout", x.dataType.real)
               .build().outputs(0))
     } else {
       implicitly[OutputOps[T]]
-          .unaryOp(x, o =>
+          .applyUnary(x, o =>
             Op.Builder(opType = "Abs", name = name)
                 .addInput(o)
                 .build().outputs(0))
@@ -220,7 +219,7 @@ private[api] trait Math {
     */
   def negate[T: OutputOps](x: T, name: String = "Negate"): T = {
     implicitly[OutputOps[T]]
-        .unaryOp(x, o => Op.Builder(opType = "Neg", name = name)
+        .applyUnary(x, o => Op.Builder(opType = "Neg", name = name)
             .addInput(o)
             .build().outputs(0))
   }
@@ -235,7 +234,7 @@ private[api] trait Math {
     */
   def reciprocal[T: OutputOps](x: T, name: String = "Reciprocal"): T = {
     implicitly[OutputOps[T]]
-        .unaryOp(x, o => Op.Builder(opType = "Reciprocal", name = name)
+        .applyUnary(x, o => Op.Builder(opType = "Reciprocal", name = name)
             .addInput(o)
             .build().outputs(0))
   }
@@ -250,7 +249,7 @@ private[api] trait Math {
     */
   def square[T: OutputOps](x: T, name: String = "Square"): T = {
     implicitly[OutputOps[T]]
-        .unaryOp(x, o => Op.Builder(opType = "Square", name = name)
+        .applyUnary(x, o => Op.Builder(opType = "Square", name = name)
             .addInput(o)
             .build().outputs(0))
   }
@@ -265,7 +264,7 @@ private[api] trait Math {
     */
   def sqrt[T: OutputOps](x: T, name: String = "Sqrt"): T = {
     implicitly[OutputOps[T]]
-        .unaryOp(x, o => Op.Builder(opType = "Sqrt", name = name)
+        .applyUnary(x, o => Op.Builder(opType = "Sqrt", name = name)
             .addInput(o)
             .build().outputs(0))
   }
@@ -280,7 +279,7 @@ private[api] trait Math {
     */
   def rsqrt[T: OutputOps](x: T, name: String = "Rsqrt"): T = {
     implicitly[OutputOps[T]]
-        .unaryOp(x, o => Op.Builder(opType = "Rsqrt", name = name)
+        .applyUnary(x, o => Op.Builder(opType = "Rsqrt", name = name)
             .addInput(o)
             .build().outputs(0))
   }
@@ -295,7 +294,7 @@ private[api] trait Math {
     */
   def exp[T: OutputOps](x: T, name: String = "Exp"): T = {
     implicitly[OutputOps[T]]
-        .unaryOp(x, o => Op.Builder(opType = "Exp", name = name)
+        .applyUnary(x, o => Op.Builder(opType = "Exp", name = name)
             .addInput(o)
             .build().outputs(0))
   }
@@ -310,7 +309,7 @@ private[api] trait Math {
     */
   def expm1[T: OutputOps](x: T, name: String = "Expm1"): T = {
     implicitly[OutputOps[T]]
-        .unaryOp(x, o => Op.Builder(opType = "Expm1", name = name)
+        .applyUnary(x, o => Op.Builder(opType = "Expm1", name = name)
             .addInput(o)
             .build().outputs(0))
   }
@@ -325,7 +324,7 @@ private[api] trait Math {
     */
   def log[T: OutputOps](x: T, name: String = "Log"): T = {
     implicitly[OutputOps[T]]
-        .unaryOp(x, o => Op.Builder(opType = "Log", name = name)
+        .applyUnary(x, o => Op.Builder(opType = "Log", name = name)
             .addInput(o)
             .build().outputs(0))
   }
@@ -340,7 +339,7 @@ private[api] trait Math {
     */
   def log1p[T: OutputOps](x: T, name: String = "Log1p"): T = {
     implicitly[OutputOps[T]]
-        .unaryOp(x, o => Op.Builder(opType = "Log1p", name = name)
+        .applyUnary(x, o => Op.Builder(opType = "Log1p", name = name)
             .addInput(o)
             .build().outputs(0))
   }
@@ -355,7 +354,7 @@ private[api] trait Math {
     */
   def sin[T: OutputOps](x: T, name: String = "Sin"): T = {
     implicitly[OutputOps[T]]
-        .unaryOp(x, o => Op.Builder(opType = "Sin", name = name)
+        .applyUnary(x, o => Op.Builder(opType = "Sin", name = name)
             .addInput(o)
             .build().outputs(0))
   }
@@ -370,7 +369,7 @@ private[api] trait Math {
     */
   def cos[T: OutputOps](x: T, name: String = "Cos"): T = {
     implicitly[OutputOps[T]]
-        .unaryOp(x, o => Op.Builder(opType = "Cos", name = name)
+        .applyUnary(x, o => Op.Builder(opType = "Cos", name = name)
             .addInput(o)
             .build().outputs(0))
   }
@@ -385,7 +384,7 @@ private[api] trait Math {
     */
   def tan[T: OutputOps](x: T, name: String = "Tan"): T = {
     implicitly[OutputOps[T]]
-        .unaryOp(x, o => Op.Builder(opType = "Tan", name = name)
+        .applyUnary(x, o => Op.Builder(opType = "Tan", name = name)
             .addInput(o)
             .build().outputs(0))
   }
@@ -400,7 +399,7 @@ private[api] trait Math {
     */
   def asin[T: OutputOps](x: T, name: String = "Asin"): T = {
     implicitly[OutputOps[T]]
-        .unaryOp(x, o => Op.Builder(opType = "Asin", name = name)
+        .applyUnary(x, o => Op.Builder(opType = "Asin", name = name)
             .addInput(o)
             .build().outputs(0))
   }
@@ -415,7 +414,7 @@ private[api] trait Math {
     */
   def acos[T: OutputOps](x: T, name: String = "Acos"): T = {
     implicitly[OutputOps[T]]
-        .unaryOp(x, o => Op.Builder(opType = "Acos", name = name)
+        .applyUnary(x, o => Op.Builder(opType = "Acos", name = name)
             .addInput(o)
             .build().outputs(0))
   }
@@ -430,7 +429,7 @@ private[api] trait Math {
     */
   def atan[T: OutputOps](x: T, name: String = "Atan"): T = {
     implicitly[OutputOps[T]]
-        .unaryOp(x, o => Op.Builder(opType = "Atan", name = name)
+        .applyUnary(x, o => Op.Builder(opType = "Atan", name = name)
             .addInput(o)
             .build().outputs(0))
   }
@@ -445,7 +444,7 @@ private[api] trait Math {
     */
   def sinh[T: OutputOps](x: T, name: String = "Sinh"): T = {
     implicitly[OutputOps[T]]
-        .unaryOp(x, o => Op.Builder(opType = "Sinh", name = name)
+        .applyUnary(x, o => Op.Builder(opType = "Sinh", name = name)
             .addInput(o)
             .build().outputs(0))
   }
@@ -460,7 +459,7 @@ private[api] trait Math {
     */
   def cosh[T: OutputOps](x: T, name: String = "Cosh"): T = {
     implicitly[OutputOps[T]]
-        .unaryOp(x, o => Op.Builder(opType = "Cosh", name = name)
+        .applyUnary(x, o => Op.Builder(opType = "Cosh", name = name)
             .addInput(o)
             .build().outputs(0))
   }
@@ -475,7 +474,7 @@ private[api] trait Math {
     */
   def tanh[T: OutputOps](x: T, name: String = "Tanh"): T = {
     implicitly[OutputOps[T]]
-        .unaryOp(x, o => Op.Builder(opType = "Tanh", name = name)
+        .applyUnary(x, o => Op.Builder(opType = "Tanh", name = name)
             .addInput(o)
             .build().outputs(0))
   }
@@ -490,7 +489,7 @@ private[api] trait Math {
     */
   def asinh[T: OutputOps](x: T, name: String = "ASinh"): T = {
     implicitly[OutputOps[T]]
-        .unaryOp(x, o => Op.Builder(opType = "Asinh", name = name)
+        .applyUnary(x, o => Op.Builder(opType = "Asinh", name = name)
             .addInput(o)
             .build().outputs(0))
   }
@@ -505,7 +504,7 @@ private[api] trait Math {
     */
   def acosh[T: OutputOps](x: T, name: String = "ACosh"): T = {
     implicitly[OutputOps[T]]
-        .unaryOp(x, o => Op.Builder(opType = "Acosh", name = name)
+        .applyUnary(x, o => Op.Builder(opType = "Acosh", name = name)
             .addInput(o)
             .build().outputs(0))
   }
@@ -520,7 +519,7 @@ private[api] trait Math {
     */
   def atanh[T: OutputOps](x: T, name: String = "ATanh"): T = {
     implicitly[OutputOps[T]]
-        .unaryOp(x, o => Op.Builder(opType = "Atanh", name = name)
+        .applyUnary(x, o => Op.Builder(opType = "Atanh", name = name)
             .addInput(o)
             .build().outputs(0))
   }
@@ -535,7 +534,7 @@ private[api] trait Math {
     */
   def logGamma[T: OutputOps](x: T, name: String = "Lgamma"): T = {
     implicitly[OutputOps[T]]
-        .unaryOp(x, o => Op.Builder(opType = "Lgamma", name = name)
+        .applyUnary(x, o => Op.Builder(opType = "Lgamma", name = name)
             .addInput(o)
             .build().outputs(0))
   }
@@ -550,7 +549,7 @@ private[api] trait Math {
     */
   def digamma[T: OutputOps](x: T, name: String = "Digamma"): T = {
     implicitly[OutputOps[T]]
-        .unaryOp(x, o => Op.Builder(opType = "Digamma", name = name)
+        .applyUnary(x, o => Op.Builder(opType = "Digamma", name = name)
             .addInput(o)
             .build().outputs(0))
   }
@@ -565,7 +564,7 @@ private[api] trait Math {
     */
   def erf[T: OutputOps](x: T, name: String = "Erf"): T = {
     implicitly[OutputOps[T]]
-        .unaryOp(x, o => Op.Builder(opType = "Erf", name = name)
+        .applyUnary(x, o => Op.Builder(opType = "Erf", name = name)
             .addInput(o)
             .build().outputs(0))
   }
@@ -580,7 +579,7 @@ private[api] trait Math {
     */
   def erfc[T: OutputOps](x: T, name: String = "Erfc"): T = {
     implicitly[OutputOps[T]]
-        .unaryOp(x, o => Op.Builder(opType = "Erfc", name = name)
+        .applyUnary(x, o => Op.Builder(opType = "Erfc", name = name)
             .addInput(o)
             .build().outputs(0))
   }
@@ -595,7 +594,7 @@ private[api] trait Math {
     */
   def sigmoid[T: OutputOps](x: T, name: String = "Sigmoid"): T = {
     implicitly[OutputOps[T]]
-        .unaryOp(x, o => Op.Builder(opType = "Sigmoid", name = name)
+        .applyUnary(x, o => Op.Builder(opType = "Sigmoid", name = name)
             .addInput(o)
             .build().outputs(0))
   }
@@ -612,7 +611,7 @@ private[api] trait Math {
     */
   def sign[T: OutputOps](x: T, name: String = "Sign"): T = {
     implicitly[OutputOps[T]]
-        .unaryOp(x, o => Op.Builder(opType = "Sign", name = name)
+        .applyUnary(x, o => Op.Builder(opType = "Sign", name = name)
             .addInput(o)
             .build().outputs(0))
   }
@@ -627,7 +626,7 @@ private[api] trait Math {
     */
   def round[T: OutputOps](x: T, name: String = "Round"): T = {
     implicitly[OutputOps[T]]
-        .unaryOp(x, o => Op.Builder(opType = "Round", name = name)
+        .applyUnary(x, o => Op.Builder(opType = "Round", name = name)
             .addInput(o)
             .build().outputs(0))
   }
@@ -641,7 +640,7 @@ private[api] trait Math {
     */
   def roundInt[T: OutputOps](x: T, name: String = "RoundInt"): T = {
     implicitly[OutputOps[T]]
-        .unaryOp(x, o => Op.Builder(opType = "Rint", name = name)
+        .applyUnary(x, o => Op.Builder(opType = "Rint", name = name)
             .addInput(o)
             .build().outputs(0))
   }
@@ -655,7 +654,7 @@ private[api] trait Math {
     */
   def floor[T: OutputOps](x: T, name: String = "Floor"): T = {
     implicitly[OutputOps[T]]
-        .unaryOp(x, o => Op.Builder(opType = "Floor", name = name)
+        .applyUnary(x, o => Op.Builder(opType = "Floor", name = name)
             .addInput(o)
             .build().outputs(0))
   }
@@ -669,7 +668,7 @@ private[api] trait Math {
     */
   def ceil[T: OutputOps](x: T, name: String = "Ceil"): T = {
     implicitly[OutputOps[T]]
-        .unaryOp(x, o => Op.Builder(opType = "Ceil", name = name)
+        .applyUnary(x, o => Op.Builder(opType = "Ceil", name = name)
             .addInput(o)
             .build().outputs(0))
   }
@@ -683,7 +682,7 @@ private[api] trait Math {
     */
   def isNaN[T: OutputOps](x: T, name: String = "IsNaN"): T = {
     implicitly[OutputOps[T]]
-        .unaryOp(x, o => Op.Builder(opType = "IsNan", name = name)
+        .applyUnary(x, o => Op.Builder(opType = "IsNan", name = name)
             .addInput(o)
             .build().outputs(0))
   }
@@ -697,7 +696,7 @@ private[api] trait Math {
     */
   def isInf[T: OutputOps](x: T, name: String = "IsInf"): T = {
     implicitly[OutputOps[T]]
-        .unaryOp(x, o => Op.Builder(opType = "IsInf", name = name)
+        .applyUnary(x, o => Op.Builder(opType = "IsInf", name = name)
             .addInput(o)
             .build().outputs(0))
   }
@@ -711,7 +710,7 @@ private[api] trait Math {
     */
   def isFinite[T: OutputOps](x: T, name: String = "IsFinite"): T = {
     implicitly[OutputOps[T]]
-        .unaryOp(x, o => Op.Builder(opType = "IsFinite", name = name)
+        .applyUnary(x, o => Op.Builder(opType = "IsFinite", name = name)
             .addInput(o)
             .build().outputs(0))
   }
@@ -1971,7 +1970,7 @@ private[api] trait Math {
   def scalarMul[T: OutputOps](scalar: Output, tensor: T, name: String = "ScalarMul"): T = {
     require(scalar.rank == 0, s"'scalar' (rank = ${scalar.rank}) must have rank equal to 0.")
     Op.createWithNameScope(name) {
-      implicitly[OutputOps[T]].unaryOp(tensor, o => multiply(scalar, o))
+      implicitly[OutputOps[T]].applyUnary(tensor, o => multiply(scalar, o))
     }
   }
 
@@ -2122,7 +2121,7 @@ private[api] trait Math {
       input
     } else {
       implicitly[OutputOps[T]]
-          .unaryOp(input, o =>
+          .applyUnary(input, o =>
             Op.Builder(opType = "Real", name = name)
                 .addInput(o)
                 .setAttribute("Tout", o.dataType.real)
@@ -2142,7 +2141,7 @@ private[api] trait Math {
       input
     } else {
       implicitly[OutputOps[T]]
-          .unaryOp(input, o =>
+          .applyUnary(input, o =>
             Op.Builder(opType = "Imag", name = name)
                 .addInput(o)
                 .setAttribute("Tout", o.dataType.real)
@@ -2161,7 +2160,7 @@ private[api] trait Math {
   @throws[IllegalArgumentException]
   def angle[T <: OutputLike : OutputOps](input: T, name: String = "Angle"): T = {
     implicitly[OutputOps[T]]
-        .unaryOp(input, o => {
+        .applyUnary(input, o => {
           if (o.dataType.isComplex) {
             Op.Builder(opType = "Angle", name = name)
                 .addInput(o)
@@ -2186,7 +2185,7 @@ private[api] trait Math {
   @throws[IllegalArgumentException]
   def conjugate[T <: OutputLike : OutputOps](input: T, name: String = "Conjugate"): T = {
     implicitly[OutputOps[T]]
-        .unaryOp(input, o => {
+        .applyUnary(input, o => {
           if (o.dataType.isComplex) {
             Op.Builder(opType = "Conj", name = name)
                 .addInput(o)
@@ -2247,10 +2246,141 @@ private[api] trait Math {
 
 private[api] object Math extends Math {
   private[ops] trait Implicits {
-    implicit def outputToMathOps(output: Output): MathOps = MathOps(output)
+    implicit def outputToMathOps(value: Output): MathOps = MathOps(value)
+    implicit def outputConvertibleToMathOps[T](value: T)(implicit f: (T) => Output): MathOps = MathOps(f(value))
   }
 
   case class MathOps private[ops](output: Output) {
+    //region Math Operators
+
+    /** $OpDocMathNegate
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def unary_- : Output = negate
+
+    /** $OpDocMathAdd
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def +(other: Output): Output = add(other)
+
+    /** $OpDocMathSubtract
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def -(other: Output): Output = subtract(other)
+
+    /** $OpDocMathMultiply
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def *(other: Output): Output = multiply(other)
+
+    private[this] def divHelper(x: Output, y: Output): Output = {
+      if (x.dataType.isFloatingPoint || x.dataType.isComplex)
+        Math.divide(x, y)
+      else
+        Math.truncateDivide(x, y)
+    }
+
+    /** $OpDocMathDivide
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def /(other: Output): Output = divHelper(output, other)
+
+    /** $OpDocMathMod
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def %(other: Output): Output = mod(other)
+
+    /** $OpDocMathPow
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def **(other: Output): Output = pow(other)
+
+    /** $OpDocMathPow
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def ^(other: Output): Output = pow(other)
+
+    /** $OpDocMathLogicalNot
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def unary_! : Output = logicalNot
+
+    /** $OpDocMathLogicalAnd
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def &&(other: Output): Output = logicalAnd(other)
+
+    /** $OpDocMathLogicalOr
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def ||(other: Output): Output = logicalOr(other)
+
+    /** $OpDocMathEqual
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def ==(other: Output): Output = equal(other)
+
+    /** $OpDocMathNotEqual
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def !=(other: Output): Output = notEqual(other)
+
+    /** $OpDocMathLess
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def <(other: Output): Output = less(other)
+
+    /** $OpDocMathLessEqual
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def <=(other: Output): Output = lessEqual(other)
+
+    /** $OpDocMathGreater
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def >(other: Output): Output = greater(other)
+
+    /** $OpDocMathGreaterEqual
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def >=(other: Output): Output = greaterEqual(other)
+
+    //endregion Math Operators
+
     /** $OpDocMathCast
       *
       * @group MathOps
@@ -2258,6 +2388,916 @@ private[api] object Math extends Math {
       * @return Result as a new tensor.
       */
     def cast(dataType: DataType): Output = Math.cast(output, dataType)
+
+    /** $OpDocMathBitcast
+      *
+      * @group MathOps
+      * @param  dataType Target data type.
+      * @return Result as a new tensor.
+      */
+    def bitcast(dataType: DataType): Output = Math.bitcast(output, dataType)
+
+    //region Math Unary Ops
+
+    /** $OpDocMathAbs
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def abs: Output = Math.abs(output)
+
+    /** $OpDocMathNegate
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def negate: Output = Math.negate(output)
+
+    /** $OpDocMathReciprocal
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def reciprocal: Output = Math.reciprocal(output)
+
+    /** $OpDocMathSquare
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def square: Output = Math.square(output)
+
+    /** $OpDocMathSqrt
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def sqrt: Output = Math.sqrt(output)
+
+    /** $OpDocMathRsqrt
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def rsqrt: Output = Math.rsqrt(output)
+
+    /** $OpDocMathExp
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def exp: Output = Math.exp(output)
+
+    /** $OpDocMathExpm1
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def expm1: Output = Math.expm1(output)
+
+    /** $OpDocMathLog
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def log: Output = Math.log(output)
+
+    /** $OpDocMathLog1p
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def log1p: Output = Math.log1p(output)
+
+    /** $OpDocMathSin
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def sin: Output = Math.sin(output)
+
+    /** $OpDocMathCos
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def cos: Output = Math.cos(output)
+
+    /** $OpDocMathTan
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def tan: Output = Math.tan(output)
+
+    /** $OpDocMathAsin
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def asin: Output = Math.asin(output)
+
+    /** $OpDocMathAcos
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def acos: Output = Math.acos(output)
+
+    /** $OpDocMathAtan
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def atan: Output = Math.atan(output)
+
+    /** $OpDocMathSinh
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def sinh: Output = Math.sinh(output)
+
+    /** $OpDocMathCosh
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def cosh: Output = Math.cosh(output)
+
+    /** $OpDocMathTanh
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def tanh: Output = Math.tanh(output)
+
+    /** $OpDocMathAsinh
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def asinh: Output = Math.asinh(output)
+
+    /** $OpDocMathAcosh
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def acosh: Output = Math.acosh(output)
+
+    /** $OpDocMathAtanh
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def atanh: Output = Math.atanh(output)
+
+    /** $OpDocMathLogGamma
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def logGamma: Output = Math.logGamma(output)
+
+    /** $OpDocMathDigamma
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def digamma: Output = Math.digamma(output)
+
+    /** $OpDocMathErf
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def erf: Output = Math.erf(output)
+
+    /** $OpDocMathErfc
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def erc: Output = Math.erfc(output)
+
+    /** $OpDocMathSigmoid
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def sigmoid: Output = Math.sigmoid(output)
+
+    /** $OpDocMathSign
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def sign: Output = Math.sign(output)
+
+    /** $OpDocMathRound
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def round: Output = Math.round(output)
+
+    /** $OpDocMathRoundInt
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def roundInt: Output = Math.roundInt(output)
+
+    /** $OpDocMathFloor
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def floor: Output = Math.floor(output)
+
+    /** $OpDocMathCeil
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def ceil: Output = Math.ceil(output)
+
+    /** $OpDocMathIsNaN
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def isNaN: Output = Math.isNaN(output)
+
+    /** $OpDocMathIsInf
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def isInf: Output = Math.isInf(output)
+
+    /** $OpDocMathIsFinite
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def isFinite: Output = Math.isFinite(output)
+
+    //endregion Math Unary Ops
+
+    //region Math Binary Ops
+
+    /** $OpDocMathAdd
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def add(other: Output): Output = Math.add(output, other)
+
+    /** $OpDocMathSubtract
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def subtract(other: Output): Output = Math.subtract(output, other)
+
+    /** $OpDocMathMultiply
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def multiply(other: Output): Output = Math.multiply(output, other)
+
+    /** $OpDocMathDivide
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def divide(other: Output): Output = Math.divide(output, other)
+
+    /** $OpDocMathFloorDivide
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def floorDivide(other: Output): Output = Math.floorDivide(output, other)
+
+    /** $OpDocMathTruncateDivide
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def truncateDivide(other: Output): Output = Math.truncateDivide(output, other)
+
+    /** $OpDocMathRealDivide
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def realDivide(other: Output): Output = Math.realDivide(output, other)
+
+    /** $OpDocMathSquaredDifference
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def squaredDifference(other: Output): Output = Math.squaredDifference(output, other)
+
+    /** $OpDocMathMod
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def mod(other: Output): Output = Math.mod(output, other)
+
+    /** $OpDocMathFloorMod
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def floorMod(other: Output): Output = Math.floorMod(output, other)
+
+    /** $OpDocMathTruncateMod
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def truncateMod(other: Output): Output = Math.truncateMod(output, other)
+
+    /** $OpDocMathPow
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def pow(other: Output): Output = Math.pow(output, other)
+
+    /** $OpDocMathIgammac
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def igammac(other: Output): Output = Math.igammac(output, other)
+
+    /** $OpDocMathIgamma
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def igamma(other: Output): Output = Math.igamma(output, other)
+
+    /** $OpDocMathZeta
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def zeta(other: Output): Output = Math.zeta(output, other)
+
+    /** $OpDocMathPolygamma
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def polygamma(other: Output): Output = Math.polygamma(output, other)
+
+    /** $OpDocMathAtan2
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def atan2(other: Output): Output = Math.atan2(output, other)
+
+    /** $OpDocMathMaximum
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def maximum(other: Output): Output = Math.maximum(output, other)
+
+    /** $OpDocMathMinimum
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def minimum(other: Output): Output = Math.minimum(output, other)
+
+    //endregion Math Binary Ops
+
+    //region Math Logical Ops
+
+    /** $OpDocMathLogicalNot
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def logicalNot: Output = Math.logicalNot(output)
+
+    /** $OpDocMathLogicalAnd
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def logicalAnd(other: Output): Output = Math.logicalAnd(output, other)
+
+    /** $OpDocMathLogicalOr
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def logicalOr(other: Output): Output = Math.logicalOr(output, other)
+
+    /** $OpDocMathLogicalXOr
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def logicalXOr(other: Output): Output = Math.logicalXOr(output, other)
+
+    //endregion Math Logical Ops
+
+    //region Math Comparison Ops
+
+    /** $OpDocMathEqual
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def equal(other: Output): Output = Math.equal(output, other)
+
+    /** $OpDocMathNotEqual
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def notEqual(other: Output): Output = Math.notEqual(output, other)
+
+    /** $OpDocMathApproximatelyEqual
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def approximatelyEqual(other: Output): Output = Math.approximatelyEqual(output, other)
+
+    /** $OpDocMathLess
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def less(other: Output): Output = Math.less(output, other)
+
+    /** $OpDocMathLessEqual
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def lessEqual(other: Output): Output = Math.lessEqual(output, other)
+
+    /** $OpDocMathGreater
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def greater(other: Output): Output = Math.greater(output, other)
+
+    /** $OpDocMathGreaterEqual
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def greaterEqual(other: Output): Output = Math.greaterEqual(output, other)
+
+    //endregion Math Comparison Ops
+
+    //region Math Reduction Ops
+
+    /** $OpDocMathSum
+      *
+      * @group MathOps
+      * @param  axes     Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
+      * @param  keepDims If `true`, retain the reduced axes.
+      * @return Result as a new tensor.
+      */
+    def sum(axes: Output = null, keepDims: Boolean = false): Output = Math.sum(output, axes, keepDims)
+
+    /** $OpDocMathMean
+      *
+      * @group MathOps
+      * @param  axes     Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
+      * @param  keepDims If `true`, retain the reduced axes.
+      * @return Result as a new tensor.
+      */
+    def mean(axes: Output = null, keepDims: Boolean = false): Output = Math.mean(output, axes, keepDims)
+
+    /** $OpDocMathProd
+      *
+      * @group MathOps
+      * @param  axes     Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
+      * @param  keepDims If `true`, retain the reduced axes.
+      * @return Result as a new tensor.
+      */
+    def prod(axes: Output = null, keepDims: Boolean = false): Output = Math.prod(output, axes, keepDims)
+
+    /** $OpDocMathMin
+      *
+      * @group MathOps
+      * @param  axes     Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
+      * @param  keepDims If `true`, retain the reduced axes.
+      * @return Result as a new tensor.
+      */
+    def min(axes: Output = null, keepDims: Boolean = false): Output = Math.min(output, axes, keepDims)
+
+    /** $OpDocMathMax
+      *
+      * @group MathOps
+      * @param  axes     Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
+      * @param  keepDims If `true`, retain the reduced axes.
+      * @return Result as a new tensor.
+      */
+    def max(axes: Output = null, keepDims: Boolean = false): Output = Math.max(output, axes, keepDims)
+
+    /** $OpDocMathAll
+      *
+      * @group MathOps
+      * @param  axes     Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
+      * @param  keepDims If `true`, retain the reduced axes.
+      * @return Result as a new tensor.
+      */
+    def all(axes: Output = null, keepDims: Boolean = false): Output = Math.all(output, axes, keepDims)
+
+    /** $OpDocMathAny
+      *
+      * @group MathOps
+      * @param  axes     Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
+      * @param  keepDims If `true`, retain the reduced axes.
+      * @return Result as a new tensor.
+      */
+    def any(axes: Output = null, keepDims: Boolean = false): Output = Math.any(output, axes, keepDims)
+
+    /** $OpDocMathLogSumExp
+      *
+      * @group MathOps
+      * @param  axes     Integer sequence containing the axes to reduce. If `null`, then all axes are reduced.
+      * @param  keepDims If `true`, retain the reduced axes.
+      * @return Result as a new tensor.
+      */
+    def logSumExp(axes: Seq[Int] = null, keepDims: Boolean = false): Output = Math.logSumExp(output, axes, keepDims)
+
+    /** $OpDocMathCountNonZero
+      *
+      * @group MathOps
+      * @param  axes     Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
+      * @param  keepDims If `true`, retain the reduced axes.
+      * @return Result as a new tensor.
+      */
+    def countNonZero(axes: Output = null, keepDims: Boolean = false): Output = Math.countNonZero(output, axes, keepDims)
+
+    //endregion Math Reduction Ops
+
+    /** $OpDocMathArgmax
+      *
+      * @group MathOps
+      * @param  axes           Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
+      * @param  outputDataType Data type for the output tensor. Must be `INT32` or `INT64`.
+      * @return Result as a new tensor.
+      */
+    def argmax(axes: Output = 0, outputDataType: DataType = INT64): Output = Math.argmax(output, axes, outputDataType)
+
+    /** $OpDocMathArgmin
+      *
+      * @group MathOps
+      * @param  axes           Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
+      * @param  outputDataType Data type for the output tensor. Must be `INT32` or `INT64`.
+      * @return Result as a new tensor.
+      */
+    def argmin(axes: Output = 0, outputDataType: DataType = INT64): Output = Math.argmin(output, axes, outputDataType)
+
+    /** $OpDocMathBinCount
+      *
+      * @group MathOps
+      * @param  weights   If not `null`, this tensor must have the same shape as `input`. For each value in `input`, the
+      *                   corresponding bin count will be incremented by the corresponding weight instead of `1`.
+      * @param  minLength If not `null`, this ensures the output has length at least `minLength`, padding with zeros at
+      *                   the end, if necessary.
+      * @param  maxLength If not `null`, this skips values in `input` that are equal or greater than `maxLength`,
+      *                   ensuring that the output has length at most `maxLength`.
+      * @param  dataType  If `weights` is `null`, this determines the data type used for the output tensor (i.e., the
+      *                   tensor containing the bin counts).
+      * @return Result as a new tensor.
+      */
+    def binCount(
+        weights: Output = null, minLength: Output = null, maxLength: Output = null,
+        dataType: DataType = INT32): Output = {
+      Math.binCount(output, weights, minLength, maxLength, dataType)
+    }
+
+    /** $OpDocMathCumsum
+      *
+      * @group MathOps
+      * @param  axis      [[INT32]] tensor containing the axis along which to perform the cumulative sum.
+      * @param  exclusive Boolean value indicating whether to perform an exclusive cumulative sum.
+      * @param  reverse   Boolean value indicating whether to perform a reverse cumulative sum.
+      * @return Result as a new tensor.
+      */
+    def cumsum(axis: Output = 0, exclusive: Boolean = false, reverse: Boolean = false): Output = {
+      Math.cumsum(output, axis, exclusive, reverse)
+    }
+
+    /** $OpDocMathCumprod
+      *
+      * @group MathOps
+      * @param  axis      [[INT32]] tensor containing the axis along which to perform the cumulative product.
+      * @param  exclusive Boolean value indicating whether to perform an exclusive cumulative product.
+      * @param  reverse   Boolean value indicating whether to perform a reverse cumulative product.
+      * @return Result as a new tensor.
+      */
+    def cumprod(axis: Output = 0, exclusive: Boolean = false, reverse: Boolean = false): Output = {
+      Math.cumprod(output, axis, exclusive, reverse)
+    }
+
+    //region Math Segment Ops
+
+    /** $OpDocMathSegmentSum
+      *
+      * @group MathOps
+      *
+      * @param  segmentIndices Segment indices (must have data type of [[INT32]] or [[INT64]]). Values should be sorted
+      *                        and can be repeated.
+      * @return Result as a new tensor.
+      */
+    def segmentSum(segmentIndices: Output): Output = Math.segmentSum(output, segmentIndices)
+
+    /** $OpDocMathSegmentMean
+      *
+      * @group MathOps
+      *
+      * @param  segmentIndices Segment indices (must have data type of [[INT32]] or [[INT64]]). Values should be sorted
+      *                        and can be repeated.
+      * @return Result as a new tensor.
+      */
+    def segmentMean(segmentIndices: Output): Output = Math.segmentMean(output, segmentIndices)
+
+    /** $OpDocMathSegmentProd
+      *
+      * @group MathOps
+      *
+      * @param  segmentIndices Segment indices (must have data type of [[INT32]] or [[INT64]]). Values should be sorted
+      *                        and can be repeated.
+      * @return Result as a new tensor.
+      */
+    def segmentProd(segmentIndices: Output): Output = Math.segmentProd(output, segmentIndices)
+
+    /** $OpDocMathSegmentMin
+      *
+      * @group MathOps
+      *
+      * @param  segmentIndices Segment indices (must have data type of [[INT32]] or [[INT64]]). Values should be sorted
+      *                        and can be repeated.
+      * @return Result as a new tensor.
+      */
+    def segmentMin(segmentIndices: Output): Output = Math.segmentMin(output, segmentIndices)
+
+    /** $OpDocMathSegmentMax
+      *
+      * @group MathOps
+      *
+      * @param  segmentIndices Segment indices (must have data type of [[INT32]] or [[INT64]]). Values should be sorted
+      *                        and can be repeated.
+      * @return Result as a new tensor.
+      */
+    def segmentMax(segmentIndices: Output): Output = Math.segmentMax(output, segmentIndices)
+
+    /** $OpDocMathUnsortedSegmentSum
+      *
+      * @group MathOps
+      *
+      * @param  segmentIndices Segment indices (must have data type of [[INT32]] or [[INT64]]).
+      * @param  segmentsNumber Number of segments (must have data type of [[INT32]]).
+      * @return Result as a new tensor.
+      */
+    def unsortedSegmentSum(segmentIndices: Output, segmentsNumber: Output): Output = {
+      Math.unsortedSegmentSum(output, segmentIndices, segmentsNumber)
+    }
+
+    /** $OpDocMathUnsortedSegmentMax
+      *
+      * @group MathOps
+      *
+      * @param  segmentIndices Segment indices (must have data type of [[INT32]] or [[INT64]]).
+      * @param  segmentsNumber Number of segments (must have data type of [[INT32]]).
+      * @return Result as a new tensor.
+      */
+    def unsortedSegmentMax(segmentIndices: Output, segmentsNumber: Output): Output = {
+      Math.unsortedSegmentMax(output, segmentIndices, segmentsNumber)
+    }
+
+    /** $OpDocMathSparseSegmentSum
+      *
+      * @group MathOps
+      *
+      * @param  indices        One-dimensional tensor with rank equal to that of `segmentIndices`.
+      * @param  segmentIndices Segment indices (must have data type of [[INT32]] or [[INT64]]). Values should be sorted
+      *                        and can be repeated.
+      * @return Result as a new tensor.
+      */
+    def sparseSegmentSum(indices: Output, segmentIndices: Output): Output = {
+      Math.sparseSegmentSum(output, indices, segmentIndices)
+    }
+
+    /** $OpDocMathSparseSegmentMean
+      *
+      * @group MathOps
+      *
+      * @param  indices        One-dimensional tensor with rank equal to that of `segmentIndices`.
+      * @param  segmentIndices Segment indices (must have data type of [[INT32]] or [[INT64]]). Values should be sorted
+      *                        and can be repeated.
+      * @return Result as a new tensor.
+      */
+    def sparseSegmentMean(indices: Output, segmentIndices: Output): Output = {
+      Math.sparseSegmentMean(output, indices, segmentIndices)
+    }
+
+    /** $OpDocMathSparseSegmentSumSqrtN
+      *
+      * @group MathOps
+      *
+      * @param  indices        One-dimensional tensor with rank equal to that of `segmentIndices`.
+      * @param  segmentIndices Segment indices (must have data type of [[INT32]] or [[INT64]]). Values should be sorted
+      *                        and can be repeated.
+      * @return Result as a new tensor.
+      */
+    def sparseSegmentSumSqrtN(indices: Output, segmentIndices: Output): Output = {
+      Math.sparseSegmentSumSqrtN(output, indices, segmentIndices)
+    }
+
+    //endregion Math Segment Ops
+
+    //region Math Matrix Ops
+
+    /** $OpDocMathDiag
+      *
+      * @group MathOps
+      *
+      * @return Result as a new tensor.
+      */
+    def diag: Output = Math.diag(output)
+
+    /** $OpDocMathDiagPart
+      *
+      * @group MathOps
+      *
+      * @return Result as a new tensor.
+      */
+    def diagPart: Output = Math.diagPart(output)
+
+    /** $OpDocMathMatrixDiag
+      *
+      * @group MathOps
+      *
+      * @return Result as a new tensor with rank equal to `K + 1` and shape equal to the shape of `diagonal`, with its
+      *         last dimension duplicated.
+      */
+    def matrixDiag: Output = Math.matrixDiag(output)
+
+    /** $OpDocMathMatrixSetDiag
+      *
+      * @group MathOps
+      *
+      * @param  diagonal Rank-`K` tensor, where `K >= 1`.
+      * @return Result as a new tensor with rank equal to `K + 1` and shape equal to the shape of `input`.
+      */
+    def matrixSetDiag(diagonal: Output): Output = Math.matrixSetDiag(output, diagonal)
+
+    /** $OpDocMathMatrixDiagPart
+      *
+      * @group MathOps
+      *
+      * @return Result as a new tensor containing the diagonal(s) and having shape equal to
+      *         `input.shape[:-2] + [min(input.shape[-2:])]`.
+      */
+    def matrixDiagPart: Output = Math.matrixDiagPart(output)
+
+    /** $OpDocMathMatrixBandPart
+      *
+      * @group MathOps
+      *
+      * @param  numSubDiagonals   Scalar `INT64` tensor that contains the number of sub-diagonals to keep. If negative,
+      *                           the entire lower triangle is kept.
+      * @param  numSuperDiagonals Scalar `INT64` tensor that contains the number of super-diagonals to keep. If negative,
+      *                           the entire upper triangle is kept.
+      * @return Result as a new tensor containing the expected banded tensor and has rank `K` and same shape as `input`.
+      */
+    def matrixBandPart(numSubDiagonals: Output, numSuperDiagonals: Output): Output = {
+      Math.matrixBandPart(output, numSubDiagonals, numSuperDiagonals)
+    }
+
+    /** $OpDocMathTrace
+      *
+      * @group MathOps
+      *
+      * @return Result as a new tensor.
+      */
+    def trace: Output = Math.trace(output)
+
+    /** $OpDocMathMatmul
+      *
+      * @group MathOps
+      *
+      * @param  other      Output to multiply with, with data type one of: `BFLOAT16`, `FLOAT16`, `FLOAT32`, `FLOAT64`,
+      *                    `INT32`, `COMPLEX64`, `COMPLEX128`.
+      * @param  transposeA If `true`, this tensor is transposed before the multiplication.
+      * @param  transposeB If `true`, `other` is transposed before the multiplication.
+      * @param  conjugateA If `true`, this tensor is conjugated before the multiplication.
+      * @param  conjugateB If `true`, `other` is conjugated before the multiplication.
+      * @param  aIsSparse  If `true`, this tensor is treated as a sparse matrix (i.e., it is assumed it contains many
+      *                    zeros).
+      * @param  bIsSparse  If `true`, `other` is treated as a sparse matrix (i.e., it is assumed it contains many
+      *                    zeros).
+      * @return Result as a new tensor.
+      */
+    def matmul(
+        other: Output, transposeA: Boolean = false, transposeB: Boolean = false, conjugateA: Boolean = false,
+        conjugateB: Boolean = false, aIsSparse: Boolean = false, bIsSparse: Boolean = false): Output = {
+      Math.matmul(output, other, transposeA, transposeB, conjugateA, conjugateB, aIsSparse, bIsSparse)
+    }
+
+    /** $OpDocMathCross
+      *
+      * @group MathOps
+      *
+      * @return Result as a new tensor.
+      */
+    def cross(other: Output): Output = Math.cross(output, other)
+
+    // TODO: [OPS] tensorDot
+
+    //endregion Math Matrix Ops
+
+    //region Math Complex Ops
+
+    /** $OpDocMathReal
+      *
+      * @group MathOps
+      *
+      * @return Result as a new tensor.
+      */
+    def real: Output = Math.real(output)
+
+    /** $OpDocMathImag
+      *
+      * @group MathOps
+      *
+      * @return Result as a new tensor.
+      */
+    def imag: Output = Math.imag(output)
+
+    /** $OpDocMathAngle
+      *
+      * @group MathOps
+      *
+      * @return Result as a new tensor.
+      */
+    def angle: Output = Math.angle(output)
+
+    /** $OpDocMathConjugate
+      *
+      * @group MathOps
+      *
+      * @return Result as a new tensor.
+      */
+    def conjugate: Output = Math.conjugate(output)
+
+    //endregion Math Complex Ops
+
+    //region Math Quantization Ops
+
+    // TODO: [OPS] quantization
+
+    //endregion Math Quantization Ops
+
+    //region Math Bucketization Ops
+
+    /** $OpDocMathBucketize
+      *
+      * @group MathOps
+      *
+      * @param  boundaries Sorted sequence of `Float`s specifying the boundaries of the buckets.
+      * @return Result as a new tensor.
+      */
+    def bucketize(boundaries: Seq[Float]): Output = Math.bucketize(output, boundaries)
+
+    //endregion Math Bucketization Ops
+
+    //region Math Other Ops
+
+    /** $OpDocMathZerosFraction
+      *
+      * @group MathOps
+      *
+      * @return Result as a new tensor, with `FLOAT32` data type.
+      */
+    def zerosFraction: Output = Math.zerosFraction(output)
+
+    //endregion Math Other Ops
   }
 
   private[ops] object Gradients {

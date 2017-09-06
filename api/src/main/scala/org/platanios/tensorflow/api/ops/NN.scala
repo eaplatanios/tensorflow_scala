@@ -114,7 +114,7 @@ private[api] trait NN {
   def relu(input: Output, alpha: Float = 0.0f, name: String = "ReLU"): Output = {
     def reluOp[T: OutputOps](i: T, n: String): T = {
       implicitly[OutputOps[T]]
-          .unaryOp(i, o => Op.Builder(opType = "Relu", name = n)
+          .applyUnary(i, o => Op.Builder(opType = "Relu", name = n)
               .addInput(o)
               .build().outputs(0))
     }

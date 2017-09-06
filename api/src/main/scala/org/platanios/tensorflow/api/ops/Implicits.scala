@@ -23,7 +23,8 @@ import scala.util.DynamicVariable
   */
 private[api] trait Implicits
     extends Output.Implicits
-      with Math.Implicits {
+        with Basic.Implicits
+        with Math.Implicits {
   implicit def dynamicVariableToOpCreationContext(context: DynamicVariable[OpCreationContext]): OpCreationContext = {
     context.value
   }
@@ -36,6 +37,4 @@ private[api] trait Implicits
     * @return Function that returns `device` for any [[OpSpecification]] used as input.
     */
   implicit def deviceImplicitConversion(device: String): (OpSpecification => String) = _ => device
-
-  implicit def outputToInitialValueFunction(output: Output): () => Output = () => output
 }

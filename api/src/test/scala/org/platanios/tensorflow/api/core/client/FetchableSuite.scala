@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.core.client
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.ops.{Basic, Op, OutputIndexedSlices, SparseOutput}
-import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.api.tensors.{SparseTensor, Tensor, TensorIndexedSlices}
 
 import org.scalatest.junit.JUnitSuite
 import org.junit.Test
@@ -32,7 +32,7 @@ class FetchableSuite extends JUnitSuite {
   @Test def testFetchable(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
       val fetchable1 = Basic.constant(1.0)
-      val fetchable2 = OutputIndexedSlices(Basic.constant(2.0), Basic.constant(2.0), Basic.constant(2.0))
+      val fetchable2 = OutputIndexedSlices(Basic.constant(2L), Basic.constant(2L), Basic.constant(2L))
       val fetchable3 = SparseOutput(
         Basic.constant(Tensor(Tensor(2L), Tensor(1L))), Basic.constant(Tensor(2L, 1L)), Basic.constant(Tensor(3L)))
       val processed1 = Fetchable.process(fetchable1)
@@ -45,12 +45,12 @@ class FetchableSuite extends JUnitSuite {
       assert(processed2._1(0).name === "Constant_1:0")
       assert(processed2._1(1).name === "Constant_2:0")
       assert(processed2._1(2).name === "Constant_3:0")
-      assert(processed2._2(Seq.fill(3)(Tensor(0))).isInstanceOf[(Tensor, Tensor, Tensor)])
+      assert(processed2._2(Seq.fill(3)(Tensor(0L))).isInstanceOf[TensorIndexedSlices])
       assert(processed3._1.length === 3)
       assert(processed3._1(0).name === "Constant_4:0")
       assert(processed3._1(1).name === "Constant_5:0")
       assert(processed3._1(2).name === "Constant_6:0")
-      assert(processed3._2(Seq.fill(3)(Tensor(0))).isInstanceOf[(Tensor, Tensor, Tensor)])
+      assert(processed3._2(Seq(Tensor(Tensor(2L), Tensor(1L)), Tensor(2L, 1L), Tensor(3L))).isInstanceOf[SparseTensor])
     }
   }
 

@@ -18,9 +18,9 @@ package org.platanios.tensorflow.api.tensors.ops
 import org.platanios.tensorflow.api.Implicits._
 import org.platanios.tensorflow.api.core._
 import org.platanios.tensorflow.api.core.Indexer._
-import org.platanios.tensorflow.api.core.exception.{InvalidIndexerException, InvalidShapeException}
+import org.platanios.tensorflow.api.core.exception.InvalidShapeException
 import org.platanios.tensorflow.api.ops.Basic.{ConstantPadding, PaddingMode}
-import org.platanios.tensorflow.api.tensors.{Context, Tensor, TensorConvertible, TensorLike}
+import org.platanios.tensorflow.api.tensors._
 import org.platanios.tensorflow.api.types._
 import org.platanios.tensorflow.jni.generated.tensors.{Basic => NativeTensorOpsBasic}
 
@@ -43,8 +43,8 @@ private[api] trait Basic {
   def rank[T <: TensorLike](input: T): Tensor = {
     input match {
       case t: Tensor => Tensor.fill(INT32, Shape())(t.rank)
-      // case t: TensorIndexedSlices => size(t.denseShape, optimize = optimize, name = name)
-      // case t: SparseTensor => size(t.denseShape, optimize = optimize, name = name)
+      case t: TensorIndexedSlices => size(t.denseShape)
+      case t: SparseTensor => size(t.denseShape)
     }
   }
 
@@ -58,8 +58,8 @@ private[api] trait Basic {
   def size[T <: TensorLike](input: T, dataType: DataType = INT32): Tensor = {
     input match {
       case t: Tensor => Tensor.fill(dataType, Shape())(t.size)
-      // case t: TensorIndexedSlices => Math.prod(Math.cast(t.denseShape, dataType), Array(0))
-      // case t: SparseTensor => Math.prod(Math.cast(t.denseShape, dataType), Array(0))
+      case t: TensorIndexedSlices => Math.prod(Math.cast(t.denseShape, dataType), Array(0))
+      case t: SparseTensor => Math.prod(Math.cast(t.denseShape, dataType), Array(0))
     }
   }
 
@@ -73,8 +73,8 @@ private[api] trait Basic {
   def shape[T <: TensorLike](input: T, dataType: DataType = INT32): Tensor = {
     input match {
       case t: Tensor => t.shape.toTensor(dataType)
-      // case t: TensorIndexedSlices => Math.cast(t.denseShape, dataType)
-      // case t: SparseTensor => Math.cast(t.denseShape, dataType)
+      case t: TensorIndexedSlices => Math.cast(t.denseShape, dataType)
+      case t: SparseTensor => Math.cast(t.denseShape, dataType)
     }
   }
 
@@ -537,22 +537,22 @@ private[api] trait Basic {
       Math.cast(result, dataType)
   }
 
-  // /** $OpDocBasicIndexedSlicesMask
-  //   *
-  //   * @group BasicOps
-  //   *
-  //   * @param  input       Input indexed slices.
-  //   * @param  maskIndices One-dimensional tensor containing the indices of the elements to mask.
-  //   * @return Result as a new tensor indexed slices object.
-  //   */
-  // @throws[IllegalArgumentException]
-  // def indexedSlicesMask(
-  //     input: TensorIndexedSlices, maskIndices: Tensor)(
-  //     implicit context: DynamicVariable[Context]): TensorIndexedSlices = {
-  //   val (outputIndices, toGather) = listDiff(input.indices, maskIndices)
-  //   val outputValues = gather(input.values, toGather)
-  //   TensorIndexedSlices(indices = outputIndices, values = outputValues, denseShape = input.denseShape)
-  // }
+  /** $OpDocBasicIndexedSlicesMask
+    *
+    * @group BasicOps
+    *
+    * @param  input       Input indexed slices.
+    * @param  maskIndices One-dimensional tensor containing the indices of the elements to mask.
+    * @return Result as a new tensor indexed slices object.
+    */
+  @throws[IllegalArgumentException]
+  def indexedSlicesMask(
+      input: TensorIndexedSlices, maskIndices: Tensor)(
+      implicit context: DynamicVariable[Context]): TensorIndexedSlices = {
+    val (outputIndices, toGather) = listDiff(input.indices, maskIndices)
+    val outputValues = gather(input.values, toGather)
+    TensorIndexedSlices(indices = outputIndices, values = outputValues, denseShape = input.denseShape)
+  }
 
   //endregion Tensor Masking Ops
 
@@ -736,30 +736,30 @@ private[api] trait Basic {
       NativeTensorOpsBasic.checkNumerics(context.value.nativeHandle, input.nativeHandle, message.getBytes()))
   }
 
-  // /** $OpDocBasicEditDistance
-  //   *
-  //   * @group BasicOps
-  //   *
-  //   * @param  hypothesis Sparse tensor that contains the hypothesis sequences.
-  //   * @param  truth      Sparse tensor that contains the truth sequences.
-  //   * @param  normalize  Optional boolean value indicating whether to normalize the Levenshtein distance by the
-  //   *                    length of `truth`.
-  //   * @return Result as a new tensor.
-  //   */
-  // def editDistance(
-  //     hypothesis: SparseTensor, truth: SparseTensor, normalize: Boolean = true)(
-  //     implicit context: DynamicVariable[Context]): Tensor = {
-  //   Tensor.fromNativeHandle(
-  //     NativeTensorOpsBasic.editDistance(
-  //       context.value.nativeHandle,
-  //       hypothesis.indices.nativeHandle,
-  //       hypothesis.values.nativeHandle,
-  //       hypothesis.denseShape.nativeHandle,
-  //       truth.indices.nativeHandle,
-  //       truth.values.nativeHandle,
-  //       truth.denseShape.nativeHandle,
-  //       normalize))
-  // }
+  /** $OpDocBasicEditDistance
+    *
+    * @group BasicOps
+    *
+    * @param  hypothesis Sparse tensor that contains the hypothesis sequences.
+    * @param  truth      Sparse tensor that contains the truth sequences.
+    * @param  normalize  Optional boolean value indicating whether to normalize the Levenshtein distance by the
+    *                    length of `truth`.
+    * @return Result as a new tensor.
+    */
+  def editDistance(
+      hypothesis: SparseTensor, truth: SparseTensor, normalize: Boolean = true)(
+      implicit context: DynamicVariable[Context]): Tensor = {
+    Tensor.fromNativeHandle(
+      NativeTensorOpsBasic.editDistance(
+        context.value.nativeHandle,
+        hypothesis.indices.nativeHandle,
+        hypothesis.values.nativeHandle,
+        hypothesis.denseShape.nativeHandle,
+        truth.indices.nativeHandle,
+        truth.values.nativeHandle,
+        truth.denseShape.nativeHandle,
+        normalize))
+  }
 
   /** $OpDocBasicOneHot
     *
@@ -836,7 +836,8 @@ private[api] trait Basic {
 
 private[api] object Basic extends Basic {
   private[ops] trait Implicits {
-    implicit def tensorToBasicOps(tensor: Tensor): BasicOps = BasicOps(tensor)
+    implicit def tensorToBasicOps(value: Tensor): BasicOps = BasicOps(value)
+    implicit def tensorConvertibleToBasicOps[T](value: T)(implicit f: (T) => Tensor): BasicOps = BasicOps(f(value))
   }
 
   case class BasicOps private[ops](tensor: Tensor) {
@@ -859,7 +860,7 @@ private[api] object Basic extends Basic {
       *               will be squeezed.
       * @return Result as a new tensor.
       */
-    def squeeze(axes: Array[Int] = null): Tensor = Basic.squeeze(tensor, axes)
+    def squeeze(axes: Seq[Int] = null): Tensor = Basic.squeeze(tensor, axes)
 
     /** $OpDocBasicUnstack
       *
@@ -935,7 +936,7 @@ private[api] object Basic extends Basic {
       *
       * @return Result as a new tensor.
       */
-    def matrixTranspose(): Tensor = Basic.matrixTranspose(tensor)
+    def matrixTranspose: Tensor = Basic.matrixTranspose(tensor)
 
     /** $OpDocBasicInvertPermutation
       *
@@ -1142,46 +1143,21 @@ private[api] object Basic extends Basic {
       */
     def scatterND(updates: Tensor, shape: Tensor): Tensor = Basic.scatterND(tensor, updates, shape)
 
-    // TODO: [DOC] !!!
-    // TODO: !!! Move to the indexers object.
+    /** Creates an op that slices this op according to the provided indexers.
+      *
+      * More details into how to construct and use indexers are provided in the [[Indexer]] documentation.
+      *
+      * @param  indexers Sequence of indexers to use.
+      * @return Created op.
+      */
     def slice(indexers: Indexer*): Tensor = {
-      if (indexers.count(_ == Ellipsis) > 1)
-        throw InvalidIndexerException("Only one 'Ellipsis' ('---') is allowed per indexing sequence.")
-      val begin = Array.fill(indexers.length)(0)
-      val end = Array.fill(indexers.length)(0)
-      val strides = Array.fill(indexers.length)(1)
-      var beginMask: Long = 0 // TODO: Use this.
-      var endMask: Long = 0
-      var ellipsisMask: Long = 0
-      var newAxisMask: Long = 0
-      var shrinkAxisMask: Long = 0
-      indexers.zipWithIndex foreach {
-        case (Ellipsis, i) => ellipsisMask |= (1 << i)
-        case (NewAxis, i) => newAxisMask |= (1 << i)
-        case (Index(index), i) =>
-          begin(i) = index
-          end(i) = index + 1
-          strides(i) = 1
-          shrinkAxisMask |= (1 << i)
-        case (Slice(sliceBegin, sliceEnd, sliceStep, false), i) =>
-          begin(i) = sliceBegin
-          end(i) = sliceEnd
-          strides(i) = sliceStep
-        case (Slice(sliceBegin, sliceEnd, sliceStep, true), i) =>
-          begin(i) = sliceBegin
-          if (sliceEnd == -1) {
-            end(i) = sliceEnd
-            endMask |= (1 << i)
-          } else {
-            end(i) = sliceEnd + 1
-          }
-          strides(i) = sliceStep
-      }
-      val beginTensor: Tensor = begin
-      val endTensor: Tensor = end
-      val stridesTensor: Tensor = strides
+      val stridedSlice = Indexer.toStridedSlice(indexers: _*)
+      val beginTensor: Tensor = stridedSlice._1
+      val endTensor: Tensor = stridedSlice._2
+      val stridesTensor: Tensor = stridedSlice._3
       val result = Basic.stridedSlice(
-        tensor, beginTensor, endTensor, stridesTensor, beginMask, endMask, ellipsisMask, newAxisMask, shrinkAxisMask)
+        tensor, beginTensor, endTensor, stridesTensor, stridedSlice._4, stridedSlice._5, stridedSlice._6,
+        stridedSlice._7, stridedSlice._8)
       beginTensor.close()
       endTensor.close()
       stridesTensor.close()

@@ -277,6 +277,8 @@ case class Variable private (
 
 /** Contains helper functions and classes for creating and dealing with [[Variable]] objects. */
 private[api] object Variable {
+  implicit def variableToOutput(variable: Variable): Output = variable.toOutput
+
   /** Gets an existing variable with the specified name or creates a new one.
     *
     * This function prefixes the name with the current variable scope and performs variable reuse checks.

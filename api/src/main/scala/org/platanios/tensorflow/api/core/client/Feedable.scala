@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.core.client
 
 import org.platanios.tensorflow.api.ops.{Output, OutputIndexedSlices, SparseOutput}
-import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.api.tensors.{Tensor, TensorIndexedSlices, SparseTensor}
 
 import shapeless._
 
@@ -52,22 +52,20 @@ object Feedable {
     override def feed(feedable: Output, value: ValueType): Map[Output, Tensor] = Map(feedable -> value)
   }
 
-  // TODO: [TENSORS] Switch to something like "TensorIndexedSlices".
-  implicit val outputIndexedSlicesFeedable: Aux[OutputIndexedSlices, (Tensor, Tensor, Tensor)] = {
+  implicit val outputIndexedSlicesFeedable: Aux[OutputIndexedSlices, TensorIndexedSlices] = {
     new Feedable[OutputIndexedSlices] {
-      override type ValueType = (Tensor, Tensor, Tensor)
+      override type ValueType = TensorIndexedSlices
       override def feed(feedable: OutputIndexedSlices, value: ValueType): Map[Output, Tensor] = {
-        Map(feedable.indices -> value._1, feedable.values -> value._2, feedable.denseShape -> value._3)
+        Map(feedable.indices -> value.indices, feedable.values -> value.values, feedable.denseShape -> value.denseShape)
       }
     }
   }
 
-  // TODO: [TENSORS] Switch to something like "SparseTensor".
-  implicit val sparseOutputFeedable: Aux[SparseOutput, (Tensor, Tensor, Tensor)] = {
+  implicit val sparseOutputFeedable: Aux[SparseOutput, SparseTensor] = {
     new Feedable[SparseOutput] {
-      override type ValueType = (Tensor, Tensor, Tensor)
+      override type ValueType = SparseTensor
       override def feed(feedable: SparseOutput, value: ValueType): Map[Output, Tensor] = {
-        Map(feedable.indices -> value._1, feedable.values -> value._2, feedable.denseShape -> value._3)
+        Map(feedable.indices -> value.indices, feedable.values -> value.values, feedable.denseShape -> value.denseShape)
       }
     }
   }

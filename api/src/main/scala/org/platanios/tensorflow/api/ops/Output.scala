@@ -16,17 +16,14 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.{Graph, Indexer, Shape}
-import org.platanios.tensorflow.api.core.client.Session
-import org.platanios.tensorflow.api.core.exception.InvalidDataTypeException
+import org.platanios.tensorflow.api.core.client.{FeedMap, Session}
 import org.platanios.tensorflow.api.ops
+import org.platanios.tensorflow.api.ops.Basic.BasicOps
 import org.platanios.tensorflow.api.ops.Op.{createWith, getGraphFromInputs}
-import org.platanios.tensorflow.api.ops.variables.{PartitionedVariable, Variable}
-import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.api.tensors.{SparseTensor, Tensor, TensorIndexedSlices, TensorLike}
 import org.platanios.tensorflow.api.types.{DataType, INT32, INT64}
 import org.platanios.tensorflow.api.utilities.using
 import org.platanios.tensorflow.jni.{Op => NativeOp}
-
-import spire.math.UShort
 
 /** Trait representing outputs of an [[Op]]'s computation.
   *
@@ -63,42 +60,46 @@ sealed trait OutputLike {
   def toOutputIndexedSlices(optimize: Boolean = true): OutputIndexedSlices
 }
 
+object OutputLike {
+  implicit def outputLikeToOutput[T <: OutputLike](outputLike: T): Output = outputLike.toOutput
+}
+
 /** Type trait for defining functions operating on and returning op outputs. */
 private[ops] trait OutputOps[T] {
-  /** Applies a unary op function to the provided output and returns the result.
+  /** Applies a unary function to the provided output and returns the result.
     *
-    * @param  outputLike Output-like object to apply the unary op function on.
-    * @param  opFunction Unary op function to apply.
+    * @param  outputLike Output-like object to apply the unary function on.
+    * @param  opFunction Unary function to apply.
     * @return Resulting output-like object that matches the type of `outputLike`.
     */
   @inline
-  def unaryOp(outputLike: T, opFunction: Output => Output): T
+  def applyUnary(outputLike: T, opFunction: Output => Output): T
 }
 
 /** Companion object that defines supported [[OutputOps]] implicit values. */
 private[ops] object OutputOps {
-  implicit val outputOps = new OutputOps[Output] {
+  implicit val outputOps: OutputOps[Output] = new OutputOps[Output] {
     @inline
-    override def unaryOp(outputLike: Output, opFunction: (Output) => Output): Output = opFunction(outputLike)
+    override def applyUnary(outputLike: Output, opFunction: (Output) => Output): Output = opFunction(outputLike)
   }
 
-  implicit val outputIndexedSlicesOps = new OutputOps[OutputIndexedSlices] {
+  implicit val outputIndexedSlicesOps: OutputOps[OutputIndexedSlices] = new OutputOps[OutputIndexedSlices] {
     @inline
-    override def unaryOp(outputLike: OutputIndexedSlices, opFunction: Output => Output): OutputIndexedSlices = {
+    override def applyUnary(outputLike: OutputIndexedSlices, opFunction: Output => Output): OutputIndexedSlices = {
       outputLike.copy(values = opFunction(outputLike.values))
     }
   }
 
-  implicit val sparseOutputOps = new OutputOps[SparseOutput] {
+  implicit val sparseOutputOps: OutputOps[SparseOutput] = new OutputOps[SparseOutput] {
     @inline
-    override def unaryOp(outputLike: SparseOutput, opFunction: Output => Output): SparseOutput = {
+    override def applyUnary(outputLike: SparseOutput, opFunction: Output => Output): SparseOutput = {
       outputLike.copy(values = opFunction(outputLike.values))
     }
   }
 
-  implicit val outputLikeOps = new OutputOps[OutputLike] {
+  implicit val outputLikeOps: OutputOps[OutputLike] = new OutputOps[OutputLike] {
     @inline
-    override def unaryOp(outputLike: OutputLike, opFunction: (Output) => Output): OutputLike = {
+    override def applyUnary(outputLike: OutputLike, opFunction: (Output) => Output): OutputLike = {
       outputLike match {
         case o: Output => opFunction(o)
         case o: OutputIndexedSlices => o.copy(values = opFunction(o.values))
@@ -206,7 +207,6 @@ final case class Output private(op: Op, index: Int) extends OutputLike {
 
   //region Slicing
 
-  // TODO: Maybe add support for a name argument for the constructed op?
   /** Creates an op that slices this op according to the provided indexers.
     *
     * More details into how to construct and use indexers are provided in the [[Indexer]] documentation.
@@ -214,48 +214,18 @@ final case class Output private(op: Op, index: Int) extends OutputLike {
     * @param  indexers Sequence of indexers to use.
     * @return Created op.
     */
-  def slice(indexers: Indexer*): Output = Indexer.toStridedSlice(indexers: _*)(this)
+  def apply(indexers: Indexer*): Output = this.slice(indexers: _*)
+
+  /** Creates an op that slices this op according to the provided indexers.
+    *
+    * More details into how to construct and use indexers are provided in the [[Indexer]] documentation.
+    *
+    * @param  indexers Sequence of indexers to use.
+    * @return Created op.
+    */
+  def slice(indexers: Indexer*): Output = BasicOps(this).slice(indexers: _*)
 
   //endregion Slicing
-
-  //region Ops
-
-  // TODO: [OPS] Make all ops separate "enriching" classes (e.g., BasicOps, MathOps, etc.).
-
-  private[this] def binaryOperatorHelper(other: Output, operator: (Output, Output) => Output): Output = {
-    if (this.dataType.priority >= other.dataType.priority)
-      operator(this, Math.cast(other, this.dataType))
-    else
-      operator(Math.cast(this, other.dataType), other)
-  }
-
-  private[this] def divHelper(x: Output, y: Output): Output = {
-    if (x.dataType.isFloatingPoint || x.dataType.isComplex)
-      Math.divide(x, y)
-    else
-      Math.truncateDivide(x, y)
-  }
-
-  def unary_- : Output = Math.negate(x = this)
-  def +(other: Output): Output = binaryOperatorHelper(other, Math.add(_, _))
-  def -(other: Output): Output = binaryOperatorHelper(other, Math.subtract(_, _))
-  def *(other: Output): Output = binaryOperatorHelper(other, Math.multiply(_, _)) // TODO: [SPARSE]
-  def /(other: Output): Output = binaryOperatorHelper(other, divHelper)           // TODO: [SPARSE]
-  def %(other: Output): Output = binaryOperatorHelper(other, Math.floorMod(_, _))
-  def **(other: Output): Output = binaryOperatorHelper(other, Math.pow(_, _))
-
-  def unary_! : Output = Math.logicalNot(x = this)
-  def &&(other: Output): Output = Math.logicalAnd(x = this, y = other)
-  def ||(other: Output): Output = Math.logicalOr(x = this, y = other)
-
-  // def ===(other: Output): Output = Math.equal(x = this, y = other)
-  // def =!=(other: Output): Output = Math.notEqual(x = this, y = other)
-  def <(other: Output): Output = Math.less(x = this, y = other)
-  def <=(other: Output): Output = Math.lessEqual(x = this, y = other)
-  def >(other: Output): Output = Math.greater(x = this, y = other)
-  def >=(other: Output): Output = Math.greaterEqual(x = this, y = other)
-
-  //endregion Ops
 
   /** Returns the [[Output]] that this [[OutputLike]] object represents. */
   override def toOutput: Output = this
@@ -271,15 +241,6 @@ final case class Output private(op: Op, index: Int) extends OutputLike {
     val indices = Math.range(Basic.constant(0), denseShape(0))
     OutputIndexedSlices(indices = indices, values = this, denseShape = denseShape)
   }
-
-  /** Creates an op that slices this op according to the provided indexers.
-    *
-    * More details into how to construct and use indexers are provided in the [[Indexer]] documentation.
-    *
-    * @param  indexers Sequence of indexers to use.
-    * @return Created op.
-    */
-  def apply(indexers: Indexer*): Output = slice(indexers: _*)
 
   override def toString: String = {
     if (device != "")
@@ -303,35 +264,21 @@ final case class Output private(op: Op, index: Int) extends OutputLike {
 }
 
 object Output {
-  private[ops] trait API extends Implicits {
+  private[ops] trait Implicits {
+    implicit def tensorLikeToOutput[T <: TensorLike](value: T): Output = value.toTensor.toOutput
+    implicit def tensorLikeConvertibleToOutput[T, R <: TensorLike](value: T)(implicit f: (T) => R): Output = {
+      f(value).toTensor.toOutput
+    }
+  }
+
+  implicit def outputToOp(output: Output): Op = output.op
+  implicit def outputToInitialValueFunction(output: Output): () => Output = () => output
+
+  private[ops] trait API {
     type OutputLike = ops.OutputLike
     type Output = ops.Output
     type OutputIndexedSlices = ops.OutputIndexedSlices
     type SparseOutput = ops.SparseOutput
-  }
-
-  private[ops] trait Implicits {
-    implicit def outputConvertibleToOutput[T](value: T)(implicit ev: OutputConvertible[T]): Output = ev.toOutput(value)
-
-    implicit def scalaValueToOutput(value: Boolean): Output = Basic.constant(value)
-    implicit def scalaValueToOutput(value: String): Output = Basic.constant(value)
-    implicit def scalaValueToOutput(value: Float): Output = Basic.constant(value)
-    implicit def scalaValueToOutput(value: Double): Output = Basic.constant(value)
-    implicit def scalaValueToOutput(value: Byte): Output = Basic.constant(value)
-    implicit def scalaValueToOutput(value: Short): Output = Basic.constant(value)
-    implicit def scalaValueToOutput(value: Int): Output = Basic.constant(value)
-    implicit def scalaValueToOutput(value: Long): Output = Basic.constant(value)
-    implicit def scalaValueToOutput(value: UShort): Output = Basic.constant(value)
-
-    implicit def scalaArrayToOutput(value: Array[Boolean]): Output = Basic.constant(value)
-    // implicit def scalaArrayToOutput(value: Array[String]): Output = Basic.constant(value)
-    implicit def scalaArrayToOutput(value: Array[Float]): Output = Basic.constant(value)
-    implicit def scalaArrayToOutput(value: Array[Double]): Output = Basic.constant(value)
-    implicit def scalaArrayToOutput(value: Array[Byte]): Output = Basic.constant(value)
-    implicit def scalaArrayToOutput(value: Array[Short]): Output = Basic.constant(value)
-    implicit def scalaArrayToOutput(value: Array[Int]): Output = Basic.constant(value)
-    implicit def scalaArrayToOutput(value: Array[Long]): Output = Basic.constant(value)
-    implicit def scalaArrayToOutput(value: Array[UShort]): Output = Basic.constant(value)
   }
 
   // TODO: !!!
@@ -413,7 +360,6 @@ object Output {
     * @return [[Shape]] based on the constant value of `tensor`.
     */
   private[api] def constantValueAsShape(tensor: Output): Option[Shape] = {
-    // TODO: !!! Do we really need this function?
     val shape = tensor.shape.withRank(1)
     if (shape == Shape(0)) {
       Some(Shape.scalar())
@@ -459,17 +405,9 @@ object Output {
       }
     }
   }
-
-  /** Convenient implicit conversion function used to convert op outputs to their corresponding ops for use with the
-    * [[Op.createWith]] function, when specifying control dependencies.
-    *
-    * @param  output Op output.
-    * @return Op corresponding to the provided op output.
-    */
-  implicit def outputToOpImplicitConversion(output: Output): Op = output.op
 }
 
-/** Sparse representation of one of the outputs of an `Op`'s computation. of a set of tensor slices at given indices.
+/** Sparse representation of a set of tensor slices at given indices.
   *
   * This class if a simple wrapper for a pair (or a set of three) of [[Output]] objects:
   *   - `indices`: A one-dimensional integer [[Output]] with shape `[D0]`.
@@ -505,7 +443,7 @@ final case class OutputIndexedSlices private(indices: Output, values: Output, de
   override def name: String = s"${values.name}[${indices.name}]" +
       (if (denseShape != null) s"(shape = ${denseShape.name})" else "")
 
-  /** Data type of this op output indexed slices. */
+  /** Data type of these op output indexed slices. */
   override def dataType: DataType = values.dataType
 
   /** Device on which these op output indexed slices will be placed. */
@@ -517,12 +455,35 @@ final case class OutputIndexedSlices private(indices: Output, values: Output, de
   /** Consumers of these indexed slices (i.e., ops that use this op output as one of their inputs). */
   override def consumers: Array[Input] = values.consumers
 
+  /** Gets the [[Shape]] corresponding to the shape of the dense tensor that these indexed slices represent.
+    *
+    * @return Dense tensor shape.
+    */
+  def shape: Shape = Output.constantValueAsShape(denseShape).get
+
+  /** Evaluates these indexed slices.
+    *
+    * If `feeds` is non-empty, then the provided feed values are fed into the session for computing the value of these
+    * indexed slices.
+    *
+    * If `session` is `null` (i.e., not provided), then the default session is used. Otherwise, `session` is used for
+    * the evaluation.
+    *
+    * @param  feeds   Tensors to feed into the session for this evaluation.
+    * @param  session Optional session to use for the evaluation.
+    * @return Value of these indexed slices, for this evaluation.
+    */
+  def value(feeds: FeedMap = FeedMap.empty, session: Session = null): TensorIndexedSlices = {
+    val effectiveSession = if (session == null) graph.defaultSession else session
+    effectiveSession.run(feeds, this)
+  }
+
   /** Returns the [[Output]] that this [[OutputLike]] object represents. */
   override def toOutput: Output = {
     if (denseShape != null)
       throw new IllegalStateException(
-        s"Op output conversion requested the conversion of 'OutputIndexedSlices', '$this', which has no dense " +
-            s"shape information available.")
+        s"Conversion of 'OutputIndexedSlices', '$this', " +
+            s"which has no dense shape information available, is not possible.")
     // TODO: Add check for large number of elements (e.g., > 100000000).
     createWith(nameScope = "IndexedSlicesToOutput") {
       Math.unsortedSegmentSum(data = values, segmentIndices = indices, segmentsNumber = denseShape(0))
@@ -546,25 +507,25 @@ final case class OutputIndexedSlices private(indices: Output, values: Output, de
 /** Represents a sparse op output.
   *
   * TensorFlow represents a sparse tensor as three separate dense tensors: `indices`, `values`, and `denseShape`. In
-  * Scala, the three tensors are collected into a `SparseTensor` class for ease of use.  If you have separate
+  * Scala, the three tensors are collected into a [[SparseOutput]] class for ease of use.  If you have separate
   * `indices`, `values`, and `denseShape` tensors, wrap them in a `SparseTensor` object before passing to the
-  * relevant sparse tensor manipulation
+  * relevant sparse tensor manipulation.
   *
-  * Concretely, the sparse tensor `SparseTensor(indices, values, denseShape)` comprises the following components,
-  * where `N` and `rank` are the number of values and number of dimensions in the `SparseTensor`, respectively:
+  * Concretely, the sparse tensor `SparseOutput(indices, values, denseShape)` comprises the following components,
+  * where `N` and `rank` are the number of values and number of dimensions in the [[SparseOutput]], respectively:
   *
-  *   - `indices`: Two-dimensional `Int64` tensor with shape `[N, rank]`, which specifies the indices of the elements
-  * in the sparse tensor that have nonzero values (elements are zero-indexed). For example,
-  * `indices = [[1, 3], [2, 4]]` specifies that the elements with indexes `[1, 3]` and `[2, 4]` have nonzero
-  * values.
+  *   - `indices`: Two-dimensional [[INT64]] tensor with shape `[N, rank]`, which specifies the indices of the elements
+  *     in the sparse tensor that have nonzero values (elements are zero-indexed). For example,
+  *     `indices = [[1, 3], [2, 4]]` specifies that the elements with indexes `[1, 3]` and `[2, 4]` have nonzero
+  *     values.
   *   - `values`: One-dimensional tensor of any type, with shape `[N]`, which supplies the values for each element in
-  * `indices`. For example, given `indices = [[1, 3], [2, 4]]`, the parameter `values = [18, 3.6]` specifies that
-  * element `[1, 3]` of the sparse tensor has a value of `18`, and element `[2, 4]` of the tensor has a value of
-  * `3.6`.
+  *     `indices. For example, given `indices = [[1, 3], [2, 4]]`, the parameter `values = [18, 3.6]` specifies that
+  *     element `[1, 3]` of the sparse tensor has a value of `18`, and element `[2, 4]` of the tensor has a value of
+  *     `3.6`.
   *   - `denseShape`: One-dimensional `Int64` tensor with shape `[rank]`, which specifies the dense shape of the
-  * sparse tensor.  For example, `denseShape = [3, 6]` specifies a two-dimensional 3x6 tensor,
-  * `denseShape = [2, 3, 4]` specifies a three-dimensional 2x3x4 tensor, and `denseShape = [9]` specifies a
-  * one-dimensional tensor with 9 elements.
+  *     sparse tensor.  For example, `denseShape = [3, 6]` specifies a two-dimensional 3x6 tensor,
+  *     `denseShape = [2, 3, 4]` specifies a three-dimensional 2x3x4 tensor, and `denseShape = [9]` specifies a
+  *     one-dimensional tensor with 9 elements.
   *
   * The corresponding dense tensor, `dense`, satisfies:
   * {{{
@@ -577,29 +538,21 @@ final case class OutputIndexedSlices private(indices: Output, values: Output, de
   * ordering. If the ordering of sparse tensor `st` is wrong, a fixed version can be obtained by calling
   * `sparseReorder(st)`.
   *
-  * For example, the sparse tensor `SparseTensor(indices = [[0, 0], [1, 2]], values = [1, 2], denseShape = [3, 4])`,
+  * For example, the sparse tensor `SparseOutput(indices = [[0, 0], [1, 2]], values = [1, 2], denseShape = [3, 4])`,
   * represents the dense tensor `[[1, 0, 0, 0], [0, 0, 2, 0], [0, 0, 0, 0]]`.
-  * {{{
-  *   // The sparse tensor:
-  *   SparseTensor(indices = Tensor(Tensor(0, 0), Tensor(1, 2)), values = Tensor(1, 2), denseShape = Shape(3, 4))
-  *   // represents the dense tensor:
-  *   //
-  * }}}
   *
-  * @param  indices    Two-dimensional `Int64` tensor with shape `[N, rank]`.
+  * @param  indices    Two-dimensional [[INT32]] or [[INT64]] tensor with shape `[N, rank]`.
   * @param  values     One-dimensional tensor with shape `[N]`.
-  * @param  denseShape One-dimensional `Int64` tensor with shape `[rank]`.
+  * @param  denseShape One-dimensional [[INT32]] or [[INT64]] tensor with shape `[rank]`.
   *
   * @author Emmanouil Antonios Platanios
   */
 final case class SparseOutput(indices: Output, values: Output, denseShape: Output) extends OutputLike {
-  // TODO: Add constructor from scala arrays?
-  if (indices.dataType != INT64)
-    throw InvalidDataTypeException(
-      s"Indices cannot have '${indices.dataType}' data type. They have to be 'TFInt64'.")
-  if (denseShape.dataType != INT64)
-    throw InvalidDataTypeException(
-      s"Dense shape cannot have '${denseShape.dataType}' data type. It has to be 'TFInt64'.")
+  require(indices.dataType == INT32 || indices.dataType == INT64,
+          s"Indices cannot have '${indices.dataType}' data type. They have to be 'INT32' or 'INT64'.")
+  require(denseShape.dataType == INT32 || denseShape.dataType == INT64,
+          s"Dense shape cannot have '${denseShape.dataType}' data type. They have to be 'INT32' or 'INT64'.")
+
   // TODO: Add a "subShape" method?
   Shape(indices.shape.withRank(2)(0)).assertIsCompatibleWith(Shape(values.shape.withRank(1)(0)))
   Shape(indices.shape.withRank(2)(1)).assertIsCompatibleWith(Shape(denseShape.shape.withRank(1)(0)))
@@ -632,17 +585,16 @@ final case class SparseOutput(indices: Output, values: Output, denseShape: Outpu
   /** Evaluates this sparse op output.
     *
     * If `feeds` is non-empty, then the provided feed values are fed into the session for computing the value of this
-    * op output.
+    * sparse output.
     *
     * If `session` is `null` (i.e., not provided), then the default session is used. Otherwise, `session` is used for
     * the evaluation.
     *
     * @param  feeds   Tensors to feed into the session for this evaluation.
     * @param  session Optional session to use for the evaluation.
-    * @return Value of this sparse op output, for this evaluation, represented as tuple containing the indices, the
-    *         values, and the dense shape.
+    * @return Value of this sparse op output, for this evaluation.
     */
-  def value(feeds: Map[Output, Tensor] = Map.empty, session: Session = null): (Tensor, Tensor, Tensor) = {
+  def value(feeds: FeedMap = FeedMap.empty, session: Session = null): SparseTensor = {
     val effectiveSession = if (session == null) graph.defaultSession else session
     effectiveSession.run(feeds, this)
   }
@@ -658,54 +610,5 @@ final case class SparseOutput(indices: Output, values: Output, denseShape: Outpu
   override def toString: String = {
     s"OutputIndexedSlices(values = ${values.name}, indices = ${indices.name}, denseShape = ${denseShape.name}, " +
         s"device = $device)}"
-  }
-}
-
-object SparseOutput {
-  /** Converts the provided sparse output value to a sparse op output.
-    *
-    * @param  sparseOutputValue Sparse output value represented as tuple containing the indices, the values, and the
-    *                           dense shape.
-    * @return Sparse op output.
-    */
-  private[api] def convertToSparseOutput(sparseOutputValue: (Tensor, Tensor, Tensor)): SparseOutput = {
-    SparseOutput(
-      Basic.constant(sparseOutputValue._1),
-      Basic.constant(sparseOutputValue._2),
-      Basic.constant(sparseOutputValue._3))
-  }
-}
-
-/** Helper type trait for output convertible objects so that implicit conversions to op outputs can be used.
-  *
-  * @author Emmanouil Antonios Platanios
-  */
-trait OutputConvertible[T] {
-  // TODO: Add data type argument.
-  /** Returns the [[Output]] that `value` represents. */
-  @inline def toOutput(value: T): Output
-}
-
-object OutputConvertible {
-  implicit def outputLikeOutputConvertible[T <: OutputLike]: OutputConvertible[T] = new OutputConvertible[T] {
-    @inline override def toOutput(value: T): Output = value.toOutput
-  }
-
-  implicit val variableOutputConvertible: OutputConvertible[Variable] = new OutputConvertible[Variable] {
-    @inline override def toOutput(value: Variable): Output = value.toOutput
-  }
-
-  implicit val partitionedVariableOutputConvertible: OutputConvertible[PartitionedVariable] = {
-    new OutputConvertible[PartitionedVariable] {
-      @inline override def toOutput(value: PartitionedVariable): Output = value.toOutput
-    }
-  }
-
-  implicit val tensorOutputConvertible: OutputConvertible[Tensor] = new OutputConvertible[Tensor] {
-    @inline override def toOutput(value: Tensor): Output = value.toOutput
-  }
-
-  implicit val shapeOutputConvertible: OutputConvertible[Shape] = new OutputConvertible[Shape] {
-    @inline override def toOutput(value: Shape): Output = value.toOutput()
   }
 }

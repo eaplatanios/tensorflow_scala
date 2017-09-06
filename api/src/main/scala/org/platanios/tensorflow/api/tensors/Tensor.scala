@@ -20,13 +20,15 @@ import org.platanios.tensorflow.api.core._
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.ops.{Basic, Output}
-import org.platanios.tensorflow.api.tensors.ops.Basic.stack
+import org.platanios.tensorflow.api.tensors.ops.Basic.{BasicOps, stack}
+import org.platanios.tensorflow.api.tensors.ops.Math
 import org.platanios.tensorflow.api.types._
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer}
 import org.platanios.tensorflow.jni.{Tensor => NativeTensor}
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
+
 import shapeless.{Generic, HList, Lazy}
 
 import java.nio._
@@ -44,11 +46,24 @@ sealed trait TensorLike {
   /** Data type of this tensor. */
   val dataType: DataType
 
+  /** Shape of this tensor. */
+  val shape: Shape
+
   /** Device on which this tensor is stored. */
   val device: String
 
   /** Returns the [[Tensor]] that this [[TensorLike]] object represents. */
   def toTensor: Tensor
+
+  /** Returns an [[TensorIndexedSlices]] that has the same value as this [[TensorLike]].
+    *
+    * @return [[TensorIndexedSlices]] that has the same value as this [[TensorLike]].
+    */
+  def toTensorIndexedSlices: TensorIndexedSlices
+}
+
+object TensorLike {
+  implicit def tensorLikeToTensor[T <: TensorLike](value: T): Tensor = value.toTensor
 }
 
 /** Type trait for defining functions operating on and returning tensors. */
@@ -70,15 +85,27 @@ private[tensors] object TensorOps {
     override def applyUnary(tensorLike: Tensor, function: Tensor => Tensor): Tensor = function(tensorLike)
   }
 
-  // TODO: Add implicits for TensorIndexedSlices and for SparseTensor.
+  implicit val tensorIndexedSlicesOps: TensorOps[TensorIndexedSlices] = new TensorOps[TensorIndexedSlices] {
+    @inline
+    override def applyUnary(tensorLike: TensorIndexedSlices, function: Tensor => Tensor): TensorIndexedSlices = {
+      tensorLike.copy(values = function(tensorLike.values))
+    }
+  }
+
+  implicit val sparseTensorOps: TensorOps[SparseTensor] = new TensorOps[SparseTensor] {
+    @inline
+    override def applyUnary(tensorLike: SparseTensor, function: Tensor => Tensor): SparseTensor = {
+      tensorLike.copy(values = function(tensorLike.values))
+    }
+  }
 
   implicit val tensorLikeOps: TensorOps[TensorLike] = new TensorOps[TensorLike] {
     @inline
     override def applyUnary(tensorLike: TensorLike, function: Tensor => Tensor): TensorLike = {
       tensorLike match {
         case t: Tensor => function(t)
-        // case t: TensorIndexedSlices => t.copy(values = function(t.values))
-        // case t: SparseTensor => t.copy(values = function(t.values))
+        case t: TensorIndexedSlices => t.copy(values = function(t.values))
+        case t: SparseTensor => t.copy(values = function(t.values))
       }
     }
   }
@@ -124,7 +151,7 @@ class Tensor private[Tensor](private[api] var nativeHandle: Long) extends Tensor
   override val dataType: DataType = DataType.fromCValue(NativeTensor.eagerDataType(nativeHandle))
 
   /** Shape of this tensor. */
-  val shape: Shape = Shape.fromSeq(NativeTensor.eagerShape(nativeHandle).map(_.toInt))
+  override val shape: Shape = Shape.fromSeq(NativeTensor.eagerShape(nativeHandle).map(_.toInt))
 
   /** Rank of this tensor (i.e., number of dimensions). */
   def rank: Int = shape.rank
@@ -219,6 +246,8 @@ class Tensor private[Tensor](private[api] var nativeHandle: Long) extends Tensor
 
   def apply(indexers: Indexer*): Tensor = this.slice(indexers: _*)
 
+  def slice(indexers: Indexer*): Tensor = BasicOps(this).slice(indexers: _*)
+
   /** Returns a summary of the contents of this tensor.
     *
     * @param  maxEntries Maximum number of entries to show for each axis/dimension. If the size of an axis exceeds
@@ -260,6 +289,15 @@ class Tensor private[Tensor](private[api] var nativeHandle: Long) extends Tensor
 
   /** Returns this tensor. */
   override def toTensor: Tensor = this
+
+  /** Returns an [[TensorIndexedSlices]] that has the same value as this [[TensorLike]].
+    *
+    * @return [[TensorIndexedSlices]] that has the same value as this [[TensorLike]].
+    */
+  override def toTensorIndexedSlices: TensorIndexedSlices = {
+    val denseShape = shape.toTensor(INT32)
+    TensorIndexedSlices(indices = 0 until shape(0), values = this, denseShape = denseShape)
+  }
 
   override def equals(that: Any): Boolean = that match {
     // TODO: !!! [TENSORS] Replace with equality op and all op.
@@ -450,6 +488,150 @@ object Tensor {
 
   private[tensors] trait Implicits {
     implicit def tensorConvertibleToTensor[T](value: T)(implicit ev: TensorConvertible[T]): Tensor = ev.toTensor(value)
+  }
+}
+
+/** Sparse representation of a set of tensor slices at given indices.
+  *
+  * This class if a simple wrapper for a pair (or a set of three) of [[Tensor]] objects:
+  *   - `indices`: A one-dimensional integer [[Tensor]] with shape `[D0]`.
+  *   - `values`: An [[Tensor]] of any data type, with shape `[D0, D1, ..., Dn]`.
+  *   - `denseShape`: Optionally, an integer [[Tensor]] with shape `[LARGE0, D1, ..., Dn]`.
+  *
+  * An [[TensorIndexedSlices]] is typically used to represent a subset of a larger [[Output]], `dense`, of shape
+  * `[LARGE0, D1, ..., Dn]`, where `LARGE0 >> D0`. The values in `indices` are the indices in the first dimension of
+  * the slices that have been extracted from the larger tensor.
+  *
+  * The dense [[Tensor]], `dense`, represented by [[TensorIndexedSlices]], `slices`, has:
+  * {{{
+  *   dense(slices.indices(i), ::, ::, ...) = slices.values(i, ::, ::, ...)
+  * }}}
+  *
+  * The [[TensorIndexedSlices]] class is used primarily in the definition of gradients for operations that have
+  * sparse gradients, such as `gather`.
+  *
+  * Note that this is different than [[SparseTensor]] which uses multi-dimensional indices and scalar values.
+  *
+  * @param  indices    Indices along the first dimension of the corresponding dense [[Tensor]].
+  * @param  values     Values corresponding to the provided indices.
+  * @param  denseShape Shape of the corresponding dense [[Tensor]].
+  *
+  * @author Emmanouil Antonios Platanios
+  */
+final case class TensorIndexedSlices private(indices: Tensor, values: Tensor, denseShape: Tensor = null)
+    extends TensorLike {
+  /** Data type of these tensor indexed slices. */
+  override val dataType: DataType = values.dataType
+
+  /** Shape of these tensor indexed slices. */
+  override val shape: Shape = Shape(denseShape.entriesIterator.map(_.asInstanceOf[Long].toInt).toSeq: _*)
+
+  /** Device on which these tensor indexed slices will be placed. */
+  override val device: String = values.device
+
+  /** Returns the [[Tensor]] that this [[TensorLike]] object represents. */
+  @throws[IllegalStateException]
+  override def toTensor: Tensor = {
+    if (denseShape != null)
+      throw new IllegalStateException(
+        s"Conversion of 'TensorIndexedSlices', '$this', " +
+            s"which has no dense shape information available, is not possible.")
+    // TODO: Add check for large number of elements (e.g., > 100000000).
+    Math.unsortedSegmentSum(data = values, segmentIndices = indices, segmentsNumber = denseShape(0))
+  }
+
+  /** Returns an [[TensorIndexedSlices]] that has the same value as this [[TensorLike]].
+    *
+    * @return [[TensorIndexedSlices]] that has the same value as this [[TensorLike]].
+    */
+  override def toTensorIndexedSlices: TensorIndexedSlices = this
+
+  override def toString: String = {
+    s"TensorIndexedSlices(values = ${values.name}, indices = ${indices.name}, denseShape = ${denseShape.name}, " +
+        s"device = $device)}"
+  }
+}
+
+/** Represents a sparse op output.
+  *
+  * TensorFlow represents a sparse tensor as three separate dense tensors: `indices`, `values`, and `denseShape`. In
+  * Scala, the three tensors are collected into a [[SparseTensor]] class for ease of use.  If you have separate
+  * `indices`, `values`, and `denseShape` tensors, wrap them in a `SparseTensor` object before passing to the
+  * relevant sparse tensor manipulation.
+  *
+  * Concretely, the sparse tensor `SparseTensor(indices, values, denseShape)` comprises the following components,
+  * where `N` and `rank` are the number of values and number of dimensions in the [[SparseTensor]], respectively:
+  *
+  *   - `indices`: Two-dimensional [[INT64]] tensor with shape `[N, rank]`, which specifies the indices of the elements
+  *     in the sparse tensor that have nonzero values (elements are zero-indexed). For example,
+  *     `indices = [[1, 3], [2, 4]]` specifies that the elements with indexes `[1, 3]` and `[2, 4]` have nonzero
+  *     values.
+  *   - `values`: One-dimensional tensor of any type, with shape `[N]`, which supplies the values for each element in
+  *     `indices`. For example, given `indices = [[1, 3], [2, 4]]`, the parameter `values = [18, 3.6]` specifies that
+  *      element `[1, 3]` of the sparse tensor has a value of `18`, and element `[2, 4]` of the tensor has a value of
+  *      `3.6`.
+  *   - `denseShape`: One-dimensional [[INT64]] tensor with shape `[rank]`, which specifies the dense shape of the
+  *     sparse tensor.  For example, `denseShape = [3, 6]` specifies a two-dimensional 3x6 tensor,
+  *     `denseShape = [2, 3, 4]` specifies a three-dimensional 2x3x4 tensor, and `denseShape = [9]` specifies a
+  *     one-dimensional tensor with 9 elements.
+  *
+  * The corresponding dense tensor, `dense`, satisfies:
+  * {{{
+  *   dense.shape == denseShape
+  *   dense(indices(i)) = values(i) // Using a somewhat loose notation with respect to indexing.
+  * }}}
+  *
+  * IMPORTANT NOTE: By convention, `indices` should be sorted in row-major order (or equivalently lexicographic order
+  * on `indices(i)`). This is not enforced when `SparseTensor` objects are constructed, but most ops assume correct
+  * ordering. If the ordering of sparse tensor `st` is wrong, a fixed version can be obtained by calling
+  * `sparseReorder(st)`.
+  *
+  * For example, the sparse tensor `SparseTensor(indices = [[0, 0], [1, 2]], values = [1, 2], denseShape = [3, 4])`,
+  * represents the dense tensor `[[1, 0, 0, 0], [0, 0, 2, 0], [0, 0, 0, 0]]`.
+  *
+  * @param  indices    Two-dimensional [[INT64]] tensor with shape `[N, rank]`.
+  * @param  values     One-dimensional tensor with shape `[N]`.
+  * @param  denseShape One-dimensional [[INT64]] tensor with shape `[rank]`.
+  *
+  * @author Emmanouil Antonios Platanios
+  */
+final case class SparseTensor(indices: Tensor, values: Tensor, denseShape: Tensor) extends TensorLike {
+  // TODO: Add constructor from scala arrays?
+  require(indices.dataType == INT64, s"Indices cannot have '${indices.dataType}' data type. They have to be 'INT64'.")
+  require(denseShape.dataType == INT64,
+          s"Dense shape cannot have '${denseShape.dataType}' data type. They have to be 'INT64'.")
+
+  // TODO: Add a "subShape" method?
+  Shape(indices.shape.withRank(2)(0)).assertIsCompatibleWith(Shape(values.shape.withRank(1)(0)))
+  Shape(indices.shape.withRank(2)(1)).assertIsCompatibleWith(Shape(denseShape.shape.withRank(1)(0)))
+
+  /** Data type of this sparse op output. */
+  override val dataType: DataType = values.dataType
+
+  /** Shape of this sparse tensor. */
+  override val shape: Shape = Shape(denseShape.entriesIterator.map(_.asInstanceOf[Long].toInt).toSeq: _*)
+
+  /** Device on which this sparse op output will be placed. */
+  override val device: String = values.device
+
+  /** Returns the [[Tensor]] that this [[TensorLike]] object represents. */
+  @throws[UnsupportedOperationException]
+  override def toTensor: Tensor = {
+    throw new UnsupportedOperationException(s"Cannot convert sparse tensor '$this' to a dense tensor.")
+  }
+
+  /** Returns an [[TensorIndexedSlices]] that has the same value as this [[TensorLike]].
+    *
+    * @return [[TensorIndexedSlices]] that has the same value as this [[TensorLike]].
+    */
+  @throws[UnsupportedOperationException]
+  override def toTensorIndexedSlices: TensorIndexedSlices = {
+    throw new UnsupportedOperationException(s"Cannot convert sparse tensor '$this' to tensor indexed slices.")
+  }
+
+  override def toString: String = {
+    s"TensorIndexedSlices(values = ${values.name}, indices = ${indices.name}, denseShape = ${denseShape.name}, " +
+        s"device = $device)}"
   }
 }
 

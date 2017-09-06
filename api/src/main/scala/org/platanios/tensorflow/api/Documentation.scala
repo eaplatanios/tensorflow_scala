@@ -15,4 +15,8 @@
 
 package org.platanios.tensorflow.api
 
+/** Groups together documentation from various sub-packages.
+  *
+  * @author Emmanouil Antonios Platanios
+  */
 private[api] trait Documentation extends ops.Documentation

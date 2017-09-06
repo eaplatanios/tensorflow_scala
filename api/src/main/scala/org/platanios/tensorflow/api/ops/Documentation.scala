@@ -15,6 +15,10 @@
 
 package org.platanios.tensorflow.api.ops
 
+/** Groups together documentation related to constructing symbolic ops.
+  *
+  * @author Emmanouil Antonios Platanios
+  */
 private[api] trait Documentation
     extends Basic.Documentation
         with Math.Documentation
