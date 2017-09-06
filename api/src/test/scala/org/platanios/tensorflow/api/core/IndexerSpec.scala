@@ -295,9 +295,6 @@ class IndexerSpec extends FlatSpec with Matchers {
   // TODO: Add tests for "toStridedSlice".
 
   "'Indexer.toStridedSlice'" must "throw an 'InvalidIndexerException' when an ellipsis is used more than once" in {
-    assert(Indexer.toStridedSlice(---).isInstanceOf[tf.Output => tf.Output])
-    assert(Indexer.toStridedSlice(::, ---).isInstanceOf[tf.Output => tf.Output])
-    assert(Indexer.toStridedSlice(0 :: -1, 0 ::, ---, 3 :: -1 :: 1, -1).isInstanceOf[tf.Output => tf.Output])
     assert(intercept[InvalidIndexerException](Indexer.toStridedSlice(---, ---)).getMessage ===
                "Only one 'Ellipsis' ('---') is allowed per indexing sequence.")
     assert(intercept[InvalidIndexerException](Indexer.toStridedSlice(::, ---, 0, ---)).getMessage ===

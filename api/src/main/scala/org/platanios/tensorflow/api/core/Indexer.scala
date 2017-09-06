@@ -234,15 +234,23 @@ object Indexer {
     (oldDimensions, dimensions, beginOffsets, endOffsets, strides)
   }
 
-  /** Converts a sequence of indexers into a function that takes an [[Output]], applies the strided slice native op on
-    * it for the provided sequence of indexers, and returns a new (indexed) [[Output]].
+  /** Converts a sequence of indexers into a tuple representing a strided slice.
     *
     * Note that `indexers` is only allowed to contain at most one [[Ellipsis]].
     *
     * @param  indexers Sequence of indexers to convert.
-    * @return Function that indexes an [[Output]] and returns a new (indexed) [[Output]].
+    * @return Tuple containing:
+    *         - begin indices,
+    *         - end indices,
+    *         - strides,
+    *         - begin mask,
+    *         - end mask,
+    *         - ellipsis mask,
+    *         - new axis mask, and
+    *         - shrink axis mask.
     */
-  private[api] def toStridedSlice(indexers: Indexer*): Output => Output = {
+  private[api] def toStridedSlice(
+      indexers: Indexer*): (Array[Int], Array[Int], Array[Int], Long, Long, Long, Long, Long) = {
     if (indexers.count(_ == Ellipsis) > 1)
       throw InvalidIndexerException("Only one 'Ellipsis' ('---') is allowed per indexing sequence.")
     val begin = Array.fill(indexers.length)(0)
@@ -275,17 +283,7 @@ object Indexer {
         }
         strides(i) = sliceStep
     }
-    input: Output =>
-      Basic.stridedSlice(
-        input = input,
-        begin = Basic.constant(begin),
-        end = Basic.constant(end),
-        strides = Basic.constant(strides),
-        beginMask = beginMask,
-        endMask = endMask,
-        ellipsisMask = ellipsisMask,
-        newAxisMask = newAxisMask,
-        shrinkAxisMask = shrinkAxisMask)
+    (begin, end, strides, beginMask, endMask, ellipsisMask, newAxisMask, shrinkAxisMask)
   }
 }
 
