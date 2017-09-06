@@ -369,6 +369,9 @@ object Tensor {
     }
   }
 
+  /** Returns a new tensor with the same data type and shape as the provided tensor, and all elements set to zero. */
+  def zerosLike(tensor: Tensor): Tensor = zeros(tensor.dataType, tensor.shape)
+
   /** Returns a new tensor of type `dataType` with shape `shape` and all elements set to ones.
     *
     * For example:
@@ -386,6 +389,9 @@ object Tensor {
       case _ => Tensor.fill(dataType, shape)(1)
     }
   }
+
+  /** Returns a new tensor with the same data type and shape as the provided tensor, and all elements set to one. */
+  def onesLike(tensor: Tensor): Tensor = ones(tensor.dataType, tensor.shape)
 
   /** $OpDocRandomRandomUniform
     *

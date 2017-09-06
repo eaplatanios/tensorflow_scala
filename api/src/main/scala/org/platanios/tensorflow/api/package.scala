@@ -93,14 +93,12 @@ package object api extends Implicits with Documentation {
     * @groupprio StatisticsOps 400
     * @groupname RandomOps     Ops / Random
     * @groupprio RandomOps     500
-    * @groupname SparseOps     Ops / Sparse
-    * @groupprio SparseOps     600
     * @groupname TextOps       Ops / Text
-    * @groupprio TextOps       700
+    * @groupprio TextOps       600
     * @groupname ImageOps      Ops / Image
-    * @groupprio ImageOps      800
+    * @groupprio ImageOps      700
     * @groupname LoggingOps    Ops / Logging
-    * @groupprio LoggingOps    900
+    * @groupprio LoggingOps    800
     */
   object tf
       extends core.API
@@ -119,14 +117,12 @@ package object api extends Implicits with Documentation {
     * @groupprio StatisticsOps 400
     * @groupname RandomOps     Ops / Random
     * @groupprio RandomOps     500
-    * @groupname SparseOps     Ops / Sparse
-    * @groupprio SparseOps     600
     * @groupname TextOps       Ops / Text
-    * @groupprio TextOps       700
+    * @groupprio TextOps       600
     * @groupname ImageOps      Ops / Image
-    * @groupprio ImageOps      800
+    * @groupprio ImageOps      700
     * @groupname LoggingOps    Ops / Logging
-    * @groupprio LoggingOps    900
+    * @groupprio LoggingOps    800
     */
   object tfi
       extends core.API

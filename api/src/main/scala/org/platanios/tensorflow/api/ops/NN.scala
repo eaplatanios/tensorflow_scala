@@ -547,8 +547,8 @@ private[api] trait NN {
     val mostPreciseDataType = DataType.mostPrecise(targets.dataType, k.dataType)
     Op.Builder(opType = "InTopKV2", name = name)
         .addInput(predictions)
-        .addInput(Math.cast(targets, mostPreciseDataType))
-        .addInput(Math.cast(k, mostPreciseDataType))
+        .addInput(targets.cast(mostPreciseDataType))
+        .addInput(k.cast(mostPreciseDataType))
         .build().outputs(0)
   }
 }
