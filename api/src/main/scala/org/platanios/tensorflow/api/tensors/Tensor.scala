@@ -21,16 +21,14 @@ import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.ops.{Basic, Output}
 import org.platanios.tensorflow.api.tensors.ops.Basic.{BasicOps, stack}
-import org.platanios.tensorflow.api.tensors.ops.Math
+import org.platanios.tensorflow.api.tensors.ops.{Math, Random}
 import org.platanios.tensorflow.api.types._
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer}
 import org.platanios.tensorflow.jni.{Tensor => NativeTensor}
-
+import org.platanios.tensorflow.jni.generated.tensors.{Sparse => NativeTensorOpsSparse}
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
-
 import shapeless.{Generic, HList, Lazy}
-
 import java.nio._
 import java.nio.charset.Charset
 
@@ -389,6 +387,45 @@ object Tensor {
     }
   }
 
+  /** $OpDocRandomRandomUniform
+    *
+    * @group RandomOps
+    * @param  dataType Data type for the output tensor. Must be one of: [[FLOAT16]], [[FLOAT32]], [[FLOAT64]],
+    *                  [[INT32]], or [[INT64]].
+    * @param  shape    Rank-1 tensor containing the shape of the output tensor. Defaults to a scalar tensor.
+    * @param  minValue Scalar tensor containing the inclusive lower bound on the random of random values to generate.
+    *                  Defaults to `0`.
+    * @param  maxValue Scalar tensor containing the exclusive upper bound on the random of random values to generate.
+    *                  Defaults to `1`.
+    * @param  seed     Optional random seed, used to generate a random seed pair for the random number generator, when
+    *                  combined with the graph-level seed.
+    * @return New random tensor.
+    */
+  def rand(
+      dataType: DataType = FLOAT32, shape: Tensor = Shape.scalar(), minValue: Tensor = 0.0, maxValue: Tensor = 1.0,
+      seed: Option[Int] = None): Tensor = {
+    Random.randomUniform(dataType, shape, minValue, maxValue, seed)
+  }
+
+  /** $OpDocRandomRandomNormal
+    *
+    * @group RandomOps
+    * @param  dataType          Data type for the output tensor. Must be one of: [[FLOAT16]], [[FLOAT32]], or
+    *                           [[FLOAT64]].
+    * @param  shape             Rank-1 tensor containing the shape of the output tensor. Defaults to a scalar tensor.
+    * @param  mean              Scalar tensor containing the mean of the Normal distribution. Defaults to `0`.
+    * @param  standardDeviation Scalar tensor containing the standard deviation of the Normal distribution. Defaults to
+    *                           `1`.
+    * @param  seed              Optional random seed, used to generate a random seed pair for the random number
+    *                           generator, when combined with the graph-level seed.
+    * @return New random tensor.
+    */
+  def randn(
+      dataType: DataType = FLOAT32, shape: Tensor = Shape.scalar(), mean: Tensor = 0.0, standardDeviation: Tensor = 1.0,
+      seed: Option[Int] = None): Tensor = {
+    Random.randomNormal(dataType, shape, mean, standardDeviation, seed)
+  }
+
   /** Returns a new tensor of type `dataType` with shape `shape` and all elements set to `value`.
     *
     * If `dataType` is not provided, then its value is inferred from `value`.
@@ -617,9 +654,39 @@ final case class SparseTensor(indices: Tensor, values: Tensor, denseShape: Tenso
   override val device: String = values.device
 
   /** Returns the [[Tensor]] that this [[TensorLike]] object represents. */
-  @throws[UnsupportedOperationException]
-  override def toTensor: Tensor = {
-    throw new UnsupportedOperationException(s"Cannot convert sparse tensor '$this' to a dense tensor.")
+  override def toTensor: Tensor = toTensor()
+
+  /** Converts this sparse tensor to a dense tensor.
+    *
+    * The constructed op builds a tensor `dense` with shape `input.denseShape`, such that:
+    * {{{
+    *   // If input.indices is scalar:
+    *   dense(i) ==> (i == input.indices ? input.values : defaultValue)
+    *
+    *   // If input.indices is a vector, then for each i:
+    *   dense(input.indices(i)) ==> input.values(i)
+    *
+    *   // If input.indices is an n by d matrix, then for each i in [0, n):
+    *   dense(input.indices(i)(0), ..., input.indices(i)(d-1)) ==> input.values(i)
+    * }}}
+    *
+    * All other values in `dense` are set to `defaultValue`. If `input.values` is a scalar, then all sparse indices
+    * are set to that single value.
+    *
+    * `input.indices` should be sorted in lexicographic order and they must not contain any repeats. If
+    * `validateIndices` is `true`, then these properties are checked during execution.
+    *
+    * @param  defaultValue    Scalar tensor with the same data type as `input.values`, containing the value set for
+    *                         indices that are not specified in `input.indices`.
+    * @param  validateIndices If `true`, the indices in `input.indices` are checked to make sure that they are sorted in
+    *                         lexicographic order and that there are no repeats.
+    * @return Result as a new tensor, with the same data type as `input.values` and shape `input.denseShape`.
+    */
+  def toTensor(
+      defaultValue: Tensor = 0, validateIndices: Boolean = true)(implicit context: DynamicVariable[Context]): Tensor = {
+    Tensor.fromNativeHandle(NativeTensorOpsSparse.sparseToDense(
+      context.value.nativeHandle, indices.nativeHandle, denseShape.nativeHandle, values.nativeHandle,
+      defaultValue.nativeHandle, validateIndices))
   }
 
   /** Returns an [[TensorIndexedSlices]] that has the same value as this [[TensorLike]].

@@ -63,9 +63,9 @@ private[api] trait Random {
       } else {
         val random = Op.Builder(opType = "RandomUniform", name = name)
             .addInput(shape)
+            .setAttribute("dtype", dataType)
             .setAttribute("seed", graphSeed.getOrElse(0))
             .setAttribute("seed2", opSeed.getOrElse(0))
-            .setAttribute("dtype", dataType)
             .build().outputs(0)
         Math.add(random * (castedMaxValue - castedMinValue), castedMinValue)
       }
@@ -99,9 +99,9 @@ private[api] trait Random {
       val (graphSeed, opSeed) = Op.currentGraphRandomSeed(seed)
       val random = Op.Builder(opType = "RandomStandardNormal", name = name)
           .addInput(shape)
+          .setAttribute("dtype", dataType)
           .setAttribute("seed", graphSeed.getOrElse(0))
           .setAttribute("seed2", opSeed.getOrElse(0))
-          .setAttribute("dtype", dataType)
           .build().outputs(0)
       Math.add(random * castedStandardDeviation, castedMean)
     }
