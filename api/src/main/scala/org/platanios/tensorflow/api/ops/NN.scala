@@ -30,11 +30,9 @@ import scala.language.postfixOps
 private[api] trait NN {
   //region Core NN Ops
 
-  /** Creates an op that adds `bias` to `value`.
+  /** $OpDocNNAddBias
     *
-    * The op is (mostly) a special case of `tf.add` where `bias` is restricted to be one-dimensional (i.e., has rank 1).
-    * Broadcasting is supported and so `value` may have any number of dimensions. Unlike `tf.add`, the type of `bias` is
-    * allowed to differ from that of value `value` in the case where both types are quantized.
+    * @group NNOps
     *
     * @param  value         Value tensor.
     * @param  bias          Bias tensor that must be one-dimensional (i.e., it must have rank 1).
@@ -59,7 +57,9 @@ private[api] trait NN {
         .build().outputs(0)
   }
 
-  /** Creates an op that computes `x * weights + bias`.
+  /** $OpDocNNLinear
+    *
+    * @group NNOps
     *
     * @param  x       Input tensor.
     * @param  weights Weights tensor.
@@ -73,12 +73,9 @@ private[api] trait NN {
     }
   }
 
-  /** Creates an op that normalizes along axes `axes` using an L2 norm.
+  /** $OpDocNNL2Normalize
     *
-    * For a 1-D tensor with `axes = 0`, the op computes:
-    * `output = x / sqrt(max(sum(x^2), epsilon))`
-    *
-    * For higher-dimensional `x`, the op independently normalizes each 1-D slice along axes `axes`.
+    * @group NNOps
     *
     * @param  x       Input tensor.
     * @param  axes    Tensor containing the axes along which to normalize.
@@ -101,9 +98,9 @@ private[api] trait NN {
 
   //region Activation Ops
 
-  /** Creates an op that computes the rectified linear unit activation function.
+  /** $OpDocNNRelu
     *
-    * The rectified linear unit activation function is defined as `relu(x) = max(x, 0)`.
+    * @group NNOps
     *
     * @param  input Input tensor.
     * @param  name  Name for the created op.
@@ -129,11 +126,9 @@ private[api] trait NN {
     }
   }
 
-  /** Creates an op that computes the rectified linear unit 6 activation function.
+  /** $OpDocNNRelu6
     *
-    * The rectified linear unit 6 activation function is defined as `relu6(x) = min(max(x, 0), 6)`.
-    *
-    * Source: [Convolutional Deep Belief Networks on CIFAR-10. A. Krizhevsky](http://www.cs.utoronto.ca/~kriz/conv-cifar10-aug2010.pdf)
+    * @group NNOps
     *
     * @param  input Input tensor.
     * @param  name  Name for the created op.
@@ -145,13 +140,9 @@ private[api] trait NN {
         .build().outputs(0)
   }
 
-  /** Creates an op that computes the concatenated rectified linear unit activation function.
+  /** $OpDocNNCrelu
     *
-    * The op concatenates a ReLU which selects only the positive part of the activation with a ReLU which selects only
-    * the *negative* part of the activation. Note that as a result this non-linearity doubles the depth of the
-    * activations.
-    *
-    * Source: [Understanding and Improving Convolutional Neural Networks via Concatenated Rectified Linear Units](https://arxiv.org/abs/1603.05201)
+    * @group NNOps
     *
     * @param  input Input tensor.
     * @param  name  Name for the created op.
@@ -163,12 +154,9 @@ private[api] trait NN {
     }
   }
 
-  /** Creates an op that computes the exponential linear unit activation function.
+  /** $OpDocNNElu
     *
-    * The exponential linear unit activation function is defined as `elu(x) = x`, if `x > 0`, and `elu(x) = exp(x) - 1`,
-    * otherwise.
-    *
-    * Source: [Fast and Accurate Deep Network Learning by Exponential Linear Units (ELUs)](http://arxiv.org/abs/1511.07289)
+    * @group NNOps
     *
     * @param  input Input tensor.
     * @param  name  Name for the created op.
@@ -180,12 +168,9 @@ private[api] trait NN {
         .build().outputs(0)
   }
 
-  /** Creates an op that computes the scaled exponential linear unit activation function.
+  /** $OpDocNNSelu
     *
-    * The scaled exponential linear unit activation function is defined as `selu(x) = scale * x`, if `x > 0`, and
-    * `elu(x) = scale * alpha * (exp(x) - 1)`, otherwise, where `scale = 1.0507` and `alpha = 1.7581`.
-    *
-    * Source: [Self-Normalizing Neural Networks](https://arxiv.org/abs/1706.02515)
+    * @group NNOps
     *
     * @param  input Input tensor.
     * @param  name  Name for the created op.
@@ -197,9 +182,9 @@ private[api] trait NN {
         .build().outputs(0)
   }
 
-  /** Creates an op that computes the softplus activation function.
+  /** $OpDocNNSoftplus
     *
-    * The softplus activation function is defined as `softplus(x) = log(exp(x) + 1)`.
+    * @group NNOps
     *
     * @param  input Input tensor.
     * @param  name  Name for the created op.
@@ -211,9 +196,9 @@ private[api] trait NN {
         .build().outputs(0)
   }
 
-  /** Creates an op that computes the softsign activation function.
+  /** $OpDocNNSoftsign
     *
-    * The softsign activation function is defined as `softsign(x) = x / (abs(x) + 1)`.
+    * @group NNOps
     *
     * @param  input Input tensor.
     * @param  name  Name for the created op.
@@ -272,12 +257,11 @@ private[api] trait NN {
     }
   }
 
-  /** Creates an op that computes softmax activations.
+  /** $OpDocNNSoftmax
     *
-    * For each batch `i` and class `j` we have `softmax = exp(logits) / sum(exp(logits), axis)`, where `axis` indicates
-    * the axis the softmax should be performed on.
+    * @group NNOps
     *
-    * @param  logits Tensor containing the logits with data type `HALF`, `FLOAT32`, or `FLOAT64`.
+    * @param  logits Tensor containing the logits with data type [[FLOAT16]], [[FLOAT32]], or [[FLOAT64]].
     * @param  axis   Axis along which to perform the softmax. Defaults to `-1` denoting the last axis.
     * @param  name   Name for the created op.
     * @return Created op output.
@@ -286,12 +270,11 @@ private[api] trait NN {
     softmaxHelper(logits, "Softmax", axis, name)
   }
 
-  /** Creates an op that computes log-softmax activations.
+  /** $OpDocNNLogSoftmax
     *
-    * For each batch `i` and class `j` we have `log_softmax = logits - log(sum(exp(logits), axis))`, where `axis`
-    * indicates the axis the log-softmax should be performed on.
+    * @group NNOps
     *
-    * @param  logits Tensor containing the logits with data type `HALF`, `FLOAT32`, or `FLOAT64`.
+    * @param  logits Tensor containing the logits with data type [[FLOAT16]], [[FLOAT32]], or [[FLOAT64]].
     * @param  axis   Axis along which to perform the log-softmax. Defaults to `-1` denoting the last axis.
     * @param  name   Name for the created op.
     * @return Created op output.
@@ -302,11 +285,11 @@ private[api] trait NN {
 
   //region Loss Ops
 
-  /** Creates an op that computes half of the L2 norm of a tensor without the square root.
+  /** $OpDocNNL2Loss
     *
-    * The output is equal to `sum(input^2) / 2`.
+    * @group NNOps
     *
-    * @param  input `FLOAT16`, `FLOAT32`, or `FLOAT64` input tensor.
+    * @param  input [[FLOAT16]], [[FLOAT32]], or [[FLOAT64]] input tensor.
     * @param  name  Name for the created op.
     * @return Created op output.
     * @throws IllegalArgumentException If `input` has an unsupported data type.
@@ -322,29 +305,14 @@ private[api] trait NN {
         .build().outputs(0)
   }
 
-  /** Creates an op that computes the softmax cross entropy between `logits` and `labels`.
+  /** $OpDocNNSoftmaxCrossEntropy
     *
-    * The op measures the probabilistic error in discrete classification tasks in which the classes are mutually
-    * exclusive (each entry belongs to exactly one class). For example, each CIFAR-10 image is labeled with one and only
-    * one label: an image can be a dog or a truck, but not both.
+    * @group NNOps
     *
-    * **NOTE:** While the classes are mutually exclusive, their probabilities need not be. All that is required is that
-    * each row of `labels` is a valid probability distribution. If they are not, the computation of the gradient will be
-    * incorrect. If using exclusive `labels` (wherein one and only one class is true at a time), see
-    * [[sparseSoftmaxCrossEntropy]].
-    *
-    * **WARNING:** The op expects unscaled logits, since it performs a `softmax` on `logits` internally for efficiency.
-    * Do not call this op with the output of `softmax`, as it will produce incorrect results.
-    *
-    * `logits` and `labels` must have the same shape. A common use case if to have `logits` and `labels` of shape
-    * `[batchSize, numClasses]`, but higher dimensions are also supported.
-    *
-    * `logits` and `labels` must have data type `FLOAT16`, `FLOAT32`, or `FLOAT64`.
-    *
-    * @param  logits Tensor of shape `[D0, D1, ..., Dr-1, numClasses]` and data type `FLOAT16`, `FLOAT32`, or `FLOAT64`,
-    *                containing unscaled log probabilities.
-    * @param  labels Tensor of shape `[D0, D1, ..., Dr-1, numClasses]` and data type `FLOAT16`, `FLOAT32`, or `FLOAT64`,
-    *                where each row must be a valid probability distribution.
+    * @param  logits Tensor of shape `[D0, D1, ..., Dr-1, numClasses]` and data type [[FLOAT16]], [[FLOAT32]], or
+    *                [[FLOAT64]], containing unscaled log probabilities.
+    * @param  labels Tensor of shape `[D0, D1, ..., Dr-1, numClasses]` and data type [[FLOAT16]], [[FLOAT32]], or
+    *                [[FLOAT64]], where each row must be a valid probability distribution.
     * @param  axis   The class axis, along which the softmax is computed. Defaults to `-1`, which is the last axis.
     * @param  name   Name for the created op.
     * @return Created op output, with rank one less than that of `logits` and the same data type as `logits`, containing
@@ -405,31 +373,16 @@ private[api] trait NN {
     }
   }
 
-  /** Creates an op that computes the sparse softmax cross entropy between `logits` and `labels`.
+  /** $OpDocNNSparseSoftmaxCrossEntropy
     *
-    * The op measures the probabilistic error in discrete classification tasks in which the classes are mutually
-    * exclusive (each entry belongs to exactly one class). For example, each CIFAR-10 image is labeled with one and only
-    * one label: an image can be a dog or a truck, but not both.
-    *
-    * **NOTE:** For the op, the probability of a given label is considered exclusive. That is, soft classes are not
-    * allowed, and the `labels` vector must provide a single specific index for the true class for each row of `logits`
-    * (i.e., each batch instance). For soft softmax classification with a probability distribution for each entry, see
-    * [[softmaxCrossEntropy]].
-    *
-    * **WARNING:** The op expects unscaled logits, since it performs a `softmax` on `logits` internally for efficiency.
-    * Do not call this op with the output of `softmax`, as it will produce incorrect results.
-    *
-    * A common use case if to have `logits` of shape `[batchSize, numClasses]` and `labels` of shape `[batchSize]`, but
-    * higher dimensions are also supported.
-    *
-    * `logits` must have data type `FLOAT16`, `FLOAT32`, or `FLOAT64`, and `labels` must have data type `INT32` or
-    * `INT64`.
+    * @group NNOps
     *
     * @param  logits Tensor of shape `[D0, D1, ..., Dr-1, numClasses]` (where `r` is the rank of `labels` and of the
-    *                result) and data type `FLOAT16`, `FLOAT32`, or `FLOAT64`, containing unscaled log probabilities.
+    *                result) and data type [[FLOAT16]], [[FLOAT32]], or [[FLOAT64]], containing unscaled log
+    *                probabilities.
     * @param  labels Tensor of shape `[D0, D1, ..., Dr-1]` (where `r` is the rank of `labels` and of the result) and
-    *                data type `INT32` or `INT64`. Each entry in `labels` must be an index in `[0, numClasses)`. Other
-    *                values will raise an exception when this op is run on a CPU, and return `NaN` values for the
+    *                data type [[INT32]] or [[INT64]]. Each entry in `labels` must be an index in `[0, numClasses)`.
+    *                Other values will raise an exception when this op is run on a CPU, and return `NaN` values for the
     *                corresponding loss and gradient rows when this op is run on a GPU.
     * @param  axis   The class axis, along which the softmax is computed. Defaults to `-1`, which is the last axis.
     * @param  name   Name for the created op.
@@ -487,48 +440,14 @@ private[api] trait NN {
     }
   }
 
-  /** Creates an op that computes the sigmoid cross entropy between `logits` and `labels`.
+  /** $OpDocNNSigmoidCrossEntropy
     *
-    * The op measures the probability error in discrete classification tasks in which each class is independent and not
-    * mutually exclusive. For instance, one could perform multi-label classification where a picture can contain both an
-    * elephant and a dog at the same time.
+    * @group NNOps
     *
-    * For brevity, let `x = logits` and `z = labels`. The sigmoid cross entropy (also known as logistic loss) is defined
-    * as:
-    * `  z * -log(sigmoid(x)) + (1 - z) * -log(1 - sigmoid(x))`
-    * `= z * -log(1 / (1 + exp(-x))) + (1 - z) * -log(exp(-x) / (1 + exp(-x)))`
-    * `= z * log(1 + exp(-x)) + (1 - z) * (-log(exp(-x)) + log(1 + exp(-x)))`
-    * `= z * log(1 + exp(-x)) + (1 - z) * (x + log(1 + exp(-x))`
-    * `= (1 - z) * x + log(1 + exp(-x))`
-    * `= x - x * z + log(1 + exp(-x))`
-    *
-    * For `x < 0`, to avoid numerical overflow in `exp(-x)`, we reformulate the above to:
-    * `  x - x * z + log(1 + exp(-x))`
-    * `= log(exp(x)) - x * z + log(1 + exp(-x))`
-    * `= - x * z + log(1 + exp(x))`
-    *
-    * Hence, to ensure stability and avoid numerical overflow, the implementation uses this equivalent formulation:
-    * `max(x, 0) - x * z + log(1 + exp(-abs(x)))`
-    *
-    * If `weights` is not `null`, then the positive examples are weighted and we have the following expression instead
-    * (where `q = weights`, for brevity):
-    * `  qz * -log(sigmoid(x)) + (1 - z) * -log(1 - sigmoid(x))`
-    * `= qz * -log(1 / (1 + exp(-x))) + (1 - z) * -log(exp(-x) / (1 + exp(-x)))`
-    * `= qz * log(1 + exp(-x)) + (1 - z) * (-log(exp(-x)) + log(1 + exp(-x)))`
-    * `= qz * log(1 + exp(-x)) + (1 - z) * (x + log(1 + exp(-x))`
-    * `= (1 - z) * x + (qz +  1 - z) * log(1 + exp(-x))`
-    * `= (1 - z) * x + (1 + (q - 1) * z) * log(1 + exp(-x))`
-    *
-    * Setting `l = 1 + (q - 1) * z`, to ensure stability and avoid numerical overflow, the implementation uses this
-    * equivalent formulation:
-    * `(1 - z) * x + l * (max(-x, 0) + log(1 + exp(-abs(x))))`
-    *
-    * logits` and `labels` must have the same shape.
-    *
-    * @param  logits  Tensor of shape `[D0, D1, ..., Dr-1, numClasses]` and data type `FLOAT16`, `FLOAT32`, or
-    *                 `FLOAT64`, containing unscaled log probabilities.
-    * @param  labels  Tensor of shape `[D0, D1, ..., Dr-1, numClasses]` and data type `FLOAT16`, `FLOAT32`, or
-    *                 `FLOAT64`, where each row must be a valid probability distribution.
+    * @param  logits  Tensor of shape `[D0, D1, ..., Dr-1, numClasses]` and data type [[FLOAT16]], [[FLOAT32]], or
+    *                 [[FLOAT64]], containing unscaled log probabilities.
+    * @param  labels  Tensor of shape `[D0, D1, ..., Dr-1, numClasses]` and data type [[FLOAT16]], [[FLOAT32]], or
+    *                 [[FLOAT64]], where each row must be a valid probability distribution.
     * @param  weights Optionally, a coefficient to use for the positive examples.
     * @param  name    Name for the created op.
     * @return Created op output, with rank one less than that of `logits` and the same data type as `logits`, containing
@@ -588,26 +507,9 @@ private[api] trait NN {
     }
   }
 
-  /** Creates an op that computes the log-Poisson loss between `logPredictions` and `targets`.
+  /** $OpDocNNLogPoissonLoss
     *
-    * The op computes the log-likelihood loss between the predictions and the targets under the assumption that the
-    * targets have a Poisson distribution. **Caveat:** By default, this is not the exact loss, but the loss minus a
-    * constant term (`log(z!)`). That has no effect for optimization purposes, but it does not play well with relative
-    * loss comparisons. To compute an approximation of the log factorial term, please set `computeFullLoss` to `true`,
-    * to enable Stirling's Approximation.
-    *
-    * For brevity, let `c = log(x) = logPredictions`, `z = targets`.  The log-Poisson loss is defined as:
-    * `  -log(exp(-x) * (x^z) / z!)`
-    * `= -log(exp(-x) * (x^z)) + log(z!)`
-    * `~ -log(exp(-x)) - log(x^z) [z * log(z) - z + 0.5 * log(2 * pi * z)]` (Note that the second term is Stirling's
-    *                                                                        Approximation for `log(z!)`. It is
-    *                                                                        invariant to `x` and does not affect
-    *                                                                        optimization, though it is important for
-    *                                                                        correct relative loss comparisons. It is
-    *                                                                        only computed when
-    *                                                                        `computeFullLoss == true`)
-    * `= x - z * log(x) [+ z * log(z) - z + 0.5 * log(2 * pi * z)]`
-    * `= exp(c) - z * c [+ z * log(z) - z + 0.5 * log(2 * pi * z)]`
+    * @group NNOps
     *
     * @param  logPredictions  Tensor containing the log-predictions.
     * @param  targets         Tensor with the same shape as `logPredictions`, containing the target values.
@@ -644,20 +546,13 @@ private[api] trait NN {
 
   //endregion Loss Ops
 
-  /** Creates an op that computes a dropout layer.
+  /** $OpDocNNDropout
     *
-    * With probability `keepProbability`, the op outputs the input element scaled up by `1 / keepProbability`, otherwise
-    * it outputs `0`. The scaling is such that the expected sum remains unchanged.
-    *
-    * By default, each element is kept or dropped independently. If `noiseShape` is specified, it must be
-    * [broadcastable](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html) to the shape of `input`, and only
-    * dimensions with `noiseShape(i) == x.shape(i)` will make independent decisions. For example, if
-    * `x.shape = [k, l, m, n]` and `noiseShape = [k, 1, 1, n]`, each `k` and `n` component will be kept independently
-    * and each `l` and `m` component will be kept or not kept together.
+    * @group NNOps
     *
     * @param  input           Input tensor.
     * @param  keepProbability Probability (i.e., number in the interval `(0, 1]`) that each element is kept.
-    * @param  noiseShape      `INT32` rank-1 tensor representing the shape for the randomly generated keep/drop flags.
+    * @param  noiseShape      [[INT32]] rank-1 tensor representing the shape for the randomly generated keep/drop flags.
     * @param  seed            Optional random seed, used to generate a random seed pair for the random number
     *                         generator, when combined with the graph-level seed.
     * @param  name            Name for the created op.
@@ -694,25 +589,18 @@ private[api] trait NN {
     }
   }
 
-  /** Creates an op that finds values and indices of the `k` largest entries for the last dimension of `input`.
+  /** $OpDocNNTopK
     *
-    * If `input` is a vector (i.e., rank-1 tensor), the op finds the `k` largest entries in the vector and outputs their
-    * values and their indices as vectors. Thus, `values(j)` will be the `j`-th largest entry in `input`, and
-    * `indices(j)` will be its index.
-    *
-    * For matrices (and respectively, higher rank input tensors), the op computes the top `k` entries in each row (i.e.,
-    * vector along the last dimension of the tensor). Thus, `values.shape = indices.shape = input.shape(0 :: -1) + k`.
-    *
-    * If two elements are equal, the lower-index element appears first.
+    * @group NNOps
     *
     * @param  input  Input tensor whose last axis has size at least `k`.
-    * @param  k      Scalar `INT32` tensor containing the number of top elements to look for along the last axis of
+    * @param  k      Scalar [[INT32]] tensor containing the number of top elements to look for along the last axis of
     *                `input`.
     * @param  sorted If `true`, the resulting `k` elements will be sorted by their values in descending order.
     * @param  name   Name for the created op.
     * @return Tuple containing the created op outputs: (i) `values`: the `k` largest elements along each last
     *         dimensional slice, and (ii) `indices`: the indices of `values` within the last axis of `input`.
-    * @throws IllegalArgumentException If `k` is not a scalar `INT32` tensor.
+    * @throws IllegalArgumentException If `k` is not a scalar [[INT32]] tensor.
     */
   @throws[IllegalArgumentException]
   def topK(input: Output, k: Output = 1, sorted: Boolean = true, name: String = "TopK"): (Output, Output) = {
@@ -728,22 +616,13 @@ private[api] trait NN {
     (outputs(0), outputs(1))
   }
 
-  /** Creates an op that checks whether the `targets` are in the top `K` `predictions`.
+  /** $OpDocNNInTopK
     *
-    * The op outputs a boolean tensor with shape `[batchSize]`, with entry `output(i)` being `true` if the target class
-    * is among the top `k` predictions, among all predictions for example `i`. Note that the behavior of [[inTopK]]
-    * differs from [[topK]] in its handling of ties; if multiple classes have the same prediction value and straddle the
-    * top-`k` boundary, then all of those classes are considered to be in the top `k`.
+    * @group NNOps
     *
-    * More formally, let:
-    *   - `predictions(i, ::)` be the predictions for all classes for example `i`,
-    *   - `targets(i)` be the target class for example `i`, and
-    *   - `output(i)` be the output for example `i`.
-    * Then `output(i) = predictions(i, targets(i)) \in TopKIncludingTies(predictions(i))`.
-    *
-    * @param  predictions `FLOAT32` tensor containing the predictions.
-    * @param  targets     `INT32` or `INT64` tensor containing the targets.
-    * @param  k           Scalar `INT32` or `INT64` tensor containing the number of top elements to look at.
+    * @param  predictions [[FLOAT32]] tensor containing the predictions.
+    * @param  targets     [[INT32]] or [[INT64]] tensor containing the targets.
+    * @param  k           Scalar [[INT32]] or [[INT64]] tensor containing the number of top elements to look at.
     * @param  name        Name for the created op.
     * @return Created op output.
     * @throws IllegalArgumentException If the arguments have invalid data types or if `k` is not a scalar.
@@ -1141,4 +1020,229 @@ private[api] object NN extends NN {
         .setAttribute("is_training", op.booleanAttribute("is_training"))
         .build().outputs.asInstanceOf[Seq[OutputLike]]
   }
+
+  /** @define OpDocNNAddBias
+    *   The `addBias` op adds `bias` to `value`.
+    *
+    *   The op is (mostly) a special case of `add` where `bias` is restricted to be one-dimensional (i.e., has rank
+    *   1). Broadcasting is supported and so `value` may have any number of dimensions. Unlike `add`, the type of
+    *   `bias`is allowed to differ from that of value `value` in the case where both types are quantized.
+    *
+    * @define OpDocNNLinear
+    *   The `linear` op computes `x * weights + bias`.
+    *
+    * @define OpDocNNL2Normalize
+    *   The `l2Normalize` op normalizes along axes `axes` using an L2 norm.
+    *
+    *   For a 1-D tensor with `axes = 0`, the op computes:
+    *   `output = x / sqrt(max(sum(x^2), epsilon))`
+    *
+    *   For higher-dimensional `x`, the op independently normalizes each 1-D slice along axes `axes`.
+    *
+    * @define OpDocNNRelu
+    *   The `relu` op computes the rectified linear unit activation function.
+    *
+    *   The rectified linear unit activation function is defined as `relu(x) = max(x, 0)`.
+    *
+    * @define OpDocNNRelu6
+    *   The `relu6` op computes the rectified linear unit 6 activation function.
+    *
+    *   The rectified linear unit 6 activation function is defined as `relu6(x) = min(max(x, 0), 6)`.
+    *
+    *   Source: [Convolutional Deep Belief Networks on CIFAR-10. A. Krizhevsky](http://www.cs.utoronto.ca/~kriz/conv-cifar10-aug2010.pdf)
+    *
+    * @define OpDocNNCrelu
+    *   The `crelu` op computes the concatenated rectified linear unit activation function.
+    *
+    *   The op concatenates a ReLU which selects only the positive part of the activation with a ReLU which selects only
+    *   the *negative* part of the activation. Note that as a result this non-linearity doubles the depth of the
+    *   activations.
+    *
+    *   Source: [Understanding and Improving Convolutional Neural Networks via Concatenated Rectified Linear Units](https://arxiv.org/abs/1603.05201)
+    *
+    * @define OpDocNNElu
+    *   The `elu` op computes the exponential linear unit activation function.
+    *
+    *   The exponential linear unit activation function is defined as `elu(x) = x`, if `x > 0`, and
+    *   `elu(x) = exp(x) - 1`, otherwise.
+    *
+    *   Source: [Fast and Accurate Deep Network Learning by Exponential Linear Units (ELUs)](http://arxiv.org/abs/1511.07289)
+    *
+    * @define OpDocNNSelu
+    *   The `selu` op computes the scaled exponential linear unit activation function.
+    *
+    *   The scaled exponential linear unit activation function is defined as `selu(x) = scale * x`, if `x > 0`, and
+    *   `elu(x) = scale * alpha * (exp(x) - 1)`, otherwise, where `scale = 1.0507` and `alpha = 1.7581`.
+    *
+    *   Source: [Self-Normalizing Neural Networks](https://arxiv.org/abs/1706.02515)
+    *
+    * @define OpDocNNSoftplus
+    *   The `softplus` op computes the softplus activation function.
+    *
+    *   The softplus activation function is defined as `softplus(x) = log(exp(x) + 1)`.
+    *
+    * @define OpDocNNSoftsign
+    *   The `softsign` op computes the softsign activation function.
+    *
+    *   The softsign activation function is defined as `softsign(x) = x / (abs(x) + 1)`.
+    *
+    * @define OpDocNNSoftmax
+    *   The `softmax` op computes softmax activations.
+    *
+    *   For each batch `i` and class `j` we have `softmax = exp(logits) / sum(exp(logits), axis)`, where `axis`
+    *   indicates the axis the softmax should be performed on.
+    *
+    * @define OpDocNNLogSoftmax
+    *   The `logSoftmax` op computes log-softmax activations.
+    *
+    *   For each batch `i` and class `j` we have `log_softmax = logits - log(sum(exp(logits), axis))`, where `axis`
+    *   indicates the axis the log-softmax should be performed on.
+    *
+    * @define OpDocNNL2Loss
+    *   The `l2Loss` op computes half of the L2 norm of a tensor without the square root.
+    *
+    *   The output is equal to `sum(input^2) / 2`.
+    *
+    * @define OpDocNNSoftmaxCrossEntropy
+    *   The `softmaxCrossEntropy` op computes the softmax cross entropy between `logits` and `labels`.
+    *
+    *   The op measures the probabilistic error in discrete classification tasks in which the classes are mutually
+    *   exclusive (each entry belongs to exactly one class). For example, each CIFAR-10 image is labeled with one and
+    *   only one label: an image can be a dog or a truck, but not both.
+    *
+    *   '''NOTE:''' While the classes are mutually exclusive, their probabilities need not be. All that is required is
+    *   that each row of `labels` is a valid probability distribution. If they are not, the computation of the gradient
+    *   will be incorrect. If using exclusive `labels` (wherein one and only one class is true at a time), see
+    *   [[sparseSoftmaxCrossEntropy]].
+    *
+    *   '''WARNING:''' The op expects unscaled logits, since it performs a `softmax` on `logits` internally for
+    *   efficiency. Do not call this op with the output of `softmax`, as it will produce incorrect results.
+    *
+    *   `logits` and `labels` must have the same shape. A common use case if to have `logits` and `labels` of shape
+    *   `[batchSize, numClasses]`, but higher dimensions are also supported.
+    *
+    *   `logits` and `labels` must have data type [[FLOAT16]], [[FLOAT32]], or [[FLOAT64]].
+    *
+    * @define OpDocNNSparseSoftmaxCrossEntropy
+    *   The `sparseSoftmaxCrossEntropy` op computes the sparse softmax cross entropy between `logits` and `labels`.
+    *
+    *   The op measures the probabilistic error in discrete classification tasks in which the classes are mutually
+    *   exclusive (each entry belongs to exactly one class). For example, each CIFAR-10 image is labeled with one and
+    *   only one label: an image can be a dog or a truck, but not both.
+    *
+    *   '''NOTE:''' For the op, the probability of a given label is considered exclusive. That is, soft classes are not
+    *   allowed, and the `labels` vector must provide a single specific index for the true class for each row of
+    *   `logits` (i.e., each batch instance). For soft softmax classification with a probability distribution for each
+    *   entry, see [[softmaxCrossEntropy]].
+    *
+    *   '''WARNING:''' The op expects unscaled logits, since it performs a `softmax` on `logits` internally for
+    *   efficiency. Do not call this op with the output of `softmax`, as it will produce incorrect results.
+    *
+    *   A common use case if to have `logits` of shape `[batchSize, numClasses]` and `labels` of shape `[batchSize]`,
+    *   but higher dimensions are also supported.
+    *
+    *   `logits` must have data type [[FLOAT16]], [[FLOAT32]], or [[FLOAT64]], and `labels` must have data type
+    *   [[INT32]] or [[INT64]].
+    *
+    * @define OpDocNNSigmoidCrossEntropy
+    *   The `sigmoidCrossEntropy` op computes the sigmoid cross entropy between `logits` and `labels`.
+    *
+    *   The op measures the probability error in discrete classification tasks in which each class is independent and
+    *   not mutually exclusive. For instance, one could perform multi-label classification where a picture can contain
+    *   both an elephant and a dog at the same time.
+    *
+    *   For brevity, let `x = logits` and `z = labels`. The sigmoid cross entropy (also known as logistic loss) is
+    *   defined as:
+    *   `  z * -log(sigmoid(x)) + (1 - z) * -log(1 - sigmoid(x))`
+    *   `= z * -log(1 / (1 + exp(-x))) + (1 - z) * -log(exp(-x) / (1 + exp(-x)))`
+    *   `= z * log(1 + exp(-x)) + (1 - z) * (-log(exp(-x)) + log(1 + exp(-x)))`
+    *   `= z * log(1 + exp(-x)) + (1 - z) * (x + log(1 + exp(-x))`
+    *   `= (1 - z) * x + log(1 + exp(-x))`
+    *   `= x - x * z + log(1 + exp(-x))`
+    *
+    *   For `x < 0`, to avoid numerical overflow in `exp(-x)`, we reformulate the above to:
+    *   `  x - x * z + log(1 + exp(-x))`
+    *   `= log(exp(x)) - x * z + log(1 + exp(-x))`
+    *   `= - x * z + log(1 + exp(x))`
+    *
+    *   Hence, to ensure stability and avoid numerical overflow, the implementation uses this equivalent formulation:
+    *   `max(x, 0) - x * z + log(1 + exp(-abs(x)))`
+    *
+    *   If `weights` is not `null`, then the positive examples are weighted and we have the following expression instead
+    *   (where `q = weights`, for brevity):
+    *   `  qz * -log(sigmoid(x)) + (1 - z) * -log(1 - sigmoid(x))`
+    *   `= qz * -log(1 / (1 + exp(-x))) + (1 - z) * -log(exp(-x) / (1 + exp(-x)))`
+    *   `= qz * log(1 + exp(-x)) + (1 - z) * (-log(exp(-x)) + log(1 + exp(-x)))`
+    *   `= qz * log(1 + exp(-x)) + (1 - z) * (x + log(1 + exp(-x))`
+    *   `= (1 - z) * x + (qz +  1 - z) * log(1 + exp(-x))`
+    *   `= (1 - z) * x + (1 + (q - 1) * z) * log(1 + exp(-x))`
+    *
+    *   Setting `l = 1 + (q - 1) * z`, to ensure stability and avoid numerical overflow, the implementation uses this
+    *   equivalent formulation:
+    *   `(1 - z) * x + l * (max(-x, 0) + log(1 + exp(-abs(x))))`
+    *
+    *   `logits` and `labels` must have the same shape.
+    *
+    * @define OpDocNNLogPoissonLoss
+    *   The `logPoissonLoss` op computes the log-Poisson loss between `logPredictions` and `targets`.
+    *
+    *   The op computes the log-likelihood loss between the predictions and the targets under the assumption that the
+    *   targets have a Poisson distribution. **Caveat:** By default, this is not the exact loss, but the loss minus a
+    *   constant term (`log(z!)`). That has no effect for optimization purposes, but it does not play well with relative
+    *   loss comparisons. To compute an approximation of the log factorial term, please set `computeFullLoss` to `true`,
+    *   to enable Stirling's Approximation.
+    *
+    *   For brevity, let `c = log(x) = logPredictions`, `z = targets`.  The log-Poisson loss is defined as:
+    *   `  -log(exp(-x) * (x^z) / z!)`
+    *   `= -log(exp(-x) * (x^z)) + log(z!)`
+    *   `~ -log(exp(-x)) - log(x^z) [z * log(z) - z + 0.5 * log(2 * pi * z)]` (Note that the second term is Stirling's
+    *                                                                          Approximation for `log(z!)`. It is
+    *                                                                          invariant to `x` and does not affect
+    *                                                                          optimization, though it is important for
+    *                                                                          correct relative loss comparisons. It is
+    *                                                                          only computed when
+    *                                                                          `computeFullLoss == true`)
+    *   `= x - z * log(x) [+ z * log(z) - z + 0.5 * log(2 * pi * z)]`
+    *   `= exp(c) - z * c [+ z * log(z) - z + 0.5 * log(2 * pi * z)]`
+    *
+    * @define OpDocNNDropout
+    *   The `dropout` op computes a dropout layer.
+    *
+    *   With probability `keepProbability`, the op outputs the input element scaled up by `1 / keepProbability`,
+    *   otherwise it outputs `0`. The scaling is such that the expected sum remains unchanged.
+    *
+    *   By default, each element is kept or dropped independently. If `noiseShape` is specified, it must be
+    *   [broadcastable](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html) to the shape of `input`, and only
+    *   dimensions with `noiseShape(i) == x.shape(i)` will make independent decisions. For example, if
+    *   `x.shape = [k, l, m, n]` and `noiseShape = [k, 1, 1, n]`, each `k` and `n` component will be kept independently
+    *   and each `l` and `m` component will be kept or not kept together.
+    *
+    * @define OpDocNNTopK
+    *   The `topK` op finds values and indices of the `k` largest entries for the last dimension of `input`.
+    *
+    *   If `input` is a vector (i.e., rank-1 tensor), the op finds the `k` largest entries in the vector and outputs
+    *   their values and their indices as vectors. Thus, `values(j)` will be the `j`-th largest entry in `input`, and
+    *   `indices(j)` will be its index.
+    *
+    *   For matrices (and respectively, higher rank input tensors), the op computes the top `k` entries in each row
+    *   (i.e., vector along the last dimension of the tensor). Thus,
+    *   `values.shape = indices.shape = input.shape(0 :: -1) + k`.
+    *
+    *   If two elements are equal, the lower-index element appears first.
+    *
+    * @define OpDocNNInTopK
+    *   The `inTopK` op checks whether the `targets` are in the top `K` `predictions`.
+    *
+    *   The op outputs a boolean tensor with shape `[batchSize]`, with entry `output(i)` being `true` if the target
+    *   class is among the top `k` predictions, among all predictions for example `i`. Note that the behavior of
+    *   [[inTopK]] differs from [[topK]] in its handling of ties; if multiple classes have the same prediction value and
+    *   straddle the top-`k` boundary, then all of those classes are considered to be in the top `k`.
+    *
+    *   More formally, let:
+    *     - `predictions(i, ::)` be the predictions for all classes for example `i`,
+    *     - `targets(i)` be the target class for example `i`, and
+    *     - `output(i)` be the output for example `i`.
+    *   Then `output(i) = predictions(i, targets(i)) \in TopKIncludingTies(predictions(i))`.
+    */
+  private[ops] trait Documentation
 }
