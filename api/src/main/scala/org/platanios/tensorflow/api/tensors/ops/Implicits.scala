@@ -22,3 +22,4 @@ package org.platanios.tensorflow.api.tensors.ops
 private[tensors] trait Implicits
     extends Basic.Implicits
         with Math.Implicits
+        with NN.Implicits
