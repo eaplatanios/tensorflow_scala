@@ -15,12 +15,14 @@
 
 package org.platanios.tensorflow.api.ops
 
+import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.core.{Graph, Indexer, Shape}
 import org.platanios.tensorflow.api.core.client.{FeedMap, Session}
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.Basic.BasicOps
 import org.platanios.tensorflow.api.ops.Op.{createWith, getGraphFromInputs}
 import org.platanios.tensorflow.api.tensors.{SparseTensor, Tensor, TensorIndexedSlices, TensorLike}
+import org.platanios.tensorflow.api.tensors.ops.{Basic => TensorBasic, Math => TensorMath}
 import org.platanios.tensorflow.api.types.{DataType, INT32, INT64}
 import org.platanios.tensorflow.api.utilities.using
 import org.platanios.tensorflow.jni.{Op => NativeOp}
@@ -281,11 +283,10 @@ object Output {
     type SparseOutput = ops.SparseOutput
   }
 
-  // TODO: !!!
-
-  private[api] def constantValue(tensor: Output): Option[Tensor] = {
+  /** Returns the constant value of the given tensor, if efficiently calculable. */
+  private[ops] def constantValue(tensor: Output): Option[Tensor] = {
     val value = tensor.op.opType match {
-      case "Const" => ??? // TODO: !!! Needs MakeNdArray()
+      case "Const" => None // TODO: !!! Needs MakeNdArray()
       case "Shape" =>
         val inputShape = tensor.op.inputs(0).shape
         if (inputShape.isFullyDefined)
@@ -305,33 +306,33 @@ object Output {
         constantValue(tensor.op.inputs(0))
             .flatMap(start => constantValue(tensor.op.inputs(1))
                 .flatMap(limit => constantValue(tensor.op.inputs(2))
-                    .flatMap(delta => ???))) // TODO: !!! Create tensor range?
+                    .map(delta => TensorMath.range(start, limit, delta))))
       case "Cast" =>
-        constantValue(tensor.op.inputs(0)).map(preCast => ???) // TODO: !!! Get data type attribute from op.
+        constantValue(tensor.op.inputs(0)).map(preCast => {
+          preCast.cast(tensor.op.dataTypeAttribute("DstT"))
+        })
       case "Concat" =>
         constantValue(tensor.op.inputs(0)).flatMap(axis => {
-          val values = tensor.op.inputs.tail.flatMap(constantValue)
-          if (values.contains(None)) {
+          val values = tensor.op.inputs.tail.map(constantValue)
+          if (values.contains(None))
             None
-          } else {
-            ??? // TODO: !!! Concatenate tensors.
-          }
+          else
+            Some(TensorBasic.concatenate(values.map(_.get), axis))
         })
       case "ConcatV2" =>
         constantValue(tensor.op.inputs(tensor.op.numInputs - 1)).flatMap(axis => {
-          val values = tensor.op.inputs.dropRight(1).flatMap(constantValue)
-          if (values.contains(None)) {
+          val values = tensor.op.inputs.dropRight(1).map(constantValue)
+          if (values.contains(None))
             None
-          } else {
-            ??? // TODO: !!! Concatenate tensors.
-          }
+          else
+            Some(TensorBasic.concatenate(values.map(_.get), axis))
         })
       case "Pack" =>
         val values = tensor.op.inputs.map(constantValue)
         if (values.contains(None)) {
           None
         } else {
-          ??? // TODO: !!! Concatenate tensors.
+          Some(TensorBasic.stack(values.map(_.get)))
         }
       case "Fill" =>
         val fillShape = tensor.shape
@@ -342,6 +343,14 @@ object Output {
         } else {
           None
         }
+      case "Equal" =>
+        constantValue(tensor.op.inputs(0))
+            .flatMap(value1 => constantValue(tensor.op.inputs(1))
+                .map(value2 => TensorMath.equal(value1, value2)))
+      case "NotEqual" =>
+        constantValue(tensor.op.inputs(0))
+            .flatMap(value1 => constantValue(tensor.op.inputs(1))
+                .map(value2 => TensorMath.notEqual(value1, value2)))
       case _ => None
     }
     // If defined, the caller may now depend on the constant value, and so we prevent 'tensor' from being fed.
@@ -359,7 +368,7 @@ object Output {
     * @param  tensor One-dimensional tensor to be evaluated.
     * @return [[Shape]] based on the constant value of `tensor`.
     */
-  private[api] def constantValueAsShape(tensor: Output): Option[Shape] = {
+  private[ops] def constantValueAsShape(tensor: Output): Option[Shape] = {
     val shape = tensor.shape.withRank(1)
     if (shape == Shape(0)) {
       Some(Shape.scalar())
@@ -391,6 +400,32 @@ object Output {
             Some(values.map(_.get).foldLeft(Shape.scalar())((shape, value) => shape.concatenateWith(value)))
           else
             None
+        case "StridedSlice" =>
+          constantValue(tensor.op.inputs(0))
+              .flatMap(begin => constantValue(tensor.op.inputs(1))
+                  .flatMap(end => constantValue(tensor.op.inputs(2))
+                      .flatMap(strides => {
+                        val b = begin(0).scalar.asInstanceOf[Int]
+                        val e = end(0).scalar.asInstanceOf[Int]
+                        val s = strides(0).scalar.asInstanceOf[Int]
+                        val beginMask = tensor.op.longAttribute("begin_mask")
+                        val endMask = tensor.op.longAttribute("end_mask")
+                        val ellipsisMask = tensor.op.longAttribute("ellipsis_mask")
+                        val newAxisMask = tensor.op.longAttribute("new_axis_mask")
+                        val shrinkAxisMask = tensor.op.longAttribute("shrink_axis_mask")
+                        if (beginMask == 1 ||
+                            endMask == 1 ||
+                            ellipsisMask == 1 ||
+                            newAxisMask == 1 ||
+                            shrinkAxisMask == 1 ||
+                            (beginMask != 1 && beginMask > 0) ||
+                            (endMask != 1 && endMask > 0)) {
+                          null
+                        } else {
+                          val previousShape = constantValueAsShape(tensor.op.inputs(0))
+                          previousShape.map(t => Shape(t(b :: s :: e).entriesIterator.map(_.asInstanceOf[Int]).toArray))
+                        }
+                      })))
         case _ =>
           var returnShape = Shape.unknown(shape(0))
           val valueOption = constantValue(tensor)
@@ -519,10 +554,10 @@ final case class OutputIndexedSlices private(indices: Output, values: Output, de
   *     `indices = [[1, 3], [2, 4]]` specifies that the elements with indexes `[1, 3]` and `[2, 4]` have nonzero
   *     values.
   *   - `values`: One-dimensional tensor of any type, with shape `[N]`, which supplies the values for each element in
-  *     `indices. For example, given `indices = [[1, 3], [2, 4]]`, the parameter `values = [18, 3.6]` specifies that
+  *     `indices`. For example, given `indices = [[1, 3], [2, 4]]`, the parameter `values = [18, 3.6]` specifies that
   *     element `[1, 3]` of the sparse tensor has a value of `18`, and element `[2, 4]` of the tensor has a value of
   *     `3.6`.
-  *   - `denseShape`: One-dimensional `Int64` tensor with shape `[rank]`, which specifies the dense shape of the
+  *   - `denseShape`: One-dimensional [[INT64]] tensor with shape `[rank]`, which specifies the dense shape of the
   *     sparse tensor.  For example, `denseShape = [3, 6]` specifies a two-dimensional 3x6 tensor,
   *     `denseShape = [2, 3, 4]` specifies a three-dimensional 2x3x4 tensor, and `denseShape = [9]` specifies a
   *     one-dimensional tensor with 9 elements.
@@ -553,7 +588,6 @@ final case class SparseOutput(indices: Output, values: Output, denseShape: Outpu
   require(denseShape.dataType == INT32 || denseShape.dataType == INT64,
           s"Dense shape cannot have '${denseShape.dataType}' data type. They have to be 'INT32' or 'INT64'.")
 
-  // TODO: Add a "subShape" method?
   Shape(indices.shape.withRank(2)(0)).assertIsCompatibleWith(Shape(values.shape.withRank(1)(0)))
   Shape(indices.shape.withRank(2)(1)).assertIsCompatibleWith(Shape(denseShape.shape.withRank(1)(0)))
 

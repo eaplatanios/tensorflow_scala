@@ -333,7 +333,7 @@ class Tensor private[Tensor](private[api] var nativeHandle: Long) extends Tensor
 }
 
 object Tensor {
-  private[this] val logger = Logger(LoggerFactory.getLogger("Tensor"))
+  private[tensors] val logger = Logger(LoggerFactory.getLogger("Tensor"))
 
   private[api] def fromNativeHandle(nativeHandle: Long): Tensor = new Tensor(nativeHandle)
 
@@ -536,7 +536,10 @@ final case class TensorIndexedSlices private(indices: Tensor, values: Tensor, de
       throw new IllegalStateException(
         s"Conversion of 'TensorIndexedSlices', '$this', " +
             s"which has no dense shape information available, is not possible.")
-    // TODO: Add check for large number of elements (e.g., > 100000000).
+    if (denseShape.prod().cast(INT32).scalar.asInstanceOf[Int] > 100000000)
+      Tensor.logger.warn(
+        "Converting large (> 100000000 elements) tensor indexed slices object to a tensor " +
+            "(may consume too much memory).")
     Math.unsortedSegmentSum(data = values, segmentIndices = indices, segmentsNumber = denseShape(0))
   }
 
@@ -601,7 +604,6 @@ final case class SparseTensor(indices: Tensor, values: Tensor, denseShape: Tenso
   require(denseShape.dataType == INT64,
           s"Dense shape cannot have '${denseShape.dataType}' data type. They have to be 'INT64'.")
 
-  // TODO: Add a "subShape" method?
   Shape(indices.shape.withRank(2)(0)).assertIsCompatibleWith(Shape(values.shape.withRank(1)(0)))
   Shape(indices.shape.withRank(2)(1)).assertIsCompatibleWith(Shape(denseShape.shape.withRank(1)(0)))
 
