@@ -108,7 +108,7 @@ package object api extends Implicits with Documentation {
     * @groupname NNOps    Ops / NN
     * @groupprio NNOps    300
     */
-  object tfe
+  object tfi
       extends core.API
           with tensors.API
           with types.API

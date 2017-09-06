@@ -51,6 +51,39 @@ sealed trait TensorLike {
   def toTensor: Tensor
 }
 
+/** Type trait for defining functions operating on and returning tensors. */
+private[tensors] trait TensorOps[T] {
+  /** Applies a unary function to the provided tensor and returns the result.
+    *
+    * @param  tensorLike Tensor-like object to apply the unary op function on.
+    * @param  function   Unary function to apply.
+    * @return Resulting tensor-like object that matches the type of `tensorLike`.
+    */
+  @inline
+  def applyUnary(tensorLike: T, function: Tensor => Tensor): T
+}
+
+/** Companion object that defines supported [[TensorOps]] implicit values. */
+private[tensors] object TensorOps {
+  implicit val tensorOps: TensorOps[Tensor] = new TensorOps[Tensor] {
+    @inline
+    override def applyUnary(tensorLike: Tensor, function: Tensor => Tensor): Tensor = function(tensorLike)
+  }
+
+  // TODO: Add implicits for TensorIndexedSlices and for SparseTensor.
+
+  implicit val tensorLikeOps: TensorOps[TensorLike] = new TensorOps[TensorLike] {
+    @inline
+    override def applyUnary(tensorLike: TensorLike, function: Tensor => Tensor): TensorLike = {
+      tensorLike match {
+        case t: Tensor => function(t)
+        // case t: TensorIndexedSlices => t.copy(values = function(t.values))
+        // case t: SparseTensor => t.copy(values = function(t.values))
+      }
+    }
+  }
+}
+
 /** Tensor (i.e., multi-dimensional array).
   *
   * Tensors are the main data structure underlying all operations in TensorFlow. They represent multi-dimensional arrays

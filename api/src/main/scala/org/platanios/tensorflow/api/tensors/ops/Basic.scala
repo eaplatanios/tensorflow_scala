@@ -113,8 +113,8 @@ private[api] trait Basic {
     *               will be squeezed.
     * @return Result as a new tensor.
     */
-  def squeeze(input: Tensor, axes: Array[Int] = null)(implicit context: DynamicVariable[Context]): Tensor = {
-    val longAxes: Array[Long] = if (axes == null) null else axes.map(_.toLong)
+  def squeeze(input: Tensor, axes: Seq[Int] = null)(implicit context: DynamicVariable[Context]): Tensor = {
+    val longAxes: Array[Long] = if (axes == null) null else axes.map(_.toLong).toArray
     Tensor.fromNativeHandle(
       NativeTensorOpsBasic.squeeze(context.value.nativeHandle, input.nativeHandle, longAxes))
   }
@@ -836,10 +836,10 @@ private[api] trait Basic {
 
 private[api] object Basic extends Basic {
   private[ops] trait Implicits {
-    implicit def tensorToBasicTensorOps(tensor: Tensor): TensorOps = TensorOps(tensor)
+    implicit def tensorToBasicOps(tensor: Tensor): BasicOps = BasicOps(tensor)
   }
 
-  case class TensorOps private[ops](tensor: Tensor) {
+  case class BasicOps private[ops](tensor: Tensor) {
     //region Tensor Manipulation Ops
 
     /** $OpDocBasicExpandDims

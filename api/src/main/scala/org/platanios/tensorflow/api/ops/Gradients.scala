@@ -373,10 +373,10 @@ private[ops] object Gradients {
         val deviceContributions = gradients.groupBy(_.device).toSeq.sortBy(_._1).map {
           case (_, outputs) =>
             Op.colocateWith(Set[Op](gradients.head.op), ignoreExisting = true) {
-              Math.addN(outputs.map(_.asInstanceOf[Output]).toArray)
+              Math.addN(outputs.map(_.asInstanceOf[Output]))
             }
         }
-        Math.addN(deviceContributions.toArray)
+        Math.addN(deviceContributions)
       } else if (gradients.forall(_.isInstanceOf[OutputIndexedSlices])) {
         ???
       } else {

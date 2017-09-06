@@ -29,34 +29,9 @@ import scala.language.postfixOps
   * @author Emmanouil Antonios Platanios
   */
 private[api] trait Math {
-  /** Creates an op that selects elements from `x` or `y`, depending on `condition`.
+  /** $OpDocMathSelect
     *
-    * The `x`, and `y` tensors must have the same shape. The output tensor will also have the same shape.
-    *
-    * The `condition` tensor must be a scalar if `x` and `y` are scalars. If `x` and `y` are vectors or higher rank,
-    * then `condition` must be either a scalar, or a vector with size matching the first dimension of `x`, or it must
-    * have the same shape as `x`.
-    *
-    * The `condition` tensor acts as a mask that chooses, based on the value at each element, whether the corresponding
-    * element / row in the output should be taken from `x` (if true) or `y` (if false).
-    *
-    * If `condition` is a vector and `x` and `y` are higher rank matrices, then it chooses which row (outer dimension)
-    * to copy from `x` and `y`. If `condition` has the same shape as `x` and `y`, then it chooses which element to copy
-    * from `x` and `y`.
-    *
-    * For example:
-    * {{{
-    *   // 'condition' tensor is [[true,  false], [false, true]]
-    *   // 'x' is [[1, 2], [3, 4]]
-    *   // 'y' is [[5, 6], [7, 8]]
-    *   select(condition, x, y) == [[1, 6], [7, 4]]
-    *
-    *   // 'condition' tensor is [true, false]
-    *   // 'x' is [[1, 2], [3, 4]]
-    *   // 'y' is [[5, 6], [7, 8]]
-    *   select(condition, x, y) == [[1, 2], [7, 8]]
-    * }}}
-    *
+    * @group MathOps
     * @param  condition Boolean condition tensor.
     * @param  x         Tensor which may have the same shape as `condition`. If `condition` has rank `1`, then `t` may
     *                   have a higher rank, but its first dimension must match the size of `condition`.
@@ -65,39 +40,27 @@ private[api] trait Math {
     * @return Created op output.
     */
   def select(condition: Output, x: Output, y: Output, name: String = "Select"): Output = {
+    val (cX, cY) = castArgs(x, y)
     Op.Builder(opType = "Select", name = name)
         .addInput(condition)
-        .addInput(x)
-        .addInput(y)
+        .addInput(cX)
+        .addInput(cY)
         .build().outputs(0)
   }
 
-  /** Creates an op that constructs a sequence of numbers.
+  /** $OpDocMathRange
     *
-    * The op creates a sequence of numbers that begins at `start` and extends by increments of `delta` up to but not
-    * including `limit`. The data type of the resulting tensor is inferred from the inputs unless it is provided
-    * explicitly.
-    *
-    * For example:
-    * {{{
-    *   // 'start' is 3
-    *   // 'limit' is 18
-    *   // 'delta' is 3
-    *   range(start, limit, delta) == [3, 6, 9, 12, 15]
-    *
-    *   // 'start' is 3
-    *   // 'limit' is 1
-    *   // 'delta' is -0.5
-    *   range(start, limit, delta) == [3.0, 2.5, 2.0, 1.5]
-    * }}}
-    *
+    * @group MathOps
     * @param  start Rank 0 (i.e., scalar) tensor that contains the starting value of the number sequence.
     * @param  limit Rank 0 (i.e., scalar) tensor that contains the ending value (exclusive) of the number sequence.
     * @param  delta Rank 0 (i.e., scalar) tensor that contains the difference between consecutive numbers in the
     *               sequence.
     * @param  name  Name for the created op.
     * @return Created op output.
+    * @throws IllegalArgumentException If `start`, `limit`, or `delta` are not scalar tensors, or if their data type is
+    *                                  not supported.
     */
+  @throws[IllegalArgumentException]
   def range(
       start: Output, limit: Output, delta: Output = Basic.constant(1), dataType: DataType = null,
       name: String = "Range"): Output = {
@@ -132,24 +95,19 @@ private[api] trait Math {
         .build().outputs(0)
   }
 
-  /** Creates an op that generates values in an interval.
+  /** $OpDocMathLinspace
     *
-    * The op generates a sequence of `numberOfValues` evenly-spaced values beginning at `start`. If
-    * `numberOfValues > 1`, the values in the sequence increase by `(stop - start) / (numberOfValues - 1)`, so that the
-    * last value is exactly equal to `stop`.
-    *
-    * For example:
-    * {{{
-    *   linspace(10.0, 12.0, 3) ==> [10.0  11.0  12.0]
-    * }}}
-    *
+    * @group MathOps
     * @param  start          Rank 0 (i.e., scalar) tensor that contains the starting value of the number sequence.
     * @param  stop           Rank 0 (i.e., scalar) tensor that contains the ending value (inclusive) of the number
     *                        sequence.
     * @param  numberOfValues Rank 0 (i.e., scalar) tensor that contains the number of values in the number sequence.
-    * @param  name  Name for the created op.
+    * @param  name           Name for the created op.
     * @return Created op output.
+    * @throws IllegalArgumentException If `start`, `stop`, or `numberOfValues` are not scalar tensors, or if their data
+    *                                  type is not supported.
     */
+  @throws[IllegalArgumentException]
   def linspace(start: Output, stop: Output, numberOfValues: Output, name: String = "LinSpace"): Output = {
     require(start.rank == 0, s"'start' (rank = ${start.rank}) must have rank 0 (i.e., must be a scalar tensor).")
     require(stop.rank == 0, s"'stop' (rank = ${stop.rank}) must have rank 0 (i.e., must be a scalar tensor).")
@@ -168,19 +126,9 @@ private[api] trait Math {
         .build().outputs(0)
   }
 
-  /** Creates an op that casts a tensor to a new data type.
+  /** $OpDocMathCast
     *
-    * The op casts `x` to the provided data type.
-    *
-    * For example:
-    * {{{
-    *   // `a` is a tensor with values [1.8, 2.2], and data type Float32
-    *   cast(a, Int32) == [1, 2] // with data type Int32
-    * }}}
-    *
-    * **NOTE**: Only a smaller number of types are supported by the `cast` op. The exact casting rule is TBD. The
-    * current implementation uses C++ static cast rules for numeric types, which may be changed in the future.
-    *
+    * @group MathOps
     * @param  x        Tensor to cast.
     * @param  dataType Target data type.
     * @param  name     Name for the created op.
@@ -200,17 +148,9 @@ private[api] trait Math {
 
   // TODO: [OPS] saturateCast
 
-  /** Creates an op that bitcasts a tensor from one type to another without copying data.
+  /** $OpDocMathBitcast
     *
-    * Given a tensor `input`, the op returns a tensor that has the same buffer data as `input`, but with data type
-    * `dataType`. If the input data type `T` is larger (in terms of number of bytes), then the output data type
-    * `dataType`, then the shape changes from `[...]` to `[..., sizeof(T)/sizeof(dataType)]`. If `T` is smaller than
-    * `dataType`, then the op requires that the rightmost dimension be equal to `sizeof(dataType)/sizeof(T)`. The
-    * shape then changes from `[..., sizeof(type)/sizeof(T)]` to `[...]`.
-    *
-    * *NOTE*: Bitcast is implemented as a low-level cast, so machines with different endian orderings will give
-    * different results.
-    *
+    * @group MathOps
     * @param  input    Input tensor.
     * @param  dataType Target data type.
     * @param  name     Name for the created op.
@@ -223,40 +163,32 @@ private[api] trait Math {
         .build().outputs(0)
   }
 
-  /** Creates an op that adds all input tensors element-wise.
+  /** $OpDocMathAddN
     *
-    * @param  inputs Input tensors (must all have the same shape and size).
+    * @group MathOps
+    * @param  inputs Input tensors.
     * @param  name   Created op name.
     * @return Created op output.
+    * @throws IllegalArgumentException If `inputs` is empty.
     */
-  def addN(inputs: Array[Output], name: String = "AddN"): Output = {
-    require(inputs.length > 0, "'inputs' must contain at least one tensor.")
-    if (inputs.length == 1) {
+  @throws[IllegalArgumentException]
+  def addN(inputs: Seq[Output], name: String = "AddN"): Output = {
+    require(inputs.nonEmpty, "'inputs' must contain at least one tensor.")
+    if (inputs.length == 1)
       Basic.identity(inputs(0), name)
-    } else {
+    else
       Op.Builder(opType = "AddN", name = name)
-          .addInputList(inputs)
+          .addInputList(castArgs(inputs))
           .build().outputs(0)
-    }
   }
 
   // TODO: [OPS] accumulateN
 
   //region Unary Ops
 
-  /** Creates an op that computes the absolute value of a tensor.
+  /** $OpDocMathAbs
     *
-    * Given a tensor `x` of real numbers, the op returns a tensor containing the absolute value of each element in `x`.
-    * For example, if `x` is an input element and `y` is an output element, the op computes `y = |x|`.
-    *
-    * Given a tensor `x` of complex numbers, the op returns a tensor of type `FLOAT32` or `FLOAT64` that is the
-    * magnitude value of each element in `x`. All elements in `x` must be complex numbers of the form `a + bj`. The
-    * magnitude is computed as `\sqrt{a^2 + b^2}`. For example:
-    * {{{
-    *   // Tensor 'x' is [[-2.25 + 4.75j], [-3.25 + 5.75j]]
-    *   abs(x) ==> [5.25594902, 6.60492229]
-    * }}}
-    *
+    * @group MathOps
     * @param  x    Input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`, `INT64`,
     *              `COMPLEX64`, or `COMPLEX128`.
     * @param  name Name for the created op.
@@ -278,10 +210,9 @@ private[api] trait Math {
     }
   }
 
-  /** Creates an op that computes the numerical negative value of a tensor element-wise.
+  /** $OpDocMathNegate
     *
-    * I.e., `y = -x`.
-    *
+    * @group MathOps
     * @param  x    Input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`, `INT64`,
     *              `COMPLEX64`, or `COMPLEX128`.
     * @param  name Name for the created op.
@@ -294,10 +225,9 @@ private[api] trait Math {
             .build().outputs(0))
   }
 
-  /** Creates an op that computes the reciprocal value of a tensor element-wise.
+  /** $OpDocMathReciprocal
     *
-    * I.e., `y = 1 / x`.
-    *
+    * @group MathOps
     * @param  x    Input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`, `INT64`,
     *              `COMPLEX64`, or `COMPLEX128`.
     * @param  name Name for the created op.
@@ -310,10 +240,9 @@ private[api] trait Math {
             .build().outputs(0))
   }
 
-  /** Creates an op that computes the square of a tensor element-wise.
+  /** $OpDocMathSquare
     *
-    * I.e., `y = x * x = x^2`.
-    *
+    * @group MathOps
     * @param  x    Input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`, `INT64`,
     *              `COMPLEX64`, or `COMPLEX128`.
     * @param  name Name for the created op.
@@ -326,10 +255,9 @@ private[api] trait Math {
             .build().outputs(0))
   }
 
-  /** Creates an op that computes the square root of a tensor element-wise.
+  /** $OpDocMathSqrt
     *
-    * I.e., `y = \sqrt{x} = x^{1/2}`.
-    *
+    * @group MathOps
     * @param  x    Input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`, `INT64`,
     *              `COMPLEX64`, or `COMPLEX128`.
     * @param  name Name for the created op.
@@ -342,10 +270,9 @@ private[api] trait Math {
             .build().outputs(0))
   }
 
-  /** Creates an op that computes the reciprocal of the square root of a tensor element-wise.
+  /** $OpDocMathRsqrt
     *
-    * I.e., `y = 1 / \sqrt{x} = 1 / x^{1/2}`.
-    *
+    * @group MathOps
     * @param  x    Input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`, `INT64`,
     *              `COMPLEX64`, or `COMPLEX128`.
     * @param  name Name for the created op.
@@ -358,10 +285,9 @@ private[api] trait Math {
             .build().outputs(0))
   }
 
-  /** Creates an op that computes the exponential of a tensor element-wise.
+  /** $OpDocMathExp
     *
-    * I.e., `y = \exp{x} = e^x`.
-    *
+    * @group MathOps
     * @param  x    Input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`, `INT64`,
     *              `COMPLEX64`, or `COMPLEX128`.
     * @param  name Name for the created op.
@@ -374,10 +300,9 @@ private[api] trait Math {
             .build().outputs(0))
   }
 
-  /** Creates an op that computes the exponential of a tensor minus `1` element-wise.
+  /** $OpDocMathExpm1
     *
-    * I.e., `y = \exp{x} - 1`.
-    *
+    * @group MathOps
     * @param  x    Input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`, `INT64`,
     *              `COMPLEX64`, or `COMPLEX128`.
     * @param  name Name for the created op.
@@ -390,10 +315,9 @@ private[api] trait Math {
             .build().outputs(0))
   }
 
-  /** Creates an op that computes the logarithm of a tensor element-wise.
+  /** $OpDocMathLog
     *
-    * I.e., `y = \log{x}`.
-    *
+    * @group MathOps
     * @param  x    Input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`, `INT64`,
     *              `COMPLEX64`, or `COMPLEX128`.
     * @param  name Name for the created op.
@@ -406,10 +330,9 @@ private[api] trait Math {
             .build().outputs(0))
   }
 
-  /** Creates an op that computes the logarithm of a tensor plus `1` element-wise.
+  /** $OpDocMathLog1p
     *
-    * I.e., `y = \log{1 + x}`.
-    *
+    * @group MathOps
     * @param  x    Input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`, `INT64`,
     *              `COMPLEX64`, or `COMPLEX128`.
     * @param  name Name for the created op.
@@ -422,10 +345,9 @@ private[api] trait Math {
             .build().outputs(0))
   }
 
-  /** Creates an op that computes the sine of a tensor element-wise.
+  /** $OpDocMathSin
     *
-    * I.e., `y = \sin{x}`.
-    *
+    * @group MathOps
     * @param  x    Input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`, `INT64`,
     *              `COMPLEX64`, or `COMPLEX128`.
     * @param  name Name for the created op.
@@ -438,10 +360,9 @@ private[api] trait Math {
             .build().outputs(0))
   }
 
-  /** Creates an op that computes the cosine of a tensor element-wise.
+  /** $OpDocMathCos
     *
-    * I.e., `y = \cos{x}`.
-    *
+    * @group MathOps
     * @param  x    Input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`, `INT64`,
     *              `COMPLEX64`, or `COMPLEX128`.
     * @param  name Name for the created op.
@@ -454,10 +375,9 @@ private[api] trait Math {
             .build().outputs(0))
   }
 
-  /** Creates an op that computes the tangent of a tensor element-wise.
+  /** $OpDocMathTan
     *
-    * I.e., `y = \tan{x}`.
-    *
+    * @group MathOps
     * @param  x    Input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`, `INT64`,
     *              `COMPLEX64`, or `COMPLEX128`.
     * @param  name Name for the created op.
@@ -470,10 +390,9 @@ private[api] trait Math {
             .build().outputs(0))
   }
 
-  /** Creates an op that computes the inverse sine of a tensor element-wise.
+  /** $OpDocMathAsin
     *
-    * I.e., `y = \asin{x}`.
-    *
+    * @group MathOps
     * @param  x    Input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`, `INT64`,
     *              `COMPLEX64`, or `COMPLEX128`.
     * @param  name Name for the created op.
@@ -486,10 +405,9 @@ private[api] trait Math {
             .build().outputs(0))
   }
 
-  /** Creates an op that computes the inverse cosine of a tensor element-wise.
+  /** $OpDocMathAcos
     *
-    * I.e., `y = \acos{x}`.
-    *
+    * @group MathOps
     * @param  x    Input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`, `INT64`,
     *              `COMPLEX64`, or `COMPLEX128`.
     * @param  name Name for the created op.
@@ -502,10 +420,9 @@ private[api] trait Math {
             .build().outputs(0))
   }
 
-  /** Creates an op that computes the inverse tangent of a tensor element-wise.
+  /** $OpDocMathAtan
     *
-    * I.e., `y = \atan{x}`.
-    *
+    * @group MathOps
     * @param  x    Input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`, `INT64`,
     *              `COMPLEX64`, or `COMPLEX128`.
     * @param  name Name for the created op.
@@ -518,10 +435,9 @@ private[api] trait Math {
             .build().outputs(0))
   }
 
-  /** Creates an op that computes the hyperbolic sine of a tensor element-wise.
+  /** $OpDocMathSinh
     *
-    * I.e., `y = \sinh{x}`.
-    *
+    * @group MathOps
     * @param  x    Input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`, `INT64`,
     *              `COMPLEX64`, or `COMPLEX128`.
     * @param  name Name for the created op.
@@ -534,10 +450,9 @@ private[api] trait Math {
             .build().outputs(0))
   }
 
-  /** Creates an op that computes the hyperbolic cosine of a tensor element-wise.
+  /** $OpDocMathCosh
     *
-    * I.e., `y = \cosh{x}`.
-    *
+    * @group MathOps
     * @param  x    Input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`, `INT64`,
     *              `COMPLEX64`, or `COMPLEX128`.
     * @param  name Name for the created op.
@@ -550,10 +465,9 @@ private[api] trait Math {
             .build().outputs(0))
   }
 
-  /** Creates an op that computes the hyperbolic tangent of a tensor element-wise.
+  /** $OpDocMathTanh
     *
-    * I.e., `y = \tanh{x}`.
-    *
+    * @group MathOps
     * @param  x    Input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`, `INT64`,
     *              `COMPLEX64`, or `COMPLEX128`.
     * @param  name Name for the created op.
@@ -566,10 +480,9 @@ private[api] trait Math {
             .build().outputs(0))
   }
 
-  /** Creates an op that computes the inverse hyperbolic sine of a tensor element-wise.
+  /** $OpDocMathAsinh
     *
-    * I.e., `y = \asinh{x}`.
-    *
+    * @group MathOps
     * @param  x    Input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`, `INT64`,
     *              `COMPLEX64`, or `COMPLEX128`.
     * @param  name Name for the created op.
@@ -582,10 +495,9 @@ private[api] trait Math {
             .build().outputs(0))
   }
 
-  /** Creates an op that computes the inverse hyperbolic cosine of a tensor element-wise.
+  /** $OpDocMathAcosh
     *
-    * I.e., `y = \acosh{x}`.
-    *
+    * @group MathOps
     * @param  x    Input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`, `INT64`,
     *              `COMPLEX64`, or `COMPLEX128`.
     * @param  name Name for the created op.
@@ -598,10 +510,9 @@ private[api] trait Math {
             .build().outputs(0))
   }
 
-  /** Creates an op that computes the inverse hyperbolic tangent of a tensor element-wise.
+  /** $OpDocMathAtanh
     *
-    * I.e., `y = \atanh{x}`.
-    *
+    * @group MathOps
     * @param  x    Input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`, `INT64`,
     *              `COMPLEX64`, or `COMPLEX128`.
     * @param  name Name for the created op.
@@ -614,11 +525,9 @@ private[api] trait Math {
             .build().outputs(0))
   }
 
-  /** Creates an op that computes the logarithm of the absolute value of the Gamma function applied element-wise on a
-    * tensor.
+  /** $OpDocMathLogGamma
     *
-    * I.e., `y = \log{|\Gamma{x}|}`.
-    *
+    * @group MathOps
     * @param  x    Input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`, `INT64`,
     *              `COMPLEX64`, or `COMPLEX128`.
     * @param  name Name for the created op.
@@ -631,11 +540,9 @@ private[api] trait Math {
             .build().outputs(0))
   }
 
-  /** Creates an op that computes the derivative of the logarithm of the absolute value of the Gamma function applied
-    * element-wise on a tensor (i.e., the digamma or Psi function).
+  /** $OpDocMathDigamma
     *
-    * I.e., `y = \partial\log{|\Gamma{x}|}`.
-    *
+    * @group MathOps
     * @param  x    Input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`, `INT64`,
     *              `COMPLEX64`, or `COMPLEX128`.
     * @param  name Name for the created op.
@@ -648,8 +555,9 @@ private[api] trait Math {
             .build().outputs(0))
   }
 
-  /** Creates an op that computes the Gaussian error function element-wise on a tensor.
+  /** $OpDocMathErf
     *
+    * @group MathOps
     * @param  x    Input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`, `INT64`,
     *              `COMPLEX64`, or `COMPLEX128`.
     * @param  name Name for the created op.
@@ -662,8 +570,9 @@ private[api] trait Math {
             .build().outputs(0))
   }
 
-  /** Creates an op that computes the complementary Gaussian error function element-wise on a tensor.
+  /** $OpDocMathErfc
     *
+    * @group MathOps
     * @param  x    Input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`, `INT64`,
     *              `COMPLEX64`, or `COMPLEX128`.
     * @param  name Name for the created op.
@@ -676,10 +585,9 @@ private[api] trait Math {
             .build().outputs(0))
   }
 
-  /** Creates an op that computes the sigmoid function element-wise on a tensor.
+  /** $OpDocMathSigmoid
     *
-    * I.e., `y = 1 / (1 + \exp{-x})`.
-    *
+    * @group MathOps
     * @param  x    Input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`, `INT64`,
     *              `COMPLEX64`, or `COMPLEX128`.
     * @param  name Name for the created op.
@@ -694,14 +602,9 @@ private[api] trait Math {
 
   // TODO: [OPS] logSigmoid
 
-  /** Creates an op that returns an element-wise indication of the sign of a tensor.
+  /** $OpDocMathSign
     *
-    * I.e., `y = sign(x) = -1` if `x < 0`; `0` if `x == 0`; `1` if `x > 0`.
-    *
-    * Zero is returned for `NaN` inputs.
-    *
-    * For complex numbers, `y = sign(x) = x / |x|` if `x != 0`, otherwise `y = 0`.
-    *
+    * @group MathOps
     * @param  x    Input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`, `INT64`,
     *              `COMPLEX64`, or `COMPLEX128`.
     * @param  name Name for the created op.
@@ -714,17 +617,9 @@ private[api] trait Math {
             .build().outputs(0))
   }
 
-  /** Creates an op that computes the round value of a tensor element-wise.
+  /** $OpDocMathRound
     *
-    * Rounds half to even. Also known as bankers rounding. If you want to round according to the current system rounding
-    * mode use the [[roundInt]] op instead.
-    *
-    * For example:
-    * {{{
-    *   // 'a' is [0.9, 2.5, 2.3, 1.5, -4.5]
-    *   round(a) ==> [1.0, 2.0, 2.0, 2.0, -4.0]
-    * }}}
-    *
+    * @group MathOps
     * @param  x    Input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `COMPLEX64`, or
     *              `COMPLEX128`.
     * @param  name Name for the created op.
@@ -737,17 +632,9 @@ private[api] trait Math {
             .build().outputs(0))
   }
 
-  /** Creates an op that computes the round value of a tensor element-wise.
+  /** $OpDocMathRoundInt
     *
-    * If the result is midway between two representable values, the even representable is chosen.
-    *
-    * For example:
-    * {{{
-    *   roundInt(-1.5) ==> -2.0
-    *   roundInt(0.5000001) ==> 1.0
-    *   roundInt([-1.7, -1.5, -0.2, 0.2, 1.5, 1.7, 2.0]) ==> [-2., -2., -0., 0., 2., 2., 2.]
-    * }}}
-    *
+    * @group MathOps
     * @param  x    Input tensor that must be one of the following types: `HALF`, `FLOAT32`, or `FLOAT64`.
     * @param  name Name for the created op.
     * @return Created op output.
@@ -759,8 +646,9 @@ private[api] trait Math {
             .build().outputs(0))
   }
 
-  /** Creates an op that computes the largest integer not greater than the current value of a tensor, element-wise.
+  /** $OpDocMathFloor
     *
+    * @group MathOps
     * @param  x    Input tensor that must be one of the following types: `HALF`, `FLOAT32`, or `FLOAT64`.
     * @param  name Name for the created op.
     * @return Created op output.
@@ -772,8 +660,9 @@ private[api] trait Math {
             .build().outputs(0))
   }
 
-  /** Creates an op that computes the smallest integer not greater than the current value of a tensor, element-wise.
+  /** $OpDocMathCeil
     *
+    * @group MathOps
     * @param  x    Input tensor that must be one of the following types: `HALF`, `FLOAT32`, or `FLOAT64`.
     * @param  name Name for the created op.
     * @return Created op output.
@@ -785,8 +674,9 @@ private[api] trait Math {
             .build().outputs(0))
   }
 
-  /** Creates an op that returns a boolean tensor indicating which elements of a tensor are NaN-valued.
+  /** $OpDocMathIsNaN
     *
+    * @group MathOps
     * @param  x    Input tensor that must be one of the following types: `HALF`, `FLOAT32`, or `FLOAT64`.
     * @param  name Name for the created op.
     * @return Created op output.
@@ -798,8 +688,9 @@ private[api] trait Math {
             .build().outputs(0))
   }
 
-  /** Creates an op that returns a boolean tensor indicating which elements of a tensor are Inf-valued.
+  /** $OpDocMathIsInf
     *
+    * @group MathOps
     * @param  x    Input tensor that must be one of the following types: `HALF`, `FLOAT32`, or `FLOAT64`.
     * @param  name Name for the created op.
     * @return Created op output.
@@ -811,8 +702,9 @@ private[api] trait Math {
             .build().outputs(0))
   }
 
-  /** Creates an op that returns a boolean tensor indicating which elements of a tensor are finite-valued.
+  /** $OpDocMathIsFinite
     *
+    * @group MathOps
     * @param  x    Input tensor that must be one of the following types: `HALF`, `FLOAT32`, or `FLOAT64`.
     * @param  name Name for the created op.
     * @return Created op output.
@@ -828,15 +720,9 @@ private[api] trait Math {
 
   //region Binary Ops
 
-  // TODO: !!! [OPS] Automatic casting to most precise for binary ops.
-
-  /** Creates an op that adds two tensors element-wise.
+  /** $OpDocMathAdd
     *
-    * I.e., `z = x + y`.
-    *
-    * NOTE: This op supports broadcasting. More information about broadcasting can be found
-    * [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
-    *
+    * @group MathOps
     * @param  x    First input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `UINT8`,
     *              `INT8`, `INT16`, `INT32`, `INT64`, `COMPLEX64`, `COMPLEX128`, or `STRING`.
     * @param  y    Second input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `UINT8`,
@@ -845,19 +731,16 @@ private[api] trait Math {
     * @return Created op output.
     */
   def add(x: Output, y: Output, name: String = "Add"): Output = {
+    val (cX, cY) = castArgs(x, y)
     Op.Builder(opType = "Add", name = name)
-        .addInput(x)
-        .addInput(y)
+        .addInput(cX)
+        .addInput(cY)
         .build().outputs(0)
   }
 
-  /** Creates an op that subtracts two tensors element-wise.
+  /** $OpDocMathSubtract
     *
-    * I.e., `z = x - y`.
-    *
-    * NOTE: This op supports broadcasting. More information about broadcasting can be found
-    * [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
-    *
+    * @group MathOps
     * @param  x    First input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`,
     *              `INT64`, `COMPLEX64`, or `COMPLEX128`.
     * @param  y    Second input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`,
@@ -866,19 +749,16 @@ private[api] trait Math {
     * @return Created op output.
     */
   def subtract(x: Output, y: Output, name: String = "Sub"): Output = {
+    val (cX, cY) = castArgs(x, y)
     Op.Builder(opType = "Sub", name = name)
-        .addInput(x)
-        .addInput(y)
+        .addInput(cX)
+        .addInput(cY)
         .build().outputs(0)
   }
 
-  /** Creates an op that multiplies two tensors element-wise.
+  /** $OpDocMathMultiply
     *
-    * I.e., `z = x * y`.
-    *
-    * NOTE: This op supports broadcasting. More information about broadcasting can be found
-    * [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
-    *
+    * @group MathOps
     * @param  x    First input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `UINT8`,
     *              `INT8`, `INT16`, `INT32`, `INT64`, `COMPLEX64`, or `COMPLEX128`.
     * @param  y    Second input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `UINT8`,
@@ -887,19 +767,16 @@ private[api] trait Math {
     * @return Created op output.
     */
   def multiply(x: Output, y: Output, name: String = "Mul"): Output = {
+    val (cX, cY) = castArgs(x, y)
     Op.Builder(opType = "Mul", name = name)
-        .addInput(x)
-        .addInput(y)
+        .addInput(cX)
+        .addInput(cY)
         .build().outputs(0)
   }
 
-  /** Creates an op that divides two tensors element-wise.
+  /** $OpDocMathDivide
     *
-    * I.e., `z = x / y`.
-    *
-    * NOTE: This op supports broadcasting. More information about broadcasting can be found
-    * [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
-    *
+    * @group MathOps
     * @param  x    First input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `UINT8`,
     *              `INT8`, `INT16`, `INT32`, `INT64`, `COMPLEX64`, or `COMPLEX128`.
     * @param  y    Second input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `UINT8`,
@@ -908,19 +785,16 @@ private[api] trait Math {
     * @return Created op output.
     */
   def divide(x: Output, y: Output, name: String = "Div"): Output = {
+    val (cX, cY) = castArgs(x, y)
     Op.Builder(opType = "Div", name = name)
-        .addInput(x)
-        .addInput(y)
+        .addInput(cX)
+        .addInput(cY)
         .build().outputs(0)
   }
 
-  /** Creates an op that floor-divides two tensors element-wise.
+  /** $OpDocMathFloorDivide
     *
-    * I.e., `z = x // y`.
-    *
-    * NOTE: This op supports broadcasting. More information about broadcasting can be found
-    * [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
-    *
+    * @group MathOps
     * @param  x    First input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `UINT8`,
     *              `INT8`, `INT16`, `INT32`, `INT64`, `COMPLEX64`, or `COMPLEX128`.
     * @param  y    Second input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `UINT8`,
@@ -930,23 +804,16 @@ private[api] trait Math {
     */
   @deprecated("Use `truncateDivide` instead.", "0.1")
   def floorDivide(x: Output, y: Output, name: String = "FloorDiv"): Output = {
+    val (cX, cY) = castArgs(x, y)
     Op.Builder(opType = "FloorDiv", name = name)
-        .addInput(x)
-        .addInput(y)
+        .addInput(cX)
+        .addInput(cY)
         .build().outputs(0)
   }
 
-  /** Creates an op that truncate-divides two integer tensors element-wise.
+  /** $OpDocMathTruncateDivide
     *
-    * Truncation designates that negative numbers will round fractional quantities toward zero. I.e. `-7 / 5 = 1`. This
-    * matches C semantics but it is different than Python semantics. See `floorDivide` for a division function that
-    * matches Python semantics.
-    *
-    * I.e., `z = x / y`, for `x` and `y` being integer tensors.
-    *
-    * NOTE: This op supports broadcasting. More information about broadcasting can be found
-    * [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
-    *
+    * @group MathOps
     * @param  x    First input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `UINT8`,
     *              `INT8`, `INT16`, `INT32`, `INT64`, `COMPLEX64`, or `COMPLEX128`.
     * @param  y    Second input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `UINT8`,
@@ -955,21 +822,16 @@ private[api] trait Math {
     * @return Created op output.
     */
   def truncateDivide(x: Output, y: Output, name: String = "TruncateDiv"): Output = {
+    val (cX, cY) = castArgs(x, y)
     Op.Builder(opType = "TruncateDiv", name = name)
-        .addInput(x)
-        .addInput(y)
+        .addInput(cX)
+        .addInput(cY)
         .build().outputs(0)
   }
 
-  /** Creates an op that divides two real tensors element-wise.
+  /** $OpDocMathRealDivide
     *
-    * If `x` and `y` are real-valued tensors, the op will return the floating-point division.
-    *
-    * I.e., `z = x / y`, for `x` and `y` being real tensors.
-    *
-    * NOTE: This op supports broadcasting. More information about broadcasting can be found
-    * [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
-    *
+    * @group MathOps
     * @param  x    First input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `UINT8`,
     *              `INT8`, `INT16`, `INT32`, `INT64`, `COMPLEX64`, or `COMPLEX128`.
     * @param  y    Second input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `UINT8`,
@@ -978,19 +840,16 @@ private[api] trait Math {
     * @return Created op output.
     */
   def realDivide(x: Output, y: Output, name: String = "RealDiv"): Output = {
+    val (cX, cY) = castArgs(x, y)
     Op.Builder(opType = "RealDiv", name = name)
-        .addInput(x)
-        .addInput(y)
+        .addInput(cX)
+        .addInput(cY)
         .build().outputs(0)
   }
 
-  /** Creates an op that computes the squared difference between two tensors element-wise.
+  /** $OpDocMathSquaredDifference
     *
-    * I.e., `z = (x - y) * (x - y)`.
-    *
-    * NOTE: This op supports broadcasting. More information about broadcasting can be found
-    * [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
-    *
+    * @group MathOps
     * @param  x    First input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`,
     *              `INT64`, `COMPLEX64`, or `COMPLEX128`.
     * @param  y    Second input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`,
@@ -999,20 +858,16 @@ private[api] trait Math {
     * @return Created op output.
     */
   def squaredDifference(x: Output, y: Output, name: String = "SquaredDifference"): Output = {
+    val (cX, cY) = castArgs(x, y)
     Op.Builder(opType = "SquaredDifference", name = name)
-        .addInput(x)
-        .addInput(y)
+        .addInput(cX)
+        .addInput(cY)
         .build().outputs(0)
   }
 
-  /** Creates an op that computes the remainder of the division between two tensors element-wise.
+  /** $OpDocMathMod
     *
-    * The op emulates C semantics in that the result is consistent with a truncating divide.
-    * E.g., `truncate(x / y) * y + truncateMod(x, y) = x`.
-    *
-    * NOTE: This op supports broadcasting. More information about broadcasting can be found
-    * [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
-    *
+    * @group MathOps
     * @param  x    First input tensor that must be one of the following types: `FLOAT32`, `FLOAT64`, `INT32`, or
     *              `INT64`.
     * @param  y    Second input tensor that must be one of the following types: `FLOAT32`, `FLOAT64`, `INT32`, or
@@ -1021,20 +876,16 @@ private[api] trait Math {
     * @return Created op output.
     */
   def mod(x: Output, y: Output, name: String = "Mod"): Output = {
+    val (cX, cY) = castArgs(x, y)
     Op.Builder(opType = "Mod", name = name)
-        .addInput(x)
-        .addInput(y)
+        .addInput(cX)
+        .addInput(cY)
         .build().outputs(0)
   }
 
-  /** Creates an op that computes the remainder of the division between two tensors element-wise.
+  /** $OpDocMathFloorMod
     *
-    * When `x < 0` xor `y < 0` is true, the op follows Python semantics in that the result here is consistent with a
-    * flooring divide. E.g., `floor(x / y) * y + mod(x, y) = x`.
-    *
-    * NOTE: This op supports broadcasting. More information about broadcasting can be found
-    * [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
-    *
+    * @group MathOps
     * @param  x    First input tensor that must be one of the following types: `FLOAT32`, `FLOAT64`, `INT32`, or
     *              `INT64`.
     * @param  y    Second input tensor that must be one of the following types: `FLOAT32`, `FLOAT64`, `INT32`, or
@@ -1043,20 +894,16 @@ private[api] trait Math {
     * @return Created op output.
     */
   def floorMod(x: Output, y: Output, name: String = "FloorMod"): Output = {
+    val (cX, cY) = castArgs(x, y)
     Op.Builder(opType = "FloorMod", name = name)
-        .addInput(x)
-        .addInput(y)
+        .addInput(cX)
+        .addInput(cY)
         .build().outputs(0)
   }
 
-  /** Creates an op that computes the remainder of the division between two tensors element-wise.
+  /** $OpDocMathTruncateMod
     *
-    * The op emulates C semantics in that the result here is consistent with a truncating divide.
-    * E.g., `truncate(x / y) * y + truncateMod(x, y) = x`.
-    *
-    * NOTE: This op supports broadcasting. More information about broadcasting can be found
-    * [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
-    *
+    * @group MathOps
     * @param  x    First input tensor that must be one of the following types: `FLOAT32`, `FLOAT64`, `INT32`, or
     *              `INT64`.
     * @param  y    Second input tensor that must be one of the following types: `FLOAT32`, `FLOAT64`, `INT32`, or
@@ -1065,23 +912,16 @@ private[api] trait Math {
     * @return Created op output.
     */
   def truncateMod(x: Output, y: Output, name: String = "TruncateMod"): Output = {
+    val (cX, cY) = castArgs(x, y)
     Op.Builder(opType = "TruncateMod", name = name)
-        .addInput(x)
-        .addInput(y)
+        .addInput(cX)
+        .addInput(cY)
         .build().outputs(0)
   }
 
-  /** Creates an op that computes the power of one tensor raised to another, element-wise.
+  /** $OpDocMathPow
     *
-    * Given a tensor `x` and a tensor `y`, the op computes `x^y` for the corresponding elements in `x` and `y`.
-    *
-    * For example:
-    * {{{
-    *   // Tensor 'x' is [[2, 2], [3, 3]]
-    *   // Tensor 'y' is [[8, 16], [2, 3]]
-    *   pow(x, y) ==> [[256, 65536], [9, 27]]
-    * }}}
-    *
+    * @group MathOps
     * @param  x    First input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`,
     *              `INT64`, `COMPLEX64`, or `COMPLEX128`.
     * @param  y    Second input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`,
@@ -1090,120 +930,96 @@ private[api] trait Math {
     * @return Created op output.
     */
   def pow(x: Output, y: Output, name: String = "Pow"): Output = {
+    val (cX, cY) = castArgs(x, y)
     Op.Builder(opType = "Pow", name = name)
-        .addInput(x)
-        .addInput(y)
+        .addInput(cX)
+        .addInput(cY)
         .build().outputs(0)
   }
 
-  /** Creates an op that computes the upper regularized incomplete Gamma function `Q(a, x)`.
+  /** $OpDocMathIgammac
     *
-    * The upper regularized incomplete Gamma function is defined as:
-    *
-    * `Q(a, x) = Gamma(a, x) / Gamma(a) = 1 - P(a, x)`, where:
-    *
-    * `Gamma(a, x) = \int_{x}^{\infty} t^{a-1} exp(-t) dt`
-    *
-    * is the upper incomplete Gama function.
-    *
-    * Note that, above, `P(a, x)` (`Igamma`) is the lower regularized complete Gamma function.
-    *
+    * @group MathOps
     * @param  a    First input tensor that must be one of the following types: `FLOAT32`, or `FLOAT64`.
     * @param  x    Second input tensor that must be one of the following types: `FLOAT32`, or `FLOAT64`.
     * @param  name Name for the created op.
     * @return Created op output.
     */
   def igammac(a: Output, x: Output, name: String = "Igammac"): Output = {
+    val (cA, cX) = castArgs(a, x)
     Op.Builder(opType = "Igammac", name = name)
-        .addInput(a)
-        .addInput(x)
+        .addInput(cA)
+        .addInput(cX)
         .build().outputs(0)
   }
 
-  /** Creates an op that computes the lower regularized incomplete Gamma function `Q(a, x)`.
+  /** $OpDocMathIgamma
     *
-    * The lower regularized incomplete Gamma function is defined as:
-    *
-    * `P(a, x) = gamma(a, x) / Gamma(a) = 1 - Q(a, x)`, where:
-    *
-    * `Gamma(a, x) = \int_{0}^{x} t^{a-1} exp(-t) dt`
-    *
-    * is the lower incomplete Gamma function.
-    *
-    * Note that, above, `Q(a, x)` (`Igammac`) is the upper regularized complete Gamma function.
-    *
+    * @group MathOps
     * @param  a    First input tensor that must be one of the following types: `FLOAT32`, or `FLOAT64`.
     * @param  x    Second input tensor that must be one of the following types: `FLOAT32`, or `FLOAT64`.
     * @param  name Name for the created op.
     * @return Created op output.
     */
   def igamma(a: Output, x: Output, name: String = "Igamma"): Output = {
+    val (cA, cX) = castArgs(a, x)
     Op.Builder(opType = "Igamma", name = name)
-        .addInput(a)
-        .addInput(x)
+        .addInput(cA)
+        .addInput(cX)
         .build().outputs(0)
   }
 
-  /** Creates an op that computes the Hurwitz zeta function `\zeta(x, q)`.
+  /** $OpDocMathZeta
     *
-    * The Hurwitz zeta function is defined as:
-    *
-    * `\zeta(x, q) = \sum_{n=0}^{\infty} (q + n)^{-x}`.
-    *
+    * @group MathOps
     * @param  x    First input tensor that must be one of the following types: `FLOAT32`, or `FLOAT64`.
     * @param  q    Second input tensor that must be one of the following types: `FLOAT32`, or `FLOAT64`.
     * @param  name Name for the created op.
     * @return Created op output.
     */
   def zeta(x: Output, q: Output, name: String = "Zeta"): Output = {
+    val (cX, cQ) = castArgs(x, q)
     Op.Builder(opType = "Zeta", name = name)
-        .addInput(x)
-        .addInput(q)
+        .addInput(cX)
+        .addInput(cQ)
         .build().outputs(0)
   }
 
-  /** Creates an op that computes the polygamma function `\psi^{(n)}(x)`.
+  /** $OpDocMathPolygamma
     *
-    * The polygamma function is defined as:
-    *
-    * `\psi^{(n)}(x) = \frac{d^n}{dx^n} \psi(x)`, where `\psi(x)` is the digamma function.
-    *
+    * @group MathOps
     * @param  n    First input tensor that must be one of the following types: `FLOAT32`, or `FLOAT64`.
     * @param  x    Second input tensor that must be one of the following types: `FLOAT32`, or `FLOAT64`.
     * @param  name Name for the created op.
     * @return Created op output.
     */
   def polygamma(n: Output, x: Output, name: String = "Polygamma"): Output = {
+    val (cN, cX) = castArgs(n, x)
     Op.Builder(opType = "Polygamma", name = name)
-        .addInput(n)
-        .addInput(x)
+        .addInput(cN)
+        .addInput(cX)
         .build().outputs(0)
   }
 
-  /** Creates an op that computes the inverse tangent of `y / x` element-wise, respecting signs of the arguments.
+  /** $OpDocMathAtan2
     *
-    * The op computes the angle `\theta \in [-\pi, \pi]` such that `x = r \cos(\theta)` and `y = r \sin(\theta)`, where
-    * `r = \sqrt(x^2 + y^2)`.
-    *
-    * @param  y    First input tensor that must be one of the following types: `FLOAT32`, or `FLOAT64`.
-    * @param  x    Second input tensor that must be one of the following types: `FLOAT32`, or `FLOAT64`.
+    * @group MathOps
+    * @param  x    First input tensor that must be one of the following types: `FLOAT32`, or `FLOAT64`.
+    * @param  y    Second input tensor that must be one of the following types: `FLOAT32`, or `FLOAT64`.
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def atan2(y: Output, x: Output, name: String = "ATan2"): Output = {
+  def atan2(x: Output, y: Output, name: String = "ATan2"): Output = {
+    val (cX, cY) = castArgs(x, y)
     Op.Builder(opType = "Atan2", name = name)
-        .addInput(y)
-        .addInput(x)
+        .addInput(cX)
+        .addInput(cY)
         .build().outputs(0)
   }
 
-  /** Creates an op that returns the element-wise maximum between two tensors.
+  /** $OpDocMathMaximum
     *
-    * I.e., `z = x > y ? x : y`.
-    *
-    * NOTE: This op supports broadcasting. More information about broadcasting can be found
-    * [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
-    *
+    * @group MathOps
     * @param  x    First input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`, or
     *              `INT64`.
     * @param  y    Second input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`,
@@ -1212,19 +1028,16 @@ private[api] trait Math {
     * @return Created op output.
     */
   def maximum(x: Output, y: Output, name: String = "Maximum"): Output = {
+    val (cX, cY) = castArgs(x, y)
     Op.Builder(opType = "Maximum", name = name)
-        .addInput(x)
-        .addInput(y)
+        .addInput(cX)
+        .addInput(cY)
         .build().outputs(0)
   }
 
-  /** Creates an op that returns the element-wise minimum between two tensors.
+  /** $OpDocMathMinimum
     *
-    * I.e., `z = x < y ? x : y`.
-    *
-    * NOTE: This op supports broadcasting. More information about broadcasting can be found
-    * [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
-    *
+    * @group MathOps
     * @param  x    First input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`, or
     *              `INT64`.
     * @param  y    Second input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`,
@@ -1233,24 +1046,18 @@ private[api] trait Math {
     * @return Created op output.
     */
   def minimum(x: Output, y: Output, name: String = "Minimum"): Output = {
+    val (cX, cY) = castArgs(x, y)
     Op.Builder(opType = "Minimum", name = name)
-        .addInput(x)
-        .addInput(y)
+        .addInput(cX)
+        .addInput(cY)
         .build().outputs(0)
   }
 
   //endregion Binary Ops
 
-  /** Creates an op that computes the regularized incomplete beta integral `I_x(a, b)`.
+  /** $OpDocMathIncompleteBeta
     *
-    * The regularized incomplete beta integral is defined as:
-    *
-    * `I_x(a, b) = \frac{B(x; a, b)}{B(a, b)}`, where:
-    *
-    * `B(x; a, b) = \int_0^x t^{a-1} (1 - t)^{b-1} dt`
-    *
-    * is the incomplete beta function and `B(a, b)` is the *complete* beta function.
-    *
+    * @group MathOps
     * @param  a    First input tensor that must be one of the following types: `FLOAT32`, or `FLOAT64`.
     * @param  b    Second input tensor that must be one of the following types: `FLOAT32`, or `FLOAT64`.
     * @param  x    Third input tensor that must be one of the following types: `FLOAT32`, or `FLOAT64`.
@@ -1258,17 +1065,19 @@ private[api] trait Math {
     * @return Created op output.
     */
   def incompleteBeta(a: Output, b: Output, x: Output, name: String = "IncompleteBeta"): Output = {
+    val (cA, cB, cX) = castArgs(a, b, x)
     Op.Builder(opType = "Betainc", name = name)
-        .addInput(a)
-        .addInput(b)
-        .addInput(x)
+        .addInput(cA)
+        .addInput(cB)
+        .addInput(cX)
         .build().outputs(0)
   }
 
   //region Logical Ops
 
-  /** Creates an op that computes the truth value of `!x` element-wise.
+  /** $OpDocMathLogicalNot
     *
+    * @group MathOps
     * @param  x    Input tensor.
     * @param  name Name for the created op.
     * @return Created op output.
@@ -1279,11 +1088,9 @@ private[api] trait Math {
         .build().outputs(0)
   }
 
-  /** Creates an op that computes the truth value of `x && y` element-wise.
+  /** $OpDocMathLogicalAnd
     *
-    * NOTE: This op supports broadcasting. More information about broadcasting can be found
-    * [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
-    *
+    * @group MathOps
     * @param  x    First input tensor.
     * @param  y    Second input tensor.
     * @param  name Name for the created op.
@@ -1296,11 +1103,9 @@ private[api] trait Math {
         .build().outputs(0)
   }
 
-  /** Creates an op that computes the truth value of `x || y` element-wise.
+  /** $OpDocMathLogicalOr
     *
-    * NOTE: This op supports broadcasting. More information about broadcasting can be found
-    * [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
-    *
+    * @group MathOps
     * @param  x    First input tensor.
     * @param  y    Second input tensor.
     * @param  name Name for the created op.
@@ -1313,11 +1118,9 @@ private[api] trait Math {
         .build().outputs(0)
   }
 
-  /** Creates an op that computes the truth value of `(x || y) && !(x && y)` element-wise.
+  /** $OpDocMathLogicalXOr
     *
-    * NOTE: This op supports broadcasting. More information about broadcasting can be found
-    * [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
-    *
+    * @group MathOps
     * @param  x    First input tensor.
     * @param  y    Second input tensor.
     * @param  name Name for the created op.
@@ -1331,42 +1134,41 @@ private[api] trait Math {
 
   //region Comparison Ops
 
-  /** Creates an op that computes the truth value of `x == y` element-wise.
+  /** $OpDocMathEqual
     *
-    * NOTE: This op supports broadcasting. More information about broadcasting can be found
-    * [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
-    *
+    * @group MathOps
     * @param  x    First input tensor.
     * @param  y    Second input tensor.
     * @param  name Name for the created op.
     * @return Created op output.
     */
   def equal(x: Output, y: Output, name: String = "Equal"): Output = {
+    val (cX, cY) = castArgs(x, y)
     Op.Builder(opType = "Equal", name = name)
-        .addInput(x)
-        .addInput(y)
+        .addInput(cX)
+        .addInput(cY)
         .build().outputs(0)
   }
 
-  /** Creates an op that computes the truth value of `x != y` element-wise.
+  /** $OpDocMathNotEqual
     *
-    * NOTE: This op supports broadcasting. More information about broadcasting can be found
-    * [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
-    *
+    * @group MathOps
     * @param  x    First input tensor.
     * @param  y    Second input tensor.
     * @param  name Name for the created op.
     * @return Created op output.
     */
   def notEqual(x: Output, y: Output, name: String = "NotEqual"): Output = {
+    val (cX, cY) = castArgs(x, y)
     Op.Builder(opType = "NotEqual", name = name)
-        .addInput(x)
-        .addInput(y)
+        .addInput(cX)
+        .addInput(cY)
         .build().outputs(0)
   }
 
-  /** Creates an op that computes the truth value of `abs(x - y) < tolerance`  element-wise.
+  /** $OpDocMathApproximatelyEqual
     *
+    * @group MathOps
     * @param  x         First input tensor.
     * @param  y         Second input tensor.
     * @param  tolerance Comparison tolerance value.
@@ -1375,78 +1177,75 @@ private[api] trait Math {
     */
   def approximatelyEqual(
       x: Output, y: Output, tolerance: Float = 0.00001f, name: String = "ApproximatelyEqual"): Output = {
+    val (cX, cY) = castArgs(x, y)
     Op.Builder(opType = "ApproximateEqual", name = name)
-        .addInput(x)
-        .addInput(y)
+        .addInput(cX)
+        .addInput(cY)
         .setAttribute("tolerance", tolerance)
         .build().outputs(0)
   }
 
-  /** Creates an op that computes the truth value of `x < y` element-wise.
+  /** OpDocMathLess
     *
-    * NOTE: This op supports broadcasting. More information about broadcasting can be found
-    * [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
-    *
+    * @group MathOps
     * @param  x    First input tensor.
     * @param  y    Second input tensor.
     * @param  name Name for the created op.
     * @return Created op output.
     */
   def less(x: Output, y: Output, name: String = "Less"): Output = {
+    val (cX, cY) = castArgs(x, y)
     Op.Builder(opType = "Less", name = name)
-        .addInput(x)
-        .addInput(y)
+        .addInput(cX)
+        .addInput(cY)
         .build().outputs(0)
   }
 
-  /** Creates an op that computes the truth value of `x <= y` element-wise.
+  /** OpDocMathLessEqual
     *
-    * NOTE: This op supports broadcasting. More information about broadcasting can be found
-    * [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
-    *
+    * @group MathOps
     * @param  x    First input tensor.
     * @param  y    Second input tensor.
     * @param  name Name for the created op.
     * @return Created op output.
     */
   def lessEqual(x: Output, y: Output, name: String = "LessEqual"): Output = {
+    val (cX, cY) = castArgs(x, y)
     Op.Builder(opType = "LessEqual", name = name)
-        .addInput(x)
-        .addInput(y)
+        .addInput(cX)
+        .addInput(cY)
         .build().outputs(0)
   }
 
-  /** Creates an op that computes the truth value of `x > y` element-wise.
+  /** OpDocMathGreater
     *
-    * NOTE: This op supports broadcasting. More information about broadcasting can be found
-    * [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
-    *
+    * @group MathOps
     * @param  x    First input tensor.
     * @param  y    Second input tensor.
     * @param  name Name for the created op.
     * @return Created op output.
     */
   def greater(x: Output, y: Output, name: String = "Greater"): Output = {
+    val (cX, cY) = castArgs(x, y)
     Op.Builder(opType = "Greater", name = name)
-        .addInput(x)
-        .addInput(y)
+        .addInput(cX)
+        .addInput(cY)
         .build().outputs(0)
   }
 
-  /** Creates an op that computes the truth value of `x >= y` element-wise.
+  /** OpDocMathGreaterEqual
     *
-    * NOTE: This op supports broadcasting. More information about broadcasting can be found
-    * [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
-    *
+    * @group MathOps
     * @param  x    First input tensor.
     * @param  y    Second input tensor.
     * @param  name Name for the created op.
     * @return Created op output.
     */
   def greaterEqual(x: Output, y: Output, name: String = "GreaterEqual"): Output = {
+    val (cX, cY) = castArgs(x, y)
     Op.Builder(opType = "GreaterEqual", name = name)
-        .addInput(x)
-        .addInput(y)
+        .addInput(cX)
+        .addInput(cY)
         .build().outputs(0)
   }
 
@@ -1459,8 +1258,10 @@ private[api] trait Math {
       axes
     } else {
       tensor match { // Fast path: Avoid creating range and rank ops if the rank is known statically.
-        case t: Output if t.rank > -1 =>
-          Basic.constant(0 until t.rank)
+        case o: Output if o.rank > -1 =>
+          Basic.constant(0 until o.rank)
+        case o: OutputIndexedSlices if o.denseShape.shape.isFullyDefined =>
+          Basic.constant(0 until o.denseShape.shape(0))
         case o: SparseOutput if o.denseShape.shape.isFullyDefined =>
           Basic.constant(0 until o.denseShape.shape(0))
         case _ => // Otherwise, we rely on range and rank to do the right thing at run-time.
@@ -1469,23 +1270,9 @@ private[api] trait Math {
     }
   }
 
-  /** Creates an op that computes the sum of elements across axes of a tensor.
+  /** $OpDocMathSum
     *
-    * Reduces `input` along the axes given in `axes`. Unless `keepDims` is `true`, the rank of the tensor is reduced by
-    * 1 for each entry in `axes`. If `keepDims` is `true`, the reduced axes are retained with size 1.
-    *
-    * If `axes` is `null`, then all axes are reduced, and a tensor with a single element is returned.
-    *
-    * For example:
-    * {{{
-    *   // 'x' is [[1, 1, 1]], [1, 1, 1]]
-    *   sum(x) == 6
-    *   sum(x, 0) == [2, 2, 2]
-    *   sum(x, 1) == [3, 3]
-    *   sum(x, 1, keepDims = true) == [[3], [3]]
-    *   sum(x, [0, 1]) == 6
-    * }}}
-    *
+    * @group MathOps
     * @param  input    Input tensor to reduce.
     * @param  axes     Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
     * @param  keepDims If `true`, retain the reduced axes.
@@ -1503,21 +1290,9 @@ private[api] trait Math {
           .build().outputs(0)
   }
 
-  /** Creates an op that computes the mean of elements across axes of a tensor.
+  /** $OpDocMathMean
     *
-    * Reduces `input` along the axes given in `axes`. Unless `keepDims` is `true`, the rank of the tensor is reduced by
-    * 1 for each entry in `axes`. If `keepDims` is `true`, the reduced axes are retained with size 1.
-    *
-    * If `axes` is `null`, then all axes are reduced, and a tensor with a single element is returned.
-    *
-    * For example:
-    * {{{
-    *   // 'x' is [[1.0, 1.0], [2.0, 2.0]]
-    *   mean(x) == 1.5
-    *   mean(x, 0) == [1.5, 1.5]
-    *   mean(x, 1) == [1.0, 2.0]
-    * }}}
-    *
+    * @group MathOps
     * @param  input    Input tensor to reduce.
     * @param  axes     Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
     * @param  keepDims If `true`, retain the reduced axes.
@@ -1529,29 +1304,15 @@ private[api] trait Math {
       input
     else
       Op.Builder(opType = "Mean", name = name)
-        .addInput(input)
-        .addInput(reductionAxes(input, axes))
-        .setAttribute("keep_dims", keepDims)
-        .build().outputs(0)
+          .addInput(input)
+          .addInput(reductionAxes(input, axes))
+          .setAttribute("keep_dims", keepDims)
+          .build().outputs(0)
   }
 
-  /** Creates an op that computes the product of elements across axes of a tensor.
+  /** $OpDocMathProd
     *
-    * Reduces `input` along the axes given in `axes`. Unless `keepDims` is `true`, the rank of the tensor is reduced by
-    * 1 for each entry in `axes`. If `keepDims` is `true`, the reduced axes are retained with size 1.
-    *
-    * If `axes` is `null`, then all axes are reduced, and a tensor with a single element is returned.
-    *
-    * For example:
-    * {{{
-    *   // 'x' is [[1, 1, 1]], [1, 1, 1]]
-    *   prod(x) == 1
-    *   prod(x, 0) == [1, 1, 1]
-    *   prod(x, 1) == [1, 1]
-    *   prod(x, 1, keepDims = true) == [[1], [1]]
-    *   prod(x, [0, 1]) == 1
-    * }}}
-    *
+    * @group MathOps
     * @param  input    Input tensor to reduce.
     * @param  axes     Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
     * @param  keepDims If `true`, retain the reduced axes.
@@ -1563,27 +1324,15 @@ private[api] trait Math {
       input
     else
       Op.Builder(opType = "Prod", name = name)
-        .addInput(input)
-        .addInput(reductionAxes(input, axes))
-        .setAttribute("keep_dims", keepDims)
-        .build().outputs(0)
+          .addInput(input)
+          .addInput(reductionAxes(input, axes))
+          .setAttribute("keep_dims", keepDims)
+          .build().outputs(0)
   }
 
-  /** Creates an op that computes the minimum of elements across axes of a tensor.
+  /** $OpDocMathMin
     *
-    * Reduces `input` along the axes given in `axes`. Unless `keepDims` is `true`, the rank of the tensor is reduced by
-    * 1 for each entry in `axes`. If `keepDims` is `true`, the reduced axes are retained with size 1.
-    *
-    * If `axes` is `null`, then all axes are reduced, and a tensor with a single element is returned.
-    *
-    * For example:
-    * {{{
-    *   // 'x' is [[1.0, 1.0], [2.0, 2.0]]
-    *   min(x) == 1.0
-    *   min(x, 0) == [1.0, 1.0]
-    *   min(x, 1) == [1.0, 2.0]
-    * }}}
-    *
+    * @group MathOps
     * @param  input    Input tensor to reduce.
     * @param  axes     Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
     * @param  keepDims If `true`, retain the reduced axes.
@@ -1595,27 +1344,15 @@ private[api] trait Math {
       input
     else
       Op.Builder(opType = "Min", name = name)
-        .addInput(input)
-        .addInput(reductionAxes(input, axes))
-        .setAttribute("keep_dims", keepDims)
-        .build().outputs(0)
+          .addInput(input)
+          .addInput(reductionAxes(input, axes))
+          .setAttribute("keep_dims", keepDims)
+          .build().outputs(0)
   }
 
-  /** Creates an op that computes the maximum of elements across axes of a tensor.
+  /** $OpDocMathMax
     *
-    * Reduces `input` along the axes given in `axes`. Unless `keepDims` is `true`, the rank of the tensor is reduced by
-    * 1 for each entry in `axes`. If `keepDims` is `true`, the reduced axes are retained with size 1.
-    *
-    * If `axes` is `null`, then all axes are reduced, and a tensor with a single element is returned.
-    *
-    * For example:
-    * {{{
-    *   // 'x' is [[1.0, 1.0], [2.0, 2.0]]
-    *   max(x) == 2.0
-    *   max(x, 0) == [2.0, 2.0]
-    *   max(x, 1) == [1.0, 2.0]
-    * }}}
-    *
+    * @group MathOps
     * @param  input    Input tensor to reduce.
     * @param  axes     Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
     * @param  keepDims If `true`, retain the reduced axes.
@@ -1627,27 +1364,15 @@ private[api] trait Math {
       input
     else
       Op.Builder(opType = "Max", name = name)
-        .addInput(input)
-        .addInput(reductionAxes(input, axes))
-        .setAttribute("keep_dims", keepDims)
-        .build().outputs(0)
+          .addInput(input)
+          .addInput(reductionAxes(input, axes))
+          .setAttribute("keep_dims", keepDims)
+          .build().outputs(0)
   }
 
-  /** Creates an op that computes the logical AND of elements across axes of a tensor.
+  /** $OpDocMathAll
     *
-    * Reduces `input` along the axes given in `axes`. Unless `keepDims` is `true`, the rank of the tensor is reduced by
-    * 1 for each entry in `axes`. If `keepDims` is `true`, the reduced axes are retained with size 1.
-    *
-    * If `axes` is `null`, then all axes are reduced, and a tensor with a single element is returned.
-    *
-    * For example:
-    * {{{
-    *   // 'x' is [[true, true], [false, false]]
-    *   all(x) == false
-    *   all(x, 0) == [false, false]
-    *   all(x, 1) == [true, false]
-    * }}}
-    *
+    * @group MathOps
     * @param  input    Input tensor to reduce.
     * @param  axes     Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
     * @param  keepDims If `true`, retain the reduced axes.
@@ -1662,21 +1387,9 @@ private[api] trait Math {
         .build().outputs(0)
   }
 
-  /** Creates an op that computes the logical OR of elements across axes of a tensor.
+  /** $OpDocMathAny
     *
-    * Reduces `input` along the axes given in `axes`. Unless `keepDims` is `true`, the rank of the tensor is reduced by
-    * 1 for each entry in `axes`. If `keepDims` is `true`, the reduced axes are retained with size 1.
-    *
-    * If `axes` is `null`, then all axes are reduced, and a tensor with a single element is returned.
-    *
-    * For example:
-    * {{{
-    *   // 'x' is [[true, true], [false, false]]
-    *   any(x) == true
-    *   any(x, 0) == [true, true]
-    *   any(x, 1) == [true, false]
-    * }}}
-    *
+    * @group MathOps
     * @param  input    Input tensor to reduce.
     * @param  axes     Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
     * @param  keepDims If `true`, retain the reduced axes.
@@ -1691,67 +1404,34 @@ private[api] trait Math {
         .build().outputs(0)
   }
 
-  /** Creates an op that computes the log-sum-exp of elements across axes of a tensor.
+  /** $OpDocMathLogSumExp
     *
-    * Reduces `input` along the axes given in `axes`. Unless `keepDims` is `true`, the rank of the tensor is reduced by
-    * 1 for each entry in `axes`. If `keepDims` is `true`, the reduced dimensions are retained with size 1.
-    *
-    * If `axes` is `null`, then all axes are reduced, and a tensor with a single element is returned.
-    *
-    * This function is more numerically stable than `log(sum(exp(input)))`. It avoids overflows caused by computing the
-    * exponential of large inputs, and underflows caused by computing the logarithm of small inputs.
-    *
-    * For example:
-    * {{{
-    *   // 'x' is [[0, 0, 0], [0, 0, 0]]
-    *   logSumExp(x) == log(6)
-    *   logSumExp(x, 0) == [log(2), log(2), log(2)]
-    *   logSumExp(x, 1) == [log(3), log(3)]
-    *   logSumExp(x, 1, keepDims = true) == [[log(3)], [log(3)]]
-    *   logSumExp(x, [0, 1]) == log(6)
-    * }}}
-    *
+    * @group MathOps
     * @param  input    Input tensor to reduce.
-    * @param  axes     Integer array containing the axes to reduce. If `null`, then all axes are reduced.
+    * @param  axes     Integer sequence containing the axes to reduce. If `null`, then all axes are reduced.
     * @param  keepDims If `true`, retain the reduced axes.
     * @param  name     Name for the created op.
     * @return Created op output.
     */
   def logSumExp(
-      input: Output, axes: Array[Int] = null, keepDims: Boolean = false, name: String = "LogSumExp"): Output = {
+      input: Output, axes: Seq[Int] = null, keepDims: Boolean = false, name: String = "LogSumExp"): Output = {
     if (input.rank == 0)
       input
     else
       Op.createWith(nameScope = name) {
-      val maxValue = Basic.stopGradient(max(input, axes, keepDims = true))
-      val result = log(sum(exp(input - maxValue), axes, keepDims = true)) + maxValue
-      if (keepDims)
-        result
-      else
-        Basic.squeeze(result, axes)
-    }
+        val axesArray = axes.toArray
+        val maxValue = Basic.stopGradient(max(input, axesArray, keepDims = true))
+        val result = log(sum(exp(input - maxValue), axesArray, keepDims = true)) + maxValue
+        if (keepDims)
+          result
+        else
+          Basic.squeeze(result, axesArray)
+      }
   }
 
-  /** Creates an op that computes the number of non-zero elements across axes of a tensor.
+  /** $OpDocMathCountNonZero
     *
-    * Reduces `input` along the axes given in `axes`. Unless `keepDims` is `true`, the rank of the tensor is reduced by
-    * 1 for each entry in `axes`. If `keepDims` is `true`, the reduced axes are retained with size 1.
-    *
-    * If `axes` is `null`, then all axes are reduced, and a tensor with a single element is returned.
-    *
-    * IMPORTANT NOTE: Floating point comparison to zero is done by exact floating point equality check. Small values are
-    * **not** rounded to zero for the purposes of the non-zero check.
-    *
-    * For example:
-    * {{{
-    *   // 'x' is [[0, 1, 0], [1, 1, 0]]
-    *   countNonZero(x) == 3
-    *   countNonZero(x, 0) == [1, 2, 0]
-    *   countNonZero(x, 1) == [1, 2]
-    *   countNonZero(x, 1, keepDims = true) == [[1], [2]]
-    *   countNonZero(x, [0, 1]) == 3
-    * }}}
-    *
+    * @group MathOps
     * @param  input    Input tensor to reduce.
     * @param  axes     Integer array containing the axes to reduce. If `null`, then all axes are reduced.
     * @param  keepDims If `true`, retain the reduced axes.
@@ -1767,21 +1447,22 @@ private[api] trait Math {
 
   //endregion Reduction Ops
 
-  /** Creates an op that returns the indices with the largest value across axes of a tensor.
+  /** $OpDocMathArgmax
     *
-    * Note that in case of ties the identity of the return value is not guaranteed.
-    *
+    * @group MathOps
     * @param  input          Input tensor.
     * @param  axes           Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
     * @param  outputDataType Data type for the output tensor. Must be `INT32` or `INT64`.
     * @param  name           Name for the created op.
     * @return Created op output.
+    * @throws IllegalArgumentException If `axes` data type or `outputDataType` is not `INT32` or `INT64`.
     */
+  @throws[IllegalArgumentException]
   def argmax(input: Output, axes: Output = 0, outputDataType: DataType = INT64, name: String = "ArgMax"): Output = {
-    if (axes.dataType != INT32 && axes.dataType != INT64)
-      throw new IllegalArgumentException(s"'axes.dataType' (${axes.dataType}) must be INT32 or INT64.")
-    if (outputDataType != INT32 && outputDataType != INT64)
-      throw new IllegalArgumentException(s"'outputDataType' ($outputDataType) must be INT32 or INT64.")
+    require(axes.dataType == INT32 || axes.dataType == INT64,
+            s"'axes.dataType' (${axes.dataType}) must be INT32 or INT64.")
+    require(outputDataType == INT32 || outputDataType == INT64,
+            s"'outputDataType' ($outputDataType) must be INT32 or INT64.")
     Op.Builder(opType = "ArgMax", name = name)
         .addInput(input)
         .addInput(axes)
@@ -1789,21 +1470,22 @@ private[api] trait Math {
         .build().outputs(0)
   }
 
-  /** Creates an op that returns the indices with the smallest value across axes of a tensor.
+  /** $OpDocMathArgmin
     *
-    * Note that in case of ties the identity of the return value is not guaranteed.
-    *
+    * @group MathOps
     * @param  input          Input tensor.
     * @param  axes           Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
-    * @param  outputDataType Data type for the output tensor. Must be `INT32` or `INT64`.
+    * @param  outputDataType Data type for the output tensor. Must be [[INT32]] or [[INT64]].
     * @param  name           Name for the created op.
     * @return Created op output.
+    * @throws IllegalArgumentException If `axes` data type or `outputDataType` is not [[INT32]] or [[INT64]].
     */
+  @throws[IllegalArgumentException]
   def argmin(input: Output, axes: Output = 0, outputDataType: DataType = INT64, name: String = "ArgMin"): Output = {
-    if (axes.dataType != INT32 && axes.dataType != INT64)
-      throw new IllegalArgumentException(s"'axes.dataType' (${axes.dataType}) must be INT32 or INT64.")
-    if (outputDataType != INT32 && outputDataType != INT64)
-      throw new IllegalArgumentException(s"'outputDataType' ($outputDataType) must be INT32 or INT64.")
+    require(axes.dataType == INT32 || axes.dataType == INT64,
+            s"'axes.dataType' (${axes.dataType}) must be INT32 or INT64.")
+    require(outputDataType == INT32 || outputDataType == INT64,
+            s"'outputDataType' ($outputDataType) must be INT32 or INT64.")
     Op.Builder(opType = "ArgMin", name = name)
         .addInput(input)
         .addInput(axes)
@@ -1811,15 +1493,10 @@ private[api] trait Math {
         .build().outputs(0)
   }
 
-  /** Creates an op that counts the number of occurrences of each value in an integer tensor.
+  /** $OpDocMathBinCount
     *
-    * If `minLength` and `maxLength` are not provided, the op returns a vector with length `max(input) + 1`, if `input`
-    * is non-empty, and length `0` otherwise.
-    *
-    * If `weights` is not `null`, then index `i` of the output stores the sum of the value in `weights` at each index
-    * where the corresponding value in `input` is equal to `i`.
-    *
-    * @param  input     `INT32` tensor containing non-negative values.
+    * @group MathOps
+    * @param  input     [[INT32]] tensor containing non-negative values.
     * @param  weights   If not `null`, this tensor must have the same shape as `input`. For each value in `input`, the
     *                   corresponding bin count will be incremented by the corresponding weight instead of `1`.
     * @param  minLength If not `null`, this ensures the output has length at least `minLength`, padding with zeros at
@@ -1830,7 +1507,9 @@ private[api] trait Math {
     *                   tensor containing the bin counts).
     * @param  name      Name for the created op.
     * @return Created op output.
+    * @throws IllegalArgumentException If the data type of `input` is not [[INT32]].
     */
+  @throws[IllegalArgumentException]
   def binCount(
       input: Output, weights: Output = null, minLength: Output = null, maxLength: Output = null,
       dataType: DataType = INT32, name: String = "BinCount"): Output = {
@@ -1855,38 +1534,18 @@ private[api] trait Math {
         .build().outputs(0)
   }
 
-  /** Creates an op that computes the cumulative sum of the tensor along an axis.
+  /** $OpDocMathCumsum
     *
-    * By default, the op performs an inclusive cumulative sum, which means that the first element of the input is
-    * identical to the first element of the output:
-    * {{{
-    *   cumsum([a, b, c]) ==> [a, a + b, a + b + c]
-    * }}}
-    *
-    * By setting the `exclusive` argument to `true`, an exclusive cumulative sum is performed instead:
-    * {{{
-    *   cumsum([a, b, c], exclusive = true) ==> [0, a, a + b]
-    * }}}
-    *
-    * By setting the `reverse` argument to `true`, the cumulative sum is performed in the opposite direction:
-    * {{{
-    *   cumsum([a, b, c], reverse = true) ==> [a + b + c, b + c, c]
-    * }}}
-    *
-    * This is more efficient than using separate [[Basic.reverse]] ops.
-    *
-    * The `reverse` and `exclusive` arguments can also be combined:
-    * {{{
-    *   cumsum([a, b, c], exclusive = true, reverse = true) ==> [b + c, c, 0]
-    * }}}
-    *
+    * @group MathOps
     * @param  input     Input tensor.
-    * @param  axis      `INT32` tensor containing the axis along which to perform the cumulative sum.
+    * @param  axis      [[INT32]] tensor containing the axis along which to perform the cumulative sum.
     * @param  exclusive Boolean value indicating whether to perform an exclusive cumulative sum.
     * @param  reverse   Boolean value indicating whether to perform a reverse cumulative sum.
     * @param  name      Name for the created op.
     * @return Created op output.
+    * @throws IllegalArgumentException If the data type of `axis` is not [[INT32]].
     */
+  @throws[IllegalArgumentException]
   def cumsum(
       input: Output, axis: Output = 0, exclusive: Boolean = false, reverse: Boolean = false,
       name: String = "CumSum"): Output = {
@@ -1899,38 +1558,18 @@ private[api] trait Math {
         .build().outputs(0)
   }
 
-  /** Creates an op that computes the cumulative product of the tensor along an axis.
+  /** $OpDocMathCumprod
     *
-    * By default, the op performs an inclusive cumulative product, which means that the first element of the input is
-    * identical to the first element of the output:
-    * {{{
-    *   cumprod([a, b, c]) ==> [a, a * b, a * b * c]
-    * }}}
-    *
-    * By setting the `exclusive` argument to `true`, an exclusive cumulative product is performed instead:
-    * {{{
-    *   cumprod([a, b, c], exclusive = true) ==> [0, a, a * b]
-    * }}}
-    *
-    * By setting the `reverse` argument to `true`, the cumulative product is performed in the opposite direction:
-    * {{{
-    *   cumprod([a, b, c], reverse = true) ==> [a * b * c, b * c, c]
-    * }}}
-    *
-    * This is more efficient than using separate [[Basic.reverse]] ops.
-    *
-    * The `reverse` and `exclusive` arguments can also be combined:
-    * {{{
-    *   cumprod([a, b, c], exclusive = true, reverse = true) ==> [b * c, c, 0]
-    * }}}
-    *
+    * @group MathOps
     * @param  input     Input tensor.
     * @param  axis      `INT32` tensor containing the axis along which to perform the cumulative product.
     * @param  exclusive Boolean value indicating whether to perform an exclusive cumulative product.
     * @param  reverse   Boolean value indicating whether to perform a reverse cumulative product.
     * @param  name      Name for the created op.
     * @return Created op output.
+    * @throws IllegalArgumentException If the data type of `axis` is not [[INT32]].
     */
+  @throws[IllegalArgumentException]
   def cumprod(
       input: Output, axis: Output = 0, exclusive: Boolean = false, reverse: Boolean = false,
       name: String = "CumProd"): Output = {
@@ -1945,176 +1584,130 @@ private[api] trait Math {
 
   //region Segment Ops
 
-  /** Creates an op that computes the sum along segments of a tensor.
+  /** $OpDocMathSegmentSum
     *
-    * The op computes a tensor such that `output(i) = \sum_{j...} data(j,...)` where the sum is over all `j` such that
-    * `segmentIndices(j) == i`. Unlike `unsortedSegmentSum`, `segmentIndices` need be sorted.
-    *
-    * If the sum if empty for a given segment index `i`, `output(i)` is set to `0`.
-    *
-    * The result tensor has the same data type as `data`, but its first dimension size is equal to the number of
-    * distinct segment indices.
-    *
+    * @group MathOps
     * @param  data           Data (must have a numeric data type -- i.e., representing a number).
-    * @param  segmentIndices Segment indices (must have data type of `INT32` or `INT64`). Values should be sorted
+    * @param  segmentIndices Segment indices (must have data type of [[INT32]] or [[INT64]]). Values should be sorted
     *                        and can be repeated.
     * @param  name           Name for the created op.
-    * @return Created op.
+    * @return Created op output.
+    * @throws IllegalArgumentException If the data type of `data` or `segmentIndices` is not supported.
     */
+  @throws[IllegalArgumentException]
   def segmentSum(data: Output, segmentIndices: Output, name: String = "SegmentSum"): Output = {
-    if (!data.dataType.isNumeric)
-      throw InvalidDataTypeException(s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
-    if (segmentIndices.dataType != INT32 && segmentIndices.dataType != INT64)
-      throw InvalidDataTypeException(
-        s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'INT32' or 'INT64', as required.")
+    require(data.dataType.isNumeric, s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
+    require(segmentIndices.dataType == INT32 || segmentIndices.dataType == INT64,
+            s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'INT32' or 'INT64', as required.")
     Op.Builder(opType = "SegmentSum", name = name)
         .addInput(data)
         .addInput(segmentIndices)
         .build().outputs(0)
   }
 
-  /** Creates an op that computes the mean along segments of a tensor.
+  /** $OpDocMathSegmentMean
     *
-    * The op computes a tensor such that `output(i) = \frac{sum_{j...} data(j,...)}{N}` where the sum is over all `j`
-    * such that `segmentIndices(j) == i` and `N` is the total number of values being summed. Unlike
-    * `unsortedSegmentMean`, `segmentIndices` need be sorted.
-    *
-    * If the sum if empty for a given segment index `i`, `output(i)` is set to `0`.
-    *
-    * The result tensor has the same data type as `data`, but its first dimension size is equal to the number of
-    * distinct segment indices.
-    *
+    * @group MathOps
     * @param  data           Data (must have a numeric data type -- i.e., representing a number).
-    * @param  segmentIndices Segment indices (must have data type of `INT32` or `INT64`). Values should be sorted
+    * @param  segmentIndices Segment indices (must have data type of [[INT32]] or [[INT64]]). Values should be sorted
     *                        and can be repeated.
     * @param  name           Name for the created op.
-    * @return Created op.
+    * @return Created op output.
+    * @throws IllegalArgumentException If the data type of `data` or `segmentIndices` is not supported.
     */
+  @throws[IllegalArgumentException]
   def segmentMean(data: Output, segmentIndices: Output, name: String = "SegmentMean"): Output = {
-    if (!data.dataType.isNumeric)
-      throw InvalidDataTypeException(s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
-    if (segmentIndices.dataType != INT32 && segmentIndices.dataType != INT64)
-      throw InvalidDataTypeException(
-        s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'INT32' or 'INT64', as required.")
+    require(data.dataType.isNumeric, s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
+    require(segmentIndices.dataType == INT32 || segmentIndices.dataType == INT64,
+            s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'INT32' or 'INT64', as required.")
     Op.Builder(opType = "SegmentMean", name = name)
         .addInput(data)
         .addInput(segmentIndices)
         .build().outputs(0)
   }
 
-  /** Creates an op that computes the product along segments of a tensor.
+  /** $OpDocMathSegmentProd
     *
-    * The op computes a tensor such that `output(i) = \prod_{j...} data(j,...)` where the product is over all `j` such
-    * that `segmentIndices(j) == i`. Unlike `unsortedSegmentProd`, `segmentIndices` need be sorted.
-    *
-    * If the product if empty for a given segment index `i`, `output(i)` is set to `1`.
-    *
-    * The result tensor has the same data type as `data`, but its first dimension size is equal to the number of
-    * distinct segment indices.
-    *
+    * @group MathOps
     * @param  data           Data (must have a numeric data type -- i.e., representing a number).
-    * @param  segmentIndices Segment indices (must have data type of `INT32` or `INT64`). Values should be sorted
+    * @param  segmentIndices Segment indices (must have data type of [[INT32]] or [[INT64]]). Values should be sorted
     *                        and can be repeated.
     * @param  name           Name for the created op.
-    * @return Created op.
+    * @return Created op output.
+    * @throws IllegalArgumentException If the data type of `data` or `segmentIndices` is not supported.
     */
+  @throws[IllegalArgumentException]
   def segmentProd(data: Output, segmentIndices: Output, name: String = "SegmentProd"): Output = {
-    if (!data.dataType.isNumeric)
-      throw InvalidDataTypeException(s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
-    if (segmentIndices.dataType != INT32 && segmentIndices.dataType != INT64)
-      throw InvalidDataTypeException(
-        s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'INT32' or 'INT64', as required.")
+    require(data.dataType.isNumeric, s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
+    require(segmentIndices.dataType == INT32 || segmentIndices.dataType == INT64,
+            s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'INT32' or 'INT64', as required.")
     Op.Builder(opType = "SegmentProd", name = name)
         .addInput(data)
         .addInput(segmentIndices)
         .build().outputs(0)
   }
 
-  /** Creates an op that computes the min along segments of a tensor.
+  /** $OpDocMathSegmentMin
     *
-    * The op computes a tensor such that `output(i) = \min_{j...} data(j,...)` where the min is over all `j` such that
-    * `segmentIndices(j) == i`. Unlike `unsortedSegmentMin`, `segmentIndices` need be sorted.
-    *
-    * If the min if empty for a given segment index `i`, `output(i)` is set to `0`.
-    *
-    * The result tensor has the same data type as `data`, but its first dimension size is equal to the number of
-    * distinct segment indices.
-    *
+    * @group MathOps
     * @param  data           Data (must have a numeric data type -- i.e., representing a number).
-    * @param  segmentIndices Segment indices (must have data type of `INT32` or `INT64`). Values should be sorted
+    * @param  segmentIndices Segment indices (must have data type of [[INT32]] or [[INT64]]). Values should be sorted
     *                        and can be repeated.
     * @param  name           Name for the created op.
-    * @return Created op.
+    * @return Created op output.
+    * @throws IllegalArgumentException If the data type of `data` or `segmentIndices` is not supported.
     */
+  @throws[IllegalArgumentException]
   def segmentMin(data: Output, segmentIndices: Output, name: String = "SegmentMin"): Output = {
-    if (!data.dataType.isNumeric)
-      throw InvalidDataTypeException(s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
-    if (segmentIndices.dataType != INT32 && segmentIndices.dataType != INT64)
-      throw InvalidDataTypeException(
-        s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'INT32' or 'INT64', as required.")
+    require(data.dataType.isNumeric, s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
+    require(segmentIndices.dataType == INT32 || segmentIndices.dataType == INT64,
+            s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'INT32' or 'INT64', as required.")
     Op.Builder(opType = "SegmentMin", name = name)
         .addInput(data)
         .addInput(segmentIndices)
         .build().outputs(0)
   }
 
-  /** Creates an op that computes the max along segments of a tensor.
+  /** $OpDocMathSegmentMax
     *
-    * The op computes a tensor such that `output(i) = \max_{j...} data(j,...)` where the max is over all `j` such that
-    * `segmentIndices(j) == i`. Unlike `unsortedSegmentMax`, `segmentIndices` need be sorted.
-    *
-    * If the max if empty for a given segment index `i`, `output(i)` is set to `0`.
-    *
-    * The result tensor has the same data type as `data`, but its first dimension size is equal to the number of
-    * distinct segment indices.
-    *
+    * @group MathOps
     * @param  data           Data (must have a numeric data type -- i.e., representing a number).
-    * @param  segmentIndices Segment indices (must have data type of `INT32` or `INT64`). Values should be sorted
+    * @param  segmentIndices Segment indices (must have data type of [[INT32]] or [[INT64]]). Values should be sorted
     *                        and can be repeated.
     * @param  name           Name for the created op.
-    * @return Created op.
+    * @return Created op output.
+    * @throws IllegalArgumentException If the data type of `data` or `segmentIndices` is not supported.
     */
+  @throws[IllegalArgumentException]
   def segmentMax(data: Output, segmentIndices: Output, name: String = "SegmentMax"): Output = {
-    if (!data.dataType.isNumeric)
-      throw InvalidDataTypeException(s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
-    if (segmentIndices.dataType != INT32 && segmentIndices.dataType != INT64)
-      throw InvalidDataTypeException(
-        s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'INT32' or 'INT64', as required.")
+    require(data.dataType.isNumeric, s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
+    require(segmentIndices.dataType == INT32 || segmentIndices.dataType == INT64,
+            s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'INT32' or 'INT64', as required.")
     Op.Builder(opType = "SegmentMax", name = name)
         .addInput(data)
         .addInput(segmentIndices)
         .build().outputs(0)
   }
 
-  /** Creates an op that computes the sum along segments of a tensor.
+  /** $OpDocMathUnsortedSegmentSum
     *
-    * The op computes a tensor such that `output(i) = \sum_{j...} data(j...)` where the sum is over all `j` such that
-    * `segmentIndices(j) == i`. Unlike `segmentSum`, `segmentIndices` need not be sorted and need not cover all values
-    * in the full range of valid values.
-    *
-    * If the sum if empty for a given segment index `i`, `output(i)` is set to `0`.
-    *
-    * `segmentsNumber` should equal the number of distinct segment indices.
-    *
-    * The result tensor has the same data type as `data`, but its first dimension size is equal to the number of
-    * distinct segment indices.
-    *
+    * @group MathOps
     * @param  data           Data (must have a numeric data type -- i.e., representing a number).
-    * @param  segmentIndices Segment indices (must have data type of `INT32` or `INT64`).
-    * @param  segmentsNumber Number of segments (must have data type of `INT32`).
+    * @param  segmentIndices Segment indices (must have data type of [[INT32]] or [[INT64]]).
+    * @param  segmentsNumber Number of segments (must have data type of [[INT32]]).
     * @param  name           Name for the created op.
-    * @return Created op.
+    * @return Created op output.
+    * @throws IllegalArgumentException If the data type of `data`, `segmentIndices`, or `segmentsNumber` is not
+    *                                  supported.
     */
+  @throws[IllegalArgumentException]
   def unsortedSegmentSum(
       data: Output, segmentIndices: Output, segmentsNumber: Output, name: String = "UnsortedSegmentSum"): Output = {
-    if (!data.dataType.isNumeric)
-      throw InvalidDataTypeException(s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
-    if (segmentIndices.dataType != INT32 && segmentIndices.dataType != INT64)
-      throw InvalidDataTypeException(
-        s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'INT32' or 'INT64', as required.")
-    if (segmentsNumber.dataType != INT32)
-      throw InvalidDataTypeException(
-        s"'segmentIndices' data type, '${segmentsNumber.dataType}', is not 'INT32', as required.")
+    require(data.dataType.isNumeric, s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
+    require(segmentIndices.dataType == INT32 || segmentIndices.dataType == INT64,
+            s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'INT32' or 'INT64', as required.")
+    require(segmentsNumber.dataType == INT32,
+            s"'segmentsNumber' data type, '${segmentsNumber.dataType}', is not 'INT32', as required.")
     Op.Builder(opType = "UnsortedSegmentSum", name = name)
         .addInput(data)
         .addInput(segmentIndices)
@@ -2122,35 +1715,25 @@ private[api] trait Math {
         .build().outputs(0)
   }
 
-  /** Creates an op that computes the max along segments of a tensor.
+  /** $OpDocMathUnsortedSegmentMax
     *
-    * The op computes a tensor such that `output(i) = \max_{j...} data(j...)` where the max is over all `j` such that
-    * `segmentIndices(j) == i`. Unlike `segmentMax`, `segmentIndices` need not be sorted and need not cover all values
-    * in the full range of valid values.
-    *
-    * If the max if empty for a given segment index `i`, `output(i)` is set to `0`.
-    *
-    * `segmentsNumber` should equal the number of distinct segment indices.
-    *
-    * The result tensor has the same data type as `data`, but its first dimension size is equal to the number of
-    * distinct segment indices.
-    *
+    * @group MathOps
     * @param  data           Data (must have a numeric data type -- i.e., representing a number).
-    * @param  segmentIndices Segment indices (must have data type of `INT32` or `INT64`).
-    * @param  segmentsNumber Number of segments (must have data type of `INT32`).
+    * @param  segmentIndices Segment indices (must have data type of [[INT32]] or [[INT64]]).
+    * @param  segmentsNumber Number of segments (must have data type of [[INT32]]).
     * @param  name           Name for the created op.
-    * @return Created op.
+    * @return Created op output.
+    * @throws IllegalArgumentException If the data type of `data`, `segmentIndices`, or `segmentsNumber` is not
+    *                                  supported.
     */
+  @throws[IllegalArgumentException]
   def unsortedSegmentMax(
       data: Output, segmentIndices: Output, segmentsNumber: Output, name: String = "UnsortedSegmentMax"): Output = {
-    if (!data.dataType.isNumeric)
-      throw InvalidDataTypeException(s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
-    if (segmentIndices.dataType != INT32 && segmentIndices.dataType != INT64)
-      throw InvalidDataTypeException(
-        s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'INT32' or 'INT64', as required.")
-    if (segmentsNumber.dataType != INT32)
-      throw InvalidDataTypeException(
-        s"'segmentIndices' data type, '${segmentsNumber.dataType}', is not 'INT32', as required.")
+    require(data.dataType.isNumeric, s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
+    require(segmentIndices.dataType == INT32 || segmentIndices.dataType == INT64,
+            s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'INT32' or 'INT64', as required.")
+    require(segmentsNumber.dataType == INT32,
+            s"'segmentsNumber' data type, '${segmentsNumber.dataType}', is not 'INT32', as required.")
     Op.Builder(opType = "UnsortedSegmentMax", name = name)
         .addInput(data)
         .addInput(segmentIndices)
@@ -2158,48 +1741,26 @@ private[api] trait Math {
         .build().outputs(0)
   }
 
-  /** Creates an op that computes the sum along sparse segments of a tensor.
+  /** $OpDocMathSparseSegmentSum
     *
-    * The op is similar to that of [[segmentSum]], with the difference that `segmentIndices` can have rank less than
-    * `data`'s first dimension, selecting a subset of dimension `0`, specified by `indices`.
-    *
-    * For example:
-    * {{{
-    *   // Violating Scala syntax for brevity, but keeping clarity.
-    *   val c = tf.constant([[1, 2, 3, 4], [-1, -2, -3, -4], [5, 6, 7, 8]])
-    *
-    *   // Select two rows, one segment.
-    *   tf.sparseSegmentSum(c, tf.constant([0, 1]), tf.constant([0, 0])) ==> [[0, 0, 0, 0]]
-    *
-    *   // Select two rows, two segments.
-    *   tf.sparseSegmentSum(c, tf.constant([0, 1]), tf.constant([0, 1])) ==> [[1, 2, 3, 4], [-1, -2, -3, -4]]
-    *
-    *   // Select all rows, two segments.
-    *   tf.sparseSegmentSum(c, tf.constant([0, 1, 2]), tf.constant([0, 0, 1])) ==> [[0, 0, 0, 0], [5, 6, 7, 8]]
-    *   // which is equivalent to:
-    *   tf.segmentSum(c, tf.constant([0, 0, 1]))
-    * }}}
-    *
-    * The result tensor has the same data type as `data`, but its first dimension size is equal to the number of
-    * distinct segment indices.
-    *
+    * @group MathOps
     * @param  data           Data (must have a numeric data type -- i.e., representing a number).
     * @param  indices        One-dimensional tensor with rank equal to that of `segmentIndices`.
-    * @param  segmentIndices Segment indices (must have data type of `INT32` or `INT64`). Values should be sorted
+    * @param  segmentIndices Segment indices (must have data type of [[INT32]] or [[INT64]]). Values should be sorted
     *                        and can be repeated.
     * @param  name           Name for the created op.
-    * @return Created op.
+    * @return Created op output.
+    * @throws IllegalArgumentException If the data type of `data`, `segmentIndices`, or `segmentsNumber` is not
+    *                                  supported.
     */
+  @throws[IllegalArgumentException]
   def sparseSegmentSum(
       data: Output, indices: Output, segmentIndices: Output, name: String = "SparseSegmentSum"): Output = {
-    if (!data.dataType.isNumeric)
-      throw InvalidDataTypeException(s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
-    if (indices.dataType != INT32 && indices.dataType != INT64)
-      throw InvalidDataTypeException(
-        s"'indices' data type, '${indices.dataType}', is not 'INT32' or 'INT64', as required.")
-    if (segmentIndices.dataType != INT32)
-      throw InvalidDataTypeException(
-        s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'INT32', as required.")
+    require(data.dataType.isNumeric, s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
+    require(indices.dataType == INT32 || indices.dataType == INT64,
+            s"'indices' data type, '${segmentIndices.dataType}', is not 'INT32' or 'INT64', as required.")
+    require(segmentIndices.dataType == INT32,
+            s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'INT32', as required.")
     Op.Builder(opType = "SparseSegmentSum", name = name)
         .addInput(data)
         .addInput(indices)
@@ -2207,48 +1768,26 @@ private[api] trait Math {
         .build().outputs(0)
   }
 
-  /** Creates an op that computes the mean along sparse segments of a tensor.
+  /** $OpDocMathSparseSegmentMean
     *
-    * The op is similar to that of [[segmentMean]], with the difference that `segmentIndices` can have rank less than
-    * `data`'s first dimension, selecting a subset of dimension `0`, specified by `indices`.
-    *
-    * For example:
-    * {{{
-    *   // Violating Scala syntax for brevity, but keeping clarity.
-    *   val c = tf.constant([[1, 2, 3, 4], [-1, -2, -3, -4], [5, 6, 7, 8]])
-    *
-    *   // Select two rows, one segment.
-    *   tf.sparseSegmentMean(c, tf.constant([0, 1]), tf.constant([0, 0])) ==> [[0, 0, 0, 0]]
-    *
-    *   // Select two rows, two segments.
-    *   tf.sparseSegmentMean(c, tf.constant([0, 1]), tf.constant([0, 1])) ==> [[1, 2, 3, 4], [-1, -2, -3, -4]]
-    *
-    *   // Select all rows, two segments.
-    *   tf.sparseSegmentMean(c, tf.constant([0, 1, 2]), tf.constant([0, 0, 1])) ==> [[0, 0, 0, 0], [5, 6, 7, 8]]
-    *   // which is equivalent to:
-    *   tf.segmentMean(c, tf.constant([0, 0, 1]))
-    * }}}
-    *
-    * The result tensor has the same data type as `data`, but its first dimension size is equal to the number of
-    * distinct segment indices.
-    *
+    * @group MathOps
     * @param  data           Data (must have a numeric data type -- i.e., representing a number).
     * @param  indices        One-dimensional tensor with rank equal to that of `segmentIndices`.
-    * @param  segmentIndices Segment indices (must have data type of `INT32` or `INT64`). Values should be sorted
+    * @param  segmentIndices Segment indices (must have data type of [[INT32]] or [[INT64]]). Values should be sorted
     *                        and can be repeated.
     * @param  name           Name for the created op.
-    * @return Created op.
+    * @return Created op output.
+    * @throws IllegalArgumentException If the data type of `data`, `segmentIndices`, or `segmentsNumber` is not
+    *                                  supported.
     */
+  @throws[IllegalArgumentException]
   def sparseSegmentMean(
       data: Output, indices: Output, segmentIndices: Output, name: String = "SparseSegmentMean"): Output = {
-    if (!data.dataType.isNumeric)
-      throw InvalidDataTypeException(s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
-    if (indices.dataType != INT32 && indices.dataType != INT64)
-      throw InvalidDataTypeException(
-        s"'indices' data type, '${indices.dataType}', is not 'INT32' or 'INT64', as required.")
-    if (segmentIndices.dataType != INT32)
-      throw InvalidDataTypeException(
-        s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'INT32', as required.")
+    require(data.dataType.isNumeric, s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
+    require(indices.dataType == INT32 || indices.dataType == INT64,
+            s"'indices' data type, '${segmentIndices.dataType}', is not 'INT32' or 'INT64', as required.")
+    require(segmentIndices.dataType == INT32,
+            s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'INT32', as required.")
     Op.Builder(opType = "SparseSegmentMean", name = name)
         .addInput(data)
         .addInput(indices)
@@ -2256,31 +1795,26 @@ private[api] trait Math {
         .build().outputs(0)
   }
 
-  /** Creates an op that computes the sum along sparse segments of a tensor, divided by the square root of the number of
-    * elements being summed.
+  /** $OpDocMathSparseSegmentSumSqrtN
     *
-    * Similar to [[sparseSegmentSum]].
-    *
-    * The result tensor has the same data type as `data`, but its first dimension size is equal to the number of
-    * distinct segment indices.
-    *
+    * @group MathOps
     * @param  data           Data (must have a numeric data type -- i.e., representing a number).
     * @param  indices        One-dimensional tensor with rank equal to that of `segmentIndices`.
-    * @param  segmentIndices Segment indices (must have data type of `INT32` or `INT64`). Values should be sorted
+    * @param  segmentIndices Segment indices (must have data type of [[INT32]] or [[INT64]]). Values should be sorted
     *                        and can be repeated.
     * @param  name           Name for the created op.
-    * @return Created op.
+    * @return Created op output.
+    * @throws IllegalArgumentException If the data type of `data`, `segmentIndices`, or `segmentsNumber` is not
+    *                                  supported.
     */
+  @throws[IllegalArgumentException]
   def sparseSegmentSumSqrtN(
       data: Output, indices: Output, segmentIndices: Output, name: String = "SparseSegmentSumSqrtN"): Output = {
-    if (!data.dataType.isNumeric)
-      throw InvalidDataTypeException(s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
-    if (indices.dataType != INT32 && indices.dataType != INT64)
-      throw InvalidDataTypeException(
-        s"'indices' data type, '${indices.dataType}', is not 'INT32' or 'INT64', as required.")
-    if (segmentIndices.dataType != INT32)
-      throw InvalidDataTypeException(
-        s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'INT32', as required.")
+    require(data.dataType.isNumeric, s"'data' data type, '${data.dataType}', is not a numeric data type, as required.")
+    require(indices.dataType == INT32 || indices.dataType == INT64,
+            s"'indices' data type, '${segmentIndices.dataType}', is not 'INT32' or 'INT64', as required.")
+    require(segmentIndices.dataType == INT32,
+            s"'segmentIndices' data type, '${segmentIndices.dataType}', is not 'INT32', as required.")
     Op.Builder(opType = "SparseSegmentSqrtN", name = name)
         .addInput(data)
         .addInput(indices)
@@ -2292,23 +1826,9 @@ private[api] trait Math {
 
   //region Matrix Ops
 
-  /** Creates an op that constructs a diagonal tensor using the provided diagonal values.
+  /** $OpDocMathDiag
     *
-    * Given a `diagonal`, this op returns a tensor with that `diagonal` and everything else padded with zeros. The
-    * diagonal is computed as follows:
-    *
-    * Assume that `diagonal` has shape `[D1,..., DK]`. Then the output tensor, `output`, is a rank-`2K` tensor with
-    * shape `[D1, ..., DK, D1, ..., DK]`, where `output(i1, ..., iK, i1, ..., iK) = diagonal(i1, ..., iK)` and `0`
-    * everywhere else.
-    *
-    * For example:
-    * {{{
-    *   // Tensor 'diagonal' is [1, 2, 3, 4]
-    *   diag(diagonal) == [[1, 0, 0, 0], [0, 2, 0, 0], [0, 0, 3, 0], [0, 0, 0, 4]]
-    * }}}
-    *
-    * This op is the inverse of [[diagPart]].
-    *
+    * @group MathOps
     * @param  diagonal Diagonal values, represented as a rank-`K` tensor, where `K` can be at most `3`.
     * @param  name     Name for the created op.
     * @return Created op output.
@@ -2316,28 +1836,15 @@ private[api] trait Math {
     */
   @throws[IllegalArgumentException]
   def diag(diagonal: Output, name: String = "Diag"): Output = {
-    if (diagonal.rank > 3)
-      throw new IllegalArgumentException(s"The provided tensor (rank = ${diagonal.rank}) can have rank at most 3.")
+    require(diagonal.rank <= 3, s"The provided tensor (rank = ${diagonal.rank}) can have rank at most 3.")
     Op.Builder(opType = "Diag", name = name)
         .addInput(diagonal)
         .build().outputs(0)
   }
 
-  /** Creates an op that returns the diagonal part of a tensor.
+  /** $OpDocMathDiagPart
     *
-    * This op returns a tensor with the `diagonal` part of the `input`. The `diagonal` part is computed as follows:
-    *
-    * Assume `input` has shape `[D1, ..., DK, D1, ..., DK]`. Then the output is a rank-`K` tensor with shape
-    * `[D1,..., DK]`, where `diagonal(i1, ..., iK) = output(i1, ..., iK, i1, ..., iK)`.
-    *
-    * For example:
-    * {{{
-    *   // Tensor 'input' is [[1, 0, 0, 0], [0, 2, 0, 0], [0, 0, 3, 0], [0, 0, 0, 4]]
-    *   diagPart(input) == [1, 2, 3, 4]
-    * }}}
-    *
-    * This op is the inverse of [[diag]].
-    *
+    * @group MathOps
     * @param  input Rank-`K` input tensor, where `K` is either `2`, `4`, or `6`.
     * @param  name  Name for the created op.
     * @return Created op output.
@@ -2345,32 +1852,16 @@ private[api] trait Math {
     */
   @throws[IllegalArgumentException]
   def diagPart(input: Output, name: String = "DiagPart"): Output = {
-    if (input.rank != 2 && input.rank != 4 && input.rank != 6)
-      throw new IllegalArgumentException(s"The provided tensor (rank = ${input.rank}) can only be 2, 4, or 6.")
+    require(input.rank == 2 || input.rank == 4 || input.rank == 6,
+            s"The provided tensor (rank = ${input.rank}) can only be 2, 4, or 6.")
     Op.Builder(opType = "DiagPart", name = name)
         .addInput(input)
         .build().outputs(0)
   }
 
-  /** Creates an op that returns a batched diagonal tensor with the provided batched diagonal values.
+  /** $OpDocMathMatrixDiag
     *
-    * Given a `diagonal`, the op returns a tensor with that `diagonal` and everything else padded with zeros. Assuming
-    * that `diagonal` has `k` dimensions `[I, J, K, ..., N]`, the output is a tensor of rank `k + 1` with dimensions
-    * `[I, J, K, ..., N, N]`, where: `output[i, j, k, ..., m, n] = 1{m=n} * diagonal[i, j, k, ..., n]`.
-    *
-    * For example:
-    * {{{
-    *   // 'diagonal' is a tensor containing the values: [[1, 2, 3, 4], [5, 6, 7, 8]] (shape = [2, 4])
-    *   tf.matrixDiag(diagonal) ==> [[[1, 0, 0, 0]
-    *                                 [0, 2, 0, 0]
-    *                                 [0, 0, 3, 0]
-    *                                 [0, 0, 0, 4]],
-    *                                [[5, 0, 0, 0]
-    *                                 [0, 6, 0, 0]
-    *                                 [0, 0, 7, 0]
-    *                                 [0, 0, 0, 8]]]  // with shape [2, 4, 4]
-    * }}}
-    *
+    * @group MathOps
     * @param  diagonal Rank-`K` input tensor, where `K >= 1`.
     * @param  name     Name for the created op.
     * @return Created op output with rank equal to `K + 1` and shape equal to the shape of `diagonal`, with its last
@@ -2379,24 +1870,17 @@ private[api] trait Math {
     */
   @throws[IllegalArgumentException]
   def matrixDiag(diagonal: Output, name: String = "MatrixDiag"): Output = {
-    if (diagonal.rank > -1 && diagonal.rank < 1)
-      throw new IllegalArgumentException(s"The provided tensor (rank = ${diagonal.rank}) must have rank at least 1.")
+    require(diagonal.rank == -1 || diagonal.rank >= 1,
+            s"The provided tensor (rank = ${diagonal.rank}) must have rank at least 1.")
     Op.Builder(opType = "MatrixDiag", name = name)
         .addInput(diagonal)
         .build().outputs(0)
   }
 
-  /** Creates an op that returns a batched matrix tensor with new batched diagonal values.
+  /** $OpDocMathMatrixSetDiag
     *
-    * Given `input` and `diagonal`, the op returns a tensor with the same shape and values as `input`, except for the
-    * main diagonal of its innermost matrices. These diagonals will be overwritten by the values in `diagonal`. Assuming
-    * that `input` has `k + 1` dimensions, `[I, J, K, ..., M, N]`, and `diagonal` has `k` dimensions,
-    * `[I, J, K, ..., min(M, N)]`, then the output is a tensor of rank `k + 1` with dimensions `[I, J, K, ..., M, N]`,
-    * where:
-    *   - `output[i, j, k, ..., m, n] == diagonal[i, j, k, ..., n]`, for `m == n`, and
-    *   - `output[i, j, k, ..., m, n] == input[i, j, k, ..., m, n]`, for `m != n`.
-    *
-    * @param  input    Rank-`K+1` tensor, where `K >= 1`.
+    * @group MathOps
+    * @param  input    Rank-`K+1` tensor, where `K >= 2`.
     * @param  diagonal Rank-`K` tensor, where `K >= 1`.
     * @param  name     Name for the created op.
     * @return Created op output with rank equal to `K + 1` and shape equal to the shape of `input`.
@@ -2404,39 +1888,19 @@ private[api] trait Math {
     */
   @throws[IllegalArgumentException]
   def matrixSetDiag(input: Output, diagonal: Output, name: String = "MatrixSetDiag"): Output = {
-    if (input.rank > -1 && input.rank < 2)
-      throw new IllegalArgumentException(s"The provided input tensor (rank = ${input.rank}) must have rank at least 2.")
-    if (diagonal.rank > -1 && diagonal.rank < 1)
-      throw new IllegalArgumentException(
-        s"The provided diagonal tensor (rank = ${diagonal.rank}) must have rank at least 1.")
+    require(input.rank == -1 || input.rank >= 2,
+            s"The provided input tensor (rank = ${input.rank}) must have rank at least 2.")
+    require(diagonal.rank == -1 || diagonal.rank >= 1,
+            s"The provided diagonal tensor (rank = ${diagonal.rank}) must have rank at least 1.")
     Op.Builder(opType = "MatrixSetDiag", name = name)
         .addInput(input)
         .addInput(diagonal)
         .build().outputs(0)
   }
 
-  /** Creates an op that returns the batched diagonal part of a batched tensor.
+  /** $OpDocMathMatrixDiagPart
     *
-    * The op returns a tensor with the `diagonal` part of the batched `input`. Assuming that `input` has `k` dimensions,
-    * `[I, J, K, ..., M, N]`, then the output is a tensor of rank `k - 1` with dimensions `[I, J, K, ..., min(M, N)]`,
-    * where `diagonal[i, j, k, ..., n] == input[i, j, k, ..., n, n]`.
-    *
-    * Note that `input` must have rank of at least `2`.
-    *
-    * For example:
-    * {{{
-    *   // 'input' is a tensor containing the values:
-    *   //   [[[1, 0, 0, 0]
-    *   //     [0, 2, 0, 0]
-    *   //     [0, 0, 3, 0]
-    *   //     [0, 0, 0, 4]],
-    *   //    [[5, 0, 0, 0]
-    *   //     [0, 6, 0, 0]
-    *   //     [0, 0, 7, 0]
-    *   //     [0, 0, 0, 8]]]  with shape [2, 4, 4]
-    *   tf.matrixDiagPart(input) ==> [[1, 2, 3, 4], [5, 6, 7, 8]]  // with shape [2, 4]
-    * }}}
-    *
+    * @group MathOps
     * @param  input Rank-`K` tensor, where `K >= 2`.
     * @param  name  Name for the created op.
     * @return Created op output containing the diagonal(s) and having shape equal to
@@ -2445,48 +1909,16 @@ private[api] trait Math {
     */
   @throws[IllegalArgumentException]
   def matrixDiagPart(input: Output, name: String = "MatrixDiagPart"): Output = {
-    if (input.rank > -1 && input.rank < 2)
-      throw new IllegalArgumentException(s"The provided input tensor (rank = ${input.rank}) must have rank at least 2.")
+    require(input.rank == -1 || input.rank >= 2,
+            s"The provided input tensor (rank = ${input.rank}) must have rank at least 2.")
     Op.Builder(opType = "MatrixDiagPart", name = name)
         .addInput(input)
         .build().outputs(0)
   }
 
-  /** Creates an op that copies a tensor, while setting everything outside a central band in each innermost matrix of
-    * the tensor, to zero.
+  /** $OpDocMathMatrixBandPart
     *
-    * Assuming that `input` has `k` dimensions, `[I, J, K, ..., M, N]`, the output is a tensor with the same shape,
-    * where `band[i, j, k, ..., m, n] == indicatorBand(m, n) * input[i, j, k, ..., m, n]`. The indicator function is
-    * defined as:
-    * {{{
-    *   indicatorBand(m, n) = (numSubDiagonals < 0 || m - n <= numSubDiagonals) &&
-    *                         (numSuperDiagonals < 0 || n - m <= numSuperDiagonals)
-    * }}}
-    *
-    * For example:
-    * {{{
-    *   // 'input' is a tensor containing the values:
-    *   //   [[ 0,  1,  2, 3]
-    *   //    [-1,  0,  1, 2]
-    *   //    [-2, -1,  0, 1]
-    *   //    [-3, -2, -1, 0]]
-    *   tf.matrixBandPart(input, 1, -1) ==> [[ 0,  1,  2, 3]
-    *                                        [-1,  0,  1, 2]
-    *                                        [ 0, -1,  0, 1]
-    *                                        [ 0,  0, -1, 0]]
-    *   tf.matrixBandPart(input, 2, 1) ==>  [[ 0,  1,  0, 0]
-    *                                        [-1,  0,  1, 0]
-    *                                        [-2, -1,  0, 1]
-    *                                        [ 0, -2, -1, 0]]
-    * }}}
-    *
-    * Useful special cases:
-    * {{{
-    *   tf.matrixBandPart(input, 0, -1) ==> Upper triangular part
-    *   tf.matrixBandPart(input, -1, 0) ==> Lower triangular part
-    *   tf.matrixBandPart(input, 0, 0)  ==> Diagonal
-    * }}}
-    *
+    * @group MathOps
     * @param  input             Input tensor.
     * @param  numSubDiagonals   Scalar `INT64` tensor that contains the number of sub-diagonals to keep. If negative,
     *                           the entire lower triangle is kept.
@@ -2500,14 +1932,12 @@ private[api] trait Math {
   @throws[IllegalArgumentException]
   def matrixBandPart(
       input: Output, numSubDiagonals: Output, numSuperDiagonals: Output, name: String = "MatrixBandPart"): Output = {
-    if (numSubDiagonals.rank != 0 || numSubDiagonals.dataType != INT64)
-      throw new IllegalArgumentException(
-        s"'numSubDiagonals' (rank = ${numSubDiagonals.rank}, dataType = ${numSubDiagonals.dataType}) " +
-            s"must be a scalar INT64 tensor.")
-    if (numSuperDiagonals.rank != 0 || numSuperDiagonals.dataType != INT64)
-      throw new IllegalArgumentException(
-        s"'numSuperDiagonals' (rank = ${numSuperDiagonals.rank}, dataType = ${numSuperDiagonals.dataType}) " +
-            s"must be a scalar INT64 tensor.")
+    require(numSubDiagonals.rank == 0 && numSubDiagonals.dataType == INT64,
+            s"'numSubDiagonals' (rank = ${numSubDiagonals.rank}, dataType = ${numSubDiagonals.dataType}) " +
+                s"must be a scalar INT64 tensor.")
+    require(numSuperDiagonals.rank == 0 && numSuperDiagonals.dataType == INT64,
+            s"'numSuperDiagonals' (rank = ${numSuperDiagonals.rank}, dataType = ${numSuperDiagonals.dataType}) " +
+                s"must be a scalar INT64 tensor.")
     Op.Builder(opType = "MatrixBandPart", name = name)
         .addInput(input)
         .addInput(numSubDiagonals)
@@ -2515,31 +1945,9 @@ private[api] trait Math {
         .build().outputs(0)
   }
 
-  /** Creates an op that computes the trace of a tensor.
+  /** $OpDocMathTrace
     *
-    * The trace of a tensor is defined as the sum along the main diagonal of each inner-most matrix in it. If the tensor
-    * is of rank `k` with shape `[I, J, K, ..., L, M, N]`, then output is a tensor of rank `k - 2` with dimensions
-    * `[I, J, K, ..., L]` where: `output[i, j, k, ..., l] = trace(x[i, j, i, ..., l, :, :])`.
-    *
-    * For example:
-    * {{{
-    *   // Tensor 'x' is [[1, 2], [3, 4]]
-    *   trace(x) ==> 5
-    *
-    *   // Tensor 'x' is [[1, 2, 3],
-    *                     [4, 5, 6],
-    *                     [7, 8, 9]]
-    *   trace(x) ==> 15
-    *
-    *   // Tensor 'x' is [[[ 1,  2,  3],
-    *                      [ 4,  5,  6],
-    *                      [ 7,  8,  9]],
-    *                     [[-1, -2, -3],
-    *                      [-4, -5, -6],
-    *                      [-7, -8, -9]]]
-    *   trace(x) ==> [15, -15]
-    * }}}
-    *
+    * @group MathOps
     * @param  input Input tensor.
     * @param  name  Name for the created op.
     * @return Created op output.
@@ -2550,71 +1958,26 @@ private[api] trait Math {
     }
   }
 
-  /** Creates an op that multiplies a scalar tensor with another, potentially sparse, tensor.
+  /** $OpDocMathScalarMul
     *
-    * This function is intended for use in gradient code which might deal with [[OutputIndexedSlices]] objects, which
-    * are easy to multiply by a scalar but more expensive to multiply with arbitrary tensors.
-    *
+    * @group MathOps
     * @param  scalar Scalar tensor.
     * @param  tensor Tensor to multiply the scalar tensor with.
     * @param  name   Name for the created op.
     * @return Created op output.
-    * @throws IllegalArgumentException  If the scalar tensor has rank different than `0`.
+    * @throws IllegalArgumentException If the scalar tensor has rank different than `0`.
     */
   @throws[IllegalArgumentException]
   def scalarMul[T: OutputOps](scalar: Output, tensor: T, name: String = "ScalarMul"): T = {
-    if (scalar.rank != 0)
-      throw new IllegalArgumentException(s"'scalar' (rank = ${scalar.rank}) must have rank equal to 0.")
+    require(scalar.rank == 0, s"'scalar' (rank = ${scalar.rank}) must have rank equal to 0.")
     Op.createWithNameScope(name) {
       implicitly[OutputOps[T]].unaryOp(tensor, o => multiply(scalar, o))
     }
   }
 
-  /** Creates an op that multiples two matrices.
+  /** $OpDocMathMatmul
     *
-    * The inputs must, following any transpositions, be tensors of rank >= 2, where the inner 2 dimensions specify valid
-    * matrix multiplication arguments and any further outer dimensions match.
-    *
-    * Note that this op corresponds to a matrix product and not an element-wise product. For example:
-    * `output[..., i, j] = sum_k (a[..., i, k] * b[..., k, j])`, for all indices `i` and `j`.
-    *
-    * Both matrices must be of the same data type. The supported types are: `BFLOAT16`, `FLOAT16`, `FLOAT32`, `FLOAT64`,
-    * `INT32`, `COMPLEX64`, `COMPLEX128`.
-    *
-    * Either matrix can be transposed and/or conjugated on the fly by setting one of the corresponding flags to `true`.
-    * These are set to `false` by default.
-    *
-    * If one or both of the matrices contain a lot of zeros, a more efficient multiplication algorithm can be used by
-    * setting the corresponding `aIsSparse` or `bIsSparse` flag to `true`. These are also set to `false` by default.
-    * This optimization is only available for plain matrices (i.e., rank-2 tensors) with data type `BFLOAT16` or
-    * `FLOAT32`. The break-even for using this versus a dense matrix multiply on one platform was 30% zero values in the
-    * sparse matrix. The gradient computation of the sparse op will only take advantage of sparsity in the input
-    * gradient when that gradient comes from a ReLU.
-    *
-    * For example:
-    * {{{
-    *   // 2-D tensor 'a' is [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]
-    *
-    *   // 2-D tensor 'b' is [[7.0, 8.0], [9.0, 10.0], [11.0, 12.0]]
-    *
-    *   matmul(a, b) ==> [[58.0, 64.0], [139.0, 154.0]]
-    *
-    *   // 3-D tensor 'a' is [[[ 1.0,  2.0,  3.0],
-    *   //                     [ 4.0,  5.0,  6.0]],
-    *   //                    [[ 7.0,  8.0,  9.0],
-    *   //                     [10.0, 11.0, 12.0]]]
-    *
-    *   // 3-D tensor 'b' is [[[13.0, 14.0],
-    *   //                     [15.0, 16.0],
-    *   //                     [17.0, 18.0]],
-    *   //                    [[19.0, 20.0],
-    *   //                     [21.0, 22.0],
-    *   //                     [23.0, 24.0]]]
-    *
-    *   matmul(a, b) ==> [[[ 94.0, 100.0], [229.0, 244.0]],
-    *                     [[508.0, 532.0], [697.0, 730.0]]]
-    * }}}
-    *
+    * @group MathOps
     * @param  a          First input tensor with data type one of: `BFLOAT16`, `FLOAT16`, `FLOAT32`, `FLOAT64`,
     *                    `INT32`, `COMPLEX64`, `COMPLEX128`.
     * @param  b          Second input tensor with data type one of: `BFLOAT16`, `FLOAT16`, `FLOAT32`, `FLOAT64`,
@@ -2628,34 +1991,30 @@ private[api] trait Math {
     * @param  name       Name for the created op.
     * @return Created op output that has the same data type as `a` and `b` and where each inner-most matrix is the
     *         product of the corresponding matrices in `a` and `b`.
-    * @throws IllegalArgumentException  If the data types of `a` and `b` do not match.
     */
-  @throws[IllegalArgumentException]
   def matmul(
       a: Output, b: Output, transposeA: Boolean = false, transposeB: Boolean = false, conjugateA: Boolean = false,
       conjugateB: Boolean = false, aIsSparse: Boolean = false, bIsSparse: Boolean = false,
       name: String = "MatMul"): Output = {
-    if (a.dataType != b.dataType)
-      throw new IllegalArgumentException(
-        s"The data types of 'a' (dataType = ${a.dataType}) and 'b' (dataType = ${b.dataType}) must match.")
+    val (cA, cB) = castArgs(a, b)
     val sparseMatMulDataTypes = Set[DataType](BFLOAT16, FLOAT32)
-    if (!aIsSparse && !bIsSparse && (a.rank == -1 || a.rank > 2) && (b.rank == -1 || b.rank > 2)) {
+    if (!aIsSparse && !bIsSparse && (cA.rank == -1 || cA.rank > 2) && (cB.rank == -1 || cB.rank > 2)) {
       // "BatchMatMul" does not support transpose, so we conjugate the matrix and use adjoint instead.
       // The "conj" op is a no-op for real matrices.
-      val (x, adjointX) = transposeConjugateToAdjoint(a, transposeA, conjugateA)
-      val (y, adjointY) = transposeConjugateToAdjoint(b, transposeB, conjugateB)
+      val (x, adjointX) = transposeConjugateToAdjoint(cA, transposeA, conjugateA)
+      val (y, adjointY) = transposeConjugateToAdjoint(cB, transposeB, conjugateB)
       Op.Builder(opType = "BatchMatMul", name = name)
           .addInput(x)
           .addInput(y)
           .setAttribute("adj_x", adjointX)
           .setAttribute("adj_y", adjointY)
           .build().outputs(0)
-    } else if (a.dataType == BFLOAT16 || b.dataType == BFLOAT16 || // "MatMul" does not currently support this type.
+    } else if (cA.dataType == BFLOAT16 || cB.dataType == BFLOAT16 || // "MatMul" does not currently support this type.
         ((aIsSparse || bIsSparse) &&
-            sparseMatMulDataTypes.contains(a.dataType) &&
-            sparseMatMulDataTypes.contains(b.dataType))) {
-      val (x, transposeX) = transposeConjugateToTranspose(a, transposeA, conjugateA)
-      val (y, transposeY) = transposeConjugateToTranspose(b, transposeB, conjugateB)
+            sparseMatMulDataTypes.contains(cA.dataType) &&
+            sparseMatMulDataTypes.contains(cB.dataType))) {
+      val (x, transposeX) = transposeConjugateToTranspose(cA, transposeA, conjugateA)
+      val (y, transposeY) = transposeConjugateToTranspose(cB, transposeB, conjugateB)
       Op.Builder(opType = "SparseMatMul", name = name)
           .addInput(x)
           .addInput(y)
@@ -2665,8 +2024,8 @@ private[api] trait Math {
           .setAttribute("b_is_sparse", bIsSparse)
           .build().outputs(0)
     } else {
-      val (x, transposeX) = transposeConjugateToTranspose(a, transposeA, conjugateA)
-      val (y, transposeY) = transposeConjugateToTranspose(b, transposeB, conjugateB)
+      val (x, transposeX) = transposeConjugateToTranspose(cA, transposeA, conjugateA)
+      val (y, transposeY) = transposeConjugateToTranspose(cB, transposeB, conjugateB)
       Op.Builder(opType = "MatMul", name = name)
           .addInput(x)
           .addInput(y)
@@ -2696,25 +2055,24 @@ private[api] trait Math {
     }
   }
 
-  /** Creates an op that computes the pairwise cross product between two tensors.
+  /** $OpDocMathCross
     *
-    * `a` and `b` must have the same shape; they can either be simple 3-element vectors, or have any shape where the
-    * innermost dimension size is 3. In the latter case, each pair of corresponding 3-element vectors is
-    * cross-multiplied independently.
-    *
+    * @group MathOps
     * @param  a    First input tensor.
     * @param  b    Second input tensor.
     * @param  name Name for the created op.
     * @return Created op output.
+    * @throws IllegalArgumentException If the shapes of `a` and `b` do not match and if their inner-most dimension size
+    *                                  is not equal to 3.
     */
+  @throws[IllegalArgumentException]
   def cross(a: Output, b: Output, name: String = "Cross"): Output = {
-    require(a.dataType == b.dataType,
-            s"'a' (dataType = ${a.dataType}) and 'b' (dataType = ${b.dataType}) must have the same data type.")
-    require(a.shape == b.shape, s"'a' (shape = ${a.shape}) and 'b' (shape = ${b.shape}) must have the same shape.")
-    require(a.shape(-1) == 3, s"The inner-most dimension size of the shape of 'a' and 'b' (${a.shape}) must be 3.")
+    val (cA, cB) = castArgs(a, b)
+    require(cA.shape == cB.shape, s"'a' (shape = ${cA.shape}) and 'b' (shape = ${cB.shape}) must have the same shape.")
+    require(cA.shape(-1) == 3, s"The inner-most dimension size of the shape of 'a' and 'b' (${cA.shape}) must be 3.")
     Op.Builder(opType = "Cross", name = name)
-        .addInput(a)
-        .addInput(b)
+        .addInput(cA)
+        .addInput(cB)
         .build().outputs(0)
   }
 
@@ -2724,20 +2082,9 @@ private[api] trait Math {
 
   //region Complex Ops
 
-  /** Creates an op that converts two real tensors to a complex tensor.
+  /** $OpDocMathComplex
     *
-    * Given a tensor `real` representing the real part of a complex number, and a tensor `imag` representing the
-    * imaginary part of a complex number, the op returns complex numbers element-wise of the form `a + bj`, where *a*
-    * represents the `real` part and *b* represents the `imag` part. The input tensors `real` and `imag` must have the
-    * same shape and data type.
-    *
-    * For example:
-    * {{{
-    *   // Tensor 'real' is [2.25, 3.25]
-    *   // Tensor 'imag' is [4.75, 5.75]
-    *   complex(real, imag) ==> [[2.25 + 4.75j], [3.25 + 5.75j]]
-    * }}}
-    *
+    * @group MathOps
     * @param  real Tensor containing the real component. Must have `FLOAT32` or `FLOAT64` data type.
     * @param  imag Tensor containing the imaginary component. Must have `FLOAT32` or `FLOAT64` data type.
     * @param  name Name for the created op.
@@ -2746,10 +2093,10 @@ private[api] trait Math {
     */
   @throws[IllegalArgumentException]
   def complex(real: Output, imag: Output, name: String = "Complex"): Output = {
-    if (real.shape != imag.shape)
-      throw new IllegalArgumentException(
-        s"'real' (shape = ${real.shape}) and 'imag' (shape = ${imag.shape}) must have the same shape.")
-    val outputDataType = (real.dataType, imag.dataType) match {
+    require(real.shape == imag.shape,
+            s"'real' (shape = ${real.shape}) and 'imag' (shape = ${imag.shape}) must have the same shape.")
+    val (cReal, cImag) = castArgs(real, imag)
+    val outputDataType = (cReal.dataType, cImag.dataType) match {
       case (FLOAT32, FLOAT32) => COMPLEX64
       case (FLOAT64, FLOAT64) => COMPLEX128
       case _ => throw new IllegalArgumentException(
@@ -2757,81 +2104,55 @@ private[api] trait Math {
             s"type, which must be either 'FLOAT32' or 'FLOAT64'.")
     }
     Op.Builder(opType = "Complex", name = name)
-        .addInput(real)
-        .addInput(imag)
+        .addInput(cReal)
+        .addInput(cImag)
         .setAttribute("Tout", outputDataType)
         .build().outputs(0)
   }
 
-  /** Creates an op that returns the real part of a complex number.
+  /** $OpDocMathReal
     *
-    * Given a tensor `input` of potentially complex numbers, the op returns a tensor of type `FLOAT32` or `FLOAT64` that
-    * is the real part of each element in `input`. If `input` contains complex numbers of the form `a + bj`, *a* is the
-    * real part returned by the op and *b* is the imaginary part.
-    *
-    * For example:
-    * {{{
-    *   // Tensor 'input' is [-2.25 + 4.75j, 3.25 + 5.75j]
-    *   real(input) ==> [-2.25, 3.25]
-    * }}}
-    *
-    * Note that, if `input` is already real-valued, then it is returned unchanged.
-    *
+    * @group MathOps
     * @param  input Input tensor.
-    * @param  name Name for the created op.
+    * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def real(input: Output, name: String = "Real"): Output = {
+  def real[T <: OutputLike : OutputOps](input: T, name: String = "Real"): T = {
     if (!input.dataType.isComplex) {
       input
     } else {
-      Op.Builder(opType = "Real", name = name)
-          .addInput(input)
-          .build().outputs(0)
+      implicitly[OutputOps[T]]
+          .unaryOp(input, o =>
+            Op.Builder(opType = "Real", name = name)
+                .addInput(o)
+                .setAttribute("Tout", o.dataType.real)
+                .build().outputs(0))
     }
   }
 
-  /** Creates an op that returns the real part of a complex number.
+  /** $OpDocMathImag
     *
-    * Given a tensor `input` of complex numbers, the op returns a tensor of type `FLOAT32` or `FLOAT64` that is the
-    * imaginary part of each element in `input`. If `input` contains complex numbers of the form `a + bj`, *a* is the
-    * real part and *b* is the imaginary part returned by the op.
-    *
-    * For example:
-    * {{{
-    *   // Tensor 'input' is [-2.25 + 4.75j, 3.25 + 5.75j]
-    *   real(input) ==> [4.75, 5.75]
-    * }}}
-    *
+    * @group MathOps
     * @param  input Input tensor.
-    * @param  name Name for the created op.
+    * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def imag(input: Output, name: String = "Imag"): Output = {
+  def imag[T <: OutputLike : OutputOps](input: T, name: String = "Imag"): T = {
     if (!input.dataType.isComplex) {
       input
     } else {
-      Op.Builder(opType = "Imag", name = name)
-          .addInput(input)
-          .setAttribute("Tout", input.dataType.real)
-          .build().outputs(0)
+      implicitly[OutputOps[T]]
+          .unaryOp(input, o =>
+            Op.Builder(opType = "Imag", name = name)
+                .addInput(o)
+                .setAttribute("Tout", o.dataType.real)
+                .build().outputs(0))
     }
   }
 
-  /** Creates an op that returns the element-wise complex argument of a tensor.
+  /** $OpDocMathAngle
     *
-    * Given a numeric tensor `input`, the op returns a tensor with numbers that are the complex angle of each element in
-    * `input`. If the numbers in `input` are of the form `a + bj`, where *a* is the real part and *b* is the
-    * imaginary part, then the complex angle returned by this operation is of the form `atan2(b, a)`.
-    *
-    * For example:
-    * {{{
-    *   // Tensor 'input' is [-2.25 + 4.75j, 3.25 + 5.75j]
-    *   angle(input) ==> [2.0132, 1.056]
-    * }}}
-    *
-    * If `input` is real-valued, then a tensor containing zeros is returned.
-    *
+    * @group MathOps
     * @param  input Input tensor.
     * @param  name  Name for the created op.
     * @return Created op output.
@@ -2841,11 +2162,12 @@ private[api] trait Math {
   def angle[T <: OutputLike : OutputOps](input: T, name: String = "Angle"): T = {
     implicitly[OutputOps[T]]
         .unaryOp(input, o => {
-          if (input.dataType.isComplex) {
+          if (o.dataType.isComplex) {
             Op.Builder(opType = "Angle", name = name)
                 .addInput(o)
+                .setAttribute("Tout", o.dataType.real)
                 .build().outputs(0)
-          } else if (input.dataType.isNumeric) {
+          } else if (o.dataType.isNumeric) {
             Basic.zerosLike(o)
           } else {
             throw new IllegalArgumentException("'angle' can only take numeric tensors as input.")
@@ -2853,20 +2175,9 @@ private[api] trait Math {
         })
   }
 
-  /** Creates an op that returns the element-wise complex conjugate of a tensor.
+  /** $OpDocMathConjugate
     *
-    * Given a numeric tensor `input`, the op returns a tensor with numbers that are the complex conjugate of each
-    * element in `input`. If the numbers in `input` are of the form `a + bj`, where *a* is the real part and *b* is the
-    * imaginary part, then the complex conjugate returned by this operation is of the form `a - bj`.
-    *
-    * For example:
-    * {{{
-    *   // Tensor 'input' is [-2.25 + 4.75j, 3.25 + 5.75j]
-    *   conjugate(input) ==> [-2.25 - 4.75j, 3.25 - 5.75j]
-    * }}}
-    *
-    * If `input` is real-valued, then it is returned unchanged.
-    *
+    * @group MathOps
     * @param  input Input tensor.
     * @param  name  Name for the created op.
     * @return Created op output.
@@ -2876,11 +2187,11 @@ private[api] trait Math {
   def conjugate[T <: OutputLike : OutputOps](input: T, name: String = "Conjugate"): T = {
     implicitly[OutputOps[T]]
         .unaryOp(input, o => {
-          if (input.dataType.isComplex) {
+          if (o.dataType.isComplex) {
             Op.Builder(opType = "Conj", name = name)
                 .addInput(o)
                 .build().outputs(0)
-          } else if (input.dataType.isNumeric) {
+          } else if (o.dataType.isNumeric) {
             o
           } else {
             throw new IllegalArgumentException("'conjugate' can only take numeric tensors as input.")
@@ -2898,24 +2209,18 @@ private[api] trait Math {
 
   //region Bucketization Ops
 
-  /** Creates an op that bucketizes a tensor based on the provided boundaries.
+  /** $OpDocMathBucketize
     *
-    * For example:
-    * {{{
-    *   // 'input' tensor is [[-5, 10000], [150, 10], [5, 100]]
-    *   // 'boundaries' are [0, 10, 100]
-    *   bucketize(input, boundaries) ==> [[0, 3], [3, 2], [1, 3]]
-    * }}}
-    *
+    * @group MathOps
     * @param  input      Numeric tensor to bucketize.
-    * @param  boundaries Sorted array of `Float`s specifying the boundaries of the buckets.
+    * @param  boundaries Sorted sequence of `Float`s specifying the boundaries of the buckets.
     * @param  name       Name for the created op.
     * @return Created op output.
     */
-  def bucketize(input: Output, boundaries: Array[Float], name: String = "Bucketize"): Output = {
+  def bucketize(input: Output, boundaries: Seq[Float], name: String = "Bucketize"): Output = {
     Op.Builder(opType = "Bucketize", name = name)
         .addInput(input)
-        .setAttribute("boundaries", boundaries)
+        .setAttribute("boundaries", boundaries.toArray)
         .build().outputs(0)
   }
 
@@ -2923,12 +2228,9 @@ private[api] trait Math {
 
   //region Other Ops
 
-  /** Creates an op that computes the fraction of zeros in `input`.
+  /** $OpDocMathZerosFraction
     *
-    * If `input` is empty, the result is `NaN`.
-    *
-    * This is useful in summaries to measure and report sparsity.
-    *
+    * @group MathOps
     * @param  input Input tensor.
     * @param  name  Name for the created op.
     * @return Created op output, with `FLOAT32` data type.
@@ -2944,6 +2246,20 @@ private[api] trait Math {
 }
 
 private[api] object Math extends Math {
+  private[ops] trait Implicits {
+    implicit def outputToMathOps(output: Output): MathOps = MathOps(output)
+  }
+
+  case class MathOps private[ops](output: Output) {
+    /** $OpDocMathCast
+      *
+      * @group MathOps
+      * @param  dataType Target data type.
+      * @return Result as a new tensor.
+      */
+    def cast(dataType: DataType): Output = Math.cast(output, dataType)
+  }
+
   private[ops] object Gradients {
     GradientsRegistry.registerNonDifferentiable("Range")
     GradientsRegistry.registerNonDifferentiable("LinSpace")
@@ -4020,4 +3336,1137 @@ private[api] object Math extends Math {
       Seq(conjugate(outputGradients.head))
     }
   }
+
+  /** @define OpDocMathSelect
+    *   The `select` op selects elements from `x` or `y`, depending on `condition`.
+    *
+    *   The `x`, and `y` tensors must have the same shape. The output tensor will also have the same shape.
+    *
+    *   The `condition` tensor must be a scalar if `x` and `y` are scalars. If `x` and `y` are vectors or higher rank,
+    *   then `condition` must be either a scalar, or a vector with size matching the first dimension of `x`, or it must
+    *   have the same shape as `x`.
+    *
+    *   The `condition` tensor acts as a mask that chooses, based on the value at each element, whether the
+    *   corresponding element / row in the output should be taken from `x` (if true) or `y` (if false).
+    *
+    *   If `condition` is a vector and `x` and `y` are higher rank matrices, then it chooses which row (outer dimension)
+    *   to copy from `x` and `y`. If `condition` has the same shape as `x` and `y`, then it chooses which element to
+    *   copy from `x` and `y`.
+    *
+    *   For example:
+    *   {{{
+    *     // 'condition' tensor is [[true,  false], [false, true]]
+    *     // 'x' is [[1, 2], [3, 4]]
+    *     // 'y' is [[5, 6], [7, 8]]
+    *     select(condition, x, y) ==> [[1, 6], [7, 4]]
+    *
+    *     // 'condition' tensor is [true, false]
+    *     // 'x' is [[1, 2], [3, 4]]
+    *     // 'y' is [[5, 6], [7, 8]]
+    *     select(condition, x, y) ==> [[1, 2], [7, 8]]
+    *   }}}
+    * 
+    * @define OpDocMathRange
+    *   The `range` op constructs a sequence of numbers.
+    *
+    *   The op creates a sequence of numbers that begins at `start` and extends by increments of `delta` up to but not
+    *   including `limit`. The data type of the resulting tensor is inferred from the inputs unless it is provided
+    *   explicitly.
+    *
+    *   For example:
+    *   {{{
+    *     // 'start' is 3
+    *     // 'limit' is 18
+    *     // 'delta' is 3
+    *     range(start, limit, delta) ==> [3, 6, 9, 12, 15]
+    *
+    *     // 'start' is 3
+    *     // 'limit' is 1
+    *     // 'delta' is -0.5
+    *     range(start, limit, delta) ==> [3.0, 2.5, 2.0, 1.5]
+    *   }}}
+    *   
+    * @define OpDocMathLinspace
+    *   The `linspace` op generates values in an interval.
+    *
+    *   The op generates a sequence of `numberOfValues` evenly-spaced values beginning at `start`. If
+    *   `numberOfValues > 1`, the values in the sequence increase by `(stop - start) / (numberOfValues - 1)`, so that the
+    *   last value is exactly equal to `stop`.
+    *
+    *   For example:
+    *   {{{
+    *     linspace(10.0, 12.0, 3) ==> [10.0  11.0  12.0]
+    *   }}}
+    *   
+    * @define OpDocMathCast
+    *   The `cast` op casts a tensor to a new data type.
+    *
+    *   The op casts `x` to the provided data type.
+    *
+    *   For example:
+    *   {{{
+    *     // `a` is a tensor with values [1.8, 2.2], and data type FLOAT32
+    *     cast(a, INT32) ==> [1, 2] // with data type INT32
+    *   }}}
+    *
+    *   **NOTE**: Only a smaller number of types are supported by the `cast` op. The exact casting rule is TBD. The
+    *   current implementation uses C++ static cast rules for numeric types, which may be changed in the future.
+    * 
+    * @define OpDocMathBitcast
+    *   The `bitcast` op bitcasts a tensor from one type to another without copying data.
+    *
+    *   Given a tensor `input`, the op returns a tensor that has the same buffer data as `input`, but with data type
+    *   `dataType`. If the input data type `T` is larger (in terms of number of bytes), then the output data type
+    *   `dataType`, then the shape changes from `[...]` to `[..., sizeof(T)/sizeof(dataType)]`. If `T` is smaller than
+    *   `dataType`, then the op requires that the rightmost dimension be equal to `sizeof(dataType)/sizeof(T)`. The
+    *   shape then changes from `[..., sizeof(type)/sizeof(T)]` to `[...]`.
+    *
+    *   *NOTE*: Bitcast is implemented as a low-level cast, so machines with different endian orderings will give
+    *   different results.
+    *
+    * @define OpDocMathAddN
+    *   The `addN` op adds all input tensors element-wise.
+    * 
+    * @define OpDocMathAbs
+    *   The `abs` op computes the absolute value of a tensor.
+    *
+    *   Given a tensor `x` of real numbers, the op returns a tensor containing the absolute value of each element in
+    *   `x`. For example, if `x` is an input element and `y` is an output element, the op computes `y = |x|`.
+    *
+    *   Given a tensor `x` of complex numbers, the op returns a tensor of type `FLOAT32` or `FLOAT64` that is the
+    *   magnitude value of each element in `x`. All elements in `x` must be complex numbers of the form `a + bj`. The
+    *   magnitude is computed as `\sqrt{a^2 + b^2}`. For example:
+    *   {{{
+    *     // Tensor 'x' is [[-2.25 + 4.75j], [-3.25 + 5.75j]]
+    *     abs(x) ==> [5.25594902, 6.60492229]
+    *   }}}
+    *
+    * @define OpDocMathNegate
+    *   The `negate` op computes the numerical negative value of a tensor element-wise. I.e., `y = -x`.
+    *
+    * @define OpDocMathReciprocal
+    *   The `reciprocal` op computes the reciprocal value of a tensor element-wise. I.e., `y = 1 / x`.
+    *
+    * @define OpDocMathSquare
+    *   The `square` op computes the square of a tensor element-wise. I.e., `y = x * x = x^2`.
+    *
+    * @define OpDocMathSqrt
+    *   The `sqrt` op computes the square root of a tensor element-wise. I.e., `y = \sqrt{x} = x^{1/2}`.
+    *
+    * @define OpDocMathRsqrt
+    *   The `rsqrt` op computes the reciprocal of the square root of a tensor element-wise. I.e.,
+    *   `y = 1 / \sqrt{x} = 1 / x^{1/2}`.
+    *
+    * @define OpDocMathExp
+    *   The `exp` op computes the exponential of a tensor element-wise. I.e., `y = \exp{x} = e^x`.
+    *
+    * @define OpDocMathExpm1
+    *   The `expm1` op computes the exponential of a tensor minus `1` element-wise. I.e., `y = \exp{x} - 1`.
+    *
+    * @define OpDocMathLog
+    *   The `log` op computes the logarithm of a tensor element-wise. I.e., `y = \log{x}`.
+    *
+    * @define OpDocMathLog1p
+    *   The `log1p` op computes the logarithm of a tensor plus `1` element-wise. I.e., `y = \log{1 + x}`.
+    *
+    * @define OpDocMathSin
+    *   The `sin` op computes the sine of a tensor element-wise. I.e., `y = \sin{x}`.
+    *
+    * @define OpDocMathCos
+    *   The `cos` op computes the cosine of a tensor element-wise. I.e., `y = \cos{x}`.
+    *
+    * @define OpDocMathTan
+    *   The `tan` op computes the tangent of a tensor element-wise. I.e., `y = \tan{x}`.
+    *
+    * @define OpDocMathAsin
+    *   The `asin` op computes the inverse sine of a tensor element-wise. I.e., `y = \asin{x}`.
+    *
+    * @define OpDocMathAcos
+    *   The `acos` op computes the inverse cosine of a tensor element-wise. I.e., `y = \acos{x}`.
+    *
+    * @define OpDocMathAtan
+    *   The `atan` op computes the inverse tangent of a tensor element-wise. I.e., `y = \atan{x}`.
+    *
+    * @define OpDocMathSinh
+    *   The `sinh` op computes the hyperbolic sine of a tensor element-wise. I.e., `y = \sinh{x}`.
+    *
+    * @define OpDocMathCosh
+    *   The `cosh` op computes the hyperbolic cosine of a tensor element-wise. I.e., `y = \cosh{x}`.
+    *
+    * @define OpDocMathTanh
+    *   The `tanh` op computes the hyperbolic tangent of a tensor element-wise. I.e., `y = \tanh{x}`.
+    *
+    * @define OpDocMathAsinh
+    *   The `asinh` op computes the inverse hyperbolic sine of a tensor element-wise. I.e., `y = \asinh{x}`.
+    *
+    * @define OpDocMathAcosh
+    *   The `acosh` op computes the inverse hyperbolic cosine of a tensor element-wise. I.e., `y = \acosh{x}`.
+    *
+    * @define OpDocMathAtanh
+    *   The `atanh` op computes the inverse hyperbolic tangent of a tensor element-wise. I.e., `y = \atanh{x}`.
+    *
+    * @define OpDocMathLogGamma
+    *   The `logGamma` op computes the logarithm of the absolute value of the Gamma function applied element-wise on a
+    * 	tensor. I.e., `y = \log{|\Gamma{x}|}`.
+    *
+    * @define OpDocMathDigamma
+    *   The `digamma` op computes the derivative of the logarithm of the absolute value of the Gamma function applied
+    * 	element-wise on a tensor (i.e., the digamma or Psi function). I.e., `y = \partial\log{|\Gamma{x}|}`.
+    *
+    * @define OpDocMathErf
+    *   The `erf` op computes the Gaussian error function element-wise on a tensor.
+    *
+    * @define OpDocMathErfc
+    *   The `erfc` op computes the complementary Gaussian error function element-wise on a tensor.
+    *
+    * @define OpDocMathSigmoid
+    *   The `sigmoid` op computes the sigmoid function element-wise on a tensor.
+    *
+    * @define OpDocMathSign
+    *   The `sign` op computes an element-wise indication of the sign of a tensor.
+    *		
+    * 	I.e., `y = sign(x) = -1` if `x < 0`; `0` if `x == 0`; `1` if `x > 0`.
+    *	
+    * 	Zero is returned for `NaN` inputs.
+    *		
+    * 	For complex numbers, `y = sign(x) = x / |x|` if `x != 0`, otherwise `y = 0`.
+    *	
+    * @define OpDocMathRound
+    *   The `round` op computes the round value of a tensor element-wise.
+    *
+    * 	Rounds half to even. Also known as bankers rounding. If you want to round according to the current system 
+    *		rounding mode use the [[roundInt]] op instead.
+    *
+    * 	For example:
+    * 	{{{
+    *   	// 'a' is [0.9, 2.5, 2.3, 1.5, -4.5]
+    *   	round(a) ==> [1.0, 2.0, 2.0, 2.0, -4.0]
+    * 	}}}
+    *	
+    * @define OpDocMathRoundInt
+    *   The `roundInt` op computes the round value of a tensor element-wise.
+    *		
+    * 	If the result is midway between two representable values, the even representable is chosen.
+    *
+    * 	For example:
+    * 	{{{
+    *   	roundInt(-1.5) ==> -2.0
+    *   	roundInt(0.5000001) ==> 1.0
+    *   	roundInt([-1.7, -1.5, -0.2, 0.2, 1.5, 1.7, 2.0]) ==> [-2., -2., -0., 0., 2., 2., 2.]
+    * 	}}}
+    *	
+    * @define OpDocMathFloor
+    *   The `floor` op computes the largest integer not greater than the current value of a tensor, element-wise.
+    *	
+    * @define OpDocMathCeil
+    *   The `ceil` op computes the smallest integer not greater than the current value of a tensor, element-wise.
+    *	
+    * @define OpDocMathIsNaN
+    *   The `isNaN` op returns a boolean tensor indicating which elements of a tensor are NaN-valued.
+    *	
+    * @define OpDocMathIsInf
+    *   The `isInf` op returns a boolean tensor indicating which elements of a tensor are Inf-valued.
+    *	
+    * @define OpDocMathIsFinite
+    *   The `isFinite` op returns a boolean tensor indicating which elements of a tensor are finite-valued.
+		* 
+		* @define OpDocMathAdd
+		*   The `add` op adds two tensors element-wise. I.e., `z = x + y`.
+    *   
+    *   NOTE: This op supports broadcasting. More information about broadcasting can be found
+    *   [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
+		* 
+		* @define OpDocMathSubtract
+		*   The `subtract` op subtracts two tensors element-wise. I.e., `z = x - y`.
+    *   
+    *   NOTE: This op supports broadcasting. More information about broadcasting can be found
+    *   [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
+		* 
+		* @define OpDocMathMultiply
+		*   The `multiply` op multiplies two tensors element-wise. I.e., `z = x * y`.
+    *   
+    *   NOTE: This op supports broadcasting. More information about broadcasting can be found
+    *   [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
+		* 
+		* @define OpDocMathDivide
+		*   The `divide` op divides two tensors element-wise. I.e., `z = x / y`.
+    *   
+    *   NOTE: This op supports broadcasting. More information about broadcasting can be found
+    *   [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
+		* 
+		* @define OpDocMathFloorDivide
+		*   The `floorDivide` op floor-divides two tensors element-wise. I.e., `z = x // y`.
+    *   
+    *   NOTE: This op supports broadcasting. More information about broadcasting can be found
+    *   [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
+		* 
+		* @define OpDocMathTruncateDivide
+		*   The `truncateDivide` op truncate-divides two tensors element-wise.
+		*   
+		*   Truncation designates that negative numbers will round fractional quantities toward zero. I.e. `-7 / 5 = 1`. 
+		*   This matches C semantics but it is different than Python semantics. See `floorDivide` for a division function 
+		*   that matches Python semantics.
+    *
+    *   I.e., `z = x / y`, for `x` and `y` being integer tensors.
+    *   
+    *   NOTE: This op supports broadcasting. More information about broadcasting can be found
+    *   [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
+		* 
+		* @define OpDocMathRealDivide
+		*   The `realDivide` op divides two real tensors element-wise.
+		*   
+		*   If `x` and `y` are real-valued tensors, the op will return the floating-point division.
+    *
+    *   I.e., `z = x / y`, for `x` and `y` being real tensors.
+    *   
+    *   NOTE: This op supports broadcasting. More information about broadcasting can be found
+    *   [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
+		* 
+		* @define OpDocMathSquaredDifference
+		*   The `squaredDifference` op computes the squared difference between two tensors element-wise. 
+		*   I.e., `z = (x - y) * (x - y)`.
+    *   
+    *   NOTE: This op supports broadcasting. More information about broadcasting can be found
+    *   [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
+		* 
+		* @define OpDocMathMod
+		*   The `mod` op computes the remainder of the division between two tensors element-wise.
+    *
+    *   The op emulates C semantics in that the result is consistent with a truncating divide.
+    *   E.g., `truncate(x / y) * y + truncateMod(x, y) = x`.
+    *   
+    *   NOTE: This op supports broadcasting. More information about broadcasting can be found
+    *   [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
+		* 
+		* @define OpDocMathFloorMod
+		*   The `floorMod` op computes the remainder of the division between two tensors element-wise.
+    *
+    *   When `x < 0` xor `y < 0` is true, the op follows Python semantics in that the result here is 
+    *   consistent with a flooring divide. E.g., `floor(x / y) * y + mod(x, y) = x`.
+    *   
+    *   NOTE: This op supports broadcasting. More information about broadcasting can be found
+    *   [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
+		* 
+		* @define OpDocMathTruncateMod
+		*   The `truncateMod` op computes the remainder of the division between two tensors element-wise.
+    *
+    *   The op emulates C semantics in that the result here is consistent with a truncating divide.
+    *   E.g., `truncate(x / y) * y + truncateMod(x, y) = x`.
+    *   
+    *   NOTE: This op supports broadcasting. More information about broadcasting can be found
+    *   [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
+		* 
+		* @define OpDocMathPow
+		*   The `pow` op computes the power of one tensor raised to another, element-wise.
+    *
+    *   Given a tensor `x` and a tensor `y`, the op computes `x^y` for the corresponding elements in `x` 
+    *   and `y`.
+    *
+    *   For example:
+    *   {{{
+    *     // Tensor 'x' is [[2, 2], [3, 3]]
+    *     // Tensor 'y' is [[8, 16], [2, 3]]
+    *     pow(x, y) ==> [[256, 65536], [9, 27]]
+    *   }}}
+		* 
+		* @define OpDocMathIgammac
+		*   The `igammac` op computes the upper regularized incomplete Gamma function `Q(a, x)`.
+    *
+    *   The upper regularized incomplete Gamma function is defined as:
+    *
+    *   `Q(a, x) = Gamma(a, x) / Gamma(a) = 1 - P(a, x)`, where:
+    *
+    *   `Gamma(a, x) = \int_{x}^{\infty} t^{a-1} exp(-t) dt`
+    *
+    *   is the upper incomplete Gama function.
+    *
+    *   Note that, above, `P(a, x)` (`Igamma`) is the lower regularized complete Gamma function.
+		* 
+		* @define OpDocMathIgamma
+		*   The `igamma` op computes the lower regularized incomplete Gamma function `Q(a, x)`.
+    *
+    *   The lower regularized incomplete Gamma function is defined as:
+    *
+    *   `P(a, x) = gamma(a, x) / Gamma(a) = 1 - Q(a, x)`, where:
+    *
+    *   `Gamma(a, x) = \int_{0}^{x} t^{a-1} exp(-t) dt`
+    *
+    *   is the lower incomplete Gamma function.
+    *
+    *   Note that, above, `Q(a, x)` (`Igammac`) is the upper regularized complete Gamma function.
+		* 
+		* @define OpDocMathZeta
+		*   The `zeta` op computes the Hurwitz zeta function `\zeta(x, q)`.
+    *
+    *   The Hurwitz zeta function is defined as:
+    *
+    *   `\zeta(x, q) = \sum_{n=0}^{\infty} (q + n)^{-x}`.
+		* 
+		* @define OpDocMathPolygamma
+		*   The `polygamma` op computes the polygamma function `\psi^{(n)}(x)`.
+    *
+    *   The polygamma function is defined as:
+    *
+    *   `\psi^{(n)}(x) = \frac{d^n}{dx^n} \psi(x)`, where `\psi(x)` is the digamma function.
+		* 
+		* @define OpDocMathAtan2
+		*   The `atan2` op computes the inverse tangent of `x / y` element-wise, respecting signs of the arguments.
+    *
+    *   The op computes the angle `\theta \in [-\pi, \pi]` such that `y = r \cos(\theta)` and 
+    *   `x = r \sin(\theta)`, where `r = \sqrt(x^2 + y^2)`.
+		* 
+		* @define OpDocMathMaximum
+		*   The `maximum` op returns the element-wise maximum between two tensors. I.e., `z = x > y ? x : y`.
+    *
+    *   NOTE: This op supports broadcasting. More information about broadcasting can be found
+    *   [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
+		* 
+		* @define OpDocMathMinimum
+		*   The `minimum` op returns the element-wise minimum between two tensors. I.e., `z = x < y ? x : y`.
+    *
+    *   NOTE: This op supports broadcasting. More information about broadcasting can be found
+    *   [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
+    * 
+    * @define OpDocMathIncompleteBeta
+    *   The `incompleteBeta` op computes the regularized incomplete beta integral `I_x(a, b)`.
+    *
+    *   The regularized incomplete beta integral is defined as:
+    *
+    *   `I_x(a, b) = \frac{B(x; a, b)}{B(a, b)}`, where:
+    *
+    *   `B(x; a, b) = \int_0^x t^{a-1} (1 - t)^{b-1} dt`
+    *
+    *   is the incomplete beta function and `B(a, b)` is the *complete* beta function.
+    * 
+    * @define OpDocMathLogicalNot
+    *   The `logicalNot` op computes the truth value of `!x` element-wise.
+    * 
+    * @define OpDocMathLogicalAnd
+    *   The `logicalAnd` op computes the truth value of `x && y` element-wise.
+    *
+    *   NOTE: This op supports broadcasting. More information about broadcasting can be found
+    *   [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
+    * 
+    * @define OpDocMathLogicalOr
+    *   The `logicalOr` op computes the truth value of `x || y` element-wise.
+    *
+    *   NOTE: This op supports broadcasting. More information about broadcasting can be found
+    *   [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
+    * 
+    * @define OpDocMathLogicalXOr
+    *   The `logicalXOr` op computes the truth value of `(x || y) && !(x && y)` element-wise.
+    *
+    *   NOTE: This op supports broadcasting. More information about broadcasting can be found
+    *   [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
+    * 
+    * @define OpDocMathEqual
+    *   The `equal` op computes the truth value of `x == y` element-wise.
+    *
+    *   NOTE: This op supports broadcasting. More information about broadcasting can be found
+    *   [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
+    * 
+    * @define OpDocMathNotEqual
+    *   The `notEqual` op computes the truth value of `x != y` element-wise.
+    *
+    *   NOTE: This op supports broadcasting. More information about broadcasting can be found
+    *   [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
+    * 
+    * @define OpDocMathApproximatelyEqual
+    *   The `approximatelyEqual` op computes the truth value of `abs(x - y) < tolerance` element-wise.
+    *
+    *   NOTE: This op supports broadcasting. More information about broadcasting can be found
+    *   [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
+    * 
+    * @define OpDocMathLess
+    *   The `less` op computes the truth value of `x < y` element-wise.
+    *
+    *   NOTE: This op supports broadcasting. More information about broadcasting can be found
+    *   [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
+    * 
+    * @define OpDocMathLessEqual
+    *   The `lessEqual` op computes the truth value of `x <= y` element-wise.
+    *
+    *   NOTE: This op supports broadcasting. More information about broadcasting can be found
+    *   [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
+    * 
+    * @define OpDocMathGreater
+    *   The `greater` op computes the truth value of `x > y` element-wise.
+    *
+    *   NOTE: This op supports broadcasting. More information about broadcasting can be found
+    *   [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
+    * 
+    * @define OpDocMathGreaterEqual
+    *   The `greaterEqual` op computes the truth value of `x >= y` element-wise.
+    *
+    *   NOTE: This op supports broadcasting. More information about broadcasting can be found
+    *   [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
+    * 
+    * @define OpDocMathSum
+    *   The `sum` op computes the sum of elements across axes of a tensor.
+    *
+    *   Reduces `input` along the axes given in `axes`. Unless `keepDims` is `true`, the rank of the tensor is reduced 
+    *   by 1 for each entry in `axes`. If `keepDims` is `true`, the reduced axes are retained with size 1.
+    *
+    *   If `axes` is `null`, then all axes are reduced, and a tensor with a single element is returned.
+    *
+    *   For example:
+    *   {{{
+    *     // 'x' is [[1, 1, 1]], [1, 1, 1]]
+    *     sum(x) ==> 6
+    *     sum(x, 0) ==> [2, 2, 2]
+    *     sum(x, 1) ==> [3, 3]
+    *     sum(x, 1, keepDims = true) ==> [[3], [3]]
+    *     sum(x, [0, 1]) ==> 6
+    *   }}}
+    * 
+    * @define OpDocMathMean
+    *   The `mean` op computes the mean of elements across axes of a tensor.
+    *
+    *   Reduces `input` along the axes given in `axes`. Unless `keepDims` is `true`, the rank of the tensor is reduced 
+    *   by 1 for each entry in `axes`. If `keepDims` is `true`, the reduced axes are retained with size 1.
+    *
+    *   If `axes` is `null`, then all axes are reduced, and a tensor with a single element is returned.
+    *
+    *   For example:
+    *   {{{
+    *     // 'x' is [[1.0, 1.0], [2.0, 2.0]]
+    *     mean(x) ==> 1.5
+    *     mean(x, 0) ==> [1.5, 1.5]
+    *     mean(x, 1) ==> [1.0, 2.0]
+    *   }}}
+    * 
+    * @define OpDocMathProd
+    *   The `prod` op computes the product of elements across axes of a tensor.
+    *
+    *   Reduces `input` along the axes given in `axes`. Unless `keepDims` is `true`, the rank of the tensor is reduced 
+    *   by 1 for each entry in `axes`. If `keepDims` is `true`, the reduced axes are retained with size 1.
+    *
+    *   If `axes` is `null`, then all axes are reduced, and a tensor with a single element is returned.
+    *
+    *   For example:
+    *   {{{
+    *     // 'x' is [[1, 1, 1]], [1, 1, 1]]
+    *     prod(x) ==> 1
+    *     prod(x, 0) ==> [1, 1, 1]
+    *     prod(x, 1) ==> [1, 1]
+    *     prod(x, 1, keepDims = true) ==> [[1], [1]]
+    *     prod(x, [0, 1]) ==> 1
+    *   }}}
+    * 
+    * @define OpDocMathMin
+    *   The `min` op computes the minimum of elements across axes of a tensor.
+    *
+    *   Reduces `input` along the axes given in `axes`. Unless `keepDims` is `true`, the rank of the tensor is reduced 
+    *   by 1 for each entry in `axes`. If `keepDims` is `true`, the reduced axes are retained with size 1.
+    *
+    *   If `axes` is `null`, then all axes are reduced, and a tensor with a single element is returned.
+    *
+    *   For example:
+    *   {{{
+    *     // 'x' is [[1.0, 1.0], [2.0, 2.0]]
+    *     min(x) ==> 1.0
+    *     min(x, 0) ==> [1.0, 1.0]
+    *     min(x, 1) ==> [1.0, 2.0]
+    *   }}}
+    * 
+    * @define OpDocMathMax
+    *   The `max` op computes the maximum of elements across axes of a tensor.
+    *
+    *   Reduces `input` along the axes given in `axes`. Unless `keepDims` is `true`, the rank of the tensor is reduced 
+    *   by 1 for each entry in `axes`. If `keepDims` is `true`, the reduced axes are retained with size 1.
+    *
+    *   If `axes` is `null`, then all axes are reduced, and a tensor with a single element is returned.
+    *
+    *   For example:
+    *   {{{
+    *     // 'x' is [[1.0, 1.0], [2.0, 2.0]]
+    *     max(x) ==> 2.0
+    *     max(x, 0) ==> [2.0, 2.0]
+    *     max(x, 1) ==> [1.0, 2.0]
+    *   }}}
+    * 
+    * @define OpDocMathAll
+    *   The `all` op computes the logical AND of elements across axes of a tensor.
+    *
+    *   Reduces `input` along the axes given in `axes`. Unless `keepDims` is `true`, the rank of the tensor is reduced 
+    *   by 1 for each entry in `axes`. If `keepDims` is `true`, the reduced axes are retained with size 1.
+    *
+    *   If `axes` is `null`, then all axes are reduced, and a tensor with a single element is returned.
+    *
+    *   For example:
+    *   {{{
+    *     // 'x' is [[true, true], [false, false]]
+    *     all(x) ==> false
+    *     all(x, 0) ==> [false, false]
+    *     all(x, 1) ==> [true, false]
+    *   }}}
+    * 
+    * @define OpDocMathAny
+    *   The `any` op computes the logical OR of elements across axes of a tensor.
+    *
+    *   Reduces `input` along the axes given in `axes`. Unless `keepDims` is `true`, the rank of the tensor is reduced 
+    *   by 1 for each entry in `axes`. If `keepDims` is `true`, the reduced axes are retained with size 1.
+    *
+    *   If `axes` is `null`, then all axes are reduced, and a tensor with a single element is returned.
+    *
+    *   For example:
+    *   {{{
+    *     // 'x' is [[true, true], [false, false]]
+    *     any(x) ==> true
+    *     any(x, 0) ==> [true, true]
+    *     any(x, 1) ==> [true, false]
+    *   }}}
+    * 
+    * @define OpDocMathLogSumExp
+    *   The `logSumExp` op computes the log-sum-exp of elements across axes of a tensor.
+    *
+    *   Reduces `input` along the axes given in `axes`. Unless `keepDims` is `true`, the rank of the tensor is reduced 
+    *   by 1 for each entry in `axes`. If `keepDims` is `true`, the reduced axes are retained with size 1.
+    *
+    *   If `axes` is `null`, then all axes are reduced, and a tensor with a single element is returned.
+    *
+    *   For example:
+    *   {{{
+    *     // 'x' is [[0, 0, 0], [0, 0, 0]]
+    *     logSumExp(x) ==> log(6)
+    *     logSumExp(x, 0) ==> [log(2), log(2), log(2)]
+    *     logSumExp(x, 1) ==> [log(3), log(3)]
+    *     logSumExp(x, 1, keepDims = true) ==> [[log(3)], [log(3)]]
+    *     logSumExp(x, [0, 1]) ==> log(6)
+    *   }}}
+    * 
+    * @define OpDocMathCountNonZero
+    *   The `countNonZero` op computes the number of non-zero elements across axes of a tensor.
+    *
+    *   Reduces `input` along the axes given in `axes`. Unless `keepDims` is `true`, the rank of the tensor is reduced 
+    *   by 1 for each entry in `axes`. If `keepDims` is `true`, the reduced axes are retained with size 1.
+    *
+    *   If `axes` is `null`, then all axes are reduced, and a tensor with a single element is returned.
+    *   
+		*   IMPORTANT NOTE: Floating point comparison to zero is done by exact floating point equality check. Small values 
+		*   are '''not''' rounded to zero for the purposes of the non-zero check.
+		*   
+    *   For example:
+    *   {{{
+    *     // 'x' is [[0, 1, 0], [1, 1, 0]]
+    *     countNonZero(x) ==> 3
+    *     countNonZero(x, 0) ==> [1, 2, 0]
+    *     countNonZero(x, 1) ==> [1, 2]
+    *     countNonZero(x, 1, keepDims = true) ==> [[1], [2]]
+    *     countNonZero(x, [0, 1]) ==> 3
+    *   }}}
+    * 
+    * @define OpDocMathArgmax
+    *   The `argmax` op returns the indices with the largest value across axes of a tensor.
+    *
+    *   Note that in case of ties the identity of the return value is not guaranteed.
+    * 
+    * @define OpDocMathArgmin
+    *   The `argmin` op returns the indices with the smallest value across axes of a tensor.
+    *
+    *   Note that in case of ties the identity of the return value is not guaranteed.
+    * 
+    * @define OpDocMathBinCount
+    *   The `binCount` op counts the number of occurrences of each value in an integer tensor.
+    *
+    *   If `minLength` and `maxLength` are not provided, the op returns a vector with length `max(input) + 1`, if 
+    *   `input` is non-empty, and length `0` otherwise.
+    *
+    *   If `weights` is not `null`, then index `i` of the output stores the sum of the value in `weights` at each 
+    *   index where the corresponding value in `input` is equal to `i`.
+    * 
+    * @define OpDocMathCumsum
+    *   The `cumsum` op computes the cumulative sum of the tensor along an axis.
+    *
+    *   By default, the op performs an inclusive cumulative sum, which means that the first element of the input is
+    *   identical to the first element of the output:
+    *   {{{
+    *     cumsum([a, b, c]) ==> [a, a + b, a + b + c]
+    *   }}}
+    *
+    *   By setting the `exclusive` argument to `true`, an exclusive cumulative sum is performed instead:
+    *   {{{
+    *     cumsum([a, b, c], exclusive = true) ==> [0, a, a + b]
+    *   }}}
+    *
+    *   By setting the `reverse` argument to `true`, the cumulative sum is performed in the opposite direction:
+    *   {{{
+    *     cumsum([a, b, c], reverse = true) ==> [a + b + c, b + c, c]
+    *   }}}
+    *
+    *   This is more efficient than using separate [[Basic.reverse]] ops.
+    *
+    *   The `reverse` and `exclusive` arguments can also be combined:
+    *   {{{
+    *     cumsum([a, b, c], exclusive = true, reverse = true) ==> [b + c, c, 0]
+    *   }}}
+    * 
+    * @define OpDocMathCumprod
+    *   The `cumprod` op computes the cumulative product of the tensor along an axis.
+    *
+    *   By default, the op performs an inclusive cumulative product, which means that the first element of the input 
+    *   is identical to the first element of the output:
+    *   {{{
+    *    cumprod([a, b, c]) ==> [a, a * b, a * b * c]
+    *   }}} 
+    *
+    *   By setting the `exclusive` argument to `true`, an exclusive cumulative product is performed instead:
+    *   {{{
+    *     cumprod([a, b, c], exclusive = true) ==> [0, a, a * b]
+    *   }}}
+    *
+    *   By setting the `reverse` argument to `true`, the cumulative product is performed in the opposite direction:
+    *   {{{
+    *     cumprod([a, b, c], reverse = true) ==> [a * b * c, b * c, c]
+    *   }}}
+    *
+    *   This is more efficient than using separate [[Basic.reverse]] ops.
+    *
+    *   The `reverse` and `exclusive` arguments can also be combined:
+    *   {{{
+    *     cumprod([a, b, c], exclusive = true, reverse = true) ==> [b * c, c, 0]
+    *   }}}
+    * 
+    * @define OpDocMathSegmentSum
+    *   The `segmentSum` op computes the sum along segments of a tensor.
+    *
+    *   The op computes a tensor such that `output(i) = \sum_{j...} data(j,...)` where the sum is over all `j` such 
+    *   that `segmentIndices(j) == i`. Unlike `unsortedSegmentSum`, `segmentIndices` need be sorted.
+    *
+    *   If the sum if empty for a given segment index `i`, `output(i)` is set to `0`.
+    *
+    *   The result tensor has the same data type as `data`, but its first dimension size is equal to the number of
+    *   distinct segment indices.
+    * 
+    * @define OpDocMathSegmentMean
+    *   The `segmentMean` op computes the mean along segments of a tensor.
+    *
+    *   The op computes a tensor such that `output(i) = \frac{sum_{j...} data(j,...)}{N}` where the sum is over 
+    *   all `j` such that `segmentIndices(j) == i` and `N` is the total number of values being summed. Unlike
+    *   `unsortedSegmentMean`, `segmentIndices` need be sorted.
+    *
+    *   If the sum if empty for a given segment index `i`, `output(i)` is set to `0`.
+    *
+    *   The result tensor has the same data type as `data`, but its first dimension size is equal to the number of
+    *   distinct segment indices.
+    * 
+    * @define OpDocMathSegmentProd
+    *   The `segmentProd` op computes the product along segments of a tensor.
+    *
+    *   The op computes a tensor such that `output(i) = \prod_{j...} data(j,...)` where the product is over all `j` 
+    *   such that `segmentIndices(j) == i`. Unlike `unsortedSegmentProd`, `segmentIndices` need be sorted.
+    *
+    *   If the product if empty for a given segment index `i`, `output(i)` is set to `1`.
+    *
+    *   The result tensor has the same data type as `data`, but its first dimension size is equal to the number of
+    *   distinct segment indices.
+    * 
+    * @define OpDocMathSegmentMin
+    *   The `segmentMin` op computes the min along segments of a tensor.
+    *
+    *   The op computes a tensor such that `output(i) = \min_{j...} data(j,...)` where the min is over all `j` 
+    *   such that `segmentIndices(j) == i`. Unlike `unsortedSegmentMin`, `segmentIndices` need be sorted.
+    *
+    *   If the min if empty for a given segment index `i`, `output(i)` is set to `0`.
+    *
+    *   The result tensor has the same data type as `data`, but its first dimension size is equal to the number of
+    *   distinct segment indices.
+    * 
+    * @define OpDocMathSegmentMax
+    *   The `segmentMax` op computes the max along segments of a tensor.
+    *
+    *   The op computes a tensor such that `output(i) = \max_{j...} data(j,...)` where the max is over all `j` 
+    *   such that `segmentIndices(j) == i`. Unlike `unsortedSegmentMax`, `segmentIndices` need be sorted.
+    *
+    *   If the max if empty for a given segment index `i`, `output(i)` is set to `0`.
+    *
+    *   The result tensor has the same data type as `data`, but its first dimension size is equal to the number of
+    *   distinct segment indices.
+    * 
+    * @define OpDocMathUnsortedSegmentSum
+    *   The `unsortedSegmentSum` op computes the sum along segments of a tensor.
+    *
+    *   The op computes a tensor such that `output(i) = \sum_{j...} data(j...)` where the sum is over all `j` 
+    *   such that `segmentIndices(j) == i`. Unlike `segmentSum`, `segmentIndices` need not be sorted and need not 
+    *   cover all values in the full range of valid values.
+    *
+    *   If the sum if empty for a given segment index `i`, `output(i)` is set to `0`.
+    *
+    *   `segmentsNumber` should equal the number of distinct segment indices.
+    *
+    *   The result tensor has the same data type as `data`, but its first dimension size is equal to the number of
+    *   distinct segment indices.
+    * 
+    * @define OpDocMathUnsortedSegmentMax
+    *   The `unsortedSegmentMax` op computes the max along segments of a tensor.
+    *
+    *   The op computes a tensor such that `output(i) = \max_{j...} data(j...)` where the max is over all `j` 
+    *   such that `segmentIndices(j) == i`. Unlike `segmentMax`, `segmentIndices` need not be sorted and need not 
+    *   cover all values in the full range of valid values.
+    *
+    *   If the max if empty for a given segment index `i`, `output(i)` is set to `0`.
+    *
+    *   `segmentsNumber` should equal the number of distinct segment indices.
+    *
+    *   The result tensor has the same data type as `data`, but its first dimension size is equal to the number of
+    *   distinct segment indices.
+    * 
+    * @define OpDocMathSparseSegmentSum
+    *   The `sparseSegmentSum` op computes the sum along sparse segments of a tensor.
+    *
+    *   The op is similar to that of [[segmentSum]], with the difference that `segmentIndices` can have rank less 
+    *   than `data`'s first dimension, selecting a subset of dimension `0`, specified by `indices`.
+    *
+    *   For example:
+    *   {{{
+    *     // 'c' is [[1, 2, 3, 4], [-1, -2, -3, -4], [5, 6, 7, 8]]
+    *
+    *     // Select two rows, one segment.
+    *     sparseSegmentSum(c, Tensor(0, 1), Tensor(0, 0)) ==> [[0, 0, 0, 0]]
+    *
+    *     // Select two rows, two segments.
+    *     sparseSegmentSum(c, Tensor(0, 1), Tensor(0, 1)) ==> [[1, 2, 3, 4], [-1, -2, -3, -4]]
+    *
+    *     // Select all rows, two segments.
+    *     sparseSegmentSum(c, Tensor(0, 1, 2), Tensor(0, 0, 1)) ==> [[0, 0, 0, 0], [5, 6, 7, 8]]
+    *     // which is equivalent to:
+    *     segmentSum(c, Tensor(0, 0, 1))
+    *   }}}
+    *
+    *   The result tensor has the same data type as `data`, but its first dimension size is equal to the number of
+    *   distinct segment indices.
+    * 
+    * @define OpDocMathSparseSegmentMean
+    *   The `sparseSegmentMean` op computes the mean along sparse segments of a tensor.
+    *
+    *   The op is similar to that of [[segmentMean]], with the difference that `segmentIndices` can have rank less 
+    *   than `data`'s first dimension, selecting a subset of dimension `0`, specified by `indices`.
+    *
+    *   For example:
+    *   {{{
+    *     // 'c' is [[1, 2, 3, 4], [-1, -2, -3, -4], [5, 6, 7, 8]]
+    *
+    *     // Select two rows, one segment.
+    *     sparseSegmentMean(c, Tensor(0, 1), Tensor(0, 0)) ==> [[0, 0, 0, 0]]
+    *
+    *     // Select two rows, two segments.
+    *     sparseSegmentMean(c, Tensor(0, 1), Tensor(0, 1)) ==> [[1, 2, 3, 4], [-1, -2, -3, -4]]
+    *
+    *     // Select all rows, two segments.
+    *     sparseSegmentMean(c, Tensor(0, 1, 2), Tensor(0, 0, 1)) ==> [[0, 0, 0, 0], [5, 6, 7, 8]]
+    *     // which is equivalent to:
+    *     segmentMean(c, Tensor(0, 0, 1))
+    *   }}}
+    *
+    *   The result tensor has the same data type as `data`, but its first dimension size is equal to the number of
+    *   distinct segment indices.
+    * 
+    * @define OpDocMathSparseSegmentSumSqrtN
+    *   The `sparseSegmentSumSqrtN` op computes the sum along sparse segments of a tensor, divided by the square 
+    *   root of the number of elements being summed.
+    *
+    *   Similar to [[sparseSegmentSum]].
+    *
+    *   The result tensor has the same data type as `data`, but its first dimension size is equal to the number of
+    *   distinct segment indices.
+    * 
+    * @define OpDocMathDiag
+    *   The `diag` op constructs a diagonal tensor using the provided diagonal values.
+    *
+    *   Given a `diagonal`, the op returns a tensor with that `diagonal` and everything else padded with zeros. The
+    *   diagonal is computed as follows:
+    *
+    *   Assume that `diagonal` has shape `[D1,..., DK]`. Then the output tensor, `output`, is a rank-`2K` tensor with
+    *   shape `[D1, ..., DK, D1, ..., DK]`, where `output(i1, ..., iK, i1, ..., iK) = diagonal(i1, ..., iK)` and `0`
+    *   everywhere else.
+    *
+    *   For example:
+    *   {{{
+    *     // 'diagonal' is [1, 2, 3, 4]
+    *     diag(diagonal) ==> [[1, 0, 0, 0], [0, 2, 0, 0], [0, 0, 3, 0], [0, 0, 0, 4]]
+    *   }}}
+    *
+    *   This op is the inverse of [[diagPart]].
+    * 
+    * @define OpDocMathDiagPart
+    *   The `diagPart` op returns the diagonal part of a tensor.
+    *
+    *   The op returns a tensor with the `diagonal` part of the `input`. The `diagonal` part is computed as follows:
+    *
+    *   Assume `input` has shape `[D1, ..., DK, D1, ..., DK]`. Then the output is a rank-`K` tensor with shape
+    *   `[D1,..., DK]`, where `diagonal(i1, ..., iK) = output(i1, ..., iK, i1, ..., iK)`.
+    *
+    *   For example:
+    *   {{{
+    *     // 'input' is [[1, 0, 0, 0], [0, 2, 0, 0], [0, 0, 3, 0], [0, 0, 0, 4]]
+    *     diagPart(input) ==> [1, 2, 3, 4]
+    *   }}}
+    *
+    *   This op is the inverse of [[diag]].
+    * 
+    * @define OpDocMathMatrixDiag
+    *   The `matrixDiag` op returns a batched diagonal tensor with the provided batched diagonal values.
+    *
+    *   Given a `diagonal`, the op returns a tensor with that `diagonal` and everything else padded with zeros. Assuming
+    *   that `diagonal` has `k` dimensions `[I, J, K, ..., N]`, the output is a tensor of rank `k + 1` with dimensions
+    *   `[I, J, K, ..., N, N]`, where: `output[i, j, k, ..., m, n] = 1{m=n} * diagonal[i, j, k, ..., n]`.
+    *
+    *   For example:
+    *   {{{
+    *     // 'diagonal' is [[1, 2, 3, 4], [5, 6, 7, 8]] (shape = [2, 4])
+    *     matrixDiag(diagonal) ==> [[[1, 0, 0, 0]
+    *                                [0, 2, 0, 0]
+    *                                [0, 0, 3, 0]
+    *                                [0, 0, 0, 4]],
+    *                               [[5, 0, 0, 0]
+    *                                [0, 6, 0, 0]
+    *                                [0, 0, 7, 0]
+    *                                [0, 0, 0, 8]]]  // with shape [2, 4, 4]
+    *   }}}
+    * 
+    * @define OpDocMathMatrixSetDiag
+    *   The `matrixSetDiag` op returns a batched matrix tensor with new batched diagonal values.
+    *
+    *   Given `input` and `diagonal`, the op returns a tensor with the same shape and values as `input`, except for the
+    *   main diagonal of its innermost matrices. These diagonals will be overwritten by the values in `diagonal`. 
+    *   Assuming that `input` has `k + 1` dimensions, `[I, J, K, ..., M, N]`, and `diagonal` has `k` dimensions,
+    *   `[I, J, K, ..., min(M, N)]`, then the output is a tensor of rank `k + 1` with dimensions `[I, J, K, ..., M, N]`,
+    *   where:
+    *     - `output[i, j, k, ..., m, n] == diagonal[i, j, k, ..., n]`, for `m == n`, and
+    *     - `output[i, j, k, ..., m, n] == input[i, j, k, ..., m, n]`, for `m != n`.
+    * 
+    * @define OpDocMathMatrixDiagPart
+    *   The `matrixDiagPart` op returns the batched diagonal part of a batched tensor.
+    *
+    *   The op returns a tensor with the `diagonal` part of the batched `input`. Assuming that `input` has `k` 
+    *   dimensions, `[I, J, K, ..., M, N]`, then the output is a tensor of rank `k - 1` with dimensions 
+    *   `[I, J, K, ..., min(M, N)]`, where `diagonal[i, j, k, ..., n] == input[i, j, k, ..., n, n]`.
+    *
+    *   Note that `input` must have rank of at least `2`.
+    *
+    *   For example:
+    *   {{{
+    *     // 'input' is:
+    *     //   [[[1, 0, 0, 0]
+    *     //     [0, 2, 0, 0]
+    *     //     [0, 0, 3, 0]
+    *     //     [0, 0, 0, 4]],
+    *     //    [[5, 0, 0, 0]
+    *     //     [0, 6, 0, 0]
+    *     //     [0, 0, 7, 0]
+    *     //     [0, 0, 0, 8]]]  with shape [2, 4, 4]
+    *     matrixDiagPart(input) ==> [[1, 2, 3, 4], [5, 6, 7, 8]]  // with shape [2, 4]
+    *   }}}
+    * 
+    * @define OpDocMathMatrixBandPart
+    *   The `matrixBandPart` op copies a tensor, while setting everything outside a central band in each innermost 
+    *   matrix of the tensor, to zero.
+    *   
+    *   Assuming that `input` has `k` dimensions, `[I, J, K, ..., M, N]`, the output is a tensor with the same shape,
+    *   where `band[i, j, k, ..., m, n] == indicatorBand(m, n) * input[i, j, k, ..., m, n]`. The indicator function is
+    *   defined as:
+    *   {{{
+    *     indicatorBand(m, n) = (numSubDiagonals < 0 || m - n <= numSubDiagonals) &&
+    *                           (numSuperDiagonals < 0 || n - m <= numSuperDiagonals)
+    *   }}}
+    *   
+    *   For example:
+    *   {{{
+    *     // 'input' is:
+    *     //   [[ 0,  1,  2, 3]
+    *     //    [-1,  0,  1, 2]
+    *     //    [-2, -1,  0, 1]
+    *     //    [-3, -2, -1, 0]]
+    *     matrixBandPart(input, 1, -1) ==> [[ 0,  1,  2, 3]
+    *                                       [-1,  0,  1, 2]
+    *                                       [ 0, -1,  0, 1]
+    *                                       [ 0,  0, -1, 0]]
+    *     matrixBandPart(input, 2, 1) ==>  [[ 0,  1,  0, 0]
+    *                                       [-1,  0,  1, 0]
+    *                                       [-2, -1,  0, 1]
+    *                                       [ 0, -2, -1, 0]]
+    *   }}}
+    * 
+    *   Useful special cases:
+    *   {{{
+    *     matrixBandPart(input, 0, -1) ==> Upper triangular part
+    *     matrixBandPart(input, -1, 0) ==> Lower triangular part
+    *     matrixBandPart(input, 0, 0)  ==> Diagonal
+    *   }}}
+    * 
+    * @define OpDocMathTrace
+    *   The `trace` op computes the trace of a tensor.
+    *
+    *   The trace of a tensor is defined as the sum along the main diagonal of each inner-most matrix in it. 
+    *   If the tensor is of rank `k` with shape `[I, J, K, ..., L, M, N]`, then output is a tensor of rank 
+    *   `k - 2` with dimensions `[I, J, K, ..., L]` where: 
+    *   `output[i, j, k, ..., l] = trace(x[i, j, i, ..., l, :, :])`.
+    *
+    *   For example:
+    *   {{{
+    *     // 'x' is [[1, 2], [3, 4]]
+    *     trace(x) ==> 5
+    *
+    *     // 'x' is [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+    *     trace(x) ==> 15
+    *
+    *     // 'x' is [[[ 1,  2,  3],
+    *     //          [ 4,  5,  6],
+    *     //          [ 7,  8,  9]],
+    *     //         [[-1, -2, -3],
+    *     //          [-4, -5, -6],
+    *     //          [-7, -8, -9]]]
+    *     trace(x) ==> [15, -15]
+    *   }}}
+    * 
+    * @define OpDocMathScalarMul
+    *   The `scalarMul` op multiplies a scalar tensor with another, potentially sparse, tensor.
+    *
+    *   This function is intended for use in gradient code which might deal with [[OutputIndexedSlices]] objects, 
+    *   which are easy to multiply by a scalar but more expensive to multiply with arbitrary tensors.
+    * 
+    * @define OpDocMathMatmul
+    *   The `matmul` op multiples two matrices.
+    *
+    *   The inputs must, following any transpositions, be tensors of rank >= 2, where the inner 2 dimensions specify 
+    *   valid matrix multiplication arguments and any further outer dimensions match.
+    *   
+    *   Note that this op corresponds to a matrix product and not an element-wise product. For example:
+    *   `output[..., i, j] = sum_k (a[..., i, k] * b[..., k, j])`, for all indices `i` and `j`.
+    *
+    *   Both matrices must be of the same data type. The supported types are: `BFLOAT16`, `FLOAT16`, `FLOAT32`, 
+    *   `FLOAT64`, `INT32`, `COMPLEX64`, and `COMPLEX128`.
+    *
+    *   Either matrix can be transposed and/or conjugated on the fly by setting one of the corresponding flags to 
+    *   `true`. These are set to `false` by default.
+    *   
+    *   If one or both of the matrices contain a lot of zeros, a more efficient multiplication algorithm can be used 
+    *   by setting the corresponding `aIsSparse` or `bIsSparse` flag to `true`. These are also set to `false` by 
+    *   default. This optimization is only available for plain matrices (i.e., rank-2 tensors) with data type 
+    *   `BFLOAT16` or `FLOAT32`. The break-even for using this versus a dense matrix multiply on one platform was 
+    *   30% zero values in the sparse matrix. The gradient computation of the sparse op will only take advantage of 
+    *   sparsity in the input gradient when that gradient comes from a ReLU.
+    *   
+    *   For example:
+    *   {{{
+    *     // 2-D tensor 'a' is [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]
+    *
+    *     // 2-D tensor 'b' is [[7.0, 8.0], [9.0, 10.0], [11.0, 12.0]]
+    *
+    *     matmul(a, b) ==> [[58.0, 64.0], [139.0, 154.0]]
+    *
+    *     // 3-D tensor 'a' is [[[ 1.0,  2.0,  3.0],
+    *     //                     [ 4.0,  5.0,  6.0]],
+    *     //                    [[ 7.0,  8.0,  9.0],
+    *     //                     [10.0, 11.0, 12.0]]]
+    *
+    *     // 3-D tensor 'b' is [[[13.0, 14.0],
+    *     //                     [15.0, 16.0],
+    *     //                     [17.0, 18.0]],
+    *     //                    [[19.0, 20.0],
+    *     //                     [21.0, 22.0],
+    *     //                     [23.0, 24.0]]]
+    *
+    *     matmul(a, b) ==> [[[ 94.0, 100.0], [229.0, 244.0]],
+    *                       [[508.0, 532.0], [697.0, 730.0]]]
+    *   }}}
+    * 
+    * @define OpDocMathCross
+    *   The `cross` op computes the pairwise cross product between two tensors.
+    *
+    *   `a` and `b` must have the same shape; they can either be simple 3-element vectors, or have any shape 
+    *   where the innermost dimension size is 3. In the latter case, each pair of corresponding 3-element vectors 
+    *   is cross-multiplied independently.
+    * 
+    * @define OpDocMathComplex
+    *   The `complex` op converts two real tensors to a complex tensor.
+    *
+    *   Given a tensor `real` representing the real part of a complex number, and a tensor `imag` representing the
+    *   imaginary part of a complex number, the op returns complex numbers element-wise of the form `a + bj`, where *a*
+    *   represents the `real` part and *b* represents the `imag` part. The input tensors `real` and `imag` must have the
+    *   same shape and data type.
+    *
+    *   For example:
+    *   {{{
+    *     // 'real' is [2.25, 3.25]
+    *     // 'imag' is [4.75, 5.75]
+    *     complex(real, imag) ==> [[2.25 + 4.75j], [3.25 + 5.75j]]
+    *   }}}
+    * 
+    * @define OpDocMathReal
+    *   The `real` op returns the real part of a complex number.
+    *
+    *   Given a tensor `input` of potentially complex numbers, the op returns a tensor of type `FLOAT32` or `FLOAT64` 
+    *   that is the real part of each element in `input`. If `input` contains complex numbers of the form `a + bj`, 
+    *   *a* is the real part returned by the op and *b* is the imaginary part.
+    *
+    *   For example:
+    *   {{{
+    *     // 'input' is [-2.25 + 4.75j, 3.25 + 5.75j]
+    *     real(input) ==> [-2.25, 3.25]
+    *   }}}
+    *
+    *   Note that, if `input` is already real-valued, then it is returned unchanged.
+    * 
+    * @define OpDocMathImag
+    *   The `imag` op returns the real part of a complex number.
+    *
+    *   Given a tensor `input` of complex numbers, the op returns a tensor of type `FLOAT32` or `FLOAT64` that is the
+    *   imaginary part of each element in `input`. If `input` contains complex numbers of the form `a + bj`, *a* is the
+    *   real part and *b* is the imaginary part returned by the op.
+    *
+    *   For example:
+    *   {{{
+    *     // 'input' is [-2.25 + 4.75j, 3.25 + 5.75j]
+    *     real(input) ==> [4.75, 5.75]
+    *   }}}
+    * 
+    * @define OpDocMathAngle
+    *   The `angle` op returns the element-wise complex argument of a tensor.
+    *
+    *   Given a numeric tensor `input`, the op returns a tensor with numbers that are the complex angle of each element 
+    *   in `input`. If the numbers in `input` are of the form `a + bj`, where *a* is the real part and *b* is the
+    *   imaginary part, then the complex angle returned by this operation is of the form `atan2(b, a)`.
+    *
+    *   For example:
+    *   {{{
+    *     // 'input' is [-2.25 + 4.75j, 3.25 + 5.75j]
+    *     angle(input) ==> [2.0132, 1.056]
+    *   }}}
+    *
+    *   If `input` is real-valued, then a tensor containing zeros is returned.
+    * 
+    * @define OpDocMathConjugate
+    *   The `conjugate` op returns the element-wise complex conjugate of a tensor.
+    *
+    *   Given a numeric tensor `input`, the op returns a tensor with numbers that are the complex conjugate of each
+    *   element in `input`. If the numbers in `input` are of the form `a + bj`, where *a* is the real part and *b* is 
+    *   the imaginary part, then the complex conjugate returned by this operation is of the form `a - bj`.
+    *
+    *   For example:
+    *   {{{
+    *     // 'input' is [-2.25 + 4.75j, 3.25 + 5.75j]
+    *     conjugate(input) ==> [-2.25 - 4.75j, 3.25 - 5.75j]
+    *   }}}
+    *
+    *   If `input` is real-valued, then it is returned unchanged.
+    * 
+    * @define OpDocMathBucketize
+    *   The `bucketize` op bucketizes a tensor based on the provided boundaries.
+    *
+    *   For example:
+    *   {{{
+    *     // 'input' is [[-5, 10000], [150, 10], [5, 100]]
+    *     // 'boundaries' are [0, 10, 100]
+    *     bucketize(input, boundaries) ==> [[0, 3], [3, 2], [1, 3]]
+    *   }}}
+    * 
+    * @define OpDocMathZerosFraction
+    *   The `zerosFraction` op computes the fraction of zeros in `input`.
+    *
+    *   If `input` is empty, the result is `NaN`.
+    *
+    *   This is useful in summaries to measure and report sparsity.
+    */
+  private[ops] trait Documentation
 }
