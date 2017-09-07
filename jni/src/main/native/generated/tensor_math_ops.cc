@@ -24,7 +24,7 @@
 
 #include "c_api.h"
 #include "c_eager_api.h"
-#include "exception_jni.h"
+#include "exception.h"
 #include "utilities.h"
 
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math_00024_select(

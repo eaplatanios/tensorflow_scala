@@ -13,7 +13,7 @@
  * the License.
  */
 
-#include "tensorflow_jni.h"
+#include "tensorflow.h"
 
 #include <dlfcn.h>
 #include <iostream>
@@ -21,7 +21,7 @@
 
 #include "c_api.h"
 //#include "python_api.h"
-#include "exception_jni.h"
+#include "exception.h"
 
 namespace {
 template <class T>

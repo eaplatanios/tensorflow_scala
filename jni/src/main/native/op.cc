@@ -13,7 +13,7 @@
  * the License.
  */
 
-#include "op_jni.h"
+#include "op.h"
 
 #include <memory>
 #include <string.h>
@@ -21,7 +21,7 @@
 #include <iostream>
 
 #include "c_api.h"
-#include "exception_jni.h"
+#include "exception.h"
 
 namespace {
 template <class T>

@@ -757,7 +757,7 @@ object OpGenerator {
          |
          |#include "c_api.h"
          |#include "c_eager_api.h"
-         |#include "exception_jni.h"
+         |#include "exception.h"
          |#include "utilities.h"
          |
          |${opCode.map(_.jniImplementationFunction).mkString("\n\n")}

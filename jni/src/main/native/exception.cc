@@ -13,7 +13,7 @@
  * the License.
  */
 
-#include "exception_jni.h"
+#include "exception.h"
 
 #include <stdlib.h>
 
