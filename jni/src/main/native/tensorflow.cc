@@ -46,6 +46,14 @@ TF_Graph* require_graph_handle(JNIEnv *env, jlong handle) {
 }
 }
 
+JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_jvmPointer(
+    JNIEnv* env, jobject object) {
+  JavaVM* jvm;
+  env->GetJavaVM(&jvm);
+  std::string pointer = pointerToString<JavaVM*>(jvm);
+  return env->NewStringUTF(pointer.c_str());
+}
+
 JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_version(
   JNIEnv* env, jobject object) {
   return env->NewStringUTF(TF_Version());

@@ -9,6 +9,14 @@ extern "C" {
 #endif
 /*
  * Class:     org_platanios_tensorflow_jni_TensorFlow__
+ * Method:    jvmPointer
+ * Signature: ()V
+ */
+JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_jvmPointer
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_TensorFlow__
  * Method:    version
  * Signature: ()Ljava/lang/String;
  */
