@@ -18,7 +18,24 @@
 
 #include <sstream>
 
+#include "exception.h"
+
 namespace {
+  template <typename T>
+  std::string pointerToString(T pointer, typename std::enable_if<std::is_pointer<T>::value>::type* = nullptr) {
+    std::stringstream ss;
+    ss << pointer;
+    return ss.str();
+  }
+
+  template <typename T>
+  T pointerFromString(const std::string &text, typename std::enable_if<std::is_pointer<T>::value>::type* = nullptr) {
+    std::stringstream ss(text);
+    void* pointer;
+    ss >> pointer;
+    return (T) pointer;
+  }
+
   template <class T>
   inline T* require_handle(JNIEnv* env, jlong handle, const char* object_name) {
     static_assert(sizeof(jlong) >= sizeof(T*), "Cannot package C object pointers as a Java long");

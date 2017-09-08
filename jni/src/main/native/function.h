@@ -10,10 +10,10 @@ extern "C" {
 /*
  * Class:     org_platanios_tensorflow_jni_Function__
  * Method:    graphToFunction
- * Signature: (JLjava/lang/String;[J[I[J[I[Ljava/lang/String;)J
+ * Signature: (JLjava/lang/String;[J[J[I[J[I[Ljava/lang/String;)J
  */
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Function_00024_graphToFunction
-  (JNIEnv *, jobject, jlong, jstring, jlongArray, jintArray, jlongArray, jintArray, jobjectArray);
+  (JNIEnv *, jobject, jlong, jstring, jlongArray, jlongArray, jintArray, jlongArray, jintArray, jobjectArray);
 
 /*
  * Class:     org_platanios_tensorflow_jni_Function__

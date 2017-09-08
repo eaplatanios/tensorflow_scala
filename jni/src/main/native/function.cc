@@ -15,6 +15,9 @@
 
 #include "function.h"
 
+#include <limits>
+#include <memory>
+
 #include "c_api.h"
 #include "exception.h"
 #include "utilities.h"
@@ -28,7 +31,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Function_00024_graphTo
 
   const char *c_fn_name = env->GetStringUTFChars(fn_name, nullptr);
 
-  const int num_ops = env->GetArrayLength(op_handles);
+  const int num_ops = op_handles == NULL ? 0 : env->GetArrayLength(op_handles);
   const int num_inputs = env->GetArrayLength(input_op_handles);
   const int num_outputs = env->GetArrayLength(output_op_handles);
 
@@ -36,7 +39,10 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Function_00024_graphTo
   std::unique_ptr<TF_Output[]> inputs(new TF_Output[num_inputs]);
   std::unique_ptr<TF_Output[]> outputs(new TF_Output[num_outputs]);
 
-  REQUIRE_HANDLES(op_handles, ops.get(), num_ops, 0);
+  if (num_ops > 0) {
+    REQUIRE_HANDLES(op_handles, ops.get(), num_ops, 0);
+  }
+
   REQUIRE_OUTPUTS(input_op_handles, input_op_indices, inputs.get(), num_inputs, 0);
   REQUIRE_OUTPUTS(output_op_handles, output_op_indices, outputs.get(), num_outputs, 0);
 
@@ -50,8 +56,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Function_00024_graphTo
 
   std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
   TF_Function* function = TF_GraphToFunction(
-    fn_body_graph, c_fn_name, num_ops, ops.get(), num_inputs, inputs.get(), num_outputs, outputs.get(), c_output_names,
-    /*opts=*/nullptr, status.get());
+    fn_body_graph, c_fn_name, op_handles == NULL ? -1 : num_ops, ops.get(), num_inputs, inputs.get(), num_outputs,
+    outputs.get(), c_output_names, /*opts=*/nullptr, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   env->ReleaseStringUTFChars(fn_name, c_fn_name);

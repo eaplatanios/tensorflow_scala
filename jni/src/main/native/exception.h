@@ -17,6 +17,7 @@
 #define TENSORFLOW_JAVA_EXCEPTION_JNI_H_
 
 #include <jni.h>
+#include <stdlib.h>
 
 #include "c_api.h"
 
@@ -35,9 +36,40 @@ const char jvm_index_out_of_bounds_exception[] = "java/lang/IndexOutOfBoundsExce
 const char jvm_unsupported_operation_exception[] = "java/lang/UnsupportedOperationException";
 
 // Map TF_Codes to unchecked exceptions.
-const char *jvm_exception_class_name(TF_Code code);
+inline const char *jvm_exception_class_name(TF_Code code) {
+  switch (code) {
+    case TF_OK:
+      return nullptr;
+    case TF_INVALID_ARGUMENT:
+      return jvm_illegal_argument_exception;
+    case TF_UNAUTHENTICATED:
+    case TF_PERMISSION_DENIED:
+      return jvm_security_exception;
+    case TF_RESOURCE_EXHAUSTED:
+    case TF_FAILED_PRECONDITION:
+      return jvm_illegal_state_exception;
+    case TF_OUT_OF_RANGE:
+      return jvm_index_out_of_bounds_exception;
+    case TF_UNIMPLEMENTED:
+      return jvm_unsupported_operation_exception;
+    default:
+      return jvm_default_exception;
+  }
+}
 
-void throw_exception(JNIEnv *env, const char *clazz, const char *fmt, ...);
+inline void throw_exception(JNIEnv *env, const char *clazz, const char *fmt, ...) {
+  va_list args;
+  va_start(args, fmt);
+  // Using vsnprintf() instead of vasprintf() because the latter doesn't seem to be easily available on Windows
+  const size_t max_msg_len = 512;
+  char *message = static_cast<char *>(malloc(max_msg_len));
+  if (vsnprintf(message, max_msg_len, fmt, args) >= 0)
+    env->ThrowNew(env->FindClass(clazz), message);
+  else
+    env->ThrowNew(env->FindClass(clazz), "");
+  free(message);
+  va_end(args);
+}
 
 // If status is not TF_OK, then throw an appropriate exception.
 // Returns true iff TF_GetCode(status) == TF_OK.

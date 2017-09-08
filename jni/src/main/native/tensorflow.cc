@@ -15,13 +15,13 @@
 
 #include "tensorflow.h"
 
-#include <dlfcn.h>
 #include <iostream>
 #include <memory>
 
 #include "c_api.h"
 //#include "python_api.h"
 #include "exception.h"
+#include "utilities.h"
 
 namespace {
 template <class T>
@@ -54,6 +54,22 @@ JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_ver
 JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_dataTypeSize(
   JNIEnv* env, jobject object, jint data_type_c_value) {
   return (jint) TF_DataTypeSize((TF_DataType) data_type_c_value);
+}
+
+JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_loadOpLibrary(
+  JNIEnv* env, jobject object, jstring library_filename) {
+  const char *c_library_filename = env->GetStringUTFChars(library_filename, nullptr);
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+  TF_Library* library = TF_LoadLibrary(c_library_filename, status.get());
+  CHECK_STATUS(env, status.get(), nullptr);
+  TF_Buffer op_list_buffer = TF_GetOpList(library);
+  jbyteArray op_list = env->NewByteArray(op_list_buffer.length);
+  jbyte* op_list_elems = env->GetByteArrayElements(op_list, nullptr);
+  memcpy(op_list_elems, op_list_buffer.data, op_list_buffer.length);
+  env->ReleaseByteArrayElements(op_list, op_list_elems, 0);
+  TF_DeleteLibraryHandle(library);
+  env->ReleaseStringUTFChars(library_filename, c_library_filename);
+  return op_list;
 }
 
 //JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_updateInput(

@@ -23,6 +23,14 @@ JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_ver
 JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_dataTypeSize
   (JNIEnv *, jobject, jint);
 
+/*
+ * Class:     org_platanios_tensorflow_jni_TensorFlow__
+ * Method:    loadOpLibrary
+ * Signature: (Ljava/lang/String;)[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_loadOpLibrary
+  (JNIEnv *, jobject, jstring);
+
 ///*
 // * Class:     org_platanios_tensorflow_jni_TensorFlow__
 // * Method:    updateInput
