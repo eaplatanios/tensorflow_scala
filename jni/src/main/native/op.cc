@@ -15,6 +15,7 @@
 
 #include "op.h"
 
+#include <cstring>
 #include <memory>
 #include <string.h>
 #include <stdint.h>
@@ -583,7 +584,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_allOps(J
   TF_Buffer* opListBuffer = TF_GetAllOpList();
   jbyteArray ret = env->NewByteArray(opListBuffer->length);
   jbyte* cpy = env->GetByteArrayElements(ret, nullptr);
-  memcpy(cpy, opListBuffer->data, opListBuffer->length);
+  std::memcpy(cpy, opListBuffer->data, opListBuffer->length);
   env->ReleaseByteArrayElements(ret, cpy, 0);
   return ret;
 }

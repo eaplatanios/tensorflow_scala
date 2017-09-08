@@ -15,6 +15,7 @@
 
 #include "tensorflow.h"
 
+#include <cstring>
 #include <iostream>
 #include <memory>
 
@@ -73,7 +74,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_
   TF_Buffer op_list_buffer = TF_GetOpList(library);
   jbyteArray op_list = env->NewByteArray(op_list_buffer.length);
   jbyte* op_list_elems = env->GetByteArrayElements(op_list, nullptr);
-  memcpy(op_list_elems, op_list_buffer.data, op_list_buffer.length);
+  std::memcpy(op_list_elems, op_list_buffer.data, op_list_buffer.length);
   env->ReleaseByteArrayElements(op_list, op_list_elems, 0);
   TF_DeleteLibraryHandle(library);
   env->ReleaseStringUTFChars(library_filename, c_library_filename);
