@@ -200,6 +200,7 @@ lazy val site = (project in file("./site"))
     .dependsOn(api)
     .enablePlugins(ScalaUnidocPlugin, MicrositesPlugin)
     .settings(moduleName := "tensorflow-site", name := "TensorFlow for Scala Site")
+    .settings(publishSettings)
     .settings(noPublishSettings)
     .settings(
       autoAPIMappings := true,
@@ -245,6 +246,7 @@ lazy val site = (project in file("./site"))
         "gray-light"        -> "#E3E2E3",
         "gray-lighter"      -> "#F4F3F4",
         "white-color"       -> "#FFFFFF"),
+      micrositeFooterText := None,
       includeFilter in makeSite :=
           "*.html" | "*.css" | "*.png" | "*.jpg" | "*.gif" | "*.js" | "*.swf" | "*.yml" | "*.md" | "*.svg",
       includeFilter in Jekyll := (includeFilter in makeSite).value

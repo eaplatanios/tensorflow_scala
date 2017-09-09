@@ -9,24 +9,20 @@ position: 2
 
 # Installation
 
-Binary release artifacts are published to the [Sonatype OSS Repository Hosting service][sonatype] and synced to Maven
-Central. Currently, given the beta status of this project, only snapshot releases are published.
+TensorFlow for Scala is currently available for Scala 2.11.x and for 2.12.x. The main line of development is version 
+2.12.3. Binary release artifacts are published to the [Sonatype OSS Repository Hosting service][sonatype] and synced to 
+Maven Central. Currently, given the beta status of this project, only snapshot releases are published.
 
 ## Using with SBT
 
-To include the Sonatype repositories in your SBT build, you should add the following to your `build.sbt` file:
+To include the Sonatype repositories in your SBT build and use TensorFlow for Scala, you should add the following to 
+your `build.sbt` file:
 
 ```scala
 resolvers ++= Seq(
   Resolver.sonatypeRepo("releases"),
   Resolver.sonatypeRepo("snapshots")
 )
-```
-
-TensorFlow for Scala is currently available for Scala 2.11.x and for 2.12.x. The main line of development is version 
-2.12.3. To use TensorFlow in your SBT project, you should add the following to your `build.sbt` file:
-
-```scala
 libraryDependencies += "org.platanios" %% "tensorflow" % "0.1.0-SNAPSHOT"
 ```
 
@@ -39,6 +35,7 @@ continue reading into the following section.
 
 TensorFlow for Scala is an API for [TensorFlow](https://www.tensorflow.org). In order for it work, it requires that you 
 have the main TensorFlow dynamic library installed. You have two options for dealing with this requirement:
+
   1. Use:
      
      ```scala
@@ -51,6 +48,7 @@ have the main TensorFlow dynamic library installed. You have two options for dea
   2. Compile the TensorFlow dynamic library yourself and install it in your system. This is the recommended approach if 
      you care about performance, but it is also significantly more complicated and time consuming. It consists of the 
      following steps:
+     
        1. Clone the TensorFlow repository:
        
           ```bash
@@ -75,6 +73,7 @@ have the main TensorFlow dynamic library installed. You have two options for dea
 
 TensorFlow for Scala also requires `protoc`, the Protocol Buffers compiler, to be installed. You also have two options 
 for dealing with this requirement:
+
   1. Install it using a package manager:
      - On Debian/Ubuntu, you can install it with APT, using the following command:
        
@@ -90,4 +89,5 @@ for dealing with this requirement:
      [https://github.com/google/protobuf/releases/](https://github.com/google/protobuf/releases/) (choose the `protoc` 
      variant appropriate for your platform) and make sure that `protoc` is in the `PATH` (either by installing it in a 
      location in the `PATH`, or by adding its location to the `PATH`).
+
 **NOTE:** You need to install `protoc` with version at least 3.
