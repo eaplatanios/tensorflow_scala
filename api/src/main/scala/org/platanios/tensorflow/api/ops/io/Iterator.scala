@@ -75,6 +75,8 @@ class Iterator[O, D, S] private[io](
     ev.unflattenOutputs(outputDataTypes, flattenedNext)
   }
 
+  // TODO: Add automatic disposal of iterators if necessary.
+
   /** Creates an op that destroys this iterator.
     *
     * The returned op may be used to release any resources consumed by this iterator, without closing the session.

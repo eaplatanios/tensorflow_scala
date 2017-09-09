@@ -80,7 +80,7 @@ object Fetchable {
 
   type Aux[T, R] = Fetchable[T] {type ResultType = R}
 
-  def apply[T, V](implicit ev: Aux[T, V]): Aux[T, V] = ev
+  def apply[T, R](implicit ev: Aux[T, R]): Aux[T, R] = ev
 
   implicit val outputFetchable: Aux[Output, Tensor] = new Fetchable[Output] {
     override type ResultType = Tensor
