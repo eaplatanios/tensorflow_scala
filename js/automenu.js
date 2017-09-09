@@ -55,24 +55,25 @@ function addSectionToSidebar(text, slug) {
     ul.hide();
     $('#sidebar').append(li);
     a.click(function(event) {
-        $('#sidebar li').add('#sidebar a').removeClass('active');
-        $('#sidebar .sub_section').not(ul).slideUp();
+        var sidebar = $('#sidebar');
+        sidebar.find('li').add('#sidebar a').removeClass('active');
+        sidebar.find('.sub_section').not(ul).slideUp();
         ul.slideToggle('fast');
         li.add(a).toggleClass('active');
     });
 }
 
 function addSubSectionToSidebar(text, slug, s) {
-    var ul = $('#sidebar li.' + s + ' ul');
+    var ul = $('#sidebar').find('li.' + s + ' ul');
     var li = $('<li class="' + slug + '"><a href="#' + slug + '">' + text + '</a></li>');
     ul.append(li);
 }
 
 function removeEmptyList() {
-    $('#sidebar>li').not('.sidebar-brand').each(function(index, el) {
+    $('#sidebar').find('>li').not('.sidebar-brand').each(function(index, el) {
         var li = $(this);
         var children = li.find('li');
-        if (children.size() == 0) {
+        if (children.size() === 0) {
             li.find('span').remove();
         }
     });
@@ -95,7 +96,7 @@ function activeToggle() {
 }
 
 function activeLinks() {
-    $('a[data-href]').each(function(index, el) {
+    $('a[data-href]').each(function (index, el) {
         $(this).attr('href', $(this).attr('data-href'));
     });
 }
