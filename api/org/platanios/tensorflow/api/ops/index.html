@@ -251,6 +251,24 @@
       <p class="shortcomment cmt"></p>
     </li><li class="current-entities indented5">
                         <span class="separator"></span>
+                        <a class="class" href="Function.html" title=""></a>
+                        <a href="Function.html" title="">
+                          Function
+                        </a>
+                      </li><li class="current-entities indented5">
+                        <a class="object" href="FunctionArgType$.html" title=""></a>
+                        <a class="trait" href="FunctionArgType.html" title=""></a>
+                        <a href="FunctionArgType.html" title="">
+                          FunctionArgType
+                        </a>
+                      </li><li class="current-entities indented5">
+                        <a class="object" href="FunctionGraph$.html" title="Contains helper functions for dealing with function graphs."></a>
+                        <a class="class" href="FunctionGraph.html" title="Graph extension helper for constructing a function."></a>
+                        <a href="FunctionGraph.html" title="Graph extension helper for constructing a function.">
+                          FunctionGraph
+                        </a>
+                      </li><li class="current-entities indented5">
+                        <span class="separator"></span>
                         <a class="class" href="Input.html" title="Wrapper around an Op meant to represent one of its inputs."></a>
                         <a href="Input.html" title="Wrapper around an Op meant to represent one of its inputs.">
                           Input
@@ -274,19 +292,13 @@
                           Output
                         </a>
                       </li><li class="current-entities indented5">
-                        <a class="object" href="OutputConvertible$.html" title=""></a>
-                        <a class="trait" href="OutputConvertible.html" title="Helper type trait for output convertible objects so that implicit conversions to op outputs can be used."></a>
-                        <a href="OutputConvertible.html" title="Helper type trait for output convertible objects so that implicit conversions to op outputs can be used.">
-                          OutputConvertible
-                        </a>
-                      </li><li class="current-entities indented5">
                         <span class="separator"></span>
-                        <a class="class" href="OutputIndexedSlices.html" title="Sparse representation of one of the outputs of an Op's computation."></a>
-                        <a href="OutputIndexedSlices.html" title="Sparse representation of one of the outputs of an Op's computation.">
+                        <a class="class" href="OutputIndexedSlices.html" title="Sparse representation of a set of tensor slices at given indices."></a>
+                        <a href="OutputIndexedSlices.html" title="Sparse representation of a set of tensor slices at given indices.">
                           OutputIndexedSlices
                         </a>
                       </li><li class="current-entities indented5">
-                        <span class="separator"></span>
+                        <a class="object" href="OutputLike$.html" title=""></a>
                         <a class="trait" href="OutputLike.html" title="Trait representing outputs of an Op's computation."></a>
                         <a href="OutputLike.html" title="Trait representing outputs of an Op's computation.">
                           OutputLike
@@ -298,7 +310,7 @@
                           Queue
                         </a>
                       </li><li class="current-entities indented5">
-                        <a class="object" href="SparseOutput$.html" title=""></a>
+                        <span class="separator"></span>
                         <a class="class" href="SparseOutput.html" title="Represents a sparse op output."></a>
                         <a href="SparseOutput.html" title="Represents a sparse op output.">
                           SparseOutput
@@ -389,7 +401,7 @@
           <span class="toggle">
             Linear Supertypes
           </span>
-          <div class="superTypes hiddenContent"><a href="http://scala-lang.org/files/archive/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a>, <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/collection/immutable/List.html#scala.Any" class="extype" name="scala.collection.immutable.List">Any</a></div>
+          <div class="superTypes hiddenContent"><a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a>, <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.Any" class="extype" name="scala.collection.immutable.List">Any</a></div>
         </div></div>
         
 
@@ -437,7 +449,64 @@
 
         <div id="types" class="types members">
               <h3>Type Members</h3>
-              <ol><li name="org.platanios.tensorflow.api.ops.Input" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+              <ol><li name="org.platanios.tensorflow.api.ops.Function" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="Function[T,R]extendsProductwithSerializable"></a><a id="Function[T,R]:Function[T,R]"></a>
+      <span class="permalink">
+      <a href="../../../../../org/platanios/tensorflow/api/ops/index.html#Function[T,R]extendsProductwithSerializable" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">case class</span>
+      </span>
+      <span class="symbol">
+        <a title="" href="Function.html">
+              <span class="name">Function</span>
+            </a><span class="tparams">[<span name="T">T</span>, <span name="R">R</span>]</span><span class="params">(<span name="name">name: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="function">function: (<span class="extype" name="org.platanios.tensorflow.api.ops.Function.T">T</span>) ⇒ <span class="extype" name="org.platanios.tensorflow.api.ops.Function.R">R</span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="evInput">evInput: <a href="FunctionArgType.html" class="extype" name="org.platanios.tensorflow.api.ops.FunctionArgType">FunctionArgType</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.Function.T">T</span>]</span>, <span name="evOutput">evOutput: <a href="FunctionArgType.html" class="extype" name="org.platanios.tensorflow.api.ops.FunctionArgType">FunctionArgType</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.Function.R">R</span>]</span>)</span><span class="result"> extends <a href="http://www.scala-lang.org/api/2.12.3/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="http://www.scala-lang.org/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
+      </span>
+      
+      <p class="shortcomment cmt"></p>
+    </li><li name="org.platanios.tensorflow.api.ops.FunctionArgType" visbl="pub" class="indented0 " data-isabs="true" fullComment="no" group="Ungrouped">
+      <a id="FunctionArgType[T]extendsAnyRef"></a><a id="FunctionArgType[T]:FunctionArgType[T]"></a>
+      <span class="permalink">
+      <a href="../../../../../org/platanios/tensorflow/api/ops/index.html#FunctionArgType[T]extendsAnyRef" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">trait</span>
+      </span>
+      <span class="symbol">
+        <a title="" href="FunctionArgType.html">
+              <span class="name">FunctionArgType</span>
+            </a><span class="tparams">[<span name="T">T</span>]</span><span class="result"> extends <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></span>
+      </span>
+      
+      
+    </li><li name="org.platanios.tensorflow.api.ops.FunctionGraph" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="FunctionGraphextendsGraph"></a><a id="FunctionGraph:FunctionGraph"></a>
+      <span class="permalink">
+      <a href="../../../../../org/platanios/tensorflow/api/ops/index.html#FunctionGraphextendsGraph" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">class</span>
+      </span>
+      <span class="symbol">
+        <a title="Graph extension helper for constructing a function." href="FunctionGraph.html">
+              <span class="name">FunctionGraph</span>
+            </a><span class="result"> extends <a href="../core/Graph.html" class="extype" name="org.platanios.tensorflow.api.core.Graph">Graph</a></span>
+      </span>
+      
+      <p class="shortcomment cmt">Graph extension helper for constructing a function.</p><div class="fullcomment"><div class="comment cmt"><p>Graph extension helper for constructing a function.</p><p>A <a href="FunctionGraph.html" class="extype" name="org.platanios.tensorflow.api.ops.FunctionGraph">FunctionGraph</a> keeps track of all inputs into every op created inside it. If any input is from another graph,
+we keep track of it and substitute the input with a placeholder.</p><p>Each captured input's corresponding placeholder is converted into a function argument and the caller passes in the
+captured tensor.
+</p></div></div>
+    </li><li name="org.platanios.tensorflow.api.ops.Input" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="InputextendsProductwithSerializable"></a><a id="Input:Input"></a>
       <span class="permalink">
       <a href="../../../../../org/platanios/tensorflow/api/ops/index.html#InputextendsProductwithSerializable" title="Permalink">
@@ -451,7 +520,7 @@
       <span class="symbol">
         <a title="Wrapper around an Op meant to represent one of its inputs." href="Input.html">
               <span class="name">Input</span>
-            </a><span class="result"> extends <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
+            </a><span class="result"> extends <a href="http://www.scala-lang.org/api/2.12.3/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="http://www.scala-lang.org/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
       </span>
       
       <p class="shortcomment cmt">Wrapper around an <a href="Op.html" class="extype" name="org.platanios.tensorflow.api.ops.Op">Op</a> meant to represent one of its inputs.</p><div class="fullcomment"><div class="comment cmt"><p>Wrapper around an <a href="Op.html" class="extype" name="org.platanios.tensorflow.api.ops.Op">Op</a> meant to represent one of its inputs. Actual op inputs have type <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a> since they
@@ -472,7 +541,7 @@ outputs.
       <span class="symbol">
         <a title="Represents a graph node, or as we shall call it, an operation, that performs computation on tensors." href="Op.html">
               <span class="name">Op</span>
-            </a><span class="result"> extends <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
+            </a><span class="result"> extends <a href="http://www.scala-lang.org/api/2.12.3/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="http://www.scala-lang.org/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
       </span>
       
       <p class="shortcomment cmt">Represents a graph node, or as we shall call it, an operation, that performs computation on tensors.</p><div class="fullcomment"><div class="comment cmt"><p>Represents a graph node, or as we shall call it, an operation, that performs computation on tensors.</p><p>TODO: Add Op.run method and Op.Output.eval method.</p><p>An <code>Op</code> is a symbolic representation of the computation it performs. It is a node in a TensorFlow <span class="extype" name="Graph">Graph</span> that
@@ -498,7 +567,7 @@ objects are constructed by calling op creation functions, such as <span class="e
       <span class="symbol">
         <a title="" href="OpSpecification.html">
               <span class="name">OpSpecification</span>
-            </a><span class="params">(<span name="name">name: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="opType">opType: <span class="extype" name="scala.Predef.String">String</span></span>)</span><span class="result"> extends <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
+            </a><span class="params">(<span name="name">name: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="opType">opType: <span class="extype" name="scala.Predef.String">String</span></span>)</span><span class="result"> extends <a href="http://www.scala-lang.org/api/2.12.3/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="http://www.scala-lang.org/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
       </span>
       
       
@@ -516,7 +585,7 @@ objects are constructed by calling op creation functions, such as <span class="e
       <span class="symbol">
         <a title="Representation of one of the outputs of an Op's computation." href="Output.html">
               <span class="name">Output</span>
-            </a><span class="result"> extends <a href="OutputLike.html" class="extype" name="org.platanios.tensorflow.api.ops.OutputLike">OutputLike</a> with <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
+            </a><span class="result"> extends <a href="OutputLike.html" class="extype" name="org.platanios.tensorflow.api.ops.OutputLike">OutputLike</a> with <a href="http://www.scala-lang.org/api/2.12.3/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="http://www.scala-lang.org/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
       </span>
       
       <p class="shortcomment cmt">Representation of one of the outputs of an <a href="Op.html" class="extype" name="org.platanios.tensorflow.api.ops.Op">Op</a>'s computation.</p><div class="fullcomment"><div class="comment cmt"><p>Representation of one of the outputs of an <a href="Op.html" class="extype" name="org.platanios.tensorflow.api.ops.Op">Op</a>'s computation.</p><p>An <code>Output</code> is a symbolic handle to one of the outputs of an <a href="Op.html" class="extype" name="org.platanios.tensorflow.api.ops.Op">Op</a>. It does not hold the values of that op's
@@ -530,24 +599,6 @@ that stores a concrete value:</p><pre><span class="kw">val</span> c = constant(<
 <span class="kw">val</span> d = constant(<span class="std">Array</span>(<span class="std">Array</span>(<span class="num">1.0</span>, <span class="num">1.0</span>), <span class="std">Array</span>(<span class="num">0.0</span>, <span class="num">1.0</span>)))
 <span class="kw">val</span> e = matmul(c, d)
 <span class="kw">val</span> result = e.evaluate() <span class="cmt">// 'result' now holds the result of the matrix multiplication.</span></pre></div></div>
-    </li><li name="org.platanios.tensorflow.api.ops.OutputConvertible" visbl="pub" class="indented0 " data-isabs="true" fullComment="no" group="Ungrouped">
-      <a id="OutputConvertible[T]extendsAnyRef"></a><a id="OutputConvertible[T]:OutputConvertible[T]"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/index.html#OutputConvertible[T]extendsAnyRef" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">trait</span>
-      </span>
-      <span class="symbol">
-        <a title="Helper type trait for output convertible objects so that implicit conversions to op outputs can be used." href="OutputConvertible.html">
-              <span class="name">OutputConvertible</span>
-            </a><span class="tparams">[<span name="T">T</span>]</span><span class="result"> extends <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></span>
-      </span>
-      
-      <p class="shortcomment cmt">Helper type trait for output convertible objects so that implicit conversions to op outputs can be used.</p>
     </li><li name="org.platanios.tensorflow.api.ops.OutputIndexedSlices" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="OutputIndexedSlicesextendsOutputLikewithProductwithSerializable"></a><a id="OutputIndexedSlices:OutputIndexedSlices"></a>
       <span class="permalink">
@@ -560,12 +611,12 @@ that stores a concrete value:</p><pre><span class="kw">val</span> c = constant(<
         <span class="kind">case class</span>
       </span>
       <span class="symbol">
-        <a title="Sparse representation of one of the outputs of an Op's computation." href="OutputIndexedSlices.html">
+        <a title="Sparse representation of a set of tensor slices at given indices." href="OutputIndexedSlices.html">
               <span class="name">OutputIndexedSlices</span>
-            </a><span class="result"> extends <a href="OutputLike.html" class="extype" name="org.platanios.tensorflow.api.ops.OutputLike">OutputLike</a> with <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
+            </a><span class="result"> extends <a href="OutputLike.html" class="extype" name="org.platanios.tensorflow.api.ops.OutputLike">OutputLike</a> with <a href="http://www.scala-lang.org/api/2.12.3/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="http://www.scala-lang.org/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
       </span>
       
-      <p class="shortcomment cmt">Sparse representation of one of the outputs of an <code>Op</code>'s computation.</p><div class="fullcomment"><div class="comment cmt"><p>Sparse representation of one of the outputs of an <code>Op</code>'s computation. of a set of tensor slices at given indices.</p><p>This class if a simple wrapper for a pair (or a set of three) of <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a> objects:</p><ul><li><code>indices</code>: A one-dimensional integer <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a> with shape <code>[D0]</code>.</li><li><code>values</code>: An <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a> of any data type, with shape <code>[D0, D1, ..., Dn]</code>.</li><li><code>denseShape</code>: Optionally, an integer <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a> with shape <code>[LARGE0, D1, ..., Dn]</code>.</li></ul><p>An <a href="OutputIndexedSlices.html" class="extype" name="org.platanios.tensorflow.api.ops.OutputIndexedSlices">OutputIndexedSlices</a> is typically used to represent a subset of a larger <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a>, <code>dense</code>, of shape
+      <p class="shortcomment cmt">Sparse representation of a set of tensor slices at given indices.</p><div class="fullcomment"><div class="comment cmt"><p>Sparse representation of a set of tensor slices at given indices.</p><p>This class if a simple wrapper for a pair (or a set of three) of <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a> objects:</p><ul><li><code>indices</code>: A one-dimensional integer <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a> with shape <code>[D0]</code>.</li><li><code>values</code>: An <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a> of any data type, with shape <code>[D0, D1, ..., Dn]</code>.</li><li><code>denseShape</code>: Optionally, an integer <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a> with shape <code>[LARGE0, D1, ..., Dn]</code>.</li></ul><p>An <a href="OutputIndexedSlices.html" class="extype" name="org.platanios.tensorflow.api.ops.OutputIndexedSlices">OutputIndexedSlices</a> is typically used to represent a subset of a larger <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a>, <code>dense</code>, of shape
 <code>[LARGE0, D1, ..., Dn]</code>, where <code>LARGE0 &gt;&gt; D0</code>. The values in <code>indices</code> are the indices in the first dimension of
 the slices that have been extracted from the larger tensor.</p><p>The dense <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a>, <code>dense</code>, represented by <a href="OutputIndexedSlices.html" class="extype" name="org.platanios.tensorflow.api.ops.OutputIndexedSlices">OutputIndexedSlices</a>, <code>slices</code>, has:</p><pre>dense(slices.indices(i), ::, ::, ...) = slices.values(i, ::, ::, ...)</pre><p>The <a href="OutputIndexedSlices.html" class="extype" name="org.platanios.tensorflow.api.ops.OutputIndexedSlices">OutputIndexedSlices</a> class is used primarily in the definition of gradients for operations that have
 sparse gradients, such as <code>gather</code>.</p><p>Note that this is different than <a href="SparseOutput.html" class="extype" name="org.platanios.tensorflow.api.ops.SparseOutput">SparseOutput</a> which uses multi-dimensional indices and scalar values.
@@ -584,7 +635,7 @@ sparse gradients, such as <code>gather</code>.</p><p>Note that this is different
       <span class="symbol">
         <a title="Trait representing outputs of an Op's computation." href="OutputLike.html">
               <span class="name">OutputLike</span>
-            </a><span class="result"> extends <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></span>
+            </a><span class="result"> extends <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></span>
       </span>
       
       <p class="shortcomment cmt">Trait representing outputs of an <a href="Op.html" class="extype" name="org.platanios.tensorflow.api.ops.Op">Op</a>'s computation.</p>
@@ -602,7 +653,7 @@ sparse gradients, such as <code>gather</code>.</p><p>Note that this is different
       <span class="symbol">
         <a title="Class that supports all TensorFlow queue implementations." href="Queue.html">
               <span class="name">Queue</span>
-            </a><span class="result"> extends <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></span>
+            </a><span class="result"> extends <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></span>
       </span>
       
       <p class="shortcomment cmt">Class that supports all TensorFlow queue implementations.</p><div class="fullcomment"><div class="comment cmt"><p>Class that supports all TensorFlow queue implementations.</p><p>A queue is a TensorFlow data structure that stores tensors across multiple steps, and exposes operations that
@@ -624,31 +675,29 @@ single elements and versions that support enqueuing and dequeuing many elements 
       <span class="symbol">
         <a title="Represents a sparse op output." href="SparseOutput.html">
               <span class="name">SparseOutput</span>
-            </a><span class="params">(<span name="indices">indices: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>, <span name="values">values: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>, <span name="denseShape">denseShape: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>)</span><span class="result"> extends <a href="OutputLike.html" class="extype" name="org.platanios.tensorflow.api.ops.OutputLike">OutputLike</a> with <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
+            </a><span class="params">(<span name="indices">indices: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>, <span name="values">values: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>, <span name="denseShape">denseShape: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>)</span><span class="result"> extends <a href="OutputLike.html" class="extype" name="org.platanios.tensorflow.api.ops.OutputLike">OutputLike</a> with <a href="http://www.scala-lang.org/api/2.12.3/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="http://www.scala-lang.org/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
       </span>
       
       <p class="shortcomment cmt">Represents a sparse op output.</p><div class="fullcomment"><div class="comment cmt"><p>Represents a sparse op output.</p><p>TensorFlow represents a sparse tensor as three separate dense tensors: <code>indices</code>, <code>values</code>, and <code>denseShape</code>. In
-Scala, the three tensors are collected into a <code>SparseTensor</code> class for ease of use.  If you have separate
+Scala, the three tensors are collected into a <a href="SparseOutput.html" class="extype" name="org.platanios.tensorflow.api.ops.SparseOutput">SparseOutput</a> class for ease of use.  If you have separate
 <code>indices</code>, <code>values</code>, and <code>denseShape</code> tensors, wrap them in a <code>SparseTensor</code> object before passing to the
-relevant sparse tensor manipulation</p><p>Concretely, the sparse tensor <code>SparseTensor(indices, values, denseShape)</code> comprises the following components,
-where <code>N</code> and <code>rank</code> are the number of values and number of dimensions in the <code>SparseTensor</code>, respectively:</p><ul><li><code>indices</code>: Two-dimensional <code>Int64</code> tensor with shape <code>[N, rank]</code>, which specifies the indices of the elements
-in the sparse tensor that have nonzero values (elements are zero-indexed). For example,
-<code>indices = <span class="extype" name="1,">3], [2, 4</span></code> specifies that the elements with indexes <code>[1, 3]</code> and <code>[2, 4]</code> have nonzero
-values.</li><li><code>values</code>: One-dimensional tensor of any type, with shape <code>[N]</code>, which supplies the values for each element in
-<code>indices</code>. For example, given <code>indices = <span class="extype" name="1,">3], [2, 4</span></code>, the parameter <code>values = [18, 3.6]</code> specifies that
-element <code>[1, 3]</code> of the sparse tensor has a value of <code>18</code>, and element <code>[2, 4]</code> of the tensor has a value of
-<code>3.6</code>.</li><li><code>denseShape</code>: One-dimensional <code>Int64</code> tensor with shape <code>[rank]</code>, which specifies the dense shape of the
-sparse tensor.  For example, <code>denseShape = [3, 6]</code> specifies a two-dimensional 3x6 tensor,
-<code>denseShape = [2, 3, 4]</code> specifies a three-dimensional 2x3x4 tensor, and <code>denseShape = [9]</code> specifies a
-one-dimensional tensor with 9 elements.</li></ul><p>The corresponding dense tensor, <code>dense</code>, satisfies:</p><pre>dense.shape == denseShape
+relevant sparse tensor manipulation.</p><p>Concretely, the sparse tensor <code>SparseOutput(indices, values, denseShape)</code> comprises the following components,
+where <code>N</code> and <code>rank</code> are the number of values and number of dimensions in the <a href="SparseOutput.html" class="extype" name="org.platanios.tensorflow.api.ops.SparseOutput">SparseOutput</a>, respectively:</p><ul><li><code>indices</code>: Two-dimensional <a href="../index.html#INT64:org.platanios.tensorflow.api.types.DataType.Aux[Long]" class="extmbr" name="org.platanios.tensorflow.api#INT64">INT64</a> tensor with shape <code>[N, rank]</code>, which specifies the indices of the elements
+    in the sparse tensor that have nonzero values (elements are zero-indexed). For example,
+    <code>indices = <span class="extype" name="1,">3], [2, 4</span></code> specifies that the elements with indexes <code>[1, 3]</code> and <code>[2, 4]</code> have nonzero
+    values.</li><li><code>values</code>: One-dimensional tensor of any type, with shape <code>[N]</code>, which supplies the values for each element in
+    <code>indices</code>. For example, given <code>indices = <span class="extype" name="1,">3], [2, 4</span></code>, the parameter <code>values = [18, 3.6]</code> specifies that
+    element <code>[1, 3]</code> of the sparse tensor has a value of <code>18</code>, and element <code>[2, 4]</code> of the tensor has a value of
+    <code>3.6</code>.</li><li><code>denseShape</code>: One-dimensional <a href="../index.html#INT64:org.platanios.tensorflow.api.types.DataType.Aux[Long]" class="extmbr" name="org.platanios.tensorflow.api#INT64">INT64</a> tensor with shape <code>[rank]</code>, which specifies the dense shape of the
+    sparse tensor.  For example, <code>denseShape = [3, 6]</code> specifies a two-dimensional 3x6 tensor,
+    <code>denseShape = [2, 3, 4]</code> specifies a three-dimensional 2x3x4 tensor, and <code>denseShape = [9]</code> specifies a
+    one-dimensional tensor with 9 elements.</li></ul><p>The corresponding dense tensor, <code>dense</code>, satisfies:</p><pre>dense.shape == denseShape
 dense(indices(i)) = values(i) <span class="cmt">// Using a somewhat loose notation with respect to indexing.</span></pre><p>IMPORTANT NOTE: By convention, <code>indices</code> should be sorted in row-major order (or equivalently lexicographic order
 on <code>indices(i)</code>). This is not enforced when <code>SparseTensor</code> objects are constructed, but most ops assume correct
 ordering. If the ordering of sparse tensor <code>st</code> is wrong, a fixed version can be obtained by calling
-<code>sparseReorder(st)</code>.</p><p>For example, the sparse tensor <code>SparseTensor(indices = <span class="extype" name="0,">0], [1, 2</span>, values = [1, 2], denseShape = [3, 4])</code>,
-represents the dense tensor <code><span class="extype" name="1,">0, 0, 0], [0, 0, 2, 0], [0, 0, 0, 0</span></code>.</p><pre><span class="cmt">// The sparse tensor:</span>
-SparseTensor(indices = Tensor(Tensor(<span class="num">0</span>, <span class="num">0</span>), Tensor(<span class="num">1</span>, <span class="num">2</span>)), values = Tensor(<span class="num">1</span>, <span class="num">2</span>), denseShape = Shape(<span class="num">3</span>, <span class="num">4</span>))
-<span class="cmt">// represents the dense tensor:</span>
-<span class="cmt">//</span></pre></div><dl class="paramcmts block"><dt class="param">indices</dt><dd class="cmt"><p>Two-dimensional <code>Int64</code> tensor with shape <code>[N, rank]</code>.</p></dd><dt class="param">values</dt><dd class="cmt"><p>One-dimensional tensor with shape <code>[N]</code>.</p></dd><dt class="param">denseShape</dt><dd class="cmt"><p>One-dimensional <code>Int64</code> tensor with shape <code>[rank]</code>.</p></dd></dl></div>
+<code>sparseReorder(st)</code>.</p><p>For example, the sparse tensor <code>SparseOutput(indices = <span class="extype" name="0,">0], [1, 2</span>, values = [1, 2], denseShape = [3, 4])</code>,
+represents the dense tensor <code><span class="extype" name="1,">0, 0, 0], [0, 0, 2, 0], [0, 0, 0, 0</span></code>.
+</p></div><dl class="paramcmts block"><dt class="param">indices</dt><dd class="cmt"><p>Two-dimensional <a href="../index.html#INT32:org.platanios.tensorflow.api.types.DataType.Aux[Int]" class="extmbr" name="org.platanios.tensorflow.api#INT32">INT32</a> or <a href="../index.html#INT64:org.platanios.tensorflow.api.types.DataType.Aux[Long]" class="extmbr" name="org.platanios.tensorflow.api#INT64">INT64</a> tensor with shape <code>[N, rank]</code>.</p></dd><dt class="param">values</dt><dd class="cmt"><p>One-dimensional tensor with shape <code>[N]</code>.</p></dd><dt class="param">denseShape</dt><dd class="cmt"><p>One-dimensional <a href="../index.html#INT32:org.platanios.tensorflow.api.types.DataType.Aux[Int]" class="extmbr" name="org.platanios.tensorflow.api#INT32">INT32</a> or <a href="../index.html#INT64:org.platanios.tensorflow.api.types.DataType.Aux[Long]" class="extmbr" name="org.platanios.tensorflow.api#INT64">INT64</a> tensor with shape <code>[rank]</code>.</p></dd></dl></div>
     </li></ol>
             </div>
 
@@ -657,7 +706,43 @@ SparseTensor(indices = Tensor(Tensor(<span class="num">0</span>, <span class="nu
         <div class="values members">
               <h3>Value Members</h3>
               <ol>
-                <li name="org.platanios.tensorflow.api.ops.Op" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
+                <li name="org.platanios.tensorflow.api.ops.FunctionArgType" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="FunctionArgType"></a><a id="FunctionArgType:FunctionArgType"></a>
+      <span class="permalink">
+      <a href="../../../../../org/platanios/tensorflow/api/ops/index.html#FunctionArgType" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">object</span>
+      </span>
+      <span class="symbol">
+        <a title="" href="FunctionArgType$.html">
+              <span class="name">FunctionArgType</span>
+            </a>
+      </span>
+      
+      
+    </li><li name="org.platanios.tensorflow.api.ops.FunctionGraph" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="FunctionGraph"></a><a id="FunctionGraph:FunctionGraph"></a>
+      <span class="permalink">
+      <a href="../../../../../org/platanios/tensorflow/api/ops/index.html#FunctionGraph" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">object</span>
+      </span>
+      <span class="symbol">
+        <a title="Contains helper functions for dealing with function graphs." href="FunctionGraph$.html">
+              <span class="name">FunctionGraph</span>
+            </a>
+      </span>
+      
+      <p class="shortcomment cmt">Contains helper functions for dealing with function graphs.</p>
+    </li><li name="org.platanios.tensorflow.api.ops.Op" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
       <a id="Op"></a><a id="Op:Op"></a>
       <span class="permalink">
       <a href="../../../../../org/platanios/tensorflow/api/ops/index.html#Op" title="Permalink">
@@ -671,7 +756,7 @@ SparseTensor(indices = Tensor(Tensor(<span class="num">0</span>, <span class="nu
       <span class="symbol">
         <a title="" href="Op$.html">
               <span class="name">Op</span>
-            </a><span class="result"> extends <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
+            </a><span class="result"> extends <a href="http://www.scala-lang.org/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
       </span>
       
       
@@ -689,14 +774,14 @@ SparseTensor(indices = Tensor(Tensor(<span class="num">0</span>, <span class="nu
       <span class="symbol">
         <a title="" href="Output$.html">
               <span class="name">Output</span>
-            </a><span class="result"> extends <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
+            </a><span class="result"> extends <a href="http://www.scala-lang.org/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
       </span>
       
       
-    </li><li name="org.platanios.tensorflow.api.ops.OutputConvertible" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="OutputConvertible"></a><a id="OutputConvertible:OutputConvertible"></a>
+    </li><li name="org.platanios.tensorflow.api.ops.OutputLike" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="OutputLike"></a><a id="OutputLike:OutputLike"></a>
       <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/index.html#OutputConvertible" title="Permalink">
+      <a href="../../../../../org/platanios/tensorflow/api/ops/index.html#OutputLike" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -705,27 +790,9 @@ SparseTensor(indices = Tensor(Tensor(<span class="num">0</span>, <span class="nu
         <span class="kind">object</span>
       </span>
       <span class="symbol">
-        <a title="" href="OutputConvertible$.html">
-              <span class="name">OutputConvertible</span>
+        <a title="" href="OutputLike$.html">
+              <span class="name">OutputLike</span>
             </a>
-      </span>
-      
-      
-    </li><li name="org.platanios.tensorflow.api.ops.SparseOutput" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="SparseOutput"></a><a id="SparseOutput:SparseOutput"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/index.html#SparseOutput" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">object</span>
-      </span>
-      <span class="symbol">
-        <a title="" href="SparseOutput$.html">
-              <span class="name">SparseOutput</span>
-            </a><span class="result"> extends <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
       </span>
       
       
@@ -740,9 +807,9 @@ SparseTensor(indices = Tensor(Tensor(<span class="num">0</span>, <span class="nu
 
         <div id="inheritedMembers">
         <div class="parent" name="scala.AnyRef">
-              <h3>Inherited from <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></h3>
+              <h3>Inherited from <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></h3>
             </div><div class="parent" name="scala.Any">
-              <h3>Inherited from <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/collection/immutable/List.html#scala.Any" class="extype" name="scala.collection.immutable.List">Any</a></h3>
+              <h3>Inherited from <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.Any" class="extype" name="scala.collection.immutable.List">Any</a></h3>
             </div>
         
         </div>

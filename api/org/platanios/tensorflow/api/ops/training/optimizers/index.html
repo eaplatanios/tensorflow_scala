@@ -271,7 +271,7 @@ Nesterov acceleration.">
           <span class="toggle">
             Linear Supertypes
           </span>
-          <div class="superTypes hiddenContent"><a href="http://scala-lang.org/files/archive/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a>, <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/collection/immutable/List.html#scala.Any" class="extype" name="scala.collection.immutable.List">Any</a></div>
+          <div class="superTypes hiddenContent"><a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a>, <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.Any" class="extype" name="scala.collection.immutable.List">Any</a></div>
         </div></div>
         
 
@@ -333,7 +333,7 @@ Nesterov acceleration.">
       <span class="symbol">
         <a title="Optimizer that implements the AdaDelta optimization algorithm." href="AdaDelta.html">
               <span class="name">AdaDelta</span>
-            </a><span class="result"> extends <a href="Optimizer.html" class="extype" name="org.platanios.tensorflow.api.ops.training.optimizers.Optimizer">Optimizer</a> with <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
+            </a><span class="result"> extends <a href="Optimizer.html" class="extype" name="org.platanios.tensorflow.api.ops.training.optimizers.Optimizer">Optimizer</a> with <a href="http://www.scala-lang.org/api/2.12.3/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="http://www.scala-lang.org/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
       </span>
       
       <p class="shortcomment cmt">Optimizer that implements the AdaDelta optimization algorithm.</p><div class="fullcomment"><div class="comment cmt"><p>Optimizer that implements the AdaDelta optimization algorithm.</p><p>The AdaDelta update is as follows:</p><pre>accumulator = rho * accumulator + (<span class="num">1</span> - rho) * gradient
@@ -356,7 +356,7 @@ variable -= update</pre><p>For more information on this algorithm, please refer 
       <span class="symbol">
         <a title="Optimizer that implements the AdaGrad optimization algorithm." href="AdaGrad.html">
               <span class="name">AdaGrad</span>
-            </a><span class="result"> extends <a href="Optimizer.html" class="extype" name="org.platanios.tensorflow.api.ops.training.optimizers.Optimizer">Optimizer</a> with <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
+            </a><span class="result"> extends <a href="Optimizer.html" class="extype" name="org.platanios.tensorflow.api.ops.training.optimizers.Optimizer">Optimizer</a> with <a href="http://www.scala-lang.org/api/2.12.3/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="http://www.scala-lang.org/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
       </span>
       
       <p class="shortcomment cmt">Optimizer that implements the AdaGrad optimization algorithm.</p><div class="fullcomment"><div class="comment cmt"><p>Optimizer that implements the AdaGrad optimization algorithm.</p><p>The AdaGrad update is as follows:</p><pre>accumulator += gradient * gradient
@@ -377,7 +377,7 @@ variable -= stepSize * gradient * (<span class="num">1</span> / sqrt(accumulator
       <span class="symbol">
         <a title="Trait for implementing optimization learning rate decay methods." href="Decay.html">
               <span class="name">Decay</span>
-            </a><span class="result"> extends <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></span>
+            </a><span class="result"> extends <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></span>
       </span>
       
       <p class="shortcomment cmt">Trait for implementing optimization learning rate decay methods.</p><div class="fullcomment"><div class="comment cmt"><p>Trait for implementing optimization learning rate decay methods.</p><p>When training a model, it is often recommended to lower the learning rate as the training progresses. Decay methods
@@ -397,7 +397,7 @@ can be used for that purpose. They define ways in which to decay the learning ra
       <span class="symbol">
         <a title="Exponential decay method." href="ExponentialDecay.html">
               <span class="name">ExponentialDecay</span>
-            </a><span class="result"> extends <a href="Decay.html" class="extype" name="org.platanios.tensorflow.api.ops.training.optimizers.Decay">Decay</a> with <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
+            </a><span class="result"> extends <a href="Decay.html" class="extype" name="org.platanios.tensorflow.api.ops.training.optimizers.Decay">Decay</a> with <a href="http://www.scala-lang.org/api/2.12.3/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="http://www.scala-lang.org/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
       </span>
       
       <p class="shortcomment cmt">Exponential decay method.</p><div class="fullcomment"><div class="comment cmt"><p>Exponential decay method.</p><p>This method applies an exponential decay function to a provided initial learning rate (i.e., <code>value</code>). It requires a
@@ -420,7 +420,7 @@ a staircase function.
         <a title="Optimizer that implements the gradient descent algorithm and includes support for learning rate decay, momentum, and
 Nesterov acceleration." href="GradientDescent.html">
               <span class="name">GradientDescent</span>
-            </a><span class="result"> extends <a href="Optimizer.html" class="extype" name="org.platanios.tensorflow.api.ops.training.optimizers.Optimizer">Optimizer</a> with <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
+            </a><span class="result"> extends <a href="Optimizer.html" class="extype" name="org.platanios.tensorflow.api.ops.training.optimizers.Optimizer">Optimizer</a> with <a href="http://www.scala-lang.org/api/2.12.3/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="http://www.scala-lang.org/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
       </span>
       
       <p class="shortcomment cmt">Optimizer that implements the gradient descent algorithm and includes support for learning rate decay, momentum, and
@@ -439,7 +439,7 @@ Nesterov acceleration.</p>
       <span class="symbol">
         <a title="" href="Optimizer.html">
               <span class="name">Optimizer</span>
-            </a><span class="result"> extends <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></span>
+            </a><span class="result"> extends <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></span>
       </span>
       
       <p class="shortcomment cmt"></p>
@@ -483,7 +483,7 @@ Nesterov acceleration.</p>
       <span class="symbol">
         <a title="Dummy decay method representing no decay being used." href="NoDecay$.html">
               <span class="name">NoDecay</span>
-            </a><span class="result"> extends <a href="Decay.html" class="extype" name="org.platanios.tensorflow.api.ops.training.optimizers.Decay">Decay</a> with <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
+            </a><span class="result"> extends <a href="Decay.html" class="extype" name="org.platanios.tensorflow.api.ops.training.optimizers.Decay">Decay</a> with <a href="http://www.scala-lang.org/api/2.12.3/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="http://www.scala-lang.org/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
       </span>
       
       <p class="shortcomment cmt">Dummy decay method representing no decay being used.</p><div class="fullcomment"><div class="comment cmt"><p>Dummy decay method representing no decay being used. Useful as a default value for <code>Decay</code>-valued function
@@ -499,9 +499,9 @@ arguments.</p></div></div>
 
         <div id="inheritedMembers">
         <div class="parent" name="scala.AnyRef">
-              <h3>Inherited from <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></h3>
+              <h3>Inherited from <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></h3>
             </div><div class="parent" name="scala.Any">
-              <h3>Inherited from <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/collection/immutable/List.html#scala.Any" class="extype" name="scala.collection.immutable.List">Any</a></h3>
+              <h3>Inherited from <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.Any" class="extype" name="scala.collection.immutable.List">Any</a></h3>
             </div>
         
         </div>

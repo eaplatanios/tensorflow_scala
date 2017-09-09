@@ -214,6 +214,12 @@
       
       <p class="shortcomment cmt"></p><div class="fullcomment"><div class="comment cmt"></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../index.html" class="extype" name="org.platanios.tensorflow.api">api</a></dd></dl></div>
     </li><li class="current-entities indented5">
+                        <span class="separator"></span>
+                        <a class="class" href="SparseTensor.html" title="Represents a sparse op output."></a>
+                        <a href="SparseTensor.html" title="Represents a sparse op output.">
+                          SparseTensor
+                        </a>
+                      </li><li class="current-entities indented5">
                         <a class="object" href="Tensor$.html" title=""></a>
                         <a class="class" href="Tensor.html" title="Tensor (i.e., multi-dimensional array)."></a>
                         <a href="Tensor.html" title="Tensor (i.e., multi-dimensional array).">
@@ -227,6 +233,12 @@
                         </a>
                       </li><li class="current-entities indented5">
                         <span class="separator"></span>
+                        <a class="class" href="TensorIndexedSlices.html" title="Sparse representation of a set of tensor slices at given indices."></a>
+                        <a href="TensorIndexedSlices.html" title="Sparse representation of a set of tensor slices at given indices.">
+                          TensorIndexedSlices
+                        </a>
+                      </li><li class="current-entities indented5">
+                        <a class="object" href="TensorLike$.html" title=""></a>
                         <a class="trait" href="TensorLike.html" title="Represents tensor-like objects."></a>
                         <a href="TensorLike.html" title="Represents tensor-like objects.">
                           TensorLike
@@ -299,7 +311,7 @@
           <span class="toggle">
             Linear Supertypes
           </span>
-          <div class="superTypes hiddenContent"><a href="http://scala-lang.org/files/archive/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a>, <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/collection/immutable/List.html#scala.Any" class="extype" name="scala.collection.immutable.List">Any</a></div>
+          <div class="superTypes hiddenContent"><a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a>, <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.Any" class="extype" name="scala.collection.immutable.List">Any</a></div>
         </div></div>
         
 
@@ -347,7 +359,44 @@
 
         <div id="types" class="types members">
               <h3>Type Members</h3>
-              <ol><li name="org.platanios.tensorflow.api.tensors.Tensor" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+              <ol><li name="org.platanios.tensorflow.api.tensors.SparseTensor" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="SparseTensorextendsTensorLikewithProductwithSerializable"></a><a id="SparseTensor:SparseTensor"></a>
+      <span class="permalink">
+      <a href="../../../../../org/platanios/tensorflow/api/tensors/index.html#SparseTensorextendsTensorLikewithProductwithSerializable" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier">final </span>
+        <span class="kind">case class</span>
+      </span>
+      <span class="symbol">
+        <a title="Represents a sparse op output." href="SparseTensor.html">
+              <span class="name">SparseTensor</span>
+            </a><span class="params">(<span name="indices">indices: <a href="Tensor.html" class="extype" name="org.platanios.tensorflow.api.tensors.Tensor">Tensor</a></span>, <span name="values">values: <a href="Tensor.html" class="extype" name="org.platanios.tensorflow.api.tensors.Tensor">Tensor</a></span>, <span name="denseShape">denseShape: <a href="Tensor.html" class="extype" name="org.platanios.tensorflow.api.tensors.Tensor">Tensor</a></span>)</span><span class="result"> extends <a href="TensorLike.html" class="extype" name="org.platanios.tensorflow.api.tensors.TensorLike">TensorLike</a> with <a href="http://www.scala-lang.org/api/2.12.3/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="http://www.scala-lang.org/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
+      </span>
+      
+      <p class="shortcomment cmt">Represents a sparse op output.</p><div class="fullcomment"><div class="comment cmt"><p>Represents a sparse op output.</p><p>TensorFlow represents a sparse tensor as three separate dense tensors: <code>indices</code>, <code>values</code>, and <code>denseShape</code>. In
+Scala, the three tensors are collected into a <a href="SparseTensor.html" class="extype" name="org.platanios.tensorflow.api.tensors.SparseTensor">SparseTensor</a> class for ease of use.  If you have separate
+<code>indices</code>, <code>values</code>, and <code>denseShape</code> tensors, wrap them in a <code>SparseTensor</code> object before passing to the
+relevant sparse tensor manipulation.</p><p>Concretely, the sparse tensor <code>SparseTensor(indices, values, denseShape)</code> comprises the following components,
+where <code>N</code> and <code>rank</code> are the number of values and number of dimensions in the <a href="SparseTensor.html" class="extype" name="org.platanios.tensorflow.api.tensors.SparseTensor">SparseTensor</a>, respectively:</p><ul><li><code>indices</code>: Two-dimensional <a href="../index.html#INT64:org.platanios.tensorflow.api.types.DataType.Aux[Long]" class="extmbr" name="org.platanios.tensorflow.api#INT64">INT64</a> tensor with shape <code>[N, rank]</code>, which specifies the indices of the elements
+    in the sparse tensor that have nonzero values (elements are zero-indexed). For example,
+    <code>indices = <span class="extype" name="1,">3], [2, 4</span></code> specifies that the elements with indexes <code>[1, 3]</code> and <code>[2, 4]</code> have nonzero
+    values.</li><li><code>values</code>: One-dimensional tensor of any type, with shape <code>[N]</code>, which supplies the values for each element in
+    <code>indices</code>. For example, given <code>indices = <span class="extype" name="1,">3], [2, 4</span></code>, the parameter <code>values = [18, 3.6]</code> specifies that
+     element <code>[1, 3]</code> of the sparse tensor has a value of <code>18</code>, and element <code>[2, 4]</code> of the tensor has a value of
+     <code>3.6</code>.</li><li><code>denseShape</code>: One-dimensional <a href="../index.html#INT64:org.platanios.tensorflow.api.types.DataType.Aux[Long]" class="extmbr" name="org.platanios.tensorflow.api#INT64">INT64</a> tensor with shape <code>[rank]</code>, which specifies the dense shape of the
+    sparse tensor.  For example, <code>denseShape = [3, 6]</code> specifies a two-dimensional 3x6 tensor,
+    <code>denseShape = [2, 3, 4]</code> specifies a three-dimensional 2x3x4 tensor, and <code>denseShape = [9]</code> specifies a
+    one-dimensional tensor with 9 elements.</li></ul><p>The corresponding dense tensor, <code>dense</code>, satisfies:</p><pre>dense.shape == denseShape
+dense(indices(i)) = values(i) <span class="cmt">// Using a somewhat loose notation with respect to indexing.</span></pre><p>IMPORTANT NOTE: By convention, <code>indices</code> should be sorted in row-major order (or equivalently lexicographic order
+on <code>indices(i)</code>). This is not enforced when <code>SparseTensor</code> objects are constructed, but most ops assume correct
+ordering. If the ordering of sparse tensor <code>st</code> is wrong, a fixed version can be obtained by calling
+<code>sparseReorder(st)</code>.</p><p>For example, the sparse tensor <code>SparseTensor(indices = <span class="extype" name="0,">0], [1, 2</span>, values = [1, 2], denseShape = [3, 4])</code>,
+represents the dense tensor <code><span class="extype" name="1,">0, 0, 0], [0, 0, 2, 0], [0, 0, 0, 0</span></code>.
+</p></div><dl class="paramcmts block"><dt class="param">indices</dt><dd class="cmt"><p>Two-dimensional <a href="../index.html#INT64:org.platanios.tensorflow.api.types.DataType.Aux[Long]" class="extmbr" name="org.platanios.tensorflow.api#INT64">INT64</a> tensor with shape <code>[N, rank]</code>.</p></dd><dt class="param">values</dt><dd class="cmt"><p>One-dimensional tensor with shape <code>[N]</code>.</p></dd><dt class="param">denseShape</dt><dd class="cmt"><p>One-dimensional <a href="../index.html#INT64:org.platanios.tensorflow.api.types.DataType.Aux[Long]" class="extmbr" name="org.platanios.tensorflow.api#INT64">INT64</a> tensor with shape <code>[rank]</code>.</p></dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.tensors.Tensor" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="TensorextendsTensorLikewithCloseable"></a><a id="Tensor:Tensor"></a>
       <span class="permalink">
       <a href="../../../../../org/platanios/tensorflow/api/tensors/index.html#TensorextendsTensorLikewithCloseable" title="Permalink">
@@ -392,10 +441,32 @@ result == Tensor(Tensor(<span class="num">2.2</span>, <span class="num">4.9</spa
       <span class="symbol">
         <a title="" href="TensorConvertible.html">
               <span class="name">TensorConvertible</span>
-            </a><span class="tparams">[<span name="T">T</span>]</span><span class="result"> extends <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></span>
+            </a><span class="tparams">[<span name="T">T</span>]</span><span class="result"> extends <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></span>
       </span>
       
       
+    </li><li name="org.platanios.tensorflow.api.tensors.TensorIndexedSlices" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="TensorIndexedSlicesextendsTensorLikewithProductwithSerializable"></a><a id="TensorIndexedSlices:TensorIndexedSlices"></a>
+      <span class="permalink">
+      <a href="../../../../../org/platanios/tensorflow/api/tensors/index.html#TensorIndexedSlicesextendsTensorLikewithProductwithSerializable" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier">final </span>
+        <span class="kind">case class</span>
+      </span>
+      <span class="symbol">
+        <a title="Sparse representation of a set of tensor slices at given indices." href="TensorIndexedSlices.html">
+              <span class="name">TensorIndexedSlices</span>
+            </a><span class="result"> extends <a href="TensorLike.html" class="extype" name="org.platanios.tensorflow.api.tensors.TensorLike">TensorLike</a> with <a href="http://www.scala-lang.org/api/2.12.3/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="http://www.scala-lang.org/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
+      </span>
+      
+      <p class="shortcomment cmt">Sparse representation of a set of tensor slices at given indices.</p><div class="fullcomment"><div class="comment cmt"><p>Sparse representation of a set of tensor slices at given indices.</p><p>This class if a simple wrapper for a pair (or a set of three) of <a href="Tensor.html" class="extype" name="org.platanios.tensorflow.api.tensors.Tensor">Tensor</a> objects:</p><ul><li><code>indices</code>: A one-dimensional integer <a href="Tensor.html" class="extype" name="org.platanios.tensorflow.api.tensors.Tensor">Tensor</a> with shape <code>[D0]</code>.</li><li><code>values</code>: An <a href="Tensor.html" class="extype" name="org.platanios.tensorflow.api.tensors.Tensor">Tensor</a> of any data type, with shape <code>[D0, D1, ..., Dn]</code>.</li><li><code>denseShape</code>: Optionally, an integer <a href="Tensor.html" class="extype" name="org.platanios.tensorflow.api.tensors.Tensor">Tensor</a> with shape <code>[LARGE0, D1, ..., Dn]</code>.</li></ul><p>An <a href="TensorIndexedSlices.html" class="extype" name="org.platanios.tensorflow.api.tensors.TensorIndexedSlices">TensorIndexedSlices</a> is typically used to represent a subset of a larger <span class="extype" name="Output">Output</span>, <code>dense</code>, of shape
+<code>[LARGE0, D1, ..., Dn]</code>, where <code>LARGE0 &gt;&gt; D0</code>. The values in <code>indices</code> are the indices in the first dimension of
+the slices that have been extracted from the larger tensor.</p><p>The dense <a href="Tensor.html" class="extype" name="org.platanios.tensorflow.api.tensors.Tensor">Tensor</a>, <code>dense</code>, represented by <a href="TensorIndexedSlices.html" class="extype" name="org.platanios.tensorflow.api.tensors.TensorIndexedSlices">TensorIndexedSlices</a>, <code>slices</code>, has:</p><pre>dense(slices.indices(i), ::, ::, ...) = slices.values(i, ::, ::, ...)</pre><p>The <a href="TensorIndexedSlices.html" class="extype" name="org.platanios.tensorflow.api.tensors.TensorIndexedSlices">TensorIndexedSlices</a> class is used primarily in the definition of gradients for operations that have
+sparse gradients, such as <code>gather</code>.</p><p>Note that this is different than <a href="SparseTensor.html" class="extype" name="org.platanios.tensorflow.api.tensors.SparseTensor">SparseTensor</a> which uses multi-dimensional indices and scalar values.
+</p></div></div>
     </li><li name="org.platanios.tensorflow.api.tensors.TensorLike" visbl="pub" class="indented0 " data-isabs="true" fullComment="no" group="Ungrouped">
       <a id="TensorLikeextendsAnyRef"></a><a id="TensorLike:TensorLike"></a>
       <span class="permalink">
@@ -410,7 +481,7 @@ result == Tensor(Tensor(<span class="num">2.2</span>, <span class="num">4.9</spa
       <span class="symbol">
         <a title="Represents tensor-like objects." href="TensorLike.html">
               <span class="name">TensorLike</span>
-            </a><span class="result"> extends <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></span>
+            </a><span class="result"> extends <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></span>
       </span>
       
       <p class="shortcomment cmt">Represents tensor-like objects.</p>
@@ -458,6 +529,24 @@ result == Tensor(Tensor(<span class="num">2.2</span>, <span class="num">4.9</spa
       </span>
       
       
+    </li><li name="org.platanios.tensorflow.api.tensors.TensorLike" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="TensorLike"></a><a id="TensorLike:TensorLike"></a>
+      <span class="permalink">
+      <a href="../../../../../org/platanios/tensorflow/api/tensors/index.html#TensorLike" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">object</span>
+      </span>
+      <span class="symbol">
+        <a title="" href="TensorLike$.html">
+              <span class="name">TensorLike</span>
+            </a>
+      </span>
+      
+      
     </li>
               </ol>
             </div>
@@ -469,9 +558,9 @@ result == Tensor(Tensor(<span class="num">2.2</span>, <span class="num">4.9</spa
 
         <div id="inheritedMembers">
         <div class="parent" name="scala.AnyRef">
-              <h3>Inherited from <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></h3>
+              <h3>Inherited from <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></h3>
             </div><div class="parent" name="scala.Any">
-              <h3>Inherited from <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/collection/immutable/List.html#scala.Any" class="extype" name="scala.collection.immutable.List">Any</a></h3>
+              <h3>Inherited from <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.Any" class="extype" name="scala.collection.immutable.List">Any</a></h3>
             </div>
         
         </div>

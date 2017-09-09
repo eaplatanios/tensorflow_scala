@@ -239,7 +239,7 @@
           <span class="toggle">
             Linear Supertypes
           </span>
-          <div class="superTypes hiddenContent"><a href="http://scala-lang.org/files/archive/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a>, <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/collection/immutable/List.html#scala.Any" class="extype" name="scala.collection.immutable.List">Any</a></div>
+          <div class="superTypes hiddenContent"><a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a>, <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.Any" class="extype" name="scala.collection.immutable.List">Any</a></div>
         </div></div>
         
 
@@ -301,7 +301,7 @@
       <span class="symbol">
         <a title="Executables can be executed within a TensorFlow session, but their results (if any) are not returned." href="Executable.html">
               <span class="name">Executable</span>
-            </a><span class="tparams">[<span name="T">T</span>]</span><span class="result"> extends <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></span>
+            </a><span class="tparams">[<span name="T">T</span>]</span><span class="result"> extends <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></span>
       </span>
       
       <p class="shortcomment cmt">Executables can be executed within a TensorFlow session, but their results (if any) are not returned.</p><div class="fullcomment"><div class="comment cmt"><p>Executables can be executed within a TensorFlow session, but their results (if any) are not returned.</p><p>For example, variable initializers are executable.</p><p>Currently supported executable types are:</p><ul><li>Single <span class="extype" name="Op">Op</span> object.</li><li>Single <span class="extype" name="OutputLike">OutputLike</span> object.</li><li>Traversables of other <a href="Executable.html" class="extype" name="org.platanios.tensorflow.api.core.client.Executable">Executable</a>s (e.g., <code>Set</code>s, <code>List</code>s, etc.).<ul><li>Note that, even though <code>Set(List(op1), List(op1, op2))</code> is supported, <code>Set(Set(op1), List(op1, op2))</code> is not.</li><li>Traversables that are not homogeneous are not supported (e.g., <code>Set(op1, Set(op1, op2))</code>).</li></ul></li><li>Arrays of other <a href="Executable.html" class="extype" name="org.platanios.tensorflow.api.core.client.Executable">Executable</a>s.</li><li>Products of other <a href="Executable.html" class="extype" name="org.platanios.tensorflow.api.core.client.Executable">Executable</a>s (e.g., tuples).<ul><li>Note that with tuples, heterogeneous types are supported, due to the tuple type being a kind of heterogeneous
@@ -323,7 +323,7 @@ that ops that appear more than once in the executable, will only be executed onc
       <span class="symbol">
         <a title="Represents TensorFlow feed maps for sessions." href="FeedMap.html">
               <span class="name">FeedMap</span>
-            </a><span class="result"> extends <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></span>
+            </a><span class="result"> extends <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></span>
       </span>
       
       <p class="shortcomment cmt">Represents TensorFlow feed maps for sessions.</p><div class="fullcomment"><div class="comment cmt"><p>Represents TensorFlow feed maps for sessions.</p><p>TODO: [CLIENT] !!! Use strings as keys.
@@ -342,7 +342,7 @@ that ops that appear more than once in the executable, will only be executed onc
       <span class="symbol">
         <a title="Feedables can be fed into a TensorFlow session to fix the values of certain tensors to the provided values." href="Feedable.html">
               <span class="name">Feedable</span>
-            </a><span class="tparams">[<span name="T">T</span>]</span><span class="result"> extends <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></span>
+            </a><span class="tparams">[<span name="T">T</span>]</span><span class="result"> extends <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></span>
       </span>
       
       <p class="shortcomment cmt">Feedables can be fed into a TensorFlow session to fix the values of certain tensors to the provided values.</p><div class="fullcomment"><div class="comment cmt"><p>Feedables can be fed into a TensorFlow session to fix the values of certain tensors to the provided values.</p><p>For example, values for placeholder ops can be fed into TensorFlow sessions.</p><p>Currently supported feedable types are:</p><ul><li><span class="extype" name="Output">Output</span> whose fed value should be a single <a href="../../index.html#Tensor=org.platanios.tensorflow.api.tensors.Tensor" class="extmbr" name="org.platanios.tensorflow.api.Tensor">Tensor</a>.</li><li><span class="extype" name="OutputIndexedSlices">OutputIndexedSlices</span> whose fed value should be tuple <span class="extype" name="(Tensor,">Tensor, Tensor)</span>.</li><li><span class="extype" name="SparseOutput">SparseOutput</span> whose fed value should be tuple <span class="extype" name="(Tensor,">Tensor, Tensor)</span>.</li></ul><p>Feedables are fed into TensorFlow sessions through the use of <a href="FeedMap.html" class="extype" name="org.platanios.tensorflow.api.core.client.FeedMap">FeedMap</a>s. Any <span class="extype" name="Map">Map</span> that uses a feedable type as
@@ -362,7 +362,7 @@ the keys type and its corresponding value type as its values type is a valid fee
       <span class="symbol">
         <a title="Fetchables can be executed within a TensorFlow session and have their results returned from Session.run." href="Fetchable.html">
               <span class="name">Fetchable</span>
-            </a><span class="tparams">[<span name="T">T</span>]</span><span class="result"> extends <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></span>
+            </a><span class="tparams">[<span name="T">T</span>]</span><span class="result"> extends <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></span>
       </span>
       
       <p class="shortcomment cmt">Fetchables can be executed within a TensorFlow session and have their results returned from <a href="Session.html#run[F,E,R](feeds:org.platanios.tensorflow.api.core.client.FeedMap,fetches:F,targets:E,options:org.tensorflow.framework.RunOptions)(implicitexecutable:org.platanios.tensorflow.api.core.client.Executable[E],implicitfetchable:org.platanios.tensorflow.api.core.client.Fetchable.Aux[F,R]):R" class="extmbr" name="org.platanios.tensorflow.api.core.client.Session#run">Session.run</a>.</p><div class="fullcomment"><div class="comment cmt"><p>Fetchables can be executed within a TensorFlow session and have their results returned from <a href="Session.html#run[F,E,R](feeds:org.platanios.tensorflow.api.core.client.FeedMap,fetches:F,targets:E,options:org.tensorflow.framework.RunOptions)(implicitexecutable:org.platanios.tensorflow.api.core.client.Executable[E],implicitfetchable:org.platanios.tensorflow.api.core.client.Fetchable.Aux[F,R]):R" class="extmbr" name="org.platanios.tensorflow.api.core.client.Session#run">Session.run</a>.</p><p>For example, the result of any mathematical operation can be fetched.</p><p>Currently supported fetchable types are:</p><ul><li>Single <span class="extype" name="Output">Output</span>, <span class="extype" name="OutputIndexedSlices">OutputIndexedSlices</span>, <span class="extype" name="SparseOutput">SparseOutput</span> object.</li><li>Sequences of other <a href="Fetchable.html" class="extype" name="org.platanios.tensorflow.api.core.client.Fetchable">Fetchable</a>s (e.g., <code>Seq</code>s, <code>List</code>s, etc.).<ul><li>Sequences that are not homogeneous are not supported (e.g., <code>Seq(output1, Seq(output1, output2))</code>).</li><li>Note that, for that reason, even though <code>Seq(List(output1), List(output1, output2))</code> is supported,
@@ -388,7 +388,7 @@ the result will have the following structure <code>Seq(List(tensor1), List(tenso
       <span class="symbol">
         <a title="Sessions provide the client interface for interacting with TensorFlow computations." href="Session.html">
               <span class="name">Session</span>
-            </a><span class="result"> extends <a href="../../utilities/package$$Closeable.html" class="extype" name="org.platanios.tensorflow.api.utilities.Closeable">utilities.Closeable</a> with <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
+            </a><span class="result"> extends <a href="../../utilities/package$$Closeable.html" class="extype" name="org.platanios.tensorflow.api.utilities.Closeable">utilities.Closeable</a> with <a href="http://www.scala-lang.org/api/2.12.3/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="http://www.scala-lang.org/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
       </span>
       
       <p class="shortcomment cmt">Sessions provide the client interface for interacting with TensorFlow computations.</p><div class="fullcomment"><div class="comment cmt"><p>Sessions provide the client interface for interacting with TensorFlow computations.</p><p>The <a href="Session.html" class="extype" name="org.platanios.tensorflow.api.core.client.Session">Session</a> class enables incremental graph building with inline execution of ops and evaluation of tensors.
@@ -487,7 +487,7 @@ the result will have the following structure <code>Seq(List(tensor1), List(tenso
       <span class="symbol">
         <a title="Contains helper functions for managing Session instances." href="Session$.html">
               <span class="name">Session</span>
-            </a><span class="result"> extends <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
+            </a><span class="result"> extends <a href="http://www.scala-lang.org/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
       </span>
       
       <p class="shortcomment cmt">Contains helper functions for managing <a href="Session.html" class="extype" name="org.platanios.tensorflow.api.core.client.Session">Session</a> instances.</p>
@@ -502,9 +502,9 @@ the result will have the following structure <code>Seq(List(tensor1), List(tenso
 
         <div id="inheritedMembers">
         <div class="parent" name="scala.AnyRef">
-              <h3>Inherited from <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></h3>
+              <h3>Inherited from <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></h3>
             </div><div class="parent" name="scala.Any">
-              <h3>Inherited from <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/collection/immutable/List.html#scala.Any" class="extype" name="scala.collection.immutable.List">Any</a></h3>
+              <h3>Inherited from <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.Any" class="extype" name="scala.collection.immutable.List">Any</a></h3>
             </div>
         
         </div>

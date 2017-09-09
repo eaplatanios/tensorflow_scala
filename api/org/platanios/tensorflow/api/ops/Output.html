@@ -218,6 +218,24 @@
       <p class="shortcomment cmt"></p><div class="fullcomment"><div class="comment cmt"></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="index.html" class="extype" name="org.platanios.tensorflow.api.ops">ops</a></dd></dl></div>
     </li><li class="current-entities indented5">
                         <span class="separator"></span>
+                        <a class="class" href="Function.html" title=""></a>
+                        <a href="Function.html" title="">
+                          Function
+                        </a>
+                      </li><li class="current-entities indented5">
+                        <a class="object" href="FunctionArgType$.html" title=""></a>
+                        <a class="trait" href="FunctionArgType.html" title=""></a>
+                        <a href="FunctionArgType.html" title="">
+                          FunctionArgType
+                        </a>
+                      </li><li class="current-entities indented5">
+                        <a class="object" href="FunctionGraph$.html" title="Contains helper functions for dealing with function graphs."></a>
+                        <a class="class" href="FunctionGraph.html" title="Graph extension helper for constructing a function."></a>
+                        <a href="FunctionGraph.html" title="Graph extension helper for constructing a function.">
+                          FunctionGraph
+                        </a>
+                      </li><li class="current-entities indented5">
+                        <span class="separator"></span>
                         <a class="class" href="Input.html" title="Wrapper around an Op meant to represent one of its inputs."></a>
                         <a href="Input.html" title="Wrapper around an Op meant to represent one of its inputs.">
                           Input
@@ -241,19 +259,13 @@
                           Output
                         </a>
                       </li><li class="current-entities indented5">
-                        <a class="object" href="OutputConvertible$.html" title=""></a>
-                        <a class="trait" href="OutputConvertible.html" title="Helper type trait for output convertible objects so that implicit conversions to op outputs can be used."></a>
-                        <a href="OutputConvertible.html" title="Helper type trait for output convertible objects so that implicit conversions to op outputs can be used.">
-                          OutputConvertible
-                        </a>
-                      </li><li class="current-entities indented5">
                         <span class="separator"></span>
-                        <a class="class" href="OutputIndexedSlices.html" title="Sparse representation of one of the outputs of an Op's computation."></a>
-                        <a href="OutputIndexedSlices.html" title="Sparse representation of one of the outputs of an Op's computation.">
+                        <a class="class" href="OutputIndexedSlices.html" title="Sparse representation of a set of tensor slices at given indices."></a>
+                        <a href="OutputIndexedSlices.html" title="Sparse representation of a set of tensor slices at given indices.">
                           OutputIndexedSlices
                         </a>
                       </li><li class="current-entities indented5">
-                        <span class="separator"></span>
+                        <a class="object" href="OutputLike$.html" title=""></a>
                         <a class="trait" href="OutputLike.html" title="Trait representing outputs of an Op's computation."></a>
                         <a href="OutputLike.html" title="Trait representing outputs of an Op's computation.">
                           OutputLike
@@ -265,7 +277,7 @@
                           Queue
                         </a>
                       </li><li class="current-entities indented5">
-                        <a class="object" href="SparseOutput$.html" title=""></a>
+                        <span class="separator"></span>
                         <a class="class" href="SparseOutput.html" title="Represents a sparse op output."></a>
                         <a href="SparseOutput.html" title="Represents a sparse op output.">
                           SparseOutput
@@ -295,7 +307,7 @@
         <span class="kind">case class</span>
       </span>
       <span class="symbol">
-        <span class="name">Output</span><span class="result"> extends <a href="OutputLike.html" class="extype" name="org.platanios.tensorflow.api.ops.OutputLike">OutputLike</a> with <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
+        <span class="name">Output</span><span class="result"> extends <a href="OutputLike.html" class="extype" name="org.platanios.tensorflow.api.ops.OutputLike">OutputLike</a> with <a href="http://www.scala-lang.org/api/2.12.3/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="http://www.scala-lang.org/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
       </span>
       </h4>
 
@@ -314,7 +326,7 @@ that stores a concrete value:</p><pre><span class="kw">val</span> c = constant(<
           <span class="toggle">
             Linear Supertypes
           </span>
-          <div class="superTypes hiddenContent"><a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a>, <a href="https://docs.oracle.com/javase/8/docs/api/java/io/Serializable.html#java.io.Serializable" class="extype" name="java.io.Serializable">Serializable</a>, <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a>, <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Equals.html#scala.Equals" class="extype" name="scala.Equals">Equals</a>, <a href="OutputLike.html" class="extype" name="org.platanios.tensorflow.api.ops.OutputLike">OutputLike</a>, <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a>, <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/collection/immutable/List.html#scala.Any" class="extype" name="scala.collection.immutable.List">Any</a></div>
+          <div class="superTypes hiddenContent"><a href="http://www.scala-lang.org/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a>, <span class="extype" name="java.io.Serializable">Serializable</span>, <a href="http://www.scala-lang.org/api/2.12.3/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a>, <a href="http://www.scala-lang.org/api/2.12.3/scala/Equals.html#scala.Equals" class="extype" name="scala.Equals">Equals</a>, <a href="OutputLike.html" class="extype" name="org.platanios.tensorflow.api.ops.OutputLike">OutputLike</a>, <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a>, <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.Any" class="extype" name="scala.collection.immutable.List">Any</a></div>
         </div></div>
         
 
@@ -379,7 +391,7 @@ that stores a concrete value:</p><pre><span class="kw">val</span> c = constant(<
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span title="gt4s: $bang$eq" class="name">!=</span><span class="params">(<span name="arg0">arg0: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/collection/immutable/List.html#scala.Any" class="extype" name="scala.collection.immutable.List">Any</a></span>)</span><span class="result">: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a></span>
+        <span title="gt4s: $bang$eq" class="name">!=</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.Any" class="extype" name="scala.collection.immutable.List">Any</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.3/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a></span>
       </span>
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
@@ -395,154 +407,10 @@ that stores a concrete value:</p><pre><span class="kw">val</span> c = constant(<
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span title="gt4s: $hash$hash" class="name">##</span><span class="params">()</span><span class="result">: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a></span>
+        <span title="gt4s: $hash$hash" class="name">##</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.3/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a></span>
       </span>
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.ops.Output#%" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="%(other:org.platanios.tensorflow.api.ops.Output):org.platanios.tensorflow.api.ops.Output"></a><a id="%(Output):Output"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/Output.html#%(other:org.platanios.tensorflow.api.ops.Output):org.platanios.tensorflow.api.ops.Output" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">def</span>
-      </span>
-      <span class="symbol">
-        <span title="gt4s: $percent" class="name">%</span><span class="params">(<span name="other">other: <a href="" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>)</span><span class="result">: <a href="" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>
-      </span>
-      
-      
-    </li><li name="org.platanios.tensorflow.api.ops.Output#&amp;&amp;" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="&amp;&amp;(other:org.platanios.tensorflow.api.ops.Output):org.platanios.tensorflow.api.ops.Output"></a><a id="&amp;&amp;(Output):Output"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/Output.html#&amp;&amp;(other:org.platanios.tensorflow.api.ops.Output):org.platanios.tensorflow.api.ops.Output" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">def</span>
-      </span>
-      <span class="symbol">
-        <span title="gt4s: $amp$amp" class="name">&amp;&amp;</span><span class="params">(<span name="other">other: <a href="" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>)</span><span class="result">: <a href="" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>
-      </span>
-      
-      
-    </li><li name="org.platanios.tensorflow.api.ops.Output#*" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="*(other:org.platanios.tensorflow.api.ops.Output):org.platanios.tensorflow.api.ops.Output"></a><a id="*(Output):Output"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/Output.html#*(other:org.platanios.tensorflow.api.ops.Output):org.platanios.tensorflow.api.ops.Output" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">def</span>
-      </span>
-      <span class="symbol">
-        <span title="gt4s: $times" class="name">*</span><span class="params">(<span name="other">other: <a href="" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>)</span><span class="result">: <a href="" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>
-      </span>
-      
-      
-    </li><li name="org.platanios.tensorflow.api.ops.Output#**" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="**(other:org.platanios.tensorflow.api.ops.Output):org.platanios.tensorflow.api.ops.Output"></a><a id="**(Output):Output"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/Output.html#**(other:org.platanios.tensorflow.api.ops.Output):org.platanios.tensorflow.api.ops.Output" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">def</span>
-      </span>
-      <span class="symbol">
-        <span title="gt4s: $times$times" class="name">**</span><span class="params">(<span name="other">other: <a href="" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>)</span><span class="result">: <a href="" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>
-      </span>
-      
-      
-    </li><li name="org.platanios.tensorflow.api.ops.Output#+" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="+(other:org.platanios.tensorflow.api.ops.Output):org.platanios.tensorflow.api.ops.Output"></a><a id="+(Output):Output"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/Output.html#+(other:org.platanios.tensorflow.api.ops.Output):org.platanios.tensorflow.api.ops.Output" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">def</span>
-      </span>
-      <span class="symbol">
-        <span title="gt4s: $plus" class="name">+</span><span class="params">(<span name="other">other: <a href="" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>)</span><span class="result">: <a href="" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>
-      </span>
-      
-      
-    </li><li name="org.platanios.tensorflow.api.ops.Output#-" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="-(other:org.platanios.tensorflow.api.ops.Output):org.platanios.tensorflow.api.ops.Output"></a><a id="-(Output):Output"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/Output.html#-(other:org.platanios.tensorflow.api.ops.Output):org.platanios.tensorflow.api.ops.Output" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">def</span>
-      </span>
-      <span class="symbol">
-        <span title="gt4s: $minus" class="name">-</span><span class="params">(<span name="other">other: <a href="" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>)</span><span class="result">: <a href="" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>
-      </span>
-      
-      
-    </li><li name="org.platanios.tensorflow.api.ops.Output#/" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="/(other:org.platanios.tensorflow.api.ops.Output):org.platanios.tensorflow.api.ops.Output"></a><a id="/(Output):Output"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/Output.html#/(other:org.platanios.tensorflow.api.ops.Output):org.platanios.tensorflow.api.ops.Output" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">def</span>
-      </span>
-      <span class="symbol">
-        <span title="gt4s: $div" class="name">/</span><span class="params">(<span name="other">other: <a href="" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>)</span><span class="result">: <a href="" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>
-      </span>
-      
-      
-    </li><li name="org.platanios.tensorflow.api.ops.Output#&lt;" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="&lt;(other:org.platanios.tensorflow.api.ops.Output):org.platanios.tensorflow.api.ops.Output"></a><a id="&lt;(Output):Output"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/Output.html#&lt;(other:org.platanios.tensorflow.api.ops.Output):org.platanios.tensorflow.api.ops.Output" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">def</span>
-      </span>
-      <span class="symbol">
-        <span title="gt4s: $less" class="name">&lt;</span><span class="params">(<span name="other">other: <a href="" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>)</span><span class="result">: <a href="" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>
-      </span>
-      
-      
-    </li><li name="org.platanios.tensorflow.api.ops.Output#&lt;=" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="&lt;=(other:org.platanios.tensorflow.api.ops.Output):org.platanios.tensorflow.api.ops.Output"></a><a id="&lt;=(Output):Output"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/Output.html#&lt;=(other:org.platanios.tensorflow.api.ops.Output):org.platanios.tensorflow.api.ops.Output" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">def</span>
-      </span>
-      <span class="symbol">
-        <span title="gt4s: $less$eq" class="name">&lt;=</span><span class="params">(<span name="other">other: <a href="" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>)</span><span class="result">: <a href="" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>
-      </span>
-      
-      
     </li><li name="scala.AnyRef#==" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="==(x$1:Any):Boolean"></a><a id="==(Any):Boolean"></a>
       <span class="permalink">
@@ -555,42 +423,10 @@ that stores a concrete value:</p><pre><span class="kw">val</span> c = constant(<
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span title="gt4s: $eq$eq" class="name">==</span><span class="params">(<span name="arg0">arg0: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/collection/immutable/List.html#scala.Any" class="extype" name="scala.collection.immutable.List">Any</a></span>)</span><span class="result">: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a></span>
+        <span title="gt4s: $eq$eq" class="name">==</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.Any" class="extype" name="scala.collection.immutable.List">Any</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.3/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a></span>
       </span>
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.ops.Output#&gt;" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="&gt;(other:org.platanios.tensorflow.api.ops.Output):org.platanios.tensorflow.api.ops.Output"></a><a id="&gt;(Output):Output"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/Output.html#&gt;(other:org.platanios.tensorflow.api.ops.Output):org.platanios.tensorflow.api.ops.Output" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">def</span>
-      </span>
-      <span class="symbol">
-        <span title="gt4s: $greater" class="name">&gt;</span><span class="params">(<span name="other">other: <a href="" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>)</span><span class="result">: <a href="" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>
-      </span>
-      
-      
-    </li><li name="org.platanios.tensorflow.api.ops.Output#&gt;=" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="&gt;=(other:org.platanios.tensorflow.api.ops.Output):org.platanios.tensorflow.api.ops.Output"></a><a id="&gt;=(Output):Output"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/Output.html#&gt;=(other:org.platanios.tensorflow.api.ops.Output):org.platanios.tensorflow.api.ops.Output" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">def</span>
-      </span>
-      <span class="symbol">
-        <span title="gt4s: $greater$eq" class="name">&gt;=</span><span class="params">(<span name="other">other: <a href="" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>)</span><span class="result">: <a href="" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>
-      </span>
-      
-      
     </li><li name="org.platanios.tensorflow.api.ops.Output#apply" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="apply(indexers:org.platanios.tensorflow.api.core.Indexer*):org.platanios.tensorflow.api.ops.Output"></a><a id="apply(core.Indexer*):Output"></a>
       <span class="permalink">
@@ -636,7 +472,7 @@ that stores a concrete value:</p><pre><span class="kw">val</span> c = constant(<
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">clone</span><span class="params">()</span><span class="result">: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></span>
+        <span class="name">clone</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></span>
       </span>
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a href="../../../../../java/lang/index.html" class="extype" name="java.lang">java.lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
@@ -658,7 +494,7 @@ that stores a concrete value:</p><pre><span class="kw">val</span> c = constant(<
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">consumers</span><span class="result">: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Array.html#scala.Array" class="extype" name="scala.Array">Array</a>[<a href="Input.html" class="extype" name="org.platanios.tensorflow.api.ops.Input">Input</a>]</span>
+        <span class="name">consumers</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.3/scala/Array.html#scala.Array" class="extype" name="scala.Array">Array</a>[<a href="Input.html" class="extype" name="org.platanios.tensorflow.api.ops.Input">Input</a>]</span>
       </span>
       
       <p class="shortcomment cmt">Consumers of this op output (i.e., ops that use this op output as one of their inputs).</p><div class="fullcomment"><div class="comment cmt"><p>Consumers of this op output (i.e., ops that use this op output as one of their inputs).</p></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a> → <a href="OutputLike.html" class="extype" name="org.platanios.tensorflow.api.ops.OutputLike">OutputLike</a></dd></dl></div>
@@ -706,7 +542,7 @@ that stores a concrete value:</p><pre><span class="kw">val</span> c = constant(<
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">eq</span><span class="params">(<span name="arg0">arg0: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></span>)</span><span class="result">: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a></span>
+        <span class="name">eq</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.3/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a></span>
       </span>
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
@@ -722,7 +558,7 @@ that stores a concrete value:</p><pre><span class="kw">val</span> c = constant(<
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">equals</span><span class="params">(<span name="that">that: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/collection/immutable/List.html#scala.Any" class="extype" name="scala.collection.immutable.List">Any</a></span>)</span><span class="result">: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a></span>
+        <span class="name">equals</span><span class="params">(<span name="that">that: <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.Any" class="extype" name="scala.collection.immutable.List">Any</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.3/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a></span>
       </span>
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a> → Equals → AnyRef → Any</dd></dl></div>
@@ -757,7 +593,7 @@ the evaluation.
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">finalize</span><span class="params">()</span><span class="result">: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
+        <span class="name">finalize</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.3/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
       </span>
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a href="../../../../../java/lang/index.html" class="extype" name="java.lang">java.lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
@@ -811,7 +647,7 @@ the evaluation.
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">hashCode</span><span class="params">()</span><span class="result">: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a></span>
+        <span class="name">hashCode</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.3/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a></span>
       </span>
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a> → AnyRef → Any</dd></dl></div>
@@ -827,7 +663,7 @@ the evaluation.
         <span class="kind">val</span>
       </span>
       <span class="symbol">
-        <span class="name">index</span><span class="result">: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a></span>
+        <span class="name">index</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.3/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a></span>
       </span>
       
       
@@ -843,7 +679,7 @@ the evaluation.
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">isInstanceOf</span><span class="tparams">[<span name="T0">T0</span>]</span><span class="result">: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a></span>
+        <span class="name">isInstanceOf</span><span class="tparams">[<span name="T0">T0</span>]</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.3/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a></span>
       </span>
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>Any</dd></dl></div>
@@ -875,7 +711,7 @@ the evaluation.
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">ne</span><span class="params">(<span name="arg0">arg0: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></span>)</span><span class="result">: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a></span>
+        <span class="name">ne</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.3/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a></span>
       </span>
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
@@ -891,7 +727,7 @@ the evaluation.
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">notify</span><span class="params">()</span><span class="result">: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
+        <span class="name">notify</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.3/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
       </span>
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
@@ -907,7 +743,7 @@ the evaluation.
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">notifyAll</span><span class="params">()</span><span class="result">: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
+        <span class="name">notifyAll</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.3/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
       </span>
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
@@ -939,7 +775,7 @@ the evaluation.
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">rank</span><span class="result">: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a></span>
+        <span class="name">rank</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.3/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a></span>
       </span>
       
       <p class="shortcomment cmt">Rank of the tensor that this op output represents.</p>
@@ -955,7 +791,7 @@ the evaluation.
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">setShape</span><span class="params">(<span name="shape">shape: <a href="../core/Shape.html" class="extype" name="org.platanios.tensorflow.api.core.Shape">core.Shape</a></span>)</span><span class="result">: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
+        <span class="name">setShape</span><span class="params">(<span name="shape">shape: <a href="../core/Shape.html" class="extype" name="org.platanios.tensorflow.api.core.Shape">core.Shape</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.3/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
       </span>
       
       <p class="shortcomment cmt">Sets the shape of this op output to the provided shape.</p><div class="fullcomment"><div class="comment cmt"><p>Sets the shape of this op output to the provided shape.</p><p>This method can be useful in cases when shape inference fails, but the shape of the op output is known by the
@@ -989,7 +825,7 @@ user of the library.
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">size</span><span class="result">: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a></span>
+        <span class="name">size</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.3/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a></span>
       </span>
       
       <p class="shortcomment cmt">Size of the tensor that this op output represents.</p>
@@ -1054,7 +890,7 @@ user of the library.
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">toOutputIndexedSlices</span><span class="params">(<span name="optimize">optimize: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a> = <span class="symbol">true</span></span>)</span><span class="result">: <a href="OutputIndexedSlices.html" class="extype" name="org.platanios.tensorflow.api.ops.OutputIndexedSlices">OutputIndexedSlices</a></span>
+        <span class="name">toOutputIndexedSlices</span><span class="params">(<span name="optimize">optimize: <a href="http://www.scala-lang.org/api/2.12.3/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a> = <span class="symbol">true</span></span>)</span><span class="result">: <a href="OutputIndexedSlices.html" class="extype" name="org.platanios.tensorflow.api.ops.OutputIndexedSlices">OutputIndexedSlices</a></span>
       </span>
       
       <p class="shortcomment cmt">Returns an <a href="OutputIndexedSlices.html" class="extype" name="org.platanios.tensorflow.api.ops.OutputIndexedSlices">OutputIndexedSlices</a> that has the same value as this <a href="OutputLike.html" class="extype" name="org.platanios.tensorflow.api.ops.OutputLike">OutputLike</a>.</p><div class="fullcomment"><div class="comment cmt"><p>Returns an <a href="OutputIndexedSlices.html" class="extype" name="org.platanios.tensorflow.api.ops.OutputIndexedSlices">OutputIndexedSlices</a> that has the same value as this <a href="OutputLike.html" class="extype" name="org.platanios.tensorflow.api.ops.OutputLike">OutputLike</a>.
@@ -1076,38 +912,6 @@ user of the library.
       </span>
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a> → AnyRef → Any</dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.ops.Output#unary_!" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="unary_!:org.platanios.tensorflow.api.ops.Output"></a><a id="unary_!:Output"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/Output.html#unary_!:org.platanios.tensorflow.api.ops.Output" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">def</span>
-      </span>
-      <span class="symbol">
-        <span title="gt4s: unary_$bang" class="name">unary_!</span><span class="result">: <a href="" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>
-      </span>
-      
-      
-    </li><li name="org.platanios.tensorflow.api.ops.Output#unary_-" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="unary_-:org.platanios.tensorflow.api.ops.Output"></a><a id="unary_-:Output"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/Output.html#unary_-:org.platanios.tensorflow.api.ops.Output" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">def</span>
-      </span>
-      <span class="symbol">
-        <span title="gt4s: unary_$minus" class="name">unary_-</span><span class="result">: <a href="" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>
-      </span>
-      
-      
     </li><li name="scala.AnyRef#wait" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="wait():Unit"></a>
       <span class="permalink">
@@ -1120,7 +924,7 @@ user of the library.
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">wait</span><span class="params">()</span><span class="result">: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
+        <span class="name">wait</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.3/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
       </span>
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
@@ -1142,7 +946,7 @@ user of the library.
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">wait</span><span class="params">(<span name="arg0">arg0: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Long.html#scala.Long" class="extype" name="scala.Long">Long</a></span>, <span name="arg1">arg1: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a></span>)</span><span class="result">: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
+        <span class="name">wait</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.12.3/scala/Long.html#scala.Long" class="extype" name="scala.Long">Long</a></span>, <span name="arg1">arg1: <a href="http://www.scala-lang.org/api/2.12.3/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.3/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
       </span>
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
@@ -1164,7 +968,7 @@ user of the library.
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">wait</span><span class="params">(<span name="arg0">arg0: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Long.html#scala.Long" class="extype" name="scala.Long">Long</a></span>)</span><span class="result">: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
+        <span class="name">wait</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.12.3/scala/Long.html#scala.Long" class="extype" name="scala.Long">Long</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.3/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
       </span>
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
@@ -1174,22 +978,6 @@ user of the library.
     </span>)</span>
               
         </dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.ops.Output#||" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="||(other:org.platanios.tensorflow.api.ops.Output):org.platanios.tensorflow.api.ops.Output"></a><a id="||(Output):Output"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/Output.html#||(other:org.platanios.tensorflow.api.ops.Output):org.platanios.tensorflow.api.ops.Output" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">def</span>
-      </span>
-      <span class="symbol">
-        <span title="gt4s: $bar$bar" class="name">||</span><span class="params">(<span name="other">other: <a href="" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>)</span><span class="result">: <a href="" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>
-      </span>
-      
-      
     </li>
               </ol>
             </div>
@@ -1201,19 +989,19 @@ user of the library.
 
         <div id="inheritedMembers">
         <div class="parent" name="scala.Serializable">
-              <h3>Inherited from <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></h3>
+              <h3>Inherited from <a href="http://www.scala-lang.org/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></h3>
             </div><div class="parent" name="java.io.Serializable">
-              <h3>Inherited from <a href="https://docs.oracle.com/javase/8/docs/api/java/io/Serializable.html#java.io.Serializable" class="extype" name="java.io.Serializable">Serializable</a></h3>
+              <h3>Inherited from <span class="extype" name="java.io.Serializable">Serializable</span></h3>
             </div><div class="parent" name="scala.Product">
-              <h3>Inherited from <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a></h3>
+              <h3>Inherited from <a href="http://www.scala-lang.org/api/2.12.3/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a></h3>
             </div><div class="parent" name="scala.Equals">
-              <h3>Inherited from <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Equals.html#scala.Equals" class="extype" name="scala.Equals">Equals</a></h3>
+              <h3>Inherited from <a href="http://www.scala-lang.org/api/2.12.3/scala/Equals.html#scala.Equals" class="extype" name="scala.Equals">Equals</a></h3>
             </div><div class="parent" name="org.platanios.tensorflow.api.ops.OutputLike">
               <h3>Inherited from <a href="OutputLike.html" class="extype" name="org.platanios.tensorflow.api.ops.OutputLike">OutputLike</a></h3>
             </div><div class="parent" name="scala.AnyRef">
-              <h3>Inherited from <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></h3>
+              <h3>Inherited from <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></h3>
             </div><div class="parent" name="scala.Any">
-              <h3>Inherited from <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/collection/immutable/List.html#scala.Any" class="extype" name="scala.collection.immutable.List">Any</a></h3>
+              <h3>Inherited from <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.Any" class="extype" name="scala.collection.immutable.List">Any</a></h3>
             </div>
         
         </div>

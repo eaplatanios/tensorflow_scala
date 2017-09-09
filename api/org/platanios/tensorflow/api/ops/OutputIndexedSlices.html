@@ -218,6 +218,24 @@
       <p class="shortcomment cmt"></p><div class="fullcomment"><div class="comment cmt"></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="index.html" class="extype" name="org.platanios.tensorflow.api.ops">ops</a></dd></dl></div>
     </li><li class="current-entities indented5">
                         <span class="separator"></span>
+                        <a class="class" href="Function.html" title=""></a>
+                        <a href="Function.html" title="">
+                          Function
+                        </a>
+                      </li><li class="current-entities indented5">
+                        <a class="object" href="FunctionArgType$.html" title=""></a>
+                        <a class="trait" href="FunctionArgType.html" title=""></a>
+                        <a href="FunctionArgType.html" title="">
+                          FunctionArgType
+                        </a>
+                      </li><li class="current-entities indented5">
+                        <a class="object" href="FunctionGraph$.html" title="Contains helper functions for dealing with function graphs."></a>
+                        <a class="class" href="FunctionGraph.html" title="Graph extension helper for constructing a function."></a>
+                        <a href="FunctionGraph.html" title="Graph extension helper for constructing a function.">
+                          FunctionGraph
+                        </a>
+                      </li><li class="current-entities indented5">
+                        <span class="separator"></span>
                         <a class="class" href="Input.html" title="Wrapper around an Op meant to represent one of its inputs."></a>
                         <a href="Input.html" title="Wrapper around an Op meant to represent one of its inputs.">
                           Input
@@ -241,19 +259,13 @@
                           Output
                         </a>
                       </li><li class="current-entities indented5">
-                        <a class="object" href="OutputConvertible$.html" title=""></a>
-                        <a class="trait" href="OutputConvertible.html" title="Helper type trait for output convertible objects so that implicit conversions to op outputs can be used."></a>
-                        <a href="OutputConvertible.html" title="Helper type trait for output convertible objects so that implicit conversions to op outputs can be used.">
-                          OutputConvertible
-                        </a>
-                      </li><li class="current-entities indented5">
                         <span class="separator"></span>
-                        <a class="class" href="" title="Sparse representation of one of the outputs of an Op's computation."></a>
-                        <a href="" title="Sparse representation of one of the outputs of an Op's computation.">
+                        <a class="class" href="" title="Sparse representation of a set of tensor slices at given indices."></a>
+                        <a href="" title="Sparse representation of a set of tensor slices at given indices.">
                           OutputIndexedSlices
                         </a>
                       </li><li class="current-entities indented5">
-                        <span class="separator"></span>
+                        <a class="object" href="OutputLike$.html" title=""></a>
                         <a class="trait" href="OutputLike.html" title="Trait representing outputs of an Op's computation."></a>
                         <a href="OutputLike.html" title="Trait representing outputs of an Op's computation.">
                           OutputLike
@@ -265,7 +277,7 @@
                           Queue
                         </a>
                       </li><li class="current-entities indented5">
-                        <a class="object" href="SparseOutput$.html" title=""></a>
+                        <span class="separator"></span>
                         <a class="class" href="SparseOutput.html" title="Represents a sparse op output."></a>
                         <a href="SparseOutput.html" title="Represents a sparse op output.">
                           SparseOutput
@@ -293,12 +305,12 @@
         <span class="kind">case class</span>
       </span>
       <span class="symbol">
-        <span class="name">OutputIndexedSlices</span><span class="result"> extends <a href="OutputLike.html" class="extype" name="org.platanios.tensorflow.api.ops.OutputLike">OutputLike</a> with <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
+        <span class="name">OutputIndexedSlices</span><span class="result"> extends <a href="OutputLike.html" class="extype" name="org.platanios.tensorflow.api.ops.OutputLike">OutputLike</a> with <a href="http://www.scala-lang.org/api/2.12.3/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="http://www.scala-lang.org/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
       </span>
       </h4>
 
       
-          <div id="comment" class="fullcommenttop"><div class="comment cmt"><p>Sparse representation of one of the outputs of an <code>Op</code>'s computation. of a set of tensor slices at given indices.</p><p>This class if a simple wrapper for a pair (or a set of three) of <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a> objects:</p><ul><li><code>indices</code>: A one-dimensional integer <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a> with shape <code>[D0]</code>.</li><li><code>values</code>: An <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a> of any data type, with shape <code>[D0, D1, ..., Dn]</code>.</li><li><code>denseShape</code>: Optionally, an integer <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a> with shape <code>[LARGE0, D1, ..., Dn]</code>.</li></ul><p>An <a href="" class="extype" name="org.platanios.tensorflow.api.ops.OutputIndexedSlices">OutputIndexedSlices</a> is typically used to represent a subset of a larger <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a>, <code>dense</code>, of shape
+          <div id="comment" class="fullcommenttop"><div class="comment cmt"><p>Sparse representation of a set of tensor slices at given indices.</p><p>This class if a simple wrapper for a pair (or a set of three) of <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a> objects:</p><ul><li><code>indices</code>: A one-dimensional integer <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a> with shape <code>[D0]</code>.</li><li><code>values</code>: An <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a> of any data type, with shape <code>[D0, D1, ..., Dn]</code>.</li><li><code>denseShape</code>: Optionally, an integer <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a> with shape <code>[LARGE0, D1, ..., Dn]</code>.</li></ul><p>An <a href="" class="extype" name="org.platanios.tensorflow.api.ops.OutputIndexedSlices">OutputIndexedSlices</a> is typically used to represent a subset of a larger <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a>, <code>dense</code>, of shape
 <code>[LARGE0, D1, ..., Dn]</code>, where <code>LARGE0 &gt;&gt; D0</code>. The values in <code>indices</code> are the indices in the first dimension of
 the slices that have been extracted from the larger tensor.</p><p>The dense <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a>, <code>dense</code>, represented by <a href="" class="extype" name="org.platanios.tensorflow.api.ops.OutputIndexedSlices">OutputIndexedSlices</a>, <code>slices</code>, has:</p><pre>dense(slices.indices(i), ::, ::, ...) = slices.values(i, ::, ::, ...)</pre><p>The <a href="" class="extype" name="org.platanios.tensorflow.api.ops.OutputIndexedSlices">OutputIndexedSlices</a> class is used primarily in the definition of gradients for operations that have
 sparse gradients, such as <code>gather</code>.</p><p>Note that this is different than <a href="SparseOutput.html" class="extype" name="org.platanios.tensorflow.api.ops.SparseOutput">SparseOutput</a> which uses multi-dimensional indices and scalar values.
@@ -306,7 +318,7 @@ sparse gradients, such as <code>gather</code>.</p><p>Note that this is different
           <span class="toggle">
             Linear Supertypes
           </span>
-          <div class="superTypes hiddenContent"><a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a>, <a href="https://docs.oracle.com/javase/8/docs/api/java/io/Serializable.html#java.io.Serializable" class="extype" name="java.io.Serializable">Serializable</a>, <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a>, <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Equals.html#scala.Equals" class="extype" name="scala.Equals">Equals</a>, <a href="OutputLike.html" class="extype" name="org.platanios.tensorflow.api.ops.OutputLike">OutputLike</a>, <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a>, <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/collection/immutable/List.html#scala.Any" class="extype" name="scala.collection.immutable.List">Any</a></div>
+          <div class="superTypes hiddenContent"><a href="http://www.scala-lang.org/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a>, <span class="extype" name="java.io.Serializable">Serializable</span>, <a href="http://www.scala-lang.org/api/2.12.3/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a>, <a href="http://www.scala-lang.org/api/2.12.3/scala/Equals.html#scala.Equals" class="extype" name="scala.Equals">Equals</a>, <a href="OutputLike.html" class="extype" name="org.platanios.tensorflow.api.ops.OutputLike">OutputLike</a>, <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a>, <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.Any" class="extype" name="scala.collection.immutable.List">Any</a></div>
         </div></div>
         
 
@@ -371,7 +383,7 @@ sparse gradients, such as <code>gather</code>.</p><p>Note that this is different
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span title="gt4s: $bang$eq" class="name">!=</span><span class="params">(<span name="arg0">arg0: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/collection/immutable/List.html#scala.Any" class="extype" name="scala.collection.immutable.List">Any</a></span>)</span><span class="result">: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a></span>
+        <span title="gt4s: $bang$eq" class="name">!=</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.Any" class="extype" name="scala.collection.immutable.List">Any</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.3/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a></span>
       </span>
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
@@ -387,7 +399,7 @@ sparse gradients, such as <code>gather</code>.</p><p>Note that this is different
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span title="gt4s: $hash$hash" class="name">##</span><span class="params">()</span><span class="result">: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a></span>
+        <span title="gt4s: $hash$hash" class="name">##</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.3/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a></span>
       </span>
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
@@ -403,7 +415,7 @@ sparse gradients, such as <code>gather</code>.</p><p>Note that this is different
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span title="gt4s: $eq$eq" class="name">==</span><span class="params">(<span name="arg0">arg0: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/collection/immutable/List.html#scala.Any" class="extype" name="scala.collection.immutable.List">Any</a></span>)</span><span class="result">: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a></span>
+        <span title="gt4s: $eq$eq" class="name">==</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.Any" class="extype" name="scala.collection.immutable.List">Any</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.3/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a></span>
       </span>
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
@@ -435,7 +447,7 @@ sparse gradients, such as <code>gather</code>.</p><p>Note that this is different
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">clone</span><span class="params">()</span><span class="result">: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></span>
+        <span class="name">clone</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></span>
       </span>
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a href="../../../../../java/lang/index.html" class="extype" name="java.lang">java.lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
@@ -457,7 +469,7 @@ sparse gradients, such as <code>gather</code>.</p><p>Note that this is different
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">consumers</span><span class="result">: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Array.html#scala.Array" class="extype" name="scala.Array">Array</a>[<a href="Input.html" class="extype" name="org.platanios.tensorflow.api.ops.Input">Input</a>]</span>
+        <span class="name">consumers</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.3/scala/Array.html#scala.Array" class="extype" name="scala.Array">Array</a>[<a href="Input.html" class="extype" name="org.platanios.tensorflow.api.ops.Input">Input</a>]</span>
       </span>
       
       <p class="shortcomment cmt">Consumers of these indexed slices (i.e., ops that use this op output as one of their inputs).</p><div class="fullcomment"><div class="comment cmt"><p>Consumers of these indexed slices (i.e., ops that use this op output as one of their inputs).</p></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="" class="extype" name="org.platanios.tensorflow.api.ops.OutputIndexedSlices">OutputIndexedSlices</a> → <a href="OutputLike.html" class="extype" name="org.platanios.tensorflow.api.ops.OutputLike">OutputLike</a></dd></dl></div>
@@ -476,7 +488,7 @@ sparse gradients, such as <code>gather</code>.</p><p>Note that this is different
         <span class="name">dataType</span><span class="result">: <a href="../types/DataType.html" class="extype" name="org.platanios.tensorflow.api.types.DataType">types.DataType</a></span>
       </span>
       
-      <p class="shortcomment cmt">Data type of this op output indexed slices.</p><div class="fullcomment"><div class="comment cmt"><p>Data type of this op output indexed slices.</p></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="" class="extype" name="org.platanios.tensorflow.api.ops.OutputIndexedSlices">OutputIndexedSlices</a> → <a href="OutputLike.html" class="extype" name="org.platanios.tensorflow.api.ops.OutputLike">OutputLike</a></dd></dl></div>
+      <p class="shortcomment cmt">Data type of these op output indexed slices.</p><div class="fullcomment"><div class="comment cmt"><p>Data type of these op output indexed slices.</p></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="" class="extype" name="org.platanios.tensorflow.api.ops.OutputIndexedSlices">OutputIndexedSlices</a> → <a href="OutputLike.html" class="extype" name="org.platanios.tensorflow.api.ops.OutputLike">OutputLike</a></dd></dl></div>
     </li><li name="org.platanios.tensorflow.api.ops.OutputIndexedSlices#denseShape" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
       <a id="denseShape:org.platanios.tensorflow.api.ops.Output"></a><a id="denseShape:Output"></a>
       <span class="permalink">
@@ -521,7 +533,7 @@ sparse gradients, such as <code>gather</code>.</p><p>Note that this is different
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">eq</span><span class="params">(<span name="arg0">arg0: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></span>)</span><span class="result">: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a></span>
+        <span class="name">eq</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.3/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a></span>
       </span>
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
@@ -537,7 +549,7 @@ sparse gradients, such as <code>gather</code>.</p><p>Note that this is different
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">finalize</span><span class="params">()</span><span class="result">: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
+        <span class="name">finalize</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.3/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
       </span>
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a href="../../../../../java/lang/index.html" class="extype" name="java.lang">java.lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
@@ -607,7 +619,7 @@ sparse gradients, such as <code>gather</code>.</p><p>Note that this is different
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">isInstanceOf</span><span class="tparams">[<span name="T0">T0</span>]</span><span class="result">: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a></span>
+        <span class="name">isInstanceOf</span><span class="tparams">[<span name="T0">T0</span>]</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.3/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a></span>
       </span>
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>Any</dd></dl></div>
@@ -639,7 +651,7 @@ sparse gradients, such as <code>gather</code>.</p><p>Note that this is different
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">ne</span><span class="params">(<span name="arg0">arg0: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></span>)</span><span class="result">: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a></span>
+        <span class="name">ne</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.3/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a></span>
       </span>
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
@@ -655,7 +667,7 @@ sparse gradients, such as <code>gather</code>.</p><p>Note that this is different
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">notify</span><span class="params">()</span><span class="result">: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
+        <span class="name">notify</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.3/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
       </span>
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
@@ -671,7 +683,7 @@ sparse gradients, such as <code>gather</code>.</p><p>Note that this is different
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">notifyAll</span><span class="params">()</span><span class="result">: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
+        <span class="name">notifyAll</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.3/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
       </span>
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
@@ -691,6 +703,23 @@ sparse gradients, such as <code>gather</code>.</p><p>Note that this is different
       </span>
       
       <p class="shortcomment cmt">Op that outputs these indexed slices.</p><div class="fullcomment"><div class="comment cmt"><p>Op that outputs these indexed slices.</p></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="" class="extype" name="org.platanios.tensorflow.api.ops.OutputIndexedSlices">OutputIndexedSlices</a> → <a href="OutputLike.html" class="extype" name="org.platanios.tensorflow.api.ops.OutputLike">OutputLike</a></dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.ops.OutputIndexedSlices#shape" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="shape:org.platanios.tensorflow.api.core.Shape"></a><a id="shape:core.Shape"></a>
+      <span class="permalink">
+      <a href="../../../../../org/platanios/tensorflow/api/ops/OutputIndexedSlices.html#shape:org.platanios.tensorflow.api.core.Shape" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">shape</span><span class="result">: <a href="../core/Shape.html" class="extype" name="org.platanios.tensorflow.api.core.Shape">core.Shape</a></span>
+      </span>
+      
+      <p class="shortcomment cmt">Gets the <a href="../index.html#Shape=org.platanios.tensorflow.api.core.Shape" class="extmbr" name="org.platanios.tensorflow.api.Shape">Shape</a> corresponding to the shape of the dense tensor that these indexed slices represent.</p><div class="fullcomment"><div class="comment cmt"><p>Gets the <a href="../index.html#Shape=org.platanios.tensorflow.api.core.Shape" class="extmbr" name="org.platanios.tensorflow.api.Shape">Shape</a> corresponding to the shape of the dense tensor that these indexed slices represent.
+</p></div><dl class="paramcmts block"><dt>returns</dt><dd class="cmt"><p>Dense tensor shape.</p></dd></dl></div>
     </li><li name="scala.AnyRef#synchronized" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="synchronized[T0](x$1:=&gt;T0):T0"></a><a id="synchronized[T0](⇒T0):T0"></a>
       <span class="permalink">
@@ -735,7 +764,7 @@ sparse gradients, such as <code>gather</code>.</p><p>Note that this is different
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">toOutputIndexedSlices</span><span class="params">(<span name="optimize">optimize: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a> = <span class="symbol">true</span></span>)</span><span class="result">: <a href="" class="extype" name="org.platanios.tensorflow.api.ops.OutputIndexedSlices">OutputIndexedSlices</a></span>
+        <span class="name">toOutputIndexedSlices</span><span class="params">(<span name="optimize">optimize: <a href="http://www.scala-lang.org/api/2.12.3/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a> = <span class="symbol">true</span></span>)</span><span class="result">: <a href="" class="extype" name="org.platanios.tensorflow.api.ops.OutputIndexedSlices">OutputIndexedSlices</a></span>
       </span>
       
       <p class="shortcomment cmt">Returns an <a href="" class="extype" name="org.platanios.tensorflow.api.ops.OutputIndexedSlices">OutputIndexedSlices</a> that has the same value as this <a href="OutputLike.html" class="extype" name="org.platanios.tensorflow.api.ops.OutputLike">OutputLike</a>.</p><div class="fullcomment"><div class="comment cmt"><p>Returns an <a href="" class="extype" name="org.platanios.tensorflow.api.ops.OutputIndexedSlices">OutputIndexedSlices</a> that has the same value as this <a href="OutputLike.html" class="extype" name="org.platanios.tensorflow.api.ops.OutputLike">OutputLike</a>.
@@ -757,6 +786,25 @@ sparse gradients, such as <code>gather</code>.</p><p>Note that this is different
       </span>
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="" class="extype" name="org.platanios.tensorflow.api.ops.OutputIndexedSlices">OutputIndexedSlices</a> → AnyRef → Any</dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.ops.OutputIndexedSlices#value" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="value(feeds:org.platanios.tensorflow.api.core.client.FeedMap,session:org.platanios.tensorflow.api.core.client.Session):org.platanios.tensorflow.api.tensors.TensorIndexedSlices"></a><a id="value(FeedMap,Session):TensorIndexedSlices"></a>
+      <span class="permalink">
+      <a href="../../../../../org/platanios/tensorflow/api/ops/OutputIndexedSlices.html#value(feeds:org.platanios.tensorflow.api.core.client.FeedMap,session:org.platanios.tensorflow.api.core.client.Session):org.platanios.tensorflow.api.tensors.TensorIndexedSlices" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">value</span><span class="params">(<span name="feeds">feeds: <a href="../core/client/FeedMap.html" class="extype" name="org.platanios.tensorflow.api.core.client.FeedMap">FeedMap</a> = <span class="symbol"><span class="name"><a href="../../../../index.html">FeedMap.empty</a></span></span></span>, <span name="session">session: <a href="../core/client/Session.html" class="extype" name="org.platanios.tensorflow.api.core.client.Session">Session</a> = <span class="symbol">null</span></span>)</span><span class="result">: <a href="../tensors/TensorIndexedSlices.html" class="extype" name="org.platanios.tensorflow.api.tensors.TensorIndexedSlices">TensorIndexedSlices</a></span>
+      </span>
+      
+      <p class="shortcomment cmt">Evaluates these indexed slices.</p><div class="fullcomment"><div class="comment cmt"><p>Evaluates these indexed slices.</p><p>If <code>feeds</code> is non-empty, then the provided feed values are fed into the session for computing the value of these
+indexed slices.</p><p>If <code>session</code> is <code>null</code> (i.e., not provided), then the default session is used. Otherwise, <code>session</code> is used for
+the evaluation.
+</p></div><dl class="paramcmts block"><dt class="param">feeds</dt><dd class="cmt"><p>Tensors to feed into the session for this evaluation.</p></dd><dt class="param">session</dt><dd class="cmt"><p>Optional session to use for the evaluation.</p></dd><dt>returns</dt><dd class="cmt"><p>Value of these indexed slices, for this evaluation.</p></dd></dl></div>
     </li><li name="org.platanios.tensorflow.api.ops.OutputIndexedSlices#values" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
       <a id="values:org.platanios.tensorflow.api.ops.Output"></a><a id="values:Output"></a>
       <span class="permalink">
@@ -785,7 +833,7 @@ sparse gradients, such as <code>gather</code>.</p><p>Note that this is different
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">wait</span><span class="params">()</span><span class="result">: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
+        <span class="name">wait</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.3/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
       </span>
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
@@ -807,7 +855,7 @@ sparse gradients, such as <code>gather</code>.</p><p>Note that this is different
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">wait</span><span class="params">(<span name="arg0">arg0: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Long.html#scala.Long" class="extype" name="scala.Long">Long</a></span>, <span name="arg1">arg1: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a></span>)</span><span class="result">: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
+        <span class="name">wait</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.12.3/scala/Long.html#scala.Long" class="extype" name="scala.Long">Long</a></span>, <span name="arg1">arg1: <a href="http://www.scala-lang.org/api/2.12.3/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.3/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
       </span>
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
@@ -829,7 +877,7 @@ sparse gradients, such as <code>gather</code>.</p><p>Note that this is different
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">wait</span><span class="params">(<span name="arg0">arg0: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Long.html#scala.Long" class="extype" name="scala.Long">Long</a></span>)</span><span class="result">: <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
+        <span class="name">wait</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.12.3/scala/Long.html#scala.Long" class="extype" name="scala.Long">Long</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.3/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
       </span>
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
@@ -850,19 +898,19 @@ sparse gradients, such as <code>gather</code>.</p><p>Note that this is different
 
         <div id="inheritedMembers">
         <div class="parent" name="scala.Serializable">
-              <h3>Inherited from <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></h3>
+              <h3>Inherited from <a href="http://www.scala-lang.org/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></h3>
             </div><div class="parent" name="java.io.Serializable">
-              <h3>Inherited from <a href="https://docs.oracle.com/javase/8/docs/api/java/io/Serializable.html#java.io.Serializable" class="extype" name="java.io.Serializable">Serializable</a></h3>
+              <h3>Inherited from <span class="extype" name="java.io.Serializable">Serializable</span></h3>
             </div><div class="parent" name="scala.Product">
-              <h3>Inherited from <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a></h3>
+              <h3>Inherited from <a href="http://www.scala-lang.org/api/2.12.3/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a></h3>
             </div><div class="parent" name="scala.Equals">
-              <h3>Inherited from <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/Equals.html#scala.Equals" class="extype" name="scala.Equals">Equals</a></h3>
+              <h3>Inherited from <a href="http://www.scala-lang.org/api/2.12.3/scala/Equals.html#scala.Equals" class="extype" name="scala.Equals">Equals</a></h3>
             </div><div class="parent" name="org.platanios.tensorflow.api.ops.OutputLike">
               <h3>Inherited from <a href="OutputLike.html" class="extype" name="org.platanios.tensorflow.api.ops.OutputLike">OutputLike</a></h3>
             </div><div class="parent" name="scala.AnyRef">
-              <h3>Inherited from <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></h3>
+              <h3>Inherited from <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></h3>
             </div><div class="parent" name="scala.Any">
-              <h3>Inherited from <a href="http://scala-lang.org/files/archive/api/2.12.3/scala/collection/immutable/List.html#scala.Any" class="extype" name="scala.collection.immutable.List">Any</a></h3>
+              <h3>Inherited from <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.Any" class="extype" name="scala.collection.immutable.List">Any</a></h3>
             </div>
         
         </div>
