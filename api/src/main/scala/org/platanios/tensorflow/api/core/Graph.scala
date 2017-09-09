@@ -17,13 +17,13 @@ package org.platanios.tensorflow.api.core
 
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception.{GraphMismatchException, InvalidGraphElementException}
-import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output}
+import org.platanios.tensorflow.api.ops.{Basic, InstantiatedFunction, Math, Op, Output}
 import org.platanios.tensorflow.api.ops.variables.{Saver, Variable, VariableStore}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.STRING
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer}
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
-import org.platanios.tensorflow.jni.{Graph => NativeGraph, TensorFlow => NativeLibrary}
+import org.platanios.tensorflow.jni.{Function => NativeFunction, Graph => NativeGraph, TensorFlow => NativeLibrary}
 
 import com.google.protobuf.ByteString
 import org.tensorflow.framework.CollectionDef.{BytesList, Int64List, NodeList}
@@ -39,13 +39,21 @@ import scala.util.matching.Regex
 /**
   * @author Emmanouil Antonios Platanios
   */
-final case class Graph(private[api] var nativeHandle: Long) extends Closeable with ProtoSerializable {
+class Graph private[api](private[api] var nativeHandle: Long) extends Closeable with ProtoSerializable {
   private[this] object NativeHandleLock
 
   // Keep track of references in the Scala side and notify the native library when the graph is not referenced
   // anymore anywhere in the Scala side. This will let the native library free the allocated resources and prevent a
   // potential memory leak.
   Disposer.add(this, () => this.close())
+
+  /** List of functions that will be called right before disposing this graph object. Such functions are usually used to
+    * clean up native resources used by this graph. */
+  private[api] val cleanupFunctions: mutable.ListBuffer[() => Unit] = mutable.ListBuffer.empty
+
+  /** Adds a cleanup function to this graph. That is, a function that will be called right before disposing this graph
+    * object. Such functions are usually used to clean up native resources used by this graph. */
+  private[api] def addCleanupFunction(function: () => Unit): Unit = cleanupFunctions.append(function)
 
   // TODO: [SESSION] Need to be able to reset this session.
   private[api] val defaultSession: Session = Session(this)
@@ -104,6 +112,28 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable wi
       fullName
     }
   }
+
+  /** Helper function for processing tensors before using them as inputs for ops placed in this graph. Useful for
+    * creating function graphs. */
+  private[api] def processOpInput(output: Output): Output = output
+
+  /** Map from function name to function instance, for functions added to this graph. */
+  private[this] val functionsMap: mutable.Map[String, InstantiatedFunction[_, _]] = mutable.Map.empty
+
+  /** Returns the set of functions that have been added to this graph. */
+  private[api] def functions: Set[InstantiatedFunction[_, _]] = functionsMap.values.toSet
+
+  /** Adds the provided function instance to this graph. */
+  private[api] def addFunction(function: InstantiatedFunction[_, _]): Unit = {
+    if (!functionsMap.contains(function.name)) {
+      NativeFunction.addToGraph(nativeHandle, function.nativeHandle)
+      functionsMap.update(function.name, function)
+    }
+  }
+
+  /** Return the function instance in this graph corresponding to the provided name. If such a function does not exist
+    * in this graph, then `None` is returned. */
+  private[api] def getFunction(name: String): Option[InstantiatedFunction[_, _]] = functionsMap.get(name)
 
   /** Map from collection key to set of values in that collection. */
   private[this] val collections: mutable.Map[Graph.Key[_], mutable.Set[_]] = mutable.Map.empty
@@ -745,6 +775,7 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable wi
             return
         }
       }
+      cleanupFunctions.foreach(_ ())
       NativeGraph.delete(nativeHandle)
       nativeHandle = 0
     }
@@ -762,7 +793,7 @@ final case class Graph(private[api] var nativeHandle: Long) extends Closeable wi
 
 object Graph {
   /** Constructs and returns an empty new graph. */
-  def apply(): Graph = Graph(nativeHandle = NativeGraph.allocate())
+  def apply(): Graph = new Graph(nativeHandle = NativeGraph.allocate())
 
   /** Imports a graph from the provided serialized graph object.
     *

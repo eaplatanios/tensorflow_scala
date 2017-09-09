@@ -99,6 +99,8 @@ package object api extends Implicits with Documentation {
     * @groupprio ImageOps      700
     * @groupname LoggingOps    Ops / Logging
     * @groupprio LoggingOps    800
+    * @groupname CallbackOps   Ops / Callback
+    * @groupprio CallbackOps   900
     */
   object tf
       extends core.API
@@ -123,6 +125,8 @@ package object api extends Implicits with Documentation {
     * @groupprio ImageOps      700
     * @groupname LoggingOps    Ops / Logging
     * @groupprio LoggingOps    800
+    * @groupname CallbackOps   Ops / Callback
+    * @groupprio CallbackOps   900
     */
   object tfi
       extends core.API

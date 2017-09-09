@@ -1067,7 +1067,7 @@ object Op {
         context.colocationOps.foreach(op => NativeOp.colocateWith(nativeHandle, op.nativeHandle))
         mergeAttributes(context.attributes)
         setAttributes(nativeHandle)
-        // TODO: Set the "container" attribute when necessary. Need a way to check for statefulness.
+        // TODO: !!! Set the "container" attribute when necessary. Need a way to check for statefulness.
         val operation = Op(graph, NativeOp.finish(nativeHandle))
         built = true
         operation
@@ -1075,7 +1075,10 @@ object Op {
     }
 
     private def mergeAttributes(attributes: Map[String, Any]): Unit = {
-      attributes.foreach(this.attributes += _)
+      attributes.foreach(attribute => {
+        if (!this.attributes.contains(attribute._1))
+          this.attributes += attribute
+      })
     }
 
     private def setAttributes(nativeHandle: Long): Unit = {
@@ -1123,17 +1126,20 @@ object Op {
     private def encodeString(value: String): Array[Byte] = value.getBytes(Charset.forName("UTF-8"))
 
     def addInput(input: Output): Builder = {
+      val processedInput = graph.processOpInput(input)
       this.inputFunctions :+= {
-        (nativeHandle: Long) => NativeOp.addInput(nativeHandle, input.op.nativeHandle, input.index)
+        (nativeHandle: Long) => NativeOp.addInput(nativeHandle, processedInput.op.nativeHandle, processedInput.index)
       }
       this.inputs :+= input
       this
     }
 
     def addInputList(inputList: Seq[Output]): Builder = {
+      val processedInputList = inputList.map(graph.processOpInput)
       this.inputFunctions :+= {
         (nativeHandle: Long) =>
-          NativeOp.addInputList(nativeHandle, inputList.map(_.nativeHandle).toArray, inputList.map(_.index).toArray)
+          NativeOp.addInputList(
+            nativeHandle, processedInputList.map(_.nativeHandle).toArray, processedInputList.map(_.index).toArray)
       }
       this.inputLists :+= inputList
       this
