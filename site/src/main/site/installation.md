@@ -5,70 +5,89 @@ section: "installation"
 position: 2
 ---
 
+[sonatype]: https://oss.sonatype.org/index.html#nexus-search;quick~platanios
+
 # Installation
 
-You first need to make sure you have the TensorFlow dynamic library 
-installed. You can either download pre-compiled versions of it, or you 
-can compile it yourself from the TensorFlow sources.
+Binary release artifacts are published to the [Sonatype OSS Repository Hosting service][sonatype] and synced to Maven
+Central. Currently, given the beta status of this project, only snapshot releases are published.
 
-**NOTE:** *The pre-compiled versions that you can download are not 
-currently supported. Please compile the native library yourself. The 
-pre-compiled versions will start working again once their updated as 
-the Scala API depends on some functionality that was added after the 
-last release.*
+## Using with SBT
 
-## Downloading the TensorFlow Dynamic Library
+To include the Sonatype repositories in your SBT build, you should add the following to your `build.sbt` file:
 
-You can download it from one of the following links:
-  - **Linux:**
-    - CPU-only: [https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-linux-x86_64-1.3.0.tar.gz](https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-linux-x86_64-1.3.0.tar.gz)
-    - GPU-enabled: [https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-gpu-linux-x86_64-1.3.0.tar.gz](https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-gpu-linux-x86_64-1.3.0.tar.gz)
-  - **Mac:**
-    - CPU-only: [https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-darwin-x86_64-1.3.0.tar.gz](https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-darwin-x86_64-1.3.0.tar.gz)
-  - **Windows:** 
-    - CPU-only: [https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-windows-x86_64-1.3.0.zip](https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-windows-x86_64-1.3.0.zip)
+```scala
+resolvers ++= Seq(
+  Resolver.sonatypeRepo("releases"),
+  Resolver.sonatypeRepo("snapshots")
+)
+```
 
-## Compiling the TensorFlow Dynamic Library
+TensorFlow for Scala is currently available for Scala 2.11.x and for 2.12.x. The main line of development is version 
+2.12.3. To use TensorFlow in your SBT project, you should add the following to your `build.sbt` file:
 
-Perform the following steps:
-  1. Clone the 
-     [TensorFlow repository](https://github.com/tensorflow/tensorflow) 
-     in a directory (e.g., `tensorflow`).
-  2. Compile the TensorFlow dynamic library by running the following
-     commands in that directory:
+```scala
+libraryDependencies += "org.platanios" %% "tensorflow" % "0.1.0-SNAPSHOT"
+```
 
-     ```bash
-     ./configure
-     bazel build --config=opt //tensorflow:libtensorflow.so
-     ```
+**NOTE:** This requires that you have installed the TensorFlow dynamic library in your system. If you haven't, please 
+continue reading into the following section.
 
-     Make sure to add the `--config=cuda` option when running the last
-     command, if compiling with CUDA support.
-  3. Copy the `bazel-bin/tensorflow/libtensorflow.so` (possibly having 
-     a different extension, depending on the platform you're using) 
-     file in a directory that is in `LD_LIBRARY_PATH`, or set 
-     `LD_LIBRARY_PATH` appropriately.
+## Dependencies
+
+### TensorFlow Dynamic Library
+
+TensorFlow for Scala is an API for [TensorFlow](https://www.tensorflow.org). In order for it work, it requires that you 
+have the main TensorFlow dynamic library installed. You have two options for dealing with this requirement:
+  1. Use:
      
-## Installing the Protocol Buffers Compiler
+     ```scala
+     libraryDependencies += "org.platanios" %% "tensorflow" % "0.1.0-SNAPSHOT" classifier "linux-cpu-x86_64"
+     ```
+     
+     instead of the line above, for your `build.sbt` file. *Make sure to replace `linux-cpu-x86_64` with the string 
+     that corresponds to your platform.* Currently supported platforms are: `linux-cpu-x86_64`, `linux-gpu-x86_64`, and 
+     `darwin-cpu-x86_64`. I hope to support Windows soon.
+  2. Compile the TensorFlow dynamic library yourself and install it in your system. This is the recommended approach if 
+     you care about performance, but it is also significantly more complicated and time consuming. It consists of the 
+     following steps:
+       1. Clone the TensorFlow repository:
+       
+          ```bash
+          git clone https://github.com/tensorflow/tensorflow.git <repository_directory>
+          cd <repository_directory>
+          ```
+          
+       2. Compile the library using the following commands:
+          
+          ```bash
+          ./configure
+          bazel build --config=opt //tensorflow:libtensorflow.so
+          ```
+          
+          For details regarding the configuration options (e.g., GPU support), please refer to the relevant main 
+          TensorFlow [documentation page](https://www.tensorflow.org/install/install_sources).
+       3. Copy the `bazel-bin/tensorflow/libtensorflow.so` (possibly having  a different extension, depending on the 
+          platform you're using) file in a directory that is in `LD_LIBRARY_PATH`, or set `LD_LIBRARY_PATH` 
+          appropriately.
 
-You also need protoc, the Protocol Buffers compiler.
+### Protocol Buffers Compiler
 
-On Debian/Ubuntu, you can install it with APT:
-
-```bash
-apt install protobuf-compiler
-```
-
-You can also download prebuild binaries from [https://github.com/google/protobuf/releases/](https://github.com/google/protobuf/releases/)
-(choose the protoc variant appropriate for your platform).
-
-## Compiling the TensorFlow Scala API
-
-First make sure you have [CMake](https://cmake.org/install/) installed, 
-and that the TensorFlow dynamic library is in the path. Then, you can  
-compile the Scala API by running the following command from within the 
-`tensorflow_scala` directory:
-
-```bash
-sbt compile
-```
+TensorFlow for Scala also requires `protoc`, the Protocol Buffers compiler, to be installed. You also have two options 
+for dealing with this requirement:
+  1. Install it using a package manager:
+     - On Debian/Ubuntu, you can install it with APT, using the following command:
+       
+       ```bash
+       apt-get install protobuf-compiler
+       ```
+     - On Mac, you can install with [Homebrew](https://brew.sh), using the following command:
+       
+       ```bash
+       brew install protobuf
+       ```
+  2. Download pre-built binaries from 
+     [https://github.com/google/protobuf/releases/](https://github.com/google/protobuf/releases/) (choose the `protoc` 
+     variant appropriate for your platform) and make sure that `protoc` is in the `PATH` (either by installing it in a 
+     location in the `PATH`, or by adding its location to the `PATH`).
+**NOTE:** You need to install `protoc` with version at least 3.
