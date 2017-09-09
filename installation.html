@@ -10,10 +10,7 @@ Maven Central. Currently, given the beta status of this project, only snapshot r
 <p>To include the Sonatype repositories in your SBT build and use TensorFlow for Scala, you should add the following to 
 your <code class="highlighter-rouge">build.sbt</code> file:</p>
 
-<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="n">resolvers</span> <span class="o">++=</span> <span class="nc">Seq</span><span class="o">(</span>
-  <span class="nc">Resolver</span><span class="o">.</span><span class="n">sonatypeRepo</span><span class="o">(</span><span class="s">"releases"</span><span class="o">),</span>
-  <span class="nc">Resolver</span><span class="o">.</span><span class="n">sonatypeRepo</span><span class="o">(</span><span class="s">"snapshots"</span><span class="o">)</span>
-<span class="o">)</span>
+<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="n">resolvers</span> <span class="o">+=</span> <span class="nc">Resolver</span><span class="o">.</span><span class="n">sonatypeRepo</span><span class="o">(</span><span class="s">"snapshots"</span><span class="o">)</span>
 <span class="n">libraryDependencies</span> <span class="o">+=</span> <span class="s">"org.platanios"</span> <span class="o">%%</span> <span class="s">"tensorflow"</span> <span class="o">%</span> <span class="s">"0.1.0-SNAPSHOT"</span>
 </code></pre>
 </div>
