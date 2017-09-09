@@ -2,7 +2,7 @@
 layout: page
 title:  "Contributing"
 section: "contributing"
-position: 3
+position: 4
 ---
 
 # High-Priority TODOs

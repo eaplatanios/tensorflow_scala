@@ -15,14 +15,11 @@ Maven Central. Currently, given the beta status of this project, only snapshot r
 
 ## Using with SBT
 
-To include the Sonatype repositories in your SBT build and use TensorFlow for Scala, you should add the following to 
-your `build.sbt` file:
+To include the Sonatype repositories in your [SBT](http://www.scala-sbt.org) build and use TensorFlow for Scala, you 
+should add the following to your `build.sbt` file:
 
 ```scala
-resolvers ++= Seq(
-  Resolver.sonatypeRepo("releases"),
-  Resolver.sonatypeRepo("snapshots")
-)
+resolvers += Resolver.sonatypeRepo("snapshots")
 libraryDependencies += "org.platanios" %% "tensorflow" % "0.1.0-SNAPSHOT"
 ```
 
@@ -75,7 +72,8 @@ TensorFlow for Scala also requires `protoc`, the Protocol Buffers compiler, to b
 for dealing with this requirement:
 
   1. Install it using a package manager:
-     - On Debian/Ubuntu, you can install it with APT, using the following command:
+     - On Debian/Ubuntu, you can install it with [APT](https://help.ubuntu.com/community/AptGet), using the following 
+       command:
        
        ```bash
        apt-get install protobuf-compiler

@@ -1,13 +1,8 @@
----
-layout: docs
-title: "Tensors"
----
-
 ```tut:invisible
 import org.platanios.tensorflow.api._
 ```
 
-# Tensors
+## Tensors
 
 A tensor is the main data structure used in TensorFlow. It represents a multi-dimensional array and can hold elements of 
 various data types. For example, the following code creates an integer tensor filled with zeros with shape `[2, 5]` 

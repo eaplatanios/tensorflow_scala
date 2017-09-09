@@ -1,7 +1,4 @@
----
-layout: docs
-title: "Build Configuration"
----
+## Build Configuration
 
 SBT commands:
 - `clean / compile / nativeCompile / test`: Commands that will compile and run everything for 
