@@ -29,13 +29,16 @@ import scala.collection.JavaConverters._
 object TensorFlow {
   final class NativeException(message: String) extends RuntimeException(message)
 
-  private[this] val logger      : Logger = Logger(LoggerFactory.getLogger("TensorFlow Native"))
+  private[this] val logger: Logger = Logger(LoggerFactory.getLogger("TensorFlow Native"))
 
   /** TensorFlow native library name. */
-  private[this] val LIB_NAME    : String = "tensorflow"
+  private[this] val LIB_NAME: String = "tensorflow"
 
   /** TensorFlow JNI bindings library name. */
   private[this] val JNI_LIB_NAME: String = "tensorflow_jni"
+
+  // /** TensorFlow ops library name. */
+  // private[this] val OPS_LIB_NAME: String = "tensorflow_ops"
 
   /** Current platform operating system. */
   private[this] val os = {
@@ -100,6 +103,12 @@ object TensorFlow {
                 s"native library not being available. Error: ${exception.getMessage}.")
         }
       })
+
+      // Load the TensorFlow ops library from the appropriate resource.
+      // val opsResourceStream = Option(classLoader.getResourceAsStream(makeResourceName(OPS_LIB_NAME)))
+      // val opsPath = opsResourceStream.map(extractResource(OPS_LIB_NAME, _, tempDirectory))
+      // TODO: !!! For some reason this can be called twice.
+      // opsPath.foreach(path => loadOpLibrary(path.toAbsolutePath.toString))
     }
   }
 
@@ -163,8 +172,10 @@ object TensorFlow {
 
   load()
 
+  @native def jvmPointer: String
   @native def version: String
   @native def dataTypeSize(dataTypeCValue: Int): Int
+  @native def loadOpLibrary(libraryPath: String): Array[Byte]
 
   // //region Internal API
   //

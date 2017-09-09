@@ -73,6 +73,8 @@ object TensorFlowNativePackage extends AutoPlugin {
 
         IO.createDirectory(platformTargetDir)
         IO.createDirectory(platformTargetDir / "docker")
+        IO.createDirectory(platformTargetDir / "downloads")
+        IO.createDirectory(platformTargetDir / "downloads" / "lib")
         IO.createDirectory(platformTargetDir / "lib")
 
         // Generate Dockerfile
@@ -200,7 +202,7 @@ object TensorFlowNativePackage extends AutoPlugin {
          |set(CMAKE_CXX_COMPILER_WORKS 1)
          |
          |# Define project and related variables
-         |project(tensorflow_jni CXX)
+         |project(tensorflow CXX)
          |set(PROJECT_VERSION_MAJOR 0)
          |set(PROJECT_VERSION_MINOR 0)
          |set(PROJECT_VERSION_PATCH 0)
@@ -208,20 +210,22 @@ object TensorFlowNativePackage extends AutoPlugin {
          |# Set up JNI
          |find_package(JNI REQUIRED)
          |if (JNI_FOUND)
-         |    message (STATUS "JNI include directories: $${JNI_INCLUDE_DIRS}")
+         |    message(STATUS "JNI include directories: $${JNI_INCLUDE_DIRS}")
          |endif()
          |
          |# Set up the cross-compilation environment
          |set(CMAKE_SYSTEM_NAME $cMakeSystemName)
          |set(CMAKE_C_COMPILER $cMakeCCompiler)
          |set(CMAKE_CXX_COMPILER $cMakeCXXCompiler)
-         |set(CMAKE_CXX_FLAGS "$${CMAKE_CXX_FLAGS} $cMakeCXXFlags")
-         |$cMakeListsAdditions
+         |set(CMAKE_CXX_FLAGS "$${CMAKE_CXX_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=0 $cMakeCXXFlags")
+         |
          |# set(CMAKE_SKIP_RPATH TRUE)
          |
          |# Include directories
          |include_directories(.)
-         |include_directories(generated)
+         |include_directories(./generated)
+         |# include_directories(./include)
+         |# include_directories(./ops)
          |include_directories($${JNI_INCLUDE_DIRS})
          |
          |# Find Native TensorFlow Library to link
@@ -230,37 +234,52 @@ object TensorFlowNativePackage extends AutoPlugin {
          |  message(FATAL_ERROR "Library `tensorflow` not found.")
          |endif()
          |
-         |# Sources
-         |file(GLOB_RECURSE LIB_SRC
-         |  "*.c"
+         |# Collect sources for the JNI and the op libraries
+         |
+         |file(GLOB JNI_LIB_SRC
          |  "*.cc"
-         |  "*.cpp"
+         |  "generated/*.cc"
          |)
          |
+         |# file(GLOB OP_LIB_SRC
+         |#   "ops/*.cc"
+         |# )
+         |
          |# Setup installation targets
-         |set(LIB_NAME $${PROJECT_NAME})
-         |add_library($${LIB_NAME} MODULE $${LIB_SRC})
-         |target_link_libraries($${LIB_NAME} $${LIB_TENSORFLOW})
-         |set_target_properties($${LIB_NAME} PROPERTIES SUFFIX ".$cMakeTargetSuffix")
-         |install(TARGETS $${LIB_NAME} LIBRARY DESTINATION .)
+         |set(JNI_LIB_NAME "$${PROJECT_NAME}_jni")
+         |add_library($${JNI_LIB_NAME} MODULE $${JNI_LIB_SRC})
+         |target_link_libraries($${JNI_LIB_NAME} $${LIB_TENSORFLOW})
+         |install(TARGETS $${JNI_LIB_NAME} LIBRARY DESTINATION .)
+         |
+         |# set(OP_LIB_NAME "$${PROJECT_NAME}_ops")
+         |# add_library($${OP_LIB_NAME} MODULE $${OP_LIB_SRC})
+         |# target_link_libraries($${OP_LIB_NAME} $${LIB_TENSORFLOW})
+         |# install(TARGETS $${OP_LIB_NAME} LIBRARY DESTINATION. )
+         |
+         |$cMakeListsAdditions
          |""".stripMargin
     }
 
     def downloadTfLib(targetDir: String, tfVersion: String): Option[ProcessBuilder] = {
-      val path = s"$targetDir/lib/$tfLibFilename"
+      val path = s"$targetDir/downloads/lib/$tfLibFilename"
       val downloadProcess = {
         if (Files.notExists(Paths.get(path)))
           url(tfLibUrl(tfVersion)) #> file(path)
         else
           Process(true)
       }
-      val extractProcess = Process("tar" :: "xf" :: path :: Nil, new File(s"$targetDir/lib/"))
+      val extractProcess = {
+        if (tfLibFilename.endsWith(".tar.gz"))
+          Process("tar" :: "xf" :: path :: Nil, new File(s"$targetDir/"))
+        else
+          Process("unzip" :: "-qq" :: "-u" :: path :: Nil, new File(s"$targetDir/"))
+      }
       Some(downloadProcess #&& extractProcess)
     }
 
     def build(dockerImage: String, srcDir: String, targetDir: String): Option[ProcessBuilder] = {
       val dockerContainer: String = s"${dockerImage}_$name"
-      val hostTfLibPath: String = s"$targetDir/lib/$tfLibFilename"
+      val hostTfLibPath: String = s"$targetDir/downloads/lib/$tfLibFilename"
       val hostCMakeListsPath: String = s"$targetDir/docker/CMakeLists.txt"
       // Create the necessary Docker image
       val process = Process(
@@ -274,7 +293,7 @@ object TensorFlowNativePackage extends AutoPlugin {
           // Create a new container and copy the repository code in it
           Process("docker" :: "run" :: "--name" :: dockerContainer :: "-dit" :: dockerImage :: "/bin/bash" :: Nil) #&&
           Process("docker" :: "cp" :: hostTfLibPath :: s"$dockerContainer:/root/$tfLibFilename" :: Nil) #&&
-          Process("docker" :: "cp" :: s"$targetDir/lib/lib/." :: s"$dockerContainer:$cMakeLibPath" :: Nil) #&&
+          Process("docker" :: "cp" :: s"$targetDir/lib/." :: s"$dockerContainer:$cMakeLibPath" :: Nil) #&&
           // Extract the TensorFlow dynamic library in the container
           // Process("docker" :: "exec" :: dockerContainer :: "bash" :: "-c" :: tfLibExtractCommand :: Nil) #&&
           // Compile and package the JNI bindings
@@ -375,14 +394,6 @@ object TensorFlowNativePackage extends AutoPlugin {
     override val cMakeTargetSuffix: String = "dylib"
     override val cMakePath        : String = s"/usr/x86_64-linux-gnu/$crossTriple/bin"
     override val cMakeLibPath     : String = s"/usr/x86_64-linux-gnu/$crossTriple/lib"
-
-    // TODO: Remove this when TensorFlow PR #12820 is merged.
-    override def downloadTfLib(targetDir: String, tfVersion: String): Option[ProcessBuilder] = {
-      val writePermissionProcess = Process("chmod" :: "+w" :: s"$targetDir/lib/lib/libtensorflow.so" :: Nil)
-      val installNameProcess = Process(
-        "install_name_tool" :: "-id" :: "@rpath/libtensorflow.so" :: s"$targetDir/lib/lib/libtensorflow.so" :: Nil)
-      super.downloadTfLib(targetDir, tfVersion).map(_ #&& writePermissionProcess #&& installNameProcess)
-    }
   }
 
   object WINDOWS_x86_64 extends Platform {
