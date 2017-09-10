@@ -73,10 +73,14 @@ you read there applies here too.
 
 Funding for the development of this library has been generously provided by the following sponsors:
 
-[nsf_logo]: nsf_logo.svg
+[cmu_logo]: {{site.baseurl}}/img/cmu_logo.svg
+{: height="72px" width="72px"}
+[nsf_logo]: {{site.baseurl}}/img/nsf_logo.svg
+{: height="72px" width="72px"}
+[afosr_logo]: {{site.baseurl}}/img/afosr_logo.gif
 {: height="72px" width="72px"}
 
-|                             |            ![nsf_logo]            |                                                 |
-|-----------------------------|-----------------------------------|-------------------------------------------------|
+|         ![cmu_logo]         |            ![nsf_logo]            |                  ![afosr_logo]                  |
+|:---------------------------:|:---------------------------------:|:-----------------------------------------------:|
 | CMU Presidential Fellowship | National Science Foundation (NSF) | Air Force Office of Scientific Research (AFOSR) | 
 |                             | Grant #: IIS1250956               | Grant #: FA95501710218                          |

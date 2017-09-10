@@ -1,3 +1,12 @@
+---
+layout: docs
+title: "Architecture"
+section: "architecture"
+position: 4
+---
+
+# Architecture
+
 ## Build Configuration
 
 SBT commands:

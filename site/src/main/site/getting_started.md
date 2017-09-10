@@ -1,3 +1,10 @@
+---
+layout: docs
+title: "Getting Started"
+section: "getting_started"
+position: 3
+---
+
 [tf_python]: https://www.tensorflow.org/get_started/get_started
 
 # Introduction
@@ -12,3 +19,25 @@ the Learn API (which is currently under development) helps you manage data sets,
 The [Getting Started](#getting-started-1) guide begins with an introduction to the fundamentals of TensorFlow for Scala. 
 It has some overlap with the official [Python API documentation][tf_python], but also introduces new constructs specific 
 to the Scala API.
+
+# Tensors
+
+Tensors are the main data structure used in TensorFlow and are thus a good place to start.
+
+```tut:invisible
+import org.platanios.tensorflow.api._
+```
+
+A tensor is the main data structure used in TensorFlow. It represents a multi-dimensional array and can hold elements of 
+various data types. For example, the following code creates an integer tensor filled with zeros with shape `[2, 5]` 
+(i.e., a two-dimensional array holding integer values, where the first dimension size is 2 and the second is 5):
+```tut
+val tensor = Tensor.zeros(INT32, Shape(2, 5))
+```
+You can print the contents of a tensor as follows:
+```tut
+tensor.summarize()
+```
+
+# Graph
+
