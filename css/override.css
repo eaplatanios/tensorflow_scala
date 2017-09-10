@@ -76,7 +76,7 @@ pre .hljs,
     padding-top: 136px;
     padding-bottom: 80px;
     margin-bottom: 0;
-    background: url("../img/jumbotron_pattern.png") no-repeat scroll;
+    background: url("../img/homepage_background.jpg") no-repeat scroll;
 }
 
 @media
@@ -87,7 +87,7 @@ pre .hljs,
 (min-resolution: 1.3dppx) {
     .jumbotron {
         /* on retina, use image that's scaled by 2 */
-        background-image: url("../img/jumbotron_pattern2x.png");
+        background-image: url("../img/homepage_background.jpg");
         /*background-size: 56px 31px;*/
         background-size: cover;
     }
