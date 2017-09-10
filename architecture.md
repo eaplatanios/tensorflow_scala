@@ -1,3 +1,5 @@
+# Architecture
+
 ## Build Configuration
 
 SBT commands:
@@ -6,3 +8,4 @@ SBT commands:
 - `cross:* / cross:nativeCrossCompile`: Commands that cross-compile native code using Docker container.
 - `publish / publishLocal`: Never cross-compile.
 - `publishCrossCompiled / publishLocalCrossCompiled`: For that purpose use these instead.
+
