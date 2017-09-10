@@ -74,13 +74,14 @@ you read there applies here too.
 Funding for the development of this library has been generously provided by the following sponsors:
 
 [cmu_logo]: {{site.baseurl}}/img/cmu_logo.svg
-{: height="72px" width="72px"}
+{: height="150px" width="200px"}
 [nsf_logo]: {{site.baseurl}}/img/nsf_logo.svg
-{: height="72px" width="72px"}
+{: height="150px" width="150px"}
 [afosr_logo]: {{site.baseurl}}/img/afosr_logo.gif
-{: height="72px" width="72px"}
+{: height="150px" width="150px"}
 
-|         ![cmu_logo]         |            ![nsf_logo]            |                  ![afosr_logo]                  |
-|:---------------------------:|:---------------------------------:|:-----------------------------------------------:|
-| CMU Presidential Fellowship | National Science Foundation (NSF) | Air Force Office of Scientific Research (AFOSR) | 
-|                             | Grant #: IIS1250956               | Grant #: FA95501710218                          |
+{:.funding_table}
+|         ![cmu_logo]                     |            ![nsf_logo]            |                  ![afosr_logo]                  |
+|:---------------------------------------:|:---------------------------------:|:-----------------------------------------------:|
+| **CMU Presidential Fellowship**         | **National Science Foundation**   | **Air Force Office of Scientific Research**     | 
+| awarded to Emmanouil Antonios Platanios | Grant #: IIS1250956               | Grant #: FA95501710218                          |
