@@ -9,11 +9,11 @@
   background: #39474E; }
 
 ::-moz-selection {
-  background: #E05236;
+  background: #ef6c00;
   color: #FFFFFF; }
 
 ::selection {
-  background: #E05236;
+  background: #ef6c00;
   color: #FFFFFF; }
 
 .jumbotron {
@@ -53,7 +53,7 @@ body.docs {
 .sidebar-nav > li a:hover {
   background: #39474E; }
 .sidebar-nav > li a.active {
-  border-left: 3px solid #E05236;
+  border-left: 3px solid #ef6c00;
   color: #fff; }
 .sidebar-nav > .sidebar-brand a {
   background: #39474E; }
