@@ -238,7 +238,7 @@ lazy val site = (project in file("./site"))
       micrositeCssDirectory := (resourceDirectory in Compile).value / "site" / "css",
       micrositeJsDirectory := (resourceDirectory in Compile).value / "site" / "js",
       micrositePalette := Map(
-        "brand-primary"     -> "#E05236",
+        "brand-primary"     -> "rgb(239, 108, 0)",
         "brand-secondary"   -> "#455A64",
         "brand-tertiary"    -> "#39474E", // "#303C42",
         "gray-dark"         -> "#453E46",
