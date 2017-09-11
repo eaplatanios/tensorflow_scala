@@ -27,10 +27,14 @@ object TensorFlowNativeCrossCompiler {
       workingDir: Path, targetDir: String, gitRepository: String, gitRepositoryBranch: String,
       platform: Platform): ProcessBuilder = {
     val repoDir = workingDir.resolve("tensorflow").toFile
-    Process("rm" :: "-rf" :: "tensorflow" :: Nil, workingDir.toFile) #&&
-        Process("git" :: "clone" :: gitRepository :: Nil, workingDir.toFile) #&&
-        Process("git" :: "checkout" :: "-b" :: gitRepositoryBranch ::
-                    s"origin/$gitRepositoryBranch" :: Nil, repoDir) #&&
+    var processBuilder = Process("rm" :: "-rf" :: "tensorflow" :: Nil, workingDir.toFile) #&&
+        Process("git" :: "clone" :: gitRepository :: Nil, workingDir.toFile)
+    if (gitRepositoryBranch != "master") {
+      processBuilder = processBuilder #&&
+          Process("git" :: "checkout" :: "-b" :: gitRepositoryBranch ::
+                      s"origin/$gitRepositoryBranch" :: Nil, repoDir)
+    }
+    processBuilder #&&
         Process(platform.compileScript, repoDir) #&&
         Process(
           "cp" :: s"lib-package/${platform.tfLibFilename}" ::
