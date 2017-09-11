@@ -160,6 +160,9 @@ lazy val jni = (project in file("./jni"))
       target in CrossCompile := target.value / "native",
       nativePlatforms in CrossCompile := Set(LINUX_x86_64, LINUX_GPU_x86_64, DARWIN_x86_64/*", WINDOWS_x86_64"*/),
       tensorFlowBinaryVersion in CrossCompile := "nightly", // tensorFlowVersion
+      compileTFLib in CrossCompile := true,
+      tfLibRepository in CrossCompile := "https://github.com/eaplatanios/tensorflow.git",
+      tfLibRepositoryBranch := "jvm_callback_op",
       // Specify the order in which the different compilation tasks are executed
       nativeCompile := nativeCompile.dependsOn(generateTensorOps).value
     )

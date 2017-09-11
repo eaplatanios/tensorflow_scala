@@ -41,6 +41,20 @@ object TensorFlowNativePackage extends AutoPlugin {
     val tensorFlowBinaryVersion: SettingKey[String] =
       settingKey[String]("###")
 
+    val compileTFLib: SettingKey[Boolean] =
+      settingKey[Boolean](
+        "If `true`, the native TensorFlow library will be compiled on this machine. If `false`, pre-compiled " +
+            "binaries will be downloaded from the TensorFlow CI server.")
+
+    val tfLibRepository: SettingKey[String] =
+      settingKey[String](
+        "Git repository from which to obtain the sources of the native TensorFlow library, if it is to be compiled.")
+
+    val tfLibRepositoryBranch: SettingKey[String] =
+      settingKey[String](
+        "Git repository branch from which to obtain the sources of the native TensorFlow library, if it is to be " +
+            "compiled.")
+
     val nativeCrossCompile: TaskKey[Map[Platform, (Set[File], Set[File])]] =
       taskKey[Map[Platform, (Set[File], Set[File])]]("###")
   }
@@ -50,6 +64,9 @@ object TensorFlowNativePackage extends AutoPlugin {
   lazy val settings: Seq[Setting[_]] = Seq(
     nativePlatforms := Set(LINUX_x86_64, DARWIN_x86_64, WINDOWS_x86_64),
     tensorFlowBinaryVersion := "nightly",
+    compileTFLib := false,
+    tfLibRepository := "https://github.com/tensorflow/tensorflow.git",
+    tfLibRepositoryBranch := "master",
     target := (target in Compile).value / "native",
     clean := {
       streams.value.log.info("Cleaning generated cross compilation files.")
@@ -76,6 +93,13 @@ object TensorFlowNativePackage extends AutoPlugin {
         IO.createDirectory(platformTargetDir / "downloads")
         IO.createDirectory(platformTargetDir / "downloads" / "lib")
         IO.createDirectory(platformTargetDir / "lib")
+
+        if (compileTFLib.value) {
+          IO.createDirectory(platformTargetDir / "code")
+          TensorFlowNativeCrossCompiler.compile(
+            (platformTargetDir / "code").toPath, platformTargetDir.getPath, tfLibRepository.value,
+            tfLibRepositoryBranch.value, platform) ! log
+        }
 
         // Generate Dockerfile
         val dockerfilePath = platformTargetDir / "docker" / "Dockerfile"
