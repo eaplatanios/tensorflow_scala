@@ -256,12 +256,11 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerCopy
 }
 
 JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerSetOpDevice(
-    JNIEnv* env, jobject object, jlong op_handle, jlong context_handle, jstring device) {
+    JNIEnv* env, jobject object, jlong op_handle, jstring device) {
   REQUIRE_HANDLE(op, TFE_Op, op_handle, void());
-  REQUIRE_HANDLE(context, TFE_Context, context_handle, void());
   const char* c_device = env->GetStringUTFChars(device, nullptr);
   std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
-  TFE_OpSetDevice(op, context, c_device, status.get());
+  TFE_OpSetDevice(op, c_device, status.get());
   env->ReleaseStringUTFChars(device, c_device);
   CHECK_STATUS(env, status.get(), void());
 }

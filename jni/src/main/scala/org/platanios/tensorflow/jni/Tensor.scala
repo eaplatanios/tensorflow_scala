@@ -49,7 +49,7 @@ object Tensor {
   @native def eagerResolve(handle: Long): Long
   @native def eagerCopyToDevice(handle: Long, contextHandle: Long, device: String): Long
 
-  @native def eagerSetOpDevice(opHandle: Long, contextHandle: Long, device: String): Unit
+  @native def eagerSetOpDevice(opHandle: Long, device: String): Unit
 
   //endregion Eager Execution API
 }
