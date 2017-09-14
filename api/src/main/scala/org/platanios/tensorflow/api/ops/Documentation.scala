@@ -25,6 +25,7 @@ private[api] trait Documentation
         with Logging.Documentation
         with Math.Documentation
         with NN.Documentation
+        with Parsing.Documentation
         with Random.Documentation
         with Statistics.Documentation
         with Text.Documentation

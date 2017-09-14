@@ -51,6 +51,7 @@ package object ops {
           with Logging
           with Math
           with NN
+          with Parsing
           with Random
           with Statistics
           with Text
@@ -66,6 +67,7 @@ package object ops {
     ops.Math.Gradients
     ops.NN.Gradients
     ops.Queue.Gradients
+    ops.Parsing.Gradients
     ops.Random.Gradients
 
     object train extends training.API
