@@ -24,8 +24,8 @@ package object io {
       extends Dataset.API
           with Iterator.API
           with Reader.API {
-    type Dataset[T, D, S] = io.Dataset[T, D, S]
-    type Iterator[T, D, S] = io.Iterator[T, D, S]
+    type Dataset[T, O, D, S] = io.Dataset[T, O, D, S]
+    type Iterator[T, O, D, S] = io.Iterator[T, O, D, S]
     type Reader = io.Reader
 
     io.Dataset.Gradients

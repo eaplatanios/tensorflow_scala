@@ -31,12 +31,12 @@ import org.platanios.tensorflow.api.types.DataType
   *
   * @author Emmanouil Antonios Platanios
   */
-class Iterator[O, D, S] private[io](
+class Iterator[T, O, D, S] private[io](
     val handle: Output,
     val outputDataTypes: D,
     val outputShapes: S,
     val name: String = "Iterator")(
-    implicit ev: Data.Aux[_, O, D, S]) {
+    implicit ev: Data.Aux[T, O, D, S]) {
   /** Returns an op that initializes this iterator using the provided [[Dataset]].
     *
     * @param  dataset Dataset to initialize this iterator with. The output data types of this iterator must match the
@@ -48,7 +48,7 @@ class Iterator[O, D, S] private[io](
     *                                  the corresponding output data type or shape of the provided dataset.
     */
   @throws[IllegalArgumentException]
-  def createInitializer(dataset: Dataset[O, D, S], name: String = s"$name/Initializer"): Op = {
+  def createInitializer(dataset: Dataset[T, O, D, S], name: String = s"$name/Initializer"): Op = {
     if (flattenedOutputDataTypes.zip(dataset.flattenedOutputDataTypes).exists(t => t._1 != t._2))
       throw new IllegalArgumentException(
         s"Expected output data types '$outputDataTypes', " +
@@ -99,11 +99,11 @@ class Iterator[O, D, S] private[io](
 
   /** Returns a sequence of [[DataType]]s that correspond to the flattened data types of the nested [[Output]] structure
     * of the elements of this iterator. */
-  private[this] def flattenedOutputDataTypes: Seq[DataType] = ev.flattenedOutputDataTypes(outputDataTypes)
+  private[this] def flattenedOutputDataTypes: Seq[DataType] = ev.flattenedDataTypes(outputDataTypes)
 
   /** Returns a sequence of [[Shape]]s that correspond to the flattened shapes of the nested [[Output]] structure of the
     * elements of this iterator. */
-  private[this] def flattenedOutputShapes: Seq[Shape] = ev.flattenedOutputShapes(outputShapes)
+  private[this] def flattenedOutputShapes: Seq[Shape] = ev.flattenedShapes(outputShapes)
 }
 
 /** An [[Iterator]] that contains an initializer.
@@ -115,33 +115,33 @@ class Iterator[O, D, S] private[io](
   * @param  outputDataTypes Output data types corresponding to each element of the iterator.
   * @param  outputShapes    Output shapes corresponding to each element of the iterator.
   */
-class InitializableIterator[O, D, S] private[io](
+class InitializableIterator[T, O, D, S] private[io](
     override val handle: Output,
     val initializer: Op,
     override val outputDataTypes: D,
     override val outputShapes: S,
     override val name: String = "InitializableIterator")(
-    implicit ev: Data.Aux[_, O, D, S])
-    extends Iterator[O, D, S](handle, outputDataTypes, outputShapes, name)(ev)
+    implicit ev: Data.Aux[T, O, D, S])
+    extends Iterator[T, O, D, S](handle, outputDataTypes, outputShapes, name)(ev)
 
 /** Contains helper functions for creating iterator-related ops, as well as the iterator API trait. */
 object Iterator {
   private[io] trait API {
-    def iteratorFromDataset[O, D, S](
-        dataset: Dataset[O, D, S], sharedName: String = "", name: String = "InitializableIterator")(
-        implicit ev: Data.Aux[_, O, D, S]): InitializableIterator[O, D, S] = {
+    def iteratorFromDataset[T, O, D, S](
+        dataset: Dataset[T, O, D, S], sharedName: String = "", name: String = "InitializableIterator")(
+        implicit ev: Data.Aux[T, O, D, S]): InitializableIterator[T, O, D, S] = {
       fromDataset(dataset, sharedName, name)(ev)
     }
 
-    def iteratorFromStructure[O, D, S](
+    def iteratorFromStructure[T, O, D, S](
         outputDataTypes: D, outputShapes: S, sharedName: String = "", name: String = "Iterator")(
-        implicit ev: Data.Aux[_, O, D, S]): Iterator[O, D, S] = {
+        implicit ev: Data.Aux[T, O, D, S]): Iterator[T, O, D, S] = {
       fromStructure(outputDataTypes, outputShapes, sharedName, name)(ev)
     }
 
-    def iteratorFromStringHandle[O, D, S](
+    def iteratorFromStringHandle[T, O, D, S](
         stringHandle: Output, outputDataTypes: D, outputShapes: S, name: String = "IteratorFromStringHandle")(
-        implicit ev: Data.Aux[_, O, D, S]): Iterator[O, D, S] = {
+        implicit ev: Data.Aux[T, O, D, S]): Iterator[T, O, D, S] = {
       fromStringHandle(stringHandle, outputDataTypes, outputShapes, name)(ev)
     }
   }
@@ -161,9 +161,9 @@ object Iterator {
     * @param  name       Name to use for the created ops.
     * @return Created iterator.
     */
-  private[api] def fromDataset[O, D, S](
-      dataset: Dataset[O, D, S], sharedName: String = "", name: String = "InitializableIterator")(
-      implicit ev: Data.Aux[_, O, D, S]): InitializableIterator[O, D, S] = {
+  private[api] def fromDataset[T, O, D, S](
+      dataset: Dataset[T, O, D, S], sharedName: String = "", name: String = "InitializableIterator")(
+      implicit ev: Data.Aux[T, O, D, S]): InitializableIterator[T, O, D, S] = {
     val (handle, initializer) = Op.createWithNameScope(name) {
       val handle = createIterator(
         sharedName = sharedName,
@@ -172,7 +172,7 @@ object Iterator {
       val initializer = makeIterator(datasetHandle = dataset.createResource(), iteratorHandle = handle)
       (handle, initializer)
     }
-    new InitializableIterator[O, D, S](
+    new InitializableIterator[T, O, D, S](
       handle = handle,
       initializer = initializer,
       outputDataTypes = dataset.outputDataTypes,
@@ -234,17 +234,17 @@ object Iterator {
     * @param  name            Name to use for the created ops.
     * @return Created iterator.
     */
-  private[api] def fromStructure[O, D, S](
+  private[api] def fromStructure[T, O, D, S](
       outputDataTypes: D, outputShapes: S, sharedName: String = "", name: String = "Iterator")(
-      implicit ev: Data.Aux[_, O, D, S]): Iterator[O, D, S] = {
+      implicit ev: Data.Aux[T, O, D, S]): Iterator[T, O, D, S] = {
     // TODO: [DATASETS] Allow for shapes to not be provided.
-    val flattenedOutputDataTypes = ev.flattenedOutputDataTypes(outputDataTypes)
-    val flattenedShapes = ev.flattenedOutputShapes(outputShapes)
+    val flattenedOutputDataTypes = ev.flattenedDataTypes(outputDataTypes)
+    val flattenedShapes = ev.flattenedShapes(outputShapes)
     val handle = createIterator(
       sharedName = sharedName,
       outputDataTypes = flattenedOutputDataTypes,
       outputShapes = flattenedShapes)
-    new Iterator[O, D, S](
+    new Iterator[T, O, D, S](
       handle = handle,
       outputDataTypes = outputDataTypes,
       outputShapes = outputShapes,
@@ -284,16 +284,16 @@ object Iterator {
     * @param  name            Name to use for the created op.
     * @return Created iterator.
     */
-  private[api] def fromStringHandle[O, D, S](
+  private[api] def fromStringHandle[T, O, D, S](
       stringHandle: Output, outputDataTypes: D, outputShapes: S, name: String = "IteratorFromStringHandle")(
-      implicit ev: Data.Aux[_, O, D, S]): Iterator[O, D, S] = {
+      implicit ev: Data.Aux[T, O, D, S]): Iterator[T, O, D, S] = {
     // TODO: [DATASETS] Allow for shapes to not be provided.
     val handle = Iterator.iteratorFromStringHandle(
       stringHandle = stringHandle,
-      outputDataTypes = ev.flattenedOutputDataTypes(outputDataTypes),
-      outputShapes = ev.flattenedOutputShapes(outputShapes),
+      outputDataTypes = ev.flattenedDataTypes(outputDataTypes),
+      outputShapes = ev.flattenedShapes(outputShapes),
       name = name)
-    new Iterator[O, D, S](
+    new Iterator[T, O, D, S](
       handle = handle,
       outputDataTypes = outputDataTypes,
       outputShapes = outputShapes,
