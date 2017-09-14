@@ -17,6 +17,14 @@ Python API documentation at
 [https://www.tensorflow.org](https://www.tensorflow.org). Most of what 
 you read there applies here too.
 
+Please refer to the main website for documentation and tutorials. Here
+are a few useful links:
+
+  - [Installation](https://eaplatanios.github.io/tensorflow_scala/installation.html)
+  - [Getting Started Guide](https://eaplatanios.github.io/tensorflow_scala/getting_started.html)
+  - [Library Architecture](https://eaplatanios.github.io/tensorflow_scala/architecture.html)
+  - [Contributing](https://eaplatanios.github.io/tensorflow_scala/contributing.html)
+
 ## Main Features
 
 - Exposed API namespace similar to that of the Python API. For example:
@@ -61,92 +69,6 @@ you read there applies here too.
   ```
 - Useful implicits that make using the library almost as simple as using 
   the Python API, while retaining type-safety (for the most part).
-  
-## How to Start
-
-I would suggest you first follow the installation instructions, further 
-down in this document, and then move on to look at the `examples` package 
-and the unit tests of the main library. There is no user guide yet, as 
-it's super early for this project, but knowing how to use the TensorFlow 
-Python API and reading the code should be sufficient to get you started.
-
-## High-Priority TODOs
-
-It would be awesome if people could contribute to this library. Given 
-its scope and its early state, before I settle on the API for some of 
-the features, I would really appreciate contributions on the following:
-- **Unit Tests:** Currently unit tests are missing for a big part of the 
-  library and it would be extremely useful if we had those.
-- **Examples:** Examples of code using the library would be great and 
-  would also make issues come up early so they can be fixed.
-
-## Installation
-
-You first need to make sure you have the TensorFlow dynamic library 
-installed. You can either download pre-compiled versions of it, or you 
-can compile it yourself from the TensorFlow sources.
-
-**NOTE:** *The pre-compiled versions that you can download are not 
-currently supported. Please compile the native library yourself. The 
-pre-compiled versions will start working again once their updated as 
-the Scala API depends on some functionality that was added after the 
-last release.*
-
-### Downloading the TensorFlow Dynamic Library
-
-You can download it from one of the following links:
-  - **Linux:**
-    - CPU-only: [https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-linux-x86_64-1.3.0.tar.gz](https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-linux-x86_64-1.3.0.tar.gz)
-    - GPU-enabled: [https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-gpu-linux-x86_64-1.3.0.tar.gz](https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-gpu-linux-x86_64-1.3.0.tar.gz)
-  - **Mac:**
-    - CPU-only: [https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-darwin-x86_64-1.3.0.tar.gz](https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-darwin-x86_64-1.3.0.tar.gz)
-  - **Windows:** 
-    - CPU-only: [https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-windows-x86_64-1.3.0.zip](https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-windows-x86_64-1.3.0.zip)
-
-### Compiling the TensorFlow Dynamic Library
-
-Perform the following steps:
-  1. Clone the 
-     [TensorFlow repository](https://github.com/tensorflow/tensorflow) 
-     in a directory (e.g., `tensorflow`).
-  2. Compile the TensorFlow dynamic library by running the following
-     commands in that directory:
-
-     ```bash
-     ./configure
-     bazel build --config=opt //tensorflow:libtensorflow.so
-     ```
-
-     Make sure to add the `--config=cuda` option when running the last
-     command, if compiling with CUDA support.
-  3. Copy the `bazel-bin/tensorflow/libtensorflow.so` (possibly having 
-     a different extension, depending on the platform you're using) 
-     file in a directory that is in `LD_LIBRARY_PATH`, or set 
-     `LD_LIBRARY_PATH` appropriately.
-     
-### Installing the Protocol Buffers Compiler
-
-You also need protoc, the Protocol Buffers compiler.
-
-On Debian/Ubuntu, you can install it with APT:
-
-```bash
-apt install protobuf-compiler
-```
-
-You can also download prebuild binaries from [https://github.com/google/protobuf/releases/](https://github.com/google/protobuf/releases/)
-(choose the protoc variant appropriate for your platform).
-
-### Compiling the TensorFlow Scala API
-
-First make sure you have [CMake](https://cmake.org/install/) installed, 
-and that the TensorFlow dynamic library is in the path. Then, you can  
-compile the Scala API by running the following command from within the 
-`tensorflow_scala` directory:
-
-```bash
-sbt compile
-```
 
 ## Supported Features
 
