@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.learn
 
-import org.platanios.tensorflow.api.{DataType, Shape, learn, tf}
+import org.platanios.tensorflow.api.{DataType, Shape, Tensor, learn, tf}
 import org.platanios.tensorflow.api.ops.io.Data
 
 import scala.collection.mutable
@@ -35,17 +35,17 @@ object Input {
   object API extends API
 }
 
-sealed abstract class SupportedInput[O, D, S](implicit ev: Data.Aux[_, O, D, S]) {
-  private[this] val cache: mutable.Map[tf.Graph, tf.Iterator[O, D, S]] = mutable.Map.empty
+sealed abstract class SupportedInput[T, O, D, S](implicit ev: Data.Aux[T, O, D, S]) {
+  private[this] val cache: mutable.Map[tf.Graph, tf.Iterator[T, O, D, S]] = mutable.Map.empty
 
-  protected def create(): tf.Iterator[O, D, S]
+  protected def create(): tf.Iterator[T, O, D, S]
 
-  final def apply(): tf.Iterator[O, D, S] = cache.getOrElse(tf.currentGraph, create())
+  final def apply(): tf.Iterator[T, O, D, S] = cache.getOrElse(tf.currentGraph, create())
 }
 
 class Input private[learn](val dataType: DataType, val shape: Shape, val name: String)
-    extends SupportedInput[tf.Output, DataType, Shape] {
-  override protected def create(): tf.Iterator[tf.Output, DataType, Shape] = {
+    extends SupportedInput[Tensor, tf.Output, DataType, Shape] {
+  override protected def create(): tf.Iterator[Tensor, tf.Output, DataType, Shape] = {
     tf.iteratorFromStructure(outputDataTypes = dataType, outputShapes = shape)
   }
 }
