@@ -223,6 +223,7 @@ object DataType {
     case QUINT8.cValue => QUINT8
     case QUINT16.cValue => QUINT16
     case RESOURCE.cValue => RESOURCE
+    case VARIANT.cValue => VARIANT
     case value => throw new IllegalArgumentException(
       s"Data type C value '$value' is not recognized in Scala (TensorFlow version ${NativeLibrary.version}).")
   }
@@ -255,6 +256,7 @@ object DataType {
     case "QUINT8" => QUINT8
     case "QUINT16" => QUINT16
     case "RESOURCE" => RESOURCE
+    case "VARIANT" => VARIANT
     case value => throw new IllegalArgumentException(
       s"Data type name '$value' is not recognized in Scala (TensorFlow version ${NativeLibrary.version}).")
   }
@@ -680,5 +682,22 @@ private[api] object RESOURCE extends DataType.Aux[Long] {
 
   private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Long = {
     throw new UnsupportedOperationException("The resource data type is not supported on the Scala side.")
+  }
+}
+
+private[api] object VARIANT extends DataType.Aux[Long] {
+  override implicit val supportedType: SupportedType[Long] = longIsSupportedType
+
+  override val name    : String = "VARIANT"
+  override val cValue  : Int    = 21
+  override val byteSize: Int    = -1
+  override val priority: Int    = -1
+
+  private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: Long): Int = {
+    throw new UnsupportedOperationException("The variant data type is not supported on the Scala side.")
+  }
+
+  private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Long = {
+    throw new UnsupportedOperationException("The variant data type is not supported on the Scala side.")
   }
 }
