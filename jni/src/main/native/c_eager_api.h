@@ -18,7 +18,7 @@ limitations under the License.
 
 // C API extensions to experiment with eager execution of kernels.
 
-#include "c_api.h"
+#include "tensorflow/c/c_api.h"
 
 // Macro to control visibility of exported symbols in the shared library (.so,
 // .dylib, .dll).
@@ -100,11 +100,8 @@ TF_CAPI_EXPORT extern TFE_Op* TFE_NewOp(TFE_Context* ctx, const char* op_or_func
                                         TF_Status* status);
 TF_CAPI_EXPORT extern void TFE_DeleteOp(TFE_Op* op);
 
-// TODO(ashankar): TFE_OpSetDevice and TFE_Execute should not have a TFE_Context
-// parameter. Instead, the TFE_Context should be captured when creating the
-// TFE_Op.
-TF_CAPI_EXPORT extern void TFE_OpSetDevice(TFE_Op* op, TFE_Context* ctx,
-                                           const char* device_name, TF_Status* status);
+TF_CAPI_EXPORT extern void TFE_OpSetDevice(TFE_Op* op, const char* device_name,
+                                           TF_Status* status);
 
 TF_CAPI_EXPORT extern void TFE_OpAddInput(TFE_Op* op, TFE_TensorHandle* h, TF_Status* status);
 
