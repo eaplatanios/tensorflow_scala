@@ -68,7 +68,10 @@ trait Data[T] {
   def shapesFromO(data: OutputType): Shapes
 
   def flattenedTensors(data: T): Seq[Tensor]
-  def flattenedOutputs(data: T): Seq[Output]
+
+  def flattenedOutputsFromT(data: T): Seq[Output]
+  def flattenedOutputsFromO(data: OutputType): Seq[Output]
+
   def flattenedDataTypes(dataTypes: DataTypes): Seq[DataType]
   def flattenedShapes(shapes: Shapes): Seq[Shape]
 
@@ -88,7 +91,7 @@ trait Data[T] {
 object Data {
   private[io] def process[T, O, D, S](data: T)(implicit ev: Aux[T, O, D, S]): (
       Seq[Output], Seq[DataType], Seq[Shape], Seq[Output] => O, Seq[DataType] => D, Seq[Shape] => S) = {
-    val flattenedOutputs = ev.flattenedOutputs(data)
+    val flattenedOutputs = ev.flattenedOutputsFromT(data)
     val (uniqueOutputs, indices) = Data.uniquifyOutputs(flattenedOutputs)
     val uniqueDataTypes = uniqueOutputs.map(_.dataType)
     val uniqueShapes = uniqueOutputs.map(_.shape)
@@ -128,7 +131,10 @@ object Data {
     override def shapesFromO(data: Output): Shape = data.shape
 
     override def flattenedTensors(data: Tensor): Seq[Tensor] = Seq(data)
-    override def flattenedOutputs(data: Tensor): Seq[Output] = Seq(data.toOutput)
+
+    override def flattenedOutputsFromT(data: Tensor): Seq[Output] = Seq(data.toOutput)
+    override def flattenedOutputsFromO(data: Output): Seq[Output] = Seq(data)
+
     override def flattenedDataTypes(dataTypes: DataType): Seq[DataType] = Seq(dataTypes)
     override def flattenedShapes(shapes: Shape): Seq[Shape] = Seq(shapes)
 
@@ -171,7 +177,13 @@ object Data {
         Seq(data.indices, data.values, data.denseShape)
       }
 
-      override def flattenedOutputs(data: TensorIndexedSlices): Seq[Output] = flattenedTensors(data).map(_.toOutput)
+      override def flattenedOutputsFromT(data: TensorIndexedSlices): Seq[Output] = {
+        flattenedTensors(data).map(_.toOutput)
+      }
+
+      override def flattenedOutputsFromO(data: OutputIndexedSlices): Seq[Output] = {
+        Seq(data.indices, data.values, data.denseShape)
+      }
 
       override def flattenedDataTypes(dataTypes: DataTypes): Seq[DataType] = {
         Seq(dataTypes._1, dataTypes._2, dataTypes._3)
@@ -224,7 +236,13 @@ object Data {
 
     override def flattenedTensors(data: SparseTensor): Seq[Tensor] = Seq(data.indices, data.values, data.denseShape)
 
-    override def flattenedOutputs(data: SparseTensor): Seq[Output] = flattenedTensors(data).map(_.toOutput)
+    override def flattenedOutputsFromT(data: SparseTensor): Seq[Output] = {
+      flattenedTensors(data).map(_.toOutput)
+    }
+
+    override def flattenedOutputsFromO(data: SparseOutput): Seq[Output] = {
+      Seq(data.indices, data.values, data.denseShape)
+    }
 
     override def flattenedDataTypes(dataTypes: DataTypes): Seq[DataType] = {
       Seq(dataTypes._1, dataTypes._2, dataTypes._3)
@@ -266,7 +284,9 @@ object Data {
       override def shapesFromO(data: Array[O]): Shapes = data.map(ev.shapesFromO)
 
       override def flattenedTensors(data: Array[T]): Seq[Tensor] = data.flatMap(ev.flattenedTensors).toSeq
-      override def flattenedOutputs(data: Array[T]): Seq[Output] = data.flatMap(ev.flattenedOutputs).toSeq
+
+      override def flattenedOutputsFromT(data: Array[T]): Seq[Output] = data.flatMap(ev.flattenedOutputsFromT).toSeq
+      override def flattenedOutputsFromO(data: Array[O]): Seq[Output] = data.flatMap(ev.flattenedOutputsFromO).toSeq
 
       override def flattenedDataTypes(dataTypes: DataTypes): Seq[DataType] = {
         dataTypes.flatMap(ev.flattenedDataTypes).toSeq
@@ -330,7 +350,9 @@ object Data {
       override def shapesFromO(data: CC[O]): Shapes = data.map(ev.shapesFromO)
 
       override def flattenedTensors(data: CC[T]): Seq[Tensor] = data.flatMap(ev.flattenedTensors)(breakOut)
-      override def flattenedOutputs(data: CC[T]): Seq[Output] = data.flatMap(ev.flattenedOutputs)(breakOut)
+
+      override def flattenedOutputsFromT(data: CC[T]): Seq[Output] = data.flatMap(ev.flattenedOutputsFromT)(breakOut)
+      override def flattenedOutputsFromO(data: CC[O]): Seq[Output] = data.flatMap(ev.flattenedOutputsFromO)(breakOut)
 
       override def flattenedDataTypes(dataTypes: DataTypes): Seq[DataType] = {
         dataTypes.flatMap(ev.flattenedDataTypes)(breakOut)
@@ -394,7 +416,14 @@ object Data {
       override def shapesFromO(data: CC[K, O]): Shapes = data.mapValues(ev.shapesFromO)
 
       override def flattenedTensors(data: CC[K, T]): Seq[Tensor] = data.values.flatMap(ev.flattenedTensors).toSeq
-      override def flattenedOutputs(data: CC[K, T]): Seq[Output] = data.values.flatMap(ev.flattenedOutputs).toSeq
+
+      override def flattenedOutputsFromT(data: CC[K, T]): Seq[Output] = {
+        data.values.flatMap(ev.flattenedOutputsFromT).toSeq
+      }
+
+      override def flattenedOutputsFromO(data: CC[K, O]): Seq[Output] = {
+        data.values.flatMap(ev.flattenedOutputsFromO).toSeq
+      }
 
       override def flattenedDataTypes(dataTypes: DataTypes): Seq[DataType] = {
         dataTypes.values.flatMap(ev.flattenedDataTypes).toSeq
@@ -457,7 +486,10 @@ object Data {
     override def shapesFromO(data: HNil): Shapes = HNil
 
     override def flattenedTensors(data: HNil): Seq[Tensor] = Seq.empty
-    override def flattenedOutputs(data: HNil): Seq[Output] = Seq.empty
+
+    override def flattenedOutputsFromT(data: HNil): Seq[Output] = Seq.empty
+    override def flattenedOutputsFromO(data: HNil): Seq[Output] = Seq.empty
+
     override def flattenedDataTypes(dataTypes: DataTypes): Seq[DataType] = Seq.empty
     override def flattenedShapes(shapes: Shapes): Seq[Shape] = Seq.empty
 
@@ -500,8 +532,12 @@ object Data {
       dataHead.value.flattenedTensors(data.head) ++ dataTail.flattenedTensors(data.tail)
     }
 
-    override def flattenedOutputs(data: HT :: TT): Seq[Output] = {
-      dataHead.value.flattenedOutputs(data.head) ++ dataTail.flattenedOutputs(data.tail)
+    override def flattenedOutputsFromT(data: HT :: TT): Seq[Output] = {
+      dataHead.value.flattenedOutputsFromT(data.head) ++ dataTail.flattenedOutputsFromT(data.tail)
+    }
+
+    override def flattenedOutputsFromO(data: HO :: TO): Seq[Output] = {
+      dataHead.value.flattenedOutputsFromO(data.head) ++ dataTail.flattenedOutputsFromO(data.tail)
     }
 
     override def flattenedDataTypes(dataTypes: DataTypes): Seq[DataType] = {
@@ -590,7 +626,9 @@ object Data {
     override def shapesFromO(data: PO): Shapes = tuplerS(dataL.value.shapesFromO(genO.to(data)))
 
     override def flattenedTensors(data: PT): Seq[Tensor] = dataL.value.flattenedTensors(genT.to(data))
-    override def flattenedOutputs(data: PT): Seq[Output] = dataL.value.flattenedOutputs(genT.to(data))
+
+    override def flattenedOutputsFromT(data: PT): Seq[Output] = dataL.value.flattenedOutputsFromT(genT.to(data))
+    override def flattenedOutputsFromO(data: PO): Seq[Output] = dataL.value.flattenedOutputsFromO(genO.to(data))
 
     override def flattenedDataTypes(dataTypes: DataTypes): Seq[DataType] = {
       dataL.value.flattenedDataTypes(genD.to(dataTypes))
