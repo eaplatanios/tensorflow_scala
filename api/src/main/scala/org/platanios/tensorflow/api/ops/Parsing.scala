@@ -23,6 +23,38 @@ import org.platanios.tensorflow.api.types.{DataType, FLOAT32, INT32, STRING, UIN
   * @author Emmanouil Antonios Platanios
   */
 trait Parsing {
+  /** $OpDocParsingEncode
+    *
+    * @group ParsingOps
+    * @param  tensor Tensor to encode.
+    * @param  name   Name for the created op.
+    * @return Created op output.
+    */
+  def encode(tensor: Output, name: String = "Encode"): Output = {
+    Op.Builder(opType = "SerializeTensor", name = name)
+        .addInput(tensor)
+        .build().outputs(0)
+  }
+
+  /** $OpDocParsingDecode
+    *
+    * @group ParsingOps
+    * @param  data     [[STRING]] tensor containing a serialized `TensorProto` proto.
+    * @param  dataType Data type of the serialized tensor. The provided data type must match the data type of the
+    *                  serialized tensor and no implicit conversion will take place.
+    * @param  name     Name for the created op.
+    * @return Created op output.
+    * @throws IllegalArgumentException If `data` is not a [[STRING]] tensor.
+    */
+  @throws[IllegalArgumentException]
+  def decode(data: Output, dataType: DataType, name: String = "Decode"): Output = {
+    require(data.dataType == STRING, s"Tensor data type was ${data.dataType}, while STRING was expected.")
+    Op.Builder(opType = "ParseTensor", name = name)
+        .addInput(data)
+        .setAttribute("out_type", dataType)
+        .build().outputs(0)
+  }
+
   /** $OpDocParsingDecodeRaw
     *
     * @group ParsingOps
@@ -90,16 +122,43 @@ trait Parsing {
         .setAttribute("out_type", dataType)
         .build().outputs(0)
   }
+
+  /** $OpDocParsingDecodeJSONExample
+    *
+    * @group ParsingOps
+    * @param  jsonExamples [[STRING]] tensor where each string is a JSON object serialized according to the JSON mapping
+    *                      of the `Example` proto.
+    * @param  name         Name for the created op.
+    * @return Created op output.
+    * @throws IllegalArgumentException If `jsonExamples` is not a [[STRING]] tensor.
+    */
+  @throws[IllegalArgumentException]
+  def decodeJSONExample(jsonExamples: Output, name: String = "DecodeJSONExample"): Output = {
+    require(
+      jsonExamples.dataType == STRING, s"Tensor data type was ${jsonExamples.dataType}, while STRING was expected.")
+    Op.Builder(opType = "DecodeJSONExample", name = name)
+        .addInput(jsonExamples)
+        .build().outputs(0)
+  }
 }
 
 private[ops] object Parsing extends Parsing {
   private[ops] object Gradients {
+    GradientsRegistry.registerNonDifferentiable("SerializeTensor")
+    GradientsRegistry.registerNonDifferentiable("ParseTensor")
     GradientsRegistry.registerNonDifferentiable("DecodeRaw")
     GradientsRegistry.registerNonDifferentiable("DecodeCSV")
     GradientsRegistry.registerNonDifferentiable("StringToNumber")
+    GradientsRegistry.registerNonDifferentiable("DecodeJSONExample")
   }
 
-  /** @define OpDocParsingDecodeRaw
+  /** @define OpDocParsingEncode
+    *   The `encode` op transforms a tensor into a serialized `TensorProto` proto.
+    *
+    * @define OpDocParsingDecode
+    *   The `decode` op transforms a serialized `TensorProto` proto into a tensor.
+    *
+    * @define OpDocParsingDecodeRaw
     *   The `decodeRaw` op reinterprets the bytes of a string as a vector of numbers.
     *
     * @define OpDocParsingDecodeCSV
@@ -112,6 +171,14 @@ private[ops] object Parsing extends Parsing {
     *   The `stringToNumber` op converts each string in the input tensor to the specified numeric type,
     *
     *   '''NOTE:''' [[INT32]] overflow results in an error while [[FLOAT32]] overflow results in a rounded value.
+    *
+    * @define OpDocParsingDecodeJSONExample
+    *   The `decodeJSONExample` op converts JSON-encoded `Example` records to binary protocol buffer strings.
+    *
+    *   The op translates a tensor containing `Example` records, encoded using the
+    *   [standard JSON mapping](https://developers.google.com/protocol-buffers/docs/proto3#json), into a tensor
+    *   containing the same records encoded as binary protocol buffers. The resulting tensor can then be fed to any of
+    *   the other `Example`-parsing ops.
     */
   private[ops] trait Documentation
 }
