@@ -93,7 +93,7 @@ private[api] case class InstantiatedFunction[O, R] private[ops](
     // List of placeholders for the function definition
     val inputs = mutable.ListBuffer.empty[Output]
     val functionGraph = FunctionGraph()
-    val (inputNames, outputNames, outputs) = Op.createWith(functionGraph) {
+    val (inputNames, outputNames, outputs, flattenedOutputs) = Op.createWith(functionGraph) {
       // Determine names for the function inputs
       val inputNames = {
         if (_inputNames != null) {
@@ -108,9 +108,13 @@ private[api] case class InstantiatedFunction[O, R] private[ops](
       inputs.appendAll(inputNames.zip(inputDataTypes).map(a => Basic.placeholder(dataType = a._2, name = a._1)))
 
       // Call the Scala function and gather the output tensors
-      val outputs = VariableScope.createWithVariableScope("", customGetter = functionGraph.customVariableGetter) {
-        // Unflatten the inputs, pass them to the function, and then flatten the returned outputs
-        evOutput.outputs(function(evInput.outputsDecoder(inputs)._1))
+      val (outputs, flattenedOutputs) = {
+        VariableScope.createWithVariableScope("", customGetter = functionGraph.customVariableGetter) {
+          // Unflatten the inputs, pass them to the function, and then flatten the returned outputs
+          val outputs = function(evInput.outputsDecoder(inputs)._1)
+          val flattenedOutputs = evOutput.outputs(outputs)
+          (outputs, flattenedOutputs)
+        }
       }
 
       // Determine names for the function outputs
@@ -121,10 +125,10 @@ private[api] case class InstantiatedFunction[O, R] private[ops](
                       s"does not match the number of outputs (${evOutput.numOutputs}).")
           _outputNames
         } else {
-          outputs.indices.map(i => s"output_$i")
+          flattenedOutputs.indices.map(i => s"output_$i")
         }
       }
-      (inputNames, outputNames, outputs)
+      (inputNames, outputNames, outputs, flattenedOutputs)
     }
 
     val extraInputs = functionGraph.extraInputs
@@ -135,9 +139,9 @@ private[api] case class InstantiatedFunction[O, R] private[ops](
     val nativeHandle = NativeFunction.graphToFunction(
       functionGraph.nativeHandle, name, null,
       inputs.map(_.op.nativeHandle).toArray, inputs.map(_.index).toArray,
-      outputs.map(_.op.nativeHandle).toArray, outputs.map(_.index).toArray,
+      flattenedOutputs.map(_.op.nativeHandle).toArray, flattenedOutputs.map(_.index).toArray,
       outputNames.toArray)
-    (inputNames, outputNames, subFunctions, extraInputs, nativeHandle)
+    (inputNames, outputNames, outputs, flattenedOutputs, subFunctions, extraInputs, nativeHandle)
   }
 
   /** Names of the function inputs. */
@@ -146,19 +150,28 @@ private[api] case class InstantiatedFunction[O, R] private[ops](
   /** Names of the function outputs. */
   val outputNames: Seq[String] = initializationOutput._2
 
+  /** Data types of the function outputs. */
+  val outputDataTypes: Seq[DataType] = initializationOutput._4.map(_.dataType)
+
+  /** Shapes of the function outputs. */
+  val outputShapes: Seq[Shape] = initializationOutput._4.map(_.shape)
+
+  /** Dummy outputs used to store the structure information of the output type. */
+  private[ops] val dummyOutputs: R = initializationOutput._3
+
   /** Functions defined in the graph used while creating this function. These functions will be added to all graphs
     * where this function is added to. */
-  private[this] val subFunctions = initializationOutput._3
+  private[this] val subFunctions = initializationOutput._5
 
   /** Extra inputs to feed to the function as arguments when calling it, which correspond to the values of op outputs
     * that are used in the function, btu which belong to a different graph, than the function graph. */
-  private[ops] val extraInputs  = initializationOutput._4
+  private[ops] val extraInputs  = initializationOutput._6
 
   /** Lock for the native handle. */
   private[this] object NativeHandleLock
 
   /** Handle for the underlying native function object. */
-  private[this] var _nativeHandle = initializationOutput._5
+  private[this] var _nativeHandle = initializationOutput._7
 
   private[api] def nativeHandle: Long = _nativeHandle
 

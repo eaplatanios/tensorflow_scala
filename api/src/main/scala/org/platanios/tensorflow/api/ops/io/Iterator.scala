@@ -57,7 +57,7 @@ class Iterator[T, O, D, S] private[io](
       throw new IllegalArgumentException(
         s"Expected output shapes compatible with '$outputShapes', " +
             s"but got dataset with output shapes '${dataset.outputShapes}'.")
-    Iterator.makeIterator(datasetHandle = dataset.createResource(), iteratorHandle = handle)
+    Iterator.makeIterator(datasetHandle = dataset.createHandle(), iteratorHandle = handle)
   }
 
   /** Creates an op that obtains the next element of this iterator and returns a nested structure of [[Output]]s
@@ -169,7 +169,7 @@ object Iterator {
         sharedName = sharedName,
         outputDataTypes = dataset.flattenedOutputDataTypes,
         outputShapes = dataset.flattenedOutputShapes)
-      val initializer = makeIterator(datasetHandle = dataset.createResource(), iteratorHandle = handle)
+      val initializer = makeIterator(datasetHandle = dataset.createHandle(), iteratorHandle = handle)
       (handle, initializer)
     }
     new InitializableIterator[T, O, D, S](
