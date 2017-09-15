@@ -25,9 +25,10 @@ import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.DataType
 import org.platanios.tensorflow.api.utilities.using
 import org.platanios.tensorflow.jni.{Op => NativeOp, Tensor => NativeTensor}
-import java.nio.charset.Charset
 
 import org.tensorflow.framework.FunctionDef
+
+import java.nio.charset.Charset
 
 import scala.collection.mutable
 import scala.util.{DynamicVariable, Try}
@@ -1223,8 +1224,9 @@ object Op {
       this
     }
 
-    def setAttribute(name: String, value: FunctionDef): Builder = {
-      attributes += name -> value
+    def setAttribute(name: String, value: InstantiatedFunction[_, _]): Builder = {
+      value.addToGraph(graph)
+      attributes += name -> value.toFunctionDef
       this
     }
   }

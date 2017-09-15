@@ -21,40 +21,68 @@ import org.platanios.tensorflow.api.ops.variables._
 import org.platanios.tensorflow.api.types.{DataType, FLOAT32}
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer}
 import org.platanios.tensorflow.jni.{Function => NativeFunction, Graph => NativeGraph}
+
 import org.tensorflow.framework.FunctionDef
 
 import scala.collection.mutable
 import scala.util.DynamicVariable
 
-// TODO: [FUNCTIONS] !!! Not ready.
-// TODO: [FUNCTIONS] !!! Shape function (i.e., set_shape).
 // TODO: [FUNCTIONS] !!! Unique name.
 
 /**
   * @author Emmanouil Antonios Platanios
   */
-case class Function[T, R](name: String, function: (T) => R)(implicit
-    evInput: FunctionArgType[T],
-    evOutput: FunctionArgType[R]
+case class Function[O, R](name: String, function: (O) => R)(implicit
+    evInput: Function.ArgType[O],
+    evOutput: Function.ArgType[R]
 ) {
-  private[this] val instantiatedFunctions = mutable.HashMap.empty[String, InstantiatedFunction[T, R]]
+  private[this] val instantiatedFunctions = mutable.HashMap.empty[String, InstantiatedFunction[O, R]]
 
-  def apply(arg: T): R = {
+  def apply(arg: O): R = {
     val dataTypes = evInput.dataTypes(arg)
     val key = dataTypes.map(_.toString).mkString(":")
     instantiatedFunctions.getOrElseUpdate(key, {
       InstantiatedFunction(s"${name}_$key", function, dataTypes)(evInput, evOutput)
     })(arg)
   }
+
+  private[ops] def instantiate(inputDataTypes: Seq[DataType]): InstantiatedFunction[O, R] = {
+    val key = inputDataTypes.map(_.toString).mkString(":")
+    instantiatedFunctions.getOrElseUpdate(key, {
+      InstantiatedFunction(s"${name}_$key", function, inputDataTypes)(evInput, evOutput))
+    })
+  }
 }
 
-private[api] case class InstantiatedFunction[T, R] private[ops](
-    name: String, function: (T) => R,
+object Function {
+  trait ArgType[O] {
+    def graph(arg: O): Graph
+    def numOutputs: Int
+    def outputs(arg: O): Seq[Output]
+    def dataTypes(arg: O): Seq[DataType]
+    def outputsDecoder(outputs: Seq[Output]): (O, Seq[Output])
+  }
+
+  object ArgType {
+    def apply[O](implicit ev: ArgType[O]): ArgType[O] = ev
+
+    implicit val outputArgType: ArgType[Output] = new ArgType[Output] {
+      override def graph(arg: Output): Graph = arg.graph
+      override def numOutputs: Int = 1
+      override def outputs(arg: Output): Seq[Output] = Seq(arg)
+      override def dataTypes(arg: Output): Seq[DataType] = Seq(arg.dataType)
+      override def outputsDecoder(outputs: Seq[Output]): (Output, Seq[Output]) = (outputs.head, outputs.tail)
+    }
+  }
+}
+
+private[api] case class InstantiatedFunction[O, R] private[ops](
+    name: String, function: (O) => R,
     inputDataTypes: Seq[DataType],
     private val _inputNames: Seq[String] = null,
     private val _outputNames: Seq[String] = null)(implicit
-    evInput: FunctionArgType[T],
-    evOutput: FunctionArgType[R]
+    evInput: Function.ArgType[O],
+    evOutput: Function.ArgType[R]
 ) extends Closeable {
   require(inputDataTypes.length == evInput.numOutputs,
           s"The number of 'inputDataTypes' provided (${inputDataTypes.length}) " +
@@ -124,13 +152,15 @@ private[api] case class InstantiatedFunction[T, R] private[ops](
 
   /** Extra inputs to feed to the function as arguments when calling it, which correspond to the values of op outputs
     * that are used in the function, btu which belong to a different graph, than the function graph. */
-  private[this] val extraInputs  = initializationOutput._4
+  private[ops] val extraInputs  = initializationOutput._4
 
   /** Lock for the native handle. */
   private[this] object NativeHandleLock
 
   /** Handle for the underlying native function object. */
-  private[api] var nativeHandle = initializationOutput._5
+  private[this] var _nativeHandle = initializationOutput._5
+
+  private[api] def nativeHandle: Long = _nativeHandle
 
   // Keep track of references in the Scala side and notify the native library when the function is not referenced
   // anymore anywhere in the Scala side. This will let the native library free the allocated resources and prevent a
@@ -168,7 +198,7 @@ private[api] case class InstantiatedFunction[T, R] private[ops](
     * @return Function output.
     */
   def apply(
-      input: T, inline: Boolean = true, compiled: Boolean = false, separateCompiledGradients: Boolean = false,
+      input: O, inline: Boolean = true, compiled: Boolean = false, separateCompiledGradients: Boolean = false,
       name: String = this.name)(implicit context: DynamicVariable[OpCreationContext]): R = {
     addToGraph(evInput.graph(input))
     val outputs = Op.createWithNameScope(name) {
@@ -188,14 +218,14 @@ private[api] case class InstantiatedFunction[T, R] private[ops](
 
   /** Constructs and returns a [[FunctionDef]] object, which is a serialized version of this function. */
   def toFunctionDef: FunctionDef = {
-    FunctionDef.parseFrom(NativeHandleLock.synchronized(NativeFunction.toFunctionDef(nativeHandle)))
+    FunctionDef.parseFrom(NativeHandleLock.synchronized(NativeFunction.toFunctionDef(_nativeHandle)))
   }
 
   /** Releases the native resources associated with this function instance. */
   override def close(): Unit = NativeHandleLock.synchronized {
-    if (nativeHandle != 0) {
-      NativeFunction.delete(nativeHandle)
-      nativeHandle = 0
+    if (_nativeHandle != 0) {
+      NativeFunction.delete(_nativeHandle)
+      _nativeHandle = 0
     }
   }
 }
@@ -287,22 +317,4 @@ class FunctionGraph(private[this] val _nativeHandle: Long) extends Graph(_native
 object FunctionGraph {
   /** Constructs and returns an empty new function graph. */
   def apply(): FunctionGraph = new FunctionGraph(NativeGraph.allocate())
-}
-
-trait FunctionArgType[T] {
-  def graph(arg: T): Graph
-  def numOutputs: Int
-  def outputs(arg: T): Seq[Output]
-  def dataTypes(arg: T): Seq[DataType]
-  def outputsDecoder(outputs: Seq[Output]): (T, Seq[Output])
-}
-
-object FunctionArgType {
-  implicit val outputArgType: FunctionArgType[Output] = new FunctionArgType[Output] {
-    override def graph(arg: Output): Graph = arg.graph
-    override def numOutputs: Int = 1
-    override def outputs(arg: Output): Seq[Output] = Seq(arg)
-    override def dataTypes(arg: Output): Seq[DataType] = Seq(arg.dataType)
-    override def outputsDecoder(outputs: Seq[Output]): (Output, Seq[Output]) = (outputs.head, outputs.tail)
-  }
 }
