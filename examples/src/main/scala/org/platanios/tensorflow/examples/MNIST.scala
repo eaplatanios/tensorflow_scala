@@ -55,7 +55,7 @@ object MNIST {
 
     logger.info("Training the linear regression model.")
     model.initialize(Model.DefaultInitialization)
-    model.train(trainImages, trainLabels, maxIterations = 100000)
+    model.train(trainImages.zip(trainLabels), maxIterations = 100000)
 
     // val inputs = tf.placeholder(tf.UINT8, tf.shape(-1, numberOfRows, numberOfColumns))
     // val labels = tf.placeholder(tf.UINT8, tf.shape(-1))

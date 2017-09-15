@@ -33,9 +33,9 @@ object Model {
 
   trait API {
     def model[IT, IO, ID, IS, I, TT, TO, TD, TS, ST, T](
-        input: SupportedInput[IT, IO, ID, IS],
+        input: Input[IT, IO, ID, IS],
         layer: Layer[IO, I],
-        trainingInput: SupportedInput[TT, TO, TD, TS],
+        trainingInput: Input[TT, TO, TD, TS],
         trainingInputLayer: Layer[TO, T],
         loss: Layer[(I, T), tf.Output],
         optimizer: tf.train.Optimizer): TrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, ST, T] = {
@@ -182,15 +182,15 @@ trait Model {
 }
 
 class InferenceModel[IT, IO, ID, IS, I] private[learn](
-    val input: SupportedInput[IT, IO, ID, IS],
+    val input: Input[IT, IO, ID, IS],
     val layer: Layer[IO, I]) extends Model {
-  private[this] val tfBuiltInferenceOps                   = addInferenceOpsToGraph(graph)
-  protected     val tfInput : tf.Iterator[IT, IO, ID, IS] = tfBuiltInferenceOps._1
-  protected     val tfOutput: I                           = tfBuiltInferenceOps._2
+  private[this] val tfBuiltOps                            = addOpsToGraph(graph)
+  protected     val tfInput : tf.Iterator[IT, IO, ID, IS] = tfBuiltOps._1
+  protected     val tfOutput: I                           = tfBuiltOps._2
 
   override private[learn] val saver: tf.Saver = tf.createWith(graph)(tf.saver())
 
-  protected def addInferenceOpsToGraph(graph: tf.Graph): (tf.Iterator[IT, IO, ID, IS], I) = {
+  protected def addOpsToGraph(graph: tf.Graph): (tf.Iterator[IT, IO, ID, IS], I) = {
     tf.createWith(graph) {
       val tfInput = input()
       val tfOutput = layer(tfInput.next())
@@ -200,43 +200,42 @@ class InferenceModel[IT, IO, ID, IS, I] private[learn](
 }
 
 class TrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, ST, T] private[learn](
-    override val input: SupportedInput[IT, IO, ID, IS],
-    override val layer: Layer[IO, I],
-    val trainingInput: SupportedInput[TT, TO, TD, TS],
+    val input: Input[IT, IO, ID, IS],
+    val layer: Layer[IO, I],
+    val trainingInput: Input[TT, TO, TD, TS],
     val trainingInputLayer: Layer[TO, T],
     val loss: Layer[(I, T), tf.Output],
-    val optimizer: tf.train.Optimizer)
-    extends InferenceModel[IT, IO, ID, IS, I](input, layer) {
-  private[this] val tfBuiltTrainingOps                        = addTrainingOpsToGraph(graph)
-  protected     val tfTrainingInput : tf.Iterator[TT, TO, TD, TS] = tfBuiltTrainingOps._1
-  protected     val tfTrainingOutput: T                       = tfBuiltTrainingOps._2
-  protected     val tfLoss          : tf.Output               = tfBuiltTrainingOps._3
-  protected     val tfIteration     : tf.Variable             = tfBuiltTrainingOps._4
-  protected     val tfTrainOp       : tf.Op                   = tfBuiltTrainingOps._5
+    val optimizer: tf.train.Optimizer) extends Model {
+  private[this] val tfBuiltOps                                                            = addOpsToGraph(graph)
+  protected     val tfInputs        : tf.Iterator[(IT, TT), (IO, TO), (ID, TD), (IS, TS)] = tfBuiltOps._1
+  protected     val tfOutput        : I                                                   = tfBuiltOps._2
+  protected     val tfTrainingOutput: T                                                   = tfBuiltOps._3
+  protected     val tfLoss          : tf.Output                                           = tfBuiltOps._4
+  protected     val tfIteration     : tf.Variable                                         = tfBuiltOps._5
+  protected     val tfTrainOp       : tf.Op                                               = tfBuiltOps._6
 
   override private[learn] val saver: tf.Saver = tf.createWith(graph)(tf.saver())
 
-  protected def addTrainingOpsToGraph(
-      graph: tf.Graph): (tf.Iterator[TT, TO, TD, TS], T, tf.Output, tf.Variable, tf.Op) = {
+  protected def addOpsToGraph(
+      graph: tf.Graph): (tf.Iterator[(IT, TT), (IO, TO), (ID, TD), (IS, TS)], I, T, tf.Output, tf.Variable, tf.Op) = {
     tf.createWith(graph = graph) {
-      val tfTrainingInput = trainingInput()
-      val tfTrainingOutput = trainingInputLayer(tfTrainingInput.next())
+      val tfInputs = input.zip(trainingInput).apply()
+      val tfInputsNext = tfInputs.next()
+      val tfOutput = layer(tfInputsNext._1)
+      val tfTrainingOutput = trainingInputLayer(tfInputsNext._2)
       // TODO: [LEARN] !!! Remove this cast.
       val tfLoss = tf.cast(loss((tfOutput, tfTrainingOutput)), FLOAT32, name = "LearnLossCast")
       val tfIteration = tf.variable("TrainingIteration", INT32, Shape(), tf.zerosInitializer)
       val tfTrainOp = optimizer.minimize(tfLoss, iteration = Some(tfIteration))
-      (tfTrainingInput, tfTrainingOutput, tfLoss, tfIteration, tfTrainOp)
+      (tfInputs, tfOutput, tfTrainingOutput, tfLoss, tfIteration, tfTrainOp)
     }
   }
 
-  // TODO: [DATASETS] !!! Switch to using a single dataset.
   def train(
-      dataI: Dataset[IT, IO, ID, IS], dataT: Dataset[TT, TO, TD, TS], maxEpochs: Int = 100, maxIterations: Int = 10000,
+      data: Dataset[(IT, TT), (IO, TO), (ID, TD), (IS, TS)], maxEpochs: Int = 100, maxIterations: Int = 10000,
       absLossChangeTol: Float = 1e-3f, relLossChangeTol: Float = 1e-3f, maxIterBelowTol: Int = 10): Unit = {
     // Initialize the dataset iterators.
-    val iteratorInitializers = tf.createWith(graph = graph) {
-      (tfInput.createInitializer(dataI), tfTrainingInput.createInitializer(dataT))
-    }
+    val iteratorInitializers = tf.createWith(graph = graph)(tfInputs.createInitializer(data))
     session.run(targets = iteratorInitializers)
     // Run the training loop.
     var previousLoss: Float = Float.MaxValue

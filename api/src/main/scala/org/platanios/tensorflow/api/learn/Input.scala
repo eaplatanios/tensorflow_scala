@@ -15,8 +15,12 @@
 
 package org.platanios.tensorflow.api.learn
 
-import org.platanios.tensorflow.api.{DataType, Shape, Tensor, learn, tf}
-import org.platanios.tensorflow.api.ops.io.Data
+import org.platanios.tensorflow.api.core.{Graph, Shape}
+import org.platanios.tensorflow.api.learn
+import org.platanios.tensorflow.api.ops.{Op, Output}
+import org.platanios.tensorflow.api.ops.io.{Data, Iterator}
+import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.api.types.DataType
 
 import scala.collection.mutable
 
@@ -25,28 +29,36 @@ import scala.collection.mutable
   */
 object Input {
   trait API {
-    type Input = learn.Input
+    type Input[T, O, D, S] = learn.Input[T, O, D, S]
 
-    def input(dataType: DataType, shape: Shape, name: String = "Input"): Input = {
-      new Input(dataType = dataType, shape = shape, name = name)
+    def input(dataType: DataType, shape: Shape): Input[Tensor, Output, DataType, Shape] = {
+      Input(dataType, shape, "Input")
+    }
+
+    def input(dataType: DataType, shape: Shape, name: String): Input[Tensor, Output, DataType, Shape] = {
+      Input(dataType, shape, name)
     }
   }
 
   object API extends API
 }
 
-sealed abstract class SupportedInput[T, O, D, S](implicit ev: Data.Aux[T, O, D, S]) {
-  private[this] val cache: mutable.Map[tf.Graph, tf.Iterator[T, O, D, S]] = mutable.Map.empty
+case class Input[T, O, D, S] private[learn](dataType: D, shape: S, name: String)(implicit
+    ev: Data.Aux[T, O, D, S]
+) {
+  private[Input] val evidence: Data.Aux[T, O, D, S] = ev
 
-  protected def create(): tf.Iterator[T, O, D, S]
+  private[this] val cache: mutable.Map[Graph, Iterator[T, O, D, S]] = mutable.Map.empty
 
-  final def apply(): tf.Iterator[T, O, D, S] = cache.getOrElse(tf.currentGraph, create())
-}
+  protected def create(): Iterator[T, O, D, S] = Iterator.fromStructure(dataType, shape, name)
 
-class Input private[learn](val dataType: DataType, val shape: Shape, val name: String)
-    extends SupportedInput[Tensor, tf.Output, DataType, Shape] {
-  override protected def create(): tf.Iterator[Tensor, tf.Output, DataType, Shape] = {
-    tf.iteratorFromStructure(outputDataTypes = dataType, outputShapes = shape)
+  final def apply(): Iterator[T, O, D, S] = cache.getOrElse(Op.currentGraph, create())
+
+  private[learn] def zip[T2, O2, D2, S2](other: Input[T2, O2, D2, S2]):
+  Input[(T, T2), (O, O2), (D, D2), (S, S2)] = {
+    implicit val ev2: Data.Aux[T2, O2, D2, S2] = other.evidence
+    Input[(T, T2), (O, O2), (D, D2), (S, S2)](
+      (dataType, other.dataType), (shape, other.shape), s"${name}_${other.name}/Zip")
   }
 }
 
