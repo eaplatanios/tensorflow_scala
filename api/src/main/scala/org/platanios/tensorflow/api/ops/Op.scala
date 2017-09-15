@@ -1115,10 +1115,15 @@ object Op {
             NativeOp.setAttrTensorList(nativeHandle, attribute._1, handles)
             handles.foreach(NativeTensor.delete)
           case value: Shape =>
-            NativeOp.setAttrShape(nativeHandle, attribute._1, value.asArray.map(_.toLong), value.rank)
+            if (value.rank != -1)
+              NativeOp.setAttrShape(nativeHandle, attribute._1, value.asArray.map(_.toLong), value.rank)
+            else
+              NativeOp.setAttrShape(nativeHandle, attribute._1, Array.empty[Long], value.rank)
           case value: Array[Shape] =>
             NativeOp.setAttrShapeList(
-              nativeHandle, attribute._1, value.map(_.asArray.map(_.toLong)), value.map(_.rank), value.length)
+              nativeHandle, attribute._1,
+              value.map(s => if (s.rank != -1) s.asArray.map(_.toLong) else Array.empty[Long]),
+              value.map(_.rank), value.length)
           case value: InstantiatedFunction[_, _] =>
             val attrValue = AttrValue.newBuilder()
             attrValue.setFunc(
