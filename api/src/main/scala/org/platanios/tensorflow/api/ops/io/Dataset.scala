@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.ops.io
 import org.platanios.tensorflow.api.Implicits._
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.{InvalidDataTypeException, InvalidShapeException}
-import org.platanios.tensorflow.api.ops.{Callback, Function, FunctionArgType, Op, Output, SparseOutput}
+import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.tensors.{SparseTensor, Tensor}
 import org.platanios.tensorflow.api.types.{DataType, INT64, STRING}
@@ -87,7 +87,7 @@ abstract class Dataset[T, O, D, S] private[io](val name: String = "Dataset")(imp
     * @param  batchSize [[INT64]] scalar tensor containing the batch size.
     * @return Created dataset.
     */
-  def batch(batchSize: Output): BatchDataset[T, O, D, S] = {
+  def batch(batchSize: Long): BatchDataset[T, O, D, S] = {
     BatchDataset(this, batchSize, s"$name/Batch")
   }
 
@@ -97,7 +97,7 @@ abstract class Dataset[T, O, D, S] private[io](val name: String = "Dataset")(imp
     *               `-1` corresponds to repeating it indefinitely.
     * @return Created dataset.
     */
-  def repeat(count: Output = -1): RepeatDataset[T, O, D, S] = {
+  def repeat(count: Long = -1): RepeatDataset[T, O, D, S] = {
     RepeatDataset(this, count, s"$name/Repeat")
   }
 
@@ -108,7 +108,7 @@ abstract class Dataset[T, O, D, S] private[io](val name: String = "Dataset")(imp
     *                   provided dataset will be cached in memory.
     * @return Created dataset.
     */
-  def cache(directory: Output): CacheDataset[T, O, D, S] = {
+  def cache(directory: String): CacheDataset[T, O, D, S] = {
     CacheDataset(this, directory, s"$name/Cache")
   }
 
@@ -122,7 +122,7 @@ abstract class Dataset[T, O, D, S] private[io](val name: String = "Dataset")(imp
     * @param  seed2      [[INT64]] scalar tensor containing a second seed value to avoid seed collision.
     * @return Created dataset.
     */
-  def shuffle(bufferSize: Output, seed1: Output, seed2: Output): ShuffleDataset[T, O, D, S] = {
+  def shuffle(bufferSize: Long, seed1: Long, seed2: Long): ShuffleDataset[T, O, D, S] = {
     ShuffleDataset(this, bufferSize, seed1, seed2, s"$name/Shuffle")
   }
 
@@ -131,7 +131,7 @@ abstract class Dataset[T, O, D, S] private[io](val name: String = "Dataset")(imp
     * @param  count [[INT64]] scalar tensor containing the number of elements to take.
     * @return Created dataset.
     */
-  def take(count: Output): TakeDataset[T, O, D, S] = {
+  def take(count: Long): TakeDataset[T, O, D, S] = {
     TakeDataset(this, count, s"$name/Take")
   }
 
@@ -140,7 +140,7 @@ abstract class Dataset[T, O, D, S] private[io](val name: String = "Dataset")(imp
     * @param  count [[INT64]] scalar tensor containing the number of elements to drop.
     * @return Created dataset.
     */
-  def drop(count: Output): DropDataset[T, O, D, S] = {
+  def drop(count: Long): DropDataset[T, O, D, S] = {
     DropDataset(this, count, s"$name/Drop")
   }
 
@@ -183,7 +183,7 @@ abstract class Dataset[T, O, D, S] private[io](val name: String = "Dataset")(imp
     * @param  bufferSize [[INT64]] scalar tensor containing the number of elements to prefetch.
     * @return Created dataset.
     */
-  def prefetch(bufferSize: Output): PrefetchDataset[T, O, D, S] = {
+  def prefetch(bufferSize: Long): PrefetchDataset[T, O, D, S] = {
     PrefetchDataset(this, bufferSize, s"$name/Prefetch")
   }
 
@@ -254,8 +254,7 @@ object Dataset {
     * @param  name Name for the new dataset.
     * @return Constructed dataset.
     */
-  private[api] def range(
-      start: Output, limit: Output, delta: Output, name: String = "RangeDataset"):
+  private[api] def range(start: Long, limit: Long, delta: Long, name: String = "RangeDataset"):
   Dataset[Tensor, Output, DataType, Shape] = {
     RangeDataset(start, limit, delta, name = name)
   }
@@ -882,7 +881,7 @@ object Dataset {
   private[io] def datasetZip(
       datasets: Seq[Output], outputDataTypes: Seq[DataType], outputShapes: Seq[Shape],
       name: String = "DatasetZip"): Output = {
-    Op.Builder(opType = "SparseTensorSliceDataset", name = name)
+    Op.Builder(opType = "ZipDataset", name = name)
         .addInputList(datasets)
         .setAttribute("output_types", outputDataTypes.toArray)
         .setAttribute("output_shapes", outputShapes.toArray)
@@ -961,6 +960,26 @@ object Dataset {
         .setAttribute("output_shapes", outputShapes.toArray)
         .build().outputs(0)
   }
+
+//  /** Creates an op representing a dataset that contains all entries from the provided dataset, but ignores all errors.
+//    *
+//    * @param  datasetHandle   Handle of the dataset to take entries from.
+//    * @param  outputDataTypes Output data types of the created dataset.
+//    * @param  outputShapes    Output shapes of the created dataset.
+//    * @param  name            Name for the created op.
+//    * @return Created op output, which is a handle to the created dataset.
+//    */
+//  private[io] def datasetMap(
+//      datasetHandle: Output, otherArguments: Seq[Output], function: InstantiatedFunction[_, _],
+//      outputDataTypes: Seq[DataType], outputShapes: Seq[Shape], name: String = "DatasetMap"): Output = {
+//    Op.Builder(opType = "MapDataset", name = name)
+//        .addInput(datasetHandle)
+//        .addInputList(otherArguments)
+//        .setAttribute("f", function.nativeHandle)
+//        .setAttribute("output_types", outputDataTypes.toArray)
+//        .setAttribute("output_shapes", outputShapes.toArray)
+//        .build().outputs(0)
+//  }
 
   // TODO: [DATASETS] [FUNCTIONS] "map", "parallelMap", "flatMap", "interleave", "groupByWindow", and "filter".
 
@@ -1166,15 +1185,18 @@ case class SparseTensorSliceDataset private[io](
   *               sequence.
   * @param  name  Name for this dataset.
   */
-case class RangeDataset private[io](
-    start: Output, limit: Output, delta: Output, override val name: String = "RangeDataset")
+case class RangeDataset private[io](start: Long, limit: Long, delta: Long, override val name: String = "RangeDataset")
     extends Dataset[Tensor, Output, DataType, Shape](name) {
   /** Creates a `RESOURCE` scalar tensor representing this dataset. This function adds ops to the current graph, that
     * create the dataset resource. */
   override def createResource(): Output = {
     Dataset.createRangeDataset(
-      start.cast(INT64), limit.cast(INT64), delta.cast(INT64), outputDataTypes = flattenedOutputDataTypes,
-      outputShapes = flattenedOutputShapes, name = name)
+      Op.createWithNameScope(name)(Basic.constant(start)),
+      Op.createWithNameScope(name)(Basic.constant(limit)),
+      Op.createWithNameScope(name)(Basic.constant(delta)),
+      flattenedOutputDataTypes,
+      flattenedOutputShapes,
+      name)
   }
 
   /** Returns the data types corresponding to each element of this dataset, matching the structure of the elements. */
@@ -1191,18 +1213,18 @@ case class RangeDataset private[io](
   * @param  name         Name for this dataset.
   */
 case class BatchDataset[T, O, D, S] private[io](
-    inputDataset: Dataset[T, O, D, S], batchSize: Output, override val name: String = "BatchDataset")(implicit
+    inputDataset: Dataset[T, O, D, S], batchSize: Long, override val name: String = "BatchDataset")(implicit
     ev: Data.Aux[T, O, D, S]
 ) extends Dataset[T, O, D, S](name) {
   /** Creates a `RESOURCE` scalar tensor representing this dataset. This function adds ops to the current graph, that
     * create the dataset resource. */
   override def createResource(): Output = {
     Dataset.datasetBatch(
-      datasetHandle = Op.createWithNameScope(name)(inputDataset.createResource()),
-      batchSize = batchSize.cast(INT64),
-      outputDataTypes = flattenedOutputDataTypes,
-      outputShapes = flattenedOutputShapes,
-      name = name)
+      Op.createWithNameScope(name)(inputDataset.createResource()),
+      Op.createWithNameScope(name)(Basic.constant(batchSize)),
+      flattenedOutputDataTypes,
+      flattenedOutputShapes,
+      name)
   }
 
   /** Returns the data types corresponding to each element of this dataset, matching the structure of the elements. */
@@ -1224,18 +1246,18 @@ case class BatchDataset[T, O, D, S] private[io](
   * @param  name         Name for this dataset.
   */
 case class RepeatDataset[T, O, D, S] private[io](
-    inputDataset: Dataset[T, O, D, S], count: Output, override val name: String = "RepeatDataset")(implicit
+    inputDataset: Dataset[T, O, D, S], count: Long, override val name: String = "RepeatDataset")(implicit
     ev: Data.Aux[T, O, D, S]
 ) extends Dataset[T, O, D, S](name) {
   /** Creates a `RESOURCE` scalar tensor representing this dataset. This function adds ops to the current graph, that
     * create the dataset resource. */
   override def createResource(): Output = {
     Dataset.datasetRepeat(
-      datasetHandle = Op.createWithNameScope(name)(inputDataset.createResource()),
-      count = count.cast(INT64),
-      outputDataTypes = flattenedOutputDataTypes,
-      outputShapes = flattenedOutputShapes,
-      name = name)
+      Op.createWithNameScope(name)(inputDataset.createResource()),
+      Op.createWithNameScope(name)(Basic.constant(count)),
+      flattenedOutputDataTypes,
+      flattenedOutputShapes,
+      name)
   }
 
   /** Returns the data types corresponding to each element of this dataset, matching the structure of the elements. */
@@ -1254,18 +1276,18 @@ case class RepeatDataset[T, O, D, S] private[io](
   * @param  name         Name for this dataset.
   */
 case class CacheDataset[T, O, D, S] private[io](
-    inputDataset: Dataset[T, O, D, S], directory: Output, override val name: String = "CacheDataset")(implicit
+    inputDataset: Dataset[T, O, D, S], directory: String, override val name: String = "CacheDataset")(implicit
     ev: Data.Aux[T, O, D, S]
 ) extends Dataset[T, O, D, S](name) {
   /** Creates a `RESOURCE` scalar tensor representing this dataset. This function adds ops to the current graph, that
     * create the dataset resource. */
   override def createResource(): Output = {
     Dataset.datasetCache(
-      datasetHandle = Op.createWithNameScope(name)(inputDataset.createResource()),
-      directory = directory,
-      outputDataTypes = flattenedOutputDataTypes,
-      outputShapes = flattenedOutputShapes,
-      name = name)
+      Op.createWithNameScope(name)(inputDataset.createResource()),
+      Op.createWithNameScope(name)(Basic.constant(directory)),
+      flattenedOutputDataTypes,
+      flattenedOutputShapes,
+      name)
   }
 
   /** Returns the data types corresponding to each element of this dataset, matching the structure of the elements. */
@@ -1287,7 +1309,7 @@ case class CacheDataset[T, O, D, S] private[io](
   * @param  name         Name for this dataset.
   */
 case class ShuffleDataset[T, O, D, S] private[io](
-    inputDataset: Dataset[T, O, D, S], bufferSize: Output, seed1: Output, seed2: Output,
+    inputDataset: Dataset[T, O, D, S], bufferSize: Long, seed1: Long, seed2: Long,
     override val name: String = "ShuffleDataset")(implicit
     ev: Data.Aux[T, O, D, S]
 ) extends Dataset[T, O, D, S](name) {
@@ -1295,13 +1317,13 @@ case class ShuffleDataset[T, O, D, S] private[io](
     * create the dataset resource. */
   override def createResource(): Output = {
     Dataset.datasetShuffle(
-      datasetHandle = Op.createWithNameScope(name)(inputDataset.createResource()),
-      bufferSize = bufferSize.cast(INT64),
-      seed1 = seed1.cast(INT64),
-      seed2 = seed2.cast(INT64),
-      outputDataTypes = flattenedOutputDataTypes,
-      outputShapes = flattenedOutputShapes,
-      name = name)
+      Op.createWithNameScope(name)(inputDataset.createResource()),
+      Op.createWithNameScope(name)(Basic.constant(bufferSize)),
+      Op.createWithNameScope(name)(Basic.constant(seed1)),
+      Op.createWithNameScope(name)(Basic.constant(seed2)),
+      flattenedOutputDataTypes,
+      flattenedOutputShapes,
+      name)
   }
 
   /** Returns the data types corresponding to each element of this dataset, matching the structure of the elements. */
@@ -1318,18 +1340,18 @@ case class ShuffleDataset[T, O, D, S] private[io](
   * @param  name         Name for this dataset.
   */
 case class TakeDataset[T, O, D, S] private[io](
-    inputDataset: Dataset[T, O, D, S], count: Output, override val name: String = "TakeDataset")(implicit
+    inputDataset: Dataset[T, O, D, S], count: Long, override val name: String = "TakeDataset")(implicit
     ev: Data.Aux[T, O, D, S]
 ) extends Dataset[T, O, D, S](name) {
   /** Creates a `RESOURCE` scalar tensor representing this dataset. This function adds ops to the current graph, that
     * create the dataset resource. */
   override def createResource(): Output = {
     Dataset.datasetTake(
-      datasetHandle = Op.createWithNameScope(name)(inputDataset.createResource()),
-      count = count.cast(INT64),
-      outputDataTypes = flattenedOutputDataTypes,
-      outputShapes = flattenedOutputShapes,
-      name = name)
+      Op.createWithNameScope(name)(inputDataset.createResource()),
+      Op.createWithNameScope(name)(Basic.constant(count)),
+      flattenedOutputDataTypes,
+      flattenedOutputShapes,
+      name)
   }
 
   /** Returns the data types corresponding to each element of this dataset, matching the structure of the elements. */
@@ -1346,18 +1368,18 @@ case class TakeDataset[T, O, D, S] private[io](
   * @param  name         Name for this dataset.
   */
 case class DropDataset[T, O, D, S] private[io](
-    inputDataset: Dataset[T, O, D, S], count: Output, override val name: String = "DropDataset")(implicit
+    inputDataset: Dataset[T, O, D, S], count: Long, override val name: String = "DropDataset")(implicit
     ev: Data.Aux[T, O, D, S]
 ) extends Dataset[T, O, D, S](name) {
   /** Creates a `RESOURCE` scalar tensor representing this dataset. This function adds ops to the current graph, that
     * create the dataset resource. */
   override def createResource(): Output = {
     Dataset.datasetSkip(
-      datasetHandle = Op.createWithNameScope(name)(inputDataset.createResource()),
-      count = count.cast(INT64),
-      outputDataTypes = flattenedOutputDataTypes,
-      outputShapes = flattenedOutputShapes,
-      name = name)
+      Op.createWithNameScope(name)(inputDataset.createResource()),
+      Op.createWithNameScope(name)(Basic.constant(count)),
+      flattenedOutputDataTypes,
+      flattenedOutputShapes,
+      name)
   }
 
   /** Returns the data types corresponding to each element of this dataset, matching the structure of the elements. */
@@ -1514,7 +1536,7 @@ case class ConcatenatedDataset[T, O, D, S] private[io](
   * @param  name         Name for this dataset.
   */
 case class PrefetchDataset[T, O, D, S] private[io](
-    inputDataset: Dataset[T, O, D, S], bufferSize: Output, override val name: String = "PrefetchDataset")(implicit
+    inputDataset: Dataset[T, O, D, S], bufferSize: Long, override val name: String = "PrefetchDataset")(implicit
     ev: Data.Aux[T, O, D, S]
 ) extends Dataset[T, O, D, S](name) {
   /** Creates a `RESOURCE` scalar tensor representing this dataset. This function adds ops to the current graph, that
@@ -1522,7 +1544,7 @@ case class PrefetchDataset[T, O, D, S] private[io](
   override def createResource(): Output = {
     Dataset.datasetPrefetch(
       Op.createWithNameScope(name)(inputDataset.createResource()),
-      bufferSize.cast(INT64),
+      Op.createWithNameScope(name)(Basic.constant(bufferSize)),
       flattenedOutputDataTypes,
       flattenedOutputShapes,
       name)
@@ -1561,3 +1583,23 @@ case class IgnoreErrorsDataset[T, O, D, S] private[io](
   /** Returns the shapes corresponding to each element of this dataset, matching the structure of the elements. */
   override val outputShapes: S = inputDataset.outputShapes
 }
+
+//case class MapDataset[T, O, D, S, RT, RO, RD, RS] private[io](
+//    inputDataset: Dataset[T, O, D, S],
+//    function: Function[T, RT],
+//    override val name: String = "MapDataset")(implicit
+//    ev: Data.Aux[T, O, D, S],
+//    evR: Data.Aux[RT, RO, RD, RS],
+//    evFunctionInput: Function.ArgType[T],
+//    evFunctionOutput: Function.ArgType[RT]
+//) extends Dataset[RT, RO, RD, RS](name) {
+//  /** Creates a `RESOURCE` scalar tensor representing this dataset. This function adds ops to the current graph, that
+//    * create the dataset resource. */
+//  override def createResource(): Output = {
+//    Dataset.datasetMap(
+//      datasetHandle = Op.createWithNameScope(name)(inputDataset.createResource()),
+//      outputDataTypes = flattenedOutputDataTypes,
+//      outputShapes = flattenedOutputShapes,
+//      name = name)
+//  }
+//}
