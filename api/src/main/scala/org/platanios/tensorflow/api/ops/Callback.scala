@@ -117,6 +117,17 @@ private[ops] object Callback extends Callback {
 
     def apply[T, S, D](implicit ev: Aux[T, S, D]): Aux[T, S, D] = ev
 
+    implicit val unitArgType: ArgType.Aux[Unit, Unit, Unit] = new ArgType[Unit] {
+      override type TS = Unit
+      override type TD = Unit
+
+      override def tensors(arg: Unit): Seq[Tensor] = Seq.empty
+      override def outputs(arg: Unit): Seq[Output] = Seq.empty
+      override def dataTypes(types: Unit): Seq[DataType] = Seq.empty
+      override def decode(tensors: Seq[Tensor]): Unit = ()
+      override def decodeSymbolic(outputs: Seq[Output]): Unit = ()
+    }
+
     implicit def tensorArgType[D <: DataType]: ArgType.Aux[Tensor, Output, D] = new ArgType[Tensor] {
       override type TS = Output
       override type TD = D
