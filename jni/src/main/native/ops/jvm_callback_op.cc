@@ -115,6 +115,8 @@ namespace {
     // Invoke the registry 'call' method.
     auto outputs = (jlongArray) call->env->CallStaticObjectMethod(
       call->registry, call->call_method_id, call->id, call_inputs);
+    if (env->ExceptionCheck()) return Status::OK();
+
     if (outputs == nullptr) {
       return errors::Unknown("Failed to run JVM callback function.");
     }
@@ -163,6 +165,7 @@ class JVMCallbackOp : public OpKernel {
     Status s = CallJVMFunction(&call);
     status = jvm_->DetachCurrentThread();
     assert(status == JNI_OK);
+    if (env->ExceptionCheck()) return;
 
     OP_REQUIRES_OK(ctx, s);
 
