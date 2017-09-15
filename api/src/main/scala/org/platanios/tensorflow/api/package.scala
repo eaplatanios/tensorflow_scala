@@ -72,6 +72,7 @@ package object api extends Implicits with Documentation {
   val QUINT8    : DataType.Aux[UByte]   = types.QUINT8
   val QUINT16   : DataType.Aux[UShort]  = types.QUINT16
   val RESOURCE  : DataType.Aux[Long]    = types.RESOURCE
+  val VARIANT   : DataType.Aux[Long]    = types.VARIANT
 
   //endregion Data Types API
 

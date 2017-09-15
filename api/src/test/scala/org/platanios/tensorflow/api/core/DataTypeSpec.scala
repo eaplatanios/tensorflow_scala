@@ -67,13 +67,14 @@ class DataTypeSpec extends FlatSpec with Matchers {
     assert(tf.dataType(18) === COMPLEX128)
     assert(tf.dataType(19) === FLOAT16)
     assert(tf.dataType(20) === RESOURCE)
+    assert(tf.dataType(21) === VARIANT)
   }
 
   it must "throw an 'IllegalArgumentException' when invalid C values are provided" in {
     assertThrows[IllegalArgumentException](tf.dataType(-10))
     assertThrows[IllegalArgumentException](tf.dataType(-1))
     assertThrows[IllegalArgumentException](tf.dataType(0))
-    assertThrows[IllegalArgumentException](tf.dataType(21))
+    assertThrows[IllegalArgumentException](tf.dataType(25))
     assertThrows[IllegalArgumentException](tf.dataType(54))
     assertThrows[IllegalArgumentException](tf.dataType(167))
   }
@@ -99,6 +100,7 @@ class DataTypeSpec extends FlatSpec with Matchers {
     assert(tf.dataType("COMPLEX128") === COMPLEX128)
     assert(tf.dataType("FLOAT16") === FLOAT16)
     assert(tf.dataType("RESOURCE") === RESOURCE)
+    assert(tf.dataType("VARIANT") === VARIANT)
   }
 
   it must "throw an 'IllegalArgumentException' when invalid data type names are provided" in {
@@ -129,6 +131,7 @@ class DataTypeSpec extends FlatSpec with Matchers {
     assert(QUINT8.byteSize === 1)
     assert(QUINT16.byteSize === 2)
     assert(RESOURCE.byteSize === -1)
+    assert(VARIANT.byteSize === -1)
   }
 
   // TODO: Add checks for data type priorities.
@@ -154,6 +157,7 @@ class DataTypeSpec extends FlatSpec with Matchers {
     assert(QUINT8.isBoolean === false)
     assert(QUINT16.isBoolean === false)
     assert(RESOURCE.isBoolean === false)
+    assert(VARIANT.isBoolean === false)
   }
 
   "'DataType.isFloatingPoint'" must "always work correctly" in {
@@ -177,6 +181,7 @@ class DataTypeSpec extends FlatSpec with Matchers {
     assert(QUINT8.isFloatingPoint === false)
     assert(QUINT16.isFloatingPoint === false)
     assert(RESOURCE.isFloatingPoint === false)
+    assert(VARIANT.isFloatingPoint === false)
   }
 
   "'DataType.isInteger'" must "always work correctly" in {
@@ -223,6 +228,7 @@ class DataTypeSpec extends FlatSpec with Matchers {
     assert(QUINT8.isComplex === false)
     assert(QUINT16.isComplex === false)
     assert(RESOURCE.isComplex === false)
+    assert(VARIANT.isComplex === false)
   }
 
   "'DataType.isQuantized'" must "always work correctly" in {
@@ -246,6 +252,7 @@ class DataTypeSpec extends FlatSpec with Matchers {
     assert(QUINT8.isQuantized === true)
     assert(QUINT16.isQuantized === true)
     assert(RESOURCE.isQuantized === false)
+    assert(VARIANT.isQuantized === false)
   }
 
   "'DataType.isUnsigned'" must "always work correctly" in {
@@ -269,6 +276,7 @@ class DataTypeSpec extends FlatSpec with Matchers {
     assert(QUINT8.isUnsigned === false)
     assert(QUINT16.isUnsigned === false)
     assert(RESOURCE.isUnsigned === false)
+    assert(VARIANT.isUnsigned === false)
   }
 
    "'DataType.real'" must "always work correctly" in {
@@ -292,6 +300,7 @@ class DataTypeSpec extends FlatSpec with Matchers {
      assert(QUINT8.real === QUINT8)
      assert(QUINT16.real === QUINT16)
      assert(RESOURCE.real === RESOURCE)
+     assert(VARIANT.real === VARIANT)
    }
 
   "'DataType.equals'" must "always work correctly" in {
