@@ -852,3 +852,17 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_setAttrShapeLi
   TF_SetAttrShapeList(d, cname, c_shapes.get(), c_num_dims.get(), c_num_shapes);
   env->ReleaseStringUTFChars(name, cname);
 }
+
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_setAttrProto(
+    JNIEnv* env, jobject object, jlong handle, jstring name, jbyteArray value) {
+  static_assert(sizeof(jbyte) == 1, "We require the Java byte to be represented as a single byte.");
+  TF_OperationDescription *d = requireOperationDescriptionHandle(env, handle);
+  if (d == nullptr) return;
+  const char *c_name = env->GetStringUTFChars(name, nullptr);
+  jbyte *c_value = env->GetByteArrayElements(value, nullptr);
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+  TF_SetAttrValueProto(d, c_name, c_value, static_cast<size_t>(env->GetArrayLength(value)), status.get());
+  env->ReleaseByteArrayElements(value, c_value, JNI_ABORT);
+  env->ReleaseStringUTFChars(name, c_name);
+  CHECK_STATUS(env, status.get(), void());
+}
