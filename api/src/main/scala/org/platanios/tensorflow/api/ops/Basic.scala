@@ -203,7 +203,7 @@ private[api] trait Basic {
   def placeholder(dataType: DataType, shape: Shape = null, name: String = "Placeholder"): Output = {
     val opBuilder = Op.Builder(opType = "Placeholder", name = name)
         .setAttribute("dtype", dataType)
-    if (shape != null)
+    if (shape != null && shape.rank != -1)
       opBuilder.setAttribute("shape", shape)
     opBuilder.build().outputs(0)
   }
