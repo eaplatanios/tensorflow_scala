@@ -25,10 +25,10 @@ import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.DataType
 import org.platanios.tensorflow.api.utilities.using
 import org.platanios.tensorflow.jni.{Op => NativeOp, Tensor => NativeTensor}
-
-import org.tensorflow.framework.FunctionDef
-
+import org.tensorflow.framework.{AttrValue, FunctionDef, NameAttrList}
 import java.nio.charset.Charset
+
+import org.tensorflow.framework.OpDef.AttrDef
 
 import scala.collection.mutable
 import scala.util.{DynamicVariable, Try}
@@ -414,11 +414,11 @@ object Op {
     * Its interactions with operation-level seeds are as follows:
     *   1. If neither the graph-level nor the operation-level seed is set, a random seed is used for this op.
     *   2. If the graph-level seed is set, but the operation-level seed is not, the system deterministically picks an
-    *      operation-level seed in conjunction with the graph-level seed so that it gets a unique random sequence.
+    * operation-level seed in conjunction with the graph-level seed so that it gets a unique random sequence.
     *   3. If the graph-level seed is not set, but the operation-level seed is set, a default graph-level seed and the
-    *      specified operation-level seed are used to determine the random sequence.
+    * specified operation-level seed are used to determine the random sequence.
     *   4. If both the graph-level and the operation-level seed are set, then both seeds are used in conjunction to
-    *      determine the random sequence.
+    * determine the random sequence.
     *
     * To generate different sequences across sessions, set neither the graph-level nor the op-level seeds.
     *
@@ -472,11 +472,11 @@ object Op {
     * generating a new op creation context. This new context is used for all ops created within the code block provided
     * in the `createWith(...)` function. The `nameScope` argument will be interpreted as follows:
     *   - A string not ending with `"/"` will create a new name scope, in which `nameScope` is appended to the prefix of
-    *     all operations created in the provided code block. If `nameScope` has been used before, it will be made unique
-    *     by calling `uniqueName(graph = context.graph, name = nameScope)`.
+    * all operations created in the provided code block. If `nameScope` has been used before, it will be made unique
+    * by calling `uniqueName(graph = context.graph, name = nameScope)`.
     *   - A string ending with `"/"` will be treated as an "absolute" name scope, which makes it possible to re-enter
-    *     existing scopes. Such absolute name scopes can be obtained by using the `currentNameScope` function, from
-    *     within the appropriate context.
+    * existing scopes. Such absolute name scopes can be obtained by using the `currentNameScope` function, from
+    * within the appropriate context.
     *   - A value of `""` will reset the current name scope to the top-level (i.e., empty) name scope.
     *
     * This function checks the provided `nameScope` for validity by checking whether it matches: (i) the regular
@@ -1060,7 +1060,7 @@ object Op {
             graph.uniqueName(this.name)
         }
         val nativeHandle: Long = NativeOp.allocate(r.nativeHandle, opType, name)
-        inputFunctions.foreach(_(nativeHandle))
+        inputFunctions.foreach(_ (nativeHandle))
         val controlDependencies: mutable.Set[Op] = mutable.Set(context.controlDependencies.toSeq: _*)
         inputs.foreach(input => pruneControlDependencies(controlDependencies, input.op))
         inputLists.foreach(_.foreach(input => pruneControlDependencies(controlDependencies, input.op)))
@@ -1119,8 +1119,13 @@ object Op {
           case value: Array[Shape] =>
             NativeOp.setAttrShapeList(
               nativeHandle, attribute._1, value.map(_.asArray.map(_.toLong)), value.map(_.rank), value.length)
-          case value: FunctionDef =>
-            NativeOp.setAttrProto(nativeHandle, attribute._1, value.toByteArray)
+          case value: InstantiatedFunction[_, _] =>
+            val attrValue = AttrValue.newBuilder()
+            attrValue.setFunc(
+              NameAttrList.newBuilder()
+                  .setName(value.name)
+                  .build())
+            NativeOp.setAttrProto(nativeHandle, attribute._1, attrValue.build().toByteArray)
           case _ =>
             throw new IllegalArgumentException(s"Unsupported attribute type for attribute named '${attribute._1}.'")
         }
@@ -1226,7 +1231,7 @@ object Op {
 
     def setAttribute(name: String, value: InstantiatedFunction[_, _]): Builder = {
       value.addToGraph(graph)
-      attributes += name -> value.toFunctionDef
+      attributes += name -> value
       this
     }
   }
