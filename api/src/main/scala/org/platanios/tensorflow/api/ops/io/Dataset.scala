@@ -188,6 +188,19 @@ abstract class Dataset[T, O, D, S] private[io](val name: String = "Dataset")(imp
     Dataset.map(this, function, numParallelCalls, bufferSize, s"$name/Map")
   }
 
+  /** $OpDocDatasetFlatMap
+    *
+    * @param  function Mapping function.
+    * @return Created dataset.
+    */
+  def flatMap[RT, RO, RD, RS](function: (T) => Dataset[RT, RO, RD, RS])(implicit
+      ev: Data.Aux[T, O, D, S],
+      evR: Data.Aux[RT, RO, RD, RS],
+      evFunctionInput: Function.ArgType[T]
+  ): Dataset[RT, RO, RD, RS] = {
+    Dataset.flatMap(this, function, s"$name/FlatMap")
+  }
+
   /** $OpDocDatasetPrefetch
     *
     * @param  bufferSize Number of elements to prefetch.
@@ -553,6 +566,22 @@ object Dataset {
       mappedDataset.prefetch(bufferSize)
     else
       mappedDataset
+  }
+
+  /** $OpDocDatasetFlatMap
+    *
+    * @param  dataset  Input dataset.
+    * @param  function Mapping function.
+    * @param  name     Name for the created dataset.
+    * @return Created dataset.
+    */
+  def flatMap[T, O, D, S, RT, RO, RD, RS](
+      dataset: Dataset[T, O, D, S], function: (T) => Dataset[RT, RO, RD, RS], name: String = "FlatMapDataset")(implicit
+      ev: Data.Aux[T, O, D, S],
+      evR: Data.Aux[RT, RO, RD, RS],
+      evFunctionInput: Function.ArgType[T]
+  ): Dataset[RT, RO, RD, RS] = {
+    FlatMapDataset(dataset, function, name)
   }
 
   /** $OpDocDatasetPrefetch
@@ -1103,6 +1132,27 @@ object Dataset {
         .build().outputs(0)
   }
 
+  /** Creates an op representing a dataset that maps a function over another dataset and flattens the result.
+    *
+    * @param  datasetHandle   Handle of the dataset to map `function` over.
+    * @param  function        Mapping function.
+    * @param  outputDataTypes Output data types of the created dataset.
+    * @param  outputShapes    Output shapes of the created dataset.
+    * @param  name            Name for the created op.
+    * @return Created op output, which is a handle to the created dataset.
+    */
+  private[io] def datasetFlatMap(
+      datasetHandle: Output, otherArguments: Seq[Output], function: InstantiatedFunction[_, _],
+      outputDataTypes: Seq[DataType], outputShapes: Seq[Shape], name: String = "DatasetFlatMap"): Output = {
+    Op.Builder(opType = "FlatMapDataset", name = name)
+        .addInput(datasetHandle)
+        .addInputList(otherArguments)
+        .setAttribute("f", function)
+        .setAttribute("output_types", outputDataTypes.toArray)
+        .setAttribute("output_shapes", outputShapes.toArray)
+        .build().outputs(0)
+  }
+
   // TODO: [DATASETS] "denseToSparseBatch".
 
   /** Creates an op representing a dataset that asynchronously prefetches elements from `dataset`.
@@ -1173,15 +1223,15 @@ object Dataset {
     GradientsRegistry.registerNonDifferentiable("SkipDataset")
     GradientsRegistry.registerNonDifferentiable("ZipDataset")
     GradientsRegistry.registerNonDifferentiable("ConcatenateDataset")
-    GradientsRegistry.registerNonDifferentiable("PrefetchDataset")
-    GradientsRegistry.registerNonDifferentiable("IgnoreErrorsDataset")
-    GradientsRegistry.registerNonDifferentiable("DenseToSparseBatchDataset")
     GradientsRegistry.registerNonDifferentiable("MapDataset")
     GradientsRegistry.registerNonDifferentiable("ParallelMapDataset")
     GradientsRegistry.registerNonDifferentiable("FlatMapDataset")
+    GradientsRegistry.registerNonDifferentiable("FilterDataset")
     GradientsRegistry.registerNonDifferentiable("InterleaveDataset")
     GradientsRegistry.registerNonDifferentiable("GroupByWindowDataset")
-    GradientsRegistry.registerNonDifferentiable("FilterDataset")
+    GradientsRegistry.registerNonDifferentiable("PrefetchDataset")
+    GradientsRegistry.registerNonDifferentiable("IgnoreErrorsDataset")
+    GradientsRegistry.registerNonDifferentiable("DenseToSparseBatchDataset")
   }
 
   /** @define OpDocDatasetBatch
@@ -1213,7 +1263,7 @@ object Dataset {
     * @define OpDocDatasetZip
     *   The dataset `zip`, `zip3`, and `zipMultiple` ops create a new dataset by zipping together multiple datasets.
     *
-    *   The ops have similar semantics to the built-in Scala collections `zip` and `zip3` functions.
+    *   The ops have similar semantics to the built-in Scala collections `zip` function.
     *
     *   The main difference between the three ops is that `zip` is limited to two datasets of potentially
     *   differently-typed elements, `zip3` is similarly limited to three datasets of potentially differently-typed
@@ -1263,6 +1313,12 @@ object Dataset {
     *   The dataset `map` op creates a new dataset by a function across all elements of another dataset.
     *
     *   The op has similar semantics to the built-in Scala collections `map` function.
+    *
+    * @define OpDocDatasetFlatMap
+    *   The dataset `flatMap` op creates a new dataset by a mapping function across all elements of another dataset and
+    *   then flattening the results.
+    *
+    *   The op has similar semantics to the built-in Scala collections `flatMap` function.
     *
     * @define OpDocDatasetPrefetch
     *   The dataset `prefetch` op creates a new dataset by asynchronously prefetching elements from the provided
@@ -1687,7 +1743,8 @@ private[io] case class MapDataset[T, O, D, S, RT, RO, RD, RS] private[io](
     evFunctionOutput: Function.ArgType[RT]
 ) extends Dataset[RT, RO, RD, RS](name) {
   private[this] val instantiatedFunction = {
-    Function(s"$name/Function", function).instantiate(inputDataset.flattenedOutputDataTypes)
+    Function(s"$name/Function", function).instantiate(
+      inputDataset.flattenedOutputDataTypes, inputDataset.flattenedOutputShapes)
   }
 
   override def createHandle(): Output = {
@@ -1700,7 +1757,7 @@ private[io] case class MapDataset[T, O, D, S, RT, RO, RD, RS] private[io](
       name)
   }
 
-  override val (outputDataTypes: RD, outputShapes: RS) = {
+  override val (outputDataTypes, outputShapes): (RD, RS) = {
     val dataTypes = evR.dataTypes(instantiatedFunction.dummyOutputs)
     (evR.unflattenDataTypes(dataTypes, instantiatedFunction.outputDataTypes),
         evR.unflattenShapes(dataTypes, instantiatedFunction.outputShapes))
@@ -1728,7 +1785,8 @@ private[io] case class ParallelMapDataset[T, O, D, S, RT, RO, RD, RS] private[io
     evFunctionOutput: Function.ArgType[RT]
 ) extends Dataset[RT, RO, RD, RS](name) {
   private[this] val instantiatedFunction = {
-    Function(s"$name/Function", function).instantiate(inputDataset.flattenedOutputDataTypes)
+    Function(s"$name/Function", function).instantiate(
+      inputDataset.flattenedOutputDataTypes, inputDataset.flattenedOutputShapes)
   }
 
   override def createHandle(): Output = {
@@ -1742,11 +1800,46 @@ private[io] case class ParallelMapDataset[T, O, D, S, RT, RO, RD, RS] private[io
       name)
   }
 
-  override val (outputDataTypes: RD, outputShapes: RS) = {
+  override val (outputDataTypes, outputShapes): (RD, RS) = {
     val dataTypes = evR.dataTypes(instantiatedFunction.dummyOutputs)
     (evR.unflattenDataTypes(dataTypes, instantiatedFunction.outputDataTypes),
         evR.unflattenShapes(dataTypes, instantiatedFunction.outputShapes))
   }
+}
+
+/** [[Dataset]] that wraps the application of the `flatMap` op.
+  *
+  * $OpDocDatasetFlatMap
+  *
+  * @param  inputDataset Input dataset.
+  * @param  function     Mapping function.
+  * @param  name         Name for this dataset.
+  */
+private[io] case class FlatMapDataset[T, O, D, S, RT, RO, RD, RS] private[io](
+    inputDataset: Dataset[T, O, D, S],
+    function: (T) => Dataset[RT, RO, RD, RS],
+    override val name: String = "FlatMapDataset")(implicit
+    ev: Data.Aux[T, O, D, S],
+    evR: Data.Aux[RT, RO, RD, RS],
+    evFunctionInput: Function.ArgType[T]
+) extends Dataset[RT, RO, RD, RS](name) {
+  private[this] val instantiatedFunction = {
+    Function(s"$name/Function", function).instantiate(
+      inputDataset.flattenedOutputDataTypes, inputDataset.flattenedOutputShapes)
+  }
+
+  override def createHandle(): Output = {
+    Dataset.datasetFlatMap(
+      Op.createWithNameScope(name)(inputDataset.createHandle()),
+      instantiatedFunction.extraInputs,
+      instantiatedFunction,
+      flattenedOutputDataTypes,
+      flattenedOutputShapes,
+      name)
+  }
+
+  override val outputDataTypes: RD = instantiatedFunction.dummyOutputs.outputDataTypes
+  override val outputShapes   : RS = instantiatedFunction.dummyOutputs.outputShapes
 }
 
 /** [[Dataset]] that wraps the application of the `prefetch` op.

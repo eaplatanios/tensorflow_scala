@@ -16,12 +16,12 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.{Graph, Shape}
+import org.platanios.tensorflow.api.ops.io.{Data, Dataset}
 import org.platanios.tensorflow.api.ops.variables.Variable.VariableGetter
 import org.platanios.tensorflow.api.ops.variables._
-import org.platanios.tensorflow.api.types.{DataType, FLOAT32}
+import org.platanios.tensorflow.api.types.{DataType, FLOAT32, VARIANT}
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer}
 import org.platanios.tensorflow.jni.{Function => NativeFunction, Graph => NativeGraph}
-
 import org.tensorflow.framework.FunctionDef
 
 import scala.collection.mutable
@@ -32,13 +32,13 @@ import scala.util.DynamicVariable
 /**
   * @author Emmanouil Antonios Platanios
   */
-case class Function[O, R](name: String, function: (O) => R)(implicit
-    evInput: Function.ArgType[O],
+case class Function[IO, IR, R](name: String, function: (IO) => R)(implicit
+    evInput: Function.ArgType[IO],
     evOutput: Function.ArgType[R]
 ) {
-  private[this] val instantiatedFunctions = mutable.HashMap.empty[String, InstantiatedFunction[O, R]]
+  private[this] val instantiatedFunctions = mutable.HashMap.empty[String, InstantiatedFunction[IO, R]]
 
-  def apply(arg: O): R = {
+  def apply(arg: IO): R = {
     val dataTypes = evInput.dataTypes(arg)
     val key = dataTypes.map(_.toString).mkString(":")
     instantiatedFunctions.getOrElseUpdate(key, {
@@ -46,17 +46,17 @@ case class Function[O, R](name: String, function: (O) => R)(implicit
     })(arg)
   }
 
-  private[ops] def instantiate(inputDataTypes: Seq[DataType]): InstantiatedFunction[O, R] = {
-    val key = inputDataTypes.map(_.toString).mkString(":")
+  private[ops] def instantiate(
+      inputDataTypes: Seq[DataType], inputShapes: Seq[Shape] = null): InstantiatedFunction[IO, R] = {
+    val key = (inputDataTypes.map(_.toString) ++ Option(inputShapes).map(_.map(_.toString))).mkString(":")
     instantiatedFunctions.getOrElseUpdate(key, {
-      InstantiatedFunction(s"${name}_$key", function, inputDataTypes)(evInput, evOutput)
+      InstantiatedFunction(s"${name}_$key", function, inputDataTypes, Option(inputShapes))(evInput, evOutput)
     })
   }
 }
 
 object Function {
   trait ArgType[O] {
-    def graph(arg: O): Graph
     def numOutputs: Int
     def outputs(arg: O): Seq[Output]
     def dataTypes(arg: O): Seq[DataType]
@@ -67,11 +67,20 @@ object Function {
     def apply[O](implicit ev: ArgType[O]): ArgType[O] = ev
 
     implicit val outputArgType: ArgType[Output] = new ArgType[Output] {
-      override def graph(arg: Output): Graph = arg.graph
       override def numOutputs: Int = 1
       override def outputs(arg: Output): Seq[Output] = Seq(arg)
       override def dataTypes(arg: Output): Seq[DataType] = Seq(arg.dataType)
       override def outputsDecoder(outputs: Seq[Output]): (Output, Seq[Output]) = (outputs.head, outputs.tail)
+    }
+
+    implicit def datasetArgType[T, O, D, S](implicit
+        ev: Data.Aux[T, O, D, S]
+    ): ArgType[Dataset[T, O, D, S]] = new ArgType[Dataset[T, O, D, S]] {
+      override def numOutputs: Int = 1
+      override def outputs(arg: Dataset[T, O, D, S]): Seq[Output] = Seq(arg.createHandle())
+      override def dataTypes(arg: Dataset[T, O, D, S]): Seq[DataType] = Seq(VARIANT)
+      // TODO: !!! [FUNCTIONS] Find a better way to deal with this -- it's only used for Dataset.flatMap().
+      override def outputsDecoder(outputs: Seq[Output]): (Dataset[T, O, D, S], Seq[Output]) = (null, outputs.tail)
     }
   }
 }
@@ -79,6 +88,7 @@ object Function {
 private[api] case class InstantiatedFunction[O, R] private[ops](
     name: String, function: (O) => R,
     inputDataTypes: Seq[DataType],
+    inputShapes: Option[Seq[Shape]] = None,
     private val _inputNames: Seq[String] = null,
     private val _outputNames: Seq[String] = null)(implicit
     evInput: Function.ArgType[O],
@@ -105,7 +115,17 @@ private[api] case class InstantiatedFunction[O, R] private[ops](
           inputDataTypes.indices.map(i => s"input_$i")
         }
       }
-      inputs.appendAll(inputNames.zip(inputDataTypes).map(a => Basic.placeholder(dataType = a._2, name = a._1)))
+
+      inputShapes match {
+        case None =>
+          inputs.appendAll((inputNames, inputDataTypes).zipped.map((name, dataType) => {
+            Basic.placeholder(dataType = dataType, name = name)
+          }))
+        case Some(shapes) =>
+          inputs.appendAll((inputNames, inputDataTypes, shapes).zipped.map((name, dataType, shape) => {
+            Basic.placeholder(dataType = dataType, shape = shape, name = name)
+          }))
+      }
 
       // Call the Scala function and gather the output tensors
       val (outputs, flattenedOutputs) = {
@@ -213,10 +233,11 @@ private[api] case class InstantiatedFunction[O, R] private[ops](
   def apply(
       input: O, inline: Boolean = true, compiled: Boolean = false, separateCompiledGradients: Boolean = false,
       name: String = this.name)(implicit context: DynamicVariable[OpCreationContext]): R = {
-    addToGraph(evInput.graph(input))
     val outputs = Op.createWithNameScope(name) {
+      val outputs = evInput.outputs(input)
+      addToGraph(outputs.head.graph)
       val builder = Op.Builder(opType = this.name, name = "Call")(context)
-      (evInput.outputs(input) ++ extraInputs).foreach(builder.addInput)
+      (outputs ++ extraInputs).foreach(builder.addInput)
       builder.setAttribute("_noinline", inline)
       if (compiled) {
         builder
