@@ -368,13 +368,13 @@ object Dataset {
       @throws[IndexOutOfBoundsException]
       def generatorScalaCallback(iteratorId: Tensor): Seq[Tensor] = {
         val iterator = generatorState.getIterator(iteratorId.scalar.asInstanceOf[Long])
-        val values = {
+        val value = {
           if (iterator.hasNext)
             iterator.next()
           else
             throw new IndexOutOfBoundsException("The iterator does not contain any more elements.")
         }
-        val flattenedTensors = ev.flattenedTensors(values)
+        val flattenedTensors = ev.flattenedTensors(value)
         // Additional type and shape checking to ensure that the components of the generated element match the
         // output data types and output shapes arguments.
         (flattenedTensors, flattenedTypes, flattenedShapes).zipped.foreach((tensor, dataType, shape) => {
