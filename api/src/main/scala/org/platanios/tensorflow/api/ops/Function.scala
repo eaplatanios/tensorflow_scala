@@ -49,7 +49,7 @@ case class Function[O, R](name: String, function: (O) => R)(implicit
   private[ops] def instantiate(inputDataTypes: Seq[DataType]): InstantiatedFunction[O, R] = {
     val key = inputDataTypes.map(_.toString).mkString(":")
     instantiatedFunctions.getOrElseUpdate(key, {
-      InstantiatedFunction(s"${name}_$key", function, inputDataTypes)(evInput, evOutput))
+      InstantiatedFunction(s"${name}_$key", function, inputDataTypes)(evInput, evOutput)
     })
   }
 }

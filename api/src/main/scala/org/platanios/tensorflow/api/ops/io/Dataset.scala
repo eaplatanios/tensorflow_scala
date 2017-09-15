@@ -21,7 +21,7 @@ import org.platanios.tensorflow.api.core.exception.{InvalidDataTypeException, In
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.tensors.{SparseTensor, Tensor}
-import org.platanios.tensorflow.api.types.{DataType, INT64, STRING}
+import org.platanios.tensorflow.api.types.{DataType, INT32, INT64, STRING}
 
 import java.util.concurrent.atomic.AtomicLong
 
@@ -88,8 +88,8 @@ abstract class Dataset[T, O, D, S] private[io](val name: String = "Dataset")(imp
     * @param  batchSize Batch size.
     * @return Created dataset.
     */
-  def batch(batchSize: Long): BatchDataset[T, O, D, S] = {
-    BatchDataset(this, batchSize, s"$name/Batch")
+  def batch(batchSize: Long): Dataset[T, O, D, S] = {
+    Dataset.batch(this, batchSize, s"$name/Batch")
   }
 
   /** $OpDocDatasetRepeat
@@ -98,8 +98,8 @@ abstract class Dataset[T, O, D, S] private[io](val name: String = "Dataset")(imp
     *               indefinitely.
     * @return Created dataset.
     */
-  def repeat(count: Long = -1): RepeatDataset[T, O, D, S] = {
-    RepeatDataset(this, count, s"$name/Repeat")
+  def repeat(count: Long = -1): Dataset[T, O, D, S] = {
+    Dataset.repeat(this, count, s"$name/Repeat")
   }
 
   /** $OpDocDatasetCache
@@ -107,20 +107,18 @@ abstract class Dataset[T, O, D, S] private[io](val name: String = "Dataset")(imp
     * @param  directory Directory to use for caching. If empty, then the provided dataset will be cached in memory.
     * @return Created dataset.
     */
-  def cache(directory: String): CacheDataset[T, O, D, S] = {
-    CacheDataset(this, directory, s"$name/Cache")
+  def cache(directory: String): Dataset[T, O, D, S] = {
+    Dataset.cache(this, directory, s"$name/Cache")
   }
 
   /** $OpDocDatasetShuffle
     *
     * @param  bufferSize Buffer size, meaning the number of output elements to buffer in an iterator over this dataset.
-    * @param  seed1      Seed value for the random number generator. If either seed or seed2 is set to be non-zero, the
-    *                    random number generator is seeded by the given seed. Otherwise, a random seed is used.
-    * @param  seed2      Second seed value to avoid seed collision.
+    * @param  seed       Seed value for the random number generator. If not provided, a random seed is used.
     * @return Created dataset.
     */
-  def shuffle(bufferSize: Long, seed1: Long, seed2: Long): ShuffleDataset[T, O, D, S] = {
-    ShuffleDataset(this, bufferSize, seed1, seed2, s"$name/Shuffle")
+  def shuffle(bufferSize: Long, seed: Option[Int] = None): Dataset[T, O, D, S] = {
+    Dataset.shuffle(this, bufferSize, seed, s"$name/Shuffle")
   }
 
   /** $OpDocDatasetTake
@@ -128,8 +126,8 @@ abstract class Dataset[T, O, D, S] private[io](val name: String = "Dataset")(imp
     * @param  count Number of elements to take.
     * @return Created dataset.
     */
-  def take(count: Long): TakeDataset[T, O, D, S] = {
-    TakeDataset(this, count, s"$name/Take")
+  def take(count: Long): Dataset[T, O, D, S] = {
+    Dataset.take(this, count, s"$name/Take")
   }
 
   /** $OpDocDatasetDrop
@@ -137,8 +135,8 @@ abstract class Dataset[T, O, D, S] private[io](val name: String = "Dataset")(imp
     * @param  count Number of elements to drop.
     * @return Created dataset.
     */
-  def drop(count: Long): DropDataset[T, O, D, S] = {
-    DropDataset(this, count, s"$name/Drop")
+  def drop(count: Long): Dataset[T, O, D, S] = {
+    Dataset.drop(this, count, s"$name/Drop")
   }
 
   /** $OpDocDatasetZip
@@ -148,8 +146,8 @@ abstract class Dataset[T, O, D, S] private[io](val name: String = "Dataset")(imp
     */
   def zip[T2, O2, D2, S2](other: Dataset[T2, O2, D2, S2])(implicit
       ev2: Data.Aux[T2, O2, D2, S2]
-  ): ZipDataset[T, O, D, S, T2, O2, D2, S2] = {
-    ZipDataset(this, other, s"${name}_${other.name}/Zip")
+  ): Dataset[(T, T2), (O, O2), (D, D2), (S, S2)] = {
+    Dataset.zip(this, other, s"${name}_${other.name}/Zip")
   }
 
   /** $OpDocDatasetZip
@@ -161,9 +159,8 @@ abstract class Dataset[T, O, D, S] private[io](val name: String = "Dataset")(imp
   def zip3[T2, O2, D2, S2, T3, O3, D3, S3](other1: Dataset[T2, O2, D2, S2], other2: Dataset[T3, O3, D3, S3])(implicit
       ev2: Data.Aux[T2, O2, D2, S2],
       ev3: Data.Aux[T3, O3, D3, S3]
-  ):
-  Zip3Dataset[T, O, D, S, T2, O2, D2, S2, T3, O3, D3, S3] = {
-    Zip3Dataset(this, other1, other2, s"${name}_${other1.name}_${other2.name}/Zip3")
+  ): Dataset[(T, T2, T3), (O, O2, O3), (D, D2, D3), (S, S2, S3)] = {
+    Dataset.zip3(this, other1, other2, s"${name}_${other1.name}_${other2.name}/Zip3")
   }
 
   /** $OpDocDatasetConcatenate
@@ -171,21 +168,24 @@ abstract class Dataset[T, O, D, S] private[io](val name: String = "Dataset")(imp
     * @param  other Dataset to concatenate with the current dataset.
     * @return Created dataset.
     */
-  def concatenate(other: Dataset[T, O, D, S]): ConcatenatedDataset[T, O, D, S] = {
-    ConcatenatedDataset(this, other, s"${name}_${other.name}/Concatenated")
+  def concatenate(other: Dataset[T, O, D, S]): Dataset[T, O, D, S] = {
+    Dataset.concatenate(this, other, s"${name}_${other.name}/Concatenated")
   }
 
   /** $OpDocDatasetMap
     *
-    * @param  function Mapping function.
+    * @param  function         Mapping function.
+    * @param  numParallelCalls Number elements to process in parallel. If not specified, elements will be processed
+    *                          sequentially.
+    * @param  bufferSize       Maximum number of processed elements that will be buffered.
     * @return Created dataset.
     */
-  def map[RT, RO, RD, RS](function: (T) => RT)(implicit
+  def map[RT, RO, RD, RS](function: (T) => RT, numParallelCalls: Int = 1, bufferSize: Long = 1)(implicit
       evR: Data.Aux[RT, RO, RD, RS],
       evFunctionInput: Function.ArgType[T],
       evFunctionOutput: Function.ArgType[RT]
-  ): MapDataset[T, O, D, S, RT, RO, RD, RS] = {
-    MapDataset(this, function, s"$name/Map")
+  ): Dataset[RT, RO, RD, RS] = {
+    Dataset.map(this, function, numParallelCalls, bufferSize, s"$name/Map")
   }
 
   /** $OpDocDatasetPrefetch
@@ -193,16 +193,16 @@ abstract class Dataset[T, O, D, S] private[io](val name: String = "Dataset")(imp
     * @param  bufferSize Number of elements to prefetch.
     * @return Created dataset.
     */
-  def prefetch(bufferSize: Long): PrefetchDataset[T, O, D, S] = {
-    PrefetchDataset(this, bufferSize, s"$name/Prefetch")
+  def prefetch(bufferSize: Long): Dataset[T, O, D, S] = {
+    Dataset.prefetch(this, bufferSize, s"$name/Prefetch")
   }
 
   /** $OpDocDatasetIgnoreErrors
     *
     * @return Created dataset.
     */
-  def ignoreErrors(): IgnoreErrorsDataset[T, O, D, S] = {
-    IgnoreErrorsDataset(this, s"$name/IgnoreErrors")
+  def ignoreErrors(): Dataset[T, O, D, S] = {
+    Dataset.ignoreErrors(this, s"$name/IgnoreErrors")
   }
 }
 
@@ -384,6 +384,88 @@ object Dataset {
 //    idDataset.flatMap(flatMapFn)
 //  }
 
+  /** $OpDocDatasetBatch
+    *
+    * @param  dataset   Input dataset.
+    * @param  batchSize Batch size.
+    * @param  name      Name for the created dataset.
+    * @return Created dataset.
+    */
+  def batch[T, O, D, S](dataset: Dataset[T, O, D, S], batchSize: Long, name: String = "BatchDataset")(implicit
+      ev: Data.Aux[T, O, D, S]
+  ): Dataset[T, O, D, S] = {
+    BatchDataset(dataset, batchSize, name)
+  }
+
+  /** $OpDocDatasetRepeat
+    *
+    * @param  dataset Input dataset.
+    * @param  count   Number of times to repeat the input dataset. A value of `-1` corresponds to repeating it
+    *                 indefinitely.
+    * @param  name    Name for the created dataset.
+    * @return Created dataset.
+    */
+  def repeat[T, O, D, S](dataset: Dataset[T, O, D, S], count: Long = -1, name: String = "RepeatDataset")(implicit
+      ev: Data.Aux[T, O, D, S]
+  ): Dataset[T, O, D, S] = {
+    RepeatDataset(dataset, count, name)
+  }
+
+  /** $OpDocDatasetCache
+    *
+    * @param  dataset   Input dataset.
+    * @param  directory Directory to use for caching. If empty, then the provided dataset will be cached in memory.
+    * @param  name      Name for the created dataset.
+    * @return Created dataset.
+    */
+  def cache[T, O, D, S](dataset: Dataset[T, O, D, S], directory: String, name: String = "CacheDataset")(implicit
+      ev: Data.Aux[T, O, D, S]
+  ): Dataset[T, O, D, S] = {
+    CacheDataset(dataset, directory, name)
+  }
+
+  /** $OpDocDatasetShuffle
+    *
+    * @param  dataset    Input dataset.
+    * @param  bufferSize Buffer size, meaning the number of output elements to buffer in an iterator over this dataset.
+    * @param  seed       Seed value for the random number generator. If not provided, a random seed is used.
+    * @param  name       Name for the created dataset.
+    * @return Created dataset.
+    */
+  def shuffle[T, O, D, S](
+      dataset: Dataset[T, O, D, S], bufferSize: Long, seed: Option[Int] = None,
+      name: String = "ShuffleDataset")(implicit
+      ev: Data.Aux[T, O, D, S]
+  ): Dataset[T, O, D, S] = {
+    ShuffleDataset(dataset, bufferSize, seed, name)
+  }
+
+  /** $OpDocDatasetTake
+    *
+    * @param  dataset Input dataset.
+    * @param  count   Number of elements to take.
+    * @param  name    Name for the created dataset.
+    * @return Created dataset.
+    */
+  def take[T, O, D, S](dataset: Dataset[T, O, D, S], count: Long, name: String = "TakeDataset")(implicit
+      ev: Data.Aux[T, O, D, S]
+  ): Dataset[T, O, D, S] = {
+    TakeDataset(dataset, count, name)
+  }
+
+  /** $OpDocDatasetDrop
+    *
+    * @param  dataset Input dataset.
+    * @param  count   Number of elements to drop.
+    * @param  name    Name for the created dataset.
+    * @return Created dataset.
+    */
+  def drop[T, O, D, S](dataset: Dataset[T, O, D, S], count: Long, name: String = "DropDataset")(implicit
+      ev: Data.Aux[T, O, D, S]
+  ): Dataset[T, O, D, S] = {
+    DropDataset(dataset, count, name)
+  }
+
   /** $OpDocDatasetZip
     *
     * @param  dataset1 First dataset to zip.
@@ -395,7 +477,7 @@ object Dataset {
       dataset1: Dataset[T1, O1, D1, S1], dataset2: Dataset[T2, O2, D2, S2], name: String = "ZipDataset")(implicit
       ev1: Data.Aux[T1, O1, D1, S1],
       ev2: Data.Aux[T2, O2, D2, S2]
-  ): ZipDataset[T1, O1, D1, S1, T2, O2, D2, S2] = {
+  ): Dataset[(T1, T2), (O1, O2), (D1, D2), (S1, S2)] = {
     ZipDataset(dataset1, dataset2, name)
   }
 
@@ -413,7 +495,7 @@ object Dataset {
       ev1: Data.Aux[T1, O1, D1, S1],
       ev2: Data.Aux[T2, O2, D2, S2],
       ev3: Data.Aux[T3, O3, D3, S3]
-  ): Zip3Dataset[T1, O1, D1, S1, T2, O2, D2, S2, T3, O3, D3, S3] = {
+  ): Dataset[(T1, T2, T3), (O1, O2, O3), (D1, D2, D3), (S1, S2, S3)] = {
     Zip3Dataset(dataset1, dataset2, dataset3, name)
   }
 
@@ -425,7 +507,7 @@ object Dataset {
     */
   def zipMultiple[T, O, D, S](datasets: Seq[Dataset[T, O, D, S]], name: String = "ZipMultipleDataset")(implicit
       ev: Data.Aux[T, O, D, S]
-  ): ZipMultipleDataset[T, O, D, S] = {
+  ): Dataset[Seq[T], Seq[O], Seq[D], Seq[S]] = {
     ZipMultipleDataset(datasets, name)
   }
 
@@ -439,25 +521,63 @@ object Dataset {
   def concatenate[T, O, D, S](
       dataset1: Dataset[T, O, D, S], dataset2: Dataset[T, O, D, S], name: String = "ConcatenatedDataset")(implicit
       ev: Data.Aux[T, O, D, S]
-  ): ConcatenatedDataset[T, O, D, S] = {
+  ): Dataset[T, O, D, S] = {
     ConcatenatedDataset(dataset1, dataset2, name)
   }
 
   /** $OpDocDatasetMap
     *
-    * @param  dataset  Input dataset.
-    * @param  function Mapping function.
-    * @param  name     Name for the created dataset.
+    * @param  dataset          Input dataset.
+    * @param  function         Mapping function.
+    * @param  numParallelCalls Number elements to process in parallel. If not specified, elements will be processed
+    *                          sequentially.
+    * @param  bufferSize       Maximum number of processed elements that will be buffered.
+    * @param  name             Name for the created dataset.
     * @return Created dataset.
     */
   def map[T, O, D, S, RT, RO, RD, RS](
-      dataset: Dataset[T, O, D, S], function: (T) => RT, name: String = "MapDataset")(implicit
+      dataset: Dataset[T, O, D, S], function: (T) => RT, numParallelCalls: Int = 1, bufferSize: Long = 1,
+      name: String = "MapDataset")(implicit
       ev: Data.Aux[T, O, D, S],
       evR: Data.Aux[RT, RO, RD, RS],
       evFunctionInput: Function.ArgType[T],
       evFunctionOutput: Function.ArgType[RT]
-  ): MapDataset[T, O, D, S, RT, RO, RD, RS] = {
-    MapDataset(dataset, function, name)
+  ): Dataset[RT, RO, RD, RS] = {
+    val mappedDataset: Dataset[RT, RO, RD, RS] = {
+      if (numParallelCalls > 1)
+        ParallelMapDataset(dataset, function, numParallelCalls, name)
+      else
+        MapDataset(dataset, function, name)
+    }
+    if (bufferSize > 1)
+      mappedDataset.prefetch(bufferSize)
+    else
+      mappedDataset
+  }
+
+  /** $OpDocDatasetPrefetch
+    *
+    * @param  dataset    Input dataset.
+    * @param  bufferSize Number of elements to prefetch.
+    * @param  name       Name for the created dataset.
+    * @return Created dataset.
+    */
+  def prefetch[T, O, D, S](dataset: Dataset[T, O, D, S], bufferSize: Long, name: String = "PrefetchDataset")(implicit
+      ev: Data.Aux[T, O, D, S]
+  ): Dataset[T, O, D, S] = {
+    PrefetchDataset(dataset, bufferSize, name)
+  }
+
+  /** $OpDocDatasetIgnoreErrors
+    *
+    * @param  dataset Input dataset.
+    * @param  name    Name for the created dataset.
+    * @return Created dataset.
+    */
+  def ignoreErrors[T, O, D, S](dataset: Dataset[T, O, D, S], name: String = "IgnoreErrorsDataset")(implicit
+      ev: Data.Aux[T, O, D, S]
+  ): IgnoreErrorsDataset[T, O, D, S] = {
+    IgnoreErrorsDataset(dataset, name)
   }
 
   /** Creates a tensor dataset op.
@@ -936,9 +1056,10 @@ object Dataset {
         .build().outputs(0)
   }
 
-  /** Creates an op representing a dataset ???
+  /** Creates an op representing a dataset that maps a function over another dataset.
     *
-    * @param  datasetHandle   Handle of the dataset to take entries from.
+    * @param  datasetHandle   Handle of the dataset to map `function` over.
+    * @param  function        Mapping function.
     * @param  outputDataTypes Output data types of the created dataset.
     * @param  outputShapes    Output shapes of the created dataset.
     * @param  name            Name for the created op.
@@ -950,6 +1071,32 @@ object Dataset {
     Op.Builder(opType = "MapDataset", name = name)
         .addInput(datasetHandle)
         .addInputList(otherArguments)
+        .setAttribute("f", function)
+        .setAttribute("output_types", outputDataTypes.toArray)
+        .setAttribute("output_shapes", outputShapes.toArray)
+        .build().outputs(0)
+  }
+
+  /** Creates an op representing a dataset that maps a function over another dataset and support parallel execution of
+    * the map operations.
+    *
+    * @param  datasetHandle    Handle of the dataset to map `function` over.
+    * @param  function         Mapping function.
+    * @param  numParallelCalls [[INT32]] scalar tensor specifying the number of concurrent invocations of `function`
+    *                          that process elements from `inputDataset` in parallel.
+    * @param  outputDataTypes  Output data types of the created dataset.
+    * @param  outputShapes     Output shapes of the created dataset.
+    * @param  name             Name for the created op.
+    * @return Created op output, which is a handle to the created dataset.
+    */
+  private[io] def datasetParallelMap(
+      datasetHandle: Output, otherArguments: Seq[Output], function: InstantiatedFunction[_, _],
+      numParallelCalls: Output, outputDataTypes: Seq[DataType], outputShapes: Seq[Shape],
+      name: String = "DatasetParallelMap"): Output = {
+    Op.Builder(opType = "ParallelMapDataset", name = name)
+        .addInput(datasetHandle)
+        .addInputList(otherArguments)
+        .addInput(numParallelCalls)
         .setAttribute("f", function)
         .setAttribute("output_types", outputDataTypes.toArray)
         .setAttribute("output_shapes", outputShapes.toArray)
@@ -1144,7 +1291,8 @@ object Dataset {
   * @param  data Data representing the single element of this dataset.
   * @param  name Name for this dataset.
   */
-case class TensorDataset[T, O, D, S] private[io](data: T, override val name: String = "TensorDataset")(implicit
+private[io] case class TensorDataset[T, O, D, S] private[io](
+    data: T, override val name: String = "TensorDataset")(implicit
     ev: Data.Aux[T, O, D, S]
 ) extends Dataset[T, O, D, S](name) {
   override def createHandle(): Output = {
@@ -1162,7 +1310,7 @@ case class TensorDataset[T, O, D, S] private[io](data: T, override val name: Str
   * @param  data Data representing the elements of this dataset.
   * @param  name Name for this dataset.
   */
-case class TensorSliceDataset[T, O, D, S] private[io](
+private[io] case class TensorSliceDataset[T, O, D, S] private[io](
     data: T, override val name: String = "TensorSliceDataset")(implicit
     ev: Data.Aux[T, O, D, S]
 ) extends Dataset[T, O, D, S](name) {
@@ -1184,7 +1332,7 @@ case class TensorSliceDataset[T, O, D, S] private[io](
   * @param  tensor Sparse tensor.
   * @param  name   Name for this dataset.
   */
-case class SparseTensorSliceDataset private[io](
+private[io] case class SparseTensorSliceDataset private[io](
     tensor: SparseTensor, override val name: String = "SparseTensorSliceDataset")
     extends Dataset[SparseTensor, SparseOutput, (DataType, DataType, DataType), (Shape, Shape, Shape)](name) {
   /** Creates a `RESOURCE` scalar tensor representing this dataset. This function adds ops to the current graph, that
@@ -1216,7 +1364,8 @@ case class SparseTensorSliceDataset private[io](
   * @param  delta Difference between consecutive numbers in the sequence.
   * @param  name  Name for this dataset.
   */
-case class RangeDataset private[io](start: Long, limit: Long, delta: Long, override val name: String = "RangeDataset")
+private[io] case class RangeDataset private[io](
+    start: Long, limit: Long, delta: Long, override val name: String = "RangeDataset")
     extends Dataset[Tensor, Output, DataType, Shape](name) {
   override def createHandle(): Output = {
     Dataset.createRangeDataset(
@@ -1240,7 +1389,7 @@ case class RangeDataset private[io](start: Long, limit: Long, delta: Long, overr
   * @param  batchSize    Batch size to use.
   * @param  name         Name for this dataset.
   */
-case class BatchDataset[T, O, D, S] private[io](
+private[io] case class BatchDataset[T, O, D, S] private[io](
     inputDataset: Dataset[T, O, D, S], batchSize: Long, override val name: String = "BatchDataset")(implicit
     ev: Data.Aux[T, O, D, S]
 ) extends Dataset[T, O, D, S](name) {
@@ -1270,7 +1419,7 @@ case class BatchDataset[T, O, D, S] private[io](
   *                      indefinitely.
   * @param  name         Name for this dataset.
   */
-case class RepeatDataset[T, O, D, S] private[io](
+private[io] case class RepeatDataset[T, O, D, S] private[io](
     inputDataset: Dataset[T, O, D, S], count: Long, override val name: String = "RepeatDataset")(implicit
     ev: Data.Aux[T, O, D, S]
 ) extends Dataset[T, O, D, S](name) {
@@ -1295,7 +1444,7 @@ case class RepeatDataset[T, O, D, S] private[io](
   * @param  directory    Directory to use for caching. If empty, then the provided dataset will be cached in memory.
   * @param  name         Name for this dataset.
   */
-case class CacheDataset[T, O, D, S] private[io](
+private[io] case class CacheDataset[T, O, D, S] private[io](
     inputDataset: Dataset[T, O, D, S], directory: String, override val name: String = "CacheDataset")(implicit
     ev: Data.Aux[T, O, D, S]
 ) extends Dataset[T, O, D, S](name) {
@@ -1318,22 +1467,23 @@ case class CacheDataset[T, O, D, S] private[io](
   *
   * @param  inputDataset Input dataset.
   * @param  bufferSize   Buffer size, meaning the number of output elements to buffer in an iterator over this dataset.
-  * @param  seed1        Seed value for the random number generator. If either seed or seed2 is set to be non-zero, the
-  *                      random number generator is seeded by the given seed. Otherwise, a random seed is used.
-  * @param  seed2        Second seed value to avoid seed collision.
+  * @param  seed         Seed value for the random number generator. If not provided, a random seed is used.
   * @param  name         Name for this dataset.
   */
-case class ShuffleDataset[T, O, D, S] private[io](
-    inputDataset: Dataset[T, O, D, S], bufferSize: Long, seed1: Long, seed2: Long,
+private[io] case class ShuffleDataset[T, O, D, S] private[io](
+    inputDataset: Dataset[T, O, D, S], bufferSize: Long, seed: Option[Int],
     override val name: String = "ShuffleDataset")(implicit
     ev: Data.Aux[T, O, D, S]
 ) extends Dataset[T, O, D, S](name) {
   override def createHandle(): Output = {
+    val (graphSeed, opSeed) = Op.currentGraphRandomSeed(seed)
+    val seed1 = graphSeed.getOrElse(0)
+    val seed2 = opSeed.getOrElse(0)
     Dataset.datasetShuffle(
       Op.createWithNameScope(name)(inputDataset.createHandle()),
       Op.createWithNameScope(name)(Basic.constant(bufferSize)),
-      Op.createWithNameScope(name)(Basic.constant(seed1)),
-      Op.createWithNameScope(name)(Basic.constant(seed2)),
+      Op.createWithNameScope(name)(Basic.constant(seed1, INT64)),
+      Op.createWithNameScope(name)(Basic.constant(seed2, INT64)),
       flattenedOutputDataTypes,
       flattenedOutputShapes,
       name)
@@ -1351,7 +1501,7 @@ case class ShuffleDataset[T, O, D, S] private[io](
   * @param  count        Number of elements to take.
   * @param  name         Name for this dataset.
   */
-case class TakeDataset[T, O, D, S] private[io](
+private[io] case class TakeDataset[T, O, D, S] private[io](
     inputDataset: Dataset[T, O, D, S], count: Long, override val name: String = "TakeDataset")(implicit
     ev: Data.Aux[T, O, D, S]
 ) extends Dataset[T, O, D, S](name) {
@@ -1376,7 +1526,7 @@ case class TakeDataset[T, O, D, S] private[io](
   * @param  count        Number of elements to drop.
   * @param  name         Name for this dataset.
   */
-case class DropDataset[T, O, D, S] private[io](
+private[io] case class DropDataset[T, O, D, S] private[io](
     inputDataset: Dataset[T, O, D, S], count: Long, override val name: String = "DropDataset")(implicit
     ev: Data.Aux[T, O, D, S]
 ) extends Dataset[T, O, D, S](name) {
@@ -1401,7 +1551,7 @@ case class DropDataset[T, O, D, S] private[io](
   * @param  inputDataset2 Second input dataset.
   * @param  name          Name for this dataset.
   */
-case class ZipDataset[T1, O1, D1, S1, T2, O2, D2, S2] private[io](
+private[io] case class ZipDataset[T1, O1, D1, S1, T2, O2, D2, S2] private[io](
     inputDataset1: Dataset[T1, O1, D1, S1],
     inputDataset2: Dataset[T2, O2, D2, S2],
     override val name: String = "ZipDataset")(implicit
@@ -1429,7 +1579,7 @@ case class ZipDataset[T1, O1, D1, S1, T2, O2, D2, S2] private[io](
   * @param  inputDataset3 Second input dataset.
   * @param  name          Name for this dataset.
   */
-case class Zip3Dataset[T1, O1, D1, S1, T2, O2, D2, S2, T3, O3, D3, S3] private[io](
+private[io] case class Zip3Dataset[T1, O1, D1, S1, T2, O2, D2, S2, T3, O3, D3, S3] private[io](
     inputDataset1: Dataset[T1, O1, D1, S1],
     inputDataset2: Dataset[T2, O2, D2, S2],
     inputDataset3: Dataset[T3, O3, D3, S3],
@@ -1463,7 +1613,7 @@ case class Zip3Dataset[T1, O1, D1, S1, T2, O2, D2, S2, T3, O3, D3, S3] private[i
   * @param  inputDatasets Input datasets.
   * @param  name          Name for this dataset.
   */
-case class ZipMultipleDataset[T, O, D, S] private[io](
+private[io] case class ZipMultipleDataset[T, O, D, S] private[io](
     inputDatasets: Seq[Dataset[T, O, D, S]], override val name: String = "ZipMultipleDataset")(implicit
     ev: Data.Aux[T, O, D, S]
 ) extends Dataset[Seq[T], Seq[O], Seq[D], Seq[S]](name) {
@@ -1490,7 +1640,7 @@ case class ZipMultipleDataset[T, O, D, S] private[io](
   *                                  not compatible.
   */
 @throws[IllegalArgumentException]
-case class ConcatenatedDataset[T, O, D, S] private[io](
+private[io] case class ConcatenatedDataset[T, O, D, S] private[io](
     inputDataset1: Dataset[T, O, D, S],
     inputDataset2: Dataset[T, O, D, S],
     override val name: String = "ConcatenatedDataset")(implicit
@@ -1525,9 +1675,9 @@ case class ConcatenatedDataset[T, O, D, S] private[io](
   *
   * @param  inputDataset Input dataset.
   * @param  function     Mapping function.
-  * @param  name Name for this dataset.
+  * @param  name         Name for this dataset.
   */
-case class MapDataset[T, O, D, S, RT, RO, RD, RS] private[io](
+private[io] case class MapDataset[T, O, D, S, RT, RO, RD, RS] private[io](
     inputDataset: Dataset[T, O, D, S],
     function: (T) => RT,
     override val name: String = "MapDataset")(implicit
@@ -1557,6 +1707,48 @@ case class MapDataset[T, O, D, S, RT, RO, RD, RS] private[io](
   }
 }
 
+/** [[Dataset]] that wraps the application of the `parallelMap` op.
+  *
+  * $OpDocDatasetMap
+  *
+  * @param  inputDataset     Input dataset.
+  * @param  function         Mapping function.
+  * @param  numParallelCalls Number of concurrent invocations of `function` that process elements from `inputDataset` in
+  *                          parallel.
+  * @param  name             Name for this dataset.
+  */
+private[io] case class ParallelMapDataset[T, O, D, S, RT, RO, RD, RS] private[io](
+    inputDataset: Dataset[T, O, D, S],
+    function: (T) => RT,
+    numParallelCalls: Int,
+    override val name: String = "ParallelMapDataset")(implicit
+    ev: Data.Aux[T, O, D, S],
+    evR: Data.Aux[RT, RO, RD, RS],
+    evFunctionInput: Function.ArgType[T],
+    evFunctionOutput: Function.ArgType[RT]
+) extends Dataset[RT, RO, RD, RS](name) {
+  private[this] val instantiatedFunction = {
+    Function(s"$name/Function", function).instantiate(inputDataset.flattenedOutputDataTypes)
+  }
+
+  override def createHandle(): Output = {
+    Dataset.datasetParallelMap(
+      Op.createWithNameScope(name)(inputDataset.createHandle()),
+      instantiatedFunction.extraInputs,
+      instantiatedFunction,
+      Op.createWithNameScope(name)(Basic.constant(numParallelCalls, name = "NumParallelCalls")),
+      flattenedOutputDataTypes,
+      flattenedOutputShapes,
+      name)
+  }
+
+  override val (outputDataTypes: RD, outputShapes: RS) = {
+    val dataTypes = evR.dataTypes(instantiatedFunction.dummyOutputs)
+    (evR.unflattenDataTypes(dataTypes, instantiatedFunction.outputDataTypes),
+        evR.unflattenShapes(dataTypes, instantiatedFunction.outputShapes))
+  }
+}
+
 /** [[Dataset]] that wraps the application of the `prefetch` op.
   *
   * $OpDocDatasetPrefetch
@@ -1565,7 +1757,7 @@ case class MapDataset[T, O, D, S, RT, RO, RD, RS] private[io](
   * @param  bufferSize   Number of elements to prefetch.
   * @param  name         Name for this dataset.
   */
-case class PrefetchDataset[T, O, D, S] private[io](
+private[io] case class PrefetchDataset[T, O, D, S] private[io](
     inputDataset: Dataset[T, O, D, S], bufferSize: Long, override val name: String = "PrefetchDataset")(implicit
     ev: Data.Aux[T, O, D, S]
 ) extends Dataset[T, O, D, S](name) {
@@ -1589,7 +1781,7 @@ case class PrefetchDataset[T, O, D, S] private[io](
   * @param  inputDataset Input dataset.
   * @param  name         Name for this dataset.
   */
-case class IgnoreErrorsDataset[T, O, D, S] private[io](
+private[io] case class IgnoreErrorsDataset[T, O, D, S] private[io](
     inputDataset: Dataset[T, O, D, S], override val name: String = "IgnoreErrorsDataset")(implicit
     ev: Data.Aux[T, O, D, S]
 ) extends Dataset[T, O, D, S](name) {

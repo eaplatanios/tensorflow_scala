@@ -39,14 +39,18 @@ object MNIST {
 
   def main(args: Array[String]): Unit = {
     val dataSet = MNISTLoader.load(Paths.get("/Users/Anthony/Downloads/MNIST"))
-    val trainImages = tf.datasetFromSlices(dataSet.trainImages).repeat().batch(1024)
-    val trainLabels = tf.datasetFromSlices(dataSet.trainLabels).repeat().batch(1024)
+    val trainImages = tf.datasetFromSlices(dataSet.trainImages)
+    val trainLabels = tf.datasetFromSlices(dataSet.trainLabels)
+    val trainData = trainImages.zip(trainLabels).repeat().shuffle(10000).batch(256).prefetch(10)
 
     logger.info("Building the logistic regression model.")
     val input = tf.learn.input(UINT8, Shape(-1, dataSet.trainImages.shape(1), dataSet.trainImages.shape(2)))
+    // val layer = tf.learn.flatten() >>
+    //     tf.learn.cast(FLOAT32) >>
+    //     tf.learn.linear(10) // >> tf.learn.logSoftmax()
     val layer = tf.learn.flatten() >>
         tf.learn.cast(FLOAT32) >>
-        tf.learn.linear(10) // >> tf.learn.logSoftmax()
+        mlpPredictionModel(Seq(1024, 512, 256))
     val trainInput = tf.learn.input(UINT8, Shape(-1))
     val trainingInputLayer = tf.learn.cast(INT64) // tf.learn.oneHot(10) >> tf.learn.cast(FLOAT32)
     val loss = tf.learn.sparseSoftmaxCrossEntropy() >> tf.learn.mean()
@@ -55,7 +59,7 @@ object MNIST {
 
     logger.info("Training the linear regression model.")
     model.initialize(Model.DefaultInitialization)
-    model.train(trainImages.zip(trainLabels), maxIterations = 100000)
+    model.train(trainData, maxIterations = 100000)
 
     // val inputs = tf.placeholder(tf.UINT8, tf.shape(-1, numberOfRows, numberOfColumns))
     // val labels = tf.placeholder(tf.UINT8, tf.shape(-1))
