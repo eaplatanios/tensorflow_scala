@@ -605,13 +605,13 @@ object Data {
   PT <: Product, PO <: Product, PD <: Product, PS <: Product,
   LT <: HList, LO <: HList, LD <: HList, LS <: HList](implicit
       genT: Generic.Aux[PT, LT],
-      genO: Generic.Aux[PO, LO],
-      genD: Generic.Aux[PD, LD],
-      genS: Generic.Aux[PS, LS],
       dataL: Lazy[Aux[LT, LO, LD, LS]],
       tuplerO: Tupler.Aux[LO, PO],
       tuplerD: Tupler.Aux[LD, PD],
-      tuplerS: Tupler.Aux[LS, PS]
+      tuplerS: Tupler.Aux[LS, PS],
+      genO: Generic.Aux[PO, LO],
+      genD: Generic.Aux[PD, LD],
+      genS: Generic.Aux[PS, LS]
   ): Aux[PT, PO, PD, PS] = new Data[PT] {
     override type OutputType = PO
     override type DataTypes = PD

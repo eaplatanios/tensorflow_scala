@@ -66,9 +66,7 @@ class DatasetSuite extends JUnitSuite {
   @Test def testTensorTupleDataset(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
       val components = (Tensor(1), Tensor(1, 2, 3), Tensor(37.0))
-      val dataset = Dataset.from
-          [(Tensor, Tensor, Tensor), (Output, Output, Output), (DataType, DataType, DataType), (Shape, Shape, Shape)](
-            components)
+      val dataset = Dataset.from(components)
       val iterator = dataset.createInitializableIterator()
       val initOp = iterator.initializer
       val nextOp = iterator.next()
