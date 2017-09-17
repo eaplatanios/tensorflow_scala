@@ -46,7 +46,7 @@ private[config] abstract class CheckpointConfigBase private[config](
   *
   */
 case class StepBasedCheckpoints (steps: Int = 1000, maxCheckpointsToKeep: Int = 5, checkpointEveryNHours: Int = 10000)
-    extends CheckpointConfig(maxCheckpointsToKeep, checkpointEveryNHours)
+    extends CheckpointConfigBase(maxCheckpointsToKeep, checkpointEveryNHours)
 
 /** Checkpoint configuration for time-based checkpoints (i.e., checkpoints every `n` seconds).
   *
@@ -59,4 +59,4 @@ case class StepBasedCheckpoints (steps: Int = 1000, maxCheckpointsToKeep: Int = 
   *
   */
 case class TimeBasedCheckpoints (seconds: Int = 600, maxCheckpointsToKeep: Int = 5, checkpointEveryNHours: Int = 10000)
-    extends CheckpointConfig(maxCheckpointsToKeep, checkpointEveryNHours)
+    extends CheckpointConfigBase(maxCheckpointsToKeep, checkpointEveryNHours)
