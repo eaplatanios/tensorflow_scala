@@ -173,6 +173,8 @@ object TensorFlow {
   load()
 
   @native def jvmPointer: String
+  @native def callbackRegistryPointer: String
+  @native def callbackRegistryCallMethodPointer: String
   @native def version: String
   @native def dataTypeSize(dataTypeCValue: Int): Int
   @native def loadOpLibrary(libraryPath: String): Array[Byte]

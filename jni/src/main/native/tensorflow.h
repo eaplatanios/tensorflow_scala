@@ -17,6 +17,22 @@ JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_jvm
 
 /*
  * Class:     org_platanios_tensorflow_jni_TensorFlow__
+ * Method:    callbackRegistryPointer
+ * Signature: ()V
+ */
+JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_callbackRegistryPointer
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_TensorFlow__
+ * Method:    callbackRegistryCallMethodPointer
+ * Signature: ()V
+ */
+JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_callbackRegistryCallMethodPointer
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_TensorFlow__
  * Method:    version
  * Signature: ()Ljava/lang/String;
  */

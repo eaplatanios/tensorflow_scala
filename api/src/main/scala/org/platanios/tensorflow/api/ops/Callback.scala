@@ -76,7 +76,8 @@ private[api] trait Callback {
     }
     builder.setAttribute("id", id)
     builder.setAttribute("jvm_pointer", NativeLibrary.jvmPointer)
-    builder.setAttribute("registry_class_name", "org/platanios/tensorflow/jni/ScalaCallbacksRegistry")
+    builder.setAttribute("registry_pointer", NativeLibrary.callbackRegistryPointer)
+    builder.setAttribute("registry_call_pointer", NativeLibrary.callbackRegistryCallMethodPointer)
     builder.setAttribute("Tout", evOutput.dataTypes(outputDataType).toArray)
     builder.addInputList(evInput.outputs(input))
     evOutput.decodeSymbolic(builder.build().outputs.toSeq)

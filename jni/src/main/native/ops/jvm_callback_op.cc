@@ -25,6 +25,52 @@ limitations under the License.
 #include "tensorflow/core/platform/macros.h"
 
 namespace {
+REGISTER_OP("JVMCallback")
+    .Input("input: Tin")
+    .Output("output: Tout")
+    .Attr("id: int")
+    .Attr("jvm_pointer: string")
+    .Attr("registry_pointer: string")
+    .Attr("registry_call_pointer: string")
+    .Attr("Tin: list(type) >= 0")
+    .Attr("Tout: list(type) >=0")
+    .SetIsStateful()
+    .SetShapeFn(shape_inference::UnknownShape)
+    .Doc(R"doc(
+Invokes a JVM callback function, `f` to compute `f(input)->output`.
+
+This operation is considered stateful. For a stateless version, see
+`JVMCallback`.
+
+id: A unique ID representing a registered JVM callback function
+  in this address space.
+jvm_pointer: A pointer to an existing JVM instance represented as a
+  string. This is the JVM that will be used when invoking this JVM
+  callback.
+registry_pointer: Pointer to the JVM callbacks registry class.
+registry_call_pointer: Pointer to the JVM callbacks registry class
+  'call' method.
+input: List of tensors that will provide input to the op.
+output: Output tensors from the op.
+Tin: Data types of the inputs to the op.
+Tout: Data types of the outputs from the op.
+      The length of the list specifies the number of outputs.
+)doc");
+
+REGISTER_OP("JVMCallbackStateless")
+    .Input("input: Tin")
+    .Output("output: Tout")
+    .Attr("id: int")
+    .Attr("jvm_pointer: string")
+    .Attr("registry_pointer: string")
+    .Attr("registry_call_pointer: string")
+    .Attr("Tin: list(type) >= 0")
+    .Attr("Tout: list(type) >= 0")
+    .SetShapeFn(shape_inference::UnknownShape)
+    .Doc(R"doc(
+A stateless version of `JVMCallback`.
+)doc");
+
 // Copy of the C Eager API struct due to the circular dependency issue.
 TFE_TensorHandle* TFE_NewTensorHandle(const tensorflow::Tensor& t) {
   return new TFE_TensorHandle(t, nullptr);
@@ -88,42 +134,56 @@ namespace {
     jlongArray call_inputs = MakeInputs(call);
 
     // Invoke the registry 'call' method.
-    auto outputs = (jlongArray) call->env->CallStaticObjectMethod(
-        call->registry, call->call_method_id, call->id, call_inputs);
-    if (call->env->ExceptionCheck()) return Status::OK();
-    jthrowable exc = call->env->ExceptionOccurred();
-    if (exc) {
-      jclass classMethodAccess = call->env->FindClass("java/lang/Class");
-      jmethodID classNameMethodID = call->env->GetMethodID(classMethodAccess, "getName", "()Ljava/lang/String;");
-      jstring clsName = (jstring) call->env->CallObjectMethod(exc, classNameMethodID);
-      const char* clsNameCString = call->env->GetStringUTFChars(clsName, NULL);
-      std::string clsNameCppString(clsNameCString);
-      if (clsNameCppString == "java/lang/IllegalArgumentException") {
-        call->env->ReleaseStringUTFChars(clsName, clsNameCString);
-        return errors::InvalidArgument("Failed to run JVM callback function.");
-      } else if (clsNameCppString == "java/lang/SecurityException") {
-        call->env->ReleaseStringUTFChars(clsName, clsNameCString);
-        return errors::PermissionDenied("Failed to run JVM callback function.");
-      } else if (clsNameCppString == "java/lang/IllegalStateException") {
-        call->env->ReleaseStringUTFChars(clsName, clsNameCString);
-        return errors::FailedPrecondition("Failed to run JVM callback function.");
-      } else if (clsNameCppString == "java/lang/IndexOutOfBoundsException") {
-        call->env->ReleaseStringUTFChars(clsName, clsNameCString);
-        return errors::OutOfRange("Failed to run JVM callback function.");
-      } else {
-        call->env->ReleaseStringUTFChars(clsName, clsNameCString);
+    if (call->registry != nullptr && call->call_method_id != nullptr) {
+      auto outputs = (jlongArray) call->env->CallStaticObjectMethod(
+          call->registry, call->call_method_id, call->id, call_inputs);
+      jthrowable exc(call->env->ExceptionOccurred());
+      if (exc) {
+        //call->env->ExceptionClear();
+        //return errors::OutOfRange("Failed to run JVM callback function.");
+        // jclass excObjCls(call->env->FindClass("java/lang/Throwable"));
+        jclass excObjCls(call->env->GetObjectClass(exc));
+        // jmethodID getClass(call->env->GetMethodID(excObjCls, "getClass", "()Ljava/lang/Class;"));
+        // jobject excCls(call->env->CallObjectMethod(exc, getClass));
+        jclass clsCls(call->env->FindClass("java/lang/Class"));
+        jmethodID getName(call->env->GetMethodID(clsCls, "getName", "()Ljava/lang/String;"));
+        jstring clsName(static_cast<jstring>(call->env->CallObjectMethod(excObjCls, getName)));
+        const char* clsNameCString = call->env->GetStringUTFChars(clsName, 0);
+//      jclass exccls(call->env->GetObjectClass(exc));
+//      jclass clscls(call->env->FindClass("java/lang/Class"));
+//      jmethodID getName(call->env->GetMethodID(clscls, "getName", "()Ljava/lang/String;"));
+//      jstring name(static_cast<jstring>(call->env->CallObjectMethod(exccls, getName)));
+//      char const* clsNameCString(call->env->GetStringUTFChars(name, 0));
+        std::string clsNameCppString(clsNameCString);
+        if (clsNameCppString == "java.lang.IllegalArgumentException") {
+          call->env->ReleaseStringUTFChars(clsName, clsNameCString);
+          return errors::InvalidArgument("Failed to run JVM callback function.");
+        } else if (clsNameCppString == "java.lang.SecurityException") {
+          call->env->ReleaseStringUTFChars(clsName, clsNameCString);
+          return errors::PermissionDenied("Failed to run JVM callback function.");
+        } else if (clsNameCppString == "java.lang.IllegalStateException") {
+          call->env->ReleaseStringUTFChars(clsName, clsNameCString);
+          return errors::FailedPrecondition("Failed to run JVM callback function.");
+        } else if (clsNameCppString == "java.lang.IndexOutOfBoundsException") {
+          call->env->ReleaseStringUTFChars(clsName, clsNameCString);
+          return errors::OutOfRange("Failed to run JVM callback function.");
+        } else {
+          call->env->ReleaseStringUTFChars(clsName, clsNameCString);
+          return errors::Unknown("Failed to run JVM callback function.");
+        }
+      }
+
+      if (outputs == nullptr) {
         return errors::Unknown("Failed to run JVM callback function.");
       }
-    }
 
-    if (outputs == nullptr) {
-      return errors::Unknown("Failed to run JVM callback function.");
+      // Process the return values and convert them back to TensorFlow tensors.
+      auto* status = new TF_Status;
+      ProcessOutputs(call, outputs, status);
+      return status->status;
+    } else {
+      return errors::Unknown("Failed to run JVM callback function. Could not find registry class or its 'call' method.");
     }
-
-    // Process the return values and convert them back to TensorFlow tensors.
-    auto* status = new TF_Status;
-    ProcessOutputs(call, outputs, status);
-    return status->status;
   }
 }  // namespace
 
@@ -135,24 +195,30 @@ public:
     OP_REQUIRES_OK(ctx, ctx->GetAttr("jvm_pointer", &jvm_pointer));
     jvm_ = pointerFromString<JavaVM*>(jvm_pointer);
     JNIEnv* env;
-    jint status = jvm_->AttachCurrentThread((void**) &env, nullptr);
-    assert(status == JNI_OK);
-    string registry_class_name_;
-    OP_REQUIRES_OK(ctx, ctx->GetAttr("registry_class_name", &registry_class_name_));
-    registry_ = env->FindClass(registry_class_name_.c_str());
-    call_method_id_ = env->GetStaticMethodID(registry_, "call", "(I[J)[J");
-    status = jvm_->DetachCurrentThread();
-    assert(status == JNI_OK);
-    if (call_method_id_ == nullptr) {
-      ctx->CtxFailure(errors::InvalidArgument("Missing JVM registry 'call' method."));
-      return;
+    int jvmEnvStatus = jvm_->GetEnv((void **) &env, JNI_VERSION_1_8);
+    if (jvmEnvStatus != JNI_OK) {
+      jint status = jvm_->AttachCurrentThread((void**) &env, nullptr);
+      assert(status == JNI_OK);
+    }
+    std::string registry_pointer;
+    OP_REQUIRES_OK(ctx, ctx->GetAttr("registry_pointer", &registry_pointer));
+    registry_ = pointerFromString<jclass>(registry_pointer);
+    std::string registry_call_pointer;
+    OP_REQUIRES_OK(ctx, ctx->GetAttr("registry_call_pointer", &registry_call_pointer));
+    call_method_id_ = pointerFromString<jmethodID>(registry_call_pointer);
+    if (jvmEnvStatus != JNI_OK) {
+      jint status = jvm_->DetachCurrentThread();
+      assert(status == JNI_OK);
     }
   }
 
   void Compute(OpKernelContext* ctx) override {
     JNIEnv* env;
-    jint status = jvm_->AttachCurrentThread((void**) &env, nullptr);
-    assert(status == JNI_OK);
+    int jvmEnvStatus = jvm_->GetEnv((void**) &env, JNI_VERSION_1_8);
+    if (jvmEnvStatus != JNI_OK) {
+      jint status = jvm_->AttachCurrentThread((void**) &env, nullptr);
+      assert(status == JNI_OK);
+    }
 
     JVMCall call;
     call.env = env;
@@ -164,8 +230,10 @@ public:
     }
 
     Status s = CallJVMFunction(&call);
-    status = jvm_->DetachCurrentThread();
-    assert(status == JNI_OK);
+    if (jvmEnvStatus != JNI_OK) {
+      jint status = jvm_->DetachCurrentThread();
+      assert(status == JNI_OK);
+    }
 
     OP_REQUIRES_OK(ctx, s);
 
