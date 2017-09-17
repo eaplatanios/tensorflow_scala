@@ -13,7 +13,7 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.core.distributed
+package org.platanios.tensorflow.api.config
 
 import org.platanios.tensorflow.api.ProtoSerializable
 
@@ -25,7 +25,7 @@ import scala.collection.immutable.TreeMap
 
 /** Represents a cluster as a set of "tasks", organized into "jobs".
   *
-  * A [[ClusterSpec]] represents the set of processes that participate in a distributed TensorFlow computation.
+  * A [[ClusterConfig]] represents the set of processes that participate in a distributed TensorFlow computation.
   * Every TensorFlow server is constructed in a particular cluster.
   *
   * To create a cluster with two jobs and five tasks, you specify the mapping from job names to lists of network
@@ -33,12 +33,12 @@ import scala.collection.immutable.TreeMap
   *
   * For example:
   * {{{
-  *   val cluster = ClusterSpec(Map(
-  *     WORKER -> JobSpec(
+  *   val cluster = ClusterConfig(Map(
+  *     WORKER -> JobConfig(
   *       "worker0.example.com:2222",
   *       "worker1.example.com:2222",
   *       "worker2.example.com:2222"),
-  *     PARAMETER_SERVER -> JobSpec(
+  *     PARAMETER_SERVER -> JobConfig(
   *       "ps0.example.com:2222",
   *       "ps1.example.com:2222")))
   * }}}
@@ -48,18 +48,17 @@ import scala.collection.immutable.TreeMap
   *
   * For example:
   * {{{
-  *    val cluster = ClusterSpec(Map(
-  *     WORKER -> JobSpec(1 -> "worker1.example.com:2222"),
-  *     PARAMETER_SERVER -> JobSpec(
+  *    val cluster = ClusterConfig(Map(
+  *     WORKER -> JobConfig(1 -> "worker1.example.com:2222"),
+  *     PARAMETER_SERVER -> JobConfig(
   *       "ps0.example.com:2222",
   *       "ps1.example.com:2222")))
   * }}}
   *
-  * @param  jobSpecs Map mapping one or more job names to job specifications.
-  *
+  * @param  jobSpecs Map mapping one or more job names to job configurations.
   * @author Emmanouil Antonios Platanios
   */
-case class ClusterSpec(jobSpecs: Map[String, JobSpec]) extends ProtoSerializable {
+case class ClusterConfig(jobSpecs: Map[String, JobConfig]) extends ProtoSerializable {
   val clusterDef: ClusterDef = {
     val clusterDef = ClusterDef.newBuilder()
     // We sort by job name in order to produce deterministic Proto messages.
@@ -74,14 +73,14 @@ case class ClusterSpec(jobSpecs: Map[String, JobSpec]) extends ProtoSerializable
     clusterDef.build()
   }
 
-  /** Returns the set of jobs defined in this cluster specification. */
+  /** Returns the set of jobs defined in this cluster configuration. */
   def jobs: Set[String] = jobSpecs.keySet
 
   /** Returns a map from task index to network address for the tasks included in the provided job.
     *
     * @param  job Job name.
     * @return Option containing a map from task index to network address for the tasks included in the provided job.
-    *         `None`, if the job cannot be found in this cluster specification.
+    *         `None`, if the job cannot be found in this cluster configuration.
     */
   def jobTasks(job: String): Option[Map[Int, String]] = jobSpecs.get(job).map(_.tasks)
 
@@ -89,7 +88,7 @@ case class ClusterSpec(jobSpecs: Map[String, JobSpec]) extends ProtoSerializable
     *
     * @param  job Job name.
     * @return Option containing the number of tasks defined in the provided job. `None`, if the job cannot be found in
-    *         this cluster specification.
+    *         this cluster configuration.
     */
   def numTasks(job: String): Option[Int] = jobSpecs.get(job).map(_.tasks.size)
 
@@ -97,7 +96,7 @@ case class ClusterSpec(jobSpecs: Map[String, JobSpec]) extends ProtoSerializable
     *
     * @param  job Job name.
     * @return Option containing the sorted sequence of task indices defined in the provided job. `None`, if the job
-    *         cannot be found in this cluster specification.
+    *         cannot be found in this cluster configuration.
     */
   def taskIndices(job: String): Option[Seq[Int]] = jobSpecs.get(job).map(_.tasks.keys.toSeq)
 
@@ -106,51 +105,51 @@ case class ClusterSpec(jobSpecs: Map[String, JobSpec]) extends ProtoSerializable
     * @param  job       Job name.
     * @param  taskIndex Task index.
     * @return Option containing the network address of the the specified task. `None`, if the provided job cannot be
-    *         found in this cluster specification, or if the provided task index cannot be found for that job.
+    *         found in this cluster configuration, or if the provided task index cannot be found for that job.
     */
   def taskAddress(job: String, taskIndex: Int): Option[String] = jobSpecs.get(job).flatMap(_.tasks.get(taskIndex))
 
-  /** Constructs and returns a [[ClusterDef]] object that represents this cluster specification.
+  /** Constructs and returns a [[ClusterDef]] object that represents this cluster configuration.
     *
     * @return Constructed [[ClusterDef]].
     */
   def toClusterDef: ClusterDef = clusterDef
 
-  /** Constructs and returns a [[ClusterDef]] object that represents this cluster specification.
+  /** Constructs and returns a [[ClusterDef]] object that represents this cluster configuration.
     *
     * @return Constructed [[ClusterDef]].
     */
   override def toProto: GeneratedMessageV3 = toClusterDef
 }
 
-/** Contains helper methods for dealing with [[ClusterSpec]]s. */
-object ClusterSpec {
-  /** Constructs a [[ClusterSpec]] from the provided [[ClusterDef]] serialized representation.
+/** Contains helper methods for dealing with [[ClusterConfig]]s. */
+object ClusterConfig {
+  /** Constructs a [[ClusterConfig]] from the provided [[ClusterDef]] serialized representation.
     *
-    * @param  clusterDef Protobuf-serialized representation of a [[ClusterSpec]].
-    * @return Constructed [[ClusterSpec]]
+    * @param  clusterDef Protobuf-serialized representation of a [[ClusterConfig]].
+    * @return Constructed [[ClusterConfig]]
     */
-  def fromClusterDef(clusterDef: ClusterDef): ClusterSpec = {
-    ClusterSpec(clusterDef.getJobList.asScala.map(jobDef => {
-      (jobDef.getName, JobSpec(jobDef.getTasksMap.asScala.toSeq.map(t => (t._1.intValue(), t._2)): _*))
+  def fromClusterDef(clusterDef: ClusterDef): ClusterConfig = {
+    ClusterConfig(clusterDef.getJobList.asScala.map(jobDef => {
+      (jobDef.getName, JobConfig(jobDef.getTasksMap.asScala.toSeq.map(t => (t._1.intValue(), t._2)): _*))
     }).toMap)
   }
 }
 
-/** Job specification (excluding the job name).
+/** Job configuration (excluding the job name).
   *
   * @param  tasks Mapping from task index to the corresponding task network address.
   */
-case class JobSpec(tasks: TreeMap[Int, String])
+case class JobConfig(tasks: TreeMap[Int, String])
 
-/** Contains helper methods for dealing with [[JobSpec]]s. */
-object JobSpec {
-  /** Constructs a [[JobSpec]] by treating the provided sequence of strings as a dense list of network addresses. */
-  def apply(tasks: String*): JobSpec = JobSpec(TreeMap(tasks.indices.zip(tasks): _*))
+/** Contains helper methods for dealing with [[JobConfig]]s. */
+object JobConfig {
+  /** Constructs a [[JobConfig]] by treating the provided sequence of strings as a dense list of network addresses. */
+  def apply(tasks: String*): JobConfig = JobConfig(TreeMap(tasks.indices.zip(tasks): _*))
 
-  /** Constructs a [[JobSpec]] using the provided sequence of task index and network address pairs. */
-  def apply(tasks: (Int, String)*): JobSpec = JobSpec(TreeMap(tasks: _*))
+  /** Constructs a [[JobConfig]] using the provided sequence of task index and network address pairs. */
+  def apply(tasks: (Int, String)*): JobConfig = JobConfig(TreeMap(tasks: _*))
 
-  /** Constructs a [[JobSpec]] using the provided mapping from task indices to network addresses. */
-  def apply(tasks: Map[Int, String]): JobSpec = JobSpec(TreeMap(tasks.toSeq: _*))
+  /** Constructs a [[JobConfig]] using the provided mapping from task indices to network addresses. */
+  def apply(tasks: Map[Int, String]): JobConfig = JobConfig(TreeMap(tasks.toSeq: _*))
 }
