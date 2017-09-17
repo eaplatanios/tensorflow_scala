@@ -75,9 +75,9 @@ private[api] trait Callback {
         Op.Builder(opType = "JVMCallbackStateless", name = name)
     }
     builder.setAttribute("id", id)
-    builder.setAttribute("jvm_pointer", NativeLibrary.jvmPointer)
-    builder.setAttribute("registry_pointer", NativeLibrary.callbackRegistryPointer)
-    builder.setAttribute("registry_call_pointer", NativeLibrary.callbackRegistryCallMethodPointer)
+    builder.setAttribute("jvm_pointer", NativeLibrary.currentJvmPointer)
+    builder.setAttribute("registry_pointer", NativeLibrary.currentCallbackRegistryPointer)
+    builder.setAttribute("registry_call_pointer", NativeLibrary.currentCallbackRegistryCallMethodPointer)
     builder.setAttribute("Tout", evOutput.dataTypes(outputDataType).toArray)
     builder.addInputList(evInput.outputs(input))
     evOutput.decodeSymbolic(builder.build().outputs.toSeq)

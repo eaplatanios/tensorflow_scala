@@ -172,9 +172,13 @@ object TensorFlow {
 
   load()
 
-  @native def jvmPointer: String
-  @native def callbackRegistryPointer: String
-  @native def callbackRegistryCallMethodPointer: String
+  lazy val currentJvmPointer: String = jvmPointer
+  lazy val currentCallbackRegistryPointer: String = callbackRegistryPointer
+  lazy val currentCallbackRegistryCallMethodPointer: String = callbackRegistryCallMethodPointer
+
+  @native private[this] def jvmPointer: String
+  @native private[this] def callbackRegistryPointer: String
+  @native private[this] def callbackRegistryCallMethodPointer: String
   @native def version: String
   @native def dataTypeSize(dataTypeCValue: Int): Int
   @native def loadOpLibrary(libraryPath: String): Array[Byte]
