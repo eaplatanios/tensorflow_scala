@@ -391,8 +391,16 @@ object Dataset {
       }
       val flattenedValues = Callback.callback(generatorScalaCallback, iteratorId, flattenedTypes, stateful = true)
       // The Scala callback op drops the inferred shapes, so we add them back in here.
-      if (outputShape != null)
-        flattenedValues.zip(flattenedShapes).foreach(p => p._1.setShape(p._2))
+      if (outputShape != null) {
+        flattenedValues.zip(flattenedShapes).foreach(p => {
+          if (!p._1.shape.isCompatibleWith(p._2)) {
+            throw new IllegalArgumentException(
+              s"Generator output shape ${p._1.shape} is not compatible with provided shape ${p._2}.")
+          } else {
+            p._1.setShape(p._2)
+          }
+        })
+      }
       ev.unflattenOutputs(outputDataType, flattenedValues)
     }
 
