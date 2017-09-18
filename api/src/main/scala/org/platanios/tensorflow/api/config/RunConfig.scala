@@ -133,7 +133,7 @@ import java.nio.file.Path
   *                                        directory will be used.
   * @param  sessionConfig                  Configuration to use for the created sessions.
   * @param  checkpointConfig               Configuration specifying when to save checkpoints.
-  * @param  saveSummarySteps               Save summaries every this many steps.
+  * @param  saveSummaryFrequency           Frequency, in number of steps, that summaries will be saved during training.
   * @param  globalStepRateLoggingFrequency Frequency, in number of global steps, that the global step / sec rate will be
   *                                        logged during training.
   * @param  randomSeed                     Random seed value to be used by the TensorFlow initializers. Setting this
@@ -142,7 +142,7 @@ import java.nio.file.Path
   */
 case class RunConfig(
     workingDir: Path = null, sessionConfig: SessionConfig = null,
-    checkpointConfig: CheckpointConfig = TimeBasedCheckpoints(600, 5, 10000), saveSummarySteps: Int = 100,
+    checkpointConfig: CheckpointConfig = TimeBasedCheckpoints(600, 5, 10000), saveSummaryFrequency: Int = 100,
     globalStepRateLoggingFrequency: Int = 100, randomSeed: Long = 1) {
   require(
     globalStepRateLoggingFrequency > 0,
