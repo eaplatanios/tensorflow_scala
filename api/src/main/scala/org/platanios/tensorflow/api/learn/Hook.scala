@@ -21,7 +21,99 @@ import org.platanios.tensorflow.api.ops.{Op, Output}
 
 import org.tensorflow.framework.RunOptions
 
-/** Hook to extend calls to [[MonitoredSession.run]].
+// TODO: [HOOKS] !!! Implement the supposedly provided hooks.
+// TODO: [HOOKS] !!! Go through the documentation again and change things as needed after MonitoredSession is implemented.
+
+/** Hook to extend calls to [[MonitoredSession.run()]].
+  *
+  * [[Hook]]s are useful to track training, report progress, request early stopping and more. They use the observer
+  * pattern and notify at the following points:
+  *   - When a session starts being used,
+  *   - Before a call to [[Session.run()]],
+  *   - After a call to [[Session.run()]],
+  *   - When the session stops being used.
+  *
+  * A [[Hook]] encapsulates a piece of reusable/composable computation that can piggyback a call to
+  * [[MonitoredSession.run()]]. A hook can add any feeds/fetches/targets to the run call, and when the run call finishes
+  * executing with success, the hook gets the fetches it requested. Hooks are allowed to add ops to the graph in the
+  * `begin()` method. The graph is finalized after the `begin()` method is called.
+  *
+  * There are a few pre-defined hooks that can be used without modification:
+  *   - `TensorLoggingHook`: Logs the values of one or more tensors.
+  *   - `NaNTensorHook`: Requests to stop iterating if the provided tensor contains `NaN` values.
+  *   - `StopAtStepHook`: Requests to stop iterating based on the global step.
+  *   - `CheckpointSaverHook`: Saves checkpoints.
+  *   - `SummarySaverHook`: Saves summaries to the provided summary writer.
+  *
+  * For more specific needs you can create custom hooks. For example:
+  * {{{
+  *   class ExampleHook extends Hook[Output, Unit, Tensor] {
+  *     private[this] val logger: Logger = Logger(LoggerFactory.getLogger("Example Hook"))
+  *     private[this] var exampleTensor: Output
+  *
+  *     override def begin(): Unit = {
+  *       // You can add ops to the graph here.
+  *       logger.info("Starting the session.")
+  *       exampleTensor = ...
+  *     }
+  *
+  *     override def afterSessionCreation(session: Session): Unit = {
+  *       // When this is called, the graph is finalized and ops can no longer be added to it.
+  *       logger.info("Session created.")
+  *     }
+  *
+  *     override def beforeSessionRun[F, E, R](runContext: SessionRunContext[F, E, R])(implicit
+  *       executableEv: Executable[E],
+  *       fetchableEv: Fetchable.Aux[F, R]
+  *      ): Hook.SessionRunArgs[Output, Unit, Tensor] = {
+  *        logger.info("Before calling `Session.run()`.")
+  *        Hook.SessionRunArgs(fetches = exampleTensor)
+  *      }
+  *
+  *      override def afterSessionRun[F, E, R](runContext: SessionRunContext[F, E, R], runValues: Tensor)(implicit
+  *        executableEv: Executable[E],
+  *        fetchableEv: Fetchable.Aux[F, R]
+  *      ): Unit = {
+  *        logger.info("Done running one step. The value of the tensor is: ${runValues.summarize()}")
+  *        if (needToStop)
+  *          runContext.requestStop()
+  *      }
+  *
+  *      override def end(session: Session): Unit = {
+  *        logger.info("Done with the session.")
+  *      }
+  *   }
+  * }}}
+  *
+  * To understand how hooks interact with calls to [[MonitoredSession.run()]], look at following code:
+  * {{{
+  *   val session = MonitoredTrainingSession(hooks = someHook, ...)
+  *   while (!session.shouldStop)
+  *     session.run(...)
+  *   session.close()
+  * }}}
+  *
+  * The above user code loosely leads to the following execution:
+  * {{{
+  *   someHook.begin()
+  *   val session = tf.Session()
+  *   someHook.afterSessionCreation()
+  *   while (!stopRequested) {
+  *     someHook.beforeSessionRun(...)
+  *     try {
+  *       val result = session.run(mergedSessionRunArgs)
+  *       someHook.afterSessionRun(..., result)
+  *     } catch {
+  *       case _: IndexOutOfBoundsException => stopRequested = true
+  *     }
+  *   }
+  *   someHook.end()
+  *   session.close()
+  * }}}
+  *
+  * Note that if `session.run()` throws an [[IndexOutOfBoundsException]] then `someHook.afterSessionRun()` will not be
+  * called, but `someHook.end()` will still be called. On the other hand, if `session.run()` throws any other exception,
+  * then neither `someHook.afterSessionRun()` nor `someHook.end()` will be called.
   *
   * @author Emmanouil Antonios Platanios
   */
@@ -71,9 +163,9 @@ abstract class Hook[HF, HE, HR](implicit
     *
     * The `runValues` argument contains fetched values for the tensors requested by `beforeSessionRun`.
     *
-    * If [[Session.run]] throws an [[IndexOutOfBoundsException]] then `afterSessionRun()` will not be called. Note the
-    * difference between the `end()` and the `afterSessionRun()` behavior when [[Session.run]] throws an
-    * [[IndexOutOfBoundsException]]. In that case, `end()` is called but `afterSessionRun()` is not called.
+    * If [[Session.run]] throws any exception, then `afterSessionRun()` will not be called. Note the difference between
+    * the `end()` and the `afterSessionRun()` behavior when [[Session.run]] throws an [[IndexOutOfBoundsException]]. In
+    * that case, `end()` is called but `afterSessionRun()` is not called.
     *
     * @param  runContext Provides information about the run call (i.e., the originally requested ops/tensors,
     *                    the session, etc.). Same value as that passed to `beforeSessionRun`.
