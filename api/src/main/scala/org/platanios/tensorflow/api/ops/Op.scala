@@ -25,10 +25,9 @@ import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.DataType
 import org.platanios.tensorflow.api.utilities.using
 import org.platanios.tensorflow.jni.{Op => NativeOp, Tensor => NativeTensor}
-import org.tensorflow.framework.{AttrValue, FunctionDef, NameAttrList}
-import java.nio.charset.Charset
 
-import org.tensorflow.framework.OpDef.AttrDef
+import org.tensorflow.framework.{AttrValue, NameAttrList}
+import java.nio.charset.Charset
 
 import scala.collection.mutable
 import scala.util.{DynamicVariable, Try}
@@ -275,11 +274,11 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
   }
 }
 
-final case class OpSpecification(name: String, opType: String)
+final case class OpSpecification(name: String, opType: String, device: String)
 
 private[api] final case class OpCreationContext(
     graph: Graph = Graph(), nameScope: String = "", variableScope: VariableScope = VariableScope(reuse = CreateNewOnly),
-    device: OpSpecification => String = _ => "", colocationOps: Set[Op] = Set.empty,
+    device: String = "", deviceFunction: OpSpecification => String = _.device, colocationOps: Set[Op] = Set.empty,
     controlDependencies: Set[Op] = Set.empty, attributes: Map[String, Any] = Map.empty, container: String = "") // TODO: !!! Use containers.
 
 object Op {
@@ -294,7 +293,8 @@ object Op {
     def currentNameScope: String = Op.currentNameScope
     def currentVariableScope: VariableScope = Op.currentVariableScope
     def currentVariableStore: VariableStore = Op.currentVariableStore
-    def currentDevice: OpSpecification => String = Op.currentDevice
+    def currentDevice: String = Op.currentDevice
+    def currentDeviceFunction: OpSpecification => String = Op.currentDeviceFunction
     def currentColocationOps: Set[Op] = Op.currentColocationOps
     def currentControlDependencies: Set[Op] = Op.currentControlDependencies
     def currentAttributes: Map[String, Any] = Op.currentAttributes
@@ -307,10 +307,12 @@ object Op {
     def setCurrentGraphRandomSeed(value: Int): Unit = Op.setCurrentGraphRandomSeed(value)
 
     def createWith[R](
-        graph: Graph = null, nameScope: String = null, device: OpSpecification => String = _ => "",
-        colocationOps: Set[Op] = null, controlDependencies: Set[Op] = null, attributes: Map[String, Any] = null,
-        container: String = null)(block: => R): R = {
-      Op.createWith(graph, nameScope, device, colocationOps, controlDependencies, attributes, container)(block)
+        graph: Graph = null, nameScope: String = null, device: String = "",
+        deviceFunction: OpSpecification => String = _.device, colocationOps: Set[Op] = null,
+        controlDependencies: Set[Op] = null, attributes: Map[String, Any] = null, container: String = null)(
+        block: => R): R = {
+      Op.createWith(
+        graph, nameScope, device, deviceFunction, colocationOps, controlDependencies, attributes, container)(block)
     }
 
     def createWithNameScope[R](nameScope: String, values: Set[Op] = Set.empty[Op])(block: => R): R = {
@@ -360,8 +362,14 @@ object Op {
   }
 
   /** Returns the device of the current op creation context. */
-  private[api] def currentDevice(implicit context: DynamicVariable[OpCreationContext]): OpSpecification => String = {
+  private[api] def currentDevice(implicit context: DynamicVariable[OpCreationContext]): String = {
     context.value.device
+  }
+
+  /** Returns the device function of the current op creation context. */
+  private[api] def currentDeviceFunction(implicit
+      context: DynamicVariable[OpCreationContext]): OpSpecification => String = {
+    context.value.deviceFunction
   }
 
   /** Returns the colocation ops of the current op creation context. */
@@ -524,15 +532,13 @@ object Op {
     *
     * == Device ==
     *
-    * When `createWith(...)` is used with a device, the `device` argument needs to be a function taking an
+    * When `createWith(...)` is used with a device, a `deviceFunction` argument can be additionally used (aside from the
+    * device string representation provided through the `device` argument), that is a function taking an
     * [[OpSpecification]] as input and returning a string representation of the device where the corresponding op should
     * be placed. This function is invoked every time a new op is created within the provided code block. If the function
-    * returns `null` for some op, then all subsequent invocations of `createWith(device = ...)` in the provided code
-    * block will be ignored. Note that, if the device implicit conversion function is within scope, then a `String`
-    * value (or `null`) can be used directly for the `device` field. In this case, the value provided will be used as
-    * the device for all newly create ops in the provided code block. For information about the valid syntax of device
-    * name strings, see the documentation in
-    * [`DeviceNameUtils`](https://www.tensorflow.org/code/tensorflow/core/util/device_name_utils.h).
+    * returns `null` for some op, then all subsequent invocations of `createWith(deviceFunction = ...)` in the provided
+    * code block will be ignored. For information about the valid syntax of device name strings, see the documentation
+    * in [`DeviceNameUtils`](https://www.tensorflow.org/code/tensorflow/core/util/device_name_utils.h).
     *
     * Note that the device scope may be overridden by op wrappers or other library code. For example, a variable
     * assignment op must be colocated with the corresponding variable. Incompatible device scopes will be ignored.
@@ -561,7 +567,7 @@ object Op {
     *       "/CPU:0"
     *   }
     *
-    *   createWith(device = matmulOnGPU) {
+    *   createWith(deviceFunction = matmulOnGPU) {
     *     // All ops of type "MatMul" constructed in this code block will be placed on GPU 0. All other operations will
     *     // be placed on CPU 0.
     *     val c = constant(9.0)
@@ -698,7 +704,7 @@ object Op {
     *
     * @param  graph               Graph to use as default for new ops.
     * @param  nameScope           Name scope to use.
-    * @param  device              Device function to use.
+    * @param  deviceFunction              Device function to use.
     * @param  colocationOps       Colocation ops to use.
     * @param  controlDependencies Control dependencies to use.
     * @param  attributes          Attributes to use.
@@ -711,8 +717,9 @@ object Op {
     */
   @throws[IllegalNameException]
   private[api] def createWith[R](
-      graph: Graph = null, nameScope: String = null, device: OpSpecification => String = _ => "",
-      colocationOps: Set[Op] = null, controlDependencies: Set[Op] = null, attributes: Map[String, Any] = null,
+      graph: Graph = null, nameScope: String = null, device: String = "",
+      deviceFunction: OpSpecification => String = _.device, colocationOps: Set[Op] = null,
+      controlDependencies: Set[Op] = null, attributes: Map[String, Any] = null,
       container: String = null)(block: => R)(implicit context: DynamicVariable[OpCreationContext]): R = {
     // TODO: Move this to a separate scope class.
     // TODO: !!! The order of the updates matters here so let's make sure everything is fine.
@@ -721,8 +728,10 @@ object Op {
     updatedContext = updatedContext.copy(graph = newGraph)
     val newNameScope: String = mergeNameScope(nameScope, updatedContext)
     updatedContext = updatedContext.copy(nameScope = newNameScope)
-    val newDevice: OpSpecification => String = mergeDevice(device, updatedContext)
+    val newDevice: String = mergeDevice(device, updatedContext)
     updatedContext = updatedContext.copy(device = newDevice)
+    val newDeviceFunction: OpSpecification => String = mergeDeviceFunction(deviceFunction, updatedContext)
+    updatedContext = updatedContext.copy(deviceFunction = newDeviceFunction)
     val newColocationOps: Set[Op] = mergeColocationOps(colocationOps, updatedContext)
     updatedContext = updatedContext.copy(colocationOps = newColocationOps)
     val newControlDependencies: Set[Op] = mergeControlDependencies(controlDependencies, updatedContext)
@@ -830,12 +839,38 @@ object Op {
     * @param  context Op creation context whose device needs to be updated.
     * @return Device to use for the new op creation context.
     */
-  private[this] def mergeDevice(
-      device: OpSpecification => String = _ => "", context: OpCreationContext): OpSpecification => String = {
-    val oldContextDevice = context.device
+  private[this] def mergeDevice(device: String = "", context: OpCreationContext): String = {
+    val oldDevice = context.device
+    // Check if the device has been reset or has to be reset for all subsequent nested scopes
+    if (oldDevice == null || device == null) {
+      null
+    } else {
+      val oldDeviceSpec = DeviceSpecification.fromString(oldDevice)
+      val newDeviceSpec = DeviceSpecification.fromString(device)
+      DeviceSpecification.merge(oldDeviceSpec, newDeviceSpec).toString
+    }
+  }
+
+  /** Merges a device function to the provided op creation context device and returns the device to use when specifying
+    * the updated op creation context. The merging rules are specified in the documentation of the [[createWith]]
+    * function.
+    *
+    * @param  deviceFunction Device function to merge.
+    * @param  context        Op creation context whose device function needs to be updated.
+    * @return Device function to use for the new op creation context.
+    */
+  private[this] def mergeDeviceFunction(
+      deviceFunction: OpSpecification => String = _ => "", context: OpCreationContext): OpSpecification => String = {
+    val oldContextDevice = context.deviceFunction
     opSpecification => {
       val oldDeviceSpecString = oldContextDevice(opSpecification)
-      val newDeviceSpecString = if (device != null) device(opSpecification) else null
+      val newDeviceSpecString = {
+        // TODO: [OPS] Make sure this is the desired behavior.
+        if (context.device != null && deviceFunction != null)
+          deviceFunction(opSpecification)
+        else
+          null
+      }
       // Check if the device has been reset or has to be reset for all subsequent nested scopes
       if (oldDeviceSpecString == null || newDeviceSpecString == null) {
         null
@@ -1050,8 +1085,7 @@ object Op {
       using(graph.reference) { r =>
         if (built)
           throw OpBuilderUsedException("This op builder has already been used to built an op and cannot be re-used.")
-        // TODO: [OP] Using just "this.name" here feels kind of awkward.
-        device = Option(context.device(OpSpecification(name = this.name, opType = opType)))
+        device = Option(context.value.deviceFunction(OpSpecification(this.name, opType, context.value.device)))
         val name = {
           // If a name ends with a "/" then it is a name scope and we use it as-is, after removing the trailing "/".
           if (this.name.endsWith("/"))

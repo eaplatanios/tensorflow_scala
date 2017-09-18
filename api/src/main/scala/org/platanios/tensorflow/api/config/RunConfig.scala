@@ -20,6 +20,8 @@ import org.platanios.tensorflow.api.config.RunConfig._
 import io.circe._
 import io.circe.parser._
 
+import java.nio.file.Path
+
 /** Run configuration for models.
   *
   * If `clusterConfig` is not provided, then all distributed training related properties are set based on the
@@ -126,8 +128,9 @@ import io.circe.parser._
   * distributed training, the evaluation job starts asynchronously and might fail to load or find the checkpoints due to
   * a race condition.
   *
-  * @param  workingDir                     Directory where the model parameters, the graph, etc are saved. If `null`,
-  *                                        then a default value will be set by the model.
+  * @param  workingDir                     Directory used to save model parameters, graph, etc. It can also be used to
+  *                                        load checkpoints for a previously saved model. If `null`, a temporary
+  *                                        directory will be used.
   * @param  sessionConfig                  Configuration to use for the created sessions.
   * @param  checkpointConfig               Configuration specifying when to save checkpoints.
   * @param  saveSummarySteps               Save summaries every this many steps.
@@ -138,7 +141,7 @@ import io.circe.parser._
   * @author Emmanouil Antonios Platanios
   */
 case class RunConfig(
-    workingDir: String = null, sessionConfig: SessionConfig = SessionConfig(),
+    workingDir: Path = null, sessionConfig: SessionConfig = null,
     checkpointConfig: CheckpointConfig = TimeBasedCheckpoints(600, 5, 10000), saveSummarySteps: Int = 100,
     globalStepRateLoggingFrequency: Int = 100, randomSeed: Long = 1) {
   require(
@@ -246,6 +249,7 @@ case class RunConfig(
   val evaluationMaster: String = ""
 }
 
+/** Contains helper methods for dealing with [[RunConfig]]s. */
 object RunConfig {
   private[config] val TF_CONFIG_ENV: String = "TF_CONFIG"
   private[config] val TASK_ENV_KEY : String = "task"

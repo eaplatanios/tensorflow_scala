@@ -112,7 +112,7 @@ object Core {
   private[layers] sealed trait LayerCreationContext
 
   private[layers] final case class LayerCreationGeneralContext(
-      nameScope: String = "", device: tf.OpSpecification => String = _ => "", container: String = "")
+      nameScope: String = "", device: String = "", container: String = "")
       extends LayerCreationContext
 
   private[layers] final case class LayerVariableScope(
@@ -162,7 +162,7 @@ object Core {
         customGetter = customGetter, isPure = isPure))(block)
     }
 
-    def withDevice[R](device: tf.OpSpecification => String)(block: => R)
+    def withDevice[R](device: String)(block: => R)
         (implicit context: DynamicVariable[List[LayerCreationContext]]): R = {
       context.withValue(context.value :+ LayerCreationGeneralContext(device = device))(block)
     }

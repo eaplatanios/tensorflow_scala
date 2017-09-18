@@ -21,7 +21,7 @@ import org.tensorflow.framework._
 
 import scala.collection.JavaConverters._
 
-/**
+/** Session configuration for executing TensorFlow ops.
   *
   * @param  deviceCount                       Map from device type name (e.g., `"CPU"` or `"GPU"`) to maximum number of
   *                                           devices of that type to use. If a particular device type is not found in
@@ -267,6 +267,7 @@ case class SessionConfig(
   }
 }
 
+/** Contains helper methods for dealing with [[SessionConfig]]s. */
 object SessionConfig {
   /** Graph optimization level. */
   sealed trait GraphOptimizationLevel {
