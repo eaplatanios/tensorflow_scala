@@ -34,11 +34,11 @@ import scala.collection.immutable.TreeMap
   * For example:
   * {{{
   *   val cluster = ClusterConfig(Map(
-  *     WORKER -> JobConfig.fromAddresses(
+  *     "worker" -> JobConfig.fromAddresses(
   *       "worker0.example.com:2222",
   *       "worker1.example.com:2222",
   *       "worker2.example.com:2222"),
-  *     PARAMETER_SERVER -> JobConfig.fromAddresses(
+  *     "ps" -> JobConfig.fromAddresses(
   *       "ps0.example.com:2222",
   *       "ps1.example.com:2222")))
   * }}}
@@ -49,8 +49,8 @@ import scala.collection.immutable.TreeMap
   * For example:
   * {{{
   *    val cluster = ClusterConfig(Map(
-  *     WORKER -> JobConfig(1 -> "worker1.example.com:2222"),
-  *     PARAMETER_SERVER -> JobConfig.fromAddresses(
+  *     "worker" -> JobConfig(1 -> "worker1.example.com:2222"),
+  *     "ps" -> JobConfig.fromAddresses(
   *       "ps0.example.com:2222",
   *       "ps1.example.com:2222")))
   * }}}
@@ -148,7 +148,10 @@ object JobConfig {
   def apply(tasks: (Int, String)*): JobConfig = JobConfig(TreeMap(tasks: _*))
 
   /** Constructs a [[JobConfig]] by treating the provided sequence of strings as a dense list of network addresses. */
-  def fromAddresses(tasks: String*): JobConfig = JobConfig(TreeMap(tasks.indices.zip(tasks): _*))
+  def from(tasks: String*): JobConfig = JobConfig(TreeMap(tasks.indices.zip(tasks): _*))
+
+  /** Constructs a [[JobConfig]] by treating the provided sequence of strings as a dense list of network addresses. */
+  def fromSeq(tasks: Seq[String]): JobConfig = JobConfig(TreeMap(tasks.indices.zip(tasks): _*))
 
   /** Constructs a [[JobConfig]] using the provided mapping from task indices to network addresses. */
   def fromMap(tasks: Map[Int, String]): JobConfig = JobConfig(TreeMap(tasks.toSeq: _*))
