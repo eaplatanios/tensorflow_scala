@@ -126,19 +126,25 @@ import io.circe.parser._
   * distributed training, the evaluation job starts asynchronously and might fail to load or find the checkpoints due to
   * a race condition.
   *
-  * @param  workingDir       Directory where the model parameters, the graph, etc are saved. If `null`, then a default
-  *                          value will be set by the model.
-  * @param  sessionConfig    Configuration to use for the created sessions.
-  * @param  checkpointConfig Configuration specifying when to save checkpoints.
-  * @param  saveSummarySteps Save summaries every this many steps.
-  * @param  randomSeed       Random seed value to be used by the TensorFlow initializers. Setting this value allows
-  *                          consistency between re-runs.
+  * @param  workingDir                     Directory where the model parameters, the graph, etc are saved. If `null`,
+  *                                        then a default value will be set by the model.
+  * @param  sessionConfig                  Configuration to use for the created sessions.
+  * @param  checkpointConfig               Configuration specifying when to save checkpoints.
+  * @param  saveSummarySteps               Save summaries every this many steps.
+  * @param  globalStepRateLoggingFrequency Frequency, in number of global steps, that the global step / sec rate will be
+  *                                        logged during training.
+  * @param  randomSeed                     Random seed value to be used by the TensorFlow initializers. Setting this
+  *                                        value allows consistency between re-runs.
   * @author Emmanouil Antonios Platanios
   */
 case class RunConfig(
     workingDir: String = null, sessionConfig: SessionConfig = SessionConfig(),
     checkpointConfig: CheckpointConfig = TimeBasedCheckpoints(600, 5, 10000), saveSummarySteps: Int = 100,
-    randomSeed: Long = 1) {
+    globalStepRateLoggingFrequency: Int = 100, randomSeed: Long = 1) {
+  require(
+    globalStepRateLoggingFrequency > 0,
+    s"'globalStepRateLoggingFrequency' (set to $globalStepRateLoggingFrequency) needs to be a positive integer.")
+
   val (clusterConfig, taskType, taskIndex, master, numParameterServers, numWorkers, isChief): (
       Option[ClusterConfig], String, Int, String, Int, Int, Boolean) = {
     val tfConfigJson = System.getenv(TF_CONFIG_ENV)

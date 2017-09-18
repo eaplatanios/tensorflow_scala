@@ -33,7 +33,14 @@ case object NoCheckpoints extends CheckpointConfig
   *                               effectively disables the feature.
   */
 private[config] abstract class CheckpointConfigBase private[config](
-    maxCheckpointsToKeep: Int = 5, checkpointEveryNHours: Int = 10000) extends CheckpointConfig
+    maxCheckpointsToKeep: Int = 5, checkpointEveryNHours: Int = 10000) extends CheckpointConfig {
+  require(
+    maxCheckpointsToKeep >= 0,
+    s"'maxCheckpointsToKeep' (set to $maxCheckpointsToKeep) needs to be a non-negative integer.")
+  require(
+    checkpointEveryNHours > 0,
+    s"'checkpointEveryNHours' (set to $checkpointEveryNHours) needs to be a positive integer.")
+}
 
 /** Checkpoint configuration for step-based checkpoints (i.e., checkpoints every `n` steps).
   *
@@ -46,7 +53,9 @@ private[config] abstract class CheckpointConfigBase private[config](
   *
   */
 case class StepBasedCheckpoints (steps: Int = 1000, maxCheckpointsToKeep: Int = 5, checkpointEveryNHours: Int = 10000)
-    extends CheckpointConfigBase(maxCheckpointsToKeep, checkpointEveryNHours)
+    extends CheckpointConfigBase(maxCheckpointsToKeep, checkpointEveryNHours) {
+  require(steps >= 0, s"'steps' (set to $steps) needs to be a non-negative integer.")
+}
 
 /** Checkpoint configuration for time-based checkpoints (i.e., checkpoints every `n` seconds).
   *
@@ -59,4 +68,6 @@ case class StepBasedCheckpoints (steps: Int = 1000, maxCheckpointsToKeep: Int = 
   *
   */
 case class TimeBasedCheckpoints (seconds: Int = 600, maxCheckpointsToKeep: Int = 5, checkpointEveryNHours: Int = 10000)
-    extends CheckpointConfigBase(maxCheckpointsToKeep, checkpointEveryNHours)
+    extends CheckpointConfigBase(maxCheckpointsToKeep, checkpointEveryNHours) {
+  require(seconds >= 0, s"'seconds' (set to $seconds) needs to be a non-negative integer.")
+}
