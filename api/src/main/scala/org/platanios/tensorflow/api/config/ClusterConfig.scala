@@ -33,7 +33,7 @@ import scala.collection.immutable.TreeMap
   *
   * For example:
   * {{{
-  *   val cluster = ClusterConfig(Map(
+  *   val clusterConfig = ClusterConfig(Map(
   *     "worker" -> JobConfig.fromAddresses(
   *       "worker0.example.com:2222",
   *       "worker1.example.com:2222",
@@ -48,7 +48,7 @@ import scala.collection.immutable.TreeMap
   *
   * For example:
   * {{{
-  *    val cluster = ClusterConfig(Map(
+  *    val clusterConfig = ClusterConfig(Map(
   *     "worker" -> JobConfig(1 -> "worker1.example.com:2222"),
   *     "ps" -> JobConfig.fromAddresses(
   *       "ps0.example.com:2222",
