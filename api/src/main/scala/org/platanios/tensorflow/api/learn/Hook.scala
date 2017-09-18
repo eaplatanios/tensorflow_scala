@@ -40,7 +40,7 @@ import org.tensorflow.framework.RunOptions
   *
   * There are a few pre-defined hooks that can be used without modification:
   *   - `TensorLoggingHook`: Logs the values of one or more tensors.
-  *   - `NaNTensorHook`: Requests to stop iterating if the provided tensor contains `NaN` values.
+  *   - `TensorNaNHook`: Requests to stop iterating if the provided tensor contains `NaN` values.
   *   - `StopAtStepHook`: Requests to stop iterating based on the global step.
   *   - `CheckpointSaverHook`: Saves checkpoints.
   *   - `SummarySaverHook`: Saves summaries to the provided summary writer.
@@ -125,7 +125,7 @@ abstract class Hook[HF, HE, HR](implicit
     * session. The hook can modify the graph by adding new operations to it. After the `begin` call the graph will be
     * finalized and the other callbacks will not be able to modify the graph anymore. A second `begin` call on the same
     * graph, should not change that graph. */
-  def begin(): Unit
+  def begin(): Unit = ()
 
   /** Called after a new session is created. This is called to signal the hooks that a new session has been created.
     * This callback has two essential differences with the situation in which `begin` is called:
@@ -136,7 +136,7 @@ abstract class Hook[HF, HE, HR](implicit
     *
     * @param  session The session that has been created.
     */
-  def afterSessionCreation(session: Session): Unit
+  def afterSessionCreation(session: Session): Unit = ()
 
   /** Called before each call to [[Session.run]]. You can return from this call a [[Hook.SessionRunArgs]] object
     * indicating ops or tensors to add to the upcoming run call. These ops/tensors will be run together with the
@@ -154,7 +154,7 @@ abstract class Hook[HF, HE, HR](implicit
   def beforeSessionRun[F, E, R](runContext: SessionRunContext[F, E, R])(implicit
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]
-  ): Hook.SessionRunArgs[HF, HE, HR]
+  ): Option[Hook.SessionRunArgs[HF, HE, HR]] = None
 
   /** Called after each call to [[Session.run]].
     *
@@ -174,7 +174,7 @@ abstract class Hook[HF, HE, HR](implicit
   def afterSessionRun[F, E, R](runContext: SessionRunContext[F, E, R], runValues: HR)(implicit
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]
-  ): Unit
+  ): Unit = ()
 
   /** Called at the end of the session usage (i.e., [[Session.run]] will not be invoked again after this call).
     *
@@ -187,7 +187,7 @@ abstract class Hook[HF, HE, HR](implicit
     *
     * @param  session Session that will not be used again after this call.
     */
-  def end(session: Session): Unit
+  def end(session: Session): Unit = ()
 }
 
 /** Contains helper classes for the [[Hook]] class. */
