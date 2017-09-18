@@ -29,12 +29,16 @@ import org.slf4j.LoggerFactory
   *
   * This hook can either fail with an exception or just stop training.
   *
-  * @param  output    Tensor to monitor.
-  * @param  failOnNaN If `true`, an exception is thrown when `NaN` values are encountered. Otherwise, training stops.
+  * @param  tensorName Name of the tensor to monitor.
+  * @param  failOnNaN  If `true`, an exception is thrown when `NaN` values are encountered. Otherwise, training stops.
   *
   * @author Emmanouil Antonios Platanios
   */
-case class TensorNaNHook(output: Output, failOnNaN: Boolean = true) extends Hook[Output, Traversable[Op], Tensor] {
+case class TensorNaNHook(tensorName: String, failOnNaN: Boolean = true) extends Hook[Output, Traversable[Op], Tensor] {
+  private[this] var output: Output = _
+
+  override def begin(): Unit = output = Op.currentGraph.getOutputByName(tensorName)
+
   override def beforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
       executableEv: Executable[E],
       fetchableEv: Aux[F, R]
