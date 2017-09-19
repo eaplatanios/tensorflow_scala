@@ -24,6 +24,7 @@ import org.platanios.tensorflow.api.types.STRING
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer}
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
 import org.platanios.tensorflow.jni.{Function => NativeFunction, Graph => NativeGraph, TensorFlow => NativeLibrary}
+
 import com.google.protobuf.ByteString
 import org.tensorflow.framework.CollectionDef.{BytesList, Int64List, NodeList}
 import org.tensorflow.framework.MetaGraphDef.MetaInfoDef
@@ -46,13 +47,30 @@ class Graph private[api](private[api] var nativeHandle: Long) extends Closeable 
   // potential memory leak.
   Disposer.add(this, () => this.close())
 
+  /** Indicates whether this graph has been frozen (i.e., no more ops can be added to it). */
+  private[this] var _frozen: Boolean = false
+
+  /** Returns a boolean flag indicating whether this graph has been frozen (i.e., no more ops can be added to it). */
+  def frozen: Boolean = _frozen
+
+  /** Freezes this graph, meaning that no more ops can be added to it after a call to this function. This method is used
+    * to ensure that no operations are added to a graph when it is shared between multiple threads. */
+  def freeze(): Unit = _frozen = true
+
+  /** Asserts that this graph has not been frozen. */
+  @throws[AssertionError]
+  def assertNotFrozen(): Unit = assert(!_frozen, "This graph has already been frozen.")
+
   /** List of functions that will be called right before disposing this graph object. Such functions are usually used to
     * clean up native resources used by this graph. */
   private[api] val cleanupFunctions: mutable.ListBuffer[() => Unit] = mutable.ListBuffer.empty
 
   /** Adds a cleanup function to this graph. That is, a function that will be called right before disposing this graph
     * object. Such functions are usually used to clean up native resources used by this graph. */
-  private[api] def addCleanupFunction(function: () => Unit): Unit = cleanupFunctions.append(function)
+  private[api] def addCleanupFunction(function: () => Unit): Unit = {
+    assertNotFrozen()
+    cleanupFunctions.append(function)
+  }
 
   // TODO: [SESSION] Need to be able to reset this session.
   private[api] val defaultSession: Session = Session(this)
@@ -69,6 +87,7 @@ class Graph private[api](private[api] var nativeHandle: Long) extends Closeable 
 
   /** Marks `name` as a used name in this graph (i.e., increments its usage counter). */
   private[this] def markNameAsUsed(name: String): Unit = namesInUse synchronized {
+    assertNotFrozen()
     namesInUse += name
   }
 
@@ -124,6 +143,7 @@ class Graph private[api](private[api] var nativeHandle: Long) extends Closeable 
 
   /** Adds the provided function instance to this graph. */
   private[api] def addFunction(function: InstantiatedFunction[_, _]): Unit = {
+    assertNotFrozen()
     if (!functionsMap.contains(function.name)) {
       NativeFunction.addToGraph(nativeHandle, function.nativeHandle)
       functionsMap.update(function.name, function)
@@ -148,7 +168,10 @@ class Graph private[api](private[api] var nativeHandle: Long) extends Closeable 
     *
     * @param  key Collection key.
     */
-  private[api] def clearCollection[K](key: Graph.Key[K]): Unit = collections -= key
+  private[api] def clearCollection[K](key: Graph.Key[K]): Unit = {
+    assertNotFrozen()
+    collections -= key
+  }
 
   /** Adds `value` to the collection with name `key`.
     *
@@ -156,6 +179,7 @@ class Graph private[api](private[api] var nativeHandle: Long) extends Closeable 
     * @param  key   Collection name.
     */
   private[api] def addToCollection[K](value: K, key: Graph.Key[K]): Unit = {
+    assertNotFrozen()
     collections.getOrElseUpdate(key, mutable.Set.empty[K]).asInstanceOf[mutable.Set[K]].add(value)
   }
 
@@ -170,18 +194,6 @@ class Graph private[api](private[api] var nativeHandle: Long) extends Closeable 
     collections.getOrElse(key, mutable.Set.empty[K]).asInstanceOf[mutable.Set[K]].toSet[K]
   }
 
-  /** Gets the set of values that corresponds to the collection with name `key`.
-    *
-    * Note that this method returns a reference to the underlying mutable set and so any changes made to that set will
-    * be reflected in the corresponding collection.
-    *
-    * @param  key Collection name.
-    * @return Mutable set of values that corresponds to the collection with name `collection`.
-    */
-  private[api] def getCollectionReference[K](key: Graph.Key[K]): mutable.Set[K] = {
-    collections.getOrElseUpdate(key, mutable.Set.empty[K]).asInstanceOf[mutable.Set[K]]
-  }
-
   /** Gets the random seed of this graph. */
   def randomSeed: Option[Int] = {
     collections.getOrElseUpdate(Graph.Keys.RANDOM_SEEDS, mutable.Set.empty[Int])
@@ -190,6 +202,7 @@ class Graph private[api](private[api] var nativeHandle: Long) extends Closeable 
 
   /** Sets the random seed of this graph to the provided value. */
   def setRandomSeed(value: Int): Unit = {
+    assertNotFrozen()
     collections.update(Graph.Keys.RANDOM_SEEDS, mutable.Set[Int](value))
   }
 
@@ -224,17 +237,42 @@ class Graph private[api](private[api] var nativeHandle: Long) extends Closeable 
     */
   def trainableVariables: Set[Variable] = getCollection(Graph.Keys.TRAINABLE_VARIABLES)
 
+  /** Creates an op that returns a tensor containing the names of all uninitialized variables among all global and local
+    * variables of this graph. If all variables have been initialized, then an empty tensor is returned.
+    *
+    * @param  name Name for the created op.
+    * @return Created op output, which contains the names of the handles of all variables which have not yet been
+    *         initialized.
+    */
+  def uninitializedVariables(name: String = "UninitializedVariables"): Output = {
+    Variable.uninitializedVariables(name = name)
+  }
+
   /** Returns the set of all the summary `Output`s that have been created in the graph. */
   def summaries: Set[Output] = getCollection(Graph.Keys.SUMMARIES)
 
   /** Returns the set of all the table initializers that have been created in the graph. */
   def tableInitializers: Set[Op] = getCollection(Graph.Keys.TABLE_INITIALIZERS)
 
+  /** Returns the set of all savers that have been created in the graph. */
+  def savers: Set[Saver] = getCollection(Graph.Keys.SAVERS)
+
   /** Returns the set of all shared resources used by the graph which need to be initialized once per cluster. */
   def sharedResources: Set[Resource] = getCollection(Graph.Keys.SHARED_RESOURCES)
 
   /** Returns the set of all local resources used by the graph which need to be initialized once per cluster. */
   def localResources: Set[Resource] = getCollection(Graph.Keys.LOCAL_RESOURCES)
+
+  /** Creates an op that returns a tensor containing the names of all uninitialized resources among all shared and local
+    * resources of this graph. If all resources have been initialized, then an empty tensor is returned.
+    *
+    * @param  name Name for the created op.
+    * @return Created op output, which contains the names of the handles of all resources which have not yet been
+    *         initialized.
+    */
+  def uninitializedResources(name: String = "UninitializedResources"): Output = {
+    Resource.uninitializedResources(name = name)
+  }
 
   /** Returns the set of all the train `Op`s (i.e., optimizer update ops) that have been created in the graph. */
   def trainOps: Set[Op] = getCollection(Graph.Keys.TRAIN_OP)
@@ -283,35 +321,6 @@ class Graph private[api](private[api] var nativeHandle: Long) extends Closeable 
     Variable.initializer(trainableVariables, name)
   }
 
-  /** Creates an op that lists the names of uninitialized variables.
-    *
-    * When run, it returns a one-dimensional tensor containing the names of uninitialized variables if there are any, or
-    * an empty tensor if there are none.
-    *
-    * @param  variables Optional set of variables to check. If `null`, the value of `globalVariables ++ localVariables`
-    *                   is used. Defaults to `null`.
-    * @param  name      Name for the created op.
-    * @return Created op.
-    */
-  def reportUninitializedVariables(
-      variables: Set[Variable] = null, name: String = "ReportUninitializedVariables"): Output = {
-    val actualVariables = if (variables != null) variables else globalVariables ++ localVariables
-    Op.createWithNameScope(name) {
-      if (actualVariables.isEmpty) {
-        // Return an empty tensor so we only need to check for returned tensor size being equal to zero as an indication
-        // of the model being ready.
-        Basic.constant(Tensor(STRING))
-      } else {
-        // Get a one-dimensional boolean tensor listing whether each variable is initialized.
-        val variablesMask = Math.logicalNot(Basic.stack(variables.map(_.isInitialized).toSeq))
-        // Get a one-dimensional string tensor containing all the variable names.
-        val variableNames = Basic.constant(Tensor(variables.map(v => Tensor(STRING, v.op.name)).toSeq))
-        // Return a one-dimensional tensor containing the names of all uninitialized variables.
-        Basic.booleanMask(variableNames, variablesMask)
-      }
-    }
-  }
-
   /** Prevents the feeding of values to the provided op output, while running in a session.
     *
     * @param  output Op output whose feeding is prevented.
@@ -319,6 +328,7 @@ class Graph private[api](private[api] var nativeHandle: Long) extends Closeable 
     */
   @throws[GraphMismatchException]
   private[api] def preventFeeding(output: Output): Unit = {
+    assertNotFrozen()
     if (output.graph != this)
       throw GraphMismatchException("The provided op output does not belong to this graph.")
     unfeedableOutputs += output
@@ -331,6 +341,7 @@ class Graph private[api](private[api] var nativeHandle: Long) extends Closeable 
     */
   @throws[GraphMismatchException]
   private[api] def preventFetching(op: Op): Unit = {
+    assertNotFrozen()
     if (op.graph != this)
       throw GraphMismatchException("The provided op does not belong to this graph.")
     unfetchableOps += op
@@ -497,6 +508,7 @@ class Graph private[api](private[api] var nativeHandle: Long) extends Closeable 
   def importGraphDef(
       graphDef: GraphDef, importScope: String = null, inputsMap: Map[(String, Int), Output] = Map.empty,
       controlDependenciesMap: Map[String, Op] = Map.empty, controlDependencies: Set[Op] = Set.empty): Unit = {
+    assertNotFrozen()
     val prefix = {
       if (importScope == null || importScope == "")
         ""
@@ -565,6 +577,7 @@ class Graph private[api](private[api] var nativeHandle: Long) extends Closeable 
       controlDependenciesMap: Map[String, Op] = Map.empty, controlDependencies: Set[Op] = Set.empty,
       clearDevices: Boolean = false, unboundInputsCollectionKey: Graph.Key[String] = Graph.Keys.UNBOUND_INPUTS,
       restoreCollectionsPredicate: Graph.Key[_] => Boolean = _ => true): Unit = {
+    assertNotFrozen()
     if (unboundInputsCollectionKey != null) {
       val collectionDef = metaGraphDef.getCollectionDefOrDefault(unboundInputsCollectionKey.name, null)
       if (collectionDef != null) {

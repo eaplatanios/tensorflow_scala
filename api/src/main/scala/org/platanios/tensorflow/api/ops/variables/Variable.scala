@@ -667,7 +667,7 @@ private[api] object Variable {
 
   /** Creates an op that returns a tensor containing the names of all uninitialized variables in `variables`.
     *
-    * If all resources have been initialized, then an empty tensor is returned.
+    * If all variables have been initialized, then an empty tensor is returned.
     *
     * @param  variables Variables to check. If not provided, the set of all global and local variables in the current
     *                   graph will be used.

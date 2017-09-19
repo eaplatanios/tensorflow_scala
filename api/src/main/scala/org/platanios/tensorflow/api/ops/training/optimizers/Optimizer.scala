@@ -181,7 +181,7 @@ trait Optimizer {
       }
 
       // Add the created op to the graph train ops collection.
-      updateOps.head.graph.getCollectionReference(Graph.Keys.TRAIN_OP).add(applyUpdates)
+      updateOps.head.graph.addToCollection(applyUpdates, Graph.Keys.TRAIN_OP)
 
       applyUpdates
     }

@@ -312,7 +312,7 @@ class Saver private (saverDef: SaverDef, saveRelativePaths: Boolean = false, pad
 
 /** Contains helper functions for managing savers. */
 object Saver {
-  private val logger = Logger(LoggerFactory.getLogger("Variables / Saver"))
+  private[Saver] val logger = Logger(LoggerFactory.getLogger("Variables / Saver"))
 
   /** Adds save/restore nodes to the graph and creates and returns a [[SaverDef]] proto.
     *

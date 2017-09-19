@@ -1045,10 +1045,12 @@ object Op {
 
   private[ops] final case class Builder(opType: String, name: String)
       (implicit context: DynamicVariable[OpCreationContext]) {
+    context.value.graph.assertNotFrozen()
+
     if (!checkName(name))
       throw IllegalNameException(s"Illegal op name '$name'.")
 
-    private val graph: Graph = context.graph
+    private val graph: Graph = context.value.graph
 
     private var built         : Boolean           = false
     // TODO: [OP] Avoid using this extra input functions sequence.
@@ -1095,13 +1097,13 @@ object Op {
         }
         val nativeHandle: Long = NativeOp.allocate(r.nativeHandle, opType, name)
         inputFunctions.foreach(_ (nativeHandle))
-        val controlDependencies: mutable.Set[Op] = mutable.Set(context.controlDependencies.toSeq: _*)
+        val controlDependencies: mutable.Set[Op] = mutable.Set(context.value.controlDependencies.toSeq: _*)
         inputs.foreach(input => pruneControlDependencies(controlDependencies, input.op))
         inputLists.foreach(_.foreach(input => pruneControlDependencies(controlDependencies, input.op)))
         controlDependencies.foreach(op => NativeOp.addControlInput(nativeHandle, op.nativeHandle))
         device.foreach(NativeOp.setDevice(nativeHandle, _))
-        context.colocationOps.foreach(op => NativeOp.colocateWith(nativeHandle, op.nativeHandle))
-        mergeAttributes(context.attributes)
+        context.value.colocationOps.foreach(op => NativeOp.colocateWith(nativeHandle, op.nativeHandle))
+        mergeAttributes(context.value.attributes)
         setAttributes(nativeHandle)
         // TODO: !!! Set the "container" attribute when necessary. Need a way to check for statefulness.
         val operation = Op(graph, NativeOp.finish(nativeHandle))
