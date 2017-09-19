@@ -25,33 +25,37 @@ import org.platanios.tensorflow.api.tensors.Tensor
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
 
-/** Monitors the provided tensor and stops training if, at any point, it contains any `NaN` values.
+/** Monitors the provided tensors and stops training if, at any point, any of them contains any `NaN` values.
   *
   * This hook can either fail with an exception or just stop training.
   *
-  * @param  tensorName Name of the tensor to monitor.
-  * @param  failOnNaN  If `true`, an exception is thrown when `NaN` values are encountered. Otherwise, training stops.
+  * @param  tensorNames Names of the tensors to monitor.
+  * @param  failOnNaN   If `true`, an exception is thrown when `NaN` values are encountered. Otherwise, training stops.
   *
   * @author Emmanouil Antonios Platanios
   */
-case class TensorNaNHook(tensorName: String, failOnNaN: Boolean = true) extends Hook[Output, Traversable[Op], Tensor] {
-  private[this] var output: Output = _
+case class TensorNaNHook(tensorNames: Set[String], failOnNaN: Boolean = true)
+    extends Hook[Seq[Output], Traversable[Op], Seq[Tensor]] {
+  private[this] var outputs: Seq[Output] = _
 
-  override def begin(): Unit = output = Op.currentGraph.getOutputByName(tensorName)
+  override def begin(): Unit = {
+    // Convert tensor names to op outputs.
+    outputs = tensorNames.map(Op.currentGraph.getOutputByName).toSeq
+  }
 
   override def beforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
       executableEv: Executable[E],
       fetchableEv: Aux[F, R]
-  ): Option[Hook.SessionRunArgs[Output, Traversable[Op], Tensor]] = {
-    Some(SessionRunArgs(fetches = output))
+  ): Option[Hook.SessionRunArgs[Seq[Output], Traversable[Op], Seq[Tensor]]] = {
+    Some(SessionRunArgs(fetches = outputs))
   }
 
   @throws[IllegalStateException]
-  override def afterSessionRun[F, E, R](runContext: SessionRunContext[F, E, R], runValues: Tensor)(implicit
+  override def afterSessionRun[F, E, R](runContext: SessionRunContext[F, E, R], runValues: Seq[Tensor])(implicit
       executableEv: Executable[E],
       fetchableEv: Aux[F, R]): Unit = {
-    if (runValues.isNaN.any().scalar.asInstanceOf[Boolean]) {
-      val message = s"Encountered NaN values in tensor: $output."
+    runValues.filter(_.isNaN.any().scalar.asInstanceOf[Boolean]).foreach(value => {
+      val message = s"Encountered NaN values in tensor: $value."
       if (failOnNaN) {
         TensorNaNHook.logger.error(message)
         throw new IllegalStateException(message)
@@ -60,7 +64,7 @@ case class TensorNaNHook(tensorName: String, failOnNaN: Boolean = true) extends 
         // We do not raise an error but we request to stop iterating without throwing an exception.
         runContext.requestStop()
       }
-    }
+    })
   }
 }
 
