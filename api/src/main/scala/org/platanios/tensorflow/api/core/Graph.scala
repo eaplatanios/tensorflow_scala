@@ -1325,7 +1325,7 @@ object Graph {
       override def name: String = "local_init_op"
     }
 
-    object READY_OP extends OpCollectionKey {
+    object READY_OP extends OutputCollectionKey {
       override def name: String = "ready_op"
     }
 
@@ -1333,7 +1333,7 @@ object Graph {
       override def name: String = "ready_for_local_init_op"
     }
 
-    object SUMMARY_OP extends OpCollectionKey {
+    object SUMMARY_OP extends OutputCollectionKey {
       override def name: String = "summary_op"
     }
 
