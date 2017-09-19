@@ -31,7 +31,45 @@ import scala.collection.JavaConverters._
 import scala.concurrent.TimeoutException
 import scala.util.Try
 
-/**
+/** Training helper class that creates sessions and restores from checkpoints.
+  *
+  * This class is a small wrapper that takes care of session creation and checkpoint recovery. It also provides
+  * functions that facilitate coordination among multiple training threads or processes:
+  *   - Managing checkpoints of trained variables as the training progresses.
+  *   - Initializing variables on startup, restoring them from the most recent checkpoint after a crash, or waiting for
+  *     checkpoints to become available.
+  *
+  * Example usage:
+  * {{{
+  *   tf.createWith(Graph()) {
+  *     // Add operations to the graph.
+  *     ...
+  *     // Create a session manager that will checkpoint the model in '/tmp/mydir'.
+  *     val sm = SessionManager()
+  *     val session = sm.prepareSession(master, Some(saver), Some("/tmp/mydir"), initOp = Some(initOp))
+  *     // Use the session to train the graph.
+  *     while (true)
+  *       session.run(...)
+  *   }
+  * }}}
+  * `prepareSession()` initializes or restores a model. In order to do so, it requires a `saver` and/or an `initOp` as
+  * arguments.
+  *
+  * A second process could wait for the model to be ready, by doing the following:
+  * {{{
+  *   tf.createWith(Graph()) {
+  *     // Add operations to the graph.
+  *     ...
+  *     // Create a session manager that will wait for the model to become ready.
+  *     val sm = SessionManager()
+  *     val session = sm.waitForSession(master)
+  *     // Use the session to train the graph.
+  *     while (true)
+  *       session.run(...)
+  *   }
+  * }}}
+  * `waitForSession()` waits for a model to be initialized by other processes.
+  *
   * @param  graph                  Graph that the model will use. Defaults to the current graph.
   * @param  readyOp                Op used to check if the model is ready. The model is considered ready if this op
   *                                returns an empty one-dimensional [[STRING]] tensor. If the op returns a non empty
