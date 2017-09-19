@@ -22,9 +22,8 @@ import org.platanios.tensorflow.api.core.exception.{InvalidDataTypeException, Sh
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{DataType, FLOAT32, INT32, INT64}
+import org.platanios.tensorflow.api.types._
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
-
 import org.tensorflow.framework.{SaveSliceInfoDef, VariableDef}
 
 import scala.language.postfixOps
@@ -624,6 +623,26 @@ private[api] object Variable {
     }
   }
 
+  /** Returns the set of global variables in the current graph.
+    *
+    * Global variables are variables that are shared across machines in a distributed environment. The `Variable()`
+    * constructor and the function `getVariable()` automatically add new variables to the graph collection with key
+    * `Graph.Keys.GLOBAL_VARIABLES`. This convenience function returns the contents of that collection.
+    *
+    * An alternative to global variables are local variables.
+    */
+  def globalVariables: Set[Variable] = Op.currentGraph.globalVariables
+
+  /** Returns the set of local variables in the current graph.
+    *
+    * Local variables (or per-process variables), are usually not saved/restored to/from checkpoints and are used for
+    * temporary or intermediate values. For example, they can be used as counters for metrics computations or number of
+    * epochs this machine has read data. This convenience function returns the contents of that collection.
+    *
+    * An alternative to local variables are global variables.
+    */
+  def localVariables: Set[Variable] = Op.currentGraph.localVariables
+
   /** Creates an op that initializes the provided variables.
     *
     * After you launch the graph in a session, you can run the returned op to initialize all the variables in
@@ -638,11 +657,41 @@ private[api] object Variable {
     * @param  name      Name for the created op.
     * @return Created op.
     */
-  def initializer(variables: Set[Variable], name: String = "Initializer"): Op = {
+  def initializer(variables: Set[Variable], name: String = "VariablesInitializer"): Op = {
     if (variables != null && variables.nonEmpty)
       ControlFlow.group(variables.map(_.initializer), name)
     else
       ControlFlow.noOp(name)
+  }
+
+  /** Creates an op that returns a tensor containing the names of all uninitialized variables in `variables`.
+    *
+    * If all resources have been initialized, then an empty tensor is returned.
+    *
+    * @param  variables Variables to check. If not provided, the set of all global and local variables in the current
+    *                   graph will be used.
+    * @param  name      Name for the created op.
+    * @return Created op output, which contains the names of the handles of all variables which have not yet been
+    *         initialized.
+    */
+  def uninitializedVariables(
+      variables: Set[Variable] = globalVariables ++ localVariables, name: String = "UninitializedVariables"): Output = {
+    // Run all operations on the CPU.
+    Op.createWith(nameScope = name, device = "/CPU:0") {
+      if (variables.isEmpty) {
+        // Return an empty tensor so we only need to check for the returned tensor size being 0 as an indication of
+        // model readiness.
+        Basic.constant(Tensor(STRING))
+      } else {
+        // Get a 1-D boolean tensor listing whether each variable is initialized.
+        val variablesMask = Math.logicalNot(Basic.stack(variables.map(_.isInitialized).toSeq))
+        // Get a 1-D string tensor containing all the variable names.
+        val variablesList = variables.map(_.handle.name).toSeq
+        val variableNames = Basic.constant(Tensor(variablesList.head, variablesList.tail: _*))
+        // Return a 1-D tensor containing the names of all uninitialized resources.
+        Basic.booleanMask(variableNames, variablesMask)
+      }
+    }
   }
 
   /** Creates an op that holds a handle to a variable resource.

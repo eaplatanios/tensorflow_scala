@@ -45,7 +45,7 @@ object Resource {
     *                  the local resource collection.
     * @param  graph    Graph to register the resource in.
     */
-  def registerResource(resource: Resource, isShared: Boolean = true, graph: Graph = Op.currentGraph): Unit = {
+  def register(resource: Resource, isShared: Boolean = true, graph: Graph = Op.currentGraph): Unit = {
     if (isShared)
       graph.addToCollection(resource, Graph.Keys.SHARED_RESOURCES)
     else
@@ -58,7 +58,7 @@ object Resource {
     * @param  name      Name for the created op.
     * @return Created op.
     */
-  def initializeResources(resources: Set[Resource], name: String = "ResourcesInitialization"): Op = {
+  def initializer(resources: Set[Resource], name: String = "ResourcesInitializer"): Op = {
     if (resources.isEmpty)
       ControlFlow.noOp(name)
     else
@@ -75,9 +75,8 @@ object Resource {
     * @return Created op output, which contains the names of the handles of all resources which have not yet been
     *         initialized.
     */
-  def reportUninitializedResources(
-      resources: Set[Resource] = sharedResources ++ localResources,
-      name: String = "ReportUninitializedResources"): Output = {
+  def uninitializedResources(
+      resources: Set[Resource] = sharedResources ++ localResources, name: String = "UninitializedResources"): Output = {
     // Run all operations on the CPU.
     Op.createWith(nameScope = name, device = "/CPU:0") {
       if (resources.isEmpty) {
