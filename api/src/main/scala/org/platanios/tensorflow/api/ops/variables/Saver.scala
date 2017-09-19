@@ -23,6 +23,7 @@ import org.platanios.tensorflow.api.ops.variables.CheckpointStateProto.Checkpoin
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.{DataType, INT32}
 import org.platanios.tensorflow.api.utilities.{FileIO, Proto}
+import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
 
 import com.google.protobuf.TextFormat
 import com.typesafe.scalalogging.Logger
@@ -98,7 +99,8 @@ import scala.collection.mutable
   *
   * @author Emmanouil Antonios Platanios
   */
-class Saver private (saverDef: SaverDef, saveRelativePaths: Boolean = false, padGlobalStep: Boolean = false) {
+class Saver private (saverDef: SaverDef, saveRelativePaths: Boolean = false, padGlobalStep: Boolean = false)
+    extends ProtoSerializable {
   val writerVersion: Saver.WriterVersion = saverDef.getVersion match {
     case CheckpointFormatVersion.V1 => Saver.V1
     case CheckpointFormatVersion.V2 => Saver.V2
@@ -279,7 +281,10 @@ class Saver private (saverDef: SaverDef, saveRelativePaths: Boolean = false, pad
     }
   }
 
-  // TODO: [PROTO] Add a "toProto" method and extend the ProtoSerializable trait.
+  override def toProto: SaverDef = toProto(null)
+
+  /** Alias for `toSaverDef`. */
+  def toProto(exportScope: String = null): SaverDef = toSaverDef(exportScope)
 
   /** Constructs and returns a [[SaverDef]] object that represents this saver.
     *
@@ -645,7 +650,7 @@ object Saver {
     * @throws IllegalArgumentException If the checkpoint state does not have its model checkpoint path set.
     */
   @throws[IllegalArgumentException]
-  private def loadCheckpointState(
+  private[api] def loadCheckpointState(
       directory: Path, checkpointStateFile: String = "checkpoint"): Option[CheckpointState] = {
     val coordinatorCheckpointStateFilename = directory.resolve(checkpointStateFile)
     // Check that the file exists before opening it to avoid many lines of errors from colossus in the logs.

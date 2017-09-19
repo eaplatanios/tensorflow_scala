@@ -246,6 +246,9 @@ case class Variable private (
 
   override def toProto: VariableDef = toProto(null)
 
+  /** Alias for `toVariableDef`. */
+  def toProto(exportScope: String): VariableDef = toVariableDef(exportScope)
+
   /** Convert this object to its corresponding ProtoBuf object.
     *
     * @param  exportScope Optional string specifying the name scope to remove. Only the ops within this name scope will
@@ -253,7 +256,7 @@ case class Variable private (
     *                     names to allow for easy import into new name scopes.
     * @return ProtoBuf object corresponding to this object.
     */
-  def toProto(exportScope: String): VariableDef = {
+  def toVariableDef(exportScope: String): VariableDef = {
     if (exportScope == null || variableHandle.name.startsWith(exportScope)) {
       val variableDefBuilder = VariableDef.newBuilder()
       variableDefBuilder.setVariableName(Op.stripNameScope(exportScope, handle.name))

@@ -17,14 +17,13 @@ package org.platanios.tensorflow.api.core
 
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception.{GraphMismatchException, InvalidGraphElementException}
-import org.platanios.tensorflow.api.ops.{Basic, InstantiatedFunction, Math, Op, Output}
+import org.platanios.tensorflow.api.ops.{Basic, InstantiatedFunction, Math, Op, Output, Resource}
 import org.platanios.tensorflow.api.ops.variables.{Saver, Variable, VariableStore}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.STRING
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer}
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
 import org.platanios.tensorflow.jni.{Function => NativeFunction, Graph => NativeGraph, TensorFlow => NativeLibrary}
-
 import com.google.protobuf.ByteString
 import org.tensorflow.framework.CollectionDef.{BytesList, Int64List, NodeList}
 import org.tensorflow.framework.MetaGraphDef.MetaInfoDef
@@ -201,8 +200,6 @@ class Graph private[api](private[api] var nativeHandle: Long) extends Closeable 
     * `Graph.Keys.GLOBAL_VARIABLES`. This convenience function returns the contents of that collection.
     *
     * An alternative to global variables are local variables.
-    *
-    * @return Set of global variables in this graph.
     */
   def globalVariables: Set[Variable] = getCollection(Graph.Keys.GLOBAL_VARIABLES)
 
@@ -213,15 +210,10 @@ class Graph private[api](private[api] var nativeHandle: Long) extends Closeable 
     * epochs this machine has read data. This convenience function returns the contents of that collection.
     *
     * An alternative to local variables are global variables.
-    *
-    * @return Set of local variables in this graph.
     */
   def localVariables: Set[Variable] = getCollection(Graph.Keys.LOCAL_VARIABLES)
 
-  /** Returns the subset of `Variable` objects that are used in models for inference (feed forward), in this graph.
-    *
-    * @return Set of model variables in this graph.
-    */
+  /** Returns the subset of `Variable` objects that are used in models for inference (feed forward), in this grap. */
   def modelVariables: Set[Variable] = getCollection(Graph.Keys.MODEL_VARIABLES)
 
   /** Returns the set of all variables created with `trainable = true`.
@@ -229,21 +221,19 @@ class Graph private[api](private[api] var nativeHandle: Long) extends Closeable 
     * When passed `trainable = true`, the `Variable()` constructor automatically adds new variables to the graph
     * collection with key `Graph.Keys.TRAINABLE_VARIABLES`. This convenience function returns the contents of that
     * collection.
-    *
-    * @return Set of trainable variables in this graph.
     */
   def trainableVariables: Set[Variable] = getCollection(Graph.Keys.TRAINABLE_VARIABLES)
 
-  /** Returns the set of all the summary `Output`s that have been created in the graph.
-    *
-    * @return Set of summary op outputs in this graph.
-    */
+  /** Returns the set of all the summary `Output`s that have been created in the graph. */
   def summaries: Set[Output] = getCollection(Graph.Keys.SUMMARIES)
 
-  /** Returns the set of all the train `Op`s (i.e., optimizer update ops) that have been created in the graph.
-    *
-    * @return Set of train ops in this graph.
-    */
+  /** Returns the set of all shared resources used by the graph which need to be initialized once per cluster. */
+  def sharedResources: Set[Resource] = getCollection(Graph.Keys.SHARED_RESOURCES)
+
+  /** Returns the set of all local resources used by the graph which need to be initialized once per cluster. */
+  def localResources: Set[Resource] = getCollection(Graph.Keys.LOCAL_RESOURCES)
+
+  /** Returns the set of all the train `Op`s (i.e., optimizer update ops) that have been created in the graph. */
   def trainOps: Set[Op] = getCollection(Graph.Keys.TRAIN_OP)
 
   /** Returns an op that initializes all global variables of this graph.
@@ -1148,9 +1138,10 @@ object Graph {
     trait VariableCollectionKey extends Key[Variable] {
       override def createCollectionDef(values: Set[Variable], exportScope: String = null): CollectionDef = {
         val bytesListBuilder = BytesList.newBuilder()
-        values.asInstanceOf[Set[Variable]].filter(v => Graph.shouldIncludeNode(v.name, exportScope)).foreach(v => {
-          bytesListBuilder.addValue(v.toProto(exportScope).toByteString)
-        })
+        values
+            .map(_.toProto(exportScope))
+            .filter(_ != null)
+            .foreach(s => bytesListBuilder.addValue(s.toByteString))
         CollectionDef.newBuilder().setBytesList(bytesListBuilder.build()).build()
       }
 
@@ -1167,9 +1158,10 @@ object Graph {
     trait SaverCollectionKey extends Key[Saver] {
       override def createCollectionDef(values: Set[Saver], exportScope: String = null): CollectionDef = {
         val bytesListBuilder = BytesList.newBuilder()
-        values.asInstanceOf[Set[Variable]].filter(v => Graph.shouldIncludeNode(v.name, exportScope)).foreach(v => {
-          bytesListBuilder.addValue(v.toProto(exportScope).toByteString)
-        })
+        values
+            .map(_.toProto(exportScope))
+            .filter(_ != null)
+            .foreach(s => bytesListBuilder.addValue(s.toByteString))
         CollectionDef.newBuilder().setBytesList(bytesListBuilder.build()).build()
       }
 
@@ -1178,7 +1170,38 @@ object Graph {
         if (kind != 1)
           throw new IllegalArgumentException(s"The '$name' collection should be stored as a byte list.")
         collectionDef.getBytesList.getValueList.asScala
-            .foreach(v => graph.addToCollection(Saver.fromProto(SaverDef.parseFrom(v), importScope), this))
+            .foreach(s => graph.addToCollection(Saver.fromProto(SaverDef.parseFrom(s), importScope), this))
+      }
+    }
+
+    /** Key for collections of resources. */
+    trait ResourceCollectionKey extends Key[Resource] {
+      override def createCollectionDef(values: Set[Resource], exportScope: String): CollectionDef = {
+        val nodeListBuilder = NodeList.newBuilder()
+        values.foreach(r => {
+          if (Graph.shouldIncludeNode(r.handle.name) &&
+              Graph.shouldIncludeNode(r.initializeOp.name) &&
+              Graph.shouldIncludeNode(r.isInitialized.name)) {
+            nodeListBuilder.addValue(Op.stripNameScope(exportScope, r.handle.name))
+            nodeListBuilder.addValue(Op.stripNameScope(exportScope, r.initializeOp.name))
+            nodeListBuilder.addValue(Op.stripNameScope(exportScope, r.isInitialized.name))
+          }
+        })
+        CollectionDef.newBuilder().setNodeList(nodeListBuilder.build()).build()
+      }
+
+      override def parseCollectionDef(collectionDef: CollectionDef, graph: Graph, importScope: String): Unit = {
+        val kind = collectionDef.getKindCase.getNumber
+        if (kind != 1)
+          throw new IllegalArgumentException(s"The '$name' collection should be stored as a node list.")
+        collectionDef.getNodeList.getValueList.asScala.grouped(3)
+            .foreach(r => {
+              graph.addToCollection(
+                Resource(
+                  graph.getOutputByName(Op.prependNameScope(importScope, r(0))),
+                  graph.getOpByName(Op.prependNameScope(importScope, r(1))),
+                  graph.getOutputByName(Op.prependNameScope(importScope, r(2)))), this)
+            })
       }
     }
 
@@ -1272,11 +1295,15 @@ object Graph {
     // /** Key to collect saveable objects used for checkpoints. */
     // object SAVEABLE_OBJECTS extends Key {override def name: String = "saveable_objects"}
 
-    // /** Key to collect all shared resources used by the graph which need to be initialized once per cluster. */
-    // object RESOURCES extends Key {override def name: String = "resources"}
+    /** Key to collect all shared resources used by the graph which need to be initialized once per cluster. */
+    object SHARED_RESOURCES extends ResourceCollectionKey {
+      override def name: String = "resources"
+    }
 
-    // /** Key to collect all shared resources used in this graph which need to be initialized once per session. */
-    // object LOCAL_RESOURCES extends Key {override def name: String = "local_resources"}
+    /** Key to collect all local resources used in this graph which need to be initialized once per session. */
+    object LOCAL_RESOURCES extends ResourceCollectionKey {
+      override def name: String = "local_resources"
+    }
 
     /** Key to collect all trainable resource-style variables. */
     object TRAINABLE_RESOURCE_VARIABLES extends VariableCollectionKey {
