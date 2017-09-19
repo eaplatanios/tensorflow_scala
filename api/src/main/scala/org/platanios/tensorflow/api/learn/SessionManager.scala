@@ -76,13 +76,13 @@ import scala.util.Try
   *                                one-dimensional [[STRING]] tensor, the elements of that tensor are concatenated and
   *                                used to indicate to the user why the model is not ready. If this is `None`, then the
   *                                model is not checked for readiness.
-  * @param  localInitOp            Op run immediately after session creation. Usually used to initialize tables and
-  *                                local variables.
   * @param  readyForLocalInitOp    Op used to check if the model is ready to execute `localInitOp`. The model is
   *                                considered ready if this op returns an empty one-dimensional [[STRING]] tensor. If
   *                                the op returns a non-empty one-dimensional [[STRING]] tensor, the elements of that
   *                                tensor are concatenated and used to indicate to the user why the model is not ready.
   *                                If this op is provided, then a `localInitOp` must also be provided.
+  * @param  localInitOp            Op run immediately after session creation. Usually used to initialize tables and
+  *                                local variables.
   * @param  recoveryWaitNumSeconds Number of seconds between checks that the model is ready. It is used by processes to
   *                                wait for a model to be initialized or restored. Defaults to 30 seconds.
   * @throws IllegalArgumentException If a `readyForLocalInitOp` is provided, but no `localInitOp` is provided with it.
@@ -91,8 +91,8 @@ import scala.util.Try
   */
 @throws[IllegalArgumentException]
 private[learn] case class SessionManager(
-    graph: Graph = Op.currentGraph, readyOp: Option[Output] = None, localInitOp: Option[Op] = None,
-    readyForLocalInitOp: Option[Output] = None, recoveryWaitNumSeconds: Int = 30) {
+    graph: Graph = Op.currentGraph, readyOp: Option[Output] = None, readyForLocalInitOp: Option[Output] = None,
+    localInitOp: Option[Op] = None, recoveryWaitNumSeconds: Int = 30) {
   if (readyForLocalInitOp.isDefined && localInitOp.isEmpty)
     throw new IllegalArgumentException("If you pass a 'readyForLocalInitOp', you must also pass a 'localInitOp'.")
 
