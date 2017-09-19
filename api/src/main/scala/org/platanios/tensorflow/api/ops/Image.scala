@@ -19,7 +19,7 @@ package org.platanios.tensorflow.api.ops
   *
   * @author Emmanouil Antonios Platanios
   */
-private[api] trait Image {
+private[ops] trait Image {
   /** $OpDocImageExtractImagePatches
     *
     * @group ImageOps

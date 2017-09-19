@@ -54,6 +54,7 @@ package object ops {
           with Parsing
           with Random
           with Statistics
+          with Summary
           with Text
           with Gradients.API
           with Op.API
