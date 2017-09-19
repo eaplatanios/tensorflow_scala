@@ -36,16 +36,39 @@ namespace {
 }  // namespace
 
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Session_00024_allocate(
-    JNIEnv* env, jobject object, jlong graph_handle) {
+    JNIEnv* env, jobject object, jlong graph_handle, jstring target, jbyteArray config_proto) {
   REQUIRE_HANDLE(graph, TF_Graph, graph_handle, 0);
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
 
   TF_SessionOptions* options = TF_NewSessionOptions();
 
-  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+  // Set the target, if one has been provided.
+  const char* c_target;
+  if (target != nullptr) {
+    c_target = env->GetStringUTFChars(target, nullptr);
+    TF_SetTarget(options, c_target);
+  }
+
+  // Set the configuration proto, if one has been provided.
+  jbyte* c_config_proto;
+  if (config_proto != nullptr) {
+    c_config_proto = env->GetByteArrayElements(config_proto, nullptr);
+    TF_SetConfig(options, c_config_proto, static_cast<size_t>(env->GetArrayLength(config_proto)), status.get());
+    CHECK_STATUS(env, status.get(), 0);
+  }
+
   TF_Session* session = TF_NewSession(graph, options, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   TF_DeleteSessionOptions(options);
+
+  if (target != nullptr) {
+    env->ReleaseStringUTFChars(target, c_target);
+  }
+
+  if (config_proto != nullptr) {
+    env->ReleaseByteArrayElements(config_proto, c_config_proto, JNI_ABORT);
+  }
 
   return reinterpret_cast<jlong>(session);
 }

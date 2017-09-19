@@ -15,12 +15,12 @@
 
 package org.platanios.tensorflow.api.core.client
 
+import org.platanios.tensorflow.api.config.SessionConfig
 import org.platanios.tensorflow.api.core.{Graph, client}
 import org.platanios.tensorflow.api.ops.{Op, OpCreationContext, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer}
 import org.platanios.tensorflow.jni.{Session => NativeSession, Tensor => NativeTensor}
-
 import org.tensorflow.framework.{RunMetadata, RunOptions}
 
 import scala.util.DynamicVariable
@@ -186,14 +186,11 @@ object Session {
     val Session: client.Session.type = client.Session
   }
 
-  def apply()(implicit context: DynamicVariable[OpCreationContext]): Session = {
-    val graph = context.graph
+  def apply(graph: Graph = Op.currentGraph, target: String = null, sessionConfig: SessionConfig = null): Session = {
     val graphReference = graph.reference
-    Session(graphReference, NativeSession.allocate(graphReference.nativeHandle))
-  }
-
-  def apply(graph: Graph): Session = {
-    val graphReference = graph.reference
-    Session(graphReference, NativeSession.allocate(graphReference.nativeHandle))
+    Session(graphReference, NativeSession.allocate(
+      graphReference.nativeHandle,
+      target,
+      if (sessionConfig != null) sessionConfig.configProto.toByteArray else null))
   }
 }

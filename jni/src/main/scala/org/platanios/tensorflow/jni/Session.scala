@@ -21,8 +21,7 @@ package org.platanios.tensorflow.jni
 object Session {
   TensorFlow.load()
 
-  // TODO: [SESSION] Add support for session options.
-  @native def allocate(graphHandle: Long): Long
+  @native def allocate(graphHandle: Long, target: String, configProto: Array[Byte]): Long
   @native def delete(handle: Long): Unit
   // TODO: [SESSION] "listDevices".
 

@@ -10,10 +10,10 @@ extern "C" {
 /*
  * Class:     org_platanios_tensorflow_jni_Session__
  * Method:    allocate
- * Signature: (J)J
+ * Signature: (JLjava/lang/String;[B)J
  */
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Session_00024_allocate
-  (JNIEnv *, jobject, jlong);
+  (JNIEnv *, jobject, jlong, jstring, jbyteArray);
 
 /*
  * Class:     org_platanios_tensorflow_jni_Session__
