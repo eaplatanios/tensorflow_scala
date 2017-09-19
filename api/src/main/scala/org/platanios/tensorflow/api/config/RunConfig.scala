@@ -320,6 +320,7 @@ object RunConfig {
     override val name: String = "worker"
   }
 
+  /** Chiefs are identical to workers, except that they also handle saving checkpoints. */
   case object CHIEF extends TaskType {
     override val name: String = "chief"
   }

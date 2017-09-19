@@ -33,17 +33,17 @@ import org.platanios.tensorflow.api.ops._
   * default ones if needed, when `SessionScaffold.build()` is called. You can pass arguments to the constructor to
   * provide your own pieces. Pieces that you pass to the constructor are not added to the graph collections.
   *
+  * @param  readyOp             [[Output]] used to verify that the variables are initialized. Picked from and stored
+  *                             into the `READY_OP` graph collection by default.
+  * @param  readyForLocalInitOp [[Output]] used to verify that global state has been initialized and it is fine to
+  *                             execute `localInitOp`. Picked from and stored into the `READY_FOR_LOCAL_INIT_OP` graph
+  *                             collection by default.
   * @param  initOp              [[Op]] used to initialize the variables. Picked from and stored into the `INIT_OP` graph
   *                             collection by default.
   * @param  initFeedMap         Feed map that will be used when executing `initOp`.
   * @param  initFunction        Function to run after the init op to perform additional initializations.
   * @param  localInitOp         [[Op]] used to initialize the local variables. Picked from and stored into the
   *                             `LOCAL_INIT_OP` graph collection by default.
-  * @param  readyOp             [[Output]] used to verify that the variables are initialized. Picked from and stored
-  *                             into the `READY_OP` graph collection by default.
-  * @param  readyForLocalInitOp [[Output]] used to verify that global state has been initialized and it is fine to
-  *                             execute `localInitOp`. Picked from and stored into the `READY_FOR_LOCAL_INIT_OP` graph
-  *                             collection by default.
   * @param  summaryOp           [[Output]] used to merge the summaries in the graph. Picked from and stored into the
   *                             `SUMMARY_OP` graph collection by default.
   * @param  saver               [[Saver]] object taking care of saving the variables. Picked from and stored into the
@@ -52,16 +52,25 @@ import org.platanios.tensorflow.api.ops._
   * @author Emmanouil Antonios Platanios
   */
 case class SessionScaffold(
-    initOp: Option[Op] = None,
-    initFeedMap: FeedMap = FeedMap.empty,
-    initFunction: Option[(Session, SessionScaffold) => Unit] = None,
-    localInitOp: Option[Op] = None,
     readyOp: Option[Output] = None,
     readyForLocalInitOp: Option[Output] = None,
-    summaryOp: Option[Output],
+    initOp: Option[Op] = None,
+    initFeedMap: FeedMap = FeedMap.empty,
+    initFunction: Option[(Session, BuiltSessionScaffold) => Unit] = None,
+    localInitOp: Option[Op] = None,
+    summaryOp: Option[Output] = None,
     saver: Option[Saver] = None) {
   /** Creates any necessary operations, freezes the graph, and returns a new session scaffold that is built. */
   def build(): BuiltSessionScaffold = {
+    val _readyOp = readyOp.getOrElse(getItemOrElse("ready_op", Graph.Keys.READY_OP, () => {
+      Basic.concatenate(Seq(
+        Variable.uninitializedVariables(),
+        Resource.uninitializedResources()))
+    }))
+    val _readyForLocalInitOp = readyForLocalInitOp.getOrElse(getItemOrElse(
+      "ready_for_local_init_op", Graph.Keys.READY_FOR_LOCAL_INIT_OP, () => {
+        Variable.uninitializedVariables(Variable.globalVariables)
+      }))
     val _initOp = initOp.getOrElse(getItemOrElse("init_op", Graph.Keys.INIT_OP, () => {
       ControlFlow.group(Set(
         Variable.initializer(Variable.globalVariables),
@@ -72,22 +81,13 @@ case class SessionScaffold(
         Variable.initializer(Variable.localVariables),
         Table.initializer(Table.initializers)))
     }))
-    val _readyOp = readyOp.getOrElse(getItemOrElse("ready_op", Graph.Keys.READY_OP, () => {
-      Basic.concatenate(Seq(
-        Variable.uninitializedVariables(),
-        Resource.uninitializedResources()))
-    }))
-    val _readyForLocalInitOp = readyForLocalInitOp.getOrElse(getItemOrElse(
-      "ready_for_local_init_op", Graph.Keys.READY_FOR_LOCAL_INIT_OP, () => {
-        Variable.uninitializedVariables(Variable.globalVariables)
-      }))
     val _summaryOp = summaryOp.getOrElse(getItemOrElse(
       "summary_op", Graph.Keys.SUMMARY_OP, () => Summary.mergeAll().orNull))
     val _saver = saver.getOrElse(getItemOrElse(
       "saver", Graph.Keys.SAVERS, () => Saver(sharded = true, allowEmpty = true)))
     Op.currentGraph.freeze()
     BuiltSessionScaffold(
-      _initOp, initFeedMap, initFunction, _localInitOp, _readyOp, _readyForLocalInitOp, Option(_summaryOp),
+      _readyOp, _readyForLocalInitOp, _initOp, initFeedMap, initFunction, _localInitOp, Option(_summaryOp),
       Option(_saver))
   }
 
@@ -118,11 +118,13 @@ case class SessionScaffold(
 
 /** Built session scaffold. */
 case class BuiltSessionScaffold private[learn](
-    initOp: Op,
-    initFeedMap: FeedMap,
-    initFunction: Option[(Session, SessionScaffold) => Unit],
-    localInitOp: Op,
     readyOp: Output,
     readyForLocalInitOp: Output,
+    initOp: Op,
+    initFeedMap: FeedMap,
+    initFunction: Option[(Session, BuiltSessionScaffold) => Unit],
+    localInitOp: Op,
     summaryOp: Option[Output],
-    saver: Option[Saver] = None)
+    saver: Option[Saver] = None) {
+  val internalInitFunction: Option[(Session) => Unit] = initFunction.map(f => (session: Session) => f(session, this))
+}

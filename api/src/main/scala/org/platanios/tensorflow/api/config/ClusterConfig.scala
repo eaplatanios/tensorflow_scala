@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.config
 
-import org.platanios.tensorflow.api.ProtoSerializable
+import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
 
 import com.google.protobuf.GeneratedMessageV3
 import org.tensorflow.distruntime.{ClusterDef, JobDef}
