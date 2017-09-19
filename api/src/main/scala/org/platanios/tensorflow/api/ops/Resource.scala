@@ -30,10 +30,10 @@ import org.platanios.tensorflow.api.types.{BOOLEAN, STRING}
 case class Resource(handle: Output, initializeOp: Op, isInitialized: Output)
 
 object Resource {
-  /** Returns the set of all shared resources used by a graph which need to be initialized once per cluster. */
+  /** Returns the set of all shared resources used by the current graph which need to be initialized once per cluster. */
   def sharedResources: Set[Resource] = Op.currentGraph.sharedResources
 
-  /** Returns the set of all local resources used by a graph which need to be initialized once per cluster. */
+  /** Returns the set of all local resources used by the current graph which need to be initialized once per cluster. */
   def localResources: Set[Resource] = Op.currentGraph.localResources
 
   /** Registers the provided resource in the appropriate collections.

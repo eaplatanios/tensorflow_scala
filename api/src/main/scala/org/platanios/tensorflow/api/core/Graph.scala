@@ -227,6 +227,9 @@ class Graph private[api](private[api] var nativeHandle: Long) extends Closeable 
   /** Returns the set of all the summary `Output`s that have been created in the graph. */
   def summaries: Set[Output] = getCollection(Graph.Keys.SUMMARIES)
 
+  /** Returns the set of all the table initializers that have been created in the graph. */
+  def tableInitializers: Set[Op] = getCollection(Graph.Keys.TABLE_INITIALIZERS)
+
   /** Returns the set of all shared resources used by the graph which need to be initialized once per cluster. */
   def sharedResources: Set[Resource] = getCollection(Graph.Keys.SHARED_RESOURCES)
 
@@ -1243,8 +1246,10 @@ object Graph {
     // /** Key to collect the `QueueRunner` objects that are used to produce inputs for a computation. */
     // object QUEUE_RUNNERS extends Key {override def name: String = "queue_runners"}
 
-    // /** Key to collect table initializer objects. */
-    // object TABLE_INITIALIZERS extends Key {override def name: String = "table_initializer"}
+    /** Key to collect the table initializers that have been created in the graph. */
+    object TABLE_INITIALIZERS extends OpCollectionKey {
+      override def name: String = "table_initializer"
+    }
 
     // /** Key to collect asset filepaths. An asset represents an external resource like a vocabulary file. */
     // object ASSET_FILEPATHS extends Key {override def name: String = "asset_filepaths"}
