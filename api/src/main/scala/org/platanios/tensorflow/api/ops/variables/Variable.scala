@@ -309,7 +309,7 @@ private[api] object Variable {
     *                       variable reside, to deduplicate copying through `Switch` and other conditional statements.
     * @return Requested variable.
     */
-  private[ops] def getVariable(
+  private[api] def getVariable(
       name: String, dataType: DataType = FLOAT32, shape: Shape = null, initializer: Initializer = null,
       regularizer: Regularizer = null, trainable: Boolean = true, reuse: Reuse = ReuseOrCreateNew,
       collections: Set[Graph.Key[Variable]] = Set.empty, cachingDevice: OpSpecification => String = null): Variable = {
@@ -348,7 +348,7 @@ private[api] object Variable {
     *                       variable reside, to deduplicate copying through `Switch` and other conditional statements.
     * @return Requested variable.
     */
-  private[ops] def getPartitionedVariable(
+  private[api] def getPartitionedVariable(
       name: String, dataType: DataType = FLOAT32, shape: Shape = null, initializer: Initializer = null,
       regularizer: Regularizer = null, partitioner: Partitioner = null, trainable: Boolean = true,
       reuse: Reuse = ReuseOrCreateNew, collections: Set[Graph.Key[Variable]] = Set.empty,
@@ -383,7 +383,7 @@ private[api] object Variable {
     *                       variable reside, to deduplicate copying through `Switch` and other conditional statements.
     * @return Requested variable.
     */
-  private[ops] def getLocalVariable(
+  private[api] def getLocalVariable(
       name: String, dataType: DataType = FLOAT32, shape: Shape = null, initializer: Initializer = null,
       regularizer: Regularizer = null, reuse: Reuse = ReuseOrCreateNew,
       collections: Set[Graph.Key[Variable]] = Set.empty, cachingDevice: OpSpecification => String = null): Variable = {
@@ -421,7 +421,7 @@ private[api] object Variable {
     *                       variable reside, to deduplicate copying through `Switch` and other conditional statements.
     * @return Requested variable.
     */
-  private[ops] def getLocalPartitionedVariable(
+  private[api] def getLocalPartitionedVariable(
       name: String, dataType: DataType = FLOAT32, shape: Shape, initializer: Initializer = null,
       regularizer: Regularizer = null, partitioner: Partitioner = null, reuse: Reuse = ReuseOrCreateNew,
       collections: Set[Graph.Key[Variable]] = Set.empty,
@@ -450,7 +450,7 @@ private[api] object Variable {
     * @param  name          Created variable name.
     * @return Created variable.
     */
-  private[ops] def apply(
+  private[variables] def apply(
       initializer: Initializer, dataType: DataType = FLOAT32, shape: Shape = null, trainable: Boolean = true,
       collections: Set[Graph.Key[Variable]] = Set.empty, cachingDevice: OpSpecification => String = null,
       name: String = "Variable"): Variable = {
