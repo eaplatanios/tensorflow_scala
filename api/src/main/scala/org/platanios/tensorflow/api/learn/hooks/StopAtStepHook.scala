@@ -17,8 +17,8 @@ package org.platanios.tensorflow.api.learn.hooks
 
 import org.platanios.tensorflow.api.core.client.{Executable, Session}
 import org.platanios.tensorflow.api.core.client.Fetchable.Aux
-import org.platanios.tensorflow.api.learn.{GlobalStep, Hook}
-import org.platanios.tensorflow.api.learn.Hook.{SessionRunArgs, SessionRunContext}
+import org.platanios.tensorflow.api.learn.{Coordinator, GlobalStep}
+import org.platanios.tensorflow.api.learn.hooks.Hook.{SessionRunArgs, SessionRunContext}
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.tensors.Tensor
@@ -49,7 +49,7 @@ case class StopAtStepHook(numSteps: Int, restartCounting: Boolean) extends Hook[
       "A global step variable should be created in order to use the 'StopAtStepHook'."))
   }
 
-  override def afterSessionCreation(session: Session): Unit = lastStep match {
+  override def afterSessionCreation(session: Session, coordinator: Coordinator): Unit = lastStep match {
     case Some(_) => ()
     case None => lastStep = Some(session.run(fetches = globalStep.value).scalar.asInstanceOf[Int] + numSteps)
   }

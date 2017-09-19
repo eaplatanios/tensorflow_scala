@@ -13,7 +13,7 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.learn
+package org.platanios.tensorflow.api.learn.hooks
 
 /** Determines when hooks should be triggered.
   *

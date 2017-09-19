@@ -13,10 +13,11 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.learn
+package org.platanios.tensorflow.api.learn.hooks
 
 import org.platanios.tensorflow.api.core.client.{Executable, FeedMap, Fetchable, Session}
-import org.platanios.tensorflow.api.learn.Hook.SessionRunContext
+import org.platanios.tensorflow.api.learn.Coordinator
+import org.platanios.tensorflow.api.learn.hooks.Hook.SessionRunContext
 import org.platanios.tensorflow.api.ops.{Op, Output}
 
 import org.tensorflow.framework.RunOptions
@@ -132,11 +133,12 @@ abstract class Hook[HF, HE, HR](implicit
     *
     *   - When this is called, the graph is finalized and ops can no longer be added to it.
     *   - This method will also be called as a result of recovering a wrapped session (i.e., not only at the beginning
-    * of the overall session).
+    *     of the overall session).
     *
-    * @param  session The session that has been created.
+    * @param  session     The session that has been created.
+    * @param  coordinator The current coordinator.
     */
-  def afterSessionCreation(session: Session): Unit = ()
+  def afterSessionCreation(session: Session, coordinator: Coordinator): Unit = ()
 
   /** Called before each call to [[Session.run]]. You can return from this call a [[Hook.SessionRunArgs]] object
     * indicating ops or tensors to add to the upcoming run call. These ops/tensors will be run together with the

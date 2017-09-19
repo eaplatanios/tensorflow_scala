@@ -13,15 +13,13 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.ops.training
-
-import org.platanios.tensorflow.api.ops.training.Coordinator.Event
-
-import com.typesafe.scalalogging.Logger
-import org.slf4j.LoggerFactory
+package org.platanios.tensorflow.api.learn
 
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.{Condition, Lock, ReentrantLock}
+
+import com.typesafe.scalalogging.Logger
+import org.slf4j.LoggerFactory
 
 import scala.collection.mutable
 
@@ -29,9 +27,9 @@ import scala.collection.mutable
   * @author Emmanouil Antonios Platanios
   */
 case class Coordinator private[training]() {
-  private[this] val logger   : Logger = Logger(LoggerFactory.getLogger("Coordinator"))
-  private[this] val lock     : Lock   = new ReentrantLock
-  private[this] val stopEvent: Event  = Event()
+  private[this] val logger   : Logger            = Logger(LoggerFactory.getLogger("Coordinator"))
+  private[this] val lock     : Lock              = new ReentrantLock
+  private[this] val stopEvent: Coordinator.Event = Coordinator.Event()
 
   /** Set to `true` if `join()` has already been called. */
   private[this] var joined: Boolean = false

@@ -17,8 +17,7 @@ package org.platanios.tensorflow.api.learn.hooks
 
 import org.platanios.tensorflow.api.core.client.Executable
 import org.platanios.tensorflow.api.core.client.Fetchable.Aux
-import org.platanios.tensorflow.api.learn.Hook
-import org.platanios.tensorflow.api.learn.Hook.{SessionRunArgs, SessionRunContext}
+import org.platanios.tensorflow.api.learn.hooks.Hook.{SessionRunArgs, SessionRunContext}
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
 
