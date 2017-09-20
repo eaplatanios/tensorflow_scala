@@ -15,9 +15,10 @@
 
 package org.platanios.tensorflow.api.learn
 
-import org.platanios.tensorflow.api.config.SessionConfig
+import org.platanios.tensorflow.api.config._
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.{FeedMap, Session}
+import org.platanios.tensorflow.api.learn.hooks.Hook
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.ops.variables.Saver
 import org.platanios.tensorflow.api.types.STRING
@@ -369,5 +370,57 @@ object SessionManager {
           Some(s"An exception was thrown while checking if the model is ready: ${e.getMessage}.")
       }
     })
+  }
+
+  /** Creates a [[MonitoredSession]] to be used for training.
+    *
+    * For a chief, this utility sets proper session initializers, savers, and restorers. It also creates hooks related
+    * to checkpoint and summary saving. For workers, this utility method sets the proper session creator which waits for
+    * the chief to initialize or restore the session. Please refer to [[MonitoredSession]] for more information.
+    *
+    * @param  master                         TensorFlow master to use.
+    * @param  isChief                        Boolean flag indicating whether the created session will be used by a chief
+    *                                        or not. If `true`, the method will take care of initialization and recovery
+    *                                        of the underlying session. If `false`, the method will wait for a chief to
+    *                                        initialize or recover the session.
+    * @param  workingDir                     Working directory for saving summaries and checkpoints.
+    * @param  checkpointConfig               Configuration specifying when to save checkpoints.
+    * @param  summaryConfig                  Configuration specifying when to save summaries.
+    * @param  hooks                          Hooks to use while training.
+    * @param  chiefOnlyHooks                 Hooks to use for the chief. These will only be used if `isChief` is `true`.
+    * @param  sessionScaffold                Session scaffold used for gathering and/or building supportive ops. If not
+    *                                        specified, a default one is created. The session scaffold is used to
+    *                                        finalize the graph.
+    * @param  sessionConfig                  Session configuration to be used for the created session.
+    * @param  stopGracePeriodSeconds         Number of seconds given to threads to stop after a stop has been requested.
+    * @param  globalStepRateLoggingFrequency Frequency, in number of global steps, that the global step / sec rate will
+    *                                        be logged during training.
+    * @return Created monitored session.
+    */
+  def monitoredTrainingSession(
+      master: String = "",
+      isChief: Boolean = true,
+      workingDir: Option[Path] = None,
+      checkpointConfig: CheckpointConfig = TimeBasedCheckpoints(600, 5, 10000),
+      summaryConfig: SummaryConfig = StepBasedSummaries(100),
+      hooks: Seq[Hook] = Seq.empty,
+      chiefOnlyHooks: Seq[Hook] = Seq.empty,
+      sessionScaffold: SessionScaffold = SessionScaffold(),
+      sessionConfig: SessionConfig = null,
+      stopGracePeriodSeconds: Int = 120,
+      globalStepRateLoggingFrequency: Int = 100): MonitoredSession = {
+    if (!isChief) {
+      val sessionCreator = WorkerSessionCreator(master, sessionScaffold, sessionConfig)
+      MonitoredSession(sessionCreator, hooks, stopGracePeriodSeconds = stopGracePeriodSeconds)
+    } else {
+      val sessionCreator = ChiefSessionCreator(master, sessionScaffold, sessionConfig, workingDir)
+      var chiefHooks = hooks ++ chiefOnlyHooks
+      if (workingDir.isDefined) {
+        // TODO: !!! [HOOKS] Add step counter hook.
+        // TODO: !!! [HOOKS] Add summary hook.
+        // TODO: !!! [HOOKS] Add checkpoint hook.
+      }
+      MonitoredSession(sessionCreator, chiefHooks, stopGracePeriodSeconds = stopGracePeriodSeconds)
+    }
   }
 }
