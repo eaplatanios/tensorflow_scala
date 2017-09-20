@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.learn.hooks
 
 import org.platanios.tensorflow.api.core.client.{Executable, FeedMap, Fetchable, Session}
-import org.platanios.tensorflow.api.learn.Coordinator
+import org.platanios.tensorflow.api.learn.{Coordinator, MonitoredSession}
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
 

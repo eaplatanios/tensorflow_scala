@@ -51,11 +51,14 @@ class Graph private[api](private[api] var nativeHandle: Long) extends Closeable 
   private[this] var _frozen: Boolean = false
 
   /** Returns a boolean flag indicating whether this graph has been frozen (i.e., no more ops can be added to it). */
-  def frozen: Boolean = _frozen
+  def isFrozen: Boolean = _frozen
 
   /** Freezes this graph, meaning that no more ops can be added to it after a call to this function. This method is used
     * to ensure that no operations are added to a graph when it is shared between multiple threads. */
   def freeze(): Unit = _frozen = true
+
+  /** Unfreezes this graph. */
+  def unFreeze(): Unit = _frozen = false
 
   /** Asserts that this graph has not been frozen. */
   @throws[AssertionError]

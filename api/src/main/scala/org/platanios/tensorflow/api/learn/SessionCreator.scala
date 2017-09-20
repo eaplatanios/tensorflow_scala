@@ -107,19 +107,28 @@ case class WorkerSessionCreator(
   }
 }
 
-//case class CoordinatedSessionCreator(
-//    sessionCreator: SessionCreator,
-//    hooks: Seq[Hook[_, _, _]],
-//    stopGracePeriodSeconds: Int
-//) extends SessionCreator {
-//  private[this] var session    : Session     = _
-//  private[this] var coordinator: Coordinator = _
-//
-//  override def createSession(): Session = {
-//    session = sessionCreator.createSession()
-//    coordinator = Coordinator()
-//    // TODO: !!! [QUEUE_RUNNERS] Start all queue runners.
-//    // Inform the hooks that a new session has been created.
-//    hooks.foreach(h => h.afterSessionCreation(session, coordinator))
-//  }
-//}
+/** Session creator that uses a coordinator for session management/recovery across potentially multiple threads.
+  *
+  * @param  sessionCreator         Wrapped session creator.
+  * @param  hooks                  Hooks to use.
+  * @param  stopGracePeriodSeconds Number of seconds given to threads to stop after a stop has been requested.
+  *
+  * @author Emmanouil Antonios Platanios
+  */
+private[learn] case class CoordinatedSessionCreator private[learn](
+    sessionCreator: SessionCreator,
+    hooks: Seq[Hook],
+    stopGracePeriodSeconds: Int
+) extends SessionCreator {
+  private[learn] var session    : Option[Session]     = None
+  private[learn] var coordinator: Option[Coordinator] = None
+
+  override def createSession(): Session = {
+    session = Some(sessionCreator.createSession())
+    coordinator = Some(Coordinator())
+    // TODO: !!! [QUEUE_RUNNERS] Start all queue runners.
+    // Inform the hooks that a new session has been created.
+    hooks.foreach(h => h.afterSessionCreation(session.get, coordinator.get))
+    CoordinatedSession(HookedSession(session.get, hooks), coordinator.get, stopGracePeriodSeconds)
+  }
+}
