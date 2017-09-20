@@ -114,7 +114,7 @@ class Session private[api](
 
   /** Helper method for [[run]] and [[runWithMetadata]]. */
   @throws[IllegalStateException]
-  protected def runHelper[F, E, R](
+  private[api] def runHelper[F, E, R](
       feeds: FeedMap = FeedMap.empty, fetches: F = Seq.empty[Output], targets: E = Traversable.empty[Op],
       options: RunOptions = null, wantMetadata: Boolean = false)
       (implicit executable: Executable[E], fetchable: Fetchable.Aux[F, R]): (R, Option[RunMetadata]) = {

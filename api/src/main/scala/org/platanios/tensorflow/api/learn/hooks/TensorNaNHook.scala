@@ -15,9 +15,7 @@
 
 package org.platanios.tensorflow.api.learn.hooks
 
-import org.platanios.tensorflow.api.core.client.Executable
-import org.platanios.tensorflow.api.core.client.Fetchable.Aux
-import org.platanios.tensorflow.api.learn.hooks.Hook.{SessionRunArgs, SessionRunContext}
+import org.platanios.tensorflow.api.core.client.{Executable, Fetchable}
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
 
@@ -33,8 +31,7 @@ import org.slf4j.LoggerFactory
   *
   * @author Emmanouil Antonios Platanios
   */
-case class TensorNaNHook(tensorNames: Set[String], failOnNaN: Boolean = true)
-    extends Hook[Seq[Output], Traversable[Op], Seq[Tensor]] {
+case class TensorNaNHook(tensorNames: Set[String], failOnNaN: Boolean = true) extends Hook {
   private[this] var outputs: Seq[Output] = _
 
   override def begin(): Unit = {
@@ -44,16 +41,20 @@ case class TensorNaNHook(tensorNames: Set[String], failOnNaN: Boolean = true)
 
   override def beforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
       executableEv: Executable[E],
-      fetchableEv: Aux[F, R]
+      fetchableEv: Fetchable.Aux[F, R]
   ): Option[Hook.SessionRunArgs[Seq[Output], Traversable[Op], Seq[Tensor]]] = {
-    Some(SessionRunArgs(fetches = outputs))
+    Some(Hook.SessionRunArgs(fetches = outputs))
   }
 
   @throws[IllegalStateException]
-  override def afterSessionRun[F, E, R](runContext: SessionRunContext[F, E, R], runValues: Seq[Tensor])(implicit
+  override def afterSessionRun[F, E, R](
+      runContext: Hook.SessionRunContext[F, E, R],
+      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor]]
+  )(implicit
       executableEv: Executable[E],
-      fetchableEv: Aux[F, R]): Unit = {
-    runValues.filter(_.isNaN.any().scalar.asInstanceOf[Boolean]).foreach(value => {
+      fetchableEv: Fetchable.Aux[F, R]
+  ): Unit = {
+    runResult.values.filter(_.isNaN.any().scalar.asInstanceOf[Boolean]).foreach(value => {
       val message = s"Encountered NaN values in tensor: $value."
       if (failOnNaN) {
         TensorNaNHook.logger.error(message)

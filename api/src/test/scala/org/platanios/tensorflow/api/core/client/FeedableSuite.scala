@@ -57,7 +57,7 @@ class FeedableSuite extends JUnitSuite {
         Basic.placeholder(FLOAT32), Basic.placeholder(FLOAT32), Basic.placeholder(FLOAT32))
       val feedable1FeedMap: FeedMap = feedMapIdentity(Map(feedable1 -> tensor0))
       val feedable2FeedMap: FeedMap = feedMapIdentity(Map(feedable2 -> ((tensor1, tensor2, tensor3))))
-      val feedMap = feedMapIdentity(feedable1FeedMap + feedable2FeedMap)
+      val feedMap = feedMapIdentity(feedable1FeedMap ++ feedable2FeedMap)
       assert(feedMap.values === Map(
         feedable1 -> tensor0,
         feedable2.indices -> tensor1, feedable2.values -> tensor2, feedable2.denseShape -> tensor3))

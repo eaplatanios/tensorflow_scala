@@ -16,12 +16,15 @@
 package org.platanios.tensorflow.api.learn
 
 import org.platanios.tensorflow.api.core.client.{Executable, FeedMap, Fetchable, Session}
+import org.platanios.tensorflow.api.learn.hooks.Hook
 import org.platanios.tensorflow.api.ops.{Op, Output}
+import org.platanios.tensorflow.api.tensors.Tensor
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
-import org.tensorflow.framework.{RunMetadata, RunOptions}
+import org.tensorflow.framework.{DebugOptions, RunMetadata, RunOptions}
 
+import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
 import scala.util.control.Exception._
 
@@ -55,7 +58,7 @@ abstract class SessionWrapper private[learn](protected var session: Session)
   }
 
   /** Overridable method that returns `true` if this session should not be used anymore. */
-  protected def checkStop: Boolean
+  private[learn] def checkStop: Boolean
 
   override def closed: Boolean = _closed
 
@@ -86,7 +89,7 @@ object SessionWrapper {
   */
 class RecoverableSession private[learn](sessionCreator: SessionCreator)
     extends SessionWrapper(RecoverableSession.createSession(sessionCreator)) {
-  override protected def checkStop: Boolean = {
+  override private[learn] def checkStop: Boolean = {
     if (closed) {
       // If the session has been closed, computation should stop.
       true
@@ -110,7 +113,7 @@ class RecoverableSession private[learn](sessionCreator: SessionCreator)
     }
   }
 
-  override protected def runHelper[F, E, R](
+  override private[api] def runHelper[F, E, R](
       feeds: FeedMap = FeedMap.empty, fetches: F = Seq.empty[Output], targets: E = Traversable.empty[Op],
       options: RunOptions = null, wantMetadata: Boolean = false
   )(implicit
@@ -170,7 +173,7 @@ object RecoverableSession {
   */
 class CoordinatedSession private[learn](session: Session, coordinator: Coordinator, stopGracePeriodSeconds: Int = 120)
   extends SessionWrapper(session) {
-  override protected def checkStop: Boolean = {
+  override private[learn] def checkStop: Boolean = {
     // If the coordinator was asked to stop due to an exception, then that exception needs to be propagated.
     coordinator.reThrowRequestedStopCause()
     // At this point, no exceptions are recorded in the coordinator.
@@ -188,7 +191,7 @@ class CoordinatedSession private[learn](session: Session, coordinator: Coordinat
     }
   }
 
-  override protected def runHelper[F, E, R](
+  override private[api] def runHelper[F, E, R](
       feeds: FeedMap = FeedMap.empty, fetches: F = Seq.empty[Output], targets: E = Traversable.empty[Op],
       options: RunOptions = null, wantMetadata: Boolean = false
   )(implicit
@@ -205,8 +208,120 @@ class CoordinatedSession private[learn](session: Session, coordinator: Coordinat
           throw cause
         } catch {
           case e if SessionWrapper.PREEMPTION_ERRORS.contains(e.getClass) => throw e
-          case _ => throw cause
+          case _: Throwable => throw cause
         }
     }
+  }
+}
+
+/** Session wrapper that invokes [[Hook]] callbacks before and after calls to `Session.run()`.
+  *
+  * The list of hooks to call is passed in the constructor. Before each call to `Session.run()` the session calls the
+  * `Hook.beforeSessionRun()` method of each hook, which can return additional ops or tensors to run. These are added to
+  * the arguments of the call to `Session.run()`.
+  *
+  * When the `Session.run()` call finishes, the session invokes the `Hook.afterSessionRun()` method of each hook,
+  * passing the values returned by the `Session.run()` call corresponding to the ops and tensors that each hook
+  * requested.
+  *
+  * If any call to the hooks requests a stop via the `runContext`, the session will be marked as needing to stop and its
+  * `shouldStop()` method will then return `true`.
+  *
+  * @param  session Session being wrapped.
+  * @param  hooks   Hooks to invoke.
+  *
+  * @author Emmanouil Antonios Platanios
+  */
+class HookedSession private[learn](session: Session, hooks: Seq[Hook]) extends SessionWrapper(session) {
+  private[this] var _shouldStop: Boolean = false
+
+  override private[learn] def checkStop: Boolean = _shouldStop
+
+  @throws[RuntimeException]
+  override private[api] def runHelper[F, E, R](
+      feeds: FeedMap = FeedMap.empty, fetches: F = Seq.empty[Output], targets: E = Traversable.empty[Op],
+      options: RunOptions = null, wantMetadata: Boolean = false
+  )(implicit
+      executable: Executable[E],
+      fetchable: Fetchable.Aux[F, R]
+  ): (R, Option[RunMetadata]) = {
+    if (shouldStop)
+      throw new RuntimeException("Session 'run()' was called even after a stop was requested.")
+
+    // Invoke the hooks' `beforeSessionRun` callbacks.
+    val runContext = Hook.SessionRunContext(Hook.SessionRunArgs(feeds, fetches, targets, options), session)
+    val runOptions = if (options == null) RunOptions.getDefaultInstance else options
+    val combinedArgs = invokeHooksBeforeSessionRun(runContext, runOptions)
+
+    // Do session run.
+    val result = super.runHelper(
+      combinedArgs.feeds, combinedArgs.fetches, combinedArgs.targets, combinedArgs.options, wantMetadata)
+
+    // Invoke the hooks' `afterSessionRun` callbacks.
+    hooks.filter(h => result._1._2.contains(h)).foreach(hook => {
+      hook.afterSessionRun(runContext, Hook.SessionRunResult(result._1._2(hook), result._2))
+    })
+
+    // Update the `_shouldStop` flag and return.
+    _shouldStop ||= runContext.stopRequested
+    (result._1._1, result._2)
+  }
+
+  /** Invoked `Hook.beforeSessionRun()` for all hooks and manages their feed maps, fetches, and run options. */
+  @throws[RuntimeException]
+  private[this] def invokeHooksBeforeSessionRun[F, E, R](
+      runContext: Hook.SessionRunContext[F, E, R], runOptions: RunOptions
+  )(implicit
+      executableEv: Executable[E],
+      fetchableEv: Fetchable.Aux[F, R]
+  ): Hook.SessionRunArgs[(F, Map[Hook, Seq[Output]]), (E, Seq[Op]), (R, Map[Hook, Seq[Tensor]])] = {
+    var hooksFeedMap = FeedMap.empty
+    val hooksFetchesMap = mutable.Map.empty[Hook, Seq[Output]]
+    val hooksTargetsList = mutable.ListBuffer.empty[Op]
+    var hooksRunOptions = RunOptions.newBuilder(runOptions).build()
+    hooks.foreach(hook => hook.beforeSessionRun(runContext).foreach(runArgs => {
+      if (runArgs.feeds.nonEmpty) {
+        if (hooksFeedMap.nonEmpty && hooksFeedMap.intersects(runArgs.feeds))
+          throw new RuntimeException("The same tensor is fed by two hooks.")
+        hooksFeedMap = hooksFeedMap ++ runArgs.feeds
+      }
+      if (runArgs.fetches.nonEmpty)
+        hooksFetchesMap.update(hook, runArgs.fetches)
+      if (runArgs.targets.nonEmpty)
+        hooksTargetsList.appendAll(runArgs.targets)
+      if (runArgs.options != null)
+        hooksRunOptions = mergeRunOptions(hooksRunOptions, runArgs.options)
+    }))
+    val feeds = runContext.args.feeds
+    if (feeds.nonEmpty && hooksFeedMap.nonEmpty && feeds.intersects(hooksFeedMap))
+      throw new RuntimeException("The same tensor is fed by the user and by a hook.")
+    val combinedFeeds = feeds ++ hooksFeedMap
+    val combinedFetches = (runContext.args.fetches, hooksFetchesMap.toMap)
+    val combinedTargets = (runContext.args.targets, hooksTargetsList)
+    Hook.SessionRunArgs(combinedFeeds, combinedFetches, combinedTargets, runOptions)
+  }
+
+  /** Merges an instance of [[RunOptions]] into another one, returning a new instance of [[RunOptions]].
+    *
+    * During the merging, the numerical fields including `TraceLevel`, `TimeoutInMs`, `InterOpThreadPool`, etc., are set
+    * to the larger one of the two. The boolean fields are set to the logical OR of the two. The `DebugTensorWatchOpts`
+    * of the original run options is extended to include that from the new one.
+    *
+    * @param  oldOptions Original run options.
+    * @param  newOptions New run options to merge into `oldRunOptions`.
+    * @return Merged run options as a new instance of [[RunOptions]].
+    */
+  private[this] def mergeRunOptions(oldOptions: RunOptions, newOptions: RunOptions): RunOptions = {
+    val runOptionsBuilder = RunOptions.newBuilder(oldOptions)
+    runOptionsBuilder.setTraceLevelValue(Math.max(oldOptions.getTraceLevelValue, newOptions.getTraceLevelValue))
+    runOptionsBuilder.setTimeoutInMs(Math.max(oldOptions.getTimeoutInMs, newOptions.getTimeoutInMs))
+    runOptionsBuilder.setInterOpThreadPool(Math.max(oldOptions.getInterOpThreadPool, newOptions.getInterOpThreadPool))
+    runOptionsBuilder.setOutputPartitionGraphs(
+      oldOptions.getOutputPartitionGraphs || newOptions.getOutputPartitionGraphs)
+    runOptionsBuilder.mergeDebugOptions(
+      DebugOptions.newBuilder()
+          .addAllDebugTensorWatchOpts(newOptions.getDebugOptions.getDebugTensorWatchOptsList)
+          .build())
+    runOptionsBuilder.build()
   }
 }

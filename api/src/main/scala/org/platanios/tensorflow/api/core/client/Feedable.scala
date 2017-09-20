@@ -132,7 +132,14 @@ class FeedMap private[client] (val values: Map[Output, Tensor] = Map.empty) {
     FeedMap(values ++ ev.feed(feedable, value))
   }
 
-  def +(other: FeedMap): FeedMap = FeedMap(values ++ other.values)
+  def +(value: (Output, Tensor)): FeedMap = FeedMap(values + value)
+  def ++(other: FeedMap): FeedMap = FeedMap(values ++ other.values)
+
+  def isEmpty: Boolean = values.isEmpty
+  def nonEmpty: Boolean = values.nonEmpty
+
+  /** Returns `true` if this feed map feeds at least one element that `feedMap` also feeds. */
+  def intersects(feedMap: FeedMap): Boolean = values.keySet.exists(feedMap.values.keySet.contains(_))
 }
 
 object FeedMap {
@@ -144,7 +151,7 @@ object FeedMap {
     FeedMap(feeds.flatMap { case (k, v) => ev.feed(k, v) })
   }
 
-  def apply(feedMaps: Seq[FeedMap]): FeedMap = feedMaps.reduce(_ + _)
+  def apply(feedMaps: Seq[FeedMap]): FeedMap = feedMaps.reduce(_ ++ _)
 
   val empty = new FeedMap()
 

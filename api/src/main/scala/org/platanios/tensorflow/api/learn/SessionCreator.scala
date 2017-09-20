@@ -17,6 +17,7 @@ package org.platanios.tensorflow.api.learn
 
 import org.platanios.tensorflow.api.config.SessionConfig
 import org.platanios.tensorflow.api.core.client.Session
+import org.platanios.tensorflow.api.learn.hooks.Hook
 import org.platanios.tensorflow.api.ops.Op
 
 import java.nio.file.Path
@@ -105,3 +106,20 @@ case class WorkerSessionCreator(
     )
   }
 }
+
+//case class CoordinatedSessionCreator(
+//    sessionCreator: SessionCreator,
+//    hooks: Seq[Hook[_, _, _]],
+//    stopGracePeriodSeconds: Int
+//) extends SessionCreator {
+//  private[this] var session    : Session     = _
+//  private[this] var coordinator: Coordinator = _
+//
+//  override def createSession(): Session = {
+//    session = sessionCreator.createSession()
+//    coordinator = Coordinator()
+//    // TODO: !!! [QUEUE_RUNNERS] Start all queue runners.
+//    // Inform the hooks that a new session has been created.
+//    hooks.foreach(h => h.afterSessionCreation(session, coordinator))
+//  }
+//}

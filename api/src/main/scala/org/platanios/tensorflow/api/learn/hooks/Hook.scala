@@ -17,15 +17,15 @@ package org.platanios.tensorflow.api.learn.hooks
 
 import org.platanios.tensorflow.api.core.client.{Executable, FeedMap, Fetchable, Session}
 import org.platanios.tensorflow.api.learn.Coordinator
-import org.platanios.tensorflow.api.learn.hooks.Hook.SessionRunContext
 import org.platanios.tensorflow.api.ops.{Op, Output}
+import org.platanios.tensorflow.api.tensors.Tensor
 
-import org.tensorflow.framework.RunOptions
+import org.tensorflow.framework.{RunMetadata, RunOptions}
 
 // TODO: [HOOKS] !!! Implement the supposedly provided hooks.
 // TODO: [HOOKS] !!! Go through the documentation again and change things as needed after MonitoredSession is implemented.
 
-/** Hook to extend calls to [[MonitoredSession.run()]].
+/** Hook to extend calls to `MonitoredSession.run()`.
   *
   * [[Hook]]s are useful to track training, report progress, request early stopping and more. They use the observer
   * pattern and notify at the following points:
@@ -35,7 +35,7 @@ import org.tensorflow.framework.RunOptions
   *   - When the session stops being used.
   *
   * A [[Hook]] encapsulates a piece of reusable/composable computation that can piggyback a call to
-  * [[MonitoredSession.run()]]. A hook can add any feeds/fetches/targets to the run call, and when the run call finishes
+  * `MonitoredSession.run()`. A hook can add any feeds/fetches/targets to the run call, and when the run call finishes
   * executing with success, the hook gets the fetches it requested. Hooks are allowed to add ops to the graph in the
   * `begin()` method. The graph is finalized after the `begin()` method is called.
   *
@@ -86,7 +86,7 @@ import org.tensorflow.framework.RunOptions
   *   }
   * }}}
   *
-  * To understand how hooks interact with calls to [[MonitoredSession.run()]], look at following code:
+  * To understand how hooks interact with calls to `MonitoredSession.run()`, look at following code:
   * {{{
   *   val session = MonitoredTrainingSession(hooks = someHook, ...)
   *   while (!session.shouldStop)
@@ -118,10 +118,7 @@ import org.tensorflow.framework.RunOptions
   *
   * @author Emmanouil Antonios Platanios
   */
-abstract class Hook[HF, HE, HR](implicit
-    hookExecutableEv: Executable[HE],
-    hookFetchableEv: Fetchable.Aux[HF, HR]
-) {
+abstract class Hook {
   /** Called once before creating the session. When called, the default graph is the one that will be launched in the
     * session. The hook can modify the graph by adding new operations to it. After the `begin` call the graph will be
     * finalized and the other callbacks will not be able to modify the graph anymore. A second `begin` call on the same
@@ -129,7 +126,7 @@ abstract class Hook[HF, HE, HR](implicit
   def begin(): Unit = ()
 
   /** Called after a new session is created. This is called to signal the hooks that a new session has been created.
-    * This callback has two essential differences with the situation in which `begin` is called:
+    * This callback has two essential differences with the situation in which `begin()` is called:
     *
     *   - When this is called, the graph is finalized and ops can no longer be added to it.
     *   - This method will also be called as a result of recovering a wrapped session (i.e., not only at the beginning
@@ -140,51 +137,55 @@ abstract class Hook[HF, HE, HR](implicit
     */
   def afterSessionCreation(session: Session, coordinator: Coordinator): Unit = ()
 
-  /** Called before each call to [[Session.run]]. You can return from this call a [[Hook.SessionRunArgs]] object
+  /** Called before each call to `Session.run()`. You can return from this call a [[Hook.SessionRunArgs]] object
     * indicating ops or tensors to add to the upcoming run call. These ops/tensors will be run together with the
     * ops/tensors originally passed to the original run call. The run arguments you return can also contain feeds to be
     * added to the run call.
     *
-    * The `runContext` argument is a [[SessionRunContext]] that provides information about the upcoming run call (i.e.,
-    * the originally requested ops/tensors, the session, etc.).
+    * The `runContext` argument is a [[Hook.SessionRunContext]] that provides information about the upcoming run call
+    * (i.e., the originally requested ops/tensors, the session, etc.).
     *
     * At this point the graph is finalized and you should not add any new ops.
     *
     * @param  runContext Provides information about the upcoming run call (i.e., the originally requested ops/tensors,
     *                    the session, etc.).
     */
-  def beforeSessionRun[F, E, R](runContext: SessionRunContext[F, E, R])(implicit
+  def beforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]
-  ): Option[Hook.SessionRunArgs[HF, HE, HR]] = None
+  ): Option[Hook.SessionRunArgs[Seq[Output], Traversable[Op], Seq[Tensor]]] = None
 
-  /** Called after each call to [[Session.run]].
+  /** Called after each call to `Session.run()`.
     *
-    * The `runContext` argument is the same one passed to `beforeSessionRun`. `runContext.requestStop()` can be called
+    * The `runContext` argument is the same one passed to `beforeSessionRun()`. `runContext.requestStop()` can be called
     * to stop the iteration.
     *
-    * The `runValues` argument contains fetched values for the tensors requested by `beforeSessionRun`.
+    * The `runResult` argument contains fetched values for the tensors requested by `beforeSessionRun()`.
     *
-    * If [[Session.run]] throws any exception, then `afterSessionRun()` will not be called. Note the difference between
-    * the `end()` and the `afterSessionRun()` behavior when [[Session.run]] throws an [[IndexOutOfBoundsException]]. In
+    * If `Session.run()` throws any exception, then `afterSessionRun()` will not be called. Note the difference between
+    * the `end()` and the `afterSessionRun()` behavior when `Session.run()` throws an [[IndexOutOfBoundsException]]. In
     * that case, `end()` is called but `afterSessionRun()` is not called.
     *
-    * @param  runContext Provides information about the run call (i.e., the originally requested ops/tensors,
-    *                    the session, etc.). Same value as that passed to `beforeSessionRun`.
-    * @param  runValues  Fetched values for the tensors requested by `beforeSessionRun`.
+    * @param  runContext Provides information about the run call (i.e., the originally requested ops/tensors, the
+    *                    session, etc.). Same value as that passed to `beforeSessionRun`.
+    * @param  runResult  Result of the `Session.run()` call that includes the fetched values for the tensors requested
+    *                    by `beforeSessionRun()`.
     */
-  def afterSessionRun[F, E, R](runContext: SessionRunContext[F, E, R], runValues: HR)(implicit
+  def afterSessionRun[F, E, R](
+      runContext: Hook.SessionRunContext[F, E, R],
+      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor]]
+  )(implicit
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]
   ): Unit = ()
 
-  /** Called at the end of the session usage (i.e., [[Session.run]] will not be invoked again after this call).
+  /** Called at the end of the session usage (i.e., `Session.run()` will not be invoked again after this call).
     *
     * The `session` argument can be used in case the hook wants to execute any final ops, such as saving a last
     * checkpoint.
     *
-    * If [[Session.run]] throws any exception other than [[IndexOutOfBoundsException]] then `end()` will not be called.
-    * Note the difference between the `end()` and the `afterSessionRun()` behavior when [[Session.run]] throws an
+    * If `Session.run()` throws any exception other than [[IndexOutOfBoundsException]] then `end()` will not be called.
+    * Note the difference between the `end()` and the `afterSessionRun()` behavior when `Session.run()` throws an
     * [[IndexOutOfBoundsException]]. In that case, `end()` is called but `afterSessionRun()` is not called.
     *
     * @param  session Session that will not be used again after this call.
@@ -194,20 +195,11 @@ abstract class Hook[HF, HE, HR](implicit
 
 /** Contains helper classes for the [[Hook]] class. */
 object Hook {
-  /** Represents a complete set of arguments passed to [[Session.run]]. */
-  case class SessionRunArgs[F, E, R](
-      feeds: FeedMap = FeedMap.empty, fetches: F = Seq.empty[Output], targets: E = Traversable.empty[Op],
-      options: RunOptions = null
-  )(implicit
-      executableEv: Executable[E],
-      fetchableEv: Fetchable.Aux[F, R]
-  )
-
-  /** Provides information about the original request to [[Session.run]] function. [[Hook]]s can stop the loop by
+  /** Provides information about the original request to `Session.run()` function. [[Hook]]s can stop the loop by
     * calling the `requestStop()` method of [[SessionRunContext]]. In the future we may use this object to add more
     * information about the request to run without changing the Hook API.
     *
-    * @param  args    Arguments to the original request to [[Session.run]].
+    * @param  args    Arguments to the original request to `Session.run()`.
     * @param  session Session that will execute the run request.
     */
   case class SessionRunContext[F, E, R](args: SessionRunArgs[F, E, R], session: Session)(implicit
@@ -223,4 +215,18 @@ object Hook {
       * [[MonitoredSession]] checks whether that field has been set or not. */
     def requestStop(): Unit = _stopRequested = true
   }
+
+  /** Represents a complete set of arguments passed to `Session.run()`. */
+  case class SessionRunArgs[F, E, R](
+      feeds: FeedMap = FeedMap.empty, fetches: F = Seq.empty[Output], targets: E = Traversable.empty[Op],
+      options: RunOptions = null
+  )(implicit
+      executableEv: Executable[E],
+      fetchableEv: Fetchable.Aux[F, R]
+  )
+
+  /** Represents the results of a call to `Session.run()`. */
+  case class SessionRunResult[F, R](values: R, runMetadata: Option[RunMetadata])(implicit
+      fetchableEv: Fetchable.Aux[F, R]
+  )
 }

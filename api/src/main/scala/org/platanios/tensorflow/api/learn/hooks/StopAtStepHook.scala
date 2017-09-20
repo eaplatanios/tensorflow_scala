@@ -15,10 +15,8 @@
 
 package org.platanios.tensorflow.api.learn.hooks
 
-import org.platanios.tensorflow.api.core.client.{Executable, Session}
-import org.platanios.tensorflow.api.core.client.Fetchable.Aux
+import org.platanios.tensorflow.api.core.client.{Executable, Fetchable, Session}
 import org.platanios.tensorflow.api.learn.{Coordinator, GlobalStep}
-import org.platanios.tensorflow.api.learn.hooks.Hook.{SessionRunArgs, SessionRunContext}
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.tensors.Tensor
@@ -40,7 +38,7 @@ import org.slf4j.LoggerFactory
   *
   * @author Emmanouil Antonios Platanios
   */
-case class StopAtStepHook(numSteps: Int, restartCounting: Boolean) extends Hook[Output, Traversable[Op], Tensor] {
+case class StopAtStepHook(numSteps: Int, restartCounting: Boolean) extends Hook {
   private[this] var globalStep: Variable    = _
   private[this] var lastStep  : Option[Int] = if (restartCounting) None else Some(numSteps)
 
@@ -56,16 +54,20 @@ case class StopAtStepHook(numSteps: Int, restartCounting: Boolean) extends Hook[
 
   override def beforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
       executableEv: Executable[E],
-      fetchableEv: Aux[F, R]
-  ): Option[Hook.SessionRunArgs[Output, Traversable[Op], Tensor]] = {
-    Some(SessionRunArgs(fetches = globalStep.value))
+      fetchableEv: Fetchable.Aux[F, R]
+  ): Option[Hook.SessionRunArgs[Seq[Output], Traversable[Op], Seq[Tensor]]] = {
+    Some(Hook.SessionRunArgs(fetches = Seq(globalStep.value)))
   }
 
   @throws[IllegalStateException]
-  override def afterSessionRun[F, E, R](runContext: SessionRunContext[F, E, R], runValues: Tensor)(implicit
+  override def afterSessionRun[F, E, R](
+      runContext: Hook.SessionRunContext[F, E, R],
+      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor]]
+  )(implicit
       executableEv: Executable[E],
-      fetchableEv: Aux[F, R]): Unit = {
-    val currentStep = runValues.scalar.asInstanceOf[Int]
+      fetchableEv: Fetchable.Aux[F, R]
+  ): Unit = {
+    val currentStep = runResult.values.head.scalar.asInstanceOf[Int]
     if (currentStep >= lastStep.get)
       runContext.requestStop()
   }
