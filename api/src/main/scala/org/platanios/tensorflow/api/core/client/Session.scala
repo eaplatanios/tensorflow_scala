@@ -17,22 +17,27 @@ package org.platanios.tensorflow.api.core.client
 
 import org.platanios.tensorflow.api.config.SessionConfig
 import org.platanios.tensorflow.api.core.{Graph, client}
-import org.platanios.tensorflow.api.ops.{Op, OpCreationContext, Output}
+import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer}
 import org.platanios.tensorflow.jni.{Session => NativeSession, Tensor => NativeTensor}
-import org.tensorflow.framework.{RunMetadata, RunOptions}
 
-import scala.util.DynamicVariable
+import org.tensorflow.framework.{RunMetadata, RunOptions}
 
 /** Sessions provide the client interface for interacting with TensorFlow computations.
   *
   * The [[Session]] class enables incremental graph building with inline execution of ops and evaluation of tensors.
   *
+  * @param  graphReference Reference to the underlying graph of this session.
+  * @param  nativeHandle   Handle to the native session object.
+  * @param  target         Process to which this session will connect.
+  *
   * @author Emmanouil Antonios Platanios
   */
-final case class Session private (
-    private val graphReference: Graph#Reference, private var nativeHandle: Long) extends Closeable {
+class Session private[api](
+    private[api] val graphReference: Graph#Reference,
+    private[api] var nativeHandle: Long,
+    val target: String = "") extends Closeable {
   val graph: Graph = graphReference.graph
 
   private[this] object NativeHandleLock
@@ -156,8 +161,11 @@ final case class Session private (
     (outputs, Option(metadata).map(RunMetadata.parseFrom))
   }
 
-  /** Closes this [[Session]] and releases any resources associated with it. Note that a [[Session]] is not usable after
-    * it has been closed. */
+  /** Returns a boolean flag indicating whether this session has been closed. */
+  def closed: Boolean = nativeHandle == 0
+
+  /** Closes this [[Session]] and releases any resources associated with it. Note that a session is not usable after it
+    * has been closed. */
   override def close(): Unit = {
     graphReference.close()
     NativeHandleLock.synchronized {
@@ -188,9 +196,10 @@ object Session {
 
   def apply(graph: Graph = Op.currentGraph, target: String = null, sessionConfig: SessionConfig = null): Session = {
     val graphReference = graph.reference
-    Session(graphReference, NativeSession.allocate(
+    val nativeHandle = NativeSession.allocate(
       graphReference.nativeHandle,
       target,
-      if (sessionConfig != null) sessionConfig.configProto.toByteArray else null))
+      if (sessionConfig != null) sessionConfig.configProto.toByteArray else null)
+    new Session(graphReference, nativeHandle, target)
   }
 }
