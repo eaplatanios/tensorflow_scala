@@ -70,7 +70,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Spar
           << "' must match data type '"
           << attr_T
           << "' of argument 'sparse_values'";
-      throw_exception(env, jvm_illegal_argument_exception, error_msg.str().c_str());
+      throw_exception(env, tf_invalid_argument_exception, error_msg.str().c_str());
   }
 
   REQUIRE_HANDLE(attr_Tindices_output_shape_handle, TFE_TensorHandle, output_shape, 0);
@@ -83,7 +83,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Spar
           << "' must match data type '"
           << attr_Tindices
           << "' of argument 'sparse_indices'";
-      throw_exception(env, jvm_illegal_argument_exception, error_msg.str().c_str());
+      throw_exception(env, tf_invalid_argument_exception, error_msg.str().c_str());
   }
 
   TFE_OpSetAttrBool(op.get(), "validate_indices", static_cast<unsigned char>(validate_indices));

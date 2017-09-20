@@ -98,7 +98,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Rand
           << "' must match data type '"
           << attr_Tout
           << "' of argument 'minval'";
-      throw_exception(env, jvm_illegal_argument_exception, error_msg.str().c_str());
+      throw_exception(env, tf_invalid_argument_exception, error_msg.str().c_str());
   }
 
   TFE_OpSetAttrInt(op.get(), "seed", static_cast<int64_t>(seed));

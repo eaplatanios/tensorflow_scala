@@ -31,7 +31,7 @@ T* requireHandleImpl(JNIEnv* env, jlong handle) {
                 "Cannot package C object pointers as a Java long");
   if (handle == 0) {
     throw_exception(
-        env, jvm_null_pointer_exception,
+        env, tf_invalid_argument_exception,
         "close() has been called on the Graph this Operation was a part of");
     return nullptr;
   }
@@ -103,9 +103,9 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_
 //  TF_Operation* input_op = require_operation_handle(env, input_op_handle);
 //  TF_Operation* output_op = require_operation_handle(env, output_op_handle);
 //  if (graph == nullptr)
-//    throw_exception(env, jvm_illegal_state_exception, "Graph could not be found.");
+//    throw_exception(env, tf_invalid_argument_exception, "Graph could not be found.");
 //  if (input_op == nullptr || output_op == nullptr)
-//    throw_exception(env, jvm_illegal_state_exception, "Operation could not be found.");
+//    throw_exception(env, tf_invalid_argument_exception, "Operation could not be found.");
 //  TF_Output output{output_op, output_index};
 //  // tensorflow::UpdateInput(graph, input_op, input_index, output);
 //  return 0;
@@ -117,9 +117,9 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_
 //  TF_Operation* op = require_operation_handle(env, op_handle);
 //  TF_Operation* input_op = require_operation_handle(env, input_op_handle);
 //  if (graph == nullptr)
-//    throw_exception(env, jvm_illegal_state_exception, "Graph could not be found.");
+//    throw_exception(env, tf_invalid_argument_exception, "Graph could not be found.");
 //  if (op == nullptr || input_op == nullptr)
-//    throw_exception(env, jvm_illegal_state_exception, "Operation could not be found.");
+//    throw_exception(env, tf_invalid_argument_exception, "Operation could not be found.");
 //  // tensorflow::AddControlInput(graph, op, input_op);
 //  return 0;
 //}
@@ -129,9 +129,9 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_
 //  TF_Graph* graph = require_graph_handle(env, graph_handle);
 //  TF_Operation* op = require_operation_handle(env, op_handle);
 //  if (graph == nullptr)
-//    throw_exception(env, jvm_illegal_state_exception, "Graph could not be found.");
+//    throw_exception(env, tf_invalid_argument_exception, "Graph could not be found.");
 //  if (op == nullptr)
-//    throw_exception(env, jvm_illegal_state_exception, "Operation could not be found.");
+//    throw_exception(env, tf_invalid_argument_exception, "Operation could not be found.");
 //  // tensorflow::ClearControlInputs(graph, op);
 //  return 0;
 //}

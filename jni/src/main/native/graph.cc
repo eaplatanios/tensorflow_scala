@@ -28,7 +28,7 @@ namespace {
     static_assert(sizeof(jlong) >= sizeof(T *),
                   "Cannot package C object pointers as a Java long");
     if (handle == 0) {
-      throw_exception(env, jvm_null_pointer_exception, closed_error_msg);
+      throw_exception(env, tf_invalid_argument_exception, closed_error_msg);
       return nullptr;
     }
     return reinterpret_cast<T *>(handle);
@@ -167,7 +167,7 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_importGraph
     if (input_map_length != env->GetArrayLength(input_map_key_outputs) ||
           input_map_length != env->GetArrayLength(input_map_value_ops) ||
           input_map_length != env->GetArrayLength(input_map_value_outputs))
-      throw_exception(env, jvm_illegal_argument_exception, "All input map arguments must have the same length.");
+      throw_exception(env, tf_invalid_argument_exception, "All input map arguments must have the same length.");
     jint *input_map_key_outputs_elements = env->GetIntArrayElements(input_map_key_outputs, 0);
     jlong *input_map_value_ops_elements = env->GetLongArrayElements(input_map_value_ops, 0);
     jint *input_map_value_outputs_elements = env->GetIntArrayElements(input_map_value_outputs, 0);
@@ -177,7 +177,7 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_importGraph
       int input_map_key_output = reinterpret_cast<int>(input_map_key_outputs_elements[i]);
       TF_Operation *op = require_operation_handle(env, input_map_value_ops_elements[i]);
       if (op == nullptr)
-        throw_exception(env, jvm_illegal_argument_exception, "Provided input map destination op cannot be found.");
+        throw_exception(env, tf_invalid_argument_exception, "Provided input map destination op cannot be found.");
       int output_index = reinterpret_cast<int>(input_map_value_outputs_elements[i]);
       TF_Output output{op, output_index};
       TF_ImportGraphDefOptionsAddInputMapping(options, input_map_key_op_c_string, input_map_key_output, output);
@@ -193,7 +193,7 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_importGraph
     int control_dependency_map_length = env->GetArrayLength(control_dependency_map_key_ops);
     if (control_dependency_map_length != env->GetArrayLength(control_dependency_map_value_ops))
       throw_exception(
-        env, jvm_illegal_argument_exception, "All control dependency map arguments must have the same length.");
+        env, tf_invalid_argument_exception, "All control dependency map arguments must have the same length.");
      jlong *control_dependency_map_value_ops_elements = env->GetLongArrayElements(control_dependency_map_value_ops, 0);
      for (int i = 0; i < control_dependency_map_length; ++i) {
       jstring control_dependency_map_key_op =
@@ -203,7 +203,7 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_importGraph
       TF_Operation *op = require_operation_handle(env, control_dependency_map_value_ops_elements[i]);
       if (op == nullptr)
         throw_exception(
-          env, jvm_illegal_argument_exception, "Provided control dependency map destination op cannot be found.");
+          env, tf_invalid_argument_exception, "Provided control dependency map destination op cannot be found.");
       TF_ImportGraphDefOptionsRemapControlDependency(options, control_dependency_map_key_op_c_string, op);
       env->ReleaseStringUTFChars(control_dependency_map_key_op, control_dependency_map_key_op_c_string);
     }
@@ -217,7 +217,7 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_importGraph
     for (int i = 0; i < control_dependencies_length; ++i) {
       TF_Operation *op = require_operation_handle(env, control_dependencies_elements[i]);
       if (op == nullptr)
-        throw_exception(env, jvm_illegal_argument_exception, "Provided control dependency op cannot be found.");
+        throw_exception(env, tf_invalid_argument_exception, "Provided control dependency op cannot be found.");
       TF_ImportGraphDefOptionsAddControlDependency(options, op);
     }
     env->ReleaseLongArrayElements(control_dependencies, control_dependencies_elements, 0);
@@ -251,7 +251,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_toGra
   if (throw_exception_if_not_ok(env, status)) {
     // sizeof(jsize) is less than sizeof(size_t) on some platforms.
     if (buf->length > std::numeric_limits<jint>::max()) {
-      throw_exception(env, jvm_index_out_of_bounds_exception,
+      throw_exception(env, tf_invalid_argument_exception,
                       "GraphDef is too large to serialize into a Java byte array.");
     } else {
       static_assert(sizeof(jbyte) == 1, "Unexpected size of the Java byte type.");

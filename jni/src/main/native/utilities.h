@@ -42,7 +42,7 @@ namespace {
     if (handle == 0) {
       std::stringstream msg;
       msg << "Object '" << object_name << "' has been disposed already.";
-      throw_exception(env, jvm_null_pointer_exception, msg.str().c_str());
+      throw_exception(env, tf_invalid_argument_exception, msg.str().c_str());
       return nullptr;
     }
     return reinterpret_cast<T*>(handle);
@@ -54,7 +54,7 @@ namespace {
     if (len != src_array_length) {
       std::stringstream msg;
       msg << "Expected " << src_array_length << " handles, but got " << len << " handles, instead.";
-      throw_exception(env, jvm_illegal_argument_exception, msg.str().c_str());
+      throw_exception(env, tf_invalid_argument_exception, msg.str().c_str());
       return;
     }
     jlong* src_start = env->GetLongArrayElements(src_array, nullptr);
@@ -63,7 +63,7 @@ namespace {
       if (*src == 0) {
         std::stringstream msg;
         msg << "Invalid handle (# " << i << " of " << src_array_length << ").";
-        throw_exception(env, jvm_null_pointer_exception, msg.str().c_str());
+        throw_exception(env, tf_invalid_argument_exception, msg.str().c_str());
         return;
       }
       *dst_array = reinterpret_cast<T*>(*src);
@@ -77,14 +77,14 @@ namespace {
     if (len != src_ops_length) {
       std::stringstream msg;
       msg << "Expected " << src_ops_length << " ops, but got " << len << ", instead.";
-      throw_exception(env, jvm_illegal_argument_exception, msg.str().c_str());
+      throw_exception(env, tf_invalid_argument_exception, msg.str().c_str());
       return;
     }
     len = env->GetArrayLength(src_indices);
     if (len != src_ops_length) {
       std::stringstream msg;
       msg << "Expected " << src_ops_length << " op output indices, but got " << len << ", instead.";
-      throw_exception(env, jvm_illegal_argument_exception, msg.str().c_str());
+      throw_exception(env, tf_invalid_argument_exception, msg.str().c_str());
       return;
     }
     jlong* op_handles = env->GetLongArrayElements(src_ops, nullptr);
@@ -93,7 +93,7 @@ namespace {
       if (op_handles[i] == 0) {
         std::stringstream msg;
         msg << "Invalid op handle (# " << i << " of " << src_ops_length << ").";
-        throw_exception(env, jvm_null_pointer_exception, msg.str().c_str());
+        throw_exception(env, tf_invalid_argument_exception, msg.str().c_str());
         return;
       }
       dst_array[i] = TF_Output{reinterpret_cast<TF_Operation*>(op_handles[i]), static_cast<int>(indices[i])};

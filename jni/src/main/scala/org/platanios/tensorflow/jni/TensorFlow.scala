@@ -27,8 +27,6 @@ import scala.collection.JavaConverters._
   * @author Emmanouil Antonios Platanios
   */
 object TensorFlow {
-  final class NativeException(message: String) extends RuntimeException(message)
-
   private[this] val logger: Logger = Logger(LoggerFactory.getLogger("TensorFlow Native"))
 
   /** TensorFlow native library name. */
@@ -172,8 +170,8 @@ object TensorFlow {
 
   load()
 
-  lazy val currentJvmPointer: String = jvmPointer
-  lazy val currentCallbackRegistryPointer: String = callbackRegistryPointer
+  lazy val currentJvmPointer                       : String = jvmPointer
+  lazy val currentCallbackRegistryPointer          : String = callbackRegistryPointer
   lazy val currentCallbackRegistryCallMethodPointer: String = callbackRegistryCallMethodPointer
 
   @native private[this] def jvmPointer: String

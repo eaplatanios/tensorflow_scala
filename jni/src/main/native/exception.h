@@ -27,7 +27,23 @@ extern "C" {
 
 struct TF_Status;
 
-const char jvm_default_exception[] = "org/platanios/tensorflow/jni/TensorFlow$NativeException";
+const char tf_cancelled_exception[] = "org/platanios/tensorflow/jni/CancelledException";
+const char tf_unknown_exception[] = "org/platanios/tensorflow/jni/UnknownException";
+const char tf_invalid_argument_exception[] = "org/platanios/tensorflow/jni/InvalidArgumentException";
+const char tf_deadline_exceeded_exception[] = "org/platanios/tensorflow/jni/DeadlineExceededException";
+const char tf_not_found_exception[] = "org/platanios/tensorflow/jni/NotFoundException";
+const char tf_already_exists_exception[] = "org/platanios/tensorflow/jni/AlreadyExistsException";
+const char tf_permission_denied_exception[] = "org/platanios/tensorflow/jni/PermissionDeniedException";
+const char tf_unauthenticated_exception[] = "org/platanios/tensorflow/jni/UnauthenticatedException";
+const char tf_resource_exhausted_exception[] = "org/platanios/tensorflow/jni/ResourceExhaustedException";
+const char tf_failed_precondition_exception[] = "org/platanios/tensorflow/jni/FailedPreconditionException";
+const char tf_aborted_exception[] = "org/platanios/tensorflow/jni/AbortedException";
+const char tf_out_of_range_exception[] = "org/platanios/tensorflow/jni/OutOfRangeException";
+const char tf_unimplemented_exception[] = "org/platanios/tensorflow/jni/UnimplementedException";
+const char tf_internal_exception[] = "org/platanios/tensorflow/jni/InternalException";
+const char tf_unavailable_exception[] = "org/platanios/tensorflow/jni/UnavailableException";
+const char tf_data_loss_exception[] = "org/platanios/tensorflow/jni/DataLossException";
+
 const char jvm_illegal_argument_exception[] = "java/lang/IllegalArgumentException";
 const char jvm_security_exception[] = "java/lang/SecurityException";
 const char jvm_illegal_state_exception[] = "java/lang/IllegalStateException";
@@ -40,20 +56,38 @@ inline const char *jvm_exception_class_name(TF_Code code) {
   switch (code) {
     case TF_OK:
       return nullptr;
+    case TF_UNKNOWN:
+      return tf_unknown_exception;
     case TF_INVALID_ARGUMENT:
-      return jvm_illegal_argument_exception;
-    case TF_UNAUTHENTICATED:
+      return tf_invalid_argument_exception;
+    case TF_DEADLINE_EXCEEDED:
+      return tf_deadline_exceeded_exception;
+    case TF_NOT_FOUND:
+      return tf_not_found_exception;
+    case TF_ALREADY_EXISTS:
+      return tf_already_exists_exception;
     case TF_PERMISSION_DENIED:
-      return jvm_security_exception;
+      return tf_permission_denied_exception;
+    case TF_UNAUTHENTICATED:
+      return tf_unauthenticated_exception;
     case TF_RESOURCE_EXHAUSTED:
+      return tf_resource_exhausted_exception;
     case TF_FAILED_PRECONDITION:
-      return jvm_illegal_state_exception;
+      return tf_failed_precondition_exception;
+    case TF_ABORTED:
+      return tf_aborted_exception;
     case TF_OUT_OF_RANGE:
-      return jvm_index_out_of_bounds_exception;
+      return tf_out_of_range_exception;
     case TF_UNIMPLEMENTED:
-      return jvm_unsupported_operation_exception;
+      return tf_unimplemented_exception;
+    case TF_INTERNAL:
+      return tf_internal_exception;
+    case TF_UNAVAILABLE:
+      return tf_unavailable_exception;
+    case TF_DATA_LOSS:
+      return tf_data_loss_exception;
     default:
-      return jvm_default_exception;
+      return tf_unknown_exception;
   }
 }
 

@@ -92,7 +92,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_fromBuffe
 //  if (dims != nullptr)
 //    env->ReleaseLongArrayElements(shape, dims, JNI_ABORT);
 //  if (tensor_handle == nullptr) {
-//    throw_exception(env, jvm_null_pointer_exception, "Unable to create new native Tensor.");
+//    throw_exception(env, tf_invalid_argument_exception, "Unable to create new native Tensor.");
 //    return 0;
 //  }
 //  return reinterpret_cast<jlong>(tensor_handle);

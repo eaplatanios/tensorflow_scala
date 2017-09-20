@@ -352,7 +352,7 @@ case class OpGenerator(opDef: OpDef) {
                  |          << "' must match length '"
                  |          << $attrValueName
                  |          << "' of argument '${inferrableAttributes(attrName)}'";
-                 |      throw_exception(env, jvm_illegal_argument_exception, error_msg.str().c_str());
+                 |      throw_exception(env, tf_invalid_argument_exception, error_msg.str().c_str());
                  |  }""".stripMargin)
           })
         case "type" =>
@@ -376,7 +376,7 @@ case class OpGenerator(opDef: OpDef) {
                      |          << "' must match data type '"
                      |          << $attrValueName
                      |          << "' of argument '${inferrableAttributes(attrName)}'";
-                     |      throw_exception(env, jvm_illegal_argument_exception, error_msg.str().c_str());
+                     |      throw_exception(env, tf_invalid_argument_exception, error_msg.str().c_str());
                      |  }""".stripMargin)
               case "list(tensor)" =>
                 val attrValueName = attributeExpressions(attrName)
@@ -398,7 +398,7 @@ case class OpGenerator(opDef: OpDef) {
                      |          << "' must match data type '"
                      |          << $attrValueName
                      |          << "' of argument '${inferrableAttributes(attrName)}'";
-                     |      throw_exception(env, jvm_illegal_argument_exception, error_msg.str().c_str());
+                     |      throw_exception(env, tf_invalid_argument_exception, error_msg.str().c_str());
                      |    }
                      |  }
                      |  env->ReleaseLongArrayElements($inputName, $tensorElems, JNI_ABORT);""".stripMargin)

@@ -1087,7 +1087,7 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors
           << "' must match data type '"
           << attr_T
           << "' of argument 'x'";
-      throw_exception(env, jvm_illegal_argument_exception, error_msg.str().c_str());
+      throw_exception(env, tf_invalid_argument_exception, error_msg.str().c_str());
   }
 
   TFE_OpSetAttrType(op.get(), "out_idx", static_cast<TF_DataType>(out_idx));
@@ -1222,7 +1222,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basi
           << "' must match data type '"
           << attr_Tindices
           << "' of argument 'indices'";
-      throw_exception(env, jvm_illegal_argument_exception, error_msg.str().c_str());
+      throw_exception(env, tf_invalid_argument_exception, error_msg.str().c_str());
   }
 
   const int num_outputs = 1;
@@ -1273,7 +1273,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basi
           << "' must match data type '"
           << attr_Index
           << "' of argument 'begin'";
-      throw_exception(env, jvm_illegal_argument_exception, error_msg.str().c_str());
+      throw_exception(env, tf_invalid_argument_exception, error_msg.str().c_str());
   }
 
   const int num_outputs = 1;
@@ -1328,7 +1328,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basi
           << "' must match data type '"
           << attr_Index
           << "' of argument 'begin'";
-      throw_exception(env, jvm_illegal_argument_exception, error_msg.str().c_str());
+      throw_exception(env, tf_invalid_argument_exception, error_msg.str().c_str());
   }
 
   REQUIRE_HANDLE(attr_Index_strides_handle, TFE_TensorHandle, strides, 0);
@@ -1341,7 +1341,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basi
           << "' must match data type '"
           << attr_Index
           << "' of argument 'begin'";
-      throw_exception(env, jvm_illegal_argument_exception, error_msg.str().c_str());
+      throw_exception(env, tf_invalid_argument_exception, error_msg.str().c_str());
   }
 
   TFE_OpSetAttrInt(op.get(), "begin_mask", static_cast<int64_t>(begin_mask));
@@ -1440,7 +1440,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basi
           << "' must match data type '"
           << attr_T
           << "' of argument 'hypothesis_values'";
-      throw_exception(env, jvm_illegal_argument_exception, error_msg.str().c_str());
+      throw_exception(env, tf_invalid_argument_exception, error_msg.str().c_str());
   }
 
   TFE_OpSetAttrBool(op.get(), "normalize", static_cast<unsigned char>(normalize));
@@ -1497,7 +1497,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basi
           << "' must match data type '"
           << attr_T
           << "' of argument 'on_value'";
-      throw_exception(env, jvm_illegal_argument_exception, error_msg.str().c_str());
+      throw_exception(env, tf_invalid_argument_exception, error_msg.str().c_str());
   }
 
   TFE_OpSetAttrInt(op.get(), "axis", static_cast<int64_t>(axis));
@@ -1542,7 +1542,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basi
           << "' must match data type '"
           << attr_T
           << "' of argument 's0'";
-      throw_exception(env, jvm_illegal_argument_exception, error_msg.str().c_str());
+      throw_exception(env, tf_invalid_argument_exception, error_msg.str().c_str());
   }
 
   const int num_outputs = 1;
@@ -1703,7 +1703,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basi
           << "' must match data type '"
           << attr_T
           << "' of argument 'input'";
-      throw_exception(env, jvm_illegal_argument_exception, error_msg.str().c_str());
+      throw_exception(env, tf_invalid_argument_exception, error_msg.str().c_str());
   }
 
   const int num_outputs = 1;
@@ -1754,7 +1754,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basi
           << "' must match data type '"
           << attr_T
           << "' of argument 'input'";
-      throw_exception(env, jvm_illegal_argument_exception, error_msg.str().c_str());
+      throw_exception(env, tf_invalid_argument_exception, error_msg.str().c_str());
   }
 
   REQUIRE_HANDLE(attr_T_input_max_handle, TFE_TensorHandle, input_max, 0);
@@ -1767,7 +1767,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basi
           << "' must match data type '"
           << attr_T
           << "' of argument 'input'";
-      throw_exception(env, jvm_illegal_argument_exception, error_msg.str().c_str());
+      throw_exception(env, tf_invalid_argument_exception, error_msg.str().c_str());
   }
 
   TFE_OpSetAttrBool(op.get(), "signed_input", static_cast<unsigned char>(signed_input));
@@ -1921,7 +1921,7 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors
           << "' must match length '"
           << attr_N
           << "' of argument 'values'";
-      throw_exception(env, jvm_illegal_argument_exception, error_msg.str().c_str());
+      throw_exception(env, tf_invalid_argument_exception, error_msg.str().c_str());
   }
 
   const int attr_N_input_maxes = env->GetArrayLength(input_maxes);
@@ -1933,7 +1933,7 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors
           << "' must match length '"
           << attr_N
           << "' of argument 'values'";
-      throw_exception(env, jvm_illegal_argument_exception, error_msg.str().c_str());
+      throw_exception(env, tf_invalid_argument_exception, error_msg.str().c_str());
   }
 
   const int num_outputs = 3;

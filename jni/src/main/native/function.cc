@@ -90,7 +90,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Function_00024_to
   
   // sizeof(jsize) is less than sizeof(size_t) on some platforms.
   if (buffer->length > std::numeric_limits<jint>::max()) {
-    throw_exception(env, jvm_index_out_of_bounds_exception,
+    throw_exception(env, tf_invalid_argument_exception,
                     "GraphDef is too large to serialize into a Java byte array.");
   } else {
     static_assert(sizeof(jbyte) == 1, "Unexpected size of the Java byte type.");

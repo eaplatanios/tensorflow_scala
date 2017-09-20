@@ -31,7 +31,7 @@ T* requireHandleImpl(JNIEnv* env, jlong handle) {
                 "Cannot package C object pointers as a Java long");
   if (handle == 0) {
     throw_exception(
-        env, jvm_null_pointer_exception,
+        env, tf_invalid_argument_exception,
         "close() has been called on the Graph this Operation was a part of");
     return nullptr;
   }
@@ -48,7 +48,7 @@ TF_Graph* require_graph_handle(JNIEnv *env, jlong handle) {
 
 TF_OperationDescription* requireOperationDescriptionHandle(JNIEnv* env, jlong handle) {
   if (handle == 0) {
-    throw_exception(env, jvm_illegal_state_exception,
+    throw_exception(env, tf_invalid_argument_exception,
                     "Operation has already been built");
     return 0;
   }
@@ -57,7 +57,7 @@ TF_OperationDescription* requireOperationDescriptionHandle(JNIEnv* env, jlong ha
 
 bool resolveOutput(JNIEnv* env, jlong op_handle, jint index, TF_Output* out) {
   if (op_handle == 0) {
-    throw_exception(env, jvm_illegal_state_exception,
+    throw_exception(env, tf_invalid_argument_exception,
                     "close() was called on the Graph");
     return false;
   }
@@ -68,7 +68,7 @@ bool resolveOutput(JNIEnv* env, jlong op_handle, jint index, TF_Output* out) {
 
 TF_Tensor* requireTensor(JNIEnv* env, jlong handle) {
   if (handle == 0) {
-    throw_exception(env, jvm_illegal_state_exception,
+    throw_exception(env, tf_invalid_argument_exception,
                     "close() has been called on the Tensor");
     return nullptr;
   }
@@ -191,7 +191,7 @@ JNIEXPORT jobject JNICALL Java_org_platanios_tensorflow_jni_Op_00024_input(JNIEn
   int num_inputs = TF_OperationNumInputs(op);
   if (input_index < 0 || input_index >= num_inputs) {
     throw_exception(
-        env, jvm_index_out_of_bounds_exception,
+        env, tf_invalid_argument_exception,
         "invalid input index (%d) for an operation that has %d inputs",
         input_index, num_inputs);
     return 0;
@@ -274,7 +274,7 @@ JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Op_00024_inputDataType(
   int num_inputs = TF_OperationNumInputs(op);
   if (input_index < 0 || input_index >= num_inputs) {
     throw_exception(
-        env, jvm_index_out_of_bounds_exception,
+        env, tf_invalid_argument_exception,
         "invalid input index (%d) for an operation that has %d inputs",
         input_index, num_inputs);
     return 0;
@@ -293,7 +293,7 @@ JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Op_00024_outputDataType
   int num_outputs = TF_OperationNumOutputs(op);
   if (output_index < 0 || output_index >= num_outputs) {
     throw_exception(
-        env, jvm_index_out_of_bounds_exception,
+        env, tf_invalid_argument_exception,
         "invalid output index (%d) for an operation that has %d outputs",
         output_index, num_outputs);
     return 0;
@@ -312,7 +312,7 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_shape(
   int num_outputs = TF_OperationNumOutputs(op);
   if (output_index < 0 || output_index >= num_outputs) {
     throw_exception(
-        env, jvm_index_out_of_bounds_exception,
+        env, tf_invalid_argument_exception,
         "invalid output index (%d) for an operation that has %d outputs",
         output_index, num_outputs);
     return nullptr;
@@ -390,7 +390,7 @@ JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttrStri
   if (attr_metadata.total_size < 0) return nullptr;
   if (attr_metadata.type != TF_ATTR_STRING || attr_metadata.is_list == 1)
     throw_exception(
-        env, jvm_illegal_argument_exception, "Attribute '%s' is not a string. It is a '%s', instead.",
+        env, tf_invalid_argument_exception, "Attribute '%s' is not a string. It is a '%s', instead.",
         attrNameString, attrTypeToString(attr_metadata.type, attr_metadata.is_list));
   if (attr_metadata.total_size < 0) return nullptr;
   char* attrValue = new char[attr_metadata.total_size];
@@ -424,7 +424,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAtt
   if (attr_metadata.total_size < 0) return nullptr;
   if (attr_metadata.type != TF_ATTR_STRING || attr_metadata.is_list == 0)
     throw_exception(
-        env, jvm_illegal_argument_exception,
+        env, tf_invalid_argument_exception,
         "Attribute '%s' is not a string list. It is a '%s', instead.",
         attrNameString, attrTypeToString(attr_metadata.type, attr_metadata.is_list));
   size_t storageSize = static_cast<size_t>(attr_metadata.total_size);
@@ -475,7 +475,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAtt
                                                                                              \
     if (attr_metadata.type != tf_type || attr_metadata.is_list == 1)                         \
       throw_exception(                                                                       \
-          env, jvm_illegal_argument_exception,                                               \
+          env, tf_invalid_argument_exception,                                               \
           "Attribute '%s' is not a %s. It is a '%s', instead.",                              \
           name, attr_name, attrTypeToString(attr_metadata.type, attr_metadata.is_list));     \
                                                                                              \
@@ -519,7 +519,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttrTensor
 
   if (attr_metadata.type != TF_ATTR_TENSOR || attr_metadata.is_list == 1)
     throw_exception(
-        env, jvm_illegal_argument_exception, "Attribute '%s' is not a tensor. It is a '%s', instead.",
+        env, tf_invalid_argument_exception, "Attribute '%s' is not a tensor. It is a '%s', instead.",
         attr_name, attrTypeToString(attr_metadata.type, attr_metadata.is_list));
   TF_Tensor* value;
   status = TF_NewStatus();
@@ -552,7 +552,7 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttrS
   if (attr_metadata.total_size < 0) return nullptr;
   if (attr_metadata.type != TF_ATTR_SHAPE || attr_metadata.is_list == 1)
     throw_exception(
-        env, jvm_illegal_argument_exception, "Attribute '%s' is not a shape. It is a '%s', instead.",
+        env, tf_invalid_argument_exception, "Attribute '%s' is not a shape. It is a '%s', instead.",
         attr_name, attrTypeToString(attr_metadata.type, attr_metadata.is_list));
   int num_dims = static_cast<int>(attr_metadata.total_size);
   static_assert(sizeof(jlong) == sizeof(int64_t), "Java long is not compatible with the TensorFlow C API");
@@ -592,7 +592,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_allOps(J
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Op_00024_allocate(
     JNIEnv* env, jobject object, jlong graph_handle, jstring type, jstring name) {
   if (graph_handle == 0) {
-    throw_exception(env, jvm_illegal_state_exception,
+    throw_exception(env, tf_invalid_argument_exception,
                     "close() has been called on the Graph");
     return 0;
   }
@@ -635,7 +635,7 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_addInputList(
   if (d == nullptr) return;
   const size_t n = static_cast<size_t>(env->GetArrayLength(op_handles));
   if (env->GetArrayLength(indices) != n) {
-    throw_exception(env, jvm_illegal_argument_exception,
+    throw_exception(env, tf_invalid_argument_exception,
                     "mismatch in number of Operations (%d) and output indices "
                         "(%d) provided",
                     n, env->GetArrayLength(indices));
