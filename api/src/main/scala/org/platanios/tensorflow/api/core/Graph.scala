@@ -149,7 +149,7 @@ class Graph private[api](private[api] var nativeHandle: Long) extends Closeable 
     assertNotFrozen()
     if (!functionsMap.contains(function.name)) {
       // TODO: !!! [FUNCTIONS] Add support for function gradients.
-      NativeFunction.addToGraph(nativeHandle, function.nativeHandle, 0)
+      NativeFunction.copyToGraph(nativeHandle, function.nativeHandle, 0)
       functionsMap.update(function.name, function)
     }
   }

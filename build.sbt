@@ -23,6 +23,7 @@ crossScalaVersions in ThisBuild := Seq("2.11.8", "2.12.3")
 organization in ThisBuild := "org.platanios"
 
 val tensorFlowVersion = "1.3.0"
+val circeVersion = "0.8.0"       // Use for working with JSON.
 
 scalacOptions in ThisBuild ++= Seq(
   "-deprecation",
@@ -58,9 +59,9 @@ lazy val testSettings = Seq(
     "org.scalactic" %% "scalactic" % "3.0.1",
     "org.scalatest" %% "scalatest" % "3.0.1" % "test"),
   logBuffered in Test := false,
-  fork in test := true,
-  testForkedParallel in Test := true,
-  parallelExecution in Test := true,
+  fork in test := false,
+  testForkedParallel in Test := false,
+  parallelExecution in Test := false,
   testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oDF")
 )
 
@@ -178,6 +179,11 @@ lazy val api = (project in file("./api"))
       libraryDependencies += "org.typelevel" %% "spire" % "0.14.1",
       libraryDependencies += "org.tensorflow" % "proto" % tensorFlowVersion,
       libraryDependencies += "com.chuusai" %% "shapeless" % "2.3.2",
+      libraryDependencies ++= Seq(
+        "io.circe" %% "circe-core",
+        "io.circe" %% "circe-generic",
+        "io.circe" %% "circe-parser"
+      ).map(_ % circeVersion),
       // Protobuf settings
       version in ProtobufConfig := "3.4.0",
       sourceDirectory in ProtobufConfig := sourceDirectory.value / "main" / "proto",
