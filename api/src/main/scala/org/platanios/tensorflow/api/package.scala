@@ -26,6 +26,12 @@ import scala.util.DynamicVariable
   * @author Emmanouil Antonios Platanios
   */
 package object api extends Implicits with Documentation {
+  type Graph = core.Graph
+  val Graph: core.Graph.type = core.Graph
+
+  type Session = core.client.Session
+  val Session: core.client.Session.type = core.client.Session
+
   type Shape = core.Shape
   val Shape: core.Shape.type = core.Shape
 

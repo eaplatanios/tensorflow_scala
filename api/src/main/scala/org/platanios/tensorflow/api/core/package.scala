@@ -25,10 +25,7 @@ package object core {
 
   private[api] val defaultGraph: core.Graph = core.Graph()
 
-  private[api] trait API extends client.API {
-    type Graph = core.Graph
-    val Graph: core.Graph.type = core.Graph
-
+  private[api] trait API {
     type DeviceSpecification = core.DeviceSpecification
 
     type CancelledException = exception.CancelledException

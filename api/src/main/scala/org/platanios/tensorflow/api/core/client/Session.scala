@@ -189,11 +189,6 @@ class Session private[api](
 
 /** Contains helper functions for managing [[Session]] instances. */
 object Session {
-  private[client] trait API {
-    type Session = client.Session
-    val Session: client.Session.type = client.Session
-  }
-
   def apply(graph: Graph = Op.currentGraph, target: String = null, sessionConfig: SessionConfig = null): Session = {
     val graphReference = graph.reference
     val nativeHandle = NativeSession.allocate(
