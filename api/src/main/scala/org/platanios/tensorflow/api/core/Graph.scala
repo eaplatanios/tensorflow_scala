@@ -1356,12 +1356,16 @@ object Graph {
       override def name: String = "summary_op"
     }
 
-    object GLOBAL_STEP extends VariableCollectionKey {
-      override def name: String = "global_step"
+    object GLOBAL_EPOCH extends VariableCollectionKey {
+      override def name: String = "global_epoch"
     }
 
-    object EVAL_STEP extends VariableCollectionKey {
-      override def name: String = "eval_step"
+    object GLOBAL_ITERATION extends VariableCollectionKey {
+      override def name: String = "global_iteration"
+    }
+
+    object EVAL_ITERATION extends VariableCollectionKey {
+      override def name: String = "eval_iteration"
     }
 
     object TRAIN_OP extends OpCollectionKey {
