@@ -16,6 +16,7 @@
 package org.platanios.tensorflow.api.learn
 
 import org.platanios.tensorflow.api.core.client.{Executable, FeedMap, Fetchable, Session}
+import org.platanios.tensorflow.api.core.exception.{AbortedException, UnavailableException}
 import org.platanios.tensorflow.api.learn.hooks.Hook
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
@@ -64,15 +65,16 @@ abstract class SessionWrapper private[learn](protected var session: Session)
 
   override def close(): Unit = {
     if (!closed) {
-      ignoring(SessionWrapper.PREEMPTION_ERRORS.toSeq: _*)(super.close())
+      ignoring(SessionWrapper.RECOVERABLE_EXCEPTIONS.toSeq: _*)(super.close())
       _closed = true
     }
   }
 }
 
 object SessionWrapper {
-  // TODO: !!! We need to fill this and find a way to more generally better represent TensorFlow exceptions.
-  private[learn] val PREEMPTION_ERRORS: Set[Class[_]] = Set.empty // Set(classOf[IndexOutOfBoundsException])
+  private[learn] val RECOVERABLE_EXCEPTIONS: Set[Class[_]] = {
+    Set(classOf[AbortedException], classOf[UnavailableException])
+  }
 }
 
 /** Session wrapper that recreates a session upon certain kinds of errors.
@@ -95,7 +97,7 @@ case class RecoverableSession private[learn](sessionCreator: SessionCreator)
       true
     } else {
       // If any exception is thrown, we should stop.
-      Try(catching(SessionWrapper.PREEMPTION_ERRORS.toSeq: _*).withApply(e => {
+      Try(catching(SessionWrapper.RECOVERABLE_EXCEPTIONS.toSeq: _*).withApply(e => {
         RecoverableSession.logger.info(
           "An exception was thrown while considering whether the session is complete. This may be due to a " +
               "preemption in a connected worker or parameter server. The current session will be closed and a new " +
@@ -124,7 +126,7 @@ case class RecoverableSession private[learn](sessionCreator: SessionCreator)
     while (result == null) {
       if (closed)
         session = RecoverableSession.createSession(sessionCreator)
-      handling(SessionWrapper.PREEMPTION_ERRORS.toSeq: _*).by(e => {
+      handling(SessionWrapper.RECOVERABLE_EXCEPTIONS.toSeq: _*).by(e => {
         RecoverableSession.logger.info(
           "An exception was thrown. This may be due to a preemption in a connected worker or parameter server. " +
               "The current session will be closed and a new session will be created. Exception: " + e)
@@ -144,7 +146,7 @@ object RecoverableSession {
   private[RecoverableSession] def createSession(sessionCreator: SessionCreator): Session = {
     var session: Session = null
     while (session == null) {
-      handling(SessionWrapper.PREEMPTION_ERRORS.toSeq: _*).by(e => RecoverableSession.logger.info(
+      handling(SessionWrapper.RECOVERABLE_EXCEPTIONS.toSeq: _*).by(e => RecoverableSession.logger.info(
         "An exception was thrown while a session was being created. This may be due to a preemption of a connected " +
             "worker or parameter server. A new session will be created. Exception: " + e)) {
         session = sessionCreator.createSession()
@@ -209,7 +211,7 @@ case class CoordinatedSession private[learn](
           coordinator.reThrowRequestedStopCause()
           throw cause
         } catch {
-          case e if SessionWrapper.PREEMPTION_ERRORS.contains(e.getClass) => throw e
+          case e if SessionWrapper.RECOVERABLE_EXCEPTIONS.contains(e.getClass) => throw e
           case _: Throwable => throw cause
         }
     }
@@ -415,7 +417,8 @@ object MonitoredSession {
     * @param  sessionCreator         Factory used for creating new sessions (e.g., when recovering from an exception).
     *                                Typically, a [[ChiefSessionCreator]] or a [[WorkerSessionCreator]].
     * @param  hooks                  Hooks to use.
-    * @param  shouldRecover          Boolean flag indicating whether to recover from certain types of exceptions.
+    * @param  shouldRecover          Boolean flag indicating whether to recover from [[AbortedException]]s and
+    *                                [[UnavailableException]]s.
     * @param  stopGracePeriodSeconds Number of seconds given to threads to stop after a stop has been requested.
     * @return Created monitored session.
     */
