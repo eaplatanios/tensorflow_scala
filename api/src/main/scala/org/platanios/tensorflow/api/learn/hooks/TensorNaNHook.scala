@@ -31,7 +31,8 @@ import org.slf4j.LoggerFactory
   *
   * @author Emmanouil Antonios Platanios
   */
-case class TensorNaNHook(tensorNames: Set[String], failOnNaN: Boolean = true) extends Hook {
+private[learn] case class TensorNaNHook private[learn] (tensorNames: Set[String], failOnNaN: Boolean = true)
+    extends Hook {
   private[this] var outputs: Seq[Output] = _
 
   override def begin(): Unit = {

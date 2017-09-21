@@ -42,7 +42,7 @@ import org.tensorflow.framework.{RunMetadata, RunOptions}
   * There are a few pre-defined hooks that can be used without modification:
   *   - `TensorLoggingHook`: Logs the values of one or more tensors.
   *   - `TensorNaNHook`: Requests to stop iterating if the provided tensor contains `NaN` values.
-  *   - `StopAtStepHook`: Requests to stop iterating based on the global step.
+  *   - `TerminationHook`: Requests to stop iterating based on the provided termination criteria.
   *   - `CheckpointSaverHook`: Saves checkpoints.
   *   - `SummarySaverHook`: Saves summaries to the provided summary writer.
   *
