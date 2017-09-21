@@ -17,11 +17,11 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Function_00024_graphTo
 
 /*
  * Class:     org_platanios_tensorflow_jni_Function__
- * Method:    addToGraph
- * Signature: (JJ)V
+ * Method:    copyToGraph
+ * Signature: (JJJ)V
  */
-JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Function_00024_addToGraph
-  (JNIEnv *, jobject, jlong, jlong);
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Function_00024_copyToGraph
+  (JNIEnv *, jobject, jlong, jlong, jlong);
 
 /*
  * Class:     org_platanios_tensorflow_jni_Function__

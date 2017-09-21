@@ -148,7 +148,8 @@ class Graph private[api](private[api] var nativeHandle: Long) extends Closeable 
   private[api] def addFunction(function: InstantiatedFunction[_, _]): Unit = {
     assertNotFrozen()
     if (!functionsMap.contains(function.name)) {
-      NativeFunction.addToGraph(nativeHandle, function.nativeHandle)
+      // TODO: !!! [FUNCTIONS] Add support for function gradients.
+      NativeFunction.addToGraph(nativeHandle, function.nativeHandle, 0)
       functionsMap.update(function.name, function)
     }
   }

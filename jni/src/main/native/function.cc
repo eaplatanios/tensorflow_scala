@@ -54,10 +54,11 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Function_00024_graphTo
     c_output_names[i] = env->GetStringUTFChars(j_output_names[i], nullptr);
   }
 
+  // TODO: Add support for function options and descriptions.
   std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
   TF_Function* function = TF_GraphToFunction(
     fn_body_graph, c_fn_name, op_handles == NULL ? -1 : num_ops, ops.get(), num_inputs, inputs.get(), num_outputs,
-    outputs.get(), c_output_names, /*opts=*/nullptr, status.get());
+    outputs.get(), c_output_names, /*opts=*/nullptr, /*description=*/nullptr, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   env->ReleaseStringUTFChars(fn_name, c_fn_name);
@@ -68,12 +69,12 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Function_00024_graphTo
   return reinterpret_cast<jlong>(function);
 }
 
-JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Function_00024_addToGraph(
-  JNIEnv* env, jobject object, jlong graph_handle, jlong function_handle) {
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Function_00024_copyToGraph(
+  JNIEnv* env, jobject object, jlong graph_handle, jlong function_handle, jlong gradient_handle) {
   REQUIRE_HANDLE(graph, TF_Graph, graph_handle, void());
   REQUIRE_HANDLE(function, TF_Function, function_handle, void());
   std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
-  TF_GraphAddFunction(graph, function, status.get());
+  TF_GraphCopyFunction(graph, function, reinterpret_cast<TF_Function*>(gradient_handle), status.get());
   CHECK_STATUS(env, status.get(), void());
 }
 
