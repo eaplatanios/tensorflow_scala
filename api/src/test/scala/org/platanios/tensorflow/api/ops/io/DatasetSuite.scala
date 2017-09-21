@@ -17,6 +17,7 @@ package org.platanios.tensorflow.api.ops.io
 
 import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.client.Session
+import org.platanios.tensorflow.api.core.exception.OutOfRangeException
 import org.platanios.tensorflow.api.ops.{Basic, Op}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.{DataType, INT32}
@@ -40,7 +41,7 @@ class DatasetSuite extends JUnitSuite {
       val session = Session()
       session.run(targets = initOp)
       assert(components === session.run(fetches = nextOutput))
-      assertThrows[IndexOutOfBoundsException](session.run(fetches = nextOutput))
+      assertThrows[OutOfRangeException](session.run(fetches = nextOutput))
     }
   }
 
@@ -60,7 +61,7 @@ class DatasetSuite extends JUnitSuite {
       assert(components(0) === results(0))
       assert(components(1) === results(1))
       assert(components(2) === results(2))
-      assertThrows[IndexOutOfBoundsException](session.run(fetches = nextOp))
+      assertThrows[OutOfRangeException](session.run(fetches = nextOp))
     }
   }
 
@@ -80,7 +81,7 @@ class DatasetSuite extends JUnitSuite {
       assert(components._1 === results._1)
       assert(components._2 === results._2)
       assert(components._3 === results._3)
-      assertThrows[IndexOutOfBoundsException](session.run(fetches = nextOp))
+      assertThrows[OutOfRangeException](session.run(fetches = nextOp))
     }
   }
 
@@ -97,7 +98,7 @@ class DatasetSuite extends JUnitSuite {
       assert(session.run(fetches = nextOutput) === (1L: Tensor))
       assert(session.run(fetches = nextOutput) === (2L: Tensor))
       assert(session.run(fetches = nextOutput) === (3L: Tensor))
-      assertThrows[IndexOutOfBoundsException](session.run(fetches = nextOutput))
+      assertThrows[OutOfRangeException](session.run(fetches = nextOutput))
     }
   }
 
@@ -114,7 +115,7 @@ class DatasetSuite extends JUnitSuite {
       assert(session.run(fetches = nextOutput) === (2L: Tensor))
       assert(session.run(fetches = nextOutput) === (4L: Tensor))
       assert(session.run(fetches = nextOutput) === (6L: Tensor))
-      assertThrows[IndexOutOfBoundsException](session.run(fetches = nextOutput))
+      assertThrows[OutOfRangeException](session.run(fetches = nextOutput))
     }
   }
 
@@ -135,7 +136,7 @@ class DatasetSuite extends JUnitSuite {
       assert(session.run(fetches = nextOutput) === (1L: Tensor))
       assert(session.run(fetches = nextOutput) === (3L: Tensor))
       assert(session.run(fetches = nextOutput) === (1L: Tensor))
-      assertThrows[IndexOutOfBoundsException](session.run(fetches = nextOutput))
+      assertThrows[OutOfRangeException](session.run(fetches = nextOutput))
     }
   }
 
@@ -152,7 +153,7 @@ class DatasetSuite extends JUnitSuite {
       assert(session.run(fetches = nextOutput) === Tensor(INT32, 1))
       assert(session.run(fetches = nextOutput) === Tensor(INT32, 2))
       assert(session.run(fetches = nextOutput) === Tensor(INT32, 3))
-      assertThrows[IndexOutOfBoundsException](session.run(fetches = nextOutput))
+      assertThrows[OutOfRangeException](session.run(fetches = nextOutput))
     }
   }
 }

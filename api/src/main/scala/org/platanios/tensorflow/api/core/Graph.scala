@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.core
 
 import org.platanios.tensorflow.api.core.client.Session
-import org.platanios.tensorflow.api.core.exception.{GraphMismatchException, InvalidGraphElementException}
+import org.platanios.tensorflow.api.core.exception.{GraphMismatchException, InvalidArgumentException}
 import org.platanios.tensorflow.api.ops.{Basic, InstantiatedFunction, Math, Op, Output, Resource}
 import org.platanios.tensorflow.api.ops.variables.{Saver, Variable, VariableStore}
 import org.platanios.tensorflow.api.tensors.Tensor
@@ -405,8 +405,9 @@ class Graph private[api](private[api] var nativeHandle: Long) extends Closeable 
     * @note This function may be called concurrently from multiple threads (i.e., it is thread-safe).
     * @param  name Op name.
     * @return Op, from this graph, corresponding to that name.
+    * @throws InvalidArgumentException If the provided name cannot be associated with an element of this graph.
     */
-  @throws[InvalidGraphElementException]
+  @throws[InvalidArgumentException]
   def getOpByName(name: String): Op = {
     getByName(name = name, allowOp = true, allowOutput = false).left.get
   }
@@ -418,8 +419,9 @@ class Graph private[api](private[api] var nativeHandle: Long) extends Closeable 
     * @note This function may be called concurrently from multiple threads (i.e., it is thread-safe).
     * @param  name Op output name.
     * @return Op output, from this graph, corresponding to that name.
+    * @throws InvalidArgumentException If the provided name cannot be associated with an element of this graph.
     */
-  @throws[InvalidGraphElementException]
+  @throws[InvalidArgumentException]
   def getOutputByName(name: String): Output = {
     getByName(name = name, allowOp = false, allowOutput = true).right.get
   }
@@ -436,9 +438,9 @@ class Graph private[api](private[api] var nativeHandle: Long) extends Closeable 
     * @param  allowOp     Allow ops to be considered for the graph element to return.
     * @param  allowOutput Allow op outputs to be considered for the graph element to return.
     * @return Graph element named `name`.
-    * @throws InvalidGraphElementException If the provided name cannot be associated with an element of this graph.
+    * @throws InvalidArgumentException If the provided name cannot be associated with an element of this graph.
     */
-  @throws[InvalidGraphElementException]
+  @throws[InvalidArgumentException]
   private[api] def getByName(
       name: String, allowOp: Boolean = true, allowOutput: Boolean = true): Either[Op, Output] = {
     NativeHandleLock.synchronized {
@@ -448,39 +450,39 @@ class Graph private[api](private[api] var nativeHandle: Long) extends Closeable 
         if (allowOutput) {
           val nameParts = name.split(':')
           if (nameParts.length != 2 || !nameParts(1).matches("\\d+"))
-            throw InvalidGraphElementException(
+            throw InvalidArgumentException(
               s"Name '$name' looks a like an op output name, but it is not a valid one. Op output names must be of " +
                   "the form \"<op_name>:<output_index>\".")
           val opName = nameParts(0)
           val outputIndex = nameParts(1).toInt
           val graphOp = findOp(opName) match {
             case Some(o) => o
-            case None => throw InvalidGraphElementException(
+            case None => throw InvalidArgumentException(
               s"Name '$name' refers to an op output which does not exist in the graph. More specifically, op, " +
                   s"'$opName', does not exist in the graph.")
           }
           if (outputIndex > graphOp.numOutputs - 1)
-            throw InvalidGraphElementException(
+            throw InvalidArgumentException(
               s"Name '$name' refers to an op output which does not exist in the graph. More specifically, op, " +
                   s"'$opName', does exist in the graph, but it only has ${graphOp.numOutputs} output(s).")
           Right(graphOp.outputs(outputIndex))
         } else {
-          throw InvalidGraphElementException(
+          throw InvalidArgumentException(
             s"Name '$name' appears to refer to an op output, but 'allowOutput' was set to 'false'.")
         }
       } else if (allowOp) {
         findOp(name) match {
           case Some(o) => Left(o)
-          case None => throw InvalidGraphElementException(
+          case None => throw InvalidArgumentException(
             s"Name '$name' refers to an op which does not exist in the graph.")
         }
       } else {
         findOp(name) match {
-          case Some(_) => throw InvalidGraphElementException(
+          case Some(_) => throw InvalidArgumentException(
             s"Name '$name' appears to refer to an op, but 'allowOp' was set to 'false'.")
           case None =>
         }
-        throw InvalidGraphElementException(
+        throw InvalidArgumentException(
           s"Name '$name' looks like an (invalid) op name, and not an op output name. Op output names must be of the " +
               "form \"<op_name>:<output_index>\".")
       }

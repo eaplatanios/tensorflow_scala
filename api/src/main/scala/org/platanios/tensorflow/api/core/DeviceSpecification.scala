@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.core
 
-import org.platanios.tensorflow.api.core.exception.InvalidDeviceSpecificationException
+import org.platanios.tensorflow.api.core.exception.InvalidDeviceException
 
 import scala.util.matching.Regex
 
@@ -115,7 +115,7 @@ private[api] object DeviceSpecification {
   /** Parses a [[DeviceSpecification]] specification from the provided string.
     *
     * The string being parsed must comply with the following regular expression (otherwise an
-    * [[InvalidDeviceSpecificationException]] exception is thrown):
+    * [[InvalidDeviceException]] exception is thrown):
     *
     * {{{
     *   ^(?:/job:([^/:]+))?
@@ -131,9 +131,9 @@ private[api] object DeviceSpecification {
     *
     * @param  device String to parse.
     * @return Device specification parsed from string.
-    * @throws InvalidDeviceSpecificationException If the provided string does not match the appropriate regular expression.
+    * @throws InvalidDeviceException If the provided string does not match the appropriate regular expression.
     */
-  @throws[InvalidDeviceSpecificationException]
+  @throws[InvalidDeviceException]
   private[api] def fromString(device: String): DeviceSpecification = {
     device match {
       case deviceStringRegex(job, replica, task, deviceType, deviceIndex, deviceTypeShort, deviceIndexShort)
@@ -162,7 +162,7 @@ private[api] object DeviceSpecification {
               deviceIndex.toInt
           }
         )
-      case _ => throw InvalidDeviceSpecificationException(s"Invalid device specification '$device'.")
+      case _ => throw InvalidDeviceException(s"Invalid device specification '$device'.")
     }
   }
 

@@ -26,6 +26,50 @@
 #include "c_api.h"
 #include "c_eager_api.h"
 
+namespace {
+// Map unchecked exceptions to TF_Codes.
+inline int tf_error_code(std::string jvm_name) {
+  if (jvm_name == "org.platanios.tensorflow.jni.CancelledException") {
+    return 1;
+  } else if (jvm_name == "org.platanios.tensorflow.jni.UnknownException") {
+    return 2;
+  } else if (jvm_name == "org.platanios.tensorflow.jni.InvalidArgumentException" ||
+      jvm_name == "java.lang.IllegalArgumentException") {
+    return 3;
+  } else if (jvm_name == "org.platanios.tensorflow.jni.DeadlineExceededException") {
+    return 4;
+  } else if (jvm_name == "org.platanios.tensorflow.jni.NotFoundException") {
+    return 5;
+  } else if (jvm_name == "org.platanios.tensorflow.jni.AlreadyExistsException") {
+    return 6;
+  } else if (jvm_name == "org.platanios.tensorflow.jni.PermissionDeniedException" ||
+      jvm_name == "java.lang.SecurityException") {
+    return 7;
+  } else if (jvm_name == "org.platanios.tensorflow.jni.UnauthenticatedException") {
+    return 16;
+  } else if (jvm_name == "org.platanios.tensorflow.jni.ResourceExhaustedException") {
+    return 8;
+  } else if (jvm_name == "org.platanios.tensorflow.jni.FailedPreconditionException") {
+    return 9;
+  } else if (jvm_name == "org.platanios.tensorflow.jni.AbortedException") {
+    return 10;
+  } else if (jvm_name == "org.platanios.tensorflow.jni.OutOfRangeException" ||
+      jvm_name == "java.lang.IndexOutOfBoundsException") {
+    return 11;
+  } else if (jvm_name == "org.platanios.tensorflow.jni.UnimplementedException") {
+    return 12;
+  } else if (jvm_name == "org.platanios.tensorflow.jni.InternalException") {
+    return 13;
+  } else if (jvm_name == "org.platanios.tensorflow.jni.UnavailableException") {
+    return 14;
+  } else if (jvm_name == "org.platanios.tensorflow.jni.DataLossException") {
+    return 15;
+  } else {
+    return 2;
+  }
+}
+}
+
 struct TF_Status {
   tensorflow::Status status;
 };

@@ -139,38 +139,23 @@ namespace {
           call->registry, call->call_method_id, call->id, call_inputs);
       jthrowable exc(call->env->ExceptionOccurred());
       if (exc) {
-        //call->env->ExceptionClear();
-        //return errors::OutOfRange("Failed to run JVM callback function.");
-        // jclass excObjCls(call->env->FindClass("java/lang/Throwable"));
+        // Get the exception string representation to use as the error message.
+        jclass throwableCls(call->env->FindClass("java/lang/Throwable"));
+        jmethodID toString = call->env->GetMethodID(throwableCls, "toString", "()Ljava/lang/String;");
+        jstring exc_string = (jstring) call->env->CallObjectMethod(exc, toString);
+        const char* c_exc_string = call->env->GetStringUTFChars(exc_string, 0);
+        tensorflow::StringPiece tf_exc_string(c_exc_string);
+        call->env->ReleaseStringUTFChars(exc_string, c_exc_string);
+        // Get the exception class name and convert it to a TensorFlow error code.
         jclass excObjCls(call->env->GetObjectClass(exc));
-        // jmethodID getClass(call->env->GetMethodID(excObjCls, "getClass", "()Ljava/lang/Class;"));
-        // jobject excCls(call->env->CallObjectMethod(exc, getClass));
-        jclass clsCls(call->env->FindClass("java/lang/Class"));
-        jmethodID getName(call->env->GetMethodID(clsCls, "getName", "()Ljava/lang/String;"));
+        jclass classCls(call->env->FindClass("java/lang/Class"));
+        jmethodID getName(call->env->GetMethodID(classCls, "getName", "()Ljava/lang/String;"));
         jstring clsName(static_cast<jstring>(call->env->CallObjectMethod(excObjCls, getName)));
         const char* clsNameCString = call->env->GetStringUTFChars(clsName, 0);
-//      jclass exccls(call->env->GetObjectClass(exc));
-//      jclass clscls(call->env->FindClass("java/lang/Class"));
-//      jmethodID getName(call->env->GetMethodID(clscls, "getName", "()Ljava/lang/String;"));
-//      jstring name(static_cast<jstring>(call->env->CallObjectMethod(exccls, getName)));
-//      char const* clsNameCString(call->env->GetStringUTFChars(name, 0));
         std::string clsNameCppString(clsNameCString);
-        if (clsNameCppString == "java.lang.IllegalArgumentException") {
-          call->env->ReleaseStringUTFChars(clsName, clsNameCString);
-          return errors::InvalidArgument("Failed to run JVM callback function.");
-        } else if (clsNameCppString == "java.lang.SecurityException") {
-          call->env->ReleaseStringUTFChars(clsName, clsNameCString);
-          return errors::PermissionDenied("Failed to run JVM callback function.");
-        } else if (clsNameCppString == "java.lang.IllegalStateException") {
-          call->env->ReleaseStringUTFChars(clsName, clsNameCString);
-          return errors::FailedPrecondition("Failed to run JVM callback function.");
-        } else if (clsNameCppString == "java.lang.IndexOutOfBoundsException") {
-          call->env->ReleaseStringUTFChars(clsName, clsNameCString);
-          return errors::OutOfRange("Failed to run JVM callback function.");
-        } else {
-          call->env->ReleaseStringUTFChars(clsName, clsNameCString);
-          return errors::Unknown("Failed to run JVM callback function.");
-        }
+        int error_code = tf_error_code(clsNameCppString);
+        call->env->ReleaseStringUTFChars(clsName, clsNameCString);
+        return tensorflow::Status((tensorflow::error::Code) error_code, tf_exc_string);
       }
 
       if (outputs == nullptr) {

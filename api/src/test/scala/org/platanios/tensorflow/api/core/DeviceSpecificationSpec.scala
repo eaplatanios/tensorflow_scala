@@ -15,7 +15,8 @@
 
 package org.platanios.tensorflow.api.core
 
-import org.platanios.tensorflow.api.tf.InvalidDeviceSpecificationException
+import org.platanios.tensorflow.api.tf.InvalidDeviceException
+
 import org.scalatest._
 
 /**
@@ -75,9 +76,9 @@ class DeviceSpecificationSpec extends FlatSpec with Matchers {
   }
 
   "An InvalidDeviceSpecificationException" must "be thrown when attempting to parse invalid strings" in {
-    assertThrows[InvalidDeviceSpecificationException](DeviceSpecification.fromString("/job:j/replica:foo"))
-    assertThrows[InvalidDeviceSpecificationException](DeviceSpecification.fromString("/job:j/task:bar"))
-    assertThrows[InvalidDeviceSpecificationException](DeviceSpecification.fromString("/bar:muu/baz:2"))
-    assertThrows[InvalidDeviceSpecificationException](DeviceSpecification.fromString("/CPU:0/GPU:2"))
+    assertThrows[InvalidDeviceException](DeviceSpecification.fromString("/job:j/replica:foo"))
+    assertThrows[InvalidDeviceException](DeviceSpecification.fromString("/job:j/task:bar"))
+    assertThrows[InvalidDeviceException](DeviceSpecification.fromString("/bar:muu/baz:2"))
+    assertThrows[InvalidDeviceException](DeviceSpecification.fromString("/CPU:0/GPU:2"))
   }
 }

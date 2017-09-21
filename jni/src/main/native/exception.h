@@ -18,6 +18,7 @@
 
 #include <jni.h>
 #include <stdlib.h>
+#include <string>
 
 #include "c_api.h"
 
@@ -56,6 +57,8 @@ inline const char *jvm_exception_class_name(TF_Code code) {
   switch (code) {
     case TF_OK:
       return nullptr;
+    case TF_CANCELLED:
+      return tf_cancelled_exception;
     case TF_UNKNOWN:
       return tf_unknown_exception;
     case TF_INVALID_ARGUMENT:
@@ -88,6 +91,48 @@ inline const char *jvm_exception_class_name(TF_Code code) {
       return tf_data_loss_exception;
     default:
       return tf_unknown_exception;
+  }
+}
+
+// Map unchecked exceptions to TF_Codes.
+inline TF_Code tf_error_code(std::string jvm_name) {
+  if (jvm_name == "org.platanios.tensorflow.jni.CancelledException") {
+    return TF_CANCELLED;
+  } else if (jvm_name == "org.platanios.tensorflow.jni.UnknownException") {
+    return TF_UNKNOWN;
+  } else if (jvm_name == "org.platanios.tensorflow.jni.InvalidArgumentException" ||
+      jvm_name == "java.lang.IllegalArgumentException") {
+    return TF_INVALID_ARGUMENT;
+  } else if (jvm_name == "org.platanios.tensorflow.jni.DeadlineExceededException") {
+    return TF_DEADLINE_EXCEEDED;
+  } else if (jvm_name == "org.platanios.tensorflow.jni.NotFoundException") {
+    return TF_NOT_FOUND;
+  } else if (jvm_name == "org.platanios.tensorflow.jni.AlreadyExistsException") {
+    return TF_ALREADY_EXISTS;
+  } else if (jvm_name == "org.platanios.tensorflow.jni.PermissionDeniedException" ||
+      jvm_name == "java.lang.SecurityException") {
+    return TF_PERMISSION_DENIED;
+  } else if (jvm_name == "org.platanios.tensorflow.jni.UnauthenticatedException") {
+    return TF_UNAUTHENTICATED;
+  } else if (jvm_name == "org.platanios.tensorflow.jni.ResourceExhaustedException") {
+    return TF_RESOURCE_EXHAUSTED;
+  } else if (jvm_name == "org.platanios.tensorflow.jni.FailedPreconditionException") {
+    return TF_FAILED_PRECONDITION;
+  } else if (jvm_name == "org.platanios.tensorflow.jni.AbortedException") {
+    return TF_ABORTED;
+  } else if (jvm_name == "org.platanios.tensorflow.jni.OutOfRangeException" ||
+      jvm_name == "java.lang.IndexOutOfBoundsException") {
+    return TF_OUT_OF_RANGE;
+  } else if (jvm_name == "org.platanios.tensorflow.jni.UnimplementedException") {
+    return TF_UNIMPLEMENTED;
+  } else if (jvm_name == "org.platanios.tensorflow.jni.InternalException") {
+    return TF_INTERNAL;
+  } else if (jvm_name == "org.platanios.tensorflow.jni.UnavailableException") {
+    return TF_UNAVAILABLE;
+  } else if (jvm_name == "org.platanios.tensorflow.jni.DataLossException") {
+    return TF_DATA_LOSS;
+  } else {
+    return TF_UNKNOWN;
   }
 }
 
