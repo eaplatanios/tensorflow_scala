@@ -131,7 +131,7 @@ private[learn] case class SessionManager(
   @throws[IllegalArgumentException]
   def prepareSession(
       master: String, saver: Option[Saver] = None, checkpointPath: Option[Path], waitForCheckpoint: Boolean = false,
-      maxWaitSeconds: Int = 7200, sessionConfig: SessionConfig = null, initOp: Option[Op] = None,
+      maxWaitSeconds: Int = 7200, sessionConfig: Option[SessionConfig] = None, initOp: Option[Op] = None,
       initFeedMap: FeedMap = FeedMap.empty, initFunction: Option[(Session) => Unit] = None): Session = {
     val (session, isLoadedFromCheckpoint) = restoreCheckpoint(
       master, saver, checkpointPath, waitForCheckpoint, maxWaitSeconds, sessionConfig)
@@ -173,7 +173,7 @@ private[learn] case class SessionManager(
   def recoverSession(
       master: String, saver: Option[Saver] = None, checkpointPath: Option[Path] = None,
       waitForCheckpoint: Boolean = false, maxWaitSeconds: Int = 7200,
-      sessionConfig: SessionConfig = null): (Session, Boolean) = {
+      sessionConfig: Option[SessionConfig] = None): (Session, Boolean) = {
     val (session, isLoadedFromCheckpoint) = restoreCheckpoint(
       master, saver, checkpointPath, waitForCheckpoint, maxWaitSeconds, sessionConfig)
 
@@ -220,7 +220,7 @@ private[learn] case class SessionManager(
     * @throws TimeoutException If the `maxWaitSeconds` timeout is exceeded.
     */
   @throws[TimeoutException]
-  def waitForSession(master: String, sessionConfig: SessionConfig = null, maxWaitSeconds: Int = -1): Session = {
+  def waitForSession(master: String, sessionConfig: Option[SessionConfig] = None, maxWaitSeconds: Int = -1): Session = {
     val startTime = System.currentTimeMillis()
     var session: Session = null
     var isReady = false
@@ -267,7 +267,7 @@ private[learn] case class SessionManager(
   private[this] def restoreCheckpoint(
       master: String, saver: Option[Saver] = None, checkpointPath: Option[Path] = None,
       waitForCheckpoint: Boolean = false, maxWaitSeconds: Int = 7200,
-      sessionConfig: SessionConfig = null): (Session, Boolean) = {
+      sessionConfig: Option[SessionConfig] = None): (Session, Boolean) = {
     val session = Session(graph, master, sessionConfig)
     (saver, checkpointPath) match {
       case (Some(_saver), Some(_checkpointPath)) =>
@@ -406,7 +406,7 @@ object SessionManager {
       hooks: Seq[Hook] = Seq.empty,
       chiefOnlyHooks: Seq[Hook] = Seq.empty,
       sessionScaffold: SessionScaffold = SessionScaffold(),
-      sessionConfig: SessionConfig = null,
+      sessionConfig: Option[SessionConfig] = None,
       stopGracePeriodSeconds: Int = 120,
       globalStepRateLoggingFrequency: Int = 100): MonitoredSession = {
     if (!isChief) {

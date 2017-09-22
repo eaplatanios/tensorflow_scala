@@ -42,7 +42,7 @@ object LinearRegression {
     val trainOp = tf.train.adaGrad(1.0).minimize(loss)
 
     logger.info("Training the linear regression model.")
-    val session = tf.Session()
+    val session = Session()
     session.run(targets = tf.globalVariablesInitializer())
     for (i <- 0 to 50) {
       val trainBatch = batch(10000)

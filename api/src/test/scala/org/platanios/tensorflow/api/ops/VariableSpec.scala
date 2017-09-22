@@ -24,15 +24,15 @@ import org.scalatest._
   */
 class VariableSpec extends FlatSpec with Matchers {
   "Variable creation" must "work" in {
-    val graph = tf.Graph()
+    val graph = Graph()
     val variable = tf.createWith(graph = graph) {
       val initializer = tf.constantInitializer(Tensor(Tensor(2, 3)))
       tf.variable("variable", INT64, Shape(1, 2), initializer)
     }
     assert(variable.dataType === INT64)
-    assert(graph.getCollection(tf.Graph.Keys.GLOBAL_VARIABLES).contains(variable))
-    assert(graph.getCollection(tf.Graph.Keys.TRAINABLE_VARIABLES).contains(variable))
-    val session = tf.Session(graph = graph)
+    assert(graph.getCollection(Graph.Keys.GLOBAL_VARIABLES).contains(variable))
+    assert(graph.getCollection(Graph.Keys.TRAINABLE_VARIABLES).contains(variable))
+    val session = Session(graph = graph)
     session.run(targets = variable.initializer)
     val outputs = session.run(fetches = variable.value)
     val expectedResult = Tensor(INT64, Tensor(2, 3))
@@ -43,7 +43,7 @@ class VariableSpec extends FlatSpec with Matchers {
   }
 
   "Variable assignment" must "work" in {
-    val graph = tf.Graph()
+    val graph = Graph()
     val (variable, variableAssignment) = tf.createWith(graph = graph) {
       val a = tf.constant(Tensor(Tensor(5, 7)), INT64, name = "A")
       val initializer = tf.constantInitializer(Tensor(Tensor(2, 3)))
@@ -52,9 +52,9 @@ class VariableSpec extends FlatSpec with Matchers {
       (variable, variableAssignment)
     }
     assert(variable.dataType === INT64)
-    assert(graph.getCollection(tf.Graph.Keys.GLOBAL_VARIABLES).contains(variable))
-    assert(graph.getCollection(tf.Graph.Keys.TRAINABLE_VARIABLES).contains(variable))
-    val session = tf.Session(graph = graph)
+    assert(graph.getCollection(Graph.Keys.GLOBAL_VARIABLES).contains(variable))
+    assert(graph.getCollection(Graph.Keys.TRAINABLE_VARIABLES).contains(variable))
+    val session = Session(graph = graph)
     session.run(targets = variable.initializer)
     session.run(targets = variableAssignment)
     val output = session.run(fetches = variable.value)

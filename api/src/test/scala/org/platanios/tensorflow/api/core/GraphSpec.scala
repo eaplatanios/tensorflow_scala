@@ -194,7 +194,7 @@ class GraphSpec extends FlatSpec with Matchers {
 
   "'Graph.toMetaGraphDef'" must "work when no scope is provided" in {
     val graph = Graph()
-    val session = tf.Session(graph)
+    val session = Session(graph)
 
     Op.createWith(graph) {
       // Create a minimal graph with zero variables.
@@ -220,7 +220,7 @@ class GraphSpec extends FlatSpec with Matchers {
 
     // Create a clean graph and import the 'MetaGraphDef' object.
     val newGraph = Graph()
-    val newSession = tf.Session(newGraph)
+    val newSession = Session(newGraph)
 
     newGraph.importMetaGraphDef(metaGraphDef)
 

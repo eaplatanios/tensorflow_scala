@@ -15,10 +15,16 @@
 
 package org.platanios.tensorflow.api
 
+import org.platanios.tensorflow.api.core.exception.{AbortedException, UnavailableException}
+
 /**
   * @author Emmanouil Antonios Platanios
   */
 package object learn {
+  private[learn] val RECOVERABLE_EXCEPTIONS: Set[Class[_]] = {
+    Set(classOf[AbortedException], classOf[UnavailableException])
+  }
+
   private[api] trait API
       extends Input.API
           with Layer.API

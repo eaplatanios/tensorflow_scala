@@ -22,8 +22,8 @@ package org.platanios.tensorflow.api.learn
   */
 sealed trait Mode
 
-case object TrainingMode extends Mode
+case object TRAINING extends Mode
 
-case object EvaluationMode extends Mode
+case object EVALUATION extends Mode
 
-case object PredictionMode extends Mode
+case object PREDICTION extends Mode

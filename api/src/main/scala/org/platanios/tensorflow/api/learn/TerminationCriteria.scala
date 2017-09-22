@@ -18,36 +18,42 @@ package org.platanios.tensorflow.api.learn
 /**
   *
   * @param  maxEpochs        Number of epochs (i.e., full passes over the data) after which to stop iterating.
-  * @param  maxIterations    Number of iterations after which to stop iterating.
-  * @param  restartCounting  If `true`, the number of epochs/iterations is counted starting at the current value when
-  *                          initializing the iteration. Otherwise, the iteration stops when the epoch/iteration exceeds
-  *                          `maxEpochs`/`maxIterations` in value. For example, in that case, if the current epoch is 10
+  * @param  maxSteps         Number of steps after which to stop iterating.
+  * @param  restartCounting  If `true`, the number of epochs/steps is counted starting at the current value when
+  *                          initializing the iteration. Otherwise, the iteration stops when the epoch/step exceeds
+  *                          `maxEpochs`/`maxSteps` in value. For example, in that case, if the current epoch is 10
   *                          when the hook is initialized and `maxEpochs` is `100`, the iteration will continue for `90`
   *                          epochs. If `restartCounting` was set to `true`, in that case, it would continue for `100`
   *                          epochs.
   * @param  absLossChangeTol
   * @param  relLossChangeTol
-  * @param  maxIterBelowTol
+  * @param  maxStepBelowTol
   *
   * @author Emmanouil Antonios Platanios
   */
 class TerminationCriteria(
     val maxEpochs: Option[Long] = Some(100L),
-    val maxIterations: Option[Long] = Some(10000L),
+    val maxSteps: Option[Long] = Some(10000L),
     val restartCounting: Boolean = true,
     val absLossChangeTol: Option[Double] = Some(1e-3),
     val relLossChangeTol: Option[Double] = Some(1e-3),
-    val maxIterBelowTol: Option[Long] = Some(10L))
+    val maxStepBelowTol: Option[Long] = Some(10L)) {
+  require(maxEpochs.getOrElse(0L) >= 0, "'maxEpochs' needs to be a non-negative number.")
+  require(maxSteps.getOrElse(0L) >= 0, "'maxSteps' needs to be a non-negative number.")
+  require(absLossChangeTol.getOrElse(0.0) >= 0, "'absLossChangeTol' needs to be a non-negative number.")
+  require(absLossChangeTol.getOrElse(0.0) >= 0, "'absLossChangeTol' needs to be a non-negative number.")
+  require(maxStepBelowTol.getOrElse(0L) >= 0, "'maxStepBelowTol' needs to be a non-negative number.")
+}
 
 object TerminationCriteria {
   def apply(
       maxEpochs: Option[Long] = Some(100L),
-      maxIterations: Option[Long] = Some(10000L),
+      maxSteps: Option[Long] = Some(10000L),
       restartCounting: Boolean = true,
       absLossChangeTol: Option[Double] = Some(1e-3),
       relLossChangeTol: Option[Double] = Some(1e-3),
-      maxIterBelowTol: Option[Long] = Some(10L)): TerminationCriteria = {
+      maxStepBelowTol: Option[Long] = Some(10L)): TerminationCriteria = {
     new TerminationCriteria(
-      maxEpochs, maxIterations, restartCounting, absLossChangeTol, relLossChangeTol, maxIterBelowTol)
+      maxEpochs, maxSteps, restartCounting, absLossChangeTol, relLossChangeTol, maxStepBelowTol)
   }
 }

@@ -26,26 +26,26 @@ import scala.collection.mutable
   */
 class GradientsSpec extends FlatSpec with Matchers {
   "'Op.gradients'" must "work when gradients are defined for the ops being used" in {
-    val graph = tf.Graph()
-    val expectedGraph = tf.Graph()
+    val graph = Graph()
+    val expectedGraph = Graph()
     val (inputs, output) = buildSuccessGraph(graph)
     val gradients = Gradients.gradients(Array(output), inputs)
     val expectedGradients = buildExpectedGraph(expectedGraph, gradientInputsProvided = false)
     val graphDef = graph.toProto
     val expectedGraphDef = expectedGraph.toProto
-    val (equal, difference) = tf.Graph.equalGraphDef(graphDef, expectedGraphDef)
+    val (equal, difference) = Graph.equalGraphDef(graphDef, expectedGraphDef)
     assert(equal)
   }
 
   "'Op.cc_gradients'" must "work when gradients are defined for the ops being used" in {
-    val graph = tf.Graph()
-    val expectedGraph = tf.Graph()
+    val graph = Graph()
+    val expectedGraph = Graph()
     val (inputs, output) = buildSuccessGraph(graph)
     val gradients = Gradients.cc_gradients(Array(output), inputs)
     val expectedGradients = buildExpectedCCGraph(expectedGraph, gradientInputsProvided = false)
     val graphDef = graph.toProto
     val expectedGraphDef = expectedGraph.toProto
-    val (equal, difference) = tf.Graph.equalGraphDef(graphDef, expectedGraphDef)
+    val (equal, difference) = Graph.equalGraphDef(graphDef, expectedGraphDef)
     assert(equal)
   }
 
@@ -53,7 +53,7 @@ class GradientsSpec extends FlatSpec with Matchers {
     ???
   }
 
-  private[this] def buildErrorGraph(graph: tf.Graph): (Output, Output) = {
+  private[this] def buildErrorGraph(graph: Graph): (Output, Output) = {
     Op.createWith(graph) {
       val constant = tf.constant(Tensor(Tensor(1.0, 2.0), Tensor(3.0, 4.0)), name = "Constant_0")
       val noGradient = noGradientOp(constant)
@@ -82,7 +82,7 @@ class GradientsSpec extends FlatSpec with Matchers {
     * @param  graph Graph in which to place the newly constructed ops.
     * @return Tuple containing the input and output tensors, respectively.
     */
-  private[this] def buildSuccessGraph(graph: tf.Graph): (Array[Output], Output) = {
+  private[this] def buildSuccessGraph(graph: Graph): (Array[Output], Output) = {
     Op.createWith(graph) {
       val constant0 = Basic.constant(Tensor(Tensor(1.0, 2.0), Tensor(3.0, 4.0)), name = "Constant_0")
       val constant1 = Basic.constant(Tensor(Tensor(1.0, 0.0), Tensor(0.0, 1.0)), name = "Constant_1")
@@ -127,7 +127,7 @@ class GradientsSpec extends FlatSpec with Matchers {
     *                                pre-existing values. If `false`, they are initialized with ones.
     * @return Array containing the gradient tensors.
     */
-  private[this] def buildExpectedGraph(graph: tf.Graph, gradientInputsProvided: Boolean): Array[Output] = {
+  private[this] def buildExpectedGraph(graph: Graph, gradientInputsProvided: Boolean): Array[Output] = {
     Op.createWith(graph) {
       val constant0 = Basic.constant(Tensor(Tensor(1.0, 2.0), Tensor(3.0, 4.0)), name = "Constant_0")
       val constant1 = Basic.constant(Tensor(Tensor(1.0, 0.0), Tensor(0.0, 1.0)), name = "Constant_1")
@@ -184,7 +184,7 @@ class GradientsSpec extends FlatSpec with Matchers {
     *                                pre-existing values. If `false`, they are initialized with ones.
     * @return Array containing the gradient tensors.
     */
-  private[this] def buildExpectedCCGraph(graph: tf.Graph, gradientInputsProvided: Boolean): Array[Output] = {
+  private[this] def buildExpectedCCGraph(graph: Graph, gradientInputsProvided: Boolean): Array[Output] = {
     Op.createWith(graph) {
       val constant0 = Basic.constant(Tensor(Tensor(1.0, 2.0), Tensor(3.0, 4.0)), name = "Constant_0")
       val constant1 = Basic.constant(Tensor(Tensor(1.0, 0.0), Tensor(0.0, 1.0)), name = "Constant_1")

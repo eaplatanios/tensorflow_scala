@@ -34,8 +34,8 @@ import org.slf4j.LoggerFactory
   * @author Emmanouil Antonios Platanios
   */
 private[learn] case class TerminationHook private[learn] (terminationCriteria: TerminationCriteria) extends Hook {
-  private[this] var epoch    : Variable = _
-  private[this] var iteration: Variable = _
+  private[this] var epoch: Variable = _
+  private[this] var step : Variable = _
 
   private[this] var lastEpoch: Option[Long] = {
     if (terminationCriteria.restartCounting)
@@ -44,25 +44,38 @@ private[learn] case class TerminationHook private[learn] (terminationCriteria: T
       terminationCriteria.maxEpochs
   }
 
-  private[this] var lastIteration: Option[Long] = {
+  private[this] var lastStep: Option[Long] = {
     if (terminationCriteria.restartCounting)
       None
     else
-      terminationCriteria.maxIterations
+      terminationCriteria.maxSteps
   }
 
   override def begin(): Unit = {
-    epoch = Counter.get(Graph.Keys.GLOBAL_EPOCH, Op.currentGraph).getOrElse(throw new IllegalStateException(
-      s"A ${Graph.Keys.GLOBAL_EPOCH.name} variable should be created in order to use the 'StopAtStepHook'."))
-    iteration = Counter.get(Graph.Keys.GLOBAL_ITERATION, Op.currentGraph).getOrElse(throw new IllegalStateException(
-      s"A ${Graph.Keys.GLOBAL_ITERATION.name} variable should be created in order to use the 'StopAtStepHook'."))
+    if (terminationCriteria.maxEpochs.isDefined)
+      epoch = Counter.get(Graph.Keys.GLOBAL_EPOCH, Op.currentGraph).getOrElse(throw new IllegalStateException(
+        s"A ${Graph.Keys.GLOBAL_EPOCH.name} variable should be created in order to use the 'StopAtStepHook'."))
+    if (terminationCriteria.maxSteps.isDefined)
+      step = Counter.get(Graph.Keys.GLOBAL_STEP, Op.currentGraph).getOrElse(throw new IllegalStateException(
+        s"A ${Graph.Keys.GLOBAL_STEP.name} variable should be created in order to use the 'StopAtStepHook'."))
   }
 
   override def afterSessionCreation(session: Session, coordinator: Coordinator): Unit = {
-    if (terminationCriteria.restartCounting) {
-      val (e, i) = session.run(fetches = (epoch.value, iteration.value))
-      lastEpoch = terminationCriteria.maxEpochs.map(_ + e.scalar.asInstanceOf[Long])
-      lastIteration = terminationCriteria.maxIterations.map(_ + i.scalar.asInstanceOf[Long])
+    if (terminationCriteria.restartCounting &&
+        (terminationCriteria.maxEpochs.isDefined || terminationCriteria.maxSteps.isDefined)) {
+      (terminationCriteria.maxEpochs, terminationCriteria.maxSteps) match {
+        case (Some(_), Some(_)) =>
+          val (e, s) = session.run(fetches = (epoch.value, step.value))
+          lastEpoch = terminationCriteria.maxEpochs.map(_ + e.scalar.asInstanceOf[Long])
+          lastStep = terminationCriteria.maxSteps.map(_ + s.scalar.asInstanceOf[Long])
+        case (Some(_), None) =>
+          val e = session.run(fetches = epoch.value)
+          lastEpoch = terminationCriteria.maxEpochs.map(_ + e.scalar.asInstanceOf[Long])
+        case (None, Some(_)) =>
+          val s = session.run(fetches = step.value)
+          lastStep = terminationCriteria.maxSteps.map(_ + s.scalar.asInstanceOf[Long])
+        case (None, None) => () // Impossible branch.
+      }
     }
   }
 
@@ -70,7 +83,17 @@ private[learn] case class TerminationHook private[learn] (terminationCriteria: T
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]
   ): Option[Hook.SessionRunArgs[Seq[Output], Traversable[Op], Seq[Tensor]]] = {
-    Some(Hook.SessionRunArgs(fetches = Seq(epoch.value, iteration.value)))
+    val fetches = {
+      if (terminationCriteria.maxEpochs.isDefined && terminationCriteria.maxSteps.isDefined)
+        Seq(epoch.value, step.value)
+      else if (terminationCriteria.maxEpochs.isDefined)
+        Seq(epoch.value)
+      else if (terminationCriteria.maxSteps.isDefined)
+        Seq(step.value)
+      else
+        Seq.empty[Output]
+    }
+    Some(Hook.SessionRunArgs(fetches = fetches))
   }
 
   @throws[IllegalStateException]
@@ -81,9 +104,19 @@ private[learn] case class TerminationHook private[learn] (terminationCriteria: T
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]
   ): Unit = {
-    val currentEpoch = runResult.values(0).scalar.asInstanceOf[Long]
-    val currentIteration = runResult.values(1).scalar.asInstanceOf[Long]
-    if (lastEpoch.exists(currentEpoch >= _) || lastIteration.exists(currentIteration >= _))
+    var converged = false
+    if (terminationCriteria.maxEpochs.isDefined) {
+      val currentEpoch = runResult.values(0).scalar.asInstanceOf[Long]
+      converged ||= lastEpoch.exists(currentEpoch >= _)
+    }
+    if (terminationCriteria.maxEpochs.isDefined && terminationCriteria.maxSteps.isDefined) {
+      val currentIteration = runResult.values(1).scalar.asInstanceOf[Long]
+      converged ||= lastStep.exists(currentIteration >= _)
+    } else if (terminationCriteria.maxSteps.isDefined) {
+      val currentIteration = runResult.values(0).scalar.asInstanceOf[Long]
+      converged ||= lastStep.exists(currentIteration >= _)
+    }
+    if (converged)
       runContext.requestStop()
   }
 }

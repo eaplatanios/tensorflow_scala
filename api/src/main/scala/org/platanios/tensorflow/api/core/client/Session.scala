@@ -189,12 +189,16 @@ class Session private[api](
 
 /** Contains helper functions for managing [[Session]] instances. */
 object Session {
-  def apply(graph: Graph = Op.currentGraph, target: String = null, sessionConfig: SessionConfig = null): Session = {
+  def apply(
+      graph: Graph = Op.currentGraph,
+      target: String = null,
+      sessionConfig: Option[SessionConfig] = None
+  ): Session = {
     val graphReference = graph.reference
     val nativeHandle = NativeSession.allocate(
       graphReference.nativeHandle,
       target,
-      if (sessionConfig != null) sessionConfig.configProto.toByteArray else null)
+      sessionConfig.map(_.configProto.toByteArray).orNull)
     new Session(graphReference, nativeHandle, target)
   }
 }

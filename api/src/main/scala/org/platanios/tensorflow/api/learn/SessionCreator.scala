@@ -46,7 +46,7 @@ trait SessionCreator {
 case class ChiefSessionCreator(
     master: String = "",
     sessionScaffold: SessionScaffold = SessionScaffold(),
-    sessionConfig: SessionConfig = null,
+    sessionConfig: Option[SessionConfig] = None,
     checkpointPath: Option[Path] = None
 ) extends SessionCreator {
   private[this] var builtSessionScaffold: BuiltSessionScaffold = _
@@ -85,7 +85,7 @@ case class ChiefSessionCreator(
 case class WorkerSessionCreator(
     master: String = "",
     sessionScaffold: SessionScaffold = SessionScaffold(),
-    sessionConfig: SessionConfig = null
+    sessionConfig: Option[SessionConfig] = None
 ) extends SessionCreator {
   private[this] var builtSessionScaffold: BuiltSessionScaffold = _
   private[this] var sessionManager      : SessionManager       = _

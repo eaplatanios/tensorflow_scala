@@ -29,7 +29,7 @@ class GradientDescentSpec extends FlatSpec with Matchers {
       val value1 = Tensor(dataType, 3.0, 4.0)
       val updatedValue0 = Tensor(dataType, 1.0 - 3.0 * 0.1, 2.0 - 3.0 * 0.1)
       val updatedValue1 = Tensor(dataType, 3.0 - 3.0 * 0.01, 4.0 - 3.0 * 0.01)
-      val graph = tf.Graph()
+      val graph = Graph()
       val (variable0, variable1, gdOp) = tf.createWith(graph) {
         val variable0 = tf.variable("v0", dataType, Shape(2), tf.constantInitializer(Tensor(1, 2)))
         val variable1 = tf.variable("v1", dataType, Shape(2), tf.constantInitializer(Tensor(3, 4)))
@@ -38,7 +38,7 @@ class GradientDescentSpec extends FlatSpec with Matchers {
         val gdOp = GradientDescent(3.0).applyGradients(Seq((gradient0, variable0), (gradient1, variable1)))
         (variable0, variable1, gdOp)
       }
-      val session = tf.Session(graph)
+      val session = Session(graph)
       session.run(targets = graph.trainableVariablesInitializer())
       var variable0Value = session.run(fetches = variable0.value)
       var variable1Value = session.run(fetches = variable1.value)

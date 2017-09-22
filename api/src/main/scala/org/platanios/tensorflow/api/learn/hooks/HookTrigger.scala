@@ -15,6 +15,8 @@
 
 package org.platanios.tensorflow.api.learn.hooks
 
+// TODO: [HOOKS] Add epoch hook trigger.
+
 /** Determines when hooks should be triggered.
   *
   * @author Emmanouil Antonios Platanios

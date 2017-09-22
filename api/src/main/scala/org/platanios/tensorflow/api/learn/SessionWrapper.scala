@@ -41,6 +41,7 @@ import scala.util.control.Exception._
   *
   * @author Emmanouil Antonios Platanios
   */
+// TODO: !!! [LEARN] [SESSIONS] This should probably not be extending session (given the confused functionality w.r.t. "runHelper".
 abstract class SessionWrapper private[learn](protected var session: Session)
     extends Session(session.graphReference, session.nativeHandle, session.target) {
   private[this] var _closed: Boolean = false
@@ -61,19 +62,21 @@ abstract class SessionWrapper private[learn](protected var session: Session)
   /** Overridable method that returns `true` if this session should not be used anymore. */
   private[learn] def checkStop: Boolean
 
+  override private[api] def runHelper[F, E, R](
+      feeds: FeedMap = FeedMap.empty, fetches: F = Seq.empty[Output], targets: E = Traversable.empty[Op],
+      options: RunOptions = null, wantMetadata: Boolean = false
+  )(implicit
+      executable: Executable[E],
+      fetchable: Fetchable.Aux[F, R]
+  ): (R, Option[RunMetadata]) = session.runHelper(feeds, fetches, targets, options, wantMetadata)
+
   override def closed: Boolean = _closed
 
   override def close(): Unit = {
     if (!closed) {
-      ignoring(SessionWrapper.RECOVERABLE_EXCEPTIONS.toSeq: _*)(super.close())
+      ignoring(RECOVERABLE_EXCEPTIONS.toSeq: _*)(super.close())
       _closed = true
     }
-  }
-}
-
-object SessionWrapper {
-  private[learn] val RECOVERABLE_EXCEPTIONS: Set[Class[_]] = {
-    Set(classOf[AbortedException], classOf[UnavailableException])
   }
 }
 
@@ -97,7 +100,7 @@ case class RecoverableSession private[learn](sessionCreator: SessionCreator)
       true
     } else {
       // If any exception is thrown, we should stop.
-      Try(catching(SessionWrapper.RECOVERABLE_EXCEPTIONS.toSeq: _*).withApply(e => {
+      Try(catching(RECOVERABLE_EXCEPTIONS.toSeq: _*).withApply(e => {
         RecoverableSession.logger.info(
           "An exception was thrown while considering whether the session is complete. This may be due to a " +
               "preemption in a connected worker or parameter server. The current session will be closed and a new " +
@@ -126,7 +129,7 @@ case class RecoverableSession private[learn](sessionCreator: SessionCreator)
     while (result == null) {
       if (closed)
         session = RecoverableSession.createSession(sessionCreator)
-      handling(SessionWrapper.RECOVERABLE_EXCEPTIONS.toSeq: _*).by(e => {
+      handling(RECOVERABLE_EXCEPTIONS.toSeq: _*).by(e => {
         RecoverableSession.logger.info(
           "An exception was thrown. This may be due to a preemption in a connected worker or parameter server. " +
               "The current session will be closed and a new session will be created. Exception: " + e)
@@ -146,7 +149,7 @@ object RecoverableSession {
   private[RecoverableSession] def createSession(sessionCreator: SessionCreator): Session = {
     var session: Session = null
     while (session == null) {
-      handling(SessionWrapper.RECOVERABLE_EXCEPTIONS.toSeq: _*).by(e => RecoverableSession.logger.info(
+      handling(RECOVERABLE_EXCEPTIONS.toSeq: _*).by(e => RecoverableSession.logger.info(
         "An exception was thrown while a session was being created. This may be due to a preemption of a connected " +
             "worker or parameter server. A new session will be created. Exception: " + e)) {
         session = sessionCreator.createSession()
@@ -211,7 +214,7 @@ case class CoordinatedSession private[learn](
           coordinator.reThrowRequestedStopCause()
           throw cause
         } catch {
-          case e if SessionWrapper.RECOVERABLE_EXCEPTIONS.contains(e.getClass) => throw e
+          case e if RECOVERABLE_EXCEPTIONS.contains(e.getClass) => throw e
           case _: Throwable => throw cause
         }
     }
@@ -263,8 +266,8 @@ case class HookedSession private[learn](private val baseSession: Session, hooks:
       combinedArgs.feeds, combinedArgs.fetches, combinedArgs.targets, combinedArgs.options, wantMetadata)
 
     // Invoke the hooks' `afterSessionRun` callbacks.
-    hooks.filter(h => result._1._2.contains(h)).foreach(hook => {
-      hook.afterSessionRun(runContext, Hook.SessionRunResult(result._1._2(hook), result._2))
+    hooks.foreach(hook => {
+      hook.afterSessionRun(runContext, Hook.SessionRunResult(result._1._2.getOrElse(hook, Seq.empty), result._2))
     })
 
     // Update the `_shouldStop` flag and return.
@@ -391,21 +394,29 @@ class MonitoredSession private[learn](
   private[this] val graphWasFrozen: Boolean = Op.currentGraph.isFrozen
 
   /** Overridable method that returns `true` if this session should not be used anymore. */
-  override private[learn] def checkStop: Boolean = super.shouldStop
+  override private[learn] def checkStop: Boolean = session match {
+    case s: SessionWrapper => s.shouldStop
+    case _ => false
+  }
+
+  /** Closes this session without invoking the `Hook.end()` method for the hooks (e.g., for when exceptions occur). */
+  private[learn] def closeWithoutHookEnd(): Unit = {
+    try {
+      if (closed)
+        throw new RuntimeException("This session has already been closed.")
+      super.close()
+    } finally {
+      if (!graphWasFrozen)
+        graph.unFreeze()
+    }
+  }
 
   @throws[RuntimeException]
   override def close(): Unit = {
     try {
       hooks.foreach(_.end(coordinatedSessionCreator.session.orNull))
     } finally {
-      try {
-        if (closed)
-          throw new RuntimeException("This session has already been closed.")
-        super.close()
-      } finally {
-        if (!graphWasFrozen)
-          graph.unFreeze()
-      }
+      closeWithoutHookEnd()
     }
   }
 }

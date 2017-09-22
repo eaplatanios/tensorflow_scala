@@ -30,7 +30,7 @@ class SessionSpec extends FlatSpec with Matchers {
       val x = tf.placeholder(dataType = INT32, shape = Shape(1, 2), name = "X")
       tf.subtract(tf.constant(1), tf.matmul(a = a, b = x, transposeB = true), name = "Y")
     }
-    val session = tf.Session(graph = graph)
+    val session = Session(graph = graph)
     val feeds = Map(graph.getOutputByName("X:0") -> Tensor(Tensor(5, 7)))
     val fetches = graph.getOutputByName("Y:0")
     val output = session.run(feeds, fetches)

@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.learn.layers
 
 import org.platanios.tensorflow.api.{Shape, tf}
-import org.platanios.tensorflow.api.learn.{TrainingMode, layers}
+import org.platanios.tensorflow.api.learn.{TRAINING, layers}
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -59,6 +59,6 @@ case class Dropout private[layers](
     val noise = if (noiseShape == null) null else noiseShape.toOutput()
     val default: () => tf.Output = () => input
     val applyDropout: () => tf.Output = () => tf.dropout(input, keepProbability, noise, seed, name)
-    applyDropout whenIn TrainingMode otherwise default
+    applyDropout whenIn TRAINING otherwise default
   }
 }
