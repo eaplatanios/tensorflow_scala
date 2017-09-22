@@ -500,8 +500,16 @@ object Tensor {
     */
   @throws[IllegalArgumentException]
   private[api] def allocate(dataType: DataType, shape: Shape): Tensor = dataType match {
-    case STRING => throw new IllegalArgumentException(
-      "Cannot pre-allocate string tensors because their size is not known.")
+    case STRING =>
+      if (shape.numElements == 0) {
+        val hostHandle = NativeTensor.allocate(dataType.cValue, Array[Long](0), 0)
+        val tensor = Tensor.fromHostNativeHandle(hostHandle)
+        NativeTensor.delete(hostHandle)
+        tensor
+      } else {
+        throw new IllegalArgumentException(
+          "Cannot pre-allocate string tensors because their size is not known.")
+      }
     case _ =>
       shape.assertFullyDefined()
       val numBytes = shape.numElements * dataType.byteSize
