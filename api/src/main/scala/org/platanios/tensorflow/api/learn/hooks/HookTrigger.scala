@@ -74,7 +74,7 @@ case class StepHookTrigger(numSteps: Int) extends HookTrigger {
   require(numSteps >= 0, s"'numSteps' (= $numSteps) must be a non-negative number.")
 
   /** Returns a copy of this hook trigger that is also reset. */
-  override def copy(): HookTrigger = super.copy()
+  override def copy(): HookTrigger = StepHookTrigger(numSteps)
 
   private[this] var _lastTrigger: Option[(Float, Int)] = None
 
@@ -114,7 +114,7 @@ case class TimeHookTrigger(numSeconds: Float) extends HookTrigger {
   require(numSeconds >= 0, s"'numSeconds' (= $numSeconds) must be a non-negative number.")
 
   /** Returns a copy of this hook trigger that is also reset. */
-  override def copy(): HookTrigger = super.copy()
+  override def copy(): HookTrigger = TimeHookTrigger(numSeconds)
 
   private[this] var _lastTrigger: Option[(Float, Int)] = None
 
