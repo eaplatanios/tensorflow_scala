@@ -505,7 +505,7 @@ private[api] trait Basic {
     * @param  name   Name for the created op.
     * @return Created op output.
     */
-  def concatenate(inputs: Seq[Output], axis: Output = constant(0), name: String = "Concatenate"): Output = {
+  def concatenate(inputs: Seq[Output], axis: Output = 0, name: String = "Concatenate"): Output = {
     if (inputs.length == 1) {
       Op.createWith(nameScope = name)(identity(inputs.head))
     } else {
@@ -1094,7 +1094,7 @@ private[api] trait Basic {
     * @return Created op output.
     */
   def booleanMask(input: Output, mask: Output, name: String = "BooleanMask"): Output = {
-    Op.createWithNameScope(name, Set[Op](input.op, mask.op)) {
+    Op.createWithNameScope(name, Set(input.op, mask.op)) {
       val inputShape: Shape = input.shape
       val maskShape: Shape = mask.shape
       val maskRank: Int = maskShape.rank
@@ -1104,11 +1104,14 @@ private[api] trait Basic {
               "'Shape(-1)' is fine, but 'Shape.unknown()' is not.")
       inputShape(0 :: maskRank).assertIsCompatibleWith(maskShape)
       val dynamicInputShape = shape(input)
-      val leadingSize = Math.prod(dynamicInputShape(0 :: maskRank), Array(0))
-      val reshapedInput = reshape(input, concatenate(Array[Output](leadingSize, dynamicInputShape(maskRank ::)), 0))
-      val firstDimension = inputShape(0 :: maskRank).rank
-      reshapedInput.setShape(Shape(firstDimension).concatenateWith(inputShape(maskRank ::)))
-      gather(reshapedInput, squeeze(where(reshape(mask, Array(-1))), axes = Array(1)))
+      val leadingSize = Math.prod(dynamicInputShape(0 :: maskRank), Seq(0)).reshape(Shape(1))
+      val reshapedInput = reshape(input, concatenate(Seq(leadingSize, dynamicInputShape(maskRank ::)), 0))
+      val firstDimension = inputShape(0 :: maskRank).numElements
+      if (maskRank >= inputShape.rank)
+        reshapedInput.setShape(Shape(firstDimension))
+      else
+        reshapedInput.setShape(Shape(firstDimension).concatenateWith(inputShape(maskRank ::)))
+      gather(reshapedInput, squeeze(where(reshape(mask, Seq(-1))), axes = Seq(1)))
     }
   }
 

@@ -165,7 +165,7 @@ private[api] trait Basic {
     * @param  axis   Dimension along which to concatenate the input tensors.
     * @return Result as a new tensor.
     */
-  def concatenate(inputs: Seq[Tensor], axis: Tensor = Tensor(0))(implicit context: DynamicVariable[Context]): Tensor = {
+  def concatenate(inputs: Seq[Tensor], axis: Tensor = 0)(implicit context: DynamicVariable[Context]): Tensor = {
     if (inputs.length == 1)
       inputs.head
     else
@@ -501,11 +501,14 @@ private[api] trait Basic {
     val inputShape: Shape = input.shape
     val maskShape: Shape = mask.shape
     val maskRank: Int = maskShape.rank
-    val leadingSize = Math.prod(input.shape(0 :: maskRank), Array(0))
-    val reshapedInput = reshape(input, concatenate(Array[Tensor](leadingSize, input.shape(maskRank ::)), 0))
-    val firstDimension = inputShape(0 :: maskRank).rank
-    reshapedInput.setShape(Shape(firstDimension).concatenateWith(inputShape(maskRank ::)))
-    gather(reshapedInput, squeeze(where(reshape(mask, Array(-1))), axes = Array(1)))
+    val leadingSize = Math.prod(input.shape(0 :: maskRank), Seq(0)).reshape(Shape(1))
+    val reshapedInput = reshape(input, concatenate(Seq(leadingSize, input.shape(maskRank ::)), 0))
+    val firstDimension = inputShape(0 :: maskRank).numElements
+    if (maskRank >= inputShape.rank)
+      reshapedInput.setShape(Shape(firstDimension))
+    else
+      reshapedInput.setShape(Shape(firstDimension).concatenateWith(inputShape(maskRank ::)))
+    gather(reshapedInput, squeeze(where(reshape(mask, Seq(-1))), axes = Seq(1)))
   }
 
   /** $OpDocBasicSequenceMask
