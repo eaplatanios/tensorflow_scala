@@ -44,7 +44,7 @@ import org.slf4j.LoggerFactory
   */
 case class TensorLoggingHook(
     tensors: Map[String, String],
-    trigger: HookTrigger,
+    trigger: HookTrigger = StepHookTrigger(1),
     logAtEnd: Boolean = false,
     formatter: (Map[String, Tensor]) => String = null)
     extends Hook {
@@ -97,7 +97,9 @@ case class TensorLoggingHook(
     if (formatter != null) {
       TensorLoggingHook.logger.info(formatter(tensors.toMap))
     } else {
-      val valuesLog = tensors.map(t => s"${t._1} = ${t._2.summarize()}").mkString(", ")
+      val valuesLog = tensors.map(t => {
+        s"${t._1} = ${t._2.summarize(flattened = true, includeInfo = false)}"
+      }).mkString(", ")
       val log = internalTrigger.updateLastTrigger(iterationCount).map(_._1) match {
         case Some(s) => f"($s%.3f) $valuesLog"
         case None => valuesLog

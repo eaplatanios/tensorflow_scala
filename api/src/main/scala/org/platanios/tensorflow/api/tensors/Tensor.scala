@@ -253,7 +253,7 @@ class Tensor private[Tensor](private[api] var nativeHandle: Long) extends Tensor
     *                    Defaults to `6`. Values below `6` are ignored.
     * @return Tensor summary.
     */
-  def summarize(maxEntries: Int = 6): String = {
+  def summarize(maxEntries: Int = 6, flattened: Boolean = false, includeInfo: Boolean = true): String = {
     def summarize(tensor: Tensor, maxEntries: Int): String =
       tensor.rank match {
         case 0 => tensor.scalar.toString
@@ -277,10 +277,13 @@ class Tensor private[Tensor](private[api] var nativeHandle: Long) extends Tensor
             }
           }
           val padding = " " * (this.rank - tensor.rank + 1)
-          val extraLine = if (tensor.rank >= 3) "\n" else ""
-          innerSummary.mkString("[", ",\n" + extraLine + padding, "]")
+          val extraLine = if (!flattened && tensor.rank >= 3) "\n" else ""
+          innerSummary.mkString("[", (if (!flattened) ",\n" else ", ") + extraLine + padding, "]")
       }
-    toString + "\n" + summarize(this, maxEntries)
+    if (includeInfo)
+      toString + (if (!flattened) "\n" else ": ") + summarize(this, maxEntries)
+    else
+      summarize(this, maxEntries)
   }
 
   override def toString: String = s"$dataType$shape"
