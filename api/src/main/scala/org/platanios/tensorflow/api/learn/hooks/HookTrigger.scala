@@ -36,7 +36,7 @@ trait HookTrigger {
     *         trigger and the last one, and `elapsedSteps` is the number of steps between the current trigger and the
     *         last one. Both values will be set to `None` on the first trigger.
     */
-  def updateLastTrigger(step: Int): Option[(Float, Int)]
+  def updateLastTrigger(step: Int): Option[(Double, Int)]
 
   /** Returns the last triggered time step or `None`, if never triggered. */
   def lastTriggerStep(): Option[Int]
@@ -60,7 +60,7 @@ case object NoHookTrigger extends HookTrigger {
     *         trigger and the last one, and `elapsedSteps` is the number of steps between the current trigger and the
     *         last one. Both values will be set to `None` on the first trigger.
     */
-  override def updateLastTrigger(step: Int): Option[(Float, Int)] = None
+  override def updateLastTrigger(step: Int): Option[(Double, Int)] = None
 
   /** Returns the last triggered time step or `None`, if never triggered. */
   override def lastTriggerStep(): Option[Int] = None
@@ -76,7 +76,7 @@ case class StepHookTrigger(numSteps: Int) extends HookTrigger {
   /** Returns a copy of this hook trigger that is also reset. */
   override def copy(): HookTrigger = StepHookTrigger(numSteps)
 
-  private[this] var _lastTrigger: Option[(Float, Int)] = None
+  private[this] var _lastTrigger: Option[(Double, Int)] = None
 
   /** Resets the internal state of this trigger (e.g., step counter or timer). */
   override def reset(): Unit = _lastTrigger = None
@@ -95,8 +95,8 @@ case class StepHookTrigger(numSteps: Int) extends HookTrigger {
     *         trigger and the last one, and `elapsedSteps` is the number of steps between the current trigger and the
     *         last one. Both values will be set to `None` on the first trigger.
     */
-  override def updateLastTrigger(step: Int): Option[(Float, Int)] = {
-    val currentTime = System.currentTimeMillis() / 1000f
+  override def updateLastTrigger(step: Int): Option[(Double, Int)] = {
+    val currentTime = System.currentTimeMillis().toDouble / 1000.0
     val elapsed = _lastTrigger.map(t => (currentTime - t._1, step - t._2))
     _lastTrigger = Some((currentTime, step))
     elapsed
@@ -110,13 +110,13 @@ case class StepHookTrigger(numSteps: Int) extends HookTrigger {
   *
   * @param  numSeconds Triggering time frequency.
   */
-case class TimeHookTrigger(numSeconds: Float) extends HookTrigger {
+case class TimeHookTrigger(numSeconds: Double) extends HookTrigger {
   require(numSeconds >= 0, s"'numSeconds' (= $numSeconds) must be a non-negative number.")
 
   /** Returns a copy of this hook trigger that is also reset. */
   override def copy(): HookTrigger = TimeHookTrigger(numSeconds)
 
-  private[this] var _lastTrigger: Option[(Float, Int)] = None
+  private[this] var _lastTrigger: Option[(Double, Int)] = None
 
   /** Resets the internal state of this trigger (e.g., step counter or timer). */
   override def reset(): Unit = _lastTrigger = None
@@ -125,7 +125,7 @@ case class TimeHookTrigger(numSeconds: Float) extends HookTrigger {
   override def shouldTriggerForStep(step: Int): Boolean = _lastTrigger match {
     case None => true
     case Some((_, s)) if s == step => false
-    case Some((t, _)) => (System.currentTimeMillis() / 1000f) >= t + numSeconds
+    case Some((t, _)) => (System.currentTimeMillis().toDouble / 1000.0) >= t + numSeconds
   }
 
   /** Updates the last triggered step and time.
@@ -135,8 +135,8 @@ case class TimeHookTrigger(numSeconds: Float) extends HookTrigger {
     *         trigger and the last one, and `elapsedSteps` is the number of steps between the current trigger and the
     *         last one. Both values will be set to `None` on the first trigger.
     */
-  override def updateLastTrigger(step: Int): Option[(Float, Int)] = {
-    val currentTime = System.currentTimeMillis() / 1000f
+  override def updateLastTrigger(step: Int): Option[(Double, Int)] = {
+    val currentTime = System.currentTimeMillis().toDouble / 1000.0
     val elapsed = _lastTrigger.map(t => (currentTime - t._1, step - t._2))
     _lastTrigger = Some((currentTime, step))
     elapsed
