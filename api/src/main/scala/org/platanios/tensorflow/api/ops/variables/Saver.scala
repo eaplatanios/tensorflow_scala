@@ -899,7 +899,7 @@ trait SaverDefBuilder {
         }
       case SaverDef.CheckpointFormatVersion.V2 =>
         // Suffix for any well-formed 'prefix', when sharded.
-        val _SHARDED_SUFFIX = Tensor(s"_temp_${UUID.randomUUID().toString}/part").toOutput
+        val _SHARDED_SUFFIX: Output = s"_temp_${UUID.randomUUID().toString}/part"
         // Transformations:
         //   - Users pass in "save_path_" in the save and restore methods. E.g., "myckpt".
         //   - 'prefix' gets fed <save_path><_SHARDED_SUFFIX>.
@@ -916,10 +916,9 @@ trait SaverDefBuilder {
         //
         // On failure and  subsequent restore, an outdated and orphaned temporary directory can be safely removed.
         val temporaryCheckpointPrefix = Text.stringJoin(Seq(prefix, _SHARDED_SUFFIX))
-        val numberOfShards = Tensor(INT32, saveablesByDevice.length).toOutput
         val (shardedPrefixes, shardedSaves) = saveablesByDevice.zipWithIndex.map { case ((device, saveables), shard) =>
           Op.createWith(device = device) {
-            val prefix = SaverDefBuilder.shardedFilenameOp(temporaryCheckpointPrefix, shard, numberOfShards)
+            val prefix = SaverDefBuilder.shardedFilenameOp(temporaryCheckpointPrefix, shard, saveablesByDevice.length)
             (prefix, addSaveOps(prefix, saveables))
           }
         }.unzip
@@ -927,8 +926,13 @@ trait SaverDefBuilder {
         Op.createWith(controlDependencies = shardedSaves.map(_.op).toSet, device = saveablesByDevice.last._1) {
           // The V2 format write path consists of a metadata merging step. Once merged, we attempt to delete the temporary
           // directory, "<user-fed prefix>_temp".
-          val mergeOp = SaverDefBuilder.mergeV2Checkpoints(
-            Basic.concatenate(shardedPrefixes), prefix, deleteOldDirectories = true)
+          val concatenatedPrefixes = {
+            if (shardedPrefixes.length > 1)
+              Basic.concatenate(shardedPrefixes)
+            else
+              shardedPrefixes.head.reshape(Shape(1))
+          }
+          val mergeOp = SaverDefBuilder.mergeV2Checkpoints(concatenatedPrefixes, prefix, deleteOldDirectories = true)
           // Returns the prefix "<user-fed prefix>" only, without the sharded specification suffix.
           ControlFlow.withControlDependencies(Set(mergeOp), prefix)
         }
