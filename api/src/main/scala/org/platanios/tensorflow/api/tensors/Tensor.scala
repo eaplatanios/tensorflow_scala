@@ -248,9 +248,13 @@ class Tensor private[Tensor](private[api] var nativeHandle: Long) extends Tensor
 
   /** Returns a summary of the contents of this tensor.
     *
-    * @param  maxEntries Maximum number of entries to show for each axis/dimension. If the size of an axis exceeds
-    *                    `maxEntries`, the output of that axis will be shortened to the first and last three elements.
-    *                    Defaults to `6`. Values below `6` are ignored.
+    * @param  maxEntries  Maximum number of entries to show for each axis/dimension. If the size of an axis exceeds
+    *                     `maxEntries`, the output of that axis will be shortened to the first and last three elements.
+    *                     Defaults to `6`. Values below `6` are ignored.
+    * @param  flattened   If `true`, the summary is flattened to one line. Otherwise, the summary may span multiple
+    *                     lines.
+    * @param  includeInfo If `true`, the data type and the shape of the tensor are explicitly included in the summary.
+    *                     Otherwise, they are not.
     * @return Tensor summary.
     */
   def summarize(maxEntries: Int = 6, flattened: Boolean = false, includeInfo: Boolean = true): String = {
