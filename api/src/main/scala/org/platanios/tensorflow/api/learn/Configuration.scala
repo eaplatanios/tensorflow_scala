@@ -17,14 +17,14 @@ package org.platanios.tensorflow.api.learn
 
 import org.platanios.tensorflow.api.config._
 import org.platanios.tensorflow.api.core.client.SessionConfig
-import org.platanios.tensorflow.api.learn.RunConfig._
+import org.platanios.tensorflow.api.learn.Configuration._
 
 import io.circe._
 import io.circe.parser._
 
 import java.nio.file.Path
 
-/** Run configuration for models.
+/** Configuration for models in the learn API, to be used by [[Estimator]]s.
   *
   * If `clusterConfig` is not provided, then all distributed training related properties are set based on the
   * `TF_CONFIG` environment variable, if the pertinent information is present. The `TF_CONFIG` environment variable is a
@@ -64,7 +64,7 @@ import java.nio.file.Path
   *   //     "type": "worker",
   *   //     "index": 1}}
   *   // }
-  *   val config = RunConfig()
+  *   val config = Configuration()
   *   assert(config.clusterConfig == Some(ClusterConfig(Map(
   *     "chief" -> JobConfig.fromAddresses("host0:2222"),
   *     "ps" -> JobConfig.fromAddresses("host1:2222", "host2:2222"),
@@ -89,7 +89,7 @@ import java.nio.file.Path
   *   //     "type": "chief",
   *   //     "index": 0}}
   *   // }
-  *   val config = RunConfig()
+  *   val config = Configuration()
   *   assert(config.clusterConfig == Some(ClusterConfig(Map(
   *     "chief" -> JobConfig.fromAddresses("host0:2222"),
   *     "ps" -> JobConfig.fromAddresses("host1:2222", "host2:2222"),
@@ -114,7 +114,7 @@ import java.nio.file.Path
   *   //     "type": "evaluator",
   *   //     "index": 0}}
   *   // }
-  *   val config = RunConfig()
+  *   val config = Configuration()
   *   assert(config.clusterConfig == None)
   *   assert(config.taskType == "evaluator")
   *   assert(config.taskIndex == 0)
@@ -143,7 +143,7 @@ import java.nio.file.Path
   *                                        value allows consistency between re-runs.
   * @author Emmanouil Antonios Platanios
   */
-case class RunConfig(
+case class Configuration(
     workingDir: Option[Path] = None,
     sessionConfig: Option[SessionConfig] = None,
     checkpointConfig: CheckpointConfig = TimeBasedCheckpoints(600, 5, 10000),
@@ -257,8 +257,8 @@ case class RunConfig(
   val evaluationMaster: String = ""
 }
 
-/** Contains helper methods for dealing with [[RunConfig]]s. */
-object RunConfig {
+/** Contains helper methods for dealing with [[Configuration]]s. */
+object Configuration {
   private[learn] val TF_CONFIG_ENV: String = "TF_CONFIG"
   private[learn] val TASK_ENV_KEY : String = "task"
   private[learn] val TASK_TYPE_KEY: String = "type"
@@ -276,7 +276,8 @@ object RunConfig {
     * @throws IllegalArgumentException If the provided task type or index cannot be found in the cluster configuration.
     */
   @throws[IllegalArgumentException]
-  private[RunConfig] def getNetworkAddress(clusterConfig: ClusterConfig, taskType: String, taskIndex: Int): String = {
+  private[Configuration] def getNetworkAddress(
+      clusterConfig: ClusterConfig, taskType: String, taskIndex: Int): String = {
     require(
       clusterConfig.jobs.contains(taskType),
       s"'$taskType' is not a valid job name in the provided cluster configuration: $clusterConfig\n\n" +
@@ -291,12 +292,12 @@ object RunConfig {
   }
 
   /** Counts the number of parameter servers in the provided cluster specification. */
-  private[RunConfig] def countParameterServers(clusterSpec: ClusterConfig): Int = {
+  private[Configuration] def countParameterServers(clusterSpec: ClusterConfig): Int = {
     clusterSpec.jobs.count(_ == PARAMETER_SERVER.name)
   }
 
   /** Counts the number of workers (including the chief) in the provided cluster specification. */
-  private[RunConfig] def countWorkers(clusterSpec: ClusterConfig): Int = {
+  private[Configuration] def countWorkers(clusterSpec: ClusterConfig): Int = {
     clusterSpec.jobs.count(j => j == WORKER.name || j == CHIEF.name)
   }
 
