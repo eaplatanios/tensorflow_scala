@@ -18,82 +18,73 @@ package org.platanios.tensorflow.api.learn.hooks
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.{Executable, Fetchable, Session}
 import org.platanios.tensorflow.api.learn.{Coordinator, Counter, TerminationCriteria}
-import org.platanios.tensorflow.api.ops.{Op, Output}
+import org.platanios.tensorflow.api.ops.{Math, Op, Output}
 import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.tensors.Tensor
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
 
-// TODO: !!! [HOOKS] [TERMINATION] Currently not using the convergence criteria.
+import scala.collection.mutable
 
 /** Hook that requests to stop iterating when certain termination criteria are satisfied.
   *
-  * @param  terminationCriteria Termination criteria to use.
+  * @param  criteria Termination criteria to use.
   *
   * @author Emmanouil Antonios Platanios
   */
-private[learn] case class TerminationHook private[learn] (terminationCriteria: TerminationCriteria) extends Hook {
+private[learn] case class TerminationHook private[learn] (criteria: TerminationCriteria) extends Hook {
   private[this] var epoch: Variable = _
   private[this] var step : Variable = _
+  private[this] var loss : Output   = _
 
-  private[this] var lastEpoch: Option[Long] = {
-    if (terminationCriteria.restartCounting)
-      None
-    else
-      terminationCriteria.maxEpochs
-  }
+  private[this] var lastEpoch: Option[Long] = if (criteria.restartCounting) None else criteria.maxEpochs
+  private[this] var lastStep: Option[Long] = if (criteria.restartCounting) None else criteria.maxSteps
+  private[this] var lastLoss: Float = Float.MaxValue
+  private[this] var numStepsBelowTol: Int = 0
 
-  private[this] var lastStep: Option[Long] = {
-    if (terminationCriteria.restartCounting)
-      None
-    else
-      terminationCriteria.maxSteps
-  }
+  private[this] var sessionFetches : Seq[Output] = _
+  private[this] var epochFetchIndex: Int         = _
+  private[this] var stepFetchIndex : Int         = _
+  private[this] var lossFetchIndex : Int         = _
 
   override def begin(): Unit = {
-    if (terminationCriteria.maxEpochs.isDefined)
+    numStepsBelowTol = 0
+    val fetches = mutable.ListBuffer.empty[Output]
+    if (criteria.needEpoch) {
       epoch = Counter.get(Graph.Keys.GLOBAL_EPOCH, Op.currentGraph).getOrElse(throw new IllegalStateException(
         s"A ${Graph.Keys.GLOBAL_EPOCH.name} variable should be created in order to use the 'StopAtStepHook'."))
-    if (terminationCriteria.maxSteps.isDefined)
+      epochFetchIndex = fetches.size
+      fetches.append(epoch.value)
+    }
+    if (criteria.needStep) {
       step = Counter.get(Graph.Keys.GLOBAL_STEP, Op.currentGraph).getOrElse(throw new IllegalStateException(
         s"A ${Graph.Keys.GLOBAL_STEP.name} variable should be created in order to use the 'StopAtStepHook'."))
+      stepFetchIndex = fetches.size
+      fetches.append(step.value)
+    }
+    if (criteria.needLoss) {
+      loss = Math.addN(Op.currentGraph.getCollection(Graph.Keys.LOSSES).toSeq)
+      lossFetchIndex = fetches.size
+      fetches.append(loss)
+    }
+    sessionFetches = fetches
   }
 
   override def afterSessionCreation(session: Session, coordinator: Coordinator): Unit = {
-    if (terminationCriteria.restartCounting &&
-        (terminationCriteria.maxEpochs.isDefined || terminationCriteria.maxSteps.isDefined)) {
-      (terminationCriteria.maxEpochs, terminationCriteria.maxSteps) match {
-        case (Some(_), Some(_)) =>
-          val (e, s) = session.run(fetches = (epoch.value, step.value))
-          lastEpoch = terminationCriteria.maxEpochs.map(_ + e.scalar.asInstanceOf[Long])
-          lastStep = terminationCriteria.maxSteps.map(_ + s.scalar.asInstanceOf[Long])
-        case (Some(_), None) =>
-          val e = session.run(fetches = epoch.value)
-          lastEpoch = terminationCriteria.maxEpochs.map(_ + e.scalar.asInstanceOf[Long])
-        case (None, Some(_)) =>
-          val s = session.run(fetches = step.value)
-          lastStep = terminationCriteria.maxSteps.map(_ + s.scalar.asInstanceOf[Long])
-        case (None, None) => () // Impossible branch.
-      }
-    }
+    if (criteria.needEpoch)
+      lastEpoch = criteria.maxEpochs.map(_ + session.run(fetches = epoch.value).scalar.asInstanceOf[Long])
+    if (criteria.needStep)
+      lastStep = criteria.maxSteps.map(_ + session.run(fetches = step.value).scalar.asInstanceOf[Long])
+    if (criteria.needLoss)
+      lastLoss = session.run(fetches = loss).scalar.asInstanceOf[Float]
   }
 
   override def beforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]
   ): Option[Hook.SessionRunArgs[Seq[Output], Traversable[Op], Seq[Tensor]]] = {
-    val fetches = {
-      if (terminationCriteria.maxEpochs.isDefined && terminationCriteria.maxSteps.isDefined)
-        Seq(epoch.value, step.value)
-      else if (terminationCriteria.maxEpochs.isDefined)
-        Seq(epoch.value)
-      else if (terminationCriteria.maxSteps.isDefined)
-        Seq(step.value)
-      else
-        Seq.empty[Output]
-    }
-    Some(Hook.SessionRunArgs(fetches = fetches))
+    Some(Hook.SessionRunArgs(fetches = sessionFetches))
   }
 
   @throws[IllegalStateException]
@@ -105,16 +96,33 @@ private[learn] case class TerminationHook private[learn] (terminationCriteria: T
       fetchableEv: Fetchable.Aux[F, R]
   ): Unit = {
     var converged = false
-    if (terminationCriteria.maxEpochs.isDefined) {
-      val currentEpoch = runResult.values(0).scalar.asInstanceOf[Long]
-      converged ||= lastEpoch.exists(currentEpoch >= _)
+    if (criteria.maxEpochs.isDefined) {
+      val epoch = runResult.values(epochFetchIndex).scalar.asInstanceOf[Long]
+      if (lastEpoch.exists(epoch >= _)) {
+        converged = true
+        TerminationHook.logger.info("Stop requested: Exceeded maximum number of epochs.")
+      }
     }
-    if (terminationCriteria.maxEpochs.isDefined && terminationCriteria.maxSteps.isDefined) {
-      val currentIteration = runResult.values(1).scalar.asInstanceOf[Long]
-      converged ||= lastStep.exists(currentIteration >= _)
-    } else if (terminationCriteria.maxSteps.isDefined) {
-      val currentIteration = runResult.values(0).scalar.asInstanceOf[Long]
-      converged ||= lastStep.exists(currentIteration >= _)
+    if (criteria.maxSteps.isDefined) {
+      val step = runResult.values(stepFetchIndex).scalar.asInstanceOf[Long]
+      if (lastStep.exists(step >= _)) {
+        converged = true
+        TerminationHook.logger.info("Stop requested: Exceeded maximum number of steps.")
+      }
+    }
+    if (criteria.absLossChangeTol.isDefined || criteria.relLossChangeTol.isDefined) {
+      val loss = runResult.values(lossFetchIndex).scalar.asInstanceOf[Float]
+      val lossDiff = scala.math.abs(lastLoss - loss)
+      if (criteria.absLossChangeTol.exists(lossDiff < _) ||
+          criteria.relLossChangeTol.exists(scala.math.abs(lossDiff / lastLoss) < _)) {
+        numStepsBelowTol += 1
+      } else {
+        numStepsBelowTol = 0
+      }
+      if (numStepsBelowTol > criteria.maxStepBelowTol.getOrElse(0L)) {
+        TerminationHook.logger.info("Stop requested: Loss value converged.")
+        converged = true
+      }
     }
     if (converged)
       runContext.requestStop()

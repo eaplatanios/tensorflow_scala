@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.learn
 
-/**
+/** Criteria used to some the training process iteration.
   *
   * @param  maxEpochs        Number of epochs (i.e., full passes over the data) after which to stop iterating.
   * @param  maxSteps         Number of steps after which to stop iterating.
@@ -25,9 +25,19 @@ package org.platanios.tensorflow.api.learn
   *                          when the hook is initialized and `maxEpochs` is `100`, the iteration will continue for `90`
   *                          epochs. If `restartCounting` was set to `true`, in that case, it would continue for `100`
   *                          epochs.
-  * @param  absLossChangeTol
-  * @param  relLossChangeTol
-  * @param  maxStepBelowTol
+  * @param  absLossChangeTol Loss value absolute change tolerance. If the absolute value of the loss difference between
+  *                          the current iteration and the previous one drops below this tolerance value, then the
+  *                          number of steps below loss-value tolerance is increased by one. Once that number exceeds
+  *                          `maxStepsBelowTol`, the training process stops iterating.
+  * @param  relLossChangeTol Loss value relative change tolerance. If the absolute value of the loss difference between
+  *                          the current iteration and the previous one divided by the last step loss value, drops below
+  *                          this tolerance value, then the number of steps below loss-value tolerance is increased by
+  *                          one. Once that number exceeds `maxStepsBelowTol`, the training process stops iterating.
+  * @param  maxStepBelowTol  Maximum number of steps to allow before stopping, with the loss value being below absolute
+  *                          or relative tolerance. In cases when using some form of stochastic optimization (e.g.,
+  *                          stochastic gradient descent), it is useful to set this value to some number larger than 1,
+  *                          to avoid stopping due to some noisy gradient that didn't result in the loss value changing
+  *                          by much.
   *
   * @author Emmanouil Antonios Platanios
   */
@@ -43,6 +53,10 @@ class TerminationCriteria(
   require(absLossChangeTol.getOrElse(0.0) >= 0, "'absLossChangeTol' needs to be a non-negative number.")
   require(absLossChangeTol.getOrElse(0.0) >= 0, "'absLossChangeTol' needs to be a non-negative number.")
   require(maxStepBelowTol.getOrElse(0L) >= 0, "'maxStepBelowTol' needs to be a non-negative number.")
+
+  private[learn] val needEpoch: Boolean = maxEpochs.isDefined
+  private[learn] val needStep : Boolean = maxSteps.isDefined || maxStepBelowTol.isDefined
+  private[learn] val needLoss : Boolean = absLossChangeTol.isDefined || relLossChangeTol.isDefined
 }
 
 object TerminationCriteria {
