@@ -15,8 +15,7 @@
 
 package org.platanios.tensorflow.api.learn
 
-import org.platanios.tensorflow.api.config.SessionConfig
-import org.platanios.tensorflow.api.core.client.Session
+import org.platanios.tensorflow.api.core.client.{Session, SessionConfig}
 import org.platanios.tensorflow.api.learn.hooks.Hook
 import org.platanios.tensorflow.api.ops.Op
 

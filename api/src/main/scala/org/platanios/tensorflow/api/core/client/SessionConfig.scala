@@ -13,9 +13,10 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.config
+package org.platanios.tensorflow.api.core.client
 
-import org.platanios.tensorflow.api.config.SessionConfig._
+import org.platanios.tensorflow.api.config.ClusterConfig
+import org.platanios.tensorflow.api.core.client.SessionConfig._
 
 import org.tensorflow.framework._
 

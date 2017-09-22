@@ -13,9 +13,11 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.config
+package org.platanios.tensorflow.api.learn
 
-import org.platanios.tensorflow.api.config.RunConfig._
+import org.platanios.tensorflow.api.config._
+import org.platanios.tensorflow.api.core.client.SessionConfig
+import org.platanios.tensorflow.api.learn.RunConfig._
 
 import io.circe._
 import io.circe.parser._
@@ -136,6 +138,7 @@ import java.nio.file.Path
   * @param  summaryConfig                  Configuration specifying when to save summaries.
   * @param  globalStepRateLoggingFrequency Frequency, in number of global steps, that the global step / sec rate will be
   *                                        logged during training.
+  * @param  stopGracePeriodSeconds         Number of seconds given to threads to stop after a stop has been requested.
   * @param  randomSeed                     Random seed value to be used by the TensorFlow initializers. Setting this
   *                                        value allows consistency between re-runs.
   * @author Emmanouil Antonios Platanios
@@ -146,6 +149,7 @@ case class RunConfig(
     checkpointConfig: CheckpointConfig = TimeBasedCheckpoints(600, 5, 10000),
     summaryConfig: SummaryConfig = StepBasedSummaries(100),
     globalStepRateLoggingFrequency: Int = 100,
+    stopGracePeriodSeconds: Int = 120,
     randomSeed: Int = 1
 ) {
   require(
@@ -255,13 +259,13 @@ case class RunConfig(
 
 /** Contains helper methods for dealing with [[RunConfig]]s. */
 object RunConfig {
-  private[config] val TF_CONFIG_ENV: String = "TF_CONFIG"
-  private[config] val TASK_ENV_KEY : String = "task"
-  private[config] val TASK_TYPE_KEY: String = "type"
-  private[config] val TASK_ID_KEY  : String = "index"
-  private[config] val CLUSTER_KEY  : String = "cluster"
-  private[config] val LOCAL_MASTER : String = ""
-  private[config] val GRPC_SCHEME  : String = "grpc://"
+  private[learn] val TF_CONFIG_ENV: String = "TF_CONFIG"
+  private[learn] val TASK_ENV_KEY : String = "task"
+  private[learn] val TASK_TYPE_KEY: String = "type"
+  private[learn] val TASK_ID_KEY  : String = "index"
+  private[learn] val CLUSTER_KEY  : String = "cluster"
+  private[learn] val LOCAL_MASTER : String = ""
+  private[learn] val GRPC_SCHEME  : String = "grpc://"
 
   /** Returns the appropriate network address for the specified task.
     *

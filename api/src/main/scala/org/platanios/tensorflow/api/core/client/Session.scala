@@ -15,8 +15,7 @@
 
 package org.platanios.tensorflow.api.core.client
 
-import org.platanios.tensorflow.api.config.SessionConfig
-import org.platanios.tensorflow.api.core.{Graph, client}
+import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer}
