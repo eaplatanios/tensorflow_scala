@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.learn.hooks
 
 import org.platanios.tensorflow.api.core.client.{Executable, FeedMap, Fetchable, Session}
-import org.platanios.tensorflow.api.learn.{Coordinator, MonitoredSession}
+import org.platanios.tensorflow.api.learn.MonitoredSession
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
 
@@ -133,9 +133,8 @@ abstract class Hook {
     *     of the overall session).
     *
     * @param  session     The session that has been created.
-    * @param  coordinator The current coordinator.
     */
-  def afterSessionCreation(session: Session, coordinator: Coordinator): Unit = ()
+  def afterSessionCreation(session: Session): Unit = ()
 
   /** Called before each call to `Session.run()`. You can return from this call a [[Hook.SessionRunArgs]] object
     * indicating ops or tensors to add to the upcoming run call. These ops/tensors will be run together with the

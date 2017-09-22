@@ -26,13 +26,13 @@ import org.slf4j.LoggerFactory
 import org.tensorflow.framework.{DebugOptions, RunMetadata, RunOptions}
 
 import scala.collection.mutable
-import scala.util.{Failure, Success, Try}
+import scala.util.Try
 import scala.util.control.Exception._
 
 /** Wrapper around a [[Session]].
   *
   * This wrapper is used as a base class for various session wrappers that provide additional functionality such as
-  * monitoring, coordination, and recovery.
+  * monitoring and recovery.
   *
   * In addition to the methods provided by [[Session]] the wrapper provides a method to check for requested stops and
   * never throws any exceptions thrown by calls to `Session.close`.
@@ -84,9 +84,8 @@ abstract class SessionWrapper private[learn](protected var session: Session)
   *
   * The constructor is passed a [[SessionCreator]] object, not a [[Session]].
   *
-  * TODO: !!! Change the names of acceptable exceptions.
-  * Calls to `run()` are delegated to the wrapped session. If a call throws an `AbortedError` or an `UnavailableError`,
-  * the wrapped session is closed, and a new one is created by invoking the session creator.
+  * Calls to `run()` are delegated to the wrapped session. If a call throws an `AbortedException` or an
+  * `UnavailableException`, the wrapped session is closed, and a new one is created by invoking the session creator.
   *
   * @param  sessionCreator Factory for creating new sessions.
   *
@@ -156,68 +155,6 @@ object RecoverableSession {
       }
     }
     session
-  }
-}
-
-/** Session wrapper that works with a [[Coordinator]].
-  *
-  * Calls to `run()` are delegated to the wrapped session. If a call throws an exception, the exception is reported to
-  * the coordinator.
-  *
-  * In addition, after each call to `run()` this session asks the coordinator if the session should stop. In that case,
-  * it will will join all the threads registered with the coordinator before returning.
-  *
-  * If the coordinator was requested to stop with an exception, that exception will be re-thrown from the call to
-  * `run()`.
-  *
-  * @param  baseSession            Session being wrapped.
-  * @param  coordinator            Coordinator to use.
-  * @param  stopGracePeriodSeconds Grace period (i.e., number of seconds) given to threads to stop after `close()` has
-  *                                been called.
-  *
-  * @author Emmanouil Antonios Platanios
-  */
-case class CoordinatedSession private[learn](
-    private val baseSession: Session, coordinator: Coordinator, stopGracePeriodSeconds: Int = 120
-) extends SessionWrapper(baseSession) {
-  override private[learn] def checkStop: Boolean = {
-    // If the coordinator was asked to stop due to an exception, then that exception needs to be propagated.
-    coordinator.reThrowRequestedStopCause()
-    // At this point, no exceptions are recorded in the coordinator.
-    coordinator.shouldStop
-  }
-
-  override def close(): Unit = {
-    coordinator.requestStop()
-    try {
-      coordinator.join(gracePeriodSeconds = stopGracePeriodSeconds, ignoreLiveThreads = true)
-    } finally {
-      // We intentionally suppress exceptions from the `close()` here since any useful exceptions have are already been
-      // reported by `join()`.
-      Try(super.close())
-    }
-  }
-
-  override private[api] def runHelper[F, E, R](
-      feeds: FeedMap = FeedMap.empty, fetches: F = Seq.empty[Output], targets: E = Traversable.empty[Op],
-      options: RunOptions = null, wantMetadata: Boolean = false
-  )(implicit
-      executable: Executable[E],
-      fetchable: Fetchable.Aux[F, R]
-  ): (R, Option[RunMetadata]) = {
-    Try(session.runHelper(feeds, fetches, targets, options, wantMetadata)) match {
-      case Success(result) => result
-      case Failure(cause) =>
-        // A non-preemption exception could have been caused by a preemption error in the coordinator. If this is the
-        // case, raise that exception instead because it's the root cause. Otherwise, stick to the original cause.
-        try {
-          coordinator.reThrowRequestedStopCause()
-          throw cause
-        } catch {
-          case e if RECOVERABLE_EXCEPTIONS.contains(e.getClass) => throw e
-          case _: Throwable => throw cause
-        }
-    }
   }
 }
 
@@ -352,7 +289,6 @@ case class HookedSession private[learn](private val baseSession: Session, hooks:
   *   - Create a session.
   *   - Initialize the model using the initialization ops provided by the session scaffold.
   *   - Restore variable values, if a checkpoint exists.
-  *   - Launch any queue runners that have been added to the graph.
   *   - Invoke `Hook.afterSessionCreation()` for each hook.
   *
   * '''Run:''' When `MonitoredSession.run()` is called, the monitored session does the following things, in the
@@ -367,8 +303,8 @@ case class HookedSession private[learn](private val baseSession: Session, hooks:
   *
   * '''Exit:''' When `MonitoredSession.close()`, the monitored session does following things, in the presented order:
   *
-  *   - Invoke `Hook.end()` for each hook.
-  *   - Close any queue runners that have been added to the graph.
+  *   - Invoke `Hook.end()` for each hook, if no exception has been thrown (other than `AbortedException`, or
+  *     `UnavailableException`).
   *
   * === How to Create `MonitoredSession`s ===
   *
@@ -384,12 +320,11 @@ case class HookedSession private[learn](private val baseSession: Session, hooks:
   *
   * See `MonitoredTrainingSession` for an example usage based on chief or worker.
 
-  * @param  baseSession               Session being wrapped.
-  * @param  coordinatedSessionCreator Coordinated session creator to use for recovery, etc.
-  * @param  hooks                     Hooks to use.
+  * @param  baseSession Session being wrapped.
+  * @param  hooks       Hooks to use.
   */
 class MonitoredSession private[learn](
-    private val baseSession: Session, coordinatedSessionCreator: CoordinatedSessionCreator, hooks: Seq[Hook]
+    private val baseSession: Session, hooks: Seq[Hook]
 ) extends SessionWrapper(baseSession) {
   private[this] val graphWasFrozen: Boolean = Op.currentGraph.isFrozen
 
@@ -414,7 +349,7 @@ class MonitoredSession private[learn](
   @throws[RuntimeException]
   override def close(): Unit = {
     try {
-      hooks.foreach(_.end(coordinatedSessionCreator.session.orNull))
+      hooks.foreach(_.end(baseSession))
     } finally {
       closeWithoutHookEnd()
     }
@@ -425,25 +360,21 @@ class MonitoredSession private[learn](
 object MonitoredSession {
   /** Creates a new monitored session.
     *
-    * @param  sessionCreator         Factory used for creating new sessions (e.g., when recovering from an exception).
-    *                                Typically, a [[ChiefSessionCreator]] or a [[WorkerSessionCreator]].
-    * @param  hooks                  Hooks to use.
-    * @param  shouldRecover          Boolean flag indicating whether to recover from [[AbortedException]]s and
-    *                                [[UnavailableException]]s.
-    * @param  stopGracePeriodSeconds Number of seconds given to threads to stop after a stop has been requested.
+    * @param  sessionCreator Factory used for creating new sessions (e.g., when recovering from an exception).
+    *                        Typically, a [[ChiefSessionCreator]] or a [[WorkerSessionCreator]].
+    * @param  hooks          Hooks to use.
+    * @param  shouldRecover  Boolean flag indicating whether to recover from [[AbortedException]]s and
+    *                        [[UnavailableException]]s.
     * @return Created monitored session.
     */
   def apply(
-      sessionCreator: SessionCreator = ChiefSessionCreator(), hooks: Seq[Hook] = Seq.empty,
-      shouldRecover: Boolean = false, stopGracePeriodSeconds: Int = 120): MonitoredSession = {
+      sessionCreator: SessionCreator = ChiefSessionCreator(),
+      hooks: Seq[Hook] = Seq.empty,
+      shouldRecover: Boolean = false
+  ): MonitoredSession = {
     hooks.foreach(_.begin())
-    val coordinatedSessionCreator = CoordinatedSessionCreator(sessionCreator, hooks, stopGracePeriodSeconds)
-    val session = {
-      if (shouldRecover)
-        RecoverableSession(coordinatedSessionCreator)
-      else
-        coordinatedSessionCreator.createSession()
-    }
-    new MonitoredSession(session, coordinatedSessionCreator, hooks)
+    val hookedSessionCreator = HookedSessionCreator(sessionCreator, hooks)
+    val session = if (shouldRecover) RecoverableSession(hookedSessionCreator) else hookedSessionCreator.createSession()
+    new MonitoredSession(session, hooks)
   }
 }

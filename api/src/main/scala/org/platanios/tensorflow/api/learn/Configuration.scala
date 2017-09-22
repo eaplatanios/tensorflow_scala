@@ -138,7 +138,6 @@ import java.nio.file.Path
   * @param  summaryConfig                  Configuration specifying when to save summaries.
   * @param  globalStepRateLoggingFrequency Frequency, in number of global steps, that the global step / sec rate will be
   *                                        logged during training.
-  * @param  stopGracePeriodSeconds         Number of seconds given to threads to stop after a stop has been requested.
   * @param  randomSeed                     Random seed value to be used by the TensorFlow initializers. Setting this
   *                                        value allows consistency between re-runs.
   * @author Emmanouil Antonios Platanios
@@ -149,7 +148,6 @@ case class Configuration(
     checkpointConfig: CheckpointConfig = TimeBasedCheckpoints(600, 5, 10000),
     summaryConfig: SummaryConfig = StepBasedSummaries(100),
     globalStepRateLoggingFrequency: Int = 100,
-    stopGracePeriodSeconds: Int = 120,
     randomSeed: Int = 1
 ) {
   require(

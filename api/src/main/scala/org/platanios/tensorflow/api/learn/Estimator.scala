@@ -153,6 +153,7 @@ class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
       Counter.getOrCreate(Graph.Keys.GLOBAL_EPOCH, graph)
       val step = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, graph)
       val trainingOps = model.buildTrainOps()
+      val inputInitializer = trainingOps.input.createInitializer(data)
       graph.addToCollection(trainingOps.loss, Graph.Keys.LOSSES)
       allHooks += TensorNaNHook(Set(trainingOps.loss.name))
       allHooks += TensorLoggingHook(TreeMap(
@@ -174,7 +175,7 @@ class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
         chiefOnlyHooks = Seq.empty,
         sessionScaffold = SessionScaffold(
           initOp = Some(ControlFlow.group(Set(
-            trainingOps.input.createInitializer(data),
+            inputInitializer,
             graph.globalVariablesInitializer())
           ))))
       try {
@@ -265,7 +266,7 @@ object Estimator {
       sessionScaffold: SessionScaffold = SessionScaffold()): MonitoredSession = {
     if (!configuration.isChief) {
       val sessionCreator = WorkerSessionCreator(configuration.master, sessionScaffold, configuration.sessionConfig)
-      MonitoredSession(sessionCreator, hooks, stopGracePeriodSeconds = configuration.stopGracePeriodSeconds)
+      MonitoredSession(sessionCreator, hooks)
     } else {
       val sessionCreator = ChiefSessionCreator(
         configuration.master, sessionScaffold, configuration.sessionConfig, configuration.workingDir)
@@ -275,7 +276,7 @@ object Estimator {
         // TODO: !!! [HOOKS] Add summary hook.
         // TODO: !!! [HOOKS] Add checkpoint hook.
       }
-      MonitoredSession(sessionCreator, chiefHooks, stopGracePeriodSeconds = configuration.stopGracePeriodSeconds)
+      MonitoredSession(sessionCreator, chiefHooks)
     }
   }
 }
