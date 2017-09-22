@@ -20,9 +20,6 @@ package org.platanios.tensorflow.api.learn.hooks
   * @author Emmanouil Antonios Platanios
   */
 trait HookTrigger {
-  /** Returns a copy of this hook trigger that is also reset. */
-  def copy(): HookTrigger
-
   /** Resets the internal state of this trigger (e.g., step counter or timer). */
   def reset(): Unit
 
@@ -44,9 +41,6 @@ trait HookTrigger {
 
 /** Hook trigger that never actually triggers. */
 case object NoHookTrigger extends HookTrigger {
-  /** Returns a copy of this hook trigger that is also reset. */
-  override def copy(): HookTrigger = this
-
   /** Resets the internal state of this trigger (e.g., step counter or timer). */
   override def reset(): Unit = ()
 
@@ -72,9 +66,6 @@ case object NoHookTrigger extends HookTrigger {
   */
 case class StepHookTrigger(numSteps: Int) extends HookTrigger {
   require(numSteps >= 0, s"'numSteps' (= $numSteps) must be a non-negative number.")
-
-  /** Returns a copy of this hook trigger that is also reset. */
-  override def copy(): HookTrigger = this.copy()
 
   private[this] var _lastTrigger: Option[(Float, Int)] = None
 
@@ -112,9 +103,6 @@ case class StepHookTrigger(numSteps: Int) extends HookTrigger {
   */
 case class TimeHookTrigger(numSeconds: Float) extends HookTrigger {
   require(numSeconds >= 0, s"'numSeconds' (= $numSeconds) must be a non-negative number.")
-
-  /** Returns a copy of this hook trigger that is also reset. */
-  override def copy(): HookTrigger = this.copy()
 
   private[this] var _lastTrigger: Option[(Float, Int)] = None
 
