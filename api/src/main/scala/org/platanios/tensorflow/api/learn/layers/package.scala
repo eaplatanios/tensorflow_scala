@@ -31,6 +31,7 @@ package object layers {
       extends Activation.API
           with Basic.API
           with Core.API
+          with Layer.API
           with Loss.API
           with Math.API
           with NN.API

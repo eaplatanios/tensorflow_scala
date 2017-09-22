@@ -13,9 +13,9 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.learn
+package org.platanios.tensorflow.api.learn.layers
 
-import org.platanios.tensorflow.api.learn
+import org.platanios.tensorflow.api.learn._
 
 import scala.collection.generic.CanBuildFrom
 import scala.collection.{TraversableLike, mutable}
@@ -67,12 +67,12 @@ object Layer {
   // }
 
   trait API {
-    type Layer[T, R] = learn.Layer[T, R]
-    type CachedLayer[T, R] = learn.CachedLayer[T, R]
-    type IdentityLayer[T] = learn.IdentityLayer[T]
-    type ComposedLayer[T, R, S] = learn.ComposedLayer[T, R, S]
-    type ConcatenatedLayer[T, R] = learn.ConcatenatedLayer[T, R]
-    type MappedLayer[T, R, S, CC[A] <: TraversableLike[A, CC[A]]] = learn.MappedLayer[T, R, S, CC]
+    type Layer[T, R] = layers.Layer[T, R]
+    type CachedLayer[T, R] = layers.CachedLayer[T, R]
+    type IdentityLayer[T] = layers.IdentityLayer[T]
+    type ComposedLayer[T, R, S] = layers.ComposedLayer[T, R, S]
+    type ConcatenatedLayer[T, R] = layers.ConcatenatedLayer[T, R]
+    type MappedLayer[T, R, S, CC[A] <: TraversableLike[A, CC[A]]] = layers.MappedLayer[T, R, S, CC]
     // type IndexedLayerOutput[T, R, CC[A] <: SeqLike[A, CC[A]]] = layers.IndexedLayerOutput[T, R, CC]
 
     def identity[T](name: String = "Identity"): IdentityLayer[T] = Layer.identity[T](name)

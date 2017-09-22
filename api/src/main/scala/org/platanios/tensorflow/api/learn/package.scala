@@ -16,6 +16,7 @@
 package org.platanios.tensorflow.api
 
 import org.platanios.tensorflow.api.core.exception.{AbortedException, UnavailableException}
+import org.platanios.tensorflow.api.learn.layers.Layer
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -27,7 +28,6 @@ package object learn {
 
   private[api] trait API
       extends Input.API
-          with Layer.API
           with Model.API
           with layers.API
           with ops.training.optimizers.API
