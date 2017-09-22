@@ -736,7 +736,12 @@ object TensorConvertible {
 
   implicit val rangeTensorConvertible: TensorConvertible[Range] = new TensorConvertible[Range] {
     /** Converts `value` to a dense tensor. */
-    @inline override def toTensor(value: Range): Tensor = stack(value.map(Tensor.fill(INT32)(_)))
+    @inline override def toTensor(value: Range): Tensor = {
+      if (value.nonEmpty)
+        Tensor(INT32, value.head, value.tail: _*)
+      else
+        Tensor(INT32)
+    }
   }
 
   implicit def supportedTypeTensorConvertible[T](implicit ev: SupportedType[T]): TensorConvertible[T] = {
