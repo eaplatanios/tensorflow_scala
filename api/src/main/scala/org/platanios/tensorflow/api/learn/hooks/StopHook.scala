@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.learn.hooks
 
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.{Executable, Fetchable, Session}
-import org.platanios.tensorflow.api.learn.{Coordinator, Counter, TerminationCriteria}
+import org.platanios.tensorflow.api.learn.{Coordinator, Counter, StopCriteria}
 import org.platanios.tensorflow.api.ops.{Math, Op, Output}
 import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.tensors.Tensor
@@ -27,13 +27,13 @@ import org.slf4j.LoggerFactory
 
 import scala.collection.mutable
 
-/** Hook that requests to stop iterating when certain termination criteria are satisfied.
+/** Hook that requests to stop iterating when certain stopping criteria are satisfied.
   *
   * @param  criteria Termination criteria to use.
   *
   * @author Emmanouil Antonios Platanios
   */
-private[learn] case class TerminationHook private[learn] (criteria: TerminationCriteria) extends Hook {
+private[learn] case class StopHook private[learn] (criteria: StopCriteria) extends Hook {
   private[this] var epoch: Variable = _
   private[this] var step : Variable = _
   private[this] var loss : Output   = _
@@ -100,14 +100,14 @@ private[learn] case class TerminationHook private[learn] (criteria: TerminationC
       val epoch = runResult.values(epochFetchIndex).scalar.asInstanceOf[Long]
       if (lastEpoch.exists(epoch >= _)) {
         converged = true
-        TerminationHook.logger.info("Stop requested: Exceeded maximum number of epochs.")
+        StopHook.logger.info("Stop requested: Exceeded maximum number of epochs.")
       }
     }
     if (criteria.maxSteps.isDefined) {
       val step = runResult.values(stepFetchIndex).scalar.asInstanceOf[Long]
       if (lastStep.exists(step >= _)) {
         converged = true
-        TerminationHook.logger.info("Stop requested: Exceeded maximum number of steps.")
+        StopHook.logger.info("Stop requested: Exceeded maximum number of steps.")
       }
     }
     if (criteria.absLossChangeTol.isDefined || criteria.relLossChangeTol.isDefined) {
@@ -119,8 +119,8 @@ private[learn] case class TerminationHook private[learn] (criteria: TerminationC
       } else {
         numStepsBelowTol = 0
       }
-      if (numStepsBelowTol > criteria.maxStepBelowTol.getOrElse(0L)) {
-        TerminationHook.logger.info("Stop requested: Loss value converged.")
+      if (numStepsBelowTol > criteria.maxStepBelowTol) {
+        StopHook.logger.info("Stop requested: Loss value converged.")
         converged = true
       }
     }
@@ -129,6 +129,6 @@ private[learn] case class TerminationHook private[learn] (criteria: TerminationC
   }
 }
 
-object TerminationHook {
-  private[TerminationHook] val logger = Logger(LoggerFactory.getLogger("Learn / Hooks / Termination"))
+object StopHook {
+  private[StopHook] val logger = Logger(LoggerFactory.getLogger("Learn / Hooks / Termination"))
 }

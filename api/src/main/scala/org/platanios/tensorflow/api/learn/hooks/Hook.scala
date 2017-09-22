@@ -40,9 +40,9 @@ import org.tensorflow.framework.{RunMetadata, RunOptions}
   * `begin()` method. The graph is finalized after the `begin()` method is called.
   *
   * There are a few pre-defined hooks that can be used without modification:
+  *   - `Stop`: Requests to stop iterating based on the provided stopping criteria.
   *   - `TensorLoggingHook`: Logs the values of one or more tensors.
   *   - `TensorNaNHook`: Requests to stop iterating if the provided tensor contains `NaN` values.
-  *   - `TerminationHook`: Requests to stop iterating based on the provided termination criteria.
   *   - `CheckpointSaverHook`: Saves checkpoints.
   *   - `SummarySaverHook`: Saves summaries to the provided summary writer.
   *

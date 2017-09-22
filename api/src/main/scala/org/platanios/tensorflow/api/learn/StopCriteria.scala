@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.learn
 
-/** Criteria used to some the training process iteration.
+/** Criteria used to stop the training process iteration.
   *
   * @param  maxEpochs        Number of epochs (i.e., full passes over the data) after which to stop iterating.
   * @param  maxSteps         Number of steps after which to stop iterating.
@@ -41,33 +41,32 @@ package org.platanios.tensorflow.api.learn
   *
   * @author Emmanouil Antonios Platanios
   */
-class TerminationCriteria(
+class StopCriteria(
     val maxEpochs: Option[Long] = Some(100L),
     val maxSteps: Option[Long] = Some(10000L),
     val restartCounting: Boolean = true,
-    val absLossChangeTol: Option[Double] = Some(1e-3),
-    val relLossChangeTol: Option[Double] = Some(1e-3),
-    val maxStepBelowTol: Option[Long] = Some(10L)) {
+    val absLossChangeTol: Option[Double] = None,
+    val relLossChangeTol: Option[Double] = None,
+    val maxStepBelowTol: Long = 10) {
   require(maxEpochs.getOrElse(0L) >= 0, "'maxEpochs' needs to be a non-negative number.")
   require(maxSteps.getOrElse(0L) >= 0, "'maxSteps' needs to be a non-negative number.")
   require(absLossChangeTol.getOrElse(0.0) >= 0, "'absLossChangeTol' needs to be a non-negative number.")
   require(absLossChangeTol.getOrElse(0.0) >= 0, "'absLossChangeTol' needs to be a non-negative number.")
-  require(maxStepBelowTol.getOrElse(0L) >= 0, "'maxStepBelowTol' needs to be a non-negative number.")
+  require(maxStepBelowTol >= 0, "'maxStepBelowTol' needs to be a non-negative number.")
 
   private[learn] val needEpoch: Boolean = maxEpochs.isDefined
-  private[learn] val needStep : Boolean = maxSteps.isDefined || maxStepBelowTol.isDefined
+  private[learn] val needStep : Boolean = maxSteps.isDefined
   private[learn] val needLoss : Boolean = absLossChangeTol.isDefined || relLossChangeTol.isDefined
 }
 
-object TerminationCriteria {
+object StopCriteria {
   def apply(
       maxEpochs: Option[Long] = Some(100L),
       maxSteps: Option[Long] = Some(10000L),
       restartCounting: Boolean = true,
-      absLossChangeTol: Option[Double] = Some(1e-3),
-      relLossChangeTol: Option[Double] = Some(1e-3),
-      maxStepBelowTol: Option[Long] = Some(10L)): TerminationCriteria = {
-    new TerminationCriteria(
-      maxEpochs, maxSteps, restartCounting, absLossChangeTol, relLossChangeTol, maxStepBelowTol)
+      absLossChangeTol: Option[Double] = None,
+      relLossChangeTol: Option[Double] = None,
+      maxStepBelowTol: Long = 10): StopCriteria = {
+    new StopCriteria(maxEpochs, maxSteps, restartCounting, absLossChangeTol, relLossChangeTol, maxStepBelowTol)
   }
 }
