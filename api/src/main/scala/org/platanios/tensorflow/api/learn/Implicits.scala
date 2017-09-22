@@ -13,22 +13,11 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api
+package org.platanios.tensorflow.api.learn
 
-/** Groups together all the implicits of the API and takes care of their priorities.
-  *
+/**
   * @author Emmanouil Antonios Platanios
   */
-private[api] trait Implicits
-    extends LowPriorityImplicits
-        with core.Implicits
-
-private[api] trait LowPriorityImplicits
-    extends LowestPriorityImplicits
-        with tensors.Implicits
-
-private[api] trait LowestPriorityImplicits
-    extends ops.Implicits
-        with learn.Implicits
+private[api] trait Implicits extends Estimator.Implicits
 
 private[api] object Implicits extends Implicits
