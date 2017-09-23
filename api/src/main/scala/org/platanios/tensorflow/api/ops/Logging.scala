@@ -21,32 +21,22 @@ import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry
   * @author Emmanouil Antonios Platanios
   */
 private[api] trait Logging {
-  // TODO: Look into control flow ops for the "Assert" op.
-  //  /** Asserts that the provided condition is true.
-  //    *
-  //    * If `condition` evaluates to `false`, then the op prints all the op outputs in `data`. `summarize` determines how
-  //    * many entries of the tensors to print.
-  //    *
-  //    * @param  condition Condition to assert.
-  //    * @param  data      Op outputs whose values are printed if `condition` is `false`.
-  //    * @param  summarize Number of tensor entries to print.
-  //    * @param  name      Name for the created op.
-  //    * @return Created op.
-  //    */
-  //  def assert(condition: Output, data: Array[Output], summarize: Int = 3, name: String = "Assert"): Output = {
-  //    createWith(nameScope = name, values = condition +: data) {
-  //      internalAssert(condition = condition, data = data, summarize = summarize)
-  //    }
-  //  }
-  //
-  //  private[this] def internalAssert(
-  //      condition: Output, data: Array[Output], summarize: Int = 3, name: String = "Assert")
-  //      (implicit context: DynamicVariable[OpCreationContext]): Output =
-  //    Op.Builder(context = context, opType = "Assert", name = name)
-  //        .addInput(condition)
-  //        .addInputList(data)
-  //        .setAttribute("summarize", summarize)
-  //        .build().outputs(0)
+  /** $OpDocLoggingAssert
+    *
+    * @group LoggingOps
+    * @param  condition Condition to assert.
+    * @param  data      Op outputs whose values are printed if `condition` is `false`.
+    * @param  summarize Number of tensor entries to print.
+    * @param  name      Name for the created op.
+    * @return Created op.
+    */
+  def assert(condition: Output, data: Seq[Output], summarize: Int = 3, name: String = "Assert"): Op = {
+    Op.Builder("Assert", name)
+        .addInput(condition)
+        .addInputList(data)
+        .setAttribute("summarize", summarize)
+        .build()
+  }
 
   /** $OpDocLoggingPrint
     *
@@ -63,7 +53,7 @@ private[api] trait Logging {
   def print(
       input: Output, data: Seq[Output], message: String = "", firstN: Int = -1, summarize: Int = 3,
       name: String = "Print"): Output = {
-    Op.Builder(opType = "Print", name = name)
+    Op.Builder("Print", name)
         .addInput(input)
         .addInputList(data)
         .setAttribute("message", message)
@@ -82,7 +72,13 @@ private[api] object Logging extends Logging {
     }
   }
 
-  /** @define OpDocLoggingPrint
+  /** @define OpDocLoggingAssert
+    *   The `assert` op asserts that the provided condition is true.
+    *
+    *   If `condition` evaluates to `false`, then the op prints all the op outputs in `data`. `summarize` determines how
+    *   many entries of the tensors to print.
+    *
+    * @define OpDocLoggingPrint
     *   The `print` op prints a list of tensors.
     *
     *   The created op returns `input` as its output (i.e., it is effectively an identity op) and prints all the op
