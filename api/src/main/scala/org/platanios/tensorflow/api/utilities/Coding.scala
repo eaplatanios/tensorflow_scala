@@ -76,11 +76,11 @@ object Coding {
   def decodeFixedInt16(bytes: Array[Byte], offset: Int = 0, littleEndian: Boolean = true): Char = {
     var result: Char = 0
     if (littleEndian) {
-      result |= (bytes(offset) & 0xff) << 8
-      result |= (bytes(offset + 1) & 0xff)
+      result = (result | ((bytes(offset) & 0xff) << 8)).toChar
+      result = (result | (bytes(offset + 1) & 0xff)).toChar
     } else {
-      result |= bytes(offset).toInt
-      result |= (bytes(offset + 1) & 0xff) << 8
+      result = (result | bytes(offset)).toChar
+      result = (result | ((bytes(offset + 1) & 0xff) << 8)).toChar
     }
     result
   }

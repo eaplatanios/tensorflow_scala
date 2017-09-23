@@ -103,7 +103,7 @@ class SummaryFileWriter private[io](
     * @param  summary String representation of the summary to write.
     * @param  step    Global step number to record with the summary.
     */
-  def writeSummary(summary: String, step: Long = 0L): Unit = {
+  def writeSummaryString(summary: String, step: Long = 0L): Unit = {
     write(eventBuilder(step).setSummary(Summary.parseFrom(ByteString.copyFromUtf8(summary))).build())
   }
 
