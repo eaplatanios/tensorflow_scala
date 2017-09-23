@@ -21,6 +21,70 @@ import scala.collection.mutable
   * @author Emmanouil Antonios Platanios
   */
 object Coding {
+  def encodeFixedInt16(value: Char, littleEndian: Boolean = true): Array[Byte] = {
+    val result = Array.ofDim[Byte](2)
+    if (littleEndian) {
+      result(0) = ((value >> 8) & 0xff).toByte
+      result(1) = (value & 0xff).toByte
+    } else {
+      result(0) = (value & 0xff).toByte
+      result(1) = ((value >> 8) & 0xff).toByte
+    }
+    result
+  }
+
+  def encodeFixedInt32(value: Int, littleEndian: Boolean = true): Array[Byte] = {
+    val result = Array.ofDim[Byte](4)
+    if (littleEndian) {
+      result(0) = ((value >> 24) & 0xff).toByte
+      result(1) = ((value >> 16) & 0xff).toByte
+      result(2) = ((value >> 8) & 0xff).toByte
+      result(1) = (value & 0xff).toByte
+    } else {
+      result(0) = (value & 0xff).toByte
+      result(1) = ((value >> 8) & 0xff).toByte
+      result(2) = ((value >> 16) & 0xff).toByte
+      result(3) = ((value >> 24) & 0xff).toByte
+    }
+    result
+  }
+
+  def encodeFixedInt64(value: Long, littleEndian: Boolean = true): Array[Byte] = {
+    val result = Array.ofDim[Byte](4)
+    if (littleEndian) {
+      result(0) = ((value >> 56) & 0xff).toByte
+      result(1) = ((value >> 48) & 0xff).toByte
+      result(2) = ((value >> 40) & 0xff).toByte
+      result(3) = ((value >> 32) & 0xff).toByte
+      result(4) = ((value >> 24) & 0xff).toByte
+      result(5) = ((value >> 16) & 0xff).toByte
+      result(6) = ((value >> 8) & 0xff).toByte
+      result(7) = (value & 0xff).toByte
+    } else {
+      result(0) = (value & 0xff).toByte
+      result(1) = ((value >> 8) & 0xff).toByte
+      result(2) = ((value >> 16) & 0xff).toByte
+      result(3) = ((value >> 24) & 0xff).toByte
+      result(4) = ((value >> 32) & 0xff).toByte
+      result(5) = ((value >> 40) & 0xff).toByte
+      result(6) = ((value >> 48) & 0xff).toByte
+      result(7) = ((value >> 56) & 0xff).toByte
+    }
+    result
+  }
+
+  def decodeFixedInt16(bytes: Array[Byte], offset: Int = 0, littleEndian: Boolean = true): Char = {
+    var result: Char = 0
+    if (littleEndian) {
+      result |= (bytes(offset) & 0xff) << 8
+      result |= (bytes(offset + 1) & 0xff)
+    } else {
+      result |= bytes(offset).toInt
+      result |= (bytes(offset + 1) & 0xff) << 8
+    }
+    result
+  }
+
   def decodeFixedInt32(bytes: Array[Byte], offset: Int = 0, littleEndian: Boolean = true): Int = {
     var result: Int = 0
     if (littleEndian) {
