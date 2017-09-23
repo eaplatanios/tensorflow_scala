@@ -16,11 +16,9 @@
 package org.platanios.tensorflow.api.io
 
 import org.platanios.tensorflow.api.core.Graph
-
 import com.google.protobuf.ByteString
-import org.tensorflow.framework.{RunMetadata, Summary}
+import org.tensorflow.framework.{GraphDef, MetaGraphDef, RunMetadata, Summary}
 import org.tensorflow.util.{Event, SessionLog, TaggedRunMetadata}
-
 import java.nio.file.Path
 
 import scala.collection.JavaConverters._
@@ -92,6 +90,28 @@ class SummaryFileWriter private[io](
               .setGraphDef(metaGraphDef.getGraphDef.toByteString)
               .setMetaGraphDef(metaGraphDef.toByteString)
               .build())
+  }
+
+  /** Writes a [[GraphDef]] to the event file.
+    *
+    * This method wraps the provided [[GraphDef]] in an `Event` protocol buffer and writes it to the event file.
+    *
+    * @param  graphDef [[GraphDef]] to write.
+    * @param  step     Global step number to record with the [[GraphDef]].
+    */
+  def writeGraphDef(graphDef: GraphDef, step: Long = 0L): Unit = {
+    write(eventBuilder(step).setGraphDef(graphDef.toByteString).build())
+  }
+
+  /** Writes a [[MetaGraphDef]] to the event file.
+    *
+    * This method wraps the provided [[MetaGraphDef]] in an `Event` protocol buffer and writes it to the event file.
+    *
+    * @param  metaGraphDef [[MetaGraphDef]] to write.
+    * @param  step         Global step number to record with the [[MetaGraphDef]].
+    */
+  def writeMetaGraphDef(metaGraphDef: MetaGraphDef, step: Long = 0L): Unit = {
+    write(eventBuilder(step).setMetaGraphDef(metaGraphDef.toByteString).build())
   }
 
   /** Writes a `Summary` protocol buffer to the event file given a string representation of that protocol buffer.

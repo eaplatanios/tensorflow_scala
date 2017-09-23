@@ -64,7 +64,7 @@ object Counter {
   def get(key: Graph.Key[Variable], graph: Graph = Op.currentGraph): Option[Variable] = {
     val counterVariables = graph.getCollection(key)
     if (counterVariables.size > 1)
-      throw new IllegalStateException(s"There should only exist one ${key.name} variable in a graph.")
+      throw new IllegalStateException(s"There should only exist one ${key.name} variable in the graph.")
     if (counterVariables.isEmpty) {
       None
     } else {

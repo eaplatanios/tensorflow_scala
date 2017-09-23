@@ -51,7 +51,7 @@ case class SummarySaverHook(
   private[this] var summaryWriter: Option[SummaryFileWriter] = None
 
   private[this] val internalTrigger: HookTrigger = trigger.copy()
-  private[this] var globalStep     : Long        = 0L
+  private[this] var lastStep       : Long        = 0L
   private[this] var shouldTrigger  : Boolean     = false
 
   override def begin(): Unit = {
@@ -62,11 +62,15 @@ case class SummarySaverHook(
       summaryWriter = Some(SummaryFileWriterCache.get(directory))
   }
 
+  override def afterSessionCreation(session: Session): Unit = {
+    lastStep = session.run(fetches = step.value).scalar.asInstanceOf[Long]
+  }
+
   override def beforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]
   ): Option[Hook.SessionRunArgs[Seq[Output], Traversable[Op], Seq[Tensor]]] = {
-    shouldTrigger = internalTrigger.shouldTriggerForStep(globalStep.toInt) && summary.isDefined
+    shouldTrigger = internalTrigger.shouldTriggerForStep(lastStep.toInt) && summary.isDefined
     if (shouldTrigger) {
       Some(Hook.SessionRunArgs(fetches = Seq(step.value, summary.get)))
     } else {
@@ -85,19 +89,19 @@ case class SummarySaverHook(
   }
 
   override def end(session: Session): Unit = {
-    if (triggerAtEnd)
+    if (triggerAtEnd && lastStep != internalTrigger.lastTriggerStep().orNull)
       saveSummaries(session.run(fetches = Seq(step.value, summary.get)))
     summaryWriter.foreach(_.flush())
   }
 
   private[this] def saveSummaries(fetches: Seq[Tensor]): Unit = {
     summaryWriter.foreach(writer => {
-      if (globalStep == 0L)
-        writer.writeSessionLog(SessionLog.newBuilder().setStatus(SessionLog.SessionStatus.START).build(), globalStep)
-      globalStep = fetches(0).scalar.asInstanceOf[Long]
+      if (lastStep == 0L)
+        writer.writeSessionLog(SessionLog.newBuilder().setStatus(SessionLog.SessionStatus.START).build(), lastStep)
+      lastStep = fetches(0).scalar.asInstanceOf[Long]
       if (shouldTrigger) {
-        internalTrigger.updateLastTrigger(globalStep.toInt - 1)
-        writer.writeSummaryString(fetches(1).scalar.asInstanceOf[String], globalStep)
+        internalTrigger.updateLastTrigger(lastStep.toInt - 1)
+        writer.writeSummaryString(fetches(1).scalar.asInstanceOf[String], lastStep)
       }
     })
   }

@@ -89,7 +89,7 @@ case class StepRateHook(
   }
 
   override def end(session: Session): Unit = {
-    if (triggerAtEnd)
+    if (triggerAtEnd && lastStep != internalTrigger.lastTriggerStep().orNull)
       saveStepRateSummary(session.run(fetches = Seq(step.value)))
     summaryWriter.foreach(_.flush())
   }
