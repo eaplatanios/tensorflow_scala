@@ -13,7 +13,7 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.types
+package org.platanios.tensorflow.api.utilities
 
 import scala.collection.mutable
 
@@ -21,6 +21,46 @@ import scala.collection.mutable
   * @author Emmanouil Antonios Platanios
   */
 object Coding {
+  def decodeFixedInt32(bytes: Array[Byte], offset: Int = 0, littleEndian: Boolean = true): Int = {
+    var result: Int = 0
+    if (littleEndian) {
+      result |= (bytes(offset) & 0xff) << 24
+      result |= (bytes(offset + 1) & 0xff) << 16
+      result |= (bytes(offset + 2) & 0xff) << 8
+      result |= bytes(offset + 3).toInt
+    } else {
+      result |= bytes(offset).toInt
+      result |= (bytes(offset + 1) & 0xff) << 8
+      result |= (bytes(offset + 2) & 0xff) << 16
+      result |= (bytes(offset + 3) & 0xff) << 24
+    }
+    result
+  }
+
+  def decodeFixedInt64(bytes: Array[Byte], offset: Int = 0, littleEndian: Boolean = true): Long = {
+    var result: Long = 0
+    if (littleEndian) {
+      result |= (bytes(offset) & 0xffL) << 56
+      result |= (bytes(offset + 1) & 0xffL) << 48
+      result |= (bytes(offset + 2) & 0xffL) << 40
+      result |= (bytes(offset + 3) & 0xffL) << 32
+      result |= (bytes(offset + 4) & 0xffL) << 24
+      result |= (bytes(offset + 5) & 0xffL) << 16
+      result |= (bytes(offset + 6) & 0xffL) << 8
+      result |= bytes(offset + 7).toInt
+    } else {
+      result |= bytes(offset).toInt
+      result |= (bytes(offset + 1) & 0xff) << 8
+      result |= (bytes(offset + 2) & 0xff) << 16
+      result |= (bytes(offset + 3) & 0xff) << 24
+      result |= (bytes(offset + 4) & 0xff) << 32
+      result |= (bytes(offset + 5) & 0xff) << 40
+      result |= (bytes(offset + 6) & 0xff) << 48
+      result |= (bytes(offset + 7) & 0xff) << 56
+    }
+    result
+  }
+
   def encodeStrings(values: String*): Array[Byte] = {
     val bytes: mutable.ArrayBuffer[Byte] = mutable.ArrayBuffer.empty
     values.foreach(value => bytes.appendAll(encodeVarInt32(value.length)))
