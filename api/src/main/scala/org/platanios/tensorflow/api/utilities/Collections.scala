@@ -22,7 +22,7 @@ package org.platanios.tensorflow.api.utilities
 object Collections {
   /** Segments a sequence according to a provided sequence of segment lengths.
     *
-    * For example:
+    * For example.
     * {{{
     *   val xs = Seq(3, 5, 2, 77, 12, 45, 78, 21, 89, 1, 0, -1, 123)
     *   val n = Seq(3, 1, 0, 2, 5, 2)
@@ -37,7 +37,9 @@ object Collections {
     * @return Sequence containing the segments of `xs`.
     */
   def segment[V](xs: Seq[V], n: Seq[Int]): Seq[Seq[V]] = {
-    if (xs.isEmpty || n.isEmpty) {
+    if (xs.isEmpty && n == Seq(0)) {
+      Seq(Seq.empty[V])
+    } else if (xs.isEmpty || n.isEmpty) {
       Nil
     } else {
       val (ys, zs) = xs.splitAt(n.head)
