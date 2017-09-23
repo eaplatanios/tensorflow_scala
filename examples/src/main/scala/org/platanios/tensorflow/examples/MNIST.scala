@@ -22,7 +22,8 @@ import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
 import java.nio.file.Paths
 
-import org.platanios.tensorflow.api.learn.hooks.{StepHookTrigger, SummarySaverHook}
+import org.platanios.tensorflow.api.config.TensorBoardConfig
+import org.platanios.tensorflow.api.learn.hooks.{StepHookTrigger, StepRateHook, SummarySaverHook}
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -59,10 +60,14 @@ object MNIST {
     val estimator = new Estimator(model)
 
     logger.info("Training the linear regression model.")
+    val summariesDir = Paths.get("/Users/Anthony/Downloads/temp")
     estimator.train(
       trainData,
       StopCriteria(maxSteps = Some(1000000)),
-      Seq(SummarySaverHook(Paths.get("/Users/Anthony/Downloads/temp"), StepHookTrigger(100))))
+      Seq(
+        StepRateHook(log = false, summaryDirectory = summariesDir, trigger = StepHookTrigger(100)),
+        SummarySaverHook(summariesDir, StepHookTrigger(100))),
+      TensorBoardConfig(summariesDir, reloadInterval = 1))
 
     // val inputs = tf.placeholder(tf.UINT8, tf.shape(-1, numberOfRows, numberOfColumns))
     // val labels = tf.placeholder(tf.UINT8, tf.shape(-1))

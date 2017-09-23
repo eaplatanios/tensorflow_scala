@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.learn
 
-import org.platanios.tensorflow.api.config.{CheckpointConfig, SummaryConfig}
+import org.platanios.tensorflow.api.config.{CheckpointConfig, SummaryConfig, TensorBoardConfig}
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.SessionConfig
 import org.platanios.tensorflow.api.learn.Estimator.ModelFunction
@@ -24,10 +24,8 @@ import org.platanios.tensorflow.api.learn.utilities.ReplicaDevicePlacer
 import org.platanios.tensorflow.api.ops.{ControlFlow, Op, OpSpecification}
 import org.platanios.tensorflow.api.ops.io.Dataset
 import org.platanios.tensorflow.api.ops.variables.Saver
-
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
-
 import java.nio.file.{Files, Path}
 
 import scala.collection.immutable.TreeMap
@@ -138,13 +136,19 @@ class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
     * @param  terminationCriteria Termination criteria to use for stopping the training iteration. For the default
     *                             criteria please refer to the documentation of [[StopCriteria]].
     * @param  hooks               Hooks to use while training (e.g., logging for the loss function value, etc.).
+    * @param  tensorBoardConfig   If provided, a TensorBoard server is launched using the provided configuration. In
+    *                             that case, it is required that TensorBoard is installed for the default Python
+    *                             environment in the system. If training in a distributed setting, the TensorBoard
+    *                             server is launched on the chief node.
     */
   def train(
       data: Dataset[(IT, TT), (IO, TO), (ID, TD), (IS, TS)],
       terminationCriteria: StopCriteria = StopCriteria(),
-      hooks: Seq[Hook] = Seq.empty): Unit = {
+      hooks: Seq[Hook] = Seq.empty,
+      tensorBoardConfig: TensorBoardConfig = null): Unit = {
     // TODO: !!! Load global step from a checkpoint and skip training if appropriate.
     val allHooks = mutable.ListBuffer(hooks: _*)
+    val chiefOnlyHooks = mutable.ListBuffer(hooks: _*)
     allHooks += StopHook(terminationCriteria)
     val model = modelFunction(configuration)
     val graph = Graph()
@@ -160,6 +164,8 @@ class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
         "Step" -> step.value.name,
         "Loss" -> trainingOps.loss.name
       ), StepHookTrigger(100))
+      if (tensorBoardConfig != null)
+        chiefOnlyHooks += TensorBoardHook(tensorBoardConfig)
       if (graph.getCollection(Graph.Keys.SAVERS).isEmpty) {
         graph.addToCollection(Saver(
           sharded = true,
@@ -172,7 +178,7 @@ class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
       val session = Estimator.monitoredTrainingSession(
         configuration = configuration,
         hooks = allHooks,
-        chiefOnlyHooks = Seq.empty,
+        chiefOnlyHooks = chiefOnlyHooks,
         sessionScaffold = SessionScaffold(
           initOp = Some(ControlFlow.group(Set(
             inputInitializer,
