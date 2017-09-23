@@ -164,7 +164,7 @@ class SummaryFileWriter private[io](
   }
 
   private[this] def eventBuilder(step: Long = 0L): Event.Builder = {
-    Event.newBuilder().setWallTime(System.currentTimeMillis().toFloat / 1000f).setStep(step)
+    Event.newBuilder().setWallTime(System.currentTimeMillis().toDouble / 1000.0).setStep(step)
   }
 }
 

@@ -187,9 +187,9 @@ private[io] class EventWriter private[io](
     }
 
     if (!initialized) {
-      val currentTime = System.currentTimeMillis() / 1000
+      val currentTime = System.currentTimeMillis().toDouble / 1000.0
       val hostname = java.net.InetAddress.getLocalHost.getHostName
-      _filePath = workingDir.resolve(f"$filenamePrefix.out.tfevents.$currentTime%010d.$hostname$filenameSuffix")
+      _filePath = workingDir.resolve(f"$filenamePrefix.out.tfevents.${currentTime.toInt}%010d.$hostname$filenameSuffix")
       _fileStream = Some(new BufferedOutputStream(Files.newOutputStream(
         _filePath, StandardOpenOption.CREATE_NEW, StandardOpenOption.APPEND)))
       _numOutstandingEvents = 0

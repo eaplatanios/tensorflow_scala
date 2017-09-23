@@ -78,7 +78,7 @@ class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
     // Process provided run configuration.
     val configuration = {
       if (configurationBase == null) {
-        Estimator.logger.info("Using default run configuration.")
+        Estimator.logger.info("Using the default run configuration.")
         Configuration()
       } else {
         configurationBase.copy()
@@ -89,7 +89,7 @@ class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
     val configurationWithWorkingDir = {
       if (configuration.workingDir == null) {
         val workingDir = Files.createTempDirectory("estimator_working_dir")
-        Estimator.logger.info(s"Using temporary folder as working directory: $workingDir")
+        Estimator.logger.info(s"Using a temporary folder as working directory: $workingDir")
         configuration.copy(workingDir = Some(workingDir))
       } else {
         configuration
@@ -99,7 +99,7 @@ class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
     // Process session configuration.
     val configurationWithSession = {
       if (configuration.sessionConfig == null) {
-        Estimator.logger.info("Using default session configuration with allowed soft placements.")
+        Estimator.logger.info("Using the default session configuration with allowed soft placements.")
         configurationWithWorkingDir.copy(sessionConfig = Some(SessionConfig(allowSoftPlacement = Some(true))))
       } else {
         configurationWithWorkingDir

@@ -53,13 +53,13 @@ private[learn] case class StopHook private[learn] (criteria: StopCriteria) exten
     val fetches = mutable.ListBuffer.empty[Output]
     if (criteria.needEpoch) {
       epoch = Counter.get(Graph.Keys.GLOBAL_EPOCH, Op.currentGraph).getOrElse(throw new IllegalStateException(
-        s"A ${Graph.Keys.GLOBAL_EPOCH.name} variable should be created in order to use the 'StopAtStepHook'."))
+        s"A ${Graph.Keys.GLOBAL_EPOCH.name} variable should be created in order to use the 'StopHook'."))
       epochFetchIndex = fetches.size
       fetches.append(epoch.value)
     }
     if (criteria.needStep) {
       step = Counter.get(Graph.Keys.GLOBAL_STEP, Op.currentGraph).getOrElse(throw new IllegalStateException(
-        s"A ${Graph.Keys.GLOBAL_STEP.name} variable should be created in order to use the 'StopAtStepHook'."))
+        s"A ${Graph.Keys.GLOBAL_STEP.name} variable should be created in order to use the 'StopHook'."))
       stepFetchIndex = fetches.size
       fetches.append(step.value)
     }
