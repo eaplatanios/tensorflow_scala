@@ -110,6 +110,29 @@ private[api] object Summary extends Summary {
     }
   }
 
+  // TODO: !!! [SUMMARIES] Add support for plugin assets.
+//  /** This trait allows TensorBoard to serialize assets to disk.
+//    *
+//    * LifeCycle of a [[PluginAsset]] instance:
+//    *
+//    *   - Constructed when `getPluginAsset` is called on the class for the first time.
+//    *   - Configured by code that follows the calls to `getPluginAsset`.
+//    *   - When the containing graph is serialized by the [[SummaryFileWriter]], the writer requests `PluginAsset.assets`
+//    *     and the [[PluginAsset]] instance provides its contents to be written to disk.
+//    */
+//  trait PluginAsset {
+//    /** Name of the plugin associated with this asset. */
+//    val pluginName: String
+//
+//    /** Assets contained in this [[PluginAsset]] instance.
+//      *
+//      * This method will be called by the [[SummaryFileWriter]] when it is time to write the assets to disk.
+//      *
+//      * @return Map from asset names to asset contents.
+//      */
+//    val assets: Map[String, String]
+//  }
+
   /** $OpDocSummaryMerge
     *
     * @group SummaryOps

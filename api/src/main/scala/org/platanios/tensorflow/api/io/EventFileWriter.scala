@@ -25,7 +25,7 @@ import java.io.BufferedOutputStream
 import java.nio.file.{Files, Path, StandardOpenOption}
 import java.util.concurrent.{BlockingQueue, LinkedBlockingDeque}
 
-/** Writes `Event` protocol buffers to an event file.
+/** Writes `Event` protocol buffers to files.
   *
   * The `EventFileWriter` class creates an event file in the specified directory and asynchronously writes `Event`
   * protocol buffers to it. The file is encoded using the `TFRecord` format, which is similar to `RecordIO`.
@@ -57,17 +57,20 @@ class EventFileWriter private[io](
 
   eventWriterThread.start()
 
+  /** Writes the provided event to the event file. */
   def write(event: Event): Unit = {
     if (!_closed)
       queue.put(event)
   }
 
+  /** Pushes outstanding events to disk. */
   def flush(): Unit = queue synchronized {
     while (!queue.isEmpty)
       queue.wait()
     eventWriter.flush()
   }
 
+  /** Calls `flush()` and then closes the current event file. */
   def close(): Unit = {
     write(sentinelEvent)
     flush()
@@ -76,8 +79,10 @@ class EventFileWriter private[io](
     _closed = true
   }
 
+  /** Returns `true` if this event file writer has been closed. */
   def closed: Boolean = _closed
 
+  /** Reopens this event file writer. */
   def reopen(): Unit = {
     if (_closed) {
       eventWriter = new EventWriter(workingDir, "events", filenameSuffix)
@@ -87,6 +92,7 @@ class EventFileWriter private[io](
     }
   }
 
+  /** Creates a thread that pulls events from the queue and writes them to the event file. */
   private[this] def newEventWriterThread(): Thread = {
     val thread = new Thread(new Runnable {
       // The first event will be flushed immediately.
@@ -119,14 +125,30 @@ class EventFileWriter private[io](
 }
 
 object EventFileWriter {
+  /** Creates a new [[EventFileWriter]].
+    *
+    * @param  workingDir     Directory in which to write the event file.
+    * @param  queueCapacity  Maximum number of events pending to be written to disk before a call to `write()` blocks.
+    * @param  flushFrequency Specifies how often to flush the written events to disk (in seconds).
+    * @param  filenameSuffix Filename suffix to use for the event file.
+    * @return Constructed event file writer.
+    */
   def apply(
       workingDir: Path,
       queueCapacity: Int = 10,
       flushFrequency: Int = 10,
       filenameSuffix: String = ""
-  ): EventFileWriter = new EventFileWriter(workingDir, queueCapacity, flushFrequency, filenameSuffix)
+  ): EventFileWriter = {
+    new EventFileWriter(workingDir, queueCapacity, flushFrequency, filenameSuffix)
+  }
 }
 
+/** Helper class used by the [[EventFileWriter]] class, to write `Event` protocol buffers to files.
+  *
+  * @param  workingDir     Directory in which to write the event file.
+  * @param  filenamePrefix Filename prefix to use for the event file.
+  * @param  filenameSuffix Filename suffix to use for the event file.
+  */
 private[io] class EventWriter private[io](
     val workingDir: Path,
     val filenamePrefix: String,
@@ -199,7 +221,7 @@ private[io] class EventWriter private[io](
   /** Pushes outstanding events to disk. */
   def flush(): Unit = _fileStream.foreach(_.flush())
 
-  /** Calls `flush()` and then closes the current events file. */
+  /** Calls `flush()` and then closes the current event file. */
   def close(): Unit = _fileStream.foreach(_.close())
 
   private[this] def fileHasDisappeared: Boolean = {

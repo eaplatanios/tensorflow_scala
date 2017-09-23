@@ -16,7 +16,6 @@
 package org.platanios.tensorflow.api
 
 import org.platanios.tensorflow.api.core.exception.{AbortedException, UnavailableException}
-import org.platanios.tensorflow.api.learn.layers.Layer
 
 /**
   * @author Emmanouil Antonios Platanios
