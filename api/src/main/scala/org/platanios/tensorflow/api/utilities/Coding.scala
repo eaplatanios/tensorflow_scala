@@ -50,7 +50,7 @@ object Coding {
   }
 
   def encodeFixedInt64(value: Long, littleEndian: Boolean = true): Array[Byte] = {
-    val result = Array.ofDim[Byte](4)
+    val result = Array.ofDim[Byte](8)
     if (littleEndian) {
       result(0) = ((value >> 56) & 0xff).toByte
       result(1) = ((value >> 48) & 0xff).toByte
