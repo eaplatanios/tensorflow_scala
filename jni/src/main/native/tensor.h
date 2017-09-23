@@ -82,7 +82,7 @@ JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_setStringB
 /*
  * Class:     org_platanios_tensorflow_jni_Tensor__
  * Method:    getStringBytes
- * Signature: (L)V
+ * Signature: (L)[B
  */
 JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_getStringBytes
   (JNIEnv *, jobject, jobject);

@@ -203,8 +203,8 @@ case class HookedSession private[learn](private val baseSession: Session, hooks:
       combinedArgs.feeds, combinedArgs.fetches, combinedArgs.targets, combinedArgs.options, wantMetadata)
 
     // Invoke the hooks' `afterSessionRun` callbacks.
-    hooks.foreach(hook => {
-      hook.afterSessionRun(runContext, Hook.SessionRunResult(result._1._2.getOrElse(hook, Seq.empty), result._2))
+    hooks.zipWithIndex.foreach(hook => {
+      hook._1.afterSessionRun(runContext, Hook.SessionRunResult(result._1._2(hook._2), result._2))
     })
 
     // Update the `_shouldStop` flag and return.
@@ -219,29 +219,34 @@ case class HookedSession private[learn](private val baseSession: Session, hooks:
   )(implicit
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]
-  ): Hook.SessionRunArgs[(F, Map[Hook, Seq[Output]]), (E, Seq[Op]), (R, Map[Hook, Seq[Tensor]])] = {
+  ): Hook.SessionRunArgs[(F, Seq[Seq[Output]]), (E, Seq[Op]), (R, Seq[Seq[Tensor]])] = {
     var hooksFeedMap = FeedMap.empty
-    val hooksFetchesMap = mutable.Map.empty[Hook, Seq[Output]]
+    val hooksFetchesList = mutable.ListBuffer.empty[Seq[Output]]
     val hooksTargetsList = mutable.ListBuffer.empty[Op]
     var hooksRunOptions = RunOptions.newBuilder(runOptions).build()
-    hooks.foreach(hook => hook.beforeSessionRun(runContext).foreach(runArgs => {
-      if (runArgs.feeds.nonEmpty) {
-        if (hooksFeedMap.nonEmpty && hooksFeedMap.intersects(runArgs.feeds))
-          throw new RuntimeException("The same tensor is fed by two hooks.")
-        hooksFeedMap = hooksFeedMap ++ runArgs.feeds
-      }
-      if (runArgs.fetches.nonEmpty)
-        hooksFetchesMap.update(hook, runArgs.fetches)
-      if (runArgs.targets.nonEmpty)
-        hooksTargetsList.appendAll(runArgs.targets)
-      if (runArgs.options != null)
-        hooksRunOptions = mergeRunOptions(hooksRunOptions, runArgs.options)
-    }))
+    hooks.foreach(hook => hook.beforeSessionRun(runContext) match {
+      case Some(runArgs) =>
+        if (runArgs.feeds.nonEmpty) {
+          if (hooksFeedMap.nonEmpty && hooksFeedMap.intersects(runArgs.feeds))
+            throw new RuntimeException("The same tensor is fed by two hooks.")
+          hooksFeedMap = hooksFeedMap ++ runArgs.feeds
+        }
+        if (runArgs.fetches.nonEmpty)
+          hooksFetchesList.append(runArgs.fetches)
+        else
+          hooksFetchesList.append(Seq.empty) // TODO: !!! [HOOKS] Can we avoid these empty sequences entirely?
+        if (runArgs.targets.nonEmpty)
+          hooksTargetsList.appendAll(runArgs.targets)
+        if (runArgs.options != null)
+          hooksRunOptions = mergeRunOptions(hooksRunOptions, runArgs.options)
+      case None =>
+        hooksFetchesList.append(Seq.empty) // TODO: !!! [HOOKS] Can we avoid these empty sequences entirely?
+    })
     val feeds = runContext.args.feeds
     if (feeds.nonEmpty && hooksFeedMap.nonEmpty && feeds.intersects(hooksFeedMap))
       throw new RuntimeException("The same tensor is fed by the user and by a hook.")
     val combinedFeeds = feeds ++ hooksFeedMap
-    val combinedFetches = (runContext.args.fetches, hooksFetchesMap.toMap)
+    val combinedFetches = (runContext.args.fetches, hooksFetchesList)
     val combinedTargets = (runContext.args.targets, hooksTargetsList)
     Hook.SessionRunArgs(combinedFeeds, combinedFetches, combinedTargets, runOptions)
   }
