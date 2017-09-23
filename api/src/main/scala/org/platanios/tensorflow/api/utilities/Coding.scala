@@ -24,11 +24,11 @@ object Coding {
   def encodeFixedInt16(value: Char, littleEndian: Boolean = true): Array[Byte] = {
     val result = Array.ofDim[Byte](2)
     if (littleEndian) {
-      result(0) = ((value >> 8) & 0xff).toByte
-      result(1) = (value & 0xff).toByte
-    } else {
       result(0) = (value & 0xff).toByte
       result(1) = ((value >> 8) & 0xff).toByte
+    } else {
+      result(0) = ((value >> 8) & 0xff).toByte
+      result(1) = (value & 0xff).toByte
     }
     result
   }
@@ -36,15 +36,15 @@ object Coding {
   def encodeFixedInt32(value: Int, littleEndian: Boolean = true): Array[Byte] = {
     val result = Array.ofDim[Byte](4)
     if (littleEndian) {
-      result(0) = ((value >> 24) & 0xff).toByte
-      result(1) = ((value >> 16) & 0xff).toByte
-      result(2) = ((value >> 8) & 0xff).toByte
-      result(1) = (value & 0xff).toByte
-    } else {
       result(0) = (value & 0xff).toByte
       result(1) = ((value >> 8) & 0xff).toByte
       result(2) = ((value >> 16) & 0xff).toByte
       result(3) = ((value >> 24) & 0xff).toByte
+    } else {
+      result(0) = ((value >> 24) & 0xff).toByte
+      result(1) = ((value >> 16) & 0xff).toByte
+      result(2) = ((value >> 8) & 0xff).toByte
+      result(3) = (value & 0xff).toByte
     }
     result
   }
@@ -52,23 +52,23 @@ object Coding {
   def encodeFixedInt64(value: Long, littleEndian: Boolean = true): Array[Byte] = {
     val result = Array.ofDim[Byte](8)
     if (littleEndian) {
-      result(0) = ((value >> 56) & 0xff).toByte
-      result(1) = ((value >> 48) & 0xff).toByte
-      result(2) = ((value >> 40) & 0xff).toByte
-      result(3) = ((value >> 32) & 0xff).toByte
-      result(4) = ((value >> 24) & 0xff).toByte
-      result(5) = ((value >> 16) & 0xff).toByte
-      result(6) = ((value >> 8) & 0xff).toByte
-      result(7) = (value & 0xff).toByte
+      result(0) = (value & 0xffL).toByte
+      result(1) = ((value >> 8) & 0xffL).toByte
+      result(2) = ((value >> 16) & 0xffL).toByte
+      result(3) = ((value >> 24) & 0xffL).toByte
+      result(4) = ((value >> 32) & 0xffL).toByte
+      result(5) = ((value >> 40) & 0xffL).toByte
+      result(6) = ((value >> 48) & 0xffL).toByte
+      result(7) = ((value >> 56) & 0xffL).toByte
     } else {
-      result(0) = (value & 0xff).toByte
-      result(1) = ((value >> 8) & 0xff).toByte
-      result(2) = ((value >> 16) & 0xff).toByte
-      result(3) = ((value >> 24) & 0xff).toByte
-      result(4) = ((value >> 32) & 0xff).toByte
-      result(5) = ((value >> 40) & 0xff).toByte
-      result(6) = ((value >> 48) & 0xff).toByte
-      result(7) = ((value >> 56) & 0xff).toByte
+      result(0) = ((value >> 56) & 0xffL).toByte
+      result(1) = ((value >> 48) & 0xffL).toByte
+      result(2) = ((value >> 40) & 0xffL).toByte
+      result(3) = ((value >> 32) & 0xffL).toByte
+      result(4) = ((value >> 24) & 0xffL).toByte
+      result(5) = ((value >> 16) & 0xffL).toByte
+      result(6) = ((value >> 8) & 0xffL).toByte
+      result(7) = (value & 0xffL).toByte
     }
     result
   }
@@ -76,11 +76,11 @@ object Coding {
   def decodeFixedInt16(bytes: Array[Byte], offset: Int = 0, littleEndian: Boolean = true): Char = {
     var result: Char = 0
     if (littleEndian) {
+      result = ((result | bytes(offset)) & 0xff).toChar
+      result = (result | ((bytes(offset + 1) & 0xff) << 8)).toChar
+    } else {
       result = (result | ((bytes(offset) & 0xff) << 8)).toChar
       result = (result | (bytes(offset + 1) & 0xff)).toChar
-    } else {
-      result = (result | bytes(offset)).toChar
-      result = (result | ((bytes(offset + 1) & 0xff) << 8)).toChar
     }
     result
   }
@@ -88,15 +88,15 @@ object Coding {
   def decodeFixedInt32(bytes: Array[Byte], offset: Int = 0, littleEndian: Boolean = true): Int = {
     var result: Int = 0
     if (littleEndian) {
-      result |= (bytes(offset) & 0xff) << 24
-      result |= (bytes(offset + 1) & 0xff) << 16
-      result |= (bytes(offset + 2) & 0xff) << 8
-      result |= bytes(offset + 3).toInt
-    } else {
-      result |= bytes(offset).toInt
+      result |= bytes(offset) & 0xff
       result |= (bytes(offset + 1) & 0xff) << 8
       result |= (bytes(offset + 2) & 0xff) << 16
       result |= (bytes(offset + 3) & 0xff) << 24
+    } else {
+      result |= (bytes(offset) & 0xff) << 24
+      result |= (bytes(offset + 1) & 0xff) << 16
+      result |= (bytes(offset + 2) & 0xff) << 8
+      result |= bytes(offset + 3 & 0xff)
     }
     result
   }
@@ -104,15 +104,6 @@ object Coding {
   def decodeFixedInt64(bytes: Array[Byte], offset: Int = 0, littleEndian: Boolean = true): Long = {
     var result: Long = 0
     if (littleEndian) {
-      result |= (bytes(offset) & 0xffL) << 56
-      result |= (bytes(offset + 1) & 0xffL) << 48
-      result |= (bytes(offset + 2) & 0xffL) << 40
-      result |= (bytes(offset + 3) & 0xffL) << 32
-      result |= (bytes(offset + 4) & 0xffL) << 24
-      result |= (bytes(offset + 5) & 0xffL) << 16
-      result |= (bytes(offset + 6) & 0xffL) << 8
-      result |= bytes(offset + 7).toInt
-    } else {
       result |= bytes(offset).toInt
       result |= (bytes(offset + 1) & 0xff) << 8
       result |= (bytes(offset + 2) & 0xff) << 16
@@ -121,6 +112,15 @@ object Coding {
       result |= (bytes(offset + 5) & 0xff) << 40
       result |= (bytes(offset + 6) & 0xff) << 48
       result |= (bytes(offset + 7) & 0xff) << 56
+    } else {
+      result |= (bytes(offset) & 0xffL) << 56
+      result |= (bytes(offset + 1) & 0xffL) << 48
+      result |= (bytes(offset + 2) & 0xffL) << 40
+      result |= (bytes(offset + 3) & 0xffL) << 32
+      result |= (bytes(offset + 4) & 0xffL) << 24
+      result |= (bytes(offset + 5) & 0xffL) << 16
+      result |= (bytes(offset + 6) & 0xffL) << 8
+      result |= bytes(offset + 7) & 0xffL
     }
     result
   }
