@@ -37,9 +37,7 @@ object Collections {
     * @return Sequence containing the segments of `xs`.
     */
   def segment[V](xs: Seq[V], n: Seq[Int]): Seq[Seq[V]] = {
-    if (xs.isEmpty && n == Seq(0)) {
-      Seq(Seq.empty[V])
-    } else if (xs.isEmpty || n.isEmpty) {
+    if (xs.isEmpty && n.isEmpty) {
       Nil
     } else {
       val (ys, zs) = xs.splitAt(n.head)
