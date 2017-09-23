@@ -17,7 +17,8 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 
-/**
+/** Contains functions for constructing ops related to logging.
+  *
   * @author Emmanouil Antonios Platanios
   */
 private[api] trait Logging {

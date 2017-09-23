@@ -54,7 +54,6 @@ package object ops {
           with Parsing
           with Random
           with Statistics
-          with Summary
           with Text
           with Gradients.API
           with Op.API
@@ -71,6 +70,7 @@ package object ops {
     ops.Parsing.Gradients
     ops.Random.Gradients
 
+    object summary extends Summary
     object train extends training.API
   }
 }
