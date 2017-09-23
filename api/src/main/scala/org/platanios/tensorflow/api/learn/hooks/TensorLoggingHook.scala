@@ -29,23 +29,23 @@ import org.slf4j.LoggerFactory
   * Note that if `logAtEnd` is `true`, `tensors` should not include any tensor whose evaluation produces a side effect,
   * such as consuming additional inputs.
   *
-  * @param  tensors   Map from tags to tensor names. The tags are used to identify the tensors in the log.
-  * @param  trigger   Hook trigger specifying when this hook is triggered (i.e., when it executes). If you only want to
-  *                   log the tensor values at the end of a run and not during, then you should set `trigger` to
-  *                   [[NoHookTrigger]] and `logAtEnd` to `true`.
-  * @param  logAtEnd  If `true`, the values of the specified tensors are logged at the end of the run. Note that if this
-  *                   flag is set to `true`, then `tensors` must be computable without using a feed map for the
-  *                   [[Session.run()]] call.
-  * @param  formatter Function used to format the strings being logged that takes a `Map[String, Tensor]` as input, with
-  *                   the keys corresponding to tags, and returns a string to log. Defaults to a simple summary of all
-  *                   the tensors in the map.
+  * @param  tensors      Map from tags to tensor names. The tags are used to identify the tensors in the log.
+  * @param  trigger      Hook trigger specifying when this hook is triggered (i.e., when it executes). If you only want
+  *                      to log the tensor values at the end of a run and not during, then you should set `trigger` to
+  *                      [[NoHookTrigger]] and `logAtEnd` to `true`.
+  * @param  triggerAtEnd If `true`, this hook will be triggered at the end of the run. Note that if this flag is set to
+  *                      `true`, then `tensors` must be computable without using a feed map for the [[Session.run()]]
+  *                      call.
+  * @param  formatter    Function used to format the strings being logged that takes a `Map[String, Tensor]` as input,
+  *                      with the keys corresponding to tags, and returns a string to log. Defaults to a simple summary
+  *                      of all the tensors in the map.
   *
   * @author Emmanouil Antonios Platanios
   */
 case class TensorLoggingHook(
     tensors: Map[String, String],
     trigger: HookTrigger = StepHookTrigger(1),
-    logAtEnd: Boolean = false,
+    triggerAtEnd: Boolean = false,
     formatter: (Map[String, Tensor]) => String = null)
     extends Hook {
   private[this] val tensorTags: Seq[String] = tensors.keys.toSeq
@@ -88,7 +88,7 @@ case class TensorLoggingHook(
   }
 
   override def end(session: Session): Unit = {
-    if (logAtEnd)
+    if (triggerAtEnd)
       logTensors(tensorTags.zip(session.run(fetches = outputs)))
   }
 

@@ -29,21 +29,21 @@ import java.nio.file.Path
 
 /** Saves summaries to files based on a [[HookTrigger]].
   *
-  * @param  directory  Directory in which to save the summaries.
-  * @param  trigger    Hook trigger specifying when this hook is triggered (i.e., when it executes). If you only want to
-  *                    save the summary values at the end of a run and not during, then you should set `trigger` to
-  *                    [[NoHookTrigger]] and `saveAtEnd` to `true`.
-  * @param  saveAtEnd  If `true`, the summary values are saved at the end of the run. Note that if this flag is set to
-  *                    `true`, then all summaries must be computable without using a feed map for the [[Session.run()]]
-  *                    call.
-  * @param  collection Graph collection from which to obtain the summaries. Defaults to `Graph.Keys.SUMMARIES`.
+  * @param  directory    Directory in which to save the summaries.
+  * @param  trigger      Hook trigger specifying when this hook is triggered (i.e., when it executes). If you only want
+  *                      to save the summary values at the end of a run and not during, then you should set `trigger` to
+  *                      [[NoHookTrigger]] and `saveAtEnd` to `true`.
+  * @param  triggerAtEnd If `true`, this hook will be triggered at the end of the run. Note that if this flag is set to
+  *                      `true`, then all summaries must be computable without using a feed map for the
+  *                      [[Session.run()]] call.
+  * @param  collection   Graph collection from which to obtain the summaries. Defaults to `Graph.Keys.SUMMARIES`.
   *
   * @author Emmanouil Antonios Platanios
   */
 case class SummarySaverHook(
     directory: Path,
-    trigger: HookTrigger = StepHookTrigger(1),
-    saveAtEnd: Boolean = false,
+    trigger: HookTrigger = StepHookTrigger(10),
+    triggerAtEnd: Boolean = false,
     collection: Graph.Key[Output] = Graph.Keys.SUMMARIES
 ) extends Hook {
   private[this] var step         : Variable                  = _
@@ -85,7 +85,7 @@ case class SummarySaverHook(
   }
 
   override def end(session: Session): Unit = {
-    if (saveAtEnd)
+    if (triggerAtEnd)
       saveSummaries(session.run(fetches = Seq(step.value, summary.get)))
     summaryWriter.foreach(_.flush())
   }
