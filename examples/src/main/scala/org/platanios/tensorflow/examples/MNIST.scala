@@ -22,6 +22,8 @@ import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
 import java.nio.file.Paths
 
+import org.platanios.tensorflow.api.learn.hooks.{StepHookTrigger, SummarySaverHook}
+
 /**
   * @author Emmanouil Antonios Platanios
   */
@@ -30,7 +32,7 @@ object MNIST {
 
   def mlpPredictionModel(architecture: Seq[Int]): tf.learn.Layer[tf.Output, tf.Output] = {
     architecture.zipWithIndex
-        .map(a => tf.learn.withVariableScope(s"Layer_${a._2}")(tf.learn.linear(a._1) >> tf.learn.relu(0.1f)))
+        .map(a => tf.learn.withVariableScope(s"Layer_${a._2}")(tf.learn.linear(a._1) >> tf.learn.ReLU(0.1f)))
         .foldLeft(tf.learn.flatten() >> tf.learn.cast(FLOAT32))(_ >> _) >>
         tf.learn.withVariableScope("OutputLayer")(tf.learn.linear(10)) // >> tf.learn.logSoftmax())
   }
@@ -43,21 +45,24 @@ object MNIST {
 
     logger.info("Building the logistic regression model.")
     val input = tf.learn.input(UINT8, Shape(-1, dataSet.trainImages.shape(1), dataSet.trainImages.shape(2)))
-//     val layer = tf.learn.flatten() >>
-//         tf.learn.cast(FLOAT32) >>
-//         tf.learn.linear(10) // >> tf.learn.logSoftmax()
     val layer = tf.learn.flatten() >>
         tf.learn.cast(FLOAT32) >>
-        mlpPredictionModel(Seq(128, 64, 32))
+        tf.learn.linear(10) // >> tf.learn.logSoftmax()
+//    val layer = tf.learn.flatten() >>
+//        tf.learn.cast(FLOAT32) >>
+//        mlpPredictionModel(Seq(128, 64, 32))
     val trainInput = tf.learn.input(UINT8, Shape(-1))
     val trainingInputLayer = tf.learn.cast(INT64) // tf.learn.oneHot(10) >> tf.learn.cast(FLOAT32)
-    val loss = tf.learn.sparseSoftmaxCrossEntropy() >> tf.learn.mean()
+    val loss = tf.learn.sparseSoftmaxCrossEntropy() >> tf.learn.mean() >> tf.learn.ScalarSummary("Loss")
     val optimizer = tf.learn.gradientDescent(1e-6)
     val model = tf.learn.model(input, layer, trainInput, trainingInputLayer, loss, optimizer)
     val estimator = new Estimator(model)
 
     logger.info("Training the linear regression model.")
-    estimator.train(trainData, StopCriteria(maxSteps = Some(100000)))
+    estimator.train(
+      trainData,
+      StopCriteria(maxSteps = Some(1000000)),
+      Seq(SummarySaverHook(Paths.get("/Users/Anthony/Downloads/temp"), StepHookTrigger(100))))
 
     // val inputs = tf.placeholder(tf.UINT8, tf.shape(-1, numberOfRows, numberOfColumns))
     // val labels = tf.placeholder(tf.UINT8, tf.shape(-1))

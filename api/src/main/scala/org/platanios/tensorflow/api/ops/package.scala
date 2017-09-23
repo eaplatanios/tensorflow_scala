@@ -15,6 +15,8 @@
 
 package org.platanios.tensorflow.api
 
+import org.platanios.tensorflow.api
+
 import scala.util.matching.Regex
 
 /**
@@ -70,7 +72,11 @@ package object ops {
     ops.Parsing.Gradients
     ops.Random.Gradients
 
-    object summary extends Summary
     object train extends training.API
+
+    object summary extends Summary {
+      type FileWriter = api.io.SummaryFileWriter
+      val FileWriter: api.io.SummaryFileWriter.type = api.io.SummaryFileWriter
+    }
   }
 }

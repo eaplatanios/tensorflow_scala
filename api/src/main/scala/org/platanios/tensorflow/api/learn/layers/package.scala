@@ -35,6 +35,7 @@ package object layers {
           with Loss.API
           with Math.API
           with NN.API
+          with Summary.API
 
   private[api] object API extends API
 }

@@ -31,25 +31,25 @@ import scala.util.matching.Regex
   * @author Emmanouil Antonios Platanios
   */
 private[api] trait Summary {
-  /** $OpDocSummaryTensor
-    *
-    * @group SummaryOps
-    * @param  name        Name for the created summary op.
-    * @param  tensor      Tensor to use for the summary.
-    * @param  collections Graph collections in which to add the new summary op. Defaults to `Graph.Keys.SUMMARIES`.
-    * @param  family      If provided, used as prefix for the summary tag name, which controls the tab name used for
-    *                     display on TensorBoard.
-    * @return Created op output.
-    */
-  def tensor(
-      name: String, tensor: Output, collections: Set[Graph.Key[Output]] = Set(Graph.Keys.SUMMARIES),
-      family: String = null): Output = {
-    Summary.scoped((scope, tag) => {
-      val summary = Summary.tensorSummary(tensor, tag, Tensor(STRING), scope)
-      collections.foreach(key => Op.currentGraph.addToCollection(summary, key))
-      summary
-    }, name, family)
-  }
+  // /** $OpDocSummaryTensor
+  //   *
+  //   * @group SummaryOps
+  //   * @param  name        Name for the created summary op.
+  //   * @param  tensor      Tensor to use for the summary.
+  //   * @param  collections Graph collections in which to add the new summary op. Defaults to `Graph.Keys.SUMMARIES`.
+  //   * @param  family      If provided, used as prefix for the summary tag name, which controls the tab name used for
+  //   *                     display on TensorBoard.
+  //   * @return Created op output.
+  //   */
+  // def tensor(
+  //     name: String, tensor: Output, collections: Set[Graph.Key[Output]] = Set(Graph.Keys.SUMMARIES),
+  //     family: String = null): Output = {
+  //   Summary.scoped((scope, tag) => {
+  //     val summary = Summary.tensorSummary(tensor, tag, Tensor(STRING), scope)
+  //     collections.foreach(key => Op.currentGraph.addToCollection(summary, key))
+  //     summary
+  //   }, name, family)
+  // }
 
   /** $OpDocSummaryScalar
     *
@@ -97,7 +97,7 @@ private[api] trait Summary {
     * @param  name        Name for the created summary op.
     * @param  tensor      Four-dimensional tensor with shape `[batchSize, height, width, channels]` where `channels` is
     *                     1, 3, or 4.
-    * @param  badColor    Color to use for pixels with non-finite values.
+    * @param  badColor    Color to use for pixels with non-finite values. Defaults to red color.
     * @param  maxOutputs  Maximum number of batch elements for which to generate images.
     * @param  collections Graph collections in which to add the new summary op. Defaults to `Graph.Keys.SUMMARIES`.
     * @param  family      If provided, used as prefix for the summary tag name, which controls the tab name used for
@@ -105,7 +105,7 @@ private[api] trait Summary {
     * @return Created op output.
     */
   def image(
-      name: String, tensor: Output, badColor: Output, maxOutputs: Int = 3,
+      name: String, tensor: Output, badColor: Output = Tensor(UINT8, 255, 0, 0, 255).toOutput, maxOutputs: Int = 3,
       collections: Set[Graph.Key[Output]] = Set(Graph.Keys.SUMMARIES), family: String = null): Output = {
     Summary.scoped((scope, tag) => {
       val summary = Summary.imageSummary(tensor, badColor, tag, maxOutputs, scope)

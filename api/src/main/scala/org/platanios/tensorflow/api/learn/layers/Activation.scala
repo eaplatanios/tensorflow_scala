@@ -16,6 +16,7 @@
 package org.platanios.tensorflow.api.learn.layers
 
 import org.platanios.tensorflow.api.tf
+import org.platanios.tensorflow.api.learn.layers
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -24,14 +25,14 @@ trait Activation extends NetworkLayer[tf.Output, tf.Output]
 
 object Activation {
   trait API {
-    def sigmoid(name: String = "Sigmoid"): Sigmoid = Sigmoid(name = name)
-    def relu(alpha: Float = 0.0f, name: String = "ReLU"): ReLU = ReLU(alpha = alpha, name = name)
-    def relu6(name: String = "ReLU6"): ReLU6 = ReLU6(name = name)
-    def crelu(name: String = "CReLU"): CReLU = CReLU(name = name)
-    def elu(name: String = "ELU"): ELU = ELU(name = name)
-    def selu(name: String = "SELU"): SELU = SELU(name = name)
-    def softplus(name: String = "Softplus"): Softplus = Softplus(name = name)
-    def softsign(name: String = "Softsign"): Softsign = Softsign(name = name)
+    val Sigmoid : layers.Sigmoid.type  = layers.Sigmoid
+    val ReLU    : layers.ReLU.type     = layers.ReLU
+    val ReLU6   : layers.ReLU6.type    = layers.ReLU6
+    val CReLU   : layers.CReLU.type    = layers.CReLU
+    val ELU     : layers.ELU.type      = layers.ELU
+    val SELU    : layers.SELU.type     = layers.SELU
+    val Softplus: layers.Softplus.type = layers.Softplus
+    val Softsign: layers.Softsign.type = layers.Softsign
   }
 
   object API extends API
