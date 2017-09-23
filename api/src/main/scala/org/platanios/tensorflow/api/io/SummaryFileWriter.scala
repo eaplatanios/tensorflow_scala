@@ -104,7 +104,7 @@ class SummaryFileWriter private[io](
     * @param  step    Global step number to record with the summary.
     */
   def writeSummaryString(summary: String, step: Long = 0L): Unit = {
-    write(eventBuilder(step).setSummary(Summary.parseFrom(ByteString.copyFromUtf8(summary))).build())
+    writeSummary(Summary.parseFrom(ByteString.copyFrom(summary.getBytes("ISO-8859-1"))), step)
   }
 
   /** Writes a `Summary` protocol buffer to the event file.

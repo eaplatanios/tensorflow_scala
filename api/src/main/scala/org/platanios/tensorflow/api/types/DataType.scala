@@ -300,13 +300,13 @@ private[api] object STRING extends DataType.Aux[String] {
   override val priority: Int    = 1000
 
   private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: String): Int = {
-    val stringBytes = element.getBytes(Charset.forName("UTF-8"))
+    val stringBytes = element.getBytes(Charset.forName("ISO-8859-1"))
     NativeTensor.setStringBytes(stringBytes, buffer.duplicate().position(index).asInstanceOf[ByteBuffer].slice())
   }
 
   private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): String = {
     val stringBytes = NativeTensor.getStringBytes(buffer.duplicate().position(index).asInstanceOf[ByteBuffer].slice())
-    new String(stringBytes, Charset.forName("UTF-8"))
+    new String(stringBytes, Charset.forName("ISO-8859-1"))
   }
 }
 

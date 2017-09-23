@@ -29,8 +29,8 @@ object SummaryFileWriterCache {
   private[this] val cache: mutable.Map[Path, SummaryFileWriter] = mutable.HashMap.empty[Path, SummaryFileWriter]
 
   /** Returns the summary file writer responsible for the specified directory. */
-  def get(dir: Path): SummaryFileWriter = cache synchronized {
-    cache.getOrElseUpdate(dir, SummaryFileWriter(dir, Op.currentGraph))
+  def get(directory: Path): SummaryFileWriter = cache synchronized {
+    cache.getOrElseUpdate(directory, SummaryFileWriter(directory, Op.currentGraph))
   }
 
   /** Clears the cached summary writers. Currently only used for testing. */

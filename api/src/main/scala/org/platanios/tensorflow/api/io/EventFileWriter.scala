@@ -155,7 +155,7 @@ private[io] class EventWriter private[io](
     val filenameSuffix: String = ""
 ) {
   private[this] var _filePath            : Path                  = _
-  private[this] var _fileStream         : Option[BufferedOutputStream] = None
+  private[this] var _fileStream          : Option[BufferedOutputStream] = None
   private[this] var _numOutstandingEvents: Int                   = 0
 
   /** Returns the path of the current events file. */
@@ -189,7 +189,7 @@ private[io] class EventWriter private[io](
     if (!initialized) {
       val currentTime = System.currentTimeMillis() / 1000
       val hostname = java.net.InetAddress.getLocalHost.getHostName
-      _filePath = workingDir.resolve(f"$filenamePrefix.out.events.$currentTime%010d.$hostname$filenameSuffix")
+      _filePath = workingDir.resolve(f"$filenamePrefix.out.tfevents.$currentTime%010d.$hostname$filenameSuffix")
       _fileStream = Some(new BufferedOutputStream(Files.newOutputStream(
         _filePath, StandardOpenOption.CREATE_NEW, StandardOpenOption.APPEND)))
       _numOutstandingEvents = 0
@@ -205,6 +205,8 @@ private[io] class EventWriter private[io](
 
   /** Appends `event` to the events file. */
   def write(event: Event): Unit = {
+    if (_filePath == null)
+      initialize()
     _numOutstandingEvents += 1
     val recordBytes = event.toByteArray
     // Format of a single record:
@@ -219,10 +221,16 @@ private[io] class EventWriter private[io](
   }
 
   /** Pushes outstanding events to disk. */
-  def flush(): Unit = _fileStream.foreach(_.flush())
+  def flush(): Unit = {
+    _fileStream.foreach(_.flush())
+    _numOutstandingEvents = 0
+  }
 
   /** Calls `flush()` and then closes the current event file. */
-  def close(): Unit = _fileStream.foreach(_.close())
+  def close(): Unit = {
+    _fileStream.foreach(_.close())
+    _numOutstandingEvents = 0
+  }
 
   private[this] def fileHasDisappeared: Boolean = {
     if (Files.exists(_filePath)) {
