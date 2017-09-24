@@ -13,7 +13,7 @@ the Learn API (which is currently under development) helps you manage data sets,
 <ul>
   <li><strong><a href="#tensors-1">Tensor API:</a></strong> Provides a simple way for manipulating tensors and performing computations involving 
 tensors. This is similar in functionality to the <a href="http://www.numpy.org">NumPy</a> library used by Python programmers.</li>
-  <li><strong><a href="neural-networks-2">Learn API:</a></strong> High-level interface for creating, training, and using neural networks. This is 
+  <li><strong><a href="#neural-networks-2">Learn API:</a></strong> High-level interface for creating, training, and using neural networks. This is 
 similar in functionality to the <a href="https://keras.io">Keras</a> library used by Python programmers, with the main 
 difference being that it is strongly-typed and offers a much richer functional interface for building neural 
 networks. Furthermore, it supports distributed training in a way that is very similar to the 
@@ -38,32 +38,27 @@ adapts it for the purposes of TensorFlow for Scala. It also introduces a lot of 
 
 <p>TensorFlow, as the name indicates, is a framework to define and run computations involving tensors. A tensor is a 
 generalization of vectors and matrices to potentially higher dimensions. Internally, TensorFlow represents tensors as 
-<code class="highlighter-rouge">n</code>-dimensional arrays of some underlying data type. A <a href="/api/org/platanios/tensorflow/api/tensors/Tensor.html"><code class="highlighter-rouge">Tensor</code></a> has a <a href="/api/types/DataType.html"><code class="highlighter-rouge">DataType</code></a> (e.g., <code class="highlighter-rouge">FLOAT32</code> 
-which corresponds to 32-bit floating point numbers) and a <a href="/api/core/Shape.html"><code class="highlighter-rouge">Shape</code></a> (that is, the number of dimensions it has and 
+<code class="highlighter-rouge">n</code>-dimensional arrays of some underlying data type. A <a href="/tensorflow_scala/api/org/platanios/tensorflow/api/tensors/Tensor.html"><code class="highlighter-rouge">Tensor</code></a> has a <a href="/tensorflow_scala/api/types/DataType.html"><code class="highlighter-rouge">DataType</code></a> (e.g., <code class="highlighter-rouge">FLOAT32</code> 
+which corresponds to 32-bit floating point numbers) and a <a href="/tensorflow_scala/api/core/Shape.html"><code class="highlighter-rouge">Shape</code></a> (that is, the number of dimensions it has and 
 the size of each dimension – e.g., <code class="highlighter-rouge">Shape(10, 2)</code> which corresponds to a matrix with 10 rows and 2 columns) associated 
-with it. Each element in the <a href="/api/org/platanios/tensorflow/api/tensors/Tensor.html"><code class="highlighter-rouge">Tensor</code></a> has the same data type.</p>
-
-<p>For example, the following code creates an integer tensor filled with 
-zeros with shape <code class="highlighter-rouge">[2, 5]</code> (i.e., a two-dimensional array holding integer values, where the first dimension size is 2 and 
-the second is 5):</p>
+with it. Each element in the <a href="/tensorflow_scala/api/org/platanios/tensorflow/api/tensors/Tensor.html"><code class="highlighter-rouge">Tensor</code></a> has the same data type. For example, the following code creates an 
+integer tensor filled with zeros with shape <code class="highlighter-rouge">[2, 5]</code> (i.e., a two-dimensional array holding integer values, where the 
+first dimension size is 2 and the second is 5):</p>
 <div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span> <span class="k">val</span> <span class="n">tensor</span> <span class="k">=</span> <span class="nc">Tensor</span><span class="o">.</span><span class="n">zeros</span><span class="o">(</span><span class="nc">INT32</span><span class="o">,</span> <span class="nc">Shape</span><span class="o">(</span><span class="mi">2</span><span class="o">,</span> <span class="mi">5</span><span class="o">))</span>
 <span class="n">tensor</span><span class="k">:</span> <span class="kt">org.platanios.tensorflow.api.tensors.Tensor</span> <span class="o">=</span> <span class="nc">INT32</span><span class="o">[</span><span class="err">2</span>, <span class="err">5</span><span class="o">]</span>
 </code></pre>
 </div>
 <p>You can print the contents of a tensor as follows:</p>
-<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span> <span class="n">tensor</span><span class="o">.</span><span class="n">summarize</span><span class="o">()</span>
-<span class="n">res0</span><span class="k">:</span> <span class="kt">String</span> <span class="o">=</span>
-<span class="nc">INT32</span><span class="o">[</span><span class="err">2</span>, <span class="err">5</span><span class="o">]</span>
-<span class="o">[[</span><span class="err">0</span>, <span class="err">0</span>, <span class="err">0</span>, <span class="err">0</span>, <span class="err">0</span><span class="o">]</span>,
- <span class="o">[</span><span class="err">0</span>, <span class="err">0</span>, <span class="err">0</span>, <span class="err">0</span>, <span class="err">0</span><span class="o">]]</span>
+<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span> <span class="n">tensor</span><span class="o">.</span><span class="n">summarize</span><span class="o">(</span><span class="n">flattened</span> <span class="k">=</span> <span class="kc">true</span><span class="o">)</span>
+<span class="n">res0</span><span class="k">:</span> <span class="kt">String</span> <span class="o">=</span> <span class="nc">INT32</span><span class="o">[</span><span class="err">2</span>, <span class="err">5</span><span class="o">]</span><span class="k">:</span> <span class="err">[[0</span><span class="o">,</span> <span class="mi">0</span><span class="o">,</span> <span class="mi">0</span><span class="o">,</span> <span class="mi">0</span><span class="o">,</span> <span class="mi">0</span><span class="err">]</span><span class="o">,</span>  <span class="o">[</span><span class="err">0</span>, <span class="err">0</span>, <span class="err">0</span>, <span class="err">0</span>, <span class="err">0</span><span class="o">]</span><span class="err">]</span>
 </code></pre>
 </div>
 
 <h2 id="data-type">Data Type</h2>
 
 <p>As already mentioned, tensors have a data type. Various numeric data types are supported, as well as strings (i.e., 
-tensors containing strings are supported). It is not possible to have a <a href="/api/org/platanios/tensorflow/api/tensors/Tensor.html"><code class="highlighter-rouge">Tensor</code></a> with more than one data type. 
-It is possible, however, to serialize arbitrary data structures as strings and store those in <a href="/api/org/platanios/tensorflow/api/tensors/Tensor.html"><code class="highlighter-rouge">Tensor</code></a>s.</p>
+tensors containing strings are supported). It is not possible to have a <a href="/tensorflow_scala/api/org/platanios/tensorflow/api/tensors/Tensor.html"><code class="highlighter-rouge">Tensor</code></a> with more than one data type. 
+It is possible, however, to serialize arbitrary data structures as strings and store those in <a href="/tensorflow_scala/api/org/platanios/tensorflow/api/tensors/Tensor.html"><code class="highlighter-rouge">Tensor</code></a>s.</p>
 
 <p>The list of all supported data types is:</p>
 
@@ -91,7 +86,7 @@ It is possible, however, to serialize arbitrary data structures as strings and s
   <li><strong>VARIANT:</strong> Variant.</li>
 </ul>
 
-<p>It is also possible to cast <a href="/api/org/platanios/tensorflow/api/tensors/Tensor.html"><code class="highlighter-rouge">Tensor</code></a>s from one data type to another using the <code class="highlighter-rouge">cast</code> operator:</p>
+<p>It is also possible to cast <a href="/tensorflow_scala/api/org/platanios/tensorflow/api/tensors/Tensor.html"><code class="highlighter-rouge">Tensor</code></a>s from one data type to another using the <code class="highlighter-rouge">cast</code> operator:</p>
 <div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="k">val</span> <span class="n">floatTensor</span> <span class="k">=</span> <span class="nc">Tensor</span><span class="o">(</span><span class="nc">FLOAT32</span><span class="o">,</span> <span class="mi">1</span><span class="o">,</span> <span class="mi">2</span><span class="o">,</span> <span class="mi">3</span><span class="o">)</span> <span class="c1">// Floating point vector containing the elements: 1.0f, 2.0f, and 3.0f
 </span><span class="n">floatTensor</span><span class="o">.</span><span class="n">cast</span><span class="o">(</span><span class="nc">INT32</span><span class="o">)</span>                    <span class="c1">// Integer vector containing the elements: 1, 2, and 3
 </span><span class="n">tfi</span><span class="o">.</span><span class="n">cast</span><span class="o">(</span><span class="n">floatTensor</span><span class="o">,</span> <span class="nc">INT32</span><span class="o">)</span>               <span class="c1">// Integer vector containing the elements: 1, 2, and 3
@@ -99,15 +94,15 @@ It is possible, however, to serialize arbitrary data structures as strings and s
 </div>
 
 <p><strong>NOTE:</strong> In general, all tensor-supported operations can be accessed as direct methods/operators of the 
-<a href="/api/org/platanios/tensorflow/api/tensors/Tensor.html"><code class="highlighter-rouge">Tensor</code></a> object, or as static methods defined in the <code class="highlighter-rouge">tfi</code> package, which stands for <em>TensorFlow Imperative</em> 
+<a href="/tensorflow_scala/api/org/platanios/tensorflow/api/tensors/Tensor.html"><code class="highlighter-rouge">Tensor</code></a> object, or as static methods defined in the <code class="highlighter-rouge">tfi</code> package, which stands for <em>TensorFlow Imperative</em> 
 (given the imperative nature of that API).</p>
 
-<p>A <a href="/api/org/platanios/tensorflow/api/tensors/Tensor.html"><code class="highlighter-rouge">Tensor</code></a>’s data type can be inspected using:</p>
+<p>A <a href="/tensorflow_scala/api/org/platanios/tensorflow/api/tensors/Tensor.html"><code class="highlighter-rouge">Tensor</code></a>’s data type can be inspected using:</p>
 <div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="n">floatTensor</span><span class="o">.</span><span class="n">dataType</span> <span class="c1">// Returns FLOAT32
 </span></code></pre>
 </div>
 
-<p>When creating a <a href="/api/org/platanios/tensorflow/api/tensors/Tensor.html"><code class="highlighter-rouge">Tensor</code></a> from a Scala objects you may optionally specify the data type. If you don’t, 
+<p>When creating a <a href="/tensorflow_scala/api/org/platanios/tensorflow/api/tensors/Tensor.html"><code class="highlighter-rouge">Tensor</code></a> from a Scala objects you may optionally specify the data type. If you don’t, 
 TensorFlow chooses a data type that can represent your data. It converts Scala integers to <code class="highlighter-rouge">INT32</code> and Scala floating 
 point numbers to either <code class="highlighter-rouge">FLOAT32</code> or <code class="highlighter-rouge">FLOAT64</code> depending on their precision.</p>
 
@@ -120,7 +115,7 @@ point numbers to either <code class="highlighter-rouge">FLOAT32</code> or <code 
 
 <h2 id="rank">Rank</h2>
 
-<p>The rank of a <a href="/api/org/platanios/tensorflow/api/tensors/Tensor.html"><code class="highlighter-rouge">Tensor</code></a> is its number of dimensions. Synonyms for rank include order or degree or 
+<p>The rank of a <a href="/tensorflow_scala/api/org/platanios/tensorflow/api/tensors/Tensor.html"><code class="highlighter-rouge">Tensor</code></a> is its number of dimensions. Synonyms for rank include order or degree or 
 <code class="highlighter-rouge">n</code>-dimension. Note that rank in TensorFlow is not the same as matrix rank in mathematics. As the following table shows, 
 each rank in TensorFlow corresponds to a different mathematical entity:</p>
 
@@ -209,15 +204,15 @@ provided, then one is implicitly appended at the end of indexing sequence. For e
 <h1 id="core">Core</h1>
 
 <p>The low level API can be used to define computations that will be executed at a later point, and potentially execute 
-them. It can also be used to create custom layers for the <a href="neural-networks-2">Learn API</a>. The main type of object 
-underlying the low level API is the <a href="/api/org/platanios/tensorflow/api/ops/Output.html"><code class="highlighter-rouge">Output</code></a>, which represents the value of a <a href="/api/org/platanios/tensorflow/api/tensors/Tensor.html"><code class="highlighter-rouge">Tensor</code></a> that has not 
+them. It can also be used to create custom layers for the <a href="#neural-networks-2">Learn API</a>. The main type of object 
+underlying the low level API is the <a href="/tensorflow_scala/api/org/platanios/tensorflow/api/ops/Output.html"><code class="highlighter-rouge">Output</code></a>, which represents the value of a <a href="/tensorflow_scala/api/org/platanios/tensorflow/api/tensors/Tensor.html"><code class="highlighter-rouge">Tensor</code></a> that has not 
 yet been computed. Its name comes from the fact that it represents the <em>output</em> of some computation. An 
-<a href="/api/org/platanios/tensorflow/api/ops/Output.html"><code class="highlighter-rouge">Output</code></a> object thus represents a partially defined computation that will eventually produce a value. Core 
-TensorFlow programs work by first building a graph of <a href="/api/org/platanios/tensorflow/api/ops/Output.html"><code class="highlighter-rouge">Output</code></a> objects, detailing how each output is computed 
+<a href="/tensorflow_scala/api/org/platanios/tensorflow/api/ops/Output.html"><code class="highlighter-rouge">Output</code></a> object thus represents a partially defined computation that will eventually produce a value. Core 
+TensorFlow programs work by first building a graph of <a href="/tensorflow_scala/api/org/platanios/tensorflow/api/ops/Output.html"><code class="highlighter-rouge">Output</code></a> objects, detailing how each output is computed 
 based on the other available outputs, and then by running parts of this graph to achieve the desired results.</p>
 
-<p>Similar to a <a href="/api/org/platanios/tensorflow/api/tensors/Tensor.html"><code class="highlighter-rouge">Tensor</code></a>, each element in an <a href="/api/org/platanios/tensorflow/api/ops/Output.html"><code class="highlighter-rouge">Output</code></a> has the same data type, and the data type is 
-always known. However, the shape of an <a href="/api/org/platanios/tensorflow/api/ops/Output.html"><code class="highlighter-rouge">Output</code></a> might be only partially known. Most operations produce tensors 
+<p>Similar to a <a href="/tensorflow_scala/api/org/platanios/tensorflow/api/tensors/Tensor.html"><code class="highlighter-rouge">Tensor</code></a>, each element in an <a href="/tensorflow_scala/api/org/platanios/tensorflow/api/ops/Output.html"><code class="highlighter-rouge">Output</code></a> has the same data type, and the data type is 
+always known. However, the shape of an <a href="/tensorflow_scala/api/org/platanios/tensorflow/api/ops/Output.html"><code class="highlighter-rouge">Output</code></a> might be only partially known. Most operations produce tensors 
 of fully-known shapes if the shapes of their inputs are also fully known, but in some cases it’s only possible to find 
 the shape of a tensor at graph execution time.</p>
 
@@ -236,7 +231,7 @@ the shape of a tensor at graph execution time.</p>
   <li><strong>Session:</strong></li>
 </ul>
 
-<p>With the exception of <a href="/api/ops/variables/Variable.html"><code class="highlighter-rouge">Variable</code></a>s, the value of outputs is immutable, which means that in the context of a 
+<p>With the exception of <a href="/tensorflow_scala/api/ops/variables/Variable.html"><code class="highlighter-rouge">Variable</code></a>s, the value of outputs is immutable, which means that in the context of a 
 single execution, outputs only have a single value. However, evaluating the same output twice can result in different 
 values. For example, that tensor may be the result of reading data from disk, or generating a random number.</p>
 
