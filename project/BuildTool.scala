@@ -117,10 +117,11 @@ object BuildTool {
 
       override def configure(target: File): ProcessBuilder = Process(
         // Disable producing versioned library files since that is not needed for fat JAR files.
-        "cmake " +
-            s"-DCMAKE_INSTALL_PREFIX:PATH=${target.getAbsolutePath} " +
-            "-DCMAKE_BUILD_TYPE=Release " +
-            baseDirectory.getAbsolutePath,
+        "cmake" ::
+            s"-DLD_LIBRARY_PATH=${System.getProperty("java.library.path")}:$$LD_LIBRARY_PATH" ::
+            s"-DCMAKE_INSTALL_PREFIX:PATH=${target.getAbsolutePath}" ::
+            "-DCMAKE_BUILD_TYPE=Release" ::
+            baseDirectory.getAbsolutePath :: Nil,
         buildDirectory)
     }
   }

@@ -22,8 +22,7 @@ include_directories(./generated)
 include_directories(${JNI_INCLUDE_DIRS})
 
 # Find Native TensorFlow Library to link
-set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} ${LD_LIBRARY_PATH} ${DYLD_LIBRARY_PATH})
-find_library(LIB_TENSORFLOW tensorflow)
+find_library(LIB_TENSORFLOW tensorflow HINTS ENV LD_LIBRARY_PATH)
 if(NOT LIB_TENSORFLOW)
   message(FATAL_ERROR "Library `tensorflow` not found.")
 endif()
