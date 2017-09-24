@@ -262,8 +262,8 @@ lazy val site = (project in file("./site"))
     )
 
 lazy val noPublishSettings = Seq(
-  publish := (),
-  publishLocal := (),
+  publish := (Unit),
+  publishLocal := (Unit),
   publishArtifact := false,
   skip in publish := true,
   releaseProcess := Nil
@@ -285,7 +285,11 @@ lazy val publishSettings = Seq(
   autoAPIMappings := true,
   apiURL := Some(url("http://eaplatanios.github.io/tensorflow_scala/api/")),
   releaseCrossBuild := true,
-  releaseTagName := s"v${if (releaseUseGlobalVersion.value) (version in ThisBuild).value else version.value}",
+  releaseTagName := {
+    val buildVersionValue = (version in ThisBuild).value
+    val versionValue = version.value
+    s"v${if (releaseUseGlobalVersion.value) buildVersionValue else versionValue}"
+  },
   releaseVersionBump := sbtrelease.Version.Bump.Next,
   releasePublishArtifactsAction := PgpKeys.publishSigned.value,
   releaseVcs := Vcs.detect(baseDirectory.value),
@@ -315,7 +319,7 @@ lazy val publishSettings = Seq(
     publishArtifacts,
     setNextVersion,
     commitNextVersion,
-    ReleaseStep(action = Command.process("sonatypeReleaseAll", _), enableCrossBuild = true),
+    releaseStepCommand("sonatypeReleaseAll"),
     pushChanges
   ),
   // For Travis CI - see http://www.cakesolutions.net/teamblogs/publishing-artefacts-to-oss-sonatype-nexus-using-sbt-and-travis-ci

@@ -20,7 +20,7 @@ import scala.collection.JavaConverters._
 import sbt._
 import sbt.Keys._
 
-//import sys.process._
+import sys.process._
 
 /**
   *
@@ -80,12 +80,18 @@ object TensorFlowNativePackage extends AutoPlugin {
             .foreach(Files.deleteIfExists)
     },
     nativeCrossCompile := {
+      val log = streams.value.log
+      val baseDir = baseDirectory.value
       val targetDir = (target in nativeCrossCompile).value
+      val tfVersion = (tensorFlowBinaryVersion in nativeCrossCompile).value
+      val compileTfLibValue = compileTFLib.value
+      val tfLibRepositoryValue = tfLibRepository.value
+      val tfLibRepositoryBranchValue = tfLibRepositoryBranch.value
+      val moduleNameValue = moduleName.value
       IO.createDirectory(targetDir)
       (nativePlatforms in nativeCrossCompile).value.map(platform => {
-        val log = streams.value.log
-        log.info(s"Cross-compiling '${moduleName.value}' for platform '$platform'.")
-        log.info(s"Using ${baseDirectory.value} as the base directory.")
+        log.info(s"Cross-compiling '$moduleNameValue' for platform '$platform'.")
+        log.info(s"Using '$baseDir' as the base directory.")
         val platformTargetDir = targetDir / platform.name
 
         IO.createDirectory(platformTargetDir)
@@ -94,11 +100,11 @@ object TensorFlowNativePackage extends AutoPlugin {
         IO.createDirectory(platformTargetDir / "downloads" / "lib")
         IO.createDirectory(platformTargetDir / "lib")
 
-        if (compileTFLib.value) {
+        if (compileTfLibValue) {
           IO.createDirectory(platformTargetDir / "code")
           TensorFlowNativeCrossCompiler.compile(
-            (platformTargetDir / "code").toPath, platformTargetDir.getPath, tfLibRepository.value,
-            tfLibRepositoryBranch.value, platform) ! log
+            (platformTargetDir / "code").toPath, platformTargetDir.getPath, tfLibRepositoryValue,
+            tfLibRepositoryBranchValue, platform) ! log
         }
 
         // Generate Dockerfile
@@ -113,13 +119,12 @@ object TensorFlowNativePackage extends AutoPlugin {
 
         // Download the native TensorFlow library
         log.info(s"Downloading the TensorFlow native library.")
-        val tfVersion = (tensorFlowBinaryVersion in nativeCrossCompile).value
         var exitCode = platform.downloadTfLib(platformTargetDir.getPath, tfVersion).map(_ ! log)
 
         if (exitCode.getOrElse(0) == 0) {
           // Compile and generate binaries
           log.info(s"Generating binaries in '$platformTargetDir'.")
-          val dockerImage = s"${moduleName.value}"
+          val dockerImage = moduleNameValue
           exitCode = platform.build(
             dockerImage, (baseDirectory.value / "src" / "main" / "native").getPath, platformTargetDir.getPath)
               .map(_ ! log)

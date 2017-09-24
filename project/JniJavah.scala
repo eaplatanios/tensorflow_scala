@@ -7,7 +7,8 @@ import scala.collection.mutable
 
 import sbt._
 import sbt.Keys._
-//import sys.process._
+
+import sys.process._
 
 /** Adds functionality for generating JNI header files using the `javah` tool.
   *
@@ -31,11 +32,9 @@ object JniJavah extends AutoPlugin {
 
   lazy val settings: Seq[Setting[_]] = Seq(
     javahClasses in javah := {
-      // import xsbti.compile._
-      // val compiled: CompileAnalysis = (compile in Compile).value
-      // val classFiles: Set[File] = compiled.readStamps.getAllProductStamps.asScala.keySet.toSet
-      val compiled: inc.Analysis = (compile in Compile).value
-      val classFiles: Set[File] = compiled.relations.allProducts.toSet
+      import xsbti.compile._
+      val compiled: CompileAnalysis = (compile in Compile).value
+      val classFiles: Set[File] = compiled.readStamps.getAllProductStamps.asScala.keySet.toSet
       val nativeClasses = classFiles flatMap { file => JniJavah.nativeClasses(file) }
       nativeClasses
     },

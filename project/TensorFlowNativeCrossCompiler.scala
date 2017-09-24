@@ -14,9 +14,12 @@
  */
 
 import TensorFlowNativePackage._
+
 import java.nio.file.Path
 
 import sbt._
+
+import sys.process._
 
 /** Helper class for cross-compiling the TensorFlow dynamic library within Docker containers.
   *
