@@ -18,12 +18,14 @@ package org.platanios.tensorflow.api.learn
 import org.platanios.tensorflow.api.config.{CheckpointConfig, SummaryConfig, TensorBoardConfig}
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.SessionConfig
+import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.learn.Estimator.ModelFunction
 import org.platanios.tensorflow.api.learn.hooks._
 import org.platanios.tensorflow.api.learn.utilities.ReplicaDevicePlacer
 import org.platanios.tensorflow.api.ops.{ControlFlow, Op, OpSpecification}
 import org.platanios.tensorflow.api.ops.io.Dataset
 import org.platanios.tensorflow.api.ops.variables.Saver
+
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
 import java.nio.file.{Files, Path}
@@ -143,6 +145,7 @@ class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
     *                             environment in the system. If training in a distributed setting, the TensorBoard
     *                             server is launched on the chief node.
     */
+  @throws[InvalidArgumentException]
   def train(
       data: Dataset[(IT, TT), (IO, TO), (ID, TD), (IS, TS)],
       terminationCriteria: StopCriteria = StopCriteria(),
@@ -169,13 +172,21 @@ class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
       ), StepHookTrigger(100))
       if (tensorBoardConfig != null)
         allChiefOnlyHooks += TensorBoardHook(tensorBoardConfig)
-      if (graph.getCollection(Graph.Keys.SAVERS).isEmpty) {
-        graph.addToCollection(Saver(
-          sharded = true,
-          maxToKeep = configuration.checkpointConfig.maxCheckpointsToKeep,
-          keepCheckpointEveryNHours = configuration.checkpointConfig.keepCheckpointEveryNHours,
-          saveRelativePaths = true
-        ), Graph.Keys.SAVERS)
+      val saver = {
+        val savers = graph.getCollection(Graph.Keys.SAVERS)
+        if (savers.isEmpty) {
+          val saver = Saver(
+            sharded = true,
+            maxToKeep = configuration.checkpointConfig.maxCheckpointsToKeep,
+            keepCheckpointEveryNHours = configuration.checkpointConfig.keepCheckpointEveryNHours,
+            saveRelativePaths = true)
+          graph.addToCollection(saver, Graph.Keys.SAVERS)
+          saver
+        } else {
+          if (savers.size > 1)
+            throw InvalidArgumentException("The graph should only contain one saver in the 'SAVERS' collection.")
+          savers.head
+        }
       }
       // TODO: !!! [HOOKS] [CHECKPOINTS] Add checkpoint saver hook for the chief.
       val session = Estimator.monitoredTrainingSession(
@@ -183,10 +194,9 @@ class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
         hooks = allHooks,
         chiefOnlyHooks = allChiefOnlyHooks,
         sessionScaffold = SessionScaffold(
-          initOp = Some(ControlFlow.group(Set(
-            inputInitializer,
-            graph.globalVariablesInitializer())
-          ))))
+          initOp = Some(graph.globalVariablesInitializer()),
+          localInitOp = Some(ControlFlow.group(Set(inputInitializer, graph.localVariablesInitializer()))),
+          saver = Some(saver)))
       try {
         while (!session.shouldStop)
           session.run(targets = trainingOps.trainOp)
