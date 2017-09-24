@@ -162,7 +162,7 @@ class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
       graph.setRandomSeed(randomSeed)
       Counter.getOrCreate(Graph.Keys.GLOBAL_EPOCH, graph)
       val step = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, graph)
-      val trainingOps = model.buildTrainOps()
+      val trainingOps = Op.createWithNameScope("Model")(model.buildTrainOps())
       val inputInitializer = trainingOps.input.createInitializer(data)
       graph.addToCollection(trainingOps.loss, Graph.Keys.LOSSES)
       allHooks += TensorNaNHook(Set(trainingOps.loss.name))

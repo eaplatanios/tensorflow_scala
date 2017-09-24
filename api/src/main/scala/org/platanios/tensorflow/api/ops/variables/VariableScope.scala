@@ -227,7 +227,7 @@ private[ops] object VariableScope {
       if (isPure)
         context.withValue(context.copy(variableScope = newVariableScope))(block)
       else
-        context.withValue(context.copy(nameScope = name, variableScope = newVariableScope))(block)
+        Op.createWithNameScope(name)(context.withValue(context.copy(variableScope = newVariableScope))(block))
     }
     variableStore.closeVariableSubScopes(variableScope.name)
     result
