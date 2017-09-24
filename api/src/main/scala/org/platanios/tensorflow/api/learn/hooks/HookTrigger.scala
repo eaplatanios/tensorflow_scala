@@ -15,6 +15,8 @@
 
 package org.platanios.tensorflow.api.learn.hooks
 
+import org.platanios.tensorflow.api.learn.hooks
+
 // TODO: [HOOKS] Add epoch hook trigger.
 
 /** Determines when hooks should be triggered.
@@ -42,6 +44,16 @@ trait HookTrigger {
 
   /** Returns the last triggered time step or `None`, if never triggered. */
   def lastTriggerStep(): Option[Int]
+}
+
+object HookTrigger {
+  private[api] trait API {
+    val NoHookTrigger  : hooks.NoHookTrigger.type   = hooks.NoHookTrigger
+    val StepHookTrigger: hooks.StepHookTrigger.type = hooks.StepHookTrigger
+    val TimeHookTrigger: hooks.TimeHookTrigger.type = hooks.TimeHookTrigger
+  }
+
+  private[api] object API extends API
 }
 
 /** Hook trigger that never actually triggers. */

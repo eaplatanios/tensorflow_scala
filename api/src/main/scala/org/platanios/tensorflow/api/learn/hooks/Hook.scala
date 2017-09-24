@@ -18,6 +18,7 @@ package org.platanios.tensorflow.api.learn.hooks
 import org.platanios.tensorflow.api.core.client.{Executable, FeedMap, Fetchable, Session}
 import org.platanios.tensorflow.api.core.exception.OutOfRangeException
 import org.platanios.tensorflow.api.learn.MonitoredSession
+import org.platanios.tensorflow.api.learn.hooks
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
 
@@ -227,4 +228,16 @@ object Hook {
   case class SessionRunResult[F, R](values: R, runMetadata: Option[RunMetadata])(implicit
       fetchableEv: Fetchable.Aux[F, R]
   )
+
+  private[api] trait API {
+    val CheckpointSaverHook: hooks.CheckpointSaverHook.type = hooks.CheckpointSaverHook
+    val StepRateHook       : hooks.StepRateHook.type        = hooks.StepRateHook
+    val StopHook           : hooks.StopHook.type            = hooks.StopHook
+    val SummarySaverHook   : hooks.SummarySaverHook.type    = hooks.SummarySaverHook
+    val TensorBoardHook    : hooks.TensorBoardHook.type     = hooks.TensorBoardHook
+    val TensorLoggingHook  : hooks.TensorLoggingHook.type   = hooks.TensorLoggingHook
+    val TensorNaNHook      : hooks.TensorNaNHook.type       = hooks.TensorNaNHook
+  }
+
+  private[api] object API extends API
 }

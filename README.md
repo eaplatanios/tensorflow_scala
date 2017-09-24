@@ -27,13 +27,54 @@ are a few useful links:
 
 ## Main Features
 
-- Exposed API namespace similar to that of the Python API. For example:
-  - `tf.constant(...)` creates a constant op.
-  - `tf.reshape(...)` creates a reshape op.
-  - `tf.Graph(...)` creates a graph.
-  - `tf.Session(...)` creates a session.
-  - etc.
-- Straightforward API for graph creation. For example:
+- Easy manipulation of tensors and computations involving tensors (similar to NumPy in Python):
+  
+  ```scala
+  val t1 = Tensor( 1.2, 4.5)
+  val t2 = Tensor(-0.2, 1.1)
+  t1 + t2 == Tensor(1.0, 5.6)
+  ```
+  
+- High-level API for creating, training, and using neural networks. For example, the following code shows how simple it 
+  is to train a multi-layer perceptron for MNIST using TensorFlow for Scala. Here we omit a lot of very powerful 
+  features such as summary and checkpoint savers, for simplicity, but these are also very simple to use.
+    
+  ```scala
+  import org.platanios.tensorflow.api._
+  import org.platanios.tensorflow.data.loaders.MNISTLoader
+  
+  // Load and batch data using pre-fetching.
+  val dataSet = MNISTLoader.load(Paths.get("/tmp"))
+  val trainImages = tf.learn.DatasetFromSlices(dataSet.trainImages).map(_.cast(FLOAT32))
+  val trainLabels = tf.learn.DatasetFromSlices(dataSet.trainLabels).map(_.cast(INT64))
+  val trainData =
+    trainImages.zip(trainLabels)
+        .repeat()
+        .shuffle(10000)
+        .batch(256)
+        .prefetch(10)
+  
+  // Create the MLP model.
+  val input = tf.learn.Input(FLOAT32, Shape(-1, 28, 28))
+  val trainInput = tf.learn.Input(INT64, Shape(-1))
+  val layer = tf.learn.Flatten() >>
+      tf.learn.Cast(FLOAT32) >>
+      tf.learn.Linear(128, name = "Layer_0") >> tf.learn.ReLU(0.1f) >>
+      tf.learn.Linear(64, name = "Layer_1") >> tf.learn.ReLU(0.1f) >>
+      tf.learn.Linear(32, name = "Layer_2") >> tf.learn.ReLU(0.1f) >>
+      tf.learn.Linear(10, name = "OutputLayer")
+  val trainingInputLayer = tf.learn.Identity[tf.Output]()
+  val loss = tf.learn.SparseSoftmaxCrossEntropy() >> tf.learn.Mean()
+  val optimizer = tf.learn.GradientDescent(1e-6)
+  val model = tf.learn.Model(input, layer, trainInput, trainingInputLayer, loss, optimizer)
+  
+  // Create an estimator and train the model.
+  val estimator = tf.learn.Estimator(model)
+  estimator.train(trainData, tf.learn.StopCriteria(maxSteps = Some(1000000)))
+  ```
+
+- Low-level graph construction API, similar to that of the Python API, but strongly typed wherever possible:
+
   ```scala
   import org.platanios.tensorflow.api._
   
@@ -41,99 +82,59 @@ are a few useful links:
   val outputs = tf.placeholder(FLOAT32, Shape(-1, 10))
   val predictions = tf.createWith(nameScope = "Linear") {
     val weights = tf.variable("weights", FLOAT32, Shape(10, 1), tf.zerosInitializer)
-    val predictions = tf.matmul(inputs, weights)
-    predictions
+    tf.matmul(inputs, weights)
   }
   val loss = tf.sum(tf.square(predictions - outputs))
   val optimizer = tf.train.AdaGrad(1.0)
   val trainOp = optimizer.minimize(loss)
   ```
-- Efficient interaction with the native library that avoids unnecessary 
-  copying of data.
-  - All tensors are backed by a `DirectByteBuffer` so that the memory can 
-    be shared with the native TensorFlow library.
-  - For tensors that are created in the Scala API and passed on the 
-    native library (e.g., fed into a TensorFlow session), we create a 
-    global reference to make the JVM garbage collector aware of the fact 
-    that the native library is using that 
-    tensor. We also pass a custom deallocator to the native library that 
-    simply deletes that global reference.
-  - For tensors created by the TensorFlow native library and passed on the 
-    Scala API (e.g., fetched from a TensorFlow session), we use a 
-    combination of weak references and a disposing thread running in the 
-    background. Please refer to 
-    `tensorflow/src/main/scala/org/platanios/tensorflow/api/utilities/Disposer.scala`.
+
 - Numpy-like indexing/slicing for tensors. For example:
+  
   ```scala
   tensor(2 :: 5, ---, 1) // is equivalent to numpy's 'tensor[2:5, ..., 1]'
   ```
-- Useful implicits that make using the library almost as simple as using 
-  the Python API, while retaining type-safety (for the most part).
+  
+- Efficient interaction with the native library that avoids unnecessary copying of data. All tensors are created and 
+  managed by the native TensorFlow library. When they are passed to the Scala API (e.g., fetched from a TensorFlow 
+  session), we use a combination of weak references and a disposing thread running in the background. Please refer to 
+  `tensorflow/src/main/scala/org/platanios/tensorflow/api/utilities/Disposer.scala`, for the implementation.
+
+## Funding
+
+Funding for the development of this library has been generously provided by the following sponsors:
+
+|<img src="https://eaplatanios.github.io/tensorflow_scala/img/cmu_logo.svg" alt="cmu_logo" width="200px" height="150px">|<img src="https://eaplatanios.github.io/tensorflow_scala/img/nsf_logo.svg" alt="nsf_logo" width="150px" height="150px">|<img src="https://eaplatanios.github.io/tensorflow_scala/img/afosr_logo.gif" alt="afosr_logo" width="150px" height="150px">|
+|:---------------------------------------:|:---------------------------------:|:-----------------------------------------------:|
+| **CMU Presidential Fellowship**         | **National Science Foundation**   | **Air Force Office of Scientific Research**     | 
+| awarded to Emmanouil Antonios Platanios | Grant #: IIS1250956               | Grant #: FA95501710218                          |
+
+<!---
 
 ## Supported Features
 
-- Learn API:
-  - [ ] Design
-- Op Creation API:
-  - [x] Graph op creation context
-  - [x] Name scope op creation context
-  - [x] Device op creation context
-  - [x] Colocation op creation context
-  - [x] Control dependencies op creation context
-  - [x] Attribute op creation context
-  - [x] Container op creation context
-  - [x] Graph collections
-  - [x] Variables support
-  - [x] Gradients support
-  - [ ] Kernel label map op creation context (may be unnecessary)
-  - Ops:
-    - [x] Basic array ops (missing quantization ops)
-    - [x] Basic array ops gradients 
-          (missing the concatenate op gradient for indexed slices -- need better Tensors API for that)
-    - [x] Math
-    - [x] NN (missing CNN ops)
-    - [ ] RNN
-    - [ ] Control flow
-    - [ ] Control flow gradients
-    - [x] IO
-    - [ ] Summaries
-- Execution API:
-  - [x] Default session
   - [ ] Session execution context (I'm not sure if that's good to have)
   - [ ] Session reset functionality
-- Tensor API:
-  - [x] Support for the TensorFlow eager op execution API
-  - [ ] More numpy-like operations for tensors
-- General API Features:
-  - [x] Slice creation
-  - [x] Op output slicing
   - [ ] Variables slicing
   - [ ] Slice assignment
   - [x] Support for all data types
-  - [x] Optimizers
-  - [x] Savers
-  - [ ] Estimators
+  - [ ] tfdbg / debugging support
   - [ ] tfprof / op statistics collection
 
 ## Some TODOs
 
-- Find a way to automatically generate the duplicate documentation for symbolic and eager ops.
 - Switch to using JUnit for all tests.
 - Add convenience implicit conversions for shapes (e.g., from tuples or sequences of integers).
 - Create a "Scope" class and companion object.
 - Variables API:
   - Clean up the implementation of variable scopes and stores and integrate it with "Scope".
   - Make 'PartitionedVariable' extend 'Variable'.
-  - After that change, all 'getPartitionedVariable' methods can be integrated with the 'getVariable' methods, which will simplify the variables API.
+  - After that change, all 'getPartitionedVariable' methods can be integrated with the 'getVariable' methods, which will 
+    simplify the variables API.
 - Switch to using "Seq" instead of "Array" wherever possible.
-- Tensors:
-  - Overloaded unary, binary, and comparison operators (data type aware)
-  - Convenient string conversion methods
 - Op creation:
-  - Add tests for all of the op functions
-  - Get graph from inputs
-  - Assert same graph for inputs and control inputs
-  - Support re-entering existing name scopes
   - Reset default graph
   - Register op statistics
 - Fix Travis CI support (somehow load the native library)
+
+-->

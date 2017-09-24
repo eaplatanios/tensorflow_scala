@@ -28,9 +28,16 @@ package object learn {
   private[api] trait API
       extends Model.API
           with data.API
+          with hooks.API
           with layers.API
           with optimizers.API {
-    val Estimator: learn.Estimator.type = learn.Estimator
+    val Configuration: learn.Configuration.type = learn.Configuration
+    val Estimator    : learn.Estimator.type     = learn.Estimator
+    val StopCriteria : learn.StopCriteria.type  = learn.StopCriteria
+
+    val TRAINING  : learn.TRAINING.type   = learn.TRAINING
+    val EVALUATION: learn.EVALUATION.type = learn.EVALUATION
+    val PREDICTION: learn.PREDICTION.type = learn.PREDICTION
   }
 
   private[api] object API extends API

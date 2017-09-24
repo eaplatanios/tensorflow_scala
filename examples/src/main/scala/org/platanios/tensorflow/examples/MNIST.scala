@@ -17,8 +17,6 @@ package org.platanios.tensorflow.examples
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.config.TensorBoardConfig
-import org.platanios.tensorflow.api.learn.{Configuration, StopCriteria}
-import org.platanios.tensorflow.api.learn.hooks.{CheckpointSaverHook, StepHookTrigger, StepRateHook, SummarySaverHook}
 import org.platanios.tensorflow.data.loaders.MNISTLoader
 
 import com.typesafe.scalalogging.Logger
@@ -68,14 +66,14 @@ object MNIST {
 
     logger.info("Training the linear regression model.")
     val summariesDir = Paths.get("/Users/Anthony/Downloads/temp/mlp-1024-256-64")
-    val estimator = tf.learn.Estimator(model, Configuration(Some(summariesDir)))
+    val estimator = tf.learn.Estimator(model, tf.learn.Configuration(Some(summariesDir)))
     estimator.train(
       trainData,
-      StopCriteria(maxSteps = Some(1000000)),
+      tf.learn.StopCriteria(maxSteps = Some(1000000)),
       Seq(
-        StepRateHook(log = false, summaryDirectory = summariesDir, trigger = StepHookTrigger(100)),
-        SummarySaverHook(summariesDir, StepHookTrigger(100)),
-        CheckpointSaverHook(summariesDir, StepHookTrigger(1000))),
+        tf.learn.StepRateHook(log = false, summaryDirectory = summariesDir, trigger = tf.learn.StepHookTrigger(100)),
+        tf.learn.SummarySaverHook(summariesDir, tf.learn.StepHookTrigger(100)),
+        tf.learn.CheckpointSaverHook(summariesDir, tf.learn.StepHookTrigger(1000))),
       tensorBoardConfig = TensorBoardConfig(summariesDir, reloadInterval = 1))
 
     // val inputs = tf.placeholder(tf.UINT8, tf.shape(-1, numberOfRows, numberOfColumns))
