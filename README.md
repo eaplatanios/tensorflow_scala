@@ -68,15 +68,15 @@ are a few useful links:
   integration with TensorBoard:
   
   ```scala
-  val loss = SparseSoftmaxCrossEntropy() >> Mean() >> tf.learn.ScalarSummary("Loss")
-  val summariesDir = Paths.get("/tmp/summaries")
+  loss = loss >> tf.learn.ScalarSummary("Loss")                  // Collect loss summaries for plotting
+  val summariesDir = Paths.get("/tmp/summaries")                 // Directory in which to save summaries and checkpoints
   val estimator = Estimator(model, Configuration(Some(summariesDir)))
   estimator.train(
     trainData, StopCriteria(maxSteps = Some(1000000)),
     Seq(
-      SummarySaverHook(summariesDir, StepHookTrigger(100)),
-      CheckpointSaverHook(summariesDir, StepHookTrigger(1000))),
-    tensorBoardConfig = TensorBoardConfig(summariesDir))
+      SummarySaverHook(summariesDir, StepHookTrigger(100)),      // Save summaries every 1000 steps
+      CheckpointSaverHook(summariesDir, StepHookTrigger(1000))), // Save checkpoint every 1000 steps
+    tensorBoardConfig = TensorBoardConfig(summariesDir))         // Launch TensorBoard server in the background
   ```
   
   If you now browse to `https://127.0.0.1:6006` while training, you can see the training progress:
