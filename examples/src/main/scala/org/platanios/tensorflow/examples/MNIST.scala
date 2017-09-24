@@ -16,11 +16,11 @@
 package org.platanios.tensorflow.examples
 
 import org.platanios.tensorflow.api._
-import org.platanios.tensorflow.api.config.TensorBoardConfig
 import org.platanios.tensorflow.data.loaders.MNISTLoader
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
+
 import java.nio.file.Paths
 
 /**
@@ -38,8 +38,8 @@ object MNIST {
 
   def main(args: Array[String]): Unit = {
     val dataSet = MNISTLoader.load(Paths.get("/Users/Anthony/Downloads/MNIST"))
-    val trainImages = tf.learn.DatasetFromSlices(dataSet.trainImages).map(_.cast(FLOAT32))
-    val trainLabels = tf.learn.DatasetFromSlices(dataSet.trainLabels).map(_.cast(INT64))
+    val trainImages = tf.learn.DatasetFromSlices(dataSet.trainImages)
+    val trainLabels = tf.learn.DatasetFromSlices(dataSet.trainLabels)
     val trainData =
       trainImages.zip(trainLabels)
           .repeat()
@@ -48,17 +48,18 @@ object MNIST {
           .prefetch(10)
 
     logger.info("Building the logistic regression model.")
-    val input = tf.learn.Input(FLOAT32, Shape(-1, dataSet.trainImages.shape(1), dataSet.trainImages.shape(2)))
-    val trainInput = tf.learn.Input(INT64, Shape(-1))
+    val input = tf.learn.Input(UINT8, Shape(-1, dataSet.trainImages.shape(1), dataSet.trainImages.shape(2)))
+    val trainInput = tf.learn.Input(UINT8, Shape(-1))
 //    val layer = tf.learn.flatten() >>
 //        tf.learn.cast(FLOAT32) >>
 //        tf.learn.linear(10) // >> tf.learn.logSoftmax()
     val layer = tf.learn.Flatten() >>
-        tf.learn.Linear(128, name = "Layer_0") >> tf.learn.ReLU(0.1f) >>
-        tf.learn.Linear(64, name = "Layer_1") >> tf.learn.ReLU(0.1f) >>
-        tf.learn.Linear(32, name = "Layer_2") >> tf.learn.ReLU(0.1f) >>
+        tf.learn.Cast(FLOAT32) >>
+//        tf.learn.Linear(128, name = "Layer_0") >> tf.learn.ReLU(0.1f) >>
+//        tf.learn.Linear(64, name = "Layer_1") >> tf.learn.ReLU(0.1f) >>
+//        tf.learn.Linear(32, name = "Layer_2") >> tf.learn.ReLU(0.1f) >>
         tf.learn.Linear(10, name = "OutputLayer")
-    val trainingInputLayer = tf.learn.Identity[tf.Output]()
+    val trainingInputLayer = tf.learn.Cast(INT64)
     val loss = tf.learn.SparseSoftmaxCrossEntropy() >> tf.learn.Mean() >> tf.learn.ScalarSummary("Loss")
     val optimizer = tf.learn.GradientDescent(1e-6)
     val model = tf.learn.Model(input, layer, trainInput, trainingInputLayer, loss, optimizer)
@@ -73,7 +74,7 @@ object MNIST {
         tf.learn.StepRateHook(log = false, summaryDirectory = summariesDir, trigger = tf.learn.StepHookTrigger(100)),
         tf.learn.SummarySaverHook(summariesDir, tf.learn.StepHookTrigger(100)),
         tf.learn.CheckpointSaverHook(summariesDir, tf.learn.StepHookTrigger(1000))),
-      tensorBoardConfig = TensorBoardConfig(summariesDir, reloadInterval = 1))
+      tensorBoardConfig = tf.learn.TensorBoardConfig(summariesDir, reloadInterval = 1))
 
     // val inputs = tf.placeholder(tf.UINT8, tf.shape(-1, numberOfRows, numberOfColumns))
     // val labels = tf.placeholder(tf.UINT8, tf.shape(-1))

@@ -45,8 +45,8 @@ are a few useful links:
   
   // Load and batch data using pre-fetching.
   val dataSet = MNISTLoader.load(Paths.get("/tmp"))
-  val trainImages = tf.learn.DatasetFromSlices(dataSet.trainImages).map(_.cast(FLOAT32))
-  val trainLabels = tf.learn.DatasetFromSlices(dataSet.trainLabels).map(_.cast(INT64))
+  val trainImages = tf.learn.DatasetFromSlices(dataSet.trainImages)
+  val trainLabels = tf.learn.DatasetFromSlices(dataSet.trainLabels)
   val trainData =
     trainImages.zip(trainLabels)
         .repeat()
@@ -55,14 +55,15 @@ are a few useful links:
         .prefetch(10)
   
   // Create the MLP model.
-  val input = tf.learn.Input(FLOAT32, Shape(-1, 28, 28))
-  val trainInput = tf.learn.Input(INT64, Shape(-1))
+  val input = tf.learn.Input(UINT8, Shape(-1, 28, 28))
+  val trainInput = tf.learn.Input(UINT8, Shape(-1))
   val layer = tf.learn.Flatten() >> 
+      tf.learn.Cast(FLOAT32) >> 
       tf.learn.Linear(128, name = "Layer_0") >> tf.learn.ReLU(0.1f) >>
       tf.learn.Linear(64, name = "Layer_1") >> tf.learn.ReLU(0.1f) >>
       tf.learn.Linear(32, name = "Layer_2") >> tf.learn.ReLU(0.1f) >>
       tf.learn.Linear(10, name = "OutputLayer")
-  val trainingInputLayer = tf.learn.Identity[tf.Output]()
+  val trainingInputLayer = tf.learn.Cast(INT64)
   val loss = tf.learn.SparseSoftmaxCrossEntropy() >> tf.learn.Mean()
   val optimizer = tf.learn.GradientDescent(1e-6)
   val model = tf.learn.Model(input, layer, trainInput, trainingInputLayer, loss, optimizer)
@@ -71,6 +72,24 @@ are a few useful links:
   val estimator = tf.learn.Estimator(model)
   estimator.train(trainData, tf.learn.StopCriteria(maxSteps = Some(1000000)))
   ```
+  
+  And by changing the last couple lines to the following code, you can get checkpoint capability and seamless 
+  integration with TensorBoard:
+  
+  ```scala
+  val summariesDir = Paths.get("/tmp/summaries")
+  val estimator = tf.learn.Estimator(model, tf.learn.Configuration(Some(summariesDir)))
+  estimator.train(
+    trainData, tf.learn.StopCriteria(maxSteps = Some(1000000)),
+    Seq(
+      tf.learn.SummarySaverHook(summariesDir, tf.learn.StepHookTrigger(100)),
+      tf.learn.CheckpointSaverHook(summariesDir, tf.learn.StepHookTrigger(1000))),
+    tensorBoardConfig = tf.learn.TensorBoardConfig(summariesDir))
+  ```
+  
+  If you now browse to `https://127.0.0.1:6006` while training, you can see the training progress:
+  
+  <img src="https://eaplatanios.github.io/tensorflow_scala/img/tensorboard_mnist_example_plot.png" alt="cmu_logo" width="600px">
 
 - Low-level graph construction API, similar to that of the Python API, but strongly typed wherever possible:
 

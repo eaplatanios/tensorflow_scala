@@ -38,6 +38,8 @@ package object learn {
     val TRAINING  : learn.TRAINING.type   = learn.TRAINING
     val EVALUATION: learn.EVALUATION.type = learn.EVALUATION
     val PREDICTION: learn.PREDICTION.type = learn.PREDICTION
+
+    val TensorBoardConfig: config.TensorBoardConfig.type = config.TensorBoardConfig
   }
 
   private[api] object API extends API
