@@ -2,42 +2,91 @@
 
 <p><a href="https://travis-ci.com/eaplatanios/tensorflow_scala"><img src="https://travis-ci.com/eaplatanios/tensorflow_scala.svg?token=VBPxqvcGXTuwbjkVyN68&amp;branch=master" alt="Build Status" /></a></p>
 
-<p>This is an attempt to replicate most of the TensorFlow Python API 
-functionality in Scala. It is a work in progress and a project I started 
-working on for my personal research purposes. The API is thus very 
-likely to keep changing until I settle with something that makes me 
-happy. Having said that, I try to stick as close as possible to the 
-Python API usage to make transition easy for users and much of what I 
-have already implemented is likely to stay as is. Most of the code is 
-ported from the Python API with changes to make it more Scala-friendly 
-and to make use of useful Scala features and strong-typing.</p>
-
-<p>People who are new to TensorFlow should first go through the official 
-Python API documentation at 
-<a href="https://www.tensorflow.org">https://www.tensorflow.org</a>. Most of what 
-you read there applies here too.</p>
+<p>This library is a Scala API for <a href="https://www.tensorflow.org">https://www.tensorflow.org</a>. It attempts to provide most of 
+the functionality provided by the official Python API, while at the same type being strongly-typed and adding some new 
+features. It is a work in progress and a project I started working on for my personal research purposes. Much of the API 
+should be relatively stable by now, but things are still likely to change. That is why there is no official release of 
+this library yet.</p>
 
 <h2 id="main-features">Main Features</h2>
 
 <ul>
-  <li>Exposed API namespace similar to that of the Python API. For example:
-    <ul>
-      <li><code class="highlighter-rouge">tf.constant(...)</code> creates a constant op.</li>
-      <li><code class="highlighter-rouge">tf.reshape(...)</code> creates a reshape op.</li>
-      <li><code class="highlighter-rouge">tf.Graph(...)</code> creates a graph.</li>
-      <li><code class="highlighter-rouge">tf.Session(...)</code> creates a session.</li>
-      <li>etc.</li>
-    </ul>
+  <li>
+    <p>Easy manipulation of tensors and computations involving tensors (similar to NumPy in Python):</p>
+
+    <div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="k">val</span> <span class="n">t1</span> <span class="k">=</span> <span class="nc">Tensor</span><span class="o">(</span> <span class="mf">1.2</span><span class="o">,</span> <span class="mf">4.5</span><span class="o">)</span>
+<span class="k">val</span> <span class="n">t2</span> <span class="k">=</span> <span class="nc">Tensor</span><span class="o">(-</span><span class="mf">0.2</span><span class="o">,</span> <span class="mf">1.1</span><span class="o">)</span>
+<span class="n">t1</span> <span class="o">+</span> <span class="n">t2</span> <span class="o">==</span> <span class="nc">Tensor</span><span class="o">(</span><span class="mf">1.0</span><span class="o">,</span> <span class="mf">5.6</span><span class="o">)</span>
+</code></pre>
+    </div>
   </li>
-  <li>Straightforward API for graph creation. For example:
+  <li>
+    <p>High-level API for creating, training, and using neural networks. For example, the following code shows how simple it 
+is to train a multi-layer perceptron for MNIST using TensorFlow for Scala. Here we omit a lot of very powerful 
+features such as summary and checkpoint savers, for simplicity, but these are also very simple to use.</p>
+
+    <div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="k">import</span> <span class="nn">org.platanios.tensorflow.api._</span>
+<span class="k">import</span> <span class="nn">org.platanios.tensorflow.data.loaders.MNISTLoader</span>
+  
+<span class="c1">// Load and batch data using pre-fetching.
+</span><span class="k">val</span> <span class="n">dataSet</span> <span class="k">=</span> <span class="nc">MNISTLoader</span><span class="o">.</span><span class="n">load</span><span class="o">(</span><span class="nc">Paths</span><span class="o">.</span><span class="n">get</span><span class="o">(</span><span class="s">"/tmp"</span><span class="o">))</span>
+<span class="k">val</span> <span class="n">trainImages</span> <span class="k">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">learn</span><span class="o">.</span><span class="nc">DatasetFromSlices</span><span class="o">(</span><span class="n">dataSet</span><span class="o">.</span><span class="n">trainImages</span><span class="o">)</span>
+<span class="k">val</span> <span class="n">trainLabels</span> <span class="k">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">learn</span><span class="o">.</span><span class="nc">DatasetFromSlices</span><span class="o">(</span><span class="n">dataSet</span><span class="o">.</span><span class="n">trainLabels</span><span class="o">)</span>
+<span class="k">val</span> <span class="n">trainData</span> <span class="k">=</span>
+  <span class="n">trainImages</span><span class="o">.</span><span class="n">zip</span><span class="o">(</span><span class="n">trainLabels</span><span class="o">)</span>
+      <span class="o">.</span><span class="n">repeat</span><span class="o">()</span>
+      <span class="o">.</span><span class="n">shuffle</span><span class="o">(</span><span class="mi">10000</span><span class="o">)</span>
+      <span class="o">.</span><span class="n">batch</span><span class="o">(</span><span class="mi">256</span><span class="o">)</span>
+      <span class="o">.</span><span class="n">prefetch</span><span class="o">(</span><span class="mi">10</span><span class="o">)</span>
+  
+<span class="c1">// Create the MLP model.
+</span><span class="k">val</span> <span class="n">input</span> <span class="k">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">learn</span><span class="o">.</span><span class="nc">Input</span><span class="o">(</span><span class="nc">UINT8</span><span class="o">,</span> <span class="nc">Shape</span><span class="o">(-</span><span class="mi">1</span><span class="o">,</span> <span class="mi">28</span><span class="o">,</span> <span class="mi">28</span><span class="o">))</span>
+<span class="k">val</span> <span class="n">trainInput</span> <span class="k">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">learn</span><span class="o">.</span><span class="nc">Input</span><span class="o">(</span><span class="nc">UINT8</span><span class="o">,</span> <span class="nc">Shape</span><span class="o">(-</span><span class="mi">1</span><span class="o">))</span>
+<span class="k">val</span> <span class="n">layer</span> <span class="k">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">learn</span><span class="o">.</span><span class="nc">Flatten</span><span class="o">()</span> <span class="o">&gt;&gt;</span> 
+    <span class="n">tf</span><span class="o">.</span><span class="n">learn</span><span class="o">.</span><span class="nc">Cast</span><span class="o">(</span><span class="nc">FLOAT32</span><span class="o">)</span> <span class="o">&gt;&gt;</span> 
+    <span class="n">tf</span><span class="o">.</span><span class="n">learn</span><span class="o">.</span><span class="nc">Linear</span><span class="o">(</span><span class="mi">128</span><span class="o">,</span> <span class="n">name</span> <span class="k">=</span> <span class="s">"Layer_0"</span><span class="o">)</span> <span class="o">&gt;&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">learn</span><span class="o">.</span><span class="nc">ReLU</span><span class="o">(</span><span class="mf">0.1f</span><span class="o">)</span> <span class="o">&gt;&gt;</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">learn</span><span class="o">.</span><span class="nc">Linear</span><span class="o">(</span><span class="mi">64</span><span class="o">,</span> <span class="n">name</span> <span class="k">=</span> <span class="s">"Layer_1"</span><span class="o">)</span> <span class="o">&gt;&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">learn</span><span class="o">.</span><span class="nc">ReLU</span><span class="o">(</span><span class="mf">0.1f</span><span class="o">)</span> <span class="o">&gt;&gt;</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">learn</span><span class="o">.</span><span class="nc">Linear</span><span class="o">(</span><span class="mi">32</span><span class="o">,</span> <span class="n">name</span> <span class="k">=</span> <span class="s">"Layer_2"</span><span class="o">)</span> <span class="o">&gt;&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">learn</span><span class="o">.</span><span class="nc">ReLU</span><span class="o">(</span><span class="mf">0.1f</span><span class="o">)</span> <span class="o">&gt;&gt;</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">learn</span><span class="o">.</span><span class="nc">Linear</span><span class="o">(</span><span class="mi">10</span><span class="o">,</span> <span class="n">name</span> <span class="k">=</span> <span class="s">"OutputLayer"</span><span class="o">)</span>
+<span class="k">val</span> <span class="n">trainingInputLayer</span> <span class="k">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">learn</span><span class="o">.</span><span class="nc">Cast</span><span class="o">(</span><span class="nc">INT64</span><span class="o">)</span>
+<span class="k">val</span> <span class="n">loss</span> <span class="k">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">learn</span><span class="o">.</span><span class="nc">SparseSoftmaxCrossEntropy</span><span class="o">()</span> <span class="o">&gt;&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">learn</span><span class="o">.</span><span class="nc">Mean</span><span class="o">()</span>
+<span class="k">val</span> <span class="n">optimizer</span> <span class="k">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">learn</span><span class="o">.</span><span class="nc">GradientDescent</span><span class="o">(</span><span class="mi">1</span><span class="n">e</span><span class="o">-</span><span class="mi">6</span><span class="o">)</span>
+<span class="k">val</span> <span class="n">model</span> <span class="k">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">learn</span><span class="o">.</span><span class="nc">Model</span><span class="o">(</span><span class="n">input</span><span class="o">,</span> <span class="n">layer</span><span class="o">,</span> <span class="n">trainInput</span><span class="o">,</span> <span class="n">trainingInputLayer</span><span class="o">,</span> <span class="n">loss</span><span class="o">,</span> <span class="n">optimizer</span><span class="o">)</span>
+  
+<span class="c1">// Create an estimator and train the model.
+</span><span class="k">val</span> <span class="n">estimator</span> <span class="k">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">learn</span><span class="o">.</span><span class="nc">Estimator</span><span class="o">(</span><span class="n">model</span><span class="o">)</span>
+<span class="n">estimator</span><span class="o">.</span><span class="n">train</span><span class="o">(</span><span class="n">trainData</span><span class="o">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">learn</span><span class="o">.</span><span class="nc">StopCriteria</span><span class="o">(</span><span class="n">maxSteps</span> <span class="k">=</span> <span class="nc">Some</span><span class="o">(</span><span class="mi">1000000</span><span class="o">)))</span>
+</code></pre>
+    </div>
+
+    <p>And by changing the last couple lines to the following code, you can get checkpoint capability and seamless 
+integration with TensorBoard:</p>
+
+    <div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="k">val</span> <span class="n">summariesDir</span> <span class="k">=</span> <span class="nc">Paths</span><span class="o">.</span><span class="n">get</span><span class="o">(</span><span class="s">"/tmp/summaries"</span><span class="o">)</span>
+<span class="k">val</span> <span class="n">estimator</span> <span class="k">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">learn</span><span class="o">.</span><span class="nc">Estimator</span><span class="o">(</span><span class="n">model</span><span class="o">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">learn</span><span class="o">.</span><span class="nc">Configuration</span><span class="o">(</span><span class="nc">Some</span><span class="o">(</span><span class="n">summariesDir</span><span class="o">)))</span>
+<span class="n">estimator</span><span class="o">.</span><span class="n">train</span><span class="o">(</span>
+  <span class="n">trainData</span><span class="o">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">learn</span><span class="o">.</span><span class="nc">StopCriteria</span><span class="o">(</span><span class="n">maxSteps</span> <span class="k">=</span> <span class="nc">Some</span><span class="o">(</span><span class="mi">1000000</span><span class="o">)),</span>
+  <span class="nc">Seq</span><span class="o">(</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">learn</span><span class="o">.</span><span class="nc">SummarySaverHook</span><span class="o">(</span><span class="n">summariesDir</span><span class="o">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">learn</span><span class="o">.</span><span class="nc">StepHookTrigger</span><span class="o">(</span><span class="mi">100</span><span class="o">)),</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">learn</span><span class="o">.</span><span class="nc">CheckpointSaverHook</span><span class="o">(</span><span class="n">summariesDir</span><span class="o">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">learn</span><span class="o">.</span><span class="nc">StepHookTrigger</span><span class="o">(</span><span class="mi">1000</span><span class="o">))),</span>
+  <span class="n">tensorBoardConfig</span> <span class="k">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">learn</span><span class="o">.</span><span class="nc">TensorBoardConfig</span><span class="o">(</span><span class="n">summariesDir</span><span class="o">))</span>
+</code></pre>
+    </div>
+
+    <p>If you now browse to <code class="highlighter-rouge">https://127.0.0.1:6006</code> while training, you can see the training progress:</p>
+
+    <p><img src="https://eaplatanios.github.io/tensorflow_scala/img/tensorboard_mnist_example_plot.png" alt="tensorboard_mnist_example_plot" width="600px" /></p>
+  </li>
+  <li>
+    <p>Low-level graph construction API, similar to that of the Python API, but strongly typed wherever possible:</p>
+
     <div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="k">import</span> <span class="nn">org.platanios.tensorflow.api._</span>
   
 <span class="k">val</span> <span class="n">inputs</span> <span class="k">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">placeholder</span><span class="o">(</span><span class="nc">FLOAT32</span><span class="o">,</span> <span class="nc">Shape</span><span class="o">(-</span><span class="mi">1</span><span class="o">,</span> <span class="mi">10</span><span class="o">))</span>
 <span class="k">val</span> <span class="n">outputs</span> <span class="k">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">placeholder</span><span class="o">(</span><span class="nc">FLOAT32</span><span class="o">,</span> <span class="nc">Shape</span><span class="o">(-</span><span class="mi">1</span><span class="o">,</span> <span class="mi">10</span><span class="o">))</span>
 <span class="k">val</span> <span class="n">predictions</span> <span class="k">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">createWith</span><span class="o">(</span><span class="n">nameScope</span> <span class="k">=</span> <span class="s">"Linear"</span><span class="o">)</span> <span class="o">{</span>
   <span class="k">val</span> <span class="n">weights</span> <span class="k">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable</span><span class="o">(</span><span class="s">"weights"</span><span class="o">,</span> <span class="nc">FLOAT32</span><span class="o">,</span> <span class="nc">Shape</span><span class="o">(</span><span class="mi">10</span><span class="o">,</span> <span class="mi">1</span><span class="o">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">zerosInitializer</span><span class="o">)</span>
-  <span class="k">val</span> <span class="n">predictions</span> <span class="k">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="o">(</span><span class="n">inputs</span><span class="o">,</span> <span class="n">weights</span><span class="o">)</span>
-  <span class="n">predictions</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="o">(</span><span class="n">inputs</span><span class="o">,</span> <span class="n">weights</span><span class="o">)</span>
 <span class="o">}</span>
 <span class="k">val</span> <span class="n">loss</span> <span class="k">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sum</span><span class="o">(</span><span class="n">tf</span><span class="o">.</span><span class="n">square</span><span class="o">(</span><span class="n">predictions</span> <span class="o">-</span> <span class="n">outputs</span><span class="o">))</span>
 <span class="k">val</span> <span class="n">optimizer</span> <span class="k">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="nc">AdaGrad</span><span class="o">(</span><span class="mf">1.0</span><span class="o">)</span>
@@ -45,31 +94,19 @@ you read there applies here too.</p>
 </code></pre>
     </div>
   </li>
-  <li>Efficient interaction with the native library that avoids unnecessary 
-copying of data.
-    <ul>
-      <li>All tensors are backed by a <code class="highlighter-rouge">DirectByteBuffer</code> so that the memory can 
-be shared with the native TensorFlow library.</li>
-      <li>For tensors that are created in the Scala API and passed on the 
-native library (e.g., fed into a TensorFlow session), we create a 
-global reference to make the JVM garbage collector aware of the fact 
-that the native library is using that 
-tensor. We also pass a custom deallocator to the native library that 
-simply deletes that global reference.</li>
-      <li>For tensors created by the TensorFlow native library and passed on the 
-Scala API (e.g., fetched from a TensorFlow session), we use a 
-combination of weak references and a disposing thread running in the 
-background. Please refer to 
-<code class="highlighter-rouge">tensorflow/src/main/scala/org/platanios/tensorflow/api/utilities/Disposer.scala</code>.</li>
-    </ul>
-  </li>
-  <li>Numpy-like indexing/slicing for tensors. For example:
+  <li>
+    <p>Numpy-like indexing/slicing for tensors. For example:</p>
+
     <div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="n">tensor</span><span class="o">(</span><span class="mi">2</span> <span class="o">::</span> <span class="mi">5</span><span class="o">,</span> <span class="o">---,</span> <span class="mi">1</span><span class="o">)</span> <span class="c1">// is equivalent to numpy's 'tensor[2:5, ..., 1]'
 </span></code></pre>
     </div>
   </li>
-  <li>Useful implicits that make using the library almost as simple as using 
-the Python API, while retaining type-safety (for the most part).</li>
+  <li>
+    <p>Efficient interaction with the native library that avoids unnecessary copying of data. All tensors are created and 
+managed by the native TensorFlow library. When they are passed to the Scala API (e.g., fetched from a TensorFlow 
+session), we use a combination of weak references and a disposing thread running in the background. Please refer to 
+<code class="highlighter-rouge">tensorflow/src/main/scala/org/platanios/tensorflow/api/utilities/Disposer.scala</code>, for the implementation.</p>
+  </li>
 </ul>
 
 <h2 id="funding">Funding</h2>
