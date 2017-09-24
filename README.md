@@ -89,7 +89,7 @@ are a few useful links:
   
   If you now browse to `https://127.0.0.1:6006` while training, you can see the training progress:
   
-  <img src="https://eaplatanios.github.io/tensorflow_scala/img/tensorboard_mnist_example_plot.png" alt="cmu_logo" width="600px">
+  <img src="https://eaplatanios.github.io/tensorflow_scala/img/tensorboard_mnist_example_plot.png" alt="tensorboard_mnist_example_plot" width="600px">
 
 - Low-level graph construction API, similar to that of the Python API, but strongly typed wherever possible:
 
