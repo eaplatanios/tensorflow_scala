@@ -2,20 +2,11 @@
 
 [![Build Status](https://travis-ci.com/eaplatanios/tensorflow_scala.svg?token=VBPxqvcGXTuwbjkVyN68&branch=master)](https://travis-ci.com/eaplatanios/tensorflow_scala)
 
-This is an attempt to replicate most of the TensorFlow Python API 
-functionality in Scala. It is a work in progress and a project I started 
-working on for my personal research purposes. The API is thus very 
-likely to keep changing until I settle with something that makes me 
-happy. Having said that, I try to stick as close as possible to the 
-Python API usage to make transition easy for users and much of what I 
-have already implemented is likely to stay as is. Most of the code is 
-ported from the Python API with changes to make it more Scala-friendly 
-and to make use of useful Scala features and strong-typing.
-
-People who are new to TensorFlow should first go through the official 
-Python API documentation at 
-[https://www.tensorflow.org](https://www.tensorflow.org). Most of what 
-you read there applies here too.
+This library is a Scala API for [https://www.tensorflow.org](https://www.tensorflow.org). It attempts to provide most of 
+the functionality provided by the official Python API, while at the same type being strongly-typed and adding some new 
+features. It is a work in progress and a project I started working on for my personal research purposes. Much of the API 
+should be relatively stable by now, but things are still likely to change. That is why there is no official release of 
+this library yet.
 
 Please refer to the main website for documentation and tutorials. Here
 are a few useful links:
