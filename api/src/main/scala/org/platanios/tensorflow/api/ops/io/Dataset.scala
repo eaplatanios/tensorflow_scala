@@ -22,6 +22,7 @@ import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.tensors.{SparseTensor, Tensor}
 import org.platanios.tensorflow.api.types.{DataType, INT32, INT64, STRING}
+import org.platanios.tensorflow.jni.OutOfRangeException
 
 import java.util.concurrent.atomic.AtomicLong
 
@@ -365,14 +366,14 @@ object Dataset {
       */
     def generatorMapFn(iteratorId: Output): O = {
       /** Scala callback function that will be called to invoke the iterator. */
-      @throws[IndexOutOfBoundsException]
+      @throws[OutOfRangeException]
       def generatorScalaCallback(iteratorId: Tensor): Seq[Tensor] = {
         val iterator = generatorState.getIterator(iteratorId.scalar.asInstanceOf[Long])
         val value = {
           if (iterator.hasNext)
             iterator.next()
           else
-            throw new IndexOutOfBoundsException("The iterator does not contain any more elements.")
+            throw OutOfRangeException("The iterator does not contain any more elements.")
         }
         val flattenedTensors = ev.flattenedTensors(value)
         // Additional type and shape checking to ensure that the components of the generated element match the

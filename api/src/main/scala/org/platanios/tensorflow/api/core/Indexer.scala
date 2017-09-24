@@ -17,7 +17,6 @@ package org.platanios.tensorflow.api.core
 
 import org.platanios.tensorflow.api.core
 import org.platanios.tensorflow.api.core.exception.InvalidIndexerException
-import org.platanios.tensorflow.api.ops.{Basic, Output}
 
 import scala.language.postfixOps
 
@@ -29,7 +28,7 @@ import scala.language.postfixOps
   *   - [[NewAxis]]: Corresponds to the addition of a new dimension.
   *   - [[Slice]]: Corresponds to a slice over a single dimension of a tensor.
   *
-  * Examples of constructing and using indexers are provided in the [[Ellipsis]] and the  [[Slice]] class documentation.
+  * Examples of constructing and using indexers are provided in the [[Ellipsis]] and the [[Slice]] class documentation.
   * Here we provide examples of indexing over tensors using indexers:
   * {{{
   *   // 't' is a tensor (i.e., Output) with shape [4, 2, 3, 8]
