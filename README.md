@@ -32,12 +32,13 @@ are a few useful links:
     
   ```scala
   import org.platanios.tensorflow.api._
+  import org.platanios.tensorflow.api.tf.learn._
   import org.platanios.tensorflow.data.loaders.MNISTLoader
   
   // Load and batch data using pre-fetching.
   val dataSet = MNISTLoader.load(Paths.get("/tmp"))
-  val trainImages = tf.learn.DatasetFromSlices(dataSet.trainImages)
-  val trainLabels = tf.learn.DatasetFromSlices(dataSet.trainLabels)
+  val trainImages = DatasetFromSlices(dataSet.trainImages)
+  val trainLabels = DatasetFromSlices(dataSet.trainLabels)
   val trainData =
     trainImages.zip(trainLabels)
         .repeat()
@@ -46,22 +47,21 @@ are a few useful links:
         .prefetch(10)
   
   // Create the MLP model.
-  val input = tf.learn.Input(UINT8, Shape(-1, 28, 28))
-  val trainInput = tf.learn.Input(UINT8, Shape(-1))
-  val layer = tf.learn.Flatten() >> 
-      tf.learn.Cast(FLOAT32) >> 
-      tf.learn.Linear(128, name = "Layer_0") >> tf.learn.ReLU(0.1f) >>
-      tf.learn.Linear(64, name = "Layer_1") >> tf.learn.ReLU(0.1f) >>
-      tf.learn.Linear(32, name = "Layer_2") >> tf.learn.ReLU(0.1f) >>
-      tf.learn.Linear(10, name = "OutputLayer")
-  val trainingInputLayer = tf.learn.Cast(INT64)
-  val loss = tf.learn.SparseSoftmaxCrossEntropy() >> tf.learn.Mean()
-  val optimizer = tf.learn.GradientDescent(1e-6)
-  val model = tf.learn.Model(input, layer, trainInput, trainingInputLayer, loss, optimizer)
+  val input = Input(UINT8, Shape(-1, 28, 28))
+  val trainInput = Input(UINT8, Shape(-1))
+  val layer = Flatten() >> Cast(FLOAT32) >> 
+      Linear(128, name = "Layer_0") >> ReLU(0.1f) >>
+      Linear(64, name = "Layer_1") >> ReLU(0.1f) >>
+      Linear(32, name = "Layer_2") >> ReLU(0.1f) >>
+      Linear(10, name = "OutputLayer")
+  val trainingInputLayer = Cast(INT64)
+  val loss = SparseSoftmaxCrossEntropy() >> Mean()
+  val optimizer = GradientDescent(1e-6)
+  val model = Model(input, layer, trainInput, trainingInputLayer, loss, optimizer)
   
   // Create an estimator and train the model.
-  val estimator = tf.learn.Estimator(model)
-  estimator.train(trainData, tf.learn.StopCriteria(maxSteps = Some(1000000)))
+  val estimator = Estimator(model)
+  estimator.train(trainData, StopCriteria(maxSteps = Some(1000000)))
   ```
   
   And by changing the last couple lines to the following code, you can get checkpoint capability and seamless 
@@ -69,13 +69,13 @@ are a few useful links:
   
   ```scala
   val summariesDir = Paths.get("/tmp/summaries")
-  val estimator = tf.learn.Estimator(model, tf.learn.Configuration(Some(summariesDir)))
+  val estimator = Estimator(model, Configuration(Some(summariesDir)))
   estimator.train(
-    trainData, tf.learn.StopCriteria(maxSteps = Some(1000000)),
+    trainData, StopCriteria(maxSteps = Some(1000000)),
     Seq(
-      tf.learn.SummarySaverHook(summariesDir, tf.learn.StepHookTrigger(100)),
-      tf.learn.CheckpointSaverHook(summariesDir, tf.learn.StepHookTrigger(1000))),
-    tensorBoardConfig = tf.learn.TensorBoardConfig(summariesDir))
+      SummarySaverHook(summariesDir, StepHookTrigger(100)),
+      CheckpointSaverHook(summariesDir, StepHookTrigger(1000))),
+    tensorBoardConfig = TensorBoardConfig(summariesDir))
   ```
   
   If you now browse to `https://127.0.0.1:6006` while training, you can see the training progress:
