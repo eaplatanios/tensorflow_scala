@@ -181,12 +181,6 @@
       <p class="shortcomment cmt">Contains helper functions and classes for creating IO-related ops.</p><div class="fullcomment"><div class="comment cmt"><p>Contains helper functions and classes for creating IO-related ops.
 </p></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../index.html" class="extype" name="org.platanios.tensorflow.api.ops">ops</a></dd></dl></div>
     </li><li class="current-entities indented6">
-                        <span class="separator"></span>
-                        <a class="class" href="BatchDataset.html" title="Dataset that batches batchSize elements from inputDataset."></a>
-                        <a href="BatchDataset.html" title="Dataset that batches batchSize elements from inputDataset.">
-                          BatchDataset
-                        </a>
-                      </li><li class="current-entities indented6">
                         <a class="object" href="Data$.html" title=""></a>
                         <a class="trait" href="Data.html" title="Data can be emitted by Datasets (i.e., the element types of all Datasets are Data)."></a>
                         <a href="Data.html" title="Data can be emitted by Datasets (i.e., the element types of all Datasets are Data).">
@@ -226,27 +220,9 @@ it, using its createInitializer method.">
                         </a>
                       </li><li class="current-entities indented6">
                         <span class="separator"></span>
-                        <a class="class" href="RepeatDataset.html" title="Dataset that repeats the elements from inputDataset a specified number of times."></a>
-                        <a href="RepeatDataset.html" title="Dataset that repeats the elements from inputDataset a specified number of times.">
-                          RepeatDataset
-                        </a>
-                      </li><li class="current-entities indented6">
-                        <span class="separator"></span>
                         <a class="class" href="SerializableReader.html" title=""></a>
                         <a href="SerializableReader.html" title="">
                           SerializableReader
-                        </a>
-                      </li><li class="current-entities indented6">
-                        <span class="separator"></span>
-                        <a class="class" href="TensorDataset.html" title="Dataset with a single element."></a>
-                        <a href="TensorDataset.html" title="Dataset with a single element.">
-                          TensorDataset
-                        </a>
-                      </li><li class="current-entities indented6">
-                        <span class="separator"></span>
-                        <a class="class" href="TensorSliceDataset.html" title="Dataset with slices from the nested structure of Outputs (i.e., a Data-supported type)."></a>
-                        <a href="TensorSliceDataset.html" title="Dataset with slices from the nested structure of Outputs (i.e., a Data-supported type).">
-                          TensorSliceDataset
                         </a>
                       </li>
               </ul>
@@ -273,24 +249,19 @@ it, using its createInitializer method.">
         <span class="kind">class</span>
       </span>
       <span class="symbol">
-        <span class="name">Dataset</span><span class="tparams">[<span name="O">O</span>, <span name="D">D</span>, <span name="S">S</span>]</span><span class="result"> extends <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></span>
+        <span class="name">Dataset</span><span class="tparams">[<span name="T">T</span>, <span name="O">O</span>, <span name="D">D</span>, <span name="S">S</span>]</span><span class="result"> extends <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></span>
       </span>
       </h4>
 
       
           <div id="comment" class="fullcommenttop"><div class="comment cmt"><p>Represents a potentially large set of elements.</p><p>A <a href="" class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset">Dataset</a> can be used to represent an input pipeline as a collection of elements (i.e., nested structures of
 tensors) and a &quot;logical plan&quot; of transformations that act on those elements.
-</p></div><dl class="attributes block"> <dt>Source</dt><dd><a href="https://github.com/eaplatanios/tensorflow_scala/tree/master/api/src/main/scala/org/platanios/tensorflow/api/ops/io/Dataset.scala" target="_blank">Dataset.scala</a></dd></dl><div class="toggleContainer block">
+</p></div><dl class="paramcmts block"><dt class="tparam">O</dt><dd class="cmt"><p>Output type (i.e., nested structure of symbolic tensors).</p></dd><dt class="tparam">D</dt><dd class="cmt"><p>Data type of the outputs (i.e., nested structure of TensorFlow data types).</p></dd><dt class="tparam">S</dt><dd class="cmt"><p>Shape type of the outputs (i.e., nested structure of TensorFlow shapes).</p></dd></dl><dl class="attributes block"> <dt>Source</dt><dd><a href="https://github.com/eaplatanios/tensorflow_scala/tree/master/api/src/main/scala/org/platanios/tensorflow/api/ops/io/Dataset.scala" target="_blank">Dataset.scala</a></dd></dl><div class="toggleContainer block">
           <span class="toggle">
             Linear Supertypes
           </span>
           <div class="superTypes hiddenContent"><a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a>, <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.Any" class="extype" name="scala.collection.immutable.List">Any</a></div>
-        </div><div class="toggleContainer block">
-            <span class="toggle">
-              Known Subclasses
-            </span>
-            <div class="subClasses hiddenContent"><a href="BatchDataset.html" class="extype" name="org.platanios.tensorflow.api.ops.io.BatchDataset">BatchDataset</a>, <a href="RepeatDataset.html" class="extype" name="org.platanios.tensorflow.api.ops.io.RepeatDataset">RepeatDataset</a>, <a href="TensorDataset.html" class="extype" name="org.platanios.tensorflow.api.ops.io.TensorDataset">TensorDataset</a>, <a href="TensorSliceDataset.html" class="extype" name="org.platanios.tensorflow.api.ops.io.TensorSliceDataset">TensorSliceDataset</a></div>
-          </div></div>
+        </div></div>
         
 
       <div id="mbrsel">
@@ -339,10 +310,10 @@ tensors) and a &quot;logical plan&quot; of transformations that act on those ele
 
         <div class="values members">
               <h3>Abstract Value Members</h3>
-              <ol><li name="org.platanios.tensorflow.api.ops.io.Dataset#createResource" visbl="pub" class="indented0 " data-isabs="true" fullComment="yes" group="Ungrouped">
-      <a id="createResource():org.platanios.tensorflow.api.ops.Output"></a><a id="createResource():Output"></a>
+              <ol><li name="org.platanios.tensorflow.api.ops.io.Dataset#createHandle" visbl="pub" class="indented0 " data-isabs="true" fullComment="yes" group="Ungrouped">
+      <a id="createHandle():org.platanios.tensorflow.api.ops.Output"></a><a id="createHandle():Output"></a>
       <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/ops/io/Dataset.html#createResource():org.platanios.tensorflow.api.ops.Output" title="Permalink">
+      <a href="../../../../../../org/platanios/tensorflow/api/ops/io/Dataset.html#createHandle():org.platanios.tensorflow.api.ops.Output" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -351,7 +322,7 @@ tensors) and a &quot;logical plan&quot; of transformations that act on those ele
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">createResource</span><span class="params">()</span><span class="result">: <a href="../Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>
+        <span class="name">createHandle</span><span class="params">()</span><span class="result">: <a href="../Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>
       </span>
       
       <p class="shortcomment cmt">Creates a <code>RESOURCE</code> scalar tensor representing this dataset.</p><div class="fullcomment"><div class="comment cmt"><p>Creates a <code>RESOURCE</code> scalar tensor representing this dataset. This function adds ops to the current graph, that
@@ -365,7 +336,7 @@ create the dataset resource.</p></div></div>
     </span>
       <span class="modifier_kind">
         <span class="modifier">abstract </span>
-        <span class="kind">val</span>
+        <span class="kind">def</span>
       </span>
       <span class="symbol">
         <span class="name">outputDataTypes</span><span class="result">: <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.D">D</span></span>
@@ -381,7 +352,7 @@ create the dataset resource.</p></div></div>
     </span>
       <span class="modifier_kind">
         <span class="modifier">abstract </span>
-        <span class="kind">val</span>
+        <span class="kind">def</span>
       </span>
       <span class="symbol">
         <span class="name">outputShapes</span><span class="result">: <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.S">S</span></span>
@@ -459,9 +430,9 @@ create the dataset resource.</p></div></div>
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>Any</dd></dl></div>
     </li><li name="org.platanios.tensorflow.api.ops.io.Dataset#batch" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="batch(batchSize:Int):org.platanios.tensorflow.api.ops.io.BatchDataset[O,D,S]"></a><a id="batch(Int):BatchDataset[O,D,S]"></a>
+      <a id="batch(batchSize:Long):org.platanios.tensorflow.api.ops.io.Dataset[T,O,D,S]"></a><a id="batch(Long):Dataset[T,O,D,S]"></a>
       <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/ops/io/Dataset.html#batch(batchSize:Int):org.platanios.tensorflow.api.ops.io.BatchDataset[O,D,S]" title="Permalink">
+      <a href="../../../../../../org/platanios/tensorflow/api/ops/io/Dataset.html#batch(batchSize:Long):org.platanios.tensorflow.api.ops.io.Dataset[T,O,D,S]" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -470,11 +441,30 @@ create the dataset resource.</p></div></div>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">batch</span><span class="params">(<span name="batchSize">batchSize: <a href="http://www.scala-lang.org/api/2.12.3/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a></span>)</span><span class="result">: <a href="BatchDataset.html" class="extype" name="org.platanios.tensorflow.api.ops.io.BatchDataset">BatchDataset</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.D">D</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.S">S</span>]</span>
+        <span class="name">batch</span><span class="params">(<span name="batchSize">batchSize: <a href="http://www.scala-lang.org/api/2.12.3/scala/Long.html#scala.Long" class="extype" name="scala.Long">Long</a></span>)</span><span class="result">: <a href="" class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset">Dataset</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.T">T</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.D">D</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.S">S</span>]</span>
       </span>
       
-      <p class="shortcomment cmt">Creates a dataset that batches <code>batchSize</code> elements from this dataset.</p><div class="fullcomment"><div class="comment cmt"><p>Creates a dataset that batches <code>batchSize</code> elements from this dataset.
-</p></div><dl class="paramcmts block"><dt class="param">batchSize</dt><dd class="cmt"><p>Batch size to use.</p></dd><dt>returns</dt><dd class="cmt"><p>Created dataset.</p></dd></dl></div>
+      <p class="shortcomment cmt">$OpDocDatasetBatch
+</p><div class="fullcomment"><div class="comment cmt"><p>$OpDocDatasetBatch
+</p></div><dl class="paramcmts block"><dt class="param">batchSize</dt><dd class="cmt"><p>Batch size.</p></dd><dt>returns</dt><dd class="cmt"><p>Created dataset.</p></dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.ops.io.Dataset#cache" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="cache(directory:String):org.platanios.tensorflow.api.ops.io.Dataset[T,O,D,S]"></a><a id="cache(String):Dataset[T,O,D,S]"></a>
+      <span class="permalink">
+      <a href="../../../../../../org/platanios/tensorflow/api/ops/io/Dataset.html#cache(directory:String):org.platanios.tensorflow.api.ops.io.Dataset[T,O,D,S]" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">cache</span><span class="params">(<span name="directory">directory: <span class="extype" name="scala.Predef.String">String</span></span>)</span><span class="result">: <a href="" class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset">Dataset</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.T">T</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.D">D</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.S">S</span>]</span>
+      </span>
+      
+      <p class="shortcomment cmt">$OpDocDatasetCache
+</p><div class="fullcomment"><div class="comment cmt"><p>$OpDocDatasetCache
+</p></div><dl class="paramcmts block"><dt class="param">directory</dt><dd class="cmt"><p>Directory to use for caching. If empty, then the provided dataset will be cached in memory.</p></dd><dt>returns</dt><dd class="cmt"><p>Created dataset.</p></dd></dl></div>
     </li><li name="scala.AnyRef#clone" visbl="prt" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="clone():Object"></a><a id="clone():AnyRef"></a>
       <span class="permalink">
@@ -497,10 +487,10 @@ create the dataset resource.</p></div></div>
     </span>)</span>
               
         </dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.ops.io.Dataset#createInitializableIterator" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="createInitializableIterator(sharedName:String,name:String):org.platanios.tensorflow.api.ops.io.InitializableIterator[O,D,S]"></a><a id="createInitializableIterator(String,String):InitializableIterator[O,D,S]"></a>
+    </li><li name="org.platanios.tensorflow.api.ops.io.Dataset#concatenate" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="concatenate(other:org.platanios.tensorflow.api.ops.io.Dataset[T,O,D,S]):org.platanios.tensorflow.api.ops.io.Dataset[T,O,D,S]"></a><a id="concatenate(Dataset[T,O,D,S]):Dataset[T,O,D,S]"></a>
       <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/ops/io/Dataset.html#createInitializableIterator(sharedName:String,name:String):org.platanios.tensorflow.api.ops.io.InitializableIterator[O,D,S]" title="Permalink">
+      <a href="../../../../../../org/platanios/tensorflow/api/ops/io/Dataset.html#concatenate(other:org.platanios.tensorflow.api.ops.io.Dataset[T,O,D,S]):org.platanios.tensorflow.api.ops.io.Dataset[T,O,D,S]" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -509,13 +499,49 @@ create the dataset resource.</p></div></div>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">createInitializableIterator</span><span class="params">(<span name="sharedName">sharedName: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">&quot;&quot;</span></span>, <span name="name">name: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">&quot;InitializableIterator&quot;</span></span>)</span><span class="result">: <a href="InitializableIterator.html" class="extype" name="org.platanios.tensorflow.api.ops.io.InitializableIterator">InitializableIterator</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.D">D</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.S">S</span>]</span>
+        <span class="name">concatenate</span><span class="params">(<span name="other">other: <a href="" class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset">Dataset</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.T">T</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.D">D</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.S">S</span>]</span>)</span><span class="result">: <a href="" class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset">Dataset</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.T">T</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.D">D</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.S">S</span>]</span>
+      </span>
+      
+      <p class="shortcomment cmt">$OpDocDatasetConcatenate
+</p><div class="fullcomment"><div class="comment cmt"><p>$OpDocDatasetConcatenate
+</p></div><dl class="paramcmts block"><dt class="param">other</dt><dd class="cmt"><p>Dataset to concatenate with the current dataset.</p></dd><dt>returns</dt><dd class="cmt"><p>Created dataset.</p></dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.ops.io.Dataset#createInitializableIterator" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="createInitializableIterator(sharedName:String,name:String):org.platanios.tensorflow.api.ops.io.InitializableIterator[T,O,D,S]"></a><a id="createInitializableIterator(String,String):InitializableIterator[T,O,D,S]"></a>
+      <span class="permalink">
+      <a href="../../../../../../org/platanios/tensorflow/api/ops/io/Dataset.html#createInitializableIterator(sharedName:String,name:String):org.platanios.tensorflow.api.ops.io.InitializableIterator[T,O,D,S]" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">createInitializableIterator</span><span class="params">(<span name="sharedName">sharedName: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">&quot;&quot;</span></span>, <span name="name">name: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">&quot;InitializableIterator&quot;</span></span>)</span><span class="result">: <a href="InitializableIterator.html" class="extype" name="org.platanios.tensorflow.api.ops.io.InitializableIterator">InitializableIterator</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.T">T</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.D">D</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.S">S</span>]</span>
       </span>
       
       <p class="shortcomment cmt">Creates an <a href="Iterator.html" class="extype" name="org.platanios.tensorflow.api.ops.io.Iterator">Iterator</a> for enumerating the elements of this dataset.</p><div class="fullcomment"><div class="comment cmt"><p>Creates an <a href="Iterator.html" class="extype" name="org.platanios.tensorflow.api.ops.io.Iterator">Iterator</a> for enumerating the elements of this dataset.</p><p>**Note:** The returned iterator will be in an uninitialized state. You must execute the
 <a href="InitializableIterator.html#initializer:org.platanios.tensorflow.api.ops.Op" class="extmbr" name="org.platanios.tensorflow.api.ops.io.InitializableIterator#initializer">InitializableIterator.initializer</a> op before using it.
 </p></div><dl class="paramcmts block"><dt class="param">sharedName</dt><dd class="cmt"><p>If non-empty, then the constructed reader will be shared under the the provided name across
                    multiple sessions that share the same devices (e.g., when using a remote server).</p></dd><dt class="param">name</dt><dd class="cmt"><p>Name for the op created in relation to the iterator.</p></dd><dt>returns</dt><dd class="cmt"><p>Created iterator.</p></dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.ops.io.Dataset#drop" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="drop(count:Long):org.platanios.tensorflow.api.ops.io.Dataset[T,O,D,S]"></a><a id="drop(Long):Dataset[T,O,D,S]"></a>
+      <span class="permalink">
+      <a href="../../../../../../org/platanios/tensorflow/api/ops/io/Dataset.html#drop(count:Long):org.platanios.tensorflow.api.ops.io.Dataset[T,O,D,S]" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">drop</span><span class="params">(<span name="count">count: <a href="http://www.scala-lang.org/api/2.12.3/scala/Long.html#scala.Long" class="extype" name="scala.Long">Long</a></span>)</span><span class="result">: <a href="" class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset">Dataset</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.T">T</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.D">D</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.S">S</span>]</span>
+      </span>
+      
+      <p class="shortcomment cmt">$OpDocDatasetDrop
+</p><div class="fullcomment"><div class="comment cmt"><p>$OpDocDatasetDrop
+</p></div><dl class="paramcmts block"><dt class="param">count</dt><dd class="cmt"><p>Number of elements to drop.</p></dd><dt>returns</dt><dd class="cmt"><p>Created dataset.</p></dd></dl></div>
     </li><li name="scala.AnyRef#eq" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="eq(x$1:AnyRef):Boolean"></a><a id="eq(AnyRef):Boolean"></a>
       <span class="permalink">
@@ -570,6 +596,24 @@ create the dataset resource.</p></div></div>
     </span>)</span>
               
         </dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.ops.io.Dataset#flatMap" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="flatMap[RT,RO,RD,RS](function:O=&gt;org.platanios.tensorflow.api.ops.io.Dataset[RT,RO,RD,RS])(implicitev:org.platanios.tensorflow.api.ops.io.Data.Aux[T,O,D,S],implicitevR:org.platanios.tensorflow.api.ops.io.Data.Aux[RT,RO,RD,RS],implicitevFunctionInput:org.platanios.tensorflow.api.ops.Function.ArgType[O]):org.platanios.tensorflow.api.ops.io.Dataset[RT,RO,RD,RS]"></a><a id="flatMap[RT,RO,RD,RS]((O)⇒Dataset[RT,RO,RD,RS])(Aux[T,O,D,S],Aux[RT,RO,RD,RS],ArgType[O]):Dataset[RT,RO,RD,RS]"></a>
+      <span class="permalink">
+      <a href="../../../../../../org/platanios/tensorflow/api/ops/io/Dataset.html#flatMap[RT,RO,RD,RS](function:O=&gt;org.platanios.tensorflow.api.ops.io.Dataset[RT,RO,RD,RS])(implicitev:org.platanios.tensorflow.api.ops.io.Data.Aux[T,O,D,S],implicitevR:org.platanios.tensorflow.api.ops.io.Data.Aux[RT,RO,RD,RS],implicitevFunctionInput:org.platanios.tensorflow.api.ops.Function.ArgType[O]):org.platanios.tensorflow.api.ops.io.Dataset[RT,RO,RD,RS]" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">flatMap</span><span class="tparams">[<span name="RT">RT</span>, <span name="RO">RO</span>, <span name="RD">RD</span>, <span name="RS">RS</span>]</span><span class="params">(<span name="function">function: (<span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.O">O</span>) ⇒ <a href="" class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset">Dataset</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.flatMap.RT">RT</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.flatMap.RO">RO</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.flatMap.RD">RD</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.flatMap.RS">RS</span>]</span>)</span><span class="params">(<span class="implicit">implicit </span><span name="ev">ev: <a href="Data$.html#Aux[T,O,D,S]=org.platanios.tensorflow.api.ops.io.Data[T]{typeOutputType=O;typeDataTypes=D;typeShapes=S}" class="extmbr" name="org.platanios.tensorflow.api.ops.io.Data.Aux">Aux</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.T">T</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.D">D</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.S">S</span>]</span>, <span name="evR">evR: <a href="Data$.html#Aux[T,O,D,S]=org.platanios.tensorflow.api.ops.io.Data[T]{typeOutputType=O;typeDataTypes=D;typeShapes=S}" class="extmbr" name="org.platanios.tensorflow.api.ops.io.Data.Aux">Aux</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.flatMap.RT">RT</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.flatMap.RO">RO</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.flatMap.RD">RD</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.flatMap.RS">RS</span>]</span>, <span name="evFunctionInput">evFunctionInput: <a href="../Function$$ArgType.html" class="extype" name="org.platanios.tensorflow.api.ops.Function.ArgType">ArgType</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.O">O</span>]</span>)</span><span class="result">: <a href="" class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset">Dataset</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.flatMap.RT">RT</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.flatMap.RO">RO</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.flatMap.RD">RD</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.flatMap.RS">RS</span>]</span>
+      </span>
+      
+      <p class="shortcomment cmt">$OpDocDatasetFlatMap
+</p><div class="fullcomment"><div class="comment cmt"><p>$OpDocDatasetFlatMap
+</p></div><dl class="paramcmts block"><dt class="param">function</dt><dd class="cmt"><p>Mapping function.</p></dd><dt>returns</dt><dd class="cmt"><p>Created dataset.</p></dd></dl></div>
     </li><li name="scala.AnyRef#getClass" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="getClass():Class[_]"></a>
       <span class="permalink">
@@ -602,6 +646,24 @@ create the dataset resource.</p></div></div>
       </span>
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.ops.io.Dataset#ignoreErrors" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="ignoreErrors():org.platanios.tensorflow.api.ops.io.Dataset[T,O,D,S]"></a><a id="ignoreErrors():Dataset[T,O,D,S]"></a>
+      <span class="permalink">
+      <a href="../../../../../../org/platanios/tensorflow/api/ops/io/Dataset.html#ignoreErrors():org.platanios.tensorflow.api.ops.io.Dataset[T,O,D,S]" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">ignoreErrors</span><span class="params">()</span><span class="result">: <a href="" class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset">Dataset</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.T">T</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.D">D</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.S">S</span>]</span>
+      </span>
+      
+      <p class="shortcomment cmt">$OpDocDatasetIgnoreErrors
+</p><div class="fullcomment"><div class="comment cmt"><p>$OpDocDatasetIgnoreErrors
+</p></div><dl class="paramcmts block"><dt>returns</dt><dd class="cmt"><p>Created dataset.</p></dd></dl></div>
     </li><li name="scala.Any#isInstanceOf" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="isInstanceOf[T0]:Boolean"></a>
       <span class="permalink">
@@ -618,6 +680,25 @@ create the dataset resource.</p></div></div>
       </span>
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.ops.io.Dataset#map" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="map[RT,RO,RD,RS](function:O=&gt;RO,numParallelCalls:Int,bufferSize:Long)(implicitevR:org.platanios.tensorflow.api.ops.io.Data.Aux[RT,RO,RD,RS],implicitevFunctionInput:org.platanios.tensorflow.api.ops.Function.ArgType[O],implicitevFunctionOutput:org.platanios.tensorflow.api.ops.Function.ArgType[RO]):org.platanios.tensorflow.api.ops.io.Dataset[RT,RO,RD,RS]"></a><a id="map[RT,RO,RD,RS]((O)⇒RO,Int,Long)(Aux[RT,RO,RD,RS],ArgType[O],ArgType[RO]):Dataset[RT,RO,RD,RS]"></a>
+      <span class="permalink">
+      <a href="../../../../../../org/platanios/tensorflow/api/ops/io/Dataset.html#map[RT,RO,RD,RS](function:O=&gt;RO,numParallelCalls:Int,bufferSize:Long)(implicitevR:org.platanios.tensorflow.api.ops.io.Data.Aux[RT,RO,RD,RS],implicitevFunctionInput:org.platanios.tensorflow.api.ops.Function.ArgType[O],implicitevFunctionOutput:org.platanios.tensorflow.api.ops.Function.ArgType[RO]):org.platanios.tensorflow.api.ops.io.Dataset[RT,RO,RD,RS]" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">map</span><span class="tparams">[<span name="RT">RT</span>, <span name="RO">RO</span>, <span name="RD">RD</span>, <span name="RS">RS</span>]</span><span class="params">(<span name="function">function: (<span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.O">O</span>) ⇒ <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.map.RO">RO</span></span>, <span name="numParallelCalls">numParallelCalls: <a href="http://www.scala-lang.org/api/2.12.3/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a> = <span class="symbol">1</span></span>, <span name="bufferSize">bufferSize: <a href="http://www.scala-lang.org/api/2.12.3/scala/Long.html#scala.Long" class="extype" name="scala.Long">Long</a> = <span class="symbol">1</span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="evR">evR: <a href="Data$.html#Aux[T,O,D,S]=org.platanios.tensorflow.api.ops.io.Data[T]{typeOutputType=O;typeDataTypes=D;typeShapes=S}" class="extmbr" name="org.platanios.tensorflow.api.ops.io.Data.Aux">Aux</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.map.RT">RT</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.map.RO">RO</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.map.RD">RD</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.map.RS">RS</span>]</span>, <span name="evFunctionInput">evFunctionInput: <a href="../Function$$ArgType.html" class="extype" name="org.platanios.tensorflow.api.ops.Function.ArgType">ArgType</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.O">O</span>]</span>, <span name="evFunctionOutput">evFunctionOutput: <a href="../Function$$ArgType.html" class="extype" name="org.platanios.tensorflow.api.ops.Function.ArgType">ArgType</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.map.RO">RO</span>]</span>)</span><span class="result">: <a href="" class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset">Dataset</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.map.RT">RT</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.map.RO">RO</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.map.RD">RD</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.map.RS">RS</span>]</span>
+      </span>
+      
+      <p class="shortcomment cmt">$OpDocDatasetMap
+</p><div class="fullcomment"><div class="comment cmt"><p>$OpDocDatasetMap
+</p></div><dl class="paramcmts block"><dt class="param">function</dt><dd class="cmt"><p>Mapping function.</p></dd><dt class="param">numParallelCalls</dt><dd class="cmt"><p>Number elements to process in parallel. If not specified, elements will be processed
+                         sequentially.</p></dd><dt class="param">bufferSize</dt><dd class="cmt"><p>Maximum number of processed elements that will be buffered.</p></dd><dt>returns</dt><dd class="cmt"><p>Created dataset.</p></dd></dl></div>
     </li><li name="org.platanios.tensorflow.api.ops.io.Dataset#name" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
       <a id="name:String"></a>
       <span class="permalink">
@@ -682,10 +763,10 @@ create the dataset resource.</p></div></div>
       </span>
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.ops.io.Dataset#repeat" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="repeat(count:Int):org.platanios.tensorflow.api.ops.io.RepeatDataset[O,D,S]"></a><a id="repeat(Int):RepeatDataset[O,D,S]"></a>
+    </li><li name="org.platanios.tensorflow.api.ops.io.Dataset#prefetch" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="prefetch(bufferSize:Long):org.platanios.tensorflow.api.ops.io.Dataset[T,O,D,S]"></a><a id="prefetch(Long):Dataset[T,O,D,S]"></a>
       <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/ops/io/Dataset.html#repeat(count:Int):org.platanios.tensorflow.api.ops.io.RepeatDataset[O,D,S]" title="Permalink">
+      <a href="../../../../../../org/platanios/tensorflow/api/ops/io/Dataset.html#prefetch(bufferSize:Long):org.platanios.tensorflow.api.ops.io.Dataset[T,O,D,S]" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -694,11 +775,49 @@ create the dataset resource.</p></div></div>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">repeat</span><span class="params">(<span name="count">count: <a href="http://www.scala-lang.org/api/2.12.3/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a> = <span class="symbol">1</span></span>)</span><span class="result">: <a href="RepeatDataset.html" class="extype" name="org.platanios.tensorflow.api.ops.io.RepeatDataset">RepeatDataset</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.D">D</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.S">S</span>]</span>
+        <span class="name">prefetch</span><span class="params">(<span name="bufferSize">bufferSize: <a href="http://www.scala-lang.org/api/2.12.3/scala/Long.html#scala.Long" class="extype" name="scala.Long">Long</a></span>)</span><span class="result">: <a href="" class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset">Dataset</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.T">T</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.D">D</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.S">S</span>]</span>
       </span>
       
-      <p class="shortcomment cmt">Creates a dataset that repeats the elements of this dataset.</p><div class="fullcomment"><div class="comment cmt"><p>Creates a dataset that repeats the elements of this dataset.
-</p></div><dl class="paramcmts block"><dt class="param">count</dt><dd class="cmt"><p>Number of times to repeat this dataset. A value of <code>-1</code> corresponds to repeating it indefinitely.</p></dd><dt>returns</dt><dd class="cmt"><p>Created dataset.</p></dd></dl></div>
+      <p class="shortcomment cmt">$OpDocDatasetPrefetch
+</p><div class="fullcomment"><div class="comment cmt"><p>$OpDocDatasetPrefetch
+</p></div><dl class="paramcmts block"><dt class="param">bufferSize</dt><dd class="cmt"><p>Number of elements to prefetch.</p></dd><dt>returns</dt><dd class="cmt"><p>Created dataset.</p></dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.ops.io.Dataset#repeat" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="repeat(count:Long):org.platanios.tensorflow.api.ops.io.Dataset[T,O,D,S]"></a><a id="repeat(Long):Dataset[T,O,D,S]"></a>
+      <span class="permalink">
+      <a href="../../../../../../org/platanios/tensorflow/api/ops/io/Dataset.html#repeat(count:Long):org.platanios.tensorflow.api.ops.io.Dataset[T,O,D,S]" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">repeat</span><span class="params">(<span name="count">count: <a href="http://www.scala-lang.org/api/2.12.3/scala/Long.html#scala.Long" class="extype" name="scala.Long">Long</a> = <span class="symbol">1</span></span>)</span><span class="result">: <a href="" class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset">Dataset</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.T">T</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.D">D</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.S">S</span>]</span>
+      </span>
+      
+      <p class="shortcomment cmt">$OpDocDatasetRepeat
+</p><div class="fullcomment"><div class="comment cmt"><p>$OpDocDatasetRepeat
+</p></div><dl class="paramcmts block"><dt class="param">count</dt><dd class="cmt"><p>Number of times to repeat the input dataset. A value of <code>-1</code> corresponds to repeating it
+              indefinitely.</p></dd><dt>returns</dt><dd class="cmt"><p>Created dataset.</p></dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.ops.io.Dataset#shuffle" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="shuffle(bufferSize:Long,seed:Option[Int]):org.platanios.tensorflow.api.ops.io.Dataset[T,O,D,S]"></a><a id="shuffle(Long,Option[Int]):Dataset[T,O,D,S]"></a>
+      <span class="permalink">
+      <a href="../../../../../../org/platanios/tensorflow/api/ops/io/Dataset.html#shuffle(bufferSize:Long,seed:Option[Int]):org.platanios.tensorflow.api.ops.io.Dataset[T,O,D,S]" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">shuffle</span><span class="params">(<span name="bufferSize">bufferSize: <a href="http://www.scala-lang.org/api/2.12.3/scala/Long.html#scala.Long" class="extype" name="scala.Long">Long</a></span>, <span name="seed">seed: <a href="http://www.scala-lang.org/api/2.12.3/scala/Option.html#scala.Option" class="extype" name="scala.Option">Option</a>[<a href="http://www.scala-lang.org/api/2.12.3/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a>] = <span class="symbol">None</span></span>)</span><span class="result">: <a href="" class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset">Dataset</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.T">T</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.D">D</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.S">S</span>]</span>
+      </span>
+      
+      <p class="shortcomment cmt">$OpDocDatasetShuffle
+</p><div class="fullcomment"><div class="comment cmt"><p>$OpDocDatasetShuffle
+</p></div><dl class="paramcmts block"><dt class="param">bufferSize</dt><dd class="cmt"><p>Buffer size, meaning the number of output elements to buffer in an iterator over this dataset.</p></dd><dt class="param">seed</dt><dd class="cmt"><p>Seed value for the random number generator. If not provided, a random seed is used.</p></dd><dt>returns</dt><dd class="cmt"><p>Created dataset.</p></dd></dl></div>
     </li><li name="scala.AnyRef#synchronized" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="synchronized[T0](x$1:=&gt;T0):T0"></a><a id="synchronized[T0](⇒T0):T0"></a>
       <span class="permalink">
@@ -715,6 +834,24 @@ create the dataset resource.</p></div></div>
       </span>
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.ops.io.Dataset#take" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="take(count:Long):org.platanios.tensorflow.api.ops.io.Dataset[T,O,D,S]"></a><a id="take(Long):Dataset[T,O,D,S]"></a>
+      <span class="permalink">
+      <a href="../../../../../../org/platanios/tensorflow/api/ops/io/Dataset.html#take(count:Long):org.platanios.tensorflow.api.ops.io.Dataset[T,O,D,S]" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">take</span><span class="params">(<span name="count">count: <a href="http://www.scala-lang.org/api/2.12.3/scala/Long.html#scala.Long" class="extype" name="scala.Long">Long</a></span>)</span><span class="result">: <a href="" class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset">Dataset</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.T">T</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.D">D</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.S">S</span>]</span>
+      </span>
+      
+      <p class="shortcomment cmt">$OpDocDatasetTake
+</p><div class="fullcomment"><div class="comment cmt"><p>$OpDocDatasetTake
+</p></div><dl class="paramcmts block"><dt class="param">count</dt><dd class="cmt"><p>Number of elements to take.</p></dd><dt>returns</dt><dd class="cmt"><p>Created dataset.</p></dd></dl></div>
     </li><li name="org.platanios.tensorflow.api.ops.io.Dataset#toString" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="toString():String"></a>
       <span class="permalink">
@@ -797,6 +934,42 @@ create the dataset resource.</p></div></div>
     </span>)</span>
               
         </dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.ops.io.Dataset#zip" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="zip[T2,O2,D2,S2](other:org.platanios.tensorflow.api.ops.io.Dataset[T2,O2,D2,S2])(implicitev2:org.platanios.tensorflow.api.ops.io.Data.Aux[T2,O2,D2,S2]):org.platanios.tensorflow.api.ops.io.Dataset[(T,T2),(O,O2),(D,D2),(S,S2)]"></a><a id="zip[T2,O2,D2,S2](Dataset[T2,O2,D2,S2])(Aux[T2,O2,D2,S2]):Dataset[(T,T2),(O,O2),(D,D2),(S,S2)]"></a>
+      <span class="permalink">
+      <a href="../../../../../../org/platanios/tensorflow/api/ops/io/Dataset.html#zip[T2,O2,D2,S2](other:org.platanios.tensorflow.api.ops.io.Dataset[T2,O2,D2,S2])(implicitev2:org.platanios.tensorflow.api.ops.io.Data.Aux[T2,O2,D2,S2]):org.platanios.tensorflow.api.ops.io.Dataset[(T,T2),(O,O2),(D,D2),(S,S2)]" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">zip</span><span class="tparams">[<span name="T2">T2</span>, <span name="O2">O2</span>, <span name="D2">D2</span>, <span name="S2">S2</span>]</span><span class="params">(<span name="other">other: <a href="" class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset">Dataset</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.zip.T2">T2</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.zip.O2">O2</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.zip.D2">D2</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.zip.S2">S2</span>]</span>)</span><span class="params">(<span class="implicit">implicit </span><span name="ev2">ev2: <a href="Data$.html#Aux[T,O,D,S]=org.platanios.tensorflow.api.ops.io.Data[T]{typeOutputType=O;typeDataTypes=D;typeShapes=S}" class="extmbr" name="org.platanios.tensorflow.api.ops.io.Data.Aux">Aux</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.zip.T2">T2</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.zip.O2">O2</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.zip.D2">D2</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.zip.S2">S2</span>]</span>)</span><span class="result">: <a href="" class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset">Dataset</a>[(<span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.T">T</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.zip.T2">T2</span>), (<span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.zip.O2">O2</span>), (<span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.D">D</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.zip.D2">D2</span>), (<span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.S">S</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.zip.S2">S2</span>)]</span>
+      </span>
+      
+      <p class="shortcomment cmt">$OpDocDatasetZip
+</p><div class="fullcomment"><div class="comment cmt"><p>$OpDocDatasetZip
+</p></div><dl class="paramcmts block"><dt class="param">other</dt><dd class="cmt"><p>Dataset to zip with the current dataset.</p></dd><dt>returns</dt><dd class="cmt"><p>Created dataset.</p></dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.ops.io.Dataset#zip3" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="zip3[T2,O2,D2,S2,T3,O3,D3,S3](other1:org.platanios.tensorflow.api.ops.io.Dataset[T2,O2,D2,S2],other2:org.platanios.tensorflow.api.ops.io.Dataset[T3,O3,D3,S3])(implicitev2:org.platanios.tensorflow.api.ops.io.Data.Aux[T2,O2,D2,S2],implicitev3:org.platanios.tensorflow.api.ops.io.Data.Aux[T3,O3,D3,S3]):org.platanios.tensorflow.api.ops.io.Dataset[(T,T2,T3),(O,O2,O3),(D,D2,D3),(S,S2,S3)]"></a><a id="zip3[T2,O2,D2,S2,T3,O3,D3,S3](Dataset[T2,O2,D2,S2],Dataset[T3,O3,D3,S3])(Aux[T2,O2,D2,S2],Aux[T3,O3,D3,S3]):Dataset[(T,T2,T3),(O,O2,O3),(D,D2,D3),(S,S2,S3)]"></a>
+      <span class="permalink">
+      <a href="../../../../../../org/platanios/tensorflow/api/ops/io/Dataset.html#zip3[T2,O2,D2,S2,T3,O3,D3,S3](other1:org.platanios.tensorflow.api.ops.io.Dataset[T2,O2,D2,S2],other2:org.platanios.tensorflow.api.ops.io.Dataset[T3,O3,D3,S3])(implicitev2:org.platanios.tensorflow.api.ops.io.Data.Aux[T2,O2,D2,S2],implicitev3:org.platanios.tensorflow.api.ops.io.Data.Aux[T3,O3,D3,S3]):org.platanios.tensorflow.api.ops.io.Dataset[(T,T2,T3),(O,O2,O3),(D,D2,D3),(S,S2,S3)]" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">zip3</span><span class="tparams">[<span name="T2">T2</span>, <span name="O2">O2</span>, <span name="D2">D2</span>, <span name="S2">S2</span>, <span name="T3">T3</span>, <span name="O3">O3</span>, <span name="D3">D3</span>, <span name="S3">S3</span>]</span><span class="params">(<span name="other1">other1: <a href="" class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset">Dataset</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.zip3.T2">T2</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.zip3.O2">O2</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.zip3.D2">D2</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.zip3.S2">S2</span>]</span>, <span name="other2">other2: <a href="" class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset">Dataset</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.zip3.T3">T3</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.zip3.O3">O3</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.zip3.D3">D3</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.zip3.S3">S3</span>]</span>)</span><span class="params">(<span class="implicit">implicit </span><span name="ev2">ev2: <a href="Data$.html#Aux[T,O,D,S]=org.platanios.tensorflow.api.ops.io.Data[T]{typeOutputType=O;typeDataTypes=D;typeShapes=S}" class="extmbr" name="org.platanios.tensorflow.api.ops.io.Data.Aux">Aux</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.zip3.T2">T2</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.zip3.O2">O2</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.zip3.D2">D2</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.zip3.S2">S2</span>]</span>, <span name="ev3">ev3: <a href="Data$.html#Aux[T,O,D,S]=org.platanios.tensorflow.api.ops.io.Data[T]{typeOutputType=O;typeDataTypes=D;typeShapes=S}" class="extmbr" name="org.platanios.tensorflow.api.ops.io.Data.Aux">Aux</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.zip3.T3">T3</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.zip3.O3">O3</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.zip3.D3">D3</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.zip3.S3">S3</span>]</span>)</span><span class="result">: <a href="" class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset">Dataset</a>[(<span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.T">T</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.zip3.T2">T2</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.zip3.T3">T3</span>), (<span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.zip3.O2">O2</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.zip3.O3">O3</span>), (<span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.D">D</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.zip3.D2">D2</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.zip3.D3">D3</span>), (<span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.S">S</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.zip3.S2">S2</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset.zip3.S3">S3</span>)]</span>
+      </span>
+      
+      <p class="shortcomment cmt">$OpDocDatasetZip
+</p><div class="fullcomment"><div class="comment cmt"><p>$OpDocDatasetZip
+</p></div><dl class="paramcmts block"><dt class="param">other1</dt><dd class="cmt"><p>First dataset to zip with the current dataset.</p></dd><dt class="param">other2</dt><dd class="cmt"><p>Second dataset to zip with the current dataset.</p></dd><dt>returns</dt><dd class="cmt"><p>Created dataset.</p></dd></dl></div>
     </li>
               </ol>
             </div>

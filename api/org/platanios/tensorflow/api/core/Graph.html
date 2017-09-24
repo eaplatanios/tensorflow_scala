@@ -178,7 +178,7 @@
             </a>
       </span>
       
-      <p class="shortcomment cmt"></p><div class="fullcomment"><div class="comment cmt"></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="index.html" class="extype" name="org.platanios.tensorflow.api.core">core</a></dd></dl></div>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="index.html" class="extype" name="org.platanios.tensorflow.api.core">core</a></dd></dl></div>
     </li><li class="current-entities indented5">
                         <span class="separator"></span>
                         <a class="object" href="Ellipsis$.html" title="Ellipsis indexer used to represent a full slice over multiple dimensions of a tensor."></a>
@@ -407,6 +407,28 @@
       </span>
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.core.Graph#assertNotFrozen" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="assertNotFrozen():Unit"></a>
+      <span class="permalink">
+      <a href="../../../../../org/platanios/tensorflow/api/core/Graph.html#assertNotFrozen():Unit" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">assertNotFrozen</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.3/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
+      </span>
+      
+      <p class="shortcomment cmt">Asserts that this graph has not been frozen.</p><div class="fullcomment"><div class="comment cmt"><p>Asserts that this graph has not been frozen.</p></div><dl class="attributes block"> <dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">(<span>
+      
+      <span class="defval" name="scala.this.throws.&lt;init&gt;$default$1[AssertionError]">...</span>
+    </span>)</span>
+              
+        </dd></dl></div>
     </li><li name="scala.AnyRef#clone" visbl="prt" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="clone():Object"></a><a id="clone():AnyRef"></a>
       <span class="permalink">
@@ -444,7 +466,7 @@
         <span class="name">close</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.3/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
       </span>
       
-      <p class="shortcomment cmt">Releases the native resources associated with this graph instance.</p><div class="fullcomment"><div class="comment cmt"><p>Releases the native resources associated with this graph instance.</p><p>This method blocks until there are no active <span class="extype" name="Session">Session</span> (or other) instances referring to this graph instance. A
+      <p class="shortcomment cmt">Releases the native resources associated with this graph instance.</p><div class="fullcomment"><div class="comment cmt"><p>Releases the native resources associated with this graph instance.</p><p>This method blocks until there are no active <a href="../index.html#Session=org.platanios.tensorflow.api.core.client.Session" class="extmbr" name="org.platanios.tensorflow.api.Session">Session</a> (or other) instances referring to this graph instance. A
 graph is not usable after this method returns.
 </p></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="" class="extype" name="org.platanios.tensorflow.api.core.Graph">Graph</a> → <a href="../utilities/package$$Closeable.html" class="extype" name="org.platanios.tensorflow.api.utilities.Closeable">Closeable</a></dd></dl></div>
     </li><li name="scala.AnyRef#eq" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
@@ -501,6 +523,23 @@ graph is not usable after this method returns.
     </span>)</span>
               
         </dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.core.Graph#freeze" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="freeze():Unit"></a>
+      <span class="permalink">
+      <a href="../../../../../org/platanios/tensorflow/api/core/Graph.html#freeze():Unit" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">freeze</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.3/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
+      </span>
+      
+      <p class="shortcomment cmt">Freezes this graph, meaning that no more ops can be added to it after a call to this function.</p><div class="fullcomment"><div class="comment cmt"><p>Freezes this graph, meaning that no more ops can be added to it after a call to this function. This method is used
+to ensure that no operations are added to a graph when it is shared between multiple threads.</p></div></div>
     </li><li name="scala.AnyRef#getClass" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="getClass():Class[_]"></a>
       <span class="permalink">
@@ -536,10 +575,10 @@ graph is not usable after this method returns.
 </p></div><dl class="paramcmts block"><dt class="param">name</dt><dd class="cmt"><p>Op name.</p></dd><dt>returns</dt><dd class="cmt"><p>Op, from this graph, corresponding to that name.</p></dd></dl><dl class="attributes block"> <dt>Annotations</dt><dd>
                 <span class="name">@throws</span><span class="args">(<span>
       
-      <span class="defval" name="scala.this.throws.&lt;init&gt;$default$1[org.platanios.tensorflow.api.core.exception.InvalidGraphElementException]">...</span>
+      <span class="defval" name="scala.this.throws.&lt;init&gt;$default$1[org.platanios.tensorflow.api.core.exception.InvalidArgumentException]">...</span>
     </span>)</span>
               
-        </dd><dt>Note</dt><dd><span class="cmt"><p>This function may be called concurrently from multiple threads (i.e., it is thread-safe).</p></span></dd></dl></div>
+        </dd><dt>Exceptions thrown</dt><dd><span class="cmt"><p><span class="extype" name="InvalidArgumentException"><code>InvalidArgumentException</code></span> If the provided name cannot be associated with an element of this graph.</p></span></dd><dt>Note</dt><dd><span class="cmt"><p>This function may be called concurrently from multiple threads (i.e., it is thread-safe).</p></span></dd></dl></div>
     </li><li name="org.platanios.tensorflow.api.core.Graph#getOutputByName" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="getOutputByName(name:String):org.platanios.tensorflow.api.ops.Output"></a><a id="getOutputByName(String):Output"></a>
       <span class="permalink">
@@ -559,10 +598,10 @@ graph is not usable after this method returns.
 </p></div><dl class="paramcmts block"><dt class="param">name</dt><dd class="cmt"><p>Op output name.</p></dd><dt>returns</dt><dd class="cmt"><p>Op output, from this graph, corresponding to that name.</p></dd></dl><dl class="attributes block"> <dt>Annotations</dt><dd>
                 <span class="name">@throws</span><span class="args">(<span>
       
-      <span class="defval" name="scala.this.throws.&lt;init&gt;$default$1[org.platanios.tensorflow.api.core.exception.InvalidGraphElementException]">...</span>
+      <span class="defval" name="scala.this.throws.&lt;init&gt;$default$1[org.platanios.tensorflow.api.core.exception.InvalidArgumentException]">...</span>
     </span>)</span>
               
-        </dd><dt>Note</dt><dd><span class="cmt"><p>This function may be called concurrently from multiple threads (i.e., it is thread-safe).</p></span></dd></dl></div>
+        </dd><dt>Exceptions thrown</dt><dd><span class="cmt"><p><span class="extype" name="InvalidArgumentException"><code>InvalidArgumentException</code></span> If the provided name cannot be associated with an element of this graph.</p></span></dd><dt>Note</dt><dd><span class="cmt"><p>This function may be called concurrently from multiple threads (i.e., it is thread-safe).</p></span></dd></dl></div>
     </li><li name="org.platanios.tensorflow.api.core.Graph#globalVariables" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="globalVariables:Set[org.platanios.tensorflow.api.ops.variables.Variable]"></a><a id="globalVariables:Set[Variable]"></a>
       <span class="permalink">
@@ -581,7 +620,7 @@ graph is not usable after this method returns.
       <p class="shortcomment cmt">Returns the set of global variables in this graph.</p><div class="fullcomment"><div class="comment cmt"><p>Returns the set of global variables in this graph.</p><p>Global variables are variables that are shared across machines in a distributed environment. The <code>Variable()</code>
 constructor and the function <code>getVariable()</code> automatically add new variables to the graph collection with key
 <code>Graph.Keys.GLOBAL_VARIABLES</code>. This convenience function returns the contents of that collection.</p><p>An alternative to global variables are local variables.
-</p></div><dl class="paramcmts block"><dt>returns</dt><dd class="cmt"><p>Set of global variables in this graph.</p></dd></dl></div>
+</p></div></div>
     </li><li name="org.platanios.tensorflow.api.core.Graph#globalVariablesInitializer" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="globalVariablesInitializer(name:String):org.platanios.tensorflow.api.ops.Op"></a><a id="globalVariablesInitializer(String):Op"></a>
       <span class="permalink">
@@ -682,6 +721,22 @@ field to the current graph. It also recreates the desired collections stored in 
                                     value indicating whether or not to load that collection. Note that the
                                     collection specified by <code>unboundInputsCollectionKey</code> is never loaded.
                                     Defaults to a function that returns <code>true</code> for all inputs.</p></dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.core.Graph#isFrozen" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="isFrozen:Boolean"></a>
+      <span class="permalink">
+      <a href="../../../../../org/platanios/tensorflow/api/core/Graph.html#isFrozen:Boolean" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">isFrozen</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.3/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a></span>
+      </span>
+      
+      <p class="shortcomment cmt">Returns a boolean flag indicating whether this graph has been frozen (i.e., no more ops can be added to it).</p>
     </li><li name="scala.Any#isInstanceOf" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="isInstanceOf[T0]:Boolean"></a>
       <span class="permalink">
@@ -698,6 +753,22 @@ field to the current graph. It also recreates the desired collections stored in 
       </span>
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.core.Graph#localResources" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="localResources:Set[org.platanios.tensorflow.api.ops.Resource]"></a><a id="localResources:Set[Resource]"></a>
+      <span class="permalink">
+      <a href="../../../../../org/platanios/tensorflow/api/core/Graph.html#localResources:Set[org.platanios.tensorflow.api.ops.Resource]" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">localResources</span><span class="result">: <span class="extype" name="scala.Predef.Set">Set</span>[<a href="../ops/Resource.html" class="extype" name="org.platanios.tensorflow.api.ops.Resource">Resource</a>]</span>
+      </span>
+      
+      <p class="shortcomment cmt">Returns the set of all local resources used by the graph which need to be initialized once per cluster.</p>
     </li><li name="org.platanios.tensorflow.api.core.Graph#localVariables" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="localVariables:Set[org.platanios.tensorflow.api.ops.variables.Variable]"></a><a id="localVariables:Set[Variable]"></a>
       <span class="permalink">
@@ -716,7 +787,7 @@ field to the current graph. It also recreates the desired collections stored in 
       <p class="shortcomment cmt">Returns the set of local variables in this graph.</p><div class="fullcomment"><div class="comment cmt"><p>Returns the set of local variables in this graph.</p><p>Local variables (or per-process variables), are usually not saved/restored to/from checkpoints and are used for
 temporary or intermediate values. For example, they can be used as counters for metrics computations or number of
 epochs this machine has read data. This convenience function returns the contents of that collection.</p><p>An alternative to local variables are global variables.
-</p></div><dl class="paramcmts block"><dt>returns</dt><dd class="cmt"><p>Set of local variables in this graph.</p></dd></dl></div>
+</p></div></div>
     </li><li name="org.platanios.tensorflow.api.core.Graph#localVariablesInitializer" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="localVariablesInitializer(name:String):org.platanios.tensorflow.api.ops.Op"></a><a id="localVariablesInitializer(String):Op"></a>
       <span class="permalink">
@@ -734,7 +805,7 @@ epochs this machine has read data. This convenience function returns the content
       
       <p class="shortcomment cmt">Returns an op that initializes all local variables of this graph.</p><div class="fullcomment"><div class="comment cmt"><p>Returns an op that initializes all local variables of this graph.</p><p>For more information, refer to <a href="#localVariables:Set[org.platanios.tensorflow.api.ops.variables.Variable]" class="extmbr" name="org.platanios.tensorflow.api.core.Graph#localVariables">localVariables</a> and <span class="extype" name="Variable.initializer">Variable.initializer</span>.
 </p></div><dl class="paramcmts block"><dt class="param">name</dt><dd class="cmt"><p>Name for the created op.</p></dd><dt>returns</dt><dd class="cmt"><p>Created op.</p></dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.core.Graph#modelVariables" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+    </li><li name="org.platanios.tensorflow.api.core.Graph#modelVariables" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
       <a id="modelVariables:Set[org.platanios.tensorflow.api.ops.variables.Variable]"></a><a id="modelVariables:Set[Variable]"></a>
       <span class="permalink">
       <a href="../../../../../org/platanios/tensorflow/api/core/Graph.html#modelVariables:Set[org.platanios.tensorflow.api.ops.variables.Variable]" title="Permalink">
@@ -749,8 +820,7 @@ epochs this machine has read data. This convenience function returns the content
         <span class="name">modelVariables</span><span class="result">: <span class="extype" name="scala.Predef.Set">Set</span>[<a href="../ops/variables/Variable.html" class="extype" name="org.platanios.tensorflow.api.ops.variables.Variable">Variable</a>]</span>
       </span>
       
-      <p class="shortcomment cmt">Returns the subset of <code>Variable</code> objects that are used in models for inference (feed forward), in this graph.</p><div class="fullcomment"><div class="comment cmt"><p>Returns the subset of <code>Variable</code> objects that are used in models for inference (feed forward), in this graph.
-</p></div><dl class="paramcmts block"><dt>returns</dt><dd class="cmt"><p>Set of model variables in this graph.</p></dd></dl></div>
+      <p class="shortcomment cmt">Returns the subset of <code>Variable</code> objects that are used in models for inference (feed forward), in this grap.</p>
     </li><li name="org.platanios.tensorflow.api.core.Graph#modelVariablesInitializer" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="modelVariablesInitializer(name:String):org.platanios.tensorflow.api.ops.Op"></a><a id="modelVariablesInitializer(String):Op"></a>
       <span class="permalink">
@@ -849,10 +919,10 @@ epochs this machine has read data. This convenience function returns the content
       </span>
       
       <p class="shortcomment cmt">Gets the random seed of this graph.</p>
-    </li><li name="org.platanios.tensorflow.api.core.Graph#reportUninitializedVariables" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="reportUninitializedVariables(variables:Set[org.platanios.tensorflow.api.ops.variables.Variable],name:String):org.platanios.tensorflow.api.ops.Output"></a><a id="reportUninitializedVariables(Set[Variable],String):Output"></a>
+    </li><li name="org.platanios.tensorflow.api.core.Graph#savers" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="savers:Set[org.platanios.tensorflow.api.ops.variables.Saver]"></a><a id="savers:Set[Saver]"></a>
       <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/core/Graph.html#reportUninitializedVariables(variables:Set[org.platanios.tensorflow.api.ops.variables.Variable],name:String):org.platanios.tensorflow.api.ops.Output" title="Permalink">
+      <a href="../../../../../org/platanios/tensorflow/api/core/Graph.html#savers:Set[org.platanios.tensorflow.api.ops.variables.Saver]" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -861,13 +931,10 @@ epochs this machine has read data. This convenience function returns the content
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">reportUninitializedVariables</span><span class="params">(<span name="variables">variables: <span class="extype" name="scala.Predef.Set">Set</span>[<a href="../ops/variables/Variable.html" class="extype" name="org.platanios.tensorflow.api.ops.variables.Variable">Variable</a>] = <span class="symbol">null</span></span>, <span name="name">name: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">&quot;ReportUninitializedVariables&quot;</span></span>)</span><span class="result">: <a href="../ops/Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>
+        <span class="name">savers</span><span class="result">: <span class="extype" name="scala.Predef.Set">Set</span>[<a href="../ops/variables/Saver.html" class="extype" name="org.platanios.tensorflow.api.ops.variables.Saver">Saver</a>]</span>
       </span>
       
-      <p class="shortcomment cmt">Creates an op that lists the names of uninitialized variables.</p><div class="fullcomment"><div class="comment cmt"><p>Creates an op that lists the names of uninitialized variables.</p><p>When run, it returns a one-dimensional tensor containing the names of uninitialized variables if there are any, or
-an empty tensor if there are none.
-</p></div><dl class="paramcmts block"><dt class="param">variables</dt><dd class="cmt"><p>Optional set of variables to check. If <code>null</code>, the value of <code>globalVariables ++ localVariables</code>
-                  is used. Defaults to <code>null</code>.</p></dd><dt class="param">name</dt><dd class="cmt"><p>Name for the created op.</p></dd><dt>returns</dt><dd class="cmt"><p>Created op.</p></dd></dl></div>
+      <p class="shortcomment cmt">Returns the set of all savers that have been created in the graph.</p>
     </li><li name="org.platanios.tensorflow.api.core.Graph#setRandomSeed" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
       <a id="setRandomSeed(value:Int):Unit"></a><a id="setRandomSeed(Int):Unit"></a>
       <span class="permalink">
@@ -884,7 +951,23 @@ an empty tensor if there are none.
       </span>
       
       <p class="shortcomment cmt">Sets the random seed of this graph to the provided value.</p>
-    </li><li name="org.platanios.tensorflow.api.core.Graph#summaries" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+    </li><li name="org.platanios.tensorflow.api.core.Graph#sharedResources" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="sharedResources:Set[org.platanios.tensorflow.api.ops.Resource]"></a><a id="sharedResources:Set[Resource]"></a>
+      <span class="permalink">
+      <a href="../../../../../org/platanios/tensorflow/api/core/Graph.html#sharedResources:Set[org.platanios.tensorflow.api.ops.Resource]" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">sharedResources</span><span class="result">: <span class="extype" name="scala.Predef.Set">Set</span>[<a href="../ops/Resource.html" class="extype" name="org.platanios.tensorflow.api.ops.Resource">Resource</a>]</span>
+      </span>
+      
+      <p class="shortcomment cmt">Returns the set of all shared resources used by the graph which need to be initialized once per cluster.</p>
+    </li><li name="org.platanios.tensorflow.api.core.Graph#summaries" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
       <a id="summaries:Set[org.platanios.tensorflow.api.ops.Output]"></a><a id="summaries:Set[Output]"></a>
       <span class="permalink">
       <a href="../../../../../org/platanios/tensorflow/api/core/Graph.html#summaries:Set[org.platanios.tensorflow.api.ops.Output]" title="Permalink">
@@ -899,8 +982,7 @@ an empty tensor if there are none.
         <span class="name">summaries</span><span class="result">: <span class="extype" name="scala.Predef.Set">Set</span>[<a href="../ops/Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a>]</span>
       </span>
       
-      <p class="shortcomment cmt">Returns the set of all the summary <code>Output</code>s that have been created in the graph.</p><div class="fullcomment"><div class="comment cmt"><p>Returns the set of all the summary <code>Output</code>s that have been created in the graph.
-</p></div><dl class="paramcmts block"><dt>returns</dt><dd class="cmt"><p>Set of summary op outputs in this graph.</p></dd></dl></div>
+      <p class="shortcomment cmt">Returns the set of all the summary <code>Output</code>s that have been created in the graph.</p>
     </li><li name="scala.AnyRef#synchronized" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="synchronized[T0](x$1:=&gt;T0):T0"></a><a id="synchronized[T0](⇒T0):T0"></a>
       <span class="permalink">
@@ -917,6 +999,22 @@ an empty tensor if there are none.
       </span>
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.core.Graph#tableInitializers" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="tableInitializers:Set[org.platanios.tensorflow.api.ops.Op]"></a><a id="tableInitializers:Set[Op]"></a>
+      <span class="permalink">
+      <a href="../../../../../org/platanios/tensorflow/api/core/Graph.html#tableInitializers:Set[org.platanios.tensorflow.api.ops.Op]" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">tableInitializers</span><span class="result">: <span class="extype" name="scala.Predef.Set">Set</span>[<a href="../ops/Op.html" class="extype" name="org.platanios.tensorflow.api.ops.Op">Op</a>]</span>
+      </span>
+      
+      <p class="shortcomment cmt">Returns the set of all the table initializers that have been created in the graph.</p>
     </li><li name="org.platanios.tensorflow.api.core.Graph#toGraphDef" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="toGraphDef:org.tensorflow.framework.GraphDef"></a><a id="toGraphDef:GraphDef"></a>
       <span class="permalink">
@@ -994,7 +1092,7 @@ for example). For a serialized representation of the graph that contains such in
       </span>
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.core.Graph#trainOps" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+    </li><li name="org.platanios.tensorflow.api.core.Graph#trainOps" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
       <a id="trainOps:Set[org.platanios.tensorflow.api.ops.Op]"></a><a id="trainOps:Set[Op]"></a>
       <span class="permalink">
       <a href="../../../../../org/platanios/tensorflow/api/core/Graph.html#trainOps:Set[org.platanios.tensorflow.api.ops.Op]" title="Permalink">
@@ -1009,8 +1107,7 @@ for example). For a serialized representation of the graph that contains such in
         <span class="name">trainOps</span><span class="result">: <span class="extype" name="scala.Predef.Set">Set</span>[<a href="../ops/Op.html" class="extype" name="org.platanios.tensorflow.api.ops.Op">Op</a>]</span>
       </span>
       
-      <p class="shortcomment cmt">Returns the set of all the train <code>Op</code>s (i.e., optimizer update ops) that have been created in the graph.</p><div class="fullcomment"><div class="comment cmt"><p>Returns the set of all the train <code>Op</code>s (i.e., optimizer update ops) that have been created in the graph.
-</p></div><dl class="paramcmts block"><dt>returns</dt><dd class="cmt"><p>Set of train ops in this graph.</p></dd></dl></div>
+      <p class="shortcomment cmt">Returns the set of all the train <code>Op</code>s (i.e., optimizer update ops) that have been created in the graph.</p>
     </li><li name="org.platanios.tensorflow.api.core.Graph#trainableVariables" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="trainableVariables:Set[org.platanios.tensorflow.api.ops.variables.Variable]"></a><a id="trainableVariables:Set[Variable]"></a>
       <span class="permalink">
@@ -1029,7 +1126,7 @@ for example). For a serialized representation of the graph that contains such in
       <p class="shortcomment cmt">Returns the set of all variables created with <code>trainable = true</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Returns the set of all variables created with <code>trainable = true</code>.</p><p>When passed <code>trainable = true</code>, the <code>Variable()</code> constructor automatically adds new variables to the graph
 collection with key <code>Graph.Keys.TRAINABLE_VARIABLES</code>. This convenience function returns the contents of that
 collection.
-</p></div><dl class="paramcmts block"><dt>returns</dt><dd class="cmt"><p>Set of trainable variables in this graph.</p></dd></dl></div>
+</p></div></div>
     </li><li name="org.platanios.tensorflow.api.core.Graph#trainableVariablesInitializer" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="trainableVariablesInitializer(name:String):org.platanios.tensorflow.api.ops.Op"></a><a id="trainableVariablesInitializer(String):Op"></a>
       <span class="permalink">
@@ -1047,6 +1144,62 @@ collection.
       
       <p class="shortcomment cmt">Returns an op that initializes all trainable variables of this graph.</p><div class="fullcomment"><div class="comment cmt"><p>Returns an op that initializes all trainable variables of this graph.</p><p>For more information, refer to <a href="#trainableVariables:Set[org.platanios.tensorflow.api.ops.variables.Variable]" class="extmbr" name="org.platanios.tensorflow.api.core.Graph#trainableVariables">trainableVariables</a> and <span class="extype" name="Variable.initializer">Variable.initializer</span>.
 </p></div><dl class="paramcmts block"><dt class="param">name</dt><dd class="cmt"><p>Name for the created op.</p></dd><dt>returns</dt><dd class="cmt"><p>Created op.</p></dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.core.Graph#unFreeze" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="unFreeze():Unit"></a>
+      <span class="permalink">
+      <a href="../../../../../org/platanios/tensorflow/api/core/Graph.html#unFreeze():Unit" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">unFreeze</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.3/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
+      </span>
+      
+      <p class="shortcomment cmt">Unfreezes this graph.</p>
+    </li><li name="org.platanios.tensorflow.api.core.Graph#uninitializedResources" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="uninitializedResources(name:String):org.platanios.tensorflow.api.ops.Output"></a><a id="uninitializedResources(String):Output"></a>
+      <span class="permalink">
+      <a href="../../../../../org/platanios/tensorflow/api/core/Graph.html#uninitializedResources(name:String):org.platanios.tensorflow.api.ops.Output" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">uninitializedResources</span><span class="params">(<span name="name">name: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">&quot;UninitializedResources&quot;</span></span>)</span><span class="result">: <a href="../ops/Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>
+      </span>
+      
+      <p class="shortcomment cmt">Creates an op that returns a tensor containing the names of all uninitialized resources among all shared and local
+resources of this graph.</p><div class="fullcomment"><div class="comment cmt"><p>Creates an op that returns a tensor containing the names of all uninitialized resources among all shared and local
+resources of this graph. If all resources have been initialized, then an empty tensor is returned.
+</p></div><dl class="paramcmts block"><dt class="param">name</dt><dd class="cmt"><p>Name for the created op.</p></dd><dt>returns</dt><dd class="cmt"><p>Created op output, which contains the names of the handles of all resources which have not yet been
+        initialized.</p></dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.core.Graph#uninitializedVariables" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="uninitializedVariables(name:String):org.platanios.tensorflow.api.ops.Output"></a><a id="uninitializedVariables(String):Output"></a>
+      <span class="permalink">
+      <a href="../../../../../org/platanios/tensorflow/api/core/Graph.html#uninitializedVariables(name:String):org.platanios.tensorflow.api.ops.Output" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">uninitializedVariables</span><span class="params">(<span name="name">name: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">&quot;UninitializedVariables&quot;</span></span>)</span><span class="result">: <a href="../ops/Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>
+      </span>
+      
+      <p class="shortcomment cmt">Creates an op that returns a tensor containing the names of all uninitialized variables among all global and local
+variables of this graph.</p><div class="fullcomment"><div class="comment cmt"><p>Creates an op that returns a tensor containing the names of all uninitialized variables among all global and local
+variables of this graph. If all variables have been initialized, then an empty tensor is returned.
+</p></div><dl class="paramcmts block"><dt class="param">name</dt><dd class="cmt"><p>Name for the created op.</p></dd><dt>returns</dt><dd class="cmt"><p>Created op output, which contains the names of the handles of all variables which have not yet been
+        initialized.</p></dd></dl></div>
     </li><li name="scala.AnyRef#wait" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="wait():Unit"></a>
       <span class="permalink">

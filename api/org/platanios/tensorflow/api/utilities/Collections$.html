@@ -163,21 +163,27 @@
       <p class="shortcomment cmt"></p><div class="fullcomment"><div class="comment cmt"></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../index.html" class="extype" name="org.platanios.tensorflow.api">api</a></dd></dl></div>
     </li><li class="current-entities indented5">
                         <span class="separator"></span>
+                        <a class="object" href="CRC32C$.html" title=""></a>
+                        <a href="CRC32C$.html" title="">
+                          CRC32C
+                        </a>
+                      </li><li class="current-entities indented5">
+                        <span class="separator"></span>
                         <a class="trait" href="package$$Closeable.html" title=""></a>
                         <a href="package$$Closeable.html" title="">
                           Closeable
                         </a>
                       </li><li class="current-entities indented5">
                         <span class="separator"></span>
-                        <a class="object" href="" title="Contains helper functions for manipulating collections."></a>
-                        <a href="" title="Contains helper functions for manipulating collections.">
-                          Collections
+                        <a class="object" href="Coding$.html" title=""></a>
+                        <a href="Coding$.html" title="">
+                          Coding
                         </a>
                       </li><li class="current-entities indented5">
                         <span class="separator"></span>
-                        <a class="object" href="FileIO$.html" title="Contains helper functions for dealing with file IO."></a>
-                        <a href="FileIO$.html" title="Contains helper functions for dealing with file IO.">
-                          FileIO
+                        <a class="object" href="" title="Contains helper functions for manipulating collections."></a>
+                        <a href="" title="Contains helper functions for manipulating collections.">
+                          Collections
                         </a>
                       </li><li class="current-entities indented5">
                         <span class="separator"></span>
@@ -522,7 +528,7 @@
         <span class="name">segment</span><span class="tparams">[<span name="V">V</span>]</span><span class="params">(<span name="xs">xs: <span class="extype" name="scala.Seq">Seq</span>[<span class="extype" name="org.platanios.tensorflow.api.utilities.Collections.segment.V">V</span>]</span>, <span name="n">n: <span class="extype" name="scala.Seq">Seq</span>[<a href="http://www.scala-lang.org/api/2.12.3/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a>]</span>)</span><span class="result">: <span class="extype" name="scala.Seq">Seq</span>[<span class="extype" name="scala.Seq">Seq</span>[<span class="extype" name="org.platanios.tensorflow.api.utilities.Collections.segment.V">V</span>]]</span>
       </span>
       
-      <p class="shortcomment cmt">Segments a sequence according to a provided sequence of segment lengths.</p><div class="fullcomment"><div class="comment cmt"><p>Segments a sequence according to a provided sequence of segment lengths.</p><p>For example:</p><pre><span class="kw">val</span> xs = <span class="std">Seq</span>(<span class="num">3</span>, <span class="num">5</span>, <span class="num">2</span>, <span class="num">77</span>, <span class="num">12</span>, <span class="num">45</span>, <span class="num">78</span>, <span class="num">21</span>, <span class="num">89</span>, <span class="num">1</span>, <span class="num">0</span>, -<span class="num">1</span>, <span class="num">123</span>)
+      <p class="shortcomment cmt">Segments a sequence according to a provided sequence of segment lengths.</p><div class="fullcomment"><div class="comment cmt"><p>Segments a sequence according to a provided sequence of segment lengths.</p><p>For example.</p><pre><span class="kw">val</span> xs = <span class="std">Seq</span>(<span class="num">3</span>, <span class="num">5</span>, <span class="num">2</span>, <span class="num">77</span>, <span class="num">12</span>, <span class="num">45</span>, <span class="num">78</span>, <span class="num">21</span>, <span class="num">89</span>, <span class="num">1</span>, <span class="num">0</span>, -<span class="num">1</span>, <span class="num">123</span>)
 <span class="kw">val</span> n = <span class="std">Seq</span>(<span class="num">3</span>, <span class="num">1</span>, <span class="num">0</span>, <span class="num">2</span>, <span class="num">5</span>, <span class="num">2</span>)
 segment(xs, n) = <span class="std">Seq</span>(<span class="std">Seq</span>(<span class="num">3</span>, <span class="num">5</span>, <span class="num">2</span>), <span class="std">Seq</span>(<span class="num">77</span>), <span class="std">Seq</span>(), <span class="std">Seq</span>(<span class="num">12</span>, <span class="num">45</span>), <span class="std">Seq</span>(<span class="num">78</span>, <span class="num">21</span>, <span class="num">89</span>, <span class="num">1</span>, <span class="num">0</span>), <span class="std">Seq</span>(-<span class="num">1</span>, <span class="num">123</span>))</pre><p>Note that the function returns when either one of <code>xs</code> or <code>n</code> is exhausted. This means that no exception is thrown
 if the provided segment lengths do not match the original sequence length.

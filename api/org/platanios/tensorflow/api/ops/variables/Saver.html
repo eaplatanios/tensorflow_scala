@@ -348,7 +348,7 @@ returns another Output representing the regularizer value as output.">
         <span class="kind">class</span>
       </span>
       <span class="symbol">
-        <span class="name">Saver</span><span class="result"> extends <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></span>
+        <span class="name">Saver</span><span class="result"> extends <a href="../../utilities/Proto$$Serializable.html" class="extype" name="org.platanios.tensorflow.api.utilities.Proto.Serializable">Serializable</a></span>
       </span>
       </h4>
 
@@ -387,7 +387,7 @@ most recent checkpoint. That protocol buffer is stored in a file next to the che
           <span class="toggle">
             Linear Supertypes
           </span>
-          <div class="superTypes hiddenContent"><a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a>, <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.Any" class="extype" name="scala.collection.immutable.List">Any</a></div>
+          <div class="superTypes hiddenContent"><a href="../../utilities/Proto$$Serializable.html" class="extype" name="org.platanios.tensorflow.api.utilities.Proto.Serializable">Serializable</a>, <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a>, <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.Any" class="extype" name="scala.collection.immutable.List">Any</a></div>
         </div></div>
         
 
@@ -413,7 +413,7 @@ most recent checkpoint. That protocol buffer is stored in a file next to the che
                   <span class="filtertype">Inherited<br />
                   </span>
                   <ol id="linearization">
-                    <li class="in" name="org.platanios.tensorflow.api.ops.variables.Saver"><span>Saver</span></li><li class="in" name="scala.AnyRef"><span>AnyRef</span></li><li class="in" name="scala.Any"><span>Any</span></li>
+                    <li class="in" name="org.platanios.tensorflow.api.ops.variables.Saver"><span>Saver</span></li><li class="in" name="org.platanios.tensorflow.api.utilities.Proto.Serializable"><span>Serializable</span></li><li class="in" name="scala.AnyRef"><span>AnyRef</span></li><li class="in" name="scala.Any"><span>Any</span></li>
                   </ol>
                 </div><div class="ancestors">
               <span class="filtertype"></span>
@@ -712,7 +712,7 @@ pass any of the returned values to <code>restore</code>.</p></div></div>
 files exist, the method uses their last modification time as the checkpoint stamp.
 </p></div><dl class="paramcmts block"><dt class="param">checkpoints</dt><dd class="cmt"><p>Sequence of checkpoint filenames (can also be glob patterns).</p></dd></dl></div>
     </li><li name="org.platanios.tensorflow.api.ops.variables.Saver#restore" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="restore(session:org.platanios.tensorflow.api.core.client.Session,savePath:java.nio.file.Path):Unit"></a><a id="restore(Session,Path):Unit"></a>
+      <a id="restore(session:org.platanios.tensorflow.api.core.client.Session,savePath:java.nio.file.Path):Unit"></a><a id="restore(core.client.Session,Path):Unit"></a>
       <span class="permalink">
       <a href="../../../../../../org/platanios/tensorflow/api/ops/variables/Saver.html#restore(session:org.platanios.tensorflow.api.core.client.Session,savePath:java.nio.file.Path):Unit" title="Permalink">
         <i class="material-icons"></i>
@@ -723,7 +723,7 @@ files exist, the method uses their last modification time as the checkpoint stam
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">restore</span><span class="params">(<span name="session">session: <a href="../../core/client/Session.html" class="extype" name="org.platanios.tensorflow.api.core.client.Session">Session</a></span>, <span name="savePath">savePath: <span class="extype" name="java.nio.file.Path">Path</span></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.3/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
+        <span class="name">restore</span><span class="params">(<span name="session">session: <a href="../../core/client/Session.html" class="extype" name="org.platanios.tensorflow.api.core.client.Session">core.client.Session</a></span>, <span name="savePath">savePath: <span class="extype" name="java.nio.file.Path">Path</span></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.3/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
       </span>
       
       <p class="shortcomment cmt">Restores previously saved saveables.</p><div class="fullcomment"><div class="comment cmt"><p>Restores previously saved saveables.</p><p>This method runs the ops responding for restoring variables. It requires a session in which the saver's graph was
@@ -733,7 +733,7 @@ initialize variables.</p><p>The <code>savePath</code> argument is typically a va
 </p></div><dl class="paramcmts block"><dt class="param">session</dt><dd class="cmt"><p>Session to use for restoring the variables.</p></dd><dt class="param">savePath</dt><dd class="cmt"><p>Path to the checkpoint filename. If the saver is <code>sharded</code>, this is the prefix of the sharded
                  checkpoint filenames.</p></dd></dl></div>
     </li><li name="org.platanios.tensorflow.api.ops.variables.Saver#save" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="save(session:org.platanios.tensorflow.api.core.client.Session,savePath:java.nio.file.Path,globalStep:Option[Int],checkpointStateFilename:String,metaGraphSuffix:String,writeMetaGraph:Boolean,writeCheckpointState:Boolean):Option[java.nio.file.Path]"></a><a id="save(Session,Path,Option[Int],String,String,Boolean,Boolean):Option[Path]"></a>
+      <a id="save(session:org.platanios.tensorflow.api.core.client.Session,savePath:java.nio.file.Path,globalStep:Option[Int],checkpointStateFilename:String,metaGraphSuffix:String,writeMetaGraph:Boolean,writeCheckpointState:Boolean):Option[java.nio.file.Path]"></a><a id="save(core.client.Session,Path,Option[Int],String,String,Boolean,Boolean):Option[Path]"></a>
       <span class="permalink">
       <a href="../../../../../../org/platanios/tensorflow/api/ops/variables/Saver.html#save(session:org.platanios.tensorflow.api.core.client.Session,savePath:java.nio.file.Path,globalStep:Option[Int],checkpointStateFilename:String,metaGraphSuffix:String,writeMetaGraph:Boolean,writeCheckpointState:Boolean):Option[java.nio.file.Path]" title="Permalink">
         <i class="material-icons"></i>
@@ -744,7 +744,7 @@ initialize variables.</p><p>The <code>savePath</code> argument is typically a va
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">save</span><span class="params">(<span name="session">session: <a href="../../core/client/Session.html" class="extype" name="org.platanios.tensorflow.api.core.client.Session">Session</a></span>, <span name="savePath">savePath: <span class="extype" name="java.nio.file.Path">Path</span></span>, <span name="globalStep">globalStep: <a href="http://www.scala-lang.org/api/2.12.3/scala/Option.html#scala.Option" class="extype" name="scala.Option">Option</a>[<a href="http://www.scala-lang.org/api/2.12.3/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a>] = <span class="symbol">None</span></span>, <span name="checkpointStateFilename">checkpointStateFilename: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">&quot;checkpoint&quot;</span></span>, <span name="metaGraphSuffix">metaGraphSuffix: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">&quot;meta&quot;</span></span>, <span name="writeMetaGraph">writeMetaGraph: <a href="http://www.scala-lang.org/api/2.12.3/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a> = <span class="symbol">true</span></span>, <span name="writeCheckpointState">writeCheckpointState: <a href="http://www.scala-lang.org/api/2.12.3/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a> = <span class="symbol">true</span></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.3/scala/Option.html#scala.Option" class="extype" name="scala.Option">Option</a>[<span class="extype" name="java.nio.file.Path">Path</span>]</span>
+        <span class="name">save</span><span class="params">(<span name="session">session: <a href="../../core/client/Session.html" class="extype" name="org.platanios.tensorflow.api.core.client.Session">core.client.Session</a></span>, <span name="savePath">savePath: <span class="extype" name="java.nio.file.Path">Path</span></span>, <span name="globalStep">globalStep: <a href="http://www.scala-lang.org/api/2.12.3/scala/Option.html#scala.Option" class="extype" name="scala.Option">Option</a>[<a href="http://www.scala-lang.org/api/2.12.3/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a>] = <span class="symbol">None</span></span>, <span name="checkpointStateFilename">checkpointStateFilename: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">&quot;checkpoint&quot;</span></span>, <span name="metaGraphSuffix">metaGraphSuffix: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">&quot;meta&quot;</span></span>, <span name="writeMetaGraph">writeMetaGraph: <a href="http://www.scala-lang.org/api/2.12.3/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a> = <span class="symbol">true</span></span>, <span name="writeCheckpointState">writeCheckpointState: <a href="http://www.scala-lang.org/api/2.12.3/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a> = <span class="symbol">true</span></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.3/scala/Option.html#scala.Option" class="extype" name="scala.Option">Option</a>[<span class="extype" name="java.nio.file.Path">Path</span>]</span>
       </span>
       
       <p class="shortcomment cmt">Saves the current value of the saveables this saver is responsible for.</p><div class="fullcomment"><div class="comment cmt"><p>Saves the current value of the saveables this saver is responsible for.</p><p>This method runs the ops responsible for saving variables. It requires a session in which the saver's graph was
@@ -771,6 +771,39 @@ launched. The variables being saved must also have been initialized.</p><p>The m
       </span>
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.ops.variables.Saver#toProto" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="toProto(exportScope:String):org.tensorflow.util.SaverDef"></a><a id="toProto(String):SaverDef"></a>
+      <span class="permalink">
+      <a href="../../../../../../org/platanios/tensorflow/api/ops/variables/Saver.html#toProto(exportScope:String):org.tensorflow.util.SaverDef" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">toProto</span><span class="params">(<span name="exportScope">exportScope: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">null</span></span>)</span><span class="result">: <span class="extype" name="org.tensorflow.util.SaverDef">SaverDef</span></span>
+      </span>
+      
+      <p class="shortcomment cmt">Alias for <code>toSaverDef</code>.</p>
+    </li><li name="org.platanios.tensorflow.api.ops.variables.Saver#toProto" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="toProto:org.tensorflow.util.SaverDef"></a><a id="toProto:SaverDef"></a>
+      <span class="permalink">
+      <a href="../../../../../../org/platanios/tensorflow/api/ops/variables/Saver.html#toProto:org.tensorflow.util.SaverDef" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">toProto</span><span class="result">: <span class="extype" name="org.tensorflow.util.SaverDef">SaverDef</span></span>
+      </span>
+      
+      <p class="shortcomment cmt">Converts this object to its corresponding ProtoBuf object.</p><div class="fullcomment"><div class="comment cmt"><p>Converts this object to its corresponding ProtoBuf object.
+</p></div><dl class="paramcmts block"><dt>returns</dt><dd class="cmt"><p>ProtoBuf object corresponding to this object.</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="" class="extype" name="org.platanios.tensorflow.api.ops.variables.Saver">Saver</a> → <a href="../../utilities/Proto$$Serializable.html" class="extype" name="org.platanios.tensorflow.api.utilities.Proto.Serializable">Serializable</a></dd></dl></div>
     </li><li name="org.platanios.tensorflow.api.ops.variables.Saver#toSaverDef" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="toSaverDef(exportScope:String):org.tensorflow.util.SaverDef"></a><a id="toSaverDef(String):SaverDef"></a>
       <span class="permalink">
@@ -898,7 +931,9 @@ launched. The variables being saved must also have been initialized.</p><p>The m
         </div>
 
         <div id="inheritedMembers">
-        <div class="parent" name="scala.AnyRef">
+        <div class="parent" name="org.platanios.tensorflow.api.utilities.Proto.Serializable">
+              <h3>Inherited from <a href="../../utilities/Proto$$Serializable.html" class="extype" name="org.platanios.tensorflow.api.utilities.Proto.Serializable">Serializable</a></h3>
+            </div><div class="parent" name="scala.AnyRef">
               <h3>Inherited from <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></h3>
             </div><div class="parent" name="scala.Any">
               <h3>Inherited from <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.Any" class="extype" name="scala.collection.immutable.List">Any</a></h3>

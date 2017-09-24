@@ -328,6 +328,24 @@ none is specified, but it is also possible to pass an explicit list of variables
       </span>
       
       <p class="shortcomment cmt">Key for collections of op outputs.</p>
+    </li><li name="org.platanios.tensorflow.api.core.Graph.Keys.ResourceCollectionKey" visbl="pub" class="indented0 " data-isabs="true" fullComment="no" group="Ungrouped">
+      <a id="ResourceCollectionKeyextendsGraph.Key[org.platanios.tensorflow.api.ops.Resource]"></a><a id="ResourceCollectionKey:ResourceCollectionKey"></a>
+      <span class="permalink">
+      <a href="../../../../../org/platanios/tensorflow/api/core/Graph$$Keys$.html#ResourceCollectionKeyextendsGraph.Key[org.platanios.tensorflow.api.ops.Resource]" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">trait</span>
+      </span>
+      <span class="symbol">
+        <a title="Key for collections of resources." href="Graph$$Keys$$ResourceCollectionKey.html">
+              <span class="name">ResourceCollectionKey</span>
+            </a><span class="result"> extends <a href="Graph$$Key.html" class="extype" name="org.platanios.tensorflow.api.core.Graph.Key">Key</a>[<a href="../ops/Resource.html" class="extype" name="org.platanios.tensorflow.api.ops.Resource">Resource</a>]</span>
+      </span>
+      
+      <p class="shortcomment cmt">Key for collections of resources.</p>
     </li><li name="org.platanios.tensorflow.api.core.Graph.Keys.SaverCollectionKey" visbl="pub" class="indented0 " data-isabs="true" fullComment="no" group="Ungrouped">
       <a id="SaverCollectionKeyextendsGraph.Key[org.platanios.tensorflow.api.ops.variables.Saver]"></a><a id="SaverCollectionKey:SaverCollectionKey"></a>
       <span class="permalink">
@@ -778,6 +796,24 @@ none is specified, but it is also possible to pass an explicit list of variables
       </span>
       
       
+    </li><li name="org.platanios.tensorflow.api.core.Graph.Keys.GLOBAL_EPOCH" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="GLOBAL_EPOCH"></a><a id="GLOBAL_EPOCH:GLOBAL_EPOCH"></a>
+      <span class="permalink">
+      <a href="../../../../../org/platanios/tensorflow/api/core/Graph$$Keys$.html#GLOBAL_EPOCH" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">object</span>
+      </span>
+      <span class="symbol">
+        <a title="" href="Graph$$Keys$$GLOBAL_EPOCH$.html">
+              <span class="name">GLOBAL_EPOCH</span>
+            </a><span class="result"> extends <a href="Graph$$Keys$$VariableCollectionKey.html" class="extype" name="org.platanios.tensorflow.api.core.Graph.Keys.VariableCollectionKey">VariableCollectionKey</a></span>
+      </span>
+      
+      
     </li><li name="org.platanios.tensorflow.api.core.Graph.Keys.GLOBAL_STEP" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
       <a id="GLOBAL_STEP"></a><a id="GLOBAL_STEP:GLOBAL_STEP"></a>
       <span class="permalink">
@@ -854,6 +890,24 @@ all <code>MODEL_VARIABLES</code> variables will be in <code>GLOBAL_VARIABLES</co
       </span>
       
       
+    </li><li name="org.platanios.tensorflow.api.core.Graph.Keys.LOCAL_RESOURCES" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="LOCAL_RESOURCES"></a><a id="LOCAL_RESOURCES:LOCAL_RESOURCES"></a>
+      <span class="permalink">
+      <a href="../../../../../org/platanios/tensorflow/api/core/Graph$$Keys$.html#LOCAL_RESOURCES" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">object</span>
+      </span>
+      <span class="symbol">
+        <a title="Key to collect all local resources used in this graph which need to be initialized once per session." href="Graph$$Keys$$LOCAL_RESOURCES$.html">
+              <span class="name">LOCAL_RESOURCES</span>
+            </a><span class="result"> extends <a href="Graph$$Keys$$ResourceCollectionKey.html" class="extype" name="org.platanios.tensorflow.api.core.Graph.Keys.ResourceCollectionKey">ResourceCollectionKey</a></span>
+      </span>
+      
+      <p class="shortcomment cmt">Key to collect all local resources used in this graph which need to be initialized once per session.</p>
     </li><li name="org.platanios.tensorflow.api.core.Graph.Keys.LOCAL_VARIABLES" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="LOCAL_VARIABLES"></a><a id="LOCAL_VARIABLES:LOCAL_VARIABLES"></a>
       <span class="permalink">
@@ -961,7 +1015,7 @@ representing the graph random seed value.</p></div></div>
       <span class="symbol">
         <a title="" href="Graph$$Keys$$READY_FOR_LOCAL_INIT_OP$.html">
               <span class="name">READY_FOR_LOCAL_INIT_OP</span>
-            </a><span class="result"> extends <a href="Graph$$Keys$$OpCollectionKey.html" class="extype" name="org.platanios.tensorflow.api.core.Graph.Keys.OpCollectionKey">OpCollectionKey</a></span>
+            </a><span class="result"> extends <a href="Graph$$Keys$$OutputCollectionKey.html" class="extype" name="org.platanios.tensorflow.api.core.Graph.Keys.OutputCollectionKey">OutputCollectionKey</a></span>
       </span>
       
       
@@ -979,7 +1033,7 @@ representing the graph random seed value.</p></div></div>
       <span class="symbol">
         <a title="" href="Graph$$Keys$$READY_OP$.html">
               <span class="name">READY_OP</span>
-            </a><span class="result"> extends <a href="Graph$$Keys$$OpCollectionKey.html" class="extype" name="org.platanios.tensorflow.api.core.Graph.Keys.OpCollectionKey">OpCollectionKey</a></span>
+            </a><span class="result"> extends <a href="Graph$$Keys$$OutputCollectionKey.html" class="extype" name="org.platanios.tensorflow.api.core.Graph.Keys.OutputCollectionKey">OutputCollectionKey</a></span>
       </span>
       
       
@@ -1019,6 +1073,24 @@ representing the graph random seed value.</p></div></div>
       </span>
       
       <p class="shortcomment cmt">Key to collect savers.</p>
+    </li><li name="org.platanios.tensorflow.api.core.Graph.Keys.SHARED_RESOURCES" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="SHARED_RESOURCES"></a><a id="SHARED_RESOURCES:SHARED_RESOURCES"></a>
+      <span class="permalink">
+      <a href="../../../../../org/platanios/tensorflow/api/core/Graph$$Keys$.html#SHARED_RESOURCES" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">object</span>
+      </span>
+      <span class="symbol">
+        <a title="Key to collect all shared resources used by the graph which need to be initialized once per cluster." href="Graph$$Keys$$SHARED_RESOURCES$.html">
+              <span class="name">SHARED_RESOURCES</span>
+            </a><span class="result"> extends <a href="Graph$$Keys$$ResourceCollectionKey.html" class="extype" name="org.platanios.tensorflow.api.core.Graph.Keys.ResourceCollectionKey">ResourceCollectionKey</a></span>
+      </span>
+      
+      <p class="shortcomment cmt">Key to collect all shared resources used by the graph which need to be initialized once per cluster.</p>
     </li><li name="org.platanios.tensorflow.api.core.Graph.Keys.STREAMING_MODEL_PORTS" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
       <a id="STREAMING_MODEL_PORTS"></a><a id="STREAMING_MODEL_PORTS:STREAMING_MODEL_PORTS"></a>
       <span class="permalink">
@@ -1069,10 +1141,28 @@ representing the graph random seed value.</p></div></div>
       <span class="symbol">
         <a title="" href="Graph$$Keys$$SUMMARY_OP$.html">
               <span class="name">SUMMARY_OP</span>
-            </a><span class="result"> extends <a href="Graph$$Keys$$OpCollectionKey.html" class="extype" name="org.platanios.tensorflow.api.core.Graph.Keys.OpCollectionKey">OpCollectionKey</a></span>
+            </a><span class="result"> extends <a href="Graph$$Keys$$OutputCollectionKey.html" class="extype" name="org.platanios.tensorflow.api.core.Graph.Keys.OutputCollectionKey">OutputCollectionKey</a></span>
       </span>
       
       
+    </li><li name="org.platanios.tensorflow.api.core.Graph.Keys.TABLE_INITIALIZERS" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="TABLE_INITIALIZERS"></a><a id="TABLE_INITIALIZERS:TABLE_INITIALIZERS"></a>
+      <span class="permalink">
+      <a href="../../../../../org/platanios/tensorflow/api/core/Graph$$Keys$.html#TABLE_INITIALIZERS" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">object</span>
+      </span>
+      <span class="symbol">
+        <a title="Key to collect the table initializers that have been created in the graph." href="Graph$$Keys$$TABLE_INITIALIZERS$.html">
+              <span class="name">TABLE_INITIALIZERS</span>
+            </a><span class="result"> extends <a href="Graph$$Keys$$OpCollectionKey.html" class="extype" name="org.platanios.tensorflow.api.core.Graph.Keys.OpCollectionKey">OpCollectionKey</a></span>
+      </span>
+      
+      <p class="shortcomment cmt">Key to collect the table initializers that have been created in the graph.</p>
     </li><li name="org.platanios.tensorflow.api.core.Graph.Keys.TRAINABLE_RESOURCE_VARIABLES" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
       <a id="TRAINABLE_RESOURCE_VARIABLES"></a><a id="TRAINABLE_RESOURCE_VARIABLES:TRAINABLE_RESOURCE_VARIABLES"></a>
       <span class="permalink">

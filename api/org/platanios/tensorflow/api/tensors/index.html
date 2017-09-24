@@ -143,6 +143,24 @@
       </span>
       
       <p class="shortcomment cmt"></p><div class="fullcomment"><div class="comment cmt"></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../../index.html" class="extype" name="org.platanios.tensorflow">tensorflow</a></dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.config" visbl="pub" class="indented5 " data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="config"></a><a id="config:config"></a>
+      <span class="permalink">
+      <a href="../../../../org/platanios/tensorflow/api/index.html#config" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">package</span>
+      </span>
+      <span class="symbol">
+        <a title="" href="../config/index.html">
+              <span class="name">config</span>
+            </a>
+      </span>
+      
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../index.html" class="extype" name="org.platanios.tensorflow.api">api</a></dd></dl></div>
     </li><li name="org.platanios.tensorflow.api.core" visbl="pub" class="indented5 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="core"></a><a id="core:core"></a>
       <span class="permalink">
@@ -161,6 +179,24 @@
       </span>
       
       <p class="shortcomment cmt"></p><div class="fullcomment"><div class="comment cmt"></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../index.html" class="extype" name="org.platanios.tensorflow.api">api</a></dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.io" visbl="pub" class="indented5 " data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="io"></a><a id="io:io"></a>
+      <span class="permalink">
+      <a href="../../../../org/platanios/tensorflow/api/index.html#io" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">package</span>
+      </span>
+      <span class="symbol">
+        <a title="" href="../io/index.html">
+              <span class="name">io</span>
+            </a>
+      </span>
+      
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../index.html" class="extype" name="org.platanios.tensorflow.api">api</a></dd></dl></div>
     </li><li name="org.platanios.tensorflow.api.learn" visbl="pub" class="indented5 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="learn"></a><a id="learn:learn"></a>
       <span class="permalink">
@@ -416,8 +452,8 @@ represents the dense tensor <code><span class="extype" name="1,">0, 0, 0], [0, 0
       <p class="shortcomment cmt">Tensor (i.e., multi-dimensional array).</p><div class="fullcomment"><div class="comment cmt"><p>Tensor (i.e., multi-dimensional array).</p><p>Tensors are the main data structure underlying all operations in TensorFlow. They represent multi-dimensional arrays
 of various data types (e.g., <a href="../index.html#FLOAT32:org.platanios.tensorflow.api.types.DataType.Aux[Float]" class="extmbr" name="org.platanios.tensorflow.api#FLOAT32">FLOAT32</a>). Operations involving tensors can be of two types:</p><ul><li><b>Eager:</b> Operations directly executed on the tensor arguments, returning a new tensor. For example:</li></ul><pre><span class="kw">val</span> a = Tensor(<span class="num">2.0</span>, <span class="num">4.5</span>, <span class="num">3.0</span>, -<span class="num">1.2</span>)
 <span class="kw">val</span> b = Tensor(Tensor(<span class="num">0.2</span>, <span class="num">0.4</span>), Tensor(-<span class="num">2.3</span>, <span class="num">5.0</span>))
-a.reshape(Shape(<span class="num">2</span>, <span class="num">2</span>)) + b == Tensor(Tensor(<span class="num">2.2</span>, <span class="num">4.9</span>), Tensor(<span class="num">0.7</span>, <span class="num">3.8</span>))</pre><ul><li><b>Symbolic:</b> Operations that need to be constructed as part of a computational <span class="extype" name="Graph">Graph</span> before being
-    executing using a <span class="extype" name="Session">Session</span>. For example:</li></ul><pre><span class="kw">val</span> a = tf.placeholder(FLOAT64, Shape(<span class="num">4</span>))               <span class="cmt">// Symbolic placeholder for value of a</span>
+a.reshape(Shape(<span class="num">2</span>, <span class="num">2</span>)) + b == Tensor(Tensor(<span class="num">2.2</span>, <span class="num">4.9</span>), Tensor(<span class="num">0.7</span>, <span class="num">3.8</span>))</pre><ul><li><b>Symbolic:</b> Operations that need to be constructed as part of a computational <a href="../index.html#Graph=org.platanios.tensorflow.api.core.Graph" class="extmbr" name="org.platanios.tensorflow.api.Graph">Graph</a> before being
+    executing using a <a href="../index.html#Session=org.platanios.tensorflow.api.core.client.Session" class="extmbr" name="org.platanios.tensorflow.api.Session">Session</a>. For example:</li></ul><pre><span class="kw">val</span> a = tf.placeholder(FLOAT64, Shape(<span class="num">4</span>))               <span class="cmt">// Symbolic placeholder for value of a</span>
 <span class="kw">val</span> b = tf.placeholder(FLOAT64, Shape(<span class="num">2</span>, <span class="num">2</span>))            <span class="cmt">// Symbolic placeholder for the value of b</span>
 <span class="kw">val</span> add = tf.reshape(a, Shape(<span class="num">2</span>, <span class="num">2</span>)) + b                <span class="cmt">// Symbolic representation of the computation</span>
 <span class="kw">val</span> result = Session.run(

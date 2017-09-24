@@ -181,12 +181,6 @@
       <p class="shortcomment cmt">Contains helper functions and classes for creating IO-related ops.</p><div class="fullcomment"><div class="comment cmt"><p>Contains helper functions and classes for creating IO-related ops.
 </p></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../index.html" class="extype" name="org.platanios.tensorflow.api.ops">ops</a></dd></dl></div>
     </li><li class="current-entities indented6">
-                        <span class="separator"></span>
-                        <a class="class" href="BatchDataset.html" title="Dataset that batches batchSize elements from inputDataset."></a>
-                        <a href="BatchDataset.html" title="Dataset that batches batchSize elements from inputDataset.">
-                          BatchDataset
-                        </a>
-                      </li><li class="current-entities indented6">
                         <a class="object" href="Data$.html" title=""></a>
                         <a class="trait" href="Data.html" title="Data can be emitted by Datasets (i.e., the element types of all Datasets are Data)."></a>
                         <a href="Data.html" title="Data can be emitted by Datasets (i.e., the element types of all Datasets are Data).">
@@ -226,27 +220,9 @@ it, using its createInitializer method.">
                         </a>
                       </li><li class="current-entities indented6">
                         <span class="separator"></span>
-                        <a class="class" href="RepeatDataset.html" title="Dataset that repeats the elements from inputDataset a specified number of times."></a>
-                        <a href="RepeatDataset.html" title="Dataset that repeats the elements from inputDataset a specified number of times.">
-                          RepeatDataset
-                        </a>
-                      </li><li class="current-entities indented6">
-                        <span class="separator"></span>
                         <a class="class" href="SerializableReader.html" title=""></a>
                         <a href="SerializableReader.html" title="">
                           SerializableReader
-                        </a>
-                      </li><li class="current-entities indented6">
-                        <span class="separator"></span>
-                        <a class="class" href="TensorDataset.html" title="Dataset with a single element."></a>
-                        <a href="TensorDataset.html" title="Dataset with a single element.">
-                          TensorDataset
-                        </a>
-                      </li><li class="current-entities indented6">
-                        <span class="separator"></span>
-                        <a class="class" href="TensorSliceDataset.html" title="Dataset with slices from the nested structure of Outputs (i.e., a Data-supported type)."></a>
-                        <a href="TensorSliceDataset.html" title="Dataset with slices from the nested structure of Outputs (i.e., a Data-supported type).">
-                          TensorSliceDataset
                         </a>
                       </li>
               </ul>
@@ -273,7 +249,7 @@ it, using its createInitializer method.">
         <span class="kind">class</span>
       </span>
       <span class="symbol">
-        <span class="name">Iterator</span><span class="tparams">[<span name="O">O</span>, <span name="D">D</span>, <span name="S">S</span>]</span><span class="result"> extends <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></span>
+        <span class="name">Iterator</span><span class="tparams">[<span name="T">T</span>, <span name="O">O</span>, <span name="D">D</span>, <span name="S">S</span>]</span><span class="result"> extends <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></span>
       </span>
       </h4>
 
@@ -429,9 +405,9 @@ it, using its <code>createInitializer</code> method.</p><p>An <a href="" class="
               
         </dd></dl></div>
     </li><li name="org.platanios.tensorflow.api.ops.io.Iterator#createInitializer" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="createInitializer(dataset:org.platanios.tensorflow.api.ops.io.Dataset[O,D,S],name:String):org.platanios.tensorflow.api.ops.Op"></a><a id="createInitializer(Dataset[O,D,S],String):Op"></a>
+      <a id="createInitializer(dataset:org.platanios.tensorflow.api.ops.io.Dataset[T,O,D,S],name:String):org.platanios.tensorflow.api.ops.Op"></a><a id="createInitializer(Dataset[T,O,D,S],String):Op"></a>
       <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/ops/io/Iterator.html#createInitializer(dataset:org.platanios.tensorflow.api.ops.io.Dataset[O,D,S],name:String):org.platanios.tensorflow.api.ops.Op" title="Permalink">
+      <a href="../../../../../../org/platanios/tensorflow/api/ops/io/Iterator.html#createInitializer(dataset:org.platanios.tensorflow.api.ops.io.Dataset[T,O,D,S],name:String):org.platanios.tensorflow.api.ops.Op" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -440,7 +416,7 @@ it, using its <code>createInitializer</code> method.</p><p>An <a href="" class="
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">createInitializer</span><span class="params">(<span name="dataset">dataset: <a href="Dataset.html" class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset">Dataset</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.io.Iterator.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Iterator.D">D</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Iterator.S">S</span>]</span>, <span name="name">name: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">s&quot;$name/Initializer&quot;</span></span>)</span><span class="result">: <a href="../Op.html" class="extype" name="org.platanios.tensorflow.api.ops.Op">Op</a></span>
+        <span class="name">createInitializer</span><span class="params">(<span name="dataset">dataset: <a href="Dataset.html" class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset">Dataset</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.io.Iterator.T">T</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Iterator.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Iterator.D">D</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.Iterator.S">S</span>]</span>, <span name="name">name: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">s&quot;$name/Initializer&quot;</span></span>)</span><span class="result">: <a href="../Op.html" class="extype" name="org.platanios.tensorflow.api.ops.Op">Op</a></span>
       </span>
       
       <p class="shortcomment cmt">Returns an op that initializes this iterator using the provided <a href="Dataset.html" class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset">Dataset</a>.</p><div class="fullcomment"><div class="comment cmt"><p>Returns an op that initializes this iterator using the provided <a href="Dataset.html" class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset">Dataset</a>.

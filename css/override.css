@@ -16,6 +16,22 @@ h1 {
     font-family: Roboto, sans-serif;
 }
 
+h2 {
+    font-weight: 300;
+}
+
+h3 {
+    font-weight: 300;
+}
+
+h4 {
+    font-weight: 300;
+}
+
+h5 {
+    font-weight: 300;
+}
+
 a:hover {
     color: rgb(251, 140, 0);
     text-decoration: none;

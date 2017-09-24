@@ -217,16 +217,10 @@
       
       <p class="shortcomment cmt"></p><div class="fullcomment"><div class="comment cmt"></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="index.html" class="extype" name="org.platanios.tensorflow.api.ops">ops</a></dd></dl></div>
     </li><li class="current-entities indented5">
-                        <span class="separator"></span>
+                        <a class="object" href="Function$.html" title=""></a>
                         <a class="class" href="" title=""></a>
                         <a href="" title="">
                           Function
-                        </a>
-                      </li><li class="current-entities indented5">
-                        <a class="object" href="FunctionArgType$.html" title=""></a>
-                        <a class="trait" href="FunctionArgType.html" title=""></a>
-                        <a href="FunctionArgType.html" title="">
-                          FunctionArgType
                         </a>
                       </li><li class="current-entities indented5">
                         <a class="object" href="FunctionGraph$.html" title="Contains helper functions for dealing with function graphs."></a>
@@ -272,15 +266,33 @@
                         </a>
                       </li><li class="current-entities indented5">
                         <span class="separator"></span>
+                        <a class="trait" href="Parsing.html" title="Contains functions for constructing ops related to parsing data."></a>
+                        <a href="Parsing.html" title="Contains functions for constructing ops related to parsing data.">
+                          Parsing
+                        </a>
+                      </li><li class="current-entities indented5">
+                        <span class="separator"></span>
                         <a class="class" href="Queue.html" title="Class that supports all TensorFlow queue implementations."></a>
                         <a href="Queue.html" title="Class that supports all TensorFlow queue implementations.">
                           Queue
+                        </a>
+                      </li><li class="current-entities indented5">
+                        <a class="object" href="Resource$.html" title=""></a>
+                        <a class="class" href="Resource.html" title="Represents a TensorFlow resource."></a>
+                        <a href="Resource.html" title="Represents a TensorFlow resource.">
+                          Resource
                         </a>
                       </li><li class="current-entities indented5">
                         <span class="separator"></span>
                         <a class="class" href="SparseOutput.html" title="Represents a sparse op output."></a>
                         <a href="SparseOutput.html" title="Represents a sparse op output.">
                           SparseOutput
+                        </a>
+                      </li><li class="current-entities indented5">
+                        <span class="separator"></span>
+                        <a class="object" href="Table$.html" title=""></a>
+                        <a href="Table$.html" title="">
+                          Table
                         </a>
                       </li>
               </ul>
@@ -289,14 +301,16 @@
           <div id="content">
             <body class="class type">
       <div id="definition">
-        <div class="big-circle class">c</div>
+        <a href="Function$.html" title="See companion object"><div class="big-circle class-companion-object">c</div></a>
         <p id="owner"><a href="../../../../index.html" class="extype" name="org">org</a>.<a href="../../../index.html" class="extype" name="org.platanios">platanios</a>.<a href="../../index.html" class="extype" name="org.platanios.tensorflow">tensorflow</a>.<a href="../index.html" class="extype" name="org.platanios.tensorflow.api">api</a>.<a href="index.html" class="extype" name="org.platanios.tensorflow.api.ops">ops</a></p>
-        <h1>Function<span class="permalink">
+        <h1><a href="Function$.html" title="See companion object">Function</a><span class="permalink">
       <a href="../../../../../org/platanios/tensorflow/api/ops/Function.html" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span></h1>
-        <h3><span class="morelinks"></span></h3>
+        <h3><span class="morelinks"><div>
+            Companion <a href="Function$.html" title="See companion object">object Function</a>
+          </div></span></h3>
       </div>
 
       <h4 id="signature" class="signature">
@@ -305,7 +319,7 @@
         <span class="kind">case class</span>
       </span>
       <span class="symbol">
-        <span class="name">Function</span><span class="tparams">[<span name="T">T</span>, <span name="R">R</span>]</span><span class="params">(<span name="name">name: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="function">function: (<span class="extype" name="org.platanios.tensorflow.api.ops.Function.T">T</span>) ⇒ <span class="extype" name="org.platanios.tensorflow.api.ops.Function.R">R</span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="evInput">evInput: <a href="FunctionArgType.html" class="extype" name="org.platanios.tensorflow.api.ops.FunctionArgType">FunctionArgType</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.Function.T">T</span>]</span>, <span name="evOutput">evOutput: <a href="FunctionArgType.html" class="extype" name="org.platanios.tensorflow.api.ops.FunctionArgType">FunctionArgType</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.Function.R">R</span>]</span>)</span><span class="result"> extends <a href="http://www.scala-lang.org/api/2.12.3/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="http://www.scala-lang.org/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
+        <span class="name">Function</span><span class="tparams">[<span name="IO">IO</span>, <span name="IR">IR</span>, <span name="R">R</span>]</span><span class="params">(<span name="name">name: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="function">function: (<span class="extype" name="org.platanios.tensorflow.api.ops.Function.IO">IO</span>) ⇒ <span class="extype" name="org.platanios.tensorflow.api.ops.Function.R">R</span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="evInput">evInput: <a href="Function$$ArgType.html" class="extype" name="org.platanios.tensorflow.api.ops.Function.ArgType">ArgType</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.Function.IO">IO</span>]</span>, <span name="evOutput">evOutput: <a href="Function$$ArgType.html" class="extype" name="org.platanios.tensorflow.api.ops.Function.ArgType">ArgType</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.Function.R">R</span>]</span>)</span><span class="result"> extends <a href="http://www.scala-lang.org/api/2.12.3/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="http://www.scala-lang.org/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
       </span>
       </h4>
 
@@ -361,9 +375,9 @@
         <div id="constructors" class="members">
               <h3>Instance Constructors</h3>
               <ol><li name="org.platanios.tensorflow.api.ops.Function#&lt;init&gt;" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="&lt;init&gt;(name:String,function:T=&gt;R)(implicitevInput:org.platanios.tensorflow.api.ops.FunctionArgType[T],implicitevOutput:org.platanios.tensorflow.api.ops.FunctionArgType[R]):org.platanios.tensorflow.api.ops.Function[T,R]"></a><a id="&lt;init&gt;:Function[T,R]"></a>
+      <a id="&lt;init&gt;(name:String,function:IO=&gt;R)(implicitevInput:org.platanios.tensorflow.api.ops.Function.ArgType[IO],implicitevOutput:org.platanios.tensorflow.api.ops.Function.ArgType[R]):org.platanios.tensorflow.api.ops.Function[IO,IR,R]"></a><a id="&lt;init&gt;:Function[IO,IR,R]"></a>
       <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/Function.html#&lt;init&gt;(name:String,function:T=&gt;R)(implicitevInput:org.platanios.tensorflow.api.ops.FunctionArgType[T],implicitevOutput:org.platanios.tensorflow.api.ops.FunctionArgType[R]):org.platanios.tensorflow.api.ops.Function[T,R]" title="Permalink">
+      <a href="../../../../../org/platanios/tensorflow/api/ops/Function.html#&lt;init&gt;(name:String,function:IO=&gt;R)(implicitevInput:org.platanios.tensorflow.api.ops.Function.ArgType[IO],implicitevOutput:org.platanios.tensorflow.api.ops.Function.ArgType[R]):org.platanios.tensorflow.api.ops.Function[IO,IR,R]" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -372,7 +386,7 @@
         <span class="kind">new</span>
       </span>
       <span class="symbol">
-        <span class="name">Function</span><span class="params">(<span name="name">name: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="function">function: (<span class="extype" name="org.platanios.tensorflow.api.ops.Function.T">T</span>) ⇒ <span class="extype" name="org.platanios.tensorflow.api.ops.Function.R">R</span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="evInput">evInput: <a href="FunctionArgType.html" class="extype" name="org.platanios.tensorflow.api.ops.FunctionArgType">FunctionArgType</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.Function.T">T</span>]</span>, <span name="evOutput">evOutput: <a href="FunctionArgType.html" class="extype" name="org.platanios.tensorflow.api.ops.FunctionArgType">FunctionArgType</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.Function.R">R</span>]</span>)</span>
+        <span class="name">Function</span><span class="params">(<span name="name">name: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="function">function: (<span class="extype" name="org.platanios.tensorflow.api.ops.Function.IO">IO</span>) ⇒ <span class="extype" name="org.platanios.tensorflow.api.ops.Function.R">R</span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="evInput">evInput: <a href="Function$$ArgType.html" class="extype" name="org.platanios.tensorflow.api.ops.Function.ArgType">ArgType</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.Function.IO">IO</span>]</span>, <span name="evOutput">evOutput: <a href="Function$$ArgType.html" class="extype" name="org.platanios.tensorflow.api.ops.Function.ArgType">ArgType</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.Function.R">R</span>]</span>)</span>
       </span>
       
       
@@ -435,9 +449,9 @@
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
     </li><li name="org.platanios.tensorflow.api.ops.Function#apply" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="apply(arg:T):R"></a><a id="apply(T):R"></a>
+      <a id="apply(arg:IO):R"></a><a id="apply(IO):R"></a>
       <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/Function.html#apply(arg:T):R" title="Permalink">
+      <a href="../../../../../org/platanios/tensorflow/api/ops/Function.html#apply(arg:IO):R" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -446,7 +460,7 @@
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">apply</span><span class="params">(<span name="arg">arg: <span class="extype" name="org.platanios.tensorflow.api.ops.Function.T">T</span></span>)</span><span class="result">: <span class="extype" name="org.platanios.tensorflow.api.ops.Function.R">R</span></span>
+        <span class="name">apply</span><span class="params">(<span name="arg">arg: <span class="extype" name="org.platanios.tensorflow.api.ops.Function.IO">IO</span></span>)</span><span class="result">: <span class="extype" name="org.platanios.tensorflow.api.ops.Function.R">R</span></span>
       </span>
       
       
@@ -527,9 +541,9 @@
               
         </dd></dl></div>
     </li><li name="org.platanios.tensorflow.api.ops.Function#function" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="function:T=&gt;R"></a><a id="function:(T)⇒R"></a>
+      <a id="function:IO=&gt;R"></a><a id="function:(IO)⇒R"></a>
       <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/Function.html#function:T=&gt;R" title="Permalink">
+      <a href="../../../../../org/platanios/tensorflow/api/ops/Function.html#function:IO=&gt;R" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -538,7 +552,7 @@
         <span class="kind">val</span>
       </span>
       <span class="symbol">
-        <span class="name">function</span><span class="result">: (<span class="extype" name="org.platanios.tensorflow.api.ops.Function.T">T</span>) ⇒ <span class="extype" name="org.platanios.tensorflow.api.ops.Function.R">R</span></span>
+        <span class="name">function</span><span class="result">: (<span class="extype" name="org.platanios.tensorflow.api.ops.Function.IO">IO</span>) ⇒ <span class="extype" name="org.platanios.tensorflow.api.ops.Function.R">R</span></span>
       </span>
       
       

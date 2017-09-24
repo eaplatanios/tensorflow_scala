@@ -217,16 +217,10 @@
       
       <p class="shortcomment cmt"></p><div class="fullcomment"><div class="comment cmt"></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="index.html" class="extype" name="org.platanios.tensorflow.api.ops">ops</a></dd></dl></div>
     </li><li class="current-entities indented5">
-                        <span class="separator"></span>
+                        <a class="object" href="Function$.html" title=""></a>
                         <a class="class" href="Function.html" title=""></a>
                         <a href="Function.html" title="">
                           Function
-                        </a>
-                      </li><li class="current-entities indented5">
-                        <a class="object" href="FunctionArgType$.html" title=""></a>
-                        <a class="trait" href="FunctionArgType.html" title=""></a>
-                        <a href="FunctionArgType.html" title="">
-                          FunctionArgType
                         </a>
                       </li><li class="current-entities indented5">
                         <a class="object" href="FunctionGraph$.html" title="Contains helper functions for dealing with function graphs."></a>
@@ -272,15 +266,33 @@
                         </a>
                       </li><li class="current-entities indented5">
                         <span class="separator"></span>
+                        <a class="trait" href="Parsing.html" title="Contains functions for constructing ops related to parsing data."></a>
+                        <a href="Parsing.html" title="Contains functions for constructing ops related to parsing data.">
+                          Parsing
+                        </a>
+                      </li><li class="current-entities indented5">
+                        <span class="separator"></span>
                         <a class="class" href="Queue.html" title="Class that supports all TensorFlow queue implementations."></a>
                         <a href="Queue.html" title="Class that supports all TensorFlow queue implementations.">
                           Queue
+                        </a>
+                      </li><li class="current-entities indented5">
+                        <a class="object" href="Resource$.html" title=""></a>
+                        <a class="class" href="Resource.html" title="Represents a TensorFlow resource."></a>
+                        <a href="Resource.html" title="Represents a TensorFlow resource.">
+                          Resource
                         </a>
                       </li><li class="current-entities indented5">
                         <span class="separator"></span>
                         <a class="class" href="SparseOutput.html" title="Represents a sparse op output."></a>
                         <a href="SparseOutput.html" title="Represents a sparse op output.">
                           SparseOutput
+                        </a>
+                      </li><li class="current-entities indented5">
+                        <span class="separator"></span>
+                        <a class="object" href="Table$.html" title=""></a>
+                        <a href="Table$.html" title="">
+                          Table
                         </a>
                       </li>
               </ul>
@@ -313,9 +325,9 @@
 
       
           <div id="comment" class="fullcommenttop"><div class="comment cmt"><p>Representation of one of the outputs of an <a href="Op.html" class="extype" name="org.platanios.tensorflow.api.ops.Op">Op</a>'s computation.</p><p>An <code>Output</code> is a symbolic handle to one of the outputs of an <a href="Op.html" class="extype" name="org.platanios.tensorflow.api.ops.Op">Op</a>. It does not hold the values of that op's
-output, but instead provides a means of computing those values in a TensorFlow <span class="extype" name="Session">Session</span>.</p><p>This class has two primary purposes:</p><ol class="decimal"><li>An <a href="" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a> can be passed as input to another <a href="Op.html" class="extype" name="org.platanios.tensorflow.api.ops.Op">Op</a>. This builds a dataflow connection between ops, which
-     enables TensorFlow to execute an entire <span class="extype" name="Graph">Graph</span> that represents a large, multi-step computation.
-  2. After the graph has been launched in a <span class="extype" name="Session">Session</span>, the value of an <a href="" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a> can be computed by passing
+output, but instead provides a means of computing those values in a TensorFlow <a href="../index.html#Session=org.platanios.tensorflow.api.core.client.Session" class="extmbr" name="org.platanios.tensorflow.api.Session">Session</a>.</p><p>This class has two primary purposes:</p><ol class="decimal"><li>An <a href="" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a> can be passed as input to another <a href="Op.html" class="extype" name="org.platanios.tensorflow.api.ops.Op">Op</a>. This builds a dataflow connection between ops, which
+     enables TensorFlow to execute an entire <a href="../index.html#Graph=org.platanios.tensorflow.api.core.Graph" class="extmbr" name="org.platanios.tensorflow.api.Graph">Graph</a> that represents a large, multi-step computation.
+  2. After the graph has been launched in a <a href="../index.html#Session=org.platanios.tensorflow.api.core.client.Session" class="extmbr" name="org.platanios.tensorflow.api.Session">Session</a>, the value of an <a href="" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a> can be computed by passing
      it to <span class="extype" name="Session.run">Session.run</span>.
   3. <code>Output.evaluate</code> can also be used to compute the value of an <a href="" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a> If no session is provided,
 then the default session is used.</li></ol><p>In the following example, <code>c</code>, <code>d</code>, and <code>e</code> are symbolic <a href="" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a> objects, whereas <code>result</code> is a Scala array
@@ -563,7 +575,7 @@ that stores a concrete value:</p><pre><span class="kw">val</span> c = constant(<
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a> → Equals → AnyRef → Any</dd></dl></div>
     </li><li name="org.platanios.tensorflow.api.ops.Output#evaluate" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="evaluate(feeds:Map[org.platanios.tensorflow.api.ops.Output,org.platanios.tensorflow.api.tensors.Tensor],session:org.platanios.tensorflow.api.core.client.Session):org.platanios.tensorflow.api.tensors.Tensor"></a><a id="evaluate(Map[Output,tensors.Tensor],Session):tensors.Tensor"></a>
+      <a id="evaluate(feeds:Map[org.platanios.tensorflow.api.ops.Output,org.platanios.tensorflow.api.tensors.Tensor],session:org.platanios.tensorflow.api.core.client.Session):org.platanios.tensorflow.api.tensors.Tensor"></a><a id="evaluate(Map[Output,tensors.Tensor],core.client.Session):tensors.Tensor"></a>
       <span class="permalink">
       <a href="../../../../../org/platanios/tensorflow/api/ops/Output.html#evaluate(feeds:Map[org.platanios.tensorflow.api.ops.Output,org.platanios.tensorflow.api.tensors.Tensor],session:org.platanios.tensorflow.api.core.client.Session):org.platanios.tensorflow.api.tensors.Tensor" title="Permalink">
         <i class="material-icons"></i>
@@ -574,7 +586,7 @@ that stores a concrete value:</p><pre><span class="kw">val</span> c = constant(<
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">evaluate</span><span class="params">(<span name="feeds">feeds: <span class="extype" name="scala.Predef.Map">Map</span>[<a href="" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a>, <a href="../tensors/Tensor.html" class="extype" name="org.platanios.tensorflow.api.tensors.Tensor">tensors.Tensor</a>] = <span class="symbol">Map.empty</span></span>, <span name="session">session: <a href="../core/client/Session.html" class="extype" name="org.platanios.tensorflow.api.core.client.Session">Session</a> = <span class="symbol">null</span></span>)</span><span class="result">: <a href="../tensors/Tensor.html" class="extype" name="org.platanios.tensorflow.api.tensors.Tensor">tensors.Tensor</a></span>
+        <span class="name">evaluate</span><span class="params">(<span name="feeds">feeds: <span class="extype" name="scala.Predef.Map">Map</span>[<a href="" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a>, <a href="../tensors/Tensor.html" class="extype" name="org.platanios.tensorflow.api.tensors.Tensor">tensors.Tensor</a>] = <span class="symbol">Map.empty</span></span>, <span name="session">session: <a href="../core/client/Session.html" class="extype" name="org.platanios.tensorflow.api.core.client.Session">core.client.Session</a> = <span class="symbol">null</span></span>)</span><span class="result">: <a href="../tensors/Tensor.html" class="extype" name="org.platanios.tensorflow.api.tensors.Tensor">tensors.Tensor</a></span>
       </span>
       
       <p class="shortcomment cmt">Evaluates this op output.</p><div class="fullcomment"><div class="comment cmt"><p>Evaluates this op output.</p><p>If <code>feeds</code> is non-empty, then the provided feed values are fed into the session for computing the value of this
@@ -620,7 +632,7 @@ the evaluation.
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
     </li><li name="org.platanios.tensorflow.api.ops.Output#graph" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="graph:org.platanios.tensorflow.api.core.Graph"></a><a id="graph:Graph"></a>
+      <a id="graph:org.platanios.tensorflow.api.core.Graph"></a><a id="graph:core.Graph"></a>
       <span class="permalink">
       <a href="../../../../../org/platanios/tensorflow/api/ops/Output.html#graph:org.platanios.tensorflow.api.core.Graph" title="Permalink">
         <i class="material-icons"></i>
@@ -631,7 +643,7 @@ the evaluation.
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">graph</span><span class="result">: <a href="../core/Graph.html" class="extype" name="org.platanios.tensorflow.api.core.Graph">Graph</a></span>
+        <span class="name">graph</span><span class="result">: <a href="../core/Graph.html" class="extype" name="org.platanios.tensorflow.api.core.Graph">core.Graph</a></span>
       </span>
       
       <p class="shortcomment cmt">Graph where the op belongs.</p><div class="fullcomment"><div class="comment cmt"><p>Graph where the op belongs.</p></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a> → <a href="OutputLike.html" class="extype" name="org.platanios.tensorflow.api.ops.OutputLike">OutputLike</a></dd></dl></div>

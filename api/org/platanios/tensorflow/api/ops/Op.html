@@ -217,16 +217,10 @@
       
       <p class="shortcomment cmt"></p><div class="fullcomment"><div class="comment cmt"></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="index.html" class="extype" name="org.platanios.tensorflow.api.ops">ops</a></dd></dl></div>
     </li><li class="current-entities indented5">
-                        <span class="separator"></span>
+                        <a class="object" href="Function$.html" title=""></a>
                         <a class="class" href="Function.html" title=""></a>
                         <a href="Function.html" title="">
                           Function
-                        </a>
-                      </li><li class="current-entities indented5">
-                        <a class="object" href="FunctionArgType$.html" title=""></a>
-                        <a class="trait" href="FunctionArgType.html" title=""></a>
-                        <a href="FunctionArgType.html" title="">
-                          FunctionArgType
                         </a>
                       </li><li class="current-entities indented5">
                         <a class="object" href="FunctionGraph$.html" title="Contains helper functions for dealing with function graphs."></a>
@@ -272,15 +266,33 @@
                         </a>
                       </li><li class="current-entities indented5">
                         <span class="separator"></span>
+                        <a class="trait" href="Parsing.html" title="Contains functions for constructing ops related to parsing data."></a>
+                        <a href="Parsing.html" title="Contains functions for constructing ops related to parsing data.">
+                          Parsing
+                        </a>
+                      </li><li class="current-entities indented5">
+                        <span class="separator"></span>
                         <a class="class" href="Queue.html" title="Class that supports all TensorFlow queue implementations."></a>
                         <a href="Queue.html" title="Class that supports all TensorFlow queue implementations.">
                           Queue
+                        </a>
+                      </li><li class="current-entities indented5">
+                        <a class="object" href="Resource$.html" title=""></a>
+                        <a class="class" href="Resource.html" title="Represents a TensorFlow resource."></a>
+                        <a href="Resource.html" title="Represents a TensorFlow resource.">
+                          Resource
                         </a>
                       </li><li class="current-entities indented5">
                         <span class="separator"></span>
                         <a class="class" href="SparseOutput.html" title="Represents a sparse op output."></a>
                         <a href="SparseOutput.html" title="Represents a sparse op output.">
                           SparseOutput
+                        </a>
+                      </li><li class="current-entities indented5">
+                        <span class="separator"></span>
+                        <a class="object" href="Table$.html" title=""></a>
+                        <a href="Table$.html" title="">
+                          Table
                         </a>
                       </li>
               </ul>
@@ -312,14 +324,14 @@
       </h4>
 
       
-          <div id="comment" class="fullcommenttop"><div class="comment cmt"><p>Represents a graph node, or as we shall call it, an operation, that performs computation on tensors.</p><p>TODO: Add Op.run method and Op.Output.eval method.</p><p>An <code>Op</code> is a symbolic representation of the computation it performs. It is a node in a TensorFlow <span class="extype" name="Graph">Graph</span> that
+          <div id="comment" class="fullcommenttop"><div class="comment cmt"><p>Represents a graph node, or as we shall call it, an operation, that performs computation on tensors.</p><p>TODO: Add Op.run method and Op.Output.eval method.</p><p>An <code>Op</code> is a symbolic representation of the computation it performs. It is a node in a TensorFlow <a href="../index.html#Graph=org.platanios.tensorflow.api.core.Graph" class="extmbr" name="org.platanios.tensorflow.api.Graph">Graph</a> that
 takes zero or more <code>Op.Output</code> objects as input, and produces zero or more <code>Op.Output</code> objects as output. <code>Op</code>
 objects are constructed by calling op creation functions, such as <span class="extype" name="Basic.constant">Basic.constant</span> or <span class="extype" name="Math.matmul">Math.matmul</span>.</p><p>For example, <code>val c = MathOps.matmul(a, b)</code> creates an <code>Op</code> of type <code>&quot;MatMul&quot;</code> that takes <code>Op.Output</code>s <code>a</code> and
 <code>b</code> as input, and produces <code>Op.Output</code> <code>c</code> as output.
 </p></div><dl class="attributes block"> <dt>Source</dt><dd><a href="https://github.com/eaplatanios/tensorflow_scala/tree/master/api/src/main/scala/org/platanios/tensorflow/api/ops/Op.scala" target="_blank">Op.scala</a></dd><dt>Note</dt><dd><span class="cmt"><p>The <code>Op.Input</code> class is simply a wrapper around an <code>Op</code> meant to represent one of its inputs. Actual op inputs
       have type <code>Op.Output</code> since they represent outputs of other ops. Currently, <code>Op.Input</code> is only useful for
       representing consumers of an <code>Op</code>'s outputs.
-      After the graph has been launched in a <span class="extype" name="Session">Session</span>, an <code>Op</code> can be executed by using <code>Session.run</code>.
+      After the graph has been launched in a <a href="../index.html#Session=org.platanios.tensorflow.api.core.client.Session" class="extmbr" name="org.platanios.tensorflow.api.Session">Session</a>, an <code>Op</code> can be executed by using <code>Session.run</code>.
       TODO: Add <code>Op.run</code> use example, once that is supported.</p></span></dd></dl><div class="toggleContainer block">
           <span class="toggle">
             Linear Supertypes
@@ -670,7 +682,7 @@ finishes executing.
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
     </li><li name="org.platanios.tensorflow.api.ops.Op#graph" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="graph:org.platanios.tensorflow.api.core.Graph"></a><a id="graph:Graph"></a>
+      <a id="graph:org.platanios.tensorflow.api.core.Graph"></a><a id="graph:core.Graph"></a>
       <span class="permalink">
       <a href="../../../../../org/platanios/tensorflow/api/ops/Op.html#graph:org.platanios.tensorflow.api.core.Graph" title="Permalink">
         <i class="material-icons"></i>
@@ -681,7 +693,7 @@ finishes executing.
         <span class="kind">val</span>
       </span>
       <span class="symbol">
-        <span class="name">graph</span><span class="result">: <a href="../core/Graph.html" class="extype" name="org.platanios.tensorflow.api.core.Graph">Graph</a></span>
+        <span class="name">graph</span><span class="result">: <a href="../core/Graph.html" class="extype" name="org.platanios.tensorflow.api.core.Graph">core.Graph</a></span>
       </span>
       
       

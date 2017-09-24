@@ -220,6 +220,12 @@ none is specified, but it is also possible to pass an explicit list of variables
                         </a>
                       </li><li class="current-entities indented7">
                         <span class="separator"></span>
+                        <a class="object" href="Graph$$Keys$$GLOBAL_EPOCH$.html" title=""></a>
+                        <a href="Graph$$Keys$$GLOBAL_EPOCH$.html" title="">
+                          GLOBAL_EPOCH
+                        </a>
+                      </li><li class="current-entities indented7">
+                        <span class="separator"></span>
                         <a class="object" href="Graph$$Keys$$GLOBAL_STEP$.html" title=""></a>
                         <a href="Graph$$Keys$$GLOBAL_STEP$.html" title="">
                           GLOBAL_STEP
@@ -249,6 +255,12 @@ variables are subset of these).">
                         <a class="object" href="Graph$$Keys$$LOCAL_INIT_OP$.html" title=""></a>
                         <a href="Graph$$Keys$$LOCAL_INIT_OP$.html" title="">
                           LOCAL_INIT_OP
+                        </a>
+                      </li><li class="current-entities indented7">
+                        <span class="separator"></span>
+                        <a class="object" href="Graph$$Keys$$LOCAL_RESOURCES$.html" title="Key to collect all local resources used in this graph which need to be initialized once per session."></a>
+                        <a href="Graph$$Keys$$LOCAL_RESOURCES$.html" title="Key to collect all local resources used in this graph which need to be initialized once per session.">
+                          LOCAL_RESOURCES
                         </a>
                       </li><li class="current-entities indented7">
                         <span class="separator"></span>
@@ -312,9 +324,21 @@ variables are subset of these).">
                         </a>
                       </li><li class="current-entities indented7">
                         <span class="separator"></span>
+                        <a class="trait" href="Graph$$Keys$$ResourceCollectionKey.html" title="Key for collections of resources."></a>
+                        <a href="Graph$$Keys$$ResourceCollectionKey.html" title="Key for collections of resources.">
+                          ResourceCollectionKey
+                        </a>
+                      </li><li class="current-entities indented7">
+                        <span class="separator"></span>
                         <a class="object" href="Graph$$Keys$$SAVERS$.html" title="Key to collect savers."></a>
                         <a href="Graph$$Keys$$SAVERS$.html" title="Key to collect savers.">
                           SAVERS
+                        </a>
+                      </li><li class="current-entities indented7">
+                        <span class="separator"></span>
+                        <a class="object" href="Graph$$Keys$$SHARED_RESOURCES$.html" title="Key to collect all shared resources used by the graph which need to be initialized once per cluster."></a>
+                        <a href="Graph$$Keys$$SHARED_RESOURCES$.html" title="Key to collect all shared resources used by the graph which need to be initialized once per cluster.">
+                          SHARED_RESOURCES
                         </a>
                       </li><li class="current-entities indented7">
                         <span class="separator"></span>
@@ -345,6 +369,12 @@ variables are subset of these).">
                         <a class="trait" href="Graph$$Keys$$StringCollectionKey.html" title="Key for collections of strings."></a>
                         <a href="Graph$$Keys$$StringCollectionKey.html" title="Key for collections of strings.">
                           StringCollectionKey
+                        </a>
+                      </li><li class="current-entities indented7">
+                        <span class="separator"></span>
+                        <a class="object" href="Graph$$Keys$$TABLE_INITIALIZERS$.html" title="Key to collect the table initializers that have been created in the graph."></a>
+                        <a href="Graph$$Keys$$TABLE_INITIALIZERS$.html" title="Key to collect the table initializers that have been created in the graph.">
+                          TABLE_INITIALIZERS
                         </a>
                       </li><li class="current-entities indented7">
                         <span class="separator"></span>
@@ -411,7 +441,7 @@ variables are subset of these).">
         <span class="kind">object</span>
       </span>
       <span class="symbol">
-        <span class="name">READY_FOR_LOCAL_INIT_OP</span><span class="result"> extends <a href="Graph$$Keys$$OpCollectionKey.html" class="extype" name="org.platanios.tensorflow.api.core.Graph.Keys.OpCollectionKey">OpCollectionKey</a></span>
+        <span class="name">READY_FOR_LOCAL_INIT_OP</span><span class="result"> extends <a href="Graph$$Keys$$OutputCollectionKey.html" class="extype" name="org.platanios.tensorflow.api.core.Graph.Keys.OutputCollectionKey">OutputCollectionKey</a></span>
       </span>
       </h4>
 
@@ -420,7 +450,7 @@ variables are subset of these).">
           <span class="toggle">
             Linear Supertypes
           </span>
-          <div class="superTypes hiddenContent"><a href="Graph$$Keys$$OpCollectionKey.html" class="extype" name="org.platanios.tensorflow.api.core.Graph.Keys.OpCollectionKey">OpCollectionKey</a>, <a href="Graph$$Key.html" class="extype" name="org.platanios.tensorflow.api.core.Graph.Key">Key</a>[<a href="../ops/Op.html" class="extype" name="org.platanios.tensorflow.api.ops.Op">Op</a>], <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a>, <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.Any" class="extype" name="scala.collection.immutable.List">Any</a></div>
+          <div class="superTypes hiddenContent"><a href="Graph$$Keys$$OutputCollectionKey.html" class="extype" name="org.platanios.tensorflow.api.core.Graph.Keys.OutputCollectionKey">OutputCollectionKey</a>, <a href="Graph$$Key.html" class="extype" name="org.platanios.tensorflow.api.core.Graph.Key">Key</a>[<a href="../ops/Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a>], <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a>, <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.Any" class="extype" name="scala.collection.immutable.List">Any</a></div>
         </div></div>
         
 
@@ -446,7 +476,7 @@ variables are subset of these).">
                   <span class="filtertype">Inherited<br />
                   </span>
                   <ol id="linearization">
-                    <li class="in" name="org.platanios.tensorflow.api.core.Graph.Keys.READY_FOR_LOCAL_INIT_OP"><span>READY_FOR_LOCAL_INIT_OP</span></li><li class="in" name="org.platanios.tensorflow.api.core.Graph.Keys.OpCollectionKey"><span>OpCollectionKey</span></li><li class="in" name="org.platanios.tensorflow.api.core.Graph.Key"><span>Key</span></li><li class="in" name="scala.AnyRef"><span>AnyRef</span></li><li class="in" name="scala.Any"><span>Any</span></li>
+                    <li class="in" name="org.platanios.tensorflow.api.core.Graph.Keys.READY_FOR_LOCAL_INIT_OP"><span>READY_FOR_LOCAL_INIT_OP</span></li><li class="in" name="org.platanios.tensorflow.api.core.Graph.Keys.OutputCollectionKey"><span>OutputCollectionKey</span></li><li class="in" name="org.platanios.tensorflow.api.core.Graph.Key"><span>Key</span></li><li class="in" name="scala.AnyRef"><span>AnyRef</span></li><li class="in" name="scala.Any"><span>Any</span></li>
                   </ol>
                 </div><div class="ancestors">
               <span class="filtertype"></span>
@@ -559,10 +589,10 @@ variables are subset of these).">
     </span>)</span>
               
         </dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.core.Graph.Keys.OpCollectionKey#createCollectionDef" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="createCollectionDef(values:Set[org.platanios.tensorflow.api.ops.Op],exportScope:String):org.tensorflow.framework.CollectionDef"></a><a id="createCollectionDef(Set[Op],String):CollectionDef"></a>
+    </li><li name="org.platanios.tensorflow.api.core.Graph.Keys.OutputCollectionKey#createCollectionDef" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="createCollectionDef(values:Set[org.platanios.tensorflow.api.ops.Output],exportScope:String):org.tensorflow.framework.CollectionDef"></a><a id="createCollectionDef(Set[Output],String):CollectionDef"></a>
       <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/core/Graph$$Keys$$READY_FOR_LOCAL_INIT_OP$.html#createCollectionDef(values:Set[org.platanios.tensorflow.api.ops.Op],exportScope:String):org.tensorflow.framework.CollectionDef" title="Permalink">
+      <a href="../../../../../org/platanios/tensorflow/api/core/Graph$$Keys$$READY_FOR_LOCAL_INIT_OP$.html#createCollectionDef(values:Set[org.platanios.tensorflow.api.ops.Output],exportScope:String):org.tensorflow.framework.CollectionDef" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -571,13 +601,13 @@ variables are subset of these).">
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">createCollectionDef</span><span class="params">(<span name="values">values: <span class="extype" name="scala.Predef.Set">Set</span>[<a href="../ops/Op.html" class="extype" name="org.platanios.tensorflow.api.ops.Op">Op</a>]</span>, <span name="exportScope">exportScope: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">null</span></span>)</span><span class="result">: <span class="extype" name="org.tensorflow.framework.CollectionDef">CollectionDef</span></span>
+        <span class="name">createCollectionDef</span><span class="params">(<span name="values">values: <span class="extype" name="scala.Predef.Set">Set</span>[<a href="../ops/Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a>]</span>, <span name="exportScope">exportScope: <span class="extype" name="scala.Predef.String">String</span></span>)</span><span class="result">: <span class="extype" name="org.tensorflow.framework.CollectionDef">CollectionDef</span></span>
       </span>
       
       <p class="shortcomment cmt">Creates a <span class="extype" name="CollectionDef">CollectionDef</span> from the provided set of values.</p><div class="fullcomment"><div class="comment cmt"><p>Creates a <span class="extype" name="CollectionDef">CollectionDef</span> from the provided set of values.
 </p></div><dl class="paramcmts block"><dt class="param">values</dt><dd class="cmt"><p>Values to serialize in the <span class="extype" name="CollectionDef">CollectionDef</span>.</p></dd><dt class="param">exportScope</dt><dd class="cmt"><p>Optional string specifying the name scope to remove. Only the ops within this name scope
                     will be included in the resulting ProtoBuf object and the export scope will be stripped from
-                    their names to allow for easy import into new name scopes.</p></dd><dt>returns</dt><dd class="cmt"><p>Serialized <code>values</code> in a new <span class="extype" name="CollectionDef">CollectionDef</span>.</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="Graph$$Keys$$OpCollectionKey.html" class="extype" name="org.platanios.tensorflow.api.core.Graph.Keys.OpCollectionKey">OpCollectionKey</a> → <a href="Graph$$Key.html" class="extype" name="org.platanios.tensorflow.api.core.Graph.Key">Key</a></dd></dl></div>
+                    their names to allow for easy import into new name scopes.</p></dd><dt>returns</dt><dd class="cmt"><p>Serialized <code>values</code> in a new <span class="extype" name="CollectionDef">CollectionDef</span>.</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="Graph$$Keys$$OutputCollectionKey.html" class="extype" name="org.platanios.tensorflow.api.core.Graph.Keys.OutputCollectionKey">OutputCollectionKey</a> → <a href="Graph$$Key.html" class="extype" name="org.platanios.tensorflow.api.core.Graph.Key">Key</a></dd></dl></div>
     </li><li name="scala.AnyRef#eq" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="eq(x$1:AnyRef):Boolean"></a><a id="eq(AnyRef):Boolean"></a>
       <span class="permalink">
@@ -744,7 +774,7 @@ variables are subset of these).">
       </span>
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.core.Graph.Keys.OpCollectionKey#parseCollectionDef" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+    </li><li name="org.platanios.tensorflow.api.core.Graph.Keys.OutputCollectionKey#parseCollectionDef" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="parseCollectionDef(collectionDef:org.tensorflow.framework.CollectionDef,graph:org.platanios.tensorflow.api.core.Graph,importScope:String):Unit"></a><a id="parseCollectionDef(CollectionDef,Graph,String):Unit"></a>
       <span class="permalink">
       <a href="../../../../../org/platanios/tensorflow/api/core/Graph$$Keys$$READY_FOR_LOCAL_INIT_OP$.html#parseCollectionDef(collectionDef:org.tensorflow.framework.CollectionDef,graph:org.platanios.tensorflow.api.core.Graph,importScope:String):Unit" title="Permalink">
@@ -761,7 +791,7 @@ variables are subset of these).">
       
       <p class="shortcomment cmt">Parses a <span class="extype" name="CollectionDef">CollectionDef</span> and adds the collection values to the corresponding collection in the graph.</p><div class="fullcomment"><div class="comment cmt"><p>Parses a <span class="extype" name="CollectionDef">CollectionDef</span> and adds the collection values to the corresponding collection in the graph.
 </p></div><dl class="paramcmts block"><dt class="param">collectionDef</dt><dd class="cmt"><p><span class="extype" name="CollectionDef">CollectionDef</span> being parsed.</p></dd><dt class="param">graph</dt><dd class="cmt"><p>Graph in which the collection should be added.</p></dd><dt class="param">importScope</dt><dd class="cmt"><p>Optional prefix that will be prepended to all node names in the graph that is being
-                      imported to this graph.</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="Graph$$Keys$$OpCollectionKey.html" class="extype" name="org.platanios.tensorflow.api.core.Graph.Keys.OpCollectionKey">OpCollectionKey</a> → <a href="Graph$$Key.html" class="extype" name="org.platanios.tensorflow.api.core.Graph.Key">Key</a></dd></dl></div>
+                      imported to this graph.</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="Graph$$Keys$$OutputCollectionKey.html" class="extype" name="org.platanios.tensorflow.api.core.Graph.Keys.OutputCollectionKey">OutputCollectionKey</a> → <a href="Graph$$Key.html" class="extype" name="org.platanios.tensorflow.api.core.Graph.Key">Key</a></dd></dl></div>
     </li><li name="scala.AnyRef#synchronized" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="synchronized[T0](x$1:=&gt;T0):T0"></a><a id="synchronized[T0](⇒T0):T0"></a>
       <span class="permalink">
@@ -870,10 +900,10 @@ variables are subset of these).">
         </div>
 
         <div id="inheritedMembers">
-        <div class="parent" name="org.platanios.tensorflow.api.core.Graph.Keys.OpCollectionKey">
-              <h3>Inherited from <a href="Graph$$Keys$$OpCollectionKey.html" class="extype" name="org.platanios.tensorflow.api.core.Graph.Keys.OpCollectionKey">OpCollectionKey</a></h3>
+        <div class="parent" name="org.platanios.tensorflow.api.core.Graph.Keys.OutputCollectionKey">
+              <h3>Inherited from <a href="Graph$$Keys$$OutputCollectionKey.html" class="extype" name="org.platanios.tensorflow.api.core.Graph.Keys.OutputCollectionKey">OutputCollectionKey</a></h3>
             </div><div class="parent" name="org.platanios.tensorflow.api.core.Graph.Key">
-              <h3>Inherited from <a href="Graph$$Key.html" class="extype" name="org.platanios.tensorflow.api.core.Graph.Key">Key</a>[<a href="../ops/Op.html" class="extype" name="org.platanios.tensorflow.api.ops.Op">Op</a>]</h3>
+              <h3>Inherited from <a href="Graph$$Key.html" class="extype" name="org.platanios.tensorflow.api.core.Graph.Key">Key</a>[<a href="../ops/Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a>]</h3>
             </div><div class="parent" name="scala.AnyRef">
               <h3>Inherited from <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></h3>
             </div><div class="parent" name="scala.Any">

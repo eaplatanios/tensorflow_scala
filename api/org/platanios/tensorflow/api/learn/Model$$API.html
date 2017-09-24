@@ -178,7 +178,7 @@
             </a>
       </span>
       
-      <p class="shortcomment cmt"></p><div class="fullcomment"><div class="comment cmt"></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="index.html" class="extype" name="org.platanios.tensorflow.api.learn">learn</a></dd></dl></div>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="index.html" class="extype" name="org.platanios.tensorflow.api.learn">learn</a></dd></dl></div>
     </li><li class="current-entities indented6">
                         <a class="object" href="Model$$API$.html" title=""></a>
                         <a class="trait" href="" title=""></a>
@@ -187,33 +187,15 @@
                         </a>
                       </li><li class="current-entities indented6">
                         <span class="separator"></span>
-                        <a class="class" href="Model$$CheckpointInitialization.html" title=""></a>
-                        <a href="Model$$CheckpointInitialization.html" title="">
-                          CheckpointInitialization
+                        <a class="class" href="Model$$InferenceOps.html" title=""></a>
+                        <a href="Model$$InferenceOps.html" title="">
+                          InferenceOps
                         </a>
                       </li><li class="current-entities indented6">
-                        <span class="separator"></span>
-                        <a class="object" href="Model$$DefaultInitialization$.html" title=""></a>
-                        <a href="Model$$DefaultInitialization$.html" title="">
-                          DefaultInitialization
-                        </a>
-                      </li><li class="current-entities indented6">
-                        <span class="separator"></span>
-                        <a class="trait" href="Model$$Initialization.html" title=""></a>
-                        <a href="Model$$Initialization.html" title="">
-                          Initialization
-                        </a>
-                      </li><li class="current-entities indented6">
-                        <span class="separator"></span>
-                        <a class="object" href="Model$$LatestCheckpointInitialization$.html" title=""></a>
-                        <a href="Model$$LatestCheckpointInitialization$.html" title="">
-                          LatestCheckpointInitialization
-                        </a>
-                      </li><li class="current-entities indented6">
-                        <span class="separator"></span>
-                        <a class="object" href="Model$$NoInitialization$.html" title=""></a>
-                        <a href="Model$$NoInitialization$.html" title="">
-                          NoInitialization
+                        <a class="object" href="Model$$TrainOps$.html" title=""></a>
+                        <a class="class" href="Model$$TrainOps.html" title=""></a>
+                        <a href="Model$$TrainOps.html" title="">
+                          TrainOps
                         </a>
                       </li>
               </ul>
@@ -496,9 +478,9 @@
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>Any</dd></dl></div>
     </li><li name="org.platanios.tensorflow.api.learn.Model.API#model" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="model[IO,ID,IS,I,TO,TD,TS,ST,T](input:org.platanios.tensorflow.api.learn.SupportedInput[IO,ID,IS],layer:org.platanios.tensorflow.api.learn.Layer[IO,I],trainingInput:org.platanios.tensorflow.api.learn.SupportedInput[TO,TD,TS],trainingInputLayer:org.platanios.tensorflow.api.learn.Layer[TO,T],loss:org.platanios.tensorflow.api.learn.Layer[(I,T),org.platanios.tensorflow.api.tf.Output],optimizer:org.platanios.tensorflow.api.tf.train.Optimizer):org.platanios.tensorflow.api.learn.TrainableModel[IO,ID,IS,I,TO,TD,TS,ST,T]"></a><a id="model[IO,ID,IS,I,TO,TD,TS,ST,T](SupportedInput[IO,ID,IS],Layer[IO,I],SupportedInput[TO,TD,TS],Layer[TO,T],Layer[(I,T),tf.Output],ops.API.train.Optimizer):TrainableModel[IO,ID,IS,I,TO,TD,TS,ST,T]"></a>
+      <a id="model[IT,IO,ID,IS,I,TT,TO,TD,TS,T](input:org.platanios.tensorflow.api.learn.layers.Input[IT,IO,ID,IS],layer:org.platanios.tensorflow.api.learn.layers.Layer[IO,I],trainingInput:org.platanios.tensorflow.api.learn.layers.Input[TT,TO,TD,TS],trainingInputLayer:org.platanios.tensorflow.api.learn.layers.Layer[TO,T],loss:org.platanios.tensorflow.api.learn.layers.Layer[(I,T),org.platanios.tensorflow.api.ops.Output],optimizer:org.platanios.tensorflow.api.ops.training.optimizers.Optimizer):org.platanios.tensorflow.api.learn.TrainableModel[IT,IO,ID,IS,I,TT,TO,TD,TS,T]"></a><a id="model[IT,IO,ID,IS,I,TT,TO,TD,TS,T](Input[IT,IO,ID,IS],Layer[IO,I],Input[TT,TO,TD,TS],Layer[TO,T],Layer[(I,T),Output],Optimizer):TrainableModel[IT,IO,ID,IS,I,TT,TO,TD,TS,T]"></a>
       <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/learn/Model$$API.html#model[IO,ID,IS,I,TO,TD,TS,ST,T](input:org.platanios.tensorflow.api.learn.SupportedInput[IO,ID,IS],layer:org.platanios.tensorflow.api.learn.Layer[IO,I],trainingInput:org.platanios.tensorflow.api.learn.SupportedInput[TO,TD,TS],trainingInputLayer:org.platanios.tensorflow.api.learn.Layer[TO,T],loss:org.platanios.tensorflow.api.learn.Layer[(I,T),org.platanios.tensorflow.api.tf.Output],optimizer:org.platanios.tensorflow.api.tf.train.Optimizer):org.platanios.tensorflow.api.learn.TrainableModel[IO,ID,IS,I,TO,TD,TS,ST,T]" title="Permalink">
+      <a href="../../../../../org/platanios/tensorflow/api/learn/Model$$API.html#model[IT,IO,ID,IS,I,TT,TO,TD,TS,T](input:org.platanios.tensorflow.api.learn.layers.Input[IT,IO,ID,IS],layer:org.platanios.tensorflow.api.learn.layers.Layer[IO,I],trainingInput:org.platanios.tensorflow.api.learn.layers.Input[TT,TO,TD,TS],trainingInputLayer:org.platanios.tensorflow.api.learn.layers.Layer[TO,T],loss:org.platanios.tensorflow.api.learn.layers.Layer[(I,T),org.platanios.tensorflow.api.ops.Output],optimizer:org.platanios.tensorflow.api.ops.training.optimizers.Optimizer):org.platanios.tensorflow.api.learn.TrainableModel[IT,IO,ID,IS,I,TT,TO,TD,TS,T]" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -507,7 +489,7 @@
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">model</span><span class="tparams">[<span name="IO">IO</span>, <span name="ID">ID</span>, <span name="IS">IS</span>, <span name="I">I</span>, <span name="TO">TO</span>, <span name="TD">TD</span>, <span name="TS">TS</span>, <span name="ST">ST</span>, <span name="T">T</span>]</span><span class="params">(<span name="input">input: <a href="SupportedInput.html" class="extype" name="org.platanios.tensorflow.api.learn.SupportedInput">SupportedInput</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.Model.API.model.IO">IO</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.Model.API.model.ID">ID</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.Model.API.model.IS">IS</span>]</span>, <span name="layer">layer: <a href="Layer.html" class="extype" name="org.platanios.tensorflow.api.learn.Layer">Layer</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.Model.API.model.IO">IO</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.Model.API.model.I">I</span>]</span>, <span name="trainingInput">trainingInput: <a href="SupportedInput.html" class="extype" name="org.platanios.tensorflow.api.learn.SupportedInput">SupportedInput</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.Model.API.model.TO">TO</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.Model.API.model.TD">TD</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.Model.API.model.TS">TS</span>]</span>, <span name="trainingInputLayer">trainingInputLayer: <a href="Layer.html" class="extype" name="org.platanios.tensorflow.api.learn.Layer">Layer</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.Model.API.model.TO">TO</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.Model.API.model.T">T</span>]</span>, <span name="loss">loss: <a href="Layer.html" class="extype" name="org.platanios.tensorflow.api.learn.Layer">Layer</a>[(<span class="extype" name="org.platanios.tensorflow.api.learn.Model.API.model.I">I</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.Model.API.model.T">T</span>), <a href="../package$$tf$.html#Output=org.platanios.tensorflow.api.ops.Output" class="extmbr" name="org.platanios.tensorflow.api.tf.Output">tf.Output</a>]</span>, <span name="optimizer">optimizer: <span class="extype" name="org.platanios.tensorflow.api.ops.training.optimizers.API.Optimizer">ops.API.train.Optimizer</span></span>)</span><span class="result">: <a href="TrainableModel.html" class="extype" name="org.platanios.tensorflow.api.learn.TrainableModel">TrainableModel</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.Model.API.model.IO">IO</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.Model.API.model.ID">ID</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.Model.API.model.IS">IS</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.Model.API.model.I">I</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.Model.API.model.TO">TO</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.Model.API.model.TD">TD</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.Model.API.model.TS">TS</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.Model.API.model.ST">ST</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.Model.API.model.T">T</span>]</span>
+        <span class="name">model</span><span class="tparams">[<span name="IT">IT</span>, <span name="IO">IO</span>, <span name="ID">ID</span>, <span name="IS">IS</span>, <span name="I">I</span>, <span name="TT">TT</span>, <span name="TO">TO</span>, <span name="TD">TD</span>, <span name="TS">TS</span>, <span name="T">T</span>]</span><span class="params">(<span name="input">input: <a href="layers/Input.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Input">Input</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.Model.API.model.IT">IT</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.Model.API.model.IO">IO</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.Model.API.model.ID">ID</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.Model.API.model.IS">IS</span>]</span>, <span name="layer">layer: <a href="layers/Layer.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Layer">Layer</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.Model.API.model.IO">IO</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.Model.API.model.I">I</span>]</span>, <span name="trainingInput">trainingInput: <a href="layers/Input.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Input">Input</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.Model.API.model.TT">TT</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.Model.API.model.TO">TO</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.Model.API.model.TD">TD</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.Model.API.model.TS">TS</span>]</span>, <span name="trainingInputLayer">trainingInputLayer: <a href="layers/Layer.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Layer">Layer</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.Model.API.model.TO">TO</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.Model.API.model.T">T</span>]</span>, <span name="loss">loss: <a href="layers/Layer.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Layer">Layer</a>[(<span class="extype" name="org.platanios.tensorflow.api.learn.Model.API.model.I">I</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.Model.API.model.T">T</span>), <a href="../ops/Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a>]</span>, <span name="optimizer">optimizer: <a href="../ops/training/optimizers/Optimizer.html" class="extype" name="org.platanios.tensorflow.api.ops.training.optimizers.Optimizer">Optimizer</a></span>)</span><span class="result">: <a href="TrainableModel.html" class="extype" name="org.platanios.tensorflow.api.learn.TrainableModel">TrainableModel</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.Model.API.model.IT">IT</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.Model.API.model.IO">IO</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.Model.API.model.ID">ID</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.Model.API.model.IS">IS</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.Model.API.model.I">I</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.Model.API.model.TT">TT</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.Model.API.model.TO">TO</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.Model.API.model.TD">TD</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.Model.API.model.TS">TS</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.Model.API.model.T">T</span>]</span>
       </span>
       
       

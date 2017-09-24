@@ -179,12 +179,6 @@
       <p class="shortcomment cmt">Contains helper functions and classes for creating IO-related ops.</p><div class="fullcomment"><div class="comment cmt"><p>Contains helper functions and classes for creating IO-related ops.
 </p></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../index.html" class="extype" name="org.platanios.tensorflow.api.ops">ops</a></dd></dl></div>
     </li><li class="current-entities indented6">
-                        <span class="separator"></span>
-                        <a class="class" href="BatchDataset.html" title="Dataset that batches batchSize elements from inputDataset."></a>
-                        <a href="BatchDataset.html" title="Dataset that batches batchSize elements from inputDataset.">
-                          BatchDataset
-                        </a>
-                      </li><li class="current-entities indented6">
                         <a class="object" href="Data$.html" title=""></a>
                         <a class="trait" href="Data.html" title="Data can be emitted by Datasets (i.e., the element types of all Datasets are Data)."></a>
                         <a href="Data.html" title="Data can be emitted by Datasets (i.e., the element types of all Datasets are Data).">
@@ -224,27 +218,9 @@ it, using its createInitializer method.">
                         </a>
                       </li><li class="current-entities indented6">
                         <span class="separator"></span>
-                        <a class="class" href="RepeatDataset.html" title="Dataset that repeats the elements from inputDataset a specified number of times."></a>
-                        <a href="RepeatDataset.html" title="Dataset that repeats the elements from inputDataset a specified number of times.">
-                          RepeatDataset
-                        </a>
-                      </li><li class="current-entities indented6">
-                        <span class="separator"></span>
                         <a class="class" href="SerializableReader.html" title=""></a>
                         <a href="SerializableReader.html" title="">
                           SerializableReader
-                        </a>
-                      </li><li class="current-entities indented6">
-                        <span class="separator"></span>
-                        <a class="class" href="TensorDataset.html" title="Dataset with a single element."></a>
-                        <a href="TensorDataset.html" title="Dataset with a single element.">
-                          TensorDataset
-                        </a>
-                      </li><li class="current-entities indented6">
-                        <span class="separator"></span>
-                        <a class="class" href="TensorSliceDataset.html" title="Dataset with slices from the nested structure of Outputs (i.e., a Data-supported type)."></a>
-                        <a href="TensorSliceDataset.html" title="Dataset with slices from the nested structure of Outputs (i.e., a Data-supported type).">
-                          TensorSliceDataset
                         </a>
                       </li><li name="org.platanios.tensorflow.api.ops.training" visbl="pub" class="indented6 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="training"></a><a id="training:training"></a>
@@ -363,25 +339,7 @@ it, using its createInitializer method.">
 
         <div id="types" class="types members">
               <h3>Type Members</h3>
-              <ol><li name="org.platanios.tensorflow.api.ops.io.BatchDataset" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="BatchDataset[O,D,S]extendsDataset[O,D,S]withProductwithSerializable"></a><a id="BatchDataset[O,D,S]:BatchDataset[O,D,S]"></a>
-      <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/ops/io/index.html#BatchDataset[O,D,S]extendsDataset[O,D,S]withProductwithSerializable" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">case class</span>
-      </span>
-      <span class="symbol">
-        <a title="Dataset that batches batchSize elements from inputDataset." href="BatchDataset.html">
-              <span class="name">BatchDataset</span>
-            </a><span class="tparams">[<span name="O">O</span>, <span name="D">D</span>, <span name="S">S</span>]</span><span class="result"> extends <a href="Dataset.html" class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset">Dataset</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.io.BatchDataset.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.BatchDataset.D">D</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.BatchDataset.S">S</span>] with <a href="http://www.scala-lang.org/api/2.12.3/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="http://www.scala-lang.org/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
-      </span>
-      
-      <p class="shortcomment cmt"><a href="Dataset.html" class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset">Dataset</a> that batches <code>batchSize</code> elements from <code>inputDataset</code>.</p>
-    </li><li name="org.platanios.tensorflow.api.ops.io.Data" visbl="pub" class="indented0 " data-isabs="true" fullComment="yes" group="Ungrouped">
+              <ol><li name="org.platanios.tensorflow.api.ops.io.Data" visbl="pub" class="indented0 " data-isabs="true" fullComment="yes" group="Ungrouped">
       <a id="Data[T]extendsAnyRef"></a><a id="Data[T]:Data[T]"></a>
       <span class="permalink">
       <a href="../../../../../../org/platanios/tensorflow/api/ops/io/index.html#Data[T]extendsAnyRef" title="Permalink">
@@ -408,9 +366,9 @@ type, then the dataset output data types will have the following structure <code
 and similarly for the output shapes.
 </p></div></div>
     </li><li name="org.platanios.tensorflow.api.ops.io.Dataset" visbl="pub" class="indented0 " data-isabs="true" fullComment="yes" group="Ungrouped">
-      <a id="Dataset[O,D,S]extendsAnyRef"></a><a id="Dataset[O,D,S]:Dataset[O,D,S]"></a>
+      <a id="Dataset[T,O,D,S]extendsAnyRef"></a><a id="Dataset[T,O,D,S]:Dataset[T,O,D,S]"></a>
       <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/ops/io/index.html#Dataset[O,D,S]extendsAnyRef" title="Permalink">
+      <a href="../../../../../../org/platanios/tensorflow/api/ops/io/index.html#Dataset[T,O,D,S]extendsAnyRef" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -421,16 +379,16 @@ and similarly for the output shapes.
       <span class="symbol">
         <a title="Represents a potentially large set of elements." href="Dataset.html">
               <span class="name">Dataset</span>
-            </a><span class="tparams">[<span name="O">O</span>, <span name="D">D</span>, <span name="S">S</span>]</span><span class="result"> extends <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></span>
+            </a><span class="tparams">[<span name="T">T</span>, <span name="O">O</span>, <span name="D">D</span>, <span name="S">S</span>]</span><span class="result"> extends <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></span>
       </span>
       
       <p class="shortcomment cmt">Represents a potentially large set of elements.</p><div class="fullcomment"><div class="comment cmt"><p>Represents a potentially large set of elements.</p><p>A <a href="Dataset.html" class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset">Dataset</a> can be used to represent an input pipeline as a collection of elements (i.e., nested structures of
 tensors) and a &quot;logical plan&quot; of transformations that act on those elements.
-</p></div></div>
+</p></div><dl class="paramcmts block"><dt class="tparam">O</dt><dd class="cmt"><p>Output type (i.e., nested structure of symbolic tensors).</p></dd><dt class="tparam">D</dt><dd class="cmt"><p>Data type of the outputs (i.e., nested structure of TensorFlow data types).</p></dd><dt class="tparam">S</dt><dd class="cmt"><p>Shape type of the outputs (i.e., nested structure of TensorFlow shapes).</p></dd></dl></div>
     </li><li name="org.platanios.tensorflow.api.ops.io.InitializableIterator" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="InitializableIterator[O,D,S]extendsIterator[O,D,S]"></a><a id="InitializableIterator[O,D,S]:InitializableIterator[O,D,S]"></a>
+      <a id="InitializableIterator[T,O,D,S]extendsIterator[T,O,D,S]"></a><a id="InitializableIterator[T,O,D,S]:InitializableIterator[T,O,D,S]"></a>
       <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/ops/io/index.html#InitializableIterator[O,D,S]extendsIterator[O,D,S]" title="Permalink">
+      <a href="../../../../../../org/platanios/tensorflow/api/ops/io/index.html#InitializableIterator[T,O,D,S]extendsIterator[T,O,D,S]" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -441,15 +399,15 @@ tensors) and a &quot;logical plan&quot; of transformations that act on those ele
       <span class="symbol">
         <a title="An Iterator that contains an initializer." href="InitializableIterator.html">
               <span class="name">InitializableIterator</span>
-            </a><span class="tparams">[<span name="O">O</span>, <span name="D">D</span>, <span name="S">S</span>]</span><span class="result"> extends <a href="Iterator.html" class="extype" name="org.platanios.tensorflow.api.ops.io.Iterator">Iterator</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.io.InitializableIterator.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.InitializableIterator.D">D</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.InitializableIterator.S">S</span>]</span>
+            </a><span class="tparams">[<span name="T">T</span>, <span name="O">O</span>, <span name="D">D</span>, <span name="S">S</span>]</span><span class="result"> extends <a href="Iterator.html" class="extype" name="org.platanios.tensorflow.api.ops.io.Iterator">Iterator</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.io.InitializableIterator.T">T</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.InitializableIterator.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.InitializableIterator.D">D</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.InitializableIterator.S">S</span>]</span>
       </span>
       
       <p class="shortcomment cmt">An <a href="Iterator.html" class="extype" name="org.platanios.tensorflow.api.ops.io.Iterator">Iterator</a> that contains an initializer.</p><div class="fullcomment"><div class="comment cmt"><p>An <a href="Iterator.html" class="extype" name="org.platanios.tensorflow.api.ops.io.Iterator">Iterator</a> that contains an initializer.</p><p>An <a href="Iterator.html" class="extype" name="org.platanios.tensorflow.api.ops.io.Iterator">Iterator</a> represents the state of iterating through a <a href="Dataset.html" class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset">Dataset</a>.
 </p></div></div>
     </li><li name="org.platanios.tensorflow.api.ops.io.Iterator" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="Iterator[O,D,S]extendsAnyRef"></a><a id="Iterator[O,D,S]:Iterator[O,D,S]"></a>
+      <a id="Iterator[T,O,D,S]extendsAnyRef"></a><a id="Iterator[T,O,D,S]:Iterator[T,O,D,S]"></a>
       <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/ops/io/index.html#Iterator[O,D,S]extendsAnyRef" title="Permalink">
+      <a href="../../../../../../org/platanios/tensorflow/api/ops/io/index.html#Iterator[T,O,D,S]extendsAnyRef" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -461,7 +419,7 @@ tensors) and a &quot;logical plan&quot; of transformations that act on those ele
         <a title="A simple Iterator that does contains an initializer and can thus not be used until an initializer is created for
 it, using its createInitializer method." href="Iterator.html">
               <span class="name">Iterator</span>
-            </a><span class="tparams">[<span name="O">O</span>, <span name="D">D</span>, <span name="S">S</span>]</span><span class="result"> extends <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></span>
+            </a><span class="tparams">[<span name="T">T</span>, <span name="O">O</span>, <span name="D">D</span>, <span name="S">S</span>]</span><span class="result"> extends <a href="http://www.scala-lang.org/api/2.12.3/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></span>
       </span>
       
       <p class="shortcomment cmt">A simple <a href="Iterator.html" class="extype" name="org.platanios.tensorflow.api.ops.io.Iterator">Iterator</a> that does contains an initializer and can thus not be used until an initializer is created for
@@ -491,24 +449,6 @@ step, but a work unit can correspond to many records.</p><p>Therefore we introdu
 from the queue when it is asked to produce a record (e.g., via its <code>read</code> method) but it has already finished the
 last work unit.
 </p></div></div>
-    </li><li name="org.platanios.tensorflow.api.ops.io.RepeatDataset" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="RepeatDataset[O,D,S]extendsDataset[O,D,S]withProductwithSerializable"></a><a id="RepeatDataset[O,D,S]:RepeatDataset[O,D,S]"></a>
-      <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/ops/io/index.html#RepeatDataset[O,D,S]extendsDataset[O,D,S]withProductwithSerializable" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">case class</span>
-      </span>
-      <span class="symbol">
-        <a title="Dataset that repeats the elements from inputDataset a specified number of times." href="RepeatDataset.html">
-              <span class="name">RepeatDataset</span>
-            </a><span class="tparams">[<span name="O">O</span>, <span name="D">D</span>, <span name="S">S</span>]</span><span class="result"> extends <a href="Dataset.html" class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset">Dataset</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.io.RepeatDataset.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.RepeatDataset.D">D</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.RepeatDataset.S">S</span>] with <a href="http://www.scala-lang.org/api/2.12.3/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="http://www.scala-lang.org/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
-      </span>
-      
-      <p class="shortcomment cmt"><a href="Dataset.html" class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset">Dataset</a> that repeats the elements from <code>inputDataset</code> a specified number of times.</p>
     </li><li name="org.platanios.tensorflow.api.ops.io.SerializableReader" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
       <a id="SerializableReaderextendsReader"></a><a id="SerializableReader:SerializableReader"></a>
       <span class="permalink">
@@ -527,44 +467,6 @@ last work unit.
       </span>
       
       
-    </li><li name="org.platanios.tensorflow.api.ops.io.TensorDataset" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="TensorDataset[T,O,D,S]extendsDataset[O,D,S]withProductwithSerializable"></a><a id="TensorDataset[T,O,D,S]:TensorDataset[T,O,D,S]"></a>
-      <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/ops/io/index.html#TensorDataset[T,O,D,S]extendsDataset[O,D,S]withProductwithSerializable" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">case class</span>
-      </span>
-      <span class="symbol">
-        <a title="Dataset with a single element." href="TensorDataset.html">
-              <span class="name">TensorDataset</span>
-            </a><span class="tparams">[<span name="T">T</span>, <span name="O">O</span>, <span name="D">D</span>, <span name="S">S</span>]</span><span class="result"> extends <a href="Dataset.html" class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset">Dataset</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.io.TensorDataset.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.TensorDataset.D">D</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.TensorDataset.S">S</span>] with <a href="http://www.scala-lang.org/api/2.12.3/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="http://www.scala-lang.org/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
-      </span>
-      
-      <p class="shortcomment cmt"><a href="Dataset.html" class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset">Dataset</a> with a single element.</p>
-    </li><li name="org.platanios.tensorflow.api.ops.io.TensorSliceDataset" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="TensorSliceDataset[T,O,D,S]extendsDataset[O,D,S]withProductwithSerializable"></a><a id="TensorSliceDataset[T,O,D,S]:TensorSliceDataset[T,O,D,S]"></a>
-      <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/ops/io/index.html#TensorSliceDataset[T,O,D,S]extendsDataset[O,D,S]withProductwithSerializable" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">case class</span>
-      </span>
-      <span class="symbol">
-        <a title="Dataset with slices from the nested structure of Outputs (i.e., a Data-supported type)." href="TensorSliceDataset.html">
-              <span class="name">TensorSliceDataset</span>
-            </a><span class="tparams">[<span name="T">T</span>, <span name="O">O</span>, <span name="D">D</span>, <span name="S">S</span>]</span><span class="result"> extends <a href="Dataset.html" class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset">Dataset</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.io.TensorSliceDataset.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.TensorSliceDataset.D">D</span>, <span class="extype" name="org.platanios.tensorflow.api.ops.io.TensorSliceDataset.S">S</span>] with <a href="http://www.scala-lang.org/api/2.12.3/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="http://www.scala-lang.org/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
-      </span>
-      
-      <p class="shortcomment cmt"><a href="Dataset.html" class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset">Dataset</a> with slices from the nested structure of <a href="../Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a>s (i.e., a <a href="Data.html" class="extype" name="org.platanios.tensorflow.api.ops.io.Data">Data</a>-supported type).</p><div class="fullcomment"><div class="comment cmt"><p><a href="Dataset.html" class="extype" name="org.platanios.tensorflow.api.ops.io.Dataset">Dataset</a> with slices from the nested structure of <a href="../Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a>s (i.e., a <a href="Data.html" class="extype" name="org.platanios.tensorflow.api.ops.io.Data">Data</a>-supported type). The slices are
-taken along the first axis of each <a href="../Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a> in the nested structure.
-</p></div></div>
     </li></ol>
             </div>
 

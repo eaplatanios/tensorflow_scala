@@ -678,7 +678,7 @@ value.
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="" class="extype" name="org.platanios.tensorflow.api.ops.variables.Variable">Variable</a> → Equals → AnyRef → Any</dd></dl></div>
     </li><li name="org.platanios.tensorflow.api.ops.variables.Variable#evaluate" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="evaluate(feeds:Map[org.platanios.tensorflow.api.ops.Output,org.platanios.tensorflow.api.tensors.Tensor],session:org.platanios.tensorflow.api.core.client.Session):org.platanios.tensorflow.api.tensors.Tensor"></a><a id="evaluate(Map[Output,tensors.Tensor],Session):tensors.Tensor"></a>
+      <a id="evaluate(feeds:Map[org.platanios.tensorflow.api.ops.Output,org.platanios.tensorflow.api.tensors.Tensor],session:org.platanios.tensorflow.api.core.client.Session):org.platanios.tensorflow.api.tensors.Tensor"></a><a id="evaluate(Map[Output,tensors.Tensor],core.client.Session):tensors.Tensor"></a>
       <span class="permalink">
       <a href="../../../../../../org/platanios/tensorflow/api/ops/variables/Variable.html#evaluate(feeds:Map[org.platanios.tensorflow.api.ops.Output,org.platanios.tensorflow.api.tensors.Tensor],session:org.platanios.tensorflow.api.core.client.Session):org.platanios.tensorflow.api.tensors.Tensor" title="Permalink">
         <i class="material-icons"></i>
@@ -689,7 +689,7 @@ value.
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">evaluate</span><span class="params">(<span name="feeds">feeds: <span class="extype" name="scala.Predef.Map">Map</span>[<a href="../Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a>, <a href="../../tensors/Tensor.html" class="extype" name="org.platanios.tensorflow.api.tensors.Tensor">tensors.Tensor</a>] = <span class="symbol">Map.empty</span></span>, <span name="session">session: <a href="../../core/client/Session.html" class="extype" name="org.platanios.tensorflow.api.core.client.Session">Session</a> = <span class="symbol">null</span></span>)</span><span class="result">: <a href="../../tensors/Tensor.html" class="extype" name="org.platanios.tensorflow.api.tensors.Tensor">tensors.Tensor</a></span>
+        <span class="name">evaluate</span><span class="params">(<span name="feeds">feeds: <span class="extype" name="scala.Predef.Map">Map</span>[<a href="../Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a>, <a href="../../tensors/Tensor.html" class="extype" name="org.platanios.tensorflow.api.tensors.Tensor">tensors.Tensor</a>] = <span class="symbol">Map.empty</span></span>, <span name="session">session: <a href="../../core/client/Session.html" class="extype" name="org.platanios.tensorflow.api.core.client.Session">core.client.Session</a> = <span class="symbol">null</span></span>)</span><span class="result">: <a href="../../tensors/Tensor.html" class="extype" name="org.platanios.tensorflow.api.tensors.Tensor">tensors.Tensor</a></span>
       </span>
       
       <p class="shortcomment cmt">Evaluates the value of this variable.</p><div class="fullcomment"><div class="comment cmt"><p>Evaluates the value of this variable.</p><p>If <code>feeds</code> is non-empty, then the provided feed values are fed into the session for computing the value of this
@@ -735,7 +735,7 @@ the evaluation.
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
     </li><li name="org.platanios.tensorflow.api.ops.variables.Variable#graph" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="graph:org.platanios.tensorflow.api.core.Graph"></a><a id="graph:Graph"></a>
+      <a id="graph:org.platanios.tensorflow.api.core.Graph"></a><a id="graph:core.Graph"></a>
       <span class="permalink">
       <a href="../../../../../../org/platanios/tensorflow/api/ops/variables/Variable.html#graph:org.platanios.tensorflow.api.core.Graph" title="Permalink">
         <i class="material-icons"></i>
@@ -746,7 +746,7 @@ the evaluation.
         <span class="kind">val</span>
       </span>
       <span class="symbol">
-        <span class="name">graph</span><span class="result">: <a href="../../core/Graph.html" class="extype" name="org.platanios.tensorflow.api.core.Graph">Graph</a></span>
+        <span class="name">graph</span><span class="result">: <a href="../../core/Graph.html" class="extype" name="org.platanios.tensorflow.api.core.Graph">core.Graph</a></span>
       </span>
       
       <p class="shortcomment cmt">Graph where this variable is defined.</p>
@@ -979,7 +979,7 @@ some condition is true.
       </span>
       
       <p class="shortcomment cmt">Converts this variable to an op output.</p><div class="fullcomment"><div class="comment cmt"><p>Converts this variable to an op output. This function simply returns an op corresponding to the variable value.</p></div></div>
-    </li><li name="org.platanios.tensorflow.api.ops.variables.Variable#toProto" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+    </li><li name="org.platanios.tensorflow.api.ops.variables.Variable#toProto" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
       <a id="toProto(exportScope:String):org.tensorflow.framework.VariableDef"></a><a id="toProto(String):VariableDef"></a>
       <span class="permalink">
       <a href="../../../../../../org/platanios/tensorflow/api/ops/variables/Variable.html#toProto(exportScope:String):org.tensorflow.framework.VariableDef" title="Permalink">
@@ -994,10 +994,7 @@ some condition is true.
         <span class="name">toProto</span><span class="params">(<span name="exportScope">exportScope: <span class="extype" name="scala.Predef.String">String</span></span>)</span><span class="result">: <span class="extype" name="org.tensorflow.framework.VariableDef">VariableDef</span></span>
       </span>
       
-      <p class="shortcomment cmt">Convert this object to its corresponding ProtoBuf object.</p><div class="fullcomment"><div class="comment cmt"><p>Convert this object to its corresponding ProtoBuf object.
-</p></div><dl class="paramcmts block"><dt class="param">exportScope</dt><dd class="cmt"><p>Optional string specifying the name scope to remove. Only the ops within this name scope will
-                    be included in the resulting ProtoBuf object and the export scope will be stripped from their
-                    names to allow for easy import into new name scopes.</p></dd><dt>returns</dt><dd class="cmt"><p>ProtoBuf object corresponding to this object.</p></dd></dl></div>
+      <p class="shortcomment cmt">Alias for <code>toVariableDef</code>.</p>
     </li><li name="org.platanios.tensorflow.api.ops.variables.Variable#toProto" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="toProto:org.tensorflow.framework.VariableDef"></a><a id="toProto:VariableDef"></a>
       <span class="permalink">
@@ -1031,6 +1028,25 @@ some condition is true.
       </span>
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="" class="extype" name="org.platanios.tensorflow.api.ops.variables.Variable">Variable</a> → AnyRef → Any</dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.ops.variables.Variable#toVariableDef" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="toVariableDef(exportScope:String):org.tensorflow.framework.VariableDef"></a><a id="toVariableDef(String):VariableDef"></a>
+      <span class="permalink">
+      <a href="../../../../../../org/platanios/tensorflow/api/ops/variables/Variable.html#toVariableDef(exportScope:String):org.tensorflow.framework.VariableDef" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">toVariableDef</span><span class="params">(<span name="exportScope">exportScope: <span class="extype" name="scala.Predef.String">String</span></span>)</span><span class="result">: <span class="extype" name="org.tensorflow.framework.VariableDef">VariableDef</span></span>
+      </span>
+      
+      <p class="shortcomment cmt">Convert this object to its corresponding ProtoBuf object.</p><div class="fullcomment"><div class="comment cmt"><p>Convert this object to its corresponding ProtoBuf object.
+</p></div><dl class="paramcmts block"><dt class="param">exportScope</dt><dd class="cmt"><p>Optional string specifying the name scope to remove. Only the ops within this name scope will
+                    be included in the resulting ProtoBuf object and the export scope will be stripped from their
+                    names to allow for easy import into new name scopes.</p></dd><dt>returns</dt><dd class="cmt"><p>ProtoBuf object corresponding to this object.</p></dd></dl></div>
     </li><li name="org.platanios.tensorflow.api.ops.variables.Variable#update" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
       <a id="update(value:org.platanios.tensorflow.api.ops.Output):Unit"></a><a id="update(Output):Unit"></a>
       <span class="permalink">

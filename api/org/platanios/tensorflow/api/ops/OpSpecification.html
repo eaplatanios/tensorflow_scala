@@ -217,16 +217,10 @@
       
       <p class="shortcomment cmt"></p><div class="fullcomment"><div class="comment cmt"></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="index.html" class="extype" name="org.platanios.tensorflow.api.ops">ops</a></dd></dl></div>
     </li><li class="current-entities indented5">
-                        <span class="separator"></span>
+                        <a class="object" href="Function$.html" title=""></a>
                         <a class="class" href="Function.html" title=""></a>
                         <a href="Function.html" title="">
                           Function
-                        </a>
-                      </li><li class="current-entities indented5">
-                        <a class="object" href="FunctionArgType$.html" title=""></a>
-                        <a class="trait" href="FunctionArgType.html" title=""></a>
-                        <a href="FunctionArgType.html" title="">
-                          FunctionArgType
                         </a>
                       </li><li class="current-entities indented5">
                         <a class="object" href="FunctionGraph$.html" title="Contains helper functions for dealing with function graphs."></a>
@@ -272,15 +266,33 @@
                         </a>
                       </li><li class="current-entities indented5">
                         <span class="separator"></span>
+                        <a class="trait" href="Parsing.html" title="Contains functions for constructing ops related to parsing data."></a>
+                        <a href="Parsing.html" title="Contains functions for constructing ops related to parsing data.">
+                          Parsing
+                        </a>
+                      </li><li class="current-entities indented5">
+                        <span class="separator"></span>
                         <a class="class" href="Queue.html" title="Class that supports all TensorFlow queue implementations."></a>
                         <a href="Queue.html" title="Class that supports all TensorFlow queue implementations.">
                           Queue
+                        </a>
+                      </li><li class="current-entities indented5">
+                        <a class="object" href="Resource$.html" title=""></a>
+                        <a class="class" href="Resource.html" title="Represents a TensorFlow resource."></a>
+                        <a href="Resource.html" title="Represents a TensorFlow resource.">
+                          Resource
                         </a>
                       </li><li class="current-entities indented5">
                         <span class="separator"></span>
                         <a class="class" href="SparseOutput.html" title="Represents a sparse op output."></a>
                         <a href="SparseOutput.html" title="Represents a sparse op output.">
                           SparseOutput
+                        </a>
+                      </li><li class="current-entities indented5">
+                        <span class="separator"></span>
+                        <a class="object" href="Table$.html" title=""></a>
+                        <a href="Table$.html" title="">
+                          Table
                         </a>
                       </li>
               </ul>
@@ -305,7 +317,7 @@
         <span class="kind">case class</span>
       </span>
       <span class="symbol">
-        <span class="name">OpSpecification</span><span class="params">(<span name="name">name: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="opType">opType: <span class="extype" name="scala.Predef.String">String</span></span>)</span><span class="result"> extends <a href="http://www.scala-lang.org/api/2.12.3/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="http://www.scala-lang.org/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
+        <span class="name">OpSpecification</span><span class="params">(<span name="name">name: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="opType">opType: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="device">device: <span class="extype" name="scala.Predef.String">String</span></span>)</span><span class="result"> extends <a href="http://www.scala-lang.org/api/2.12.3/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="http://www.scala-lang.org/api/2.12.3/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
       </span>
       </h4>
 
@@ -361,9 +373,9 @@
         <div id="constructors" class="members">
               <h3>Instance Constructors</h3>
               <ol><li name="org.platanios.tensorflow.api.ops.OpSpecification#&lt;init&gt;" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="&lt;init&gt;(name:String,opType:String):org.platanios.tensorflow.api.ops.OpSpecification"></a><a id="&lt;init&gt;:OpSpecification"></a>
+      <a id="&lt;init&gt;(name:String,opType:String,device:String):org.platanios.tensorflow.api.ops.OpSpecification"></a><a id="&lt;init&gt;:OpSpecification"></a>
       <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/OpSpecification.html#&lt;init&gt;(name:String,opType:String):org.platanios.tensorflow.api.ops.OpSpecification" title="Permalink">
+      <a href="../../../../../org/platanios/tensorflow/api/ops/OpSpecification.html#&lt;init&gt;(name:String,opType:String,device:String):org.platanios.tensorflow.api.ops.OpSpecification" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -372,7 +384,7 @@
         <span class="kind">new</span>
       </span>
       <span class="symbol">
-        <span class="name">OpSpecification</span><span class="params">(<span name="name">name: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="opType">opType: <span class="extype" name="scala.Predef.String">String</span></span>)</span>
+        <span class="name">OpSpecification</span><span class="params">(<span name="name">name: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="opType">opType: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="device">device: <span class="extype" name="scala.Predef.String">String</span></span>)</span>
       </span>
       
       
@@ -472,6 +484,22 @@
     </span>)</span>
               
         </dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.ops.OpSpecification#device" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="device:String"></a>
+      <span class="permalink">
+      <a href="../../../../../org/platanios/tensorflow/api/ops/OpSpecification.html#device:String" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">val</span>
+      </span>
+      <span class="symbol">
+        <span class="name">device</span><span class="result">: <span class="extype" name="scala.Predef.String">String</span></span>
+      </span>
+      
+      
     </li><li name="scala.AnyRef#eq" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="eq(x$1:AnyRef):Boolean"></a><a id="eq(AnyRef):Boolean"></a>
       <span class="permalink">

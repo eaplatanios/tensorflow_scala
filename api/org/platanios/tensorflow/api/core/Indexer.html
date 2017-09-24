@@ -178,7 +178,7 @@
             </a>
       </span>
       
-      <p class="shortcomment cmt"></p><div class="fullcomment"><div class="comment cmt"></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="index.html" class="extype" name="org.platanios.tensorflow.api.core">core</a></dd></dl></div>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="index.html" class="extype" name="org.platanios.tensorflow.api.core">core</a></dd></dl></div>
     </li><li class="current-entities indented5">
                         <span class="separator"></span>
                         <a class="object" href="Ellipsis$.html" title="Ellipsis indexer used to represent a full slice over multiple dimensions of a tensor."></a>
@@ -282,7 +282,7 @@
 
       
           <div id="comment" class="fullcommenttop"><div class="comment cmt"><p>Represents an indexer object. Indexers are used to index tensors.</p><p>An indexer can be one of:</p><ul><li><a href="Ellipsis$.html" class="extype" name="org.platanios.tensorflow.api.core.Ellipsis">Ellipsis</a>: Corresponds to a full slice over multiple dimensions of a tensor. Ellipses are used to represent
-    zero or more dimensions of a full-dimension indexer sequence.</li><li><a href="NewAxis$.html" class="extype" name="org.platanios.tensorflow.api.core.NewAxis">NewAxis</a>: Corresponds to the addition of a new dimension.</li><li><a href="Slice.html" class="extype" name="org.platanios.tensorflow.api.core.Slice">Slice</a>: Corresponds to a slice over a single dimension of a tensor.</li></ul><p>Examples of constructing and using indexers are provided in the <a href="Ellipsis$.html" class="extype" name="org.platanios.tensorflow.api.core.Ellipsis">Ellipsis</a> and the  <a href="Slice.html" class="extype" name="org.platanios.tensorflow.api.core.Slice">Slice</a> class documentation.
+    zero or more dimensions of a full-dimension indexer sequence.</li><li><a href="NewAxis$.html" class="extype" name="org.platanios.tensorflow.api.core.NewAxis">NewAxis</a>: Corresponds to the addition of a new dimension.</li><li><a href="Slice.html" class="extype" name="org.platanios.tensorflow.api.core.Slice">Slice</a>: Corresponds to a slice over a single dimension of a tensor.</li></ul><p>Examples of constructing and using indexers are provided in the <a href="Ellipsis$.html" class="extype" name="org.platanios.tensorflow.api.core.Ellipsis">Ellipsis</a> and the <a href="Slice.html" class="extype" name="org.platanios.tensorflow.api.core.Slice">Slice</a> class documentation.
 Here we provide examples of indexing over tensors using indexers:</p><pre><span class="cmt">// 't' is a tensor (i.e., Output) with shape [4, 2, 3, 8]</span>
 t(::, ::, <span class="num">1</span>, ::)            <span class="cmt">// Tensor with shape [4, 2, 1, 8]</span>
 t(<span class="num">1</span> :: -<span class="num">2</span>, ---, <span class="num">2</span>)          <span class="cmt">// Tensor with shape [1, 2, 3, 1]</span>

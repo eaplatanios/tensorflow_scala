@@ -181,12 +181,6 @@
       <p class="shortcomment cmt">Contains helper functions and classes for creating IO-related ops.</p><div class="fullcomment"><div class="comment cmt"><p>Contains helper functions and classes for creating IO-related ops.
 </p></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../index.html" class="extype" name="org.platanios.tensorflow.api.ops">ops</a></dd></dl></div>
     </li><li class="current-entities indented6">
-                        <span class="separator"></span>
-                        <a class="class" href="BatchDataset.html" title="Dataset that batches batchSize elements from inputDataset."></a>
-                        <a href="BatchDataset.html" title="Dataset that batches batchSize elements from inputDataset.">
-                          BatchDataset
-                        </a>
-                      </li><li class="current-entities indented6">
                         <a class="object" href="Data$.html" title=""></a>
                         <a class="trait" href="" title="Data can be emitted by Datasets (i.e., the element types of all Datasets are Data)."></a>
                         <a href="" title="Data can be emitted by Datasets (i.e., the element types of all Datasets are Data).">
@@ -226,27 +220,9 @@ it, using its createInitializer method.">
                         </a>
                       </li><li class="current-entities indented6">
                         <span class="separator"></span>
-                        <a class="class" href="RepeatDataset.html" title="Dataset that repeats the elements from inputDataset a specified number of times."></a>
-                        <a href="RepeatDataset.html" title="Dataset that repeats the elements from inputDataset a specified number of times.">
-                          RepeatDataset
-                        </a>
-                      </li><li class="current-entities indented6">
-                        <span class="separator"></span>
                         <a class="class" href="SerializableReader.html" title=""></a>
                         <a href="SerializableReader.html" title="">
                           SerializableReader
-                        </a>
-                      </li><li class="current-entities indented6">
-                        <span class="separator"></span>
-                        <a class="class" href="TensorDataset.html" title="Dataset with a single element."></a>
-                        <a href="TensorDataset.html" title="Dataset with a single element.">
-                          TensorDataset
-                        </a>
-                      </li><li class="current-entities indented6">
-                        <span class="separator"></span>
-                        <a class="class" href="TensorSliceDataset.html" title="Dataset with slices from the nested structure of Outputs (i.e., a Data-supported type)."></a>
-                        <a href="TensorSliceDataset.html" title="Dataset with slices from the nested structure of Outputs (i.e., a Data-supported type).">
-                          TensorSliceDataset
                         </a>
                       </li>
               </ul>
@@ -407,6 +383,38 @@ and similarly for the output shapes.
       </span>
       
       
+    </li><li name="org.platanios.tensorflow.api.ops.io.Data#dataTypesFromO" visbl="pub" class="indented0 " data-isabs="true" fullComment="no" group="Ungrouped">
+      <a id="dataTypesFromO(data:Data.this.OutputType):Data.this.DataTypes"></a><a id="dataTypesFromO(OutputType):DataTypes"></a>
+      <span class="permalink">
+      <a href="../../../../../../org/platanios/tensorflow/api/ops/io/Data.html#dataTypesFromO(data:Data.this.OutputType):Data.this.DataTypes" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier">abstract </span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">dataTypesFromO</span><span class="params">(<span name="data">data: <a href="#OutputType" class="extmbr" name="org.platanios.tensorflow.api.ops.io.Data.OutputType">OutputType</a></span>)</span><span class="result">: <a href="#DataTypes" class="extmbr" name="org.platanios.tensorflow.api.ops.io.Data.DataTypes">DataTypes</a></span>
+      </span>
+      
+      
+    </li><li name="org.platanios.tensorflow.api.ops.io.Data#dataTypesFromT" visbl="pub" class="indented0 " data-isabs="true" fullComment="no" group="Ungrouped">
+      <a id="dataTypesFromT(data:T):Data.this.DataTypes"></a><a id="dataTypesFromT(T):DataTypes"></a>
+      <span class="permalink">
+      <a href="../../../../../../org/platanios/tensorflow/api/ops/io/Data.html#dataTypesFromT(data:T):Data.this.DataTypes" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier">abstract </span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">dataTypesFromT</span><span class="params">(<span name="data">data: <span class="extype" name="org.platanios.tensorflow.api.ops.io.Data.T">T</span></span>)</span><span class="result">: <a href="#DataTypes" class="extmbr" name="org.platanios.tensorflow.api.ops.io.Data.DataTypes">DataTypes</a></span>
+      </span>
+      
+      
     </li><li name="org.platanios.tensorflow.api.ops.io.Data#dataTypesToString" visbl="pub" class="indented0 " data-isabs="true" fullComment="no" group="Ungrouped">
       <a id="dataTypesToString(dataTypes:Data.this.DataTypes):String"></a><a id="dataTypesToString(DataTypes):String"></a>
       <span class="permalink">
@@ -423,10 +431,10 @@ and similarly for the output shapes.
       </span>
       
       
-    </li><li name="org.platanios.tensorflow.api.ops.io.Data#flattenedOutputDataTypes" visbl="pub" class="indented0 " data-isabs="true" fullComment="no" group="Ungrouped">
-      <a id="flattenedOutputDataTypes(dataTypes:Data.this.DataTypes):Seq[org.platanios.tensorflow.api.types.DataType]"></a><a id="flattenedOutputDataTypes(DataTypes):Seq[types.DataType]"></a>
+    </li><li name="org.platanios.tensorflow.api.ops.io.Data#flattenedDataTypes" visbl="pub" class="indented0 " data-isabs="true" fullComment="no" group="Ungrouped">
+      <a id="flattenedDataTypes(dataTypes:Data.this.DataTypes):Seq[org.platanios.tensorflow.api.types.DataType]"></a><a id="flattenedDataTypes(DataTypes):Seq[types.DataType]"></a>
       <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/ops/io/Data.html#flattenedOutputDataTypes(dataTypes:Data.this.DataTypes):Seq[org.platanios.tensorflow.api.types.DataType]" title="Permalink">
+      <a href="../../../../../../org/platanios/tensorflow/api/ops/io/Data.html#flattenedDataTypes(dataTypes:Data.this.DataTypes):Seq[org.platanios.tensorflow.api.types.DataType]" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -435,14 +443,14 @@ and similarly for the output shapes.
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">flattenedOutputDataTypes</span><span class="params">(<span name="dataTypes">dataTypes: <a href="#DataTypes" class="extmbr" name="org.platanios.tensorflow.api.ops.io.Data.DataTypes">DataTypes</a></span>)</span><span class="result">: <span class="extype" name="scala.Seq">Seq</span>[<a href="../../types/DataType.html" class="extype" name="org.platanios.tensorflow.api.types.DataType">types.DataType</a>]</span>
+        <span class="name">flattenedDataTypes</span><span class="params">(<span name="dataTypes">dataTypes: <a href="#DataTypes" class="extmbr" name="org.platanios.tensorflow.api.ops.io.Data.DataTypes">DataTypes</a></span>)</span><span class="result">: <span class="extype" name="scala.Seq">Seq</span>[<a href="../../types/DataType.html" class="extype" name="org.platanios.tensorflow.api.types.DataType">types.DataType</a>]</span>
       </span>
       
       
-    </li><li name="org.platanios.tensorflow.api.ops.io.Data#flattenedOutputShapes" visbl="pub" class="indented0 " data-isabs="true" fullComment="no" group="Ungrouped">
-      <a id="flattenedOutputShapes(shapes:Data.this.Shapes):Seq[org.platanios.tensorflow.api.core.Shape]"></a><a id="flattenedOutputShapes(Shapes):Seq[core.Shape]"></a>
+    </li><li name="org.platanios.tensorflow.api.ops.io.Data#flattenedOutputsFromO" visbl="pub" class="indented0 " data-isabs="true" fullComment="no" group="Ungrouped">
+      <a id="flattenedOutputsFromO(data:Data.this.OutputType):Seq[org.platanios.tensorflow.api.ops.Output]"></a><a id="flattenedOutputsFromO(OutputType):Seq[Output]"></a>
       <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/ops/io/Data.html#flattenedOutputShapes(shapes:Data.this.Shapes):Seq[org.platanios.tensorflow.api.core.Shape]" title="Permalink">
+      <a href="../../../../../../org/platanios/tensorflow/api/ops/io/Data.html#flattenedOutputsFromO(data:Data.this.OutputType):Seq[org.platanios.tensorflow.api.ops.Output]" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -451,14 +459,14 @@ and similarly for the output shapes.
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">flattenedOutputShapes</span><span class="params">(<span name="shapes">shapes: <a href="#Shapes" class="extmbr" name="org.platanios.tensorflow.api.ops.io.Data.Shapes">Shapes</a></span>)</span><span class="result">: <span class="extype" name="scala.Seq">Seq</span>[<a href="../../core/Shape.html" class="extype" name="org.platanios.tensorflow.api.core.Shape">core.Shape</a>]</span>
+        <span class="name">flattenedOutputsFromO</span><span class="params">(<span name="data">data: <a href="#OutputType" class="extmbr" name="org.platanios.tensorflow.api.ops.io.Data.OutputType">OutputType</a></span>)</span><span class="result">: <span class="extype" name="scala.Seq">Seq</span>[<a href="../Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a>]</span>
       </span>
       
       
-    </li><li name="org.platanios.tensorflow.api.ops.io.Data#flattenedOutputs" visbl="pub" class="indented0 " data-isabs="true" fullComment="no" group="Ungrouped">
-      <a id="flattenedOutputs(data:T):Seq[org.platanios.tensorflow.api.ops.Output]"></a><a id="flattenedOutputs(T):Seq[Output]"></a>
+    </li><li name="org.platanios.tensorflow.api.ops.io.Data#flattenedOutputsFromT" visbl="pub" class="indented0 " data-isabs="true" fullComment="no" group="Ungrouped">
+      <a id="flattenedOutputsFromT(data:T):Seq[org.platanios.tensorflow.api.ops.Output]"></a><a id="flattenedOutputsFromT(T):Seq[Output]"></a>
       <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/ops/io/Data.html#flattenedOutputs(data:T):Seq[org.platanios.tensorflow.api.ops.Output]" title="Permalink">
+      <a href="../../../../../../org/platanios/tensorflow/api/ops/io/Data.html#flattenedOutputsFromT(data:T):Seq[org.platanios.tensorflow.api.ops.Output]" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -467,14 +475,14 @@ and similarly for the output shapes.
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">flattenedOutputs</span><span class="params">(<span name="data">data: <span class="extype" name="org.platanios.tensorflow.api.ops.io.Data.T">T</span></span>)</span><span class="result">: <span class="extype" name="scala.Seq">Seq</span>[<a href="../Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a>]</span>
+        <span class="name">flattenedOutputsFromT</span><span class="params">(<span name="data">data: <span class="extype" name="org.platanios.tensorflow.api.ops.io.Data.T">T</span></span>)</span><span class="result">: <span class="extype" name="scala.Seq">Seq</span>[<a href="../Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a>]</span>
       </span>
       
       
-    </li><li name="org.platanios.tensorflow.api.ops.io.Data#numberOfOutputs" visbl="pub" class="indented0 " data-isabs="true" fullComment="no" group="Ungrouped">
-      <a id="numberOfOutputs(dataTypes:Data.this.DataTypes):Int"></a><a id="numberOfOutputs(DataTypes):Int"></a>
+    </li><li name="org.platanios.tensorflow.api.ops.io.Data#flattenedShapes" visbl="pub" class="indented0 " data-isabs="true" fullComment="no" group="Ungrouped">
+      <a id="flattenedShapes(shapes:Data.this.Shapes):Seq[org.platanios.tensorflow.api.core.Shape]"></a><a id="flattenedShapes(Shapes):Seq[core.Shape]"></a>
       <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/ops/io/Data.html#numberOfOutputs(dataTypes:Data.this.DataTypes):Int" title="Permalink">
+      <a href="../../../../../../org/platanios/tensorflow/api/ops/io/Data.html#flattenedShapes(shapes:Data.this.Shapes):Seq[org.platanios.tensorflow.api.core.Shape]" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -483,14 +491,14 @@ and similarly for the output shapes.
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">numberOfOutputs</span><span class="params">(<span name="dataTypes">dataTypes: <a href="#DataTypes" class="extmbr" name="org.platanios.tensorflow.api.ops.io.Data.DataTypes">DataTypes</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.3/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a></span>
+        <span class="name">flattenedShapes</span><span class="params">(<span name="shapes">shapes: <a href="#Shapes" class="extmbr" name="org.platanios.tensorflow.api.ops.io.Data.Shapes">Shapes</a></span>)</span><span class="result">: <span class="extype" name="scala.Seq">Seq</span>[<a href="../../core/Shape.html" class="extype" name="org.platanios.tensorflow.api.core.Shape">core.Shape</a>]</span>
       </span>
       
       
-    </li><li name="org.platanios.tensorflow.api.ops.io.Data#outputDataTypes" visbl="pub" class="indented0 " data-isabs="true" fullComment="no" group="Ungrouped">
-      <a id="outputDataTypes(data:T):Data.this.DataTypes"></a><a id="outputDataTypes(T):DataTypes"></a>
+    </li><li name="org.platanios.tensorflow.api.ops.io.Data#flattenedTensors" visbl="pub" class="indented0 " data-isabs="true" fullComment="no" group="Ungrouped">
+      <a id="flattenedTensors(data:T):Seq[org.platanios.tensorflow.api.tensors.Tensor]"></a><a id="flattenedTensors(T):Seq[tensors.Tensor]"></a>
       <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/ops/io/Data.html#outputDataTypes(data:T):Data.this.DataTypes" title="Permalink">
+      <a href="../../../../../../org/platanios/tensorflow/api/ops/io/Data.html#flattenedTensors(data:T):Seq[org.platanios.tensorflow.api.tensors.Tensor]" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -499,23 +507,7 @@ and similarly for the output shapes.
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">outputDataTypes</span><span class="params">(<span name="data">data: <span class="extype" name="org.platanios.tensorflow.api.ops.io.Data.T">T</span></span>)</span><span class="result">: <a href="#DataTypes" class="extmbr" name="org.platanios.tensorflow.api.ops.io.Data.DataTypes">DataTypes</a></span>
-      </span>
-      
-      
-    </li><li name="org.platanios.tensorflow.api.ops.io.Data#outputShapes" visbl="pub" class="indented0 " data-isabs="true" fullComment="no" group="Ungrouped">
-      <a id="outputShapes(data:T):Data.this.Shapes"></a><a id="outputShapes(T):Shapes"></a>
-      <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/ops/io/Data.html#outputShapes(data:T):Data.this.Shapes" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier">abstract </span>
-        <span class="kind">def</span>
-      </span>
-      <span class="symbol">
-        <span class="name">outputShapes</span><span class="params">(<span name="data">data: <span class="extype" name="org.platanios.tensorflow.api.ops.io.Data.T">T</span></span>)</span><span class="result">: <a href="#Shapes" class="extmbr" name="org.platanios.tensorflow.api.ops.io.Data.Shapes">Shapes</a></span>
+        <span class="name">flattenedTensors</span><span class="params">(<span name="data">data: <span class="extype" name="org.platanios.tensorflow.api.ops.io.Data.T">T</span></span>)</span><span class="result">: <span class="extype" name="scala.Seq">Seq</span>[<a href="../../tensors/Tensor.html" class="extype" name="org.platanios.tensorflow.api.tensors.Tensor">tensors.Tensor</a>]</span>
       </span>
       
       
@@ -567,6 +559,38 @@ and similarly for the output shapes.
       </span>
       
       
+    </li><li name="org.platanios.tensorflow.api.ops.io.Data#shapesFromO" visbl="pub" class="indented0 " data-isabs="true" fullComment="no" group="Ungrouped">
+      <a id="shapesFromO(data:Data.this.OutputType):Data.this.Shapes"></a><a id="shapesFromO(OutputType):Shapes"></a>
+      <span class="permalink">
+      <a href="../../../../../../org/platanios/tensorflow/api/ops/io/Data.html#shapesFromO(data:Data.this.OutputType):Data.this.Shapes" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier">abstract </span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">shapesFromO</span><span class="params">(<span name="data">data: <a href="#OutputType" class="extmbr" name="org.platanios.tensorflow.api.ops.io.Data.OutputType">OutputType</a></span>)</span><span class="result">: <a href="#Shapes" class="extmbr" name="org.platanios.tensorflow.api.ops.io.Data.Shapes">Shapes</a></span>
+      </span>
+      
+      
+    </li><li name="org.platanios.tensorflow.api.ops.io.Data#shapesFromT" visbl="pub" class="indented0 " data-isabs="true" fullComment="no" group="Ungrouped">
+      <a id="shapesFromT(data:T):Data.this.Shapes"></a><a id="shapesFromT(T):Shapes"></a>
+      <span class="permalink">
+      <a href="../../../../../../org/platanios/tensorflow/api/ops/io/Data.html#shapesFromT(data:T):Data.this.Shapes" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier">abstract </span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">shapesFromT</span><span class="params">(<span name="data">data: <span class="extype" name="org.platanios.tensorflow.api.ops.io.Data.T">T</span></span>)</span><span class="result">: <a href="#Shapes" class="extmbr" name="org.platanios.tensorflow.api.ops.io.Data.Shapes">Shapes</a></span>
+      </span>
+      
+      
     </li><li name="org.platanios.tensorflow.api.ops.io.Data#shapesToString" visbl="pub" class="indented0 " data-isabs="true" fullComment="no" group="Ungrouped">
       <a id="shapesToString(shapes:Data.this.Shapes):String"></a><a id="shapesToString(Shapes):String"></a>
       <span class="permalink">
@@ -580,6 +604,22 @@ and similarly for the output shapes.
       </span>
       <span class="symbol">
         <span class="name">shapesToString</span><span class="params">(<span name="shapes">shapes: <a href="#Shapes" class="extmbr" name="org.platanios.tensorflow.api.ops.io.Data.Shapes">Shapes</a></span>)</span><span class="result">: <span class="extype" name="scala.Predef.String">String</span></span>
+      </span>
+      
+      
+    </li><li name="org.platanios.tensorflow.api.ops.io.Data#size" visbl="pub" class="indented0 " data-isabs="true" fullComment="no" group="Ungrouped">
+      <a id="size(dataTypes:Data.this.DataTypes):Int"></a><a id="size(DataTypes):Int"></a>
+      <span class="permalink">
+      <a href="../../../../../../org/platanios/tensorflow/api/ops/io/Data.html#size(dataTypes:Data.this.DataTypes):Int" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier">abstract </span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">size</span><span class="params">(<span name="dataTypes">dataTypes: <a href="#DataTypes" class="extmbr" name="org.platanios.tensorflow.api.ops.io.Data.DataTypes">DataTypes</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.3/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a></span>
       </span>
       
       
