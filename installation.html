@@ -71,6 +71,11 @@ appropriately.</p>
   </li>
 </ol>
 
+<p><strong>NOTE:</strong> If you want to compile TensorFlow for Scala yourself and the <code class="highlighter-rouge">libtensorflow.so</code> file is not placed in one of 
+the default system libraries directories, then set <code class="highlighter-rouge">-Djava.library.path=&lt;directory&gt;</code> (replacing <code class="highlighter-rouge">&lt;directory&gt;</code> with the 
+directory containing the <code class="highlighter-rouge">libtensorflow.so</code> file) in the <code class="highlighter-rouge">.jvmopts</code> file at the root of the TensorFlow for Scala 
+repository.</p>
+
 <h3 id="protocol-buffers-compiler">Protocol Buffers Compiler</h3>
 
 <p>TensorFlow for Scala also requires <code class="highlighter-rouge">protoc</code>, the Protocol Buffers compiler, to be installed. You also have two options 
