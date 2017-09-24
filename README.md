@@ -64,10 +64,11 @@ are a few useful links:
   estimator.train(trainData, StopCriteria(maxSteps = Some(1000000)))
   ```
   
-  And by changing the last couple lines to the following code, you can get checkpoint capability and seamless 
+  And by changing a few lines to the following code, you can get checkpoint capability, summaries, and seamless 
   integration with TensorBoard:
   
   ```scala
+  val loss = SparseSoftmaxCrossEntropy() >> Mean() >> tf.learn.ScalarSummary("Loss")
   val summariesDir = Paths.get("/tmp/summaries")
   val estimator = Estimator(model, Configuration(Some(summariesDir)))
   estimator.train(
@@ -145,5 +146,8 @@ Funding for the development of this library has been generously provided by the 
   - Reset default graph
   - Register op statistics
 - Fix Travis CI support (somehow load the native library)
+
+- Website margins are a little large relative to the content in mobile
+- Make the code blocks scroll rather than wrap
 
 -->

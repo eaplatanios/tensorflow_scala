@@ -20,11 +20,11 @@ import org.platanios.tensorflow.api._
 # Introduction
 
 Similar to the [TensorFlow Python API][tf_python], by Google, TensorFlow for Scala provides multiple APIs. The lowest
-level API -- TensorFlow Core -- provides you with complete programming control. TensorFlow Core is suitable for machine
-learning researchers and others who require fine levels of control over their models. The higher level APIs are built on
-top of TensorFlow Core. These higher level APIs are typically easier to learn and use than TensorFlow Core. In addition,
-the higher level APIs make repetitive tasks easier and more consistent between different users. A high-level API like
-the Learn API (which is currently under development) helps you manage data sets, models, training, and inference.
+level API -- Core API -- provides you with complete programming control. the core API is suitable for machine learning 
+researchers and others who require fine levels of control over their models. The higher level APIs are built on
+top of the Core API. These higher level APIs are typically easier to learn and use. In addition, the higher level APIs 
+make repetitive tasks easier and more consistent between different users. A high-level API like the Learn API helps you 
+manage datasets, models, (distributed) training, and inference.
 
 The main APIs of TensorFlow for Scala introduced in this guide are:
 

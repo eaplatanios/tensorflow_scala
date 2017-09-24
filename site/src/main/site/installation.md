@@ -66,6 +66,11 @@ have the main TensorFlow dynamic library installed. You have two options for dea
           platform you're using) file in a directory that is in `LD_LIBRARY_PATH`, or set `LD_LIBRARY_PATH` 
           appropriately.
 
+**NOTE:** If you want to compile TensorFlow for Scala yourself and the `libtensorflow.so` file is not placed in one of 
+the default system libraries directories, then set `-Djava.library.path=<directory>` (replacing `<directory>` with the 
+directory containing the `libtensorflow.so` file) in the `.jvmopts` file at the root of the TensorFlow for Scala 
+repository.
+
 ### Protocol Buffers Compiler
 
 TensorFlow for Scala also requires `protoc`, the Protocol Buffers compiler, to be installed. You also have two options 
