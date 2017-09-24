@@ -13,7 +13,7 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.utilities
+package org.platanios.tensorflow.api.io
 
 import java.nio.file._
 import java.util.UUID
@@ -68,10 +68,14 @@ object FileIO {
 
     // Find the fixed prefix by looking for the first wildcard.
     val pathAsString = path.toString
-    val glob = pathAsString.replaceAll("([^\\[]*)\\[\\^", "$1\\[!")
-    val directory = {
-      val prefix = pathAsString.substring(0, pathAsString.indexWhere("*?[\\".contains(_)))
-      path.getFileSystem.getPath(prefix.substring(0, prefix.lastIndexOf(separator)))
+    val (directory, glob) = {
+      val wildcard = pathAsString.indexWhere("*?[\\".contains(_))
+      val prefix = if (wildcard != -1) pathAsString.substring(0, wildcard) else pathAsString
+      val suffix = if (wildcard != -1) pathAsString.substring(wildcard) else ""
+      val separatorIndex = prefix.lastIndexOf(separator)
+      val directory = path.getFileSystem.getPath(prefix.substring(0, separatorIndex))
+      val glob = (prefix.substring(separatorIndex + 1) + suffix).replaceAll("([^\\[]*)\\[\\^", "$1\\[!")
+      (directory, glob)
     }
 
     // Get all the matching paths.

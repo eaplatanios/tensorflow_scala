@@ -16,14 +16,12 @@
 package org.platanios.tensorflow.api.learn.hooks
 
 import org.platanios.tensorflow.api.core.client.{Executable, FeedMap, Fetchable, Session}
+import org.platanios.tensorflow.api.core.exception.OutOfRangeException
 import org.platanios.tensorflow.api.learn.MonitoredSession
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
 
 import org.tensorflow.framework.{RunMetadata, RunOptions}
-
-// TODO: [HOOKS] !!! Implement the supposedly provided hooks.
-// TODO: [HOOKS] !!! Go through the documentation again and change things as needed after MonitoredSession is implemented.
 
 /** Hook to extend calls to `MonitoredSession.run()`.
   *
@@ -44,7 +42,7 @@ import org.tensorflow.framework.{RunMetadata, RunOptions}
   *   - `StepRateHook`: Logs and/or saves summaries with the number of steps executed per second.
   *   - `TensorLoggingHook`: Logs the values of one or more tensors.
   *   - `SummarySaverHook`: Saves summaries to the provided summary writer.
-  *   - `CheckpointSaverHook`: Saves checkpoints.
+  *   - `CheckpointSaverHook`: Saves checkpoints (i.e., copy of the graph along with the trained variable values).
   *   - `TensorNaNHook`: Requests to stop iterating if the provided tensor contains `NaN` values.
   *
   * For more specific needs you can create custom hooks. For example:
@@ -89,7 +87,7 @@ import org.tensorflow.framework.{RunMetadata, RunOptions}
   *
   * To understand how hooks interact with calls to `MonitoredSession.run()`, look at following code:
   * {{{
-  *   val session = MonitoredTrainingSession(hooks = someHook, ...)
+  *   val session = Estimator.monitoredTrainingSession(hooks = someHook, ...)
   *   while (!session.shouldStop)
   *     session.run(...)
   *   session.close()
@@ -106,14 +104,14 @@ import org.tensorflow.framework.{RunMetadata, RunOptions}
   *       val result = session.run(mergedSessionRunArgs)
   *       someHook.afterSessionRun(..., result)
   *     } catch {
-  *       case _: IndexOutOfBoundsException => stopRequested = true
+  *       case _: OutOfRangeException => stopRequested = true
   *     }
   *   }
   *   someHook.end()
   *   session.close()
   * }}}
   *
-  * Note that if `session.run()` throws an [[IndexOutOfBoundsException]] then `someHook.afterSessionRun()` will not be
+  * Note that if `session.run()` throws an [[OutOfRangeException]] then `someHook.afterSessionRun()` will not be
   * called, but `someHook.end()` will still be called. On the other hand, if `session.run()` throws any other exception,
   * then neither `someHook.afterSessionRun()` nor `someHook.end()` will be called.
   *
@@ -163,7 +161,7 @@ abstract class Hook {
     * The `runResult` argument contains fetched values for the tensors requested by `beforeSessionRun()`.
     *
     * If `Session.run()` throws any exception, then `afterSessionRun()` will not be called. Note the difference between
-    * the `end()` and the `afterSessionRun()` behavior when `Session.run()` throws an [[IndexOutOfBoundsException]]. In
+    * the `end()` and the `afterSessionRun()` behavior when `Session.run()` throws an [[OutOfRangeException]]. In
     * that case, `end()` is called but `afterSessionRun()` is not called.
     *
     * @param  runContext Provides information about the run call (i.e., the originally requested ops/tensors, the
@@ -184,9 +182,9 @@ abstract class Hook {
     * The `session` argument can be used in case the hook wants to execute any final ops, such as saving a last
     * checkpoint.
     *
-    * If `Session.run()` throws any exception other than [[IndexOutOfBoundsException]] then `end()` will not be called.
+    * If `Session.run()` throws any exception other than [[OutOfRangeException]] then `end()` will not be called.
     * Note the difference between the `end()` and the `afterSessionRun()` behavior when `Session.run()` throws an
-    * [[IndexOutOfBoundsException]]. In that case, `end()` is called but `afterSessionRun()` is not called.
+    * [[OutOfRangeException]]. In that case, `end()` is called but `afterSessionRun()` is not called.
     *
     * @param  session Session that will not be used again after this call.
     */

@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.learn
 
 import org.platanios.tensorflow.api.core.Graph
-import org.platanios.tensorflow.api.learn.layers.Layer
+import org.platanios.tensorflow.api.learn.layers.{Input, Layer}
 import org.platanios.tensorflow.api.ops.{Math, Op, Output}
 import org.platanios.tensorflow.api.ops.training.optimizers.Optimizer
 import org.platanios.tensorflow.api.ops.io.Iterator

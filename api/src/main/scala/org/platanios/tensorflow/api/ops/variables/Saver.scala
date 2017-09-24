@@ -18,11 +18,12 @@ package org.platanios.tensorflow.api.ops.variables
 import org.platanios.tensorflow.api.Implicits._
 import org.platanios.tensorflow.api.core.{DeviceSpecification, Graph, Shape}
 import org.platanios.tensorflow.api.core.client.Session
+import org.platanios.tensorflow.api.io.FileIO
 import org.platanios.tensorflow.api.ops.{Basic, ControlFlow, Op, Output, Text}
 import org.platanios.tensorflow.api.ops.variables.CheckpointStateProto.CheckpointState
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.{DataType, INT32}
-import org.platanios.tensorflow.api.utilities.{FileIO, Proto}
+import org.platanios.tensorflow.api.utilities.Proto
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
 
 import com.google.protobuf.TextFormat
@@ -176,7 +177,7 @@ class Saver private (saverDef: SaverDef, saveRelativePaths: Boolean = false, pad
         val modelCheckpointPath = savePath.getFileSystem.getPath(
           // TODO: [SESSION] !!! Feed mappers for string inputs.
           session.run(
-            feeds = Map(filenameTensor -> Tensor(checkpointFile.toString)),
+            feeds = Map(filenameTensor -> (checkpointFile.toString: Tensor)),
             fetches = saveTensor).scalar.asInstanceOf[String])
         if (writeCheckpointState) {
           maybeDeleteOldCheckpoints(modelCheckpointPath, metaGraphSuffix)

@@ -61,6 +61,7 @@ case class StepRateHook(
   private[this] var shouldTrigger  : Boolean     = false
 
   override def begin(): Unit = {
+    internalTrigger.reset()
     step = Counter.get(Graph.Keys.GLOBAL_STEP, Op.currentGraph).getOrElse(throw new IllegalStateException(
       s"A ${Graph.Keys.GLOBAL_STEP.name} variable should be created in order to use the 'StepRateHook'."))
     summaryWriter = Option(summaryDirectory).map(SummaryFileWriterCache.get)
@@ -89,7 +90,7 @@ case class StepRateHook(
   }
 
   override def end(session: Session): Unit = {
-    if (triggerAtEnd && lastStep != internalTrigger.lastTriggerStep().orNull)
+    if (triggerAtEnd && lastStep.toInt != internalTrigger.lastTriggerStep().getOrElse(-1))
       saveStepRateSummary(session.run(fetches = Seq(step.value)))
     summaryWriter.foreach(_.flush())
   }
@@ -99,6 +100,8 @@ case class StepRateHook(
     if (shouldTrigger) {
       internalTrigger.updateLastTrigger(lastStep.toInt - 1).foreach(elapsed => {
         val stepRate = elapsed._2.toDouble / elapsed._1
+        if (stepRate == 0.0)
+          print("haha Christoph")
         if (log)
           StepRateHook.logger.info(f"$tag: $stepRate%.2f")
         summaryWriter.foreach(_.writeSummary(
@@ -106,7 +109,7 @@ case class StepRateHook(
               .addValue(Summary.Value.newBuilder()
                             .setTag(tag)
                             .setSimpleValue(stepRate.toFloat))
-              .build(), lastStep))
+                  .build(), lastStep))
       })
     }
   }

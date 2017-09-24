@@ -17,6 +17,7 @@ package org.platanios.tensorflow.api.learn
 
 import org.platanios.tensorflow.api.config._
 import org.platanios.tensorflow.api.core.client.SessionConfig
+import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.learn.Configuration._
 
 import io.circe._
@@ -165,13 +166,13 @@ case class Configuration(
       if (clusterConfigJson.isEmpty) {
         Left(null)
       } else if (clusterConfigJson.length > 1) {
-        throw new IllegalArgumentException(
+        throw InvalidArgumentException(
           s"Only a single 'cluster' configuration field should be provided in $TF_CONFIG_ENV.")
       } else {
         clusterConfigJson.head.as[Map[String, Json]].map(_.toSeq.flatMap(p => {
           p._2.as[Seq[String]] match {
             case Left(_) => p._2.as[Map[Int, String]] match {
-              case Left(_) => throw new IllegalArgumentException(
+              case Left(_) => throw InvalidArgumentException(
                 s"Could not parse the cluster configuration in $TF_CONFIG_ENV.")
               case Right(tasks) => Map(p._1 -> JobConfig.fromMap(tasks))
             }
@@ -193,14 +194,14 @@ case class Configuration(
       // Distributed mode.
       val config = tfClusterConfig.right.get
       config.jobTasks(CHIEF.name) match {
-        case None => throw new IllegalArgumentException(
+        case None => throw InvalidArgumentException(
           s"If 'cluster' is set in $TF_CONFIG_ENV, it must have one 'chief' node.")
         case Some(_) =>
           if (config.jobTasks(CHIEF.name).get.size > 1)
-            throw new IllegalArgumentException(s"The 'cluster' in $TF_CONFIG_ENV must have only one 'chief' node.")
+            throw InvalidArgumentException(s"The 'cluster' in $TF_CONFIG_ENV must have only one 'chief' node.")
 
           val (taskType, taskIndex) = tfTaskConfig match {
-            case Left(exception) => throw new IllegalArgumentException(
+            case Left(exception) => throw InvalidArgumentException(
               s"If 'cluster' is set in $TF_CONFIG_ENV, task type and index must be set too.", exception)
             case Right(taskConfig) => taskConfig
           }
@@ -210,7 +211,7 @@ case class Configuration(
           // - for non-evaluator tasks, the task index is upper bounded by the number of jobs in the cluster
           //   configuration, which will be checked later (while retrieving the `master`).
           if (taskIndex < 0)
-            throw new IllegalArgumentException("The task index must be a non-negative number.")
+            throw InvalidArgumentException("The task index must be a non-negative number.")
 
           taskType match {
             case EVALUATOR.name =>
@@ -238,10 +239,9 @@ case class Configuration(
       }
 
       if (taskType != WORKER.name)
-        throw new IllegalArgumentException(
-          s"If 'cluster' is not set in $TF_CONFIG_ENV, task type must be ${WORKER.name}.")
+        throw InvalidArgumentException(s"If 'cluster' is not set in $TF_CONFIG_ENV, task type must be ${WORKER.name}.")
       if (taskIndex != 0)
-        throw new IllegalArgumentException(s"If 'cluster' is not set in $TF_CONFIG_ENV, task index must be 0.")
+        throw InvalidArgumentException(s"If 'cluster' is not set in $TF_CONFIG_ENV, task index must be 0.")
 
       val clusterConfig = None
       val master = ""
@@ -271,9 +271,9 @@ object Configuration {
     * @param  taskType      Task type.
     * @param  taskIndex     Task index.
     * @return Network address for the specified task.
-    * @throws IllegalArgumentException If the provided task type or index cannot be found in the cluster configuration.
+    * @throws InvalidArgumentException If the provided task type or index cannot be found in the cluster configuration.
     */
-  @throws[IllegalArgumentException]
+  @throws[InvalidArgumentException]
   private[Configuration] def getNetworkAddress(
       clusterConfig: ClusterConfig, taskType: String, taskIndex: Int): String = {
     require(
@@ -304,14 +304,14 @@ object Configuration {
   }
 
   object TaskType {
-    @throws[IllegalArgumentException]
+    @throws[InvalidArgumentException]
     def fromName(name: String): TaskType = name match {
       case MASTER.name => MASTER
       case PARAMETER_SERVER.name => PARAMETER_SERVER
       case WORKER.name => WORKER
       case CHIEF.name => CHIEF
       case EVALUATOR.name => EVALUATOR
-      case _ => throw new IllegalArgumentException(s"Unsupported task type '$name' provided.")
+      case _ => throw InvalidArgumentException(s"Unsupported task type '$name' provided.")
     }
   }
 

@@ -19,85 +19,148 @@ package org.platanios.tensorflow.jni
   *
   * @author Emmanouil Antonios Platanios
   */
-abstract class TensorFlowException(message: String) extends RuntimeException(message)
+abstract class TensorFlowException(message: String, cause: Throwable) extends RuntimeException(message, cause)
 
-class CancelledException(message: String) extends TensorFlowException(message)
-class UnknownException(message: String) extends TensorFlowException(message)
-class InvalidArgumentException(message: String) extends TensorFlowException(message)
-class DeadlineExceededException(message: String) extends TensorFlowException(message)
-class NotFoundException(message: String) extends TensorFlowException(message)
-class AlreadyExistsException(message: String) extends TensorFlowException(message)
-class PermissionDeniedException(message: String) extends TensorFlowException(message)
-class UnauthenticatedException(message: String) extends TensorFlowException(message)
-class ResourceExhaustedException(message: String) extends TensorFlowException(message)
-class FailedPreconditionException(message: String) extends TensorFlowException(message)
-class AbortedException(message: String) extends TensorFlowException(message)
-class OutOfRangeException(message: String) extends TensorFlowException(message)
-class UnimplementedException(message: String) extends TensorFlowException(message)
-class InternalException(message: String) extends TensorFlowException(message)
-class UnavailableException(message: String) extends TensorFlowException(message)
-class DataLossException(message: String) extends TensorFlowException(message)
+class CancelledException(message: String, cause: Throwable) extends TensorFlowException(message, cause) {
+  def this(message: String) = this(message, null)
+}
+
+class UnknownException(message: String, cause: Throwable) extends TensorFlowException(message, cause) {
+  def this(message: String) = this(message, null)
+}
+
+class InvalidArgumentException(message: String, cause: Throwable) extends TensorFlowException(message, cause) {
+  def this(message: String) = this(message, null)
+}
+
+class DeadlineExceededException(message: String, cause: Throwable) extends TensorFlowException(message, cause) {
+  def this(message: String) = this(message, null)
+}
+
+class NotFoundException(message: String, cause: Throwable) extends TensorFlowException(message, cause) {
+  def this(message: String) = this(message, null)
+}
+
+class AlreadyExistsException(message: String, cause: Throwable) extends TensorFlowException(message, cause) {
+  def this(message: String) = this(message, null)
+}
+
+class PermissionDeniedException(message: String, cause: Throwable) extends TensorFlowException(message, cause) {
+  def this(message: String) = this(message, null)
+}
+
+class UnauthenticatedException(message: String, cause: Throwable) extends TensorFlowException(message, cause) {
+  def this(message: String) = this(message, null)
+}
+
+class ResourceExhaustedException(message: String, cause: Throwable) extends TensorFlowException(message, cause) {
+  def this(message: String) = this(message, null)
+}
+
+class FailedPreconditionException(message: String, cause: Throwable) extends TensorFlowException(message, cause) {
+  def this(message: String) = this(message, null)
+}
+
+class AbortedException(message: String, cause: Throwable) extends TensorFlowException(message, cause) {
+  def this(message: String) = this(message, null)
+}
+
+class OutOfRangeException(message: String, cause: Throwable) extends TensorFlowException(message, cause) {
+  def this(message: String) = this(message, null)
+}
+
+class UnimplementedException(message: String, cause: Throwable) extends TensorFlowException(message, cause) {
+  def this(message: String) = this(message, null)
+}
+
+class InternalException(message: String, cause: Throwable) extends TensorFlowException(message, cause) {
+  def this(message: String) = this(message, null)
+}
+
+class UnavailableException(message: String, cause: Throwable) extends TensorFlowException(message, cause) {
+  def this(message: String) = this(message, null)
+}
+
+class DataLossException(message: String, cause: Throwable) extends TensorFlowException(message, cause) {
+  def this(message: String) = this(message, null)
+}
 
 object CancelledException {
-  def apply(message: String): CancelledException = new CancelledException(message)
+  def apply(message: String): CancelledException = new CancelledException(message, null)
+  def apply(message: String, cause: Throwable): CancelledException = new CancelledException(message, cause)
 }
 
 object UnknownException {
-  def apply(message: String): UnknownException = new UnknownException(message)
+  def apply(message: String): UnknownException = new UnknownException(message, null)
+  def apply(message: String, cause: Throwable): UnknownException = new UnknownException(message, cause)
 }
 
 object InvalidArgumentException {
-  def apply(message: String): InvalidArgumentException = new InvalidArgumentException(message)
+  def apply(message: String): InvalidArgumentException = new InvalidArgumentException(message, null)
+  def apply(message: String, cause: Throwable): InvalidArgumentException = new InvalidArgumentException(message, cause)
 }
 
 object DeadlineExceededException {
-  def apply(message: String): DeadlineExceededException = new DeadlineExceededException(message)
+  def apply(message: String): DeadlineExceededException = new DeadlineExceededException(message, null)
+  def apply(message: String, cause: Throwable): DeadlineExceededException = new DeadlineExceededException(message, cause)
 }
 
 object NotFoundException {
-  def apply(message: String): NotFoundException = new NotFoundException(message)
+  def apply(message: String): NotFoundException = new NotFoundException(message, null)
+  def apply(message: String, cause: Throwable): NotFoundException = new NotFoundException(message, cause)
 }
 
 object AlreadyExistsException {
-  def apply(message: String): AlreadyExistsException = new AlreadyExistsException(message)
+  def apply(message: String): AlreadyExistsException = new AlreadyExistsException(message, null)
+  def apply(message: String, cause: Throwable): AlreadyExistsException = new AlreadyExistsException(message, cause)
 }
 
 object PermissionDeniedException {
-  def apply(message: String): PermissionDeniedException = new PermissionDeniedException(message)
+  def apply(message: String): PermissionDeniedException = new PermissionDeniedException(message, null)
+  def apply(message: String, cause: Throwable): PermissionDeniedException = new PermissionDeniedException(message, cause)
 }
 
 object UnauthenticatedException {
-  def apply(message: String): UnauthenticatedException = new UnauthenticatedException(message)
+  def apply(message: String): UnauthenticatedException = new UnauthenticatedException(message, null)
+  def apply(message: String, cause: Throwable): UnauthenticatedException = new UnauthenticatedException(message, cause)
 }
 
 object ResourceExhaustedException {
-  def apply(message: String): ResourceExhaustedException = new ResourceExhaustedException(message)
+  def apply(message: String): ResourceExhaustedException = new ResourceExhaustedException(message, null)
+  def apply(message: String, cause: Throwable): ResourceExhaustedException = new ResourceExhaustedException(message, cause)
 }
 
 object FailedPreconditionException {
-  def apply(message: String): FailedPreconditionException = new FailedPreconditionException(message)
+  def apply(message: String): FailedPreconditionException = new FailedPreconditionException(message, null)
+  def apply(message: String, cause: Throwable): FailedPreconditionException = new FailedPreconditionException(message, cause)
 }
 
 object AbortedException {
-  def apply(message: String): AbortedException = new AbortedException(message)
+  def apply(message: String): AbortedException = new AbortedException(message, null)
+  def apply(message: String, cause: Throwable): AbortedException = new AbortedException(message, cause)
 }
 
 object OutOfRangeException {
-  def apply(message: String): OutOfRangeException = new OutOfRangeException(message)
+  def apply(message: String): OutOfRangeException = new OutOfRangeException(message, null)
+  def apply(message: String, cause: Throwable): OutOfRangeException = new OutOfRangeException(message, cause)
 }
 
 object UnimplementedException {
-  def apply(message: String): UnimplementedException = new UnimplementedException(message)
+  def apply(message: String): UnimplementedException = new UnimplementedException(message, null)
+  def apply(message: String, cause: Throwable): UnimplementedException = new UnimplementedException(message, cause)
 }
 
 object InternalException {
-  def apply(message: String): InternalException = new InternalException(message)
+  def apply(message: String): InternalException = new InternalException(message, null)
+  def apply(message: String, cause: Throwable): InternalException = new InternalException(message, cause)
 }
 
 object UnavailableException {
-  def apply(message: String): UnavailableException = new UnavailableException(message)
+  def apply(message: String): UnavailableException = new UnavailableException(message, null)
+  def apply(message: String, cause: Throwable): UnavailableException = new UnavailableException(message, cause)
 }
 
 object DataLossException {
-  def apply(message: String): DataLossException = new DataLossException(message)
+  def apply(message: String): DataLossException = new DataLossException(message, null)
+  def apply(message: String, cause: Throwable): DataLossException = new DataLossException(message, cause)
 }

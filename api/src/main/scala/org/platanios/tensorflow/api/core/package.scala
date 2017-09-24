@@ -116,13 +116,28 @@ package object core {
     val UnavailableException       : jni.UnavailableException.type        = jni.UnavailableException
     val DataLossException          : jni.DataLossException.type           = jni.DataLossException
 
-    case class ShapeMismatchException(message: String = null) extends InvalidArgumentException(message)
-    case class GraphMismatchException(message: String = null) extends InvalidArgumentException(message)
-    case class IllegalNameException(message: String = null) extends InvalidArgumentException(message)
-    case class InvalidDeviceException(message: String = null) extends InvalidArgumentException(message)
-    case class InvalidShapeException(message: String = null) extends InvalidArgumentException(message)
-    case class InvalidIndexerException(message: String = null) extends InvalidArgumentException(message)
-    case class InvalidDataTypeException(message: String = null) extends InvalidArgumentException(message)
-    case class OpBuilderUsedException(message: String = null) extends InvalidArgumentException(message)
+    case class ShapeMismatchException(message: String = null, cause: Throwable = null)
+        extends InvalidArgumentException(message, cause)
+
+    case class GraphMismatchException(message: String = null, cause: Throwable = null)
+        extends InvalidArgumentException(message, cause)
+
+    case class IllegalNameException(message: String = null, cause: Throwable = null)
+        extends InvalidArgumentException(message, cause)
+
+    case class InvalidDeviceException(message: String = null, cause: Throwable = null)
+        extends InvalidArgumentException(message, cause)
+
+    case class InvalidShapeException(message: String = null, cause: Throwable = null)
+        extends InvalidArgumentException(message, cause)
+
+    case class InvalidIndexerException(message: String = null, cause: Throwable = null)
+        extends InvalidArgumentException(message, cause)
+
+    case class InvalidDataTypeException(message: String = null, cause: Throwable = null)
+        extends InvalidArgumentException(message, cause)
+
+    case class OpBuilderUsedException(message: String = null, cause: Throwable = null)
+        extends InvalidArgumentException(message, cause)
   }
 }

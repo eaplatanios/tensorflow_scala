@@ -13,12 +13,12 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.learn
+package org.platanios.tensorflow.api.learn.layers
 
 import org.platanios.tensorflow.api.core.{Graph, Shape}
-import org.platanios.tensorflow.api.learn
-import org.platanios.tensorflow.api.ops.{Op, Output}
+import org.platanios.tensorflow.api.learn.layers
 import org.platanios.tensorflow.api.ops.io.{Data, Iterator}
+import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.DataType
 
@@ -29,7 +29,7 @@ import scala.collection.mutable
   */
 object Input {
   trait API {
-    type Input[T, O, D, S] = learn.Input[T, O, D, S]
+    type Input[T, O, D, S] = layers.Input[T, O, D, S]
 
     def input(dataType: DataType, shape: Shape): Input[Tensor, Output, DataType, Shape] = {
       Input(dataType, shape, "Input")

@@ -136,6 +136,8 @@ class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
     * @param  terminationCriteria Termination criteria to use for stopping the training iteration. For the default
     *                             criteria please refer to the documentation of [[StopCriteria]].
     * @param  hooks               Hooks to use while training (e.g., logging for the loss function value, etc.).
+    * @param  chiefOnlyHooks      Hooks to use while training for the chief node only. This argument is only useful for
+    *                             a distributed training setting.
     * @param  tensorBoardConfig   If provided, a TensorBoard server is launched using the provided configuration. In
     *                             that case, it is required that TensorBoard is installed for the default Python
     *                             environment in the system. If training in a distributed setting, the TensorBoard
@@ -145,10 +147,11 @@ class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
       data: Dataset[(IT, TT), (IO, TO), (ID, TD), (IS, TS)],
       terminationCriteria: StopCriteria = StopCriteria(),
       hooks: Seq[Hook] = Seq.empty,
+      chiefOnlyHooks: Seq[Hook] = Seq.empty,
       tensorBoardConfig: TensorBoardConfig = null): Unit = {
     // TODO: !!! Load global step from a checkpoint and skip training if appropriate.
     val allHooks = mutable.ListBuffer(hooks: _*)
-    val chiefOnlyHooks = mutable.ListBuffer(hooks: _*)
+    val allChiefOnlyHooks = mutable.ListBuffer(chiefOnlyHooks: _*)
     allHooks += StopHook(terminationCriteria)
     val model = modelFunction(configuration)
     val graph = Graph()
@@ -165,7 +168,7 @@ class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
         "Loss" -> trainingOps.loss.name
       ), StepHookTrigger(100))
       if (tensorBoardConfig != null)
-        chiefOnlyHooks += TensorBoardHook(tensorBoardConfig)
+        allChiefOnlyHooks += TensorBoardHook(tensorBoardConfig)
       if (graph.getCollection(Graph.Keys.SAVERS).isEmpty) {
         graph.addToCollection(Saver(
           sharded = true,
@@ -178,7 +181,7 @@ class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
       val session = Estimator.monitoredTrainingSession(
         configuration = configuration,
         hooks = allHooks,
-        chiefOnlyHooks = chiefOnlyHooks,
+        chiefOnlyHooks = allChiefOnlyHooks,
         sessionScaffold = SessionScaffold(
           initOp = Some(ControlFlow.group(Set(
             inputInitializer,

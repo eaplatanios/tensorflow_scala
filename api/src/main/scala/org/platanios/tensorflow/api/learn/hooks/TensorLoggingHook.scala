@@ -15,8 +15,11 @@
 
 package org.platanios.tensorflow.api.learn.hooks
 
+import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.{Executable, Fetchable, Session}
+import org.platanios.tensorflow.api.learn.Counter
 import org.platanios.tensorflow.api.ops.{Op, Output}
+import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.tensors.Tensor
 
 import com.typesafe.scalalogging.Logger
@@ -51,28 +54,34 @@ case class TensorLoggingHook(
   private[this] val tensorTags: Seq[String] = tensors.keys.toSeq
   private[this] val tensorNames: Seq[String] = tensors.values.toSeq
   private[this] var outputs: Seq[Output] = _
+  private[this] var step         : Variable                  = _
 
   private[this] val internalTrigger: HookTrigger = trigger.copy()
-  private[this] var iterationCount: Int = 0
+  private[this] var lastStep       : Long        = 0L
   private[this] var shouldTrigger: Boolean = false
 
   override def begin(): Unit = {
+    step = Counter.get(Graph.Keys.GLOBAL_STEP, Op.currentGraph).getOrElse(throw new IllegalStateException(
+      s"A ${Graph.Keys.GLOBAL_STEP.name} variable should be created in order to use the 'TensorLoggingHook'."))
     internalTrigger.reset()
-    iterationCount = 0
     shouldTrigger = false
     // Convert tensor names to op outputs.
     outputs = tensorNames.map(t => Op.currentGraph.getOutputByName(t))
+  }
+
+  override def afterSessionCreation(session: Session): Unit = {
+    lastStep = session.run(fetches = step.value).scalar.asInstanceOf[Long]
   }
 
   override def beforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]
   ): Option[Hook.SessionRunArgs[Seq[Output], Traversable[Op], Seq[Tensor]]] = {
-    shouldTrigger = internalTrigger.shouldTriggerForStep(iterationCount)
+    shouldTrigger = internalTrigger.shouldTriggerForStep(lastStep.toInt)
     if (shouldTrigger)
-      Some(Hook.SessionRunArgs(fetches = outputs))
+      Some(Hook.SessionRunArgs(fetches = step.value +: outputs))
     else
-      None
+      Some(Hook.SessionRunArgs(fetches = Seq(step.value)))
   }
 
   override def afterSessionRun[F, E, R](
@@ -82,13 +91,13 @@ case class TensorLoggingHook(
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]
   ): Unit = {
+    lastStep = runResult.values(0).scalar.asInstanceOf[Long]
     if (shouldTrigger)
-      logTensors(tensorTags.zip(runResult.values))
-    iterationCount += 1
+      logTensors(tensorTags.zip(runResult.values.tail))
   }
 
   override def end(session: Session): Unit = {
-    if (triggerAtEnd)
+    if (triggerAtEnd && lastStep.toInt != internalTrigger.lastTriggerStep().getOrElse(-1))
       logTensors(tensorTags.zip(session.run(fetches = outputs)))
   }
 
@@ -100,7 +109,7 @@ case class TensorLoggingHook(
       val valuesLog = tensors.map(t => {
         s"${t._1} = ${t._2.summarize(flattened = true, includeInfo = false)}"
       }).mkString(", ")
-      val log = internalTrigger.updateLastTrigger(iterationCount).map(_._1) match {
+      val log = internalTrigger.updateLastTrigger(lastStep.toInt - 1).map(_._1) match {
         case Some(s) => f"($s%.3f s) $valuesLog"
         case None => s"( N/A ) $valuesLog"
       }

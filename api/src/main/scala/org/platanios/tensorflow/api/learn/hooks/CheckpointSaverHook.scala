@@ -15,9 +15,6 @@
 
 package org.platanios.tensorflow.api.learn.hooks
 
-import java.nio.file.{Files, Path}
-
-import com.typesafe.scalalogging.Logger
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.{Executable, Fetchable, Session}
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
@@ -26,10 +23,25 @@ import org.platanios.tensorflow.api.learn.Counter
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.ops.variables.{Saver, Variable}
 import org.platanios.tensorflow.api.tensors.Tensor
+
+import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
 import org.tensorflow.util.SessionLog
 
-/**
+import java.nio.file.{Files, Path}
+
+/** Saves checkpoints to files based on a [[HookTrigger]]. Checkpoints include the current graph, as well as the trained
+  * values of all variables, so far.
+  *
+  * @param  directory          Directory in which to save the checkpoints.
+  * @param  trigger            Hook trigger specifying when this hook is triggered (i.e., when it executes). If you only
+  *                            want to save the summary values at the end of a run and not during, then you should set
+  *                            `trigger` to [[NoHookTrigger]] and `triggerAtEnd` to `true`.
+  * @param  triggerAtEnd       If `true`, this hook will be triggered at the end of the run. Note that if this flag is
+  *                            set to `true`, then all summaries must be computable without using a feed map for the
+  *                            [[Session.run()]] call.
+  * @param  checkpointBaseName Base name for the checkpoint files.
+  *
   * @author Emmanouil Antonios Platanios
   */
 case class CheckpointSaverHook(
@@ -49,6 +61,7 @@ case class CheckpointSaverHook(
   private[this] var shouldTrigger  : Boolean     = false
 
   override def begin(): Unit = {
+    internalTrigger.reset()
     step = Counter.get(Graph.Keys.GLOBAL_STEP, Op.currentGraph).getOrElse(throw InvalidArgumentException(
       s"A ${Graph.Keys.GLOBAL_STEP.name} variable should be created in order to use the 'CheckpointSaverHook'."))
     val savers = Op.currentGraph.getCollection(Graph.Keys.SAVERS)
@@ -88,17 +101,18 @@ case class CheckpointSaverHook(
       fetchableEv: Fetchable.Aux[F, R]
   ): Unit = {
     lastStep = runResult.values(0).scalar.asInstanceOf[Long]
-    if (shouldTrigger && lastStep != internalTrigger.lastTriggerStep().orNull)
+    if (shouldTrigger)
       save(runContext.session)
   }
 
   override def end(session: Session): Unit = {
-    if (triggerAtEnd)
+    if (triggerAtEnd && lastStep.toInt != internalTrigger.lastTriggerStep().getOrElse(-1))
       save(session)
     summaryWriter.foreach(_.flush())
   }
 
   private[this] def save(session: Session): Unit = {
+    internalTrigger.updateLastTrigger(lastStep.toInt - 1)
     CheckpointSaverHook.logger.info(s"Saving checkpoint for step $lastStep.")
     saver.foreach(_.save(session, savePath, Some(lastStep.toInt)))
     summaryWriter.foreach(_.writeSessionLog(

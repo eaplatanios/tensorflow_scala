@@ -26,8 +26,7 @@ package object learn {
   }
 
   private[api] trait API
-      extends Input.API
-          with Model.API
+      extends Model.API
           with layers.API
           with ops.training.optimizers.API
 

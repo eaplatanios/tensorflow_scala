@@ -32,7 +32,7 @@ import java.nio.file.Path
   * @param  directory    Directory in which to save the summaries.
   * @param  trigger      Hook trigger specifying when this hook is triggered (i.e., when it executes). If you only want
   *                      to save the summary values at the end of a run and not during, then you should set `trigger` to
-  *                      [[NoHookTrigger]] and `saveAtEnd` to `true`.
+  *                      [[NoHookTrigger]] and `triggerAtEnd` to `true`.
   * @param  triggerAtEnd If `true`, this hook will be triggered at the end of the run. Note that if this flag is set to
   *                      `true`, then all summaries must be computable without using a feed map for the
   *                      [[Session.run()]] call.
@@ -55,6 +55,7 @@ case class SummarySaverHook(
   private[this] var shouldTrigger  : Boolean     = false
 
   override def begin(): Unit = {
+    internalTrigger.reset()
     step = Counter.get(Graph.Keys.GLOBAL_STEP, Op.currentGraph).getOrElse(throw new IllegalStateException(
       s"A ${Graph.Keys.GLOBAL_STEP.name} variable should be created in order to use the 'SummarySaverHook'."))
     summary = Summary.mergeAll(collection)
@@ -89,7 +90,7 @@ case class SummarySaverHook(
   }
 
   override def end(session: Session): Unit = {
-    if (triggerAtEnd && lastStep != internalTrigger.lastTriggerStep().orNull)
+    if (triggerAtEnd && lastStep.toInt != internalTrigger.lastTriggerStep().getOrElse(-1))
       saveSummaries(session.run(fetches = Seq(step.value, summary.get)))
     summaryWriter.foreach(_.flush())
   }

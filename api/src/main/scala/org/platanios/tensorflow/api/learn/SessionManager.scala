@@ -15,10 +15,9 @@
 
 package org.platanios.tensorflow.api.learn
 
-import org.platanios.tensorflow.api.config._
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.{FeedMap, Session, SessionConfig}
-import org.platanios.tensorflow.api.learn.hooks.Hook
+import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.ops.variables.Saver
 import org.platanios.tensorflow.api.types.STRING
@@ -86,16 +85,16 @@ import scala.util.Try
   *                                local variables.
   * @param  recoveryWaitNumSeconds Number of seconds between checks that the model is ready. It is used by processes to
   *                                wait for a model to be initialized or restored. Defaults to 30 seconds.
-  * @throws IllegalArgumentException If a `readyForLocalInitOp` is provided, but no `localInitOp` is provided with it.
+  * @throws InvalidArgumentException If a `readyForLocalInitOp` is provided, but no `localInitOp` is provided with it.
   *
   * @author Emmanouil Antonios Platanios
   */
-@throws[IllegalArgumentException]
+@throws[InvalidArgumentException]
 private[learn] case class SessionManager(
     graph: Graph = Op.currentGraph, readyOp: Option[Output] = None, readyForLocalInitOp: Option[Output] = None,
     localInitOp: Option[Op] = None, recoveryWaitNumSeconds: Int = 30) {
   if (readyForLocalInitOp.isDefined && localInitOp.isEmpty)
-    throw new IllegalArgumentException("If you pass a 'readyForLocalInitOp', you must also pass a 'localInitOp'.")
+    throw InvalidArgumentException("If you pass a 'readyForLocalInitOp', you must also pass a 'localInitOp'.")
 
   /** Creates a [[Session]] and makes sure the model is ready to be used.
     *
@@ -125,10 +124,10 @@ private[learn] case class SessionManager(
     * @param  initFunction      Function used to initialize the model that is called after the optional `initOp` is
     *                           executed. The function takes one argument: the session being initialized.
     * @return Created session with a model that is ready to be used.
-    * @throws IllegalArgumentException If the model cannot be recovered and no `initOp`, `initFunction`, or
+    * @throws InvalidArgumentException If the model cannot be recovered and no `initOp`, `initFunction`, or
     *                                  `localInitOp` is provided, then an exception is thrown.
     */
-  @throws[IllegalArgumentException]
+  @throws[InvalidArgumentException]
   def prepareSession(
       master: String, saver: Option[Saver] = None, checkpointPath: Option[Path], waitForCheckpoint: Boolean = false,
       maxWaitSeconds: Int = 7200, sessionConfig: Option[SessionConfig] = None, initOp: Option[Op] = None,
@@ -137,17 +136,17 @@ private[learn] case class SessionManager(
       master, saver, checkpointPath, waitForCheckpoint, maxWaitSeconds, sessionConfig)
     if (!isLoadedFromCheckpoint) {
       if (initOp.isEmpty && initFunction.isEmpty && localInitOp.isEmpty)
-        throw new IllegalArgumentException(
+        throw InvalidArgumentException(
           "Model is not initialized and no 'initOp', 'initFunction', or 'localInitOp' was provided.")
       initOp.foreach(op => session.run(feeds = initFeedMap, targets = op))
       initFunction.foreach(f => f(session))
     }
     tryLocalInitOp(session).foreach(
-      message => throw new IllegalArgumentException(
+      message => throw InvalidArgumentException(
         s"Initialization ops did not make the model ready for local initialization. " +
             s"[initOp: $initOp, initFunction: $initFunction, error: $message]."))
     isModelReady(session).foreach(
-      message => throw new IllegalArgumentException(
+      message => throw InvalidArgumentException(
         s"Initialization ops did not make the model ready. " +
             s"[initOp: $initOp, initFunction: $initFunction, localInitOp: $localInitOp, error: $message]."))
     session

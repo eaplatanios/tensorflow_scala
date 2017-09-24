@@ -38,10 +38,10 @@ private[learn] case class StopHook private[learn] (criteria: StopCriteria) exten
   private[this] var step : Variable = _
   private[this] var loss : Output   = _
 
-  private[this] var lastEpoch: Option[Long] = if (criteria.restartCounting) None else criteria.maxEpochs
-  private[this] var lastStep: Option[Long] = if (criteria.restartCounting) None else criteria.maxSteps
-  private[this] var lastLoss: Float = Float.MaxValue
-  private[this] var numStepsBelowTol: Int = 0
+  private[this] var lastEpoch       : Option[Long] = if (criteria.restartCounting) None else criteria.maxEpochs
+  private[this] var lastStep        : Option[Long] = if (criteria.restartCounting) None else criteria.maxSteps
+  private[this] var lastLoss        : Float        = Float.MaxValue
+  private[this] var numStepsBelowTol: Int          = 0
 
   private[this] var sessionFetches : Seq[Output] = _
   private[this] var epochFetchIndex: Int         = _

@@ -15,9 +15,11 @@
 
 package org.platanios.tensorflow.api.utilities
 
-import java.nio.file.{Files, Path}
+import org.platanios.tensorflow.api.io.FileIO
 
 import com.google.protobuf.{GeneratedMessageV3, TextFormat}
+
+import java.nio.file.{Files, Path}
 
 /** Contains helper functions for working with ProtoBuf.
   *

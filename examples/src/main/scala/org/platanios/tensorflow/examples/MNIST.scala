@@ -16,14 +16,15 @@
 package org.platanios.tensorflow.examples
 
 import org.platanios.tensorflow.api._
-import org.platanios.tensorflow.api.learn.{Estimator, Model, StopCriteria}
+import org.platanios.tensorflow.api.config.TensorBoardConfig
+import org.platanios.tensorflow.api.learn.{Estimator, StopCriteria}
+import org.platanios.tensorflow.api.learn.hooks.{CheckpointSaverHook, StepHookTrigger, StepRateHook, SummarySaverHook}
 import org.platanios.tensorflow.data.loaders.MNISTLoader
+
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
-import java.nio.file.Paths
 
-import org.platanios.tensorflow.api.config.TensorBoardConfig
-import org.platanios.tensorflow.api.learn.hooks.{StepHookTrigger, StepRateHook, SummarySaverHook}
+import java.nio.file.Paths
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -66,8 +67,9 @@ object MNIST {
       StopCriteria(maxSteps = Some(1000000)),
       Seq(
         StepRateHook(log = false, summaryDirectory = summariesDir, trigger = StepHookTrigger(100)),
-        SummarySaverHook(summariesDir, StepHookTrigger(100))),
-      TensorBoardConfig(summariesDir, reloadInterval = 1))
+        SummarySaverHook(summariesDir, StepHookTrigger(100)),
+        CheckpointSaverHook(summariesDir, StepHookTrigger(1000))),
+      tensorBoardConfig = TensorBoardConfig(summariesDir, reloadInterval = 1))
 
     // val inputs = tf.placeholder(tf.UINT8, tf.shape(-1, numberOfRows, numberOfColumns))
     // val labels = tf.placeholder(tf.UINT8, tf.shape(-1))
