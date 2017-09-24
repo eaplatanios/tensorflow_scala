@@ -57,8 +57,7 @@ are a few useful links:
   // Create the MLP model.
   val input = tf.learn.Input(FLOAT32, Shape(-1, 28, 28))
   val trainInput = tf.learn.Input(INT64, Shape(-1))
-  val layer = tf.learn.Flatten() >>
-      tf.learn.Cast(FLOAT32) >>
+  val layer = tf.learn.Flatten() >> 
       tf.learn.Linear(128, name = "Layer_0") >> tf.learn.ReLU(0.1f) >>
       tf.learn.Linear(64, name = "Layer_1") >> tf.learn.ReLU(0.1f) >>
       tf.learn.Linear(32, name = "Layer_2") >> tf.learn.ReLU(0.1f) >>

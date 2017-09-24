@@ -54,7 +54,6 @@ object MNIST {
 //        tf.learn.cast(FLOAT32) >>
 //        tf.learn.linear(10) // >> tf.learn.logSoftmax()
     val layer = tf.learn.Flatten() >>
-        tf.learn.Cast(FLOAT32) >>
         tf.learn.Linear(128, name = "Layer_0") >> tf.learn.ReLU(0.1f) >>
         tf.learn.Linear(64, name = "Layer_1") >> tf.learn.ReLU(0.1f) >>
         tf.learn.Linear(32, name = "Layer_2") >> tf.learn.ReLU(0.1f) >>
