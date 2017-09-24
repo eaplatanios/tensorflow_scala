@@ -15,50 +15,42 @@
 
 package org.platanios.tensorflow.api.learn.layers
 
-import org.platanios.tensorflow.api.{Shape, tf}
+import org.platanios.tensorflow.api.Shape
 import org.platanios.tensorflow.api.learn.{TRAINING, layers}
+import org.platanios.tensorflow.api.ops
+import org.platanios.tensorflow.api.ops.Output
 
 /**
   * @author Emmanouil Antonios Platanios
   */
 object NN {
   trait API {
-    type Softmax = layers.Softmax
-    type LogSoftmax = layers.LogSoftmax
-    type Dropout = layers.Dropout
-
-    def softmax(name: String = "Softmax"): Softmax = Softmax(name = name)
-
-    def logSoftmax(name: String = "LogSoftmax"): LogSoftmax = LogSoftmax(name = name)
-
-    def dropout(
-        keepProbability: Float, noiseShape: Shape = null, seed: Option[Int] = None,
-        name: String = "Dropout"): Dropout = {
-      Dropout(keepProbability = keepProbability, noiseShape = noiseShape, seed = seed, name = name)
-    }
+    val Softmax   : layers.Softmax.type    = layers.Softmax
+    val LogSoftmax: layers.LogSoftmax.type = layers.LogSoftmax
+    val Dropout   : layers.Dropout.type    = layers.Dropout
   }
 
   object API extends API
 }
 
-case class Softmax private[layers](override val name: String = "Softmax") extends NetworkLayer[tf.Output, tf.Output] {
-  override val layerType: String                 = s"Softmax"
-  override val forward  : tf.Output => tf.Output = tf.softmax(_, name = name)
+case class Softmax private[layers](override val name: String = "Softmax") extends NetworkLayer[Output, Output] {
+  override val layerType: String           = s"Softmax"
+  override val forward  : Output => Output = ops.NN.softmax(_, name = name)
 }
 
-case class LogSoftmax private[layers](override val name: String = "LogSoftmax") extends NetworkLayer[tf.Output, tf.Output] {
-  override val layerType: String                 = s"LogSoftmax"
-  override val forward  : tf.Output => tf.Output = tf.logSoftmax(_, name = name)
+case class LogSoftmax private[layers](override val name: String = "LogSoftmax") extends NetworkLayer[Output, Output] {
+  override val layerType: String           = s"LogSoftmax"
+  override val forward  : Output => Output = ops.NN.logSoftmax(_, name = name)
 }
 
 case class Dropout private[layers](
     keepProbability: Float, noiseShape: Shape = null, seed: Option[Int] = None, name: String = "Dropout")
-    extends NetworkLayer[tf.Output, tf.Output] with ModeConditionalNetworkLayer {
-  override val layerType: String                 = s"Dropout[$keepProbability]"
-  override val forward  : tf.Output => tf.Output = input => {
+    extends NetworkLayer[Output, Output] with ModeConditionalNetworkLayer {
+  override val layerType: String           = s"Dropout[$keepProbability]"
+  override val forward  : Output => Output = input => {
     val noise = if (noiseShape == null) null else noiseShape.toOutput()
-    val default: () => tf.Output = () => input
-    val applyDropout: () => tf.Output = () => tf.dropout(input, keepProbability, noise, seed, name)
+    val default: () => Output = () => input
+    val applyDropout: () => Output = () => ops.NN.dropout(input, keepProbability, noise, seed, name)
     applyDropout whenIn TRAINING otherwise default
   }
 }

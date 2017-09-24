@@ -45,6 +45,16 @@ package object ops {
     outputs.map(_.cast(dataType))
   }
 
+  ops.Basic.Gradients
+  ops.DataFlow.Gradients
+  ops.Logging.Gradients
+  ops.Math.Gradients
+  ops.NN.Gradients
+  ops.Queue.Gradients
+  ops.Parsing.Gradients
+  ops.Random.Gradients
+  ops.variables.Variable.Gradients
+
   private[api] trait API
       extends Basic
           with ControlFlow
@@ -63,15 +73,6 @@ package object ops {
           with Queue.API
           with io.API
           with variables.API {
-    ops.Basic.Gradients
-    ops.DataFlow.Gradients
-    ops.Logging.Gradients
-    ops.Math.Gradients
-    ops.NN.Gradients
-    ops.Queue.Gradients
-    ops.Parsing.Gradients
-    ops.Random.Gradients
-
     object train extends training.API
 
     object summary extends Summary {

@@ -57,17 +57,15 @@ generalization of vectors and matrices to potentially higher dimensions. Interna
 `n`-dimensional arrays of some underlying data type. A [`Tensor`][tensor] has a [`DataType`][data_type] (e.g., `FLOAT32` 
 which corresponds to 32-bit floating point numbers) and a [`Shape`][shape] (that is, the number of dimensions it has and 
 the size of each dimension -- e.g., `Shape(10, 2)` which corresponds to a matrix with 10 rows and 2 columns) associated 
-with it. Each element in the [`Tensor`][tensor] has the same data type.
-
-For example, the following code creates an integer tensor filled with 
-zeros with shape `[2, 5]` (i.e., a two-dimensional array holding integer values, where the first dimension size is 2 and 
-the second is 5):
+with it. Each element in the [`Tensor`][tensor] has the same data type. For example, the following code creates an 
+integer tensor filled with zeros with shape `[2, 5]` (i.e., a two-dimensional array holding integer values, where the 
+first dimension size is 2 and the second is 5):
 ```tut
 val tensor = Tensor.zeros(INT32, Shape(2, 5))
 ```
 You can print the contents of a tensor as follows:
 ```tut
-tensor.summarize()
+tensor.summarize(flattened = true)
 ```
 
 ## Data Type

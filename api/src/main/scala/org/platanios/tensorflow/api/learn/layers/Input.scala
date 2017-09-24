@@ -29,21 +29,17 @@ import scala.collection.mutable
   */
 object Input {
   trait API {
-    type Input[T, O, D, S] = layers.Input[T, O, D, S]
-
-    def input(dataType: DataType, shape: Shape): Input[Tensor, Output, DataType, Shape] = {
-      Input(dataType, shape, "Input")
-    }
-
-    def input(dataType: DataType, shape: Shape, name: String): Input[Tensor, Output, DataType, Shape] = {
-      Input(dataType, shape, name)
+    def Input(dataType: DataType, shape: Shape, name: String = "Input")(implicit
+        ev: Data.Aux[Tensor, Output, DataType, Shape]
+    ): layers.Input[Tensor, Output, DataType, Shape] = {
+      layers.Input(dataType, shape, name)
     }
   }
 
   object API extends API
 }
 
-case class Input[T, O, D, S] private[learn](dataType: D, shape: S, name: String)(implicit
+case class Input[T, O, D, S] private[learn](dataType: D, shape: S, name: String = "Input")(implicit
     ev: Data.Aux[T, O, D, S]
 ) {
   private[Input] val evidence: Data.Aux[T, O, D, S] = ev

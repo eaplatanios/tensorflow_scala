@@ -42,7 +42,7 @@ import org.platanios.tensorflow.api.ops.variables.Variable
   *
   * @author Emmanouil Antonios Platanios
   */
-case class AdaDelta private[optimizers](
+case class AdaDelta private[api](
     learningRate: Double = 0.01, decay: Decay = NoDecay, rho: Double = 0.95, epsilon: Double = 1e-8,
     useLocking: Boolean = false, name: String = "AdaDeltaOptimizer") extends Optimizer {
   private[this] var learningRateTensor: Output = _
@@ -111,7 +111,7 @@ case class AdaDelta private[optimizers](
   }
 }
 
-private[optimizers] object AdaDelta {
+private[api] object AdaDelta {
   /** Creates an op that updates `variable` by applying the AdaDelta algorithm update to it.
     *
     * The AdaDelta update is as follows:

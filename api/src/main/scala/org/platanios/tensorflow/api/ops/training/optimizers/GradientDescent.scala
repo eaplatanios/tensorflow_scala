@@ -33,7 +33,7 @@ import org.platanios.tensorflow.api.ops.variables.Variable
   *
   * @author Emmanouil Antonios Platanios
   */
-case class GradientDescent private[optimizers](
+case class GradientDescent private[api](
     learningRate: Double, decay: Decay = NoDecay, momentum: Double = 0.0, useNesterov: Boolean = false,
     useLocking: Boolean = false, name: String = "GradientDescentOptimizer") extends Optimizer {
   private[this] var learningRateTensor: Output = _
@@ -98,7 +98,7 @@ case class GradientDescent private[optimizers](
   }
 }
 
-private[optimizers] object GradientDescent {
+private[api] object GradientDescent {
   /** Creates an op that updates the value of `variable` by subtracting `stepSize * gradient` from it.
     *
     * @param  variable   Variable whose value to update.

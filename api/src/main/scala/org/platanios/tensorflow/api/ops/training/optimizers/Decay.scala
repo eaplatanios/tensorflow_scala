@@ -77,7 +77,7 @@ case object NoDecay extends Decay {
   * @param  decaySteps Decay steps.
   * @param  staircase  If `true`, the decay will occur at discrete intervals.
   */
-case class ExponentialDecay private[optimizers](
+case class ExponentialDecay private[api](
     decayRate: Float, decaySteps: Int, staircase: Boolean = false, name: String = "ExponentialDecay")
     extends Decay {
   @throws[IllegalArgumentException]

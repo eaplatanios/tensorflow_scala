@@ -75,7 +75,7 @@ object Layer {
     type MappedLayer[T, R, S, CC[A] <: TraversableLike[A, CC[A]]] = layers.MappedLayer[T, R, S, CC]
     // type IndexedLayerOutput[T, R, CC[A] <: SeqLike[A, CC[A]]] = layers.IndexedLayerOutput[T, R, CC]
 
-    def identity[T](name: String = "Identity"): IdentityLayer[T] = Layer.identity[T](name)
+    def Identity[T](name: String = "Identity"): layers.IdentityLayer[T] = layers.IdentityLayer[T](name)
   }
 
   object API extends API

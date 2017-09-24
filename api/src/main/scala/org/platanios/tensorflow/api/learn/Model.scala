@@ -48,7 +48,7 @@ object Model {
   }
 
   trait API {
-    def model[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
+    def Model[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
         input: Input[IT, IO, ID, IS],
         layer: Layer[IO, I],
         trainingInput: Input[TT, TO, TD, TS],

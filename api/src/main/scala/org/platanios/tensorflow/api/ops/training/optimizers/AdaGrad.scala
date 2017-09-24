@@ -40,7 +40,7 @@ import org.platanios.tensorflow.api.ops.variables.{ConstantInitializer, Variable
   *
   * @author Emmanouil Antonios Platanios
   */
-case class AdaGrad private[optimizers](
+case class AdaGrad private[api](
     learningRate: Double = 0.01, decay: Decay = NoDecay, epsilon: Double = 1e-8, useLocking: Boolean = false,
     name: String = "AdaGradOptimizer") extends Optimizer {
   private[this] var learningRateTensor: Output = _
@@ -75,7 +75,7 @@ case class AdaGrad private[optimizers](
   }
 }
 
-private[optimizers] object AdaGrad {
+private[api] object AdaGrad {
   /** Creates an op that updates `variable` by applying the AdaGrad algorithm update to it.
     *
     * The AdaGrad update is as follows:

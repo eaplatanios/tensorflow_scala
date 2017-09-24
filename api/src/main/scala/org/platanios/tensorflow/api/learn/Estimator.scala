@@ -70,7 +70,7 @@ import scala.collection.mutable
   *
   * @author Emmanouil Antonios Platanios
   */
-class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
+class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T] private[learn] (
     val modelFunction: Estimator.ModelFunction[IT, IO, ID, IS, I, TT, TO, TD, TS, T],
     private[this] val configurationBase: Configuration = null) {
   /** Run configuration used for this estimator. */
@@ -212,6 +212,12 @@ class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
 
 object Estimator {
   private[Estimator] val logger = Logger(LoggerFactory.getLogger("Learn / Estimator"))
+
+  def apply[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
+      modelFunction: Estimator.ModelFunction[IT, IO, ID, IS, I, TT, TO, TD, TS, T],
+      configurationBase: Configuration = null): Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T] = {
+    new Estimator(modelFunction, configurationBase)
+  }
 
   case class ModelFunction[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
       function: (Configuration) => TrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T]) {

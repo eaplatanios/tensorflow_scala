@@ -15,41 +15,37 @@
 
 package org.platanios.tensorflow.api.learn.layers
 
-import org.platanios.tensorflow.api._
+import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.learn.layers
+import org.platanios.tensorflow.api.ops
+import org.platanios.tensorflow.api.ops.Output
 
 /**
   * @author Emmanouil Antonios Platanios
   */
 object Basic {
   trait API {
-    type Flatten = layers.Flatten
-    type OneHot = layers.OneHot
-
-    def flatten(name: String = "Flatten"): Flatten = Flatten(name = name)
-
-    def oneHot(numberOfLabels: Int, name: String = "OneHot"): OneHot = {
-      OneHot(numberOfLabels = numberOfLabels, name = name)
-    }
+    val Flatten: layers.Flatten.type = layers.Flatten
+    val OneHot : layers.OneHot.type  = layers.OneHot
   }
 
   object API extends API
 }
 
-case class Flatten private[layers](override val name: String = "Flatten") extends NetworkLayer[tf.Output, tf.Output] {
-  override val layerType: String = s"Flatten"
-  override val forward: tf.Output => tf.Output = input => {
+case class Flatten private[layers](override val name: String = "Flatten") extends NetworkLayer[Output, Output] {
+  override val layerType: String           = s"Flatten"
+  override val forward  : Output => Output = input => {
     if (input.rank == 1)
       input
     else if (input.rank > -1 && input.shape(0) > -1)
-      tf.reshape(input, Shape(input.shape(0), -1), name = name)
+      ops.Basic.reshape(input, Shape(input.shape(0), -1), name = name)
     else
-      tf.reshape(input, Shape(-1) + input.shape.asArray.tail.product, name = name)
+      ops.Basic.reshape(input, Shape(-1) + input.shape.asArray.tail.product, name = name)
   }
 }
 
 case class OneHot private[layers](numberOfLabels: Int, override val name: String = "OneHot")
-    extends NetworkLayer[tf.Output, tf.Output] {
-  override val layerType: String                 = s"OneHot[$numberOfLabels]"
-  override val forward  : tf.Output => tf.Output = tf.oneHot(_, numberOfLabels, name = name)
+    extends NetworkLayer[Output, Output] {
+  override val layerType: String           = s"OneHot[$numberOfLabels]"
+  override val forward  : Output => Output = ops.Basic.oneHot(_, numberOfLabels, name = name)
 }

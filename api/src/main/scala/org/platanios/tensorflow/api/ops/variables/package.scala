@@ -36,8 +36,6 @@ package object variables {
     type VariableStore = variables.VariableStore
     type VariableScope = variables.VariableScope
 
-    variables.Variable.Gradients
-
     val ReuseExistingVariableOnly: variables.ReuseExistingOnly.type = variables.ReuseExistingOnly
     val CreateNewVariableOnly    : variables.CreateNewOnly.type     = variables.CreateNewOnly
     val ReuseOrCreateNewVariable : variables.ReuseExistingOnly.type = variables.ReuseExistingOnly

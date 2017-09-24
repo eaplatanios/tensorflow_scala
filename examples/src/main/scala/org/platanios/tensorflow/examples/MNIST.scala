@@ -17,7 +17,7 @@ package org.platanios.tensorflow.examples
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.config.TensorBoardConfig
-import org.platanios.tensorflow.api.learn.{Configuration, Estimator, StopCriteria}
+import org.platanios.tensorflow.api.learn.{Configuration, StopCriteria}
 import org.platanios.tensorflow.api.learn.hooks.{CheckpointSaverHook, StepHookTrigger, StepRateHook, SummarySaverHook}
 import org.platanios.tensorflow.data.loaders.MNISTLoader
 
@@ -31,36 +31,44 @@ import java.nio.file.Paths
 object MNIST {
   private[this] val logger = Logger(LoggerFactory.getLogger("Examples / MNIST"))
 
-  def mlpPredictionModel(architecture: Seq[Int]): tf.learn.Layer[tf.Output, tf.Output] = {
-    architecture.zipWithIndex
-        .map(a => tf.learn.withVariableScope(s"Layer_${a._2}")(tf.learn.linear(a._1) >> tf.learn.ReLU(0.1f)))
-        .foldLeft(tf.learn.flatten() >> tf.learn.cast(FLOAT32))(_ >> _) >>
-        tf.learn.withVariableScope("OutputLayer")(tf.learn.linear(10)) // >> tf.learn.logSoftmax())
-  }
+//  def mlpPredictionModel(architecture: Seq[Int]): tf.learn.Layer[tf.Output, tf.Output] = {
+//    architecture.zipWithIndex
+//        .map(a => tf.learn.withVariableScope(s"Layer_${a._2}")(tf.learn.linear(a._1) >> tf.learn.ReLU(0.1f)))
+//        .foldLeft(tf.learn.Flatten() >> tf.learn.cast(FLOAT32))(_ >> _) >>
+//        tf.learn.withVariableScope("OutputLayer")(tf.learn.linear(10)) // >> tf.learn.logSoftmax())
+//  }
 
   def main(args: Array[String]): Unit = {
     val dataSet = MNISTLoader.load(Paths.get("/Users/Anthony/Downloads/MNIST"))
-    val trainImages = tf.datasetFromSlices(dataSet.trainImages)
-    val trainLabels = tf.datasetFromSlices(dataSet.trainLabels)
-    val trainData = trainImages.zip(trainLabels).repeat().shuffle(10000).batch(256).prefetch(10)
+    val trainImages = tf.learn.DatasetFromSlices(dataSet.trainImages).map(_.cast(FLOAT32))
+    val trainLabels = tf.learn.DatasetFromSlices(dataSet.trainLabels).map(_.cast(INT64))
+    val trainData =
+      trainImages.zip(trainLabels)
+          .repeat()
+          .shuffle(10000)
+          .batch(256)
+          .prefetch(10)
 
     logger.info("Building the logistic regression model.")
-    val input = tf.learn.input(UINT8, Shape(-1, dataSet.trainImages.shape(1), dataSet.trainImages.shape(2)))
+    val input = tf.learn.Input(FLOAT32, Shape(-1, dataSet.trainImages.shape(1), dataSet.trainImages.shape(2)))
+    val trainInput = tf.learn.Input(INT64, Shape(-1))
 //    val layer = tf.learn.flatten() >>
 //        tf.learn.cast(FLOAT32) >>
 //        tf.learn.linear(10) // >> tf.learn.logSoftmax()
-    val layer = tf.learn.flatten() >>
-        tf.learn.cast(FLOAT32) >>
-        mlpPredictionModel(Seq(128, 64, 32))
-    val trainInput = tf.learn.input(UINT8, Shape(-1))
-    val trainingInputLayer = tf.learn.cast(INT64) // tf.learn.oneHot(10) >> tf.learn.cast(FLOAT32)
-    val loss = tf.learn.sparseSoftmaxCrossEntropy() >> tf.learn.mean() >> tf.learn.ScalarSummary("Loss")
-    val optimizer = tf.learn.gradientDescent(1e-6)
-    val model = tf.learn.model(input, layer, trainInput, trainingInputLayer, loss, optimizer)
+    val layer = tf.learn.Flatten() >>
+        tf.learn.Cast(FLOAT32) >>
+        tf.learn.Linear(128, name = "Layer_0") >> tf.learn.ReLU(0.1f) >>
+        tf.learn.Linear(64, name = "Layer_1") >> tf.learn.ReLU(0.1f) >>
+        tf.learn.Linear(32, name = "Layer_2") >> tf.learn.ReLU(0.1f) >>
+        tf.learn.Linear(10, name = "OutputLayer")
+    val trainingInputLayer = tf.learn.Identity[tf.Output]()
+    val loss = tf.learn.SparseSoftmaxCrossEntropy() >> tf.learn.Mean() >> tf.learn.ScalarSummary("Loss")
+    val optimizer = tf.learn.GradientDescent(1e-6)
+    val model = tf.learn.Model(input, layer, trainInput, trainingInputLayer, loss, optimizer)
 
     logger.info("Training the linear regression model.")
-    val summariesDir = Paths.get("/Users/Anthony/Downloads/temp")
-    val estimator = new Estimator(model, Configuration(Some(summariesDir)))
+    val summariesDir = Paths.get("/Users/Anthony/Downloads/temp/mlp-1024-256-64")
+    val estimator = tf.learn.Estimator(model, Configuration(Some(summariesDir)))
     estimator.train(
       trainData,
       StopCriteria(maxSteps = Some(1000000)),

@@ -13,24 +13,21 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api
+package org.platanios.tensorflow.api.learn
 
-import org.platanios.tensorflow.api.core.exception.{AbortedException, UnavailableException}
+import org.platanios.tensorflow.api.ops
 
 /**
   * @author Emmanouil Antonios Platanios
   */
-package object learn {
-  private[learn] val RECOVERABLE_EXCEPTIONS: Set[Class[_]] = {
-    Set(classOf[AbortedException], classOf[UnavailableException])
-  }
+package object optimizers {
+  private[api] trait API {
+    val NoDecay         : ops.training.optimizers.NoDecay.type          = ops.training.optimizers.NoDecay
+    val ExponentialDecay: ops.training.optimizers.ExponentialDecay.type = ops.training.optimizers.ExponentialDecay
 
-  private[api] trait API
-      extends Model.API
-          with data.API
-          with layers.API
-          with optimizers.API {
-    val Estimator: learn.Estimator.type = learn.Estimator
+    val GradientDescent: ops.training.optimizers.GradientDescent.type = ops.training.optimizers.GradientDescent
+    val AdaGrad        : ops.training.optimizers.AdaGrad.type         = ops.training.optimizers.AdaGrad
+    val AdaDelta       : ops.training.optimizers.AdaDelta.type        = ops.training.optimizers.AdaDelta
   }
 
   private[api] object API extends API

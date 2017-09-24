@@ -13,25 +13,14 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api
-
-import org.platanios.tensorflow.api.core.exception.{AbortedException, UnavailableException}
+package org.platanios.tensorflow.api.learn
 
 /**
   * @author Emmanouil Antonios Platanios
   */
-package object learn {
-  private[learn] val RECOVERABLE_EXCEPTIONS: Set[Class[_]] = {
-    Set(classOf[AbortedException], classOf[UnavailableException])
-  }
-
+package object data {
   private[api] trait API
-      extends Model.API
-          with data.API
-          with layers.API
-          with optimizers.API {
-    val Estimator: learn.Estimator.type = learn.Estimator
-  }
+      extends Dataset
 
   private[api] object API extends API
 }

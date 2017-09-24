@@ -15,67 +15,55 @@
 
 package org.platanios.tensorflow.api.learn.layers
 
-import org.platanios.tensorflow.api.tf
 import org.platanios.tensorflow.api.learn.layers
+import org.platanios.tensorflow.api.ops
+import org.platanios.tensorflow.api.ops.Output
 
 /**
   * @author Emmanouil Antonios Platanios
   */
-trait Loss[T] extends NetworkLayer[T, tf.Output]
+trait Loss[T] extends NetworkLayer[T, Output]
 
 object Loss {
   trait API {
     type Loss[T] = layers.Loss[T]
-    type L2Loss = layers.L2Loss
-    type SoftmaxCrossEntropy = layers.SoftmaxCrossEntropy
-    type SparseSoftmaxCrossEntropy = layers.SparseSoftmaxCrossEntropy
-    type SigmoidCrossEntropy = layers.SigmoidCrossEntropy
 
-    def l2Loss(name: String = "L2Loss"): L2Loss = L2Loss(name = name)
-
-    def softmaxCrossEntropy(name: String = "SoftmaxCrossEntropy"): SoftmaxCrossEntropy = {
-      SoftmaxCrossEntropy(name = name)
-    }
-
-    def sparseSoftmaxCrossEntropy(name: String = "SparseSoftmaxCrossEntropy"): SparseSoftmaxCrossEntropy = {
-      SparseSoftmaxCrossEntropy(name = name)
-    }
-
-    def sigmoidCrossEntropy(name: String = "SigmoidCrossEntropy"): SigmoidCrossEntropy = {
-      SigmoidCrossEntropy(name = name)
-    }
+    val L2Loss                   : layers.L2Loss.type                    = layers.L2Loss
+    val SoftmaxCrossEntropy      : layers.SoftmaxCrossEntropy.type       = layers.SoftmaxCrossEntropy
+    val SparseSoftmaxCrossEntropy: layers.SparseSoftmaxCrossEntropy.type = layers.SparseSoftmaxCrossEntropy
+    val SigmoidCrossEntropy      : layers.SigmoidCrossEntropy.type       = layers.SigmoidCrossEntropy
   }
 
   object API extends API
 }
 
-case class L2Loss private[layers](override val name: String = "L2Loss") extends Loss[(tf.Output, tf.Output)] {
-  override val layerType: String                              = s"L2Loss"
-  override val forward  : ((tf.Output, tf.Output)) => tf.Output = input => {
-    tf.l2Loss(input._1 - input._2, name = name)
+case class L2Loss private[layers](override val name: String = "L2Loss") extends Loss[(Output, Output)] {
+  override val layerType: String                       = s"L2Loss"
+  override val forward  : ((Output, Output)) => Output = input => {
+    ops.NN.l2Loss(input._1 - input._2, name = name)
   }
 }
 
 case class SoftmaxCrossEntropy private[layers](override val name: String = "SoftmaxCrossEntropy")
-    extends Loss[(tf.Output, tf.Output)] {
-  override val layerType: String                              = s"SoftmaxCrossEntropy"
-  override val forward  : ((tf.Output, tf.Output)) => tf.Output = input => {
-    tf.softmaxCrossEntropy(input._1, input._2, name = name)
+    extends Loss[(Output, Output)] {
+  override val layerType: String                       = s"SoftmaxCrossEntropy"
+  override val forward  : ((Output, Output)) => Output = input => {
+    ops.NN.softmaxCrossEntropy(input._1, input._2, name = name)
   }
 }
 
 case class SparseSoftmaxCrossEntropy private[layers](override val name: String = "SparseSoftmaxCrossEntropy")
-    extends Loss[(tf.Output, tf.Output)] {
-  override val layerType: String                                = s"SparseSoftmaxCrossEntropy"
-  override val forward  : ((tf.Output, tf.Output)) => tf.Output = input => {
-    tf.sparseSoftmaxCrossEntropy(input._1, input._2, name = name)
+    extends Loss[(Output, Output)] {
+  override val layerType: String                       = s"SparseSoftmaxCrossEntropy"
+  override val forward  : ((Output, Output)) => Output = input => {
+    ops.NN.sparseSoftmaxCrossEntropy(input._1, input._2, name = name)
   }
 }
 
 case class SigmoidCrossEntropy private[layers](override val name: String = "SigmoidCrossEntropy")
-    extends Loss[(tf.Output, tf.Output)] {
-  override val layerType: String                              = s"SigmoidCrossEntropy"
-  override val forward  : ((tf.Output, tf.Output)) => tf.Output = input => {
-    tf.sigmoidCrossEntropy(input._1, input._2, name = name)
+    extends Loss[(Output, Output)] {
+  override val layerType: String                       = s"SigmoidCrossEntropy"
+  override val forward  : ((Output, Output)) => Output = input => {
+    ops.NN.sigmoidCrossEntropy(input._1, input._2, name = name)
   }
 }
