@@ -355,10 +355,10 @@ object Dataset {
     val flattenedShapes = ev.flattenedShapes(inferredOutputShape)
     val generatorState = GeneratorState(generator)(ev)
 
-    /** Creates an op that generates the next element from iterator with ID, `iterator_id`.
+    /** Creates an op that generates the next element from iterator with ID, `iteratorId`.
       *
-      * We map this function across an infinite repetition of the `iterator_id`, and throw an
-      * `IndexOutOfBoundsException` to terminate the iteration.
+      * We map this function across an infinite repetition of the `iteratorId`, and throw an `OutOfRange` to terminate
+      * the iteration.
       *
       * @param  iteratorId [[INT64]] scalar tensor whose value uniquely identifies the iterator in the internal
       *                    generator state, from which to generate an element.

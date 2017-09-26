@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.learn
 
-import org.platanios.tensorflow.api.config.{CheckpointConfig, SummaryConfig, TensorBoardConfig}
+import org.platanios.tensorflow.api.config._
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.SessionConfig
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
@@ -133,6 +133,10 @@ class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T] private[learn] (
 
   /** Trains the model managed by this estimator.
     *
+    * '''NOTE:''' If you provide any summary saver or checkpoint saver hooks in `hooks` or `chiefOnlyHooks`, then the
+    * checkpoint configuration in this estimator's `configuration` will be ignored for the chief and those hooks will be
+    * used instead.
+    *
     * @param  data                Training dataset. Each element is a tuple over input and training inputs (i.e.,
     *                             supervision labels).
     * @param  terminationCriteria Termination criteria to use for stopping the training iteration. For the default
@@ -188,7 +192,6 @@ class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T] private[learn] (
           savers.head
         }
       }
-      // TODO: !!! [HOOKS] [CHECKPOINTS] Add checkpoint saver hook for the chief.
       val session = Estimator.monitoredTrainingSession(
         configuration = configuration,
         hooks = allHooks,
@@ -276,6 +279,9 @@ object Estimator {
     * to checkpoint and summary saving. For workers, this utility method sets the proper session creator which waits for
     * the chief to initialize or restore the session. Please refer to [[MonitoredSession]] for more information.
     *
+    * '''NOTE:''' If you provide any summary saver or checkpoint saver hooks in `hooks` or `chiefOnlyHooks`, then the
+    * checkpoint configuration in `configuration` will be ignored for the chief and those hooks will be used instead.
+    *
     * @param  configuration   Configuration to use for this session. Contains information related to the session
     *                         configuration, the cluster configuration, etc.
     * @param  hooks           Hooks to use while training.
@@ -295,12 +301,26 @@ object Estimator {
     } else {
       val sessionCreator = ChiefSessionCreator(
         configuration.master, sessionScaffold, configuration.sessionConfig, configuration.workingDir)
-      var chiefHooks = hooks ++ chiefOnlyHooks
-      if (configuration.workingDir.isDefined) {
-        // TODO: !!! [HOOKS] Add step counter hook.
-        // TODO: !!! [HOOKS] Add summary hook.
-        // TODO: !!! [HOOKS] Add checkpoint hook.
-      }
+      val chiefHooks = mutable.ListBuffer(hooks ++ chiefOnlyHooks: _*)
+      configuration.workingDir.foreach(workingDir => {
+        chiefHooks += StepRateHook(log = false, summaryDirectory = workingDir)
+        if (!chiefHooks.exists(_.isInstanceOf[SummarySaverHook])) {
+          configuration.summaryConfig match {
+            case NoSummaries => ()
+            case StepBasedSummaries(steps) => chiefHooks += SummarySaverHook(workingDir, StepHookTrigger(steps))
+            case TimeBasedSummaries(seconds) => chiefHooks += SummarySaverHook(workingDir, TimeHookTrigger(seconds))
+          }
+        }
+        if (!chiefHooks.exists(_.isInstanceOf[CheckpointSaverHook])) {
+          configuration.checkpointConfig match {
+            case NoCheckpoints => ()
+            case StepBasedCheckpoints(steps, _, _) =>
+              chiefHooks += CheckpointSaverHook(workingDir, StepHookTrigger(steps))
+            case TimeBasedCheckpoints(seconds, _, _) =>
+              chiefHooks += CheckpointSaverHook(workingDir, TimeHookTrigger(seconds))
+          }
+        }
+      })
       MonitoredSession(sessionCreator, chiefHooks)
     }
   }

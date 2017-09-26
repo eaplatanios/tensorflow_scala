@@ -122,13 +122,13 @@ case class StepHookTrigger(numSteps: Int) extends HookTrigger {
 
 /** Hook trigger that triggers at most once every `numSeconds` seconds.
   *
-  * @param  numSeconds Triggering time frequency.
+  * @param  seconds Triggering time frequency.
   */
-case class TimeHookTrigger(numSeconds: Double) extends HookTrigger {
-  require(numSeconds >= 0, s"'numSeconds' (= $numSeconds) must be a non-negative number.")
+case class TimeHookTrigger(seconds: Double) extends HookTrigger {
+  require(seconds >= 0, s"'numSeconds' (= $seconds) must be a non-negative number.")
 
   /** Returns a copy of this hook trigger that is also reset. */
-  override def copy(): HookTrigger = TimeHookTrigger(numSeconds)
+  override def copy(): HookTrigger = TimeHookTrigger(seconds)
 
   private[this] var _lastTrigger: Option[(Double, Int)] = None
 
@@ -139,7 +139,7 @@ case class TimeHookTrigger(numSeconds: Double) extends HookTrigger {
   override def shouldTriggerForStep(step: Int): Boolean = _lastTrigger match {
     case None => true
     case Some((_, s)) if s == step => false
-    case Some((t, _)) => (System.currentTimeMillis().toDouble / 1000.0) >= t + numSeconds
+    case Some((t, _)) => (System.currentTimeMillis().toDouble / 1000.0) >= t + seconds
   }
 
   /** Updates the last triggered step and time.
