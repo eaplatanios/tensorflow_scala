@@ -32,11 +32,14 @@ object TensorFlow {
   /** TensorFlow native library name. */
   private[this] val LIB_NAME: String = "tensorflow"
 
+  /** TensorFlow native framework library name. */
+  private[this] val LIB_FRAMEWORK_NAME: String = "tensorflow_framework"
+
   /** TensorFlow JNI bindings library name. */
   private[this] val JNI_LIB_NAME: String = "tensorflow_jni"
 
-  // /** TensorFlow ops library name. */
-  // private[this] val OPS_LIB_NAME: String = "tensorflow_ops"
+  /** TensorFlow ops library name. */
+  private[this] val OPS_LIB_NAME: String = "tensorflow_ops"
 
   /** Current platform operating system. */
   private[this] val os = {
@@ -55,7 +58,7 @@ object TensorFlow {
   }
 
   /** Loads the TensorFlow JNI bindings library along with the TensorFlow native library, if provided as a resource. */
-  def load(): Unit = {
+  def load(): Unit = this synchronized {
     // If either:
     // (1) The native library has already been statically loaded, or
     // (2) The required native code has been statically linked (through a custom launcher), or
@@ -63,7 +66,7 @@ object TensorFlow {
     //     loaded (for example, tensorflow/examples/android and tensorflow/contrib/android include the required native
     //     code in differently named libraries).
     // then it seems that the native library has already been loaded and there is nothing else to do.
-    if (!checkIfLoaded() && !tryLoadLibrary()) {
+    if (!checkIfLoaded()) {
       // Native code is not present, perhaps it has been packaged into the JAR file containing this code.
       val tempDirectory = Files.createTempDirectory("tensorflow_scala_native_libraries")
       Runtime.getRuntime.addShutdownHook(new Thread() {
@@ -73,16 +76,37 @@ object TensorFlow {
       })
       val classLoader = Thread.currentThread.getContextClassLoader
 
-      // Check if a TensorFlow native library resource is provided and load it.
-      val libResourceStream = Option(classLoader.getResourceAsStream(makeResourceName(LIB_NAME)))
-      libResourceStream.map(extractResource(LIB_NAME, _, tempDirectory)).foreach(path => {
-        try {
-          System.load(path.toAbsolutePath.toString)
-        } catch {
-          case exception: IOException => throw new UnsatisfiedLinkError(
-            s"Unable to load the TensorFlow native library from the extracted file: ${exception.getMessage}.")
-        }
-      })
+      try {
+        System.loadLibrary(LIB_NAME)
+      } catch {
+        case _: UnsatisfiedLinkError =>
+          // Check if a TensorFlow native library resource is provided and load it.
+          val libResourceStream = Option(classLoader.getResourceAsStream(makeResourceName(LIB_NAME)))
+          libResourceStream.map(extractResource(LIB_NAME, _, tempDirectory)).foreach(path => {
+            try {
+              System.load(path.toAbsolutePath.toString)
+            } catch {
+              case exception: IOException => throw new UnsatisfiedLinkError(
+                s"Unable to load the TensorFlow native library from the extracted file: ${exception.getMessage}.")
+            }
+          })
+      }
+
+      try {
+        System.loadLibrary(LIB_FRAMEWORK_NAME)
+      } catch {
+        case _: UnsatisfiedLinkError =>
+          // Check if a TensorFlow native framework library resource is provided and load it.
+          val libFrameworkResourceStream = Option(classLoader.getResourceAsStream(makeResourceName(LIB_FRAMEWORK_NAME)))
+          libFrameworkResourceStream.map(extractResource(LIB_FRAMEWORK_NAME, _, tempDirectory)).foreach(path => {
+            try {
+              System.load(path.toAbsolutePath.toString)
+            } catch {
+              case exception: IOException => throw new UnsatisfiedLinkError(
+                s"Unable to load the TensorFlow native framework library from the extracted file: ${exception.getMessage}.")
+            }
+          })
+      }
 
       // Load the TensorFlow JNI bindings from the appropriate resource.
       val jniResourceStream = Option(classLoader.getResourceAsStream(makeResourceName(JNI_LIB_NAME)))
@@ -103,24 +127,10 @@ object TensorFlow {
       })
 
       // Load the TensorFlow ops library from the appropriate resource.
-      // val opsResourceStream = Option(classLoader.getResourceAsStream(makeResourceName(OPS_LIB_NAME)))
-      // val opsPath = opsResourceStream.map(extractResource(OPS_LIB_NAME, _, tempDirectory))
+      val opsResourceStream = Option(classLoader.getResourceAsStream(makeResourceName(OPS_LIB_NAME)))
+      val opsPath = opsResourceStream.map(extractResource(OPS_LIB_NAME, _, tempDirectory))
       // TODO: !!! For some reason this can be called twice.
-      // opsPath.foreach(path => loadOpLibrary(path.toAbsolutePath.toString))
-    }
-  }
-
-  /** Tries to load the TensorFlow JNI bindings library using the system library loader (i.e., not from a resource). */
-  private[this] def tryLoadLibrary() = {
-    try {
-      System.loadLibrary(JNI_LIB_NAME)
-      true
-    } catch {
-      case exception: UnsatisfiedLinkError =>
-        logger.info(
-          s"Failed to load the TensorFlow native library with error: ${exception.getMessage}. " +
-              s"Attempting to load it as a resource.")
-        false
+      opsPath.foreach(path => loadOpLibrary(path.toAbsolutePath.toString))
     }
   }
 

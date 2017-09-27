@@ -13,13 +13,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "tensorflow/core/framework/op_kernel.h"
+#include "jvm_callback_op.h"
+
+#include "c_api.h"
+#include "c_eager_api.h"
+#include "exception.h"
+#include "utilities.h"
 
 #include "third_party/eigen3/unsupported/Eigen/CXX11/Tensor"
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/op_kernel.h"
+#include "tensorflow/core/framework/kernel_def.pb_text.h"
 #include "tensorflow/core/framework/common_shape_fns.h"
-#include "tensorflow/core/kernels/jvm_callback_op.h"
 #include "tensorflow/core/lib/core/coding.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/platform/macros.h"
@@ -35,7 +40,7 @@ REGISTER_OP("JVMCallback")
     .Attr("Tin: list(type) >= 0")
     .Attr("Tout: list(type) >=0")
     .SetIsStateful()
-    .SetShapeFn(shape_inference::UnknownShape)
+    .SetShapeFn(tensorflow::shape_inference::UnknownShape)
     .Doc(R"doc(
 Invokes a JVM callback function, `f` to compute `f(input)->output`.
 
@@ -66,18 +71,18 @@ REGISTER_OP("JVMCallbackStateless")
     .Attr("registry_call_pointer: string")
     .Attr("Tin: list(type) >= 0")
     .Attr("Tout: list(type) >= 0")
-    .SetShapeFn(shape_inference::UnknownShape)
+    .SetShapeFn(tensorflow::shape_inference::UnknownShape)
     .Doc(R"doc(
 A stateless version of `JVMCallback`.
 )doc");
 
 // Copy of the C Eager API struct due to the circular dependency issue.
-TFE_TensorHandle* TFE_NewTensorHandle(const tensorflow::Tensor& t) {
+TFE_TensorHandle* TFE_Local_NewTensorHandle(const tensorflow::Tensor& t) {
   return new TFE_TensorHandle(t, nullptr);
 }
 
 // Copy of the C Eager API struct due to the circular dependency issue.
-const tensorflow::Tensor* TFE_TensorHandleUnderlyingTensorInHostMemory(
+const tensorflow::Tensor* TFE_Local_TensorHandleUnderlyingTensorInHostMemory(
     TFE_TensorHandle* h, TF_Status* status) {
   if (h->d != nullptr) {
     status->status = tensorflow::errors::FailedPrecondition(
@@ -98,7 +103,7 @@ namespace {
     jlong* inputs_array = call->env->GetLongArrayElements(inputs, nullptr);
     for (int64 i = 0; i < n; ++i) {
       const Tensor& t = call->inputs[i];
-      TFE_TensorHandle* tensor = TFE_NewTensorHandle(t);
+      TFE_TensorHandle* tensor = TFE_Local_NewTensorHandle(t);
       inputs_array[i] = reinterpret_cast<jlong>(tensor);
     }
     call->env->ReleaseLongArrayElements(inputs, inputs_array, 0);
@@ -121,7 +126,7 @@ namespace {
         status->status = errors::InvalidArgument("Could not obtain tensor handle to one of the outputs.");
         return;
       }
-      const Tensor* t = TFE_TensorHandleUnderlyingTensorInHostMemory(h, status);
+      const Tensor* t = TFE_Local_TensorHandleUnderlyingTensorInHostMemory(h, status);
       if (!status->status.ok()) return;
       call->outputs.push_back(*t);
     }
@@ -246,7 +251,24 @@ private:
   TF_DISALLOW_COPY_AND_ASSIGN(JVMCallbackOp);
 };
 
-REGISTER_KERNEL_BUILDER(Name("JVMCallback").Device(DEVICE_CPU), JVMCallbackOp);
-REGISTER_KERNEL_BUILDER(Name("JVMCallbackStateless").Device(DEVICE_CPU), JVMCallbackOp);
+namespace kernel_factory {
+struct KernelRegistration {
+  KernelRegistration(const KernelDef& d, StringPiece c,
+                     kernel_factory::OpKernelRegistrar::Factory f)
+      : def(d), kernel_class_name(c.ToString()), factory(f) {}
+  const KernelDef def;
+  const string kernel_class_name;
+  const kernel_factory::OpKernelRegistrar::Factory factory;
+};
 
+auto jvmCallbackOpInitializer = []{
+  auto* reg = reinterpret_cast<std::unordered_multimap<string, KernelRegistration>*>(GlobalKernelRegistry());
+  if (reg->find(strings::StrCat("JVMCallback:", DeviceTypeString(DEVICE_CPU), ":")) == reg->end()) {
+    REGISTER_KERNEL_BUILDER(Name("JVMCallback").Device(DEVICE_CPU), JVMCallbackOp);
+    REGISTER_KERNEL_BUILDER(Name("JVMCallbackStateless").Device(DEVICE_CPU), JVMCallbackOp);
+  }
+  return 0;
+}();
+
+}
 }  // namespace tensorflow
