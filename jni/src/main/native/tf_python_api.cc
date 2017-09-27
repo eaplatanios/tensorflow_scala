@@ -28,10 +28,10 @@
 //  graph->graph.AddEdge(&output.oper->node, output.index, &op->node, index);
 //}
 //
-////void AddControlInput(TF_Graph* graph, TF_Operation* op, TF_Operation* input) {
-////  mutex_lock l(graph->mu);
-////  graph->graph.AddControlEdge(&input->node, &op->node);
-////}
+//void AddControlInput(TF_Graph* graph, TF_Operation* op, TF_Operation* input) {
+//  mutex_lock l(graph->mu);
+//  graph->graph.AddControlEdge(&input->node, &op->node);
+//}
 //
 //void ClearControlInputs(TF_Graph* graph, TF_Operation* op) {
 //  mutex_lock l(graph->mu);
@@ -42,9 +42,9 @@
 //  }
 //}
 //
-////void SetRequestedDevice(TF_Graph* graph, TF_Operation* op, const char* device) {
-////  mutex_lock l(graph->mu);
-////  op->node.set_requested_device(device);
-////}
+//void SetRequestedDevice(TF_Graph* graph, TF_Operation* op, const char* device) {
+//  mutex_lock l(graph->mu);
+//  op->node.set_requested_device(device);
+//}
 //
 //}  // namespace tensorflow
