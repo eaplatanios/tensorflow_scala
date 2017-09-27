@@ -200,6 +200,32 @@ class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T] private[learn] (
     }
   }
 
+  /** Infers output (i.e., computes predictions) for `input` using the model managed by this estimator.
+    *
+    * This method requires that a checkpoint can be found in either `checkpointPath`, if provided, or in this
+    * estimator's working directory. It first loads the trained parameter values from the checkpoint specified by
+    * `checkpointPath` or from the latest checkpoint found in the working directory, and it then computes predictions
+    * for `input`.
+    *
+    * `input` can be of one of the following types:
+    *
+    *   - A [[Dataset]], in which case this method returns an iterator over `(input, output)` tuples corresponding to
+    *     each element in the dataset. Note that the predictions are computed lazily in this case, whenever an element
+    *     is requested from the returned iterator.
+    *   - A single input of type `IT`, in which case this method returns a prediction of type `I`.
+    *
+    * Note that, `ModelInferenceOutput` refers to the tensor type that corresponds to the symbolic type `I`. For
+    * example, if `I` is `(Output, Output)`, then `ModelInferenceOutput` will be `(Tensor, Tensor)`.
+    *
+    * @param  input          Input for the predictions.
+    * @param  hooks          Hooks to use while making predictions (e.g., logging for the loss function value, etc.).
+    * @param  checkpointPath Path to a checkpoint file to use. If `null`, then the latest checkpoint found in this
+    *                        estimator's working directory will be used.
+    * @return Either an iterator over `(IT, ModelInferenceOutput)` tuples, or a single element of type `I`, depending on
+    *         the type of `input`.
+    * @throws CheckpointNotFoundException If no checkpoint could be found. This can happen if `checkpointPath` is `null`
+    *                                     and no checkpoint could be found in this estimator's working directory.
+    */
   // TODO: !!! [ESTIMATORS] Add an "infer" method that doesn't need to load a checkpoint (i.e., in-memory).
   @throws[CheckpointNotFoundException]
   def infer[InferInput, InferOutput, ModelInferenceOutput](
