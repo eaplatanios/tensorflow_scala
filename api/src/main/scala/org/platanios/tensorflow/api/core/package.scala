@@ -70,15 +70,17 @@ package object core {
     type InvalidIndexerException = exception.InvalidIndexerException
     type InvalidDataTypeException = exception.InvalidDataTypeException
     type OpBuilderUsedException = exception.OpBuilderUsedException
+    type CheckpointNotFoundException = exception.CheckpointNotFoundException
 
-    val ShapeMismatchException  : exception.ShapeMismatchException.type   = exception.ShapeMismatchException
-    val GraphMismatchException  : exception.GraphMismatchException.type   = exception.GraphMismatchException
-    val IllegalNameException    : exception.IllegalNameException.type     = exception.IllegalNameException
-    val InvalidDeviceException  : exception.InvalidDeviceException.type   = exception.InvalidDeviceException
-    val InvalidShapeException   : exception.InvalidShapeException.type    = exception.InvalidShapeException
-    val InvalidIndexerException : exception.InvalidIndexerException.type  = exception.InvalidIndexerException
-    val InvalidDataTypeException: exception.InvalidDataTypeException.type = exception.InvalidDataTypeException
-    val OpBuilderUsedException  : exception.OpBuilderUsedException.type   = exception.OpBuilderUsedException
+    val ShapeMismatchException     : exception.ShapeMismatchException.type      = exception.ShapeMismatchException
+    val GraphMismatchException     : exception.GraphMismatchException.type      = exception.GraphMismatchException
+    val IllegalNameException       : exception.IllegalNameException.type        = exception.IllegalNameException
+    val InvalidDeviceException     : exception.InvalidDeviceException.type      = exception.InvalidDeviceException
+    val InvalidShapeException      : exception.InvalidShapeException.type       = exception.InvalidShapeException
+    val InvalidIndexerException    : exception.InvalidIndexerException.type     = exception.InvalidIndexerException
+    val InvalidDataTypeException   : exception.InvalidDataTypeException.type    = exception.InvalidDataTypeException
+    val OpBuilderUsedException     : exception.OpBuilderUsedException.type      = exception.OpBuilderUsedException
+    val CheckpointNotFoundException: exception.CheckpointNotFoundException.type = exception.CheckpointNotFoundException
   }
 
   object exception {
@@ -139,5 +141,8 @@ package object core {
 
     case class OpBuilderUsedException(message: String = null, cause: Throwable = null)
         extends InvalidArgumentException(message, cause)
+
+    case class CheckpointNotFoundException(message: String = null, cause: Throwable = null)
+        extends jni.TensorFlowException(message, cause)
   }
 }

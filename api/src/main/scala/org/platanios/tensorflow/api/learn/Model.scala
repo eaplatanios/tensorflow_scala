@@ -28,10 +28,11 @@ import org.platanios.tensorflow.api.types.FLOAT32
 sealed trait Model
 
 object Model {
-  case class InferenceOps[IT, IO, ID, IS, I](input: Iterator[IT, IO, ID, IS], output: I)
+  case class PredictionOps[IT, IO, ID, IS, I](inputIterator: Iterator[IT, IO, ID, IS], input: IO, output: I)
 
   case class TrainOps[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
-      input: Iterator[(IT, TT), (IO, TO), (ID, TD), (IS, TS)],
+      inputIterator: Iterator[(IT, TT), (IO, TO), (ID, TD), (IS, TS)],
+      input: (IO, TO),
       output: I,
       trainOutput: T,
       loss: Output,
@@ -39,11 +40,12 @@ object Model {
 
   object TrainOps {
     def apply[IT, IO, ID, IS, I](
-        input: Iterator[(IT, IT), (IO, IO), (ID, ID), (IS, IS)],
+        inputIterator: Iterator[(IT, IT), (IO, IO), (ID, ID), (IS, IS)],
+        input: (IO, IO),
         output: I,
         loss: Output,
         trainOp: Op): TrainOps[IT, IO, ID, IS, I, IT, IO, ID, IS, I] = {
-      TrainOps(input, output, output, loss, trainOp)
+      TrainOps(inputIterator, input, output, output, loss, trainOp)
     }
   }
 
@@ -62,14 +64,16 @@ object Model {
   object API extends API
 }
 
-class InferenceModel[IT, IO, ID, IS, I] private[learn](
+class PredictionModel[IT, IO, ID, IS, I] private[learn](
     val input: Input[IT, IO, ID, IS],
-    val layer: Layer[IO, I]) extends Model {
-  def buildInferenceOps(graph: Graph = Op.currentGraph): Model.InferenceOps[IT, IO, ID, IS, I] = {
+    val layer: Layer[IO, I]
+) extends Model {
+  def buildPredictionOps(graph: Graph = Op.currentGraph): Model.PredictionOps[IT, IO, ID, IS, I] = {
     Op.createWith(graph) {
-      val tfInput = input()
-      val tfOutput = layer(tfInput.next())
-      Model.InferenceOps(tfInput, tfOutput)
+      val tfInputIterator = input()
+      val tfInput = tfInputIterator.next()
+      val tfOutput = layer(tfInput)
+      Model.PredictionOps(tfInputIterator, tfInput, tfOutput)
     }
   }
 }
@@ -80,18 +84,19 @@ class TrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T] private[learn](
     val trainInput: Input[TT, TO, TD, TS],
     val trainLayer: Layer[TO, T],
     val loss: Layer[(I, T), Output],
-    val optimizer: Optimizer) extends InferenceModel[IT, IO, ID, IS, I](input, layer) {
+    val optimizer: Optimizer
+) extends PredictionModel[IT, IO, ID, IS, I](input, layer) {
   def buildTrainOps(graph: Graph = Op.currentGraph): Model.TrainOps[IT, IO, ID, IS, I, TT, TO, TD, TS, T] = {
     Op.createWith(graph = graph) {
-      val tfInput = input.zip(trainInput).apply()
-      val tfInputNext = tfInput.next()
-      val tfOutput = layer(tfInputNext._1)
-      val tfTrainingOutput = trainLayer(tfInputNext._2)
+      val tfInputIterator = input.zip(trainInput).apply()
+      val tfInput = tfInputIterator.next()
+      val tfOutput = layer(tfInput._1)
+      val tfTrainingOutput = trainLayer(tfInput._2)
       // TODO: [LEARN] !!! Remove this cast.
       val tfLoss = Math.cast(loss((tfOutput, tfTrainingOutput)), FLOAT32, name = "LearnLossCast")
       val tfIteration = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, graph)
       val tfTrainOp = optimizer.minimize(tfLoss, iteration = Some(tfIteration))
-      Model.TrainOps(tfInput, tfOutput, tfTrainingOutput, tfLoss, tfTrainOp)
+      Model.TrainOps(tfInputIterator, tfInput, tfOutput, tfTrainingOutput, tfLoss, tfTrainOp)
     }
   }
 }

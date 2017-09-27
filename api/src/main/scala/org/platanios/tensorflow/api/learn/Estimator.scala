@@ -17,13 +17,13 @@ package org.platanios.tensorflow.api.learn
 
 import org.platanios.tensorflow.api.config._
 import org.platanios.tensorflow.api.core.Graph
-import org.platanios.tensorflow.api.core.client.SessionConfig
-import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
+import org.platanios.tensorflow.api.core.client.{Fetchable, SessionConfig}
+import org.platanios.tensorflow.api.core.exception.{CheckpointNotFoundException, InvalidArgumentException}
 import org.platanios.tensorflow.api.learn.Estimator.ModelFunction
 import org.platanios.tensorflow.api.learn.hooks._
 import org.platanios.tensorflow.api.learn.utilities.ReplicaDevicePlacer
 import org.platanios.tensorflow.api.ops.{ControlFlow, Op, OpSpecification}
-import org.platanios.tensorflow.api.ops.io.Dataset
+import org.platanios.tensorflow.api.ops.io.{Data, Dataset}
 import org.platanios.tensorflow.api.ops.variables.Saver
 
 import com.typesafe.scalalogging.Logger
@@ -167,7 +167,7 @@ class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T] private[learn] (
       Counter.getOrCreate(Graph.Keys.GLOBAL_EPOCH, graph)
       val step = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, graph)
       val trainingOps = Op.createWithNameScope("Model")(model.buildTrainOps())
-      val inputInitializer = trainingOps.input.createInitializer(data)
+      val inputInitializer = trainingOps.inputIterator.createInitializer(data)
       graph.addToCollection(trainingOps.loss, Graph.Keys.LOSSES)
       allHooks += TensorNaNHook(Set(trainingOps.loss.name))
       allHooks += TensorLoggingHook(TreeMap(
@@ -176,22 +176,7 @@ class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T] private[learn] (
       ), StepHookTrigger(100))
       if (tensorBoardConfig != null)
         allChiefOnlyHooks += TensorBoardHook(tensorBoardConfig)
-      val saver = {
-        val savers = graph.getCollection(Graph.Keys.SAVERS)
-        if (savers.isEmpty) {
-          val saver = Saver(
-            sharded = true,
-            maxToKeep = configuration.checkpointConfig.maxCheckpointsToKeep,
-            keepCheckpointEveryNHours = configuration.checkpointConfig.keepCheckpointEveryNHours,
-            saveRelativePaths = true)
-          graph.addToCollection(saver, Graph.Keys.SAVERS)
-          saver
-        } else {
-          if (savers.size > 1)
-            throw InvalidArgumentException("The graph should only contain one saver in the 'SAVERS' collection.")
-          savers.head
-        }
-      }
+      val saver = getOrCreateSaver()
       val session = Estimator.monitoredTrainingSession(
         configuration = configuration,
         hooks = allHooks,
@@ -208,7 +193,80 @@ class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T] private[learn] (
         case e: Throwable =>
           session.closeWithoutHookEnd()
           throw e
+      } finally {
+        if (!session.closed)
+          session.close()
       }
+    }
+  }
+
+  // TODO: !!! [ESTIMATORS] Add an "infer" method that doesn't need to load a checkpoint (i.e., in-memory).
+  @throws[CheckpointNotFoundException]
+  def infer[InferInput, InferOutput, ModelInferenceOutput](
+      input: InferInput,
+      hooks: Seq[Hook] = Seq.empty,
+      checkpointPath: Path = null)(implicit
+      evFetchableI: Fetchable.Aux[I, ModelInferenceOutput],
+      evFetchableIO: Fetchable.Aux[IO, IT],
+      ev: Estimator.SupportedInferInput[InferInput, InferOutput, IT, IO, ID, IS, ModelInferenceOutput]
+  ): InferOutput = {
+    val _checkpointPath = Option(checkpointPath).orElse(Saver.latestCheckpoint(workingDir.get))
+    if (_checkpointPath.isEmpty)
+      throw CheckpointNotFoundException(
+        "No checkpoint was found. Please provide a valid 'workingDir' the estimator configuration, or a path to a " +
+            "valid checkpoint file through the 'checkpointPath' argument.")
+    val model = modelFunction(configuration)
+    val graph = Graph()
+    Op.createWith(graph) {
+      graph.setRandomSeed(randomSeed)
+      Counter.getOrCreate(Graph.Keys.GLOBAL_EPOCH, graph)
+      Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, graph)
+      val predictionOps = Op.createWithNameScope("Model")(model.buildPredictionOps())
+      val inputInitializer = predictionOps.inputIterator.createInitializer(ev.toDataset(input))
+      val saver = getOrCreateSaver()
+      val session = MonitoredSession(
+        ChiefSessionCreator(
+          sessionScaffold = SessionScaffold(
+            initOp = Some(graph.globalVariablesInitializer()),
+            localInitOp = Some(ControlFlow.group(Set(inputInitializer, graph.localVariablesInitializer()))),
+            saver = Some(saver)),
+          sessionConfig = configuration.sessionConfig,
+          checkpointPath = workingDir),
+        hooks, shouldRecover = true)
+      val output = ev.convertFetched(new Iterator[(IT, ModelInferenceOutput)] {
+        override def hasNext: Boolean = session.shouldStop
+        override def next(): (IT, ModelInferenceOutput) = {
+          try {
+            session.run(fetches = (predictionOps.input, predictionOps.output))
+          } catch {
+            case e: Throwable =>
+              session.closeWithoutHookEnd()
+              throw e
+          }
+        }
+      })
+      if (!session.closed)
+        session.close()
+      output
+    }
+  }
+
+  /** Gets an existing saver from the current graph, or creates a new one if none exists. */
+  private[this] def getOrCreateSaver(): Saver = {
+    val graph = Op.currentGraph
+    val savers = graph.getCollection(Graph.Keys.SAVERS)
+    if (savers.isEmpty) {
+      val saver = Saver(
+        sharded = true,
+        maxToKeep = configuration.checkpointConfig.maxCheckpointsToKeep,
+        keepCheckpointEveryNHours = configuration.checkpointConfig.keepCheckpointEveryNHours,
+        saveRelativePaths = true)
+      graph.addToCollection(saver, Graph.Keys.SAVERS)
+      saver
+    } else {
+      if (savers.size > 1)
+        throw InvalidArgumentException("The graph should only contain one saver in the 'SAVERS' collection.")
+      savers.head
     }
   }
 }
@@ -272,7 +330,6 @@ object Estimator {
     }
   }
 
-
   /** Creates a [[MonitoredSession]] to be used for training.
     *
     * For a chief, this utility sets proper session initializers, savers, and restorers. It also creates hooks related
@@ -290,7 +347,7 @@ object Estimator {
     *                         default one is created. The session scaffold is used to finalize the graph.
     * @return Created monitored session.
     */
-  private[Estimator] def monitoredTrainingSession(
+ private[Estimator] def monitoredTrainingSession(
       configuration: Configuration = Configuration(),
       hooks: Seq[Hook] = Seq.empty,
       chiefOnlyHooks: Seq[Hook] = Seq.empty,
@@ -322,6 +379,29 @@ object Estimator {
         }
       })
       MonitoredSession(sessionCreator, chiefHooks)
+    }
+  }
+
+  trait SupportedInferInput[InferInput, InferOutput, T, O, D, S, ModelInferenceOutput] {
+    def toDataset(value: InferInput): Dataset[T, O, D, S]
+    def convertFetched(iterator: Iterator[(T, ModelInferenceOutput)]): InferOutput
+  }
+
+  object SupportedInferInput {
+    implicit def datasetInferInput[T, O, D, S, I](implicit
+        ev: Data.Aux[T, O, D, S]
+    ): SupportedInferInput[Dataset[T, O, D, S], Iterator[(T, I)], T, O, D, S, I] = {
+      new SupportedInferInput[Dataset[T, O, D, S], Iterator[(T, I)], T, O, D, S, I] {
+        override def toDataset(value: Dataset[T, O, D, S]): Dataset[T, O, D, S] = value
+        override def convertFetched(iterator: Iterator[(T, I)]): Iterator[(T, I)] = iterator
+      }
+    }
+
+    implicit def singleValueInferInput[T, O, D, S, I](implicit
+        ev: Data.Aux[T, O, D, S]
+    ): SupportedInferInput[T, I, T, O, D, S, I] = new SupportedInferInput[T, I, T, O, D, S, I] {
+      override def toDataset(value: T): Dataset[T, O, D, S] = Dataset.from[T, O, D, S](value)
+      override def convertFetched(iterator: Iterator[(T, I)]): I = iterator.next()._2
     }
   }
 }
