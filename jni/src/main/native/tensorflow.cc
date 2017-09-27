@@ -19,9 +19,9 @@
 #include <iostream>
 #include <memory>
 
-#include "c_api.h"
-//#include "python_api.h"
 #include "exception.h"
+#include "tf_c_api.h"
+//#include "tf_python_api.h"
 #include "utilities.h"
 
 namespace {

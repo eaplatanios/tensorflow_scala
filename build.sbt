@@ -262,8 +262,8 @@ lazy val site = (project in file("./site"))
     )
 
 lazy val noPublishSettings = Seq(
-  publish := (Unit),
-  publishLocal := (Unit),
+  publish := Unit,
+  publishLocal := Unit,
   publishArtifact := false,
   skip in publish := true,
   releaseProcess := Nil

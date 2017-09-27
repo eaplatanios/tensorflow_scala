@@ -18,8 +18,8 @@
 #include <string.h>
 #include <memory>
 
-#include "c_api.h"
 #include "exception.h"
+#include "tf_c_api.h"
 #include "utilities.h"
 
 namespace {

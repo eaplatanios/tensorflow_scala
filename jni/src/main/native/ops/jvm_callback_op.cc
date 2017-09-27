@@ -15,9 +15,9 @@ limitations under the License.
 
 #include "jvm_callback_op.h"
 
-#include "c_api.h"
-#include "c_eager_api.h"
 #include "exception.h"
+#include "tf_c_api.h"
+#include "tf_c_eager_api.h"
 #include "utilities.h"
 
 #include "third_party/eigen3/unsupported/Eigen/CXX11/Tensor"

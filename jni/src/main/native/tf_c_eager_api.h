@@ -18,7 +18,7 @@ limitations under the License.
 
 // C API extensions to experiment with eager execution of kernels.
 
-#include "c_api.h"
+#include "tf_c_api.h"
 
 // Macro to control visibility of exported symbols in the shared library (.so,
 // .dylib, .dll).

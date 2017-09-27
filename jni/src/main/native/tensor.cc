@@ -19,9 +19,9 @@
 #include <cstring>
 #include <memory>
 
-#include "c_api.h"
-#include "c_eager_api.h"
 #include "exception.h"
+#include "tf_c_api.h"
+#include "tf_c_eager_api.h"
 #include "utilities.h"
 
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_allocate(

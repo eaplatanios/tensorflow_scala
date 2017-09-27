@@ -21,8 +21,8 @@
 #include <stdint.h>
 #include <iostream>
 
-#include "c_api.h"
 #include "exception.h"
+#include "tf_c_api.h"
 
 namespace {
 template <class T>

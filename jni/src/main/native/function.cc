@@ -18,8 +18,8 @@
 #include <limits>
 #include <memory>
 
-#include "c_api.h"
 #include "exception.h"
+#include "tf_c_api.h"
 #include "utilities.h"
 
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Function_00024_graphToFunction(
