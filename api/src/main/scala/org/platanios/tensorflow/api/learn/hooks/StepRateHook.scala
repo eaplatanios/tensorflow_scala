@@ -48,7 +48,7 @@ case class StepRateHook(
     log: Boolean = true,
     summaryDirectory: Path = null,
     trigger: HookTrigger = StepHookTrigger(10),
-    triggerAtEnd: Boolean = false,
+    triggerAtEnd: Boolean = true,
     tag: String = "Steps/Sec"
 ) extends Hook {
   require(log || summaryDirectory != null, "At least one of 'log' and 'summaryDirectory' needs to be provided.")
@@ -100,8 +100,6 @@ case class StepRateHook(
     if (shouldTrigger) {
       internalTrigger.updateLastTrigger(lastStep.toInt - 1).foreach(elapsed => {
         val stepRate = elapsed._2.toDouble / elapsed._1
-        if (stepRate == 0.0)
-          print("haha Christoph")
         if (log)
           StepRateHook.logger.info(f"$tag: $stepRate%.2f")
         summaryWriter.foreach(_.writeSummary(

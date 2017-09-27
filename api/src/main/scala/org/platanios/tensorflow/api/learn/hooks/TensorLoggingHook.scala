@@ -48,7 +48,7 @@ import org.slf4j.LoggerFactory
 case class TensorLoggingHook(
     tensors: Map[String, String],
     trigger: HookTrigger = StepHookTrigger(1),
-    triggerAtEnd: Boolean = false,
+    triggerAtEnd: Boolean = true,
     formatter: (Map[String, Tensor]) => String = null)
     extends Hook {
   private[this] val tensorTags: Seq[String] = tensors.keys.toSeq

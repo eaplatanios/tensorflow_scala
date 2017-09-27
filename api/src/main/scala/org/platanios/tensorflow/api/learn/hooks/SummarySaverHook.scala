@@ -43,7 +43,7 @@ import java.nio.file.Path
 case class SummarySaverHook(
     directory: Path,
     trigger: HookTrigger = StepHookTrigger(10),
-    triggerAtEnd: Boolean = false,
+    triggerAtEnd: Boolean = true,
     collection: Graph.Key[Output] = Graph.Keys.SUMMARIES
 ) extends Hook {
   private[this] var step         : Variable                  = _

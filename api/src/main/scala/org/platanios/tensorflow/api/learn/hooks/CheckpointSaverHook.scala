@@ -47,7 +47,7 @@ import java.nio.file.{Files, Path}
 case class CheckpointSaverHook(
     directory: Path,
     trigger: HookTrigger = StepHookTrigger(1000),
-    triggerAtEnd: Boolean = false,
+    triggerAtEnd: Boolean = true,
     checkpointBaseName: String = "model.ckpt"
 ) extends Hook {
   private[this] val savePath: Path = directory.resolve(checkpointBaseName)

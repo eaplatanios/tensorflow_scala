@@ -454,8 +454,9 @@ object Tensor {
     */
   def fill[T](dataType: DataType = null, shape: Shape = Shape())(value: T)(implicit ev: SupportedType[T]): Tensor = {
     val inferredDataType = if (dataType == null) ev.dataType else dataType
-    if (inferredDataType.priority < ev.dataType.priority)
-      logger.warn(s"Downcasting value '$value' while creating tensor with '$dataType' data type.")
+    // TODO: [TENSORS] Do we want to keep this warning?
+    // if (inferredDataType.priority < ev.dataType.priority)
+    //   logger.warn(s"Downcasting value '$value' while creating tensor with '$dataType' data type.")
     shape.assertFullyDefined()
     inferredDataType match {
       case STRING =>

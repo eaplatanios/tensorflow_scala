@@ -44,7 +44,7 @@ import scala.util.control.Exception._
 // TODO: !!! [LEARN] [SESSIONS] This should probably not be extending session (given the confused functionality w.r.t. "runHelper".
 abstract class SessionWrapper private[learn](protected var session: Session)
     extends Session(session.graphReference, session.nativeHandle, session.target) {
-  private[this] var _closed: Boolean = false
+  protected var _closed: Boolean = false
 
   /** Returns `true` if this session should not be used anymore. This method always return `true` if the session has
     * been closed already. */
@@ -106,6 +106,7 @@ case class RecoverableSession private[learn](sessionCreator: SessionCreator)
               "session will be created. Exception: " + e)
         close()
         session = sessionCreator.createSession()
+        _closed = false
         // Since we have just recreated the session, the overall computation should not stop.
         false
       }).apply({
@@ -126,8 +127,10 @@ case class RecoverableSession private[learn](sessionCreator: SessionCreator)
   ): (R, Option[RunMetadata]) = {
     var result: (R, Option[RunMetadata]) = null
     while (result == null) {
-      if (closed)
+      if (closed) {
         session = RecoverableSession.createSession(sessionCreator)
+        _closed = false
+      }
       handling(RECOVERABLE_EXCEPTIONS.toSeq: _*).by(e => {
         RecoverableSession.logger.info(
           "An exception was thrown. This may be due to a preemption in a connected worker or parameter server. " +
@@ -190,9 +193,6 @@ case class HookedSession private[learn](private val baseSession: Session, hooks:
       executable: Executable[E],
       fetchable: Fetchable.Aux[F, R]
   ): (R, Option[RunMetadata]) = {
-    if (shouldStop)
-      throw new RuntimeException("Session 'run()' was called even after a stop was requested.")
-
     // Invoke the hooks' `beforeSessionRun` callbacks.
     val runContext = Hook.SessionRunContext(Hook.SessionRunArgs(feeds, fetches, targets, options), session)
     val runOptions = if (options == null) RunOptions.getDefaultInstance else options
@@ -355,6 +355,8 @@ class MonitoredSession private[learn](
   override def close(): Unit = {
     try {
       hooks.foreach(_.end(baseSession))
+    } catch {
+      case _: Throwable => ()
     } finally {
       closeWithoutHookEnd()
     }
@@ -375,7 +377,7 @@ object MonitoredSession {
   def apply(
       sessionCreator: SessionCreator = ChiefSessionCreator(),
       hooks: Seq[Hook] = Seq.empty,
-      shouldRecover: Boolean = false
+      shouldRecover: Boolean = true
   ): MonitoredSession = {
     hooks.foreach(_.begin())
     val hookedSessionCreator = HookedSessionCreator(sessionCreator, hooks)
