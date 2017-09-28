@@ -230,3 +230,13 @@ values. For example, that tensor may be the result of reading data from disk, or
 
 
 ### Printing Outputs
+
+
+### Logging
+
+Logging in the native TensorFlow library can be controlled by setting the `TF_CPP_MIN_LOG_LEVEL` environment variable:
+
+  - `0`: Debug level (default).
+  - `1`: Warning level.
+  - `2`: Error level.
+  - `3`: Fatal level.
