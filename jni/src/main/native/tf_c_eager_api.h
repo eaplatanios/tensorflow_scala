@@ -20,6 +20,9 @@ limitations under the License.
 
 #include "tf_c_api.h"
 
+#include "tensorflow/core/common_runtime/device.h"
+#include "tensorflow/core/framework/tensor.h"
+
 // Macro to control visibility of exported symbols in the shared library (.so,
 // .dylib, .dll).
 // This duplicates the TF_EXPORT macro definition in
@@ -60,7 +63,21 @@ TF_CAPI_EXPORT extern TF_DeviceList* TFE_ContextListDevices(TFE_Context* ctx,
 // Like a TF_Tensor, a TFE_TensorHandle refers to a tensor with a value, shape,
 // type etc. Unlike a TF_Tensor, a TFE_TensorHandle may refer to such tensors
 // placed in memory of different devices or remote address spaces.
-typedef struct TFE_TensorHandle TFE_TensorHandle;
+struct TFE_TensorHandle {
+  TFE_TensorHandle(const tensorflow::Tensor& t, tensorflow::Device* d)
+      : t(t), d(d) {}
+
+  tensorflow::Tensor t;
+  // TODO(ashankar): d == nullptr iff local CPU
+  // This was expedient, but perhaps worth revisiting ('d' should always be a
+  // valid pointer?)
+  // This can be done if TFE_NewOp() and the TFE_TensorHandle constructors are
+  // provided with the appropriate TFE_Context.
+  //
+  // TODO(ashankar): Reference count TFE_Context to ensure that 'd' of a
+  // TFE_TensorHandle does not outlive the TFE_Context from which it came?
+  tensorflow::Device* d;
+};
 
 TF_CAPI_EXPORT extern TFE_TensorHandle* TFE_NewTensorHandle(TF_Tensor* t,
                                                             TF_Status* status);

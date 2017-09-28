@@ -21,7 +21,7 @@
 
 #include "exception.h"
 #include "tf_c_api.h"
-//#include "tf_python_api.h"
+#include "tf_python_api.h"
 #include "utilities.h"
 
 namespace {
@@ -96,42 +96,42 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_
   return op_list;
 }
 
-//JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_updateInput(
-//  JNIEnv* env, jobject object, jlong graph_handle, jlong input_op_handle, jint input_index, jlong output_op_handle,
-//  jint output_index) {
-//  TF_Graph* graph = require_graph_handle(env, graph_handle);
-//  TF_Operation* input_op = require_operation_handle(env, input_op_handle);
-//  TF_Operation* output_op = require_operation_handle(env, output_op_handle);
-//  if (graph == nullptr)
-//    throw_exception(env, tf_invalid_argument_exception, "Graph could not be found.");
-//  if (input_op == nullptr || output_op == nullptr)
-//    throw_exception(env, tf_invalid_argument_exception, "Operation could not be found.");
-//  TF_Output output{output_op, output_index};
-//  // tensorflow::UpdateInput(graph, input_op, input_index, output);
-//  return 0;
-//}
-//
-//JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_addControlInput(
-//  JNIEnv* env, jobject object, jlong graph_handle, jlong op_handle, jlong input_op_handle) {
-//  TF_Graph* graph = require_graph_handle(env, graph_handle);
-//  TF_Operation* op = require_operation_handle(env, op_handle);
-//  TF_Operation* input_op = require_operation_handle(env, input_op_handle);
-//  if (graph == nullptr)
-//    throw_exception(env, tf_invalid_argument_exception, "Graph could not be found.");
-//  if (op == nullptr || input_op == nullptr)
-//    throw_exception(env, tf_invalid_argument_exception, "Operation could not be found.");
-//  // tensorflow::AddControlInput(graph, op, input_op);
-//  return 0;
-//}
-//
-//JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_clearControlInputs(
-//  JNIEnv* env, jobject object, jlong graph_handle, jlong op_handle) {
-//  TF_Graph* graph = require_graph_handle(env, graph_handle);
-//  TF_Operation* op = require_operation_handle(env, op_handle);
-//  if (graph == nullptr)
-//    throw_exception(env, tf_invalid_argument_exception, "Graph could not be found.");
-//  if (op == nullptr)
-//    throw_exception(env, tf_invalid_argument_exception, "Operation could not be found.");
-//  // tensorflow::ClearControlInputs(graph, op);
-//  return 0;
-//}
+JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_updateInput(
+  JNIEnv* env, jobject object, jlong graph_handle, jlong input_op_handle, jint input_index, jlong output_op_handle,
+  jint output_index) {
+  TF_Graph* graph = require_graph_handle(env, graph_handle);
+  TF_Operation* input_op = require_operation_handle(env, input_op_handle);
+  TF_Operation* output_op = require_operation_handle(env, output_op_handle);
+  if (graph == nullptr)
+    throw_exception(env, tf_invalid_argument_exception, "Graph could not be found.");
+  if (input_op == nullptr || output_op == nullptr)
+    throw_exception(env, tf_invalid_argument_exception, "Operation could not be found.");
+  TF_Output output{output_op, output_index};
+  // tensorflow::UpdateInput(graph, input_op, input_index, output);
+  return 0;
+}
+
+JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_addControlInput(
+  JNIEnv* env, jobject object, jlong graph_handle, jlong op_handle, jlong input_op_handle) {
+  TF_Graph* graph = require_graph_handle(env, graph_handle);
+  TF_Operation* op = require_operation_handle(env, op_handle);
+  TF_Operation* input_op = require_operation_handle(env, input_op_handle);
+  if (graph == nullptr)
+    throw_exception(env, tf_invalid_argument_exception, "Graph could not be found.");
+  if (op == nullptr || input_op == nullptr)
+    throw_exception(env, tf_invalid_argument_exception, "Operation could not be found.");
+  // tensorflow::AddControlInput(graph, op, input_op);
+  return 0;
+}
+
+JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_clearControlInputs(
+  JNIEnv* env, jobject object, jlong graph_handle, jlong op_handle) {
+  TF_Graph* graph = require_graph_handle(env, graph_handle);
+  TF_Operation* op = require_operation_handle(env, op_handle);
+  if (graph == nullptr)
+    throw_exception(env, tf_invalid_argument_exception, "Graph could not be found.");
+  if (op == nullptr)
+    throw_exception(env, tf_invalid_argument_exception, "Operation could not be found.");
+  // tensorflow::ClearControlInputs(graph, op);
+  return 0;
+}

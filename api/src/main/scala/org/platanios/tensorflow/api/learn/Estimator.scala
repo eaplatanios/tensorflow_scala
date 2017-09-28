@@ -25,10 +25,11 @@ import org.platanios.tensorflow.api.learn.utilities.ReplicaDevicePlacer
 import org.platanios.tensorflow.api.ops.{ControlFlow, Op, OpSpecification}
 import org.platanios.tensorflow.api.ops.io.{Data, Dataset}
 import org.platanios.tensorflow.api.ops.variables.Saver
-
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
 import java.nio.file.{Files, Path}
+
+import org.platanios.tensorflow.api.io.CheckpointReader
 
 import scala.collection.immutable.TreeMap
 import scala.collection.mutable
@@ -156,46 +157,60 @@ class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T] private[learn] (
       hooks: Seq[Hook] = Seq.empty,
       chiefOnlyHooks: Seq[Hook] = Seq.empty,
       tensorBoardConfig: TensorBoardConfig = null): Unit = {
-    // TODO: !!! Load global step from a checkpoint and skip training if appropriate.
-    val allHooks = mutable.ListBuffer(hooks: _*)
-    val allChiefOnlyHooks = mutable.ListBuffer(chiefOnlyHooks: _*)
-    allHooks += StopHook(terminationCriteria)
-    val model = modelFunction(configuration)
-    val graph = Graph()
-    Op.createWith(graph = graph, deviceFunction = deviceFunction.getOrElse(_.device)) {
-      graph.setRandomSeed(randomSeed)
-      Counter.getOrCreate(Graph.Keys.GLOBAL_EPOCH, graph)
-      val step = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, graph)
-      val trainingOps = Op.createWithNameScope("Model")(model.buildTrainOps())
-      val inputInitializer = trainingOps.inputIterator.createInitializer(data)
-      graph.addToCollection(trainingOps.loss, Graph.Keys.LOSSES)
-      allHooks += TensorNaNHook(Set(trainingOps.loss.name))
-      allHooks += TensorLoggingHook(TreeMap(
-        "Step" -> step.value.name,
-        "Loss" -> trainingOps.loss.name
-      ), StepHookTrigger(100))
-      if (tensorBoardConfig != null)
-        allChiefOnlyHooks += TensorBoardHook(tensorBoardConfig)
-      val saver = getOrCreateSaver()
-      val session = Estimator.monitoredTrainingSession(
-        configuration = configuration,
-        hooks = allHooks,
-        chiefOnlyHooks = allChiefOnlyHooks,
-        sessionScaffold = SessionScaffold(
-          initOp = Some(graph.globalVariablesInitializer()),
-          localInitOp = Some(ControlFlow.group(Set(inputInitializer, graph.localVariablesInitializer()))),
-          saver = Some(saver)))
-      try {
-        while (!session.shouldStop)
-          session.run(targets = trainingOps.trainOp)
-      } catch {
-        case e if RECOVERABLE_EXCEPTIONS.contains(e.getClass) => session.close()
-        case e: Throwable =>
-          session.closeWithoutHookEnd()
-          throw e
-      } finally {
-        if (!session.closed)
-          session.close()
+    val needsToTrain = {
+      if (!terminationCriteria.restartCounting) {
+        workingDir.flatMap(dir => Saver.latestCheckpoint(dir).flatMap(latestPath => {
+          CheckpointReader(latestPath.toAbsolutePath.toString).getTensor(Graph.Keys.GLOBAL_STEP.name)
+        })).map(_.scalar.asInstanceOf[Long]).flatMap(s => terminationCriteria.maxSteps.map(_ <= s)).getOrElse(true)
+      } else {
+        true
+      }
+    }
+    if (!needsToTrain) {
+      Estimator.logger.info(
+        "Skipping training because no restarting is allowed in the termination criteria and the maximum number of " +
+            "steps have already been executed in the past (i.e., saved checkpoint).")
+    } else {
+      val allHooks = mutable.ListBuffer(hooks: _*)
+      val allChiefOnlyHooks = mutable.ListBuffer(chiefOnlyHooks: _*)
+      allHooks += StopHook(terminationCriteria)
+      val model = modelFunction(configuration)
+      val graph = Graph()
+      Op.createWith(graph = graph, deviceFunction = deviceFunction.getOrElse(_.device)) {
+        graph.setRandomSeed(randomSeed)
+        Counter.getOrCreate(Graph.Keys.GLOBAL_EPOCH, graph)
+        val step = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, graph)
+        val trainingOps = Op.createWithNameScope("Model")(model.buildTrainOps())
+        val inputInitializer = trainingOps.inputIterator.createInitializer(data)
+        graph.addToCollection(trainingOps.loss, Graph.Keys.LOSSES)
+        allHooks += TensorNaNHook(Set(trainingOps.loss.name))
+        allHooks += TensorLoggingHook(TreeMap(
+          "Step" -> step.value.name,
+          "Loss" -> trainingOps.loss.name
+        ), StepHookTrigger(100))
+        if (tensorBoardConfig != null)
+          allChiefOnlyHooks += TensorBoardHook(tensorBoardConfig)
+        val saver = getOrCreateSaver()
+        val session = Estimator.monitoredTrainingSession(
+          configuration = configuration,
+          hooks = allHooks,
+          chiefOnlyHooks = allChiefOnlyHooks,
+          sessionScaffold = SessionScaffold(
+            initOp = Some(graph.globalVariablesInitializer()),
+            localInitOp = Some(ControlFlow.group(Set(inputInitializer, graph.localVariablesInitializer()))),
+            saver = Some(saver)))
+        try {
+          while (!session.shouldStop)
+            session.run(targets = trainingOps.trainOp)
+        } catch {
+          case e if RECOVERABLE_EXCEPTIONS.contains(e.getClass) => session.close()
+          case e: Throwable =>
+            session.closeWithoutHookEnd()
+            throw e
+        } finally {
+          if (!session.closed)
+            session.close()
+        }
       }
     }
   }
@@ -373,7 +388,7 @@ object Estimator {
     *                         default one is created. The session scaffold is used to finalize the graph.
     * @return Created monitored session.
     */
- private[Estimator] def monitoredTrainingSession(
+  private[Estimator] def monitoredTrainingSession(
       configuration: Configuration = Configuration(),
       hooks: Seq[Hook] = Seq.empty,
       chiefOnlyHooks: Seq[Hook] = Seq.empty,

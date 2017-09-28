@@ -27,22 +27,6 @@ struct TF_Status {
   tensorflow::Status status;
 };
 
-struct TFE_TensorHandle {
-  TFE_TensorHandle(const tensorflow::Tensor& t, tensorflow::Device* d)
-      : t(t), d(d) {}
-
-  tensorflow::Tensor t;
-  // TODO(ashankar): d == nullptr iff local CPU
-  // This was expedient, but perhaps worth revisiting ('d' should always be a
-  // valid pointer?)
-  // This can be done if TFE_NewOp() and the TFE_TensorHandle constructors are
-  // provided with the appropriate TFE_Context.
-  //
-  // TODO(ashankar): Reference count TFE_Context to ensure that 'd' of a
-  // TFE_TensorHandle does not outlive the TFE_Context from which it came?
-  tensorflow::Device* d;
-};
-
 // A call to the registered JVM function.
 struct JVMCall {
   JNIEnv* env;

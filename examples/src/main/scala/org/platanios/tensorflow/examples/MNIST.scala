@@ -72,8 +72,8 @@ object MNIST {
       tf.learn.StopCriteria(maxSteps = Some(100000)),
       Seq(
         tf.learn.StepRateHook(log = false, summaryDirectory = summariesDir, trigger = tf.learn.StepHookTrigger(100)),
-        tf.learn.SummarySaverHook(summariesDir, tf.learn.StepHookTrigger(1000)),
-        tf.learn.CheckpointSaverHook(summariesDir, tf.learn.StepHookTrigger(1000000000))),
+        tf.learn.SummarySaverHook(summariesDir, tf.learn.StepHookTrigger(100)),
+        tf.learn.CheckpointSaverHook(summariesDir, tf.learn.StepHookTrigger(1000))),
       tensorBoardConfig = tf.learn.TensorBoardConfig(summariesDir, reloadInterval = 1))
 
     def accuracy(images: Tensor, labels: Tensor): Float = {

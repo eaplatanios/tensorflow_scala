@@ -55,29 +55,29 @@ JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_dataTy
 JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_loadOpLibrary
   (JNIEnv *, jobject, jstring);
 
-///*
-// * Class:     org_platanios_tensorflow_jni_TensorFlow__
-// * Method:    updateInput
-// * Signature: (JJIJI)I
-// */
-//JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_updateInput
-//  (JNIEnv *, jobject, jlong, jlong, jint, jlong, jint);
-//
-///*
-// * Class:     org_platanios_tensorflow_jni_TensorFlow__
-// * Method:    addControlInput
-// * Signature: (JJJ)I
-// */
-//JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_addControlInput
-//  (JNIEnv *, jobject, jlong, jlong, jlong);
-//
-///*
-// * Class:     org_platanios_tensorflow_jni_TensorFlow__
-// * Method:    clearControlInputs
-// * Signature: (JJ)I
-// */
-//JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_clearControlInputs
-//  (JNIEnv *, jobject, jlong, jlong);
+/*
+ * Class:     org_platanios_tensorflow_jni_TensorFlow__
+ * Method:    updateInput
+ * Signature: (JJIJI)I
+ */
+JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_updateInput
+  (JNIEnv *, jobject, jlong, jlong, jint, jlong, jint);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_TensorFlow__
+ * Method:    addControlInput
+ * Signature: (JJJ)I
+ */
+JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_addControlInput
+  (JNIEnv *, jobject, jlong, jlong, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_TensorFlow__
+ * Method:    clearControlInputs
+ * Signature: (JJ)I
+ */
+JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_clearControlInputs
+  (JNIEnv *, jobject, jlong, jlong);
 
 #ifdef __cplusplus
 }

@@ -18,15 +18,12 @@ package org.platanios.tensorflow.jni
 /**
   * @author Emmanouil Antonios Platanios
   */
-object Function {
+object CheckpointReader {
   TensorFlow.load()
 
-  @native def graphToFunction(
-      fnBodyGraphHandle: Long, fnName: String, opHandles: Array[Long],
-      inputOpHandles: Array[Long], inputOpIndices: Array[Int],
-      outputOpHandles: Array[Long], outputOpIndices: Array[Int],
-      outputNames: Array[String]): Long
-  @native def copyToGraph(graphHandle: Long, functionHandle: Long, gradientHandle: Long): Unit
-  @native def toFunctionDef(handle: Long): Array[Byte]
+  @native def newCheckpointReader(filePattern: String): Long
+  @native def debugString(handle: Long): String
+  @native def hasTensor(handle: Long, name: String): Boolean
+  @native def getTensor(handle: Long, name: String): Long
   @native def delete(handle: Long): Unit
 }
