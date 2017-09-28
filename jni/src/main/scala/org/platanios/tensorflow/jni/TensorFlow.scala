@@ -184,9 +184,9 @@ object TensorFlow {
   lazy val currentCallbackRegistryPointer          : String = callbackRegistryPointer
   lazy val currentCallbackRegistryCallMethodPointer: String = callbackRegistryCallMethodPointer
 
-  @native private[this] def jvmPointer: String
-  @native private[this] def callbackRegistryPointer: String
-  @native private[this] def callbackRegistryCallMethodPointer: String
+  @native private[jni] def jvmPointer: String
+  @native private[jni] def callbackRegistryPointer: String
+  @native private[jni] def callbackRegistryCallMethodPointer: String
   @native def version: String
   @native def dataTypeSize(dataTypeCValue: Int): Int
   @native def loadOpLibrary(libraryPath: String): Array[Byte]
