@@ -302,6 +302,7 @@ lazy val publishSettings = Seq(
   publishMavenStyle := true,
   // publishArtifact in Test := false,
   pomIncludeRepository := Function.const(false),
+  isSnapshot := version.value.contains("-SNAPSHOT"),
   publishTo := Some(
     if (isSnapshot.value)
       Opts.resolver.sonatypeSnapshots

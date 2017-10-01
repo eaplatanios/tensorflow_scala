@@ -136,8 +136,10 @@ object Fetchable {
     }
   }
 
-  implicit def fetchableSeq[T, R, CC[A] <: SeqLike[A, CC[A]]](
-      implicit ev: Aux[T, R], cbf: CanBuildFrom[CC[T], R, CC[R]]): Aux[CC[T], CC[R]] = {
+  implicit def fetchableSeq[T, R, CC[A] <: SeqLike[A, CC[A]]](implicit
+      ev: Aux[T, R],
+      cbf: CanBuildFrom[CC[T], R, CC[R]]
+  ): Aux[CC[T], CC[R]] = {
     new Fetchable[CC[T]] {
       override type ResultType = CC[R]
       override def numberOfFetches(fetchable: CC[T]): Int = fetchable.map(ev.numberOfFetches).sum
@@ -151,8 +153,9 @@ object Fetchable {
     }
   }
 
-  implicit def fetchableMap[T, R, MK, CC[K, V] <: MapLike[K, V, CC[K, V]] with Map[K, V]](
-      implicit ev: Aux[T, R]): Aux[CC[MK, T], Map[MK, R]] = {
+  implicit def fetchableMap[T, R, MK, CC[K, V] <: MapLike[K, V, CC[K, V]] with Map[K, V]](implicit
+      ev: Aux[T, R]
+  ): Aux[CC[MK, T], Map[MK, R]] = {
     new Fetchable[CC[MK, T]] {
       // TODO: [CLIENT] Return CC type instead of Map.
       // TODO: [CLIENT] Make sure key-value pairs order is handled correctly here.
@@ -200,14 +203,14 @@ object Fetchable {
   // This also covers `OutputIndexedSlices` and `SparseOutput` as they are case classes (i.e., products).
   implicit def productConstructor[P <: Product, L <: HList, LO <: HList, R](implicit
       gen: Generic.Aux[P, L],
-      fetchableL: Lazy[Aux[L, LO]],
+      fetchableL: Aux[L, LO],
       tupler: Tupler.Aux[LO, R]
   ): Aux[P, R] = new Fetchable[P] {
     override type ResultType = R
-    override def numberOfFetches(fetchable: P): Int = fetchableL.value.numberOfFetches(gen.to(fetchable))
-    override def fetches(fetchable: P): Seq[Output] = fetchableL.value.fetches(gen.to(fetchable))
+    override def numberOfFetches(fetchable: P): Int = fetchableL.numberOfFetches(gen.to(fetchable))
+    override def fetches(fetchable: P): Seq[Output] = fetchableL.fetches(gen.to(fetchable))
     override def segment(p: P, tensors: Seq[Tensor]): (R, Seq[Tensor]) = {
-      val (out, remaining) = fetchableL.value.segment(gen.to(p), tensors)
+      val (out, remaining) = fetchableL.segment(gen.to(p), tensors)
       (tupler(out), remaining)
     }
   }
