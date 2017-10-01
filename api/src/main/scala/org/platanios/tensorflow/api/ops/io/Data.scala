@@ -605,7 +605,7 @@ object Data {
   PT <: Product, PO <: Product, PD <: Product, PS <: Product,
   LT <: HList, LO <: HList, LD <: HList, LS <: HList](implicit
       genT: Generic.Aux[PT, LT],
-      dataL: Lazy[Aux[LT, LO, LD, LS]],
+      dataL: Aux[LT, LO, LD, LS],
       tuplerO: Tupler.Aux[LO, PO],
       tuplerD: Tupler.Aux[LD, PD],
       tuplerS: Tupler.Aux[LS, PS],
@@ -617,44 +617,38 @@ object Data {
     override type DataTypes = PD
     override type Shapes = PS
 
-    override def size(dataTypes: DataTypes): Int = dataL.value.size(genD.to(dataTypes))
+    override def size(dataTypes: DataTypes): Int = dataL.size(genD.to(dataTypes))
 
-    override def dataTypesFromT(data: PT): DataTypes = tuplerD(dataL.value.dataTypesFromT(genT.to(data)))
-    override def dataTypesFromO(data: PO): DataTypes = tuplerD(dataL.value.dataTypesFromO(genO.to(data)))
+    override def dataTypesFromT(data: PT): DataTypes = tuplerD(dataL.dataTypesFromT(genT.to(data)))
+    override def dataTypesFromO(data: PO): DataTypes = tuplerD(dataL.dataTypesFromO(genO.to(data)))
 
-    override def shapesFromT(data: PT): Shapes = tuplerS(dataL.value.shapesFromT(genT.to(data)))
-    override def shapesFromO(data: PO): Shapes = tuplerS(dataL.value.shapesFromO(genO.to(data)))
+    override def shapesFromT(data: PT): Shapes = tuplerS(dataL.shapesFromT(genT.to(data)))
+    override def shapesFromO(data: PO): Shapes = tuplerS(dataL.shapesFromO(genO.to(data)))
 
-    override def flattenedTensors(data: PT): Seq[Tensor] = dataL.value.flattenedTensors(genT.to(data))
+    override def flattenedTensors(data: PT): Seq[Tensor] = dataL.flattenedTensors(genT.to(data))
 
-    override def flattenedOutputsFromT(data: PT): Seq[Output] = dataL.value.flattenedOutputsFromT(genT.to(data))
-    override def flattenedOutputsFromO(data: PO): Seq[Output] = dataL.value.flattenedOutputsFromO(genO.to(data))
-
-    override def flattenedDataTypes(dataTypes: DataTypes): Seq[DataType] = {
-      dataL.value.flattenedDataTypes(genD.to(dataTypes))
-    }
-
-    override def flattenedShapes(shapes: Shapes): Seq[Shape] = {
-      dataL.value.flattenedShapes(genS.to(shapes))
-    }
+    override def flattenedOutputsFromT(data: PT): Seq[Output] = dataL.flattenedOutputsFromT(genT.to(data))
+    override def flattenedOutputsFromO(data: PO): Seq[Output] = dataL.flattenedOutputsFromO(genO.to(data))
+    override def flattenedDataTypes(dataTypes: DataTypes): Seq[DataType] = dataL.flattenedDataTypes(genD.to(dataTypes))
+    override def flattenedShapes(shapes: Shapes): Seq[Shape] = dataL.flattenedShapes(genS.to(shapes))
 
     override def segmentOutputs(dataTypes: DataTypes, s: Seq[Output]): (OutputType, Seq[Output]) = {
-      val (out, remaining) = dataL.value.segmentOutputs(genD.to(dataTypes), s)
+      val (out, remaining) = dataL.segmentOutputs(genD.to(dataTypes), s)
       (tuplerO(out), remaining)
     }
 
     override def segmentDataTypes(dataTypes: DataTypes, s: Seq[DataType]): (DataTypes, Seq[DataType]) = {
-      val (out, remaining) = dataL.value.segmentDataTypes(genD.to(dataTypes), s)
+      val (out, remaining) = dataL.segmentDataTypes(genD.to(dataTypes), s)
       (tuplerD(out), remaining)
     }
 
     override def segmentShapes(dataTypes: DataTypes, s: Seq[Shape]): (Shapes, Seq[Shape]) = {
-      val (out, remaining) = dataL.value.segmentShapes(genD.to(dataTypes), s)
+      val (out, remaining) = dataL.segmentShapes(genD.to(dataTypes), s)
       (tuplerS(out), remaining)
     }
 
-    override def dataToString(data: PT): String = dataL.value.dataToString(genT.to(data))
-    override def dataTypesToString(dataTypes: DataTypes): String = dataL.value.dataTypesToString(genD.to(dataTypes))
-    override def shapesToString(shapes: Shapes): String = dataL.value.shapesToString(genS.to(shapes))
+    override def dataToString(data: PT): String = dataL.dataToString(genT.to(data))
+    override def dataTypesToString(dataTypes: DataTypes): String = dataL.dataTypesToString(genD.to(dataTypes))
+    override def shapesToString(shapes: Shapes): String = dataL.shapesToString(genS.to(shapes))
   }
 }

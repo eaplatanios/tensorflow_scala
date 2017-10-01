@@ -197,8 +197,8 @@ private[ops] object VariableScope {
     if (reuse == ReuseExistingOnly && isDefaultName)
       throw new IllegalArgumentException(
         "'reuse' cannot be set to 'ReuseExistingOnly' with 'isDefaultName' set to 'true'.")
-    val variableStore = context.graph.variableStore
-    val variableScope = context.variableScope
+    val variableStore = context.value.graph.variableStore
+    val variableScope = context.value.variableScope
     val newName = {
       val uniqueName = if (isDefaultName) variableStore.uniqueVariableScope(name) else name
       if (variableScope.name != null && variableScope.name != "")
@@ -225,9 +225,9 @@ private[ops] object VariableScope {
       })
     val result = {
       if (isPure)
-        context.withValue(context.copy(variableScope = newVariableScope))(block)
+        context.withValue(context.value.copy(variableScope = newVariableScope))(block)
       else
-        Op.createWithNameScope(name)(context.withValue(context.copy(variableScope = newVariableScope))(block))
+        Op.createWithNameScope(name)(context.withValue(context.value.copy(variableScope = newVariableScope))(block))
     }
     variableStore.closeVariableSubScopes(variableScope.name)
     result
@@ -259,7 +259,7 @@ private[ops] object VariableScope {
       initializer: Initializer = null, regularizer: Regularizer = null, partitioner: Partitioner = null,
       cachingDevice: OpSpecification => String = null, customGetter: VariableGetter = null, isPure: Boolean = false)
       (block: => R)(implicit context: DynamicVariable[OpCreationContext]): R = {
-    val variableStore = context.graph.variableStore
+    val variableStore = context.value.graph.variableStore
     val subScopeCounts = variableStore.getVariableSubScopeCounts(variableScope.name)
     variableStore.enterVariableScope(variableScope.name)
     val newVariableScope = VariableScope(
@@ -279,9 +279,9 @@ private[ops] object VariableScope {
       })
     val result = {
       if (isPure)
-        context.withValue(context.copy(variableScope = newVariableScope))(block)
+        context.withValue(context.value.copy(variableScope = newVariableScope))(block)
       else
-        context.withValue(context.copy(
+        context.withValue(context.value.copy(
           nameScope = variableScope.name.split("/").last, variableScope = newVariableScope))(block)
     }
     variableStore.closeVariableSubScopes(variableScope.name)

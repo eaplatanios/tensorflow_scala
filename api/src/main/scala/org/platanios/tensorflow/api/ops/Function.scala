@@ -320,29 +320,30 @@ class FunctionGraph(private[this] val _nativeHandle: Long) extends Graph(_native
   }
 
   /** Custom variable getter for variables created within this function graph. */
-  private[ops] def customVariableGetter(
-      name: String, dataType: DataType = FLOAT32, shape: Shape = null, initializer: Initializer = null,
-      regularizer: Regularizer = null, trainable: Boolean = true, reuse: Reuse = ReuseOrCreateNew,
-      collections: Set[Graph.Key[Variable]] = Set.empty, cachingDevice: OpSpecification => String = null,
-      customGetter: VariableGetter = null): Variable = {
-    // TODO: [FUNCTIONS] !!! Not sure if this works as it should. Especially the '.value' method of resource variables.
-    // Here, we switch the default graph to the outer graph and ask the variable scope in which the function is defined
-    // to give us the variable. The variable is stashed in extra_vars and returned to the caller. We capture these
-    // variables so that the variable definition is hoisted upward to the outer-most graph.
-    Op.createWith(outerGraph) {
-      val variable = outerVariableScope.getVariable(
-        store = Op.currentVariableStore,
-        name = name,
-        dataType = dataType,
-        shape = shape,
-        initializer = initializer,
-        regularizer = regularizer,
-        trainable = trainable,
-        reuse = reuse,
-        collections = collections,
-        cachingDevice = cachingDevice)
-      extraVars.append(variable)
-      variable
+  private[ops] val customVariableGetter = new VariableGetter {
+    override def apply(name: String, dataType: DataType = FLOAT32, shape: Shape = null, initializer: Initializer = null,
+        regularizer: Regularizer = null, trainable: Boolean = true, reuse: Reuse = ReuseOrCreateNew,
+        collections: Set[Graph.Key[Variable]] = Set.empty, cachingDevice: OpSpecification => String = null,
+        customGetter: VariableGetter = null): Variable = {
+      // TODO: [FUNCTIONS] !!! Not sure if this works as it should. Especially the '.value' method of resource variables.
+      // Here, we switch the default graph to the outer graph and ask the variable scope in which the function is defined
+      // to give us the variable. The variable is stashed in extra_vars and returned to the caller. We capture these
+      // variables so that the variable definition is hoisted upward to the outer-most graph.
+      Op.createWith(outerGraph) {
+        val variable = outerVariableScope.getVariable(
+          store = Op.currentVariableStore,
+          name = name,
+          dataType = dataType,
+          shape = shape,
+          initializer = initializer,
+          regularizer = regularizer,
+          trainable = trainable,
+          reuse = reuse,
+          collections = collections,
+          cachingDevice = cachingDevice)
+        extraVars.append(variable)
+        variable
+      }
     }
   }
 }
