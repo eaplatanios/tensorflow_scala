@@ -17,10 +17,8 @@ package org.platanios.tensorflow.api.core
 
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception.{GraphMismatchException, InvalidArgumentException}
-import org.platanios.tensorflow.api.ops.{Basic, InstantiatedFunction, Math, Op, Output, Resource}
+import org.platanios.tensorflow.api.ops.{InstantiatedFunction, Op, Output, Resource}
 import org.platanios.tensorflow.api.ops.variables.{Saver, Variable, VariableStore}
-import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.STRING
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer}
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
 import org.platanios.tensorflow.jni.{Function => NativeFunction, Graph => NativeGraph, TensorFlow => NativeLibrary}
@@ -157,6 +155,9 @@ class Graph private[api](private[api] var nativeHandle: Long) extends Closeable 
   /** Return the function instance in this graph corresponding to the provided name. If such a function does not exist
     * in this graph, then `None` is returned. */
   private[api] def getFunction(name: String): Option[InstantiatedFunction[_, _]] = functionsMap.get(name)
+
+  /** Returns `true` if `name` is registered in this graph's function library. */
+  private[api] def isFunction(name: String): Boolean = functionsMap.contains(name)
 
   /** Map from collection key to set of values in that collection. */
   private[this] val collections: mutable.Map[Graph.Key[_], mutable.Set[_]] = mutable.Map.empty
@@ -1041,7 +1042,7 @@ object Graph {
   }
 
   /** Key to a graph collection. */
-  sealed trait Key[K] {
+  trait Key[K] {
     /** Name of this collection key. */
     def name: String
 
