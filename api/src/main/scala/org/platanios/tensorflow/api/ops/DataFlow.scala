@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
-import org.platanios.tensorflow.api.types.INT32
+import org.platanios.tensorflow.api.types.{DataType, INT32}
 
 /** Contains functions for constructing ops related to data flow.
   *
@@ -64,7 +64,7 @@ private[api] trait DataFlow {
     */
   def dynamicPartition(
       data: Output, partitions: Output, numberOfPartitions: Int, name: String = "DynamicPartition"): Seq[Output] = {
-    Op.Builder(opType = "DynamicPartition", name = name)
+    Op.Builder("DynamicPartition", name)
         .addInput(data)
         .addInput(partitions)
         .setAttribute("num_partitions", numberOfPartitions)
@@ -122,10 +122,70 @@ private[api] trait DataFlow {
     * @return Created op output.
     */
   def dynamicStitch(indices: Seq[Output], data: Seq[Output], name: String = "DynamicStitch"): Output = {
-    Op.Builder(opType = "DynamicStitch", name = name)
+    Op.Builder("DynamicStitch", name)
         .addInputList(indices)
         .addInputList(data)
         .build().outputs(0)
+  }
+
+  /** Creates an op that creates a new stack and returns a resource handle to it.
+    *
+    * A stack produces elements in first-in last-out (FILO) order.
+    *
+    * @param  maxSize     Maximum size of the stack. If negative, the stack size is unlimited.
+    * @param  elementType Data type of the elements in the stack.
+    * @param  stackName   Overrides the name used for the temporary stack resource. Defaults to the name of the created
+    *                     op, which is guaranteed to be unique.
+    * @param  name        Name for the created op.
+    * @return Created op output, which is a handle to the new stack resource.
+    */
+  def newStack(maxSize: Output, elementType: DataType, stackName: String = "", name: String = "NewStack"): Output = {
+    Op.Builder("StackV2", name)
+        .addInput(maxSize)
+        .setAttribute("elem_type", elementType)
+        .setAttribute("stack_name", stackName)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that pushes an element into a stack and then returns that same element.
+    *
+    * @param  stackHandle Handle to a stack resource.
+    * @param  element     Element to push into the stack.
+    * @param  swapMemory  Boolean value indicating whether to swap the element memory to the CPU.
+    * @param  name        Name for the created op.
+    * @return Created op output, which has the same value as `element`.
+    */
+  def stackPush(
+      stackHandle: Output, element: Output, swapMemory: Boolean = false, name: String = "StackPush"): Output = {
+    Op.Builder("StackPushV2", name)
+        .addInput(stackHandle)
+        .addInput(element)
+        .setAttribute("swap_memory", swapMemory)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that pops an element from a stack and then returns it.
+    *
+    * @param  stackHandle Handle to a stack resource.
+    * @param  name        Name for the created op.
+    * @return Created op output.
+    */
+  def stackPop(stackHandle: Output, name: String = "StackPop"): Output = {
+    Op.Builder("StackPopV2", name)
+        .addInput(stackHandle)
+        .build().outputs(0)
+  }
+
+  /** Creates an op that deletes a stack from its resource container.
+    *
+    * @param  stackHandle Handle to a stack resource.
+    * @param  name        Name for the created op.
+    * @return Created op.
+    */
+  def stackClose(stackHandle: Output, name: String = "StackClose"): Op = {
+    Op.Builder("StackCloseV2", name)
+        .addInput(stackHandle)
+        .build()
   }
 }
 
@@ -135,6 +195,10 @@ private[api] object DataFlow extends DataFlow {
     GradientsRegistry.registerNonDifferentiable("StackPush")
     GradientsRegistry.registerNonDifferentiable("StackPop")
     GradientsRegistry.registerNonDifferentiable("StackClose")
+    GradientsRegistry.registerNonDifferentiable("StackV2")
+    GradientsRegistry.registerNonDifferentiable("StackPushV2")
+    GradientsRegistry.registerNonDifferentiable("StackPopV2")
+    GradientsRegistry.registerNonDifferentiable("StackCloseV2")
 
     GradientsRegistry.registerNonDifferentiable("GetSessionHandle")
     GradientsRegistry.registerNonDifferentiable("GetSessionHandleV2")
