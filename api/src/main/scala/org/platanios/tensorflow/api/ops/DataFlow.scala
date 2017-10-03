@@ -167,12 +167,14 @@ private[api] trait DataFlow {
   /** Creates an op that pops an element from a stack and then returns it.
     *
     * @param  stackHandle Handle to a stack resource.
+    * @param  elementType Data type of the elements in the stack.
     * @param  name        Name for the created op.
     * @return Created op output.
     */
-  def stackPop(stackHandle: Output, name: String = "StackPop"): Output = {
+  def stackPop(stackHandle: Output, elementType: DataType, name: String = "StackPop"): Output = {
     Op.Builder("StackPopV2", name)
         .addInput(stackHandle)
+        .setAttribute("elem_type", elementType)
         .build().outputs(0)
   }
 
