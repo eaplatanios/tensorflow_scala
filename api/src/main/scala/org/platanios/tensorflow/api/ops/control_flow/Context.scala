@@ -52,6 +52,9 @@ abstract class Context protected (
       .map(Op.currentGraph.getOpByName(_))
       .foreach(_.controlFlowContext = Some(this))
 
+  /** Name of this control flow context. */
+  val name: String
+
   private[this] val contextStack = mutable.Stack[Context]()
 
   /** Control flow context containing this context. */

@@ -469,7 +469,7 @@ object Output {
   *
   * @author Emmanouil Antonios Platanios
   */
-final case class OutputIndexedSlices private(indices: Output, values: Output, denseShape: Output = null)
+final case class OutputIndexedSlices private (indices: Output, values: Output, denseShape: Output = null)
     extends OutputLike {
   /** Graph that contains `values`, `indices`, and `denseShape`. */
   override def graph: Graph = getGraphFromInputs(Set(values, indices, denseShape))

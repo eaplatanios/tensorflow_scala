@@ -56,7 +56,7 @@ private[ops] case class WhileLoopContext private[control_flow] (
     enableBackPropagation: Boolean = true,
     swapMemory: Boolean = false,
     private[control_flow] val _gradientLoopState: Option[GradientLoopState] = None,
-    private var pivot: Output = null,
+    private[ops] var pivot: Output = null,
     private var pivotForPredicate: Op = null,
     private var pivotForBody: Op = null,
     private[control_flow] val loopEnters: mutable.ListBuffer[Output] = mutable.ListBuffer.empty[Output],
@@ -65,7 +65,7 @@ private[ops] case class WhileLoopContext private[control_flow] (
 ) extends Context() with ProtoSerializable {
   require(parallelIterations > 0, "'parallelIterations' must be a positive integer.")
 
-  val name: String = Op.currentGraph.uniqueName(_name)
+  override val name: String = Op.currentGraph.uniqueName(_name)
 
   override def controlPivot: Option[Op] = Option(pivotForBody).orElse(Option(pivotForPredicate))
 
@@ -672,7 +672,7 @@ object WhileLoopContext {
 
   /** Creates a next iteration op for `v` and adds a back edge from `v` to `m`. */
   @throws[IllegalArgumentException]
-  private[WhileLoopContext] def addNextIterationAndBackEdge[T <: OutputLike](m: T, v: T): T = {
+  private[ops] def addNextIterationAndBackEdge[T <: OutputLike](m: T, v: T): T = {
     val result = (m, v) match {
       case (mm: Output, vv: Output) =>
         val nextVV = ControlFlow.nextIteration(vv)

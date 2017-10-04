@@ -53,6 +53,7 @@ package object ops {
   ops.Queue.Gradients
   ops.Parsing.Gradients
   ops.Random.Gradients
+  ops.control_flow.ControlFlow.Gradients
   ops.variables.Variable.Gradients
 
   private[api] trait API
