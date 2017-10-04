@@ -22,7 +22,7 @@ object Function {
   TensorFlow.load()
 
   @native def graphToFunction(
-      fnBodyGraphHandle: Long, fnName: String, opHandles: Array[Long],
+      fnBodyGraphHandle: Long, fnName: String, appendHashToFnName: Boolean, opHandles: Array[Long],
       inputOpHandles: Array[Long], inputOpIndices: Array[Int],
       outputOpHandles: Array[Long], outputOpIndices: Array[Int],
       outputNames: Array[String]): Long

@@ -22,12 +22,14 @@ import org.platanios.tensorflow.api.ops.variables._
 import org.platanios.tensorflow.api.types.{DataType, FLOAT32, VARIANT}
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer}
 import org.platanios.tensorflow.jni.{Function => NativeFunction, Graph => NativeGraph}
+
 import org.tensorflow.framework.FunctionDef
 
 import scala.collection.mutable
 import scala.util.DynamicVariable
 
-// TODO: [FUNCTIONS] !!! Unique name.
+// TODO: [FUNCTIONS] !!! Unique name using the hashing functionality.
+// TODO: [FUNCTIONS] !!! Add support for function descriptions.
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -79,7 +81,7 @@ object Function {
       override def numOutputs: Int = 1
       override def outputs(arg: Dataset[T, O, D, S]): Seq[Output] = Seq(arg.createHandle())
       override def dataTypes(arg: Dataset[T, O, D, S]): Seq[DataType] = Seq(VARIANT)
-      // TODO: !!! [FUNCTIONS] Find a better way to deal with this -- it's only used for Dataset.flatMap().
+      // TODO: [FUNCTIONS] !!! Find a better way to deal with this -- it's only used for Dataset.flatMap().
       override def outputsDecoder(outputs: Seq[Output]): (Dataset[T, O, D, S], Seq[Output]) = (null, outputs.tail)
     }
   }
@@ -156,8 +158,9 @@ private[api] case class InstantiatedFunction[O, R] private[ops](
     inputs.appendAll(functionGraph.extraArgs)
 
     // Create the native function
+    // TODO: [FUNCTIONS] !!! Use the name hashing functionality.
     val nativeHandle = NativeFunction.graphToFunction(
-      functionGraph.nativeHandle, name, null,
+      functionGraph.nativeHandle, name, appendHashToFnName = false, null,
       inputs.map(_.op.nativeHandle).toArray, inputs.map(_.index).toArray,
       flattenedOutputs.map(_.op.nativeHandle).toArray, flattenedOutputs.map(_.index).toArray,
       outputNames.toArray)
@@ -165,7 +168,7 @@ private[api] case class InstantiatedFunction[O, R] private[ops](
   }
 
   /** Names of the function inputs. */
-  val inputNames : Seq[String] = initializationOutput._1
+  val inputNames: Seq[String] = initializationOutput._1
 
   /** Names of the function outputs. */
   val outputNames: Seq[String] = initializationOutput._2
@@ -185,7 +188,7 @@ private[api] case class InstantiatedFunction[O, R] private[ops](
 
   /** Extra inputs to feed to the function as arguments when calling it, which correspond to the values of op outputs
     * that are used in the function, btu which belong to a different graph, than the function graph. */
-  private[ops] val extraInputs  = initializationOutput._6
+  private[ops] val extraInputs = initializationOutput._6
 
   /** Lock for the native handle. */
   private[this] object NativeHandleLock
@@ -261,15 +264,6 @@ private[api] case class InstantiatedFunction[O, R] private[ops](
       NativeFunction.delete(_nativeHandle)
       _nativeHandle = 0
     }
-  }
-}
-
-/** Contains helper functions for dealing with instantiated functions. */
-object InstantiatedFunction {
-  private[InstantiatedFunction] def hashString(
-      functionName: String, inputs: Seq[(String, DataType)], outputs: Seq[(String, DataType)]): String = {
-    val hasher = java.security.MessageDigest.getInstance("SHA-1")
-    ???
   }
 }
 

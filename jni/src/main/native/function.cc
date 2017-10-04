@@ -23,13 +23,18 @@
 #include "utilities.h"
 
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Function_00024_graphToFunction(
-  JNIEnv* env, jobject object, jlong fn_body_graph_handle, jstring fn_name, jlongArray op_handles,
-  jlongArray input_op_handles, jintArray input_op_indices,
-  jlongArray output_op_handles, jintArray output_op_indices,
-  jobjectArray output_names) {
+  JNIEnv* env, jobject object, jlong fn_body_graph_handle, jstring fn_name, jboolean append_hash_to_fn_name,
+  jlongArray op_handles, jlongArray input_op_handles, jintArray input_op_indices, jlongArray output_op_handles,
+  jintArray output_op_indices, jobjectArray output_names) {
   REQUIRE_HANDLE(fn_body_graph, TF_Graph, fn_body_graph_handle, 0);
 
   const char *c_fn_name = env->GetStringUTFChars(fn_name, nullptr);
+
+  unsigned char c_append_hash_to_fn_name;
+  if (append_hash_to_fn_name == JNI_TRUE)
+    c_append_hash_to_fn_name = 1;
+  else
+    c_append_hash_to_fn_name = 0;
 
   const int num_ops = op_handles == NULL ? 0 : env->GetArrayLength(op_handles);
   const int num_inputs = env->GetArrayLength(input_op_handles);
@@ -57,8 +62,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Function_00024_graphTo
   // TODO: Add support for function options and descriptions.
   std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
   TF_Function* function = TF_GraphToFunction(
-    fn_body_graph, c_fn_name, op_handles == NULL ? -1 : num_ops, ops.get(), num_inputs, inputs.get(), num_outputs,
-    outputs.get(), c_output_names, /*opts=*/nullptr, /*description=*/nullptr, status.get());
+    fn_body_graph, c_fn_name, c_append_hash_to_fn_name, op_handles == NULL ? -1 : num_ops, ops.get(), num_inputs,
+    inputs.get(), num_outputs, outputs.get(), c_output_names, /*opts=*/nullptr, /*description=*/nullptr, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   env->ReleaseStringUTFChars(fn_name, c_fn_name);
