@@ -273,6 +273,7 @@ object TensorFlowNativePackage extends AutoPlugin {
          |file(GLOB JNI_LIB_SRC
          |  "*.cc"
          |  "generated/*.cc"
+         |  "include/tensorflow/c/*.cc"
          |)
          |
          |file(GLOB OP_LIB_SRC

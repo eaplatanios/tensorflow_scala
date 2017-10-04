@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "tf_python_api.h"
+#include "python_api.h"
 
 #include "c_api_internal.h"
 
