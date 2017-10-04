@@ -583,7 +583,7 @@ final case class TensorIndexedSlices private(indices: Tensor, values: Tensor, de
   override val dataType: DataType = values.dataType
 
   /** Shape of these tensor indexed slices. */
-  override val shape: Shape = Shape(denseShape.entriesIterator.map(_.asInstanceOf[Long].toInt).toSeq: _*)
+  override val shape: Shape = Shape(denseShape.cast(INT32).entriesIterator.map(_.asInstanceOf[Int]).toSeq: _*)
 
   /** Device on which these tensor indexed slices will be placed. */
   override val device: String = values.device
@@ -670,7 +670,7 @@ final case class SparseTensor(indices: Tensor, values: Tensor, denseShape: Tenso
   override val dataType: DataType = values.dataType
 
   /** Shape of this sparse tensor. */
-  override val shape: Shape = Shape(denseShape.entriesIterator.map(_.asInstanceOf[Long].toInt).toSeq: _*)
+  override val shape: Shape = Shape(denseShape.cast(INT32).entriesIterator.map(_.asInstanceOf[Int]).toSeq: _*)
 
   /** Device on which this sparse op output will be placed. */
   override val device: String = values.device
