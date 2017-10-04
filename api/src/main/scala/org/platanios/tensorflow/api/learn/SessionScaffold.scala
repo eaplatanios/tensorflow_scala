@@ -17,8 +17,9 @@ package org.platanios.tensorflow.api.learn
 
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.{FeedMap, Session}
-import org.platanios.tensorflow.api.ops.variables.{Saver, Variable}
 import org.platanios.tensorflow.api.ops._
+import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
+import org.platanios.tensorflow.api.ops.variables.{Saver, Variable}
 
 /** Structure used to create or gather pieces commonly needed to train a model.
   *

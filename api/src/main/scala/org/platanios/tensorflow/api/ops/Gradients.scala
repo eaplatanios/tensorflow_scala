@@ -18,7 +18,8 @@ package org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.Implicits._
 import org.platanios.tensorflow.api.core.exception.InvalidDataTypeException
 import org.platanios.tensorflow.api.ops
-import org.platanios.tensorflow.api.types.{DataType, FLOAT32, FLOAT64, RESOURCE}
+import org.platanios.tensorflow.api.ops.control_flow.{ControlFlow, GradientState, WhileLoopContext}
+import org.platanios.tensorflow.api.types._
 import org.platanios.tensorflow.jni.{Graph => NativeGraph, Output => NativeOutput}
 
 import com.typesafe.scalalogging.Logger
@@ -66,26 +67,36 @@ private[ops] object Gradients {
 
       // `pendingCounts(op)` is a count-down counter for the expected gradients to accumulate for `op`. When
       // `pendingCounts(op)` becomes zero, we have collected all the backpropagation gradients for all outputs of `op`.
-      val pendingCounts = initialPendingCounts(sourceOps, destinationOps, colocateGradientsWithOps)
+      val (pendingCounts, controlFlowGradientState) = initialPendingCounts(
+        sourceOps, destinationOps, colocateGradientsWithOps)
 
       // `readyOps` keeps track of ops that have been completely processed. We initialize it with the destination ops.
       // We filter the destination ops based on whether one output gradient relies on another output's gradient.
       val readyOps = mutable.Queue[Op](destinationOps.filter(pendingCounts.getOrElse(_, 0) == 0).toSeq: _*)
-
-      // Stop ops form the frontier of the forward graph before which back-propagation should stop. Ops in this set will
-      // not be differentiated. This set is defined as the subset of `sourceOps` containing ops that have no predecessor
-      // in `sourceOps`. An op has predecessors in `sourceOps` if and only if `pendingCounts(op) > 0`.
-      val stopOps = sourceOps.filter(op => op.inputs.forall(i => pendingCounts.getOrElse(i.op, 0) <= 0))
 
       // Add the initial gradients for the ys.
       val dyInitial = initialGradients(ys, dys, colocateGradientsWithOps)
       for ((y, dy) <- (ys, dyInitial).zipped)
         setGradient(accumulatedGradients, y, dy)
 
+      controlFlowGradientState.foreach(state => {
+        state.processUnusedLoopExits(pendingCounts, destinationOps).filter(isTrainable).foreach(loopExit => {
+          setGradient(accumulatedGradients, loopExit, state.zerosLikeForExit(loopExit))
+          readyOps.enqueue(loopExit.op)
+        })
+      })
+
+      // Stop ops form the frontier of the forward graph before which back-propagation should stop. Ops in this set will
+      // not be differentiated. This set is defined as the subset of `sourceOps` containing ops that have no predecessor
+      // in `sourceOps`. An op has predecessors in `sourceOps` if and only if `pendingCounts(op) > 0`.
+      val stopOps = sourceOps.filter(op => op.inputs.forall(i => pendingCounts.getOrElse(i.op, 0) <= 0))
+
       while (readyOps.nonEmpty) {
         val op = readyOps.dequeue()
         maybeColocateWith(op, colocateGradientsWithOps) {
+          controlFlowGradientState.foreach(_.enterGradientWhileLoopContext(op, before = true))
           val opGradients = aggregationMethod.aggregateGradients(accumulatedGradients, op)
+          controlFlowGradientState.foreach(_.exitGradientWhileLoopContext(op, before = true))
           val hasOutputGradients = opGradients.nonEmpty
           val gradientFunction: Registry.GradientFunction = {
             if (hasOutputGradients && !stopOps.contains(op)) {
@@ -95,6 +106,7 @@ private[ops] object Gradients {
             }
           }
 
+          controlFlowGradientState.foreach(_.enterGradientWhileLoopContext(op, before = false))
           if (hasOutputGradients && gradientFunction != null) {
             // Note that, the gradient aggregation not computing a value for the i'th output, means that the cost does
             // not depend on output i and therefore the gradient with respect to that output is 0.
@@ -103,7 +115,12 @@ private[ops] object Gradients {
               // other outputs.
               val output = op.outputs(outputIndex)
               if (gradient.isEmpty && isTrainable(output))
-                opGradients(outputIndex) = Seq(Basic.zerosLike(output.toOutput))
+                // TODO: !!! [GRADIENTS] Gradients of resource handles might be an issue here because of the zeros.
+                opGradients(outputIndex) = Seq({
+                  controlFlowGradientState
+                      .flatMap(_.zerosLike(op, outputIndex))
+                      .getOrElse(WhileLoopContext.zerosLikeOutsideLoop(op, outputIndex))
+                })
             }
 
             // Compute the actual op gradients.
@@ -127,16 +144,56 @@ private[ops] object Gradients {
               })
             }
           }
+          controlFlowGradientState.foreach(_.exitGradientWhileLoopContext(op, before = false))
         }
 
         // Update the pending counts for the inputs of `op` and enqueue ready ops.
         op.inputs.foreach(input => {
           pendingCounts.update(input.op, pendingCounts.getOrElse(input.op, 0) - 1)
-          if (pendingCounts(input.op) == 0)
-            readyOps.enqueue(input.op)
-          // TODO: [CONTROL_FLOW] Some control flow gradient logic should go here.
+          var ready = pendingCounts(input.op) == 0
+          if (!ready)
+            controlFlowGradientState.foreach(_ => {
+              ready = pendingCounts(input.op) > 0 && ControlFlow.isLoopSwitch(input.op)
+            })
+          if (ready) {
+            if (ControlFlow.isLoopExit(input.op)) {
+              // If `input` is an exit without real gradient, defer processing them.
+              controlFlowGradientState.flatMap(_.getGradientLoopState(input.op, before = false)).foreach(state => {
+                state.deferredExits += input
+                state.pendingExitsCount -= 1
+                if (state.pendingExitsCount == 0) {
+                  // We now have all the exits and so we process them.
+                  var hasRealGradient = false
+                  state.deferredExits.foreach(exit => {
+                    if (accumulatedGradients.get(op).exists(_.exists(_.exists(_ != null)))) {
+                      hasRealGradient = true
+                      readyOps.enqueue(exit.op)
+                    } else {
+                      state.unusedExits += exit
+                    }
+                  })
+                  if (hasRealGradient) {
+                    // For an unused exit, if it has floating-point outputs, we back-propagate a zero gradient.
+                    // Otherwise, we just ignore it.
+                    state.unusedExits.foreach(exit => {
+                      if (isTrainable(exit))
+                        setGradient(accumulatedGradients, exit, controlFlowGradientState.get.zerosLikeForExit(exit))
+                      readyOps.enqueue(exit.op)
+                    })
+                  } else {
+                    // All exits are "unused" and so we use `null` as the gradient.
+                    state.unusedExits.foreach(exit => readyOps.enqueue(exit.op))
+                  }
+                }
+              })
+            } else {
+              readyOps.enqueue(input.op)
+            }
+          }
         })
       }
+
+      controlFlowGradientState.foreach(_.postProcess())
     }
 
     // Collect the aggregated gradients for the requested tensors and return them.
@@ -201,11 +258,10 @@ private[ops] object Gradients {
   /** Returns a boolean value indicating whether the data type of `tensor` is trainable. This means whether its
     * gradients can be computed. */
   private[this] def isTrainable(tensor: OutputLike): Boolean = {
-    Set[DataType](FLOAT32, FLOAT64).contains(tensor.dataType)
-    // TODO: !! FLOAT16, COMPLEX64, COMPLEX128.
+    Set[DataType](FLOAT16, FLOAT32, FLOAT64, COMPLEX64, COMPLEX128).contains(tensor.dataType)
   }
 
-  /** Computes inditial values for the provided gradients, and checks whether their data types are correct.
+  /** Computes initial values for the provided gradients, and checks whether their data types are correct.
     *
     * @param  ys                       Sequence containing the variables corresponding to `dys`.
     * @param  dys                      Sequence containing tensor gradients.
@@ -265,12 +321,12 @@ private[ops] object Gradients {
     * @param  colocateGradientsWithOps Boolean value indicating whether to colocate the gradient ops with the original
     *                                  ops.
     * @return Tuple containing: (1) Map from op to the number of back-propagation inputs to this op, and (2) a control
-    *         flow state object which is not `null` if the ops between `sources` and `destinations` contain control flow
-    *         loops.
+    *         flow gradient state object which is not `None` if the ops between `sources` and `destinations` contain
+    *         control flow loops.
     */
   private[this] def initialPendingCounts(
-      sourceOps: Set[Op], destinationOps: Set[Op], colocateGradientsWithOps: Boolean): mutable.Map[Op, Int] = {
-    // TODO: [CONTROL_FLOW]
+      sourceOps: Set[Op], destinationOps: Set[Op],
+      colocateGradientsWithOps: Boolean): (mutable.Map[Op, Int], Option[GradientState]) = {
     // Mark ops reached when going from 'sources' to 'destinations'
     val reached = mutable.Set[Op](destinationOps.toSeq: _*)
     val reachedQueue = mutable.Queue[Op](sourceOps.toSeq: _*)
@@ -297,13 +353,16 @@ private[ops] object Gradients {
       }
     }
 
+    // `controlFlowGradientState` is `None` if there are no while loops.
+    val controlFlowGradientState = GradientState.maybeCreate(between, betweenList, colocateGradientsWithOps)
+
     // Initialize the pending counts for the between ops
     val pendingCounts = mutable.Map.empty[Op, Int]
     betweenList.flatMap(_.inputs).map(_.op).filter(between.contains).foreach(input => {
       pendingCounts.update(input, pendingCounts.getOrElse(input, 0) + 1)
     })
 
-    pendingCounts
+    (pendingCounts, controlFlowGradientState)
   }
 
   /** Adds the provided `gradient` to the sequence of `output`'s gradients that have been collected so far.

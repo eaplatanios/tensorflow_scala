@@ -169,7 +169,7 @@ case class Configuration(
         throw InvalidArgumentException(
           s"Only a single 'cluster' configuration field should be provided in $TF_CONFIG_ENV.")
       } else {
-        clusterConfigJson.head.as[Map[String, Json]].map(_.toSeq.flatMap(p => {
+          clusterConfigJson.head.as[Map[String, Json]].right.map(_.toSeq.flatMap(p => {
           p._2.as[Seq[String]] match {
             case Left(_) => p._2.as[Map[Int, String]] match {
               case Left(_) => throw InvalidArgumentException(
@@ -178,7 +178,7 @@ case class Configuration(
             }
             case Right(tasks) => Map(p._1 -> JobConfig.fromSeq(tasks))
           }
-        })).map(m => ClusterConfig(Map(m: _*)))
+        })).right.map(m => ClusterConfig(Map(m: _*)))
       }
     })
 
@@ -187,7 +187,7 @@ case class Configuration(
       val cursor = parsed.hcursor
       val taskType = cursor.downField(TASK_ENV_KEY).get[String](TASK_TYPE_KEY)
       val taskIndex = cursor.downField(TASK_ENV_KEY).get[Int](TASK_ID_KEY)
-      for (t <- taskType; i <- taskIndex) yield (t, i)
+      for (t <- taskType.right; i <- taskIndex.right) yield (t, i)
     })
 
     if (tfClusterConfig.isRight) {

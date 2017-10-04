@@ -19,7 +19,8 @@ import org.platanios.tensorflow.api.Implicits._
 import org.platanios.tensorflow.api.core.{DeviceSpecification, Graph, Shape}
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.io.FileIO
-import org.platanios.tensorflow.api.ops.{Basic, ControlFlow, Op, Output, Text}
+import org.platanios.tensorflow.api.ops.{Basic, Op, Output, Text}
+import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.variables.CheckpointStateProto.CheckpointState
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.{DataType, INT32}

@@ -90,28 +90,30 @@ package object api extends Implicits with Documentation {
 
   type ProtoSerializable = utilities.Proto.Serializable
 
-  /** @groupname BasicOps      Ops / Basic
-    * @groupprio BasicOps      100
-    * @groupname MathOps       Ops / Math
-    * @groupprio MathOps       110
-    * @groupname NNOps         Ops / NN
-    * @groupprio NNOps         120
-    * @groupname StatisticsOps Ops / Statistics
-    * @groupprio StatisticsOps 130
-    * @groupname RandomOps     Ops / Random
-    * @groupprio RandomOps     140
-    * @groupname ParsingOps    Ops / Parsing
-    * @groupprio ParsingOps    150
-    * @groupname TextOps       Ops / Text
-    * @groupprio TextOps       160
-    * @groupname ImageOps      Ops / Image
-    * @groupprio ImageOps      170
-    * @groupname LoggingOps    Ops / Logging
-    * @groupprio LoggingOps    180
-    * @groupname SummaryOps    Ops / Summary
-    * @groupprio SummaryOps    190
-    * @groupname CallbackOps   Ops / Callback
-    * @groupprio CallbackOps   200
+  /** @groupname BasicOps       Ops / Basic
+    * @groupprio BasicOps       100
+    * @groupname MathOps        Ops / Math
+    * @groupprio MathOps        110
+    * @groupname NNOps          Ops / NN
+    * @groupprio NNOps          120
+    * @groupname StatisticsOps  Ops / Statistics
+    * @groupprio StatisticsOps  130
+    * @groupname RandomOps      Ops / Random
+    * @groupprio RandomOps      140
+    * @groupname ParsingOps     Ops / Parsing
+    * @groupprio ParsingOps     150
+    * @groupname TextOps        Ops / Text
+    * @groupprio TextOps        160
+    * @groupname ImageOps       Ops / Image
+    * @groupprio ImageOps       170
+    * @groupname ControlFlowOps Ops / Control Flow
+    * @groupprio ControlFlowOps 180
+    * @groupname LoggingOps     Ops / Logging
+    * @groupprio LoggingOps     190
+    * @groupname SummaryOps     Ops / Summary
+    * @groupprio SummaryOps     200
+    * @groupname CallbackOps    Ops / Callback
+    * @groupprio CallbackOps    210
     */
   object tf
       extends core.API
@@ -120,28 +122,30 @@ package object api extends Implicits with Documentation {
     object learn extends api.learn.API
   }
 
-  /** @groupname BasicOps      Ops / Basic
-    * @groupprio BasicOps      100
-    * @groupname MathOps       Ops / Math
-    * @groupprio MathOps       110
-    * @groupname NNOps         Ops / NN
-    * @groupprio NNOps         120
-    * @groupname StatisticsOps Ops / Statistics
-    * @groupprio StatisticsOps 130
-    * @groupname RandomOps     Ops / Random
-    * @groupprio RandomOps     140
-    * @groupname ParsingOps    Ops / Parsing
-    * @groupprio ParsingOps    150
-    * @groupname TextOps       Ops / Text
-    * @groupprio TextOps       160
-    * @groupname ImageOps      Ops / Image
-    * @groupprio ImageOps      170
-    * @groupname LoggingOps    Ops / Logging
-    * @groupprio LoggingOps    180
-    * @groupname SummaryOps    Ops / Summary
-    * @groupprio SummaryOps    190
-    * @groupname CallbackOps   Ops / Callback
-    * @groupprio CallbackOps   200
+  /** @groupname BasicOps       Ops / Basic
+    * @groupprio BasicOps       100
+    * @groupname MathOps        Ops / Math
+    * @groupprio MathOps        110
+    * @groupname NNOps          Ops / NN
+    * @groupprio NNOps          120
+    * @groupname StatisticsOps  Ops / Statistics
+    * @groupprio StatisticsOps  130
+    * @groupname RandomOps      Ops / Random
+    * @groupprio RandomOps      140
+    * @groupname ParsingOps     Ops / Parsing
+    * @groupprio ParsingOps     150
+    * @groupname TextOps        Ops / Text
+    * @groupprio TextOps        160
+    * @groupname ImageOps       Ops / Image
+    * @groupprio ImageOps       170
+    * @groupname ControlFlowOps Ops / Control Flow
+    * @groupprio ControlFlowOps 180
+    * @groupname LoggingOps     Ops / Logging
+    * @groupprio LoggingOps     190
+    * @groupname SummaryOps     Ops / Summary
+    * @groupprio SummaryOps     200
+    * @groupname CallbackOps    Ops / Callback
+    * @groupprio CallbackOps    210
     */
   object tfi
       extends core.API

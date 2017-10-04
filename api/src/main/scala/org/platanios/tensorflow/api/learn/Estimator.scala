@@ -19,17 +19,19 @@ import org.platanios.tensorflow.api.config._
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.{Fetchable, SessionConfig}
 import org.platanios.tensorflow.api.core.exception.{CheckpointNotFoundException, InvalidArgumentException}
+import org.platanios.tensorflow.api.io.CheckpointReader
 import org.platanios.tensorflow.api.learn.Estimator.ModelFunction
 import org.platanios.tensorflow.api.learn.hooks._
 import org.platanios.tensorflow.api.learn.utilities.ReplicaDevicePlacer
-import org.platanios.tensorflow.api.ops.{ControlFlow, Op, OpSpecification}
+import org.platanios.tensorflow.api.ops.{Op, OpSpecification}
+import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.io.{Data, Dataset}
 import org.platanios.tensorflow.api.ops.variables.Saver
+
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
-import java.nio.file.{Files, Path}
 
-import org.platanios.tensorflow.api.io.CheckpointReader
+import java.nio.file.{Files, Path}
 
 import scala.collection.immutable.TreeMap
 import scala.collection.mutable
@@ -160,7 +162,7 @@ class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T] private[learn] (
     val needsToTrain = {
       if (!terminationCriteria.restartCounting) {
         workingDir.flatMap(dir => Saver.latestCheckpoint(dir).flatMap(latestPath => {
-          CheckpointReader(latestPath.toAbsolutePath.toString).getTensor(Graph.Keys.GLOBAL_STEP.name)
+          CheckpointReader(latestPath).getTensor(Graph.Keys.GLOBAL_STEP.name)
         })).map(_.scalar.asInstanceOf[Long]).flatMap(s => terminationCriteria.maxSteps.map(_ <= s)).getOrElse(true)
       } else {
         true

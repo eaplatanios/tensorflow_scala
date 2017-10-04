@@ -20,6 +20,7 @@ import org.platanios.tensorflow.api.core.{DeviceSpecification, Graph, Shape}
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.ops
+import org.platanios.tensorflow.api.ops.control_flow.Context
 import org.platanios.tensorflow.api.ops.variables.{CreateNewOnly, VariableScope, VariableStore}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.DataType
@@ -27,6 +28,7 @@ import org.platanios.tensorflow.api.utilities.using
 import org.platanios.tensorflow.jni.{Op => NativeOp, Tensor => NativeTensor}
 
 import org.tensorflow.framework.{AttrValue, NameAttrList}
+
 import java.nio.charset.Charset
 
 import scala.collection.mutable
@@ -79,6 +81,8 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
                  .map(opName => graph.findOp(opName.substring(COLOCATION_OPS_ATTRIBUTE_PREFIX.length)).get))
         .getOrElse(Set.empty[Op])
   }
+
+  private[ops] var controlFlowContext: Option[Context] = None
 
   /** Number of inputs to this op (i.e., number of tensors fed as input to this op). */
   lazy val numInputs: Int = using(graph.reference) { _ => NativeOp.numInputs(nativeHandle) }
@@ -279,7 +283,8 @@ final case class OpSpecification(name: String, opType: String, device: String)
 private[api] final case class OpCreationContext(
     graph: Graph = Graph(), nameScope: String = "", variableScope: VariableScope = VariableScope(reuse = CreateNewOnly),
     device: String = "", deviceFunction: OpSpecification => String = _.device, colocationOps: Set[Op] = Set.empty,
-    controlDependencies: Set[Op] = Set.empty, attributes: Map[String, Any] = Map.empty, container: String = "") // TODO: !!! Use containers.
+    controlDependencies: Set[Op] = Set.empty, attributes: Map[String, Any] = Map.empty, container: String = "",
+    controlFlowContext: Option[Context] = None) // TODO: !!! Use containers.
 
 object Op {
   private[ops] trait API {
@@ -390,6 +395,13 @@ object Op {
   /** Returns the container of the current op creation context. */
   private[api] def currentContainer(implicit context: DynamicVariable[OpCreationContext]): String = {
     context.value.container
+  }
+
+  /** Returns the control flow context of the current op creation context. */
+  private[api] def currentControlFlowContext(implicit
+      context: DynamicVariable[OpCreationContext]
+  ): Option[Context] = {
+    context.value.controlFlowContext
   }
 
   /** Returns the local seeds an operation should use given an op-specific random seed.
@@ -1043,6 +1055,35 @@ object Op {
 
   //endregion ProtoBuf Helper Functions
 
+  private[ops] def controlDependencies(inputs: Set[Output]): Set[Op] = {
+    val controlDependencies: mutable.Set[Op] = mutable.Set(Op.currentControlDependencies.toSeq: _*)
+    inputs.foreach(input => pruneControlDependencies(controlDependencies, input.op))
+    controlDependencies.toSet
+  }
+
+  /** Prunes control dependencies from the provided set, given that the op for which these control dependencies are
+    * specified uses `op` as direct or indirect (through other ops) input or control input. This eliminates redundant
+    * control dependencies due to transitive dependencies (e.g., if `a` depends on `b` and `c`, and `b` depends on
+    * `c`, then the dependency of `a` on `c` is pruned).
+    *
+    * @param  controlDeps  Current set of control dependencies for the op that is being built.
+    * @param  op           Op that is a direct or indirect (through other ops) input or control input, for the op that
+    *                      is being built.
+    * @param  processedOps Already processed ops (provided for efficiency purposes so that we do not go through them
+    *                      a second time).
+    */
+  private[this] def pruneControlDependencies(
+      controlDeps: mutable.Set[Op], op: Op, processedOps: mutable.Set[Op] = mutable.Set.empty[Op]): Unit = {
+    if (processedOps.contains(op)) {
+      // Prune op that is already used as input to the dependant op
+      controlDeps -= op
+      processedOps += op
+      // Prune transitive control dependencies
+      op.inputs.foreach(input => pruneControlDependencies(controlDeps, input.op, processedOps))
+      op.controlInputs.foreach(pruneControlDependencies(controlDeps, _, processedOps))
+    }
+  }
+
   private[ops] final case class Builder(opType: String, name: String)
       (implicit context: DynamicVariable[OpCreationContext]) {
     context.value.graph.assertNotFrozen()
@@ -1059,29 +1100,6 @@ object Op {
     private var inputLists    : Seq[Seq[Output]]  = Seq.empty
     private var device        : Option[String]    = None
     private var attributes    : Map[String, Any]  = Map.empty
-
-    /** Prunes control dependencies from the provided set, given that the op for which these control dependencies are
-      * specified uses `op` as direct or indirect (through other ops) input or control input. This eliminates redundant
-      * control dependencies due to transitive dependencies (e.g., if `a` depends on `b` and `c`, and `b` depends on
-      * `c`, then the dependency of `a` on `c` is pruned).
-      *
-      * @param  controlDeps  Current set of control dependencies for the op that is being built.
-      * @param  op           Op that is a direct or indirect (through other ops) input or control input, for the op that
-      *                      is being built.
-      * @param  processedOps Already processed ops (provided for efficiency purposes so that we do not go through them
-      *                      a second time).
-      */
-    private[this] def pruneControlDependencies(
-        controlDeps: mutable.Set[Op], op: Op, processedOps: mutable.Set[Op] = mutable.Set.empty[Op]): Unit = {
-      if (processedOps.contains(op)) {
-        // Prune op that is already used as input to the dependant op
-        controlDeps -= op
-        processedOps += op
-        // Prune transitive control dependencies
-        op.inputs.foreach(input => pruneControlDependencies(controlDeps, input.op, processedOps))
-        op.controlInputs.foreach(pruneControlDependencies(controlDeps, _, processedOps))
-      }
-    }
 
     def build(): Op = graph.synchronized {
       using(graph.reference) { r =>

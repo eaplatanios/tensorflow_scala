@@ -30,3 +30,4 @@ private[api] trait Documentation
         with Statistics.Documentation
         with Summary.Documentation
         with Text.Documentation
+        with control_flow.ControlFlow.Documentation

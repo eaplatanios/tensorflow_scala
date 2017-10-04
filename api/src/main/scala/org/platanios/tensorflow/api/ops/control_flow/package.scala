@@ -15,27 +15,9 @@
 
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
-
-// TODO: [LOOKUP] [OPS] Add support for lookup ops.
-
 /**
   * @author Emmanouil Antonios Platanios
   */
-object Table {
-  /** Returns the set of all table initializers that have been created in the current graph. */
-  def initializers: Set[Op] = Op.currentGraph.tableInitializers
-
-  /** Creates an op that groups the provided table initializers.
-    *
-    * @param  initializers Table initializers to group.
-    * @param  name         Name for the created op.
-    * @return Created op.
-    */
-  def initializer(initializers: Set[Op], name: String = "TablesInitializer"): Op = {
-    if (initializers.isEmpty)
-      ControlFlow.noOp(name)
-    else
-      ControlFlow.group(initializers, name)
-  }
+package object control_flow {
+  private[api] trait API extends ControlFlow
 }

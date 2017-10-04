@@ -57,7 +57,6 @@ package object ops {
 
   private[api] trait API
       extends Basic
-          with ControlFlow
           with DataFlow
           with Image
           with Logging
@@ -71,6 +70,7 @@ package object ops {
           with Op.API
           with Output.API
           with Queue.API
+          with control_flow.API
           with io.API
           with variables.API {
     object train extends training.API

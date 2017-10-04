@@ -17,7 +17,8 @@ package org.platanios.tensorflow.api.ops.training.optimizers
 
 import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.exception.InvalidDataTypeException
-import org.platanios.tensorflow.api.ops.{ControlFlow, _}
+import org.platanios.tensorflow.api.ops._
+import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.training.optimizers.Optimizer._
 import org.platanios.tensorflow.api.ops.variables.{Initializer, Variable, VariableScope}
 import org.platanios.tensorflow.api.types.{DataType, FLOAT32, FLOAT64, RESOURCE}
