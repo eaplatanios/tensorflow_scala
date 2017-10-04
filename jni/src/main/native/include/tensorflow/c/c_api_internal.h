@@ -16,7 +16,7 @@ limitations under the License.
 #ifndef TENSORFLOW_C_C_API_INTERNAL_H_
 #define TENSORFLOW_C_C_API_INTERNAL_H_
 
-#include "tf_c_api.h"
+#include "c_api.h"
 
 #include <set>
 #include <unordered_map>

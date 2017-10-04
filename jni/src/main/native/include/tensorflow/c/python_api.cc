@@ -15,17 +15,13 @@ limitations under the License.
 
 #include "tf_python_api.h"
 
-#include "tf_c_api_internal.h"
+#include "c_api_internal.h"
 
 namespace tensorflow {
 
-void UpdateInput(TF_Graph* graph, TF_Operation* op, int index, TF_Output output) {
+void UpdateEdge(TF_Graph* graph, TF_Output new_src, TF_Input dst, TF_Status* status) {
   mutex_lock l(graph->mu);
-  const tensorflow::Edge* edge;
-  Status s = op->node.input_edge(index, &edge);
-  if (s.ok())
-    graph->graph.RemoveEdge(edge);
-  graph->graph.AddEdge(&output.oper->node, output.index, &op->node, index);
+  status->status = graph->graph.UpdateEdge(&new_src.oper->node, new_src.index, &dst.oper->node, dst.index);
 }
 
 void AddControlInput(TF_Graph* graph, TF_Operation* op, TF_Operation* input) {

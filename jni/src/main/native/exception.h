@@ -20,7 +20,7 @@
 #include <stdlib.h>
 #include <string>
 
-#include "tf_c_api.h"
+#include "tensorflow/c/c_api.h"
 
 #ifdef __cplusplus
 extern "C" {

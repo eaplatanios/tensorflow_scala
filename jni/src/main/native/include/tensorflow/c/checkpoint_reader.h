@@ -16,7 +16,7 @@ limitations under the License.
 #ifndef TENSORFLOW_C_CHECKPOINT_READER_H
 #define TENSORFLOW_C_CHECKPOINT_READER_H
 
-#include "tf_status_helper.h"
+#include "status_helper.h"
 
 #include "tensorflow/core/framework/tensor_shape.h"
 #include "tensorflow/core/lib/core/status.h"

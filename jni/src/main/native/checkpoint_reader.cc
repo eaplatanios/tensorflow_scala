@@ -14,12 +14,12 @@
  */
 
 #include "checkpoint_reader.h"
+#include "utilities.h"
 
 #include <string.h>
 
-#include "tf_c_eager_api.h"
-#include "tf_checkpoint_reader.h"
-#include "utilities.h"
+#include "tensorflow/c/c_eager_api.h"
+#include "tensorflow/c/checkpoint_reader.h"
 
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_CheckpointReader_00024_newCheckpointReader(
     JNIEnv* env, jobject object, jstring file_pattern) {

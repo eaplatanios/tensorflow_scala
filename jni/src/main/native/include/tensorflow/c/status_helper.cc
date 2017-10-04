@@ -13,8 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "tf_c_api_internal.h"
-#include "tf_status_helper.h"
+#include "c_api_internal.h"
+#include "status_helper.h"
 
 namespace tensorflow {
 

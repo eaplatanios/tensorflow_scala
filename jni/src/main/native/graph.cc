@@ -13,14 +13,14 @@
  * the License.
  */
 
+#include "exception.h"
 #include "graph.h"
 
 #include <limits>
 #include <memory>
 #include <vector>
 
-#include "exception.h"
-#include "tf_c_api.h"
+#include "tensorflow/c/c_api.h"
 
 namespace {
   template<class T>

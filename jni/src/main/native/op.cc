@@ -13,6 +13,7 @@
  * the License.
  */
 
+#include "exception.h"
 #include "op.h"
 
 #include <cstring>
@@ -21,8 +22,7 @@
 #include <stdint.h>
 #include <iostream>
 
-#include "exception.h"
-#include "tf_c_api.h"
+#include "tensorflow/c/c_api.h"
 
 namespace {
 template <class T>

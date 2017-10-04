@@ -16,14 +16,14 @@ limitations under the License.
 #ifndef THIRD_PARTY_TENSORFLOW_C_PYTHON_API_H_
 #define THIRD_PARTY_TENSORFLOW_C_PYTHON_API_H_
 
-#include "tf_c_api.h"
+#include "c_api.h"
 
 // These functions can be removed without notice. They exist to facilitate some
 // refactoring of graph construction code in the Python API.
 
 namespace tensorflow {
 
-void UpdateInput(TF_Graph* graph, TF_Operation* op, int index, TF_Output output);
+void UpdateEdge(TF_Graph* graph, TF_Output new_src, TF_Input dst, TF_Status* status);
 
 void AddControlInput(TF_Graph* graph, TF_Operation* op, TF_Operation* input);
 

@@ -13,16 +13,16 @@
  * the License.
  */
 
+#include "exception.h"
 #include "tensorflow.h"
+#include "utilities.h"
 
 #include <cstring>
 #include <iostream>
 #include <memory>
 
-#include "exception.h"
-#include "tf_c_api.h"
-#include "tf_python_api.h"
-#include "utilities.h"
+#include "tensorflow/c/c_api.h"
+#include "tensorflow/c/python_api.h"
 
 namespace {
 template <class T>
@@ -107,7 +107,10 @@ JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_update
   if (input_op == nullptr || output_op == nullptr)
     throw_exception(env, tf_invalid_argument_exception, "Operation could not be found.");
   TF_Output output{output_op, output_index};
-  // tensorflow::UpdateInput(graph, input_op, input_index, output);
+  TF_Input input{input_op, input_index};
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+  tensorflow::UpdateEdge(graph, output, input, status.get());
+  CHECK_STATUS(env, status.get(), 1);
   return 0;
 }
 
@@ -120,7 +123,7 @@ JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_addCon
     throw_exception(env, tf_invalid_argument_exception, "Graph could not be found.");
   if (op == nullptr || input_op == nullptr)
     throw_exception(env, tf_invalid_argument_exception, "Operation could not be found.");
-  // tensorflow::AddControlInput(graph, op, input_op);
+  tensorflow::AddControlInput(graph, op, input_op);
   return 0;
 }
 
@@ -132,6 +135,6 @@ JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_clearC
     throw_exception(env, tf_invalid_argument_exception, "Graph could not be found.");
   if (op == nullptr)
     throw_exception(env, tf_invalid_argument_exception, "Operation could not be found.");
-  // tensorflow::ClearControlInputs(graph, op);
+  tensorflow::ClearControlInputs(graph, op);
   return 0;
 }

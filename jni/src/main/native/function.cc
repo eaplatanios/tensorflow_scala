@@ -13,14 +13,14 @@
  * the License.
  */
 
+#include "exception.h"
 #include "function.h"
+#include "utilities.h"
 
 #include <limits>
 #include <memory>
 
-#include "exception.h"
-#include "tf_c_api.h"
-#include "utilities.h"
+#include "tensorflow/c/c_api.h"
 
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Function_00024_graphToFunction(
   JNIEnv* env, jobject object, jlong fn_body_graph_handle, jstring fn_name, jboolean append_hash_to_fn_name,

@@ -13,14 +13,14 @@
  * the License.
  */
 
+#include "exception.h"
 #include "session.h"
+#include "utilities.h"
 
 #include <string.h>
 #include <memory>
 
-#include "exception.h"
-#include "tf_c_api.h"
-#include "utilities.h"
+#include "tensorflow/c/c_api.h"
 
 namespace {
   void TF_MaybeDeleteBuffer(TF_Buffer* buffer) {
