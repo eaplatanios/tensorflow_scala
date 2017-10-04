@@ -30,6 +30,25 @@ limitations under the License.
 #include "tensorflow/core/platform/macros.h"
 
 namespace {
+// Copy of the C Eager API struct due to the circular dependency issue.
+TFE_TensorHandle* TFE_Local_NewTensorHandle(const tensorflow::Tensor& t) {
+  return new TFE_TensorHandle(t, nullptr);
+}
+
+// Copy of the C Eager API struct due to the circular dependency issue.
+const tensorflow::Tensor* TFE_Local_TensorHandleUnderlyingTensorInHostMemory(
+    TFE_TensorHandle* h, TF_Status* status) {
+  if (h->d != nullptr) {
+    status->status = tensorflow::errors::FailedPrecondition(
+        "TFE_TensorHandle is placed in device (not host) memory. Cannot return "
+            "a tensorflow::Tensor");
+    return nullptr;
+  }
+  return &h->t;
+}
+}
+
+namespace tensorflow {
 REGISTER_OP("JVMCallback")
     .Input("input: Tin")
     .Output("output: Tout")
@@ -40,7 +59,7 @@ REGISTER_OP("JVMCallback")
     .Attr("Tin: list(type) >= 0")
     .Attr("Tout: list(type) >=0")
     .SetIsStateful()
-    .SetShapeFn(tensorflow::shape_inference::UnknownShape)
+    .SetShapeFn(shape_inference::UnknownShape)
     .Doc(R"doc(
 Invokes a JVM callback function, `f` to compute `f(input)->output`.
 
@@ -71,30 +90,11 @@ REGISTER_OP("JVMCallbackStateless")
     .Attr("registry_call_pointer: string")
     .Attr("Tin: list(type) >= 0")
     .Attr("Tout: list(type) >= 0")
-    .SetShapeFn(tensorflow::shape_inference::UnknownShape)
+    .SetShapeFn(shape_inference::UnknownShape)
     .Doc(R"doc(
 A stateless version of `JVMCallback`.
 )doc");
 
-// Copy of the C Eager API struct due to the circular dependency issue.
-TFE_TensorHandle* TFE_Local_NewTensorHandle(const tensorflow::Tensor& t) {
-  return new TFE_TensorHandle(t, nullptr);
-}
-
-// Copy of the C Eager API struct due to the circular dependency issue.
-const tensorflow::Tensor* TFE_Local_TensorHandleUnderlyingTensorInHostMemory(
-    TFE_TensorHandle* h, TF_Status* status) {
-  if (h->d != nullptr) {
-    status->status = tensorflow::errors::FailedPrecondition(
-        "TFE_TensorHandle is placed in device (not host) memory. Cannot return "
-            "a tensorflow::Tensor");
-    return nullptr;
-  }
-  return &h->t;
-}
-}
-
-namespace tensorflow {
 namespace {
   // Given the 'call', prepares the inputs as a JNI long array that is appropriate for calling the registry.
   jlongArray MakeInputs(JVMCall* call) {
@@ -269,6 +269,5 @@ auto jvmCallbackOpInitializer = []{
   }
   return 0;
 }();
-
 }
 }  // namespace tensorflow

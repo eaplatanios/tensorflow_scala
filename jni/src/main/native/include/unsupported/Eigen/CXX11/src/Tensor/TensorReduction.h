@@ -44,6 +44,7 @@ namespace internal {
   typedef typename XprType::Nested Nested;
   static const int NumDimensions = XprTraits::NumDimensions - array_size<Dims>::value;
   static const int Layout = XprTraits::Layout;
+  typedef typename XprTraits::PointerType PointerType;
 
   template <class T> struct MakePointer {
     // Intermediate typedef to workaround MSVC issue.
@@ -333,7 +334,7 @@ struct OuterReducer {
 };
 
 
-#if defined(EIGEN_USE_GPU) && defined(__CUDACC__)
+#if defined(EIGEN_USE_GPU) && defined(EIGEN_CUDACC)
 template <int B, int N, typename S, typename R, typename I>
 __global__ void FullReductionKernel(R, const S, I, typename S::CoeffReturnType*, unsigned int*);
 
@@ -677,7 +678,7 @@ struct TensorEvaluator<const TensorReductionOp<Op, Dims, ArgType, MakePointer_>,
     }
   }
 
-  EIGEN_DEVICE_FUNC typename MakePointer_<Scalar>::Type data() const { return m_result; }
+  EIGEN_DEVICE_FUNC typename MakePointer_<CoeffReturnType>::Type data() const { return m_result; }
 
 #if defined(EIGEN_USE_SYCL)
   const TensorEvaluator<ArgType, Device>& impl() const { return m_impl; }
@@ -693,7 +694,7 @@ struct TensorEvaluator<const TensorReductionOp<Op, Dims, ArgType, MakePointer_>,
 #ifdef EIGEN_USE_THREADS
   template <typename S, typename O, bool V> friend struct internal::FullReducerShard;
 #endif
-#if defined(EIGEN_USE_GPU) && defined(__CUDACC__)
+#if defined(EIGEN_USE_GPU) && defined(EIGEN_CUDACC)
   template <int B, int N, typename S, typename R, typename I> KERNEL_FRIEND void internal::FullReductionKernel(R, const S, I, typename S::CoeffReturnType*, unsigned int*);
 #ifdef EIGEN_HAS_CUDA_FP16
   template <typename S, typename R, typename I> KERNEL_FRIEND void internal::ReductionInitFullReduxKernelHalfFloat(R, const S, I, half2*);
@@ -780,7 +781,7 @@ struct TensorEvaluator<const TensorReductionOp<Op, Dims, ArgType, MakePointer_>,
   Op m_reducer;
 
   // For full reductions
-#if defined(EIGEN_USE_GPU) && defined(__CUDACC__)
+#if defined(EIGEN_USE_GPU) && defined(EIGEN_CUDACC)
   static const bool RunningOnGPU = internal::is_same<Device, Eigen::GpuDevice>::value;
   static const bool RunningOnSycl = false;
 #elif defined(EIGEN_USE_SYCL)
