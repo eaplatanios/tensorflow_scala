@@ -24,7 +24,6 @@ import org.platanios.tensorflow.api.utilities.using
 import org.platanios.tensorflow.jni.{TensorFlow => NativeLibrary}
 
 import scala.reflect.ClassTag
-import scala.reflect.runtime.universe.{TypeTag, typeOf}
 
 /** Contains functions for constructing ops related to control flow.
   *
@@ -493,15 +492,15 @@ private[api] object ControlFlow extends ControlFlow {
     * @return Tuple containing `output` and `outputIndex`, in that order.
     */
   @throws[IllegalArgumentException]
-  private[control_flow] def merge[T <: OutputLike : TypeTag](inputs: Seq[T], name: String = "Merge"): (T, Output) = {
+  private[control_flow] def merge[T <: OutputLike](inputs: Seq[T], name: String = "Merge"): (T, Output) = {
     Op.createWithNameScope(nameScope = name, inputs.map(_.op).toSet) {
       inputs match {
-        case i if typeOf[T] =:= typeOf[Output] =>
+        case i if i.forall(_.isInstanceOf[Output]) =>
           val outputs = Op.Builder(opType = "Merge", name = name)
-              .addInputList(i.asInstanceOf[Array[Output]])
+              .addInputList(i.map(_.asInstanceOf[Output]))
               .build().outputs
           (outputs(0), outputs(1))
-        case i if typeOf[T] =:= typeOf[SparseOutput] =>
+        case i if i.forall(_.isInstanceOf[SparseOutput]) =>
           val (values, _) = merge(i.map(_.asInstanceOf[SparseOutput].values), "ValuesMerge")
           val (indices, chosenIndex) = merge(i.map(_.asInstanceOf[SparseOutput].indices), "IndicesMerge")
           val (denseShape, _) = merge(i.map(_.asInstanceOf[SparseOutput].denseShape), "DenseShapeMerge")

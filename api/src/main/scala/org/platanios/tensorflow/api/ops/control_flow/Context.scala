@@ -92,7 +92,8 @@ abstract class Context protected (
 
   /** Exits this control flow context. */
   def exit()(implicit context: DynamicVariable[OpCreationContext]): Unit = {
-    context.value = context.value.copy(controlFlowContext = Some(contextStack.pop()))
+    context.value = context.value.copy(
+      controlFlowContext = if (contextStack.nonEmpty) Some(contextStack.pop()) else None)
   }
 
   /** Makes a sequence of tensors available in the outer context. */
