@@ -204,8 +204,9 @@ private[api] trait ControlFlow {
     *         return structure of `bodyFn`.
     */
   def whileLoop[T, TS](
-      predicateFn: T => Output, bodyFn: T => T, loopVariables: T, shapeInvariants: TS, parallelIterations: Int = 10,
-      enableBackPropagation: Boolean = true, swapMemory: Boolean = false, name: String = "WhileLoop")(implicit
+      predicateFn: T => Output, bodyFn: T => T, loopVariables: T, shapeInvariants: TS = null,
+      parallelIterations: Int = 10, enableBackPropagation: Boolean = true, swapMemory: Boolean = false,
+      name: String = "WhileLoop")(implicit
       ev: WhileLoopVariable.Aux[T, TS]
   ): T = {
     require(parallelIterations > 0, "'parallelIterations' must be a positive integer.")
