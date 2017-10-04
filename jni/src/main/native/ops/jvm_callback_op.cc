@@ -16,11 +16,11 @@ limitations under the License.
 #include "jvm_callback_op.h"
 
 #include "exception.h"
-#include "tf_c_api.h"
-#include "tf_c_eager_api.h"
 #include "utilities.h"
 
 #include "third_party/eigen3/unsupported/Eigen/CXX11/Tensor"
+#include "tensorflow/c/c_api.h"
+#include "tensorflow/c/c_eager_api.h"
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/op_kernel.h"
 #include "tensorflow/core/framework/kernel_def.pb_text.h"
