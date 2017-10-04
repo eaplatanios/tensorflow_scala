@@ -16,16 +16,16 @@
  */
 
 #include "tensor_nn_ops.h"
+#include "exception.h"
+#include "utilities.h"
 
 #include <algorithm>
 #include <cstring>
 #include <memory>
 #include <sstream>
 
-#include "exception.h"
-#include "tf_c_api.h"
-#include "tf_c_eager_api.h"
-#include "utilities.h"
+#include "tensorflow/c/c_api.h"
+#include "tensorflow/c/c_eager_api.h"
 
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_00024_biasAdd(
     JNIEnv* env, jobject object, jlong context_handle, jlong value, jlong bias, jbyteArray data_format) {

@@ -16,16 +16,16 @@
  */
 
 #include "tensor_random_ops.h"
+#include "exception.h"
+#include "utilities.h"
 
 #include <algorithm>
 #include <cstring>
 #include <memory>
 #include <sstream>
 
-#include "exception.h"
-#include "tf_c_api.h"
-#include "tf_c_eager_api.h"
-#include "utilities.h"
+#include "tensorflow/c/c_api.h"
+#include "tensorflow/c/c_eager_api.h"
 
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Random_00024_randomUniform(
     JNIEnv* env, jobject object, jlong context_handle, jlong shape, jint dtype, jlong seed, jlong seed2) {

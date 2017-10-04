@@ -18,7 +18,7 @@ limitations under the License.
 
 // C API extensions to experiment with eager execution of kernels.
 
-#include "tf_c_api.h"
+#include "c_api.h"
 
 #include "tensorflow/core/common_runtime/device.h"
 #include "tensorflow/core/framework/tensor.h"
