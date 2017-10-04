@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.ops.control_flow
 
-import org.platanios.tensorflow.api.ops.{Basic, Op, Output}
+import org.platanios.tensorflow.api.ops.{Basic, Op, Output, OutputIndexedSlices, SparseOutput}
 
 import scala.collection.mutable
 
@@ -241,7 +241,19 @@ private[ops] class GradientState private[control_flow] () {
     */
   private[ops] def postProcess(): Unit = {
     map.values.foreach(gradientLoopState => {
-      gradientLoopState.switchMap.values.filter(m => m.op.inputs(0) == m.op.inputs(1)).foreach(merge => {
+      gradientLoopState.switchMap.values.flatMap({
+        case o: Output => Seq(o)
+        case o: OutputIndexedSlices =>
+          if (o.denseShape == null)
+            Seq(o.indices, o.values)
+          else
+            Seq(o.indices, o.values, o.denseShape)
+        case o: SparseOutput =>
+          if (o.denseShape == null)
+            Seq(o.indices, o.values)
+          else
+            Seq(o.indices, o.values, o.denseShape)
+      }).filter(m => m.op.inputs(0) == m.op.inputs(1)).foreach(merge => {
         // The value of this loop variable at iteration i+1 does not depend on its value at iteration i and so we use
         // zeros as the gradients for all iterations > 0.
         val dataType = merge.op.inputs(0).dataType

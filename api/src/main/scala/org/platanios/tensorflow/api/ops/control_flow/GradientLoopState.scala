@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.ops.control_flow
 
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
-import org.platanios.tensorflow.api.ops.{Basic, DataFlow, Op, Output}
+import org.platanios.tensorflow.api.ops.{Basic, DataFlow, Op, Output, OutputLike}
 
 import scala.collection.mutable
 
@@ -40,7 +40,7 @@ private[control_flow] case class GradientLoopState private[control_flow] (
   private[control_flow] val historyMap: mutable.Map[String, Output] = mutable.Map.empty[String, Output]
 
   /** Map that records all the switch ops needed for back-propagation. */
-  private[control_flow] val switchMap: mutable.Map[Op, Output] = mutable.Map.empty[Op, Output]
+  private[control_flow] val switchMap: mutable.Map[Op, OutputLike] = mutable.Map.empty[Op, OutputLike]
 
   /** List containing all "unused" exits. */
   private[ops] val unusedExits: mutable.ListBuffer[Output] = mutable.ListBuffer.empty[Output]
