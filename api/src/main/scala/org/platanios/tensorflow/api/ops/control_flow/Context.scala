@@ -55,7 +55,8 @@ abstract class Context protected (
   /** Name of this control flow context. */
   val name: String
 
-  private[this] val contextStack = mutable.Stack[Context]()
+  /** Contains the stack of control flow contexts that have been entered so far. */
+  private[this] val contextStack: mutable.ListBuffer[Option[Context]] = mutable.ListBuffer.empty[Option[Context]]
 
   /** Control flow context containing this context. */
   val outerContext: Option[Context] = context.value.controlFlowContext
@@ -86,14 +87,13 @@ abstract class Context protected (
 
   /** Enters this control flow context. */
   def enter()(implicit context: DynamicVariable[OpCreationContext]): Unit = {
-    context.value.controlFlowContext.foreach(contextStack.push)
+    contextStack.append(context.value.controlFlowContext)
     context.value = context.value.copy(controlFlowContext = Some(this))
   }
 
   /** Exits this control flow context. */
   def exit()(implicit context: DynamicVariable[OpCreationContext]): Unit = {
-    context.value = context.value.copy(
-      controlFlowContext = if (contextStack.nonEmpty) Some(contextStack.pop()) else None)
+    context.value = context.value.copy(controlFlowContext = contextStack.last)
   }
 
   /** Makes a sequence of tensors available in the outer context. */

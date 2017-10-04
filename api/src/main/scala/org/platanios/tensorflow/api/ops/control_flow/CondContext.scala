@@ -218,13 +218,13 @@ sealed trait CondBranch {
 case object TrueBranch extends CondBranch {
   override private[control_flow] val value: Int = 1
   override private[control_flow] val other: CondBranch = FalseBranch
-  override private[control_flow] def selectSwitchResult[T <: OutputLike](switchResult: (T, T)): T = switchResult._1
+  override private[control_flow] def selectSwitchResult[T <: OutputLike](switchResult: (T, T)): T = switchResult._2
 }
 
 case object FalseBranch extends CondBranch {
   override private[control_flow] val value: Int = 0
   override private[control_flow] val other: CondBranch = TrueBranch
-  override private[control_flow] def selectSwitchResult[T <: OutputLike](switchResult: (T, T)): T = switchResult._2
+  override private[control_flow] def selectSwitchResult[T <: OutputLike](switchResult: (T, T)): T = switchResult._1
 }
 
 object CondBranch {
