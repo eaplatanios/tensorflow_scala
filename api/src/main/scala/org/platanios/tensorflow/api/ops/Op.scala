@@ -65,7 +65,7 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
   lazy val opType: String = using(graph.reference) { _ => NativeOp.opType(nativeHandle) }
 
   /** Device in which the op tensors are stored and where all computations for this op are performed. */
-  lazy val device: String = using(graph.reference) { _ =>
+  def device: String = using(graph.reference) { _ =>
     val nativeDevice = NativeOp.device(nativeHandle)
     if (nativeDevice == null)
       ""
@@ -74,7 +74,7 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
   }
 
   /** Colocation ops for this op (i.e., ops guaranteed to be placed on the same device). */
-  lazy val colocationOps: Set[Op] = using(graph.reference) { _ =>
+  def colocationOps: Set[Op] = using(graph.reference) { _ =>
     Try(NativeOp.getAttrStringList(nativeHandle, COLOCATION_OPS_ATTRIBUTE_NAME))
         .map(_.toSet[String]
                  .filter(_.startsWith(COLOCATION_OPS_ATTRIBUTE_PREFIX))
@@ -85,10 +85,10 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
   private[ops] var controlFlowContext: Option[Context] = None
 
   /** Number of inputs to this op (i.e., number of tensors fed as input to this op). */
-  lazy val numInputs: Int = using(graph.reference) { _ => NativeOp.numInputs(nativeHandle) }
+  def numInputs: Int = using(graph.reference) { _ => NativeOp.numInputs(nativeHandle) }
 
   /** Inputs of this op. Note that these inputs are outputs of other ops and thus have type [[Output]]. */
-  lazy val inputs: Array[Output] = (0 until numInputs).map(index => using(graph.reference) { _ =>
+  def inputs: Array[Output] = (0 until numInputs).map(index => using(graph.reference) { _ =>
     val jniOutput = NativeOp.input(nativeHandle, index)
     val op = graph.opsCache.getOrElseUpdate(
       jniOutput.opHandle,
@@ -98,20 +98,20 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
 
   /** Number of control inputs to this op. These are ops that are guaranteed to finish executing before this op starts
     * executing). */
-  lazy val numControlInputs: Int = using(graph.reference) { _ => NativeOp.numControlInputs(nativeHandle) }
+  def numControlInputs: Int = using(graph.reference) { _ => NativeOp.numControlInputs(nativeHandle) }
 
   /** Control inputs of this op. These are ops that are guaranteed to finish executing before this op starts
     * executing). */
-  lazy val controlInputs: Set[Op] = {
+  def controlInputs: Set[Op] = {
     val controlInputHandles = using(graph.reference) { _ => NativeOp.controlInputs(nativeHandle) }
     controlInputHandles.map(handle => graph.opsCache.getOrElseUpdate(handle, Op(graph, handle))).toSet
   }
 
   /** Number of tensors produced by this operation. */
-  lazy val numOutputs: Int = using(graph.reference) { _ => NativeOp.numOutputs(nativeHandle) }
+  def numOutputs: Int = using(graph.reference) { _ => NativeOp.numOutputs(nativeHandle) }
 
   /** Outputs of this op. */
-  lazy val outputs: Array[Output] = (0 until numOutputs).map(i => Output(op = this, index = i)).toArray
+  def outputs: Array[Output] = (0 until numOutputs).map(i => Output(op = this, index = i)).toArray
 
   /** Gets the (current) number of control outputs of this op. These are ops that are guaranteed to start executing
     * after this op finishes executing.
@@ -1057,6 +1057,7 @@ object Op {
 
   private[ops] def controlDependencies(inputs: Set[Output]): Set[Op] = {
     val controlDependencies: mutable.Set[Op] = mutable.Set(Op.currentControlDependencies.toSeq: _*)
+    controlDependencies ++= inputs.flatMap(_.op.controlInputs)
     inputs.foreach(input => pruneControlDependencies(controlDependencies, input.op))
     controlDependencies.toSet
   }
@@ -1124,9 +1125,11 @@ object Op {
         mergeAttributes(context.value.attributes)
         setAttributes(nativeHandle)
         // TODO: !!! Set the "container" attribute when necessary. Need a way to check for statefulness.
-        val operation = Op(graph, NativeOp.finish(nativeHandle))
+        val op = Op(graph, NativeOp.finish(nativeHandle))
+        op.controlFlowContext = context.value.controlFlowContext
+        op.controlFlowContext.foreach(_.add(op))
         built = true
-        operation
+        op
       }
     }
 

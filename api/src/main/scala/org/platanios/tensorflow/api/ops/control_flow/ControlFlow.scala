@@ -144,47 +144,49 @@ private[api] trait ControlFlow {
   def cond[T, R](predicate: Output, trueFn: () => T, falseFn: () => T, name: String = "Cond")(implicit
       ev: CondOutput.Aux[T, R]
   ): T = {
-    // Add the switch to the graph.
-    val (p2, p1) = ControlFlow.switch(predicate, predicate)
-    val pivot1 = Basic.identity(p1, "SwitchTrue")
-    val pivot2 = Basic.identity(p2, "SwitchFalse")
-    val predicateId = Basic.identity(predicate, "PredicateIdentity")
-    // Disable the fetching of tensors that are only on one branch of the cond.
-    p1.op.graph.preventFetching(p1.op)
-    p2.op.graph.preventFetching(p2.op)
-    pivot1.op.graph.preventFetching(pivot1.op)
-    pivot2.op.graph.preventFetching(pivot2.op)
-    predicateId.op.graph.preventFetching(predicateId.op)
+    Op.createWithNameScope(name) {
+      // Add the switch to the graph.
+      val (pFalse, pTrue) = ControlFlow.switch(predicate, predicate)
+      val pivotTrue = Basic.identity(pTrue, "SwitchTrue")
+      val pivotFalse = Basic.identity(pFalse, "SwitchFalse")
+      val predicateId = Basic.identity(predicate, "PredicateIdentity")
+      // Disable the fetching of tensors that are only on one branch of the cond.
+      pTrue.op.graph.preventFetching(pTrue.op)
+      pFalse.op.graph.preventFetching(pFalse.op)
+      pivotTrue.op.graph.preventFetching(pivotTrue.op)
+      pivotFalse.op.graph.preventFetching(pivotFalse.op)
+      predicateId.op.graph.preventFetching(predicateId.op)
 
-    // Build the graph for the true branch in a new context.
-    val contextTrue = CondContext(predicateId, pivot1, TrueBranch)
-    contextTrue.enter()
-    val (originalResultTrue, resultTrue) = contextTrue.buildCondBranch(trueFn)
-    contextTrue.exitResult(resultTrue)
-    contextTrue.exit()
+      // Build the graph for the true branch in a new context.
+      val contextTrue = CondContext(predicateId, pivotTrue, TrueBranch)
+      contextTrue.enter()
+      val (originalResultTrue, resultTrue) = contextTrue.buildCondBranch(trueFn)
+      contextTrue.exitResult(resultTrue)
+      contextTrue.exit()
 
-    // Build the graph for the false branch in a new context.
-    val contextFalse = CondContext(predicateId, pivot2, FalseBranch)
-    contextFalse.enter()
-    val (_, resultFalse) = contextFalse.buildCondBranch(falseFn)
-    contextFalse.exitResult(resultFalse)
-    contextFalse.exit()
+      // Build the graph for the false branch in a new context.
+      val contextFalse = CondContext(predicateId, pivotFalse, FalseBranch)
+      contextFalse.enter()
+      val (_, resultFalse) = contextFalse.buildCondBranch(falseFn)
+      contextFalse.exitResult(resultFalse)
+      contextFalse.exit()
 
-    // Check that the return values of the two branches have matching data types.
-    resultTrue.zip(resultFalse).foreach(pair => {
-      if (pair._1.dataType != pair._2.dataType)
-        throw InvalidDataTypeException(
-          s"The outputs of `trueFn` (dataType = ${pair._1.dataType}) and " +
-              s"`falseFn` (dataType = ${pair._2.dataType}) must have the same data type.")
-    })
+      // Check that the return values of the two branches have matching data types.
+      resultTrue.zip(resultFalse).foreach(pair => {
+        if (pair._1.dataType != pair._2.dataType)
+          throw InvalidDataTypeException(
+            s"The outputs of `trueFn` (dataType = ${pair._1.dataType}) and " +
+                s"`falseFn` (dataType = ${pair._2.dataType}) must have the same data type.")
+      })
 
-    // Add to collections.
-    Op.currentGraph.addToCollection(contextTrue, CondContext.COND_CONTEXTS)
-    Op.currentGraph.addToCollection(contextFalse, CondContext.COND_CONTEXTS)
+      // Add to collections.
+      Op.currentGraph.addToCollection(contextTrue, CondContext.COND_CONTEXTS)
+      Op.currentGraph.addToCollection(contextFalse, CondContext.COND_CONTEXTS)
 
-    // Add the final merge to the graph.
-    val merges = resultFalse.zip(resultTrue).map(p => ControlFlow.merge(Seq(p._1, p._2))._1)
-    ev.unflatten(originalResultTrue, merges)
+      // Add the final merge to the graph.
+      val merges = resultTrue.zip(resultFalse).map(p => ControlFlow.merge(Seq(p._1, p._2))._1)
+      ev.unflatten(originalResultTrue, merges)
+    }
   }
 
   /** $OpDocControlFlowWhileLoop
@@ -243,15 +245,15 @@ private[api] object ControlFlow extends ControlFlow {
   }
 
   /** Returns `true` if and only if the provided op is a switch op. */
-  private[control_flow] def isSwitch(op: Op): Boolean = op.opType == "Switch" && op.opType == "RefSwitch"
+  private[control_flow] def isSwitch(op: Op): Boolean = op.opType == "Switch" || op.opType == "RefSwitch"
 
   /** Returns `true` if and only if the provided op is a loop invariant. */
   private[control_flow] def isLoopConstantEnter(op: Op): Boolean = {
-    op.opType == "Enter" && op.booleanAttribute("is_constant")
+    (op.opType == "Enter" || op.opType == "RefEnter") && op.booleanAttribute("is_constant")
   }
 
   /** Returns `true` if and only if the provided op is a loop exit op. */
-  private[ops] def isLoopExit(op: Op): Boolean = op.opType == "Exit" && op.opType == "RefExit"
+  private[ops] def isLoopExit(op: Op): Boolean = op.opType == "Exit" || op.opType == "RefExit"
 
   /** Returns `true` if and only if the provided op is a switch op for a while loop. */
   private[ops] def isLoopSwitch(op: Op): Boolean = {
@@ -260,7 +262,7 @@ private[api] object ControlFlow extends ControlFlow {
 
   /** Returns the enter op if we can infer `value` to be a loop invariant. Otherwise, returns [[None]]. */
   private[control_flow] def getLoopConstantEnter(value: Output): Option[Op] = {
-    val identityOpTypes = Set("Identity", "Switch")
+    val identityOpTypes = Set("Identity", "RefIdentity", "Switch", "RefSwitch")
     var op = value.op
     while (identityOpTypes.contains(op.opType))
       op = op.inputs(0).op
@@ -302,7 +304,7 @@ private[api] object ControlFlow extends ControlFlow {
     //
     // `var` and `data` may be pinned to different devices and so we want the ops created within the
     // `Op.colocateWith(Set(data.op)) { }` block to ignore the existing stack.
-    Op.colocateWith(Set(input.op), ignoreExisting = true)(switch(input = input, predicate = predicate, name = name))
+    Op.colocateWith(Set(input.op), ignoreExisting = true)(switch(input, predicate, name))
   }
 
   /** Returns an `assert` op that checks that the provided predicates are exclusive (i.e., not more than one of them can
@@ -374,8 +376,11 @@ private[api] object ControlFlow extends ControlFlow {
     Op.createWithNameScope(nameScope = name, Set(input.op)) {
       input match {
         case i: Output =>
-          val result = Op.Builder(opType = "NextIteration", name = name)
+          val result = Op.Builder(opType = "Enter", name = name)
               .addInput(i)
+              .setAttribute("frame_name", frameName)
+              .setAttribute("is_constant", isConstant)
+              .setAttribute("parallel_iterations", parallelIterations)
               .build().outputs(0)
           if (useInputShape)
             result.setShape(i.shape)
@@ -483,9 +488,9 @@ private[api] object ControlFlow extends ControlFlow {
     *
     * This op is usually combined with `switch` to implement branching.
     *
-    * IMPORTANT NOTE: The input tensors can either all be of type [[SparseOutput]] or of mixed types that extend
-    * [[OutputLike]]. If they are all of type [[Output]] or [[SparseOutput]], then that is also the return op type.
-    * Otherwise, they will all be converted to [[OutputIndexedSlices]] first.
+    * IMPORTANT NOTE: The input tensors can either all be of type [[Output]] or [[SparseOutput]] or of mixed types that
+    * extend [[OutputLike]]. If they are all of type [[Output]] or [[SparseOutput]], then that is also the return op
+    * type. Otherwise, they will all be converted to [[OutputIndexedSlices]] first.
     *
     * @param  inputs Input tensors.
     * @param  name   Name for the created op.
@@ -501,18 +506,15 @@ private[api] object ControlFlow extends ControlFlow {
               .build().outputs
           (outputs(0), outputs(1))
         case i if i.forall(_.isInstanceOf[SparseOutput]) =>
-          val (values, _) = merge(i.map(_.asInstanceOf[SparseOutput].values), "ValuesMerge")
-          val (indices, chosenIndex) = merge(i.map(_.asInstanceOf[SparseOutput].indices), "IndicesMerge")
+          val (values, chosenIndex) = merge(i.map(_.asInstanceOf[SparseOutput].values), "ValuesMerge")
+          val (indices, _) = merge(i.map(_.asInstanceOf[SparseOutput].indices), "IndicesMerge")
           val (denseShape, _) = merge(i.map(_.asInstanceOf[SparseOutput].denseShape), "DenseShapeMerge")
-          (SparseOutput(
-            indices = indices.asInstanceOf[Output],
-            values = values.asInstanceOf[Output],
-            denseShape = denseShape.asInstanceOf[Output]), chosenIndex)
+          (SparseOutput(indices = indices, values = values, denseShape = denseShape), chosenIndex)
         case i =>
           val ii = i.map(_.toOutputIndexedSlices(optimize = true))
-          val (values, _) = merge(ii.map(_.values), "ValuesMerge")
-          val (indices, chosenIndex) = merge(ii.map(_.indices), "IndicesMerge")
-          val denseShape = if (ii.map(_.denseShape).exists(_ != null)) {
+          val (values, chosenIndex) = merge(ii.map(_.values), "ValuesMerge")
+          val (indices, _) = merge(ii.map(_.indices), "IndicesMerge")
+          val (denseShape, _) = if (ii.map(_.denseShape).exists(_ != null)) {
             if (ii.map(_.denseShape).contains(null))
               throw new IllegalArgumentException(
                 "Either all merged 'OutputIndexedSlices' must have a known dense shape, or none of them.")
@@ -520,10 +522,7 @@ private[api] object ControlFlow extends ControlFlow {
           } else {
             null
           }
-          (OutputIndexedSlices(
-            indices = indices.asInstanceOf[Output],
-            values = values.asInstanceOf[Output],
-            denseShape = denseShape.asInstanceOf[Output]), chosenIndex)
+          (OutputIndexedSlices(indices = indices, values = values, denseShape = denseShape), chosenIndex)
       }
     }.asInstanceOf[(T, Output)]
   }

@@ -68,10 +68,40 @@ abstract class Context protected (
   def whileLoopContext: Option[WhileLoopContext] = outerContext.flatMap(_.whileLoopContext)
 
   /** Adds `op` to the current context. */
-  def add(op: Op): Unit
+  def add(op: Op): Unit = addInternal(op)
 
   /** Adds `op` to the current context. */
-  private[control_flow] def addInternal(op: Op): Unit
+  private[control_flow] def addInternal(op: Op): Unit = {
+    if (op.numInputs == 0) {
+      // Remove any external control dependencies on this op.
+      val controlInputs = removeExternalControlEdges(op)
+      // Add a control edge from the control pivot to this op.
+      if (controlInputs.isEmpty)
+        controlPivot.foreach(ControlFlow.addControlInput(op, _))
+      op.outputs.foreach(values += _.name)
+    } else {
+      op.inputs.zipWithIndex.foreach({
+        case (input, index) =>
+          val realInput = add(input)
+          if (realInput != input)
+            ControlFlow.updateInput(op, index, realInput)
+      })
+      // Remove any external control dependencies on this op.
+      removeExternalControlEdges(op)
+      // Add a control dependency to the op if it only depends on loop invariants. That is to prevent loop invariants
+      // from enabling ops that should not be executed.
+      if (op.controlInputs.isEmpty &&
+          ((op.graph.isFunction(op.opType) || op.opType == "SymbolicGradient") ||
+              op.inputs.forall(o => ControlFlow.isLoopConstantEnter(o.op))))
+        controlPivot.foreach(ControlFlow.addControlInput(op, _))
+      op.outputs.foreach(values += _.name)
+    }
+    if (outerContext.isDefined || !ControlFlow.isLoopExit(op)) {
+      op.graph.preventFetching(op)
+      op.outputs.foreach(op.graph.preventFeeding)
+    }
+    outerContext.foreach(_.addInnerOp(op))
+  }
 
   /** Adds `output` to the current context and its outer context recursively. */
   def add(output: Output): Output
@@ -104,8 +134,9 @@ abstract class Context protected (
     // A control input of 'op' is internal if it is in the same while loop context as the enclosing while loop context
     // of this context.
     val internalControlInputs = this.whileLoopContext match {
-      case Some(wC) => op.controlInputs.filter(i => ControlFlow.getOutputContext(i).exists(_.whileLoopContext.contains(wC)))
       case None => op.controlInputs
+      case Some(wC) =>
+        op.controlInputs.filter(i => ControlFlow.getOutputContext(i).exists(_.whileLoopContext.contains(wC)))
     }
     if (internalControlInputs.size != op.controlInputs.size) {
       ControlFlow.clearControlInputs(op)
