@@ -33,7 +33,7 @@ void ClearControlInputs(TF_Graph* graph, TF_Operation* op) {
   mutex_lock l(graph->mu);
   for (const auto* edge : op->node.in_edges()) {
     if (edge->IsControlEdge()) {
-      graph->graph.RemoveEdge(edge);
+      graph->graph.RemoveControlEdge(edge);
     }
   }
 }
