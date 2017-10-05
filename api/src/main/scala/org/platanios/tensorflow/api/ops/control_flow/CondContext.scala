@@ -48,29 +48,29 @@ private[control_flow] case class CondContext private[control_flow] (
 
   override def controlPivot: Option[Op] = Some(pivot.op)
 
-  override def add(op: Op): Unit = addInternal(op)
-
-  override def addInternal(op: Op): Unit ={
-    if (op.numInputs == 0) {
-      // Remove any external control dependencies on this op.
-      removeExternalControlEdges(op)
-      controlPivot.foreach(ControlFlow.addControlInput(op, _))
-    } else {
-      op.inputs.zipWithIndex.foreach({
-        case (input, index) =>
-          val realInput = add(input)
-          if (realInput != input)
-            ControlFlow.updateInput(op, index, realInput)
-      })
-      // Remove any external control dependencies on this op.
-      removeExternalControlEdges(op)
-      if (op.graph.isFunction(op.opType) || op.opType == "SymbolicGradient")
-        controlPivot.foreach(ControlFlow.addControlInput(op, _))
-    }
-    op.outputs.foreach(values += _.name)
-    if (outerContext.isDefined || !ControlFlow.isLoopExit(op))
-      op.graph.preventFetching(op)
-  }
+//  override def add(op: Op): Unit = addInternal(op)
+//
+//  override private[control_flow] def addInternal(op: Op): Unit = {
+//    if (op.numInputs == 0) {
+//      // Remove any external control dependencies on this op.
+//      removeExternalControlEdges(op)
+//      controlPivot.foreach(ControlFlow.addControlInput(op, _))
+//    } else {
+//      op.inputs.zipWithIndex.foreach({
+//        case (input, index) =>
+//          val realInput = add(input)
+//          if (realInput != input)
+//            ControlFlow.updateInput(op, index, realInput)
+//      })
+//      // Remove any external control dependencies on this op.
+//      removeExternalControlEdges(op)
+//      if (op.graph.isFunction(op.opType) || op.opType == "SymbolicGradient")
+//        controlPivot.foreach(ControlFlow.addControlInput(op, _))
+//    }
+//    op.outputs.foreach(values += _.name)
+//    if (outerContext.isDefined || !ControlFlow.isLoopExit(op))
+//      op.graph.preventFetching(op)
+//  }
 
   override def add(output: Output): Output = {
     if (values.contains(output.name)) {
@@ -78,13 +78,13 @@ private[control_flow] case class CondContext private[control_flow] (
       externalValues.getOrElse(output.name, output)
     } else {
       values += output.name
-      val result = Op.createWith(controlDependencies = Set.empty[Op]) {
-        val switchInput = outerContext.map(c => {
-          val i = c.add(output)
-          values += i.name
-          i
-        }).getOrElse(output)
-        branch.selectSwitchResult(ControlFlow.colocatedSwitch(switchInput, predicate))
+      var result = output
+      outerContext.foreach(c => {
+        result = c.add(output)
+        values += result.name
+      })
+      Op.createWith(controlDependencies = Set.empty[Op]) {
+        result = branch.selectSwitchResult(ControlFlow.colocatedSwitch(result, predicate))
       }
       result.graph.preventFetching(result.op)
       result.op.controlFlowContext = Some(this)

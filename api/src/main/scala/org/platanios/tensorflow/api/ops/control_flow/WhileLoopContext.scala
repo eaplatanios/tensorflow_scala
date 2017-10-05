@@ -96,36 +96,36 @@ private[ops] case class WhileLoopContext private[control_flow] (
       addInternal(op)
   }
 
-  override def addInternal(op: Op): Unit = {
-    if (op.numInputs == 0) {
-      // Remove any external control dependencies on this op.
-      val controlInputs = removeExternalControlEdges(op)
-      // Add a control edge from the control pivot to this op.
-      if (controlInputs.nonEmpty)
-        controlPivot.foreach(ControlFlow.addControlInput(op, _))
-      op.outputs.foreach(values += _.name)
-    } else {
-      op.inputs.zipWithIndex.foreach({
-        case (input, index) =>
-          val realInput = add(input)
-          if (realInput != input)
-            ControlFlow.updateInput(op, index, realInput)
-      })
-      // Remove any external control dependencies on this op.
-      removeExternalControlEdges(op)
-      // Add a control dependency to prevent loop invariants from enabling ops that should not be executed.
-      if (op.controlInputs.isEmpty &&
-          ((op.graph.isFunction(op.opType) || op.opType == "SymbolicGradient") ||
-              op.inputs.forall(o => ControlFlow.isLoopConstantEnter(o.op))))
-        controlPivot.foreach(ControlFlow.addControlInput(op, _))
-      op.outputs.foreach(values += _.name)
-    }
-    if (outerContext.isDefined || !ControlFlow.isLoopExit(op)) {
-      op.graph.preventFetching(op)
-      op.outputs.foreach(op.graph.preventFeeding)
-    }
-    outerContext.foreach(_.addInnerOp(op))
-  }
+//  override private[control_flow] def addInternal(op: Op): Unit = {
+//    if (op.numInputs == 0) {
+//      // Remove any external control dependencies on this op.
+//      val controlInputs = removeExternalControlEdges(op)
+//      // Add a control edge from the control pivot to this op.
+//      if (controlInputs.isEmpty)
+//        controlPivot.foreach(ControlFlow.addControlInput(op, _))
+//      op.outputs.foreach(values += _.name)
+//    } else {
+//      op.inputs.zipWithIndex.foreach({
+//        case (input, index) =>
+//          val realInput = add(input)
+//          if (realInput != input)
+//            ControlFlow.updateInput(op, index, realInput)
+//      })
+//      // Remove any external control dependencies on this op.
+//      removeExternalControlEdges(op)
+//      // Add a control dependency to prevent loop invariants from enabling ops that should not be executed.
+//      if (op.controlInputs.isEmpty &&
+//          ((op.graph.isFunction(op.opType) || op.opType == "SymbolicGradient") ||
+//              op.inputs.forall(o => ControlFlow.isLoopConstantEnter(o.op))))
+//        controlPivot.foreach(ControlFlow.addControlInput(op, _))
+//      op.outputs.foreach(values += _.name)
+//    }
+//    if (outerContext.isDefined || !ControlFlow.isLoopExit(op)) {
+//      op.graph.preventFetching(op)
+//      op.outputs.foreach(op.graph.preventFeeding)
+//    }
+//    outerContext.foreach(_.addInnerOp(op))
+//  }
 
   override def add(output: Output): Output = {
     if (values.contains(output.name)) {
@@ -182,7 +182,7 @@ private[ops] case class WhileLoopContext private[control_flow] (
     var outerContext = this.outerContext
     while (outerContext != opContext && outerContext.isDefined)
       outerContext = outerContext.flatMap(_.outerContext)
-    outerContext == opContext
+    outerContext == opContext && outerContext.isDefined
   }
 
   /** Adds the loop termination condition and the loop body to the graph. */
@@ -212,7 +212,7 @@ private[ops] case class WhileLoopContext private[control_flow] (
       // Find the closest enclosing non-None control pivot.
       var outerCtx: Option[Context] = outerContext
       var controlPivot: Option[Op] = None
-      while (outerContext.isDefined && controlPivot.isEmpty) {
+      while (outerCtx.isDefined && controlPivot.isEmpty) {
         controlPivot = outerContext.get.controlPivot
         outerCtx = outerCtx.get.outerContext
       }
