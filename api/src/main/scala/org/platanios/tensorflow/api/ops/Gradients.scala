@@ -375,7 +375,10 @@ private[ops] object Gradients {
       gradients: mutable.Map[Op, mutable.Seq[Seq[OutputLike]]], output: Output, gradient: OutputLike): Unit = {
     val opGradients = gradients.getOrElseUpdate(
       output.op, mutable.Seq(output.op.outputs.map(_ => Seq.empty[OutputLike]): _*))
-    opGradients(output.index) :+= gradient
+    if (ControlFlow.isLoopSwitch(output.op))
+      opGradients(output.index) = Seq(gradient)
+    else
+      opGradients(output.index) :+= gradient
   }
 
   /** Logs the input and output gradients of the provided op.
@@ -410,9 +413,20 @@ private[ops] object Gradients {
       */
     private[Gradients] def aggregateGradients(
         gradients: mutable.Map[Op, mutable.Seq[Seq[OutputLike]]], op: Op): mutable.Seq[Seq[OutputLike]] = {
-      val grads = gradients.getOrElse(op, mutable.Seq.empty[Seq[OutputLike]])
-      grads.filter(_.length > 1).zipWithIndex.foreach(g => grads(g._2) = Seq[OutputLike](aggregateGradients(g._1)))
-      grads
+      val opGradients = gradients.getOrElse(op, mutable.Seq.empty[Seq[OutputLike]])
+      if (ControlFlow.isLoopSwitch(op)) {
+        opGradients
+      } else {
+        opGradients.zipWithIndex.foreach {
+          case (grads, index) =>
+            if (grads.length < 2) {
+              grads
+            } else {
+              opGradients(index) = Seq[OutputLike](aggregateGradients(grads.filter(_ != null)))
+            }
+        }
+        opGradients
+      }
     }
 
     /** Aggregates the gradients in `gradient` into a single gradient tensor.
@@ -426,7 +440,7 @@ private[ops] object Gradients {
   /** Gradient aggregation method that simply adds up the collected gradients. */
   object AddAggregationMethod extends AggregationMethod {
     override private[Gradients] def aggregateGradients(gradients: Seq[OutputLike]): OutputLike = {
-      if (gradients.forall(_.isInstanceOf[Output])) {
+       if (gradients.forall(_.isInstanceOf[Output])) {
         // This function adds op outputs from potentially different devices.
         // We add the tensors of each device separately first, and we then add up the partial results.
         val deviceContributions = gradients.groupBy(_.device).toSeq.sortBy(_._1).map {
