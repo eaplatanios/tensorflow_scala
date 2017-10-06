@@ -429,10 +429,10 @@ object CondOutput {
 
   implicit def productConstructor[P <: Product, L <: HList, LO <: HList, R](implicit
       genP: Generic.Aux[P, L],
-      genR: Generic.Aux[R, LO],
       evL: Aux[L, LO],
       tuplerP: Tupler.Aux[L, P],
-      tuplerR: Tupler.Aux[LO, R]
+      tuplerR: Tupler.Aux[LO, R],
+      genR: Generic.Aux[R, LO]
   ): Aux[P, R] = new CondOutput[P] {
     override type ResultType = R
 

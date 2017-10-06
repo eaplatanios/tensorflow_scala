@@ -1032,10 +1032,10 @@ object WhileLoopVariable {
 
   implicit def productConstructor[P <: Product, L <: HList, LO <: HList, PS](implicit
       genP: Generic.Aux[P, L],
-      genPS: Generic.Aux[PS, LO],
       evL: Aux[L, LO],
       tuplerP: Tupler.Aux[L, P],
-      tuplerPS: Tupler.Aux[LO, PS]
+      tuplerPS: Tupler.Aux[LO, PS],
+      genPS: Generic.Aux[PS, LO]
   ): Aux[P, PS] = new WhileLoopVariable[P] {
     override type ShapeType = PS
     override def size(output: P): Int = evL.size(genP.to(output))
