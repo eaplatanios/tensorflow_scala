@@ -305,11 +305,10 @@ class Tensor private[Tensor](private[api] var nativeHandle: Long) extends Tensor
   }
 
   override def equals(that: Any): Boolean = that match {
-    // TODO: !!! [TENSORS] Replace with equality op and all op.
     case that: Tensor =>
       this.shape == that.shape &&
           this.dataType == that.dataType &&
-          this.entriesIterator.zip(that.entriesIterator).forall(p => p._1 == p._2)
+          Math.all(Math.equal(this, that)).scalar.asInstanceOf[Boolean]
     case _ => false
   }
 
