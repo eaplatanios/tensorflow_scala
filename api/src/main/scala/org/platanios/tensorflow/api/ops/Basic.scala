@@ -2033,6 +2033,7 @@ private[api] object Basic extends Basic {
     GradientsRegistry.register("SpaceToDepth", spaceToDepthGradient)
     GradientsRegistry.register("DepthToSpace", depthToSpaceGradient)
     GradientsRegistry.register("Gather", gatherGradient)
+    GradientsRegistry.register("GatherV2", gatherV2Gradient)
     GradientsRegistry.register("GatherNd", gatherNDGradient)
     GradientsRegistry.register("ScatterNd", scatterNDGradient)
     GradientsRegistry.register("Slice", sliceGradient)
@@ -2251,9 +2252,57 @@ private[api] object Basic extends Basic {
       val indicesSize = expandDims(size(indices), 0)
       val valuesShape = concatenate(Seq(indicesSize, inputShape(1 ::)), 0)
       val values = reshape(outputGradients.head, valuesShape)
-      val gradient = OutputIndexedSlices(
-        indices = reshape(indices, indicesSize), values = values, denseShape = inputShape)
+      val reshapedIndices = reshape(indices, indicesSize)
+      val gradient = OutputIndexedSlices(indices = reshapedIndices, values = values, denseShape = inputShape)
       Seq(gradient, null)
+    }
+
+    private[this] def gatherV2Gradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      // The input can be large, so we colocate the shape calculation with it.
+      // The input can be very large for sparse models and 'shape' raises an exception on the Windows platform whenever
+      // any dimension is larger than INT32. 'inputShape' is not used in the optimizer 'applySparse' gradients method
+      // and so it's fine to convert it back to INT32 regardless of the truncation.
+      val input = op.inputs(0)
+      val inputShape = Op.colocateWith(Set(input.op)) {
+        val inputShape = shape(input, INT64)
+        Math.cast(inputShape, INT32)
+      }
+      // Build appropriately shaped 'OutputIndexedSlices'.
+      val indices = op.inputs(1)
+      val indicesSize = expandDims(size(indices), 0)
+      val axis = op.inputs(2)
+      val axisStatic = Output.constantValue(axis)
+      // For axis 0 gathers, we build appropriately shaped indexed slices.
+      if (axisStatic.map(_.scalar).getOrElse(-1) == 0) {
+        val valuesShape = concatenate(Seq(indicesSize, inputShape(1 ::)), 0)
+        val values = reshape(outputGradients.head, valuesShape)
+        val reshapedIndices = reshape(indices, indicesSize)
+        val gradient = OutputIndexedSlices(indices = reshapedIndices, values = values, denseShape = inputShape)
+        Seq(gradient, null, null)
+      } else {
+        val expandedAxis = axis.expandDims(0)
+        val outerShape = Basic.slice(inputShape, Tensor(0), expandedAxis)
+        val outerSize = Basic.size(outerShape)
+        val innerShape = Basic.slice(inputShape, expandedAxis, Basic.size(inputShape).expandDims(0))(1 ::)
+        val innerSize = Basic.size(innerShape)
+        val outerAxesIndices = Math.range(0, outerSize)
+        val innerAxesIndices = Math.range(outerSize + 1, outerSize + 1 + innerSize)
+        val valuesShape = concatenate(Seq(outerShape, indicesSize, innerShape), 0)
+        val values = reshape(outputGradients.head, valuesShape)
+        val reshapedIndices = reshape(indices, indicesSize)
+        // We need to sum up every slice `values(..., i, ...)` corresponding to `input(..., indices(i), ...)`. Since
+        // `unsortedSegmentSum` does not support an axis parameter, we transpose the gather dimension to the front, and
+        // then use `unsortedSegmentSum` to build a `[gatherAxis, outerAxes, innerAxes]` tensor containing all the
+        // gradients affecting each index in `gatherAxis` summed up.
+        val transposeAxes = Basic.concatenate(Seq(outerSize.expandDims(0), outerAxesIndices, innerAxesIndices), 0)
+        val valuesTranspose = Basic.transpose(values, transposeAxes)
+        val numSegments = inputShape.gather(axis)
+        val inputGradient = Math.unsortedSegmentSum(valuesTranspose, reshapedIndices, numSegments)
+        // We now invert the above transpose by moving dimension 0 back to its original position.
+        val tranposeAxesInverse = Basic.concatenate(Seq(outerAxesIndices + 1, Tensor(0), innerAxesIndices), 0)
+        val inputGradientTranspose = Basic.transpose(inputGradient, tranposeAxesInverse)
+        Seq(inputGradient, null, null)
+      }
     }
 
     private[this] def gatherNDGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
