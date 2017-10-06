@@ -184,7 +184,7 @@ private[api] trait ControlFlow {
       Op.currentGraph.addToCollection(contextFalse, CondContext.COND_CONTEXTS)
 
       // Add the final merge to the graph.
-      val merges = resultTrue.zip(resultFalse).map(p => ControlFlow.merge(Seq(p._1, p._2))._1)
+      val merges = resultFalse.zip(resultTrue).map(p => ControlFlow.merge(Seq(p._1, p._2))._1)
       ev.unflatten(originalResultTrue, merges)
     }
   }

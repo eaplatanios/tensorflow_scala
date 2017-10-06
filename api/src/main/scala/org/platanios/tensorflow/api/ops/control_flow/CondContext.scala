@@ -301,7 +301,12 @@ object CondOutput {
     override def processOutput(output: SparseOutput, context: CondContext): SparseOutput = {
       val indices = context.processOutput(output.indices)
       val values = context.processOutput(output.values)
-      val denseShape = context.processOutput(output.denseShape)
+      val denseShape = {
+        if (output.denseShape != null)
+          context.processOutput(output.denseShape)
+        else
+          null
+      }
       SparseOutput(indices = indices, values = values, denseShape = denseShape)
     }
 

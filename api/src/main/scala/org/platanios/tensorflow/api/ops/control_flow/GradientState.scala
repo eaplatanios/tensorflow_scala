@@ -192,7 +192,7 @@ private[ops] class GradientState private[control_flow] () {
           }
         case None =>
           // `op` is not in a while loop that is part of `gradients()`.
-          Some(WhileLoopContext.zerosLikeOutsideLoop(op, index))
+          Some(Context.zerosLikeOutsideLoop(op, index))
       }
     }
   }

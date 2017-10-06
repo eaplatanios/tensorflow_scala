@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.Implicits._
 import org.platanios.tensorflow.api.core.exception.InvalidDataTypeException
 import org.platanios.tensorflow.api.ops
-import org.platanios.tensorflow.api.ops.control_flow.{ControlFlow, GradientState, WhileLoopContext}
+import org.platanios.tensorflow.api.ops.control_flow.{Context, ControlFlow, GradientState}
 import org.platanios.tensorflow.api.types._
 import org.platanios.tensorflow.jni.{Graph => NativeGraph, Output => NativeOutput}
 
@@ -119,7 +119,7 @@ private[ops] object Gradients {
                 opGradients(outputIndex) = Seq({
                   controlFlowGradientState
                       .map(_.zerosLike(op, outputIndex))
-                      .getOrElse(Some(WhileLoopContext.zerosLikeOutsideLoop(op, outputIndex)))
+                      .getOrElse(Some(Context.zerosLikeOutsideLoop(op, outputIndex)))
                       .orNull
                 })
             }

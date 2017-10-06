@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.ops.control_flow
 
 import org.platanios.tensorflow.api.ProtoSerializable
-import org.platanios.tensorflow.api.ops.{Op, OpCreationContext, Output, OutputLike}
+import org.platanios.tensorflow.api.ops._
 
 import com.google.protobuf.GeneratedMessageV3
 import org.tensorflow.framework.ValuesDef
@@ -179,5 +179,23 @@ object Context {
         (key, value)
     }
     (mutable.Set[String](values.toSeq: _*), externalValues)
+  }
+
+  /** Create a `zerosLike` op for the specified op output, while taking into account control flow contexts. */
+  private[ops] def zerosLikeOutsideLoop(op: Op, index: Int): Output = {
+    if (ControlFlow.isSwitch(op)) {
+      op.controlFlowContext.filter(_.isInstanceOf[CondContext]).map(c => {
+        val condContext = c.asInstanceOf[CondContext]
+        // We are in a conditional context and so we use a switch to create zeros only when needed.
+        val switch = {
+          val switchOutput = ControlFlow.switch(op.inputs(0), condContext.predicate)
+          condContext.branch.other.selectSwitchResult(switchOutput)
+        }
+        val shape = Basic.shape(switch, optimize = false)
+        Basic.fill(op.outputs(index).dataType, shape)(0)
+      }).getOrElse(Basic.zerosLike(op.outputs(index), optimize = false))
+    } else {
+      Basic.zerosLike(op.outputs(index), optimize = false)
+    }
   }
 }
