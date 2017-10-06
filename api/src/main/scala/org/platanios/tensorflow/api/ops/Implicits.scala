@@ -24,6 +24,8 @@ import scala.util.DynamicVariable
 private[api] trait Implicits
     extends Output.Implicits
         with Basic.Implicits
+        with Clip.Implicits
+        with Embedding.Implicits
         with Math.Implicits
         with NN.Implicits
         with Statistics.Implicits {

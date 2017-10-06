@@ -21,6 +21,8 @@ package org.platanios.tensorflow.api.ops
   */
 private[api] trait Documentation
     extends Basic.Documentation
+        with Clip.Documentation
+        with Embedding.Documentation
         with Image.Documentation
         with Logging.Documentation
         with Math.Documentation
