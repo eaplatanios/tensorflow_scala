@@ -3858,7 +3858,7 @@ private[api] object Math extends Math {
         Seq(outputGradients.head, null)
       } else if (rank != -1
           && axes.op.opType == "Const"
-          && axes.op.tensorAttribute("value") == Tensor(axes.dataType, 0 until rank)) {
+          && Output.constantValue(axes).orNull[Tensor] == (0 until rank: Tensor).cast(axes.dataType)) {
         // In this case the reduction was over all dimensions.
         var outputGradient = outputGradients.head.toOutput
         outputGradient = Basic.reshape(outputGradient, Shape(Array.fill(rank)(1)))
