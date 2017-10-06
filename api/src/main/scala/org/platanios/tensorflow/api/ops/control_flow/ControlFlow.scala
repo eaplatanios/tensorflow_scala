@@ -331,29 +331,32 @@ private[api] object ControlFlow extends ControlFlow {
     * @return Created op output, which is the same as `input`.
     */
   private[control_flow] def nextIteration[T <: OutputLike](input: T, name: String = "NextIteration"): T = {
-    Op.createWithNameScope(nameScope = name, Set(input.op)) {
+    val result = {
       input match {
         case i: Output =>
-          Op.Builder(opType = "NextIteration", name = name)
+          Op.Builder("NextIteration", name)
               .addInput(i)
               .build().outputs(0)
-        case i: OutputIndexedSlices =>
-          val values = nextIteration(i.values, name = "ValuesNextIteration")
-          val indices = nextIteration(i.indices, name = "IndicesNextIteration")
+        case i: OutputIndexedSlices => Op.createWithNameScope(name) {
+          val values = nextIteration(i.values, "Values")
+          val indices = nextIteration(i.indices, "Indices")
           val denseShape = {
             if (i.denseShape != null)
-              nextIteration(i.denseShape, name = "DenseShapeNextIteration")
+              nextIteration(i.denseShape, "DenseShape")
             else
               null
           }
           OutputIndexedSlices(indices = indices, values = values, denseShape = denseShape)
-        case i: SparseOutput =>
-          val values = nextIteration(i.values, name = "ValuesNextIteration")
-          val indices = nextIteration(i.indices, name = "IndicesNextIteration")
-          val denseShape = nextIteration(i.denseShape, name = "DenseShapeNextIteration")
+        }
+        case i: SparseOutput => Op.createWithNameScope(name) {
+          val values = nextIteration(i.values, "Values")
+          val indices = nextIteration(i.indices, "Indices")
+          val denseShape = nextIteration(i.denseShape, "DenseShape")
           SparseOutput(indices = indices, values = values, denseShape = denseShape)
+        }
       }
-    }.asInstanceOf[T]
+    }
+    result.asInstanceOf[T]
   }
 
   /** Creates an op that creates or finds a child frame, and makes `input` available to that child frame.
@@ -373,10 +376,10 @@ private[api] object ControlFlow extends ControlFlow {
   private[control_flow] def enter[T <: OutputLike](
       input: T, frameName: String, isConstant: Boolean = false, parallelIterations: Int = 10,
       useInputShape: Boolean = true, name: String = "Enter"): T = {
-    Op.createWithNameScope(nameScope = name, Set(input.op)) {
+    val result = {
       input match {
         case i: Output =>
-          val result = Op.Builder(opType = "Enter", name = name)
+          val result = Op.Builder("Enter", name)
               .addInput(i)
               .setAttribute("frame_name", frameName)
               .setAttribute("is_constant", isConstant)
@@ -385,24 +388,27 @@ private[api] object ControlFlow extends ControlFlow {
           if (useInputShape)
             result.setShape(i.shape)
           result
-        case i: OutputIndexedSlices =>
-          val values = enter(i.values, frameName, isConstant, parallelIterations, useInputShape, "ValuesEnter")
-          val indices = enter(i.indices, frameName, isConstant, parallelIterations, useInputShape, "IndicesEnter")
+        case i: OutputIndexedSlices => Op.createWithNameScope(name) {
+          val values = enter(i.values, frameName, isConstant, parallelIterations, useInputShape, "Values")
+          val indices = enter(i.indices, frameName, isConstant, parallelIterations, useInputShape, "Indices")
           val denseShape = {
             if (i.denseShape != null)
-              enter(i.denseShape, frameName, isConstant, parallelIterations, useInputShape, "DenseShapeEnter")
+              enter(i.denseShape, frameName, isConstant, parallelIterations, useInputShape, "DenseShape")
             else
               null
           }
           OutputIndexedSlices(indices = indices, values = values, denseShape = denseShape)
-        case i: SparseOutput =>
-          val values = enter(i.values, frameName, isConstant, parallelIterations, useInputShape, "ValuesEnter")
-          val indices = enter(i.indices, frameName, isConstant, parallelIterations, useInputShape, "IndicesEnter")
+        }
+        case i: SparseOutput => Op.createWithNameScope(name) {
+          val values = enter(i.values, frameName, isConstant, parallelIterations, useInputShape, "Values")
+          val indices = enter(i.indices, frameName, isConstant, parallelIterations, useInputShape, "Indices")
           val denseShape = enter(
-            i.denseShape, frameName, isConstant, parallelIterations, useInputShape, "DenseShapeEnter")
+            i.denseShape, frameName, isConstant, parallelIterations, useInputShape, "DenseShape")
           SparseOutput(indices = indices, values = values, denseShape = denseShape)
+        }
       }
-    }.asInstanceOf[T]
+    }
+    result.asInstanceOf[T]
   }
 
   /** Creates an op that exits from the current frame to its parent frame.
@@ -414,29 +420,37 @@ private[api] object ControlFlow extends ControlFlow {
     * @return Created op output, which is the same as `input`.
     */
   private[control_flow] def exit[T <: OutputLike](input: T, name: String = "Exit"): T = {
-    Op.createWithNameScope(nameScope = name, Set(input.op)) {
+    val result = {
       input match {
         case i: Output =>
-          Op.Builder(opType = "Exit", name = name)
+          Op.Builder("Exit", name)
               .addInput(i)
               .build().outputs(0)
-        case i: OutputIndexedSlices =>
-          val values = exit(i.values, name = "ValuesExit")
-          val indices = exit(i.indices, name = "IndicesExit")
+        case i: OutputIndexedSlices => Op.createWithNameScope(name) {
+          val values = exit(i.values, "Values")
+          val indices = exit(i.indices, "Indices")
           val denseShape = {
             if (i.denseShape != null)
-              exit(i.denseShape, name = "DenseShapeExit")
+              exit(i.denseShape, "DenseShape")
             else
               null
           }
           OutputIndexedSlices(indices = indices, values = values, denseShape = denseShape)
-        case i: SparseOutput =>
-          val values = exit(i.values, name = "ValuesExit")
-          val indices = exit(i.indices, name = "IndicesExit")
-          val denseShape = exit(i.denseShape, name = "DenseShapeExit")
+        }
+        case i: SparseOutput => Op.createWithNameScope(name) {
+          val values = exit(i.values, "Values")
+          val indices = exit(i.indices, "Indices")
+          val denseShape = {
+            if (i.denseShape != null)
+              exit(i.denseShape, "DenseShape")
+            else
+              null
+          }
           SparseOutput(indices = indices, values = values, denseShape = denseShape)
+        }
       }
-    }.asInstanceOf[T]
+    }
+    result.asInstanceOf[T]
   }
 
   /** Creates an op that forwards `input` to the output port determined by `predicate`.
@@ -449,33 +463,41 @@ private[api] object ControlFlow extends ControlFlow {
     * @return Tuple containing `outputFalse` and `outputTrue`, in that order.
     */
   private[control_flow] def switch[T <: OutputLike](input: T, predicate: Output, name: String = "Switch"): (T, T) = {
-    Op.createWithNameScope(nameScope = name, Set(input.op, predicate.op)) {
+    val result = {
       input match {
         case i: Output =>
-          val outputs = Op.Builder(opType = "Switch", name = name)
+          val outputs = Op.Builder("Switch", name)
               .addInput(i)
               .addInput(predicate)
               .build().outputs
           (outputs(0), outputs(1))
-        case i: OutputIndexedSlices =>
-          val (valuesFalse, valuesTrue) = switch(i.values, predicate, name = "ValuesSwitch")
-          val (indicesFalse, indicesTrue) = switch(i.indices, predicate, name = "IndicesSwitch")
+        case i: OutputIndexedSlices => Op.createWithNameScope(name) {
+          val (valuesFalse, valuesTrue) = switch(i.values, predicate, "Values")
+          val (indicesFalse, indicesTrue) = switch(i.indices, predicate, "Indices")
           val (denseShapeFalse, denseShapeTrue) = {
             if (i.denseShape != null)
-              switch(i.denseShape, predicate, name = "DenseShapeSwitch")
+              switch(i.denseShape, predicate, "DenseShape")
             else
               (null, null)
           }
           (OutputIndexedSlices(indices = indicesFalse, values = valuesFalse, denseShape = denseShapeFalse),
               OutputIndexedSlices(indices = indicesTrue, values = valuesTrue, denseShape = denseShapeTrue))
-        case i: SparseOutput =>
-          val (valuesFalse, valuesTrue) = switch(i.values, predicate, name = "ValuesSwitch")
-          val (indicesFalse, indicesTrue) = switch(i.indices, predicate, name = "IndicesSwitch")
-          val (denseShapeFalse, denseShapeTrue) = switch(i.denseShape, predicate, name = "DenseShapeSwitch")
+        }
+        case i: SparseOutput => Op.createWithNameScope(name) {
+          val (valuesFalse, valuesTrue) = switch(i.values, predicate, "ValuesSwitch")
+          val (indicesFalse, indicesTrue) = switch(i.indices, predicate, "IndicesSwitch")
+          val (denseShapeFalse, denseShapeTrue) = {
+            if (i.denseShape != null)
+              switch(i.denseShape, predicate, "DenseShape")
+            else
+              (null, null)
+          }
           (SparseOutput(indices = indicesFalse, values = valuesFalse, denseShape = denseShapeFalse),
               SparseOutput(indices = indicesTrue, values = valuesTrue, denseShape = denseShapeTrue))
+        }
       }
-    }.asInstanceOf[(T, T)]
+    }
+    result.asInstanceOf[(T, T)]
   }
 
   /** Creates an op that forwards the value of an available tensor from `inputs` to `output`.
@@ -498,33 +520,44 @@ private[api] object ControlFlow extends ControlFlow {
     */
   @throws[IllegalArgumentException]
   private[control_flow] def merge[T <: OutputLike](inputs: Seq[T], name: String = "Merge"): (T, Output) = {
-    Op.createWithNameScope(nameScope = name, inputs.map(_.op).toSet) {
+    val result = {
       inputs match {
         case i if i.forall(_.isInstanceOf[Output]) =>
-          val outputs = Op.Builder(opType = "Merge", name = name)
+          val outputs = Op.Builder("Merge", name)
               .addInputList(i.map(_.asInstanceOf[Output]))
               .build().outputs
           (outputs(0), outputs(1))
-        case i if i.forall(_.isInstanceOf[SparseOutput]) =>
-          val (values, chosenIndex) = merge(i.map(_.asInstanceOf[SparseOutput].values), "ValuesMerge")
-          val (indices, _) = merge(i.map(_.asInstanceOf[SparseOutput].indices), "IndicesMerge")
-          val (denseShape, _) = merge(i.map(_.asInstanceOf[SparseOutput].denseShape), "DenseShapeMerge")
+        case i if i.forall(_.isInstanceOf[SparseOutput]) => Op.createWithNameScope(name) {
+          val ii = i.map(_.asInstanceOf[SparseOutput])
+          val (values, chosenIndex) = merge(ii.map(_.values), "Values")
+          val (indices, _) = merge(ii.map(_.indices), "Indices")
+          val (denseShape, _) = if (ii.map(_.denseShape).exists(_ != null)) {
+            if (ii.map(_.denseShape).contains(null))
+              throw new IllegalArgumentException(
+                "Either all merged 'SparseOutput's must have a known dense shape, or none of them.")
+            merge(ii.map(_.denseShape), "DenseShape")
+          } else {
+            null
+          }
           (SparseOutput(indices = indices, values = values, denseShape = denseShape), chosenIndex)
-        case i =>
+        }
+        case i => Op.createWithNameScope(name) {
           val ii = i.map(_.toOutputIndexedSlices(optimize = true))
-          val (values, chosenIndex) = merge(ii.map(_.values), "ValuesMerge")
-          val (indices, _) = merge(ii.map(_.indices), "IndicesMerge")
+          val (values, chosenIndex) = merge(ii.map(_.values), "Values")
+          val (indices, _) = merge(ii.map(_.indices), "Indices")
           val (denseShape, _) = if (ii.map(_.denseShape).exists(_ != null)) {
             if (ii.map(_.denseShape).contains(null))
               throw new IllegalArgumentException(
                 "Either all merged 'OutputIndexedSlices' must have a known dense shape, or none of them.")
-            merge(ii.map(_.denseShape), "DenseShapeMerge")
+            merge(ii.map(_.denseShape), "DenseShape")
           } else {
             null
           }
           (OutputIndexedSlices(indices = indices, values = values, denseShape = denseShape), chosenIndex)
+        }
       }
-    }.asInstanceOf[(T, Output)]
+    }
+    result.asInstanceOf[(T, Output)]
   }
 
   //endregion Low Level Ops
@@ -624,7 +657,7 @@ private[api] object ControlFlow extends ControlFlow {
         if (!gradientContext.backPropagate) {
           // We skip gradient computation in this case.
           Seq(null)
-        } else if (gradientContext.gradientLoopState.isDefined) {
+        } else if (op.controlFlowContext.flatMap(_.gradientLoopState).isDefined) {
           throw UnimplementedException("Second-order gradients are not supported for while loops.")
         } else {
           outputGradients.head match {
