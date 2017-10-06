@@ -217,7 +217,7 @@ private[ops] class GradientState private[control_flow] () {
       pendingCounts: mutable.Map[Op, Int], destinationOps: Set[Op]): Set[Output] = {
     val loopExits = mutable.Set.empty[Output]
     map.values.foreach(gradientLoopState => {
-      gradientLoopState.forwardLoopExits.filter(e => pendingCounts(e.op) == 0).foreach(exit => {
+      gradientLoopState.forwardLoopExits.filter(e => pendingCounts.getOrElse(e.op, 0) == 0).foreach(exit => {
         gradientLoopState.pendingExitsCount -= 1
         if (!destinationOps.contains(exit.op))
           gradientLoopState.unusedExits += exit
@@ -225,7 +225,7 @@ private[ops] class GradientState private[control_flow] () {
           loopExits ++= gradientLoopState.unusedExits
       })
       // We need to include enter ops in the back-propagation too, for higher-order gradients.
-      gradientLoopState.forwardContext.loopEnters.filter(e => pendingCounts(e.op) == 0).foreach(enter => {
+      gradientLoopState.forwardContext.loopEnters.filter(e => pendingCounts.getOrElse(e.op, 0) == 0).foreach(enter => {
         pendingCounts(enter.op) = 1
       })
     })

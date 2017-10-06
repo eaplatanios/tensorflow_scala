@@ -126,7 +126,7 @@ private[ops] object Gradients {
             // Compute the actual op gradients.
             Op.createWith(nameScope = s"${op.name}Gradient") {
               // TODO: [CONTEXT] Add support for original op context.
-              val outputGradients = opGradients.map(_.head)
+              val outputGradients = opGradients.map(_.headOption.orNull)
               var inputGradients = maybeCompile(name, op, () => gradientFunction(op, outputGradients))
               if (op.inputs.length != inputGradients.length)
                 throw new IllegalStateException(
