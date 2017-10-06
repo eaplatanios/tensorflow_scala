@@ -17,6 +17,7 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.Implicits._
 import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api.core.Indexer._
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
 import org.platanios.tensorflow.api.ops.Embedding.{Combiner, PartitionStrategy}
 import org.platanios.tensorflow.api.ops.variables.{PartitionedVariable, Variable}
@@ -102,8 +103,8 @@ private[ops] trait Embedding {
         // Determine the static element shape.
         val elementStaticShape = {
           if (transformFn == null) {
-            var shape = parameters.partitionParameters(0).shape(1 ::)
-            parameters.partitionParameters.tail.foreach(p => shape = shape.mergeWith(p.shape(1 ::)))
+            var shape = parameters.partitionParameters(0).staticShape(1 ::)
+            parameters.partitionParameters.tail.foreach(p => shape = shape.mergeWith(p.staticShape(1 ::)))
             shape
           } else {
             result.shape(1 ::)
@@ -117,7 +118,7 @@ private[ops] trait Embedding {
           } else if (transformFn == null) {
             // It's important that we compute the shape on the right device to avoid data copies.
             Op.colocateWith(Set(parameters.partitionParameters(0).colocationOp)) {
-              Basic.shape(parameters.partitionParameters(0))(1 ::)
+              parameters.partitionParameters(0).dynamicShape(1 ::)
             }
           } else {
             Basic.shape(result)(1 ::)
@@ -225,14 +226,14 @@ private[ops] object Embedding extends Embedding {
       // partitions based on a constant number of ids per partition. We optimize if we already know the full shape
       // statically.
       val numTotalIds: Output = {
-        if (parameters.forall(p => p.shape.rank != -1 && p.shape(0) != -1)) {
-          parameters.map(_.shape(0)).sum
+        if (parameters.forall(p => p.staticShape.rank != -1 && p.staticShape(0) != -1)) {
+          parameters.map(_.staticShape(0)).sum
         } else {
           val axis0Sizes = parameters.map(p => {
-            if (p.shape.rank != -1 && p.shape(0) != -1)
-              Basic.constant(p.shape(0))
+            if (p.staticShape.rank != -1 && p.staticShape(0) != -1)
+              Basic.constant(p.staticShape(0))
             else
-              Op.colocateWith(Set(p.colocationOp))(Basic.shape(p)(0))
+              Op.colocateWith(Set(p.colocationOp))(p.dynamicShape(0))
           })
           Math.sum(Basic.stack(axis0Sizes).cast(ids.dataType))
         }
@@ -317,25 +318,30 @@ private[ops] object Embedding extends Embedding {
     }
 
     implicit def partitionedVariableEmbeddingMap(parameters: PartitionedVariable): EmbeddingMap = {
-      EmbeddingMap(parameters.map(new VariableParameters(_)).toSeq)
+      EmbeddingMap(parameters.map(VariableParameters).toSeq)
     }
 
-    implicit class OutputEmbeddingParameters(parameters: Output) extends EmbeddingParameters {
-      @inline override def colocationOp: Op = parameters.op
-      @inline override def shape: Shape = parameters.shape
+    implicit def outputToEmbeddingMap(parameters: Output): EmbeddingMap = OutputParameters(parameters)
+    implicit def variableToEmbeddingMap(parameters: Variable): EmbeddingMap = VariableParameters(parameters)
+  }
 
-      override def gather(indices: Output, name: String = "Gather"): Output = {
-        Basic.gather(parameters, indices, name = name)
-      }
+  private[this] case class OutputParameters(parameters: Output) extends EmbeddingParameters {
+    @inline override def colocationOp: Op = parameters.op
+    @inline override def staticShape: Shape = parameters.shape
+    @inline override def dynamicShape: Output = Basic.shape(parameters)
+
+    override def gather(indices: Output, name: String = "Gather"): Output = {
+      Basic.gather(parameters, indices, name = name)
     }
+  }
 
-    implicit class VariableParameters(parameters: Variable) extends EmbeddingParameters {
-      @inline override def colocationOp: Op = parameters.op
-      @inline override def shape: Shape = parameters.shape
+  private[this] case class VariableParameters(parameters: Variable) extends EmbeddingParameters {
+    @inline override def colocationOp: Op = parameters.op
+    @inline override def staticShape: Shape = parameters.shape
+    @inline override def dynamicShape: Output = Basic.shape(parameters.value)
 
-      override def gather(indices: Output, name: String = "Gather"): Output = {
-        parameters.sparseRead(indices, name = name)
-      }
+    override def gather(indices: Output, name: String = "Gather"): Output = {
+      parameters.sparseRead(indices, name = name)
     }
   }
 
@@ -403,8 +409,11 @@ trait EmbeddingParameters {
   /** Returns the op that generates these parameters (to be used for colocating other ops with it). */
   @inline def colocationOp: Op
 
-  /** Returns the shape of this parameters tensor. */
-  @inline def shape: Shape
+  /** Returns the static shape of this parameters tensor. */
+  @inline def staticShape: Shape
+
+  /** Returns the dynamic shape of this parameters tensor. */
+  @inline def dynamicShape: Output
 
   /** Gathers the embeddings corresponding to `indices` from `parameters`. */
   def gather(indices: Output, name: String = "Gather"): Output
