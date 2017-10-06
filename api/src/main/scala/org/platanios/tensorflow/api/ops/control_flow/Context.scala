@@ -100,14 +100,10 @@ abstract class Context protected (
       op.graph.preventFetching(op)
       op.outputs.foreach(op.graph.preventFeeding)
     }
-    outerContext.foreach(_.addInnerOp(op))
   }
 
   /** Adds `output` to the current context and its outer context recursively. */
   def add(output: Output): Output
-
-  /** Notifies this context about an operator added to an inner context. */
-  def addInnerOp(op: Op): Unit = ()
 
   /** Returns `true` if back-propagation is supported for this control flow context. */
   def backPropagate: Boolean
@@ -123,7 +119,7 @@ abstract class Context protected (
 
   /** Exits this control flow context. */
   def exit()(implicit context: DynamicVariable[OpCreationContext]): Unit = {
-    context.value = context.value.copy(controlFlowContext = contextStack.last)
+    context.value = context.value.copy(controlFlowContext = contextStack.remove(contextStack.size - 1))
   }
 
   /** Makes a sequence of tensors available in the outer context. */

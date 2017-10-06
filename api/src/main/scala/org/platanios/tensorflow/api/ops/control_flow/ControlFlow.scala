@@ -717,7 +717,7 @@ private[api] object ControlFlow extends ControlFlow {
           else
             Seq(merge(Seq(goodGradient, zeroGradient), name = "CondGradient")._1, null)
         case Some(_: WhileLoopContext) =>
-          gradientContext.get.gradientLoopState.flatMap(_.switchMap.get(op)) match {
+          gradientContext.flatMap(_.gradientLoopState).flatMap(_.switchMap.get(op)) match {
             case Some(mergeGradient) =>
               // This is the second time this switch node is visited. It comes from the non-exit branch of the switch,
               // and so we update the second input to the merge node.
@@ -730,7 +730,7 @@ private[api] object ControlFlow extends ControlFlow {
               // both inputs to the merge for now, but we update the second input of the merge node when we visit this
               // switch node for a second time.
               val mergeGradient = merge(Seq(outputGradients(0), outputGradients(0)), name = "SwitchGradient")._1
-              gradientContext.get.gradientLoopState.map(_.switchMap).foreach(_ += op -> mergeGradient)
+              gradientContext.flatMap(_.gradientLoopState).map(_.switchMap).foreach(_ += op -> mergeGradient)
               Seq(mergeGradient, null)
             case _ =>
               // This is the first time this switch node is visited. It comes from the identity branch. Such a switch
@@ -747,7 +747,7 @@ private[api] object ControlFlow extends ControlFlow {
     /** Gradients for a merge op are calculated using a switch op. */
     private[this] def mergeGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       val gradientContext = Op.currentControlFlowContext
-      op.controlFlowContext match {
+      ControlFlow.getOutputContext(op.inputs(0).op) match {
         case Some(opContext: CondContext) =>
           val predicate = gradientContext.flatMap(_.gradientLoopState).map(gradientLoopState => {
             // This merge node is part of a conditional structure within a loop. The back-propagation needs to have the

@@ -101,7 +101,7 @@ private[control_flow] case class GradientLoopState private[control_flow] (
 
   /** Control trigger node for synchronization in the forward loop. One main use is to keep the push ops of a stack
     * executed in the iteration order. */
-  private[control_flow] val forwardSync: Op = {
+  private[control_flow] lazy val forwardSync: Op = {
     val syncOp = Op.createWith(controlDependencies = Set.empty[Op])(ControlFlow.controlTrigger("ForwardSync"))
     syncOp.controlFlowContext = Some(forwardContext)
     ControlFlow.addControlInput(forwardIndex.op, syncOp)
@@ -110,12 +110,13 @@ private[control_flow] case class GradientLoopState private[control_flow] (
 
   /** Control trigger node for synchronization in the backward loop. One main use is to keep the pop ops of a stack
     * executed in the iteration order. */
-  private[control_flow] val backwardSync: Op = {
+  private[control_flow] lazy val backwardSync: Op = {
     val syncOp = Op.createWith(controlDependencies = Set.empty[Op])(ControlFlow.controlTrigger("BackwardSync"))
-    syncOp.controlFlowContext = Some(forwardContext)
+    syncOp.controlFlowContext = Some(backwardContext)
     ControlFlow.addControlInput(backwardIndex.op, syncOp)
     syncOp
   }
+
   /** Gets the real value of `value`.
     *
     * If back-propagation "uses" a value produced by the forward loop, an accumulator is added in the forward loop to
@@ -127,7 +128,8 @@ private[control_flow] case class GradientLoopState private[control_flow] (
       var historyValue: Output = null
       var currentValue = value
       var currentGradientLoopState = this
-      while (realValue.isEmpty) {
+      var loopCondition = true
+      while (loopCondition) {
         ControlFlow.getLoopConstantEnter(currentValue) match {
           case Some(enterOp) =>
             // Special case: `currentValue` comes from a constant enter node.
@@ -138,17 +140,20 @@ private[control_flow] case class GradientLoopState private[control_flow] (
                 // We are now outside all nested loops for this gradient and so `value` is a loop invariant and there is
                 // no need to save its history. We just make `currentValue` enter the right control flow context.
                 realValue = Some(backwardContext.add(currentValue))
+                loopCondition = false
             }
           case None if currentValue.op.opType == "Const" =>
             // If the value to be forwarded is a constant, we clone the constant in the gradient loop rather than using
             // a stack.
             // TODO: !!! [CONTROL_FLOW] Consider hoisting the constant outside the loop instead.
             realValue = Some(Basic.constant(Output.constantValue(currentValue).get))
+            loopCondition = false
           case _ =>
             // Record the history of this value in the forward context.
             backwardContext.exit()
             historyValue = currentGradientLoopState.addForwardAccumulator(currentValue)
             backwardContext.enter()
+            loopCondition = false
         }
       }
       realValue.getOrElse({

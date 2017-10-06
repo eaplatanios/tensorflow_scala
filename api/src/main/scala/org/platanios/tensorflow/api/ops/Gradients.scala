@@ -115,11 +115,12 @@ private[ops] object Gradients {
               // other outputs.
               val output = op.outputs(outputIndex)
               if (gradient.isEmpty && isTrainable(output))
-                // TODO: !!! [GRADIENTS] Gradients of resource handles might be an issue here because of the zeros.
+              // TODO: !!! [GRADIENTS] Gradients of resource handles might be an issue here because of the zeros.
                 opGradients(outputIndex) = Seq({
                   controlFlowGradientState
-                      .flatMap(_.zerosLike(op, outputIndex))
-                      .getOrElse(WhileLoopContext.zerosLikeOutsideLoop(op, outputIndex))
+                      .map(_.zerosLike(op, outputIndex))
+                      .getOrElse(Some(WhileLoopContext.zerosLikeOutsideLoop(op, outputIndex)))
+                      .orNull
                 })
             }
 

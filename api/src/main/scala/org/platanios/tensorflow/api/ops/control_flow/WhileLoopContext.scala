@@ -160,7 +160,6 @@ private[ops] case class WhileLoopContext private[control_flow] (
         val enter = Op.createWith(controlDependencies = Set.empty[Op]) {
           val enter = ControlFlow.enter(result, name, isConstant = true, parallelIterations)
           enter.graph.preventFeeding(enter)
-          outerContext.foreach(_.addInnerOp(enter.op))
           enter
         }
         // Fix the control inputs and control flow context of these enter ops.
@@ -182,7 +181,7 @@ private[ops] case class WhileLoopContext private[control_flow] (
     var outerContext = this.outerContext
     while (outerContext != opContext && outerContext.isDefined)
       outerContext = outerContext.flatMap(_.outerContext)
-    outerContext == opContext && outerContext.isDefined
+    outerContext == opContext
   }
 
   /** Adds the loop termination condition and the loop body to the graph. */
@@ -202,10 +201,7 @@ private[ops] case class WhileLoopContext private[control_flow] (
       val enterVariables = Op.createWith(controlDependencies = Set.empty[Op]) {
         val enterVariables = realVariables.map(v => ControlFlow.enter(
           v, name, isConstant = false, parallelIterations, useInputShape = flattenedShapeInvariants.isEmpty))
-        enterVariables.foreach(v => {
-          v.graph.preventFeeding(v)
-          outerContext.foreach(_.addInnerOp(v.op))
-        })
+        enterVariables.foreach(v => v.graph.preventFeeding(v))
         enterVariables
       }
 
@@ -445,20 +441,21 @@ private[ops] case class WhileLoopContext private[control_flow] (
             }
           }
         }
-        enter()
-        values += acc.name
-        val enterAcc = ControlFlow.enter(
-          acc, name, isConstant = false, parallelIterations, name = "BackwardAccumulator")
-        loopEnters += enterAcc
-        val mergeAcc = ControlFlow.merge(Seq(enterAcc, enterAcc), name = "BackwardAccumulator")._1.toOutput
-        val switchAcc = ControlFlow.switch(mergeAcc, pivot)
-        val addAcc = Math.add(switchAcc._2, g)
-        val nextAcc = ControlFlow.nextIteration(addAcc)
-        ControlFlow.updateInput(mergeAcc.op, 1, nextAcc)
-        val exitAcc = ControlFlow.exit(switchAcc._1, name = "BackwardAccumulator")
-        loopExits += exitAcc
-        exitResult(Seq(exitAcc))
-        exitAcc
+        Op.createWithNameScope("BackwardAccumulator") {
+          enter()
+          values += acc.name
+          val enterAcc = ControlFlow.enter(acc, name, isConstant = false, parallelIterations)
+          loopEnters += enterAcc
+          val mergeAcc = ControlFlow.merge(Seq(enterAcc, enterAcc))._1.toOutput
+          val switchAcc = ControlFlow.switch(mergeAcc, pivot)
+          val addAcc = Math.add(switchAcc._2, g)
+          val nextAcc = ControlFlow.nextIteration(addAcc)
+          ControlFlow.updateInput(mergeAcc.op, 1, nextAcc)
+          val exitAcc = ControlFlow.exit(switchAcc._1)
+          loopExits += exitAcc
+          exitResult(Seq(exitAcc))
+          exitAcc
+        }
       case g: OutputIndexedSlices =>
         exit()
         // We create a zeros tensor with the right shape for the accumulator. If we don't know the full shape
