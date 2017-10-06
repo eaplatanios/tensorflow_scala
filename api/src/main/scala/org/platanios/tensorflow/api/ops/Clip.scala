@@ -35,8 +35,8 @@ private[ops] trait Clip {
     */
   def clipByValue(input: Output, clipValueMin: Output, clipValueMax: Output, name: String = "ClipByValue"): Output = {
     Op.createWithNameScope(name) {
-      val inputMin = Math.min(input, clipValueMax)
-      val inputMax = Math.max(inputMin, clipValueMin)
+      val inputMin = Math.minimum(input, clipValueMax)
+      val inputMax = Math.maximum(inputMin, clipValueMin)
       // Assert that the result shape is compatible with the initial shape, to prevent unintentional broadcasting.
       input.shape.assertIsCompatibleWith(inputMin.shape)
       input.shape.assertIsCompatibleWith(inputMax.shape)
@@ -61,7 +61,7 @@ private[ops] trait Clip {
       val intermediate = input * clipNorm
       // Assert that the result shape is compatible with the initial shape, to prevent unintentional broadcasting.
       input.shape.assertIsCompatibleWith(intermediate.shape)
-      Basic.identity(intermediate * Math.min(l2NormInv, 1 / clipNorm))
+      Basic.identity(intermediate * Math.minimum(l2NormInv, 1 / clipNorm))
     }
   }
 
@@ -81,7 +81,7 @@ private[ops] trait Clip {
       val intermediate = input * clipNorm
       // Assert that the result shape is compatible with the initial shape, to prevent unintentional broadcasting.
       input.shape.assertIsCompatibleWith(intermediate.shape)
-      Basic.identity(intermediate * Math.min(l2NormInv * numElements, 1 / clipNorm))
+      Basic.identity(intermediate * Math.minimum(l2NormInv * numElements, 1 / clipNorm))
     }
   }
 
@@ -121,7 +121,7 @@ private[ops] trait Clip {
     Op.createWithNameScope(name) {
       val norm = if (globalNorm != null) globalNorm else this.globalNorm(inputs)
       // Calculate the l2-norm and clip elements by the ratio of `clipNorm` to that l2-norm.
-      val scale = clipNorm * Math.min(1 / norm, 1 / clipNorm)
+      val scale = clipNorm * Math.minimum(1 / norm, 1 / clipNorm)
       val values = inputs.map {
         case o: Output => o
         case o: OutputIndexedSlices => o.values
