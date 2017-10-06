@@ -515,7 +515,7 @@ final case class OutputIndexedSlices private (indices: Output, values: Output, d
 
   /** Returns the [[Output]] that this [[OutputLike]] object represents. */
   override def toOutput: Output = {
-    if (denseShape != null)
+    if (denseShape == null)
       throw new IllegalStateException(
         s"Conversion of 'OutputIndexedSlices', '$this', " +
             s"which has no dense shape information available, is not possible.")
