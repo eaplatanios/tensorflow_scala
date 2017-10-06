@@ -746,8 +746,10 @@ object Op {
     updatedContext = updatedContext.copy(deviceFunction = newDeviceFunction)
     val newColocationOps: Set[Op] = mergeColocationOps(colocationOps, updatedContext)
     updatedContext = updatedContext.copy(colocationOps = newColocationOps)
-    val newControlDependencies: Set[Op] = mergeControlDependencies(controlDependencies, updatedContext)
-    updatedContext = updatedContext.copy(controlDependencies = newControlDependencies)
+    val (newControlDependencies, newControlFlowContext): (Set[Op], Option[Context]) =
+      mergeControlDependencies(controlDependencies, updatedContext)
+    updatedContext = updatedContext.copy(
+      controlDependencies = newControlDependencies, controlFlowContext = newControlFlowContext)
     val newAttributes: Map[String, Any] = mergeAttributes(attributes, updatedContext)
     updatedContext = updatedContext.copy(attributes = newAttributes)
     val newContainer: String = mergeContainer(container, updatedContext)
@@ -919,13 +921,14 @@ object Op {
     * @param  context             Op creation context whose control dependencies needs to be updated.
     * @return Set of control dependencies to use for the new op creation context.
     */
-  private[this] def mergeControlDependencies(controlDependencies: Set[Op], context: OpCreationContext): Set[Op] = {
+  private[this] def mergeControlDependencies(
+      controlDependencies: Set[Op], context: OpCreationContext): (Set[Op], Option[Context]) = {
     if (controlDependencies == null)
-      context.controlDependencies
+      (context.controlDependencies, context.controlFlowContext)
     else if (controlDependencies == Set.empty[Op])
-      controlDependencies
+      (controlDependencies, None)
     else
-      context.controlDependencies ++ controlDependencies
+      (context.controlDependencies ++ controlDependencies, context.controlFlowContext)
   }
 
   /** Merges a set of attributes to the provided op creation context set of attributes and returns the set of attributes

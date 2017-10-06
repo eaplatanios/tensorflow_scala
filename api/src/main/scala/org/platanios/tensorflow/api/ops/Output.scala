@@ -286,7 +286,7 @@ object Output {
   /** Returns the constant value of the given tensor, if efficiently calculable. */
   private[ops] def constantValue(tensor: Output): Option[Tensor] = {
     val value = tensor.op.opType match {
-      case "Const" => None // TODO: !!! Needs MakeNdArray()
+      case "Const" => Option(tensor.op.tensorAttribute("value")) // TODO: !!! Make more robust.
       case "Shape" =>
         val inputShape = tensor.op.inputs(0).shape
         if (inputShape.isFullyDefined)
