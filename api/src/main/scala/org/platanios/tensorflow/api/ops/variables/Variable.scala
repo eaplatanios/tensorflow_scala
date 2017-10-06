@@ -938,8 +938,9 @@ private[api] object Variable {
       val indices = op.inputs(1)
       val size = Basic.expandDims(Basic.size(indices), 0)
       val valuesShape = Basic.concatenate(Array(size, parametersShape(1 ::)), 0)
-      val values = Basic.reshape(indices, valuesShape)
-      Seq(OutputIndexedSlices(indices = indices, values = values, denseShape = parametersShape), null)
+      val values = Basic.reshape(outputGradients.head.toOutput, valuesShape)
+      val reshapedIndices = Basic.reshape(indices, size)
+      Seq(OutputIndexedSlices(indices = reshapedIndices, values = values, denseShape = parametersShape), null)
     }
   }
 }
