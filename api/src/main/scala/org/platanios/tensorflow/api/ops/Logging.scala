@@ -69,16 +69,18 @@ private[api] trait Logging {
     * @param  name      Name for the created op.
     * @return Created op.
     */
-  def print(
-      input: Output, data: Seq[Output], message: String = "", firstN: Int = -1, summarize: Int = 3,
-      name: String = "Print"): Output = {
-    Op.Builder("Print", name)
-        .addInput(input)
-        .addInputList(data)
-        .setAttribute("message", message)
-        .setAttribute("first_n", firstN)
-        .setAttribute("summarize", summarize)
-        .build().outputs(0)
+  def print[T: OutputOps](
+      input: T, data: Seq[Output], message: String = "", firstN: Int = -1, summarize: Int = 3,
+      name: String = "Print"): T = {
+    implicitly[OutputOps[T]].applyUnary(input, i => {
+      Op.Builder("Print", name)
+          .addInput(i)
+          .addInputList(data)
+          .setAttribute("message", message)
+          .setAttribute("first_n", firstN)
+          .setAttribute("summarize", summarize)
+          .build().outputs(0)
+    })
   }
 }
 
