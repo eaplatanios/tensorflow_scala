@@ -53,6 +53,8 @@ trait Initializer {
 
 private[variables] case class InitializerWithPartitionInformation(
     initializer: Initializer, partitionInfo: PartitionInformation) extends Initializer {
+  override val shape: Shape = initializer.shape
+
   @throws[ShapeMismatchException]
   override def initialValue(dataType: DataType, shape: Shape, partitionInfo: PartitionInformation): Output = {
     if (partitionInfo == null)
@@ -80,6 +82,8 @@ object OnesInitializer extends Initializer {
 
 /** Initializer that sets the value of the variable to the provided `value`. */
 case class ConstantInitializer(value: Tensor) extends Initializer {
+  override val shape: Shape = value.shape
+
   @throws[ShapeMismatchException]
   override def initialValue(dataType: DataType, shape: Shape, partitionInfo: PartitionInformation): Output = {
     Basic.constant(value, dataType, shape, name = "ConstantInitializer")

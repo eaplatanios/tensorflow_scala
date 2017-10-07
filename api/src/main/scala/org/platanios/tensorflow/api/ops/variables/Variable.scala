@@ -873,7 +873,7 @@ private[api] object Variable {
     if (indices.dataType != INT32 && indices.dataType != INT64)
       throw InvalidDataTypeException(
         s"Data type '${indices.dataType}' is not supported for the resource variable gather op indices. " +
-            s"Only 'TFInt32' and 'TFInt64' are supported.")
+            s"Only 'INT32' and 'INT64' are supported.")
     Op.Builder(opType = "ResourceGather", name = name)
         .addInput(variable)
         .addInput(indices)
@@ -911,7 +911,7 @@ private[api] object Variable {
     if (indices.dataType != INT32 && indices.dataType != INT64)
       throw InvalidDataTypeException(
         s"Data type '${indices.dataType}' is not supported for the resource variable scatter add op indices. " +
-            s"Only 'TFInt32' and 'TFInt64' are supported.")
+            s"Only 'INT32' and 'INT64' are supported.")
     Op.Builder(opType = "ResourceScatterAdd", name = name)
         .addInput(variable)
         .addInput(indices)
