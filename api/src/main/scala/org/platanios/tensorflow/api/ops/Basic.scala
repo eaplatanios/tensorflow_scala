@@ -2267,7 +2267,6 @@ private[api] object Basic extends Basic {
         val inputShape = shape(input, INT64)
         Math.cast(inputShape, INT32)
       }
-      // Build appropriately shaped 'OutputIndexedSlices'.
       val indices = op.inputs(1)
       val indicesSize = expandDims(size(indices), 0)
       val axis = op.inputs(2)
@@ -2299,9 +2298,9 @@ private[api] object Basic extends Basic {
         val numSegments = inputShape.gather(axis)
         val inputGradient = Math.unsortedSegmentSum(valuesTranspose, reshapedIndices, numSegments)
         // We now invert the above transpose by moving dimension 0 back to its original position.
-        val tranposeAxesInverse = Basic.concatenate(Seq(outerAxesIndices + 1, Tensor(0), innerAxesIndices), 0)
-        val inputGradientTranspose = Basic.transpose(inputGradient, tranposeAxesInverse)
-        Seq(inputGradient, null, null)
+        val transposeAxesInverse = Basic.concatenate(Seq(outerAxesIndices + 1, Tensor(0), innerAxesIndices), 0)
+        val inputGradientTranspose = Basic.transpose(inputGradient, transposeAxesInverse)
+        Seq(inputGradientTranspose, null, null)
       }
     }
 

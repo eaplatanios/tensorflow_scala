@@ -89,7 +89,7 @@ private[ops] object Gradients {
       // Stop ops form the frontier of the forward graph before which back-propagation should stop. Ops in this set will
       // not be differentiated. This set is defined as the subset of `sourceOps` containing ops that have no predecessor
       // in `sourceOps`. An op has predecessors in `sourceOps` if and only if `pendingCounts(op) > 0`.
-      val stopOps = sourceOps.filter(op => op.inputs.forall(i => pendingCounts.getOrElse(i.op, 0) <= 0))
+      val stopOps = sourceOps.filter(_.inputs.forall(i => pendingCounts.getOrElse(i.op, 0) <= 0))
 
       while (readyOps.nonEmpty) {
         val op = readyOps.dequeue()
@@ -251,8 +251,7 @@ private[ops] object Gradients {
         }
       }
     } catch {
-      case _: IllegalArgumentException =>
-        gradientFunction() // Something went wrong and so we exit
+      case _: IllegalArgumentException => gradientFunction() // Something went wrong and so we exit
     }
   }
 

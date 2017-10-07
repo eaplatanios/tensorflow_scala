@@ -1078,7 +1078,7 @@ object Op {
     */
   private[this] def pruneControlDependencies(
       controlDeps: mutable.Set[Op], op: Op, processedOps: mutable.Set[Op] = mutable.Set.empty[Op]): Unit = {
-    if (processedOps.contains(op)) {
+    if (!processedOps.contains(op)) {
       // Prune op that is already used as input to the dependant op
       controlDeps -= op
       processedOps += op
