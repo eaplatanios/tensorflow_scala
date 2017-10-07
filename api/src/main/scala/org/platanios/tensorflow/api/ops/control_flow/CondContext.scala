@@ -26,7 +26,7 @@ import org.tensorflow.framework.CollectionDef.BytesList
 import shapeless._
 import shapeless.ops.hlist.Tupler
 
-import scala.collection.{MapLike, SeqLike, mutable}
+import scala.collection.{MapLike, SeqLike}
 import scala.collection.generic.CanBuildFrom
 import scala.collection.JavaConverters._
 import scala.language.higherKinds
@@ -43,7 +43,10 @@ import scala.reflect.ClassTag
   */
 private[control_flow] case class CondContext private[control_flow] (
     predicate: Output, pivot: Output, branch: CondBranch, private val _name: String = "CondContext"
-) extends Context(values = mutable.Set(predicate.name, pivot.name)) with ProtoSerializable {
+) extends Context() with ProtoSerializable {
+  values += predicate.name
+  values += pivot.name
+
   override val name: String = Op.currentGraph.uniqueName(_name)
 
   override def controlPivot: Option[Op] = Some(pivot.op)

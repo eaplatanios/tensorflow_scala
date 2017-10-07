@@ -61,26 +61,24 @@ private[api] trait ControlFlow {
     * @return Created op output, which in this case is the result of a `noOp`.
     */
   def group(inputs: Set[Op], name: String = "Group"): Op = {
-    Op.createWithNameScope(name, inputs) {
-      val inputsByDevice = inputs.groupBy(_.device)
-      if (inputsByDevice.size == 1) {
-        // 1-level tree. The root node is the returned no-op node.
-        val (device, ops) = inputsByDevice.head
-        if (device != null && device != "")
-          Op.createWith(device = device, controlDependencies = ops)(noOp(name))
-        else
-          Op.createWith(controlDependencies = ops)(noOp(name))
-      } else {
-        // 2-level tree. The root node is the returned no-op node. `dependencies` contains 1 NoOp node for each device.
-        val dependencies = inputsByDevice.toSeq.sortBy(_._1).map {
-          case (device, ops) =>
-            if (device != null && device != "")
-              Op.createWith(device = device, controlDependencies = ops)(noOp(name))
-            else
-              Op.createWith(controlDependencies = ops)(noOp(name))
-        }
-        Op.createWith(controlDependencies = dependencies.toSet)(noOp(name))
+    val inputsByDevice = inputs.groupBy(_.device)
+    if (inputsByDevice.size == 1) {
+      // 1-level tree. The root node is the returned no-op node.
+      val (device, ops) = inputsByDevice.head
+      if (device != null && device != "")
+        Op.createWith(device = device, controlDependencies = ops)(noOp(name))
+      else
+        Op.createWith(controlDependencies = ops)(noOp(name))
+    } else {
+      // 2-level tree. The root node is the returned no-op node. `dependencies` contains 1 NoOp node for each device.
+      val dependencies = inputsByDevice.toSeq.sortBy(_._1).map {
+        case (device, ops) =>
+          if (device != null && device != "")
+            Op.createWith(device = device, controlDependencies = ops)(noOp(name))
+          else
+            Op.createWith(controlDependencies = ops)(noOp(name))
       }
+      Op.createWith(controlDependencies = dependencies.toSet)(noOp(name))
     }
   }
 
@@ -529,8 +527,8 @@ private[api] object ControlFlow extends ControlFlow {
           (outputs(0), outputs(1))
         case i if i.forall(_.isInstanceOf[SparseOutput]) => Op.createWithNameScope(name) {
           val ii = i.map(_.asInstanceOf[SparseOutput])
-          val (values, chosenIndex) = merge(ii.map(_.values), "Values")
-          val (indices, _) = merge(ii.map(_.indices), "Indices")
+          val (indices, chosenIndex) = merge(ii.map(_.indices), "Indices")
+          val (values, _) = merge(ii.map(_.values), "Values")
           val (denseShape, _) = if (ii.map(_.denseShape).exists(_ != null)) {
             if (ii.map(_.denseShape).contains(null))
               throw new IllegalArgumentException(
@@ -542,9 +540,9 @@ private[api] object ControlFlow extends ControlFlow {
           (SparseOutput(indices = indices, values = values, denseShape = denseShape), chosenIndex)
         }
         case i => Op.createWithNameScope(name) {
-          val ii = i.map(_.toOutputIndexedSlices(optimize = true))
-          val (values, chosenIndex) = merge(ii.map(_.values), "Values")
-          val (indices, _) = merge(ii.map(_.indices), "Indices")
+          val ii = i.map(_.toOutputIndexedSlices(optimize = false))
+          val (indices, chosenIndex) = merge(ii.map(_.indices), "Indices")
+          val (values, _) = merge(ii.map(_.values), "Values")
           val (denseShape, _) = if (ii.map(_.denseShape).exists(_ != null)) {
             if (ii.map(_.denseShape).contains(null))
               throw new IllegalArgumentException(

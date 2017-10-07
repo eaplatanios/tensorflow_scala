@@ -43,15 +43,13 @@ private[control_flow] case class GradientLoopState private[control_flow] (
   private[control_flow] val switchMap: mutable.Map[Op, OutputLike] = mutable.Map.empty[Op, OutputLike]
 
   /** List containing all "unused" exits. */
-  private[ops] val unusedExits: mutable.ListBuffer[Output] = mutable.ListBuffer.empty[Output]
+  private[ops] val unusedExits: mutable.Set[Output] = mutable.Set.empty[Output]
 
   /** List containing all "deferred" exits. */
-  private[ops] val deferredExits: mutable.ListBuffer[Output] = mutable.ListBuffer.empty[Output]
+  private[ops] val deferredExits: mutable.Set[Output] = mutable.Set.empty[Output]
 
   /** List containing all forward loop exits. */
-  private[control_flow] val forwardLoopExits: mutable.ListBuffer[Output] = {
-    mutable.ListBuffer(forwardContext.loopExits: _*)
-  }
+  private[control_flow] val forwardLoopExits: mutable.Set[Output] = mutable.Set(forwardContext.loopExits.toSeq: _*)
 
   /** Number of exits we expect to see during the backward pass, but have not seen yet. */
   private[ops] var pendingExitsCount: Int = forwardContext.loopExits.size
@@ -142,13 +140,8 @@ private[control_flow] case class GradientLoopState private[control_flow] (
                 realValue = Some(backwardContext.add(currentValue))
                 loopCondition = false
             }
-          case None if currentValue.op.opType == "Const" =>
-            // If the value to be forwarded is a constant, we clone the constant in the gradient loop rather than using
-            // a stack.
-            // TODO: !!! [CONTROL_FLOW] Consider hoisting the constant outside the loop instead.
-            realValue = Some(Basic.constant(Output.constantValue(currentValue).get))
-            loopCondition = false
           case _ =>
+            // TODO: !!! [CONTROL_FLOW] Consider keeping constants outside the loop avoiding the accumulator for them.
             // Record the history of this value in the forward context.
             backwardContext.exit()
             historyValue = currentGradientLoopState.addForwardAccumulator(currentValue)

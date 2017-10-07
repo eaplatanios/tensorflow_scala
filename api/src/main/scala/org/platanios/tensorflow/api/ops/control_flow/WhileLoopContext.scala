@@ -59,8 +59,8 @@ private[ops] case class WhileLoopContext private[control_flow] (
     private[ops] var pivot: Output = null,
     private var pivotForPredicate: Op = null,
     private var pivotForBody: Op = null,
-    private[control_flow] val loopEnters: mutable.ListBuffer[Output] = mutable.ListBuffer.empty[Output],
-    private[control_flow] val loopExits: mutable.ListBuffer[Output] = mutable.ListBuffer.empty[Output],
+    private[control_flow] val loopEnters: mutable.Set[Output] = mutable.Set.empty[Output],
+    private[control_flow] val loopExits: mutable.Set[Output] = mutable.Set.empty[Output],
     private val _name: String = "WhileLoopContext"
 ) extends Context() with ProtoSerializable {
   require(parallelIterations > 0, "'parallelIterations' must be a positive integer.")
@@ -416,6 +416,7 @@ private[ops] case class WhileLoopContext private[control_flow] (
             acc
           } else {
             val value = op.inputs(0)
+            // TODO: !!! [CONTROL_FLOW] Is this even necessary for obtaining the shape?
             outerContext match {
               case Some(context: WhileLoopContext) if context.gradientLoopState.isDefined =>
                 // We are in a nested while loop.
@@ -456,7 +457,7 @@ private[ops] case class WhileLoopContext private[control_flow] (
           exitResult(Seq(exitAcc))
           exitAcc
         }
-      case g: OutputIndexedSlices =>
+      case g: OutputIndexedSlices => Op.createWithNameScope("BackwardAccumulator") {
         exit()
         // We create a zeros tensor with the right shape for the accumulator. If we don't know the full shape
         // statically, we will have to get the shape dynamically from the forward inference. Getting the shape right for
@@ -466,7 +467,7 @@ private[ops] case class WhileLoopContext private[control_flow] (
         val valuesAcc: Output = {
           if (g.values.shape.isFullyDefined) {
             val zerosShape = Shape(1 +: g.values.shape.asArray.tail: _*)
-            Basic.fill(g.values.dataType, zerosShape)(0, name = "BackwardAccumulator")
+            Basic.zeros(g.values.dataType, zerosShape)
           } else {
             val value = op.inputs(0)
             //        outerContext match {
@@ -486,7 +487,7 @@ private[ops] case class WhileLoopContext private[control_flow] (
             //            acc
             //          case _ =>
             val zerosShape = Basic.concatenate(Seq(Tensor(1), resourceSafeShape(value).slice(1 ::)), axis = 0)
-            Basic.fill(g.values.dataType, zerosShape)(0, name = "BackwardAccumulator")
+            Basic.fill(g.values.dataType, zerosShape)(0)
             //        }
           }
         }
@@ -501,29 +502,30 @@ private[ops] case class WhileLoopContext private[control_flow] (
         enter()
         values += indicesAcc.name
         values += valuesAcc.name
-        denseShapeAcc.foreach(s => values += s.name)
+        denseShapeAcc.foreach(values += _.name)
         val initAcc = Seq(indicesAcc, valuesAcc) ++ denseShapeAcc.map(Seq(_)).getOrElse(Seq.empty)
         val enterAcc = initAcc.map(a => {
-          ControlFlow.enter(a, name, isConstant = false, parallelIterations, name = "BackwardAccumulator")
+          ControlFlow.enter(a, name, isConstant = false, parallelIterations)
         })
         loopEnters ++= enterAcc
-        val mergeAcc = enterAcc.map(a => ControlFlow.merge(Seq(a, a), name = "BackwardAccumulator")._1.toOutput)
+        val mergeAcc = enterAcc.map(a => ControlFlow.merge(Seq(a, a))._1.toOutput)
         val switchAcc = mergeAcc.map(a => ControlFlow.switch(a, pivot))
 
         // The actual accumulation.
-        var addAcc = mutable.ListBuffer(switchAcc.take(2).zip(Seq(g.indices, g.values)).map(a => {
-          Basic.concatenate(Seq(a._1._2, a._2), 0)
-        }): _*)
+        var addAcc = mutable.ListBuffer(
+          Basic.concatenate(Seq(switchAcc(0)._2, g.indices), 0),
+          Basic.concatenate(Seq(switchAcc(1)._2, g.values), 0))
         denseShapeAcc.foreach(_ => {
           // For the shape we just keep the maximum.
           addAcc += Math.maximum(g.denseShape, switchAcc(2)._2)
         })
         val nextAcc = addAcc.map(ControlFlow.nextIteration(_))
         mergeAcc.zip(nextAcc).foreach(a => ControlFlow.updateInput(a._1.op, 1, a._2))
-        val exitAcc = switchAcc.map(a => ControlFlow.exit(a._1, name = "BackwardAccumulator"))
+        val exitAcc = switchAcc.map(a => ControlFlow.exit(a._1))
         loopExits ++= exitAcc
         exitResult(exitAcc)
         OutputIndexedSlices(exitAcc(0), exitAcc(1), denseShapeAcc.map(_ => exitAcc(2)).orNull)
+      }
       case g: SparseOutput =>
         exit()
         // We create a zeros tensor with the right shape for the accumulator. If we don't know the full shape
@@ -534,7 +536,7 @@ private[ops] case class WhileLoopContext private[control_flow] (
         val valuesAcc: Output = {
           if (g.values.shape.isFullyDefined) {
             val zerosShape = Shape(1 +: g.values.shape.asArray.tail: _*)
-            Basic.fill(g.values.dataType, zerosShape)(0, name = "BackwardAccumulator")
+            Basic.zeros(g.values.dataType, zerosShape, name = "BackwardAccumulator")
           } else {
             val value = op.inputs(0)
             //        outerContext match {
@@ -821,10 +823,10 @@ object WhileLoopContext {
     val pivot = graph.getOutputByName(Op.prependNameScope(importScope, whileContextDef.getPivotName))
     val pivotForPredicate = graph.getOpByName(Op.prependNameScope(importScope, whileContextDef.getPivotForPredName))
     val pivotForBody = graph.getOpByName(Op.prependNameScope(importScope, whileContextDef.getPivotForBodyName))
-    val loopEnters = mutable.ListBuffer(whileContextDef.getLoopEnterNamesList.asScala.map(name => {
+    val loopEnters = mutable.Set(whileContextDef.getLoopEnterNamesList.asScala.map(name => {
       graph.getOutputByName(Op.prependNameScope(importScope, name))
     }): _*)
-    val loopExits = mutable.ListBuffer(whileContextDef.getLoopExitNamesList.asScala.map(name => {
+    val loopExits = mutable.Set(whileContextDef.getLoopExitNamesList.asScala.map(name => {
       graph.getOutputByName(Op.prependNameScope(importScope, name))
     }): _*)
     val (values, externalValues) = Context.fromValuesDef(whileContextDef.getValuesDef, importScope)

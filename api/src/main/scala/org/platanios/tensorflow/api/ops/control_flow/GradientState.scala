@@ -225,9 +225,10 @@ private[ops] class GradientState private[control_flow] () {
           loopExits ++= gradientLoopState.unusedExits
       })
       // We need to include enter ops in the back-propagation too, for higher-order gradients.
-      gradientLoopState.forwardContext.loopEnters.filter(e => pendingCounts.getOrElse(e.op, 0) == 0).foreach(enter => {
-        pendingCounts(enter.op) = 1
-      })
+      gradientLoopState.forwardContext.loopEnters
+          .map(_.op)
+          .filter(e => pendingCounts.getOrElse(e, 0) == 0)
+          .foreach(e => pendingCounts(e) = 1)
     })
     loopExits.toSet
   }
