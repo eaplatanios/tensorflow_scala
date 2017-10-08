@@ -15,6 +15,7 @@
 
 package org.platanios.tensorflow.api.ops.control_flow
 
+import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.{InvalidDataTypeException, UnimplementedException}
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
@@ -243,10 +244,10 @@ private[api] object ControlFlow extends ControlFlow {
   }
 
   /** Returns `true` if and only if the provided op is a switch op. */
-  private[control_flow] def isSwitch(op: Op): Boolean = op.opType == "Switch" || op.opType == "RefSwitch"
+  private[ops] def isSwitch(op: Op): Boolean = op.opType == "Switch" || op.opType == "RefSwitch"
 
   /** Returns `true` if and only if the provided op is a loop invariant. */
-  private[control_flow] def isLoopConstantEnter(op: Op): Boolean = {
+  private[ops] def isLoopConstantEnter(op: Op): Boolean = {
     (op.opType == "Enter" || op.opType == "RefEnter") && op.booleanAttribute("is_constant")
   }
 
@@ -707,13 +708,29 @@ private[api] object ControlFlow extends ControlFlow {
         case Some(opContext: CondContext) =>
           val b = opContext.branch.value
           val goodGradient = outputGradients(b)
-          val zeroGradient = outputGradients(1 - b)
+          var zeroGradient = outputGradients(1 - b)
           // At this point, we have created `zeroGradient` guarded by the right switch. Unfortunately, we may still get
-          // `null` here for non-trainable data types.
-          if (zeroGradient == null)
-            Seq(null, null)
-          else
-            Seq(merge(Seq(goodGradient, zeroGradient), name = "CondGradient")._1, null)
+          // `null` here for non-trainable data types or for some types of ops (e.g., `ResourceGather`) created within
+          // only one branch.
+          // TODO: !!! This may be inefficient. What if one branch of the switch is not differentiable?
+          if (zeroGradient == null) {
+            val zeros = goodGradient match {
+              case o: Output => Basic.zerosLike(o)
+              case o: OutputIndexedSlices =>
+                OutputIndexedSlices(
+                  Tensor(o.indices.dataType),
+                  Tensor.allocate(o.values.dataType, Shape(0, o.values.shape(1))),
+                  o.denseShape)
+              case o: SparseOutput =>
+                SparseOutput(
+                  Tensor(o.indices.dataType),
+                  Tensor(o.values.dataType, Shape(0, o.values.shape(1))),
+                  o.denseShape)
+            }
+            zeroGradient = opContext.branch.other.selectSwitchResult(
+              ControlFlow.colocatedSwitch(zeros, opContext.predicate))
+          }
+          Seq(merge(Seq(goodGradient, zeroGradient), name = "CondGradient")._1, null)
         case Some(_: WhileLoopContext) =>
           gradientContext.flatMap(_.gradientLoopState).flatMap(_.switchMap.get(op)) match {
             case Some(mergeGradient) =>

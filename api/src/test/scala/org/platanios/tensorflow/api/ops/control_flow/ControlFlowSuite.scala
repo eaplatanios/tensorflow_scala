@@ -368,10 +368,9 @@ class ControlFlowSuite extends JUnitSuite with Matchers {
   }
 
   @Test def testWhileLoopWithOutputIndexedSlicesGradient(): Unit = withNewGraph {
-    val embeddingMatrix = Variable.getVariable(
-      "EmbeddingMatrix", shape = Shape(5, 5), initializer = OnesInitializer)
+    val embeddingMatrix = Variable.getVariable("EmbeddingMatrix", shape = Shape(5, 5), initializer = OnesInitializer)
     val p = (v: (Output, Output)) => v._1 < 5
-    val b = (v: (Output, Output)) => (v._1 + 1, v._2 + Embedding.embeddingLookup(embeddingMatrix.value * 2.0f, 0).sum())
+    val b = (v: (Output, Output)) => (v._1 + 1, v._2 + 2.0f * Embedding.embeddingLookup(embeddingMatrix, 0).sum())
     val (_, loss) = ControlFlow.whileLoop(p, b, (Basic.constant(0, INT32), Basic.constant(0.0f)))
     val optimizer = GradientDescent(0.1)
     val trainOp = optimizer.minimize(loss)
@@ -392,12 +391,12 @@ class ControlFlowSuite extends JUnitSuite with Matchers {
         val nextL = ControlFlow.cond(
           Math.equal(i, 3),
           () => Math.square(l),
-          () => l + Embedding.embeddingLookup(embeddingMatrix.value, 0).sum())
+          () => l + Embedding.embeddingLookup(embeddingMatrix, 0).sum())
         (nextI, nextL)
     }
     val (_, loss) = ControlFlow.whileLoop(p, b, (Basic.constant(0, INT32), Basic.constant(0.0f)))
     val dynamicGradients = Gradients.gradients(Seq(loss), Seq(embeddingMatrix.handle))(0).toOutput
-    val embedding = Embedding.embeddingLookup(embeddingMatrix.value, 0)
+    val embedding = Embedding.embeddingLookup(embeddingMatrix, 0)
     val embeddingSum = embedding.sum()
     val staticLoss = (3 * embeddingSum).square + embeddingSum
     val staticGradients = Gradients.gradients(Seq(staticLoss), Seq(embeddingMatrix.handle))(0).toOutput
