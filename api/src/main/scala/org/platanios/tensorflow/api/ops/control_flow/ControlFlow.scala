@@ -61,7 +61,7 @@ private[api] trait ControlFlow {
     * @param  name   Name for the created op (used mainly as a name scope).
     * @return Created op output, which in this case is the result of a `noOp`.
     */
-  def group(inputs: Set[Op], name: String = "Group"): Op = {
+  def group(inputs: Set[Op], name: String = "Group"): Op = Op.createWith(Op.getGraphFromInputs(inputs)) {
     val inputsByDevice = inputs.groupBy(_.device)
     if (inputsByDevice.size == 1) {
       // 1-level tree. The root node is the returned no-op node.
