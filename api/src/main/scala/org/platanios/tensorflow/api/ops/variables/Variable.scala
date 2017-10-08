@@ -294,8 +294,10 @@ private[api] object Variable {
     * TODO: Add example.
     *
     * @param  name          Variable name.
-    * @param  dataType      Variable data type.
-    * @param  shape         Variable shape.
+    * @param  dataType      Data type for the value of the created variable. If not provided, its value is inferred from
+    *                       the provided initial value. If it cannot be inferred, then it will default to `FLOAT32`.
+    * @param  shape         Shape for the value of the created variable. If `null`, an attempt will be made to infer the
+    *                       shape of the variable from the provided initializer.
     * @param  initializer   Variable initializer. If `initializer` is `null` (the default), the default initializer
     *                       passed in the constructor is used. If that one is `null` too, then we use a new
     *                       `glorotUniformInitializer`. The initializer will be called for each part of the partitioned
@@ -314,7 +316,7 @@ private[api] object Variable {
     * @return Requested variable.
     */
   private[api] def getVariable(
-      name: String, dataType: DataType = FLOAT32, shape: Shape = null, initializer: Initializer = null,
+      name: String, dataType: DataType = null, shape: Shape = null, initializer: Initializer = null,
       regularizer: Regularizer = null, trainable: Boolean = true, reuse: Reuse = ReuseOrCreateNew,
       collections: Set[Graph.Key[Variable]] = Set.empty, cachingDevice: OpSpecification => String = null): Variable = {
     Op.currentVariableScope.getVariable(
@@ -329,8 +331,10 @@ private[api] object Variable {
     * TODO: Add example.
     *
     * @param  name          Variable name.
-    * @param  dataType      Variable data type.
-    * @param  shape         Variable shape.
+    * @param  dataType      Data type for the value of the created variable. If not provided, its value is inferred from
+    *                       the provided initial value. If it cannot be inferred, then it will default to `FLOAT32`.
+    * @param  shape         Shape for the value of the created variable. If `null`, an attempt will be made to infer the
+    *                       shape of the variable from the provided initializer.
     * @param  initializer   Variable initializer. If `initializer` is `null` (the default), the default initializer
     *                       passed in the constructor is used. If that one is `null` too, then we use a new
     *                       `glorotUniformInitializer`. The initializer will be called for each part of the partitioned
@@ -353,7 +357,7 @@ private[api] object Variable {
     * @return Requested variable.
     */
   private[api] def getPartitionedVariable(
-      name: String, dataType: DataType = FLOAT32, shape: Shape = null, initializer: Initializer = null,
+      name: String, dataType: DataType = null, shape: Shape = null, initializer: Initializer = null,
       regularizer: Regularizer = null, partitioner: Partitioner = null, trainable: Boolean = true,
       reuse: Reuse = ReuseOrCreateNew, collections: Set[Graph.Key[Variable]] = Set.empty,
       cachingDevice: OpSpecification => String = null): PartitionedVariable = {
@@ -371,8 +375,10 @@ private[api] object Variable {
     * to the documentation of [[getVariable]] for more details.
     *
     * @param  name          Variable name.
-    * @param  dataType      Variable data type.
-    * @param  shape         Variable shape.
+    * @param  dataType      Data type for the value of the created variable. If not provided, its value is inferred from
+    *                       the provided initial value. If it cannot be inferred, then it will default to `FLOAT32`.
+    * @param  shape         Shape for the value of the created variable. If `null`, an attempt will be made to infer the
+    *                       shape of the variable from the provided initializer.
     * @param  initializer   Variable initializer. If `initializer` is `null` (the default), the default initializer
     *                       passed in the constructor is used. If that one is `null` too, then we use a new
     *                       `glorotUniformInitializer`. The initializer will be called for each part of the partitioned
@@ -388,7 +394,7 @@ private[api] object Variable {
     * @return Requested variable.
     */
   private[api] def getLocalVariable(
-      name: String, dataType: DataType = FLOAT32, shape: Shape = null, initializer: Initializer = null,
+      name: String, dataType: DataType = null, shape: Shape = null, initializer: Initializer = null,
       regularizer: Regularizer = null, reuse: Reuse = ReuseOrCreateNew,
       collections: Set[Graph.Key[Variable]] = Set.empty, cachingDevice: OpSpecification => String = null): Variable = {
     Op.currentVariableScope.getVariable(
@@ -405,8 +411,10 @@ private[api] object Variable {
     * to the documentation of [[getPartitionedVariable]] for more details.
     *
     * @param  name          Variable name.
-    * @param  dataType      Variable data type.
-    * @param  shape         Variable shape.
+    * @param  dataType      Data type for the value of the created variable. If not provided, its value is inferred from
+    *                       the provided initial value. If it cannot be inferred, then it will default to `FLOAT32`.
+    * @param  shape         Shape for the value of the created variable. If `null`, an attempt will be made to infer the
+    *                       shape of the variable from the provided initializer.
     * @param  initializer   Variable initializer. If `initializer` is `null` (the default), the default initializer
     *                       passed in the constructor is used. If that one is `null` too, then we use a new
     *                       `glorotUniformInitializer`. The initializer will be called for each part of the partitioned
@@ -426,7 +434,7 @@ private[api] object Variable {
     * @return Requested variable.
     */
   private[api] def getLocalPartitionedVariable(
-      name: String, dataType: DataType = FLOAT32, shape: Shape, initializer: Initializer = null,
+      name: String, dataType: DataType = null, shape: Shape, initializer: Initializer = null,
       regularizer: Regularizer = null, partitioner: Partitioner = null, reuse: Reuse = ReuseOrCreateNew,
       collections: Set[Graph.Key[Variable]] = Set.empty,
       cachingDevice: OpSpecification => String = null): PartitionedVariable = {

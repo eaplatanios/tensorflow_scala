@@ -73,7 +73,7 @@ package object variables {
     }
 
     def variable(
-        name: String, dataType: DataType = FLOAT32, shape: Shape = null, initializer: VariableInitializer = null,
+        name: String, dataType: DataType = null, shape: Shape = null, initializer: VariableInitializer = null,
         regularizer: VariableRegularizer = null, trainable: Boolean = true, reuse: Reuse = ReuseOrCreateNew,
         collections: Set[Graph.Key[Variable]] = Set.empty,
         cachingDevice: OpSpecification => String = null): Variable = {
@@ -82,7 +82,7 @@ package object variables {
     }
 
     def partitionedVariable(
-        name: String, dataType: DataType = FLOAT32, shape: Shape = null, initializer: VariableInitializer = null,
+        name: String, dataType: DataType = null, shape: Shape = null, initializer: VariableInitializer = null,
         regularizer: VariableRegularizer = null, partitioner: VariablePartitioner, trainable: Boolean = true,
         reuse: Reuse = ReuseOrCreateNew, collections: Set[Graph.Key[Variable]] = Set.empty,
         cachingDevice: OpSpecification => String = null): PartitionedVariable = {
@@ -91,7 +91,7 @@ package object variables {
     }
 
     def localVariable(
-        name: String, dataType: DataType = FLOAT32, shape: Shape = null, initializer: VariableInitializer = null,
+        name: String, dataType: DataType = null, shape: Shape = null, initializer: VariableInitializer = null,
         regularizer: VariableRegularizer = null, reuse: Reuse = ReuseOrCreateNew,
         collections: Set[Graph.Key[Variable]] = Set.empty,
         cachingDevice: OpSpecification => String = null): Variable = {
@@ -99,7 +99,7 @@ package object variables {
     }
 
     def localPartitionedVariable(
-        name: String, dataType: DataType = FLOAT32, shape: Shape = null, initializer: VariableInitializer = null,
+        name: String, dataType: DataType = null, shape: Shape = null, initializer: VariableInitializer = null,
         regularizer: VariableRegularizer = null, partitioner: VariablePartitioner, reuse: Reuse = ReuseOrCreateNew,
         collections: Set[Graph.Key[Variable]] = Set.empty,
         cachingDevice: OpSpecification => String = null): PartitionedVariable = {
