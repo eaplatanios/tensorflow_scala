@@ -89,7 +89,7 @@ case class GradientDescent private[api](
         useLocking = useLocking,
         useNesterov = useNesterov)
     else
-      variable.assignScatterSub(gradient.indices, -gradient.values * getLearningRate(variable, iteration)).op
+      variable.assignScatterSub(gradient.indices, gradient.values * getLearningRate(variable, iteration)).op
   }
 
   override def applySparseDuplicateIndices(
