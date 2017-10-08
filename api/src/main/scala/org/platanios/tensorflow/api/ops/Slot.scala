@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.ops.variables._
-import org.platanios.tensorflow.api.types.DataType
+import org.platanios.tensorflow.api.types.{DataType, FLOAT32}
 
 /** Contains helper functions for creating slots.
   *
@@ -64,12 +64,13 @@ private[api] object Slot {
     * @return Created slot variable.
     */
   private[ops] def create(
-      primary: Variable, initializer: Initializer, name: String, dataType: DataType, shape: Shape = null,
+      primary: Variable, initializer: Initializer, name: String, dataType: DataType = null, shape: Shape = null,
       colocateWithPrimary: Boolean = true): Variable = {
     // Scope the slot name in the namespace of the primary variable. Set "primary.op.name + '/' + name" as the default
     // name, so that the scope name of the slot variable user can be shared when reuse is 'true'. Meanwhile, when reuse
     // is 'false' and the same name has been previously used, the scope name will be made unique by appending an integer
     // to it.
+    val inferredDataType = if (dataType == null) Option(initializer.dataType).getOrElse(FLOAT32) else dataType
     val inferredShape = {
       if (shape != null)
         shape
@@ -80,9 +81,9 @@ private[api] object Slot {
     }
     VariableScope.createWithVariableScope(s"${primary.op.name}/$name", isDefaultName = true) {
       if (colocateWithPrimary)
-        Op.colocateWith(Set[Op](primary.op))(createSlotVariable(primary, initializer, "", dataType, inferredShape))
+        Op.colocateWith(Set(primary.op))(createSlotVariable(primary, initializer, "", inferredDataType, inferredShape))
       else
-        createSlotVariable(primary, initializer, "", dataType, inferredShape)
+        createSlotVariable(primary, initializer, "", inferredDataType, inferredShape)
     }
   }
 

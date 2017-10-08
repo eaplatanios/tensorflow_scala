@@ -439,7 +439,7 @@ private[api] object Variable {
     *
     * @param  initializer   Initializer that creates the tensor that will be used as the initial value of this variable.
     * @param  dataType      Data type for the value of the created variable. If not provided, its value is inferred from
-    *                       the provided initial value.
+    *                       the provided initial value. If it cannot be inferred, then it will default to `FLOAT32`.
     * @param  shape         Shape for the value of the created variable. If `null`, an attempt will be made to infer the
     *                       shape of the variable from the provided initializer.
     * @param  trainable     If `true`, the default, the variable is added to the graph collection
@@ -455,9 +455,10 @@ private[api] object Variable {
     * @return Created variable.
     */
   private[variables] def apply(
-      initializer: Initializer, dataType: DataType = FLOAT32, shape: Shape = null, trainable: Boolean = true,
+      initializer: Initializer, dataType: DataType = null, shape: Shape = null, trainable: Boolean = true,
       collections: Set[Graph.Key[Variable]] = Set.empty, cachingDevice: OpSpecification => String = null,
       name: String = "Variable"): Variable = {
+    val inferredDataType = if (dataType == null) Option(initializer.dataType).getOrElse(FLOAT32) else dataType
     val inferredShape = if (shape == null) initializer.shape else shape
     if (inferredShape == null)
       throw ShapeMismatchException(
@@ -465,16 +466,16 @@ private[api] object Variable {
     Op.createWith(nameScope = name, controlDependencies = Set.empty[Op]) {
       val nameScope = Op.currentNameScope
       val trueName = Op.convertNameScopeToName(nameScope)
-      val variableHandle = variable(inferredShape, dataType, sharedName = trueName, name = nameScope)
+      val variableHandle = variable(inferredShape, inferredDataType, sharedName = trueName, name = nameScope)
       val initialValue = Op.createWith(nameScope = "Initializer", colocationOps = Set[Op](variableHandle.op)) {
-        initializer(dataType, inferredShape, null)
+        initializer(inferredDataType, inferredShape, null)
       }
       val initializeOp = assign(variableHandle, initialValue, name = "InitializationAssign")
       val cachedValue = Op.createWith(nameScope = "Read", colocationOps = Set[Op](variableHandle.op)) {
         val cachedValueOp = {
           if (cachingDevice != null) {
             // Manually assign reads to the handle's device to avoid log messages
-            val valueOp = Op.createWith(device = variableHandle.device)(readVariable(variableHandle, dataType))
+            val valueOp = Op.createWith(device = variableHandle.device)(readVariable(variableHandle, inferredDataType))
             // Variables may be created in a "createWith(device = ...)" block or a "createWith(colocationOps = ...)"
             // block. At the same time, users would expect the caching device to be independent of this context, and/or
             // would not expect the current device context to be merged with the caching device specification.
@@ -488,7 +489,7 @@ private[api] object Variable {
         cachedValueOp
       }
 
-      val createdVariable = Variable(dataType, variableHandle, initializeOp, cachedValue)
+      val createdVariable = Variable(inferredDataType, variableHandle, initializeOp, cachedValue)
       var effectiveCollections = collections
       if (effectiveCollections.isEmpty)
         effectiveCollections += Graph.Keys.GLOBAL_VARIABLES

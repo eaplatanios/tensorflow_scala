@@ -30,6 +30,10 @@ import org.platanios.tensorflow.api.types.DataType
   * @author Emmanouil Antonios Platanios
   */
 trait Initializer {
+  /** Data type of the values produced by this initializer. If `null`, then the initializer may produce values of any
+    * data type. */
+  val dataType: DataType = null
+
   /** Shape of the values produced by this initializer. If `null`, then the initializer may produce values of any
     * shape. */
   val shape: Shape = null
@@ -53,6 +57,7 @@ trait Initializer {
 
 private[variables] case class InitializerWithPartitionInformation(
     initializer: Initializer, partitionInfo: PartitionInformation) extends Initializer {
+  override val dataType: DataType = initializer.dataType
   override val shape: Shape = initializer.shape
 
   @throws[ShapeMismatchException]
@@ -82,6 +87,7 @@ object OnesInitializer extends Initializer {
 
 /** Initializer that sets the value of the variable to the provided `value`. */
 case class ConstantInitializer(value: Tensor) extends Initializer {
+  override val dataType: DataType = value.dataType
   override val shape: Shape = value.shape
 
   @throws[ShapeMismatchException]
@@ -92,6 +98,7 @@ case class ConstantInitializer(value: Tensor) extends Initializer {
 
 /** Initializer that sets the value of the variable to the provided `value`. */
 case class DynamicConstantInitializer(value: Output) extends Initializer {
+  override val dataType: DataType = value.dataType
   override val shape: Shape = value.shape
 
   @throws[ShapeMismatchException]
