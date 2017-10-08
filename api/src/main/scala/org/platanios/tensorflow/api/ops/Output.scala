@@ -186,9 +186,10 @@ final case class Output private(op: Op, index: Int) extends OutputLike {
     *
     * @param  shape Shape to use.
     */
-  def setShape(shape: Shape): Unit = using(op.graph.reference) { r =>
-    NativeOp.setShape(
-      r.nativeHandle, op.nativeHandle, index, if (shape.rank != -1) shape.asArray.map(_.toLong) else null, shape.rank)
+  def setShape(shape: Shape): Unit = if (shape.rank != -1) {
+    using(op.graph.reference) { r =>
+      NativeOp.setShape(r.nativeHandle, op.nativeHandle, index, shape.asArray.map(_.toLong), shape.rank)
+    }
   }
 
   /** Evaluates this op output.
