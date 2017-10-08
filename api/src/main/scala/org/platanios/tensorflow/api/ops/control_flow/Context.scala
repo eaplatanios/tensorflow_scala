@@ -153,15 +153,27 @@ abstract class Context protected (
     *                     names to allow for easy import into new name scopes.
     * @return Constructed [[ValuesDef]].
     */
-  def toValuesDef(exportScope: String): ValuesDef = {
-    val valuesDefBuilder = ValuesDef.newBuilder()
-    values.foreach(v => valuesDefBuilder.addValues(Op.stripNameScope(exportScope, v)))
-    externalValues.foreach(p => valuesDefBuilder.putExternalValues(p._1, Op.stripNameScope(exportScope, p._2.name)))
-    valuesDefBuilder.build()
-  }
+  def toValuesDef(exportScope: String = null): ValuesDef = Context.toValuesDef(values, externalValues, exportScope)
 }
 
 object Context {
+  /** Constructs and returns a [[ValuesDef]] object that represents the provided values.
+    *
+    * @param  exportScope Optional string specifying the name scope to remove. Only the ops within this name scope will
+    *                     be included in the resulting ProtoBuf object and the export scope will be stripped from their
+    *                     names to allow for easy import into new name scopes.
+    * @return Constructed [[ValuesDef]].
+    */
+  def toValuesDef(
+      values: mutable.Set[String], externalValues: mutable.Map[String, Output],
+      exportScope: String = null): ValuesDef = {
+    val valuesDefBuilder = ValuesDef.newBuilder()
+    values.foreach(v => valuesDefBuilder.addValues(Op.stripNameScope(exportScope, v)))
+    externalValues.foreach(p => valuesDefBuilder.putExternalValues(
+      Op.stripNameScope(exportScope, p._1), Op.stripNameScope(exportScope, p._2.name)))
+    valuesDefBuilder.build()
+  }
+
   /** Returns a set of values and a map of external values loaded from the provided [[ValuesDef]] object.
     *
     * @param  valuesDef   Serialized control flow context object.
