@@ -201,7 +201,7 @@ object Fetchable {
   }
 
   // This also covers `OutputIndexedSlices` and `SparseOutput` as they are case classes (i.e., products).
-  implicit def productConstructor[P <: Product, L <: HList, LO <: HList, R](implicit
+  implicit def productConstructor[P <: Product, R <: Product, L <: HList, LO <: HList](implicit
       gen: Generic.Aux[P, L],
       fetchableL: Aux[L, LO],
       tupler: Tupler.Aux[LO, R]

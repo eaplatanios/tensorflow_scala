@@ -249,8 +249,9 @@ class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T] private[learn] (
       input: InferInput,
       hooks: Seq[Hook] = Seq.empty,
       checkpointPath: Path = null)(implicit
-      evFetchableI: Fetchable.Aux[I, ModelInferenceOutput],
       evFetchableIO: Fetchable.Aux[IO, IT],
+      evFetchableI: Fetchable.Aux[I, ModelInferenceOutput],
+      evFetchableIIO: Fetchable.Aux[(IO, I), (IT, ModelInferenceOutput)],
       ev: Estimator.SupportedInferInput[InferInput, InferOutput, IT, IO, ID, IS, ModelInferenceOutput]
   ): InferOutput = {
     val _checkpointPath = Option(checkpointPath).orElse(Saver.latestCheckpoint(workingDir.get))

@@ -34,6 +34,7 @@ scalacOptions in ThisBuild ++= Seq(
   "-language:implicitConversions",
   "-unchecked",
   // "-Xfatal-warnings",
+  // "-Xlog-implicits",
   "-Yno-adapted-args",
   "-Ywarn-dead-code",
   // "-Ywarn-numeric-widen",

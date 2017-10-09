@@ -1,6 +1,8 @@
 -Dfile.encoding=UTF8
 -Xms1G
 -Xmx6G
+-Xms6G
+-Xss2M
 -XX:ReservedCodeCacheSize=256m
 -XX:MaxMetaspaceSize=512m
 -XX:+TieredCompilation
