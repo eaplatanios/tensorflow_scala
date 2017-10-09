@@ -1,6 +1,7 @@
 # TensorFlow API for Scala
 
 [![Build Status](https://travis-ci.com/eaplatanios/tensorflow_scala.svg?token=VBPxqvcGXTuwbjkVyN68&branch=master)](https://travis-ci.com/eaplatanios/tensorflow_scala)
+[![Chat Room](https://badges.gitter.im/eaplatanios/tensorflow_scala.svg)](https://gitter.im/eaplatanios/tensorflow_scala?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 This library is a Scala API for [https://www.tensorflow.org](https://www.tensorflow.org). It attempts to provide most of 
 the functionality provided by the official Python API, while at the same type being strongly-typed and adding some new 
