@@ -1,5 +1,7 @@
 # TensorFlow API for Scala
 
+[![Join the chat at https://gitter.im/eaplatanios/tensorflow_scala](https://badges.gitter.im/eaplatanios/tensorflow_scala.svg)](https://gitter.im/eaplatanios/tensorflow_scala?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 [![Build Status](https://travis-ci.com/eaplatanios/tensorflow_scala.svg?token=VBPxqvcGXTuwbjkVyN68&branch=master)](https://travis-ci.com/eaplatanios/tensorflow_scala)
 [![Chat Room](https://badges.gitter.im/eaplatanios/tensorflow_scala.svg)](https://gitter.im/eaplatanios/tensorflow_scala?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
