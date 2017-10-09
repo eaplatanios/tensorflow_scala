@@ -55,8 +55,8 @@ object TensorFlowNativePackage extends AutoPlugin {
         "Git repository branch from which to obtain the sources of the native TensorFlow library, if it is to be " +
             "compiled.")
 
-    val nativeCrossCompile: TaskKey[Map[Platform, (Set[File], Set[File])]] =
-      taskKey[Map[Platform, (Set[File], Set[File])]]("###")
+    val nativeCrossCompile: TaskKey[Map[Platform, ((File, Set[File]), Set[File])]] =
+      taskKey[Map[Platform, ((File, Set[File]), Set[File])]]("###")
   }
 
   import autoImport._
@@ -134,7 +134,8 @@ object TensorFlowNativePackage extends AutoPlugin {
         if (exitCode.getOrElse(0) != 0)
           sys.error(s"An error occurred while cross-compiling for '$platform'. Exit code: $exitCode.")
         platform -> (
-            (platformTargetDir / "lib" ** ("*.so" | "*.dylib" | "*.dll")).get.filter(_.isFile).toSet,
+            (platformTargetDir / "lib",
+                (platformTargetDir / "lib" ** ("*.so" | "*.dylib" | "*.dll")).get.filter(_.isFile).toSet),
             (platformTargetDir / "bin" ** ("*.so" | "*.dylib" | "*.dll")).get.filter(_.isFile).toSet)
       }).toMap
     },
@@ -162,7 +163,7 @@ object TensorFlowNativePackage extends AutoPlugin {
   //   resources
   // }
 
-  def jniLibraries(libraries: Map[Platform, (Set[File], Set[File])], resourceManaged: File): Seq[File] = {
+  def jniLibraries(libraries: Map[Platform, ((File, Set[File]), Set[File])], resourceManaged: File): Seq[File] = {
     val jniLibraries: Seq[(File, String)] = libraries.flatMap { case (platform, (_, jniLibs)) =>
       jniLibs.map(l => l -> s"/native/${platform.name}/${l.name}")
     } toSeq
@@ -177,9 +178,12 @@ object TensorFlowNativePackage extends AutoPlugin {
     resources
   }
 
-  def nativeLibToJar(platform: Platform, file: File, tfVersion: String, logger: ProcessLogger): File = {
-    val jarPath = Paths.get(file.getPath).resolveSibling(s"tensorflow-native-${platform.name}.jar").toString
-    Process("jar" :: "cf" :: jarPath :: "-C" :: file.getParent :: file.getName :: Nil) ! logger
+  def nativeLibsToJar(
+      platform: Platform, dir: File, files: Set[File], tfVersion: String, logger: ProcessLogger): File = {
+    val dirPath = Paths.get(dir.getPath)
+    val jarPath = dirPath.resolveSibling(s"tensorflow-native-${platform.name}.jar").toString
+    val filePaths = files.map(f => dirPath.relativize(Paths.get(f.getPath))).toList
+    Process("jar" :: "cf" :: jarPath :: "-C" :: dir.getPath :: Nil ++ filePaths.map(_.toString)) ! logger
     new File(jarPath)
   }
 

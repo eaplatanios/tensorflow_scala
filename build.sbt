@@ -76,10 +76,9 @@ lazy val crossCompilationPackagingSettings = Seq(
       (resourceManaged in Compile in jni).value)
   }.taskValue,
   packagedArtifacts ++= {
-    (nativeCrossCompile in CrossCompile in jni).value.flatMap { case (platform, (nativeLibs, _)) =>
-      nativeLibs.map(
-        Artifact("tensorflow", platform.tag) ->
-            nativeLibToJar(platform, _, (tensorFlowBinaryVersion in CrossCompile in jni).value, streams.value.log))
+    (nativeCrossCompile in CrossCompile in jni).value.map { case (platform, ((dir, nativeLibs), _)) =>
+      Artifact("tensorflow", platform.tag) -> nativeLibsToJar(
+        platform, dir, nativeLibs, (tensorFlowBinaryVersion in CrossCompile in jni).value, streams.value.log)
     }
   }
 )
