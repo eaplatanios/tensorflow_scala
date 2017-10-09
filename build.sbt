@@ -241,7 +241,8 @@ lazy val site = (project in file("./site"))
       micrositeGithubOwner := "eaplatanios",
       micrositeGithubRepo := "tensorflow_scala",
       micrositePushSiteWith := GHPagesPlugin,
-      micrositeGitterChannel := false,
+      micrositeGitterChannel := true,
+      micrositeGitterChannelUrl := "eaplatanios/tensorflow_scala",
       micrositeHighlightTheme := "hybrid",
       micrositeImgDirectory := (resourceDirectory in Compile).value / "site" / "img",
       micrositeCssDirectory := (resourceDirectory in Compile).value / "site" / "css",
@@ -291,6 +292,7 @@ lazy val publishSettings = Seq(
     s"v${if (releaseUseGlobalVersion.value) buildVersionValue else versionValue}"
   },
   releaseVersionBump := sbtrelease.Version.Bump.Next,
+  releaseUseGlobalVersion := true,
   releasePublishArtifactsAction := PgpKeys.publishSigned.value,
   releaseVcs := Vcs.detect(baseDirectory.value),
   releaseVcsSign := true,
@@ -302,7 +304,6 @@ lazy val publishSettings = Seq(
   publishMavenStyle := true,
   // publishArtifact in Test := false,
   pomIncludeRepository := Function.const(false),
-  isSnapshot := version.value.contains("-SNAPSHOT"),
   publishTo := Some(
     if (isSnapshot.value)
       Opts.resolver.sonatypeSnapshots

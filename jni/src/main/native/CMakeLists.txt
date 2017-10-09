@@ -38,6 +38,7 @@ file(GLOB JNI_LIB_SRC
   "*.cc"
   "generated/*.cc"
   "include/tensorflow/c/*.cc"
+  "include/tensorflow/core/distributed_runtime/*.cc"
 )
 
 file(GLOB OP_LIB_SRC
