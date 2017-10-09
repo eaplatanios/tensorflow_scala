@@ -183,7 +183,7 @@ object TensorFlowNativePackage extends AutoPlugin {
     val dirPath = Paths.get(dir.getPath)
     val jarPath = dirPath.resolveSibling(s"tensorflow-native-${platform.name}.jar").toString
     val filePaths = files.map(f => dirPath.relativize(Paths.get(f.getPath))).toList
-    Process("jar" :: "cf" :: jarPath :: "-C" :: dir.getPath :: Nil ++ filePaths.map(_.toString)) ! logger
+    Process("jar" :: "cf" :: jarPath :: Nil ++ filePaths.flatMap("-C" :: dir.getPath :: _.toString :: Nil)) ! logger
     new File(jarPath)
   }
 
