@@ -163,7 +163,7 @@ object DataType {
 
   /** Set of all integer data types. */
   val integerDataTypes: Set[DataType] = {
-    Set(INT8, INT16, INT32, INT64, UINT8, UINT16, QINT8, QINT16, QINT32, QUINT8, QUINT16)
+    Set(INT8, INT16, INT32, INT64, UINT8, UINT16, UINT32, QINT8, QINT16, QINT32, QUINT8, QUINT16)
   }
 
   /** Set of all quantized data types. */
@@ -173,7 +173,7 @@ object DataType {
 
   /** Set of all unsigned data types. */
   val unsignedDataTypes: Set[DataType] = {
-    Set(UINT8, UINT16, QUINT8, QUINT16)
+    Set(UINT8, UINT16, UINT32, QUINT8, QUINT16)
   }
 
   /** Set of all numeric data types. */
@@ -217,6 +217,7 @@ object DataType {
     case INT64.cValue => INT64
     case UINT8.cValue => UINT8
     case UINT16.cValue => UINT16
+    case UINT32.cValue => UINT32
     case QINT8.cValue => QINT8
     case QINT16.cValue => QINT16
     case QINT32.cValue => QINT32
@@ -250,6 +251,7 @@ object DataType {
     case "INT64" => INT64
     case "UINT8" => UINT8
     case "UINT16" => UINT16
+    case "UINT32" => UINT32
     case "QINT8" => QINT8
     case "QINT16" => QINT16
     case "QINT32" => QINT32
@@ -577,6 +579,29 @@ private[api] object UINT16 extends DataType.Aux[UShort] {
     UShort(buffer.getChar(index))
   }
 }
+
+private[api] object UINT32 extends DataType.Aux[Long] {
+  override implicit val supportedType: SupportedType[Long] = longIsSupportedType
+
+  override val name    : String = "UINT32"
+  override val cValue  : Int    = 22
+  override val byteSize: Int    = 4
+  override val priority: Int    = 85
+
+  override def min: ScalaType = 0L
+  override def max: ScalaType = 9223372036854775807L
+
+  private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: Long): Int = {
+    buffer.putInt(index, element.toInt)
+    byteSize
+  }
+
+  private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Long = {
+    buffer.getInt(index).toLong
+  }
+}
+
+// TODO: !!! [TYPES] Add UINT64 support.
 
 private[api] object QINT8 extends DataType.Aux[Byte] {
   override implicit val supportedType: SupportedType[Byte] = byteIsSupportedType

@@ -72,6 +72,7 @@ package object api extends Implicits with Documentation {
   val INT64     : DataType.Aux[Long]    = types.INT64
   val UINT8     : DataType.Aux[UByte]   = types.UINT8
   val UINT16    : DataType.Aux[UShort]  = types.UINT16
+  val UINT32    : DataType.Aux[Long]    = types.UINT32
   val QINT8     : DataType.Aux[Byte]    = types.QINT8
   val QINT16    : DataType.Aux[Short]   = types.QINT16
   val QINT32    : DataType.Aux[Int]     = types.QINT32
