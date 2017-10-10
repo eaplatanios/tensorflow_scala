@@ -59,6 +59,9 @@ package object ops {
 
   private[api] trait API
       extends Basic
+          with Callback
+          with Checks
+          with Clip
           with DataFlow
           with Image
           with Logging

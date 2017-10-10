@@ -16,47 +16,12 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
-import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
-import org.platanios.tensorflow.api.types.{INT32, STRING}
 
 /** Contains functions for constructing ops related to logging.
   *
   * @author Emmanouil Antonios Platanios
   */
 private[api] trait Logging {
-  /** $OpDocLoggingAssert
-    *
-    * @group LoggingOps
-    * @param  condition Condition to assert.
-    * @param  data      Op outputs whose values are printed if `condition` is `false`.
-    * @param  summarize Number of tensor entries to print.
-    * @param  name      Name for the created op.
-    * @return Created op.
-    */
-  def assert(condition: Output, data: Seq[Output], summarize: Int = 3, name: String = "Assert"): Op = {
-    Op.createWithNameScope(name) {
-      if (data.forall(d => d.dataType == STRING || d.dataType == INT32)) {
-        // As a simple heuristic, we assume that STRING and INT32 tensors are on host memory to avoid the need to use
-        // `cond`. If that is not case, we will pay the price copying the tensor to host memory.
-        Op.Builder("Assert", name)
-            .addInput(condition)
-            .addInputList(data)
-            .setAttribute("summarize", summarize)
-            .build()
-      } else {
-        ControlFlow.cond(
-          condition,
-          () => ControlFlow.noOp(),
-          () => Op.Builder("Assert", name)
-              .addInput(condition)
-              .addInputList(data)
-              .setAttribute("summarize", summarize)
-              .build(),
-          name = "AssertGuard")
-      }
-    }
-  }
-
   /** $OpDocLoggingPrint
     *
     * @group LoggingOps
@@ -93,22 +58,7 @@ private[api] object Logging extends Logging {
     }
   }
 
-  /** @define OpDocLoggingAssert
-    *   The `assert` op asserts that the provided condition is true.
-    *
-    *   If `condition` evaluates to `false`, then the op prints all the op outputs in `data`. `summarize` determines how
-    *   many entries of the tensors to print.
-    *
-    *   Note that to ensure that `assert` executes, one usually attaches it as a dependency:
-    *   {{{
-    *     // Ensure maximum element of x is smaller or equal to 1.
-    *     val assertOp = tf.assert(tf.lessEqual(tf.max(x), 1.0), Seq(x))
-    *     Op.createWith(controlDependencies = Set(assertOp)) {
-    *       ... code using x ...
-    *     }
-    *   }}}
-    *
-    * @define OpDocLoggingPrint
+  /** @define OpDocLoggingPrint
     *   The `print` op prints a list of tensors.
     *
     *   The created op returns `input` as its output (i.e., it is effectively an identity op) and prints all the op

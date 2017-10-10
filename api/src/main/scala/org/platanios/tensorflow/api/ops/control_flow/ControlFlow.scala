@@ -318,7 +318,7 @@ private[api] object ControlFlow extends ControlFlow {
           "More than one condition evaluated as 'true' but 'exclusive = true'. " +
               s"Conditions: (${predicates.map(_.name).mkString(", ")}), Values: ")),
         stacked)
-    Logging.assert(atMostOneTrue, errorData, summarize = predicates.size)
+    Checks.assert(atMostOneTrue, errorData, summarize = predicates.size)
   }
 
   //region Low Level Ops

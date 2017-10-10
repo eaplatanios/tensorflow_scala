@@ -114,10 +114,12 @@ package object api extends Implicits with Documentation {
     * @groupprio ControlFlowOps 200
     * @groupname LoggingOps     Ops / Logging
     * @groupprio LoggingOps     210
+    * @groupname CheckOps       Ops / Checks
+    * @groupprio CheckOps       220
     * @groupname SummaryOps     Ops / Summary
-    * @groupprio SummaryOps     220
+    * @groupprio SummaryOps     230
     * @groupname CallbackOps    Ops / Callback
-    * @groupprio CallbackOps    230
+    * @groupprio CallbackOps    240
     */
   object tf
       extends core.API
@@ -150,10 +152,12 @@ package object api extends Implicits with Documentation {
     * @groupprio ControlFlowOps 200
     * @groupname LoggingOps     Ops / Logging
     * @groupprio LoggingOps     210
+    * @groupname CheckOps       Ops / Checks
+    * @groupprio CheckOps       220
     * @groupname SummaryOps     Ops / Summary
-    * @groupprio SummaryOps     220
+    * @groupprio SummaryOps     230
     * @groupname CallbackOps    Ops / Callback
-    * @groupprio CallbackOps    230
+    * @groupprio CallbackOps    240
     */
   object tfi
       extends core.API
