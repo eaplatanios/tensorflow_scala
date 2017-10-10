@@ -28,6 +28,7 @@ private[api] trait Implicits
         with Embedding.Implicits
         with Math.Implicits
         with NN.Implicits
+        with Sparse.Implicits
         with Statistics.Implicits {
   implicit def dynamicVariableToOpCreationContext(context: DynamicVariable[OpCreationContext]): OpCreationContext = {
     context.value

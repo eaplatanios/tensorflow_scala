@@ -95,32 +95,34 @@ package object api extends Implicits with Documentation {
     * @groupprio BasicOps       100
     * @groupname MathOps        Ops / Math
     * @groupprio MathOps        110
+    * @groupname SparseOps      Ops / Clip
+    * @groupprio SparseOps      120
     * @groupname ClipOps        Ops / Clip
-    * @groupprio ClipOps        120
+    * @groupprio ClipOps        130
     * @groupname NNOps          Ops / NN
-    * @groupprio NNOps          130
+    * @groupprio NNOps          140
     * @groupname StatisticsOps  Ops / Statistics
-    * @groupprio StatisticsOps  140
+    * @groupprio StatisticsOps  150
     * @groupname RandomOps      Ops / Random
-    * @groupprio RandomOps      150
+    * @groupprio RandomOps      160
     * @groupname ParsingOps     Ops / Parsing
-    * @groupprio ParsingOps     160
+    * @groupprio ParsingOps     170
     * @groupname TextOps        Ops / Text
-    * @groupprio TextOps        170
+    * @groupprio TextOps        180
     * @groupname ImageOps       Ops / Image
-    * @groupprio ImageOps       180
+    * @groupprio ImageOps       190
     * @groupname EmbeddingOps   Ops / Embedding
-    * @groupprio EmbeddingOps   190
+    * @groupprio EmbeddingOps   200
     * @groupname ControlFlowOps Ops / Control Flow
-    * @groupprio ControlFlowOps 200
+    * @groupprio ControlFlowOps 210
     * @groupname LoggingOps     Ops / Logging
-    * @groupprio LoggingOps     210
+    * @groupprio LoggingOps     220
     * @groupname CheckOps       Ops / Checks
-    * @groupprio CheckOps       220
+    * @groupprio CheckOps       230
     * @groupname SummaryOps     Ops / Summary
-    * @groupprio SummaryOps     230
+    * @groupprio SummaryOps     240
     * @groupname CallbackOps    Ops / Callback
-    * @groupprio CallbackOps    240
+    * @groupprio CallbackOps    250
     */
   object tf
       extends core.API
@@ -133,32 +135,34 @@ package object api extends Implicits with Documentation {
     * @groupprio BasicOps       100
     * @groupname MathOps        Ops / Math
     * @groupprio MathOps        110
+    * @groupname SparseOps      Ops / Clip
+    * @groupprio SparseOps      120
     * @groupname ClipOps        Ops / Clip
-    * @groupprio ClipOps        120
+    * @groupprio ClipOps        130
     * @groupname NNOps          Ops / NN
-    * @groupprio NNOps          130
+    * @groupprio NNOps          140
     * @groupname StatisticsOps  Ops / Statistics
-    * @groupprio StatisticsOps  140
+    * @groupprio StatisticsOps  150
     * @groupname RandomOps      Ops / Random
-    * @groupprio RandomOps      150
+    * @groupprio RandomOps      160
     * @groupname ParsingOps     Ops / Parsing
-    * @groupprio ParsingOps     160
+    * @groupprio ParsingOps     170
     * @groupname TextOps        Ops / Text
-    * @groupprio TextOps        170
+    * @groupprio TextOps        180
     * @groupname ImageOps       Ops / Image
-    * @groupprio ImageOps       180
+    * @groupprio ImageOps       190
     * @groupname EmbeddingOps   Ops / Embedding
-    * @groupprio EmbeddingOps   190
+    * @groupprio EmbeddingOps   200
     * @groupname ControlFlowOps Ops / Control Flow
-    * @groupprio ControlFlowOps 200
+    * @groupprio ControlFlowOps 210
     * @groupname LoggingOps     Ops / Logging
-    * @groupprio LoggingOps     210
+    * @groupprio LoggingOps     220
     * @groupname CheckOps       Ops / Checks
-    * @groupprio CheckOps       220
+    * @groupprio CheckOps       230
     * @groupname SummaryOps     Ops / Summary
-    * @groupprio SummaryOps     230
+    * @groupprio SummaryOps     240
     * @groupname CallbackOps    Ops / Callback
-    * @groupprio CallbackOps    240
+    * @groupprio CallbackOps    250
     */
   object tfi
       extends core.API
