@@ -30,7 +30,7 @@ import org.platanios.tensorflow.api.ops.OpSpecification
   *
   * @author Emmanouil Antonios Platanios
   */
-class ReplicaDevicePlacer private[utilities](
+class ReplicaDevicePlacer private[distributed](
     psNumTasks: Int, psDevice: String, workerDevice: String, psOpTypes: Set[String],
     psStrategy: (OpSpecification) => Int) {
   def apply(opSpecification: OpSpecification): String = {
@@ -127,7 +127,7 @@ object ReplicaDevicePlacer {
     *
     * @param  psNumTasks Number of parameter server tasks to cycle among.
     */
-  private[utilities] case class RoundRobinDeviceSetter(psNumTasks: Int) {
+  private[distributed] case class RoundRobinDeviceSetter(psNumTasks: Int) {
     private[this] var nextTask: Int = 0
 
     def apply(opSpecification: OpSpecification): Int = {
