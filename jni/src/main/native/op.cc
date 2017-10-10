@@ -614,8 +614,10 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Op_00024_finish(
   TF_Status* status = TF_NewStatus();
   TF_Operation* op = TF_FinishOperation(d, status);
   if (throw_exception_if_not_ok(env, status)) {
+    TF_DeleteStatus(status);
     return reinterpret_cast<jlong>(op);
   }
+  TF_DeleteStatus(status);
   return 0;
 }
 
@@ -773,6 +775,7 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_setAttrTensor(
   TF_Status* status = TF_NewStatus();
   TF_SetAttrTensor(d, cname, t, status);
   throw_exception_if_not_ok(env, status);
+  TF_DeleteStatus(status);
   env->ReleaseStringUTFChars(name, cname);
 }
 
@@ -795,6 +798,7 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_setAttrTensorL
   TF_Status* status = TF_NewStatus();
   TF_SetAttrTensorList(d, cname, tensors.get(), n, status);
   throw_exception_if_not_ok(env, status);
+  TF_DeleteStatus(status);
   env->ReleaseStringUTFChars(name, cname);
 }
 
