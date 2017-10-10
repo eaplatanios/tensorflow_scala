@@ -13,7 +13,7 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.learn.utilities
+package org.platanios.tensorflow.api.core.distributed
 
 import org.platanios.tensorflow.api.config.ClusterConfig
 import org.platanios.tensorflow.api.core.DeviceSpecification

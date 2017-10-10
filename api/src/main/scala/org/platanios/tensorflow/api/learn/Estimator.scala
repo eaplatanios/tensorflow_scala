@@ -18,11 +18,11 @@ package org.platanios.tensorflow.api.learn
 import org.platanios.tensorflow.api.config._
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.{Fetchable, SessionConfig}
+import org.platanios.tensorflow.api.core.distributed.ReplicaDevicePlacer
 import org.platanios.tensorflow.api.core.exception.{CheckpointNotFoundException, InvalidArgumentException}
 import org.platanios.tensorflow.api.io.CheckpointReader
 import org.platanios.tensorflow.api.learn.Estimator.ModelFunction
 import org.platanios.tensorflow.api.learn.hooks._
-import org.platanios.tensorflow.api.learn.utilities.ReplicaDevicePlacer
 import org.platanios.tensorflow.api.ops.{Op, OpSpecification}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.io.{Data, Dataset}
