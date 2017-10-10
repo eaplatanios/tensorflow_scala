@@ -43,7 +43,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Server_00024_newServer
 JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_Server_00024_target(
     JNIEnv* env, jobject object, jlong server_handle) {
   typedef tensorflow::ServerInterface ServerInterface;
-  REQUIRE_HANDLE(server, ServerInterface, server_handle, void());
+  REQUIRE_HANDLE(server, ServerInterface, server_handle, nullptr);
   return env->NewStringUTF(server->target().c_str());
 }
 
