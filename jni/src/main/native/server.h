@@ -17,6 +17,14 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Server_00024_newServer
 
 /*
  * Class:     org_platanios_tensorflow_jni_Server__
+ * Method:    target
+ * Signature: (J)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_Server_00024_target
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Server__
  * Method:    startServer
  * Signature: (J)V
  */

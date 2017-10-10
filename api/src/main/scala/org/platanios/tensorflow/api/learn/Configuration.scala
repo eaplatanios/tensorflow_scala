@@ -145,6 +145,7 @@ import java.nio.file.Path
   */
 case class Configuration(
     workingDir: Option[Path] = None,
+    // TODO: [LEARN] Allow a cluster configuration to be directly provided here.
     sessionConfig: Option[SessionConfig] = None,
     checkpointConfig: CheckpointConfig = TimeBasedCheckpoints(600, 5, 10000),
     summaryConfig: SummaryConfig = StepBasedSummaries(100),

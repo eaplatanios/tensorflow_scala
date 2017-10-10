@@ -17,7 +17,9 @@ package org.platanios.tensorflow.api.core.client
 
 import org.platanios.tensorflow.api.config.ClusterConfig
 import org.platanios.tensorflow.api.core.client.SessionConfig._
+import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
 
+import com.google.protobuf.GeneratedMessageV3
 import org.tensorflow.framework._
 
 import scala.collection.JavaConverters._
@@ -185,7 +187,7 @@ case class SessionConfig(
     gpuForceCompatible: Option[Boolean] = None,
     rpcUseInProcess: Option[Boolean] = None,
     clusterConfig: Option[ClusterConfig] = None
-) {
+) extends ProtoSerializable {
   val configProto: ConfigProto = {
     val configProto = ConfigProto.newBuilder()
     deviceCount.foreach(d => configProto.putAllDeviceCount(d.mapValues(c => new Integer(c)).asJava))
@@ -266,6 +268,18 @@ case class SessionConfig(
     clusterConfig.foreach(c => configProto.setClusterDef(c.toClusterDef))
     configProto.build()
   }
+
+  /** Constructs and returns a [[ConfigProto]] object that represents this session configuration.
+    *
+    * @return Constructed [[ConfigProto]].
+    */
+  def toConfigProto: ConfigProto = configProto
+
+  /** Constructs and returns a [[ConfigProto]] object that represents this session configuration.
+    *
+    * @return Constructed [[ConfigProto]].
+    */
+  override def toProto: GeneratedMessageV3 = toConfigProto
 }
 
 /** Contains helper methods for dealing with [[SessionConfig]]s. */

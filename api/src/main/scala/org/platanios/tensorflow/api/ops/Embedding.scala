@@ -43,7 +43,7 @@ private[ops] trait Embedding {
     *                           will be the same as that of `parameters`, except for the size of the first dimension.
     *                           The first dimension of the result's shape must have the same size as that of the
     *                           argument's. Note that, if `maxNorm` is provided, then norm-based clipping is performed
-    *                           before the `tranformFn` is applied.
+    *                           before the `transformFn` is applied.
     * @param  maxNorm           If provided, embedding values are l2-normalized to this value.
     * @param  name              Name prefix used for the created op.
     * @return Obtained embeddings for the provided `ids`.

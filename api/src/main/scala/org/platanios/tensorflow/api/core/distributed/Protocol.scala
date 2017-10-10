@@ -13,18 +13,17 @@
  * the License.
  */
 
-package org.platanios.tensorflow.jni
+package org.platanios.tensorflow.api.core.distributed
 
-/**
+/** Trait used to represented supported communication protocols for [[Server]]s.
+  *
   * @author Emmanouil Antonios Platanios
   */
-object Server {
-  TensorFlow.load()
+sealed trait Protocol {
+  val name: String
+}
 
-  @native def newServer(serverDef: Array[Byte]): Long
-  @native def target(serverHandle: Long): String
-  @native def startServer(serverHandle: Long): Unit
-  @native def stopServer(serverHandle: Long): Unit
-  @native def joinServer(serverHandle: Long): Unit
-  @native def deleteServer(serverHandle: Long): Unit
+/** GRPC communication protocol. */
+case object GRPC extends Protocol {
+  override val name: String = "grpc"
 }
