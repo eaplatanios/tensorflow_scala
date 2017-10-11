@@ -30,6 +30,7 @@ private[api] trait Documentation
         with NN.Documentation
         with Parsing.Documentation
         with Random.Documentation
+        with Sets.Documentation
         with Sparse.Documentation
         with Statistics.Documentation
         with Summary.Documentation

@@ -53,6 +53,7 @@ package object ops {
   ops.Queue.Gradients
   ops.Parsing.Gradients
   ops.Random.Gradients
+  ops.Sets.Gradients
   ops.TensorArray.Gradients
   ops.control_flow.ControlFlow.Gradients
   ops.variables.Variable.Gradients
@@ -69,6 +70,7 @@ package object ops {
           with NN
           with Parsing
           with Random
+          with Sets
           with Statistics
           with Text
           with Gradients.API
