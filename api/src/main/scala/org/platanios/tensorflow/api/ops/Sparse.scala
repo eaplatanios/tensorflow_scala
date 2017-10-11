@@ -66,6 +66,9 @@ private[api] object Sparse extends Sparse {
   }
 
   case class SparseOps private[ops](sparseOutput: SparseOutput) {
+    def +(other: SparseOutput): SparseOutput = add(other)
+    def +(other: Output): Output = addDense(other)
+
     /** $OpDocSparseSparseAdd
       *
       * @group SparseOps

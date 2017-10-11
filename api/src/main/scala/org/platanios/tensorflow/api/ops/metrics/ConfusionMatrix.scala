@@ -94,7 +94,7 @@ case class ConfusionMatrix(
       val indices = Basic.transpose(Basic.stack(Seq(matchedTargets, matchedPredictions)))
       val confusionMatrix = SparseOutput(indices, matchedWeights, denseShape)
       val zeros = Basic.fill(dataType, denseShape.cast(INT32))(0)
-      confusionMatrix + zeros
+      confusionMatrix.addDense(zeros)
     }
   }
 
