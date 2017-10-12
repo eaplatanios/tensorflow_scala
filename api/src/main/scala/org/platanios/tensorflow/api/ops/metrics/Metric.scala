@@ -15,11 +15,12 @@
 
 package org.platanios.tensorflow.api.ops.metrics
 
-import org.platanios.tensorflow.api.core.Graph.Keys.{OutputCollectionKey, VariableCollectionKey}
 import org.platanios.tensorflow.api.core.{Graph, Shape}
+import org.platanios.tensorflow.api.core.exception.InvalidShapeException
+import org.platanios.tensorflow.api.core.Graph.Keys.{OutputCollectionKey, VariableCollectionKey}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.variables.{Initializer, Variable, ZerosInitializer}
-import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output}
+import org.platanios.tensorflow.api.ops.{Basic, Checks, Math, Op, Output, Sets}
 import org.platanios.tensorflow.api.types.{DataType, FLOAT32, FLOAT64}
 
 /** Trait representing evaluation metrics that support both eager computation, as well as computation in a streaming
@@ -27,32 +28,29 @@ import org.platanios.tensorflow.api.types.{DataType, FLOAT32, FLOAT64}
   *
   * @author Emmanouil Antonios Platanios
   */
-trait Metric {
+trait Metric[T, R] {
   /** Name of this metric. */
   val name: String
 
-  /** Computes the value of this metric for the provided predictions and targets, optionally weighted by `weights`.
+  /** Computes the value of this metric for the provided values, optionally weighted by `weights`.
     *
-    * @param  predictions Tensor containing the predictions.
-    * @param  targets     Tensor containing the desired targets.
-    * @param  weights     Tensor containing weights for the predictions.
-    * @param  name        Name prefix for the created ops.
+    * @param  values  Values.
+    * @param  weights Tensor containing weights for the values.
+    * @param  name    Name prefix for the created ops.
     * @return Created output containing the metric value.
     */
-  def compute(predictions: Output, targets: Output, weights: Output = null, name: String = name): Output
+  def compute(values: T, weights: Output = null, name: String = name): R
 
   /** Creates ops for computing the value of this metric in a streaming fashion. This function returns an op for
     * obtaining the value of this metric, as well as a pair of ops to update its accumulated value and reset it.
     *
-    * @param  predictions Tensor containing the predictions.
-    * @param  targets     Tensor containing the desired targets.
-    * @param  weights     Tensor containing weights for the predictions.
-    * @param  name        Name prefix for the created ops.
+    * @param  values  Values.
+    * @param  weights Tensor containing weights for the predictions.
+    * @param  name    Name prefix for the created ops.
     * @return Tuple containing: (i) output representing the current value of the metric, (ii) op used to reset its
     *         value, and (iii) op used to update its current value and obtain the new value.
     */
-  def streaming(
-      predictions: Output, targets: Output, weights: Output = null, name: String = name): (Output, Op, Output)
+  def streaming(values: T, weights: Output = null, name: String = name): (R, Op, R)
 }
 
 object Metric {
@@ -82,6 +80,114 @@ object Metric {
   private[metrics] def safeScalarDiv(numerator: Output, denominator: Output, name: String = "SafeScalarDiv"): Output = {
     val zeros = Basic.zerosLike(denominator)
     Math.select(Math.equal(denominator, zeros), zeros, Math.divide(numerator, denominator), name)
+  }
+
+  /** Broadcast `weights` to the same shape as `values`.
+    *
+    * This method a version of `weights` following the same broadcasting rules as `multiply(weights, values)`, but
+    * limited to the weights shapes allowed by `weightsAssertBroadcastable`. When computing a weighted average, use this
+    * function to broadcast `weights` before summing them. For example, `sum(w * v) / sum(weightsBroadcast(w, v))`.
+    *
+    * @param  values  Values tensor.
+    * @param  weights Weights tensor.
+    * @param  name    Name prefix for the created ops.
+    * @return Broadcasted weights.
+    */
+  private[metrics] def weightsBroadcast(values: Output, weights: Output, name: String = "BroadcastWeights"): Output = {
+    Op.createWithNameScope(name, Set(values.op, weights.op)) {
+      // Try static check for exact match.
+      if (values.shape.isFullyDefined && weights.shape.isFullyDefined && values.shape.isCompatibleWith(weights.shape)) {
+        weights
+      } else {
+        Op.createWith(controlDependencies = Set(weightsAssertBroadcastable(values, weights))) {
+          Math.multiply(weights, Basic.onesLike(values), name = "Broadcast")
+        }
+      }
+    }
+  }
+
+  /** Asserts that `weights` can be broadcast to the same shape as `values`.
+    *
+    * In the `metrics` package, we support limited weight broadcasting. We let weights be either scalar, or the same
+    * rank as the target values, with each dimension being equal to either 1, or to the corresponding `values`
+    * dimension.
+    *
+    * @param  values  Values tensor.
+    * @param  weights Weights tensor.
+    * @param  name    Name prefix for the created ops.
+    * @return Assertion op for the assertion that `weights` can be broadcast to the same shape as `values`.
+    */
+  private[this] def weightsAssertBroadcastable(
+      values: Output, weights: Output, name: String = "AssertBroadcastable"): Op = {
+    Op.createWithNameScope(name, Set(values.op, weights.op)) {
+      val valuesRank = Basic.rank(values, name = "Values/Rank")
+      val valuesShape = Basic.shape(values, name = "Values/Shape")
+      val valuesRankStatic = Output.constantValue(valuesRank)
+      val valuesShapeStatic = Output.constantValueAsShape(valuesShape)
+      val weightsRank = Basic.rank(weights, name = "Weights/Rank")
+      val weightsShape = Basic.shape(weights, name = "Weights/Shape")
+      val weightsRankStatic = Output.constantValue(weightsRank)
+      val weightsShapeStatic = Output.constantValueAsShape(weightsShape)
+      // Try static checks.
+      (valuesRankStatic, valuesShapeStatic, weightsRankStatic, weightsShapeStatic) match {
+        case (Some(_), _, Some(wR), _) if wR.scalar == 0 => ControlFlow.noOp("StaticScalarCheckSuccess")
+        case (Some(vR), _, Some(wR), _) if vR != wR => throw InvalidShapeException(
+          "'weights' can not be broadcasted to 'values'. " +
+              s"values.rank = ${vR.scalar}, " +
+              s"weights.rank = ${wR.scalar}, " +
+              s"values.shape = ${values.shape}, " +
+              s"weights.shape = ${weights.shape}.")
+        case (_, Some(vS), _, Some(wS)) =>
+          vS.asArray.zip(wS.asArray).zipWithIndex.foreach(
+            s => if (s._1._2 != 1 && s._1._2 != s._1._1)
+              throw InvalidShapeException(
+                s"'weights' can not be broadcasted to 'values'. Mismatch at axis ${s._2}. " +
+                    s"values.shape = $vS, " +
+                    s"weights.shape = $wS."))
+          ControlFlow.noOp("StaticShapeCheckSuccess")
+        case _ =>
+          // Dynamic checks.
+          val isScalar = Math.equal(0, weightsRank, name = "IsScalar")
+          val isValidShape = ControlFlow.cond(
+            isScalar,
+            () => isScalar,
+            () => weightsHaveValidNonScalarShape(valuesRank, valuesShape, weightsRank, weightsShape),
+            name = "IsValidShape")
+          Checks.assert(isValidShape, Seq(
+            "'weights' can not be broadcasted to 'values'. ",
+            "values.shape = ", values.name, valuesShape,
+            "weights.shape = ", weights.name, weightsShape,
+            "isScalar = ", isScalar), name = "IsValidShapeAssertion")
+      }
+    }
+  }
+
+  /** Returns a boolean tensor indicating whether `weightsShape` has valid non-scalar dimensions for broadcasting to
+    * `valuesShape`. */
+  private[this] def weightsHaveValidNonScalarShape(
+      valuesRank: Output, valuesShape: Output, weightsRank: Output, weightsShape: Output,
+      name: String = "WeightsHaveValidNonScalarShape"): Output = {
+    Op.createWithNameScope(name, Set(valuesRank.op, valuesShape.op, weightsRank.op, weightsShape.op)) {
+      val isSameRank = Math.equal(valuesRank, weightsRank, name = "IsSameRank")
+      ControlFlow.cond(
+        isSameRank,
+        () => weightsHaveValidDimensions(valuesShape, weightsShape),
+        () => isSameRank)
+    }
+  }
+
+  /** Returns a boolean tensor indicating whether `weightsShape` has valid dimensions for broadcasting to
+    * `valuesShape`. */
+  private[this] def weightsHaveValidDimensions(
+      valuesShape: Output, weightsShape: Output, name: String = "WeightsHaveValidDimensions"): Output = {
+    Op.createWithNameScope(name, Set(valuesShape.op, weightsShape.op)) {
+      val reshapedValuesShape = Basic.expandDims(valuesShape, -1)
+      val reshapedWeightsShape = Basic.expandDims(weightsShape, -1)
+      val validDimensions = Basic.concatenate(Seq(reshapedValuesShape, Basic.onesLike(reshapedValuesShape)), 1)
+      val invalidDimensions = Sets.setDifference(reshapedWeightsShape, validDimensions)
+      val numInvalidDimensions = Basic.size(invalidDimensions.values, name = "NumInvalidDimensions")
+      Math.equal(0, numInvalidDimensions)
+    }
   }
 
   /** The `matchAxes` op matches the dimension sizes of `predictions`, `targets`, and `weights`.
@@ -159,7 +265,7 @@ object Metric {
               () => Basic.expandDims(matchedWeights, -1)
             else
               () => matchedWeights,
-            ControlFlow.cond(
+            () => ControlFlow.cond(
               Math.equal(rankDiff, 1),
               () => Basic.squeeze(matchedWeights, Seq(-1)),
               () => matchedWeights)))
