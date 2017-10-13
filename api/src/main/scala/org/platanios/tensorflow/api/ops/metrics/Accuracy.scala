@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops.metrics
 
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.ops.{Math, Op, Output}
-import org.platanios.tensorflow.api.ops.metrics.Metric.{METRIC_UPDATES, METRIC_VARIABLES}
+import org.platanios.tensorflow.api.ops.metrics.Metric.{METRIC_RESETS, METRIC_UPDATES, METRIC_VALUES, METRIC_VARIABLES}
 import org.platanios.tensorflow.api.ops.variables.Variable
 
 /** Accuracy metric.
@@ -35,18 +35,23 @@ import org.platanios.tensorflow.api.ops.variables.Variable
   *
   * If `weights` is `null`, the weights default to 1. Use weights of `0` to mask values.
   *
-  * @param  metricsCollections       Graph collections in which to add the metric value op.
-  * @param  metricUpdatesCollections Graph collections in which to add the metric update op.
-  * @param  name                     Name prefix for the created ops.
+  * @param  variablesCollections Graph collections in which to add the metric variables (for streaming metrics).
+  * @param  valuesCollections    Graph collections in which to add the metric values.
+  * @param  updatesCollections   Graph collections in which to add the metric updates.
+  * @param  resetsCollections    Graph collections in which to add the metric resets.
+  * @param  name                 Name prefix for the created ops.
   *
   * @author Emmanouil Antonios Platanios
   */
 class Accuracy private[metrics] (
-    metricsCollections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES),
-    metricUpdatesCollections: Set[Graph.Key[Output]] = Set(METRIC_UPDATES),
+    variablesCollections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES),
+    valuesCollections: Set[Graph.Key[Output]] = Set(METRIC_VALUES),
+    updatesCollections: Set[Graph.Key[Output]] = Set(METRIC_UPDATES),
+    resetsCollections: Set[Graph.Key[Op]] = Set(METRIC_RESETS),
     override val name: String = "Accuracy"
 ) extends Metric[(Output, Output), Output] {
-  private[this] val meanMetric = Mean(metricsCollections, metricUpdatesCollections, name)
+  private[this] val meanMetric =
+    Mean(variablesCollections, valuesCollections, updatesCollections, resetsCollections, name)
 
   /** Computes the value of this metric for the provided predictions and targets, optionally weighted by `weights`.
     *
@@ -73,7 +78,7 @@ class Accuracy private[metrics] (
     *         value, and (iii) op used to update its current value and obtain the new value.
     */
   override def streaming(
-      values: (Output, Output), weights: Output = null, name: String = name): (Output, Op, Output) = {
+      values: (Output, Output), weights: Output = null, name: String = name): (Output, Output, Op) = {
     var (matchedPredictions, matchedTargets, matchedWeights) = Metric.matchAxes(values._1, values._2, weights)
     matchedPredictions.shape.assertIsCompatibleWith(matchedTargets.shape)
     matchedPredictions = matchedPredictions.cast(matchedTargets.dataType)
@@ -85,16 +90,20 @@ class Accuracy private[metrics] (
 object Accuracy {
   /** Creates a new accuracy metric.
     *
-    * @param  metricsCollections       Graph collections in which to add the metric value op.
-    * @param  metricUpdatesCollections Graph collections in which to add the metric update op.
-    * @param  name                     Name prefix for the created ops.
+    * @param  variablesCollections Graph collections in which to add the metric variables (for streaming metrics).
+    * @param  valuesCollections    Graph collections in which to add the metric values.
+    * @param  updatesCollections   Graph collections in which to add the metric updates.
+    * @param  resetsCollections    Graph collections in which to add the metric resets.
+    * @param  name                 Name prefix for the created ops.
     * @return New mean metric.
     */
   def apply(
-      metricsCollections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES),
-      metricUpdatesCollections: Set[Graph.Key[Output]] = Set(METRIC_UPDATES),
+      variablesCollections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES),
+      valuesCollections: Set[Graph.Key[Output]] = Set(METRIC_VALUES),
+      updatesCollections: Set[Graph.Key[Output]] = Set(METRIC_UPDATES),
+      resetsCollections: Set[Graph.Key[Op]] = Set(METRIC_RESETS),
       name: String = "Accuracy"
   ): Accuracy = {
-    new Accuracy(metricsCollections, metricUpdatesCollections, name)
+    new Accuracy(variablesCollections, valuesCollections, updatesCollections, resetsCollections, name)
   }
 }

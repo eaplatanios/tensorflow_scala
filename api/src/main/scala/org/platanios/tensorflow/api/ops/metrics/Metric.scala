@@ -17,11 +17,11 @@ package org.platanios.tensorflow.api.ops.metrics
 
 import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
-import org.platanios.tensorflow.api.core.Graph.Keys.{OutputCollectionKey, VariableCollectionKey}
+import org.platanios.tensorflow.api.core.Graph.Keys.{OpCollectionKey, OutputCollectionKey, VariableCollectionKey}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.variables.{Initializer, Variable, ZerosInitializer}
 import org.platanios.tensorflow.api.ops.{Basic, Checks, Math, Op, Output, Sets}
-import org.platanios.tensorflow.api.types.{DataType, FLOAT32, FLOAT64}
+import org.platanios.tensorflow.api.types.DataType
 
 /** Trait representing evaluation metrics that support both eager computation, as well as computation in a streaming
   * manner.
@@ -50,7 +50,7 @@ trait Metric[T, R] {
     * @return Tuple containing: (i) output representing the current value of the metric, (ii) op used to reset its
     *         value, and (iii) op used to update its current value and obtain the new value.
     */
-  def streaming(values: T, weights: Output = null, name: String = name): (R, Op, R)
+  def streaming(values: T, weights: Output = null, name: String = name): (R, R, Op)
 }
 
 object Metric {
@@ -59,9 +59,19 @@ object Metric {
     override def name: String = "metric_variables"
   }
 
+  /** Key to collect the subset of tensors that are used for obtaining metric values. */
+  object METRIC_VALUES extends OutputCollectionKey {
+    override def name: String = "metric_values"
+  }
+
   /** Key to collect the subset of tensors that are used for updating metric values. */
   object METRIC_UPDATES extends OutputCollectionKey {
     override def name: String = "metric_updates"
+  }
+
+  /** Key to collect the subset of tensors that are used for resetting metric values. */
+  object METRIC_RESETS extends OpCollectionKey {
+    override def name: String = "metric_resets"
   }
 
   /** Creates a new variable and adds it to the `LOCAL_VARIABLES` graph collection. */

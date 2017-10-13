@@ -33,15 +33,19 @@ import org.platanios.tensorflow.api.types.{FLOAT32, FLOAT64}
   *
   * If `weights` is `null`, the weights default to 1. Use weights of `0` to mask values.
   *
-  * @param  metricsCollections       Graph collections in which to add the metric value op.
-  * @param  metricUpdatesCollections Graph collections in which to add the metric update op.
-  * @param  name                     Name prefix for the created ops.
+  * @param  variablesCollections Graph collections in which to add the metric variables (for streaming metrics).
+  * @param  valuesCollections    Graph collections in which to add the metric values.
+  * @param  updatesCollections   Graph collections in which to add the metric updates.
+  * @param  resetsCollections    Graph collections in which to add the metric resets.
+  * @param  name                 Name prefix for the created ops.
   *
   * @author Emmanouil Antonios Platanios
   */
 class Mean private[metrics] (
-    metricsCollections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES),
-    metricUpdatesCollections: Set[Graph.Key[Output]] = Set(METRIC_UPDATES),
+    variablesCollections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES),
+    valuesCollections: Set[Graph.Key[Output]] = Set(METRIC_VALUES),
+    updatesCollections: Set[Graph.Key[Output]] = Set(METRIC_UPDATES),
+    resetsCollections: Set[Graph.Key[Op]] = Set(METRIC_RESETS),
     override val name: String = "Mean"
 ) extends Metric[Output, Output] {
   /** Computes the value of this metric for the provided values, optionally weighted by `weights`.
@@ -69,7 +73,7 @@ class Mean private[metrics] (
         }
       }
       val value = safeDiv(Math.sum(processedValues), numValues, name = "Value")
-      metricsCollections.foreach(Op.currentGraph.addToCollection(value, _))
+      valuesCollections.foreach(Op.currentGraph.addToCollection(value, _))
       value
     }
   }
@@ -83,14 +87,16 @@ class Mean private[metrics] (
     * @return Tuple containing: (i) output representing the current value of the metric, (ii) op used to reset its
     *         value, and (iii) op used to update its current value and obtain the new value.
     */
-  def streaming(values: Output, weights: Output = null, name: String = name): (Output, Op, Output) = {
+  def streaming(values: Output, weights: Output = null, name: String = name): (Output, Output, Op) = {
     var ops = Set(values.op)
     if (weights != null)
       ops += weights.op
     Op.createWithNameScope(name, ops) {
       val castedValues = if (values.dataType != FLOAT64) values.cast(FLOAT32) else values
-      val total = localVariable(s"$name/Total", castedValues.dataType, Shape.scalar(), ZerosInitializer)
-      val count = localVariable(s"$name/Count", castedValues.dataType, Shape.scalar(), ZerosInitializer)
+      val total = localVariable(
+        s"$name/Total", castedValues.dataType, Shape.scalar(), ZerosInitializer, variablesCollections)
+      val count = localVariable(
+        s"$name/Count", castedValues.dataType, Shape.scalar(), ZerosInitializer, variablesCollections)
       val (processedValues, numValues) = {
         if (weights == null) {
           (castedValues, Basic.size(castedValues).cast(castedValues.dataType))
@@ -106,10 +112,11 @@ class Mean private[metrics] (
       val updateCount = count.assignAdd(numValues)
       val value = safeDiv(total.value, count.value, name = "Value")
       val update = safeDiv(updateTotal, updateCount, name = "Update")
-      metricsCollections.foreach(Op.currentGraph.addToCollection(value, _))
-      metricUpdatesCollections.foreach(Op.currentGraph.addToCollection(update, _))
       val reset = ControlFlow.group(Set(total.initializer, count.initializer))
-      (value, reset, update)
+      valuesCollections.foreach(Op.currentGraph.addToCollection(value, _))
+      updatesCollections.foreach(Op.currentGraph.addToCollection(update, _))
+      resetsCollections.foreach(Op.currentGraph.addToCollection(reset, _))
+      (value, update, reset)
     }
   }
 }
@@ -117,16 +124,20 @@ class Mean private[metrics] (
 object Mean {
   /** Creates a new mean metric.
     *
-    * @param  metricsCollections       Graph collections in which to add the metric value op.
-    * @param  metricUpdatesCollections Graph collections in which to add the metric update op.
-    * @param  name                     Name prefix for the created ops.
+    * @param  variablesCollections Graph collections in which to add the metric variables (for streaming metrics).
+    * @param  valuesCollections    Graph collections in which to add the metric values.
+    * @param  updatesCollections   Graph collections in which to add the metric updates.
+    * @param  resetsCollections    Graph collections in which to add the metric resets.
+    * @param  name                 Name prefix for the created ops.
     * @return New mean metric.
     */
   def apply(
-      metricsCollections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES),
-      metricUpdatesCollections: Set[Graph.Key[Output]] = Set(METRIC_UPDATES),
+      variablesCollections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES),
+      valuesCollections: Set[Graph.Key[Output]] = Set(METRIC_VALUES),
+      updatesCollections: Set[Graph.Key[Output]] = Set(METRIC_UPDATES),
+      resetsCollections: Set[Graph.Key[Op]] = Set(METRIC_RESETS),
       name: String = "Mean"
   ): Mean = {
-    new Mean(metricsCollections, metricUpdatesCollections, name)
+    new Mean(variablesCollections, valuesCollections, updatesCollections, resetsCollections, name)
   }
 }

@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops.metrics
 
 import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
-import org.platanios.tensorflow.api.ops.metrics.Metric.{METRIC_UPDATES, METRIC_VARIABLES}
+import org.platanios.tensorflow.api.ops.metrics.Metric.{METRIC_RESETS, METRIC_UPDATES, METRIC_VALUES, METRIC_VARIABLES}
 import org.platanios.tensorflow.api.ops.variables.{Variable, ZerosInitializer}
 import org.platanios.tensorflow.api.ops.{Basic, Checks, Math, Op, Output, SparseOutput}
 import org.platanios.tensorflow.api.types.{DataType, FLOAT64, INT32, INT64}
@@ -46,11 +46,13 @@ import org.platanios.tensorflow.api.types.{DataType, FLOAT64, INT32, INT64}
   *
   * Note that the possible labels are assumed to be `[0, 1, 2, 3, 4]`, resulting in a 5x5 confusion matrix.
   *
-  * @param  numClasses               Number of classes over which the confusion matrix is computed.
-  * @param  dataType                 Data type for the confusion matrix.
-  * @param  metricsCollections       Graph collections in which to add the metric value op.
-  * @param  metricUpdatesCollections Graph collections in which to add the metric update op.
-  * @param  name                     Name prefix for the created ops.
+  * @param  numClasses           Number of classes over which the confusion matrix is computed.
+  * @param  dataType             Data type for the confusion matrix.
+  * @param  variablesCollections Graph collections in which to add the metric variables (for streaming metrics).
+  * @param  valuesCollections    Graph collections in which to add the metric values.
+  * @param  updatesCollections   Graph collections in which to add the metric updates.
+  * @param  resetsCollections    Graph collections in which to add the metric resets.
+  * @param  name                 Name prefix for the created ops.
   *
   *
   * @author Emmanouil Antonios Platanios
@@ -58,8 +60,10 @@ import org.platanios.tensorflow.api.types.{DataType, FLOAT64, INT32, INT64}
 class ConfusionMatrix private[metrics] (
     numClasses: Int = -1,
     dataType: DataType = FLOAT64,
-    metricsCollections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES),
-    metricUpdatesCollections: Set[Graph.Key[Output]] = Set(METRIC_UPDATES),
+    variablesCollections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES),
+    valuesCollections: Set[Graph.Key[Output]] = Set(METRIC_VALUES),
+    updatesCollections: Set[Graph.Key[Output]] = Set(METRIC_UPDATES),
+    resetsCollections: Set[Graph.Key[Op]] = Set(METRIC_RESETS),
     override val name: String = "ConfusionMatrix"
 ) extends Metric[(Output, Output), Output] {
   private[this] val numClassesOutput: Output = if (numClasses != -1) Basic.constant(numClasses) else null
@@ -114,7 +118,7 @@ class ConfusionMatrix private[metrics] (
       val confusionMatrix = SparseOutput(indices, matchedWeights, denseShape)
       val zeros = Basic.fill(dataType, denseShape.cast(INT32))(0)
       val value = confusionMatrix.addDense(zeros)
-      metricsCollections.foreach(Op.currentGraph.addToCollection(value, _))
+      valuesCollections.foreach(Op.currentGraph.addToCollection(value, _))
       value
     }
   }
@@ -129,34 +133,40 @@ class ConfusionMatrix private[metrics] (
     *         value, and (iii) op used to update its current value and obtain the new value.
     */
   override def streaming(
-      values: (Output, Output), weights: Output = null, name: String = name): (Output, Op, Output) = {
+      values: (Output, Output), weights: Output = null, name: String = name): (Output, Output, Op) = {
     val accumulator = Metric.localVariable(
-      s"$name/Accumulator", dataType, Shape(numClasses, numClasses), ZerosInitializer)
+      s"$name/Accumulator", dataType, Shape(numClasses, numClasses), ZerosInitializer, variablesCollections)
     val value = compute(values, weights, name = s"$name/Value")
     val update = accumulator.assignAdd(value, name = s"$name/Update")
     val reset = accumulator.initializer
-    metricsCollections.foreach(Op.currentGraph.addToCollection(value, _))
-    metricUpdatesCollections.foreach(Op.currentGraph.addToCollection(update, _))
-    (accumulator.value, reset, update)
+    valuesCollections.foreach(Op.currentGraph.addToCollection(value, _))
+    updatesCollections.foreach(Op.currentGraph.addToCollection(update, _))
+    resetsCollections.foreach(Op.currentGraph.addToCollection(reset, _))
+    (accumulator.value, update, reset)
   }
 }
 
 object ConfusionMatrix {
   /** Creates a new confusion matrix metric.
     *
-    * @param  numClasses               Number of classes over which the confusion matrix is computed.
-    * @param  dataType                 Data type for the confusion matrix.
-    * @param  metricsCollections       Graph collections in which to add the metric value op.
-    * @param  metricUpdatesCollections Graph collections in which to add the metric update op.
-    * @param  name                     Name prefix for the created ops.
+    * @param  numClasses           Number of classes over which the confusion matrix is computed.
+    * @param  dataType             Data type for the confusion matrix.
+    * @param  variablesCollections Graph collections in which to add the metric variables (for streaming metrics).
+    * @param  valuesCollections    Graph collections in which to add the metric values.
+    * @param  updatesCollections   Graph collections in which to add the metric updates.
+    * @param  resetsCollections    Graph collections in which to add the metric resets.
+    * @param  name                 Name prefix for the created ops.
     * @return New confusion matrix metric.
     */
   def apply(
       numClasses: Int = -1, dataType: DataType = FLOAT64,
-      metricsCollections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES),
-      metricUpdatesCollections: Set[Graph.Key[Output]] = Set(METRIC_UPDATES),
+      variablesCollections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES),
+      valuesCollections: Set[Graph.Key[Output]] = Set(METRIC_VALUES),
+      updatesCollections: Set[Graph.Key[Output]] = Set(METRIC_UPDATES),
+      resetsCollections: Set[Graph.Key[Op]] = Set(METRIC_RESETS),
       name: String = "ConfusionMatrix"
   ): ConfusionMatrix = {
-    new ConfusionMatrix(numClasses, dataType, metricsCollections, metricUpdatesCollections, name)
+    new ConfusionMatrix(
+      numClasses, dataType, variablesCollections, valuesCollections, updatesCollections, resetsCollections, name)
   }
 }
