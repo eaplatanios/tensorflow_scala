@@ -185,7 +185,7 @@ public:
     OP_REQUIRES_OK(ctx, ctx->GetAttr("jvm_pointer", &jvm_pointer));
     jvm_ = pointerFromString<JavaVM*>(jvm_pointer);
     JNIEnv* env;
-    int jvmEnvStatus = jvm_->GetEnv((void **) &env, JNI_VERSION_1_8);
+    int jvmEnvStatus = jvm_->GetEnv((void **) &env, JNI_VERSION_1_6);
     if (jvmEnvStatus != JNI_OK) {
       jint status = jvm_->AttachCurrentThread((void**) &env, nullptr);
       assert(status == JNI_OK);
@@ -204,7 +204,7 @@ public:
 
   void Compute(OpKernelContext* ctx) override {
     JNIEnv* env;
-    int jvmEnvStatus = jvm_->GetEnv((void**) &env, JNI_VERSION_1_8);
+    int jvmEnvStatus = jvm_->GetEnv((void**) &env, JNI_VERSION_1_6);
     if (jvmEnvStatus != JNI_OK) {
       jint status = jvm_->AttachCurrentThread((void**) &env, nullptr);
       assert(status == JNI_OK);
