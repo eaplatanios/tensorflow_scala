@@ -28,14 +28,15 @@ object Counter {
   /** Creates a counter variable specified by `key`.
     *
     * @param  key   Graph collection key that will contain the created counter.
+    * @param  local Boolean indicator specifying whether the counter is a local variable or a global one.
     * @param  graph Graph in which to create the counter variable. If missing, the current graph is used.
     * @return Created counter variable.
     * @throws IllegalStateException If a counter variable already exists in the graph collection that corresponds to the
     *                               provided key.
     */
   @throws[IllegalStateException]
-  def create(key: Graph.Key[Variable], graph: Graph = Op.currentGraph): Variable = {
-    get(key, graph) match {
+  def create(key: Graph.Key[Variable], local: Boolean = false, graph: Graph = Op.currentGraph): Variable = {
+    get(key, local, graph) match {
       case Some(_) => throw new IllegalStateException(s"A ${key.name} variable already exists in this graph.")
       case None => Op.createWith(graph, nameScope = "") {
         Variable.getVariable(
@@ -44,7 +45,7 @@ object Counter {
           shape = Shape.scalar(),
           initializer = ZerosInitializer,
           trainable = false,
-          collections = Set(Graph.Keys.GLOBAL_VARIABLES, key))
+          collections = Set(if (local) Graph.Keys.LOCAL_VARIABLES else Graph.Keys.GLOBAL_VARIABLES, key))
       }
     }
   }
@@ -55,13 +56,14 @@ object Counter {
     * the provided key.
     *
     * @param  key   Graph collection key that contains the counter.
+    * @param  local Boolean indicator specifying whether the counter is a local variable or a global one.
     * @param  graph Graph to find the counter in. If missing, the current graph is used.
     * @return The counter variable, or `None`, if not found.
     * @throws IllegalStateException If more than one variables exist in the graph collection that corresponds to the
     *                               provided key, or if the obtained global step is not an integer scalar.
     */
   @throws[IllegalStateException]
-  def get(key: Graph.Key[Variable], graph: Graph = Op.currentGraph): Option[Variable] = {
+  def get(key: Graph.Key[Variable], local: Boolean = false, graph: Graph = Op.currentGraph): Option[Variable] = {
     val counterVariables = graph.getCollection(key)
     if (counterVariables.size > 1)
       throw new IllegalStateException(s"There should only exist one ${key.name} variable in the graph.")
@@ -82,10 +84,11 @@ object Counter {
   /** Gets the counter variable specified by `key`, or creates one and returns it, if none exists.
     *
     * @param  key   Graph collection key that should contain the counter.
+    * @param  local Boolean indicator specifying whether the counter is a local variable or a global one.
     * @param  graph Graph to find/create the counter in. If missing, the current graph is used.
     * @return Counter variable.
     */
-  def getOrCreate(key: Graph.Key[Variable], graph: Graph = Op.currentGraph): Variable = {
-    get(key, graph).getOrElse(create(key, graph))
+  def getOrCreate(key: Graph.Key[Variable], local: Boolean = false, graph: Graph = Op.currentGraph): Variable = {
+    get(key, local, graph).getOrElse(create(key, local, graph))
   }
 }
