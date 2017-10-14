@@ -51,6 +51,8 @@ trait Metric[T, R] {
     *         value, and (iii) op used to update its current value and obtain the new value.
     */
   def streaming(values: T, weights: Output = null, name: String = name): (R, R, Op)
+
+  override def toString: String = name
 }
 
 object Metric {

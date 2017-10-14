@@ -20,6 +20,7 @@ import org.platanios.tensorflow.api.learn.layers.{Input, Layer}
 import org.platanios.tensorflow.api.ops.{Math, Op, Output}
 import org.platanios.tensorflow.api.ops.training.optimizers.Optimizer
 import org.platanios.tensorflow.api.ops.io.Iterator
+import org.platanios.tensorflow.api.ops.metrics.Metric
 import org.platanios.tensorflow.api.types.FLOAT32
 
 /**
@@ -28,7 +29,7 @@ import org.platanios.tensorflow.api.types.FLOAT32
 sealed trait Model
 
 object Model {
-  case class PredictionOps[IT, IO, ID, IS, I](inputIterator: Iterator[IT, IO, ID, IS], input: IO, output: I)
+  case class InferenceOps[IT, IO, ID, IS, I](inputIterator: Iterator[IT, IO, ID, IS], input: IO, output: I)
 
   case class TrainOps[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
       inputIterator: Iterator[(IT, TT), (IO, TO), (ID, TD), (IS, TS)],
@@ -49,6 +50,15 @@ object Model {
     }
   }
 
+  case class EvaluationOps[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
+      inputIterator: Iterator[(IT, TT), (IO, TO), (ID, TD), (IS, TS)],
+      input: (IO, TO),
+      output: I,
+      trainOutput: T,
+      metricValues: Seq[Output],
+      metricUpdates: Seq[Output],
+      metricResets: Seq[Op])
+
   trait API {
     def Model[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
         input: Input[IT, IO, ID, IS],
@@ -64,16 +74,16 @@ object Model {
   object API extends API
 }
 
-class PredictionModel[IT, IO, ID, IS, I] private[learn](
+class InferenceModel[IT, IO, ID, IS, I] private[learn](
     val input: Input[IT, IO, ID, IS],
     val layer: Layer[IO, I]
 ) extends Model {
-  def buildPredictionOps(graph: Graph = Op.currentGraph): Model.PredictionOps[IT, IO, ID, IS, I] = {
+  def buildInferenceOps(graph: Graph = Op.currentGraph): Model.InferenceOps[IT, IO, ID, IS, I] = {
     Op.createWith(graph) {
       val tfInputIterator = input()
       val tfInput = tfInputIterator.next()
       val tfOutput = layer(tfInput)
-      Model.PredictionOps(tfInputIterator, tfInput, tfOutput)
+      Model.InferenceOps(tfInputIterator, tfInput, tfOutput)
     }
   }
 }
@@ -85,18 +95,33 @@ class TrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T] private[learn](
     val trainLayer: Layer[TO, T],
     val loss: Layer[(I, T), Output],
     val optimizer: Optimizer
-) extends PredictionModel[IT, IO, ID, IS, I](input, layer) {
+) extends InferenceModel[IT, IO, ID, IS, I](input, layer) {
+  // TODO: [LEARN] Add support for trainable models with only the loss function gradient available.
+
   def buildTrainOps(graph: Graph = Op.currentGraph): Model.TrainOps[IT, IO, ID, IS, I, TT, TO, TD, TS, T] = {
     Op.createWith(graph = graph) {
       val tfInputIterator = input.zip(trainInput).apply()
       val tfInput = tfInputIterator.next()
       val tfOutput = layer(tfInput._1)
-      val tfTrainingOutput = trainLayer(tfInput._2)
-      // TODO: [LEARN] !!! Remove this cast.
-      val tfLoss = Math.cast(loss((tfOutput, tfTrainingOutput)), FLOAT32, name = "LearnLossCast")
-      val tfIteration = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, graph)
+      val tfTrainOutput = trainLayer(tfInput._2)
+      // TODO: [LEARN] Remove this cast.
+      val tfLoss = Math.cast(loss((tfOutput, tfTrainOutput)), FLOAT32, name = "LossCast")
+      val tfIteration = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
       val tfTrainOp = optimizer.minimize(tfLoss, iteration = Some(tfIteration))
-      Model.TrainOps(tfInputIterator, tfInput, tfOutput, tfTrainingOutput, tfLoss, tfTrainOp)
+      Model.TrainOps(tfInputIterator, tfInput, tfOutput, tfTrainOutput, tfLoss, tfTrainOp)
+    }
+  }
+
+  def buildEvaluationOps(
+      graph: Graph = Op.currentGraph, metrics: Seq[Metric[(I, T), Output]]
+  ): Model.EvaluationOps[IT, IO, ID, IS, I, TT, TO, TD, TS, T] = {
+    Op.createWith(graph = graph) {
+      val tfInputIterator = input.zip(trainInput).apply()
+      val tfInput = tfInputIterator.next()
+      val tfOutput = layer(tfInput._1)
+      val tfTrainOutput = trainLayer(tfInput._2)
+      val (mValues, mUpdates, mResets) = metrics.map(_.streaming((tfOutput, tfTrainOutput))).unzip3
+      Model.EvaluationOps(tfInputIterator, tfInput, tfOutput, tfTrainOutput, mValues, mUpdates, mResets)
     }
   }
 }

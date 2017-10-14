@@ -20,16 +20,20 @@ import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.{Fetchable, SessionConfig}
 import org.platanios.tensorflow.api.core.distributed.ReplicaDevicePlacer
 import org.platanios.tensorflow.api.core.exception.{CheckpointNotFoundException, InvalidArgumentException}
-import org.platanios.tensorflow.api.io.CheckpointReader
+import org.platanios.tensorflow.api.io.{CheckpointReader, SummaryFileWriterCache}
 import org.platanios.tensorflow.api.learn.Estimator.ModelFunction
 import org.platanios.tensorflow.api.learn.hooks._
-import org.platanios.tensorflow.api.ops.{Op, OpSpecification}
+import org.platanios.tensorflow.api.ops.{Op, OpSpecification, Output}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.io.{Data, Dataset}
+import org.platanios.tensorflow.api.ops.metrics.Metric
 import org.platanios.tensorflow.api.ops.variables.Saver
+import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.api.types._
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
+import org.tensorflow.framework.Summary
 
 import java.nio.file.{Files, Path}
 
@@ -180,8 +184,9 @@ class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T] private[learn] (
       val graph = Graph()
       Op.createWith(graph = graph, deviceFunction = deviceFunction.getOrElse(_.device)) {
         graph.setRandomSeed(randomSeed)
-        Counter.getOrCreate(Graph.Keys.GLOBAL_EPOCH, graph)
-        val step = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, graph)
+        // TODO: !!! [LEARN] Do we ever update the global epoch?
+        Counter.getOrCreate(Graph.Keys.GLOBAL_EPOCH, local = false)
+        val step = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
         val trainingOps = Op.createWithNameScope("Model")(model.buildTrainOps())
         val inputInitializer = trainingOps.inputIterator.createInitializer(data)
         graph.addToCollection(trainingOps.loss, Graph.Keys.LOSSES)
@@ -235,7 +240,7 @@ class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T] private[learn] (
     * example, if `I` is `(Output, Output)`, then `ModelInferenceOutput` will be `(Tensor, Tensor)`.
     *
     * @param  input          Input for the predictions.
-    * @param  hooks          Hooks to use while making predictions (e.g., logging for the loss function value, etc.).
+    * @param  hooks          Hooks to use while making predictions.
     * @param  checkpointPath Path to a checkpoint file to use. If `null`, then the latest checkpoint found in this
     *                        estimator's working directory will be used.
     * @return Either an iterator over `(IT, ModelInferenceOutput)` tuples, or a single element of type `I`, depending on
@@ -254,6 +259,7 @@ class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T] private[learn] (
       evFetchableIIO: Fetchable.Aux[(IO, I), (IT, ModelInferenceOutput)],
       ev: Estimator.SupportedInferInput[InferInput, InferOutput, IT, IO, ID, IS, ModelInferenceOutput]
   ): InferOutput = {
+    // Check that the model has been trained.
     val _checkpointPath = Option(checkpointPath).orElse(Saver.latestCheckpoint(workingDir.get))
     if (_checkpointPath.isEmpty)
       throw CheckpointNotFoundException(
@@ -263,10 +269,10 @@ class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T] private[learn] (
     val graph = Graph()
     Op.createWith(graph) {
       graph.setRandomSeed(randomSeed)
-      Counter.getOrCreate(Graph.Keys.GLOBAL_EPOCH, graph)
-      Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, graph)
-      val predictionOps = Op.createWithNameScope("Model")(model.buildPredictionOps())
-      val inputInitializer = predictionOps.inputIterator.createInitializer(ev.toDataset(input))
+      Counter.getOrCreate(Graph.Keys.GLOBAL_EPOCH, local = false)
+      Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
+      val inferenceOps = Op.createWithNameScope("Model")(model.buildInferenceOps())
+      val inputInitializer = inferenceOps.inputIterator.createInitializer(ev.toDataset(input))
       val saver = getOrCreateSaver()
       val session = MonitoredSession(
         ChiefSessionCreator(
@@ -281,7 +287,7 @@ class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T] private[learn] (
         override def hasNext: Boolean = session.shouldStop
         override def next(): (IT, ModelInferenceOutput) = {
           try {
-            session.run(fetches = (predictionOps.input, predictionOps.output))
+            session.run(fetches = (inferenceOps.input, inferenceOps.output))
           } catch {
             case e: Throwable =>
               session.closeWithoutHookEnd()
@@ -292,6 +298,125 @@ class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T] private[learn] (
       if (!session.closed)
         session.close()
       output
+    }
+  }
+
+  /** Evaluates the model managed by this estimator given the provided evaluation data, `data`.
+    *
+    * This method requires that a checkpoint can be found in either `checkpointPath`, if provided, or in this
+    * estimator's working directory. It first loads the trained parameter values from the checkpoint specified by
+    * `checkpointPath` or from the latest checkpoint found in the working directory, and it then computes predictions
+    * for `input`.
+    *
+    * The evaluation process is iterative. In each step, a data batch is obtained from `data` and internal metric value
+    * accumulators are updated. The number of steps to perform is controlled through the `maxSteps` argument. If set to
+    * `-1`, then all batches from `data` will be processed.
+    *
+    * @param  data           Evaluation dataset. Each element is a tuple over input and training inputs (i.e.,
+    *                        supervision labels).
+    * @param  metrics        Evaluation metrics to use.
+    * @param  maxSteps       Maximum number of evaluation steps to perform. If `-1`, the evaluation process will run
+    *                        until `data` is exhausted.
+    * @param  hooks          Hooks to use while evaluating.
+    * @param  checkpointPath Path to a checkpoint file to use. If `null`, then the latest checkpoint found in this
+    *                        estimator's working directory will be used.
+    * @param  saveSummaries  Boolean indicator specifying whether to save the evaluation results as summaries in the
+    *                        working directory of this estimator.
+    * @param  name           Name for this evaluation. If provided, it will be used to generate an appropriate directory
+    *                        name for the resulting summaries. If `saveSummaries` is `false`, this argument has no
+    *                        effect.
+    * @return                Evaluation metric values at the end of the evaluation process. The return sequence matches
+    *                        the ordering of `metrics`.
+    * @throws InvalidArgumentException If `saveSummaries` is `true`, but the estimator has no working directory
+    *                                  specified.
+    */
+  @throws[InvalidArgumentException]
+  def evaluate(
+      data: Dataset[(IT, TT), (IO, TO), (ID, TD), (IS, TS)],
+      metrics: Seq[Metric[(I, T), Output]],
+      maxSteps: Long = -1L,
+      hooks: Seq[Hook] = Seq.empty,
+      checkpointPath: Path = null,
+      saveSummaries: Boolean = true,
+      name: String = null): Seq[Tensor] = {
+    // Check that the model has been trained.
+    val _checkpointPath = Option(checkpointPath).orElse(Saver.latestCheckpoint(workingDir.get))
+    if (_checkpointPath.isEmpty)
+      throw CheckpointNotFoundException(
+        "No checkpoint was found. Please provide a valid 'workingDir' the estimator configuration, or a path to a " +
+            "valid checkpoint file through the 'checkpointPath' argument.")
+    val model = modelFunction(configuration)
+    val graph = Graph()
+    Op.createWith(graph) {
+      graph.setRandomSeed(randomSeed)
+      val evaluationOps = Op.createWithNameScope("Model")(model.buildEvaluationOps(graph, metrics))
+      val inputInitializer = evaluationOps.inputIterator.createInitializer(data)
+      Counter.getOrCreate(Graph.Keys.GLOBAL_EPOCH, local = false)
+      val globalStep = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
+      val evalStep = Counter.getOrCreate(Graph.Keys.EVAL_STEP, local = true)
+      graph.addToCollection(evalStep, Graph.Keys.EVAL_STEP)
+      val evalStepUpdate = evalStep.assignAdd(1)
+      val evalUpdateOps = ControlFlow.group(evaluationOps.metricUpdates.map(_.op).toSet + evalStepUpdate.op)
+      val allHooks = mutable.ListBuffer(hooks: _*)
+      allHooks += StopEvaluationHook(maxSteps)
+      val saver = getOrCreateSaver()
+      val session = MonitoredSession(
+        ChiefSessionCreator(
+          master = configuration.evaluationMaster,
+          sessionScaffold = SessionScaffold(
+            initOp = Some(graph.globalVariablesInitializer()),
+            localInitOp = Some(ControlFlow.group(Set(inputInitializer, graph.localVariablesInitializer()))),
+            saver = Some(saver)),
+          sessionConfig = configuration.sessionConfig,
+          checkpointPath = workingDir),
+        hooks, shouldRecover = true)
+      Estimator.logger.info("Starting evaluation.")
+      val (step, metricValues) = {
+        try {
+          val step = session.run(fetches = globalStep.value).scalar.asInstanceOf[Long]
+          while (!session.shouldStop)
+            session.run(targets = evalUpdateOps)
+          (step, session.run(fetches = evaluationOps.metricValues))
+        } catch {
+          case e if RECOVERABLE_EXCEPTIONS.contains(e.getClass) =>
+            session.close()
+            (-1, Seq.empty[Tensor])
+          case e: Throwable =>
+            session.closeWithoutHookEnd()
+            throw e
+        }
+      }
+      if (!session.closed)
+        session.close()
+      Estimator.logger.info("Finished evaluation.")
+      Estimator.logger.info("Saving evaluation results.")
+      if (saveSummaries) {
+        // Setup the output directory.
+        val evaluationDir = workingDir.map(_.resolve(if (name != null) s"eval_$name" else "eval"))
+        if (evaluationDir.isEmpty)
+          throw InvalidArgumentException(
+            "No working directory is provided and thus evaluation summaries cannot be saved.")
+        val summaryProto = Summary.newBuilder()
+        metrics.zip(metricValues).foreach {
+          case (metric, metricValue) =>
+            if (metricValue.shape.rank == 0 &&
+                (metricValue.dataType.isFloatingPoint || metricValue.dataType.isInteger)) {
+              val castedValue = metricValue.cast(FLOAT32).scalar.asInstanceOf[Float]
+              val value = Summary.Value.newBuilder()
+              value.setTag(metric.name)
+              value.setSimpleValue(castedValue)
+              summaryProto.addValue(value)
+            } else {
+              Estimator.logger.warn(
+                s"Skipping summary for non-scalar and/or non-floating-point/non-integer metric '$metric'.")
+            }
+        }
+        evaluationDir.map(SummaryFileWriterCache.get).foreach(writer => {
+          writer.writeSummary(summaryProto.build(), step)
+          writer.flush()
+        })
+      }
+      metricValues
     }
   }
 
