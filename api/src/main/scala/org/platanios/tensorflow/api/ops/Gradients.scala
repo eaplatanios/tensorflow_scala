@@ -273,41 +273,74 @@ private[ops] object Gradients {
   @throws[InvalidDataTypeException]
   private[this] def initialGradients(
       ys: Seq[OutputLike], dys: Seq[OutputLike], colocateGradientsWithOps: Boolean): Seq[OutputLike] = {
-    ys.zip(if (dys != null) dys else Seq.fill[OutputLike](ys.length)(null)).map {
-      case (y, dy) =>
+    ys.zip(if (dys != null) dys else Seq.fill[OutputLike](ys.length)(null)).zipWithIndex.map {
+      case ((y, dy), index) =>
         if (dy == null) {
           if (y.dataType.isComplex)
             throw InvalidDataTypeException(
               s"Gradients of complex tensors must set 'gradients' (variable.dataType = '${y.dataType}').")
           maybeColocateWith(y.op, colocateGradientsWithOps) {
             y match {
-              case o: Output => Basic.onesLike(o)
+              case o: Output => Basic.onesLike(o, name = s"Gradients_$index")
               case o: OutputIndexedSlices =>
                 if (o.denseShape == null)
                   throw new IllegalArgumentException(
                     "The dense shape of output indexed slices must be known in order to obtain their gradients.")
                 val values = Basic.fill(shape = o.denseShape)(1.0)
-                OutputIndexedSlices(indices = o.indices, values = values, denseShape = o.denseShape)
+                OutputIndexedSlices(
+                  Basic.identity(o.indices, name = s"Gradients_${index}_Indices"),
+                  Basic.identity(o.values, name = s"Gradients_${index}_Values"),
+                  if (o.denseShape == null)
+                    o.denseShape
+                  else
+                    Basic.identity(o.denseShape, name = s"Gradients_${index}_DenseShape"))
               case o: SparseOutput =>
                 val values = Basic.fill(shape = o.denseShape)(1.0)
-                SparseOutput(indices = o.indices, values = values, denseShape = o.denseShape)
+                SparseOutput(
+                  Basic.identity(o.indices, name = s"Gradients_${index}_Indices"),
+                  Basic.identity(o.values, name = s"Gradients_${index}_Values"),
+                  if (o.denseShape == null)
+                    o.denseShape
+                  else
+                    Basic.identity(o.denseShape, name = s"Gradients_${index}_DenseShape"))
             }
           }
-        } else if (y.dataType.isFloatingPoint || y.dataType.isInteger) {
-          if (!dy.dataType.isFloatingPoint && !dy.dataType.isInteger)
-            throw InvalidDataTypeException(
-              s"Gradient data type '${dy.dataType}' generated for real or integer-valued tensor '$y' with data type " +
-                  s"'${y.dataType}' must be real or integer.")
-          dy
-        } else if (y.dataType.isComplex) {
-          if (!dy.dataType.isComplex)
-            throw InvalidDataTypeException(
-              s"Gradient data type '${dy.dataType}' generated for complex-valued tensor '$y' with data type " +
-                  s"'${y.dataType}' must be complex.")
-          dy
         } else {
-          throw InvalidDataTypeException(
-            s"Tensor '$y' with data type '${y.dataType}' must be numeric in order to obtain a default gradient.")
+          if (y.dataType.isFloatingPoint || y.dataType.isInteger) {
+            if (!dy.dataType.isFloatingPoint && !dy.dataType.isInteger)
+              throw InvalidDataTypeException(
+                s"Gradient data type '${dy.dataType}' generated for real or integer-valued tensor '$y' with data type " +
+                    s"'${y.dataType}' must be real or integer.")
+          } else if (y.dataType.isComplex) {
+            if (!dy.dataType.isComplex)
+              throw InvalidDataTypeException(
+                s"Gradient data type '${dy.dataType}' generated for complex-valued tensor '$y' with data type " +
+                    s"'${y.dataType}' must be complex.")
+          } else {
+            throw InvalidDataTypeException(
+              s"Tensor '$y' with data type '${y.dataType}' must be numeric in order to obtain a default gradient.")
+          }
+          // Create a gradients tensor in the name scope of the gradients. This is required in order for tensor arrays
+          // to identify which gradient call a gradient value is coming from.
+          dy match {
+            case o: Output => Basic.identity(o, name = s"Gradients_$index")
+            case o: OutputIndexedSlices =>
+              OutputIndexedSlices(
+                Basic.identity(o.indices, name = s"Gradients_${index}_Indices"),
+                Basic.identity(o.values, name = s"Gradients_${index}_Values"),
+                if (o.denseShape == null)
+                  o.denseShape
+                else
+                  Basic.identity(o.denseShape, name = s"Gradients_${index}_DenseShape"))
+            case o: SparseOutput =>
+              SparseOutput(
+                Basic.identity(o.indices, name = s"Gradients_${index}_Indices"),
+                Basic.identity(o.values, name = s"Gradients_${index}_Values"),
+                if (o.denseShape == null)
+                  o.denseShape
+                else
+                  Basic.identity(o.denseShape, name = s"Gradients_${index}_DenseShape"))
+          }
         }
     }
   }

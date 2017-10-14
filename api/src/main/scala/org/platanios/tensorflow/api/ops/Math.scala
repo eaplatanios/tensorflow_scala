@@ -3882,9 +3882,17 @@ private[api] object Math extends Math {
 
     private[this] def meanGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       val sumGrad = sumGradient(op, outputGradients).head.toOutput
-      val inputShape = Basic.shape(op.inputs(0))
-      val outputShape = Basic.shape(op.outputs(0))
-      val factor = safeShapeDiv(prod(inputShape), prod(outputShape))
+      val factor = {
+        val inputSize = op.inputs(0).size
+        val outputSize = op.outputs(0).size
+        if (inputSize != -1 && outputSize != -1) {
+          Basic.constant(inputSize / scala.math.max(outputSize, 1), sumGrad.dataType)
+        } else {
+          val inputShape = Basic.shape(op.inputs(0))
+          val outputShape = Basic.shape(op.outputs(0))
+          safeShapeDiv(prod(inputShape), prod(outputShape))
+        }
+      }
       Seq(divide(sumGrad, cast(factor, sumGrad.dataType)), null)
     }
 

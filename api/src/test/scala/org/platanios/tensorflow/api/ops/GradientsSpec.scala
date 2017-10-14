@@ -137,7 +137,7 @@ class GradientsSpec extends FlatSpec with Matchers {
           if (gradientInputsProvided)
             Basic.constant(Tensor(Tensor(1.0, 1.0), Tensor(1.0, 1.0)), name = "GradientInputs")
           else
-            Basic.ones(matmul.dataType, matmul.shape, name = "OnesLike")
+            Basic.ones(matmul.dataType, matmul.shape, name = "Gradients_0")
         }
         Op.createWithNameScope("MatMulGradient") {
           val matmul1 = Math.matmul(constant2, constant1, transposeA = false, transposeB = true, name = "MatMul")
