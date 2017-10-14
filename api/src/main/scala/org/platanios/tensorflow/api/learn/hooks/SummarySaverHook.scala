@@ -56,7 +56,7 @@ case class SummarySaverHook(
 
   override def begin(): Unit = {
     internalTrigger.reset()
-    step = Counter.get(Graph.Keys.GLOBAL_STEP, Op.currentGraph).getOrElse(throw new IllegalStateException(
+    step = Counter.get(Graph.Keys.GLOBAL_STEP, local = false).getOrElse(throw new IllegalStateException(
       s"A ${Graph.Keys.GLOBAL_STEP.name} variable should be created in order to use the 'SummarySaverHook'."))
     summary = Summary.mergeAll(collection)
     if (summary.isDefined)

@@ -61,7 +61,7 @@ case class TensorLoggingHook(
   private[this] var shouldTrigger: Boolean = false
 
   override def begin(): Unit = {
-    step = Counter.get(Graph.Keys.GLOBAL_STEP, Op.currentGraph).getOrElse(throw new IllegalStateException(
+    step = Counter.get(Graph.Keys.GLOBAL_STEP, local = false).getOrElse(throw new IllegalStateException(
       s"A ${Graph.Keys.GLOBAL_STEP.name} variable should be created in order to use the 'TensorLoggingHook'."))
     internalTrigger.reset()
     shouldTrigger = false

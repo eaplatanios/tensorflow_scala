@@ -184,7 +184,7 @@ class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T] private[learn] (
       val graph = Graph()
       Op.createWith(graph = graph, deviceFunction = deviceFunction.getOrElse(_.device)) {
         graph.setRandomSeed(randomSeed)
-        // TODO: !!! [LEARN] Do we ever update the global epoch?
+        // TODO: [LEARN] !!! Do we ever update the global epoch?
         Counter.getOrCreate(Graph.Keys.GLOBAL_EPOCH, local = false)
         val step = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
         val trainingOps = Op.createWithNameScope("Model")(model.buildTrainOps())
@@ -356,7 +356,6 @@ class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T] private[learn] (
       Counter.getOrCreate(Graph.Keys.GLOBAL_EPOCH, local = false)
       val globalStep = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
       val evalStep = Counter.getOrCreate(Graph.Keys.EVAL_STEP, local = true)
-      graph.addToCollection(evalStep, Graph.Keys.EVAL_STEP)
       val evalStepUpdate = evalStep.assignAdd(1)
       val evalUpdateOps = ControlFlow.group(evaluationOps.metricUpdates.map(_.op).toSet + evalStepUpdate.op)
       val allHooks = mutable.ListBuffer(hooks: _*)
@@ -382,7 +381,7 @@ class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T] private[learn] (
         } catch {
           case e if RECOVERABLE_EXCEPTIONS.contains(e.getClass) =>
             session.close()
-            (-1, Seq.empty[Tensor])
+            (-1L, Seq.empty[Tensor])
           case e: Throwable =>
             session.closeWithoutHookEnd()
             throw e

@@ -62,7 +62,7 @@ case class CheckpointSaverHook(
 
   override def begin(): Unit = {
     internalTrigger.reset()
-    step = Counter.get(Graph.Keys.GLOBAL_STEP, Op.currentGraph).getOrElse(throw InvalidArgumentException(
+    step = Counter.get(Graph.Keys.GLOBAL_STEP, local = false).getOrElse(throw InvalidArgumentException(
       s"A ${Graph.Keys.GLOBAL_STEP.name} variable should be created in order to use the 'CheckpointSaverHook'."))
     val savers = Op.currentGraph.getCollection(Graph.Keys.SAVERS)
     if (savers.isEmpty || savers.size > 1)
