@@ -52,8 +52,8 @@ private[learn] case class StopEvaluationHook private[learn] (maxSteps: Long = -1
   override def beforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]
-  ): Option[Hook.SessionRunArgs[Output, Traversable[Op], Tensor]] = {
-    Some(Hook.SessionRunArgs(fetches = step.value))
+  ): Option[Hook.SessionRunArgs[Seq[Output], Traversable[Op], Seq[Tensor]]] = {
+    Some(Hook.SessionRunArgs(fetches = Seq(step.value)))
   }
 
   @throws[IllegalStateException]
