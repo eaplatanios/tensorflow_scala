@@ -324,7 +324,9 @@ class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T] private[learn] (
     *                        working directory of this estimator.
     * @param  name           Name for this evaluation. If provided, it will be used to generate an appropriate directory
     *                        name for the resulting summaries. If `saveSummaries` is `false`, this argument has no
-    *                        effect.
+    *                        effect. This is useful if the user needs to run multiple evaluations on different data
+    *                        sets, such as on training data vs test data. Metrics for different evaluations are saved in
+    *                        separate folders, and appear separately in TensorBoard.
     * @return                Evaluation metric values at the end of the evaluation process. The return sequence matches
     *                        the ordering of `metrics`.
     * @throws InvalidArgumentException If `saveSummaries` is `true`, but the estimator has no working directory

@@ -19,6 +19,7 @@ package org.platanios.tensorflow.api.learn
   *
   * @param  maxEpochs        Number of epochs (i.e., full passes over the data) after which to stop iterating.
   * @param  maxSteps         Number of steps after which to stop iterating.
+  * @param  maxSeconds       Number of seconds after which to stop iterating.
   * @param  restartCounting  If `true`, the number of epochs/steps is counted starting at the current value when
   *                          initializing the iteration. Otherwise, the iteration stops when the epoch/step exceeds
   *                          `maxEpochs`/`maxSteps` in value. For example, in that case, if the current epoch is 10
@@ -41,15 +42,17 @@ package org.platanios.tensorflow.api.learn
   *
   * @author Emmanouil Antonios Platanios
   */
-class StopCriteria(
+class StopCriteria private[learn] (
     val maxEpochs: Option[Long] = Some(100L),
     val maxSteps: Option[Long] = Some(10000L),
+    val maxSeconds: Option[Long] = None,
     val restartCounting: Boolean = true,
     val absLossChangeTol: Option[Double] = None,
     val relLossChangeTol: Option[Double] = None,
     val maxStepBelowTol: Long = 10) {
   require(maxEpochs.getOrElse(0L) >= 0, "'maxEpochs' needs to be a non-negative number.")
   require(maxSteps.getOrElse(0L) >= 0, "'maxSteps' needs to be a non-negative number.")
+  require(maxSeconds.getOrElse(0L) >= 0, "'maxSeconds' needs to be a non-negative number.")
   require(absLossChangeTol.getOrElse(0.0) >= 0, "'absLossChangeTol' needs to be a non-negative number.")
   require(absLossChangeTol.getOrElse(0.0) >= 0, "'absLossChangeTol' needs to be a non-negative number.")
   require(maxStepBelowTol >= 0, "'maxStepBelowTol' needs to be a non-negative number.")
@@ -63,10 +66,12 @@ object StopCriteria {
   def apply(
       maxEpochs: Option[Long] = Some(100L),
       maxSteps: Option[Long] = Some(10000L),
+      maxSeconds: Option[Long] = None,
       restartCounting: Boolean = true,
       absLossChangeTol: Option[Double] = None,
       relLossChangeTol: Option[Double] = None,
       maxStepBelowTol: Long = 10): StopCriteria = {
-    new StopCriteria(maxEpochs, maxSteps, restartCounting, absLossChangeTol, relLossChangeTol, maxStepBelowTol)
+    new StopCriteria(
+      maxEpochs, maxSteps, maxSeconds, restartCounting, absLossChangeTol, relLossChangeTol, maxStepBelowTol)
   }
 }

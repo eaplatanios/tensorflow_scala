@@ -38,6 +38,7 @@ private[learn] case class StopHook private[learn] (criteria: StopCriteria) exten
   private[this] var step : Variable = _
   private[this] var loss : Output   = _
 
+  private[this] var startTime       : Long         = 0L
   private[this] var lastEpoch       : Option[Long] = if (criteria.restartCounting) None else criteria.maxEpochs
   private[this] var lastStep        : Option[Long] = if (criteria.restartCounting) None else criteria.maxSteps
   private[this] var lastLoss        : Float        = Float.MaxValue
@@ -51,6 +52,8 @@ private[learn] case class StopHook private[learn] (criteria: StopCriteria) exten
   override def begin(): Unit = {
     numStepsBelowTol = 0
     val fetches = mutable.ListBuffer.empty[Output]
+    if (criteria.maxSeconds.isDefined)
+      startTime = System.currentTimeMillis()
     if (criteria.needEpoch) {
       epoch = Counter.get(Graph.Keys.GLOBAL_EPOCH, local = false, Op.currentGraph).getOrElse(
         throw new IllegalStateException(
@@ -101,17 +104,23 @@ private[learn] case class StopHook private[learn] (criteria: StopCriteria) exten
     if (criteria.maxEpochs.isDefined) {
       val epoch = runResult.values(epochFetchIndex).scalar.asInstanceOf[Long]
       if (lastEpoch.exists(epoch >= _)) {
-        converged = true
         StopHook.logger.info("Stop requested: Exceeded maximum number of epochs.")
+        converged = true
       }
     }
     if (criteria.maxSteps.isDefined) {
       val step = runResult.values(stepFetchIndex).scalar.asInstanceOf[Long]
       if (lastStep.exists(step >= _)) {
-        converged = true
         StopHook.logger.info("Stop requested: Exceeded maximum number of steps.")
+        converged = true
       }
     }
+    criteria.maxSeconds.foreach(maxSeconds => {
+      if (System.currentTimeMillis() - startTime >= maxSeconds) {
+        StopHook.logger.info("Stop requested: Exceeded maximum number of seconds.")
+        converged = true
+      }
+    })
     if (criteria.absLossChangeTol.isDefined || criteria.relLossChangeTol.isDefined) {
       val loss = runResult.values(lossFetchIndex).scalar.asInstanceOf[Float]
       val lossDiff = scala.math.abs(lastLoss - loss)
