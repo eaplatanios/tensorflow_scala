@@ -52,7 +52,7 @@ case class Input[T, O, D, S] private[learn](dataType: D, shape: S, name: String 
 
   final def apply(): Iterator[T, O, D, S] = cache.getOrElse(Op.currentGraph, create())
 
-  private[learn] def zip[T2, O2, D2, S2](other: Input[T2, O2, D2, S2]):
+  def zip[T2, O2, D2, S2](other: Input[T2, O2, D2, S2]):
   Input[(T, T2), (O, O2), (D, D2), (S, S2)] = {
     implicit val ev2: Data.Aux[T2, O2, D2, S2] = other.evidence
     Input[(T, T2), (O, O2), (D, D2), (S, S2)](
