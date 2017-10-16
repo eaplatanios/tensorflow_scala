@@ -144,9 +144,7 @@ object TensorFlowNativePackage extends AutoPlugin {
     clean in Compile := (clean in Compile).dependsOn(clean in nativeCrossCompile).value
   )
 
-  override lazy val projectSettings: Seq[Def.Setting[_]] =
-    inConfig(CrossCompile)(settings) ++
-        Seq(crossPaths := false) // We do not add the Scala version to the native JAR files
+  override lazy val projectSettings: Seq[Def.Setting[_]] = inConfig(CrossCompile)(settings)
 
   // def nativeLibraries(libraries: Map[Platform, (Set[File], Set[File])], resourceManaged: File): Seq[File] = {
   //   val nativeLibraries: Seq[(File, String)] = libraries.flatMap { case (platform, (nativeLibs, _)) =>

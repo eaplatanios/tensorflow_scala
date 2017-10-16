@@ -57,8 +57,5 @@ object JniPackage extends AutoPlugin {
     }.taskValue
   )
 
-  override lazy val projectSettings: Seq[Def.Setting[_]] =
-    inConfig(Compile)(settings) ++
-        inConfig(Test)(settings) ++
-        Seq(crossPaths := false) // We do not add the Scala version to native JAR files.
+  override lazy val projectSettings: Seq[Def.Setting[_]] = inConfig(Compile)(settings) ++ inConfig(Test)(settings)
 }

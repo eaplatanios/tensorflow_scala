@@ -392,6 +392,8 @@ private[api] trait Basic {
     }.asInstanceOf[T]
   }
 
+  // TODO: [BASIC] Add support for "identityN".
+
   /** $OpDocBasicExpandDims
     *
     * @group BasicOps
