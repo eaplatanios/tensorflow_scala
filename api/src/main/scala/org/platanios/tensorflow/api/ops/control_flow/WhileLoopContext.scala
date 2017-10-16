@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.ops.control_flow
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.exception.ShapeMismatchException
-import org.platanios.tensorflow.api.ops._
+import org.platanios.tensorflow.api.ops.{Basic, Math, TensorArray}
 import org.platanios.tensorflow.api.types.RESOURCE
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
 import org.platanios.tensorflow.api.utilities.Collections
