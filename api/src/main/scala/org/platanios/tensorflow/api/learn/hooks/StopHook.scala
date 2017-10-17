@@ -33,7 +33,7 @@ import scala.collection.mutable
   *
   * @author Emmanouil Antonios Platanios
   */
-private[learn] case class StopHook private[learn] (criteria: StopCriteria) extends Hook {
+private[learn] case class StopHook(criteria: StopCriteria) extends Hook {
   private[this] var epoch: Variable = _
   private[this] var step : Variable = _
   private[this] var loss : Output   = _

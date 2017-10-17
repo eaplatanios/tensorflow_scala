@@ -20,8 +20,24 @@ package org.platanios.tensorflow.api.learn
   */
 package object hooks {
   private[api] trait API
-      extends Hook.API
-          with HookTrigger.API
+      extends HookTrigger.API {
+    type Hook = hooks.Hook
+    type CheckpointSaverHook = hooks.CheckpointSaverHook
+    type StepRateHook = hooks.StepRateHook
+    type StopEvaluationHook = hooks.StopEvaluationHook
+    type StopHook = hooks.StopHook
+    type SummarySaverHook = hooks.SummarySaverHook
+    type TensorBoardHook = hooks.TensorBoardHook
+    type TensorNaNHook = hooks.TensorNaNHook
+
+    val CheckpointSaverHook: hooks.CheckpointSaverHook.type = hooks.CheckpointSaverHook
+    val StepRateHook       : hooks.StepRateHook.type        = hooks.StepRateHook
+    val StopEvaluationHook : hooks.StopEvaluationHook.type  = hooks.StopEvaluationHook
+    val StopHook           : hooks.StopHook.type            = hooks.StopHook
+    val SummarySaverHook   : hooks.SummarySaverHook.type    = hooks.SummarySaverHook
+    val TensorBoardHook    : hooks.TensorBoardHook.type     = hooks.TensorBoardHook
+    val TensorNaNHook      : hooks.TensorNaNHook.type       = hooks.TensorNaNHook
+  }
 
   private[api] object API extends API
 }

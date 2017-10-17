@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory
   *
   * @author Emmanouil Antonios Platanios
   */
-private[learn] case class StopEvaluationHook private[learn] (maxSteps: Long = -1L) extends Hook {
+private[learn] case class StopEvaluationHook(maxSteps: Long = -1L) extends Hook {
   private[this] var step    : Variable = _
   private[this] var lastStep: Long     = if (maxSteps == -1L) -1L else 0L
 

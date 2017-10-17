@@ -228,16 +228,4 @@ object Hook {
   case class SessionRunResult[F, R](values: R, runMetadata: Option[RunMetadata])(implicit
       fetchableEv: Fetchable.Aux[F, R]
   )
-
-  private[api] trait API {
-    val CheckpointSaverHook: hooks.CheckpointSaverHook.type = hooks.CheckpointSaverHook
-    val StepRateHook       : hooks.StepRateHook.type        = hooks.StepRateHook
-    val StopHook           : hooks.StopHook.type            = hooks.StopHook
-    val SummarySaverHook   : hooks.SummarySaverHook.type    = hooks.SummarySaverHook
-    val TensorBoardHook    : hooks.TensorBoardHook.type     = hooks.TensorBoardHook
-    val TensorLoggingHook  : hooks.TensorLoggingHook.type   = hooks.TensorLoggingHook
-    val TensorNaNHook      : hooks.TensorNaNHook.type       = hooks.TensorNaNHook
-  }
-
-  private[api] object API extends API
 }

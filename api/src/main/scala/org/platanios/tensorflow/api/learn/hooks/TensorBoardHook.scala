@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory
   *
   * @author Emmanouil Antonios Platanios
   */
-private[learn] case class TensorBoardHook private[learn] (tensorBoardConfig: TensorBoardConfig) extends Hook {
+private[learn] case class TensorBoardHook(tensorBoardConfig: TensorBoardConfig) extends Hook {
   private[this] var tensorBoardProcess: Option[Process] = None
 
   override def begin(): Unit = tensorBoardProcess = {
