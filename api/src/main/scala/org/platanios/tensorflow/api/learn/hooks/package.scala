@@ -28,6 +28,7 @@ package object hooks {
     type StopHook = hooks.StopHook
     type SummarySaverHook = hooks.SummarySaverHook
     type TensorBoardHook = hooks.TensorBoardHook
+    type TensorLoggingHook = hooks.TensorLoggingHook
     type TensorNaNHook = hooks.TensorNaNHook
 
     val CheckpointSaverHook: hooks.CheckpointSaverHook.type = hooks.CheckpointSaverHook
@@ -36,6 +37,7 @@ package object hooks {
     val StopHook           : hooks.StopHook.type            = hooks.StopHook
     val SummarySaverHook   : hooks.SummarySaverHook.type    = hooks.SummarySaverHook
     val TensorBoardHook    : hooks.TensorBoardHook.type     = hooks.TensorBoardHook
+    val TensorLoggingHook  : hooks.TensorLoggingHook.type   = hooks.TensorLoggingHook
     val TensorNaNHook      : hooks.TensorNaNHook.type       = hooks.TensorNaNHook
   }
 
