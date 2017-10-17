@@ -485,7 +485,7 @@ object Estimator {
     * @param  configuration Configuration.
     * @return Constructed replica device placer.
     */
-  private[Estimator] def getReplicaDeviceSetter(configuration: Configuration): Option[ReplicaDevicePlacer] = {
+  def getReplicaDeviceSetter(configuration: Configuration): Option[ReplicaDevicePlacer] = {
     if (configuration.numParameterServers > 0) {
       Some(ReplicaDevicePlacer(
         psNumTasks = configuration.numParameterServers,
@@ -517,7 +517,7 @@ object Estimator {
     *                         default one is created. The session scaffold is used to finalize the graph.
     * @return Created monitored session.
     */
-  private[Estimator] def monitoredTrainingSession(
+  def monitoredTrainingSession(
       configuration: Configuration = Configuration(),
       hooks: Seq[Hook] = Seq.empty,
       chiefOnlyHooks: Seq[Hook] = Seq.empty,
