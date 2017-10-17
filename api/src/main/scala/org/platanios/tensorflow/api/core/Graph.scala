@@ -173,7 +173,7 @@ class Graph private[api](private[api] var nativeHandle: Long) extends Closeable 
     *
     * @param  key Collection key.
     */
-  private[api] def clearCollection[K](key: Graph.Key[K]): Unit = {
+  def clearCollection[K](key: Graph.Key[K]): Unit = {
     assertNotFrozen()
     collections -= key
   }
@@ -183,7 +183,7 @@ class Graph private[api](private[api] var nativeHandle: Long) extends Closeable 
     * @param  value Value to add to the collection.
     * @param  key   Collection name.
     */
-  private[api] def addToCollection[K](value: K, key: Graph.Key[K]): Unit = {
+  def addToCollection[K](value: K, key: Graph.Key[K]): Unit = {
     assertNotFrozen()
     collections.getOrElseUpdate(key, mutable.Set.empty[K]).asInstanceOf[mutable.Set[K]].add(value)
   }
@@ -195,7 +195,7 @@ class Graph private[api](private[api] var nativeHandle: Long) extends Closeable 
     * @param  key Collection name.
     * @return Set of values contained in the collection with name `collection`.
     */
-  private[api] def getCollection[K](key: Graph.Key[K]): Set[K] = {
+  def getCollection[K](key: Graph.Key[K]): Set[K] = {
     collections.getOrElse(key, mutable.Set.empty[K]).asInstanceOf[mutable.Set[K]].toSet[K]
   }
 

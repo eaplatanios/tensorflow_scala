@@ -74,8 +74,8 @@ import scala.collection.mutable
   *
   * An example training program that saves regularly looks like this:
   * {{{
-  * // Using a slight abuse of notation.
-*   // Create a saver.
+  *   // Using a slight abuse of notation.
+  *   // Create a saver.
   *   val saver = tf.Saver(variables)
   *   // Launch the graph and train, saving the model every 1,000 steps.
   *   for (step <- 0 to 1000000) {
