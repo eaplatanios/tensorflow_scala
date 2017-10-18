@@ -31,6 +31,10 @@ package object learn {
           with hooks.API
           with layers.API
           with optimizers.API {
+    type Configuration = learn.Configuration
+    type Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T] = learn.Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T]
+    type StopCriteria = learn.StopCriteria
+
     val Configuration: learn.Configuration.type = learn.Configuration
     val Estimator    : learn.Estimator.type     = learn.Estimator
     val StopCriteria : learn.StopCriteria.type  = learn.StopCriteria
