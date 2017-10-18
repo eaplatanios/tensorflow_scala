@@ -17,7 +17,11 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
-import org.platanios.tensorflow.api.types.{DataType, FLOAT32, INT32, STRING, UINT8}
+import org.platanios.tensorflow.api.tensors.{SparseTensor, Tensor}
+import org.platanios.tensorflow.api.types.{DataType, FLOAT32, INT32, INT64, STRING, UINT8}
+
+import scala.collection.immutable.ListMap
+import scala.collection.mutable
 
 /** Contains functions for constructing ops related to parsing data.
   *
@@ -144,6 +148,181 @@ trait Parsing {
 }
 
 private[ops] object Parsing extends Parsing {
+  sealed trait Feature
+
+  /** Configuration for parsing a variable-length input feature.
+    *
+    * @param  dataType Data type of the input feature.
+    */
+  case class VariableLengthFeature(dataType: DataType) extends Feature
+
+  /** Configuration for parsing a fixed-length input feature.
+    *
+    * To treat sparse input as dense, provide a `defaultValue`. Otherwise, the parsing functions will fail on any
+    * examples missing this feature.
+    *
+    * @param  dataType     Data type of the input feature.
+    * @param  shape        Shape of the input feature.
+    * @param  defaultValue Value to be used if an example is missing this feature. It must be compatible with `dataType`
+    *                      and of the specified `shape`.
+    */
+  case class FixedLengthFeature(dataType: DataType, shape: Shape, defaultValue: Tensor = null) extends Feature {
+    require(defaultValue == null || defaultValue.dataType == dataType,
+            s"The default value data type (${defaultValue.dataType}) does not match the expected $dataType.")
+    require(defaultValue == null || defaultValue.shape == shape,
+            s"The default value shape (${defaultValue.shape}) does not match the expected $shape.")
+  }
+
+  /** Configuration for parsing a fixed-length sequence input feature.
+    *
+    * The resulting [[Tensor]] from parsing a single `Example` or `SequenceExample` has static `shape` `[None] + shape`
+    * and the specified `dataType`. The resulting [[Tensor]] from parsing `batchSize` many `Example`s has static `shape`
+    * `[batchSize, None] + shape` and the specified `dataType`. The entries in the batch from different `Example`s will
+    * be padded with `defaultValue` to the maximum length present in the batch.
+    *
+    * To treat sparse input as dense, set `allow_missing` to `true`. Otherwise, the parsing functions will fail on any
+    * examples missing this feature.
+    *
+    * @param  dataType     Data type of the input feature.
+    * @param  shape        Shape of the input feature.
+    * @param  allowMissing Boolean value specifying whether to allow this feature to be missing from a feature list
+    *                      item. It is available only for parsing `SequenceExample`s, but not for parsing `Example`s.
+    * @param  defaultValue Scalar value to be used to pad multiple `Example`s to their maximum length. It is irrelevant
+    *                      for parsing a single `Example` or `SequenceExample`. Defaults to `""` for data type
+    *                      [[STRING]] and to `0` otherwise.
+    */
+  case class FixedLengthSequenceFeature(
+      dataType: DataType, shape: Shape, allowMissing: Boolean = false, defaultValue: Tensor = null) extends Feature
+
+  /** Configuration for parsing a sparse input feature.
+    *
+    * '''NOTE:''' Preferably use [[VariableLengthFeature]] (possibly in combination with a `SequenceExample`) in order
+    * to parse out [[SparseTensor]]s instead of [[SparseFeature]] due to its simplicity.
+    *
+    * Closely mimicking the [[SparseTensor]] that will be obtained by parsing an `Example` with a [[SparseFeature]]
+    * configuration, a [[SparseFeature]] contains:
+    *
+    *   - An `indexKey`, which is a sequence of names -- one for each dimension in the resulting [[SparseTensor]], whose
+    *     `indices(i)(dim)` indicating the position of `i`-th value in the `dim` dimension will be equal to the `i`-th
+    *     value in the feature with key names `indexKey(dim)` in the `Example`.
+    *   - A `valueKey`, which is the name of a key for a `Feature` in the `Example`, whose parsed [[Tensor]] will be the
+    *     resulting [[SparseTensor]]'s values.
+    *   - A `dataType`, which is the resulting [[SparseTensor]]'s data type.
+    *   - A `size`, which is a sequence of integers, matching in length the `indexKey`, and corresponding to the
+    *     resulting [[SparseTensor]]'s dense shape.
+    *
+    * For example,  we can represent the following 2D [[SparseTensor]]:
+    * {{{
+    *   SparseTensor(
+    *     indices = Tensor(Tensor(3, 1), Tensor(20, 0)),
+    *     values = Tensor(0.5, -1.0),
+    *     denseShape = Tensor(100, 3))
+    * }}}
+    * with an `Example` input proto:
+    * {{{
+    *   features {
+    *     feature { key: "val" value { float_list { value: [ 0.5, -1.0 ] } } }
+    *     feature { key: "ix0" value { int64_list { value: [ 3, 20 ] } } }
+    *     feature { key: "ix1" value { int64_list { value: [ 1, 0 ] } } }
+    *   }
+    * }}}
+    * and a `SparseFeature` configuration with two index keys:
+    * {{{
+    *   SparseFeature(
+    *     indexKey = Seq("ix0", "ix1"),
+    *     valueKey = "val",
+    *     dataType = FLOAT32,
+    *     size = Seq(100, 3))
+    * }}}
+    *
+    * @param  indexKey      Sequence of string names of index features. For each key, the underlying feature's type must
+    *                       be [[INT64]] and its length must always match the rank of the `valueKey` feature's value.
+    * @param  valueKey      Name of the value feature. The underlying feature's type must be `dataType` and its rank
+    *                       must always match that of all the `indexKey`s' features.
+    * @param  dataType      Data type of the `valueKey` feature.
+    * @param  size          Sequence of integers specifying the dense shape of the [[SparseTensor]]. The length of this
+    *                       sequence must be equal to the length of the `indexKey` sequence. For each entry `i`, all
+    *                       values in the `indexKey(i)`-th feature must be in the interval `[0, size(i))`.
+    * @param  alreadySorted Boolean value specifying whether the values in `valueKey` are already sorted by their index
+    *                       position. If so, we skip sorting.
+    */
+  case class SparseFeature(
+      indexKey: Seq[String], valueKey: String, dataType: DataType, size: Seq[Int], alreadySorted: Boolean = false)
+      extends Feature
+
+  /** Represents the raw parameters parsed from a set features that we pass to the parsing ops. Note that we use a
+    * [[ListMap]] for `denseDefaults` because ignoring the ordering would cause graph equality to fail in some tests. */
+  private[this] case class RawParameters(
+      sparseKeys: Seq[String], sparseTypes: Seq[DataType], denseKeys: Seq[String], denseTypes: Seq[DataType],
+      denseShapes: Seq[Shape], denseDefaults: ListMap[String, Tensor])
+
+  /** Converts the provides features into a [[RawParameters]] object to be fed into the parsing ops. */
+  @throws[IllegalArgumentException]
+  private[this] def featuresToRawParameters(features: Map[String, Feature]): RawParameters = {
+    val sparseKeys = mutable.ListBuffer.empty[String]
+    val sparseTypes = mutable.ListBuffer.empty[DataType]
+    val denseKeys = mutable.ListBuffer.empty[String]
+    val denseTypes = mutable.ListBuffer.empty[DataType]
+    val denseShapes = mutable.ListBuffer.empty[Shape]
+    val denseDefaults = mutable.ListBuffer.empty[(String, Tensor)]
+    // We iterate over sorted keys to keep things deterministic.
+    features.toSeq.sortBy(_._1).foreach({
+      case (key, VariableLengthFeature(dataType)) =>
+        sparseKeys.append(key)
+        sparseTypes.append(dataType)
+      case (key, FixedLengthFeature(dataType, shape, defaultValue)) =>
+        if (!shape.isFullyDefined)
+          throw new IllegalArgumentException(
+            s"All dimensions of shape for feature '$key' need to be known, but received $shape.")
+        denseKeys.append(key)
+        denseTypes.append(dataType)
+        denseShapes.append(shape)
+        if (defaultValue != null)
+          denseDefaults.append((key, defaultValue))
+      case (key, FixedLengthSequenceFeature(dataType, shape, allowMissing, defaultValue)) =>
+        denseKeys.append(key)
+        denseTypes.append(dataType)
+        denseShapes.append(shape)
+        if (allowMissing || defaultValue != null)
+          denseDefaults.append((key, defaultValue))
+      case (_, SparseFeature(indexKey, valueKey, dataType, _, _)) =>
+        indexKey.sorted.foreach(k => {
+          if (sparseKeys.contains(k)) {
+            val dType = sparseTypes(sparseKeys.indexOf(k))
+            if (dType != INT64)
+              throw new IllegalArgumentException(s"Conflicting type $dType vs INT64 for feature $k.")
+          } else {
+            sparseKeys.append(k)
+            sparseTypes.append(INT64)
+          }
+        })
+        if (sparseKeys.contains(valueKey)) {
+          val dType = sparseTypes(sparseKeys.indexOf(valueKey))
+          if (dType != INT64)
+            throw new IllegalArgumentException(s"Conflicting type $dType vs INT64 for feature $valueKey.")
+        } else {
+          sparseKeys.append(valueKey)
+          sparseTypes.append(dataType)
+        }
+    })
+    RawParameters(
+      sparseKeys.toList, sparseTypes.toList, denseKeys.toList, denseTypes.toList, denseShapes.toList,
+      ListMap(denseDefaults: _*))
+  }
+
+//  private[this] def sparseFeaturesToSparseTensors(
+//      features: Map[String, Feature], tensors: Map[String, TensorLike]): Map[String, TensorLike] = {
+//    val updatedTensors = mutable.ListMap(tensors.toSeq: _*)
+//    // We iterate over sorted keys to keep things deterministic.
+//    features.toSeq.sortBy(_._1).foreach({
+//      case (_, SparseFeature(indexKey, valueKey, dataType, _, _)) =>
+//        val sparseIndices = indexKey.map(updatedTensors)
+//        val sparseValues = updatedTensors(valueKey)
+//
+//    })
+//
+//  }
+
   /** Creates an op that transforms a vector of `Example` protos (represented as strings) into typed tensors.
     *
     * @param  bytes         [[STRING]] tensor containing containing a batch of binary serialized `Example` protos.
