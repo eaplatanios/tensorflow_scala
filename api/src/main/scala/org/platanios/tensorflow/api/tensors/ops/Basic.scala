@@ -798,7 +798,7 @@ private[api] trait Basic {
       }
     }
     val actualOnValue = (if (onValue != null) onValue else 1: Tensor).cast(inferredDataType)
-    val actualOffValue = (if (offValue != null) offValue else 1: Tensor).cast(inferredDataType)
+    val actualOffValue = (if (offValue != null) offValue else 0: Tensor).cast(inferredDataType)
     Tensor.fromNativeHandle(
       NativeTensorOpsBasic.oneHot(
         context.value.nativeHandle, indices.nativeHandle, depth.nativeHandle, actualOnValue.nativeHandle,
