@@ -94,8 +94,9 @@ object IndexerConstructionWithThreeNumbers {
 
 /** Contains helper functions for dealing with indexers. */
 object Indexer {
-  val --- : Indexer = core.Ellipsis
-  val ::  : Slice   = core.Slice.::
+  val ---    : Indexer           = core.Ellipsis
+  val ::     : Slice             = core.Slice.::
+  val NewAxis: core.NewAxis.type = core.NewAxis
 
   private[core] trait Implicits {
     // TODO: Add begin mask support (not simple).
