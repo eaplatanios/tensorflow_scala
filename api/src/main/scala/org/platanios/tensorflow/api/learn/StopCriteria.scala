@@ -43,7 +43,7 @@ package org.platanios.tensorflow.api.learn
   * @author Emmanouil Antonios Platanios
   */
 class StopCriteria private[learn] (
-    val maxEpochs: Option[Long] = Some(100L),
+    val maxEpochs: Option[Long] = None,
     val maxSteps: Option[Long] = Some(10000L),
     val maxSeconds: Option[Long] = None,
     val restartCounting: Boolean = true,

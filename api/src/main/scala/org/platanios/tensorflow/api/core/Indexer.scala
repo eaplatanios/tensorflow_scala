@@ -457,7 +457,7 @@ case class Slice private[api] (start: Int, end: Int, step: Int = 1, inclusive: B
       throw new IndexOutOfBoundsException(
         s"Slice start index '$start' is outside the bounds for a sequence length of '$underlyingSequenceLength'.")
     val end = exclusiveEnd(underlyingSequenceLength)
-    if (end > underlyingSequenceLength || end <= -underlyingSequenceLength)
+    if (end > underlyingSequenceLength || end < -underlyingSequenceLength)
       throw new IndexOutOfBoundsException(
         s"Slice end index '$end' is outside the bounds for a sequence length of '$underlyingSequenceLength'.")
   }

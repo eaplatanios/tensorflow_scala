@@ -140,7 +140,8 @@ class Saver private (saverDef: SaverDef, saveRelativePaths: Boolean = false, pad
       session: Session, savePath: Path, globalStep: Option[Int] = None, checkpointStateFilename: String = "checkpoint",
       metaGraphSuffix: String = "meta", writeMetaGraph: Boolean = true,
       writeCheckpointState: Boolean = true): Option[Path] = {
-    Saver.logger.info(s"Saving parameters to '$savePath'.")
+    val absoluteSavePath = savePath.toAbsolutePath
+    Saver.logger.info(s"Saving parameters to '$absoluteSavePath'.")
     if (writerVersion != Saver.V2) {
       Saver.logger.warn("===========================================================")
       Saver.logger.warn("TensorFlow's V1 checkpoint format version has been deprecated.")
@@ -150,32 +151,33 @@ class Saver private (saverDef: SaverDef, saveRelativePaths: Boolean = false, pad
       Saver.logger.warn("===========================================================")
     }
 
-    if (savePath.getFileSystem.getPath(checkpointStateFilename).getNameCount > 1)
+    if (absoluteSavePath.getFileSystem.getPath(checkpointStateFilename).getNameCount > 1)
       throw new IllegalArgumentException(
         s"The 'checkpointStateFilename' must not contain any path components: $checkpointStateFilename.")
     val checkpointFile = {
       if (globalStep.isDefined) {
         // Optionally zero-pads the step numbers so that they are sorted when listed.
         if (padGlobalStep)
-          savePath.resolveSibling(f"${savePath.getFileName}-${globalStep.get}%08d")
+          absoluteSavePath.resolveSibling(f"${absoluteSavePath.getFileName}-${globalStep.get}%08d")
         else
-          savePath.resolveSibling(s"${savePath.getFileName}-${globalStep.get}")
-      } else if (savePath.getFileName.toString == checkpointStateFilename && !saverDef.getSharded) {
+          absoluteSavePath.resolveSibling(s"${absoluteSavePath.getFileName}-${globalStep.get}")
+      } else if (absoluteSavePath.getFileName.toString == checkpointStateFilename && !saverDef.getSharded) {
         // Guard against collision between the data file and the checkpoint state file.
         throw new IllegalArgumentException(
-          s"The checkpoint state filename ('$checkpointStateFilename') collides with the save path ('$savePath').")
+          s"The checkpoint state filename ('$checkpointStateFilename') " +
+              s"collides with the save path ('$absoluteSavePath').")
       } else {
-        savePath
+        absoluteSavePath
       }
     }
 
     // Save checkpoint.
-    val savePathParent = savePath.getParent
+    val savePathParent = absoluteSavePath.getParent
     val modelCheckpointPath = {
       try {
         val filenameTensor = session.graph.getOutputByName(saverDef.getFilenameTensorName)
         val saveTensor = session.graph.getOutputByName(saverDef.getSaveTensorName)
-        val modelCheckpointPath = savePath.getFileSystem.getPath(
+        val modelCheckpointPath = absoluteSavePath.getFileSystem.getPath(
           // TODO: [SESSION] !!! Feed mappers for string inputs.
           session.run(
             feeds = Map(filenameTensor -> (checkpointFile.toString: Tensor)),
@@ -190,7 +192,7 @@ class Saver private (saverDef: SaverDef, saveRelativePaths: Boolean = false, pad
         case exception: Exception =>
           if (!Files.isDirectory(savePathParent))
             throw new IllegalArgumentException(
-              s"The parent directory of '$savePath' does not exist, preventing the saver from running.")
+              s"The parent directory of '$absoluteSavePath' does not exist, preventing the saver from running.")
           throw exception
       }
     }

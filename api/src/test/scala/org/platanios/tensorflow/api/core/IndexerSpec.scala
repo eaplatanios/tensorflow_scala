@@ -171,13 +171,13 @@ class IndexerSpec extends FlatSpec with Matchers {
   "'Slice.assertWithinBounds'" must "throw an exception exception whenever appropriate" in {
     val slice: Slice = 4 :: 3 :: -10
     assert(intercept[IllegalArgumentException](slice.assertWithinBounds(0)).getMessage ===
-               "The underlying sequence length, '0', must be a positive integral number.")
+        "The underlying sequence length, '0', must be a positive integral number.")
     assert(intercept[IndexOutOfBoundsException](slice.assertWithinBounds(3)).getMessage ===
-               "Slice start index '4' is outside the bounds for a sequence length of '3'.")
+        "Slice start index '4' is outside the bounds for a sequence length of '3'.")
     assert(intercept[IndexOutOfBoundsException](slice.assertWithinBounds(8)).getMessage ===
-               "Slice end index '-10' is outside the bounds for a sequence length of '8'.")
-    assert(intercept[IndexOutOfBoundsException](slice.assertWithinBounds(10)).getMessage ===
-               "Slice end index '-10' is outside the bounds for a sequence length of '10'.")
+        "Slice end index '-10' is outside the bounds for a sequence length of '8'.")
+    assert(intercept[IndexOutOfBoundsException](slice.assertWithinBounds(9)).getMessage ===
+        "Slice end index '-10' is outside the bounds for a sequence length of '9'.")
   }
 
   "'Indexer.decode'" must "work correctly for valid inputs" in {
