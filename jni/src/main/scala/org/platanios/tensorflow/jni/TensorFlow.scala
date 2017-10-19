@@ -77,22 +77,6 @@ object TensorFlow {
       val classLoader = Thread.currentThread.getContextClassLoader
 
       try {
-        System.loadLibrary(LIB_NAME)
-      } catch {
-        case _: UnsatisfiedLinkError =>
-          // Check if a TensorFlow native library resource is provided and load it.
-          val libResourceStream = Option(classLoader.getResourceAsStream(makeResourceName(LIB_NAME)))
-          libResourceStream.map(extractResource(LIB_NAME, _, tempDirectory)).foreach(path => {
-            try {
-              System.load(path.toAbsolutePath.toString)
-            } catch {
-              case exception: IOException => throw new UnsatisfiedLinkError(
-                s"Unable to load the TensorFlow native library from the extracted file: ${exception.getMessage}.")
-            }
-          })
-      }
-
-      try {
         System.loadLibrary(LIB_FRAMEWORK_NAME)
       } catch {
         case _: UnsatisfiedLinkError =>
@@ -104,6 +88,22 @@ object TensorFlow {
             } catch {
               case exception: IOException => throw new UnsatisfiedLinkError(
                 s"Unable to load the TensorFlow native framework library from the extracted file: ${exception.getMessage}.")
+            }
+          })
+      }
+
+      try {
+        System.loadLibrary(LIB_NAME)
+      } catch {
+        case _: UnsatisfiedLinkError =>
+          // Check if a TensorFlow native library resource is provided and load it.
+          val libResourceStream = Option(classLoader.getResourceAsStream(makeResourceName(LIB_NAME)))
+          libResourceStream.map(extractResource(LIB_NAME, _, tempDirectory)).foreach(path => {
+            try {
+              System.load(path.toAbsolutePath.toString)
+            } catch {
+              case exception: IOException => throw new UnsatisfiedLinkError(
+                s"Unable to load the TensorFlow native library from the extracted file: ${exception.getMessage}.")
             }
           })
       }
@@ -149,14 +149,14 @@ object TensorFlow {
     * as opposed to the `.dylib` extension. */
   private def mapLibraryName(lib: String): String = {
     var name = System.mapLibraryName(lib)
-    if (lib == LIB_NAME && os == "darwin" && name.endsWith(".dylib"))
+    if ((lib == LIB_NAME || lib == LIB_FRAMEWORK_NAME) && os == "darwin" && name.endsWith(".dylib"))
       name = name.substring(0, name.lastIndexOf(".dylib")) + ".so"
     name
   }
 
   /** Generates the resource name (including the path) for the specified library. */
   private def makeResourceName(lib: String): String = {
-    if (lib == LIB_NAME)
+    if (lib == LIB_NAME || lib == LIB_FRAMEWORK_NAME)
       mapLibraryName(lib)
     else
       s"native/$os-$architecture/${mapLibraryName(lib)}"
