@@ -875,7 +875,7 @@ private[api] object Basic extends Basic {
       * @param  axis   Dimension along which to unstack the input tensor.
       * @return Result as a new tensor.
       */
-    def unstack(number: Int, axis: Int = 0): Seq[Tensor] = Basic.unstack(tensor, number, axis)
+    def unstack(number: Int = -1, axis: Int = 0): Seq[Tensor] = Basic.unstack(tensor, number, axis)
 
     /** $OpDocBasicSplitEvenly
       *
