@@ -26,7 +26,18 @@ import org.platanios.tensorflow.api.types.FLOAT32
 /**
   * @author Emmanouil Antonios Platanios
   */
-sealed trait Model
+trait Model
+
+trait InferenceModel[IT, IO, ID, IS, I] extends Model {
+  def buildInferenceOps(graph: Graph = Op.currentGraph): Model.InferenceOps[IT, IO, ID, IS, I]
+}
+
+trait TrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T] extends InferenceModel[IT, IO, ID, IS, I] {
+  def buildTrainOps(graph: Graph = Op.currentGraph): Model.TrainOps[IT, IO, ID, IS, I, TT, TO, TD, TS, T]
+  def buildEvaluationOps(
+      graph: Graph = Op.currentGraph, metrics: Seq[Metric[(I, T), Output]]
+  ): Model.EvaluationOps[IT, IO, ID, IS, I, TT, TO, TD, TS, T]
+}
 
 object Model {
   case class InferenceOps[IT, IO, ID, IS, I](inputIterator: Iterator[IT, IO, ID, IS], input: IO, output: I)
@@ -67,17 +78,17 @@ object Model {
         trainingInputLayer: Layer[TO, T],
         loss: Layer[(I, T), Output],
         optimizer: Optimizer): TrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T] = {
-      new TrainableModel(input, layer, trainingInput, trainingInputLayer, loss, optimizer)
+      new SimpleTrainableModel(input, layer, trainingInput, trainingInputLayer, loss, optimizer)
     }
   }
 
   object API extends API
 }
 
-class InferenceModel[IT, IO, ID, IS, I] private[learn](
+private[learn] class SimpleInferenceModel[IT, IO, ID, IS, I] private[learn](
     val input: Input[IT, IO, ID, IS],
     val layer: Layer[IO, I]
-) extends Model {
+) extends InferenceModel[IT, IO, ID, IS, I] {
   def buildInferenceOps(graph: Graph = Op.currentGraph): Model.InferenceOps[IT, IO, ID, IS, I] = {
     Op.createWith(graph) {
       val tfInputIterator = input()
@@ -88,14 +99,15 @@ class InferenceModel[IT, IO, ID, IS, I] private[learn](
   }
 }
 
-class TrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T] private[learn](
+private[learn] class SimpleTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T] private[learn](
     override val input: Input[IT, IO, ID, IS],
     override val layer: Layer[IO, I],
     val trainInput: Input[TT, TO, TD, TS],
     val trainLayer: Layer[TO, T],
     val loss: Layer[(I, T), Output],
     val optimizer: Optimizer
-) extends InferenceModel[IT, IO, ID, IS, I](input, layer) {
+) extends SimpleInferenceModel[IT, IO, ID, IS, I](input, layer)
+    with TrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T] {
   // TODO: [LEARN] Add support for trainable models with only the loss function gradient available.
 
   def buildTrainOps(graph: Graph = Op.currentGraph): Model.TrainOps[IT, IO, ID, IS, I, TT, TO, TD, TS, T] = {
