@@ -67,7 +67,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -127,7 +127,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -178,7 +178,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -206,7 +206,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -234,7 +234,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -270,7 +270,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -296,7 +296,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -324,7 +324,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -350,7 +350,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -376,7 +376,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -402,7 +402,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -428,7 +428,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -454,7 +454,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -480,7 +480,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -506,7 +506,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -532,7 +532,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -558,7 +558,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -584,7 +584,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -610,7 +610,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -636,7 +636,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -662,7 +662,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -688,7 +688,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -714,7 +714,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -740,7 +740,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -766,7 +766,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -792,7 +792,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -818,7 +818,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -844,7 +844,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -870,7 +870,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -896,7 +896,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -922,7 +922,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -948,7 +948,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -974,7 +974,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -1000,7 +1000,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -1026,7 +1026,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -1052,7 +1052,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -1078,7 +1078,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -1104,7 +1104,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -1130,7 +1130,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -1156,7 +1156,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -1182,7 +1182,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -1208,7 +1208,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -1251,7 +1251,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -1294,7 +1294,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -1337,7 +1337,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -1380,7 +1380,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -1423,7 +1423,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -1466,7 +1466,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -1509,7 +1509,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -1552,7 +1552,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -1595,7 +1595,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -1638,7 +1638,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -1681,7 +1681,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -1724,7 +1724,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -1767,7 +1767,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -1810,7 +1810,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -1853,7 +1853,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -1896,7 +1896,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -1939,7 +1939,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -1982,7 +1982,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -2025,7 +2025,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -2085,7 +2085,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -2107,7 +2107,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -2133,7 +2133,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -2159,7 +2159,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -2202,7 +2202,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -2245,7 +2245,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -2290,7 +2290,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -2333,7 +2333,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -2376,7 +2376,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -2419,7 +2419,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -2462,7 +2462,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -2498,7 +2498,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -2534,7 +2534,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -2570,7 +2570,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -2606,7 +2606,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -2642,7 +2642,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -2674,7 +2674,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -2706,7 +2706,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -2742,7 +2742,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -2778,7 +2778,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -2812,7 +2812,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -2850,7 +2850,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -2888,7 +2888,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -2922,7 +2922,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -2956,7 +2956,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -2990,7 +2990,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -3024,7 +3024,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -3058,7 +3058,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -3096,7 +3096,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -3134,7 +3134,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -3172,7 +3172,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -3210,7 +3210,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -3248,7 +3248,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -3274,7 +3274,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -3300,7 +3300,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -3326,7 +3326,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -3369,7 +3369,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -3395,7 +3395,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -3429,7 +3429,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -3476,7 +3476,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -3523,7 +3523,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -3565,7 +3565,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -3608,7 +3608,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -3653,7 +3653,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -3681,7 +3681,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -3709,7 +3709,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -3737,7 +3737,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -3763,7 +3763,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -3798,7 +3798,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -3850,7 +3850,7 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors
 
   const int num_outputs = 3;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), nullptr);
 
@@ -3859,7 +3859,7 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors
   for (int i = 0; i < num_outputs; ++i) {
     output_elems[i] = reinterpret_cast<jlong>(outputs[i]);
   }
-  env->ReleaseLongArrayElements(outputs_array, output_elems, JNI_COMMIT);
+  env->ReleaseLongArrayElements(outputs_array, output_elems, 0);
   return outputs_array;
 }
 
@@ -3908,7 +3908,7 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors
 
   const int num_outputs = 3;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), nullptr);
 
@@ -3917,7 +3917,7 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors
   for (int i = 0; i < num_outputs; ++i) {
     output_elems[i] = reinterpret_cast<jlong>(outputs[i]);
   }
-  env->ReleaseLongArrayElements(outputs_array, output_elems, JNI_COMMIT);
+  env->ReleaseLongArrayElements(outputs_array, output_elems, 0);
   return outputs_array;
 }
 
@@ -3972,7 +3972,7 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors
 
   const int num_outputs = 3;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), nullptr);
 
@@ -3981,7 +3981,7 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors
   for (int i = 0; i < num_outputs; ++i) {
     output_elems[i] = reinterpret_cast<jlong>(outputs[i]);
   }
-  env->ReleaseLongArrayElements(outputs_array, output_elems, JNI_COMMIT);
+  env->ReleaseLongArrayElements(outputs_array, output_elems, 0);
   return outputs_array;
 }
 
@@ -4014,7 +4014,7 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors
 
   const int num_outputs = 3;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), nullptr);
 
@@ -4023,7 +4023,7 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors
   for (int i = 0; i < num_outputs; ++i) {
     output_elems[i] = reinterpret_cast<jlong>(outputs[i]);
   }
-  env->ReleaseLongArrayElements(outputs_array, output_elems, JNI_COMMIT);
+  env->ReleaseLongArrayElements(outputs_array, output_elems, 0);
   return outputs_array;
 }
 
@@ -4064,7 +4064,7 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors
 
   const int num_outputs = 3;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), nullptr);
 
@@ -4073,7 +4073,7 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors
   for (int i = 0; i < num_outputs; ++i) {
     output_elems[i] = reinterpret_cast<jlong>(outputs[i]);
   }
-  env->ReleaseLongArrayElements(outputs_array, output_elems, JNI_COMMIT);
+  env->ReleaseLongArrayElements(outputs_array, output_elems, 0);
   return outputs_array;
 }
 
@@ -4104,7 +4104,7 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors
 
   const int num_outputs = 2;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), nullptr);
 
@@ -4113,7 +4113,7 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors
   for (int i = 0; i < num_outputs; ++i) {
     output_elems[i] = reinterpret_cast<jlong>(outputs[i]);
   }
-  env->ReleaseLongArrayElements(outputs_array, output_elems, JNI_COMMIT);
+  env->ReleaseLongArrayElements(outputs_array, output_elems, 0);
   return outputs_array;
 }
 
@@ -4153,7 +4153,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 

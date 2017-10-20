@@ -57,13 +57,3 @@ set(OP_LIB_NAME "${PROJECT_NAME}_ops")
 add_library(${OP_LIB_NAME} MODULE ${OP_LIB_SRC})
 target_link_libraries(${OP_LIB_NAME} ${LIB_TENSORFLOW} ${LIB_TENSORFLOW_FRAMEWORK})
 install(TARGETS ${OP_LIB_NAME} LIBRARY DESTINATION .)
-
-if({UNIX})
-  set_target_properties(${JNI_LIB_NAME} PROPERTIES SUFFIX ".so")
-  set_target_properties(${OP_LIB_NAME} PROPERTIES SUFFIX ".so")
-endif()
-
-if(${APPLE})
-  set_target_properties(${JNI_LIB_NAME} PROPERTIES SUFFIX ".dylib")
-  set_target_properties(${OP_LIB_NAME} PROPERTIES SUFFIX ".dylib")
-endif()

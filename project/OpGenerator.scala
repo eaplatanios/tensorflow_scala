@@ -592,7 +592,7 @@ case class OpGenerator(opDef: OpDef) {
          |
          |  const int num_outputs = $numOutputsExpression;
          |  std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-         |  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+         |  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
          |  TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
          |  CHECK_STATUS(env, status.get(), $cNullValuePlaceholder);
          |${if (deallocationBuilder.nonEmpty) deallocationBuilder.mkString else ""}""".stripMargin)
@@ -612,7 +612,7 @@ case class OpGenerator(opDef: OpDef) {
              |  for (int i = 0; i < num_outputs; ++i) {
              |    output_elems[i] = reinterpret_cast<jlong>(outputs[i]);
              |  }
-             |  env->ReleaseLongArrayElements(outputs_array, output_elems, JNI_COMMIT);
+             |  env->ReleaseLongArrayElements(outputs_array, output_elems, 0);
              |  return outputs_array;""".stripMargin)
     }
   }

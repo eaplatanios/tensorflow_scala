@@ -149,7 +149,7 @@ object TensorFlow {
     * as opposed to the `.dylib` extension. */
   private def mapLibraryName(lib: String): String = {
     var name = System.mapLibraryName(lib)
-    if ((lib == LIB_NAME || lib == LIB_FRAMEWORK_NAME) && os == "darwin" && name.endsWith(".dylib"))
+    if (os == "darwin" && name.endsWith(".dylib"))
       name = name.substring(0, name.lastIndexOf(".dylib")) + ".so"
     name
   }

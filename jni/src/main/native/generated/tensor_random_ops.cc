@@ -52,7 +52,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Rand
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -107,7 +107,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Rand
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
@@ -139,7 +139,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Rand
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
-  std::unique_ptr<int[]> actual_num_outputs(new int[1] {1});
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
   TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
   CHECK_STATUS(env, status.get(), 0);
 
