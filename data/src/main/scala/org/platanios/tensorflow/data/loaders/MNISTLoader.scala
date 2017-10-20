@@ -29,27 +29,44 @@ import org.slf4j.LoggerFactory
   * @author Emmanouil Antonios Platanios
   */
 object MNISTLoader extends Loader {
+
+  sealed trait DatasetType {
+    val url                : String
+    val trainImagesFilename: String
+    val trainLabelsFilename: String
+    val testImagesFilename : String
+    val testLabelsFilename : String
+  }
+
+  case object MNIST extends DatasetType {
+    override val url                : String = "http://yann.lecun.com/exdb/mnist/"
+    override val trainImagesFilename: String = "train-images-idx3-ubyte.gz"
+    override val trainLabelsFilename: String = "train-labels-idx1-ubyte.gz"
+    override val testImagesFilename : String = "t10k-images-idx3-ubyte.gz"
+    override val testLabelsFilename : String = "t10k-labels-idx1-ubyte.gz"
+  }
+
+  case object FASHION_MNIST extends DatasetType {
+    override val url                : String = "http://fashion-mnist.s3-website.eu-central-1.amazonaws.com"
+    override val trainImagesFilename: String = "train-images-idx3-ubyte.gz"
+    override val trainLabelsFilename: String = "train-labels-idx1-ubyte.gz"
+    override val testImagesFilename : String = "t10k-images-idx3-ubyte.gz"
+    override val testLabelsFilename : String = "t10k-labels-idx1-ubyte.gz"
+  }
+
   override protected val logger = Logger(LoggerFactory.getLogger("MNIST Data Loader"))
 
-  private[this] val DEFAULT_URL           = "http://yann.lecun.com/exdb/mnist/"
-  private[this] val TRAIN_IMAGES_FILENAME = "train-images-idx3-ubyte.gz"
-  private[this] val TRAIN_LABELS_FILENAME = "train-labels-idx1-ubyte.gz"
-  private[this] val TEST_IMAGES_FILENAME  = "t10k-images-idx3-ubyte.gz"
-  private[this] val TEST_LABELS_FILENAME  = "t10k-labels-idx1-ubyte.gz"
-
-  def load(path: Path, url: String = DEFAULT_URL, trainImagesFilename: String = TRAIN_IMAGES_FILENAME,
-      trainLabelsFilename: String = TRAIN_LABELS_FILENAME, testImagesFilename: String = TEST_IMAGES_FILENAME,
-      testLabelsFilename: String = TEST_LABELS_FILENAME, bufferSize: Int = 8192): MNISTDataset = {
-    val trainImagesPath = path.resolve(trainImagesFilename)
-    val trainLabelsPath = path.resolve(trainLabelsFilename)
-    val testImagesPath = path.resolve(testImagesFilename)
-    val testLabelsPath = path.resolve(testLabelsFilename)
+  def load(path: Path, datasetType: DatasetType = MNIST, bufferSize: Int = 8192): MNISTDataset = {
+    val trainImagesPath = path.resolve(datasetType.trainImagesFilename)
+    val trainLabelsPath = path.resolve(datasetType.trainLabelsFilename)
+    val testImagesPath = path.resolve(datasetType.testImagesFilename)
+    val testLabelsPath = path.resolve(datasetType.testLabelsFilename)
 
     // Download the data, if necessary.
-    maybeDownload(trainImagesPath, url + trainImagesFilename, bufferSize)
-    maybeDownload(trainLabelsPath, url + trainLabelsFilename, bufferSize)
-    maybeDownload(testImagesPath, url + testImagesFilename, bufferSize)
-    maybeDownload(testLabelsPath, url + testLabelsFilename, bufferSize)
+    maybeDownload(trainImagesPath, datasetType.url + datasetType.trainImagesFilename, bufferSize)
+    maybeDownload(trainLabelsPath, datasetType.url + datasetType.trainLabelsFilename, bufferSize)
+    maybeDownload(testImagesPath, datasetType.url + datasetType.testImagesFilename, bufferSize)
+    maybeDownload(testLabelsPath, datasetType.url + datasetType.testLabelsFilename, bufferSize)
 
     // Load the data.
     val trainImages = extractImages(trainImagesPath, bufferSize)
@@ -57,7 +74,7 @@ object MNISTLoader extends Loader {
     val testImages = extractImages(testImagesPath, bufferSize)
     val testLabels = extractLabels(testLabelsPath, bufferSize)
 
-    MNISTDataset(trainImages, trainLabels, testImages, testLabels)
+    MNISTDataset(datasetType, trainImages, trainLabels, testImages, testLabels)
   }
 
   private[loaders] def extractImages(path: Path, bufferSize: Int = 8192): Tensor = {
@@ -97,4 +114,9 @@ object MNISTLoader extends Loader {
   }
 }
 
-case class MNISTDataset(trainImages: Tensor, trainLabels: Tensor, testImages: Tensor, testLabels: Tensor)
+case class MNISTDataset(
+    datasetType: MNISTLoader.DatasetType,
+    trainImages: Tensor,
+    trainLabels: Tensor,
+    testImages: Tensor,
+    testLabels: Tensor)
