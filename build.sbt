@@ -197,7 +197,7 @@ lazy val data = (project in file("./data"))
     .settings(moduleName := "tensorflow-data", name := "TensorFlow for Scala Data")
     .settings(commonSettings)
     .settings(testSettings)
-    .settings(noPublishSettings)
+    .settings(publishSettings)
 
 lazy val examples = (project in file("./examples"))
     .dependsOn(api, data)
