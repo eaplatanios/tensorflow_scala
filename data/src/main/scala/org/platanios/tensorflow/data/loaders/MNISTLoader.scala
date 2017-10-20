@@ -39,7 +39,7 @@ object MNISTLoader extends Loader {
 
   def load(path: Path, url: String = DEFAULT_URL, trainImagesFilename: String = TRAIN_IMAGES_FILENAME,
       trainLabelsFilename: String = TRAIN_LABELS_FILENAME, testImagesFilename: String = TEST_IMAGES_FILENAME,
-      testLabelsFilename: String = TEST_LABELS_FILENAME, bufferSize: Int = 8192): MNISTDataSet = {
+      testLabelsFilename: String = TEST_LABELS_FILENAME, bufferSize: Int = 8192): MNISTDataset = {
     val trainImagesPath = path.resolve(trainImagesFilename)
     val trainLabelsPath = path.resolve(trainLabelsFilename)
     val testImagesPath = path.resolve(testImagesFilename)
@@ -57,7 +57,7 @@ object MNISTLoader extends Loader {
     val testImages = extractImages(testImagesPath, bufferSize)
     val testLabels = extractLabels(testLabelsPath, bufferSize)
 
-    MNISTDataSet(trainImages, trainLabels, testImages, testLabels)
+    MNISTDataset(trainImages, trainLabels, testImages, testLabels)
   }
 
   private[loaders] def extractImages(path: Path, bufferSize: Int = 8192): Tensor = {
@@ -97,4 +97,4 @@ object MNISTLoader extends Loader {
   }
 }
 
-case class MNISTDataSet(trainImages: Tensor, trainLabels: Tensor, testImages: Tensor, testLabels: Tensor)
+case class MNISTDataset(trainImages: Tensor, trainLabels: Tensor, testImages: Tensor, testLabels: Tensor)

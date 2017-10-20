@@ -15,8 +15,6 @@
 
 package org.platanios.tensorflow.data.loaders
 
-import org.platanios.tensorflow.api._
-
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.Logger
@@ -33,7 +31,7 @@ object FashionMNISTLoader extends Loader {
 
   def load(path: Path, url: String = DEFAULT_URL, trainImagesFilename: String = TRAIN_IMAGES_FILENAME,
       trainLabelsFilename: String = TRAIN_LABELS_FILENAME, testImagesFilename: String = TEST_IMAGES_FILENAME,
-      testLabelsFilename: String = TEST_LABELS_FILENAME, bufferSize: Int = 8192): MNISTDataSet = {
+      testLabelsFilename: String = TEST_LABELS_FILENAME, bufferSize: Int = 8192): MNISTDataset = {
     val trainImagesPath = path.resolve(trainImagesFilename)
     val trainLabelsPath = path.resolve(trainLabelsFilename)
     val testImagesPath = path.resolve(testImagesFilename)
@@ -51,8 +49,6 @@ object FashionMNISTLoader extends Loader {
     val testImages = MNISTLoader.extractImages(testImagesPath, bufferSize)
     val testLabels = MNISTLoader.extractLabels(testLabelsPath, bufferSize)
 
-    MNISTDataSet(trainImages, trainLabels, testImages, testLabels)
+    MNISTDataset(trainImages, trainLabels, testImages, testLabels)
   }
 }
-
-case class FashionMNISTDataSet(trainImages: Tensor, trainLabels: Tensor, testImages: Tensor, testLabels: Tensor)
