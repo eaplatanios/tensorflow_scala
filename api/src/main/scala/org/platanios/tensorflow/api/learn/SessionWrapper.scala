@@ -44,7 +44,18 @@ import scala.util.control.Exception._
 // TODO: !!! [LEARN] [SESSIONS] This should probably not be extending session (given the confused functionality w.r.t. "runHelper".
 abstract class SessionWrapper private[learn](protected var session: Session)
     extends Session(session.graphReference, session.nativeHandle, session.target) {
-  protected var _closed: Boolean = false
+  protected var _closed  : Boolean = false
+  protected var _pureRuns: Boolean = false
+
+  def startPureRuns(): Unit = session match {
+    case s: SessionWrapper => s.startPureRuns()
+    case _ => _pureRuns = true
+  }
+
+  def stopPureRuns(): Unit = session match {
+    case s: SessionWrapper => s.stopPureRuns()
+    case _ => _pureRuns = false
+  }
 
   /** Returns `true` if this session should not be used anymore. This method always return `true` if the session has
     * been closed already. */
@@ -193,23 +204,27 @@ case class HookedSession private[learn](private val baseSession: Session, hooks:
       executable: Executable[E],
       fetchable: Fetchable.Aux[F, R]
   ): (R, Option[RunMetadata]) = {
-    // Invoke the hooks' `beforeSessionRun` callbacks.
-    val runContext = Hook.SessionRunContext(Hook.SessionRunArgs(feeds, fetches, targets, options), session)
-    val runOptions = if (options == null) RunOptions.getDefaultInstance else options
-    val combinedArgs = invokeHooksBeforeSessionRun(runContext, runOptions)
+    if (_pureRuns) {
+      super.runHelper(feeds, fetches, targets, options, wantMetadata)
+    } else {
+      // Invoke the hooks' `beforeSessionRun` callbacks.
+      val runContext = Hook.SessionRunContext(Hook.SessionRunArgs(feeds, fetches, targets, options), session)
+      val runOptions = if (options == null) RunOptions.getDefaultInstance else options
+      val combinedArgs = invokeHooksBeforeSessionRun(runContext, runOptions)
 
-    // Do session run.
-    val result = super.runHelper(
-      combinedArgs.feeds, combinedArgs.fetches, combinedArgs.targets, combinedArgs.options, wantMetadata)
+      // Do session run.
+      val result = super.runHelper(
+        combinedArgs.feeds, combinedArgs.fetches, combinedArgs.targets, combinedArgs.options, wantMetadata)
 
-    // Invoke the hooks' `afterSessionRun` callbacks.
-    hooks.zipWithIndex.foreach(hook => {
-      hook._1.afterSessionRun(runContext, Hook.SessionRunResult(result._1._2(hook._2), result._2))
-    })
+      // Invoke the hooks' `afterSessionRun` callbacks.
+      hooks.zipWithIndex.foreach(hook => {
+        hook._1.afterSessionRun(runContext, Hook.SessionRunResult(result._1._2(hook._2), result._2))
+      })
 
-    // Update the `_shouldStop` flag and return.
-    _shouldStop ||= runContext.stopRequested
-    (result._1._1, result._2)
+      // Update the `_shouldStop` flag and return.
+      _shouldStop ||= runContext.stopRequested
+      (result._1._1, result._2)
+    }
   }
 
   /** Invoked `Hook.beforeSessionRun()` for all hooks and manages their feed maps, fetches, and run options. */
