@@ -87,11 +87,20 @@ object Model {
     def Model[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
         input: Input[IT, IO, ID, IS],
         layer: Layer[IO, I],
-        trainingInput: Input[TT, TO, TD, TS],
-        trainingInputLayer: Layer[TO, T],
+        trainInput: Input[TT, TO, TD, TS],
+        trainInputLayer: Layer[TO, T],
         loss: Layer[(I, T), Output],
         optimizer: Optimizer): TrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T] = {
-      new SimpleTrainableModel(input, layer, trainingInput, trainingInputLayer, loss, optimizer)
+      new SimpleTrainableModel(input, layer, trainInput, trainInputLayer, loss, optimizer)
+    }
+
+    def Model[IT, IO, ID, IS, I, TT, TO, TD, TS](
+        input: Input[IT, IO, ID, IS],
+        layer: Layer[IO, I],
+        trainInput: Input[TT, TO, TD, TS],
+        loss: Layer[(I, TO), Output],
+        optimizer: Optimizer): TrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, TO] = {
+      new SimpleTrainableModel(input, layer, trainInput, Layer.identity[TO]("TrainInputLayer"), loss, optimizer)
     }
   }
 
