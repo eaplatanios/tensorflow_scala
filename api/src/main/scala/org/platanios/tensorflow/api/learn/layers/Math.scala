@@ -19,7 +19,7 @@ import org.platanios.tensorflow.api.Shape
 import org.platanios.tensorflow.api.learn.layers
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.Output
-import org.platanios.tensorflow.api.ops.variables.{RandomNormalInitializer, Variable}
+import org.platanios.tensorflow.api.ops.variables.{Initializer, RandomNormalInitializer, Variable}
 import org.platanios.tensorflow.api.types.DataType
 
 /**
@@ -52,15 +52,20 @@ case class Mean private[layers](override val name: String = "Mean") extends Netw
   override val forward  : Output => Output = ops.Math.mean(_, name = name)
 }
 
-case class Linear private[layers](units: Int, useBias: Boolean = true, override val name: String = "Linear")
+case class Linear private[layers](
+    units: Int,
+    useBias: Boolean = true,
+    weightsInitializer: Initializer = RandomNormalInitializer(),
+    biasInitializer: Initializer = RandomNormalInitializer(),
+    override val name: String = "Linear")
     extends NetworkLayer[Output, Output] {
   override val layerType: String           = s"Linear[$units]"
   override val forward  : Output => Output = input => {
     val weights = Variable.getVariable(
-      s"$name/Weights", input.dataType, Shape(input.shape(-1), units), RandomNormalInitializer())
+      s"$name/Weights", input.dataType, Shape(input.shape(-1), units), weightsInitializer)
     val product = ops.Math.matmul(input, weights.value)
     if (useBias) {
-      val bias = Variable.getVariable(s"$name/Bias", input.dataType, Shape(units), RandomNormalInitializer())
+      val bias = Variable.getVariable(s"$name/Bias", input.dataType, Shape(units), biasInitializer)
       ops.NN.addBias(product, bias.value)
     } else {
       product
