@@ -57,8 +57,8 @@ lazy val commonSettings = loggingSettings
 lazy val testSettings = Seq(
   libraryDependencies ++= Seq(
     "junit"         %  "junit" %   "4.12",
-    "org.scalactic" %% "scalactic" % "3.0.1",
-    "org.scalatest" %% "scalatest" % "3.0.1" % "test"),
+    "org.scalactic" %% "scalactic" % "3.0.4",
+    "org.scalatest" %% "scalatest" % "3.0.4" % "test"),
   logBuffered in Test := false,
   fork in test := false,
   testForkedParallel in Test := false,
