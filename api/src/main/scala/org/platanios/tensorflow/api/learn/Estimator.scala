@@ -260,7 +260,7 @@ class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T] private[learn] (
       ev: Estimator.SupportedInferInput[InferInput, InferOutput, IT, IO, ID, IS, ModelInferenceOutput]
   ): InferOutput = {
     // Check that the model has been trained.
-    val _checkpointPath = Option(checkpointPath).orElse(Saver.latestCheckpoint(workingDir.get))
+    val _checkpointPath = Option(checkpointPath).orElse(workingDir.flatMap(Saver.latestCheckpoint(_)))
     if (_checkpointPath.isEmpty)
       throw CheckpointNotFoundException(
         "No checkpoint was found. Please provide a valid 'workingDir' the estimator configuration, or a path to a " +
@@ -342,7 +342,7 @@ class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T] private[learn] (
       saveSummaries: Boolean = true,
       name: String = null): Seq[Tensor] = {
     // Check that the model has been trained.
-    val _checkpointPath = Option(checkpointPath).orElse(Saver.latestCheckpoint(workingDir.get))
+    val _checkpointPath = Option(checkpointPath).orElse(workingDir.flatMap(Saver.latestCheckpoint(_)))
     if (_checkpointPath.isEmpty)
       throw CheckpointNotFoundException(
         "No checkpoint was found. Please provide a valid 'workingDir' the estimator configuration, or a path to a " +
