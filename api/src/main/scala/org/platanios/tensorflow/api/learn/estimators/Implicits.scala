@@ -13,12 +13,14 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.learn
+package org.platanios.tensorflow.api.learn.estimators
 
 /**
+  *
   * @author Emmanouil Antonios Platanios
   */
-private[api] trait Implicits
-    extends estimators.Implicits
+private[learn] trait Implicits
+    extends SupervisedEstimator.Implicits
+        with UnsupervisedEstimator.Implicits
 
 private[api] object Implicits extends Implicits

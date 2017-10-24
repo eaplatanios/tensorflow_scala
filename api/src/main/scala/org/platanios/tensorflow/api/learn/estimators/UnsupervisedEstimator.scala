@@ -13,21 +13,20 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.learn
+package org.platanios.tensorflow.api.learn.estimators
 
 import org.platanios.tensorflow.api.config._
 import org.platanios.tensorflow.api.core.Graph
-import org.platanios.tensorflow.api.core.client.{Fetchable, SessionConfig}
-import org.platanios.tensorflow.api.core.distributed.ReplicaDevicePlacer
+import org.platanios.tensorflow.api.core.client.Fetchable
 import org.platanios.tensorflow.api.core.exception.{CheckpointNotFoundException, InvalidArgumentException}
 import org.platanios.tensorflow.api.io.{CheckpointReader, SummaryFileWriterCache}
-import org.platanios.tensorflow.api.learn.Estimator.ModelFunction
+import org.platanios.tensorflow.api.learn._
 import org.platanios.tensorflow.api.learn.hooks._
-import org.platanios.tensorflow.api.ops.{Op, OpSpecification, Output}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
-import org.platanios.tensorflow.api.ops.io.{Data, Dataset}
+import org.platanios.tensorflow.api.ops.io.Dataset
 import org.platanios.tensorflow.api.ops.metrics.Metric
 import org.platanios.tensorflow.api.ops.variables.Saver
+import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types._
 
@@ -35,7 +34,7 @@ import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
 import org.tensorflow.framework.Summary
 
-import java.nio.file.{Files, Path}
+import java.nio.file.Path
 
 import scala.collection.immutable.TreeMap
 import scala.collection.mutable
@@ -61,7 +60,8 @@ import scala.collection.mutable
   * an estimator. This is in contrast to the TensorFlow Python API, but the reason behind the divergence is that the
   * estimator class never uses the provided hyper-parameters. The recommended way to deal with hyper-parameters in the
   * Scala API is to create a model function with two parameter lists, the first one being the hyper-parameters and the
-  * second one being those supported by [[ModelFunction]] (i.e., optionally a [[Mode]] and a [[Configuration]]).
+  * second one being those supported by the model-generating function (i.e., optionally a [[Mode]] and a
+  * [[Configuration]]).
   *
   * None of the [[Estimator]] class's methods can be overridden in subclasses. Subclasses should use `modelFunction` to
   * configure the base class, and may add methods implementing specialized functionality.
@@ -77,67 +77,10 @@ import scala.collection.mutable
   *
   * @author Emmanouil Antonios Platanios
   */
-class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T] private[learn] (
-    val modelFunction: Estimator.ModelFunction[IT, IO, ID, IS, I, TT, TO, TD, TS, T],
-    private[this] val configurationBase: Configuration = null) {
-  /** Run configuration used for this estimator. */
-  val configuration: Configuration = {
-    // Process provided run configuration.
-    val configuration = {
-      if (configurationBase == null) {
-        Estimator.logger.info("Using the default run configuration.")
-        Configuration()
-      } else {
-        configurationBase.copy()
-      }
-    }
-
-    // Process working directory.
-    val configurationWithWorkingDir = {
-      if (configuration.workingDir == null) {
-        val workingDir = Files.createTempDirectory("estimator_working_dir")
-        Estimator.logger.info(s"Using a temporary folder as working directory: $workingDir")
-        configuration.copy(workingDir = Some(workingDir))
-      } else {
-        configuration
-      }
-    }
-
-    // Process session configuration.
-    val configurationWithSession = {
-      if (configuration.sessionConfig == null) {
-        Estimator.logger.info("Using the default session configuration with allowed soft placements.")
-        configurationWithWorkingDir.copy(sessionConfig = Some(SessionConfig(allowSoftPlacement = Some(true))))
-      } else {
-        configurationWithWorkingDir
-      }
-    }
-
-    configurationWithSession
-  }
-
-  /** Device function used by this estimator for managing replica device placement when using distributed training. */
-  val deviceFunction: Option[(OpSpecification) => String] = Estimator.getReplicaDeviceSetter(configuration).map(_.apply)
-
-  /** Working directory used by this estimator, used to save model parameters, graph, etc. It can also be used to load
-    * checkpoints for a previously saved model. */
-  def workingDir: Option[Path] = configuration.workingDir
-
-  /** Session configuration used by this estimator. */
-  def sessionConfig: Option[SessionConfig] = configuration.sessionConfig
-
-  /** Checkpoint configuration used by this estimator. */
-  def checkpointConfig: CheckpointConfig = configuration.checkpointConfig
-
-  /** Summary configuration used by this estimator. */
-  def summaryConfig: SummaryConfig = configuration.summaryConfig
-
-  /** Frequency, in number of steps, that this estimator will log the global step / sec rate during training. */
-  def globalStepRateLoggingFrequency: Int = configuration.globalStepRateLoggingFrequency
-
-  /** Random seed value to be used by the TensorFlow initializers in this estimator. */
-  def randomSeed: Int = configuration.randomSeed
-
+class UnsupervisedEstimator[IT, IO, ID, IS, I] private[learn] (
+    val modelFunction: UnsupervisedEstimator.UnsupervisedModelFunction[IT, IO, ID, IS, I],
+    private[this] val configurationBase: Configuration = null
+) extends Estimator[IT, IO, ID, IS, I](configurationBase) {
   /** Trains the model managed by this estimator.
     *
     * '''NOTE:''' If you provide any summary saver or checkpoint saver hooks in `hooks` or `chiefOnlyHooks`, then the
@@ -158,7 +101,7 @@ class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T] private[learn] (
     */
   @throws[InvalidArgumentException]
   def train(
-      data: Dataset[(IT, TT), (IO, TO), (ID, TD), (IS, TS)],
+      data: Dataset[IT, IO, ID, IS],
       terminationCriteria: StopCriteria = StopCriteria(),
       hooks: Seq[Hook] = Seq.empty,
       chiefOnlyHooks: Seq[Hook] = Seq.empty,
@@ -173,7 +116,7 @@ class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T] private[learn] (
       }
     }
     if (!needsToTrain) {
-      Estimator.logger.info(
+      UnsupervisedEstimator.logger.info(
         "Skipping training because no restarting is allowed in the termination criteria and the maximum number of " +
             "steps have already been executed in the past (i.e., saved checkpoint).")
     } else {
@@ -334,8 +277,8 @@ class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T] private[learn] (
     */
   @throws[InvalidArgumentException]
   def evaluate(
-      data: Dataset[(IT, TT), (IO, TO), (ID, TD), (IS, TS)],
-      metrics: Seq[Metric[(I, T), Output]],
+      data: Dataset[IT, IO, ID, IS],
+      metrics: Seq[Metric[I, Output]],
       maxSteps: Long = -1L,
       hooks: Seq[Hook] = Seq.empty,
       checkpointPath: Path = null,
@@ -371,7 +314,7 @@ class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T] private[learn] (
           sessionConfig = configuration.sessionConfig,
           checkpointPath = workingDir),
         hooks, shouldRecover = true)
-      Estimator.logger.info("Starting evaluation.")
+      UnsupervisedEstimator.logger.info("Starting evaluation.")
       val (step, metricValues) = {
         try {
           val step = session.run(fetches = globalStep.value).scalar.asInstanceOf[Long]
@@ -389,8 +332,8 @@ class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T] private[learn] (
       }
       if (!session.closed)
         session.close()
-      Estimator.logger.info("Finished evaluation.")
-      Estimator.logger.info("Saving evaluation results.")
+      UnsupervisedEstimator.logger.info("Finished evaluation.")
+      UnsupervisedEstimator.logger.info("Saving evaluation results.")
       if (saveSummaries) {
         // Setup the output directory.
         val evaluationDir = workingDir.map(_.resolve(if (name != null) s"eval_$name" else "eval"))
@@ -408,7 +351,7 @@ class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T] private[learn] (
               value.setSimpleValue(castedValue)
               summaryProto.addValue(value)
             } else {
-              Estimator.logger.warn(
+              UnsupervisedEstimator.logger.warn(
                 s"Skipping summary for non-scalar and/or non-floating-point/non-integer metric '$metric'.")
             }
         }
@@ -420,158 +363,41 @@ class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T] private[learn] (
       metricValues
     }
   }
-
-  /** Gets an existing saver from the current graph, or creates a new one if none exists. */
-  private[this] def getOrCreateSaver(): Saver = {
-    val graph = Op.currentGraph
-    val savers = graph.getCollection(Graph.Keys.SAVERS)
-    if (savers.isEmpty) {
-      val saver = Saver(
-        sharded = true,
-        maxToKeep = configuration.checkpointConfig.maxCheckpointsToKeep,
-        keepCheckpointEveryNHours = configuration.checkpointConfig.keepCheckpointEveryNHours,
-        saveRelativePaths = true)
-      graph.addToCollection(saver, Graph.Keys.SAVERS)
-      saver
-    } else {
-      if (savers.size > 1)
-        throw InvalidArgumentException("The graph should only contain one saver in the 'SAVERS' collection.")
-      savers.head
-    }
-  }
 }
 
-object Estimator {
-  private[Estimator] val logger = Logger(LoggerFactory.getLogger("Learn / Estimator"))
+object UnsupervisedEstimator {
+  private[UnsupervisedEstimator] val logger = Logger(LoggerFactory.getLogger("Learn / Unsupervised Estimator"))
 
-  def apply[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
-      modelFunction: Estimator.ModelFunction[IT, IO, ID, IS, I, TT, TO, TD, TS, T],
-      configurationBase: Configuration = null): Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T] = {
-    new Estimator(modelFunction, configurationBase)
+  def apply[IT, IO, ID, IS, I](
+      modelFunction: UnsupervisedEstimator.UnsupervisedModelFunction[IT, IO, ID, IS, I],
+      configurationBase: Configuration = null): UnsupervisedEstimator[IT, IO, ID, IS, I] = {
+    new UnsupervisedEstimator(modelFunction, configurationBase)
   }
 
-  case class ModelFunction[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
-      function: (Configuration) => TrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T]) {
-    def apply(configuration: Configuration): TrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T] = {
+  case class UnsupervisedModelFunction[IT, IO, ID, IS, I](
+      function: (Configuration) => UnsupervisedTrainableModel[IT, IO, ID, IS, I]) {
+    def apply(configuration: Configuration): UnsupervisedTrainableModel[IT, IO, ID, IS, I] = {
       function(configuration)
     }
   }
 
   trait Implicits {
-    implicit def modelToModelFunction[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
-        model: TrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T]
-    ): ModelFunction[IT, IO, ID, IS, I, TT, TO, TD, TS, T] = {
-      ModelFunction((_: Configuration) => model)
+    implicit def modelToUnsupervisedModelFunction[IT, IO, ID, IS, I](
+        model: UnsupervisedTrainableModel[IT, IO, ID, IS, I]
+    ): UnsupervisedModelFunction[IT, IO, ID, IS, I] = {
+      UnsupervisedModelFunction((_: Configuration) => model)
     }
 
-    implicit def unitFunctionToModelFunction[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
-        function: () => TrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T]
-    ): ModelFunction[IT, IO, ID, IS, I, TT, TO, TD, TS, T] = {
-      ModelFunction((_: Configuration) => function())
+    implicit def unitFunctionToUnsupervisedModelFunction[IT, IO, ID, IS, I](
+        function: () => UnsupervisedTrainableModel[IT, IO, ID, IS, I]
+    ): UnsupervisedModelFunction[IT, IO, ID, IS, I] = {
+      UnsupervisedModelFunction((_: Configuration) => function())
     }
 
-    implicit def unaryRunConfigFunctionToModelFunction[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
-        function: (Configuration) => TrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T]
-    ): ModelFunction[IT, IO, ID, IS, I, TT, TO, TD, TS, T] = {
-      ModelFunction(function)
-    }
-  }
-
-  /** Creates a replica device setter, if required, to be used as a default device function.
-    *
-    * Estimators use a [[ReplicaDevicePlacer]] as a default device placer. It sets the distributed related arguments
-    * such as the number of parameter server replicas based on the provided run configuration.
-    *
-    * @param  configuration Configuration.
-    * @return Constructed replica device placer.
-    */
-  def getReplicaDeviceSetter(configuration: Configuration): Option[ReplicaDevicePlacer] = {
-    if (configuration.numParameterServers > 0) {
-      Some(ReplicaDevicePlacer(
-        psNumTasks = configuration.numParameterServers,
-        workerDevice = s"/job:${configuration.taskType}/task:${configuration.taskIndex}",
-        clusterConfig = configuration.clusterConfig.orNull,
-        psOpTypes = Set(
-          "Variable", "VariableV2", "AutoReloadVariable", "MutableHashTable", "MutableHashTableV2",
-          "MutableHashTableOfTensors", "MutableHashTableOfTensorsV2", "MutableDenseHashTable",
-          "MutableDenseHashTableV2")))
-    } else {
-      None
-    }
-  }
-
-  /** Creates a [[MonitoredSession]] to be used for training.
-    *
-    * For a chief, this utility sets proper session initializers, savers, and restorers. It also creates hooks related
-    * to checkpoint and summary saving. For workers, this utility method sets the proper session creator which waits for
-    * the chief to initialize or restore the session. Please refer to [[MonitoredSession]] for more information.
-    *
-    * '''NOTE:''' If you provide any summary saver or checkpoint saver hooks in `hooks` or `chiefOnlyHooks`, then the
-    * checkpoint configuration in `configuration` will be ignored for the chief and those hooks will be used instead.
-    *
-    * @param  configuration   Configuration to use for this session. Contains information related to the session
-    *                         configuration, the cluster configuration, etc.
-    * @param  hooks           Hooks to use while training.
-    * @param  chiefOnlyHooks  Hooks to use for the chief. These will only be used if `isChief` is `true`.
-    * @param  sessionScaffold Session scaffold used for gathering and/or building supportive ops. If not specified, a
-    *                         default one is created. The session scaffold is used to finalize the graph.
-    * @return Created monitored session.
-    */
-  def monitoredTrainingSession(
-      configuration: Configuration = Configuration(),
-      hooks: Seq[Hook] = Seq.empty,
-      chiefOnlyHooks: Seq[Hook] = Seq.empty,
-      sessionScaffold: SessionScaffold = SessionScaffold()): MonitoredSession = {
-    if (!configuration.isChief) {
-      val sessionCreator = WorkerSessionCreator(configuration.master, sessionScaffold, configuration.sessionConfig)
-      MonitoredSession(sessionCreator, hooks)
-    } else {
-      val sessionCreator = ChiefSessionCreator(
-        configuration.master, sessionScaffold, configuration.sessionConfig, configuration.workingDir)
-      val chiefHooks = mutable.ListBuffer(hooks ++ chiefOnlyHooks: _*)
-      configuration.workingDir.foreach(workingDir => {
-        chiefHooks += StepRateHook(log = false, summaryDirectory = workingDir)
-        if (!chiefHooks.exists(_.isInstanceOf[SummarySaverHook])) {
-          configuration.summaryConfig match {
-            case NoSummaries => ()
-            case StepBasedSummaries(steps) => chiefHooks += SummarySaverHook(workingDir, StepHookTrigger(steps))
-            case TimeBasedSummaries(seconds) => chiefHooks += SummarySaverHook(workingDir, TimeHookTrigger(seconds))
-          }
-        }
-        if (!chiefHooks.exists(_.isInstanceOf[CheckpointSaverHook])) {
-          configuration.checkpointConfig match {
-            case NoCheckpoints => ()
-            case StepBasedCheckpoints(steps, _, _) =>
-              chiefHooks += CheckpointSaverHook(workingDir, StepHookTrigger(steps))
-            case TimeBasedCheckpoints(seconds, _, _) =>
-              chiefHooks += CheckpointSaverHook(workingDir, TimeHookTrigger(seconds))
-          }
-        }
-      })
-      MonitoredSession(sessionCreator, chiefHooks)
-    }
-  }
-
-  trait SupportedInferInput[InferInput, InferOutput, T, O, D, S, ModelInferenceOutput] {
-    def toDataset(value: InferInput): Dataset[T, O, D, S]
-    def convertFetched(iterator: Iterator[(T, ModelInferenceOutput)]): InferOutput
-  }
-
-  object SupportedInferInput {
-    implicit def datasetInferInput[T, O, D, S, I](implicit
-        ev: Data.Aux[T, O, D, S]
-    ): SupportedInferInput[Dataset[T, O, D, S], Iterator[(T, I)], T, O, D, S, I] = {
-      new SupportedInferInput[Dataset[T, O, D, S], Iterator[(T, I)], T, O, D, S, I] {
-        override def toDataset(value: Dataset[T, O, D, S]): Dataset[T, O, D, S] = value
-        override def convertFetched(iterator: Iterator[(T, I)]): Iterator[(T, I)] = iterator
-      }
-    }
-
-    implicit def singleValueInferInput[T, O, D, S, I](implicit
-        ev: Data.Aux[T, O, D, S]
-    ): SupportedInferInput[T, I, T, O, D, S, I] = new SupportedInferInput[T, I, T, O, D, S, I] {
-      override def toDataset(value: T): Dataset[T, O, D, S] = Dataset.from[T, O, D, S](value)
-      override def convertFetched(iterator: Iterator[(T, I)]): I = iterator.next()._2
+    implicit def unaryRunConfigFunctionToUnsupervisedModelFunction[IT, IO, ID, IS, I](
+        function: (Configuration) => UnsupervisedTrainableModel[IT, IO, ID, IS, I]
+    ): UnsupervisedModelFunction[IT, IO, ID, IS, I] = {
+      UnsupervisedModelFunction(function)
     }
   }
 }

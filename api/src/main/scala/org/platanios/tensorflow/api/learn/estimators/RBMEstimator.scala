@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.learn.estimators
 
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.learn.{Configuration, UnsupervisedEstimator}
+import org.platanios.tensorflow.api.learn.Configuration
 import org.platanios.tensorflow.api.learn.layers.Input
 import org.platanios.tensorflow.api.learn.models.RBM
 import org.platanios.tensorflow.api.ops.Output

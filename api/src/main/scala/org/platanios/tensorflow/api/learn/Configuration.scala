@@ -25,7 +25,7 @@ import io.circe.parser._
 
 import java.nio.file.Path
 
-/** Configuration for models in the learn API, to be used by [[Estimator]]s.
+/** Configuration for models in the learn API, to be used by estimators.
   *
   * If `clusterConfig` is not provided, then all distributed training related properties are set based on the
   * `TF_CONFIG` environment variable, if the pertinent information is present. The `TF_CONFIG` environment variable is a

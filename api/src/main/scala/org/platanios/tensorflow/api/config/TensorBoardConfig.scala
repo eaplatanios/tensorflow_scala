@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.config
 
-import org.platanios.tensorflow.api.learn.Estimator
+import org.platanios.tensorflow.api.learn.estimators.Estimator
 
 import java.nio.file.Path
 
