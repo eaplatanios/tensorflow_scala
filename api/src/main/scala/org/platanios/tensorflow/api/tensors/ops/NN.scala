@@ -617,16 +617,7 @@ private[api] object NN extends NN {
       Basic.shape(input),
       Basic.expandDims(Math.subtract(rank, 1), -1),
       Tensor.fill(rank.dataType, Shape(1))(1))
-    val output = Basic.reshape(input, Basic.concatenate(
-      Seq(Tensor.fill(rank.dataType, Shape(1))(-1), lastAxisSize), 0))
-    // Set the output shape, if known.
-    val shape = input.shape
-    if (shape.rank != -1) {
-      val product = shape(0 :: -1).asArray.product
-      if (product > -1)
-        output.setShape(Shape(product, shape(-1)))
-    }
-    output
+    Basic.reshape(input, Basic.concatenate(Seq(Tensor.fill(rank.dataType, Shape(1))(-1), lastAxisSize), 0))
   }
 
   /** Creates an op that swaps the axes `axis1` and `axis2` in `input` and ignores all axes after `axis2`. */
