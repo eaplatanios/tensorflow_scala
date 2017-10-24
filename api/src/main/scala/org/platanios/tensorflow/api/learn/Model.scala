@@ -33,16 +33,30 @@ trait InferenceModel[IT, IO, ID, IS, I] extends Model {
 }
 
 trait TrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T] extends InferenceModel[IT, IO, ID, IS, I] {
-  def buildTrainOps(graph: Graph = Op.currentGraph): Model.TrainOps[IT, IO, ID, IS, I, TT, TO, TD, TS, T]
+  def buildTrainOps(graph: Graph = Op.currentGraph): Model.SupervisedTrainOps[IT, IO, ID, IS, I, TT, TO, TD, TS, T]
   def buildEvaluationOps(
       graph: Graph = Op.currentGraph, metrics: Seq[Metric[(I, T), Output]]
-  ): Model.EvaluationOps[IT, IO, ID, IS, I, TT, TO, TD, TS, T]
+  ): Model.EvaluationOps[(IT, TT), (IO, TO), (ID, TD), (IS, TS), I]
+}
+
+trait UnsupervisedTrainableModel[IT, IO, ID, IS, I] extends InferenceModel[IT, IO, ID, IS, I] {
+  def buildTrainOps(graph: Graph = Op.currentGraph): Model.UnsupervisedTrainOps[IT, IO, ID, IS, I]
+  def buildEvaluationOps(
+      graph: Graph = Op.currentGraph, metrics: Seq[Metric[I, Output]]
+  ): Model.EvaluationOps[IT, IO, ID, IS, I]
 }
 
 object Model {
   case class InferenceOps[IT, IO, ID, IS, I](inputIterator: Iterator[IT, IO, ID, IS], input: IO, output: I)
 
-  case class TrainOps[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
+  case class UnsupervisedTrainOps[IT, IO, ID, IS, I](
+      inputIterator: Iterator[IT, IO, ID, IS],
+      input: IO,
+      output: I,
+      loss: Output,
+      trainOp: Op)
+
+  case class SupervisedTrainOps[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
       inputIterator: Iterator[(IT, TT), (IO, TO), (ID, TD), (IS, TS)],
       input: (IO, TO),
       output: I,
@@ -50,22 +64,21 @@ object Model {
       loss: Output,
       trainOp: Op)
 
-  object TrainOps {
+  object SupervisedTrainOps {
     def apply[IT, IO, ID, IS, I](
         inputIterator: Iterator[(IT, IT), (IO, IO), (ID, ID), (IS, IS)],
         input: (IO, IO),
         output: I,
         loss: Output,
-        trainOp: Op): TrainOps[IT, IO, ID, IS, I, IT, IO, ID, IS, I] = {
-      TrainOps(inputIterator, input, output, output, loss, trainOp)
+        trainOp: Op): SupervisedTrainOps[IT, IO, ID, IS, I, IT, IO, ID, IS, I] = {
+      SupervisedTrainOps(inputIterator, input, output, output, loss, trainOp)
     }
   }
 
-  case class EvaluationOps[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
-      inputIterator: Iterator[(IT, TT), (IO, TO), (ID, TD), (IS, TS)],
-      input: (IO, TO),
+  case class EvaluationOps[IT, IO, ID, IS, I](
+      inputIterator: Iterator[IT, IO, ID, IS],
+      input: IO,
       output: I,
-      trainOutput: T,
       metricValues: Seq[Output],
       metricUpdates: Seq[Output],
       metricResets: Seq[Op])
@@ -110,7 +123,7 @@ private[learn] class SimpleTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T] 
     with TrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T] {
   // TODO: [LEARN] Add support for trainable models with only the loss function gradient available.
 
-  def buildTrainOps(graph: Graph = Op.currentGraph): Model.TrainOps[IT, IO, ID, IS, I, TT, TO, TD, TS, T] = {
+  def buildTrainOps(graph: Graph = Op.currentGraph): Model.SupervisedTrainOps[IT, IO, ID, IS, I, TT, TO, TD, TS, T] = {
     Op.createWith(graph = graph) {
       val tfInputIterator = input.zip(trainInput).apply()
       val tfInput = tfInputIterator.next()
@@ -120,20 +133,55 @@ private[learn] class SimpleTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T] 
       val tfLoss = Math.cast(loss((tfOutput, tfTrainOutput)), FLOAT32, name = "LossCast")
       val tfIteration = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
       val tfTrainOp = optimizer.minimize(tfLoss, iteration = Some(tfIteration))
-      Model.TrainOps(tfInputIterator, tfInput, tfOutput, tfTrainOutput, tfLoss, tfTrainOp)
+      Model.SupervisedTrainOps(tfInputIterator, tfInput, tfOutput, tfTrainOutput, tfLoss, tfTrainOp)
     }
   }
 
   def buildEvaluationOps(
       graph: Graph = Op.currentGraph, metrics: Seq[Metric[(I, T), Output]]
-  ): Model.EvaluationOps[IT, IO, ID, IS, I, TT, TO, TD, TS, T] = {
+  ): Model.EvaluationOps[(IT, TT), (IO, TO), (ID, TD), (IS, TS), I] = {
     Op.createWith(graph = graph) {
       val tfInputIterator = input.zip(trainInput).apply()
       val tfInput = tfInputIterator.next()
       val tfOutput = layer(tfInput._1)
       val tfTrainOutput = trainLayer(tfInput._2)
       val (mValues, mUpdates, mResets) = metrics.map(_.streaming((tfOutput, tfTrainOutput))).unzip3
-      Model.EvaluationOps(tfInputIterator, tfInput, tfOutput, tfTrainOutput, mValues, mUpdates, mResets)
+      Model.EvaluationOps(tfInputIterator, tfInput, tfOutput, mValues, mUpdates, mResets)
+    }
+  }
+}
+
+private[learn] class SimpleUnsupervisedTrainableModel[IT, IO, ID, IS, I] private[learn](
+    override val input: Input[IT, IO, ID, IS],
+    override val layer: Layer[IO, I],
+    val loss: Layer[I, Output],
+    val optimizer: Optimizer
+) extends SimpleInferenceModel[IT, IO, ID, IS, I](input, layer)
+    with UnsupervisedTrainableModel[IT, IO, ID, IS, I] {
+  // TODO: [LEARN] Add support for trainable models with only the loss function gradient available.
+
+  def buildTrainOps(graph: Graph = Op.currentGraph): Model.UnsupervisedTrainOps[IT, IO, ID, IS, I] = {
+    Op.createWith(graph = graph) {
+      val tfInputIterator = input()
+      val tfInput = tfInputIterator.next()
+      val tfOutput = layer(tfInput)
+      // TODO: [LEARN] Remove this cast.
+      val tfLoss = Math.cast(loss(tfOutput), FLOAT32, name = "LossCast")
+      val tfIteration = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
+      val tfTrainOp = optimizer.minimize(tfLoss, iteration = Some(tfIteration))
+      Model.UnsupervisedTrainOps(tfInputIterator, tfInput, tfOutput, tfLoss, tfTrainOp)
+    }
+  }
+
+  def buildEvaluationOps(
+      graph: Graph = Op.currentGraph, metrics: Seq[Metric[I, Output]]
+  ): Model.EvaluationOps[IT, IO, ID, IS, I] = {
+    Op.createWith(graph = graph) {
+      val tfInputIterator = input.apply()
+      val tfInput = tfInputIterator.next()
+      val tfOutput = layer(tfInput)
+      val (mValues, mUpdates, mResets) = metrics.map(_.streaming(tfOutput)).unzip3
+      Model.EvaluationOps(tfInputIterator, tfInput, tfOutput, mValues, mUpdates, mResets)
     }
   }
 }
