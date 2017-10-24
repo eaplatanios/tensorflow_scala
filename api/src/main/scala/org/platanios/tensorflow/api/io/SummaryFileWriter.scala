@@ -16,9 +16,11 @@
 package org.platanios.tensorflow.api.io
 
 import org.platanios.tensorflow.api.core.Graph
+
 import com.google.protobuf.ByteString
 import org.tensorflow.framework.{GraphDef, MetaGraphDef, RunMetadata, Summary}
 import org.tensorflow.util.{Event, SessionLog, TaggedRunMetadata}
+
 import java.nio.file.Path
 
 import scala.collection.JavaConverters._

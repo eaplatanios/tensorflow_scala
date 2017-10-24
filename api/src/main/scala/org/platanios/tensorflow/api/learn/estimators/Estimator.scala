@@ -79,8 +79,8 @@ import scala.collection.mutable
   * @author Emmanouil Antonios Platanios
   */
 class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[learn] (
-    val modelFunction: Estimator.ModelFunction[IT, IO, ID, IS, I, TT, TO, TD, TS, EI],
-    private[this] val configurationBase: Configuration = null
+    protected val modelFunction: Estimator.ModelFunction[IT, IO, ID, IS, I, TT, TO, TD, TS, EI],
+    protected val configurationBase: Configuration = null
 ) {
   /** Run configuration used for this estimator. */
   val configuration: Configuration = {

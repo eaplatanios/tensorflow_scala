@@ -33,7 +33,7 @@ case class RBMEstimator(
     cdSteps: Int = 1,
     optimizer: Optimizer,
     name: String = "RBM",
-    private val configurationBase: Configuration = null
+    override protected val configurationBase: Configuration = null
 ) extends Estimator[Tensor, Output, DataType, Shape, Output, Tensor, Output, DataType, Shape, Output](
   RBM(input, numHidden, meanField, numSamples, meanFieldCD, cdSteps, optimizer, name),
   configurationBase
