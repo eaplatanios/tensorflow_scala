@@ -17,11 +17,11 @@ package org.platanios.tensorflow.examples
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.data.loaders.MNISTLoader
+
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
-import java.nio.file.Paths
 
-import org.platanios.tensorflow.api.learn.Estimator
+import java.nio.file.Paths
 
 /**
   * @author Emmanouil Antonios Platanios

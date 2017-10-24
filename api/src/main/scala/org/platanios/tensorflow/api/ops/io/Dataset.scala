@@ -35,6 +35,7 @@ import scala.language.postfixOps
   * tensors) and a "logical plan" of transformations that act on those elements.
   *
   * @param  name Name for this dataset.
+  * @tparam T    Tensor type (i.e., nested structure of tensors).
   * @tparam O    Output type (i.e., nested structure of symbolic tensors).
   * @tparam D    Data type of the outputs (i.e., nested structure of TensorFlow data types).
   * @tparam S    Shape type of the outputs (i.e., nested structure of TensorFlow shapes).
