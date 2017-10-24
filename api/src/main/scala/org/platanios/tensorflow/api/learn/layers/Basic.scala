@@ -25,11 +25,19 @@ import org.platanios.tensorflow.api.ops.Output
   */
 object Basic {
   trait API {
-    val Flatten: layers.Flatten.type = layers.Flatten
-    val OneHot : layers.OneHot.type  = layers.OneHot
+    val Squeeze  : layers.Squeeze.type   = layers.Squeeze
+    val Flatten  : layers.Flatten.type   = layers.Flatten
+    val Transpose: layers.Transpose.type = layers.Transpose
+    val OneHot   : layers.OneHot.type    = layers.OneHot
   }
 
   object API extends API
+}
+
+case class Squeeze private[layers](axes: Seq[Int] = null, override val name: String = "Squeeze")
+    extends NetworkLayer[Output, Output] {
+  override val layerType: String           = if (axes != null) s"Squeeze[${axes.mkString(", ")}]" else "Squeeze"
+  override val forward  : Output => Output = ops.Basic.squeeze(_, axes, name = name)
 }
 
 case class Flatten private[layers](override val name: String = "Flatten") extends NetworkLayer[Output, Output] {
@@ -42,6 +50,12 @@ case class Flatten private[layers](override val name: String = "Flatten") extend
     else
       ops.Basic.reshape(input, Shape(-1) + input.shape.asArray.tail.product, name = name)
   }
+}
+
+case class Transpose private[layers](permutation: Seq[Int], override val name: String = "Transpose")
+    extends NetworkLayer[Output, Output] {
+  override val layerType: String           = s"Transpose[${permutation.mkString(", ")}]"
+  override val forward  : Output => Output = ops.Basic.transpose(_, permutation, name = name)
 }
 
 case class OneHot private[layers](numberOfLabels: Int, override val name: String = "OneHot")
