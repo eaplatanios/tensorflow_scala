@@ -28,6 +28,7 @@ import org.platanios.tensorflow.api.types.DataType
 object Math {
   trait API {
     val Cast  : layers.Cast.type   = layers.Cast
+    val Sum   : layers.Sum.type    = layers.Sum
     val Mean  : layers.Mean.type   = layers.Mean
     val Linear: layers.Linear.type = layers.Linear
   }
@@ -39,6 +40,11 @@ case class Cast private[layers](dataType: DataType, override val name: String = 
     extends NetworkLayer[Output, Output] {
   override val layerType: String           = s"Cast[$dataType]"
   override val forward  : Output => Output = ops.Math.cast(_, dataType, name = name)
+}
+
+case class Sum private[layers](override val name: String = "Sum") extends NetworkLayer[Output, Output] {
+  override val layerType: String           = s"Sum"
+  override val forward  : Output => Output = ops.Math.sum(_, name = name)
 }
 
 case class Mean private[layers](override val name: String = "Mean") extends NetworkLayer[Output, Output] {
