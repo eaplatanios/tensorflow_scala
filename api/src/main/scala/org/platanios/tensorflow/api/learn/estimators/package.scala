@@ -21,14 +21,8 @@ package org.platanios.tensorflow.api.learn
   */
 package object estimators {
   private[api] trait API {
-    type Estimator[IT, IO, ID, IS, I] = estimators.Estimator[IT, IO, ID, IS, I]
-    type UnsupervisedEstimator[IT, IO, ID, IS, I] = estimators.UnsupervisedEstimator[IT, IO, ID, IS, I]
-    type SupervisedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T] =
-      estimators.SupervisedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, T]
-
-    val Estimator            : estimators.Estimator.type             = estimators.Estimator
-    val UnsupervisedEstimator: estimators.UnsupervisedEstimator.type = estimators.UnsupervisedEstimator
-    val SupervisedEstimator  : estimators.SupervisedEstimator.type   = estimators.SupervisedEstimator
+    type Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] = estimators.Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI]
+    val Estimator: estimators.Estimator.type = estimators.Estimator
   }
 
   private[api] object API extends API

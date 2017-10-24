@@ -20,7 +20,6 @@ package org.platanios.tensorflow.api.learn.estimators
   * @author Emmanouil Antonios Platanios
   */
 private[learn] trait Implicits
-    extends SupervisedEstimator.Implicits
-        with UnsupervisedEstimator.Implicits
+    extends Estimator.Implicits
 
 private[api] object Implicits extends Implicits
