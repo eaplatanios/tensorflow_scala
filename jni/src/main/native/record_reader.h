@@ -74,7 +74,7 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_RecordReader_00024_dele
 /*
  * Class:     org_platanios_tensorflow_jni_RecordReader__
  * Method:    newRecordReaderWrapper
- * Signature: (Ljava/lang/String;Ljava/lang/String;)J
+ * Signature: (Ljava/lang/String;Ljava/lang/String;J)J
  */
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_RecordReader_00024_newRecordReaderWrapper
   (JNIEnv *, jobject, jstring, jstring, jlong);

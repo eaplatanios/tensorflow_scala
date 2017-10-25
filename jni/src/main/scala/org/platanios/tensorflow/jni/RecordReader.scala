@@ -32,7 +32,7 @@ object RecordReader {
   @native def sequentialRecordReaderReadNext(readerHandle: Long): Array[Byte]
   @native def deleteSequentialRecordReader(readerHandle: Long): Unit
 
-  @native def newRecordReaderWrapper(filename: String, compressionType: String): Long
+  @native def newRecordReaderWrapper(filename: String, compressionType: String, startOffset: Long): Long
   @native def recordReaderWrapperReadNext(readerHandle: Long): Array[Byte]
   @native def recordReaderWrapperOffset(readerHandle: Long): Long
   @native def deleteRecordReaderWrapper(readerHandle: Long): Unit
