@@ -13,12 +13,13 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.io
+package org.platanios.tensorflow.api.io.events
 
 import org.junit.{Rule, Test}
 import org.junit.rules.TemporaryFolder
 import org.scalatest.junit.JUnitSuite
 import org.tensorflow.util.Event
+
 import java.nio.file.{Files, Path, StandardOpenOption}
 
 /**
