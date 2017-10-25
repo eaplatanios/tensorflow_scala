@@ -15,6 +15,7 @@
 
 package org.platanios.tensorflow.api.ops.io
 
+import org.platanios.tensorflow.api.io.{CompressionType, NoCompression}
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 
@@ -157,7 +158,7 @@ object Reader {
       */
     def fixedLengthRecordReader(
         recordBytes: Int, headerBytes: Int = 0, footerBytes: Int = 0, hopBytes: Int = 0,
-        compressionType: Files.CompressionType = Files.NoCompression, sharedName: String = "",
+        compressionType: CompressionType = NoCompression, sharedName: String = "",
         name: String = "FixedLengthRecordReader"): Reader = {
       new Reader(createFixedLengthRecordReader(
         recordBytes, headerBytes, footerBytes, hopBytes, compressionType.name, sharedName = sharedName, name = name))
@@ -172,7 +173,7 @@ object Reader {
       * @return Constructed reader.
       */
     def tfRecordReader(
-        compressionType: Files.CompressionType = Files.NoCompression, sharedName: String = "",
+        compressionType: CompressionType = NoCompression, sharedName: String = "",
         name: String = "TFRecordReader"): Reader = {
       new Reader(createTFRecordReader(compressionType.name, sharedName = sharedName, name = name))
     }

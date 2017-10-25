@@ -23,22 +23,6 @@ import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry
   * @author Emmanouil Antonios Platanios
   */
 object Files {
-  sealed trait CompressionType {
-    val name: String
-  }
-
-  case object NoCompression extends CompressionType {
-    override val name: String = ""
-  }
-
-  case object ZLIBCompression extends CompressionType {
-    override val name: String = "ZLIB"
-  }
-
-  case object GZIPCompression extends CompressionType {
-    override val name: String = "GZIP"
-  }
-
   /** Creates an op that reads and outputs the entire contents of the file pointed to by the input filename.
     *
     * @param  filename `STRING` scalar tensor containing the filename.
