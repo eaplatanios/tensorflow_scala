@@ -18,6 +18,7 @@
 
 #include <string.h>
 
+#include "tensorflow/c/record_reader.h"
 #include "tensorflow/c/status_helper.h"
 #include "tensorflow/core/lib/io/record_reader.h"
 #include "tensorflow/core/platform/env.h"
@@ -108,5 +109,45 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_RecordReader_0002
 JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_RecordReader_00024_deleteSequentialRecordReader(
     JNIEnv* env, jobject object, jlong reader_handle) {
   REQUIRE_HANDLE(reader, tensorflow::io::SequentialRecordReader, reader_handle, void());
+  delete reader;
+}
+
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_RecordReader_00024_newRecordReaderWrapper(
+    JNIEnv* env, jobject object, jstring filename, jstring compression_type, jlong start_offset) {
+  const char* c_filename = env->GetStringUTFChars(filename, nullptr);
+  const char* c_compression_type = env->GetStringUTFChars(compression_type, nullptr);
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+  auto* reader = tensorflow::io::RecordReaderWrapper::New(
+    std::string(c_filename), static_cast<tensorflow::uint64>(start_offset), std::string(c_compression_type),
+    status.get());;
+  CHECK_STATUS(env, status.get(), 0);
+  env->ReleaseStringUTFChars(compression_type, c_compression_type);
+  env->ReleaseStringUTFChars(filename, c_filename);
+  return reinterpret_cast<jlong>(reader);
+}
+
+JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_RecordReader_00024_recordReaderWrapperReadNext(
+    JNIEnv* env, jobject object, jlong reader_handle) {
+  REQUIRE_HANDLE(reader, tensorflow::io::RecordReaderWrapper, reader_handle, nullptr);
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+  reader->GetNext(status.get());
+  CHECK_STATUS(env, status.get(), nullptr);
+  std::string record = reader->record();
+  jbyteArray record_array = env->NewByteArray(static_cast<jsize>(record.size()));
+  jbyte* record_array_elements = env->GetByteArrayElements(record_array, nullptr);
+  memcpy(record_array_elements, record.data(), record.size());
+  env->ReleaseByteArrayElements(record_array, record_array_elements, JNI_COMMIT);
+  return record_array;
+}
+
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_RecordReader_00024_recordReaderWrapperOffset(
+    JNIEnv* env, jobject object, jlong reader_handle) {
+  REQUIRE_HANDLE(reader, tensorflow::io::RecordReaderWrapper, reader_handle, -1);
+  return static_cast<jlong>(reader->offset());
+}
+
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_RecordReader_00024_deleteRecordReaderWrapper(
+    JNIEnv* env, jobject object, jlong reader_handle) {
+  REQUIRE_HANDLE(reader, tensorflow::io::RecordReaderWrapper, reader_handle, void());
   delete reader;
 }

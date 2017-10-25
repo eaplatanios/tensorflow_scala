@@ -71,6 +71,38 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_RecordReader_0002
 JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_RecordReader_00024_deleteSequentialRecordReader
   (JNIEnv *, jobject, jlong);
 
+/*
+ * Class:     org_platanios_tensorflow_jni_RecordReader__
+ * Method:    newRecordReaderWrapper
+ * Signature: (Ljava/lang/String;Ljava/lang/String;)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_RecordReader_00024_newRecordReaderWrapper
+  (JNIEnv *, jobject, jstring, jstring, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_RecordReader__
+ * Method:    recordReaderWrapperReadNext
+ * Signature: (J)[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_RecordReader_00024_recordReaderWrapperReadNext
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_RecordReader__
+ * Method:    recordReaderWrapperOffset
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_RecordReader_00024_recordReaderWrapperOffset
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_RecordReader__
+ * Method:    deleteRecordReaderWrapper
+ * Signature: (J)V
+ */
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_RecordReader_00024_deleteRecordReaderWrapper
+  (JNIEnv *, jobject, jlong);
+
 #ifdef __cplusplus
 }
 #endif

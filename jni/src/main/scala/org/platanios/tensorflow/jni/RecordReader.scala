@@ -23,10 +23,17 @@ object RecordReader {
 
   @native def newRandomAccessFile(filename: String): Long
   @native def deleteRandomAccessFile(fileHandle: Long): Unit
+
   @native def newRecordReader(fileHandle: Long, compressionType: String): Long
   @native def recordReaderRead(readerHandle: Long, offset: Long): Array[Byte]
   @native def deleteRecordReader(readerHandle: Long): Unit
+
   @native def newSequentialRecordReader(fileHandle: Long, compressionType: String): Long
   @native def sequentialRecordReaderReadNext(readerHandle: Long): Array[Byte]
   @native def deleteSequentialRecordReader(readerHandle: Long): Unit
+
+  @native def newRecordReaderWrapper(filename: String, compressionType: String): Long
+  @native def recordReaderWrapperReadNext(readerHandle: Long): Array[Byte]
+  @native def recordReaderWrapperOffset(readerHandle: Long): Long
+  @native def deleteRecordReaderWrapper(readerHandle: Long): Unit
 }
