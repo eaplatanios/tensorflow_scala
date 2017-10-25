@@ -13,7 +13,7 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.io
+package org.platanios.tensorflow.api.io.events
 
 import org.platanios.tensorflow.api.ops.Op
 

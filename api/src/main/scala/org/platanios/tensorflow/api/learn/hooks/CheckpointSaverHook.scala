@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.learn.hooks
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.{Executable, Fetchable, Session}
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
-import org.platanios.tensorflow.api.io.{SummaryFileWriter, SummaryFileWriterCache}
+import org.platanios.tensorflow.api.io.events.{SummaryFileWriter, SummaryFileWriterCache}
 import org.platanios.tensorflow.api.learn.Counter
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.ops.variables.{Saver, Variable}

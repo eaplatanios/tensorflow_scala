@@ -20,7 +20,8 @@ import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.{Fetchable, SessionConfig}
 import org.platanios.tensorflow.api.core.distributed.ReplicaDevicePlacer
 import org.platanios.tensorflow.api.core.exception.{CheckpointNotFoundException, InvalidArgumentException}
-import org.platanios.tensorflow.api.io.{CheckpointReader, SummaryFileWriterCache}
+import org.platanios.tensorflow.api.io.CheckpointReader
+import org.platanios.tensorflow.api.io.events.SummaryFileWriterCache
 import org.platanios.tensorflow.api.learn._
 import org.platanios.tensorflow.api.learn.hooks._
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow

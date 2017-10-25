@@ -83,8 +83,8 @@ package object ops {
     object train extends training.API
 
     object summary extends Summary {
-      type FileWriter = api.io.SummaryFileWriter
-      val FileWriter: api.io.SummaryFileWriter.type = api.io.SummaryFileWriter
+      type FileWriter = api.io.events.SummaryFileWriter
+      val FileWriter: api.io.events.SummaryFileWriter.type = api.io.events.SummaryFileWriter
     }
   }
 }
