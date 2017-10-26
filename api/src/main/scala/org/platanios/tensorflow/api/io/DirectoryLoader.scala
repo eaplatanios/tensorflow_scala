@@ -135,16 +135,15 @@ case class DirectoryLoader[T](
     }
 
     override def next(): T = {
+      val event = currentIterator.next()
       try {
-        val event = currentIterator.next()
         maybeNextPath()
-        event
       } catch {
         case _: Throwable =>
           if (!FileIO.fileExists(path))
             throw DirectoryDeletedException(s"Directory '$path' has been permanently deleted.")
-          null.asInstanceOf[T]
       }
+      event
     }
   }
 
