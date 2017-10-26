@@ -73,7 +73,7 @@ case class FileIO(filePath: Path, mode: FileIO.Mode, readBufferSize: Long = 1024
     * @param  offset Position offset.
     * @param  whence Position reference, relative to which `offset` is defined.
     */
-  def seek(offset: Long, whence: FileIO.Whence): Unit = {
+  def seek(offset: Long, whence: FileIO.Whence = FileIO.START_OF_FILE): FileIO = {
     preReadCheck()
     val position = whence match {
       case FileIO.START_OF_FILE => offset
@@ -81,6 +81,7 @@ case class FileIO(filePath: Path, mode: FileIO.Mode, readBufferSize: Long = 1024
       case FileIO.END_OF_FILE => offset + size
     }
     NativeFileIO.seekBufferedInputStream(readBufferNativeHandle, position)
+    this
   }
 
   /** Appends `content` to the end of the file. */

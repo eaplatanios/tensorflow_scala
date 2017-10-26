@@ -98,7 +98,7 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_FileIO_00024_deleteRecu
 /*
  * Class:     org_platanios_tensorflow_jni_FileIO__
  * Method:    isDirectory
- * Signature: (Ljava/lang/String;)B
+ * Signature: (Ljava/lang/String;)Z
  */
 JNIEXPORT jboolean JNICALL Java_org_platanios_tensorflow_jni_FileIO_00024_isDirectory
   (JNIEnv *, jobject, jstring);

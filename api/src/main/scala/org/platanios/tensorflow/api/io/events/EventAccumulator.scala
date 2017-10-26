@@ -15,16 +15,17 @@
 
 package org.platanios.tensorflow.api.io.events
 
+import org.platanios.tensorflow.api.io.DirectoryLoader
 import org.platanios.tensorflow.api.utilities.Reservoir
+
 import com.google.protobuf.ByteString
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
 import org.tensorflow.framework._
 import org.tensorflow.util.Event
 import org.tensorflow.util.SessionLog.SessionStatus
-import java.nio.file.{Files, Path}
 
-import org.platanios.tensorflow.api.io.DirectoryLoader
+import java.nio.file.{Files, Path}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
@@ -469,9 +470,9 @@ object EventAccumulator {
   /** Returns an events file reader for the provided path. */
   private[EventAccumulator] def eventLoaderFromPath(path: Path): () => Iterator[Event] = {
     if (Files.isRegularFile(path) && path.getFileName.toString.contains("tfevents")) {
-      EventFileReader(path).load
+      () => EventFileReader(path).load()
     } else {
-      DirectoryLoader(path, EventFileReader(_), p => p.getFileName.toString.contains("tfevents")).load
+      () => DirectoryLoader(path, EventFileReader(_), p => p.getFileName.toString.contains("tfevents")).load()
     }
   }
 }

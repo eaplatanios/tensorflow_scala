@@ -17,6 +17,7 @@
 #include "utilities.h"
 
 #include <string.h>
+#include <iostream>
 
 #include "tensorflow/c/status_helper.h"
 #include "tensorflow/core/framework/types.h"
@@ -248,7 +249,7 @@ JNIEXPORT jobject JNICALL Java_org_platanios_tensorflow_jni_FileIO_00024_statist
   }
   jclass file_statistics_class = env->FindClass("org/platanios/tensorflow/jni/FileStatistics");
   jmethodID file_statistics_constructor = env->GetStaticMethodID(
-      file_statistics_class, "apply", "(JJB)Lorg/platanios/tensorflow/jni/FileStatistics;");
+      file_statistics_class, "apply", "(JJZ)Lorg/platanios/tensorflow/jni/FileStatistics;");
   return env->CallStaticObjectMethod(
     file_statistics_class, file_statistics_constructor,
     static_cast<jlong>(statistics->length), static_cast<jlong>(statistics->mtime_nsec),
