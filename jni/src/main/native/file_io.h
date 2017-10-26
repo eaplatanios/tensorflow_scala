@@ -111,6 +111,86 @@ JNIEXPORT jboolean JNICALL Java_org_platanios_tensorflow_jni_FileIO_00024_isDire
 JNIEXPORT jobject JNICALL Java_org_platanios_tensorflow_jni_FileIO_00024_statistics
   (JNIEnv *, jobject, jstring);
 
+/*
+ * Class:     org_platanios_tensorflow_jni_FileIO__
+ * Method:    newBufferedInputStream
+ * Signature: (Ljava/lang/String;J)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_FileIO_00024_newBufferedInputStream
+  (JNIEnv *, jobject, jstring, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_FileIO__
+ * Method:    readFromBufferedInputStream
+ * Signature: (JJ)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_FileIO_00024_readFromBufferedInputStream
+  (JNIEnv *, jobject, jlong, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_FileIO__
+ * Method:    readLineAsStringFromBufferedInputStream
+ * Signature: (J)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_FileIO_00024_readLineAsStringFromBufferedInputStream
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_FileIO__
+ * Method:    tellBufferedInputStream
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_FileIO_00024_tellBufferedInputStream
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_FileIO__
+ * Method:    seekBufferedInputStream
+ * Signature: (JJ)V
+ */
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_FileIO_00024_seekBufferedInputStream
+  (JNIEnv *, jobject, jlong, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_FileIO__
+ * Method:    deleteBufferedInputStream
+ * Signature: (J)V
+ */
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_FileIO_00024_deleteBufferedInputStream
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_FileIO__
+ * Method:    newWritableFile
+ * Signature: (Ljava/lang/String;Ljava/lang/String;)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_FileIO_00024_newWritableFile
+  (JNIEnv *, jobject, jstring, jstring);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_FileIO__
+ * Method:    appendToFile
+ * Signature: (JLjava/lang/String;)V
+ */
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_FileIO_00024_appendToWritableFile
+  (JNIEnv *, jobject, jlong, jstring);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_FileIO__
+ * Method:    flushWritableFile
+ * Signature: (J)V
+ */
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_FileIO_00024_flushWritableFile
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_FileIO__
+ * Method:    deleteWritableFile
+ * Signature: (J)V
+ */
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_FileIO_00024_deleteWritableFile
+  (JNIEnv *, jobject, jlong);
+
 #ifdef __cplusplus
 }
 #endif

@@ -24,6 +24,7 @@
 #include "tensorflow/core/lib/io/buffered_inputstream.h"
 #include "tensorflow/core/lib/io/inputstream_interface.h"
 #include "tensorflow/core/lib/io/path.h"
+#include "tensorflow/core/lib/io/random_inputstream.h"
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/file_statistics.h"
 #include "tensorflow/core/platform/file_system.h"
@@ -252,4 +253,122 @@ JNIEXPORT jobject JNICALL Java_org_platanios_tensorflow_jni_FileIO_00024_statist
     file_statistics_class, file_statistics_constructor,
     static_cast<jlong>(statistics->length), static_cast<jlong>(statistics->mtime_nsec),
     static_cast<jboolean>(statistics->is_directory));
+}
+
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_FileIO_00024_newBufferedInputStream(
+    JNIEnv* env, jobject object, jstring filename, jlong buffer_size) {
+  const char* c_filename = env->GetStringUTFChars(filename, nullptr);
+  std::unique_ptr<tensorflow::RandomAccessFile> file;
+  tensorflow::Status s = tensorflow::Env::Default()->NewRandomAccessFile(std::string(c_filename), &file);
+  env->ReleaseStringUTFChars(filename, c_filename);
+  if (!s.ok()) {
+    std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+    Set_TF_Status_from_Status(status.get(), s);
+    CHECK_STATUS(env, status.get(), 0);
+  }
+  std::unique_ptr<tensorflow::io::RandomAccessInputStream> input_stream(
+    new tensorflow::io::RandomAccessInputStream(file.release(), true /* owns_file */));
+  std::unique_ptr<tensorflow::io::BufferedInputStream> buffered_input_stream(
+    new tensorflow::io::BufferedInputStream(input_stream.release(), static_cast<size_t>(buffer_size),
+    true /* owns_input_stream */));
+  return reinterpret_cast<jlong>(buffered_input_stream.release());
+}
+
+JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_FileIO_00024_readFromBufferedInputStream(
+    JNIEnv* env, jobject object, jlong buffered_input_stream_handle, jlong num_bytes) {
+  REQUIRE_HANDLE(buffered_input_stream, tensorflow::io::BufferedInputStream, buffered_input_stream_handle, nullptr);
+  std::string result;
+  tensorflow::Status s = buffered_input_stream->ReadNBytes(static_cast<size_t>(num_bytes), &result);
+  if (!s.ok() && s.code() != tensorflow::error::OUT_OF_RANGE) {
+    std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+    Set_TF_Status_from_Status(status.get(), s);
+    CHECK_STATUS(env, status.get(), nullptr);
+  }
+  return env->NewStringUTF(result.c_str());
+}
+
+JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_FileIO_00024_readLineAsStringFromBufferedInputStream(
+    JNIEnv* env, jobject object, jlong buffered_input_stream_handle) {
+  REQUIRE_HANDLE(buffered_input_stream, tensorflow::io::BufferedInputStream, buffered_input_stream_handle, 0);
+  return env->NewStringUTF(buffered_input_stream->ReadLineAsString().c_str());
+}
+
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_FileIO_00024_tellBufferedInputStream(
+    JNIEnv* env, jobject object, jlong buffered_input_stream_handle) {
+  REQUIRE_HANDLE(buffered_input_stream, tensorflow::io::BufferedInputStream, buffered_input_stream_handle, 0);
+  return static_cast<jlong>(buffered_input_stream->Tell());
+}
+
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_FileIO_00024_seekBufferedInputStream(
+    JNIEnv* env, jobject object, jlong buffered_input_stream_handle, jlong position) {
+  REQUIRE_HANDLE(buffered_input_stream, tensorflow::io::BufferedInputStream, buffered_input_stream_handle, void());
+  tensorflow::Status s = buffered_input_stream->Seek(static_cast<tensorflow::int64>(position));
+  if (!s.ok()) {
+    std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+    Set_TF_Status_from_Status(status.get(), s);
+    CHECK_STATUS(env, status.get(), void());
+  }
+}
+
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_FileIO_00024_deleteBufferedInputStream(
+    JNIEnv* env, jobject object, jlong buffered_input_stream_handle) {
+  REQUIRE_HANDLE(buffered_input_stream, tensorflow::io::BufferedInputStream, buffered_input_stream_handle, void());
+  delete buffered_input_stream;
+}
+
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_FileIO_00024_newWritableFile(
+    JNIEnv* env, jobject object, jstring filename, jstring mode) {
+  const char* c_filename = env->GetStringUTFChars(filename, nullptr);
+  const char* c_mode = env->GetStringUTFChars(mode, nullptr);
+  std::unique_ptr<tensorflow::WritableFile> file;
+  tensorflow::Status s;
+  if (std::string(c_mode).find("a") != std::string::npos) {
+    s = tensorflow::Env::Default()->NewAppendableFile(std::string(c_filename), &file);
+  } else {
+    s = tensorflow::Env::Default()->NewWritableFile(std::string(c_filename), &file);
+  }
+  env->ReleaseStringUTFChars(filename, c_filename);
+  env->ReleaseStringUTFChars(mode, c_mode);
+  if (!s.ok()) {
+    std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+    Set_TF_Status_from_Status(status.get(), s);
+    CHECK_STATUS(env, status.get(), 0);
+  }
+  return reinterpret_cast<jlong>(file.release());
+}
+
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_FileIO_00024_appendToWritableFile(
+    JNIEnv* env, jobject object, jlong file_handle, jstring file_content) {
+  REQUIRE_HANDLE(file, tensorflow::WritableFile, file_handle, void());
+  const char* c_file_content = env->GetStringUTFChars(file_content, nullptr);
+  tensorflow::Status s = file->Append(std::string(c_file_content));
+  env->ReleaseStringUTFChars(file_content, c_file_content);
+  if (!s.ok()) {
+    std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+    Set_TF_Status_from_Status(status.get(), s);
+    CHECK_STATUS(env, status.get(), void());
+  }
+}
+
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_FileIO_00024_flushWritableFile(
+    JNIEnv* env, jobject object, jlong file_handle) {
+  REQUIRE_HANDLE(file, tensorflow::WritableFile, file_handle, void());
+  tensorflow::Status s = file->Flush();
+  if (!s.ok()) {
+    std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+    Set_TF_Status_from_Status(status.get(), s);
+    CHECK_STATUS(env, status.get(), void());
+  }
+}
+
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_FileIO_00024_deleteWritableFile(
+    JNIEnv* env, jobject object, jlong file_handle) {
+  REQUIRE_HANDLE(file, tensorflow::WritableFile, file_handle, void());
+  tensorflow::Status s = file->Close();
+  if (!s.ok()) {
+    std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+    Set_TF_Status_from_Status(status.get(), s);
+    CHECK_STATUS(env, status.get(), void());
+  }
+  delete file;
 }

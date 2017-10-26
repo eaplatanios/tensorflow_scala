@@ -36,4 +36,16 @@ object FileIO {
   @native def deleteRecursively(dirname: String): Unit
   @native def isDirectory(dirname: String): Boolean
   @native def statistics(path: String): FileStatistics
+
+  @native def newBufferedInputStream(filename: String, bufferSize: Long): Long
+  @native def readFromBufferedInputStream(handle: Long, numBytes: Long): String
+  @native def readLineAsStringFromBufferedInputStream(handle: Long): String
+  @native def tellBufferedInputStream(handle: Long): Long
+  @native def seekBufferedInputStream(handle: Long, position: Long): Unit
+  @native def deleteBufferedInputStream(handle: Long): Unit
+
+  @native def newWritableFile(filename: String, mode: String): Long
+  @native def appendToWritableFile(handle: Long, content: String): Unit
+  @native def flushWritableFile(handle: Long): Unit
+  @native def deleteWritableFile(handle: Long): Unit
 }
