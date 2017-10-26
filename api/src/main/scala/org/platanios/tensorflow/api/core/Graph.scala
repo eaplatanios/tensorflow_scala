@@ -1109,7 +1109,7 @@ object Graph {
 
       override def parseCollectionDef(collectionDef: CollectionDef, graph: Graph, importScope: String): Unit = {
         val kind = collectionDef.getKindCase
-        if (kind != =CollectionDef.KindCase.INT64_LIST)
+        if (kind != CollectionDef.KindCase.INT64_LIST)
           throw new IllegalArgumentException(s"The '$name' collection should be stored as an INT64 list.")
         collectionDef.getInt64List.getValueList.asScala.foreach(v => graph.addToCollection(v.toInt, this))
       }
