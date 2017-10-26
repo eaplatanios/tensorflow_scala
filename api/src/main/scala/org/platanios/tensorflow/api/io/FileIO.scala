@@ -477,7 +477,8 @@ object FileIO {
     try {
       rename(temporaryFilePath, filePath, overwrite)
     } finally {
-      deleteFile(temporaryFilePath)
+      if (exists(temporaryFilePath))
+        deleteFile(temporaryFilePath)
     }
   }
 }
