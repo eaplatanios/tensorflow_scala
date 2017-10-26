@@ -228,13 +228,13 @@ object FileIO {
   case object CURRENT_POSITION extends Whence
   case object END_OF_FILE extends Whence
 
-  /** Determines whether a file path exists or not.
+  /** Determines whether a path exists or not.
     *
-    * @param  filePath File path.
+    * @param  filePath Path to a file or directory.
     * @return `true` if the path exists, whether its a file or a directory, and `false` if the path does not exist and
     *         there are no filesystem errors.
     */
-  def fileExists(filePath: Path): Boolean = {
+  def exists(filePath: Path): Boolean = {
     try {
       NativeFileIO.fileExists(filePath.toAbsolutePath.toString)
       true
@@ -271,7 +271,7 @@ object FileIO {
 
   /** Deletes everything under the provided path, recursively.
     *
-    * @param  path File/directory path to delete.
+    * @param  path Path to a file or directory.
     */
   def deleteRecursively(path: Path): Unit = {
     NativeFileIO.deleteRecursively(path.toAbsolutePath.toString)

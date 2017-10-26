@@ -133,7 +133,7 @@ case class DirectoryLoader[T](
         }
       } catch {
         case _: Throwable =>
-          if (!FileIO.fileExists(directory))
+          if (!FileIO.exists(directory))
             throw DirectoryDeletedException(s"Directory '$directory' has been permanently deleted.")
           false
       }
@@ -145,7 +145,7 @@ case class DirectoryLoader[T](
         maybeNextPath()
       } catch {
         case _: Throwable =>
-          if (!FileIO.fileExists(directory))
+          if (!FileIO.exists(directory))
             throw DirectoryDeletedException(s"Directory '$directory' has been permanently deleted.")
       }
       event

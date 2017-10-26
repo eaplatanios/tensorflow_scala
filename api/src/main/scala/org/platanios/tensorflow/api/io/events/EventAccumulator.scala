@@ -57,10 +57,12 @@ import scala.collection.mutable
   *                                 [[CompressedHistogramEventType]] event type.
   * @param  purgeOrphanedData       Boolean value indicating whether to discard any events that were "orphaned" by a
   *                                 TensorFlow restart.
+  *
   * @author Emmanouil Antonios Platanios
   */
 case class EventAccumulator(
-    path: Path, sizeGuidance: Map[EventType, Int] = EventAccumulator.DEFAULT_SIZE_GUIDANCE,
+    path: Path,
+    sizeGuidance: Map[EventType, Int] = EventAccumulator.DEFAULT_SIZE_GUIDANCE,
     histogramCompressionBps: Seq[Int] = EventAccumulator.DEFAULT_HISTOGRAM_COMPRESSION_BPS,
     purgeOrphanedData: Boolean = true) {
   private[this] val eventLoader: () => Iterator[Event] = EventAccumulator.eventLoaderFromPath(path)
@@ -157,6 +159,7 @@ case class EventAccumulator(
     *
     * If the graph is stored directly, the method returns it. If no graph is stored directly, but a meta-graph is stored
     * containing a graph, the method returns that graph. */
+  @throws[IllegalStateException]
   def graph: GraphDef = {
     if (_graphDef != null)
       GraphDef.parseFrom(_graphDef)
@@ -165,6 +168,7 @@ case class EventAccumulator(
   }
 
   /** Returns the meta-graph definition, if there is one. */
+  @throws[IllegalStateException]
   def metaGraph: MetaGraphDef = {
     if (_metaGraphDef != null)
       MetaGraphDef.parseFrom(_metaGraphDef)
@@ -173,20 +177,21 @@ case class EventAccumulator(
   }
 
   /** Returns the run metadata associated with the provided summary tag. */
+  @throws[IllegalArgumentException]
   def runMetadata(tag: String): RunMetadata = {
     if (!_taggedRunMetadata.contains(tag))
       throw new IllegalArgumentException("There is no run metadata for the provided tag name.")
     RunMetadata.parseFrom(_taggedRunMetadata(tag))
   }
 
-  /** Returns the summary metadata associated with the provided tag. */
+  /** Returns the summary metadata associated with the provided summary tag. */
   def summaryMetadata(tag: String): SummaryMetadata = {
     _summaryMetadata(tag)
   }
 
   /** Returns a map from tags to content specific to the specified plugin. */
-  def pluginTagToContent(pluginName: String): Map[String, String] = {
-    _pluginTagContent(pluginName).toMap
+  def pluginTagToContent(pluginName: String): Option[Map[String, String]] = {
+    _pluginTagContent.get(pluginName).map(_.toMap)
   }
 
   /** Returns a sequence with paths to all the registered assets for the provided plugin name.
