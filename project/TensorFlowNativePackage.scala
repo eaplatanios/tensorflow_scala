@@ -221,6 +221,8 @@ object TensorFlowNativePackage extends AutoPlugin {
          |RUN /usr/sbin/update-java-alternatives -s java-1.8.0-openjdk-amd64
          |ENV JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
          |
+         |RUN apt-get install libz-dev
+         |
          |# Define working directory
          |WORKDIR /root
          |""".stripMargin
