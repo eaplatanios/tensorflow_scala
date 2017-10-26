@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.io.events
 
 import org.platanios.tensorflow.api.core.exception.{DataLossException, OutOfRangeException}
-import org.platanios.tensorflow.api.io.{CompressionType, NoCompression}
+import org.platanios.tensorflow.api.io.{CompressionType, Loader, NoCompression}
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer}
 import org.platanios.tensorflow.jni.{RecordReader => NativeReader}
 
@@ -39,7 +39,8 @@ import java.nio.file.Path
   *
   * @author Emmanouil Antonios Platanios
   */
-class EventFileReader(val filePath: Path, val compressionType: CompressionType = NoCompression) extends Closeable {
+class EventFileReader(val filePath: Path, val compressionType: CompressionType = NoCompression)
+    extends Closeable with Loader[Event] {
   EventFileReader.logger.info(s"Opening a TensorFlow events file located at '${filePath.toAbsolutePath}'.")
 
   private[this] var nativeHandle: Long = {

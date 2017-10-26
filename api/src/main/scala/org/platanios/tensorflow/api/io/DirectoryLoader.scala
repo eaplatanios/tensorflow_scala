@@ -13,23 +13,20 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.io.events
+package org.platanios.tensorflow.api.io
 
 import org.platanios.tensorflow.api.core.exception.UnavailableException
-import org.platanios.tensorflow.api.io.FileIO
-import org.platanios.tensorflow.api.io.events.EventDirectoryWatcher.DirectoryDeletedException
+import org.platanios.tensorflow.api.io.DirectoryLoader.DirectoryDeletedException
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
-import org.tensorflow.util.Event
 
 import java.nio.file.Path
 
-/** Directory watcher that wraps an event file reader factory to load events from a sequence of paths.
+/** A directory loader that wraps a loader factory to load entries from a sequence of paths.
   *
-  * An [[EventFileReader]] reads a path and produces an iterator of events. An [[EventDirectoryWatcher]] takes a
-  * directory, a factory for event file readers, and optionally a path filter and watches all the paths inside that
-  * directory.
+  * A [[Loader]] reads a path and produces an iterator over entries. An [[DirectoryLoader]] takes a directory, a factory
+  * for entry loaders, and optionally a path filter and watches all the paths inside that directory.
   *
   * This class is only valid under the assumption that only one path will be written to by the data source at a time and
   * that once the source stops writing to a path, it will start writing to a new path that is lexicographically greater,
@@ -37,16 +34,16 @@ import java.nio.file.Path
   * sizes, but the checks can yield false negatives. However, they should never yield false positives.
   *
   * @param  path          Directory to watch.
-  * @param  readerFactory Factory for event file readers.
+  * @param  loaderFactory Factory for loaders.
   * @param  pathFilter    Optional path filter to use.
   *
   * @author Emmanouil Antonios Platanios
   */
-case class EventDirectoryWatcher(
+case class DirectoryLoader[T](
     private var path: Path,
-    private val readerFactory: (Path) => EventFileReader,
+    private val loaderFactory: (Path) => Loader[T],
     private val pathFilter: (Path) => Boolean = _ => true) {
-  private[this] var _reader                  : EventFileReader = _
+  private[this] var _loader                  : Loader[T] = _
   private[this] var _outOfOrderWritesDetected: Boolean         = false
   private[this] var _finalizedSizes          : Map[Path, Long] = Map.empty[Path, Long]
 
@@ -62,26 +59,27 @@ case class EventDirectoryWatcher(
     * always return `false`. */
   def outOfOrderWritesDetected: Boolean = _outOfOrderWritesDetected
 
-  /** Loads new events and returns an iterator over them. The watcher will load from one path at a time; as soon as that
-    * path stops yielding events, it will move on to the next path. We assume that old paths are never modified after a
-    * newer path has been written. As a result, `load()` can be called multiple times in a row without losing events
-    * that have not been yielded yet. In other words, we guarantee that every event will be yielded exactly once.
+  /** Loads new entries and returns an iterator over them. The loader will load from one path at a time; as soon as
+    * that path stops yielding entries, it will move on to the next path. We assume that old paths are never modified
+    * after a newer path has been written. As a result, `load()` can be called multiple times in a row without losing
+    * entries that have not been yielded yet. In other words, we guarantee that every entry will be yielded exactly
+    * once.
     *
     * @throws DirectoryDeletedException If the directory being watched has been permanently deleted (as opposed to being
     *                                   temporarily unavailable).
     */
   @throws[DirectoryDeletedException]
-  def load(): Iterator[Event] = new Iterator[Event] {
-    private[this] var currentIterator: Iterator[Event] = {
-      if (_reader == null) {
+  def load(): Iterator[T] = new Iterator[T] {
+    private[this] var currentIterator: Iterator[T] = {
+      if (_loader == null) {
         path = nextPath()
         if (path != null)
           setPath(path)
       }
-      if (_reader == null)
+      if (_loader == null)
         null
       else
-        _reader.load()
+        _loader.load()
     }
 
     private[this] var secondPass: Boolean = false
@@ -90,30 +88,30 @@ case class EventDirectoryWatcher(
       if (!currentIterator.hasNext) {
         val next = nextPath()
         if (next == null) {
-          EventDirectoryWatcher.logger.info(s"No path found after '$path'.")
+          DirectoryLoader.logger.info(s"No path found after '$path'.")
           // The current path is empty and there are no new paths, and so we are done.
           currentIterator = null
         } else if (!secondPass) {
-          // There is a new path and so we check to make sure there were not any events written between when we finished
-          // reading the current path and when we checked for the new one. The sequence of events might look something
-          // like this:
-          //   1. Event #1 written to path #1.
-          //   2. We check for events and yield event #1 from path #1.
-          //   3. We check for events and see that there are no more events in path #1.
-          //   4. Event #2 is written to path #1.
-          //   5. Event #3 is written to path #2.
+          // There is a new path and so we check to make sure there were not any entries written between when we
+          // finished reading the current path and when we checked for the new one. The sequence of entries might look
+          // something like this:
+          //   1. Entry #1 written to path #1.
+          //   2. We check for entries and yield entry #1 from path #1.
+          //   3. We check for entries and see that there are no more entries in path #1.
+          //   4. Entry #2 is written to path #1.
+          //   5. Entry #3 is written to path #2.
           //   6. We check for a new path and see that path #2 exists.
-          // Without this loop, we would miss event #2. We are also guaranteed by the reader contract that no more
-          // events will be written to path #1 after events start being written to path #2, and so we do not have to
+          // Without this loop, we would miss entry #2. We are also guaranteed by the reader contract that no more
+          // entries will be written to path #1 after entries start being written to path #2, and so we do not have to
           // worry about that.
-          currentIterator = _reader.load()
+          currentIterator = _loader.load()
           secondPass = true
         } else {
-          EventDirectoryWatcher.logger.info(s"Event directory watcher advancing from '$path' to '$next'.")
+          DirectoryLoader.logger.info(s"Directory loader advancing from '$path' to '$next'.")
           secondPass = false
           // Advance to the next path and start over.
           setPath(next)
-          currentIterator = _reader.load()
+          currentIterator = _loader.load()
         }
       }
     }
@@ -136,7 +134,7 @@ case class EventDirectoryWatcher(
       }
     }
 
-    override def next(): Event = {
+    override def next(): T = {
       try {
         val event = currentIterator.next()
         maybeNextPath()
@@ -145,12 +143,12 @@ case class EventDirectoryWatcher(
         case _: Throwable =>
           if (!FileIO.fileExists(path))
             throw DirectoryDeletedException(s"Directory '$path' has been permanently deleted.")
-          null
+          null.asInstanceOf[T]
       }
     }
   }
 
-  /** Gets the next path to load events from. This method also does the checking for out-of-order writes as it iterates
+  /** Gets the next path to load entries from. This method also does the checking for out-of-order writes as it iterates
     * through the paths. */
   private[this] def nextPath(): Path = {
     val sortedPaths = FileIO.listDirectories(path).map(path.resolve(_)).filter(pathFilter).sortBy(_.toString)
@@ -171,7 +169,7 @@ case class EventDirectoryWatcher(
     }
   }
 
-  /** Sets the current path to watch for new events to `path`. This method also records the size of the old path, if
+  /** Sets the current path to watch for new entries to `path`. This method also records the size of the old path, if
     * any. If the size cannot be determined, an error is logged. */
   private[this] def setPath(path: Path): Unit = {
     val oldPath = this.path
@@ -179,14 +177,14 @@ case class EventDirectoryWatcher(
       try {
         // We are done with the path, and so we store its size.
         val size = FileIO.fileStatistics(oldPath).length
-        EventDirectoryWatcher.logger.debug(s"Setting latest size of '$oldPath' to $size.")
+        DirectoryLoader.logger.debug(s"Setting latest size of '$oldPath' to $size.")
         _finalizedSizes = _finalizedSizes.updated(oldPath, size)
       } catch {
-        case t: Throwable => EventDirectoryWatcher.logger.error(s"Unable to get the size of '$oldPath'.", t)
+        case t: Throwable => DirectoryLoader.logger.error(s"Unable to get the size of '$oldPath'.", t)
       }
     }
     this.path = path
-    this._reader = readerFactory(path)
+    this._loader = loaderFactory(path)
   }
 
   /** Returns a boolean value indicating whether `path` has had an out-of-order write. */
@@ -196,11 +194,11 @@ case class EventDirectoryWatcher(
     val oldSize = _finalizedSizes.getOrElse(path, -1L)
     if (size != oldSize) {
       if (oldSize == -1L)
-        EventDirectoryWatcher.logger.error(
+        DirectoryLoader.logger.error(
           s"File '$path' created after file '${this.path}' " +
               s"even though its name lexicographical order indicates otherwise.")
       else
-        EventDirectoryWatcher.logger.error(s"File '$path' updated even though the current file is '${this.path}'.")
+        DirectoryLoader.logger.error(s"File '$path' updated even though the current file is '${this.path}'.")
       true
     } else {
       false
@@ -208,10 +206,10 @@ case class EventDirectoryWatcher(
   }
 }
 
-object EventDirectoryWatcher {
-  private[EventDirectoryWatcher] val logger: Logger = Logger(LoggerFactory.getLogger("Event Directory Watcher"))
+object DirectoryLoader {
+  private[DirectoryLoader] val logger: Logger = Logger(LoggerFactory.getLogger("Directory Loader"))
 
-  /** Exception thrown by `EventDirectoryWatcher.load()` when the directory being watched is *permanently* gone (i.e.,
+  /** Exception thrown by `DirectoryLoader.load()` when the directory being watched is *permanently* gone (i.e.,
     * deleted). We distinguish this from temporary errors so that other code can decide to drop all of our data only
     * when a directory has been intentionally deleted, as opposed to due to transient filesystem errors. */
   case class DirectoryDeletedException(message: String = null, cause: Throwable = null)
