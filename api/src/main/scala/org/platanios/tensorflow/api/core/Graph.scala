@@ -1092,8 +1092,8 @@ object Graph {
       }
 
       override def parseCollectionDef(collectionDef: CollectionDef, graph: Graph, importScope: String): Unit = {
-        val kind = collectionDef.getKindCase.getNumber
-        if (kind != 2)
+        val kind = collectionDef.getKindCase
+        if (kind != CollectionDef.KindCase.BYTES_LIST)
           throw new IllegalArgumentException(s"The '$name' collection should be stored as a byte list.")
         collectionDef.getBytesList.getValueList.asScala.foreach(s => graph.addToCollection(s.toStringUtf8, this))
       }
@@ -1108,8 +1108,8 @@ object Graph {
       }
 
       override def parseCollectionDef(collectionDef: CollectionDef, graph: Graph, importScope: String): Unit = {
-        val kind = collectionDef.getKindCase.getNumber
-        if (kind != 3)
+        val kind = collectionDef.getKindCase
+        if (kind != =CollectionDef.KindCase.INT64_LIST)
           throw new IllegalArgumentException(s"The '$name' collection should be stored as an INT64 list.")
         collectionDef.getInt64List.getValueList.asScala.foreach(v => graph.addToCollection(v.toInt, this))
       }
@@ -1128,8 +1128,8 @@ object Graph {
       }
 
       override def parseCollectionDef(collectionDef: CollectionDef, graph: Graph, importScope: String): Unit = {
-        val kind = collectionDef.getKindCase.getNumber
-        if (kind != 1)
+        val kind = collectionDef.getKindCase
+        if (kind != CollectionDef.KindCase.NODE_LIST)
           throw new IllegalArgumentException(s"The '$name' collection should be stored as a node list.")
         collectionDef.getNodeList.getValueList.asScala
             .foreach(o => graph.addToCollection(graph.getOpByName(Op.prependNameScope(importScope, o)), this))
@@ -1149,8 +1149,8 @@ object Graph {
       }
 
       override def parseCollectionDef(collectionDef: CollectionDef, graph: Graph, importScope: String): Unit = {
-        val kind = collectionDef.getKindCase.getNumber
-        if (kind != 1)
+        val kind = collectionDef.getKindCase
+        if (kind != CollectionDef.KindCase.NODE_LIST)
           throw new IllegalArgumentException(s"The '$name' collection should be stored as a node list.")
         collectionDef.getNodeList.getValueList.asScala
             .foreach(o => graph.addToCollection(graph.getOutputByName(Op.prependNameScope(importScope, o)), this))
@@ -1169,8 +1169,8 @@ object Graph {
       }
 
       override def parseCollectionDef(collectionDef: CollectionDef, graph: Graph, importScope: String): Unit = {
-        val kind = collectionDef.getKindCase.getNumber
-        if (kind != 2)
+        val kind = collectionDef.getKindCase
+        if (kind != CollectionDef.KindCase.BYTES_LIST)
           throw new IllegalArgumentException(s"The '$name' collection should be stored as a byte list.")
         collectionDef.getBytesList.getValueList.asScala
             .foreach(v => graph.addToCollection(Variable.fromProto(VariableDef.parseFrom(v), importScope), this))
@@ -1189,8 +1189,8 @@ object Graph {
       }
 
       override def parseCollectionDef(collectionDef: CollectionDef, graph: Graph, importScope: String): Unit = {
-        val kind = collectionDef.getKindCase.getNumber
-        if (kind != 1)
+        val kind = collectionDef.getKindCase
+        if (kind != CollectionDef.KindCase.BYTES_LIST)
           throw new IllegalArgumentException(s"The '$name' collection should be stored as a byte list.")
         collectionDef.getBytesList.getValueList.asScala
             .foreach(s => graph.addToCollection(Saver.fromProto(SaverDef.parseFrom(s), importScope), this))
@@ -1214,8 +1214,8 @@ object Graph {
       }
 
       override def parseCollectionDef(collectionDef: CollectionDef, graph: Graph, importScope: String): Unit = {
-        val kind = collectionDef.getKindCase.getNumber
-        if (kind != 1)
+        val kind = collectionDef.getKindCase
+        if (kind != CollectionDef.KindCase.NODE_LIST)
           throw new IllegalArgumentException(s"The '$name' collection should be stored as a node list.")
         collectionDef.getNodeList.getValueList.asScala.grouped(3)
             .foreach(r => {

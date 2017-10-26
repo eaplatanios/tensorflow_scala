@@ -196,8 +196,8 @@ object CondContext {
     }
 
     override def parseCollectionDef(collectionDef: CollectionDef, graph: Graph, importScope: String): Unit = {
-      val kind = collectionDef.getKindCase.getNumber
-      if (kind != 2)
+      val kind = collectionDef.getKindCase
+      if (kind != CollectionDef.KindCase.BYTES_LIST)
         throw new IllegalArgumentException(s"The '$name' collection should be stored as a byte list.")
       collectionDef.getBytesList.getValueList.asScala
           .foreach(s => graph.addToCollection(
