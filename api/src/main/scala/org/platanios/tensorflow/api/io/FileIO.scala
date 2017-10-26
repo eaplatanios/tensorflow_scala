@@ -285,6 +285,11 @@ object FileIO {
     NativeFileIO.isDirectory(path.toAbsolutePath.toString)
   }
 
+  /** Returns `true` if `path` points to a Google Cloud Service (GCS) path. */
+  def isGCSPath(path: Path): Boolean = {
+    path.startsWith("gs://")
+  }
+
   /** Returns file statistics for the provided path.
     *
     * @param  path Path to a file or directory.

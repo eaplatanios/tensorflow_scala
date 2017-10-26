@@ -471,7 +471,7 @@ object EventAccumulator {
     if (Files.isRegularFile(path) && path.getFileName.toString.contains("tfevents")) {
       EventFileReader(path).load
     } else {
-      ???
+      EventDirectoryWatcher(path, EventFileReader(_), p => p.getFileName.toString.contains("tfevents")).load
     }
   }
 }
