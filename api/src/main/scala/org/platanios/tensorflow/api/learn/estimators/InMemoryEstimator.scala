@@ -126,9 +126,14 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
   override def train(data: Dataset[TT, TO, TD, TS], stopCriteria: StopCriteria = this.stopCriteria): Unit = {
     session.resetShouldStop()
     Op.createWith(graph) {
-      session.run(targets = trainingOps.inputIterator.createInitializer(data))
+      val frozen = graph.isFrozen
+      if (frozen)
+        graph.unFreeze()
+      val initializer = trainingOps.inputIterator.createInitializer(data)
+      if (frozen)
+        graph.freeze()
+      session.run(targets = initializer)
       try {
-
         stopHook.updateCriteria(stopCriteria)
         stopHook.reset(session)
         while (!session.shouldStop)
@@ -165,7 +170,14 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
   ): InferOutput = {
     session.resetShouldStop()
     Op.createWith(graph) {
-      session.run(targets = inferenceOps.inputIterator.createInitializer(ev.toDataset(input)))
+      val frozen = graph.isFrozen
+      if (frozen)
+        graph.unFreeze()
+      val initializer = inferenceOps.inputIterator.createInitializer(ev.toDataset(input))
+      if (frozen)
+        graph.freeze()
+      session.run(targets = initializer)
+      // TODO: !!! What about the stop criteria and resetting the session?
       ev.convertFetched(new Iterator[(IT, ModelInferenceOutput)] {
         override def hasNext: Boolean = session.shouldStop
         override def next(): (IT, ModelInferenceOutput) = {
@@ -215,7 +227,14 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
       name: String = null): Seq[Tensor] = {
     session.resetShouldStop()
     Op.createWith(graph) {
-      session.run(targets = evaluationOps.inputIterator.createInitializer(data))
+      val frozen = graph.isFrozen
+      if (frozen)
+        graph.unFreeze()
+      val initializer = evaluationOps.inputIterator.createInitializer(data)
+      if (frozen)
+        graph.freeze()
+      session.run(targets = initializer)
+      // TODO: !!! What about the stop criteria and resetting the session?
       InMemoryEstimator.logger.info("Starting evaluation.")
       val (step, metricValues) = {
         try {
