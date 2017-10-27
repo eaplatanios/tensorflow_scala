@@ -73,8 +73,8 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
   private[this] val graph: Graph                                                 = Graph()
   private[this] val model: TrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] = modelFunction(configuration)
 
-  private[this] val trainStopHook         : StopHook          = StopHook(stopCriteria)
-  private[this] var allTrainHooks         : mutable.Set[Hook] = mutable.Set(trainHooks.toSeq: _*) + trainStopHook
+  private[this] val stopHook              : StopHook          = StopHook(stopCriteria)
+  private[this] var allTrainHooks         : mutable.Set[Hook] = mutable.Set(trainHooks.toSeq: _*) + stopHook
   private[this] var allTrainChiefOnlyHooks: mutable.Set[Hook] = mutable.Set(trainChiefOnlyHooks.toSeq: _*)
 
   private[this] val (globalStep, trainingOps, inferenceOps, evaluationOps, evaluationUpdateOps) = {
@@ -100,7 +100,6 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
     Op.createWith(graph = graph, deviceFunction = deviceFunction.getOrElse(_.device)) {
       val globalStep = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
       graph.addToCollection(trainingOps.loss, Graph.Keys.LOSSES)
-      // TODO: !!! Need to add support to enable/disable hooks and separate train, inference, and evaluation hooks.
       allTrainHooks += TensorNaNHook(Set(trainingOps.loss.name))
       allTrainHooks += TensorLoggingHook(TreeMap(
         "Step" -> globalStep.value.name,
@@ -129,7 +128,7 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
     */
   override def train(data: Dataset[TT, TO, TD, TS], stopCriteria: StopCriteria = this.stopCriteria): Unit = {
     session.resetShouldStop()
-    session.removeHooks(remainingTrainHooks ++ inferHooks ++ evaluateHooks)
+    session.removeHooks(inferHooks ++ evaluateHooks)
     Op.createWith(graph) {
       val frozen = graph.isFrozen
       if (frozen)
@@ -141,18 +140,18 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
       session.run(targets = initializer)
       session.enableHooks()
       try {
-        trainStopHook.updateCriteria(stopCriteria)
-        trainStopHook.reset(session)
+        stopHook.updateCriteria(stopCriteria)
+        stopHook.reset(session)
         while (!session.shouldStop)
           session.run(targets = trainingOps.trainOp)
       } catch {
         case t: Throwable if !RECOVERABLE_EXCEPTIONS.contains(t.getClass) =>
-          trainStopHook.updateCriteria(this.stopCriteria)
+          stopHook.updateCriteria(this.stopCriteria)
           session.closeWithoutHookEnd()
           throw t
       }
     }
-    session.addHooks(remainingTrainHooks ++ inferHooks ++ evaluateHooks)
+    session.addHooks(inferHooks ++ evaluateHooks)
   }
 
   /** Infers output (i.e., computes predictions) for `input` using the model managed by this estimator.
@@ -192,8 +191,8 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
       session.run(targets = initializer)
       session.enableHooks()
       try {
-        trainStopHook.updateCriteria(StopCriteria.none)
-        trainStopHook.reset(session)
+        stopHook.updateCriteria(StopCriteria.none)
+        stopHook.reset(session)
         ev.convertFetched(new Iterator[(IT, ModelInferenceOutput)] {
           override def hasNext: Boolean = session.shouldStop
           override def next(): (IT, ModelInferenceOutput) = {
@@ -201,7 +200,7 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
               session.run(fetches = (inferenceOps.input, inferenceOps.output))
             } catch {
               case t: Throwable =>
-                trainStopHook.updateCriteria(stopCriteria)
+                stopHook.updateCriteria(stopCriteria)
                 session.closeWithoutHookEnd()
                 throw t
             }
@@ -209,7 +208,7 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
         })
       } catch {
         case t: Throwable =>
-          trainStopHook.updateCriteria(stopCriteria)
+          stopHook.updateCriteria(stopCriteria)
           session.closeWithoutHookEnd()
           throw t
       }
@@ -262,10 +261,9 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
       session.disableHooks()
       session.run(targets = initializer)
       session.enableHooks()
-      // TODO: !!! What about the stop criteria and resetting the session?
       try {
-        trainStopHook.updateCriteria(if (maxSteps != -1L) StopCriteria.steps(maxSteps) else StopCriteria.none)
-        trainStopHook.reset(session)
+        stopHook.updateCriteria(if (maxSteps != -1L) StopCriteria.steps(maxSteps) else StopCriteria.none)
+        stopHook.reset(session)
         InMemoryEstimator.logger.info("Starting evaluation.")
         val (step, metricValues) = {
           try {
@@ -278,7 +276,7 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
               session.close()
               (-1L, Seq.empty[Tensor])
             case t: Throwable =>
-              trainStopHook.updateCriteria(this.stopCriteria)
+              stopHook.updateCriteria(this.stopCriteria)
               session.closeWithoutHookEnd()
               throw t
           }
@@ -290,7 +288,7 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
         metricValues
       } catch {
         case t: Throwable =>
-          trainStopHook.updateCriteria(this.stopCriteria)
+          stopHook.updateCriteria(this.stopCriteria)
           session.closeWithoutHookEnd()
           throw t
       }
@@ -299,18 +297,12 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
     values
   }
 
+  /** Returns the train hooks being used by this estimator, except for the [[StopHook]] being used. */
   private[this] def currentTrainHooks: Set[Hook] = {
     if (configuration.isChief)
-      (allTrainHooks ++ allTrainChiefOnlyHooks).toSet
+      (allTrainHooks ++ allTrainChiefOnlyHooks).toSet - stopHook
     else
-      allTrainHooks.toSet
-  }
-
-  private[this] def remainingTrainHooks: Set[Hook] = {
-    if (configuration.isChief)
-      Set.empty
-    else
-      (allTrainChiefOnlyHooks -- allTrainHooks).toSet
+      allTrainHooks.toSet - stopHook
   }
 }
 
