@@ -39,8 +39,8 @@ private[learn] case class StopHook(private var criteria: StopCriteria) extends H
   private[this] var loss : Output   = _
 
   private[this] var startTime       : Long         = 0L
-  private[this] var lastEpoch       : Option[Long] = if (criteria.restartCounting) None else criteria.maxEpochs
-  private[this] var lastStep        : Option[Long] = if (criteria.restartCounting) None else criteria.maxSteps
+  private[this] var lastEpoch       : Option[Long] = None
+  private[this] var lastStep        : Option[Long] = None
   private[this] var lastLoss        : Float        = Float.MaxValue
   private[this] var numStepsBelowTol: Int          = 0
 

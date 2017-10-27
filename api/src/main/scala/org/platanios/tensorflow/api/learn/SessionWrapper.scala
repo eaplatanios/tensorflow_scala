@@ -44,17 +44,17 @@ import scala.util.control.Exception._
 // TODO: !!! [LEARN] [SESSIONS] This should probably not be extending session (given the confused functionality w.r.t. "runHelper".
 abstract class SessionWrapper private[learn](protected var session: Session)
     extends Session(session.graphReference, session.nativeHandle, session.target) {
-  protected var _closed  : Boolean = false
-  protected var _pureRuns: Boolean = false
+  protected var _closed      : Boolean = false
+  protected var _hooksEnabled: Boolean = true
 
-  def startPureRuns(): Unit = session match {
-    case s: SessionWrapper => s.startPureRuns()
-    case _ => _pureRuns = true
+  def enableHooks(): Unit = session match {
+    case s: SessionWrapper => s.enableHooks()
+    case _ => _hooksEnabled = true
   }
 
-  def stopPureRuns(): Unit = session match {
-    case s: SessionWrapper => s.stopPureRuns()
-    case _ => _pureRuns = false
+  def disableHooks(): Unit = session match {
+    case s: SessionWrapper => s.disableHooks()
+    case _ => _hooksEnabled = false
   }
 
   /** Returns `true` if this session should not be used anymore. This method always return `true` if the session has
@@ -204,7 +204,7 @@ case class HookedSession private[learn](private val baseSession: Session, hooks:
       executable: Executable[E],
       fetchable: Fetchable.Aux[F, R]
   ): (R, Option[RunMetadata]) = {
-    if (_pureRuns) {
+    if (!_hooksEnabled) {
       super.runHelper(feeds, fetches, targets, options, wantMetadata)
     } else {
       // Invoke the hooks' `beforeSessionRun` callbacks.
