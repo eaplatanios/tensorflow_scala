@@ -85,9 +85,10 @@ case class FileIO(filePath: Path, mode: FileIO.Mode, readBufferSize: Long = 1024
   }
 
   /** Appends `content` to the end of the file. */
-  def write(content: String): Unit = {
+  def write(content: String): FileIO = {
     preWriteCheck()
     NativeFileIO.appendToWritableFile(writableFileNativeHandle, content)
+    this
   }
 
   /** Returns the contents of the file as a string, starting from current position in the file.
@@ -137,9 +138,10 @@ case class FileIO(filePath: Path, mode: FileIO.Mode, readBufferSize: Long = 1024
   /** Flushes the file. This only ensures that the data has made its way out of the process without any guarantees on
     * whether it is written to disk. This means that the data would survive an application crash but not necessarily an
     * OS crash. */
-  def flush(): Unit = {
+  def flush(): FileIO = {
     if (writableFileNativeHandle != 0)
       NativeFileIO.flushWritableFile(writableFileNativeHandle)
+    this
   }
 
   /** Closes this file IO object and releases any resources associated with it. Note that an events file reader is not
@@ -462,7 +464,7 @@ object FileIO {
 
   /** Writes the provided string to the file located at `filePath`. */
   def writeStringToFile(filePath: Path, content: String): Unit = {
-    FileIO(filePath, WRITE).write(content)
+    FileIO(filePath, WRITE).write(content).close()
   }
 
   /** Writes the provided string to the file located at `filePath` as an atomic operation. This means that when

@@ -676,8 +676,8 @@ object Saver {
         })
         Some(checkpointStateBuilder.build())
       } catch {
-        case exception: Exception =>
-          logger.warn(s"Exception thrown while loading the checkpoint state: $exception.")
+        case t: Throwable =>
+          logger.warn(s"Exception thrown while loading the checkpoint state.", t)
           logger.warn(s"Checkpoint '$coordinatorCheckpointStateFilename' ignored.")
           None
       }
