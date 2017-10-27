@@ -74,4 +74,7 @@ object StopCriteria {
     new StopCriteria(
       maxEpochs, maxSteps, maxSeconds, restartCounting, absLossChangeTol, relLossChangeTol, maxStepBelowTol)
   }
+
+  def none: StopCriteria = new StopCriteria(None, None, None, true, None, None, 10)
+  def steps(maxSteps: Long): StopCriteria = new StopCriteria(None, Some(maxSteps), None, true, None, None, 10)
 }
