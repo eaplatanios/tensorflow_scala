@@ -38,23 +38,24 @@ import scala.collection.mutable
   * after every call to `train()` and do not need to be loaded on every call to `infer()` or `evaluate()`, since the
   * underlying TensorFlow session used for all these calls stays alive in the background.
   *
-  * @param  modelFunction     Model-generating function that can optionally have a [[Configuration]] argument which will
-  *                           be used to pass the estimator's configuration to the model and allows customizing the
-  *                           model based on the execution environment.
-  * @param  configurationBase Configuration base for this estimator. This allows for setting up distributed training
-  *                           environments, for example. Note that this is a *base* for a configuration because the
-  *                           estimator might modify it and set some missing fields to appropriate default values, in
-  *                           order to obtain its final configuration that can be obtain through its `configuration`
-  *                           field.
-  * @param  hooks             Hooks to use while training, inferring, and evaluating (e.g., logging for the loss
-  *                           function value, etc.).
-  * @param  chiefOnlyHooks    Hooks to use while training for the chief node only. This argument is only useful for a
-  *                           distributed training setting.
-  * @param  tensorBoardConfig TensorBoard configuration to use while training. If provided, a TensorBoard server is
-  *                           launched while training, using the provided configuration. In that case, it is required
-  *                           that TensorBoard is installed for the default Python environment in the system. If
-  *                           training in a distributed setting, the TensorBoard server is launched on the chief node.
-  * @param  evaluationMetrics Evaluation metrics to use.
+  * @param  modelFunction       Model-generating function that can optionally have a [[Configuration]] argument which
+  *                             will be used to pass the estimator's configuration to the model and allows customizing
+  *                             the model based on the execution environment.
+  * @param  configurationBase   Configuration base for this estimator. This allows for setting up distributed training
+  *                             environments, for example. Note that this is a *base* for a configuration because the
+  *                             estimator might modify it and set some missing fields to appropriate default values, in
+  *                             order to obtain its final configuration that can be obtain through its `configuration`
+  *                             field.
+  * @param  trainHooks          Hooks to use while training (e.g., logging for the loss function value, etc.).
+  * @param  trainChiefOnlyHooks Hooks to use while training for the chief node only. This argument is only useful for a
+  *                             distributed training setting.
+  * @param  inferHooks          Hooks to use while inferring.
+  * @param  evaluateHooks       Hooks to use while evaluating.
+  * @param  tensorBoardConfig   TensorBoard configuration to use while training. If provided, a TensorBoard server is
+  *                             launched while training, using the provided configuration. In that case, it is required
+  *                             that TensorBoard is installed for the default Python environment in the system. If
+  *                             training in a distributed setting, the TensorBoard server is launched on the chief node.
+  * @param  evaluationMetrics   Evaluation metrics to use.
   *
   * @author Emmanouil Antonios Platanios
   */
@@ -62,17 +63,19 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
     override protected val modelFunction: Estimator.ModelFunction[IT, IO, ID, IS, I, TT, TO, TD, TS, EI],
     override protected val configurationBase: Configuration = null,
     val stopCriteria: StopCriteria = StopCriteria(),
-    val hooks: Seq[Hook] = Seq.empty,
-    val chiefOnlyHooks: Seq[Hook] = Seq.empty,
+    val trainHooks: Set[Hook] = Set.empty,
+    val trainChiefOnlyHooks: Set[Hook] = Set.empty,
+    val inferHooks: Set[Hook] = Set.empty,
+    val evaluateHooks: Set[Hook] = Set.empty,
     val tensorBoardConfig: TensorBoardConfig = null,
     val evaluationMetrics: Seq[Metric[EI, Output]] = Seq.empty
 ) extends Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](modelFunction, configurationBase) {
   private[this] val graph: Graph                                                 = Graph()
   private[this] val model: TrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] = modelFunction(configuration)
 
-  private[this] val stopHook         : StopHook                 = StopHook(stopCriteria)
-  private[this] var allHooks         : mutable.ListBuffer[Hook] = mutable.ListBuffer(hooks: _*) :+ stopHook
-  private[this] var allChiefOnlyHooks: mutable.ListBuffer[Hook] = mutable.ListBuffer(chiefOnlyHooks: _*)
+  private[this] val trainStopHook         : StopHook          = StopHook(stopCriteria)
+  private[this] var allTrainHooks         : mutable.Set[Hook] = mutable.Set(trainHooks.toSeq: _*) + trainStopHook
+  private[this] var allTrainChiefOnlyHooks: mutable.Set[Hook] = mutable.Set(trainChiefOnlyHooks.toSeq: _*)
 
   private[this] val (globalStep, trainingOps, inferenceOps, evaluationOps, evaluationUpdateOps) = {
     Op.createWith(graph = graph, deviceFunction = deviceFunction.getOrElse(_.device)) {
@@ -81,8 +84,8 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
       Counter.getOrCreate(Graph.Keys.GLOBAL_EPOCH, local = false)
       val globalStep = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
       Op.createWithNameScope("Model") {
-        val trainingOps = model.buildTrainingOps() 
-        val inferenceOps = model.buildInferenceOps() 
+        val trainingOps = model.buildTrainingOps()
+        val inferenceOps = model.buildInferenceOps()
         val evaluationOps = model.buildEvaluationOps(evaluationMetrics)
         val evalStep = Counter.getOrCreate(Graph.Keys.EVAL_STEP, local = true)
         val evalStepUpdate = evalStep.assignAdd(1L)
@@ -97,18 +100,19 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
     Op.createWith(graph = graph, deviceFunction = deviceFunction.getOrElse(_.device)) {
       val globalStep = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
       graph.addToCollection(trainingOps.loss, Graph.Keys.LOSSES)
-      allHooks += TensorNaNHook(Set(trainingOps.loss.name))
-      allHooks += TensorLoggingHook(TreeMap(
+      // TODO: !!! Need to add support to enable/disable hooks and separate train, inference, and evaluation hooks.
+      allTrainHooks += TensorNaNHook(Set(trainingOps.loss.name))
+      allTrainHooks += TensorLoggingHook(TreeMap(
         "Step" -> globalStep.value.name,
         "Loss" -> trainingOps.loss.name
       ), StepHookTrigger(100))
       if (tensorBoardConfig != null)
-        allChiefOnlyHooks += TensorBoardHook(tensorBoardConfig)
+        allTrainChiefOnlyHooks += TensorBoardHook(tensorBoardConfig)
       val saver = getOrCreateSaver()
       Estimator.monitoredTrainingSession(
         configuration = configuration,
-        hooks = allHooks,
-        chiefOnlyHooks = allChiefOnlyHooks,
+        hooks = allTrainHooks.toSet ++ inferHooks ++ evaluateHooks,
+        chiefOnlyHooks = allTrainChiefOnlyHooks.toSet,
         sessionScaffold = SessionScaffold(
           initOp = Some(graph.globalVariablesInitializer()),
           localInitOp = Some(ControlFlow.group(Set(graph.localVariablesInitializer()))),
@@ -125,6 +129,7 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
     */
   override def train(data: Dataset[TT, TO, TD, TS], stopCriteria: StopCriteria = this.stopCriteria): Unit = {
     session.resetShouldStop()
+    session.removeHooks(remainingTrainHooks ++ inferHooks ++ evaluateHooks)
     Op.createWith(graph) {
       val frozen = graph.isFrozen
       if (frozen)
@@ -136,17 +141,18 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
       session.run(targets = initializer)
       session.enableHooks()
       try {
-        stopHook.updateCriteria(stopCriteria)
-        stopHook.reset(session)
+        trainStopHook.updateCriteria(stopCriteria)
+        trainStopHook.reset(session)
         while (!session.shouldStop)
           session.run(targets = trainingOps.trainOp)
       } catch {
         case t: Throwable if !RECOVERABLE_EXCEPTIONS.contains(t.getClass) =>
-          stopHook.updateCriteria(this.stopCriteria)
+          trainStopHook.updateCriteria(this.stopCriteria)
           session.closeWithoutHookEnd()
           throw t
       }
     }
+    session.addHooks(remainingTrainHooks ++ inferHooks ++ evaluateHooks)
   }
 
   /** Infers output (i.e., computes predictions) for `input` using the model managed by this estimator.
@@ -154,8 +160,8 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
     * `input` can be of one of the following types:
     *
     *   - A [[Dataset]], in which case this method returns an iterator over `(input, output)` tuples corresponding to
-    *     each element in the dataset. Note that the predictions are computed lazily in this case, whenever an element
-    *     is requested from the returned iterator.
+    * each element in the dataset. Note that the predictions are computed lazily in this case, whenever an element
+    * is requested from the returned iterator.
     *   - A single input of type `IT`, in which case this method returns a prediction of type `I`.
     *
     * Note that, `ModelInferenceOutput` refers to the tensor type that corresponds to the symbolic type `I`. For
@@ -174,7 +180,8 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
       ev: Estimator.SupportedInferInput[InferInput, InferOutput, IT, IO, ID, IS, ModelInferenceOutput]
   ): InferOutput = {
     session.resetShouldStop()
-    Op.createWith(graph) {
+    session.removeHooks(currentTrainHooks ++ evaluateHooks)
+    val output = Op.createWith(graph) {
       val frozen = graph.isFrozen
       if (frozen)
         graph.unFreeze()
@@ -185,8 +192,8 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
       session.run(targets = initializer)
       session.enableHooks()
       try {
-        stopHook.updateCriteria(StopCriteria.none)
-        stopHook.reset(session)
+        trainStopHook.updateCriteria(StopCriteria.none)
+        trainStopHook.reset(session)
         ev.convertFetched(new Iterator[(IT, ModelInferenceOutput)] {
           override def hasNext: Boolean = session.shouldStop
           override def next(): (IT, ModelInferenceOutput) = {
@@ -194,7 +201,7 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
               session.run(fetches = (inferenceOps.input, inferenceOps.output))
             } catch {
               case t: Throwable =>
-                stopHook.updateCriteria(stopCriteria)
+                trainStopHook.updateCriteria(stopCriteria)
                 session.closeWithoutHookEnd()
                 throw t
             }
@@ -202,11 +209,13 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
         })
       } catch {
         case t: Throwable =>
-          stopHook.updateCriteria(stopCriteria)
+          trainStopHook.updateCriteria(stopCriteria)
           session.closeWithoutHookEnd()
           throw t
       }
     }
+    session.addHooks(currentTrainHooks ++ evaluateHooks)
+    output
   }
 
   /** Evaluates the model managed by this estimator given the provided evaluation data, `data`.
@@ -242,7 +251,8 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
       saveSummaries: Boolean = true,
       name: String = null): Seq[Tensor] = {
     session.resetShouldStop()
-    Op.createWith(graph) {
+    session.removeHooks(currentTrainHooks ++ inferHooks)
+    val values = Op.createWith(graph) {
       val frozen = graph.isFrozen
       if (frozen)
         graph.unFreeze()
@@ -254,8 +264,8 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
       session.enableHooks()
       // TODO: !!! What about the stop criteria and resetting the session?
       try {
-        stopHook.updateCriteria(if (maxSteps != -1L) StopCriteria.steps(maxSteps) else StopCriteria.none)
-        stopHook.reset(session)
+        trainStopHook.updateCriteria(if (maxSteps != -1L) StopCriteria.steps(maxSteps) else StopCriteria.none)
+        trainStopHook.reset(session)
         InMemoryEstimator.logger.info("Starting evaluation.")
         val (step, metricValues) = {
           try {
@@ -268,7 +278,7 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
               session.close()
               (-1L, Seq.empty[Tensor])
             case t: Throwable =>
-              stopHook.updateCriteria(this.stopCriteria)
+              trainStopHook.updateCriteria(this.stopCriteria)
               session.closeWithoutHookEnd()
               throw t
           }
@@ -280,11 +290,27 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
         metricValues
       } catch {
         case t: Throwable =>
-          stopHook.updateCriteria(this.stopCriteria)
+          trainStopHook.updateCriteria(this.stopCriteria)
           session.closeWithoutHookEnd()
           throw t
       }
     }
+    session.addHooks(currentTrainHooks ++ inferHooks)
+    values
+  }
+
+  private[this] def currentTrainHooks: Set[Hook] = {
+    if (configuration.isChief)
+      (allTrainHooks ++ allTrainChiefOnlyHooks).toSet
+    else
+      allTrainHooks.toSet
+  }
+
+  private[this] def remainingTrainHooks: Set[Hook] = {
+    if (configuration.isChief)
+      Set.empty
+    else
+      (allTrainChiefOnlyHooks -- allTrainHooks).toSet
   }
 }
 
@@ -295,11 +321,15 @@ object InMemoryEstimator {
       modelFunction: Estimator.ModelFunction[IT, IO, ID, IS, I, TT, TO, TD, TS, EI],
       configurationBase: Configuration = null,
       stopCriteria: StopCriteria = StopCriteria(),
-      hooks: Seq[Hook] = Seq.empty,
-      chiefOnlyHooks: Seq[Hook] = Seq.empty,
+      trainHooks: Set[Hook] = Set.empty,
+      trainChiefOnlyHooks: Set[Hook] = Set.empty,
+      inferHooks: Set[Hook] = Set.empty,
+      evaluateHooks: Set[Hook] = Set.empty,
       tensorBoardConfig: TensorBoardConfig = null,
       evaluationMetrics: Seq[Metric[EI, Output]] = Seq.empty
   ): InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] = {
-    new InMemoryEstimator(modelFunction, configurationBase)
+    new InMemoryEstimator(
+      modelFunction, configurationBase, stopCriteria, trainHooks, trainChiefOnlyHooks, inferHooks, evaluateHooks,
+      tensorBoardConfig, evaluationMetrics)
   }
 }
