@@ -95,17 +95,20 @@ class SessionWrapper private[learn](
     if (!_hooksEnabled || activeHooks.isEmpty) {
       super.runHelper(feeds, fetches, targets, options, wantMetadata)
     } else {
+      // We copy the hooks into a sequence in order to be able to keep track of their order.
+      val currentHooks = activeHooks.toSeq
+
       // Invoke the hooks' `beforeSessionRun` callbacks.
       val runContext = Hook.SessionRunContext(Hook.SessionRunArgs(feeds, fetches, targets, options), session)
       val runOptions = if (options == null) RunOptions.getDefaultInstance else options
-      val combinedArgs = invokeHooksBeforeSessionRun(runContext, runOptions)
+      val combinedArgs = invokeHooksBeforeSessionRun(runContext, runOptions, currentHooks)
 
       // Do session run.
       val result = super.runHelper(
         combinedArgs.feeds, combinedArgs.fetches, combinedArgs.targets, combinedArgs.options, wantMetadata)
 
       // Invoke the hooks' `afterSessionRun` callbacks.
-      activeHooks.zipWithIndex.foreach(hook => {
+      currentHooks.zipWithIndex.foreach(hook => {
         hook._1.afterSessionRun(runContext, Hook.SessionRunResult(result._1._2(hook._2), result._2))
       })
 
@@ -118,7 +121,7 @@ class SessionWrapper private[learn](
   /** Invoked `Hook.beforeSessionRun()` for all hooks and manages their feed maps, fetches, and run options. */
   @throws[RuntimeException]
   private[this] def invokeHooksBeforeSessionRun[F, E, R](
-      runContext: Hook.SessionRunContext[F, E, R], runOptions: RunOptions
+      runContext: Hook.SessionRunContext[F, E, R], runOptions: RunOptions, hooks: Seq[Hook]
   )(implicit
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]
@@ -127,7 +130,7 @@ class SessionWrapper private[learn](
     val hooksFetchesList = mutable.ListBuffer.empty[Seq[Output]]
     val hooksTargetsList = mutable.ListBuffer.empty[Op]
     var hooksRunOptions = RunOptions.newBuilder(runOptions).build()
-    activeHooks.foreach(hook => hook.beforeSessionRun(runContext) match {
+    hooks.foreach(hook => hook.beforeSessionRun(runContext) match {
       case Some(runArgs) =>
         if (runArgs.feeds.nonEmpty) {
           if (hooksFeedMap.nonEmpty && hooksFeedMap.intersects(runArgs.feeds))
