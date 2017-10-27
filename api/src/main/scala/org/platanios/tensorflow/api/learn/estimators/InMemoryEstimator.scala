@@ -132,7 +132,9 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
       val initializer = trainingOps.inputIterator.createInitializer(data)
       if (frozen)
         graph.freeze()
+      session.disableHooks()
       session.run(targets = initializer)
+      session.enableHooks()
       try {
         stopHook.updateCriteria(stopCriteria)
         stopHook.reset(session)
@@ -176,20 +178,27 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
       val initializer = inferenceOps.inputIterator.createInitializer(ev.toDataset(input))
       if (frozen)
         graph.freeze()
+      session.disableHooks()
       session.run(targets = initializer)
-      // TODO: !!! What about the stop criteria and resetting the session?
-      ev.convertFetched(new Iterator[(IT, ModelInferenceOutput)] {
-        override def hasNext: Boolean = session.shouldStop
-        override def next(): (IT, ModelInferenceOutput) = {
-          try {
-            session.run(fetches = (inferenceOps.input, inferenceOps.output))
-          } catch {
-            case e: Throwable =>
-              session.closeWithoutHookEnd()
-              throw e
+      session.enableHooks()
+      try {
+        stopHook.updateCriteria(StopCriteria.none)
+        stopHook.reset(session)
+        ev.convertFetched(new Iterator[(IT, ModelInferenceOutput)] {
+          override def hasNext: Boolean = session.shouldStop
+          override def next(): (IT, ModelInferenceOutput) = {
+            try {
+              session.run(fetches = (inferenceOps.input, inferenceOps.output))
+            } catch {
+              case e: Throwable =>
+                session.closeWithoutHookEnd()
+                throw e
+            }
           }
-        }
-      })
+        })
+      } finally {
+        stopHook.updateCriteria(this.stopCriteria)
+      }
     }
   }
 
@@ -233,29 +242,39 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
       val initializer = evaluationOps.inputIterator.createInitializer(data)
       if (frozen)
         graph.freeze()
+      session.disableHooks()
       session.run(targets = initializer)
+      session.enableHooks()
       // TODO: !!! What about the stop criteria and resetting the session?
-      InMemoryEstimator.logger.info("Starting evaluation.")
-      val (step, metricValues) = {
-        try {
-          val step = session.run(fetches = globalStep.value).scalar.asInstanceOf[Long]
-          while (!session.shouldStop)
-            session.run(targets = evaluationUpdateOps)
-          (step, session.run(fetches = evaluationOps.metricValues))
-        } catch {
-          case e if RECOVERABLE_EXCEPTIONS.contains(e.getClass) =>
-            session.close()
-            (-1L, Seq.empty[Tensor])
-          case e: Throwable =>
-            session.closeWithoutHookEnd()
-            throw e
+      try {
+        stopHook.updateCriteria(if (maxSteps != -1L) StopCriteria.steps(maxSteps) else StopCriteria.none)
+        stopHook.reset(session)
+        InMemoryEstimator.logger.info("Starting evaluation.")
+        val (step, metricValues) = {
+          try {
+            val step = session.run(fetches = globalStep.value).scalar.asInstanceOf[Long]
+            while (!session.shouldStop)
+              session.run(targets = evaluationUpdateOps)
+            (step, session.run(fetches = evaluationOps.metricValues))
+          } catch {
+            case e if RECOVERABLE_EXCEPTIONS.contains(e.getClass) =>
+              session.close()
+              (-1L, Seq.empty[Tensor])
+            case e: Throwable =>
+              session.closeWithoutHookEnd()
+              throw e
+          }
         }
+        InMemoryEstimator.logger.info("Finished evaluation.")
+        InMemoryEstimator.logger.info("Saving evaluation results.")
+        if (saveSummaries)
+          saveEvaluationSummaries(step, metrics, metricValues, name)
+        metricValues
+      } catch {
+        case t: Throwable => throw t
+      } finally {
+        stopHook.updateCriteria(this.stopCriteria)
       }
-      InMemoryEstimator.logger.info("Finished evaluation.")
-      InMemoryEstimator.logger.info("Saving evaluation results.")
-      if (saveSummaries)
-        saveEvaluationSummaries(step, metrics, metricValues, name)
-      metricValues
     }
   }
 }

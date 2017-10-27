@@ -66,14 +66,14 @@ object MNIST {
 
     logger.info("Training the linear regression model.")
     val summariesDir = Paths.get("/Users/Anthony/Downloads/temp/mlp-1024-256-64")
-    val estimator = tf.learn.FileBasedEstimator(
+    val estimator = tf.learn.InMemoryEstimator(
       model,
       tf.learn.Configuration(Some(summariesDir)),
       tf.learn.StopCriteria(maxSteps = Some(100000)),
       Seq(
         tf.learn.StepRateHook(log = false, summaryDirectory = summariesDir, trigger = tf.learn.StepHookTrigger(100)),
         tf.learn.SummarySaverHook(summariesDir, tf.learn.StepHookTrigger(100)),
-        tf.learn.CheckpointSaverHook(summariesDir, tf.learn.StepHookTrigger(1000))),
+        tf.learn.CheckpointSaverHook(summariesDir, tf.learn.StepHookTrigger(100))),
       tensorBoardConfig = tf.learn.TensorBoardConfig(summariesDir, reloadInterval = 1))
     estimator.train(trainData, tf.learn.StopCriteria(maxSteps = Some(1000)))
 
