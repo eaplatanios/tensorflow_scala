@@ -170,7 +170,7 @@ private[learn] class SimpleUnsupervisedTrainableModel[IT, IO, ID, IS, I] private
       metrics: Seq[Metric[I, Output]], graph: Graph = Op.currentGraph
   ): Model.EvaluationOps[IT, IO, ID, IS, I] = {
     Op.createWith(graph = graph) {
-      val tfInputIterator = input.apply()
+      val tfInputIterator = input()
       val tfInput = tfInputIterator.next()
       val tfOutput = layer(tfInput)
       val (mValues, mUpdates, mResets) = metrics.map(_.streaming(tfOutput)).unzip3

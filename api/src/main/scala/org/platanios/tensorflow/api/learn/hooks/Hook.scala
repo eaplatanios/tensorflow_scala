@@ -18,7 +18,6 @@ package org.platanios.tensorflow.api.learn.hooks
 import org.platanios.tensorflow.api.core.client.{Executable, FeedMap, Fetchable, Session}
 import org.platanios.tensorflow.api.core.exception.OutOfRangeException
 import org.platanios.tensorflow.api.learn.MonitoredSession
-import org.platanios.tensorflow.api.learn.hooks
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
 
