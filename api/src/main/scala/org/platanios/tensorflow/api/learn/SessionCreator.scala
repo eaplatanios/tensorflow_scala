@@ -115,12 +115,12 @@ case class WorkerSessionCreator(
   */
 private[learn] case class HookedSessionCreator private[learn](
     sessionCreator: SessionCreator,
-    hooks: Seq[Hook]
+    hooks: Set[Hook]
 ) extends SessionCreator {
   override def createSession(): Session = {
     val session = Some(sessionCreator.createSession())
     // Inform the hooks that a new session has been created.
     hooks.foreach(_.afterSessionCreation(session.get))
-    HookedSession(session.get, hooks)
+    new SessionWrapper(session.get, hooks)
   }
 }

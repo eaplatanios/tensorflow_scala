@@ -350,8 +350,8 @@ object Estimator {
     */
   def monitoredTrainingSession(
       configuration: Configuration = Configuration(),
-      hooks: Seq[Hook] = Seq.empty,
-      chiefOnlyHooks: Seq[Hook] = Seq.empty,
+      hooks: Set[Hook] = Set.empty,
+      chiefOnlyHooks: Set[Hook] = Set.empty,
       sessionScaffold: SessionScaffold = SessionScaffold()): MonitoredSession = {
     if (!configuration.isChief) {
       val sessionCreator = WorkerSessionCreator(configuration.master, sessionScaffold, configuration.sessionConfig)
@@ -359,7 +359,7 @@ object Estimator {
     } else {
       val sessionCreator = ChiefSessionCreator(
         configuration.master, sessionScaffold, configuration.sessionConfig, configuration.workingDir)
-      val chiefHooks = mutable.ListBuffer(hooks ++ chiefOnlyHooks: _*)
+      val chiefHooks = mutable.Set((hooks ++ chiefOnlyHooks).toSeq: _*)
       configuration.workingDir.foreach(workingDir => {
         chiefHooks += StepRateHook(log = false, summaryDirectory = workingDir)
         if (!chiefHooks.exists(_.isInstanceOf[SummarySaverHook])) {
@@ -379,7 +379,7 @@ object Estimator {
           }
         }
       })
-      MonitoredSession(sessionCreator, chiefHooks)
+      MonitoredSession(sessionCreator, chiefHooks.toSet)
     }
   }
 
