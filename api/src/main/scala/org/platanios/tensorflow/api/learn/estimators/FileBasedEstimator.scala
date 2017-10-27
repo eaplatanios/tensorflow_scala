@@ -370,7 +370,7 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
       Counter.getOrCreate(Graph.Keys.GLOBAL_EPOCH, local = false)
       val globalStep = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
       val evalStep = Counter.getOrCreate(Graph.Keys.EVAL_STEP, local = true)
-      val evalStepUpdate = evalStep.assignAdd(1)
+      val evalStepUpdate = evalStep.assignAdd(1L)
       val evalUpdateOps = ControlFlow.group(evaluationOps.metricUpdates.map(_.op).toSet + evalStepUpdate.op)
       val allHooks = mutable.ListBuffer(hooks: _*)
       allHooks += StopEvaluationHook(maxSteps)

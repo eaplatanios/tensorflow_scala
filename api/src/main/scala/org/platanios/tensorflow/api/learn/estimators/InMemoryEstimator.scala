@@ -85,7 +85,7 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
         val inferenceOps = model.buildInferenceOps() 
         val evaluationOps = model.buildEvaluationOps(evaluationMetrics)
         val evalStep = Counter.getOrCreate(Graph.Keys.EVAL_STEP, local = true)
-        val evalStepUpdate = evalStep.assignAdd(1)
+        val evalStepUpdate = evalStep.assignAdd(1L)
         val evalUpdateOps = ControlFlow.group(evaluationOps.metricUpdates.map(_.op).toSet + evalStepUpdate.op)
         (globalStep, trainingOps, inferenceOps, evaluationOps, evalUpdateOps)
       }
