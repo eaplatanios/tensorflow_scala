@@ -140,8 +140,11 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
         stopHook.reset(session)
         while (!session.shouldStop)
           session.run(targets = trainingOps.trainOp)
-      } finally {
-        stopHook.updateCriteria(this.stopCriteria)
+      } catch {
+        case t: Throwable if !RECOVERABLE_EXCEPTIONS.contains(t.getClass) =>
+          stopHook.updateCriteria(this.stopCriteria)
+          session.closeWithoutHookEnd()
+          throw t
       }
     }
   }
@@ -190,14 +193,18 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
             try {
               session.run(fetches = (inferenceOps.input, inferenceOps.output))
             } catch {
-              case e: Throwable =>
+              case t: Throwable =>
+                stopHook.updateCriteria(stopCriteria)
                 session.closeWithoutHookEnd()
-                throw e
+                throw t
             }
           }
         })
-      } finally {
-        stopHook.updateCriteria(this.stopCriteria)
+      } catch {
+        case t: Throwable =>
+          stopHook.updateCriteria(stopCriteria)
+          session.closeWithoutHookEnd()
+          throw t
       }
     }
   }
@@ -260,9 +267,10 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
             case e if RECOVERABLE_EXCEPTIONS.contains(e.getClass) =>
               session.close()
               (-1L, Seq.empty[Tensor])
-            case e: Throwable =>
+            case t: Throwable =>
+              stopHook.updateCriteria(this.stopCriteria)
               session.closeWithoutHookEnd()
-              throw e
+              throw t
           }
         }
         InMemoryEstimator.logger.info("Finished evaluation.")
@@ -271,9 +279,10 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
           saveEvaluationSummaries(step, metrics, metricValues, name)
         metricValues
       } catch {
-        case t: Throwable => throw t
-      } finally {
-        stopHook.updateCriteria(this.stopCriteria)
+        case t: Throwable =>
+          stopHook.updateCriteria(this.stopCriteria)
+          session.closeWithoutHookEnd()
+          throw t
       }
     }
   }

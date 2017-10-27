@@ -156,9 +156,9 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
             session.run(targets = trainingOps.trainOp)
         } catch {
           case e if RECOVERABLE_EXCEPTIONS.contains(e.getClass) => session.close()
-          case e: Throwable =>
+          case t: Throwable =>
             session.closeWithoutHookEnd()
-            throw e
+            throw t
         } finally {
           if (!session.closed)
             session.close()
@@ -263,9 +263,9 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
           try {
             session.run(fetches = (inferenceOps.input, inferenceOps.output))
           } catch {
-            case e: Throwable =>
+            case t: Throwable =>
               session.closeWithoutHookEnd()
-              throw e
+              throw t
           }
         }
       })
@@ -396,9 +396,9 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
           case e if RECOVERABLE_EXCEPTIONS.contains(e.getClass) =>
             session.close()
             (-1L, Seq.empty[Tensor])
-          case e: Throwable =>
+          case t: Throwable =>
             session.closeWithoutHookEnd()
-            throw e
+            throw t
         }
       }
       if (!session.closed)
