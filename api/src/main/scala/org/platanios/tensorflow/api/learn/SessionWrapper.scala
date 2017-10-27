@@ -64,14 +64,20 @@ class SessionWrapper private[learn](
 
   protected val activeHooks: mutable.Set[Hook] = mutable.Set[Hook](hooks.toSeq: _*)
 
-  def enableHooks(): Unit = session match {
-    case s: SessionWrapper => s.enableHooks()
-    case _ => _hooksEnabled = true
+  def enableHooks(): Unit = {
+    _hooksEnabled = true
+    session match {
+      case s: SessionWrapper => s.enableHooks()
+      case _ => ()
+    }
   }
 
-  def disableHooks(): Unit = session match {
-    case s: SessionWrapper => s.disableHooks()
-    case _ => _hooksEnabled = false
+  def disableHooks(): Unit = {
+    _hooksEnabled = false
+    session match {
+      case s: SessionWrapper => s.disableHooks()
+      case _ => ()
+    }
   }
 
   /** Adds the provided hooks to this session wrapper. Note that the `begin()` method of these hooks may not be called
