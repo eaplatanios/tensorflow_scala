@@ -17,6 +17,8 @@ import ReleaseTransformations._
 import TensorFlowNativePackage._
 import sbtrelease.Vcs
 
+import scala.sys.process.Process
+
 scalaVersion in ThisBuild := "2.12.4"
 crossScalaVersions in ThisBuild := Seq("2.11.11", "2.12.4")
 
@@ -270,6 +272,8 @@ lazy val noPublishSettings = Seq(
   releaseProcess := Nil
 )
 
+val deletedPublishedSnapshots = taskKey[Unit]("Delete published snapshots.")
+
 lazy val publishSettings = Seq(
   publishArtifact := true,
   homepage := Some(url("https://github.com/eaplatanios/tensorflow_scala")),
@@ -328,7 +332,14 @@ lazy val publishSettings = Seq(
   credentials ++= (for {
     username <- Option(System.getenv().get("SONATYPE_USERNAME"))
     password <- Option(System.getenv().get("SONATYPE_PASSWORD"))
-  } yield Credentials("Sonatype Nexus Repository Manager", "oss.sonatype.org", username, password)).toSeq
+  } yield Credentials("Sonatype Nexus Repository Manager", "oss.sonatype.org", username, password)).toSeq,
+  deletedPublishedSnapshots := {
+    Process(
+      "curl" :: "--request" :: "DELETE" :: "--write" :: "%{http_code} %{url_effective}\\n" ::
+          "--user" :: s"${System.getenv().get("SONATYPE_USERNAME")}:${System.getenv().get("SONATYPE_PASSWORD")}" ::
+          "--output" :: "/dev/null" :: "--silent" ::
+          s"${Opts.resolver.sonatypeSnapshots.root}/${organization.value.replace(".", "/")}/" :: Nil) ! streams.value.log
+  }
 )
 
 lazy val publishCrossCompiled = Command.command("publishCrossCompiled") { state =>
