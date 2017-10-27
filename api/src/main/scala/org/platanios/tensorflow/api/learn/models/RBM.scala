@@ -39,7 +39,7 @@ class RBM(
     val name: String = "RBM"
 ) extends UnsupervisedTrainableModel[Tensor, Output, DataType, Shape, Output] {
   type InferOps = Model.InferenceOps[Tensor, Output, DataType, Shape, Output]
-  type TrainOps = Model.UnsupervisedTrainOps[Tensor, Output, DataType, Shape, Output]
+  type TrainOps = Model.UnsupervisedTrainingOps[Tensor, Output, DataType, Shape, Output]
   type EvalOps = Model.EvaluationOps[Tensor, Output, DataType, Shape, Output]
 
   val dataType: DataType = input.dataType
@@ -81,7 +81,7 @@ class RBM(
     })
   }
 
-  override def buildTrainOps(graph: Graph = Op.currentGraph): TrainOps = {
+  override def buildTrainingOps(graph: Graph = Op.currentGraph): TrainOps = {
     trainOpsCache.getOrElseUpdate(graph, {
       val inferOps = buildInferenceOps(graph)
       Op.createWith(graph) {
@@ -92,13 +92,13 @@ class RBM(
         val loss = Math.mean(vFreeEnergy - vSampleFreeEnergy)
         val step = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
         val trainOp = optimizer.minimize(loss, iteration = Some(step))
-        Model.UnsupervisedTrainOps(inferOps.inputIterator, inferOps.input, inferOps.output, loss, trainOp)
+        Model.UnsupervisedTrainingOps(inferOps.inputIterator, inferOps.input, inferOps.output, loss, trainOp)
       }
     })
   }
 
   override def buildEvaluationOps(
-      graph: Graph = Op.currentGraph, metrics: Seq[Metric[Output, Output]]
+      metrics: Seq[Metric[Output, Output]], graph: Graph = Op.currentGraph
   ): EvalOps = {
     evalOpsCache.getOrElseUpdate(graph, {
       val inferOps = buildInferenceOps(graph)

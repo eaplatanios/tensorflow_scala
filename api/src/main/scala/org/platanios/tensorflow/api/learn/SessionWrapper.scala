@@ -45,6 +45,7 @@ import scala.util.control.Exception._
 abstract class SessionWrapper private[learn](protected var session: Session)
     extends Session(session.graphReference, session.nativeHandle, session.target) {
   protected var _closed      : Boolean = false
+  protected var _shouldStop  : Boolean = false
   protected var _hooksEnabled: Boolean = true
 
   def enableHooks(): Unit = session match {
@@ -70,8 +71,11 @@ abstract class SessionWrapper private[learn](protected var session: Session)
     }
   }
 
+  /** Resets the `shouldStop` flag of this session wrapper to `false`. */
+  def resetShouldStop(): Unit = _shouldStop = false
+
   /** Overridable method that returns `true` if this session should not be used anymore. */
-  private[learn] def checkStop: Boolean
+  private[learn] def checkStop: Boolean = _shouldStop
 
   override private[api] def runHelper[F, E, R](
       feeds: FeedMap = FeedMap.empty, fetches: F = Seq.empty[Output], targets: E = Traversable.empty[Op],
@@ -192,8 +196,6 @@ object RecoverableSession {
   */
 case class HookedSession private[learn](private val baseSession: Session, hooks: Seq[Hook])
     extends SessionWrapper(baseSession) {
-  private[this] var _shouldStop: Boolean = false
-
   override private[learn] def checkStop: Boolean = _shouldStop
 
   @throws[RuntimeException]
