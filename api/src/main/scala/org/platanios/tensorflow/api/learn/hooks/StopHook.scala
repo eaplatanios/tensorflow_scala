@@ -33,7 +33,7 @@ import scala.collection.mutable
   *
   * @author Emmanouil Antonios Platanios
   */
-private[learn] case class StopHook(criteria: StopCriteria) extends Hook {
+private[learn] case class StopHook(private var criteria: StopCriteria) extends Hook {
   private[this] var epoch: Variable = _
   private[this] var step : Variable = _
   private[this] var loss : Output   = _
@@ -49,8 +49,29 @@ private[learn] case class StopHook(criteria: StopCriteria) extends Hook {
   private[this] var stepFetchIndex : Int         = _
   private[this] var lossFetchIndex : Int         = _
 
-  override def begin(): Unit = {
+  /** Updates the stop criteria used by this stop hook. This method is used by in-memory estimators. */
+  def updateCriteria(criteria: StopCriteria): Unit = {
+    this.criteria = criteria
+  }
+
+  /** Resets the state of this hook and should be called before initiating training. This method is used by in-memory
+    * estimators. */
+  def reset(session: Session): Unit = {
+    startTime = System.currentTimeMillis()
+    if (criteria.needEpoch) {
+      val _lastEpoch = session.run(fetches = epoch.value).scalar.asInstanceOf[Long]
+      lastEpoch = if (criteria.restartCounting) criteria.maxEpochs.map(_ + _lastEpoch) else criteria.maxEpochs
+    }
+    if (criteria.needStep) {
+      val _lastStep = session.run(fetches = step.value).scalar.asInstanceOf[Long]
+      lastStep = if (criteria.restartCounting) criteria.maxSteps.map(_ + _lastStep) else criteria.maxSteps
+    }
+    if (criteria.needLoss)
+      lastLoss = session.run(fetches = loss).scalar.asInstanceOf[Float]
     numStepsBelowTol = 0
+  }
+
+  override def begin(): Unit = {
     val fetches = mutable.ListBuffer.empty[Output]
     if (criteria.maxSeconds.isDefined)
       startTime = System.currentTimeMillis()
@@ -77,12 +98,7 @@ private[learn] case class StopHook(criteria: StopCriteria) extends Hook {
   }
 
   override def afterSessionCreation(session: Session): Unit = {
-    if (criteria.needEpoch)
-      lastEpoch = criteria.maxEpochs.map(_ + session.run(fetches = epoch.value).scalar.asInstanceOf[Long])
-    if (criteria.needStep)
-      lastStep = criteria.maxSteps.map(_ + session.run(fetches = step.value).scalar.asInstanceOf[Long])
-    if (criteria.needLoss)
-      lastLoss = session.run(fetches = loss).scalar.asInstanceOf[Float]
+    reset(session)
   }
 
   override def beforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
