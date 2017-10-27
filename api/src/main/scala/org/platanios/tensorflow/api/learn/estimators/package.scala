@@ -35,6 +35,7 @@ package object estimators {
     type InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] = estimators.InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI]
     type FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] = estimators.FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI]
 
+    val Estimator : estimators.Estimator.type  = estimators.Estimator
     val InMemoryEstimator : estimators.InMemoryEstimator.type  = estimators.InMemoryEstimator
     val FileBasedEstimator: estimators.FileBasedEstimator.type = estimators.FileBasedEstimator
 
