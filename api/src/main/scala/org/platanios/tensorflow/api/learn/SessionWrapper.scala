@@ -55,7 +55,8 @@ import scala.util.control.Exception._
   */
 // TODO: !!! [LEARN] [SESSIONS] This should probably not be extending session (given the confused functionality w.r.t. "runHelper".
 class SessionWrapper private[learn](
-    protected var session: Session, protected val hooks: Set[Hook] = Set.empty[Hook])
+    protected var session: Session,
+    private val hooks: Set[Hook] = Set.empty[Hook])
     extends Session(session.graphReference, session.nativeHandle, session.target) {
   protected var _closed      : Boolean = false
   protected var _shouldStop  : Boolean = false
@@ -344,8 +345,9 @@ object RecoverableSession {
   * @param  hooks       Hooks to use.
   */
 class MonitoredSession private[learn](
-    private val baseSession: Session, hooks: Set[Hook]
-) extends SessionWrapper(baseSession) {
+    private val baseSession: Session,
+    hooks: Set[Hook]
+) extends SessionWrapper(baseSession, hooks) {
   private[this] val graphWasFrozen: Boolean = Op.currentGraph.isFrozen
 
   /** Overridable method that returns `true` if this session should not be used anymore. */

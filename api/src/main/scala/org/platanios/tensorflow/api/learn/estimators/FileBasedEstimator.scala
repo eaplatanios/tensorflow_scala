@@ -41,23 +41,24 @@ import scala.collection.mutable
   * storing and retrieving its state. This means that checkpoint files are written after every call to `train()` and are
   * loaded on every call to `infer()` or `evaluate()`.
   *
-  * @param  modelFunction     Model-generating function that can optionally have a [[Configuration]] argument which will
-  *                           be used to pass the estimator's configuration to the model and allows customizing the
-  *                           model based on the execution environment.
-  * @param  configurationBase Configuration base for this estimator. This allows for setting up distributed training
-  *                           environments, for example. Note that this is a *base* for a configuration because the
-  *                           estimator might modify it and set some missing fields to appropriate default values, in
-  *                           order to obtain its final configuration that can be obtain through its `configuration`
-  *                           field.
-  * @param  hooks             Default hooks to use while training, inferring, and evaluating (e.g., logging for the loss
-  *                           function value, etc.).
-  * @param  chiefOnlyHooks    Default hooks to use while training for the chief node only. This argument is only useful
-  *                           for a distributed training setting.
-  * @param  tensorBoardConfig Default TensorBoard configuration to use while training. If provided, a TensorBoard server
-  *                           is launched while training, using the provided configuration. In that case, it is required
-  *                           that TensorBoard is installed for the default Python environment in the system. If
-  *                           training in a distributed setting, the TensorBoard server is launched on the chief node.
-  * @param  evaluationMetrics Default evaluation metrics to use.
+  * @param  modelFunction       Model-generating function that can optionally have a [[Configuration]] argument which
+  *                             will be used to pass the estimator's configuration to the model and allows customizing
+  *                             the model based on the execution environment.
+  * @param  configurationBase   Configuration base for this estimator. This allows for setting up distributed training
+  *                             environments, for example. Note that this is a *base* for a configuration because the
+  *                             estimator might modify it and set some missing fields to appropriate default values, in
+  *                             order to obtain its final configuration that can be obtain through its `configuration`
+  *                             field.
+  * @param  trainHooks          Hooks to use while training (e.g., logging for the loss function value, etc.).
+  * @param  trainChiefOnlyHooks Hooks to use while training for the chief node only. This argument is only useful for a
+  *                             distributed training setting.
+  * @param  inferHooks          Hooks to use while inferring.
+  * @param  evaluateHooks       Hooks to use while evaluating.
+  * @param  tensorBoardConfig   TensorBoard configuration to use while training. If provided, a TensorBoard server is
+  *                             launched while training, using the provided configuration. In that case, it is required
+  *                             that TensorBoard is installed for the default Python environment in the system. If
+  *                             training in a distributed setting, the TensorBoard server is launched on the chief node.
+  * @param  evaluationMetrics   Evaluation metrics to use.
   *
   * @author Emmanouil Antonios Platanios
   */
@@ -65,8 +66,10 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
     override protected val modelFunction: Estimator.ModelFunction[IT, IO, ID, IS, I, TT, TO, TD, TS, EI],
     override protected val configurationBase: Configuration = null,
     val stopCriteria: StopCriteria = StopCriteria(),
-    val hooks: Seq[Hook] = Seq.empty,
-    val chiefOnlyHooks: Seq[Hook] = Seq.empty,
+    val trainHooks: Set[Hook] = Set.empty,
+    val trainChiefOnlyHooks: Set[Hook] = Set.empty,
+    val inferHooks: Set[Hook] = Set.empty,
+    val evaluateHooks: Set[Hook] = Set.empty,
     val tensorBoardConfig: TensorBoardConfig = null,
     val evaluationMetrics: Seq[Metric[EI, Output]] = Seq.empty
 ) extends Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](modelFunction, configurationBase) {
@@ -105,8 +108,8 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
   def trainWithHooks(
       data: Dataset[TT, TO, TD, TS],
       stopCriteria: StopCriteria = StopCriteria(),
-      hooks: Seq[Hook] = this.hooks,
-      chiefOnlyHooks: Seq[Hook] = this.chiefOnlyHooks,
+      hooks: Set[Hook] = trainHooks,
+      chiefOnlyHooks: Set[Hook] = trainChiefOnlyHooks,
       tensorBoardConfig: TensorBoardConfig = this.tensorBoardConfig): Unit = {
     val needsToTrain = {
       if (!stopCriteria.restartCounting) {
@@ -122,8 +125,8 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
         "Skipping training because no restarting is allowed in the termination criteria and the maximum number of " +
             "steps have already been executed in the past (i.e., saved checkpoint).")
     } else {
-      val allHooks = mutable.ListBuffer(hooks: _*)
-      val allChiefOnlyHooks = mutable.ListBuffer(chiefOnlyHooks: _*)
+      val allHooks = mutable.Set(hooks.toSeq: _*)
+      val allChiefOnlyHooks = mutable.Set(chiefOnlyHooks.toSeq: _*)
       allHooks += StopHook(stopCriteria)
       val model = modelFunction(configuration)
       val graph = Graph()
@@ -145,8 +148,8 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
         val saver = getOrCreateSaver()
         val session = Estimator.monitoredTrainingSession(
           configuration = configuration,
-          hooks = allHooks,
-          chiefOnlyHooks = allChiefOnlyHooks,
+          hooks = allHooks.toSet,
+          chiefOnlyHooks = allChiefOnlyHooks.toSet,
           sessionScaffold = SessionScaffold(
             initOp = Some(graph.globalVariablesInitializer()),
             localInitOp = Some(ControlFlow.group(Set(inputInitializer, graph.localVariablesInitializer()))),
@@ -225,7 +228,7 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
   @throws[CheckpointNotFoundException]
   def inferWithHooks[InferInput, InferOutput, ModelInferenceOutput](
       input: InferInput,
-      hooks: Seq[Hook] = this.hooks,
+      hooks: Set[Hook] = inferHooks,
       checkpointPath: Path = null
   )(implicit
       evFetchableIO: Fetchable.Aux[IO, IT],
@@ -351,7 +354,7 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
       data: Dataset[TT, TO, TD, TS],
       metrics: Seq[Metric[EI, Output]] = this.evaluationMetrics,
       maxSteps: Long = -1L,
-      hooks: Seq[Hook] = this.hooks,
+      hooks: Set[Hook] = evaluateHooks,
       checkpointPath: Path = null,
       saveSummaries: Boolean = true,
       name: String = null): Seq[Tensor] = {
@@ -372,7 +375,7 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
       val evalStep = Counter.getOrCreate(Graph.Keys.EVAL_STEP, local = true)
       val evalStepUpdate = evalStep.assignAdd(1L)
       val evalUpdateOps = ControlFlow.group(evaluationOps.metricUpdates.map(_.op).toSet + evalStepUpdate.op)
-      val allHooks = mutable.ListBuffer(hooks: _*)
+      val allHooks = mutable.Set(hooks.toSeq: _*)
       allHooks += StopEvaluationHook(maxSteps)
       val saver = getOrCreateSaver()
       val session = MonitoredSession(
@@ -419,11 +422,15 @@ object FileBasedEstimator {
       modelFunction: Estimator.ModelFunction[IT, IO, ID, IS, I, TT, TO, TD, TS, EI],
       configurationBase: Configuration = null,
       stopCriteria: StopCriteria = StopCriteria(),
-      hooks: Seq[Hook] = Seq.empty,
-      chiefOnlyHooks: Seq[Hook] = Seq.empty,
+      trainHooks: Set[Hook] = Set.empty,
+      trainChiefOnlyHooks: Set[Hook] = Set.empty,
+      inferHooks: Set[Hook] = Set.empty,
+      evaluateHooks: Set[Hook] = Set.empty,
       tensorBoardConfig: TensorBoardConfig = null,
       evaluationMetrics: Seq[Metric[EI, Output]] = Seq.empty
   ): FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] = {
-    new FileBasedEstimator(modelFunction, configurationBase)
+    new FileBasedEstimator(
+      modelFunction, configurationBase, stopCriteria, trainHooks, trainChiefOnlyHooks, inferHooks, evaluateHooks,
+      tensorBoardConfig, evaluationMetrics)
   }
 }
