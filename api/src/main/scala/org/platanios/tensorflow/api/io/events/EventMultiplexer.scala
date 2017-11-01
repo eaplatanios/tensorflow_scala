@@ -20,7 +20,6 @@ import org.platanios.tensorflow.api.io.{DirectoryLoader, FileIO}
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
-
 import org.tensorflow.framework.{GraphDef, MetaGraphDef, RunMetadata, SummaryMetadata}
 
 import java.nio.file.{Path, Paths}
