@@ -64,7 +64,7 @@ case class StepRateHook(
     internalTrigger.reset()
     step = Counter.get(Graph.Keys.GLOBAL_STEP, local = false).getOrElse(throw new IllegalStateException(
       s"A ${Graph.Keys.GLOBAL_STEP.name} variable should be created in order to use the 'StepRateHook'."))
-    summaryWriter = Option(summaryDirectory).map(SummaryFileWriterCache.get)
+    summaryWriter = Option(summaryDirectory).map(SummaryFileWriterCache.get(_))
   }
 
   override def afterSessionCreation(session: Session): Unit = {
