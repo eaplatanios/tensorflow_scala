@@ -29,7 +29,6 @@ import org.slf4j.LoggerFactory
   * @author Emmanouil Antonios Platanios
   */
 object MNISTLoader extends Loader {
-
   sealed trait DatasetType {
     val url                : String
     val trainImagesFilename: String
@@ -77,7 +76,7 @@ object MNISTLoader extends Loader {
     MNISTDataset(datasetType, trainImages, trainLabels, testImages, testLabels)
   }
 
-  private[loaders] def extractImages(path: Path, bufferSize: Int = 8192): Tensor = {
+  private[this] def extractImages(path: Path, bufferSize: Int = 8192): Tensor = {
     logger.info(s"Extracting images from file '$path'.")
     val inputStream = new GZIPInputStream(Files.newInputStream(path))
     val outputStream = new ByteArrayOutputStream()
@@ -96,7 +95,7 @@ object MNISTLoader extends Loader {
     Tensor.fromBuffer(UINT8, Shape(numberOfImages, numberOfRows, numberOfColumns), numBytes, byteBuffer)
   }
 
-  private[loaders] def extractLabels(path: Path, bufferSize: Int = 8192): Tensor = {
+  private[this] def extractLabels(path: Path, bufferSize: Int = 8192): Tensor = {
     logger.info(s"Extracting labels from file '$path'.")
     val inputStream = new GZIPInputStream(Files.newInputStream(path))
     val outputStream = new ByteArrayOutputStream()

@@ -200,6 +200,9 @@ lazy val data = (project in file("./data"))
     .settings(commonSettings)
     .settings(testSettings)
     .settings(publishSettings)
+    .settings(
+      libraryDependencies += "org.apache.commons" % "commons-compress" % "1.15"
+    )
 
 lazy val examples = (project in file("./examples"))
     .dependsOn(api, data)
