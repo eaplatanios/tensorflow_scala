@@ -365,7 +365,8 @@ object FileIO {
         subDirs :+= child
     })
     val hereStream = Stream((dirPath, subDirs, files))
-    val subDirsStream = subDirs.toStream.map(walk(_, inOrder)).reduceLeft(_ ++ _)
+    val subDirsStream = subDirs.toStream.map(s => walk(dirPath.resolve(s), inOrder))
+        .foldLeft(Stream.empty[(Path, Seq[Path], Seq[Path])])(_ ++ _)
     if (inOrder) {
       hereStream ++ subDirsStream
     } else {
