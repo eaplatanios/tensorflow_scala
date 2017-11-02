@@ -30,15 +30,16 @@ import org.slf4j.LoggerFactory
   * @author Emmanouil Antonios Platanios
   */
 object STL10Loader extends Loader {
-  val url                : String = "http://ai.stanford.edu/~acoates/stl10/stl10_binary.tar.gz"
-  val trainImagesFilename: String = "train_X.bin"
-  val trainLabelsFilename: String = "train_y.bin"
-  val testImagesFilename : String = "test_X.bin"
-  val testLabelsFilename : String = "test_y.bin"
-  val unlabeledImagesFilename: String = "unlabeled.bin"
+  val url                    : String = "http://ai.stanford.edu/~acoates/stl10/"
+  val compressedFilename     : String = "stl10_binary.tar.gz"
+  val trainImagesFilename    : String = "stl10_binary/train_X.bin"
+  val trainLabelsFilename    : String = "stl10_binary/train_y.bin"
+  val testImagesFilename     : String = "stl10_binary/test_X.bin"
+  val testLabelsFilename     : String = "stl10_binary/test_y.bin"
+  val unlabeledImagesFilename: String = "stl10_binary/unlabeled_X.bin"
 
-  val numTrain     : Int = 500
-  val numTest      : Int = 800
+  val numTrain     : Int = 5000
+  val numTest      : Int = 8000
   val numUnlabeled : Int = 100000
   val imageWidth   : Int = 96
   val imageHeight  : Int = 96
@@ -48,10 +49,10 @@ object STL10Loader extends Loader {
 
   def load(path: Path, bufferSize: Int = 8192): STL10Dataset = {
     // Download the data, if necessary.
-    maybeDownload(path, url, bufferSize)
+    maybeDownload(path, url + compressedFilename, bufferSize)
 
     // Load the data.
-    extractFiles(path, bufferSize)
+    extractFiles(path.resolve(compressedFilename), bufferSize)
   }
 
   private[this] def extractFiles(path: Path, bufferSize: Int = 8192): STL10Dataset = {
@@ -89,9 +90,8 @@ object STL10Loader extends Loader {
             dataset = dataset.copy(unlabeledImages = tensor)
           case _ => ()
         }
-      } else {
-        entry = inputStream.getNextTarEntry
       }
+      entry = inputStream.getNextTarEntry
     }
     dataset
   }
