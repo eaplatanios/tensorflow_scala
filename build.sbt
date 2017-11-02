@@ -117,6 +117,7 @@ lazy val jni = (project in file("./jni"))
     .settings(testSettings)
     .settings(publishSettings)
     .settings(
+      libraryDependencies += "net.java.dev.jna" % "jna" % "4.5.0",
       // Tensor op code generation settings
       target in generateTensorOps := sourceDirectory.value / "main",
       ops in generateTensorOps := Map(
