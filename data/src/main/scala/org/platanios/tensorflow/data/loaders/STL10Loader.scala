@@ -49,7 +49,7 @@ object STL10Loader extends Loader {
 
   def load(path: Path, bufferSize: Int = 8192): STL10Dataset = {
     // Download the data, if necessary.
-    maybeDownload(path, url + compressedFilename, bufferSize)
+    maybeDownload(path.resolve(compressedFilename), url + compressedFilename, bufferSize)
 
     // Load the data.
     extractFiles(path.resolve(compressedFilename), bufferSize)
