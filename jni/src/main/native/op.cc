@@ -394,7 +394,8 @@ JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttrStri
         attrNameString, attrTypeToString(attr_metadata.type, attr_metadata.is_list));
   if (attr_metadata.total_size < 0) return nullptr;
   size_t string_size = static_cast<size_t>(attr_metadata.total_size);
-  char* attrValue = new char[string_size];
+  char* attrValue = new char[string_size + 1];
+  attrValue[string_size] = '\0';
   status = TF_NewStatus();
   TF_OperationGetAttrString(op, attrNameString, attrValue, string_size, status);
 
