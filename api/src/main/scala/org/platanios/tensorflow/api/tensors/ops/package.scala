@@ -39,4 +39,6 @@ package object ops {
   private[api] trait API
       extends Basic
           with Math
+          with NN
+          with Random
 }

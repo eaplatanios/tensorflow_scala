@@ -1108,7 +1108,7 @@ private[api] trait Basic {
       val dynamicInputShape = shape(input)
       val leadingSize = Math.prod(dynamicInputShape(0 :: maskRank), Seq(0)).reshape(Shape(1))
       val reshapedInput = reshape(input, concatenate(Seq(leadingSize, dynamicInputShape(maskRank ::)), 0))
-      val firstDimension = inputShape(0 :: maskRank).numElements
+      val firstDimension = inputShape(0 :: maskRank).numElements.toInt
       if (maskRank >= inputShape.rank)
         reshapedInput.setShape(Shape(firstDimension))
       else

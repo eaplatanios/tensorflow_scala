@@ -503,7 +503,7 @@ private[api] trait Basic {
     val maskRank: Int = maskShape.rank
     val leadingSize = Math.prod(input.shape(0 :: maskRank), Seq(0)).reshape(Shape(1))
     val reshapedInput = reshape(input, concatenate(Seq(leadingSize, input.shape(maskRank ::)), 0))
-    val firstDimension = inputShape(0 :: maskRank).numElements
+    val firstDimension = inputShape(0 :: maskRank).numElements.toInt
     if (maskRank >= inputShape.rank)
       reshapedInput.setShape(Shape(firstDimension))
     else

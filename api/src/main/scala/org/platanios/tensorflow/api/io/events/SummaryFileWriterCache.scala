@@ -16,6 +16,7 @@
 package org.platanios.tensorflow.api.io.events
 
 import org.platanios.tensorflow.api.ops.Op
+import org.platanios.tensorflow.api.core.Graph
 
 import java.nio.file.Path
 
@@ -29,8 +30,8 @@ object SummaryFileWriterCache {
   private[this] val cache: mutable.Map[Path, SummaryFileWriter] = mutable.HashMap.empty[Path, SummaryFileWriter]
 
   /** Returns the summary file writer responsible for the specified directory. */
-  def get(directory: Path): SummaryFileWriter = cache synchronized {
-    cache.getOrElseUpdate(directory, SummaryFileWriter(directory, Op.currentGraph))
+  def get(directory: Path, graph: Graph = Op.currentGraph): SummaryFileWriter = cache synchronized {
+    cache.getOrElseUpdate(directory, SummaryFileWriter(directory, graph))
   }
 
   /** Clears the cached summary writers. Currently only used for testing. */

@@ -239,7 +239,7 @@ abstract class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
             s"Skipping summary for non-scalar and/or non-floating-point/non-integer metric '$metric'.")
         }
     }
-    evaluationDir.map(SummaryFileWriterCache.get).foreach(writer => {
+    evaluationDir.map(SummaryFileWriterCache.get(_)).foreach(writer => {
       writer.writeSummary(summaryProto.build(), step)
       writer.flush()
     })

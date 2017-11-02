@@ -66,7 +66,15 @@ final class Shape private (private val array: Array[Int]) {
     * If the shape is not fully defined, then `-1` is returned, otherwise, the product of the sizes for each dimension
     * of this shape is returned.
     */
-  def numElements: Int = if (!isFullyDefined) -1 else array.product
+  def numElements: Long = {
+    if (!isFullyDefined) {
+      -1
+    } else {
+      var size: Long = 1L
+      array.foreach(size *= _)
+      size
+    }
+  }
 
   /** Reshapes this shape to the provided shape.
     *
@@ -96,7 +104,7 @@ final class Shape private (private val array: Array[Int]) {
       if (this.numElements % otherNumElements != 0)
         throw new IllegalArgumentException(s"Shape '$this' cannot be reshaped to '$shape'.")
       val newShape = shape.asArray
-      newShape(unknownIndex) = this.numElements / otherNumElements
+      newShape(unknownIndex) = (this.numElements / otherNumElements).toInt
       new Shape(newShape)
     }
   }
