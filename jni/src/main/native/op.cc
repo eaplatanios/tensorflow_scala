@@ -393,9 +393,10 @@ JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttrStri
         env, tf_invalid_argument_exception, "Attribute '%s' is not a string. It is a '%s', instead.",
         attrNameString, attrTypeToString(attr_metadata.type, attr_metadata.is_list));
   if (attr_metadata.total_size < 0) return nullptr;
-  char* attrValue = new char[attr_metadata.total_size];
+  size_t string_size = static_cast<size_t>(attr_metadata.total_size);
+  char* attrValue = new char[string_size];
   status = TF_NewStatus();
-  TF_OperationGetAttrString(op, attrNameString, attrValue, static_cast<size_t>(attr_metadata.total_size), status);
+  TF_OperationGetAttrString(op, attrNameString, attrValue, string_size, status);
 
   if (!throw_exception_if_not_ok(env, status)) {
     TF_DeleteStatus(status);
