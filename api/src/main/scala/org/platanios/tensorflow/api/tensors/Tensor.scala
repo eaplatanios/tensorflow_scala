@@ -26,9 +26,11 @@ import org.platanios.tensorflow.api.types._
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer}
 import org.platanios.tensorflow.jni.{Tensor => NativeTensor}
 import org.platanios.tensorflow.jni.generated.tensors.{Sparse => NativeTensorOpsSparse}
+
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
 import shapeless.{Generic, HList, Lazy}
+
 import java.nio._
 import java.nio.charset.Charset
 
@@ -155,7 +157,7 @@ class Tensor private[Tensor](private[api] var nativeHandle: Long) extends Tensor
   def rank: Int = shape.rank
 
   /** Number of elements contained in this tensor. */
-  def size: Int = shape.numElements
+  def size: Long = shape.numElements
 
   /** Device in which the tensor is stored. */
   override val device: String = NativeTensor.eagerDevice(nativeHandle)
@@ -205,7 +207,7 @@ class Tensor private[Tensor](private[api] var nativeHandle: Long) extends Tensor
     val buffer = NativeTensor.buffer(resolvedHandle).order(ByteOrder.nativeOrder)
     val value = dataType match {
       case STRING =>
-        val offset = INT64.byteSize * size + INT64.getElementFromBuffer(buffer, index * INT64.byteSize).toInt
+        val offset = INT64.byteSize * size.toInt + INT64.getElementFromBuffer(buffer, index * INT64.byteSize).toInt
         dataType.getElementFromBuffer(buffer, offset)
       case _ => dataType.getElementFromBuffer(buffer, index * dataType.byteSize)
     }
@@ -229,11 +231,11 @@ class Tensor private[Tensor](private[api] var nativeHandle: Long) extends Tensor
     val buffer = NativeTensor.buffer(resolvedHandle).order(ByteOrder.nativeOrder)
     val iterator = dataType match {
       case STRING =>
-        val offset = INT64.byteSize * size
-        Iterator.range(0, size).map(i => {
+        val offset = INT64.byteSize * size.toInt
+        Iterator.range(0, size.toInt).map(i => {
           dataType.getElementFromBuffer(buffer, offset + INT64.getElementFromBuffer(buffer, i * INT64.byteSize).toInt)
         })
-      case _ => Iterator.range(0, size).map(i => dataType.getElementFromBuffer(buffer, i * dataType.byteSize))
+      case _ => Iterator.range(0, size.toInt).map(i => dataType.getElementFromBuffer(buffer, i * dataType.byteSize))
     }
     NativeHandleLock synchronized {
       if (resolvedHandle != 0)
@@ -464,7 +466,7 @@ object Tensor {
         val numBytes = shape.numElements * (INT64.byteSize + numEncodedBytes)
         val hostHandle = NativeTensor.allocate(STRING.cValue, shape.asArray.map(_.toLong), numBytes)
         val buffer = NativeTensor.buffer(hostHandle).order(ByteOrder.nativeOrder)
-        val baseOffset = INT64.byteSize * shape.numElements
+        val baseOffset = INT64.byteSize * shape.numElements.toInt
         var index = 0
         var i = 0
         while (i < shape.numElements) {

@@ -61,11 +61,22 @@ object STL10Loader extends Loader {
     var dataset = STL10Dataset(null, null, null, null, null)
     var entry = inputStream.getNextTarEntry
     while (entry != null) {
-      if (Set(
+      if (entry.getName == unlabeledImagesFilename) {
+        // TODO: Make this more efficient.
+        // We have to split this tensor in two parts because its size exceeds the maximum allowed byte buffer size.
+        val halfShape = Shape(numUnlabeled / 2, imageChannels, imageHeight, imageWidth)
+        val buffer = new Array[Byte]((entry.getSize / 2).toInt)
+        inputStream.read(buffer)
+        var byteBuffer = ByteBuffer.wrap(buffer).order(ByteOrder.BIG_ENDIAN)
+        val tensor1 = Tensor.fromBuffer(UINT8, halfShape, entry.getSize, byteBuffer).transpose(Tensor(0, 3, 2, 1))
+        inputStream.read(buffer)
+        byteBuffer = ByteBuffer.wrap(buffer).order(ByteOrder.BIG_ENDIAN)
+        val tensor2 = Tensor.fromBuffer(UINT8, halfShape, entry.getSize, byteBuffer).transpose(Tensor(0, 3, 2, 1))
+        dataset = dataset.copy(unlabeledImages = tfi.concatenate(Seq(tensor1, tensor2), axis = 0))
+      } else if (Set(
         trainImagesFilename, trainLabelsFilename,
-        testImagesFilename, testLabelsFilename,
-        unlabeledImagesFilename).contains(entry.getName)) {
-        val outputStream = new ByteArrayOutputStream()
+        testImagesFilename, testLabelsFilename).contains(entry.getName)) {
+        val outputStream = new ByteArrayOutputStream(entry.getSize.toInt)
         val buffer = new Array[Byte](bufferSize)
         Stream.continually(inputStream.read(buffer)).takeWhile(_ != -1).foreach(outputStream.write(buffer, 0, _))
         val byteBuffer = ByteBuffer.wrap(outputStream.toByteArray).order(ByteOrder.BIG_ENDIAN)
@@ -84,10 +95,6 @@ object STL10Loader extends Loader {
           case name if name == testLabelsFilename =>
             val tensor = Tensor.fromBuffer(UINT8, Shape(numTest), entry.getSize, byteBuffer)
             dataset = dataset.copy(testLabels = tensor)
-          case name if name == unlabeledImagesFilename =>
-            val shape = Shape(numUnlabeled, imageChannels, imageHeight, imageWidth)
-            val tensor = Tensor.fromBuffer(UINT8, shape, entry.getSize, byteBuffer).transpose(Tensor(0, 3, 2, 1))
-            dataset = dataset.copy(unlabeledImages = tensor)
           case _ => ()
         }
       }

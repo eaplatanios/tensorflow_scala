@@ -177,7 +177,7 @@ final case class Output private(op: Op, index: Int) extends OutputLike {
   def rank: Int = shape.rank
 
   /** Size of the tensor that this op output represents. */
-  def size: Int = shape.numElements
+  def size: Long = shape.numElements
 
   /** Sets the shape of this op output to the provided shape.
     *
@@ -435,7 +435,7 @@ object Output {
             val value = valueOption.get
             require(value.rank == 1, "Only rank-1 tensors can be converted to shapes.")
             val shape = Shape(
-              (0 until value.size).map(value.getElementAtFlattenedIndex(_).asInstanceOf[Int]): _*)
+              (0 until value.size.toInt).map(value.getElementAtFlattenedIndex(_).asInstanceOf[Int]): _*)
             returnShape = returnShape.mergeWith(shape)
           }
           Some(returnShape)
