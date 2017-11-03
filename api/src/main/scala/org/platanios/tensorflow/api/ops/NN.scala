@@ -569,13 +569,13 @@ private[api] trait NN {
     * @return Created op output, which is a 4-D tensor whose dimension order depends on the value of `dataFormat`.
     */
   def conv2D(
-      input: Output, filter: Output, stride1: Int, stride2: Int, padding: PaddingMode,
+      input: Output, filter: Output, stride1: Long, stride2: Long, padding: PaddingMode,
       dataFormat: CNNDataFormat = CNNDataFormat.default, useCuDNNOnGPU: Boolean = true,
       name: String = "Conv2D"): Output = {
     Op.Builder(opType = "Conv2D", name = name)
         .addInput(input)
         .addInput(filter)
-        .setAttribute("strides", Array[Int](1, stride1, stride2, 1))
+        .setAttribute("strides", Array[Long](1, stride1, stride2, 1))
         .setAttribute("padding", padding.name)
         .setAttribute("data_format", dataFormat.name)
         .setAttribute("use_cudnn_on_gpu", useCuDNNOnGPU)
@@ -598,14 +598,14 @@ private[api] trait NN {
     * @return Created op output, which is a 4-D tensor whose dimension order depends on the value of `dataFormat`.
     */
   def conv2DBackpropInput(
-      inputSizes: Output, filter: Output, outputGradient: Output, stride1: Int, stride2: Int,
+      inputSizes: Output, filter: Output, outputGradient: Output, stride1: Long, stride2: Long,
       padding: PaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default, useCuDNNOnGPU: Boolean = true,
       name: String = "Conv2DBackpropInput"): Output = {
     Op.Builder(opType = "Conv2DBackpropInput", name = name)
         .addInput(inputSizes)
         .addInput(filter)
         .addInput(outputGradient)
-        .setAttribute("strides", Array[Int](1, stride1, stride2, 1))
+        .setAttribute("strides", Array[Long](1, stride1, stride2, 1))
         .setAttribute("padding", padding.name)
         .setAttribute("data_format", dataFormat.name)
         .setAttribute("use_cudnn_on_gpu", useCuDNNOnGPU)
@@ -628,14 +628,14 @@ private[api] trait NN {
     * @return Created op output, which is a 4-D tensor whose dimension order depends on the value of `dataFormat`.
     */
   def conv2DBackpropFilter(
-      input: Output, filterSizes: Output, outputGradient: Output, stride1: Int, stride2: Int,
+      input: Output, filterSizes: Output, outputGradient: Output, stride1: Long, stride2: Long,
       padding: PaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default, useCuDNNOnGPU: Boolean = true,
       name: String = "Conv2DBackpropFilter"): Output = {
     Op.Builder(opType = "Conv2DBackpropFilter", name = name)
         .addInput(input)
         .addInput(filterSizes)
         .addInput(outputGradient)
-        .setAttribute("strides", Array[Int](1, stride1, stride2, 1))
+        .setAttribute("strides", Array[Long](1, stride1, stride2, 1))
         .setAttribute("padding", padding.name)
         .setAttribute("data_format", dataFormat.name)
         .setAttribute("use_cudnn_on_gpu", useCuDNNOnGPU)
@@ -658,12 +658,12 @@ private[api] trait NN {
     * @return Created op output, which is a 4-D tensor whose dimension order depends on the value of `dataFormat`.
     */
   def maxPool(
-      input: Output, windowSize: Seq[Int], stride1: Int, stride2: Int, padding: PaddingMode,
+      input: Output, windowSize: Seq[Long], stride1: Long, stride2: Long, padding: PaddingMode,
       dataFormat: CNNDataFormat = CNNDataFormat.default, name: String = "MaxPool"): Output = {
     Op.Builder(opType = "MaxPool", name = name)
         .addInput(input)
         .setAttribute("ksize", windowSize.toArray)
-        .setAttribute("strides", Array[Int](1, stride1, stride2, 1))
+        .setAttribute("strides", Array[Long](1, stride1, stride2, 1))
         .setAttribute("padding", padding.name)
         .setAttribute("data_format", dataFormat.name)
         .build().outputs(0)
@@ -684,15 +684,15 @@ private[api] trait NN {
     * @return Created op output, which is a 4-D tensor whose dimension order depends on the value of `dataFormat`.
     */
   def maxPoolGrad(
-      originalInput: Output, originalOutput: Output, outputGradient: Output, windowSize: Seq[Int],
-      stride1: Int, stride2: Int, padding: PaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default,
+      originalInput: Output, originalOutput: Output, outputGradient: Output, windowSize: Seq[Long],
+      stride1: Long, stride2: Long, padding: PaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default,
       name: String = "MaxPoolGrad"): Output = {
     Op.Builder(opType = "MaxPoolGrad", name = name)
         .addInput(originalInput)
         .addInput(originalOutput)
         .addInput(outputGradient)
         .setAttribute("ksize", windowSize.toArray)
-        .setAttribute("strides", Array[Int](1, stride1, stride2, 1))
+        .setAttribute("strides", Array[Long](1, stride1, stride2, 1))
         .setAttribute("padding", padding.name)
         .setAttribute("data_format", dataFormat.name)
         .build().outputs(0)
@@ -713,15 +713,15 @@ private[api] trait NN {
     * @return Created op output, which is a 4-D tensor whose dimension order depends on the value of `dataFormat`.
     */
   def maxPoolGradGrad(
-      originalInput: Output, originalOutput: Output, outputGradient: Output, windowSize: Seq[Int],
-      stride1: Int, stride2: Int, padding: PaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default,
+      originalInput: Output, originalOutput: Output, outputGradient: Output, windowSize: Seq[Long],
+      stride1: Long, stride2: Long, padding: PaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default,
       name: String = "MaxPoolGradGrad"): Output = {
     Op.Builder(opType = "MaxPoolGradGrad", name = name)
         .addInput(originalInput)
         .addInput(originalOutput)
         .addInput(outputGradient)
         .setAttribute("ksize", windowSize.toArray)
-        .setAttribute("strides", Array[Int](1, stride1, stride2, 1))
+        .setAttribute("strides", Array[Long](1, stride1, stride2, 1))
         .setAttribute("padding", padding.name)
         .setAttribute("data_format", dataFormat.name)
         .build().outputs(0)
@@ -730,7 +730,7 @@ private[api] trait NN {
   //endregion Pooling Ops
 }
 
-private[api] object NN extends NN {
+object NN extends NN {
   private[ops] trait Implicits {
     implicit def outputToNNOps(value: Output): NNOps = NNOps(value)
     implicit def outputConvertibleToNNOps[T](value: T)(implicit f: (T) => Output): NNOps = NNOps(f(value))
@@ -893,7 +893,7 @@ private[api] object NN extends NN {
       * @return Created op output, which is a 4-D tensor whose dimension order depends on the value of `dataFormat`.
       */
     def conv2D(
-        filter: Output, stride1: Int, stride2: Int, padding: PaddingMode,
+        filter: Output, stride1: Long, stride2: Long, padding: PaddingMode,
         dataFormat: CNNDataFormat = CNNDataFormat.default, useCuDNNOnGPU: Boolean = true,
         name: String = "Conv2D"): Output = {
       NN.conv2D(output, filter, stride1, stride2, padding, dataFormat, useCuDNNOnGPU, name)
@@ -914,7 +914,7 @@ private[api] object NN extends NN {
       * @return Created op output, which is a 4-D tensor whose dimension order depends on the value of `dataFormat`.
       */
     def maxPool(
-        windowSize: Seq[Int], stride1: Int, stride2: Int, padding: PaddingMode,
+        windowSize: Seq[Long], stride1: Long, stride2: Long, padding: PaddingMode,
         dataFormat: CNNDataFormat = CNNDataFormat.default, name: String = "MaxPool"): Output = {
       NN.maxPool(output, windowSize, stride1, stride2, padding, dataFormat, name)
     }
@@ -1337,7 +1337,7 @@ private[api] object NN extends NN {
 
   private[this] def maxPoolGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
     val outputGradient = outputGradients.head.toOutput
-    val windowSizes = op.longArrayAttribute("ksize").map(_.toInt).toSeq
+    val windowSizes = op.longArrayAttribute("ksize")
     val strides = op.longArrayAttribute("strides")
     val padding = PaddingMode.fromName(op.stringAttribute("padding"))
     val dataFormat = CNNDataFormat.fromName(op.stringAttribute("data_format"))
@@ -1349,7 +1349,7 @@ private[api] object NN extends NN {
 
   private[this] def maxPoolHessian(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
     val outputGradient = outputGradients.head.toOutput
-    val windowSizes = op.longArrayAttribute("ksize").map(_.toInt).toSeq
+    val windowSizes = op.longArrayAttribute("ksize")
     val strides = op.longArrayAttribute("strides")
     val padding = PaddingMode.fromName(op.stringAttribute("padding"))
     val dataFormat = CNNDataFormat.fromName(op.stringAttribute("data_format"))
@@ -1363,7 +1363,7 @@ private[api] object NN extends NN {
 
   private[this] def maxPoolHessianGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
     val outputGradient = outputGradients.head.toOutput
-    val windowSizes = op.longArrayAttribute("ksize").map(_.toInt).toSeq
+    val windowSizes = op.longArrayAttribute("ksize")
     val strides = op.longArrayAttribute("strides")
     val padding = PaddingMode.fromName(op.stringAttribute("padding"))
     val dataFormat = CNNDataFormat.fromName(op.stringAttribute("data_format"))

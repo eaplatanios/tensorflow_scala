@@ -475,7 +475,7 @@ private[api] trait NN {
     * @return Result as a new 4-D tensor whose dimension order depends on the value of `dataFormat`.
     */
   def conv2D(
-      input: Tensor, filter: Tensor, stride1: Int, stride2: Int, padding: PaddingMode,
+      input: Tensor, filter: Tensor, stride1: Long, stride2: Long, padding: PaddingMode,
       dataFormat: CNNDataFormat = CNNDataFormat.default, useCuDNNOnGPU: Boolean = true
   )(implicit context: DynamicVariable[Context]): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsNN.conv2D(
@@ -498,7 +498,7 @@ private[api] trait NN {
     * @return Result as a new 4-D tensor whose dimension order depends on the value of `dataFormat`.
     */
   def conv2DBackpropInput(
-      inputSizes: Tensor, filter: Tensor, outputGradient: Tensor, stride1: Int, stride2: Int,
+      inputSizes: Tensor, filter: Tensor, outputGradient: Tensor, stride1: Long, stride2: Long,
       padding: PaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default, useCuDNNOnGPU: Boolean = true
   )(implicit context: DynamicVariable[Context]): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsNN.conv2DBackpropInput(
@@ -521,7 +521,7 @@ private[api] trait NN {
     * @return Result as a new 4-D tensor whose dimension order depends on the value of `dataFormat`.
     */
   def conv2DBackpropFilter(
-      input: Tensor, filterSizes: Tensor, outputGradient: Tensor, stride1: Int, stride2: Int,
+      input: Tensor, filterSizes: Tensor, outputGradient: Tensor, stride1: Long, stride2: Long,
       padding: PaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default, useCuDNNOnGPU: Boolean = true
   )(implicit context: DynamicVariable[Context]): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsNN.conv2DBackpropFilter(
@@ -544,10 +544,10 @@ private[api] trait NN {
     * @return Result as a new 4-D tensor whose dimension order depends on the value of `dataFormat`.
     */
   def maxPool(
-      input: Tensor, windowSize: Seq[Int], stride1: Int, stride2: Int, padding: PaddingMode,
+      input: Tensor, windowSize: Seq[Long], stride1: Long, stride2: Long, padding: PaddingMode,
       dataFormat: CNNDataFormat = CNNDataFormat.default)(implicit context: DynamicVariable[Context]): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsNN.maxPool(
-      context.value.nativeHandle, input.nativeHandle, windowSize.map(_.toLong).toArray,
+      context.value.nativeHandle, input.nativeHandle, windowSize.toArray,
       Array[Long](1, stride1, stride2, 1), padding.name.getBytes(), dataFormat.name.getBytes))
   }
 
@@ -565,12 +565,12 @@ private[api] trait NN {
     * @return Result as a new 4-D tensor whose dimension order depends on the value of `dataFormat`.
     */
   def maxPoolGrad(
-      originalInput: Tensor, originalOutput: Tensor, outputGradient: Tensor, windowSize: Seq[Int],
-      stride1: Int, stride2: Int, padding: PaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default
+      originalInput: Tensor, originalOutput: Tensor, outputGradient: Tensor, windowSize: Seq[Long],
+      stride1: Long, stride2: Long, padding: PaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default
   )(implicit context: DynamicVariable[Context]): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsNN.maxPoolGrad(
       context.value.nativeHandle, originalInput.nativeHandle, originalOutput.nativeHandle, outputGradient.nativeHandle,
-      windowSize.map(_.toLong).toArray, Array[Long](1, stride1, stride2, 1), padding.name.getBytes(),
+      windowSize.toArray, Array[Long](1, stride1, stride2, 1), padding.name.getBytes(),
       dataFormat.name.getBytes))
   }
 
@@ -588,12 +588,12 @@ private[api] trait NN {
     * @return Result as a new 4-D tensor whose dimension order depends on the value of `dataFormat`.
     */
   def maxPoolGradGrad(
-      originalInput: Tensor, originalOutput: Tensor, outputGradient: Tensor, windowSize: Seq[Int],
-      stride1: Int, stride2: Int, padding: PaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default
+      originalInput: Tensor, originalOutput: Tensor, outputGradient: Tensor, windowSize: Seq[Long],
+      stride1: Long, stride2: Long, padding: PaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default
   )(implicit context: DynamicVariable[Context]): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsNN.maxPoolGradGrad(
       context.value.nativeHandle, originalInput.nativeHandle, originalOutput.nativeHandle, outputGradient.nativeHandle,
-      windowSize.map(_.toLong).toArray, Array[Long](1, stride1, stride2, 1), padding.name.getBytes(),
+      windowSize.toArray, Array[Long](1, stride1, stride2, 1), padding.name.getBytes(),
       dataFormat.name.getBytes))
   }
 
@@ -762,7 +762,7 @@ private[api] object NN extends NN {
       * @return Result as a new 4-D tensor whose dimension order depends on the value of `dataFormat`.
       */
     def conv2D(
-        filter: Tensor, stride1: Int, stride2: Int, padding: PaddingMode,
+        filter: Tensor, stride1: Long, stride2: Long, padding: PaddingMode,
         dataFormat: CNNDataFormat = CNNDataFormat.default, useCuDNNOnGPU: Boolean = true): Tensor = {
       NN.conv2D(tensor, filter, stride1, stride2, padding, dataFormat, useCuDNNOnGPU)
     }
@@ -781,7 +781,7 @@ private[api] object NN extends NN {
       * @return Result as a new 4-D tensor whose dimension order depends on the value of `dataFormat`.
       */
     def maxPool(
-        windowSize: Seq[Int], stride1: Int, stride2: Int, padding: PaddingMode,
+        windowSize: Seq[Long], stride1: Long, stride2: Long, padding: PaddingMode,
         dataFormat: CNNDataFormat = CNNDataFormat.default): Tensor = {
       NN.maxPool(tensor, windowSize, stride1, stride2, padding, dataFormat)
     }

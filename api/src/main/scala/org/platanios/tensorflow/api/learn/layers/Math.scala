@@ -27,10 +27,11 @@ import org.platanios.tensorflow.api.types.DataType
   */
 object Math {
   trait API {
-    val Cast  : layers.Cast.type   = layers.Cast
-    val Sum   : layers.Sum.type    = layers.Sum
-    val Mean  : layers.Mean.type   = layers.Mean
-    val Linear: layers.Linear.type = layers.Linear
+    val Cast   : layers.Cast.type    = layers.Cast
+    val Sum    : layers.Sum.type     = layers.Sum
+    val Mean   : layers.Mean.type    = layers.Mean
+    val AddBias: layers.AddBias.type = layers.AddBias
+    val Linear : layers.Linear.type  = layers.Linear
   }
 
   object API extends API
@@ -50,6 +51,17 @@ case class Sum private[layers](override val name: String = "Sum") extends Networ
 case class Mean private[layers](override val name: String = "Mean") extends NetworkLayer[Output, Output] {
   override val layerType: String           = s"Mean"
   override val forward  : Output => Output = ops.Math.mean(_, name = name)
+}
+
+case class AddBias private[layers](
+    initializer: Initializer = RandomNormalInitializer(),
+    override val name: String = "AddBias")
+    extends NetworkLayer[Output, Output] {
+  override val layerType: String           = s"AddBias"
+  override val forward  : Output => Output = input => {
+    val bias = Variable.getVariable(s"$name/Bias", input.dataType, Shape(input.shape(-1)), initializer)
+    ops.NN.addBias(input, bias.value)
+  }
 }
 
 case class Linear private[layers](
