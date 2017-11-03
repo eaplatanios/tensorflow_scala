@@ -513,7 +513,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAtt
     }                                                                                             \
     TF_DeleteStatus(status);                                                                      \
                                                                                                   \
-    if (attr_metadata.total_size < 0) return nullptr;                                             \
+    if (attr_metadata.list_size < 0) return nullptr;                                              \
     if (attr_metadata.type != tf_type || attr_metadata.is_list == 0)                              \
       throw_exception(                                                                            \
           env, tf_invalid_argument_exception,                                                     \
