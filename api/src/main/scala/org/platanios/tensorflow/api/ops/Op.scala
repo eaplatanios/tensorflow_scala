@@ -180,6 +180,22 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
     }
   }
 
+  /** Gets the value of a long-array-valued attribute of this op with name `name`.
+    *
+    * @param  name Attribute name.
+    * @return Attribute value.
+    * @throws IllegalArgumentException If the no long array attribute with name `name` can be found for this op.
+    */
+  @throws[IllegalArgumentException]
+  def longArrayAttribute(name: String): Array[Long] = using(graph.reference) { _ =>
+    try {
+      NativeOp.getAttrIntList(nativeHandle, name)
+    } catch {
+      case e: Exception => throw new IllegalArgumentException(
+        s"Op has no long array attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
+    }
+  }
+
   /** Gets the value of a float-valued attribute of this op with name `name`.
     *
     * @param  name Attribute name.
@@ -193,6 +209,22 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
     } catch {
       case e: Exception => throw new IllegalArgumentException(
         s"Op has no float attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
+    }
+  }
+
+  /** Gets the value of a float-array-valued attribute of this op with name `name`.
+    *
+    * @param  name Attribute name.
+    * @return Attribute value.
+    * @throws IllegalArgumentException If no float array attribute with name `name` can be found for this op.
+    */
+  @throws[IllegalArgumentException]
+  def floatArrayAttribute(name: String): Array[Float] = using(graph.reference) { _ =>
+    try {
+      NativeOp.getAttrFloatList(nativeHandle, name)
+    } catch {
+      case e: Exception => throw new IllegalArgumentException(
+        s"Op has no float array attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
     }
   }
 
@@ -212,6 +244,22 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
     }
   }
 
+  /** Gets the value of a boolean-array-valued attribute of this op with name `name`.
+    *
+    * @param  name Attribute name.
+    * @return Attribute value.
+    * @throws IllegalArgumentException If no boolean array attribute with name `name` can be found for this op.
+    */
+  @throws[IllegalArgumentException]
+  def booleanArrayAttribute(name: String): Array[Boolean] = using(graph.reference) { _ =>
+    try {
+      NativeOp.getAttrBoolList(nativeHandle, name)
+    } catch {
+      case e: Exception => throw new IllegalArgumentException(
+        s"Op has no boolean array attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
+    }
+  }
+
   /** Gets the value of a data type-valued attribute of this op with name `name`.
     *
     * @param  name Attribute name.
@@ -225,6 +273,22 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
     } catch {
       case e: Exception => throw new IllegalArgumentException(
         s"Op has no data type attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
+    }
+  }
+
+  /** Gets the value of a data type-array-valued attribute of this op with name `name`.
+    *
+    * @param  name Attribute name.
+    * @return Attribute value.
+    * @throws IllegalArgumentException If no data type array attribute with name `name` can be found for this op.
+    */
+  @throws[IllegalArgumentException]
+  def dataTypeArrayAttribute(name: String): Array[DataType] = using(graph.reference) { _ =>
+    try {
+      NativeOp.getAttrTypeList(nativeHandle, name).map(DataType.fromCValue)
+    } catch {
+      case e: Exception => throw new IllegalArgumentException(
+        s"Op has no data type array attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
     }
   }
 

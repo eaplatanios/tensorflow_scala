@@ -457,7 +457,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAtt
   return ret;
 }
 
-#define DEFINE_GET_ATTR_SCALAR(name, jtype, ctype, tf_type)                                  \
+#define DEFINE_GET_ATTR_SCALAR(name, jname, jtype, ctype, tf_type)                           \
   JNIEXPORT jtype JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttr##name(          \
       JNIEnv* env, jobject object, jlong handle, jstring name) {                             \
     static_assert(                                                                           \
@@ -477,7 +477,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAtt
                                                                                              \
     if (attr_metadata.type != tf_type || attr_metadata.is_list == 1)                         \
       throw_exception(                                                                       \
-          env, tf_invalid_argument_exception,                                               \
+          env, tf_invalid_argument_exception,                                                \
           "Attribute '%s' is not a %s. It is a '%s', instead.",                              \
           name, attr_name, attrTypeToString(attr_metadata.type, attr_metadata.is_list));     \
                                                                                              \
@@ -495,15 +495,64 @@ JNIEXPORT jobjectArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAtt
     return static_cast<jtype>(*value);                                                       \
   }
 
-#define DEFINE_GET_ATTR(name, jname, jtype, ctype, tf_type)                                  \
-  DEFINE_GET_ATTR_SCALAR(name, jtype, ctype, tf_type)
+#define DEFINE_GET_ATTR_LIST(name, jname, jtype, ctype, tf_type)                                  \
+  JNIEXPORT jtype##Array JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttr##name##List(  \
+      JNIEnv* env, jobject object, jlong handle, jstring name) {                                  \
+    static_assert(                                                                                \
+        sizeof(ctype) >= sizeof(jtype),                                                           \
+        "Information loss when converting between Java and C types.");                            \
+    TF_Operation *op = require_operation_handle(env, handle);                                     \
+    if (op == nullptr) return nullptr;                                                            \
+    const char *attr_name = env->GetStringUTFChars(name, nullptr);                                \
+    TF_Status *status = TF_NewStatus();                                                           \
+    TF_AttrMetadata attr_metadata = TF_OperationGetAttrMetadata(op, attr_name, status);           \
+                                                                                                  \
+    if (!throw_exception_if_not_ok(env, status)) {                                                \
+      TF_DeleteStatus(status);                                                                    \
+      return nullptr;                                                                             \
+    }                                                                                             \
+    TF_DeleteStatus(status);                                                                      \
+                                                                                                  \
+    if (attr_metadata.total_size < 0) return nullptr;                                             \
+    if (attr_metadata.type != tf_type || attr_metadata.is_list == 0)                              \
+      throw_exception(                                                                            \
+          env, tf_invalid_argument_exception,                                                     \
+          "Attribute '%s' is not a %s list. It is a '%s', instead.",                              \
+          name, attr_name, attrTypeToString(attr_metadata.type, attr_metadata.is_list));          \
+                                                                                                  \
+    int list_size = static_cast<int>(attr_metadata.list_size);                                    \
+    if (list_size <= 0) return nullptr;                                                           \
+    ctype *attr_values = new ctype[list_size];                                                    \
+    status = TF_NewStatus();                                                                      \
+    TF_OperationGetAttr##name##List(op, attr_name, attr_values, list_size, status);               \
+    env->ReleaseStringUTFChars(name, attr_name);                                                  \
+                                                                                                  \
+    if (!throw_exception_if_not_ok(env, status)) {                                                \
+      TF_DeleteStatus(status);                                                                    \
+      return nullptr;                                                                             \
+    }                                                                                             \
+    TF_DeleteStatus(status);                                                                      \
+                                                                                                  \
+    jtype##Array ret = env->New##jname##Array(list_size);                                         \
+    jtype *ret_elements = env->Get##jname##ArrayElements(ret, NULL);                              \
+    for (int i = 0; i < list_size; i++) {                                                         \
+      ret_elements[i] = static_cast<jtype>(attr_values[i]);                                       \
+    }                                                                                             \
+    env->Release##jname##ArrayElements(ret, ret_elements, NULL);                                  \
+    return ret;                                                                                   \
+  }
 
-DEFINE_GET_ATTR(Int, Long, jlong, int64_t, TF_ATTR_INT);
-DEFINE_GET_ATTR(Float, Float, jfloat, float, TF_ATTR_FLOAT);
-DEFINE_GET_ATTR(Bool, Boolean, jboolean, unsigned char, TF_ATTR_BOOL);
-DEFINE_GET_ATTR(Type, Int, jint, TF_DataType, TF_ATTR_TYPE);
-#undef DEFINE_GET_ATTR
+DEFINE_GET_ATTR_SCALAR(Int, Long, jlong, int64_t, TF_ATTR_INT);
+DEFINE_GET_ATTR_LIST(Int, Long, jlong, int64_t, TF_ATTR_INT);
+DEFINE_GET_ATTR_SCALAR(Float, Float, jfloat, float, TF_ATTR_FLOAT);
+DEFINE_GET_ATTR_LIST(Float, Float, jfloat, float, TF_ATTR_FLOAT);
+DEFINE_GET_ATTR_SCALAR(Bool, Boolean, jboolean, unsigned char, TF_ATTR_BOOL);
+DEFINE_GET_ATTR_LIST(Bool, Boolean, jboolean, unsigned char, TF_ATTR_BOOL);
+DEFINE_GET_ATTR_SCALAR(Type, Int, jint, TF_DataType, TF_ATTR_TYPE);
+DEFINE_GET_ATTR_LIST(Type, Int, jint, TF_DataType, TF_ATTR_TYPE);
+
 #undef DEFINE_GET_ATTR_SCALAR
+#undef DEFINE_GET_ATTR_LIST
 
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttrTensor(
         JNIEnv* env, jobject object, jlong opHandle, jstring attrName) {
@@ -581,8 +630,7 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttrS
   return ret;
 }
 
-JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_allOps(JNIEnv* env,
-                                                                                      jobject object) {
+JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_allOps(JNIEnv* env, jobject object) {
   TF_Buffer* opListBuffer = TF_GetAllOpList();
   jbyteArray ret = env->NewByteArray(opListBuffer->length);
   jbyte* cpy = env->GetByteArrayElements(ret, nullptr);

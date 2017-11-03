@@ -154,9 +154,17 @@ JNIEXPORT jobjectArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAtt
 /*
  * Class:     org_platanios_tensorflow_jni_Op__
  * Method:    getAttrInt
- * Signature: (JLjava/lang/String;Ljava/lang/String;)L
+ * Signature: (JLjava/lang/String;Ljava/lang/String;)J
  */
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttrInt
+  (JNIEnv *, jobject, jlong, jstring);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Op__
+ * Method:    getAttrIntList
+ * Signature: (JLjava/lang/String;Ljava/lang/String;)[J
+ */
+JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttrIntList
   (JNIEnv *, jobject, jlong, jstring);
 
 /*
@@ -169,6 +177,14 @@ JNIEXPORT jfloat JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttrFloat
 
 /*
  * Class:     org_platanios_tensorflow_jni_Op__
+ * Method:    getAttrFloatList
+ * Signature: (JLjava/lang/String;Ljava/lang/String;)[F
+ */
+JNIEXPORT jfloatArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttrFloatList
+  (JNIEnv *, jobject, jlong, jstring);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Op__
  * Method:    getAttrBool
  * Signature: (JLjava/lang/String;Ljava/lang/String;)B
  */
@@ -177,10 +193,26 @@ JNIEXPORT jboolean JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttrBoo
 
 /*
  * Class:     org_platanios_tensorflow_jni_Op__
+ * Method:    getAttrBoolList
+ * Signature: (JLjava/lang/String;Ljava/lang/String;)[B
+ */
+JNIEXPORT jbooleanArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttrBoolList
+  (JNIEnv *, jobject, jlong, jstring);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Op__
  * Method:    getAttrType
  * Signature: (JLjava/lang/String;Ljava/lang/String;)I
  */
 JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttrType
+  (JNIEnv *, jobject, jlong, jstring);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Op__
+ * Method:    getAttrTypeList
+ * Signature: (JLjava/lang/String;Ljava/lang/String;)[I
+ */
+JNIEXPORT jintArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttrTypeList
   (JNIEnv *, jobject, jlong, jstring);
 
 /*

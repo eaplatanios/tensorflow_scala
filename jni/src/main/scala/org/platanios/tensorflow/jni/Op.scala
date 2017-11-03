@@ -42,10 +42,14 @@ object Op {
   @native def setShape(graphHandle: Long, opHandle: Long, output: Int, shape: Array[Long], rank: Int): Unit
   @native def getAttrString(handle: Long, name: String): String
   @native def getAttrStringList(handle: Long, name: String): Array[String]
-  @native def getAttrInt(handle: Long, name: String): Int
+  @native def getAttrInt(handle: Long, name: String): Long
+  @native def getAttrIntList(handle: Long, name: String): Array[Long]
   @native def getAttrFloat(handle: Long, name: String): Float
+  @native def getAttrFloatList(handle: Long, name: String): Array[Float]
   @native def getAttrBool(handle: Long, name: String): Boolean
+  @native def getAttrBoolList(handle: Long, name: String): Array[Boolean]
   @native def getAttrType(handle: Long, name: String): Int
+  @native def getAttrTypeList(handle: Long, name: String): Array[Int]
   @native def getAttrTensor(handle: Long, name: String): Long
   @native def getAttrShape(handle: Long, name: String): Array[Long]
   @native def allOps: Array[Byte]

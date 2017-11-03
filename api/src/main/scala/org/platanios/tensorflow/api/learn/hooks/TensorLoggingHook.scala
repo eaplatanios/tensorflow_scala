@@ -91,7 +91,7 @@ case class TensorLoggingHook(
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]
   ): Unit = {
-    lastStep = runResult.values(0).scalar.asInstanceOf[Long]
+    lastStep = runResult.values.head.scalar.asInstanceOf[Long]
     if (shouldTrigger)
       logTensors(tensorTags.zip(runResult.values.tail))
   }
