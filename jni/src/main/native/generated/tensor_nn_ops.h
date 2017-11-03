@@ -137,11 +137,27 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_0
 
 /*
  * Class:     org_platanios_tensorflow_jni_generated_tensors_NN__
- * Method:    maxPoolV2
- * Signature: (JJJJ[B[B)J
+ * Method:    maxPool
+ * Signature: (JJ[J[J[B[B)J
  */
-JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_00024_maxPoolV2
-  (JNIEnv *, jobject, jlong, jlong, jlong, jlong, jbyteArray, jbyteArray);
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_00024_maxPool
+  (JNIEnv *, jobject, jlong, jlong, jlongArray, jlongArray, jbyteArray, jbyteArray);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_NN__
+ * Method:    maxPoolGrad
+ * Signature: (JJJJ[J[J[B[B)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_00024_maxPoolGrad
+  (JNIEnv *, jobject, jlong, jlong, jlong, jlong, jlongArray, jlongArray, jbyteArray, jbyteArray);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_NN__
+ * Method:    maxPoolGradGrad
+ * Signature: (JJJJ[J[J[B[B)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_00024_maxPoolGradGrad
+  (JNIEnv *, jobject, jlong, jlong, jlong, jlong, jlongArray, jlongArray, jbyteArray, jbyteArray);
 
 /*
  * Class:     org_platanios_tensorflow_jni_generated_tensors_NN__
@@ -182,6 +198,22 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors
  */
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_00024_conv2D
   (JNIEnv *, jobject, jlong, jlong, jlong, jlongArray, jbyteArray, jboolean, jbyteArray);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_NN__
+ * Method:    conv2DBackpropInput
+ * Signature: (JJJJ[J[BZ[B)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_00024_conv2DBackpropInput
+  (JNIEnv *, jobject, jlong, jlong, jlong, jlong, jlongArray, jbyteArray, jboolean, jbyteArray);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_NN__
+ * Method:    conv2DBackpropFilter
+ * Signature: (JJJJ[J[BZ[B)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_00024_conv2DBackpropFilter
+  (JNIEnv *, jobject, jlong, jlong, jlong, jlong, jlongArray, jbyteArray, jboolean, jbyteArray);
 
 /*
  * Class:     org_platanios_tensorflow_jni_generated_tensors_NN__

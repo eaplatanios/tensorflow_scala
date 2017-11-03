@@ -38,12 +38,16 @@ object NN {
   @native def inTopKV2(contextHandle: Long, predictions: Long, targets: Long, k: Long): Long
   @native def avgPool(contextHandle: Long, value: Long, ksize: Array[Long], strides: Array[Long], padding: Array[Byte], data_format: Array[Byte]): Long
   @native def avgPool3D(contextHandle: Long, input: Long, ksize: Array[Long], strides: Array[Long], padding: Array[Byte], data_format: Array[Byte]): Long
-  @native def maxPoolV2(contextHandle: Long, input: Long, ksize: Long, strides: Long, padding: Array[Byte], data_format: Array[Byte]): Long
+  @native def maxPool(contextHandle: Long, input: Long, ksize: Array[Long], strides: Array[Long], padding: Array[Byte], data_format: Array[Byte]): Long
+  @native def maxPoolGrad(contextHandle: Long, orig_input: Long, orig_output: Long, grad: Long, ksize: Array[Long], strides: Array[Long], padding: Array[Byte], data_format: Array[Byte]): Long
+  @native def maxPoolGradGrad(contextHandle: Long, orig_input: Long, orig_output: Long, grad: Long, ksize: Array[Long], strides: Array[Long], padding: Array[Byte], data_format: Array[Byte]): Long
   @native def maxPool3D(contextHandle: Long, input: Long, ksize: Array[Long], strides: Array[Long], padding: Array[Byte], data_format: Array[Byte]): Long
   @native def maxPoolWithArgmax(contextHandle: Long, input: Long, ksize: Array[Long], strides: Array[Long], padding: Array[Byte], targmax: Int): Array[Long]
   @native def fractionalAvgPool(contextHandle: Long, value: Long, pooling_ratio: Array[Float], pseudo_random: Boolean, overlapping: Boolean, deterministic: Boolean, seed: Long, seed2: Long): Array[Long]
   @native def fractionalMaxPool(contextHandle: Long, value: Long, pooling_ratio: Array[Float], pseudo_random: Boolean, overlapping: Boolean, deterministic: Boolean, seed: Long, seed2: Long): Array[Long]
   @native def conv2D(contextHandle: Long, input: Long, filter: Long, strides: Array[Long], padding: Array[Byte], use_cudnn_on_gpu: Boolean, data_format: Array[Byte]): Long
+  @native def conv2DBackpropInput(contextHandle: Long, input_sizes: Long, filter: Long, out_backprop: Long, strides: Array[Long], padding: Array[Byte], use_cudnn_on_gpu: Boolean, data_format: Array[Byte]): Long
+  @native def conv2DBackpropFilter(contextHandle: Long, input: Long, filter_sizes: Long, out_backprop: Long, strides: Array[Long], padding: Array[Byte], use_cudnn_on_gpu: Boolean, data_format: Array[Byte]): Long
   @native def fusedResizeAndPadConv2D(contextHandle: Long, input: Long, size: Long, paddings: Long, filter: Long, mode: Array[Byte], strides: Array[Long], padding: Array[Byte], resize_align_corners: Boolean): Long
   @native def fusedPadConv2D(contextHandle: Long, input: Long, paddings: Long, filter: Long, mode: Array[Byte], strides: Array[Long], padding: Array[Byte]): Long
   @native def depthwiseConv2dNative(contextHandle: Long, input: Long, filter: Long, strides: Array[Long], padding: Array[Byte], data_format: Array[Byte]): Long

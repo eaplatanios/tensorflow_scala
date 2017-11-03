@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.tensors.ops
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.ops.NN.{CNNDataFormat, NCHWFormat, NHWCFormat}
+import org.platanios.tensorflow.api.ops.NN.{CNNDataFormat, NCHWFormat, NHWCFormat, PaddingMode}
 import org.platanios.tensorflow.api.tensors.{Context, Tensor, TensorOps}
 import org.platanios.tensorflow.api.types.{DataType, FLOAT16, FLOAT32, FLOAT64, INT32, INT64}
 import org.platanios.tensorflow.jni.generated.tensors.{NN => NativeTensorOpsNN}
@@ -459,6 +459,145 @@ private[api] trait NN {
       context.value.nativeHandle, predictions.nativeHandle, targets.cast(mostPreciseDataType).nativeHandle,
       k.cast(mostPreciseDataType).nativeHandle))
   }
+
+  //region Convolution Ops
+
+  /** $OpDocConv2D
+    *
+    * @param  input         4-D tensor whose dimension order is interpreted according to the value of `dataFormat`.
+    * @param  filter        4-D tensor with shape `[filterHeight, filterWidth, inChannels, outChannels]`.
+    * @param  stride1       Stride of the sliding window along the second dimension of `input`.
+    * @param  stride2       Stride of the sliding window along the third dimension of `input`.
+    * @param  padding       Padding mode to use.
+    * @param  dataFormat    Format of the input and output data.
+    * @param  useCuDNNOnGPU Boolean value indicating whether or not to use CuDNN for the created op, if its placed on a
+    *                       GPU, as opposed to the TensorFlow implementation.
+    * @return Result as a new 4-D tensor whose dimension order depends on the value of `dataFormat`.
+    */
+  def conv2D(
+      input: Tensor, filter: Tensor, stride1: Int, stride2: Int, padding: PaddingMode,
+      dataFormat: CNNDataFormat = CNNDataFormat.default, useCuDNNOnGPU: Boolean = true
+  )(implicit context: DynamicVariable[Context]): Tensor = {
+    Tensor.fromNativeHandle(NativeTensorOpsNN.conv2D(
+      context.value.nativeHandle, input.nativeHandle, filter.nativeHandle, Array[Long](1, stride1, stride2, 1),
+      padding.name.getBytes(), useCuDNNOnGPU, dataFormat.name.getBytes))
+  }
+
+  /** $OpDocConv2DBackpropInput
+    *
+    * @param  inputSizes     Integer vector representing the shape of the original input, which is a 4-D tensor.
+    * @param  filter         4-D tensor with shape `[filterHeight, filterWidth, inChannels, outChannels]`.
+    * @param  outputGradient 4-D tensor containing the gradients w.r.t. the output of the convolution and whose shape
+    *                        depends on the value of `dataFormat`.
+    * @param  stride1        Stride of the sliding window along the second dimension of `input`.
+    * @param  stride2        Stride of the sliding window along the third dimension of `input`.
+    * @param  padding        Padding mode to use.
+    * @param  dataFormat     Format of the input and output data.
+    * @param  useCuDNNOnGPU  Boolean value indicating whether or not to use CuDNN for the created op, if its placed on a
+    *                        GPU, as opposed to the TensorFlow implementation.
+    * @return Result as a new 4-D tensor whose dimension order depends on the value of `dataFormat`.
+    */
+  def conv2DBackpropInput(
+      inputSizes: Tensor, filter: Tensor, outputGradient: Tensor, stride1: Int, stride2: Int,
+      padding: PaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default, useCuDNNOnGPU: Boolean = true
+  )(implicit context: DynamicVariable[Context]): Tensor = {
+    Tensor.fromNativeHandle(NativeTensorOpsNN.conv2DBackpropInput(
+      context.value.nativeHandle, inputSizes.nativeHandle, filter.nativeHandle, outputGradient.nativeHandle,
+      Array[Long](1, stride1, stride2, 1), padding.name.getBytes(), useCuDNNOnGPU, dataFormat.name.getBytes))
+  }
+
+  /** $OpDocConv2DBackpropFilter
+    *
+    * @param  input          4-D tensor whose dimension order is interpreted according to the value of `dataFormat`.
+    * @param  filterSizes    Integer vector representing the shape of the original filter, which is a 4-D tensor.
+    * @param  outputGradient 4-D tensor containing the gradients w.r.t. the output of the convolution and whose shape
+    *                        depends on the value of `dataFormat`.
+    * @param  stride1        Stride of the sliding window along the second dimension of `input`.
+    * @param  stride2        Stride of the sliding window along the third dimension of `input`.
+    * @param  padding        Padding mode to use.
+    * @param  dataFormat     Format of the input and output data.
+    * @param  useCuDNNOnGPU  Boolean value indicating whether or not to use CuDNN for the created op, if its placed on a
+    *                        GPU, as opposed to the TensorFlow implementation.
+    * @return Result as a new 4-D tensor whose dimension order depends on the value of `dataFormat`.
+    */
+  def conv2DBackpropFilter(
+      input: Tensor, filterSizes: Tensor, outputGradient: Tensor, stride1: Int, stride2: Int,
+      padding: PaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default, useCuDNNOnGPU: Boolean = true
+  )(implicit context: DynamicVariable[Context]): Tensor = {
+    Tensor.fromNativeHandle(NativeTensorOpsNN.conv2DBackpropFilter(
+      context.value.nativeHandle, input.nativeHandle, filterSizes.nativeHandle, outputGradient.nativeHandle,
+      Array[Long](1, stride1, stride2, 1), padding.name.getBytes(), useCuDNNOnGPU, dataFormat.name.getBytes))
+  }
+
+  //endregion Convolution Ops
+
+  //region Pooling Ops
+
+  /** $OpDocMaxPool
+    *
+    * @param  input      4-D tensor whose dimension order is interpreted according to the value of `dataFormat`.
+    * @param  windowSize The size of the pooling window for each dimension of the input tensor.
+    * @param  stride1    Stride of the sliding window along the second dimension of `input`.
+    * @param  stride2    Stride of the sliding window along the third dimension of `input`.
+    * @param  padding    Padding mode to use.
+    * @param  dataFormat Format of the input and output data.
+    * @return Result as a new 4-D tensor whose dimension order depends on the value of `dataFormat`.
+    */
+  def maxPool(
+      input: Tensor, windowSize: Seq[Int], stride1: Int, stride2: Int, padding: PaddingMode,
+      dataFormat: CNNDataFormat = CNNDataFormat.default)(implicit context: DynamicVariable[Context]): Tensor = {
+    Tensor.fromNativeHandle(NativeTensorOpsNN.maxPool(
+      context.value.nativeHandle, input.nativeHandle, windowSize.map(_.toLong).toArray,
+      Array[Long](1, stride1, stride2, 1), padding.name.getBytes(), dataFormat.name.getBytes))
+  }
+
+  /** $OpDocMaxPoolGrad
+    *
+    * @param  originalInput  Original input tensor.
+    * @param  originalOutput Original output tensor.
+    * @param  outputGradient 4-D tensor containing the gradients w.r.t. the output of the max pooling and whose shape
+    *                        depends on the value of `dataFormat`.
+    * @param  windowSize     The size of the pooling window for each dimension of the input tensor.
+    * @param  stride1        Stride of the sliding window along the second dimension of `input`.
+    * @param  stride2        Stride of the sliding window along the third dimension of `input`.
+    * @param  padding        Padding mode to use.
+    * @param  dataFormat     Format of the input and output data.
+    * @return Result as a new 4-D tensor whose dimension order depends on the value of `dataFormat`.
+    */
+  def maxPoolGrad(
+      originalInput: Tensor, originalOutput: Tensor, outputGradient: Tensor, windowSize: Seq[Int],
+      stride1: Int, stride2: Int, padding: PaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default
+  )(implicit context: DynamicVariable[Context]): Tensor = {
+    Tensor.fromNativeHandle(NativeTensorOpsNN.maxPoolGrad(
+      context.value.nativeHandle, originalInput.nativeHandle, originalOutput.nativeHandle, outputGradient.nativeHandle,
+      windowSize.map(_.toLong).toArray, Array[Long](1, stride1, stride2, 1), padding.name.getBytes(),
+      dataFormat.name.getBytes))
+  }
+
+  /** $OpDocMaxPoolGradGrad
+    *
+    * @param  originalInput  Original input tensor.
+    * @param  originalOutput Original output tensor.
+    * @param  outputGradient 4-D tensor containing the gradients w.r.t. the output of the max pooling and whose shape
+    *                        depends on the value of `dataFormat`.
+    * @param  windowSize     The size of the pooling window for each dimension of the input tensor.
+    * @param  stride1        Stride of the sliding window along the second dimension of `input`.
+    * @param  stride2        Stride of the sliding window along the third dimension of `input`.
+    * @param  padding        Padding mode to use.
+    * @param  dataFormat     Format of the input and output data.
+    * @return Result as a new 4-D tensor whose dimension order depends on the value of `dataFormat`.
+    */
+  def maxPoolGradGrad(
+      originalInput: Tensor, originalOutput: Tensor, outputGradient: Tensor, windowSize: Seq[Int],
+      stride1: Int, stride2: Int, padding: PaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default
+  )(implicit context: DynamicVariable[Context]): Tensor = {
+    Tensor.fromNativeHandle(NativeTensorOpsNN.maxPoolGradGrad(
+      context.value.nativeHandle, originalInput.nativeHandle, originalOutput.nativeHandle, outputGradient.nativeHandle,
+      windowSize.map(_.toLong).toArray, Array[Long](1, stride1, stride2, 1), padding.name.getBytes(),
+      dataFormat.name.getBytes))
+  }
+
+  //endregion Pooling Ops
 }
 
 private[api] object NN extends NN {
@@ -608,6 +747,46 @@ private[api] object NN extends NN {
       * @return Result as a new tensor.
       */
     def inTopK(targets: Tensor, k: Tensor): Tensor = NN.inTopK(tensor, targets, k)
+
+    //region Convolution Ops
+
+    /** $OpDocConv2D
+      *
+      * @param  filter        4-D tensor with shape `[filterHeight, filterWidth, inChannels, outChannels]`.
+      * @param  stride1       Stride of the sliding window along the second dimension of this tensor.
+      * @param  stride2       Stride of the sliding window along the third dimension of this tensor.
+      * @param  padding       Padding mode to use.
+      * @param  dataFormat    Format of the input and output data.
+      * @param  useCuDNNOnGPU Boolean value indicating whether or not to use CuDNN for the created op, if its placed on a
+      *                       GPU, as opposed to the TensorFlow implementation.
+      * @return Result as a new 4-D tensor whose dimension order depends on the value of `dataFormat`.
+      */
+    def conv2D(
+        filter: Tensor, stride1: Int, stride2: Int, padding: PaddingMode,
+        dataFormat: CNNDataFormat = CNNDataFormat.default, useCuDNNOnGPU: Boolean = true): Tensor = {
+      NN.conv2D(tensor, filter, stride1, stride2, padding, dataFormat, useCuDNNOnGPU)
+    }
+
+    //endregion Convolution Ops
+
+    //region Pooling Ops
+
+    /** $OpDocMaxPool
+      *
+      * @param  windowSize The size of the pooling window for each dimension of the input tensor.
+      * @param  stride1    Stride of the sliding window along the second dimension of `input`.
+      * @param  stride2    Stride of the sliding window along the third dimension of `input`.
+      * @param  padding    Padding mode to use.
+      * @param  dataFormat Format of the input and output data.
+      * @return Result as a new 4-D tensor whose dimension order depends on the value of `dataFormat`.
+      */
+    def maxPool(
+        windowSize: Seq[Int], stride1: Int, stride2: Int, padding: PaddingMode,
+        dataFormat: CNNDataFormat = CNNDataFormat.default): Tensor = {
+      NN.maxPool(tensor, windowSize, stride1, stride2, padding, dataFormat)
+    }
+
+    //endregion Pooling Ops
   }
 
   /** Creates an op that flattens the outer axes of `input` and keeps its last axis. */

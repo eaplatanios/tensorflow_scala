@@ -17,6 +17,7 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.Implicits._
 import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.ops.NN._
 import org.platanios.tensorflow.api.types._
@@ -551,6 +552,182 @@ private[api] trait NN {
         .addInput(k.cast(mostPreciseDataType))
         .build().outputs(0)
   }
+
+  //region Convolution Ops
+
+  /** $OpDocConv2D
+    *
+    * @param  input         4-D tensor whose dimension order is interpreted according to the value of `dataFormat`.
+    * @param  filter        4-D tensor with shape `[filterHeight, filterWidth, inChannels, outChannels]`.
+    * @param  stride1       Stride of the sliding window along the second dimension of `input`.
+    * @param  stride2       Stride of the sliding window along the third dimension of `input`.
+    * @param  padding       Padding mode to use.
+    * @param  dataFormat    Format of the input and output data.
+    * @param  useCuDNNOnGPU Boolean value indicating whether or not to use CuDNN for the created op, if its placed on a
+    *                       GPU, as opposed to the TensorFlow implementation.
+    * @param  name          Name for the created op.
+    * @return Created op output, which is a 4-D tensor whose dimension order depends on the value of `dataFormat`.
+    */
+  def conv2D(
+      input: Output, filter: Output, stride1: Int, stride2: Int, padding: PaddingMode,
+      dataFormat: CNNDataFormat = CNNDataFormat.default, useCuDNNOnGPU: Boolean = true,
+      name: String = "Conv2D"): Output = {
+    Op.Builder(opType = "Conv2D", name = name)
+        .addInput(input)
+        .addInput(filter)
+        .setAttribute("strides", Array[Int](1, stride1, stride2, 1))
+        .setAttribute("padding", padding.name)
+        .setAttribute("data_format", dataFormat.name)
+        .setAttribute("use_cudnn_on_gpu", useCuDNNOnGPU)
+        .build().outputs(0)
+  }
+
+  /** $OpDocConv2DBackpropInput
+    *
+    * @param  inputSizes     Integer vector representing the shape of the original input, which is a 4-D tensor.
+    * @param  filter         4-D tensor with shape `[filterHeight, filterWidth, inChannels, outChannels]`.
+    * @param  outputGradient 4-D tensor containing the gradients w.r.t. the output of the convolution and whose shape
+    *                        depends on the value of `dataFormat`.
+    * @param  stride1        Stride of the sliding window along the second dimension of `input`.
+    * @param  stride2        Stride of the sliding window along the third dimension of `input`.
+    * @param  padding        Padding mode to use.
+    * @param  dataFormat     Format of the input and output data.
+    * @param  useCuDNNOnGPU  Boolean value indicating whether or not to use CuDNN for the created op, if its placed on a
+    *                        GPU, as opposed to the TensorFlow implementation.
+    * @param  name           Name for the created op.
+    * @return Created op output, which is a 4-D tensor whose dimension order depends on the value of `dataFormat`.
+    */
+  def conv2DBackpropInput(
+      inputSizes: Output, filter: Output, outputGradient: Output, stride1: Int, stride2: Int,
+      padding: PaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default, useCuDNNOnGPU: Boolean = true,
+      name: String = "Conv2DBackpropInput"): Output = {
+    Op.Builder(opType = "Conv2DBackpropInput", name = name)
+        .addInput(inputSizes)
+        .addInput(filter)
+        .addInput(outputGradient)
+        .setAttribute("strides", Array[Int](1, stride1, stride2, 1))
+        .setAttribute("padding", padding.name)
+        .setAttribute("data_format", dataFormat.name)
+        .setAttribute("use_cudnn_on_gpu", useCuDNNOnGPU)
+        .build().outputs(0)
+  }
+
+  /** $OpDocConv2DBackpropFilter
+    *
+    * @param  input          4-D tensor whose dimension order is interpreted according to the value of `dataFormat`.
+    * @param  filterSizes    Integer vector representing the shape of the original filter, which is a 4-D tensor.
+    * @param  outputGradient 4-D tensor containing the gradients w.r.t. the output of the convolution and whose shape
+    *                        depends on the value of `dataFormat`.
+    * @param  stride1        Stride of the sliding window along the second dimension of `input`.
+    * @param  stride2        Stride of the sliding window along the third dimension of `input`.
+    * @param  padding        Padding mode to use.
+    * @param  dataFormat     Format of the input and output data.
+    * @param  useCuDNNOnGPU  Boolean value indicating whether or not to use CuDNN for the created op, if its placed on a
+    *                        GPU, as opposed to the TensorFlow implementation.
+    * @param  name           Name for the created op.
+    * @return Created op output, which is a 4-D tensor whose dimension order depends on the value of `dataFormat`.
+    */
+  def conv2DBackpropFilter(
+      input: Output, filterSizes: Output, outputGradient: Output, stride1: Int, stride2: Int,
+      padding: PaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default, useCuDNNOnGPU: Boolean = true,
+      name: String = "Conv2DBackpropFilter"): Output = {
+    Op.Builder(opType = "Conv2DBackpropFilter", name = name)
+        .addInput(input)
+        .addInput(filterSizes)
+        .addInput(outputGradient)
+        .setAttribute("strides", Array[Int](1, stride1, stride2, 1))
+        .setAttribute("padding", padding.name)
+        .setAttribute("data_format", dataFormat.name)
+        .setAttribute("use_cudnn_on_gpu", useCuDNNOnGPU)
+        .build().outputs(0)
+  }
+
+  //endregion Convolution Ops
+
+  //region Pooling Ops
+
+  /** $OpDocMaxPool
+    *
+    * @param  input      4-D tensor whose dimension order is interpreted according to the value of `dataFormat`.
+    * @param  windowSize The size of the pooling window for each dimension of the input tensor.
+    * @param  stride1    Stride of the sliding window along the second dimension of `input`.
+    * @param  stride2    Stride of the sliding window along the third dimension of `input`.
+    * @param  padding    Padding mode to use.
+    * @param  dataFormat Format of the input and output data.
+    * @param  name       Name for the created op.
+    * @return Created op output, which is a 4-D tensor whose dimension order depends on the value of `dataFormat`.
+    */
+  def maxPool(
+      input: Output, windowSize: Seq[Int], stride1: Int, stride2: Int, padding: PaddingMode,
+      dataFormat: CNNDataFormat = CNNDataFormat.default, name: String = "MaxPool"): Output = {
+    Op.Builder(opType = "MaxPool", name = name)
+        .addInput(input)
+        .setAttribute("ksize", windowSize.toArray)
+        .setAttribute("strides", Array[Int](1, stride1, stride2, 1))
+        .setAttribute("padding", padding.name)
+        .setAttribute("data_format", dataFormat.name)
+        .build().outputs(0)
+  }
+
+  /** $OpDocMaxPoolGrad
+    *
+    * @param  originalInput  Original input tensor.
+    * @param  originalOutput Original output tensor.
+    * @param  outputGradient 4-D tensor containing the gradients w.r.t. the output of the max pooling and whose shape
+    *                        depends on the value of `dataFormat`.
+    * @param  windowSize     The size of the pooling window for each dimension of the input tensor.
+    * @param  stride1        Stride of the sliding window along the second dimension of `input`.
+    * @param  stride2        Stride of the sliding window along the third dimension of `input`.
+    * @param  padding        Padding mode to use.
+    * @param  dataFormat     Format of the input and output data.
+    * @param  name           Name for the created op.
+    * @return Created op output, which is a 4-D tensor whose dimension order depends on the value of `dataFormat`.
+    */
+  def maxPoolGrad(
+      originalInput: Output, originalOutput: Output, outputGradient: Output, windowSize: Seq[Int],
+      stride1: Int, stride2: Int, padding: PaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default,
+      name: String = "MaxPoolGrad"): Output = {
+    Op.Builder(opType = "MaxPoolGrad", name = name)
+        .addInput(originalInput)
+        .addInput(originalOutput)
+        .addInput(outputGradient)
+        .setAttribute("ksize", windowSize.toArray)
+        .setAttribute("strides", Array[Int](1, stride1, stride2, 1))
+        .setAttribute("padding", padding.name)
+        .setAttribute("data_format", dataFormat.name)
+        .build().outputs(0)
+  }
+
+  /** $OpDocMaxPoolGradGrad
+    *
+    * @param  originalInput  Original input tensor.
+    * @param  originalOutput Original output tensor.
+    * @param  outputGradient 4-D tensor containing the gradients w.r.t. the output of the max pooling and whose shape
+    *                        depends on the value of `dataFormat`.
+    * @param  windowSize     The size of the pooling window for each dimension of the input tensor.
+    * @param  stride1        Stride of the sliding window along the second dimension of `input`.
+    * @param  stride2        Stride of the sliding window along the third dimension of `input`.
+    * @param  padding        Padding mode to use.
+    * @param  dataFormat     Format of the input and output data.
+    * @param  name           Name for the created op.
+    * @return Created op output, which is a 4-D tensor whose dimension order depends on the value of `dataFormat`.
+    */
+  def maxPoolGradGrad(
+      originalInput: Output, originalOutput: Output, outputGradient: Output, windowSize: Seq[Int],
+      stride1: Int, stride2: Int, padding: PaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default,
+      name: String = "MaxPoolGradGrad"): Output = {
+    Op.Builder(opType = "MaxPoolGradGrad", name = name)
+        .addInput(originalInput)
+        .addInput(originalOutput)
+        .addInput(outputGradient)
+        .setAttribute("ksize", windowSize.toArray)
+        .setAttribute("strides", Array[Int](1, stride1, stride2, 1))
+        .setAttribute("padding", padding.name)
+        .setAttribute("data_format", dataFormat.name)
+        .build().outputs(0)
+  }
+
+  //endregion Pooling Ops
 }
 
 private[api] object NN extends NN {
@@ -700,6 +877,49 @@ private[api] object NN extends NN {
       * @return Created op output.
       */
     def inTopK(targets: Output, k: Output): Output = NN.inTopK(output, targets, k)
+
+    //region Convolution Ops
+
+    /** $OpDocConv2D
+      *
+      * @param  filter        4-D tensor with shape `[filterHeight, filterWidth, inChannels, outChannels]`.
+      * @param  stride1       Stride of the sliding window along the second dimension of this tensor.
+      * @param  stride2       Stride of the sliding window along the third dimension of this tensor.
+      * @param  padding       Padding mode to use.
+      * @param  dataFormat    Format of the input and output data.
+      * @param  useCuDNNOnGPU Boolean value indicating whether or not to use CuDNN for the created op, if its placed on a
+      *                       GPU, as opposed to the TensorFlow implementation.
+      * @param  name          Name for the created op.
+      * @return Created op output, which is a 4-D tensor whose dimension order depends on the value of `dataFormat`.
+      */
+    def conv2D(
+        filter: Output, stride1: Int, stride2: Int, padding: PaddingMode,
+        dataFormat: CNNDataFormat = CNNDataFormat.default, useCuDNNOnGPU: Boolean = true,
+        name: String = "Conv2D"): Output = {
+      NN.conv2D(output, filter, stride1, stride2, padding, dataFormat, useCuDNNOnGPU, name)
+    }
+
+    //endregion Convolution Ops
+
+    //region Pooling Ops
+
+    /** $OpDocMaxPool
+      *
+      * @param  windowSize The size of the pooling window for each dimension of the input tensor.
+      * @param  stride1    Stride of the sliding window along the second dimension of `input`.
+      * @param  stride2    Stride of the sliding window along the third dimension of `input`.
+      * @param  padding    Padding mode to use.
+      * @param  dataFormat Format of the input and output data.
+      * @param  name       Name for the created op.
+      * @return Created op output, which is a 4-D tensor whose dimension order depends on the value of `dataFormat`.
+      */
+    def maxPool(
+        windowSize: Seq[Int], stride1: Int, stride2: Int, padding: PaddingMode,
+        dataFormat: CNNDataFormat = CNNDataFormat.default, name: String = "MaxPool"): Output = {
+      NN.maxPool(output, windowSize, stride1, stride2, padding, dataFormat, name)
+    }
+
+    //endregion Pooling Ops
   }
 
   /** Creates an op that flattens the outer axes of `input` and keeps its last axis. */
@@ -749,25 +969,46 @@ private[api] object NN extends NN {
     }
   }
 
+  /** Padding mode. */
+  sealed trait PaddingMode {
+    val name: String
+    override def toString: String = name
+  }
+
+  object PaddingMode {
+    def fromName(name: String): PaddingMode = fromString(name)
+
+    @throws[InvalidArgumentException]
+    def fromString(name: String): PaddingMode = name match {
+      case SamePadding.name => SamePadding
+      case ValidPadding.name => ValidPadding
+      case _ => throw InvalidArgumentException(s"Invalid convolution/pooling padding mode '$name' provided.")
+    }
+  }
+
+  case object SamePadding extends PaddingMode {override val name: String = "SAME"}
+  case object ValidPadding extends PaddingMode {override val name: String = "VALID"}
+
   sealed trait CNNDataFormat {
     val name: String
     override def toString: String = name
   }
-  case object NHWCFormat extends CNNDataFormat {override val name: String = "NHWC"}
-  case object NCHWFormat extends CNNDataFormat {override val name: String = "NCHW"}
 
   object CNNDataFormat {
     val default: CNNDataFormat = NHWCFormat
 
     def fromName(name: String): CNNDataFormat = fromString(name)
 
-    @throws[IllegalArgumentException]
+    @throws[InvalidArgumentException]
     def fromString(name: String): CNNDataFormat = name match {
-      case "NHWC" => NHWCFormat
-      case "NCHW" => NCHWFormat
-      case _ => throw new IllegalArgumentException(s"Unsupported CNN data format string: '$name'.")
+      case NHWCFormat.name => NHWCFormat
+      case NCHWFormat.name => NCHWFormat
+      case _ => throw InvalidArgumentException(s"Invalid convolution/pooling data format '$name' provided.")
     }
   }
+
+  case object NHWCFormat extends CNNDataFormat {override val name: String = "NHWC"}
+  case object NCHWFormat extends CNNDataFormat {override val name: String = "NCHW"}
 
   private[ops] object Gradients {
     GradientsRegistry.register("BiasAdd", biasAddGradient)
@@ -792,6 +1033,10 @@ private[api] object NN extends NN {
     GradientsRegistry.register("TopKV2", topKGradient)
     GradientsRegistry.register("BatchNormWithGlobalNormalization", batchNormalizationWithGlobalNormalizationGradient)
     GradientsRegistry.register("FusedBatchNorm", fusedBatchNormalizationGradient)
+    GradientsRegistry.register("Conv2D", conv2DGradient)
+    GradientsRegistry.register("MaxPool", maxPoolGradient)
+    GradientsRegistry.register("MaxPoolGrad", maxPoolHessian)
+    GradientsRegistry.register("MaxPoolGradGrad", maxPoolHessianGradient)
 
     private[this] def biasAddGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       val outputGradient = outputGradients.head.toOutput
@@ -1074,6 +1319,62 @@ private[api] object NN extends NN {
         .build().outputs.asInstanceOf[Seq[OutputLike]]
   }
 
+  private[this] def conv2DGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    val outputGradient = outputGradients.head.toOutput
+    val strides = op.longArrayAttribute("strides")
+    val padding = PaddingMode.fromName(op.stringAttribute("padding"))
+    val dataFormat = CNNDataFormat.fromName(op.stringAttribute("data_format"))
+    val useCuDNNOnGPU = op.booleanAttribute("use_cudnn_on_gpu")
+    val inputShapes = Basic.shapeN(Seq(op.inputs(0), op.inputs(1)))
+    Seq(
+      NN.conv2DBackpropInput(
+        inputShapes(0), op.inputs(1), outputGradient, strides(1).toInt, strides(2).toInt,
+        padding, dataFormat, useCuDNNOnGPU),
+      NN.conv2DBackpropFilter(
+        op.inputs(0), inputShapes(1), outputGradient, strides(1).toInt, strides(2).toInt,
+        padding, dataFormat, useCuDNNOnGPU))
+  }
+
+  private[this] def maxPoolGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    val outputGradient = outputGradients.head.toOutput
+    val windowSizes = op.longArrayAttribute("ksize").map(_.toInt).toSeq
+    val strides = op.longArrayAttribute("strides")
+    val padding = PaddingMode.fromName(op.stringAttribute("padding"))
+    val dataFormat = CNNDataFormat.fromName(op.stringAttribute("data_format"))
+    Seq(
+      NN.maxPoolGrad(
+        op.inputs(0), op.outputs(0), outputGradient, windowSizes, strides(1).toInt, strides(2).toInt,
+        padding, dataFormat))
+  }
+
+  private[this] def maxPoolHessian(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    val outputGradient = outputGradients.head.toOutput
+    val windowSizes = op.longArrayAttribute("ksize").map(_.toInt).toSeq
+    val strides = op.longArrayAttribute("strides")
+    val padding = PaddingMode.fromName(op.stringAttribute("padding"))
+    val dataFormat = CNNDataFormat.fromName(op.stringAttribute("data_format"))
+    Seq(
+      Basic.zerosLike(op.inputs(0)),
+      Basic.zerosLike(op.inputs(1)),
+      NN.maxPoolGradGrad(
+        op.inputs(0), op.inputs(1), outputGradient, windowSizes, strides(1).toInt, strides(2).toInt,
+        padding, dataFormat))
+  }
+
+  private[this] def maxPoolHessianGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    val outputGradient = outputGradients.head.toOutput
+    val windowSizes = op.longArrayAttribute("ksize").map(_.toInt).toSeq
+    val strides = op.longArrayAttribute("strides")
+    val padding = PaddingMode.fromName(op.stringAttribute("padding"))
+    val dataFormat = CNNDataFormat.fromName(op.stringAttribute("data_format"))
+    Seq(
+      Basic.zerosLike(op.inputs(0)),
+      Basic.zerosLike(op.inputs(1)),
+      NN.maxPoolGrad(
+        op.inputs(0), op.inputs(1), outputGradient, windowSizes, strides(1).toInt, strides(2).toInt,
+        padding, dataFormat))
+  }
+
   /** @define OpDocNNAddBias
     *   The `addBias` op adds `bias` to `value`.
     *
@@ -1296,6 +1597,40 @@ private[api] object NN extends NN {
     *     - `targets(i)` be the target class for example `i`, and
     *     - `output(i)` be the output for example `i`.
     *   Then `output(i) = predictions(i, targets(i)) \in TopKIncludingTies(predictions(i))`.
+    *
+    * @define OpDocConv2D
+    *   The `conv2D` op computes a 2-D convolution given 4-D `input` and `filter` tensors.
+    *
+    *   Given an input tensor of shape `[batch, inHeight, inWidth, inChannels]` and a filter / kernel tensor of shape
+    *   `[filterHeight, filterWidth, inChannels, outChannels]`, the op performs the following:
+    *
+    *     1. Flattens the filter to a 2-D matrix with shape `[filterHeight * filterWidth * inChannels, outputChannels]`.
+    *     2. Extracts image patches from the input tensor to form a *virtual* tensor of shape
+    *        `[batch, outHeight, outWidth, filterHeight * filterWidth * inChannels]`.
+    *     3. For each patch, right-multiplies the filter matrix and the image patch vector.
+    *
+    *   For example, for the default [[NHWCFormat]]:
+    *   {{{
+    *     output(b,i,j,k) = sum_{di,dj,q} input(b, stride1 * i + di, stride2 * j + dj, q) * filter(di,dj,q,k).
+    *   }}}
+    *
+    *   Must have `strides[0] = strides[3] = 1`.  For the most common case of the same horizontal and vertices strides,
+    *   `strides = [1, stride, stride, 1]`.
+    *
+    * @define OpDocConv2DBackpropInput
+    *   The `conv2DBackpropInput` op computes the gradient of the `conv2D` op with respect to its input tensor.
+    *
+    * @define OpDocConv2DBackpropFilter
+    *   The `conv2DBackpropFilter` op computes the gradient of the `conv2D` op with respect to its filter tensor.
+    *
+    * @define OpDocMaxPool
+    *   The `maxPool` op performs max pooling on the input tensor.
+    *
+    * @define OpDocMaxPoolGrad
+    *   The `maxPoolGrad` op computes the gradient of the `maxPool` op.
+    *
+    * @define OpDocMaxPoolGradGrad
+    *   The `maxPoolGradGrad` op computes the gradient of the `maxPoolGrad` op.
     */
   private[ops] trait Documentation
 }

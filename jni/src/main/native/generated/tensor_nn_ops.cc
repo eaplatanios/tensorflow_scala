@@ -586,30 +586,212 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_0
   return reinterpret_cast<jlong>(outputs[0]);
 }
 
-JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_00024_maxPoolV2(
-    JNIEnv* env, jobject object, jlong context_handle, jlong input, jlong ksize, jlong strides, jbyteArray padding, jbyteArray data_format) {
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_00024_maxPool(
+    JNIEnv* env, jobject object, jlong context_handle, jlong input, jlongArray ksize, jlongArray strides, jbyteArray padding, jbyteArray data_format) {
   REQUIRE_HANDLE(context, TFE_Context, context_handle, 0);
   std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
-      TFE_NewOp(context, "MaxPoolV2", status.get()), TFE_DeleteOp);
+      TFE_NewOp(context, "MaxPool", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
   TFE_OpAddInput(op.get(), input_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
-  REQUIRE_HANDLE(ksize_handle, TFE_TensorHandle, ksize, 0);
-  TFE_OpAddInput(op.get(), ksize_handle, status.get());
-  CHECK_STATUS(env, status.get(), 0);
-
-  REQUIRE_HANDLE(strides_handle, TFE_TensorHandle, strides, 0);
-  TFE_OpAddInput(op.get(), strides_handle, status.get());
-  CHECK_STATUS(env, status.get(), 0);
-
   REQUIRE_HANDLE(attr_T_input_handle, TFE_TensorHandle, input, 0);
   const TF_DataType attr_T = TFE_TensorHandleDataType(attr_T_input_handle);
   TFE_OpSetAttrType(op.get(), "T", attr_T);
+
+  const int ksize_n = env->GetArrayLength(ksize);
+  std::unique_ptr<int64_t[]> ksize_c_value(new int64_t[ksize_n]);
+  jlong* ksize_elems = env->GetLongArrayElements(ksize, nullptr);
+  for (int i = 0; i < ksize_n; ++i) {
+    ksize_c_value[i] = static_cast<int64_t>(ksize_elems[i]);
+  }
+  TFE_OpSetAttrIntList(op.get(), "ksize", ksize_c_value.get(), ksize_n);
+  env->ReleaseLongArrayElements(ksize, ksize_elems, JNI_ABORT);
+
+  const int strides_n = env->GetArrayLength(strides);
+  std::unique_ptr<int64_t[]> strides_c_value(new int64_t[strides_n]);
+  jlong* strides_elems = env->GetLongArrayElements(strides, nullptr);
+  for (int i = 0; i < strides_n; ++i) {
+    strides_c_value[i] = static_cast<int64_t>(strides_elems[i]);
+  }
+  TFE_OpSetAttrIntList(op.get(), "strides", strides_c_value.get(), strides_n);
+  env->ReleaseLongArrayElements(strides, strides_elems, JNI_ABORT);
+
+  jbyte *padding_c_value = env->GetByteArrayElements(padding, nullptr);
+  TFE_OpSetAttrString(op.get(), "padding", reinterpret_cast<const char *>(padding_c_value));
+  env->ReleaseByteArrayElements(padding, padding_c_value, JNI_ABORT);
+
+  jbyte *data_format_c_value = env->GetByteArrayElements(data_format, nullptr);
+  TFE_OpSetAttrString(op.get(), "data_format", reinterpret_cast<const char *>(data_format_c_value));
+  env->ReleaseByteArrayElements(data_format, data_format_c_value, JNI_ABORT);
+
+  const int num_outputs = 1;
+  std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
+  TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  return reinterpret_cast<jlong>(outputs[0]);
+}
+
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_00024_maxPoolGrad(
+    JNIEnv* env, jobject object, jlong context_handle, jlong orig_input, jlong orig_output, jlong grad, jlongArray ksize, jlongArray strides, jbyteArray padding, jbyteArray data_format) {
+  REQUIRE_HANDLE(context, TFE_Context, context_handle, 0);
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+
+  std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
+      TFE_NewOp(context, "MaxPoolGrad", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(orig_input_handle, TFE_TensorHandle, orig_input, 0);
+  TFE_OpAddInput(op.get(), orig_input_handle, status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(orig_output_handle, TFE_TensorHandle, orig_output, 0);
+  TFE_OpAddInput(op.get(), orig_output_handle, status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(grad_handle, TFE_TensorHandle, grad, 0);
+  TFE_OpAddInput(op.get(), grad_handle, status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(attr_T_orig_input_handle, TFE_TensorHandle, orig_input, 0);
+  const TF_DataType attr_T = TFE_TensorHandleDataType(attr_T_orig_input_handle);
+  TFE_OpSetAttrType(op.get(), "T", attr_T);
+
+  REQUIRE_HANDLE(attr_T_orig_output_handle, TFE_TensorHandle, orig_output, 0);
+  const TF_DataType attr_T_orig_output = TFE_TensorHandleDataType(attr_T_orig_output_handle);
+  if (attr_T != attr_T_orig_output) {
+      std::stringstream error_msg;
+      error_msg
+          << "Argument 'orig_output' of 'maxPoolGrad' op with data type '"
+          << attr_T_orig_output
+          << "' must match data type '"
+          << attr_T
+          << "' of argument 'orig_input'";
+      throw_exception(env, tf_invalid_argument_exception, error_msg.str().c_str());
+  }
+
+  REQUIRE_HANDLE(attr_T_grad_handle, TFE_TensorHandle, grad, 0);
+  const TF_DataType attr_T_grad = TFE_TensorHandleDataType(attr_T_grad_handle);
+  if (attr_T != attr_T_grad) {
+      std::stringstream error_msg;
+      error_msg
+          << "Argument 'grad' of 'maxPoolGrad' op with data type '"
+          << attr_T_grad
+          << "' must match data type '"
+          << attr_T
+          << "' of argument 'orig_input'";
+      throw_exception(env, tf_invalid_argument_exception, error_msg.str().c_str());
+  }
+
+  const int ksize_n = env->GetArrayLength(ksize);
+  std::unique_ptr<int64_t[]> ksize_c_value(new int64_t[ksize_n]);
+  jlong* ksize_elems = env->GetLongArrayElements(ksize, nullptr);
+  for (int i = 0; i < ksize_n; ++i) {
+    ksize_c_value[i] = static_cast<int64_t>(ksize_elems[i]);
+  }
+  TFE_OpSetAttrIntList(op.get(), "ksize", ksize_c_value.get(), ksize_n);
+  env->ReleaseLongArrayElements(ksize, ksize_elems, JNI_ABORT);
+
+  const int strides_n = env->GetArrayLength(strides);
+  std::unique_ptr<int64_t[]> strides_c_value(new int64_t[strides_n]);
+  jlong* strides_elems = env->GetLongArrayElements(strides, nullptr);
+  for (int i = 0; i < strides_n; ++i) {
+    strides_c_value[i] = static_cast<int64_t>(strides_elems[i]);
+  }
+  TFE_OpSetAttrIntList(op.get(), "strides", strides_c_value.get(), strides_n);
+  env->ReleaseLongArrayElements(strides, strides_elems, JNI_ABORT);
+
+  jbyte *padding_c_value = env->GetByteArrayElements(padding, nullptr);
+  TFE_OpSetAttrString(op.get(), "padding", reinterpret_cast<const char *>(padding_c_value));
+  env->ReleaseByteArrayElements(padding, padding_c_value, JNI_ABORT);
+
+  jbyte *data_format_c_value = env->GetByteArrayElements(data_format, nullptr);
+  TFE_OpSetAttrString(op.get(), "data_format", reinterpret_cast<const char *>(data_format_c_value));
+  env->ReleaseByteArrayElements(data_format, data_format_c_value, JNI_ABORT);
+
+  const int num_outputs = 1;
+  std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
+  TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  return reinterpret_cast<jlong>(outputs[0]);
+}
+
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_00024_maxPoolGradGrad(
+    JNIEnv* env, jobject object, jlong context_handle, jlong orig_input, jlong orig_output, jlong grad, jlongArray ksize, jlongArray strides, jbyteArray padding, jbyteArray data_format) {
+  REQUIRE_HANDLE(context, TFE_Context, context_handle, 0);
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+
+  std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
+      TFE_NewOp(context, "MaxPoolGradGrad", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(orig_input_handle, TFE_TensorHandle, orig_input, 0);
+  TFE_OpAddInput(op.get(), orig_input_handle, status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(orig_output_handle, TFE_TensorHandle, orig_output, 0);
+  TFE_OpAddInput(op.get(), orig_output_handle, status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(grad_handle, TFE_TensorHandle, grad, 0);
+  TFE_OpAddInput(op.get(), grad_handle, status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(attr_T_orig_input_handle, TFE_TensorHandle, orig_input, 0);
+  const TF_DataType attr_T = TFE_TensorHandleDataType(attr_T_orig_input_handle);
+  TFE_OpSetAttrType(op.get(), "T", attr_T);
+
+  REQUIRE_HANDLE(attr_T_orig_output_handle, TFE_TensorHandle, orig_output, 0);
+  const TF_DataType attr_T_orig_output = TFE_TensorHandleDataType(attr_T_orig_output_handle);
+  if (attr_T != attr_T_orig_output) {
+      std::stringstream error_msg;
+      error_msg
+          << "Argument 'orig_output' of 'maxPoolGradGrad' op with data type '"
+          << attr_T_orig_output
+          << "' must match data type '"
+          << attr_T
+          << "' of argument 'orig_input'";
+      throw_exception(env, tf_invalid_argument_exception, error_msg.str().c_str());
+  }
+
+  REQUIRE_HANDLE(attr_T_grad_handle, TFE_TensorHandle, grad, 0);
+  const TF_DataType attr_T_grad = TFE_TensorHandleDataType(attr_T_grad_handle);
+  if (attr_T != attr_T_grad) {
+      std::stringstream error_msg;
+      error_msg
+          << "Argument 'grad' of 'maxPoolGradGrad' op with data type '"
+          << attr_T_grad
+          << "' must match data type '"
+          << attr_T
+          << "' of argument 'orig_input'";
+      throw_exception(env, tf_invalid_argument_exception, error_msg.str().c_str());
+  }
+
+  const int ksize_n = env->GetArrayLength(ksize);
+  std::unique_ptr<int64_t[]> ksize_c_value(new int64_t[ksize_n]);
+  jlong* ksize_elems = env->GetLongArrayElements(ksize, nullptr);
+  for (int i = 0; i < ksize_n; ++i) {
+    ksize_c_value[i] = static_cast<int64_t>(ksize_elems[i]);
+  }
+  TFE_OpSetAttrIntList(op.get(), "ksize", ksize_c_value.get(), ksize_n);
+  env->ReleaseLongArrayElements(ksize, ksize_elems, JNI_ABORT);
+
+  const int strides_n = env->GetArrayLength(strides);
+  std::unique_ptr<int64_t[]> strides_c_value(new int64_t[strides_n]);
+  jlong* strides_elems = env->GetLongArrayElements(strides, nullptr);
+  for (int i = 0; i < strides_n; ++i) {
+    strides_c_value[i] = static_cast<int64_t>(strides_elems[i]);
+  }
+  TFE_OpSetAttrIntList(op.get(), "strides", strides_c_value.get(), strides_n);
+  env->ReleaseLongArrayElements(strides, strides_elems, JNI_ABORT);
 
   jbyte *padding_c_value = env->GetByteArrayElements(padding, nullptr);
   TFE_OpSetAttrString(op.get(), "padding", reinterpret_cast<const char *>(padding_c_value));
@@ -866,6 +1048,138 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_0
       error_msg
           << "Argument 'filter' of 'conv2D' op with data type '"
           << attr_T_filter
+          << "' must match data type '"
+          << attr_T
+          << "' of argument 'input'";
+      throw_exception(env, tf_invalid_argument_exception, error_msg.str().c_str());
+  }
+
+  const int strides_n = env->GetArrayLength(strides);
+  std::unique_ptr<int64_t[]> strides_c_value(new int64_t[strides_n]);
+  jlong* strides_elems = env->GetLongArrayElements(strides, nullptr);
+  for (int i = 0; i < strides_n; ++i) {
+    strides_c_value[i] = static_cast<int64_t>(strides_elems[i]);
+  }
+  TFE_OpSetAttrIntList(op.get(), "strides", strides_c_value.get(), strides_n);
+  env->ReleaseLongArrayElements(strides, strides_elems, JNI_ABORT);
+
+  jbyte *padding_c_value = env->GetByteArrayElements(padding, nullptr);
+  TFE_OpSetAttrString(op.get(), "padding", reinterpret_cast<const char *>(padding_c_value));
+  env->ReleaseByteArrayElements(padding, padding_c_value, JNI_ABORT);
+
+  TFE_OpSetAttrBool(op.get(), "use_cudnn_on_gpu", static_cast<unsigned char>(use_cudnn_on_gpu));
+
+  jbyte *data_format_c_value = env->GetByteArrayElements(data_format, nullptr);
+  TFE_OpSetAttrString(op.get(), "data_format", reinterpret_cast<const char *>(data_format_c_value));
+  env->ReleaseByteArrayElements(data_format, data_format_c_value, JNI_ABORT);
+
+  const int num_outputs = 1;
+  std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
+  TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  return reinterpret_cast<jlong>(outputs[0]);
+}
+
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_00024_conv2DBackpropInput(
+    JNIEnv* env, jobject object, jlong context_handle, jlong input_sizes, jlong filter, jlong out_backprop, jlongArray strides, jbyteArray padding, jboolean use_cudnn_on_gpu, jbyteArray data_format) {
+  REQUIRE_HANDLE(context, TFE_Context, context_handle, 0);
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+
+  std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
+      TFE_NewOp(context, "Conv2DBackpropInput", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(input_sizes_handle, TFE_TensorHandle, input_sizes, 0);
+  TFE_OpAddInput(op.get(), input_sizes_handle, status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(filter_handle, TFE_TensorHandle, filter, 0);
+  TFE_OpAddInput(op.get(), filter_handle, status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(out_backprop_handle, TFE_TensorHandle, out_backprop, 0);
+  TFE_OpAddInput(op.get(), out_backprop_handle, status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(attr_T_filter_handle, TFE_TensorHandle, filter, 0);
+  const TF_DataType attr_T = TFE_TensorHandleDataType(attr_T_filter_handle);
+  TFE_OpSetAttrType(op.get(), "T", attr_T);
+
+  REQUIRE_HANDLE(attr_T_out_backprop_handle, TFE_TensorHandle, out_backprop, 0);
+  const TF_DataType attr_T_out_backprop = TFE_TensorHandleDataType(attr_T_out_backprop_handle);
+  if (attr_T != attr_T_out_backprop) {
+      std::stringstream error_msg;
+      error_msg
+          << "Argument 'out_backprop' of 'conv2DBackpropInput' op with data type '"
+          << attr_T_out_backprop
+          << "' must match data type '"
+          << attr_T
+          << "' of argument 'filter'";
+      throw_exception(env, tf_invalid_argument_exception, error_msg.str().c_str());
+  }
+
+  const int strides_n = env->GetArrayLength(strides);
+  std::unique_ptr<int64_t[]> strides_c_value(new int64_t[strides_n]);
+  jlong* strides_elems = env->GetLongArrayElements(strides, nullptr);
+  for (int i = 0; i < strides_n; ++i) {
+    strides_c_value[i] = static_cast<int64_t>(strides_elems[i]);
+  }
+  TFE_OpSetAttrIntList(op.get(), "strides", strides_c_value.get(), strides_n);
+  env->ReleaseLongArrayElements(strides, strides_elems, JNI_ABORT);
+
+  jbyte *padding_c_value = env->GetByteArrayElements(padding, nullptr);
+  TFE_OpSetAttrString(op.get(), "padding", reinterpret_cast<const char *>(padding_c_value));
+  env->ReleaseByteArrayElements(padding, padding_c_value, JNI_ABORT);
+
+  TFE_OpSetAttrBool(op.get(), "use_cudnn_on_gpu", static_cast<unsigned char>(use_cudnn_on_gpu));
+
+  jbyte *data_format_c_value = env->GetByteArrayElements(data_format, nullptr);
+  TFE_OpSetAttrString(op.get(), "data_format", reinterpret_cast<const char *>(data_format_c_value));
+  env->ReleaseByteArrayElements(data_format, data_format_c_value, JNI_ABORT);
+
+  const int num_outputs = 1;
+  std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
+  TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  return reinterpret_cast<jlong>(outputs[0]);
+}
+
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_00024_conv2DBackpropFilter(
+    JNIEnv* env, jobject object, jlong context_handle, jlong input, jlong filter_sizes, jlong out_backprop, jlongArray strides, jbyteArray padding, jboolean use_cudnn_on_gpu, jbyteArray data_format) {
+  REQUIRE_HANDLE(context, TFE_Context, context_handle, 0);
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+
+  std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
+      TFE_NewOp(context, "Conv2DBackpropFilter", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
+  TFE_OpAddInput(op.get(), input_handle, status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(filter_sizes_handle, TFE_TensorHandle, filter_sizes, 0);
+  TFE_OpAddInput(op.get(), filter_sizes_handle, status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(out_backprop_handle, TFE_TensorHandle, out_backprop, 0);
+  TFE_OpAddInput(op.get(), out_backprop_handle, status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(attr_T_input_handle, TFE_TensorHandle, input, 0);
+  const TF_DataType attr_T = TFE_TensorHandleDataType(attr_T_input_handle);
+  TFE_OpSetAttrType(op.get(), "T", attr_T);
+
+  REQUIRE_HANDLE(attr_T_out_backprop_handle, TFE_TensorHandle, out_backprop, 0);
+  const TF_DataType attr_T_out_backprop = TFE_TensorHandleDataType(attr_T_out_backprop_handle);
+  if (attr_T != attr_T_out_backprop) {
+      std::stringstream error_msg;
+      error_msg
+          << "Argument 'out_backprop' of 'conv2DBackpropFilter' op with data type '"
+          << attr_T_out_backprop
           << "' must match data type '"
           << attr_T
           << "' of argument 'input'";
