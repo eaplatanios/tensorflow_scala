@@ -346,7 +346,7 @@ final class Shape private (private val array: Array[Int]) extends ProtoSerializa
       TensorShapeProto.newBuilder().setUnknownRank(true).build()
     } else {
       val builder = TensorShapeProto.newBuilder()
-      array.zipWithIndex.foreach(a => builder.setDim(a._2, TensorShapeProto.Dim.newBuilder().setSize(a._1)))
+      array.zipWithIndex.foreach(a => builder.addDim(a._2, TensorShapeProto.Dim.newBuilder().setSize(a._1)))
       builder.build()
     }
   }
