@@ -301,7 +301,7 @@ case class EventAccumulator(
               if (pluginData.getPluginName != null) {
                 _pluginTagContent
                     .getOrElseUpdate(pluginData.getPluginName, mutable.Map.empty[String, String])
-                    .update(tag, pluginData.getContent)
+                    .update(tag, pluginData.getContent.toStringUtf8)
               } else {
                 EventAccumulator.logger.warn(s"The summary with tag '$tag' is oddly not associated with any plugin.")
               }

@@ -114,7 +114,7 @@ private[api] trait NN {
       Op.createWithNameScope(name) {
         val positive = reluOp(input, s"$name/PositivePart")
         val negative = reluOp(-input, s"$name/NegativePart")
-        positive - (Basic.constant(alpha, negative.dataType, Shape(1)) * negative)
+        positive - (Basic.constant(alpha, negative.dataType, Shape.scalar()) * negative)
       }
     }
   }

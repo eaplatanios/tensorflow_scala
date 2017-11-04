@@ -133,8 +133,13 @@ private[ops] object Gradients {
                 throw new IllegalStateException(
                   s"The number of gradients (${inputGradients.length}) generated for op '$op' do not match its " +
                       s"number of inputs (${op.inputs.length}).")
-              if (gateGradients && inputGradients.count(_ != null) > 1)
-                inputGradients = ControlFlow.tuple(inputGradients.toArray).toSeq
+              if (gateGradients && inputGradients.count(_ != null) > 1) {
+                Op.createWith(device = "") {
+                  Op.colocateWith(Set.empty[Op], ignoreExisting = true) {
+                    inputGradients = ControlFlow.tuple(inputGradients.toArray).toSeq
+                  }
+                }
+              }
               logGradients(op, outputGradients, inputGradients)
               op.inputs.zip(inputGradients).filter(_._2 != null).foreach(i => {
                 i._2 match {
