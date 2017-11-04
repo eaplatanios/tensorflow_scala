@@ -19,6 +19,11 @@ import org.platanios.tensorflow.api.core.exception.InvalidShapeException
 import org.platanios.tensorflow.api.ops.{Basic, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.{DataType, INT32}
+import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
+
+import org.tensorflow.framework.TensorShapeProto
+
+import scala.collection.JavaConverters._
 
 /** Represents the shape of a tensor computed by an op.
   *
@@ -39,7 +44,7 @@ import org.platanios.tensorflow.api.types.{DataType, INT32}
   *
   * @author Emmanouil Antonios Platanios
   */
-final class Shape private (private val array: Array[Int]) {
+final class Shape private (private val array: Array[Int]) extends ProtoSerializable {
   /** Returns a boolean value indicating whether this shape is fully defined.
     *
     * If the size of any dimension is equal to `-1` or if the shape is completely unknown, then it is not considered
@@ -330,6 +335,22 @@ final class Shape private (private val array: Array[Int]) {
     Basic.constant(toTensor(dataType), name = name)
   }
 
+  override def toProto: TensorShapeProto = toTensorShapeProto
+
+  /** Constructs and returns a [[TensorShapeProto]] object that represents this shape.
+    *
+    * @return Constructed [[TensorShapeProto]].
+    */
+  def toTensorShapeProto: TensorShapeProto = {
+    if (rank == -1) {
+      TensorShapeProto.newBuilder().setUnknownRank(true).build()
+    } else {
+      val builder = TensorShapeProto.newBuilder()
+      array.zipWithIndex.foreach(a => builder.setDim(a._2, TensorShapeProto.Dim.newBuilder().setSize(a._1)))
+      builder.build()
+    }
+  }
+
   override def toString: String = if (array == null) "<unknown>" else s"[${array.mkString(", ").replace("-1", "?")}]"
 
   override def equals(that: Any): Boolean = that match {
@@ -401,6 +422,25 @@ object Shape {
     * @param  dimensions Dimension sizes.
     */
   def apply(dimensions: Array[Int]): Shape = create(dimensions)
+
+  /** Creates a shape from the provided [[TensorShapeProto]] object.
+    *
+    * @param  tensorShapeProto Serialized shape object.
+    * @return Constructed [[Shape]].
+    */
+  def fromProto(tensorShapeProto: TensorShapeProto): Shape = fromTensorShapeProto(tensorShapeProto)
+
+  /** Creates a shape from the provided [[TensorShapeProto]] object.
+    *
+    * @param  tensorShapeProto Serialized shape object.
+    * @return Constructed [[Shape]].
+    */
+  def fromTensorShapeProto(tensorShapeProto: TensorShapeProto): Shape = {
+    if (tensorShapeProto.getUnknownRank)
+      Shape.unknown()
+    else
+      fromSeq(tensorShapeProto.getDimList.asScala.map(_.getSize.toInt))
+  }
 
   // implicit def shapeToTensor(shape: Shape): Tensor = shape.toTensor()
   // implicit def shapeToOutput(shape: Shape): Output = shape.toOutput()
