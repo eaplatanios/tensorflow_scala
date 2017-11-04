@@ -27,8 +27,10 @@ import org.platanios.tensorflow.api.utilities.{Closeable, Disposer}
 import org.platanios.tensorflow.jni.{Tensor => NativeTensor}
 import org.platanios.tensorflow.jni.generated.tensors.{Sparse => NativeTensorOpsSparse}
 
+import com.google.protobuf.ByteString
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
+import org.tensorflow.framework.TensorProto
 import shapeless.{Generic, HList, Lazy}
 
 import java.nio._
@@ -202,6 +204,16 @@ class Tensor private[Tensor](private[api] var nativeHandle: Long) extends Tensor
     }
   }
 
+  private[api] def buffer(implicit context: DynamicVariable[Context]): ByteBuffer = {
+    val resolvedHandle = resolve()
+    val buffer = NativeTensor.buffer(resolvedHandle).order(ByteOrder.nativeOrder)
+    NativeHandleLock synchronized {
+      if (resolvedHandle != 0)
+        NativeTensor.delete(resolvedHandle)
+    }
+    buffer
+  }
+
   private[api] def getElementAtFlattenedIndex(index: Int): dataType.ScalaType = {
     val resolvedHandle = resolve()
     val buffer = NativeTensor.buffer(resolvedHandle).order(ByteOrder.nativeOrder)
@@ -226,22 +238,36 @@ class Tensor private[Tensor](private[api] var nativeHandle: Long) extends Tensor
     getElementAtFlattenedIndex(0)
   }
 
-  def entriesIterator: Iterator[dataType.ScalaType] = {
-    val resolvedHandle = resolve()
-    val buffer = NativeTensor.buffer(resolvedHandle).order(ByteOrder.nativeOrder)
-    val iterator = dataType match {
-      case STRING =>
-        val offset = INT64.byteSize * size.toInt
-        Iterator.range(0, size.toInt).map(i => {
-          dataType.getElementFromBuffer(buffer, offset + INT64.getElementFromBuffer(buffer, i * INT64.byteSize).toInt)
-        })
-      case _ => Iterator.range(0, size.toInt).map(i => dataType.getElementFromBuffer(buffer, i * dataType.byteSize))
+  def entriesIterator: Iterator[dataType.ScalaType] = new Iterator[dataType.ScalaType] {
+    private var resolvedHandle: Long = resolve()
+    private var i             : Int  = 0
+
+    private val buffer      : ByteBuffer = NativeTensor.buffer(resolvedHandle).order(ByteOrder.nativeOrder)
+    private val stringOffset: Int        = INT64.byteSize * Tensor.this.size.toInt
+
+    override def hasNext: Boolean = {
+      val hasNext = resolvedHandle != 0 && i < Tensor.this.size.toInt
+      if (!hasNext && resolvedHandle != 0) {
+        NativeHandleLock synchronized {
+          NativeTensor.delete(resolvedHandle)
+          resolvedHandle = 0
+        }
+      }
+      hasNext
     }
-    NativeHandleLock synchronized {
-      if (resolvedHandle != 0)
-        NativeTensor.delete(resolvedHandle)
+
+    override def next(): dataType.ScalaType = {
+      val nextElement = dataType match {
+        case STRING =>
+          dataType.getElementFromBuffer(
+            buffer, stringOffset + INT64.getElementFromBuffer(buffer, i * INT64.byteSize).toInt)
+        case _ =>
+          dataType.getElementFromBuffer(buffer, i * dataType.byteSize)
+
+      }
+      i += 1
+      nextElement
     }
-    iterator
   }
 
   def apply(indexers: Indexer*): Tensor = this.slice(indexers: _*)
@@ -544,6 +570,32 @@ object Tensor {
     val tensor = Tensor.fromHostNativeHandle(hostHandle)
     NativeTensor.delete(hostHandle)
     tensor
+  }
+
+  @throws[InvalidArgumentException]
+  def makeProto(value: Tensor, dataType: DataType = null, shape: Shape = null)(implicit
+      context: DynamicVariable[Context]
+  ): TensorProto = {
+    val inferredDataType = if (dataType == null) value.dataType else dataType
+    val inferredShape = if (shape == null) value.shape else shape
+    val castedValue = value.cast(inferredDataType)
+    val tensorProtoBuilder =
+      TensorProto.newBuilder()
+          .setDtype(inferredDataType.protoType)
+          .setTensorShape(inferredShape.toTensorShapeProto)
+    if (inferredDataType.byteSize * value.size >= Int.MaxValue)
+      throw InvalidArgumentException("Cannot serialize tensors whose content is larger than 2GB.")
+    if (value.dataType != STRING && value.size == inferredShape.numElements) {
+      tensorProtoBuilder.setTensorContent(ByteString.copyFrom(castedValue.buffer))
+    } else if (value.dataType != STRING) {
+      castedValue.entriesIterator.foreach(v => {
+        inferredDataType.addToTensorProtoBuilder(
+          tensorProtoBuilder, inferredDataType.cast(v)(castedValue.dataType.supportedType))
+      })
+    } else {
+      castedValue.entriesIterator.foreach(s => tensorProtoBuilder.addStringVal(ByteString.copyFromUtf8(s.toString)))
+    }
+    tensorProtoBuilder.build()
   }
 
   private[tensors] trait Implicits {

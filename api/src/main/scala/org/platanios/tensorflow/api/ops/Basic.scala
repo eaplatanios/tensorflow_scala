@@ -23,6 +23,7 @@ import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry
 import org.platanios.tensorflow.api.tensors.{Context, Tensor}
 import org.platanios.tensorflow.api.types._
 import org.platanios.tensorflow.jni.generated.tensors.{Basic => NativeTensorOpsBasic}
+import org.tensorflow.framework.AttrValue
 
 import scala.language.postfixOps
 import scala.util.DynamicVariable
@@ -48,23 +49,16 @@ private[api] trait Basic {
     *                               the provided `shape`.
     */
   @throws[InvalidShapeException]
-  def constant(tensor: Tensor, dataType: DataType = null, shape: Shape = null, name: String = "Constant"): Output = {
+  def constant(tensor: Tensor, dataType: DataType = null, shape: Shape = null, name: String = "Constant"
+  )(implicit
+      context: DynamicVariable[Context]
+  ): Output = {
     val inferredDataType = if (dataType == null) tensor.dataType else dataType
     val inferredShape = if (shape == null) tensor.shape else shape
-    val constantTensor = {
-      if (inferredDataType != tensor.dataType || inferredShape != tensor.shape) {
-        if (tensor.size == 1) {
-          Tensor.fill(inferredDataType, inferredShape)(tensor.scalar)(tensor.dataType.supportedType)
-        } else {
-          if (inferredShape.numElements != tensor.shape.numElements)
-            throw InvalidShapeException(
-              s"Shape '${tensor.shape}' tensor is not valid for shape '$inferredShape' constant op creation.")
-          tensor.reshape(inferredShape).cast(inferredDataType)
-        }
-      } else {
-        tensor
-      }
-    }
+    val constantTensor =
+      AttrValue.newBuilder()
+          .setTensor(Tensor.makeProto(tensor, inferredDataType, inferredShape))
+          .build()
     Op.Builder(opType = "Const", name = name)
         .setAttribute("value", constantTensor)
         .setAttribute("dtype", inferredDataType)
@@ -353,7 +347,7 @@ private[api] trait Basic {
     */
   def shapeN(
       inputs: Seq[Output], dataType: DataType = INT32, name: String = "ShapeN"): Seq[Output] = {
-    Op.Builder(opType = "Shape", name = name)
+    Op.Builder(opType = "ShapeN", name = name)
         .addInputList(inputs)
         .setAttribute("out_type", dataType)
         .build().outputs.toSeq

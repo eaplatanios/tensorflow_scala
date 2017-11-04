@@ -17,10 +17,11 @@ package org.platanios.tensorflow.api.types
 
 import org.platanios.tensorflow.api.types.SupportedType._
 import org.platanios.tensorflow.jni.{Tensor => NativeTensor, TensorFlow => NativeLibrary}
-
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
 
+import com.google.protobuf.ByteString
+import org.tensorflow.framework.TensorProto
 import spire.math.{UByte, UShort}
 
 // TODO: Add min/max-value and "isSigned" information.
@@ -135,6 +136,8 @@ sealed trait DataType {
     */
   @throws[UnsupportedOperationException]
   private[api] def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType
+
+  private[api] def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: ScalaType): Unit
 
   override def toString: String = name
 
@@ -315,6 +318,10 @@ private[api] object STRING extends DataType.Aux[String] {
     val stringBytes = NativeTensor.getStringBytes(buffer.duplicate().position(index).asInstanceOf[ByteBuffer].slice())
     new String(stringBytes, Charset.forName("ISO-8859-1"))
   }
+
+  private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: String): Unit = {
+    tensorProtoBuilder.addStringVal(ByteString.copyFromUtf8(value))
+  }
 }
 
 private[api] object BOOLEAN extends DataType.Aux[Boolean] {
@@ -334,6 +341,10 @@ private[api] object BOOLEAN extends DataType.Aux[Boolean] {
 
   private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Boolean = {
     buffer.get(index) == 1
+  }
+
+  private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: Boolean): Unit = {
+    tensorProtoBuilder.addBoolVal(value)
   }
 }
 
@@ -359,6 +370,10 @@ private[api] object FLOAT16 extends DataType.Aux[Float] {
   private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Float = {
     ???
   }
+
+  private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: Float): Unit = {
+    ???
+  }
 }
 
 private[api] object FLOAT32 extends DataType.Aux[Float] {
@@ -381,6 +396,10 @@ private[api] object FLOAT32 extends DataType.Aux[Float] {
 
   private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Float = {
     buffer.getFloat(index)
+  }
+
+  private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: Float): Unit = {
+    tensorProtoBuilder.addFloatVal(value)
   }
 }
 
@@ -405,6 +424,10 @@ private[api] object FLOAT64 extends DataType.Aux[Double] {
   private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Double = {
     buffer.getDouble(index)
   }
+
+  private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: Double): Unit = {
+    tensorProtoBuilder.addDoubleVal(value)
+  }
 }
 
 private[api] object BFLOAT16 extends DataType.Aux[Float] {
@@ -425,6 +448,10 @@ private[api] object BFLOAT16 extends DataType.Aux[Float] {
   }
 
   private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Float = {
+    ???
+  }
+
+  private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: Float): Unit = {
     ???
   }
 }
@@ -449,6 +476,10 @@ private[api] object COMPLEX64 extends DataType.Aux[Double] {
   private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Double = {
     ???
   }
+
+  private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: Double): Unit = {
+    ???
+  }
 }
 
 private[api] object COMPLEX128 extends DataType.Aux[Double] {
@@ -469,6 +500,10 @@ private[api] object COMPLEX128 extends DataType.Aux[Double] {
   }
 
   private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Double = {
+    ???
+  }
+
+  private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: Double): Unit = {
     ???
   }
 }
@@ -494,6 +529,10 @@ private[api] object INT8 extends DataType.Aux[Byte] {
   private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Byte = {
     buffer.get(index)
   }
+
+  private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: Byte): Unit = {
+    tensorProtoBuilder.addIntVal(value)
+  }
 }
 
 private[api] object INT16 extends DataType.Aux[Short] {
@@ -516,6 +555,10 @@ private[api] object INT16 extends DataType.Aux[Short] {
 
   private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Short = {
     buffer.getShort(index)
+  }
+
+  private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: Short): Unit = {
+    tensorProtoBuilder.addIntVal(value)
   }
 }
 
@@ -540,6 +583,10 @@ private[api] object INT32 extends DataType.Aux[Int] {
   private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Int = {
     buffer.getInt(index)
   }
+
+  private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: Int): Unit = {
+    tensorProtoBuilder.addIntVal(value)
+  }
 }
 
 private[api] object INT64 extends DataType.Aux[Long] {
@@ -562,6 +609,10 @@ private[api] object INT64 extends DataType.Aux[Long] {
 
   private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Long = {
     buffer.getLong(index)
+  }
+
+  private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: Long): Unit = {
+    tensorProtoBuilder.addInt64Val(value)
   }
 }
 
@@ -586,6 +637,10 @@ private[api] object UINT8 extends DataType.Aux[UByte] {
   private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): UByte = {
     UByte(buffer.get(index))
   }
+
+  private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: UByte): Unit = {
+    tensorProtoBuilder.addIntVal(value.toInt)
+  }
 }
 
 private[api] object UINT16 extends DataType.Aux[UShort] {
@@ -608,6 +663,10 @@ private[api] object UINT16 extends DataType.Aux[UShort] {
 
   private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): UShort = {
     UShort(buffer.getChar(index))
+  }
+
+  private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: UShort): Unit = {
+    tensorProtoBuilder.addIntVal(value.toInt)
   }
 }
 
@@ -632,6 +691,10 @@ private[api] object UINT32 extends DataType.Aux[Long] {
   private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Long = {
     buffer.getInt(index).toLong
   }
+
+  private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: Long): Unit = {
+    ???
+  }
 }
 
 // TODO: !!! [TYPES] Add UINT64 support.
@@ -654,6 +717,10 @@ private[api] object QINT8 extends DataType.Aux[Byte] {
   private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Byte = {
     buffer.get(index)
   }
+
+  private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: Byte): Unit = {
+    ???
+  }
 }
 
 private[api] object QINT16 extends DataType.Aux[Short] {
@@ -673,6 +740,10 @@ private[api] object QINT16 extends DataType.Aux[Short] {
 
   private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Short = {
     buffer.getShort(index)
+  }
+
+  private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: Short): Unit = {
+    ???
   }
 }
 
@@ -694,6 +765,10 @@ private[api] object QINT32 extends DataType.Aux[Int] {
   private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Int = {
     buffer.getInt(index)
   }
+
+  private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: Int): Unit = {
+    ???
+  }
 }
 
 private[api] object QUINT8 extends DataType.Aux[UByte] {
@@ -713,6 +788,10 @@ private[api] object QUINT8 extends DataType.Aux[UByte] {
 
   private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): UByte = {
     UByte(buffer.get(index))
+  }
+
+  private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: UByte): Unit = {
+    ???
   }
 }
 
@@ -734,6 +813,10 @@ private[api] object QUINT16 extends DataType.Aux[UShort] {
   private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): UShort = {
     UShort(buffer.getChar(index))
   }
+
+  private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: UShort): Unit = {
+    ???
+  }
 }
 
 private[api] object RESOURCE extends DataType.Aux[Long] {
@@ -753,6 +836,10 @@ private[api] object RESOURCE extends DataType.Aux[Long] {
   private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Long = {
     throw new UnsupportedOperationException("The resource data type is not supported on the Scala side.")
   }
+
+  private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: Long): Unit = {
+    ???
+  }
 }
 
 private[api] object VARIANT extends DataType.Aux[Long] {
@@ -771,5 +858,9 @@ private[api] object VARIANT extends DataType.Aux[Long] {
 
   private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Long = {
     throw new UnsupportedOperationException("The variant data type is not supported on the Scala side.")
+  }
+
+  private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: Long): Unit = {
+    ???
   }
 }
