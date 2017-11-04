@@ -47,32 +47,34 @@ object STL10Loader extends Loader {
 
   override protected val logger = Logger(LoggerFactory.getLogger("STL10 Data Loader"))
 
-  def load(path: Path, bufferSize: Int = 8192): STL10Dataset = {
+  def load(path: Path, bufferSize: Int = 8192, loadUnlabeled: Boolean = true): STL10Dataset = {
     // Download the data, if necessary.
     maybeDownload(path.resolve(compressedFilename), url + compressedFilename, bufferSize)
 
     // Load the data.
-    extractFiles(path.resolve(compressedFilename), bufferSize)
+    extractFiles(path.resolve(compressedFilename), bufferSize, loadUnlabeled)
   }
 
-  private[this] def extractFiles(path: Path, bufferSize: Int = 8192): STL10Dataset = {
+  private[this] def extractFiles(path: Path, bufferSize: Int = 8192, loadUnlabeled: Boolean = true): STL10Dataset = {
     logger.info(s"Extracting data from file '$path'.")
     val inputStream = new TarArchiveInputStream(new GZIPInputStream(Files.newInputStream(path)))
     var dataset = STL10Dataset(null, null, null, null, null)
     var entry = inputStream.getNextTarEntry
     while (entry != null) {
       if (entry.getName == unlabeledImagesFilename) {
-        // TODO: Make this more efficient.
-        // We have to split this tensor in two parts because its size exceeds the maximum allowed byte buffer size.
-        val halfShape = Shape(numUnlabeled / 2, imageChannels, imageHeight, imageWidth)
-        val buffer = new Array[Byte]((entry.getSize / 2).toInt)
-        inputStream.read(buffer)
-        var byteBuffer = ByteBuffer.wrap(buffer).order(ByteOrder.BIG_ENDIAN)
-        val tensor1 = Tensor.fromBuffer(UINT8, halfShape, entry.getSize, byteBuffer).transpose(Tensor(0, 3, 2, 1))
-        inputStream.read(buffer)
-        byteBuffer = ByteBuffer.wrap(buffer).order(ByteOrder.BIG_ENDIAN)
-        val tensor2 = Tensor.fromBuffer(UINT8, halfShape, entry.getSize, byteBuffer).transpose(Tensor(0, 3, 2, 1))
-        dataset = dataset.copy(unlabeledImages = tfi.concatenate(Seq(tensor1, tensor2), axis = 0))
+        if (loadUnlabeled) {
+          // TODO: Make this more efficient.
+          // We have to split this tensor in two parts because its size exceeds the maximum allowed byte buffer size.
+          val halfShape = Shape(numUnlabeled / 2, imageChannels, imageHeight, imageWidth)
+          val buffer = new Array[Byte]((entry.getSize / 2).toInt)
+          inputStream.read(buffer)
+          var byteBuffer = ByteBuffer.wrap(buffer).order(ByteOrder.BIG_ENDIAN)
+          val tensor1 = Tensor.fromBuffer(UINT8, halfShape, entry.getSize, byteBuffer).transpose(Tensor(0, 3, 2, 1))
+          inputStream.read(buffer)
+          byteBuffer = ByteBuffer.wrap(buffer).order(ByteOrder.BIG_ENDIAN)
+          val tensor2 = Tensor.fromBuffer(UINT8, halfShape, entry.getSize, byteBuffer).transpose(Tensor(0, 3, 2, 1))
+          dataset = dataset.copy(unlabeledImages = tfi.concatenate(Seq(tensor1, tensor2), axis = 0))
+        }
       } else if (Set(
         trainImagesFilename, trainLabelsFilename,
         testImagesFilename, testLabelsFilename).contains(entry.getName)) {
@@ -86,14 +88,14 @@ object STL10Loader extends Loader {
             val tensor = Tensor.fromBuffer(UINT8, shape, entry.getSize, byteBuffer).transpose(Tensor(0, 3, 2, 1))
             dataset = dataset.copy(trainImages = tensor)
           case name if name == trainLabelsFilename =>
-            val tensor = Tensor.fromBuffer(UINT8, Shape(numTrain), entry.getSize, byteBuffer)
+            val tensor = Tensor.fromBuffer(UINT8, Shape(numTrain), entry.getSize, byteBuffer) - Tensor(UINT8, 1)
             dataset = dataset.copy(trainLabels = tensor)
           case name if name == testImagesFilename =>
             val shape = Shape(numTest, imageChannels, imageHeight, imageWidth)
             val tensor = Tensor.fromBuffer(UINT8, shape, entry.getSize, byteBuffer).transpose(Tensor(0, 3, 2, 1))
             dataset = dataset.copy(testImages = tensor)
           case name if name == testLabelsFilename =>
-            val tensor = Tensor.fromBuffer(UINT8, Shape(numTest), entry.getSize, byteBuffer)
+            val tensor = Tensor.fromBuffer(UINT8, Shape(numTest), entry.getSize, byteBuffer) - Tensor(UINT8, 1)
             dataset = dataset.copy(testLabels = tensor)
           case _ => ()
         }
