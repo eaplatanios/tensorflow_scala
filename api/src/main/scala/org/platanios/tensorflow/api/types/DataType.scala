@@ -60,6 +60,9 @@ sealed trait DataType {
 
   private[api] val priority: Int
 
+  /** ProtoBuf data type used in serialized representations of tensors. */
+  def protoType: org.tensorflow.framework.DataType
+
   //endregion Data Type Properties
 
   //region Data Type Set Helper Methods
@@ -301,6 +304,8 @@ private[api] object STRING extends DataType.Aux[String] {
   override val byteSize: Int    = -1
   override val priority: Int    = 1000
 
+  override def protoType: org.tensorflow.framework.DataType = org.tensorflow.framework.DataType.DT_STRING
+
   private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: String): Int = {
     val stringBytes = element.getBytes(Charset.forName("ISO-8859-1"))
     NativeTensor.setStringBytes(stringBytes, buffer.duplicate().position(index).asInstanceOf[ByteBuffer].slice())
@@ -319,6 +324,8 @@ private[api] object BOOLEAN extends DataType.Aux[Boolean] {
   override val cValue  : Int    = 10
   override val byteSize: Int    = 1
   override val priority: Int    = 0
+
+  override def protoType: org.tensorflow.framework.DataType = org.tensorflow.framework.DataType.DT_BOOL
 
   private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: Boolean): Int = {
     buffer.put(index, if (element) 1 else 0)
@@ -340,6 +347,8 @@ private[api] object FLOAT16 extends DataType.Aux[Float] {
   override val byteSize: Int    = 2
   override val priority: Int    = -1
 
+  override def protoType: org.tensorflow.framework.DataType = org.tensorflow.framework.DataType.DT_HALF
+
   override def min: ScalaType = -65504f
   override def max: ScalaType = 65504f
 
@@ -359,6 +368,8 @@ private[api] object FLOAT32 extends DataType.Aux[Float] {
   override val cValue  : Int    = 1
   override val byteSize: Int    = 4
   override val priority: Int    = 220
+
+  override def protoType: org.tensorflow.framework.DataType = org.tensorflow.framework.DataType.DT_FLOAT
 
   override def min: ScalaType = Float.MinValue
   override def max: ScalaType = Float.MaxValue
@@ -381,6 +392,8 @@ private[api] object FLOAT64 extends DataType.Aux[Double] {
   override val byteSize: Int    = 8
   override val priority: Int    = 230
 
+  override def protoType: org.tensorflow.framework.DataType = org.tensorflow.framework.DataType.DT_DOUBLE
+
   override def min: ScalaType = Double.MinValue
   override def max: ScalaType = Double.MaxValue
 
@@ -402,6 +415,8 @@ private[api] object BFLOAT16 extends DataType.Aux[Float] {
   override val byteSize: Int    = 2
   override val priority: Int    = -1
 
+  override def protoType: org.tensorflow.framework.DataType = org.tensorflow.framework.DataType.DT_BFLOAT16
+
   override def min: ScalaType = ???
   override def max: ScalaType = ???
 
@@ -421,6 +436,8 @@ private[api] object COMPLEX64 extends DataType.Aux[Double] {
   override val cValue  : Int    = 8
   override val byteSize: Int    = 8
   override val priority: Int    = -1
+
+  override def protoType: org.tensorflow.framework.DataType = org.tensorflow.framework.DataType.DT_COMPLEX64
 
   override def min: ScalaType = ???
   override def max: ScalaType = ???
@@ -442,6 +459,8 @@ private[api] object COMPLEX128 extends DataType.Aux[Double] {
   override val byteSize: Int    = 16
   override val priority: Int    = -1
 
+  override def protoType: org.tensorflow.framework.DataType = org.tensorflow.framework.DataType.DT_COMPLEX128
+
   override def min: ScalaType = ???
   override def max: ScalaType = ???
 
@@ -461,6 +480,8 @@ private[api] object INT8 extends DataType.Aux[Byte] {
   override val cValue  : Int    = 6
   override val byteSize: Int    = 1
   override val priority: Int    = 40
+
+  override def protoType: org.tensorflow.framework.DataType = org.tensorflow.framework.DataType.DT_INT8
 
   override def min: ScalaType = (-128).toByte
   override def max: ScalaType = 127.toByte
@@ -483,6 +504,8 @@ private[api] object INT16 extends DataType.Aux[Short] {
   override val byteSize: Int    = 2
   override val priority: Int    = 80
 
+  override def protoType: org.tensorflow.framework.DataType = org.tensorflow.framework.DataType.DT_INT16
+
   override def min: ScalaType = (-32768).toShort
   override def max: ScalaType = 32767.toShort
 
@@ -503,6 +526,8 @@ private[api] object INT32 extends DataType.Aux[Int] {
   override val cValue  : Int    = 3
   override val byteSize: Int    = 4
   override val priority: Int    = 100
+
+  override def protoType: org.tensorflow.framework.DataType = org.tensorflow.framework.DataType.DT_INT32
 
   override def min: ScalaType = -2147483648
   override def max: ScalaType = 2147483647
@@ -525,6 +550,8 @@ private[api] object INT64 extends DataType.Aux[Long] {
   override val byteSize: Int    = 8
   override val priority: Int    = 110
 
+  override def protoType: org.tensorflow.framework.DataType = org.tensorflow.framework.DataType.DT_INT64
+
   override def min: ScalaType = -9223372036854775808L
   override def max: ScalaType = 9223372036854775807L
 
@@ -545,6 +572,8 @@ private[api] object UINT8 extends DataType.Aux[UByte] {
   override val cValue  : Int    = 4
   override val byteSize: Int    = 1
   override val priority: Int    = 20
+
+  override def protoType: org.tensorflow.framework.DataType = org.tensorflow.framework.DataType.DT_UINT8
 
   override def min: ScalaType = UByte(0)
   override def max: ScalaType = UByte(255)
@@ -567,6 +596,8 @@ private[api] object UINT16 extends DataType.Aux[UShort] {
   override val byteSize: Int    = 2
   override val priority: Int    = 60
 
+  override def protoType: org.tensorflow.framework.DataType = org.tensorflow.framework.DataType.DT_UINT16
+
   override def min: ScalaType = UShort(0)
   override def max: ScalaType = UShort(65535)
 
@@ -587,6 +618,8 @@ private[api] object UINT32 extends DataType.Aux[Long] {
   override val cValue  : Int    = 22
   override val byteSize: Int    = 4
   override val priority: Int    = 85
+
+  override def protoType: org.tensorflow.framework.DataType = ???
 
   override def min: ScalaType = 0L
   override def max: ScalaType = 9223372036854775807L
@@ -611,6 +644,8 @@ private[api] object QINT8 extends DataType.Aux[Byte] {
   override val byteSize: Int    = 1
   override val priority: Int    = 30
 
+  override def protoType: org.tensorflow.framework.DataType = org.tensorflow.framework.DataType.DT_QINT8
+
   private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: Byte): Int = {
     buffer.put(index, element)
     byteSize
@@ -628,6 +663,8 @@ private[api] object QINT16 extends DataType.Aux[Short] {
   override val cValue  : Int    = 15
   override val byteSize: Int    = 2
   override val priority: Int    = 70
+
+  override def protoType: org.tensorflow.framework.DataType = org.tensorflow.framework.DataType.DT_QINT16
 
   private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: Short): Int = {
     buffer.putShort(index, element)
@@ -647,6 +684,8 @@ private[api] object QINT32 extends DataType.Aux[Int] {
   override val byteSize: Int    = 4
   override val priority: Int    = 90
 
+  override def protoType: org.tensorflow.framework.DataType = org.tensorflow.framework.DataType.DT_QINT32
+
   private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: Int): Int = {
     buffer.putInt(index, element)
     byteSize
@@ -664,6 +703,8 @@ private[api] object QUINT8 extends DataType.Aux[UByte] {
   override val cValue  : Int    = 12
   override val byteSize: Int    = 1
   override val priority: Int    = 10
+
+  override def protoType: org.tensorflow.framework.DataType = org.tensorflow.framework.DataType.DT_QUINT8
 
   private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: UByte): Int = {
     buffer.put(index, element.toByte)
@@ -683,6 +724,8 @@ private[api] object QUINT16 extends DataType.Aux[UShort] {
   override val byteSize: Int    = 2
   override val priority: Int    = 50
 
+  override def protoType: org.tensorflow.framework.DataType = org.tensorflow.framework.DataType.DT_QUINT16
+
   private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: UShort): Int = {
     buffer.putChar(index, element.toChar)
     byteSize
@@ -701,6 +744,8 @@ private[api] object RESOURCE extends DataType.Aux[Long] {
   override val byteSize: Int    = -1
   override val priority: Int    = -1
 
+  override def protoType: org.tensorflow.framework.DataType = org.tensorflow.framework.DataType.DT_RESOURCE
+
   private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: Long): Int = {
     throw new UnsupportedOperationException("The resource data type is not supported on the Scala side.")
   }
@@ -717,6 +762,8 @@ private[api] object VARIANT extends DataType.Aux[Long] {
   override val cValue  : Int    = 21
   override val byteSize: Int    = -1
   override val priority: Int    = -1
+
+  override def protoType: org.tensorflow.framework.DataType = org.tensorflow.framework.DataType.DT_VARIANT
 
   private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: Long): Int = {
     throw new UnsupportedOperationException("The variant data type is not supported on the Scala side.")
