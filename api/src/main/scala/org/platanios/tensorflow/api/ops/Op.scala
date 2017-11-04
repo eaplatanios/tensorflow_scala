@@ -26,9 +26,7 @@ import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.DataType
 import org.platanios.tensorflow.api.utilities.using
 import org.platanios.tensorflow.jni.{Op => NativeOp, Tensor => NativeTensor}
-
-import org.tensorflow.framework.{AttrValue, NameAttrList}
-
+import org.tensorflow.framework.{AttrValue, NameAttrList, TensorProto}
 import java.nio.charset.Charset
 
 import scala.collection.mutable
@@ -1238,6 +1236,8 @@ object Op {
             val handles = value.map(_.resolve())
             NativeOp.setAttrTensorList(nativeHandle, attribute._1, handles)
             handles.foreach(NativeTensor.delete)
+          case value: AttrValue =>
+            NativeOp.setAttrProto(nativeHandle, attribute._1, value.toByteArray)
           case value: Shape =>
             if (value.rank != -1)
               NativeOp.setAttrShape(nativeHandle, attribute._1, value.asArray.map(_.toLong), value.rank)
@@ -1354,6 +1354,11 @@ object Op {
     }
 
     def setAttribute(name: String, value: Array[Shape]): Builder = {
+      attributes += name -> value
+      this
+    }
+
+    def setAttribute(name: String, value: AttrValue): Builder = {
       attributes += name -> value
       this
     }

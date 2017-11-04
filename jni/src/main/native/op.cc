@@ -511,9 +511,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAtt
       TF_DeleteStatus(status);                                                                    \
       return nullptr;                                                                             \
     }                                                                                             \
-    TF_DeleteStatus(status);                                                                      \
                                                                                                   \
-    if (attr_metadata.list_size < 0) return nullptr;                                              \
     if (attr_metadata.type != tf_type || attr_metadata.is_list == 0)                              \
       throw_exception(                                                                            \
           env, tf_invalid_argument_exception,                                                     \
@@ -521,9 +519,8 @@ JNIEXPORT jobjectArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAtt
           name, attr_name, attrTypeToString(attr_metadata.type, attr_metadata.is_list));          \
                                                                                                   \
     int list_size = static_cast<int>(attr_metadata.list_size);                                    \
-    if (list_size <= 0) return nullptr;                                                           \
+    if (list_size < 0) return nullptr;                                                            \
     ctype *attr_values = new ctype[list_size];                                                    \
-    status = TF_NewStatus();                                                                      \
     TF_OperationGetAttr##name##List(op, attr_name, attr_values, list_size, status);               \
     env->ReleaseStringUTFChars(name, attr_name);                                                  \
                                                                                                   \
