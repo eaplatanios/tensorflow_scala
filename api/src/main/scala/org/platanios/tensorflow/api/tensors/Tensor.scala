@@ -597,15 +597,13 @@ object Tensor {
           .setTensorShape(inferredShape.toTensorShapeProto)
     if (inferredDataType.byteSize * value.size >= Int.MaxValue)
       throw InvalidArgumentException("Cannot serialize tensors whose content is larger than 2GB.")
-    if (value.dataType != STRING && value.size == inferredShape.numElements) {
+    if (value.size == inferredShape.numElements) {
       tensorProtoBuilder.setTensorContent(ByteString.copyFrom(castedValue.buffer))
-    } else if (value.dataType != STRING) {
+    } else {
       castedValue.entriesIterator.foreach(v => {
         inferredDataType.addToTensorProtoBuilder(
           tensorProtoBuilder, inferredDataType.cast(v)(castedValue.dataType.supportedType))
       })
-    } else {
-      castedValue.entriesIterator.foreach(s => tensorProtoBuilder.addStringVal(ByteString.copyFromUtf8(s.toString)))
     }
     tensorProtoBuilder.build()
   }
