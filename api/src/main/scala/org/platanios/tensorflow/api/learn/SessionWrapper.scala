@@ -120,7 +120,7 @@ class SessionWrapper private[learn](
       })
 
       // Update the `_shouldStop` flag and return.
-      _shouldStop ||= runContext.stopRequested
+      setShouldStop(_shouldStop || runContext.stopRequested)
       (result._1._1, result._2)
     }
   }
@@ -194,10 +194,20 @@ class SessionWrapper private[learn](
     if (checkStop || closed) {
       true
     } else {
-      session match {
-        case s: SessionWrapper => s.shouldStop
-        case _ => false
+      _shouldStop || {
+        session match {
+          case s: SessionWrapper => s.shouldStop
+          case _ => false
+        }
       }
+    }
+  }
+
+  private[learn] final def setShouldStop(value: Boolean): Unit = {
+    _shouldStop = value
+    session match {
+      case s: SessionWrapper => s.setShouldStop(value)
+      case _ => ()
     }
   }
 
