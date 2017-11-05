@@ -573,8 +573,9 @@ object Tensor {
       if (buffer.isDirect) {
         buffer
       } else {
-        val direct = ByteBuffer.allocateDirect(buffer.capacity())
-        direct.put(buffer)
+        val direct = ByteBuffer.allocateDirect(numBytes.toInt)
+        val bufferCopy = buffer.duplicate()
+        direct.put(bufferCopy.limit(numBytes.toInt).asInstanceOf[ByteBuffer])
         direct
       }
     }
@@ -597,7 +598,7 @@ object Tensor {
           .setTensorShape(inferredShape.toTensorShapeProto)
     if (inferredDataType.byteSize * value.size >= Int.MaxValue)
       throw InvalidArgumentException("Cannot serialize tensors whose content is larger than 2GB.")
-    if (value.size == inferredShape.numElements) {
+    if (value.dataType != STRING && value.size == inferredShape.numElements) {
       tensorProtoBuilder.setTensorContent(ByteString.copyFrom(castedValue.buffer))
     } else {
       castedValue.entriesIterator.foreach(v => {
