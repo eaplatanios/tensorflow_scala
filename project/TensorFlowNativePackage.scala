@@ -251,8 +251,8 @@ object TensorFlowNativePackage extends AutoPlugin {
          |set(CMAKE_C_COMPILER $cMakeCCompiler)
          |set(CMAKE_CXX_COMPILER $cMakeCXXCompiler)
          |set(CMAKE_CXX_FLAGS "$${CMAKE_CXX_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=0 $cMakeCXXFlags")
-         |
-         |# set(CMAKE_SKIP_RPATH TRUE)
+         |set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+         |set(CMAKE_INSTALL_RPATH "$$ORIGIN")
          |
          |# Include directories
          |include_directories(.)

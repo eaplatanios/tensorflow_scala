@@ -77,41 +77,47 @@ object TensorFlow {
       })
       val classLoader = Thread.currentThread.getContextClassLoader
 
-      try {
-        NativeLibrary.getInstance(LIB_FRAMEWORK_NAME)
-        // System.loadLibrary(LIB_FRAMEWORK_NAME)
-      } catch {
-        case _: UnsatisfiedLinkError =>
-          // Check if a TensorFlow native framework library resource is provided and load it.
-          val libFrameworkResourceStream = Option(classLoader.getResourceAsStream(makeResourceName(LIB_FRAMEWORK_NAME)))
-          libFrameworkResourceStream.map(extractResource(LIB_FRAMEWORK_NAME, _, tempDirectory)).foreach(path => {
-            try {
-              NativeLibrary.getInstance(path.toAbsolutePath.toString)
-              // System.load(path.toAbsolutePath.toString)
-            } catch {
-              case exception: IOException => throw new UnsatisfiedLinkError(
-                s"Unable to load the TensorFlow native framework library from the extracted file: ${exception.getMessage}.")
-            }
-          })
-      }
+//      try {
+//        NativeLibrary.getInstance(LIB_FRAMEWORK_NAME)
+//        System.loadLibrary(LIB_FRAMEWORK_NAME)
+//      } catch {
+//        case _: UnsatisfiedLinkError =>
+//          // Check if a TensorFlow native framework library resource is provided and load it.
+//          val libFrameworkResourceStream = Option(classLoader.getResourceAsStream(makeResourceName(LIB_FRAMEWORK_NAME)))
+//          libFrameworkResourceStream.map(extractResource(LIB_FRAMEWORK_NAME, _, tempDirectory)).foreach(path => {
+//            try {
+//              NativeLibrary.getInstance(path.toAbsolutePath.toString)
+//              System.load(path.toAbsolutePath.toString)
+//            } catch {
+//              case exception: IOException => throw new UnsatisfiedLinkError(
+//                s"Unable to load the TensorFlow native framework library from the extracted file: ${exception.getMessage}.")
+//            }
+//          })
+//      }
+//
+//      try {
+//        NativeLibrary.getInstance(LIB_NAME)
+//        System.loadLibrary(LIB_NAME)
+//      } catch {
+//        case _: UnsatisfiedLinkError =>
+//          // Check if a TensorFlow native library resource is provided and load it.
+//          val libResourceStream = Option(classLoader.getResourceAsStream(makeResourceName(LIB_NAME)))
+//          libResourceStream.map(extractResource(LIB_NAME, _, tempDirectory)).foreach(path => {
+//            try {
+//              NativeLibrary.getInstance(path.toAbsolutePath.toString)
+//              System.load(path.toAbsolutePath.toString)
+//            } catch {
+//              case exception: IOException => throw new UnsatisfiedLinkError(
+//                s"Unable to load the TensorFlow native library from the extracted file: ${exception.getMessage}.")
+//            }
+//          })
+//      }
 
-      try {
-        NativeLibrary.getInstance(LIB_NAME)
-        // System.loadLibrary(LIB_NAME)
-      } catch {
-        case _: UnsatisfiedLinkError =>
-          // Check if a TensorFlow native library resource is provided and load it.
-          val libResourceStream = Option(classLoader.getResourceAsStream(makeResourceName(LIB_NAME)))
-          libResourceStream.map(extractResource(LIB_NAME, _, tempDirectory)).foreach(path => {
-            try {
-              NativeLibrary.getInstance(path.toAbsolutePath.toString)
-              // System.load(path.toAbsolutePath.toString)
-            } catch {
-              case exception: IOException => throw new UnsatisfiedLinkError(
-                s"Unable to load the TensorFlow native library from the extracted file: ${exception.getMessage}.")
-            }
-          })
-      }
+      // Check if a TensorFlow native framework library resource is provided and load it.
+      Option(classLoader.getResourceAsStream(makeResourceName(LIB_FRAMEWORK_NAME)))
+          .map(extractResource(LIB_FRAMEWORK_NAME, _, tempDirectory))
+      Option(classLoader.getResourceAsStream(makeResourceName(LIB_NAME)))
+          .map(extractResource(LIB_NAME, _, tempDirectory))
 
       // Load the TensorFlow JNI bindings from the appropriate resource.
       val jniResourceStream = Option(classLoader.getResourceAsStream(makeResourceName(JNI_LIB_NAME)))
