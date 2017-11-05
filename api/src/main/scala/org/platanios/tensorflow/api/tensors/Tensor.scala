@@ -24,6 +24,7 @@ import org.platanios.tensorflow.api.tensors.ops.Basic.{BasicOps, stack}
 import org.platanios.tensorflow.api.tensors.ops.{Math, Random}
 import org.platanios.tensorflow.api.types._
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer}
+import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
 import org.platanios.tensorflow.jni.{Tensor => NativeTensor}
 import org.platanios.tensorflow.jni.generated.tensors.{Sparse => NativeTensorOpsSparse}
 
@@ -140,7 +141,10 @@ private[tensors] object TensorOps {
   *
   * @author Emmanouil Antonios Platanios
   */
-class Tensor private[Tensor](private[api] var nativeHandle: Long) extends TensorLike with Closeable {
+class Tensor private[Tensor](private[api] var nativeHandle: Long)
+    extends TensorLike
+        with Closeable
+        with ProtoSerializable {
   /** Lock for the native handle. */
   private[this] object NativeHandleLock
 
@@ -331,6 +335,14 @@ class Tensor private[Tensor](private[api] var nativeHandle: Long) extends Tensor
     val denseShape = shape.toTensor(INT32)
     TensorIndexedSlices(indices = 0 until shape(0), values = this, denseShape = denseShape)
   }
+
+  override def toProto: TensorProto = toTensorProto
+
+  /** Constructs and returns a [[TensorProto]] object that represents this tensor.
+    *
+    * @return Constructed [[TensorProto]].
+    */
+  def toTensorProto: TensorProto = Tensor.makeProto(this)
 
   override def equals(that: Any): Boolean = that match {
     case that: Tensor =>

@@ -36,6 +36,8 @@ import java.nio.file.{Files, Path}
 
 import scala.collection.mutable
 
+// TODO: Avoid triggering the checkpoint saver on the first iteration.
+
 /** Abstract class for estimators which are used to train, use, and evaluate TensorFlow models.
   *
   * The [[Estimator]] class wraps a model which is specified by a `modelFunction`, which, given inputs and a number of
