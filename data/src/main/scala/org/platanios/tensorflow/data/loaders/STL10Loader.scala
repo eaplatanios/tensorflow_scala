@@ -69,8 +69,10 @@ object STL10Loader extends Loader {
           // We have to split this tensor in two parts because its size exceeds the maximum allowed byte buffer size.
           val halfShape = Shape(numUnlabeled / 2, imageChannels, imageHeight, imageWidth)
           var outputStream = new ByteArrayOutputStream()
-          val buffer = new Array[Byte]((entry.getSize / 2).toInt)
-          Stream.continually(inputStream.read(buffer)).takeWhile(_ != -1).foreach(outputStream.write(buffer, 0, _))
+          val buffer = new Array[Byte](bufferSize)
+          Stream.continually(inputStream.read(buffer))
+              .take((entry.getSize / 2).toInt / bufferSize)
+              .foreach(outputStream.write(buffer, 0, _))
           var byteBuffer = ByteBuffer.wrap(outputStream.toByteArray).order(ByteOrder.BIG_ENDIAN)
           outputStream.close()
           val tensor1 = Tensor.fromBuffer(UINT8, halfShape, entry.getSize, byteBuffer).transpose(Tensor(0, 3, 2, 1))
