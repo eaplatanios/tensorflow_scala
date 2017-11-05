@@ -52,7 +52,9 @@ object STL10Loader extends Loader {
     maybeDownload(path.resolve(compressedFilename), url + compressedFilename, bufferSize)
 
     // Load the data.
-    extractFiles(path.resolve(compressedFilename), bufferSize, loadUnlabeled)
+    val dataset = extractFiles(path.resolve(compressedFilename), bufferSize, loadUnlabeled)
+    logger.info(s"Finished loading the STL-10 dataset.")
+    dataset
   }
 
   private[this] def extractFiles(path: Path, bufferSize: Int = 8192, loadUnlabeled: Boolean = true): STL10Dataset = {
@@ -66,12 +68,16 @@ object STL10Loader extends Loader {
           // TODO: Make this more efficient.
           // We have to split this tensor in two parts because its size exceeds the maximum allowed byte buffer size.
           val halfShape = Shape(numUnlabeled / 2, imageChannels, imageHeight, imageWidth)
+          var outputStream = new ByteArrayOutputStream()
           val buffer = new Array[Byte]((entry.getSize / 2).toInt)
-          inputStream.read(buffer)
-          var byteBuffer = ByteBuffer.wrap(buffer).order(ByteOrder.BIG_ENDIAN)
+          Stream.continually(inputStream.read(buffer)).takeWhile(_ != -1).foreach(outputStream.write(buffer, 0, _))
+          var byteBuffer = ByteBuffer.wrap(outputStream.toByteArray).order(ByteOrder.BIG_ENDIAN)
+          outputStream.close()
           val tensor1 = Tensor.fromBuffer(UINT8, halfShape, entry.getSize, byteBuffer).transpose(Tensor(0, 3, 2, 1))
-          inputStream.read(buffer)
-          byteBuffer = ByteBuffer.wrap(buffer).order(ByteOrder.BIG_ENDIAN)
+          outputStream = new ByteArrayOutputStream()
+          Stream.continually(inputStream.read(buffer)).takeWhile(_ != -1).foreach(outputStream.write(buffer, 0, _))
+          byteBuffer = ByteBuffer.wrap(outputStream.toByteArray).order(ByteOrder.BIG_ENDIAN)
+          outputStream.close()
           val tensor2 = Tensor.fromBuffer(UINT8, halfShape, entry.getSize, byteBuffer).transpose(Tensor(0, 3, 2, 1))
           dataset = dataset.copy(unlabeledImages = tfi.concatenate(Seq(tensor1, tensor2), axis = 0))
         }
@@ -82,6 +88,7 @@ object STL10Loader extends Loader {
         val buffer = new Array[Byte](bufferSize)
         Stream.continually(inputStream.read(buffer)).takeWhile(_ != -1).foreach(outputStream.write(buffer, 0, _))
         val byteBuffer = ByteBuffer.wrap(outputStream.toByteArray).order(ByteOrder.BIG_ENDIAN)
+        outputStream.close()
         entry.getName match {
           case name if name == trainImagesFilename =>
             val shape = Shape(numTrain, imageChannels, imageHeight, imageWidth)
@@ -102,6 +109,7 @@ object STL10Loader extends Loader {
       }
       entry = inputStream.getNextTarEntry
     }
+    inputStream.close()
     dataset
   }
 }
