@@ -104,7 +104,7 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
       allTrainHooks += TensorLoggingHook(TreeMap(
         "Step" -> globalStep.value.name,
         "Loss" -> trainingOps.loss.name
-      ), StepHookTrigger(1))
+      ), StepHookTrigger(100))
       if (tensorBoardConfig != null)
         allTrainChiefOnlyHooks += TensorBoardHook(tensorBoardConfig)
       val saver = getOrCreateSaver()
