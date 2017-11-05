@@ -138,10 +138,10 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
         graph.freeze()
       session.disableHooks()
       session.run(targets = initializer)
+      stopHook.updateCriteria(stopCriteria)
+      stopHook.reset(session)
       session.enableHooks()
       try {
-        stopHook.updateCriteria(stopCriteria)
-        stopHook.reset(session)
         while (!session.shouldStop)
           session.run(targets = trainingOps.trainOp)
       } catch {
@@ -190,10 +190,10 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
         graph.freeze()
       session.disableHooks()
       session.run(targets = initializer)
+      stopHook.updateCriteria(StopCriteria.none)
+      stopHook.reset(session)
       session.enableHooks()
       try {
-        stopHook.updateCriteria(StopCriteria.none)
-        stopHook.reset(session)
         ev.convertFetched(new Iterator[(IT, ModelInferenceOutput)] {
           override def hasNext: Boolean = session.shouldStop
           override def next(): (IT, ModelInferenceOutput) = {
@@ -262,10 +262,10 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
         graph.freeze()
       session.disableHooks()
       session.run(targets = initializer)
+      stopHook.updateCriteria(if (maxSteps != -1L) StopCriteria.steps(maxSteps) else StopCriteria.none)
+      stopHook.reset(session)
       session.enableHooks()
       try {
-        stopHook.updateCriteria(if (maxSteps != -1L) StopCriteria.steps(maxSteps) else StopCriteria.none)
-        stopHook.reset(session)
         InMemoryEstimator.logger.info("Starting evaluation.")
         val (step, metricValues) = {
           try {

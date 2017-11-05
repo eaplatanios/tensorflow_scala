@@ -37,6 +37,8 @@ import java.nio.file.Path
 import scala.collection.immutable.TreeMap
 import scala.collection.mutable
 
+// TODO: Issue warning if using this estimator with no checkpoints specified in the provided configuration.
+
 /** File-based estimator which is used to train, use, and evaluate TensorFlow models, and uses checkpoint files for
   * storing and retrieving its state. This means that checkpoint files are written after every call to `train()` and are
   * loaded on every call to `infer()` or `evaluate()`.
