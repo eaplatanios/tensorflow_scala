@@ -15,13 +15,13 @@
 
 package org.platanios.tensorflow.examples
 
-import java.nio.file.Paths
-
-import com.typesafe.scalalogging.Logger
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.ops.NN.SamePadding
 import org.platanios.tensorflow.data.loaders.STL10Loader
+
+import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
+import java.nio.file.Paths
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -30,7 +30,7 @@ object STL10 {
   private[this] val logger = Logger(LoggerFactory.getLogger("Examples / STL10"))
 
   def main(args: Array[String]): Unit = {
-    val dataSet = STL10Loader.load(Paths.get("/Users/Anthony/Downloads/STL10"), loadUnlabeled = false)
+    val dataSet = STL10Loader.load(Paths.get("~/data/STL10"), loadUnlabeled = false)
     val trainImages = tf.learn.DatasetFromSlices(dataSet.trainImages)
     val trainLabels = tf.learn.DatasetFromSlices(dataSet.trainLabels)
     val trainData =
@@ -61,21 +61,27 @@ object STL10 {
     val model = tf.learn.Model(input, layer, trainInput, trainingInputLayer, loss, optimizer)
 
     logger.info("Training the linear regression model.")
-    val summariesDir = Paths.get("/Users/Anthony/Downloads/temp/mlp-1024-256-64")
+    val summariesDir = Paths.get("~/temp/mlp-1024-256-64")
     val estimator = tf.learn.InMemoryEstimator(
       model,
       tf.learn.Configuration(Some(summariesDir)),
       tf.learn.StopCriteria(maxSteps = Some(100000)),
       Set(
-        tf.learn.StepRateHook(log = false, summaryDirectory = summariesDir, trigger = tf.learn.StepHookTrigger(100))),
+        tf.learn.StepRateHook(log = false, summaryDirectory = summariesDir, trigger = tf.learn.StepHookTrigger(100)),
         // tf.learn.SummarySaverHook(summariesDir, tf.learn.StepHookTrigger(100)),
-        // tf.learn.CheckpointSaverHook(summariesDir, tf.learn.StepHookTrigger(1000))),
+      tf.learn.CheckpointSaverHook(summariesDir, tf.learn.StepHookTrigger(1000))),
       tensorBoardConfig = tf.learn.TensorBoardConfig(summariesDir, reloadInterval = 1))
     estimator.train(trainData, tf.learn.StopCriteria(maxSteps = Some(10000)))
 
     def accuracy(images: Tensor, labels: Tensor): Float = {
-      val predictions = estimator.infer(images)
-      predictions.argmax(1).cast(UINT8).equal(labels).cast(FLOAT32).mean().scalar.asInstanceOf[Float]
+      val imageBatches = images.splitEvenly(100)
+      val labelBatches = labels.splitEvenly(100)
+      var accuracy = 0.0f
+      (0 until 100).foreach(i => {
+        val predictions = estimator.infer(imageBatches(i))
+        accuracy += predictions.argmax(1).cast(UINT8).equal(labelBatches(i)).cast(FLOAT32).sum().scalar.asInstanceOf[Float]
+      })
+      accuracy / images.shape(0)
     }
 
     logger.info(s"Train accuracy = ${accuracy(dataSet.trainImages, dataSet.trainLabels)}")
