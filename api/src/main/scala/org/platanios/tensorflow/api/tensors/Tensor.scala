@@ -298,7 +298,7 @@ class Tensor private[Tensor](private[api] var nativeHandle: Long)
             if (tensor.size <= math.max(maxEntries, 6))
               tensor.entriesIterator
             else
-              (tensor(0 :: 3).entriesIterator.toSeq :+ "...") ++ tensor(-3 ::).entriesIterator
+              (tensor(0 :: maxEntries/2).entriesIterator.toSeq :+ "...") ++ tensor(-maxEntries/2 ::).entriesIterator
           slice.mkString("[", ", ", "]")
         case _ =>
           val innerSummary = {
@@ -307,8 +307,8 @@ class Tensor private[Tensor](private[api] var nativeHandle: Long)
             if (tensor.shape(0) <= math.max(maxEntries, 6))
               for (i <- 0 until tensor.shape(0)) yield summarizeSlice(i)
             else {
-              val start = for (i <- 0 until 3) yield summarizeSlice(i)
-              val end = for (i <- tensor.shape(0) - 3 until tensor.shape(0)) yield summarizeSlice(i)
+              val start = for (i <- 0 until maxEntries/2) yield summarizeSlice(i)
+              val end = for (i <- tensor.shape(0) - maxEntries/2 until tensor.shape(0)) yield summarizeSlice(i)
               (start :+ "...") ++ end
             }
           }
