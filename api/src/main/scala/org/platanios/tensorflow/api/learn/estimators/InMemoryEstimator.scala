@@ -104,7 +104,7 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
       allTrainHooks += TensorLoggingHook(TreeMap(
         "Step" -> globalStep.value.name,
         "Loss" -> trainingOps.loss.name
-      ), StepHookTrigger(100))
+      ), StepHookTrigger(1))
       if (tensorBoardConfig != null)
         allTrainChiefOnlyHooks += TensorBoardHook(tensorBoardConfig)
       val saver = getOrCreateSaver()
@@ -115,7 +115,7 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
         sessionScaffold = SessionScaffold(
           initOp = Some(graph.globalVariablesInitializer()),
           localInitOp = Some(ControlFlow.group(Set(graph.localVariablesInitializer()))),
-          saver = Some(saver)))
+          saver = saver))
     }
   }
 
@@ -151,6 +151,7 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
           throw t
       }
     }
+    stopHook.updateCriteria(this.stopCriteria)
     session.addHooks(inferHooks ++ evaluateHooks)
   }
 
@@ -213,6 +214,7 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
           throw t
       }
     }
+    stopHook.updateCriteria(stopCriteria)
     session.addHooks(currentTrainHooks ++ evaluateHooks)
     output
   }
@@ -293,6 +295,7 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
           throw t
       }
     }
+    stopHook.updateCriteria(this.stopCriteria)
     session.addHooks(currentTrainHooks ++ inferHooks)
     values
   }

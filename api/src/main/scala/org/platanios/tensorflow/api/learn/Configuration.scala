@@ -131,16 +131,13 @@ import java.nio.file.Path
   * distributed training, the evaluation job starts asynchronously and might fail to load or find the checkpoints due to
   * a race condition.
   *
-  * @param  workingDir                     Directory used to save model parameters, graph, etc. It can also be used to
-  *                                        load checkpoints for a previously saved model. If `null`, a temporary
-  *                                        directory will be used.
-  * @param  sessionConfig                  Configuration to use for the created sessions.
-  * @param  checkpointConfig               Configuration specifying when to save checkpoints.
-  * @param  summaryConfig                  Configuration specifying when to save summaries.
-  * @param  globalStepRateLoggingFrequency Frequency, in number of global steps, that the global step / sec rate will be
-  *                                        logged during training.
-  * @param  randomSeed                     Random seed value to be used by the TensorFlow initializers. Setting this
-  *                                        value allows consistency between re-runs.
+  * @param  workingDir       Directory used to save model parameters, graph, etc. It can also be used to load
+  *                          checkpoints for a previously saved model. If `null`, a temporary directory will be used.
+  * @param  sessionConfig    Configuration to use for the created sessions.
+  * @param  checkpointConfig Configuration specifying when to save checkpoints.
+  * @param  summaryConfig    Configuration specifying when to save summaries.
+  * @param  randomSeed       Random seed value to be used by the TensorFlow initializers. Setting this value allows
+  *                          consistency between re-runs.
   * @author Emmanouil Antonios Platanios
   */
 case class Configuration(
@@ -149,13 +146,8 @@ case class Configuration(
     sessionConfig: Option[SessionConfig] = None,
     checkpointConfig: CheckpointConfig = TimeBasedCheckpoints(600, 5, 10000),
     summaryConfig: SummaryConfig = StepBasedSummaries(100),
-    globalStepRateLoggingFrequency: Int = 100,
     randomSeed: Int = 1
 ) {
-  require(
-    globalStepRateLoggingFrequency > 0,
-    s"'globalStepRateLoggingFrequency' (set to $globalStepRateLoggingFrequency) needs to be a positive integer.")
-
   val (clusterConfig, taskType, taskIndex, master, numParameterServers, numWorkers, isChief): (
       Option[ClusterConfig], String, Int, String, Int, Int, Boolean) = {
     val tfConfigJson = System.getenv(TF_CONFIG_ENV)

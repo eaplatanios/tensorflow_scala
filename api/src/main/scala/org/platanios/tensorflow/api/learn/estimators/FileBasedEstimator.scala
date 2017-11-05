@@ -153,7 +153,7 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
           sessionScaffold = SessionScaffold(
             initOp = Some(graph.globalVariablesInitializer()),
             localInitOp = Some(ControlFlow.group(Set(inputInitializer, graph.localVariablesInitializer()))),
-            saver = Some(saver)))
+            saver = saver))
         try {
           while (!session.shouldStop)
             session.run(targets = trainingOps.trainOp)
@@ -256,7 +256,7 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
           sessionScaffold = SessionScaffold(
             initOp = Some(graph.globalVariablesInitializer()),
             localInitOp = Some(ControlFlow.group(Set(inputInitializer, graph.localVariablesInitializer()))),
-            saver = Some(saver)),
+            saver = saver),
           sessionConfig = configuration.sessionConfig,
           checkpointPath = workingDir),
         hooks, shouldRecover = true)
@@ -384,7 +384,7 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
           sessionScaffold = SessionScaffold(
             initOp = Some(graph.globalVariablesInitializer()),
             localInitOp = Some(ControlFlow.group(Set(inputInitializer, graph.localVariablesInitializer()))),
-            saver = Some(saver)),
+            saver = saver),
           sessionConfig = configuration.sessionConfig,
           checkpointPath = workingDir),
         hooks, shouldRecover = true)

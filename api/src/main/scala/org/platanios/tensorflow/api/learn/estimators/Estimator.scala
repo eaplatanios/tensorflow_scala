@@ -127,14 +127,11 @@ abstract class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
   /** Summary configuration used by this estimator. */
   def summaryConfig: SummaryConfig = configuration.summaryConfig
 
-  /** Frequency, in number of steps, that this estimator will log the global step / sec rate during training. */
-  def globalStepRateLoggingFrequency: Int = configuration.globalStepRateLoggingFrequency
-
   /** Random seed value to be used by the TensorFlow initializers in this estimator. */
   def randomSeed: Int = configuration.randomSeed
 
   /** Gets an existing saver from the current graph, or creates a new one if none exists. */
-  protected def getOrCreateSaver(): Saver = {
+  protected def getOrCreateSaver(): Option[Saver] = {
     val graph = Op.currentGraph
     val savers = graph.getCollection(Graph.Keys.SAVERS)
     if (savers.isEmpty) {
@@ -144,11 +141,11 @@ abstract class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
         keepCheckpointEveryNHours = configuration.checkpointConfig.keepCheckpointEveryNHours,
         saveRelativePaths = true)
       graph.addToCollection(saver, Graph.Keys.SAVERS)
-      saver
+      Some(saver)
     } else {
       if (savers.size > 1)
         throw InvalidArgumentException("The graph should only contain one saver in the 'SAVERS' collection.")
-      savers.head
+      savers.headOption
     }
   }
 
