@@ -242,7 +242,7 @@ object TensorFlowNativePackage extends AutoPlugin {
          |
          |# Set up JNI
          |find_package(JNI REQUIRED)
-         |if (JNI_FOUND)
+         |if(JNI_FOUND)
          |    message(STATUS "JNI include directories: $${JNI_INCLUDE_DIRS}")
          |endif()
          |
@@ -251,8 +251,15 @@ object TensorFlowNativePackage extends AutoPlugin {
          |set(CMAKE_C_COMPILER $cMakeCCompiler)
          |set(CMAKE_CXX_COMPILER $cMakeCXXCompiler)
          |set(CMAKE_CXX_FLAGS "$${CMAKE_CXX_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=0 $cMakeCXXFlags")
-         |set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
-         |set(CMAKE_INSTALL_RPATH "$$ORIGIN")
+         |
+         |set(CMAKE_BUILD_WITH_INSTALL_RPATH 1)
+         |if($${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+         |    set(APPLE 1)
+         |    set(CMAKE_INSTALL_RPATH "@loader_path")
+         |    set(CMAKE_INSTALL_NAME_DIR "@loader_path")
+         |else()
+         |    set(CMAKE_INSTALL_RPATH "$$ORIGIN")
+         |endif()
          |
          |# Include directories
          |include_directories(.)
