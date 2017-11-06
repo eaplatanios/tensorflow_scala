@@ -88,8 +88,6 @@ lazy val crossCompilationPackagingSettings = Seq(
 
 lazy val all = (project in file("."))
     .aggregate(jni, api, data, examples, site)
-    // TODO: Add data and examples once we have something more complete.
-    .dependsOn(jni, api)
     .settings(moduleName := "tensorflow", name := "TensorFlow for Scala")
     .settings(publishSettings)
     .settings(
@@ -209,7 +207,7 @@ lazy val examples = (project in file("./examples"))
     .dependsOn(api, data)
     .settings(moduleName := "tensorflow-examples", name := "TensorFlow for Scala Examples")
     .settings(commonSettings)
-    .settings(noPublishSettings)
+    .settings(publishSettings)
 
 lazy val site = (project in file("./site"))
     .dependsOn(api)
