@@ -70,17 +70,23 @@ object STL10Loader extends Loader {
           val halfShape = Shape(numUnlabeled / 2, imageChannels, imageHeight, imageWidth)
           var outputStream = new ByteArrayOutputStream()
           val buffer = new Array[Byte](bufferSize)
+          var numBytesRead = 0
           Stream.continually(inputStream.read(buffer))
-              .take((entry.getSize / 2).toInt / bufferSize)
-              .foreach(outputStream.write(buffer, 0, _))
+              .takeWhile(_ => numBytesRead <= entry.getSize / 2)
+              .foreach(numBytes => {
+                outputStream.write(buffer, 0, numBytes)
+                numBytesRead += numBytes
+              })
           var byteBuffer = ByteBuffer.wrap(outputStream.toByteArray).order(ByteOrder.BIG_ENDIAN)
           outputStream.close()
-          val tensor1 = Tensor.fromBuffer(UINT8, halfShape, entry.getSize, byteBuffer).transpose(Tensor(0, 3, 2, 1))
+          val tensor1 =
+            Tensor.fromBuffer(UINT8, halfShape, byteBuffer.capacity(), byteBuffer).transpose(Tensor(0, 3, 2, 1))
           outputStream = new ByteArrayOutputStream()
           Stream.continually(inputStream.read(buffer)).takeWhile(_ != -1).foreach(outputStream.write(buffer, 0, _))
           byteBuffer = ByteBuffer.wrap(outputStream.toByteArray).order(ByteOrder.BIG_ENDIAN)
           outputStream.close()
-          val tensor2 = Tensor.fromBuffer(UINT8, halfShape, entry.getSize, byteBuffer).transpose(Tensor(0, 3, 2, 1))
+          val tensor2 =
+            Tensor.fromBuffer(UINT8, halfShape, byteBuffer.capacity(), byteBuffer).transpose(Tensor(0, 3, 2, 1))
           dataset = dataset.copy(unlabeledImages = tfi.concatenate(Seq(tensor1, tensor2), axis = 0))
         }
       } else if (Set(
