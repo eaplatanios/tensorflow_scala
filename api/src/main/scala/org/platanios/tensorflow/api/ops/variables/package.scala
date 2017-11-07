@@ -38,7 +38,7 @@ package object variables {
 
     val ReuseExistingVariableOnly: variables.ReuseExistingOnly.type = variables.ReuseExistingOnly
     val CreateNewVariableOnly    : variables.CreateNewOnly.type     = variables.CreateNewOnly
-    val ReuseOrCreateNewVariable : variables.ReuseExistingOnly.type = variables.ReuseExistingOnly
+    val ReuseOrCreateNewVariable : variables.ReuseOrCreateNew.type  = variables.ReuseOrCreateNew
     val VariableStore            : variables.VariableStore.type     = variables.VariableStore
     val VariableScope            : variables.VariableScope.type     = variables.VariableScope
 
