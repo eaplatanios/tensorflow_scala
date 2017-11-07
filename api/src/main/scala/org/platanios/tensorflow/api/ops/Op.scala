@@ -26,7 +26,9 @@ import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.DataType
 import org.platanios.tensorflow.api.utilities.using
 import org.platanios.tensorflow.jni.{Op => NativeOp, Tensor => NativeTensor}
-import org.tensorflow.framework.{AttrValue, NameAttrList, TensorProto}
+
+import org.tensorflow.framework.{AttrValue, NameAttrList}
+
 import java.nio.charset.Charset
 
 import scala.collection.mutable
@@ -787,9 +789,7 @@ object Op {
     * @param  context             Current op creation context.
     * @tparam R Return type of the code block.
     * @return Return value of the code block.
-    * @throws IllegalNameException If the provided name scope does not pass the regular expression validity checks.
     */
-  @throws[IllegalNameException]
   private[api] def createWith[R](
       graph: Graph = null, nameScope: String = null, device: String = "",
       deviceFunction: OpSpecification => String = _.device, colocationOps: Set[Op] = null,
@@ -800,11 +800,12 @@ object Op {
     var updatedContext = context.value
     val newGraph: Graph = mergeGraph(graph, updatedContext)
     updatedContext = updatedContext.copy(graph = newGraph)
-    val newNameScope: String = mergeNameScope(nameScope, updatedContext)
+    val newNameScope: String = mergeNameScope(nameScope, updatedContext.nameScope, updatedContext.graph.uniqueName(_))
     updatedContext = updatedContext.copy(nameScope = newNameScope)
-    val newDevice: String = mergeDevice(device, updatedContext)
+    val newDevice: String = mergeDevice(device, updatedContext.device)
     updatedContext = updatedContext.copy(device = newDevice)
-    val newDeviceFunction: OpSpecification => String = mergeDeviceFunction(deviceFunction, updatedContext)
+    val newDeviceFunction: OpSpecification => String = mergeDeviceFunction(
+      deviceFunction, updatedContext.deviceFunction, updatedContext.device)
     updatedContext = updatedContext.copy(deviceFunction = newDeviceFunction)
     val newColocationOps: Set[Op] = mergeColocationOps(colocationOps, updatedContext)
     updatedContext = updatedContext.copy(colocationOps = newColocationOps)
@@ -839,10 +840,10 @@ object Op {
       (implicit context: DynamicVariable[OpCreationContext]): R = {
     if (values.nonEmpty) {
       val newGraph: Graph = mergeGraph(getGraphFromInputs(values), context)
-      val newNameScope: String = mergeNameScope(nameScope, context.copy(graph = newGraph))
+      val newNameScope: String = mergeNameScope(nameScope, context.value.nameScope, newGraph.uniqueName(_))
       context.withValue(context.copy(graph = newGraph, nameScope = newNameScope))(block)
     } else {
-      val newNameScope: String = mergeNameScope(nameScope, context)
+      val newNameScope: String = mergeNameScope(nameScope, context.value.nameScope, context.value.graph.uniqueName(_))
       context.withValue(context.copy(nameScope = newNameScope))(block)
     }
   }
@@ -885,38 +886,40 @@ object Op {
     * specifying the updated op creation context. The merging rules are specified in the documentation of the
     * [[createWith]] function.
     *
-    * @param  nameScope Name scope to merge.
-    * @param  context   Op creation context whose name scope needs to be updated.
+    * @param  nameScope    Name scope to merge.
+    * @param  oldNameScope Old (i.e., current) name scope.
+    * @param  uniqueNameFn Function that can be used to generate a unique name based on a provided name.
     * @return Name scope to use for the new op creation context.
+    * @throws IllegalNameException If the provided name scope does not pass the regular expression validity checks.
     */
-  private[this] def mergeNameScope(nameScope: String, context: OpCreationContext): String = {
+  @throws[IllegalNameException]
+  private[api] def mergeNameScope(nameScope: String, oldNameScope: String, uniqueNameFn: (String) => String): String = {
     if (nameScope == null) {
-      context.nameScope
+      oldNameScope
     } else {
       // Check whether the provided name scope is valid.
       // If the root name scope is being set, then stricter checks are performed on it (i.e., op naming checks). This
       // makes sure the name scope does not start with any illegal characters (e.g., '_', '-', '\', and '/').
-      if ((context.nameScope == "" && nameScope != "" && !checkName(nameScope))
-          || (context.nameScope != "" && !checkNameScope(nameScope)))
+      if ((oldNameScope == "" && nameScope != "" && !checkName(nameScope))
+          || (oldNameScope != "" && !checkNameScope(nameScope)))
         throw IllegalNameException(s"Illegal name scope '$nameScope'.")
       if (nameScope == "")
         ""
       else if (nameScope.endsWith("/"))
         convertNameScopeToName(nameScope)
       else
-        context.graph.uniqueName(nameScope)
+        uniqueNameFn(nameScope)
     }
   }
 
   /** Merges a device to the provided op creation context device and returns the device to use when specifying the
     * updated op creation context. The merging rules are specified in the documentation of the [[createWith]] function.
     *
-    * @param  device  Device to merge.
-    * @param  context Op creation context whose device needs to be updated.
+    * @param  device    Device to merge.
+    * @param  oldDevice Old (i.e., current) device.
     * @return Device to use for the new op creation context.
     */
-  private[this] def mergeDevice(device: String = "", context: OpCreationContext): String = {
-    val oldDevice = context.device
+  private[api] def mergeDevice(device: String, oldDevice: String): String = {
     // Check if the device has been reset or has to be reset for all subsequent nested scopes
     if (oldDevice == null || device == null) {
       null
@@ -931,18 +934,21 @@ object Op {
     * the updated op creation context. The merging rules are specified in the documentation of the [[createWith]]
     * function.
     *
-    * @param  deviceFunction Device function to merge.
-    * @param  context        Op creation context whose device function needs to be updated.
+    * @param  deviceFunction    Device function to merge.
+    * @param  oldDeviceFunction Old (i.e., current) device function.
+    * @param  oldDevice         Old (i.e., current) device.
     * @return Device function to use for the new op creation context.
     */
-  private[this] def mergeDeviceFunction(
-      deviceFunction: OpSpecification => String = _ => "", context: OpCreationContext): OpSpecification => String = {
-    val oldContextDevice = context.deviceFunction
+  private[api] def mergeDeviceFunction(
+      deviceFunction: OpSpecification => String,
+      oldDeviceFunction: OpSpecification => String,
+      oldDevice: String
+  ): OpSpecification => String = {
     opSpecification => {
-      val oldDeviceSpecString = oldContextDevice(opSpecification)
+      val oldDeviceSpecString = oldDeviceFunction(opSpecification)
       val newDeviceSpecString = {
         // TODO: [OPS] Make sure this is the desired behavior.
-        if (context.device != null && deviceFunction != null)
+        if (oldDevice != null && deviceFunction != null)
           deviceFunction(opSpecification)
         else
           null
@@ -1038,7 +1044,7 @@ object Op {
     * @param  name String to check.
     * @return Boolean value indicating whether the check was successful.
     */
-  private[this] def checkName(name: String): Boolean = {
+  private[api] def checkName(name: String): Boolean = {
     VALID_OP_NAME_REGEX.pattern.matcher(name).matches
   }
 
@@ -1047,7 +1053,7 @@ object Op {
     * @param  nameScope String to check.
     * @return Boolean value indicating whether the check was successful.
     */
-  private[this] def checkNameScope(nameScope: String): Boolean = {
+  private[api] def checkNameScope(nameScope: String): Boolean = {
     VALID_NAME_SCOPE_REGEX.pattern.matcher(nameScope).matches
   }
 

@@ -544,19 +544,6 @@ private[api] object Variable {
 
   /** Variable getter type, useful for defining custom variable getters and stacking them. */
   trait VariableGetter {
-    private type CustomVariableGetter =
-      (String, // name
-          DataType, // dataType
-          Shape, // shape
-          Initializer, // initializer
-          Regularizer, // regularizer
-          Boolean, // trainable
-          Reuse, // reuse
-          Set[Graph.Key[Variable]], // collections
-          OpSpecification => String, // cachingDevice
-          VariableGetter) // variableGetter
-          => Variable
-
     def apply(
         name: String, dataType: DataType = FLOAT32, shape: Shape = null, initializer: Initializer = null,
         regularizer: Regularizer = null, trainable: Boolean = true, reuse: Reuse = ReuseOrCreateNew,

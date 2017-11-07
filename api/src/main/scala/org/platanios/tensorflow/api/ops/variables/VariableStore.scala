@@ -39,23 +39,23 @@ case class VariableStore private[variables]() {
 
   // TODO: [DOC] [VARIABLES]
 
-  private[variables] def enterVariableScope(scope: String): Unit = variableScopeCounts synchronized {
+  private[api] def enterVariableScope(scope: String): Unit = variableScopeCounts synchronized {
     variableScopeCounts += scope -> (variableScopeCounts.getOrElse(scope, 0) + 1)
   }
 
-  private[variables] def exitVariableScope(scope: String): Unit = variableScopeCounts synchronized {
+  private[api] def exitVariableScope(scope: String): Unit = variableScopeCounts synchronized {
     variableScopeCounts += scope -> (variableScopeCounts.getOrElse(scope, 1) - 1)
   }
 
-  private[variables] def setVariableScopeCounts(counts: Map[String, Int]): Unit = variableScopeCounts synchronized {
+  private[api] def setVariableScopeCounts(counts: Map[String, Int]): Unit = variableScopeCounts synchronized {
     variableScopeCounts ++= counts
   }
 
-  private[variables] def getVariableSubScopeCounts(scope: String): Map[String, Int] = variableScopeCounts synchronized {
+  private[api] def getVariableSubScopeCounts(scope: String): Map[String, Int] = variableScopeCounts synchronized {
     variableScopeCounts.filterKeys(_.startsWith(s"$scope/"))
   }
 
-  private[variables] def closeVariableSubScopes(scope: String): Unit = variableScopeCounts synchronized {
+  private[api] def closeVariableSubScopes(scope: String): Unit = variableScopeCounts synchronized {
     variableScopeCounts.keySet.filter(_.startsWith(s"$scope/")).foreach(variableScopeCounts - _)
   }
 
@@ -64,14 +64,14 @@ case class VariableStore private[variables]() {
     * @param  scope Variable scope name.
     * @return Number of usages of the provided variable scope name, in this variable store.
     */
-  private[variables] def variableScopeCount(scope: String): Int = variableScopeCounts.getOrElse(scope, 0)
+  private[api] def variableScopeCount(scope: String): Int = variableScopeCounts.getOrElse(scope, 0)
 
   /** Gets a name with the provided prefix that is unique in the current variable scope.
     *
     * @param  prefix Prefix.
     * @return Unique name with the provided prefix.
     */
-  private[variables] def uniqueVariableScope(prefix: String): String = {
+  private[api] def uniqueVariableScope(prefix: String): String = {
     val currentScope = Op.convertNameScopeToName(Op.currentVariableScope.name)
     val name = {
       if (currentScope == null || currentScope == "")

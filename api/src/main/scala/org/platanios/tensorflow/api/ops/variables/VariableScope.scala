@@ -164,7 +164,7 @@ case class VariableScope private[variables](
   }
 }
 
-private[ops] object VariableScope {
+private[api] object VariableScope {
   /** Sets the variable scope to use for op creation context, for all code in `block`.
     *
     * @param  name          Variable scope name, that may also change the name scope of the op creation context,
@@ -296,7 +296,7 @@ private[ops] object VariableScope {
     * @param  oldGetter Old variable getter.
     * @return Variable getter to use.
     */
-  private[this] def maybeWrapCustomVariableGetter(getter: VariableGetter, oldGetter: VariableGetter): VariableGetter = {
+  private[api] def maybeWrapCustomVariableGetter(getter: VariableGetter, oldGetter: VariableGetter): VariableGetter = {
     if (getter == null) {
       oldGetter
     } else {
