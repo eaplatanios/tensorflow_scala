@@ -190,10 +190,15 @@ private[api] object VariableScope {
     * @return Return value of the code block.
     */
   private[api] def createWithVariableScope[R](
-      name: String, reuse: ReuseAllowed = ReuseOrCreateNew, dataType: DataType = null, initializer: Initializer = null,
-      regularizer: Regularizer = null, partitioner: Partitioner = null, cachingDevice: OpSpecification => String = null,
-      customGetter: VariableGetter = null, isDefaultName: Boolean = false, isPure: Boolean = false)
-      (block: => R)(implicit context: DynamicVariable[OpCreationContext]): R = {
+      name: String, reuse: ReuseAllowed = ReuseOrCreateNew, dataType: DataType = null,
+      initializer: Initializer = null, regularizer: Regularizer = null, partitioner: Partitioner = null,
+      cachingDevice: OpSpecification => String = null, customGetter: VariableGetter = null,
+      isDefaultName: Boolean = false, isPure: Boolean = false
+  )(
+      block: => R
+  )(implicit
+      context: DynamicVariable[OpCreationContext]
+  ): R = {
     if (reuse == ReuseExistingOnly && isDefaultName)
       throw new IllegalArgumentException(
         "'reuse' cannot be set to 'ReuseExistingOnly' with 'isDefaultName' set to 'true'.")
@@ -257,8 +262,12 @@ private[api] object VariableScope {
   private[api] def createWithUpdatedVariableScope[R](
       variableScope: VariableScope, reuse: ReuseAllowed = ReuseOrCreateNew, dataType: DataType = null,
       initializer: Initializer = null, regularizer: Regularizer = null, partitioner: Partitioner = null,
-      cachingDevice: OpSpecification => String = null, customGetter: VariableGetter = null, isPure: Boolean = false)
-      (block: => R)(implicit context: DynamicVariable[OpCreationContext]): R = {
+      cachingDevice: OpSpecification => String = null, customGetter: VariableGetter = null, isPure: Boolean = false
+  )(
+      block: => R
+  )(implicit
+      context: DynamicVariable[OpCreationContext]
+  ): R = {
     val variableStore = context.value.graph.variableStore
     val subScopeCounts = variableStore.getVariableSubScopeCounts(variableScope.name)
     variableStore.enterVariableScope(variableScope.name)

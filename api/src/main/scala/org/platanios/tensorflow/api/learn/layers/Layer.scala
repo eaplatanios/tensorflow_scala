@@ -37,6 +37,14 @@ abstract class Layer[T, R](
 ) {
   val uniquifiedName: String = Layer.uniqueName(name)
 
+  private val variableScope: VariableScope = {
+    if (context.value.variableScope.name != "") {
+      context.value.variableScope
+    } else {
+      VariableScope.createWithVariableScope(name)(Op.currentVariableScope)
+    }
+  }
+
   val layerType: String
 
   def forward(input: T, mode: Mode): LayerInstance[T, R]
@@ -63,7 +71,7 @@ abstract class Layer[T, R](
       name: String, dataType: DataType = null, shape: Shape = null, initializer: Initializer = null,
       regularizer: Regularizer = null, trainable: Boolean = true, reuse: Reuse = ReuseOrCreateNew,
       collections: Set[Graph.Key[Variable]] = Set.empty, cachingDevice: OpSpecification => String = null): Variable = {
-    context.value.variableScope.getVariable(
+    variableScope.getVariable(
       Op.currentVariableStore, name, dataType, shape, initializer, regularizer, trainable, reuse, collections,
       cachingDevice)
   }
@@ -73,7 +81,7 @@ abstract class Layer[T, R](
       regularizer: Regularizer = null, partitioner: Partitioner = null, trainable: Boolean = true,
       reuse: Reuse = ReuseOrCreateNew, collections: Set[Graph.Key[Variable]] = Set.empty,
       cachingDevice: OpSpecification => String = null): PartitionedVariable = {
-    context.value.variableScope.getPartitionedVariable(
+    variableScope.getPartitionedVariable(
       Op.currentVariableStore, name, dataType, shape, initializer, regularizer, partitioner, trainable, reuse,
       collections, cachingDevice)
   }
