@@ -22,14 +22,16 @@ import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.Output
 import org.platanios.tensorflow.api.ops.variables.{Initializer, ZerosInitializer}
 
-abstract class RNNCell(override protected val name: String) extends Layer[(Output, Output), (Output, Output)](name) {
-  def stateSize: Int
-  def outputSize: Int
+abstract class RNNCell(override protected val name: String) extends Layer[RNNCell.Tuple, RNNCell.Tuple](name) {
+  def stateSize: Seq[Shape]
+  def outputSize: Seq[Shape]
 }
 
 object RNNCell {
   private[layers] val KERNEL_NAME: String = "weights"
   private[layers] val BIAS_NAME  : String = "bias"
+
+  case class Tuple(output: Output, state: Seq[Output])
 }
 
 /** Most basic RNN cell.
@@ -54,20 +56,23 @@ class BasicRNNCell(
 ) extends RNNCell(name) {
   override val layerType: String = "BasicRNNCell"
 
-  override def stateSize: Int = numUnits
-  override def outputSize: Int = numUnits
+  override def stateSize: Seq[Shape] = Seq(Shape(numUnits))
+  override def outputSize: Seq[Shape] = Seq(Shape(numUnits))
 
-  override def forward(input: (Output, Output), mode: Mode): LayerInstance[(Output, Output), (Output, Output)] = {
-    if (input._1.rank != 2)
-      throw InvalidArgumentException(s"Input to 'BasicRNNCell' must be rank-2 (provided rank-${input._1.rank}).")
-    if (input._1.shape(1) == -1)
-      throw InvalidArgumentException(s"Last axis of input (shape=${input._1.shape}) to 'BasicRNNCell' must be known.")
+  override def forward(input: RNNCell.Tuple, mode: Mode): LayerInstance[RNNCell.Tuple, RNNCell.Tuple] = {
+    if (input.output.rank != 2)
+      throw InvalidArgumentException(s"Input must be rank-2 (provided rank-${input.output.rank}).")
+    if (input.output.shape(1) == -1)
+      throw InvalidArgumentException(s"Last axis of input shape (${input.output.shape}) must be known.")
+    if (input.state.length != 1)
+      throw InvalidArgumentException(s"The state must consist of one tensor.")
     val kernel = variable(
-      RNNCell.KERNEL_NAME, input._1.dataType, Shape(input._1.shape(1) + numUnits, numUnits), kernelInitializer)
-    val bias = variable(RNNCell.BIAS_NAME, input._1.dataType, Shape(numUnits), biasInitializer)
-    val linear = ops.NN.addBias(ops.Math.matmul(ops.Basic.concatenate(Seq(input._1, input._2), axis = 1), kernel), bias)
+      RNNCell.KERNEL_NAME, input.output.dataType, Shape(input.output.shape(1) + numUnits, numUnits), kernelInitializer)
+    val bias = variable(RNNCell.BIAS_NAME, input.output.dataType, Shape(numUnits), biasInitializer)
+    val linear = ops.NN.addBias(
+      ops.Math.matmul(ops.Basic.concatenate(Seq(input.output, input.state.head), axis = 1), kernel), bias)
     val output = activation(linear)
-    LayerInstance(input, (output, output), Set(kernel, bias))
+    LayerInstance(input, RNNCell.Tuple(output, Seq(output)), Set(kernel, bias))
   }
 }
 
@@ -94,41 +99,43 @@ class GRUCell(
 ) extends RNNCell(name) {
   override val layerType: String = "GRUCell"
 
-  override def stateSize: Int = numUnits
-  override def outputSize: Int = numUnits
+  override def stateSize: Seq[Shape] = Seq(Shape(numUnits))
+  override def outputSize: Seq[Shape] = Seq(Shape(numUnits))
 
-  override def forward(input: (Output, Output), mode: Mode): LayerInstance[(Output, Output), (Output, Output)] = {
-    if (input._1.rank != 2)
-      throw InvalidArgumentException(s"Input to 'BasicRNNCell' must be rank-2 (provided rank-${input._1.rank}).")
-    if (input._1.shape(1) == -1)
-      throw InvalidArgumentException(s"Last axis of input (shape=${input._1.shape}) to 'BasicRNNCell' must be known.")
+  override def forward(input: RNNCell.Tuple, mode: Mode): LayerInstance[RNNCell.Tuple, RNNCell.Tuple] = {
+    if (input.output.rank != 2)
+      throw InvalidArgumentException(s"Input must be rank-2 (provided rank-${input.output.rank}).")
+    if (input.output.shape(1) == -1)
+      throw InvalidArgumentException(s"Last axis of input shape (${input.output.shape}) must be known.")
+    if (input.state.length != 1)
+      throw InvalidArgumentException(s"The state must consist of one tensor.")
     val gateKernel = variable(
       s"Gate/${RNNCell.KERNEL_NAME}",
-      input._1.dataType,
-      Shape(input._1.shape(1) + numUnits, 2 * numUnits),
+      input.output.dataType,
+      Shape(input.output.shape(1) + numUnits, 2 * numUnits),
       kernelInitializer)
     val gateBias = variable(
       s"Gate/${RNNCell.BIAS_NAME}",
-      input._1.dataType, Shape(2 * numUnits),
+      input.output.dataType, Shape(2 * numUnits),
       biasInitializer)
     val candidateKernel = variable(
       s"Candidate/${RNNCell.KERNEL_NAME}",
-      input._1.dataType,
-      Shape(input._1.shape(1) + numUnits, numUnits),
+      input.output.dataType,
+      Shape(input.output.shape(1) + numUnits, numUnits),
       kernelInitializer)
     val candidateBias = variable(
       s"Candidate/${RNNCell.BIAS_NAME}",
-      input._1.dataType,
+      input.output.dataType,
       Shape(numUnits),
       biasInitializer)
     val gateInputs = ops.NN.addBias(
-      ops.Math.matmul(ops.Basic.concatenate(Seq(input._1, input._2), axis = 1), gateKernel), gateBias)
+      ops.Math.matmul(ops.Basic.concatenate(Seq(input.output, input.state.head), axis = 1), gateKernel), gateBias)
     val value = ops.Basic.splitEvenly(ops.Math.sigmoid(gateInputs), 2, axis = 1)
     val (r, u) = (value(0), value(1))
-    val rState = ops.Math.multiply(r, input._2)
+    val rState = ops.Math.multiply(r, input.state.head)
     val c = ops.NN.addBias(
-      ops.Math.matmul(ops.Basic.concatenate(Seq(input._1, rState), axis = 1), candidateKernel), candidateBias)
-    val newH = ops.Math.multiply(u, input._2) + ops.Math.multiply(1 - u, c)
-    LayerInstance(input, (newH, newH), Set(gateKernel, gateBias, candidateKernel, candidateBias))
+      ops.Math.matmul(ops.Basic.concatenate(Seq(input.output, rState), axis = 1), candidateKernel), candidateBias)
+    val newH = ops.Math.multiply(u, input.state.head) + ops.Math.multiply(1 - u, c)
+    LayerInstance(input, RNNCell.Tuple(newH, Seq(newH)), Set(gateKernel, gateBias, candidateKernel, candidateBias))
   }
 }
