@@ -156,14 +156,15 @@ class GRUCell(
   }
 }
 
-/** Long-Short Term Memory (LSTM) cell.
+/** Basic Long-Short Term Memory (LSTM) cell.
   *
   * The implementation is based on: [http://arxiv.org/abs/1409.2329](http://arxiv.org/abs/1409.2329).
   *
   * We add `forgetBias` (which defaults to 1) to the biases of the forget gate in order to reduce the scale of
   * forgetting in the beginning of training.
   *
-  * This cell does not allow for cell clipping, a projection layer, or for peep-hole connections.
+  * This cell does not allow for cell clipping, a projection layer, or for peep-hole connections. For advanced models,
+  * please use the full [[LSTMCell]].
   *
   * @note Input tensors to this layer must be two-dimensional.
   *
@@ -175,15 +176,15 @@ class GRUCell(
   * @param  name              Desired name for this layer (note that this name will be made unique by potentially
   *                           appending a number to it, if it has been used before for another layer).
   */
-class LSTMCell(
+class BasicLSTMCell(
     numUnits: Int,
     forgetBias: Float = 1.0f,
     activation: Output => Output = ops.Math.tanh(_),
     kernelInitializer: Initializer = null,
     biasInitializer: Initializer = ZerosInitializer,
-    override protected val name: String = "GRUCell"
+    override protected val name: String = "BasicLSTMCell"
 ) extends RNNCell(name) {
-  override val layerType: String = "GRUCell"
+  override val layerType: String = "BasicLSTMCell"
 
   override def stateSize: Seq[Shape] = Seq(Shape(numUnits), Shape(numUnits))
   override def outputSize: Seq[Shape] = Seq(Shape(numUnits))
