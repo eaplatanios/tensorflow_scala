@@ -66,6 +66,10 @@ package object api extends Implicits with Documentation {
   val OutputIndexedSlices: ops.OutputIndexedSlices.type = ops.OutputIndexedSlices
   val SparseOutput: ops.SparseOutput.type = ops.SparseOutput
 
+  implicit val layerCreationContext: DynamicVariable[api.learn.layers.LayerCreationContext] = {
+    new DynamicVariable[api.learn.layers.LayerCreationContext](api.learn.layers.LayerCreationContext())
+  }
+
   //region Data Types API
 
   type DataType = types.DataType

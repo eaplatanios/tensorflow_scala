@@ -13,21 +13,13 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.learn
+package org.platanios.tensorflow.api.learn.layers
 
 /**
+  *
   * @author Emmanouil Antonios Platanios
   */
-package object layers {
-  private[api] trait API
-      extends Activation.API
-          with Basic.API
-          with Input.API
-          with Layer.API
-          with Loss.API
-          with Math.API
-          with NN.API
-          with Summary.API
+private[learn] trait Implicits
+    extends Layer.Implicits
 
-  private[api] object API extends API
-}
+private[api] object Implicits extends Implicits

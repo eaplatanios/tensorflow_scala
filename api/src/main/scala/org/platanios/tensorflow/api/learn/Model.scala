@@ -123,7 +123,7 @@ object Model {
         loss: Layer[(I, TO), Output],
         optimizer: Optimizer): SupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, TO] = {
       new SimpleSupervisedTrainableModel(
-        input, layer, trainInput, Layer.identity[TO]("TrainInputLayer"), loss, optimizer)
+        input, layer, trainInput, layers.Identity[TO]("TrainInputLayer"), loss, optimizer)
     }
   }
 
@@ -138,7 +138,7 @@ private[learn] class SimpleInferenceModel[IT, IO, ID, IS, I] private[learn](
     Op.createWith(graph) {
       val tfInputIterator = input()
       val tfInput = tfInputIterator.next()
-      val tfOutput = layer(tfInput)
+      val tfOutput = layer(tfInput, INFERENCE).output
       Model.InferenceOps(tfInputIterator, tfInput, tfOutput)
     }
   }
@@ -157,9 +157,9 @@ private[learn] class SimpleUnsupervisedTrainableModel[IT, IO, ID, IS, I] private
     Op.createWith(graph = graph) {
       val tfInputIterator = input()
       val tfInput = tfInputIterator.next()
-      val tfOutput = layer(tfInput)
+      val tfOutput = layer(tfInput, TRAINING).output
       // TODO: [LEARN] Remove this cast.
-      val tfLoss = Math.cast(loss(tfOutput), FLOAT32, name = "LossCast")
+      val tfLoss = Math.cast(loss(tfOutput, TRAINING).output, FLOAT32, name = "LossCast")
       val tfIteration = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
       val tfTrainOp = optimizer.minimize(tfLoss, iteration = Some(tfIteration))
       Model.UnsupervisedTrainingOps(tfInputIterator, tfInput, tfOutput, tfLoss, tfTrainOp)
@@ -172,7 +172,7 @@ private[learn] class SimpleUnsupervisedTrainableModel[IT, IO, ID, IS, I] private
     Op.createWith(graph = graph) {
       val tfInputIterator = input()
       val tfInput = tfInputIterator.next()
-      val tfOutput = layer(tfInput)
+      val tfOutput = layer(tfInput, EVALUATION).output
       val (mValues, mUpdates, mResets) = metrics.map(_.streaming(tfOutput)).unzip3
       Model.EvaluationOps(tfInputIterator, tfInput, tfOutput, mValues, mUpdates, mResets)
     }
@@ -196,10 +196,10 @@ private[learn] class SimpleSupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, T
     Op.createWith(graph = graph) {
       val tfInputIterator = input.zip(trainInput).apply()
       val tfInput = tfInputIterator.next()
-      val tfOutput = layer(tfInput._1)
-      val tfTrainOutput = trainLayer(tfInput._2)
+      val tfOutput = layer(tfInput._1, TRAINING).output
+      val tfTrainOutput = trainLayer(tfInput._2, TRAINING).output
       // TODO: [LEARN] Remove this cast.
-      val tfLoss = Math.cast(loss((tfOutput, tfTrainOutput)), FLOAT32, name = "LossCast")
+      val tfLoss = Math.cast(loss((tfOutput, tfTrainOutput), TRAINING).output, FLOAT32, name = "LossCast")
       val tfIteration = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
       val tfTrainOp = optimizer.minimize(tfLoss, iteration = Some(tfIteration))
       Model.SupervisedTrainingOps(tfInputIterator, tfInput, tfOutput, tfTrainOutput, tfLoss, tfTrainOp)
@@ -212,8 +212,8 @@ private[learn] class SimpleSupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, T
     Op.createWith(graph = graph) {
       val tfInputIterator = input.zip(trainInput).apply()
       val tfInput = tfInputIterator.next()
-      val tfOutput = layer(tfInput._1)
-      val tfTrainOutput = trainLayer(tfInput._2)
+      val tfOutput = layer(tfInput._1, EVALUATION).output
+      val tfTrainOutput = trainLayer(tfInput._2, EVALUATION).output
       val (mValues, mUpdates, mResets) = metrics.map(_.streaming((tfOutput, tfTrainOutput))).unzip3
       Model.EvaluationOps(tfInputIterator, tfInput, tfOutput, mValues, mUpdates, mResets)
     }

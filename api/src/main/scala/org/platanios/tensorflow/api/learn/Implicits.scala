@@ -20,5 +20,6 @@ package org.platanios.tensorflow.api.learn
   */
 private[api] trait Implicits
     extends estimators.Implicits
+        with layers.Implicits
 
 private[api] object Implicits extends Implicits

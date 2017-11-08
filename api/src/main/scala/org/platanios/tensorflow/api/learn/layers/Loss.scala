@@ -15,18 +15,22 @@
 
 package org.platanios.tensorflow.api.learn.layers
 
-import org.platanios.tensorflow.api.learn.layers
+import org.platanios.tensorflow.api.learn.{Mode, layers}
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.Output
 
 /**
   * @author Emmanouil Antonios Platanios
   */
-trait Loss[T] extends NetworkLayer[T, Output]
+abstract class Loss[T](override protected val name: String) extends Layer[T, Output](name)
 
 object Loss {
   trait API {
     type Loss[T] = layers.Loss[T]
+    type L2Loss = layers.L2Loss
+    type SoftmaxCrossEntropy = layers.SoftmaxCrossEntropy
+    type SparseSoftmaxCrossEntropy = layers.SparseSoftmaxCrossEntropy
+    type SigmoidCrossEntropy = layers.SigmoidCrossEntropy
 
     val L2Loss                   : layers.L2Loss.type                    = layers.L2Loss
     val SoftmaxCrossEntropy      : layers.SoftmaxCrossEntropy.type       = layers.SoftmaxCrossEntropy
@@ -37,33 +41,38 @@ object Loss {
   object API extends API
 }
 
-case class L2Loss private[layers](override val name: String = "L2Loss") extends Loss[(Output, Output)] {
-  override val layerType: String                       = s"L2Loss"
-  override val forward  : ((Output, Output)) => Output = input => {
-    ops.NN.l2Loss(input._1 - input._2, name = name)
+case class L2Loss(override protected val name: String = "L2Loss")
+    extends Loss[(Output, Output)](name) {
+  override val layerType: String = "L2Loss"
+
+  override def forward(input: (Output, Output), mode: Mode): LayerInstance[(Output, Output), Output] = {
+    LayerInstance(input, ops.NN.l2Loss(input._1 - input._2, name = uniquifiedName))
   }
 }
 
-case class SoftmaxCrossEntropy private[layers](override val name: String = "SoftmaxCrossEntropy")
-    extends Loss[(Output, Output)] {
-  override val layerType: String                       = s"SoftmaxCrossEntropy"
-  override val forward  : ((Output, Output)) => Output = input => {
-    ops.NN.softmaxCrossEntropy(input._1, input._2, name = name)
+case class SoftmaxCrossEntropy(override protected val name: String = "SoftmaxCrossEntropy")
+    extends Loss[(Output, Output)](name) {
+  override val layerType: String = "SoftmaxCrossEntropy"
+
+  override def forward(input: (Output, Output), mode: Mode): LayerInstance[(Output, Output), Output] = {
+    LayerInstance(input, ops.NN.softmaxCrossEntropy(input._1, input._2, name = uniquifiedName))
   }
 }
 
-case class SparseSoftmaxCrossEntropy private[layers](override val name: String = "SparseSoftmaxCrossEntropy")
-    extends Loss[(Output, Output)] {
-  override val layerType: String                       = s"SparseSoftmaxCrossEntropy"
-  override val forward  : ((Output, Output)) => Output = input => {
-    ops.NN.sparseSoftmaxCrossEntropy(input._1, input._2, name = name)
+case class SparseSoftmaxCrossEntropy(override protected val name: String = "SparseSoftmaxCrossEntropy")
+    extends Loss[(Output, Output)](name) {
+  override val layerType: String = "SparseSoftmaxCrossEntropy"
+
+  override def forward(input: (Output, Output), mode: Mode): LayerInstance[(Output, Output), Output] = {
+    LayerInstance(input, ops.NN.sparseSoftmaxCrossEntropy(input._1, input._2, name = uniquifiedName))
   }
 }
 
-case class SigmoidCrossEntropy private[layers](override val name: String = "SigmoidCrossEntropy")
-    extends Loss[(Output, Output)] {
-  override val layerType: String                       = s"SigmoidCrossEntropy"
-  override val forward  : ((Output, Output)) => Output = input => {
-    ops.NN.sigmoidCrossEntropy(input._1, input._2, name = name)
+case class SigmoidCrossEntropy(override protected val name: String = "SigmoidCrossEntropy")
+    extends Loss[(Output, Output)](name) {
+  override val layerType: String = "SigmoidCrossEntropy"
+
+  override def forward(input: (Output, Output), mode: Mode): LayerInstance[(Output, Output), Output] = {
+    LayerInstance(input, ops.NN.sigmoidCrossEntropy(input._1, input._2, name = uniquifiedName))
   }
 }

@@ -59,37 +59,3 @@ case class Input[T, O, D, S] private[learn](dataType: D, shape: S, name: String 
       (dataType, other.dataType), (shape, other.shape), s"${name}_${other.name}/Zip")
   }
 }
-
-//class Inputs private[learn](val dataTypes: Seq[DataType], val shapes: Seq[tf.Shape], val names: Seq[String])
-//    extends SupportedInput[Seq[tf.Tensor], Seq[tf.Output]] {
-//  override val needsFeeding: Boolean = true
-//  override protected def create(): (Seq[tf.Output], Input.DefaultValueSetter[Seq[tf.Tensor], Seq[tf.Output]]) = {
-//    val (placeholders, variables) = (dataTypes, shapes, names).zipped.map({
-//      case (dataType, shape, name) =>
-//        val defaultVariable = tf.createWithVariableScope("InputDefaults") {
-//          tf.variable(name = name, dataType = dataType, shape = shape, initializer = tf.zerosInitializer)
-//        }
-//        val placeholder = tf.placeholderWithDefault(default = defaultVariable.value, shape = shape, name = name)
-//        (placeholder, defaultVariable)
-//    }).unzip
-//    (placeholders, Input.SeqVariableDefaultValueSetter(variables))
-//  }
-//}
-//
-//class InputsWithDefaults private[learn](
-//    defaults: Seq[tf.Tensor], override val shapes: Seq[tf.Shape], override val names: Seq[String])
-//    extends Inputs(defaults.map(_.dataType), shapes, names) {
-//  override val needsFeeding: Boolean = false
-//  override protected def create(): (Seq[tf.Output], Input.DefaultValueSetter[Seq[tf.Tensor], Seq[tf.Output]]) = {
-//    val (placeholders, variables) = (defaults, shapes, names).zipped.map({
-//      case (default, shape, name) =>
-//        val defaultVariable = tf.createWithVariableScope("InputDefaults") {
-//          tf.variable(
-//            name = name, dataType = default.dataType, shape = shape, initializer = tf.constantInitializer(default))
-//        }
-//        val placeholder = tf.placeholderWithDefault(default = defaultVariable.value, shape = shape, name = name)
-//        (placeholder, defaultVariable)
-//    }).unzip
-//    (placeholders, Input.SeqVariableDefaultValueSetter(variables))
-//  }
-//}

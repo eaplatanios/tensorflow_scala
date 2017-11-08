@@ -26,4 +26,4 @@ case object TRAINING extends Mode
 
 case object EVALUATION extends Mode
 
-case object PREDICTION extends Mode
+case object INFERENCE extends Mode
