@@ -38,24 +38,31 @@ private[api] trait RNN {
     * @param  inputs             Inputs to the RNN loop.
     * @param  initialState       Initial state to use for the RNN, which is a sequence of tensors with shapes
     *                            `[batchSize, stateSize(i)]`, where `i` corresponds to the index in that sequence.
+    *                            Defaults to a zero state.
+    * @param  zeroStateFn        Optional function to use to generate a zero initial state, if none is provided. This
+    *                            function should accept a tensor containing the batch size and a data type as inputs and
+    *                            should return a sequence of tensors corresponding to the zero state.
     * @param  timeMajor          Boolean value indicating whether the `inputs` are provided in time-major format (i.e.,
     *                            have shape `[time, batch, depth]`) or in batch-major format (i.e., have shape
     *                            `[batch, time, depth]`).
-    * @param  parallelIterations Number of loop iterations allowed to run in parallel.
-    * @param  swapMemory         If `true`, GPU-CPU memory swapping support is enabled for the loop.
+    * @param  parallelIterations Number of RNN loop iterations allowed to run in parallel.
+    * @param  swapMemory         If `true`, GPU-CPU memory swapping support is enabled for the RNN loop.
     * @param  sequenceLengths    Optional `INT32` tensor with shape `[batchSize]` containing the sequence lengths for
     *                            each row in the batch.
     * @param  name               Name prefix to use for the created ops.
     * @return RNN cell tuple after the dynamic RNN loop is completed. The `output` of that tuple has a time axis
     *         prepended to the shape of each tensor and corresponds to the RNN outputs at each iteration in the loop.
     *         The `state` represents the RNN state at the end of the loop.
-    * @throws InvalidShapeException If the inputs or the provided sequence lengths have invalid or unknown shapes.
+    * @throws InvalidShapeException    If the inputs or the provided sequence lengths have invalid or unknown shapes.
+    * @throws InvalidArgumentException If neither `initialState` nor `zeroState` is provided.
     */
   @throws[InvalidShapeException]
+  @throws[InvalidArgumentException]
   def dynamicRNN(
       cell: RNNCell.Tuple => RNNCell.Tuple, cellOutputSize: Seq[Int], inputs: Seq[Output],
-      initialState: Seq[Output], timeMajor: Boolean = false, parallelIterations: Int = 32,
-      swapMemory: Boolean = false, sequenceLengths: Output = null, name: String = "RNN"): RNNCell.Tuple = {
+      initialState: Seq[Output] = null, zeroStateFn: (Output, DataType) => Seq[Output] = null,
+      timeMajor: Boolean = false, parallelIterations: Int = 32, swapMemory: Boolean = false,
+      sequenceLengths: Output = null, name: String = "RNN"): RNNCell.Tuple = {
     Op.createWithNameScope(name) {
       // By default, `timeMajor` is false and inputs are shaped batch-major: [batch, time, depth]
       // For internal calculations, we transpose to: [time, batch, depth]
@@ -88,13 +95,14 @@ private[api] trait RNN {
       }
       VariableScope.createWithUpdatedVariableScope(currentVariableScope, cachingDevice = cachingDevice) {
         val batchSize = RNN.bestEffortInputBatchSize(processedInputs)
+        val state = RNN.initialState(initialState, zeroStateFn, batchSize, inputs.head.dataType)
         // Perform some shape validation
         processedSequenceLength = Op.createWith(
           controlDependencies = Set(RNN.assertHasShape(processedSequenceLength, batchSize.expandDims(0)))) {
           Basic.identity(processedSequenceLength, "SequenceLengthShapeValidation")
         }
         var finalTuple = RNN.dynamicRNNLoop(
-          cell, cellOutputSize, processedInputs, initialState, parallelIterations, swapMemory, processedSequenceLength)
+          cell, cellOutputSize, processedInputs, state, parallelIterations, swapMemory, processedSequenceLength)
         // Outputs of `dynamicRNNLoop` are always shaped [time, batch, depth].
         // If we are performing batch-major calculations, transpose output back to shape [batch, time, depth].
         if (!timeMajor) {
@@ -116,13 +124,21 @@ private[api] trait RNN {
     * @param  inputs             Inputs to the RNN loop.
     * @param  initialStateFw     Initial state to use for the forward RNN, which is a sequence of tensors with shapes
     *                            `[batchSize, stateSize(i)]`, where `i` corresponds to the index in that sequence.
+    *                            Defaults to a zero state.
+    * @param  zeroStateFwFn      Optional function to use to generate a zero forward initial state, if none is provided.
+    *                            This function should accept a tensor containing the batch size and a data type as
+    *                            inputs and should return a sequence of tensors corresponding to the zero state.
     * @param  initialStateBw     Initial state to use for the backward RNN, which is a sequence of tensors with shapes
     *                            `[batchSize, stateSize(i)]`, where `i` corresponds to the index in that sequence.
+    *                            Defaults to a zero state.
+    * @param  zeroStateBwFn      Optional function to use to generate a zero backward initial state, if none is
+    *                            provided. This function should accept a tensor containing the batch size and a data
+    *                            type as inputs and should return a sequence of tensors corresponding to the zero state.
     * @param  timeMajor          Boolean value indicating whether the `inputs` are provided in time-major format (i.e.,
     *                            have shape `[time, batch, depth]`) or in batch-major format (i.e., have shape
     *                            `[batch, time, depth]`).
-    * @param  parallelIterations Number of loop iterations allowed to run in parallel.
-    * @param  swapMemory         If `true`, GPU-CPU memory swapping support is enabled for the loop.
+    * @param  parallelIterations Number of RNN loop iterations allowed to run in parallel.
+    * @param  swapMemory         If `true`, GPU-CPU memory swapping support is enabled for the RNN loop.
     * @param  sequenceLengths    Optional `INT32` tensor with shape `[batchSize]` containing the sequence lengths for
     *                            each row in the batch.
     * @param  name               Name prefix to use for the created ops.
@@ -136,7 +152,9 @@ private[api] trait RNN {
   def bidirectionalDynamicRNN(
       cellFw: RNNCell.Tuple => RNNCell.Tuple, cellFwOutputSize: Seq[Int],
       cellBw: RNNCell.Tuple => RNNCell.Tuple, cellBwOutputSize: Seq[Int],
-      inputs: Seq[Output], initialStateFw: Seq[Output], initialStateBw: Seq[Output],
+      inputs: Seq[Output],
+      initialStateFw: Seq[Output] = null, zeroStateFwFn: (Output, DataType) => Seq[Output] = null,
+      initialStateBw: Seq[Output] = null, zeroStateBwFn: (Output, DataType) => Seq[Output] = null,
       timeMajor: Boolean = false, parallelIterations: Int = 32, swapMemory: Boolean = false,
       sequenceLengths: Output = null, name: String = "RNN"): (RNNCell.Tuple, RNNCell.Tuple) = {
     Op.createWithNameScope(name) {
@@ -144,7 +162,7 @@ private[api] trait RNN {
         // Forward direction
         val forwardTuple = VariableScope.createWithVariableScope("Forward") {
           dynamicRNN(
-            cellFw, cellFwOutputSize, inputs, initialStateFw, timeMajor, parallelIterations, swapMemory,
+            cellFw, cellFwOutputSize, inputs, initialStateFw, zeroStateFwFn, timeMajor, parallelIterations, swapMemory,
             sequenceLengths)
         }
 
@@ -161,8 +179,8 @@ private[api] trait RNN {
         val backwardTuple = VariableScope.createWithVariableScope("Backward") {
           val reversedInputs = reverse(inputs)
           dynamicRNN(
-            cellBw, cellBwOutputSize, reversedInputs, initialStateBw, timeMajor, parallelIterations, swapMemory,
-            sequenceLengths)
+            cellBw, cellBwOutputSize, reversedInputs, initialStateBw, zeroStateBwFn, timeMajor, parallelIterations,
+            swapMemory, sequenceLengths)
         }
 
         (forwardTuple, backwardTuple.copy(output = reverse(backwardTuple.output)))
@@ -421,6 +439,23 @@ object RNN extends RNN {
       if (inferredDataTypes.exists(_ != inferredDataTypes.head))
         throw InvalidDataTypeException("All state tensors must have the same data type.")
       inferredDataTypes.head
+    }
+  }
+
+  /** Returns the initial state to use for an RNN.
+    *
+    * @throws InvalidArgumentException If neither `initialState`, nor `zeroStateFn` is provided.
+    */
+  @throws[InvalidArgumentException]
+  private[RNN] def initialState(
+      initialState: Seq[Output], zeroStateFn: (Output, DataType) => Seq[Output], batchSize: Output,
+      dataType: DataType): Seq[Output] = {
+    if (initialState != null) {
+      initialState
+    } else {
+      if (zeroStateFn == null)
+        throw InvalidArgumentException("Either 'initialState', or 'zeroState' needs to be provided.")
+      zeroStateFn(batchSize, dataType)
     }
   }
 
