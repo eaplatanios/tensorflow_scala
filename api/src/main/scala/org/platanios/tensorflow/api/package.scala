@@ -129,16 +129,18 @@ package object api extends Implicits with Documentation {
     * @groupprio ImageOps       190
     * @groupname EmbeddingOps   Ops / Embedding
     * @groupprio EmbeddingOps   200
+    * @groupname RNNCellOps     Ops / RNN Cells
+    * @groupprio RNNCellOps     210
     * @groupname ControlFlowOps Ops / Control Flow
-    * @groupprio ControlFlowOps 210
+    * @groupprio ControlFlowOps 220
     * @groupname LoggingOps     Ops / Logging
-    * @groupprio LoggingOps     220
+    * @groupprio LoggingOps     230
     * @groupname CheckOps       Ops / Checks
-    * @groupprio CheckOps       230
+    * @groupprio CheckOps       240
     * @groupname SummaryOps     Ops / Summary
-    * @groupprio SummaryOps     240
+    * @groupprio SummaryOps     250
     * @groupname CallbackOps    Ops / Callback
-    * @groupprio CallbackOps    250
+    * @groupprio CallbackOps    260
     */
   object tf
       extends core.API
@@ -169,16 +171,18 @@ package object api extends Implicits with Documentation {
     * @groupprio ImageOps       190
     * @groupname EmbeddingOps   Ops / Embedding
     * @groupprio EmbeddingOps   200
+    * @groupname RNNCellOps     Ops / RNN Cells
+    * @groupprio RNNCellOps     210
     * @groupname ControlFlowOps Ops / Control Flow
-    * @groupprio ControlFlowOps 210
+    * @groupprio ControlFlowOps 220
     * @groupname LoggingOps     Ops / Logging
-    * @groupprio LoggingOps     220
+    * @groupprio LoggingOps     230
     * @groupname CheckOps       Ops / Checks
-    * @groupprio CheckOps       230
+    * @groupprio CheckOps       240
     * @groupname SummaryOps     Ops / Summary
-    * @groupprio SummaryOps     240
+    * @groupprio SummaryOps     250
     * @groupname CallbackOps    Ops / Callback
-    * @groupprio CallbackOps    250
+    * @groupprio CallbackOps    260
     */
   object tfi
       extends core.API
