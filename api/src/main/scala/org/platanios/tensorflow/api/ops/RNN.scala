@@ -36,17 +36,17 @@ private[api] trait RNN {
     * @param  cell               RNN cell to use.
     * @param  cellOutputSize     Sequence containing the sizes of each output of `cell`.
     * @param  inputs             Inputs to the RNN loop.
+    * @param  initialState       Initial state to use for the RNN, which is a sequence of tensors with shapes
+    *                            `[batchSize, stateSize(i)]`, where `i` corresponds to the index in that sequence.
     * @param  timeMajor          Boolean value indicating whether the `inputs` are provided in time-major format (i.e.,
     *                            have shape `[time, batch, depth]`) or in batch-major format (i.e., have shape
     *                            `[batch, time, depth]`).
-    * @param  initialState       Initial state to use for the RNN, which is a sequence of tensors with shapes
-    *                            `[batchSize, stateSize(i)]`, where `i` corresponds to the index in that sequence.
     * @param  parallelIterations Number of loop iterations allowed to run in parallel.
     * @param  swapMemory         If `true`, GPU-CPU memory swapping support is enabled for the loop.
     * @param  sequenceLength     Optional `INT32` tensor with shape `[batchSize]` containing the sequence lengths for
     *                            each row in the batch.
     * @param  name               Name prefix to use for the created ops.
-    * @return RNN cell tuple after the dynamic RNN loop is completed. The `output` of that tuple had a time axis
+    * @return RNN cell tuple after the dynamic RNN loop is completed. The `output` of that tuple has a time axis
     *         prepended to the shape of each tensor and corresponds to the RNN outputs at each iteration in the loop.
     *         The `state` represents the RNN state at the end of the loop.
     * @throws InvalidShapeException If the inputs or the provided sequence lengths have invalid or unknown shapes.
@@ -102,6 +102,70 @@ private[api] trait RNN {
           finalTuple = finalTuple.copy(output = finalTuple.output.map(RNN.transposeBatchTime))
         }
         finalTuple
+      }
+    }
+  }
+
+  /** $OpDocRNNBidirectionalDynamicRNN
+    *
+    * @group RNNOps
+    * @param  cellFw             RNN cell to use for the forward direction.
+    * @param  cellFwOutputSize   Sequence containing the sizes of each output of `cellFw`.
+    * @param  cellBw             RNN cell to use for the backward direction.
+    * @param  cellBwOutputSize   Sequence containing the sizes of each output of `cellBw`.
+    * @param  inputs             Inputs to the RNN loop.
+    * @param  initialStateFw     Initial state to use for the forward RNN, which is a sequence of tensors with shapes
+    *                            `[batchSize, stateSize(i)]`, where `i` corresponds to the index in that sequence.
+    * @param  initialStateBw     Initial state to use for the backward RNN, which is a sequence of tensors with shapes
+    *                            `[batchSize, stateSize(i)]`, where `i` corresponds to the index in that sequence.
+    * @param  timeMajor          Boolean value indicating whether the `inputs` are provided in time-major format (i.e.,
+    *                            have shape `[time, batch, depth]`) or in batch-major format (i.e., have shape
+    *                            `[batch, time, depth]`).
+    * @param  parallelIterations Number of loop iterations allowed to run in parallel.
+    * @param  swapMemory         If `true`, GPU-CPU memory swapping support is enabled for the loop.
+    * @param  sequenceLength     Optional `INT32` tensor with shape `[batchSize]` containing the sequence lengths for
+    *                            each row in the batch.
+    * @param  name               Name prefix to use for the created ops.
+    * @return Tuple containing: (i) the forward RNN cell tuple after the forward dynamic RNN loop is completed, and (ii)
+    *         the backward RNN cell tuple after the backward dynamic RNN loop is completed. The `output` of these tuples
+    *         has a time axis prepended to the shape of each tensor and corresponds to the RNN outputs at each iteration
+    *         in the loop. The `state` represents the RNN state at the end of the loop.
+    * @throws InvalidShapeException If the inputs or the provided sequence lengths have invalid or unknown shapes.
+    */
+  @throws[InvalidShapeException]
+  def bidirectionalDynamicRNN(
+      cellFw: RNNCell.Tuple => RNNCell.Tuple, cellFwOutputSize: Seq[Int],
+      cellBw: RNNCell.Tuple => RNNCell.Tuple, cellBwOutputSize: Seq[Int],
+      inputs: Seq[Output], initialStateFw: Seq[Output], initialStateBw: Seq[Output],
+      timeMajor: Boolean = false, parallelIterations: Int = 32, swapMemory: Boolean = false,
+      sequenceLength: Output = null, name: String = "RNN"): (RNNCell.Tuple, RNNCell.Tuple) = {
+    Op.createWithNameScope(name) {
+      VariableScope.createWithVariableScope(name) {
+        // Forward direction
+        val forwardTuple = VariableScope.createWithVariableScope("Forward") {
+          dynamicRNN(
+            cellFw, cellFwOutputSize, inputs, initialStateFw, timeMajor, parallelIterations, swapMemory,
+            sequenceLength)
+        }
+
+        // Backward direction
+        val (timeAxis, batchAxis) = if (timeMajor) (0, 1) else (1, 0)
+
+        def reverse(inputs: Seq[Output]): Seq[Output] = {
+          if (sequenceLength == null)
+            inputs.map(input => Basic.reverse(input, Tensor(timeAxis)))
+          else
+            inputs.map(input => Basic.reverseSequence(input, sequenceLength, timeAxis, batchAxis))
+        }
+
+        val backwardTuple = VariableScope.createWithVariableScope("Backward") {
+          val reversedInputs = reverse(inputs)
+          dynamicRNN(
+            cellBw, cellBwOutputSize, reversedInputs, initialStateBw, timeMajor, parallelIterations, swapMemory,
+            sequenceLength)
+        }
+
+        (forwardTuple, backwardTuple.copy(output = reverse(backwardTuple.output)))
       }
     }
   }
@@ -371,6 +435,10 @@ object RNN extends RNN {
   /** @define OpDocRNNDynamicRNN
     *   The `dynamicRNN` op creates a recurrent neural network (RNN) specified by the provided RNN cell. The op performs
     *   fully dynamic unrolling of the RNN.
+    *
+    * @define OpDocRNNBidirectionalDynamicRNN
+    *   The `bidirectionalDynamicRNN` op creates a bidirectional recurrent neural network (RNN) specified by the
+    *   provided RNN cell. The op performs fully dynamic unrolling of the forward and backward RNNs.
     */
   private[ops] trait Documentation
 }
