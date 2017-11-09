@@ -57,7 +57,7 @@ endif()
 
 # Setup installation targets
 set(JNI_LIB_NAME "${PROJECT_NAME}_jni")
-add_library(${JNI_LIB_NAME} SHARED ${JNI_LIB_SRC})
+add_library(${JNI_LIB_NAME} MODULE ${JNI_LIB_SRC})
 target_link_libraries(${JNI_LIB_NAME} ${LIB_TENSORFLOW} ${LIB_TENSORFLOW_FRAMEWORK})
 install(TARGETS ${JNI_LIB_NAME} LIBRARY DESTINATION .)
 
