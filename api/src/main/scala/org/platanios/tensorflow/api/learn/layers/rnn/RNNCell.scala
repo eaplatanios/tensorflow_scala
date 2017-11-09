@@ -13,11 +13,13 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.learn.layers
+package org.platanios.tensorflow.api.learn.layers.rnn
 
+import org.platanios.tensorflow.api.Implicits._
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.learn.Mode
+import org.platanios.tensorflow.api.learn.layers.{Layer, LayerInstance}
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.Output
 import org.platanios.tensorflow.api.ops.variables.{Initializer, Variable, ZerosInitializer}
@@ -26,8 +28,8 @@ import org.platanios.tensorflow.api.types.INT32
 import scala.collection.mutable
 
 abstract class RNNCell(override protected val name: String) extends Layer[RNNCell.Tuple, RNNCell.Tuple](name) {
-  def stateSize: Seq[Shape]
-  def outputSize: Seq[Shape]
+  def stateSize: Seq[Int]
+  def outputSize: Int
 
   //region Helper Methods for Subclasses
 
@@ -39,7 +41,7 @@ abstract class RNNCell(override protected val name: String) extends Layer[RNNCel
     ops.Basic.splitEvenly(x, numSplits, axis = axis)
   }
 
-  @inline protected def sigmoid[T](x: T): T = ops.Math.sigmoid(x)
+  @inline protected def sigmoid(x: Output): Output = ops.Math.sigmoid(x)
   @inline protected def add(x: Output, y: Output): Output = ops.Math.add(x, y)
   @inline protected def multiply(x: Output, y: Output): Output = ops.Math.multiply(x, y)
   @inline protected def matmul(x: Output, y: Output): Output = ops.Math.matmul(x, y)
@@ -77,8 +79,8 @@ class BasicRNNCell(
 ) extends RNNCell(name) {
   override val layerType: String = "BasicRNNCell"
 
-  override def stateSize: Seq[Shape] = Seq(Shape(numUnits))
-  override def outputSize: Seq[Shape] = Seq(Shape(numUnits))
+  override def stateSize: Seq[Int] = Seq(numUnits)
+  override def outputSize: Int = numUnits
 
   override def forward(input: RNNCell.Tuple, mode: Mode): LayerInstance[RNNCell.Tuple, RNNCell.Tuple] = {
     if (input.output.rank != 2)
@@ -119,8 +121,8 @@ class GRUCell(
 ) extends RNNCell(name) {
   override val layerType: String = "GRUCell"
 
-  override def stateSize: Seq[Shape] = Seq(Shape(numUnits))
-  override def outputSize: Seq[Shape] = Seq(Shape(numUnits))
+  override def stateSize: Seq[Int] = Seq(numUnits)
+  override def outputSize: Int = numUnits
 
   override def forward(input: RNNCell.Tuple, mode: Mode): LayerInstance[RNNCell.Tuple, RNNCell.Tuple] = {
     if (input.output.rank != 2)
@@ -188,8 +190,8 @@ class BasicLSTMCell(
 ) extends RNNCell(name) {
   override val layerType: String = "BasicLSTMCell"
 
-  override def stateSize: Seq[Shape] = Seq(Shape(numUnits), Shape(numUnits))
-  override def outputSize: Seq[Shape] = Seq(Shape(numUnits))
+  override def stateSize: Seq[Int] = Seq(numUnits, numUnits)
+  override def outputSize: Int = numUnits
 
   override def forward(input: RNNCell.Tuple, mode: Mode): LayerInstance[RNNCell.Tuple, RNNCell.Tuple] = {
     if (input.output.rank != 2)
@@ -261,18 +263,18 @@ class LSTMCell(
 ) extends RNNCell(name) {
   override val layerType: String = "BasicLSTMCell"
 
-  override def stateSize: Seq[Shape] = {
+  override def stateSize: Seq[Int] = {
     if (projectionSize != -1)
-      Seq(Shape(numUnits), Shape(projectionSize))
+      Seq(numUnits, projectionSize)
     else
-      Seq(Shape(numUnits), Shape(numUnits))
+      Seq(numUnits, numUnits)
   }
 
-  override def outputSize: Seq[Shape] = {
+  override def outputSize: Int = {
     if (projectionSize != -1)
-      Seq(Shape(projectionSize))
+      projectionSize
     else
-      Seq(Shape(numUnits))
+      numUnits
   }
 
   override def forward(input: RNNCell.Tuple, mode: Mode): LayerInstance[RNNCell.Tuple, RNNCell.Tuple] = {
