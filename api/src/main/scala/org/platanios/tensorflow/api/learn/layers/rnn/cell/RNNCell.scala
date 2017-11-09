@@ -15,13 +15,33 @@
 
 package org.platanios.tensorflow.api.learn.layers.rnn.cell
 
+import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.learn.layers.Layer
 import org.platanios.tensorflow.api.ops
+import org.platanios.tensorflow.api.ops.{Basic, Op, Output}
+import org.platanios.tensorflow.api.types.DataType
 
 abstract class RNNCell(override protected val name: String)
     extends Layer[ops.RNNCell.Tuple, ops.RNNCell.Tuple](name) {
   def stateSize: Seq[Int]
   def outputSize: Seq[Int]
+
+  /** Returns a sequence of zero-filled tensors representing a zero-valued state for this RNN cell.
+    *
+    * @param  batchSize Batch size.
+    * @param  dataType  Data type for the state tensors.
+    * @return Sequence of zero-filled state tensors.
+    */
+  def zeroState(batchSize: Output, dataType: DataType): Seq[Output] = {
+    // TODO: Add support for caching the zero state per graph and batch size.
+    Op.createWithNameScope(s"$uniquifiedName/ZeroState", Set(batchSize.op)) {
+      stateSize.map(size => {
+        val zeroOutput = Basic.fill(dataType, Basic.stack(Seq(batchSize, size), axis = 0))(0)
+        zeroOutput.setShape(Output.constantValueAsShape(batchSize).getOrElse(Shape(-1)) + size)
+        zeroOutput
+      })
+    }
+  }
 }
 
 ///**

@@ -286,7 +286,7 @@ object Output {
   }
 
   /** Returns the constant value of the given tensor, if efficiently calculable. */
-  private[ops] def constantValue(tensor: Output): Option[Tensor] = {
+  private[api] def constantValue(tensor: Output): Option[Tensor] = {
     val value = tensor.op.opType match {
       case "Const" => Option(tensor.op.tensorAttribute("value")) // TODO: !!! Make more robust.
       case "Shape" =>
@@ -370,7 +370,7 @@ object Output {
     * @param  tensor One-dimensional tensor to be evaluated.
     * @return [[Shape]] based on the constant value of `tensor`.
     */
-  private[ops] def constantValueAsShape(tensor: Output): Option[Shape] = {
+  private[api] def constantValueAsShape(tensor: Output): Option[Shape] = {
     val shape = tensor.shape.withRank(1)
     if (shape == Shape(0)) {
       Some(Shape.scalar())
