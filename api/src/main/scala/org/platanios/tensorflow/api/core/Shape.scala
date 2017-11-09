@@ -225,6 +225,18 @@ final class Shape private (private val array: Array[Int]) extends ProtoSerializa
   @throws[InvalidShapeException]
   private[api] def withRank(rank: Int): Shape = mergeWith(Shape.unknown(rank))
 
+  /** Returns a shape with at least the specified rank, that is based on the current shape.
+    *
+    * @param  rank Minimum rank to use for the new shape.
+    * @throws InvalidShapeException If this shape is fully or partially known and has a rank that is smaller than the
+    *                               provided value.
+    */
+  @throws[InvalidShapeException]
+  private[api] def withRankAtLeast(rank: Int): Shape = {
+    assertHasRank(rank)
+    this
+  }
+
   /** Asserts that this shape is fully defined (i.e., fully known). If it is not, an [[InvalidShapeException]] exception
     * is thrown.
     *
