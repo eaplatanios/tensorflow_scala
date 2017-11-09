@@ -252,5 +252,5 @@ object RNNCell extends RNNCell {
     *
     *   Input tensors must be two-dimensional.
     */
-  private[api] trait Documentation
+  private[ops] trait Documentation
 }

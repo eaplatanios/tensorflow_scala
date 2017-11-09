@@ -62,9 +62,9 @@ package object api extends Implicits with Documentation {
   type OutputIndexedSlices = ops.OutputIndexedSlices
   type SparseOutput = ops.SparseOutput
 
-  val Output: ops.Output.type = ops.Output
+  val Output             : ops.Output.type              = ops.Output
   val OutputIndexedSlices: ops.OutputIndexedSlices.type = ops.OutputIndexedSlices
-  val SparseOutput: ops.SparseOutput.type = ops.SparseOutput
+  val SparseOutput       : ops.SparseOutput.type        = ops.SparseOutput
 
   implicit val layerCreationContext: DynamicVariable[api.learn.layers.LayerCreationContext] = {
     new DynamicVariable[api.learn.layers.LayerCreationContext](api.learn.layers.LayerCreationContext())
@@ -129,18 +129,20 @@ package object api extends Implicits with Documentation {
     * @groupprio ImageOps       190
     * @groupname EmbeddingOps   Ops / Embedding
     * @groupprio EmbeddingOps   200
+    * @groupname RNNOps         Ops / RNN
+    * @groupprio RNNOps         210
     * @groupname RNNCellOps     Ops / RNN Cells
-    * @groupprio RNNCellOps     210
+    * @groupprio RNNCellOps     220
     * @groupname ControlFlowOps Ops / Control Flow
-    * @groupprio ControlFlowOps 220
+    * @groupprio ControlFlowOps 230
     * @groupname LoggingOps     Ops / Logging
-    * @groupprio LoggingOps     230
+    * @groupprio LoggingOps     240
     * @groupname CheckOps       Ops / Checks
-    * @groupprio CheckOps       240
+    * @groupprio CheckOps       250
     * @groupname SummaryOps     Ops / Summary
-    * @groupprio SummaryOps     250
+    * @groupprio SummaryOps     260
     * @groupname CallbackOps    Ops / Callback
-    * @groupprio CallbackOps    260
+    * @groupprio CallbackOps    270
     */
   object tf
       extends core.API
@@ -171,18 +173,20 @@ package object api extends Implicits with Documentation {
     * @groupprio ImageOps       190
     * @groupname EmbeddingOps   Ops / Embedding
     * @groupprio EmbeddingOps   200
+    * @groupname RNNOps         Ops / RNN
+    * @groupprio RNNOps         210
     * @groupname RNNCellOps     Ops / RNN Cells
-    * @groupprio RNNCellOps     210
+    * @groupprio RNNCellOps     220
     * @groupname ControlFlowOps Ops / Control Flow
-    * @groupprio ControlFlowOps 220
+    * @groupprio ControlFlowOps 230
     * @groupname LoggingOps     Ops / Logging
-    * @groupprio LoggingOps     230
+    * @groupprio LoggingOps     240
     * @groupname CheckOps       Ops / Checks
-    * @groupprio CheckOps       240
+    * @groupprio CheckOps       250
     * @groupname SummaryOps     Ops / Summary
-    * @groupprio SummaryOps     250
+    * @groupprio SummaryOps     260
     * @groupname CallbackOps    Ops / Callback
-    * @groupprio CallbackOps    260
+    * @groupprio CallbackOps    270
     */
   object tfi
       extends core.API

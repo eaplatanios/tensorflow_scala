@@ -70,6 +70,7 @@ package object ops {
           with NN
           with Parsing
           with Random
+          with RNN
           with RNNCell
           with Sets
           with Statistics
