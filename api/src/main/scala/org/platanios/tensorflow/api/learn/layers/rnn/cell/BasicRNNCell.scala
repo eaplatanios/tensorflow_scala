@@ -45,7 +45,7 @@ class BasicRNNCell private[cell] (
   override def stateSize: Seq[Int] = Seq(numUnits)
   override def outputSize: Seq[Int] = Seq(numUnits)
 
-  override def forward(input: ops.RNNCell.Tuple, mode: Mode): LayerInstance[ops.RNNCell.Tuple, ops.RNNCell.Tuple] = {
+  override def forward(input: RNNCell.Tuple, mode: Mode): LayerInstance[RNNCell.Tuple, RNNCell.Tuple] = {
     val output = input.output.head
     val kernel = variable(KERNEL_NAME, output.dataType, Shape(output.shape(1) + numUnits, numUnits), kernelInitializer)
     val bias = variable(BIAS_NAME, output.dataType, Shape(numUnits), biasInitializer)

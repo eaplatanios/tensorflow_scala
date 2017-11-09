@@ -441,9 +441,9 @@ object RNN extends RNN {
     *   provided RNN cell. The op performs fully dynamic unrolling of the forward and backward RNNs.
     *
     *   The op takes the inputs and builds independent forward and backward RNNs. The output sizes of the forward and
-    *   the backward RNN cells must match. The initial state for both directions is zero by default (but can be set
-    *   optionally) and no intermediate states are ever returned -- the network is fully unrolled for the provided
-    *   sequence length(s) of the sequence(s) or completely unrolled if sequence length(s) are not provided.
+    *   the backward RNN cells must match. The initial state for both directions can be provided and no intermediate
+    *   states are ever returned -- the network is fully unrolled for the provided sequence length(s) of the sequence(s)
+    *   or completely unrolled if sequence length(s) are not provided.
     */
   private[ops] trait Documentation
 }

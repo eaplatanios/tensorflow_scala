@@ -47,7 +47,7 @@ class BasicLSTMCell private[cell] (
   override def stateSize: Seq[Int] = Seq(numUnits, numUnits)
   override def outputSize: Seq[Int] = Seq(numUnits)
 
-  override def forward(input: ops.RNNCell.Tuple, mode: Mode): LayerInstance[ops.RNNCell.Tuple, ops.RNNCell.Tuple] = {
+  override def forward(input: RNNCell.Tuple, mode: Mode): LayerInstance[RNNCell.Tuple, RNNCell.Tuple] = {
     val output = input.output.head
     val kernel = variable(
       KERNEL_NAME,

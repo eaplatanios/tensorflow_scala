@@ -68,7 +68,7 @@ class LSTMCell private[cell] (
       Seq(numUnits)
   }
 
-  override def forward(input: ops.RNNCell.Tuple, mode: Mode): LayerInstance[ops.RNNCell.Tuple, ops.RNNCell.Tuple] = {
+  override def forward(input: RNNCell.Tuple, mode: Mode): LayerInstance[RNNCell.Tuple, RNNCell.Tuple] = {
     val output = input.output.head
     val trainableVariables: mutable.Set[Variable] = mutable.Set[Variable]()
     val hiddenDepth = if (projectionSize != -1) projectionSize else numUnits

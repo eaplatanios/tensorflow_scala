@@ -22,7 +22,7 @@ import org.platanios.tensorflow.api.ops.{Basic, Op, Output}
 import org.platanios.tensorflow.api.types.DataType
 
 abstract class RNNCell(override protected val name: String)
-    extends Layer[ops.RNNCell.Tuple, ops.RNNCell.Tuple](name) {
+    extends Layer[RNNCell.Tuple, RNNCell.Tuple](name) {
   def stateSize: Seq[Int]
   def outputSize: Seq[Int]
 
@@ -42,6 +42,11 @@ abstract class RNNCell(override protected val name: String)
       })
     }
   }
+}
+
+object RNNCell {
+  type Tuple = ops.RNNCell.Tuple
+  val Tuple: ops.RNNCell.Tuple.type = ops.RNNCell.Tuple
 }
 
 ///**
