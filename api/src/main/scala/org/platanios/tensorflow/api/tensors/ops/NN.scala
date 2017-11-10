@@ -21,8 +21,9 @@ import org.platanios.tensorflow.api.ops.NN.{CNNDataFormat, NCHWFormat, NHWCForma
 import org.platanios.tensorflow.api.tensors.{Context, Tensor, TensorOps}
 import org.platanios.tensorflow.api.types.{DataType, FLOAT16, FLOAT32, FLOAT64, INT32, INT64}
 import org.platanios.tensorflow.jni.generated.tensors.{NN => NativeTensorOpsNN}
-
 import java.nio.charset.Charset
+
+import org.platanios.tensorflow.api.core.exception.InvalidShapeException
 
 import scala.util.DynamicVariable
 
@@ -401,6 +402,64 @@ private[api] trait NN {
     } else {
       output
     }
+  }
+
+  /** $OpDocNNSequenceLoss
+    *
+    * @group NNOps
+
+    * @param  logits                 Tensor of shape `[batchSize, sequenceLength, numClasses]` containing unscaled log
+    *                                probabilities.
+    * @param  labels                 Tensor of shape `[batchSize, sequenceLength]` containing the true label at each
+    *                                time step.
+    * @param  weights                Optionally, a tensor of shape `[batchSize, sequenceLength]` containing weights to
+    *                                use for each prediction. When using `weights` as masking, set all valid time steps
+    *                                to 1 and all padded time steps to 0 (e.g., a mask returned by `tf.sequenceMask`).
+    * @param  averageAcrossTimeSteps If `true`, the loss is summed across the sequence dimension and divided by the
+    *                                total label weight across all time steps.
+    * @param  averageAcrossBatch     If `true`, the loss is summed across the batch dimension and divided by the batch
+    *                                size.
+    * @param  lossFn                 Loss function to use that takes the predicted logits and the true labels as inputs
+    *                                and returns the loss value. Defaults to `sparseSoftmaxCrossEntropy`.
+    * @return Result as a new tensor.
+    * @throws InvalidShapeException If any of `logits`, `labels`, or `weights` has invalid shape.
+    */
+  @throws[InvalidShapeException]
+  def sequenceLoss(
+      logits: Tensor, labels: Tensor, weights: Tensor = null,
+      averageAcrossTimeSteps: Boolean = true, averageAcrossBatch: Boolean = true,
+      lossFn: (Tensor, Tensor) => Tensor = sparseSoftmaxCrossEntropy(_, _)): Tensor = {
+    if (logits.rank != 3)
+      throw InvalidShapeException(
+        s"'logits' must have shape [batchSize, sequenceLength, numClasses], but had: ${logits.shape}.")
+    if (labels.rank != 2)
+      throw InvalidShapeException(s"'labels' must have shape [batchSize, sequenceLength], but had: ${labels.shape}.")
+    if (weights != null && weights.rank != 2)
+      throw InvalidShapeException(s"'weights' must have shape [batchSize, sequenceLength], but had: ${weights.shape}.")
+    val numClasses = Basic.shape(logits)(2)
+    val flattenedLogits = Basic.reshape(logits, Basic.stack(Seq(-1, numClasses)))
+    val flattenedLabels = Basic.reshape(labels, Shape(-1))
+    var loss = lossFn(flattenedLogits, flattenedLabels)
+    if (weights != null)
+      loss = loss * Basic.reshape(weights, Shape(-1))
+    if (averageAcrossTimeSteps && averageAcrossBatch) {
+      loss = Math.sum(loss)
+      val totalSize = if (weights != null) Math.sum(weights) + 1e-12 else Basic.size(flattenedLabels)
+      loss = Math.divide(loss, totalSize)
+    } else {
+      loss = Basic.reshape(loss, Basic.shape(logits)(0 :: 2))
+    }
+    if (averageAcrossTimeSteps && !averageAcrossBatch) {
+      loss = Math.sum(loss, axes = 1)
+      val totalSize = if (weights != null) Math.sum(weights, axes = 1) + 1e-12 else Basic.shape(labels)(1)
+      loss = Math.divide(loss, totalSize)
+    }
+    if (!averageAcrossTimeSteps && averageAcrossBatch) {
+      loss = Math.sum(loss, axes = 0)
+      val totalSize = if (weights != null) Math.sum(weights, axes = 0) + 1e-12 else Basic.shape(labels)(0)
+      loss = Math.divide(loss, totalSize)
+    }
+    loss
   }
 
   //endregion Loss Ops
