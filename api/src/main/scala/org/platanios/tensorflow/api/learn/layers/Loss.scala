@@ -25,7 +25,7 @@ import org.platanios.tensorflow.api.ops.Output
 abstract class Loss[T](override protected val name: String) extends Layer[T, Output](name)
 
 object Loss {
-  trait API {
+  private[layers] trait API {
     type Loss[T] = layers.Loss[T]
     type L2Loss = layers.L2Loss
     type SoftmaxCrossEntropy = layers.SoftmaxCrossEntropy

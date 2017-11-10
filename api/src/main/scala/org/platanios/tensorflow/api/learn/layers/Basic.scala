@@ -28,7 +28,7 @@ import scala.language.higherKinds
   * @author Emmanouil Antonios Platanios
   */
 object Basic {
-  trait API {
+  private[layers] trait API {
     type Identity[T] = layers.Identity[T]
     type Compose[T, R, S] = layers.Compose[T, R, S]
     type Concatenate[T, R] = layers.Concatenate[T, R]
@@ -48,7 +48,7 @@ object Basic {
   object API extends API
 }
 
-case class Identity[T] private[learn](override protected val name: String = "Identity") extends Layer[T, T](name) {
+case class Identity[T] private[layers] (override protected val name: String = "Identity") extends Layer[T, T](name) {
   override val layerType = "Identity"
 
   override def forward(input: T, mode: Mode): LayerInstance[T, T] = {
@@ -56,7 +56,7 @@ case class Identity[T] private[learn](override protected val name: String = "Ide
   }
 }
 
-case class Compose[T, R, S] private[learn] (
+case class Compose[T, R, S] private[layers] (
     layer1: Layer[T, R], layer2: Layer[R, S],
     override protected val name: String = "Compose"
 ) extends Layer[T, S](name) {
@@ -73,7 +73,7 @@ case class Compose[T, R, S] private[learn] (
   }
 }
 
-case class Concatenate[T, R] private[learn] (
+case class Concatenate[T, R] private[layers] (
     layers: Seq[Layer[T, R]],
     override protected val name: String = "Concatenate"
 ) extends Layer[T, Seq[R]](name) {
@@ -89,7 +89,7 @@ case class Concatenate[T, R] private[learn] (
   }
 }
 
-case class Map[T, R, S, CC[A] <: TraversableLike[A, CC[A]]] private[learn] (
+case class Map[T, R, S, CC[A] <: TraversableLike[A, CC[A]]] private[layers] (
     layer: Layer[CC[T], CC[R]],
     mapLayer: Layer[R, S],
     override protected val name: String = "Map"

@@ -25,7 +25,7 @@ import org.platanios.tensorflow.api.ops.Output
 abstract class Activation(override protected val name: String) extends Layer[Output, Output](name)
 
 object Activation {
-  trait API {
+  private[layers] trait API {
     type Activation = layers.Activation
 
     val Sigmoid : layers.Sigmoid.type  = layers.Sigmoid

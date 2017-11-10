@@ -28,7 +28,7 @@ import org.platanios.tensorflow.api.types.UINT8
 abstract class Summary(override protected val name: String) extends Layer[Output, Output](name)
 
 object Summary {
-  trait API {
+  private[layers] trait API {
     type ScalarSummary = layers.ScalarSummary
     type HistogramSummary = layers.HistogramSummary
     type ImageSummary = layers.ImageSummary

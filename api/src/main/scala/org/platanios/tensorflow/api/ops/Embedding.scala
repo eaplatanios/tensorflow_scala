@@ -196,7 +196,7 @@ private[ops] trait Embedding {
   }
 }
 
-private[ops] object Embedding extends Embedding {
+object Embedding extends Embedding {
   /** Partitioning strategy for the embeddings map. */
   sealed trait PartitionStrategy {
     /** Transforms the provided ids based on this partition strategy and returns the partition assignments and the

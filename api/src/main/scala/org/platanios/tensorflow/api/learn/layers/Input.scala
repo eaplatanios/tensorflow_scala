@@ -28,20 +28,15 @@ import scala.collection.mutable
   * @author Emmanouil Antonios Platanios
   */
 object Input {
-  trait API {
+  private[layers] trait API {
     type Input[T, O, D, S] = layers.Input[T, O, D, S]
-
-    def Input(dataType: DataType, shape: Shape, name: String = "Input")(implicit
-        ev: Data.Aux[Tensor, Output, DataType, Shape]
-    ): layers.Input[Tensor, Output, DataType, Shape] = {
-      layers.Input(dataType, shape, name)
-    }
+    val Input: layers.Input.type = layers.Input
   }
 
   object API extends API
 }
 
-case class Input[T, O, D, S] private[learn](dataType: D, shape: S, name: String = "Input")(implicit
+case class Input[T, O, D, S](dataType: D, shape: S, name: String = "Input")(implicit
     ev: Data.Aux[T, O, D, S]
 ) {
   private[Input] val evidence: Data.Aux[T, O, D, S] = ev

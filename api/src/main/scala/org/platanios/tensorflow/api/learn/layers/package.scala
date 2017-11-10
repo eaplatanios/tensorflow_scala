@@ -22,6 +22,7 @@ package object layers {
   private[api] trait API
       extends Activation.API
           with Basic.API
+          with Embedding.API
           with Input.API
           with Layer.API
           with Loss.API

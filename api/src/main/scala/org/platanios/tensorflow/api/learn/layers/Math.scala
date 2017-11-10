@@ -28,7 +28,7 @@ import scala.collection.mutable
   * @author Emmanouil Antonios Platanios
   */
 object Math {
-  trait API {
+  private[layers] trait API {
     type Cast = layers.Cast
     type Sum = layers.Sum
     type Mean = layers.Mean

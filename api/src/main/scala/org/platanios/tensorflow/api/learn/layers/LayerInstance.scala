@@ -19,7 +19,7 @@ import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.ops.Op
 import org.platanios.tensorflow.api.ops.variables.Variable
 
-class LayerInstance[T, R](
+class LayerInstance[T, R] private[layers] (
     val input: T,
     val output: R,
     val trainableVariables: Set[Variable] = Set.empty[Variable],

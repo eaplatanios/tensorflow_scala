@@ -26,7 +26,7 @@ import org.platanios.tensorflow.api.ops.variables.{Initializer, RandomNormalInit
   * @author Emmanouil Antonios Platanios
   */
 object NN {
-  trait API {
+  private[layers] trait API {
     type Softmax = layers.Softmax
     type LogSoftmax = layers.LogSoftmax
     type Dropout = layers.Dropout
