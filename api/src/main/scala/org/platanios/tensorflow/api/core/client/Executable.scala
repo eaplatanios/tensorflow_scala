@@ -18,7 +18,6 @@ package org.platanios.tensorflow.api.core.client
 import org.platanios.tensorflow.api.ops.{Op, Output, OutputLike}
 
 import shapeless._
-import shapeless.ops.hlist.{Mapper, ToList}
 
 import scala.collection.TraversableLike
 import scala.language.higherKinds
@@ -72,20 +71,24 @@ object Executable {
     }
   }
 
-  // This also covers `OutputIndexedSlices` and `SparseOutput` as they are case classes (i.e., products).
-  implicit def productExecutable[T <: Product, L <: HList, Ops <: HList](implicit
-      gen: Generic.Aux[T, L],
-      mapper: Mapper.Aux[getExecutableOps.type, L, Ops],
-      toList: ToList[Ops, Set[Op]]
-  ): Executable[T] = new Executable[T] {
-    def ops(t: T): Set[Op] = {
-      toList(mapper(gen.to(t))).toSet.flatten
+  implicit val hnil: Executable[HNil] = new Executable[HNil] {
+    override def ops(executable: HNil): Set[Op] = Set.empty[Op]
+  }
+
+  implicit def recursiveConstructor[H, T <: HList](implicit
+      executableHead: Executable[H],
+      executableTail: Executable[T]
+  ): Executable[H :: T] = new Executable[H :: T] {
+    override def ops(executable: H :: T): Set[Op] = {
+      executableHead.ops(executable.head) ++ executableTail.ops(executable.tail)
     }
   }
-}
 
-private[client] object getExecutableOps extends Poly1 {
-  implicit def cases[T](implicit executable: Executable[T]): getExecutableOps.Case.Aux[T, Set[Op]] = {
-    at[T](executable.ops)
+  // This also covers `OutputIndexedSlices` and `SparseOutput` as they are case classes (i.e., products).
+  implicit def productConstructor[P <: Product, L <: HList](implicit
+      gen: Generic.Aux[P, L],
+      executableL: Executable[L]
+  ): Executable[P] = new Executable[P] {
+    override def ops(executable: P): Set[Op] = executableL.ops(gen.to(executable))
   }
 }
