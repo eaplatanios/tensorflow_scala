@@ -51,7 +51,7 @@ class LSTMCell private[cell] (
     kernelInitializer: Initializer = null,
     biasInitializer: Initializer = ZerosInitializer,
     override protected val name: String = "LSTMCell"
-) extends RNNCell(name) {
+) extends RNNCell[Output](name) {
   override val layerType: String = "LSTMCell"
 
   override def stateSize: Seq[Int] = {
@@ -68,8 +68,10 @@ class LSTMCell private[cell] (
       Seq(numUnits)
   }
 
-  override def forward(input: RNNCell.Tuple, mode: Mode): LayerInstance[RNNCell.Tuple, RNNCell.Tuple] = {
-    val output = input.output.head
+  override def forward(
+      input: RNNCell.Tuple[Output], mode: Mode
+  ): LayerInstance[RNNCell.Tuple[Output], RNNCell.Tuple[Output]] = {
+    val output = input.output
     val trainableVariables: mutable.Set[Variable] = mutable.Set[Variable]()
     val hiddenDepth = if (projectionSize != -1) projectionSize else numUnits
     val kernel = variable(

@@ -39,14 +39,16 @@ class GRUCell private[cell] (
     kernelInitializer: Initializer = null,
     biasInitializer: Initializer = ZerosInitializer,
     override protected val name: String = "GRUCell"
-) extends RNNCell(name) {
+) extends RNNCell[Output](name) {
   override val layerType: String = "GRUCell"
 
   override def stateSize: Seq[Int] = Seq(numUnits)
   override def outputSize: Seq[Int] = Seq(numUnits)
 
-  override def forward(input: RNNCell.Tuple, mode: Mode): LayerInstance[RNNCell.Tuple, RNNCell.Tuple] = {
-    val output = input.output.head
+  override def forward(
+      input: RNNCell.Tuple[Output], mode: Mode
+  ): LayerInstance[RNNCell.Tuple[Output], RNNCell.Tuple[Output]] = {
+    val output = input.output
     val gateKernel = variable(
       s"Gate/$KERNEL_NAME",
       output.dataType,

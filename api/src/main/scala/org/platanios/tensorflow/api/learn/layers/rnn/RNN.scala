@@ -44,24 +44,24 @@ import scala.collection.mutable
   *
   * @author Emmanouil Antonios Platanios
   */
-class RNN[T: RNNInput] private[rnn] (
-    cell: RNNCell,
+class RNN[T: RNNCell.Output] private[rnn] (
+    cell: RNNCell[T],
     initialState: Seq[Tensor] = null,
     timeMajor: Boolean = false,
     parallelIterations: Int = 32,
     swapMemory: Boolean = false,
     sequenceLengths: Tensor = null,
     override protected val name: String = "RNN"
-) extends Layer[T, RNNCell.Tuple](name) {
+) extends Layer[T, RNNCell.Tuple[T]](name) {
   override val layerType: String = "RNN"
 
-  override def forward(input: T, mode: Mode): LayerInstance[T, RNNCell.Tuple] = {
+  override def forward(input: T, mode: Mode): LayerInstance[T, RNNCell.Tuple[T]] = {
     val state = if (initialState == null) null else initialState.map(ops.Basic.constant(_))
     val lengths = if (sequenceLengths == null) null else ops.Basic.constant(sequenceLengths)
     val trainableVariables = mutable.Set.empty[Variable]
     val nonTrainableVariables = mutable.Set.empty[Variable]
 
-    def cellFunction(input: RNNCell.Tuple): RNNCell.Tuple = {
+    def cellFunction(input: RNNCell.Tuple[T]): RNNCell.Tuple[T] = {
       val instance = cell.forward(input, mode)
       trainableVariables ++= instance.trainableVariables
       nonTrainableVariables ++= instance.nonTrainableVariables
@@ -71,7 +71,7 @@ class RNN[T: RNNInput] private[rnn] (
     LayerInstance(
       input,
       ops.RNN.dynamicRNN(
-        cellFunction, cell.outputSize, RNNInput[T].outputs(input), state, cell.zeroState, timeMajor, parallelIterations,
+        cellFunction, cell.outputSize, input, state, cell.zeroState, timeMajor, parallelIterations,
         swapMemory, lengths, uniquifiedName),
       trainableVariables.toSet,
       nonTrainableVariables.toSet)
@@ -79,8 +79,8 @@ class RNN[T: RNNInput] private[rnn] (
 }
 
 object RNN {
-  def apply[T: RNNInput](
-      cell: RNNCell,
+  def apply[T: RNNCell.Output](
+      cell: RNNCell[T],
       initialState: Seq[Tensor] = null,
       timeMajor: Boolean = false,
       parallelIterations: Int = 32,

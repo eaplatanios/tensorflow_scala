@@ -39,14 +39,16 @@ class BasicRNNCell private[cell] (
     kernelInitializer: Initializer = null,
     biasInitializer: Initializer = ZerosInitializer,
     override protected val name: String = "BasicRNNCell"
-) extends RNNCell(name) {
+) extends RNNCell[Output](name) {
   override val layerType: String = "BasicRNNCell"
 
   override def stateSize: Seq[Int] = Seq(numUnits)
   override def outputSize: Seq[Int] = Seq(numUnits)
 
-  override def forward(input: RNNCell.Tuple, mode: Mode): LayerInstance[RNNCell.Tuple, RNNCell.Tuple] = {
-    val output = input.output.head
+  override def forward(
+      input: RNNCell.Tuple[Output], mode: Mode
+  ): LayerInstance[RNNCell.Tuple[Output], RNNCell.Tuple[Output]] = {
+    val output = input.output
     val kernel = variable(KERNEL_NAME, output.dataType, Shape(output.shape(1) + numUnits, numUnits), kernelInitializer)
     val bias = variable(BIAS_NAME, output.dataType, Shape(numUnits), biasInitializer)
     val newTuple = ops.RNNCell.basicRNNCell(input, kernel, bias, activation)

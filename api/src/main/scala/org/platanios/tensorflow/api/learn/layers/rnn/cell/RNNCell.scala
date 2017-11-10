@@ -21,8 +21,8 @@ import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.{Basic, Op, Output}
 import org.platanios.tensorflow.api.types.DataType
 
-abstract class RNNCell(override protected val name: String)
-    extends Layer[RNNCell.Tuple, RNNCell.Tuple](name) {
+abstract class RNNCell[T: RNNCell.Output](override protected val name: String)
+    extends Layer[RNNCell.Tuple[T], RNNCell.Tuple[T]](name) {
   def stateSize: Seq[Int]
   def outputSize: Seq[Int]
 
@@ -45,7 +45,9 @@ abstract class RNNCell(override protected val name: String)
 }
 
 object RNNCell {
-  type Tuple = ops.RNNCell.Tuple
+  type Tuple[T] = ops.RNNCell.Tuple[T]
+  type Output[T] = ops.RNNCell.Output[T]
+
   val Tuple: ops.RNNCell.Tuple.type = ops.RNNCell.Tuple
 }
 

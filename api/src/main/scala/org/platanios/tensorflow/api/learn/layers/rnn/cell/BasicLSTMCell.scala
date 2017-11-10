@@ -41,14 +41,16 @@ class BasicLSTMCell private[cell] (
     kernelInitializer: Initializer = null,
     biasInitializer: Initializer = ZerosInitializer,
     override protected val name: String = "BasicLSTMCell"
-) extends RNNCell(name) {
+) extends RNNCell[Output](name) {
   override val layerType: String = "BasicLSTMCell"
 
   override def stateSize: Seq[Int] = Seq(numUnits, numUnits)
   override def outputSize: Seq[Int] = Seq(numUnits)
 
-  override def forward(input: RNNCell.Tuple, mode: Mode): LayerInstance[RNNCell.Tuple, RNNCell.Tuple] = {
-    val output = input.output.head
+  override def forward(
+      input: RNNCell.Tuple[Output], mode: Mode
+  ): LayerInstance[RNNCell.Tuple[Output], RNNCell.Tuple[Output]] = {
+    val output = input.output
     val kernel = variable(
       KERNEL_NAME,
       output.dataType,

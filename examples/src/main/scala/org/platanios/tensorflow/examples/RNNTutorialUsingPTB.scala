@@ -41,13 +41,15 @@ object RNNTutorialUsingPTB {
   val numLayers             : Int      = 1
   val dropoutKeepProbability: Float    = 0.5f
 
-  object RNNOutputLayer extends tf.learn.Layer[RNNCell.Tuple, Output]("RNNOutputLayer") {
+  object RNNOutputLayer extends tf.learn.Layer[RNNCell.Tuple[Output], Output]("RNNOutputLayer") {
     override val layerType: String = "RNNOutputLayer"
 
-    override def forward(input: RNNCell.Tuple, mode: tf.learn.Mode): tf.learn.LayerInstance[RNNCell.Tuple, Output] = {
+    override def forward(
+        input: RNNCell.Tuple[Output], mode: tf.learn.Mode
+    ): tf.learn.LayerInstance[RNNCell.Tuple[Output], Output] = {
       val weights = variable("OutputWeights", dataType, Shape(numHidden, vocabularySize))
       val bias = variable("OutputBias", dataType, Shape(vocabularySize))
-      val output = tf.linear(tf.reshape(input.output.head, Shape(-1, numHidden)), weights.value, bias.value)
+      val output = tf.linear(tf.reshape(input.output, Shape(-1, numHidden)), weights.value, bias.value)
       // We reshape the output logits to feed into the sequence loss layer
       val reshapedOutput = tf.reshape(output, Shape(batchSize, numSteps, vocabularySize))
       tf.learn.LayerInstance(input, reshapedOutput, trainableVariables = Set(weights, bias))

@@ -20,6 +20,9 @@ import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.types.INT32
 
+import scala.collection.TraversableLike
+import scala.collection.generic.CanBuildFrom
+
 /** Contains functions for constructing ops related to recurrent neural network (RNN) cells.
   *
   * @author Emmanouil Antonios Platanios
@@ -38,10 +41,10 @@ private[api] trait RNNCell {
     */
   @throws[InvalidArgumentException]
   def basicRNNCell(
-      input: RNNCell.Tuple, kernel: Output, bias: Output,
-      activation: Output => Output = Math.tanh(_), name: String = "BasicRNNCell"): RNNCell.Tuple = {
+      input: RNNCell.Tuple[Output], kernel: Output, bias: Output,
+      activation: Output => Output = Math.tanh(_), name: String = "BasicRNNCell"): RNNCell.Tuple[Output] = {
     Op.createWithNameScope(name) {
-      val output = input.output.head
+      val output = input.output
       val state = input.state.head
       if (output.rank != 2)
         throw InvalidArgumentException(s"Input must be rank-2 (provided rank-${output.rank}).")
@@ -50,8 +53,8 @@ private[api] trait RNNCell {
       if (input.state.length != 1)
         throw InvalidArgumentException(s"The state must consist of one tensor.")
       val linear = NN.addBias(Math.matmul(Basic.concatenate(Seq(output, state), axis = 1), kernel), bias)
-      val newOutput = Seq(activation(linear))
-      RNNCell.Tuple(newOutput, newOutput)
+      val newOutput = activation(linear)
+      RNNCell.Tuple(newOutput, Seq(newOutput))
     }
   }
 
@@ -70,10 +73,11 @@ private[api] trait RNNCell {
     */
   @throws[InvalidArgumentException]
   def gruCell(
-      input: RNNCell.Tuple, gateKernel: Output, gateBias: Output, candidateKernel: Output, candidateBias: Output,
-      activation: Output => Output = Math.tanh(_), name: String = "GRUCell"): RNNCell.Tuple = {
+      input: RNNCell.Tuple[Output], gateKernel: Output, gateBias: Output, candidateKernel: Output,
+      candidateBias: Output, activation: Output => Output = Math.tanh(_),
+      name: String = "GRUCell"): RNNCell.Tuple[Output] = {
     Op.createWithNameScope(name) {
-      val output = input.output.head
+      val output = input.output
       val state = input.state.head
       if (output.rank != 2)
         throw InvalidArgumentException(s"Input must be rank-2 (provided rank-${output.rank}).")
@@ -86,8 +90,8 @@ private[api] trait RNNCell {
       val (r, u) = (value(0), value(1))
       val rState = Math.multiply(r, state)
       val c = NN.addBias(Math.matmul(Basic.concatenate(Seq(output, rState), axis = 1), candidateKernel), candidateBias)
-      val newH = Seq(Math.add(Math.multiply(u, state), Math.multiply(1 - u, c)))
-      RNNCell.Tuple(newH, newH)
+      val newH = Math.add(Math.multiply(u, state), Math.multiply(1 - u, c))
+      RNNCell.Tuple(newH, Seq(newH))
     }
   }
 
@@ -105,10 +109,10 @@ private[api] trait RNNCell {
     */
   @throws[InvalidArgumentException]
   def basicLSTMCell(
-      input: RNNCell.Tuple, kernel: Output, bias: Output, activation: Output => Output = Math.tanh(_),
-      forgetBias: Float = 1.0f, name: String = "BasicLSTMCell"): RNNCell.Tuple = {
+      input: RNNCell.Tuple[Output], kernel: Output, bias: Output, activation: Output => Output = Math.tanh(_),
+      forgetBias: Float = 1.0f, name: String = "BasicLSTMCell"): RNNCell.Tuple[Output] = {
     Op.createWithNameScope(name) {
-      val output = input.output.head
+      val output = input.output
       if (output.rank != 2)
         throw InvalidArgumentException(s"Input must be rank-2 (provided rank-${output.rank}).")
       if (output.shape(1) == -1)
@@ -126,7 +130,7 @@ private[api] trait RNNCell {
       val forgetBiasTensor = ops.Basic.constant(forgetBias, f.dataType)
       val c = Math.multiply(cPrev, Math.sigmoid(f + forgetBiasTensor)) + Math.multiply(Math.sigmoid(i), activation(j))
       val m = Math.multiply(activation(c), Math.sigmoid(o))
-      RNNCell.Tuple(Seq(m), Seq(c, m))
+      RNNCell.Tuple(m, Seq(c, m))
     }
   }
 
@@ -155,14 +159,14 @@ private[api] trait RNNCell {
     */
   @throws[InvalidArgumentException]
   def lstmCell(
-      input: RNNCell.Tuple, kernel: Output, bias: Output,
+      input: RNNCell.Tuple[Output], kernel: Output, bias: Output,
       cellClip: Float = -1,
       wfDiag: Output = null, wiDiag: Output = null, woDiag: Output = null,
       projectionKernel: Output = null, projectionClip: Float = -1,
       activation: Output => Output = Math.tanh(_), forgetBias: Float = 1.0f,
-      name: String = "LSTMCell"): RNNCell.Tuple = {
+      name: String = "LSTMCell"): RNNCell.Tuple[Output] = {
     Op.createWithNameScope(name) {
-      val output = input.output.head
+      val output = input.output
       if (output.rank != 2)
         throw InvalidArgumentException(s"Input must be rank-2 (provided rank-${output.rank}).")
       if (output.shape(1) == -1)
@@ -204,13 +208,40 @@ private[api] trait RNNCell {
           m = m.clipByValue(-projectionClipTensor, projectionClipTensor)
         }
       }
-      RNNCell.Tuple(Seq(m), Seq(c, m))
+      RNNCell.Tuple(m, Seq(c, m))
     }
   }
 }
 
 object RNNCell extends RNNCell {
-  case class Tuple(output: Seq[Output], state: Seq[Output])
+  case class Tuple[T: Output](output: T, state: Seq[ops.Output])
+
+  trait Output[T] {
+    def outputs(input: T): Seq[ops.Output]
+    def fromOutputs(outputs: Seq[ops.Output]): T
+  }
+
+  object Output {
+    def apply[T: Output]: Output[T] = implicitly[Output[T]]
+
+    implicit def outputExecutable: Output[ops.Output] = new Output[ops.Output] {
+      override def outputs(input: ops.Output): Seq[ops.Output] = Seq(input)
+      override def fromOutputs(outputs: Seq[ops.Output]): ops.Output = outputs.head
+    }
+
+    implicit def outputTraversableExecutable[CC[A] <: TraversableLike[A, CC[A]]](implicit
+        cbfSeq: CanBuildFrom[CC[ops.Output], ops.Output, Seq[ops.Output]],
+        cbfCC: CanBuildFrom[Seq[ops.Output], ops.Output, CC[ops.Output]]
+    ): Output[CC[ops.Output]] = {
+      new Output[CC[ops.Output]] {
+        override def outputs(input: CC[ops.Output]): Seq[ops.Output] = {
+          input.flatMap(e => Output[ops.Output].outputs(e))(cbfSeq)
+        }
+
+        override def fromOutputs(outputs: Seq[ops.Output]): CC[ops.Output] = outputs.to[CC](cbfCC)
+      }
+    }
+  }
 
   /** @define OpDocRNNCellBasicRNNCell
     *   The `basicRNNCell` op creates an instance of the most basic RNN cell, which is defined as:

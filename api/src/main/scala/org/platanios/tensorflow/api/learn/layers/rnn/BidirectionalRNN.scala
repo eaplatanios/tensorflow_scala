@@ -48,9 +48,9 @@ import scala.collection.mutable
   *
   * @author Emmanouil Antonios Platanios
   */
-class BidirectionalRNN[T: RNNInput] private[rnn] (
-    cellFw: RNNCell,
-    cellBw: RNNCell,
+class BidirectionalRNN[T: RNNCell.Output] private[rnn] (
+    cellFw: RNNCell[T],
+    cellBw: RNNCell[T],
     initialStateFw: Seq[Tensor] = null,
     initialStateBw: Seq[Tensor] = null,
     timeMajor: Boolean = false,
@@ -58,24 +58,24 @@ class BidirectionalRNN[T: RNNInput] private[rnn] (
     swapMemory: Boolean = false,
     sequenceLengths: Tensor = null,
     override protected val name: String = "BidirectionalRNN"
-) extends Layer[T, (RNNCell.Tuple, RNNCell.Tuple)](name) {
+) extends Layer[T, (RNNCell.Tuple[T], RNNCell.Tuple[T])](name) {
   override val layerType: String = "BidirectionalRNN"
 
-  override def forward(input: T, mode: Mode): LayerInstance[T, (RNNCell.Tuple, RNNCell.Tuple)] = {
+  override def forward(input: T, mode: Mode): LayerInstance[T, (RNNCell.Tuple[T], RNNCell.Tuple[T])] = {
     val stateFw = if (initialStateFw == null) null else initialStateFw.map(ops.Basic.constant(_))
     val stateBw = if (initialStateBw == null) null else initialStateBw.map(ops.Basic.constant(_))
     val lengths = if (sequenceLengths == null) null else ops.Basic.constant(sequenceLengths)
     val trainableVariables = mutable.Set.empty[Variable]
     val nonTrainableVariables = mutable.Set.empty[Variable]
 
-    def cellFwFunction(input: RNNCell.Tuple): RNNCell.Tuple = {
+    def cellFwFunction(input: RNNCell.Tuple[T]): RNNCell.Tuple[T] = {
       val instance = cellFw.forward(input, mode)
       trainableVariables ++= instance.trainableVariables
       nonTrainableVariables ++= instance.nonTrainableVariables
       instance.output
     }
 
-    def cellBwFunction(input: RNNCell.Tuple): RNNCell.Tuple = {
+    def cellBwFunction(input: RNNCell.Tuple[T]): RNNCell.Tuple[T] = {
       val instance = cellBw.forward(input, mode)
       trainableVariables ++= instance.trainableVariables
       nonTrainableVariables ++= instance.nonTrainableVariables
@@ -87,7 +87,7 @@ class BidirectionalRNN[T: RNNInput] private[rnn] (
       ops.RNN.bidirectionalDynamicRNN(
         cellFwFunction, cellFw.outputSize,
         cellBwFunction, cellBw.outputSize,
-        RNNInput[T].outputs(input),
+        input,
         stateFw, cellFw.zeroState,
         stateBw, cellBw.zeroState,
         timeMajor, parallelIterations, swapMemory, lengths, uniquifiedName),
@@ -97,9 +97,9 @@ class BidirectionalRNN[T: RNNInput] private[rnn] (
 }
 
 object BidirectionalRNN {
-  def apply[T: RNNInput](
-      cellFw: RNNCell,
-      cellBw: RNNCell,
+  def apply[T: RNNCell.Output](
+      cellFw: RNNCell[T],
+      cellBw: RNNCell[T],
       initialStateFw: Seq[Tensor] = null,
       initialStateBw: Seq[Tensor] = null,
       timeMajor: Boolean = false,
