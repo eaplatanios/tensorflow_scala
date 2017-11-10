@@ -16,11 +16,14 @@
 package org.platanios.tensorflow.api.learn.layers.rnn
 
 import org.platanios.tensorflow.api.learn.Mode
-import org.platanios.tensorflow.api.learn.layers.Layer
+import org.platanios.tensorflow.api.learn.layers.{Layer, LayerInstance}
 import org.platanios.tensorflow.api.learn.layers.rnn.cell.RNNCell
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.Output
+import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.tensors.Tensor
+
+import scala.collection.mutable
 
 /** Creates a bidirectional dynamic RNN layer.
   *
@@ -59,17 +62,38 @@ class BidirectionalRNN private[rnn] (
 ) extends Layer[Seq[Output], (RNNCell.Tuple, RNNCell.Tuple)](name) {
   override val layerType: String = "BidirectionalRNN"
 
-  override def forward(input: Seq[Output], mode: Mode): (RNNCell.Tuple, RNNCell.Tuple) = {
+  override def forward(input: Seq[Output], mode: Mode): LayerInstance[Seq[Output], (RNNCell.Tuple, RNNCell.Tuple)] = {
     val stateFw = if (initialStateFw == null) null else initialStateFw.map(ops.Basic.constant(_))
     val stateBw = if (initialStateBw == null) null else initialStateBw.map(ops.Basic.constant(_))
     val lengths = if (sequenceLengths == null) null else ops.Basic.constant(sequenceLengths)
-    ops.RNN.bidirectionalDynamicRNN(
-      cellFw.forward(_, mode).output, cellFw.outputSize,
-      cellBw.forward(_, mode).output, cellBw.outputSize,
+    val trainableVariables = mutable.Set.empty[Variable]
+    val nonTrainableVariables = mutable.Set.empty[Variable]
+
+    def cellFwFunction(input: RNNCell.Tuple): RNNCell.Tuple = {
+      val instance = cellFw.forward(input, mode)
+      trainableVariables ++= instance.trainableVariables
+      nonTrainableVariables ++= instance.nonTrainableVariables
+      instance.output
+    }
+
+    def cellBwFunction(input: RNNCell.Tuple): RNNCell.Tuple = {
+      val instance = cellBw.forward(input, mode)
+      trainableVariables ++= instance.trainableVariables
+      nonTrainableVariables ++= instance.nonTrainableVariables
+      instance.output
+    }
+
+    LayerInstance(
       input,
-      stateFw, cellFw.zeroState,
-      stateBw, cellBw.zeroState,
-      timeMajor, parallelIterations, swapMemory, lengths, uniquifiedName)
+      ops.RNN.bidirectionalDynamicRNN(
+        cellFwFunction, cellFw.outputSize,
+        cellBwFunction, cellBw.outputSize,
+        input,
+        stateFw, cellFw.zeroState,
+        stateBw, cellBw.zeroState,
+        timeMajor, parallelIterations, swapMemory, lengths, uniquifiedName),
+      trainableVariables.toSet,
+      nonTrainableVariables.toSet)
   }
 }
 

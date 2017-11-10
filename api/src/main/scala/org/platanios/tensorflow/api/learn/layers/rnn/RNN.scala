@@ -16,11 +16,14 @@
 package org.platanios.tensorflow.api.learn.layers.rnn
 
 import org.platanios.tensorflow.api.learn.Mode
-import org.platanios.tensorflow.api.learn.layers.Layer
+import org.platanios.tensorflow.api.learn.layers.{Layer, LayerInstance}
 import org.platanios.tensorflow.api.learn.layers.rnn.cell.RNNCell
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.Output
+import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.tensors.Tensor
+
+import scala.collection.mutable
 
 /** Creates a dynamic RNN layer.
   *
@@ -53,12 +56,26 @@ class RNN private[rnn] (
 ) extends Layer[Seq[Output], RNNCell.Tuple](name) {
   override val layerType: String = "RNN"
 
-  override def forward(input: Seq[Output], mode: Mode): RNNCell.Tuple = {
+  override def forward(input: Seq[Output], mode: Mode): LayerInstance[Seq[Output], RNNCell.Tuple] = {
     val state = if (initialState == null) null else initialState.map(ops.Basic.constant(_))
     val lengths = if (sequenceLengths == null) null else ops.Basic.constant(sequenceLengths)
-    ops.RNN.dynamicRNN(
-      cell.forward(_, mode).output, cell.outputSize, input, state, cell.zeroState, timeMajor, parallelIterations,
-      swapMemory, lengths, uniquifiedName)
+    val trainableVariables = mutable.Set.empty[Variable]
+    val nonTrainableVariables = mutable.Set.empty[Variable]
+
+    def cellFunction(input: RNNCell.Tuple): RNNCell.Tuple = {
+      val instance = cell.forward(input, mode)
+      trainableVariables ++= instance.trainableVariables
+      nonTrainableVariables ++= instance.nonTrainableVariables
+      instance.output
+    }
+
+    LayerInstance(
+      input,
+      ops.RNN.dynamicRNN(
+        cellFunction, cell.outputSize, input, state, cell.zeroState, timeMajor, parallelIterations,
+        swapMemory, lengths, uniquifiedName),
+      trainableVariables.toSet,
+      nonTrainableVariables.toSet)
   }
 }
 
