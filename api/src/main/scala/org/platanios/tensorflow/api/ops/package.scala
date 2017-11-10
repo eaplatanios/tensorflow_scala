@@ -76,12 +76,12 @@ package object ops {
           with Statistics
           with Text
           with Gradients.API
-          with Op.API
-          with Output.API
-          with Queue.API
-          with control_flow.API
-          with io.API
-          with variables.API {
+          with ops.Op.API
+          with ops.Output.API
+          with ops.Queue.API
+          with ops.control_flow.API
+          with ops.io.API
+          with ops.variables.API {
     object train extends training.API
 
     object summary extends Summary {
