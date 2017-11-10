@@ -52,7 +52,7 @@ case class ScalarSummary(
   override val layerType: String = "ScalarSummary"
 
   override def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
-    ops.Summary.scalar(uniquifiedName, input, collections, family)
+    ops.Summary.scalar(tag, input, collections, family)
     LayerInstance(input, input)
   }
 }
@@ -66,7 +66,7 @@ case class HistogramSummary(
   override val layerType: String = "HistogramSummary"
 
   override def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
-    ops.Summary.histogram(uniquifiedName, input, collections, family)
+    ops.Summary.histogram(tag, input, collections, family)
     LayerInstance(input, input)
   }
 }
@@ -82,7 +82,7 @@ case class ImageSummary(
   override val layerType: String = "ImageSummary"
 
   override def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
-    ops.Summary.image(uniquifiedName, input, badColor, maxOutputs, collections, family)
+    ops.Summary.image(tag, input, badColor, maxOutputs, collections, family)
     LayerInstance(input, input)
   }
 }
@@ -98,7 +98,7 @@ case class AudioSummary(
   override val layerType: String = "AudioSummary"
 
   override def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
-    ops.Summary.audio(uniquifiedName, input, samplingRate, maxOutputs, collections, family)
+    ops.Summary.audio(tag, input, samplingRate, maxOutputs, collections, family)
     LayerInstance(input, input)
   }
 }
