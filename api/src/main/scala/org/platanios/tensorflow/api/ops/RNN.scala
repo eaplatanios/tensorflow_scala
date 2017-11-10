@@ -393,7 +393,7 @@ object RNN extends RNN {
   /** Transposes the batch and time dimensions of the input tensor, while retaining as much of the static shape
     * information as possible. */
   @throws[InvalidShapeException]
-  private[RNN] def transposeBatchTime(input: Output): Output = {
+  private[ops] def transposeBatchTime(input: Output): Output = {
     val staticShape = input.shape
     if (staticShape.rank != -1 && staticShape.rank < 2)
       throw InvalidShapeException(s"Expected tensor '$input' to have rank at least 2, but saw shape: $staticShape.")
