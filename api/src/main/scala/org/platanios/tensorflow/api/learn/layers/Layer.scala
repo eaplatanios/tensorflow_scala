@@ -95,12 +95,12 @@ private[api] final case class LayerCreationContext(
 
 object Layer {
   trait API {
-    def currentLayerNameScope: String = Layer.currentNameScope
-    def currentLayerVariableScope: VariableScope = Layer.currentVariableScope
-    def currentLayerDevice: String = Layer.currentDevice
-    def currentLayerDeviceFunction: OpSpecification => String = Layer.currentDeviceFunction
+    def currentNameScope: String = Layer.currentNameScope
+    def currentVariableScope: VariableScope = Layer.currentVariableScope
+    def currentDevice: String = Layer.currentDevice
+    def currentDeviceFunction: OpSpecification => String = Layer.currentDeviceFunction
 
-    def createLayersWith[R](
+    def createWith[R](
         nameScope: String = null,
         device: String = "",
         deviceFunction: OpSpecification => String = _.device,
@@ -108,7 +108,15 @@ object Layer {
       Layer.createWith(nameScope, device, deviceFunction)(block)
     }
 
-    def createLayersWithVariableScope[R](
+    def nameScope[R](nameScope: String)(block: => R): R = Layer.createWith(nameScope = nameScope)(block)
+
+    def device[R](device: String)(block: => R): R = Layer.createWith(device = device)(block)
+
+    def deviceFunction[R](deviceFunction: OpSpecification => String)(block: => R): R = {
+      Layer.createWith(deviceFunction = deviceFunction)(block)
+    }
+
+    def variableScope[R](
         name: String, reuse: ReuseAllowed = ReuseOrCreateNew, dataType: DataType = null,
         initializer: Initializer = null, regularizer: Regularizer = null, partitioner: Partitioner = null,
         cachingDevice: OpSpecification => String = null, customGetter: VariableGetter = null,
@@ -118,7 +126,7 @@ object Layer {
         name, reuse, dataType, initializer, regularizer, partitioner, cachingDevice, customGetter, isPure)(block)
     }
 
-    def createLayersWithUpdatedVariableScope[R](
+    def updatedVariableScope[R](
         variableScope: VariableScope, reuse: ReuseAllowed = ReuseOrCreateNew, dataType: DataType = null,
         initializer: Initializer = null, regularizer: Regularizer = null, partitioner: Partitioner = null,
         cachingDevice: OpSpecification => String = null, customGetter: VariableGetter = null, isPure: Boolean = false
