@@ -24,6 +24,8 @@ import org.platanios.tensorflow.api.utilities.{Closeable, Disposer}
 import org.platanios.tensorflow.jni.{Function => NativeFunction, Graph => NativeGraph}
 
 import org.tensorflow.framework.FunctionDef
+import shapeless._
+import shapeless.ops.hlist.Tupler
 
 import scala.collection.mutable
 import scala.util.DynamicVariable
@@ -84,10 +86,53 @@ object Function {
       // TODO: [FUNCTIONS] !!! Find a better way to deal with this -- it's only used for Dataset.flatMap().
       override def outputsDecoder(outputs: Seq[Output]): (Dataset[T, O, D, S], Seq[Output]) = (null, outputs.tail)
     }
+
+    implicit val hnil: ArgType[HNil] = new ArgType[HNil] {
+      override def numOutputs: Int = 0
+      override def outputs(arg: HNil): Seq[Output] = Seq.empty[Output]
+      override def dataTypes(arg: HNil): Seq[DataType] = Seq.empty[DataType]
+      override def outputsDecoder(outputs: Seq[Output]): (HNil, Seq[Output]) = (HNil, outputs.tail)
+    }
+
+    implicit def recursiveConstructor[H, T <: HList](implicit
+        argTypeHead: ArgType[H],
+        argTypeTail: ArgType[T]
+    ): ArgType[H :: T] = new ArgType[H :: T] {
+      override def numOutputs: Int = argTypeHead.numOutputs + argTypeTail.numOutputs
+
+      override def outputs(arg: H :: T): Seq[Output] = {
+        argTypeHead.outputs(arg.head) ++ argTypeTail.outputs(arg.tail)
+      }
+
+      override def dataTypes(arg: H :: T): Seq[DataType] = {
+        argTypeHead.dataTypes(arg.head) ++ argTypeTail.dataTypes(arg.tail)
+      }
+
+      override def outputsDecoder(outputs: Seq[Output]): (H :: T, Seq[Output]) = {
+        val (decodedHead, outputsTail) = argTypeHead.outputsDecoder(outputs)
+        val (decodedTail, tail) = argTypeTail.outputsDecoder(outputsTail)
+        (decodedHead :: decodedTail, tail)
+      }
+    }
+
+    // This also covers `OutputIndexedSlices` and `SparseOutput` as they are case classes (i.e., products).
+    implicit def productConstructor[P <: Product, L <: HList](implicit
+        gen: Generic.Aux[P, L],
+        argTypeL: ArgType[L],
+        tupler: Tupler.Aux[L, P]
+    ): ArgType[P] = new ArgType[P] {
+      override def numOutputs: Int = argTypeL.numOutputs
+      override def outputs(arg: P): Seq[Output] = argTypeL.outputs(gen.to(arg))
+      override def dataTypes(arg: P): Seq[DataType] = argTypeL.dataTypes(gen.to(arg))
+      override def outputsDecoder(outputs: Seq[Output]): (P, Seq[Output]) = {
+        val (decoded, tail) = argTypeL.outputsDecoder(outputs)
+        (tupler(decoded), tail)
+      }
+    }
   }
 }
 
-private[api] case class InstantiatedFunction[O, R] private[ops](
+private[api] case class InstantiatedFunction[O, R] private[ops] (
     name: String, function: (O) => R,
     inputDataTypes: Seq[DataType],
     inputShapes: Option[Seq[Shape]] = None,
