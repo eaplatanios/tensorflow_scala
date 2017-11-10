@@ -243,6 +243,15 @@ object Dataset {
     Dataset[SparseTensor, SparseOutput, (DataType, DataType, DataType), (Shape, Shape, Shape)] = {
       fromSparseSlices(tensor, name)
     }
+
+    def datasetFromGenerator[T, O, D, S](
+        generator: () => Iterable[T], outputDataType: D, outputShape: S = null
+    )(implicit
+        ev: Data.Aux[T, O, D, S],
+        evFunctionOutput: Function.ArgType[O]
+    ): Dataset[T, O, D, S] = {
+      fromGenerator[T, O, D, S](generator, outputDataType, outputShape)(ev, evFunctionOutput)
+    }
   }
 
   private[api] def from[T, O, D, S](
@@ -341,7 +350,7 @@ object Dataset {
     * @param  outputShape    Output shape structure for the tensor structure of the generated [[Iterable]] elements.
     * @return Constructed dataset.
     */
-  private[io] def fromGenerator[T, O, D, S](
+  private[api] def fromGenerator[T, O, D, S](
       generator: () => Iterable[T], outputDataType: D, outputShape: S = null)(implicit
       ev: Data.Aux[T, O, D, S],
       evFunctionOutput: Function.ArgType[O]

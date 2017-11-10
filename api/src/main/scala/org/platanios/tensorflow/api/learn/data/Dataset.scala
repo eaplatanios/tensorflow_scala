@@ -16,8 +16,7 @@
 package org.platanios.tensorflow.api.learn.data
 
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.ops.SparseOutput
-import org.platanios.tensorflow.api.ops.io
+import org.platanios.tensorflow.api.ops.{Function, SparseOutput, io}
 import org.platanios.tensorflow.api.ops.io.Data
 import org.platanios.tensorflow.api.tensors.SparseTensor
 import org.platanios.tensorflow.api.types.DataType
@@ -39,5 +38,16 @@ trait Dataset {
   private[api] def DatasetFromSparseSlices(tensor: SparseTensor, name: String = "SparseTensorSliceDataset"):
   io.Dataset[SparseTensor, SparseOutput, (DataType, DataType, DataType), (Shape, Shape, Shape)] = {
     io.Dataset.fromSparseSlices(tensor, name)
+  }
+
+  def DatasetFromGenerator[T, O, D, S](
+      generator: () => Iterable[T],
+      outputDataType: D,
+      outputShape: S = null
+  )(implicit
+      ev: Data.Aux[T, O, D, S],
+      evFunctionOutput: Function.ArgType[O]
+  ): io.Dataset[T, O, D, S] = {
+    io.Dataset.fromGenerator[T, O, D, S](generator, outputDataType, outputShape)(ev, evFunctionOutput)
   }
 }
