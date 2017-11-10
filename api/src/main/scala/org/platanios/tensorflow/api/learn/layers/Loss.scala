@@ -18,6 +18,7 @@ package org.platanios.tensorflow.api.learn.layers
 import org.platanios.tensorflow.api.learn.{Mode, layers}
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.Output
+import org.platanios.tensorflow.api.tensors.Tensor
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -31,11 +32,15 @@ object Loss {
     type SoftmaxCrossEntropy = layers.SoftmaxCrossEntropy
     type SparseSoftmaxCrossEntropy = layers.SparseSoftmaxCrossEntropy
     type SigmoidCrossEntropy = layers.SigmoidCrossEntropy
+    type LogPoissonLoss = layers.LogPoissonLoss
+    type SequenceLoss = layers.SequenceLoss
 
     val L2Loss                   : layers.L2Loss.type                    = layers.L2Loss
     val SoftmaxCrossEntropy      : layers.SoftmaxCrossEntropy.type       = layers.SoftmaxCrossEntropy
     val SparseSoftmaxCrossEntropy: layers.SparseSoftmaxCrossEntropy.type = layers.SparseSoftmaxCrossEntropy
     val SigmoidCrossEntropy      : layers.SigmoidCrossEntropy.type       = layers.SigmoidCrossEntropy
+    val LogPoissonLoss           : layers.LogPoissonLoss.type            = layers.LogPoissonLoss
+    val SequenceLoss             : layers.SequenceLoss.type              = layers.SequenceLoss
   }
 
   object API extends API
@@ -74,5 +79,31 @@ case class SigmoidCrossEntropy(override protected val name: String = "SigmoidCro
 
   override def forward(input: (Output, Output), mode: Mode): LayerInstance[(Output, Output), Output] = {
     LayerInstance(input, ops.NN.sigmoidCrossEntropy(input._1, input._2, name = uniquifiedName))
+  }
+}
+
+case class LogPoissonLoss(computeFullLoss: Boolean = false, override protected val name: String = "LogPoissonLoss")
+    extends Loss[(Output, Output)](name) {
+  override val layerType: String = "LogPoissonLoss"
+
+  override def forward(input: (Output, Output), mode: Mode): LayerInstance[(Output, Output), Output] = {
+    LayerInstance(input, ops.NN.logPoissonLoss(input._1, input._2, computeFullLoss, name = uniquifiedName))
+  }
+}
+
+case class SequenceLoss(
+    averageAcrossTimeSteps: Boolean = true,
+    averageAcrossBatch: Boolean = true,
+    weights: Tensor = null,
+    lossFn: (Output, Output) => Output = ops.NN.sparseSoftmaxCrossEntropy(_, _),
+    override protected val name: String = "SequenceLoss"
+) extends Loss[(Output, Output)](name) {
+  override val layerType: String = "SequenceLoss"
+
+  override def forward(input: (Output, Output), mode: Mode): LayerInstance[(Output, Output), Output] = {
+    LayerInstance(input, ops.NN.sequenceLoss(
+      input._1, input._2,
+      if (weights == null) null else ops.Basic.constant(weights),
+      averageAcrossTimeSteps, averageAcrossBatch, lossFn, name = uniquifiedName))
   }
 }

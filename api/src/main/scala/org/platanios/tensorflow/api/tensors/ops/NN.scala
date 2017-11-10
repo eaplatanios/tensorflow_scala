@@ -407,7 +407,6 @@ private[api] trait NN {
   /** $OpDocNNSequenceLoss
     *
     * @group NNOps
-
     * @param  logits                 Tensor of shape `[batchSize, sequenceLength, numClasses]` containing unscaled log
     *                                probabilities.
     * @param  labels                 Tensor of shape `[batchSize, sequenceLength]` containing the true label at each
