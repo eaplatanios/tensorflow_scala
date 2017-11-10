@@ -28,7 +28,10 @@ package object layers {
           with Loss.API
           with Math.API
           with NN.API
-          with Summary.API
+          with Summary.API {
+    type LayerInstance[T, R] = layers.LayerInstance[T, R]
+    val LayerInstance: layers.LayerInstance.type = layers.LayerInstance
+  }
 
   private[api] object API extends API
 }

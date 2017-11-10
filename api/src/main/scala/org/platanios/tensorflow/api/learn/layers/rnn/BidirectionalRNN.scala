@@ -19,7 +19,6 @@ import org.platanios.tensorflow.api.learn.Mode
 import org.platanios.tensorflow.api.learn.layers.{Layer, LayerInstance}
 import org.platanios.tensorflow.api.learn.layers.rnn.cell.RNNCell
 import org.platanios.tensorflow.api.ops
-import org.platanios.tensorflow.api.ops.Output
 import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.tensors.Tensor
 
@@ -49,7 +48,7 @@ import scala.collection.mutable
   *
   * @author Emmanouil Antonios Platanios
   */
-class BidirectionalRNN private[rnn] (
+class BidirectionalRNN[T: RNNInput] private[rnn] (
     cellFw: RNNCell,
     cellBw: RNNCell,
     initialStateFw: Seq[Tensor] = null,
@@ -59,10 +58,10 @@ class BidirectionalRNN private[rnn] (
     swapMemory: Boolean = false,
     sequenceLengths: Tensor = null,
     override protected val name: String = "BidirectionalRNN"
-) extends Layer[Seq[Output], (RNNCell.Tuple, RNNCell.Tuple)](name) {
+) extends Layer[T, (RNNCell.Tuple, RNNCell.Tuple)](name) {
   override val layerType: String = "BidirectionalRNN"
 
-  override def forward(input: Seq[Output], mode: Mode): LayerInstance[Seq[Output], (RNNCell.Tuple, RNNCell.Tuple)] = {
+  override def forward(input: T, mode: Mode): LayerInstance[T, (RNNCell.Tuple, RNNCell.Tuple)] = {
     val stateFw = if (initialStateFw == null) null else initialStateFw.map(ops.Basic.constant(_))
     val stateBw = if (initialStateBw == null) null else initialStateBw.map(ops.Basic.constant(_))
     val lengths = if (sequenceLengths == null) null else ops.Basic.constant(sequenceLengths)
@@ -88,7 +87,7 @@ class BidirectionalRNN private[rnn] (
       ops.RNN.bidirectionalDynamicRNN(
         cellFwFunction, cellFw.outputSize,
         cellBwFunction, cellBw.outputSize,
-        input,
+        RNNInput[T].outputs(input),
         stateFw, cellFw.zeroState,
         stateBw, cellBw.zeroState,
         timeMajor, parallelIterations, swapMemory, lengths, uniquifiedName),
@@ -98,7 +97,7 @@ class BidirectionalRNN private[rnn] (
 }
 
 object BidirectionalRNN {
-  def apply(
+  def apply[T: RNNInput](
       cellFw: RNNCell,
       cellBw: RNNCell,
       initialStateFw: Seq[Tensor] = null,
@@ -107,8 +106,8 @@ object BidirectionalRNN {
       parallelIterations: Int = 32,
       swapMemory: Boolean = false,
       sequenceLengths: Tensor = null,
-      name: String = "BidirectionalRNN"): BidirectionalRNN = {
-    new BidirectionalRNN(
+      name: String = "BidirectionalRNN"): BidirectionalRNN[T] = {
+    new BidirectionalRNN[T](
       cellFw, cellBw,
       initialStateFw, initialStateBw,
       timeMajor, parallelIterations, swapMemory, sequenceLengths, name)

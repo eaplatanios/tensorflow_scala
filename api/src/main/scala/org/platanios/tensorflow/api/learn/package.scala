@@ -38,6 +38,8 @@ package object learn {
     val Configuration: learn.Configuration.type = learn.Configuration
     val StopCriteria : learn.StopCriteria.type  = learn.StopCriteria
 
+    type Mode = learn.Mode
+
     val TRAINING  : learn.TRAINING.type   = learn.TRAINING
     val EVALUATION: learn.EVALUATION.type = learn.EVALUATION
     val INFERENCE : learn.INFERENCE.type  = learn.INFERENCE
