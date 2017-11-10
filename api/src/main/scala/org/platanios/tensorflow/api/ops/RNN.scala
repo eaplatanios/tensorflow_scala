@@ -97,9 +97,11 @@ private[api] trait RNN {
         val batchSize = RNN.bestEffortInputBatchSize(processedInputs)
         val state = RNN.initialState(initialState, zeroStateFn, batchSize, inputs.head.dataType)
         // Perform some shape validation
-        processedSequenceLength = Op.createWith(
-          controlDependencies = Set(RNN.assertHasShape(processedSequenceLength, batchSize.expandDims(0)))) {
-          Basic.identity(processedSequenceLength, "SequenceLengthShapeValidation")
+        if (sequenceLengths != null) {
+          processedSequenceLength = Op.createWith(
+            controlDependencies = Set(RNN.assertHasShape(processedSequenceLength, batchSize.expandDims(0)))) {
+            Basic.identity(processedSequenceLength, "SequenceLengthShapeValidation")
+          }
         }
         var finalTuple = RNN.dynamicRNNLoop(
           cell, cellOutputSize, processedInputs, state, parallelIterations, swapMemory, processedSequenceLength)
@@ -239,14 +241,15 @@ object RNN extends RNN {
     val time = Basic.constant(0, INT32, name = "Time")
     val baseName = Op.createWithNameScope("DynamicRNN")(Op.currentNameScope)
     val outputTensorArrays = cellOutputSize.indices.map(index => {
-      TensorArray.create(timeSteps, inferredDataType, name = s"$baseName/Output_$index")
+      TensorArray.create(timeSteps, inferredDataType, name = s"${baseName}Output_$index")
     })
     val inputTensorArrays = inputs.zipWithIndex.map({
       case (input, index) =>
-        TensorArray.create(timeSteps, input.dataType, name = s"$baseName/Input_$index").unstack(input)
+        TensorArray.create(timeSteps, input.dataType, name = s"${baseName}Input_$index").unstack(input)
     })
 
     type LoopVariables = (Output, Seq[TensorArray], Seq[Output])
+    type LoopVariablesShape = (Shape, Seq[Shape], Seq[Shape])
 
     /** Takes a time step for the dynamic RNN. */
     def timeStep(loopVariables: LoopVariables): LoopVariables = {
@@ -260,7 +263,7 @@ object RNN extends RNN {
       val callCell: () => RNNCell.Tuple = () => cell(RNNCell.Tuple(inputs, state))
       val nextTuple = {
         if (sequenceLengths != null) {
-          rnnStep(
+          RNN.rnnStep(
             time, sequenceLengths, minSequenceLength, maxSequenceLength, zeroOutput, state, callCell,
             skipConditionals = true)
         } else {
@@ -273,7 +276,7 @@ object RNN extends RNN {
       (time + 1, nextOutputTensorArrays, nextTuple.state)
     }
 
-    val (_, finalOutputTensorArrays, finalState) = ControlFlow.whileLoop(
+    val (_, finalOutputTensorArrays, finalState) = ControlFlow.whileLoop[LoopVariables, LoopVariablesShape](
       (loopVariables: LoopVariables) => Math.less(loopVariables._1, timeSteps),
       (loopVariables: LoopVariables) => timeStep(loopVariables),
       (time, outputTensorArrays, initialState),

@@ -37,7 +37,7 @@ abstract class RNNCell(override protected val name: String)
     Op.createWithNameScope(s"$uniquifiedName/ZeroState", Set(batchSize.op)) {
       stateSize.map(size => {
         val zeroOutput = Basic.fill(dataType, Basic.stack(Seq(batchSize, size), axis = 0))(0)
-        zeroOutput.setShape(Output.constantValueAsShape(batchSize).getOrElse(Shape(-1)) + size)
+        zeroOutput.setShape(Shape(Output.constantValue(batchSize).map(_.scalar.asInstanceOf[Int]).getOrElse(-1), size))
         zeroOutput
       })
     }

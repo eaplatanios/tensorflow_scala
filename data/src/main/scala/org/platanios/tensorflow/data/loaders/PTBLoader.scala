@@ -70,7 +70,7 @@ object PTBLoader extends Loader {
   def tokensToBatchIterable(tokens: Seq[Int], batchSize: Int, numSteps: Int): Iterable[(Tensor, Tensor)] = {
     new Iterable[(Tensor, Tensor)] {
       override def iterator: Iterator[(Tensor, Tensor)] = new Iterator[(Tensor, Tensor)] {
-        private val tokensTensor = tokens.toTensor()
+        private val tokensTensor = Tensor(tokens.head, tokens.tail: _*)
         private val numTokens    = tokens.size
         private val batchLength  = numTokens / batchSize
         private val data         = tokensTensor(0 :: batchSize * batchLength).reshape(Shape(batchSize, batchLength))

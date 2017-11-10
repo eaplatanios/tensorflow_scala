@@ -46,7 +46,9 @@ case class Embedding(
   override def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
     val embeddingMap = variable("EmbeddingMap", dataType, Shape(vocabularySize, embeddingSize))
     val output = ops.Embedding.embeddingLookup(
-      embeddingMap, input, partitionStrategy, transformFn, maxNorm, name)
+      embeddingMap, input, partitionStrategy, transformFn,
+      if (maxNorm == null) null else ops.Basic.constant(maxNorm),
+      name)
     LayerInstance(input, output, Set(embeddingMap))
   }
 }

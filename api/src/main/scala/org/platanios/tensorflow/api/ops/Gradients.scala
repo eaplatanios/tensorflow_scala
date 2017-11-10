@@ -136,7 +136,7 @@ private[ops] object Gradients {
               if (gateGradients && inputGradients.count(_ != null) > 1) {
                 Op.createWith(device = "") {
                   Op.colocateWith(Set.empty[Op], ignoreExisting = true) {
-                    inputGradients = ControlFlow.tuple(inputGradients.toArray).toSeq
+                    inputGradients = ControlFlow.tuple(inputGradients.filter(_ != null).toArray).toSeq
                   }
                 }
               }

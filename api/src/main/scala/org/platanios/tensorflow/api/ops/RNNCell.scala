@@ -113,8 +113,8 @@ private[api] trait RNNCell {
         throw InvalidArgumentException(s"Input must be rank-2 (provided rank-${output.rank}).")
       if (output.shape(1) == -1)
         throw InvalidArgumentException(s"Last axis of input shape (${output.shape}) must be known.")
-      if (input.state.length != 1)
-        throw InvalidArgumentException(s"The state must consist of one tensor.")
+      if (input.state.length != 2)
+        throw InvalidArgumentException(s"The state must consist of two tensors.")
       val one = ops.Basic.constant(1, INT32)
       // Parameters of gates are concatenated into one multiply for efficiency.
       val cPrev = input.state(0)
@@ -167,8 +167,8 @@ private[api] trait RNNCell {
         throw InvalidArgumentException(s"Input must be rank-2 (provided rank-${output.rank}).")
       if (output.shape(1) == -1)
         throw InvalidArgumentException(s"Last axis of input shape (${output.shape}) must be known.")
-      if (input.state.length != 1)
-        throw InvalidArgumentException(s"The state must consist of one tensor.")
+      if (input.state.length != 2)
+        throw InvalidArgumentException(s"The state must consist of two tensors.")
       val one = ops.Basic.constant(1, INT32)
       // Parameters of gates are concatenated into one multiply for efficiency.
       val cPrev = input.state(0)
