@@ -60,7 +60,7 @@ class BasicLSTMCell private[cell] (
       BIAS_NAME,
       output.dataType, Shape(4 * numUnits),
       biasInitializer)
-    val newTuple = ops.RNNCell.basicLSTMCell(input, kernel, bias, activation, forgetBias, name)
+    val newTuple = ops.rnn.RNNCell.basicLSTMCell(input, kernel, bias, activation, forgetBias, name)
     LayerInstance(input, newTuple, Set(kernel, bias))
   }
 }

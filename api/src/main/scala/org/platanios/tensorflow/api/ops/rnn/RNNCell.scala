@@ -13,11 +13,12 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.ops
+package org.platanios.tensorflow.api.ops.rnn
 
 import org.platanios.tensorflow.api.Implicits._
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.ops
+import org.platanios.tensorflow.api.ops.{Basic, Math, NN, Op, Output}
 import org.platanios.tensorflow.api.types.INT32
 
 import scala.collection.TraversableLike

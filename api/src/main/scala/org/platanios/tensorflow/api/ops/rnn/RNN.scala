@@ -13,13 +13,14 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.ops
+package org.platanios.tensorflow.api.ops.rnn
 
 import org.platanios.tensorflow.api.Implicits._
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.variables.VariableScope
+import org.platanios.tensorflow.api.ops.{Basic, Checks, Math, Op, OpSpecification, Output, TensorArray}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.{DataType, INT32}
 
@@ -29,7 +30,7 @@ import scala.language.postfixOps
   *
   * @author Emmanouil Antonios Platanios
   */
-private[api] trait RNN {
+private[rnn] trait RNN {
   /** $OpDocRNNDynamicRNN
     *
     * @group RNNOps

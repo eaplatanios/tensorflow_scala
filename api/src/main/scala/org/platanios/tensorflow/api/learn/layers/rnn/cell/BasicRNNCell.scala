@@ -51,7 +51,7 @@ class BasicRNNCell private[cell] (
     val output = input.output
     val kernel = variable(KERNEL_NAME, output.dataType, Shape(output.shape(1) + numUnits, numUnits), kernelInitializer)
     val bias = variable(BIAS_NAME, output.dataType, Shape(numUnits), biasInitializer)
-    val newTuple = ops.RNNCell.basicRNNCell(input, kernel, bias, activation)
+    val newTuple = ops.rnn.RNNCell.basicRNNCell(input, kernel, bias, activation)
     LayerInstance(input, newTuple, Set(kernel, bias))
   }
 }

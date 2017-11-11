@@ -45,10 +45,10 @@ abstract class RNNCell[T: RNNCell.Output](override protected val name: String)
 }
 
 object RNNCell {
-  type Tuple[T] = ops.RNNCell.Tuple[T]
-  type Output[T] = ops.RNNCell.Output[T]
+  type Tuple[T] = ops.rnn.RNNCell.Tuple[T]
+  type Output[T] = ops.rnn.RNNCell.Output[T]
 
-  val Tuple: ops.RNNCell.Tuple.type = ops.RNNCell.Tuple
+  val Tuple: ops.rnn.RNNCell.Tuple.type = ops.rnn.RNNCell.Tuple
 }
 
 ///**

@@ -68,7 +68,8 @@ class GRUCell private[cell] (
       output.dataType,
       Shape(numUnits),
       biasInitializer)
-    val newTuple = ops.RNNCell.gruCell(input, gateKernel, gateBias, candidateKernel, candidateBias, activation, name)
+    val newTuple = ops.rnn.RNNCell.gruCell(
+      input, gateKernel, gateBias, candidateKernel, candidateBias, activation, name)
     LayerInstance(input, newTuple, Set(gateKernel, gateBias, candidateKernel, candidateBias))
   }
 }

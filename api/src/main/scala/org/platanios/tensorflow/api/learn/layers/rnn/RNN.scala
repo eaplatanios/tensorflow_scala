@@ -70,7 +70,7 @@ class RNN[T: RNNCell.Output] private[rnn] (
 
     LayerInstance(
       input,
-      ops.RNN.dynamicRNN(
+      ops.rnn.RNN.dynamicRNN(
         cellFunction, cell.outputSize, input, state, cell.zeroState, timeMajor, parallelIterations,
         swapMemory, lengths, uniquifiedName),
       trainableVariables.toSet,

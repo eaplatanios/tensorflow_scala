@@ -84,7 +84,7 @@ class BidirectionalRNN[T: RNNCell.Output] private[rnn] (
 
     LayerInstance(
       input,
-      ops.RNN.bidirectionalDynamicRNN(
+      ops.rnn.RNN.bidirectionalDynamicRNN(
         cellFwFunction, cellFw.outputSize,
         cellBwFunction, cellBw.outputSize,
         input,

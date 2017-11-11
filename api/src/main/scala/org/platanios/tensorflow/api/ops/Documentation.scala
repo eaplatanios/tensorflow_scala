@@ -30,11 +30,11 @@ private[api] trait Documentation
         with NN.Documentation
         with Parsing.Documentation
         with Random.Documentation
-        with RNN.Documentation
-        with RNNCell.Documentation
         with Sets.Documentation
         with Sparse.Documentation
         with Statistics.Documentation
         with Summary.Documentation
         with Text.Documentation
         with control_flow.ControlFlow.Documentation
+        with rnn.RNN.Documentation
+        with rnn.RNNCell.Documentation

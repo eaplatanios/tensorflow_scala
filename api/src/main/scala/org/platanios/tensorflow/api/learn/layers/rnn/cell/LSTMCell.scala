@@ -111,7 +111,7 @@ class LSTMCell private[cell] (
         null
       }
     }
-    val newTuple = ops.RNNCell.lstmCell(
+    val newTuple = ops.rnn.RNNCell.lstmCell(
       input, kernel.value, bias.value, cellClip, wfDiag, wiDiag, woDiag, projectionKernel, projectionClip,
       activation, forgetBias, name)
     LayerInstance(input, newTuple, trainableVariables.toSet)

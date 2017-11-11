@@ -64,7 +64,7 @@ object RNNTutorialUsingPTB {
     val rnnCell = BasicLSTMCell(numHidden, forgetBias = 0.0f)
     // TODO: Add dropout wrapper.
     // TODO: Add multi-RNN cell.
-    val rnn = RNN[Output](rnnCell, timeMajor = false)
+    val rnn = RNN(rnnCell, timeMajor = false)
     val layer = tf.learn.device("/device:CPU:0") {
       tf.learn.Embedding(vocabularySize, numHidden, dataType)
     } >> tf.learn.Dropout(dropoutKeepProbability) >> rnn >> RNNOutputLayer
