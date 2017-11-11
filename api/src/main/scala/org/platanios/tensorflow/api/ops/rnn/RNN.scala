@@ -258,7 +258,6 @@ object RNN extends RNN {
     })
 
     type LoopVariables = (Output, Seq[TensorArray], Seq[Output])
-    type LoopVariablesShape = (Shape, Seq[Shape], Seq[Shape])
 
     /** Takes a time step for the dynamic RNN. */
     def timeStep(loopVariables: LoopVariables): LoopVariables = {
@@ -285,7 +284,7 @@ object RNN extends RNN {
       (time + 1, nextOutputTensorArrays, nextTuple.state)
     }
 
-    val (_, finalOutputTensorArrays, finalState) = ControlFlow.whileLoop[LoopVariables, LoopVariablesShape](
+    val (_, finalOutputTensorArrays, finalState) = ControlFlow.whileLoop(
       (loopVariables: LoopVariables) => Math.less(loopVariables._1, timeSteps),
       (loopVariables: LoopVariables) => timeStep(loopVariables),
       (time, outputTensorArrays, initialState),

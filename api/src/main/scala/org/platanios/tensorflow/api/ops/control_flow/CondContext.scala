@@ -410,21 +410,21 @@ object CondOutput {
     override def segment(output: HNil, values: Seq[OutputLike]): (HNil, Seq[OutputLike]) = (HNil, values)
   }
 
-  implicit def recursiveConstructor[H, R, T <: HList, TO <: HList](implicit
-      evHead: Lazy[Aux[H, R]],
-      evTail: Aux[T, TO]
-  ): Aux[H :: T, R :: TO] = new CondOutput[H :: T] {
-    override type ResultType = R :: TO
+  implicit def recursiveConstructor[H, HR, T <: HList, TR <: HList](implicit
+      evHead: Lazy[Aux[H, HR]],
+      evTail: Aux[T, TR]
+  ): Aux[H :: T, HR :: TR] = new CondOutput[H :: T] {
+    override type ResultType = HR :: TR
 
     override def size(output: H :: T): Int = {
       evHead.value.size(output.head) + evTail.size(output.tail)
     }
 
-    override def processOutput(output: H :: T, context: CondContext): R :: TO = {
+    override def processOutput(output: H :: T, context: CondContext): HR :: TR = {
       evHead.value.processOutput(output.head, context) :: evTail.processOutput(output.tail, context)
     }
 
-    override def flatten(processedOutput: R :: TO): Seq[OutputLike] = {
+    override def flatten(processedOutput: HR :: TR): Seq[OutputLike] = {
       evHead.value.flatten(processedOutput.head) ++ evTail.flatten(processedOutput.tail)
     }
 
@@ -435,22 +435,22 @@ object CondOutput {
     }
   }
 
-  implicit def productConstructor[P <: Product, L <: HList, LO <: HList, R](implicit
+  implicit def productConstructor[P <: Product, PR <: Product, L <: HList, LR <: HList](implicit
       genP: Generic.Aux[P, L],
-      evL: Aux[L, LO],
+      evL: Aux[L, LR],
+      tuplerR: Tupler.Aux[LR, PR],
       tuplerP: Tupler.Aux[L, P],
-      tuplerR: Tupler.Aux[LO, R],
-      genR: Generic.Aux[R, LO]
-  ): Aux[P, R] = new CondOutput[P] {
-    override type ResultType = R
+      genR: Generic.Aux[PR, LR]
+  ): Aux[P, PR] = new CondOutput[P] {
+    override type ResultType = PR
 
     override def size(output: P): Int = evL.size(genP.to(output))
 
-    override def processOutput(output: P, context: CondContext): R = {
+    override def processOutput(output: P, context: CondContext): PR = {
       tuplerR(evL.processOutput(genP.to(output), context))
     }
 
-    override def flatten(processedOutput: R): Seq[OutputLike] = evL.flatten(genR.to(processedOutput))
+    override def flatten(processedOutput: PR): Seq[OutputLike] = evL.flatten(genR.to(processedOutput))
 
     override def segment(output: P, values: Seq[OutputLike]): (P, Seq[OutputLike]) = {
       val (out, remaining) = evL.segment(genP.to(output), values)

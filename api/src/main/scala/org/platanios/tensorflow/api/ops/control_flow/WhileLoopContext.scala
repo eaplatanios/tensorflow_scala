@@ -186,14 +186,14 @@ private[ops] case class WhileLoopContext private[control_flow] (
 
   /** Adds the loop termination condition and the loop body to the graph. */
   private[control_flow] def buildLoop[T, TS](
-      predicateFn: T => Output, bodyFn: T => T, loopVariables: T, shapeInvariants: TS
+      predicateFn: T => Output, bodyFn: T => T, loopVariables: T, shapeInvariants: Option[TS]
   )(implicit ev: WhileLoopVariable.Aux[T, TS]): T = {
     try {
       // Enter the frame for this loop.
       enter()
 
       val flattenedLoopVariables = ev.flatten(loopVariables)
-      val flattenedShapeInvariants = Option(shapeInvariants).map(ev.flattenShape)
+      val flattenedShapeInvariants = shapeInvariants.map(ev.flattenShape)
 
       // Let the context know the loop variables so the loop variables would be added to the outer contexts properly.
       initializeValues(flattenedLoopVariables)
@@ -989,18 +989,18 @@ object WhileLoopVariable {
     override def segment(output: HNil, values: Seq[Output]): (HNil, Seq[Output]) = (HNil, values)
   }
 
-  implicit def recursiveConstructor[H, TS, T <: HList, TO <: HList](implicit
-      evHead: Lazy[Aux[H, TS]],
-      evTail: Aux[T, TO]
-  ): Aux[H :: T, TS :: TO] = new WhileLoopVariable[H :: T] {
-    override type ShapeType = TS :: TO
+  implicit def recursiveConstructor[H, HS, T <: HList, TS <: HList](implicit
+      evHead: Lazy[Aux[H, HS]],
+      evTail: Aux[T, TS]
+  ): Aux[H :: T, HS :: TS] = new WhileLoopVariable[H :: T] {
+    override type ShapeType = HS :: TS
     override def size(output: H :: T): Int = evHead.value.size(output.head) + evTail.size(output.tail)
 
     override def flatten(output: H :: T): Seq[Output] = {
       evHead.value.flatten(output.head) ++ evTail.flatten(output.tail)
     }
 
-    override def flattenShape(shape: TS :: TO): Seq[Shape] = {
+    override def flattenShape(shape: HS :: TS): Seq[Shape] = {
       evHead.value.flattenShape(shape.head) ++ evTail.flattenShape(shape.tail)
     }
 
@@ -1011,12 +1011,12 @@ object WhileLoopVariable {
     }
   }
 
-  implicit def productConstructor[P <: Product, L <: HList, LO <: HList, PS](implicit
+  implicit def productConstructor[P <: Product, PS <: Product, L <: HList, LS <: HList](implicit
       genP: Generic.Aux[P, L],
-      evL: Aux[L, LO],
+      evL: Aux[L, LS],
+      tuplerPS: Tupler.Aux[LS, PS],
       tuplerP: Tupler.Aux[L, P],
-      tuplerPS: Tupler.Aux[LO, PS],
-      genPS: Generic.Aux[PS, LO]
+      genPS: Generic.Aux[PS, LS]
   ): Aux[P, PS] = new WhileLoopVariable[P] {
     override type ShapeType = PS
     override def size(output: P): Int = evL.size(genP.to(output))

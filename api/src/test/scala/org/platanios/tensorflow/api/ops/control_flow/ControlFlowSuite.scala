@@ -333,7 +333,7 @@ class ControlFlowSuite extends JUnitSuite with Matchers {
     val i = Basic.constant(0)
     val p = (i: Output) => i < 10
     val b = (i: Output) => i + 1
-    val r = ControlFlow.whileLoop(p, b, i, null.asInstanceOf[Shape], 1, enableBackPropagation = false)
+    val r = ControlFlow.whileLoop(p, b, i, None, 1, enableBackPropagation = false)
     val session = Session()
     val result = session.run(fetches = r)
     session.close()
