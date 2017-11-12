@@ -1,0 +1,2 @@
+jni/src/main/native/include/**/* linguist-vendored=true
+jni/src/main/native/generated/**/* linguist-generated=true
