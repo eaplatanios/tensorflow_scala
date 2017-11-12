@@ -19,10 +19,7 @@ import org.platanios.tensorflow.api.learn.Mode
 import org.platanios.tensorflow.api.learn.layers.{Layer, LayerInstance}
 import org.platanios.tensorflow.api.learn.layers.rnn.cell.RNNCell
 import org.platanios.tensorflow.api.ops
-import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.tensors.Tensor
-
-import scala.collection.mutable
 
 /** Creates a bidirectional dynamic RNN layer.
   *
@@ -30,12 +27,12 @@ import scala.collection.mutable
   *
   * @param  cellFw             RNN cell to use for the forward direction.
   * @param  cellBw             RNN cell to use for the backward direction.
-  * @param  initialStateFw     Initial state to use for the forward RNN, which is a sequence of tensors with shapes
-  *                            `[batchSize, stateSize(i)]`, where `i` corresponds to the index in that sequence.
-  *                            Defaults to a zero state.
-  * @param  initialStateBw     Initial state to use for the backward RNN, which is a sequence of tensors with shapes
-  *                            `[batchSize, stateSize(i)]`, where `i` corresponds to the index in that sequence.
-  *                            Defaults to a zero state.
+  * @param  initialStateFw     Initial state to use for the forward RNN, which is a structure over tensors with shapes
+  *                            `[batchSize, stateShape(i)(0), stateShape(i)(1), ...]`, where `i` corresponds to the
+  *                            index of the corresponding state. Defaults to a zero state.
+  * @param  initialStateBw     Initial state to use for the backward RNN, which is a structure over tensors with shapes
+  *                            `[batchSize, stateShape(i)(0), stateShape(i)(1), ...]`, where `i` corresponds to the
+  *                            index of the corresponding state. Defaults to a zero state.
   * @param  timeMajor          Boolean value indicating whether the inputs are provided in time-major format (i.e.,
   *                            have shape `[time, batch, depth]`) or in batch-major format (i.e., have shape
   *                            `[batch, time, depth]`).
@@ -48,68 +45,57 @@ import scala.collection.mutable
   *
   * @author Emmanouil Antonios Platanios
   */
-class BidirectionalRNN[T: RNNCell.Output] private[rnn] (
-    cellFw: RNNCell[T],
-    cellBw: RNNCell[T],
-    initialStateFw: Seq[Tensor] = null,
-    initialStateBw: Seq[Tensor] = null,
-    timeMajor: Boolean = false,
-    parallelIterations: Int = 32,
-    swapMemory: Boolean = false,
-    sequenceLengths: Tensor = null,
+class BidirectionalRNN[O, OS, S, SS] private[rnn] (
+    val cellFw: RNNCell[O, OS, S, SS],
+    val cellBw: RNNCell[O, OS, S, SS],
+    val initialStateFw: () => S = null,
+    val initialStateBw: () => S = null,
+    val timeMajor: Boolean = false,
+    val parallelIterations: Int = 32,
+    val swapMemory: Boolean = false,
+    val sequenceLengths: Tensor = null,
     override protected val name: String = "BidirectionalRNN"
-) extends Layer[T, (RNNCell.Tuple[T], RNNCell.Tuple[T])](name) {
+)(implicit
+    evO: ops.rnn.cell.RNNCell.Supported.Aux[O, OS],
+    evS: ops.rnn.cell.RNNCell.Supported.Aux[S, SS]
+) extends Layer[O, (RNNCell.Tuple[O, S], RNNCell.Tuple[O, S])](name) {
   override val layerType: String = "BidirectionalRNN"
 
-  override def forward(input: T, mode: Mode): LayerInstance[T, (RNNCell.Tuple[T], RNNCell.Tuple[T])] = {
-    val stateFw = if (initialStateFw == null) null else initialStateFw.map(ops.Basic.constant(_))
-    val stateBw = if (initialStateBw == null) null else initialStateBw.map(ops.Basic.constant(_))
+  override def forward(input: O, mode: Mode): LayerInstance[O, (RNNCell.Tuple[O, S], RNNCell.Tuple[O, S])] = {
+    val stateFw = if (initialStateFw == null) null.asInstanceOf[S] else initialStateFw()
+    val stateBw = if (initialStateBw == null) null.asInstanceOf[S] else initialStateBw()
     val lengths = if (sequenceLengths == null) null else ops.Basic.constant(sequenceLengths)
-    val trainableVariables = mutable.Set.empty[Variable]
-    val nonTrainableVariables = mutable.Set.empty[Variable]
-
-    def cellFwFunction(input: RNNCell.Tuple[T]): RNNCell.Tuple[T] = {
-      val instance = cellFw.forward(input, mode)
-      trainableVariables ++= instance.trainableVariables
-      nonTrainableVariables ++= instance.nonTrainableVariables
-      instance.output
+    val (cellInstanceFw, cellInstanceBw) = {
+      val i = if (timeMajor) input else evO.fromOutputs(input, evO.outputs(input).map(ops.rnn.RNN.transposeBatchTime))
+      (cellFw.createCell(i, mode), cellBw.createCell(i, mode))
     }
-
-    def cellBwFunction(input: RNNCell.Tuple[T]): RNNCell.Tuple[T] = {
-      val instance = cellBw.forward(input, mode)
-      trainableVariables ++= instance.trainableVariables
-      nonTrainableVariables ++= instance.nonTrainableVariables
-      instance.output
-    }
-
     LayerInstance(
       input,
       ops.rnn.RNN.bidirectionalDynamicRNN(
-        cellFwFunction, cellFw.outputSize,
-        cellBwFunction, cellBw.outputSize,
-        input,
-        stateFw, cellFw.zeroState,
-        stateBw, cellBw.zeroState,
-        timeMajor, parallelIterations, swapMemory, lengths, uniquifiedName),
-      trainableVariables.toSet,
-      nonTrainableVariables.toSet)
+        cellInstanceFw.cell, cellInstanceBw.cell, input, stateFw, stateBw,
+        timeMajor, parallelIterations, swapMemory, lengths, uniquifiedName)(evO, evS),
+      cellInstanceFw.trainableVariables ++ cellInstanceBw.trainableVariables,
+      cellInstanceFw.nonTrainableVariables ++ cellInstanceBw.nonTrainableVariables)
   }
 }
 
 object BidirectionalRNN {
-  def apply[T: RNNCell.Output](
-      cellFw: RNNCell[T],
-      cellBw: RNNCell[T],
-      initialStateFw: Seq[Tensor] = null,
-      initialStateBw: Seq[Tensor] = null,
+  def apply[O, OS, S, SS](
+      cellFw: RNNCell[O, OS, S, SS],
+      cellBw: RNNCell[O, OS, S, SS],
+      initialStateFw: () => S = null,
+      initialStateBw: () => S = null,
       timeMajor: Boolean = false,
       parallelIterations: Int = 32,
       swapMemory: Boolean = false,
       sequenceLengths: Tensor = null,
-      name: String = "BidirectionalRNN"): BidirectionalRNN[T] = {
-    new BidirectionalRNN[T](
-      cellFw, cellBw,
-      initialStateFw, initialStateBw,
-      timeMajor, parallelIterations, swapMemory, sequenceLengths, name)
+      name: String = "BidirectionalRNN"
+  )(implicit
+      evO: ops.rnn.cell.RNNCell.Supported.Aux[O, OS],
+      evS: ops.rnn.cell.RNNCell.Supported.Aux[S, SS]
+  ): BidirectionalRNN[O, OS, S, SS] = {
+    new BidirectionalRNN(
+      cellFw, cellBw, initialStateFw, initialStateBw,
+      timeMajor, parallelIterations, swapMemory, sequenceLengths, name)(evO, evS)
   }
 }

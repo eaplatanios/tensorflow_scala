@@ -17,7 +17,6 @@ package org.platanios.tensorflow.api.learn.layers.rnn.cell
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.learn.Mode
-import org.platanios.tensorflow.api.learn.layers.LayerInstance
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.Output
 import org.platanios.tensorflow.api.ops.variables.{Initializer, ZerosInitializer}
@@ -34,25 +33,19 @@ import org.platanios.tensorflow.api.ops.variables.{Initializer, ZerosInitializer
   * @author Emmanouil Antonios Platanios
   */
 class BasicRNNCell private[cell] (
-    numUnits: Int,
-    activation: Output => Output = ops.Math.tanh(_),
-    kernelInitializer: Initializer = null,
-    biasInitializer: Initializer = ZerosInitializer,
+    val numUnits: Int,
+    val activation: Output => Output = ops.Math.tanh(_),
+    val kernelInitializer: Initializer = null,
+    val biasInitializer: Initializer = ZerosInitializer,
     override protected val name: String = "BasicRNNCell"
-) extends RNNCell[Output](name) {
+) extends RNNCell[Output, Shape, Output, Shape](name) {
   override val layerType: String = "BasicRNNCell"
 
-  override def stateSize: Seq[Int] = Seq(numUnits)
-  override def outputSize: Seq[Int] = Seq(numUnits)
-
-  override def forward(
-      input: RNNCell.Tuple[Output], mode: Mode
-  ): LayerInstance[RNNCell.Tuple[Output], RNNCell.Tuple[Output]] = {
-    val output = input.output
-    val kernel = variable(KERNEL_NAME, output.dataType, Shape(output.shape(1) + numUnits, numUnits), kernelInitializer)
-    val bias = variable(BIAS_NAME, output.dataType, Shape(numUnits), biasInitializer)
-    val newTuple = ops.rnn.RNNCell.basicRNNCell(input, kernel, bias, activation)
-    LayerInstance(input, newTuple, Set(kernel, bias))
+  override def createCell(input: Output, mode: Mode): RNNCell.BasicCellInstance = {
+    val kernel = variable(KERNEL_NAME, input.dataType, Shape(input.shape(-1) + numUnits, numUnits), kernelInitializer)
+    val bias = variable(BIAS_NAME, input.dataType, Shape(numUnits), biasInitializer)
+    val cell = ops.rnn.cell.BasicRNNCell(kernel, bias, activation, name)
+    RNNCell.CellInstance(cell, Set(kernel, bias))
   }
 }
 

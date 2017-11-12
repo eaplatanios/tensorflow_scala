@@ -41,12 +41,12 @@ object RNNTutorialUsingPTB {
   val numLayers             : Int      = 1
   val dropoutKeepProbability: Float    = 0.5f
 
-  object RNNOutputLayer extends tf.learn.Layer[RNNCell.Tuple[Output], Output]("RNNOutputLayer") {
+  object RNNOutputLayer extends tf.learn.Layer[RNNCell.LSTMTuple, Output]("RNNOutputLayer") {
     override val layerType: String = "RNNOutputLayer"
 
     override def forward(
-        input: RNNCell.Tuple[Output], mode: tf.learn.Mode
-    ): tf.learn.LayerInstance[RNNCell.Tuple[Output], Output] = {
+        input: RNNCell.LSTMTuple, mode: tf.learn.Mode
+    ): tf.learn.LayerInstance[RNNCell.LSTMTuple, Output] = {
       val weights = variable("OutputWeights", dataType, Shape(numHidden, vocabularySize))
       val bias = variable("OutputBias", dataType, Shape(vocabularySize))
       val output = tf.linear(tf.reshape(input.output, Shape(-1, numHidden)), weights.value, bias.value)

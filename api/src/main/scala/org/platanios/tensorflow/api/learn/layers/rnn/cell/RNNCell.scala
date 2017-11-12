@@ -16,39 +16,60 @@
 package org.platanios.tensorflow.api.learn.layers.rnn.cell
 
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.learn.layers.Layer
+import org.platanios.tensorflow.api.learn.Mode
+import org.platanios.tensorflow.api.learn.layers.{Layer, LayerInstance}
+import org.platanios.tensorflow.api.learn.layers.rnn.cell.RNNCell.Tuple
 import org.platanios.tensorflow.api.ops
-import org.platanios.tensorflow.api.ops.{Basic, Op, Output}
-import org.platanios.tensorflow.api.types.DataType
+import org.platanios.tensorflow.api.ops.Output
+import org.platanios.tensorflow.api.ops.variables.Variable
 
-abstract class RNNCell[T: RNNCell.Output](override protected val name: String)
-    extends Layer[RNNCell.Tuple[T], RNNCell.Tuple[T]](name) {
-  def stateSize: Seq[Int]
-  def outputSize: Seq[Int]
+abstract class RNNCell[O, OS, S, SS](override protected val name: String)
+    extends Layer[RNNCell.Tuple[O, S], RNNCell.Tuple[O, S]](name) {
+  def createCell(input: O, mode: Mode): RNNCell.CellInstance[O, OS, S, SS]
 
-  /** Returns a sequence of zero-filled tensors representing a zero-valued state for this RNN cell.
-    *
-    * @param  batchSize Batch size.
-    * @param  dataType  Data type for the state tensors.
-    * @return Sequence of zero-filled state tensors.
-    */
-  def zeroState(batchSize: Output, dataType: DataType): Seq[Output] = {
-    // TODO: Add support for caching the zero state per graph and batch size.
-    Op.createWithNameScope(s"$uniquifiedName/ZeroState", Set(batchSize.op)) {
-      stateSize.map(size => {
-        val zeroOutput = Basic.fill(dataType, Basic.stack(Seq(batchSize, size), axis = 0))(0)
-        zeroOutput.setShape(Shape(Output.constantValue(batchSize).map(_.scalar.asInstanceOf[Int]).getOrElse(-1), size))
-        zeroOutput
-      })
-    }
+  override final def forward(input: Tuple[O, S], mode: Mode): LayerInstance[Tuple[O, S], Tuple[O, S]] = {
+    val cellInstance = createCell(input.output, mode)
+    val output = cellInstance.cell.forward(input)
+    LayerInstance(input, output, cellInstance.trainableVariables, cellInstance.nonTrainableVariables)
   }
 }
 
 object RNNCell {
-  type Tuple[T] = ops.rnn.RNNCell.Tuple[T]
-  type Output[T] = ops.rnn.RNNCell.Output[T]
+  case class CellInstance[O, OS, S, SS](
+      cell: ops.rnn.cell.RNNCell[O, OS, S, SS],
+      trainableVariables: Set[Variable] = Set.empty,
+      nonTrainableVariables: Set[Variable] = Set.empty)
 
-  val Tuple: ops.rnn.RNNCell.Tuple.type = ops.rnn.RNNCell.Tuple
+  type BasicCellInstance = CellInstance[Output, Shape, Output, Shape]
+
+  def BasicCellInstance(
+      cell: ops.rnn.cell.RNNCell.BasicCell,
+      trainableVariables: Set[Variable] = Set.empty,
+      nonTrainableVariables: Set[Variable] = Set.empty
+  ): BasicCellInstance = {
+    CellInstance(cell, trainableVariables, nonTrainableVariables)
+  }
+
+  type BasicCell = RNNCell[Output, Shape, Output, Shape]
+
+  type Tuple[O, S] = ops.rnn.cell.RNNCell.Tuple[O, S]
+  type BasicTuple = Tuple[Output, Output]
+
+  val Tuple: ops.rnn.cell.RNNCell.Tuple.type = ops.rnn.cell.RNNCell.Tuple
+
+  type LSTMCell = RNNCell[Output, Shape, (Output, Output), (Shape, Shape)]
+  type LSTMCellInstance = CellInstance[Output, Shape, (Output, Output), (Shape, Shape)]
+  type LSTMTuple = ops.rnn.cell.RNNCell.LSTMTuple
+
+  def LSTMTuple(output: Output, state: (Output, Output)): LSTMTuple = ops.rnn.cell.RNNCell.LSTMTuple(output, state)
+
+  def LSTMCellInstance(
+      cell: ops.rnn.cell.RNNCell.LSTMCell,
+      trainableVariables: Set[Variable] = Set.empty,
+      nonTrainableVariables: Set[Variable] = Set.empty
+  ): LSTMCellInstance = {
+    CellInstance(cell, trainableVariables, nonTrainableVariables)
+  }
 }
 
 ///**

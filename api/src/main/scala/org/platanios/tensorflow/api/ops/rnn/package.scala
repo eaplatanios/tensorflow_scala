@@ -21,5 +21,4 @@ package org.platanios.tensorflow.api.ops
 package object rnn {
   private[ops] trait API
       extends RNN
-          with RNNCell
 }

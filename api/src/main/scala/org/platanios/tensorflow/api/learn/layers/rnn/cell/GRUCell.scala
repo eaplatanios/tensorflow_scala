@@ -17,7 +17,6 @@ package org.platanios.tensorflow.api.learn.layers.rnn.cell
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.learn.Mode
-import org.platanios.tensorflow.api.learn.layers.LayerInstance
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.Output
 import org.platanios.tensorflow.api.ops.variables.{Initializer, ZerosInitializer}
@@ -34,43 +33,36 @@ import org.platanios.tensorflow.api.ops.variables.{Initializer, ZerosInitializer
   * @author Emmanouil Antonios Platanios
   */
 class GRUCell private[cell] (
-    numUnits: Int,
-    activation: Output => Output = ops.Math.tanh(_),
-    kernelInitializer: Initializer = null,
-    biasInitializer: Initializer = ZerosInitializer,
+    val numUnits: Int,
+    val activation: Output => Output = ops.Math.tanh(_),
+    val kernelInitializer: Initializer = null,
+    val biasInitializer: Initializer = ZerosInitializer,
     override protected val name: String = "GRUCell"
-) extends RNNCell[Output](name) {
+) extends RNNCell.BasicCell(name) {
   override val layerType: String = "GRUCell"
 
-  override def stateSize: Seq[Int] = Seq(numUnits)
-  override def outputSize: Seq[Int] = Seq(numUnits)
-
-  override def forward(
-      input: RNNCell.Tuple[Output], mode: Mode
-  ): LayerInstance[RNNCell.Tuple[Output], RNNCell.Tuple[Output]] = {
-    val output = input.output
+  override def createCell(input: Output, mode: Mode): RNNCell.BasicCellInstance = {
     val gateKernel = variable(
       s"Gate/$KERNEL_NAME",
-      output.dataType,
-      Shape(output.shape(1) + numUnits, 2 * numUnits),
+      input.dataType,
+      Shape(input.shape(-1) + numUnits, 2 * numUnits),
       kernelInitializer)
     val gateBias = variable(
       s"Gate/$BIAS_NAME",
-      output.dataType, Shape(2 * numUnits),
+      input.dataType, Shape(2 * numUnits),
       biasInitializer)
     val candidateKernel = variable(
       s"Candidate/$KERNEL_NAME",
-      output.dataType,
-      Shape(output.shape(1) + numUnits, numUnits),
+      input.dataType,
+      Shape(input.shape(-1) + numUnits, numUnits),
       kernelInitializer)
     val candidateBias = variable(
       s"Candidate/$BIAS_NAME",
-      output.dataType,
+      input.dataType,
       Shape(numUnits),
       biasInitializer)
-    val newTuple = ops.rnn.RNNCell.gruCell(
-      input, gateKernel, gateBias, candidateKernel, candidateBias, activation, name)
-    LayerInstance(input, newTuple, Set(gateKernel, gateBias, candidateKernel, candidateBias))
+    val cell = ops.rnn.cell.GRUCell(gateKernel, gateBias, candidateKernel, candidateBias, activation, name)
+    RNNCell.CellInstance(cell, Set(gateKernel, gateBias, candidateKernel, candidateBias))
   }
 }
 

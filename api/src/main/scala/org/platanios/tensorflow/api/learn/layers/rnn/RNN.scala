@@ -19,19 +19,16 @@ import org.platanios.tensorflow.api.learn.Mode
 import org.platanios.tensorflow.api.learn.layers.{Layer, LayerInstance}
 import org.platanios.tensorflow.api.learn.layers.rnn.cell.RNNCell
 import org.platanios.tensorflow.api.ops
-import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.tensors.Tensor
-
-import scala.collection.mutable
 
 /** Creates a dynamic RNN layer.
   *
   * $OpDocRNNDynamicRNN
   *
   * @param  cell               RNN cell to use.
-  * @param  initialState       Initial state to use for the RNN, which is a sequence of tensors with shapes
-  *                            `[batchSize, stateSize(i)]`, where `i` corresponds to the index in that sequence.
-  *                            Defaults to a zero state.
+  * @param  initialState       Initial state to use for the RNN, which is a structure over tensors with shapes
+  *                            `[batchSize, stateShape(i)(0), stateShape(i)(1), ...]`, where `i` corresponds to the
+  *                            index of the corresponding state. Defaults to a zero state.
   * @param  timeMajor          Boolean value indicating whether the inputs are provided in time-major format (i.e.,
   *                            have shape `[time, batch, depth]`) or in batch-major format (i.e., have shape
   *                            `[batch, time, depth]`).
@@ -44,49 +41,52 @@ import scala.collection.mutable
   *
   * @author Emmanouil Antonios Platanios
   */
-class RNN[T: RNNCell.Output] private[rnn] (
-    cell: RNNCell[T],
-    initialState: Seq[Tensor] = null,
-    timeMajor: Boolean = false,
-    parallelIterations: Int = 32,
-    swapMemory: Boolean = false,
-    sequenceLengths: Tensor = null,
+class RNN[O, OS, S, SS] private[rnn] (
+    val cell: RNNCell[O, OS, S, SS],
+    val initialState: () => S = null,
+    val timeMajor: Boolean = false,
+    val parallelIterations: Int = 32,
+    val swapMemory: Boolean = false,
+    val sequenceLengths: Tensor = null,
     override protected val name: String = "RNN"
-) extends Layer[T, RNNCell.Tuple[T]](name) {
+)(implicit
+    evO: ops.rnn.cell.RNNCell.Supported.Aux[O, OS],
+    evS: ops.rnn.cell.RNNCell.Supported.Aux[S, SS]
+) extends Layer[O, RNNCell.Tuple[O, S]](name) {
   override val layerType: String = "RNN"
 
-  override def forward(input: T, mode: Mode): LayerInstance[T, RNNCell.Tuple[T]] = {
-    val state = if (initialState == null) null else initialState.map(ops.Basic.constant(_))
+  override def forward(input: O, mode: Mode): LayerInstance[O, RNNCell.Tuple[O, S]] = {
+    val state = if (initialState == null) null.asInstanceOf[S] else initialState()
     val lengths = if (sequenceLengths == null) null else ops.Basic.constant(sequenceLengths)
-    val trainableVariables = mutable.Set.empty[Variable]
-    val nonTrainableVariables = mutable.Set.empty[Variable]
-
-    def cellFunction(input: RNNCell.Tuple[T]): RNNCell.Tuple[T] = {
-      val instance = cell.forward(input, mode)
-      trainableVariables ++= instance.trainableVariables
-      nonTrainableVariables ++= instance.nonTrainableVariables
-      instance.output
+    val cellInstance = {
+      if (timeMajor)
+        cell.createCell(input, mode)
+      else
+        cell.createCell(evO.fromOutputs(input, evO.outputs(input).map(ops.rnn.RNN.transposeBatchTime)), mode)
     }
-
     LayerInstance(
       input,
       ops.rnn.RNN.dynamicRNN(
-        cellFunction, cell.outputSize, input, state, cell.zeroState, timeMajor, parallelIterations,
-        swapMemory, lengths, uniquifiedName),
-      trainableVariables.toSet,
-      nonTrainableVariables.toSet)
+        cellInstance.cell, input, state, timeMajor, parallelIterations,
+        swapMemory, lengths, uniquifiedName)(evO, evS),
+      cellInstance.trainableVariables,
+      cellInstance.nonTrainableVariables)
   }
 }
 
 object RNN {
-  def apply[T: RNNCell.Output](
-      cell: RNNCell[T],
-      initialState: Seq[Tensor] = null,
+  def apply[O, OS, S, SS](
+      cell: RNNCell[O, OS, S, SS],
+      initialState: () => S = null,
       timeMajor: Boolean = false,
       parallelIterations: Int = 32,
       swapMemory: Boolean = false,
       sequenceLengths: Tensor = null,
-      name: String = "RNN"): RNN[T] = {
-    new RNN[T](cell, initialState, timeMajor, parallelIterations, swapMemory, sequenceLengths, name)
+      name: String = "RNN"
+  )(implicit
+      evO: ops.rnn.cell.RNNCell.Supported.Aux[O, OS],
+      evS: ops.rnn.cell.RNNCell.Supported.Aux[S, SS]
+  ): RNN[O, OS, S, SS] = {
+    new RNN(cell, initialState, timeMajor, parallelIterations, swapMemory, sequenceLengths, name)(evO, evS)
   }
 }

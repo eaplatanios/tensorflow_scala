@@ -17,7 +17,6 @@ package org.platanios.tensorflow.api.learn.layers.rnn.cell
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.learn.Mode
-import org.platanios.tensorflow.api.learn.layers.LayerInstance
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.Output
 import org.platanios.tensorflow.api.ops.variables.{Initializer, ZerosInitializer}
@@ -35,33 +34,21 @@ import org.platanios.tensorflow.api.ops.variables.{Initializer, ZerosInitializer
   * @author Emmanouil Antonios Platanios
   */
 class BasicLSTMCell private[cell] (
-    numUnits: Int,
-    forgetBias: Float = 1.0f,
-    activation: Output => Output = ops.Math.tanh(_),
-    kernelInitializer: Initializer = null,
-    biasInitializer: Initializer = ZerosInitializer,
+    val numUnits: Int,
+    val forgetBias: Float = 1.0f,
+    val activation: Output => Output = ops.Math.tanh(_),
+    val kernelInitializer: Initializer = null,
+    val biasInitializer: Initializer = ZerosInitializer,
     override protected val name: String = "BasicLSTMCell"
-) extends RNNCell[Output](name) {
+) extends RNNCell.LSTMCell(name) {
   override val layerType: String = "BasicLSTMCell"
 
-  override def stateSize: Seq[Int] = Seq(numUnits, numUnits)
-  override def outputSize: Seq[Int] = Seq(numUnits)
-
-  override def forward(
-      input: RNNCell.Tuple[Output], mode: Mode
-  ): LayerInstance[RNNCell.Tuple[Output], RNNCell.Tuple[Output]] = {
-    val output = input.output
+  override def createCell(input: Output, mode: Mode): RNNCell.LSTMCellInstance = {
     val kernel = variable(
-      KERNEL_NAME,
-      output.dataType,
-      Shape(output.shape(1) + numUnits, 4 * numUnits),
-      kernelInitializer)
-    val bias = variable(
-      BIAS_NAME,
-      output.dataType, Shape(4 * numUnits),
-      biasInitializer)
-    val newTuple = ops.rnn.RNNCell.basicLSTMCell(input, kernel, bias, activation, forgetBias, name)
-    LayerInstance(input, newTuple, Set(kernel, bias))
+      KERNEL_NAME, input.dataType, Shape(input.shape(-1) + numUnits, 4 * numUnits), kernelInitializer)
+    val bias = variable(BIAS_NAME, input.dataType, Shape(4 * numUnits), biasInitializer)
+    val cell = ops.rnn.cell.BasicLSTMCell(kernel, bias, activation, forgetBias, name)
+    RNNCell.LSTMCellInstance(cell, Set(kernel, bias))
   }
 }
 
