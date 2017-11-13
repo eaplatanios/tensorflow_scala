@@ -13,14 +13,16 @@
  * the License.
  */
 
-package org.platanios.tensorflow.data.loaders
-
-import java.io.ByteArrayOutputStream
+package org.platanios.tensorflow.data.image
 
 import org.platanios.tensorflow.api._
+import org.platanios.tensorflow.data.Loader
+
 import com.typesafe.scalalogging.Logger
 import org.apache.commons.compress.archivers.tar.{TarArchiveEntry, TarArchiveInputStream}
 import org.slf4j.LoggerFactory
+
+import java.io.ByteArrayOutputStream
 import java.nio.{ByteBuffer, ByteOrder}
 import java.nio.file.{Files, Path}
 import java.util.zip.GZIPInputStream
@@ -37,7 +39,7 @@ object CIFARLoader extends Loader {
     val trainFilenames    : Seq[String]
     val testFilename      : String
 
-    private[loaders] val entryByteSize: Int
+    private[image] val entryByteSize: Int
   }
 
   case object CIFAR_10 extends DatasetType {
@@ -46,7 +48,7 @@ object CIFARLoader extends Loader {
     override val trainFilenames    : Seq[String] = (1 to 5).map(i => s"data_batch_$i.bin")
     override val testFilename      : String      = "test_batch.bin"
 
-    private[loaders] override val entryByteSize: Int = 3073
+    private[image] override val entryByteSize: Int = 3073
   }
 
   case object CIFAR_100 extends DatasetType {
@@ -55,7 +57,7 @@ object CIFARLoader extends Loader {
     override val trainFilenames    : Seq[String] = Seq("train.bin")
     override val testFilename      : String      = "test.bin"
 
-    private[loaders] override val entryByteSize: Int = 3074
+    private[image] override val entryByteSize: Int = 3074
   }
 
   override protected val logger = Logger(LoggerFactory.getLogger("CIFAR Data Loader"))

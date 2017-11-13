@@ -13,17 +13,18 @@
  * the License.
  */
 
-package org.platanios.tensorflow.data.loaders
+package org.platanios.tensorflow.data.image
 
 import org.platanios.tensorflow.api._
+import org.platanios.tensorflow.data.Loader
+
+import com.typesafe.scalalogging.Logger
+import org.slf4j.LoggerFactory
 
 import java.io.ByteArrayOutputStream
 import java.nio.{ByteBuffer, ByteOrder}
 import java.nio.file.{Files, Path}
 import java.util.zip.GZIPInputStream
-
-import com.typesafe.scalalogging.Logger
-import org.slf4j.LoggerFactory
 
 /**
   * @author Emmanouil Antonios Platanios

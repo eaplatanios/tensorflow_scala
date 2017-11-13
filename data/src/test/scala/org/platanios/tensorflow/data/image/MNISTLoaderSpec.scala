@@ -13,7 +13,7 @@
  * the License.
  */
 
-package org.platanios.tensorflow.data.loaders
+package org.platanios.tensorflow.data.image
 
 import java.nio.file.{Files, Path, Paths}
 

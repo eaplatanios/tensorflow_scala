@@ -13,9 +13,10 @@
  * the License.
  */
 
-package org.platanios.tensorflow.data.loaders
+package org.platanios.tensorflow.data.text
 
 import org.platanios.tensorflow.api._
+import org.platanios.tensorflow.data.Loader
 
 import com.typesafe.scalalogging.Logger
 import org.apache.commons.compress.archivers.tar._

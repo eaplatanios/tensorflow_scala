@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.examples
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.ops.NN.SamePadding
-import org.platanios.tensorflow.data.loaders.CIFARLoader
+import org.platanios.tensorflow.data.image.CIFARLoader
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
