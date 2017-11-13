@@ -56,6 +56,7 @@ package object ops {
   ops.Sets.Gradients
   ops.TensorArray.Gradients
   ops.control_flow.ControlFlow.Gradients
+  ops.lookup.Lookup.Gradients
   ops.variables.Variable.Gradients
 
   private[api] trait API
@@ -79,6 +80,7 @@ package object ops {
           with ops.Queue.API
           with ops.control_flow.API
           with ops.io.API
+          with ops.lookup.API
           with ops.rnn.API
           with ops.variables.API {
     object train extends training.API

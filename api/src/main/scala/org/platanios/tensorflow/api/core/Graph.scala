@@ -1271,8 +1271,10 @@ object Graph {
       override def name: String = "table_initializer"
     }
 
-    // /** Key to collect asset filepaths. An asset represents an external resource like a vocabulary file. */
-    // object ASSET_FILEPATHS extends Key {override def name: String = "asset_filepaths"}
+    /** Key to collect asset filepaths. An asset represents an external resource like a vocabulary file. */
+    object ASSET_FILEPATHS extends OutputCollectionKey {
+      override def name: String = "asset_filepaths"
+    }
 
     /** Key to collect the subset of `Variable` objects that will also keep moving averages. */
     object MOVING_AVERAGE_VARIABLES extends VariableCollectionKey {

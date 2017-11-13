@@ -648,7 +648,7 @@ private[api] object Variable {
     *
     * Calling `initializer` is equivalent to passing the list of initializers to [[ControlFlow.group]].
     *
-    * If `variables` is empty, the function still returns an op that can be run. That op has no effect (i.e., it is a
+    * If `variables` is empty, the method still returns an op that can be run. That op has no effect (i.e., it is a
     * [[ControlFlow.noOp]]).
     *
     * @param  variables Set of variables to initialize.
