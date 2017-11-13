@@ -15,6 +15,30 @@ extern "C" {
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Text_00024_stringJoin
   (JNIEnv *, jobject, jlong, jlongArray, jbyteArray);
 
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_Text__
+ * Method:    stringToHashBucket
+ * Signature: (JJJ)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Text_00024_stringToHashBucket
+  (JNIEnv *, jobject, jlong, jlong, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_Text__
+ * Method:    stringToHashBucketFast
+ * Signature: (JJJ)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Text_00024_stringToHashBucketFast
+  (JNIEnv *, jobject, jlong, jlong, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_Text__
+ * Method:    stringToHashBucketStrong
+ * Signature: (JJJ[J)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Text_00024_stringToHashBucketStrong
+  (JNIEnv *, jobject, jlong, jlong, jlong, jlongArray);
+
 #ifdef __cplusplus
 }
 #endif

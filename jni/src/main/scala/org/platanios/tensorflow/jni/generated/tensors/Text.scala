@@ -23,4 +23,7 @@ object Text {
   TensorFlow.load()
 
   @native def stringJoin(contextHandle: Long, inputs: Array[Long], separator: Array[Byte]): Long
+  @native def stringToHashBucket(contextHandle: Long, string_tensor: Long, num_buckets: Long): Long
+  @native def stringToHashBucketFast(contextHandle: Long, input: Long, num_buckets: Long): Long
+  @native def stringToHashBucketStrong(contextHandle: Long, input: Long, num_buckets: Long, key: Array[Long]): Long
 }

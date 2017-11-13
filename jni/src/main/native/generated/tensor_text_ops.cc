@@ -60,3 +60,84 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Text
 
   return reinterpret_cast<jlong>(outputs[0]);
 }
+
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Text_00024_stringToHashBucket(
+    JNIEnv* env, jobject object, jlong context_handle, jlong string_tensor, jlong num_buckets) {
+  REQUIRE_HANDLE(context, TFE_Context, context_handle, 0);
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+
+  std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
+      TFE_NewOp(context, "StringToHashBucket", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(string_tensor_handle, TFE_TensorHandle, string_tensor, 0);
+  TFE_OpAddInput(op.get(), string_tensor_handle, status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  TFE_OpSetAttrInt(op.get(), "num_buckets", static_cast<int64_t>(num_buckets));
+
+  const int num_outputs = 1;
+  std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
+  TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  return reinterpret_cast<jlong>(outputs[0]);
+}
+
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Text_00024_stringToHashBucketFast(
+    JNIEnv* env, jobject object, jlong context_handle, jlong input, jlong num_buckets) {
+  REQUIRE_HANDLE(context, TFE_Context, context_handle, 0);
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+
+  std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
+      TFE_NewOp(context, "StringToHashBucketFast", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
+  TFE_OpAddInput(op.get(), input_handle, status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  TFE_OpSetAttrInt(op.get(), "num_buckets", static_cast<int64_t>(num_buckets));
+
+  const int num_outputs = 1;
+  std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
+  TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  return reinterpret_cast<jlong>(outputs[0]);
+}
+
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Text_00024_stringToHashBucketStrong(
+    JNIEnv* env, jobject object, jlong context_handle, jlong input, jlong num_buckets, jlongArray key) {
+  REQUIRE_HANDLE(context, TFE_Context, context_handle, 0);
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+
+  std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
+      TFE_NewOp(context, "StringToHashBucketStrong", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
+  TFE_OpAddInput(op.get(), input_handle, status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  TFE_OpSetAttrInt(op.get(), "num_buckets", static_cast<int64_t>(num_buckets));
+
+  const int key_n = env->GetArrayLength(key);
+  std::unique_ptr<int64_t[]> key_c_value(new int64_t[key_n]);
+  jlong* key_elems = env->GetLongArrayElements(key, nullptr);
+  for (int i = 0; i < key_n; ++i) {
+    key_c_value[i] = static_cast<int64_t>(key_elems[i]);
+  }
+  TFE_OpSetAttrIntList(op.get(), "key", key_c_value.get(), key_n);
+  env->ReleaseLongArrayElements(key, key_elems, JNI_ABORT);
+
+  const int num_outputs = 1;
+  std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
+  TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  return reinterpret_cast<jlong>(outputs[0]);
+}

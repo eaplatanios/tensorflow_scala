@@ -153,7 +153,7 @@ lazy val jni = (project in file("./jni"))
           "QuantizedBatchNormWithGlobalNormalization"),
         "Random" -> Seq("RandomUniform", "RandomUniformInt", "RandomStandardNormal"),
         "Sparse" -> Seq("SparseToDense"),
-        "Text" -> Seq("StringJoin")
+        "Text" -> Seq("StringJoin", "StringToHashBucket", "StringToHashBucketFast", "StringToHashBucketStrong")
       ),
       scalaPackage in generateTensorOps := "tensors",
       // Native bindings compilation settings
