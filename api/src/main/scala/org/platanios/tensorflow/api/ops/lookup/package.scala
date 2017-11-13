@@ -20,5 +20,20 @@ package org.platanios.tensorflow.api.ops
   */
 package object lookup {
   private[ops] trait API
-      extends Lookup
+      extends Lookup {
+    type LookupTable = lookup.LookupTable
+    type HashTable = lookup.HashTable
+    type IDLookupTableWithHashBuckets = lookup.IDLookupTableWithHashBuckets
+
+    val HashTable                   : lookup.HashTable.type                    = lookup.HashTable
+    val IDLookupTableWithHashBuckets: lookup.IDLookupTableWithHashBuckets.type = lookup.IDLookupTableWithHashBuckets
+
+    type LookupTableInitializer = lookup.LookupTableInitializer
+    type LookupTableTensorInitializer = lookup.LookupTableTensorInitializer
+    type LookupTableTextFileInitializer = lookup.LookupTableTextFileInitializer
+
+    val LookupTableTensorInitializer  : lookup.LookupTableTensorInitializer.type   = lookup.LookupTableTensorInitializer
+    val LookupTableTextFileInitializer: lookup.LookupTableTextFileInitializer.type =
+      lookup.LookupTableTextFileInitializer
+  }
 }
