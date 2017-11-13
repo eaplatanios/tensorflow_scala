@@ -410,7 +410,7 @@ object RNN extends RNN {
     *                                  than 2.
     */
   @throws[InvalidArgumentException]
-  private[RNN] def bestEffortInputBatchSize(inputs: Seq[Output]): Output = {
+  private[rnn] def bestEffortInputBatchSize(inputs: Seq[Output]): Output = {
     var batchSize = -1
     inputs.filter(_.rank != -1).foreach(input => {
       if (input.rank < 2)
@@ -438,7 +438,7 @@ object RNN extends RNN {
     */
   @throws[InvalidArgumentException]
   @throws[InvalidDataTypeException]
-  private[RNN] def inferStateDataType(dataType: DataType, state: Seq[Output]): DataType = {
+  private[rnn] def inferStateDataType(dataType: DataType, state: Seq[Output]): DataType = {
     if (dataType != null) {
       dataType
     } else {
@@ -452,7 +452,7 @@ object RNN extends RNN {
   }
 
   /** Creates an assert op that checks whether the shape of `input` matches `shape`. */
-  private[RNN] def assertHasShape(input: Output, shape: Output): Op = {
+  private[rnn] def assertHasShape(input: Output, shape: Output): Op = {
     val inputShape = Basic.shape(input)
     Checks.assert(
       Math.all(Math.equal(inputShape, shape)),
