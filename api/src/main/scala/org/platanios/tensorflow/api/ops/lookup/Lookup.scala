@@ -21,7 +21,8 @@ import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.types.{DataType, INT64, STRING}
 
-/**
+/** Contains functions for constructing ops related to lookup tables.
+  *
   * @author Emmanouil Antonios Platanios
   */
 private[lookup] trait Lookup {
@@ -53,6 +54,10 @@ private[lookup] trait Lookup {
     * is initialized from a vocabulary file specified in `filename`, where the whole line is the key and the zero-based
     * line number is the ID.
     *
+    * Any lookup of an out-of-vocabulary token will return a bucket ID based on its hash if `numOOVBuckets` is greater
+    * than zero. Otherwise it is assigned the `defaultValue`. The bucket ID range is:
+    * `[vocabularySize, vocabularySize + numOOVBuckets - 1]`.
+    *
     * The underlying table must be initialized by executing the `tf.tablesInitializer()` op or the op returned by
     * `table.initialize()`.
     *
@@ -70,17 +75,20 @@ private[lookup] trait Lookup {
     *   val table = tf.indexTableFromFile("test.txt"))
     * }}}
     *
-    * @param  filename       Filename of the text file to be used for initialization. The path must be accessible from
-    *                        wherever the graph is initialized (e.g., trainer or evaluation workers).
-    * @param  delimiter      Delimiter to use in case a `TextFileColumn` extractor is being used.
-    * @param  vocabularySize Number of elements in the file, if known. If not known, set to `-1` (the default value).
-    * @param  defaultValue   Default value to use if a key is missing from the table.
-    * @param  keysDataType   Data type of the table keys.
-    * @param  name           Name for the created table.
+    * @param  filename          Filename of the text file to be used for initialization. The path must be accessible
+    *                           from wherever the graph is initialized (e.g., trainer or evaluation workers).
+    * @param  delimiter         Delimiter to use in case a `TextFileColumn` extractor is being used.
+    * @param  vocabularySize    Number of elements in the file, if known. If not known, set to `-1` (the default value).
+    * @param  defaultValue      Default value to use if a key is missing from the table.
+    * @param  numOOVBuckets     Number of out-of-vocabulary buckets.
+    * @param  hashSpecification Hashing function specification to use.
+    * @param  keysDataType      Data type of the table keys.
+    * @param  name              Name for the created table.
     * @return Created table.
     */
   def indexTableFromFile(
       filename: String, delimiter: String = "\t", vocabularySize: Int = -1, defaultValue: Int = -1,
+      numOOVBuckets: Int = 0, hashSpecification: HashSpecification = FAST_HASH,
       keysDataType: DataType = STRING, name: String = "IndexTableFromFile"): LookupTable = {
     Op.createWithNameScope(name) {
       Op.createWithNameScope("HashTable") {
@@ -94,8 +102,10 @@ private[lookup] trait Lookup {
           filename, if (keysDataType.isInteger) INT64 else keysDataType, INT64,
           TextFileWholeLine, TextFileLineNumber, delimiter, vocabularySize)
         val table = HashTable(initializer, defaultValue, sharedName, name = "Table")
-        // TODO: [LOOKUP] Add support for out-of-vocabulary buckets.
-        table
+        if (numOOVBuckets > 0)
+          IDLookupTableWithHashBuckets(table, numOOVBuckets, hashSpecification, table.keysDataType)
+        else
+          table
       }
     }
   }
