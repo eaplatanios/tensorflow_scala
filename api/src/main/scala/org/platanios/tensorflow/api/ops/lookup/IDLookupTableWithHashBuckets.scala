@@ -156,7 +156,7 @@ sealed trait HashSpecification {
   def stringToHashBucket(input: Output, numBuckets: Int, name: String = "StringToHashBucket"): Output
 }
 
-@deprecated
+@deprecated("It is recommended to use `FAST_HASH` or `STRONG_HASH` instead.")
 case object LEGACY_HASH extends HashSpecification {
   override def stringToHashBucket(input: Output, numBuckets: Int, name: String): Output = {
     Text.stringToHashBucket(input, numBuckets, name)
