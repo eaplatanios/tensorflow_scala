@@ -86,8 +86,8 @@ private[api] trait Text {
 
 private[api] object Text extends Text {
   private[ops] trait Implicits {
-    implicit def outputToNNOps(value: Output): TextOps = TextOps(value)
-    implicit def outputConvertibleToNNOps[T](value: T)(implicit f: (T) => Output): TextOps = TextOps(f(value))
+    implicit def outputToTextOps(value: Output): TextOps = TextOps(value)
+    implicit def outputConvertibleToTextOps[T](value: T)(implicit f: (T) => Output): TextOps = TextOps(f(value))
   }
 
   case class TextOps private[ops](output: Output) {
