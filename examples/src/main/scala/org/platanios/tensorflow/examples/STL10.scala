@@ -31,7 +31,7 @@ object STL10 {
   private[this] val logger = Logger(LoggerFactory.getLogger("Examples / STL10"))
 
   def main(args: Array[String]): Unit = {
-    val dataSet = STL10Loader.load(Paths.get("~/data/STL10"), loadUnlabeled = false)
+    val dataSet = STL10Loader.load(Paths.get("datasets/STL10"), loadUnlabeled = false)
     val trainImages = tf.data.TensorSlicesDataset(dataSet.trainImages)
     val trainLabels = tf.data.TensorSlicesDataset(dataSet.trainLabels)
     val trainData =
@@ -62,7 +62,7 @@ object STL10 {
     val model = tf.learn.Model(input, layer, trainInput, trainingInputLayer, loss, optimizer)
 
     logger.info("Training the linear regression model.")
-    val summariesDir = Paths.get("~/temp/mlp-1024-256-64")
+    val summariesDir = Paths.get("temp/cnn-stl10")
     val estimator = tf.learn.InMemoryEstimator(
       model,
       tf.learn.Configuration(Some(summariesDir)),

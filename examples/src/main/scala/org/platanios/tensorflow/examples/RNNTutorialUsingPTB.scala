@@ -77,13 +77,13 @@ object RNNTutorialUsingPTB {
   }
 
   def main(args: Array[String]): Unit = {
-    val dataset = PTBLoader.load(Paths.get("/Users/Anthony/Downloads/temp/PTB"))
+    val dataset = PTBLoader.load(Paths.get("datasets/PTB"))
     val trainDataset =
       PTBLoader.tokensToBatchedTFDataset(dataset.train, batchSize, numSteps, "TrainDataset")
           .repeat()
           .prefetch(prefetchSize)
 
-    val summariesDir = Paths.get("/Users/Anthony/Downloads/temp/rnn-ptb")
+    val summariesDir = Paths.get("temp/rnn-ptb")
     val estimator = tf.learn.InMemoryEstimator(
       model,
       tf.learn.Configuration(Some(summariesDir)),

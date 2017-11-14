@@ -31,7 +31,7 @@ object CIFAR {
   private[this] val logger = Logger(LoggerFactory.getLogger("Examples / CIFAR"))
 
   def main(args: Array[String]): Unit = {
-    val dataSet = CIFARLoader.load(Paths.get("/Users/Anthony/Downloads/CIFAR"), CIFARLoader.CIFAR_10)
+    val dataSet = CIFARLoader.load(Paths.get("datasets/CIFAR"), CIFARLoader.CIFAR_10)
     val trainImages = tf.data.TensorSlicesDataset(dataSet.trainImages)
     val trainLabels = tf.data.TensorSlicesDataset(dataSet.trainLabels)
     val trainData =
@@ -62,7 +62,7 @@ object CIFAR {
     val model = tf.learn.Model(input, layer, trainInput, trainingInputLayer, loss, optimizer)
 
     logger.info("Training the linear regression model.")
-    val summariesDir = Paths.get("/Users/Anthony/Downloads/temp")
+    val summariesDir = Paths.get("temp/cnn-cifar")
     val estimator = tf.learn.InMemoryEstimator(
       model,
       tf.learn.Configuration(Some(summariesDir)),
