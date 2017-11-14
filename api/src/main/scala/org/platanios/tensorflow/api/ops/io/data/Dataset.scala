@@ -126,6 +126,21 @@ abstract class Dataset[T, O, D, S](
         .map(_._1)
   }
 
+  /** Applies a transformation function to this dataset.
+    *
+    * `transform()` enables chaining of custom dataset transformations, which are represented as functions that take one
+    * dataset argument and return a transformed dataset.
+    *
+    * @param  transform Dataset ransformation function.
+    * @return Transformed dataset.
+    */
+  def transform[TT, TO, TD, TS](transform: (Dataset[T, O, D, S]) => Dataset[TT, TO, TD, TS])(implicit
+      evT: Data.Aux[TT, TO, TD, TS],
+      evFunctionInputT: Function.ArgType[TO]
+  ): Dataset[TT, TO, TD, TS] = {
+    transform(this)
+  }
+
   override def toString: String = {
     "Dataset[" +
         s"outputDataTypes = ${ev.dataTypesToString(outputDataTypes)}, " +

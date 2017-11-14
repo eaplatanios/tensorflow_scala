@@ -19,6 +19,5 @@ package org.platanios.tensorflow.api.ops.io
   * @author Emmanouil Antonios Platanios
   */
 package object data {
-  // TODO: [DATA] Add function wrappers for the functional ops to facilitate better shape inference (as in Python).
-  // TODO: [DATA] "denseToSparseBatch", "interleave" and "groupByWindow".
+  // TODO: [DATA] Add support for "interleave".
 }
