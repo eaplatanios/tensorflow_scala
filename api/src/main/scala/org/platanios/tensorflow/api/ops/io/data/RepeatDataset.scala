@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.ops.io.data
 
-import org.platanios.tensorflow.api.ops.{Basic, Op, Output}
+import org.platanios.tensorflow.api.ops.{Basic, Function, Op, Output}
 
 /** Dataset that wraps the application of the `repeat` op.
   *
@@ -37,7 +37,8 @@ case class RepeatDataset[T, O, D, S](
     count: Long,
     override val name: String = "RepeatDataset"
 )(implicit
-    ev: Data.Aux[T, O, D, S]
+    ev: Data.Aux[T, O, D, S],
+    evFunctionInput: Function.ArgType[O]
 ) extends Dataset[T, O, D, S](name) {
   override def createHandle(): Output = {
     Op.Builder(opType = "RepeatDataset", name = name)
@@ -55,14 +56,16 @@ case class RepeatDataset[T, O, D, S](
 object RepeatDataset {
   private[data] trait Implicits {
     implicit def datasetToRepeatDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S])(implicit
-        ev: Data.Aux[T, O, D, S]
+        ev: Data.Aux[T, O, D, S],
+        evFunctionInput: Function.ArgType[O]
     ): RepeatDatasetOps[T, O, D, S] = {
       RepeatDatasetOps(dataset)
     }
   }
 
   case class RepeatDatasetOps[T, O, D, S] private[RepeatDataset] (dataset: Dataset[T, O, D, S])(implicit
-      ev: Data.Aux[T, O, D, S]
+      ev: Data.Aux[T, O, D, S],
+      evFunctionInput: Function.ArgType[O]
   ) {
     /** $OpDocDatasetRepeat
       *

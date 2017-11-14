@@ -44,26 +44,6 @@ class DatasetSuite extends JUnitSuite {
     }
   }
 
-  @Test def testTensorArrayDataset(): Unit = using(Graph()) { graph =>
-    Op.createWith(graph) {
-      val components = Array(Tensor(1), Tensor(1, 2, 3), Tensor(37.0))
-      val dataset = TensorDataset(components)
-      val iterator = dataset.createInitializableIterator()
-      val initOp = iterator.initializer
-      val nextOp = iterator.next()
-      assert(components(0).shape === nextOp(0).shape)
-      assert(components(1).shape === nextOp(1).shape)
-      assert(components(2).shape === nextOp(2).shape)
-      val session = Session()
-      session.run(targets = initOp)
-      val results = session.run(fetches = nextOp)
-      assert(components(0) === results(0))
-      assert(components(1) === results(1))
-      assert(components(2) === results(2))
-      assertThrows[OutOfRangeException](session.run(fetches = nextOp))
-    }
-  }
-
   @Test def testTensorTupleDataset(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
       val components = (Tensor(1), Tensor(1, 2, 3), Tensor(37.0))

@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops.io.data
 
 import org.platanios.tensorflow.api.Implicits._
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.ops.{Op, Output}
+import org.platanios.tensorflow.api.ops.{Function, Op, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
 
 import scala.language.postfixOps
@@ -38,7 +38,8 @@ case class TensorSlicesDataset[T, O, D, S](
     data: T,
     override val name: String = "TensorSlicesDataset"
 )(implicit
-    ev: Data.Aux[T, O, D, S]
+    ev: Data.Aux[T, O, D, S],
+    evFunctionInput: Function.ArgType[O]
 ) extends Dataset[T, O, D, S](name) {
   override def createHandle(): Output = {
     val flattenedOutputs = ev.flattenedOutputsFromT(data)
@@ -72,7 +73,8 @@ case class OutputSlicesDataset[T, O, D, S](
     data: O,
     override val name: String = "OutputSlicesDataset"
 )(implicit
-    ev: Data.Aux[T, O, D, S]
+    ev: Data.Aux[T, O, D, S],
+    evFunctionInput: Function.ArgType[O]
 ) extends Dataset[T, O, D, S](name) {
   override def createHandle(): Output = {
     val flattenedOutputs = ev.flattenedOutputsFromO(data)

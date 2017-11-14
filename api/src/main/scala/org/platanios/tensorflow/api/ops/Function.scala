@@ -95,21 +95,21 @@ object Function {
     }
 
     implicit def recursiveConstructor[H, T <: HList](implicit
-        argTypeHead: ArgType[H],
+        argTypeHead: Lazy[ArgType[H]],
         argTypeTail: ArgType[T]
     ): ArgType[H :: T] = new ArgType[H :: T] {
-      override def numOutputs: Int = argTypeHead.numOutputs + argTypeTail.numOutputs
+      override def numOutputs: Int = argTypeHead.value.numOutputs + argTypeTail.numOutputs
 
       override def outputs(arg: H :: T): Seq[Output] = {
-        argTypeHead.outputs(arg.head) ++ argTypeTail.outputs(arg.tail)
+        argTypeHead.value.outputs(arg.head) ++ argTypeTail.outputs(arg.tail)
       }
 
       override def dataTypes(arg: H :: T): Seq[DataType] = {
-        argTypeHead.dataTypes(arg.head) ++ argTypeTail.dataTypes(arg.tail)
+        argTypeHead.value.dataTypes(arg.head) ++ argTypeTail.dataTypes(arg.tail)
       }
 
       override def outputsDecoder(outputs: Seq[Output]): (H :: T, Seq[Output]) = {
-        val (decodedHead, outputsTail) = argTypeHead.outputsDecoder(outputs)
+        val (decodedHead, outputsTail) = argTypeHead.value.outputsDecoder(outputs)
         val (decodedTail, tail) = argTypeTail.outputsDecoder(outputsTail)
         (decodedHead :: decodedTail, tail)
       }

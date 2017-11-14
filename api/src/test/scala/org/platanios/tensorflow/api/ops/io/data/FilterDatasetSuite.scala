@@ -20,7 +20,6 @@ import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.ops.{Math, Op}
 import org.platanios.tensorflow.api.utilities.using
 import org.platanios.tensorflow.api.core.client.Session
-import org.platanios.tensorflow.api.core.exception.OutOfRangeException
 import org.platanios.tensorflow.api.tensors.Tensor
 
 import org.junit.Test
@@ -42,7 +41,8 @@ class FilterDatasetSuite extends JUnitSuite {
       assert(session.run(fetches = nextOutput) === (0L: Tensor))
       assert(session.run(fetches = nextOutput) === (1L: Tensor))
       assert(session.run(fetches = nextOutput) === (3L: Tensor))
-      assertThrows[OutOfRangeException](session.run(fetches = nextOutput))
+      assert(session.run(fetches = nextOutput) === (4L: Tensor))
+      assert(session.run(fetches = nextOutput) === (6L: Tensor))
     }
   }
 }

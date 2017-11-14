@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.ops.io.data
 import org.platanios.tensorflow.api.Implicits._
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception._
-import org.platanios.tensorflow.api.ops.{Callback, Function, Op, Output}
+import org.platanios.tensorflow.api.ops.{Callback, Function, Math, Op, Output}
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.ops.io.data
 import org.platanios.tensorflow.api.tensors.Tensor
@@ -42,7 +42,12 @@ import scala.language.postfixOps
   *
   * @author Emmanouil Antonios Platanios
   */
-abstract class Dataset[T, O, D, S] private[io](val name: String = "Dataset")(implicit ev: Data.Aux[T, O, D, S]) {
+abstract class Dataset[T, O, D, S](
+    val name: String = "Dataset"
+)(implicit
+    ev: Data.Aux[T, O, D, S],
+    evFunctionInput: Function.ArgType[O]
+) {
   /** Creates a `RESOURCE` scalar tensor representing this dataset. This function adds ops to the current graph, that
     * create the dataset resource. */
   def createHandle(): Output
@@ -77,6 +82,49 @@ abstract class Dataset[T, O, D, S] private[io](val name: String = "Dataset")(imp
   /** Returns a sequence of [[Shape]]s that correspond to the flattened shapes of the nested [[Output]] structure of the
     * elements of this dataset. */
   private[io] def flattenedOutputShapes: Seq[Shape] = ev.flattenedShapes(outputShapes)
+
+  /** Creates a dataset that includes only `1 / numShards` of the elements of this dataset.
+    *
+    * This operator is very useful when running distributed training, as it allows each worker to read a unique subset
+    * of the dataset.
+    *
+    * When reading a single input file, you can skip elements as follows:
+    * {{{
+    *   tf.data.TFRecordDataset(inputFile)
+    *     .shard(numWorkers, workerIndex)
+    *     .repeat(numEpochs)
+    *     .shuffle(shuffleBufferSize)
+    *     .map(parserFn, numParallelCalls)
+    * }}}
+    *
+    * Important caveats:
+    *
+    *   - Be sure to shard before you use any randomizing operator (such as shuffle).
+    *   - Generally it is best if the shard operator is used early in the dataset pipeline. For example, when reading
+    *     from a set of TensorFlow record files, shard before converting the dataset to input samples. This avoids
+    *     reading every file on every worker. The following is an example of an efficient sharding strategy within a
+    *     complete pipeline:
+    *     {{{
+    *       tf.data.listFiles(pattern)
+    *         .shard(numWorkers, workerIndex)
+    *         .repeat(numEpochs)
+    *         .shuffle(shuffleBufferSize)
+    *         .repeat()
+    *         .interleave(tf.data.TFRecordDataset, cycleLength = numReaders, blockLength = 1)
+    *         .map(parserFn, numParallelCalls)
+    *     }}}
+    *
+    * @param  numShards  Number of shards to use.
+    * @param  shardIndex Index of the shard to obtain.
+    * @return Created (sharded) dataset.
+    */
+  def shard(numShards: Long, shardIndex: Long): Dataset[T, O, D, S] = {
+    if (shardIndex >= numShards)
+      throw InvalidArgumentException(s"'index' (= $shardIndex) must be smaller than 'numShards' (= $numShards).")
+    this.zip(RangeDataset(0, Long.MaxValue))
+        .filter((t: (O, Output)) => Math.equal(Math.mod(t._2, numShards), shardIndex))
+        .map(_._1)
+  }
 
   override def toString: String = {
     "Dataset[" +

@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.ops.io.data
 
-import org.platanios.tensorflow.api.ops.{Basic, Op, Output}
+import org.platanios.tensorflow.api.ops.{Basic, Function, Op, Output}
 
 /** Dataset that wraps the application of the `cache` op.
   *
@@ -36,7 +36,8 @@ case class CacheDataset[T, O, D, S](
     directory: String,
     override val name: String = "CacheDataset"
 )(implicit
-    ev: Data.Aux[T, O, D, S]
+    ev: Data.Aux[T, O, D, S],
+    evFunctionInput: Function.ArgType[O]
 ) extends Dataset[T, O, D, S](name) {
   override def createHandle(): Output = {
     Op.Builder(opType = "CacheDataset", name = name)
@@ -54,14 +55,16 @@ case class CacheDataset[T, O, D, S](
 object CacheDataset {
   private[data] trait Implicits {
     implicit def datasetToCacheDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S])(implicit
-        ev: Data.Aux[T, O, D, S]
+        ev: Data.Aux[T, O, D, S],
+        evFunctionInput: Function.ArgType[O]
     ): CacheDatasetOps[T, O, D, S] = {
       CacheDatasetOps(dataset)
     }
   }
 
   case class CacheDatasetOps[T, O, D, S] private[CacheDataset] (dataset: Dataset[T, O, D, S])(implicit
-      ev: Data.Aux[T, O, D, S]
+      ev: Data.Aux[T, O, D, S],
+      evFunctionInput: Function.ArgType[O]
   ) {
     /** $OpDocDatasetCache
       *

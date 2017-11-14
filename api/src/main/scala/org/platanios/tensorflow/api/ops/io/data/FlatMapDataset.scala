@@ -38,7 +38,8 @@ case class FlatMapDataset[T, O, D, S, RT, RO, RD, RS](
 )(implicit
     ev: Data.Aux[T, O, D, S],
     evR: Data.Aux[RT, RO, RD, RS],
-    evFunctionInput: Function.ArgType[O]
+    evFunctionInput: Function.ArgType[O],
+    evFunctionInputR: Function.ArgType[RO]
 ) extends Dataset[RT, RO, RD, RS](name) {
   private[this] lazy val instantiatedFunction = {
     Function(s"$name/Function", function).instantiate(
@@ -62,14 +63,16 @@ case class FlatMapDataset[T, O, D, S, RT, RO, RD, RS](
 object FlatMapDataset {
   private[data] trait Implicits {
     implicit def datasetToFlatMapDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S])(implicit
-        ev: Data.Aux[T, O, D, S]
+        ev: Data.Aux[T, O, D, S],
+        evFunctionInput: Function.ArgType[O]
     ): FlatMapDatasetOps[T, O, D, S] = {
       FlatMapDatasetOps(dataset)
     }
   }
 
   case class FlatMapDatasetOps[T, O, D, S] private[FlatMapDataset] (dataset: Dataset[T, O, D, S])(implicit
-      ev: Data.Aux[T, O, D, S]
+      ev: Data.Aux[T, O, D, S],
+      evFunctionInput: Function.ArgType[O]
   ) {
     /** $OpDocDatasetFlatMap
       *
@@ -80,7 +83,8 @@ object FlatMapDataset {
     def flatMap[RT, RO, RD, RS](function: (O) => Dataset[RT, RO, RD, RS], name: String = "FlatMap")(implicit
         ev: Data.Aux[T, O, D, S],
         evR: Data.Aux[RT, RO, RD, RS],
-        evFunctionInput: Function.ArgType[O]
+        evFunctionInput: Function.ArgType[O],
+        evFunctionInputR: Function.ArgType[RO]
     ): Dataset[RT, RO, RD, RS] = {
       Op.createWithNameScope(dataset.name) {
         FlatMapDataset(dataset, function, name)

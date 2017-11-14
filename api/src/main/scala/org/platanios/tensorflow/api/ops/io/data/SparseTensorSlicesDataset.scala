@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops.io.data
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.ops.{Op, Output, SparseOutput}
-import org.platanios.tensorflow.api.tensors.SparseTensor
+import org.platanios.tensorflow.api.tensors.{SparseTensor, Tensor}
 import org.platanios.tensorflow.api.types.{DataType, INT64}
 
 /** Dataset that splits a sparse tensor into its rows.
@@ -30,7 +30,8 @@ import org.platanios.tensorflow.api.types.{DataType, INT64}
 case class SparseTensorSlicesDataset(
     tensor: SparseTensor,
     override val name: String = "SparseTensorSliceDataset"
-) extends Dataset[SparseTensor, SparseOutput, (DataType, DataType, DataType), (Shape, Shape, Shape)](name) {
+) extends Dataset[
+    (Tensor, Tensor, Tensor), (Output, Output, Output), (DataType, DataType, DataType), (Shape, Shape, Shape)](name) {
   /** Creates a `RESOURCE` scalar tensor representing this dataset. This function adds ops to the current graph, that
     * create the dataset resource. */
   override def createHandle(): Output = {
@@ -61,7 +62,8 @@ case class SparseTensorSlicesDataset(
 case class SparseOutputSlicesDataset(
     tensor: SparseOutput,
     override val name: String = "SparseOutputSliceDataset"
-) extends Dataset[SparseTensor, SparseOutput, (DataType, DataType, DataType), (Shape, Shape, Shape)](name) {
+) extends Dataset[
+    (Tensor, Tensor, Tensor), (Output, Output, Output), (DataType, DataType, DataType), (Shape, Shape, Shape)](name) {
   /** Creates a `RESOURCE` scalar tensor representing this dataset. This function adds ops to the current graph, that
     * create the dataset resource. */
   override def createHandle(): Output = {
