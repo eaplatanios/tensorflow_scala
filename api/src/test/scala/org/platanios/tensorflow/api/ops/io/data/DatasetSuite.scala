@@ -34,7 +34,7 @@ class DatasetSuite extends JUnitSuite {
   @Test def testTensorDataset(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
       val components = Tensor(1, 2, 3)
-      val iterator = Dataset.from(components).createInitializableIterator()
+      val iterator = TensorDataset(components).createInitializableIterator()
       val initOp = iterator.initializer
       val nextOutput = iterator.next()
       assert(nextOutput.shape === components.shape)
@@ -48,7 +48,7 @@ class DatasetSuite extends JUnitSuite {
   @Test def testTensorArrayDataset(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
       val components = Array(Tensor(1), Tensor(1, 2, 3), Tensor(37.0))
-      val dataset = Dataset.from(components)
+      val dataset = TensorDataset(components)
       val iterator = dataset.createInitializableIterator()
       val initOp = iterator.initializer
       val nextOp = iterator.next()
@@ -68,7 +68,7 @@ class DatasetSuite extends JUnitSuite {
   @Test def testTensorTupleDataset(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
       val components = (Tensor(1), Tensor(1, 2, 3), Tensor(37.0))
-      val dataset = Dataset.from(components)
+      val dataset = TensorDataset(components)
       val iterator = dataset.createInitializableIterator()
       val initOp = iterator.initializer
       val nextOp = iterator.next()
@@ -87,7 +87,7 @@ class DatasetSuite extends JUnitSuite {
 
   @Test def testRangeDataset(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
-      val dataset = Dataset.range(0, 4, 1)
+      val dataset = RangeDataset(0, 4, 1)
       val iterator = dataset.createInitializableIterator()
       val initOp = iterator.initializer
       val nextOutput = iterator.next()
@@ -104,7 +104,7 @@ class DatasetSuite extends JUnitSuite {
 
   @Test def testMapDataset(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
-      val dataset = Dataset.range(0, 4, 1).map(v => 2 * v)
+      val dataset = RangeDataset(0, 4, 1).map(v => 2 * v)
       val iterator = dataset.createInitializableIterator()
       val initOp = iterator.initializer
       val nextOutput = iterator.next()
@@ -121,7 +121,7 @@ class DatasetSuite extends JUnitSuite {
 
   @Test def testFlatMapDataset(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
-      val dataset = Dataset.range(0, 4, 1).flatMap(v => Dataset.fromOutputSlices(Basic.stack(Seq(v, 1L))))
+      val dataset = RangeDataset(0, 4, 1).flatMap(v => OutputSlicesDataset(Basic.stack(Seq(v, 1L))))
       val iterator = dataset.createInitializableIterator()
       val initOp = iterator.initializer
       val nextOutput = iterator.next()
