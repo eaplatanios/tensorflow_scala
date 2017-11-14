@@ -15,6 +15,8 @@
 
 package org.platanios.tensorflow.api.ops
 
+import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
+
 /**
   * @author Emmanouil Antonios Platanios
   */
@@ -31,6 +33,28 @@ private[api] trait Text {
         .addInputList(inputs)
         .setAttribute("separator", separator)
         .build().outputs(0)
+  }
+
+  /** $OpDocTextStringSplit
+    *
+    * @group TextOps
+    * @param  input     Input `STRING` tensor.
+    * @param  delimiter Delimiter used for splitting. If `delimiter` is an empty string, each element of the `source` is
+    *                   split into individual strings, each containing one byte. (This includes splitting multi-byte
+    *                   sequences of UTF-8 characters). If `delimiter` contains multiple bytes, it is treated as a set
+    *                   of delimiters with each considered a potential split point.
+    * @param  skipEmpty Boolean value indicating whether or not to skip empty tokens.
+    * @param  name      Name for the created op.
+    * @return Created op output.
+    */
+  def stringSplit(
+      input: Output, delimiter: Output = " ", skipEmpty: Boolean = true, name: String = "StringSplit"): SparseOutput = {
+    val outputs = Op.Builder(opType = "StringSplit", name = name)
+        .addInput(input)
+        .addInput(delimiter)
+        .setAttribute("skip_empty", skipEmpty)
+        .build().outputs
+    SparseOutput(outputs(0), outputs(1), outputs(2))
   }
 
   /** $OpDocTextStringToHashBucket
@@ -128,11 +152,59 @@ private[api] object Text extends Text {
         numBuckets: Int, key1: Long, key2: Long, name: String = "StringToHashBucketStrong"): Output = {
       Text.stringToHashBucketStrong(output, numBuckets, key1, key2, name)
     }
+
+    /** $OpDocTextStringSplit
+      *
+      * @group TextOps
+      * @param  delimiter Delimiter used for splitting. If `delimiter` is an empty string, each element of the `source`
+      *                   is split into individual strings, each containing one byte. (This includes splitting
+      *                   multi-byte sequences of UTF-8 characters). If `delimiter` contains multiple bytes, it is
+      *                   treated as a set of delimiters with each considered a potential split point.
+      * @param  skipEmpty Boolean value indicating whether or not to skip empty tokens.
+      * @param  name      Name for the created op.
+      * @return Created op output.
+      */
+    def stringSplit(delimiter: Output = " ", skipEmpty: Boolean = true, name: String = "StringSplit"): SparseOutput = {
+      Text.stringSplit(output, delimiter, skipEmpty, name)
+    }
+  }
+
+  private[ops] object Gradients {
+    GradientsRegistry.registerNonDifferentiable("ReduceJoin")
+    GradientsRegistry.registerNonDifferentiable("StringJoin")
+    GradientsRegistry.registerNonDifferentiable("StringSplit")
+    GradientsRegistry.registerNonDifferentiable("AsString")
+    GradientsRegistry.registerNonDifferentiable("EncodeBase64")
+    GradientsRegistry.registerNonDifferentiable("DecodeBase64")
+    GradientsRegistry.registerNonDifferentiable("StringToHashBucket")
+    GradientsRegistry.registerNonDifferentiable("StringToHashBucketFast")
+    GradientsRegistry.registerNonDifferentiable("StringToHashBucketStrong")
   }
 
   /** @define OpDocTextStringJoin
     *   The `stringJoin` op joins the strings in the given list of string tensors into one tensor, using the provided
     *   separator (which defaults to an empty string).
+    *
+    * @define OpDocTextStringSplit
+    *   The `stringSplit` op splits elements of `input` based on `delimiter` into a sparse tensor.
+    *
+    *   Let `N` be the size of the input (typically `N` will be the batch size). The op splits each element of `input`
+    *   based on `delimiter` and returns a sparse tensor containing the split tokens. `skipEmpty` determines whether
+    *   empty tokens are ignored or not.
+    *
+    *   If `delimiter` is an empty string, each element of the `source` is split into individual strings, each
+    *   containing one byte. (This includes splitting multi-byte sequences of UTF-8 characters). If `delimiter` contains
+    *   multiple bytes, it is treated as a set of delimiters with each considered a potential split point.
+    *
+    *   For example:
+    *   {{{
+    *     // N = 2
+    *     // input = Tensor("hello world", "a b c")
+    *     val st = stringSplit(input)
+    *     st.indices ==> [[0, 0], [0, 1], [1, 0], [1, 1], [1, 2]]
+    *     st.values ==> ["hello", "world", "a", "b", "c"]
+    *     st.denseShape ==> [2, 3]
+    *   }}}
     *
     * @define OpDocTextStringToHashBucket
     *   The `stringToHashBucket` op converts each string in the input tensor to its hash mod the number of buckets.

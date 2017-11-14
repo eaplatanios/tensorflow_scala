@@ -55,6 +55,7 @@ package object ops {
   ops.Random.Gradients
   ops.Sets.Gradients
   ops.TensorArray.Gradients
+  ops.Text.Gradients
   ops.control_flow.ControlFlow.Gradients
   ops.io.Files.Gradients
   ops.io.Reader.Gradients

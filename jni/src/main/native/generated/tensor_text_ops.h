@@ -17,6 +17,14 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Text
 
 /*
  * Class:     org_platanios_tensorflow_jni_generated_tensors_Text__
+ * Method:    stringSplit
+ * Signature: (JJJ)[J
+ */
+JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Text_00024_stringSplit
+  (JNIEnv *, jobject, jlong, jlong, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_Text__
  * Method:    stringToHashBucket
  * Signature: (JJJ)J
  */
