@@ -19,10 +19,6 @@ package org.platanios.tensorflow.api.ops.io
   * @author Emmanouil Antonios Platanios
   */
 package object data {
-  // TODO: [DATA] Create a tf.data API interface that is to be shared with tf.learn.
-
-
-  // TODO: [DATASETS] "denseToSparseBatch".
-
-  // TODO: [DATASETS] "interleave", "groupByWindow", and "filter".
+  // TODO: [DATA] Add function wrappers for the functional ops to facilitate better shape inference (as in Python).
+  // TODO: [DATA] "denseToSparseBatch", "interleave" and "groupByWindow".
 }

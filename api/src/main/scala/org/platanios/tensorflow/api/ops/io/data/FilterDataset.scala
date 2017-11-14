@@ -48,7 +48,7 @@ case class FilterDataset[T, O, D, S](
     Op.Builder(opType = "FilterDataset", name = name)
         .addInput(Op.createWithNameScope(name)(inputDataset.createHandle()))
         .addInputList(instantiatedPredicateFunction.extraInputs)
-        .setAttribute("f", instantiatedPredicateFunction)
+        .setAttribute("predicate", instantiatedPredicateFunction)
         .setAttribute("output_types", flattenedOutputDataTypes.toArray)
         .setAttribute("output_shapes", flattenedOutputShapes.toArray)
         .build().outputs(0)
