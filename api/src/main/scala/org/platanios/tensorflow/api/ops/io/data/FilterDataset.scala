@@ -36,7 +36,8 @@ case class FilterDataset[T, O, D, S](
     predicateFn: (O) => Output,
     override val name: String = "FilterDataset"
 )(implicit
-    ev: Data.Aux[T, O, D, S]
+    ev: Data.Aux[T, O, D, S],
+    evFunctionInput: Function.ArgType[O]
 ) extends Dataset[T, O, D, S](name) {
   private[this] lazy val instantiatedPredicateFunction = {
     Function(s"$name/Predicate", predicateFn).instantiate(
