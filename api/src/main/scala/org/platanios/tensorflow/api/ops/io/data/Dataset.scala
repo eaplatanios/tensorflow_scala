@@ -97,6 +97,7 @@ object Dataset {
     type OutputSlicesDataset[T, O, D, S] = data.OutputSlicesDataset[T, O, D, S]
     type SparseTensorSlicesDataset = data.SparseTensorSlicesDataset
     type SparseOutputSlicesDataset = data.SparseOutputSlicesDataset
+    type TextLineDataset = data.TextLineDataset
 
     type BatchDataset[T, O, D, S] = data.BatchDataset[T, O, D, S]
     type PrefetchDataset[T, O, D, S] = data.PrefetchDataset[T, O, D, S]
@@ -124,6 +125,7 @@ object Dataset {
     val OutputSlicesDataset      : data.OutputSlicesDataset.type       = data.OutputSlicesDataset
     val SparseTensorSlicesDataset: data.SparseTensorSlicesDataset.type = data.SparseTensorSlicesDataset
     val SparseOutputSlicesDataset: data.SparseOutputSlicesDataset.type = data.SparseOutputSlicesDataset
+    val TextLineDataset          : data.TextLineDataset.type           = data.TextLineDataset
 
     val BatchDataset       : data.BatchDataset.type        = data.BatchDataset
     val PrefetchDataset    : data.PrefetchDataset.type     = data.PrefetchDataset
@@ -202,6 +204,7 @@ object Dataset {
       else
         ev.unflattenShapes(outputDataType, Seq.fill(ev.size(outputDataType))(Shape.unknown()))
     }
+
     val flattenedTypes = ev.flattenedDataTypes(outputDataType)
     val flattenedShapes = ev.flattenedShapes(inferredOutputShape)
     val generatorState = GeneratorState(generator)(ev)
@@ -277,37 +280,6 @@ object Dataset {
     // multiple repetitions and/or nested versions of the returned dataset to be created, because it forces the
     // generation of a new ID for each version.
     idDataset.flatMap(flatMapFn)
-  }
-
-  /** Creates a text-line dataset op.
-    *
-    * A text-line dataset emits the lines of one or more text files.
-    *
-    * **Note:** New-line characters are stripped from the output.
-    *
-    * @param  filenames       [[STRING]] scalar or vector tensor containing the the name(s) of the file(s) to be read.
-    * @param  compressionType [[STRING]] scalar tensor containing the type of compression for the file. Currently ZLIB
-    *                         and GZIP are supported. Defaults to `""`, meaning no compression.
-    * @param  name            Name for the created op.
-    * @return Created op output, which is a handle to the created dataset.
-    * @throws IllegalArgumentException If any of the arguments has invalid data type or shape.
-    */
-  @throws[IllegalArgumentException]
-  private[io] def createTextLineDataset(
-      filenames: Output, compressionType: Output, name: String = "TextLineDataset"): Output = {
-    if (filenames.dataType != STRING)
-      throw new IllegalArgumentException(s"'filenames' (dataType = ${filenames.dataType}) must be a STRING tensor.")
-    if (filenames.rank != -1 && filenames.rank > 1)
-      throw new IllegalArgumentException(s"'filenames' (rank = ${filenames.rank}) must be at most 1.")
-    if (compressionType.dataType != STRING)
-      throw new IllegalArgumentException(
-        s"'compressionType' (dataType = ${compressionType.dataType}) must be a STRING tensor.")
-    if (compressionType.rank != -1 && compressionType.rank > 0)
-      throw new IllegalArgumentException(s"'compressionType' (rank = ${compressionType.rank}) must be equal to 0.")
-    Op.Builder(opType = "TextLineDataset", name = name)
-        .addInput(filenames)
-        .addInput(compressionType)
-        .build().outputs(0)
   }
 
   /** Creates an op that outputs fixed-length records from a file.
