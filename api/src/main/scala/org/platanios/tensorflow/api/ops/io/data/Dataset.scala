@@ -170,6 +170,8 @@ object Dataset {
 
     type ConcatenatedDataset[T, O, D, S] = data.ConcatenatedDataset[T, O, D, S]
 
+    type GroupByWindowDataset[T, O, D, S] = data.GroupByWindowDataset[T, O, D, S]
+
     val RangeDataset             : data.RangeDataset.type              = data.RangeDataset
     val TensorDataset            : data.TensorDataset.type             = data.TensorDataset
     val OutputDataset            : data.OutputDataset.type             = data.OutputDataset
@@ -201,6 +203,8 @@ object Dataset {
     val ZipMultipleDataset: data.ZipMultipleDataset.type = data.ZipMultipleDataset
 
     val ConcatenatedDataset: data.ConcatenatedDataset.type = data.ConcatenatedDataset
+
+    val GroupByWindowDataset: data.GroupByWindowDataset.type = data.GroupByWindowDataset
 
     def fromGenerator[T, O, D, S](
         generator: () => Iterable[T], outputDataType: D, outputShape: S = null

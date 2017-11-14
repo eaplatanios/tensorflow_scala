@@ -26,6 +26,7 @@ private[ops] trait Documentation
         with DropDataset.Documentation
         with FilterDataset.Documentation
         with FlatMapDataset.Documentation
+        with GroupByWindowDataset.Documentation
         with IgnoreErrorsDataset.Documentation
         with MapDataset.Documentation
         with PaddedBatchDataset.Documentation

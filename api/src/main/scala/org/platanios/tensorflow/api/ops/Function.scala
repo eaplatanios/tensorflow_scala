@@ -36,13 +36,13 @@ import scala.util.DynamicVariable
 /**
   * @author Emmanouil Antonios Platanios
   */
-case class Function[IO, IR, R](name: String, function: (IO) => R)(implicit
-    evInput: Function.ArgType[IO],
-    evOutput: Function.ArgType[R]
+case class Function[I, O](name: String, function: (I) => O)(implicit
+    evInput: Function.ArgType[I],
+    evOutput: Function.ArgType[O]
 ) {
-  private[this] val instantiatedFunctions = mutable.HashMap.empty[String, InstantiatedFunction[IO, R]]
+  private[this] val instantiatedFunctions = mutable.HashMap.empty[String, InstantiatedFunction[I, O]]
 
-  def apply(arg: IO): R = {
+  def apply(arg: I): O = {
     val dataTypes = evInput.dataTypes(arg)
     val key = dataTypes.map(_.toString).mkString(":")
     instantiatedFunctions.getOrElseUpdate(key, {
@@ -51,7 +51,7 @@ case class Function[IO, IR, R](name: String, function: (IO) => R)(implicit
   }
 
   private[ops] def instantiate(
-      inputDataTypes: Seq[DataType], inputShapes: Seq[Shape] = null): InstantiatedFunction[IO, R] = {
+      inputDataTypes: Seq[DataType], inputShapes: Seq[Shape] = null): InstantiatedFunction[I, O] = {
     val key = (inputDataTypes.map(_.toString) ++ Option(inputShapes).map(_.map(_.toString))).mkString(":")
     instantiatedFunctions.getOrElseUpdate(key, {
       InstantiatedFunction(s"${name}_$key", function, inputDataTypes, Option(inputShapes))(evInput, evOutput)

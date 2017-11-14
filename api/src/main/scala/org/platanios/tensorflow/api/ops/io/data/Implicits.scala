@@ -26,6 +26,7 @@ private[io] trait Implicits
         with DropDataset.Implicits
         with FilterDataset.Implicits
         with FlatMapDataset.Implicits
+        with GroupByWindowDataset.Implicits
         with IgnoreErrorsDataset.Implicits
         with MapDataset.Implicits
         with PaddedBatchDataset.Implicits
