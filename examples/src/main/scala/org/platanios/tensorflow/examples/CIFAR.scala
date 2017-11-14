@@ -32,8 +32,8 @@ object CIFAR {
 
   def main(args: Array[String]): Unit = {
     val dataSet = CIFARLoader.load(Paths.get("/Users/Anthony/Downloads/CIFAR"), CIFARLoader.CIFAR_10)
-    val trainImages = tf.data.fromSlices(dataSet.trainImages)
-    val trainLabels = tf.data.fromSlices(dataSet.trainLabels)
+    val trainImages = tf.data.TensorSlicesDataset(dataSet.trainImages)
+    val trainLabels = tf.data.TensorSlicesDataset(dataSet.trainLabels)
     val trainData =
       trainImages.zip(trainLabels)
           .repeat()

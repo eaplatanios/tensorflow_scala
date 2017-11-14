@@ -22,7 +22,7 @@ import org.platanios.tensorflow.api.core.distributed.ReplicaDevicePlacer
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.learn._
 import org.platanios.tensorflow.api.learn.hooks._
-import org.platanios.tensorflow.api.ops.io.data.{Data, Dataset}
+import org.platanios.tensorflow.api.ops.io.data.{Data, Dataset, TensorDataset}
 import org.platanios.tensorflow.api.ops.{Op, OpSpecification, Output}
 import org.platanios.tensorflow.api.ops.metrics.Metric
 import org.platanios.tensorflow.api.ops.variables.Saver
@@ -400,7 +400,7 @@ object Estimator {
     implicit def singleValueInferInput[T, O, D, S, I](implicit
         ev: Data.Aux[T, O, D, S]
     ): SupportedInferInput[T, I, T, O, D, S, I] = new SupportedInferInput[T, I, T, O, D, S, I] {
-      override def toDataset(value: T): Dataset[T, O, D, S] = Dataset.from[T, O, D, S](value)
+      override def toDataset(value: T): Dataset[T, O, D, S] = TensorDataset[T, O, D, S](value)
       override def convertFetched(iterator: Iterator[(T, I)]): I = iterator.next()._2
     }
   }

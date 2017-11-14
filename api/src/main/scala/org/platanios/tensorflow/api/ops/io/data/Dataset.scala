@@ -18,10 +18,10 @@ package org.platanios.tensorflow.api.ops.io.data
 import org.platanios.tensorflow.api.Implicits._
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception._
-import org.platanios.tensorflow.api.ops.{Callback, Function, Op, Output, SparseOutput}
+import org.platanios.tensorflow.api.ops.{Callback, Function, Op, Output}
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.ops.io.data
-import org.platanios.tensorflow.api.tensors.{SparseTensor, Tensor}
+import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.{DataType, INT64, STRING}
 
 import java.util.concurrent.atomic.AtomicLong
@@ -90,27 +90,59 @@ object Dataset {
   private[io] trait API {
     type Dataset[T, O, D, S] = data.Dataset[T, O, D, S]
 
-    def from[T, O, D, S](
-        data: T, name: String = "TensorDataset")(implicit ev: Data.Aux[T, O, D, S]): Dataset[T, O, D, S] = {
-      Dataset.from(data, name)(ev)
-    }
+    type RangeDataset = data.RangeDataset
+    type TensorDataset[T, O, D, S] = data.TensorDataset[T, O, D, S]
+    type OutputDataset[T, O, D, S] = data.OutputDataset[T, O, D, S]
+    type TensorSlicesDataset[T, O, D, S] = data.TensorSlicesDataset[T, O, D, S]
+    type OutputSlicesDataset[T, O, D, S] = data.OutputSlicesDataset[T, O, D, S]
+    type SparseTensorSlicesDataset = data.SparseTensorSlicesDataset
+    type SparseOutputSlicesDataset = data.SparseOutputSlicesDataset
 
-    def fromSlices[T, O, D, S](
-        data: T, name: String = "TensorSlicesDataset")(implicit ev: Data.Aux[T, O, D, S]): Dataset[T, O, D, S] = {
-      Dataset.fromSlices(data, name)(ev)
-    }
+    type BatchDataset[T, O, D, S] = data.BatchDataset[T, O, D, S]
+    type PrefetchDataset[T, O, D, S] = data.PrefetchDataset[T, O, D, S]
+    type CacheDataset[T, O, D, S] = data.CacheDataset[T, O, D, S]
+    type ShuffleDataset[T, O, D, S] = data.ShuffleDataset[T, O, D, S]
+    type RepeatDataset[T, O, D, S] = data.RepeatDataset[T, O, D, S]
+    type IgnoreErrorsDataset[T, O, D, S] = data.IgnoreErrorsDataset[T, O, D, S]
 
-    /** Creates a dataset that splits a sparse tensor into its rows.
-      *
-      * @param  tensor Sparse tensor.
-      * @param  name   Name for the created dataset.
-      * @return Created dataset.
-      */
-    def fromSparseSlices(
-        tensor: SparseTensor, name: String = "SparseTensorSliceDataset"
-    ): Dataset[SparseTensor, SparseOutput, (DataType, DataType, DataType), (Shape, Shape, Shape)] = {
-      Dataset.fromSparseSlices(tensor, name)
-    }
+    type TakeDataset[T, O, D, S] = data.TakeDataset[T, O, D, S]
+    type DropDataset[T, O, D, S] = data.DropDataset[T, O, D, S]
+
+    type MapDataset[T, O, D, S, RT, RO, RD, RS] = data.MapDataset[T, O, D, S, RT, RO, RD, RS]
+    type FlatMapDataset[T, O, D, S, RT, RO, RD, RS] = data.FlatMapDataset[T, O, D, S, RT, RO, RD, RS]
+
+    type ZipDataset[T1, O1, D1, S1, T2, O2, D2, S2] = data.ZipDataset[T1, O1, D1, S1, T2, O2, D2, S2]
+    type Zip3Dataset[T1, O1, D1, S1, T2, O2, D2, S2, T3, O3, D3, S3] = data.Zip3Dataset[T1, O1, D1, S1, T2, O2, D2, S2, T3, O3, D3, S3]
+    type ZipMultipleDataset[T, O, D, S] = data.ZipMultipleDataset[T, O, D, S]
+
+    type ConcatenatedDataset[T, O, D, S] = data.ConcatenatedDataset[T, O, D, S]
+
+    val RangeDataset             : data.RangeDataset.type              = data.RangeDataset
+    val TensorDataset            : data.TensorDataset.type             = data.TensorDataset
+    val OutputDataset            : data.OutputDataset.type             = data.OutputDataset
+    val TensorSlicesDataset      : data.TensorSlicesDataset.type       = data.TensorSlicesDataset
+    val OutputSlicesDataset      : data.OutputSlicesDataset.type       = data.OutputSlicesDataset
+    val SparseTensorSlicesDataset: data.SparseTensorSlicesDataset.type = data.SparseTensorSlicesDataset
+    val SparseOutputSlicesDataset: data.SparseOutputSlicesDataset.type = data.SparseOutputSlicesDataset
+
+    val BatchDataset       : data.BatchDataset.type        = data.BatchDataset
+    val PrefetchDataset    : data.PrefetchDataset.type     = data.PrefetchDataset
+    val CacheDataset       : data.CacheDataset.type        = data.CacheDataset
+    val ShuffleDataset     : data.ShuffleDataset.type      = data.ShuffleDataset
+    val RepeatDataset      : data.RepeatDataset.type       = data.RepeatDataset
+    val IgnoreErrorsDataset: data.IgnoreErrorsDataset.type = data.IgnoreErrorsDataset
+
+    val TakeDataset: data.TakeDataset.type = data.TakeDataset
+    val DropDataset: data.DropDataset.type = data.DropDataset
+
+    val MapDataset    : data.MapDataset.type     = data.MapDataset
+    val FlatMapDataset: data.FlatMapDataset.type = data.FlatMapDataset
+
+    val ZipDataset        : data.ZipDataset.type         = data.ZipDataset
+    val Zip3Dataset       : data.Zip3Dataset.type        = data.Zip3Dataset
+    val ZipMultipleDataset: data.ZipMultipleDataset.type = data.ZipMultipleDataset
+
+    val ConcatenatedDataset: data.ConcatenatedDataset.type = data.ConcatenatedDataset
 
     def fromGenerator[T, O, D, S](
         generator: () => Iterable[T], outputDataType: D, outputShape: S = null
@@ -120,78 +152,6 @@ object Dataset {
     ): Dataset[T, O, D, S] = {
       Dataset.fromGenerator[T, O, D, S](generator, outputDataType, outputShape)(ev, evFunctionOutput)
     }
-
-    /** $OpDocDatasetZip
-      *
-      * @param  datasets Datasets to zip.
-      * @param  name     Name for the created dataset.
-      * @return Created dataset.
-      */
-    def zipDatasets[T, O, D, S](datasets: Seq[Dataset[T, O, D, S]], name: String = "ZipMultipleDataset")(implicit
-        ev: Data.Aux[T, O, D, S]
-    ): Dataset[Seq[T], Seq[O], Seq[D], Seq[S]] = Dataset.zipMultiple(datasets, name)(ev)
-  }
-
-  private[api] def from[T, O, D, S](
-      data: T, name: String = "TensorDataset")(implicit ev: Data.Aux[T, O, D, S]): Dataset[T, O, D, S] = {
-    // TODO: !!! [DATASETS] What happens when one provides a structure with Tensor objects?
-    TensorDataset(data, name = name)(ev)
-  }
-
-  private[api] def fromOutput[T, O, D, S](
-      data: O, name: String = "OutputDataset")(implicit ev: Data.Aux[T, O, D, S]): Dataset[T, O, D, S] = {
-    // TODO: !!! [DATASETS] What happens when one provides a structure with Tensor objects?
-    OutputDataset(data, name = name)(ev)
-  }
-
-  private[api] def fromSlices[T, O, D, S](
-      data: T, name: String = "TensorSlicesDataset")(implicit ev: Data.Aux[T, O, D, S]): Dataset[T, O, D, S] = {
-    // TODO: !!! [DATASETS] What happens when one provides a structure with Tensor objects?
-    TensorSlicesDataset(data, name = name)(ev)
-  }
-
-  private[api] def fromOutputSlices[T, O, D, S](
-      data: O, name: String = "OutputSlicesDataset")(implicit ev: Data.Aux[T, O, D, S]): Dataset[T, O, D, S] = {
-    // TODO: !!! [DATASETS] What happens when one provides a structure with Tensor objects?
-    OutputSlicesDataset(data, name = name)(ev)
-  }
-
-  /** Creates a [[Dataset]] that splits a sparse tensor into its rows.
-    *
-    * @param  tensor Sparse tensor.
-    * @param  name   Name for the created dataset.
-    * @return Created dataset.
-    */
-  private[api] def fromSparseSlices(
-      tensor: SparseTensor, name: String = "SparseTensorSlicesDataset"
-  ): Dataset[SparseTensor, SparseOutput, (DataType, DataType, DataType), (Shape, Shape, Shape)] = {
-    SparseTensorSlicesDataset(tensor, name)
-  }
-
-  /** Creates a [[Dataset]] that splits a sparse tensor into its rows.
-    *
-    * @param  tensor Sparse tensor.
-    * @param  name   Name for the created dataset.
-    * @return Created dataset.
-    */
-  private[api] def fromSparseOutputSlices(
-      tensor: SparseOutput, name: String = "SparseOutputSlicesDataset"
-  ): Dataset[SparseTensor, SparseOutput, (DataType, DataType, DataType), (Shape, Shape, Shape)] = {
-    SparseOutputSlicesDataset(tensor, name)
-  }
-
-  /** $OpDocDatasetRange
-    *
-    * @param  start Starting value of the number sequence.
-    * @param  limit Ending value (exclusive) of the number sequence.
-    * @param  delta Difference between consecutive numbers in the sequence.
-    * @param  name Name for the new dataset.
-    * @return Constructed dataset.
-    */
-  private[api] def range(
-      start: Long, limit: Long, delta: Long, name: String = "RangeDataset"
-  ): Dataset[Tensor, Output, DataType, Shape] = {
-    RangeDataset(start, limit, delta, name = name)
   }
 
   /** Stores outstanding iterators created from a Scala iterable.
@@ -302,14 +262,14 @@ object Dataset {
       // First, generate an infinite dataset containing the iterator ID repeated forever. Then, map using the
       // `generatorMapFn`, which gets the next element from the iterator with the relevant ID, and throws an
       // IndexOutOfBoundsException when that iterator contains no more elements.
-      fromOutput(iteratorId).repeat().map(generatorMapFn)
+      OutputDataset(iteratorId).repeat().map(generatorMapFn)
     }
 
     // A single-element dataset that, each time it is evaluated, contains a freshly-generated and unique (for the
     // returned dataset) INT64 ID that will be used to identify the appropriate Scala state, which is encapsulated in
     // the internal generator state, and captured in the provided callback function. The ID disambiguates between
     // multiple concurrently existing iterators.
-    val idDataset = Dataset.from(Tensor(INT64, 0)).map(
+    val idDataset = TensorDataset(Tensor(INT64, 0)).map(
       (_: Output) => Callback.callback((_: Unit) => Tensor(INT64, generatorState.nextId), (), INT64, stateful = true))
 
     // A dataset that contains all of the elements generated by a single iterator created from the provided generator,
@@ -317,18 +277,6 @@ object Dataset {
     // multiple repetitions and/or nested versions of the returned dataset to be created, because it forces the
     // generation of a new ID for each version.
     idDataset.flatMap(flatMapFn)
-  }
-
-  /** $OpDocDatasetZip
-    *
-    * @param  datasets Datasets to zip.
-    * @param  name     Name for the created dataset.
-    * @return Created dataset.
-    */
-  def zipMultiple[T, O, D, S](datasets: Seq[Dataset[T, O, D, S]], name: String = "ZipMultipleDataset")(implicit
-      ev: Data.Aux[T, O, D, S]
-  ): Dataset[Seq[T], Seq[O], Seq[D], Seq[S]] = {
-    ZipMultipleDataset(datasets, name)
   }
 
   /** Creates a text-line dataset op.

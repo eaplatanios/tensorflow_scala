@@ -41,7 +41,7 @@ private[api] trait Text {
     * @param  name       Name for the created op.
     * @return Created op output, which has the same shape as `input`.
     */
-  @deprecated("It is recommended to use `stringToHashBucketFast` or `stringToHashBucketStrong`.")
+  @deprecated("It is recommended to use `stringToHashBucketFast` or `stringToHashBucketStrong`.", "0.1.0")
   def stringToHashBucket(input: Output, numBuckets: Int, name: String = "StringToHashBucket"): Output = {
     Op.Builder(opType = "StringToHashBucket", name = name)
         .addInput(input)
@@ -99,7 +99,7 @@ private[api] object Text extends Text {
       * @param  name       Name for the created op.
       * @return Created op output, which has the same shape as `input`.
       */
-    @deprecated("It is recommended to use `stringToHashBucketFast` or `stringToHashBucketStrong`.")
+    @deprecated("It is recommended to use `stringToHashBucketFast` or `stringToHashBucketStrong`.", "0.1.0")
     def stringToHashBucket(numBuckets: Int, name: String = "StringToHashBucket"): Output = {
       Text.stringToHashBucket(output, numBuckets, name)
     }
