@@ -137,6 +137,7 @@ object MapDataset {
       * @param  numParallelCalls Number elements to process in parallel. If not specified, elements will be processed
       *                          sequentially.
       * @param  bufferSize       Maximum number of processed elements that will be buffered.
+      * @param  name        Name for the created dataset.
       * @return Created dataset.
       */
     def map[RT, RO, RD, RS](

@@ -24,6 +24,7 @@ private[ops] trait Documentation
         with CacheDataset.Documentation
         with ConcatenatedDataset.Documentation
         with DropDataset.Documentation
+        with FilterDataset.Documentation
         with FlatMapDataset.Documentation
         with IgnoreErrorsDataset.Documentation
         with MapDataset.Documentation

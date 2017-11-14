@@ -15,15 +15,14 @@
 
 package org.platanios.tensorflow.api.ops.io.data
 
-import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.ops.{Basic, Op, Output}
+import org.platanios.tensorflow.api.ops.{Function, Op, Output}
 
-/** Dataset that wraps the application of the `batch` op.
+/** Dataset that wraps the application of the `filter` op.
   *
-  * $OpDocDatasetBatch
+  * $OpDocDatasetFilter
   *
   * @param  inputDataset Input dataset.
-  * @param  batchSize    Batch size to use.
+  * @param  predicateFn  Filter predicate function.
   * @param  name         Name for this dataset.
   * @tparam T            Tensor type (i.e., nested structure of tensors).
   * @tparam O            Output type (i.e., nested structure of symbolic tensors).
@@ -32,57 +31,60 @@ import org.platanios.tensorflow.api.ops.{Basic, Op, Output}
   *
   * @author Emmanouil Antonios Platanios
   */
-case class BatchDataset[T, O, D, S](
+case class FilterDataset[T, O, D, S](
     inputDataset: Dataset[T, O, D, S],
-    batchSize: Long,
-    override val name: String = "BatchDataset"
+    predicateFn: (O) => Output,
+    override val name: String = "FilterDataset"
 )(implicit
     ev: Data.Aux[T, O, D, S]
 ) extends Dataset[T, O, D, S](name) {
+  private[this] lazy val instantiatedPredicateFunction = {
+    Function(s"$name/Predicate", predicateFn).instantiate(
+      inputDataset.flattenedOutputDataTypes, inputDataset.flattenedOutputShapes)
+  }
+
   override def createHandle(): Output = {
-    Op.Builder(opType = "BatchDataset", name = name)
+    Op.Builder(opType = "FilterDataset", name = name)
         .addInput(Op.createWithNameScope(name)(inputDataset.createHandle()))
-        .addInput(Op.createWithNameScope(name)(Basic.constant(batchSize)))
+        .addInputList(instantiatedPredicateFunction.extraInputs)
+        .setAttribute("f", instantiatedPredicateFunction)
         .setAttribute("output_types", flattenedOutputDataTypes.toArray)
         .setAttribute("output_shapes", flattenedOutputShapes.toArray)
         .build().outputs(0)
   }
 
   override def outputDataTypes: D = inputDataset.outputDataTypes
-  override def outputShapes: S = {
-    ev.unflattenShapes(outputDataTypes, inputDataset.flattenedOutputShapes.map(Shape(-1) ++ _))
-  }
+  override def outputShapes: S = inputDataset.outputShapes
 }
 
-// TODO: !!! PaddedBatchDataset
-
-object BatchDataset {
+object FilterDataset {
   private[data] trait Implicits {
-    implicit def datasetToBatchDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S])(implicit
+    implicit def datasetToFilterDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S])(implicit
         ev: Data.Aux[T, O, D, S]
-    ): BatchDatasetOps[T, O, D, S] = {
-      BatchDatasetOps(dataset)
+    ): FilterDatasetOps[T, O, D, S] = {
+      FilterDatasetOps(dataset)
     }
   }
 
-  case class BatchDatasetOps[T, O, D, S] private[BatchDataset] (dataset: Dataset[T, O, D, S])(implicit
+  case class FilterDatasetOps[T, O, D, S] private[MapDataset] (dataset: Dataset[T, O, D, S])(implicit
       ev: Data.Aux[T, O, D, S]
   ) {
-    /** $OpDocDatasetBatch
+    /** $OpDocDatasetFilter
       *
-      * @param  batchSize Batch size.
-      * @param  name      Name for the created dataset.
+      * @param  predicateFn Filter predicate function.
+      * @param  name        Name for the created dataset.
       * @return Created dataset.
       */
-    def batch(batchSize: Long, name: String = "Batch"): Dataset[T, O, D, S] = {
-      Op.createWithNameScope(dataset.name) {
-        BatchDataset(dataset, batchSize, name)
-      }
+    def filter(predicateFn: (O) => Output, name: String = "Filter"): Dataset[T, O, D, S] = {
+      FilterDataset(dataset, predicateFn, name)
     }
   }
 
-  /** @define OpDocDatasetBatch
-    *   The dataset `batch` op combines consecutive elements of a dataset into batches.
+  /** @define OpDocDatasetFilter
+    *   The dataset `filter` op creates a new dataset by filtering the elements of another dataset using the provided
+    *   predicate function. The predicate function must return a scalar boolean tensor.
+    *
+    *   The op has similar semantics to the built-in Scala collections filter` function.
     */
   private[data] trait Documentation
 }

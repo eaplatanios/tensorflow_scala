@@ -79,6 +79,7 @@ object ConcatenatedDataset {
     /** $OpDocDatasetConcatenate
       *
       * @param  other Dataset to concatenate with the current dataset.
+      * @param  name  Name for the created dataset.
       * @return Created dataset.
       */
     def concatenate(other: Dataset[T, O, D, S], name: String = "Concatenated"): Dataset[T, O, D, S] = {

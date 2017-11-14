@@ -66,6 +66,7 @@ object CacheDataset {
     /** $OpDocDatasetCache
       *
       * @param  directory Directory to use for caching. If empty, then the provided dataset will be cached in memory.
+      * @param  name      Name for the created dataset.
       * @return Created dataset.
       */
     def cache(directory: String, name: String = "Cache"): Dataset[T, O, D, S] = {

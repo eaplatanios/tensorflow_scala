@@ -154,6 +154,7 @@ object ZipDataset {
     /** $OpDocDatasetZip
       *
       * @param  other Dataset to zip with the current dataset.
+      * @param  name  Name for the created dataset.
       * @return Created dataset.
       */
     def zip[T2, O2, D2, S2](other: Dataset[T2, O2, D2, S2], name: String = "Zip")(implicit
@@ -168,6 +169,7 @@ object ZipDataset {
       *
       * @param  other1 First dataset to zip with the current dataset.
       * @param  other2 Second dataset to zip with the current dataset.
+      * @param  name   Name for the created dataset.
       * @return Created dataset.
       */
     def zip3[T2, O2, D2, S2, T3, O3, D3, S3](

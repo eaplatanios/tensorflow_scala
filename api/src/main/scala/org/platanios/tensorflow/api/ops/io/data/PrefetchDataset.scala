@@ -66,6 +66,7 @@ object PrefetchDataset {
     /** $OpDocDatasetPrefetch
       *
       * @param  bufferSize Number of elements to prefetch.
+      * @param  name       Name for the created dataset.
       * @return Created dataset.
       */
     def prefetch(bufferSize: Long, name: String = "Prefetch"): Dataset[T, O, D, S] = {

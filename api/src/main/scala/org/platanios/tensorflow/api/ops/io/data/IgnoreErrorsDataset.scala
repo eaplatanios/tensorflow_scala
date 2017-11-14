@@ -62,6 +62,7 @@ object IgnoreErrorsDataset {
   ) {
     /** $OpDocDatasetIgnoreErrors
       *
+      * @param  name Name for the created dataset.
       * @return Created dataset.
       */
     def ignoreErrors(name: String = "IgnoreErrors"): Dataset[T, O, D, S] = {

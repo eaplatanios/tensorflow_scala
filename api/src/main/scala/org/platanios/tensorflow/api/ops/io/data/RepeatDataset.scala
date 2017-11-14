@@ -68,6 +68,7 @@ object RepeatDataset {
       *
       * @param  count Number of times to repeat the input dataset. A value of `-1` corresponds to repeating it
       *               indefinitely.
+      * @param  name  Name for the created dataset.
       * @return Created dataset.
       */
     def repeat(count: Long = -1, name: String = "Repeat"): Dataset[T, O, D, S] = {

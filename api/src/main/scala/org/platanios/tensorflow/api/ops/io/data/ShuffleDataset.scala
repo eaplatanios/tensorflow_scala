@@ -75,6 +75,7 @@ object ShuffleDataset {
       *
       * @param  bufferSize Buffer size, meaning the number of output elements to buffer in an iterator over this dataset.
       * @param  seed       Seed value for the random number generator. If not provided, a random seed is used.
+      * @param  name       Name for the created dataset.
       * @return Created dataset.
       */
     def shuffle(bufferSize: Long, seed: Option[Int] = None, name: String = "Shuffle"): Dataset[T, O, D, S] = {

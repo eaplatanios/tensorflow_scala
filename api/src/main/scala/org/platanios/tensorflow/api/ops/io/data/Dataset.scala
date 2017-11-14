@@ -111,6 +111,7 @@ object Dataset {
     type TakeDataset[T, O, D, S] = data.TakeDataset[T, O, D, S]
     type DropDataset[T, O, D, S] = data.DropDataset[T, O, D, S]
 
+    type FilterDataset[T, O, D, S] = data.FilterDataset[T, O, D, S]
     type MapDataset[T, O, D, S, RT, RO, RD, RS] = data.MapDataset[T, O, D, S, RT, RO, RD, RS]
     type FlatMapDataset[T, O, D, S, RT, RO, RD, RS] = data.FlatMapDataset[T, O, D, S, RT, RO, RD, RS]
 
@@ -141,6 +142,7 @@ object Dataset {
     val TakeDataset: data.TakeDataset.type = data.TakeDataset
     val DropDataset: data.DropDataset.type = data.DropDataset
 
+    val FilterDataset : data.FilterDataset.type  = data.FilterDataset
     val MapDataset    : data.MapDataset.type     = data.MapDataset
     val FlatMapDataset: data.FlatMapDataset.type = data.FlatMapDataset
 

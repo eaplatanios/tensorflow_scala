@@ -66,6 +66,7 @@ object TakeDataset {
     /** $OpDocDatasetTake
       *
       * @param  count Number of elements to take.
+      * @param  name  Name for the created dataset.
       * @return Created dataset.
       */
     def take(count: Long, name: String = "Take"): Dataset[T, O, D, S] = {

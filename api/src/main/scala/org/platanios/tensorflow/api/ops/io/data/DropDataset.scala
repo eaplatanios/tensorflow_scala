@@ -66,6 +66,7 @@ object DropDataset {
     /** $OpDocDatasetDrop
       *
       * @param  count Number of elements to drop.
+      * @param  name  Name for the created dataset.
       * @return Created dataset.
       */
     def drop(count: Long, name: String = "Drop"): Dataset[T, O, D, S] = {

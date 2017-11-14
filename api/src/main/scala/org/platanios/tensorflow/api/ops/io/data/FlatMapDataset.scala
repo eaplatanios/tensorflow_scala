@@ -74,6 +74,7 @@ object FlatMapDataset {
     /** $OpDocDatasetFlatMap
       *
       * @param  function Mapping function.
+      * @param  name     Name for the created dataset.
       * @return Created dataset.
       */
     def flatMap[RT, RO, RD, RS](function: (O) => Dataset[RT, RO, RD, RS], name: String = "FlatMap")(implicit
