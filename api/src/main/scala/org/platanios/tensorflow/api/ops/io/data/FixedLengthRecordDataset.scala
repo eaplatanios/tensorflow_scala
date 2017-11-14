@@ -16,29 +16,28 @@
 package org.platanios.tensorflow.api.ops.io.data
 
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.io.{CompressionType, NoCompression}
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.{DataType, STRING}
 
-/** Dataset with elements read from text files.
+/** Dataset with elements read from binary files.
   *
-  * A text-line dataset emits the lines of one or more text files.
+  * A fixed-length record dataset emits the records from one or more binary files.
   *
-  * **Note:** New-line characters are stripped from the output.
-  *
-  * @param  filenames       [[STRING]] scalar or vector tensor containing the the name(s) of the file(s) to be read.
-  * @param  compressionType Compression type for the file.
+  * @param  filenames      [[STRING]] scalar or vector tensor containing the the name(s) of the file(s) to be read.
+  * @param  recordNumBytes Number of bytes in the record.
+  * @param  headerNumBytes Number of bytes in the header (i.e., the number of bytes to skip at the beginning of a file).
+  * @param  footerNumBytes Number of bytes in the footer (i.e., the number of bytes to skip at the end of a file).
   * @param  bufferSize      Number of bytes to buffer while reading from the file.
-  * @param  name            Name for this dataset.
-  *
-  * @author Emmanouil Antonios Platanios
+  * @param  name Name for this dataset.
   */
-case class TextLineDataset(
+case class FixedLengthRecordDataset(
     filenames: Tensor,
-    compressionType: CompressionType = NoCompression,
+    recordNumBytes: Long,
+    headerNumBytes: Long,
+    footerNumBytes: Long,
     bufferSize: Long = 256 * 1024,
-    override val name: String = "TextLineDataset"
+    override val name: String = "FixedLengthRecordDataset"
 ) extends Dataset[Tensor, Output, DataType, Shape](name) {
   if (filenames.dataType != STRING)
     throw new IllegalArgumentException(s"'filenames' (dataType = ${filenames.dataType}) must be a STRING tensor.")
@@ -46,9 +45,11 @@ case class TextLineDataset(
     throw new IllegalArgumentException(s"'filenames' (rank = ${filenames.rank}) must be at most 1.")
 
   override def createHandle(): Output = {
-    Op.Builder(opType = "TextLineDataset", name = name)
+    Op.Builder(opType = "FixedLengthRecordDataset", name = name)
         .addInput(Op.createWithNameScope(name)(filenames))
-        .addInput(Op.createWithNameScope(name)(compressionType.name))
+        .addInput(Op.createWithNameScope(name)(headerNumBytes))
+        .addInput(Op.createWithNameScope(name)(recordNumBytes))
+        .addInput(Op.createWithNameScope(name)(footerNumBytes))
         .addInput(Op.createWithNameScope(name)(bufferSize))
         .build().outputs(0)
   }

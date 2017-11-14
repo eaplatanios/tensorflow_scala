@@ -282,49 +282,6 @@ object Dataset {
     idDataset.flatMap(flatMapFn)
   }
 
-  /** Creates an op that outputs fixed-length records from a file.
-    *
-    * @param  filenames   [[STRING]] scalar or vector tensor containing the the name(s) of the file(s) to be read.
-    * @param  recordBytes [[INT64]] scalar tensor containing the number of bytes in the record.
-    * @param  headerBytes [[INT64]] scalar tensor containing the number of bytes in the header (i.e., the number of
-    *                     bytes to skip at the beginning of a file).
-    * @param  footerBytes [[INT64]] scalar tensor containing the number of bytes in the footer (i.e., the number of
-    *                     bytes to skip at the end of a file).
-    * @param  name        Name for the created op.
-    * @return Created op output, which is a handle to constructed dataset.
-    * @throws IllegalArgumentException If any of the arguments has invalid data type or shape.
-    */
-  @throws[IllegalArgumentException]
-  private[io] def createFixedLengthRecordDataset(
-      filenames: Output, recordBytes: Output, headerBytes: Output, footerBytes: Output,
-      name: String = "FixedLengthRecordDataset"): Output = {
-    if (filenames.dataType != STRING)
-      throw new IllegalArgumentException(s"'filenames' (dataType = ${filenames.dataType}) must be a STRING tensor.")
-    if (filenames.rank != -1 && filenames.rank > 1)
-      throw new IllegalArgumentException(s"'filenames' (rank = ${filenames.rank}) must be at most 1.")
-    if (recordBytes.dataType != INT64)
-      throw new IllegalArgumentException(
-        s"'recordBytes' (dataType = ${recordBytes.dataType}) must be a INT64 tensor.")
-    if (recordBytes.rank != -1 && recordBytes.rank != 0)
-      throw new IllegalArgumentException(s"'recordBytes' (rank = ${recordBytes.rank}) must be equal to 0.")
-    if (headerBytes.dataType != INT64)
-      throw new IllegalArgumentException(
-        s"'headerBytes' (dataType = ${headerBytes.dataType}) must be a INT64 tensor.")
-    if (headerBytes.rank != -1 && headerBytes.rank != 0)
-      throw new IllegalArgumentException(s"'headerBytes' (rank = ${headerBytes.rank}) must be equal to 0.")
-    if (footerBytes.dataType != INT64)
-      throw new IllegalArgumentException(
-        s"'recordBytes' (dataType = ${footerBytes.dataType}) must be a INT64 tensor.")
-    if (footerBytes.rank != -1 && footerBytes.rank != 0)
-      throw new IllegalArgumentException(s"'footerBytes' (rank = ${footerBytes.rank}) must be equal to 0.")
-    Op.Builder(opType = "FixedLengthRecordDataset", name = name)
-        .addInput(filenames)
-        .addInput(headerBytes)
-        .addInput(recordBytes)
-        .addInput(footerBytes)
-        .build().outputs(0)
-  }
-
   /** Creates a TensorFlow records dataset op.
     *
     * A TensorFlow records dataset emits the records from one or more TFRecord files.
