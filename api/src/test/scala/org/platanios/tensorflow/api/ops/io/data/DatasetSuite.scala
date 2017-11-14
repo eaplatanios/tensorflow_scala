@@ -13,7 +13,7 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.ops.io
+package org.platanios.tensorflow.api.ops.io.data
 
 import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.client.Session
@@ -21,10 +21,10 @@ import org.platanios.tensorflow.api.core.exception.OutOfRangeException
 import org.platanios.tensorflow.api.ops.{Basic, Op}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.{DataType, INT32}
-import org.platanios.tensorflow.api.using
+import org.platanios.tensorflow.api.utilities.using
 
-import org.scalatest.junit.JUnitSuite
 import org.junit.Test
+import org.scalatest.junit.JUnitSuite
 
 /**
   *

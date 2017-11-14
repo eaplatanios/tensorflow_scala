@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.{Graph, Shape}
-import org.platanios.tensorflow.api.ops.io.{Data, Dataset}
+import org.platanios.tensorflow.api.ops.io.data.{Data, Dataset}
 import org.platanios.tensorflow.api.ops.variables.Variable.VariableGetter
 import org.platanios.tensorflow.api.ops.variables._
 import org.platanios.tensorflow.api.types.{DataType, FLOAT32, VARIANT}

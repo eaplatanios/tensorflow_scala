@@ -27,7 +27,6 @@ package object learn {
 
   private[api] trait API
       extends Model.API
-          with data.API
           with estimators.API
           with hooks.API
           with layers.API

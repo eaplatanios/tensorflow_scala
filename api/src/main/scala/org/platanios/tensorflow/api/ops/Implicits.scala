@@ -30,7 +30,8 @@ private[api] trait Implicits
         with NN.Implicits
         with Sparse.Implicits
         with Statistics.Implicits
-        with Text.Implicits {
+        with Text.Implicits
+        with io.Implicits {
   implicit def dynamicVariableToOpCreationContext(context: DynamicVariable[OpCreationContext]): OpCreationContext = {
     context.value
   }

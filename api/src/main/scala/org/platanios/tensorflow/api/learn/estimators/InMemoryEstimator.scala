@@ -23,7 +23,7 @@ import org.platanios.tensorflow.api.learn._
 import org.platanios.tensorflow.api.learn.hooks._
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
-import org.platanios.tensorflow.api.ops.io.Dataset
+import org.platanios.tensorflow.api.ops.io.data.Dataset
 import org.platanios.tensorflow.api.ops.metrics.Metric
 import org.platanios.tensorflow.api.tensors.Tensor
 

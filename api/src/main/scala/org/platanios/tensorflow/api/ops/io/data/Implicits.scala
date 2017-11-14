@@ -13,15 +13,22 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.ops
+package org.platanios.tensorflow.api.ops.io.data
 
-/** Contains helper functions and classes for creating IO-related ops.
+/** Groups together all implicits related to the data API.
   *
   * @author Emmanouil Antonios Platanios
   */
-package object io {
-  private[api] trait API
-      extends data.Dataset.API
-          with data.Iterator.API
-          with Reader.API
-}
+private[io] trait Implicits
+    extends BatchDataset.Implicits
+        with CacheDataset.Implicits
+        with ConcatenatedDataset.Implicits
+        with DropDataset.Implicits
+        with FlatMapDataset.Implicits
+        with IgnoreErrorsDataset.Implicits
+        with MapDataset.Implicits
+        with PrefetchDataset.Implicits
+        with RepeatDataset.Implicits
+        with ShuffleDataset.Implicits
+        with TakeDataset.Implicits
+        with ZipDataset.Implicits

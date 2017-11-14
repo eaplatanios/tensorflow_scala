@@ -13,15 +13,16 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.ops
+package org.platanios.tensorflow.api.ops.io
 
-/** Contains helper functions and classes for creating IO-related ops.
-  *
+/**
   * @author Emmanouil Antonios Platanios
   */
-package object io {
-  private[api] trait API
-      extends data.Dataset.API
-          with data.Iterator.API
-          with Reader.API
+package object data {
+  // TODO: [DATA] Create a tf.data API interface that is to be shared with tf.learn.
+
+
+  // TODO: [DATASETS] "denseToSparseBatch".
+
+  // TODO: [DATASETS] "interleave", "groupByWindow", and "filter".
 }

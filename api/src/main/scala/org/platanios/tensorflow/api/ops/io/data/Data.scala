@@ -13,7 +13,7 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.ops.io
+package org.platanios.tensorflow.api.ops.io.data
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.ops.{Output, OutputIndexedSlices, SparseOutput}
@@ -24,9 +24,8 @@ import org.platanios.tensorflow.api.utilities.Collections
 import shapeless._
 import shapeless.ops.hlist.Tupler
 
-import scala.collection.breakOut
 import scala.collection.generic.CanBuildFrom
-import scala.collection.{MapLike, SeqLike, mutable}
+import scala.collection.{MapLike, SeqLike, breakOut, mutable}
 import scala.language.higherKinds
 import scala.reflect.ClassTag
 

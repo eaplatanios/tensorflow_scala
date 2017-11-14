@@ -14,6 +14,7 @@
  */
 
 package org.platanios.tensorflow.examples
+
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.ops.NN.SamePadding
 import org.platanios.tensorflow.data.image.CIFARLoader
@@ -31,8 +32,8 @@ object CIFAR {
 
   def main(args: Array[String]): Unit = {
     val dataSet = CIFARLoader.load(Paths.get("/Users/Anthony/Downloads/CIFAR"), CIFARLoader.CIFAR_10)
-    val trainImages = tf.learn.DatasetFromSlices(dataSet.trainImages)
-    val trainLabels = tf.learn.DatasetFromSlices(dataSet.trainLabels)
+    val trainImages = tf.data.fromSlices(dataSet.trainImages)
+    val trainLabels = tf.data.fromSlices(dataSet.trainLabels)
     val trainData =
       trainImages.zip(trainLabels)
           .repeat()

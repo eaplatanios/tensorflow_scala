@@ -59,9 +59,9 @@ object PTBLoader extends Loader {
       batchSize: Int,
       numSteps: Int,
       name: String
-  ): tf.Dataset[(Tensor, Tensor), (Output, Output), (DataType, DataType), (Shape, Shape)] = {
+  ): tf.data.Dataset[(Tensor, Tensor), (Output, Output), (DataType, DataType), (Shape, Shape)] = {
     tf.createWithNameScope(name) {
-      tf.datasetFromGenerator[(Tensor, Tensor), (Output, Output), (DataType, DataType), (Shape, Shape)](
+      tf.data.fromGenerator[(Tensor, Tensor), (Output, Output), (DataType, DataType), (Shape, Shape)](
         () => tokensToBatchIterable(tokens, batchSize, numSteps),
         (INT32, INT32),
         (Shape(batchSize, numSteps), Shape(batchSize, numSteps)))

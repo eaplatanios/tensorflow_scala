@@ -18,8 +18,10 @@ package org.platanios.tensorflow.examples
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.learn.layers.rnn.RNN
 import org.platanios.tensorflow.api.learn.layers.rnn.cell.{BasicLSTMCell, RNNCell}
+
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
+
 import java.nio.file.Paths
 
 import org.platanios.tensorflow.data.text.PTBLoader

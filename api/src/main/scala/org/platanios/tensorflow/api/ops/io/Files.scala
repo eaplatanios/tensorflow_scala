@@ -66,7 +66,7 @@ object Files {
         .build().outputs(0)
   }
 
-  private[io] object Gradients {
+  private[ops] object Gradients {
     GradientsRegistry.registerNonDifferentiable("ReadFile")
     GradientsRegistry.registerNonDifferentiable("WriteFile")
     GradientsRegistry.registerNonDifferentiable("MatchingFiles")

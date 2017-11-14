@@ -116,9 +116,11 @@ class SerializableReader private[ops](override val handle: Output) extends Reade
 
 object Reader {
   private[io] trait API {
+    type Reader = io.Reader
+
     /** Creates a reader that outputs the entire contents of a file as a value.
       *
-      * To use, enqueue the filenames in a [[Queue]]. The output of [[Reader.read]] will be a filename (key) and the
+      * To use, enqueue the filenames in a [[Queue]]. The output of `Reader.read()` will be a filename (key) and the
       * contents of that file (value).
       *
       * @param  sharedName If non-empty, then the constructed reader will be shared under the the provided name across
@@ -180,7 +182,7 @@ object Reader {
 
     /** Creates a reader that outputs the queued work as both the key and value.
       *
-      * To use, enqueue strings in a [[Queue]]. The output of [[Reader.read]] will be a string (key) and the same string
+      * To use, enqueue strings in a [[Queue]]. The output of `Reader.read()` will be a string (key) and the same string
       * repeated (value).
       *
       * @param  sharedName If non-empty, then the constructed reader will be shared under the the provided name across
@@ -419,7 +421,7 @@ object Reader {
         .build()
   }
 
-  private[io] object Gradients {
+  private[ops] object Gradients {
     GradientsRegistry.registerNonDifferentiable("WholeFileReader")
     GradientsRegistry.registerNonDifferentiable("WholeFileReaderV2")
     GradientsRegistry.registerNonDifferentiable("TextLineReader")

@@ -22,14 +22,14 @@ import org.platanios.tensorflow.api.core.distributed.ReplicaDevicePlacer
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.learn._
 import org.platanios.tensorflow.api.learn.hooks._
-import org.platanios.tensorflow.api.ops.io.{Data, Dataset}
+import org.platanios.tensorflow.api.ops.io.data.{Data, Dataset}
 import org.platanios.tensorflow.api.ops.{Op, OpSpecification, Output}
 import org.platanios.tensorflow.api.ops.metrics.Metric
 import org.platanios.tensorflow.api.ops.variables.Saver
 import org.platanios.tensorflow.api.tensors.Tensor
-
 import org.platanios.tensorflow.api.io.events.SummaryFileWriterCache
 import org.platanios.tensorflow.api.types.FLOAT32
+
 import org.tensorflow.framework.Summary
 
 import java.nio.file.{Files, Path}

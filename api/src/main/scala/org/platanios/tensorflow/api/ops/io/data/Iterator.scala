@@ -13,11 +13,12 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.ops.io
+package org.platanios.tensorflow.api.ops.io.data
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
+import org.platanios.tensorflow.api.ops.io.data
 import org.platanios.tensorflow.api.types.DataType
 
 /** A simple [[Iterator]] that does contains an initializer and can thus not be used until an initializer is created for
@@ -126,6 +127,8 @@ class InitializableIterator[T, O, D, S] private[io](
 
 /** Contains helper functions for creating iterator-related ops, as well as the iterator API trait. */
 object Iterator {
+  type Iterator[T, O, D, S] = data.Iterator[T, O, D, S]
+
   private[io] trait API {
     def iteratorFromDataset[T, O, D, S](
         dataset: Dataset[T, O, D, S], sharedName: String = "", name: String = "InitializableIterator")(
@@ -180,11 +183,11 @@ object Iterator {
       name = name)(ev)
   }
 
-  /** Creates a new, uninitialized [[Iterator]] with the provided structure.
+  /** Creates a new, uninitialized iterator with the provided structure.
     *
     * This iterator-constructing function can be used to create an iterator that is reusable with many different
     * datasets. The returned iterator is not bound to a particular dataset and thus it has no initializer. To
-    * initialize the iterator, the user has to run the op returned by [[Iterator.createInitializer]].
+    * initialize the iterator, the user has to run the op returned by `Iterator.createInitializer()`.
     *
     * For example:
     * {{{
@@ -251,13 +254,13 @@ object Iterator {
       name = name)(ev)
   }
 
-  /** Creates a new, uninitialized [[Iterator]] from the provided `STRING` scalar tensor representing a handle of an
+  /** Creates a new, uninitialized iterator from the provided `STRING` scalar tensor representing a handle of an
     * existing iterator.
     *
     * This method allows you to define a "feedable" iterator where you can choose between concrete iterators by
     * feeding a value in a [[org.platanios.tensorflow.api.core.client.Session.run]] call. In that case,
     * `stringHandle` would be a `tf.placeholder`, and you would feed it with the value of an existing iterator's
-    * [[Iterator.toStringHandle]] in each step.
+    * `Iterator.toStringHandle()` in each step.
     *
     * For example, if you had two iterators that marked the current position in a training dataset and a test dataset,
     * you could choose which one to use in each step, as follows:
@@ -401,7 +404,7 @@ object Iterator {
         .build().outputs(0)
   }
 
-  private[io] object Gradients {
+  private[ops] object Gradients {
     GradientsRegistry.registerNonDifferentiable("Iterator")
     GradientsRegistry.registerNonDifferentiable("MakeIterator")
     GradientsRegistry.registerNonDifferentiable("OneShotIterator")

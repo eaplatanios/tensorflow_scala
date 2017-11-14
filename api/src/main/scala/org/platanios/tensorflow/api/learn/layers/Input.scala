@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.learn.layers
 
 import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.learn.layers
-import org.platanios.tensorflow.api.ops.io.{Data, Iterator}
+import org.platanios.tensorflow.api.ops.io.data.{Data, Iterator}
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.DataType

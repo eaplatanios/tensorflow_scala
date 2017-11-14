@@ -13,15 +13,23 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.ops
+package org.platanios.tensorflow.api.ops.io.data
 
-/** Contains helper functions and classes for creating IO-related ops.
+/** Collects all documentation macros for the data API.
   *
   * @author Emmanouil Antonios Platanios
   */
-package object io {
-  private[api] trait API
-      extends data.Dataset.API
-          with data.Iterator.API
-          with Reader.API
-}
+private[ops] trait Documentation
+    extends BatchDataset.Documentation
+        with CacheDataset.Documentation
+        with ConcatenatedDataset.Documentation
+        with DropDataset.Documentation
+        with FlatMapDataset.Documentation
+        with IgnoreErrorsDataset.Documentation
+        with MapDataset.Documentation
+        with PrefetchDataset.Documentation
+        with RangeDataset.Documentation
+        with RepeatDataset.Documentation
+        with ShuffleDataset.Documentation
+        with TakeDataset.Documentation
+        with ZipDataset.Documentation

@@ -38,8 +38,8 @@ object MNIST {
 
   def main(args: Array[String]): Unit = {
     val dataSet = MNISTLoader.load(Paths.get("/Users/Anthony/Downloads/MNIST"))
-    val trainImages = tf.learn.DatasetFromSlices(dataSet.trainImages)
-    val trainLabels = tf.learn.DatasetFromSlices(dataSet.trainLabels)
+    val trainImages = tf.data.fromSlices(dataSet.trainImages)
+    val trainLabels = tf.data.fromSlices(dataSet.trainLabels)
     val trainData =
       trainImages.zip(trainLabels)
           .repeat()

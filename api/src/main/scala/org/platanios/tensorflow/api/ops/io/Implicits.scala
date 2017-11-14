@@ -13,14 +13,11 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.learn
+package org.platanios.tensorflow.api.ops.io
 
-/**
+/** Groups together all implicits related to IO.
+  *
   * @author Emmanouil Antonios Platanios
   */
-package object data {
-  private[api] trait API
-      extends Dataset
-
-  private[api] object API extends API
-}
+private[ops] trait Implicits
+    extends data.Implicits
