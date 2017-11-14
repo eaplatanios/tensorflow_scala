@@ -27,7 +27,6 @@ import org.junit.Test
 import org.scalatest.junit.JUnitSuite
 
 /**
-  *
   * @author Emmanouil Antonios Platanios
   */
 class DatasetSuite extends JUnitSuite {

@@ -66,7 +66,7 @@ object FilterDataset {
     }
   }
 
-  case class FilterDatasetOps[T, O, D, S] private[MapDataset] (dataset: Dataset[T, O, D, S])(implicit
+  case class FilterDatasetOps[T, O, D, S] private[FilterDataset] (dataset: Dataset[T, O, D, S])(implicit
       ev: Data.Aux[T, O, D, S]
   ) {
     /** $OpDocDatasetFilter

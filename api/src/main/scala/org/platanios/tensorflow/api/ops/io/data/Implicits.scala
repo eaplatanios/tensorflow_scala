@@ -24,6 +24,7 @@ private[io] trait Implicits
         with CacheDataset.Implicits
         with ConcatenatedDataset.Implicits
         with DropDataset.Implicits
+        with FilterDataset.Implicits
         with FlatMapDataset.Implicits
         with IgnoreErrorsDataset.Implicits
         with MapDataset.Implicits

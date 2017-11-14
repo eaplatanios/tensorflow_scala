@@ -34,7 +34,7 @@ import org.platanios.tensorflow.api.types.{DataType, INT64}
 case class RangeDataset(
     start: Long,
     limit: Long,
-    delta: Long,
+    delta: Long = 1L,
     override val name: String = "RangeDataset"
 ) extends Dataset[Tensor, Output, DataType, Shape](name) {
   override def createHandle(): Output = {
