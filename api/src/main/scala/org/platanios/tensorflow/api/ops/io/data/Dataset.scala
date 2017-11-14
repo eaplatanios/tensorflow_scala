@@ -22,7 +22,7 @@ import org.platanios.tensorflow.api.ops.{Callback, Function, Op, Output}
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.ops.io.data
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{DataType, INT64, STRING}
+import org.platanios.tensorflow.api.types.{DataType, INT64}
 
 import java.util.concurrent.atomic.AtomicLong
 
@@ -98,6 +98,8 @@ object Dataset {
     type SparseTensorSlicesDataset = data.SparseTensorSlicesDataset
     type SparseOutputSlicesDataset = data.SparseOutputSlicesDataset
     type TextLineDataset = data.TextLineDataset
+    type FixedLengthRecordDataset = data.FixedLengthRecordDataset
+    type TFRecordDataset = data.TFRecordDataset
 
     type BatchDataset[T, O, D, S] = data.BatchDataset[T, O, D, S]
     type PrefetchDataset[T, O, D, S] = data.PrefetchDataset[T, O, D, S]
@@ -126,6 +128,8 @@ object Dataset {
     val SparseTensorSlicesDataset: data.SparseTensorSlicesDataset.type = data.SparseTensorSlicesDataset
     val SparseOutputSlicesDataset: data.SparseOutputSlicesDataset.type = data.SparseOutputSlicesDataset
     val TextLineDataset          : data.TextLineDataset.type           = data.TextLineDataset
+    val FixedLengthRecordDataset : data.FixedLengthRecordDataset.type  = data.FixedLengthRecordDataset
+    val TFRecordDataset          : data.TFRecordDataset.type           = data.TFRecordDataset
 
     val BatchDataset       : data.BatchDataset.type        = data.BatchDataset
     val PrefetchDataset    : data.PrefetchDataset.type     = data.PrefetchDataset
@@ -280,35 +284,6 @@ object Dataset {
     // multiple repetitions and/or nested versions of the returned dataset to be created, because it forces the
     // generation of a new ID for each version.
     idDataset.flatMap(flatMapFn)
-  }
-
-  /** Creates a TensorFlow records dataset op.
-    *
-    * A TensorFlow records dataset emits the records from one or more TFRecord files.
-    *
-    * @param  filenames       [[STRING]] scalar or vector tensor containing the the name(s) of the file(s) to be read.
-    * @param  compressionType [[STRING]] scalar tensor containing the type of compression for the file. Currently ZLIB
-    *                         and GZIP are supported. Defaults to `""`, meaning no compression.
-    * @param  name            Name for the created op.
-    * @return Created op output, which is a handle to the created dataset.
-    * @throws IllegalArgumentException If any of the arguments has invalid data type or shape.
-    */
-  @throws[IllegalArgumentException]
-  private[io] def createTFRecordDataset(
-      filenames: Output, compressionType: Output, name: String = "TFRecordDataset"): Output = {
-    if (filenames.dataType != STRING)
-      throw new IllegalArgumentException(s"'filenames' (dataType = ${filenames.dataType}) must be a STRING tensor.")
-    if (filenames.rank != -1 && filenames.rank > 1)
-      throw new IllegalArgumentException(s"'filenames' (rank = ${filenames.rank}) must be at most 1.")
-    if (compressionType.dataType != STRING)
-      throw new IllegalArgumentException(
-        s"'compressionType' (dataType = ${compressionType.dataType}) must be a STRING tensor.")
-    if (compressionType.rank != -1 && compressionType.rank > 0)
-      throw new IllegalArgumentException(s"'compressionType' (rank = ${compressionType.rank}) must be equal to 0.")
-    Op.Builder(opType = "TFRecordDataset", name = name)
-        .addInput(filenames)
-        .addInput(compressionType)
-        .build().outputs(0)
   }
 
   /** Creates an op representing a dataset that batches and pads `batchSize` elements from `dataset`.

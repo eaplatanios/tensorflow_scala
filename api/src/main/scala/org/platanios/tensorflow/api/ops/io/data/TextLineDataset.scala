@@ -23,8 +23,6 @@ import org.platanios.tensorflow.api.types.{DataType, STRING}
 
 /** Dataset with elements read from text files.
   *
-  * A text-line dataset emits the lines of one or more text files.
-  *
   * **Note:** New-line characters are stripped from the output.
   *
   * @param  filenames       [[STRING]] scalar or vector tensor containing the the name(s) of the file(s) to be read.
