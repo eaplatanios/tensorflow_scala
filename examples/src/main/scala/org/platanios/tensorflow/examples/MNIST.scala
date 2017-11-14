@@ -37,7 +37,7 @@ object MNIST {
   //  }
 
   def main(args: Array[String]): Unit = {
-    val dataSet = MNISTLoader.load(Paths.get("/Users/Anthony/Downloads/MNIST"))
+    val dataSet = MNISTLoader.load(Paths.get("datasets/MNIST"))
     val trainImages = tf.data.TensorSlicesDataset(dataSet.trainImages)
     val trainLabels = tf.data.TensorSlicesDataset(dataSet.trainLabels)
     val trainData =
@@ -65,7 +65,7 @@ object MNIST {
     val model = tf.learn.Model(input, layer, trainInput, trainingInputLayer, loss, optimizer)
 
     logger.info("Training the linear regression model.")
-    val summariesDir = Paths.get("/Users/Anthony/Downloads/temp/mlp-1024-256-64")
+    val summariesDir = Paths.get("temp/mnist-mlp")
     val estimator = tf.learn.InMemoryEstimator(
       model,
       tf.learn.Configuration(Some(summariesDir)),
