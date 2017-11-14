@@ -28,6 +28,7 @@ private[ops] trait Documentation
         with FlatMapDataset.Documentation
         with IgnoreErrorsDataset.Documentation
         with MapDataset.Documentation
+        with PaddedBatchDataset.Documentation
         with PrefetchDataset.Documentation
         with RangeDataset.Documentation
         with RepeatDataset.Documentation

@@ -28,6 +28,7 @@ private[io] trait Implicits
         with FlatMapDataset.Implicits
         with IgnoreErrorsDataset.Implicits
         with MapDataset.Implicits
+        with PaddedBatchDataset.Implicits
         with PrefetchDataset.Implicits
         with RepeatDataset.Implicits
         with ShuffleDataset.Implicits

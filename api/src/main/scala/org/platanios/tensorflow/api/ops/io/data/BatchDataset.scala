@@ -55,8 +55,6 @@ case class BatchDataset[T, O, D, S](
   }
 }
 
-// TODO: !!! PaddedBatchDataset
-
 object BatchDataset {
   private[data] trait Implicits {
     implicit def datasetToBatchDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S])(implicit

@@ -31,7 +31,7 @@ import scala.language.postfixOps
 
 /** Represents a potentially large set of elements.
   *
-  * A [[Dataset]] can be used to represent an input pipeline as a collection of elements (i.e., nested structures of
+  * A dataset can be used to represent an input pipeline as a collection of elements (i.e., nested structures of
   * tensors) and a "logical plan" of transformations that act on those elements.
   *
   * @param  name Name for this dataset.
@@ -150,6 +150,7 @@ object Dataset {
     type TFRecordDataset = data.TFRecordDataset
 
     type BatchDataset[T, O, D, S] = data.BatchDataset[T, O, D, S]
+    type PaddedBatchDataset[T, O, D, S] = data.PaddedBatchDataset[T, O, D, S]
     type PrefetchDataset[T, O, D, S] = data.PrefetchDataset[T, O, D, S]
     type CacheDataset[T, O, D, S] = data.CacheDataset[T, O, D, S]
     type ShuffleDataset[T, O, D, S] = data.ShuffleDataset[T, O, D, S]
@@ -181,6 +182,7 @@ object Dataset {
     val TFRecordDataset          : data.TFRecordDataset.type           = data.TFRecordDataset
 
     val BatchDataset       : data.BatchDataset.type        = data.BatchDataset
+    val PaddedBatchDataset : data.PaddedBatchDataset.type  = data.PaddedBatchDataset
     val PrefetchDataset    : data.PrefetchDataset.type     = data.PrefetchDataset
     val CacheDataset       : data.CacheDataset.type        = data.CacheDataset
     val ShuffleDataset     : data.ShuffleDataset.type      = data.ShuffleDataset
