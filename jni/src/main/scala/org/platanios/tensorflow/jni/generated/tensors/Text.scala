@@ -24,6 +24,8 @@ object Text {
 
   @native def stringJoin(contextHandle: Long, inputs: Array[Long], separator: Array[Byte]): Long
   @native def stringSplit(contextHandle: Long, input: Long, delimiter: Long): Array[Long]
+  @native def encodeBase64(contextHandle: Long, input: Long, pad: Boolean): Long
+  @native def decodeBase64(contextHandle: Long, input: Long): Long
   @native def stringToHashBucket(contextHandle: Long, string_tensor: Long, num_buckets: Long): Long
   @native def stringToHashBucketFast(contextHandle: Long, input: Long, num_buckets: Long): Long
   @native def stringToHashBucketStrong(contextHandle: Long, input: Long, num_buckets: Long, key: Array[Long]): Long

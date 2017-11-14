@@ -154,7 +154,8 @@ lazy val jni = (project in file("./jni"))
         "Random" -> Seq("RandomUniform", "RandomUniformInt", "RandomStandardNormal"),
         "Sparse" -> Seq("SparseToDense"),
         "Text" -> Seq(
-          "StringJoin", "StringSplit", "StringToHashBucket", "StringToHashBucketFast", "StringToHashBucketStrong")
+          "StringJoin", "StringSplit", "EncodeBase64", "DecodeBase64", "StringToHashBucket", "StringToHashBucketFast",
+          "StringToHashBucketStrong")
       ),
       scalaPackage in generateTensorOps := "tensors",
       // Native bindings compilation settings

@@ -57,6 +57,34 @@ private[api] trait Text {
     SparseOutput(outputs(0), outputs(1), outputs(2))
   }
 
+  /** $OpDocTextStringEncodeBase64
+    *
+    * @group TextOps
+    * @param  input Input `STRING` tensor.
+    * @param  pad   Boolean value indicating whether or not padding is applied at the string ends.
+    * @param  name  Name for the created op.
+    * @return Created op output.
+    */
+  def encodeBase64(input: Output, pad: Boolean = false, name: String = "EncodeBase64"): Output = {
+    Op.Builder(opType = "EncodeBase64", name = name)
+        .addInput(input)
+        .setAttribute("pad", pad)
+        .build().outputs(0)
+  }
+
+  /** $OpDocTextStringDecodeBase64
+    *
+    * @group TextOps
+    * @param  input Input `STRING` tensor.
+    * @param  name  Name for the created op.
+    * @return Created op output.
+    */
+  def decodeBase64(input: Output, name: String = "DecodeBase64"): Output = {
+    Op.Builder(opType = "DecodeBase64", name = name)
+        .addInput(input)
+        .build().outputs(0)
+  }
+
   /** $OpDocTextStringToHashBucket
     *
     * @group TextOps
@@ -167,6 +195,27 @@ private[api] object Text extends Text {
     def stringSplit(delimiter: Output = " ", skipEmpty: Boolean = true, name: String = "StringSplit"): SparseOutput = {
       Text.stringSplit(output, delimiter, skipEmpty, name)
     }
+
+    /** $OpDocTextStringEncodeBase64
+      *
+      * @group TextOps
+      * @param  pad  Boolean value indicating whether or not padding is applied at the string ends.
+      * @param  name Name for the created op.
+      * @return Created op output.
+      */
+    def encodeBase64(pad: Boolean = false, name: String = "EncodeBase64"): Output = {
+      Text.encodeBase64(output, pad, name)
+    }
+
+    /** $OpDocTextStringDecodeBase64
+      *
+      * @group TextOps
+      * @param  name Name for the created op.
+      * @return Created op output.
+      */
+    def decodeBase64(name: String = "DecodeBase64"): Output = {
+      Text.decodeBase64(output, name)
+    }
   }
 
   private[ops] object Gradients {
@@ -205,6 +254,22 @@ private[api] object Text extends Text {
     *     st.values ==> ["hello", "world", "a", "b", "c"]
     *     st.denseShape ==> [2, 3]
     *   }}}
+    *
+    * @define OpDocTextStringEncodeBase64
+    *   The `encodeBase64` op encodes strings into a web-safe base64 format.
+    *
+    *   Refer to [this article](https://en.wikipedia.org/wiki/Base64) for more information on base64 format. Base64
+    *   strings may have padding with `=` at the end so that the encoded string has length that is a multiple of 4.
+    *   Refer to the padding section of the link above for more details on this.
+    *
+    *   Web-safe means that the encoder uses `-` and `_` instead of `+` and `/`.
+    *
+    * @define OpDocTextStringDecodeBase64
+    *   The `decodeBase64` op decodes web-safe base64-encoded strings.
+    *
+    *   The input may or may not have padding at the end. See `encodeBase64` for more details on padding.
+    *
+    *   Web-safe means that the encoder uses `-` and `_` instead of `+` and `/`.
     *
     * @define OpDocTextStringToHashBucket
     *   The `stringToHashBucket` op converts each string in the input tensor to its hash mod the number of buckets.

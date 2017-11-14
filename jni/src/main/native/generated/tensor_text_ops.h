@@ -25,6 +25,22 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors
 
 /*
  * Class:     org_platanios_tensorflow_jni_generated_tensors_Text__
+ * Method:    encodeBase64
+ * Signature: (JJZ)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Text_00024_encodeBase64
+  (JNIEnv *, jobject, jlong, jlong, jboolean);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_Text__
+ * Method:    decodeBase64
+ * Signature: (JJ)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Text_00024_decodeBase64
+  (JNIEnv *, jobject, jlong, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_Text__
  * Method:    stringToHashBucket
  * Signature: (JJJ)J
  */
