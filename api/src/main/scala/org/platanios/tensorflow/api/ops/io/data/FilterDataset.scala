@@ -61,14 +61,16 @@ case class FilterDataset[T, O, D, S](
 object FilterDataset {
   private[data] trait Implicits {
     implicit def datasetToFilterDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S])(implicit
-        ev: Data.Aux[T, O, D, S]
+        ev: Data.Aux[T, O, D, S],
+        evFunctionInput: Function.ArgType[O]
     ): FilterDatasetOps[T, O, D, S] = {
       FilterDatasetOps(dataset)
     }
   }
 
   case class FilterDatasetOps[T, O, D, S] private[FilterDataset] (dataset: Dataset[T, O, D, S])(implicit
-      ev: Data.Aux[T, O, D, S]
+      ev: Data.Aux[T, O, D, S],
+      evFunctionInput: Function.ArgType[O]
   ) {
     /** $OpDocDatasetFilter
       *
