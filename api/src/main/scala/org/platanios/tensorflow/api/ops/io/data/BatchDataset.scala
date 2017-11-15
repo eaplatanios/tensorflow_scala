@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.ops.io.data
 
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.ops.{Basic, Function, Op, Output}
+import org.platanios.tensorflow.api.ops.{Basic, Op, Output}
 
 /** Dataset that wraps the application of the `batch` op.
   *
@@ -36,10 +36,7 @@ case class BatchDataset[T, O, D, S](
     inputDataset: Dataset[T, O, D, S],
     batchSize: Long,
     override val name: String = "BatchDataset"
-)(implicit
-    ev: Data.Aux[T, O, D, S],
-    evFunctionInput: Function.ArgType[O]
-) extends Dataset[T, O, D, S](name) {
+) extends Dataset[T, O, D, S](name)(inputDataset.evOToT, inputDataset.ev, inputDataset.evFunctionInput) {
   override def createHandle(): Output = {
     Op.Builder(opType = "BatchDataset", name = name)
         .addInput(Op.createWithNameScope(name)(inputDataset.createHandle()))
@@ -57,18 +54,12 @@ case class BatchDataset[T, O, D, S](
 
 object BatchDataset {
   private[data] trait Implicits {
-    implicit def datasetToBatchDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S])(implicit
-        ev: Data.Aux[T, O, D, S],
-        evFunctionInput: Function.ArgType[O]
-    ): BatchDatasetOps[T, O, D, S] = {
+    implicit def datasetToBatchDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S]): BatchDatasetOps[T, O, D, S] = {
       BatchDatasetOps(dataset)
     }
   }
 
-  case class BatchDatasetOps[T, O, D, S] private[BatchDataset] (dataset: Dataset[T, O, D, S])(implicit
-      ev: Data.Aux[T, O, D, S],
-      evFunctionInput: Function.ArgType[O]
-  ) {
+  case class BatchDatasetOps[T, O, D, S] private[BatchDataset] (dataset: Dataset[T, O, D, S]) {
     /** $OpDocDatasetBatch
       *
       * @param  batchSize Batch size.

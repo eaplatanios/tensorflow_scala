@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.ops.io.data
 
-import org.platanios.tensorflow.api.ops.{Basic, Function, Op, Output}
+import org.platanios.tensorflow.api.ops.{Basic, Op, Output}
 
 /** Dataset that wraps the application of the `take` op.
   *
@@ -35,10 +35,7 @@ case class TakeDataset[T, O, D, S](
     inputDataset: Dataset[T, O, D, S],
     count: Long,
     override val name: String = "TakeDataset"
-)(implicit
-    ev: Data.Aux[T, O, D, S],
-    evFunctionInput: Function.ArgType[O]
-) extends Dataset[T, O, D, S](name) {
+) extends Dataset[T, O, D, S](name)(inputDataset.evOToT, inputDataset.ev, inputDataset.evFunctionInput) {
   override def createHandle(): Output = {
     Op.Builder(opType = "TakeDataset", name = name)
         .addInput(Op.createWithNameScope(name)(inputDataset.createHandle()))
@@ -54,18 +51,12 @@ case class TakeDataset[T, O, D, S](
 
 object TakeDataset {
   private[data] trait Implicits {
-    implicit def datasetToTakeDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S])(implicit
-        ev: Data.Aux[T, O, D, S],
-        evFunctionInput: Function.ArgType[O]
-    ): TakeDatasetOps[T, O, D, S] = {
+    implicit def datasetToTakeDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S]): TakeDatasetOps[T, O, D, S] = {
       TakeDatasetOps(dataset)
     }
   }
 
-  case class TakeDatasetOps[T, O, D, S] private[TakeDataset] (dataset: Dataset[T, O, D, S])(implicit
-      ev: Data.Aux[T, O, D, S],
-      evFunctionInput: Function.ArgType[O]
-  ) {
+  case class TakeDatasetOps[T, O, D, S] private[TakeDataset] (dataset: Dataset[T, O, D, S]) {
     /** $OpDocDatasetTake
       *
       * @param  count Number of elements to take.

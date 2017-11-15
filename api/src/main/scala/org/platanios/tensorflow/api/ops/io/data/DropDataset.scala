@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.ops.io.data
 
-import org.platanios.tensorflow.api.ops.{Basic, Function, Op, Output}
+import org.platanios.tensorflow.api.ops.{Basic, Op, Output}
 
 /** Dataset that wraps the application of the `drop` op.
   *
@@ -35,10 +35,7 @@ case class DropDataset[T, O, D, S](
     inputDataset: Dataset[T, O, D, S],
     count: Long,
     override val name: String = "DropDataset"
-)(implicit
-    ev: Data.Aux[T, O, D, S],
-    evFunctionInput: Function.ArgType[O]
-) extends Dataset[T, O, D, S](name) {
+) extends Dataset[T, O, D, S](name)(inputDataset.evOToT, inputDataset.ev, inputDataset.evFunctionInput) {
   override def createHandle(): Output = {
     Op.Builder(opType = "SkipDataset", name = name)
         .addInput(Op.createWithNameScope(name)(inputDataset.createHandle()))
@@ -54,18 +51,12 @@ case class DropDataset[T, O, D, S](
 
 object DropDataset {
   private[data] trait Implicits {
-    implicit def datasetToDropDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S])(implicit
-        ev: Data.Aux[T, O, D, S],
-        evFunctionInput: Function.ArgType[O]
-    ): DropDatasetOps[T, O, D, S] = {
+    implicit def datasetToDropDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S]): DropDatasetOps[T, O, D, S] = {
       DropDatasetOps(dataset)
     }
   }
 
-  case class DropDatasetOps[T, O, D, S] private[DropDataset] (dataset: Dataset[T, O, D, S])(implicit
-      ev: Data.Aux[T, O, D, S],
-      evFunctionInput: Function.ArgType[O]
-  ) {
+  case class DropDatasetOps[T, O, D, S] private[DropDataset] (dataset: Dataset[T, O, D, S]) {
     /** $OpDocDatasetDrop
       *
       * @param  count Number of elements to drop.

@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.ops.io.data
 
-import org.platanios.tensorflow.api.ops.{Function, Op, Output}
+import org.platanios.tensorflow.api.ops.{Function, Op, Output, OutputToTensor}
 
 /** Dataset that wraps the application of the `flatMap` op.
   *
@@ -36,11 +36,13 @@ case class FlatMapDataset[T, O, D, S, RT, RO, RD, RS](
     function: (O) => Dataset[RT, RO, RD, RS],
     override val name: String = "FlatMapDataset"
 )(implicit
-    ev: Data.Aux[T, O, D, S],
+    evOToT: OutputToTensor.Aux[O, T] = inputDataset.evOToT,
+    ev: Data.Aux[T, O, D, S] = inputDataset.ev,
+    evFunctionInput: Function.ArgType[O] = inputDataset.evFunctionInput,
+    evROToRT: OutputToTensor.Aux[RO, RT],
     evR: Data.Aux[RT, RO, RD, RS],
-    evFunctionInput: Function.ArgType[O],
-    evFunctionInputR: Function.ArgType[RO]
-) extends Dataset[RT, RO, RD, RS](name) {
+    evFunctionOutput: Function.ArgType[RO]
+) extends Dataset[RT, RO, RD, RS](name)(evROToRT, evR, evFunctionOutput) {
   private[this] lazy val instantiatedFunction = {
     Function(s"$name/Function", function).instantiate(
       inputDataset.flattenedOutputDataTypes, inputDataset.flattenedOutputShapes)
@@ -62,18 +64,12 @@ case class FlatMapDataset[T, O, D, S, RT, RO, RD, RS](
 
 object FlatMapDataset {
   private[data] trait Implicits {
-    implicit def datasetToFlatMapDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S])(implicit
-        ev: Data.Aux[T, O, D, S],
-        evFunctionInput: Function.ArgType[O]
-    ): FlatMapDatasetOps[T, O, D, S] = {
+    implicit def datasetToFlatMapDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S]): FlatMapDatasetOps[T, O, D, S] = {
       FlatMapDatasetOps(dataset)
     }
   }
 
-  case class FlatMapDatasetOps[T, O, D, S] private[FlatMapDataset] (dataset: Dataset[T, O, D, S])(implicit
-      ev: Data.Aux[T, O, D, S],
-      evFunctionInput: Function.ArgType[O]
-  ) {
+  case class FlatMapDatasetOps[T, O, D, S] private[FlatMapDataset] (dataset: Dataset[T, O, D, S]) {
     /** $OpDocDatasetFlatMap
       *
       * @param  function Mapping function.
@@ -81,10 +77,9 @@ object FlatMapDataset {
       * @return Created dataset.
       */
     def flatMap[RT, RO, RD, RS](function: (O) => Dataset[RT, RO, RD, RS], name: String = "FlatMap")(implicit
-        ev: Data.Aux[T, O, D, S],
+        evROToRT: OutputToTensor.Aux[RO, RT],
         evR: Data.Aux[RT, RO, RD, RS],
-        evFunctionInput: Function.ArgType[O],
-        evFunctionInputR: Function.ArgType[RO]
+        evFunctionOutput: Function.ArgType[RO]
     ): Dataset[RT, RO, RD, RS] = {
       Op.createWithNameScope(dataset.name) {
         FlatMapDataset(dataset, function, name)

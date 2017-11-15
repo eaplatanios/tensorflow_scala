@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.ops.io.data
 
-import org.platanios.tensorflow.api.ops.{Basic, Function, Op, Output}
+import org.platanios.tensorflow.api.ops.{Basic, Function, Op, Output, OutputToTensor}
 
 /** Dataset that wraps the application of the `map` op.
   *
@@ -36,11 +36,13 @@ case class MapDataset[T, O, D, S, RT, RO, RD, RS](
     function: (O) => RO,
     override val name: String = "MapDataset"
 )(implicit
-    ev: Data.Aux[T, O, D, S],
+    evOToT: OutputToTensor.Aux[O, T] = inputDataset.evOToT,
+    ev: Data.Aux[T, O, D, S] = inputDataset.ev,
+    evFunctionInput: Function.ArgType[O] = inputDataset.evFunctionInput,
+    evROToRT: OutputToTensor.Aux[RO, RT],
     evR: Data.Aux[RT, RO, RD, RS],
-    evFunctionInput: Function.ArgType[O],
     evFunctionOutput: Function.ArgType[RO]
-) extends Dataset[RT, RO, RD, RS](name) {
+) extends Dataset[RT, RO, RD, RS](name)(evROToRT, evR, evFunctionOutput) {
   private[this] lazy val instantiatedFunction = {
     Function(s"$name/Function", function).instantiate(
       inputDataset.flattenedOutputDataTypes, inputDataset.flattenedOutputShapes)
@@ -67,7 +69,7 @@ case class MapDataset[T, O, D, S, RT, RO, RD, RS](
 }
 
 /** Dataset that wraps the application of the `parallelMap` op.
-  *
+  * 
   * $OpDocDatasetMap
   *
   * @param  inputDataset     Input dataset.
@@ -88,11 +90,13 @@ case class ParallelMapDataset[T, O, D, S, RT, RO, RD, RS](
     numParallelCalls: Int,
     override val name: String = "ParallelMapDataset"
 )(implicit
-    ev: Data.Aux[T, O, D, S],
+    evOToT: OutputToTensor.Aux[O, T] = inputDataset.evOToT,
+    ev: Data.Aux[T, O, D, S] = inputDataset.ev,
+    evFunctionInput: Function.ArgType[O] = inputDataset.evFunctionInput,
+    evROToRT: OutputToTensor.Aux[RO, RT],
     evR: Data.Aux[RT, RO, RD, RS],
-    evFunctionInput: Function.ArgType[O],
     evFunctionOutput: Function.ArgType[RO]
-) extends Dataset[RT, RO, RD, RS](name) {
+) extends Dataset[RT, RO, RD, RS](name)(evROToRT, evR, evFunctionOutput) {
   private[this] lazy val instantiatedFunction = {
     Function(s"$name/Function", function).instantiate(
       inputDataset.flattenedOutputDataTypes, inputDataset.flattenedOutputShapes)
@@ -121,23 +125,19 @@ case class ParallelMapDataset[T, O, D, S, RT, RO, RD, RS](
 
 object MapDataset {
   private[data] trait Implicits {
-    implicit def datasetToMapDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S])(implicit
-        ev: Data.Aux[T, O, D, S]
-    ): MapDatasetOps[T, O, D, S] = {
+    implicit def datasetToMapDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S]): MapDatasetOps[T, O, D, S] = {
       MapDatasetOps(dataset)
     }
   }
 
-  case class MapDatasetOps[T, O, D, S] private[MapDataset] (dataset: Dataset[T, O, D, S])(implicit
-      ev: Data.Aux[T, O, D, S]
-  ) {
+  case class MapDatasetOps[T, O, D, S] private[MapDataset] (dataset: Dataset[T, O, D, S]) {
     /** $OpDocDatasetMap
       *
       * @param  function         Mapping function.
       * @param  numParallelCalls Number elements to process in parallel. If not specified, elements will be processed
       *                          sequentially.
       * @param  bufferSize       Maximum number of processed elements that will be buffered.
-      * @param  name        Name for the created dataset.
+      * @param  name             Name for the created dataset.
       * @return Created dataset.
       */
     def map[RT, RO, RD, RS](
@@ -146,8 +146,8 @@ object MapDataset {
         bufferSize: Long = 1,
         name: String = "Map"
     )(implicit
+        evROToRT: OutputToTensor.Aux[RO, RT],
         evR: Data.Aux[RT, RO, RD, RS],
-        evFunctionInput: Function.ArgType[O],
         evFunctionOutput: Function.ArgType[RO]
     ): Dataset[RT, RO, RD, RS] = {
       Op.createWithNameScope(dataset.name) {

@@ -35,10 +35,7 @@ case class FilterDataset[T, O, D, S](
     inputDataset: Dataset[T, O, D, S],
     predicateFn: (O) => Output,
     override val name: String = "FilterDataset"
-)(implicit
-    ev: Data.Aux[T, O, D, S],
-    evFunctionInput: Function.ArgType[O]
-) extends Dataset[T, O, D, S](name) {
+) extends Dataset[T, O, D, S](name)(inputDataset.evOToT, inputDataset.ev, inputDataset.evFunctionInput) {
   private[this] lazy val instantiatedPredicateFunction = {
     Function(s"$name/Predicate", predicateFn).instantiate(
       inputDataset.flattenedOutputDataTypes, inputDataset.flattenedOutputShapes)
@@ -60,18 +57,12 @@ case class FilterDataset[T, O, D, S](
 
 object FilterDataset {
   private[data] trait Implicits {
-    implicit def datasetToFilterDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S])(implicit
-        ev: Data.Aux[T, O, D, S],
-        evFunctionInput: Function.ArgType[O]
-    ): FilterDatasetOps[T, O, D, S] = {
+    implicit def datasetToFilterDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S]): FilterDatasetOps[T, O, D, S] = {
       FilterDatasetOps(dataset)
     }
   }
 
-  case class FilterDatasetOps[T, O, D, S] private[FilterDataset] (dataset: Dataset[T, O, D, S])(implicit
-      ev: Data.Aux[T, O, D, S],
-      evFunctionInput: Function.ArgType[O]
-  ) {
+  case class FilterDatasetOps[T, O, D, S] private[FilterDataset] (dataset: Dataset[T, O, D, S]) {
     /** $OpDocDatasetFilter
       *
       * @param  predicateFn Filter predicate function.

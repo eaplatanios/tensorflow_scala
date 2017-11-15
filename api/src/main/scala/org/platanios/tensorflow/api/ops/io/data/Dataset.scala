@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.ops.io.data
 import org.platanios.tensorflow.api.Implicits._
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception._
-import org.platanios.tensorflow.api.ops.{Callback, Function, Math, Op, Output}
+import org.platanios.tensorflow.api.ops.{Callback, Function, Math, Op, Output, OutputToTensor}
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.ops.io.data
 import org.platanios.tensorflow.api.tensors.Tensor
@@ -45,8 +45,9 @@ import scala.language.postfixOps
 abstract class Dataset[T, O, D, S](
     val name: String = "Dataset"
 )(implicit
-    ev: Data.Aux[T, O, D, S],
-    evFunctionInput: Function.ArgType[O]
+    val evOToT: OutputToTensor.Aux[O, T],
+    val ev: Data.Aux[T, O, D, S],
+    val evFunctionInput: Function.ArgType[O]
 ) {
   /** Creates a `RESOURCE` scalar tensor representing this dataset. This function adds ops to the current graph, that
     * create the dataset resource. */
@@ -122,8 +123,8 @@ abstract class Dataset[T, O, D, S](
     if (shardIndex >= numShards)
       throw InvalidArgumentException(s"'index' (= $shardIndex) must be smaller than 'numShards' (= $numShards).")
     this.zip(RangeDataset(0, Long.MaxValue))
-        .filter((t: (O, Output)) => Math.equal(Math.mod(t._2, numShards), shardIndex))
-        .map(_._1)
+        .filter(t => Math.equal(Math.mod(t._2, numShards), shardIndex))
+        .map(o => o._1)
   }
 
   /** Applies a transformation function to this dataset.
@@ -135,6 +136,7 @@ abstract class Dataset[T, O, D, S](
     * @return Transformed dataset.
     */
   def transform[TT, TO, TD, TS](transform: (Dataset[T, O, D, S]) => Dataset[TT, TO, TD, TS])(implicit
+      evTOToTT: OutputToTensor.Aux[TO, TT],
       evT: Data.Aux[TT, TO, TD, TS],
       evFunctionInputT: Function.ArgType[TO]
   ): Dataset[TT, TO, TD, TS] = {
@@ -224,10 +226,11 @@ object Dataset {
     def fromGenerator[T, O, D, S](
         generator: () => Iterable[T], outputDataType: D, outputShape: S = null
     )(implicit
+        evOToT: OutputToTensor.Aux[O, T],
         ev: Data.Aux[T, O, D, S],
         evFunctionOutput: Function.ArgType[O]
     ): Dataset[T, O, D, S] = {
-      Dataset.fromGenerator[T, O, D, S](generator, outputDataType, outputShape)(ev, evFunctionOutput)
+      Dataset.fromGenerator[T, O, D, S](generator, outputDataType, outputShape)(evOToT, ev, evFunctionOutput)
     }
   }
 
@@ -269,7 +272,9 @@ object Dataset {
     * @return Constructed dataset.
     */
   private[api] def fromGenerator[T, O, D, S](
-      generator: () => Iterable[T], outputDataType: D, outputShape: S = null)(implicit
+      generator: () => Iterable[T], outputDataType: D, outputShape: S = null
+  )(implicit
+      evOToT: OutputToTensor.Aux[O, T],
       ev: Data.Aux[T, O, D, S],
       evFunctionOutput: Function.ArgType[O]
   ): Dataset[T, O, D, S] = {

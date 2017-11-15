@@ -23,7 +23,7 @@ import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.learn._
 import org.platanios.tensorflow.api.learn.hooks._
 import org.platanios.tensorflow.api.ops.io.data.{Data, Dataset, TensorDataset}
-import org.platanios.tensorflow.api.ops.{Function, Op, OpSpecification, Output}
+import org.platanios.tensorflow.api.ops.{Function, Op, OpSpecification, Output, OutputToTensor}
 import org.platanios.tensorflow.api.ops.metrics.Metric
 import org.platanios.tensorflow.api.ops.variables.Saver
 import org.platanios.tensorflow.api.tensors.Tensor
@@ -389,6 +389,7 @@ object Estimator {
 
   object SupportedInferInput {
     implicit def datasetInferInput[T, O, D, S, I](implicit
+        evOToT: OutputToTensor.Aux[O, T],
         ev: Data.Aux[T, O, D, S],
         evFunctionInput: Function.ArgType[O]
     ): SupportedInferInput[Dataset[T, O, D, S], Iterator[(T, I)], T, O, D, S, I] = {
@@ -399,6 +400,7 @@ object Estimator {
     }
 
     implicit def singleValueInferInput[T, O, D, S, I](implicit
+        evOToT: OutputToTensor.Aux[O, T],
         ev: Data.Aux[T, O, D, S],
         evFunctionInput: Function.ArgType[O]
     ): SupportedInferInput[T, I, T, O, D, S, I] = new SupportedInferInput[T, I, T, O, D, S, I] {

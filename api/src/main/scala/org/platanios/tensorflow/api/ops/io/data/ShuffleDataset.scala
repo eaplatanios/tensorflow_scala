@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.ops.io.data
 
-import org.platanios.tensorflow.api.ops.{Basic, Function, Op, Output}
+import org.platanios.tensorflow.api.ops.{Basic, Op, Output}
 import org.platanios.tensorflow.api.types.INT64
 
 /** Dataset that wraps the application of the `shuffle` op.
@@ -38,10 +38,7 @@ case class ShuffleDataset[T, O, D, S](
     bufferSize: Long,
     seed: Option[Int],
     override val name: String = "ShuffleDataset"
-)(implicit
-    ev: Data.Aux[T, O, D, S],
-    evFunctionInput: Function.ArgType[O]
-) extends Dataset[T, O, D, S](name) {
+) extends Dataset[T, O, D, S](name)(inputDataset.evOToT, inputDataset.ev, inputDataset.evFunctionInput) {
   override def createHandle(): Output = {
     val (graphSeed, opSeed) = Op.currentGraphRandomSeed(seed)
     val seed1 = graphSeed.getOrElse(0)
@@ -62,18 +59,12 @@ case class ShuffleDataset[T, O, D, S](
 
 object ShuffleDataset {
   private[data] trait Implicits {
-    implicit def datasetToShuffleDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S])(implicit
-        ev: Data.Aux[T, O, D, S],
-        evFunctionInput: Function.ArgType[O]
-    ): ShuffleDatasetOps[T, O, D, S] = {
+    implicit def datasetToShuffleDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S]): ShuffleDatasetOps[T, O, D, S] = {
       ShuffleDatasetOps(dataset)
     }
   }
 
-  case class ShuffleDatasetOps[T, O, D, S] private[ShuffleDataset] (dataset: Dataset[T, O, D, S])(implicit
-      ev: Data.Aux[T, O, D, S],
-      evFunctionInput: Function.ArgType[O]
-  ) {
+  case class ShuffleDatasetOps[T, O, D, S] private[ShuffleDataset] (dataset: Dataset[T, O, D, S]) {
     /** $OpDocDatasetShuffle
       *
       * @param  bufferSize Buffer size, meaning the number of output elements to buffer in an iterator over this dataset.

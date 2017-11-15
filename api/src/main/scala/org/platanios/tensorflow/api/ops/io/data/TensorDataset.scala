@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.ops.io.data
 
-import org.platanios.tensorflow.api.ops.{Function, Op, Output}
+import org.platanios.tensorflow.api.ops.{Function, Op, Output, OutputToTensor}
 
 /** Dataset with a single element.
   *
@@ -32,9 +32,10 @@ case class TensorDataset[T, O, D, S](
     data: T,
     override val name: String = "TensorDataset"
 )(implicit
+    evOToT: OutputToTensor.Aux[O, T],
     ev: Data.Aux[T, O, D, S],
     evFunctionInput: Function.ArgType[O]
-) extends Dataset[T, O, D, S](name) {
+) extends Dataset[T, O, D, S](name)(evOToT, ev, evFunctionInput) {
   override def createHandle(): Output = {
     val flattenedOutputs = ev.flattenedOutputsFromT(data)
     Op.Builder(opType = "TensorDataset", name = name)
@@ -64,9 +65,10 @@ case class OutputDataset[T, O, D, S](
     data: O,
     override val name: String = "OutputDataset"
 )(implicit
+    evOToT: OutputToTensor.Aux[O, T],
     ev: Data.Aux[T, O, D, S],
     evFunctionInput: Function.ArgType[O]
-) extends Dataset[T, O, D, S](name) {
+) extends Dataset[T, O, D, S](name)(evOToT, ev, evFunctionInput) {
   override def createHandle(): Output = {
     val flattenedOutputs = ev.flattenedOutputsFromO(data)
     Op.Builder(opType = "TensorDataset", name = name)

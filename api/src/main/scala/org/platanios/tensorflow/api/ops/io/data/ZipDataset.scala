@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.ops.io.data
 
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.ops.{Function, Op, Output}
+import org.platanios.tensorflow.api.ops.{Function, Op, Output, OutputToTensor}
 import org.platanios.tensorflow.api.types.DataType
 
 /** Dataset that wraps the application of the `zip` op.
@@ -42,10 +42,12 @@ case class ZipDataset[T1, O1, D1, S1, T2, O2, D2, S2](
     inputDataset2: Dataset[T2, O2, D2, S2],
     override val name: String = "ZipDataset"
 )(implicit
-    ev1: Data.Aux[T1, O1, D1, S1],
-    ev2: Data.Aux[T2, O2, D2, S2],
-    evFunctionInput1: Function.ArgType[O1],
-    evFunctionInput2: Function.ArgType[O2]
+    evO1ToT1: OutputToTensor.Aux[O1, T1] = inputDataset1.evOToT,
+    evO2ToT2: OutputToTensor.Aux[O2, T2] = inputDataset2.evOToT,
+    ev1: Data.Aux[T1, O1, D1, S1] = inputDataset1.ev,
+    ev2: Data.Aux[T2, O2, D2, S2] = inputDataset2.ev,
+    evFunctionInput1: Function.ArgType[O1] = inputDataset1.evFunctionInput,
+    evFunctionInput2: Function.ArgType[O2] = inputDataset2.evFunctionInput
 ) extends Dataset[(T1, T2), (O1, O2), (D1, D2), (S1, S2)](name) {
   override def createHandle(): Output = {
     ZipDataset.datasetZip(
@@ -88,12 +90,15 @@ case class Zip3Dataset[T1, O1, D1, S1, T2, O2, D2, S2, T3, O3, D3, S3](
     inputDataset3: Dataset[T3, O3, D3, S3],
     override val name: String = "Zip3Dataset"
 )(implicit
-    ev1: Data.Aux[T1, O1, D1, S1],
-    ev2: Data.Aux[T2, O2, D2, S2],
-    ev3: Data.Aux[T3, O3, D3, S3],
-    evFunctionInput1: Function.ArgType[O1],
-    evFunctionInput2: Function.ArgType[O2],
-    evFunctionInput3: Function.ArgType[O3]
+    evO1ToT1: OutputToTensor.Aux[O1, T1] = inputDataset1.evOToT,
+    evO2ToT2: OutputToTensor.Aux[O2, T2] = inputDataset2.evOToT,
+    evO3ToT3: OutputToTensor.Aux[O3, T3] = inputDataset3.evOToT,
+    ev1: Data.Aux[T1, O1, D1, S1] = inputDataset1.ev,
+    ev2: Data.Aux[T2, O2, D2, S2] = inputDataset2.ev,
+    ev3: Data.Aux[T3, O3, D3, S3] = inputDataset3.ev,
+    evFunctionInput1: Function.ArgType[O1] = inputDataset1.evFunctionInput,
+    evFunctionInput2: Function.ArgType[O2] = inputDataset2.evFunctionInput,
+    evFunctionInput3: Function.ArgType[O3] = inputDataset3.evFunctionInput
 ) extends Dataset[(T1, T2, T3), (O1, O2, O3), (D1, D2, D3), (S1, S2, S3)](name) {
   override def createHandle(): Output = {
     ZipDataset.datasetZip(
@@ -130,8 +135,9 @@ case class ZipMultipleDataset[T, O, D, S](
     inputDatasets: Seq[Dataset[T, O, D, S]],
     override val name: String = "ZipMultipleDataset"
 )(implicit
-    ev: Data.Aux[T, O, D, S],
-    evFunctionInput: Function.ArgType[O],
+    evOToT: OutputToTensor.Aux[O, T] = inputDatasets.head.evOToT,
+    ev: Data.Aux[T, O, D, S] = inputDatasets.head.ev,
+    evFunctionInput: Function.ArgType[O] = inputDatasets.head.evFunctionInput,
     evFunctionInputSeq: Function.ArgType[Seq[O]]
 ) extends Dataset[Seq[T], Seq[O], Seq[D], Seq[S]](name) {
   override def createHandle(): Output = {
@@ -148,28 +154,20 @@ case class ZipMultipleDataset[T, O, D, S](
 
 object ZipDataset {
   private[data] trait Implicits {
-    implicit def datasetToZipDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S])(implicit
-        ev: Data.Aux[T, O, D, S],
-        evFunctionInput: Function.ArgType[O]
-    ): ZipDatasetOps[T, O, D, S] = {
+    implicit def datasetToZipDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S]): ZipDatasetOps[T, O, D, S] = {
       ZipDatasetOps(dataset)
     }
   }
 
-  case class ZipDatasetOps[T, O, D, S] private[ZipDataset] (dataset: Dataset[T, O, D, S])(implicit
-      ev: Data.Aux[T, O, D, S],
-      evFunctionInput: Function.ArgType[O]
-  ) {
+  case class ZipDatasetOps[T, O, D, S] private[ZipDataset] (dataset: Dataset[T, O, D, S]) {
     /** $OpDocDatasetZip
       *
       * @param  other Dataset to zip with the current dataset.
       * @param  name  Name for the created dataset.
       * @return Created dataset.
       */
-    def zip[T2, O2, D2, S2](other: Dataset[T2, O2, D2, S2], name: String = "Zip")(implicit
-        ev2: Data.Aux[T2, O2, D2, S2],
-        evFunctionInput2: Function.ArgType[O2]
-    ): Dataset[(T, T2), (O, O2), (D, D2), (S, S2)] = {
+    def zip[T2, O2, D2, S2](
+        other: Dataset[T2, O2, D2, S2], name: String = "Zip"): Dataset[(T, T2), (O, O2), (D, D2), (S, S2)] = {
       Op.createWithNameScope(s"${dataset.name}_${other.name}") {
         ZipDataset(dataset, other, name)
       }
@@ -186,11 +184,6 @@ object ZipDataset {
         other1: Dataset[T2, O2, D2, S2],
         other2: Dataset[T3, O3, D3, S3],
         name: String = "Zip3"
-    )(implicit
-        ev2: Data.Aux[T2, O2, D2, S2],
-        ev3: Data.Aux[T3, O3, D3, S3],
-        evFunctionInput2: Function.ArgType[O2],
-        evFunctionInput3: Function.ArgType[O3]
     ): Dataset[(T, T2, T3), (O, O2, O3), (D, D2, D3), (S, S2, S3)] = {
       Op.createWithNameScope(s"${dataset.name}_${other1.name}_${other2.name}") {
         Zip3Dataset(dataset, other1, other2, name)

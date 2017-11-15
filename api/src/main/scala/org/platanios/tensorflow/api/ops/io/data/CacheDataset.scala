@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.ops.io.data
 
-import org.platanios.tensorflow.api.ops.{Basic, Function, Op, Output}
+import org.platanios.tensorflow.api.ops.{Basic, Op, Output}
 
 /** Dataset that wraps the application of the `cache` op.
   *
@@ -35,10 +35,7 @@ case class CacheDataset[T, O, D, S](
     inputDataset: Dataset[T, O, D, S],
     directory: String,
     override val name: String = "CacheDataset"
-)(implicit
-    ev: Data.Aux[T, O, D, S],
-    evFunctionInput: Function.ArgType[O]
-) extends Dataset[T, O, D, S](name) {
+) extends Dataset[T, O, D, S](name)(inputDataset.evOToT, inputDataset.ev, inputDataset.evFunctionInput) {
   override def createHandle(): Output = {
     Op.Builder(opType = "CacheDataset", name = name)
         .addInput(Op.createWithNameScope(name)(inputDataset.createHandle()))
@@ -54,18 +51,12 @@ case class CacheDataset[T, O, D, S](
 
 object CacheDataset {
   private[data] trait Implicits {
-    implicit def datasetToCacheDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S])(implicit
-        ev: Data.Aux[T, O, D, S],
-        evFunctionInput: Function.ArgType[O]
-    ): CacheDatasetOps[T, O, D, S] = {
+    implicit def datasetToCacheDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S]): CacheDatasetOps[T, O, D, S] = {
       CacheDatasetOps(dataset)
     }
   }
 
-  case class CacheDatasetOps[T, O, D, S] private[CacheDataset] (dataset: Dataset[T, O, D, S])(implicit
-      ev: Data.Aux[T, O, D, S],
-      evFunctionInput: Function.ArgType[O]
-  ) {
+  case class CacheDatasetOps[T, O, D, S] private[CacheDataset] (dataset: Dataset[T, O, D, S]) {
     /** $OpDocDatasetCache
       *
       * @param  directory Directory to use for caching. If empty, then the provided dataset will be cached in memory.

@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.ops.io.data
 
-import org.platanios.tensorflow.api.ops.{Function, Op, Output}
+import org.platanios.tensorflow.api.ops.{Op, Output}
 
 /** Dataset that wraps the application of the `concatenate` op.
   *
@@ -38,10 +38,7 @@ case class ConcatenatedDataset[T, O, D, S](
     inputDataset1: Dataset[T, O, D, S],
     inputDataset2: Dataset[T, O, D, S],
     override val name: String = "ConcatenatedDataset"
-)(implicit
-    ev: Data.Aux[T, O, D, S],
-    evFunctionInput: Function.ArgType[O]
-) extends Dataset[T, O, D, S](name) {
+) extends Dataset[T, O, D, S](name)(inputDataset1.evOToT, inputDataset1.ev, inputDataset1.evFunctionInput) {
   if (inputDataset1.flattenedOutputDataTypes != inputDataset2.flattenedOutputDataTypes)
     throw new IllegalArgumentException("The data types of the datasets being concatenated are not the identical.")
   private[this] lazy val mostSpecificFlattenedShapes = {
@@ -67,18 +64,13 @@ case class ConcatenatedDataset[T, O, D, S](
 
 object ConcatenatedDataset {
   private[data] trait Implicits {
-    implicit def datasetToConcatenatedDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S])(implicit
-        ev: Data.Aux[T, O, D, S],
-        evFunctionInput: Function.ArgType[O]
-    ): ConcatenatedDatasetOps[T, O, D, S] = {
+    implicit def datasetToConcatenatedDatasetOps[T, O, D, S](
+        dataset: Dataset[T, O, D, S]): ConcatenatedDatasetOps[T, O, D, S] = {
       ConcatenatedDatasetOps(dataset)
     }
   }
 
-  case class ConcatenatedDatasetOps[T, O, D, S] private[ConcatenatedDataset] (dataset: Dataset[T, O, D, S])(implicit
-      ev: Data.Aux[T, O, D, S],
-      evFunctionInput: Function.ArgType[O]
-  ) {
+  case class ConcatenatedDatasetOps[T, O, D, S] private[ConcatenatedDataset] (dataset: Dataset[T, O, D, S]) {
     /** $OpDocDatasetConcatenate
       *
       * @param  other Dataset to concatenate with the current dataset.

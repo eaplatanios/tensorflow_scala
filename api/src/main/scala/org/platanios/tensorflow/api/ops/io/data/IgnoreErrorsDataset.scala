@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.ops.io.data
 
-import org.platanios.tensorflow.api.ops.{Function, Op, Output}
+import org.platanios.tensorflow.api.ops.{Op, Output}
 
 /** Dataset that wraps the application of the `ignoreErrors` op.
   *
@@ -33,10 +33,7 @@ import org.platanios.tensorflow.api.ops.{Function, Op, Output}
 case class IgnoreErrorsDataset[T, O, D, S] private[io] (
     inputDataset: Dataset[T, O, D, S],
     override val name: String = "IgnoreErrorsDataset"
-)(implicit
-    ev: Data.Aux[T, O, D, S],
-    evFunctionInput: Function.ArgType[O]
-) extends Dataset[T, O, D, S](name) {
+) extends Dataset[T, O, D, S](name)(inputDataset.evOToT, inputDataset.ev, inputDataset.evFunctionInput) {
   override def createHandle(): Output = {
     Op.Builder(opType = "IgnoreErrorsDataset", name = name)
         .addInput(Op.createWithNameScope(name)(inputDataset.createHandle()))
@@ -51,18 +48,13 @@ case class IgnoreErrorsDataset[T, O, D, S] private[io] (
 
 object IgnoreErrorsDataset {
   private[data] trait Implicits {
-    implicit def datasetToIgnoreErrorsDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S])(implicit
-        ev: Data.Aux[T, O, D, S],
-        evFunctionInput: Function.ArgType[O]
-    ): IgnoreErrorsDatasetOps[T, O, D, S] = {
+    implicit def datasetToIgnoreErrorsDatasetOps[T, O, D, S](
+        dataset: Dataset[T, O, D, S]): IgnoreErrorsDatasetOps[T, O, D, S] = {
       IgnoreErrorsDatasetOps(dataset)
     }
   }
 
-  case class IgnoreErrorsDatasetOps[T, O, D, S] private[IgnoreErrorsDataset] (dataset: Dataset[T, O, D, S])(implicit
-      ev: Data.Aux[T, O, D, S],
-      evFunctionInput: Function.ArgType[O]
-  ) {
+  case class IgnoreErrorsDatasetOps[T, O, D, S] private[IgnoreErrorsDataset] (dataset: Dataset[T, O, D, S]) {
     /** $OpDocDatasetIgnoreErrors
       *
       * @param  name Name for the created dataset.

@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.ops.io.data
 
-import org.platanios.tensorflow.api.ops.{Basic, Function, Op, Output}
+import org.platanios.tensorflow.api.ops.{Basic, Op, Output}
 
 /** Dataset that wraps the application of the `prefetch` op.
   *
@@ -35,10 +35,7 @@ case class PrefetchDataset[T, O, D, S](
     inputDataset: Dataset[T, O, D, S],
     bufferSize: Long,
     override val name: String = "PrefetchDataset"
-)(implicit
-    ev: Data.Aux[T, O, D, S],
-    evFunctionInput: Function.ArgType[O]
-) extends Dataset[T, O, D, S](name) {
+) extends Dataset[T, O, D, S](name)(inputDataset.evOToT, inputDataset.ev, inputDataset.evFunctionInput) {
   override def createHandle(): Output = {
     Op.Builder(opType = "PrefetchDataset", name = name)
         .addInput(Op.createWithNameScope(name)(inputDataset.createHandle()))
@@ -54,18 +51,13 @@ case class PrefetchDataset[T, O, D, S](
 
 object PrefetchDataset {
   private[data] trait Implicits {
-    implicit def datasetToPrefetchDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S])(implicit
-        ev: Data.Aux[T, O, D, S],
-        evFunctionInput: Function.ArgType[O]
-    ): PrefetchDatasetOps[T, O, D, S] = {
+    implicit def datasetToPrefetchDatasetOps[T, O, D, S](
+        dataset: Dataset[T, O, D, S]): PrefetchDatasetOps[T, O, D, S] = {
       PrefetchDatasetOps(dataset)
     }
   }
 
-  case class PrefetchDatasetOps[T, O, D, S] private[PrefetchDataset] (dataset: Dataset[T, O, D, S])(implicit
-      ev: Data.Aux[T, O, D, S],
-      evFunctionInput: Function.ArgType[O]
-  ) {
+  case class PrefetchDatasetOps[T, O, D, S] private[PrefetchDataset] (dataset: Dataset[T, O, D, S]) {
     /** $OpDocDatasetPrefetch
       *
       * @param  bufferSize Number of elements to prefetch.

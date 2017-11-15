@@ -39,10 +39,7 @@ case class GroupByWindowDataset[T, O, D, S](
     reduceFn: ((Output, Dataset[T, O, D, S])) => Dataset[T, O, D, S],
     windowSizeFn: (Output) => Output,
     override val name: String = "GroupByWindowDataset"
-)(implicit
-    ev: Data.Aux[T, O, D, S],
-    evFunctionInput: Function.ArgType[O]
-) extends Dataset[T, O, D, S](name) {
+) extends Dataset[T, O, D, S](name)(inputDataset.evOToT, inputDataset.ev, inputDataset.evFunctionInput) {
   private[this] lazy val instantiatedKeyFunction = {
     Function(s"$name/KeyFunction", keyFn).instantiate(
       inputDataset.flattenedOutputDataTypes, inputDataset.flattenedOutputShapes)
@@ -77,24 +74,18 @@ case class GroupByWindowDataset[T, O, D, S](
 
 object GroupByWindowDataset {
   private[data] trait Implicits {
-    implicit def datasetToGroupByWindowDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S])(implicit
-        ev: Data.Aux[T, O, D, S]
-    ): GroupByWindowDatasetOps[T, O, D, S] = {
+    implicit def datasetToGroupByWindowDatasetOps[T, O, D, S](
+        dataset: Dataset[T, O, D, S]): GroupByWindowDatasetOps[T, O, D, S] = {
       GroupByWindowDatasetOps(dataset)
     }
   }
 
-  case class GroupByWindowDatasetOps[T, O, D, S] private[GroupByWindowDataset] (dataset: Dataset[T, O, D, S])(implicit
-      ev: Data.Aux[T, O, D, S]
-  ) {
+  case class GroupByWindowDatasetOps[T, O, D, S] private[GroupByWindowDataset] (dataset: Dataset[T, O, D, S]) {
     def groupByWindow(
         keyFn: (O) => Output,
         reduceFn: ((Output, Dataset[T, O, D, S])) => Dataset[T, O, D, S],
         windowSizeFn: (Output) => Output,
         name: String = "GroupByWindowDataset"
-    )(implicit
-        ev: Data.Aux[T, O, D, S],
-        evFunctionInput: Function.ArgType[O]
     ): Dataset[T, O, D, S] = {
       GroupByWindowDataset(dataset, keyFn, reduceFn, windowSizeFn, name)
     }
