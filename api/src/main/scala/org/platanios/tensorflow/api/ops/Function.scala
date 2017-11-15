@@ -132,14 +132,14 @@ object Function {
   }
 }
 
-private[api] case class InstantiatedFunction[O, R] private[ops] (
-    name: String, function: (O) => R,
+private[api] case class InstantiatedFunction[I, O] private[ops] (
+    name: String, function: (I) => O,
     inputDataTypes: Seq[DataType],
     inputShapes: Option[Seq[Shape]] = None,
     private val _inputNames: Seq[String] = null,
     private val _outputNames: Seq[String] = null)(implicit
-    evInput: Function.ArgType[O],
-    evOutput: Function.ArgType[R]
+    evInput: Function.ArgType[I],
+    evOutput: Function.ArgType[O]
 ) extends Closeable {
   require(inputDataTypes.length == evInput.numOutputs,
           s"The number of 'inputDataTypes' provided (${inputDataTypes.length}) " +
@@ -225,7 +225,7 @@ private[api] case class InstantiatedFunction[O, R] private[ops] (
   val outputShapes: Seq[Shape] = initializationOutput._4.map(_.shape)
 
   /** Dummy outputs used to store the structure information of the output type. */
-  private[ops] val dummyOutputs: R = initializationOutput._3
+  private[ops] val dummyOutputs: O = initializationOutput._3
 
   /** Functions defined in the graph used while creating this function. These functions will be added to all graphs
     * where this function is added to. */
@@ -279,8 +279,8 @@ private[api] case class InstantiatedFunction[O, R] private[ops] (
     * @return Function output.
     */
   def apply(
-      input: O, inline: Boolean = true, compiled: Boolean = false, separateCompiledGradients: Boolean = false,
-      name: String = this.name)(implicit context: DynamicVariable[OpCreationContext]): R = {
+      input: I, inline: Boolean = true, compiled: Boolean = false, separateCompiledGradients: Boolean = false,
+      name: String = this.name)(implicit context: DynamicVariable[OpCreationContext]): O = {
     val outputs = Op.createWithNameScope(name) {
       val outputs = evInput.outputs(input)
       addToGraph(outputs.head.graph)
