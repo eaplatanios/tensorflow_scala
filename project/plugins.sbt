@@ -37,4 +37,3 @@ addSbtPlugin("org.xerial.sbt"    % "sbt-sonatype" % "2.0")
 
 // Generally useful plugins
 // addSbtPlugin("io.get-coursier" %  "sbt-coursier" % "1.0.0-RC10") // Provides fast dependency resolution.
-// addCompilerPlugin("io.tryp"    %% "splain"       % "0.2.6")         // Prints better implicit resolution errors.

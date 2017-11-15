@@ -27,6 +27,8 @@ organization in ThisBuild := "org.platanios"
 val tensorFlowVersion = "1.4.0"
 val circeVersion = "0.8.0"       // Use for working with JSON.
 
+autoCompilerPlugins in ThisBuild := true
+
 scalacOptions in ThisBuild ++= Seq(
   "-deprecation",
   "-encoding", "UTF-8",
@@ -41,7 +43,14 @@ scalacOptions in ThisBuild ++= Seq(
   // "-Ywarn-dead-code",
   // "-Ywarn-numeric-widen",
   // "-Ywarn-value-discard",
-  "-Xfuture"
+  "-Xfuture",
+  "-P:splain:all",
+  "-P:splain:infix",
+  "-P:splain:foundreq",
+  "-P:splain:implicits",
+  "-P:splain:color",
+  "-P:splain:tree"
+//  "-P:splain:boundsimplicits:false"
 )
 
 // TODO: Find a way to better deal with cross-compiling. Current issues:
@@ -54,7 +63,10 @@ lazy val loggingSettings = Seq(
     "ch.qos.logback"             %  "logback-classic" % "1.2.3")
 )
 
-lazy val commonSettings = loggingSettings
+lazy val commonSettings = loggingSettings ++ Seq(
+  // Plugin that prints better implicit resolution errors.
+  addCompilerPlugin("io.tryp"  % "splain" % "0.2.7" cross CrossVersion.patch)
+)
 
 lazy val testSettings = Seq(
   libraryDependencies ++= Seq(
@@ -90,6 +102,7 @@ lazy val all = (project in file("."))
     .aggregate(jni, api, data, examples, site)
     .dependsOn(jni, api)
     .settings(moduleName := "tensorflow", name := "TensorFlow for Scala")
+    .settings(commonSettings)
     .settings(publishSettings)
     .settings(
       sourcesInBase := false,
@@ -216,6 +229,7 @@ lazy val site = (project in file("./site"))
     .dependsOn(api)
     .enablePlugins(ScalaUnidocPlugin, MicrositesPlugin)
     .settings(moduleName := "tensorflow-site", name := "TensorFlow for Scala Site")
+    .settings(commonSettings)
     .settings(publishSettings)
     .settings(noPublishSettings)
     .settings(
