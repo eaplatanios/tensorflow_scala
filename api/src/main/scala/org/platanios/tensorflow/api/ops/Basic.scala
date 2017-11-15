@@ -2082,7 +2082,7 @@ private[api] object Basic extends Basic {
         // Using modulus here for convenience since the 'concatenationAxis' value is already verified in the concatenate
         // op implementation to be within the allowed '[-rank, rank)' range.
         val nonNegativeConcatenationAxis = concatenationAxis % rank(inputValues(0))
-        val outputGradients = gradient match {
+        val outputGradients: Seq[OutputLike] = gradient match {
           case g: Output =>
             // Get the inputs' tensor shapes.
             val shapes = shapeN(inputValues)
@@ -2097,42 +2097,66 @@ private[api] object Basic extends Basic {
               val offset = concatenateOffset(shapes, nonNegativeConcatenationAxis)
               offset.zip(shapes).map(t => slice(g, t._1, t._2))
             }
-          case _: OutputIndexedSlices => ??? // TODO: [GRADIENTS] [TENSORS] Can be done after we settle on tensors.
-          // val staticConcatenationAxis = {
-          //   val axis = Op.constantValue(concatenationAxis)
-          //   if (axis == null)
-          //     throw new IllegalArgumentException(
-          //       "Can only compute 'OutputIndexedSlices' gradients for the concatenation op when the " +
-          //           "concatenation axis is statically-known.")
-          //   val realNumericAxis = axis.asRealNumeric
-          //   if (realNumericAxis.scalar < 0) {
-          //     val staticRank = Op.constantValue(rank(inputValues(0)))
-          //     if (staticRank == null)
-          //       throw new IllegalArgumentException(
-          //         "Can only compute 'OutputIndexedSlices' gradients for the concatenation op when the " +
-          //             "first value rank is statically-known.")
-          //     realNumericAxis % staticRank.asRealNumeric.scalar
-          //  } else {
-          //     realNumericAxis
-          //   }
-          // }
-          //
-          // Get the input tensor shapes.
-          // val shapes = inputValues.map(shape(_))
-          // if (staticConcatenationAxis > 0) {
-          //   /* Creates variables for iteratively slicing a dense gradients tensor. */
-          //   // Since shape is 1-D, 'shapeOfShape' is a scalar containing the rank of the inputs.
-          //   val shapeOfShape = shape(shapes(0))
-          //   // Make a vector of length equal to the input rank, with 0's everywhere and 1 in the concatenation axis index.
-          //   val zero = constant(Tensor(INT32, 0))
-          //   val one = constant(Tensor(INT32, 1))
-          //   val mask = concatenate(Seq(
-          //    fill(expandDims(nonNegativeConcatenationAxis, 0), zero, INT32),
-          //     constant(Tensor(INT32, 1)),
-          //    fill(shapeOfShape - nonNegativeConcatenationAxis - one, zero, INT32)
-          //   ), zero)
-          //   val begin = fill(shapeOfShape, zero, INT32)
-          // }
+          case g: OutputIndexedSlices =>
+            val staticConcatenationAxis = {
+              val axis = Output.constantValue(concatenationAxis)
+              if (axis.isEmpty)
+                throw new IllegalArgumentException(
+                  "Can only compute 'OutputIndexedSlices' gradients for the concatenation op when the " +
+                      "concatenation axis is statically-known.")
+              val realNumericAxis = axis.get.scalar.asInstanceOf[Int]
+              if (realNumericAxis < 0) {
+                val staticRank = Output.constantValue(rank(inputValues(0)))
+                if (staticRank.isEmpty)
+                  throw new IllegalArgumentException(
+                    "Can only compute 'OutputIndexedSlices' gradients for the concatenation op when the " +
+                        "first value rank is statically-known.")
+                realNumericAxis % staticRank.get.scalar.asInstanceOf[Int]
+              } else {
+                realNumericAxis
+              }
+            }
+            // Get the input tensor shapes.
+            val shapes = inputValues.map(shape(_))
+            if (staticConcatenationAxis > 0) {
+              // 'nonNegativeConcatenationAxis' > 0. Each input gets OutputIndexedSlices gradients with all the indices,
+              // but with the values sliced accordingly. This is like the Output case, except that shape(g.values)(0) is
+              // not equal to shape(shapes(i))(0), since only a subset of the axis-0 values are stored.
+
+              // The following creates variables for iteratively slicing a dense gradients tensor.
+              // Since shape is 1-D, 'shapeOfShape' is a scalar containing the rank of the inputs.
+              val shapeOfShape = shape(shapes(0))
+              // Make a vector of length equal to the input rank, with 0's everywhere and 1 in the concatenation axis index.
+              val zero = constant(Tensor(INT32, 0))
+              val one = constant(Tensor(INT32, 1))
+              val mask = concatenate(Seq(
+                fill(INT32, expandDims(nonNegativeConcatenationAxis, 0))(zero),
+                constant(Tensor(INT32, 1)),
+                fill(INT32, shapeOfShape - nonNegativeConcatenationAxis - one)(zero)
+              ), zero)
+              var begin = fill(INT32, shapeOfShape)(zero)
+              shapes.map(shape => {
+                val newValues = slice(g.values, begin, concatenate(Seq(Tensor(-1), slice(shape, 1, -1)), 0))
+                begin = Math.add(begin, shape * mask)
+                OutputIndexedSlices(g.indices, newValues, shape)
+              })
+            } else {
+              // 'nonNegativeConcatenationAxis' == 0. Each input gets OutputIndexedSlices gradients but only for the
+              // relevant indices.
+              var start = constant(0, g.indices.dataType)
+              var end = start
+              shapes.map(shape => {
+                val shapeConcatenationAxis = gather(shape, nonNegativeConcatenationAxis).cast(g.indices.dataType)
+                end = start + shapeConcatenationAxis
+                // Compute the 1-D Output of indices relevant for this input.
+                val indicesToSelect = squeeze(
+                  where(Math.logicalAnd(g.indices >= start, g.indices < end)), axes = Seq(1))
+                val newIndices = gather(g.indices, indicesToSelect) - start
+                val newValues = gather(g.values, indicesToSelect)
+                start = end
+                OutputIndexedSlices(newIndices, newValues, shape)
+              })
+            }
           case _ => throw new IllegalArgumentException(
             "Only 'Output' and 'OutputIndexedSlices' gradients are supported for the concatenation op.")
         }
@@ -2157,7 +2181,7 @@ private[api] object Basic extends Basic {
       //   multiples = [2, 3, 4]
       //   splitShape = [2, 20, 3, 30, 4, 40]
       //   axes = [0, 2, 4]
-      val splitShape = reshape(transpose(stack(Seq(op.inputs(1), inputShape))), -1)
+      val splitShape = reshape(transpose(stack(Seq(op.inputs(1), inputShape))), Shape(-1))
       val axes = Math.range(0, size(splitShape), 2)
       val inputGradient = Math.sum(reshape(outputGradients.head, splitShape), axes)
       // Fix shape inference.
