@@ -96,9 +96,13 @@ private[api] trait ControlFlow {
       inputs: Array[T], controlInputs: Set[Op] = Set.empty, name: String = "Tuple")
       (implicit tag: ClassTag[T]): Array[T] = {
     val gatingOps = inputs.map(_.op).toSet
-    Op.createWithNameScope(name, gatingOps) {
-      val gate = group(gatingOps ++ controlInputs)
-      inputs.map(withControlDependencies(Set[Op](gate), _))
+    if (gatingOps.isEmpty) {
+      inputs
+    } else {
+      Op.createWithNameScope(name, gatingOps) {
+        val gate = group(gatingOps ++ controlInputs)
+        inputs.map(withControlDependencies(Set[Op](gate), _))
+      }
     }
   }
 
