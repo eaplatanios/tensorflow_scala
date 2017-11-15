@@ -38,8 +38,8 @@ case class TensorSlicesDataset[T, O, D, S](
     data: T,
     override val name: String = "TensorSlicesDataset"
 )(implicit
-    evOToT: OutputToTensor.Aux[O, T],
     ev: Data.Aux[T, O, D, S],
+    evOToT: OutputToTensor.Aux[O, T],
     evFunctionInput: Function.ArgType[O]
 ) extends Dataset[T, O, D, S](name)(evOToT, ev, evFunctionInput) {
   override def createHandle(): Output = {

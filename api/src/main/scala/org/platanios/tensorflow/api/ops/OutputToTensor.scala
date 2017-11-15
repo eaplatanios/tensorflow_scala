@@ -81,7 +81,7 @@ object OutputToTensor {
 
   implicit def productOutputToTensorConstructor[PO <: Product, PT <: Product, HO <: HList, HT <: HList](implicit
       genO: Generic.Aux[PO, HO],
-      evH: Aux[HO, HT],
+      evH: Lazy[Aux[HO, HT]],
       tuplerT: Tupler.Aux[HT, PT]
   ): Aux[PO, PT] = new OutputToTensor[PO] {
     override type TensorType = PT

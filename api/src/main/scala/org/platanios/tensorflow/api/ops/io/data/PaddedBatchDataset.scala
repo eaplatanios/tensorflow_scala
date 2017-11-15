@@ -73,6 +73,60 @@ case class PaddedBatchDataset[T, O, D, S](
   }
 }
 
+/** Dataset that wraps the application of the `paddedBatch` op.
+  *
+  * $OpDocDatasetPaddedBatch
+  *
+  * @param  inputDataset  Input dataset.
+  * @param  batchSize     Batch size to use.
+  * @param  paddedShapes  Shape to which the respective component of each input element should be padded prior to
+  *                       batching. Any unknown dimensions (e.g., equal to `-1`) will be padded to the maximum size of
+  *                       that dimension in each batch.
+  * @param  paddingValues Scalar tensor structure representing the padding values to use for the respective components.
+  *                       Defaults to zero for numeric types and the empty string for string types.
+  * @param  name          Name for this dataset.
+  * @tparam T             Tensor type (i.e., nested structure of tensors).
+  * @tparam O             Output type (i.e., nested structure of symbolic tensors).
+  * @tparam D             Data type of the outputs (i.e., nested structure of TensorFlow data types).
+  * @tparam S             Shape type of the outputs (i.e., nested structure of TensorFlow shapes).
+  *
+  * @author Emmanouil Antonios Platanios
+  */
+case class DynamicPaddedBatchDataset[T, O, D, S](
+    inputDataset: Dataset[T, O, D, S],
+    batchSize: Long,
+    paddedShapes: S,
+    paddingValues: O = null.asInstanceOf[O],
+    override val name: String = "PaddedBatchDataset"
+) extends Dataset[T, O, D, S](name)(inputDataset.evOToT, inputDataset.ev, inputDataset.evFunctionInput) {
+  override def createHandle(): Output = {
+    Op.Builder(opType = "PaddedBatchDataset", name = name)
+        .addInput(Op.createWithNameScope(name)(inputDataset.createHandle()))
+        .addInput(Op.createWithNameScope(name)(Basic.constant(batchSize)))
+        .addInputList(Op.createWithNameScope(name)(ev.flattenedShapes(paddedShapes).map(_.toOutput(INT64))))
+        .addInputList(Op.createWithNameScope(name)(flattenedPaddingValues))
+        .setAttribute("Toutput_types", flattenedOutputDataTypes.toArray)
+        .setAttribute("output_shapes", flattenedOutputShapes.toArray)
+        .build().outputs(0)
+  }
+
+  private[this] def flattenedPaddingValues: Seq[Output] = {
+    if (paddingValues != null) {
+      ev.flattenedOutputsFromO(paddingValues)
+    } else {
+      flattenedOutputDataTypes.map({
+        case STRING => Basic.constant("", STRING, Shape.scalar())
+        case dataType => Basic.constant(0, dataType, Shape.scalar())
+      })
+    }
+  }
+
+  override def outputDataTypes: D = inputDataset.outputDataTypes
+  override def outputShapes: S = {
+    ev.unflattenShapes(outputDataTypes, inputDataset.flattenedOutputShapes.map(Shape(-1) ++ _))
+  }
+}
+
 object PaddedBatchDataset {
   private[data] trait Implicits {
     implicit def datasetToPaddedBatchDatasetOps[T, O, D, S](
@@ -98,6 +152,25 @@ object PaddedBatchDataset {
         name: String = "PaddedBatch"): Dataset[T, O, D, S] = {
       Op.createWithNameScope(dataset.name) {
         PaddedBatchDataset(dataset, batchSize, paddedShapes, paddingValues, name)
+      }
+    }
+
+    /** $OpDocDatasetPaddedBatch
+      *
+      * @param  batchSize     Batch size.
+      * @param  paddedShapes  Shape to which the respective component of each input element should be padded prior to
+      *                       batching. Any unknown dimensions (e.g., equal to `-1`) will be padded to the maximum size
+      *                       of that dimension in each batch.
+      * @param  paddingValues Scalar tensor structure representing the padding values to use for the respective
+      *                       components. Defaults to zero for numeric types and the empty string for string types.
+      * @param  name          Name for the created dataset.
+      * @return Created dataset.
+      */
+    def dynamicPaddedBatch(
+        batchSize: Long, paddedShapes: S, paddingValues: O = null.asInstanceOf[O],
+        name: String = "PaddedBatch"): Dataset[T, O, D, S] = {
+      Op.createWithNameScope(dataset.name) {
+        DynamicPaddedBatchDataset(dataset, batchSize, paddedShapes, paddingValues, name)
       }
     }
   }
