@@ -233,7 +233,7 @@ object Dataset {
         evOToT: OutputToTensor.Aux[O, T],
         evFunctionOutput: Function.ArgType[O]
     ): Dataset[T, O, D, S] = {
-      Dataset.fromGenerator[T, O, D, S](generator, outputDataType, outputShape)(evOToT, ev, evFunctionOutput)
+      Dataset.fromGenerator[T, O, D, S](generator, outputDataType, outputShape)(ev, evOToT, evFunctionOutput)
     }
   }
 
