@@ -103,7 +103,7 @@ object Layer {
     def createWith[R](
         nameScope: String = null,
         device: String = "",
-        deviceFunction: OpSpecification => String = _.device,
+        deviceFunction: OpSpecification => String = op => op.device,
     )(block: => R): R = {
       Layer.createWith(nameScope, device, deviceFunction)(block)
     }
