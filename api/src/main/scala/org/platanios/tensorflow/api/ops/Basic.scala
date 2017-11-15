@@ -2082,59 +2082,21 @@ private[api] object Basic extends Basic {
         // Using modulus here for convenience since the 'concatenationAxis' value is already verified in the concatenate
         // op implementation to be within the allowed '[-rank, rank)' range.
         val nonNegativeConcatenationAxis = concatenationAxis % rank(inputValues(0))
-        val outputGradients = gradient match {
-          case g: Output =>
-            // Get the inputs' tensor shapes.
-            val shapes = shapeN(inputValues)
-            // The magic number of '16' was found through benchmarking a range of sizes on CPUs and a Maxwell Titan X
-            // GPU. A speedup was seen in a large majority of cases when switching implementations at N = 16, but it is
-            // possible that there will be a small number of performance regressions.
-            if (shapes.length > 16) {
-              // Extract the size of each input along the concatenation axis.
-              val sizes = squeeze(slice(stack(shapes, 1), stack(Seq(nonNegativeConcatenationAxis, 0)), Tensor(1, -1)))
-              split(g, sizes, nonNegativeConcatenationAxis)
-            } else {
-              val offset = concatenateOffset(shapes, nonNegativeConcatenationAxis)
-              offset.zip(shapes).map(t => slice(g, t._1, t._2))
-            }
-          case _: OutputIndexedSlices => ??? // TODO: [GRADIENTS] [TENSORS] Can be done after we settle on tensors.
-          // val staticConcatenationAxis = {
-          //   val axis = Op.constantValue(concatenationAxis)
-          //   if (axis == null)
-          //     throw new IllegalArgumentException(
-          //       "Can only compute 'OutputIndexedSlices' gradients for the concatenation op when the " +
-          //           "concatenation axis is statically-known.")
-          //   val realNumericAxis = axis.asRealNumeric
-          //   if (realNumericAxis.scalar < 0) {
-          //     val staticRank = Op.constantValue(rank(inputValues(0)))
-          //     if (staticRank == null)
-          //       throw new IllegalArgumentException(
-          //         "Can only compute 'OutputIndexedSlices' gradients for the concatenation op when the " +
-          //             "first value rank is statically-known.")
-          //     realNumericAxis % staticRank.asRealNumeric.scalar
-          //  } else {
-          //     realNumericAxis
-          //   }
-          // }
-          //
-          // Get the input tensor shapes.
-          // val shapes = inputValues.map(shape(_))
-          // if (staticConcatenationAxis > 0) {
-          //   /* Creates variables for iteratively slicing a dense gradients tensor. */
-          //   // Since shape is 1-D, 'shapeOfShape' is a scalar containing the rank of the inputs.
-          //   val shapeOfShape = shape(shapes(0))
-          //   // Make a vector of length equal to the input rank, with 0's everywhere and 1 in the concatenation axis index.
-          //   val zero = constant(Tensor(INT32, 0))
-          //   val one = constant(Tensor(INT32, 1))
-          //   val mask = concatenate(Seq(
-          //    fill(expandDims(nonNegativeConcatenationAxis, 0), zero, INT32),
-          //     constant(Tensor(INT32, 1)),
-          //    fill(shapeOfShape - nonNegativeConcatenationAxis - one, zero, INT32)
-          //   ), zero)
-          //   val begin = fill(shapeOfShape, zero, INT32)
-          // }
-          case _ => throw new IllegalArgumentException(
-            "Only 'Output' and 'OutputIndexedSlices' gradients are supported for the concatenation op.")
+        val outputGradients = {
+          // TODO: Handle OutputIndexedSlices explicitly for better performance
+          // Get the inputs' tensor shapes.
+          val shapes = shapeN(inputValues)
+          // The magic number of '16' was found through benchmarking a range of sizes on CPUs and a Maxwell Titan X
+          // GPU. A speedup was seen in a large majority of cases when switching implementations at N = 16, but it is
+          // possible that there will be a small number of performance regressions.
+          if (shapes.length > 16) {
+            // Extract the size of each input along the concatenation axis.
+            val sizes = squeeze(slice(stack(shapes, 1), stack(Seq(nonNegativeConcatenationAxis, 0)), Tensor(1, -1)))
+            split(gradient.toOutput, sizes, nonNegativeConcatenationAxis)
+          } else {
+            val offset = concatenateOffset(shapes, nonNegativeConcatenationAxis)
+            offset.zip(shapes).map(t => slice(gradient.toOutput, t._1, t._2))
+          }
         }
         outputGradients :+ null
       }
@@ -2157,7 +2119,7 @@ private[api] object Basic extends Basic {
       //   multiples = [2, 3, 4]
       //   splitShape = [2, 20, 3, 30, 4, 40]
       //   axes = [0, 2, 4]
-      val splitShape = reshape(transpose(stack(Seq(op.inputs(1), inputShape))), -1)
+      val splitShape = reshape(transpose(stack(Seq(op.inputs(1), inputShape))), Shape(-1))
       val axes = Math.range(0, size(splitShape), 2)
       val inputGradient = Math.sum(reshape(outputGradients.head, splitShape), axes)
       // Fix shape inference.
