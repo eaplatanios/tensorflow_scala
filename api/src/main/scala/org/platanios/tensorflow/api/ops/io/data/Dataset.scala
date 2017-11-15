@@ -229,8 +229,8 @@ object Dataset {
     def fromGenerator[T, O, D, S](
         generator: () => Iterable[T], outputDataType: D, outputShape: S = null
     )(implicit
-        evOToT: OutputToTensor.Aux[O, T],
         ev: Data.Aux[T, O, D, S],
+        evOToT: OutputToTensor.Aux[O, T],
         evFunctionOutput: Function.ArgType[O]
     ): Dataset[T, O, D, S] = {
       Dataset.fromGenerator[T, O, D, S](generator, outputDataType, outputShape)(evOToT, ev, evFunctionOutput)
@@ -277,8 +277,8 @@ object Dataset {
   private[api] def fromGenerator[T, O, D, S](
       generator: () => Iterable[T], outputDataType: D, outputShape: S = null
   )(implicit
-      evOToT: OutputToTensor.Aux[O, T],
       ev: Data.Aux[T, O, D, S],
+      evOToT: OutputToTensor.Aux[O, T],
       evFunctionOutput: Function.ArgType[O]
   ): Dataset[T, O, D, S] = {
     val inferredOutputShape: S = {
