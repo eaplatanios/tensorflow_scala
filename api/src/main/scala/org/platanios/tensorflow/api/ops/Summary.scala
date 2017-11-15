@@ -335,12 +335,12 @@ private[api] object Summary extends Summary {
     * @return Created op output.
     */
   private[Summary] def imageSummary(
-      tensor: Output, badColor: Output, tag: Output, maxOutputs: Int = 3,
+      tensor: Output, badColor: Tensor, tag: Output, maxOutputs: Int = 3,
       name: String = "ImageSummary"): Output = {
     Op.Builder("ImageSummary", name)
         .addInput(tag)
         .addInput(tensor)
-        .addInput(badColor)
+        .setAttribute("bad_color", badColor)
         .setAttribute("max_images", maxOutputs)
         .build().outputs(0)
   }
