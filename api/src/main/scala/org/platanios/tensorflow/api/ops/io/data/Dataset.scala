@@ -122,9 +122,12 @@ abstract class Dataset[T, O, D, S](
   def shard(numShards: Long, shardIndex: Long): Dataset[T, O, D, S] = {
     if (shardIndex >= numShards)
       throw InvalidArgumentException(s"'index' (= $shardIndex) must be smaller than 'numShards' (= $numShards).")
-    this.zip(RangeDataset(0, Long.MaxValue))
-        .filter(t => Math.equal(Math.mod(t._2, numShards), shardIndex))
-        .map(o => o._1)
+    if (numShards == 1)
+      this
+    else
+      this.zip(RangeDataset(0, Long.MaxValue))
+          .filter(t => Math.equal(Math.mod(t._2, numShards), shardIndex))
+          .map(o => o._1)
   }
 
   /** Applies a transformation function to this dataset.
