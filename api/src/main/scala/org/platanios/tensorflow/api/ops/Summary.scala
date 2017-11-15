@@ -106,7 +106,7 @@ private[api] trait Summary {
     * @return Created op output.
     */
   def image(
-      name: String, tensor: Output, badColor: Output = Tensor(UINT8, 255, 0, 0, 255).toOutput, maxOutputs: Int = 3,
+      name: String, tensor: Output, badColor: Tensor = Tensor(UINT8, 255, 0, 0, 255), maxOutputs: Int = 3,
       collections: Set[Graph.Key[Output]] = Set(Graph.Keys.SUMMARIES), family: String = null): Output = {
     Summary.scoped((scope, tag) => {
       val summary = Summary.imageSummary(tensor, badColor, tag, maxOutputs, scope)
