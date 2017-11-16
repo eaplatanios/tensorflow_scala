@@ -205,6 +205,25 @@ JNIEXPORT jobject JNICALL Java_org_platanios_tensorflow_jni_Op_00024_input(JNIEn
     outputClass, outputClassConstructor, reinterpret_cast<jlong>(output.oper), output.index);
 }
 
+JNIEXPORT jobject JNICALL Java_org_platanios_tensorflow_jni_Op_00024_inputs(
+    JNIEnv* env, jobject object, jlong handle) {
+  TF_Operation* op = require_operation_handle(env, handle);
+  if (op == nullptr) return nullptr;
+
+  int num_inputs = TF_OperationNumInputs(op);
+  jclass output_class = env->FindClass("org/platanios/tensorflow/jni/Output");
+  jmethodID output_class_constructor = env->GetStaticMethodID(
+      output_class, "apply", "(JI)Lorg/platanios/tensorflow/jni/Output;");
+  jobjectArray array = env->NewObjectArray(num_inputs, output_class, nullptr);
+  for (int i = 0; i < num_inputs; ++i) {
+    TF_Output output = TF_OperationInput(TF_Input{op, i});
+    jobject joutput = env->CallStaticObjectMethod(
+      output_class, output_class_constructor, reinterpret_cast<jlong>(output.oper), output.index);
+    env->SetObjectArrayElement(array, i, joutput);
+  }
+  return array;
+}
+
 JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_controlInputs(JNIEnv* env,
                                                                                              jobject object,
                                                                                              jlong handle) {

@@ -88,13 +88,14 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
   def numInputs: Int = using(graph.reference) { _ => NativeOp.numInputs(nativeHandle) }
 
   /** Inputs of this op. Note that these inputs are outputs of other ops and thus have type [[Output]]. */
-  def inputs: Array[Output] = (0 until numInputs).map(index => using(graph.reference) { _ =>
-    val jniOutput = NativeOp.input(nativeHandle, index)
-    val op = graph.opsCache.getOrElseUpdate(
-      jniOutput.opHandle,
-      Op(graph, jniOutput.opHandle))
-    op.outputs(jniOutput.outputIndex)
-  }).toArray
+  def inputs: Array[Output] = using(graph.reference) { _ =>
+    NativeOp.inputs(nativeHandle).map(i => {
+      val op = graph.opsCache.getOrElseUpdate(
+        i.opHandle,
+        Op(graph, i.opHandle))
+      op.outputs(i.outputIndex)
+    })
+  }
 
   /** Number of control inputs to this op. These are ops that are guaranteed to finish executing before this op starts
     * executing). */

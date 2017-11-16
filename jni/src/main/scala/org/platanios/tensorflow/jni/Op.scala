@@ -33,6 +33,7 @@ object Op {
   @native def numControlOutputs(handle: Long): Int
   @native def numConsumers(handle: Long, output: Int): Int
   @native def input(handle: Long, inputIndex: Int): Output
+  @native def inputs(handle: Long): Array[Output]
   @native def controlInputs(handle: Long): Array[Long]
   @native def controlOutputs(handle: Long): Array[Long]
   @native def consumers(handle: Long, outputIndex: Int): Array[Output]

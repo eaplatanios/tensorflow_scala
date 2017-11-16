@@ -81,6 +81,14 @@ JNIEXPORT jobject JNICALL Java_org_platanios_tensorflow_jni_Op_00024_input
 
 /*
  * Class:     org_platanios_tensorflow_jni_Op__
+ * Method:    inputs
+ * Signature: (J)[Lorg/platanios/tensorflow/jni/Output;
+ */
+JNIEXPORT jobject JNICALL Java_org_platanios_tensorflow_jni_Op_00024_inputs
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Op__
  * Method:    controlInputs
  * Signature: (J)[J
  */
