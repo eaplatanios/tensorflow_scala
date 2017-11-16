@@ -489,13 +489,16 @@ private[ops] object Gradients {
         Math.addN(deviceContributions)
       } else if (gradients.forall(_.isInstanceOf[OutputIndexedSlices])) {
          def addNOutputIndexedSlices(gradients: Seq[OutputIndexedSlices]): OutputIndexedSlices = {
-           if(gradients.isEmpty)
+           if (gradients.isEmpty)
              throw new IllegalArgumentException(
                "Can not aggregate empty gradients list")
-           else if(gradients.length == 1)
+           else if (gradients.length == 1)
              gradients.head
            else
-            OutputIndexedSlices(Basic.concatenate(gradients.map(_.indices)), Basic.concatenate(gradients.map(_.values)), gradients.head.denseShape)
+             OutputIndexedSlices(
+               Basic.concatenate(gradients.map(_.indices)),
+               Basic.concatenate(gradients.map(_.values)),
+               gradients.head.denseShape)
          }
          val deviceContributions = gradients.groupBy(_.device).toSeq.sortBy(_._1).map {
            case (_, outputs) =>
