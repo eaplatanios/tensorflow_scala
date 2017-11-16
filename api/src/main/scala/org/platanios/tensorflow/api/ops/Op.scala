@@ -85,10 +85,10 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
   private[ops] var controlFlowContext: Option[Context] = None
 
   /** Number of inputs to this op (i.e., number of tensors fed as input to this op). */
-  def numInputs: Int = using(graph.reference) { _ => NativeOp.numInputs(nativeHandle) }
+  val numInputs: Int = using(graph.reference) { _ => NativeOp.numInputs(nativeHandle) }
 
   /** Inputs of this op. Note that these inputs are outputs of other ops and thus have type [[Output]]. */
-  def inputs: Array[Output] = (0 until numInputs).map(index => using(graph.reference) { _ =>
+  val inputs: Array[Output] = (0 until numInputs).map(index => using(graph.reference) { _ =>
     val jniOutput = NativeOp.input(nativeHandle, index)
     val op = graph.opsCache.getOrElseUpdate(
       jniOutput.opHandle,
@@ -98,17 +98,17 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
 
   /** Number of control inputs to this op. These are ops that are guaranteed to finish executing before this op starts
     * executing). */
-  def numControlInputs: Int = using(graph.reference) { _ => NativeOp.numControlInputs(nativeHandle) }
+  lazy val numControlInputs: Int = using(graph.reference) { _ => NativeOp.numControlInputs(nativeHandle) }
 
   /** Control inputs of this op. These are ops that are guaranteed to finish executing before this op starts
     * executing). */
-  def controlInputs: Set[Op] = {
+  lazy val controlInputs: Set[Op] = {
     val controlInputHandles = using(graph.reference) { _ => NativeOp.controlInputs(nativeHandle) }
     controlInputHandles.map(handle => graph.opsCache.getOrElseUpdate(handle, Op(graph, handle))).toSet
   }
 
   /** Number of tensors produced by this operation. */
-  def numOutputs: Int = using(graph.reference) { _ => NativeOp.numOutputs(nativeHandle) }
+  val numOutputs: Int = using(graph.reference) { _ => NativeOp.numOutputs(nativeHandle) }
 
   /** Outputs of this op. */
   def outputs: Array[Output] = (0 until numOutputs).map(i => Output(op = this, index = i)).toArray
@@ -119,7 +119,7 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
     * @note A concurrent modification of the graph can change the number of control outputs of this op.
     * @return Current number of control outputs of this op.
     */
-  def numControlOutputs: Int = using(graph.reference) { _ => NativeOp.numControlOutputs(nativeHandle) }
+  lazy val numControlOutputs: Int = using(graph.reference) { _ => NativeOp.numControlOutputs(nativeHandle) }
 
   /** Gets the (current) control outputs of this op. These are ops that are guaranteed to start executing after this op
     * finishes executing.
@@ -127,7 +127,7 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
     * @note A concurrent modification of the graph can change the number of control outputs of this op.
     * @return Current control outputs of this op.
     */
-  def controlOutputs: Set[Op] = {
+  lazy val controlOutputs: Set[Op] = {
     val controlOutputHandles = using(graph.reference) { _ => NativeOp.controlOutputs(nativeHandle) }
     controlOutputHandles.map(handle => graph.opsCache.getOrElseUpdate(handle, Op(graph, handle))).toSet
   }
