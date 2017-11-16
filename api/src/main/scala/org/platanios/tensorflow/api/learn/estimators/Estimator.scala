@@ -269,44 +269,6 @@ object Estimator {
     }
   }
 
-  trait Implicits {
-    implicit def unsupervisedTrainableModelToUnsupervisedModelFunction[IT, IO, ID, IS, I](
-        model: UnsupervisedTrainableModel[IT, IO, ID, IS, I]
-    ): UnsupervisedModelFunction[IT, IO, ID, IS, I] = {
-      UnsupervisedModelFunction((_: Configuration) => model)
-    }
-
-    implicit def unsupervisedTrainableModelUnitFunctionToUnsupervisedModelFunction[IT, IO, ID, IS, I](
-        function: () => UnsupervisedTrainableModel[IT, IO, ID, IS, I]
-    ): UnsupervisedModelFunction[IT, IO, ID, IS, I] = {
-      UnsupervisedModelFunction((_: Configuration) => function())
-    }
-
-    implicit def unsupervisedTrainableModelUnaryRunConfigFunctionToUnsupervisedModelFunction[IT, IO, ID, IS, I](
-        function: (Configuration) => UnsupervisedTrainableModel[IT, IO, ID, IS, I]
-    ): UnsupervisedModelFunction[IT, IO, ID, IS, I] = {
-      UnsupervisedModelFunction(function)
-    }
-
-    implicit def supervisedTrainableModelToModelFunction[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
-        model: SupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T]
-    ): SupervisedModelFunction[IT, IO, ID, IS, I, TT, TO, TD, TS, T] = {
-      SupervisedModelFunction((_: Configuration) => model)
-    }
-
-    implicit def supervisedTrainableModelUnitFunctionToModelFunction[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
-        function: () => SupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T]
-    ): SupervisedModelFunction[IT, IO, ID, IS, I, TT, TO, TD, TS, T] = {
-      SupervisedModelFunction((_: Configuration) => function())
-    }
-
-    implicit def supervisedTrainableModelUnaryRunConfigFunctionToModelFunction[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
-        function: (Configuration) => SupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T]
-    ): SupervisedModelFunction[IT, IO, ID, IS, I, TT, TO, TD, TS, T] = {
-      SupervisedModelFunction(function)
-    }
-  }
-
   /** Creates a replica device setter, if required, to be used as a default device function.
     *
     * Estimators use a [[ReplicaDevicePlacer]] as a default device placer. It sets the distributed related arguments

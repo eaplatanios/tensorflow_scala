@@ -50,14 +50,7 @@ case class PrefetchDataset[T, O, D, S](
 }
 
 object PrefetchDataset {
-  private[data] trait Implicits {
-    implicit def datasetToPrefetchDatasetOps[T, O, D, S](
-        dataset: Dataset[T, O, D, S]): PrefetchDatasetOps[T, O, D, S] = {
-      PrefetchDatasetOps(dataset)
-    }
-  }
-
-  case class PrefetchDatasetOps[T, O, D, S] private[PrefetchDataset] (dataset: Dataset[T, O, D, S]) {
+  case class PrefetchDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S]) {
     /** $OpDocDatasetPrefetch
       *
       * @param  bufferSize Number of elements to prefetch.

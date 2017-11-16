@@ -15,10 +15,10 @@
 
 package org.platanios.tensorflow.api.tensors
 
-import org.platanios.tensorflow.api.Implicits._
 import org.platanios.tensorflow.api.core._
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception._
+import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.{Basic, Output}
 import org.platanios.tensorflow.api.tensors.ops.Basic.{BasicOps, stack}
 import org.platanios.tensorflow.api.tensors.ops.{Math, Random}
@@ -32,7 +32,6 @@ import com.google.protobuf.ByteString
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
 import org.tensorflow.framework.TensorProto
-import shapeless.{Generic, HList, Lazy}
 
 import java.nio._
 import java.nio.charset.Charset
@@ -608,10 +607,6 @@ object Tensor {
     }
     tensorProtoBuilder.build()
   }
-
-  private[tensors] trait Implicits {
-    implicit def tensorConvertibleToTensor[T](value: T)(implicit ev: TensorConvertible[T]): Tensor = ev.toTensor(value)
-  }
 }
 
 /** Sparse representation of a set of tensor slices at given indices.
@@ -823,28 +818,18 @@ object TensorConvertible {
     }
   }
 
-  implicit def arrayExecutable[T](implicit ev: TensorConvertible[T]): TensorConvertible[Array[T]] = {
+  implicit def arrayTensorConvertible[T](implicit ev: TensorConvertible[T]): TensorConvertible[Array[T]] = {
     new TensorConvertible[Array[T]] {
       /** Converts `value` to a dense tensor. */
       @inline override def toTensor(value: Array[T]): Tensor = stack(value.map(ev.toTensor))
     }
   }
 
-  implicit def traversableExecutable[T, CC[A] <: TraversableLike[A, CC[A]]](
+  implicit def traversableTensorConvertible[T, CC[A] <: TraversableLike[A, CC[A]]](
       implicit ev: TensorConvertible[T]): TensorConvertible[CC[T]] = {
     new TensorConvertible[CC[T]] {
       /** Converts `value` to a dense tensor. */
       @inline override def toTensor(value: CC[T]): Tensor = stack(value.map(ev.toTensor)(breakOut))
-    }
-  }
-
-  implicit def productExecutable[T <: Product, L <: HList](implicit
-      gen: Generic.Aux[T, L],
-      ev: Lazy[TensorConvertible[L]]
-  ): TensorConvertible[T] = new TensorConvertible[T] {
-    /** Converts `value` to a dense tensor. */
-    @inline override def toTensor(value: T): Tensor = {
-      ev.value.toTensor(gen.to(value))
     }
   }
 }

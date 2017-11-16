@@ -15,9 +15,9 @@
 
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api.Implicits._
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.{InvalidArgumentException, InvalidShapeException}
+import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.ops.NN._
 import org.platanios.tensorflow.api.types._
@@ -798,12 +798,7 @@ private[api] trait NN {
 }
 
 object NN extends NN {
-  private[ops] trait Implicits {
-    implicit def outputToNNOps(value: Output): NNOps = NNOps(value)
-    implicit def outputConvertibleToNNOps[T](value: T)(implicit f: (T) => Output): NNOps = NNOps(f(value))
-  }
-
-  case class NNOps private[ops](output: Output) {
+  case class NNOps(output: Output) {
     //region Core Ops
 
     /** $OpDocNNAddBias

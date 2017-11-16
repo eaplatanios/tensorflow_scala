@@ -128,14 +128,7 @@ case class DynamicPaddedBatchDataset[T, O, D, S](
 }
 
 object PaddedBatchDataset {
-  private[data] trait Implicits {
-    implicit def datasetToPaddedBatchDatasetOps[T, O, D, S](
-        dataset: Dataset[T, O, D, S]): PaddedBatchDatasetOps[T, O, D, S] = {
-      PaddedBatchDatasetOps(dataset)
-    }
-  }
-
-  case class PaddedBatchDatasetOps[T, O, D, S] private[PaddedBatchDatasetOps] (dataset: Dataset[T, O, D, S]) {
+  case class PaddedBatchDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S]) {
     /** $OpDocDatasetPaddedBatch
       *
       * @param  batchSize     Batch size.

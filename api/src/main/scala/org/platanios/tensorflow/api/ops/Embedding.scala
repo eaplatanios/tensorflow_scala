@@ -15,12 +15,12 @@
 
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api.Implicits._
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.Indexer._
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
+import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.Embedding.{Combiner, PartitionStrategy}
-import org.platanios.tensorflow.api.ops.variables.{PartitionedVariable, Variable}
+import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.types.INT32
 
 import scala.language.postfixOps
@@ -308,24 +308,7 @@ object Embedding extends Embedding {
       parameters.clipByNorm(maxNorm, Math.range(Basic.rank(indices), Basic.rank(parameters)))
   }
 
-  private[ops] trait Implicits {
-    implicit def singlePartitionEmbeddingMap(parameters: EmbeddingParameters): EmbeddingMap = {
-      EmbeddingMap(Seq(parameters))
-    }
-
-    implicit def multiplePartitionsEmbeddingMap(parameters: Seq[EmbeddingParameters]): EmbeddingMap = {
-      EmbeddingMap(parameters)
-    }
-
-    implicit def partitionedVariableEmbeddingMap(parameters: PartitionedVariable): EmbeddingMap = {
-      EmbeddingMap(parameters.map(VariableParameters).toSeq)
-    }
-
-    implicit def outputToEmbeddingMap(parameters: Output): EmbeddingMap = OutputParameters(parameters)
-    implicit def variableToEmbeddingMap(parameters: Variable): EmbeddingMap = VariableParameters(parameters)
-  }
-
-  private[this] case class OutputParameters(parameters: Output) extends EmbeddingParameters {
+  case class OutputParameters(parameters: Output) extends EmbeddingParameters {
     @inline override def colocationOp: Op = parameters.op
     @inline override def staticShape: Shape = parameters.shape
     @inline override def dynamicShape: Output = Basic.shape(parameters)
@@ -335,7 +318,7 @@ object Embedding extends Embedding {
     }
   }
 
-  private[this] case class VariableParameters(parameters: Variable) extends EmbeddingParameters {
+  case class VariableParameters(parameters: Variable) extends EmbeddingParameters {
     @inline override def colocationOp: Op = parameters.op
     @inline override def staticShape: Shape = parameters.shape
     @inline override def dynamicShape: Output = Basic.shape(parameters.value)

@@ -15,9 +15,9 @@
 
 package org.platanios.tensorflow.api.ops.rnn
 
-import org.platanios.tensorflow.api.Implicits._
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception._
+import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.rnn.cell.RNNCell
 import org.platanios.tensorflow.api.ops.variables.VariableScope

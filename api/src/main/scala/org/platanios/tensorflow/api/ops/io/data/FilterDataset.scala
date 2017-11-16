@@ -56,13 +56,7 @@ case class FilterDataset[T, O, D, S](
 }
 
 object FilterDataset {
-  private[data] trait Implicits {
-    implicit def datasetToFilterDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S]): FilterDatasetOps[T, O, D, S] = {
-      FilterDatasetOps(dataset)
-    }
-  }
-
-  case class FilterDatasetOps[T, O, D, S] private[FilterDataset] (dataset: Dataset[T, O, D, S]) {
+  case class FilterDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S]) {
     /** $OpDocDatasetFilter
       *
       * @param  predicateFn Filter predicate function.

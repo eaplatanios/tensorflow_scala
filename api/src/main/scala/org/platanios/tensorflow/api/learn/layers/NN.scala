@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.learn.layers
 
-import org.platanios.tensorflow.api.Shape
+import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.learn.{Mode, TRAINING, layers}
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.NN.{CNNDataFormat, PaddingMode}

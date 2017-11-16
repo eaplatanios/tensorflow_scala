@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api.Implicits._
+import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.types.{FLOAT16, FLOAT32}
 
 /** Contains functions for constructing ops related to statistics.
@@ -159,15 +159,8 @@ private[api] trait Statistics {
   }
 }
 
-private[api] object Statistics extends Statistics {
-  private[ops] trait Implicits {
-    implicit def outputToStatisticsOps(value: Output): StatisticsOps = StatisticsOps(value)
-    implicit def outputConvertibleToStatisticsOps[T](value: T)(implicit f: (T) => Output): StatisticsOps = {
-      StatisticsOps(f(value))
-    }
-  }
-
-  case class StatisticsOps private[ops](output: Output) {
+object Statistics extends Statistics {
+  case class StatisticsOps(output: Output) {
     /** $OpDocStatisticsSufficientStatistics
       *
       * @group StatisticsOps

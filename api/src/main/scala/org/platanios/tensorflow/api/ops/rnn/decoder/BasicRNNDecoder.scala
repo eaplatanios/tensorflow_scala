@@ -15,9 +15,9 @@
 
 package org.platanios.tensorflow.api.ops.rnn.decoder
 
-import org.platanios.tensorflow.api.Implicits._
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
+import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output, TensorArray}
 import org.platanios.tensorflow.api.ops.control_flow.{ControlFlow, WhileLoopVariable}

@@ -25,7 +25,7 @@ import scala.util.DynamicVariable
 /**
   * @author Emmanouil Antonios Platanios
   */
-package object api extends Implicits with Documentation {
+package object api extends implicits.Implicits with Documentation {
   type Graph = core.Graph
   val Graph: core.Graph.type = core.Graph
 

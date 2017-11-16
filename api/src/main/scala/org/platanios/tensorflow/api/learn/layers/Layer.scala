@@ -23,8 +23,7 @@ import org.platanios.tensorflow.api.ops.{Op, OpSpecification}
 import org.platanios.tensorflow.api.ops.variables._
 import org.platanios.tensorflow.api.types.DataType
 
-import scala.collection.generic.CanBuildFrom
-import scala.collection.{TraversableLike, mutable}
+import scala.collection.mutable
 import scala.util.DynamicVariable
 
 /**
@@ -312,27 +311,5 @@ object Layer {
     variableStore.closeVariableSubScopes(variableScope.name)
     variableStore.setVariableScopeCounts(subScopeCounts)
     result
-  }
-
-  private[layers] trait Implicits {
-    implicit class MappableLayer[T, R, CC[A] <: TraversableLike[A, CC[A]]] private[learn](
-        layer: Layer[CC[T], CC[R]]
-    ) extends Layer[CC[T], CC[R]]("Mappable") {
-      override val layerType: String = "Mappable"
-
-      override def forward(input: CC[T], mode: Mode): LayerInstance[CC[T], CC[R]] = {
-        layer.forward(input, mode)
-      }
-
-      def map[S](
-          layer: Layer[CC[T], CC[R]],
-          mapLayer: Layer[R, S]
-      )(implicit
-          cbfSS: CanBuildFrom[CC[LayerInstance[R, S]], S, CC[S]],
-          cbfLIRS: CanBuildFrom[CC[R], LayerInstance[R, S], CC[LayerInstance[R, S]]]
-      ): layers.Map[T, R, S, CC] = {
-        layers.Map[T, R, S, CC](layer, mapLayer)(cbfSS, cbfLIRS)
-      }
-    }
   }
 }

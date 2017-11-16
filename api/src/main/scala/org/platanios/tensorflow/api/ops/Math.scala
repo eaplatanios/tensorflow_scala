@@ -15,8 +15,8 @@
 
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api.Implicits._
 import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types._
@@ -2091,13 +2091,8 @@ private[api] trait Math {
   //endregion Other Ops
 }
 
-private[api] object Math extends Math {
-  private[ops] trait Implicits {
-    implicit def outputToMathOps(value: Output): MathOps = MathOps(value)
-    implicit def outputConvertibleToMathOps[T](value: T)(implicit f: (T) => Output): MathOps = MathOps(f(value))
-  }
-
-  case class MathOps private[ops](output: Output) {
+object Math extends Math {
+  case class MathOps(output: Output) {
     //region Math Operators
 
     /** $OpDocMathNegate

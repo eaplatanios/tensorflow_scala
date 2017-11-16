@@ -15,7 +15,6 @@
 
 package org.platanios.tensorflow.api.ops.io.data
 
-import org.platanios.tensorflow.api.Implicits._
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.ops.{Callback, Function, Math, Op, Output, OutputToTensor}

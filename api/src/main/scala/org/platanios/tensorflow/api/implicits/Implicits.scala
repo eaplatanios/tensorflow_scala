@@ -13,25 +13,19 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.ops
+package org.platanios.tensorflow.api.implicits
+
+import org.platanios.tensorflow.api.ops.{Op, OpCreationContext, OpSpecification}
 
 import scala.util.DynamicVariable
 
-/** Groups together all implicits related to constructing symbolic ops.
+/** Groups together all the implicits of the API and takes care of their priorities.
   *
   * @author Emmanouil Antonios Platanios
   */
 private[api] trait Implicits
-    extends Output.Implicits
-        with Basic.Implicits
-        with Clip.Implicits
-        with Embedding.Implicits
-        with Math.Implicits
-        with NN.Implicits
-        with Sparse.Implicits
-        with Statistics.Implicits
-        with Text.Implicits
-        with io.Implicits {
+    extends LowPriorityImplicits
+        with Indexer {
   implicit def dynamicVariableToOpCreationContext(context: DynamicVariable[OpCreationContext]): OpCreationContext = {
     context.value
   }
@@ -45,3 +39,11 @@ private[api] trait Implicits
     */
   implicit def deviceImplicitConversion(device: String): (OpSpecification => String) = _ => device
 }
+
+private[api] trait LowPriorityImplicits
+    extends Tensor
+        with Ops
+        with Data
+        with Learn
+
+private[api] object Implicits extends Implicits

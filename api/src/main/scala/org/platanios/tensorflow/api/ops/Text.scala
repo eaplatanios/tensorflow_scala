@@ -136,13 +136,8 @@ private[api] trait Text {
   }
 }
 
-private[api] object Text extends Text {
-  private[ops] trait Implicits {
-    implicit def outputToTextOps(value: Output): TextOps = TextOps(value)
-    implicit def outputConvertibleToTextOps[T](value: T)(implicit f: (T) => Output): TextOps = TextOps(f(value))
-  }
-
-  case class TextOps private[ops](output: Output) {
+object Text extends Text {
+  case class TextOps(output: Output) {
 
     /** $OpDocTextStringToHashBucket
       *

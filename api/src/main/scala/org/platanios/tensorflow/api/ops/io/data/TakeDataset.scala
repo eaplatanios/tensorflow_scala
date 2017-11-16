@@ -50,13 +50,7 @@ case class TakeDataset[T, O, D, S](
 }
 
 object TakeDataset {
-  private[data] trait Implicits {
-    implicit def datasetToTakeDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S]): TakeDatasetOps[T, O, D, S] = {
-      TakeDatasetOps(dataset)
-    }
-  }
-
-  case class TakeDatasetOps[T, O, D, S] private[TakeDataset] (dataset: Dataset[T, O, D, S]) {
+  case class TakeDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S]) {
     /** $OpDocDatasetTake
       *
       * @param  count Number of elements to take.

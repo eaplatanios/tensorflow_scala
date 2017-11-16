@@ -15,15 +15,15 @@
 
 package org.platanios.tensorflow.api.tensors.ops
 
-import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api.core.exception.InvalidShapeException
+import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.NN.{CNNDataFormat, NCHWFormat, NHWCFormat, PaddingMode}
 import org.platanios.tensorflow.api.tensors.{Context, Tensor, TensorOps}
 import org.platanios.tensorflow.api.types.{DataType, FLOAT16, FLOAT32, FLOAT64, INT32, INT64}
 import org.platanios.tensorflow.jni.generated.tensors.{NN => NativeTensorOpsNN}
-import java.nio.charset.Charset
 
-import org.platanios.tensorflow.api.core.exception.InvalidShapeException
+import java.nio.charset.Charset
 
 import scala.util.DynamicVariable
 
@@ -666,13 +666,8 @@ private[api] trait NN {
   //endregion Pooling Ops
 }
 
-private[api] object NN extends NN {
-  private[ops] trait Implicits {
-    implicit def tensorToNNOps(value: Tensor): NNOps = NNOps(value)
-    implicit def tensorConvertibleToNNOps[T](value: T)(implicit f: (T) => Tensor): NNOps = NNOps(f(value))
-  }
-
-  case class NNOps private[ops](tensor: Tensor) {
+object NN extends NN {
+  case class NNOps(tensor: Tensor) {
     //region Core Ops
 
     /** $OpDocNNAddBias

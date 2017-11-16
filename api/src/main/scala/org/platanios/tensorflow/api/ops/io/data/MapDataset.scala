@@ -124,13 +124,7 @@ case class ParallelMapDataset[T, O, D, S, RT, RO, RD, RS](
 }
 
 object MapDataset {
-  private[data] trait Implicits {
-    implicit def datasetToMapDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S]): MapDatasetOps[T, O, D, S] = {
-      MapDatasetOps(dataset)
-    }
-  }
-
-  case class MapDatasetOps[T, O, D, S] private[MapDataset] (dataset: Dataset[T, O, D, S]) {
+  case class MapDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S]) {
     /** $OpDocDatasetMap
       *
       * @param  function         Mapping function.

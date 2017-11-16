@@ -50,13 +50,7 @@ case class DropDataset[T, O, D, S](
 }
 
 object DropDataset {
-  private[data] trait Implicits {
-    implicit def datasetToDropDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S]): DropDatasetOps[T, O, D, S] = {
-      DropDatasetOps(dataset)
-    }
-  }
-
-  case class DropDatasetOps[T, O, D, S] private[DropDataset] (dataset: Dataset[T, O, D, S]) {
+  case class DropDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S]) {
     /** $OpDocDatasetDrop
       *
       * @param  count Number of elements to drop.

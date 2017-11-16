@@ -50,13 +50,7 @@ case class CacheDataset[T, O, D, S](
 }
 
 object CacheDataset {
-  private[data] trait Implicits {
-    implicit def datasetToCacheDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S]): CacheDatasetOps[T, O, D, S] = {
-      CacheDatasetOps(dataset)
-    }
-  }
-
-  case class CacheDatasetOps[T, O, D, S] private[CacheDataset] (dataset: Dataset[T, O, D, S]) {
+  case class CacheDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S]) {
     /** $OpDocDatasetCache
       *
       * @param  directory Directory to use for caching. If empty, then the provided dataset will be cached in memory.

@@ -15,8 +15,8 @@
 
 package org.platanios.tensorflow.api.ops.io.data
 
-import org.platanios.tensorflow.api.Implicits._
 import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.{Function, Op, Output, OutputToTensor}
 import org.platanios.tensorflow.api.tensors.Tensor
 

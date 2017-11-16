@@ -63,14 +63,7 @@ case class ConcatenatedDataset[T, O, D, S](
 }
 
 object ConcatenatedDataset {
-  private[data] trait Implicits {
-    implicit def datasetToConcatenatedDatasetOps[T, O, D, S](
-        dataset: Dataset[T, O, D, S]): ConcatenatedDatasetOps[T, O, D, S] = {
-      ConcatenatedDatasetOps(dataset)
-    }
-  }
-
-  case class ConcatenatedDatasetOps[T, O, D, S] private[ConcatenatedDataset] (dataset: Dataset[T, O, D, S]) {
+  case class ConcatenatedDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S]) {
     /** $OpDocDatasetConcatenate
       *
       * @param  other Dataset to concatenate with the current dataset.

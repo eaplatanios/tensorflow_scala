@@ -15,9 +15,9 @@
 
 package org.platanios.tensorflow.api.ops.lookup
 
-import org.platanios.tensorflow.api.Implicits._
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.{InvalidArgumentException, InvalidDataTypeException}
+import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.types.{DataType, INT64, STRING}

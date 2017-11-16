@@ -51,13 +51,7 @@ case class RepeatDataset[T, O, D, S](
 }
 
 object RepeatDataset {
-  private[data] trait Implicits {
-    implicit def datasetToRepeatDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S]): RepeatDatasetOps[T, O, D, S] = {
-      RepeatDatasetOps(dataset)
-    }
-  }
-
-  case class RepeatDatasetOps[T, O, D, S] private[RepeatDataset] (dataset: Dataset[T, O, D, S]) {
+  case class RepeatDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S]) {
     /** $OpDocDatasetRepeat
       *
       * @param  count Number of times to repeat the input dataset. A value of `-1` corresponds to repeating it

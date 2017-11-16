@@ -73,14 +73,7 @@ case class GroupByWindowDataset[T, O, D, S](
 }
 
 object GroupByWindowDataset {
-  private[data] trait Implicits {
-    implicit def datasetToGroupByWindowDatasetOps[T, O, D, S](
-        dataset: Dataset[T, O, D, S]): GroupByWindowDatasetOps[T, O, D, S] = {
-      GroupByWindowDatasetOps(dataset)
-    }
-  }
-
-  case class GroupByWindowDatasetOps[T, O, D, S] private[GroupByWindowDataset] (dataset: Dataset[T, O, D, S]) {
+  case class GroupByWindowDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S]) {
     def groupByWindow(
         keyFn: (O) => Output,
         reduceFn: ((Output, Dataset[T, O, D, S])) => Dataset[T, O, D, S],

@@ -1764,13 +1764,8 @@ private[api] trait Math {
   //endregion Other Ops
 }
 
-private[api] object Math extends Math {
-  private[ops] trait Implicits {
-    implicit def tensorToMathOps(value: Tensor): MathOps = MathOps(value)
-    implicit def tensorConvertibleToMathOps[T](value: T)(implicit f: (T) => Tensor): MathOps = MathOps(f(value))
-  }
-
-  case class MathOps private[ops](tensor: Tensor) {
+object Math extends Math {
+  case class MathOps(tensor: Tensor) {
     //region Operators
 
     /** $OpDocMathNegate

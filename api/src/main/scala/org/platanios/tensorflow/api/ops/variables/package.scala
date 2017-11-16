@@ -15,6 +15,7 @@
 
 package org.platanios.tensorflow.api.ops
 
+import org.platanios.tensorflow.api
 import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.ops.variables.Saver.{V2, WriterVersion}
 import org.platanios.tensorflow.api.tensors.Tensor

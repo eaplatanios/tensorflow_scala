@@ -15,7 +15,6 @@
 
 package org.platanios.tensorflow.api.learn.layers
 
-import org.platanios.tensorflow.api.Implicits._
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.learn.{Mode, layers}
 import org.platanios.tensorflow.api.ops

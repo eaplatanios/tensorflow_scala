@@ -15,7 +15,6 @@
 
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api.Implicits._
 import org.platanios.tensorflow.api.core.exception.InvalidDataTypeException
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.control_flow.{Context, ControlFlow, GradientState}

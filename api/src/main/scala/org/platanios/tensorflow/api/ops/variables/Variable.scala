@@ -15,12 +15,13 @@
 
 package org.platanios.tensorflow.api.ops.variables
 
-import org.platanios.tensorflow.api.Implicits._
+import org.platanios.tensorflow.api.Op
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.exception.{InvalidDataTypeException, ShapeMismatchException}
-import org.platanios.tensorflow.api.ops._
+import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
+import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types._

@@ -15,7 +15,6 @@
 
 package org.platanios.tensorflow.api.ops.variables
 
-import org.platanios.tensorflow.api.Implicits._
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.ops.{Basic, Op, Output}
 import org.platanios.tensorflow.api.types.DataType

@@ -15,10 +15,10 @@
 
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api.Implicits._
 import org.platanios.tensorflow.api.core.{DeviceSpecification, Graph, Shape}
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception._
+import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.control_flow.Context
 import org.platanios.tensorflow.api.ops.variables.{CreateNewOnly, VariableScope, VariableStore}

@@ -20,5 +20,5 @@ package org.platanios.tensorflow.api
   */
 package object tensors {
   private[api] trait API
-      extends ops.API
+      extends tensors.ops.API
 }

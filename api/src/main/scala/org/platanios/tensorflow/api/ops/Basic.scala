@@ -15,14 +15,15 @@
 
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api.Implicits._
 import org.platanios.tensorflow.api.core.{Indexer, Shape}
 import org.platanios.tensorflow.api.core.Indexer._
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
+import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.tensors.{Context, Tensor}
 import org.platanios.tensorflow.api.types._
 import org.platanios.tensorflow.jni.generated.tensors.{Basic => NativeTensorOpsBasic}
+
 import org.tensorflow.framework.AttrValue
 
 import scala.language.postfixOps
@@ -1609,13 +1610,8 @@ private[api] trait Basic {
   //endregion Tensor Gradient Ops
 }
 
-private[api] object Basic extends Basic {
-  private[ops] trait Implicits {
-    implicit def outputToBasicOps(value: Output): BasicOps = BasicOps(value)
-    implicit def outputConvertibleToBasicOps[T](value: T)(implicit f: (T) => Output): BasicOps = BasicOps(f(value))
-  }
-
-  case class BasicOps private[ops](output: Output) {
+object Basic extends Basic {
+  case class BasicOps(output: Output) {
     //region Output Manipulation Ops
 
     /** $OpDocBasicExpandDims

@@ -98,16 +98,6 @@ object Indexer {
   val ::     : Slice             = core.Slice.::
   val NewAxis: core.NewAxis.type = core.NewAxis
 
-  private[core] trait Implicits {
-    // TODO: Add begin mask support (not simple).
-
-    implicit def intToIndex(index: Int): Index = Index(index = index)
-
-    implicit def intToIndexerConstruction(n: Int): IndexerConstructionWithOneNumber = {
-      IndexerConstructionWithOneNumber(n)
-    }
-  }
-
   /** Decodes the provided indexers sequence into a new set of dimension sizes, begin offsets, end offsets, and strides,
     * for the provided tensor shape.
     *

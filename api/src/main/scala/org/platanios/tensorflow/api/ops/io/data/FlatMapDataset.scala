@@ -63,13 +63,7 @@ case class FlatMapDataset[T, O, D, S, RT, RO, RD, RS](
 }
 
 object FlatMapDataset {
-  private[data] trait Implicits {
-    implicit def datasetToFlatMapDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S]): FlatMapDatasetOps[T, O, D, S] = {
-      FlatMapDatasetOps(dataset)
-    }
-  }
-
-  case class FlatMapDatasetOps[T, O, D, S] private[FlatMapDataset] (dataset: Dataset[T, O, D, S]) {
+  case class FlatMapDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S]) {
     /** $OpDocDatasetFlatMap
       *
       * @param  function Mapping function.

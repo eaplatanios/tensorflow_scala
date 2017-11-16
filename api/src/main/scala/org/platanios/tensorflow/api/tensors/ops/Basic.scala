@@ -15,10 +15,10 @@
 
 package org.platanios.tensorflow.api.tensors.ops
 
-import org.platanios.tensorflow.api.Implicits._
 import org.platanios.tensorflow.api.core._
 import org.platanios.tensorflow.api.core.Indexer._
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
+import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.Basic.{ConstantPadding, PaddingMode}
 import org.platanios.tensorflow.api.tensors._
 import org.platanios.tensorflow.api.types._
@@ -839,13 +839,8 @@ private[api] trait Basic {
   //endregion Tensor Gradient Ops
 }
 
-private[api] object Basic extends Basic {
-  private[ops] trait Implicits {
-    implicit def tensorToBasicOps(value: Tensor): BasicOps = BasicOps(value)
-    implicit def tensorConvertibleToBasicOps[T](value: T)(implicit f: (T) => Tensor): BasicOps = BasicOps(f(value))
-  }
-
-  case class BasicOps private[ops](tensor: Tensor) {
+object Basic extends Basic {
+  case class BasicOps(tensor: Tensor) {
     //region Tensor Manipulation Ops
 
     /** $OpDocBasicExpandDims

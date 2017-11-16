@@ -15,13 +15,13 @@
 
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.core.{Graph, Indexer, Shape}
 import org.platanios.tensorflow.api.core.client.{FeedMap, Session}
+import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.Basic.BasicOps
 import org.platanios.tensorflow.api.ops.Op.{createWith, getGraphFromInputs}
-import org.platanios.tensorflow.api.tensors.{SparseTensor, Tensor, TensorIndexedSlices, TensorLike}
+import org.platanios.tensorflow.api.tensors.{SparseTensor, Tensor, TensorIndexedSlices}
 import org.platanios.tensorflow.api.tensors.ops.{Basic => TensorBasic, Math => TensorMath}
 import org.platanios.tensorflow.api.types.{DataType, INT32, INT64}
 import org.platanios.tensorflow.api.utilities.using
@@ -60,10 +60,6 @@ sealed trait OutputLike {
     * @return [[OutputIndexedSlices]] that has the same value as this [[OutputLike]].
     */
   def toOutputIndexedSlices(optimize: Boolean = true): OutputIndexedSlices
-}
-
-object OutputLike {
-  implicit def outputLikeToOutput[T <: OutputLike](outputLike: T): Output = outputLike.toOutput
 }
 
 /** Type trait for defining functions operating on and returning op outputs. */
@@ -268,16 +264,6 @@ final case class Output private(op: Op, index: Int) extends OutputLike {
 }
 
 object Output {
-  private[ops] trait Implicits {
-    implicit def tensorLikeToOutput[T <: TensorLike](value: T): Output = value.toTensor.toOutput
-    implicit def tensorLikeConvertibleToOutput[T, R <: TensorLike](value: T)(implicit f: (T) => R): Output = {
-      f(value).toTensor.toOutput
-    }
-  }
-
-  implicit def outputToOp(output: Output): Op = output.op
-  implicit def outputToInitialValueFunction(output: Output): () => Output = () => output
-
   private[ops] trait API {
     type OutputLike = ops.OutputLike
     type Output = ops.Output

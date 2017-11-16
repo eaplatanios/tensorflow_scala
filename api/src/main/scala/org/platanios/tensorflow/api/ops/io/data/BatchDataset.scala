@@ -53,13 +53,7 @@ case class BatchDataset[T, O, D, S](
 }
 
 object BatchDataset {
-  private[data] trait Implicits {
-    implicit def datasetToBatchDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S]): BatchDatasetOps[T, O, D, S] = {
-      BatchDatasetOps(dataset)
-    }
-  }
-
-  case class BatchDatasetOps[T, O, D, S] private[BatchDataset] (dataset: Dataset[T, O, D, S]) {
+  case class BatchDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S]) {
     /** $OpDocDatasetBatch
       *
       * @param  batchSize Batch size.

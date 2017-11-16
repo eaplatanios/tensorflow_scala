@@ -144,13 +144,8 @@ private[ops] trait Clip {
   }
 }
 
-private[ops] object Clip extends Clip {
-  private[ops] trait Implicits {
-    implicit def outputToClipOps(value: Output): ClipOps = ClipOps(value)
-    implicit def outputConvertibleToClipOps[T](value: T)(implicit f: (T) => Output): ClipOps = ClipOps(f(value))
-  }
-
-  case class ClipOps private[ops](output: Output) {
+object Clip extends Clip {
+  case class ClipOps(output: Output) {
     /** $OpDocClipClipByValue
       *
       * @group ClipOps

@@ -60,12 +60,8 @@ private[api] trait Sparse {
   }
 }
 
-private[api] object Sparse extends Sparse {
-  private[ops] trait Implicits {
-    implicit def sparseOutputToNNOps(value: SparseOutput): SparseOps = SparseOps(value)
-  }
-
-  case class SparseOps private[ops](sparseOutput: SparseOutput) {
+object Sparse extends Sparse {
+  case class SparseOps(sparseOutput: SparseOutput) {
     def +(other: SparseOutput): SparseOutput = add(other)
     def +(other: Output): Output = addDense(other)
 

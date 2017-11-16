@@ -47,14 +47,7 @@ case class IgnoreErrorsDataset[T, O, D, S] private[io] (
 }
 
 object IgnoreErrorsDataset {
-  private[data] trait Implicits {
-    implicit def datasetToIgnoreErrorsDatasetOps[T, O, D, S](
-        dataset: Dataset[T, O, D, S]): IgnoreErrorsDatasetOps[T, O, D, S] = {
-      IgnoreErrorsDatasetOps(dataset)
-    }
-  }
-
-  case class IgnoreErrorsDatasetOps[T, O, D, S] private[IgnoreErrorsDataset] (dataset: Dataset[T, O, D, S]) {
+  case class IgnoreErrorsDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S]) {
     /** $OpDocDatasetIgnoreErrors
       *
       * @param  name Name for the created dataset.

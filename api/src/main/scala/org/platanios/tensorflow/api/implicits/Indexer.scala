@@ -13,11 +13,20 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.ops.io
+package org.platanios.tensorflow.api.implicits
 
-/** Groups together all implicits related to IO.
+import org.platanios.tensorflow.api.core.{Index, IndexerConstructionWithOneNumber}
+
+/** Groups together all implicits related to indexers.
   *
   * @author Emmanouil Antonios Platanios
   */
-private[ops] trait Implicits
-    extends data.Implicits
+private[implicits] trait Indexer {
+  // TODO: Add begin mask support (not simple).
+
+  implicit def intToIndex(index: Int): Index = Index(index = index)
+
+  implicit def intToIndexerConstruction(n: Int): IndexerConstructionWithOneNumber = {
+    IndexerConstructionWithOneNumber(n)
+  }
+}
