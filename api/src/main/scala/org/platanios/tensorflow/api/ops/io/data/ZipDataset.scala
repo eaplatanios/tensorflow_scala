@@ -44,13 +44,10 @@ case class ZipDataset[T1, O1, D1, S1, T2, O2, D2, S2](
 )(implicit
     evO1ToT1: OutputToTensor.Aux[O1, T1] = inputDataset1.evOToT,
     evO2ToT2: OutputToTensor.Aux[O2, T2] = inputDataset2.evOToT,
-    evO1O2ToT1T2: OutputToTensor.Aux[(O1, O2), (T1, T2)],
     ev1: Data.Aux[T1, O1, D1, S1] = inputDataset1.ev,
     ev2: Data.Aux[T2, O2, D2, S2] = inputDataset2.ev,
-    evData1Data2: Data.Aux[(T1, T2), (O1, O2), (D1, D2), (S1, S2)],
     evFunctionInput1: Function.ArgType[O1] = inputDataset1.evFunctionInput,
-    evFunctionInput2: Function.ArgType[O2] = inputDataset2.evFunctionInput,
-    evFunctionInput1Input2: Function.ArgType[(O1, O2)]
+    evFunctionInput2: Function.ArgType[O2] = inputDataset2.evFunctionInput
 ) extends Dataset[(T1, T2), (O1, O2), (D1, D2), (S1, S2)](name) {
   override def createHandle(): Output = {
     ZipDataset.datasetZip(
@@ -96,15 +93,12 @@ case class Zip3Dataset[T1, O1, D1, S1, T2, O2, D2, S2, T3, O3, D3, S3](
     evO1ToT1: OutputToTensor.Aux[O1, T1] = inputDataset1.evOToT,
     evO2ToT2: OutputToTensor.Aux[O2, T2] = inputDataset2.evOToT,
     evO3ToT3: OutputToTensor.Aux[O3, T3] = inputDataset3.evOToT,
-    evO1O2O3ToT1T2T3: OutputToTensor.Aux[(O1, O2, O3), (T1, T2, T3)],
     ev1: Data.Aux[T1, O1, D1, S1] = inputDataset1.ev,
     ev2: Data.Aux[T2, O2, D2, S2] = inputDataset2.ev,
     ev3: Data.Aux[T3, O3, D3, S3] = inputDataset3.ev,
-    evData1Data2Data3: Data.Aux[(T1, T2, T3), (O1, O2, O3), (D1, D2, D3), (S1, S2, S3)],
     evFunctionInput1: Function.ArgType[O1] = inputDataset1.evFunctionInput,
     evFunctionInput2: Function.ArgType[O2] = inputDataset2.evFunctionInput,
-    evFunctionInput3: Function.ArgType[O3] = inputDataset3.evFunctionInput,
-    evFunctionInput1Input2Input3: Function.ArgType[(O1, O2, O3)]
+    evFunctionInput3: Function.ArgType[O3] = inputDataset3.evFunctionInput
 ) extends Dataset[(T1, T2, T3), (O1, O2, O3), (D1, D2, D3), (S1, S2, S3)](name) {
   override def createHandle(): Output = {
     ZipDataset.datasetZip(
