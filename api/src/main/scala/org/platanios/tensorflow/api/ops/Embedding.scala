@@ -19,7 +19,6 @@ import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.Indexer._
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.ops.Embedding.{Combiner, PartitionStrategy}
 import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.types.INT32
 
@@ -49,7 +48,7 @@ private[ops] trait Embedding {
     * @return Obtained embeddings for the provided `ids`.
     */
   def embeddingLookup(
-      parameters: EmbeddingMap, ids: Output, partitionStrategy: PartitionStrategy = Embedding.ModStrategy,
+      parameters: EmbeddingMap, ids: Output, partitionStrategy: PartitionStrategy = ModStrategy,
       transformFn: Output => Output = null, maxNorm: Output = null,
       name: String = "EmbeddingLookup"): Output = {
     Op.createWithNameScope(name) {
@@ -160,7 +159,7 @@ private[ops] trait Embedding {
     */
   def sparseEmbeddingLookup(
       parameters: EmbeddingMap, sparseIds: SparseOutput, sparseWeights: SparseOutput = null,
-      partitionStrategy: PartitionStrategy = Embedding.ModStrategy, combiner: Combiner = Embedding.SumSqrtNCombiner,
+      partitionStrategy: PartitionStrategy = ModStrategy, combiner: Combiner = SumSqrtNCombiner,
       maxNorm: Output = null, name: String = "SparseEmbeddingLookup"): Output = {
     val ignoreWeights = sparseWeights == null
     if (!ignoreWeights) {
@@ -194,9 +193,7 @@ private[ops] trait Embedding {
       }
     }
   }
-}
 
-object Embedding extends Embedding {
   /** Partitioning strategy for the embeddings map. */
   sealed trait PartitionStrategy {
     /** Transforms the provided ids based on this partition strategy and returns the partition assignments and the
@@ -296,7 +293,9 @@ object Embedding extends Embedding {
       Math.divide(embeddings, weightsSquaredSum.sqrt())
     }
   }
+}
 
+object Embedding extends Embedding {
   /** If `maxNorm` is not `null`, this method clips `parameters` to a maximum l2-norm of `maxNorm`. */
   private[Embedding] def clipByNorm(
       parameters: Output, indices: Output, maxNorm: Output = null, name: String = "ClipNorm"): Output = {

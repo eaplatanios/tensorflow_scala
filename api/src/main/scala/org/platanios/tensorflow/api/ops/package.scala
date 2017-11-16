@@ -70,6 +70,7 @@ package object ops {
           with Checks
           with Clip
           with DataFlow
+          with Embedding
           with Image
           with Logging
           with Math

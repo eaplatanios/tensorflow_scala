@@ -61,6 +61,8 @@ package object api extends implicits.Implicits with Documentation {
   type Output = ops.Output
   type OutputIndexedSlices = ops.OutputIndexedSlices
   type SparseOutput = ops.SparseOutput
+  type Variable = ops.variables.Variable
+  type PartitionedVariable = ops.variables.PartitionedVariable
 
   val Output             : ops.Output.type              = ops.Output
   val OutputIndexedSlices: ops.OutputIndexedSlices.type = ops.OutputIndexedSlices

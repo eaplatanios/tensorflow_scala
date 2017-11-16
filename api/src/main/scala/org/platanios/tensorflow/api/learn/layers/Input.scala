@@ -30,6 +30,7 @@ import scala.collection.mutable
 object Input {
   private[layers] trait API {
     type Input[T, O, D, S] = layers.Input[T, O, D, S]
+    val Input: layers.Input.type = layers.Input
 
     def Input(dataType: DataType, shape: Shape, name: String = "Input")(implicit
         ev: Data.Aux[Tensor, Output, DataType, Shape]
