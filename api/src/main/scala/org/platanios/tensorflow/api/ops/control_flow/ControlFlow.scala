@@ -573,6 +573,8 @@ private[api] object ControlFlow extends ControlFlow {
     using(op.graph.reference)(r => {
       NativeLibrary.updateInput(r.nativeHandle, op.nativeHandle, index, newInput.op.nativeHandle, newInput.index)
     })
+    op.reloadNumInputs()
+    op.reloadInputs()
   }
 
   /** Adds `inputOp` as a control input of `op`. */
@@ -580,6 +582,8 @@ private[api] object ControlFlow extends ControlFlow {
     using(op.graph.reference)(r => {
       NativeLibrary.addControlInput(r.nativeHandle, op.nativeHandle, inputOp.nativeHandle)
     })
+    op.reloadNumControlInputs()
+    op.reloadControlInputs()
   }
 
   /** Clears the control inputs of `op` (i.e., removes all of them). */
@@ -587,6 +591,8 @@ private[api] object ControlFlow extends ControlFlow {
     using(op.graph.reference)(r => {
       NativeLibrary.clearControlInputs(r.nativeHandle, op.nativeHandle)
     })
+    op.reloadNumControlInputs()
+    op.reloadControlInputs()
   }
 
   //endregion Native Library Functions

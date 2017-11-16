@@ -65,7 +65,7 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
   lazy val opType: String = using(graph.reference) { _ => NativeOp.opType(nativeHandle) }
 
   /** Device in which the op tensors are stored and where all computations for this op are performed. */
-  def device: String = using(graph.reference) { _ =>
+  lazy val device: String = using(graph.reference) { _ =>
     val nativeDevice = NativeOp.device(nativeHandle)
     if (nativeDevice == null)
       ""
@@ -74,21 +74,32 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
   }
 
   /** Colocation ops for this op (i.e., ops guaranteed to be placed on the same device). */
-  def colocationOps: Set[Op] = using(graph.reference) { _ =>
+  lazy val colocationOps: Set[Op] = using(graph.reference) { _ =>
     Try(NativeOp.getAttrStringList(nativeHandle, COLOCATION_OPS_ATTRIBUTE_NAME))
         .map(_.toSet[String]
-                 .filter(_.startsWith(COLOCATION_OPS_ATTRIBUTE_PREFIX))
-                 .map(opName => graph.findOp(opName.substring(COLOCATION_OPS_ATTRIBUTE_PREFIX.length)).get))
+            .filter(_.startsWith(COLOCATION_OPS_ATTRIBUTE_PREFIX))
+            .map(opName => graph.findOp(opName.substring(COLOCATION_OPS_ATTRIBUTE_PREFIX.length)).get))
         .getOrElse(Set.empty[Op])
   }
 
   private[ops] var controlFlowContext: Option[Context] = None
 
-  /** Number of inputs to this op (i.e., number of tensors fed as input to this op). */
-  def numInputs: Int = using(graph.reference) { _ => NativeOp.numInputs(nativeHandle) }
+  // The following caching of inputs and control inputs is done so that we can improve performance by avoiding redundant
+  // JNI calls, while at the same time allowing the control flow package to modify inputs and control inputs of ops.
 
-  /** Inputs of this op. Note that these inputs are outputs of other ops and thus have type [[Output]]. */
-  def inputs: Array[Output] = using(graph.reference) { _ =>
+  private[this] var _numInputs: Int = _loadNumInputs()
+  private[this] var _inputs: Array[Output] = _loadInputs()
+  private[this] var _numControlInputs: Int = _loadNumControlInputs()
+  private[this] var _controlInputs: Set[Op] = _loadControlInputs()
+
+  private[ops] def reloadNumInputs(): Unit = _numInputs = _loadNumInputs()
+  private[ops] def reloadInputs(): Unit = _inputs = _loadInputs()
+  private[ops] def reloadNumControlInputs(): Unit = _numControlInputs = _loadNumControlInputs()
+  private[ops] def reloadControlInputs(): Unit = _controlInputs = _loadControlInputs()
+
+  private[this] def _loadNumInputs(): Int = using(graph.reference) { _ => NativeOp.numInputs(nativeHandle) }
+
+  private[this] def _loadInputs(): Array[Output] = using(graph.reference) { _ =>
     NativeOp.inputs(nativeHandle).map(i => {
       val op = graph.opsCache.getOrElseUpdate(
         i.opHandle,
@@ -97,16 +108,28 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
     })
   }
 
+  private[this] def _loadNumControlInputs(): Int = using(graph.reference) { _ =>
+    NativeOp.numControlInputs(nativeHandle)
+  }
+
+  private[this] def _loadControlInputs(): Set[Op] = using(graph.reference) { _ =>
+    NativeOp.controlInputs(nativeHandle)
+        .map(handle => graph.opsCache.getOrElseUpdate(handle, Op(graph, handle))).toSet
+  }
+
+  /** Number of inputs to this op (i.e., number of tensors fed as input to this op). */
+  def numInputs: Int = _numInputs
+
+  /** Inputs of this op. Note that these inputs are outputs of other ops and thus have type [[Output]]. */
+  def inputs: Array[Output] = _inputs
+
   /** Number of control inputs to this op. These are ops that are guaranteed to finish executing before this op starts
     * executing). */
-  def numControlInputs: Int = using(graph.reference) { _ => NativeOp.numControlInputs(nativeHandle) }
+  def numControlInputs: Int = _numControlInputs
 
   /** Control inputs of this op. These are ops that are guaranteed to finish executing before this op starts
     * executing). */
-  def controlInputs: Set[Op] = {
-    val controlInputHandles = using(graph.reference) { _ => NativeOp.controlInputs(nativeHandle) }
-    controlInputHandles.map(handle => graph.opsCache.getOrElseUpdate(handle, Op(graph, handle))).toSet
-  }
+  def controlInputs: Set[Op] = _controlInputs
 
   /** Number of tensors produced by this operation. */
   def numOutputs: Int = using(graph.reference) { _ => NativeOp.numOutputs(nativeHandle) }
