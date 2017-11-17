@@ -1796,10 +1796,15 @@ private[api] trait Math {
     */
   def matrixBandPart(
       input: Output, numSubDiagonals: Output, numSuperDiagonals: Output, name: String = "MatrixBandPart"): Output = {
+    if(!numSubDiagonals.dataType.isInteger)
+      throw new IllegalArgumentException("MatrixBandPart: numSubDiagonals needs to be an integer")
+    if(!numSuperDiagonals.dataType.isInteger)
+      throw new IllegalArgumentException("MatrixBandPart: numSuperDiagonals needs to be an integer")
+
     Op.Builder(opType = "MatrixBandPart", name = name)
         .addInput(input)
-        .addInput(numSubDiagonals)
-        .addInput(numSuperDiagonals)
+        .addInput(cast(numSubDiagonals, INT64))
+        .addInput(cast(numSuperDiagonals, INT64))
         .build().outputs(0)
   }
 
