@@ -125,6 +125,30 @@ object Model {
       new SimpleSupervisedTrainableModel(
         input, layer, trainInput, layers.Identity[TO]("TrainInputLayer"), loss, optimizer)
     }
+
+    def Model[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
+        input: Input[IT, IO, ID, IS],
+        layer: Layer[IO, I],
+        trainLayer: Layer[(IO, TO), I],
+        trainInput: Input[TT, TO, TD, TS],
+        trainInputLayer: Layer[TO, T],
+        loss: Layer[(I, T), Output],
+        optimizer: Optimizer
+    ): SupervisedConditionalTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T] = {
+      new SupervisedConditionalTrainableModel(input, layer, trainLayer, trainInput, trainInputLayer, loss, optimizer)
+    }
+
+    def Model[IT, IO, ID, IS, I, TT, TO, TD, TS](
+        input: Input[IT, IO, ID, IS],
+        layer: Layer[IO, I],
+        trainLayer: Layer[(IO, TO), I],
+        trainInput: Input[TT, TO, TD, TS],
+        loss: Layer[(I, TO), Output],
+        optimizer: Optimizer
+    ): SupervisedConditionalTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, TO] = {
+      new SupervisedConditionalTrainableModel(
+        input, layer, trainLayer, trainInput, layers.Identity[TO]("TrainInputLayer"), loss, optimizer)
+    }
   }
 
   object API extends API
@@ -183,7 +207,7 @@ private[learn] class SimpleSupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, T
     override val input: Input[IT, IO, ID, IS],
     override val layer: Layer[IO, I],
     val trainInput: Input[TT, TO, TD, TS],
-    val trainLayer: Layer[TO, T],
+    val trainInputLayer: Layer[TO, T],
     val loss: Layer[(I, T), Output],
     val optimizer: Optimizer
 ) extends SimpleInferenceModel[IT, IO, ID, IS, I](input, layer)
@@ -197,7 +221,7 @@ private[learn] class SimpleSupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, T
       val tfInputIterator = input.zip(trainInput).apply()
       val tfInput = tfInputIterator.next()
       val tfOutput = layer(tfInput._1, TRAINING).output
-      val tfTrainOutput = trainLayer(tfInput._2, TRAINING).output
+      val tfTrainOutput = trainInputLayer(tfInput._2, TRAINING).output
       // TODO: [LEARN] Remove this cast.
       val tfLoss = Math.cast(loss((tfOutput, tfTrainOutput), TRAINING).output, FLOAT32, name = "LossCast")
       val tfIteration = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
@@ -213,7 +237,49 @@ private[learn] class SimpleSupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, T
       val tfInputIterator = input.zip(trainInput).apply()
       val tfInput = tfInputIterator.next()
       val tfOutput = layer(tfInput._1, EVALUATION).output
-      val tfTrainOutput = trainLayer(tfInput._2, EVALUATION).output
+      val tfTrainOutput = trainInputLayer(tfInput._2, EVALUATION).output
+      val (mValues, mUpdates, mResets) = metrics.map(_.streaming((tfOutput, tfTrainOutput))).unzip3
+      Model.EvaluationOps(tfInputIterator, tfInput, tfOutput, mValues, mUpdates, mResets)
+    }
+  }
+}
+
+private[learn] class SupervisedConditionalTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T] private[learn](
+    override val input: Input[IT, IO, ID, IS],
+    override val layer: Layer[IO, I],
+    val trainLayer: Layer[(IO, TO), I],
+    val trainInput: Input[TT, TO, TD, TS],
+    val trainInputLayer: Layer[TO, T],
+    val loss: Layer[(I, T), Output],
+    val optimizer: Optimizer
+) extends SimpleInferenceModel[IT, IO, ID, IS, I](input, layer)
+    with SupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T] {
+  // TODO: [LEARN] Add support for trainable models with only the loss function gradient available.
+
+  def buildTrainingOps(
+      graph: Graph = Op.currentGraph
+  ): Model.SupervisedTrainingOps[IT, IO, ID, IS, I, TT, TO, TD, TS, T] = {
+    Op.createWith(graph = graph) {
+      val tfInputIterator = input.zip(trainInput).apply()
+      val tfInput = tfInputIterator.next()
+      val tfOutput = trainLayer(tfInput, TRAINING).output
+      val tfTrainOutput = trainInputLayer(tfInput._2, TRAINING).output
+      // TODO: [LEARN] Remove this cast.
+      val tfLoss = Math.cast(loss((tfOutput, tfTrainOutput), TRAINING).output, FLOAT32, name = "LossCast")
+      val tfIteration = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
+      val tfTrainOp = optimizer.minimize(tfLoss, iteration = Some(tfIteration))
+      Model.SupervisedTrainingOps(tfInputIterator, tfInput, tfOutput, tfTrainOutput, tfLoss, tfTrainOp)
+    }
+  }
+
+  def buildEvaluationOps(
+      metrics: Seq[Metric[(I, T), Output]], graph: Graph = Op.currentGraph
+  ): Model.EvaluationOps[(IT, TT), (IO, TO), (ID, TD), (IS, TS), I] = {
+    Op.createWith(graph = graph) {
+      val tfInputIterator = input.zip(trainInput).apply()
+      val tfInput = tfInputIterator.next()
+      val tfOutput = layer(tfInput._1, EVALUATION).output
+      val tfTrainOutput = trainInputLayer(tfInput._2, EVALUATION).output
       val (mValues, mUpdates, mResets) = metrics.map(_.streaming((tfOutput, tfTrainOutput))).unzip3
       Model.EvaluationOps(tfInputIterator, tfInput, tfOutput, mValues, mUpdates, mResets)
     }
