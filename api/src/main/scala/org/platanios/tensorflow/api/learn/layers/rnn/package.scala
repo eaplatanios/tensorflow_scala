@@ -13,26 +13,18 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.learn
+package org.platanios.tensorflow.api.learn.layers
 
 /**
   * @author Emmanouil Antonios Platanios
   */
-package object layers {
-  private[api] trait API
-      extends Activation.API
-          with Basic.API
-          with Embedding.API
-          with Input.API
-          with Layer.API
-          with Loss.API
-          with Math.API
-          with NN.API
-          with Summary.API
-          with rnn.API {
-    type LayerInstance[T, R] = layers.LayerInstance[T, R]
-    val LayerInstance: layers.LayerInstance.type = layers.LayerInstance
-  }
+package object rnn {
+  private[layers] trait API
+      extends rnn.cell.API {
+    type RNN[O, OS, S, SS] = rnn.RNN[O, OS, S, SS]
+    type BidirectionalRNN[O, OS, S, SS] = rnn.BidirectionalRNN[O, OS, S, SS]
 
-  private[api] object API extends API
+    val RNN             : rnn.RNN.type              = rnn.RNN
+    val BidirectionalRNN: rnn.BidirectionalRNN.type = rnn.BidirectionalRNN
+  }
 }

@@ -15,7 +15,24 @@
 
 package org.platanios.tensorflow.api.learn.layers.rnn
 
+/**
+  * @author Emmanouil Antonios Platanios
+  */
 package object cell {
   private[cell] val KERNEL_NAME: String = "weights"
   private[cell] val BIAS_NAME  : String = "bias"
+
+  private[rnn] trait API {
+    type RNNCell[O, OS, S, SS] = cell.RNNCell[O, OS, S, SS]
+    type BasicRNNCell = cell.BasicRNNCell
+    type GRUCell = cell.GRUCell
+    type BasicLSTMCell = cell.BasicLSTMCell
+    type LSTMCell = cell.LSTMCell
+
+    val RNNCell      : cell.RNNCell.type       = cell.RNNCell
+    val BasicRNNCell : cell.BasicRNNCell.type  = cell.BasicRNNCell
+    val GRUCell      : cell.GRUCell.type       = cell.GRUCell
+    val BasicLSTMCell: cell.BasicLSTMCell.type = cell.BasicLSTMCell
+    val LSTMCell     : cell.LSTMCell.type      = cell.LSTMCell
+  }
 }
