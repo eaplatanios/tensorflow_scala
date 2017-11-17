@@ -29,8 +29,7 @@ package object learn {
       extends Model.API
           with estimators.API
           with hooks.API
-          with layers.API
-          with optimizers.API {
+          with layers.API {
     type Configuration = learn.Configuration
     type StopCriteria = learn.StopCriteria
 

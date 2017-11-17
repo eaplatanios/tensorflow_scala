@@ -26,27 +26,11 @@ package object optimizers {
     type AdaGrad = optimizers.AdaGrad
     type GradientDescent = optimizers.GradientDescent
 
-    def adaGrad(
-        learningRate: Double = 0.01, decay: Decay = NoDecay, initialAccumulatorValue: Double = 1e-8,
-        useLocking: Boolean = false, name: String = "AdaGradOptimizer"): AdaGrad = {
-      AdaGrad(
-        learningRate = learningRate, decay = decay, epsilon = initialAccumulatorValue, useLocking = useLocking,
-        name = name)
-    }
+    val NoDecay         : optimizers.NoDecay.type          = optimizers.NoDecay
+    val ExponentialDecay: optimizers.ExponentialDecay.type = optimizers.ExponentialDecay
 
-    def AdaDelta(
-        learningRate: Double = 0.01, decay: Decay = NoDecay, rho: Double = 0.95, epsilon: Double = 1e-8,
-        useLocking: Boolean = false, name: String = "AdaDeltaOptimizer"): AdaDelta = {
-      AdaDelta(
-        learningRate = learningRate, decay = decay, rho = rho, epsilon = epsilon, useLocking = useLocking, name = name)
-    }
-
-    def gradientDescent(
-        learningRate: Double, decay: Decay = NoDecay, momentum: Double = 0.0, useNesterov: Boolean = false,
-        useLocking: Boolean = false, name: String = "GradientDescentOptimizer"): GradientDescent = {
-      GradientDescent(
-        learningRate = learningRate, decay = decay, momentum = momentum, useNesterov = useNesterov,
-        useLocking = useLocking, name = name)
-    }
+    val GradientDescent: optimizers.GradientDescent.type = optimizers.GradientDescent
+    val AdaGrad        : optimizers.AdaGrad.type         = optimizers.AdaGrad
+    val AdaDelta       : optimizers.AdaDelta.type        = optimizers.AdaDelta
   }
 }
