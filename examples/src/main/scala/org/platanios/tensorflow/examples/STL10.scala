@@ -58,7 +58,7 @@ object STL10 {
         tf.learn.Linear(10, name = "OutputLayer")
     val trainingInputLayer = tf.learn.Cast(INT64)
     val loss = tf.learn.SparseSoftmaxCrossEntropy() >> tf.learn.Mean() >> tf.learn.ScalarSummary("Loss")
-    val optimizer = tf.learn.AdaGrad(0.1)
+    val optimizer = tf.train.AdaGrad(0.1)
     val model = tf.learn.Model(input, layer, trainInput, trainingInputLayer, loss, optimizer)
 
     logger.info("Training the linear regression model.")
