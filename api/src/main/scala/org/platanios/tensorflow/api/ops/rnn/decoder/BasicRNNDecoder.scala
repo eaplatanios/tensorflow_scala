@@ -81,6 +81,18 @@ class BasicRNNDecoder[O, OS, S, SS](
 }
 
 object BasicRNNDecoder {
+  def apply[O, OS, S, SS](
+      cell: RNNCell[O, OS, S, SS],
+      initialCellState: S,
+      helper: BasicRNNDecoder.Helper[O, S],
+      name: String = "BasicRNNDecoder"
+  )(implicit
+      evO: RNNCell.Supported.Aux[O, OS],
+      evS: RNNCell.Supported.Aux[S, SS]
+  ): BasicRNNDecoder[O, OS, S, SS] = {
+    new BasicRNNDecoder[O, OS, S, SS](cell, initialCellState, helper, name)
+  }
+
   case class Output[T](rnnOutput: T, sample: T)(implicit whileLoopEvT: WhileLoopVariable.Aux[T, _])
 
   /** Interface for implementing sampling helpers in sequence-to-sequence decoders. */
