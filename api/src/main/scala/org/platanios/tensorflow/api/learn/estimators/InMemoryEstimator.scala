@@ -21,10 +21,12 @@ import org.platanios.tensorflow.api.core.client.Fetchable
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.learn._
 import org.platanios.tensorflow.api.learn.hooks._
-import org.platanios.tensorflow.api.ops.{Op, Output}
+import org.platanios.tensorflow.api.ops.{Op, Output, Resource}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.io.data.Dataset
+import org.platanios.tensorflow.api.ops.lookup.Lookup
 import org.platanios.tensorflow.api.ops.metrics.Metric
+import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.tensors.Tensor
 
 import com.typesafe.scalalogging.Logger
@@ -113,8 +115,12 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
         hooks = allTrainHooks.toSet ++ inferHooks ++ evaluateHooks,
         chiefOnlyHooks = allTrainChiefOnlyHooks.toSet,
         sessionScaffold = SessionScaffold(
-          initOp = Some(graph.globalVariablesInitializer()),
-          localInitOp = Some(ControlFlow.group(Set(graph.localVariablesInitializer()))),
+          initOp = Some(ControlFlow.group(Set(
+          Variable.initializer(Variable.globalVariables),
+          Resource.initializer(Resource.sharedResources)))),
+          localInitOp = Some(ControlFlow.group(Set(
+            Variable.initializer(Variable.localVariables),
+            Lookup.initializer(Lookup.initializers)))),
           saver = saver))
     }
   }

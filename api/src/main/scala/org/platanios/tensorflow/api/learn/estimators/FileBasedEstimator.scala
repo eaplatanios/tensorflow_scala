@@ -24,9 +24,10 @@ import org.platanios.tensorflow.api.learn._
 import org.platanios.tensorflow.api.learn.hooks._
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.io.data.Dataset
+import org.platanios.tensorflow.api.ops.lookup.Lookup
 import org.platanios.tensorflow.api.ops.metrics.Metric
-import org.platanios.tensorflow.api.ops.variables.Saver
-import org.platanios.tensorflow.api.ops.{Op, Output}
+import org.platanios.tensorflow.api.ops.variables.{Saver, Variable}
+import org.platanios.tensorflow.api.ops.{Op, Output, Resource}
 import org.platanios.tensorflow.api.tensors.Tensor
 
 import com.typesafe.scalalogging.Logger
@@ -153,8 +154,13 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
           hooks = allHooks.toSet,
           chiefOnlyHooks = allChiefOnlyHooks.toSet,
           sessionScaffold = SessionScaffold(
-            initOp = Some(graph.globalVariablesInitializer()),
-            localInitOp = Some(ControlFlow.group(Set(inputInitializer, graph.localVariablesInitializer()))),
+            initOp = Some(ControlFlow.group(Set(
+              Variable.initializer(Variable.globalVariables),
+              Resource.initializer(Resource.sharedResources)))),
+            localInitOp = Some(ControlFlow.group(Set(
+              inputInitializer,
+              Variable.initializer(Variable.localVariables),
+              Lookup.initializer(Lookup.initializers)))),
             saver = saver))
         try {
           while (!session.shouldStop)
@@ -256,8 +262,13 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
       val session = MonitoredSession(
         ChiefSessionCreator(
           sessionScaffold = SessionScaffold(
-            initOp = Some(graph.globalVariablesInitializer()),
-            localInitOp = Some(ControlFlow.group(Set(inputInitializer, graph.localVariablesInitializer()))),
+            initOp = Some(ControlFlow.group(Set(
+              Variable.initializer(Variable.globalVariables),
+              Resource.initializer(Resource.sharedResources)))),
+            localInitOp = Some(ControlFlow.group(Set(
+              inputInitializer,
+              Variable.initializer(Variable.localVariables),
+              Lookup.initializer(Lookup.initializers)))),
             saver = saver),
           sessionConfig = configuration.sessionConfig,
           checkpointPath = workingDir),
@@ -384,8 +395,13 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
         ChiefSessionCreator(
           master = configuration.evaluationMaster,
           sessionScaffold = SessionScaffold(
-            initOp = Some(graph.globalVariablesInitializer()),
-            localInitOp = Some(ControlFlow.group(Set(inputInitializer, graph.localVariablesInitializer()))),
+            initOp = Some(ControlFlow.group(Set(
+              Variable.initializer(Variable.globalVariables),
+              Resource.initializer(Resource.sharedResources)))),
+            localInitOp = Some(ControlFlow.group(Set(
+              inputInitializer,
+              Variable.initializer(Variable.localVariables),
+              Lookup.initializer(Lookup.initializers)))),
             saver = saver),
           sessionConfig = configuration.sessionConfig,
           checkpointPath = workingDir),
