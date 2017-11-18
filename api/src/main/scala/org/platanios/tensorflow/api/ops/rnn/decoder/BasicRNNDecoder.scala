@@ -226,7 +226,7 @@ object BasicRNNDecoder {
 
     /** Returns a zero-valued sample for this helper. */
     def zeroSample(batchSize: ops.Output, name: String = "ZeroSample"): ops.Output = {
-      Basic.fill(INT32, batchSize)(0, name)
+      Basic.fill(INT32, batchSize.expandDims(0))(0, name)
     }
 
     /** Returns a tuple containing: (i) a scalar `BOOLEAN` tensor specifying whether initialization has finished, and
