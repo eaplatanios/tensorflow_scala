@@ -19,6 +19,7 @@ import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.{FeedMap, Session}
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
+import org.platanios.tensorflow.api.ops.lookup.Lookup
 import org.platanios.tensorflow.api.ops.variables.{Saver, Variable}
 
 /** Structure used to create or gather pieces commonly needed to train a model.
@@ -80,7 +81,7 @@ case class SessionScaffold(
     val _localInitOp = localInitOp.getOrElse(getItemOrElse("local_init_op", Graph.Keys.LOCAL_INIT_OP, () => {
       ControlFlow.group(Set(
         Variable.initializer(Variable.localVariables),
-        Table.initializer(Table.initializers)))
+        Lookup.initializer(Lookup.initializers)))
     }))
     val _summaryOp = summaryOp.getOrElse(getItemOrElse(
       "summary_op", Graph.Keys.SUMMARY_OP, () => Summary.mergeAll().orNull))

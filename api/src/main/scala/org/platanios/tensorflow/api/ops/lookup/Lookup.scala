@@ -15,7 +15,6 @@
 
 package org.platanios.tensorflow.api.ops.lookup
 
-import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
@@ -26,7 +25,10 @@ import org.platanios.tensorflow.api.types.{DataType, INT64, STRING}
   * @author Emmanouil Antonios Platanios
   */
 private[lookup] trait Lookup {
-  /** Creates an op that initializes all tables with initializers in the provided graph collection.
+  /** Returns the set of all lookup table initializers that have been created in the current graph. */
+  def initializers: Set[Op] = Op.currentGraph.tableInitializers
+
+  /** Creates an op that groups the provided lookup table initializers.
     *
     * After you launch the graph in a session, you can run the returned op to initialize tables. This op runs all the
     * initializers of the tables in the specified collection, in parallel.
@@ -36,16 +38,15 @@ private[lookup] trait Lookup {
     * If no table initializers are found in the provided collection, the method still returns an op that can be run.
     * That op has no effect (i.e., it is a [[ControlFlow.noOp]]).
     *
-    * @param  key  Collection key from which to collect the table initializers.
-    * @param  name Name for the created op.
+    * @param  initializers Table initializers to group.
+    * @param  name         Name for the created op.
     * @return Created op.
     */
-  def tablesInitializer(key: Graph.Key[Op] = Graph.Keys.TABLE_INITIALIZERS, name: String = "TablesInitializer"): Op = {
-    val initializers = Op.currentGraph.getCollection(key)
-    if (initializers.nonEmpty)
-      ControlFlow.group(initializers, name)
-    else
+  def initializer(initializers: Set[Op], name: String = "TablesInitializer"): Op = {
+    if (initializers.isEmpty)
       ControlFlow.noOp(name)
+    else
+      ControlFlow.group(initializers, name)
   }
 
   /** Creates a lookup table that converts string tensors into integer IDs.
@@ -83,13 +84,15 @@ private[lookup] trait Lookup {
     * @param  numOOVBuckets     Number of out-of-vocabulary buckets.
     * @param  hashSpecification Hashing function specification to use.
     * @param  keysDataType      Data type of the table keys.
+    * @param  valuesDataType    Data type of the table values.
     * @param  name              Name for the created table.
     * @return Created table.
     */
   def indexTableFromFile(
       filename: String, delimiter: String = "\t", vocabularySize: Int = -1, defaultValue: Int = -1,
       numOOVBuckets: Int = 0, hashSpecification: HashSpecification = FAST_HASH,
-      keysDataType: DataType = STRING, name: String = "IndexTableFromFile"): LookupTable = {
+      keysDataType: DataType = STRING, valuesDataType: DataType = INT64, name: String = "IndexTableFromFile"
+  ): LookupTable = {
     Op.createWithNameScope(name) {
       Op.createWithNameScope("HashTable") {
         val sharedName = {
@@ -99,7 +102,7 @@ private[lookup] trait Lookup {
             s"hash_table_${filename}_${TextFileWholeLine}_$TextFileLineNumber"
         }
         val initializer = LookupTableTextFileInitializer(
-          filename, if (keysDataType.isInteger) INT64 else keysDataType, INT64,
+          filename, if (keysDataType.isInteger) INT64 else keysDataType, valuesDataType,
           TextFileWholeLine, TextFileLineNumber, delimiter, vocabularySize)
         val table = HashTable(initializer, defaultValue, sharedName = sharedName, name = "Table")
         if (numOOVBuckets > 0)
