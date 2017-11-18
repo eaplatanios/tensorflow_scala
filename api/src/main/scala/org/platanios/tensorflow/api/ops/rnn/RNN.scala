@@ -57,7 +57,7 @@ private[rnn] trait RNN {
   @throws[InvalidShapeException]
   @throws[InvalidArgumentException]
   def dynamicRNN[O, OS, S, SS](
-      cell: RNNCell[O, OS, S, SS], input: O, initialState: S = null,
+      cell: RNNCell[O, OS, S, SS], input: O, initialState: S = null.asInstanceOf[S],
       timeMajor: Boolean = false, parallelIterations: Int = 32, swapMemory: Boolean = false,
       sequenceLengths: Output = null, name: String = "RNN"
   )(implicit
@@ -156,7 +156,7 @@ private[rnn] trait RNN {
   def bidirectionalDynamicRNN[O, OS, S, SS](
       cellFw: RNNCell[O, OS, S, SS], cellBw: RNNCell[O, OS, S, SS],
       input: O,
-      initialStateFw: S = null, initialStateBw: S = null,
+      initialStateFw: S = null.asInstanceOf[S], initialStateBw: S = null.asInstanceOf[S],
       timeMajor: Boolean = false, parallelIterations: Int = 32, swapMemory: Boolean = false,
       sequenceLengths: Output = null, name: String = "RNN"
   )(implicit
