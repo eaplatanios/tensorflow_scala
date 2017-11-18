@@ -133,31 +133,44 @@ class Session private[api](
         throw new IllegalStateException("close() has been called on the session.")
       referenceCount += 1
     }
-    val metadata: Array[Byte] = NativeSession.run(
-      handle = nativeHandle,
-      runOptions = if (options != null) options.toByteArray else Array.empty[Byte],
-      inputTensorHandles = inputTensorHandles,
-      inputOpHandles = inputOpHandles,
-      inputOpIndices = inputOpIndices,
-      outputOpHandles = outputOpHandles,
-      outputOpIndices = outputOpIndices,
-      targetOpHandles = targetOpHandles,
-      wantRunMetadata = wantMetadata,
-      outputTensorHandles = outputTensorHandles)
-    val outputs: R = resultsBuilder(outputTensorHandles.map(handle => {
-      val tensor = Tensor.fromHostNativeHandle(handle)
-      NativeTensor.delete(handle)
-      tensor
-    }))
-    NativeHandleLock.synchronized {
-      if (nativeHandle != 0) {
-        referenceCount -= 1
-        if (referenceCount == 0)
-          NativeHandleLock.notifyAll()
+    try {
+      val metadata: Array[Byte] = NativeSession.run(
+        handle = nativeHandle,
+        runOptions = if (options != null) options.toByteArray else Array.empty[Byte],
+        inputTensorHandles = inputTensorHandles,
+        inputOpHandles = inputOpHandles,
+        inputOpIndices = inputOpIndices,
+        outputOpHandles = outputOpHandles,
+        outputOpIndices = outputOpIndices,
+        targetOpHandles = targetOpHandles,
+        wantRunMetadata = wantMetadata,
+        outputTensorHandles = outputTensorHandles)
+      val outputs: R = resultsBuilder(outputTensorHandles.map(handle => {
+        val tensor = Tensor.fromHostNativeHandle(handle)
+        NativeTensor.delete(handle)
+        tensor
+      }))
+      inputTensorHandles.foreach(NativeTensor.delete)
+      (outputs, Option(metadata).map(RunMetadata.parseFrom))
+    } catch {
+      case t: Throwable =>
+        NativeHandleLock.synchronized {
+          if (nativeHandle != 0) {
+            referenceCount -= 1
+            if (referenceCount == 0)
+              NativeHandleLock.notifyAll()
+          }
+        }
+        throw t
+    } finally {
+      NativeHandleLock.synchronized {
+        if (nativeHandle != 0) {
+          referenceCount -= 1
+          if (referenceCount == 0)
+            NativeHandleLock.notifyAll()
+        }
       }
     }
-    inputTensorHandles.foreach(NativeTensor.delete)
-    (outputs, Option(metadata).map(RunMetadata.parseFrom))
   }
 
   /** Returns a boolean flag indicating whether this session has been closed. */
