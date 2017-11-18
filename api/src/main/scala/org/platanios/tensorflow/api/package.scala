@@ -26,8 +26,50 @@ import scala.util.DynamicVariable
   * @author Emmanouil Antonios Platanios
   */
 package object api extends implicits.Implicits with Documentation {
+  //region Graph
+
   type Graph = core.Graph
   val Graph: core.Graph.type = core.Graph
+
+  Graph.Keys.register(Graph.Keys.RANDOM_SEEDS)
+  Graph.Keys.register(Graph.Keys.GLOBAL_VARIABLES)
+  Graph.Keys.register(Graph.Keys.LOCAL_VARIABLES)
+  Graph.Keys.register(Graph.Keys.MODEL_VARIABLES)
+  Graph.Keys.register(Graph.Keys.TRAINABLE_VARIABLES)
+  Graph.Keys.register(Graph.Keys.SUMMARIES)
+  Graph.Keys.register(Graph.Keys.ASSET_FILEPATHS)
+  Graph.Keys.register(Graph.Keys.MOVING_AVERAGE_VARIABLES)
+  Graph.Keys.register(Graph.Keys.REGULARIZATION_LOSSES)
+  Graph.Keys.register(Graph.Keys.SAVERS)
+  Graph.Keys.register(Graph.Keys.WEIGHTS)
+  Graph.Keys.register(Graph.Keys.BIASES)
+  Graph.Keys.register(Graph.Keys.ACTIVATIONS)
+  Graph.Keys.register(Graph.Keys.UPDATE_OPS)
+  Graph.Keys.register(Graph.Keys.LOSSES)
+  Graph.Keys.register(Graph.Keys.SHARED_RESOURCES)
+  Graph.Keys.register(Graph.Keys.LOCAL_RESOURCES)
+  Graph.Keys.register(Graph.Keys.TRAINABLE_RESOURCE_VARIABLES)
+  Graph.Keys.register(Graph.Keys.INIT_OP)
+  Graph.Keys.register(Graph.Keys.LOCAL_INIT_OP)
+  Graph.Keys.register(Graph.Keys.READY_OP)
+  Graph.Keys.register(Graph.Keys.READY_FOR_LOCAL_INIT_OP)
+  Graph.Keys.register(Graph.Keys.SUMMARY_OP)
+  Graph.Keys.register(Graph.Keys.GLOBAL_EPOCH)
+  Graph.Keys.register(Graph.Keys.GLOBAL_STEP)
+  Graph.Keys.register(Graph.Keys.EVAL_STEP)
+  Graph.Keys.register(Graph.Keys.TRAIN_OP)
+  Graph.Keys.register(Graph.Keys.STREAMING_MODEL_PORTS)
+  Graph.Keys.register(Graph.Keys.UNBOUND_INPUTS)
+
+  Graph.Keys.register(ops.control_flow.CondContext.COND_CONTEXTS)
+  Graph.Keys.register(ops.control_flow.WhileLoopContext.WHILE_LOOP_CONTEXTS)
+
+  Graph.Keys.register(ops.metrics.Metric.METRIC_VARIABLES)
+  Graph.Keys.register(ops.metrics.Metric.METRIC_VALUES)
+  Graph.Keys.register(ops.metrics.Metric.METRIC_UPDATES)
+  Graph.Keys.register(ops.metrics.Metric.METRIC_RESETS)
+
+  //endregion Graph
 
   type Session = core.client.Session
   val Session: core.client.Session.type = core.client.Session

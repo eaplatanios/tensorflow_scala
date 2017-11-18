@@ -527,7 +527,7 @@ private[api] object Variable {
     val dataType = variableOp.op.dataTypeAttribute("dtype")
     val initializeOp = context.graph.getOpByName(prependNameScope(variableDef.getInitializerName))
     val cachedValueOp = {
-      if (variableDef.getSnapshotName == null)
+      if (variableDef.getSnapshotName == null || variableDef.getSnapshotName == "")
         null
       else
         context.graph.getOutputByName(prependNameScope(variableDef.getSnapshotName))

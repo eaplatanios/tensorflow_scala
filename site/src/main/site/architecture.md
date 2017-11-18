@@ -2,7 +2,7 @@
 layout: docs
 title: "Architecture"
 section: "architecture"
-position: 4
+position: 5
 ---
 
 # Architecture

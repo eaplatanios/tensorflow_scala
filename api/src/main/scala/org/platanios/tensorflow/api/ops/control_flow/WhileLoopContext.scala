@@ -51,7 +51,7 @@ import scala.reflect.ClassTag
   *
   * @author Emmanouil Antonios Platanios
   */
-private[ops] case class WhileLoopContext private[control_flow] (
+private[api] case class WhileLoopContext private[control_flow] (
     parallelIterations: Int = 10,
     enableBackPropagation: Boolean = true,
     swapMemory: Boolean = false,

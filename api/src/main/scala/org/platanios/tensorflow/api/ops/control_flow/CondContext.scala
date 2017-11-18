@@ -41,7 +41,7 @@ import scala.reflect.ClassTag
   *
   * @author Emmanouil Antonios Platanios
   */
-private[control_flow] case class CondContext private[control_flow] (
+private[api] case class CondContext private[control_flow] (
     predicate: Output, pivot: Output, branch: CondBranch, private val _name: String = "CondContext"
 ) extends Context() with ProtoSerializable {
   values += predicate.name

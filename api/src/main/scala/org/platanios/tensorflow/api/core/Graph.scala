@@ -1065,7 +1065,7 @@ object Graph {
       */
     def parseCollectionDef(collectionDef: CollectionDef, graph: Graph, importScope: String): Unit
 
-    Keys.registry += name -> this
+    Keys.register(this)
   }
 
   /** Contains standard names to use for graph collections.
@@ -1082,6 +1082,8 @@ object Graph {
     private[api] def fromName(name: String): Key[_] = {
       registry.getOrElse(name, throw new IllegalArgumentException(s"Cannot find graph collection key named '$name'."))
     }
+
+    def register(key: Key[_]): Unit = registry += key.name -> key
 
     /** Key for collections of strings. */
     trait StringCollectionKey extends Key[String] {
