@@ -16,6 +16,7 @@
 package org.platanios.tensorflow.api.learn.layers
 
 import org.platanios.tensorflow.api.Shape
+import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.learn.{Mode, layers}
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.Output
@@ -96,7 +97,17 @@ case class Linear(
   override def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
     val weights = variable(s"$uniquifiedName/Weights", input.dataType, Shape(input.shape(-1), units), weightsInitializer)
     val trainableVariables = mutable.Set[Variable](weights)
-    val product = ops.Math.matmul(input, weights.value)
+    val product = {
+      if (input.rank > 2) {
+        // Broadcasting is required for the inputs.
+        val product = ops.Math.tensorDot(input, weights.value, Seq(input.rank - 1), Seq(0))
+        // Reshape the output back to the original rank of the input.
+        product.setShape(input.shape(0 :: -1) + units)
+        product
+      } else {
+        ops.Math.matmul(input, weights.value)
+      }
+    }
     val output = {
       if (useBias) {
         val bias = variable(s"$uniquifiedName/Bias", input.dataType, Shape(units), biasInitializer)

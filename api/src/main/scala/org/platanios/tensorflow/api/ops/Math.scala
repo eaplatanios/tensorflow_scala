@@ -16,6 +16,7 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.tensors.Tensor
@@ -1931,7 +1932,244 @@ private[api] trait Math {
         .build().outputs(0)
   }
 
-  // TODO: [OPS] tensorDot
+  /** $OpDocMathTensorDot
+    *
+    * @group MathOps
+    * @param  a       First tensor.
+    * @param  b       Second tensor.
+    * @param  numAxes Number of axes to contract.
+    * @return Created op output.
+    */
+  def tensorDot(a: Output, b: Output, numAxes: Int): Output = {
+    tensorDot(a, b, numAxes, "TensorDot")
+  }
+
+  /** $OpDocMathTensorDot
+    *
+    * @group MathOps
+    * @param  a       First tensor.
+    * @param  b       Second tensor.
+    * @param  numAxes Number of axes to contract.
+    * @param  name    Name for the created ops.
+    * @return Created op output.
+    */
+  def tensorDot(a: Output, b: Output, numAxes: Int, name: String): Output = {
+    if (numAxes < 1)
+      throw InvalidArgumentException("'numAxes' must be at least 1.")
+    if (a.rank == -1)
+      throw InvalidArgumentException(
+        "Cannot use 'tensorDot' with an unknown input tensor shape. Use 'tensorDotDynamic' instead.")
+    tensorDot(a, b, a.rank - numAxes until a.rank, 0 until numAxes, name)
+  }
+
+  /** $OpDocMathTensorDot
+    *
+    * @group MathOps
+    * @param  a     First tensor.
+    * @param  b     Second tensor.
+    * @param  axesA Axes to contract in `a`.
+    * @param  axesB Axes to contract in `b`.
+    * @return Created op output.
+    */
+  def tensorDot(a: Output, b: Output, axesA: Seq[Int], axesB: Seq[Int]): Output = {
+    tensorDot(a, b, axesA, axesB, "TensorDot")
+  }
+
+  /** $OpDocMathTensorDot
+    *
+    * @group MathOps
+    * @param  a     First tensor.
+    * @param  b     Second tensor.
+    * @param  axesA Axes to contract in `a`.
+    * @param  axesB Axes to contract in `b`.
+    * @param  name  Name for the created ops.
+    * @return Created op output.
+    */
+  def tensorDot(a: Output, b: Output, axesA: Seq[Int], axesB: Seq[Int], name: String): Output = {
+    if (axesA.size != axesB.size)
+      throw InvalidArgumentException(
+        s"Different number of contraction axes for 'a' and 'b', ${axesA.size} != ${axesB.size}.")
+
+    /** Helper method to perform transpose and reshape for the tensor contraction op. This method is helpful in reducing
+      * `tensorDot` to `matmul` using the `transpose` and the `reshape` ops. The method takes a tensor and performs the
+      * correct transpose and reshape operations for the provided indices. It returns the reshaped tensor as well as a
+      * list of indices necessary to reshape the tensor back to its proper shape after the matrix multiplication.
+      *
+      * @param  a       Tensor being reshaped.
+      * @param  axes    Sequence of unique indices of axes of `a`.
+      * @param  flipped If `true`, the method assumes that `a` is the second argument in the contraction operation.
+      * @return Tuple that contains: (i) the reshaped tensor `a` that allows contraction via `matmul`, (ii) an `INT32`
+      *         tensor that contains the shape of the free axes, and (iii) a sequence of integers representing the
+      *         inferred static shape of the free axes.
+      */
+    def tensorDotReshape(a: Output, axes: Seq[Int], flipped: Boolean = false): (Output, Output, Seq[Int]) = {
+      if (a.shape.isFullyDefined) {
+        val mappedAxes = axes.map(i => if (i >= 0) i else i + a.rank)
+        val prodAxes = mappedAxes.map(a.shape(_)).product
+        val free = (0 until a.rank).filter(!mappedAxes.contains(_))
+        val freeAxes = free.map(a.shape(_))
+        val prodFree = freeAxes.product
+        val permutation = if (flipped) mappedAxes ++ free else free ++ mappedAxes
+        val newShape = if (flipped) Shape(prodAxes, prodFree) else Shape(prodFree, prodAxes)
+        val reshapedA = Basic.reshape(Basic.transpose(a, permutation), newShape)
+        (reshapedA, freeAxes, freeAxes)
+      } else {
+        val (mappedAxes, freeAxesStatic) = {
+          if (a.rank != -1) {
+            val mappedAxes = axes.map(i => if (i >= 0) i else i + a.rank)
+            val free = (0 until a.rank).filter(!mappedAxes.contains(_))
+            val freeAxes = free.map(a.shape(_))
+            (mappedAxes, freeAxes)
+          } else {
+            (axes, null)
+          }
+        }
+        val shapeA = Basic.shape(a)
+        val rankA = Basic.rank(a)
+        var axesO = Basic.constant(mappedAxes, name = "Axes")
+        axesO = ((axesO >= 0).cast(INT32) * axesO) + ((axesO < 0).cast(INT32) * (axesO + rankA))
+        val (free, _) = Basic.listDiff(Math.range(0, rankA), axesO)
+        val freeAxes = Basic.gather(shapeA, free)
+        val axesAxes = Basic.gather(shapeA, axesO)
+        val prodFree = freeAxes.prod()
+        val prodAxes = axesAxes.prod()
+        val (permutation, newShape) = {
+          if (flipped) {
+            val permutation = Basic.concatenate(Seq(axesO, free), 0)
+            val newShape = Basic.stack(Seq(prodAxes, prodFree))
+            (permutation, newShape)
+          } else {
+            val permutation = Basic.concatenate(Seq(free, axesO), 0)
+            val newShape = Basic.stack(Seq(prodFree, prodAxes))
+            (permutation, newShape)
+          }
+        }
+        val reshapedA = Basic.reshape(Basic.transpose(a, permutation), newShape)
+        (reshapedA, freeAxes, freeAxesStatic)
+      }
+    }
+
+    Op.createWithNameScope(name, Set(a.op, b.op)) {
+      val (reshapedA, freeA, freeAStatic) = tensorDotReshape(a, axesA)
+      val (reshapedB, freeB, freeBStatic) = tensorDotReshape(b, axesB, flipped = true)
+      val abMatmul = matmul(reshapedA, reshapedB)
+      if (freeAStatic != null && freeBStatic != null) {
+        Basic.reshape(abMatmul, Shape.fromSeq(freeAStatic ++ freeBStatic))
+      } else {
+        val reshaped = Basic.reshape(abMatmul, Basic.concatenate(Seq(freeA, freeB), 0))
+        if (freeAStatic != null && freeBStatic != null)
+          reshaped.setShape(Shape.fromSeq(freeAStatic ++ freeBStatic))
+        reshaped
+      }
+    }
+  }
+
+  /** Dynamic version (i.e., where `numAxes` may be a symbolic tensor) of the `tensorDot` op.
+    *
+    * $OpDocMathTensorDot
+    *
+    * @group MathOps
+    * @param  a       First tensor.
+    * @param  b       Second tensor.
+    * @param  numAxes Number of axes to contract.
+    * @return Created op output.
+    */
+  def tensorDotDynamic(a: Output, b: Output, numAxes: Output): Output = {
+    tensorDotDynamic(a, b, numAxes, "TensorDot")
+  }
+
+  /** Dynamic version (i.e., where `numAxes` may be a symbolic tensor) of the `tensorDot` op.
+    *
+    * $OpDocMathTensorDot
+    *
+    * @group MathOps
+    * @param  a       First tensor.
+    * @param  b       Second tensor.
+    * @param  numAxes Number of axes to contract.
+    * @param  name    Name for the created ops.
+    * @return Created op output.
+    */
+  def tensorDotDynamic(a: Output, b: Output, numAxes: Output, name: String): Output = {
+    if (numAxes.rank != 0)
+      throw InvalidArgumentException("'numAxes' must be a scalar.")
+    tensorDotDynamic(a, b, range(a.rank - numAxes, a.rank), range(0, numAxes), name)
+  }
+
+  /** Dynamic version (i.e., where `axesA` and `axesB` may be symbolic tensors) of the `tensorDot` op.
+    *
+    * $OpDocMathTensorDot
+    *
+    * @group MathOps
+    * @param  a     First tensor.
+    * @param  b     Second tensor.
+    * @param  axesA Axes to contract in `a`.
+    * @param  axesB Axes to contract in `b`.
+    * @return Created op output.
+    */
+  def tensorDotDynamic(a: Output, b: Output, axesA: Output, axesB: Output): Output = {
+    tensorDotDynamic(a, b, axesA, axesB, "TensorDot")
+  }
+
+  /** Dynamic version (i.e., where `axesA` and `axesB` may be symbolic tensors) of the `tensorDot` op.
+    *
+    * $OpDocMathTensorDot
+    *
+    * @group MathOps
+    * @param  a     First tensor.
+    * @param  b     Second tensor.
+    * @param  axesA Axes to contract in `a`.
+    * @param  axesB Axes to contract in `b`.
+    * @param  name  Name for the created ops.
+    * @return Created op output.
+    */
+  def tensorDotDynamic(a: Output, b: Output, axesA: Output, axesB: Output, name: String = "TensorDot"): Output = {
+    if (axesA.rank != 1)
+      throw InvalidArgumentException("'axesA' must be a vector.")
+    if (axesB.rank != 1)
+      throw InvalidArgumentException("'axesB' must be a vector.")
+
+    /** Helper method to perform transpose and reshape for the tensor contraction op. This method is helpful in reducing
+      * `tensorDot` to `matmul` using the `transpose` and the `reshape` ops. The method takes a tensor and performs the
+      * correct transpose and reshape operations for the provided indices. It returns the reshaped tensor as well as a
+      * list of indices necessary to reshape the tensor back to its proper shape after the matrix multiplication.
+      *
+      * @param  a       Tensor being reshaped.
+      * @param  axes    Sequence of unique indices of axes of `a`.
+      * @param  flipped If `true`, the method assumes that `a` is the second argument in the contraction operation.
+      * @return Tuple that contains: (i) the reshaped tensor `a` that allows contraction via `matmul`, and (ii) an
+      *         `INT32` tensor that contains the shape of the free axes.
+      */
+    def tensorDotReshape(a: Output, axes: Output, flipped: Boolean = false): (Output, Output) = {
+      val shapeA = Basic.shape(a)
+      val rankA = Basic.rank(a)
+      val mappedAxes = ((axes >= 0).cast(INT32) * axes) + ((axes < 0).cast(INT32) * (axes + rankA))
+      val (free, _) = Basic.listDiff(Math.range(0, rankA), mappedAxes)
+      val freeAxes = Basic.gather(shapeA, free)
+      val axesAxes = Basic.gather(shapeA, mappedAxes)
+      val prodFree = freeAxes.prod()
+      val prodAxes = axesAxes.prod()
+      val (permutation, newShape) = {
+        if (flipped) {
+          val permutation = Basic.concatenate(Seq(mappedAxes, free), 0)
+          val newShape = Basic.stack(Seq(prodAxes, prodFree))
+          (permutation, newShape)
+        } else {
+          val permutation = Basic.concatenate(Seq(free, mappedAxes), 0)
+          val newShape = Basic.stack(Seq(prodFree, prodAxes))
+          (permutation, newShape)
+        }
+      }
+      val reshapedA = Basic.reshape(Basic.transpose(a, permutation), newShape)
+      (reshapedA, freeAxes)
+    }
+
+    Op.createWithNameScope(name, Set(a.op, b.op)) {
+      val (reshapedA, freeA) = tensorDotReshape(a, axesA)
+      val (reshapedB, freeB) = tensorDotReshape(b, axesB, flipped = true)
+      val abMatmul = matmul(reshapedA, reshapedB)
+      Basic.reshape(abMatmul, Basic.concatenate(Seq(freeA, freeB), 0))
+    }
+  }
 
   //endregion Matrix Ops
 
@@ -3075,7 +3313,109 @@ object Math extends Math {
       */
     def cross(other: Output): Output = Math.cross(output, other)
 
-    // TODO: [OPS] tensorDot
+    /** $OpDocMathTensorDot
+      *
+      * @group MathOps
+      * @param  other   Tensor to contract with.
+      * @param  numAxes Number of axes to contract.
+      * @return Created op output.
+      */
+    def tensorDot(other: Output, numAxes: Int): Output = {
+      Math.tensorDot(output, other, numAxes)
+    }
+
+    /** $OpDocMathTensorDot
+      *
+      * @group MathOps
+      * @param  other   Tensor to contract with.
+      * @param  numAxes Number of axes to contract.
+      * @param  name    Name for the created ops.
+      * @return Created op output.
+      */
+    def tensorDot(other: Output, numAxes: Int, name: String): Output = {
+      Math.tensorDot(output, other, numAxes, name)
+    }
+
+    /** $OpDocMathTensorDot
+      *
+      * @group MathOps
+      * @param  other     Tensor to contract with.
+      * @param  axes      Axes to contract in this tensor.
+      * @param  axesOther Axes to contract in `other`.
+      * @return Created op output.
+      */
+    def tensorDot(other: Output, axes: Seq[Int], axesOther: Seq[Int]): Output = {
+      Math.tensorDot(output, other, axes, axesOther)
+    }
+
+    /** $OpDocMathTensorDot
+      *
+      * @group MathOps
+      * @param  other     Tensor to contract with.
+      * @param  axes      Axes to contract in this tensor.
+      * @param  axesOther Axes to contract in `other`.
+      * @param  name      Name for the created ops.
+      * @return Created op output.
+      */
+    def tensorDot(other: Output, axes: Seq[Int], axesOther: Seq[Int], name: String): Output = {
+      Math.tensorDot(output, other, axes, axesOther, name)
+    }
+
+    /** Dynamic version (i.e., where `numAxes` may be a symbolic tensor) of the `tensorDot` op.
+      *
+      * $OpDocMathTensorDot
+      *
+      * @group MathOps
+      * @param  other   Tensor to contract with.
+      * @param  numAxes Number of axes to contract.
+      * @return Created op output.
+      */
+    def tensorDotDynamic(other: Output, numAxes: Output): Output = {
+      Math.tensorDotDynamic(output, other, numAxes)
+    }
+
+    /** Dynamic version (i.e., where `numAxes` may be a symbolic tensor) of the `tensorDot` op.
+      *
+      * $OpDocMathTensorDot
+      *
+      * @group MathOps
+      * @param  other   Tensor to contract with.
+      * @param  numAxes Number of axes to contract.
+      * @param  name    Name for the created ops.
+      * @return Created op output.
+      */
+    def tensorDotDynamic(other: Output, numAxes: Output, name: String): Output = {
+      Math.tensorDotDynamic(output, other, numAxes, name)
+    }
+
+    /** Dynamic version (i.e., where `axes` and `axesOther` may be symbolic tensors) of the `tensorDot` op.
+      *
+      * $OpDocMathTensorDot
+      *
+      * @group MathOps
+      * @param  other     Tensor to contract with.
+      * @param  axes      Axes to contract in this tensor.
+      * @param  axesOther Axes to contract in `other`.
+      * @return Created op output.
+      */
+    def tensorDotDynamic(other: Output, axes: Output, axesOther: Output): Output = {
+      Math.tensorDotDynamic(output, other, axes, axesOther)
+    }
+
+    /** Dynamic version (i.e., where `axes` and `axesOther` may be symbolic tensors) of the `tensorDot` op.
+      *
+      * $OpDocMathTensorDot
+      *
+      * @group MathOps
+      * @param  other     Tensor to contract with.
+      * @param  axes      Axes to contract in this tensor.
+      * @param  axesOther Axes to contract in `other`.
+      * @param  name      Name for the created ops.
+      * @return Created op output.
+      */
+    def tensorDotDynamic(other: Output, axes: Output, axesOther: Output, name: String): Output = {
+      Math.tensorDotDynamic(output, other, axes, axesOther, name)
+    }
 
     //endregion Math Matrix Ops
 
@@ -5272,6 +5612,27 @@ object Math extends Math {
     *   `a` and `b` must have the same shape; they can either be simple 3-element vectors, or have any shape 
     *   where the innermost dimension size is 3. In the latter case, each pair of corresponding 3-element vectors 
     *   is cross-multiplied independently.
+    *
+    * @define OpDocMathTensorDot
+    *   The `tensorDot` op computes the tensor contraction of two tensors along the specified axes.
+    *   
+    *   A tensor contraction sums the product of elements from `a` and `b` over the indices specified by `axesA` and 
+    *   `axesB`. The axis `axesA(i)` of `a` must have the same dimension as the axis `axesB(i)` of `b` for all `i` in 
+    *   `[0, aAxes.size)`. The tensors/sequences (depending on whether the dynamic version of the op is being used) 
+    *   `axesA` and `axesB` must have identical length and consist of unique integers that specify valid axes for each 
+    *   of the tensors. This operation corresponds to `numpy.tensordot(a, b, axes)` in Python.
+    *   
+    *   If `numAxes` is provided instead of `axesA` and `axesB`, then the contraction is performed over the last 
+    *   `numAxes` axes of `a` and the first `numAxes` axes of `b`, in order.
+    *   
+    *   Example 1: When `a` and `b` are matrices (rank 2), the case `numAxes = 1` is equivalent to matrix 
+    *              multiplication.
+    *   Example 2: When `a` and `b` are matrices (rank 2), the case `axesA = [1]` and `axesB = [0]` is equivalent to 
+    *              matrix multiplication.
+    *   Example 3: Suppose that `a_{ijk}` and `b_{lmn}` represent two tensors of rank 3. Then, the case `axesA = [0]` 
+    *              and `axesB = [2]` results in the rank 4 tensor `c_{jklm}` whose entry corresponding to the indices 
+    *              `(j, k, l, m)` is given by: `c_{jklm} = \sum_i a_{ijk} b_{lmi}`. In general, 
+    *              `rank(result) = rank(a) + rank(b) - 2 * axesA.size`.
     * 
     * @define OpDocMathComplex
     *   The `complex` op converts two real tensors to a complex tensor.
