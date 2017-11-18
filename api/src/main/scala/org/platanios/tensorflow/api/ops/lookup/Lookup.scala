@@ -101,7 +101,7 @@ private[lookup] trait Lookup {
         val initializer = LookupTableTextFileInitializer(
           filename, if (keysDataType.isInteger) INT64 else keysDataType, INT64,
           TextFileWholeLine, TextFileLineNumber, delimiter, vocabularySize)
-        val table = HashTable(initializer, defaultValue, sharedName, name = "Table")
+        val table = HashTable(initializer, defaultValue, sharedName = sharedName, name = "Table")
         if (numOOVBuckets > 0)
           IDLookupTableWithHashBuckets(table, numOOVBuckets, hashSpecification, table.keysDataType)
         else
