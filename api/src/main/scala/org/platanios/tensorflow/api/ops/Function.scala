@@ -86,7 +86,7 @@ object Function {
       }
 
       override def outputsDecoder(outputs: Seq[Output]): (OutputIndexedSlices, Seq[Output]) = {
-        (OutputIndexedSlices(outputs(0), outputs(1), outputs(2)), outputs.tail)
+        (OutputIndexedSlices(outputs(0), outputs(1), outputs(2)), outputs.drop(3))
       }
     }
 
@@ -99,7 +99,7 @@ object Function {
       }
 
       override def outputsDecoder(outputs: Seq[Output]): (SparseOutput, Seq[Output]) = {
-        (SparseOutput(outputs(0), outputs(1), outputs(2)), outputs.tail)
+        (SparseOutput(outputs(0), outputs(1), outputs(2)), outputs.drop(3))
       }
     }
 
@@ -110,14 +110,14 @@ object Function {
       override def outputs(arg: Dataset[T, O, D, S]): Seq[Output] = Seq(arg.createHandle())
       override def dataTypes(arg: Dataset[T, O, D, S]): Seq[DataType] = Seq(VARIANT)
       // TODO: [FUNCTIONS] !!! Find a better way to deal with this -- it's only used for Dataset.flatMap().
-      override def outputsDecoder(outputs: Seq[Output]): (Dataset[T, O, D, S], Seq[Output]) = (null, outputs.tail)
+      override def outputsDecoder(outputs: Seq[Output]): (Dataset[T, O, D, S], Seq[Output]) = (null, outputs.drop(1))
     }
 
     implicit val hnil: ArgType[HNil] = new ArgType[HNil] {
       override def numOutputs: Int = 0
       override def outputs(arg: HNil): Seq[Output] = Seq.empty[Output]
       override def dataTypes(arg: HNil): Seq[DataType] = Seq.empty[DataType]
-      override def outputsDecoder(outputs: Seq[Output]): (HNil, Seq[Output]) = (HNil, outputs.tail)
+      override def outputsDecoder(outputs: Seq[Output]): (HNil, Seq[Output]) = (HNil, outputs)
     }
 
     implicit def recursiveConstructor[H, T <: HList](implicit
