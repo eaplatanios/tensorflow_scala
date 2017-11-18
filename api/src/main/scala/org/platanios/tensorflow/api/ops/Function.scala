@@ -77,6 +77,32 @@ object Function {
       override def outputsDecoder(outputs: Seq[Output]): (Output, Seq[Output]) = (outputs.head, outputs.tail)
     }
 
+    implicit val outputIndexedSlicesArgType: ArgType[OutputIndexedSlices] = new ArgType[OutputIndexedSlices] {
+      override def numOutputs: Int = 1
+      override def outputs(arg: OutputIndexedSlices): Seq[Output] = Seq(arg.indices, arg.values, arg.denseShape)
+
+      override def dataTypes(arg: OutputIndexedSlices): Seq[DataType] = {
+        Seq(arg.indices.dataType, arg.values.dataType, arg.denseShape.dataType)
+      }
+
+      override def outputsDecoder(outputs: Seq[Output]): (OutputIndexedSlices, Seq[Output]) = {
+        (OutputIndexedSlices(outputs(0), outputs(1), outputs(2)), outputs.tail)
+      }
+    }
+
+    implicit val sparseOutputArgType: ArgType[SparseOutput] = new ArgType[SparseOutput] {
+      override def numOutputs: Int = 1
+      override def outputs(arg: SparseOutput): Seq[Output] = Seq(arg.indices, arg.values, arg.denseShape)
+
+      override def dataTypes(arg: SparseOutput): Seq[DataType] = {
+        Seq(arg.indices.dataType, arg.values.dataType, arg.denseShape.dataType)
+      }
+
+      override def outputsDecoder(outputs: Seq[Output]): (SparseOutput, Seq[Output]) = {
+        (SparseOutput(outputs(0), outputs(1), outputs(2)), outputs.tail)
+      }
+    }
+
     implicit def datasetArgType[T, O, D, S](implicit
         ev: Data.Aux[T, O, D, S]
     ): ArgType[Dataset[T, O, D, S]] = new ArgType[Dataset[T, O, D, S]] {
