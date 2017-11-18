@@ -1797,9 +1797,9 @@ private[api] trait Math {
   def matrixBandPart(
       input: Output, numSubDiagonals: Output, numSuperDiagonals: Output, name: String = "MatrixBandPart"): Output = {
     if(!numSubDiagonals.dataType.isInteger)
-      throw new IllegalArgumentException("MatrixBandPart: numSubDiagonals needs to be an integer")
+      throw new IllegalArgumentException(s"'numSubDiagonals' must be integer, but was ${numSubDiagonals.dataType}.")
     if(!numSuperDiagonals.dataType.isInteger)
-      throw new IllegalArgumentException("MatrixBandPart: numSuperDiagonals needs to be an integer")
+      throw new IllegalArgumentException(s"'numSuperDiagonals' must be integer, but was ${numSuperDiagonals.dataType}.")
 
     Op.Builder(opType = "MatrixBandPart", name = name)
         .addInput(input)
