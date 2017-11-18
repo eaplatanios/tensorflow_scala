@@ -159,9 +159,9 @@ object BasicRNNDecoder {
       * (ii) the next input. */
     override def initialize(): (ops.Output, O) = {
       Op.createWithNameScope(s"$name/Initialize") {
-        val finished = Math.all(Math.equal(0, sequenceLengths))
+        val finished = Math.equal(0, sequenceLengths)
         val nextInputs = ControlFlow.cond(
-          finished,
+          Math.all(finished),
           () => zeroInputs,
           () => inputTensorArrays.map(_.read(0)))
         (finished, evO.fromOutputs(input, nextInputs))

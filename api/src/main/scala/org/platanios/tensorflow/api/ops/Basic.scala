@@ -1133,7 +1133,7 @@ private[api] trait Basic {
       // The basic idea is to compare a range row vector of size 'maxLen', [0, 1, 2, 3, 4], to 'lengths' as a matrix
       // with one column, [[1], [3], [2]]. Because of broadcasting on both arguments, this comparison results in a
       // matrix of size [lengths.shape(0), maxLen].
-      val rowVector = Math.range(constant(0, maxLen.dataType), maxLen, constant(1, maxLen.dataType))
+      val rowVector = Math.range(Basic.zerosLike(maxLen), maxLen, Basic.onesLike(maxLen))
       // Since 'maxLen' >= max(lengths), it is safe to use 'maxLen' as a cast authoritative type. Whenever 'maxLen' fits
       // into INT32, then so do the elements of 'lengths'.
       val matrix = Math.cast(expandDims(lengths, 1), maxLen.dataType)
