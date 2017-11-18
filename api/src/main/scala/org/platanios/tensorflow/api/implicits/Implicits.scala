@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.implicits
 
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.ops.io.data.Data
+import org.platanios.tensorflow.api.ops.io.data
 import org.platanios.tensorflow.api.ops.{Op, OpCreationContext, OpSpecification, Output}
 import org.platanios.tensorflow.api.tensors
 import org.platanios.tensorflow.api.types.DataType
@@ -51,7 +51,7 @@ private[api] trait LowPriorityImplicits
         with Ops
         with Data
         with Learn {
-  implicit val tensorDataHelper: Data.Aux[tensors.Tensor, Output, DataType, Shape] = Data.tensorData[DataType]
+  implicit val tensorDataHelper: data.Data.Aux[tensors.Tensor, Output, DataType, Shape] = data.Data.tensorData[DataType]
 }
 
 private[api] object Implicits extends Implicits
