@@ -159,7 +159,7 @@ abstract class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
     * @param  stopCriteria Stop criteria to use for stopping the training iteration. For the default criteria please
     *                      refer to the documentation of [[StopCriteria]].
     */
-  def train(data: Dataset[TT, TO, TD, TS], stopCriteria: StopCriteria = StopCriteria()): Unit
+  def train(data: () => Dataset[TT, TO, TD, TS], stopCriteria: StopCriteria = StopCriteria()): Unit
 
   /** Infers output (i.e., computes predictions) for `input` using the model managed by this estimator.
     *
@@ -178,7 +178,7 @@ abstract class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
     *         the type of `input`.
     */
   def infer[InferInput, InferOutput, ModelInferenceOutput](
-      input: InferInput
+      input: () => InferInput
   )(implicit
       evFetchableIO: Fetchable.Aux[IO, IT],
       evFetchableI: Fetchable.Aux[I, ModelInferenceOutput],
@@ -211,7 +211,7 @@ abstract class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
     */
   @throws[InvalidArgumentException]
   def evaluate(
-      data: Dataset[TT, TO, TD, TS],
+      data: () => Dataset[TT, TO, TD, TS],
       metrics: Seq[Metric[EI, Output]],
       maxSteps: Long = -1L,
       saveSummaries: Boolean = true,

@@ -93,6 +93,6 @@ object RNNTutorialUsingPTB {
         tf.learn.SummarySaverHook(summariesDir, tf.learn.StepHookTrigger(10)),
         tf.learn.CheckpointSaverHook(summariesDir, tf.learn.StepHookTrigger(1000))),
       tensorBoardConfig = tf.learn.TensorBoardConfig(summariesDir, reloadInterval = 1))
-    estimator.train(trainDataset, tf.learn.StopCriteria(maxSteps = Some(10000)))
+    estimator.train(() => trainDataset, tf.learn.StopCriteria(maxSteps = Some(10000)))
   }
 }

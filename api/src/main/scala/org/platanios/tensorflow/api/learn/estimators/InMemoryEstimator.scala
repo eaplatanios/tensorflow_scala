@@ -126,14 +126,14 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
     * @param  stopCriteria Stop criteria to use for stopping the training iteration. For the default criteria please
     *                      refer to the documentation of [[StopCriteria]].
     */
-  override def train(data: Dataset[TT, TO, TD, TS], stopCriteria: StopCriteria = this.stopCriteria): Unit = {
+  override def train(data: () => Dataset[TT, TO, TD, TS], stopCriteria: StopCriteria = this.stopCriteria): Unit = {
     session.resetShouldStop()
     session.removeHooks(inferHooks ++ evaluateHooks)
     Op.createWith(graph) {
       val frozen = graph.isFrozen
       if (frozen)
         graph.unFreeze()
-      val initializer = trainingOps.inputIterator.createInitializer(data)
+      val initializer = trainingOps.inputIterator.createInitializer(data())
       if (frozen)
         graph.freeze()
       session.disableHooks()
@@ -172,7 +172,7 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
     *         the type of `input`.
     */
   override def infer[InferInput, InferOutput, ModelInferenceOutput](
-      input: InferInput
+      input: () => InferInput
   )(implicit
       evFetchableIO: Fetchable.Aux[IO, IT],
       evFetchableI: Fetchable.Aux[I, ModelInferenceOutput],
@@ -185,7 +185,7 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
       val frozen = graph.isFrozen
       if (frozen)
         graph.unFreeze()
-      val initializer = inferenceOps.inputIterator.createInitializer(ev.toDataset(input))
+      val initializer = inferenceOps.inputIterator.createInitializer(ev.toDataset(input()))
       if (frozen)
         graph.freeze()
       session.disableHooks()
@@ -246,7 +246,7 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
     */
   @throws[InvalidArgumentException]
   override def evaluate(
-      data: Dataset[TT, TO, TD, TS],
+      data: () => Dataset[TT, TO, TD, TS],
       metrics: Seq[Metric[EI, Output]],
       maxSteps: Long = -1L,
       saveSummaries: Boolean = true,
@@ -257,7 +257,7 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
       val frozen = graph.isFrozen
       if (frozen)
         graph.unFreeze()
-      val initializer = evaluationOps.inputIterator.createInitializer(data)
+      val initializer = evaluationOps.inputIterator.createInitializer(data())
       if (frozen)
         graph.freeze()
       session.disableHooks()

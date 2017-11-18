@@ -72,14 +72,14 @@ object STL10 {
         // tf.learn.SummarySaverHook(summariesDir, tf.learn.StepHookTrigger(100)),
       tf.learn.CheckpointSaverHook(summariesDir, tf.learn.StepHookTrigger(1000))),
       tensorBoardConfig = tf.learn.TensorBoardConfig(summariesDir, reloadInterval = 1))
-    estimator.train(trainData, tf.learn.StopCriteria(maxSteps = Some(10000)))
+    estimator.train(() => trainData, tf.learn.StopCriteria(maxSteps = Some(10000)))
 
     def accuracy(images: Tensor, labels: Tensor): Float = {
       val imageBatches = images.splitEvenly(100)
       val labelBatches = labels.splitEvenly(100)
       var accuracy = 0.0f
       (0 until 100).foreach(i => {
-        val predictions = estimator.infer(imageBatches(i))
+        val predictions = estimator.infer(() => imageBatches(i))
         accuracy += predictions.argmax(1).cast(UINT8).equal(labelBatches(i)).cast(FLOAT32).sum().scalar.asInstanceOf[Float]
       })
       accuracy / images.shape(0)

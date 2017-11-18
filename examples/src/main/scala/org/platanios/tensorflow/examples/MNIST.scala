@@ -75,10 +75,10 @@ object MNIST {
         tf.learn.SummarySaverHook(summariesDir, tf.learn.StepHookTrigger(100)),
         tf.learn.CheckpointSaverHook(summariesDir, tf.learn.StepHookTrigger(100))),
       tensorBoardConfig = tf.learn.TensorBoardConfig(summariesDir, reloadInterval = 1))
-    estimator.train(trainData, tf.learn.StopCriteria(maxSteps = Some(1000)))
+    estimator.train(() => trainData, tf.learn.StopCriteria(maxSteps = Some(1000)))
 
     def accuracy(images: Tensor, labels: Tensor): Float = {
-      val predictions = estimator.infer(images)
+      val predictions = estimator.infer(() => images)
       predictions.argmax(1).cast(UINT8).equal(labels).cast(FLOAT32).mean().scalar.asInstanceOf[Float]
     }
 

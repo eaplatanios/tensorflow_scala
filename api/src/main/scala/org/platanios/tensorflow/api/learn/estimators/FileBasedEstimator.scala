@@ -82,7 +82,7 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
     * @param  stopCriteria Stop criteria to use for stopping the training iteration. For the default criteria please
     *                      refer to the documentation of [[StopCriteria]].
     */
-  override def train(data: Dataset[TT, TO, TD, TS], stopCriteria: StopCriteria = StopCriteria()): Unit = {
+  override def train(data: () => Dataset[TT, TO, TD, TS], stopCriteria: StopCriteria = StopCriteria()): Unit = {
     trainWithHooks(data, stopCriteria)
   }
 
@@ -108,7 +108,7 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
     *                           server is launched on the chief node.
     */
   def trainWithHooks(
-      data: Dataset[TT, TO, TD, TS],
+      data: () => Dataset[TT, TO, TD, TS],
       stopCriteria: StopCriteria = StopCriteria(),
       hooks: Set[Hook] = trainHooks,
       chiefOnlyHooks: Set[Hook] = trainChiefOnlyHooks,
@@ -138,7 +138,7 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
         Counter.getOrCreate(Graph.Keys.GLOBAL_EPOCH, local = false)
         val globalStep = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
         val trainingOps = Op.createWithNameScope("Model")(model.buildTrainingOps())
-        val inputInitializer = trainingOps.inputIterator.createInitializer(data)
+        val inputInitializer = trainingOps.inputIterator.createInitializer(data())
         graph.addToCollection(trainingOps.loss, Graph.Keys.LOSSES)
         allHooks += TensorNaNHook(Set(trainingOps.loss.name))
         allHooks += TensorLoggingHook(TreeMap(
@@ -189,7 +189,7 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
     *         the type of `input`.
     */
   override def infer[InferInput, InferOutput, ModelInferenceOutput](
-      input: InferInput
+      input: () => InferInput
   )(implicit
       evFetchableIO: Fetchable.Aux[IO, IT],
       evFetchableI: Fetchable.Aux[I, ModelInferenceOutput],
@@ -229,7 +229,7 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
     */
   @throws[CheckpointNotFoundException]
   def inferWithHooks[InferInput, InferOutput, ModelInferenceOutput](
-      input: InferInput,
+      input: () => InferInput,
       hooks: Set[Hook] = inferHooks,
       checkpointPath: Path = null
   )(implicit
@@ -251,7 +251,7 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
       Counter.getOrCreate(Graph.Keys.GLOBAL_EPOCH, local = false)
       Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
       val inferenceOps = Op.createWithNameScope("Model")(model.buildInferenceOps())
-      val inputInitializer = inferenceOps.inputIterator.createInitializer(ev.toDataset(input))
+      val inputInitializer = inferenceOps.inputIterator.createInitializer(ev.toDataset(input()))
       val saver = getOrCreateSaver()
       val session = MonitoredSession(
         ChiefSessionCreator(
@@ -307,7 +307,7 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
     */
   @throws[InvalidArgumentException]
   override def evaluate(
-      data: Dataset[TT, TO, TD, TS],
+      data: () => Dataset[TT, TO, TD, TS],
       metrics: Seq[Metric[EI, Output]] = this.evaluationMetrics,
       maxSteps: Long = -1L,
       saveSummaries: Boolean = true,
@@ -353,7 +353,7 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
   @throws[CheckpointNotFoundException]
   @throws[InvalidArgumentException]
   def evaluateWithHooks(
-      data: Dataset[TT, TO, TD, TS],
+      data: () => Dataset[TT, TO, TD, TS],
       metrics: Seq[Metric[EI, Output]] = this.evaluationMetrics,
       maxSteps: Long = -1L,
       hooks: Set[Hook] = evaluateHooks,
@@ -371,7 +371,7 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
     Op.createWith(graph) {
       graph.setRandomSeed(randomSeed)
       val evaluationOps = Op.createWithNameScope("Model")(model.buildEvaluationOps(metrics))
-      val inputInitializer = evaluationOps.inputIterator.createInitializer(data)
+      val inputInitializer = evaluationOps.inputIterator.createInitializer(data())
       Counter.getOrCreate(Graph.Keys.GLOBAL_EPOCH, local = false)
       val globalStep = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
       val evalStep = Counter.getOrCreate(Graph.Keys.EVAL_STEP, local = true)
