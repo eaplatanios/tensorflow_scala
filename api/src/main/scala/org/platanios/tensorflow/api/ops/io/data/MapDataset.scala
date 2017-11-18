@@ -15,7 +15,8 @@
 
 package org.platanios.tensorflow.api.ops.io.data
 
-import org.platanios.tensorflow.api.ops.{Basic, Function, Op, Output, OutputToTensor}
+import org.platanios.tensorflow.api.implicits.helpers.OutputToTensor
+import org.platanios.tensorflow.api.ops.{Basic, Function, Op, Output}
 
 /** Dataset that wraps the application of the `map` op.
   *
@@ -37,12 +38,12 @@ case class MapDataset[T, O, D, S, RT, RO, RD, RS](
     override val name: String = "MapDataset"
 )(implicit
     evOToT: OutputToTensor.Aux[O, T] = inputDataset.evOToT,
-    ev: Data.Aux[T, O, D, S] = inputDataset.ev,
+    evData: Data.Aux[T, O, D, S] = inputDataset.evData,
     evFunctionInput: Function.ArgType[O] = inputDataset.evFunctionInput,
     evROToRT: OutputToTensor.Aux[RO, RT],
-    evR: Data.Aux[RT, RO, RD, RS],
+    evRData: Data.Aux[RT, RO, RD, RS],
     evFunctionOutput: Function.ArgType[RO]
-) extends Dataset[RT, RO, RD, RS](name)(evROToRT, evR, evFunctionOutput) {
+) extends Dataset[RT, RO, RD, RS](name)(evROToRT, evRData, evFunctionOutput) {
   private[this] lazy val instantiatedFunction = {
     Function(s"$name/Function", function).instantiate(
       inputDataset.flattenedOutputDataTypes, inputDataset.flattenedOutputShapes)
@@ -59,9 +60,9 @@ case class MapDataset[T, O, D, S, RT, RO, RD, RS](
   }
 
   private[this] lazy val (_outputDataTypes, _outputShapes): (RD, RS) = {
-    val dataTypes = evR.dataTypesFromO(instantiatedFunction.dummyOutputs)
-    (evR.unflattenDataTypes(dataTypes, instantiatedFunction.outputDataTypes),
-        evR.unflattenShapes(dataTypes, instantiatedFunction.outputShapes))
+    val dataTypes = evRData.dataTypesFromO(instantiatedFunction.dummyOutputs)
+    (evRData.unflattenDataTypes(dataTypes, instantiatedFunction.outputDataTypes),
+        evRData.unflattenShapes(dataTypes, instantiatedFunction.outputShapes))
   }
 
   override def outputDataTypes: RD = _outputDataTypes
@@ -91,12 +92,12 @@ case class ParallelMapDataset[T, O, D, S, RT, RO, RD, RS](
     override val name: String = "ParallelMapDataset"
 )(implicit
     evOToT: OutputToTensor.Aux[O, T] = inputDataset.evOToT,
-    ev: Data.Aux[T, O, D, S] = inputDataset.ev,
+    evData: Data.Aux[T, O, D, S] = inputDataset.evData,
     evFunctionInput: Function.ArgType[O] = inputDataset.evFunctionInput,
     evROToRT: OutputToTensor.Aux[RO, RT],
-    evR: Data.Aux[RT, RO, RD, RS],
+    evRData: Data.Aux[RT, RO, RD, RS],
     evFunctionOutput: Function.ArgType[RO]
-) extends Dataset[RT, RO, RD, RS](name)(evROToRT, evR, evFunctionOutput) {
+) extends Dataset[RT, RO, RD, RS](name)(evROToRT, evRData, evFunctionOutput) {
   private[this] lazy val instantiatedFunction = {
     Function(s"$name/Function", function).instantiate(
       inputDataset.flattenedOutputDataTypes, inputDataset.flattenedOutputShapes)
@@ -114,9 +115,9 @@ case class ParallelMapDataset[T, O, D, S, RT, RO, RD, RS](
   }
 
   private[this] lazy val (_outputDataTypes, _outputShapes): (RD, RS) = {
-    val dataTypes = evR.dataTypesFromO(instantiatedFunction.dummyOutputs)
-    (evR.unflattenDataTypes(dataTypes, instantiatedFunction.outputDataTypes),
-        evR.unflattenShapes(dataTypes, instantiatedFunction.outputShapes))
+    val dataTypes = evRData.dataTypesFromO(instantiatedFunction.dummyOutputs)
+    (evRData.unflattenDataTypes(dataTypes, instantiatedFunction.outputDataTypes),
+        evRData.unflattenShapes(dataTypes, instantiatedFunction.outputShapes))
   }
 
   override def outputDataTypes: RD = _outputDataTypes
@@ -141,7 +142,7 @@ object MapDataset {
         name: String = "Map"
     )(implicit
         evROToRT: OutputToTensor.Aux[RO, RT],
-        evR: Data.Aux[RT, RO, RD, RS],
+        evRData: Data.Aux[RT, RO, RD, RS],
         evFunctionOutput: Function.ArgType[RO]
     ): Dataset[RT, RO, RD, RS] = {
       Op.createWithNameScope(dataset.name) {

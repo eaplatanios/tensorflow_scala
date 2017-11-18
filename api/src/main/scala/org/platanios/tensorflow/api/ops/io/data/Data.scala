@@ -116,15 +116,15 @@ object Data {
 
   def apply[T, O, D, S](implicit ev: Aux[T, O, D, S]): Aux[T, O, D, S] = ev
 
-  implicit val tensorData: Aux[Tensor, Output, DataType, Shape] = new Data[Tensor] {
+  implicit def tensorData[D >: DataType.Aux[_] <: DataType]: Aux[Tensor, Output, D, Shape] = new Data[Tensor] {
     override type OutputType = Output
-    override type DataTypes = DataType
+    override type DataTypes = D
     override type Shapes = Shape
 
     override def size(dataTypes: DataTypes): Int = 1
 
-    override def dataTypesFromT(data: Tensor): DataType = data.dataType
-    override def dataTypesFromO(data: Output): DataType = data.dataType
+    override def dataTypesFromT(data: Tensor): D = data.dataType.asInstanceOf[D]
+    override def dataTypesFromO(data: Output): D = data.dataType.asInstanceOf[D]
 
     override def shapesFromT(data: Tensor): Shape = data.shape
     override def shapesFromO(data: Output): Shape = data.shape
@@ -134,15 +134,15 @@ object Data {
     override def flattenedOutputsFromT(data: Tensor): Seq[Output] = Seq(data.toOutput)
     override def flattenedOutputsFromO(data: Output): Seq[Output] = Seq(data)
 
-    override def flattenedDataTypes(dataTypes: DataType): Seq[DataType] = Seq(dataTypes)
+    override def flattenedDataTypes(dataTypes: D): Seq[DataType] = Seq(dataTypes)
     override def flattenedShapes(shapes: Shape): Seq[Shape] = Seq(shapes)
 
-    override def segmentOutputs(dataTypes: DataType, s: Seq[Output]): (Output, Seq[Output]) = (s.head, s.tail)
-    override def segmentDataTypes(dataTypes: DataType, s: Seq[DataType]): (DataType, Seq[DataType]) = (s.head, s.tail)
-    override def segmentShapes(dataTypes: DataType, s: Seq[Shape]): (Shape, Seq[Shape]) = (s.head, s.tail)
+    override def segmentOutputs(dataTypes: D, s: Seq[Output]): (Output, Seq[Output]) = (s.head, s.tail)
+    override def segmentDataTypes(dataTypes: D, s: Seq[DataType]): (D, Seq[DataType]) = (s.head.asInstanceOf[D], s.tail)
+    override def segmentShapes(dataTypes: D, s: Seq[Shape]): (Shape, Seq[Shape]) = (s.head, s.tail)
 
     override def dataToString(data: Tensor): String = data.toString
-    override def dataTypesToString(dataTypes: DataType): String = dataTypes.toString
+    override def dataTypesToString(dataTypes: D): String = dataTypes.toString
     override def shapesToString(shapes: Shape): String = shapes.toString
   }
 

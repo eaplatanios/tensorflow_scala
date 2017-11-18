@@ -15,12 +15,11 @@
 
 package org.platanios.tensorflow.api.learn.layers
 
-import org.platanios.tensorflow.api.core.{Graph, Shape}
+import org.platanios.tensorflow.api.core.Graph
+import org.platanios.tensorflow.api.implicits.helpers.{DataTypeAuxToDataType, DataTypeToOutput, OutputToTensor}
 import org.platanios.tensorflow.api.learn.layers
 import org.platanios.tensorflow.api.ops.io.data.{Data, Iterator}
-import org.platanios.tensorflow.api.ops.{Op, Output}
-import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.DataType
+import org.platanios.tensorflow.api.ops.Op
 
 import scala.collection.mutable
 
@@ -29,23 +28,20 @@ import scala.collection.mutable
   */
 object Input {
   private[layers] trait API {
-    type Input[T, O, D, S] = layers.Input[T, O, D, S]
+    type Input[T, O, DA, D, S] = layers.Input[T, O, DA, D, S]
     val Input: layers.Input.type = layers.Input
-
-    def Input(dataType: DataType, shape: Shape, name: String = "Input")(implicit
-        ev: Data.Aux[Tensor, Output, DataType, Shape]
-    ): layers.Input[Tensor, Output, DataType, Shape] = {
-      layers.Input(dataType, shape, name)
-    }
   }
 
   object API extends API
 }
 
-case class Input[T, O, D, S](dataType: D, shape: S, name: String = "Input")(implicit
-    ev: Data.Aux[T, O, D, S]
+case class Input[T, O, DA, D, S](private val _dataType: DA, shape: S, name: String = "Input")(implicit
+    val evDAToD: DataTypeAuxToDataType.Aux[DA, D],
+    val evDToO: DataTypeToOutput.Aux[D, O],
+    val evOToT: OutputToTensor.Aux[O, T],
+    val evData: Data.Aux[T, O, D, S]
 ) {
-  private[Input] val evidence: Data.Aux[T, O, D, S] = ev
+  val dataType: D = evDAToD.castDataType(_dataType)
 
   private[this] val cache: mutable.Map[Graph, Iterator[T, O, D, S]] = mutable.Map.empty
 
@@ -53,10 +49,13 @@ case class Input[T, O, D, S](dataType: D, shape: S, name: String = "Input")(impl
 
   final def apply(): Iterator[T, O, D, S] = cache.getOrElse(Op.currentGraph, create())
 
-  def zip[T2, O2, D2, S2](other: Input[T2, O2, D2, S2]):
-  Input[(T, T2), (O, O2), (D, D2), (S, S2)] = {
-    implicit val ev2: Data.Aux[T2, O2, D2, S2] = other.evidence
-    Input[(T, T2), (O, O2), (D, D2), (S, S2)](
-      (dataType, other.dataType), (shape, other.shape), s"${name}_${other.name}/Zip")
+  def zip[T2, O2, DA2, D2, S2](other: Input[T2, O2, DA2, D2, S2]):
+  Input[(T, T2), (O, O2), (DA, DA2), (D, D2), (S, S2)] = {
+    implicit val evDA2ToD2: DataTypeAuxToDataType.Aux[DA2, D2] = other.evDAToD
+    implicit val evD2ToO2: DataTypeToOutput.Aux[D2, O2] = other.evDToO
+    implicit val evO2ToT2: OutputToTensor.Aux[O2, T2] = other.evOToT
+    implicit val evData2: Data.Aux[T2, O2, D2, S2] = other.evData
+    Input[(T, T2), (O, O2), (DA, DA2), (D, D2), (S, S2)](
+      (_dataType, other._dataType), (shape, other.shape), s"${name}_${other.name}/Zip")
   }
 }

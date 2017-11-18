@@ -44,12 +44,12 @@ case class PaddedBatchDataset[T, O, D, S](
     paddedShapes: S,
     paddingValues: T = null.asInstanceOf[T],
     override val name: String = "PaddedBatchDataset"
-) extends Dataset[T, O, D, S](name)(inputDataset.evOToT, inputDataset.ev, inputDataset.evFunctionInput) {
+) extends Dataset[T, O, D, S](name)(inputDataset.evOToT, inputDataset.evData, inputDataset.evFunctionInput) {
   override def createHandle(): Output = {
     Op.Builder(opType = "PaddedBatchDataset", name = name)
         .addInput(Op.createWithNameScope(name)(inputDataset.createHandle()))
         .addInput(Op.createWithNameScope(name)(Basic.constant(batchSize)))
-        .addInputList(Op.createWithNameScope(name)(ev.flattenedShapes(paddedShapes).map(_.toOutput(INT64))))
+        .addInputList(Op.createWithNameScope(name)(evData.flattenedShapes(paddedShapes).map(_.toOutput(INT64))))
         .addInputList(Op.createWithNameScope(name)(flattenedPaddingValues))
         .setAttribute("Toutput_types", flattenedOutputDataTypes.toArray)
         .setAttribute("output_shapes", flattenedOutputShapes.toArray)
@@ -58,7 +58,7 @@ case class PaddedBatchDataset[T, O, D, S](
 
   private[this] def flattenedPaddingValues: Seq[Output] = {
     if (paddingValues != null) {
-      ev.flattenedTensors(paddingValues).map(Basic.constant(_))
+      evData.flattenedTensors(paddingValues).map(Basic.constant(_))
     } else {
       flattenedOutputDataTypes.map({
         case STRING => Basic.constant("", STRING, Shape.scalar())
@@ -69,7 +69,7 @@ case class PaddedBatchDataset[T, O, D, S](
 
   override def outputDataTypes: D = inputDataset.outputDataTypes
   override def outputShapes: S = {
-    ev.unflattenShapes(outputDataTypes, inputDataset.flattenedOutputShapes.map(Shape(-1) ++ _))
+    evData.unflattenShapes(outputDataTypes, inputDataset.flattenedOutputShapes.map(Shape(-1) ++ _))
   }
 }
 
@@ -98,12 +98,12 @@ case class DynamicPaddedBatchDataset[T, O, D, S](
     paddedShapes: S,
     paddingValues: O = null.asInstanceOf[O],
     override val name: String = "PaddedBatchDataset"
-) extends Dataset[T, O, D, S](name)(inputDataset.evOToT, inputDataset.ev, inputDataset.evFunctionInput) {
+) extends Dataset[T, O, D, S](name)(inputDataset.evOToT, inputDataset.evData, inputDataset.evFunctionInput) {
   override def createHandle(): Output = {
     Op.Builder(opType = "PaddedBatchDataset", name = name)
         .addInput(Op.createWithNameScope(name)(inputDataset.createHandle()))
         .addInput(Op.createWithNameScope(name)(Basic.constant(batchSize)))
-        .addInputList(Op.createWithNameScope(name)(ev.flattenedShapes(paddedShapes).map(_.toOutput(INT64))))
+        .addInputList(Op.createWithNameScope(name)(evData.flattenedShapes(paddedShapes).map(_.toOutput(INT64))))
         .addInputList(Op.createWithNameScope(name)(flattenedPaddingValues))
         .setAttribute("Toutput_types", flattenedOutputDataTypes.toArray)
         .setAttribute("output_shapes", flattenedOutputShapes.toArray)
@@ -112,7 +112,7 @@ case class DynamicPaddedBatchDataset[T, O, D, S](
 
   private[this] def flattenedPaddingValues: Seq[Output] = {
     if (paddingValues != null) {
-      ev.flattenedOutputsFromO(paddingValues)
+      evData.flattenedOutputsFromO(paddingValues)
     } else {
       flattenedOutputDataTypes.map({
         case STRING => Basic.constant("", STRING, Shape.scalar())
@@ -123,7 +123,7 @@ case class DynamicPaddedBatchDataset[T, O, D, S](
 
   override def outputDataTypes: D = inputDataset.outputDataTypes
   override def outputShapes: S = {
-    ev.unflattenShapes(outputDataTypes, inputDataset.flattenedOutputShapes.map(Shape(-1) ++ _))
+    evData.unflattenShapes(outputDataTypes, inputDataset.flattenedOutputShapes.map(Shape(-1) ++ _))
   }
 }
 

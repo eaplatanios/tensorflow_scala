@@ -38,7 +38,7 @@ case class ShuffleDataset[T, O, D, S](
     bufferSize: Long,
     seed: Option[Int],
     override val name: String = "ShuffleDataset"
-) extends Dataset[T, O, D, S](name)(inputDataset.evOToT, inputDataset.ev, inputDataset.evFunctionInput) {
+) extends Dataset[T, O, D, S](name)(inputDataset.evOToT, inputDataset.evData, inputDataset.evFunctionInput) {
   override def createHandle(): Output = {
     val (graphSeed, opSeed) = Op.currentGraphRandomSeed(seed)
     val seed1 = graphSeed.getOrElse(0)

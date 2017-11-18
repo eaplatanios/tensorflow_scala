@@ -15,7 +15,8 @@
 
 package org.platanios.tensorflow.api.ops.io.data
 
-import org.platanios.tensorflow.api.ops.{Function, Op, Output, OutputToTensor}
+import org.platanios.tensorflow.api.implicits.helpers.OutputToTensor
+import org.platanios.tensorflow.api.ops.{Function, Op, Output}
 
 /** Dataset with a single element.
   *
@@ -32,20 +33,20 @@ case class TensorDataset[T, O, D, S](
     data: T,
     override val name: String = "TensorDataset"
 )(implicit
-    ev: Data.Aux[T, O, D, S],
+    evData: Data.Aux[T, O, D, S],
     evOToT: OutputToTensor.Aux[O, T],
     evFunctionInput: Function.ArgType[O]
-) extends Dataset[T, O, D, S](name)(evOToT, ev, evFunctionInput) {
+) extends Dataset[T, O, D, S](name)(evOToT, evData, evFunctionInput) {
   override def createHandle(): Output = {
-    val flattenedOutputs = ev.flattenedOutputsFromT(data)
+    val flattenedOutputs = evData.flattenedOutputsFromT(data)
     Op.Builder(opType = "TensorDataset", name = name)
         .addInputList(flattenedOutputs)
         .setAttribute("output_shapes", flattenedOutputShapes.toArray)
         .build().outputs(0)
   }
 
-  override def outputDataTypes: D = ev.dataTypesFromT(data)
-  override def outputShapes: S = ev.shapesFromT(data)
+  override def outputDataTypes: D = evData.dataTypesFromT(data)
+  override def outputShapes: S = evData.shapesFromT(data)
 }
 
 // TODO: [DATA] Tensor and output datasets should be one class (the outputs one). However, datasets should be made more functional so they can be created lazily.
@@ -66,17 +67,17 @@ case class OutputDataset[T, O, D, S](
     override val name: String = "OutputDataset"
 )(implicit
     evOToT: OutputToTensor.Aux[O, T],
-    ev: Data.Aux[T, O, D, S],
+    evData: Data.Aux[T, O, D, S],
     evFunctionInput: Function.ArgType[O]
-) extends Dataset[T, O, D, S](name)(evOToT, ev, evFunctionInput) {
+) extends Dataset[T, O, D, S](name)(evOToT, evData, evFunctionInput) {
   override def createHandle(): Output = {
-    val flattenedOutputs = ev.flattenedOutputsFromO(data)
+    val flattenedOutputs = evData.flattenedOutputsFromO(data)
     Op.Builder(opType = "TensorDataset", name = name)
         .addInputList(flattenedOutputs)
         .setAttribute("output_shapes", flattenedOutputShapes.toArray)
         .build().outputs(0)
   }
 
-  override def outputDataTypes: D = ev.dataTypesFromO(data)
-  override def outputShapes: S = ev.shapesFromO(data)
+  override def outputDataTypes: D = evData.dataTypesFromO(data)
+  override def outputShapes: S = evData.shapesFromO(data)
 }

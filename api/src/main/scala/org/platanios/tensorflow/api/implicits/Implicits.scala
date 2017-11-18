@@ -15,7 +15,11 @@
 
 package org.platanios.tensorflow.api.implicits
 
-import org.platanios.tensorflow.api.ops.{Op, OpCreationContext, OpSpecification}
+import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api.ops.io.data.Data
+import org.platanios.tensorflow.api.ops.{Op, OpCreationContext, OpSpecification, Output}
+import org.platanios.tensorflow.api.tensors
+import org.platanios.tensorflow.api.types.DataType
 
 import scala.util.DynamicVariable
 
@@ -38,12 +42,16 @@ private[api] trait Implicits
     * @return Function that returns `device` for any [[OpSpecification]] used as input.
     */
   implicit def deviceImplicitConversion(device: String): (OpSpecification => String) = _ => device
+
+  // implicit def dataTypeHelper[D >: DataType.Aux[_] <: DataType]: DataType
 }
 
 private[api] trait LowPriorityImplicits
     extends Tensor
         with Ops
         with Data
-        with Learn
+        with Learn {
+  implicit val tensorDataHelper: Data.Aux[tensors.Tensor, Output, DataType, Shape] = Data.tensorData[DataType]
+}
 
 private[api] object Implicits extends Implicits

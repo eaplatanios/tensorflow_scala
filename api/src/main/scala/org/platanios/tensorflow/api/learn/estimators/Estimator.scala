@@ -20,10 +20,11 @@ import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.{Fetchable, SessionConfig}
 import org.platanios.tensorflow.api.core.distributed.ReplicaDevicePlacer
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
+import org.platanios.tensorflow.api.implicits.helpers.OutputToTensor
 import org.platanios.tensorflow.api.learn._
 import org.platanios.tensorflow.api.learn.hooks._
 import org.platanios.tensorflow.api.ops.io.data.{Data, Dataset, TensorDataset}
-import org.platanios.tensorflow.api.ops.{Function, Op, OpSpecification, Output, OutputToTensor}
+import org.platanios.tensorflow.api.ops.{Function, Op, OpSpecification, Output}
 import org.platanios.tensorflow.api.ops.metrics.Metric
 import org.platanios.tensorflow.api.ops.variables.Saver
 import org.platanios.tensorflow.api.tensors.Tensor

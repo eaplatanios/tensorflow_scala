@@ -13,8 +13,9 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.ops
+package org.platanios.tensorflow.api.implicits.helpers
 
+import org.platanios.tensorflow.api.ops.{Output, OutputIndexedSlices, SparseOutput}
 import org.platanios.tensorflow.api.tensors.{SparseTensor, Tensor, TensorIndexedSlices}
 
 import shapeless._
@@ -22,8 +23,7 @@ import shapeless.ops.hlist.Tupler
 
 import scala.collection.{MapLike, SeqLike}
 
-/** Type trait used for mapping structures of symbolic tensors (e.g., [[Output]]s) to structures of tensors
-  * (e.g., [[Tensor]]s).
+/** Type trait used to map structures of symbolic tensors (i.e., outputs) to structures of tensors.
   *
   * @author Emmanouil Antonios Platanios
   */

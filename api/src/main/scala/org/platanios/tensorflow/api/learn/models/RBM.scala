@@ -29,7 +29,7 @@ import org.platanios.tensorflow.api.types.DataType
 import scala.collection.mutable
 
 class RBM(
-    val input: Input[Tensor, Output, DataType, Shape],
+    val input: Input[Tensor, Output, _, DataType, Shape],
     val numHidden: Int,
     val meanField: Boolean = true,
     val numSamples: Int = 100,
@@ -136,7 +136,7 @@ class RBM(
 
 object RBM {
   def apply(
-      input: Input[Tensor, Output, DataType, Shape],
+      input: Input[Tensor, Output, _, DataType, Shape],
       numHidden: Int,
       meanField: Boolean = true,
       numSamples: Int = 100,

@@ -31,7 +31,7 @@ case class SparseTensorSlicesDataset(
     tensor: SparseTensor,
     override val name: String = "SparseTensorSliceDataset"
 ) extends Dataset[
-    (Tensor, Tensor, Tensor), (Output, Output, Output), (DataType, DataType, DataType), (Shape, Shape, Shape)](name) {
+    SparseTensor, SparseOutput, (DataType, DataType, DataType), (Shape, Shape, Shape)](name) {
   /** Creates a `RESOURCE` scalar tensor representing this dataset. This function adds ops to the current graph, that
     * create the dataset resource. */
   override def createHandle(): Output = {
@@ -63,7 +63,7 @@ case class SparseOutputSlicesDataset(
     tensor: SparseOutput,
     override val name: String = "SparseOutputSliceDataset"
 ) extends Dataset[
-    (Tensor, Tensor, Tensor), (Output, Output, Output), (DataType, DataType, DataType), (Shape, Shape, Shape)](name) {
+    SparseTensor, SparseOutput, (DataType, DataType, DataType), (Shape, Shape, Shape)](name) {
   /** Creates a `RESOURCE` scalar tensor representing this dataset. This function adds ops to the current graph, that
     * create the dataset resource. */
   override def createHandle(): Output = {

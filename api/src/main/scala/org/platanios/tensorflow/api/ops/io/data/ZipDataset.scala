@@ -16,7 +16,8 @@
 package org.platanios.tensorflow.api.ops.io.data
 
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.ops.{Function, Op, Output, OutputToTensor}
+import org.platanios.tensorflow.api.implicits.helpers.OutputToTensor
+import org.platanios.tensorflow.api.ops.{Function, Op, Output}
 import org.platanios.tensorflow.api.types.DataType
 
 /** Dataset that wraps the application of the `zip` op.
@@ -44,8 +45,8 @@ case class ZipDataset[T1, O1, D1, S1, T2, O2, D2, S2](
 )(implicit
     evO1ToT1: OutputToTensor.Aux[O1, T1] = inputDataset1.evOToT,
     evO2ToT2: OutputToTensor.Aux[O2, T2] = inputDataset2.evOToT,
-    ev1: Data.Aux[T1, O1, D1, S1] = inputDataset1.ev,
-    ev2: Data.Aux[T2, O2, D2, S2] = inputDataset2.ev,
+    evData1: Data.Aux[T1, O1, D1, S1] = inputDataset1.evData,
+    evData2: Data.Aux[T2, O2, D2, S2] = inputDataset2.evData,
     evFunctionInput1: Function.ArgType[O1] = inputDataset1.evFunctionInput,
     evFunctionInput2: Function.ArgType[O2] = inputDataset2.evFunctionInput
 ) extends Dataset[(T1, T2), (O1, O2), (D1, D2), (S1, S2)](name) {
@@ -93,9 +94,9 @@ case class Zip3Dataset[T1, O1, D1, S1, T2, O2, D2, S2, T3, O3, D3, S3](
     evO1ToT1: OutputToTensor.Aux[O1, T1] = inputDataset1.evOToT,
     evO2ToT2: OutputToTensor.Aux[O2, T2] = inputDataset2.evOToT,
     evO3ToT3: OutputToTensor.Aux[O3, T3] = inputDataset3.evOToT,
-    ev1: Data.Aux[T1, O1, D1, S1] = inputDataset1.ev,
-    ev2: Data.Aux[T2, O2, D2, S2] = inputDataset2.ev,
-    ev3: Data.Aux[T3, O3, D3, S3] = inputDataset3.ev,
+    evData1: Data.Aux[T1, O1, D1, S1] = inputDataset1.evData,
+    evData2: Data.Aux[T2, O2, D2, S2] = inputDataset2.evData,
+    evData3: Data.Aux[T3, O3, D3, S3] = inputDataset3.evData,
     evFunctionInput1: Function.ArgType[O1] = inputDataset1.evFunctionInput,
     evFunctionInput2: Function.ArgType[O2] = inputDataset2.evFunctionInput,
     evFunctionInput3: Function.ArgType[O3] = inputDataset3.evFunctionInput
@@ -136,7 +137,7 @@ case class ZipMultipleDataset[T, O, D, S](
     override val name: String = "ZipMultipleDataset"
 )(implicit
     evOToT: OutputToTensor.Aux[O, T] = inputDatasets.head.evOToT,
-    ev: Data.Aux[T, O, D, S] = inputDatasets.head.ev,
+    evData: Data.Aux[T, O, D, S] = inputDatasets.head.evData,
     evFunctionInput: Function.ArgType[O] = inputDatasets.head.evFunctionInput,
     evFunctionInputSeq: Function.ArgType[Seq[O]]
 ) extends Dataset[Seq[T], Seq[O], Seq[D], Seq[S]](name) {

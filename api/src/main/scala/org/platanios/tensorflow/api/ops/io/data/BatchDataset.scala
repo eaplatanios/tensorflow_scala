@@ -36,7 +36,7 @@ case class BatchDataset[T, O, D, S](
     inputDataset: Dataset[T, O, D, S],
     batchSize: Long,
     override val name: String = "BatchDataset"
-) extends Dataset[T, O, D, S](name)(inputDataset.evOToT, inputDataset.ev, inputDataset.evFunctionInput) {
+) extends Dataset[T, O, D, S](name)(inputDataset.evOToT, inputDataset.evData, inputDataset.evFunctionInput) {
   override def createHandle(): Output = {
     Op.Builder(opType = "BatchDataset", name = name)
         .addInput(Op.createWithNameScope(name)(inputDataset.createHandle()))
@@ -48,7 +48,7 @@ case class BatchDataset[T, O, D, S](
 
   override def outputDataTypes: D = inputDataset.outputDataTypes
   override def outputShapes: S = {
-    ev.unflattenShapes(outputDataTypes, inputDataset.flattenedOutputShapes.map(Shape(-1) ++ _))
+    evData.unflattenShapes(outputDataTypes, inputDataset.flattenedOutputShapes.map(Shape(-1) ++ _))
   }
 }
 

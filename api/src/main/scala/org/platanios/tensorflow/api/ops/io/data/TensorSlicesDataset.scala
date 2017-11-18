@@ -17,7 +17,8 @@ package org.platanios.tensorflow.api.ops.io.data
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.ops.{Function, Op, Output, OutputToTensor}
+import org.platanios.tensorflow.api.implicits.helpers.OutputToTensor
+import org.platanios.tensorflow.api.ops.{Function, Op, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
 
 import scala.language.postfixOps
@@ -38,23 +39,23 @@ case class TensorSlicesDataset[T, O, D, S](
     data: T,
     override val name: String = "TensorSlicesDataset"
 )(implicit
-    ev: Data.Aux[T, O, D, S],
+    evData: Data.Aux[T, O, D, S],
     evOToT: OutputToTensor.Aux[O, T],
     evFunctionInput: Function.ArgType[O]
-) extends Dataset[T, O, D, S](name)(evOToT, ev, evFunctionInput) {
+) extends Dataset[T, O, D, S](name)(evOToT, evData, evFunctionInput) {
   override def createHandle(): Output = {
-    val flattenedOutputs = ev.flattenedOutputsFromT(data)
+    val flattenedOutputs = evData.flattenedOutputsFromT(data)
     Op.Builder(opType = "TensorSliceDataset", name = name)
         .addInputList(flattenedOutputs)
         .setAttribute("output_shapes", flattenedOutputShapes.toArray)
         .build().outputs(0)
   }
 
-  override def outputDataTypes: D = ev.dataTypesFromT(data)
+  override def outputDataTypes: D = evData.dataTypesFromT(data)
 
   override def outputShapes: S = {
-    val flattenedShapes = ev.flattenedShapes(ev.shapesFromT(data))
-    ev.unflattenShapes(outputDataTypes, flattenedShapes.map(s => if (s.rank > 1) s(1 ::) else Shape.scalar()))
+    val flattenedShapes = evData.flattenedShapes(evData.shapesFromT(data))
+    evData.unflattenShapes(outputDataTypes, flattenedShapes.map(s => if (s.rank > 1) s(1 ::) else Shape.scalar()))
   }
 }
 
@@ -75,21 +76,21 @@ case class OutputSlicesDataset[T, O, D, S](
     override val name: String = "OutputSlicesDataset"
 )(implicit
     evOToT: OutputToTensor.Aux[O, T],
-    ev: Data.Aux[T, O, D, S],
+    evData: Data.Aux[T, O, D, S],
     evFunctionInput: Function.ArgType[O]
-) extends Dataset[T, O, D, S](name)(evOToT, ev, evFunctionInput) {
+) extends Dataset[T, O, D, S](name)(evOToT, evData, evFunctionInput) {
   override def createHandle(): Output = {
-    val flattenedOutputs = ev.flattenedOutputsFromO(data)
+    val flattenedOutputs = evData.flattenedOutputsFromO(data)
     Op.Builder(opType = "TensorSliceDataset", name = name)
         .addInputList(flattenedOutputs)
         .setAttribute("output_shapes", flattenedOutputShapes.toArray)
         .build().outputs(0)
   }
 
-  override def outputDataTypes: D = ev.dataTypesFromO(data)
+  override def outputDataTypes: D = evData.dataTypesFromO(data)
 
   override def outputShapes: S = {
-    val flattenedShapes = ev.flattenedShapes(ev.shapesFromO(data))
-    ev.unflattenShapes(outputDataTypes, flattenedShapes.map(s => if (s.rank > 1) s(1 ::) else Shape.scalar()))
+    val flattenedShapes = evData.flattenedShapes(evData.shapesFromO(data))
+    evData.unflattenShapes(outputDataTypes, flattenedShapes.map(s => if (s.rank > 1) s(1 ::) else Shape.scalar()))
   }
 }

@@ -38,7 +38,7 @@ case class ConcatenatedDataset[T, O, D, S](
     inputDataset1: Dataset[T, O, D, S],
     inputDataset2: Dataset[T, O, D, S],
     override val name: String = "ConcatenatedDataset"
-) extends Dataset[T, O, D, S](name)(inputDataset1.evOToT, inputDataset1.ev, inputDataset1.evFunctionInput) {
+) extends Dataset[T, O, D, S](name)(inputDataset1.evOToT, inputDataset1.evData, inputDataset1.evFunctionInput) {
   if (inputDataset1.flattenedOutputDataTypes != inputDataset2.flattenedOutputDataTypes)
     throw new IllegalArgumentException("The data types of the datasets being concatenated are not the identical.")
   private[this] lazy val mostSpecificFlattenedShapes = {
@@ -59,7 +59,7 @@ case class ConcatenatedDataset[T, O, D, S](
   }
 
   override def outputDataTypes: D = inputDataset1.outputDataTypes
-  override def outputShapes: S = ev.unflattenShapes(outputDataTypes, mostSpecificFlattenedShapes)
+  override def outputShapes: S = evData.unflattenShapes(outputDataTypes, mostSpecificFlattenedShapes)
 }
 
 object ConcatenatedDataset {

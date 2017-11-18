@@ -17,7 +17,8 @@ package org.platanios.tensorflow.api.ops.io.data
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception._
-import org.platanios.tensorflow.api.ops.{Callback, Function, Math, Op, Output, OutputToTensor}
+import org.platanios.tensorflow.api.implicits.helpers.{OutputToTensor, TensorToDataType}
+import org.platanios.tensorflow.api.ops.{Callback, Function, Math, Op, Output}
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.ops.io.data
 import org.platanios.tensorflow.api.tensors.Tensor
@@ -45,7 +46,7 @@ abstract class Dataset[T, O, D, S](
     val name: String = "Dataset"
 )(implicit
     val evOToT: OutputToTensor.Aux[O, T],
-    val ev: Data.Aux[T, O, D, S],
+    val evData: Data.Aux[T, O, D, S],
     val evFunctionInput: Function.ArgType[O]
 ) {
   /** Creates a `RESOURCE` scalar tensor representing this dataset. This function adds ops to the current graph, that
@@ -77,11 +78,11 @@ abstract class Dataset[T, O, D, S](
 
   /** Returns a sequence of [[DataType]]s that correspond to the flattened data types of the nested [[Output]] structure
     * of the elements of this dataset. */
-  private[io] def flattenedOutputDataTypes: Seq[DataType] = ev.flattenedDataTypes(outputDataTypes)
+  private[io] def flattenedOutputDataTypes: Seq[DataType] = evData.flattenedDataTypes(outputDataTypes)
 
   /** Returns a sequence of [[Shape]]s that correspond to the flattened shapes of the nested [[Output]] structure of the
     * elements of this dataset. */
-  private[io] def flattenedOutputShapes: Seq[Shape] = ev.flattenedShapes(outputShapes)
+  private[io] def flattenedOutputShapes: Seq[Shape] = evData.flattenedShapes(outputShapes)
 
   /** Creates a dataset that includes only `1 / numShards` of the elements of this dataset.
     *
@@ -147,8 +148,8 @@ abstract class Dataset[T, O, D, S](
 
   override def toString: String = {
     "Dataset[" +
-        s"outputDataTypes = ${ev.dataTypesToString(outputDataTypes)}, " +
-        s"outputShapes = ${ev.shapesToString(outputShapes)}" +
+        s"outputDataTypes = ${evData.dataTypesToString(outputDataTypes)}, " +
+        s"outputShapes = ${evData.shapesToString(outputShapes)}" +
         "]"
   }
 }

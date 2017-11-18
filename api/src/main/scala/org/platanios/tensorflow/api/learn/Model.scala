@@ -107,9 +107,9 @@ object Model {
 
   trait API {
     def Model[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
-        input: Input[IT, IO, ID, IS],
+        input: Input[IT, IO, _, ID, IS],
         layer: Layer[IO, I],
-        trainInput: Input[TT, TO, TD, TS],
+        trainInput: Input[TT, TO, _, TD, TS],
         trainInputLayer: Layer[TO, T],
         loss: Layer[(I, T), Output],
         optimizer: Optimizer): SupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T] = {
@@ -117,9 +117,9 @@ object Model {
     }
 
     def Model[IT, IO, ID, IS, I, TT, TO, TD, TS](
-        input: Input[IT, IO, ID, IS],
+        input: Input[IT, IO, _, ID, IS],
         layer: Layer[IO, I],
-        trainInput: Input[TT, TO, TD, TS],
+        trainInput: Input[TT, TO, _, TD, TS],
         loss: Layer[(I, TO), Output],
         optimizer: Optimizer): SupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, TO] = {
       new SimpleSupervisedTrainableModel(
@@ -127,10 +127,10 @@ object Model {
     }
 
     def Model[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
-        input: Input[IT, IO, ID, IS],
+        input: Input[IT, IO, _, ID, IS],
         layer: Layer[IO, I],
         trainLayer: Layer[(IO, TO), I],
-        trainInput: Input[TT, TO, TD, TS],
+        trainInput: Input[TT, TO, _, TD, TS],
         trainInputLayer: Layer[TO, T],
         loss: Layer[(I, T), Output],
         optimizer: Optimizer
@@ -139,10 +139,10 @@ object Model {
     }
 
     def Model[IT, IO, ID, IS, I, TT, TO, TD, TS](
-        input: Input[IT, IO, ID, IS],
+        input: Input[IT, IO, _, ID, IS],
         layer: Layer[IO, I],
         trainLayer: Layer[(IO, TO), I],
-        trainInput: Input[TT, TO, TD, TS],
+        trainInput: Input[TT, TO, _, TD, TS],
         loss: Layer[(I, TO), Output],
         optimizer: Optimizer
     ): SupervisedConditionalTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, TO] = {
@@ -155,7 +155,7 @@ object Model {
 }
 
 private[learn] class SimpleInferenceModel[IT, IO, ID, IS, I] private[learn](
-    val input: Input[IT, IO, ID, IS],
+    val input: Input[IT, IO, _, ID, IS],
     val layer: Layer[IO, I]
 ) extends InferenceModel[IT, IO, ID, IS, I] {
   def buildInferenceOps(graph: Graph = Op.currentGraph): Model.InferenceOps[IT, IO, ID, IS, I] = {
@@ -169,7 +169,7 @@ private[learn] class SimpleInferenceModel[IT, IO, ID, IS, I] private[learn](
 }
 
 private[learn] class SimpleUnsupervisedTrainableModel[IT, IO, ID, IS, I] private[learn](
-    override val input: Input[IT, IO, ID, IS],
+    override val input: Input[IT, IO, _, ID, IS],
     override val layer: Layer[IO, I],
     val loss: Layer[I, Output],
     val optimizer: Optimizer
@@ -204,9 +204,9 @@ private[learn] class SimpleUnsupervisedTrainableModel[IT, IO, ID, IS, I] private
 }
 
 private[learn] class SimpleSupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T] private[learn](
-    override val input: Input[IT, IO, ID, IS],
+    override val input: Input[IT, IO, _, ID, IS],
     override val layer: Layer[IO, I],
-    val trainInput: Input[TT, TO, TD, TS],
+    val trainInput: Input[TT, TO, _, TD, TS],
     val trainInputLayer: Layer[TO, T],
     val loss: Layer[(I, T), Output],
     val optimizer: Optimizer
@@ -245,10 +245,10 @@ private[learn] class SimpleSupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, T
 }
 
 private[learn] class SupervisedConditionalTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T] private[learn](
-    override val input: Input[IT, IO, ID, IS],
+    override val input: Input[IT, IO, _, ID, IS],
     override val layer: Layer[IO, I],
     val trainLayer: Layer[(IO, TO), I],
-    val trainInput: Input[TT, TO, TD, TS],
+    val trainInput: Input[TT, TO, _, TD, TS],
     val trainInputLayer: Layer[TO, T],
     val loss: Layer[(I, T), Output],
     val optimizer: Optimizer

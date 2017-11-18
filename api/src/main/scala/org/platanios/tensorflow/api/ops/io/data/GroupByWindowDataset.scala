@@ -39,7 +39,7 @@ case class GroupByWindowDataset[T, O, D, S](
     reduceFn: ((Output, Dataset[T, O, D, S])) => Dataset[T, O, D, S],
     windowSizeFn: (Output) => Output,
     override val name: String = "GroupByWindowDataset"
-) extends Dataset[T, O, D, S](name)(inputDataset.evOToT, inputDataset.ev, inputDataset.evFunctionInput) {
+) extends Dataset[T, O, D, S](name)(inputDataset.evOToT, inputDataset.evData, inputDataset.evFunctionInput) {
   private[this] lazy val instantiatedKeyFunction = {
     Function(s"$name/KeyFunction", keyFn).instantiate(
       inputDataset.flattenedOutputDataTypes, inputDataset.flattenedOutputShapes)

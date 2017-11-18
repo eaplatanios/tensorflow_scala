@@ -35,7 +35,7 @@ case class TakeDataset[T, O, D, S](
     inputDataset: Dataset[T, O, D, S],
     count: Long,
     override val name: String = "TakeDataset"
-) extends Dataset[T, O, D, S](name)(inputDataset.evOToT, inputDataset.ev, inputDataset.evFunctionInput) {
+) extends Dataset[T, O, D, S](name)(inputDataset.evOToT, inputDataset.evData, inputDataset.evFunctionInput) {
   override def createHandle(): Output = {
     Op.Builder(opType = "TakeDataset", name = name)
         .addInput(Op.createWithNameScope(name)(inputDataset.createHandle()))
