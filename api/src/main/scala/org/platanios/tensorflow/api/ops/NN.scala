@@ -531,6 +531,7 @@ private[api] trait NN {
         loss = Math.divide(loss, totalSize)
       } else {
         loss = Basic.reshape(loss, Basic.shape(logits)(0 :: 2))
+        loss.setShape(logits.shape(0 :: 2))
       }
       if (averageAcrossTimeSteps && !averageAcrossBatch) {
         loss = Math.sum(loss, axes = 1)

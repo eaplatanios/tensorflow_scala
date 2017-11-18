@@ -397,7 +397,13 @@ object RNN extends RNN {
       throw InvalidShapeException(s"Expected tensor '$input' to have rank at least 2, but saw shape: $staticShape.")
     val rank = Basic.rank(input)
     val transposed = Basic.transpose(input, Basic.concatenate(Seq(Tensor(1, 0), Math.range(2, rank)), axis = 0))
-    transposed.setShape(Shape(staticShape(1), staticShape(0)) ++ staticShape(2 ::))
+    val staticTransposedShape = {
+      if (staticShape.rank > 2)
+        Shape(staticShape(1), staticShape(0)) ++ staticShape(2 ::)
+      else
+        Shape(staticShape(1), staticShape(0))
+    }
+    transposed.setShape(staticTransposedShape)
     transposed
   }
 
