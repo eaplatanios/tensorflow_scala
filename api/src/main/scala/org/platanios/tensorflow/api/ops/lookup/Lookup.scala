@@ -84,14 +84,13 @@ private[lookup] trait Lookup {
     * @param  numOOVBuckets     Number of out-of-vocabulary buckets.
     * @param  hashSpecification Hashing function specification to use.
     * @param  keysDataType      Data type of the table keys.
-    * @param  valuesDataType    Data type of the table values.
     * @param  name              Name for the created table.
     * @return Created table.
     */
   def indexTableFromFile(
-      filename: String, delimiter: String = "\t", vocabularySize: Int = -1, defaultValue: Int = -1,
+      filename: String, delimiter: String = "\t", vocabularySize: Int = -1, defaultValue: Long = -1L,
       numOOVBuckets: Int = 0, hashSpecification: HashSpecification = FAST_HASH,
-      keysDataType: DataType = STRING, valuesDataType: DataType = INT64, name: String = "IndexTableFromFile"
+      keysDataType: DataType = STRING, name: String = "IndexTableFromFile"
   ): LookupTable = {
     Op.createWithNameScope(name) {
       Op.createWithNameScope("HashTable") {
@@ -102,7 +101,7 @@ private[lookup] trait Lookup {
             s"hash_table_${filename}_${TextFileWholeLine}_$TextFileLineNumber"
         }
         val initializer = LookupTableTextFileInitializer(
-          filename, if (keysDataType.isInteger) INT64 else keysDataType, valuesDataType,
+          filename, if (keysDataType.isInteger) INT64 else keysDataType, INT64,
           TextFileWholeLine, TextFileLineNumber, delimiter, vocabularySize)
         val table = HashTable(initializer, defaultValue, sharedName = sharedName, name = "Table")
         if (numOOVBuckets > 0)
