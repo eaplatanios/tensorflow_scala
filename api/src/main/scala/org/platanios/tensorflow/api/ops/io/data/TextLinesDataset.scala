@@ -21,7 +21,7 @@ import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.{DataType, STRING}
 
-/** Dataset with elements read from text files.
+/** Dataset with elements read from text files (each line in each file corresponds to an element).
   *
   * **Note:** New-line characters are stripped from the output.
   *
@@ -32,7 +32,7 @@ import org.platanios.tensorflow.api.types.{DataType, STRING}
   *
   * @author Emmanouil Antonios Platanios
   */
-case class TextLineDataset(
+case class TextLinesDataset(
     filenames: Tensor,
     compressionType: CompressionType = NoCompression,
     bufferSize: Long = 256 * 1024,

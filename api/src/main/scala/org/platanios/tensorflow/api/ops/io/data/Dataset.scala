@@ -165,7 +165,7 @@ object Dataset {
     type OutputSlicesDataset[T, O, D, S] = data.OutputSlicesDataset[T, O, D, S]
     type SparseTensorSlicesDataset = data.SparseTensorSlicesDataset
     type SparseOutputSlicesDataset = data.SparseOutputSlicesDataset
-    type TextLineDataset = data.TextLineDataset
+    type TextLinesDataset = data.TextLinesDataset
     type FixedLengthRecordDataset = data.FixedLengthRecordDataset
     type TFRecordDataset = data.TFRecordDataset
 
@@ -199,7 +199,7 @@ object Dataset {
     val OutputSlicesDataset      : data.OutputSlicesDataset.type       = data.OutputSlicesDataset
     val SparseTensorSlicesDataset: data.SparseTensorSlicesDataset.type = data.SparseTensorSlicesDataset
     val SparseOutputSlicesDataset: data.SparseOutputSlicesDataset.type = data.SparseOutputSlicesDataset
-    val TextLineDataset          : data.TextLineDataset.type           = data.TextLineDataset
+    val TextLinesDataset         : data.TextLinesDataset.type          = data.TextLinesDataset
     val FixedLengthRecordDataset : data.FixedLengthRecordDataset.type  = data.FixedLengthRecordDataset
     val TFRecordDataset          : data.TFRecordDataset.type           = data.TFRecordDataset
 
