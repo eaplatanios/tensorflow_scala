@@ -58,8 +58,12 @@ object RNNCell {
     def zero(batchSize: Output, dataType: DataType, shape: ShapeType, name: String = "Zero"): T
     def outputs(value: T): Seq[Output]
     def shapes(shape: ShapeType): Seq[Shape]
-    def fromOutputs(value: T, outputs: Seq[Output]): T = segment(value, outputs)._1
-    def segment(value: T, outputs: Seq[Output]): (T, Seq[Output])
+
+    def fromOutputs(value: T, outputs: Seq[Output]): T = segmentOutputs(value, outputs)._1
+    def segmentOutputs(value: T, outputs: Seq[Output]): (T, Seq[Output])
+
+    def fromShapes(value: T, shapes: Seq[Shape]): ShapeType = segmentShapes(value, shapes)._1
+    def segmentShapes(value: T, shapes: Seq[Shape]): (ShapeType, Seq[Shape])
   }
 
   object Supported {
@@ -83,7 +87,13 @@ object RNNCell {
       override def outputs(value: Output): Seq[Output] = Seq(value)
       override def shapes(shape: Shape): Seq[Shape] = Seq(shape)
 
-      override def segment(value: Output, outputs: Seq[Output]): (Output, Seq[Output]) = (outputs.head, outputs.tail)
+      override def segmentOutputs(value: Output, outputs: Seq[Output]): (Output, Seq[Output]) = {
+        (outputs.head, outputs.tail)
+      }
+
+      override def segmentShapes(value: Output, shapes: Seq[Shape]): (Shape, Seq[Shape]) = {
+        (shapes.head, shapes.tail)
+      }
     }
 
     implicit val hnilSupported: Supported.Aux[HNil, HNil] = new Supported[HNil] {
@@ -91,7 +101,8 @@ object RNNCell {
       override def zero(batchSize: Output, dataType: DataType, shape: HNil, name: String = "Zero"): HNil = HNil
       override def outputs(value: HNil): Seq[Output] = Seq.empty[Output]
       override def shapes(shape: HNil): Seq[Shape] = Seq.empty[Shape]
-      override def segment(value: HNil, outputs: Seq[Output]): (HNil, Seq[Output]) = (HNil, outputs)
+      override def segmentOutputs(value: HNil, outputs: Seq[Output]): (HNil, Seq[Output]) = (HNil, outputs)
+      override def segmentShapes(value: HNil, shapes: Seq[Shape]): (HNil, Seq[Shape]) = (HNil, shapes)
     }
 
     implicit def recursiveSupportedConstructor[H, HS, T <: HList, TS <: HList](implicit
@@ -115,9 +126,15 @@ object RNNCell {
         supportedHead.value.shapes(shape.head) ++ supportedTail.shapes(shape.tail)
       }
 
-      override def segment(value: H :: T, outputs: Seq[Output]): (H :: T, Seq[Output]) = {
-        val (headOut, headRemaining) = supportedHead.value.segment(value.head, outputs)
-        val (tailOut, tailRemaining) = supportedTail.segment(value.tail, headRemaining)
+      override def segmentOutputs(value: H :: T, outputs: Seq[Output]): (H :: T, Seq[Output]) = {
+        val (headOut, headRemaining) = supportedHead.value.segmentOutputs(value.head, outputs)
+        val (tailOut, tailRemaining) = supportedTail.segmentOutputs(value.tail, headRemaining)
+        (headOut :: tailOut, tailRemaining)
+      }
+
+      override def segmentShapes(value: H :: T, shapes: Seq[Shape]): (HS :: TS, Seq[Shape]) = {
+        val (headOut, headRemaining) = supportedHead.value.segmentShapes(value.head, shapes)
+        val (tailOut, tailRemaining) = supportedTail.segmentShapes(value.tail, headRemaining)
         (headOut :: tailOut, tailRemaining)
       }
     }
@@ -127,6 +144,7 @@ object RNNCell {
         genP: Generic.Aux[P, L],
         supportedL: Aux[L, LS],
         tupler: Tupler.Aux[L, P],
+        tuplerS: Tupler.Aux[LS, PS],
         genPS: Generic.Aux[PS, LS]
     ): Supported.Aux[P, PS] = new Supported[P] {
       override type ShapeType = PS
@@ -138,9 +156,14 @@ object RNNCell {
       override def outputs(value: P): Seq[Output] = supportedL.outputs(genP.to(value))
       override def shapes(shape: PS): Seq[Shape] = supportedL.shapes(genPS.to(shape))
 
-      override def segment(value: P, outputs: Seq[Output]): (P, Seq[Output]) = {
-        val (out, remaining) = supportedL.segment(genP.to(value), outputs)
+      override def segmentOutputs(value: P, outputs: Seq[Output]): (P, Seq[Output]) = {
+        val (out, remaining) = supportedL.segmentOutputs(genP.to(value), outputs)
         (tupler(out), remaining)
+      }
+
+      override def segmentShapes(value: P, shapes: Seq[Shape]): (PS, Seq[Shape]) = {
+        val (out, remaining) = supportedL.segmentShapes(genP.to(value), shapes)
+        (tuplerS(out), remaining)
       }
     }
   }

@@ -50,7 +50,8 @@ class BasicRNNDecoder[O, OS, S, SS](
 
   override def zeroOutput(dataType: DataType): (O, O) = {
     val zeroOutput = evO.zero(batchSize, dataType, cell.outputShape, "ZeroOutput")
-    (zeroOutput, zeroOutput)
+    val zeroSample = helper.zeroSample(batchSize, "ZeroSample")
+    (zeroOutput, zeroSample)
   }
 
   /** This method is called before any decoding iterations. It computes the initial input values and the initial state.
@@ -100,11 +101,8 @@ object BasicRNNDecoder {
     /** Scalar `INT32` tensor representing the batch size of a tensor returned by `sample()`. */
     val batchSize: ops.Output
 
-    /** Shape of tensor returned by `sample()`, excluding the batch dimension. */
-    val sampleShape: Shape
-
-    /** Data type of tensor returned by `sample()`. */
-    val sampleDataType: DataType
+    /** Returns a zero-valued sample for this helper. */
+    def zeroSample(batchSize: ops.Output, name: String = "ZeroSample"): O
 
     /** Returns a tuple containing: (i) a scalar `BOOLEAN` tensor specifying whether initialization has finished, and
       * (ii) the next input. */
@@ -152,11 +150,10 @@ object BasicRNNDecoder {
       Basic.size(sequenceLengths)
     }
 
-    /** Shape of tensor returned by `sample()`, excluding the batch dimension. */
-    override val sampleShape: Shape = Shape.scalar()
-
-    /** Data type of tensor returned by `sample()`. */
-    override val sampleDataType: DataType = INT32
+    /** Returns a zero-valued sample for this helper. */
+    def zeroSample(batchSize: ops.Output, name: String = "ZeroSample"): O = {
+      evO.zero(batchSize, INT32, evO.fromShapes(input, evO.outputs(input).map(_ => Shape.scalar())))
+    }
 
     /** Returns a tuple containing: (i) a scalar `BOOLEAN` tensor specifying whether initialization has finished, and
       * (ii) the next input. */
@@ -227,11 +224,10 @@ object BasicRNNDecoder {
       Basic.size(beginTokens)
     }
 
-    /** Shape of tensor returned by `sample()`, excluding the batch dimension. */
-    override val sampleShape: Shape = Shape.scalar()
-
-    /** Data type of tensor returned by `sample()`. */
-    override val sampleDataType: DataType = INT32
+    /** Returns a zero-valued sample for this helper. */
+    def zeroSample(batchSize: ops.Output, name: String = "ZeroSample"): ops.Output = {
+      Basic.fill(INT32, batchSize)(0, name)
+    }
 
     /** Returns a tuple containing: (i) a scalar `BOOLEAN` tensor specifying whether initialization has finished, and
       * (ii) the next input. */
