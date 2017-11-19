@@ -121,7 +121,7 @@ private[ops] trait Clip {
     Op.createWithNameScope(name) {
       val norm = if (globalNorm != null) globalNorm else this.globalNorm(inputs)
       // Calculate the l2-norm and clip elements by the ratio of `clipNorm` to that l2-norm.
-      val scale = clipNorm * Math.minimum(1 / norm, 1 / clipNorm)
+      val scale = clipNorm * Math.minimum(Math.divide(1, norm), Math.divide(1, clipNorm))
       val values = inputs.map {
         case o: Output => o
         case o: OutputIndexedSlices => o.values

@@ -247,18 +247,12 @@ object RNN extends RNN {
         (null, null)
     }
     val time = Basic.constant(0, INT32, name = "Time")
-    val baseName = Op.createWithNameScope("DynamicRNN")(Op.currentNameScope)
     val outputTensorArrays = zeroOutputs.indices.map(i => {
-      TensorArray.create(timeSteps, inferredDataType, name = s"$baseName/Output_$i")
+      TensorArray.create(timeSteps, inferredDataType, name = s"Output_$i")
     })
-    val inputTensorArrays = inputs.zipWithIndex.map({
-      case (in, index) => TensorArray.create(timeSteps, in.dataType, name = s"$baseName/Input_$index").unstack(in)
+    val inputTensorArrays =  inputs.zipWithIndex.map({
+      case (in, index) => TensorArray.create(timeSteps, in.dataType, name = s"Input_$index").unstack(in)
     })
-
-    def seqCell(inputs: Seq[Output], states: Seq[Output]): (Seq[Output], Seq[Output]) = {
-      val newTuple = cell(RNNCell.Tuple(evO.fromOutputs(input, inputs), evS.fromOutputs(initialState, states)))
-      (evO.outputs(newTuple.output), evS.outputs(newTuple.state))
-    }
 
     type LoopVariables = (Output, Seq[TensorArray], Seq[Output])
 
@@ -269,7 +263,10 @@ object RNN extends RNN {
       val inputs = inputTensorArrays.map(_.read(time))
       // Restore some shape information.
       inputs.zip(inputsGotShape).foreach(i => i._1.setShape(i._2(1 ::)))
-      val callCell: () => (Seq[Output], Seq[Output]) = () => seqCell(inputs, states)
+      val callCell: () => (Seq[Output], Seq[Output]) = () => {
+        val newTuple = cell(RNNCell.Tuple(evO.fromOutputs(input, inputs), evS.fromOutputs(initialState, states)))
+        (evO.outputs(newTuple.output), evS.outputs(newTuple.state))
+      }
       val (nextOutputs, nextStates) = {
         if (sequenceLengths != null) {
           RNN.rnnStep(
