@@ -36,6 +36,12 @@ trait Decay {
     */
   @throws[IllegalArgumentException]
   def apply(value: Output, step: Option[Variable]): Output
+
+  /** Composes the provided `other` decay method with this decay method and returns the resulting decay method. */
+  def >>(other: Decay): ComposedDecay = ComposedDecay(other, this)
+
+  /** Composes this decay method with the provided, `other` decay method and returns the resulting decay method. */
+  def compose(other: Decay): ComposedDecay = ComposedDecay(this, other)
 }
 
 /** Dummy decay method representing no decay being used. Useful as a default value for `Decay`-valued function

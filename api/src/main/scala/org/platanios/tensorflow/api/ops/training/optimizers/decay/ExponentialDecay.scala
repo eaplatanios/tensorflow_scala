@@ -46,6 +46,14 @@ class ExponentialDecay(
     val startStep: Long = 0L,
     val name: String = "ExponentialDecay"
 ) extends Decay {
+  /** Applies the decay method to `value`, the current iteration in the optimization loop is `step` and returns the
+    * result.
+    *
+    * @param  value Value to decay.
+    * @param  step  Option containing current iteration in the optimization loop, if one has been provided.
+    * @return Decayed value.
+    * @throws IllegalArgumentException If the decay method requires a value for `step` but the provided option is empty.
+    */
   @throws[IllegalArgumentException]
   override def apply(value: Output, step: Option[Variable]): Output = {
     if (step.isEmpty)
