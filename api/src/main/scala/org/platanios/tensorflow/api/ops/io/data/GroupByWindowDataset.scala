@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops.io.data
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.ops.{Function, Op, Output}
-import org.platanios.tensorflow.api.types.INT64
+import org.platanios.tensorflow.api.types.{INT64, VARIANT}
 
 /** $OpDocDatasetGroupByWindow
   *
@@ -46,8 +46,7 @@ case class GroupByWindowDataset[T, O, D, S](
   }
 
   private[this] lazy val instantiatedReduceFunction = {
-    Function(s"$name/ReduceFunction", reduceFn).instantiate(
-      INT64 +: inputDataset.flattenedOutputDataTypes, Shape.scalar() +: inputDataset.flattenedOutputShapes)
+    Function(s"$name/ReduceFunction", reduceFn).instantiate(Seq(INT64, VARIANT), Seq(Shape.scalar(), Shape.scalar()))
   }
 
   private[this] lazy val instantiatedWindowSizeFunction = {
