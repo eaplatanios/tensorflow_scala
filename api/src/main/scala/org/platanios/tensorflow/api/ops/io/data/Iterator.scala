@@ -392,7 +392,7 @@ object Iterator {
     *
     * @param  stringHandle `STRING` scalar tensor containing the string representation of a handle of an iterator.
     * @param  name         Name for the created op.
-    * @return Created op output, which is a `RESOURCE` scalar tensor containing the iterator handle.
+    * @return Created op output, which is a `VARIANT` scalar tensor containing the iterator handle.
     */
   private[io] def iteratorFromStringHandle(
       stringHandle: Output, outputDataTypes: Seq[DataType], outputShapes: Seq[Shape],

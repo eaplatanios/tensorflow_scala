@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops.io.data
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception._
-import org.platanios.tensorflow.api.implicits.helpers.{OutputToTensor, TensorToDataType}
+import org.platanios.tensorflow.api.implicits.helpers.OutputToTensor
 import org.platanios.tensorflow.api.ops.{Callback, Function, Math, Op, Output}
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.ops.io.data
@@ -49,7 +49,7 @@ abstract class Dataset[T, O, D, S](
     val evData: Data.Aux[T, O, D, S],
     val evFunctionInput: Function.ArgType[O]
 ) {
-  /** Creates a `RESOURCE` scalar tensor representing this dataset. This function adds ops to the current graph, that
+  /** Creates a `VARIANT` scalar tensor representing this dataset. This function adds ops to the current graph, that
     * create the dataset resource. */
   def createHandle(): Output
 
