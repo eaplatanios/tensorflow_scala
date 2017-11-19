@@ -13,21 +13,8 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.ops.training
+package org.platanios.tensorflow.api.ops.training.optimizers.decay
 
-/**
-  * @author Emmanouil Antonios Platanios
-  */
-package object optimizers {
-  private[api] trait API
-      extends decay.API {
-    type Optimizer = optimizers.Optimizer
-    type AdaDelta = optimizers.AdaDelta
-    type AdaGrad = optimizers.AdaGrad
-    type GradientDescent = optimizers.GradientDescent
+class ComposedDecay {
 
-    val GradientDescent: optimizers.GradientDescent.type = optimizers.GradientDescent
-    val AdaGrad        : optimizers.AdaGrad.type         = optimizers.AdaGrad
-    val AdaDelta       : optimizers.AdaDelta.type        = optimizers.AdaDelta
-  }
 }

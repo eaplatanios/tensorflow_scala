@@ -13,21 +13,21 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.ops.training
+package org.platanios.tensorflow.api.ops.training.optimizers
 
 /**
   * @author Emmanouil Antonios Platanios
   */
-package object optimizers {
-  private[api] trait API
-      extends decay.API {
-    type Optimizer = optimizers.Optimizer
-    type AdaDelta = optimizers.AdaDelta
-    type AdaGrad = optimizers.AdaGrad
-    type GradientDescent = optimizers.GradientDescent
+package object decay {
+  private[optimizers] trait API {
+    type Decay = decay.Decay
+    type ExponentialDecay = decay.ExponentialDecay
+    type LuongExponentialDecay = decay.LuongExponentialDecay
+    type WarmUpDecay = decay.WarmUpDecay
 
-    val GradientDescent: optimizers.GradientDescent.type = optimizers.GradientDescent
-    val AdaGrad        : optimizers.AdaGrad.type         = optimizers.AdaGrad
-    val AdaDelta       : optimizers.AdaDelta.type        = optimizers.AdaDelta
+    val NoDecay              : decay.NoDecay.type               = decay.NoDecay
+    val ExponentialDecay     : decay.ExponentialDecay.type      = decay.ExponentialDecay
+    val LuongExponentialDecay: decay.LuongExponentialDecay.type = decay.LuongExponentialDecay
+    val WarmUpDecay          : decay.WarmUpDecay.type           = decay.WarmUpDecay
   }
 }

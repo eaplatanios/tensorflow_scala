@@ -15,6 +15,7 @@
 
 package org.platanios.tensorflow.api.ops.training.optimizers
 
+import org.platanios.tensorflow.api.ops.training.optimizers.decay.{Decay, NoDecay}
 import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output, OutputIndexedSlices}
 import org.platanios.tensorflow.api.ops.variables.Variable
 
