@@ -16,35 +16,43 @@
 package org.platanios.tensorflow.api.ops.training.optimizers
 
 import org.platanios.tensorflow.api.ops.training.optimizers.decay.{Decay, NoDecay}
-import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output, OutputIndexedSlices}
+import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output, OutputIndexedSlices, Summary}
 import org.platanios.tensorflow.api.ops.variables.Variable
 
 /** Optimizer that implements the gradient descent algorithm and includes support for learning rate decay, momentum, and
   * Nesterov acceleration.
   *
-  * @param  learningRate Learning rate. Must be `> 0`. If used with `decay`, then this argument specifies the initial
-  *                      value of the learning rate.
-  * @param  decay        Learning rate decay method to use for each update.
-  * @param  momentum     Momentum. Must be `>= 0`.
-  * @param  useNesterov  Boolean value indicating whether to use Nesterov acceleration or not. For details, refer to
-  *                      [Sutskever et. al., 2013](http://proceedings.mlr.press/v28/sutskever13.pdf).
-  * @param  useLocking   If `true`, the gradient descent updates will be protected by a lock. Otherwise, the behavior is
-  *                      undefined, but may exhibit less contention.
-  * @param  name         Name for this optimizer.
+  * @param  learningRate           Learning rate. Must be `> 0`. If used with `decay`, then this argument specifies the
+  *                                initial value of the learning rate.
+  * @param  decay                  Learning rate decay method to use for each update.
+  * @param  momentum               Momentum. Must be `>= 0`.
+  * @param  useNesterov            Boolean value indicating whether to use Nesterov acceleration or not. For details,
+  *                                refer to [Sutskever et. al., 2013](http://proceedings.mlr.press/v28/sutskever13.pdf).
+  * @param  useLocking             If `true`, the gradient descent updates will be protected by a lock. Otherwise, the
+  *                                behavior is undefined, but may exhibit less contention.
+  * @param  learningRateSummaryTag Optional summary tag name to use for the learning rate value. If `null`, no summary
+  *                                is created for the learning rate. Otherwise, a scalar summary is created which can be
+  *                                monitored using TensorBoard.
+  * @param  name                   Name for this optimizer.
   *
   * @author Emmanouil Antonios Platanios
   */
 case class GradientDescent private[api](
     learningRate: Double, decay: Decay = NoDecay, momentum: Double = 0.0, useNesterov: Boolean = false,
-    useLocking: Boolean = false, name: String = "GradientDescentOptimizer") extends Optimizer {
+    useLocking: Boolean = false, learningRateSummaryTag: String = null,
+    name: String = "GradientDescentOptimizer"
+) extends Optimizer {
   private[this] var learningRateTensor: Output = _
   private[this] var momentumTensor    : Output = _
 
   private[this] def getLearningRate(variable: Variable, iteration: Option[Variable]): Output = {
     if (learningRateTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    val lr = Math.cast(learningRateTensor, variable.dataType)
-    decay(lr, iteration)
+    var lr = Math.cast(learningRateTensor, variable.dataType)
+    lr = decay(lr, iteration)
+    if (learningRateSummaryTag != null)
+      Summary.scalar(learningRateSummaryTag, lr)
+    lr
   }
 
   private[this] def getMomentum(variable: Variable): Output = {

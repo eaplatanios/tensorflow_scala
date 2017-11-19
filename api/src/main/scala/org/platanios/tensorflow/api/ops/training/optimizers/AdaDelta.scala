@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.ops.training.optimizers
 
 import org.platanios.tensorflow.api.ops.training.optimizers.decay.{Decay, NoDecay}
-import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output, OutputIndexedSlices}
+import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output, OutputIndexedSlices, Summary}
 import org.platanios.tensorflow.api.ops.variables.Variable
 
 /** Optimizer that implements the AdaDelta optimization algorithm.
@@ -32,20 +32,24 @@ import org.platanios.tensorflow.api.ops.variables.Variable
   * For more information on this algorithm, please refer to this [paper](http://arxiv.org/abs/1212.5701)
   * ([PDF](http://arxiv.org/pdf/1212.5701v1.pdf)).
   *
-  * @param  learningRate Learning rate. Must be `> 0`. If used with `decay`, then this argument specifies the initial
-  *                      value of the learning rate.
-  * @param  decay        Learning rate decay method to use for each update.
-  * @param  rho          AdaDelta decay factor.
-  * @param  epsilon      AdaDelta constant factor.
-  * @param  useLocking   If `true`, the gradient descent updates will be protected by a lock. Otherwise, the behavior is
-  *                      undefined, but may exhibit less contention.
-  * @param  name         Name for this optimizer.
+  * @param  learningRate           Learning rate. Must be `> 0`. If used with `decay`, then this argument specifies the
+  *                                initial value of the learning rate.
+  * @param  decay                  Learning rate decay method to use for each update.
+  * @param  rho                    AdaDelta decay factor.
+  * @param  epsilon                AdaDelta constant factor.
+  * @param  useLocking             If `true`, the gradient descent updates will be protected by a lock. Otherwise, the
+  *                                behavior is undefined, but may exhibit less contention.
+  * @param  learningRateSummaryTag Optional summary tag name to use for the learning rate value. If `null`, no summary
+  *                                is created for the learning rate. Otherwise, a scalar summary is created which can be
+  *                                monitored using TensorBoard.
+  * @param  name                   Name for this optimizer.
   *
   * @author Emmanouil Antonios Platanios
   */
 case class AdaDelta private[api](
     learningRate: Double = 0.01, decay: Decay = NoDecay, rho: Double = 0.95, epsilon: Double = 1e-8,
-    useLocking: Boolean = false, name: String = "AdaDeltaOptimizer") extends Optimizer {
+    useLocking: Boolean = false, learningRateSummaryTag: String = null, name: String = "AdaDeltaOptimizer"
+) extends Optimizer {
   private[this] var learningRateTensor: Output = _
   private[this] var rhoTensor         : Output = _
   private[this] var epsilonTensor     : Output = _
@@ -53,8 +57,11 @@ case class AdaDelta private[api](
   private[this] def getLearningRate(variable: Variable, iteration: Option[Variable]): Output = {
     if (learningRateTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    val lr = Math.cast(learningRateTensor, variable.dataType)
-    decay(lr, iteration)
+    var lr = Math.cast(learningRateTensor, variable.dataType)
+    lr = decay(lr, iteration)
+    if (learningRateSummaryTag != null)
+      Summary.scalar(learningRateSummaryTag, lr)
+    lr
   }
 
   private[this] def getRho(variable: Variable): Output = {
