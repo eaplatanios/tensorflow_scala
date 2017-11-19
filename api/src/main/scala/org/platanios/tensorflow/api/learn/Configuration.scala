@@ -19,11 +19,11 @@ import org.platanios.tensorflow.api.config._
 import org.platanios.tensorflow.api.core.client.SessionConfig
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.learn.Configuration._
-
 import io.circe._
 import io.circe.parser._
-
 import java.nio.file.Path
+
+import org.platanios.tensorflow.api.learn.hooks.{HookTrigger, StepHookTrigger}
 
 /** Configuration for models in the learn API, to be used by estimators.
   *
@@ -142,6 +142,7 @@ import java.nio.file.Path
   */
 case class Configuration(
     workingDir: Option[Path] = None,
+    logTrigger: HookTrigger = StepHookTrigger(100),
     // TODO: [LEARN] Allow a cluster configuration to be directly provided here.
     sessionConfig: Option[SessionConfig] = None,
     checkpointConfig: CheckpointConfig = TimeBasedCheckpoints(600, 5, 10000),

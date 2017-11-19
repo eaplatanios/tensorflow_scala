@@ -145,7 +145,7 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
         allHooks += TensorLoggingHook(TreeMap(
           "Step" -> globalStep.value.name,
           "Loss" -> trainingOps.loss.name
-        ), StepHookTrigger(100))
+        ), configuration.logTrigger)
         if (tensorBoardConfig != null)
           allChiefOnlyHooks += TensorBoardHook(tensorBoardConfig)
         val saver = getOrCreateSaver()
