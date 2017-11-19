@@ -16,13 +16,13 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.{Graph, Shape}
+import org.platanios.tensorflow.api.implicits.helpers.OutputToTensor
 import org.platanios.tensorflow.api.ops.io.data.{Data, Dataset}
 import org.platanios.tensorflow.api.ops.variables.Variable.VariableGetter
 import org.platanios.tensorflow.api.ops.variables._
 import org.platanios.tensorflow.api.types.{DataType, FLOAT32, VARIANT}
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer}
 import org.platanios.tensorflow.jni.{Function => NativeFunction, Graph => NativeGraph}
-
 import org.tensorflow.framework.FunctionDef
 import shapeless._
 import shapeless.ops.hlist.Tupler
@@ -103,14 +103,38 @@ object Function {
       }
     }
 
+    // TODO: [FUNCTIONS] !!! Find a better way to deal with this for use in the reduce function of the "GroupByWindowDataset".
+    case class VariantDataset[T, O, D, S] private (
+        handle: Output // ,
+        // dataType: D = null.asInstanceOf[D],
+        // shape: S = null.asInstanceOf[S]
+    )(implicit
+        evOToT: OutputToTensor.Aux[O, T],
+        evData: Data.Aux[T, O, D, S],
+        evFunctionInput: Function.ArgType[O]
+    ) extends Dataset[T, O, D, S]("VariantDataset")(evOToT, evData, evFunctionInput) {
+      /** Creates a `VARIANT` scalar tensor representing this dataset. This function adds ops to the current graph, that
+        * create the dataset resource. */
+      override def createHandle(): Output = handle
+
+      /** Returns the data types corresponding to each element of this dataset, matching the structure of the elements. */
+      override def outputDataTypes: D = ???
+
+      /** Returns the shapes corresponding to each element of this dataset, matching the structure of the elements. */
+      override def outputShapes: S = ???
+    }
+
     implicit def datasetArgType[T, O, D, S](implicit
-        ev: Data.Aux[T, O, D, S]
+        evOToT: OutputToTensor.Aux[O, T],
+        evData: Data.Aux[T, O, D, S],
+        evFunctionInput: Function.ArgType[O]
     ): ArgType[Dataset[T, O, D, S]] = new ArgType[Dataset[T, O, D, S]] {
       override def numOutputs: Int = 1
       override def outputs(arg: Dataset[T, O, D, S]): Seq[Output] = Seq(arg.createHandle())
       override def dataTypes(arg: Dataset[T, O, D, S]): Seq[DataType] = Seq(VARIANT)
-      // TODO: [FUNCTIONS] !!! Find a better way to deal with this -- it's only used for Dataset.flatMap().
-      override def outputsDecoder(outputs: Seq[Output]): (Dataset[T, O, D, S], Seq[Output]) = (null, outputs.drop(1))
+      override def outputsDecoder(outputs: Seq[Output]): (Dataset[T, O, D, S], Seq[Output]) = {
+        (VariantDataset(outputs.head)(evOToT, evData, evFunctionInput), outputs.drop(1))
+      }
     }
 
     implicit val hnil: ArgType[HNil] = new ArgType[HNil] {

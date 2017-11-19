@@ -830,11 +830,12 @@ private[api] object RESOURCE extends DataType.Aux[Long] {
   override def protoType: org.tensorflow.framework.DataType = org.tensorflow.framework.DataType.DT_RESOURCE
 
   private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: Long): Int = {
-    throw new UnsupportedOperationException("The resource data type is not supported on the Scala side.")
+    buffer.putLong(index, element)
+    byteSize
   }
 
   private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Long = {
-    throw new UnsupportedOperationException("The resource data type is not supported on the Scala side.")
+    buffer.getLong(index)
   }
 
   private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: Long): Unit = {
@@ -853,11 +854,12 @@ private[api] object VARIANT extends DataType.Aux[Long] {
   override def protoType: org.tensorflow.framework.DataType = org.tensorflow.framework.DataType.DT_VARIANT
 
   private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: Long): Int = {
-    throw new UnsupportedOperationException("The variant data type is not supported on the Scala side.")
+    buffer.putLong(index, element)
+    byteSize
   }
 
   private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Long = {
-    throw new UnsupportedOperationException("The variant data type is not supported on the Scala side.")
+    buffer.getLong(index)
   }
 
   private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: Long): Unit = {
