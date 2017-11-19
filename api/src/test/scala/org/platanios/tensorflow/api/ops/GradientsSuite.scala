@@ -15,17 +15,74 @@
 
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api._
-
-import org.scalatest._
+import org.platanios.tensorflow.api.core.{Graph, Shape}
+import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
+import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.api.types.{FLOAT32, FLOAT64, INT32}
+import org.platanios.tensorflow.api.utilities.using
+import org.scalatest.junit.JUnitSuite
+import org.junit.Test
+import org.platanios.tensorflow.api.Session
 
 import scala.collection.mutable
 
 /**
   * @author Emmanouil Antonios Platanios
   */
-class GradientsSpec extends FlatSpec with Matchers {
-  "'Op.gradients'" must "work when gradients are defined for the ops being used" in {
+class GradientsSuite extends JUnitSuite {
+  @Test def testOpsBetweenSimple(): Unit = using(Graph()) { graph =>
+    Op.createWith(graph) {
+      val t1 = Basic.constant(1.0)
+      val t2 = Basic.constant(2.0)
+      val t3 = Basic.stack(Seq(t1, t2))
+      // Full graph
+      assertOpSeqEqual(Seq(t3.op, t2.op, t1.op), opsBetween(Set(t1.op, t2.op), Set(t3.op)))
+      // Only `t1` and `t3`
+      assertOpSeqEqual(Seq(t3.op, t1.op), opsBetween(Set(t1.op), Set(t3.op)))
+    }
+  }
+
+  @Test def testOpsBetweenUnreachable(): Unit = using(Graph()) { graph =>
+    Op.createWith(graph) {
+      val t1 = Basic.constant(1.0)
+      val t2 = Basic.constant(2.0)
+      Basic.stack(Seq(t1, t2))
+      val t4 = Basic.constant(1.0)
+      val t5 = Basic.constant(2.0)
+      val t6 = Basic.stack(Seq(t4, t5))
+      assertOpSeqEqual(Seq(t6.op), opsBetween(Set(t1.op), Set(t6.op)))
+    }
+  }
+
+  @Test def testOpsBetweenCut(): Unit = using(Graph()) { graph =>
+    Op.createWith(graph) {
+      val t1 = Basic.constant(1.0)
+      val t2 = Basic.constant(2.0)
+      val t3 = Basic.stack(Seq(t1, t2))
+      val t4 = Basic.constant(Tensor(1.0))
+      val t5 = Basic.concatenate(Seq(t4, t3), 0)
+      val t6 = Basic.constant(Tensor(2.0))
+      val t7 = Basic.concatenate(Seq(t5, t6), 0)
+      assertOpSeqEqual(Seq(t4.op, t5.op, t7.op), opsBetween(Set(t4.op), Set(t7.op)))
+    }
+  }
+
+  @Test def testOpsBetweenCycle(): Unit = using(Graph()) { graph =>
+    Op.createWith(graph) {
+      val t1 = Basic.constant(1.0)
+      val t2 = Basic.constant(2.0)
+      val t3 = Basic.stack(Seq(t1, t2))
+      val t4 = Basic.concatenate(Seq(t3, t3, t3), 0)
+      val t5 = Basic.constant(Tensor(1.0))
+      val t6 = Basic.concatenate(Seq(t4, t5), 0)
+      val t7 = Basic.concatenate(Seq(t6, t3), 0)
+      assertOpSeqEqual(Seq(t3.op, t4.op, t6.op), opsBetween(Set(t3.op), Set(t6.op)))
+      assertOpSeqEqual(Seq(t1.op, t3.op, t4.op, t5.op, t6.op, t7.op), opsBetween(Set(t1.op, t5.op), Set(t7.op)))
+      assertOpSeqEqual(Seq(t2.op, t3.op, t4.op, t5.op, t6.op), opsBetween(Set(t2.op, t5.op), Set(t6.op)))
+    }
+  }
+
+  @Test def testGradientsSimple(): Unit = {
     val graph = Graph()
     val expectedGraph = Graph()
     val (inputs, output) = buildSuccessGraph(graph)
@@ -37,7 +94,7 @@ class GradientsSpec extends FlatSpec with Matchers {
     assert(equal)
   }
 
-  "'Op.cc_gradients'" must "work when gradients are defined for the ops being used" in {
+  @Test def testCCGradientsSimple(): Unit = {
     val graph = Graph()
     val expectedGraph = Graph()
     val (inputs, output) = buildSuccessGraph(graph)
@@ -49,13 +106,112 @@ class GradientsSpec extends FlatSpec with Matchers {
     assert(equal)
   }
 
+  @Test def testGradients(): Unit = using(Graph()) { graph =>
+    Op.createWith(graph) {
+      val input = Basic.constant(1.0, FLOAT64, Shape(32, 100), name = "Input")
+      val w = Basic.constant(1.0, FLOAT64, Shape(100, 10), name = "W")
+      val b = Basic.constant(1.0, FLOAT64, Shape(10), name = "b")
+      val xw = Math.matmul(input, w, name = "xW")
+      val h = NN.addBias(xw, b, name = "h")
+      val gradient = Gradients.gradients(Seq(h), Seq(w))(0)
+      assert(gradient.op.opType === "MatMul")
+      assert(gradient.op.booleanAttribute("transpose_a"))
+      assert(!gradient.op.booleanAttribute("transpose_b"))
+    }
+  }
+
+  @Test def testUnusedOutput(): Unit = using(Graph()) { graph =>
+    Op.createWith(graph) {
+      val w = Basic.constant(1.0, FLOAT64, Shape(2, 2))
+      val x = Basic.constant(1.0, FLOAT64, Shape(2, 2))
+      val wx = Math.matmul(w, x)
+      val wxSplit = Basic.splitEvenly(wx, 2, axis = 0)
+      val c = Math.sum(wxSplit(1))
+      val gradient = Gradients.gradients(Seq(c), Seq(w))(0)
+      assert(gradient.op.opType === "MatMul")
+    }
+  }
+
+  @Test def testBoundaryStop(): Unit = using(Graph()) { graph =>
+    Op.createWith(graph) {
+      // Test that we do not differentiate `x`. The gradient function for `x` is set explicitly to `null` so we will get
+      // an exception if the gradient code tries to differentiate `x`.
+      val c = Basic.constant(1.0)
+      val x = Basic.identity(c)
+      val y = Math.add(x, 1.0)
+      val z = Math.add(y, 1)
+      val gradients = Gradients.gradients(Seq(z), Seq(x))
+      assert(!gradients.contains(null))
+    }
+  }
+
+  @Test def testBoundaryContinue(): Unit = using(Graph()) { graph =>
+    Op.createWith(graph) {
+      // Test that we differentiate both `x` and `y` correctly when `x` is a predecessor of `y`.
+      val x = Basic.constant(1.0)
+      val y = Math.multiply(x, 2.0)
+      val z = Math.multiply(y, 3.0)
+      val gradients = Gradients.gradients(Seq(z), Seq(x, y))
+      assert(!gradients.contains(null))
+      val session = Session()
+      assert(session.run(fetches = gradients.head.toOutput).scalar.asInstanceOf[Double] === 6.0)
+    }
+  }
+
+  @Test def testNonDifferentiableSwitchInWhileLoop(): Unit = using(Graph()) { graph =>
+    Op.createWith(graph) {
+      val v = Basic.placeholder(FLOAT32, Shape.scalar())
+      val lv = ControlFlow.whileLoop(
+        (lv: (Output, Output, TensorArray)) => Math.less(lv._1, 4),
+        (lv: (Output, Output, TensorArray)) => {
+          val a = Math.add(lv._2, Math.cast(v, INT32))
+          (Math.add(lv._1, 1), a, lv._3.write(lv._1, a))
+        },
+        (Basic.constant(0, INT32), Basic.constant(0, INT32), TensorArray.create(4, INT32)))
+      val target = lv._3.read(lv._1 - 1)
+      val gradient = Gradients.gradients(Seq(target), Seq(v))(0)
+      assert(gradient === null)
+    }
+  }
+
+  /** Returns the ops reached when going from `sourceOps` to `destinationOps`. */
+  private[this] def opsBetween(sourceOps: Set[Op], destinationOps: Set[Op]): Seq[Op] = {
+    val reached = mutable.Set[Op](destinationOps.toSeq: _*)
+    val reachedQueue = mutable.Queue[Op](sourceOps.toSeq: _*)
+    while (reachedQueue.nonEmpty) {
+      val op = reachedQueue.dequeue()
+      if (!reached.contains(op)) {
+        reached += op
+        op.outputs.foreach(o => reachedQueue.enqueue(o.consumers.map(_.op): _*))
+      }
+    }
+    // Collect all inputs of `destinationOps` that are in `reached`.
+    val inputs = mutable.ArrayBuffer.empty[Op]
+    reachedQueue.clear()
+    reachedQueue.enqueue(destinationOps.toSeq: _*)
+    while (reachedQueue.nonEmpty) {
+      val op = reachedQueue.dequeue()
+      if (reached.contains(op)) {
+        inputs += op
+        // Remove the op from `reached` so we won't add the inputs again.
+        reached -= op
+        op.inputs.foreach(reachedQueue.enqueue(_))
+      }
+    }
+    inputs
+  }
+
+  private[this] def assertOpSeqEqual(opSeq1: Seq[Op], opSeq2: Seq[Op]): Unit = {
+    assert(opSeq1.map(_.name).toSet === opSeq2.map(_.name).toSet)
+  }
+
   private[this] def noGradientOp(input: Output, name: String = "NoGradientOp"): Output = {
     ???
   }
 
   private[this] def buildErrorGraph(graph: Graph): (Output, Output) = {
     Op.createWith(graph) {
-      val constant = tf.constant(Tensor(Tensor(1.0, 2.0), Tensor(3.0, 4.0)), name = "Constant_0")
+      val constant = Basic.constant(Tensor(Tensor(1.0, 2.0), Tensor(3.0, 4.0)), name = "Constant_0")
       val noGradient = noGradientOp(constant)
       // TODO: Check for error or something.
       (constant, noGradient)
@@ -201,27 +357,5 @@ class GradientsSpec extends FlatSpec with Matchers {
         Array[Output](matmul1, matmul2)
       }
     }
-  }
-}
-
-object GradientsSpec {
-  /** Gathers and returns all inputs of `destinations` (recursively) that have been reached.
-    *
-    * @param  destinations Ops whose inputs are being gathered.
-    * @param  reached      Reached ops.
-    * @return Set of input ops to `destinations` (recursively) that have been reached.
-    */
-  private[this] def gatherInputs(destinations: Set[Op], reached: mutable.Set[Op]): Set[Op] = {
-    val inputs = mutable.Set.empty[Op]
-    val queue = mutable.Queue[Op](destinations.toSeq: _*)
-    while (queue.nonEmpty) {
-      val op = queue.dequeue()
-      if (reached.contains(op)) {
-        inputs += op
-        reached -= op // Done so we don't go through the same ops twice
-        op.inputs.foreach(i => queue.enqueue(i.op))
-      }
-    }
-    inputs.toSet
   }
 }
