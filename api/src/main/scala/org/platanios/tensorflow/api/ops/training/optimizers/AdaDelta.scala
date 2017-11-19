@@ -46,9 +46,9 @@ import org.platanios.tensorflow.api.ops.variables.Variable
   *
   * @author Emmanouil Antonios Platanios
   */
-case class AdaDelta private[api](
+case class AdaDelta(
     learningRate: Double = 0.01, decay: Decay = NoDecay, rho: Double = 0.95, epsilon: Double = 1e-8,
-    useLocking: Boolean = false, learningRateSummaryTag: String = null, name: String = "AdaDeltaOptimizer"
+    useLocking: Boolean = false, learningRateSummaryTag: String = null, name: String = "AdaDelta"
 ) extends Optimizer {
   private[this] var learningRateTensor: Output = _
   private[this] var rhoTensor         : Output = _
@@ -78,8 +78,8 @@ case class AdaDelta private[api](
 
   override protected def createSlots(variables: Seq[Variable]): Unit = {
     variables.foreach(v => {
-      zerosSlot("accumulator", v, "Accumulator")
-      zerosSlot("accumulator_update", v, "AccumulatorUpdate")
+      zerosSlot("Accumulator", v, name)
+      zerosSlot("AccumulatorUpdate", v, name)
     })
   }
 
@@ -90,8 +90,8 @@ case class AdaDelta private[api](
   }
 
   override def applyDense(gradient: Output, variable: Variable, iteration: Option[Variable]): Op = {
-    val accumulator = getSlot("accumulator", variable)
-    val accumulatorUpdate = getSlot("accumulator_update", variable)
+    val accumulator = getSlot("Accumulator", variable)
+    val accumulatorUpdate = getSlot("AccumulatorUpdate", variable)
     AdaDelta.resourceApplyDense(
       variable = variable,
       accumulator = accumulator,
@@ -104,8 +104,8 @@ case class AdaDelta private[api](
   }
 
   override def applySparse(gradient: OutputIndexedSlices, variable: Variable, iteration: Option[Variable]): Op = {
-    val accumulator = getSlot("accumulator", variable)
-    val accumulatorUpdate = getSlot("accumulator_update", variable)
+    val accumulator = getSlot("Accumulator", variable)
+    val accumulatorUpdate = getSlot("AccumulatorUpdate", variable)
     AdaDelta.resourceApplySparse(
       variable = variable,
       accumulator = accumulator,

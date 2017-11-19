@@ -25,6 +25,8 @@ import org.platanios.tensorflow.api.types.{DataType, FLOAT32, FLOAT64, RESOURCE}
 
 import scala.collection.mutable
 
+// TODO: In Python the optimizer can have state (e.g., variables) which we also do sometimes (e.g., Adam), but I'm not sure if it's good to do that. It's not very "clean".
+
 /**
   * @author Emmanouil Antonios Platanios
   */

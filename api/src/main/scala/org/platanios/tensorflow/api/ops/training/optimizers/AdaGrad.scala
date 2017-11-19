@@ -44,9 +44,9 @@ import org.platanios.tensorflow.api.ops.variables.{ConstantInitializer, Variable
   *
   * @author Emmanouil Antonios Platanios
   */
-case class AdaGrad private[api](
+case class AdaGrad(
     learningRate: Double = 0.01, decay: Decay = NoDecay, epsilon: Double = 1e-8, useLocking: Boolean = false,
-    learningRateSummaryTag: String = null, name: String = "AdaGradOptimizer"
+    learningRateSummaryTag: String = null, name: String = "AdaGrad"
 ) extends Optimizer {
   private[this] var learningRateTensor: Output = _
 
@@ -63,7 +63,7 @@ case class AdaGrad private[api](
   override protected def createSlots(variables: Seq[Variable]): Unit = {
     variables.foreach(v => {
       val initializer = ConstantInitializer(epsilon)
-      getSlot("accumulator", v, initializer, v.shape, v.dataType, "Accumulator")
+      getSlot("Accumulator", v, initializer, v.shape, v.dataType, name)
     })
   }
 
@@ -72,12 +72,12 @@ case class AdaGrad private[api](
   }
 
   override def applyDense(gradient: Output, variable: Variable, iteration: Option[Variable]): Op = {
-    val accumulator = getSlot("accumulator", variable)
+    val accumulator = getSlot("Accumulator", variable)
     AdaGrad.resourceApplyDense(variable, accumulator, getLearningRate(variable, iteration), gradient, useLocking)
   }
 
   override def applySparse(gradient: OutputIndexedSlices, variable: Variable, iteration: Option[Variable]): Op = {
-    val accumulator = getSlot("accumulator", variable)
+    val accumulator = getSlot("Accumulator", variable)
     AdaGrad.resourceApplySparse(
       variable, accumulator, getLearningRate(variable, iteration), gradient.values, gradient.indices, useLocking)
   }

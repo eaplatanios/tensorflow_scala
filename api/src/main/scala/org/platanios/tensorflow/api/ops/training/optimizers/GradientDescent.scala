@@ -37,10 +37,10 @@ import org.platanios.tensorflow.api.ops.variables.Variable
   *
   * @author Emmanouil Antonios Platanios
   */
-case class GradientDescent private[api](
+case class GradientDescent(
     learningRate: Double, decay: Decay = NoDecay, momentum: Double = 0.0, useNesterov: Boolean = false,
     useLocking: Boolean = false, learningRateSummaryTag: String = null,
-    name: String = "GradientDescentOptimizer"
+    name: String = "GradientDescent"
 ) extends Optimizer {
   private[this] var learningRateTensor: Output = _
   private[this] var momentumTensor    : Output = _
@@ -144,7 +144,7 @@ private[api] object GradientDescent {
     * @param  stepSize    Step size to use for the gradient descent update.
     * @param  gradient    Gradient to apply.
     * @param  momentum    Momentum value to use.
-    * @param  useNesterov If `true`, the tensor
+    * @param  useNesterov If `true`, Nesterov acceleration is used for the update.
     * @param  useLocking  If `true`, the updates will be protected by a lock. Otherwise, the behavior is undefined, but
     *                     may exhibit less contention.
     * @param  name        Name for the created op.
