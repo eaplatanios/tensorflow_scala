@@ -180,7 +180,7 @@ case class Adam(
       m.assignScatterAdd(gradient.indices, vScaledGradient)
     }
     val vTSqrt = Math.sqrt(vT)
-    val update = variable.assignSub(learningRate * mT / (vTSqrt + epsilon))
+    val update = variable.assignSub(learningRate * mT / Math.add(vTSqrt, epsilon))
     ControlFlow.group(Set(update.op, mT.op, vT.op))
   }
 }
@@ -212,7 +212,7 @@ private[api] object Adam {
     * @param  name        Name for the created op.
     * @return Created op.
     */
-  private[AdaDelta] def resourceApplyDense(
+  private[Adam] def resourceApplyDense(
       variable: Variable, m: Variable, v: Variable, beta1Power: Output, beta2Power: Output,
       stepSize: Output, beta1: Output, beta2: Output, epsilon: Output, gradient: Output,
       useNesterov: Boolean = false, useLocking: Boolean = false, name: String = "ResourceApplyAdam"
