@@ -2367,7 +2367,7 @@ object Math extends Math {
     def *(other: Output): Output = multiply(other)
 
     private[this] def divHelper(x: Output, y: Output): Output = {
-      if (x.dataType.isFloatingPoint || x.dataType.isComplex)
+      if (x.dataType.isFloatingPoint || x.dataType.isComplex || y.dataType.isFloatingPoint || y.dataType.isComplex)
         Math.divide(x, y)
       else
         Math.truncateDivide(x, y)
