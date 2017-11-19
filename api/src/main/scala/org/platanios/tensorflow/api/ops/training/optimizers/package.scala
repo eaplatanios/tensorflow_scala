@@ -26,9 +26,6 @@ package object optimizers {
     type AdaGrad = optimizers.AdaGrad
     type GradientDescent = optimizers.GradientDescent
 
-    val NoDecay         : optimizers.NoDecay.type          = optimizers.NoDecay
-    val ExponentialDecay: optimizers.ExponentialDecay.type = optimizers.ExponentialDecay
-
     val GradientDescent: optimizers.GradientDescent.type = optimizers.GradientDescent
     val AdaGrad        : optimizers.AdaGrad.type         = optimizers.AdaGrad
     val AdaDelta       : optimizers.AdaDelta.type        = optimizers.AdaDelta
