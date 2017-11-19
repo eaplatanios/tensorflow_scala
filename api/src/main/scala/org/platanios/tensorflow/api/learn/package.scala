@@ -43,6 +43,18 @@ package object learn {
     val INFERENCE : learn.INFERENCE.type  = learn.INFERENCE
 
     val TensorBoardConfig: config.TensorBoardConfig.type = config.TensorBoardConfig
+
+    type ClipGradients = learn.ClipGradients
+    type ClipGradientsByValue = learn.ClipGradientsByValue
+    type ClipGradientsByNorm = learn.ClipGradientsByNorm
+    type ClipGradientsByAverageNorm = learn.ClipGradientsByAverageNorm
+    type ClipGradientsByGlobalNorm = learn.ClipGradientsByGlobalNorm
+
+    val NoClipGradients           : learn.NoClipGradients.type            = learn.NoClipGradients
+    val ClipGradientsByValue      : learn.ClipGradientsByValue.type       = learn.ClipGradientsByValue
+    val ClipGradientsByNorm       : learn.ClipGradientsByNorm.type        = learn.ClipGradientsByNorm
+    val ClipGradientsByAverageNorm: learn.ClipGradientsByAverageNorm.type = learn.ClipGradientsByAverageNorm
+    val ClipGradientsByGlobalNorm : learn.ClipGradientsByGlobalNorm.type  = learn.ClipGradientsByGlobalNorm
   }
 
   private[api] object API extends API
