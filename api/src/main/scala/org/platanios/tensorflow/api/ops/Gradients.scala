@@ -128,10 +128,6 @@ private[ops] object Gradients {
               // TODO: [CONTEXT] Add support for original op context.
               val outputGradients = opGradients.map(_.headOption.orNull)
               var inputGradients = maybeCompile(name, op, () => gradientFunction(op, outputGradients))
-              if (op.inputs.length != inputGradients.length)
-                throw new IllegalStateException(
-                  s"The number of gradients (${inputGradients.length}) generated for op '$op' do not match its " +
-                      s"number of inputs (${op.inputs.length}).")
               if (gateGradients && inputGradients.count(_ != null) > 1) {
                 Op.createWith(device = "") {
                   Op.colocateWith(Set.empty[Op], ignoreExisting = true) {
@@ -139,6 +135,9 @@ private[ops] object Gradients {
                   }
                 }
               }
+              val nInp = op.inputs.length
+              val nGrd = inputGradients.length
+              assert(nInp == nGrd, s"Gradients size ($nGrd) for op '$op' does not match inputs size ($nInp).")
               logGradients(op, outputGradients, inputGradients)
               op.inputs.zip(inputGradients).filter(_._2 != null).foreach(i => {
                 i._2 match {
