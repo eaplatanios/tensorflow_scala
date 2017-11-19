@@ -92,7 +92,7 @@ object ExponentialDecay {
 }
 
 /** A particular instance of [[ExponentialDecay]] that was used in [Luong (2016)](https://github.com/lmthang/thesis). */
-class LuongExponentialDecay(val numTrainSteps: Int, val name: String = "LuongExponentialDecay")
+class LuongExponentialDecay(val numTrainSteps: Int, override val name: String = "LuongExponentialDecay")
     extends ExponentialDecay(0.5f, numTrainSteps / 10, staircase = true, numTrainSteps / 2)
 
 object LuongExponentialDecay {
