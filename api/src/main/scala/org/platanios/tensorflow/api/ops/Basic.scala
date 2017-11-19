@@ -95,8 +95,8 @@ private[api] trait Basic {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def zeros(dataType: DataType, shape: Shape, name: String = "Zeros"): Output = {
-    constant(Tensor.zeros(dataType, shape), name = name)
+  def zeros(dataType: DataType, shape: Output, name: String = "Zeros"): Output = {
+    fill(dataType, shape)(0, name = name)
   }
 
   /** $OpDocBasicZerosLike
@@ -136,8 +136,8 @@ private[api] trait Basic {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def ones(dataType: DataType, shape: Shape, name: String = "Ones"): Output = {
-    constant(Tensor.ones(dataType, shape), name = name)
+  def ones(dataType: DataType, shape: Output, name: String = "Ones"): Output = {
+    fill(dataType, shape)(1, name = name)
   }
 
   /** $OpDocBasicOnesLike

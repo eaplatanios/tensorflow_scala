@@ -348,15 +348,11 @@ private[api] object TensorArray {
       if (colocateWithFirstWrite) {
         Op.createWith(device = null) {
           Op.colocateWith(Set.empty[Op], ignoreExisting = true) {
-            Op.createWithNameScope(nameScope = name, Set(size.op)) {
-              TensorArray.createOp(size, dataType, elementShape, dynamicSize, clearAfterRead, tensorArrayName, name)
-            }
+            TensorArray.createOp(size, dataType, elementShape, dynamicSize, clearAfterRead, tensorArrayName, name)
           }
         }
       } else {
-        Op.createWithNameScope(nameScope = name, Set(size.op)) {
-          TensorArray.createOp(size, dataType, elementShape, dynamicSize, clearAfterRead, tensorArrayName, name)
-        }
+        TensorArray.createOp(size, dataType, elementShape, dynamicSize, clearAfterRead, tensorArrayName, name)
       }
     }
     createFromHandle(handle, flow, dataType, inferShape, elementShape, colocateWithFirstWrite)
