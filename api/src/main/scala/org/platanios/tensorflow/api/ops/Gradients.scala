@@ -135,7 +135,7 @@ private[ops] object Gradients {
               if (gateGradients && inputGradients.count(_ != null) > 1) {
                 Op.createWith(device = "") {
                   Op.colocateWith(Set.empty[Op], ignoreExisting = true) {
-                    inputGradients = ControlFlow.tuple(inputGradients.filter(_ != null).toArray).toSeq
+                    inputGradients = ControlFlow.tuple(inputGradients.toArray).toSeq
                   }
                 }
               }
@@ -290,23 +290,9 @@ private[ops] object Gradients {
                 if (o.denseShape == null)
                   throw new IllegalArgumentException(
                     "The dense shape of output indexed slices must be known in order to obtain their gradients.")
-                val values = Basic.fill(shape = o.denseShape)(1.0)
-                OutputIndexedSlices(
-                  Basic.identity(o.indices, name = s"Gradients_${index}_Indices"),
-                  Basic.identity(o.values, name = s"Gradients_${index}_Values"),
-                  if (o.denseShape == null)
-                    o.denseShape
-                  else
-                    Basic.identity(o.denseShape, name = s"Gradients_${index}_DenseShape"))
+                Basic.fill(shape = o.denseShape)(1.0, name = s"Gradients_$index")
               case o: SparseOutput =>
-                val values = Basic.fill(shape = o.denseShape)(1.0)
-                SparseOutput(
-                  Basic.identity(o.indices, name = s"Gradients_${index}_Indices"),
-                  Basic.identity(o.values, name = s"Gradients_${index}_Values"),
-                  if (o.denseShape == null)
-                    o.denseShape
-                  else
-                    Basic.identity(o.denseShape, name = s"Gradients_${index}_DenseShape"))
+                Basic.fill(shape = o.denseShape)(1.0, name = s"Gradients_$index")
             }
           }
         } else {

@@ -95,13 +95,13 @@ private[api] trait ControlFlow {
   def tuple[T <: OutputLike](
       inputs: Array[T], controlInputs: Set[Op] = Set.empty, name: String = "Tuple")
       (implicit tag: ClassTag[T]): Array[T] = {
-    val gatingOps = inputs.map(_.op).toSet
+    val gatingOps = inputs.filter(_ != null).map(_.op).toSet
     if (gatingOps.isEmpty) {
       inputs
     } else {
       Op.createWithNameScope(name, gatingOps) {
         val gate = group(gatingOps ++ controlInputs)
-        inputs.map(withControlDependencies(Set[Op](gate), _))
+        inputs.map(input => if (input == null) input else withControlDependencies(Set[Op](gate), input))
       }
     }
   }
