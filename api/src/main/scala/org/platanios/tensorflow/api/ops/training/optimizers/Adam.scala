@@ -185,7 +185,7 @@ case class Adam(
   }
 }
 
-private[api] object Adam {
+object Adam {
   /** Creates an op that updates `variable` by applying the Adam algorithm update to it.
     *
     * The Adam update for step `t` is as follows:

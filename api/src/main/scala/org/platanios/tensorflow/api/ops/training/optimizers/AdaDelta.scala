@@ -119,7 +119,7 @@ case class AdaDelta(
   }
 }
 
-private[api] object AdaDelta {
+object AdaDelta {
   /** Creates an op that updates `variable` by applying the AdaDelta algorithm update to it.
     *
     * The AdaDelta update is as follows:

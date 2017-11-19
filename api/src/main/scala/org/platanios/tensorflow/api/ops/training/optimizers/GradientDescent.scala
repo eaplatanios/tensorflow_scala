@@ -107,7 +107,7 @@ case class GradientDescent(
   }
 }
 
-private[api] object GradientDescent {
+object GradientDescent {
   /** Creates an op that updates the value of `variable` by subtracting `stepSize * gradient` from it.
     *
     * @param  variable   Variable whose value to update.
