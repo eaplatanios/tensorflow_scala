@@ -38,8 +38,8 @@ class BasicRNNDecoder[O, OS, S, SS](
     val helper: BasicRNNDecoder.Helper[O, S],
     override val name: String = "BasicRNNDecoder"
 )(implicit
-    evO: RNNCell.Supported.Aux[O, OS],
-    evS: RNNCell.Supported.Aux[S, SS]
+    evO: WhileLoopVariable.Aux[O, OS],
+    evS: WhileLoopVariable.Aux[S, SS]
 ) extends RNNDecoder[O, OS, S, SS, (O, O), (OS, OS), S, SS](
   cell,
   initialCellState,
@@ -88,8 +88,8 @@ object BasicRNNDecoder {
       helper: BasicRNNDecoder.Helper[O, S],
       name: String = "BasicRNNDecoder"
   )(implicit
-      evO: RNNCell.Supported.Aux[O, OS],
-      evS: RNNCell.Supported.Aux[S, SS]
+      evO: WhileLoopVariable.Aux[O, OS],
+      evS: WhileLoopVariable.Aux[S, SS]
   ): BasicRNNDecoder[O, OS, S, SS] = {
     new BasicRNNDecoder[O, OS, S, SS](cell, initialCellState, helper, name)
   }
@@ -124,8 +124,8 @@ object BasicRNNDecoder {
       timeMajor: Boolean = false,
       name: String = "RNNDecoderTrainingHelper"
   )(implicit
-      evO: RNNCell.Supported.Aux[O, OS],
-      evS: RNNCell.Supported.Aux[S, SS]
+      evO: WhileLoopVariable.Aux[O, OS],
+      evS: WhileLoopVariable.Aux[S, SS]
   ) extends Helper[O, S] {
     if (sequenceLengths.rank != 1)
       throw InvalidShapeException(s"'sequenceLengths' (shape = ${sequenceLengths.shape}) must have rank 1.")

@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.ops.rnn.decoder
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
+import org.platanios.tensorflow.api.ops.control_flow.{ControlFlow, WhileLoopVariable}
 import org.platanios.tensorflow.api.ops.rnn.RNN
 import org.platanios.tensorflow.api.ops.rnn.cell.RNNCell
 import org.platanios.tensorflow.api.ops.variables.VariableScope
@@ -43,9 +43,9 @@ abstract class RNNDecoder[O, OS, S, SS, DO, DOS, DS, DSS](
     val initialCellState: S,
     val name: String = "RNNDecoder"
 )(implicit
-    evO: RNNCell.Supported.Aux[O, OS],
-    evDO: RNNCell.Supported.Aux[DO, DOS],
-    evDS: RNNCell.Supported.Aux[DS, DSS]
+    evO: WhileLoopVariable.Aux[O, OS],
+    evDO: WhileLoopVariable.Aux[DO, DOS],
+    evDS: WhileLoopVariable.Aux[DS, DSS]
 ) {
   /** Scalar `INT32` tensor representing the batch size of the input values. */
   val batchSize: Output

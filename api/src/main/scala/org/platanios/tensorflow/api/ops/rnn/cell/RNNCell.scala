@@ -20,10 +20,7 @@ import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.{Basic, Math, NN, Op, Output}
-import org.platanios.tensorflow.api.types.{DataType, INT32}
-
-import shapeless._
-import shapeless.ops.hlist.Tupler
+import org.platanios.tensorflow.api.types.INT32
 
 /** Contains functions for constructing ops related to recurrent neural network (RNN) cells.
   *
@@ -51,122 +48,6 @@ object RNNCell {
   type LSTMTuple = Tuple[Output, (Output, Output)]
 
   def LSTMTuple(output: Output, state: (Output, Output)): LSTMTuple = Tuple(output, state)
-
-  trait Supported[T] {
-    type ShapeType
-
-    def zero(batchSize: Output, dataType: DataType, shape: ShapeType, name: String = "Zero"): T
-    def outputs(value: T): Seq[Output]
-    def shapes(shape: ShapeType): Seq[Shape]
-
-    def fromOutputs(value: T, outputs: Seq[Output]): T = segmentOutputs(value, outputs)._1
-    def segmentOutputs(value: T, outputs: Seq[Output]): (T, Seq[Output])
-
-    def fromShapes(value: T, shapes: Seq[Shape]): ShapeType = segmentShapes(value, shapes)._1
-    def segmentShapes(value: T, shapes: Seq[Shape]): (ShapeType, Seq[Shape])
-  }
-
-  object Supported {
-    type Aux[T, S] = Supported[T] {type ShapeType = S}
-
-    def apply[T, S](implicit ev: Supported.Aux[T, S]): Supported.Aux[T, S] = ev
-
-    implicit val outputSupported: Supported.Aux[Output, Shape] = new Supported[Output] {
-      override type ShapeType = Shape
-
-      override def zero(batchSize: Output, dataType: DataType, shape: Shape, name: String = "Zero"): Output = {
-        val staticBatchSize = Output.constantValue(batchSize).map(_.scalar.asInstanceOf[Int]).getOrElse(-1)
-        Op.createWithNameScope(name, Set(batchSize.op)) {
-          val fullShape = Basic.concatenate(Seq(batchSize.expandDims(0), shape.toOutput(batchSize.dataType)), axis = 0)
-          val zero = Basic.fill(dataType, fullShape)(0)
-          zero.setShape(Shape(staticBatchSize) ++ shape)
-          zero
-        }
-      }
-
-      override def outputs(value: Output): Seq[Output] = Seq(value)
-      override def shapes(shape: Shape): Seq[Shape] = Seq(shape)
-
-      override def segmentOutputs(value: Output, outputs: Seq[Output]): (Output, Seq[Output]) = {
-        (outputs.head, outputs.tail)
-      }
-
-      override def segmentShapes(value: Output, shapes: Seq[Shape]): (Shape, Seq[Shape]) = {
-        (shapes.head, shapes.tail)
-      }
-    }
-
-    implicit val hnilSupported: Supported.Aux[HNil, HNil] = new Supported[HNil] {
-      override type ShapeType = HNil
-      override def zero(batchSize: Output, dataType: DataType, shape: HNil, name: String = "Zero"): HNil = HNil
-      override def outputs(value: HNil): Seq[Output] = Seq.empty[Output]
-      override def shapes(shape: HNil): Seq[Shape] = Seq.empty[Shape]
-      override def segmentOutputs(value: HNil, outputs: Seq[Output]): (HNil, Seq[Output]) = (HNil, outputs)
-      override def segmentShapes(value: HNil, shapes: Seq[Shape]): (HNil, Seq[Shape]) = (HNil, shapes)
-    }
-
-    implicit def recursiveSupportedConstructor[H, HS, T <: HList, TS <: HList](implicit
-        supportedHead: Lazy[Aux[H, HS]],
-        supportedTail: Aux[T, TS]
-    ): Supported.Aux[H :: T, HS :: TS] = new Supported[H :: T] {
-      override type ShapeType = HS :: TS
-
-      override def zero(batchSize: Output, dataType: DataType, shape: HS :: TS, name: String = "Zero"): H :: T = {
-        Op.createWithNameScope(name) {
-          supportedHead.value.zero(batchSize, dataType, shape.head) ::
-              supportedTail.zero(batchSize, dataType, shape.tail)
-        }
-      }
-
-      override def outputs(value: H :: T): Seq[Output] = {
-        supportedHead.value.outputs(value.head) ++ supportedTail.outputs(value.tail)
-      }
-
-      override def shapes(shape: HS :: TS): Seq[Shape] = {
-        supportedHead.value.shapes(shape.head) ++ supportedTail.shapes(shape.tail)
-      }
-
-      override def segmentOutputs(value: H :: T, outputs: Seq[Output]): (H :: T, Seq[Output]) = {
-        val (headOut, headRemaining) = supportedHead.value.segmentOutputs(value.head, outputs)
-        val (tailOut, tailRemaining) = supportedTail.segmentOutputs(value.tail, headRemaining)
-        (headOut :: tailOut, tailRemaining)
-      }
-
-      override def segmentShapes(value: H :: T, shapes: Seq[Shape]): (HS :: TS, Seq[Shape]) = {
-        val (headOut, headRemaining) = supportedHead.value.segmentShapes(value.head, shapes)
-        val (tailOut, tailRemaining) = supportedTail.segmentShapes(value.tail, headRemaining)
-        (headOut :: tailOut, tailRemaining)
-      }
-    }
-
-    // This also covers `OutputIndexedSlices` and `SparseOutput` as they are case classes (i.e., products).
-    implicit def productSupportedConstructor[P <: Product, PS <: Product, L <: HList, LS <: HList](implicit
-        genP: Generic.Aux[P, L],
-        supportedL: Aux[L, LS],
-        tupler: Tupler.Aux[L, P],
-        tuplerS: Tupler.Aux[LS, PS],
-        genPS: Generic.Aux[PS, LS]
-    ): Supported.Aux[P, PS] = new Supported[P] {
-      override type ShapeType = PS
-
-      override def zero(batchSize: Output, dataType: DataType, shape: PS, name: String = "Zero"): P = {
-        tupler(supportedL.zero(batchSize, dataType, genPS.to(shape), name))
-      }
-
-      override def outputs(value: P): Seq[Output] = supportedL.outputs(genP.to(value))
-      override def shapes(shape: PS): Seq[Shape] = supportedL.shapes(genPS.to(shape))
-
-      override def segmentOutputs(value: P, outputs: Seq[Output]): (P, Seq[Output]) = {
-        val (out, remaining) = supportedL.segmentOutputs(genP.to(value), outputs)
-        (tupler(out), remaining)
-      }
-
-      override def segmentShapes(value: P, shapes: Seq[Shape]): (PS, Seq[Shape]) = {
-        val (out, remaining) = supportedL.segmentShapes(genP.to(value), shapes)
-        (tuplerS(out), remaining)
-      }
-    }
-  }
 
   /** $OpDocRNNCellBasicRNNCell
     *

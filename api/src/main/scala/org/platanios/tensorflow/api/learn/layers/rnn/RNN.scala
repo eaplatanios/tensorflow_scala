@@ -50,8 +50,8 @@ class RNN[O, OS, S, SS] private[rnn] (
     val sequenceLengths: Tensor = null,
     override protected val name: String = "RNN"
 )(implicit
-    evO: ops.rnn.cell.RNNCell.Supported.Aux[O, OS],
-    evS: ops.rnn.cell.RNNCell.Supported.Aux[S, SS]
+    evO: ops.control_flow.WhileLoopVariable.Aux[O, OS],
+    evS: ops.control_flow.WhileLoopVariable.Aux[S, SS]
 ) extends Layer[O, RNNCell.Tuple[O, S]](name) {
   override val layerType: String = "RNN"
 
@@ -84,8 +84,8 @@ object RNN {
       sequenceLengths: Tensor = null,
       name: String = "RNN"
   )(implicit
-      evO: ops.rnn.cell.RNNCell.Supported.Aux[O, OS],
-      evS: ops.rnn.cell.RNNCell.Supported.Aux[S, SS]
+      evO: ops.control_flow.WhileLoopVariable.Aux[O, OS],
+      evS: ops.control_flow.WhileLoopVariable.Aux[S, SS]
   ): RNN[O, OS, S, SS] = {
     new RNN(cell, initialState, timeMajor, parallelIterations, swapMemory, sequenceLengths, name)(evO, evS)
   }

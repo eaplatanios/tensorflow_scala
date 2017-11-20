@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.ops.rnn
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
+import org.platanios.tensorflow.api.ops.control_flow.{ControlFlow, WhileLoopVariable}
 import org.platanios.tensorflow.api.ops.rnn.cell.RNNCell
 import org.platanios.tensorflow.api.ops.variables.VariableScope
 import org.platanios.tensorflow.api.ops.{Basic, Checks, Math, Op, OpSpecification, Output, TensorArray}
@@ -26,8 +26,6 @@ import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.{DataType, INT32}
 
 import scala.language.postfixOps
-
-// TODO: [RNN] Replace "RNNCell.Supported" with the "WhileLoopVariable" type trait.
 
 /** Contains functions for constructing ops related to recurrent neural networks (RNNs).
   *
@@ -63,8 +61,8 @@ private[rnn] trait RNN {
       timeMajor: Boolean = false, parallelIterations: Int = 32, swapMemory: Boolean = false,
       sequenceLengths: Output = null, name: String = "RNN"
   )(implicit
-      evO: RNNCell.Supported.Aux[O, OS],
-      evS: RNNCell.Supported.Aux[S, SS]
+      evO: WhileLoopVariable.Aux[O, OS],
+      evS: WhileLoopVariable.Aux[S, SS]
   ): RNNCell.Tuple[O, S] = {
     Op.createWithNameScope(name) {
       // By default, `timeMajor` is false and inputs are shaped batch-major: [batch, time, depth]
@@ -162,8 +160,8 @@ private[rnn] trait RNN {
       timeMajor: Boolean = false, parallelIterations: Int = 32, swapMemory: Boolean = false,
       sequenceLengths: Output = null, name: String = "RNN"
   )(implicit
-      evO: RNNCell.Supported.Aux[O, OS],
-      evS: RNNCell.Supported.Aux[S, SS]
+      evO: WhileLoopVariable.Aux[O, OS],
+      evS: WhileLoopVariable.Aux[S, SS]
   ): (RNNCell.Tuple[O, S], RNNCell.Tuple[O, S]) = {
     Op.createWithNameScope(name) {
       VariableScope.createWithVariableScope(name) {
@@ -219,8 +217,8 @@ object RNN extends RNN {
       cell: RNNCell[O, OS, S, SS], input: O, initialState: S,
       parallelIterations: Int, swapMemory: Boolean, sequenceLengths: Output = null
   )(implicit
-      evO: RNNCell.Supported.Aux[O, OS],
-      evS: RNNCell.Supported.Aux[S, SS]
+      evO: WhileLoopVariable.Aux[O, OS],
+      evS: WhileLoopVariable.Aux[S, SS]
   ): RNNCell.Tuple[O, S] = {
     // Construct an initial output.
     val inputs = evO.outputs(input)
