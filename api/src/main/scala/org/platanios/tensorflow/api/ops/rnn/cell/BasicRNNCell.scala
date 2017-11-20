@@ -33,11 +33,11 @@ class BasicRNNCell private[cell] (
     val bias: Output,
     val activation: Output => Output = Math.tanh(_),
     val name: String = "BasicRNNCell"
-) extends RNNCell.BasicCell {
+) extends RNNCell[Output, Shape, Output, Shape] {
   override def outputShape: Shape = bias.shape
   override def stateShape: Shape = bias.shape
 
-  override def forward(input: RNNCell.BasicTuple): RNNCell.BasicTuple = {
+  override def forward(input: BasicTuple): BasicTuple = {
     RNNCell.basicRNNCell(input, kernel, bias, activation, name)
   }
 }

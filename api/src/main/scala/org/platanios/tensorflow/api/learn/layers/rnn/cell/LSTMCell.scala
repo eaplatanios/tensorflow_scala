@@ -20,12 +20,15 @@ import org.platanios.tensorflow.api.learn.Mode
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.Output
 import org.platanios.tensorflow.api.ops.variables.{Initializer, Variable, ZerosInitializer}
+import org.platanios.tensorflow.api.types.DataType
 
 import scala.collection.mutable
 
 /** $OpDocRNNCellLSTMCell
   *
   * @param  numUnits          Number of units in the LSTM cell.
+  * @param  dataType          Data type for the parameters of this cell.
+  * @param  inputShape        Shape of inputs to this cell.
   * @param  forgetBias        Forget bias added to the forget gate.
   * @param  usePeepholes      Boolean value indicating whether or not to use diagonal/peephole connections.
   * @param  cellClip          If different than `-1`, then the cell state is clipped by this value prior to the cell
@@ -37,10 +40,13 @@ import scala.collection.mutable
   * @param  biasInitializer   Variable initializer for the bias vectors.
   * @param  name              Desired name for this layer (note that this name will be made unique by potentially
   *                           appending a number to it, if it has been used before for another layer).
+  *
   * @author Emmanouil Antonios Platanios
   */
 class LSTMCell private[cell] (
     numUnits: Int,
+    val dataType: DataType,
+    val inputShape: Shape,
     forgetBias: Float = 1.0f,
     usePeepholes: Boolean = false,
     cellClip: Float = -1,
@@ -50,22 +56,22 @@ class LSTMCell private[cell] (
     kernelInitializer: Initializer = null,
     biasInitializer: Initializer = ZerosInitializer,
     override protected val name: String = "LSTMCell"
-) extends RNNCell.LSTMCell(name) {
+) extends RNNCell[Output, Shape, (Output, Output), (Shape, Shape)](name) {
   override val layerType: String = "LSTMCell"
 
-  override def createCell(input: Output, mode: Mode): RNNCell.LSTMCellInstance = {
+  override def createCell(mode: Mode): LSTMCellInstance = {
     val trainableVariables: mutable.Set[Variable] = mutable.Set[Variable]()
     val hiddenDepth = if (projectionSize != -1) projectionSize else numUnits
     val kernel = variable(
-      KERNEL_NAME, input.dataType, Shape(input.shape(-1) + hiddenDepth, 4 * numUnits), kernelInitializer)
-    val bias = variable(BIAS_NAME, input.dataType, Shape(4 * numUnits), biasInitializer)
+      KERNEL_NAME, dataType, Shape(inputShape(-1) + hiddenDepth, 4 * numUnits), kernelInitializer)
+    val bias = variable(BIAS_NAME, dataType, Shape(4 * numUnits), biasInitializer)
     trainableVariables += kernel
     trainableVariables += bias
     val (wfDiag, wiDiag, woDiag) = {
       if (usePeepholes) {
-        val wfDiag = variable("Peepholes/ForgetKernelDiag", input.dataType, Shape(numUnits), kernelInitializer)
-        val wiDiag = variable("Peepholes/InputKernelDiag", input.dataType, Shape(numUnits), kernelInitializer)
-        val woDiag = variable("Peepholes/OutputKernelDiag", input.dataType, Shape(numUnits), kernelInitializer)
+        val wfDiag = variable("Peepholes/ForgetKernelDiag", dataType, Shape(numUnits), kernelInitializer)
+        val wiDiag = variable("Peepholes/InputKernelDiag", dataType, Shape(numUnits), kernelInitializer)
+        val woDiag = variable("Peepholes/OutputKernelDiag", dataType, Shape(numUnits), kernelInitializer)
         trainableVariables += wfDiag
         trainableVariables += wiDiag
         trainableVariables += woDiag
@@ -78,7 +84,7 @@ class LSTMCell private[cell] (
       if (projectionSize != -1) {
         val projectionKernel = variable(
           s"Projection/$KERNEL_NAME",
-          input.dataType,
+          dataType,
           Shape(numUnits, projectionSize),
           kernelInitializer)
         trainableVariables += projectionKernel
@@ -90,13 +96,15 @@ class LSTMCell private[cell] (
     val cell = ops.rnn.cell.LSTMCell(
       kernel.value, bias.value, cellClip, wfDiag, wiDiag, woDiag, projectionKernel, projectionClip,
       activation, forgetBias, name)
-    RNNCell.LSTMCellInstance(cell, trainableVariables.toSet)
+    LSTMCellInstance(cell, trainableVariables.toSet)
   }
 }
 
 object LSTMCell {
   def apply(
       numUnits: Int,
+      dataType: DataType,
+      inputShape: Shape,
       forgetBias: Float = 1.0f,
       usePeepholes: Boolean = false,
       cellClip: Float = -1,
@@ -108,7 +116,7 @@ object LSTMCell {
       name: String = "LSTMCell"
   ): LSTMCell = {
     new LSTMCell(
-      numUnits, forgetBias, usePeepholes, cellClip, projectionSize, projectionClip, activation,
+      numUnits, dataType, inputShape, forgetBias, usePeepholes, cellClip, projectionSize, projectionClip, activation,
       kernelInitializer, biasInitializer, name)
   }
 }

@@ -37,10 +37,10 @@ class GRUCell private[cell] (
     val candidateBias: Output,
     val activation: Output => Output = Math.tanh(_),
     val name: String = "GRUCell"
-) extends RNNCell.BasicCell {
+) extends RNNCell[Output, Shape, Output, Shape] {
   override def outputShape: Shape = candidateBias.shape
   override def stateShape: Shape = candidateBias.shape
-  override def forward(input: RNNCell.BasicTuple): RNNCell.BasicTuple = {
+  override def forward(input: BasicTuple): BasicTuple = {
     RNNCell.gruCell(input, gateKernel, gateBias, candidateKernel, candidateBias, activation, name)
   }
 }

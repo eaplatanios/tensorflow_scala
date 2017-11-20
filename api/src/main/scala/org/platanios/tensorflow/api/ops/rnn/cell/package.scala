@@ -13,52 +13,24 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.learn.layers.rnn
+package org.platanios.tensorflow.api.ops.rnn
 
-import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.Output
-import org.platanios.tensorflow.api.ops.variables.Variable
 
 /**
   * @author Emmanouil Antonios Platanios
   */
 package object cell {
-  private[cell] val KERNEL_NAME: String = "weights"
-  private[cell] val BIAS_NAME  : String = "bias"
+  class Tuple[O, S](val output: O, val state: S)
 
-  case class CellInstance[O, OS, S, SS](
-      cell: ops.rnn.cell.RNNCell[O, OS, S, SS],
-      trainableVariables: Set[Variable] = Set.empty,
-      nonTrainableVariables: Set[Variable] = Set.empty)
-
-  type BasicCellInstance = CellInstance[Output, Shape, Output, Shape]
-
-  def BasicCellInstance(
-      cell: ops.rnn.cell.RNNCell[Output, Shape, Output, Shape],
-      trainableVariables: Set[Variable] = Set.empty,
-      nonTrainableVariables: Set[Variable] = Set.empty
-  ): BasicCellInstance = {
-    CellInstance(cell, trainableVariables, nonTrainableVariables)
+  object Tuple {
+    def apply[O, S](output: O, state: S): Tuple[O, S] = new Tuple(output, state)
   }
 
-  type Tuple[O, S] = ops.rnn.cell.Tuple[O, S]
   type BasicTuple = Tuple[Output, Output]
+  type LSTMTuple = Tuple[Output, (Output, Output)]
 
-  val Tuple: ops.rnn.cell.Tuple.type = ops.rnn.cell.Tuple
-
-  type LSTMCellInstance = CellInstance[Output, Shape, (Output, Output), (Shape, Shape)]
-  type LSTMTuple = ops.rnn.cell.LSTMTuple
-
-  def LSTMTuple(output: Output, state: (Output, Output)): LSTMTuple = ops.rnn.cell.LSTMTuple(output, state)
-
-  def LSTMCellInstance(
-      cell: ops.rnn.cell.RNNCell[Output, Shape, (Output, Output), (Shape, Shape)],
-      trainableVariables: Set[Variable] = Set.empty,
-      nonTrainableVariables: Set[Variable] = Set.empty
-  ): LSTMCellInstance = {
-    CellInstance(cell, trainableVariables, nonTrainableVariables)
-  }
+  def LSTMTuple(output: Output, state: (Output, Output)): LSTMTuple = Tuple(output, state)
 
   private[rnn] trait API {
     type RNNCell[O, OS, S, SS] = cell.RNNCell[O, OS, S, SS]

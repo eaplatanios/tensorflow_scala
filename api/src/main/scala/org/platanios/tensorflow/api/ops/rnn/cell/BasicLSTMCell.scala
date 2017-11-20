@@ -35,13 +35,13 @@ class BasicLSTMCell private[cell] (
     val activation: Output => Output = Math.tanh(_),
     val forgetBias: Float = 1.0f,
     val name: String = "BasicLSTMCell"
-) extends RNNCell.LSTMCell {
+) extends RNNCell[Output, Shape, (Output, Output), (Shape, Shape)] {
   private[this] val numUnits = bias.shape(0) / 4
 
   override def outputShape: Shape = Shape(numUnits)
   override def stateShape: (Shape, Shape) = (Shape(numUnits), Shape(numUnits))
 
-  override def forward(input: RNNCell.LSTMTuple): RNNCell.LSTMTuple = {
+  override def forward(input: LSTMTuple): LSTMTuple = {
     RNNCell.basicLSTMCell(input, kernel, bias, activation, forgetBias, name)
   }
 }

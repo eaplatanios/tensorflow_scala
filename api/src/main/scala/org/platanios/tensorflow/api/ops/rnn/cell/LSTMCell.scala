@@ -52,7 +52,7 @@ class LSTMCell private[cell] (
     val activation: Output => Output = Math.tanh(_),
     val forgetBias: Float = 1.0f,
     val name: String = "LSTMCell"
-) extends RNNCell.LSTMCell {
+) extends RNNCell[Output, Shape, (Output, Output), (Shape, Shape)] {
   private[this] val numUnits = bias.shape(0) / 4
 
   override def outputShape: Shape = {
@@ -69,7 +69,7 @@ class LSTMCell private[cell] (
       (Shape(numUnits), Shape(numUnits))
   }
 
-  override def forward(input: RNNCell.LSTMTuple): RNNCell.LSTMTuple = {
+  override def forward(input: LSTMTuple): LSTMTuple = {
     RNNCell.lstmCell(
       input, kernel, bias, cellClip, wfDiag, wiDiag, woDiag, projectionKernel, projectionClip, activation, forgetBias,
       name)

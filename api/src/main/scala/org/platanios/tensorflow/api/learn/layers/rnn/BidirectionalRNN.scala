@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.learn.layers.rnn
 
 import org.platanios.tensorflow.api.learn.Mode
 import org.platanios.tensorflow.api.learn.layers.{Layer, LayerInstance}
-import org.platanios.tensorflow.api.learn.layers.rnn.cell.RNNCell
+import org.platanios.tensorflow.api.learn.layers.rnn.cell.{RNNCell, Tuple}
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.tensors.Tensor
 
@@ -58,17 +58,15 @@ class BidirectionalRNN[O, OS, S, SS] private[rnn] (
 )(implicit
     evO: ops.control_flow.WhileLoopVariable.Aux[O, OS],
     evS: ops.control_flow.WhileLoopVariable.Aux[S, SS]
-) extends Layer[O, (RNNCell.Tuple[O, S], RNNCell.Tuple[O, S])](name) {
+) extends Layer[O, (Tuple[O, S], Tuple[O, S])](name) {
   override val layerType: String = "BidirectionalRNN"
 
-  override def forward(input: O, mode: Mode): LayerInstance[O, (RNNCell.Tuple[O, S], RNNCell.Tuple[O, S])] = {
+  override def forward(input: O, mode: Mode): LayerInstance[O, (Tuple[O, S], Tuple[O, S])] = {
     val stateFw = if (initialStateFw == null) null.asInstanceOf[S] else initialStateFw()
     val stateBw = if (initialStateBw == null) null.asInstanceOf[S] else initialStateBw()
     val lengths = if (sequenceLengths == null) null else ops.Basic.constant(sequenceLengths)
-    val (cellInstanceFw, cellInstanceBw) = {
-      val i = if (timeMajor) input else evO.fromOutputs(input, evO.outputs(input).map(ops.rnn.RNN.transposeBatchTime))
-      (cellFw.createCell(i, mode), cellBw.createCell(i, mode))
-    }
+    val cellInstanceFw = cellFw.createCell(mode)
+    val cellInstanceBw = cellBw.createCell(mode)
     LayerInstance(
       input,
       ops.rnn.RNN.bidirectionalDynamicRNN(

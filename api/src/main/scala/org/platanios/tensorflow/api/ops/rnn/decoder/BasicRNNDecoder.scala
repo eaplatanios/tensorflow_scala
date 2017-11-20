@@ -22,7 +22,7 @@ import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output, TensorArray}
 import org.platanios.tensorflow.api.ops.control_flow.{ControlFlow, WhileLoopVariable}
 import org.platanios.tensorflow.api.ops.rnn.RNN
-import org.platanios.tensorflow.api.ops.rnn.cell.RNNCell
+import org.platanios.tensorflow.api.ops.rnn.cell.{RNNCell, Tuple}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.{DataType, INT32}
 
@@ -73,7 +73,7 @@ class BasicRNNDecoder[O, OS, S, SS](
     val inputs = evO.outputs(input)
     val states = evS.outputs(state)
     Op.createWithNameScope(s"$name/Step", Set(time.op) ++ inputs.map(_.op).toSet ++ states.map(_.op).toSet) {
-      val nextTuple = cell(RNNCell.Tuple(input, state))
+      val nextTuple = cell(Tuple(input, state))
       val sample = helper.sample(time, nextTuple.output, nextTuple.state)
       val (finished, nextInputs, nextState) = helper.next(time, nextTuple.output, nextTuple.state, sample)
       ((nextTuple.output, sample), nextState, nextInputs, finished)

@@ -17,11 +17,9 @@ package org.platanios.tensorflow.examples
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.learn.layers.rnn.RNN
-import org.platanios.tensorflow.api.learn.layers.rnn.cell.{BasicLSTMCell, RNNCell}
-
+import org.platanios.tensorflow.api.learn.layers.rnn.cell.{BasicLSTMCell, LSTMTuple}
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
-
 import java.nio.file.Paths
 
 import org.platanios.tensorflow.data.text.PTBLoader
@@ -42,12 +40,12 @@ object RNNTutorialUsingPTB {
   val numLayers             : Int      = 1
   val dropoutKeepProbability: Float    = 0.5f
 
-  object RNNOutputLayer extends tf.learn.Layer[RNNCell.LSTMTuple, Output]("RNNOutputLayer") {
+  object RNNOutputLayer extends tf.learn.Layer[LSTMTuple, Output]("RNNOutputLayer") {
     override val layerType: String = "RNNOutputLayer"
 
     override def forward(
-        input: RNNCell.LSTMTuple, mode: tf.learn.Mode
-    ): tf.learn.LayerInstance[RNNCell.LSTMTuple, Output] = {
+        input: LSTMTuple, mode: tf.learn.Mode
+    ): tf.learn.LayerInstance[LSTMTuple, Output] = {
       val weights = variable("OutputWeights", dataType, Shape(numHidden, vocabularySize))
       val bias = variable("OutputBias", dataType, Shape(vocabularySize))
       val output = tf.linear(tf.reshape(input.output, Shape(-1, numHidden)), weights.value, bias.value)
@@ -62,7 +60,7 @@ object RNNTutorialUsingPTB {
     val trainInput = tf.learn.Input(INT32, Shape(batchSize, numSteps))
     // Slightly better results can be obtained with forget gate biases initialized to 1 but the hyper-parameters of the
     // model would need to be different than those reported in the paper.
-    val rnnCell = BasicLSTMCell(numHidden, forgetBias = 0.0f)
+    val rnnCell = BasicLSTMCell(numHidden, FLOAT32, Shape(-1, numHidden), forgetBias = 0.0f)
     // TODO: Add dropout wrapper.
     // TODO: Add multi-RNN cell.
     val rnn = RNN(rnnCell, timeMajor = false)
@@ -73,7 +71,7 @@ object RNNTutorialUsingPTB {
         tf.learn.Sum() >>
         tf.learn.ScalarSummary("Loss")
     val optimizer = tf.train.GradientDescent(1.0)
-    tf.learn.Model(input, layer, trainInput, loss, optimizer)
+    tf.learn.Model(input, layer, trainInput, loss, optimizer, tf.learn.ClipGradientsByGlobalNorm(5.0f))
   }
 
   def main(args: Array[String]): Unit = {

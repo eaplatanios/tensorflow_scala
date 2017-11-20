@@ -15,60 +15,20 @@
 
 package org.platanios.tensorflow.api.learn.layers.rnn.cell
 
-import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.learn.Mode
 import org.platanios.tensorflow.api.learn.layers.{Layer, LayerInstance}
-import org.platanios.tensorflow.api.learn.layers.rnn.cell.RNNCell.Tuple
-import org.platanios.tensorflow.api.ops
-import org.platanios.tensorflow.api.ops.Output
-import org.platanios.tensorflow.api.ops.variables.Variable
 
+/**
+  * @author Emmanouil Antonios Platanios
+  */
 abstract class RNNCell[O, OS, S, SS](override protected val name: String)
-    extends Layer[RNNCell.Tuple[O, S], RNNCell.Tuple[O, S]](name) {
-  def createCell(input: O, mode: Mode): RNNCell.CellInstance[O, OS, S, SS]
+    extends Layer[Tuple[O, S], Tuple[O, S]](name) {
+  def createCell(mode: Mode): CellInstance[O, OS, S, SS]
 
   override final def forward(input: Tuple[O, S], mode: Mode): LayerInstance[Tuple[O, S], Tuple[O, S]] = {
-    val cellInstance = createCell(input.output, mode)
+    val cellInstance = createCell(mode)
     val output = cellInstance.cell.forward(input)
     LayerInstance(input, output, cellInstance.trainableVariables, cellInstance.nonTrainableVariables)
-  }
-}
-
-object RNNCell {
-  case class CellInstance[O, OS, S, SS](
-      cell: ops.rnn.cell.RNNCell[O, OS, S, SS],
-      trainableVariables: Set[Variable] = Set.empty,
-      nonTrainableVariables: Set[Variable] = Set.empty)
-
-  type BasicCellInstance = CellInstance[Output, Shape, Output, Shape]
-
-  def BasicCellInstance(
-      cell: ops.rnn.cell.RNNCell.BasicCell,
-      trainableVariables: Set[Variable] = Set.empty,
-      nonTrainableVariables: Set[Variable] = Set.empty
-  ): BasicCellInstance = {
-    CellInstance(cell, trainableVariables, nonTrainableVariables)
-  }
-
-  type BasicCell = RNNCell[Output, Shape, Output, Shape]
-
-  type Tuple[O, S] = ops.rnn.cell.RNNCell.Tuple[O, S]
-  type BasicTuple = Tuple[Output, Output]
-
-  val Tuple: ops.rnn.cell.RNNCell.Tuple.type = ops.rnn.cell.RNNCell.Tuple
-
-  type LSTMCell = RNNCell[Output, Shape, (Output, Output), (Shape, Shape)]
-  type LSTMCellInstance = CellInstance[Output, Shape, (Output, Output), (Shape, Shape)]
-  type LSTMTuple = ops.rnn.cell.RNNCell.LSTMTuple
-
-  def LSTMTuple(output: Output, state: (Output, Output)): LSTMTuple = ops.rnn.cell.RNNCell.LSTMTuple(output, state)
-
-  def LSTMCellInstance(
-      cell: ops.rnn.cell.RNNCell.LSTMCell,
-      trainableVariables: Set[Variable] = Set.empty,
-      nonTrainableVariables: Set[Variable] = Set.empty
-  ): LSTMCellInstance = {
-    CellInstance(cell, trainableVariables, nonTrainableVariables)
   }
 }
 

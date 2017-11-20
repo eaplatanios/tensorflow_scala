@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.learn.layers.rnn
 
 import org.platanios.tensorflow.api.learn.Mode
 import org.platanios.tensorflow.api.learn.layers.{Layer, LayerInstance}
-import org.platanios.tensorflow.api.learn.layers.rnn.cell.RNNCell
+import org.platanios.tensorflow.api.learn.layers.rnn.cell.{RNNCell, Tuple}
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.tensors.Tensor
 
@@ -52,18 +52,13 @@ class RNN[O, OS, S, SS] private[rnn] (
 )(implicit
     evO: ops.control_flow.WhileLoopVariable.Aux[O, OS],
     evS: ops.control_flow.WhileLoopVariable.Aux[S, SS]
-) extends Layer[O, RNNCell.Tuple[O, S]](name) {
+) extends Layer[O, Tuple[O, S]](name) {
   override val layerType: String = "RNN"
 
-  override def forward(input: O, mode: Mode): LayerInstance[O, RNNCell.Tuple[O, S]] = {
+  override def forward(input: O, mode: Mode): LayerInstance[O, Tuple[O, S]] = {
     val state = if (initialState == null) null.asInstanceOf[S] else initialState()
     val lengths = if (sequenceLengths == null) null else ops.Basic.constant(sequenceLengths)
-    val cellInstance = {
-      if (timeMajor)
-        cell.createCell(input, mode)
-      else
-        cell.createCell(evO.fromOutputs(input, evO.outputs(input).map(ops.rnn.RNN.transposeBatchTime)), mode)
-    }
+    val cellInstance = cell.createCell(mode)
     LayerInstance(
       input,
       ops.rnn.RNN.dynamicRNN(

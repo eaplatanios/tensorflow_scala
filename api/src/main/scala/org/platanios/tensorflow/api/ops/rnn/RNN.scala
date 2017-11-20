@@ -19,7 +19,7 @@ import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.control_flow.{ControlFlow, WhileLoopVariable}
-import org.platanios.tensorflow.api.ops.rnn.cell.RNNCell
+import org.platanios.tensorflow.api.ops.rnn.cell.{RNNCell, Tuple}
 import org.platanios.tensorflow.api.ops.variables.VariableScope
 import org.platanios.tensorflow.api.ops.{Basic, Checks, Math, Op, OpSpecification, Output, TensorArray}
 import org.platanios.tensorflow.api.tensors.Tensor
@@ -63,7 +63,7 @@ private[rnn] trait RNN {
   )(implicit
       evO: WhileLoopVariable.Aux[O, OS],
       evS: WhileLoopVariable.Aux[S, SS]
-  ): RNNCell.Tuple[O, S] = {
+  ): Tuple[O, S] = {
     Op.createWithNameScope(name) {
       // By default, `timeMajor` is false and inputs are shaped batch-major: [batch, time, depth]
       // For internal calculations, we transpose to: [time, batch, depth]
@@ -118,7 +118,7 @@ private[rnn] trait RNN {
         val finalTupleOutputs = evO.outputs(finalTuple.output)
         if (!timeMajor) {
           // [T, B, D] => [B, T, D]
-          finalTuple = RNNCell.Tuple(
+          finalTuple = Tuple(
             evO.fromOutputs(input, finalTupleOutputs.map(RNN.transposeBatchTime)), finalTuple.state)
         }
         finalTuple
@@ -162,7 +162,7 @@ private[rnn] trait RNN {
   )(implicit
       evO: WhileLoopVariable.Aux[O, OS],
       evS: WhileLoopVariable.Aux[S, SS]
-  ): (RNNCell.Tuple[O, S], RNNCell.Tuple[O, S]) = {
+  ): (Tuple[O, S], Tuple[O, S]) = {
     Op.createWithNameScope(name) {
       VariableScope.createWithVariableScope(name) {
         // Forward direction
@@ -190,7 +190,7 @@ private[rnn] trait RNN {
             swapMemory, sequenceLengths)(evO, evS)
         }
 
-        (forwardTuple, RNNCell.Tuple(reverse(backwardTuple.output), backwardTuple.state))
+        (forwardTuple, Tuple(reverse(backwardTuple.output), backwardTuple.state))
       }
     }
   }
@@ -219,7 +219,7 @@ object RNN extends RNN {
   )(implicit
       evO: WhileLoopVariable.Aux[O, OS],
       evS: WhileLoopVariable.Aux[S, SS]
-  ): RNNCell.Tuple[O, S] = {
+  ): Tuple[O, S] = {
     // Construct an initial output.
     val inputs = evO.outputs(input)
     val inputShape = Basic.shape(inputs.head)
@@ -250,7 +250,7 @@ object RNN extends RNN {
     val outputTensorArrays = zeroOutputs.indices.map(i => {
       TensorArray.create(timeSteps, inferredDataType, name = s"Output_$i")
     })
-    val inputTensorArrays =  inputs.zipWithIndex.map({
+    val inputTensorArrays = inputs.zipWithIndex.map({
       case (in, index) => TensorArray.create(timeSteps, in.dataType, name = s"Input_$index").unstack(in)
     })
 
@@ -264,7 +264,7 @@ object RNN extends RNN {
       // Restore some shape information.
       inputs.zip(inputsGotShape).foreach(i => i._1.setShape(i._2(1 ::)))
       val callCell: () => (Seq[Output], Seq[Output]) = () => {
-        val newTuple = cell(RNNCell.Tuple(evO.fromOutputs(input, inputs), evS.fromOutputs(initialState, states)))
+        val newTuple = cell(Tuple(evO.fromOutputs(input, inputs), evS.fromOutputs(initialState, states)))
         (evO.outputs(newTuple.output), evS.outputs(newTuple.state))
       }
       val (nextOutputs, nextStates) = {
@@ -295,7 +295,7 @@ object RNN extends RNN {
     finalOutputs
         .zip(evO.shapes(cell.outputShape))
         .foreach(o => o._1.setShape(Shape(constantTimeSteps, constantBatchSize) ++ o._2))
-    RNNCell.Tuple(evO.fromOutputs(input, finalOutputs), evS.fromOutputs(initialState, finalStates))
+    Tuple(evO.fromOutputs(input, finalOutputs), evS.fromOutputs(initialState, finalStates))
   }
 
   /** Calculates one step of a dynamic RNN mini-batch.

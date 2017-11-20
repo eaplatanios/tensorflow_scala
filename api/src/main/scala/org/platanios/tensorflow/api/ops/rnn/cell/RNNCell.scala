@@ -15,7 +15,6 @@
 
 package org.platanios.tensorflow.api.ops.rnn.cell
 
-import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops
@@ -29,26 +28,11 @@ import org.platanios.tensorflow.api.types.INT32
 trait RNNCell[O, OS, S, SS] {
   def outputShape: OS
   def stateShape: SS
-  def forward(input: RNNCell.Tuple[O, S]): RNNCell.Tuple[O, S]
-  def apply(input: RNNCell.Tuple[O, S]): RNNCell.Tuple[O, S] = forward(input)
+  def forward(input: Tuple[O, S]): Tuple[O, S]
+  def apply(input: Tuple[O, S]): Tuple[O, S] = forward(input)
 }
 
 object RNNCell {
-  type BasicCell = RNNCell[Output, Shape, Output, Shape]
-
-  class Tuple[O, S](val output: O, val state: S)
-
-  type BasicTuple = Tuple[Output, Output]
-
-  object Tuple {
-    def apply[O, S](output: O, state: S): Tuple[O, S] = new Tuple(output, state)
-  }
-
-  type LSTMCell = RNNCell[Output, Shape, (Output, Output), (Shape, Shape)]
-  type LSTMTuple = Tuple[Output, (Output, Output)]
-
-  def LSTMTuple(output: Output, state: (Output, Output)): LSTMTuple = Tuple(output, state)
-
   /** $OpDocRNNCellBasicRNNCell
     *
     * @group RNNCellOps
@@ -74,7 +58,7 @@ object RNNCell {
         throw InvalidArgumentException(s"Last axis of input shape (${output.shape}) must be known.")
       val linear = NN.addBias(Math.matmul(Basic.concatenate(Seq(output, state), axis = 1), kernel), bias)
       val newOutput = activation(linear)
-      RNNCell.Tuple(newOutput, newOutput)
+      Tuple(newOutput, newOutput)
     }
   }
 
@@ -109,7 +93,7 @@ object RNNCell {
       val rState = Math.multiply(r, state)
       val c = NN.addBias(Math.matmul(Basic.concatenate(Seq(output, rState), axis = 1), candidateKernel), candidateBias)
       val newH = Math.add(Math.multiply(u, state), Math.multiply(1 - u, c))
-      RNNCell.Tuple(newH, newH)
+      Tuple(newH, newH)
     }
   }
 
