@@ -169,7 +169,7 @@ private[ops] object Gradients {
                   // We now have all the exits and so we process them.
                   var hasRealGradient = false
                   state.deferredExits.foreach(exit => {
-                    if (accumulatedGradients.get(op).exists(_.exists(_.exists(_ != null)))) {
+                    if (accumulatedGradients.get(exit.op).exists(_.exists(_.exists(_ != null)))) {
                       hasRealGradient = true
                       readyOps.enqueue(exit.op)
                     } else {

@@ -27,6 +27,8 @@ import org.platanios.tensorflow.api.types.{DataType, INT32}
 
 import scala.language.postfixOps
 
+// TODO: [RNN] Replace "RNNCell.Supported" with the "WhileLoopVariable" type trait.
+
 /** Contains functions for constructing ops related to recurrent neural networks (RNNs).
   *
   * @author Emmanouil Antonios Platanios
