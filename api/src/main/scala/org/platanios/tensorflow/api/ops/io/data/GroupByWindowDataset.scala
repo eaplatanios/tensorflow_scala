@@ -42,15 +42,17 @@ case class GroupByWindowDataset[T, O, D, S](
 ) extends Dataset[T, O, D, S](name)(inputDataset.evOToT, inputDataset.evData, inputDataset.evFunctionInput) {
   private[this] lazy val instantiatedKeyFunction = {
     Function(s"$name/KeyFunction", keyFn).instantiate(
-      inputDataset.flattenedOutputDataTypes, inputDataset.flattenedOutputShapes)
+      inputDataset.flattenedOutputDataTypes, inputDataset.flattenedOutputShapes, appendHashToName = true)
   }
 
   private[this] lazy val instantiatedReduceFunction = {
-    Function(s"$name/ReduceFunction", reduceFn).instantiate(Seq(INT64, VARIANT), Seq(Shape.scalar(), Shape.scalar()))
+    Function(s"$name/ReduceFunction", reduceFn).instantiate(
+      Seq(INT64, VARIANT), Seq(Shape.scalar(), Shape.scalar()), appendHashToName = true)
   }
 
   private[this] lazy val instantiatedWindowSizeFunction = {
-    Function(s"$name/WindowSizeFunction", windowSizeFn).instantiate(Seq(INT64), Seq(Shape.scalar()))
+    Function(s"$name/WindowSizeFunction", windowSizeFn).instantiate(
+      Seq(INT64), Seq(Shape.scalar()), appendHashToName = true)
   }
 
   override def createHandle(): Output = {

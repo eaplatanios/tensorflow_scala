@@ -38,7 +38,7 @@ case class FilterDataset[T, O, D, S](
 ) extends Dataset[T, O, D, S](name)(inputDataset.evOToT, inputDataset.evData, inputDataset.evFunctionInput) {
   private[this] lazy val instantiatedPredicateFunction = {
     Function(s"$name/Predicate", predicateFn).instantiate(
-      inputDataset.flattenedOutputDataTypes, inputDataset.flattenedOutputShapes)
+      inputDataset.flattenedOutputDataTypes, inputDataset.flattenedOutputShapes, appendHashToName = true)
   }
 
   override def createHandle(): Output = {

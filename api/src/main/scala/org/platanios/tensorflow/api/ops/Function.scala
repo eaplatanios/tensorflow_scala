@@ -30,8 +30,7 @@ import shapeless.ops.hlist.Tupler
 import scala.collection.mutable
 import scala.util.DynamicVariable
 
-// TODO: [FUNCTIONS] !!! Unique name using the hashing functionality.
-// TODO: [FUNCTIONS] !!! Add support for function descriptions.
+// TODO: [FUNCTIONS] Add support for function descriptions.
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -42,19 +41,22 @@ case class Function[I, O](name: String, function: (I) => O)(implicit
 ) {
   private[this] val instantiatedFunctions = mutable.HashMap.empty[String, InstantiatedFunction[I, O]]
 
-  def apply(arg: I): O = {
+  def apply(arg: I, appendHashToName: Boolean = false): O = {
     val dataTypes = evInput.dataTypes(arg)
     val key = dataTypes.map(_.toString).mkString(":")
     instantiatedFunctions.getOrElseUpdate(key, {
-      InstantiatedFunction(s"${name}_$key", function, dataTypes)(evInput, evOutput)
+      InstantiatedFunction(s"${name}_$key", function, dataTypes, appendHashToName = appendHashToName)(evInput, evOutput)
     })(arg)
   }
 
   private[ops] def instantiate(
-      inputDataTypes: Seq[DataType], inputShapes: Seq[Shape] = null): InstantiatedFunction[I, O] = {
-    val key = (inputDataTypes.map(_.toString) ++ Option(inputShapes).map(_.map(_.toString))).mkString(":")
+      inputDataTypes: Seq[DataType], inputShapes: Seq[Shape] = null, appendHashToName: Boolean = false
+  ): InstantiatedFunction[I, O] = {
+    val key = (inputDataTypes.map(_.toString) ++ Option(inputShapes).getOrElse(Seq.empty).map(_.toString)).mkString(":")
     instantiatedFunctions.getOrElseUpdate(key, {
-      InstantiatedFunction(s"${name}_$key", function, inputDataTypes, Option(inputShapes))(evInput, evOutput)
+      InstantiatedFunction(
+        s"${name}_$key", function, inputDataTypes, Option(inputShapes), appendHashToName = appendHashToName
+      )(evInput, evOutput)
     })
   }
 }
@@ -186,8 +188,10 @@ private[api] case class InstantiatedFunction[I, O] private[ops] (
     name: String, function: (I) => O,
     inputDataTypes: Seq[DataType],
     inputShapes: Option[Seq[Shape]] = None,
+    appendHashToName: Boolean = false,
     private val _inputNames: Seq[String] = null,
-    private val _outputNames: Seq[String] = null)(implicit
+    private val _outputNames: Seq[String] = null
+)(implicit
     evInput: Function.ArgType[I],
     evOutput: Function.ArgType[O]
 ) extends Closeable {
@@ -205,8 +209,8 @@ private[api] case class InstantiatedFunction[I, O] private[ops] (
       val inputNames = {
         if (_inputNames != null) {
           require(_inputNames.length == inputDataTypes.length,
-                  s"The number of 'inputNames' provided (${_inputNames.length}) " +
-                      s"does not match the number of inputs (${inputDataTypes.length}).")
+            s"The number of 'inputNames' provided (${_inputNames.length}) " +
+                s"does not match the number of inputs (${inputDataTypes.length}).")
           _inputNames
         } else {
           inputDataTypes.indices.map(i => s"input_$i")
@@ -238,8 +242,8 @@ private[api] case class InstantiatedFunction[I, O] private[ops] (
       val outputNames = {
         if (_outputNames != null) {
           require(_outputNames.length == evOutput.numOutputs,
-                  s"The number of 'outputNames' provided (${_outputNames.length}) " +
-                      s"does not match the number of outputs (${evOutput.numOutputs}).")
+            s"The number of 'outputNames' provided (${_outputNames.length}) " +
+                s"does not match the number of outputs (${evOutput.numOutputs}).")
           _outputNames
         } else {
           flattenedOutputs.indices.map(i => s"output_$i")
@@ -253,43 +257,47 @@ private[api] case class InstantiatedFunction[I, O] private[ops] (
     inputs.appendAll(functionGraph.extraArgs)
 
     // Create the native function
-    // TODO: [FUNCTIONS] !!! Use the name hashing functionality.
     val nativeHandle = NativeFunction.graphToFunction(
-      functionGraph.nativeHandle, name, appendHashToFnName = false, null,
+      functionGraph.nativeHandle, name, appendHashToFnName = appendHashToName, null,
       inputs.map(_.op.nativeHandle).toArray, inputs.map(_.index).toArray,
       flattenedOutputs.map(_.op.nativeHandle).toArray, flattenedOutputs.map(_.index).toArray,
       outputNames.toArray)
-    (inputNames, outputNames, outputs, flattenedOutputs, subFunctions, extraInputs, nativeHandle)
+    val functionDef = FunctionDef.parseFrom(NativeHandleLock.synchronized(NativeFunction.toFunctionDef(nativeHandle)))
+    val functionName = functionDef.getSignature.getName
+    (functionName, inputNames, outputNames, outputs, flattenedOutputs, subFunctions, extraInputs, nativeHandle)
   }
 
+  /** Name of this function with an optional hash string appended to it. */
+  val hashedName: String = initializationOutput._1
+
   /** Names of the function inputs. */
-  val inputNames: Seq[String] = initializationOutput._1
+  val inputNames: Seq[String] = initializationOutput._2
 
   /** Names of the function outputs. */
-  val outputNames: Seq[String] = initializationOutput._2
+  val outputNames: Seq[String] = initializationOutput._3
 
   /** Data types of the function outputs. */
-  val outputDataTypes: Seq[DataType] = initializationOutput._4.map(_.dataType)
+  val outputDataTypes: Seq[DataType] = initializationOutput._5.map(_.dataType)
 
   /** Shapes of the function outputs. */
-  val outputShapes: Seq[Shape] = initializationOutput._4.map(_.shape)
+  val outputShapes: Seq[Shape] = initializationOutput._5.map(_.shape)
 
   /** Dummy outputs used to store the structure information of the output type. */
-  private[ops] val dummyOutputs: O = initializationOutput._3
+  private[ops] val dummyOutputs: O = initializationOutput._4
 
   /** Functions defined in the graph used while creating this function. These functions will be added to all graphs
     * where this function is added to. */
-  private[this] val subFunctions = initializationOutput._5
+  private[this] val subFunctions = initializationOutput._6
 
   /** Extra inputs to feed to the function as arguments when calling it, which correspond to the values of op outputs
     * that are used in the function, btu which belong to a different graph, than the function graph. */
-  private[ops] val extraInputs = initializationOutput._6
+  private[ops] val extraInputs = initializationOutput._7
 
   /** Lock for the native handle. */
   private[this] object NativeHandleLock
 
   /** Handle for the underlying native function object. */
-  private[this] var _nativeHandle = initializationOutput._7
+  private[this] var _nativeHandle = initializationOutput._8
 
   private[api] def nativeHandle: Long = _nativeHandle
 

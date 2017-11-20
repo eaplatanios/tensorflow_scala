@@ -1283,7 +1283,7 @@ object Op {
             val attrValue = AttrValue.newBuilder()
             attrValue.setFunc(
               NameAttrList.newBuilder()
-                  .setName(value.name)
+                  .setName(value.hashedName)
                   .build())
             NativeOp.setAttrProto(nativeHandle, attribute._1, attrValue.build().toByteArray)
           case _ =>
