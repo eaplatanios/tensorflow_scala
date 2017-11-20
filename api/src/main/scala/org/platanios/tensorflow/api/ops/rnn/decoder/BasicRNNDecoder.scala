@@ -40,7 +40,7 @@ class BasicRNNDecoder[O, OS, S, SS](
 )(implicit
     evO: WhileLoopVariable.Aux[O, OS],
     evS: WhileLoopVariable.Aux[S, SS]
-) extends RNNDecoder[O, OS, S, SS, (O, O), (OS, OS), S, SS](
+) extends RNNDecoder[O, OS, S, SS, BasicRNNDecoder.Output[O, OS], (OS, OS), S, SS](
   cell,
   initialCellState,
   name
@@ -48,10 +48,10 @@ class BasicRNNDecoder[O, OS, S, SS](
   /** Scalar `INT32` tensor representing the batch size of the input values. */
   override val batchSize: Output = helper.batchSize
 
-  override def zeroOutput(dataType: DataType): (O, O) = {
+  override def zeroOutput(dataType: DataType): BasicRNNDecoder.Output[O, OS] = {
     val zeroOutput = evO.zero(batchSize, dataType, cell.outputShape, "ZeroOutput")
     val zeroSample = helper.zeroSample(batchSize, "ZeroSample")
-    (zeroOutput, zeroSample)
+    BasicRNNDecoder.Output(zeroOutput, zeroSample)
   }
 
   /** This method is called before any decoding iterations. It computes the initial input values and the initial state.
@@ -69,14 +69,14 @@ class BasicRNNDecoder[O, OS, S, SS](
     * @return Tuple containing: (i) a scalar `BOOLEAN` tensor specifying whether sampling has finished, and
     *         (ii) the next RNN cell tuple.
     */
-  override def next(time: Output, input: O, state: S): ((O, O), S, O, Output) = {
+  override def next(time: Output, input: O, state: S): (BasicRNNDecoder.Output[O, OS], S, O, Output) = {
     val inputs = evO.outputs(input)
     val states = evS.outputs(state)
     Op.createWithNameScope(s"$name/Step", Set(time.op) ++ inputs.map(_.op).toSet ++ states.map(_.op).toSet) {
       val nextTuple = cell(Tuple(input, state))
       val sample = helper.sample(time, nextTuple.output, nextTuple.state)
       val (finished, nextInputs, nextState) = helper.next(time, nextTuple.output, nextTuple.state, sample)
-      ((nextTuple.output, sample), nextState, nextInputs, finished)
+      (BasicRNNDecoder.Output(nextTuple.output, sample), nextState, nextInputs, finished)
     }
   }
 }
@@ -94,7 +94,43 @@ object BasicRNNDecoder {
     new BasicRNNDecoder[O, OS, S, SS](cell, initialCellState, helper, name)
   }
 
-  case class Output[T](rnnOutput: T, sample: T)(implicit whileLoopEvT: WhileLoopVariable.Aux[T, _])
+  case class Output[O, OS](rnnOutput: O, sample: O)(implicit whileLoopEvO: WhileLoopVariable.Aux[O, OS])
+
+  object Output {
+    implicit def outputWhileLoopVariable[O, OS](implicit
+        whileLoopEvO: WhileLoopVariable.Aux[O, OS]
+    ): WhileLoopVariable.Aux[Output[O, OS], (OS, OS)] = new WhileLoopVariable[Output[O, OS]] {
+      override type ShapeType = (OS, OS)
+
+      override def zero(batchSize: ops.Output, dataType: DataType, shape: (OS, OS), name: String): Output[O, OS] = {
+        Output(whileLoopEvO.zero(batchSize, dataType, shape._1), whileLoopEvO.zero(batchSize, dataType, shape._2))
+      }
+
+      override def size(output: Output[O, OS]): Int = {
+        whileLoopEvO.size(output.rnnOutput) + whileLoopEvO.size(output.sample)
+      }
+
+      override def outputs(output: Output[O, OS]): Seq[ops.Output] = {
+        whileLoopEvO.outputs(output.rnnOutput) ++ whileLoopEvO.outputs(output.sample)
+      }
+
+      override def shapes(shape: (OS, OS)): Seq[Shape] = {
+        whileLoopEvO.shapes(shape._1) ++ whileLoopEvO.shapes(shape._2)
+      }
+
+      override def segmentOutputs(output: Output[O, OS], values: Seq[ops.Output]): (Output[O, OS], Seq[ops.Output]) = {
+        val (rnnOutput, sampleAndTail) = whileLoopEvO.segmentOutputs(output.rnnOutput, values)
+        val (sample, tail) = whileLoopEvO.segmentOutputs(output.sample, sampleAndTail)
+        (Output(rnnOutput, sample), tail)
+      }
+
+      override def segmentShapes(output: Output[O, OS], values: Seq[Shape]): ((OS, OS), Seq[Shape]) = {
+        val (rnnOutput, sampleAndTail) = whileLoopEvO.segmentShapes(output.rnnOutput, values)
+        val (sample, tail) = whileLoopEvO.segmentShapes(output.sample, sampleAndTail)
+        ((rnnOutput, sample), tail)
+      }
+    }
+  }
 
   /** Interface for implementing sampling helpers in sequence-to-sequence decoders. */
   trait Helper[O, S] {
