@@ -131,14 +131,12 @@ object MapDataset {
       * @param  function         Mapping function.
       * @param  numParallelCalls Number elements to process in parallel. If not specified, elements will be processed
       *                          sequentially.
-      * @param  bufferSize       Maximum number of processed elements that will be buffered.
       * @param  name             Name for the created dataset.
       * @return Created dataset.
       */
     def map[RT, RO, RD, RS](
         function: (O) => RO,
         numParallelCalls: Int = 1,
-        bufferSize: Long = 1,
         name: String = "Map"
     )(implicit
         evROToRT: OutputToTensor.Aux[RO, RT],
@@ -146,16 +144,10 @@ object MapDataset {
         evFunctionOutput: Function.ArgType[RO]
     ): Dataset[RT, RO, RD, RS] = {
       Op.createWithNameScope(dataset.name) {
-        val mappedDataset: Dataset[RT, RO, RD, RS] = {
-          if (numParallelCalls > 1)
-            ParallelMapDataset(dataset, function, numParallelCalls, name)
-          else
-            MapDataset(dataset, function, name)
-        }
-        if (bufferSize > 1)
-          mappedDataset.prefetch(bufferSize)
+        if (numParallelCalls > 1)
+          ParallelMapDataset(dataset, function, numParallelCalls, name)
         else
-          mappedDataset
+          MapDataset(dataset, function, name)
       }
     }
   }

@@ -78,7 +78,7 @@ object Function {
     }
 
     implicit val outputIndexedSlicesArgType: ArgType[OutputIndexedSlices] = new ArgType[OutputIndexedSlices] {
-      override def numOutputs: Int = 1
+      override def numOutputs: Int = 3
       override def outputs(arg: OutputIndexedSlices): Seq[Output] = Seq(arg.indices, arg.values, arg.denseShape)
 
       override def dataTypes(arg: OutputIndexedSlices): Seq[DataType] = {
@@ -91,7 +91,7 @@ object Function {
     }
 
     implicit val sparseOutputArgType: ArgType[SparseOutput] = new ArgType[SparseOutput] {
-      override def numOutputs: Int = 1
+      override def numOutputs: Int = 3
       override def outputs(arg: SparseOutput): Seq[Output] = Seq(arg.indices, arg.values, arg.denseShape)
 
       override def dataTypes(arg: SparseOutput): Seq[DataType] = {

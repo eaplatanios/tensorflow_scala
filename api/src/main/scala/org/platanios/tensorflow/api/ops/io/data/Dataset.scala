@@ -135,15 +135,15 @@ abstract class Dataset[T, O, D, S](
     * `transform()` enables chaining of custom dataset transformations, which are represented as functions that take one
     * dataset argument and return a transformed dataset.
     *
-    * @param  transform Dataset ransformation function.
+    * @param  transformFn Dataset transformation function.
     * @return Transformed dataset.
     */
-  def transform[TT, TO, TD, TS](transform: (Dataset[T, O, D, S]) => Dataset[TT, TO, TD, TS])(implicit
+  def transform[TT, TO, TD, TS](transformFn: Dataset[T, O, D, S] => Dataset[TT, TO, TD, TS])(implicit
       evTOToTT: OutputToTensor.Aux[TO, TT],
       evT: Data.Aux[TT, TO, TD, TS],
       evFunctionInputT: Function.ArgType[TO]
   ): Dataset[TT, TO, TD, TS] = {
-    transform(this)
+    transformFn(this)
   }
 
   override def toString: String = {
