@@ -48,11 +48,7 @@ case class GradientDescent(
   private[this] def getLearningRate(variable: Variable, iteration: Option[Variable]): Output = {
     if (learningRateTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    var lr = Math.cast(learningRateTensor, variable.dataType)
-    lr = decay(lr, iteration)
-    if (learningRateSummaryTag != null)
-      Summary.scalar(learningRateSummaryTag, lr)
-    lr
+    Math.cast(learningRateTensor, variable.dataType)
   }
 
   private[this] def getMomentum(variable: Variable): Output = {
@@ -66,8 +62,10 @@ case class GradientDescent(
       variables.foreach(v => zerosSlot("momentum", v, "Momentum"))
   }
 
-  override def prepare(): Unit = {
-    learningRateTensor = Basic.constant(learningRate, name = "LearningRate")
+  override def prepare(iteration: Option[Variable]): Unit = {
+    learningRateTensor = decay(Basic.constant(learningRate, name = "LearningRate"), iteration)
+    if (learningRateSummaryTag != null)
+      Summary.scalar(learningRateSummaryTag, learningRateTensor)
     if (momentum > 0.0f)
       momentumTensor = Basic.constant(momentum, name = "Momentum")
   }

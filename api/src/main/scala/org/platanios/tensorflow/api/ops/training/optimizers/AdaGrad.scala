@@ -53,11 +53,7 @@ case class AdaGrad(
   private[this] def getLearningRate(variable: Variable, iteration: Option[Variable]): Output = {
     if (learningRateTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    var lr = Math.cast(learningRateTensor, variable.dataType)
-    lr = decay(lr, iteration)
-    if (learningRateSummaryTag != null)
-      Summary.scalar(learningRateSummaryTag, lr)
-    lr
+    Math.cast(learningRateTensor, variable.dataType)
   }
 
   override protected def createSlots(variables: Seq[Variable]): Unit = {
@@ -67,7 +63,10 @@ case class AdaGrad(
     })
   }
 
-  override def prepare(): Unit = {
+  override def prepare(iteration: Option[Variable]): Unit = {
+    learningRateTensor = decay(Basic.constant(learningRate, name = "LearningRate"), iteration)
+    if (learningRateSummaryTag != null)
+      Summary.scalar(learningRateSummaryTag, learningRateTensor)
     learningRateTensor = Basic.constant(learningRate, name = "LearningRate")
   }
 

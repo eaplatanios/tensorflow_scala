@@ -79,11 +79,7 @@ case class Adam(
   private[this] def getLearningRate(variable: Variable, iteration: Option[Variable]): Output = {
     if (learningRateTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    var lr = Math.cast(learningRateTensor, variable.dataType)
-    lr = decay(lr, iteration)
-    if (learningRateSummaryTag != null)
-      Summary.scalar(learningRateSummaryTag, lr)
-    lr
+    Math.cast(learningRateTensor, variable.dataType)
   }
 
   private[this] def getBeta1(variable: Variable): Output = {
@@ -122,8 +118,10 @@ case class Adam(
     })
   }
 
-  override def prepare(): Unit = {
-    learningRateTensor = Basic.constant(learningRate, name = "LearningRate")
+  override def prepare(iteration: Option[Variable]): Unit = {
+    learningRateTensor = decay(Basic.constant(learningRate, name = "LearningRate"), iteration)
+    if (learningRateSummaryTag != null)
+      Summary.scalar(learningRateSummaryTag, learningRateTensor)
     beta1Tensor = Basic.constant(beta1, name = "Beta1")
     beta2Tensor = Basic.constant(beta2, name = "Beta2")
     epsilonTensor = Basic.constant(epsilon, name = "Epsilon")

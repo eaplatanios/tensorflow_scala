@@ -159,7 +159,7 @@ trait Optimizer {
     }
 
     Op.createWithNameScope(name) {
-      prepare()
+      prepare(iteration)
 
       // Collect the update ops for all variables.
       val updateOps = mutable.Set.empty[Op]
@@ -214,7 +214,7 @@ trait Optimizer {
 
   /** Creates all necessary tensors before applying the gradients. This function is called from within an op creation
     * context that uses as its name scope the name that users have chosen for the application of gradients. */
-  protected def prepare(): Unit = {}
+  protected def prepare(iteration: Option[Variable]): Unit = {}
 
   /** Creates an op that finishes the gradients application. This function is called from within an op creation context
     * that uses as its name scope the name that users have chosen for the application of gradients.
