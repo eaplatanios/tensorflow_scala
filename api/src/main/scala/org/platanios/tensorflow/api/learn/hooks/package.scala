@@ -22,6 +22,8 @@ package object hooks {
   private[api] trait API
       extends HookTrigger.API {
     type Hook = hooks.Hook
+    type ModelDependentHook[I, TT, TO, TD, TS] = hooks.ModelDependentHook[I, TT, TO, TD, TS]
+    type LossLoggingHook = hooks.LossLoggingHook
     type CheckpointSaverHook = hooks.CheckpointSaverHook
     type StepRateHook = hooks.StepRateHook
     type StopEvaluationHook = hooks.StopEvaluationHook
@@ -31,6 +33,7 @@ package object hooks {
     type TensorLoggingHook = hooks.TensorLoggingHook
     type TensorNaNHook = hooks.TensorNaNHook
 
+    val LossLoggingHook    : hooks.LossLoggingHook.type     = hooks.LossLoggingHook
     val CheckpointSaverHook: hooks.CheckpointSaverHook.type = hooks.CheckpointSaverHook
     val StepRateHook       : hooks.StepRateHook.type        = hooks.StepRateHook
     val StopEvaluationHook : hooks.StopEvaluationHook.type  = hooks.StopEvaluationHook

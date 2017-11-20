@@ -38,9 +38,9 @@ class RBM(
     val optimizer: Optimizer,
     val name: String = "RBM"
 ) extends UnsupervisedTrainableModel[Tensor, Output, DataType, Shape, Output] {
-  type InferOps = Model.InferenceOps[Tensor, Output, DataType, Shape, Output]
-  type TrainOps = Model.UnsupervisedTrainingOps[Tensor, Output, DataType, Shape, Output]
-  type EvalOps = Model.EvaluationOps[Tensor, Output, DataType, Shape, Output]
+  type InferOps = Model.InferOps[Tensor, Output, DataType, Shape, Output]
+  type TrainOps = Model.UnsupervisedTrainOps[Tensor, Output, DataType, Shape, Output]
+  type EvalOps = Model.EvaluateOps[Tensor, Output, DataType, Shape, Output]
 
   val dataType: DataType = input.dataType
   val numInputs: Int = input.shape(1)
@@ -51,66 +51,61 @@ class RBM(
   private[this] val trainOpsCache: mutable.Map[Graph, TrainOps] = mutable.Map.empty
   private[this] val evalOpsCache: mutable.Map[Graph, EvalOps] = mutable.Map.empty
 
-  override def buildInferenceOps(graph: Graph = Op.currentGraph): InferOps = {
-    inferOpsCache.getOrElseUpdate(graph, {
-      Op.createWith(graph) {
-        val inputIterator = input()
-        val nextInput = nextInputCache.getOrElseUpdate(graph, inputIterator.next())
-        val (vb, hb, w) = variables(graph)
-        // Use the mean field approximation or contrastive divergence to compute the hidden values.
-        var hProb = RBM.conditionalHGivenV(nextInput, hb, w)
-        val output = {
-          if (meanField) {
-            hProb
-          } else {
-            var i = 0
-            var hSamples = List.empty[Output]
-            while (i < numSamples) {
-              val hSample = RBM.sampleBinary(hProb)
-              val vProb = RBM.conditionalVGivenH(hSample, vb, w)
-              val vSample = RBM.sampleBinary(vProb)
-              hProb = RBM.conditionalHGivenV(vSample, hb, w)
-              hSamples :+= hSample
-              i += 1
-            }
-            Math.mean(Basic.stack(hSamples, axis = 0), axes = 0)
+  override def buildInferOps(): InferOps = {
+    inferOpsCache.getOrElseUpdate(Op.currentGraph, {
+      val inputIterator = input()
+      val nextInput = nextInputCache.getOrElseUpdate(Op.currentGraph, inputIterator.next())
+      val (vb, hb, w) = variables()
+      // Use the mean field approximation or contrastive divergence to compute the hidden values.
+      var hProb = RBM.conditionalHGivenV(nextInput, hb, w)
+      val output = {
+        if (meanField) {
+          hProb
+        } else {
+          var i = 0
+          var hSamples = List.empty[Output]
+          while (i < numSamples) {
+            val hSample = RBM.sampleBinary(hProb)
+            val vProb = RBM.conditionalVGivenH(hSample, vb, w)
+            val vSample = RBM.sampleBinary(vProb)
+            hProb = RBM.conditionalHGivenV(vSample, hb, w)
+            hSamples :+= hSample
+            i += 1
           }
+          Math.mean(Basic.stack(hSamples, axis = 0), axes = 0)
         }
-        Model.InferenceOps(inputIterator, nextInput, output)
       }
+      Model.InferOps(inputIterator, nextInput, output, Set(vb, hb, w), Set.empty)
     })
   }
 
-  override def buildTrainingOps(graph: Graph = Op.currentGraph): TrainOps = {
-    trainOpsCache.getOrElseUpdate(graph, {
-      val inferOps = buildInferenceOps(graph)
-      Op.createWith(graph) {
-        val (vb, hb, w) = variables(graph)
-        val vSample = contrastiveDivergence(inferOps.input, vb, hb, w)
-        val vFreeEnergy = RBM.freeEnergy(inferOps.input, vb, hb, w)
-        val vSampleFreeEnergy = RBM.freeEnergy(vSample, vb, hb, w)
-        val loss = Math.mean(vFreeEnergy - vSampleFreeEnergy)
-        val step = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
-        val trainOp = optimizer.minimize(loss, iteration = Some(step))
-        Model.UnsupervisedTrainingOps(inferOps.inputIterator, inferOps.input, inferOps.output, loss, trainOp)
-      }
+  override def buildTrainOps(): TrainOps = {
+    trainOpsCache.getOrElseUpdate(Op.currentGraph, {
+      val inferOps = buildInferOps()
+      val (vb, hb, w) = variables()
+      val vSample = contrastiveDivergence(inferOps.input, vb, hb, w)
+      val vFreeEnergy = RBM.freeEnergy(inferOps.input, vb, hb, w)
+      val vSampleFreeEnergy = RBM.freeEnergy(vSample, vb, hb, w)
+      val loss = Math.mean(vFreeEnergy - vSampleFreeEnergy)
+      val step = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
+      val trainOp = optimizer.minimize(loss, iteration = Some(step))
+      Model.UnsupervisedTrainOps(
+        inferOps.inputIterator, inferOps.input, inferOps.output, loss, trainOp, Set(vb, hb, w), Set.empty)
     })
   }
 
-  override def buildEvaluationOps(
-      metrics: Seq[Metric[Output, Output]], graph: Graph = Op.currentGraph
-  ): EvalOps = {
-    evalOpsCache.getOrElseUpdate(graph, {
-      val inferOps = buildInferenceOps(graph)
-      Op.createWith(graph) {
-        val (mValues, mUpdates, mResets) = metrics.map(_.streaming(inferOps.output)).unzip3
-        Model.EvaluationOps(inferOps.inputIterator, inferOps.input, inferOps.output, mValues, mUpdates, mResets)
-      }
+  override def buildEvaluateOps(metrics: Seq[Metric[Output, Output]]): EvalOps = {
+    evalOpsCache.getOrElseUpdate(Op.currentGraph, {
+      val inferOps = buildInferOps()
+      val (mValues, mUpdates, mResets) = metrics.map(_.streaming(inferOps.output)).unzip3
+      Model.EvaluateOps(
+        inferOps.inputIterator, inferOps.input, inferOps.output, mValues, mUpdates, mResets,
+        inferOps.trainableVariables, inferOps.nonTrainableVariables)
     })
   }
 
-  private[this] def variables(graph: Graph = Op.currentGraph): (Variable, Variable, Variable) = {
-    variablesCache.getOrElseUpdate(graph, {
+  private[this] def variables(): (Variable, Variable, Variable) = {
+    variablesCache.getOrElseUpdate(Op.currentGraph, {
       val vb = Variable.getVariable(s"$name/VisibleBias", dataType, Shape(numInputs), ZerosInitializer)
       val hb = Variable.getVariable(s"$name/HiddenBias", dataType, Shape(numHidden), ZerosInitializer)
       val w = Variable.getVariable(

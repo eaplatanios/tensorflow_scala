@@ -32,7 +32,6 @@ import org.platanios.tensorflow.api.tensors.Tensor
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
 
-import scala.collection.immutable.TreeMap
 import scala.collection.mutable
 
 /** In-memory estimator which is used to train, use, and evaluate TensorFlow models, and uses an underlying TensorFlow
@@ -86,13 +85,34 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
       Counter.getOrCreate(Graph.Keys.GLOBAL_EPOCH, local = false)
       val globalStep = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
       Op.createWithNameScope("Model") {
-        val trainingOps = model.buildTrainingOps()
-        val inferenceOps = model.buildInferenceOps()
-        val evaluationOps = model.buildEvaluationOps(evaluationMetrics)
+        val trainOps = model.buildTrainOps()
+        val inferOps = model.buildInferOps()
+        val evaluateOps = model.buildEvaluateOps(evaluationMetrics)
         val evalStep = Counter.getOrCreate(Graph.Keys.EVAL_STEP, local = true)
         val evalStepUpdate = evalStep.assignAdd(1L)
-        val evalUpdateOps = ControlFlow.group(evaluationOps.metricUpdates.map(_.op).toSet + evalStepUpdate.op)
-        (globalStep, trainingOps, inferenceOps, evaluationOps, evalUpdateOps)
+        val evalUpdateOps = ControlFlow.group(evaluateOps.metricUpdates.map(_.op).toSet + evalStepUpdate.op)
+        val trainModelInstance = ModelInstance(
+          trainOps.inputIterator, trainOps.output, Some(trainOps.loss), Some(trainOps.trainOp),
+          trainOps.trainableVariables, trainOps.nonTrainableVariables)
+        trainHooks.foreach {
+          case hook: ModelDependentHook[I, TT, TO, TD, TS] => hook.setModelInstance(trainModelInstance)
+          case _ => ()
+        }
+        val inferModelInstance = ModelInstance(
+          inferOps.inputIterator, inferOps.output, None, None,
+          inferOps.trainableVariables, inferOps.nonTrainableVariables)
+        inferHooks.foreach {
+          case hook: ModelDependentHook[I, IT, IO, ID, IS] => hook.setModelInstance(inferModelInstance)
+          case _ => ()
+        }
+        val evaluateModelInstance = ModelInstance(
+          evaluateOps.inputIterator, evaluateOps.output, None, None,
+          evaluateOps.trainableVariables, evaluateOps.nonTrainableVariables)
+        evaluateHooks.foreach {
+          case hook: ModelDependentHook[I, TT, TO, TD, TS] => hook.setModelInstance(evaluateModelInstance)
+          case _ => ()
+        }
+        (globalStep, trainOps, inferOps, evaluateOps, evalUpdateOps)
       }
     }
   }
@@ -100,13 +120,9 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
   /** The underlying session that is kept alive throughout this estimator's lifetime. */
   private[this] val session: MonitoredSession = {
     Op.createWith(graph = graph, deviceFunction = deviceFunction.getOrElse(_.device)) {
-      val globalStep = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
+      Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
       graph.addToCollection(trainingOps.loss, Graph.Keys.LOSSES)
       allTrainHooks += TensorNaNHook(Set(trainingOps.loss.name))
-      allTrainHooks += TensorLoggingHook(TreeMap(
-        "Step" -> globalStep.value.name,
-        "Loss" -> trainingOps.loss.name
-      ), configuration.logTrigger)
       if (tensorBoardConfig != null)
         allTrainChiefOnlyHooks += TensorBoardHook(tensorBoardConfig)
       val saver = getOrCreateSaver()

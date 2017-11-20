@@ -320,7 +320,6 @@ object Estimator {
         configuration.master, sessionScaffold, configuration.sessionConfig, configuration.workingDir)
       val chiefHooks = mutable.Set((hooks ++ chiefOnlyHooks).toSeq: _*)
       configuration.workingDir.foreach(workingDir => {
-        chiefHooks += StepRateHook(log = false, summaryDirectory = workingDir)
         if (!chiefHooks.exists(_.isInstanceOf[CheckpointSaverHook])) {
           configuration.checkpointConfig match {
             case NoCheckpoints => ()

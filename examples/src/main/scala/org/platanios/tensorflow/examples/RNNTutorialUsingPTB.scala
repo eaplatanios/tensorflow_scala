@@ -18,11 +18,12 @@ package org.platanios.tensorflow.examples
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.learn.layers.rnn.RNN
 import org.platanios.tensorflow.api.learn.layers.rnn.cell.{BasicLSTMCell, LSTMTuple}
+import org.platanios.tensorflow.data.text.PTBLoader
+
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
-import java.nio.file.Paths
 
-import org.platanios.tensorflow.data.text.PTBLoader
+import java.nio.file.Paths
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -87,6 +88,7 @@ object RNNTutorialUsingPTB {
       tf.learn.Configuration(Some(summariesDir)),
       tf.learn.StopCriteria(maxSteps = Some(100000)),
       Set(
+        tf.learn.LossLoggingHook(tf.learn.StepHookTrigger(10)),
         tf.learn.StepRateHook(log = false, summaryDirectory = summariesDir, trigger = tf.learn.StepHookTrigger(100)),
         tf.learn.SummarySaverHook(summariesDir, tf.learn.StepHookTrigger(10)),
         tf.learn.CheckpointSaverHook(summariesDir, tf.learn.StepHookTrigger(1000))),

@@ -21,40 +21,34 @@ import org.platanios.tensorflow.api.learn.Counter
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.api.types.FLOAT32
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
 
-/** Logs the values of the provided tensors based on a [[HookTrigger]], or at the end of a run (i.e., end of a
-  * [[Session]]'s usage. The tensors will be printed using `INFO` logging level/severity. If you are not seeing the
-  * logs, you might want to changing the logging level in your logging configuration file.
+/** Hooks that logs the loss function value.
   *
-  * Note that if `logAtEnd` is `true`, `tensors` should not include any tensor whose evaluation produces a side effect,
-  * such as consuming additional inputs.
-  *
-  * @param  tensors      Map from tags to tensor names. The tags are used to identify the tensors in the log.
   * @param  trigger      Hook trigger specifying when this hook is triggered (i.e., when it executes). If you only want
   *                      to log the tensor values at the end of a run and not during, then you should set `trigger` to
   *                      [[NoHookTrigger]] and `logAtEnd` to `true`.
   * @param  triggerAtEnd If `true`, this hook will be triggered at the end of the run. Note that if this flag is set to
   *                      `true`, then `tensors` must be computable without using a feed map for the [[Session.run()]]
   *                      call.
-  * @param  formatter    Function used to format the strings being logged that takes a `Map[String, Tensor]` as input,
-  *                      with the keys corresponding to tags, and returns a string to log. Defaults to a simple summary
-  *                      of all the tensors in the map.
+  * @param  formatter    Function used to format the message that is being logged. It takes the time taken since the
+  *                      last logged message, the current step, and the current loss value, as input, and returns a
+  *                      string to log.
   *
   * @author Emmanouil Antonios Platanios
   */
-case class TensorLoggingHook(
-    tensors: Map[String, String],
+class LossLoggingHook(
     trigger: HookTrigger = StepHookTrigger(1),
     triggerAtEnd: Boolean = true,
-    formatter: (Map[String, Tensor]) => String = null)
-    extends Hook {
-  private[this] val tensorTags : Seq[String] = tensors.keys.toSeq
-  private[this] val tensorNames: Seq[String] = tensors.values.toSeq
-  private[this] var outputs    : Seq[Output] = _
-  private[this] var step       : Variable    = _
+    formatter: (Double, Long, Float) => String = (time, step, loss) => {
+      f"($time%.3f s) Step: $step%06d, Loss: $loss%.4f"
+    }
+) extends ModelDependentHook[Any, Any, Any, Any, Any] {
+  private[this] var step: Variable = _
+  private[this] var loss: Output   = _
 
   private[this] val internalTrigger: HookTrigger = trigger.copy()
   private[this] var lastStep       : Long        = 0L
@@ -65,8 +59,7 @@ case class TensorLoggingHook(
       s"A ${Graph.Keys.GLOBAL_STEP.name} variable should be created in order to use the 'TensorLoggingHook'."))
     internalTrigger.reset()
     shouldTrigger = false
-    // Convert tensor names to op outputs.
-    outputs = tensorNames.map(t => Op.currentGraph.getOutputByName(t))
+    loss = modelInstance.loss.map(_.cast(FLOAT32)).orNull
   }
 
   override def afterSessionCreation(session: Session): Unit = {
@@ -77,9 +70,9 @@ case class TensorLoggingHook(
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]
   ): Option[Hook.SessionRunArgs[Seq[Output], Traversable[Op], Seq[Tensor]]] = {
-    shouldTrigger = internalTrigger.shouldTriggerForStep(lastStep.toInt)
+    shouldTrigger = loss != null && internalTrigger.shouldTriggerForStep(lastStep.toInt)
     if (shouldTrigger)
-      Some(Hook.SessionRunArgs(fetches = step.value +: outputs))
+      Some(Hook.SessionRunArgs(fetches = Seq(step.value, loss)))
     else
       Some(Hook.SessionRunArgs(fetches = Seq(step.value)))
   }
@@ -92,32 +85,27 @@ case class TensorLoggingHook(
       fetchableEv: Fetchable.Aux[F, R]
   ): Unit = {
     lastStep = runResult.values.head.scalar.asInstanceOf[Long]
-    if (shouldTrigger)
-      logTensors(tensorTags.zip(runResult.values.tail))
-  }
-
-  override def end(session: Session): Unit = {
-    if (triggerAtEnd && lastStep.toInt != internalTrigger.lastTriggerStep().getOrElse(-1))
-      logTensors(tensorTags.zip(session.run(fetches = outputs)))
-  }
-
-  /** Logs the provided tensor values. */
-  private[this] def logTensors(tensors: Seq[(String, Tensor)]): Unit = {
-    if (formatter != null) {
-      TensorLoggingHook.logger.info(formatter(tensors.toMap))
-    } else {
-      val valuesLog = tensors.map(t => {
-        s"${t._1} = ${t._2.summarize(flattened = true, includeInfo = false)}"
-      }).mkString(", ")
+    if (shouldTrigger) {
+      val loss = runResult.values(1).scalar.asInstanceOf[Float]
       val log = internalTrigger.updateLastTrigger(lastStep.toInt - 1).map(_._1) match {
-        case Some(s) => f"($s%.3f s) $valuesLog"
-        case None => s"( N/A ) $valuesLog"
+        case Some(s) => formatter(s, lastStep, loss)
+        case None => formatter(0.0, lastStep, loss)
       }
-      TensorLoggingHook.logger.info(log)
+      LossLoggingHook.logger.info(log)
     }
   }
 }
 
-object TensorLoggingHook {
-  private[TensorLoggingHook] val logger = Logger(LoggerFactory.getLogger("Learn / Hooks / Tensor Logging"))
+object LossLoggingHook {
+  private[LossLoggingHook] val logger = Logger(LoggerFactory.getLogger("Learn / Hooks / Loss Logging"))
+
+  def apply(
+      trigger: HookTrigger = StepHookTrigger(1),
+      triggerAtEnd: Boolean = true,
+      formatter: (Double, Long, Float) => String = { (time, step, loss) =>
+        f"($time%.3f s) Step: $step%06d, Loss: $loss%.4f"
+      }
+  ): LossLoggingHook = {
+    new LossLoggingHook(trigger, triggerAtEnd, formatter)
+  }
 }

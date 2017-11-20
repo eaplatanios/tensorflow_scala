@@ -21,6 +21,7 @@ import org.platanios.tensorflow.api.ops.{Math, Op, Output}
 import org.platanios.tensorflow.api.ops.training.optimizers.Optimizer
 import org.platanios.tensorflow.api.ops.io.data.Iterator
 import org.platanios.tensorflow.api.ops.metrics.Metric
+import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.types.FLOAT32
 
 /**
@@ -29,81 +30,92 @@ import org.platanios.tensorflow.api.types.FLOAT32
 trait Model
 
 trait InferenceModel[IT, IO, ID, IS, I] extends Model {
-  def buildInferenceOps(graph: Graph = Op.currentGraph): Model.InferenceOps[IT, IO, ID, IS, I]
+  def buildInferOps(): Model.InferOps[IT, IO, ID, IS, I]
 }
 
 trait TrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] extends InferenceModel[IT, IO, ID, IS, I] {
-  def buildTrainingOps(graph: Graph = Op.currentGraph): Model.TrainingOps[IT, IO, ID, IS, I, TT, TO, TD, TS]
-  def buildEvaluationOps(
-      metrics: Seq[Metric[EI, Output]], graph: Graph = Op.currentGraph
-  ): Model.EvaluationOps[TT, TO, TD, TS, I]
+  def buildTrainOps(): Model.TrainOps[IT, IO, ID, IS, I, TT, TO, TD, TS]
+  def buildEvaluateOps(metrics: Seq[Metric[EI, Output]]): Model.EvaluateOps[TT, TO, TD, TS, I]
 }
 
 trait SupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T]
     extends TrainableModel[IT, IO, ID, IS, I, (IT, TT), (IO, TO), (ID, TD), (IS, TS), (I, T)] {
-  def buildTrainingOps(
-      graph: Graph = Op.currentGraph
-  ): Model.SupervisedTrainingOps[IT, IO, ID, IS, I, TT, TO, TD, TS, T]
-
-  def buildEvaluationOps(
-      metrics: Seq[Metric[(I, T), Output]], graph: Graph = Op.currentGraph
-  ): Model.EvaluationOps[(IT, TT), (IO, TO), (ID, TD), (IS, TS), I]
+  def buildTrainOps(): Model.SupervisedTrainOps[IT, IO, ID, IS, I, TT, TO, TD, TS, T]
+  def buildEvaluateOps(
+      metrics: Seq[Metric[(I, T), Output]]
+  ): Model.EvaluateOps[(IT, TT), (IO, TO), (ID, TD), (IS, TS), I]
 }
 
 trait UnsupervisedTrainableModel[IT, IO, ID, IS, I]
     extends TrainableModel[IT, IO, ID, IS, I, IT, IO, ID, IS, I] {
-  def buildTrainingOps(graph: Graph = Op.currentGraph): Model.UnsupervisedTrainingOps[IT, IO, ID, IS, I]
-  def buildEvaluationOps(
-      metrics: Seq[Metric[I, Output]], graph: Graph = Op.currentGraph
-  ): Model.EvaluationOps[IT, IO, ID, IS, I]
+  def buildTrainOps(): Model.UnsupervisedTrainOps[IT, IO, ID, IS, I]
+  def buildEvaluateOps(metrics: Seq[Metric[I, Output]]): Model.EvaluateOps[IT, IO, ID, IS, I]
 }
 
 object Model {
-  case class InferenceOps[IT, IO, ID, IS, I](inputIterator: Iterator[IT, IO, ID, IS], input: IO, output: I)
+  case class InferOps[IT, IO, ID, IS, I](
+      inputIterator: Iterator[IT, IO, ID, IS],
+      input: IO,
+      output: I,
+      trainableVariables: Set[Variable],
+      nonTrainableVariables: Set[Variable])
 
-  private[learn] class TrainingOps[IT, IO, ID, IS, I, TT, TO, TD, TS](
+  private[learn] class TrainOps[IT, IO, ID, IS, I, TT, TO, TD, TS](
       val inputIterator: Iterator[TT, TO, TD, TS],
       val input: TO,
       val output: I,
       val loss: Output,
-      val trainOp: Op)
+      val trainOp: Op,
+      val trainableVariables: Set[Variable],
+      val nonTrainableVariables: Set[Variable])
 
-  case class UnsupervisedTrainingOps[IT, IO, ID, IS, I](
+  case class UnsupervisedTrainOps[IT, IO, ID, IS, I](
       override val inputIterator: Iterator[IT, IO, ID, IS],
       override val input: IO,
       override val output: I,
       override val loss: Output,
-      override val trainOp: Op
-  ) extends TrainingOps[IT, IO, ID, IS, I, IT, IO, ID, IS](inputIterator, input, output, loss, trainOp)
+      override val trainOp: Op,
+      override val trainableVariables: Set[Variable],
+      override val nonTrainableVariables: Set[Variable]
+  ) extends TrainOps[IT, IO, ID, IS, I, IT, IO, ID, IS](
+    inputIterator, input, output, loss, trainOp, trainableVariables, nonTrainableVariables)
 
-  case class SupervisedTrainingOps[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
+  case class SupervisedTrainOps[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
       override val inputIterator: Iterator[(IT, TT), (IO, TO), (ID, TD), (IS, TS)],
       override val input: (IO, TO),
       override val output: I,
       trainOutput: T,
       override val loss: Output,
-      override val trainOp: Op
-  ) extends TrainingOps[IT, IO, ID, IS, I, (IT, TT), (IO, TO), (ID, TD), (IS, TS)](
-    inputIterator, input, output, loss, trainOp)
+      override val trainOp: Op,
+      override val trainableVariables: Set[Variable],
+      override val nonTrainableVariables: Set[Variable]
+  ) extends TrainOps[IT, IO, ID, IS, I, (IT, TT), (IO, TO), (ID, TD), (IS, TS)](
+    inputIterator, input, output, loss, trainOp, trainableVariables, nonTrainableVariables)
 
-  object SupervisedTrainingOps {
+  object SupervisedTrainOps {
     def apply[IT, IO, ID, IS, I](
         inputIterator: Iterator[(IT, IT), (IO, IO), (ID, ID), (IS, IS)],
         input: (IO, IO),
         output: I,
         loss: Output,
-        trainOp: Op): SupervisedTrainingOps[IT, IO, ID, IS, I, IT, IO, ID, IS, I] = {
-      SupervisedTrainingOps(inputIterator, input, output, output, loss, trainOp)
+        trainOp: Op,
+        trainableVariables: Set[Variable],
+        nonTrainableVariables: Set[Variable]
+    ): SupervisedTrainOps[IT, IO, ID, IS, I, IT, IO, ID, IS, I] = {
+      SupervisedTrainOps(
+        inputIterator, input, output, output, loss, trainOp, trainableVariables, nonTrainableVariables)
     }
   }
 
-  case class EvaluationOps[IT, IO, ID, IS, I](
+  case class EvaluateOps[IT, IO, ID, IS, I](
       inputIterator: Iterator[IT, IO, ID, IS],
       input: IO,
       output: I,
       metricValues: Seq[Output],
       metricUpdates: Seq[Output],
-      metricResets: Seq[Op])
+      metricResets: Seq[Op],
+      trainableVariables: Set[Variable],
+      nonTrainableVariables: Set[Variable])
 
   trait API {
     def Model[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
@@ -213,13 +225,13 @@ private[learn] class SimpleInferenceModel[IT, IO, ID, IS, I] private[learn](
     val input: Input[IT, IO, _, ID, IS],
     val layer: Layer[IO, I]
 ) extends InferenceModel[IT, IO, ID, IS, I] {
-  def buildInferenceOps(graph: Graph = Op.currentGraph): Model.InferenceOps[IT, IO, ID, IS, I] = {
-    Op.createWith(graph) {
-      val tfInputIterator = input()
-      val tfInput = tfInputIterator.next()
-      val tfOutput = layer(tfInput, INFERENCE).output
-      Model.InferenceOps(tfInputIterator, tfInput, tfOutput)
-    }
+  override def buildInferOps(): Model.InferOps[IT, IO, ID, IS, I] = {
+    val inputIterator = input()
+    val inputIteratorNext = inputIterator.next()
+    val layerOutput = layer(inputIteratorNext, INFERENCE)
+    Model.InferOps(
+      inputIterator, inputIteratorNext, layerOutput.output,
+      layerOutput.trainableVariables, layerOutput.nonTrainableVariables)
   }
 }
 
@@ -233,30 +245,28 @@ private[learn] class SimpleUnsupervisedTrainableModel[IT, IO, ID, IS, I] private
     with UnsupervisedTrainableModel[IT, IO, ID, IS, I] {
   // TODO: [LEARN] Add support for trainable models with only the loss function gradient available.
 
-  def buildTrainingOps(graph: Graph = Op.currentGraph): Model.UnsupervisedTrainingOps[IT, IO, ID, IS, I] = {
-    Op.createWith(graph = graph) {
-      val tfInputIterator = input()
-      val tfInput = tfInputIterator.next()
-      val tfOutput = layer(tfInput, TRAINING).output
-      // TODO: [LEARN] Remove this cast.
-      val tfLoss = Math.cast(loss(tfOutput, TRAINING).output, FLOAT32, name = "LossCast")
-      val tfIteration = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
-      val gradientsAndVariables = clipGradients(optimizer.computeGradients(tfLoss))
-      val tfTrainOp = optimizer.applyGradients(gradientsAndVariables, Some(tfIteration))
-      Model.UnsupervisedTrainingOps(tfInputIterator, tfInput, tfOutput, tfLoss, tfTrainOp)
-    }
+  override def buildTrainOps(): Model.UnsupervisedTrainOps[IT, IO, ID, IS, I] = {
+    val inputIterator = input()
+    val inputIteratorNext = inputIterator.next()
+    val layerOutput = layer(inputIteratorNext, TRAINING)
+    // TODO: [LEARN] Remove this cast.
+    val lossOutput = Math.cast(loss(layerOutput.output, TRAINING).output, FLOAT32, name = "LossCast")
+    val iteration = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
+    val gradientsAndVariables = clipGradients(optimizer.computeGradients(lossOutput))
+    val trainOp = optimizer.applyGradients(gradientsAndVariables, Some(iteration))
+    Model.UnsupervisedTrainOps(
+      inputIterator, inputIteratorNext, layerOutput.output, lossOutput, trainOp,
+      layerOutput.trainableVariables, layerOutput.nonTrainableVariables)
   }
 
-  def buildEvaluationOps(
-      metrics: Seq[Metric[I, Output]], graph: Graph = Op.currentGraph
-  ): Model.EvaluationOps[IT, IO, ID, IS, I] = {
-    Op.createWith(graph = graph) {
-      val tfInputIterator = input()
-      val tfInput = tfInputIterator.next()
-      val tfOutput = layer(tfInput, EVALUATION).output
-      val (mValues, mUpdates, mResets) = metrics.map(_.streaming(tfOutput)).unzip3
-      Model.EvaluationOps(tfInputIterator, tfInput, tfOutput, mValues, mUpdates, mResets)
-    }
+  override def buildEvaluateOps(metrics: Seq[Metric[I, Output]]): Model.EvaluateOps[IT, IO, ID, IS, I] = {
+    val inputIterator = input()
+    val inputIteratorNext = inputIterator.next()
+    val layerOutput = layer(inputIteratorNext, EVALUATION)
+    val (mValues, mUpdates, mResets) = metrics.map(_.streaming(layerOutput.output)).unzip3
+    Model.EvaluateOps(
+      inputIterator, inputIteratorNext, layerOutput.output, mValues, mUpdates, mResets,
+      layerOutput.trainableVariables, layerOutput.nonTrainableVariables)
   }
 }
 
@@ -272,34 +282,33 @@ private[learn] class SimpleSupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, T
     with SupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T] {
   // TODO: [LEARN] Add support for trainable models with only the loss function gradient available.
 
-  def buildTrainingOps(
-      graph: Graph = Op.currentGraph
-  ): Model.SupervisedTrainingOps[IT, IO, ID, IS, I, TT, TO, TD, TS, T] = {
-    Op.createWith(graph = graph) {
-      val tfInputIterator = input.zip(trainInput).apply()
-      val tfInput = tfInputIterator.next()
-      val tfOutput = layer(tfInput._1, TRAINING).output
-      val tfTrainOutput = trainInputLayer(tfInput._2, TRAINING).output
-      // TODO: [LEARN] Remove this cast.
-      val tfLoss = Math.cast(loss((tfOutput, tfTrainOutput), TRAINING).output, FLOAT32, name = "LossCast")
-      val tfIteration = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
-      val gradientsAndVariables = clipGradients(optimizer.computeGradients(tfLoss))
-      val tfTrainOp = optimizer.applyGradients(gradientsAndVariables, Some(tfIteration))
-      Model.SupervisedTrainingOps(tfInputIterator, tfInput, tfOutput, tfTrainOutput, tfLoss, tfTrainOp)
-    }
+  override def buildTrainOps(): Model.SupervisedTrainOps[IT, IO, ID, IS, I, TT, TO, TD, TS, T] = {
+    val inputIterator = input.zip(trainInput).apply()
+    val inputIteratorNext = inputIterator.next()
+    val layerOutput = layer(inputIteratorNext._1, TRAINING)
+    val trainLayerOutput = trainInputLayer(inputIteratorNext._2, TRAINING)
+    // TODO: [LEARN] Remove this cast.
+    val lossOutput = Math.cast(
+      loss((layerOutput.output, trainLayerOutput.output), TRAINING).output, FLOAT32, name = "LossCast")
+    val iteration = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
+    val gradientsAndVariables = clipGradients(optimizer.computeGradients(lossOutput))
+    val trainOp = optimizer.applyGradients(gradientsAndVariables, Some(iteration))
+    Model.SupervisedTrainOps(
+      inputIterator, inputIteratorNext, layerOutput.output, trainLayerOutput.output, lossOutput, trainOp,
+      layerOutput.trainableVariables, layerOutput.nonTrainableVariables)
   }
 
-  def buildEvaluationOps(
-      metrics: Seq[Metric[(I, T), Output]], graph: Graph = Op.currentGraph
-  ): Model.EvaluationOps[(IT, TT), (IO, TO), (ID, TD), (IS, TS), I] = {
-    Op.createWith(graph = graph) {
-      val tfInputIterator = input.zip(trainInput).apply()
-      val tfInput = tfInputIterator.next()
-      val tfOutput = layer(tfInput._1, EVALUATION).output
-      val tfTrainOutput = trainInputLayer(tfInput._2, EVALUATION).output
-      val (mValues, mUpdates, mResets) = metrics.map(_.streaming((tfOutput, tfTrainOutput))).unzip3
-      Model.EvaluationOps(tfInputIterator, tfInput, tfOutput, mValues, mUpdates, mResets)
-    }
+  override def buildEvaluateOps(
+      metrics: Seq[Metric[(I, T), Output]]
+  ): Model.EvaluateOps[(IT, TT), (IO, TO), (ID, TD), (IS, TS), I] = {
+    val inputIterator = input.zip(trainInput).apply()
+    val inputIteratorNext = inputIterator.next()
+    val layerOutput = layer(inputIteratorNext._1, EVALUATION)
+    val trainLayerOutput = trainInputLayer(inputIteratorNext._2, EVALUATION)
+    val (mValues, mUpdates, mResets) = metrics.map(_.streaming((layerOutput.output, trainLayerOutput.output))).unzip3
+    Model.EvaluateOps(
+      inputIterator, inputIteratorNext, layerOutput.output, mValues, mUpdates, mResets,
+      layerOutput.trainableVariables, layerOutput.nonTrainableVariables)
   }
 }
 
@@ -316,33 +325,32 @@ private[learn] class SupervisedConditionalTrainableModel[IT, IO, ID, IS, I, TT, 
     with SupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T] {
   // TODO: [LEARN] Add support for trainable models with only the loss function gradient available.
 
-  def buildTrainingOps(
-      graph: Graph = Op.currentGraph
-  ): Model.SupervisedTrainingOps[IT, IO, ID, IS, I, TT, TO, TD, TS, T] = {
-    Op.createWith(graph = graph) {
-      val tfInputIterator = input.zip(trainInput).apply()
-      val tfInput = tfInputIterator.next()
-      val tfOutput = trainLayer(tfInput, TRAINING).output
-      val tfTrainOutput = trainInputLayer(tfInput._2, TRAINING).output
-      // TODO: [LEARN] Remove this cast.
-      val tfLoss = Math.cast(loss((tfOutput, tfTrainOutput), TRAINING).output, FLOAT32, name = "LossCast")
-      val tfIteration = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
-      val gradientsAndVariables = clipGradients(optimizer.computeGradients(tfLoss))
-      val tfTrainOp = optimizer.applyGradients(gradientsAndVariables, Some(tfIteration))
-      Model.SupervisedTrainingOps(tfInputIterator, tfInput, tfOutput, tfTrainOutput, tfLoss, tfTrainOp)
-    }
+  override def buildTrainOps(): Model.SupervisedTrainOps[IT, IO, ID, IS, I, TT, TO, TD, TS, T] = {
+    val inputIterator = input.zip(trainInput).apply()
+    val inputIteratorNext = inputIterator.next()
+    val layerOutput = trainLayer(inputIteratorNext, TRAINING)
+    val trainLayerOutput = trainInputLayer(inputIteratorNext._2, TRAINING)
+    // TODO: [LEARN] Remove this cast.
+    val lossOutput = Math.cast(
+      loss((layerOutput.output, trainLayerOutput.output), TRAINING).output, FLOAT32, name = "LossCast")
+    val iteration = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
+    val gradientsAndVariables = clipGradients(optimizer.computeGradients(lossOutput))
+    val trainOp = optimizer.applyGradients(gradientsAndVariables, Some(iteration))
+    Model.SupervisedTrainOps(
+      inputIterator, inputIteratorNext, layerOutput.output, trainLayerOutput.output, lossOutput, trainOp,
+      layerOutput.trainableVariables, layerOutput.nonTrainableVariables)
   }
 
-  def buildEvaluationOps(
-      metrics: Seq[Metric[(I, T), Output]], graph: Graph = Op.currentGraph
-  ): Model.EvaluationOps[(IT, TT), (IO, TO), (ID, TD), (IS, TS), I] = {
-    Op.createWith(graph = graph) {
-      val tfInputIterator = input.zip(trainInput).apply()
-      val tfInput = tfInputIterator.next()
-      val tfOutput = layer(tfInput._1, EVALUATION).output
-      val tfTrainOutput = trainInputLayer(tfInput._2, EVALUATION).output
-      val (mValues, mUpdates, mResets) = metrics.map(_.streaming((tfOutput, tfTrainOutput))).unzip3
-      Model.EvaluationOps(tfInputIterator, tfInput, tfOutput, mValues, mUpdates, mResets)
-    }
+  override def buildEvaluateOps(
+      metrics: Seq[Metric[(I, T), Output]]
+  ): Model.EvaluateOps[(IT, TT), (IO, TO), (ID, TD), (IS, TS), I] = {
+    val inputIterator = input.zip(trainInput).apply()
+    val inputIteratorNext = inputIterator.next()
+    val layerOutput = layer(inputIteratorNext._1, EVALUATION)
+    val trainLayerOutput = trainInputLayer(inputIteratorNext._2, EVALUATION)
+    val (mValues, mUpdates, mResets) = metrics.map(_.streaming((layerOutput.output, trainLayerOutput.output))).unzip3
+    Model.EvaluateOps(
+      inputIterator, inputIteratorNext, layerOutput.output, mValues, mUpdates, mResets,
+      layerOutput.trainableVariables, layerOutput.nonTrainableVariables)
   }
 }
