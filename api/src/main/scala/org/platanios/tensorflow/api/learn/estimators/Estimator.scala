@@ -127,9 +127,6 @@ abstract class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
   /** Checkpoint configuration used by this estimator. */
   def checkpointConfig: CheckpointConfig = configuration.checkpointConfig
 
-  /** Summary configuration used by this estimator. */
-  def summaryConfig: SummaryConfig = configuration.summaryConfig
-
   /** Random seed value to be used by the TensorFlow initializers in this estimator. */
   def randomSeed: Int = configuration.randomSeed
 
@@ -324,13 +321,6 @@ object Estimator {
       val chiefHooks = mutable.Set((hooks ++ chiefOnlyHooks).toSeq: _*)
       configuration.workingDir.foreach(workingDir => {
         chiefHooks += StepRateHook(log = false, summaryDirectory = workingDir)
-        if (!chiefHooks.exists(_.isInstanceOf[SummarySaverHook])) {
-          configuration.summaryConfig match {
-            case NoSummaries => ()
-            case StepBasedSummaries(steps) => chiefHooks += SummarySaverHook(workingDir, StepHookTrigger(steps))
-            case TimeBasedSummaries(seconds) => chiefHooks += SummarySaverHook(workingDir, TimeHookTrigger(seconds))
-          }
-        }
         if (!chiefHooks.exists(_.isInstanceOf[CheckpointSaverHook])) {
           configuration.checkpointConfig match {
             case NoCheckpoints => ()

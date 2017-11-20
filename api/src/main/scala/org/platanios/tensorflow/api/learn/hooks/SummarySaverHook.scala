@@ -103,6 +103,7 @@ case class SummarySaverHook(
       if (shouldTrigger) {
         internalTrigger.updateLastTrigger(lastStep.toInt - 1)
         writer.writeSummaryString(fetches(1).scalar.asInstanceOf[String], lastStep)
+        writer.flush()
       }
     })
   }

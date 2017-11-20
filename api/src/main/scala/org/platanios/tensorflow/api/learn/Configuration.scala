@@ -146,7 +146,6 @@ case class Configuration(
     // TODO: [LEARN] Allow a cluster configuration to be directly provided here.
     sessionConfig: Option[SessionConfig] = None,
     checkpointConfig: CheckpointConfig = TimeBasedCheckpoints(600, 5, 10000),
-    summaryConfig: SummaryConfig = StepBasedSummaries(100),
     randomSeed: Int = 1
 ) {
   val (clusterConfig, taskType, taskIndex, master, numParameterServers, numWorkers, isChief): (

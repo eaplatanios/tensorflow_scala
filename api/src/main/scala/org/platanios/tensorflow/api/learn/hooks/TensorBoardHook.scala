@@ -34,7 +34,8 @@ private[learn] case class TensorBoardHook(tensorBoardConfig: TensorBoardConfig) 
 
   override def begin(): Unit = tensorBoardProcess = {
     Option(tensorBoardConfig).map(config => {
-      TensorBoardHook.logger.info(s"Launching TensorBoard in '${config.host}:${config.port}'.")
+      TensorBoardHook.logger.info(
+        s"Launching TensorBoard in '${config.host}:${config.port}' for log directory '${config.logDir.toAbsolutePath}'.")
       config.processBuilder.start()
     })
   }
