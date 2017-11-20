@@ -145,10 +145,10 @@ class Graph private[api](private[api] var nativeHandle: Long) extends Closeable 
   /** Adds the provided function instance to this graph. */
   private[api] def addFunction(function: InstantiatedFunction[_, _]): Unit = {
     assertNotFrozen()
-    if (!functionsMap.contains(function.name)) {
+    if (!functionsMap.contains(function.hashedName)) {
       // TODO: !!! [FUNCTIONS] Add support for function gradients.
       NativeFunction.copyToGraph(nativeHandle, function.nativeHandle, 0)
-      functionsMap.update(function.name, function)
+      functionsMap.update(function.hashedName, function)
     }
   }
 

@@ -307,7 +307,7 @@ private[api] case class InstantiatedFunction[I, O] private[ops] (
   Disposer.add(this, () => this.close())
 
   /** Adds this function to the provided graph. */
-  def addToGraph(graph: Graph): Unit = graph.getFunction(name) match {
+  def addToGraph(graph: Graph): Unit = graph.getFunction(hashedName) match {
     case Some(_) => ()
     case None =>
       // Add this function into the graph
@@ -338,11 +338,14 @@ private[api] case class InstantiatedFunction[I, O] private[ops] (
     */
   def apply(
       input: I, inline: Boolean = true, compiled: Boolean = false, separateCompiledGradients: Boolean = false,
-      name: String = this.name)(implicit context: DynamicVariable[OpCreationContext]): O = {
+      name: String = name
+  )(implicit
+      context: DynamicVariable[OpCreationContext]
+  ): O = {
     val outputs = Op.createWithNameScope(name) {
       val outputs = evInput.outputs(input)
       addToGraph(outputs.head.graph)
-      val builder = Op.Builder(opType = this.name, name = "Call")(context)
+      val builder = Op.Builder(opType = hashedName, name = "Call")(context)
       (outputs ++ extraInputs).foreach(builder.addInput)
       builder.setAttribute("_noinline", inline)
       if (compiled) {
