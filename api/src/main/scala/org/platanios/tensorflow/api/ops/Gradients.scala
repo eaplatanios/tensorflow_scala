@@ -480,10 +480,6 @@ private[ops] object Gradients {
            } else if (gradients.length == 1) {
              gradients.head
            } else {
-             assert(
-               gradients.forall(_.denseShape == gradients.head.denseShape),
-               "The indexed slices being aggregated must all have the same dense shape, but they did not. " +
-                   "There must be a bug somewhere in the gradients code.")
              OutputIndexedSlices(
                Basic.concatenate(gradients.map(_.indices)),
                Basic.concatenate(gradients.map(_.values)),
