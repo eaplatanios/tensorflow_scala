@@ -41,11 +41,11 @@ import org.platanios.tensorflow.api.types.{FLOAT32, FLOAT64}
   *
   * @author Emmanouil Antonios Platanios
   */
-class Mean private[metrics] (
-    variablesCollections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES),
-    valuesCollections: Set[Graph.Key[Output]] = Set(METRIC_VALUES),
-    updatesCollections: Set[Graph.Key[Output]] = Set(METRIC_UPDATES),
-    resetsCollections: Set[Graph.Key[Op]] = Set(METRIC_RESETS),
+class Mean(
+    val variablesCollections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES),
+    val valuesCollections: Set[Graph.Key[Output]] = Set(METRIC_VALUES),
+    val updatesCollections: Set[Graph.Key[Output]] = Set(METRIC_UPDATES),
+    val resetsCollections: Set[Graph.Key[Op]] = Set(METRIC_RESETS),
     override val name: String = "Mean"
 ) extends Metric[Output, Output] {
   /** Computes the value of this metric for the provided values, optionally weighted by `weights`.

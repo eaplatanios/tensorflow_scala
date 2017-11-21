@@ -57,13 +57,13 @@ import org.platanios.tensorflow.api.types.{DataType, FLOAT64, INT32, INT64}
   *
   * @author Emmanouil Antonios Platanios
   */
-class ConfusionMatrix private[metrics] (
-    numClasses: Int = -1,
-    dataType: DataType = FLOAT64,
-    variablesCollections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES),
-    valuesCollections: Set[Graph.Key[Output]] = Set(METRIC_VALUES),
-    updatesCollections: Set[Graph.Key[Output]] = Set(METRIC_UPDATES),
-    resetsCollections: Set[Graph.Key[Op]] = Set(METRIC_RESETS),
+class ConfusionMatrix(
+    val numClasses: Int = -1,
+    val dataType: DataType = FLOAT64,
+    val variablesCollections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES),
+    val valuesCollections: Set[Graph.Key[Output]] = Set(METRIC_VALUES),
+    val updatesCollections: Set[Graph.Key[Output]] = Set(METRIC_UPDATES),
+    val resetsCollections: Set[Graph.Key[Op]] = Set(METRIC_RESETS),
     override val name: String = "ConfusionMatrix"
 ) extends Metric[(Output, Output), Output] {
   private[this] val numClassesOutput: Output = if (numClasses != -1) Basic.constant(numClasses) else null

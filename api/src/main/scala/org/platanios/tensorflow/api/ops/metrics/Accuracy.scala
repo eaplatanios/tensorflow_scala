@@ -43,11 +43,11 @@ import org.platanios.tensorflow.api.ops.variables.Variable
   *
   * @author Emmanouil Antonios Platanios
   */
-class Accuracy private[metrics] (
-    variablesCollections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES),
-    valuesCollections: Set[Graph.Key[Output]] = Set(METRIC_VALUES),
-    updatesCollections: Set[Graph.Key[Output]] = Set(METRIC_UPDATES),
-    resetsCollections: Set[Graph.Key[Op]] = Set(METRIC_RESETS),
+class Accuracy(
+    val variablesCollections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES),
+    val valuesCollections: Set[Graph.Key[Output]] = Set(METRIC_VALUES),
+    val updatesCollections: Set[Graph.Key[Output]] = Set(METRIC_UPDATES),
+    val resetsCollections: Set[Graph.Key[Op]] = Set(METRIC_RESETS),
     override val name: String = "Accuracy"
 ) extends Metric[(Output, Output), Output] {
   private[this] val meanMetric =

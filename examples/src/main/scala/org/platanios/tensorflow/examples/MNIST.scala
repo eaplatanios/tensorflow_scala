@@ -20,8 +20,10 @@ import org.platanios.tensorflow.data.image.MNISTLoader
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
-
 import java.nio.file.Paths
+
+import org.platanios.tensorflow.api.ops.metrics.{Accuracy, Metric}
+import org.platanios.tensorflow.api.ops.metrics.Metric.{METRIC_RESETS, METRIC_UPDATES, METRIC_VALUES, METRIC_VARIABLES}
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -40,12 +42,16 @@ object MNIST {
     val dataSet = MNISTLoader.load(Paths.get("datasets/MNIST"))
     val trainImages = tf.data.TensorSlicesDataset(dataSet.trainImages)
     val trainLabels = tf.data.TensorSlicesDataset(dataSet.trainLabels)
+    val testImages = tf.data.TensorSlicesDataset(dataSet.testImages)
+    val testLabels = tf.data.TensorSlicesDataset(dataSet.testLabels)
     val trainData =
       trainImages.zip(trainLabels)
           .repeat()
           .shuffle(10000)
           .batch(256)
           .prefetch(10)
+    val evalTrainData = trainImages.zip(trainLabels).batch(1000).prefetch(10)
+    val evalTestData = testImages.zip(testLabels).batch(1000).prefetch(10)
 
     logger.info("Building the logistic regression model.")
     val input = tf.learn.Input(UINT8, Shape(-1, dataSet.trainImages.shape(1), dataSet.trainImages.shape(2)))
@@ -66,14 +72,23 @@ object MNIST {
 
     logger.info("Training the linear regression model.")
     val summariesDir = Paths.get("temp/mnist-mlp")
+    val accMetric = tf.metrics.MapMetric(
+      (v: (Output, (Output, Output))) => (v._1.argmax(-1), v._2._2), tf.metrics.Accuracy())
     val estimator = tf.learn.InMemoryEstimator(
       model,
       tf.learn.Configuration(Some(summariesDir)),
       tf.learn.StopCriteria(maxSteps = Some(100000)),
       Set(
-        tf.learn.StepRateHook(log = false, summaryDirectory = summariesDir, trigger = tf.learn.StepHookTrigger(100)),
+        tf.learn.LossLoggingHook(tf.learn.StepHookTrigger(100)),
+        tf.learn.EvaluationHook(
+          log = true, data = () => evalTrainData, metrics = Seq(accMetric),
+          trigger = tf.learn.StepHookTrigger(1000), name = "Train Evaluation"),
+        tf.learn.EvaluationHook(
+          log = true, data = () => evalTestData, metrics = Seq(accMetric),
+          trigger = tf.learn.StepHookTrigger(1000), name = "Test Evaluation"),
+        tf.learn.StepRateHook(log = false, summaryDir = summariesDir, trigger = tf.learn.StepHookTrigger(100)),
         tf.learn.SummarySaverHook(summariesDir, tf.learn.StepHookTrigger(100)),
-        tf.learn.CheckpointSaverHook(summariesDir, tf.learn.StepHookTrigger(100))),
+        tf.learn.CheckpointSaverHook(summariesDir, tf.learn.StepHookTrigger(100000))),
       tensorBoardConfig = tf.learn.TensorBoardConfig(summariesDir, reloadInterval = 1))
     estimator.train(() => trainData, tf.learn.StopCriteria(maxSteps = Some(1000)))
 
@@ -114,5 +129,28 @@ object MNIST {
     //                     f"${testAccuracy.scalar.asInstanceOf[Float]}%13.4e")
     //   }
     // }
+  }
+}
+
+case class DummyAccuracy(
+    variablesCollections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES),
+    valuesCollections: Set[Graph.Key[Output]] = Set(METRIC_VALUES),
+    updatesCollections: Set[Graph.Key[Output]] = Set(METRIC_UPDATES),
+    resetsCollections: Set[Graph.Key[Op]] = Set(METRIC_RESETS),
+    override val name: String = "Accuracy"
+) extends Metric[(Output, (Output, Output)), Output] {
+  private[this] val accuracyMetric =
+    Accuracy(variablesCollections, valuesCollections, updatesCollections, resetsCollections, name)
+
+  override def compute(values: (Output, (Output, Output)), weights: Output = null, name: String = name): Output = {
+    accuracyMetric.compute((values._1.argmax(-1), values._2._2), weights, name)
+  }
+
+  override def streaming(
+      values: (Output, (Output, Output)),
+      weights: Output = null,
+      name: String = name
+  ): Metric.StreamingInstance[Output] = {
+    accuracyMetric.streaming((values._1.argmax(-1), values._2._2), weights, name)
   }
 }
