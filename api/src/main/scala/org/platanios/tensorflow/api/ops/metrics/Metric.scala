@@ -47,15 +47,17 @@ trait Metric[T, R] {
     * @param  values  Values.
     * @param  weights Tensor containing weights for the predictions.
     * @param  name    Name prefix for the created ops.
-    * @return Tuple containing: (i) output representing the current value of the metric, (ii) op used to reset its
-    *         value, and (iii) op used to update its current value and obtain the new value.
+    * @return Tuple containing: (i) an output representing the current value of the metric, (ii) an op used to update
+    *         its current value and obtain the new value, and (iii) an op used to reset its value.
     */
-  def streaming(values: T, weights: Output = null, name: String = name): (R, R, Op)
+  def streaming(values: T, weights: Output = null, name: String = name): Metric.StreamingInstance[R]
 
   override def toString: String = name
 }
 
 object Metric {
+  case class StreamingInstance[R](value: R, update: R, reset: Op, variables: Set[Variable])
+
   /** Key to collect the subset of `Variable` objects that are used for computing and storing metric values. */
   object METRIC_VARIABLES extends VariableCollectionKey {
     override def name: String = "metric_variables"
@@ -80,7 +82,9 @@ object Metric {
   private[metrics] def localVariable(
       name: String, dataType: DataType = null, shape: Shape = null, initializer: Initializer = ZerosInitializer,
       collections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES)): Variable = {
-    Variable.getVariable(name = name, trainable = false, collections = collections + Graph.Keys.LOCAL_VARIABLES)
+    Variable.getVariable(
+      name = name, dataType = dataType, shape = shape, trainable = false,
+      collections = collections + Graph.Keys.LOCAL_VARIABLES)
   }
 
   /** Divides two values, returning 0 if the denominator is <= 0. */
@@ -223,7 +227,7 @@ object Metric {
     * @param  expectedRankDiff Expected rank difference.
     * @return Tuple containing the processed `predictions`, `targets`, and `weights`.
     */
-  private[metrics] def matchAxes(
+  def matchAxes(
       predictions: Output, targets: Output = null, weights: Output = null, expectedRankDiff: Int = 0
   ): (Output, Output, Output) = {
     var matchedPredictions = predictions

@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.ops.metrics
 import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.metrics.Metric._
-import org.platanios.tensorflow.api.ops.variables.{Variable, ZerosInitializer}
+import org.platanios.tensorflow.api.ops.variables.{Variable, VariableScope, ZerosInitializer}
 import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output}
 import org.platanios.tensorflow.api.types.{FLOAT32, FLOAT64}
 
@@ -84,39 +84,41 @@ class Mean private[metrics] (
     * @param  values  Values.
     * @param  weights Tensor containing weights for the predictions.
     * @param  name    Name prefix for the created ops.
-    * @return Tuple containing: (i) output representing the current value of the metric, (ii) op used to reset its
-    *         value, and (iii) op used to update its current value and obtain the new value.
+    * @return Tuple containing: (i) an output representing the current value of the metric, (ii) an op used to update
+    *         its current value and obtain the new value, and (iii) an op used to reset its value.
     */
-  def streaming(values: Output, weights: Output = null, name: String = name): (Output, Output, Op) = {
+  def streaming(values: Output, weights: Output = null, name: String = name): Metric.StreamingInstance[Output] = {
     var ops = Set(values.op)
     if (weights != null)
       ops += weights.op
-    Op.createWithNameScope(name, ops) {
-      val castedValues = if (values.dataType != FLOAT64) values.cast(FLOAT32) else values
-      val total = localVariable(
-        s"$name/Total", castedValues.dataType, Shape.scalar(), ZerosInitializer, variablesCollections)
-      val count = localVariable(
-        s"$name/Count", castedValues.dataType, Shape.scalar(), ZerosInitializer, variablesCollections)
-      val (processedValues, numValues) = {
-        if (weights == null) {
-          (castedValues, Basic.size(castedValues).cast(castedValues.dataType))
-        } else {
-          var (matchedValues, _, matchedWeights) = matchAxes(castedValues, null, weights)
-          matchedWeights = weightsBroadcast(matchedValues, matchedWeights.cast(castedValues.dataType))
-          matchedValues = Math.multiply(matchedValues, matchedWeights)
-          val numValues = Math.sum(matchedWeights)
-          (matchedValues, numValues)
+    VariableScope.createWithVariableScope(name) {
+      Op.createWithNameScope(name, ops) {
+        val castedValues = if (values.dataType != FLOAT64) values.cast(FLOAT32) else values
+        val total = localVariable(
+          s"$name/Total", castedValues.dataType, Shape.scalar(), ZerosInitializer, variablesCollections)
+        val count = localVariable(
+          s"$name/Count", castedValues.dataType, Shape.scalar(), ZerosInitializer, variablesCollections)
+        val (processedValues, numValues) = {
+          if (weights == null) {
+            (castedValues, Basic.size(castedValues).cast(castedValues.dataType))
+          } else {
+            var (matchedValues, _, matchedWeights) = matchAxes(castedValues, null, weights)
+            matchedWeights = weightsBroadcast(matchedValues, matchedWeights.cast(castedValues.dataType))
+            matchedValues = Math.multiply(matchedValues, matchedWeights)
+            val numValues = Math.sum(matchedWeights)
+            (matchedValues, numValues)
+          }
         }
+        val updateTotal = total.assignAdd(Math.sum(processedValues))
+        val updateCount = count.assignAdd(numValues)
+        val value = safeDiv(total.value, count.value, name = "Value")
+        val update = safeDiv(updateTotal, updateCount, name = "Update")
+        val reset = ControlFlow.group(Set(total.initializer, count.initializer))
+        valuesCollections.foreach(Op.currentGraph.addToCollection(value, _))
+        updatesCollections.foreach(Op.currentGraph.addToCollection(update, _))
+        resetsCollections.foreach(Op.currentGraph.addToCollection(reset, _))
+        Metric.StreamingInstance(value, update, reset, Set(total, count))
       }
-      val updateTotal = total.assignAdd(Math.sum(processedValues))
-      val updateCount = count.assignAdd(numValues)
-      val value = safeDiv(total.value, count.value, name = "Value")
-      val update = safeDiv(updateTotal, updateCount, name = "Update")
-      val reset = ControlFlow.group(Set(total.initializer, count.initializer))
-      valuesCollections.foreach(Op.currentGraph.addToCollection(value, _))
-      updatesCollections.foreach(Op.currentGraph.addToCollection(update, _))
-      resetsCollections.foreach(Op.currentGraph.addToCollection(reset, _))
-      (value, update, reset)
     }
   }
 }

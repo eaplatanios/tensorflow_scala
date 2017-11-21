@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.ops.metrics
 import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.metrics.Metric.{METRIC_RESETS, METRIC_UPDATES, METRIC_VALUES, METRIC_VARIABLES}
-import org.platanios.tensorflow.api.ops.variables.{Variable, ZerosInitializer}
+import org.platanios.tensorflow.api.ops.variables.{Variable, VariableScope, ZerosInitializer}
 import org.platanios.tensorflow.api.ops.{Basic, Checks, Math, Op, Output, SparseOutput}
 import org.platanios.tensorflow.api.types.{DataType, FLOAT64, INT32, INT64}
 
@@ -129,20 +129,22 @@ class ConfusionMatrix private[metrics] (
     * @param  values  Tuple containing the predictions tensor and the targets tensor.
     * @param  weights Tensor containing weights for the predictions.
     * @param  name    Name prefix for the created ops.
-    * @return Tuple containing: (i) output representing the current value of the metric, (ii) op used to reset its
-    *         value, and (iii) op used to update its current value and obtain the new value.
+    * @return Tuple containing: (i) an output representing the current value of the metric, (ii) an op used to update
+    *         its current value and obtain the new value, and (iii) an op used to reset its value.
     */
   override def streaming(
-      values: (Output, Output), weights: Output = null, name: String = name): (Output, Output, Op) = {
-    val accumulator = Metric.localVariable(
-      s"$name/Accumulator", dataType, Shape(numClasses, numClasses), ZerosInitializer, variablesCollections)
-    val value = compute(values, weights, name = s"$name/Value")
-    val update = accumulator.assignAdd(value, name = s"$name/Update")
-    val reset = accumulator.initializer
-    valuesCollections.foreach(Op.currentGraph.addToCollection(value, _))
-    updatesCollections.foreach(Op.currentGraph.addToCollection(update, _))
-    resetsCollections.foreach(Op.currentGraph.addToCollection(reset, _))
-    (accumulator.value, update, reset)
+      values: (Output, Output), weights: Output = null, name: String = name): Metric.StreamingInstance[Output] = {
+    VariableScope.createWithVariableScope(name) {
+      val accumulator = Metric.localVariable(
+        s"$name/Accumulator", dataType, Shape(numClasses, numClasses), ZerosInitializer, variablesCollections)
+      val value = compute(values, weights, name = s"$name/Value")
+      val update = accumulator.assignAdd(value, name = s"$name/Update")
+      val reset = accumulator.initializer
+      valuesCollections.foreach(Op.currentGraph.addToCollection(value, _))
+      updatesCollections.foreach(Op.currentGraph.addToCollection(update, _))
+      resetsCollections.foreach(Op.currentGraph.addToCollection(reset, _))
+      Metric.StreamingInstance(accumulator.value, update, reset, Set(accumulator))
+    }
   }
 }
 

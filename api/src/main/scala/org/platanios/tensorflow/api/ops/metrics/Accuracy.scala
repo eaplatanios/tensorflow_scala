@@ -74,11 +74,11 @@ class Accuracy private[metrics] (
     * @param  values  Tuple containing the predictions tensor and the targets tensor.
     * @param  weights Tensor containing weights for the predictions.
     * @param  name    Name prefix for the created ops.
-    * @return Tuple containing: (i) output representing the current value of the metric, (ii) op used to reset its
-    *         value, and (iii) op used to update its current value and obtain the new value.
+    * @return Tuple containing: (i) an output representing the current value of the metric, (ii) an op used to update
+    *         its current value and obtain the new value, and (iii) an op used to reset its value.
     */
   override def streaming(
-      values: (Output, Output), weights: Output = null, name: String = name): (Output, Output, Op) = {
+      values: (Output, Output), weights: Output = null, name: String = name): Metric.StreamingInstance[Output] = {
     var (matchedPredictions, matchedTargets, matchedWeights) = Metric.matchAxes(values._1, values._2, weights)
     matchedPredictions.shape.assertIsCompatibleWith(matchedTargets.shape)
     matchedPredictions = matchedPredictions.cast(matchedTargets.dataType)

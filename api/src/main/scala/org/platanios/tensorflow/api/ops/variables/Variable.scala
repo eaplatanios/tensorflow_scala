@@ -642,6 +642,14 @@ private[api] object Variable {
     */
   def localVariables: Set[Variable] = Op.currentGraph.localVariables
 
+  /** Returns the set of metric variables in the current graph.
+    *
+    * Metric variables are usually not saved/restored to/from checkpoints and are used for temporary or intermediate
+    * values used for computing metrics (e.g., streaming metrics). This convenience function returns the contents of
+    * that collection.
+    */
+  def metricVariables: Set[Variable] = Op.currentGraph.metricVariables
+
   /** Creates an op that initializes the provided variables.
     *
     * After you launch the graph in a session, you can run the returned op to initialize all the variables in

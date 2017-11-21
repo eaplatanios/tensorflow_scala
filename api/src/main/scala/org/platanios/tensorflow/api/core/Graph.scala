@@ -18,6 +18,7 @@ package org.platanios.tensorflow.api.core
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception.{GraphMismatchException, InvalidArgumentException}
 import org.platanios.tensorflow.api.ops.{InstantiatedFunction, Op, Output, Resource}
+import org.platanios.tensorflow.api.ops.metrics.Metric
 import org.platanios.tensorflow.api.ops.variables.{Saver, Variable, VariableStore}
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer}
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
@@ -231,8 +232,16 @@ class Graph private[api](private[api] var nativeHandle: Long) extends Closeable 
     */
   def localVariables: Set[Variable] = getCollection(Graph.Keys.LOCAL_VARIABLES)
 
-  /** Returns the subset of `Variable` objects that are used in models for inference (feed forward), in this grap. */
+  /** Returns the subset of `Variable` objects that are used in models for inference (feed forward), in this graph. */
   def modelVariables: Set[Variable] = getCollection(Graph.Keys.MODEL_VARIABLES)
+
+  /** Returns the set of metric variables in the current graph.
+    *
+    * Metric variables are usually not saved/restored to/from checkpoints and are used for temporary or intermediate
+    * values used for computing metrics (e.g., streaming metrics). This convenience function returns the contents of
+    * that collection.
+    */
+  def metricVariables: Set[Variable] = getCollection(Metric.METRIC_VARIABLES)
 
   /** Returns the set of all variables created with `trainable = true`.
     *
@@ -313,6 +322,17 @@ class Graph private[api](private[api] var nativeHandle: Long) extends Closeable 
     */
   def modelVariablesInitializer(name: String = "ModelVariablesInitializer"): Op = {
     Variable.initializer(modelVariables, name)
+  }
+
+  /** Returns an op that initializes all metric variables of this graph.
+    *
+    * For more information, refer to [[metricVariables]] and [[Variable.initializer]].
+    *
+    * @param  name Name for the created op.
+    * @return Created op.
+    */
+  def metricVariablesInitializer(name: String = "MetricVariablesInitializer"): Op = {
+    Variable.initializer(metricVariables, name)
   }
 
   /** Returns an op that initializes all trainable variables of this graph.

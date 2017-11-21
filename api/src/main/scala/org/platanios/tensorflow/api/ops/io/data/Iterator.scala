@@ -21,6 +21,8 @@ import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry
 import org.platanios.tensorflow.api.ops.io.data
 import org.platanios.tensorflow.api.types.DataType
 
+// TODO: Rename to "DatasetIterator".
+
 /** A simple [[Iterator]] that does contains an initializer and can thus not be used until an initializer is created for
   * it, using its `createInitializer` method.
   *
