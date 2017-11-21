@@ -116,7 +116,7 @@ private[api] trait Basic {
     if (optimize && input.shape.isFullyDefined) {
       // We can produce a zeros tensor independent of the value of 'tensor' since the shape is known statically.
       zeros(outputDataType, input.shape, name)
-    } else if (outputDataType != input.dataType) {
+    } else if (outputDataType != input.dataType && outputDataType != VARIANT) {
       Op.Builder(opType = "ZerosLike", name = name)
           .addInput(Math.cast(input, outputDataType))
           .build().outputs(0)
@@ -157,7 +157,7 @@ private[api] trait Basic {
     if (optimize && input.shape.isFullyDefined) {
       // We can produce a ones tensor independent of the value of 'tensor' since the shape is known statically.
       ones(outputDataType, input.shape, name)
-    } else if (outputDataType != input.dataType) {
+    } else if (outputDataType != input.dataType && outputDataType != VARIANT) {
       Op.Builder(opType = "OnesLike", name = name)
           .addInput(Math.cast(input, outputDataType))
           .build().outputs(0)
