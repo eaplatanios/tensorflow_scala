@@ -28,8 +28,9 @@ import org.platanios.tensorflow.api.ops.variables.Variable
   */
 case class ModelInstance[I, TT, TO, TD, TS](
     inputIterator: Iterator[TT, TO, TD, TS],
+    input: TO,
     output: I,
-    loss: Option[Output],
-    trainOp: Option[Op],
-    trainableVariables: Set[Variable],
-    nonTrainableVariables: Set[Variable])
+    loss: Option[Output] = None,
+    trainOp: Option[Op] = None,
+    trainableVariables: Set[Variable] = Set.empty,
+    nonTrainableVariables: Set[Variable] = Set.empty)

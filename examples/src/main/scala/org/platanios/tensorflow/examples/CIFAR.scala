@@ -68,7 +68,7 @@ object CIFAR {
       tf.learn.Configuration(Some(summariesDir)),
       tf.learn.StopCriteria(maxSteps = Some(100000)),
       Set(
-        tf.learn.StepRateHook(log = false, summaryDirectory = summariesDir, trigger = tf.learn.StepHookTrigger(100)),
+        tf.learn.StepRateHook(log = false, summaryDir = summariesDir, trigger = tf.learn.StepHookTrigger(100)),
         // tf.learn.SummarySaverHook(summariesDir, tf.learn.StepHookTrigger(100)),
       tf.learn.CheckpointSaverHook(summariesDir, tf.learn.StepHookTrigger(1000))),
       tensorBoardConfig = tf.learn.TensorBoardConfig(summariesDir, reloadInterval = 1))

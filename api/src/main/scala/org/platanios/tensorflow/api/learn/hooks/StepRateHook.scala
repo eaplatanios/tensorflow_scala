@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.learn.hooks
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.{Executable, Fetchable, Session}
 import org.platanios.tensorflow.api.io.events.{SummaryFileWriter, SummaryFileWriterCache}
-import org.platanios.tensorflow.api.learn.Counter
+import org.platanios.tensorflow.api.learn.{Counter, SessionCreator}
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.tensors.Tensor
@@ -31,27 +31,27 @@ import java.nio.file.Path
 
 /** Saves summaries to files based on a [[HookTrigger]].
   *
-  * @param  log              If `true`, the step rate is logged using the current logging configuration.
-  * @param  summaryDirectory If provided, summaries for the step rate will be saved in this directory. This is useful
-  *                          for visualization using TensorBoard, for example.
-  * @param  trigger          Hook trigger specifying when this hook is triggered (i.e., when it executes). If you only
-  *                          want to trigger this hook at the end of a run and not during, then you should set
-  *                          `trigger` to [[NoHookTrigger]] and `triggerAtEnd` to `true`.
-  * @param  triggerAtEnd     If `true`, the hook will be triggered at the end of the run. Note that if this flag is set
-  *                          to `true`, then the global step must be computable without using a feed map for the
-  *                          [[Session.run()]] call (which should always be the case by default).
-  * @param  tag              Tag to use for the step rate when logging and saving summaries.
+  * @param  log          If `true`, the step rate is logged using the current logging configuration.
+  * @param  summaryDir   If provided, summaries for the step rate will be saved in this directory. This is useful for
+  *                      visualization using TensorBoard, for example.
+  * @param  trigger      Hook trigger specifying when this hook is triggered (i.e., when it executes). If you only want
+  *                      to trigger this hook at the end of a run and not during, then you should set `trigger` to
+  *                      [[NoHookTrigger]] and `triggerAtEnd` to `true`.
+  * @param  triggerAtEnd If `true`, the hook will be triggered at the end of the run. Note that if this flag is set to
+  *                      `true`, then the global step must be computable without using a feed map for the
+  *                      [[Session.run()]] call (which should always be the case by default).
+  * @param  tag          Tag to use for the step rate when logging and saving summaries.
   *
   * @author Emmanouil Antonios Platanios
   */
 case class StepRateHook(
     log: Boolean = true,
-    summaryDirectory: Path = null,
+    summaryDir: Path = null,
     trigger: HookTrigger = StepHookTrigger(10),
     triggerAtEnd: Boolean = true,
     tag: String = "Steps/Sec"
 ) extends Hook {
-  require(log || summaryDirectory != null, "At least one of 'log' and 'summaryDirectory' needs to be provided.")
+  require(log || summaryDir != null, "At least one of 'log' and 'summaryDir' needs to be provided.")
 
   private[this] var step         : Variable                  = _
   private[this] var summaryWriter: Option[SummaryFileWriter] = None
@@ -60,11 +60,11 @@ case class StepRateHook(
   private[this] var lastStep       : Long        = 0L
   private[this] var shouldTrigger  : Boolean     = false
 
-  override def begin(): Unit = {
+  override def begin(sessionCreator: SessionCreator): Unit = {
     internalTrigger.reset()
     step = Counter.get(Graph.Keys.GLOBAL_STEP, local = false).getOrElse(throw new IllegalStateException(
       s"A ${Graph.Keys.GLOBAL_STEP.name} variable should be created in order to use the 'StepRateHook'."))
-    summaryWriter = Option(summaryDirectory).map(SummaryFileWriterCache.get(_))
+    summaryWriter = Option(summaryDir).map(SummaryFileWriterCache.get(_))
   }
 
   override def afterSessionCreation(session: Session): Unit = {

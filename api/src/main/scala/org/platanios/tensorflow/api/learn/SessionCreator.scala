@@ -18,14 +18,26 @@ package org.platanios.tensorflow.api.learn
 import org.platanios.tensorflow.api.core.client.{Session, SessionConfig}
 import org.platanios.tensorflow.api.learn.hooks.Hook
 import org.platanios.tensorflow.api.ops.Op
+import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 
 import java.nio.file.Path
+
+import scala.collection.mutable
 
 /** Factory for [[Session]]s.
   *
   * @author Emmanouil Antonios Platanios
   */
 trait SessionCreator {
+  protected var extraInitOps: mutable.Set[Op] = mutable.Set.empty[Op]
+  protected var extraLocalInitOps: mutable.Set[Op] = mutable.Set.empty[Op]
+
+  def addInitOp(op: Op): Unit = extraInitOps += op
+  def addLocalInitOp(op: Op): Unit = extraLocalInitOps += op
+
+  protected lazy val initOp: Op = ControlFlow.noOp("InitOp")
+  protected lazy val localInitOp: Op = ControlFlow.noOp("LocalInitOp")
+
   /** Creates a new [[Session]]. */
   def createSession(): Session
 }
@@ -51,21 +63,38 @@ case class ChiefSessionCreator(
   private[this] var builtSessionScaffold: BuiltSessionScaffold = _
   private[this] var sessionManager      : SessionManager       = _
 
+  override protected lazy val initOp: Op = {
+    if (extraInitOps.isEmpty)
+      builtSessionScaffold.initOp
+    else
+      ControlFlow.group(extraInitOps.toSet + builtSessionScaffold.localInitOp, name = "Init")
+  }
+
+  override protected lazy val localInitOp: Op = {
+    if (extraLocalInitOps.isEmpty)
+      builtSessionScaffold.localInitOp
+    else
+      ControlFlow.group(extraLocalInitOps.toSet + builtSessionScaffold.localInitOp, name = "LocalInit")
+  }
+
   override def createSession(): Session = {
     if (builtSessionScaffold == null)
       builtSessionScaffold = sessionScaffold.build()
+    val initOp = this.initOp
+    val localInitOp = this.localInitOp
+    Op.currentGraph.freeze()
     if (sessionManager == null)
       sessionManager = SessionManager(
         graph = Op.currentGraph,
         readyOp = Option(builtSessionScaffold.readyOp),
         readyForLocalInitOp = Option(builtSessionScaffold.readyForLocalInitOp),
-        localInitOp = Option(builtSessionScaffold.localInitOp))
+        localInitOp = Option(localInitOp))
     sessionManager.prepareSession(
       master = master,
       saver = builtSessionScaffold.saver,
       checkpointPath = checkpointPath,
       sessionConfig = sessionConfig,
-      initOp = Option(builtSessionScaffold.initOp),
+      initOp = Option(initOp),
       initFeedMap = builtSessionScaffold.initFeedMap,
       initFunction = builtSessionScaffold.internalInitFunction
     )
@@ -89,15 +118,31 @@ case class WorkerSessionCreator(
   private[this] var builtSessionScaffold: BuiltSessionScaffold = _
   private[this] var sessionManager      : SessionManager       = _
 
+  override protected lazy val initOp: Op = {
+    if (extraInitOps.isEmpty)
+      builtSessionScaffold.initOp
+    else
+      ControlFlow.group(extraInitOps.toSet + builtSessionScaffold.localInitOp, name = "Init")
+  }
+
+  override protected lazy val localInitOp: Op = {
+    if (extraLocalInitOps.isEmpty)
+      builtSessionScaffold.localInitOp
+    else
+      ControlFlow.group(extraLocalInitOps.toSet + builtSessionScaffold.localInitOp, name = "LocalInit")
+  }
+
   override def createSession(): Session = {
     if (builtSessionScaffold == null)
       builtSessionScaffold = sessionScaffold.build()
+    val localInitOp = this.localInitOp
+    Op.currentGraph.freeze()
     if (sessionManager == null)
       sessionManager = SessionManager(
         graph = Op.currentGraph,
         readyOp = Option(builtSessionScaffold.readyOp),
         readyForLocalInitOp = Option(builtSessionScaffold.readyForLocalInitOp),
-        localInitOp = Option(builtSessionScaffold.localInitOp))
+        localInitOp = Option(localInitOp))
     sessionManager.waitForSession(
       master = master,
       sessionConfig = sessionConfig,

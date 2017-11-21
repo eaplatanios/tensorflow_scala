@@ -16,6 +16,7 @@
 package org.platanios.tensorflow.api.learn.hooks
 
 import org.platanios.tensorflow.api.core.client.{Executable, Fetchable}
+import org.platanios.tensorflow.api.learn.SessionCreator
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
 
@@ -34,7 +35,7 @@ import org.slf4j.LoggerFactory
 case class TensorNaNHook(tensorNames: Set[String], failOnNaN: Boolean = true) extends Hook {
   private[this] var outputs: Seq[Output] = _
 
-  override def begin(): Unit = {
+  override def begin(sessionCreator: SessionCreator): Unit = {
     // Convert tensor names to op outputs.
     outputs = tensorNames.map(Op.currentGraph.getOutputByName).toSeq
   }

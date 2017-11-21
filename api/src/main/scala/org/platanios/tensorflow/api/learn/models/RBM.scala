@@ -97,10 +97,11 @@ class RBM(
   override def buildEvaluateOps(metrics: Seq[Metric[Output, Output]]): EvalOps = {
     evalOpsCache.getOrElseUpdate(Op.currentGraph, {
       val inferOps = buildInferOps()
-      val (mValues, mUpdates, mResets) = metrics.map(_.streaming(inferOps.output)).unzip3
+      val streamingInstances = metrics.map(_.streaming(inferOps.output))
       Model.EvaluateOps(
-        inferOps.inputIterator, inferOps.input, inferOps.output, mValues, mUpdates, mResets,
-        inferOps.trainableVariables, inferOps.nonTrainableVariables)
+        inferOps.inputIterator, inferOps.input, inferOps.output,
+        streamingInstances.map(_.value), streamingInstances.map(_.update), streamingInstances.map(_.reset),
+        inferOps.trainableVariables, inferOps.nonTrainableVariables ++ streamingInstances.flatMap(_.variables))
     })
   }
 

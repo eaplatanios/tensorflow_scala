@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.learn.estimators
 import org.platanios.tensorflow.api.config.TensorBoardConfig
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.Fetchable
-import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
+import org.platanios.tensorflow.api.core.exception.{InvalidArgumentException, OutOfRangeException}
 import org.platanios.tensorflow.api.learn._
 import org.platanios.tensorflow.api.learn.hooks._
 import org.platanios.tensorflow.api.ops.{Op, Output, Resource}
@@ -92,21 +92,21 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
         val evalStepUpdate = evalStep.assignAdd(1L)
         val evalUpdateOps = ControlFlow.group(evaluateOps.metricUpdates.map(_.op).toSet + evalStepUpdate.op)
         val trainModelInstance = ModelInstance(
-          trainOps.inputIterator, trainOps.output, Some(trainOps.loss), Some(trainOps.trainOp),
+          trainOps.inputIterator, trainOps.input, trainOps.output, Some(trainOps.loss), Some(trainOps.trainOp),
           trainOps.trainableVariables, trainOps.nonTrainableVariables)
         trainHooks.foreach {
           case hook: ModelDependentHook[I, TT, TO, TD, TS] => hook.setModelInstance(trainModelInstance)
           case _ => ()
         }
         val inferModelInstance = ModelInstance(
-          inferOps.inputIterator, inferOps.output, None, None,
+          inferOps.inputIterator, inferOps.input, inferOps.output, None, None,
           inferOps.trainableVariables, inferOps.nonTrainableVariables)
         inferHooks.foreach {
           case hook: ModelDependentHook[I, IT, IO, ID, IS] => hook.setModelInstance(inferModelInstance)
           case _ => ()
         }
         val evaluateModelInstance = ModelInstance(
-          evaluateOps.inputIterator, evaluateOps.output, None, None,
+          evaluateOps.inputIterator, evaluateOps.input, evaluateOps.output, None, None,
           evaluateOps.trainableVariables, evaluateOps.nonTrainableVariables)
         evaluateHooks.foreach {
           case hook: ModelDependentHook[I, TT, TO, TD, TS] => hook.setModelInstance(evaluateModelInstance)
@@ -132,8 +132,8 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
         chiefOnlyHooks = allTrainChiefOnlyHooks.toSet,
         sessionScaffold = SessionScaffold(
           initOp = Some(ControlFlow.group(Set(
-          Variable.initializer(Variable.globalVariables),
-          Resource.initializer(Resource.sharedResources)))),
+            Variable.initializer(Variable.globalVariables),
+            Resource.initializer(Resource.sharedResources)))),
           localInitOp = Some(ControlFlow.group(Set(
             Variable.initializer(Variable.localVariables),
             Lookup.initializer(Lookup.initializers)))),
@@ -165,7 +165,11 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
       session.enableHooks()
       try {
         while (!session.shouldStop)
-          session.run(targets = trainingOps.trainOp)
+          try {
+            session.run(targets = trainingOps.trainOp)
+          } catch {
+            case _: OutOfRangeException => session.setShouldStop(true)
+          }
       } catch {
         case t: Throwable if !RECOVERABLE_EXCEPTIONS.contains(t.getClass) =>
           stopHook.updateCriteria(this.stopCriteria)
@@ -222,6 +226,10 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
             try {
               session.run(fetches = (inferenceOps.input, inferenceOps.output))
             } catch {
+              case _: OutOfRangeException =>
+                session.setShouldStop(true)
+                // TODO: !!! Do something to avoid this null pair.
+                (null.asInstanceOf[IT], null.asInstanceOf[ModelInferenceOutput])
               case t: Throwable =>
                 stopHook.updateCriteria(stopCriteria)
                 session.closeWithoutHookEnd()
@@ -293,7 +301,11 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
           try {
             val step = session.run(fetches = globalStep.value).scalar.asInstanceOf[Long]
             while (!session.shouldStop)
-              session.run(targets = evaluationUpdateOps)
+              try {
+                session.run(targets = evaluationUpdateOps)
+              } catch {
+                case _: OutOfRangeException => session.setShouldStop(true)
+              }
             (step, session.run(fetches = evaluationOps.metricValues))
           } catch {
             case e if RECOVERABLE_EXCEPTIONS.contains(e.getClass) =>

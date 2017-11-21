@@ -17,6 +17,7 @@ package org.platanios.tensorflow.api.learn.hooks
 
 import org.platanios.tensorflow.api.config.TensorBoardConfig
 import org.platanios.tensorflow.api.core.client.Session
+import org.platanios.tensorflow.api.learn.SessionCreator
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
@@ -32,7 +33,7 @@ import org.slf4j.LoggerFactory
 private[learn] case class TensorBoardHook(tensorBoardConfig: TensorBoardConfig) extends Hook {
   private[this] var tensorBoardProcess: Option[Process] = None
 
-  override def begin(): Unit = tensorBoardProcess = {
+  override def begin(sessionCreator: SessionCreator): Unit = tensorBoardProcess = {
     Option(tensorBoardConfig).map(config => {
       TensorBoardHook.logger.info(
         s"Launching TensorBoard in '${config.host}:${config.port}' for log directory '${config.logDir.toAbsolutePath}'.")

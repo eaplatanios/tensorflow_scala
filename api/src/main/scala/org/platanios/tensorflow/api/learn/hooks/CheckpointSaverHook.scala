@@ -19,7 +19,7 @@ import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.{Executable, Fetchable, Session}
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.io.events.{SummaryFileWriter, SummaryFileWriterCache}
-import org.platanios.tensorflow.api.learn.Counter
+import org.platanios.tensorflow.api.learn.{Counter, SessionCreator}
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.ops.variables.{Saver, Variable}
 import org.platanios.tensorflow.api.tensors.Tensor
@@ -60,7 +60,7 @@ case class CheckpointSaverHook(
   private[this] var lastStep       : Long        = 0L
   private[this] var shouldTrigger  : Boolean     = false
 
-  override def begin(): Unit = {
+  override def begin(sessionCreator: SessionCreator): Unit = {
     internalTrigger.reset()
     step = Counter.get(Graph.Keys.GLOBAL_STEP, local = false).getOrElse(throw InvalidArgumentException(
       s"A ${Graph.Keys.GLOBAL_STEP.name} variable should be created in order to use the 'CheckpointSaverHook'."))

@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.learn.estimators
 import org.platanios.tensorflow.api.config._
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.Fetchable
-import org.platanios.tensorflow.api.core.exception.{CheckpointNotFoundException, InvalidArgumentException}
+import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.io.CheckpointReader
 import org.platanios.tensorflow.api.learn._
 import org.platanios.tensorflow.api.learn.hooks._
@@ -142,7 +142,7 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
         graph.addToCollection(trainOps.loss, Graph.Keys.LOSSES)
         allHooks += TensorNaNHook(Set(trainOps.loss.name))
         val modelInstance = ModelInstance(
-          trainOps.inputIterator, trainOps.output, Some(trainOps.loss), Some(trainOps.trainOp),
+          trainOps.inputIterator, trainOps.input, trainOps.output, Some(trainOps.loss), Some(trainOps.trainOp),
           trainOps.trainableVariables, trainOps.nonTrainableVariables)
         allHooks.foreach {
           case hook: ModelDependentHook[I, TT, TO, TD, TS] => hook.setModelInstance(modelInstance)
@@ -168,6 +168,7 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
           while (!session.shouldStop)
             session.run(targets = trainOps.trainOp)
         } catch {
+          case _: OutOfRangeException => session.setShouldStop(true)
           case e if RECOVERABLE_EXCEPTIONS.contains(e.getClass) => session.close()
           case t: Throwable =>
             session.closeWithoutHookEnd()
@@ -261,7 +262,7 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
       val inferOps = Op.createWithNameScope("Model")(model.buildInferOps())
       val inputInitializer = inferOps.inputIterator.createInitializer(ev.toDataset(input()))
       val modelInstance = ModelInstance(
-        inferOps.inputIterator, inferOps.output, None, None,
+        inferOps.inputIterator, inferOps.input, inferOps.output, None, None,
         inferOps.trainableVariables, inferOps.nonTrainableVariables)
       hooks.foreach {
         case hook: ModelDependentHook[I, IT, IO, ID, IS] => hook.setModelInstance(modelInstance)
@@ -288,6 +289,10 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
           try {
             session.run(fetches = (inferOps.input, inferOps.output))
           } catch {
+            case _: OutOfRangeException =>
+              session.setShouldStop(true)
+              // TODO: !!! Do something to avoid this null pair.
+              (null.asInstanceOf[IT], null.asInstanceOf[ModelInferenceOutput])
             case t: Throwable =>
               session.closeWithoutHookEnd()
               throw t
@@ -400,7 +405,7 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
       val allHooks = mutable.Set(hooks.toSeq: _*)
       allHooks += StopEvaluationHook(maxSteps)
       val modelInstance = ModelInstance(
-        evaluateOps.inputIterator, evaluateOps.output, None, None,
+        evaluateOps.inputIterator, evaluateOps.input, evaluateOps.output, None, None,
         evaluateOps.trainableVariables, evaluateOps.nonTrainableVariables)
       allHooks.foreach {
         case hook: ModelDependentHook[I, TT, TO, TD, TS] => hook.setModelInstance(modelInstance)
@@ -427,7 +432,11 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
         try {
           val step = session.run(fetches = globalStep.value).scalar.asInstanceOf[Long]
           while (!session.shouldStop)
-            session.run(targets = evalUpdateOps)
+            try {
+              session.run(targets = evalUpdateOps)
+            } catch {
+              case _: OutOfRangeException => session.setShouldStop(true)
+            }
           (step, session.run(fetches = evaluateOps.metricValues))
         } catch {
           case e if RECOVERABLE_EXCEPTIONS.contains(e.getClass) =>

@@ -106,7 +106,7 @@ class SessionWrapper private[learn](
       val currentHooks = activeHooks.toSeq
 
       // Invoke the hooks' `beforeSessionRun` callbacks.
-      val runContext = Hook.SessionRunContext(Hook.SessionRunArgs(feeds, fetches, targets, options), session)
+      val runContext = Hook.SessionRunContext(Hook.SessionRunArgs(feeds, fetches, targets, options), this)
       val runOptions = if (options == null) RunOptions.getDefaultInstance else options
       val combinedArgs = invokeHooksBeforeSessionRun(runContext, runOptions, currentHooks)
 
@@ -412,7 +412,7 @@ object MonitoredSession {
       hooks: Set[Hook] = Set.empty,
       shouldRecover: Boolean = true
   ): MonitoredSession = {
-    hooks.foreach(_.begin())
+    hooks.foreach(_.begin(sessionCreator))
     val hookedSessionCreator = HookedSessionCreator(sessionCreator, hooks)
     val session = if (shouldRecover) RecoverableSession(hookedSessionCreator) else hookedSessionCreator.createSession()
     new MonitoredSession(session, hooks)

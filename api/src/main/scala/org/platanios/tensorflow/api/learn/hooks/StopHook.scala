@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.learn.hooks
 
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.{Executable, Fetchable, Session}
-import org.platanios.tensorflow.api.learn.{Counter, StopCriteria}
+import org.platanios.tensorflow.api.learn.{Counter, SessionCreator, StopCriteria}
 import org.platanios.tensorflow.api.ops.{Math, Op, Output}
 import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.tensors.Tensor
@@ -71,7 +71,7 @@ private[learn] case class StopHook(private var criteria: StopCriteria) extends H
     numStepsBelowTol = 0
   }
 
-  override def begin(): Unit = {
+  override def begin(sessionCreator: SessionCreator): Unit = {
     val fetches = mutable.ListBuffer.empty[Output]
     if (criteria.maxSeconds.isDefined)
       startTime = System.currentTimeMillis()

@@ -263,10 +263,11 @@ private[learn] class SimpleUnsupervisedTrainableModel[IT, IO, ID, IS, I] private
     val inputIterator = input()
     val inputIteratorNext = inputIterator.next()
     val layerOutput = layer(inputIteratorNext, EVALUATION)
-    val (mValues, mUpdates, mResets) = metrics.map(_.streaming(layerOutput.output)).unzip3
+    val streamingInstances = metrics.map(_.streaming(layerOutput.output))
     Model.EvaluateOps(
-      inputIterator, inputIteratorNext, layerOutput.output, mValues, mUpdates, mResets,
-      layerOutput.trainableVariables, layerOutput.nonTrainableVariables)
+      inputIterator, inputIteratorNext, layerOutput.output,
+      streamingInstances.map(_.value), streamingInstances.map(_.update), streamingInstances.map(_.reset),
+      layerOutput.trainableVariables, layerOutput.nonTrainableVariables ++ streamingInstances.flatMap(_.variables))
   }
 }
 
@@ -305,10 +306,11 @@ private[learn] class SimpleSupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, T
     val inputIteratorNext = inputIterator.next()
     val layerOutput = layer(inputIteratorNext._1, EVALUATION)
     val trainLayerOutput = trainInputLayer(inputIteratorNext._2, EVALUATION)
-    val (mValues, mUpdates, mResets) = metrics.map(_.streaming((layerOutput.output, trainLayerOutput.output))).unzip3
+    val streamingInstances = metrics.map(_.streaming((layerOutput.output, trainLayerOutput.output)))
     Model.EvaluateOps(
-      inputIterator, inputIteratorNext, layerOutput.output, mValues, mUpdates, mResets,
-      layerOutput.trainableVariables, layerOutput.nonTrainableVariables)
+      inputIterator, inputIteratorNext, layerOutput.output,
+      streamingInstances.map(_.value), streamingInstances.map(_.update), streamingInstances.map(_.reset),
+      layerOutput.trainableVariables, layerOutput.nonTrainableVariables ++ streamingInstances.flatMap(_.variables))
   }
 }
 
@@ -348,9 +350,10 @@ private[learn] class SupervisedConditionalTrainableModel[IT, IO, ID, IS, I, TT, 
     val inputIteratorNext = inputIterator.next()
     val layerOutput = layer(inputIteratorNext._1, EVALUATION)
     val trainLayerOutput = trainInputLayer(inputIteratorNext._2, EVALUATION)
-    val (mValues, mUpdates, mResets) = metrics.map(_.streaming((layerOutput.output, trainLayerOutput.output))).unzip3
+    val streamingInstances = metrics.map(_.streaming((layerOutput.output, trainLayerOutput.output)))
     Model.EvaluateOps(
-      inputIterator, inputIteratorNext, layerOutput.output, mValues, mUpdates, mResets,
-      layerOutput.trainableVariables, layerOutput.nonTrainableVariables)
+      inputIterator, inputIteratorNext, layerOutput.output,
+      streamingInstances.map(_.value), streamingInstances.map(_.update), streamingInstances.map(_.reset),
+      layerOutput.trainableVariables, layerOutput.nonTrainableVariables ++ streamingInstances.flatMap(_.variables))
   }
 }

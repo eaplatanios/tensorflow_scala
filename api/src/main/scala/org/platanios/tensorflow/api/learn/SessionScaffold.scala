@@ -87,7 +87,6 @@ case class SessionScaffold(
       "summary_op", Graph.Keys.SUMMARY_OP, () => Summary.mergeAll().orNull))
     val _saver = saver.getOrElse(getItemOrElse(
       "saver", Graph.Keys.SAVERS, () => Saver(sharded = true, allowEmpty = true)))
-    Op.currentGraph.freeze()
     BuiltSessionScaffold(
       _readyOp, _readyForLocalInitOp, _initOp, initFeedMap, initFunction, _localInitOp, Option(_summaryOp),
       Option(_saver))

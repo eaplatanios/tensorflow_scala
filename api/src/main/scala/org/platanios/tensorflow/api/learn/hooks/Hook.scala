@@ -17,10 +17,9 @@ package org.platanios.tensorflow.api.learn.hooks
 
 import org.platanios.tensorflow.api.core.client.{Executable, FeedMap, Fetchable, Session}
 import org.platanios.tensorflow.api.core.exception.OutOfRangeException
-import org.platanios.tensorflow.api.learn.MonitoredSession
+import org.platanios.tensorflow.api.learn.{MonitoredSession, SessionCreator, SessionWrapper}
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
-
 import org.tensorflow.framework.{RunMetadata, RunOptions}
 
 /** Hook to extend calls to `MonitoredSession.run()`.
@@ -122,7 +121,7 @@ abstract class Hook {
     * session. The hook can modify the graph by adding new operations to it. After the `begin` call the graph will be
     * finalized and the other callbacks will not be able to modify the graph anymore. A second `begin` call on the same
     * graph, should not change that graph. */
-  def begin(): Unit = ()
+  def begin(sessionCreator: SessionCreator): Unit = ()
 
   /** Called after a new session is created. This is called to signal the hooks that a new session has been created.
     * This callback has two essential differences with the situation in which `begin()` is called:
@@ -200,7 +199,7 @@ object Hook {
     * @param  args    Arguments to the original request to `Session.run()`.
     * @param  session Session that will execute the run request.
     */
-  case class SessionRunContext[F, E, R](args: SessionRunArgs[F, E, R], session: Session)(implicit
+  case class SessionRunContext[F, E, R](args: SessionRunArgs[F, E, R], session: SessionWrapper)(implicit
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]
   ) {
