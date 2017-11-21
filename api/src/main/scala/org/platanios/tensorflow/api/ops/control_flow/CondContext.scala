@@ -81,13 +81,13 @@ private[api] case class CondContext private[control_flow] (
       externalValues.getOrElse(output.name, output)
     } else {
       values += output.name
-      var result = output
-      outerContext.foreach(c => {
-        result = c.add(output)
-        values += result.name
-      })
-      Op.createWith(controlDependencies = Set.empty[Op]) {
-        result = branch.selectSwitchResult(ControlFlow.colocatedSwitch(result, predicate))
+      val switchInput = outerContext.map(c => {
+        val i = c.add(output)
+        values += i.name
+        i
+      }).getOrElse(output)
+      val result = Op.createWith(controlDependencies = Set.empty[Op]) {
+        branch.selectSwitchResult(ControlFlow.colocatedSwitch(switchInput, predicate))
       }
       result.graph.preventFetching(result.op)
       result.op.controlFlowContext = Some(this)

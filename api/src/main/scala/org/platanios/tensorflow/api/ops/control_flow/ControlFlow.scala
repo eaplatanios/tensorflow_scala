@@ -657,7 +657,7 @@ private[api] object ControlFlow extends ControlFlow {
           gradientContext.exitResult(result)
           result
         }
-      }).getOrElse(outputGradients)
+      }).get
     }
 
     /** Gradients for an exit op are calculated using an enter op. */
@@ -707,7 +707,7 @@ private[api] object ControlFlow extends ControlFlow {
           gradientContext.exit()
           result
         }
-      }).getOrElse(outputGradients)
+      }).get
     }
 
     /** Gradients for a switch op are calculated using a merge op. If the switch is a loop switch, it will be visited

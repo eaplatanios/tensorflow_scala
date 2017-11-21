@@ -45,8 +45,8 @@ import scala.util.DynamicVariable
   */
 abstract class Context protected (
     private[control_flow] val values: mutable.Set[String] = mutable.Set.empty,
-    private[control_flow] val externalValues: mutable.Map[String, Output] = mutable.Map.empty)
-    (implicit context: DynamicVariable[OpCreationContext]) extends ProtoSerializable {
+    private[control_flow] val externalValues: mutable.Map[String, Output] = mutable.Map.empty
+) extends ProtoSerializable {
   (values -- externalValues.keySet)
       .map(_.split(":")(0))
       .map(Op.currentGraph.getOpByName(_))
@@ -59,7 +59,7 @@ abstract class Context protected (
   private[this] val contextStack: mutable.ListBuffer[Option[Context]] = mutable.ListBuffer.empty[Option[Context]]
 
   /** Control flow context containing this context. */
-  val outerContext: Option[Context] = context.value.controlFlowContext
+  val outerContext: Option[Context] = Op.currentControlFlowContext
 
   /** Returns the control pivot op output for this context. */
   def controlPivot: Option[Op] = None
