@@ -2053,14 +2053,10 @@ private[api] trait Math {
       val (reshapedA, freeA, freeAStatic) = tensorDotReshape(a, axesA)
       val (reshapedB, freeB, freeBStatic) = tensorDotReshape(b, axesB, flipped = true)
       val abMatmul = matmul(reshapedA, reshapedB)
-      if (freeAStatic != null && freeBStatic != null) {
-        Basic.reshape(abMatmul, Shape.fromSeq(freeAStatic ++ freeBStatic))
-      } else {
-        val reshaped = Basic.reshape(abMatmul, Basic.concatenate(Seq(freeA, freeB), 0))
-        if (freeAStatic != null && freeBStatic != null)
-          reshaped.setShape(Shape.fromSeq(freeAStatic ++ freeBStatic))
-        reshaped
-      }
+      val reshaped = Basic.reshape(abMatmul, Basic.concatenate(Seq(freeA, freeB), 0))
+      if (freeAStatic != null && freeBStatic != null)
+        reshaped.setShape(Shape.fromSeq(freeAStatic ++ freeBStatic))
+      reshaped
     }
   }
 
