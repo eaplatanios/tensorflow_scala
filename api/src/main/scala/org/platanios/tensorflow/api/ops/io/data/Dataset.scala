@@ -320,7 +320,7 @@ object Dataset {
             throw InvalidDataTypeException(
               s"The generator yielded an element of type ${tensor.dataType} " +
                   s"where an element of type $dataType was expected.")
-          if (tensor.shape != shape)
+          if (!tensor.shape.isCompatibleWith(shape))
             throw InvalidShapeException(
               s"The generator yielded an element with shape ${tensor.shape} " +
                   s"where an element with shape $shape was expected.")

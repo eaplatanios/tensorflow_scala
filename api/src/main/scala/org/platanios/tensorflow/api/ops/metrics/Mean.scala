@@ -94,9 +94,9 @@ class Mean(
     VariableScope.createWithVariableScope(name) {
       Op.createWithNameScope(name, ops) {
         val castedValues = if (values.dataType != FLOAT64) values.cast(FLOAT32) else values
-        val total = localVariable(
+        val total = variable(
           s"$name/Total", castedValues.dataType, Shape.scalar(), ZerosInitializer, variablesCollections)
-        val count = localVariable(
+        val count = variable(
           s"$name/Count", castedValues.dataType, Shape.scalar(), ZerosInitializer, variablesCollections)
         val (processedValues, numValues) = {
           if (weights == null) {

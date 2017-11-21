@@ -16,6 +16,7 @@
 package org.platanios.tensorflow.api.ops.rnn.decoder
 
 import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api.core.Indexer.::
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops
@@ -178,7 +179,7 @@ object BasicRNNDecoder {
     }
 
     private[this] val zeroInputs: Seq[ops.Output] = Op.createWithNameScope(name, inputs.map(_.op).toSet) {
-      inputs.map(input => Basic.zerosLike(input(0)))
+      inputs.map(input => Basic.zerosLike(input(0, ::)))
     }
 
     /** Scalar `INT32` tensor representing the batch size of a tensor returned by `sample()`. */
@@ -224,9 +225,9 @@ object BasicRNNDecoder {
         Set(time.op) ++ inputs.map(_.op).toSet ++ states.map(_.op).toSet ++ samples.map(_.op).toSet
       ) {
         val nextTime = time + 1
-        val finished = Math.all(Math.greaterEqual(nextTime, sequenceLengths))
+        val finished = Math.greaterEqual(nextTime, sequenceLengths)
         val nextInputs = ControlFlow.cond(
-          finished,
+          Math.all(finished),
           () => zeroInputs,
           () => inputTensorArrays.map(_.read(nextTime)))
         (finished, evO.fromOutputs(input, nextInputs), state)
@@ -289,9 +290,9 @@ object BasicRNNDecoder {
         sample: ops.Output
     ): (ops.Output, ops.Output, S) = {
       Op.createWithNameScope(s"$name/NextInputs", Set(time.op, input.op, sample.op)) {
-        val finished = Math.all(Math.equal(sample, endToken))
+        val finished = Math.equal(sample, endToken)
         val nextInputs = ControlFlow.cond(
-          finished,
+          Math.all(finished),
           // If we are finished, the next inputs value does not matter
           () => beginInputs,
           () => embeddingFn(sample))

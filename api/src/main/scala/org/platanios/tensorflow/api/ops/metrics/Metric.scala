@@ -52,6 +52,15 @@ trait Metric[T, R] {
     */
   def streaming(values: T, weights: Output = null, name: String = name): Metric.StreamingInstance[R]
 
+  /** Creates a new variable and adds it to the `LOCAL_VARIABLES` graph collection. */
+  protected def variable(
+      name: String, dataType: DataType = null, shape: Shape = null, initializer: Initializer = ZerosInitializer,
+      collections: Set[Graph.Key[Variable]] = Set(Metric.METRIC_VARIABLES)): Variable = {
+    Variable.getVariable(
+      name = name, dataType = dataType, shape = shape, trainable = false,
+      collections = collections + Graph.Keys.LOCAL_VARIABLES)
+  }
+
   override def toString: String = name
 }
 
@@ -78,22 +87,13 @@ object Metric {
     override def name: String = "metric_resets"
   }
 
-  /** Creates a new variable and adds it to the `LOCAL_VARIABLES` graph collection. */
-  private[metrics] def localVariable(
-      name: String, dataType: DataType = null, shape: Shape = null, initializer: Initializer = ZerosInitializer,
-      collections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES)): Variable = {
-    Variable.getVariable(
-      name = name, dataType = dataType, shape = shape, trainable = false,
-      collections = collections + Graph.Keys.LOCAL_VARIABLES)
-  }
-
   /** Divides two values, returning 0 if the denominator is <= 0. */
-  private[metrics] def safeDiv(numerator: Output, denominator: Output, name: String = "SafeDiv"): Output = {
+  def safeDiv(numerator: Output, denominator: Output, name: String = "SafeDiv"): Output = {
     Math.select(Math.greater(denominator, 0), Math.divide(numerator, denominator), 0, name)
   }
 
   /** Divides two scalar values, returning 0 if the denominator is 0. */
-  private[metrics] def safeScalarDiv(numerator: Output, denominator: Output, name: String = "SafeScalarDiv"): Output = {
+  def safeScalarDiv(numerator: Output, denominator: Output, name: String = "SafeScalarDiv"): Output = {
     val zeros = Basic.zerosLike(denominator)
     Math.select(Math.equal(denominator, zeros), zeros, Math.divide(numerator, denominator), name)
   }

@@ -110,7 +110,7 @@ case class TensorLoggingHook(
         s"${t._1} = ${t._2.summarize(flattened = true, includeInfo = false)}"
       }).mkString(", ")
       val log = internalTrigger.updateLastTrigger(lastStep.toInt - 1).map(_._1) match {
-        case Some(s) => f"($s%.3f s) $valuesLog"
+        case Some(s) => f"($s%8.3f s) $valuesLog"
         case None => s"( N/A ) $valuesLog"
       }
       TensorLoggingHook.logger.info(log)

@@ -26,6 +26,7 @@ package object metrics {
     type Accuracy = metrics.Accuracy
     type ConfusionMatrix = metrics.ConfusionMatrix
 
+    val Metric         : metrics.Metric.type          = metrics.Metric
     val MapMetric      : metrics.MapMetric.type       = metrics.MapMetric
     val Mean           : metrics.Mean.type            = metrics.Mean
     val Accuracy       : metrics.Accuracy.type        = metrics.Accuracy
