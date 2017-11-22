@@ -104,6 +104,9 @@ class StreamExecutor {
   // platform, false is returned.
   bool GetKernel(const MultiKernelLoaderSpec &spec, KernelBase *kernel);
 
+  // Releases any state associated with the previously loaded kernel.
+  void UnloadKernel(const KernelBase *kernel);
+
   // Synchronously allocates an array on the device of type T with element_count
   // elements.
   template <typename T>
@@ -311,6 +314,10 @@ class StreamExecutor {
   // Obtains metadata about the underlying device.
   // The value is cached on first use.
   const DeviceDescription &GetDeviceDescription() const;
+
+  // If implemented, returns device specific measurement of load
+  // (e.g. pending requests).
+  int64 GetDeviceLoad() const;
 
   // Returns the underlying device memory usage information, if it is available.
   // If it is not available (false is returned), free/total may not be

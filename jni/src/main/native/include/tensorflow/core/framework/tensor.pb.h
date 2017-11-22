@@ -296,6 +296,30 @@ class TensorProto : public ::google::protobuf::Message /* @@protoc_insertion_poi
   const ::google::protobuf::RepeatedPtrField< ::tensorflow::VariantTensorDataProto >&
       variant_val() const;
 
+  // repeated uint32 uint32_val = 16 [packed = true];
+  int uint32_val_size() const;
+  void clear_uint32_val();
+  static const int kUint32ValFieldNumber = 16;
+  ::google::protobuf::uint32 uint32_val(int index) const;
+  void set_uint32_val(int index, ::google::protobuf::uint32 value);
+  void add_uint32_val(::google::protobuf::uint32 value);
+  const ::google::protobuf::RepeatedField< ::google::protobuf::uint32 >&
+      uint32_val() const;
+  ::google::protobuf::RepeatedField< ::google::protobuf::uint32 >*
+      mutable_uint32_val();
+
+  // repeated uint64 uint64_val = 17 [packed = true];
+  int uint64_val_size() const;
+  void clear_uint64_val();
+  static const int kUint64ValFieldNumber = 17;
+  ::google::protobuf::uint64 uint64_val(int index) const;
+  void set_uint64_val(int index, ::google::protobuf::uint64 value);
+  void add_uint64_val(::google::protobuf::uint64 value);
+  const ::google::protobuf::RepeatedField< ::google::protobuf::uint64 >&
+      uint64_val() const;
+  ::google::protobuf::RepeatedField< ::google::protobuf::uint64 >*
+      mutable_uint64_val();
+
   // bytes tensor_content = 4;
   void clear_tensor_content();
   static const int kTensorContentFieldNumber = 4;
@@ -369,6 +393,10 @@ class TensorProto : public ::google::protobuf::Message /* @@protoc_insertion_poi
   mutable int _half_val_cached_byte_size_;
   ::google::protobuf::RepeatedPtrField< ::tensorflow::ResourceHandleProto > resource_handle_val_;
   ::google::protobuf::RepeatedPtrField< ::tensorflow::VariantTensorDataProto > variant_val_;
+  ::google::protobuf::RepeatedField< ::google::protobuf::uint32 > uint32_val_;
+  mutable int _uint32_val_cached_byte_size_;
+  ::google::protobuf::RepeatedField< ::google::protobuf::uint64 > uint64_val_;
+  mutable int _uint64_val_cached_byte_size_;
   ::google::protobuf::internal::ArenaStringPtr tensor_content_;
   ::tensorflow::TensorShapeProto* tensor_shape_;
   int dtype_;
@@ -1062,6 +1090,66 @@ inline const ::google::protobuf::RepeatedPtrField< ::tensorflow::VariantTensorDa
 TensorProto::variant_val() const {
   // @@protoc_insertion_point(field_list:tensorflow.TensorProto.variant_val)
   return variant_val_;
+}
+
+// repeated uint32 uint32_val = 16 [packed = true];
+inline int TensorProto::uint32_val_size() const {
+  return uint32_val_.size();
+}
+inline void TensorProto::clear_uint32_val() {
+  uint32_val_.Clear();
+}
+inline ::google::protobuf::uint32 TensorProto::uint32_val(int index) const {
+  // @@protoc_insertion_point(field_get:tensorflow.TensorProto.uint32_val)
+  return uint32_val_.Get(index);
+}
+inline void TensorProto::set_uint32_val(int index, ::google::protobuf::uint32 value) {
+  uint32_val_.Set(index, value);
+  // @@protoc_insertion_point(field_set:tensorflow.TensorProto.uint32_val)
+}
+inline void TensorProto::add_uint32_val(::google::protobuf::uint32 value) {
+  uint32_val_.Add(value);
+  // @@protoc_insertion_point(field_add:tensorflow.TensorProto.uint32_val)
+}
+inline const ::google::protobuf::RepeatedField< ::google::protobuf::uint32 >&
+TensorProto::uint32_val() const {
+  // @@protoc_insertion_point(field_list:tensorflow.TensorProto.uint32_val)
+  return uint32_val_;
+}
+inline ::google::protobuf::RepeatedField< ::google::protobuf::uint32 >*
+TensorProto::mutable_uint32_val() {
+  // @@protoc_insertion_point(field_mutable_list:tensorflow.TensorProto.uint32_val)
+  return &uint32_val_;
+}
+
+// repeated uint64 uint64_val = 17 [packed = true];
+inline int TensorProto::uint64_val_size() const {
+  return uint64_val_.size();
+}
+inline void TensorProto::clear_uint64_val() {
+  uint64_val_.Clear();
+}
+inline ::google::protobuf::uint64 TensorProto::uint64_val(int index) const {
+  // @@protoc_insertion_point(field_get:tensorflow.TensorProto.uint64_val)
+  return uint64_val_.Get(index);
+}
+inline void TensorProto::set_uint64_val(int index, ::google::protobuf::uint64 value) {
+  uint64_val_.Set(index, value);
+  // @@protoc_insertion_point(field_set:tensorflow.TensorProto.uint64_val)
+}
+inline void TensorProto::add_uint64_val(::google::protobuf::uint64 value) {
+  uint64_val_.Add(value);
+  // @@protoc_insertion_point(field_add:tensorflow.TensorProto.uint64_val)
+}
+inline const ::google::protobuf::RepeatedField< ::google::protobuf::uint64 >&
+TensorProto::uint64_val() const {
+  // @@protoc_insertion_point(field_list:tensorflow.TensorProto.uint64_val)
+  return uint64_val_;
+}
+inline ::google::protobuf::RepeatedField< ::google::protobuf::uint64 >*
+TensorProto::mutable_uint64_val() {
+  // @@protoc_insertion_point(field_mutable_list:tensorflow.TensorProto.uint64_val)
+  return &uint64_val_;
 }
 
 // -------------------------------------------------------------------

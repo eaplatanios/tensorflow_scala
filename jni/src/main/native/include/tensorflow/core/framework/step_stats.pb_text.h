@@ -9,6 +9,16 @@
 
 namespace tensorflow {
 
+// Message-text conversion for tensorflow.AllocationRecord
+string ProtoDebugString(
+    const ::tensorflow::AllocationRecord& msg);
+string ProtoShortDebugString(
+    const ::tensorflow::AllocationRecord& msg);
+bool ProtoParseFromString(
+    const string& s,
+    ::tensorflow::AllocationRecord* msg)
+        TF_MUST_USE_RESULT;
+
 // Message-text conversion for tensorflow.AllocatorMemoryUsed
 string ProtoDebugString(
     const ::tensorflow::AllocatorMemoryUsed& msg);

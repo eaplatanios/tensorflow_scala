@@ -33,6 +33,9 @@
 #include "tensorflow/core/framework/tensor_description.pb.h"
 // @@protoc_insertion_point(includes)
 namespace tensorflow {
+class AllocationRecord;
+class AllocationRecordDefaultTypeInternal;
+extern AllocationRecordDefaultTypeInternal _AllocationRecord_default_instance_;
 class AllocatorMemoryUsed;
 class AllocatorMemoryUsedDefaultTypeInternal;
 extern AllocatorMemoryUsedDefaultTypeInternal _AllocatorMemoryUsed_default_instance_;
@@ -71,6 +74,125 @@ void InitDefaults();
 }  // namespace protobuf_tensorflow_2fcore_2fframework_2fstep_5fstats_2eproto
 
 // ===================================================================
+
+class AllocationRecord : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:tensorflow.AllocationRecord) */ {
+ public:
+  AllocationRecord();
+  virtual ~AllocationRecord();
+
+  AllocationRecord(const AllocationRecord& from);
+
+  inline AllocationRecord& operator=(const AllocationRecord& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  #if LANG_CXX11
+  AllocationRecord(AllocationRecord&& from) noexcept
+    : AllocationRecord() {
+    *this = ::std::move(from);
+  }
+
+  inline AllocationRecord& operator=(AllocationRecord&& from) noexcept {
+    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
+      if (this != &from) InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+  #endif
+  inline ::google::protobuf::Arena* GetArena() const PROTOBUF_FINAL {
+    return GetArenaNoVirtual();
+  }
+  inline void* GetMaybeArenaPointer() const PROTOBUF_FINAL {
+    return MaybeArenaPtr();
+  }
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const AllocationRecord& default_instance();
+
+  static inline const AllocationRecord* internal_default_instance() {
+    return reinterpret_cast<const AllocationRecord*>(
+               &_AllocationRecord_default_instance_);
+  }
+  static PROTOBUF_CONSTEXPR int const kIndexInFileMessages =
+    0;
+
+  void UnsafeArenaSwap(AllocationRecord* other);
+  void Swap(AllocationRecord* other);
+  friend void swap(AllocationRecord& a, AllocationRecord& b) {
+    a.Swap(&b);
+  }
+
+  // implements Message ----------------------------------------------
+
+  inline AllocationRecord* New() const PROTOBUF_FINAL { return New(NULL); }
+
+  AllocationRecord* New(::google::protobuf::Arena* arena) const PROTOBUF_FINAL;
+  void CopyFrom(const ::google::protobuf::Message& from) PROTOBUF_FINAL;
+  void MergeFrom(const ::google::protobuf::Message& from) PROTOBUF_FINAL;
+  void CopyFrom(const AllocationRecord& from);
+  void MergeFrom(const AllocationRecord& from);
+  void Clear() PROTOBUF_FINAL;
+  bool IsInitialized() const PROTOBUF_FINAL;
+
+  size_t ByteSizeLong() const PROTOBUF_FINAL;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input) PROTOBUF_FINAL;
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const PROTOBUF_FINAL;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* target) const PROTOBUF_FINAL;
+  int GetCachedSize() const PROTOBUF_FINAL { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const PROTOBUF_FINAL;
+  void InternalSwap(AllocationRecord* other);
+  protected:
+  explicit AllocationRecord(::google::protobuf::Arena* arena);
+  private:
+  static void ArenaDtor(void* object);
+  inline void RegisterArenaDtor(::google::protobuf::Arena* arena);
+  private:
+  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
+    return _internal_metadata_.arena();
+  }
+  inline void* MaybeArenaPtr() const {
+    return _internal_metadata_.raw_arena_ptr();
+  }
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const PROTOBUF_FINAL;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // int64 alloc_micros = 1;
+  void clear_alloc_micros();
+  static const int kAllocMicrosFieldNumber = 1;
+  ::google::protobuf::int64 alloc_micros() const;
+  void set_alloc_micros(::google::protobuf::int64 value);
+
+  // int64 alloc_bytes = 2;
+  void clear_alloc_bytes();
+  static const int kAllocBytesFieldNumber = 2;
+  ::google::protobuf::int64 alloc_bytes() const;
+  void set_alloc_bytes(::google::protobuf::int64 value);
+
+  // @@protoc_insertion_point(class_scope:tensorflow.AllocationRecord)
+ private:
+
+  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  template <typename T> friend class ::google::protobuf::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  ::google::protobuf::int64 alloc_micros_;
+  ::google::protobuf::int64 alloc_bytes_;
+  mutable int _cached_size_;
+  friend struct protobuf_tensorflow_2fcore_2fframework_2fstep_5fstats_2eproto::TableStruct;
+};
+// -------------------------------------------------------------------
 
 class AllocatorMemoryUsed : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:tensorflow.AllocatorMemoryUsed) */ {
  public:
@@ -112,7 +234,7 @@ class AllocatorMemoryUsed : public ::google::protobuf::Message /* @@protoc_inser
                &_AllocatorMemoryUsed_default_instance_);
   }
   static PROTOBUF_CONSTEXPR int const kIndexInFileMessages =
-    0;
+    1;
 
   void UnsafeArenaSwap(AllocatorMemoryUsed* other);
   void Swap(AllocatorMemoryUsed* other);
@@ -165,6 +287,18 @@ class AllocatorMemoryUsed : public ::google::protobuf::Message /* @@protoc_inser
 
   // accessors -------------------------------------------------------
 
+  // repeated .tensorflow.AllocationRecord allocation_records = 6;
+  int allocation_records_size() const;
+  void clear_allocation_records();
+  static const int kAllocationRecordsFieldNumber = 6;
+  const ::tensorflow::AllocationRecord& allocation_records(int index) const;
+  ::tensorflow::AllocationRecord* mutable_allocation_records(int index);
+  ::tensorflow::AllocationRecord* add_allocation_records();
+  ::google::protobuf::RepeatedPtrField< ::tensorflow::AllocationRecord >*
+      mutable_allocation_records();
+  const ::google::protobuf::RepeatedPtrField< ::tensorflow::AllocationRecord >&
+      allocation_records() const;
+
   // string allocator_name = 1;
   void clear_allocator_name();
   static const int kAllocatorNameFieldNumber = 1;
@@ -213,6 +347,7 @@ class AllocatorMemoryUsed : public ::google::protobuf::Message /* @@protoc_inser
   template <typename T> friend class ::google::protobuf::Arena::InternalHelper;
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
+  ::google::protobuf::RepeatedPtrField< ::tensorflow::AllocationRecord > allocation_records_;
   ::google::protobuf::internal::ArenaStringPtr allocator_name_;
   ::google::protobuf::int64 total_bytes_;
   ::google::protobuf::int64 peak_bytes_;
@@ -263,7 +398,7 @@ class NodeOutput : public ::google::protobuf::Message /* @@protoc_insertion_poin
                &_NodeOutput_default_instance_);
   }
   static PROTOBUF_CONSTEXPR int const kIndexInFileMessages =
-    1;
+    2;
 
   void UnsafeArenaSwap(NodeOutput* other);
   void Swap(NodeOutput* other);
@@ -394,7 +529,7 @@ class MemoryStats : public ::google::protobuf::Message /* @@protoc_insertion_poi
                &_MemoryStats_default_instance_);
   }
   static PROTOBUF_CONSTEXPR int const kIndexInFileMessages =
-    2;
+    3;
 
   void UnsafeArenaSwap(MemoryStats* other);
   void Swap(MemoryStats* other);
@@ -555,7 +690,7 @@ class NodeExecStats : public ::google::protobuf::Message /* @@protoc_insertion_p
                &_NodeExecStats_default_instance_);
   }
   static PROTOBUF_CONSTEXPR int const kIndexInFileMessages =
-    3;
+    4;
 
   void UnsafeArenaSwap(NodeExecStats* other);
   void Swap(NodeExecStats* other);
@@ -796,7 +931,7 @@ class DeviceStepStats : public ::google::protobuf::Message /* @@protoc_insertion
                &_DeviceStepStats_default_instance_);
   }
   static PROTOBUF_CONSTEXPR int const kIndexInFileMessages =
-    4;
+    5;
 
   void UnsafeArenaSwap(DeviceStepStats* other);
   void Swap(DeviceStepStats* other);
@@ -932,7 +1067,7 @@ class StepStats : public ::google::protobuf::Message /* @@protoc_insertion_point
                &_StepStats_default_instance_);
   }
   static PROTOBUF_CONSTEXPR int const kIndexInFileMessages =
-    5;
+    6;
 
   void UnsafeArenaSwap(StepStats* other);
   void Swap(StepStats* other);
@@ -1018,6 +1153,38 @@ class StepStats : public ::google::protobuf::Message /* @@protoc_insertion_point
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wstrict-aliasing"
 #endif  // __GNUC__
+// AllocationRecord
+
+// int64 alloc_micros = 1;
+inline void AllocationRecord::clear_alloc_micros() {
+  alloc_micros_ = GOOGLE_LONGLONG(0);
+}
+inline ::google::protobuf::int64 AllocationRecord::alloc_micros() const {
+  // @@protoc_insertion_point(field_get:tensorflow.AllocationRecord.alloc_micros)
+  return alloc_micros_;
+}
+inline void AllocationRecord::set_alloc_micros(::google::protobuf::int64 value) {
+  
+  alloc_micros_ = value;
+  // @@protoc_insertion_point(field_set:tensorflow.AllocationRecord.alloc_micros)
+}
+
+// int64 alloc_bytes = 2;
+inline void AllocationRecord::clear_alloc_bytes() {
+  alloc_bytes_ = GOOGLE_LONGLONG(0);
+}
+inline ::google::protobuf::int64 AllocationRecord::alloc_bytes() const {
+  // @@protoc_insertion_point(field_get:tensorflow.AllocationRecord.alloc_bytes)
+  return alloc_bytes_;
+}
+inline void AllocationRecord::set_alloc_bytes(::google::protobuf::int64 value) {
+  
+  alloc_bytes_ = value;
+  // @@protoc_insertion_point(field_set:tensorflow.AllocationRecord.alloc_bytes)
+}
+
+// -------------------------------------------------------------------
+
 // AllocatorMemoryUsed
 
 // string allocator_name = 1;
@@ -1135,6 +1302,36 @@ inline void AllocatorMemoryUsed::set_live_bytes(::google::protobuf::int64 value)
   
   live_bytes_ = value;
   // @@protoc_insertion_point(field_set:tensorflow.AllocatorMemoryUsed.live_bytes)
+}
+
+// repeated .tensorflow.AllocationRecord allocation_records = 6;
+inline int AllocatorMemoryUsed::allocation_records_size() const {
+  return allocation_records_.size();
+}
+inline void AllocatorMemoryUsed::clear_allocation_records() {
+  allocation_records_.Clear();
+}
+inline const ::tensorflow::AllocationRecord& AllocatorMemoryUsed::allocation_records(int index) const {
+  // @@protoc_insertion_point(field_get:tensorflow.AllocatorMemoryUsed.allocation_records)
+  return allocation_records_.Get(index);
+}
+inline ::tensorflow::AllocationRecord* AllocatorMemoryUsed::mutable_allocation_records(int index) {
+  // @@protoc_insertion_point(field_mutable:tensorflow.AllocatorMemoryUsed.allocation_records)
+  return allocation_records_.Mutable(index);
+}
+inline ::tensorflow::AllocationRecord* AllocatorMemoryUsed::add_allocation_records() {
+  // @@protoc_insertion_point(field_add:tensorflow.AllocatorMemoryUsed.allocation_records)
+  return allocation_records_.Add();
+}
+inline ::google::protobuf::RepeatedPtrField< ::tensorflow::AllocationRecord >*
+AllocatorMemoryUsed::mutable_allocation_records() {
+  // @@protoc_insertion_point(field_mutable_list:tensorflow.AllocatorMemoryUsed.allocation_records)
+  return &allocation_records_;
+}
+inline const ::google::protobuf::RepeatedPtrField< ::tensorflow::AllocationRecord >&
+AllocatorMemoryUsed::allocation_records() const {
+  // @@protoc_insertion_point(field_list:tensorflow.AllocatorMemoryUsed.allocation_records)
+  return allocation_records_;
 }
 
 // int64 allocator_bytes_in_use = 5;
@@ -1864,6 +2061,8 @@ StepStats::dev_stats() const {
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
 #endif  // !PROTOBUF_INLINE_NOT_IN_HEADERS
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------

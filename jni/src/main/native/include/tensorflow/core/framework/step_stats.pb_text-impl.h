@@ -21,6 +21,13 @@ namespace internal {
 
 void AppendProtoDebugString(
     ::tensorflow::strings::ProtoTextOutput* o,
+    const ::tensorflow::AllocationRecord& msg);
+bool ProtoParseFromScanner(
+    ::tensorflow::strings::Scanner* scanner, bool nested, bool close_curly,
+    ::tensorflow::AllocationRecord* msg);
+
+void AppendProtoDebugString(
+    ::tensorflow::strings::ProtoTextOutput* o,
     const ::tensorflow::AllocatorMemoryUsed& msg);
 bool ProtoParseFromScanner(
     ::tensorflow::strings::Scanner* scanner, bool nested, bool close_curly,

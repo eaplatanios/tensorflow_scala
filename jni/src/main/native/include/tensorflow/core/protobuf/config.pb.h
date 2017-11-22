@@ -512,6 +512,12 @@ class OptimizerOptions : public ::google::protobuf::Message /* @@protoc_insertio
   ::tensorflow::OptimizerOptions_Level opt_level() const;
   void set_opt_level(::tensorflow::OptimizerOptions_Level value);
 
+  // int64 max_folded_constant_in_bytes = 6;
+  void clear_max_folded_constant_in_bytes();
+  static const int kMaxFoldedConstantInBytesFieldNumber = 6;
+  ::google::protobuf::int64 max_folded_constant_in_bytes() const;
+  void set_max_folded_constant_in_bytes(::google::protobuf::int64 value);
+
   // .tensorflow.OptimizerOptions.GlobalJitLevel global_jit_level = 5;
   void clear_global_jit_level();
   static const int kGlobalJitLevelFieldNumber = 5;
@@ -529,6 +535,7 @@ class OptimizerOptions : public ::google::protobuf::Message /* @@protoc_insertio
   bool do_constant_folding_;
   bool do_function_inlining_;
   int opt_level_;
+  ::google::protobuf::int64 max_folded_constant_in_bytes_;
   int global_jit_level_;
   mutable int _cached_size_;
   friend struct protobuf_tensorflow_2fcore_2fprotobuf_2fconfig_2eproto::TableStruct;
@@ -1440,6 +1447,12 @@ class RunOptions : public ::google::protobuf::Message /* @@protoc_insertion_poin
   bool output_partition_graphs() const;
   void set_output_partition_graphs(bool value);
 
+  // bool report_tensor_allocations_upon_oom = 7;
+  void clear_report_tensor_allocations_upon_oom();
+  static const int kReportTensorAllocationsUponOomFieldNumber = 7;
+  bool report_tensor_allocations_upon_oom() const;
+  void set_report_tensor_allocations_upon_oom(bool value);
+
   // @@protoc_insertion_point(class_scope:tensorflow.RunOptions)
  private:
 
@@ -1452,6 +1465,7 @@ class RunOptions : public ::google::protobuf::Message /* @@protoc_insertion_poin
   int trace_level_;
   ::google::protobuf::int32 inter_op_thread_pool_;
   bool output_partition_graphs_;
+  bool report_tensor_allocations_upon_oom_;
   mutable int _cached_size_;
   friend struct protobuf_tensorflow_2fcore_2fprotobuf_2fconfig_2eproto::TableStruct;
 };
@@ -1887,6 +1901,20 @@ inline void OptimizerOptions::set_do_constant_folding(bool value) {
   
   do_constant_folding_ = value;
   // @@protoc_insertion_point(field_set:tensorflow.OptimizerOptions.do_constant_folding)
+}
+
+// int64 max_folded_constant_in_bytes = 6;
+inline void OptimizerOptions::clear_max_folded_constant_in_bytes() {
+  max_folded_constant_in_bytes_ = GOOGLE_LONGLONG(0);
+}
+inline ::google::protobuf::int64 OptimizerOptions::max_folded_constant_in_bytes() const {
+  // @@protoc_insertion_point(field_get:tensorflow.OptimizerOptions.max_folded_constant_in_bytes)
+  return max_folded_constant_in_bytes_;
+}
+inline void OptimizerOptions::set_max_folded_constant_in_bytes(::google::protobuf::int64 value) {
+  
+  max_folded_constant_in_bytes_ = value;
+  // @@protoc_insertion_point(field_set:tensorflow.OptimizerOptions.max_folded_constant_in_bytes)
 }
 
 // bool do_function_inlining = 4;
@@ -2773,6 +2801,20 @@ inline  void RunOptions::set_allocated_debug_options(::tensorflow::DebugOptions*
     
   }
   // @@protoc_insertion_point(field_set_allocated:tensorflow.RunOptions.debug_options)
+}
+
+// bool report_tensor_allocations_upon_oom = 7;
+inline void RunOptions::clear_report_tensor_allocations_upon_oom() {
+  report_tensor_allocations_upon_oom_ = false;
+}
+inline bool RunOptions::report_tensor_allocations_upon_oom() const {
+  // @@protoc_insertion_point(field_get:tensorflow.RunOptions.report_tensor_allocations_upon_oom)
+  return report_tensor_allocations_upon_oom_;
+}
+inline void RunOptions::set_report_tensor_allocations_upon_oom(bool value) {
+  
+  report_tensor_allocations_upon_oom_ = value;
+  // @@protoc_insertion_point(field_set:tensorflow.RunOptions.report_tensor_allocations_upon_oom)
 }
 
 // -------------------------------------------------------------------

@@ -61,12 +61,13 @@ enum RewriterConfig_Toggle {
   RewriterConfig_Toggle_DEFAULT = 0,
   RewriterConfig_Toggle_ON = 1,
   RewriterConfig_Toggle_OFF = 2,
+  RewriterConfig_Toggle_AGGRESSIVE = 3,
   RewriterConfig_Toggle_RewriterConfig_Toggle_INT_MIN_SENTINEL_DO_NOT_USE_ = ::google::protobuf::kint32min,
   RewriterConfig_Toggle_RewriterConfig_Toggle_INT_MAX_SENTINEL_DO_NOT_USE_ = ::google::protobuf::kint32max
 };
 bool RewriterConfig_Toggle_IsValid(int value);
 const RewriterConfig_Toggle RewriterConfig_Toggle_Toggle_MIN = RewriterConfig_Toggle_DEFAULT;
-const RewriterConfig_Toggle RewriterConfig_Toggle_Toggle_MAX = RewriterConfig_Toggle_OFF;
+const RewriterConfig_Toggle RewriterConfig_Toggle_Toggle_MAX = RewriterConfig_Toggle_AGGRESSIVE;
 const int RewriterConfig_Toggle_Toggle_ARRAYSIZE = RewriterConfig_Toggle_Toggle_MAX + 1;
 
 const ::google::protobuf::EnumDescriptor* RewriterConfig_Toggle_descriptor();
@@ -83,13 +84,15 @@ enum RewriterConfig_MemOptType {
   RewriterConfig_MemOptType_DEFAULT_MEM_OPT = 0,
   RewriterConfig_MemOptType_NO_MEM_OPT = 1,
   RewriterConfig_MemOptType_MANUAL = 2,
+  RewriterConfig_MemOptType_SWAPPING_HEURISTICS = 4,
+  RewriterConfig_MemOptType_RECOMPUTATION_HEURISTICS = 5,
   RewriterConfig_MemOptType_HEURISTICS = 3,
   RewriterConfig_MemOptType_RewriterConfig_MemOptType_INT_MIN_SENTINEL_DO_NOT_USE_ = ::google::protobuf::kint32min,
   RewriterConfig_MemOptType_RewriterConfig_MemOptType_INT_MAX_SENTINEL_DO_NOT_USE_ = ::google::protobuf::kint32max
 };
 bool RewriterConfig_MemOptType_IsValid(int value);
 const RewriterConfig_MemOptType RewriterConfig_MemOptType_MemOptType_MIN = RewriterConfig_MemOptType_DEFAULT_MEM_OPT;
-const RewriterConfig_MemOptType RewriterConfig_MemOptType_MemOptType_MAX = RewriterConfig_MemOptType_HEURISTICS;
+const RewriterConfig_MemOptType RewriterConfig_MemOptType_MemOptType_MAX = RewriterConfig_MemOptType_RECOMPUTATION_HEURISTICS;
 const int RewriterConfig_MemOptType_MemOptType_ARRAYSIZE = RewriterConfig_MemOptType_MemOptType_MAX + 1;
 
 const ::google::protobuf::EnumDescriptor* RewriterConfig_MemOptType_descriptor();
@@ -321,6 +324,8 @@ class RewriterConfig : public ::google::protobuf::Message /* @@protoc_insertion_
     RewriterConfig_Toggle_ON;
   static const Toggle OFF =
     RewriterConfig_Toggle_OFF;
+  static const Toggle AGGRESSIVE =
+    RewriterConfig_Toggle_AGGRESSIVE;
   static inline bool Toggle_IsValid(int value) {
     return RewriterConfig_Toggle_IsValid(value);
   }
@@ -349,6 +354,10 @@ class RewriterConfig : public ::google::protobuf::Message /* @@protoc_insertion_
     RewriterConfig_MemOptType_NO_MEM_OPT;
   static const MemOptType MANUAL =
     RewriterConfig_MemOptType_MANUAL;
+  static const MemOptType SWAPPING_HEURISTICS =
+    RewriterConfig_MemOptType_SWAPPING_HEURISTICS;
+  static const MemOptType RECOMPUTATION_HEURISTICS =
+    RewriterConfig_MemOptType_RECOMPUTATION_HEURISTICS;
   static const MemOptType HEURISTICS =
     RewriterConfig_MemOptType_HEURISTICS;
   static inline bool MemOptType_IsValid(int value) {
@@ -431,11 +440,11 @@ class RewriterConfig : public ::google::protobuf::Message /* @@protoc_insertion_
   void unsafe_arena_set_allocated_auto_parallel(
       ::tensorflow::AutoParallelOptions* auto_parallel);
 
-  // bool optimize_tensor_layout = 1;
-  void clear_optimize_tensor_layout();
-  static const int kOptimizeTensorLayoutFieldNumber = 1;
-  bool optimize_tensor_layout() const;
-  void set_optimize_tensor_layout(bool value);
+  // .tensorflow.RewriterConfig.Toggle layout_optimizer = 1;
+  void clear_layout_optimizer();
+  static const int kLayoutOptimizerFieldNumber = 1;
+  ::tensorflow::RewriterConfig_Toggle layout_optimizer() const;
+  void set_layout_optimizer(::tensorflow::RewriterConfig_Toggle value);
 
   // bool disable_model_pruning = 2;
   void clear_disable_model_pruning();
@@ -461,6 +470,12 @@ class RewriterConfig : public ::google::protobuf::Message /* @@protoc_insertion_
   ::tensorflow::RewriterConfig_Toggle arithmetic_optimization() const;
   void set_arithmetic_optimization(::tensorflow::RewriterConfig_Toggle value);
 
+  // .tensorflow.RewriterConfig.Toggle dependency_optimization = 8;
+  void clear_dependency_optimization();
+  static const int kDependencyOptimizationFieldNumber = 8;
+  ::tensorflow::RewriterConfig_Toggle dependency_optimization() const;
+  void set_dependency_optimization(::tensorflow::RewriterConfig_Toggle value);
+
   // @@protoc_insertion_point(class_scope:tensorflow.RewriterConfig)
  private:
 
@@ -471,11 +486,12 @@ class RewriterConfig : public ::google::protobuf::Message /* @@protoc_insertion_
   ::google::protobuf::RepeatedPtrField< ::std::string> optimizers_;
   ::google::protobuf::internal::ArenaStringPtr memory_optimizer_target_node_name_prefix_;
   ::tensorflow::AutoParallelOptions* auto_parallel_;
-  bool optimize_tensor_layout_;
+  int layout_optimizer_;
   bool disable_model_pruning_;
   int constant_folding_;
   int memory_optimization_;
   int arithmetic_optimization_;
+  int dependency_optimization_;
   mutable int _cached_size_;
   friend struct protobuf_tensorflow_2fcore_2fprotobuf_2frewriter_5fconfig_2eproto::TableStruct;
 };
@@ -523,18 +539,18 @@ inline void AutoParallelOptions::set_num_replicas(::google::protobuf::int32 valu
 
 // RewriterConfig
 
-// bool optimize_tensor_layout = 1;
-inline void RewriterConfig::clear_optimize_tensor_layout() {
-  optimize_tensor_layout_ = false;
+// .tensorflow.RewriterConfig.Toggle layout_optimizer = 1;
+inline void RewriterConfig::clear_layout_optimizer() {
+  layout_optimizer_ = 0;
 }
-inline bool RewriterConfig::optimize_tensor_layout() const {
-  // @@protoc_insertion_point(field_get:tensorflow.RewriterConfig.optimize_tensor_layout)
-  return optimize_tensor_layout_;
+inline ::tensorflow::RewriterConfig_Toggle RewriterConfig::layout_optimizer() const {
+  // @@protoc_insertion_point(field_get:tensorflow.RewriterConfig.layout_optimizer)
+  return static_cast< ::tensorflow::RewriterConfig_Toggle >(layout_optimizer_);
 }
-inline void RewriterConfig::set_optimize_tensor_layout(bool value) {
+inline void RewriterConfig::set_layout_optimizer(::tensorflow::RewriterConfig_Toggle value) {
   
-  optimize_tensor_layout_ = value;
-  // @@protoc_insertion_point(field_set:tensorflow.RewriterConfig.optimize_tensor_layout)
+  layout_optimizer_ = value;
+  // @@protoc_insertion_point(field_set:tensorflow.RewriterConfig.layout_optimizer)
 }
 
 // .tensorflow.RewriterConfig.Toggle constant_folding = 3;
@@ -563,6 +579,20 @@ inline void RewriterConfig::set_arithmetic_optimization(::tensorflow::RewriterCo
   
   arithmetic_optimization_ = value;
   // @@protoc_insertion_point(field_set:tensorflow.RewriterConfig.arithmetic_optimization)
+}
+
+// .tensorflow.RewriterConfig.Toggle dependency_optimization = 8;
+inline void RewriterConfig::clear_dependency_optimization() {
+  dependency_optimization_ = 0;
+}
+inline ::tensorflow::RewriterConfig_Toggle RewriterConfig::dependency_optimization() const {
+  // @@protoc_insertion_point(field_get:tensorflow.RewriterConfig.dependency_optimization)
+  return static_cast< ::tensorflow::RewriterConfig_Toggle >(dependency_optimization_);
+}
+inline void RewriterConfig::set_dependency_optimization(::tensorflow::RewriterConfig_Toggle value) {
+  
+  dependency_optimization_ = value;
+  // @@protoc_insertion_point(field_set:tensorflow.RewriterConfig.dependency_optimization)
 }
 
 // bool disable_model_pruning = 2;

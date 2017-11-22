@@ -43,12 +43,12 @@ void UpdateEdge(TF_Graph* graph, TF_Output new_src, TF_Input dst,
         "].");
     return;
   }
-  if (!ic_dst->MergeInput(dst.index, shape)) {
-    status->status = tensorflow::errors::InvalidArgument(
-        "Cannot update edge, incompatible shapes: ", ic_dst->DebugString(shape),
-        " and ", ic_dst->DebugString(ic_dst->input(dst.index)), ".");
-    return;
-  }
+  // if (!ic_dst->MergeInput(dst.index, shape)) {
+  //   status->status = tensorflow::errors::InvalidArgument(
+  //       "Cannot update edge, incompatible shapes: ", ic_dst->DebugString(shape),
+  //       " and ", ic_dst->DebugString(ic_dst->input(dst.index)), ".");
+  //   return;
+  // }
   status->status = graph->graph.UpdateEdge(&new_src.oper->node, new_src.index,
                                            &dst.oper->node, dst.index);
 }

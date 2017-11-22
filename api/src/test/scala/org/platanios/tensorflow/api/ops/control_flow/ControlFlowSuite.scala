@@ -369,9 +369,10 @@ class ControlFlowSuite extends JUnitSuite with Matchers {
 
   @Test def testWhileLoopWithOutputIndexedSlicesGradient(): Unit = withNewGraph {
     val embeddingMatrix = Variable.getVariable("EmbeddingMatrix", shape = Shape(5, 5), initializer = OnesInitializer)
-    val p = (v: (Output, Output)) => v._1 < 5
-    val b = (v: (Output, Output)) => (v._1 + 1, v._2 + 2.0f * Embedding.embeddingLookup(embeddingMatrix, 0).sum())
-    val (_, loss) = ControlFlow.whileLoop(p, b, (Basic.constant(0, INT32), Basic.constant(0.0f)))
+    val (_, loss) = ControlFlow.whileLoop(
+      (v: (Output, Output)) => v._1 < 5,
+      (v: (Output, Output)) => (v._1 + 1, v._2 + 2.0f * Embedding.embeddingLookup(embeddingMatrix, 0).sum()),
+      (Basic.constant(0, INT32), Basic.constant(0.0f)))
     val optimizer = GradientDescent(0.1)
     val trainOp = optimizer.minimize(loss)
     val session = Session()

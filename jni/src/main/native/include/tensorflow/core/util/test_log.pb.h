@@ -873,6 +873,12 @@ class CommitId : public ::google::protobuf::Message /* @@protoc_insertion_point(
   void unsafe_arena_set_allocated_snapshot(
       ::std::string* snapshot);
 
+  // int64 pending_changelist = 4;
+  void clear_pending_changelist();
+  static const int kPendingChangelistFieldNumber = 4;
+  ::google::protobuf::int64 pending_changelist() const;
+  void set_pending_changelist(::google::protobuf::int64 value);
+
   // int64 changelist = 1;
   private:
   bool has_changelist() const;
@@ -917,6 +923,7 @@ class CommitId : public ::google::protobuf::Message /* @@protoc_insertion_point(
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   ::google::protobuf::internal::ArenaStringPtr snapshot_;
+  ::google::protobuf::int64 pending_changelist_;
   union KindUnion {
     KindUnion() {}
     ::google::protobuf::int64 changelist_;
@@ -3251,6 +3258,20 @@ inline void CommitId::unsafe_arena_set_allocated_snapshot(
   snapshot_.UnsafeArenaSetAllocated(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
       snapshot, GetArenaNoVirtual());
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tensorflow.CommitId.snapshot)
+}
+
+// int64 pending_changelist = 4;
+inline void CommitId::clear_pending_changelist() {
+  pending_changelist_ = GOOGLE_LONGLONG(0);
+}
+inline ::google::protobuf::int64 CommitId::pending_changelist() const {
+  // @@protoc_insertion_point(field_get:tensorflow.CommitId.pending_changelist)
+  return pending_changelist_;
+}
+inline void CommitId::set_pending_changelist(::google::protobuf::int64 value) {
+  
+  pending_changelist_ = value;
+  // @@protoc_insertion_point(field_set:tensorflow.CommitId.pending_changelist)
 }
 
 inline bool CommitId::has_kind() const {

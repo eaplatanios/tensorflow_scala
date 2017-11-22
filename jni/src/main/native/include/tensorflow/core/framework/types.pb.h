@@ -72,6 +72,8 @@ enum DataType {
   DT_HALF = 19,
   DT_RESOURCE = 20,
   DT_VARIANT = 21,
+  DT_UINT32 = 22,
+  DT_UINT64 = 23,
   DT_FLOAT_REF = 101,
   DT_DOUBLE_REF = 102,
   DT_INT32_REF = 103,
@@ -93,12 +95,14 @@ enum DataType {
   DT_HALF_REF = 119,
   DT_RESOURCE_REF = 120,
   DT_VARIANT_REF = 121,
+  DT_UINT32_REF = 122,
+  DT_UINT64_REF = 123,
   DataType_INT_MIN_SENTINEL_DO_NOT_USE_ = ::google::protobuf::kint32min,
   DataType_INT_MAX_SENTINEL_DO_NOT_USE_ = ::google::protobuf::kint32max
 };
 bool DataType_IsValid(int value);
 const DataType DataType_MIN = DT_INVALID;
-const DataType DataType_MAX = DT_VARIANT_REF;
+const DataType DataType_MAX = DT_UINT64_REF;
 const int DataType_ARRAYSIZE = DataType_MAX + 1;
 
 const ::google::protobuf::EnumDescriptor* DataType_descriptor();

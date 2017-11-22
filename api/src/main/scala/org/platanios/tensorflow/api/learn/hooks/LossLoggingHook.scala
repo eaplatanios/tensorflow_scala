@@ -56,7 +56,7 @@ class LossLoggingHook(
 
   override def begin(sessionCreator: SessionCreator): Unit = {
     step = Counter.get(Graph.Keys.GLOBAL_STEP, local = false).getOrElse(throw new IllegalStateException(
-      s"A ${Graph.Keys.GLOBAL_STEP.name} variable should be created in order to use the 'TensorLoggingHook'."))
+      s"A ${Graph.Keys.GLOBAL_STEP.name} variable should be created in order to use the 'LossLoggingHook'."))
     internalTrigger.reset()
     shouldTrigger = false
     loss = modelInstance.loss.map(_.cast(FLOAT32)).orNull
