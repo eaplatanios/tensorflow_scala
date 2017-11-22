@@ -471,32 +471,33 @@ private[api] case class WhileLoopContext private[control_flow] (
             Basic.zeros(g.values.dataType, zerosShape)
           } else {
             val value = op.inputs(0)
-            //        outerContext match {
-            //          case Some(context: WhileLoopContext) if context.gradientLoopState.isDefined =>
-            //            // We are in a nested while loop.
-            //            val forwardContext = context.gradientLoopState.get.forwardContext
-            //            forwardContext.outerContext.foreach(_.enter())
-            //            val zerosShape = Basic.shape(value, optimize = false)
-            //            forwardContext.outerContext.foreach(_.exit())
-            //            val outerGradientLoopState = context.gradientLoopState.get.outerGradientState
-            //            val historyZerosShape = outerGradientLoopState.addForwardAccumulator(zerosShape)
-            //            context.enter()
-            //            val realShape = outerGradientLoopState.addBackwardAccumulator(historyZerosShape, zerosShape)
-            //            val acc = Basic.fill(g.dataType, realShape)(0)
-            //            context.exit()
-            //            acc.setShape(g.shape)
-            //            acc
-            //          case _ =>
-            val zerosShape = Basic.concatenate(Seq(Tensor(1), resourceSafeShape(value).slice(1 ::)), axis = 0)
-            Basic.fill(g.values.dataType, zerosShape)(0)
-            //        }
+            outerContext match {
+              case Some(context: WhileLoopContext) if context.gradientLoopState.isDefined =>
+                // We are in a nested while loop.
+                val forwardContext = context.gradientLoopState.get.forwardContext
+                forwardContext.outerContext.foreach(_.enter())
+                val zerosShape = Basic.concatenate(Seq(Tensor(1), resourceSafeShape(value).slice(1 ::)), axis = 0)
+                forwardContext.outerContext.foreach(_.exit())
+                val outerGradientLoopState = context.gradientLoopState.get.outerGradientLoopState.get
+                val historyZerosShape = outerGradientLoopState.addForwardAccumulator(zerosShape)
+                context.enter()
+                val realShape = outerGradientLoopState.addBackwardAccumulatedValue(historyZerosShape, zerosShape)
+                val acc = Basic.fill(g.values.dataType, realShape)(0)
+                context.exit()
+                acc.setShape(g.values.shape)
+                acc
+              case _ =>
+                val zerosShape = Basic.concatenate(
+                  Seq(Tensor(1), resourceSafeShape(op.inputs(0)).slice(1 ::)), axis = 0)
+                Basic.fill(g.values.dataType, zerosShape)(0)
+            }
           }
         }
         val denseShapeAcc: Option[Output] = Option(g.denseShape).map(shape => {
           if (shape.shape.isFullyDefined) {
             Basic.zeros(shape.dataType, shape.shape)
           } else {
-            Basic.zerosLike(resourceSafeShape(op.inputs(0)))
+            Basic.zerosLike(Basic.shape(op.inputs(0), optimize = false), optimize = false)
           }
         })
         outerContext.foreach(_.exit())

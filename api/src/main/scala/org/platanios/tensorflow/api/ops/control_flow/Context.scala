@@ -41,6 +41,7 @@ import scala.util.DynamicVariable
   *
   * @param  values         Set of values that have already been seen in this context.
   * @param  externalValues Set of values referenced by but external to this context.
+  *
   * @author Emmanouil Antonios Platanios
   */
 abstract class Context protected (
@@ -199,12 +200,9 @@ object Context {
       op.controlFlowContext.filter(_.isInstanceOf[CondContext]).map(c => {
         val condContext = c.asInstanceOf[CondContext]
         // We are in a conditional context and so we use a switch to create zeros only when needed.
-        val switch = {
-          val switchOutput = ControlFlow.switch(op.inputs(0), condContext.predicate)
-          condContext.branch.other.selectSwitchResult(switchOutput)
-        }
-        val shape = Basic.shape(switch, optimize = false)
-        Basic.fill(op.outputs(index).dataType, shape)(0)
+        val switch = condContext.branch.other.selectSwitchResult(
+          ControlFlow.switch(op.inputs(0), condContext.predicate))
+        Basic.zeros(op.outputs(index).dataType, Basic.shape(switch, optimize = false))
       }).getOrElse(Basic.zerosLike(op.outputs(index), optimize = false))
     } else {
       Basic.zerosLike(op.outputs(index), optimize = false)

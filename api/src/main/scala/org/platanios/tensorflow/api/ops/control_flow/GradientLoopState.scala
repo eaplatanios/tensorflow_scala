@@ -261,12 +261,10 @@ private[control_flow] case class GradientLoopState private[control_flow] (
         if (predicate.isEmpty)
           predicate = Some(c.predicate)
         val switch = ControlFlow.colocatedSwitch(historyValue, predicate.get)
-        c.branch match {
-          case TrueBranch if deadBranch => FalseBranch.selectSwitchResult(switch)
-          case TrueBranch if !deadBranch => TrueBranch.selectSwitchResult(switch)
-          case FalseBranch if !deadBranch => FalseBranch.selectSwitchResult(switch)
-          case FalseBranch if deadBranch => TrueBranch.selectSwitchResult(switch)
-        }
+        if (!deadBranch)
+          c.branch.selectSwitchResult(switch)
+        else
+          c.branch.other.selectSwitchResult(switch)
       }).getOrElse(historyValue)
       val stackPopOp = DataFlow.stackPop(stackHandle, value.dataType)
       stackPopOp.setShape(value.shape)

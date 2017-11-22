@@ -146,8 +146,8 @@ private[ops] class GradientState private[control_flow] () {
                 val condContext = c.asInstanceOf[CondContext]
                 gradientLoopState.historyMap.get(condContext.predicate.name).map((_, condContext.branch))
               }) match {
-                case Some((predicate, TrueBranch)) => Some(ControlFlow.colocatedSwitch(result, predicate)._1)
-                case Some((predicate, FalseBranch)) => Some(ControlFlow.colocatedSwitch(result, predicate)._2)
+                case Some((predicate, branch)) => Some(
+                  branch.other.selectSwitchResult(ControlFlow.colocatedSwitch(result, predicate)))
                 case None => Some(result)
               }
             } else {
@@ -158,28 +158,22 @@ private[ops] class GradientState private[control_flow] () {
             val shape = {
               if (deadBranch) {
                 // `op` is a conditional switch and so we guard the zero tensor with a switch.
-                op.controlFlowContext.flatMap(c => {
-                  val condContext = c.asInstanceOf[CondContext]
-                  gradientLoopState.historyMap.get(condContext.predicate.name).map(predicate => {
-                    condContext.outerContext.foreach(_.enter())
-                    val value = condContext.branch match {
-                      case TrueBranch => ControlFlow.colocatedSwitch(op.inputs(0), predicate)._1
-                      case FalseBranch => ControlFlow.colocatedSwitch(op.inputs(0), predicate)._2
-                    }
-                    val shape = Basic.shape(value, optimize = false)
-                    condContext.outerContext.foreach(_.exit())
-                    value.op.controlFlowContext = Some(condContext)
-                    shape.op.controlFlowContext = Some(condContext)
-                    shape
-                  })
-                })
-              } else {
                 op.controlFlowContext.map(c => {
-                  c.enter()
+                  val condContext = c.asInstanceOf[CondContext]
+                  condContext.outerContext.foreach(_.enter())
+                  val value = condContext.branch.other.selectSwitchResult(
+                    ControlFlow.colocatedSwitch(op.inputs(0), condContext.predicate))
                   val shape = Basic.shape(value, optimize = false)
-                  c.exit()
+                  condContext.outerContext.foreach(_.exit())
+                  value.op.controlFlowContext = Some(condContext)
+                  shape.op.controlFlowContext = Some(condContext)
                   shape
                 })
+              } else {
+                op.controlFlowContext.foreach(_.enter())
+                val shape = Basic.shape(value, optimize = false)
+                op.controlFlowContext.foreach(_.exit())
+                Some(shape)
               }
             }
             // Add forward accumulator for the shape.
