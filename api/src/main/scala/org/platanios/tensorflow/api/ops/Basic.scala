@@ -2324,8 +2324,10 @@ object Basic extends Basic {
       val input = op.inputs(0)
       val indices = op.inputs(1)
       val inputShape = shape(input, indices.dataType)
-      val inputGradient = scatterND(indices, outputGradients.head, inputShape)
-      Seq(inputGradient, null)
+      if (indices.rank == 2 && indices.shape(-1) == 1)
+        Seq(OutputIndexedSlices(outputGradients.head, Basic.squeeze(indices, axes = Seq(-1)), inputShape), null)
+      else
+        Seq(scatterND(indices, outputGradients.head, inputShape), null)
     }
 
     private[this] def scatterNDGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
