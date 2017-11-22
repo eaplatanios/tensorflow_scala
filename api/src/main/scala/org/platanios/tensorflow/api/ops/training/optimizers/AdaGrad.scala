@@ -67,7 +67,6 @@ case class AdaGrad(
     learningRateTensor = decay(Basic.constant(learningRate, name = "LearningRate"), iteration)
     if (learningRateSummaryTag != null)
       Summary.scalar(learningRateSummaryTag, learningRateTensor)
-    learningRateTensor = Basic.constant(learningRate, name = "LearningRate")
   }
 
   override def applyDense(gradient: Output, variable: Variable, iteration: Option[Variable]): Op = {
