@@ -51,7 +51,7 @@ case class GroupByWindowDataset[T, O, D, S](
   }
 
   private[this] lazy val instantiatedWindowSizeFunction = {
-    Function(s"$name/WindowSizeFunction", output => windowSizeFn(output).cast(INT64)).instantiate(
+    Function(s"$name/WindowSizeFunction", (o: Output) => windowSizeFn(o).cast(INT64)).instantiate(
       Seq(INT64), Seq(Shape.scalar()), appendHashToName = true)
   }
 
