@@ -17,12 +17,18 @@ package org.platanios.tensorflow.api
 
 import org.platanios.tensorflow.api
 
+import com.typesafe.scalalogging.Logger
+import org.slf4j.LoggerFactory
+
 import scala.util.matching.Regex
 
 /**
   * @author Emmanouil Antonios Platanios
   */
 package object ops {
+  private[ops] val logger = Logger(LoggerFactory.getLogger("Graph Construction"))
+
+  private[ops] val LARGE_SPARSE_TENSOR_SIZE = 100000000
   private[ops] val DEFAULT_GRAPH_RANDOM_SEED = 87654321
 
   private[ops] val COLOCATION_OPS_ATTRIBUTE_NAME  : String = "_class"

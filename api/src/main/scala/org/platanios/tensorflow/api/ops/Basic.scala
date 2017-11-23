@@ -105,7 +105,7 @@ private[api] trait Basic {
     *
     * @param  input    Input tensor.
     * @param  dataType Data type of the output tensor.
-    * @param  optimize Booelan flag indicating whether to optimize this op if the shape of `input` is known at graph
+    * @param  optimize Boolean flag indicating whether to optimize this op if the shape of `input` is known at graph
     *                  creation time.
     * @param  name     Name for the created op.
     * @return Created op output.
@@ -2279,10 +2279,7 @@ object Basic extends Basic {
       // any dimension is larger than INT32. 'inputShape' is not used in the optimizer 'applySparse' gradients method
       // and so it's fine to convert it back to INT32 regardless of the truncation.
       val input = op.inputs(0)
-      val inputShape = Op.colocateWith(Set(input.op)) {
-        val inputShape = shape(input, INT64)
-        Math.cast(inputShape, INT32)
-      }
+      val inputShape = Op.colocateWith(Set(input.op))(shape(input, INT32))
       val indices = op.inputs(1)
       val indicesSize = expandDims(size(indices), 0)
       val axis = op.inputs(2)

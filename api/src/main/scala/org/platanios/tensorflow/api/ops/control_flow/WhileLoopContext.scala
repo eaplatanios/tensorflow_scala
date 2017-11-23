@@ -471,6 +471,7 @@ private[api] case class WhileLoopContext private[control_flow] (
             Basic.zeros(g.values.dataType, zerosShape)
           } else {
             val value = op.inputs(0)
+            // TODO: !!! [CONTROL_FLOW] Is this even necessary for obtaining the shape?
             outerContext match {
               case Some(context: WhileLoopContext) if context.gradientLoopState.isDefined =>
                 // We are in a nested while loop.
@@ -510,7 +511,7 @@ private[api] case class WhileLoopContext private[control_flow] (
           ControlFlow.enter(a, name, isConstant = false, parallelIterations)
         })
         loopEnters ++= enterAcc
-        val mergeAcc = enterAcc.map(a => ControlFlow.merge(Seq(a, a))._1.toOutput)
+        val mergeAcc = enterAcc.map(a => ControlFlow.merge(Seq(a, a))._1)
         val switchAcc = mergeAcc.map(a => ControlFlow.switch(a, pivot))
 
         // The actual accumulation.
@@ -528,74 +529,7 @@ private[api] case class WhileLoopContext private[control_flow] (
         exitResult(exitAcc)
         OutputIndexedSlices(exitAcc(0), exitAcc(1), denseShapeAcc.map(_ => exitAcc(2)).orNull)
       }
-      case g: SparseOutput =>
-        exit()
-        // We create a zeros tensor with the right shape for the accumulator. If we don't know the full shape
-        // statically, we will have to get the shape dynamically from the forward inference. Getting the shape right for
-        // the zeros is only needed for the base case when the loop exits without running any iterations.
-        outerContext.foreach(_.enter())
-        val indicesAcc: Output = Basic.zeros(g.indices.dataType, Shape(1))
-        val valuesAcc: Output = {
-          if (g.values.shape.isFullyDefined) {
-            val zerosShape = Shape(1 +: g.values.shape.asArray.tail: _*)
-            Basic.zeros(g.values.dataType, zerosShape, name = "BackwardAccumulator")
-          } else {
-            val value = op.inputs(0)
-            //        outerContext match {
-            //          case Some(context: WhileLoopContext) if context.gradientLoopState.isDefined =>
-            //            // We are in a nested while loop.
-            //            val forwardContext = context.gradientLoopState.get.forwardContext
-            //            forwardContext.outerContext.foreach(_.enter())
-            //            val zerosShape = Basic.shape(value, optimize = false)
-            //            forwardContext.outerContext.foreach(_.exit())
-            //            val outerGradientLoopState = context.gradientLoopState.get.outerGradientState
-            //            val historyZerosShape = outerGradientLoopState.addForwardAccumulator(zerosShape)
-            //            context.enter()
-            //            val realShape = outerGradientLoopState.addBackwardAccumulator(historyZerosShape, zerosShape)
-            //            val acc = Basic.zeros(g.dataType, realShape)
-            //            context.exit()
-            //            acc.setShape(g.shape)
-            //            acc
-            //          case _ =>
-            val zerosShape = Basic.concatenate(Seq(Tensor(1), resourceSafeShape(value).slice(1 ::)), axis = 0)
-            Basic.zeros(g.values.dataType, zerosShape, name = "BackwardAccumulator")
-            //        }
-          }
-        }
-        val denseShapeAcc: Option[Output] = Option(g.denseShape).map(shape => {
-          if (shape.shape.isFullyDefined) {
-            Basic.zeros(shape.dataType, shape.shape)
-          } else {
-            Basic.zerosLike(resourceSafeShape(op.inputs(0)))
-          }
-        })
-        outerContext.foreach(_.exit())
-        enter()
-        values += indicesAcc.name
-        values += valuesAcc.name
-        denseShapeAcc.foreach(s => values += s.name)
-        val initAcc = Seq(indicesAcc, valuesAcc) ++ denseShapeAcc.map(Seq(_)).getOrElse(Seq.empty)
-        val enterAcc = initAcc.map(a => {
-          ControlFlow.enter(a, name, isConstant = false, parallelIterations, name = "BackwardAccumulator")
-        })
-        loopEnters ++= enterAcc
-        val mergeAcc = enterAcc.map(a => ControlFlow.merge(Seq(a, a), name = "BackwardAccumulator")._1.toOutput)
-        val switchAcc = mergeAcc.map(a => ControlFlow.switch(a, pivot))
-
-        // The actual accumulation.
-        var addAcc = mutable.ListBuffer(switchAcc.take(2).zip(Seq(g.indices, g.values)).map(a => {
-          Basic.concatenate(Seq(a._1._2, a._2), 0)
-        }): _*)
-        denseShapeAcc.foreach(_ => {
-          // For the shape we just keep the maximum.
-          addAcc += Math.maximum(g.denseShape, switchAcc(2)._2)
-        })
-        val nextAcc = addAcc.map(ControlFlow.nextIteration(_))
-        mergeAcc.zip(nextAcc).foreach(a => ControlFlow.updateInput(a._1.op, 1, a._2))
-        val exitAcc = switchAcc.map(a => ControlFlow.exit(a._1, name = "BackwardAccumulator"))
-        loopExits ++= exitAcc
-        exitResult(exitAcc)
-        SparseOutput(exitAcc(0), exitAcc(1), denseShapeAcc.map(_ => exitAcc(2)).orNull)
+      case g: SparseOutput => ???
     }
     result.asInstanceOf[T]
   }

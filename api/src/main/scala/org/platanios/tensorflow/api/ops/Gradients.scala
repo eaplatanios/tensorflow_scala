@@ -289,9 +289,9 @@ private[ops] object Gradients {
                 if (o.denseShape == null)
                   throw new IllegalArgumentException(
                     "The dense shape of output indexed slices must be known in order to obtain their gradients.")
-                Basic.ones(INT32, o.denseShape, name = s"Gradients_$index")
+                Basic.ones(o.dataType, o.denseShape, name = s"Gradients_$index")
               case o: SparseOutput =>
-                Basic.ones(INT32, o.denseShape, name = s"Gradients_$index")
+                Basic.ones(o.dataType, o.denseShape, name = s"Gradients_$index")
             }
           }
         } else {

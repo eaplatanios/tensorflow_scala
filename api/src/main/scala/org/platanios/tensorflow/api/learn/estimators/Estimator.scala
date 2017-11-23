@@ -31,7 +31,9 @@ import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.io.events.SummaryFileWriterCache
 import org.platanios.tensorflow.api.types.FLOAT32
 
+import com.typesafe.scalalogging.Logger
 import org.tensorflow.framework.Summary
+import org.slf4j.LoggerFactory
 
 import java.nio.file.{Files, Path}
 
@@ -83,7 +85,7 @@ abstract class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
     // Process provided run configuration.
     val configuration = {
       if (configurationBase == null) {
-        FileBasedEstimator.logger.info("Using the default run configuration.")
+        Estimator.logger.info("Using the default run configuration.")
         Configuration()
       } else {
         configurationBase.copy()
@@ -94,7 +96,7 @@ abstract class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
     val configurationWithWorkingDir = {
       if (configuration.workingDir == null) {
         val workingDir = Files.createTempDirectory("estimator_working_dir")
-        FileBasedEstimator.logger.info(s"Using a temporary folder as working directory: $workingDir")
+        Estimator.logger.info(s"Using a temporary folder as working directory: $workingDir")
         configuration.copy(workingDir = Some(workingDir))
       } else {
         configuration
@@ -104,7 +106,7 @@ abstract class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
     // Process session configuration.
     val configurationWithSession = {
       if (configuration.sessionConfig == null) {
-        FileBasedEstimator.logger.info("Using the default session configuration with allowed soft placements.")
+        Estimator.logger.info("Using the default session configuration with allowed soft placements.")
         configurationWithWorkingDir.copy(sessionConfig = Some(SessionConfig(allowSoftPlacement = Some(true))))
       } else {
         configurationWithWorkingDir
@@ -232,7 +234,7 @@ abstract class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
           value.setSimpleValue(castedValue)
           summaryProto.addValue(value)
         } else {
-          FileBasedEstimator.logger.warn(
+          Estimator.logger.warn(
             s"Skipping summary for non-scalar and/or non-floating-point/non-integer metric '$metric'.")
         }
     }
@@ -244,6 +246,8 @@ abstract class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
 }
 
 object Estimator {
+  private[estimators] val logger = Logger(LoggerFactory.getLogger("Learn / Estimator"))
+
   class ModelFunction[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
     val function: (Configuration) => TrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, EI]) {
     def apply(configuration: Configuration): TrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] = {

@@ -507,9 +507,17 @@ final case class OutputIndexedSlices private (indices: Output, values: Output, d
       throw new IllegalStateException(
         s"Conversion of 'OutputIndexedSlices', '$this', " +
             s"which has no dense shape information available, is not possible.")
-    // TODO: Add check for large number of elements (e.g., > 100000000).
+    val denseShapeValue = Output.constantValueAsShape(denseShape)
+    if (denseShapeValue.isEmpty)
+      logger.warn(
+        "Converting sparse 'OutputIndexedSlices' to a dense 'Output' of unknown shape. " +
+            "This may consume a large amount of memory.")
+    else if (denseShapeValue.get.numElements >= LARGE_SPARSE_TENSOR_SIZE)
+      logger.warn(
+        s"Converting sparse 'OutputIndexedSlices' to a dense 'Output' with ${denseShapeValue.get.numElements} " +
+            "elements. This may consume a large amount of memory.")
     createWith(nameScope = "IndexedSlicesToOutput") {
-      Math.unsortedSegmentSum(data = values, segmentIndices = indices, segmentsNumber = denseShape(0))
+      Math.unsortedSegmentSum(data = values, segmentIndices = indices, segmentsNumber = denseShape.gather(0))
     }
   }
 

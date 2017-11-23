@@ -16,7 +16,6 @@
 package org.platanios.tensorflow.api.ops.rnn.decoder
 
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.core.Indexer.::
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops
@@ -179,7 +178,7 @@ object BasicRNNDecoder {
     }
 
     private[this] val zeroInputs: Seq[ops.Output] = Op.createWithNameScope(name, inputs.map(_.op).toSet) {
-      inputs.map(input => Basic.zerosLike(input(0, ::)))
+      inputs.map(input => Basic.zerosLike(input.gather(0)))
     }
 
     /** Scalar `INT32` tensor representing the batch size of a tensor returned by `sample()`. */
