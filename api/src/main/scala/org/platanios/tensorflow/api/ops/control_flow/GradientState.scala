@@ -104,7 +104,7 @@ private[ops] class GradientState private[control_flow] () {
           // Get the shape back from the stack.
           gradientLoopState.backwardContext.enter()
           val realShape = gradientLoopState.addBackwardAccumulatedValue(historyShape, shape)
-          val result = Basic.fill(value.dataType, realShape)(0)
+          val result = Basic.zeros(value.dataType, realShape)
           gradientLoopState.backwardContext.exit()
           result
         }
@@ -177,12 +177,12 @@ private[ops] class GradientState private[control_flow] () {
               }
             }
             // Add forward accumulator for the shape.
-            gradientLoopState.backwardContext.enter()
-            val historyShape = gradientLoopState.addForwardAccumulator(shape.get, deadBranch)
             gradientLoopState.backwardContext.exit()
+            val historyShape = gradientLoopState.addForwardAccumulator(shape.get, deadBranch)
+            gradientLoopState.backwardContext.enter()
             // Create a zeros tensor with the right shape.
             val realShape = gradientLoopState.addBackwardAccumulatedValue(historyShape, shape.get, deadBranch)
-            Some(Basic.fill(value.dataType, realShape)(0))
+            Some(Basic.zeros(value.dataType, realShape))
           }
         case None =>
           // `op` is not in a while loop that is part of `gradients()`.
@@ -267,7 +267,7 @@ private[ops] class GradientState private[control_flow] () {
             outerGradientContext.foreach(_.enter())
             val enterGradient = merge.op.inputs(0).op.inputs(0)
             val gradientShape = Basic.shape(enterGradient, optimize = false)
-            val gradientValue = Basic.fill(dataType, gradientShape)(0)
+            val gradientValue = Basic.zeros(dataType, gradientShape)
             outerGradientContext.foreach(_.exit())
             // Use the zeros for iterations > 0.
             gradientLoopState.backwardContext.enter()

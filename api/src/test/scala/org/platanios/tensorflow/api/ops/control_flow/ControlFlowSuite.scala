@@ -456,5 +456,32 @@ class ControlFlowSuite extends JUnitSuite with Matchers {
     }
   }
 
+  @Test def testWhileLoopWithNestedCondUsingExternalValuesGradient(): Unit = {
+    withNewGraph {
+      val input = Basic.placeholder(FLOAT32, Shape(-1, -1))
+      val w = Variable.getVariable("w", FLOAT32, Shape.scalar(), OnesInitializer)
+      val (_, finalOutput) = ControlFlow.whileLoop(
+        (v: (Output, Output)) => v._1 < 5,
+        (v: (Output, Output)) => {
+          val nextOutput = ControlFlow.cond(
+            v._1 < 3,
+            () => input,
+            () => v._2 + 2.0f * w.value)
+          (v._1 + 1, nextOutput)
+        },
+        (Basic.constant(0, INT32), Basic.zerosLike(input)))
+      val loss = finalOutput.sum()
+      val optimizer = GradientDescent(0.1)
+      val trainOp = optimizer.minimize(loss)
+      val session = Session()
+      session.run(targets = Op.currentGraph.globalVariablesInitializer())
+      (0 until 100).foreach(i => {
+        session.run(feeds = Map(input -> Tensor.ones(FLOAT32, Shape(10, 10))), targets = trainOp)
+      })
+      val finalLoss = session.run(feeds = Map(input -> Tensor.ones(FLOAT32, Shape(10, 10))), fetches = loss)
+      assert(finalLoss.scalar.asInstanceOf[Float] === -1599500.0f +- 1e-7f)
+    }
+  }
+
   //endregion whileLoop
 }
