@@ -22,7 +22,6 @@ import org.platanios.tensorflow.api.ops.{Basic, Op}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.{DataType, INT32}
 import org.platanios.tensorflow.api.utilities.using
-
 import org.junit.Test
 import org.scalatest.junit.JUnitSuite
 
@@ -121,7 +120,7 @@ class DatasetSuite extends JUnitSuite {
 
   @Test def testDatasetFromGenerator(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
-      val dataset = Dataset.fromGenerator(() => Stream(0, 1, 2, 3).map(Tensor(_)), INT32: DataType, Shape(1))
+      val dataset = Dataset.fromGenerator(() => Stream(0, 1, 2, 3).map(Tensor(_)), INT32, Shape(1))
       val iterator = dataset.createInitializableIterator()
       val initOp = iterator.initializer
       val nextOutput = iterator.next()

@@ -16,6 +16,7 @@
 package org.platanios.tensorflow.api.implicits.helpers
 
 import org.platanios.tensorflow.api.types.DataType
+
 import shapeless._
 import shapeless.ops.hlist.Tupler
 
@@ -35,6 +36,13 @@ trait DataTypeAuxToDataType[DA] {
 object DataTypeAuxToDataType {
   type Aux[DA, D] = DataTypeAuxToDataType[DA] {
     type DataTypeType = D
+  }
+
+  implicit val dataTypeToDataType: Aux[DataType, DataType] = {
+    new DataTypeAuxToDataType[DataType] {
+      override type DataTypeType = DataType
+      override def castDataType(dataType: DataType): DataType = dataType
+    }
   }
 
   implicit def dataTypeAuxToDataType[DA]: Aux[DataType.Aux[DA], DataType] = {
