@@ -140,9 +140,9 @@ private[control_flow] case class GradientLoopState private[control_flow] (
                 realValue = Some(backwardContext.add(currentValue))
                 loopCondition = false
             }
-          // case _ if currentValue.op.opType == "Const" =>
-          //   realValue = Output.constantValue(currentValue).map(Basic.constant(_))
-          //   loopCondition = false
+          case _ if currentValue.op.opType == "Const" =>
+            realValue = Output.constantValue(currentValue).map(Basic.constant(_))
+            loopCondition = false
           case _ =>
             // TODO: !!! [CONTROL_FLOW] Consider keeping constants outside the loop avoiding the accumulator for them.
             // Record the history of this value in the forward context.

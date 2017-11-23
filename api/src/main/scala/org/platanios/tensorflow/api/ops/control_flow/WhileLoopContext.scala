@@ -429,14 +429,14 @@ private[api] case class WhileLoopContext private[control_flow] (
                 val historyZerosShape = outerGradientLoopState.addForwardAccumulator(zerosShape)
                 context.enter()
                 val realShape = outerGradientLoopState.addBackwardAccumulatedValue(historyZerosShape, zerosShape)
-                val acc = Basic.fill(g.dataType, realShape)(0)
+                val acc = Basic.zeros(g.dataType, realShape)
                 context.exit()
                 acc.setShape(g.shape)
                 acc
               case _ =>
                 outerContext.foreach(_.enter())
                 val zerosShape = resourceSafeShape(value)
-                val acc = Basic.fill(g.dataType, zerosShape)(0)
+                val acc = Basic.zeros(g.dataType, zerosShape)
                 outerContext.foreach(_.exit())
                 acc.setShape(g.shape)
                 acc
@@ -482,14 +482,14 @@ private[api] case class WhileLoopContext private[control_flow] (
                 val historyZerosShape = outerGradientLoopState.addForwardAccumulator(zerosShape)
                 context.enter()
                 val realShape = outerGradientLoopState.addBackwardAccumulatedValue(historyZerosShape, zerosShape)
-                val acc = Basic.fill(g.values.dataType, realShape)(0)
+                val acc = Basic.zeros(g.values.dataType, realShape)
                 context.exit()
                 acc.setShape(g.values.shape)
                 acc
               case _ =>
                 val zerosShape = Basic.concatenate(
                   Seq(Tensor(1), resourceSafeShape(op.inputs(0)).slice(1 ::)), axis = 0)
-                Basic.fill(g.values.dataType, zerosShape)(0)
+                Basic.zeros(g.values.dataType, zerosShape)
             }
           }
         }
@@ -552,13 +552,13 @@ private[api] case class WhileLoopContext private[control_flow] (
             //            val historyZerosShape = outerGradientLoopState.addForwardAccumulator(zerosShape)
             //            context.enter()
             //            val realShape = outerGradientLoopState.addBackwardAccumulator(historyZerosShape, zerosShape)
-            //            val acc = Basic.fill(g.dataType, realShape)(0)
+            //            val acc = Basic.zeros(g.dataType, realShape)
             //            context.exit()
             //            acc.setShape(g.shape)
             //            acc
             //          case _ =>
             val zerosShape = Basic.concatenate(Seq(Tensor(1), resourceSafeShape(value).slice(1 ::)), axis = 0)
-            Basic.fill(g.values.dataType, zerosShape)(0, name = "BackwardAccumulator")
+            Basic.zeros(g.values.dataType, zerosShape, name = "BackwardAccumulator")
             //        }
           }
         }
@@ -895,7 +895,7 @@ object WhileLoopVariable {
       val staticBatchSize = Output.constantValue(batchSize).map(_.scalar.asInstanceOf[Int]).getOrElse(-1)
       Op.createWithNameScope(name, Set(batchSize.op)) {
         val fullShape = Basic.concatenate(Seq(batchSize.expandDims(0), shape.toOutput(batchSize.dataType)), axis = 0)
-        val zero = Basic.fill(dataType, fullShape)(0)
+        val zero = Basic.zeros(dataType, fullShape)
         zero.setShape(Shape(staticBatchSize) ++ shape)
         zero
       }

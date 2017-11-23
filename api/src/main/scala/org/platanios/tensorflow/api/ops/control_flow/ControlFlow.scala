@@ -316,7 +316,7 @@ private[api] object ControlFlow extends ControlFlow {
   private[ControlFlow] def assertExclusive(predicates: Seq[Output]): Op = {
     val stacked = Basic.stack(predicates, name = "StackedPredicates")
     val numTrue = Math.sum(Math.cast(stacked, INT32), name = "NumTruePredicates")
-    val atMostOneTrue = Math.less(numTrue, Basic.constant(2, INT32, name = "TwoTruePredicates"))
+    val atMostOneTrue = Math.less(numTrue, Basic.constant(2, name = "TwoTruePredicates"))
     val errorData =
       Seq(
         Basic.constant(Tensor(
