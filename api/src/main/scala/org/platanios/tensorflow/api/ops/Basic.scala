@@ -2339,7 +2339,7 @@ object Basic extends Basic {
       val inputVector = op.inputs(0)
       val beginVector = op.inputs(1)
       val inputRank = rank(inputVector)
-      val padShape = stack(Seq(inputRank, constant(Tensor(inputRank.dataType, 1))))
+      val padShape = concatenate(Seq(expandDims(inputRank, 0), constant(Tensor(inputRank.dataType, 1))))
       val beforePad = reshape(beginVector, padShape)
       val afterPad = reshape(shape(inputVector) - shape(op.outputs(0)) - beginVector, padShape)
       val paddings = concatenate(Seq(beforePad, afterPad), axis = 1)
