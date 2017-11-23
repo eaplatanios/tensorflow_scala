@@ -40,7 +40,7 @@ class MultiRNNCell[O, OS, S, SS](
       case (cell, s) =>
         val nextTuple = cell(Tuple(currentInput, s))
         currentInput = nextTuple.output
-        s
+        nextTuple.state
     }
     Tuple(currentInput, state)
   }

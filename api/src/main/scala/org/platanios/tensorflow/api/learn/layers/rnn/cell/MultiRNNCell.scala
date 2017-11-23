@@ -17,6 +17,7 @@ package org.platanios.tensorflow.api.learn.layers.rnn.cell
 
 import org.platanios.tensorflow.api.learn.Mode
 import org.platanios.tensorflow.api.ops
+import org.platanios.tensorflow.api.ops.Op
 import org.platanios.tensorflow.api.ops.variables.VariableScope
 
 /** RNN cell that is composed by applying a sequence of RNN cells in order.
@@ -35,13 +36,13 @@ class MultiRNNCell[O, OS, S, SS] private[cell] (
 ) extends RNNCell[O, OS, Seq[S], Seq[SS]](name) {
   override val layerType: String = "MultiRNNCell"
 
-  override def createCell(mode: Mode): CellInstance[O, OS, Seq[S], Seq[SS]] = {
+  override def createCell(mode: Mode): CellInstance[O, OS, Seq[S], Seq[SS]] = Op.createWithNameScope(name) {
     val cellInstances = cells.zipWithIndex.map(cell => {
       VariableScope.createWithVariableScope(s"Cell${cell._2}") {
         cell._1.createCell(mode)
       }
     })
-    val cell = ops.rnn.cell.MultiRNNCell(cellInstances.map(_.cell), name = "")
+    val cell = ops.rnn.cell.MultiRNNCell(cellInstances.map(_.cell))
     CellInstance(
       cell,
       cellInstances.flatMap(_.trainableVariables).toSet,
