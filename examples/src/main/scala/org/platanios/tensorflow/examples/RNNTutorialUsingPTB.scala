@@ -57,8 +57,8 @@ object RNNTutorialUsingPTB {
   }
 
   private[this] val model = {
-    val input = tf.learn.Input(INT32, Shape(batchSize, numSteps))
-    val trainInput = tf.learn.Input(INT32, Shape(batchSize, numSteps))
+    val input = tf.learn.Input(INT32, Shape(-1, -1))
+    val trainInput = tf.learn.Input(INT32, Shape(-1, -1))
     // Slightly better results can be obtained with forget gate biases initialized to 1 but the hyper-parameters of the
     // model would need to be different than those reported in the paper.
     val rnnCell = BasicLSTMCell(numHidden, FLOAT32, Shape(-1, numHidden), forgetBias = 0.0f)

@@ -103,7 +103,7 @@ object LossLoggingHook {
       trigger: HookTrigger = StepHookTrigger(1),
       triggerAtEnd: Boolean = true,
       formatter: (Double, Long, Float) => String = { (time, step, loss) =>
-        f"($time%.3f s) Step: $step%06d, Loss: $loss%.4f"
+        f"($time%8.3f s) Step: $step%6d, Loss: $loss%.4f"
       }
   ): LossLoggingHook = {
     new LossLoggingHook(trigger, triggerAtEnd, formatter)

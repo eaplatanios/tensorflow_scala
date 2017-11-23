@@ -47,11 +47,11 @@ case class GroupByWindowDataset[T, O, D, S](
 
   private[this] lazy val instantiatedReduceFunction = {
     Function(s"$name/ReduceFunction", reduceFn).instantiate(
-      Seq(INT64, VARIANT), Seq(Shape.scalar(), Shape.scalar()), appendHashToName = true)
+      Seq(INT64, VARIANT), Seq(Shape.scalar(), Shape.scalar()), Some((null, inputDataset)), appendHashToName = true)
   }
 
   private[this] lazy val instantiatedWindowSizeFunction = {
-    Function(s"$name/WindowSizeFunction", windowSizeFn).instantiate(
+    Function(s"$name/WindowSizeFunction", output => windowSizeFn(output).cast(INT64)).instantiate(
       Seq(INT64), Seq(Shape.scalar()), appendHashToName = true)
   }
 

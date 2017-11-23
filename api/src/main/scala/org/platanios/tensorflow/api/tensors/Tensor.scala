@@ -266,7 +266,6 @@ class Tensor private[Tensor](private[api] var nativeHandle: Long)
             buffer, stringOffset + INT64.getElementFromBuffer(buffer, i * INT64.byteSize).toInt)
         case _ =>
           dataType.getElementFromBuffer(buffer, i * dataType.byteSize)
-
       }
       i += 1
       nextElement
