@@ -98,7 +98,7 @@ class GradientsSuite extends JUnitSuite {
     val graph = Graph()
     val expectedGraph = Graph()
     val (inputs, output) = buildSuccessGraph(graph)
-    val gradients = Gradients.cc_gradients(Array(output), inputs)
+    val gradients = Gradients.ccGradients(Array(output), inputs)
     val expectedGradients = buildExpectedCCGraph(expectedGraph, gradientInputsProvided = false)
     val graphDef = graph.toProto
     val expectedGraphDef = expectedGraph.toProto

@@ -565,7 +565,7 @@ private[ops] object Gradients {
     *            match the number of tensors in `y`.
     * @return Partial derivatives of the `y`s given each one of the `x`s.
     */
-  def cc_gradients(y: Array[Output], x: Array[Output], dx: Array[Output] = null): Array[Output] = {
+  def ccGradients(y: Array[Output], x: Array[Output], dx: Array[Output] = null): Array[Output] = {
     // TODO: Overload this method with all possible uses for it.
     if (dx != null && dx.length != y.length)
       throw new IllegalArgumentException(s"The number of ys (${y.length}) must match the number of dxs (${dx.length}).")

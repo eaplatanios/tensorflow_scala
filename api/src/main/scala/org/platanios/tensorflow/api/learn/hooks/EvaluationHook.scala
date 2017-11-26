@@ -37,7 +37,6 @@ import java.nio.file.Path
   * creates a new session whenever invoked that loads the latest saved checkpoint and evaluates performance using the
   * provided set of evaluation metrics.
   *
-  *
   * @param  log          If `true`, the step rate is logged using the current logging configuration.
   * @param  summaryDir   If provided, summaries for the step rate will be saved in this directory. This is useful for
   *                      visualization using TensorBoard, for example.
