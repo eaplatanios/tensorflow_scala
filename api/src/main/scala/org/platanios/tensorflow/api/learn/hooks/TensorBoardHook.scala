@@ -22,6 +22,8 @@ import org.platanios.tensorflow.api.learn.SessionCreator
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
 
+import scala.util.Try
+
 /** Launches a TensorBoard server for the duration of a run.
   *
   * This can be useful when running on a server or a distributed environment and want to monitor the run.
@@ -34,10 +36,16 @@ private[learn] case class TensorBoardHook(tensorBoardConfig: TensorBoardConfig) 
   private[this] var tensorBoardProcess: Option[Process] = None
 
   override def begin(sessionCreator: SessionCreator): Unit = tensorBoardProcess = {
-    Option(tensorBoardConfig).map(config => {
+    Option(tensorBoardConfig).flatMap(config => {
       TensorBoardHook.logger.info(
         s"Launching TensorBoard in '${config.host}:${config.port}' for log directory '${config.logDir.toAbsolutePath}'.")
-      config.processBuilder.start()
+      val processOrError = Try(config.processBuilder.start())
+      processOrError.failed.foreach(e => {
+        TensorBoardHook.logger.warn(e.getMessage)
+        TensorBoardHook.logger.warn(
+          "Could not launch TensorBoard. Please make sure it is installed correctly and in your PATH.")
+      })
+      processOrError.toOption
     })
   }
 
