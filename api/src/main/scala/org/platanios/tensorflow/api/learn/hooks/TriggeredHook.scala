@@ -37,7 +37,7 @@ abstract class TriggeredHook(
     trigger: HookTrigger = StepHookTrigger(10),
     triggerAtEnd: Boolean = true
 ) extends Hook {
-  private[this] val internalTrigger: HookTrigger = trigger.copy()
+  protected     val internalTrigger: HookTrigger = trigger.copy()
   private[this] var step           : Variable    = _
   private[this] var lastStep       : Long        = 0L
   private[this] var shouldTrigger  : Boolean     = false
