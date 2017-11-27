@@ -15,11 +15,10 @@
 
 package org.platanios.tensorflow.api.learn.hooks
 
-import org.platanios.tensorflow.api.core.Graph
-import org.platanios.tensorflow.api.core.client.{Executable, Fetchable, Session}
+import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception.OutOfRangeException
 import org.platanios.tensorflow.api.io.events.SummaryFileWriterCache
-import org.platanios.tensorflow.api.learn.{Counter, RECOVERABLE_EXCEPTIONS, SessionCreator, SessionWrapper}
+import org.platanios.tensorflow.api.learn.{RECOVERABLE_EXCEPTIONS, SessionCreator, SessionWrapper}
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.ops.io.data.Dataset
 import org.platanios.tensorflow.api.ops.metrics.Metric
@@ -61,26 +60,18 @@ case class Evaluator[I, TT, TO, TD, TS](
     trigger: HookTrigger = StepHookTrigger(100),
     triggerAtEnd: Boolean = true,
     name: String = null
-) extends ModelDependentHook[I, TT, TO, TD, TS] {
+) extends TriggeredHook(trigger, triggerAtEnd)
+    with ModelDependentHook[I, TT, TO, TD, TS] {
   require(log || summaryDir != null, "At least one of 'log' and 'summaryDir' needs to be provided.")
 
-  private[this] var sessionCreator: SessionCreator = _
-  private[this] var step               : Variable    = _
-  private[this] var iteratorInitializer: Op          = _
-  private[this] var metricValues       : Seq[Output] = _
-  private[this] var metricUpdates      : Seq[Output] = _
-  private[this] var metricResets       : Seq[Op]     = _
-
-  private[this] val internalTrigger: HookTrigger = trigger.copy()
-  private[this] var lastStep       : Long        = 0L
-  private[this] var shouldTrigger  : Boolean     = false
+  private[this] var sessionCreator     : SessionCreator = _
+  private[this] var iteratorInitializer: Op             = _
+  private[this] var metricValues       : Seq[Output]    = _
+  private[this] var metricUpdates      : Seq[Output]    = _
+  private[this] var metricResets       : Seq[Op]        = _
 
   override protected def begin(sessionCreator: SessionCreator): Unit = {
     this.sessionCreator = sessionCreator
-    step = Counter.get(Graph.Keys.GLOBAL_STEP, local = false).getOrElse(throw new IllegalStateException(
-      s"A ${Graph.Keys.GLOBAL_STEP.name} variable should be created in order to use the 'TensorLoggingHook'."))
-    internalTrigger.reset()
-    shouldTrigger = false
     iteratorInitializer = modelInstance.inputIterator.createInitializer(data())
     val streamingInstances = metrics.map(_.streaming((modelInstance.output, modelInstance.input)))
     metricValues = streamingInstances.map(_.value)
@@ -89,54 +80,33 @@ case class Evaluator[I, TT, TO, TD, TS](
     sessionCreator.addLocalInitOp(Variable.initializer(streamingInstances.flatMap(_.variables).toSet))
   }
 
-  override protected def afterSessionCreation(session: Session): Unit = {
-    lastStep = session.run(fetches = step.value).scalar.asInstanceOf[Long]
-  }
-
-  override protected def beforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
-      executableEv: Executable[E],
-      fetchableEv: Fetchable.Aux[F, R]
-  ): Option[Hook.SessionRunArgs[Seq[Output], Traversable[Op], Seq[Tensor]]] = {
-    shouldTrigger = internalTrigger.shouldTriggerForStep(lastStep.toInt)
-    Some(Hook.SessionRunArgs(fetches = Seq(step.value)))
-  }
-
-  override protected def afterSessionRun[F, E, R](
-      runContext: Hook.SessionRunContext[F, E, R],
-      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor]]
-  )(implicit
-      executableEv: Executable[E],
-      fetchableEv: Fetchable.Aux[F, R]
+  override protected def onTrigger(
+      step: Long,
+      elapsed: Option[(Double, Int)],
+      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor]],
+      session: Session
   ): Unit = {
-    lastStep = runResult.values.head.scalar.asInstanceOf[Long]
-    if (shouldTrigger) {
-      internalTrigger.updateLastTrigger(lastStep.toInt - 1)
-      Evaluator.logger.info(s"Computing $name.")
-      val session = new SessionWrapper(sessionCreator.createSession())
-      val (step, values) = {
-        try {
-          session.run(targets = iteratorInitializer)
-          while (!session.shouldStop)
-            try {
-              session.run(targets = metricUpdates.map(_.op).toSet)
-            } catch {
-              case _: OutOfRangeException => session.setShouldStop(true)
-            }
-          (lastStep, session.run(fetches = metricValues))
-        } catch {
-          case e if RECOVERABLE_EXCEPTIONS.contains(e.getClass) =>
-            session.close()
-            (-1L, Seq.empty[Tensor])
-          case t: Throwable => throw t
-        } finally {
+    Evaluator.logger.info(s"Computing $name.")
+    val session = new SessionWrapper(sessionCreator.createSession())
+    val values = {
+      try {
+        session.run(targets = iteratorInitializer)
+        while (!session.shouldStop)
+          try {
+            session.run(targets = metricUpdates.map(_.op).toSet)
+          } catch {
+            case _: OutOfRangeException => session.setShouldStop(true)
+          }
+        session.run(fetches = metricValues)
+      } catch {
+        case e if RECOVERABLE_EXCEPTIONS.contains(e.getClass) =>
           session.close()
-        }
+          Seq.empty[Tensor]
+        case t: Throwable => throw t
+      } finally {
+        session.close()
       }
-      processResults(step, values)
     }
-  }
-
-  private[this] def processResults(step: Long, values: Seq[Tensor]): Unit = {
     if (log) {
       Evaluator.logger.info(s"Step $step $name:")
       metrics.zip(values).foreach {
@@ -146,9 +116,9 @@ case class Evaluator[I, TT, TO, TD, TS](
             val castedValue = metricValue.cast(FLOAT32).scalar.asInstanceOf[Float]
             Evaluator.logger.info(f"\t${metric.name}%10s: $castedValue%10.4f")
           } else {
-          Evaluator.logger.warn(
-            s"\tSkipping logging for non-scalar and/or non-floating-point/non-integer metric '$metric'.")
-        }
+            Evaluator.logger.warn(
+              s"\tSkipping logging for non-scalar and/or non-floating-point/non-integer metric '$metric'.")
+          }
       }
     }
     if (summaryDir != null) {

@@ -16,11 +16,10 @@
 package org.platanios.tensorflow.api.learn.hooks
 
 import org.platanios.tensorflow.api.core.Graph
-import org.platanios.tensorflow.api.core.client.{Executable, Fetchable, Session}
+import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.io.events.{SummaryFileWriter, SummaryFileWriterCache}
-import org.platanios.tensorflow.api.learn.{Counter, SessionCreator}
-import org.platanios.tensorflow.api.ops.{Op, Output, Summary}
-import org.platanios.tensorflow.api.ops.variables.Variable
+import org.platanios.tensorflow.api.learn.SessionCreator
+import org.platanios.tensorflow.api.ops.{Output, Summary}
 import org.platanios.tensorflow.api.tensors.Tensor
 
 import org.tensorflow.util.SessionLog
@@ -45,66 +44,31 @@ case class SummarySaver(
     trigger: HookTrigger = StepHookTrigger(10),
     triggerAtEnd: Boolean = true,
     collection: Graph.Key[Output] = Graph.Keys.SUMMARIES
-) extends Hook {
-  private[this] var step         : Variable                  = _
+) extends TriggeredHook(trigger, triggerAtEnd) {
   private[this] var summary      : Option[Output]            = None
   private[this] var summaryWriter: Option[SummaryFileWriter] = None
 
-  private[this] val internalTrigger: HookTrigger = trigger.copy()
-  private[this] var lastStep       : Long        = 0L
-  private[this] var shouldTrigger  : Boolean     = false
-
   override protected def begin(sessionCreator: SessionCreator): Unit = {
-    internalTrigger.reset()
-    step = Counter.get(Graph.Keys.GLOBAL_STEP, local = false).getOrElse(throw new IllegalStateException(
-      s"A ${Graph.Keys.GLOBAL_STEP.name} variable should be created in order to use the 'SummarySaverHook'."))
     summary = Summary.mergeAll(collection)
     if (summary.isDefined)
       summaryWriter = Some(SummaryFileWriterCache.get(directory))
   }
 
-  override protected def afterSessionCreation(session: Session): Unit = {
-    lastStep = session.run(fetches = step.value).scalar.asInstanceOf[Long]
-  }
+  override protected def end(session: Session): Unit = summaryWriter.foreach(_.flush())
 
-  override protected def beforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
-      executableEv: Executable[E],
-      fetchableEv: Fetchable.Aux[F, R]
-  ): Option[Hook.SessionRunArgs[Seq[Output], Traversable[Op], Seq[Tensor]]] = {
-    shouldTrigger = internalTrigger.shouldTriggerForStep(lastStep.toInt) && summary.isDefined
-    if (shouldTrigger) {
-      Some(Hook.SessionRunArgs(fetches = Seq(step.value, summary.get)))
-    } else {
-      Some(Hook.SessionRunArgs(fetches = Seq(step.value)))
-    }
-  }
+  override protected def fetches: Seq[Output] = summary.map(Seq(_)).getOrElse(Seq.empty)
 
-  override protected def afterSessionRun[F, E, R](
-      runContext: Hook.SessionRunContext[F, E, R],
-      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor]]
-  )(implicit
-      executableEv: Executable[E],
-      fetchableEv: Fetchable.Aux[F, R]
+  override protected def onTrigger(
+      step: Long,
+      elapsed: Option[(Double, Int)],
+      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor]],
+      session: Session
   ): Unit = {
-    saveSummaries(runResult.values)
-  }
-
-  override protected def end(session: Session): Unit = {
-    if (triggerAtEnd && lastStep.toInt != internalTrigger.lastTriggerStep().getOrElse(-1))
-      saveSummaries(session.run(fetches = Seq(step.value, summary.get)))
-    summaryWriter.foreach(_.flush())
-  }
-
-  private[this] def saveSummaries(fetches: Seq[Tensor]): Unit = {
     summaryWriter.foreach(writer => {
-      if (lastStep == 0L)
-        writer.writeSessionLog(SessionLog.newBuilder().setStatus(SessionLog.SessionStatus.START).build(), lastStep)
-      lastStep = fetches(0).scalar.asInstanceOf[Long]
-      if (shouldTrigger) {
-        internalTrigger.updateLastTrigger(lastStep.toInt - 1)
-        writer.writeSummaryString(fetches(1).scalar.asInstanceOf[String], lastStep)
-        writer.flush()
-      }
+      if (step == 0L)
+        writer.writeSessionLog(SessionLog.newBuilder().setStatus(SessionLog.SessionStatus.START).build(), step)
+      writer.writeSummaryString(runResult.values(0).scalar.asInstanceOf[String], step)
+      writer.flush()
     })
   }
 }

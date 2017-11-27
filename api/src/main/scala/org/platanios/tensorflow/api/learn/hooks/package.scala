@@ -21,8 +21,6 @@ package org.platanios.tensorflow.api.learn
 package object hooks {
   private[api] trait API
       extends HookTrigger.API {
-    // TODO: [HOOKS] !!! Abstract the hook triggering logic to the hook superclass.
-
     type Hook = hooks.Hook
     type CheckpointSaver = hooks.CheckpointSaver
     type EvaluationStopper = hooks.EvaluationStopper
@@ -36,6 +34,7 @@ package object hooks {
     type SummaryWriterHookAddOn = hooks.SummaryWriterHookAddOn
     type TensorBoardHook = hooks.TensorBoardHook
     type TensorLogger = hooks.TensorLogger
+    type TriggeredHook = hooks.TriggeredHook
 
     val CheckpointSaver  : hooks.CheckpointSaver.type   = hooks.CheckpointSaver
     val EvaluationStopper: hooks.EvaluationStopper.type = hooks.EvaluationStopper

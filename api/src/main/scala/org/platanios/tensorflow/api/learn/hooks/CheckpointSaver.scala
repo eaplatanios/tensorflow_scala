@@ -19,9 +19,9 @@ import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.{Executable, Fetchable, Session}
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.io.events.{SummaryFileWriter, SummaryFileWriterCache}
-import org.platanios.tensorflow.api.learn.{Counter, SessionCreator}
+import org.platanios.tensorflow.api.learn.SessionCreator
 import org.platanios.tensorflow.api.ops.{Op, Output}
-import org.platanios.tensorflow.api.ops.variables.{Saver, Variable}
+import org.platanios.tensorflow.api.ops.variables.Saver
 import org.platanios.tensorflow.api.tensors.Tensor
 
 import com.typesafe.scalalogging.Logger
@@ -49,21 +49,13 @@ case class CheckpointSaver(
     trigger: HookTrigger = StepHookTrigger(1000),
     triggerAtEnd: Boolean = true,
     checkpointBaseName: String = "model.ckpt"
-) extends Hook {
+) extends TriggeredHook(trigger, triggerAtEnd) {
   private[this] val savePath: Path = directory.resolve(checkpointBaseName)
 
-  private[this] var step         : Variable                  = _
   private[this] var saver        : Option[Saver]             = None
   private[this] var summaryWriter: Option[SummaryFileWriter] = None
 
-  private[this] val internalTrigger: HookTrigger = trigger.copy()
-  private[this] var lastStep       : Long        = 0L
-  private[this] var shouldTrigger  : Boolean     = false
-
   override protected def begin(sessionCreator: SessionCreator): Unit = {
-    internalTrigger.reset()
-    step = Counter.get(Graph.Keys.GLOBAL_STEP, local = false).getOrElse(throw InvalidArgumentException(
-      s"A ${Graph.Keys.GLOBAL_STEP.name} variable should be created in order to use the 'CheckpointSaverHook'."))
     val savers = Op.currentGraph.getCollection(Graph.Keys.SAVERS)
     if (savers.isEmpty || savers.size > 1)
       throw InvalidArgumentException("There should exist one (and only one) saver in the graph.")
@@ -71,50 +63,32 @@ case class CheckpointSaver(
     summaryWriter = Some(SummaryFileWriterCache.get(directory))
   }
 
-  override protected def afterSessionCreation(session: Session): Unit = {
-    lastStep = session.run(fetches = step.value).scalar.asInstanceOf[Long]
-  }
-
-  override protected def beforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
-      executableEv: Executable[E],
-      fetchableEv: Fetchable.Aux[F, R]
-  ): Option[Hook.SessionRunArgs[Seq[Output], Traversable[Op], Seq[Tensor]]] = {
-    if (internalTrigger.lastTriggerStep().isEmpty) {
-      // We save the graph and the saver at the first call of `beforeSessionRun`. We cannot do this in `begin()` because
-      // we let other hooks change the graph and add variables in their `begin()` methods. The graph is finalized after
-      // all `begin()` calls.
-      val graphDef = runContext.session.graph.toGraphDef
-      val metaGraphDef = runContext.session.graph.toMetaGraphDef(saverDef = saver.map(_.toSaverDef()).orNull)
-      Files.write(directory.resolve("graph.pbtxt"), graphDef.toByteArray)
-      summaryWriter.foreach(_.writeGraphDef(graphDef))
-      summaryWriter.foreach(_.writeMetaGraphDef(metaGraphDef))
-    }
-    shouldTrigger = internalTrigger.shouldTriggerForStep(lastStep.toInt)
-    Some(Hook.SessionRunArgs(fetches = Seq(step.value)))
-  }
-
-  override protected def afterSessionRun[F, E, R](
-      runContext: Hook.SessionRunContext[F, E, R],
-      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor]]
-  )(implicit
-      executableEv: Executable[E],
-      fetchableEv: Fetchable.Aux[F, R]
-  ): Unit = {
-    lastStep = runResult.values(0).scalar.asInstanceOf[Long]
-    if (shouldTrigger)
-      save(runContext.session)
-  }
-
   override protected def end(session: Session): Unit = {
-    if (triggerAtEnd && lastStep.toInt != internalTrigger.lastTriggerStep().getOrElse(-1))
-      save(session)
     summaryWriter.foreach(_.flush())
   }
 
-  private[this] def save(session: Session): Unit = {
-    internalTrigger.updateLastTrigger(lastStep.toInt - 1)
-    CheckpointSaver.logger.info(s"Saving checkpoint for step $lastStep.")
-    saver.foreach(_.save(session, savePath, Some(lastStep.toInt)))
+  override protected def onFirstTrigger[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
+      executableEv: Executable[E],
+      fetchableEv: Fetchable.Aux[F, R]
+  ): Unit = {
+    // We save the graph and the saver at the first call of `beforeSessionRun`. We cannot do this in `begin()` because
+    // we let other hooks change the graph and add variables in their `begin()` methods. The graph is finalized after
+    // all `begin()` calls.
+    val graphDef = runContext.session.graph.toGraphDef
+    val metaGraphDef = runContext.session.graph.toMetaGraphDef(saverDef = saver.map(_.toSaverDef()).orNull)
+    Files.write(directory.resolve("graph.pbtxt"), graphDef.toByteArray)
+    summaryWriter.foreach(_.writeGraphDef(graphDef))
+    summaryWriter.foreach(_.writeMetaGraphDef(metaGraphDef))
+  }
+
+  override protected def onTrigger(
+      step: Long,
+      elapsed: Option[(Double, Int)],
+      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor]],
+      session: Session
+  ): Unit = {
+    CheckpointSaver.logger.info(s"Saving checkpoint for step $step.")
+    saver.foreach(_.save(session, savePath, Some(step.toInt)))
     summaryWriter.foreach(_.writeSessionLog(
       SessionLog.newBuilder()
           .setStatus(SessionLog.SessionStatus.CHECKPOINT)

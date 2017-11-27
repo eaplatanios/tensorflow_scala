@@ -15,9 +15,12 @@
 
 package org.platanios.tensorflow.api.learn.hooks
 
+import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.io.events.{SummaryFileWriter, SummaryFileWriterCache}
+import org.platanios.tensorflow.api.learn.SessionCreator
+import org.platanios.tensorflow.api.tensors.Tensor
 
-import org.tensorflow.framework.Summary
+import org.tensorflow.framework.{HistogramProto, Summary}
 
 import java.nio.file.Path
 
@@ -25,14 +28,31 @@ import java.nio.file.Path
   *
   * @author Emmanouil Antonios Platanios
   */
-trait SummaryWriterHookAddOn {
+trait SummaryWriterHookAddOn extends Hook {
+  val summaryDir: Path
+
   private[this] var summaryWriter: Option[SummaryFileWriter] = None
 
-  protected def summaryWriterBegin(summaryDir: Path): Unit = {
+  override private[learn] def internalBegin(sessionCreator: SessionCreator): Unit = {
     summaryWriter = Option(summaryDir).map(SummaryFileWriterCache.get(_))
+    super.internalBegin(sessionCreator)
   }
 
-  protected def summaryWriterWrite(step: Long, tag: String, value: Float): Unit = {
+  override private[learn] def internalEnd(session: Session): Unit = {
+    summaryWriter.foreach(_.flush())
+    super.internalEnd(session)
+  }
+
+  protected def writeSummary(step: Long, tag: String, value: Tensor): Unit = {
+    summaryWriter.foreach(_.writeSummary(
+      Summary.newBuilder()
+          .addValue(Summary.Value.newBuilder()
+              .setTag(tag)
+              .setTensor(value.toTensorProto))
+          .build(), step))
+  }
+
+  protected def writeSummary(step: Long, tag: String, value: Float): Unit = {
     summaryWriter.foreach(_.writeSummary(
       Summary.newBuilder()
           .addValue(Summary.Value.newBuilder()
@@ -41,7 +61,30 @@ trait SummaryWriterHookAddOn {
           .build(), step))
   }
 
-  protected def summaryWriterEnd(): Unit = {
-    summaryWriter.foreach(_.flush())
+  protected def writeSummary(step: Long, tag: String, value: HistogramProto): Unit = {
+    summaryWriter.foreach(_.writeSummary(
+      Summary.newBuilder()
+          .addValue(Summary.Value.newBuilder()
+              .setTag(tag)
+              .setHisto(value))
+          .build(), step))
+  }
+
+  protected def writeSummary(step: Long, tag: String, value: Summary.Image): Unit = {
+    summaryWriter.foreach(_.writeSummary(
+      Summary.newBuilder()
+          .addValue(Summary.Value.newBuilder()
+              .setTag(tag)
+              .setImage(value))
+          .build(), step))
+  }
+
+  protected def writeSummary(step: Long, tag: String, value: Summary.Audio): Unit = {
+    summaryWriter.foreach(_.writeSummary(
+      Summary.newBuilder()
+          .addValue(Summary.Value.newBuilder()
+              .setTag(tag)
+              .setAudio(value))
+          .build(), step))
   }
 }

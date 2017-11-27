@@ -15,11 +15,9 @@
 
 package org.platanios.tensorflow.api.learn.hooks
 
-import org.platanios.tensorflow.api.core.Graph
-import org.platanios.tensorflow.api.core.client.{Executable, Fetchable, Session}
-import org.platanios.tensorflow.api.learn.{Counter, SessionCreator}
-import org.platanios.tensorflow.api.ops.{Op, Output}
-import org.platanios.tensorflow.api.ops.variables.Variable
+import org.platanios.tensorflow.api.core.client.Session
+import org.platanios.tensorflow.api.learn.SessionCreator
+import org.platanios.tensorflow.api.ops.Output
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.FLOAT32
 
@@ -47,72 +45,42 @@ case class LossLogger(
     summaryDir: Path = null,
     trigger: HookTrigger = StepHookTrigger(1),
     triggerAtEnd: Boolean = true,
-    formatter: (Double, Long, Float) => String = (time, step, loss) => {
-      f"($time%8.3f s) Step: $step%6d, Loss: $loss%.4f"
-    }
-) extends ModelDependentHook[Any, Any, Any, Any, Any] with SummaryWriterHookAddOn {
+    formatter: (Double, Long, Float) => String = null
+) extends TriggeredHook(trigger, triggerAtEnd)
+    with ModelDependentHook[Any, Any, Any, Any, Any]
+    with SummaryWriterHookAddOn {
   require(log || summaryDir != null, "At least one of 'log' and 'summaryDir' needs to be provided.")
 
-  private[this] var step: Variable = _
-  private[this] var loss: Output   = _
-
-  private[this] val internalTrigger: HookTrigger = trigger.copy()
-  private[this] var lastStep       : Long        = 0L
-  private[this] var shouldTrigger  : Boolean     = false
+  private[this] var loss: Output = _
 
   override protected def begin(sessionCreator: SessionCreator): Unit = {
-    step = Counter.get(Graph.Keys.GLOBAL_STEP, local = false).getOrElse(throw new IllegalStateException(
-      s"A ${Graph.Keys.GLOBAL_STEP.name} variable should be created in order to use the 'LossLoggingHook'."))
-    internalTrigger.reset()
-    shouldTrigger = false
     loss = modelInstance.loss.map(_.cast(FLOAT32)).orNull
-    summaryWriterBegin(summaryDir)
   }
 
-  override protected def afterSessionCreation(session: Session): Unit = {
-    lastStep = session.run(fetches = step.value).scalar.asInstanceOf[Long]
-  }
+  override protected def fetches: Seq[Output] = Seq(loss)
 
-  override protected def beforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
-      executableEv: Executable[E],
-      fetchableEv: Fetchable.Aux[F, R]
-  ): Option[Hook.SessionRunArgs[Seq[Output], Traversable[Op], Seq[Tensor]]] = {
-    shouldTrigger = loss != null && internalTrigger.shouldTriggerForStep(lastStep.toInt)
-    if (shouldTrigger)
-      Some(Hook.SessionRunArgs(fetches = Seq(step.value, loss)))
-    else
-      Some(Hook.SessionRunArgs(fetches = Seq(step.value)))
-  }
-
-  override protected def afterSessionRun[F, E, R](
-      runContext: Hook.SessionRunContext[F, E, R],
-      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor]]
-  )(implicit
-      executableEv: Executable[E],
-      fetchableEv: Fetchable.Aux[F, R]
+  override protected def onTrigger(
+      step: Long,
+      elapsed: Option[(Double, Int)],
+      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor]],
+      session: Session
   ): Unit = {
-    processFetches(runResult.values)
-  }
-
-  override protected def end(session: Session): Unit = {
-    if (triggerAtEnd && lastStep.toInt != internalTrigger.lastTriggerStep().getOrElse(-1)) {
-      shouldTrigger = true
-      processFetches(session.run(fetches = Seq(step.value, loss)))
-    }
-    summaryWriterEnd()
-  }
-
-  private[this] def processFetches(fetches: Seq[Tensor]): Unit = {
-    lastStep = fetches.head.scalar.asInstanceOf[Long]
-    if (shouldTrigger) {
-      val loss = fetches(1).scalar.asInstanceOf[Float]
-      val log = internalTrigger.updateLastTrigger(lastStep.toInt - 1).map(_._1) match {
-        case Some(s) => formatter(s, lastStep, loss)
-        case None => formatter(0.0, lastStep, loss)
+    val loss = runResult.values(0).scalar.asInstanceOf[Float]
+    val log = {
+      if (formatter != null) {
+        elapsed.map(_._1) match {
+          case Some(s) => formatter(s, step, loss)
+          case None => formatter(0.0, step, loss)
+        }
+      } else {
+        elapsed.map(_._1) match {
+          case Some(s) => f"($s%9.3f s) Step: $step%6d, Loss: $loss%.4f"
+          case None => f"(    N/A    ) Step: $step%6d, Loss: $loss%.4f"
+        }
       }
-      LossLogger.logger.info(log)
-      summaryWriterWrite(lastStep, "Loss", loss)
     }
+    LossLogger.logger.info(log)
+    writeSummary(step, "Loss", loss)
   }
 }
 

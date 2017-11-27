@@ -28,7 +28,7 @@ import org.platanios.tensorflow.api.learn.ModelInstance
   *
   * @author Emmanouil Antonios Platanios
   */
-abstract class ModelDependentHook[I, TT, TO, TD, TS] extends Hook {
+trait ModelDependentHook[I, TT, TO, TD, TS] extends Hook {
   protected var modelInstance: ModelInstance[I, TT, TO, TD, TS] = _
 
   /** This method will be called by estimators at graph construction time, before `begin()`. It will **not** be called
