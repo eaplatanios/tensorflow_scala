@@ -79,16 +79,16 @@ object MNIST {
       tf.learn.Configuration(Some(summariesDir)),
       tf.learn.StopCriteria(maxSteps = Some(100000)),
       Set(
-        tf.learn.LossLoggingHook(tf.learn.StepHookTrigger(100)),
-        tf.learn.EvaluationHook(
+        tf.learn.LossLogger(trigger = tf.learn.StepHookTrigger(100)),
+        tf.learn.Evaluator(
           log = true, data = () => evalTrainData, metrics = Seq(accMetric),
           trigger = tf.learn.StepHookTrigger(1000), name = "Train Evaluation"),
-        tf.learn.EvaluationHook(
+        tf.learn.Evaluator(
           log = true, data = () => evalTestData, metrics = Seq(accMetric),
           trigger = tf.learn.StepHookTrigger(1000), name = "Test Evaluation"),
-        tf.learn.StepRateHook(log = false, summaryDir = summariesDir, trigger = tf.learn.StepHookTrigger(100)),
-        tf.learn.SummarySaverHook(summariesDir, tf.learn.StepHookTrigger(100)),
-        tf.learn.CheckpointSaverHook(summariesDir, tf.learn.StepHookTrigger(100000))),
+        tf.learn.StepRateLogger(log = false, summaryDir = summariesDir, trigger = tf.learn.StepHookTrigger(100)),
+        tf.learn.SummarySaver(summariesDir, tf.learn.StepHookTrigger(100)),
+        tf.learn.CheckpointSaver(summariesDir, tf.learn.StepHookTrigger(100000))),
       tensorBoardConfig = tf.learn.TensorBoardConfig(summariesDir, reloadInterval = 1))
     estimator.train(() => trainData, tf.learn.StopCriteria(maxSteps = Some(1000)))
 

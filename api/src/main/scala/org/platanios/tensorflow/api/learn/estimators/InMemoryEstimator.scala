@@ -74,7 +74,7 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
   private[this] val graph: Graph                                                 = Graph()
   private[this] val model: TrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] = modelFunction(configuration)
 
-  private[this] val stopHook              : StopHook          = StopHook(stopCriteria)
+  private[this] val stopHook              : Stopper           = Stopper(stopCriteria)
   private[this] var allTrainHooks         : mutable.Set[Hook] = mutable.Set(trainHooks.toSeq: _*) + stopHook
   private[this] var allTrainChiefOnlyHooks: mutable.Set[Hook] = mutable.Set(trainChiefOnlyHooks.toSeq: _*)
 
@@ -122,7 +122,7 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
     Op.createWith(graph = graph, deviceFunction = deviceFunction.getOrElse(_.device)) {
       Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
       graph.addToCollection(trainingOps.loss, Graph.Keys.LOSSES)
-      allTrainHooks += TensorNaNHook(Set(trainingOps.loss.name))
+      allTrainHooks += NaNChecker(Set(trainingOps.loss.name))
       if (tensorBoardConfig != null)
         allTrainChiefOnlyHooks += TensorBoardHook(tensorBoardConfig)
       val saver = getOrCreateSaver()
@@ -334,7 +334,7 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
     values
   }
 
-  /** Returns the train hooks being used by this estimator, except for the [[StopHook]] being used. */
+  /** Returns the train hooks being used by this estimator, except for the [[Stopper]] being used. */
   private[this] def currentTrainHooks: Set[Hook] = {
     if (configuration.isChief)
       (allTrainHooks ++ allTrainChiefOnlyHooks).toSet - stopHook

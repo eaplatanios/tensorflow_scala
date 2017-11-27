@@ -53,7 +53,7 @@ import java.nio.file.Path
   *
   * @author Emmanouil Antonios Platanios
   */
-case class EvaluationHook[I, TT, TO, TD, TS](
+case class Evaluator[I, TT, TO, TD, TS](
     log: Boolean = true,
     summaryDir: Path = null,
     data: () => Dataset[TT, TO, TD, TS],
@@ -75,7 +75,7 @@ case class EvaluationHook[I, TT, TO, TD, TS](
   private[this] var lastStep       : Long        = 0L
   private[this] var shouldTrigger  : Boolean     = false
 
-  override def begin(sessionCreator: SessionCreator): Unit = {
+  override protected def begin(sessionCreator: SessionCreator): Unit = {
     this.sessionCreator = sessionCreator
     step = Counter.get(Graph.Keys.GLOBAL_STEP, local = false).getOrElse(throw new IllegalStateException(
       s"A ${Graph.Keys.GLOBAL_STEP.name} variable should be created in order to use the 'TensorLoggingHook'."))
@@ -89,11 +89,11 @@ case class EvaluationHook[I, TT, TO, TD, TS](
     sessionCreator.addLocalInitOp(Variable.initializer(streamingInstances.flatMap(_.variables).toSet))
   }
 
-  override def afterSessionCreation(session: Session): Unit = {
+  override protected def afterSessionCreation(session: Session): Unit = {
     lastStep = session.run(fetches = step.value).scalar.asInstanceOf[Long]
   }
 
-  override def beforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
+  override protected def beforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]
   ): Option[Hook.SessionRunArgs[Seq[Output], Traversable[Op], Seq[Tensor]]] = {
@@ -101,7 +101,7 @@ case class EvaluationHook[I, TT, TO, TD, TS](
     Some(Hook.SessionRunArgs(fetches = Seq(step.value)))
   }
 
-  override def afterSessionRun[F, E, R](
+  override protected def afterSessionRun[F, E, R](
       runContext: Hook.SessionRunContext[F, E, R],
       runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor]]
   )(implicit
@@ -111,7 +111,7 @@ case class EvaluationHook[I, TT, TO, TD, TS](
     lastStep = runResult.values.head.scalar.asInstanceOf[Long]
     if (shouldTrigger) {
       internalTrigger.updateLastTrigger(lastStep.toInt - 1)
-      EvaluationHook.logger.info(s"Computing $name.")
+      Evaluator.logger.info(s"Computing $name.")
       val session = new SessionWrapper(sessionCreator.createSession())
       val (step, values) = {
         try {
@@ -138,21 +138,21 @@ case class EvaluationHook[I, TT, TO, TD, TS](
 
   private[this] def processResults(step: Long, values: Seq[Tensor]): Unit = {
     if (log) {
-      EvaluationHook.logger.info(s"Step $step $name:")
+      Evaluator.logger.info(s"Step $step $name:")
       metrics.zip(values).foreach {
         case (metric, metricValue) =>
           if (metricValue.shape.rank == 0 &&
               (metricValue.dataType.isFloatingPoint || metricValue.dataType.isInteger)) {
             val castedValue = metricValue.cast(FLOAT32).scalar.asInstanceOf[Float]
-            EvaluationHook.logger.info(f"\t${metric.name}%10s: $castedValue%10.4f")
+            Evaluator.logger.info(f"\t${metric.name}%10s: $castedValue%10.4f")
           } else {
-          EvaluationHook.logger.warn(
+          Evaluator.logger.warn(
             s"\tSkipping logging for non-scalar and/or non-floating-point/non-integer metric '$metric'.")
         }
       }
     }
     if (summaryDir != null) {
-      EvaluationHook.logger.info(s"Saving evaluation results at '$summaryDir'.")
+      Evaluator.logger.info(s"Saving evaluation results at '$summaryDir'.")
       val summaryProto = Summary.newBuilder()
       metrics.zip(values).foreach {
         case (metric, metricValue) =>
@@ -164,7 +164,7 @@ case class EvaluationHook[I, TT, TO, TD, TS](
             value.setSimpleValue(castedValue)
             summaryProto.addValue(value)
           } else {
-            EvaluationHook.logger.warn(
+            Evaluator.logger.warn(
               s"Skipping summary for non-scalar and/or non-floating-point/non-integer metric '$metric'.")
           }
       }
@@ -175,6 +175,6 @@ case class EvaluationHook[I, TT, TO, TD, TS](
   }
 }
 
-object EvaluationHook {
-  private[EvaluationHook] val logger = Logger(LoggerFactory.getLogger("Learn / Hooks / Evaluation"))
+object Evaluator {
+  private[Evaluator] val logger = Logger(LoggerFactory.getLogger("Learn / Hooks / Evaluation"))
 }

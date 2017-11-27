@@ -40,7 +40,7 @@ import java.nio.file.Path
   *
   * @author Emmanouil Antonios Platanios
   */
-case class SummarySaverHook(
+case class SummarySaver(
     directory: Path,
     trigger: HookTrigger = StepHookTrigger(10),
     triggerAtEnd: Boolean = true,
@@ -54,7 +54,7 @@ case class SummarySaverHook(
   private[this] var lastStep       : Long        = 0L
   private[this] var shouldTrigger  : Boolean     = false
 
-  override def begin(sessionCreator: SessionCreator): Unit = {
+  override protected def begin(sessionCreator: SessionCreator): Unit = {
     internalTrigger.reset()
     step = Counter.get(Graph.Keys.GLOBAL_STEP, local = false).getOrElse(throw new IllegalStateException(
       s"A ${Graph.Keys.GLOBAL_STEP.name} variable should be created in order to use the 'SummarySaverHook'."))
@@ -63,11 +63,11 @@ case class SummarySaverHook(
       summaryWriter = Some(SummaryFileWriterCache.get(directory))
   }
 
-  override def afterSessionCreation(session: Session): Unit = {
+  override protected def afterSessionCreation(session: Session): Unit = {
     lastStep = session.run(fetches = step.value).scalar.asInstanceOf[Long]
   }
 
-  override def beforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
+  override protected def beforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]
   ): Option[Hook.SessionRunArgs[Seq[Output], Traversable[Op], Seq[Tensor]]] = {
@@ -79,7 +79,7 @@ case class SummarySaverHook(
     }
   }
 
-  override def afterSessionRun[F, E, R](
+  override protected def afterSessionRun[F, E, R](
       runContext: Hook.SessionRunContext[F, E, R],
       runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor]]
   )(implicit
@@ -89,7 +89,7 @@ case class SummarySaverHook(
     saveSummaries(runResult.values)
   }
 
-  override def end(session: Session): Unit = {
+  override protected def end(session: Session): Unit = {
     if (triggerAtEnd && lastStep.toInt != internalTrigger.lastTriggerStep().getOrElse(-1))
       saveSummaries(session.run(fetches = Seq(step.value, summary.get)))
     summaryWriter.foreach(_.flush())

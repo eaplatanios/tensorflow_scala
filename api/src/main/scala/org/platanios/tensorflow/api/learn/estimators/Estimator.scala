@@ -324,13 +324,13 @@ object Estimator {
         configuration.master, sessionScaffold, configuration.sessionConfig, configuration.workingDir)
       val chiefHooks = mutable.Set((hooks ++ chiefOnlyHooks).toSeq: _*)
       configuration.workingDir.foreach(workingDir => {
-        if (!chiefHooks.exists(_.isInstanceOf[CheckpointSaverHook])) {
+        if (!chiefHooks.exists(_.isInstanceOf[CheckpointSaver])) {
           configuration.checkpointConfig match {
             case NoCheckpoints => ()
             case StepBasedCheckpoints(steps, _, _) =>
-              chiefHooks += CheckpointSaverHook(workingDir, StepHookTrigger(steps))
+              chiefHooks += CheckpointSaver(workingDir, StepHookTrigger(steps))
             case TimeBasedCheckpoints(seconds, _, _) =>
-              chiefHooks += CheckpointSaverHook(workingDir, TimeHookTrigger(seconds))
+              chiefHooks += CheckpointSaver(workingDir, TimeHookTrigger(seconds))
           }
         }
       })

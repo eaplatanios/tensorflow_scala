@@ -31,16 +31,16 @@ import org.slf4j.LoggerFactory
   *
   * @author Emmanouil Antonios Platanios
   */
-private[learn] case class StopEvaluationHook(maxSteps: Long = -1L) extends Hook {
+private[learn] case class EvaluationStopper(maxSteps: Long = -1L) extends Hook {
   private[this] var step    : Variable = _
   private[this] var lastStep: Long     = if (maxSteps == -1L) -1L else 0L
 
-  override def begin(sessionCreator: SessionCreator): Unit = {
+  override protected def begin(sessionCreator: SessionCreator): Unit = {
     step = Counter.get(Graph.Keys.EVAL_STEP, local = true, Op.currentGraph).getOrElse(throw new IllegalStateException(
       s"A ${Graph.Keys.EVAL_STEP.name} variable should be created in order to use the 'StopEvaluationHook'."))
   }
 
-  override def afterSessionCreation(session: Session): Unit = {
+  override protected def afterSessionCreation(session: Session): Unit = {
     lastStep = {
       if (maxSteps != -1L)
         maxSteps + session.run(fetches = step.value).scalar.asInstanceOf[Long]
@@ -49,7 +49,7 @@ private[learn] case class StopEvaluationHook(maxSteps: Long = -1L) extends Hook 
     }
   }
 
-  override def beforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
+  override protected def beforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]
   ): Option[Hook.SessionRunArgs[Seq[Output], Traversable[Op], Seq[Tensor]]] = {
@@ -57,7 +57,7 @@ private[learn] case class StopEvaluationHook(maxSteps: Long = -1L) extends Hook 
   }
 
   @throws[IllegalStateException]
-  override def afterSessionRun[F, E, R](
+  override protected def afterSessionRun[F, E, R](
       runContext: Hook.SessionRunContext[F, E, R],
       runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor]]
   )(implicit
@@ -66,12 +66,12 @@ private[learn] case class StopEvaluationHook(maxSteps: Long = -1L) extends Hook 
   ): Unit = {
     val step = runResult.values(0).scalar.asInstanceOf[Long]
     if (lastStep != -1 && step >= lastStep) {
-      StopEvaluationHook.logger.info("Evaluation stop requested: Exceeded maximum number of steps.")
+      EvaluationStopper.logger.info("Evaluation stop requested: Exceeded maximum number of steps.")
       runContext.requestStop()
     }
   }
 }
 
-object StopEvaluationHook {
-  private[StopEvaluationHook] val logger = Logger(LoggerFactory.getLogger("Learn / Hooks / Evaluation Termination"))
+object EvaluationStopper {
+  private[EvaluationStopper] val logger = Logger(LoggerFactory.getLogger("Learn / Hooks / Evaluation Termination"))
 }

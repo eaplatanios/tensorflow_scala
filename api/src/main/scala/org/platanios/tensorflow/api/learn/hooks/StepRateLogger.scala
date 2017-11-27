@@ -17,7 +17,6 @@ package org.platanios.tensorflow.api.learn.hooks
 
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.{Executable, Fetchable, Session}
-import org.platanios.tensorflow.api.io.events.{SummaryFileWriter, SummaryFileWriterCache}
 import org.platanios.tensorflow.api.learn.{Counter, SessionCreator}
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.ops.variables.Variable
@@ -25,7 +24,6 @@ import org.platanios.tensorflow.api.tensors.Tensor
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
-import org.tensorflow.framework.Summary
 
 import java.nio.file.Path
 
@@ -44,75 +42,71 @@ import java.nio.file.Path
   *
   * @author Emmanouil Antonios Platanios
   */
-case class StepRateHook(
+case class StepRateLogger(
     log: Boolean = true,
     summaryDir: Path = null,
     trigger: HookTrigger = StepHookTrigger(10),
     triggerAtEnd: Boolean = true,
     tag: String = "Steps/Sec"
-) extends Hook {
+) extends Hook with SummaryWriterHookAddOn {
   require(log || summaryDir != null, "At least one of 'log' and 'summaryDir' needs to be provided.")
 
   private[this] var step         : Variable                  = _
-  private[this] var summaryWriter: Option[SummaryFileWriter] = None
 
   private[this] val internalTrigger: HookTrigger = trigger.copy()
   private[this] var lastStep       : Long        = 0L
   private[this] var shouldTrigger  : Boolean     = false
 
-  override def begin(sessionCreator: SessionCreator): Unit = {
+  override protected def begin(sessionCreator: SessionCreator): Unit = {
     internalTrigger.reset()
     step = Counter.get(Graph.Keys.GLOBAL_STEP, local = false).getOrElse(throw new IllegalStateException(
       s"A ${Graph.Keys.GLOBAL_STEP.name} variable should be created in order to use the 'StepRateHook'."))
-    summaryWriter = Option(summaryDir).map(SummaryFileWriterCache.get(_))
+    summaryWriterBegin(summaryDir)
   }
 
-  override def afterSessionCreation(session: Session): Unit = {
+  override protected def afterSessionCreation(session: Session): Unit = {
     lastStep = session.run(fetches = step.value).scalar.asInstanceOf[Long]
   }
 
-  override def beforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
+  override protected def beforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]
   ): Option[Hook.SessionRunArgs[Seq[Output], Traversable[Op], Seq[Tensor]]] = {
-    shouldTrigger = internalTrigger.shouldTriggerForStep(lastStep.toInt) && (log || summaryWriter.isDefined)
+    shouldTrigger = internalTrigger.shouldTriggerForStep(lastStep.toInt)
     Some(Hook.SessionRunArgs(fetches = Seq(step.value)))
   }
 
-  override def afterSessionRun[F, E, R](
+  override protected def afterSessionRun[F, E, R](
       runContext: Hook.SessionRunContext[F, E, R],
       runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor]]
   )(implicit
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]
   ): Unit = {
-    saveStepRateSummary(runResult.values)
+    processFetches(runResult.values)
   }
 
-  override def end(session: Session): Unit = {
-    if (triggerAtEnd && lastStep.toInt != internalTrigger.lastTriggerStep().getOrElse(-1))
-      saveStepRateSummary(session.run(fetches = Seq(step.value)))
-    summaryWriter.foreach(_.flush())
+  override protected def end(session: Session): Unit = {
+    if (triggerAtEnd && lastStep.toInt != internalTrigger.lastTriggerStep().getOrElse(-1)) {
+      shouldTrigger = true
+      processFetches(session.run(fetches = Seq(step.value)))
+    }
+    summaryWriterEnd()
   }
 
-  private[this] def saveStepRateSummary(fetches: Seq[Tensor]): Unit = {
+  private[this] def processFetches(fetches: Seq[Tensor]): Unit = {
     lastStep = fetches(0).scalar.asInstanceOf[Long]
     if (shouldTrigger) {
       internalTrigger.updateLastTrigger(lastStep.toInt - 1).foreach(elapsed => {
         val stepRate = elapsed._2.toDouble / elapsed._1
         if (log)
-          StepRateHook.logger.info(f"$tag: $stepRate%.2f")
-        summaryWriter.foreach(_.writeSummary(
-          Summary.newBuilder()
-              .addValue(Summary.Value.newBuilder()
-                            .setTag(tag)
-                            .setSimpleValue(stepRate.toFloat))
-                  .build(), lastStep))
+          StepRateLogger.logger.info(f"$tag: $stepRate%.2f")
+        summaryWriterWrite(lastStep, tag, stepRate.toFloat)
       })
     }
   }
 }
 
-object StepRateHook {
-  private[StepRateHook] val logger = Logger(LoggerFactory.getLogger("Learn / Hooks / Step Rate"))
+object StepRateLogger {
+  private[StepRateLogger] val logger = Logger(LoggerFactory.getLogger("Learn / Hooks / Step Rate"))
 }

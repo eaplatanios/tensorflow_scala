@@ -33,7 +33,7 @@ import scala.collection.mutable
   *
   * @author Emmanouil Antonios Platanios
   */
-private[learn] case class StopHook(private var criteria: StopCriteria) extends Hook {
+private[learn] case class Stopper(private var criteria: StopCriteria) extends Hook {
   private[this] var epoch: Variable = _
   private[this] var step : Variable = _
   private[this] var loss : Output   = _
@@ -71,7 +71,7 @@ private[learn] case class StopHook(private var criteria: StopCriteria) extends H
     numStepsBelowTol = 0
   }
 
-  override def begin(sessionCreator: SessionCreator): Unit = {
+  override protected def begin(sessionCreator: SessionCreator): Unit = {
     val fetches = mutable.ListBuffer.empty[Output]
     if (criteria.maxSeconds.isDefined)
       startTime = System.currentTimeMillis()
@@ -97,11 +97,11 @@ private[learn] case class StopHook(private var criteria: StopCriteria) extends H
     sessionFetches = fetches
   }
 
-  override def afterSessionCreation(session: Session): Unit = {
+  override protected def afterSessionCreation(session: Session): Unit = {
     reset(session)
   }
 
-  override def beforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
+  override protected def beforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]
   ): Option[Hook.SessionRunArgs[Seq[Output], Traversable[Op], Seq[Tensor]]] = {
@@ -109,7 +109,7 @@ private[learn] case class StopHook(private var criteria: StopCriteria) extends H
   }
 
   @throws[IllegalStateException]
-  override def afterSessionRun[F, E, R](
+  override protected def afterSessionRun[F, E, R](
       runContext: Hook.SessionRunContext[F, E, R],
       runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor]]
   )(implicit
@@ -120,20 +120,20 @@ private[learn] case class StopHook(private var criteria: StopCriteria) extends H
     if (criteria.maxEpochs.isDefined) {
       val epoch = runResult.values(epochFetchIndex).scalar.asInstanceOf[Long]
       if (lastEpoch.exists(epoch >= _)) {
-        StopHook.logger.info("Stop requested: Exceeded maximum number of epochs.")
+        Stopper.logger.info("Stop requested: Exceeded maximum number of epochs.")
         converged = true
       }
     }
     if (criteria.maxSteps.isDefined) {
       val step = runResult.values(stepFetchIndex).scalar.asInstanceOf[Long]
       if (lastStep.exists(step >= _)) {
-        StopHook.logger.info("Stop requested: Exceeded maximum number of steps.")
+        Stopper.logger.info("Stop requested: Exceeded maximum number of steps.")
         converged = true
       }
     }
     criteria.maxSeconds.foreach(maxSeconds => {
       if (System.currentTimeMillis() - startTime >= maxSeconds) {
-        StopHook.logger.info("Stop requested: Exceeded maximum number of seconds.")
+        Stopper.logger.info("Stop requested: Exceeded maximum number of seconds.")
         converged = true
       }
     })
@@ -147,7 +147,7 @@ private[learn] case class StopHook(private var criteria: StopCriteria) extends H
         numStepsBelowTol = 0
       }
       if (numStepsBelowTol > criteria.maxStepBelowTol) {
-        StopHook.logger.info("Stop requested: Loss value converged.")
+        Stopper.logger.info("Stop requested: Loss value converged.")
         converged = true
       }
     }
@@ -156,6 +156,6 @@ private[learn] case class StopHook(private var criteria: StopCriteria) extends H
   }
 }
 
-object StopHook {
-  private[StopHook] val logger = Logger(LoggerFactory.getLogger("Learn / Hooks / Termination"))
+object Stopper {
+  private[Stopper] val logger = Logger(LoggerFactory.getLogger("Learn / Hooks / Termination"))
 }

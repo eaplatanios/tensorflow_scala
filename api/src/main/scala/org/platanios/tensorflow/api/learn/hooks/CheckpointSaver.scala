@@ -44,7 +44,7 @@ import java.nio.file.{Files, Path}
   *
   * @author Emmanouil Antonios Platanios
   */
-case class CheckpointSaverHook(
+case class CheckpointSaver(
     directory: Path,
     trigger: HookTrigger = StepHookTrigger(1000),
     triggerAtEnd: Boolean = true,
@@ -60,7 +60,7 @@ case class CheckpointSaverHook(
   private[this] var lastStep       : Long        = 0L
   private[this] var shouldTrigger  : Boolean     = false
 
-  override def begin(sessionCreator: SessionCreator): Unit = {
+  override protected def begin(sessionCreator: SessionCreator): Unit = {
     internalTrigger.reset()
     step = Counter.get(Graph.Keys.GLOBAL_STEP, local = false).getOrElse(throw InvalidArgumentException(
       s"A ${Graph.Keys.GLOBAL_STEP.name} variable should be created in order to use the 'CheckpointSaverHook'."))
@@ -71,11 +71,11 @@ case class CheckpointSaverHook(
     summaryWriter = Some(SummaryFileWriterCache.get(directory))
   }
 
-  override def afterSessionCreation(session: Session): Unit = {
+  override protected def afterSessionCreation(session: Session): Unit = {
     lastStep = session.run(fetches = step.value).scalar.asInstanceOf[Long]
   }
 
-  override def beforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
+  override protected def beforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]
   ): Option[Hook.SessionRunArgs[Seq[Output], Traversable[Op], Seq[Tensor]]] = {
@@ -93,7 +93,7 @@ case class CheckpointSaverHook(
     Some(Hook.SessionRunArgs(fetches = Seq(step.value)))
   }
 
-  override def afterSessionRun[F, E, R](
+  override protected def afterSessionRun[F, E, R](
       runContext: Hook.SessionRunContext[F, E, R],
       runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor]]
   )(implicit
@@ -105,7 +105,7 @@ case class CheckpointSaverHook(
       save(runContext.session)
   }
 
-  override def end(session: Session): Unit = {
+  override protected def end(session: Session): Unit = {
     if (triggerAtEnd && lastStep.toInt != internalTrigger.lastTriggerStep().getOrElse(-1))
       save(session)
     summaryWriter.foreach(_.flush())
@@ -113,7 +113,7 @@ case class CheckpointSaverHook(
 
   private[this] def save(session: Session): Unit = {
     internalTrigger.updateLastTrigger(lastStep.toInt - 1)
-    CheckpointSaverHook.logger.info(s"Saving checkpoint for step $lastStep.")
+    CheckpointSaver.logger.info(s"Saving checkpoint for step $lastStep.")
     saver.foreach(_.save(session, savePath, Some(lastStep.toInt)))
     summaryWriter.foreach(_.writeSessionLog(
       SessionLog.newBuilder()
@@ -123,6 +123,6 @@ case class CheckpointSaverHook(
   }
 }
 
-object CheckpointSaverHook {
-  private[CheckpointSaverHook] val logger = Logger(LoggerFactory.getLogger("Learn / Hooks / Checkpoint Saver"))
+object CheckpointSaver {
+  private[CheckpointSaver] val logger = Logger(LoggerFactory.getLogger("Learn / Hooks / Checkpoint Saver"))
 }

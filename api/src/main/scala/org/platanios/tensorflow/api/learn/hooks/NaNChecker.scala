@@ -32,15 +32,15 @@ import org.slf4j.LoggerFactory
   *
   * @author Emmanouil Antonios Platanios
   */
-case class TensorNaNHook(tensorNames: Set[String], failOnNaN: Boolean = true) extends Hook {
+case class NaNChecker(tensorNames: Set[String], failOnNaN: Boolean = true) extends Hook {
   private[this] var outputs: Seq[Output] = _
 
-  override def begin(sessionCreator: SessionCreator): Unit = {
+  override protected def begin(sessionCreator: SessionCreator): Unit = {
     // Convert tensor names to op outputs.
     outputs = tensorNames.map(Op.currentGraph.getOutputByName).toSeq
   }
 
-  override def beforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
+  override protected def beforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]
   ): Option[Hook.SessionRunArgs[Seq[Output], Traversable[Op], Seq[Tensor]]] = {
@@ -48,7 +48,7 @@ case class TensorNaNHook(tensorNames: Set[String], failOnNaN: Boolean = true) ex
   }
 
   @throws[IllegalStateException]
-  override def afterSessionRun[F, E, R](
+  override protected def afterSessionRun[F, E, R](
       runContext: Hook.SessionRunContext[F, E, R],
       runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor]]
   )(implicit
@@ -58,10 +58,10 @@ case class TensorNaNHook(tensorNames: Set[String], failOnNaN: Boolean = true) ex
     runResult.values.filter(_.isNaN.any().scalar.asInstanceOf[Boolean]).foreach(value => {
       val message = s"Encountered NaN values in tensor: $value."
       if (failOnNaN) {
-        TensorNaNHook.logger.error(message)
+        NaNChecker.logger.error(message)
         throw new IllegalStateException(message)
       } else {
-        TensorNaNHook.logger.warn(message)
+        NaNChecker.logger.warn(message)
         // We do not raise an error but we request to stop iterating without throwing an exception.
         runContext.requestStop()
       }
@@ -69,6 +69,6 @@ case class TensorNaNHook(tensorNames: Set[String], failOnNaN: Boolean = true) ex
   }
 }
 
-object TensorNaNHook {
-  private[TensorNaNHook] val logger = Logger(LoggerFactory.getLogger("Learn / Hooks / Tensor NaN"))
+object NaNChecker {
+  private[NaNChecker] val logger = Logger(LoggerFactory.getLogger("Learn / Hooks / Tensor NaN"))
 }

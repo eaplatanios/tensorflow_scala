@@ -24,28 +24,29 @@ package object hooks {
     // TODO: [HOOKS] !!! Abstract the hook triggering logic to the hook superclass.
 
     type Hook = hooks.Hook
+    type CheckpointSaver = hooks.CheckpointSaver
+    type EvaluationStopper = hooks.EvaluationStopper
+    type Evaluator[I, TT, TO, TD, TS] = hooks.Evaluator[I, TT, TO, TD, TS]
+    type LossLogger = hooks.LossLogger
     type ModelDependentHook[I, TT, TO, TD, TS] = hooks.ModelDependentHook[I, TT, TO, TD, TS]
-    type LossLoggingHook = hooks.LossLoggingHook
-    type CheckpointSaverHook = hooks.CheckpointSaverHook
-    type StepRateHook = hooks.StepRateHook
-    type EvaluationHook[I, TT, TO, TD, TS] = hooks.EvaluationHook[I, TT, TO, TD, TS]
-    type StopEvaluationHook = hooks.StopEvaluationHook
-    type StopHook = hooks.StopHook
-    type SummarySaverHook = hooks.SummarySaverHook
+    type NaNChecker = hooks.NaNChecker
+    type StepRateLogger = hooks.StepRateLogger
+    type Stopper = hooks.Stopper
+    type SummarySaver = hooks.SummarySaver
+    type SummaryWriterHookAddOn = hooks.SummaryWriterHookAddOn
     type TensorBoardHook = hooks.TensorBoardHook
-    type TensorLoggingHook = hooks.TensorLoggingHook
-    type TensorNaNHook = hooks.TensorNaNHook
+    type TensorLogger = hooks.TensorLogger
 
-    val LossLoggingHook    : hooks.LossLoggingHook.type     = hooks.LossLoggingHook
-    val CheckpointSaverHook: hooks.CheckpointSaverHook.type = hooks.CheckpointSaverHook
-    val StepRateHook       : hooks.StepRateHook.type        = hooks.StepRateHook
-    val EvaluationHook     : hooks.EvaluationHook.type      = hooks.EvaluationHook
-    val StopEvaluationHook : hooks.StopEvaluationHook.type  = hooks.StopEvaluationHook
-    val StopHook           : hooks.StopHook.type            = hooks.StopHook
-    val SummarySaverHook   : hooks.SummarySaverHook.type    = hooks.SummarySaverHook
-    val TensorBoardHook    : hooks.TensorBoardHook.type     = hooks.TensorBoardHook
-    val TensorLoggingHook  : hooks.TensorLoggingHook.type   = hooks.TensorLoggingHook
-    val TensorNaNHook      : hooks.TensorNaNHook.type       = hooks.TensorNaNHook
+    val CheckpointSaver  : hooks.CheckpointSaver.type   = hooks.CheckpointSaver
+    val EvaluationStopper: hooks.EvaluationStopper.type = hooks.EvaluationStopper
+    val Evaluator        : hooks.Evaluator.type         = hooks.Evaluator
+    val LossLogger       : hooks.LossLogger.type        = hooks.LossLogger
+    val NaNChecker       : hooks.NaNChecker.type        = hooks.NaNChecker
+    val StepRateLogger   : hooks.StepRateLogger.type    = hooks.StepRateLogger
+    val Stopper          : hooks.Stopper.type           = hooks.Stopper
+    val SummarySaver     : hooks.SummarySaver.type      = hooks.SummarySaver
+    val TensorBoardHook  : hooks.TensorBoardHook.type   = hooks.TensorBoardHook
+    val TensorLogger     : hooks.TensorLogger.type      = hooks.TensorLogger
   }
 
   private[api] object API extends API

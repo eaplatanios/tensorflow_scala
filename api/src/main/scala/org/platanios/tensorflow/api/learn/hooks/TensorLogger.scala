@@ -45,7 +45,7 @@ import org.slf4j.LoggerFactory
   *
   * @author Emmanouil Antonios Platanios
   */
-case class TensorLoggingHook(
+case class TensorLogger(
     tensors: Map[String, String],
     trigger: HookTrigger = StepHookTrigger(1),
     triggerAtEnd: Boolean = true,
@@ -60,7 +60,7 @@ case class TensorLoggingHook(
   private[this] var lastStep       : Long        = 0L
   private[this] var shouldTrigger  : Boolean     = false
 
-  override def begin(sessionCreator: SessionCreator): Unit = {
+  override protected def begin(sessionCreator: SessionCreator): Unit = {
     step = Counter.get(Graph.Keys.GLOBAL_STEP, local = false).getOrElse(throw new IllegalStateException(
       s"A ${Graph.Keys.GLOBAL_STEP.name} variable should be created in order to use the 'TensorLoggingHook'."))
     internalTrigger.reset()
@@ -69,11 +69,11 @@ case class TensorLoggingHook(
     outputs = tensorNames.map(t => Op.currentGraph.getOutputByName(t))
   }
 
-  override def afterSessionCreation(session: Session): Unit = {
+  override protected def afterSessionCreation(session: Session): Unit = {
     lastStep = session.run(fetches = step.value).scalar.asInstanceOf[Long]
   }
 
-  override def beforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
+  override protected def beforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]
   ): Option[Hook.SessionRunArgs[Seq[Output], Traversable[Op], Seq[Tensor]]] = {
@@ -84,7 +84,7 @@ case class TensorLoggingHook(
       Some(Hook.SessionRunArgs(fetches = Seq(step.value)))
   }
 
-  override def afterSessionRun[F, E, R](
+  override protected def afterSessionRun[F, E, R](
       runContext: Hook.SessionRunContext[F, E, R],
       runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor]]
   )(implicit
@@ -96,7 +96,7 @@ case class TensorLoggingHook(
       logTensors(tensorTags.zip(runResult.values.tail))
   }
 
-  override def end(session: Session): Unit = {
+  override protected def end(session: Session): Unit = {
     if (triggerAtEnd && lastStep.toInt != internalTrigger.lastTriggerStep().getOrElse(-1))
       logTensors(tensorTags.zip(session.run(fetches = outputs)))
   }
@@ -104,7 +104,7 @@ case class TensorLoggingHook(
   /** Logs the provided tensor values. */
   private[this] def logTensors(tensors: Seq[(String, Tensor)]): Unit = {
     if (formatter != null) {
-      TensorLoggingHook.logger.info(formatter(tensors.toMap))
+      TensorLogger.logger.info(formatter(tensors.toMap))
     } else {
       val valuesLog = tensors.map(t => {
         s"${t._1} = ${t._2.summarize(flattened = true, includeInfo = false)}"
@@ -113,11 +113,11 @@ case class TensorLoggingHook(
         case Some(s) => f"($s%8.3f s) $valuesLog"
         case None => s"( N/A ) $valuesLog"
       }
-      TensorLoggingHook.logger.info(log)
+      TensorLogger.logger.info(log)
     }
   }
 }
 
-object TensorLoggingHook {
-  private[TensorLoggingHook] val logger = Logger(LoggerFactory.getLogger("Learn / Hooks / Tensor Logging"))
+object TensorLogger {
+  private[TensorLogger] val logger = Logger(LoggerFactory.getLogger("Learn / Hooks / Tensor Logging"))
 }

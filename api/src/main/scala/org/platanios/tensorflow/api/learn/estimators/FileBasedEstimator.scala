@@ -129,7 +129,7 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
     } else {
       val allHooks = mutable.Set(hooks.toSeq: _*)
       val allChiefOnlyHooks = mutable.Set(chiefOnlyHooks.toSeq: _*)
-      allHooks += StopHook(stopCriteria)
+      allHooks += Stopper(stopCriteria)
       val model = modelFunction(configuration)
       val graph = Graph()
       Op.createWith(graph = graph, deviceFunction = deviceFunction.getOrElse(_.device)) {
@@ -140,7 +140,7 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
         val trainOps = Op.createWithNameScope("Model")(model.buildTrainOps())
         val inputInitializer = trainOps.inputIterator.createInitializer(data())
         graph.addToCollection(trainOps.loss, Graph.Keys.LOSSES)
-        allHooks += TensorNaNHook(Set(trainOps.loss.name))
+        allHooks += NaNChecker(Set(trainOps.loss.name))
         val modelInstance = ModelInstance(
           trainOps.inputIterator, trainOps.input, trainOps.output, Some(trainOps.loss), Some(trainOps.trainOp),
           trainOps.trainableVariables, trainOps.nonTrainableVariables)
@@ -403,7 +403,7 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
       val evalStepUpdate = evalStep.assignAdd(1L)
       val evalUpdateOps = ControlFlow.group(evaluateOps.metricUpdates.map(_.op).toSet + evalStepUpdate.op)
       val allHooks = mutable.Set(hooks.toSeq: _*)
-      allHooks += StopEvaluationHook(maxSteps)
+      allHooks += EvaluationStopper(maxSteps)
       val modelInstance = ModelInstance(
         evaluateOps.inputIterator, evaluateOps.input, evaluateOps.output, None, None,
         evaluateOps.trainableVariables, evaluateOps.nonTrainableVariables)

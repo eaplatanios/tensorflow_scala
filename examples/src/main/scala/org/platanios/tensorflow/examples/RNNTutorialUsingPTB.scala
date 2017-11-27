@@ -88,10 +88,10 @@ object RNNTutorialUsingPTB {
       tf.learn.Configuration(Some(summariesDir)),
       tf.learn.StopCriteria(maxSteps = Some(100000)),
       Set(
-        tf.learn.LossLoggingHook(tf.learn.StepHookTrigger(10)),
-        tf.learn.StepRateHook(log = false, summaryDir = summariesDir, trigger = tf.learn.StepHookTrigger(100)),
-        tf.learn.SummarySaverHook(summariesDir, tf.learn.StepHookTrigger(10)),
-        tf.learn.CheckpointSaverHook(summariesDir, tf.learn.StepHookTrigger(1000))),
+        tf.learn.LossLogger(trigger = tf.learn.StepHookTrigger(10)),
+        tf.learn.StepRateLogger(log = false, summaryDir = summariesDir, trigger = tf.learn.StepHookTrigger(100)),
+        tf.learn.SummarySaver(summariesDir, tf.learn.StepHookTrigger(10)),
+        tf.learn.CheckpointSaver(summariesDir, tf.learn.StepHookTrigger(1000))),
       tensorBoardConfig = tf.learn.TensorBoardConfig(summariesDir, reloadInterval = 1))
     estimator.train(() => trainDataset, tf.learn.StopCriteria(maxSteps = Some(10000)))
   }

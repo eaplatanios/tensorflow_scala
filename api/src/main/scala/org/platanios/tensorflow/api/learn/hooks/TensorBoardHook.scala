@@ -35,7 +35,7 @@ import scala.util.Try
 private[learn] case class TensorBoardHook(tensorBoardConfig: TensorBoardConfig) extends Hook {
   private[this] var tensorBoardProcess: Option[Process] = None
 
-  override def begin(sessionCreator: SessionCreator): Unit = tensorBoardProcess = {
+  override protected def begin(sessionCreator: SessionCreator): Unit = tensorBoardProcess = {
     Option(tensorBoardConfig).flatMap(config => {
       TensorBoardHook.logger.info(
         s"Launching TensorBoard in '${config.host}:${config.port}' for log directory '${config.logDir.toAbsolutePath}'.")
@@ -49,7 +49,7 @@ private[learn] case class TensorBoardHook(tensorBoardConfig: TensorBoardConfig) 
     })
   }
 
-  override def end(session: Session): Unit = {
+  override protected def end(session: Session): Unit = {
     tensorBoardProcess.foreach(process => {
       TensorBoardHook.logger.info("Killing the TensorBoard service.")
       process.destroy()
