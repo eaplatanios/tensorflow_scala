@@ -134,16 +134,18 @@ class ConfusionMatrix(
     */
   override def streaming(
       values: (Output, Output), weights: Output = null, name: String = name): Metric.StreamingInstance[Output] = {
-    VariableScope.createWithVariableScope(name) {
-      val accumulator = variable(
-        s"$name/Accumulator", dataType, Shape(numClasses, numClasses), ZerosInitializer, variablesCollections)
-      val value = compute(values, weights, name = s"$name/Value")
-      val update = accumulator.assignAdd(value, name = s"$name/Update")
-      val reset = accumulator.initializer
-      valuesCollections.foreach(Op.currentGraph.addToCollection(value, _))
-      updatesCollections.foreach(Op.currentGraph.addToCollection(update, _))
-      resetsCollections.foreach(Op.currentGraph.addToCollection(reset, _))
-      Metric.StreamingInstance(accumulator.value, update, reset, Set(accumulator))
+    Op.createWithNameScope(name) {
+      VariableScope.createWithVariableScope(name) {
+        val accumulator = variable(
+          "Accumulator", dataType, Shape(numClasses, numClasses), ZerosInitializer, variablesCollections)
+        val value = compute(values, weights, name = "Value")
+        val update = accumulator.assignAdd(value, name = "Update")
+        val reset = accumulator.initializer
+        valuesCollections.foreach(Op.currentGraph.addToCollection(value, _))
+        updatesCollections.foreach(Op.currentGraph.addToCollection(update, _))
+        resetsCollections.foreach(Op.currentGraph.addToCollection(reset, _))
+        Metric.StreamingInstance(accumulator.value, update, reset, Set(accumulator))
+      }
     }
   }
 }

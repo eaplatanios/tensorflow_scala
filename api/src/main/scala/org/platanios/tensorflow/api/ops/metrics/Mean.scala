@@ -94,10 +94,8 @@ class Mean(
     VariableScope.createWithVariableScope(name) {
       Op.createWithNameScope(name, ops) {
         val castedValues = if (values.dataType != FLOAT64) values.cast(FLOAT32) else values
-        val total = variable(
-          s"$name/Total", castedValues.dataType, Shape.scalar(), ZerosInitializer, variablesCollections)
-        val count = variable(
-          s"$name/Count", castedValues.dataType, Shape.scalar(), ZerosInitializer, variablesCollections)
+        val total = variable("Total", castedValues.dataType, Shape.scalar(), ZerosInitializer, variablesCollections)
+        val count = variable("Count", castedValues.dataType, Shape.scalar(), ZerosInitializer, variablesCollections)
         val (processedValues, numValues) = {
           if (weights == null) {
             (castedValues, Basic.size(castedValues).cast(castedValues.dataType))
@@ -113,7 +111,7 @@ class Mean(
         val updateCount = count.assignAdd(numValues)
         val value = safeDiv(total.value, count.value, name = "Value")
         val update = safeDiv(updateTotal, updateCount, name = "Update")
-        val reset = ControlFlow.group(Set(total.initializer, count.initializer))
+        val reset = ControlFlow.group(Set(total.initializer, count.initializer), name = "Reset")
         valuesCollections.foreach(Op.currentGraph.addToCollection(value, _))
         updatesCollections.foreach(Op.currentGraph.addToCollection(update, _))
         resetsCollections.foreach(Op.currentGraph.addToCollection(reset, _))

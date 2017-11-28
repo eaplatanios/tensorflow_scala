@@ -86,7 +86,6 @@ case class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
             Variable.initializer(Variable.globalVariables),
             Resource.initializer(Resource.sharedResources)))),
           localInitOp = Some(ControlFlow.group(Set(
-            inputInitializer,
             Variable.initializer(Variable.localVariables),
             Lookup.initializer(Lookup.initializers))))),
         sessionConfig = modelInstance.configuration.sessionConfig,
