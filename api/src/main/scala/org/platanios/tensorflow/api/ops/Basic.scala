@@ -860,7 +860,7 @@ private[api] trait Basic {
   def reverse(input: Output, axes: Output, name: String = "Reverse"): Output = {
     Op.Builder(opType = "ReverseV2", name = name)
         .addInput(input)
-        .addInput(axes)
+        .addInput(if (axes.rank < 1) axes else axes(NewAxis))
         .build().outputs(0)
   }
 
