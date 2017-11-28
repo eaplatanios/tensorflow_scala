@@ -31,36 +31,3 @@ abstract class RNNCell[O, OS, S, SS](override protected val name: String)
     LayerInstance(input, output, cellInstance.trainableVariables, cellInstance.nonTrainableVariables)
   }
 }
-
-///**
-//  * @param  name              Desired name for this layer (note that this name will be made unique by potentially
-//  *                           appending a number to it, if it has been used before for another layer).
-//  */
-//class RNNCellDropoutWrapper(
-//    cell: RNNCell,
-//    inputKeepProbability: Float = 1.0f,
-//    stateKeepProbability: Float = 1.0f,
-//    outputKeepProbability: Float = 1.0f,
-//    seed: Long = 0L,
-//    override protected val name: String = "RNNCellDropoutWrapper"
-//) extends RNNCell(name) {
-//  override val layerType: String = "BasicRNNCell"
-//
-//  override def stateSize: Seq[Shape] = Seq(Shape(numUnits))
-//  override def outputSize: Seq[Shape] = Seq(Shape(numUnits))
-//
-//  override def forward(input: RNNCell.Tuple, mode: Mode): LayerInstance[RNNCell.Tuple, RNNCell.Tuple] = {
-//    if (input.output.rank != 2)
-//      throw InvalidArgumentException(s"Input must be rank-2 (provided rank-${input.output.rank}).")
-//    if (input.output.shape(1) == -1)
-//      throw InvalidArgumentException(s"Last axis of input shape (${input.output.shape}) must be known.")
-//    if (input.state.length != 1)
-//      throw InvalidArgumentException(s"The state must consist of one tensor.")
-//    val kernel = variable(
-//      RNNCell.KERNEL_NAME, input.output.dataType, Shape(input.output.shape(1) + numUnits, numUnits), kernelInitializer)
-//    val bias = variable(RNNCell.BIAS_NAME, input.output.dataType, Shape(numUnits), biasInitializer)
-//    val linear = addBias(matmul(concatenate(input.output, input.state.head, axis = 1), kernel), bias)
-//    val output = activation(linear)
-//    LayerInstance(input, RNNCell.Tuple(output, Seq(output)), Set(kernel, bias))
-//  }
-//}

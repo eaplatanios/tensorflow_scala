@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.learn.hooks
 
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.{Executable, Fetchable, Session}
-import org.platanios.tensorflow.api.learn.{Counter, SessionCreator}
+import org.platanios.tensorflow.api.learn.Counter
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.tensors.Tensor
@@ -42,11 +42,11 @@ abstract class TriggeredHook(
   private[this] var lastStep       : Long        = 0L
   private[this] var shouldTrigger  : Boolean     = false
 
-  override private[learn] def internalBegin(sessionCreator: SessionCreator): Unit = {
+  override private[learn] def internalBegin(): Unit = {
     internalTrigger.reset()
     step = Counter.get(Graph.Keys.GLOBAL_STEP, local = false).getOrElse(throw new IllegalStateException(
       s"A ${Graph.Keys.GLOBAL_STEP.name} variable should be created in order to use a triggered hook."))
-    super.internalBegin(sessionCreator)
+    super.internalBegin()
   }
 
   override private[learn] def internalAfterSessionCreation(session: Session): Unit = {

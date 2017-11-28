@@ -412,7 +412,7 @@ object MonitoredSession {
       hooks: Set[Hook] = Set.empty,
       shouldRecover: Boolean = true
   ): MonitoredSession = {
-    hooks.foreach(_.internalBegin(sessionCreator))
+    hooks.foreach(_.internalBegin())
     val hookedSessionCreator = HookedSessionCreator(sessionCreator, hooks)
     val session = if (shouldRecover) RecoverableSession(hookedSessionCreator) else hookedSessionCreator.createSession()
     new MonitoredSession(session, hooks)

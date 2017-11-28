@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.learn.hooks
 
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.{Executable, Fetchable, Session}
-import org.platanios.tensorflow.api.learn.{Counter, SessionCreator}
+import org.platanios.tensorflow.api.learn.Counter
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.tensors.Tensor
@@ -35,7 +35,7 @@ private[learn] case class EvaluationStopper(maxSteps: Long = -1L) extends Hook {
   private[this] var step    : Variable = _
   private[this] var lastStep: Long     = if (maxSteps == -1L) -1L else 0L
 
-  override protected def begin(sessionCreator: SessionCreator): Unit = {
+  override protected def begin(): Unit = {
     step = Counter.get(Graph.Keys.EVAL_STEP, local = true, Op.currentGraph).getOrElse(throw new IllegalStateException(
       s"A ${Graph.Keys.EVAL_STEP.name} variable should be created in order to use the 'StopEvaluationHook'."))
   }

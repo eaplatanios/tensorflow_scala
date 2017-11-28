@@ -16,7 +16,6 @@
 package org.platanios.tensorflow.api.learn.hooks
 
 import org.platanios.tensorflow.api.core.client.Session
-import org.platanios.tensorflow.api.learn.SessionCreator
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
 
@@ -53,7 +52,7 @@ case class TensorLogger(
   private[this] val tensorNames: Seq[String] = tensors.values.toSeq
   private[this] var outputs    : Seq[Output] = _
 
-  override protected def begin(sessionCreator: SessionCreator): Unit = {
+  override protected def begin(): Unit = {
     // Convert tensor names to op outputs.
     outputs = tensorNames.map(t => Op.currentGraph.getOutputByName(t))
   }

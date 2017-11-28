@@ -16,7 +16,6 @@
 package org.platanios.tensorflow.api.learn.hooks
 
 import org.platanios.tensorflow.api.core.client.Session
-import org.platanios.tensorflow.api.learn.SessionCreator
 import org.platanios.tensorflow.api.ops.Output
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.FLOAT32
@@ -47,13 +46,13 @@ case class LossLogger(
     triggerAtEnd: Boolean = true,
     formatter: (Double, Long, Float) => String = null
 ) extends TriggeredHook(trigger, triggerAtEnd)
-    with ModelDependentHook[Any, Any, Any, Any, Any]
+    with ModelDependentHook[Any, Any, Any, Any, Any, Any, Any, Any, Any, Any]
     with SummaryWriterHookAddOn {
   require(log || summaryDir != null, "At least one of 'log' and 'summaryDir' needs to be provided.")
 
   private[this] var loss: Output = _
 
-  override protected def begin(sessionCreator: SessionCreator): Unit = {
+  override protected def begin(): Unit = {
     loss = modelInstance.loss.map(_.cast(FLOAT32)).orNull
   }
 

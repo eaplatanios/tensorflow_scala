@@ -24,9 +24,9 @@ package object hooks {
     type Hook = hooks.Hook
     type CheckpointSaver = hooks.CheckpointSaver
     type EvaluationStopper = hooks.EvaluationStopper
-    type Evaluator[I, TT, TO, TD, TS] = hooks.Evaluator[I, TT, TO, TD, TS]
+    type Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] = hooks.Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI]
     type LossLogger = hooks.LossLogger
-    type ModelDependentHook[I, TT, TO, TD, TS] = hooks.ModelDependentHook[I, TT, TO, TD, TS]
+    type ModelDependentHook[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] = hooks.ModelDependentHook[IT, IO, ID, IS, I, TT, TO, TD, TS, EI]
     type NaNChecker = hooks.NaNChecker
     type StepRateLogger = hooks.StepRateLogger
     type Stopper = hooks.Stopper

@@ -17,7 +17,6 @@ package org.platanios.tensorflow.api.learn.hooks
 
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.io.events.{SummaryFileWriter, SummaryFileWriterCache}
-import org.platanios.tensorflow.api.learn.SessionCreator
 import org.platanios.tensorflow.api.tensors.Tensor
 
 import org.tensorflow.framework.{HistogramProto, Summary}
@@ -33,9 +32,9 @@ trait SummaryWriterHookAddOn extends Hook {
 
   private[this] var summaryWriter: Option[SummaryFileWriter] = None
 
-  override private[learn] def internalBegin(sessionCreator: SessionCreator): Unit = {
+  override private[learn] def internalBegin(): Unit = {
     summaryWriter = Option(summaryDir).map(SummaryFileWriterCache.get(_))
-    super.internalBegin(sessionCreator)
+    super.internalBegin()
   }
 
   override private[learn] def internalEnd(session: Session): Unit = {

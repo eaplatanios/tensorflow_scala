@@ -73,7 +73,7 @@ object MNIST {
     logger.info("Training the linear regression model.")
     val summariesDir = Paths.get("temp/mnist-mlp")
     val accMetric = tf.metrics.MapMetric(
-      (v: (Output, (Output, Output))) => (v._1.argmax(-1), v._2._2), tf.metrics.Accuracy())
+      (v: (Output, Output)) => (v._1.argmax(-1), v._2), tf.metrics.Accuracy())
     val estimator = tf.learn.InMemoryEstimator(
       model,
       tf.learn.Configuration(Some(summariesDir)),
@@ -88,9 +88,9 @@ object MNIST {
           trigger = tf.learn.StepHookTrigger(1000), name = "Test Evaluation"),
         tf.learn.StepRateLogger(log = false, summaryDir = summariesDir, trigger = tf.learn.StepHookTrigger(100)),
         tf.learn.SummarySaver(summariesDir, tf.learn.StepHookTrigger(100)),
-        tf.learn.CheckpointSaver(summariesDir, tf.learn.StepHookTrigger(100000))),
+        tf.learn.CheckpointSaver(summariesDir, tf.learn.StepHookTrigger(1000))),
       tensorBoardConfig = tf.learn.TensorBoardConfig(summariesDir, reloadInterval = 1))
-    estimator.train(() => trainData, tf.learn.StopCriteria(maxSteps = Some(1000)))
+    estimator.train(() => trainData, tf.learn.StopCriteria(maxSteps = Some(10000)))
 
     def accuracy(images: Tensor, labels: Tensor): Float = {
       val predictions = estimator.infer(() => images)

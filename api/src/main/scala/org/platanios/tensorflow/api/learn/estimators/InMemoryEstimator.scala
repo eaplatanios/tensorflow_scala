@@ -92,24 +92,27 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
         val evalStepUpdate = evalStep.assignAdd(1L)
         val evalUpdateOps = ControlFlow.group(evaluateOps.metricUpdates.map(_.op).toSet + evalStepUpdate.op)
         val trainModelInstance = ModelInstance(
-          trainOps.inputIterator, trainOps.input, trainOps.output, Some(trainOps.loss), Some(trainOps.trainOp),
-          trainOps.trainableVariables, trainOps.nonTrainableVariables)
+          model, configuration, Some(trainOps.inputIterator), Some(trainOps.input), Some(trainOps.output),
+          Some(trainOps.loss), Some(trainOps.trainOp), trainOps.trainableVariables, trainOps.nonTrainableVariables)
         trainHooks.foreach {
-          case hook: ModelDependentHook[I, TT, TO, TD, TS] => hook.setModelInstance(trainModelInstance)
+          case hook: ModelDependentHook[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] =>
+            hook.setModelInstance(trainModelInstance)
           case _ => ()
         }
         val inferModelInstance = ModelInstance(
-          inferOps.inputIterator, inferOps.input, inferOps.output, None, None,
+          model, configuration, None, None, Some(inferOps.output), None, None,
           inferOps.trainableVariables, inferOps.nonTrainableVariables)
         inferHooks.foreach {
-          case hook: ModelDependentHook[I, IT, IO, ID, IS] => hook.setModelInstance(inferModelInstance)
+          case hook: ModelDependentHook[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] =>
+            hook.setModelInstance(inferModelInstance)
           case _ => ()
         }
         val evaluateModelInstance = ModelInstance(
-          evaluateOps.inputIterator, evaluateOps.input, evaluateOps.output, None, None,
-          evaluateOps.trainableVariables, evaluateOps.nonTrainableVariables)
+          model, configuration, Some(evaluateOps.inputIterator), Some(evaluateOps.input), Some(evaluateOps.output),
+          None, None, evaluateOps.trainableVariables, evaluateOps.nonTrainableVariables)
         evaluateHooks.foreach {
-          case hook: ModelDependentHook[I, TT, TO, TD, TS] => hook.setModelInstance(evaluateModelInstance)
+          case hook: ModelDependentHook[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] =>
+            hook.setModelInstance(evaluateModelInstance)
           case _ => ()
         }
         (globalStep, trainOps, inferOps, evaluateOps, evalUpdateOps)

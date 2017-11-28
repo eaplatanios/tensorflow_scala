@@ -18,7 +18,6 @@ package org.platanios.tensorflow.api.learn.hooks
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.io.events.{SummaryFileWriter, SummaryFileWriterCache}
-import org.platanios.tensorflow.api.learn.SessionCreator
 import org.platanios.tensorflow.api.ops.{Output, Summary}
 import org.platanios.tensorflow.api.tensors.Tensor
 
@@ -48,7 +47,7 @@ case class SummarySaver(
   private[this] var summary      : Option[Output]            = None
   private[this] var summaryWriter: Option[SummaryFileWriter] = None
 
-  override protected def begin(sessionCreator: SessionCreator): Unit = {
+  override protected def begin(): Unit = {
     summary = Summary.mergeAll(collection)
     if (summary.isDefined)
       summaryWriter = Some(SummaryFileWriterCache.get(directory))

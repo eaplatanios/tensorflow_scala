@@ -122,9 +122,9 @@ abstract class Hook {
     * session. The hook can modify the graph by adding new operations to it. After the `begin` call the graph will be
     * finalized and the other callbacks will not be able to modify the graph anymore. A second `begin` call on the same
     * graph, should not change that graph. */
-  protected def begin(sessionCreator: SessionCreator): Unit = ()
+  protected def begin(): Unit = ()
 
-  private[learn] def internalBegin(sessionCreator: SessionCreator): Unit = begin(sessionCreator)
+  private[learn] def internalBegin(): Unit = begin()
 
   /** Called after a new session is created. This is called to signal the hooks that a new session has been created.
     * This callback has two essential differences with the situation in which `begin()` is called:

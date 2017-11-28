@@ -142,10 +142,10 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
         graph.addToCollection(trainOps.loss, Graph.Keys.LOSSES)
         allHooks += NaNChecker(Set(trainOps.loss.name))
         val modelInstance = ModelInstance(
-          trainOps.inputIterator, trainOps.input, trainOps.output, Some(trainOps.loss), Some(trainOps.trainOp),
-          trainOps.trainableVariables, trainOps.nonTrainableVariables)
+          model, configuration, Some(trainOps.inputIterator), Some(trainOps.input), Some(trainOps.output),
+          Some(trainOps.loss), Some(trainOps.trainOp), trainOps.trainableVariables, trainOps.nonTrainableVariables)
         allHooks.foreach {
-          case hook: ModelDependentHook[I, TT, TO, TD, TS] => hook.setModelInstance(modelInstance)
+          case hook: ModelDependentHook[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] => hook.setModelInstance(modelInstance)
           case _ => ()
         }
         if (tensorBoardConfig != null)
@@ -262,10 +262,10 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
       val inferOps = Op.createWithNameScope("Model")(model.buildInferOps())
       val inputInitializer = inferOps.inputIterator.createInitializer(ev.toDataset(input()))
       val modelInstance = ModelInstance(
-        inferOps.inputIterator, inferOps.input, inferOps.output, None, None,
+        model, configuration, None, None, Some(inferOps.output), None, None,
         inferOps.trainableVariables, inferOps.nonTrainableVariables)
       hooks.foreach {
-        case hook: ModelDependentHook[I, IT, IO, ID, IS] => hook.setModelInstance(modelInstance)
+        case hook: ModelDependentHook[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] => hook.setModelInstance(modelInstance)
         case _ => ()
       }
       val saver = getOrCreateSaver()
@@ -405,10 +405,10 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
       val allHooks = mutable.Set(hooks.toSeq: _*)
       allHooks += EvaluationStopper(maxSteps)
       val modelInstance = ModelInstance(
-        evaluateOps.inputIterator, evaluateOps.input, evaluateOps.output, None, None,
-        evaluateOps.trainableVariables, evaluateOps.nonTrainableVariables)
+        model, configuration, Some(evaluateOps.inputIterator), Some(evaluateOps.input), Some(evaluateOps.output),
+        None, None, evaluateOps.trainableVariables, evaluateOps.nonTrainableVariables)
       allHooks.foreach {
-        case hook: ModelDependentHook[I, TT, TO, TD, TS] => hook.setModelInstance(modelInstance)
+        case hook: ModelDependentHook[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] => hook.setModelInstance(modelInstance)
         case _ => ()
       }
       val saver = getOrCreateSaver()
@@ -425,7 +425,7 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
               Lookup.initializer(Lookup.initializers)))),
             saver = saver),
           sessionConfig = configuration.sessionConfig,
-          checkpointPath = workingDir),
+          checkpointPath = configuration.workingDir),
         allHooks.toSet, shouldRecover = true)
       FileBasedEstimator.logger.info("Starting evaluation.")
       val (step, metricValues) = {
@@ -445,10 +445,11 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
           case t: Throwable =>
             session.closeWithoutHookEnd()
             throw t
+        } finally {
+          if (!session.closed)
+            session.close()
         }
       }
-      if (!session.closed)
-        session.close()
       FileBasedEstimator.logger.info("Finished evaluation.")
       FileBasedEstimator.logger.info("Saving evaluation results.")
       if (saveSummaries)

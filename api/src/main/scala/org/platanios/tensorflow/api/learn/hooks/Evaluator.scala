@@ -15,12 +15,15 @@
 
 package org.platanios.tensorflow.api.learn.hooks
 
+import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception.OutOfRangeException
 import org.platanios.tensorflow.api.io.events.SummaryFileWriterCache
-import org.platanios.tensorflow.api.learn.{RECOVERABLE_EXCEPTIONS, SessionCreator, SessionWrapper}
-import org.platanios.tensorflow.api.ops.{Op, Output}
+import org.platanios.tensorflow.api.learn._
+import org.platanios.tensorflow.api.ops.{Op, Output, Resource}
+import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.io.data.Dataset
+import org.platanios.tensorflow.api.ops.lookup.Lookup
 import org.platanios.tensorflow.api.ops.metrics.Metric
 import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.tensors.Tensor
@@ -52,32 +55,43 @@ import java.nio.file.Path
   *
   * @author Emmanouil Antonios Platanios
   */
-case class Evaluator[I, TT, TO, TD, TS](
+case class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
     log: Boolean = true,
     summaryDir: Path = null,
     data: () => Dataset[TT, TO, TD, TS],
-    metrics: Seq[Metric[(I, TO), Output]],
+    metrics: Seq[Metric[EI, Output]],
     trigger: HookTrigger = StepHookTrigger(100),
     triggerAtEnd: Boolean = true,
+    randomSeed: Option[Int] = None,
     name: String = null
 ) extends TriggeredHook(trigger, triggerAtEnd)
-    with ModelDependentHook[I, TT, TO, TD, TS] {
+    with ModelDependentHook[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] {
   require(log || summaryDir != null, "At least one of 'log' and 'summaryDir' needs to be provided.")
 
+  private[this] var graph              : Graph          = _
   private[this] var sessionCreator     : SessionCreator = _
-  private[this] var iteratorInitializer: Op             = _
-  private[this] var metricValues       : Seq[Output]    = _
-  private[this] var metricUpdates      : Seq[Output]    = _
-  private[this] var metricResets       : Seq[Op]        = _
+  private[this] var inputInitializer: Op             = _
+  private[this] var evaluateOps       : Model.EvaluateOps[TT, TO, TD, TS, I]    = _
 
-  override protected def begin(sessionCreator: SessionCreator): Unit = {
-    this.sessionCreator = sessionCreator
-    iteratorInitializer = modelInstance.inputIterator.createInitializer(data())
-    val streamingInstances = metrics.map(_.streaming((modelInstance.output, modelInstance.input)))
-    metricValues = streamingInstances.map(_.value)
-    metricUpdates = streamingInstances.map(_.update)
-    metricResets = streamingInstances.map(_.reset)
-    sessionCreator.addLocalInitOp(Variable.initializer(streamingInstances.flatMap(_.variables).toSet))
+  override protected def begin(): Unit = {
+    graph = Graph()
+    Op.createWith(graph) {
+      randomSeed.foreach(graph.setRandomSeed)
+      evaluateOps = Op.createWithNameScope("Model")(modelInstance.model.buildEvaluateOps(metrics))
+      inputInitializer = evaluateOps.inputIterator.createInitializer(data())
+      this.sessionCreator = ChiefSessionCreator(
+        master = modelInstance.configuration.evaluationMaster,
+        sessionScaffold = SessionScaffold(
+          initOp = Some(ControlFlow.group(Set(
+            Variable.initializer(Variable.globalVariables),
+            Resource.initializer(Resource.sharedResources)))),
+          localInitOp = Some(ControlFlow.group(Set(
+            inputInitializer,
+            Variable.initializer(Variable.localVariables),
+            Lookup.initializer(Lookup.initializers))))),
+        sessionConfig = modelInstance.configuration.sessionConfig,
+        checkpointPath = modelInstance.configuration.workingDir)
+    }
   }
 
   override protected def onTrigger(
@@ -85,26 +99,29 @@ case class Evaluator[I, TT, TO, TD, TS](
       elapsed: Option[(Double, Int)],
       runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor]],
       session: Session
-  ): Unit = {
+  ): Unit = Op.createWith(graph) {
     Evaluator.logger.info(s"Computing $name.")
-    val session = new SessionWrapper(sessionCreator.createSession())
+    val session = MonitoredSession(sessionCreator, shouldRecover = true)
     val values = {
       try {
-        session.run(targets = iteratorInitializer)
+        session.run(targets = inputInitializer)
         while (!session.shouldStop)
           try {
-            session.run(targets = metricUpdates.map(_.op).toSet)
+            session.run(targets = evaluateOps.metricUpdates.toSet)
           } catch {
             case _: OutOfRangeException => session.setShouldStop(true)
           }
-        session.run(fetches = metricValues)
+        session.run(fetches = evaluateOps.metricValues)
       } catch {
         case e if RECOVERABLE_EXCEPTIONS.contains(e.getClass) =>
           session.close()
           Seq.empty[Tensor]
-        case t: Throwable => throw t
+        case t: Throwable =>
+          session.closeWithoutHookEnd()
+          throw t
       } finally {
-        session.close()
+        if (!session.closed)
+          session.close()
       }
     }
     if (log) {

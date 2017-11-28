@@ -19,7 +19,7 @@ import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.{Executable, Fetchable, Session}
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.io.events.{SummaryFileWriter, SummaryFileWriterCache}
-import org.platanios.tensorflow.api.learn.{SessionCreator, SessionWrapper}
+import org.platanios.tensorflow.api.learn.SessionWrapper
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.ops.variables.Saver
 import org.platanios.tensorflow.api.tensors.Tensor
@@ -55,7 +55,7 @@ case class CheckpointSaver(
   private[this] var saver        : Option[Saver]             = None
   private[this] var summaryWriter: Option[SummaryFileWriter] = None
 
-  override protected def begin(sessionCreator: SessionCreator): Unit = {
+  override protected def begin(): Unit = {
     val savers = Op.currentGraph.getCollection(Graph.Keys.SAVERS)
     if (savers.isEmpty || savers.size > 1)
       throw InvalidArgumentException("There should exist one (and only one) saver in the graph.")
