@@ -19,7 +19,7 @@ import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.{Executable, Fetchable, Session}
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.io.events.{SummaryFileWriter, SummaryFileWriterCache}
-import org.platanios.tensorflow.api.learn.SessionCreator
+import org.platanios.tensorflow.api.learn.{SessionCreator, SessionWrapper}
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.ops.variables.Saver
 import org.platanios.tensorflow.api.tensors.Tensor
@@ -88,7 +88,15 @@ case class CheckpointSaver(
       session: Session
   ): Unit = {
     CheckpointSaver.logger.info(s"Saving checkpoint for step $step.")
+    session match {
+      case s: SessionWrapper => s.disableHooks()
+      case _ => ()
+    }
     saver.foreach(_.save(session, savePath, Some(step.toInt)))
+    session match {
+      case s: SessionWrapper => s.enableHooks()
+      case _ => ()
+    }
     summaryWriter.foreach(_.writeSessionLog(
       SessionLog.newBuilder()
           .setStatus(SessionLog.SessionStatus.CHECKPOINT)
