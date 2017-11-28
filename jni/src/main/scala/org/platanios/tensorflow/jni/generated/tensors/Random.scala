@@ -25,4 +25,5 @@ object Random {
   @native def randomUniform(contextHandle: Long, shape: Long, dtype: Int, seed: Long, seed2: Long): Long
   @native def randomUniformInt(contextHandle: Long, shape: Long, minval: Long, maxval: Long, seed: Long, seed2: Long): Long
   @native def randomStandardNormal(contextHandle: Long, shape: Long, dtype: Int, seed: Long, seed2: Long): Long
+  @native def truncatedNormal(contextHandle: Long, shape: Long, dtype: Int, seed: Long, seed2: Long): Long
 }

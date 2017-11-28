@@ -164,7 +164,7 @@ lazy val jni = (project in file("./jni"))
           "BatchNormWithGlobalNormalization", "FusedBatchNorm", "QuantizedBiasAdd", "QuantizedRelu", "QuantizedRelu6",
           "QuantizedReluX", "QuantizedAvgPool", "QuantizedMaxPool", "QuantizedConv2D",
           "QuantizedBatchNormWithGlobalNormalization"),
-        "Random" -> Seq("RandomUniform", "RandomUniformInt", "RandomStandardNormal"),
+        "Random" -> Seq("RandomUniform", "RandomUniformInt", "RandomStandardNormal", "TruncatedNormal"),
         "Sparse" -> Seq("SparseToDense"),
         "Text" -> Seq(
           "StringJoin", "StringSplit", "EncodeBase64", "DecodeBase64", "StringToHashBucket", "StringToHashBucketFast",

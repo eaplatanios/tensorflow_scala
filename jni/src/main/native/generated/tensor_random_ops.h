@@ -31,6 +31,14 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Rand
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Random_00024_randomStandardNormal
   (JNIEnv *, jobject, jlong, jlong, jint, jlong, jlong);
 
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_Random__
+ * Method:    truncatedNormal
+ * Signature: (JJIJJ)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Random_00024_truncatedNormal
+  (JNIEnv *, jobject, jlong, jlong, jint, jlong, jlong);
+
 #ifdef __cplusplus
 }
 #endif
