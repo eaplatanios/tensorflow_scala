@@ -35,7 +35,7 @@ class BasicLSTMCell private[cell] (
     val activation: Output => Output = Math.tanh(_),
     val forgetBias: Float = 1.0f,
     val name: String = "BasicLSTMCell"
-) extends RNNCell[Output, Shape, (Output, Output), (Shape, Shape)] {
+) extends RNNCell[Output, Shape, LSTMState, (Shape, Shape)] {
   private[this] val numUnits = bias.shape(0) / 4
 
   override def outputShape: Shape = Shape(numUnits)

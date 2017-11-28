@@ -56,7 +56,7 @@ class LSTMCell private[cell] (
     kernelInitializer: Initializer = null,
     biasInitializer: Initializer = ZerosInitializer,
     override protected val name: String = "LSTMCell"
-) extends RNNCell[Output, Shape, (Output, Output), (Shape, Shape)](name) {
+) extends RNNCell[Output, Shape, LSTMState, (Shape, Shape)](name) {
   override val layerType: String = "LSTMCell"
 
   override def createCell(mode: Mode): LSTMCellInstance = {

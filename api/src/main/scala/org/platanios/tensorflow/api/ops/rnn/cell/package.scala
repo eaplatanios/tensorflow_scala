@@ -15,7 +15,10 @@
 
 package org.platanios.tensorflow.api.ops.rnn
 
-import org.platanios.tensorflow.api.ops.Output
+import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api.ops.{Op, Output}
+import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
+import org.platanios.tensorflow.api.types.DataType
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -28,9 +31,47 @@ package object cell {
   }
 
   type BasicTuple = Tuple[Output, Output]
-  type LSTMTuple = Tuple[Output, (Output, Output)]
 
-  def LSTMTuple(output: Output, state: (Output, Output)): LSTMTuple = Tuple(output, state)
+  /** LSTM state tuple.
+    *
+    * @param  c Output tensor.
+    * @param  m State tensor.
+    */
+  case class LSTMState(c: Output, m: Output)
+
+  object LSTMState {
+    implicit def lstmStateWhileLoopVariable(implicit
+        evOutput: WhileLoopVariable.Aux[Output, Shape]
+    ): WhileLoopVariable.Aux[LSTMState, (Shape, Shape)] = {
+      new WhileLoopVariable[LSTMState] {
+        override type ShapeType = (Shape, Shape)
+
+        override def zero(
+            batchSize: Output, dataType: DataType, shape: (Shape, Shape), name: String = "Zero"
+        ): LSTMState = Op.createWithNameScope(name) {
+          LSTMState(
+            evOutput.zero(batchSize, dataType, shape._1, "Output"),
+            evOutput.zero(batchSize, dataType, shape._1, "State"))
+        }
+
+        override def size(value: LSTMState): Int = evOutput.size(value.c) + evOutput.size(value.m)
+        override def outputs(value: LSTMState): Seq[Output] = evOutput.outputs(value.c) ++ evOutput.outputs(value.m)
+        override def shapes(shape: (Shape, Shape)): Seq[Shape] = evOutput.shapes(shape._1) ++ evOutput.shapes(shape._2)
+
+        override def segmentOutputs(value: LSTMState, values: Seq[Output]): (LSTMState, Seq[Output]) = {
+          (LSTMState(values(0), values(1)), values.drop(2))
+        }
+
+        override def segmentShapes(value: LSTMState, shapes: Seq[Shape]): ((Shape, Shape), Seq[Shape]) = {
+          ((shapes(0), shapes(1)), shapes.drop(2))
+        }
+      }
+    }
+  }
+
+  type LSTMTuple = Tuple[Output, LSTMState]
+
+  def LSTMTuple(output: Output, state: LSTMState): LSTMTuple = Tuple(output, state)
 
   private[rnn] trait API {
     type RNNCell[O, OS, S, SS] = cell.RNNCell[O, OS, S, SS]
@@ -48,10 +89,14 @@ package object cell {
 
     type RNNTuple[O, S] = cell.Tuple[O, S]
     type BasicTuple = cell.Tuple[Output, Output]
-    type LSTMTuple = cell.Tuple[Output, (Output, Output)]
+    type LSTMTuple = cell.Tuple[Output, LSTMState]
 
     val RNNTuple: cell.Tuple.type = cell.Tuple
 
-    def LSTMTuple(output: Output, state: (Output, Output)): LSTMTuple = cell.Tuple(output, state)
+    def LSTMTuple(output: Output, state: LSTMState): LSTMTuple = cell.Tuple(output, state)
+
+    type LSTMState = cell.LSTMState
+
+    val LSTMState: cell.LSTMState.type = cell.LSTMState
   }
 }

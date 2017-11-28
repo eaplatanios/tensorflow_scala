@@ -47,13 +47,17 @@ package object cell {
 
   val Tuple: ops.rnn.cell.Tuple.type = ops.rnn.cell.Tuple
 
-  type LSTMCellInstance = CellInstance[Output, Shape, (Output, Output), (Shape, Shape)]
+  type LSTMState = ops.rnn.cell.LSTMState
+
+  val LSTMState: ops.rnn.cell.LSTMState.type = ops.rnn.cell.LSTMState
+
+  type LSTMCellInstance = CellInstance[Output, Shape, LSTMState, (Shape, Shape)]
   type LSTMTuple = ops.rnn.cell.LSTMTuple
 
-  def LSTMTuple(output: Output, state: (Output, Output)): LSTMTuple = ops.rnn.cell.LSTMTuple(output, state)
+  def LSTMTuple(output: Output, state: LSTMState): LSTMTuple = ops.rnn.cell.LSTMTuple(output, state)
 
   def LSTMCellInstance(
-      cell: ops.rnn.cell.RNNCell[Output, Shape, (Output, Output), (Shape, Shape)],
+      cell: ops.rnn.cell.RNNCell[Output, Shape, LSTMState, (Shape, Shape)],
       trainableVariables: Set[Variable] = Set.empty,
       nonTrainableVariables: Set[Variable] = Set.empty
   ): LSTMCellInstance = {
@@ -76,10 +80,15 @@ package object cell {
 
     type RNNTuple[O, S] = cell.Tuple[O, S]
     type BasicTuple = cell.Tuple[Output, Output]
-    type LSTMTuple = cell.Tuple[Output, (Output, Output)]
+
+    type LSTMState = cell.LSTMState
+
+    val LSTMState: cell.LSTMState.type = cell.LSTMState
+
+    type LSTMTuple = cell.Tuple[Output, LSTMState]
 
     val RNNTuple: cell.Tuple.type = cell.Tuple
 
-    def LSTMTuple(output: Output, state: (Output, Output)): LSTMTuple = cell.Tuple(output, state)
+    def LSTMTuple(output: Output, state: LSTMState): LSTMTuple = cell.Tuple(output, state)
   }
 }
