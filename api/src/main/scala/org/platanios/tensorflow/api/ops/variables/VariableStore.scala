@@ -342,7 +342,9 @@ case class VariableStore private[variables]() {
     */
   @throws[IllegalArgumentException]
   private[this] def defaultInitializer(name: String, dataType: DataType = FLOAT32): Initializer = {
-    if (dataType.isFloatingPoint || dataType.isInteger || dataType.isUnsigned || dataType.isBoolean)
+    if (dataType.isFloatingPoint)
+      GlorotUniformInitializer()
+    else if (dataType.isInteger || dataType.isUnsigned || dataType.isBoolean)
       ZerosInitializer
     else
       throw new IllegalArgumentException(s"A default initializer for variable '$name' of type '$dataType' is required.")
