@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.ops.rnn.cell
 
-import org.platanios.tensorflow.api.ops.{NN, Op, Output}
+import org.platanios.tensorflow.api.ops.{NN, Op, Output, TensorArray}
 
 import shapeless._
 import shapeless.ops.hlist.Tupler
@@ -101,6 +101,14 @@ object DropoutRNNCell {
           value: Output, keepProbability: Output, saltPrefix: String, seed: Option[Int], index: Int = 0
       ): (Output, Int) = {
         (NN.dynamicDropout(value, keepProbability, seed = generateSeed(saltPrefix, seed, index)), index + 1)
+      }
+    }
+
+    implicit val tensorArraySupported: Supported[TensorArray] = new Supported[TensorArray] {
+      override def dropout(
+          value: TensorArray, keepProbability: Output, saltPrefix: String, seed: Option[Int], index: Int = 0
+      ): (TensorArray, Int) = {
+        (value, index)
       }
     }
 
