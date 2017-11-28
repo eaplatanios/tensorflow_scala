@@ -36,7 +36,7 @@ class MultiRNNCell[O, OS, S, SS] private[cell] (
 ) extends RNNCell[O, OS, Seq[S], Seq[SS]](name) {
   override val layerType: String = "MultiRNNCell"
 
-  override def createCell(mode: Mode): CellInstance[O, OS, Seq[S], Seq[SS]] = Op.createWithNameScope(name) {
+  override def createCell(mode: Mode): CellInstance[O, OS, Seq[S], Seq[SS]] = Op.createWithNameScope(uniquifiedName) {
     val cellInstances = cells.zipWithIndex.map(cell => {
       VariableScope.createWithVariableScope(s"Cell${cell._2}") {
         cell._1.createCell(mode)

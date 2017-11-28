@@ -568,18 +568,35 @@ private[api] trait NN {
     if (keepProbability == 1.0) {
       input
     } else {
-      Op.createWithNameScope(name, Set(input.op)) {
-        val inferredNoiseShape = if (noiseShape == null) Basic.shape(input) else noiseShape
-        // Uniform random variable in [keepProbability, 1.0 + keepProbability).
-        val probability = Basic.constant(keepProbability, input.dataType)
-        val random = Random.randomUniform(
-          input.dataType, inferredNoiseShape, minValue = probability, maxValue = probability + 1.0, seed = seed)
-        // 0.0 if in [keepProbability, 1.0) and 1.0 if [1.0, 1.0 + keepProbability).
-        val binaryTensor = Math.floor(random)
-        val output = Math.divide(input, probability) * binaryTensor
-        output.setShape(input.shape)
-        output
-      }
+      dynamicDropout(input, Basic.constant(keepProbability, input.dataType), noiseShape, seed, name)
+    }
+  }
+
+  /** $OpDocNNDropout
+    *
+    * @group NNOps
+    * @param  input           Input tensor.
+    * @param  keepProbability Probability (i.e., scalar in the interval `(0, 1]`) that each element is kept.
+    * @param  noiseShape      [[INT32]] rank-1 tensor representing the shape for the randomly generated keep/drop flags.
+    * @param  seed            Optional random seed, used to generate a random seed pair for the random number
+    *                         generator, when combined with the graph-level seed.
+    * @param  name            Name for the created op.
+    * @return Created op output that has the same shape as `input`.
+    */
+  def dynamicDropout(
+      input: Output, keepProbability: Output, noiseShape: Output = null, seed: Option[Int] = None,
+      name: String = "Dropout"): Output = {
+    Op.createWithNameScope(name, Set(input.op)) {
+      val inferredNoiseShape = if (noiseShape == null) Basic.shape(input) else noiseShape
+      // Uniform random variable in [keepProbability, 1.0 + keepProbability).
+      val probability = Math.cast(keepProbability, input.dataType)
+      val random = Random.randomUniform(
+        input.dataType, inferredNoiseShape, minValue = probability, maxValue = probability + 1.0, seed = seed)
+      // 0.0 if in [keepProbability, 1.0) and 1.0 if [1.0, 1.0 + keepProbability).
+      val binaryTensor = Math.floor(random)
+      val output = Math.divide(input, probability) * binaryTensor
+      output.setShape(input.shape)
+      output
     }
   }
 
@@ -919,6 +936,19 @@ object NN extends NN {
       */
     def dropout(keepProbability: Float, noiseShape: Output = null, seed: Option[Int] = None): Output = {
       NN.dropout(output, keepProbability, noiseShape, seed)
+    }
+
+    /** $OpDocNNDropout
+      *
+      * @group NNOps
+      * @param  keepProbability Probability (i.e., number in the interval `(0, 1]`) that each element is kept.
+      * @param  noiseShape      [[INT32]] rank-1 tensor representing the shape for the randomly generated keep/drop flags.
+      * @param  seed            Optional random seed, used to generate a random seed pair for the random number
+      *                         generator, when combined with the graph-level seed.
+      * @return Created op output that has the same shape as `input`.
+      */
+    def dynamicDropout(keepProbability: Output, noiseShape: Output = null, seed: Option[Int] = None): Output = {
+      NN.dynamicDropout(output, keepProbability, noiseShape, seed)
     }
 
     /** $OpDocNNTopK

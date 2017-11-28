@@ -25,6 +25,7 @@ import org.platanios.tensorflow.api.ops.Op
   * variables involved.
   *
   * @param  cells Cells being stacked together.
+  * @param  name  Name prefix used for all new ops.
   *
   * @author Emmanouil Antonios Platanios
   */

@@ -1,0 +1,196 @@
+/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ */
+
+package org.platanios.tensorflow.api.ops.rnn.cell
+
+import org.platanios.tensorflow.api.ops.{NN, Op, Output}
+
+import shapeless._
+import shapeless.ops.hlist.Tupler
+
+import java.nio.ByteBuffer
+import java.nio.charset.StandardCharsets
+import java.security.MessageDigest
+
+import scala.collection.SeqLike
+import scala.collection.generic.CanBuildFrom
+import scala.reflect.ClassTag
+
+/** RNN cell that applies dropout to the provided RNN cell.
+  *
+  * Note that currently, a different dropout mask is used for each time step in an RNN (i.e., not using the variational
+  * recurrent dropout method described in
+  * ["A Theoretically Grounded Application of Dropout in Recurrent Neural Networks"](https://arxiv.org/abs/1512.05287).
+  *
+  * Note also that for LSTM cells, no dropout is applied to the memory tensor of the state. It is only applied to the
+  * state tensor.
+  *
+  * @param  cell                  RNN cell on which to perform dropout.
+  * @param  inputKeepProbability  Keep probability for the input of the RNN cell.
+  * @param  outputKeepProbability Keep probability for the output of the RNN cell.
+  * @param  stateKeepProbability  Keep probability for the output state of the RNN cell.
+  * @param  seed                  Optional random seed, used to generate a random seed pair for the random number
+  *                               generator, when combined with the graph-level seed.
+  * @param  name                  Name prefix used for all new ops.
+  *
+  * @author Emmanouil Antonios Platanios
+  */
+class DropoutRNNCell[O, OS, S, SS](
+    val cell: RNNCell[O, OS, S, SS],
+    val inputKeepProbability: Output = 1.0f,
+    val outputKeepProbability: Output = 1.0f,
+    val stateKeepProbability: Output = 1.0f,
+    val seed: Option[Int] = None,
+    val name: String = "DropoutRNNCell"
+)(implicit
+    evO: DropoutRNNCell.Supported[O],
+    evS: DropoutRNNCell.Supported[S]
+) extends RNNCell[O, OS, S, SS] {
+  override def outputShape: OS = cell.outputShape
+  override def stateShape: SS = cell.stateShape
+  override def forward(input: Tuple[O, S]): Tuple[O, S] = Op.createWithNameScope(name) {
+    val dropoutInput = evO.dropout(input.output, inputKeepProbability, "input", seed)._1
+    val nextTuple = cell(Tuple(dropoutInput, input.state))
+    val nextState = evS.dropout(nextTuple.state, stateKeepProbability, "state", seed)._1
+    val nextOutput = evO.dropout(nextTuple.output, stateKeepProbability, "output", seed)._1
+    Tuple(nextOutput, nextState)
+  }
+}
+
+object DropoutRNNCell {
+  def apply[O, OS, S, SS](
+      cell: RNNCell[O, OS, S, SS],
+      inputKeepProbability: Output = 1.0f,
+      outputKeepProbability: Output = 1.0f,
+      stateKeepProbability: Output = 1.0f,
+      seed: Option[Int] = None,
+      name: String = "DropoutRNNCell"
+  )(implicit
+      evO: DropoutRNNCell.Supported[O],
+      evS: DropoutRNNCell.Supported[S]
+  ): DropoutRNNCell[O, OS, S, SS] = {
+    new DropoutRNNCell(cell, inputKeepProbability, outputKeepProbability, stateKeepProbability, seed, name)(evO, evS)
+  }
+
+  private[this] def generateSeed(saltPrefix: String, seed: Option[Int], index: Int): Option[Int] = {
+    seed.map(s => {
+      val md5 = MessageDigest.getInstance("MD5").digest(s"$s${saltPrefix}_$index".getBytes(StandardCharsets.UTF_8))
+      ByteBuffer.wrap(md5.take(8)).getInt() & 0x7fffffff
+    })
+  }
+
+  trait Supported[T] {
+    def dropout(value: T, keepProbability: Output, saltPrefix: String, seed: Option[Int], index: Int = 0): (T, Int)
+  }
+
+  object Supported {
+    implicit val outputSupported: Supported[Output] = new Supported[Output] {
+      override def dropout(
+          value: Output, keepProbability: Output, saltPrefix: String, seed: Option[Int], index: Int = 0
+      ): (Output, Int) = {
+        (NN.dynamicDropout(value, keepProbability, seed = generateSeed(saltPrefix, seed, index)), index + 1)
+      }
+    }
+
+    implicit val lstmStateSupported: Supported[LSTMState] = new Supported[LSTMState] {
+      override def dropout(
+          value: LSTMState, keepProbability: Output, saltPrefix: String, seed: Option[Int], index: Int = 0
+      ): (LSTMState, Int) = {
+        (LSTMState(
+          value.c,
+          NN.dynamicDropout(value.m, keepProbability, seed = generateSeed(saltPrefix, seed, index))), index + 1)
+      }
+    }
+
+    implicit def arraySupported[T: ClassTag](implicit ev: Supported[T]): Supported[Array[T]] = new Supported[Array[T]] {
+      override def dropout(
+          value: Array[T], keepProbability: Output, saltPrefix: String, seed: Option[Int], index: Int = 0
+      ): (Array[T], Int) = {
+        var currentIndex = index
+        (value.map({ v =>
+          val (dropoutV, dropoutIndex) = ev.dropout(v, keepProbability, saltPrefix, seed, currentIndex)
+          currentIndex = dropoutIndex
+          dropoutV
+        }), currentIndex)
+      }
+    }
+
+    implicit def seqSupported[T, CC[A] <: SeqLike[A, CC[A]]](implicit
+        ev: Supported[T],
+        cbf: CanBuildFrom[CC[T], T, CC[T]]
+    ): Supported[CC[T]] = new Supported[CC[T]] {
+      override def dropout(
+          value: CC[T], keepProbability: Output, saltPrefix: String, seed: Option[Int], index: Int = 0
+      ): (CC[T], Int) = {
+        // TODO: Make this atomic for parallel sequences.
+        var currentIndex = index
+        (value.map({ v =>
+          val (dropoutV, dropoutIndex) = ev.dropout(v, keepProbability, saltPrefix, seed, currentIndex)
+          currentIndex = dropoutIndex
+          dropoutV
+        })(cbf), currentIndex)
+      }
+    }
+
+    implicit def mapSupported[T, MK](implicit ev: Supported[T]): Supported[Map[MK, T]] = new Supported[Map[MK, T]] {
+      override def dropout(
+          value: Map[MK, T], keepProbability: Output, saltPrefix: String, seed: Option[Int], index: Int = 0
+      ): (Map[MK, T], Int) = {
+        // TODO: Make this atomic for parallel maps.
+        var currentIndex = index
+        (value.mapValues({ v =>
+          val (dropoutV, dropoutIndex) = ev.dropout(v, keepProbability, saltPrefix, seed, currentIndex)
+          currentIndex = dropoutIndex
+          dropoutV
+        }), currentIndex)
+      }
+    }
+
+    implicit val hnilSupported: Supported[HNil] = new Supported[HNil] {
+      override def dropout(
+          value: HNil, keepProbability: Output, saltPrefix: String, seed: Option[Int], index: Int = 0
+      ): (HNil, Int) = {
+        (HNil, index)
+      }
+    }
+
+    implicit def recursiveSupportedConstructor[H, T <: HList](implicit
+        evHead: Lazy[Supported[H]],
+        evTail: Supported[T]
+    ): Supported[H :: T] = new Supported[H :: T] {
+      override def dropout(
+          value: H :: T, keepProbability: Output, saltPrefix: String, seed: Option[Int], index: Int
+      ): (H :: T, Int) = {
+        val dropoutH = evHead.value.dropout(value.head, keepProbability, saltPrefix, seed, index)
+        val dropoutT = evTail.dropout(value.tail, keepProbability, saltPrefix, seed, dropoutH._2)
+        (dropoutH._1 :: dropoutT._1, dropoutT._2)
+      }
+    }
+
+    // This also covers `OutputIndexedSlices` and `SparseOutput` as they are case classes (i.e., products).
+    implicit def productSupportedConstructor[P <: Product, L <: HList](implicit
+        gen: Generic.Aux[P, L],
+        evL: Supported[L],
+        tupler: Tupler.Aux[L, P]
+    ): Supported[P] = new Supported[P] {
+      override def dropout(
+          value: P, keepProbability: Output, saltPrefix: String, seed: Option[Int], index: Int = 0
+      ): (P, Int) = {
+        val tuple = evL.dropout(gen.to(value), keepProbability, saltPrefix, seed, index)
+        (tupler(tuple._1), tuple._2)
+      }
+    }
+  }
+}

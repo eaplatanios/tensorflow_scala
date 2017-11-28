@@ -17,7 +17,7 @@ package org.platanios.tensorflow.examples
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.learn.layers.rnn.RNN
-import org.platanios.tensorflow.api.learn.layers.rnn.cell.{BasicLSTMCell, LSTMTuple}
+import org.platanios.tensorflow.api.learn.layers.rnn.cell.{BasicLSTMCell, DropoutRNNCell, LSTMTuple}
 import org.platanios.tensorflow.data.text.PTBLoader
 
 import com.typesafe.scalalogging.Logger
@@ -61,8 +61,7 @@ object RNNTutorialUsingPTB {
     val trainInput = tf.learn.Input(INT32, Shape(-1, -1))
     // Slightly better results can be obtained with forget gate biases initialized to 1 but the hyper-parameters of the
     // model would need to be different than those reported in the paper.
-    val rnnCell = BasicLSTMCell(numHidden, FLOAT32, Shape(-1, numHidden), forgetBias = 0.0f)
-    // TODO: Add dropout wrapper.
+    val rnnCell = DropoutRNNCell(BasicLSTMCell(numHidden, FLOAT32, Shape(-1, numHidden), forgetBias = 0.0f), 0.00001f)
     // TODO: Add multi-RNN cell.
     val rnn = RNN(rnnCell, timeMajor = false)
     val layer = tf.learn.device("/device:CPU:0") {
