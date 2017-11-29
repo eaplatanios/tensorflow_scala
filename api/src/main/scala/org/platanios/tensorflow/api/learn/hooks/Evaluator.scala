@@ -129,7 +129,7 @@ case class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
           if (metricValue.shape.rank == 0 &&
               (metricValue.dataType.isFloatingPoint || metricValue.dataType.isInteger)) {
             val castedValue = metricValue.cast(FLOAT32).scalar.asInstanceOf[Float]
-            f"${metric.name}%10s = $castedValue%10.4f"
+            f"${metric.name}%s = $castedValue%.4f"
           } else {
             s"'$metric' is non-scalar or non-numeric"
           }
