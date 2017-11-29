@@ -144,7 +144,7 @@ case class Configuration(
     // TODO: [LEARN] Allow a cluster configuration to be directly provided here.
     sessionConfig: Option[SessionConfig] = None,
     checkpointConfig: CheckpointConfig = TimeBasedCheckpoints(600, 5, 10000),
-    randomSeed: Int = 1
+    randomSeed: Option[Int] = None
 ) {
   val (clusterConfig, taskType, taskIndex, master, numParameterServers, numWorkers, isChief): (
       Option[ClusterConfig], String, Int, String, Int, Int, Boolean) = {

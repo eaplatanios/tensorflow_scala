@@ -128,7 +128,7 @@ abstract class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
   def checkpointConfig: CheckpointConfig = configuration.checkpointConfig
 
   /** Random seed value to be used by the TensorFlow initializers in this estimator. */
-  def randomSeed: Int = configuration.randomSeed
+  def randomSeed: Option[Int] = configuration.randomSeed
 
   /** Gets an existing saver from the current graph, or creates a new one if none exists. */
   protected def getOrCreateSaver(): Option[Saver] = {

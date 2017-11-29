@@ -80,7 +80,7 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
 
   private[this] val (globalStep, trainingOps, inferenceOps, evaluationOps, evaluationUpdateOps) = {
     Op.createWith(graph = graph, deviceFunction = deviceFunction.getOrElse(_.device)) {
-      graph.setRandomSeed(randomSeed)
+      randomSeed.foreach(graph.setRandomSeed)
       // TODO: [LEARN] !!! Do we ever update the global epoch?
       Counter.getOrCreate(Graph.Keys.GLOBAL_EPOCH, local = false)
       val globalStep = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)

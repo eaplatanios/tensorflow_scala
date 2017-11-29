@@ -133,7 +133,7 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
       val model = modelFunction(configuration)
       val graph = Graph()
       Op.createWith(graph = graph, deviceFunction = deviceFunction.getOrElse(_.device)) {
-        graph.setRandomSeed(randomSeed)
+        randomSeed.foreach(graph.setRandomSeed)
         // TODO: [LEARN] !!! Do we ever update the global epoch?
         Counter.getOrCreate(Graph.Keys.GLOBAL_EPOCH, local = false)
         Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
@@ -249,7 +249,7 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
     val model = modelFunction(configuration)
     val graph = Graph()
     Op.createWith(graph) {
-      graph.setRandomSeed(randomSeed)
+      randomSeed.foreach(graph.setRandomSeed)
       Counter.getOrCreate(Graph.Keys.GLOBAL_EPOCH, local = false)
       Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
       val inferOps = Op.createWithNameScope("Model")(model.buildInferOps())
@@ -386,7 +386,7 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
     val model = modelFunction(configuration)
     val graph = Graph()
     Op.createWith(graph) {
-      graph.setRandomSeed(randomSeed)
+      randomSeed.foreach(graph.setRandomSeed)
       val evaluateOps = Op.createWithNameScope("Model")(model.buildEvaluateOps(metrics))
       val inputInitializer = evaluateOps.inputIterator.createInitializer(data())
       Counter.getOrCreate(Graph.Keys.GLOBAL_EPOCH, local = false)
