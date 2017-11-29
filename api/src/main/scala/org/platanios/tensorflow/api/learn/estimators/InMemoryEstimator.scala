@@ -133,14 +133,7 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
         configuration = configuration,
         hooks = allTrainHooks.toSet ++ inferHooks ++ evaluateHooks,
         chiefOnlyHooks = allTrainChiefOnlyHooks.toSet,
-        sessionScaffold = SessionScaffold(
-          initOp = Some(ControlFlow.group(Set(
-            Variable.initializer(Variable.globalVariables),
-            Resource.initializer(Resource.sharedResources)))),
-          localInitOp = Some(ControlFlow.group(Set(
-            Variable.initializer(Variable.localVariables),
-            Lookup.initializer(Lookup.initializers)))),
-          saver = saver))
+        sessionScaffold = SessionScaffold(saver = saver))
     }
   }
 

@@ -155,16 +155,9 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
           configuration = configuration,
           hooks = allHooks.toSet,
           chiefOnlyHooks = allChiefOnlyHooks.toSet,
-          sessionScaffold = SessionScaffold(
-            initOp = Some(ControlFlow.group(Set(
-              Variable.initializer(Variable.globalVariables),
-              Resource.initializer(Resource.sharedResources)))),
-            localInitOp = Some(ControlFlow.group(Set(
-              inputInitializer,
-              Variable.initializer(Variable.localVariables),
-              Lookup.initializer(Lookup.initializers)))),
-            saver = saver))
+          sessionScaffold = SessionScaffold(saver = saver))
         try {
+          session.run(targets = inputInitializer)
           while (!session.shouldStop)
             session.run(targets = trainOps.trainOp)
         } catch {
@@ -271,18 +264,17 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
       val saver = getOrCreateSaver()
       val session = MonitoredSession(
         ChiefSessionCreator(
-          sessionScaffold = SessionScaffold(
-            initOp = Some(ControlFlow.group(Set(
-              Variable.initializer(Variable.globalVariables),
-              Resource.initializer(Resource.sharedResources)))),
-            localInitOp = Some(ControlFlow.group(Set(
-              inputInitializer,
-              Variable.initializer(Variable.localVariables),
-              Lookup.initializer(Lookup.initializers)))),
-            saver = saver),
+          sessionScaffold = SessionScaffold(saver = saver),
           sessionConfig = configuration.sessionConfig,
           checkpointPath = workingDir),
         hooks, shouldRecover = true)
+      try {
+        session.run(targets = inputInitializer)
+      } catch {
+        case t: Throwable =>
+          session.closeWithoutHookEnd()
+          throw t
+      }
       val output = ev.convertFetched(new Iterator[(IT, ModelInferenceOutput)] {
         override def hasNext: Boolean = session.shouldStop
         override def next(): (IT, ModelInferenceOutput) = {
@@ -415,21 +407,14 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
       val session = MonitoredSession(
         ChiefSessionCreator(
           master = configuration.evaluationMaster,
-          sessionScaffold = SessionScaffold(
-            initOp = Some(ControlFlow.group(Set(
-              Variable.initializer(Variable.globalVariables),
-              Resource.initializer(Resource.sharedResources)))),
-            localInitOp = Some(ControlFlow.group(Set(
-              inputInitializer,
-              Variable.initializer(Variable.localVariables),
-              Lookup.initializer(Lookup.initializers)))),
-            saver = saver),
+          sessionScaffold = SessionScaffold(saver = saver),
           sessionConfig = configuration.sessionConfig,
           checkpointPath = configuration.workingDir),
         allHooks.toSet, shouldRecover = true)
       FileBasedEstimator.logger.info("Starting evaluation.")
       val (step, metricValues) = {
         try {
+          session.run(targets = inputInitializer)
           val step = session.run(fetches = globalStep.value).scalar.asInstanceOf[Long]
           while (!session.shouldStop)
             try {
