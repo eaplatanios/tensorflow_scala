@@ -341,6 +341,11 @@ private[ops] object Callback extends Callback {
     *    not use this op if you need to serialize your model and restore it in a different environment.
     *  - The op must be able to access the JVM instance that the Scala program that constructed it was running on. This
     *    can be important if you are using distributed TensorFlow.
+    *
+    *  '''NOTE:''' The input and output tensors of the callback functions are not guaranteed to be copies. In some cases
+    *  their underlying memory will be shared with the corresponding TensorFlow session tensors. In-place modification
+    *  or storing of the inputs or return values in Scala data structures without explicit copies can have
+    *  non-deterministic consequences.
     */
   private[ops] trait Documentation
 }

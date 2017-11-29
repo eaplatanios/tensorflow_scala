@@ -65,27 +65,6 @@ private[rnn] trait RNN {
       evS: WhileLoopVariable.Aux[S, SS]
   ): Tuple[O, S] = {
     Op.createWithNameScope(name) {
-      // By default, `timeMajor` is false and inputs are shaped batch-major: [batch, time, depth]
-      // For internal calculations, we transpose to: [time, batch, depth]
-      var processedInput = evO.outputs(input)
-      processedInput = {
-        if (!timeMajor) {
-          // [B, T, D] => [T, B, D]
-          processedInput.map(RNN.transposeBatchTime)
-        } else {
-          processedInput
-        }
-      }
-      var processedSequenceLength = {
-        if (sequenceLengths == null) {
-          null
-        } else {
-          if (sequenceLengths.rank != -1 && sequenceLengths.rank != 1)
-            throw InvalidShapeException(
-              s"'sequenceLength' (rank = ${sequenceLengths.rank}) must be a vector with length equal to the batch size.")
-          Math.cast(sequenceLengths, INT32, "SequenceLengthCast")
-        }
-      }
       // Create a new variable scope in which the caching device is either determined by the parent scope, or is set to
       // place the cached variables using the same device placement as for the rest of the RNN.
       val currentVariableScope = VariableScope.createWithVariableScope(name)(Op.currentVariableScope)
@@ -96,6 +75,28 @@ private[rnn] trait RNN {
           currentVariableScope.cachingDevice
       }
       VariableScope.createWithUpdatedVariableScope(currentVariableScope, cachingDevice = cachingDevice) {
+        // By default, `timeMajor` is false and inputs are shaped batch-major: [batch, time, depth]
+        // For internal calculations, we transpose to: [time, batch, depth]
+        var processedInput = evO.outputs(input)
+        processedInput = {
+          if (!timeMajor) {
+            // [B, T, D] => [T, B, D]
+            processedInput.map(RNN.transposeBatchTime)
+          } else {
+            processedInput
+          }
+        }
+        var processedSequenceLength = {
+          if (sequenceLengths == null) {
+            null
+          } else {
+            if (sequenceLengths.rank != -1 && sequenceLengths.rank != 1)
+              throw InvalidShapeException(
+                s"'sequenceLength' (rank = ${sequenceLengths.rank}) must be a vector " +
+                    "with length equal to the batch size.")
+            Math.cast(sequenceLengths, INT32, "SequenceLengthCast")
+          }
+        }
         val batchSize = RNN.bestEffortInputBatchSize(processedInput)
         val state = {
           if (initialState != null)

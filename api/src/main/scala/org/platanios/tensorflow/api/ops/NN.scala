@@ -1324,8 +1324,9 @@ object NN extends NN {
         }
       }
 
+      val logits = op.inputs(0)
+      val labelsGradient = broadcastMultiply(lossGradient, -NN.logSoftmax(logits))
       if (!isGradGradientZero) {
-        val logits = op.inputs(0)
         val logitsSoftmax = NN.softmax(logits)
         val gradient = outputGradient + (
             (gradGradient - Basic.squeeze(
@@ -1333,9 +1334,9 @@ object NN extends NN {
                 Basic.expandDims(gradGradient, 1),
                 Basic.expandDims(logitsSoftmax, 2)),
               Array(1))) * logitsSoftmax)
-        Seq(gradient, null)
+        Seq(gradient, labelsGradient)
       } else {
-        Seq(outputGradient, null)
+        Seq(outputGradient, labelsGradient)
       }
     }
 
@@ -1556,6 +1557,9 @@ object NN extends NN {
     *   The op measures the probabilistic error in discrete classification tasks in which the classes are mutually
     *   exclusive (each entry belongs to exactly one class). For example, each CIFAR-10 image is labeled with one and
     *   only one label: an image can be a dog or a truck, but not both.
+    *
+    *   Back-propagation will happen into both `logits` and `labels`. To disallow back-propagation into `labels`, pass
+    *   the label tensors through a `stopGradients` op before feeding it to this function.
     *
     *   '''NOTE:''' While the classes are mutually exclusive, their probabilities need not be. All that is required is
     *   that each row of `labels` is a valid probability distribution. If they are not, the computation of the gradient
