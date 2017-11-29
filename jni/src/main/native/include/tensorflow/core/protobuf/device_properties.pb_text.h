@@ -19,6 +19,16 @@ bool ProtoParseFromString(
     ::tensorflow::DeviceProperties* msg)
         TF_MUST_USE_RESULT;
 
+// Message-text conversion for tensorflow.NamedDevice
+string ProtoDebugString(
+    const ::tensorflow::NamedDevice& msg);
+string ProtoShortDebugString(
+    const ::tensorflow::NamedDevice& msg);
+bool ProtoParseFromString(
+    const string& s,
+    ::tensorflow::NamedDevice* msg)
+        TF_MUST_USE_RESULT;
+
 }  // namespace tensorflow
 
 #endif  // tensorflow_core_protobuf_device_properties_proto_H_
