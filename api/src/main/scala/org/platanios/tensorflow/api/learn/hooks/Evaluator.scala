@@ -124,21 +124,20 @@ case class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
       }
     }
     if (log) {
-      Evaluator.logger.info(s"Step $step $name:")
-      metrics.zip(values).foreach {
+      val message = metrics.zip(values).map {
         case (metric, metricValue) =>
           if (metricValue.shape.rank == 0 &&
               (metricValue.dataType.isFloatingPoint || metricValue.dataType.isInteger)) {
             val castedValue = metricValue.cast(FLOAT32).scalar.asInstanceOf[Float]
-            Evaluator.logger.info(f"\t${metric.name}%10s: $castedValue%10.4f")
+            f"${metric.name}%10s = $castedValue%10.4f"
           } else {
-            Evaluator.logger.warn(
-              s"\tSkipping logging for non-scalar and/or non-floating-point/non-integer metric '$metric'.")
+            s"'$metric' is non-scalar or non-numeric"
           }
       }
+      Evaluator.logger.info(s"Step $step $name: ${message.mkString(" | ")}")
     }
     if (summaryDir != null) {
-      Evaluator.logger.info(s"Saving evaluation results at '$summaryDir'.")
+      Evaluator.logger.info(s"Saving $name results at '$summaryDir'.")
       val summaryProto = Summary.newBuilder()
       metrics.zip(values).foreach {
         case (metric, metricValue) =>
@@ -150,8 +149,7 @@ case class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
             value.setSimpleValue(castedValue)
             summaryProto.addValue(value)
           } else {
-            Evaluator.logger.warn(
-              s"Skipping summary for non-scalar and/or non-floating-point/non-integer metric '$metric'.")
+            Evaluator.logger.warn(s"Skipping summary for non-scalar and/or non-numeric metric '$metric'.")
           }
       }
       val writer = SummaryFileWriterCache.get(summaryDir)

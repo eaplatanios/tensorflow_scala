@@ -36,6 +36,7 @@ class BasicRNNDecoder[O, OS, S, SS](
     override val cell: RNNCell[O, OS, S, SS],
     override val initialCellState: S,
     val helper: BasicRNNDecoder.Helper[O, S],
+    val outputLayer: O => O = (o: O) => o,
     override val name: String = "BasicRNNDecoder"
 )(implicit
     evO: WhileLoopVariable.Aux[O, OS],
@@ -51,7 +52,7 @@ class BasicRNNDecoder[O, OS, S, SS](
   override def zeroOutput(dataType: DataType): BasicRNNDecoder.Output[O, OS] = {
     val zeroOutput = evO.zero(batchSize, dataType, cell.outputShape, "ZeroOutput")
     val zeroSample = helper.zeroSample(batchSize, "ZeroSample")
-    BasicRNNDecoder.Output(zeroOutput, zeroSample)
+    BasicRNNDecoder.Output(outputLayer(zeroOutput), zeroSample)
   }
 
   /** This method is called before any decoding iterations. It computes the initial input values and the initial state.
@@ -74,9 +75,10 @@ class BasicRNNDecoder[O, OS, S, SS](
     val states = evS.outputs(state)
     Op.createWithNameScope(s"$name/Step", Set(time.op) ++ inputs.map(_.op).toSet ++ states.map(_.op).toSet) {
       val nextTuple = cell(Tuple(input, state))
-      val sample = helper.sample(time, nextTuple.output, nextTuple.state)
-      val (finished, nextInputs, nextState) = helper.next(time, nextTuple.output, nextTuple.state, sample)
-      (BasicRNNDecoder.Output(nextTuple.output, sample), nextState, nextInputs, finished)
+      val nextTupleOutput = outputLayer(nextTuple.output)
+      val sample = helper.sample(time, nextTupleOutput, nextTuple.state)
+      val (finished, nextInputs, nextState) = helper.next(time, nextTupleOutput, nextTuple.state, sample)
+      (BasicRNNDecoder.Output(nextTupleOutput, sample), nextState, nextInputs, finished)
     }
   }
 }
@@ -86,12 +88,13 @@ object BasicRNNDecoder {
       cell: RNNCell[O, OS, S, SS],
       initialCellState: S,
       helper: BasicRNNDecoder.Helper[O, S],
+      outputLayer: O => O = (o: O) => o,
       name: String = "BasicRNNDecoder"
   )(implicit
       evO: WhileLoopVariable.Aux[O, OS],
       evS: WhileLoopVariable.Aux[S, SS]
   ): BasicRNNDecoder[O, OS, S, SS] = {
-    new BasicRNNDecoder[O, OS, S, SS](cell, initialCellState, helper, name)
+    new BasicRNNDecoder[O, OS, S, SS](cell, initialCellState, helper, outputLayer, name)
   }
 
   case class Output[O, OS](rnnOutput: O, sample: O)(implicit whileLoopEvO: WhileLoopVariable.Aux[O, OS])

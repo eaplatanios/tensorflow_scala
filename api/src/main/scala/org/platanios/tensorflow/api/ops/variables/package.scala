@@ -42,6 +42,10 @@ package object variables {
     val VariableStore            : variables.VariableStore.type     = variables.VariableStore
     val VariableScope            : variables.VariableScope.type     = variables.VariableScope
 
+    def DefaultInitializer(dataType: DataType): variables.Initializer = {
+      variables.VariableStore.defaultInitializer(null, dataType)
+    }
+
     val ZerosInitializer: variables.ZerosInitializer.type = variables.ZerosInitializer
     val OnesInitializer : variables.OnesInitializer.type  = variables.OnesInitializer
     def ConstantInitializer(value: Tensor): Initializer = variables.ConstantInitializer(value)

@@ -44,7 +44,7 @@ case class LossLogger(
     summaryDir: Path = null,
     trigger: HookTrigger = StepHookTrigger(1),
     triggerAtEnd: Boolean = true,
-    formatter: (Double, Long, Float) => String = null
+    formatter: (Option[Double], Long, Float) => String = null
 ) extends TriggeredHook(trigger, triggerAtEnd)
     with ModelDependentHook[Any, Any, Any, Any, Any, Any, Any, Any, Any, Any]
     with SummaryWriterHookAddOn {
@@ -67,10 +67,7 @@ case class LossLogger(
     val loss = runResult.values(0).scalar.asInstanceOf[Float]
     val log = {
       if (formatter != null) {
-        elapsed.map(_._1) match {
-          case Some(s) => formatter(s, step, loss)
-          case None => formatter(0.0, step, loss)
-        }
+        formatter(elapsed.map(_._1), step, loss)
       } else {
         elapsed.map(_._1) match {
           case Some(s) => f"($s%9.3f s) Step: $step%6d, Loss: $loss%.4f"
