@@ -39,27 +39,27 @@ import scala.language.postfixOps
   *
   * @author Emmanouil Antonios Platanios
   */
-class BasicRNNDecoder[O, OS, S, SS](
+class BasicDecoder[O, OS, S, SS](
     override val cell: RNNCell[O, OS, S, SS],
     val initialCellState: S,
-    val helper: BasicRNNDecoder.Helper[O, S],
+    val helper: BasicDecoder.Helper[O, S],
     val outputLayer: O => O = (o: O) => o,
     override val name: String = "BasicRNNDecoder"
 )(implicit
     evO: WhileLoopVariable.Aux[O, OS],
     evS: WhileLoopVariable.Aux[S, SS]
-) extends RNNDecoder[
+) extends Decoder[
     O, OS, S, SS,
-    BasicRNNDecoder.Output[O, OS], (OS, OS), S, SS,
-    BasicRNNDecoder.Output[O, OS], S](cell, name) {
+    BasicDecoder.Output[O, OS], (OS, OS), S, SS,
+    BasicDecoder.Output[O, OS], S](cell, name) {
   /** Scalar `INT32` tensor representing the batch size of the input values. */
   override val batchSize: Output = helper.batchSize
 
-  override def zeroOutput(): BasicRNNDecoder.Output[O, OS] = {
+  override def zeroOutput(): BasicDecoder.Output[O, OS] = {
     val dataType = evS.outputs(initialCellState).head.dataType
     val zOutput = evO.zero(batchSize, dataType, cell.outputShape, "ZeroOutput")
     val zSample = helper.zeroSample(batchSize, "ZeroSample")
-    BasicRNNDecoder.Output(outputLayer(zOutput), zSample)
+    BasicDecoder.Output(outputLayer(zOutput), zSample)
   }
 
   /** This method is called before any decoding iterations. It computes the initial input values and the initial state.
@@ -77,7 +77,7 @@ class BasicRNNDecoder[O, OS, S, SS](
     * @return Tuple containing: (i) a scalar `BOOLEAN` tensor specifying whether sampling has finished, and
     *         (ii) the next RNN cell tuple.
     */
-  override def next(time: Output, input: O, state: S): (BasicRNNDecoder.Output[O, OS], S, O, Output) = {
+  override def next(time: Output, input: O, state: S): (BasicDecoder.Output[O, OS], S, O, Output) = {
     val inputs = evO.outputs(input)
     val states = evS.outputs(state)
     Op.createWithNameScope(s"$name/Next", Set(time.op) ++ inputs.map(_.op).toSet ++ states.map(_.op).toSet) {
@@ -85,7 +85,7 @@ class BasicRNNDecoder[O, OS, S, SS](
       val nextTupleOutput = outputLayer(nextTuple.output)
       val sample = helper.sample(time, nextTupleOutput, nextTuple.state)
       val (finished, nextInputs, nextState) = helper.next(time, nextTupleOutput, nextTuple.state, sample)
-      (BasicRNNDecoder.Output(nextTupleOutput, sample), nextState, nextInputs, finished)
+      (BasicDecoder.Output(nextTupleOutput, sample), nextState, nextInputs, finished)
     }
   }
 
@@ -96,26 +96,26 @@ class BasicRNNDecoder[O, OS, S, SS](
     * @return Finalized output and state to return from the decoding process.
     */
   override def finalize(
-      output: BasicRNNDecoder.Output[O, OS],
+      output: BasicDecoder.Output[O, OS],
       state: S,
       sequenceLengths: Output
-  ): (BasicRNNDecoder.Output[O, OS], S, Output) = {
+  ): (BasicDecoder.Output[O, OS], S, Output) = {
     (output, state, sequenceLengths)
   }
 }
 
-object BasicRNNDecoder {
+object BasicDecoder {
   def apply[O, OS, S, SS](
       cell: RNNCell[O, OS, S, SS],
       initialCellState: S,
-      helper: BasicRNNDecoder.Helper[O, S],
+      helper: BasicDecoder.Helper[O, S],
       outputLayer: O => O = (o: O) => o,
       name: String = "BasicRNNDecoder"
   )(implicit
       evO: WhileLoopVariable.Aux[O, OS],
       evS: WhileLoopVariable.Aux[S, SS]
-  ): BasicRNNDecoder[O, OS, S, SS] = {
-    new BasicRNNDecoder[O, OS, S, SS](cell, initialCellState, helper, outputLayer, name)
+  ): BasicDecoder[O, OS, S, SS] = {
+    new BasicDecoder[O, OS, S, SS](cell, initialCellState, helper, outputLayer, name)
   }
 
   case class Output[O, OS](rnnOutput: O, sample: O)(implicit whileLoopEvO: WhileLoopVariable.Aux[O, OS])

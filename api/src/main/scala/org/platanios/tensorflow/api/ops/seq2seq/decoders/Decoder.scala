@@ -41,7 +41,7 @@ import scala.language.postfixOps
   *
   * @author Emmanouil Antonios Platanios
   */
-abstract class RNNDecoder[O, OS, S, SS, DO, DOS, DS, DSS, DFO, DFS](
+abstract class Decoder[O, OS, S, SS, DO, DOS, DS, DSS, DFO, DFS](
     val cell: RNNCell[O, OS, S, SS],
     val name: String = "RNNDecoder"
 )(implicit

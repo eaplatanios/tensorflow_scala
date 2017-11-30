@@ -37,7 +37,6 @@ import scala.language.postfixOps
 import scala.reflect.ClassTag
 
 // TODO: Abstract away the log-softmax/scoring function.
-// TODO: Abstract away the length penalty function.
 
 /** Recurrent Neural Network (RNN) that uses beam search to find the highest scoring sequence (i.e., perform decoding).
   *
@@ -53,45 +52,42 @@ import scala.reflect.ClassTag
   *
   * // TODO: Add example.
   *
-  * @param  cell                RNN cell to use for decoding.
-  * @param  initialCellState    Initial RNN cell state to use for starting the decoding process.
-  * @param  embeddingFn         Function that takes an `INT32` vector of IDs and returns the corresponding embedded
-  *                             values that will be passed to the decoder input.
-  * @param  beginTokens         `INT32` vector with length equal to the batch size, which contains the begin-of-sequence
-  *                             token IDs.
-  * @param  endToken            `INT32` scalar containing the end-of-sequence token ID (i.e., token ID which marks the
-  *                             end of decoding).
-  * @param  beamWidth           Beam width to use for the beam search while decoding.
-  * @param  lengthPenaltyWeight Length penalty weight (disabled if set to `0.0f`). The length penalty is computed as
-  *                             described in [Google's Neural Machine Translation System: Bridging the Gap between Human and Machine Translation](https://arxiv.org/abs/1609.08144).
-  *                             It is equal to `((5 + sequenceLengths) / 6) ^ lengthPenaltyWeight`, where all
-  *                             operations are performed element-wise.
-  * @param  outputLayer         Output layer to use that is applied at the outputs of the provided RNN cell before
-  *                             returning them.
-  * @param  name                Name prefix used for all created ops.
+  * @param  cell             RNN cell to use for decoding.
+  * @param  initialCellState Initial RNN cell state to use for starting the decoding process.
+  * @param  embeddingFn      Function that takes an `INT32` vector of IDs and returns the corresponding embedded values
+  *                          that will be passed to the decoder input.
+  * @param  beginTokens      `INT32` vector with length equal to the batch size, which contains the begin-of-sequence
+  *                          token IDs.
+  * @param  endToken         `INT32` scalar containing the end-of-sequence token ID (i.e., token ID which marks the end
+  *                          of decoding).
+  * @param  beamWidth        Beam width to use for the beam search while decoding.
+  * @param  lengthPenalty    Length penalty method.
+  * @param  outputLayer      Output layer to use that is applied at the outputs of the provided RNN cell before
+  *                          returning them.
+  * @param  name             Name prefix used for all created ops.
   *
   * @author Emmanouil Antonios Platanios
   */
-class BeamSearchRNNDecoder[S, SS](
+class BeamSearchDecoder[S, SS](
     override val cell: RNNCell[Output, Shape, S, SS],
     val initialCellState: S,
     val embeddingFn: (Output) => Output,
     val beginTokens: Output,
     val endToken: Output,
     val beamWidth: Int,
-    val lengthPenaltyWeight: Float = 0.0f,
+    val lengthPenalty: LengthPenalty = NoPenalty,
     val outputLayer: Output => Output = (o: Output) => o,
     override val name: String = "BeamSearchRNNDecoder"
 )(implicit
     evOutput: WhileLoopVariable.Aux[Output, Shape],
     evS: WhileLoopVariable.Aux[S, SS],
-    evOutputSupported: BeamSearchRNNDecoder.Supported.Aux[Output, Shape],
-    evSSupported: BeamSearchRNNDecoder.Supported.Aux[S, SS]
-) extends RNNDecoder[
+    evOutputSupported: BeamSearchDecoder.Supported.Aux[Output, Shape],
+    evSSupported: BeamSearchDecoder.Supported.Aux[S, SS]
+) extends Decoder[
     Output, Shape, S, SS,
-    BeamSearchRNNDecoder.Output, (Shape, Shape, Shape),
-    BeamSearchRNNDecoder.State[S, SS], (SS, Shape, Shape, Shape),
-    BeamSearchRNNDecoder.FinalOutput, BeamSearchRNNDecoder.State[S, SS]](cell, name) {
+    BeamSearchDecoder.Output, (Shape, Shape, Shape),
+    BeamSearchDecoder.State[S, SS], (SS, Shape, Shape, Shape),
+    BeamSearchDecoder.FinalOutput, BeamSearchDecoder.State[S, SS]](cell, name) {
   if (evS.outputs(initialCellState).exists(_.rank == -1))
     throw InvalidArgumentException("All tensors in the state need to have known rank for the beam search decoder.")
 
@@ -133,13 +129,13 @@ class BeamSearchRNNDecoder[S, SS](
     */
   override val tracksOwnFinished: Boolean = true
 
-  override def zeroOutput(): BeamSearchRNNDecoder.Output = {
+  override def zeroOutput(): BeamSearchDecoder.Output = {
     // We assume the data type of the cell is the same as the initial cell state's first component tensor data type.
     val dataType = evS.outputs(initialCellState).head.dataType
     val zScores = evOutput.zero(batchSize, dataType, Shape(beamWidth), "ZeroScores")
     val zPredictedIDs = evOutput.zero(batchSize, INT32, Shape(beamWidth), "ZeroPredictedIDs")
     val zParentIDs = evOutput.zero(batchSize, INT32, Shape(beamWidth), "ZeroParentIDs")
-    BeamSearchRNNDecoder.Output(zScores, zPredictedIDs, zParentIDs)
+    BeamSearchDecoder.Output(zScores, zPredictedIDs, zParentIDs)
   }
 
   /** This method is called before any decoding iterations. It computes the initial input values and the initial state.
@@ -147,10 +143,10 @@ class BeamSearchRNNDecoder[S, SS](
     * @return Tuple containing: (i) a scalar `BOOLEAN` tensor specifying whether initialization has finished,
     *         (ii) the next input, and (iii) the initial decoder state.
     */
-  override def initialize(): (Output, Output, BeamSearchRNNDecoder.State[S, SS]) = {
+  override def initialize(): (Output, Output, BeamSearchDecoder.State[S, SS]) = {
     Op.createWithNameScope(s"$name/Initialize", Set(batchSize.op)) {
       val finished = Basic.zeros(BOOLEAN, Basic.stack(Seq(batchSize, beamWidth)))
-      val initialState = BeamSearchRNNDecoder.State[S, SS](
+      val initialState = BeamSearchDecoder.State[S, SS](
         rnnState = processedInitialCellState,
         logProbabilities = Basic.zeros(
           evS.outputs(processedInitialCellState).head.dataType, Basic.stack(Seq(batchSize, beamWidth))),
@@ -166,8 +162,8 @@ class BeamSearchRNNDecoder[S, SS](
     *         and (iv) a scalar `BOOLEAN` tensor specifying whether decoding has finished.
     */
   override def next(
-      time: Output, input: Output, state: BeamSearchRNNDecoder.State[S, SS]
-  ): (BeamSearchRNNDecoder.Output, BeamSearchRNNDecoder.State[S, SS], Output, Output) = {
+      time: Output, input: Output, state: BeamSearchDecoder.State[S, SS]
+  ): (BeamSearchDecoder.Output, BeamSearchDecoder.State[S, SS], Output, Output) = {
     Op.createWithNameScope(s"$name/Next") {
       val mergedInput = evOutputSupported.mergeBatchBeams(input, input.shape(2 ::), batchSize, beamWidth)
       val mergedCellState = evSSupported.maybeMergeBatchBeams(state.rnnState, cell.stateShape, batchSize, beamWidth)
@@ -185,7 +181,7 @@ class BeamSearchRNNDecoder[S, SS](
       val previouslyFinished = state.finished
 
       // Calculate the total log probabilities for the new hypotheses (final shape = [batchSize, beamWidth, vocabSize])
-      val stepLogProbabilities = BeamSearchRNNDecoder.maskLogProbabilities(
+      val stepLogProbabilities = BeamSearchDecoder.maskLogProbabilities(
         NN.logSoftmax(nextTupleOutput), endToken, previouslyFinished)
       val totalLogProbabilities = state.logProbabilities.expandDims(2) + stepLogProbabilities
 
@@ -204,7 +200,7 @@ class BeamSearchRNNDecoder[S, SS](
       val newPredictionLengths = Math.add(lengthsToAdd * addMask.expandDims(2), predictionLengths.expandDims(2))
 
       // Calculate the scores for each beam
-      val scores = BeamSearchRNNDecoder.scores(totalLogProbabilities, newPredictionLengths, lengthPenaltyWeight)
+      val scores = lengthPenalty(totalLogProbabilities, newPredictionLengths)
 
       // During the first time step we only consider the initial beam
       val scoresShape = Basic.shape(scores)
@@ -252,9 +248,9 @@ class BeamSearchRNNDecoder[S, SS](
         nextParentIDs, nextTupleState, batchSize, beamWidth, Seq(batchSize * beamWidth, -1),
         name = "NextBeamStateGather")
 
-      val nextState = BeamSearchRNNDecoder.State[S, SS](
+      val nextState = BeamSearchDecoder.State[S, SS](
         gatheredNextTupleState, nextBeamLogProbabilities, nextPredictionLengths, nextFinished)
-      val output = BeamSearchRNNDecoder.Output(nextBeamScores, nextPredictedIDs, nextParentIDs)
+      val output = BeamSearchDecoder.Output(nextBeamScores, nextPredictedIDs, nextParentIDs)
 
       val nextInput = ControlFlow.cond(
         nextFinished.all(),
@@ -272,22 +268,22 @@ class BeamSearchRNNDecoder[S, SS](
     * @return Finalized output and state to return from the decoding process.
     */
   override def finalize(
-      output: BeamSearchRNNDecoder.Output,
-      state: BeamSearchRNNDecoder.State[S, SS],
+      output: BeamSearchDecoder.Output,
+      state: BeamSearchDecoder.State[S, SS],
       sequenceLengths: Output
-  ): (BeamSearchRNNDecoder.FinalOutput, BeamSearchRNNDecoder.State[S, SS], Output) = {
+  ): (BeamSearchDecoder.FinalOutput, BeamSearchDecoder.State[S, SS], Output) = {
     // Get the maximum sequence length across all beams for each batch
     val maxSequenceLengths = state.sequenceLengths.max(Tensor(1)).cast(INT32)
-    val predictedIDs = BeamSearchRNNDecoder.gatherTree(
+    val predictedIDs = BeamSearchDecoder.gatherTree(
       output.predictedIDs, output.parentIDs, maxSequenceLengths, endToken)
-    val finalOutput = BeamSearchRNNDecoder.FinalOutput(predictedIDs, output)
+    val finalOutput = BeamSearchDecoder.FinalOutput(predictedIDs, output)
     val finalState = state.copy[S, SS](
       rnnState = evSSupported.maybeSortTensorArrayBeams(state.rnnState, state.sequenceLengths, output.parentIDs))
     (finalOutput, finalState, finalState.sequenceLengths)
   }
 }
 
-object BeamSearchRNNDecoder {
+object BeamSearchDecoder {
   def apply[S, SS](
       cell: RNNCell[ops.Output, Shape, S, SS],
       initialCellState: S,
@@ -295,17 +291,17 @@ object BeamSearchRNNDecoder {
       beginTokens: ops.Output,
       endToken: ops.Output,
       beamWidth: Int,
-      lengthPenaltyWeight: Float = 0.0f,
+      lengthPenalty: LengthPenalty = NoPenalty,
       outputLayer: ops.Output => ops.Output = (o: ops.Output) => o,
       name: String = "BeamSearchRNNDecoder"
   )(implicit
       evOutput: WhileLoopVariable.Aux[ops.Output, Shape],
       evS: WhileLoopVariable.Aux[S, SS],
-      evOutputSupported: BeamSearchRNNDecoder.Supported.Aux[ops.Output, Shape],
-      evSSupported: BeamSearchRNNDecoder.Supported.Aux[S, SS]
-  ): BeamSearchRNNDecoder[S, SS] = {
-    new BeamSearchRNNDecoder[S, SS](
-      cell, initialCellState, embeddingFn, beginTokens, endToken, beamWidth, lengthPenaltyWeight, outputLayer, name)
+      evOutputSupported: BeamSearchDecoder.Supported.Aux[ops.Output, Shape],
+      evSSupported: BeamSearchDecoder.Supported.Aux[S, SS]
+  ): BeamSearchDecoder[S, SS] = {
+    new BeamSearchDecoder[S, SS](
+      cell, initialCellState, embeddingFn, beginTokens, endToken, beamWidth, lengthPenalty, outputLayer, name)
   }
 
   case class Output(scores: ops.Output, predictedIDs: ops.Output, parentIDs: ops.Output)
@@ -453,28 +449,6 @@ object BeamSearchRNNDecoder {
     }
   }
 
-  /** Calculates scores for the beam search hypotheses.
-    *
-    * @param  logProbabilities    Log probability for each hypothesis, which is a tensor with shape
-    *                             `[batchSize, beamWidth, vocabSize]`.
-    * @param  sequenceLengths     Sequence length for each hypothesis.
-    * @param  lengthPenaltyWeight Length penalty weight (disabled if set to `0.0f`). The length penalty is computed as
-    *                             described in [Google's Neural Machine Translation System: Bridging the Gap between Human and Machine Translation](https://arxiv.org/abs/1609.08144).
-    *                             It is equal to `((5 + sequenceLengths) / 6) ^ lengthPenaltyWeight`, where all
-    *                             operations are performed element-wise.
-    * @return Beam search scores which are equal to `logProbabilities` divided by the length penalty.
-    */
-  private[BeamSearchRNNDecoder] def scores(
-      logProbabilities: ops.Output, sequenceLengths: ops.Output, lengthPenaltyWeight: Float
-  ): ops.Output = {
-    if (lengthPenaltyWeight == 0.0f) {
-      logProbabilities
-    } else {
-      val penaltyFactor = Basic.constant(lengthPenaltyWeight, name = "PenaltyFactor")
-      logProbabilities / Math.divide((5.0f + sequenceLengths.cast(FLOAT32)) ^ penaltyFactor, 6.0f ^ penaltyFactor)
-    }
-  }
-
   /** Masks log probabilities. The result is that finished beams allocate all probability mass to `endToken` and
     * unfinished beams remain unchanged.
     *
@@ -486,7 +460,7 @@ object BeamSearchRNNDecoder {
     * @return Tensor of shape `[batchSize, beamWidth, vocabSize]`, where unfinished beams stay unchanged and finished
     *         beams are replaced with a tensor with all probability mass allocated to `endToken`.
     */
-  private[BeamSearchRNNDecoder] def maskLogProbabilities(
+  private[BeamSearchDecoder] def maskLogProbabilities(
       logProbabilities: ops.Output, endToken: ops.Output, finished: ops.Output
   ): ops.Output = {
     val vocabSize = Basic.shape(logProbabilities)(2)
@@ -516,7 +490,7 @@ object BeamSearchRNNDecoder {
     * @param  name               Name for the created op.
     * @return Created op output.
     */
-  private[BeamSearchRNNDecoder] def gatherTree(
+  private[BeamSearchDecoder] def gatherTree(
       stepIDs: ops.Output,
       parentIDs: ops.Output,
       maxSequenceLengths: ops.Output,
@@ -841,7 +815,7 @@ object BeamSearchRNNDecoder {
         sortedBeamIDs = Math.select(mask.cast(BOOLEAN), sortedBeamIDs, beamIDs)
 
         // Gather from each tensor in `value` according to `sortedBeamIDs`
-        val evOutput = implicitly[BeamSearchRNNDecoder.Supported.Aux[ops.Output, Shape]]
+        val evOutput = implicitly[BeamSearchDecoder.Supported.Aux[ops.Output, Shape]]
         val size = value.size()
         val collector = TensorArray.create(size, value.dataType, dynamicSize = false)
         val collected = ControlFlow.whileLoop(

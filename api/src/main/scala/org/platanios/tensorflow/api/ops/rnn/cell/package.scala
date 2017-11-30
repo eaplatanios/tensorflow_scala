@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.ops.rnn
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
-import org.platanios.tensorflow.api.ops.seq2seq.decoders.BeamSearchRNNDecoder
+import org.platanios.tensorflow.api.ops.seq2seq.decoders.BeamSearchDecoder
 import org.platanios.tensorflow.api.types.DataType
 
 /**
@@ -70,8 +70,8 @@ package object cell {
     }
 
     implicit def lstmStateBeamSearchRNNDecoderSupported(implicit
-        evOutput: BeamSearchRNNDecoder.Supported.Aux[Output, Shape]
-    ): BeamSearchRNNDecoder.Supported.Aux[LSTMState, (Shape, Shape)] = new BeamSearchRNNDecoder.Supported[LSTMState] {
+        evOutput: BeamSearchDecoder.Supported.Aux[Output, Shape]
+    ): BeamSearchDecoder.Supported.Aux[LSTMState, (Shape, Shape)] = new BeamSearchDecoder.Supported[LSTMState] {
       override type ShapeType = (Shape, Shape)
 
       override def tileBatch(value: LSTMState, multiplier: Int): LSTMState = {
