@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.ops.seq2seq.decoders
 
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.ops.{Basic, Math, Output}
+import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output}
 import org.platanios.tensorflow.api.types.FLOAT32
 
 /** Length penalty function to be used while decoding. */
@@ -29,19 +29,39 @@ case object NoPenalty extends LengthPenalty {
   override def apply(scores: Output, sequenceLengths: Output): Output = scores
 }
 
-/** Google length penalty function described in
-  * [Google's Neural Machine Translation System: Bridging the Gap between Human and Machine Translation](https://arxiv.org/abs/1609.08144.)
-  * The penalty is equal to `((5 + sequenceLengths) / 6) ^ weight`, where all operations are performed element-wise.
+/** Exponential length penalty function. The penalty is equal to `sequenceLengths ^ alpha`, where all operations a re
+  * performed element-wise.
   *
-  * @param  weight Length penalty weight (disabled if set to `0.0f`).
+  * @param  alpha Length penalty weight (disabled if set to `0.0f`).
   */
-case class GooglePenalty(weight: Float) extends LengthPenalty {
+case class ExponentialPenalty(alpha: Float) extends LengthPenalty {
   override def apply(scores: Output, sequenceLengths: Output): Output = {
-    if (weight == 0.0f) {
+    if (alpha == 0.0f) {
       scores
     } else {
-      val penaltyFactor = Basic.constant(weight, name = "PenaltyFactor")
-      scores / Math.divide((5.0f + sequenceLengths.cast(FLOAT32)) ^ penaltyFactor, 6.0f ^ penaltyFactor)
+      Op.createWithNameScope("LengthPenalty") {
+        val penaltyFactor = Basic.constant(alpha, name = "PenaltyFactor")
+        scores / (sequenceLengths.cast(FLOAT32) ^ penaltyFactor)
+      }
+    }
+  }
+}
+
+/** Google length penalty function described in
+  * [Google's Neural Machine Translation System: Bridging the Gap between Human and Machine Translation](https://arxiv.org/abs/1609.08144.)
+  * The penalty is equal to `((5 + sequenceLengths) / 6) ^ alpha`, where all operations are performed element-wise.
+  *
+  * @param  alpha Length penalty weight (disabled if set to `0.0f`).
+  */
+case class GooglePenalty(alpha: Float) extends LengthPenalty {
+  override def apply(scores: Output, sequenceLengths: Output): Output = {
+    if (alpha == 0.0f) {
+      scores
+    } else {
+      Op.createWithNameScope("LengthPenalty") {
+        val penaltyFactor = Basic.constant(alpha, name = "PenaltyFactor")
+        scores / Math.divide((5.0f + sequenceLengths.cast(FLOAT32)) ^ penaltyFactor, 6.0f ^ penaltyFactor)
+      }
     }
   }
 }
