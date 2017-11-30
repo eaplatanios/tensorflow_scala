@@ -30,29 +30,36 @@ import scala.language.postfixOps
 
 /** Basic sampling Recurrent Neural Network (RNN) decoder.
   *
+  * @param  cell             RNN cell to use for decoding.
+  * @param  initialCellState Initial RNN cell state to use for starting the decoding process.
+  * @param  helper           Basic RNN decoder helper to use.
+  * @param  outputLayer      Output layer to use that is applied at the outputs of the provided RNN cell before
+  *                          returning them.
+  * @param  name             Name prefix used for all created ops.
+  *
   * @author Emmanouil Antonios Platanios
   */
 class BasicRNNDecoder[O, OS, S, SS](
     override val cell: RNNCell[O, OS, S, SS],
-    override val initialCellState: S,
+    val initialCellState: S,
     val helper: BasicRNNDecoder.Helper[O, S],
     val outputLayer: O => O = (o: O) => o,
     override val name: String = "BasicRNNDecoder"
 )(implicit
     evO: WhileLoopVariable.Aux[O, OS],
     evS: WhileLoopVariable.Aux[S, SS]
-) extends RNNDecoder[O, OS, S, SS, BasicRNNDecoder.Output[O, OS], (OS, OS), S, SS](
-  cell,
-  initialCellState,
-  name
-) {
+) extends RNNDecoder[
+    O, OS, S, SS,
+    BasicRNNDecoder.Output[O, OS], (OS, OS), S, SS,
+    BasicRNNDecoder.Output[O, OS], S](cell, name) {
   /** Scalar `INT32` tensor representing the batch size of the input values. */
   override val batchSize: Output = helper.batchSize
 
-  override def zeroOutput(dataType: DataType): BasicRNNDecoder.Output[O, OS] = {
-    val zeroOutput = evO.zero(batchSize, dataType, cell.outputShape, "ZeroOutput")
-    val zeroSample = helper.zeroSample(batchSize, "ZeroSample")
-    BasicRNNDecoder.Output(outputLayer(zeroOutput), zeroSample)
+  override def zeroOutput(): BasicRNNDecoder.Output[O, OS] = {
+    val dataType = evS.outputs(initialCellState).head.dataType
+    val zOutput = evO.zero(batchSize, dataType, cell.outputShape, "ZeroOutput")
+    val zSample = helper.zeroSample(batchSize, "ZeroSample")
+    BasicRNNDecoder.Output(outputLayer(zOutput), zSample)
   }
 
   /** This method is called before any decoding iterations. It computes the initial input values and the initial state.
@@ -73,13 +80,27 @@ class BasicRNNDecoder[O, OS, S, SS](
   override def next(time: Output, input: O, state: S): (BasicRNNDecoder.Output[O, OS], S, O, Output) = {
     val inputs = evO.outputs(input)
     val states = evS.outputs(state)
-    Op.createWithNameScope(s"$name/Step", Set(time.op) ++ inputs.map(_.op).toSet ++ states.map(_.op).toSet) {
+    Op.createWithNameScope(s"$name/Next", Set(time.op) ++ inputs.map(_.op).toSet ++ states.map(_.op).toSet) {
       val nextTuple = cell(Tuple(input, state))
       val nextTupleOutput = outputLayer(nextTuple.output)
       val sample = helper.sample(time, nextTupleOutput, nextTuple.state)
       val (finished, nextInputs, nextState) = helper.next(time, nextTupleOutput, nextTuple.state, sample)
       (BasicRNNDecoder.Output(nextTupleOutput, sample), nextState, nextInputs, finished)
     }
+  }
+
+  /** Finalizes the output of the decoding process.
+    *
+    * @param  output Final output after decoding.
+    * @param  state  Final state after decoding.
+    * @return Finalized output and state to return from the decoding process.
+    */
+  override def finalize(
+      output: BasicRNNDecoder.Output[O, OS],
+      state: S,
+      sequenceLengths: Output
+  ): (BasicRNNDecoder.Output[O, OS], S, Output) = {
+    (output, state, sequenceLengths)
   }
 }
 
@@ -242,8 +263,10 @@ object BasicRNNDecoder {
     *
     * @param  embeddingFn Function that takes an `INT32` vector of IDs and returns the corresponding embedded values
     *                     that will be passed to the decoder input.
-    * @param  beginTokens `INT32` vector with length equal to the batch size, which contains the being token IDs.
-    * @param  endToken    `INT32` scalar containing the end token ID (i.e., token ID which marks the end of decoding).
+    * @param  beginTokens `INT32` vector with length equal to the batch size, which contains the begin-of-sequence
+    *                      token IDs.
+    * @param  endToken    `INT32` scalar containing the end-of-sequence token ID (i.e., token ID which marks the end of
+    *                     decoding).
     */
   case class GreedyEmbeddingHelper[S](
       embeddingFn: (ops.Output) => ops.Output,
@@ -256,7 +279,9 @@ object BasicRNNDecoder {
     if (endToken.rank != 0)
       throw InvalidShapeException(s"'endToken' (shape = ${endToken.shape}) must have rank 0.")
 
-    private[this] val beginInputs: ops.Output = embeddingFn(beginTokens)
+    private[this] val beginInputs: ops.Output = Op.createWithNameScope(name, Set(beginTokens.op)) {
+      embeddingFn(beginTokens)
+    }
 
     /** Scalar `INT32` tensor representing the batch size of a tensor returned by `sample()`. */
     override val batchSize: ops.Output = Op.createWithNameScope(name, Set(beginTokens.op)) {
@@ -264,7 +289,7 @@ object BasicRNNDecoder {
     }
 
     /** Returns a zero-valued sample for this helper. */
-    def zeroSample(batchSize: ops.Output, name: String = "ZeroSample"): ops.Output = {
+    def zeroSample(batchSize: ops.Output, name: String = "ZeroSample"): ops.Output = Op.createWithNameScope(name) {
       Basic.fill(INT32, batchSize.expandDims(0))(0, name)
     }
 

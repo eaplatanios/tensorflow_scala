@@ -18,6 +18,7 @@ package org.platanios.tensorflow.api.ops.rnn
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
+import org.platanios.tensorflow.api.ops.rnn.decoder.BeamSearchRNNDecoder
 import org.platanios.tensorflow.api.types.DataType
 
 /**
@@ -65,6 +66,76 @@ package object cell {
         override def segmentShapes(value: LSTMState, shapes: Seq[Shape]): ((Shape, Shape), Seq[Shape]) = {
           ((shapes(0), shapes(1)), shapes.drop(2))
         }
+      }
+    }
+
+    implicit def lstmStateBeamSearchRNNDecoderSupported(implicit
+        evOutput: BeamSearchRNNDecoder.Supported.Aux[Output, Shape]
+    ): BeamSearchRNNDecoder.Supported.Aux[LSTMState, (Shape, Shape)] = new BeamSearchRNNDecoder.Supported[LSTMState] {
+      override type ShapeType = (Shape, Shape)
+
+      override def tileBatch(value: LSTMState, multiplier: Int): LSTMState = {
+        LSTMState(
+          evOutput.tileBatch(value.c, multiplier),
+          evOutput.tileBatch(value.m, multiplier))
+      }
+
+      override def maybeSplitBatchBeams(
+          value: LSTMState, shape: (Shape, Shape), batchSize: Output, beamWidth: Int
+      ): LSTMState = {
+        LSTMState(
+          evOutput.maybeSplitBatchBeams(value.c, shape._1, batchSize, beamWidth),
+          evOutput.maybeSplitBatchBeams(value.m, shape._2, batchSize, beamWidth))
+      }
+
+      override def splitBatchBeams(
+          value: LSTMState, shape: (Shape, Shape), batchSize: Output, beamWidth: Int
+      ): LSTMState = {
+        LSTMState(
+          evOutput.splitBatchBeams(value.c, shape._1, batchSize, beamWidth),
+          evOutput.splitBatchBeams(value.m, shape._2, batchSize, beamWidth))
+      }
+
+      override def maybeMergeBatchBeams(
+          value: LSTMState, shape: (Shape, Shape), batchSize: Output, beamWidth: Int
+      ): LSTMState = {
+        LSTMState(
+          evOutput.maybeMergeBatchBeams(value.c, shape._1, batchSize, beamWidth),
+          evOutput.maybeMergeBatchBeams(value.m, shape._2, batchSize, beamWidth))
+      }
+
+      override def mergeBatchBeams(
+          value: LSTMState, shape: (Shape, Shape), batchSize: Output, beamWidth: Int
+      ): LSTMState = {
+        LSTMState(
+          evOutput.mergeBatchBeams(value.c, shape._1, batchSize, beamWidth),
+          evOutput.mergeBatchBeams(value.m, shape._2, batchSize, beamWidth))
+      }
+
+      override def maybeGather(
+          gatherIndices: Output, gatherFrom: LSTMState, batchSize: Output, rangeSize: Output, gatherShape: Seq[Output],
+          name: String
+      ): LSTMState = Op.createWithNameScope(name) {
+        LSTMState(
+          evOutput.maybeGather(gatherIndices, gatherFrom.c, batchSize, rangeSize, gatherShape),
+          evOutput.maybeGather(gatherIndices, gatherFrom.m, batchSize, rangeSize, gatherShape))
+      }
+
+      override def gather(
+          gatherIndices: Output, gatherFrom: LSTMState, batchSize: Output, rangeSize: Output, gatherShape: Seq[Output],
+          name: String
+      ): LSTMState = Op.createWithNameScope(name) {
+        LSTMState(
+          evOutput.gather(gatherIndices, gatherFrom.c, batchSize, rangeSize, gatherShape),
+          evOutput.gather(gatherIndices, gatherFrom.m, batchSize, rangeSize, gatherShape))
+      }
+
+      override def maybeSortTensorArrayBeams(
+          value: LSTMState, sequenceLengths: Output, parentIDs: Output
+      ): LSTMState = {
+        LSTMState(
+          evOutput.maybeSortTensorArrayBeams(value.c, sequenceLengths, parentIDs),
+          evOutput.maybeSortTensorArrayBeams(value.m, sequenceLengths, parentIDs))
       }
     }
   }
