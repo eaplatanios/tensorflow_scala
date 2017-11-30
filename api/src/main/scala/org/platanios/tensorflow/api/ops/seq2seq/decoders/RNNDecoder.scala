@@ -13,7 +13,7 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.ops.rnn.decoder
+package org.platanios.tensorflow.api.ops.seq2seq.decoders
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
@@ -23,7 +23,7 @@ import org.platanios.tensorflow.api.ops.rnn.RNN
 import org.platanios.tensorflow.api.ops.rnn.cell.RNNCell
 import org.platanios.tensorflow.api.ops.variables.VariableScope
 import org.platanios.tensorflow.api.ops.{Basic, Math, Op, OpSpecification, Output, TensorArray}
-import org.platanios.tensorflow.api.types.{DataType, INT32}
+import org.platanios.tensorflow.api.types.INT32
 
 import scala.language.postfixOps
 

@@ -13,7 +13,7 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.ops.rnn.decoder
+package org.platanios.tensorflow.api.ops.seq2seq.decoders
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException

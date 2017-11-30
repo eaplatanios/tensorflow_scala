@@ -18,8 +18,7 @@ package org.platanios.tensorflow.api.ops
 /**
   * @author Emmanouil Antonios Platanios
   */
-package object rnn {
+package object seq2seq {
   private[ops] trait API
-      extends cell.API
-          with RNN
+      extends decoders.API
 }

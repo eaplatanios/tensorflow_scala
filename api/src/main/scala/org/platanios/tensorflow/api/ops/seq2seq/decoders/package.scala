@@ -13,19 +13,19 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.ops.rnn
+package org.platanios.tensorflow.api.ops.seq2seq
 
 /**
   * @author Emmanouil Antonios Platanios
   */
-package object decoder {
-  private[rnn] trait API {
-    type RNNDecoder[O, OS, S, SS, DO, DOS, DS, DSS, DFO, DFS] = decoder.RNNDecoder[O, OS, S, SS, DO, DOS, DS, DSS, DFO, DFS]
-    type BasicRNNDecoder[O, OS, S, SS] = decoder.BasicRNNDecoder[O, OS, S, SS]
-    type BeamSearchRNNDecoder[S, SS] = decoder.BeamSearchRNNDecoder[S, SS]
+package object decoders {
+  private[seq2seq] trait API {
+    type RNNDecoder[O, OS, S, SS, DO, DOS, DS, DSS, DFO, DFS] = org.platanios.tensorflow.api.ops.seq2seq.decoders.RNNDecoder[O, OS, S, SS, DO, DOS, DS, DSS, DFO, DFS]
+    type BasicRNNDecoder[O, OS, S, SS] = org.platanios.tensorflow.api.ops.seq2seq.decoders.BasicRNNDecoder[O, OS, S, SS]
+    type BeamSearchRNNDecoder[S, SS] = org.platanios.tensorflow.api.ops.seq2seq.decoders.BeamSearchRNNDecoder[S, SS]
 
-    val BasicRNNDecoder: decoder.BasicRNNDecoder.type = decoder.BasicRNNDecoder
-    val BeamSearchRNNDecoder: decoder.BeamSearchRNNDecoder.type = decoder.BeamSearchRNNDecoder
+    val BasicRNNDecoder     : org.platanios.tensorflow.api.ops.seq2seq.decoders.BasicRNNDecoder.type      = decoders.BasicRNNDecoder
+    val BeamSearchRNNDecoder: org.platanios.tensorflow.api.ops.seq2seq.decoders.BeamSearchRNNDecoder.type = decoders.BeamSearchRNNDecoder
 
     def beamSearchRNNDecoderTileBatch[T: BeamSearchRNNDecoder.Supported](value: T, multiplier: Int): T = {
       implicitly[BeamSearchRNNDecoder.Supported[T]].tileBatch(value, multiplier)
