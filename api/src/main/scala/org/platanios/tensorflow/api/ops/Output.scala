@@ -135,7 +135,7 @@ private[ops] object OutputOps {
   *
   * @author Emmanouil Antonios Platanios
   */
-final case class Output private(op: Op, index: Int) extends OutputLike {
+final case class Output private(op: Op, index: Int) extends OutputLike with Symbol {
   /** Graph where the op belongs. */
   override def graph: Graph = op.graph
 
@@ -458,7 +458,7 @@ object Output {
   * @author Emmanouil Antonios Platanios
   */
 final case class OutputIndexedSlices private (indices: Output, values: Output, denseShape: Output = null)
-    extends OutputLike {
+    extends OutputLike with Symbol {
   /** Graph that contains `values`, `indices`, and `denseShape`. */
   override def graph: Graph = getGraphFromInputs(Set(values, indices, denseShape))
 
@@ -578,7 +578,7 @@ final case class OutputIndexedSlices private (indices: Output, values: Output, d
   *
   * @author Emmanouil Antonios Platanios
   */
-final case class SparseOutput(indices: Output, values: Output, denseShape: Output) extends OutputLike {
+final case class SparseOutput(indices: Output, values: Output, denseShape: Output) extends OutputLike with Symbol {
   require(indices.dataType == INT32 || indices.dataType == INT64,
           s"Indices cannot have '${indices.dataType}' data type. They have to be 'INT32' or 'INT64'.")
   require(denseShape.dataType == INT32 || denseShape.dataType == INT64,

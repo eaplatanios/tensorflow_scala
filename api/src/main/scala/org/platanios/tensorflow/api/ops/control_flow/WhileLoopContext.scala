@@ -815,6 +815,10 @@ trait WhileLoopVariable[T] {
   def segmentOutputs(output: T, values: Seq[Output]): (T, Seq[Output])
   def fromShapes(output: T, values: Seq[Shape]): ShapeType = segmentShapes(output, values)._1
   def segmentShapes(output: T, values: Seq[Shape]): (ShapeType, Seq[Shape])
+
+  // TODO: These "map" function involve some runtime checking for the "Symbol" type that would be good to work around.
+  def map(value: T, mapFn: (Symbol) => Symbol): T
+  def mapWithShape(value: T, shape: ShapeType, mapFn: (Symbol, Shape) => Symbol): T
 }
 
 object WhileLoopVariable {
@@ -845,6 +849,14 @@ object WhileLoopVariable {
 
     override def segmentShapes(output: Output, values: Seq[Shape]): (Shape, Seq[Shape]) = {
       (values.head, values.tail)
+    }
+
+    override def map(value: Output, mapFn: (Symbol) => Symbol): Output = {
+      mapFn(value).asInstanceOf[Output]
+    }
+
+    override def mapWithShape(value: Output, shape: Shape, mapFn: (Symbol, Shape) => Symbol): Output = {
+      mapFn(value, shape).asInstanceOf[Output]
     }
   }
 
@@ -879,6 +891,16 @@ object WhileLoopVariable {
       override def segmentShapes(output: OutputIndexedSlices, values: Seq[Shape]): (Shape, Seq[Shape]) = {
         (values.head, values.tail)
       }
+
+      override def map(value: OutputIndexedSlices, mapFn: (Symbol) => Symbol): OutputIndexedSlices = {
+        mapFn(value).asInstanceOf[OutputIndexedSlices]
+      }
+
+      override def mapWithShape(
+          value: OutputIndexedSlices, shape: Shape, mapFn: (Symbol, Shape) => Symbol
+      ): OutputIndexedSlices = {
+        mapFn(value, shape).asInstanceOf[OutputIndexedSlices]
+      }
     }
   }
 
@@ -908,6 +930,14 @@ object WhileLoopVariable {
       override def segmentShapes(output: SparseOutput, values: Seq[Shape]): (Shape, Seq[Shape]) = {
         (values.head, values.tail)
       }
+
+      override def map(value: SparseOutput, mapFn: (Symbol) => Symbol): SparseOutput = {
+        mapFn(value).asInstanceOf[SparseOutput]
+      }
+
+      override def mapWithShape(value: SparseOutput, shape: Shape, mapFn: (Symbol, Shape) => Symbol): SparseOutput = {
+        mapFn(value, shape).asInstanceOf[SparseOutput]
+      }
     }
   }
 
@@ -928,6 +958,14 @@ object WhileLoopVariable {
 
     override def segmentShapes(output: TensorArray, values: Seq[Shape]): (Shape, Seq[Shape]) = {
       (values.head, values.tail)
+    }
+
+    override def map(value: TensorArray, mapFn: (Symbol) => Symbol): TensorArray = {
+      mapFn(value).asInstanceOf[TensorArray]
+    }
+
+    override def mapWithShape(value: TensorArray, shape: Shape, mapFn: (Symbol, Shape) => Symbol): TensorArray = {
+      mapFn(value, shape).asInstanceOf[TensorArray]
     }
   }
 
@@ -955,6 +993,14 @@ object WhileLoopVariable {
         val n = size(output)
         (output.zip(Collections.segment(values.take(n), output.map(ev.size).toSeq))
             .map(f => ev.fromShapes(f._1, f._2)), values.drop(n))
+      }
+
+      override def map(value: Array[T], mapFn: (Symbol) => Symbol): Array[T] = {
+        value.map(ev.map(_, mapFn))
+      }
+
+      override def mapWithShape(value: Array[T], shape: Array[TS], mapFn: (Symbol, Shape) => Symbol): Array[T] = {
+        value.zip(shape).map(p => ev.mapWithShape(p._1, p._2, mapFn))
       }
     }
   }
@@ -988,6 +1034,14 @@ object WhileLoopVariable {
         val n = size(output)
         (output.zip(Collections.segment(values.take(n), output.map(ev.size).toSeq))
             .map(f => ev.fromShapes(f._1, f._2)).to[CC](cbfTTS), values.drop(n))
+      }
+
+      override def map(value: CC[T], mapFn: (Symbol) => Symbol): CC[T] = {
+        value.map(ev.map(_, mapFn))
+      }
+
+      override def mapWithShape(value: CC[T], shape: CC[TS], mapFn: (Symbol, Shape) => Symbol): CC[T] = {
+        value.zip(shape.toSeq).map(p => ev.mapWithShape(p._1, p._2, mapFn)).to[CC](cbfTT)
       }
     }
   }
@@ -1023,6 +1077,14 @@ object WhileLoopVariable {
               .zip(Collections.segment(values.take(n), output.values.map(ev.size).toSeq))
               .map(f => ev.fromShapes(f._1, f._2))).toMap, values.drop(n))
       }
+
+      override def map(value: Map[MK, T], mapFn: (Symbol) => Symbol): Map[MK, T] = {
+        value.mapValues(ev.map(_, mapFn))
+      }
+
+      override def mapWithShape(value: Map[MK, T], shape: Map[MK, TS], mapFn: (Symbol, Shape) => Symbol): Map[MK, T] = {
+        value.map(p => p._1 -> ev.mapWithShape(p._2, shape(p._1), mapFn))
+      }
     }
   }
 
@@ -1035,6 +1097,9 @@ object WhileLoopVariable {
     override def shapes(shape: HNil): Seq[Shape] = Seq.empty[Shape]
     override def segmentOutputs(output: HNil, values: Seq[Output]): (HNil, Seq[Output]) = (HNil, values)
     override def segmentShapes(output: HNil, values: Seq[Shape]): (HNil, Seq[Shape]) = (HNil, values)
+
+    override def map(value: HNil, mapFn: (Symbol) => Symbol): HNil = HNil
+    override def mapWithShape(value: HNil, shape: HNil, mapFn: (Symbol, Shape) => Symbol): HNil = HNil
   }
 
   implicit def recursiveConstructor[H, HS, T <: HList, TS <: HList](implicit
@@ -1070,6 +1135,14 @@ object WhileLoopVariable {
       val (tailOut, tailRemaining) = evTail.segmentShapes(output.tail, headRemaining)
       (headOut :: tailOut, tailRemaining)
     }
+
+    override def map(value: H :: T, mapFn: (Symbol) => Symbol): H :: T = {
+      evHead.value.map(value.head, mapFn) :: evTail.map(value.tail, mapFn)
+    }
+
+    override def mapWithShape(value: H :: T, shape: HS :: TS, mapFn: (Symbol, Shape) => Symbol): H :: T = {
+      evHead.value.mapWithShape(value.head, shape.head, mapFn) :: evTail.mapWithShape(value.tail, shape.tail, mapFn)
+    }
   }
 
   implicit def productConstructor[P <: Product, PS <: Product, L <: HList, LS <: HList](implicit
@@ -1098,6 +1171,14 @@ object WhileLoopVariable {
     override def segmentShapes(output: P, values: Seq[Shape]): (PS, Seq[Shape]) = {
       val (out, remaining) = evL.segmentShapes(genP.to(output), values)
       (tuplerS(out), remaining)
+    }
+
+    override def map(value: P, mapFn: (Symbol) => Symbol): P = {
+      tuplerP(evL.map(genP.to(value), mapFn))
+    }
+
+    override def mapWithShape(value: P, shape: PS, mapFn: (Symbol, Shape) => Symbol): P = {
+      tuplerP(evL.mapWithShape(genP.to(value), genPS.to(shape), mapFn))
     }
   }
 }

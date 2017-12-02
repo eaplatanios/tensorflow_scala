@@ -15,12 +15,9 @@
 
 package org.platanios.tensorflow.api.ops
 
-import scala.language.postfixOps
-
-/**
+/** Helper tagging trait used to group `Output`s, `OutputIndexedSlice`s, `SparseOutput`s, and `TensorArray`s under the
+  * same type. It is useful for the while loop variable map function which is used in the `seq2seq` package.
+  *
   * @author Emmanouil Antonios Platanios
   */
-package object seq2seq {
-  private[ops] trait API
-      extends decoders.API
-}
+trait Symbol

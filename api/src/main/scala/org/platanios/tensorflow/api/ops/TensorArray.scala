@@ -45,8 +45,14 @@ import org.platanios.tensorflow.api.types.{DataType, INT64}
   * @author Emmanouil Antonios Platanios
   */
 private[api] case class TensorArray private (
-    handle: Output, flow: Output, dataType: DataType, inferShape: Boolean, private var elementShape: Option[Shape],
-    colocateWithFirstWrite: Boolean = true, private var colocationOps: List[Op] = null) {
+    handle: Output,
+    flow: Output,
+    dataType: DataType,
+    inferShape: Boolean,
+    private var elementShape: Option[Shape],
+    colocateWithFirstWrite: Boolean = true,
+    private var colocationOps: List[Op] = null
+) extends Symbol {
   /** Changes the element shape of the array given a shape to merge with.
     *
     * @param  shape Shape to merge with.

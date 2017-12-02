@@ -153,6 +153,20 @@ object BasicDecoder {
         val (sample, tail) = whileLoopEvO.segmentShapes(output.sample, sampleAndTail)
         ((rnnOutput, sample), tail)
       }
+
+      override def map(value: Output[O, OS], mapFn: ops.Symbol => ops.Symbol): Output[O, OS] = {
+        Output(
+          whileLoopEvO.map(value.rnnOutput, mapFn),
+          whileLoopEvO.map(value.sample, mapFn))
+      }
+
+      override def mapWithShape(
+          value: Output[O, OS], shape: (OS, OS), mapFn: (ops.Symbol, Shape) => ops.Symbol
+      ): Output[O, OS] = {
+        Output(
+          whileLoopEvO.mapWithShape(value.rnnOutput, shape._1, mapFn),
+          whileLoopEvO.mapWithShape(value.sample, shape._2, mapFn))
+      }
     }
   }
 
