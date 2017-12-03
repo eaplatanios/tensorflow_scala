@@ -62,9 +62,18 @@ private[api] trait NN {
     * @param  name    Name for the created op.
     * @return Created op output.
     */
-  def linear(x: Output, weights: Output, bias: Output, name: String = "Linear"): Output = {
+  def linear(x: Output, weights: Output, bias: Output = null, name: String = "Linear"): Output = {
     Op.createWithNameScope(name, Set(x.op, weights.op, bias.op)) {
-      addBias(Math.matmul(x, weights), bias)
+      val product = {
+        if (x.rank > 2)
+          Math.tensorDot(x, weights, Seq(x.rank - 1), Seq(0))
+        else
+          Math.matmul(x, weights)
+      }
+      if (bias != null)
+        addBias(product, bias)
+      else
+        product
     }
   }
 

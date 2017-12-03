@@ -95,28 +95,19 @@ case class Linear(
   override val layerType: String = s"Linear[$units]"
 
   override def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
-    val weights = variable(s"$uniquifiedName/Weights", input.dataType, Shape(input.shape(-1), units), weightsInitializer)
+    val weights = variable(
+      s"$uniquifiedName/Weights", input.dataType, Shape(input.shape(-1), units), weightsInitializer)
     val trainableVariables = mutable.Set[Variable](weights)
-    val product = {
-      if (input.rank > 2) {
-        // Broadcasting is required for the inputs.
-        val product = ops.Math.tensorDot(input, weights.value, Seq(input.rank - 1), Seq(0))
-        // Reshape the output back to the original rank of the input.
-        product.setShape(input.shape(0 :: -1) + units)
-        product
-      } else {
-        ops.Math.matmul(input, weights.value)
-      }
-    }
-    val output = {
+    val bias = {
       if (useBias) {
         val bias = variable(s"$uniquifiedName/Bias", input.dataType, Shape(units), biasInitializer)
         trainableVariables += bias
-        ops.NN.addBias(product, bias.value)
+        bias.value
       } else {
-        product
+        null
       }
     }
+    val output = ops.NN.linear(input, weights.value, bias)
     LayerInstance(input, output, trainableVariables.toSet)
   }
 }
