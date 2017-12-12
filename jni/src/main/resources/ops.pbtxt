@@ -28671,6 +28671,58 @@ op {
   description: "Read @{$math_ops#segmentation$the section on segmentation} for an explanation of\nsegments.\n\nLike `SegmentMean`, but `segment_ids` can have rank less than `data`\'s first\ndimension, selecting a subset of dimension 0, specified by `indices`."
 }
 op {
+  name: "SparseSegmentMeanWithNumSegments"
+  input_arg {
+    name: "data"
+    type_attr: "T"
+  }
+  input_arg {
+    name: "indices"
+    description: "A 1-D tensor. Has same rank as `segment_ids`."
+    type_attr: "Tidx"
+  }
+  input_arg {
+    name: "segment_ids"
+    description: "A 1-D tensor. Values should be sorted and can be repeated."
+    type: DT_INT32
+  }
+  input_arg {
+    name: "num_segments"
+    description: "A 1-D tensor. Values should be sorted and can be repeated."
+    type: DT_INT32
+  }
+  output_arg {
+    name: "output"
+    description: "Has same shape as data, except for dimension 0 which\nhas size `k`, the number of segments."
+    type_attr: "T"
+  }
+  attr {
+    name: "T"
+    type: "type"
+    allowed_values {
+      list {
+        type: DT_FLOAT
+        type: DT_DOUBLE
+      }
+    }
+  }
+  attr {
+    name: "Tidx"
+    type: "type"
+    default_value {
+      type: DT_INT32
+    }
+    allowed_values {
+      list {
+        type: DT_INT32
+        type: DT_INT64
+      }
+    }
+  }
+  summary: "Computes the mean along sparse segments of a tensor."
+  description: "Read @{$math_ops#segmentation$the section on segmentation} for an explanation of\nsegments.\n\nLike `SegmentMean`, but `segment_ids` can have rank less than `data`\'s first\ndimension, selecting a subset of dimension 0, specified by `indices`."
+}
+op {
   name: "SparseSegmentMeanGrad"
   input_arg {
     name: "grad"
@@ -28735,6 +28787,58 @@ op {
   }
   input_arg {
     name: "segment_ids"
+    description: "A 1-D tensor. Values should be sorted and can be repeated."
+    type: DT_INT32
+  }
+  output_arg {
+    name: "output"
+    description: "Has same shape as data, except for dimension 0 which\nhas size `k`, the number of segments."
+    type_attr: "T"
+  }
+  attr {
+    name: "T"
+    type: "type"
+    allowed_values {
+      list {
+        type: DT_FLOAT
+        type: DT_DOUBLE
+      }
+    }
+  }
+  attr {
+    name: "Tidx"
+    type: "type"
+    default_value {
+      type: DT_INT32
+    }
+    allowed_values {
+      list {
+        type: DT_INT32
+        type: DT_INT64
+      }
+    }
+  }
+  summary: "Computes the sum along sparse segments of a tensor divided by the sqrt of N."
+  description: "N is the size of the segment being reduced.\n\nRead @{$math_ops#segmentation$the section on segmentation} for an explanation of\nsegments."
+}
+op {
+  name: "SparseSegmentSqrtNWithNumSegments"
+  input_arg {
+    name: "data"
+    type_attr: "T"
+  }
+  input_arg {
+    name: "indices"
+    description: "A 1-D tensor. Has same rank as `segment_ids`."
+    type_attr: "Tidx"
+  }
+  input_arg {
+    name: "segment_ids"
+    description: "A 1-D tensor. Values should be sorted and can be repeated."
+    type: DT_INT32
+  }
+  input_arg {
+    name: "num_segments"
     description: "A 1-D tensor. Values should be sorted and can be repeated."
     type: DT_INT32
   }
@@ -28857,6 +28961,66 @@ op {
         type: DT_UINT16
         type: DT_HALF
         
+      }
+    }
+  }
+  attr {
+    name: "Tidx"
+    type: "type"
+    default_value {
+      type: DT_INT32
+    }
+    allowed_values {
+      list {
+        type: DT_INT32
+        type: DT_INT64
+      }
+    }
+  }
+  summary: "Computes the sum along sparse segments of a tensor."
+  description: "Read @{$math_ops#segmentation$the section on segmentation} for an explanation of\nsegments.\n\nLike `SegmentSum`, but `segment_ids` can have rank less than `data`\'s first\ndimension, selecting a subset of dimension 0, specified by `indices`.\n\nFor example:\n\n```python\nc = tf.constant([[1,2,3,4], [-1,-2,-3,-4], [5,6,7,8]])\n\n# Select two rows, one segment.\ntf.sparse_segment_sum(c, tf.constant([0, 1]), tf.constant([0, 0]))\n# => [[0 0 0 0]]\n\n# Select two rows, two segment.\ntf.sparse_segment_sum(c, tf.constant([0, 1]), tf.constant([0, 1]))\n# => [[ 1  2  3  4]\n#     [-1 -2 -3 -4]]\n\n# Select all rows, two segments.\ntf.sparse_segment_sum(c, tf.constant([0, 1, 2]), tf.constant([0, 0, 1]))\n# => [[0 0 0 0]\n#     [5 6 7 8]]\n\n# Which is equivalent to:\ntf.segment_sum(c, tf.constant([0, 0, 1]))\n```"
+}
+op {
+  name: "SparseSegmentSumWithNumSegments"
+  input_arg {
+    name: "data"
+    type_attr: "T"
+  }
+  input_arg {
+    name: "indices"
+    description: "A 1-D tensor. Has same rank as `segment_ids`."
+    type_attr: "Tidx"
+  }
+  input_arg {
+    name: "segment_ids"
+    description: "A 1-D tensor. Values should be sorted and can be repeated."
+    type: DT_INT32
+  }
+  input_arg {
+    name: "num_segments"
+    description: "A 1-D tensor. Values should be sorted and can be repeated."
+    type: DT_INT32
+  }
+  output_arg {
+    name: "output"
+    description: "Has same shape as data, except for dimension 0 which\nhas size `k`, the number of segments."
+    type_attr: "T"
+  }
+  attr {
+    name: "T"
+    type: "type"
+    allowed_values {
+      list {
+        type: DT_FLOAT
+        type: DT_DOUBLE
+        type: DT_INT32
+        type: DT_INT64
+        type: DT_UINT8
+        type: DT_INT16
+        type: DT_INT8
+        type: DT_UINT16
+        type: DT_HALF
+
       }
     }
   }

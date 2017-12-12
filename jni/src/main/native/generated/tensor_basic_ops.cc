@@ -728,6 +728,40 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basi
   return reinterpret_cast<jlong>(outputs[0]);
 }
 
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basic_00024_conjugateTranspose(
+    JNIEnv* env, jobject object, jlong context_handle, jlong x, jlong perm) {
+  REQUIRE_HANDLE(context, TFE_Context, context_handle, 0);
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+
+  std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
+      TFE_NewOp(context, "ConjugateTranspose", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
+  TFE_OpAddInput(op.get(), x_handle, status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(perm_handle, TFE_TensorHandle, perm, 0);
+  TFE_OpAddInput(op.get(), perm_handle, status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(attr_Tperm_perm_handle, TFE_TensorHandle, perm, 0);
+  const TF_DataType attr_Tperm = TFE_TensorHandleDataType(attr_Tperm_perm_handle);
+  TFE_OpSetAttrType(op.get(), "Tperm", attr_Tperm);
+
+  REQUIRE_HANDLE(attr_T_x_handle, TFE_TensorHandle, x, 0);
+  const TF_DataType attr_T = TFE_TensorHandleDataType(attr_T_x_handle);
+  TFE_OpSetAttrType(op.get(), "T", attr_T);
+
+  const int num_outputs = 1;
+  std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
+  TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  return reinterpret_cast<jlong>(outputs[0]);
+}
+
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basic_00024_invertPermutation(
     JNIEnv* env, jobject object, jlong context_handle, jlong x) {
   REQUIRE_HANDLE(context, TFE_Context, context_handle, 0);
@@ -911,7 +945,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basi
 }
 
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basic_00024_spaceToDepth(
-    JNIEnv* env, jobject object, jlong context_handle, jlong input, jlong block_size) {
+    JNIEnv* env, jobject object, jlong context_handle, jlong input, jlong block_size, jbyteArray data_format) {
   REQUIRE_HANDLE(context, TFE_Context, context_handle, 0);
   std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
 
@@ -929,6 +963,10 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basi
 
   TFE_OpSetAttrInt(op.get(), "block_size", static_cast<int64_t>(block_size));
 
+  jbyte *data_format_c_value = env->GetByteArrayElements(data_format, nullptr);
+  TFE_OpSetAttrString(op.get(), "data_format", reinterpret_cast<const char *>(data_format_c_value));
+  env->ReleaseByteArrayElements(data_format, data_format_c_value, JNI_ABORT);
+
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
   std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
@@ -939,7 +977,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basi
 }
 
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basic_00024_depthToSpace(
-    JNIEnv* env, jobject object, jlong context_handle, jlong input, jlong block_size) {
+    JNIEnv* env, jobject object, jlong context_handle, jlong input, jlong block_size, jbyteArray data_format) {
   REQUIRE_HANDLE(context, TFE_Context, context_handle, 0);
   std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
 
@@ -956,6 +994,10 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basi
   TFE_OpSetAttrType(op.get(), "T", attr_T);
 
   TFE_OpSetAttrInt(op.get(), "block_size", static_cast<int64_t>(block_size));
+
+  jbyte *data_format_c_value = env->GetByteArrayElements(data_format, nullptr);
+  TFE_OpSetAttrString(op.get(), "data_format", reinterpret_cast<const char *>(data_format_c_value));
+  env->ReleaseByteArrayElements(data_format, data_format_c_value, JNI_ABORT);
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
@@ -978,6 +1020,10 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basi
   REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
   TFE_OpAddInput(op.get(), input_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(attr_T_input_handle, TFE_TensorHandle, input, 0);
+  const TF_DataType attr_T = TFE_TensorHandleDataType(attr_T_input_handle);
+  TFE_OpSetAttrType(op.get(), "T", attr_T);
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
@@ -1784,7 +1830,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basi
 }
 
 JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basic_00024_quantizeV2(
-    JNIEnv* env, jobject object, jlong context_handle, jlong input, jlong min_range, jlong max_range, jint t, jbyteArray mode) {
+    JNIEnv* env, jobject object, jlong context_handle, jlong input, jlong min_range, jlong max_range, jint t, jbyteArray mode, jbyteArray round_mode) {
   REQUIRE_HANDLE(context, TFE_Context, context_handle, nullptr);
   std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
 
@@ -1809,6 +1855,10 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors
   jbyte *mode_c_value = env->GetByteArrayElements(mode, nullptr);
   TFE_OpSetAttrString(op.get(), "mode", reinterpret_cast<const char *>(mode_c_value));
   env->ReleaseByteArrayElements(mode, mode_c_value, JNI_ABORT);
+
+  jbyte *round_mode_c_value = env->GetByteArrayElements(round_mode, nullptr);
+  TFE_OpSetAttrString(op.get(), "round_mode", reinterpret_cast<const char *>(round_mode_c_value));
+  env->ReleaseByteArrayElements(round_mode, round_mode_c_value, JNI_ABORT);
 
   const int num_outputs = 3;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);

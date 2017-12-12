@@ -1398,12 +1398,19 @@ private[api] trait Math {
     * @param  indices        One-dimensional tensor with rank equal to that of `segmentIndices`.
     * @param  segmentIndices Segment indices (must have data type of [[INT32]] or [[INT64]]). Values should be sorted
     *                        and can be repeated.
+    * @param  numSegments    Optional `INT32` scalar indicating the size of the output tensor.
     * @return Result as a new tensor.
     */
-  def sparseSegmentSum(
-      data: Tensor, indices: Tensor, segmentIndices: Tensor)(implicit context: DynamicVariable[Context]): Tensor = {
-    Tensor.fromNativeHandle(NativeTensorOpsMath.sparseSegmentSum(
-      context.value.nativeHandle, data.nativeHandle, indices.nativeHandle, segmentIndices.nativeHandle))
+  def sparseSegmentSum(data: Tensor, indices: Tensor, segmentIndices: Tensor, numSegments: Tensor = null)(implicit
+      context: DynamicVariable[Context]
+  ): Tensor = {
+    if (numSegments == null)
+      Tensor.fromNativeHandle(NativeTensorOpsMath.sparseSegmentSum(
+        context.value.nativeHandle, data.nativeHandle, indices.nativeHandle, segmentIndices.nativeHandle))
+    else
+      Tensor.fromNativeHandle(NativeTensorOpsMath.sparseSegmentSumWithNumSegments(
+        context.value.nativeHandle, data.nativeHandle, indices.nativeHandle, segmentIndices.nativeHandle,
+        numSegments.nativeHandle))
   }
 
   /** $OpDocMathSparseSegmentMean
@@ -1414,12 +1421,19 @@ private[api] trait Math {
     * @param  indices        One-dimensional tensor with rank equal to that of `segmentIndices`.
     * @param  segmentIndices Segment indices (must have data type of [[INT32]] or [[INT64]]). Values should be sorted
     *                        and can be repeated.
+    * @param  numSegments    Optional `INT32` scalar indicating the size of the output tensor.
     * @return Result as a new tensor.
     */
-  def sparseSegmentMean(
-      data: Tensor, indices: Tensor, segmentIndices: Tensor)(implicit context: DynamicVariable[Context]): Tensor = {
-    Tensor.fromNativeHandle(NativeTensorOpsMath.sparseSegmentMean(
-      context.value.nativeHandle, data.nativeHandle, indices.nativeHandle, segmentIndices.nativeHandle))
+  def sparseSegmentMean(data: Tensor, indices: Tensor, segmentIndices: Tensor, numSegments: Tensor = null)(implicit
+      context: DynamicVariable[Context]
+  ): Tensor = {
+    if (numSegments == null)
+      Tensor.fromNativeHandle(NativeTensorOpsMath.sparseSegmentMean(
+        context.value.nativeHandle, data.nativeHandle, indices.nativeHandle, segmentIndices.nativeHandle))
+    else
+      Tensor.fromNativeHandle(NativeTensorOpsMath.sparseSegmentMeanWithNumSegments(
+        context.value.nativeHandle, data.nativeHandle, indices.nativeHandle, segmentIndices.nativeHandle,
+        numSegments.nativeHandle))
   }
 
   /** $OpDocMathSparseSegmentSumSqrtN
@@ -1430,12 +1444,19 @@ private[api] trait Math {
     * @param  indices        One-dimensional tensor with rank equal to that of `segmentIndices`.
     * @param  segmentIndices Segment indices (must have data type of [[INT32]] or [[INT64]]). Values should be sorted
     *                        and can be repeated.
+    * @param  numSegments    Optional `INT32` scalar indicating the size of the output tensor.
     * @return Result as a new tensor.
     */
-  def sparseSegmentSumSqrtN(
-      data: Tensor, indices: Tensor, segmentIndices: Tensor)(implicit context: DynamicVariable[Context]): Tensor = {
-    Tensor.fromNativeHandle(NativeTensorOpsMath.sparseSegmentSqrtN(
-      context.value.nativeHandle, data.nativeHandle, indices.nativeHandle, segmentIndices.nativeHandle))
+  def sparseSegmentSumSqrtN(data: Tensor, indices: Tensor, segmentIndices: Tensor, numSegments: Tensor = null)(implicit
+      context: DynamicVariable[Context]
+  ): Tensor = {
+    if (numSegments == null)
+      Tensor.fromNativeHandle(NativeTensorOpsMath.sparseSegmentSqrtN(
+        context.value.nativeHandle, data.nativeHandle, indices.nativeHandle, segmentIndices.nativeHandle))
+    else
+      Tensor.fromNativeHandle(NativeTensorOpsMath.sparseSegmentSqrtNWithNumSegments(
+        context.value.nativeHandle, data.nativeHandle, indices.nativeHandle, segmentIndices.nativeHandle,
+        numSegments.nativeHandle))
   }
 
   //endregion Segment Ops
@@ -2686,10 +2707,11 @@ object Math extends Math {
       * @param  indices        One-dimensional tensor with rank equal to that of `segmentIndices`.
       * @param  segmentIndices Segment indices (must have data type of [[INT32]] or [[INT64]]). Values should be sorted
       *                        and can be repeated.
+      * @param  numSegments    Optional `INT32` scalar indicating the size of the output tensor.
       * @return Result as a new tensor.
       */
-    def sparseSegmentSum(indices: Tensor, segmentIndices: Tensor): Tensor = {
-      Math.sparseSegmentSum(tensor, indices, segmentIndices)
+    def sparseSegmentSum(indices: Tensor, segmentIndices: Tensor, numSegments: Tensor = null): Tensor = {
+      Math.sparseSegmentSum(tensor, indices, segmentIndices, numSegments)
     }
 
     /** $OpDocMathSparseSegmentMean
@@ -2699,10 +2721,11 @@ object Math extends Math {
       * @param  indices        One-dimensional tensor with rank equal to that of `segmentIndices`.
       * @param  segmentIndices Segment indices (must have data type of [[INT32]] or [[INT64]]). Values should be sorted
       *                        and can be repeated.
+      * @param  numSegments    Optional `INT32` scalar indicating the size of the output tensor.
       * @return Result as a new tensor.
       */
-    def sparseSegmentMean(indices: Tensor, segmentIndices: Tensor): Tensor = {
-      Math.sparseSegmentMean(tensor, indices, segmentIndices)
+    def sparseSegmentMean(indices: Tensor, segmentIndices: Tensor, numSegments: Tensor = null): Tensor = {
+      Math.sparseSegmentMean(tensor, indices, segmentIndices, numSegments)
     }
 
     /** $OpDocMathSparseSegmentSumSqrtN
@@ -2712,10 +2735,11 @@ object Math extends Math {
       * @param  indices        One-dimensional tensor with rank equal to that of `segmentIndices`.
       * @param  segmentIndices Segment indices (must have data type of [[INT32]] or [[INT64]]). Values should be sorted
       *                        and can be repeated.
+      * @param  numSegments    Optional `INT32` scalar indicating the size of the output tensor.
       * @return Result as a new tensor.
       */
-    def sparseSegmentSumSqrtN(indices: Tensor, segmentIndices: Tensor): Tensor = {
-      Math.sparseSegmentSumSqrtN(tensor, indices, segmentIndices)
+    def sparseSegmentSumSqrtN(indices: Tensor, segmentIndices: Tensor, numSegments: Tensor = null): Tensor = {
+      Math.sparseSegmentSumSqrtN(tensor, indices, segmentIndices, numSegments)
     }
 
     //endregion Segment Ops

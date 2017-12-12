@@ -42,13 +42,14 @@ object Basic {
   @native def mirrorPad(contextHandle: Long, input: Long, paddings: Long, mode: Array[Byte]): Long
   @native def reshape(contextHandle: Long, tensor: Long, shape: Long): Long
   @native def transpose(contextHandle: Long, x: Long, perm: Long): Long
+  @native def conjugateTranspose(contextHandle: Long, x: Long, perm: Long): Long
   @native def invertPermutation(contextHandle: Long, x: Long): Long
   @native def reverseV2(contextHandle: Long, tensor: Long, axis: Long): Long
   @native def reverseSequence(contextHandle: Long, input: Long, seq_lengths: Long, seq_dim: Long, batch_dim: Long): Long
   @native def spaceToBatchND(contextHandle: Long, input: Long, block_shape: Long, paddings: Long): Long
   @native def batchToSpaceND(contextHandle: Long, input: Long, block_shape: Long, crops: Long): Long
-  @native def spaceToDepth(contextHandle: Long, input: Long, block_size: Long): Long
-  @native def depthToSpace(contextHandle: Long, input: Long, block_size: Long): Long
+  @native def spaceToDepth(contextHandle: Long, input: Long, block_size: Long, data_format: Array[Byte]): Long
+  @native def depthToSpace(contextHandle: Long, input: Long, block_size: Long, data_format: Array[Byte]): Long
   @native def where(contextHandle: Long, input: Long): Long
   @native def unique(contextHandle: Long, x: Long, out_idx: Int): Array[Long]
   @native def uniqueWithCounts(contextHandle: Long, x: Long, out_idx: Int): Array[Long]
@@ -68,7 +69,7 @@ object Basic {
   @native def identityN(contextHandle: Long, input: Long): Array[Long]
   @native def scatterNdNonAliasingAdd(contextHandle: Long, input: Long, indices: Long, updates: Long): Long
   @native def quantizeAndDequantizeV3(contextHandle: Long, input: Long, input_min: Long, input_max: Long, num_bits: Long, signed_input: Boolean, range_given: Boolean): Long
-  @native def quantizeV2(contextHandle: Long, input: Long, min_range: Long, max_range: Long, t: Int, mode: Array[Byte]): Array[Long]
+  @native def quantizeV2(contextHandle: Long, input: Long, min_range: Long, max_range: Long, t: Int, mode: Array[Byte], round_mode: Array[Byte]): Array[Long]
   @native def dequantize(contextHandle: Long, input: Long, min_range: Long, max_range: Long, mode: Array[Byte]): Long
   @native def quantizedConcat(contextHandle: Long, concat_dim: Long, values: Array[Long], input_mins: Array[Long], input_maxes: Array[Long]): Array[Long]
   @native def quantizedReshape(contextHandle: Long, tensor: Long, shape: Long, input_min: Long, input_max: Long): Array[Long]

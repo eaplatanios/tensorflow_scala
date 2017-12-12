@@ -3255,6 +3255,132 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   return reinterpret_cast<jlong>(outputs[0]);
 }
 
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math_00024_sparseSegmentSumWithNumSegments(
+    JNIEnv* env, jobject object, jlong context_handle, jlong data, jlong indices, jlong segment_ids, jlong num_segments) {
+  REQUIRE_HANDLE(context, TFE_Context, context_handle, 0);
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+
+  std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
+      TFE_NewOp(context, "SparseSegmentSumWithNumSegments", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(data_handle, TFE_TensorHandle, data, 0);
+  TFE_OpAddInput(op.get(), data_handle, status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(indices_handle, TFE_TensorHandle, indices, 0);
+  TFE_OpAddInput(op.get(), indices_handle, status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(segment_ids_handle, TFE_TensorHandle, segment_ids, 0);
+  TFE_OpAddInput(op.get(), segment_ids_handle, status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(num_segments_handle, TFE_TensorHandle, num_segments, 0);
+  TFE_OpAddInput(op.get(), num_segments_handle, status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(attr_T_data_handle, TFE_TensorHandle, data, 0);
+  const TF_DataType attr_T = TFE_TensorHandleDataType(attr_T_data_handle);
+  TFE_OpSetAttrType(op.get(), "T", attr_T);
+
+  REQUIRE_HANDLE(attr_Tidx_indices_handle, TFE_TensorHandle, indices, 0);
+  const TF_DataType attr_Tidx = TFE_TensorHandleDataType(attr_Tidx_indices_handle);
+  TFE_OpSetAttrType(op.get(), "Tidx", attr_Tidx);
+
+  const int num_outputs = 1;
+  std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
+  TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  return reinterpret_cast<jlong>(outputs[0]);
+}
+
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math_00024_sparseSegmentMeanWithNumSegments(
+    JNIEnv* env, jobject object, jlong context_handle, jlong data, jlong indices, jlong segment_ids, jlong num_segments) {
+  REQUIRE_HANDLE(context, TFE_Context, context_handle, 0);
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+
+  std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
+      TFE_NewOp(context, "SparseSegmentMeanWithNumSegments", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(data_handle, TFE_TensorHandle, data, 0);
+  TFE_OpAddInput(op.get(), data_handle, status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(indices_handle, TFE_TensorHandle, indices, 0);
+  TFE_OpAddInput(op.get(), indices_handle, status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(segment_ids_handle, TFE_TensorHandle, segment_ids, 0);
+  TFE_OpAddInput(op.get(), segment_ids_handle, status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(num_segments_handle, TFE_TensorHandle, num_segments, 0);
+  TFE_OpAddInput(op.get(), num_segments_handle, status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(attr_T_data_handle, TFE_TensorHandle, data, 0);
+  const TF_DataType attr_T = TFE_TensorHandleDataType(attr_T_data_handle);
+  TFE_OpSetAttrType(op.get(), "T", attr_T);
+
+  REQUIRE_HANDLE(attr_Tidx_indices_handle, TFE_TensorHandle, indices, 0);
+  const TF_DataType attr_Tidx = TFE_TensorHandleDataType(attr_Tidx_indices_handle);
+  TFE_OpSetAttrType(op.get(), "Tidx", attr_Tidx);
+
+  const int num_outputs = 1;
+  std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
+  TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  return reinterpret_cast<jlong>(outputs[0]);
+}
+
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math_00024_sparseSegmentSqrtNWithNumSegments(
+    JNIEnv* env, jobject object, jlong context_handle, jlong data, jlong indices, jlong segment_ids, jlong num_segments) {
+  REQUIRE_HANDLE(context, TFE_Context, context_handle, 0);
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+
+  std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
+      TFE_NewOp(context, "SparseSegmentSqrtNWithNumSegments", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(data_handle, TFE_TensorHandle, data, 0);
+  TFE_OpAddInput(op.get(), data_handle, status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(indices_handle, TFE_TensorHandle, indices, 0);
+  TFE_OpAddInput(op.get(), indices_handle, status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(segment_ids_handle, TFE_TensorHandle, segment_ids, 0);
+  TFE_OpAddInput(op.get(), segment_ids_handle, status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(num_segments_handle, TFE_TensorHandle, num_segments, 0);
+  TFE_OpAddInput(op.get(), num_segments_handle, status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(attr_T_data_handle, TFE_TensorHandle, data, 0);
+  const TF_DataType attr_T = TFE_TensorHandleDataType(attr_T_data_handle);
+  TFE_OpSetAttrType(op.get(), "T", attr_T);
+
+  REQUIRE_HANDLE(attr_Tidx_indices_handle, TFE_TensorHandle, indices, 0);
+  const TF_DataType attr_Tidx = TFE_TensorHandleDataType(attr_Tidx_indices_handle);
+  TFE_OpSetAttrType(op.get(), "Tidx", attr_Tidx);
+
+  const int num_outputs = 1;
+  std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
+  TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  return reinterpret_cast<jlong>(outputs[0]);
+}
+
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math_00024_diag(
     JNIEnv* env, jobject object, jlong context_handle, jlong diagonal) {
   REQUIRE_HANDLE(context, TFE_Context, context_handle, 0);

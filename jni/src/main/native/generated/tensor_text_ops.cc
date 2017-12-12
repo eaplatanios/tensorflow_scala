@@ -62,7 +62,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Text
 }
 
 JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Text_00024_stringSplit(
-    JNIEnv* env, jobject object, jlong context_handle, jlong input, jlong delimiter) {
+    JNIEnv* env, jobject object, jlong context_handle, jlong input, jlong delimiter, jboolean skip_empty) {
   REQUIRE_HANDLE(context, TFE_Context, context_handle, nullptr);
   std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
 
@@ -77,6 +77,8 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors
   REQUIRE_HANDLE(delimiter_handle, TFE_TensorHandle, delimiter, nullptr);
   TFE_OpAddInput(op.get(), delimiter_handle, status.get());
   CHECK_STATUS(env, status.get(), nullptr);
+
+  TFE_OpSetAttrBool(op.get(), "skip_empty", static_cast<unsigned char>(skip_empty));
 
   const int num_outputs = 3;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);

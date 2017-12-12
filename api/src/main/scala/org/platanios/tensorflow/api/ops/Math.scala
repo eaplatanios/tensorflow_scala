@@ -1662,16 +1662,27 @@ private[api] trait Math {
     * @param  indices        One-dimensional tensor with rank equal to that of `segmentIndices`.
     * @param  segmentIndices Segment indices (must have data type of [[INT32]] or [[INT64]]). Values should be sorted
     *                        and can be repeated.
+    * @param  numSegments    Optional `INT32` scalar indicating the size of the output tensor.
     * @param  name           Name for the created op.
     * @return Created op output.
     */
   def sparseSegmentSum(
-      data: Output, indices: Output, segmentIndices: Output, name: String = "SparseSegmentSum"): Output = {
-    Op.Builder(opType = "SparseSegmentSum", name = name)
-        .addInput(data)
-        .addInput(indices)
-        .addInput(segmentIndices)
-        .build().outputs(0)
+      data: Output, indices: Output, segmentIndices: Output, numSegments: Output = null,
+      name: String = "SparseSegmentSum"): Output = {
+    if (numSegments == null) {
+      Op.Builder(opType = "SparseSegmentSum", name = name)
+          .addInput(data)
+          .addInput(indices)
+          .addInput(segmentIndices)
+          .build().outputs(0)
+    } else {
+      Op.Builder(opType = "SparseSegmentSumWithNumSegments", name = name)
+          .addInput(data)
+          .addInput(indices)
+          .addInput(segmentIndices)
+          .addInput(numSegments)
+          .build().outputs(0)
+    }
   }
 
   /** $OpDocMathSparseSegmentMean
@@ -1681,16 +1692,27 @@ private[api] trait Math {
     * @param  indices        One-dimensional tensor with rank equal to that of `segmentIndices`.
     * @param  segmentIndices Segment indices (must have data type of [[INT32]] or [[INT64]]). Values should be sorted
     *                        and can be repeated.
+    * @param  numSegments    Optional `INT32` scalar indicating the size of the output tensor.
     * @param  name           Name for the created op.
     * @return Created op output.
     */
   def sparseSegmentMean(
-      data: Output, indices: Output, segmentIndices: Output, name: String = "SparseSegmentMean"): Output = {
-    Op.Builder(opType = "SparseSegmentMean", name = name)
-        .addInput(data)
-        .addInput(indices)
-        .addInput(segmentIndices)
-        .build().outputs(0)
+      data: Output, indices: Output, segmentIndices: Output, numSegments: Output = null,
+      name: String = "SparseSegmentMean"): Output = {
+    if (numSegments == null) {
+      Op.Builder(opType = "SparseSegmentMean", name = name)
+          .addInput(data)
+          .addInput(indices)
+          .addInput(segmentIndices)
+          .build().outputs(0)
+    } else {
+      Op.Builder(opType = "SparseSegmentMeanWithNumSegments", name = name)
+          .addInput(data)
+          .addInput(indices)
+          .addInput(segmentIndices)
+          .addInput(numSegments)
+          .build().outputs(0)
+    }
   }
 
   /** $OpDocMathSparseSegmentSumSqrtN
@@ -1700,16 +1722,27 @@ private[api] trait Math {
     * @param  indices        One-dimensional tensor with rank equal to that of `segmentIndices`.
     * @param  segmentIndices Segment indices (must have data type of [[INT32]] or [[INT64]]). Values should be sorted
     *                        and can be repeated.
+    * @param  numSegments    Optional `INT32` scalar indicating the size of the output tensor.
     * @param  name           Name for the created op.
     * @return Created op output.
     */
   def sparseSegmentSumSqrtN(
-      data: Output, indices: Output, segmentIndices: Output, name: String = "SparseSegmentSumSqrtN"): Output = {
-    Op.Builder(opType = "SparseSegmentSqrtN", name = name)
-        .addInput(data)
-        .addInput(indices)
-        .addInput(segmentIndices)
-        .build().outputs(0)
+      data: Output, indices: Output, segmentIndices: Output, numSegments: Output = null,
+      name: String = "SparseSegmentSumSqrtN"): Output = {
+    if (numSegments == null) {
+      Op.Builder(opType = "SparseSegmentSqrtN", name = name)
+          .addInput(data)
+          .addInput(indices)
+          .addInput(segmentIndices)
+          .build().outputs(0)
+    } else {
+      Op.Builder(opType = "SparseSegmentSqrtNWithNumSegments", name = name)
+          .addInput(data)
+          .addInput(indices)
+          .addInput(segmentIndices)
+          .addInput(numSegments)
+          .build().outputs(0)
+    }
   }
 
   //endregion Segment Ops
@@ -3178,10 +3211,11 @@ object Math extends Math {
       * @param  indices        One-dimensional tensor with rank equal to that of `segmentIndices`.
       * @param  segmentIndices Segment indices (must have data type of [[INT32]] or [[INT64]]). Values should be sorted
       *                        and can be repeated.
+      * @param  numSegments    Optional `INT32` scalar indicating the size of the output tensor.
       * @return Result as a new tensor.
       */
-    def sparseSegmentSum(indices: Output, segmentIndices: Output): Output = {
-      Math.sparseSegmentSum(output, indices, segmentIndices)
+    def sparseSegmentSum(indices: Output, segmentIndices: Output, numSegments: Output = null): Output = {
+      Math.sparseSegmentSum(output, indices, segmentIndices, numSegments)
     }
 
     /** $OpDocMathSparseSegmentMean
@@ -3191,10 +3225,11 @@ object Math extends Math {
       * @param  indices        One-dimensional tensor with rank equal to that of `segmentIndices`.
       * @param  segmentIndices Segment indices (must have data type of [[INT32]] or [[INT64]]). Values should be sorted
       *                        and can be repeated.
+      * @param  numSegments    Optional `INT32` scalar indicating the size of the output tensor.
       * @return Result as a new tensor.
       */
-    def sparseSegmentMean(indices: Output, segmentIndices: Output): Output = {
-      Math.sparseSegmentMean(output, indices, segmentIndices)
+    def sparseSegmentMean(indices: Output, segmentIndices: Output, numSegments: Output = null): Output = {
+      Math.sparseSegmentMean(output, indices, segmentIndices, numSegments)
     }
 
     /** $OpDocMathSparseSegmentSumSqrtN
@@ -3204,10 +3239,11 @@ object Math extends Math {
       * @param  indices        One-dimensional tensor with rank equal to that of `segmentIndices`.
       * @param  segmentIndices Segment indices (must have data type of [[INT32]] or [[INT64]]). Values should be sorted
       *                        and can be repeated.
+      * @param  numSegments    Optional `INT32` scalar indicating the size of the output tensor.
       * @return Result as a new tensor.
       */
-    def sparseSegmentSumSqrtN(indices: Output, segmentIndices: Output): Output = {
-      Math.sparseSegmentSumSqrtN(output, indices, segmentIndices)
+    def sparseSegmentSumSqrtN(indices: Output, segmentIndices: Output, numSegments: Output = null): Output = {
+      Math.sparseSegmentSumSqrtN(output, indices, segmentIndices, numSegments)
     }
 
     //endregion Math Segment Ops
@@ -3572,8 +3608,11 @@ object Math extends Math {
     GradientsRegistry.register("UnsortedSegmentSum", unsortedSegmentSumGradient)
     GradientsRegistry.register("UnsortedSegmentMax", segmentMinOrMaxGradient(_, _, isSorted = false))
     GradientsRegistry.register("SparseSegmentSum", sparseSegmentSumGradient)
+    GradientsRegistry.register("SparseSegmentSumWithNumSegments", sparseSegmentSumWithNumSegmentsGradient)
     GradientsRegistry.register("SparseSegmentMean", sparseSegmentMeanGradient)
+    GradientsRegistry.register("SparseSegmentMeanWithNumSegments", sparseSegmentMeanWithNumSegmentsGradient)
     GradientsRegistry.register("SparseSegmentSqrtN", sparseSegmentSumSqrtNGradient)
+    GradientsRegistry.register("SparseSegmentSqrtNWithNumSegments", sparseSegmentSumSqrtNWithNumSegmentsGradient)
     GradientsRegistry.register("Diag", diagGradient)
     GradientsRegistry.register("DiagPart", diagPartGradient)
     GradientsRegistry.register("MatrixDiag", matrixDiagGradient)
@@ -4364,6 +4403,11 @@ object Math extends Math {
       Seq(unsortedSegmentSum(Basic.gather(outputGradient, op.inputs(2)), op.inputs(1), inputRows), null, null)
     }
 
+    private[this] def sparseSegmentSumWithNumSegmentsGradient(
+        op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      sparseSegmentSumGradient(op, outputGradients) :+ null
+    }
+
     private[this] def sparseSegmentMeanGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       val outputGradient = outputGradients.head.toOutput
       val inputRows = Basic.shape(op.inputs(0))(0)
@@ -4376,6 +4420,11 @@ object Math extends Math {
       Seq(gradient, null, null)
     }
 
+    private[this] def sparseSegmentMeanWithNumSegmentsGradient(
+        op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      sparseSegmentMeanGradient(op, outputGradients) :+ null
+    }
+
     private[this] def sparseSegmentSumSqrtNGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       val outputGradient = outputGradients.head.toOutput
       val inputRows = Basic.shape(op.inputs(0))(0)
@@ -4386,6 +4435,11 @@ object Math extends Math {
           .addInput(inputRows)
           .build().outputs(0)
       Seq(gradient, null, null)
+    }
+
+    private[this] def sparseSegmentSumSqrtNWithNumSegmentsGradient(
+        op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      sparseSegmentSumSqrtNGradient(op, outputGradients) :+ null
     }
 
     private[this] def diagGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
@@ -5346,7 +5400,9 @@ object Math extends Math {
     *   The `sparseSegmentSum` op computes the sum along sparse segments of a tensor.
     *
     *   The op is similar to that of [[segmentSum]], with the difference that `segmentIndices` can have rank less 
-    *   than `data`'s first dimension, selecting a subset of dimension `0`, specified by `indices`.
+    *   than `data`'s first dimension, selecting a subset of dimension `0`, specified by `indices`. `segmentIndices` is
+    *   allowed to have missing indices, in which case the output will be zeros at those indices. In those cases,
+    *   `numSegments` is used to determine the size of the output.
     *
     *   For example:
     *   {{{
@@ -5371,7 +5427,9 @@ object Math extends Math {
     *   The `sparseSegmentMean` op computes the mean along sparse segments of a tensor.
     *
     *   The op is similar to that of [[segmentMean]], with the difference that `segmentIndices` can have rank less 
-    *   than `data`'s first dimension, selecting a subset of dimension `0`, specified by `indices`.
+    *   than `data`'s first dimension, selecting a subset of dimension `0`, specified by `indices`. `segmentIndices` is
+    *   allowed to have missing indices, in which case the output will be zeros at those indices. In those cases,
+    *   `numSegments` is used to determine the size of the output.
     *
     *   For example:
     *   {{{
@@ -5394,7 +5452,9 @@ object Math extends Math {
     * 
     * @define OpDocMathSparseSegmentSumSqrtN
     *   The `sparseSegmentSumSqrtN` op computes the sum along sparse segments of a tensor, divided by the square 
-    *   root of the number of elements being summed.
+    *   root of the number of elements being summed. `segmentIndices` is allowed to have missing indices, in which case
+    *   the output will be zeros at those indices. In those cases, `numSegments` is used to determine the size of the
+    *   output.
     *
     *   Similar to [[sparseSegmentSum]].
     *
