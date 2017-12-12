@@ -20,7 +20,7 @@ import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops
-import org.platanios.tensorflow.api.ops.control_flow.Context
+import org.platanios.tensorflow.api.ops.control_flow.{Context, ControlFlow}
 import org.platanios.tensorflow.api.ops.variables.{CreateNewOnly, VariableScope, VariableStore}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.DataType
@@ -1223,6 +1223,7 @@ object Op {
         // TODO: !!! Set the "container" attribute when necessary. Need a way to check for statefulness.
         val op = Op(graph, NativeOp.finish(nativeHandle))
         op.controlFlowContext = context.value.controlFlowContext
+        op.inputs.map(_.op).foreach(ControlFlow.checkInputFromValidContext(op, _))
         op.controlFlowContext.foreach(_.add(op))
         built = true
         op

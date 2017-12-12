@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.ops.control_flow
 
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.core.exception.{InvalidDataTypeException, UnimplementedException}
+import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.tensors.Tensor
@@ -252,8 +252,11 @@ private[api] object ControlFlow extends ControlFlow {
   private[ops] def isSwitch(op: Op): Boolean = op.opType == "Switch" || op.opType == "RefSwitch"
 
   /** Returns `true` if and only if the provided op is a loop invariant. */
+  private[ops] def isLoopEnter(op: Op): Boolean = op.opType == "Enter" || op.opType == "RefEnter"
+
+  /** Returns `true` if and only if the provided op is a constant loop invariant. */
   private[ops] def isLoopConstantEnter(op: Op): Boolean = {
-    (op.opType == "Enter" || op.opType == "RefEnter") && op.booleanAttribute("is_constant")
+    isLoopEnter(op) && op.booleanAttribute("is_constant")
   }
 
   /** Returns `true` if and only if the provided op is a loop exit op. */
@@ -280,6 +283,84 @@ private[api] object ControlFlow extends ControlFlow {
       context.flatMap(_.outerContext)
     else
       context
+  }
+
+  /** Returns `true` if `maybeContainingContext` is or contains `context`. */
+  private[ops] def isContainingContext(context: Context, maybeContainingContext: Option[Context]): Boolean = {
+    if (maybeContainingContext.isEmpty && context == null) {
+      true
+    } else {
+      maybeContainingContext.exists(containingContext => {
+        var currentContext = Option(context)
+        while (currentContext.exists(_ != containingContext))
+          currentContext = currentContext.flatMap(_.outerContext)
+        currentContext.contains(containingContext)
+      })
+    }
+  }
+
+  /** Checks whether `inputOp` can be used from within the `op`'s context. Conceptually, only inputs from an op's while
+    * loop context or any ancestor while loop context (including outside of any context) are valid. In practice, there
+    * are many other edge cases as well. */
+  @throws[InvalidArgumentException]
+  private[ops] def checkInputFromValidContext(op: Op, inputOp: Op): Unit = {
+    val opContext = op.controlFlowContext
+    val inputContext = getOutputContext(inputOp)
+    val errorMessage = inputContext match {
+      case None => null                            // `inputOp` is not in a control flow context.
+      case Some(context) if context == opContext.orNull => null // `inputOp` is in the same control flow context.
+      case Some(context) =>
+        val whileContext = opContext.flatMap(_.whileLoopContext)
+        val inputWhileContext = context.whileLoopContext
+        whileContext match {
+          case None =>
+            if (inputWhileContext.isEmpty) {
+              // Neither `op` nor `inputOp` is in a while loop, but one or both are in conditionals. We allow this,
+              // although execution will fail if the branch corresponding to the `inputOp`'s conditional context is not
+              // taken.
+              null
+            } else if (isLoopEnter(op) || isSwitch(op)) {
+              // The while loop building code clears the context for enter nodes, and the conditional context add value
+              // code clears the context for switch nodes.
+              null
+            } else {
+              s"Cannot use '${inputOp.name}' as input to '${op.name}' because '${inputOp.name}' is in a while loop."
+            }
+          case Some(whileLoopContext) if isContainingContext(whileLoopContext, inputWhileContext) =>
+            // `inputOp` is in a while loop which contains `op`'s while loop (or not in a while loop at all).
+            null
+          case Some(whileLoopContext) if whileLoopContext.gradientLoopState.isDefined &&
+              isContainingContext(whileLoopContext.gradientLoopState.get.forwardContext, inputWhileContext) =>
+            // `op` is in a gradient context and `inputOp` is in the associated forward pass context or an ancestor
+            // thereof. This case is needed to build while loop gradients. Note that we theoretically also need this
+            // case for custom gradient functions that close over tensors from ancestor contexts, but this has not been
+            // verified yet.
+            null
+          case Some(whileLoopContext) if whileLoopContext.gradientLoopState.isDefined &&
+              whileLoopContext.gradientLoopState.get.forwardContext ==
+                  inputWhileContext.flatMap(_.outerContext).orNull =>
+            // `op` is in a gradient context and `inputOp` is in a child of the associated forward pass context. This
+            // case is needed for the gradients of while loops with conditionals.
+            null
+          case Some(whileLoopContext) if inputWhileContext.flatMap(_.gradientLoopState).isDefined &&
+              inputWhileContext.flatMap(_.gradientLoopState).get.forwardContext == whileLoopContext =>
+            // `inputOp` is in the gradient context of `op`'s context. This case is needed when the gradient of a while
+            // loop gradient is requested (this will eventually fail unless there is a `stopGradient` op or similar).
+            null
+          case Some(whileLoopContext) if inputWhileContext.flatMap(_.gradientLoopState).isDefined &&
+              context.gradientLoopState.flatMap(_.forwardContext.gradientLoopState).isDefined &&
+              context.gradientLoopState
+                  .flatMap(_.forwardContext.gradientLoopState).get.forwardContext == whileLoopContext =>
+            // `inputOp` is in the gradient gradient context of `op`'s context. This case is needed when the gradient of
+            // a while loop gradient is requested (this will eventually fail unless there is a `stopGradient` op or
+            // similar).
+            null
+          case _ =>
+            s"Cannot use '${inputOp.name}' as input to '${op.name}' because they are in different while loops."
+        }
+    }
+    if (errorMessage != null)
+      throw InvalidArgumentException(errorMessage)
   }
 
   /** Creates an op that forwards `input` to the output port determined by `predicate`, while making sure the new op is
