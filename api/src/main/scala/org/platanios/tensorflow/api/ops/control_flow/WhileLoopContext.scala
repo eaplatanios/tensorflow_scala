@@ -255,9 +255,6 @@ private[api] case class WhileLoopContext private[control_flow] (
       loopExits.clear()
       loopExits ++= exitVariables
 
-      // Make sure the shapes of the loop outputs are correct.
-      mergeVariables.zip(nextVariables).foreach(p => WhileLoopContext.enforceShapeInvariant(p._1, p._2))
-
       // Exit the loop.
       exitResult(exitVariables)
 
@@ -507,9 +504,17 @@ private[api] case class WhileLoopContext private[control_flow] (
         values += valuesAcc.name
         denseShapeAcc.foreach(values += _.name)
         val initAcc = Seq(indicesAcc, valuesAcc) ++ denseShapeAcc.map(Seq(_)).getOrElse(Seq.empty)
+        // Set `useInputShape` to `false` since the accumulator tensors will grow in size. If `useInputShape` is `true`,
+        // the `updateInput` call below will result in incompatible shapes.
         val enterAcc = initAcc.map(a => {
-          ControlFlow.enter(a, name, isConstant = false, parallelIterations)
+          ControlFlow.enter(a, name, isConstant = false, parallelIterations, useInputShape = false)
         })
+        // Manually set appropriate partial shapes.
+        enterAcc.head.setShape(Shape(-1))
+        if (valuesAcc.rank != -1 && valuesAcc.rank > 1)
+          enterAcc(1).setShape(Shape(-1) ++ valuesAcc.shape(1 ::))
+        else if (valuesAcc.rank != -1)
+          enterAcc(1).setShape(Shape(-1))
         loopEnters ++= enterAcc
         val mergeAcc = enterAcc.map(a => ControlFlow.merge(Seq(a, a))._1)
         val switchAcc = mergeAcc.map(a => ControlFlow.switch(a, pivot))
@@ -586,10 +591,17 @@ object WhileLoopContext {
 
   /** Creates a next iteration op for `v` and adds a back edge from `v` to `m`. */
   @throws[IllegalArgumentException]
-  private[ops] def addNextIterationAndBackEdge[T <: OutputLike](m: T, v: T): T = {
+  private[ops] def addNextIterationAndBackEdge[T <: OutputLike](
+      m: T, v: T, enforceShapeInvariant: Boolean = true): T = {
     val result = (m, v) match {
       case (mm: Output, vv: Output) =>
         val nextVV = ControlFlow.nextIteration(vv)
+        if (enforceShapeInvariant) {
+          // Make sure the shapes of the loop outputs are correct. We do this before calling `updateInput`, which will
+          // raise a less helpful error message if the types do not match.
+          // TODO: Apply the same checks for the other cases, below.
+          WhileLoopContext.enforceShapeInvariant(mm, nextVV)
+        }
         ControlFlow.updateInput(mm.op, 1, nextVV)
         nextVV
       case (mm: OutputIndexedSlices, vv: OutputIndexedSlices) =>

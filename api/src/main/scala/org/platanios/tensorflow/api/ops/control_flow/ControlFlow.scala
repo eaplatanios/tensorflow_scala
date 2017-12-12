@@ -832,7 +832,8 @@ private[api] object ControlFlow extends ControlFlow {
               // This is the second time this switch node is visited. It comes from the non-exit branch of the switch,
               // and so we update the second input to the merge node.
               if (outputGradients(1) != null)
-                WhileLoopContext.addNextIterationAndBackEdge(mergeGradient, outputGradients(1))
+                WhileLoopContext.addNextIterationAndBackEdge(
+                  mergeGradient, outputGradients(1), enforceShapeInvariant = false)
               Seq(null, null)
             case None if outputGradients.head != null =>
               // This is the first time this switch node is visited. It comes from the exit branch of the switch, which
