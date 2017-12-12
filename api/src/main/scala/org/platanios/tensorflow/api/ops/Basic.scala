@@ -786,15 +786,18 @@ private[api] trait Basic {
     *
     * @param  input       Input tensor to transpose.
     * @param  permutation Permutation of the input tensor dimensions.
+    * @param  conjugate   If `true`, then the complex conjugate of the transpose result is returned.
     * @param  name        Name for the created op.
     * @return Created op output.
     */
-  def transpose(input: Output, permutation: Output = null, name: String = "Transpose"): Output = {
+  def transpose(
+      input: Output, permutation: Output = null, conjugate: Boolean = false, name: String = "Transpose"): Output = {
+    val opType = if (conjugate && input.dataType.isComplex) "ConjugateTranspose" else "Transpose"
     if (permutation == null) {
       Op.createWith(nameScope = name) {
         val inputRank = rank(input)
         val reversePermutation = inputRank - constant(1) - Math.range(constant(0), inputRank, constant(1))
-        val transposed = Op.Builder(opType = "Transpose", name = name)
+        val transposed = Op.Builder(opType = opType, name = name)
             .addInput(input)
             .addInput(reversePermutation)
             .build().outputs(0)
@@ -805,7 +808,7 @@ private[api] trait Basic {
         transposed
       }
     } else {
-      Op.Builder(opType = "Transpose", name = name)
+      Op.Builder(opType = opType, name = name)
           .addInput(input)
           .addInput(permutation)
           .build().outputs(0)
@@ -816,11 +819,12 @@ private[api] trait Basic {
     *
     * @group BasicOps
     *
-    * @param  input Input tensor to transpose.
+    * @param  input     Input tensor to transpose.
+    * @param  conjugate If `true`, then the complex conjugate of the transpose result is returned.
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def matrixTranspose(input: Output, name: String = "MatrixTranspose"): Output = {
+  def matrixTranspose(input: Output, conjugate: Boolean = false, name: String = "MatrixTranspose"): Output = {
     Op.createWith(nameScope = name) {
       // If we know the number of dimensions statically, we can do two things:
       //   1. Check that `input` is a (batch) matrix.
@@ -830,14 +834,14 @@ private[api] trait Basic {
       val inputRank = inputShape.rank
       if (inputRank != -1) {
         val permutation = Range(0, inputRank - 2).toArray ++ Array(inputRank - 1, inputRank - 2)
-        transpose(input, permutation)
+        transpose(input, permutation, conjugate)
       } else {
         val inputRank = rank(input)
         val inputRankMinus1 = inputRank - constant(1)
         val inputRankMinus2 = inputRank - constant(2)
         val permutation = concatenate(
           Array(Math.range(constant(0), inputRankMinus2, constant(1)), inputRankMinus1, inputRankMinus2))
-        transpose(input, permutation)
+        transpose(input, permutation, conjugate)
       }
     }
   }
@@ -1705,17 +1709,21 @@ object Basic extends Basic {
       * @group BasicOps
       *
       * @param  permutation Permutation of the input tensor dimensions.
+      * @param  conjugate   If `true`, then the complex conjugate of the transpose result is returned.
       * @return Result as a new tensor.
       */
-    def transpose(permutation: Output = null): Output = Basic.transpose(output, permutation)
+    def transpose(permutation: Output = null, conjugate: Boolean = false): Output = {
+      Basic.transpose(output, permutation, conjugate)
+    }
 
     /** $OpDocBasicMatrixTranspose
       *
       * @group BasicOps
       *
+      * @param  conjugate If `true`, then the complex conjugate of the transpose result is returned.
       * @return Result as a new tensor.
       */
-    def matrixTranspose: Output = Basic.matrixTranspose(output)
+    def matrixTranspose(conjugate: Boolean = false): Output = Basic.matrixTranspose(output, conjugate)
 
     /** $OpDocBasicInvertPermutation
       *

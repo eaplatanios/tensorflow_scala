@@ -261,34 +261,48 @@ private[api] trait Basic {
     * @group BasicOps
     * @param  input       Input tensor to transpose.
     * @param  permutation Permutation of the input tensor dimensions.
+    * @param  conjugate   If `true`, then the complex conjugate of the transpose result is returned.
     * @return Result as a new tensor.
     */
-  def transpose(input: Tensor, permutation: Tensor = null)(implicit context: DynamicVariable[Context]): Tensor = {
+  def transpose(input: Tensor, permutation: Tensor = null, conjugate: Boolean = false)(implicit
+      context: DynamicVariable[Context]
+  ): Tensor = {
     if (permutation == null) {
       val inputRank = rank(input)
       val reversePermutation = inputRank - 1 - Math.range(0, inputRank, 1)
-      Tensor.fromNativeHandle(
-        NativeTensorOpsBasic.transpose(
-          context.value.nativeHandle, input.nativeHandle, reversePermutation.nativeHandle))
+      if (conjugate && input.dataType.isComplex)
+        Tensor.fromNativeHandle(
+          NativeTensorOpsBasic.conjugateTranspose(
+            context.value.nativeHandle, input.nativeHandle, reversePermutation.nativeHandle))
+      else
+        Tensor.fromNativeHandle(
+          NativeTensorOpsBasic.transpose(
+            context.value.nativeHandle, input.nativeHandle, reversePermutation.nativeHandle))
     } else {
-      Tensor.fromNativeHandle(
-        NativeTensorOpsBasic.transpose(
-          context.value.nativeHandle, input.nativeHandle, permutation.nativeHandle))
+      if (conjugate && input.dataType.isComplex)
+        Tensor.fromNativeHandle(
+          NativeTensorOpsBasic.conjugateTranspose(
+            context.value.nativeHandle, input.nativeHandle, permutation.nativeHandle))
+      else
+        Tensor.fromNativeHandle(
+          NativeTensorOpsBasic.transpose(
+            context.value.nativeHandle, input.nativeHandle, permutation.nativeHandle))
     }
   }
 
   /** $OpDocBasicMatrixTranspose
     *
     * @group BasicOps
-    * @param  input Input tensor to transpose.
+    * @param  input     Input tensor to transpose.
+    * @param  conjugate If `true`, then the complex conjugate of the transpose result is returned.
     * @return Result as a new tensor.
     */
-  def matrixTranspose(input: Tensor)(implicit context: DynamicVariable[Context]): Tensor = {
+  def matrixTranspose(input: Tensor, conjugate: Boolean = false)(implicit context: DynamicVariable[Context]): Tensor = {
     val inputRank = input.rank
     if (inputRank < 2)
       throw InvalidShapeException(s"'input' should be a (batch) matrix, with rank > 2. Found shape '${input.shape}'.")
     val permutation = Range(0, inputRank - 2).toArray ++ Array(inputRank - 1, inputRank - 2)
-    transpose(input, permutation)
+    transpose(input, permutation, conjugate)
   }
 
   /** $OpDocBasicInvertPermutation
@@ -926,17 +940,21 @@ object Basic extends Basic {
       * @group BasicOps
       *
       * @param  permutation Permutation of the input tensor dimensions.
+      * @param  conjugate   If `true`, then the complex conjugate of the transpose result is returned.
       * @return Result as a new tensor.
       */
-    def transpose(permutation: Tensor = null): Tensor = Basic.transpose(tensor, permutation)
+    def transpose(permutation: Tensor = null, conjugate: Boolean = false): Tensor = {
+      Basic.transpose(tensor, permutation, conjugate)
+    }
 
     /** $OpDocBasicMatrixTranspose
       *
       * @group BasicOps
       *
+      * @param  conjugate If `true`, then the complex conjugate of the transpose result is returned.
       * @return Result as a new tensor.
       */
-    def matrixTranspose: Tensor = Basic.matrixTranspose(tensor)
+    def matrixTranspose(conjugate: Boolean = false): Tensor = Basic.matrixTranspose(tensor, conjugate)
 
     /** $OpDocBasicInvertPermutation
       *
