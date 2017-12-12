@@ -246,7 +246,7 @@ object BasicDecoder {
     override def sample(time: ops.Output, input: O, state: S): O = {
       val outputs = evO.outputs(input)
       Op.createWithNameScope(s"$name/Sample", Set(time.op) ++ outputs.map(_.op).toSet) {
-        evO.fromOutputs(input, outputs.map(output => Math.cast(Math.argmax(output, axes = -1), INT32)))
+        evO.fromOutputs(input, outputs.map(output => Math.argmax(output, axes = -1, outputDataType = INT32)))
       }
     }
 
@@ -318,7 +318,7 @@ object BasicDecoder {
     /** Returns a sample for the provided time, input, and state. */
     override def sample(time: ops.Output, input: ops.Output, state: S): ops.Output = {
       Op.createWithNameScope(s"$name/Sample", Set(time.op, input.op)) {
-        Math.cast(Math.argmax(input, axes = -1), INT32)
+        Math.argmax(input, axes = -1, outputDataType = INT32)
       }
     }
 
