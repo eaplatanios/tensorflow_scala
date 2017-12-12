@@ -2047,6 +2047,7 @@ object Basic extends Basic {
     GradientsRegistry.register("MirrorPadGrad", mirrorPadHessian)
     GradientsRegistry.register("Reshape", reshapeGradient)
     GradientsRegistry.register("Transpose", transposeGradient)
+    GradientsRegistry.register("ConjugateTranspose", conjugateTransposeGradient)
     GradientsRegistry.register("ReverseV2", reverseGradient)
     GradientsRegistry.register("ReverseSequence", reverseSequenceGradient)
     GradientsRegistry.register("SpaceToBatch", spaceToBatchGradient)
@@ -2246,6 +2247,10 @@ object Basic extends Basic {
 
     private[this] def transposeGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       Seq(transpose(outputGradients.head, invertPermutation(op.inputs(1))), null)
+    }
+
+    private[this] def conjugateTransposeGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      Seq(transpose(outputGradients.head, invertPermutation(op.inputs(1)), conjugate = true), null)
     }
 
     private[this] def reverseGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
