@@ -344,14 +344,22 @@ private[api] trait Basic {
     *
     * @param  inputs   Tensors whose shapes to return.
     * @param  dataType Optional data type to use for the outputs of this op.
+    * @param  optimize Boolean flag indicating whether to optimize this op creation by using a constant op with the
+    *                  shape of each input at graph creation time (instead of execution time), if known.
+    * @param  name     Name for the created op.
     * @return Created op outputs, all of which are one-dimensional.
     */
   def shapeN(
-      inputs: Seq[Output], dataType: DataType = INT32, name: String = "ShapeN"): Seq[Output] = {
-    Op.Builder(opType = "ShapeN", name = name)
+      inputs: Seq[Output], dataType: DataType = INT32, optimize: Boolean = true,
+      name: String = "ShapeN"): Seq[Output] = {
+    val dynamicShapes = Op.Builder(opType = "ShapeN", name = name)
         .addInputList(inputs)
         .setAttribute("out_type", dataType)
         .build().outputs.toSeq
+    if (optimize)
+      inputs.zip(dynamicShapes).map(p => if (p._1.shape.isFullyDefined) p._1.shape.toOutput() else p._2)
+    else
+      dynamicShapes
   }
 
   //endregion Tensor Shape Ops
