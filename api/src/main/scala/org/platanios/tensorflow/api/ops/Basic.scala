@@ -20,6 +20,7 @@ import org.platanios.tensorflow.api.core.Indexer._
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
+import org.platanios.tensorflow.api.ops.NN.CNNDataFormat
 import org.platanios.tensorflow.api.tensors.{Context, Tensor}
 import org.platanios.tensorflow.api.types._
 import org.platanios.tensorflow.jni.generated.tensors.{Basic => NativeTensorOpsBasic}
@@ -1047,15 +1048,19 @@ private[api] trait Basic {
     *
     * @group BasicOps
     *
-    * @param  input     `4`-dimensional input tensor with shape `[batch, height, width, depth]`.
-    * @param  blockSize Block size which must be greater than `1`.
-    * @param  name      Name for the created op.
+    * @param  input      `4`-dimensional input tensor with shape `[batch, height, width, depth]`.
+    * @param  blockSize  Block size which must be greater than `1`.
+    * @param  dataFormat Format of the input and output data.
+    * @param  name       Name for the created op.
     * @return Created op output.
     */
-  def spaceToDepth(input: Output, blockSize: Int, name: String = "SpaceToDepth"): Output = {
+  def spaceToDepth(
+      input: Output, blockSize: Int, dataFormat: CNNDataFormat = CNNDataFormat.default,
+      name: String = "SpaceToDepth"): Output = {
     Op.Builder(opType = "SpaceToDepth", name = name)
         .addInput(input)
         .setAttribute("block_size", blockSize.toLong)
+        .setAttribute("data_format", dataFormat.name)
         .build().outputs(0)
   }
 
@@ -1065,13 +1070,17 @@ private[api] trait Basic {
     *
     * @param  input     `4`-dimensional input tensor with shape `[batch, height, width, depth]`.
     * @param  blockSize Block size which must be greater than `1`.
+    * @param  dataFormat Format of the input and output data.
     * @param  name      Name for the created op.
     * @return Created op output.
     */
-  def depthToSpace(input: Output, blockSize: Int, name: String = "DepthToSpace"): Output = {
+  def depthToSpace(
+      input: Output, blockSize: Int, dataFormat: CNNDataFormat = CNNDataFormat.default,
+      name: String = "DepthToSpace"): Output = {
     Op.Builder(opType = "DepthToSpace", name = name)
         .addInput(input)
         .setAttribute("block_size", blockSize.toLong)
+        .setAttribute("data_format", dataFormat.name)
         .build().outputs(0)
   }
 
@@ -1813,18 +1822,24 @@ object Basic extends Basic {
       * @group BasicOps
       *
       * @param  blockSize Block size which must be greater than `1`.
+      * @param  dataFormat Format of the input and output data.
       * @return Result as a new tensor.
       */
-    def spaceToDepth(blockSize: Int): Output = Basic.spaceToDepth(output, blockSize)
+    def spaceToDepth(blockSize: Int, dataFormat: CNNDataFormat = CNNDataFormat.default): Output = {
+      Basic.spaceToDepth(output, blockSize, dataFormat)
+    }
 
     /** $OpDocBasicDepthToSpace
       *
       * @group BasicOps
       *
       * @param  blockSize Block size which must be greater than `1`.
+      * @param  dataFormat Format of the input and output data.
       * @return Result as a new tensor.
       */
-    def depthToSpace(blockSize: Int): Output = Basic.depthToSpace(output, blockSize)
+    def depthToSpace(blockSize: Int, dataFormat: CNNDataFormat = CNNDataFormat.default): Output = {
+      Basic.depthToSpace(output, blockSize, dataFormat)
+    }
 
     //endregion Output Manipulation Ops
 

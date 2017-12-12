@@ -1052,6 +1052,7 @@ object NN extends NN {
         axis2,
         Math.range(axis1 + 1, axis2),
         axis1), 0),
+      conjugate = false,
       name)
   }
 
@@ -1067,6 +1068,7 @@ object NN extends NN {
           Math.range(0, axisOutput),
           Math.range(axisOutput + 1, rank),
           axisOutput), 0),
+        conjugate = false,
         name)
     }
   }
