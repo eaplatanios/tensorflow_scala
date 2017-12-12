@@ -138,7 +138,6 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
         Counter.getOrCreate(Graph.Keys.GLOBAL_EPOCH, local = false)
         Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
         val trainOps = Op.createWithNameScope("Model")(model.buildTrainOps())
-        val inputInitializer = trainOps.inputIterator.createInitializer(data())
         graph.addToCollection(trainOps.loss, Graph.Keys.LOSSES)
         allHooks += NaNChecker(Set(trainOps.loss.name))
         val modelInstance = ModelInstance(
@@ -151,13 +150,23 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
         if (tensorBoardConfig != null)
           allChiefOnlyHooks += TensorBoardHook(tensorBoardConfig)
         val saver = getOrCreateSaver()
+        val localInitializer = Op.createWith(
+          controlDependencies = Set(
+            Variable.initializer(Variable.localVariables),
+            Lookup.initializer(Lookup.initializers))) {
+          trainOps.inputIterator.createInitializer(data())
+        }
         val session = Estimator.monitoredTrainingSession(
           configuration = configuration,
           hooks = allHooks.toSet,
           chiefOnlyHooks = allChiefOnlyHooks.toSet,
-          sessionScaffold = SessionScaffold(saver = saver))
+          sessionScaffold = SessionScaffold(
+            initOp = Some(ControlFlow.group(Set(
+              Variable.initializer(Variable.globalVariables),
+              Resource.initializer(Resource.sharedResources)))),
+            localInitOp = Some(localInitializer),
+            saver = saver))
         try {
-          session.run(targets = inputInitializer)
           while (!session.shouldStop)
             session.run(targets = trainOps.trainOp)
         } catch {
@@ -253,7 +262,6 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
       Counter.getOrCreate(Graph.Keys.GLOBAL_EPOCH, local = false)
       Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
       val inferOps = Op.createWithNameScope("Model")(model.buildInferOps())
-      val inputInitializer = inferOps.inputIterator.createInitializer(ev.toDataset(input()))
       val modelInstance = ModelInstance(
         model, configuration, None, None, Some(inferOps.output), None, None,
         inferOps.trainableVariables, inferOps.nonTrainableVariables)
@@ -262,14 +270,24 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
         case _ => ()
       }
       val saver = getOrCreateSaver()
+      val localInitializer = Op.createWith(
+        controlDependencies = Set(
+          Variable.initializer(Variable.localVariables),
+          Lookup.initializer(Lookup.initializers))) {
+        inferOps.inputIterator.createInitializer(ev.toDataset(input()))
+      }
       val session = MonitoredSession(
         ChiefSessionCreator(
-          sessionScaffold = SessionScaffold(saver = saver),
+          sessionScaffold = SessionScaffold(
+            initOp = Some(ControlFlow.group(Set(
+              Variable.initializer(Variable.globalVariables),
+              Resource.initializer(Resource.sharedResources)))),
+            localInitOp = Some(localInitializer),
+            saver = saver),
           sessionConfig = configuration.sessionConfig,
           checkpointPath = workingDir),
         hooks, shouldRecover = true)
       try {
-        session.run(targets = inputInitializer)
       } catch {
         case t: Throwable =>
           session.closeWithoutHookEnd()
@@ -388,7 +406,6 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
     Op.createWith(graph) {
       randomSeed.foreach(graph.setRandomSeed)
       val evaluateOps = Op.createWithNameScope("Model")(model.buildEvaluateOps(metrics))
-      val inputInitializer = evaluateOps.inputIterator.createInitializer(data())
       Counter.getOrCreate(Graph.Keys.GLOBAL_EPOCH, local = false)
       val globalStep = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
       val evalStep = Counter.getOrCreate(Graph.Keys.EVAL_STEP, local = true)
@@ -404,17 +421,27 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
         case _ => ()
       }
       val saver = getOrCreateSaver()
+      val localInitializer = Op.createWith(
+        controlDependencies = Set(
+          Variable.initializer(Variable.localVariables),
+          Lookup.initializer(Lookup.initializers))) {
+        evaluateOps.inputIterator.createInitializer(data())
+      }
       val session = MonitoredSession(
         ChiefSessionCreator(
           master = configuration.evaluationMaster,
-          sessionScaffold = SessionScaffold(saver = saver),
+          sessionScaffold = SessionScaffold(
+            initOp = Some(ControlFlow.group(Set(
+              Variable.initializer(Variable.globalVariables),
+              Resource.initializer(Resource.sharedResources)))),
+            localInitOp = Some(localInitializer),
+            saver = saver),
           sessionConfig = configuration.sessionConfig,
           checkpointPath = configuration.workingDir),
         allHooks.toSet, shouldRecover = true)
       FileBasedEstimator.logger.info("Starting evaluation.")
       val (step, metricValues) = {
         try {
-          session.run(targets = inputInitializer)
           val step = session.run(fetches = globalStep.value).scalar.asInstanceOf[Long]
           while (!session.shouldStop)
             try {

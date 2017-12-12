@@ -17,16 +17,14 @@ package org.platanios.tensorflow.api.learn.estimators
 
 import org.platanios.tensorflow.api.config.TensorBoardConfig
 import org.platanios.tensorflow.api.core.Graph
-import org.platanios.tensorflow.api.core.client.Fetchable
+import org.platanios.tensorflow.api.core.client.{Fetchable, Session}
 import org.platanios.tensorflow.api.core.exception.{InvalidArgumentException, OutOfRangeException}
 import org.platanios.tensorflow.api.learn._
 import org.platanios.tensorflow.api.learn.hooks._
-import org.platanios.tensorflow.api.ops.{Op, Output, Resource}
+import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.io.data.Dataset
-import org.platanios.tensorflow.api.ops.lookup.Lookup
 import org.platanios.tensorflow.api.ops.metrics.Metric
-import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.tensors.Tensor
 
 import com.typesafe.scalalogging.Logger
@@ -120,6 +118,13 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
     }
   }
 
+  private[this] var additionalInitOps: Set[Op] = Set.empty[Op]
+
+  private[this] def initFunction(session: Session, builtSessionScaffold: BuiltSessionScaffold): Unit = {
+    if (additionalInitOps.nonEmpty)
+      session.run(targets = additionalInitOps)
+  }
+
   /** The underlying session that is kept alive throughout this estimator's lifetime. */
   private[this] val session: MonitoredSession = {
     Op.createWith(graph = graph, deviceFunction = deviceFunction.getOrElse(_.device)) {
@@ -133,7 +138,7 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
         configuration = configuration,
         hooks = allTrainHooks.toSet ++ inferHooks ++ evaluateHooks,
         chiefOnlyHooks = allTrainChiefOnlyHooks.toSet,
-        sessionScaffold = SessionScaffold(saver = saver))
+        sessionScaffold = SessionScaffold(initFunction = Some(initFunction), saver = saver))
     }
   }
 
@@ -152,6 +157,7 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
       if (frozen)
         graph.unFreeze()
       val initializer = trainingOps.inputIterator.createInitializer(data())
+      additionalInitOps = Set(initializer)
       if (frozen)
         graph.freeze()
       session.disableHooks()
@@ -208,6 +214,7 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
       if (frozen)
         graph.unFreeze()
       val initializer = inferenceOps.inputIterator.createInitializer(ev.toDataset(input()))
+      additionalInitOps = Set(initializer)
       if (frozen)
         graph.freeze()
       session.disableHooks()
@@ -284,6 +291,7 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
       if (frozen)
         graph.unFreeze()
       val initializer = evaluationOps.inputIterator.createInitializer(data())
+      additionalInitOps = Set(initializer)
       if (frozen)
         graph.freeze()
       session.disableHooks()
