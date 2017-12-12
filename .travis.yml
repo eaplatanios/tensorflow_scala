@@ -28,7 +28,7 @@ before_install:
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew update; fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew outdated gcc49 || brew upgrade gcc49; fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew outdated protobuf || brew upgrade protobuf; fi
-  - rvm use 2.2.3 --install --fuzzy
+  - rvm use 2.2.5 --install --fuzzy
   - gem update --system
   - gem install sass
   - gem install jekyll -v 3.2.1
