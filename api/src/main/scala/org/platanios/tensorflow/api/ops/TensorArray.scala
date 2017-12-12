@@ -354,11 +354,13 @@ private[api] object TensorArray {
       if (colocateWithFirstWrite) {
         Op.createWith(device = null) {
           Op.colocateWith(Set.empty[Op], ignoreExisting = true) {
-            TensorArray.createOp(size, dataType, elementShape, dynamicSize, clearAfterRead, tensorArrayName, name)
+            TensorArray.createOp(
+              size, dataType, elementShape, dynamicSize, clearAfterRead, inferShape, tensorArrayName, name)
           }
         }
       } else {
-        TensorArray.createOp(size, dataType, elementShape, dynamicSize, clearAfterRead, tensorArrayName, name)
+        TensorArray.createOp(
+          size, dataType, elementShape, dynamicSize, clearAfterRead, inferShape, tensorArrayName, name)
       }
     }
     createFromHandle(handle, flow, dataType, inferShape, elementShape, colocateWithFirstWrite)
@@ -403,6 +405,8 @@ private[api] object TensorArray {
     *                         By default, this is not allowed.
     * @param  clearAfterRead  Boolean value indicating whether to clear the tensors in the array, after being read. This
     *                         disables multiple read semantics but allows early release of memory. Defaults to `true`.
+    * @param  inferShape      Boolean value indicating whether shape inference is enabled. If `true`, all elements must
+    *                         have the same shape.
     * @param  tensorArrayName Overrides the name used for the temporary tensor array resource. If not provided or if an
     *                         empty string is provided, then the name of the created op is used, which is guaranteed to
     *                         be unique.
@@ -411,7 +415,7 @@ private[api] object TensorArray {
     */
   private[TensorArray] def createOp(
       size: Output, dataType: DataType, elementShape: Shape = Shape.unknown(), dynamicSize: Boolean = false,
-      clearAfterRead: Boolean = true, tensorArrayName: String = "",
+      clearAfterRead: Boolean = true, inferShape: Boolean = true, tensorArrayName: String = "",
       name: String = "TensorArray"): (Output, Output) = {
     val outputs = Op.Builder(opType = "TensorArrayV3", name = name)
         .addInput(size)
@@ -419,6 +423,7 @@ private[api] object TensorArray {
         .setAttribute("element_shape", elementShape)
         .setAttribute("dynamic_size", dynamicSize)
         .setAttribute("clear_after_read", clearAfterRead)
+        .setAttribute("identical_element_shapes", inferShape)
         .setAttribute("tensor_array_name", tensorArrayName)
         .build().outputs
     (outputs(0), outputs(1))
