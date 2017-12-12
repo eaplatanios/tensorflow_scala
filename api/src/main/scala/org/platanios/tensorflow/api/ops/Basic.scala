@@ -67,6 +67,18 @@ private[api] trait Basic {
         .build().outputs(0)
   }
 
+  /** $OpDocBasicGuaranteeConstant
+    *
+    * @param  input Input tensor to guarantee that is constant.
+    * @param  name  Name for the created op.
+    * @return Created op output which is equal to the input tensor.
+    */
+  def guaranteeConstant(input: Output, name: String = "GuaranteeConstant"): Output = {
+    Op.Builder(opType = "GuaranteeConst", name = name)
+        .addInput(input)
+        .build().outputs(0)
+  }
+
   /** $OpDocBasicImmutableConstant
     *
     * @group BasicOps
@@ -2031,6 +2043,7 @@ object Basic extends Basic {
     GradientsRegistry.registerNonDifferentiable("BroadcastGradientArgs")
     GradientsRegistry.registerNonDifferentiable("StopGradient")
 
+    GradientsRegistry.register("GuaranteeConst", identityGradient)
     GradientsRegistry.register("Fill", fillGradient)
     GradientsRegistry.register("PlaceholderWithDefault", identityGradient)
     GradientsRegistry.register("Identity", identityGradient)
@@ -2438,6 +2451,11 @@ object Basic extends Basic {
     *
     *   The argument `shape` is optional. If present, it specifies the dimensions of the resulting tensor. If not
     *   present, the shape of `value` is used.
+    *
+    * @define OpDocBasicGuaranteeConstant
+    *   The `guaranteeConstant` op gives a guarantee to the TensorFlow runtime that the input tensor is a constant. The
+    *   runtime is then free to make optimizations based on this. The op only accepts value-typed tensors as inputs and
+    *   rejects resource variable handles. It returns the input tensor without modification.
     *
     * @define OpDocBasicImmutableConstant
     *   The `immutableConstant` op returns an immutable tensor from the provided memory region.
