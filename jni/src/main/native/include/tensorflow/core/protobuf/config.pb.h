@@ -1224,6 +1224,12 @@ class ConfigProto : public ::google::protobuf::Message /* @@protoc_insertion_poi
   bool log_device_placement() const;
   void set_log_device_placement(bool value);
 
+  // bool isolate_session_state = 15;
+  void clear_isolate_session_state();
+  static const int kIsolateSessionStateFieldNumber = 15;
+  bool isolate_session_state() const;
+  void set_isolate_session_state(bool value);
+
   // int64 operation_timeout_in_ms = 11;
   void clear_operation_timeout_in_ms();
   static const int kOperationTimeoutInMsFieldNumber = 11;
@@ -1276,6 +1282,7 @@ class ConfigProto : public ::google::protobuf::Message /* @@protoc_insertion_poi
   bool use_per_session_threads_;
   bool allow_soft_placement_;
   bool log_device_placement_;
+  bool isolate_session_state_;
   ::google::protobuf::int64 operation_timeout_in_ms_;
   mutable int _cached_size_;
   friend struct protobuf_tensorflow_2fcore_2fprotobuf_2fconfig_2eproto::TableStruct;
@@ -2691,6 +2698,20 @@ inline  void ConfigProto::set_allocated_cluster_def(::tensorflow::ClusterDef* cl
     
   }
   // @@protoc_insertion_point(field_set_allocated:tensorflow.ConfigProto.cluster_def)
+}
+
+// bool isolate_session_state = 15;
+inline void ConfigProto::clear_isolate_session_state() {
+  isolate_session_state_ = false;
+}
+inline bool ConfigProto::isolate_session_state() const {
+  // @@protoc_insertion_point(field_get:tensorflow.ConfigProto.isolate_session_state)
+  return isolate_session_state_;
+}
+inline void ConfigProto::set_isolate_session_state(bool value) {
+  
+  isolate_session_state_ = value;
+  // @@protoc_insertion_point(field_set:tensorflow.ConfigProto.isolate_session_state)
 }
 
 // -------------------------------------------------------------------

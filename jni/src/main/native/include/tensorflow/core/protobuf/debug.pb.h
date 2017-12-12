@@ -37,6 +37,12 @@ extern DebugOptionsDefaultTypeInternal _DebugOptions_default_instance_;
 class DebugTensorWatch;
 class DebugTensorWatchDefaultTypeInternal;
 extern DebugTensorWatchDefaultTypeInternal _DebugTensorWatch_default_instance_;
+class DebuggedSourceFile;
+class DebuggedSourceFileDefaultTypeInternal;
+extern DebuggedSourceFileDefaultTypeInternal _DebuggedSourceFile_default_instance_;
+class DebuggedSourceFiles;
+class DebuggedSourceFilesDefaultTypeInternal;
+extern DebuggedSourceFilesDefaultTypeInternal _DebuggedSourceFiles_default_instance_;
 }  // namespace tensorflow
 
 namespace tensorflow {
@@ -364,6 +370,302 @@ class DebugOptions : public ::google::protobuf::Message /* @@protoc_insertion_po
   mutable int _cached_size_;
   friend struct protobuf_tensorflow_2fcore_2fprotobuf_2fdebug_2eproto::TableStruct;
 };
+// -------------------------------------------------------------------
+
+class DebuggedSourceFile : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:tensorflow.DebuggedSourceFile) */ {
+ public:
+  DebuggedSourceFile();
+  virtual ~DebuggedSourceFile();
+
+  DebuggedSourceFile(const DebuggedSourceFile& from);
+
+  inline DebuggedSourceFile& operator=(const DebuggedSourceFile& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  #if LANG_CXX11
+  DebuggedSourceFile(DebuggedSourceFile&& from) noexcept
+    : DebuggedSourceFile() {
+    *this = ::std::move(from);
+  }
+
+  inline DebuggedSourceFile& operator=(DebuggedSourceFile&& from) noexcept {
+    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
+      if (this != &from) InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+  #endif
+  inline ::google::protobuf::Arena* GetArena() const PROTOBUF_FINAL {
+    return GetArenaNoVirtual();
+  }
+  inline void* GetMaybeArenaPointer() const PROTOBUF_FINAL {
+    return MaybeArenaPtr();
+  }
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const DebuggedSourceFile& default_instance();
+
+  static inline const DebuggedSourceFile* internal_default_instance() {
+    return reinterpret_cast<const DebuggedSourceFile*>(
+               &_DebuggedSourceFile_default_instance_);
+  }
+  static PROTOBUF_CONSTEXPR int const kIndexInFileMessages =
+    2;
+
+  void UnsafeArenaSwap(DebuggedSourceFile* other);
+  void Swap(DebuggedSourceFile* other);
+  friend void swap(DebuggedSourceFile& a, DebuggedSourceFile& b) {
+    a.Swap(&b);
+  }
+
+  // implements Message ----------------------------------------------
+
+  inline DebuggedSourceFile* New() const PROTOBUF_FINAL { return New(NULL); }
+
+  DebuggedSourceFile* New(::google::protobuf::Arena* arena) const PROTOBUF_FINAL;
+  void CopyFrom(const ::google::protobuf::Message& from) PROTOBUF_FINAL;
+  void MergeFrom(const ::google::protobuf::Message& from) PROTOBUF_FINAL;
+  void CopyFrom(const DebuggedSourceFile& from);
+  void MergeFrom(const DebuggedSourceFile& from);
+  void Clear() PROTOBUF_FINAL;
+  bool IsInitialized() const PROTOBUF_FINAL;
+
+  size_t ByteSizeLong() const PROTOBUF_FINAL;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input) PROTOBUF_FINAL;
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const PROTOBUF_FINAL;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* target) const PROTOBUF_FINAL;
+  int GetCachedSize() const PROTOBUF_FINAL { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const PROTOBUF_FINAL;
+  void InternalSwap(DebuggedSourceFile* other);
+  protected:
+  explicit DebuggedSourceFile(::google::protobuf::Arena* arena);
+  private:
+  static void ArenaDtor(void* object);
+  inline void RegisterArenaDtor(::google::protobuf::Arena* arena);
+  private:
+  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
+    return _internal_metadata_.arena();
+  }
+  inline void* MaybeArenaPtr() const {
+    return _internal_metadata_.raw_arena_ptr();
+  }
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const PROTOBUF_FINAL;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // repeated string lines = 5;
+  int lines_size() const;
+  void clear_lines();
+  static const int kLinesFieldNumber = 5;
+  const ::std::string& lines(int index) const;
+  ::std::string* mutable_lines(int index);
+  void set_lines(int index, const ::std::string& value);
+  #if LANG_CXX11
+  void set_lines(int index, ::std::string&& value);
+  #endif
+  void set_lines(int index, const char* value);
+  void set_lines(int index, const char* value, size_t size);
+  ::std::string* add_lines();
+  void add_lines(const ::std::string& value);
+  #if LANG_CXX11
+  void add_lines(::std::string&& value);
+  #endif
+  void add_lines(const char* value);
+  void add_lines(const char* value, size_t size);
+  const ::google::protobuf::RepeatedPtrField< ::std::string>& lines() const;
+  ::google::protobuf::RepeatedPtrField< ::std::string>* mutable_lines();
+
+  // string host = 1;
+  void clear_host();
+  static const int kHostFieldNumber = 1;
+  const ::std::string& host() const;
+  void set_host(const ::std::string& value);
+  #if LANG_CXX11
+  void set_host(::std::string&& value);
+  #endif
+  void set_host(const char* value);
+  void set_host(const char* value, size_t size);
+  ::std::string* mutable_host();
+  ::std::string* release_host();
+  void set_allocated_host(::std::string* host);
+  ::std::string* unsafe_arena_release_host();
+  void unsafe_arena_set_allocated_host(
+      ::std::string* host);
+
+  // string file_path = 2;
+  void clear_file_path();
+  static const int kFilePathFieldNumber = 2;
+  const ::std::string& file_path() const;
+  void set_file_path(const ::std::string& value);
+  #if LANG_CXX11
+  void set_file_path(::std::string&& value);
+  #endif
+  void set_file_path(const char* value);
+  void set_file_path(const char* value, size_t size);
+  ::std::string* mutable_file_path();
+  ::std::string* release_file_path();
+  void set_allocated_file_path(::std::string* file_path);
+  ::std::string* unsafe_arena_release_file_path();
+  void unsafe_arena_set_allocated_file_path(
+      ::std::string* file_path);
+
+  // int64 last_modified = 3;
+  void clear_last_modified();
+  static const int kLastModifiedFieldNumber = 3;
+  ::google::protobuf::int64 last_modified() const;
+  void set_last_modified(::google::protobuf::int64 value);
+
+  // int64 bytes = 4;
+  void clear_bytes();
+  static const int kBytesFieldNumber = 4;
+  ::google::protobuf::int64 bytes() const;
+  void set_bytes(::google::protobuf::int64 value);
+
+  // @@protoc_insertion_point(class_scope:tensorflow.DebuggedSourceFile)
+ private:
+
+  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  template <typename T> friend class ::google::protobuf::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  ::google::protobuf::RepeatedPtrField< ::std::string> lines_;
+  ::google::protobuf::internal::ArenaStringPtr host_;
+  ::google::protobuf::internal::ArenaStringPtr file_path_;
+  ::google::protobuf::int64 last_modified_;
+  ::google::protobuf::int64 bytes_;
+  mutable int _cached_size_;
+  friend struct protobuf_tensorflow_2fcore_2fprotobuf_2fdebug_2eproto::TableStruct;
+};
+// -------------------------------------------------------------------
+
+class DebuggedSourceFiles : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:tensorflow.DebuggedSourceFiles) */ {
+ public:
+  DebuggedSourceFiles();
+  virtual ~DebuggedSourceFiles();
+
+  DebuggedSourceFiles(const DebuggedSourceFiles& from);
+
+  inline DebuggedSourceFiles& operator=(const DebuggedSourceFiles& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  #if LANG_CXX11
+  DebuggedSourceFiles(DebuggedSourceFiles&& from) noexcept
+    : DebuggedSourceFiles() {
+    *this = ::std::move(from);
+  }
+
+  inline DebuggedSourceFiles& operator=(DebuggedSourceFiles&& from) noexcept {
+    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
+      if (this != &from) InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+  #endif
+  inline ::google::protobuf::Arena* GetArena() const PROTOBUF_FINAL {
+    return GetArenaNoVirtual();
+  }
+  inline void* GetMaybeArenaPointer() const PROTOBUF_FINAL {
+    return MaybeArenaPtr();
+  }
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const DebuggedSourceFiles& default_instance();
+
+  static inline const DebuggedSourceFiles* internal_default_instance() {
+    return reinterpret_cast<const DebuggedSourceFiles*>(
+               &_DebuggedSourceFiles_default_instance_);
+  }
+  static PROTOBUF_CONSTEXPR int const kIndexInFileMessages =
+    3;
+
+  void UnsafeArenaSwap(DebuggedSourceFiles* other);
+  void Swap(DebuggedSourceFiles* other);
+  friend void swap(DebuggedSourceFiles& a, DebuggedSourceFiles& b) {
+    a.Swap(&b);
+  }
+
+  // implements Message ----------------------------------------------
+
+  inline DebuggedSourceFiles* New() const PROTOBUF_FINAL { return New(NULL); }
+
+  DebuggedSourceFiles* New(::google::protobuf::Arena* arena) const PROTOBUF_FINAL;
+  void CopyFrom(const ::google::protobuf::Message& from) PROTOBUF_FINAL;
+  void MergeFrom(const ::google::protobuf::Message& from) PROTOBUF_FINAL;
+  void CopyFrom(const DebuggedSourceFiles& from);
+  void MergeFrom(const DebuggedSourceFiles& from);
+  void Clear() PROTOBUF_FINAL;
+  bool IsInitialized() const PROTOBUF_FINAL;
+
+  size_t ByteSizeLong() const PROTOBUF_FINAL;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input) PROTOBUF_FINAL;
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const PROTOBUF_FINAL;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* target) const PROTOBUF_FINAL;
+  int GetCachedSize() const PROTOBUF_FINAL { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const PROTOBUF_FINAL;
+  void InternalSwap(DebuggedSourceFiles* other);
+  protected:
+  explicit DebuggedSourceFiles(::google::protobuf::Arena* arena);
+  private:
+  static void ArenaDtor(void* object);
+  inline void RegisterArenaDtor(::google::protobuf::Arena* arena);
+  private:
+  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
+    return _internal_metadata_.arena();
+  }
+  inline void* MaybeArenaPtr() const {
+    return _internal_metadata_.raw_arena_ptr();
+  }
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const PROTOBUF_FINAL;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // repeated .tensorflow.DebuggedSourceFile source_files = 1;
+  int source_files_size() const;
+  void clear_source_files();
+  static const int kSourceFilesFieldNumber = 1;
+  const ::tensorflow::DebuggedSourceFile& source_files(int index) const;
+  ::tensorflow::DebuggedSourceFile* mutable_source_files(int index);
+  ::tensorflow::DebuggedSourceFile* add_source_files();
+  ::google::protobuf::RepeatedPtrField< ::tensorflow::DebuggedSourceFile >*
+      mutable_source_files();
+  const ::google::protobuf::RepeatedPtrField< ::tensorflow::DebuggedSourceFile >&
+      source_files() const;
+
+  // @@protoc_insertion_point(class_scope:tensorflow.DebuggedSourceFiles)
+ private:
+
+  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  template <typename T> friend class ::google::protobuf::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  ::google::protobuf::RepeatedPtrField< ::tensorflow::DebuggedSourceFile > source_files_;
+  mutable int _cached_size_;
+  friend struct protobuf_tensorflow_2fcore_2fprotobuf_2fdebug_2eproto::TableStruct;
+};
 // ===================================================================
 
 
@@ -665,10 +967,299 @@ inline void DebugOptions::set_global_step(::google::protobuf::int64 value) {
   // @@protoc_insertion_point(field_set:tensorflow.DebugOptions.global_step)
 }
 
+// -------------------------------------------------------------------
+
+// DebuggedSourceFile
+
+// string host = 1;
+inline void DebuggedSourceFile::clear_host() {
+  host_.ClearToEmpty(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+}
+inline const ::std::string& DebuggedSourceFile::host() const {
+  // @@protoc_insertion_point(field_get:tensorflow.DebuggedSourceFile.host)
+  return host_.Get();
+}
+inline void DebuggedSourceFile::set_host(const ::std::string& value) {
+  
+  host_.Set(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value, GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_set:tensorflow.DebuggedSourceFile.host)
+}
+#if LANG_CXX11
+inline void DebuggedSourceFile::set_host(::std::string&& value) {
+  
+  host_.Set(
+    &::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::move(value), GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_set_rvalue:tensorflow.DebuggedSourceFile.host)
+}
+#endif
+inline void DebuggedSourceFile::set_host(const char* value) {
+  GOOGLE_DCHECK(value != NULL);
+  
+  host_.Set(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
+              GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_set_char:tensorflow.DebuggedSourceFile.host)
+}
+inline void DebuggedSourceFile::set_host(const char* value,
+    size_t size) {
+  
+  host_.Set(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(
+      reinterpret_cast<const char*>(value), size), GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_set_pointer:tensorflow.DebuggedSourceFile.host)
+}
+inline ::std::string* DebuggedSourceFile::mutable_host() {
+  
+  // @@protoc_insertion_point(field_mutable:tensorflow.DebuggedSourceFile.host)
+  return host_.Mutable(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+}
+inline ::std::string* DebuggedSourceFile::release_host() {
+  // @@protoc_insertion_point(field_release:tensorflow.DebuggedSourceFile.host)
+  
+  return host_.Release(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+}
+inline ::std::string* DebuggedSourceFile::unsafe_arena_release_host() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:tensorflow.DebuggedSourceFile.host)
+  GOOGLE_DCHECK(GetArenaNoVirtual() != NULL);
+  
+  return host_.UnsafeArenaRelease(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      GetArenaNoVirtual());
+}
+inline void DebuggedSourceFile::set_allocated_host(::std::string* host) {
+  if (host != NULL) {
+    
+  } else {
+    
+  }
+  host_.SetAllocated(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), host,
+      GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_set_allocated:tensorflow.DebuggedSourceFile.host)
+}
+inline void DebuggedSourceFile::unsafe_arena_set_allocated_host(
+    ::std::string* host) {
+  GOOGLE_DCHECK(GetArenaNoVirtual() != NULL);
+  if (host != NULL) {
+    
+  } else {
+    
+  }
+  host_.UnsafeArenaSetAllocated(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      host, GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tensorflow.DebuggedSourceFile.host)
+}
+
+// string file_path = 2;
+inline void DebuggedSourceFile::clear_file_path() {
+  file_path_.ClearToEmpty(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+}
+inline const ::std::string& DebuggedSourceFile::file_path() const {
+  // @@protoc_insertion_point(field_get:tensorflow.DebuggedSourceFile.file_path)
+  return file_path_.Get();
+}
+inline void DebuggedSourceFile::set_file_path(const ::std::string& value) {
+  
+  file_path_.Set(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value, GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_set:tensorflow.DebuggedSourceFile.file_path)
+}
+#if LANG_CXX11
+inline void DebuggedSourceFile::set_file_path(::std::string&& value) {
+  
+  file_path_.Set(
+    &::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::move(value), GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_set_rvalue:tensorflow.DebuggedSourceFile.file_path)
+}
+#endif
+inline void DebuggedSourceFile::set_file_path(const char* value) {
+  GOOGLE_DCHECK(value != NULL);
+  
+  file_path_.Set(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
+              GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_set_char:tensorflow.DebuggedSourceFile.file_path)
+}
+inline void DebuggedSourceFile::set_file_path(const char* value,
+    size_t size) {
+  
+  file_path_.Set(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(
+      reinterpret_cast<const char*>(value), size), GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_set_pointer:tensorflow.DebuggedSourceFile.file_path)
+}
+inline ::std::string* DebuggedSourceFile::mutable_file_path() {
+  
+  // @@protoc_insertion_point(field_mutable:tensorflow.DebuggedSourceFile.file_path)
+  return file_path_.Mutable(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+}
+inline ::std::string* DebuggedSourceFile::release_file_path() {
+  // @@protoc_insertion_point(field_release:tensorflow.DebuggedSourceFile.file_path)
+  
+  return file_path_.Release(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+}
+inline ::std::string* DebuggedSourceFile::unsafe_arena_release_file_path() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:tensorflow.DebuggedSourceFile.file_path)
+  GOOGLE_DCHECK(GetArenaNoVirtual() != NULL);
+  
+  return file_path_.UnsafeArenaRelease(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      GetArenaNoVirtual());
+}
+inline void DebuggedSourceFile::set_allocated_file_path(::std::string* file_path) {
+  if (file_path != NULL) {
+    
+  } else {
+    
+  }
+  file_path_.SetAllocated(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), file_path,
+      GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_set_allocated:tensorflow.DebuggedSourceFile.file_path)
+}
+inline void DebuggedSourceFile::unsafe_arena_set_allocated_file_path(
+    ::std::string* file_path) {
+  GOOGLE_DCHECK(GetArenaNoVirtual() != NULL);
+  if (file_path != NULL) {
+    
+  } else {
+    
+  }
+  file_path_.UnsafeArenaSetAllocated(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      file_path, GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tensorflow.DebuggedSourceFile.file_path)
+}
+
+// int64 last_modified = 3;
+inline void DebuggedSourceFile::clear_last_modified() {
+  last_modified_ = GOOGLE_LONGLONG(0);
+}
+inline ::google::protobuf::int64 DebuggedSourceFile::last_modified() const {
+  // @@protoc_insertion_point(field_get:tensorflow.DebuggedSourceFile.last_modified)
+  return last_modified_;
+}
+inline void DebuggedSourceFile::set_last_modified(::google::protobuf::int64 value) {
+  
+  last_modified_ = value;
+  // @@protoc_insertion_point(field_set:tensorflow.DebuggedSourceFile.last_modified)
+}
+
+// int64 bytes = 4;
+inline void DebuggedSourceFile::clear_bytes() {
+  bytes_ = GOOGLE_LONGLONG(0);
+}
+inline ::google::protobuf::int64 DebuggedSourceFile::bytes() const {
+  // @@protoc_insertion_point(field_get:tensorflow.DebuggedSourceFile.bytes)
+  return bytes_;
+}
+inline void DebuggedSourceFile::set_bytes(::google::protobuf::int64 value) {
+  
+  bytes_ = value;
+  // @@protoc_insertion_point(field_set:tensorflow.DebuggedSourceFile.bytes)
+}
+
+// repeated string lines = 5;
+inline int DebuggedSourceFile::lines_size() const {
+  return lines_.size();
+}
+inline void DebuggedSourceFile::clear_lines() {
+  lines_.Clear();
+}
+inline const ::std::string& DebuggedSourceFile::lines(int index) const {
+  // @@protoc_insertion_point(field_get:tensorflow.DebuggedSourceFile.lines)
+  return lines_.Get(index);
+}
+inline ::std::string* DebuggedSourceFile::mutable_lines(int index) {
+  // @@protoc_insertion_point(field_mutable:tensorflow.DebuggedSourceFile.lines)
+  return lines_.Mutable(index);
+}
+inline void DebuggedSourceFile::set_lines(int index, const ::std::string& value) {
+  // @@protoc_insertion_point(field_set:tensorflow.DebuggedSourceFile.lines)
+  lines_.Mutable(index)->assign(value);
+}
+#if LANG_CXX11
+inline void DebuggedSourceFile::set_lines(int index, ::std::string&& value) {
+  // @@protoc_insertion_point(field_set:tensorflow.DebuggedSourceFile.lines)
+  lines_.Mutable(index)->assign(std::move(value));
+}
+#endif
+inline void DebuggedSourceFile::set_lines(int index, const char* value) {
+  GOOGLE_DCHECK(value != NULL);
+  lines_.Mutable(index)->assign(value);
+  // @@protoc_insertion_point(field_set_char:tensorflow.DebuggedSourceFile.lines)
+}
+inline void DebuggedSourceFile::set_lines(int index, const char* value, size_t size) {
+  lines_.Mutable(index)->assign(
+    reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_set_pointer:tensorflow.DebuggedSourceFile.lines)
+}
+inline ::std::string* DebuggedSourceFile::add_lines() {
+  // @@protoc_insertion_point(field_add_mutable:tensorflow.DebuggedSourceFile.lines)
+  return lines_.Add();
+}
+inline void DebuggedSourceFile::add_lines(const ::std::string& value) {
+  lines_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add:tensorflow.DebuggedSourceFile.lines)
+}
+#if LANG_CXX11
+inline void DebuggedSourceFile::add_lines(::std::string&& value) {
+  lines_.Add(std::move(value));
+  // @@protoc_insertion_point(field_add:tensorflow.DebuggedSourceFile.lines)
+}
+#endif
+inline void DebuggedSourceFile::add_lines(const char* value) {
+  GOOGLE_DCHECK(value != NULL);
+  lines_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add_char:tensorflow.DebuggedSourceFile.lines)
+}
+inline void DebuggedSourceFile::add_lines(const char* value, size_t size) {
+  lines_.Add()->assign(reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_add_pointer:tensorflow.DebuggedSourceFile.lines)
+}
+inline const ::google::protobuf::RepeatedPtrField< ::std::string>&
+DebuggedSourceFile::lines() const {
+  // @@protoc_insertion_point(field_list:tensorflow.DebuggedSourceFile.lines)
+  return lines_;
+}
+inline ::google::protobuf::RepeatedPtrField< ::std::string>*
+DebuggedSourceFile::mutable_lines() {
+  // @@protoc_insertion_point(field_mutable_list:tensorflow.DebuggedSourceFile.lines)
+  return &lines_;
+}
+
+// -------------------------------------------------------------------
+
+// DebuggedSourceFiles
+
+// repeated .tensorflow.DebuggedSourceFile source_files = 1;
+inline int DebuggedSourceFiles::source_files_size() const {
+  return source_files_.size();
+}
+inline void DebuggedSourceFiles::clear_source_files() {
+  source_files_.Clear();
+}
+inline const ::tensorflow::DebuggedSourceFile& DebuggedSourceFiles::source_files(int index) const {
+  // @@protoc_insertion_point(field_get:tensorflow.DebuggedSourceFiles.source_files)
+  return source_files_.Get(index);
+}
+inline ::tensorflow::DebuggedSourceFile* DebuggedSourceFiles::mutable_source_files(int index) {
+  // @@protoc_insertion_point(field_mutable:tensorflow.DebuggedSourceFiles.source_files)
+  return source_files_.Mutable(index);
+}
+inline ::tensorflow::DebuggedSourceFile* DebuggedSourceFiles::add_source_files() {
+  // @@protoc_insertion_point(field_add:tensorflow.DebuggedSourceFiles.source_files)
+  return source_files_.Add();
+}
+inline ::google::protobuf::RepeatedPtrField< ::tensorflow::DebuggedSourceFile >*
+DebuggedSourceFiles::mutable_source_files() {
+  // @@protoc_insertion_point(field_mutable_list:tensorflow.DebuggedSourceFiles.source_files)
+  return &source_files_;
+}
+inline const ::google::protobuf::RepeatedPtrField< ::tensorflow::DebuggedSourceFile >&
+DebuggedSourceFiles::source_files() const {
+  // @@protoc_insertion_point(field_list:tensorflow.DebuggedSourceFiles.source_files)
+  return source_files_;
+}
+
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
 #endif  // !PROTOBUF_INLINE_NOT_IN_HEADERS
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 

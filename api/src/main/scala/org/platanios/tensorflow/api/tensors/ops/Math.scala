@@ -16,6 +16,7 @@
 package org.platanios.tensorflow.api.tensors.ops
 
 import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.tensors._
 import org.platanios.tensorflow.api.types._
 import org.platanios.tensorflow.jni.InvalidArgumentException
