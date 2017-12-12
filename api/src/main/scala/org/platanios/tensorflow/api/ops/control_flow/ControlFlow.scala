@@ -17,6 +17,7 @@ package org.platanios.tensorflow.api.ops.control_flow
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception._
+import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.tensors.Tensor
@@ -203,6 +204,8 @@ private[api] trait ControlFlow {
     * @param  parallelIterations    Number of iterations allowed to run in parallel.
     * @param  enableBackPropagation If `true`, back-propagation support is enabled for this while-loop context.
     * @param  swapMemory            If `true`, GPU-CPU memory swapping support is enabled for this while-loop context.
+    * @param  maximumIterations     Optional `INT32` scalar specifying the maximum number of iterations to loop for. If
+    *                               `null` (the default), no iteration limit is enforced.
     * @param  name                  Name prefix for the created ops.
     * @return Created op output structure containing the loop variables values after the loop finishes, mirroring the
     *         return structure of `bodyFn`.
@@ -210,7 +213,7 @@ private[api] trait ControlFlow {
   def whileLoop[T, TS](
       predicateFn: T => Output, bodyFn: T => T, loopVariables: T, shapeInvariants: Option[TS] = None,
       parallelIterations: Int = 10, enableBackPropagation: Boolean = true, swapMemory: Boolean = false,
-      name: String = "WhileLoop"
+      maximumIterations: Output = null, name: String = "WhileLoop"
   )(implicit
       ev: WhileLoopVariable.Aux[T, TS]
   ): T = {
@@ -218,7 +221,19 @@ private[api] trait ControlFlow {
     Op.createWithNameScope(name) {
       val loopContext = WhileLoopContext(parallelIterations, enableBackPropagation, swapMemory)
       Op.currentGraph.addToCollection(loopContext, WhileLoopContext.WHILE_LOOP_CONTEXTS)
-      loopContext.buildLoop(predicateFn, bodyFn, loopVariables, shapeInvariants)
+      if (maximumIterations == null) {
+        loopContext.buildLoop(predicateFn, bodyFn, loopVariables, shapeInvariants)
+      } else {
+        require(maximumIterations.rank == 0 || maximumIterations.rank == -1,
+          s"'maximumIterations' must be a scalar, but has shape ${maximumIterations.shape}.")
+        val zero = Basic.constant(0, name = "Zero")
+        val one = Basic.constant(1, name = "One")
+        loopContext.buildLoop[(Output, T), (Shape, TS)](
+          (v: (Output, T)) => Math.logicalAnd(v._1 < maximumIterations, predicateFn(v._2)),
+          (v: (Output, T)) => (v._1 + one, bodyFn(v._2)),
+          (zero, loopVariables),
+          shapeInvariants.map((Shape.scalar(), _)))._2
+      }
     }
   }
 }
