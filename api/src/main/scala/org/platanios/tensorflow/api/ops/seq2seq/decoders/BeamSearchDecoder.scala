@@ -32,18 +32,6 @@ import scala.language.postfixOps
 
 /** Recurrent Neural Network (RNN) that uses beam search to find the highest scoring sequence (i.e., perform decoding).
   *
-  * '''NOTE:''' If you are using the `BeamSearchRNNDecoder` with a cell wrapped in an `AttentionWrapper`, then you must
-  * ensure that:
-  *
-  *   - The encoder output has been tiled to `beamWidth` via the `BeamSearchRNNDecoder.tileBatch` method (and NOT
-  *     `tf.tile`).
-  *   - The `batchSize` argument passed to the `zeroState` method of the wrapper is equal to
-  *     `trueBatchSize * beamWidth`.
-  *   - The initial state created with `zeroState` above contains a `cellState` value containing a properly tiled final
-  *     state from the encoder.
-  *
-  * // TODO: Add example.
-  *
   * @param  cell             RNN cell to use for decoding.
   * @param  initialCellState Initial RNN cell state to use for starting the decoding process.
   * @param  embeddingFn      Function that takes an `INT32` vector of IDs and returns the corresponding embedded values
@@ -78,7 +66,9 @@ class BeamSearchDecoder[S, SS](
     BeamSearchDecoder.Output, (Shape, Shape, Shape),
     BeamSearchDecoder.State[S, SS], (SS, Shape, Shape, Shape),
     BeamSearchDecoder.FinalOutput, BeamSearchDecoder.State[S, SS]](cell, name) {
-  if (evS.outputs(initialCellState).exists(_.rank == -1))
+  private[this] val tiledInitialCellState: S = evS.map(initialCellState, BeamSearchDecoder.tileBatch(_, beamWidth))
+
+  if (evS.outputs(tiledInitialCellState).exists(_.rank == -1))
     throw InvalidArgumentException("All tensors in the state need to have known rank for the beam search decoder.")
 
   if (beginTokens.rank != 1)
@@ -93,7 +83,7 @@ class BeamSearchDecoder[S, SS](
 
   private[this] val processedInitialCellState: S = Op.createWithNameScope(name, Set(batchSize.op)) {
     evS.mapWithShape(
-      initialCellState, cell.stateShape, BeamSearchDecoder.maybeSplitBatchBeams(_, _, batchSize, beamWidth))
+      tiledInitialCellState, cell.stateShape, BeamSearchDecoder.maybeSplitBatchBeams(_, _, batchSize, beamWidth))
   }
 
   private[this] val processedBeginTokens: Output = Op.createWithNameScope(name) {
@@ -122,7 +112,7 @@ class BeamSearchDecoder[S, SS](
 
   override def zeroOutput(): BeamSearchDecoder.Output = {
     // We assume the data type of the cell is the same as the initial cell state's first component tensor data type.
-    val dataType = evS.outputs(initialCellState).head.dataType
+    val dataType = evS.outputs(tiledInitialCellState).head.dataType
     val zScores = evOutput.zero(batchSize, dataType, Shape(beamWidth), "ZeroScores")
     val zPredictedIDs = evOutput.zero(batchSize, INT32, Shape(beamWidth), "ZeroPredictedIDs")
     val zParentIDs = evOutput.zero(batchSize, INT32, Shape(beamWidth), "ZeroParentIDs")

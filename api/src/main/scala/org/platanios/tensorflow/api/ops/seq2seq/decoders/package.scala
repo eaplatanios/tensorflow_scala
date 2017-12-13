@@ -15,8 +15,6 @@
 
 package org.platanios.tensorflow.api.ops.seq2seq
 
-import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
-
 /**
   * @author Emmanouil Antonios Platanios
   */
@@ -28,9 +26,5 @@ package object decoders {
 
     val BasicDecoder     : org.platanios.tensorflow.api.ops.seq2seq.decoders.BasicDecoder.type      = decoders.BasicDecoder
     val BeamSearchDecoder: org.platanios.tensorflow.api.ops.seq2seq.decoders.BeamSearchDecoder.type = decoders.BeamSearchDecoder
-
-    def beamSearchRNNDecoderTileBatch[T: WhileLoopVariable](value: T, multiplier: Int): T = {
-      implicitly[WhileLoopVariable[T]].map(value, BeamSearchDecoder.tileBatch(_, multiplier))
-    }
   }
 }
