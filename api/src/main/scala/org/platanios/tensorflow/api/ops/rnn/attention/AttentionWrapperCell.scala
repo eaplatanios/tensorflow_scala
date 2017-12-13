@@ -16,6 +16,7 @@
 package org.platanios.tensorflow.api.ops.rnn.attention
 
 import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
 import org.platanios.tensorflow.api.ops.rnn.cell.{RNNCell, Tuple}
@@ -52,7 +53,7 @@ class AttentionWrapperCell[S, SS] private[attention] (
     val name: String = "AttentionWrapperCell"
 )(implicit
     evS: WhileLoopVariable.Aux[S, SS]
-) extends RNNCell[Output, Shape, AttentionWrapperState[S, SS], (SS, Shape, Shape, Seq[Output], Seq[Shape])] {
+) extends RNNCell[Output, Shape, AttentionWrapperState[S, SS], (SS, Shape, Shape, Seq[Shape], Seq[Shape])] {
   private[this] val attentionLayersSize: Int = {
     if (attentionLayerWeights != null) {
       require(attentionLayerWeights.lengthCompare(attentionMechanisms.size) == 0,
@@ -85,7 +86,10 @@ class AttentionWrapperCell[S, SS] private[attention] (
           a.batchSize, batchSize, message =
               s"When calling `initialState` of `AttentionWrapperCell` '$name': Non-matching batch sizes between the " +
                   "memory (encoder output) and the requested batch size.")).toSet) {
-          evS.map(initialCellState, Basic.identity(_, "CheckedInitialCellState"))
+          evS.map(initialCellState, {
+            case s: TensorArray => s.identity
+            case s: OutputLike => Basic.identity(s, "CheckedInitialCellState")
+          })
         }
         AttentionWrapperState(
           cellState = checkedCellState,
@@ -179,6 +183,8 @@ object AttentionWrapperCell {
       outputAttention: Boolean = true,
       storeAlignmentsHistory: Boolean = false,
       name: String = "AttentionWrapperCell"
+  )(implicit
+      evS: WhileLoopVariable.Aux[S, SS]
   ): AttentionWrapperCell[S, SS] = {
     new AttentionWrapperCell[S, SS](
       cell, attentionMechanisms, attentionLayerWeights, cellInputFn, outputAttention, storeAlignmentsHistory, name)
