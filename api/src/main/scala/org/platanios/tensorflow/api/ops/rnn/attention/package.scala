@@ -110,8 +110,7 @@ package object attention {
   }
 
   private[rnn] trait API {
-    type AttentionMechanism[M, MS] = attention.AttentionMechanism[M, MS]
-    type Attention[M, MS] = attention.Attention[M, MS]
+    type Attention = attention.Attention
     type LuongAttention = attention.LuongAttention
     type AttentionWrapperCell[S, SS] = attention.AttentionWrapperCell[S, SS]
 

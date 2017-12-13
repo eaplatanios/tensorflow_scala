@@ -25,7 +25,7 @@ import org.platanios.tensorflow.api.types.{DataType, INT32}
 /** RNN cell that wraps another RNN cell and adds support for attention to it.
   *
   * @param  cell                   RNN cell being wrapped.
-  * @param  attentionMechanisms    Attention mechanisms to use.
+  * @param  attentions             Attention mechanisms to use.
   * @param  attentionLayerWeights  Attention layer weights to use for projecting the computed attention.
   * @param  cellInputFn            Function that takes the original cell input tensor and the attention tensor as inputs
   *                                and returns the mixed cell input to use. Defaults to concatenating the two tensors
@@ -45,7 +45,7 @@ import org.platanios.tensorflow.api.types.{DataType, INT32}
   */
 class AttentionWrapperCell[S, SS] private[attention] (
     val cell: RNNCell[Output, Shape, S, SS],
-    val attentionMechanisms: Seq[AttentionMechanism[Output, Shape]],
+    val attentions: Seq[Attention],
     val attentionLayerWeights: Seq[Output] = null,
     val cellInputFn: (Output, Output) => Output = (input, attention) => Basic.concatenate(Seq(input, attention), -1),
     val outputAttention: Boolean = true,
@@ -56,13 +56,13 @@ class AttentionWrapperCell[S, SS] private[attention] (
 ) extends RNNCell[Output, Shape, AttentionWrapperState[S, SS], (SS, Shape, Shape, Seq[Shape], Seq[Shape])] {
   private[this] val attentionLayersSize: Int = {
     if (attentionLayerWeights != null) {
-      require(attentionLayerWeights.lengthCompare(attentionMechanisms.size) == 0,
-        s"The number of attention layer sizes (${attentionLayerWeights.size}) must match the number of " +
-            s"attention mechanisms (${attentionMechanisms.size}).")
+      require(attentionLayerWeights.lengthCompare(attentions.size) == 0,
+        s"The number of attention layer weights (${attentionLayerWeights.size}) must match the number of " +
+            s"attention mechanisms (${attentions.size}).")
       val sizes = attentionLayerWeights.map(_.shape(-1))
       if (sizes.contains(-1)) -1 else sizes.sum
     } else {
-      val sizes = attentionMechanisms.map(_.values.shape(-1))
+      val sizes = attentions.map(_.values.shape(-1))
       if (sizes.contains(-1)) -1 else sizes.sum
     }
   }
@@ -82,7 +82,7 @@ class AttentionWrapperCell[S, SS] private[attention] (
         val state = evS.outputs(initialCellState).last
         val inferredDataType = if (dataType == null) state.dataType else dataType
         val batchSize: Output = if (state.rank != -1 && state.shape(0) != -1) state.shape(0) else Basic.shape(state)(0)
-        val checkedCellState = Op.createWith(controlDependencies = attentionMechanisms.map(a => Checks.assertEqual(
+        val checkedCellState = Op.createWith(controlDependencies = attentions.map(a => Checks.assertEqual(
           a.batchSize, batchSize, message =
               s"When calling `initialState` of `AttentionWrapperCell` '$name': Non-matching batch sizes between the " +
                   "memory (encoder output) and the requested batch size.")).toSet) {
@@ -95,8 +95,8 @@ class AttentionWrapperCell[S, SS] private[attention] (
           cellState = checkedCellState,
           time = Basic.zeros(INT32, Shape.scalar()),
           attention = Basic.fill(inferredDataType, Basic.stack(Seq(batchSize, attentionLayersSize)))(0),
-          alignments = attentionMechanisms.map(_.initialAlignments(batchSize, inferredDataType)),
-          alignmentsHistory = attentionMechanisms.map(_ => {
+          alignments = attentions.map(_.initialAlignment),
+          alignmentsHistory = attentions.map(_ => {
             if (storeAlignmentsHistory) TensorArray.create(0, inferredDataType, dynamicSize = true) else null
           }))
       }
@@ -107,8 +107,8 @@ class AttentionWrapperCell[S, SS] private[attention] (
 
   override def stateShape: (SS, Shape, Shape, Seq[Shape], Seq[Shape]) = {
     (cell.stateShape, Shape.scalar(), Shape(attentionLayersSize),
-        attentionMechanisms.map(a => Output.constantValueAsShape(a.alignmentsSize).getOrElse(Shape.unknown())),
-        attentionMechanisms.map(_ => Shape.scalar()))
+        attentions.map(a => Output.constantValueAsShape(a.alignmentSize).getOrElse(Shape.unknown())),
+        attentions.map(_ => Shape.scalar()))
   }
 
   /** Performs a step using this attention-wrapped RNN cell.
@@ -132,16 +132,16 @@ class AttentionWrapperCell[S, SS] private[attention] (
     val nextTuple = cell.forward(Tuple(cellInput, input.state.cellState))
     val output = nextTuple.output
     val batchSize: Output = if (output.rank != -1 && output.shape(0) != -1) output.shape(0) else Basic.shape(output)(0)
-    val checkedOutput = Op.createWith(controlDependencies = attentionMechanisms.map(a => Checks.assertEqual(
+    val checkedOutput = Op.createWith(controlDependencies = attentions.map(a => Checks.assertEqual(
       a.batchSize, batchSize, message =
           s"When calling `initialState` of `AttentionWrapperCell` '$name': Non-matching batch sizes between the " +
               "memory (encoder output) and the requested batch size.")).toSet) {
       Basic.identity(output, "CheckedCellOutput")
     }
-    val weights = if (attentionLayerWeights != null) attentionLayerWeights else attentionMechanisms.map(_ => null)
-    val (attentions, alignments) = (attentionMechanisms, input.state.alignments, weights).zipped.map {
+    val weights = if (attentionLayerWeights != null) attentionLayerWeights else attentions.map(_ => null)
+    val (allAttentions, allAlignments) = (attentions, input.state.alignments, weights).zipped.map {
       case (mechanism, previous, w) =>
-        val alignments = mechanism(checkedOutput, previous)
+        val alignments = mechanism.alignment(checkedOutput, previous)
         // Reshape from [batchSize, memoryTime] to [batchSize, 1, memoryTime]
         val expandedAlignments = alignments.expandDims(1)
         // Context is the inner product of alignments and values along the memory time dimension.
@@ -160,13 +160,13 @@ class AttentionWrapperCell[S, SS] private[attention] (
     }.unzip
     val histories = {
       if (storeAlignmentsHistory)
-        input.state.alignmentsHistory.zip(alignments).map(p => p._1.write(input.state.time, p._2))
+        input.state.alignmentsHistory.zip(allAlignments).map(p => p._1.write(input.state.time, p._2))
       else
         input.state.alignmentsHistory
     }
     val one = Basic.constant(1)
-    val attention = Basic.concatenate(attentions, one)
-    val nextState = AttentionWrapperState(nextTuple.state, input.state.time + one, attention, alignments, histories)
+    val attention = Basic.concatenate(allAttentions, one)
+    val nextState = AttentionWrapperState(nextTuple.state, input.state.time + one, attention, allAlignments, histories)
     if (outputAttention)
       Tuple(attention, nextState)
     else
@@ -177,7 +177,7 @@ class AttentionWrapperCell[S, SS] private[attention] (
 object AttentionWrapperCell {
   def apply[S, SS](
       cell: RNNCell[Output, Shape, S, SS],
-      attentionMechanisms: Seq[AttentionMechanism[Output, Shape]],
+      attentions: Seq[Attention],
       attentionLayerWeights: Seq[Output] = null,
       cellInputFn: (Output, Output) => Output = (input, attention) => Basic.concatenate(Seq(input, attention), -1),
       outputAttention: Boolean = true,
@@ -187,6 +187,6 @@ object AttentionWrapperCell {
       evS: WhileLoopVariable.Aux[S, SS]
   ): AttentionWrapperCell[S, SS] = {
     new AttentionWrapperCell[S, SS](
-      cell, attentionMechanisms, attentionLayerWeights, cellInputFn, outputAttention, storeAlignmentsHistory, name)
+      cell, attentions, attentionLayerWeights, cellInputFn, outputAttention, storeAlignmentsHistory, name)
   }
 }
