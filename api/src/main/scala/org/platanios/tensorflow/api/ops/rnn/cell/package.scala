@@ -52,7 +52,7 @@ package object cell {
         ): LSTMState = Op.createWithNameScope(name) {
           LSTMState(
             evOutput.zero(batchSize, dataType, shape._1, "Output"),
-            evOutput.zero(batchSize, dataType, shape._1, "State"))
+            evOutput.zero(batchSize, dataType, shape._2, "State"))
         }
 
         override def size(value: LSTMState): Int = evOutput.size(value.c) + evOutput.size(value.m)
