@@ -25,6 +25,15 @@ import org.platanios.tensorflow.api.types.DataType
   * @author Emmanouil Antonios Platanios
   */
 package object attention {
+  /** State of the attention wrapper RNN cell.
+    *
+    * @param  cellState         Wrapped cell state.
+    * @param  time              `INT32` scalar containing the current time step.
+    * @param  attention         Attention emitted at the previous time step.
+    * @param  alignments        Alignments emitted at the previous time step for each attention mechanism.
+    * @param  alignmentsHistory Alignments emitted at all time steps for each attention mechanism. Call `stack()` on
+    *                           each of the tensor arrays to convert them to tensors.
+    */
   case class AttentionWrapperState[S, SS](
       cellState: S, time: Output, attention: Output, alignments: Seq[Output], alignmentsHistory: Seq[TensorArray]
   )(implicit evS: WhileLoopVariable.Aux[S, SS])
