@@ -13,14 +13,13 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.ops
+package org.platanios.tensorflow.api.ops.rnn.attention
+
+import org.platanios.tensorflow.api.ops.Output
 
 /**
   * @author Emmanouil Antonios Platanios
   */
-package object rnn {
-  private[ops] trait API
-      extends attention.API
-          with cell.API
-          with RNN
+trait Attention[M, MS] {
+  def create(memory: M, memorySequenceLengths: Output = null): AttentionMechanism[M, MS]
 }
