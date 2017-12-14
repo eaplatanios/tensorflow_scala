@@ -16,6 +16,7 @@
 package org.platanios.tensorflow.api.ops.rnn.cell
 
 import org.platanios.tensorflow.api.ops.Op
+import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
 
 /** RNN cell that is composed by applying a sequence of RNN cells in order.
   *
@@ -32,6 +33,9 @@ import org.platanios.tensorflow.api.ops.Op
 class MultiRNNCell[O, OS, S, SS](
     val cells: Seq[RNNCell[O, OS, S, SS]],
     val name: String = "MultiRNNCell"
+)(implicit
+    evO: WhileLoopVariable.Aux[O, OS],
+    evS: WhileLoopVariable.Aux[S, SS]
 ) extends RNNCell[O, OS, Seq[S], Seq[SS]] {
   override def outputShape: OS = cells.last.outputShape
   override def stateShape: Seq[SS] = cells.map(_.stateShape)
@@ -51,7 +55,10 @@ object MultiRNNCell {
   def apply[O, OS, S, SS](
       cells: Seq[RNNCell[O, OS, S, SS]],
       name: String = "MultiRNNCell"
+  )(implicit
+      evO: WhileLoopVariable.Aux[O, OS],
+      evS: WhileLoopVariable.Aux[S, SS]
   ): MultiRNNCell[O, OS, S, SS] = {
-    new MultiRNNCell(cells, name)
+    new MultiRNNCell(cells, name)(evO, evS)
   }
 }

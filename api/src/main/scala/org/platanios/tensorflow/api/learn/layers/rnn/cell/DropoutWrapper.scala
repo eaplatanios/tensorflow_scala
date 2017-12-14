@@ -39,18 +39,18 @@ import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
   *
   * @author Emmanouil Antonios Platanios
   */
-class DropoutRNNCell[O, OS, S, SS](
+class DropoutWrapper[O, OS, S, SS](
     val cell: RNNCell[O, OS, S, SS],
     val inputKeepProbability: Float = 1.0f,
     val outputKeepProbability: Float = 1.0f,
     val stateKeepProbability: Float = 1.0f,
     val seed: Option[Int] = None,
-    override val name: String = "DropoutRNNCell"
+    override val name: String = "DropoutWrapper"
 )(implicit
     evO: WhileLoopVariable.Aux[O, OS],
     evS: WhileLoopVariable.Aux[S, SS],
-    evODropout: ops.rnn.cell.DropoutRNNCell.Supported[O],
-    evSDropout: ops.rnn.cell.DropoutRNNCell.Supported[S]
+    evODropout: ops.rnn.cell.DropoutWrapper.Supported[O],
+    evSDropout: ops.rnn.cell.DropoutWrapper.Supported[S]
 ) extends RNNCell[O, OS, S, SS](name)(evO, evS) {
   require(inputKeepProbability > 0.0 && inputKeepProbability <= 1.0,
     s"'inputKeepProbability' ($inputKeepProbability) must be in (0, 1].")
@@ -59,36 +59,36 @@ class DropoutRNNCell[O, OS, S, SS](
   require(stateKeepProbability > 0.0 && stateKeepProbability <= 1.0,
     s"'stateKeepProbability' ($stateKeepProbability) must be in (0, 1].")
 
-  override val layerType: String = "DropoutRNNCell"
+  override val layerType: String = "DropoutWrapper"
 
   override def createCell(mode: Mode, inputShape: OS): CellInstance[O, OS, S, SS] = {
     val cellInstance = cell.createCell(mode, inputShape)
     mode match {
       case TRAINING =>
-        val dropoutCell = ops.rnn.cell.DropoutRNNCell(
+        val dropoutCell = ops.rnn.cell.DropoutWrapper(
           cellInstance.cell, inputKeepProbability, outputKeepProbability, stateKeepProbability, seed,
-          uniquifiedName)(evODropout, evSDropout)
+          uniquifiedName)(evO, evS, evODropout, evSDropout)
         CellInstance(dropoutCell, cellInstance.trainableVariables, cellInstance.nonTrainableVariables)
       case _ => cellInstance
     }
   }
 }
 
-object DropoutRNNCell {
+object DropoutWrapper {
   def apply[O, OS, S, SS](
       cell: RNNCell[O, OS, S, SS],
       inputKeepProbability: Float = 1.0f,
       outputKeepProbability: Float = 1.0f,
       stateKeepProbability: Float = 1.0f,
       seed: Option[Int] = None,
-      name: String = "DropoutRNNCell"
+      name: String = "DropoutWrapper"
   )(implicit
       evO: WhileLoopVariable.Aux[O, OS],
       evS: WhileLoopVariable.Aux[S, SS],
-      evODropout: ops.rnn.cell.DropoutRNNCell.Supported[O],
-      evSDropout: ops.rnn.cell.DropoutRNNCell.Supported[S]
-  ): DropoutRNNCell[O, OS, S, SS] = {
-    new DropoutRNNCell(
+      evODropout: ops.rnn.cell.DropoutWrapper.Supported[O],
+      evSDropout: ops.rnn.cell.DropoutWrapper.Supported[S]
+  ): DropoutWrapper[O, OS, S, SS] = {
+    new DropoutWrapper(
       cell, inputKeepProbability, outputKeepProbability, stateKeepProbability, seed, name)(
       evO, evS, evODropout, evSDropout)
   }

@@ -47,7 +47,7 @@ class MultiRNNCell[O, OS, S, SS] private[cell] (
           cell._1.createCell(mode, inputShape)
         }
       })
-      val cell = ops.rnn.cell.MultiRNNCell(cellInstances.map(_.cell))
+      val cell = ops.rnn.cell.MultiRNNCell(cellInstances.map(_.cell))(evO, evS)
       CellInstance(
         cell,
         cellInstances.flatMap(_.trainableVariables).toSet,

@@ -16,6 +16,7 @@
 package org.platanios.tensorflow.api.ops.rnn.cell
 
 import org.platanios.tensorflow.api.ops.{NN, Op, Output, TensorArray}
+import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
 
 import shapeless._
 import shapeless.ops.hlist.Tupler
@@ -47,41 +48,47 @@ import scala.reflect.ClassTag
   *
   * @author Emmanouil Antonios Platanios
   */
-class DropoutRNNCell[O, OS, S, SS](
+class DropoutWrapper[O, OS, S, SS](
     val cell: RNNCell[O, OS, S, SS],
     val inputKeepProbability: Output = 1.0f,
     val outputKeepProbability: Output = 1.0f,
     val stateKeepProbability: Output = 1.0f,
     val seed: Option[Int] = None,
-    val name: String = "DropoutRNNCell"
+    val name: String = "DropoutWrapper"
 )(implicit
-    evO: DropoutRNNCell.Supported[O],
-    evS: DropoutRNNCell.Supported[S]
-) extends RNNCell[O, OS, S, SS] {
+    evO: WhileLoopVariable.Aux[O, OS],
+    evS: WhileLoopVariable.Aux[S, SS],
+    evODropout: DropoutWrapper.Supported[O],
+    evSDropout: DropoutWrapper.Supported[S]
+) extends RNNCell[O, OS, S, SS]()(evO, evS) {
   override def outputShape: OS = cell.outputShape
   override def stateShape: SS = cell.stateShape
   override def forward(input: Tuple[O, S]): Tuple[O, S] = Op.createWithNameScope(name) {
-    val dropoutInput = evO.dropout(input.output, inputKeepProbability, "input", seed)._1
+    val dropoutInput = evODropout.dropout(input.output, inputKeepProbability, "input", seed)._1
     val nextTuple = cell(Tuple(dropoutInput, input.state))
-    val nextState = evS.dropout(nextTuple.state, stateKeepProbability, "state", seed)._1
-    val nextOutput = evO.dropout(nextTuple.output, stateKeepProbability, "output", seed)._1
+    val nextState = evSDropout.dropout(nextTuple.state, stateKeepProbability, "state", seed)._1
+    val nextOutput = evODropout.dropout(nextTuple.output, stateKeepProbability, "output", seed)._1
     Tuple(nextOutput, nextState)
   }
 }
 
-object DropoutRNNCell {
+object DropoutWrapper {
   def apply[O, OS, S, SS](
       cell: RNNCell[O, OS, S, SS],
       inputKeepProbability: Output = 1.0f,
       outputKeepProbability: Output = 1.0f,
       stateKeepProbability: Output = 1.0f,
       seed: Option[Int] = None,
-      name: String = "DropoutRNNCell"
+      name: String = "DropoutWrapper"
   )(implicit
-      evO: DropoutRNNCell.Supported[O],
-      evS: DropoutRNNCell.Supported[S]
-  ): DropoutRNNCell[O, OS, S, SS] = {
-    new DropoutRNNCell(cell, inputKeepProbability, outputKeepProbability, stateKeepProbability, seed, name)(evO, evS)
+      evO: WhileLoopVariable.Aux[O, OS],
+      evS: WhileLoopVariable.Aux[S, SS],
+      evODropout: DropoutWrapper.Supported[O],
+      evSDropout: DropoutWrapper.Supported[S]
+  ): DropoutWrapper[O, OS, S, SS] = {
+    new DropoutWrapper(
+      cell, inputKeepProbability, outputKeepProbability, stateKeepProbability, seed, name)(
+      evO, evS, evODropout, evSDropout)
   }
 
   private[this] def generateSeed(saltPrefix: String, seed: Option[Int], index: Int): Option[Int] = {

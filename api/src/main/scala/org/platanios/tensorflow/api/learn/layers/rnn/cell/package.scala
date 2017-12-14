@@ -70,14 +70,16 @@ package object cell {
     type GRUCell = cell.GRUCell
     type BasicLSTMCell = cell.BasicLSTMCell
     type LSTMCell = cell.LSTMCell
-    type DropoutRNNCell[O, OS, S, SS] = cell.DropoutRNNCell[O, OS, S, SS]
+    type DeviceWrapper[O, OS, S, SS] = cell.DeviceWrapper[O, OS, S, SS]
+    type DropoutWrapper[O, OS, S, SS] = cell.DropoutWrapper[O, OS, S, SS]
     type MultiRNNCell[O, OS, S, SS] = cell.MultiRNNCell[O, OS, S, SS]
 
     val BasicRNNCell  : cell.BasicRNNCell.type   = cell.BasicRNNCell
     val GRUCell       : cell.GRUCell.type        = cell.GRUCell
     val BasicLSTMCell : cell.BasicLSTMCell.type  = cell.BasicLSTMCell
     val LSTMCell      : cell.LSTMCell.type       = cell.LSTMCell
-    val DropoutRNNCell: cell.DropoutRNNCell.type = cell.DropoutRNNCell
+    val DeviceWrapper : cell.DeviceWrapper.type  = cell.DeviceWrapper
+    val DropoutWrapper: cell.DropoutWrapper.type = cell.DropoutWrapper
     val MultiRNNCell  : cell.MultiRNNCell.type   = cell.MultiRNNCell
 
     type RNNTuple[O, S] = cell.Tuple[O, S]

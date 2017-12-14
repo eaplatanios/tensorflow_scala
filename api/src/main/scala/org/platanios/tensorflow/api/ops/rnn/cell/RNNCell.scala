@@ -18,16 +18,25 @@ package org.platanios.tensorflow.api.ops.rnn.cell
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops
+import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
 import org.platanios.tensorflow.api.ops.{Basic, Math, NN, Op, Output}
-import org.platanios.tensorflow.api.types.INT32
+import org.platanios.tensorflow.api.types.{DataType, INT32}
 
 /** Contains functions for constructing ops related to recurrent neural network (RNN) cells.
   *
   * @author Emmanouil Antonios Platanios
   */
-trait RNNCell[O, OS, S, SS] {
+abstract class RNNCell[O, OS, S, SS](implicit
+    evO: WhileLoopVariable.Aux[O, OS],
+    evS: WhileLoopVariable.Aux[S, SS]
+) {
   def outputShape: OS
   def stateShape: SS
+
+  def zeroState(batchSize: Output, dataType: DataType, shape: SS, name: String = "ZeroState"): S = {
+    evS.zero(batchSize, dataType, shape, name)
+  }
+
   def forward(input: Tuple[O, S]): Tuple[O, S]
   def apply(input: Tuple[O, S]): Tuple[O, S] = forward(input)
 }

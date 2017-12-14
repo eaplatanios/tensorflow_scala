@@ -102,7 +102,7 @@ private[rnn] trait RNN {
           if (initialState != null)
             initialState
           else
-            evS.zero(batchSize, processedInput.head.dataType, cell.stateShape, name)
+            cell.zeroState(batchSize, processedInput.head.dataType, cell.stateShape)
         }
         // Perform some shape validation
         if (sequenceLengths != null) {
