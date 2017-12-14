@@ -804,7 +804,8 @@ object Op {
     *
     * @param  graph               Graph to use as default for new ops.
     * @param  nameScope           Name scope to use.
-    * @param  deviceFunction              Device function to use.
+    * @param  device              Device to use.
+    * @param  deviceFunction      Device function to use.
     * @param  colocationOps       Colocation ops to use.
     * @param  controlDependencies Control dependencies to use.
     * @param  attributes          Attributes to use.
