@@ -26,7 +26,6 @@ import org.platanios.tensorflow.api.types.DataType
   *
   * @param  numUnits          Number of units in the LSTM cell.
   * @param  dataType          Data type for the parameters of this cell.
-  * @param  inputShape        Shape of inputs to this cell.
   * @param  forgetBias        Forget bias added to the forget gate.
   * @param  activation        Activation function used by this GRU cell.
   * @param  kernelInitializer Variable initializer for kernel matrices.
@@ -39,7 +38,6 @@ import org.platanios.tensorflow.api.types.DataType
 class BasicLSTMCell private[cell] (
     val numUnits: Int,
     val dataType: DataType,
-    val inputShape: Shape,
     val forgetBias: Float = 1.0f,
     val activation: Output => Output = ops.Math.tanh(_),
     val kernelInitializer: Initializer = null,
@@ -48,7 +46,7 @@ class BasicLSTMCell private[cell] (
 ) extends RNNCell[Output, Shape, LSTMState, (Shape, Shape)](name) {
   override val layerType: String = "BasicLSTMCell"
 
-  override def createCell(mode: Mode): LSTMCellInstance = {
+  override def createCell(mode: Mode, inputShape: Shape): LSTMCellInstance = {
     val kernel = variable(
       KERNEL_NAME, dataType, Shape(inputShape(-1) + numUnits, 4 * numUnits), kernelInitializer)
     val bias = variable(BIAS_NAME, dataType, Shape(4 * numUnits), biasInitializer)
@@ -61,12 +59,11 @@ object BasicLSTMCell {
   def apply(
       numUnits: Int,
       dataType: DataType,
-      inputShape: Shape,
       forgetBias: Float = 1.0f,
       activation: Output => Output = ops.Math.tanh(_),
       kernelInitializer: Initializer = null,
       biasInitializer: Initializer = ZerosInitializer,
       name: String = "BasicLSTMCell"): BasicLSTMCell = {
-    new BasicLSTMCell(numUnits, dataType, inputShape, forgetBias, activation, kernelInitializer, biasInitializer, name)
+    new BasicLSTMCell(numUnits, dataType, forgetBias, activation, kernelInitializer, biasInitializer, name)
   }
 }

@@ -26,7 +26,6 @@ import org.platanios.tensorflow.api.types.DataType
   *
   * @param  numUnits          Number of units in the RNN cell.
   * @param  dataType          Data type for the parameters of this cell.
-  * @param  inputShape        Shape of inputs to this cell.
   * @param  activation        Activation function used by this RNN cell.
   * @param  kernelInitializer Variable initializer for kernel matrices.
   * @param  biasInitializer   Variable initializer for the bias vectors.
@@ -38,7 +37,6 @@ import org.platanios.tensorflow.api.types.DataType
 class BasicRNNCell private[cell] (
     val numUnits: Int,
     val dataType: DataType,
-    val inputShape: Shape,
     val activation: Output => Output = ops.Math.tanh(_),
     val kernelInitializer: Initializer = null,
     val biasInitializer: Initializer = ZerosInitializer,
@@ -46,7 +44,7 @@ class BasicRNNCell private[cell] (
 ) extends RNNCell[Output, Shape, Output, Shape](name) {
   override val layerType: String = "BasicRNNCell"
 
-  override def createCell(mode: Mode): BasicCellInstance = {
+  override def createCell(mode: Mode, inputShape: Shape): BasicCellInstance = {
     val kernel = variable(KERNEL_NAME, dataType, Shape(inputShape(-1) + numUnits, numUnits), kernelInitializer)
     val bias = variable(BIAS_NAME, dataType, Shape(numUnits), biasInitializer)
     val cell = ops.rnn.cell.BasicRNNCell(kernel, bias, activation, name)
@@ -58,11 +56,10 @@ object BasicRNNCell {
   def apply(
       numUnits: Int,
       dataType: DataType,
-      inputShape: Shape,
       activation: Output => Output = ops.Math.tanh(_),
       kernelInitializer: Initializer = null,
       biasInitializer: Initializer = ZerosInitializer,
       name: String = "BasicRNNCell"): BasicRNNCell = {
-    new BasicRNNCell(numUnits, dataType, inputShape, activation, kernelInitializer, biasInitializer, name)
+    new BasicRNNCell(numUnits, dataType, activation, kernelInitializer, biasInitializer, name)
   }
 }

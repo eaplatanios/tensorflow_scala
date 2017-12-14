@@ -16,6 +16,7 @@
 package org.platanios.tensorflow.api.ops.rnn.attention
 
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
+import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.{Math, NN, Output}
 
 /** Bahdanau-style (multiplicative) attention scoring.

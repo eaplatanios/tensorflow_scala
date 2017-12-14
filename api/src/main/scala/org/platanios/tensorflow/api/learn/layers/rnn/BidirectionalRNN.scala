@@ -65,8 +65,8 @@ class BidirectionalRNN[O, OS, S, SS] private[rnn] (
     val stateFw = if (initialStateFw == null) null.asInstanceOf[S] else initialStateFw()
     val stateBw = if (initialStateBw == null) null.asInstanceOf[S] else initialStateBw()
     val lengths = if (sequenceLengths == null) null else ops.Basic.constant(sequenceLengths)
-    val cellInstanceFw = cellFw.createCell(mode)
-    val cellInstanceBw = cellBw.createCell(mode)
+    val cellInstanceFw = cellFw.createCell(mode, evO.fromShapes(input, evO.outputs(input).map(_.shape)))
+    val cellInstanceBw = cellBw.createCell(mode, evO.fromShapes(input, evO.outputs(input).map(_.shape)))
     LayerInstance(
       input,
       ops.rnn.RNN.bidirectionalDynamicRNN(

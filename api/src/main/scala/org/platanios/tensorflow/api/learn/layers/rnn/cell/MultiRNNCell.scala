@@ -18,6 +18,7 @@ package org.platanios.tensorflow.api.learn.layers.rnn.cell
 import org.platanios.tensorflow.api.learn.Mode
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.Op
+import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
 import org.platanios.tensorflow.api.ops.variables.VariableScope
 
 /** RNN cell that is composed by applying a sequence of RNN cells in order.
@@ -33,27 +34,35 @@ import org.platanios.tensorflow.api.ops.variables.VariableScope
 class MultiRNNCell[O, OS, S, SS] private[cell] (
     val cells: Seq[RNNCell[O, OS, S, SS]],
     override val name: String = "MultiRNNCell"
+)(implicit
+    evO: WhileLoopVariable.Aux[O, OS],
+    evS: WhileLoopVariable.Aux[S, SS]
 ) extends RNNCell[O, OS, Seq[S], Seq[SS]](name) {
   override val layerType: String = "MultiRNNCell"
 
-  override def createCell(mode: Mode): CellInstance[O, OS, Seq[S], Seq[SS]] = Op.createWithNameScope(uniquifiedName) {
-    val cellInstances = cells.zipWithIndex.map(cell => {
-      VariableScope.createWithVariableScope(s"Cell${cell._2}") {
-        cell._1.createCell(mode)
-      }
-    })
-    val cell = ops.rnn.cell.MultiRNNCell(cellInstances.map(_.cell))
-    CellInstance(
-      cell,
-      cellInstances.flatMap(_.trainableVariables).toSet,
-      cellInstances.flatMap(_.nonTrainableVariables).toSet)
+  override def createCell(mode: Mode, inputShape: OS): CellInstance[O, OS, Seq[S], Seq[SS]] = {
+    Op.createWithNameScope(uniquifiedName) {
+      val cellInstances = cells.zipWithIndex.map(cell => {
+        VariableScope.createWithVariableScope(s"Cell${cell._2}") {
+          cell._1.createCell(mode, inputShape)
+        }
+      })
+      val cell = ops.rnn.cell.MultiRNNCell(cellInstances.map(_.cell))
+      CellInstance(
+        cell,
+        cellInstances.flatMap(_.trainableVariables).toSet,
+        cellInstances.flatMap(_.nonTrainableVariables).toSet)
+    }
   }
 }
 
 object MultiRNNCell {
   def apply[O, OS, S, SS](
       cells: Seq[RNNCell[O, OS, S, SS]], name: String = "MultiRNNCell"
+  )(implicit
+      evO: WhileLoopVariable.Aux[O, OS],
+      evS: WhileLoopVariable.Aux[S, SS]
   ): MultiRNNCell[O, OS, S, SS] = {
-    new MultiRNNCell(cells, name)
+    new MultiRNNCell(cells, name)(evO, evS)
   }
 }

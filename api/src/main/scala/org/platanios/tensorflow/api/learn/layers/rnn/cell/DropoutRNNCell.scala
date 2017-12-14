@@ -17,6 +17,7 @@ package org.platanios.tensorflow.api.learn.layers.rnn.cell
 
 import org.platanios.tensorflow.api.learn.{Mode, TRAINING}
 import org.platanios.tensorflow.api.ops
+import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
 
 /** RNN cell that applies dropout to the provided RNN cell.
   *
@@ -46,9 +47,11 @@ class DropoutRNNCell[O, OS, S, SS](
     val seed: Option[Int] = None,
     override val name: String = "DropoutRNNCell"
 )(implicit
-    evO: ops.rnn.cell.DropoutRNNCell.Supported[O],
-    evS: ops.rnn.cell.DropoutRNNCell.Supported[S]
-) extends RNNCell[O, OS, S, SS](name) {
+    evO: WhileLoopVariable.Aux[O, OS],
+    evS: WhileLoopVariable.Aux[S, SS],
+    evODropout: ops.rnn.cell.DropoutRNNCell.Supported[O],
+    evSDropout: ops.rnn.cell.DropoutRNNCell.Supported[S]
+) extends RNNCell[O, OS, S, SS](name)(evO, evS) {
   require(inputKeepProbability > 0.0 && inputKeepProbability <= 1.0,
     s"'inputKeepProbability' ($inputKeepProbability) must be in (0, 1].")
   require(outputKeepProbability > 0.0 && outputKeepProbability <= 1.0,
@@ -58,13 +61,13 @@ class DropoutRNNCell[O, OS, S, SS](
 
   override val layerType: String = "DropoutRNNCell"
 
-  override def createCell(mode: Mode): CellInstance[O, OS, S, SS] = {
-    val cellInstance = cell.createCell(mode)
+  override def createCell(mode: Mode, inputShape: OS): CellInstance[O, OS, S, SS] = {
+    val cellInstance = cell.createCell(mode, inputShape)
     mode match {
       case TRAINING =>
         val dropoutCell = ops.rnn.cell.DropoutRNNCell(
           cellInstance.cell, inputKeepProbability, outputKeepProbability, stateKeepProbability, seed,
-          uniquifiedName)(evO, evS)
+          uniquifiedName)(evODropout, evSDropout)
         CellInstance(dropoutCell, cellInstance.trainableVariables, cellInstance.nonTrainableVariables)
       case _ => cellInstance
     }
@@ -80,9 +83,13 @@ object DropoutRNNCell {
       seed: Option[Int] = None,
       name: String = "DropoutRNNCell"
   )(implicit
-      evO: ops.rnn.cell.DropoutRNNCell.Supported[O],
-      evS: ops.rnn.cell.DropoutRNNCell.Supported[S]
+      evO: WhileLoopVariable.Aux[O, OS],
+      evS: WhileLoopVariable.Aux[S, SS],
+      evODropout: ops.rnn.cell.DropoutRNNCell.Supported[O],
+      evSDropout: ops.rnn.cell.DropoutRNNCell.Supported[S]
   ): DropoutRNNCell[O, OS, S, SS] = {
-    new DropoutRNNCell(cell, inputKeepProbability, outputKeepProbability, stateKeepProbability, seed, name)(evO, evS)
+    new DropoutRNNCell(
+      cell, inputKeepProbability, outputKeepProbability, stateKeepProbability, seed, name)(
+      evO, evS, evODropout, evSDropout)
   }
 }

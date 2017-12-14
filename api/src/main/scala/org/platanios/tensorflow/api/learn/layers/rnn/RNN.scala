@@ -58,7 +58,7 @@ class RNN[O, OS, S, SS] private[rnn] (
   override def forward(input: O, mode: Mode): LayerInstance[O, Tuple[O, S]] = {
     val state = if (initialState == null) null.asInstanceOf[S] else initialState()
     val lengths = if (sequenceLengths == null) null else ops.Basic.constant(sequenceLengths)
-    val cellInstance = cell.createCell(mode)
+    val cellInstance = cell.createCell(mode, evO.fromShapes(input, evO.outputs(input).map(_.shape)))
     LayerInstance(
       input,
       ops.rnn.RNN.dynamicRNN(

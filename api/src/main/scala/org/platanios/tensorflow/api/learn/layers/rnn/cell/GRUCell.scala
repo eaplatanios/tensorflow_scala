@@ -26,7 +26,6 @@ import org.platanios.tensorflow.api.types.DataType
   *
   * @param  numUnits          Number of units in the GRU cell.
   * @param  dataType          Data type for the parameters of this cell.
-  * @param  inputShape        Shape of inputs to this cell.
   * @param  activation        Activation function used by this GRU cell.
   * @param  kernelInitializer Variable initializer for kernel matrices.
   * @param  biasInitializer   Variable initializer for the bias vectors.
@@ -38,7 +37,6 @@ import org.platanios.tensorflow.api.types.DataType
 class GRUCell private[cell] (
     val numUnits: Int,
     val dataType: DataType,
-    val inputShape: Shape,
     val activation: Output => Output = ops.Math.tanh(_),
     val kernelInitializer: Initializer = null,
     val biasInitializer: Initializer = ZerosInitializer,
@@ -46,7 +44,7 @@ class GRUCell private[cell] (
 ) extends RNNCell[Output, Shape, Output, Shape](name) {
   override val layerType: String = "GRUCell"
 
-  override def createCell(mode: Mode): BasicCellInstance = {
+  override def createCell(mode: Mode, inputShape: Shape): BasicCellInstance = {
     val gateKernel = variable(
       s"Gate/$KERNEL_NAME",
       dataType,
@@ -75,11 +73,10 @@ object GRUCell {
   def apply(
       numUnits: Int,
       dataType: DataType,
-      inputShape: Shape,
       activation: Output => Output = ops.Math.tanh(_),
       kernelInitializer: Initializer = null,
       biasInitializer: Initializer = ZerosInitializer,
       name: String = "GRUCell"): GRUCell = {
-    new GRUCell(numUnits, dataType, inputShape, activation, kernelInitializer, biasInitializer, name)
+    new GRUCell(numUnits, dataType, activation, kernelInitializer, biasInitializer, name)
   }
 }

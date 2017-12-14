@@ -28,7 +28,6 @@ import scala.collection.mutable
   *
   * @param  numUnits          Number of units in the LSTM cell.
   * @param  dataType          Data type for the parameters of this cell.
-  * @param  inputShape        Shape of inputs to this cell.
   * @param  forgetBias        Forget bias added to the forget gate.
   * @param  usePeepholes      Boolean value indicating whether or not to use diagonal/peephole connections.
   * @param  cellClip          If different than `-1`, then the cell state is clipped by this value prior to the cell
@@ -44,22 +43,21 @@ import scala.collection.mutable
   * @author Emmanouil Antonios Platanios
   */
 class LSTMCell private[cell] (
-    numUnits: Int,
+    val numUnits: Int,
     val dataType: DataType,
-    val inputShape: Shape,
-    forgetBias: Float = 1.0f,
-    usePeepholes: Boolean = false,
-    cellClip: Float = -1,
-    projectionSize: Int = -1,
-    projectionClip: Float = -1,
-    activation: Output => Output = ops.Math.tanh(_),
-    kernelInitializer: Initializer = null,
-    biasInitializer: Initializer = ZerosInitializer,
+    val forgetBias: Float = 1.0f,
+    val usePeepholes: Boolean = false,
+    val cellClip: Float = -1,
+    val projectionSize: Int = -1,
+    val projectionClip: Float = -1,
+    val activation: Output => Output = ops.Math.tanh(_),
+    val kernelInitializer: Initializer = null,
+    val biasInitializer: Initializer = ZerosInitializer,
     override protected val name: String = "LSTMCell"
 ) extends RNNCell[Output, Shape, LSTMState, (Shape, Shape)](name) {
   override val layerType: String = "LSTMCell"
 
-  override def createCell(mode: Mode): LSTMCellInstance = {
+  override def createCell(mode: Mode, inputShape: Shape): LSTMCellInstance = {
     val trainableVariables: mutable.Set[Variable] = mutable.Set[Variable]()
     val hiddenDepth = if (projectionSize != -1) projectionSize else numUnits
     val kernel = variable(
@@ -104,7 +102,6 @@ object LSTMCell {
   def apply(
       numUnits: Int,
       dataType: DataType,
-      inputShape: Shape,
       forgetBias: Float = 1.0f,
       usePeepholes: Boolean = false,
       cellClip: Float = -1,
@@ -116,7 +113,7 @@ object LSTMCell {
       name: String = "LSTMCell"
   ): LSTMCell = {
     new LSTMCell(
-      numUnits, dataType, inputShape, forgetBias, usePeepholes, cellClip, projectionSize, projectionClip, activation,
+      numUnits, dataType, forgetBias, usePeepholes, cellClip, projectionSize, projectionClip, activation,
       kernelInitializer, biasInitializer, name)
   }
 }
