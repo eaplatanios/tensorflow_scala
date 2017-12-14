@@ -108,7 +108,7 @@ abstract class Attention(
 }
 
 object Attention {
-  private[Attention] def dimSize(value: Output, axis: Int): Output = {
+  private[attention] def dimSize(value: Output, axis: Int): Output = {
     if (value.rank != -1 && value.shape(axis) != -1)
       Basic.constant(value.shape(axis))
     else

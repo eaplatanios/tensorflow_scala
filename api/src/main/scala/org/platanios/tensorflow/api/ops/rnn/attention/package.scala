@@ -111,10 +111,12 @@ package object attention {
 
   private[rnn] trait API {
     type Attention = attention.Attention
+    type BahdanauAttention = attention.BahdanauAttention
     type LuongAttention = attention.LuongAttention
     type AttentionWrapperCell[S, SS] = attention.AttentionWrapperCell[S, SS]
 
-    val LuongAttention: attention.LuongAttention.type = attention.LuongAttention
+    val LuongAttention      : attention.LuongAttention.type       = attention.LuongAttention
+    val BahdanauAttention   : attention.BahdanauAttention.type    = attention.BahdanauAttention
     val AttentionWrapperCell: attention.AttentionWrapperCell.type = attention.AttentionWrapperCell
   }
 }

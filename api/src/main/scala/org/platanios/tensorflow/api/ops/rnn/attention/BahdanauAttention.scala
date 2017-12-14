@@ -16,9 +16,9 @@
 package org.platanios.tensorflow.api.ops.rnn.attention
 
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
-import org.platanios.tensorflow.api.ops.{Basic, Math, NN, Output}
+import org.platanios.tensorflow.api.ops.{Math, NN, Output}
 
-/** Luong-style (multiplicative) attention scoring.
+/** Bahdanau-style (multiplicative) attention scoring.
   *
   * This attention has two forms. The first is standard Luong attention, as described in:
   * ["Effective Approaches to Attention-based Neural Machine Translation.", EMNLP 2015](https://arxiv.org/abs/1508.04025).
@@ -26,13 +26,22 @@ import org.platanios.tensorflow.api.ops.{Basic, Math, NN, Output}
   * The second is the scaled form inspired partly by the normalized form of Bahdanau attention. To enable the second
   * form, construct the object with `weightsScale` set to the value of a scalar scaling variable.
   *
+  * This attention has two forms. The first is Bahdanau attention, as described in:
+  * ["Neural Machine Translation by Jointly Learning to Align and Translate.", ICLR 2015](https://arxiv.org/abs/1409.0473).
+  *
+  * The second is a normalized form inspired by the weight normalization method described in:
+  * ["Weight Normalization: A Simple Reparameterization to Accelerate Training of Deep Neural Networks.", NIPS 2016](https://arxiv.org/abs/1602.07868).
+  *
   * @param  memory                Memory to query; usually the output of an RNN encoder. Each tensor in the memory
   *                               should be shaped `[batchSize, maxTime, ...]`.
   * @param  memoryWeights         Weights tensor with which the memory is multiplied to produce the attention keys.
+  * @param  queryWeights          Weights tensor with which the query is multiplied to produce the attention query.
   * @param  memorySequenceLengths Sequence lengths for the batch entries in the memory. If provided, the memory tensor
   *                               rows are masked with zeros for values past the respective sequence lengths.
-  * @param  scaleFactor           Scalar tensor with which the scores are multiplied before used to compute attention
-  *                               probabilities.
+  * @param  normalizationFactor   Scalar tensor used to normalize the alignment score energy term; usually a trainable
+  *                               variable initialized to `sqrt((1 / numUnits))`.
+  * @param  normalizationBias     Vector bias added to the alignment scores prior to applying the non-linearity; usually
+  *                               a variable initialized to zeros.
   * @param  probabilityFn         Optional function that converts computed scores to probabilities. Defaults to the
   *                               softmax function. A potentially useful alternative is the hardmax function.
   * @param  scoreMaskValue        Mask value to use for the score before passing it to `probabilityFn`. Defaults to
@@ -42,14 +51,16 @@ import org.platanios.tensorflow.api.ops.{Basic, Math, NN, Output}
   *
   * @author Emmanouil Antonios Platanios
   */
-class LuongAttention(
+class BahdanauAttention(
     override protected val memory: Output,
     protected val memoryWeights: Output,
+    protected val queryWeights: Output,
     override protected val memorySequenceLengths: Output = null,
-    protected val scaleFactor: Output = null,
+    protected val normalizationFactor: Output = null,
+    protected val normalizationBias: Output = null,
     protected val probabilityFn: (Output) => Output = NN.softmax(_, name = "Probability"),
     override val scoreMaskValue: Output = Float.NegativeInfinity,
-    override val name: String = "LuongAttention"
+    override val name: String = "BahdanauAttention"
 ) extends Attention(memory, memorySequenceLengths, checkInnerDimensionsDefined = true, scoreMaskValue, name) {
   override val keys: Output = NN.linear(values, memoryWeights)
 
@@ -64,33 +75,36 @@ class LuongAttention(
             "Perhaps you need to set the number of units of the attention model to the keys' number of units.")
 
     // Reshape from [batchSize, ...] to [batchSize, 1, ...] for broadcasting.
-    val reshapedQuery = query.expandDims(1)
-
-    // Inner product along the query units dimension. `matmul` shapes: query is [batchSize, 1, depth] and keys is
-    // [batchSize, maxTime, depth]. The inner product is asked to transpose the keys' inner shape to get a batched
-    // `matmul` on [batchSize, 1, depth] * [batchSize, depth, maxTime], resulting in an output shape of:
-    // [batchTime, 1, maxTime]. We then squeeze out the center singleton dimension.
-    var score = Math.matmul(reshapedQuery, keys, transposeB = true)
-    score = Basic.squeeze(score, Seq(1))
-    if (scaleFactor == null)
-      score
+    val reshapedQuery = Math.matmul(query, queryWeights).expandDims(1)
+    val weights = {
+      if (normalizationFactor == null)
+        memoryWeights
+      else
+        normalizationFactor * memoryWeights * Math.rsqrt(Math.sum(Math.square(memoryWeights)))
+    }
+    if (normalizationBias == null)
+      Math.sum(weights * Math.tanh(keys + reshapedQuery), 2)
     else
-      scaleFactor * score
+      Math.sum(weights * Math.tanh(keys + reshapedQuery + normalizationBias), 2)
   }
 
   override protected def probability(score: Output, previousAlignment: Output): Output = probabilityFn(score)
 }
 
-object LuongAttention {
+object BahdanauAttention {
   def apply(
       memory: Output,
       memoryWeights: Output,
+      queryWeights: Output,
       memorySequenceLengths: Output = null,
-      scaleWeights: Output = null,
+      normalizationFactor: Output = null,
+      normalizationBias: Output = null,
       probabilityFn: (Output) => Output = NN.softmax(_, name = "Probability"),
       scoreMaskValue: Output = Float.NegativeInfinity,
-      name: String = "LuongAttention"
-  ): LuongAttention = {
-    new LuongAttention(memory, memoryWeights, memorySequenceLengths, scaleWeights, probabilityFn, scoreMaskValue, name)
+      name: String = "BahdanauAttention"
+  ): BahdanauAttention = {
+    new BahdanauAttention(
+      memory, memoryWeights, queryWeights, memorySequenceLengths, normalizationFactor, normalizationBias, probabilityFn,
+      scoreMaskValue, name)
   }
 }
