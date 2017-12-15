@@ -63,7 +63,7 @@ private[api] trait NN {
     * @return Created op output.
     */
   def linear(x: Output, weights: Output, bias: Output = null, name: String = "Linear"): Output = {
-    Op.createWithNameScope(name, Set(x.op, weights.op, bias.op)) {
+    Op.createWithNameScope(name, Set(x.op, weights.op) ++ (if (bias != null) Set(bias.op) else Set.empty)) {
       val product = {
         if (x.rank > 2)
           Math.tensorDot(x, weights, Seq(x.rank - 1), Seq(0))
