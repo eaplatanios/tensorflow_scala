@@ -67,18 +67,18 @@ void UpdateEdge(TF_Graph* graph, TF_Output new_src, TF_Input dst, TF_Status* sta
 //    return;
 //  }
   status->status = graph->graph.UpdateEdge(&new_src.oper->node, new_src.index, &dst.oper->node, dst.index);
-  if (status->status.ok()) {
-    // This modification only updates the destination node for
-    // the purposes of running this graph in a session. Thus, we don't
-    // record the source node as being modified.
-    RecordMutation(graph, *dst.oper, "updating input tensor");
-  }
+//  if (status->status.ok()) {
+//    // This modification only updates the destination node for
+//    // the purposes of running this graph in a session. Thus, we don't
+//    // record the source node as being modified.
+//    RecordMutation(graph, *dst.oper, "updating input tensor");
+//  }
 }
 
 void AddControlInput(TF_Graph* graph, TF_Operation* op, TF_Operation* input) {
   mutex_lock l(graph->mu);
   graph->graph.AddControlEdge(&input->node, &op->node);
-  RecordMutation(graph, *op, "adding control input");
+//  RecordMutation(graph, *op, "adding control input");
 }
 
 void ClearControlInputs(TF_Graph* graph, TF_Operation* op) {
@@ -91,13 +91,13 @@ void ClearControlInputs(TF_Graph* graph, TF_Operation* op) {
   for (const Edge* edge : control_edges) {
     graph->graph.RemoveControlEdge(edge);
   }
-  RecordMutation(graph, *op, "clearing control inputs");
+//  RecordMutation(graph, *op, "clearing control inputs");
 }
 
 void SetRequestedDevice(TF_Graph* graph, TF_Operation* op, const char* device) {
   mutex_lock l(graph->mu);
   op->node.set_requested_device(device);
-  RecordMutation(graph, *op, "setting device");
+//  RecordMutation(graph, *op, "setting device");
 }
 
 }  // namespace tensorflow
