@@ -42,9 +42,12 @@ class MultiRNNCell[O, OS, S, SS] private[cell] (
 
   override def createCell(mode: Mode, inputShape: OS): CellInstance[O, OS, Seq[S], Seq[SS]] = {
     Op.createWithNameScope(uniquifiedName) {
-      val cellInstances = cells.zipWithIndex.map(cell => {
+      val cellInstances = cells.zipWithIndex.foldLeft(Seq.empty[CellInstance[O, OS, S, SS]])((seq, cell) => {
         VariableScope.createWithVariableScope(s"Cell${cell._2}") {
-          cell._1.createCell(mode, inputShape)
+          if (seq.isEmpty)
+            seq :+ cell._1.createCell(mode, inputShape)
+          else
+            seq :+ cell._1.createCell(mode, seq.last.cell.outputShape)
         }
       })
       val cell = ops.rnn.cell.MultiRNNCell(cellInstances.map(_.cell))(evO, evS)

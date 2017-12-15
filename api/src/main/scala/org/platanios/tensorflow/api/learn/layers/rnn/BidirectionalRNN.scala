@@ -19,6 +19,7 @@ import org.platanios.tensorflow.api.learn.Mode
 import org.platanios.tensorflow.api.learn.layers.{Layer, LayerInstance}
 import org.platanios.tensorflow.api.learn.layers.rnn.cell.{RNNCell, Tuple}
 import org.platanios.tensorflow.api.ops
+import org.platanios.tensorflow.api.ops.Basic
 import org.platanios.tensorflow.api.tensors.Tensor
 
 /** Creates a bidirectional dynamic RNN layer.
@@ -74,6 +75,25 @@ class BidirectionalRNN[O, OS, S, SS] private[rnn] (
         timeMajor, parallelIterations, swapMemory, lengths, uniquifiedName)(evO, evS),
       cellInstanceFw.trainableVariables ++ cellInstanceBw.trainableVariables,
       cellInstanceFw.nonTrainableVariables ++ cellInstanceBw.nonTrainableVariables)
+  }
+
+  def withConcatenatedOutputs: Layer[O, Tuple[O, (S, S)]] = {
+    new Layer[O, Tuple[O, (S, S)]](s"$name/ConcatenatedOutputs") {
+      override val layerType: String = "BidirectionalRNNWithConcatenatedOutputs"
+
+      override def forward(input: O, mode: Mode): LayerInstance[O, Tuple[O, (S, S)]] = {
+        val raw = BidirectionalRNN.this.forward(input, mode)
+        val output = evO.fromOutputs(
+          raw.output._1.output, evO.outputs(raw.output._1.output).zip(evO.outputs(raw.output._2.output)).map(o => {
+            Basic.concatenate(Seq(o._1, o._2), -1)
+          }))
+        LayerInstance(
+          input,
+          Tuple(output, (raw.output._1.state, raw.output._2.state)),
+          raw.trainableVariables,
+          raw.nonTrainableVariables)
+      }
+    }
   }
 }
 

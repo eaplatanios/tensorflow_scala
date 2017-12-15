@@ -65,6 +65,12 @@ package object cell {
   }
 
   private[rnn] trait API {
+    type CellInstance[O, OS, S, SS] = cell.CellInstance[O, OS, S, SS]
+    type BasicCellInstance = cell.BasicCellInstance
+    type LSTMCellInstance = cell.LSTMCellInstance
+
+    val CellInstance: cell.CellInstance.type = cell.CellInstance
+
     type RNNCell[O, OS, S, SS] = cell.RNNCell[O, OS, S, SS]
     type BasicRNNCell = cell.BasicRNNCell
     type GRUCell = cell.GRUCell
