@@ -96,9 +96,12 @@ class AttentionWrapperCell[S, SS] private[attention] (
           time = Basic.zeros(INT32, Shape.scalar()),
           attention = Basic.fill(inferredDataType, Basic.stack(Seq(batchSize, attentionLayersSize)))(0),
           alignments = attentions.map(_.initialAlignment),
-          alignmentsHistory = attentions.map(_ => {
-            if (storeAlignmentsHistory) TensorArray.create(0, inferredDataType, dynamicSize = true) else null
-          }))
+          alignmentsHistory = {
+            if (storeAlignmentsHistory)
+              attentions.map(_ => TensorArray.create(0, inferredDataType, dynamicSize = true))
+            else
+              Seq.empty
+          })
       }
     }
   }

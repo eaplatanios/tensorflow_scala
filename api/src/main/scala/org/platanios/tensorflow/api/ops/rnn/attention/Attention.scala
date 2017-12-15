@@ -45,21 +45,21 @@ abstract class Attention(
     val scoreMaskValue: Output = Float.NegativeInfinity,
     val name: String = "Attention"
 ) {
-  val values: Output = Op.createWithNameScope(s"$name/Initialization") {
+  lazy val values: Output = Op.createWithNameScope(s"$name/Initialization") {
     Attention.maybeMaskValues(memory, memorySequenceLengths, checkInnerDimensionsDefined)
   }
 
-  val keys: Output = values
+  lazy val keys: Output = values
 
-  val batchSize: Output = Op.createWithNameScope(s"$name/Initialization") {
+  lazy val batchSize: Output = Op.createWithNameScope(s"$name/Initialization") {
     Attention.dimSize(keys, 0)
   }
 
-  val alignmentSize: Output = Op.createWithNameScope(s"$name/Initialization") {
+  lazy val alignmentSize: Output = Op.createWithNameScope(s"$name/Initialization") {
     Attention.dimSize(keys, 1)
   }
 
-  val dataType: DataType = keys.dataType
+  lazy val dataType: DataType = keys.dataType
 
   /** Initial alignment value.
     *
@@ -68,9 +68,9 @@ abstract class Attention(
     *
     * The default behavior is to return a tensor of all zeros.
     */
-  val initialAlignment: Output = {
+  lazy val initialAlignment: Output = {
     Op.createWithNameScope(s"$name/InitialAlignments", Set(batchSize.op)) {
-      val fullShape = Basic.concatenate(Seq(batchSize, alignmentSize.cast(batchSize.dataType)), axis = 0)
+      val fullShape = Basic.stack(Seq(batchSize, alignmentSize.cast(batchSize.dataType)), axis = 0)
       Basic.zeros(dataType, fullShape)
     }
   }
@@ -140,7 +140,7 @@ object Attention {
       values
     } else {
       val rank = if (values.rank != -1) Basic.constant(values.rank) else Basic.rank(values)
-      val extraOnes = Basic.ones(INT32, rank - 2)
+      val extraOnes = Basic.ones(INT32, Basic.expandDims(rank - 2, 0))
       val mBatchSize = if (values.shape(0) != -1) Basic.constant(values.shape(0)) else Basic.shape(values)(0)
       Op.createWith(controlDependencies = Set(Checks.assertEqual(
         batchSize, mBatchSize,

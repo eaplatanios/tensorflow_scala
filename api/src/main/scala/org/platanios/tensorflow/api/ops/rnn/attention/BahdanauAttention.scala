@@ -63,7 +63,7 @@ class BahdanauAttention(
     override val scoreMaskValue: Output = Float.NegativeInfinity,
     override val name: String = "BahdanauAttention"
 ) extends Attention(memory, memorySequenceLengths, checkInnerDimensionsDefined = true, scoreMaskValue, name) {
-  override val keys: Output = NN.linear(values, memoryWeights)
+  override lazy val keys: Output = NN.linear(values, memoryWeights)
 
   @throws[InvalidArgumentException]
   override protected def score(query: Output, previousAlignment: Output): Output = {
