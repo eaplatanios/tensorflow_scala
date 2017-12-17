@@ -50,7 +50,7 @@ case class L2Loss(override protected val name: String = "L2Loss")
     extends Loss[(Output, Output)](name) {
   override val layerType: String = "L2Loss"
 
-  override def forward(input: (Output, Output), mode: Mode): LayerInstance[(Output, Output), Output] = {
+  override protected def forward(input: (Output, Output), mode: Mode): LayerInstance[(Output, Output), Output] = {
     LayerInstance(input, ops.NN.l2Loss(input._1 - input._2, name = uniquifiedName))
   }
 }
@@ -59,7 +59,7 @@ case class SoftmaxCrossEntropy(override protected val name: String = "SoftmaxCro
     extends Loss[(Output, Output)](name) {
   override val layerType: String = "SoftmaxCrossEntropy"
 
-  override def forward(input: (Output, Output), mode: Mode): LayerInstance[(Output, Output), Output] = {
+  override protected def forward(input: (Output, Output), mode: Mode): LayerInstance[(Output, Output), Output] = {
     LayerInstance(input, ops.NN.softmaxCrossEntropy(input._1, input._2, name = uniquifiedName))
   }
 }
@@ -68,7 +68,7 @@ case class SparseSoftmaxCrossEntropy(override protected val name: String = "Spar
     extends Loss[(Output, Output)](name) {
   override val layerType: String = "SparseSoftmaxCrossEntropy"
 
-  override def forward(input: (Output, Output), mode: Mode): LayerInstance[(Output, Output), Output] = {
+  override protected def forward(input: (Output, Output), mode: Mode): LayerInstance[(Output, Output), Output] = {
     LayerInstance(input, ops.NN.sparseSoftmaxCrossEntropy(input._1, input._2, name = uniquifiedName))
   }
 }
@@ -77,7 +77,7 @@ case class SigmoidCrossEntropy(override protected val name: String = "SigmoidCro
     extends Loss[(Output, Output)](name) {
   override val layerType: String = "SigmoidCrossEntropy"
 
-  override def forward(input: (Output, Output), mode: Mode): LayerInstance[(Output, Output), Output] = {
+  override protected def forward(input: (Output, Output), mode: Mode): LayerInstance[(Output, Output), Output] = {
     LayerInstance(input, ops.NN.sigmoidCrossEntropy(input._1, input._2, name = uniquifiedName))
   }
 }
@@ -86,7 +86,7 @@ case class LogPoissonLoss(computeFullLoss: Boolean = false, override protected v
     extends Loss[(Output, Output)](name) {
   override val layerType: String = "LogPoissonLoss"
 
-  override def forward(input: (Output, Output), mode: Mode): LayerInstance[(Output, Output), Output] = {
+  override protected def forward(input: (Output, Output), mode: Mode): LayerInstance[(Output, Output), Output] = {
     LayerInstance(input, ops.NN.logPoissonLoss(input._1, input._2, computeFullLoss, name = uniquifiedName))
   }
 }
@@ -100,7 +100,7 @@ case class SequenceLoss(
 ) extends Loss[(Output, Output)](name) {
   override val layerType: String = "SequenceLoss"
 
-  override def forward(input: (Output, Output), mode: Mode): LayerInstance[(Output, Output), Output] = {
+  override protected def forward(input: (Output, Output), mode: Mode): LayerInstance[(Output, Output), Output] = {
     LayerInstance(input, ops.NN.sequenceLoss(
       input._1, input._2,
       if (weights == null) null else ops.Basic.constant(weights),

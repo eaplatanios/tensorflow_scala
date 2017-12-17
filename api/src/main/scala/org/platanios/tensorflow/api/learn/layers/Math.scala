@@ -50,7 +50,7 @@ case class Cast(dataType: DataType, override protected val name: String = "Cast"
     extends Layer[Output, Output](name) {
   override val layerType: String = s"Cast[$dataType]"
 
-  override def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
+  override protected def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
     LayerInstance(input, ops.Math.cast(input, dataType, name = uniquifiedName))
   }
 }
@@ -59,7 +59,7 @@ case class Sum(override protected val name: String = "Sum")
     extends Layer[Output, Output](name) {
   override val layerType: String = "Sum"
 
-  override def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
+  override protected def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
     LayerInstance(input, ops.Math.sum(input, name = uniquifiedName))
   }
 }
@@ -68,7 +68,7 @@ case class Mean(override protected val name: String = "Mean")
     extends Layer[Output, Output](name) {
   override val layerType: String = "Mean"
 
-  override def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
+  override protected def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
     LayerInstance(input, ops.Math.mean(input, name = uniquifiedName))
   }
 }
@@ -79,7 +79,7 @@ case class AddBias(
 ) extends Layer[Output, Output](name) {
   override val layerType: String = "AddBias"
 
-  override def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
+  override protected def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
     val bias = variable(s"$uniquifiedName/Bias", input.dataType, Shape(input.shape(-1)), initializer)
     LayerInstance(input, ops.NN.addBias(input, bias.value), Set(bias))
   }
@@ -94,7 +94,7 @@ case class Linear(
 ) extends Layer[Output, Output](name) {
   override val layerType: String = s"Linear[$units]"
 
-  override def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
+  override protected def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
     val weights = variable(
       s"$uniquifiedName/Weights", input.dataType, Shape(input.shape(-1), units), weightsInitializer)
     val trainableVariables = mutable.Set[Variable](weights)

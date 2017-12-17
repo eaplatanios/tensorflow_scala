@@ -41,7 +41,7 @@ class DeviceWrapper[O, OS, S, SS](
 ) extends RNNCell[O, OS, S, SS](name)(evO, evS) {
   override val layerType: String = "DeviceWrapper"
 
-  override def createCell(mode: Mode, inputShape: OS): CellInstance[O, OS, S, SS] = {
+  override protected def _createCell(mode: Mode, inputShape: OS): CellInstance[O, OS, S, SS] = {
     val cellInstance = cell.createCell(mode, inputShape)
     val deviceWrapperCell = ops.rnn.cell.DeviceWrapper(cellInstance.cell, device, deviceFunction)
     CellInstance(deviceWrapperCell, cellInstance.trainableVariables, cellInstance.nonTrainableVariables)

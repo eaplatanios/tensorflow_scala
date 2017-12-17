@@ -55,7 +55,7 @@ class RNN[O, OS, S, SS] private[rnn] (
 ) extends Layer[O, Tuple[O, S]](name) {
   override val layerType: String = "RNN"
 
-  override def forward(input: O, mode: Mode): LayerInstance[O, Tuple[O, S]] = {
+  override protected def forward(input: O, mode: Mode): LayerInstance[O, Tuple[O, S]] = {
     val state = if (initialState == null) null.asInstanceOf[S] else initialState()
     val lengths = if (sequenceLengths == null) null else ops.Basic.constant(sequenceLengths)
     val cellInstance = cell.createCell(mode, evO.fromShapes(input, evO.outputs(input).map(_.shape)))

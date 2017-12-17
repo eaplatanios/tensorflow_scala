@@ -44,7 +44,7 @@ object RNNTutorialUsingPTB {
   object RNNOutputLayer extends tf.learn.Layer[LSTMTuple, Output]("RNNOutputLayer") {
     override val layerType: String = "RNNOutputLayer"
 
-    override def forward(
+    override protected def forward(
         input: LSTMTuple, mode: tf.learn.Mode
     ): tf.learn.LayerInstance[LSTMTuple, Output] = {
       val weights = variable("OutputWeights", dataType, Shape(numHidden, vocabularySize))

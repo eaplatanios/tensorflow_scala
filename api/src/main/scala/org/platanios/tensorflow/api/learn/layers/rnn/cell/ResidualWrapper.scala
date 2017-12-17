@@ -40,7 +40,7 @@ class ResidualWrapper[O, OS, S, SS](
 ) extends RNNCell[O, OS, S, SS](name)(evO, evS) {
   override val layerType: String = "ResidualWrapper"
 
-  override def createCell(mode: Mode, inputShape: OS): CellInstance[O, OS, S, SS] = {
+  override protected def _createCell(mode: Mode, inputShape: OS): CellInstance[O, OS, S, SS] = {
     val cellInstance = cell.createCell(mode, inputShape)
     val residualWrapperCell = ops.rnn.cell.ResidualWrapper(cellInstance.cell, residualFn)
     CellInstance(residualWrapperCell, cellInstance.trainableVariables, cellInstance.nonTrainableVariables)

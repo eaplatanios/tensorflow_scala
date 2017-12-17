@@ -57,7 +57,7 @@ class LSTMCell private[cell] (
 ) extends RNNCell[Output, Shape, LSTMState, (Shape, Shape)](name) {
   override val layerType: String = "LSTMCell"
 
-  override def createCell(mode: Mode, inputShape: Shape): LSTMCellInstance = {
+  override protected def _createCell(mode: Mode, inputShape: Shape): LSTMCellInstance = {
     val trainableVariables: mutable.Set[Variable] = mutable.Set[Variable]()
     val hiddenDepth = if (projectionSize != -1) projectionSize else numUnits
     val kernel = variable(

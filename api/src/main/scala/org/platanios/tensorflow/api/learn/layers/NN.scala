@@ -47,7 +47,7 @@ case class Softmax(override protected val name: String = "Softmax")
     extends Layer[Output, Output](name) {
   override val layerType: String = "Softmax"
 
-  override def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
+  override protected def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
     LayerInstance(input, ops.NN.softmax(input, name = uniquifiedName))
   }
 }
@@ -56,7 +56,7 @@ case class LogSoftmax(override protected val name: String = "LogSoftmax")
     extends Layer[Output, Output](name) {
   override val layerType: String = "LogSoftmax"
 
-  override def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
+  override protected def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
     LayerInstance(input, ops.NN.logSoftmax(input, name = uniquifiedName))
   }
 }
@@ -69,7 +69,7 @@ case class Dropout(
 ) extends Layer[Output, Output](name) {
   override val layerType: String = s"Dropout[$keepProbability]"
 
-  override def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
+  override protected def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
     val output = mode match {
       case TRAINING =>
         val noise = if (noiseShape == null) null else noiseShape.toOutput()
@@ -92,7 +92,7 @@ case class Conv2D(
 ) extends Layer[Output, Output](name) {
   override val layerType: String = s"Conv2D[${filterShape.asArray.mkString(",")}]"
 
-  override def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
+  override protected def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
     val weights = variable(s"$uniquifiedName/Weights", input.dataType, filterShape, weightsInitializer)
     val output = ops.NN.conv2D(input, weights, stride1, stride2, padding, dataFormat, useCuDNNOnGPU, s"$uniquifiedName/Conv2D")
     LayerInstance(input, output, Set(weights))
@@ -109,7 +109,7 @@ case class MaxPool(
 ) extends Layer[Output, Output](name) {
   override val layerType: String = s"MaxPool[${windowSize.mkString(",")}]"
 
-  override def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
+  override protected def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
     val output = ops.NN.maxPool(input, windowSize, stride1, stride2, padding, dataFormat, uniquifiedName)
     LayerInstance(input, output)
   }

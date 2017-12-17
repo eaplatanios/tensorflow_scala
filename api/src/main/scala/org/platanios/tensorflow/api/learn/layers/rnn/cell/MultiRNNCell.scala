@@ -40,7 +40,7 @@ class MultiRNNCell[O, OS, S, SS] private[cell] (
 ) extends RNNCell[O, OS, Seq[S], Seq[SS]](name) {
   override val layerType: String = "MultiRNNCell"
 
-  override def createCell(mode: Mode, inputShape: OS): CellInstance[O, OS, Seq[S], Seq[SS]] = {
+  override protected def _createCell(mode: Mode, inputShape: OS): CellInstance[O, OS, Seq[S], Seq[SS]] = {
     Op.createWithNameScope(uniquifiedName) {
       val cellInstances = cells.zipWithIndex.foldLeft(Seq.empty[CellInstance[O, OS, S, SS]])((seq, cell) => {
         VariableScope.createWithVariableScope(s"Cell${cell._2}") {

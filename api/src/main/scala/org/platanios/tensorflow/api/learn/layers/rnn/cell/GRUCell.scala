@@ -44,7 +44,7 @@ class GRUCell private[cell] (
 ) extends RNNCell[Output, Shape, Output, Shape](name) {
   override val layerType: String = "GRUCell"
 
-  override def createCell(mode: Mode, inputShape: Shape): BasicCellInstance = {
+  override protected def _createCell(mode: Mode, inputShape: Shape): BasicCellInstance = {
     val gateKernel = variable(
       s"Gate/$KERNEL_NAME",
       dataType,

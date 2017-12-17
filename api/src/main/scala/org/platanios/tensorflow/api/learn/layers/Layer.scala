@@ -36,7 +36,7 @@ abstract class Layer[T, R](
 ) {
   val uniquifiedName: String = Layer.uniqueName(name)
 
-  private val variableScope: VariableScope = {
+  protected val variableScope: VariableScope = {
     if (context.value.variableScope.name != "") {
       context.value.variableScope
     } else {
@@ -46,14 +46,16 @@ abstract class Layer[T, R](
 
   val layerType: String
 
-  def forward(input: T, mode: Mode): LayerInstance[T, R]
+  protected def forward(input: T, mode: Mode): LayerInstance[T, R]
 
   def apply(input: T, mode: Mode): LayerInstance[T, R] = Op.createWith(
     nameScope = context.value.nameScope,
     device = context.value.device,
     deviceFunction = context.value.deviceFunction
   ) {
-    forward(input, mode)
+    VariableScope.createWithUpdatedVariableScope(variableScope) {
+      forward(input, mode)
+    }
   }
 
   def >>[S](other: Layer[R, S]): Compose[T, R, S] = compose(other)

@@ -32,8 +32,8 @@ trait Learn {
   ) extends Layer[CC[T], CC[R]]("Mappable") {
     override val layerType: String = "Mappable"
 
-    override def forward(input: CC[T], mode: Mode): LayerInstance[CC[T], CC[R]] = {
-      layer.forward(input, mode)
+    override protected def forward(input: CC[T], mode: Mode): LayerInstance[CC[T], CC[R]] = {
+      layer(input, mode)
     }
 
     def map[S](

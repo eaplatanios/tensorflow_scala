@@ -61,7 +61,7 @@ class DropoutWrapper[O, OS, S, SS](
 
   override val layerType: String = "DropoutWrapper"
 
-  override def createCell(mode: Mode, inputShape: OS): CellInstance[O, OS, S, SS] = {
+  override protected def _createCell(mode: Mode, inputShape: OS): CellInstance[O, OS, S, SS] = {
     val cellInstance = cell.createCell(mode, inputShape)
     mode match {
       case TRAINING =>
