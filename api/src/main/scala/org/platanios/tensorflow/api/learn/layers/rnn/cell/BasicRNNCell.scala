@@ -56,7 +56,7 @@ object BasicRNNCell {
       dataType: DataType,
       activation: Output => Output = ops.Math.tanh(_),
       kernelInitializer: Initializer = null,
-      biasInitializer: Initializer = ZerosInitializer,
+      biasInitializer: Initializer = ZerosInitializer
   ): BasicRNNCell = {
     new BasicRNNCell(variableScope, numUnits, dataType, activation, kernelInitializer, biasInitializer)
   }

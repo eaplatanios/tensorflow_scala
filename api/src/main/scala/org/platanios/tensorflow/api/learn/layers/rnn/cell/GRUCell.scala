@@ -73,7 +73,7 @@ object GRUCell {
       dataType: DataType,
       activation: Output => Output = ops.Math.tanh(_),
       kernelInitializer: Initializer = null,
-      biasInitializer: Initializer = ZerosInitializer,
+      biasInitializer: Initializer = ZerosInitializer
   ): GRUCell = {
     new GRUCell(variableScope, numUnits, dataType, activation, kernelInitializer, biasInitializer)
   }

@@ -60,7 +60,7 @@ object BasicLSTMCell {
       forgetBias: Float = 1.0f,
       activation: Output => Output = ops.Math.tanh(_),
       kernelInitializer: Initializer = null,
-      biasInitializer: Initializer = ZerosInitializer,
+      biasInitializer: Initializer = ZerosInitializer
   ): BasicLSTMCell = {
     new BasicLSTMCell(variableScope, numUnits, dataType, forgetBias, activation, kernelInitializer, biasInitializer)
   }

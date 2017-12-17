@@ -93,7 +93,7 @@ case class AudioSummary(
     samplingRate: Tensor,
     maxOutputs: Int = 3,
     family: String = null,
-    collections: Set[Graph.Key[Output]] = Set(Graph.Keys.SUMMARIES),
+    collections: Set[Graph.Key[Output]] = Set(Graph.Keys.SUMMARIES)
 ) extends Summary(variableScope) {
   override val layerType: String = "AudioSummary"
 

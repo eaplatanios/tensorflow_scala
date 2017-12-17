@@ -33,7 +33,7 @@ class DeviceWrapper[O, OS, S, SS](
     override val variableScope: String,
     val cell: RNNCell[O, OS, S, SS],
     val device: String = "",
-    val deviceFunction: OpSpecification => String = _.device,
+    val deviceFunction: OpSpecification => String = _.device
 )(implicit
     evO: WhileLoopVariable.Aux[O, OS],
     evS: WhileLoopVariable.Aux[S, SS]
