@@ -59,14 +59,15 @@ object MNIST {
     //    val layer = tf.learn.flatten() >>
     //        tf.learn.cast(FLOAT32) >>
     //        tf.learn.linear(10) // >> tf.learn.logSoftmax()
-    val layer = tf.learn.Flatten() >>
-        tf.learn.Cast(FLOAT32) >>
-        tf.learn.Linear(128, name = "Layer_0") >> tf.learn.ReLU(0.1f) >>
-        tf.learn.Linear(64, name = "Layer_1") >> tf.learn.ReLU(0.1f) >>
-        tf.learn.Linear(32, name = "Layer_2") >> tf.learn.ReLU(0.1f) >>
-        tf.learn.Linear(10, name = "OutputLayer")
-    val trainingInputLayer = tf.learn.Cast(INT64)
-    val loss = tf.learn.SparseSoftmaxCrossEntropy() >> tf.learn.Mean() >> tf.learn.ScalarSummary("Loss")
+    val layer = tf.learn.Flatten("Input/Flatten") >>
+        tf.learn.Cast("Input/Cast", FLOAT32) >>
+        tf.learn.Linear("Layer_0/Linear", 128) >> tf.learn.ReLU("Layer_0/ReLU", 0.1f) >>
+        tf.learn.Linear("Layer_1/Linear", 64) >> tf.learn.ReLU("Layer_1/ReLU", 0.1f) >>
+        tf.learn.Linear("Layer_2/Linear", 32) >> tf.learn.ReLU("Layer_2/ReLU", 0.1f) >>
+        tf.learn.Linear("OutputLayer/Linear", 10)
+    val trainingInputLayer = tf.learn.Cast("TrainInput/Cast", INT64)
+    val loss = tf.learn.SparseSoftmaxCrossEntropy("Loss/CrossEntropy") >>
+        tf.learn.Mean("Loss/Mean") >> tf.learn.ScalarSummary("Loss/Summary", "Loss")
     val optimizer = tf.train.AdaGrad(0.1)
     val model = tf.learn.Model(input, layer, trainInput, trainingInputLayer, loss, optimizer)
 

@@ -44,20 +44,21 @@ object STL10 {
     logger.info("Building the logistic regression model.")
     val input = tf.learn.Input(UINT8, Shape(-1, dataSet.trainImages.shape(1), dataSet.trainImages.shape(2), dataSet.trainImages.shape(3)))
     val trainInput = tf.learn.Input(UINT8, Shape(-1))
-    val layer = tf.learn.Cast(FLOAT32) >>
-        tf.learn.Conv2D(Shape(5, 5, 3, 32), 1, 1, SamePadding, name = "Conv2D_0") >>
-        tf.learn.AddBias(name = "Bias_0") >>
-        tf.learn.ReLU(0.1f) >>
-        tf.learn.MaxPool(Seq(1, 2, 2, 1), 1, 1, SamePadding, name = "MaxPool_0") >>
-        tf.learn.Conv2D(Shape(5, 5, 32, 64), 1, 1, SamePadding, name = "Conv2D_1") >>
-        tf.learn.AddBias(name = "Bias_1") >>
-        tf.learn.ReLU(0.1f) >>
-        tf.learn.MaxPool(Seq(1, 2, 2, 1), 1, 1, SamePadding, name = "MaxPool_1") >>
-        tf.learn.Flatten() >>
-        tf.learn.Linear(1024, name = "Layer_2") >> tf.learn.ReLU(0.1f) >>
-        tf.learn.Linear(10, name = "OutputLayer")
-    val trainingInputLayer = tf.learn.Cast(INT64)
-    val loss = tf.learn.SparseSoftmaxCrossEntropy() >> tf.learn.Mean() >> tf.learn.ScalarSummary("Loss")
+    val layer = tf.learn.Cast("Input/Cast", FLOAT32) >>
+        tf.learn.Conv2D("Layer_0/Conv2D", Shape(5, 5, 3, 32), 1, 1, SamePadding) >>
+        tf.learn.AddBias("Layer_0/Bias") >>
+        tf.learn.ReLU("Layer_0/ReLU", 0.1f) >>
+        tf.learn.MaxPool("Layer_0/MaxPool", Seq(1, 2, 2, 1), 1, 1, SamePadding) >>
+        tf.learn.Conv2D("Layer_1/Conv2D", Shape(5, 5, 32, 64), 1, 1, SamePadding) >>
+        tf.learn.AddBias(variableScope = "Bias_1") >>
+        tf.learn.ReLU("Layer_1/ReLU", 0.1f) >>
+        tf.learn.MaxPool("Layer_1/MaxPool", Seq(1, 2, 2, 1), 1, 1, SamePadding) >>
+        tf.learn.Flatten("Layer_2/Flatten") >>
+        tf.learn.Linear("Layer_2/Linear", 256) >> tf.learn.ReLU("Layer_2/ReLU", 0.1f) >>
+        tf.learn.Linear("OutputLayer/Linear", 10)
+    val trainingInputLayer = tf.learn.Cast("TrainInput/Cast", INT64)
+    val loss = tf.learn.SparseSoftmaxCrossEntropy("Loss/CrossEntropy") >>
+        tf.learn.Mean("Loss/Mean") >> tf.learn.ScalarSummary("Loss/Summary", "Loss")
     val optimizer = tf.train.AdaGrad(0.1)
     val model = tf.learn.Model(input, layer, trainInput, trainingInputLayer, loss, optimizer)
 
