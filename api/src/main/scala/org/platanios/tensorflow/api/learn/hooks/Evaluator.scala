@@ -63,19 +63,19 @@ case class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
     trigger: HookTrigger = StepHookTrigger(100),
     triggerAtEnd: Boolean = true,
     randomSeed: Option[Int] = None,
-    name: String = null
+    name: String = "Evaluator"
 ) extends TriggeredHook(trigger, triggerAtEnd)
     with ModelDependentHook[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] {
   require(log || summaryDir != null, "At least one of 'log' and 'summaryDir' needs to be provided.")
 
-  private[this] var graph              : Graph          = _
-  private[this] var sessionCreator     : SessionCreator = _
-  private[this] var inputInitializer: Op             = _
-  private[this] var evaluateOps       : Model.EvaluateOps[TT, TO, TD, TS, I]    = _
+  private[this] var graph           : Graph                                = _
+  private[this] var sessionCreator  : SessionCreator                       = _
+  private[this] var inputInitializer: Op                                   = _
+  private[this] var evaluateOps     : Model.EvaluateOps[TT, TO, TD, TS, I] = _
 
   override protected def begin(): Unit = {
     graph = Graph()
-    Op.createWith(graph) {
+    Op.createWith(graph, nameScope = name) {
       randomSeed.foreach(graph.setRandomSeed)
       evaluateOps = Op.createWithNameScope("Model")(modelInstance.model.buildEvaluateOps(metrics))
       inputInitializer = evaluateOps.inputIterator.createInitializer(data())
@@ -98,7 +98,7 @@ case class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
       elapsed: Option[(Double, Int)],
       runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor]],
       session: Session
-  ): Unit = Op.createWith(graph) {
+  ): Unit = Op.createWith(graph, nameScope = name) {
     Evaluator.logger.info(s"Computing $name.")
     val session = MonitoredSession(sessionCreator, shouldRecover = true)
     val values = {

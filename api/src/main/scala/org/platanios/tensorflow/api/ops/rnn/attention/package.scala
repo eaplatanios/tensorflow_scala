@@ -99,12 +99,26 @@ package object attention {
 
         override def map(
             value: AttentionWrapperState[S, SS], mapFn: (ops.Symbol) => ops.Symbol
-        ): AttentionWrapperState[S, SS] = ???
+        ): AttentionWrapperState[S, SS] = {
+          val cellState = evS.map(value.cellState, mapFn)
+          val time = evOutput.map(value.time, mapFn)
+          val attention = evOutput.map(value.attention, mapFn)
+          val alignments = evSeqOutput.map(value.alignments, mapFn)
+          val alignmentsHistory = evSeqTensorArray.map(value.alignmentsHistory, mapFn)
+          AttentionWrapperState[S, SS](cellState, time, attention, alignments, alignmentsHistory)
+        }
 
         override def mapWithShape(
             value: AttentionWrapperState[S, SS], shape: (SS, Shape, Shape, Seq[Shape], Seq[Shape]),
             mapFn: (ops.Symbol, Shape) => ops.Symbol
-        ): AttentionWrapperState[S, SS] = ???
+        ): AttentionWrapperState[S, SS] = {
+          val cellState = evS.mapWithShape(value.cellState, shape._1, mapFn)
+          val time = evOutput.mapWithShape(value.time, shape._2, mapFn)
+          val attention = evOutput.mapWithShape(value.attention, shape._3, mapFn)
+          val alignments = evSeqOutput.mapWithShape(value.alignments, shape._4, mapFn)
+          val alignmentsHistory = evSeqTensorArray.mapWithShape(value.alignmentsHistory, shape._5, mapFn)
+          AttentionWrapperState[S, SS](cellState, time, attention, alignments, alignmentsHistory)
+        }
       }
     }
   }

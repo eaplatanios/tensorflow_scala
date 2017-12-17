@@ -66,7 +66,9 @@ class BeamSearchDecoder[S, SS](
     BeamSearchDecoder.Output, (Shape, Shape, Shape),
     BeamSearchDecoder.State[S, SS], (SS, Shape, Shape, Shape),
     BeamSearchDecoder.FinalOutput, BeamSearchDecoder.State[S, SS]](cell, name) {
-  private[this] val tiledInitialCellState: S = evS.map(initialCellState, BeamSearchDecoder.tileBatch(_, beamWidth))
+  // TODO: Handle the tiling inside the decoder itself.
+  // evS.map(initialCellState, BeamSearchDecoder.tileBatch(_, beamWidth))
+  private[this] val tiledInitialCellState: S = initialCellState
 
   if (evS.outputs(tiledInitialCellState).exists(_.rank == -1))
     throw InvalidArgumentException("All tensors in the state need to have known rank for the beam search decoder.")
@@ -537,19 +539,34 @@ object BeamSearchDecoder {
   private[decoders] def tileBatch(value: ops.Symbol, multiplier: Int): ops.Symbol = {
     value match {
       case output: ops.Output =>
-        if (output.rank == -1)
+        if (output.rank == -1) {
           throw InvalidArgumentException("The provided tensor must have statically known rank.")
-        val outputShape = Basic.shape(output)
-        val tiling = ArrayBuffer.fill(output.rank + 1)(1)
-        tiling(1) = multiplier
-        val tiledStaticBatchSize = if (output.shape(0) != -1) output.shape(0) * multiplier else -1
-        val tiled = Basic.tile(output.expandDims(1), tiling).reshape(
-          Basic.concatenate(Seq((outputShape(0) * multiplier).expandDims(0), outputShape(1 ::))))
-        tiled.setShape(Shape(tiledStaticBatchSize) ++ output.shape(1 ::))
-        tiled
+        } else if (output.rank == 0) {
+          val tiling = Tensor(multiplier)
+          val tiled = Basic.tile(output.expandDims(0), tiling)
+          tiled.setShape(Shape(multiplier))
+          tiled
+        } else {
+          val outputShape = Basic.shape(output)
+          val tiling = ArrayBuffer.fill(output.rank + 1)(1)
+          tiling(1) = multiplier
+          val tiledStaticBatchSize = if (output.shape(0) != -1) output.shape(0) * multiplier else -1
+          val tiled = Basic.tile(output.expandDims(1), tiling).reshape(
+            Basic.concatenate(Seq((outputShape(0) * multiplier).expandDims(0), outputShape(1 ::))))
+          if (output.rank > 1)
+            tiled.setShape(Shape(tiledStaticBatchSize) ++ output.shape(1 ::))
+          else
+            tiled.setShape(Shape(tiledStaticBatchSize))
+          tiled
+        }
       case _: TensorArray => value
       case _ => throw InvalidArgumentException("Unsupported argument type for use with the beam search decoder.")
     }
+  }
+
+  @throws[InvalidArgumentException]
+  def tileForBeamSearch[S](value: S, beamWidth: Int)(implicit evS: WhileLoopVariable[S]): S = {
+    evS.map(value, BeamSearchDecoder.tileBatch(_, beamWidth))
   }
 
   /** Maybe converts the provided tensor structure from batches by beams into batches of beams, by merging them

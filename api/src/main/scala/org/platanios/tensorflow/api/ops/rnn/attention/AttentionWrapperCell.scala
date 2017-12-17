@@ -83,9 +83,9 @@ class AttentionWrapperCell[S, SS] private[attention] (
         val inferredDataType = if (dataType == null) state.dataType else dataType
         val batchSize: Output = if (state.rank != -1 && state.shape(0) != -1) state.shape(0) else Basic.shape(state)(0)
         val checkedCellState = Op.createWith(controlDependencies = attentions.map(a => Checks.assertEqual(
-          a.batchSize, batchSize, message =
-              s"When calling `initialState` of `AttentionWrapperCell` '$name': Non-matching batch sizes between the " +
-                  "memory (encoder output) and the requested batch size.")).toSet) {
+          a.batchSize, batchSize,
+          message = s"When calling `initialState` of `AttentionWrapperCell` '$name': " +
+              "Non-matching batch sizes between the memory (encoder output) and the requested batch size.")).toSet) {
           evS.map(initialCellState, {
             case s: TensorArray => s.identity
             case s: OutputLike => Basic.identity(s, "CheckedInitialCellState")
@@ -109,8 +109,8 @@ class AttentionWrapperCell[S, SS] private[attention] (
   override def outputShape: Shape = if (outputAttention) Shape(attentionLayersSize) else cell.outputShape
 
   override def stateShape: (SS, Shape, Shape, Seq[Shape], Seq[Shape]) = {
-    (cell.stateShape, Shape.scalar(), Shape(attentionLayersSize),
-        attentions.map(a => Output.constantValueAsShape(a.alignmentSize).getOrElse(Shape.unknown())),
+    (cell.stateShape, Shape(1), Shape(attentionLayersSize),
+        attentions.map(a => Output.constantValueAsShape(a.alignmentSize.expandDims(0)).getOrElse(Shape.unknown())),
         attentions.map(_ => Shape.scalar()))
   }
 
