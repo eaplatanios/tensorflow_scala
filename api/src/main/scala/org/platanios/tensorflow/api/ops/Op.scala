@@ -816,7 +816,7 @@ object Op {
     * @return Return value of the code block.
     */
   private[api] def createWith[R](
-      graph: Graph = null, nameScope: String = null, device: String = "",
+      graph: Graph = null, nameScope: String = null, device: String = null,
       deviceFunction: OpSpecification => String = _.device, colocationOps: Set[Op] = null,
       controlDependencies: Set[Op] = null, attributes: Map[String, Any] = null,
       container: String = null)(block: => R)(implicit context: DynamicVariable[OpCreationContext]): R = {

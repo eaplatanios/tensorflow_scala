@@ -58,7 +58,7 @@ private[ops] object Gradients {
       // Initialize the pending counts for ops in the connected sub-graph between the ys and xs.
       val sourceOps = xs.map(_.op).toSet
       val destinationOps = {
-        if (ys.length > 1)
+        if (ys.lengthCompare(1) > 0)
           ys.map(y => if (y.consumers.nonEmpty) Basic.identity(y).op else y.op).toSet
         else
           ys.map(_.op).toSet
@@ -129,7 +129,7 @@ private[ops] object Gradients {
               val outputGradients = opGradients.map(_.headOption.orNull)
               var inputGradients = maybeCompile(name, op, () => gradientFunction(op, outputGradients))
               if (gateGradients && inputGradients.count(_ != null) > 1) {
-                Op.createWith(device = "") {
+                Op.createWith(device = null) {
                   Op.colocateWith(Set.empty[Op], ignoreExisting = true) {
                     inputGradients = ControlFlow.tuple(inputGradients.toArray).toSeq
                   }
@@ -203,7 +203,7 @@ private[ops] object Gradients {
     // Collect the aggregated gradients for the requested tensors and return them.
     xs.map(x => {
       val gradients = accumulatedGradients.get(x.op).map(_.apply(x.index))
-      if (gradients.isDefined && gradients.get.length > 1)
+      if (gradients.isDefined && gradients.get.lengthCompare(1) > 0)
         throw new IllegalArgumentException("The gradients should have been aggregated by now.")
       gradients.map(_.head).orNull
     })
