@@ -25,23 +25,22 @@ import org.platanios.tensorflow.api.ops.variables.VariableScope
   *
   * This will create a different set of variables for each layer in the stacked LSTM cell (i.e., no variable sharing).
   *
-  * @param  cells Cells being stacked together.
-  * @param  name  Desired name for this layer (note that this name will be made unique by potentially appending a number
-  *               to it, if it has been used before for another layer).
+  * @param  variableScope Variable scope (also acting as name scope) for this layer.
+  * @param  cells         Cells being stacked together.
   *
   * @author Emmanouil Antonios Platanios
   */
-class MultiRNNCell[O, OS, S, SS] private[cell] (
-    val cells: Seq[RNNCell[O, OS, S, SS]],
-    override val name: String = "MultiRNNCell"
+class MultiRNNCell[O, OS, S, SS](
+    override val variableScope: String,
+    val cells: Seq[RNNCell[O, OS, S, SS]]
 )(implicit
     evO: WhileLoopVariable.Aux[O, OS],
     evS: WhileLoopVariable.Aux[S, SS]
-) extends RNNCell[O, OS, Seq[S], Seq[SS]](name) {
+) extends RNNCell[O, OS, Seq[S], Seq[SS]](variableScope) {
   override val layerType: String = "MultiRNNCell"
 
-  override protected def _createCell(mode: Mode, inputShape: OS): CellInstance[O, OS, Seq[S], Seq[SS]] = {
-    Op.createWithNameScope(uniquifiedName) {
+  override def createCell(mode: Mode, inputShape: OS): CellInstance[O, OS, Seq[S], Seq[SS]] = {
+    Op.createWithNameScope(variableScope) {
       val cellInstances = cells.zipWithIndex.foldLeft(Seq.empty[CellInstance[O, OS, S, SS]])((seq, cell) => {
         VariableScope.createWithVariableScope(s"Cell${cell._2}") {
           if (seq.isEmpty)
@@ -61,11 +60,12 @@ class MultiRNNCell[O, OS, S, SS] private[cell] (
 
 object MultiRNNCell {
   def apply[O, OS, S, SS](
-      cells: Seq[RNNCell[O, OS, S, SS]], name: String = "MultiRNNCell"
+      variableScope: String,
+      cells: Seq[RNNCell[O, OS, S, SS]]
   )(implicit
       evO: WhileLoopVariable.Aux[O, OS],
       evS: WhileLoopVariable.Aux[S, SS]
   ): MultiRNNCell[O, OS, S, SS] = {
-    new MultiRNNCell(cells, name)(evO, evS)
+    new MultiRNNCell(variableScope, cells)(evO, evS)
   }
 }

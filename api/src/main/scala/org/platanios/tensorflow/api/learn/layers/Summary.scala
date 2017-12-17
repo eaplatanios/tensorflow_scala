@@ -25,7 +25,7 @@ import org.platanios.tensorflow.api.types.UINT8
 /**
   * @author Emmanouil Antonios Platanios
   */
-abstract class Summary(override protected val name: String) extends Layer[Output, Output](name)
+abstract class Summary(override val variableScope: String) extends Layer[Output, Output](variableScope)
 
 object Summary {
   private[layers] trait API {
@@ -44,11 +44,11 @@ object Summary {
 }
 
 case class ScalarSummary(
+    override val variableScope: String,
     tag: String,
     family: String = null,
-    collections: Set[Graph.Key[Output]] = Set(Graph.Keys.SUMMARIES),
-    override protected val name: String = "ScalarSummary"
-) extends Summary(name) {
+    collections: Set[Graph.Key[Output]] = Set(Graph.Keys.SUMMARIES)
+) extends Summary(variableScope) {
   override val layerType: String = "ScalarSummary"
 
   override protected def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
@@ -58,11 +58,11 @@ case class ScalarSummary(
 }
 
 case class HistogramSummary(
+    override val variableScope: String,
     tag: String,
     family: String = null,
-    collections: Set[Graph.Key[Output]] = Set(Graph.Keys.SUMMARIES),
-    override protected val name: String = "HistogramSummary"
-) extends Summary(name) {
+    collections: Set[Graph.Key[Output]] = Set(Graph.Keys.SUMMARIES)
+) extends Summary(variableScope) {
   override val layerType: String = "HistogramSummary"
 
   override protected def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
@@ -72,13 +72,13 @@ case class HistogramSummary(
 }
 
 case class ImageSummary(
+    override val variableScope: String,
     tag: String,
     badColor: Tensor = Tensor(UINT8, 255, 0, 0, 255),
     maxOutputs: Int = 3,
     family: String = null,
-    collections: Set[Graph.Key[Output]] = Set(Graph.Keys.SUMMARIES),
-    override protected val name: String = "ImageSummary"
-) extends Summary(name) {
+    collections: Set[Graph.Key[Output]] = Set(Graph.Keys.SUMMARIES)
+) extends Summary(variableScope) {
   override val layerType: String = "ImageSummary"
 
   override protected def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
@@ -88,13 +88,13 @@ case class ImageSummary(
 }
 
 case class AudioSummary(
+    override val variableScope: String,
     tag: String,
     samplingRate: Tensor,
     maxOutputs: Int = 3,
     family: String = null,
     collections: Set[Graph.Key[Output]] = Set(Graph.Keys.SUMMARIES),
-    override protected val name: String = "AudioSummary"
-) extends Summary(name) {
+) extends Summary(variableScope) {
   override val layerType: String = "AudioSummary"
 
   override protected def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {

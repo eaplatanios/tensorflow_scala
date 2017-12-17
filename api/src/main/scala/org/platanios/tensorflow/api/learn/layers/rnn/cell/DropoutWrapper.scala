@@ -28,30 +28,29 @@ import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
   * Note also that for LSTM cells, no dropout is applied to the memory tensor of the state. It is only applied to the
   * state tensor.
   *
+  * @param  variableScope         Variable scope (also acting as name scope) for this layer.
   * @param  cell                  RNN cell on which to perform dropout.
   * @param  inputKeepProbability  Keep probability for the input of the RNN cell.
   * @param  outputKeepProbability Keep probability for the output of the RNN cell.
   * @param  stateKeepProbability  Keep probability for the output state of the RNN cell.
   * @param  seed                  Optional random seed, used to generate a random seed pair for the random number
   *                               generator, when combined with the graph-level seed.
-  * @param  name                  Desired name for this layer (note that this name will be made unique by potentially
-  *                               appending a number to it, if it has been used before for another layer).
   *
   * @author Emmanouil Antonios Platanios
   */
 class DropoutWrapper[O, OS, S, SS](
+    override val variableScope: String,
     val cell: RNNCell[O, OS, S, SS],
     val inputKeepProbability: Float = 1.0f,
     val outputKeepProbability: Float = 1.0f,
     val stateKeepProbability: Float = 1.0f,
-    val seed: Option[Int] = None,
-    override val name: String = "DropoutWrapper"
+    val seed: Option[Int] = None
 )(implicit
     evO: WhileLoopVariable.Aux[O, OS],
     evS: WhileLoopVariable.Aux[S, SS],
     evODropout: ops.rnn.cell.DropoutWrapper.Supported[O],
     evSDropout: ops.rnn.cell.DropoutWrapper.Supported[S]
-) extends RNNCell[O, OS, S, SS](name)(evO, evS) {
+) extends RNNCell[O, OS, S, SS](variableScope)(evO, evS) {
   require(inputKeepProbability > 0.0 && inputKeepProbability <= 1.0,
     s"'inputKeepProbability' ($inputKeepProbability) must be in (0, 1].")
   require(outputKeepProbability > 0.0 && outputKeepProbability <= 1.0,
@@ -61,13 +60,13 @@ class DropoutWrapper[O, OS, S, SS](
 
   override val layerType: String = "DropoutWrapper"
 
-  override protected def _createCell(mode: Mode, inputShape: OS): CellInstance[O, OS, S, SS] = {
+  override def createCell(mode: Mode, inputShape: OS): CellInstance[O, OS, S, SS] = {
     val cellInstance = cell.createCell(mode, inputShape)
     mode match {
       case TRAINING =>
         val dropoutCell = ops.rnn.cell.DropoutWrapper(
           cellInstance.cell, inputKeepProbability, outputKeepProbability, stateKeepProbability, seed,
-          uniquifiedName)(evO, evS, evODropout, evSDropout)
+          variableScope)(evO, evS, evODropout, evSDropout)
         CellInstance(dropoutCell, cellInstance.trainableVariables, cellInstance.nonTrainableVariables)
       case _ => cellInstance
     }
@@ -76,12 +75,12 @@ class DropoutWrapper[O, OS, S, SS](
 
 object DropoutWrapper {
   def apply[O, OS, S, SS](
+      variableScope: String,
       cell: RNNCell[O, OS, S, SS],
       inputKeepProbability: Float = 1.0f,
       outputKeepProbability: Float = 1.0f,
       stateKeepProbability: Float = 1.0f,
-      seed: Option[Int] = None,
-      name: String = "DropoutWrapper"
+      seed: Option[Int] = None
   )(implicit
       evO: WhileLoopVariable.Aux[O, OS],
       evS: WhileLoopVariable.Aux[S, SS],
@@ -89,7 +88,7 @@ object DropoutWrapper {
       evSDropout: ops.rnn.cell.DropoutWrapper.Supported[S]
   ): DropoutWrapper[O, OS, S, SS] = {
     new DropoutWrapper(
-      cell, inputKeepProbability, outputKeepProbability, stateKeepProbability, seed, name)(
+      variableScope, cell, inputKeepProbability, outputKeepProbability, stateKeepProbability, seed)(
       evO, evS, evODropout, evSDropout)
   }
 }

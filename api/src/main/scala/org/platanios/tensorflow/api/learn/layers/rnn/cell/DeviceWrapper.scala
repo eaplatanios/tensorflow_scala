@@ -22,26 +22,25 @@ import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
 
 /** RNN cell that ensures another RNN cell runs on a specific device.
   *
+  * @param  variableScope  Variable scope (also acting as name scope) for this layer.
   * @param  cell           RNN cell being wrapped.
   * @param  device         Device to use.
   * @param  deviceFunction Device function to use.
-  * @param  name           Desired name for this layer (note that this name will be made unique by potentially
-  *                        appending a number to it, if it has been used before for another layer).
   *
   * @author Emmanouil Antonios Platanios
   */
 class DeviceWrapper[O, OS, S, SS](
+    override val variableScope: String,
     val cell: RNNCell[O, OS, S, SS],
     val device: String = "",
     val deviceFunction: OpSpecification => String = _.device,
-    override val name: String = "DeviceWrapper"
 )(implicit
     evO: WhileLoopVariable.Aux[O, OS],
     evS: WhileLoopVariable.Aux[S, SS]
-) extends RNNCell[O, OS, S, SS](name)(evO, evS) {
+) extends RNNCell[O, OS, S, SS](variableScope)(evO, evS) {
   override val layerType: String = "DeviceWrapper"
 
-  override protected def _createCell(mode: Mode, inputShape: OS): CellInstance[O, OS, S, SS] = {
+  override def createCell(mode: Mode, inputShape: OS): CellInstance[O, OS, S, SS] = {
     val cellInstance = cell.createCell(mode, inputShape)
     val deviceWrapperCell = ops.rnn.cell.DeviceWrapper(cellInstance.cell, device, deviceFunction)
     CellInstance(deviceWrapperCell, cellInstance.trainableVariables, cellInstance.nonTrainableVariables)
@@ -50,14 +49,14 @@ class DeviceWrapper[O, OS, S, SS](
 
 object DeviceWrapper {
   def apply[O, OS, S, SS](
+      variableScope: String,
       cell: RNNCell[O, OS, S, SS],
       device: String = "",
-      deviceFunction: OpSpecification => String = _.device,
-      name: String = "DeviceWrapper"
+      deviceFunction: OpSpecification => String = _.device
   )(implicit
       evO: WhileLoopVariable.Aux[O, OS],
       evS: WhileLoopVariable.Aux[S, SS]
   ): DeviceWrapper[O, OS, S, SS] = {
-    new DeviceWrapper(cell, device, deviceFunction, name)(evO, evS)
+    new DeviceWrapper(variableScope, cell, device, deviceFunction)(evO, evS)
   }
 }

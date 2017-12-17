@@ -26,6 +26,7 @@ import org.platanios.tensorflow.api.tensors.Tensor
   *
   * $OpDocRNNBidirectionalDynamicRNN
   *
+  * @param  variableScope      Variable scope (also acting as name scope) for this layer.
   * @param  cellFw             RNN cell to use for the forward direction.
   * @param  cellBw             RNN cell to use for the backward direction.
   * @param  initialStateFw     Initial state to use for the forward RNN, which is a structure over tensors with shapes
@@ -41,12 +42,11 @@ import org.platanios.tensorflow.api.tensors.Tensor
   * @param  swapMemory         If `true`, GPU-CPU memory swapping support is enabled for the RNN loop.
   * @param  sequenceLengths    Optional `INT32` tensor with shape `[batchSize]` containing the sequence lengths for
   *                            each row in the batch.
-  * @param  name               Desired name for this layer (note that this name will be made unique by potentially
-  *                            appending a number to it, if it has been used before for another layer).
   *
   * @author Emmanouil Antonios Platanios
   */
-class BidirectionalRNN[O, OS, S, SS] private[rnn] (
+class BidirectionalRNN[O, OS, S, SS](
+    override val variableScope: String,
     val cellFw: RNNCell[O, OS, S, SS],
     val cellBw: RNNCell[O, OS, S, SS],
     val initialStateFw: () => S = null,
@@ -54,12 +54,11 @@ class BidirectionalRNN[O, OS, S, SS] private[rnn] (
     val timeMajor: Boolean = false,
     val parallelIterations: Int = 32,
     val swapMemory: Boolean = false,
-    val sequenceLengths: Tensor = null,
-    override protected val name: String = "BidirectionalRNN"
+    val sequenceLengths: Tensor = null
 )(implicit
     evO: ops.control_flow.WhileLoopVariable.Aux[O, OS],
     evS: ops.control_flow.WhileLoopVariable.Aux[S, SS]
-) extends Layer[O, (Tuple[O, S], Tuple[O, S])](name) {
+) extends Layer[O, (Tuple[O, S], Tuple[O, S])](variableScope) {
   override val layerType: String = "BidirectionalRNN"
 
   override protected def forward(input: O, mode: Mode): LayerInstance[O, (Tuple[O, S], Tuple[O, S])] = {
@@ -72,13 +71,13 @@ class BidirectionalRNN[O, OS, S, SS] private[rnn] (
       input,
       ops.rnn.RNN.bidirectionalDynamicRNN(
         cellInstanceFw.cell, cellInstanceBw.cell, input, stateFw, stateBw,
-        timeMajor, parallelIterations, swapMemory, lengths, uniquifiedName)(evO, evS),
+        timeMajor, parallelIterations, swapMemory, lengths, variableScope)(evO, evS),
       cellInstanceFw.trainableVariables ++ cellInstanceBw.trainableVariables,
       cellInstanceFw.nonTrainableVariables ++ cellInstanceBw.nonTrainableVariables)
   }
 
   def withConcatenatedOutputs: Layer[O, Tuple[O, (S, S)]] = {
-    new Layer[O, Tuple[O, (S, S)]](s"$name/ConcatenatedOutputs") {
+    new Layer[O, Tuple[O, (S, S)]](s"$variableScope/ConcatenatedOutputs") {
       override val layerType: String = "BidirectionalRNNWithConcatenatedOutputs"
 
       override protected def forward(input: O, mode: Mode): LayerInstance[O, Tuple[O, (S, S)]] = {
@@ -99,6 +98,7 @@ class BidirectionalRNN[O, OS, S, SS] private[rnn] (
 
 object BidirectionalRNN {
   def apply[O, OS, S, SS](
+      variableScope: String,
       cellFw: RNNCell[O, OS, S, SS],
       cellBw: RNNCell[O, OS, S, SS],
       initialStateFw: () => S = null,
@@ -106,14 +106,13 @@ object BidirectionalRNN {
       timeMajor: Boolean = false,
       parallelIterations: Int = 32,
       swapMemory: Boolean = false,
-      sequenceLengths: Tensor = null,
-      name: String = "BidirectionalRNN"
+      sequenceLengths: Tensor = null
   )(implicit
       evO: ops.control_flow.WhileLoopVariable.Aux[O, OS],
       evS: ops.control_flow.WhileLoopVariable.Aux[S, SS]
   ): BidirectionalRNN[O, OS, S, SS] = {
     new BidirectionalRNN(
-      cellFw, cellBw, initialStateFw, initialStateBw,
-      timeMajor, parallelIterations, swapMemory, sequenceLengths, name)(evO, evS)
+      variableScope, cellFw, cellBw, initialStateFw, initialStateBw,
+      timeMajor, parallelIterations, swapMemory, sequenceLengths)(evO, evS)
   }
 }

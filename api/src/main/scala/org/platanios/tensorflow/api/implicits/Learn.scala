@@ -43,7 +43,7 @@ trait Learn {
         cbfSS: CanBuildFrom[CC[LayerInstance[R, S]], S, CC[S]],
         cbfLIRS: CanBuildFrom[CC[R], LayerInstance[R, S], CC[LayerInstance[R, S]]]
     ): Map[T, R, S, CC] = {
-      Map[T, R, S, CC](layer, mapLayer)(cbfSS, cbfLIRS)
+      Map[T, R, S, CC](layer.variableScope, layer, mapLayer)(cbfSS, cbfLIRS)
     }
   }
 

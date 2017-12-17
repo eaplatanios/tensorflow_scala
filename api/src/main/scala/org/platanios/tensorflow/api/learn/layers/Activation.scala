@@ -22,7 +22,7 @@ import org.platanios.tensorflow.api.ops.Output
 /**
   * @author Emmanouil Antonios Platanios
   */
-abstract class Activation(override protected val name: String) extends Layer[Output, Output](name)
+abstract class Activation(override val variableScope: String) extends Layer[Output, Output](variableScope)
 
 object Activation {
   private[layers] trait API {
@@ -41,74 +41,74 @@ object Activation {
   object API extends API
 }
 
-case class Sigmoid(override protected val name: String = "Sigmoid")
-    extends Activation(name) {
+case class Sigmoid(override val variableScope: String)
+    extends Activation(variableScope) {
   override val layerType: String = "Sigmoid"
 
   override protected def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
-    LayerInstance(input, ops.Math.sigmoid(input, name = uniquifiedName))
+    LayerInstance(input, ops.Math.sigmoid(input, name = variableScope))
   }
 }
 
-case class ReLU(alpha: Float = 0.0f, override protected val name: String = "ReLU")
-    extends Activation(name) {
+case class ReLU(override val variableScope: String, alpha: Float = 0.0f)
+    extends Activation(variableScope) {
   override val layerType: String = if (alpha > 0.0f) f"LeakyReLU($alpha%.2f)" else "ReLU"
 
   override protected def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
-    LayerInstance(input, ops.NN.relu(input, alpha = alpha, name = uniquifiedName))
+    LayerInstance(input, ops.NN.relu(input, alpha = alpha, name = variableScope))
   }
 }
 
-case class ReLU6(override protected val name: String = "ReLU6")
-    extends Activation(name) {
+case class ReLU6(override val variableScope: String)
+    extends Activation(variableScope) {
   override val layerType: String = "ReLU6"
 
   override protected def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
-    LayerInstance(input, ops.NN.relu6(input, name = uniquifiedName))
+    LayerInstance(input, ops.NN.relu6(input, name = variableScope))
   }
 }
 
-case class CReLU(override protected val name: String = "CReLU")
-    extends Activation(name) {
+case class CReLU(override val variableScope: String)
+    extends Activation(variableScope) {
   override val layerType: String = "CReLU"
 
   override protected def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
-    LayerInstance(input, ops.NN.crelu(input, name = uniquifiedName))
+    LayerInstance(input, ops.NN.crelu(input, name = variableScope))
   }
 }
 
-case class ELU(override protected val name: String = "ELU")
-    extends Activation(name) {
+case class ELU(override val variableScope: String)
+    extends Activation(variableScope) {
   override val layerType: String = "ELU"
 
   override protected def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
-    LayerInstance(input, ops.NN.elu(input, name = uniquifiedName))
+    LayerInstance(input, ops.NN.elu(input, name = variableScope))
   }
 }
 
-case class SELU(override protected val name: String = "SELU")
-    extends Activation(name) {
+case class SELU(override val variableScope: String)
+    extends Activation(variableScope) {
   override val layerType: String = "SELU"
 
   override protected def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
-    LayerInstance(input, ops.NN.selu(input, name = uniquifiedName))
+    LayerInstance(input, ops.NN.selu(input, name = variableScope))
   }
 }
 
-case class Softplus(override protected val name: String = "Softplus")
-    extends Activation(name) {
+case class Softplus(override val variableScope: String)
+    extends Activation(variableScope) {
   override val layerType: String = "Softplus"
 
   override protected def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
-    LayerInstance(input, ops.NN.softplus(input, name = uniquifiedName))
+    LayerInstance(input, ops.NN.softplus(input, name = variableScope))
   }
 }
 
-case class Softsign(override protected val name: String = "Softsign")
-    extends Activation(name) {
+case class Softsign(override val variableScope: String)
+    extends Activation(variableScope) {
   override val layerType: String = "Softsign"
 
   override protected def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
-    LayerInstance(input, ops.NN.softsign(input, name = uniquifiedName))
+    LayerInstance(input, ops.NN.softsign(input, name = variableScope))
   }
 }

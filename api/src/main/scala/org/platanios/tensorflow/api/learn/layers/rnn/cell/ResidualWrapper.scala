@@ -17,30 +17,28 @@ package org.platanios.tensorflow.api.learn.layers.rnn.cell
 
 import org.platanios.tensorflow.api.learn.Mode
 import org.platanios.tensorflow.api.ops
-import org.platanios.tensorflow.api.ops.OpSpecification
 import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
 
 /** RNN cell that creates a residual connection (i.e., combining the cell inputs and its outputs) over another RNN cell.
   *
-  * @param  cell       RNN cell being wrapped.
-  * @param  residualFn Residual function to use that maps from a tuple of cell input and cell output to the new cell
-  *                    output. Common choices include the addition and the concatenation functions.
-  * @param  name       Desired name for this layer (note that this name will be made unique by potentially appending a
-  *                    number to it, if it has been used before for another layer).
+  * @param  variableScope Variable scope (also acting as name scope) for this layer.
+  * @param  cell          RNN cell being wrapped.
+  * @param  residualFn    Residual function to use that maps from a tuple of cell input and cell output to the new cell
+  *                       output. Common choices include the addition and the concatenation functions.
   *
   * @author Emmanouil Antonios Platanios
   */
 class ResidualWrapper[O, OS, S, SS](
+    override val variableScope: String,
     val cell: RNNCell[O, OS, S, SS],
-    val residualFn: (O, O) => O,
-    override val name: String = "ResidualWrapper"
+    val residualFn: (O, O) => O
 )(implicit
     evO: WhileLoopVariable.Aux[O, OS],
     evS: WhileLoopVariable.Aux[S, SS]
-) extends RNNCell[O, OS, S, SS](name)(evO, evS) {
+) extends RNNCell[O, OS, S, SS](variableScope)(evO, evS) {
   override val layerType: String = "ResidualWrapper"
 
-  override protected def _createCell(mode: Mode, inputShape: OS): CellInstance[O, OS, S, SS] = {
+  override def createCell(mode: Mode, inputShape: OS): CellInstance[O, OS, S, SS] = {
     val cellInstance = cell.createCell(mode, inputShape)
     val residualWrapperCell = ops.rnn.cell.ResidualWrapper(cellInstance.cell, residualFn)
     CellInstance(residualWrapperCell, cellInstance.trainableVariables, cellInstance.nonTrainableVariables)
@@ -49,13 +47,13 @@ class ResidualWrapper[O, OS, S, SS](
 
 object ResidualWrapper {
   def apply[O, OS, S, SS](
+      variableScope: String,
       cell: RNNCell[O, OS, S, SS],
-      residualFn: (O, O) => O,
-      name: String = "ResidualWrapper"
+      residualFn: (O, O) => O
   )(implicit
       evO: WhileLoopVariable.Aux[O, OS],
       evS: WhileLoopVariable.Aux[S, SS]
   ): ResidualWrapper[O, OS, S, SS] = {
-    new ResidualWrapper(cell, residualFn, name)(evO, evS)
+    new ResidualWrapper(variableScope, cell, residualFn)(evO, evS)
   }
 }

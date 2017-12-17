@@ -15,68 +15,66 @@
 
 package org.platanios.tensorflow.api.learn.layers.rnn.cell
 
-import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.learn.Mode
 import org.platanios.tensorflow.api.ops
-import org.platanios.tensorflow.api.ops.Output
 import org.platanios.tensorflow.api.ops.variables.{Initializer, ZerosInitializer}
-import org.platanios.tensorflow.api.types.DataType
 
 /** $OpDocRNNCellGRUCell
   *
+  * @param  variableScope     Variable scope (also acting as name scope) for this layer.
   * @param  numUnits          Number of units in the GRU cell.
   * @param  dataType          Data type for the parameters of this cell.
   * @param  activation        Activation function used by this GRU cell.
   * @param  kernelInitializer Variable initializer for kernel matrices.
   * @param  biasInitializer   Variable initializer for the bias vectors.
-  * @param  name              Desired name for this layer (note that this name will be made unique by potentially
-  *                           appending a number to it, if it has been used before for another layer).
   *
   * @author Emmanouil Antonios Platanios
   */
-class GRUCell private[cell] (
+class GRUCell(
+    override val variableScope: String,
     val numUnits: Int,
     val dataType: DataType,
     val activation: Output => Output = ops.Math.tanh(_),
     val kernelInitializer: Initializer = null,
-    val biasInitializer: Initializer = ZerosInitializer,
-    override protected val name: String = "GRUCell"
-) extends RNNCell[Output, Shape, Output, Shape](name) {
+    val biasInitializer: Initializer = ZerosInitializer
+) extends RNNCell[Output, Shape, Output, Shape](variableScope) {
   override val layerType: String = "GRUCell"
 
-  override protected def _createCell(mode: Mode, inputShape: Shape): BasicCellInstance = {
-    val gateKernel = variable(
+  override def createCell(mode: Mode, inputShape: Shape): BasicCellInstance = {
+    val gateKernel = tf.variable(
       s"Gate/$KERNEL_NAME",
       dataType,
       Shape(inputShape(-1) + numUnits, 2 * numUnits),
       kernelInitializer)
-    val gateBias = variable(
+    val gateBias = tf.variable(
       s"Gate/$BIAS_NAME",
       dataType, Shape(2 * numUnits),
       biasInitializer)
-    val candidateKernel = variable(
+    val candidateKernel = tf.variable(
       s"Candidate/$KERNEL_NAME",
       dataType,
       Shape(inputShape(-1) + numUnits, numUnits),
       kernelInitializer)
-    val candidateBias = variable(
+    val candidateBias = tf.variable(
       s"Candidate/$BIAS_NAME",
       dataType,
       Shape(numUnits),
       biasInitializer)
-    val cell = ops.rnn.cell.GRUCell(gateKernel, gateBias, candidateKernel, candidateBias, activation, name)
+    val cell = ops.rnn.cell.GRUCell(gateKernel, gateBias, candidateKernel, candidateBias, activation, variableScope)
     CellInstance(cell, Set(gateKernel, gateBias, candidateKernel, candidateBias))
   }
 }
 
 object GRUCell {
   def apply(
+      variableScope: String,
       numUnits: Int,
       dataType: DataType,
       activation: Output => Output = ops.Math.tanh(_),
       kernelInitializer: Initializer = null,
       biasInitializer: Initializer = ZerosInitializer,
-      name: String = "GRUCell"): GRUCell = {
-    new GRUCell(numUnits, dataType, activation, kernelInitializer, biasInitializer, name)
+  ): GRUCell = {
+    new GRUCell(variableScope, numUnits, dataType, activation, kernelInitializer, biasInitializer)
   }
 }

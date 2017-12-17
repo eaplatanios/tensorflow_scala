@@ -25,6 +25,7 @@ import org.platanios.tensorflow.api.tensors.Tensor
   *
   * $OpDocRNNDynamicRNN
   *
+  * @param  variableScope      Variable scope (also acting as name scope) for this layer.
   * @param  cell               RNN cell to use.
   * @param  initialState       Initial state to use for the RNN, which is a structure over tensors with shapes
   *                            `[batchSize, stateShape(i)(0), stateShape(i)(1), ...]`, where `i` corresponds to the
@@ -36,23 +37,21 @@ import org.platanios.tensorflow.api.tensors.Tensor
   * @param  swapMemory         If `true`, GPU-CPU memory swapping support is enabled for the RNN loop.
   * @param  sequenceLengths    Optional `INT32` tensor with shape `[batchSize]` containing the sequence lengths for
   *                            each row in the batch.
-  * @param  name               Desired name for this layer (note that this name will be made unique by potentially
-  *                            appending a number to it, if it has been used before for another layer).
   *
   * @author Emmanouil Antonios Platanios
   */
-class RNN[O, OS, S, SS] private[rnn] (
+class RNN[O, OS, S, SS](
+    override val variableScope: String,
     val cell: RNNCell[O, OS, S, SS],
     val initialState: () => S = null,
     val timeMajor: Boolean = false,
     val parallelIterations: Int = 32,
     val swapMemory: Boolean = false,
-    val sequenceLengths: Tensor = null,
-    override protected val name: String = "RNN"
+    val sequenceLengths: Tensor = null
 )(implicit
     evO: ops.control_flow.WhileLoopVariable.Aux[O, OS],
     evS: ops.control_flow.WhileLoopVariable.Aux[S, SS]
-) extends Layer[O, Tuple[O, S]](name) {
+) extends Layer[O, Tuple[O, S]](variableScope) {
   override val layerType: String = "RNN"
 
   override protected def forward(input: O, mode: Mode): LayerInstance[O, Tuple[O, S]] = {
@@ -63,7 +62,7 @@ class RNN[O, OS, S, SS] private[rnn] (
       input,
       ops.rnn.RNN.dynamicRNN(
         cellInstance.cell, input, state, timeMajor, parallelIterations,
-        swapMemory, lengths, uniquifiedName)(evO, evS),
+        swapMemory, lengths, variableScope)(evO, evS),
       cellInstance.trainableVariables,
       cellInstance.nonTrainableVariables)
   }
@@ -71,17 +70,17 @@ class RNN[O, OS, S, SS] private[rnn] (
 
 object RNN {
   def apply[O, OS, S, SS](
+      variableScope: String,
       cell: RNNCell[O, OS, S, SS],
       initialState: () => S = null,
       timeMajor: Boolean = false,
       parallelIterations: Int = 32,
       swapMemory: Boolean = false,
-      sequenceLengths: Tensor = null,
-      name: String = "RNN"
+      sequenceLengths: Tensor = null
   )(implicit
       evO: ops.control_flow.WhileLoopVariable.Aux[O, OS],
       evS: ops.control_flow.WhileLoopVariable.Aux[S, SS]
   ): RNN[O, OS, S, SS] = {
-    new RNN(cell, initialState, timeMajor, parallelIterations, swapMemory, sequenceLengths, name)(evO, evS)
+    new RNN(variableScope, cell, initialState, timeMajor, parallelIterations, swapMemory, sequenceLengths)(evO, evS)
   }
 }
