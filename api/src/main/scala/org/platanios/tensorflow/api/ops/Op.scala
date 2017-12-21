@@ -893,7 +893,11 @@ object Op {
       else
         mergeColocationOps(colocationOps, context)
     }
-    context.withValue(context.copy(colocationOps = newColocationOps))(block)
+    // By default, `colocateWith` resets the device function stack, since `colocateWith` is typically used in specific
+    // internal library functions where colocation is intended to be "stronger" than device functions.
+    context.withValue(context.copy(
+      device = "", deviceFunction = (opSpec: OpSpecification) => opSpec.device,
+      colocationOps = newColocationOps))(block)
   }
 
   /** Merges a graph to the provided op creation context graph and returns the graph to use when specifying the updated

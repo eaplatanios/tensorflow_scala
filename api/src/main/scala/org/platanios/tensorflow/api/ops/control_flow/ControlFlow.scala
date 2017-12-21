@@ -67,7 +67,7 @@ private[api] trait ControlFlow {
     if (inputsByDevice.size == 1) {
       // 1-level tree. The root node is the returned no-op node.
       val (device, ops) = inputsByDevice.head
-      if (device != null && device != "")
+      if (device != null)
         Op.createWith(device = device, controlDependencies = ops)(noOp(name))
       else
         Op.createWith(controlDependencies = ops)(noOp(name))
@@ -75,7 +75,7 @@ private[api] trait ControlFlow {
       // 2-level tree. The root node is the returned no-op node. `dependencies` contains 1 NoOp node for each device.
       val dependencies = inputsByDevice.toSeq.sortBy(_._1).map {
         case (device, ops) =>
-          if (device != null && device != "")
+          if (device != null)
             Op.createWith(device = device, controlDependencies = ops)(noOp(name))
           else
             Op.createWith(controlDependencies = ops)(noOp(name))
