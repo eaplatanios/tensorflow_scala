@@ -248,11 +248,14 @@ object RNN extends RNN {
         (null, null)
     }
     val time = Basic.constant(0, INT32, name = "Time")
-    val outputTensorArrays = zeroOutputs.indices.map(i => {
-      TensorArray.create(timeSteps, inferredDataType, name = s"Output_$i")
+    val outputTensorArrays = evO.shapes(cell.outputShape).zipWithIndex.map({
+      case (shape, index) => TensorArray.create(
+        timeSteps, inferredDataType, elementShape = Shape(constantBatchSize) ++ Output.constantValueAsShape(shape).get,
+        name = s"Output_$index")
     })
     val inputTensorArrays = inputs.zipWithIndex.map({
-      case (in, index) => TensorArray.create(timeSteps, in.dataType, name = s"Input_$index").unstack(in)
+      case (in, index) => TensorArray.create(
+        timeSteps, in.dataType, elementShape = in.shape(1 ::), name = s"Input_$index").unstack(in)
     })
 
     type LoopVariables = (Output, Seq[TensorArray], Seq[Output])
@@ -283,12 +286,16 @@ object RNN extends RNN {
       (time + 1, nextOutputTensorArrays, nextStates)
     }
 
+    // `loopBound` can be reduced to `maxSequenceLength` once TensorArray shape inference is working. When sequence
+    // lengths are highly variable, this will reduce the performance overhead of padding to a fixed maximum length.
+    val loopBound = timeSteps
     val (_, finalOutputTensorArrays, finalStates) = ControlFlow.whileLoop(
-      (loopVariables: LoopVariables) => Math.less(loopVariables._1, timeSteps),
+      (loopVariables: LoopVariables) => Math.less(loopVariables._1, loopBound),
       (loopVariables: LoopVariables) => timeStep(loopVariables),
       (time, outputTensorArrays, initialStates),
       parallelIterations = parallelIterations,
-      swapMemory = swapMemory)
+      swapMemory = swapMemory,
+      maximumIterations = timeSteps)
 
     // Unpack the final output if not using output tuples
     val finalOutputs = finalOutputTensorArrays.map(_.stack())
