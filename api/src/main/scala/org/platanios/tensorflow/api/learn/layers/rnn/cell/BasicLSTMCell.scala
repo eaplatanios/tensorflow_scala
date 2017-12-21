@@ -43,12 +43,11 @@ class BasicLSTMCell(
 ) extends RNNCell[Output, Shape, LSTMState, (Shape, Shape)](variableScope) {
   override val layerType: String = "BasicLSTMCell"
 
-  override def createCell(mode: Mode, inputShape: Shape): LSTMCellInstance = {
+  override def createCell(mode: Mode, inputShape: Shape): ops.rnn.cell.BasicLSTMCell = {
     val kernel = tf.variable(
       KERNEL_NAME, dataType, Shape(inputShape(-1) + numUnits, 4 * numUnits), kernelInitializer)
     val bias = tf.variable(BIAS_NAME, dataType, Shape(4 * numUnits), biasInitializer)
-    val cell = ops.rnn.cell.BasicLSTMCell(kernel, bias, activation, forgetBias, variableScope)
-    LSTMCellInstance(cell, Set(kernel, bias))
+    ops.rnn.cell.BasicLSTMCell(kernel, bias, activation, forgetBias, variableScope)
   }
 }
 

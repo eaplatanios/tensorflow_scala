@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.learn.layers.rnn
 
 import org.platanios.tensorflow.api.learn.Mode
-import org.platanios.tensorflow.api.learn.layers.{Layer, LayerInstance}
+import org.platanios.tensorflow.api.learn.layers.Layer
 import org.platanios.tensorflow.api.learn.layers.rnn.cell.{RNNCell, Tuple}
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.tensors.Tensor
@@ -54,17 +54,12 @@ class RNN[O, OS, S, SS](
 ) extends Layer[O, Tuple[O, S]](variableScope) {
   override val layerType: String = "RNN"
 
-  override protected def forward(input: O, mode: Mode): LayerInstance[O, Tuple[O, S]] = {
+  override protected def forward(input: O, mode: Mode): Tuple[O, S] = {
     val state = if (initialState == null) null.asInstanceOf[S] else initialState()
     val lengths = if (sequenceLengths == null) null else ops.Basic.constant(sequenceLengths)
-    val cellInstance = cell.createCell(mode, evO.fromShapes(input, evO.outputs(input).map(_.shape)))
-    LayerInstance(
-      input,
-      ops.rnn.RNN.dynamicRNN(
-        cellInstance.cell, input, state, timeMajor, parallelIterations,
-        swapMemory, lengths, variableScope)(evO, evS),
-      cellInstance.trainableVariables,
-      cellInstance.nonTrainableVariables)
+    val createdCell = cell.createCell(mode, evO.fromShapes(input, evO.outputs(input).map(_.shape)))
+    ops.rnn.RNN.dynamicRNN(
+      createdCell, input, state, timeMajor, parallelIterations, swapMemory, lengths, variableScope)(evO, evS)
   }
 }
 

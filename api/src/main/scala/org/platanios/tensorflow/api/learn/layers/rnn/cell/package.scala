@@ -15,10 +15,8 @@
 
 package org.platanios.tensorflow.api.learn.layers.rnn
 
-import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.Output
-import org.platanios.tensorflow.api.ops.variables.Variable
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -26,21 +24,6 @@ import org.platanios.tensorflow.api.ops.variables.Variable
 package object cell {
   private[cell] val KERNEL_NAME: String = "weights"
   private[cell] val BIAS_NAME  : String = "bias"
-
-  case class CellInstance[O, OS, S, SS](
-      cell: ops.rnn.cell.RNNCell[O, OS, S, SS],
-      trainableVariables: Set[Variable] = Set.empty,
-      nonTrainableVariables: Set[Variable] = Set.empty)
-
-  type BasicCellInstance = CellInstance[Output, Shape, Output, Shape]
-
-  def BasicCellInstance(
-      cell: ops.rnn.cell.RNNCell[Output, Shape, Output, Shape],
-      trainableVariables: Set[Variable] = Set.empty,
-      nonTrainableVariables: Set[Variable] = Set.empty
-  ): BasicCellInstance = {
-    CellInstance(cell, trainableVariables, nonTrainableVariables)
-  }
 
   type Tuple[O, S] = ops.rnn.cell.Tuple[O, S]
   type BasicTuple = Tuple[Output, Output]
@@ -51,26 +34,11 @@ package object cell {
 
   val LSTMState: ops.rnn.cell.LSTMState.type = ops.rnn.cell.LSTMState
 
-  type LSTMCellInstance = CellInstance[Output, Shape, LSTMState, (Shape, Shape)]
   type LSTMTuple = ops.rnn.cell.LSTMTuple
 
   def LSTMTuple(output: Output, state: LSTMState): LSTMTuple = ops.rnn.cell.LSTMTuple(output, state)
 
-  def LSTMCellInstance(
-      cell: ops.rnn.cell.RNNCell[Output, Shape, LSTMState, (Shape, Shape)],
-      trainableVariables: Set[Variable] = Set.empty,
-      nonTrainableVariables: Set[Variable] = Set.empty
-  ): LSTMCellInstance = {
-    CellInstance(cell, trainableVariables, nonTrainableVariables)
-  }
-
   private[rnn] trait API {
-    type CellInstance[O, OS, S, SS] = cell.CellInstance[O, OS, S, SS]
-    type BasicCellInstance = cell.BasicCellInstance
-    type LSTMCellInstance = cell.LSTMCellInstance
-
-    val CellInstance: cell.CellInstance.type = cell.CellInstance
-
     type RNNCell[O, OS, S, SS] = cell.RNNCell[O, OS, S, SS]
     type BasicRNNCell = cell.BasicRNNCell
     type GRUCell = cell.GRUCell

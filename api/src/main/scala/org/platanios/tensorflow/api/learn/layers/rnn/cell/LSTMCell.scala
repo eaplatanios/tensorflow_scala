@@ -54,7 +54,7 @@ class LSTMCell(
 ) extends RNNCell[Output, Shape, LSTMState, (Shape, Shape)](variableScope) {
   override val layerType: String = "LSTMCell"
 
-  override def createCell(mode: Mode, inputShape: Shape): LSTMCellInstance = {
+  override def createCell(mode: Mode, inputShape: Shape): ops.rnn.cell.LSTMCell = {
     val trainableVariables: mutable.Set[Variable] = mutable.Set[Variable]()
     val hiddenDepth = if (projectionSize != -1) projectionSize else numUnits
     val kernel = tf.variable(
@@ -88,10 +88,9 @@ class LSTMCell(
         null
       }
     }
-    val cell = ops.rnn.cell.LSTMCell(
+    ops.rnn.cell.LSTMCell(
       kernel.value, bias.value, cellClip, wfDiag, wiDiag, woDiag, projectionKernel, projectionClip,
       activation, forgetBias, variableScope)
-    LSTMCellInstance(cell, trainableVariables.toSet)
   }
 }
 

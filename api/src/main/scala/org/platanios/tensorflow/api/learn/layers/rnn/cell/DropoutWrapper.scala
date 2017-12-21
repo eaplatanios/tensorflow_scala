@@ -60,15 +60,14 @@ class DropoutWrapper[O, OS, S, SS](
 
   override val layerType: String = "DropoutWrapper"
 
-  override def createCell(mode: Mode, inputShape: OS): CellInstance[O, OS, S, SS] = {
-    val cellInstance = cell.createCell(mode, inputShape)
+  override def createCell(mode: Mode, inputShape: OS): ops.rnn.cell.RNNCell[O, OS, S, SS] = {
+    val createdCell = cell.createCell(mode, inputShape)
     mode match {
       case TRAINING =>
-        val dropoutCell = ops.rnn.cell.DropoutWrapper(
-          cellInstance.cell, inputKeepProbability, outputKeepProbability, stateKeepProbability, seed,
+        ops.rnn.cell.DropoutWrapper(
+          createdCell, inputKeepProbability, outputKeepProbability, stateKeepProbability, seed,
           variableScope)(evO, evS, evODropout, evSDropout)
-        CellInstance(dropoutCell, cellInstance.trainableVariables, cellInstance.nonTrainableVariables)
-      case _ => cellInstance
+      case _ => createdCell
     }
   }
 }

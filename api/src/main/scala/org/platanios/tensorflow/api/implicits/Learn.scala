@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.implicits
 
 import org.platanios.tensorflow.api.learn.{Configuration, Mode, SupervisedTrainableModel, UnsupervisedTrainableModel}
 import org.platanios.tensorflow.api.learn.estimators.Estimator.{SupervisedModelFunction, UnsupervisedModelFunction}
-import org.platanios.tensorflow.api.learn.layers.{Layer, LayerInstance, Map}
+import org.platanios.tensorflow.api.learn.layers.{Layer, Map}
 
 import scala.collection.TraversableLike
 import scala.collection.generic.CanBuildFrom
@@ -32,7 +32,7 @@ trait Learn {
   ) extends Layer[CC[T], CC[R]]("Mappable") {
     override val layerType: String = "Mappable"
 
-    override protected def forward(input: CC[T], mode: Mode): LayerInstance[CC[T], CC[R]] = {
+    override protected def forward(input: CC[T], mode: Mode): CC[R] = {
       layer(input, mode)
     }
 
@@ -40,10 +40,9 @@ trait Learn {
         layer: Layer[CC[T], CC[R]],
         mapLayer: Layer[R, S]
     )(implicit
-        cbfSS: CanBuildFrom[CC[LayerInstance[R, S]], S, CC[S]],
-        cbfLIRS: CanBuildFrom[CC[R], LayerInstance[R, S], CC[LayerInstance[R, S]]]
+        cbfRS: CanBuildFrom[CC[R], S, CC[S]]
     ): Map[T, R, S, CC] = {
-      Map[T, R, S, CC](layer.variableScope, layer, mapLayer)(cbfSS, cbfLIRS)
+      Map[T, R, S, CC](layer.variableScope, layer, mapLayer)(cbfRS)
     }
   }
 

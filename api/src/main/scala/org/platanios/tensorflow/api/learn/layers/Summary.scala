@@ -51,9 +51,9 @@ case class ScalarSummary(
 ) extends Summary(variableScope) {
   override val layerType: String = "ScalarSummary"
 
-  override protected def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
+  override protected def forward(input: Output, mode: Mode): Output = {
     ops.Summary.scalar(tag, input, collections, family)
-    LayerInstance(input, input)
+    input
   }
 }
 
@@ -65,9 +65,9 @@ case class HistogramSummary(
 ) extends Summary(variableScope) {
   override val layerType: String = "HistogramSummary"
 
-  override protected def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
+  override protected def forward(input: Output, mode: Mode): Output = {
     ops.Summary.histogram(tag, input, collections, family)
-    LayerInstance(input, input)
+    input
   }
 }
 
@@ -81,9 +81,9 @@ case class ImageSummary(
 ) extends Summary(variableScope) {
   override val layerType: String = "ImageSummary"
 
-  override protected def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
+  override protected def forward(input: Output, mode: Mode): Output = {
     ops.Summary.image(tag, input, badColor, maxOutputs, collections, family)
-    LayerInstance(input, input)
+    input
   }
 }
 
@@ -97,8 +97,8 @@ case class AudioSummary(
 ) extends Summary(variableScope) {
   override val layerType: String = "AudioSummary"
 
-  override protected def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
+  override protected def forward(input: Output, mode: Mode): Output = {
     ops.Summary.audio(tag, input, samplingRate, maxOutputs, collections, family)
-    LayerInstance(input, input)
+  input
   }
 }

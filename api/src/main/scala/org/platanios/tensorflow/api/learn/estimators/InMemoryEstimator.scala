@@ -91,15 +91,13 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
         val evalUpdateOps = ControlFlow.group(evaluateOps.metricUpdates.map(_.op).toSet + evalStepUpdate.op)
         val trainModelInstance = ModelInstance(
           model, configuration, Some(trainOps.inputIterator), Some(trainOps.input), Some(trainOps.output),
-          Some(trainOps.loss), Some(trainOps.trainOp), trainOps.trainableVariables, trainOps.nonTrainableVariables)
+          Some(trainOps.loss), Some(trainOps.trainOp))
         trainHooks.foreach {
           case hook: ModelDependentHook[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] =>
             hook.setModelInstance(trainModelInstance)
           case _ => ()
         }
-        val inferModelInstance = ModelInstance(
-          model, configuration, None, None, Some(inferOps.output), None, None,
-          inferOps.trainableVariables, inferOps.nonTrainableVariables)
+        val inferModelInstance = ModelInstance(model, configuration, None, None, Some(inferOps.output), None, None)
         inferHooks.foreach {
           case hook: ModelDependentHook[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] =>
             hook.setModelInstance(inferModelInstance)
@@ -107,7 +105,7 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
         }
         val evaluateModelInstance = ModelInstance(
           model, configuration, Some(evaluateOps.inputIterator), Some(evaluateOps.input), Some(evaluateOps.output),
-          None, None, evaluateOps.trainableVariables, evaluateOps.nonTrainableVariables)
+          None, None)
         evaluateHooks.foreach {
           case hook: ModelDependentHook[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] =>
             hook.setModelInstance(evaluateModelInstance)

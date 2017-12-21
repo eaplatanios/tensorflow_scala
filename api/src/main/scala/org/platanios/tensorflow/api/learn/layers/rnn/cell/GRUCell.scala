@@ -41,7 +41,7 @@ class GRUCell(
 ) extends RNNCell[Output, Shape, Output, Shape](variableScope) {
   override val layerType: String = "GRUCell"
 
-  override def createCell(mode: Mode, inputShape: Shape): BasicCellInstance = {
+  override def createCell(mode: Mode, inputShape: Shape): ops.rnn.cell.GRUCell = {
     val gateKernel = tf.variable(
       s"Gate/$KERNEL_NAME",
       dataType,
@@ -61,8 +61,7 @@ class GRUCell(
       dataType,
       Shape(numUnits),
       biasInitializer)
-    val cell = ops.rnn.cell.GRUCell(gateKernel, gateBias, candidateKernel, candidateBias, activation, variableScope)
-    CellInstance(cell, Set(gateKernel, gateBias, candidateKernel, candidateBias))
+    ops.rnn.cell.GRUCell(gateKernel, gateBias, candidateKernel, candidateBias, activation, variableScope)
   }
 }
 

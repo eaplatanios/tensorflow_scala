@@ -16,7 +16,8 @@
 package org.platanios.tensorflow.api.learn.layers.rnn.cell
 
 import org.platanios.tensorflow.api.learn.Mode
-import org.platanios.tensorflow.api.learn.layers.{Layer, LayerInstance}
+import org.platanios.tensorflow.api.learn.layers.Layer
+import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
 
 /**
@@ -26,11 +27,9 @@ abstract class RNNCell[O, OS, S, SS](override val variableScope: String)(implici
   evO: WhileLoopVariable.Aux[O, OS],
   evS: WhileLoopVariable.Aux[S, SS]
 ) extends Layer[Tuple[O, S], Tuple[O, S]](variableScope) {
-  def createCell(mode: Mode, inputShape: OS): CellInstance[O, OS, S, SS]
+  def createCell(mode: Mode, inputShape: OS): ops.rnn.cell.RNNCell[O, OS, S, SS]
 
-  override final protected def forward(input: Tuple[O, S], mode: Mode): LayerInstance[Tuple[O, S], Tuple[O, S]] = {
-    val cellInstance = createCell(mode, evO.fromShapes(input.output, evO.outputs(input.output).map(_.shape)))
-    val output = cellInstance.cell.forward(input)
-    LayerInstance(input, output, cellInstance.trainableVariables, cellInstance.nonTrainableVariables)
+  override final protected def forward(input: Tuple[O, S], mode: Mode): Tuple[O, S] = {
+    createCell(mode, evO.fromShapes(input.output, evO.outputs(input.output).map(_.shape))).forward(input)
   }
 }

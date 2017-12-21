@@ -39,21 +39,17 @@ class MultiRNNCell[O, OS, S, SS](
 ) extends RNNCell[O, OS, Seq[S], Seq[SS]](variableScope) {
   override val layerType: String = "MultiRNNCell"
 
-  override def createCell(mode: Mode, inputShape: OS): CellInstance[O, OS, Seq[S], Seq[SS]] = {
+  override def createCell(mode: Mode, inputShape: OS): ops.rnn.cell.RNNCell[O, OS, Seq[S], Seq[SS]] = {
     Op.createWithNameScope(variableScope) {
-      val cellInstances = cells.zipWithIndex.foldLeft(Seq.empty[CellInstance[O, OS, S, SS]])((seq, cell) => {
+      val createdCells = cells.zipWithIndex.foldLeft(Seq.empty[ops.rnn.cell.RNNCell[O, OS, S, SS]])((seq, cell) => {
         VariableScope.createWithVariableScope(s"Cell${cell._2}") {
           if (seq.isEmpty)
             seq :+ cell._1.createCell(mode, inputShape)
           else
-            seq :+ cell._1.createCell(mode, seq.last.cell.outputShape)
+            seq :+ cell._1.createCell(mode, seq.last.outputShape)
         }
       })
-      val cell = ops.rnn.cell.MultiRNNCell(cellInstances.map(_.cell))(evO, evS)
-      CellInstance(
-        cell,
-        cellInstances.flatMap(_.trainableVariables).toSet,
-        cellInstances.flatMap(_.nonTrainableVariables).toSet)
+      ops.rnn.cell.MultiRNNCell(createdCells)(evO, evS)
     }
   }
 }

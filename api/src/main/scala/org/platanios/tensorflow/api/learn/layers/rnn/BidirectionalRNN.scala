@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.learn.layers.rnn
 
 import org.platanios.tensorflow.api.learn.Mode
-import org.platanios.tensorflow.api.learn.layers.{Layer, LayerInstance}
+import org.platanios.tensorflow.api.learn.layers.Layer
 import org.platanios.tensorflow.api.learn.layers.rnn.cell.{RNNCell, Tuple}
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.Basic
@@ -61,36 +61,28 @@ class BidirectionalRNN[O, OS, S, SS](
 ) extends Layer[O, (Tuple[O, S], Tuple[O, S])](variableScope) {
   override val layerType: String = "BidirectionalRNN"
 
-  override protected def forward(input: O, mode: Mode): LayerInstance[O, (Tuple[O, S], Tuple[O, S])] = {
+  override protected def forward(input: O, mode: Mode): (Tuple[O, S], Tuple[O, S]) = {
     val stateFw = if (initialStateFw == null) null.asInstanceOf[S] else initialStateFw()
     val stateBw = if (initialStateBw == null) null.asInstanceOf[S] else initialStateBw()
     val lengths = if (sequenceLengths == null) null else ops.Basic.constant(sequenceLengths)
-    val cellInstanceFw = cellFw.createCell(mode, evO.fromShapes(input, evO.outputs(input).map(_.shape)))
-    val cellInstanceBw = cellBw.createCell(mode, evO.fromShapes(input, evO.outputs(input).map(_.shape)))
-    LayerInstance(
-      input,
-      ops.rnn.RNN.bidirectionalDynamicRNN(
-        cellInstanceFw.cell, cellInstanceBw.cell, input, stateFw, stateBw,
-        timeMajor, parallelIterations, swapMemory, lengths, variableScope)(evO, evS),
-      cellInstanceFw.trainableVariables ++ cellInstanceBw.trainableVariables,
-      cellInstanceFw.nonTrainableVariables ++ cellInstanceBw.nonTrainableVariables)
+    val createdCellFw = cellFw.createCell(mode, evO.fromShapes(input, evO.outputs(input).map(_.shape)))
+    val createdCellBw = cellBw.createCell(mode, evO.fromShapes(input, evO.outputs(input).map(_.shape)))
+    ops.rnn.RNN.bidirectionalDynamicRNN(
+      createdCellFw, createdCellBw, input, stateFw, stateBw,
+      timeMajor, parallelIterations, swapMemory, lengths, variableScope)(evO, evS)
   }
 
   def withConcatenatedOutputs: Layer[O, Tuple[O, (S, S)]] = {
     new Layer[O, Tuple[O, (S, S)]](s"$variableScope/ConcatenatedOutputs") {
       override val layerType: String = "BidirectionalRNNWithConcatenatedOutputs"
 
-      override protected def forward(input: O, mode: Mode): LayerInstance[O, Tuple[O, (S, S)]] = {
+      override protected def forward(input: O, mode: Mode): Tuple[O, (S, S)] = {
         val raw = BidirectionalRNN.this(input, mode)
         val output = evO.fromOutputs(
-          raw.output._1.output, evO.outputs(raw.output._1.output).zip(evO.outputs(raw.output._2.output)).map(o => {
+          raw._1.output, evO.outputs(raw._1.output).zip(evO.outputs(raw._2.output)).map(o => {
             Basic.concatenate(Seq(o._1, o._2), -1)
           }))
-        LayerInstance(
-          input,
-          Tuple(output, (raw.output._1.state, raw.output._2.state)),
-          raw.trainableVariables,
-          raw.nonTrainableVariables)
+        Tuple(output, (raw._1.state, raw._2.state))
       }
     }
   }

@@ -44,15 +44,12 @@ object RNNTutorialUsingPTB {
   object RNNOutputLayer extends tf.learn.Layer[LSTMTuple, Output]("RNNOutputLayer") {
     override val layerType: String = "RNNOutputLayer"
 
-    override protected def forward(
-        input: LSTMTuple, mode: tf.learn.Mode
-    ): tf.learn.LayerInstance[LSTMTuple, Output] = {
+    override protected def forward(input: LSTMTuple, mode: tf.learn.Mode): Output = {
       val weights = tf.variable("OutputWeights", dataType, Shape(numHidden, vocabularySize))
       val bias = tf.variable("OutputBias", dataType, Shape(vocabularySize))
       val output = tf.linear(tf.reshape(input.output, Shape(-1, numHidden)), weights.value, bias.value)
       // We reshape the output logits to feed into the sequence loss layer
-      val reshapedOutput = tf.reshape(output, Shape(batchSize, numSteps, vocabularySize))
-      tf.learn.LayerInstance(input, reshapedOutput, trainableVariables = Set(weights, bias))
+      tf.reshape(output, Shape(batchSize, numSteps, vocabularySize))
     }
   }
 

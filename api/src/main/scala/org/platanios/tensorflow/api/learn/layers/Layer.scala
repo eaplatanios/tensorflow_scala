@@ -34,9 +34,9 @@ abstract class Layer[T, R](
 ) {
   val layerType: String
 
-  protected def forward(input: T, mode: Mode): LayerInstance[T, R]
+  protected def forward(input: T, mode: Mode): R
 
-  def apply(input: T, mode: Mode): LayerInstance[T, R] = Op.createWith(
+  def apply(input: T, mode: Mode): R = Op.createWith(
     nameScope = context.value.nameScope,
     device = context.value.device,
     deviceFunction = context.value.deviceFunction

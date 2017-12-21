@@ -41,11 +41,10 @@ class BasicRNNCell(
 ) extends RNNCell[Output, Shape, Output, Shape](variableScope) {
   override val layerType: String = "BasicRNNCell"
 
-  override def createCell(mode: Mode, inputShape: Shape): BasicCellInstance = {
+  override def createCell(mode: Mode, inputShape: Shape): ops.rnn.cell.BasicRNNCell = {
     val kernel = tf.variable(KERNEL_NAME, dataType, Shape(inputShape(-1) + numUnits, numUnits), kernelInitializer)
     val bias = tf.variable(BIAS_NAME, dataType, Shape(numUnits), biasInitializer)
-    val cell = ops.rnn.cell.BasicRNNCell(kernel, bias, activation, variableScope)
-    CellInstance(cell, Set(kernel, bias))
+    ops.rnn.cell.BasicRNNCell(kernel, bias, activation, variableScope)
   }
 }
 
