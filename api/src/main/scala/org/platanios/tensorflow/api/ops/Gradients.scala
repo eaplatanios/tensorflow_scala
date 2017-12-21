@@ -219,7 +219,7 @@ private[ops] object Gradients {
     */
   private[this] def maybeColocateWith[R](op: Op, colocateGradientsWithOps: Boolean)(block: => R): R = {
     if (colocateGradientsWithOps)
-      Op.createWith(colocationOps = Set[Op](op))(block)
+      Op.colocateWith(Set(op))(block)
     else
       block
   }

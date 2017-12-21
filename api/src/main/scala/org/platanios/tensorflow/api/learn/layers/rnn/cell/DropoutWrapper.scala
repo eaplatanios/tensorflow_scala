@@ -17,6 +17,7 @@ package org.platanios.tensorflow.api.learn.layers.rnn.cell
 
 import org.platanios.tensorflow.api.learn.{Mode, TRAINING}
 import org.platanios.tensorflow.api.ops
+import org.platanios.tensorflow.api.ops.Basic
 import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
 
 /** RNN cell that applies dropout to the provided RNN cell.
@@ -65,7 +66,10 @@ class DropoutWrapper[O, OS, S, SS](
     mode match {
       case TRAINING =>
         ops.rnn.cell.DropoutWrapper(
-          createdCell, inputKeepProbability, outputKeepProbability, stateKeepProbability, seed,
+          createdCell,
+          Basic.constant(inputKeepProbability, name = "InputKeepProbability"),
+          Basic.constant(outputKeepProbability, name = "OutputKeepProbability"),
+          Basic.constant(stateKeepProbability, name = "StateKeepProbability"), seed,
           variableScope)(evO, evS, evODropout, evSDropout)
       case _ => createdCell
     }

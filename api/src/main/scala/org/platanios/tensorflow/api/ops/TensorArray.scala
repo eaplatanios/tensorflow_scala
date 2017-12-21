@@ -85,7 +85,7 @@ private[api] case class TensorArray private (
     * @return Tensor in the specified position of the tensor array.
     */
   private[api] def read(index: Output, name: String = "TensorArrayRead"): Output = {
-    Op.createWith(colocationOps = Set(handle.op)) {
+    Op.colocateWith(Set(handle.op)) {
       val value = TensorArray.readOp(handle, index, flow, dataType, name)
       elementShape.foreach(value.setShape)
       value
@@ -118,7 +118,7 @@ private[api] case class TensorArray private (
     * @return Tensor containing the gathered elements, concatenated along a new axis (the new dimension `0`).
     */
   private[api] def gather(indices: Output, name: String = "TensorArrayGather"): Output = {
-    Op.createWith(colocationOps = Set(handle.op)) {
+    Op.colocateWith(Set(handle.op)) {
       val ind = if (indices.rank == 0) indices.expandDims(0) else indices
       val value = TensorArray.gatherOp(handle, ind, flow, dataType, elementShape.getOrElse(Shape.unknown()), name)
       if (elementShape.isDefined)
@@ -162,7 +162,7 @@ private[api] case class TensorArray private (
     */
   private[api] def stack(name: String = "TensorArrayStack"): Output = {
     Op.createWithNameScope(name, Set(handle.op)) {
-      Op.createWith(colocationOps = Set(handle.op)) {
+      Op.colocateWith(Set(handle.op)) {
         gather(Math.range(Basic.constant(0), size()), name)
       }
     }
@@ -233,7 +233,7 @@ private[api] case class TensorArray private (
     * @return Created op output, containing the current size of the tensor array.
     */
   private[api] def size(name: String = "TensorArraySize"): Output = {
-    Op.createWith(colocationOps = Set(handle.op)) {
+    Op.colocateWith(Set(handle.op)) {
       TensorArray.sizeOp(handle, flow, name)
     }
   }
@@ -281,7 +281,7 @@ private[api] case class TensorArray private (
     // `TensorArray.gradientOp` requires a flow input when forward tensor arrays are dynamically sized. This forces the
     // creation of the gradient tensor array only once the final forward array's size is fixed.
     Op.createWithNameScope(name, Set(handle.op)) {
-      Op.createWith(colocationOps = Set(handle.op)) {
+      Op.colocateWith(Set(handle.op)) {
         val (gradientHandle, _) = TensorArray.gradientOp(handle, flow, source)
         val gradientFlow = Op.createWith(controlDependencies = Set(gradientHandle.op)) {
           Basic.identity(flow, name = "GradientFlow")
@@ -300,7 +300,7 @@ private[api] case class TensorArray private (
     * @return Created op.
     */
   private[api] def close(name: String = "TensorArrayClose"): Op = {
-    Op.createWith(colocationOps = Set(handle.op)) {
+    Op.colocateWith(Set(handle.op)) {
       TensorArray.closeOp(handle, name)
     }
   }

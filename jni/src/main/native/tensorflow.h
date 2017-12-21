@@ -79,6 +79,14 @@ JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_addCon
 JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_clearControlInputs
   (JNIEnv *, jobject, jlong, jlong);
 
+/*
+ * Class:     org_platanios_tensorflow_jni_TensorFlow__
+ * Method:    setRequestedDevice
+ * Signature: (JJLjava/lang/String;)V
+ */
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_setRequestedDevice
+  (JNIEnv *, jobject, jlong, jlong, jstring);
+
 #ifdef __cplusplus
 }
 #endif

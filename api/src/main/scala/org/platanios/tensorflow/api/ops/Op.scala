@@ -25,8 +25,10 @@ import org.platanios.tensorflow.api.ops.variables.{CreateNewOnly, VariableScope,
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.DataType
 import org.platanios.tensorflow.api.utilities.using
-import org.platanios.tensorflow.jni.{Op => NativeOp, Tensor => NativeTensor}
+import org.platanios.tensorflow.jni.{Op => NativeOp, Tensor => NativeTensor, TensorFlow => NativeLibrary}
 
+import com.typesafe.scalalogging.Logger
+import org.slf4j.LoggerFactory
 import org.tensorflow.framework.{AttrValue, NameAttrList}
 
 import java.nio.charset.Charset
@@ -375,6 +377,8 @@ private[api] final case class OpCreationContext(
     controlFlowContext: Option[Context] = None) // TODO: !!! Use containers.
 
 object Op {
+  private[ops] val logger = Logger(LoggerFactory.getLogger("Graph Construction"))
+
   private[ops] trait API {
     type Op = ops.Op
     val Op: ops.Op.type = ops.Op
@@ -1215,12 +1219,24 @@ object Op {
         inputs.foreach(input => pruneControlDependencies(controlDependencies, input.op))
         inputLists.foreach(_.foreach(input => pruneControlDependencies(controlDependencies, input.op)))
         controlDependencies.foreach(op => NativeOp.addControlInput(nativeHandle, op.nativeHandle))
-        device.foreach(NativeOp.setDevice(nativeHandle, _))
-        context.value.colocationOps.foreach(op => NativeOp.colocateWith(nativeHandle, op.nativeHandle))
+        var opDevice = device.getOrElse("")
+        (context.value.colocationOps.flatMap(_.colocationOps) ++ context.value.colocationOps).foreach(op => {
+          if (opDevice != "" && op.device != "" && opDevice != op.device) {
+            Op.logger.warn(
+              s"Tried to colocate '$name' with an op '${op.name}' that has a different device: " +
+                  s"$opDevice vs ${op.device}. Ignoring the colocation property.")
+          } else {
+            NativeOp.colocateWith(nativeHandle, op.nativeHandle)
+            if (opDevice == "" && op.device != "")
+              opDevice = op.device
+          }
+        })
         mergeAttributes(context.value.attributes)
         setAttributes(nativeHandle)
         // TODO: !!! Set the "container" attribute when necessary. Need a way to check for statefulness.
         val op = Op(graph, NativeOp.finish(nativeHandle))
+        if (opDevice != "")
+          NativeLibrary.setRequestedDevice(r.nativeHandle, op.nativeHandle, opDevice)
         op.controlFlowContext = context.value.controlFlowContext
         op.inputs.map(_.op).foreach(ControlFlow.checkInputFromValidContext(op, _))
         op.controlFlowContext.foreach(_.add(op))

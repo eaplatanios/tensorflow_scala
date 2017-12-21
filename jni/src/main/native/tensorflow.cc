@@ -138,3 +138,17 @@ JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_clearC
   tensorflow::ClearControlInputs(graph, op);
   return 0;
 }
+
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_setRequestedDevice(
+  JNIEnv* env, jobject object, jlong graph_handle, jlong op_handle, jstring device) {
+  TF_Graph* graph = require_graph_handle(env, graph_handle);
+  TF_Operation* op = require_operation_handle(env, op_handle);
+  if (graph == nullptr)
+    throw_exception(env, tf_invalid_argument_exception, "Graph could not be found.");
+  if (op == nullptr)
+    throw_exception(env, tf_invalid_argument_exception, "Operation could not be found.");
+  const char *c_device = env->GetStringUTFChars(device, nullptr);
+  tensorflow::SetRequestedDevice(graph, op, c_device);
+  env->ReleaseStringUTFChars(device, c_device);
+  return;
+}

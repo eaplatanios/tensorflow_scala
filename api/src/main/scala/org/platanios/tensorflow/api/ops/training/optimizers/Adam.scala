@@ -147,10 +147,12 @@ case class Adam(
 
   override protected def finish(updateOps: Set[Op], nameScope: String): Op = {
     // Update the power accumulators.
-    val updateBetaPowerOps = Op.createWith(controlDependencies = updateOps, colocationOps = Set(beta1Power.op)) {
-      val updateBeta1Power = beta1Power.assign(beta1Power.value * beta1Tensor)
-      val updateBeta2Power = beta2Power.assign(beta2Power.value * beta2Tensor)
-      Set(updateBeta1Power.op, updateBeta2Power.op)
+    val updateBetaPowerOps = Op.createWith(controlDependencies = updateOps) {
+      Op.colocateWith(Set(beta1Power.op)) {
+        val updateBeta1Power = beta1Power.assign(beta1Power.value * beta1Tensor)
+        val updateBeta2Power = beta2Power.assign(beta2Power.value * beta2Tensor)
+        Set(updateBeta1Power.op, updateBeta2Power.op)
+      }
     }
     ControlFlow.group(updateOps ++ updateBetaPowerOps, nameScope)
   }

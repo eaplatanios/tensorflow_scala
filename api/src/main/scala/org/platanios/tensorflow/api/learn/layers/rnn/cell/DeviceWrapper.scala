@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.learn.layers.rnn.cell
 
 import org.platanios.tensorflow.api.learn.Mode
 import org.platanios.tensorflow.api.ops
-import org.platanios.tensorflow.api.ops.OpSpecification
+import org.platanios.tensorflow.api.ops.{Op, OpSpecification}
 import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
 
 /** RNN cell that ensures another RNN cell runs on a specific device.
@@ -41,7 +41,9 @@ class DeviceWrapper[O, OS, S, SS](
   override val layerType: String = "DeviceWrapper"
 
   override def createCell(mode: Mode, inputShape: OS): ops.rnn.cell.RNNCell[O, OS, S, SS] = {
-    ops.rnn.cell.DeviceWrapper(cell.createCell(mode, inputShape), device, deviceFunction)
+    Op.createWith(device = device, deviceFunction = deviceFunction) {
+      ops.rnn.cell.DeviceWrapper(cell.createCell(mode, inputShape), device, deviceFunction)
+    }
   }
 }
 
