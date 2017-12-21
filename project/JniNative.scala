@@ -32,6 +32,9 @@ object JniNative extends AutoPlugin {
     val nativeCompile: TaskKey[Seq[File]] =
       taskKey[Seq[File]]("Builds a native library by calling the native build tool.")
 
+    val nativeClean: TaskKey[Unit] =
+      taskKey[Unit]("Cleans the native libraries that native compilation generates.")
+
     val nativePlatform: SettingKey[String] =
       settingKey[String]("Platform (architecture-kernel) of the system this build is running on.")
 
@@ -70,7 +73,7 @@ object JniNative extends AutoPlugin {
         buildDirectory = buildDir,
         logger = streams.value.log)
     },
-    clean in nativeCompile := {
+    nativeClean := {
       streams.value.log.info("Cleaning native build")
       try {
         nativeBuildToolInstance.value.clean()
@@ -79,6 +82,7 @@ object JniNative extends AutoPlugin {
           streams.value.log.debug(s"Native build tool clean operation failed with exception: $exception.")
       }
     },
+    clean in nativeCompile := nativeClean.value,
     nativeCompile := {
       val tool = nativeBuildTool.value
       val toolInstance = nativeBuildToolInstance.value
@@ -88,10 +92,10 @@ object JniNative extends AutoPlugin {
       val libraries = toolInstance.libraries(targetDir)
       streams.value.log.success(s"Libraries built in:\n\t- ${libraries.map(_.getAbsolutePath).mkString("\n\t- ")}")
       libraries
-    },
-    compile in Compile := (compile in Compile).dependsOn(nativeCompile).value,
+    }
+    // compile in Compile := (compile in Compile).dependsOn(nativeCompile).value,
     // Make the SBT clean task also cleans the native sources.
-    clean := clean.dependsOn(clean in nativeCompile).value
+    // clean := clean.dependsOn(clean in nativeCompile).value
   )
 
   override lazy val projectSettings: Seq[Setting[_]] = settings
