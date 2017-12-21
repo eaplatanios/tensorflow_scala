@@ -971,15 +971,9 @@ object Op {
   ): OpSpecification => String = {
     opSpecification => {
       val oldDeviceSpecString = oldDeviceFunction(opSpecification)
-      val newDeviceSpecString = {
-        // TODO: [OPS] Make sure this is the desired behavior.
-        if (oldDevice != null && deviceFunction != null)
-          deviceFunction(opSpecification)
-        else
-          null
-      }
+      val newDeviceSpecString = deviceFunction(opSpecification)
       // Check if the device has been reset or has to be reset for all subsequent nested scopes
-      if (oldDeviceSpecString == null || newDeviceSpecString == null) {
+      if (oldDevice == null || oldDeviceSpecString == null || newDeviceSpecString == null) {
         null
       } else {
         val oldDeviceSpec = DeviceSpecification.fromString(oldDeviceSpecString)
