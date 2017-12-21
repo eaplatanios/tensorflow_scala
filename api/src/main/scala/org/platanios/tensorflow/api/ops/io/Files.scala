@@ -18,18 +18,14 @@ package org.platanios.tensorflow.api.ops.io
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 
-/** Contains helper functions and classes for creating file reading/writing-related ops.
-  *
-  * @author Emmanouil Antonios Platanios
-  */
-object Files {
+private[io] trait Files {
   /** Creates an op that reads and outputs the entire contents of the file pointed to by the input filename.
     *
     * @param  filename `STRING` scalar tensor containing the filename.
     * @param  name     Name for the created op.
     * @return Created op output, which is a `STRING` scalar tensor containing the file contents.
     */
-  private[io] def readFile(filename: Output, name: String = "ReadFile"): Output = {
+  def readFile(filename: Output, name: String = "ReadFile"): Output = {
     Op.Builder(opType = "ReadFile", name = name)
         .addInput(filename)
         .build().outputs(0)
@@ -44,7 +40,7 @@ object Files {
     * @param  name     Name for the created op.
     * @return Created op output, which is a `STRING` scalar tensor containing the file contents.
     */
-  private[io] def writeFile(filename: Output, contents: Output, name: String = "WriteFile"): Op = {
+  def writeFile(filename: Output, contents: Output, name: String = "WriteFile"): Op = {
     Op.Builder(opType = "WriteFile", name = name)
         .addInput(filename)
         .addInput(contents)
@@ -60,12 +56,18 @@ object Files {
     * @param  name    Name for the created op.
     * @return Created op output, which is a `STRING` vector tensor containing the matching filenames.
     */
-  private[io] def matchingFiles(pattern: Output, name: String = "MatchingFiles"): Output = {
+  def matchingFiles(pattern: Output, name: String = "MatchingFiles"): Output = {
     Op.Builder(opType = "MatchingFiles", name = name)
         .addInput(pattern)
         .build().outputs(0)
   }
+}
 
+/** Contains helper functions and classes for creating file reading/writing-related ops.
+  *
+  * @author Emmanouil Antonios Platanios
+  */
+object Files extends Files {
   private[ops] object Gradients {
     GradientsRegistry.registerNonDifferentiable("ReadFile")
     GradientsRegistry.registerNonDifferentiable("WriteFile")

@@ -21,7 +21,8 @@ package org.platanios.tensorflow.api.ops
   */
 package object io {
   private[api] trait API
-      extends data.Dataset.API
+      extends Files
+          with data.Dataset.API
           with data.Iterator.API
           with Reader.API
 }
