@@ -25,13 +25,16 @@ import org.platanios.tensorflow.api.ops.Statistics.StatisticsOps
 import org.platanios.tensorflow.api.ops.Text.TextOps
 import org.platanios.tensorflow.api.ops.variables.{PartitionedVariable, Variable}
 import org.platanios.tensorflow.api.ops._
-import org.platanios.tensorflow.api.tensors.{TensorConvertible, TensorLike}
+import org.platanios.tensorflow.api.ops.control_flow.ControlFlow.ControlFlowOps
+import org.platanios.tensorflow.api.tensors.TensorConvertible
 
 /** Groups together all implicits related to constructing symbolic ops.
   *
   * @author Emmanouil Antonios Platanios
   */
 trait Ops {
+  implicit def opToControlFlowOps(op: Op): ControlFlowOps = ControlFlowOps(op)
+
   implicit def tensorConvertibleToOutput[T](value: T)(implicit ev: TensorConvertible[T]): Output = {
     ev.toTensor(value).toOutput
   }

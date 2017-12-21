@@ -219,13 +219,21 @@ private[api] trait ControlFlow {
   ): T = {
     require(parallelIterations > 0, "'parallelIterations' must be a positive integer.")
     Op.createWithNameScope(name) {
-      val loopContext = WhileLoopContext(parallelIterations, enableBackPropagation, swapMemory)
+      val loopContext = WhileLoopContext(
+        Option(maximumIterations), parallelIterations, enableBackPropagation, swapMemory)
       Op.currentGraph.addToCollection(loopContext, WhileLoopContext.WHILE_LOOP_CONTEXTS)
       if (maximumIterations == null) {
         loopContext.buildLoop(predicateFn, bodyFn, loopVariables, shapeInvariants)
       } else {
         require(maximumIterations.rank == 0 || maximumIterations.rank == -1,
           s"'maximumIterations' must be a scalar, but has shape ${maximumIterations.shape}.")
+        // If/when we generate the gradient for this while loop, the maximum iterations tensor will be used as input to
+        // any generated stack ops. It is likely that the stacks will be outside any control flow context (i.e., if
+        // `gradients()` is called outside any control flow context), which will result in the maximum iterations tensor
+        // being an illegal input (see `ControlFlow.checkInputFromValidContext` -- we could technically allow tensors
+        // from CondContexts, but that will be error-prone and hard to reason about for users).
+        if (maximumIterations.op.isInCond || maximumIterations.op.isInWhileLoop)
+          throw InvalidArgumentException("The `maximumIterations` tensor cannot be defined in a `cond` or `whileLoop`.")
         val zero = Basic.constant(0, name = "Zero")
         val one = Basic.constant(1, name = "One")
         loopContext.buildLoop[(Output, T), (Shape, TS)](
@@ -239,28 +247,12 @@ private[api] trait ControlFlow {
 }
 
 private[api] object ControlFlow extends ControlFlow {
-  /** Creates an op that does nothing and serves as a control trigger for scheduling. The created op is only useful as
-    * a placeholder for control edges.
-    *
-    * @param  name Name for the created op.
-    * @return Created op output.
-    */
-  private[control_flow] def controlTrigger(name: String = "ControlTrigger"): Op = {
-    Op.Builder(opType = "ControlTrigger", name = name).build()
-  }
+  case class ControlFlowOps(op: Op) {
+    /** Returns `true` if the provided op is in within a cond statement. */
+    def isInCond: Boolean = op.controlFlowContext.flatMap(_.condContext).isDefined
 
-  /** Creates an op that forwards its input to the output.
-    *
-    * The op represents the loop termination condition used by the "pivot" switches of a loop.
-    *
-    * @param  input Boolean scalar tensor, representing the branch predicate of the switch op.
-    * @param  name  Name for the created op.
-    * @return Created op output, which has the same value as the input tensor.
-    */
-  private[control_flow] def loopCond(input: Output, name: String = "LoopCond"): Output = {
-    Op.Builder(opType = "LoopCond", name = name)
-        .addInput(input)
-        .build().outputs(0)
+    /** Returns `true` if the provided op is in within a while loop statement. */
+    def isInWhileLoop: Boolean = op.controlFlowContext.flatMap(_.whileLoopContext).isDefined
   }
 
   /** Returns `true` if and only if the provided op is a switch op. */
@@ -423,6 +415,30 @@ private[api] object ControlFlow extends ControlFlow {
   }
 
   //region Low Level Ops
+
+  /** Creates an op that does nothing and serves as a control trigger for scheduling. The created op is only useful as
+    * a placeholder for control edges.
+    *
+    * @param  name Name for the created op.
+    * @return Created op output.
+    */
+  private[control_flow] def controlTrigger(name: String = "ControlTrigger"): Op = {
+    Op.Builder(opType = "ControlTrigger", name = name).build()
+  }
+
+  /** Creates an op that forwards its input to the output.
+    *
+    * The op represents the loop termination condition used by the "pivot" switches of a loop.
+    *
+    * @param  input Boolean scalar tensor, representing the branch predicate of the switch op.
+    * @param  name  Name for the created op.
+    * @return Created op output, which has the same value as the input tensor.
+    */
+  private[control_flow] def loopCond(input: Output, name: String = "LoopCond"): Output = {
+    Op.Builder(opType = "LoopCond", name = name)
+        .addInput(input)
+        .build().outputs(0)
+  }
 
   /** Creates an op that makes its input available to the next iteration.
     *

@@ -38,6 +38,8 @@ import scala.reflect.ClassTag
 
 /** Control flow context for the while-loop construct.
   *
+  * @param  maximumIterations     Optional `INT32` scalar specifying the maximum number of iterations to loop for. If
+  *                               `null` (the default), no iteration limit is enforced.
   * @param  parallelIterations    Number of iterations allowed to run in parallel.
   * @param  enableBackPropagation If `true`, back-propagation support is enabled for this while-loop context.
   * @param  swapMemory            If `true`, GPU-CPU memory swapping support is enabled for this while-loop context.
@@ -53,6 +55,7 @@ import scala.reflect.ClassTag
   * @author Emmanouil Antonios Platanios
   */
 private[api] case class WhileLoopContext private[control_flow] (
+    maximumIterations: Option[Output] = None,
     parallelIterations: Int = 10,
     enableBackPropagation: Boolean = true,
     swapMemory: Boolean = false,
@@ -565,6 +568,7 @@ private[api] case class WhileLoopContext private[control_flow] (
     */
   def toWhileContextDef(exportScope: String = null): WhileContextDef = {
     if (exportScope == null || name.startsWith(exportScope)) {
+      // TODO: !!! Add `maximumIterations` when possible.
       WhileContextDef.newBuilder()
           .setContextName(Op.stripNameScope(exportScope, name))
           .setParallelIterations(parallelIterations)
@@ -763,6 +767,7 @@ object WhileLoopContext {
     * @return Constructed [[WhileLoopContext]].
     */
   def fromWhileContextDef(whileContextDef: WhileContextDef, importScope: String = null): WhileLoopContext = {
+    // TODO: !!! Add `maximumIterations` when possible.
     val graph = Op.currentGraph
     val name = Op.prependNameScope(importScope, whileContextDef.getContextName)
     val parallelIterations = whileContextDef.getParallelIterations
@@ -779,8 +784,8 @@ object WhileLoopContext {
     }): _*)
     val (values, externalValues) = Context.fromValuesDef(whileContextDef.getValuesDef, importScope)
     val whileLoopContext = WhileLoopContext(
-      parallelIterations, enableBackPropagation, swapMemory, None, pivot, pivotForPredicate, pivotForBody, loopEnters,
-      loopExits, name)
+      None, parallelIterations, enableBackPropagation, swapMemory, None, pivot, pivotForPredicate, pivotForBody,
+      loopEnters, loopExits, name)
     whileLoopContext.values ++= values
     whileLoopContext.externalValues ++= externalValues
     whileLoopContext

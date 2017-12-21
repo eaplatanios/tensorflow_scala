@@ -65,6 +65,9 @@ abstract class Context protected (
   /** Returns the control pivot op output for this context. */
   def controlPivot: Option[Op] = None
 
+  /** Returns the cond context containing this context. */
+  def condContext: Option[CondContext] = outerContext.flatMap(_.condContext)
+
   /** Returns the while context containing this context. */
   def whileLoopContext: Option[WhileLoopContext] = outerContext.flatMap(_.whileLoopContext)
 
