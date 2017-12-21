@@ -50,6 +50,8 @@ case class CheckpointSaver(
     triggerAtEnd: Boolean = true,
     checkpointBaseName: String = "model.ckpt"
 ) extends TriggeredHook(trigger, triggerAtEnd) {
+  override private[learn] val priority: Int = 1000
+
   private[this] val savePath: Path = directory.resolve(checkpointBaseName)
 
   private[this] var saver        : Option[Saver]             = None

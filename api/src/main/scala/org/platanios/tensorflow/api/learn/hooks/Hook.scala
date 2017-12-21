@@ -118,6 +118,8 @@ import org.tensorflow.framework.{RunMetadata, RunOptions}
   * @author Emmanouil Antonios Platanios
   */
 abstract class Hook {
+  private[learn] val priority: Int = 0
+
   /** Called once before creating the session. When called, the default graph is the one that will be launched in the
     * session. The hook can modify the graph by adding new operations to it. After the `begin` call the graph will be
     * finalized and the other callbacks will not be able to modify the graph anymore. A second `begin` call on the same

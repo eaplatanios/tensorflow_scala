@@ -68,6 +68,8 @@ case class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
     with ModelDependentHook[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] {
   require(log || summaryDir != null, "At least one of 'log' and 'summaryDir' needs to be provided.")
 
+  override private[learn] val priority: Int = -1000
+
   private[this] var graph           : Graph                                = _
   private[this] var sessionCreator  : SessionCreator                       = _
   private[this] var inputInitializer: Op                                   = _

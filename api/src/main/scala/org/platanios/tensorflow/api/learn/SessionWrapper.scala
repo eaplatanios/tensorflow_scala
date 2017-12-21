@@ -103,7 +103,7 @@ class SessionWrapper private[learn](
       super.runHelper(feeds, fetches, targets, options, wantMetadata)
     } else {
       // We copy the hooks into a sequence in order to be able to keep track of their order.
-      val currentHooks = activeHooks.toSeq
+      val currentHooks = activeHooks.toSeq.sortBy(-_.priority)
 
       // Invoke the hooks' `beforeSessionRun` callbacks.
       val runContext = Hook.SessionRunContext(Hook.SessionRunArgs(feeds, fetches, targets, options), this)
@@ -387,7 +387,7 @@ class MonitoredSession private[learn](
   @throws[RuntimeException]
   override def close(): Unit = {
     try {
-      activeHooks.foreach(_.internalEnd(baseSession))
+      activeHooks.toSeq.sortBy(-_.priority).foreach(_.internalEnd(baseSession))
     } catch {
       case _: Throwable => ()
     } finally {
@@ -412,7 +412,7 @@ object MonitoredSession {
       hooks: Set[Hook] = Set.empty,
       shouldRecover: Boolean = true
   ): MonitoredSession = {
-    hooks.foreach(_.internalBegin())
+    hooks.toSeq.sortBy(-_.priority).foreach(_.internalBegin())
     val hookedSessionCreator = HookedSessionCreator(sessionCreator, hooks)
     val session = if (shouldRecover) RecoverableSession(hookedSessionCreator) else hookedSessionCreator.createSession()
     new MonitoredSession(session, hooks)
