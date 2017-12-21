@@ -625,6 +625,23 @@ class WhileContextDef : public ::google::protobuf::Message /* @@protoc_insertion
   void unsafe_arena_set_allocated_pivot_for_body_name(
       ::std::string* pivot_for_body_name);
 
+  // string maximum_iterations_name = 11;
+  void clear_maximum_iterations_name();
+  static const int kMaximumIterationsNameFieldNumber = 11;
+  const ::std::string& maximum_iterations_name() const;
+  void set_maximum_iterations_name(const ::std::string& value);
+  #if LANG_CXX11
+  void set_maximum_iterations_name(::std::string&& value);
+  #endif
+  void set_maximum_iterations_name(const char* value);
+  void set_maximum_iterations_name(const char* value, size_t size);
+  ::std::string* mutable_maximum_iterations_name();
+  ::std::string* release_maximum_iterations_name();
+  void set_allocated_maximum_iterations_name(::std::string* maximum_iterations_name);
+  ::std::string* unsafe_arena_release_maximum_iterations_name();
+  void unsafe_arena_set_allocated_maximum_iterations_name(
+      ::std::string* maximum_iterations_name);
+
   // .tensorflow.ValuesDef values_def = 9;
   bool has_values_def() const;
   void clear_values_def();
@@ -674,6 +691,7 @@ class WhileContextDef : public ::google::protobuf::Message /* @@protoc_insertion
   ::google::protobuf::internal::ArenaStringPtr pivot_name_;
   ::google::protobuf::internal::ArenaStringPtr pivot_for_pred_name_;
   ::google::protobuf::internal::ArenaStringPtr pivot_for_body_name_;
+  ::google::protobuf::internal::ArenaStringPtr maximum_iterations_name_;
   ::tensorflow::ValuesDef* values_def_;
   ::google::protobuf::int32 parallel_iterations_;
   bool back_prop_;
@@ -1607,6 +1625,81 @@ inline  void WhileContextDef::set_allocated_values_def(::tensorflow::ValuesDef* 
     
   }
   // @@protoc_insertion_point(field_set_allocated:tensorflow.WhileContextDef.values_def)
+}
+
+// string maximum_iterations_name = 11;
+inline void WhileContextDef::clear_maximum_iterations_name() {
+  maximum_iterations_name_.ClearToEmpty(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+}
+inline const ::std::string& WhileContextDef::maximum_iterations_name() const {
+  // @@protoc_insertion_point(field_get:tensorflow.WhileContextDef.maximum_iterations_name)
+  return maximum_iterations_name_.Get();
+}
+inline void WhileContextDef::set_maximum_iterations_name(const ::std::string& value) {
+  
+  maximum_iterations_name_.Set(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value, GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_set:tensorflow.WhileContextDef.maximum_iterations_name)
+}
+#if LANG_CXX11
+inline void WhileContextDef::set_maximum_iterations_name(::std::string&& value) {
+  
+  maximum_iterations_name_.Set(
+    &::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::move(value), GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_set_rvalue:tensorflow.WhileContextDef.maximum_iterations_name)
+}
+#endif
+inline void WhileContextDef::set_maximum_iterations_name(const char* value) {
+  GOOGLE_DCHECK(value != NULL);
+  
+  maximum_iterations_name_.Set(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
+              GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_set_char:tensorflow.WhileContextDef.maximum_iterations_name)
+}
+inline void WhileContextDef::set_maximum_iterations_name(const char* value,
+    size_t size) {
+  
+  maximum_iterations_name_.Set(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(
+      reinterpret_cast<const char*>(value), size), GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_set_pointer:tensorflow.WhileContextDef.maximum_iterations_name)
+}
+inline ::std::string* WhileContextDef::mutable_maximum_iterations_name() {
+  
+  // @@protoc_insertion_point(field_mutable:tensorflow.WhileContextDef.maximum_iterations_name)
+  return maximum_iterations_name_.Mutable(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+}
+inline ::std::string* WhileContextDef::release_maximum_iterations_name() {
+  // @@protoc_insertion_point(field_release:tensorflow.WhileContextDef.maximum_iterations_name)
+  
+  return maximum_iterations_name_.Release(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+}
+inline ::std::string* WhileContextDef::unsafe_arena_release_maximum_iterations_name() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:tensorflow.WhileContextDef.maximum_iterations_name)
+  GOOGLE_DCHECK(GetArenaNoVirtual() != NULL);
+  
+  return maximum_iterations_name_.UnsafeArenaRelease(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      GetArenaNoVirtual());
+}
+inline void WhileContextDef::set_allocated_maximum_iterations_name(::std::string* maximum_iterations_name) {
+  if (maximum_iterations_name != NULL) {
+    
+  } else {
+    
+  }
+  maximum_iterations_name_.SetAllocated(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), maximum_iterations_name,
+      GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_set_allocated:tensorflow.WhileContextDef.maximum_iterations_name)
+}
+inline void WhileContextDef::unsafe_arena_set_allocated_maximum_iterations_name(
+    ::std::string* maximum_iterations_name) {
+  GOOGLE_DCHECK(GetArenaNoVirtual() != NULL);
+  if (maximum_iterations_name != NULL) {
+    
+  } else {
+    
+  }
+  maximum_iterations_name_.UnsafeArenaSetAllocated(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      maximum_iterations_name, GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tensorflow.WhileContextDef.maximum_iterations_name)
 }
 
 #ifdef __GNUC__

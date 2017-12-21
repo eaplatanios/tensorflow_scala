@@ -50,6 +50,12 @@ extern ConfigProto_DeviceCountEntryDefaultTypeInternal _ConfigProto_DeviceCountE
 class GPUOptions;
 class GPUOptionsDefaultTypeInternal;
 extern GPUOptionsDefaultTypeInternal _GPUOptions_default_instance_;
+class GPUOptions_Experimental;
+class GPUOptions_ExperimentalDefaultTypeInternal;
+extern GPUOptions_ExperimentalDefaultTypeInternal _GPUOptions_Experimental_default_instance_;
+class GPUOptions_Experimental_VirtualDevices;
+class GPUOptions_Experimental_VirtualDevicesDefaultTypeInternal;
+extern GPUOptions_Experimental_VirtualDevicesDefaultTypeInternal _GPUOptions_Experimental_VirtualDevices_default_instance_;
 class GraphOptions;
 class GraphOptionsDefaultTypeInternal;
 extern GraphOptionsDefaultTypeInternal _GraphOptions_default_instance_;
@@ -156,6 +162,245 @@ inline bool RunOptions_TraceLevel_Parse(
 }
 // ===================================================================
 
+class GPUOptions_Experimental_VirtualDevices : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:tensorflow.GPUOptions.Experimental.VirtualDevices) */ {
+ public:
+  GPUOptions_Experimental_VirtualDevices();
+  virtual ~GPUOptions_Experimental_VirtualDevices();
+
+  GPUOptions_Experimental_VirtualDevices(const GPUOptions_Experimental_VirtualDevices& from);
+
+  inline GPUOptions_Experimental_VirtualDevices& operator=(const GPUOptions_Experimental_VirtualDevices& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  #if LANG_CXX11
+  GPUOptions_Experimental_VirtualDevices(GPUOptions_Experimental_VirtualDevices&& from) noexcept
+    : GPUOptions_Experimental_VirtualDevices() {
+    *this = ::std::move(from);
+  }
+
+  inline GPUOptions_Experimental_VirtualDevices& operator=(GPUOptions_Experimental_VirtualDevices&& from) noexcept {
+    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
+      if (this != &from) InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+  #endif
+  inline ::google::protobuf::Arena* GetArena() const PROTOBUF_FINAL {
+    return GetArenaNoVirtual();
+  }
+  inline void* GetMaybeArenaPointer() const PROTOBUF_FINAL {
+    return MaybeArenaPtr();
+  }
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const GPUOptions_Experimental_VirtualDevices& default_instance();
+
+  static inline const GPUOptions_Experimental_VirtualDevices* internal_default_instance() {
+    return reinterpret_cast<const GPUOptions_Experimental_VirtualDevices*>(
+               &_GPUOptions_Experimental_VirtualDevices_default_instance_);
+  }
+  static PROTOBUF_CONSTEXPR int const kIndexInFileMessages =
+    0;
+
+  void UnsafeArenaSwap(GPUOptions_Experimental_VirtualDevices* other);
+  void Swap(GPUOptions_Experimental_VirtualDevices* other);
+  friend void swap(GPUOptions_Experimental_VirtualDevices& a, GPUOptions_Experimental_VirtualDevices& b) {
+    a.Swap(&b);
+  }
+
+  // implements Message ----------------------------------------------
+
+  inline GPUOptions_Experimental_VirtualDevices* New() const PROTOBUF_FINAL { return New(NULL); }
+
+  GPUOptions_Experimental_VirtualDevices* New(::google::protobuf::Arena* arena) const PROTOBUF_FINAL;
+  void CopyFrom(const ::google::protobuf::Message& from) PROTOBUF_FINAL;
+  void MergeFrom(const ::google::protobuf::Message& from) PROTOBUF_FINAL;
+  void CopyFrom(const GPUOptions_Experimental_VirtualDevices& from);
+  void MergeFrom(const GPUOptions_Experimental_VirtualDevices& from);
+  void Clear() PROTOBUF_FINAL;
+  bool IsInitialized() const PROTOBUF_FINAL;
+
+  size_t ByteSizeLong() const PROTOBUF_FINAL;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input) PROTOBUF_FINAL;
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const PROTOBUF_FINAL;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* target) const PROTOBUF_FINAL;
+  int GetCachedSize() const PROTOBUF_FINAL { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const PROTOBUF_FINAL;
+  void InternalSwap(GPUOptions_Experimental_VirtualDevices* other);
+  protected:
+  explicit GPUOptions_Experimental_VirtualDevices(::google::protobuf::Arena* arena);
+  private:
+  static void ArenaDtor(void* object);
+  inline void RegisterArenaDtor(::google::protobuf::Arena* arena);
+  private:
+  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
+    return _internal_metadata_.arena();
+  }
+  inline void* MaybeArenaPtr() const {
+    return _internal_metadata_.raw_arena_ptr();
+  }
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const PROTOBUF_FINAL;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // repeated float memory_limit_mb = 1;
+  int memory_limit_mb_size() const;
+  void clear_memory_limit_mb();
+  static const int kMemoryLimitMbFieldNumber = 1;
+  float memory_limit_mb(int index) const;
+  void set_memory_limit_mb(int index, float value);
+  void add_memory_limit_mb(float value);
+  const ::google::protobuf::RepeatedField< float >&
+      memory_limit_mb() const;
+  ::google::protobuf::RepeatedField< float >*
+      mutable_memory_limit_mb();
+
+  // @@protoc_insertion_point(class_scope:tensorflow.GPUOptions.Experimental.VirtualDevices)
+ private:
+
+  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  template <typename T> friend class ::google::protobuf::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  ::google::protobuf::RepeatedField< float > memory_limit_mb_;
+  mutable int _memory_limit_mb_cached_byte_size_;
+  mutable int _cached_size_;
+  friend struct protobuf_tensorflow_2fcore_2fprotobuf_2fconfig_2eproto::TableStruct;
+};
+// -------------------------------------------------------------------
+
+class GPUOptions_Experimental : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:tensorflow.GPUOptions.Experimental) */ {
+ public:
+  GPUOptions_Experimental();
+  virtual ~GPUOptions_Experimental();
+
+  GPUOptions_Experimental(const GPUOptions_Experimental& from);
+
+  inline GPUOptions_Experimental& operator=(const GPUOptions_Experimental& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  #if LANG_CXX11
+  GPUOptions_Experimental(GPUOptions_Experimental&& from) noexcept
+    : GPUOptions_Experimental() {
+    *this = ::std::move(from);
+  }
+
+  inline GPUOptions_Experimental& operator=(GPUOptions_Experimental&& from) noexcept {
+    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
+      if (this != &from) InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+  #endif
+  inline ::google::protobuf::Arena* GetArena() const PROTOBUF_FINAL {
+    return GetArenaNoVirtual();
+  }
+  inline void* GetMaybeArenaPointer() const PROTOBUF_FINAL {
+    return MaybeArenaPtr();
+  }
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const GPUOptions_Experimental& default_instance();
+
+  static inline const GPUOptions_Experimental* internal_default_instance() {
+    return reinterpret_cast<const GPUOptions_Experimental*>(
+               &_GPUOptions_Experimental_default_instance_);
+  }
+  static PROTOBUF_CONSTEXPR int const kIndexInFileMessages =
+    1;
+
+  void UnsafeArenaSwap(GPUOptions_Experimental* other);
+  void Swap(GPUOptions_Experimental* other);
+  friend void swap(GPUOptions_Experimental& a, GPUOptions_Experimental& b) {
+    a.Swap(&b);
+  }
+
+  // implements Message ----------------------------------------------
+
+  inline GPUOptions_Experimental* New() const PROTOBUF_FINAL { return New(NULL); }
+
+  GPUOptions_Experimental* New(::google::protobuf::Arena* arena) const PROTOBUF_FINAL;
+  void CopyFrom(const ::google::protobuf::Message& from) PROTOBUF_FINAL;
+  void MergeFrom(const ::google::protobuf::Message& from) PROTOBUF_FINAL;
+  void CopyFrom(const GPUOptions_Experimental& from);
+  void MergeFrom(const GPUOptions_Experimental& from);
+  void Clear() PROTOBUF_FINAL;
+  bool IsInitialized() const PROTOBUF_FINAL;
+
+  size_t ByteSizeLong() const PROTOBUF_FINAL;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input) PROTOBUF_FINAL;
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const PROTOBUF_FINAL;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* target) const PROTOBUF_FINAL;
+  int GetCachedSize() const PROTOBUF_FINAL { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const PROTOBUF_FINAL;
+  void InternalSwap(GPUOptions_Experimental* other);
+  protected:
+  explicit GPUOptions_Experimental(::google::protobuf::Arena* arena);
+  private:
+  static void ArenaDtor(void* object);
+  inline void RegisterArenaDtor(::google::protobuf::Arena* arena);
+  private:
+  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
+    return _internal_metadata_.arena();
+  }
+  inline void* MaybeArenaPtr() const {
+    return _internal_metadata_.raw_arena_ptr();
+  }
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const PROTOBUF_FINAL;
+
+  // nested types ----------------------------------------------------
+
+  typedef GPUOptions_Experimental_VirtualDevices VirtualDevices;
+
+  // accessors -------------------------------------------------------
+
+  // repeated .tensorflow.GPUOptions.Experimental.VirtualDevices virtual_devices = 1;
+  int virtual_devices_size() const;
+  void clear_virtual_devices();
+  static const int kVirtualDevicesFieldNumber = 1;
+  const ::tensorflow::GPUOptions_Experimental_VirtualDevices& virtual_devices(int index) const;
+  ::tensorflow::GPUOptions_Experimental_VirtualDevices* mutable_virtual_devices(int index);
+  ::tensorflow::GPUOptions_Experimental_VirtualDevices* add_virtual_devices();
+  ::google::protobuf::RepeatedPtrField< ::tensorflow::GPUOptions_Experimental_VirtualDevices >*
+      mutable_virtual_devices();
+  const ::google::protobuf::RepeatedPtrField< ::tensorflow::GPUOptions_Experimental_VirtualDevices >&
+      virtual_devices() const;
+
+  // @@protoc_insertion_point(class_scope:tensorflow.GPUOptions.Experimental)
+ private:
+
+  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  template <typename T> friend class ::google::protobuf::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  ::google::protobuf::RepeatedPtrField< ::tensorflow::GPUOptions_Experimental_VirtualDevices > virtual_devices_;
+  mutable int _cached_size_;
+  friend struct protobuf_tensorflow_2fcore_2fprotobuf_2fconfig_2eproto::TableStruct;
+};
+// -------------------------------------------------------------------
+
 class GPUOptions : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:tensorflow.GPUOptions) */ {
  public:
   GPUOptions();
@@ -196,7 +441,7 @@ class GPUOptions : public ::google::protobuf::Message /* @@protoc_insertion_poin
                &_GPUOptions_default_instance_);
   }
   static PROTOBUF_CONSTEXPR int const kIndexInFileMessages =
-    0;
+    2;
 
   void UnsafeArenaSwap(GPUOptions* other);
   void Swap(GPUOptions* other);
@@ -247,6 +492,8 @@ class GPUOptions : public ::google::protobuf::Message /* @@protoc_insertion_poin
 
   // nested types ----------------------------------------------------
 
+  typedef GPUOptions_Experimental Experimental;
+
   // accessors -------------------------------------------------------
 
   // string allocator_type = 2;
@@ -282,6 +529,24 @@ class GPUOptions : public ::google::protobuf::Message /* @@protoc_insertion_poin
   ::std::string* unsafe_arena_release_visible_device_list();
   void unsafe_arena_set_allocated_visible_device_list(
       ::std::string* visible_device_list);
+
+  // .tensorflow.GPUOptions.Experimental experimental = 9;
+  bool has_experimental() const;
+  void clear_experimental();
+  static const int kExperimentalFieldNumber = 9;
+  private:
+  void _slow_mutable_experimental();
+  void _slow_set_allocated_experimental(
+      ::google::protobuf::Arena* message_arena, ::tensorflow::GPUOptions_Experimental** experimental);
+  ::tensorflow::GPUOptions_Experimental* _slow_release_experimental();
+  public:
+  const ::tensorflow::GPUOptions_Experimental& experimental() const;
+  ::tensorflow::GPUOptions_Experimental* mutable_experimental();
+  ::tensorflow::GPUOptions_Experimental* release_experimental();
+  void set_allocated_experimental(::tensorflow::GPUOptions_Experimental* experimental);
+  ::tensorflow::GPUOptions_Experimental* unsafe_arena_release_experimental();
+  void unsafe_arena_set_allocated_experimental(
+      ::tensorflow::GPUOptions_Experimental* experimental);
 
   // double per_process_gpu_memory_fraction = 1;
   void clear_per_process_gpu_memory_fraction();
@@ -328,6 +593,7 @@ class GPUOptions : public ::google::protobuf::Message /* @@protoc_insertion_poin
   typedef void DestructorSkippable_;
   ::google::protobuf::internal::ArenaStringPtr allocator_type_;
   ::google::protobuf::internal::ArenaStringPtr visible_device_list_;
+  ::tensorflow::GPUOptions_Experimental* experimental_;
   double per_process_gpu_memory_fraction_;
   ::google::protobuf::int64 deferred_deletion_bytes_;
   ::google::protobuf::int32 polling_active_delay_usecs_;
@@ -379,7 +645,7 @@ class OptimizerOptions : public ::google::protobuf::Message /* @@protoc_insertio
                &_OptimizerOptions_default_instance_);
   }
   static PROTOBUF_CONSTEXPR int const kIndexInFileMessages =
-    1;
+    3;
 
   void UnsafeArenaSwap(OptimizerOptions* other);
   void Swap(OptimizerOptions* other);
@@ -582,7 +848,7 @@ class GraphOptions : public ::google::protobuf::Message /* @@protoc_insertion_po
                &_GraphOptions_default_instance_);
   }
   static PROTOBUF_CONSTEXPR int const kIndexInFileMessages =
-    2;
+    4;
 
   void UnsafeArenaSwap(GraphOptions* other);
   void Swap(GraphOptions* other);
@@ -774,7 +1040,7 @@ class ThreadPoolOptionProto : public ::google::protobuf::Message /* @@protoc_ins
                &_ThreadPoolOptionProto_default_instance_);
   }
   static PROTOBUF_CONSTEXPR int const kIndexInFileMessages =
-    3;
+    5;
 
   void UnsafeArenaSwap(ThreadPoolOptionProto* other);
   void Swap(ThreadPoolOptionProto* other);
@@ -904,7 +1170,7 @@ class RPCOptions : public ::google::protobuf::Message /* @@protoc_insertion_poin
                &_RPCOptions_default_instance_);
   }
   static PROTOBUF_CONSTEXPR int const kIndexInFileMessages =
-    4;
+    6;
 
   void UnsafeArenaSwap(RPCOptions* other);
   void Swap(RPCOptions* other);
@@ -1019,7 +1285,7 @@ class ConfigProto : public ::google::protobuf::Message /* @@protoc_insertion_poi
                &_ConfigProto_default_instance_);
   }
   static PROTOBUF_CONSTEXPR int const kIndexInFileMessages =
-    6;
+    8;
 
   void UnsafeArenaSwap(ConfigProto* other);
   void Swap(ConfigProto* other);
@@ -1329,7 +1595,7 @@ class RunOptions : public ::google::protobuf::Message /* @@protoc_insertion_poin
                &_RunOptions_default_instance_);
   }
   static PROTOBUF_CONSTEXPR int const kIndexInFileMessages =
-    7;
+    9;
 
   void UnsafeArenaSwap(RunOptions* other);
   void Swap(RunOptions* other);
@@ -1518,7 +1784,7 @@ class RunMetadata : public ::google::protobuf::Message /* @@protoc_insertion_poi
                &_RunMetadata_default_instance_);
   }
   static PROTOBUF_CONSTEXPR int const kIndexInFileMessages =
-    8;
+    10;
 
   void UnsafeArenaSwap(RunMetadata* other);
   void Swap(RunMetadata* other);
@@ -1642,6 +1908,74 @@ class RunMetadata : public ::google::protobuf::Message /* @@protoc_insertion_poi
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wstrict-aliasing"
 #endif  // __GNUC__
+// GPUOptions_Experimental_VirtualDevices
+
+// repeated float memory_limit_mb = 1;
+inline int GPUOptions_Experimental_VirtualDevices::memory_limit_mb_size() const {
+  return memory_limit_mb_.size();
+}
+inline void GPUOptions_Experimental_VirtualDevices::clear_memory_limit_mb() {
+  memory_limit_mb_.Clear();
+}
+inline float GPUOptions_Experimental_VirtualDevices::memory_limit_mb(int index) const {
+  // @@protoc_insertion_point(field_get:tensorflow.GPUOptions.Experimental.VirtualDevices.memory_limit_mb)
+  return memory_limit_mb_.Get(index);
+}
+inline void GPUOptions_Experimental_VirtualDevices::set_memory_limit_mb(int index, float value) {
+  memory_limit_mb_.Set(index, value);
+  // @@protoc_insertion_point(field_set:tensorflow.GPUOptions.Experimental.VirtualDevices.memory_limit_mb)
+}
+inline void GPUOptions_Experimental_VirtualDevices::add_memory_limit_mb(float value) {
+  memory_limit_mb_.Add(value);
+  // @@protoc_insertion_point(field_add:tensorflow.GPUOptions.Experimental.VirtualDevices.memory_limit_mb)
+}
+inline const ::google::protobuf::RepeatedField< float >&
+GPUOptions_Experimental_VirtualDevices::memory_limit_mb() const {
+  // @@protoc_insertion_point(field_list:tensorflow.GPUOptions.Experimental.VirtualDevices.memory_limit_mb)
+  return memory_limit_mb_;
+}
+inline ::google::protobuf::RepeatedField< float >*
+GPUOptions_Experimental_VirtualDevices::mutable_memory_limit_mb() {
+  // @@protoc_insertion_point(field_mutable_list:tensorflow.GPUOptions.Experimental.VirtualDevices.memory_limit_mb)
+  return &memory_limit_mb_;
+}
+
+// -------------------------------------------------------------------
+
+// GPUOptions_Experimental
+
+// repeated .tensorflow.GPUOptions.Experimental.VirtualDevices virtual_devices = 1;
+inline int GPUOptions_Experimental::virtual_devices_size() const {
+  return virtual_devices_.size();
+}
+inline void GPUOptions_Experimental::clear_virtual_devices() {
+  virtual_devices_.Clear();
+}
+inline const ::tensorflow::GPUOptions_Experimental_VirtualDevices& GPUOptions_Experimental::virtual_devices(int index) const {
+  // @@protoc_insertion_point(field_get:tensorflow.GPUOptions.Experimental.virtual_devices)
+  return virtual_devices_.Get(index);
+}
+inline ::tensorflow::GPUOptions_Experimental_VirtualDevices* GPUOptions_Experimental::mutable_virtual_devices(int index) {
+  // @@protoc_insertion_point(field_mutable:tensorflow.GPUOptions.Experimental.virtual_devices)
+  return virtual_devices_.Mutable(index);
+}
+inline ::tensorflow::GPUOptions_Experimental_VirtualDevices* GPUOptions_Experimental::add_virtual_devices() {
+  // @@protoc_insertion_point(field_add:tensorflow.GPUOptions.Experimental.virtual_devices)
+  return virtual_devices_.Add();
+}
+inline ::google::protobuf::RepeatedPtrField< ::tensorflow::GPUOptions_Experimental_VirtualDevices >*
+GPUOptions_Experimental::mutable_virtual_devices() {
+  // @@protoc_insertion_point(field_mutable_list:tensorflow.GPUOptions.Experimental.virtual_devices)
+  return &virtual_devices_;
+}
+inline const ::google::protobuf::RepeatedPtrField< ::tensorflow::GPUOptions_Experimental_VirtualDevices >&
+GPUOptions_Experimental::virtual_devices() const {
+  // @@protoc_insertion_point(field_list:tensorflow.GPUOptions.Experimental.virtual_devices)
+  return virtual_devices_;
+}
+
+// -------------------------------------------------------------------
+
 // GPUOptions
 
 // double per_process_gpu_memory_fraction = 1;
@@ -1876,6 +2210,56 @@ inline void GPUOptions::set_force_gpu_compatible(bool value) {
   
   force_gpu_compatible_ = value;
   // @@protoc_insertion_point(field_set:tensorflow.GPUOptions.force_gpu_compatible)
+}
+
+// .tensorflow.GPUOptions.Experimental experimental = 9;
+inline bool GPUOptions::has_experimental() const {
+  return this != internal_default_instance() && experimental_ != NULL;
+}
+inline void GPUOptions::clear_experimental() {
+  if (GetArenaNoVirtual() == NULL && experimental_ != NULL) delete experimental_;
+  experimental_ = NULL;
+}
+inline const ::tensorflow::GPUOptions_Experimental& GPUOptions::experimental() const {
+  const ::tensorflow::GPUOptions_Experimental* p = experimental_;
+  // @@protoc_insertion_point(field_get:tensorflow.GPUOptions.experimental)
+  return p != NULL ? *p : *reinterpret_cast<const ::tensorflow::GPUOptions_Experimental*>(
+      &::tensorflow::_GPUOptions_Experimental_default_instance_);
+}
+inline ::tensorflow::GPUOptions_Experimental* GPUOptions::mutable_experimental() {
+  
+  if (experimental_ == NULL) {
+    _slow_mutable_experimental();
+  }
+  // @@protoc_insertion_point(field_mutable:tensorflow.GPUOptions.experimental)
+  return experimental_;
+}
+inline ::tensorflow::GPUOptions_Experimental* GPUOptions::release_experimental() {
+  // @@protoc_insertion_point(field_release:tensorflow.GPUOptions.experimental)
+  
+  if (GetArenaNoVirtual() != NULL) {
+    return _slow_release_experimental();
+  } else {
+    ::tensorflow::GPUOptions_Experimental* temp = experimental_;
+    experimental_ = NULL;
+    return temp;
+  }
+}
+inline  void GPUOptions::set_allocated_experimental(::tensorflow::GPUOptions_Experimental* experimental) {
+  ::google::protobuf::Arena* message_arena = GetArenaNoVirtual();
+  if (message_arena == NULL) {
+    delete experimental_;
+  }
+  if (experimental != NULL) {
+    _slow_set_allocated_experimental(message_arena, &experimental);
+  }
+  experimental_ = experimental;
+  if (experimental) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_set_allocated:tensorflow.GPUOptions.experimental)
 }
 
 // -------------------------------------------------------------------
@@ -2976,6 +3360,10 @@ RunMetadata::partition_graphs() const {
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
 #endif  // !PROTOBUF_INLINE_NOT_IN_HEADERS
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------
