@@ -42,14 +42,10 @@ package object variables {
     val VariableStore            : variables.VariableStore.type     = variables.VariableStore
     val VariableScope            : variables.VariableScope.type     = variables.VariableScope
 
-    def DefaultInitializer(dataType: DataType): variables.Initializer = {
-      variables.VariableStore.defaultInitializer(null, dataType)
-    }
-
     val ZerosInitializer: variables.ZerosInitializer.type = variables.ZerosInitializer
     val OnesInitializer : variables.OnesInitializer.type  = variables.OnesInitializer
-    def ConstantInitializer(value: Tensor): Initializer = variables.ConstantInitializer(value)
-    def ConstantInitializer(value: Output): Initializer = variables.DynamicConstantInitializer(value)
+    def ConstantInitializer(value: Tensor): variables.Initializer = variables.ConstantInitializer(value)
+    def ConstantInitializer(value: Output): variables.Initializer = variables.DynamicConstantInitializer(value)
     val RandomUniformInitializer        : variables.RandomUniformInitializer.type         = variables.RandomUniformInitializer
     val RandomNormalInitializer         : variables.RandomNormalInitializer.type          = variables.RandomNormalInitializer
     val RandomTruncatedNormalInitializer: variables.RandomTruncatedNormalInitializer.type = variables.RandomTruncatedNormalInitializer
