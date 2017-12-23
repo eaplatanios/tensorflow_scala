@@ -585,6 +585,7 @@ private[api] trait Basic {
         .addInput(input)
         .addInput(Op.createWith(nameScope = name)(splitSizes))
         .addInput(Op.createWith(nameScope = name)(axis))
+        .setAttribute("num_split", splitSizes.shape(0))
         .build().outputs.toSeq
   }
 
