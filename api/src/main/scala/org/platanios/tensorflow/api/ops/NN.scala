@@ -381,7 +381,7 @@ private[api] trait NN {
         } else {
           // Reshape logits to rank 2 and labels to rank 1.
           val flattenedLogits = flattenOuterAxes(preciseLogits)
-          val flattenedLabels = Basic.reshape(labels, -1)
+          val flattenedLabels = Basic.reshape(labels, Shape(-1))
           // Create the native op.
           // The second output tensor contains the gradients, which is used for the gradient computation.
           val output = Op.Builder(opType = "SparseSoftmaxCrossEntropyWithLogits", name = name)
@@ -1035,11 +1035,8 @@ object NN extends NN {
       Seq(Basic.constant(-1, lastAxisSize.dataType, Shape(1)), lastAxisSize), 0))
     // Set the output shape, if known.
     val shape = input.shape
-    if (shape.rank != -1) {
-      val product = shape(0 :: -1).asArray.product
-      if (product > -1)
-        output.setShape(Shape(product, shape(-1)))
-    }
+    if (shape.rank != -1 && !shape.asArray.contains(-1))
+      output.setShape(Shape(shape(0 :: -1).asArray.product, shape(-1)))
     output
   }
 
