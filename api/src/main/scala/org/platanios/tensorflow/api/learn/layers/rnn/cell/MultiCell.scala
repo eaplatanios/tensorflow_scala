@@ -30,7 +30,7 @@ import org.platanios.tensorflow.api.ops.variables.VariableScope
   *
   * @author Emmanouil Antonios Platanios
   */
-class MultiRNNCell[O, OS, S, SS](
+class MultiCell[O, OS, S, SS](
     override val variableScope: String,
     val cells: Seq[RNNCell[O, OS, S, SS]]
 )(implicit
@@ -49,19 +49,19 @@ class MultiRNNCell[O, OS, S, SS](
             seq :+ cell._1.createCell(mode, seq.last.outputShape)
         }
       })
-      ops.rnn.cell.MultiRNNCell(createdCells)(evO, evS)
+      ops.rnn.cell.MultiCell(createdCells)(evO, evS)
     }
   }
 }
 
-object MultiRNNCell {
+object MultiCell {
   def apply[O, OS, S, SS](
       variableScope: String,
       cells: Seq[RNNCell[O, OS, S, SS]]
   )(implicit
       evO: WhileLoopVariable.Aux[O, OS],
       evS: WhileLoopVariable.Aux[S, SS]
-  ): MultiRNNCell[O, OS, S, SS] = {
-    new MultiRNNCell(variableScope, cells)(evO, evS)
+  ): MultiCell[O, OS, S, SS] = {
+    new MultiCell(variableScope, cells)(evO, evS)
   }
 }

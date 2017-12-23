@@ -20,19 +20,20 @@ import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
 
 /** RNN cell that is composed by applying a sequence of RNN cells in order.
   *
-  * This means that the output of each RNN is fed to the next one as input, while the states remain separate. Note that
-  * this class does no variable management at all. Variable sharing should be handled based on the RNN cells the caller
-  * provides to this class. The learn API provides a layer version of this class that also does some management of the
-  * variables involved.
+  * This means that the output of each RNN is fed to the next one as input, while the states remain separate.
+  *
+  * Note that this class does no variable management at all. Variable sharing should be handled based on the RNN cells
+  * the caller provides to this class. The learn API provides a layer version of this class that also does some
+  * management of the variables involved.
   *
   * @param  cells Cells being stacked together.
   * @param  name  Name prefix used for all new ops.
   *
   * @author Emmanouil Antonios Platanios
   */
-class MultiRNNCell[O, OS, S, SS](
+class MultiCell[O, OS, S, SS](
     val cells: Seq[RNNCell[O, OS, S, SS]],
-    val name: String = "MultiRNNCell"
+    val name: String = "MultiCell"
 )(implicit
     evO: WhileLoopVariable.Aux[O, OS],
     evS: WhileLoopVariable.Aux[S, SS]
@@ -51,14 +52,14 @@ class MultiRNNCell[O, OS, S, SS](
   }
 }
 
-object MultiRNNCell {
+object MultiCell {
   def apply[O, OS, S, SS](
       cells: Seq[RNNCell[O, OS, S, SS]],
-      name: String = "MultiRNNCell"
+      name: String = "MultiCell"
   )(implicit
       evO: WhileLoopVariable.Aux[O, OS],
       evS: WhileLoopVariable.Aux[S, SS]
-  ): MultiRNNCell[O, OS, S, SS] = {
-    new MultiRNNCell(cells, name)(evO, evS)
+  ): MultiCell[O, OS, S, SS] = {
+    new MultiCell(cells, name)(evO, evS)
   }
 }
