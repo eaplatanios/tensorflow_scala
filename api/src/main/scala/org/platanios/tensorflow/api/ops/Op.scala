@@ -27,13 +27,15 @@ import org.platanios.tensorflow.api.types.DataType
 import org.platanios.tensorflow.api.utilities.using
 import org.platanios.tensorflow.jni.{Op => NativeOp, Tensor => NativeTensor, TensorFlow => NativeLibrary}
 
+import com.google.protobuf.ByteString
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
 import org.tensorflow.framework.{AttrValue, NameAttrList}
 
-import java.nio.charset.Charset
+import java.nio.charset.{Charset, StandardCharsets}
 
 import scala.collection.mutable
+import scala.collection.JavaConverters._
 import scala.util.{DynamicVariable, Try}
 
 /** Represents a graph node, or as we shall call it, an operation, that performs computation on tensors.
@@ -67,7 +69,7 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
   lazy val opType: String = using(graph.reference) { _ => NativeOp.opType(nativeHandle) }
 
   /** Device in which the op tensors are stored and where all computations for this op are performed. */
-  lazy val device: String = using(graph.reference) { _ =>
+  def device: String = using(graph.reference) { _ =>
     val nativeDevice = NativeOp.device(nativeHandle)
     if (nativeDevice == null)
       ""
@@ -76,12 +78,23 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
   }
 
   /** Colocation ops for this op (i.e., ops guaranteed to be placed on the same device). */
-  lazy val colocationOps: Set[Op] = using(graph.reference) { _ =>
+  def colocationOps: Set[Op] = using(graph.reference) { _ =>
     Try(NativeOp.getAttrStringList(nativeHandle, COLOCATION_OPS_ATTRIBUTE_NAME))
         .map(_.toSet[String]
             .filter(_.startsWith(COLOCATION_OPS_ATTRIBUTE_PREFIX))
             .map(opName => graph.findOp(opName.substring(COLOCATION_OPS_ATTRIBUTE_PREFIX.length)).get))
         .getOrElse(Set.empty[Op])
+  }
+
+  private[Op] def updateColocationOps(colocationOpNames: Set[String]): Unit = {
+    val builder = AttrValue.newBuilder()
+    builder.setList(builder.getListBuilder.addAllS(
+      colocationOps.toSeq.map(opName => COLOCATION_OPS_ATTRIBUTE_PREFIX + opName)
+          .sorted.map(ByteString.copyFrom(_, StandardCharsets.ISO_8859_1)).asJava))
+    using(graph.reference) { r =>
+      NativeLibrary.setAttributeProto(
+        r.nativeHandle, nativeHandle, COLOCATION_OPS_ATTRIBUTE_NAME, builder.build().toByteArray)
+    }
   }
 
   private[ops] var controlFlowContext: Option[Context] = None
@@ -1184,6 +1197,14 @@ object Op {
     }
   }
 
+  private[Op] def transitiveColocationOps(currentOps: Set[Op], collectedOps: Set[Op] = Set.empty[Op]): Set[Op] = {
+    val newOps = collectedOps ++ currentOps ++ currentOps.flatMap(_.colocationOps)
+    if (newOps.size == collectedOps.size)
+      newOps
+    else
+      newOps ++ newOps.foldLeft(newOps)((collected, op) => transitiveColocationOps(Set(op), collected))
+  }
+
   private[ops] final case class Builder(opType: String, name: String)
       (implicit context: DynamicVariable[OpCreationContext]) {
     context.value.graph.assertNotFrozen()
@@ -1219,16 +1240,21 @@ object Op {
         inputs.foreach(input => pruneControlDependencies(controlDependencies, input.op))
         inputLists.foreach(_.foreach(input => pruneControlDependencies(controlDependencies, input.op)))
         controlDependencies.foreach(op => NativeOp.addControlInput(nativeHandle, op.nativeHandle))
-        var opDevice = device.getOrElse("")
-        (context.value.colocationOps.flatMap(_.colocationOps) ++ context.value.colocationOps).foreach(op => {
+        val colocationOps = transitiveColocationOps(context.value.colocationOps)
+        val opDevice = device match {
+          case None | Some("") => colocationOps.find(_.device != "").map(_.device).getOrElse("")
+          case Some(d) => d
+        }
+        colocationOps.toSeq.sortBy(_.name).foreach(op => {
           if (opDevice != "" && op.device != "" && opDevice != op.device) {
             Op.logger.warn(
               s"Tried to colocate '$name' with an op '${op.name}' that has a different device: " +
                   s"$opDevice vs ${op.device}. Ignoring the colocation property.")
           } else {
             NativeOp.colocateWith(nativeHandle, op.nativeHandle)
-            if (opDevice == "" && op.device != "")
-              opDevice = op.device
+            op.updateColocationOps(op.colocationOps.map(_.name) + name)
+            if (opDevice != "")
+              NativeLibrary.setRequestedDevice(r.nativeHandle, op.nativeHandle, opDevice)
           }
         })
         mergeAttributes(context.value.attributes)

@@ -87,6 +87,14 @@ JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_clearC
 JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_setRequestedDevice
   (JNIEnv *, jobject, jlong, jlong, jstring);
 
+/*
+ * Class:     org_platanios_tensorflow_jni_TensorFlow__
+ * Method:    setAttributeProto
+ * Signature: (JJLjava/lang/String;[B)V
+ */
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_setAttributeProto
+  (JNIEnv *, jobject, jlong, jlong, jstring, jbyteArray);
+
 #ifdef __cplusplus
 }
 #endif
