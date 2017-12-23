@@ -37,6 +37,7 @@ import org.platanios.tensorflow.api.ops.{Math, NN, Output}
   *                               should be shaped `[batchSize, maxTime, ...]`.
   * @param  memoryWeights         Weights tensor with which the memory is multiplied to produce the attention keys.
   * @param  queryWeights          Weights tensor with which the query is multiplied to produce the attention query.
+  * @param  scoreWeights          Weights tensor with which the score components are multiplied before being summed.
   * @param  memorySequenceLengths Sequence lengths for the batch entries in the memory. If provided, the memory tensor
   *                               rows are masked with zeros for values past the respective sequence lengths.
   * @param  normalizationFactor   Scalar tensor used to normalize the alignment score energy term; usually a trainable
@@ -56,6 +57,7 @@ class BahdanauAttention(
     override protected val memory: Output,
     protected val memoryWeights: Output,
     protected val queryWeights: Output,
+    protected val scoreWeights: Output,
     override protected val memorySequenceLengths: Output = null,
     protected val normalizationFactor: Output = null,
     protected val normalizationBias: Output = null,
@@ -79,9 +81,9 @@ class BahdanauAttention(
     val reshapedQuery = Math.matmul(query, queryWeights).expandDims(1)
     val weights = {
       if (normalizationFactor == null)
-        memoryWeights
+        scoreWeights
       else
-        normalizationFactor * memoryWeights * Math.rsqrt(Math.sum(Math.square(memoryWeights)))
+        normalizationFactor * scoreWeights * Math.rsqrt(Math.sum(Math.square(scoreWeights)))
     }
     if (normalizationBias == null)
       Math.sum(weights * Math.tanh(keys + reshapedQuery), 2)
@@ -97,6 +99,7 @@ object BahdanauAttention {
       memory: Output,
       memoryWeights: Output,
       queryWeights: Output,
+      scoreWeights: Output,
       memorySequenceLengths: Output = null,
       normalizationFactor: Output = null,
       normalizationBias: Output = null,
@@ -105,7 +108,7 @@ object BahdanauAttention {
       name: String = "BahdanauAttention"
   ): BahdanauAttention = {
     new BahdanauAttention(
-      memory, memoryWeights, queryWeights, memorySequenceLengths, normalizationFactor, normalizationBias, probabilityFn,
-      scoreMaskValue, name)
+      memory, memoryWeights, queryWeights, scoreWeights, memorySequenceLengths, normalizationFactor, normalizationBias,
+      probabilityFn, scoreMaskValue, name)
   }
 }
