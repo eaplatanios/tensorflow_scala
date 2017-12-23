@@ -2019,7 +2019,7 @@ private[api] trait Math {
     * @return Created op output.
     */
   def tensorDot(a: Output, b: Output, axesA: Seq[Int], axesB: Seq[Int], name: String): Output = {
-    if (axesA.size != axesB.size)
+    if (axesA.lengthCompare(axesB.size) != 0)
       throw InvalidArgumentException(
         s"Different number of contraction axes for 'a' and 'b', ${axesA.size} != ${axesB.size}.")
 
@@ -2045,7 +2045,8 @@ private[api] trait Math {
         val permutation = if (flipped) mappedAxes ++ free else free ++ mappedAxes
         val newShape = if (flipped) Shape(prodAxes, prodFree) else Shape(prodFree, prodAxes)
         val reshapedA = Basic.reshape(Basic.transpose(a, permutation), newShape)
-        (reshapedA, freeAxes, freeAxes)
+        val freeAxesOutput = if (freeAxes.isEmpty) Basic.constant(Tensor(INT32)) else Basic.constant(freeAxes)
+        (reshapedA, freeAxesOutput, freeAxes)
       } else {
         val (mappedAxes, freeAxesStatic) = {
           if (a.rank != -1) {
