@@ -15,8 +15,9 @@
 
 package org.platanios.tensorflow.api.learn
 
-import org.platanios.tensorflow.api.ops.{Op, Output}
+import org.platanios.tensorflow.api.ops.{Op, Output, OutputLike}
 import org.platanios.tensorflow.api.ops.io.data.Iterator
+import org.platanios.tensorflow.api.ops.variables.Variable
 
 // TODO: What about "trainOutput"?
 
@@ -32,4 +33,5 @@ case class ModelInstance[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
     trainInput: Option[TO] = None,
     output: Option[I] = None,
     loss: Option[Output] = None,
+    gradientsAndVariables: Option[Seq[(OutputLike, Variable)]] = None,
     trainOp: Option[Op] = None)

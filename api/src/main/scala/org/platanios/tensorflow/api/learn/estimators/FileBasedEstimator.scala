@@ -142,7 +142,7 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
         allHooks += NaNChecker(Set(trainOps.loss.name))
         val modelInstance = ModelInstance(
           model, configuration, Some(trainOps.inputIterator), Some(trainOps.input), Some(trainOps.output),
-          Some(trainOps.loss), Some(trainOps.trainOp))
+          Some(trainOps.loss), Some(trainOps.gradientsAndVariables), Some(trainOps.trainOp))
         allHooks.foreach {
           case hook: ModelDependentHook[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] => hook.setModelInstance(modelInstance)
           case _ => ()
@@ -262,7 +262,7 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
       Counter.getOrCreate(Graph.Keys.GLOBAL_EPOCH, local = false)
       Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
       val inferOps = Op.createWithNameScope("Model")(model.buildInferOps())
-      val modelInstance = ModelInstance(model, configuration, None, None, Some(inferOps.output), None, None)
+      val modelInstance = ModelInstance(model, configuration, None, None, Some(inferOps.output), None, None, None)
       hooks.foreach {
         case hook: ModelDependentHook[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] => hook.setModelInstance(modelInstance)
         case _ => ()
@@ -413,7 +413,7 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
       allHooks += EvaluationStopper(maxSteps)
       val modelInstance = ModelInstance(
         model, configuration, Some(evaluateOps.inputIterator), Some(evaluateOps.input), Some(evaluateOps.output),
-        None, None)
+        None, None, None)
       allHooks.foreach {
         case hook: ModelDependentHook[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] => hook.setModelInstance(modelInstance)
         case _ => ()

@@ -91,7 +91,7 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
         val evalUpdateOps = ControlFlow.group(evaluateOps.metricUpdates.map(_.op).toSet + evalStepUpdate.op)
         val trainModelInstance = ModelInstance(
           model, configuration, Some(trainOps.inputIterator), Some(trainOps.input), Some(trainOps.output),
-          Some(trainOps.loss), Some(trainOps.trainOp))
+          Some(trainOps.loss), Some(trainOps.gradientsAndVariables), Some(trainOps.trainOp))
         trainHooks.foreach {
           case hook: ModelDependentHook[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] =>
             hook.setModelInstance(trainModelInstance)

@@ -88,8 +88,10 @@ class RBM(
       val vSampleFreeEnergy = RBM.freeEnergy(vSample, vb, hb, w)
       val loss = Math.mean(vFreeEnergy - vSampleFreeEnergy)
       val step = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
-      val trainOp = optimizer.minimize(loss, iteration = Some(step))
-      Model.UnsupervisedTrainOps(inferOps.inputIterator, inferOps.input, inferOps.output, loss, trainOp)
+      val gradientsAndVariables = optimizer.computeGradients(loss, colocateGradientsWithOps = colocateGradientsWithOps)
+      val trainOp = optimizer.applyGradients(gradientsAndVariables, Some(step))
+      Model.UnsupervisedTrainOps(
+        inferOps.inputIterator, inferOps.input, inferOps.output, loss, gradientsAndVariables, trainOp)
     })
   }
 
