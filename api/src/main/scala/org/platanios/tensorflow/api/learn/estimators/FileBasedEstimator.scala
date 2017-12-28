@@ -82,7 +82,7 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
     * @param  stopCriteria Stop criteria to use for stopping the training iteration. For the default criteria please
     *                      refer to the documentation of [[StopCriteria]].
     */
-  override def train(data: () => Dataset[TT, TO, TD, TS], stopCriteria: StopCriteria = StopCriteria()): Unit = {
+  override def train(data: () => Dataset[TT, TO, TD, TS], stopCriteria: StopCriteria = this.stopCriteria): Unit = {
     trainWithHooks(data, stopCriteria)
   }
 
@@ -109,10 +109,12 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
     */
   def trainWithHooks(
       data: () => Dataset[TT, TO, TD, TS],
-      stopCriteria: StopCriteria = StopCriteria(),
+      stopCriteria: StopCriteria = this.stopCriteria,
       hooks: Set[Hook] = trainHooks,
       chiefOnlyHooks: Set[Hook] = trainChiefOnlyHooks,
       tensorBoardConfig: TensorBoardConfig = this.tensorBoardConfig): Unit = {
+    if (hooks.exists(_.isInstanceOf[Stopper]) || chiefOnlyHooks.exists(_.isInstanceOf[Stopper]))
+      Estimator.logger.warn("The provided stopper hook will be ignored. Please use 'stopCriteria' instead.")
     val needsToTrain = {
       if (!stopCriteria.restartCounting) {
         workingDir.flatMap(dir => Saver.latestCheckpoint(dir).flatMap(latestPath => {
@@ -127,8 +129,8 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
         "Skipping training because no restarting is allowed in the termination criteria and the maximum number of " +
             "steps have already been executed in the past (i.e., saved checkpoint).")
     } else {
-      val allHooks = mutable.Set(hooks.toSeq: _*)
-      val allChiefOnlyHooks = mutable.Set(chiefOnlyHooks.toSeq: _*)
+      val allHooks = mutable.Set(hooks.filter(!_.isInstanceOf[Stopper]).toSeq: _*)
+      val allChiefOnlyHooks = mutable.Set(chiefOnlyHooks.filter(!_.isInstanceOf[Stopper]).toSeq: _*)
       allHooks += Stopper(stopCriteria)
       val model = modelFunction(configuration)
       val graph = Graph()
@@ -249,6 +251,8 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
       evFetchableIIO: Fetchable.Aux[(IO, I), (IT, ModelInferenceOutput)],
       ev: Estimator.SupportedInferInput[InferInput, InferOutput, IT, IO, ID, IS, ModelInferenceOutput]
   ): InferOutput = {
+    if (hooks.exists(_.isInstanceOf[Stopper]))
+      Estimator.logger.warn("The provided stopper hook will be ignored. Please use 'stopCriteria' instead.")
     // Check that the model has been trained.
     val _checkpointPath = Option(checkpointPath).orElse(workingDir.flatMap(Saver.latestCheckpoint(_)))
     if (_checkpointPath.isEmpty)
@@ -284,7 +288,7 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
             saver = saver),
           sessionConfig = configuration.sessionConfig,
           checkpointPath = workingDir),
-        hooks, shouldRecover = true)
+        hooks.filter(!_.isInstanceOf[Stopper]), shouldRecover = true)
       try {
       } catch {
         case t: Throwable =>
@@ -393,6 +397,8 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
       checkpointPath: Path = null,
       saveSummaries: Boolean = true,
       name: String = null): Seq[Tensor] = {
+    if (hooks.exists(_.isInstanceOf[Stopper]))
+      Estimator.logger.warn("The provided stopper hook will be ignored. Please use 'stopCriteria' instead.")
     // Check that the model has been trained.
     val _checkpointPath = Option(checkpointPath).orElse(workingDir.flatMap(Saver.latestCheckpoint(_)))
     if (_checkpointPath.isEmpty)
@@ -409,8 +415,8 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
       val evalStep = Counter.getOrCreate(Graph.Keys.EVAL_STEP, local = true)
       val evalStepUpdate = evalStep.assignAdd(1L)
       val evalUpdateOps = ControlFlow.group(evaluateOps.metricUpdates.map(_.op).toSet + evalStepUpdate.op)
-      val allHooks = mutable.Set(hooks.toSeq: _*)
-      allHooks += EvaluationStopper(maxSteps)
+      val allHooks = mutable.Set(hooks.filter(!_.isInstanceOf[Stopper]).toSeq: _*)
+      allHooks += Stopper(StopCriteria(maxSteps = Some(maxSteps)))
       val modelInstance = ModelInstance(
         model, configuration, Some(evaluateOps.inputIterator), Some(evaluateOps.input), Some(evaluateOps.output),
         None, None, None)

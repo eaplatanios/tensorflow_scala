@@ -69,6 +69,12 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
     val tensorBoardConfig: TensorBoardConfig = null,
     val evaluationMetrics: Seq[Metric[EI, Output]] = Seq.empty
 ) extends Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](modelFunction, configurationBase) {
+  if (trainHooks.exists(_.isInstanceOf[Stopper])
+      || trainChiefOnlyHooks.exists(_.isInstanceOf[Stopper])
+      || inferHooks.exists(_.isInstanceOf[Stopper])
+      || evaluateHooks.exists(_.isInstanceOf[Stopper]))
+    Estimator.logger.warn("The provided stopper hook will be ignored. Please use 'stopCriteria' instead.")
+
   private[this] val graph: Graph                                                 = Graph()
   private[this] val model: TrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] = modelFunction(configuration)
 
@@ -129,13 +135,15 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
       Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
       graph.addToCollection(trainingOps.loss, Graph.Keys.LOSSES)
       allTrainHooks += NaNChecker(Set(trainingOps.loss.name))
+      val allHooks = allTrainHooks.toSet ++
+          inferHooks.filter(!_.isInstanceOf[Stopper]) ++
+          evaluateHooks.filter(!_.isInstanceOf[Stopper])
+      val allChiefOnlyHooks = allTrainChiefOnlyHooks.toSet.filter(!_.isInstanceOf[Stopper])
       if (tensorBoardConfig != null)
         allTrainChiefOnlyHooks += TensorBoardHook(tensorBoardConfig)
       val saver = getOrCreateSaver()
       Estimator.monitoredTrainingSession(
-        configuration = configuration,
-        hooks = allTrainHooks.toSet ++ inferHooks ++ evaluateHooks,
-        chiefOnlyHooks = allTrainChiefOnlyHooks.toSet,
+        configuration = configuration, hooks = allHooks, chiefOnlyHooks = allChiefOnlyHooks,
         sessionScaffold = SessionScaffold(initFunction = Some(initFunction), saver = saver))
     }
   }
@@ -148,7 +156,6 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
     *                      refer to the documentation of [[StopCriteria]].
     */
   override def train(data: () => Dataset[TT, TO, TD, TS], stopCriteria: StopCriteria = this.stopCriteria): Unit = {
-    session.resetShouldStop()
     session.removeHooks(inferHooks ++ evaluateHooks)
     Op.createWith(graph) {
       val frozen = graph.isFrozen
@@ -163,6 +170,7 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
       stopHook.updateCriteria(stopCriteria)
       stopHook.reset(session)
       session.enableHooks()
+      session.resetShouldStop()
       try {
         while (!session.shouldStop)
           try {
@@ -205,7 +213,6 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
       evFetchableIIO: Fetchable.Aux[(IO, I), (IT, ModelInferenceOutput)],
       ev: Estimator.SupportedInferInput[InferInput, InferOutput, IT, IO, ID, IS, ModelInferenceOutput]
   ): InferOutput = {
-    session.resetShouldStop()
     session.removeHooks(currentTrainHooks ++ evaluateHooks)
     val output = Op.createWith(graph) {
       val frozen = graph.isFrozen
@@ -220,6 +227,7 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
       stopHook.updateCriteria(StopCriteria.none)
       stopHook.reset(session)
       session.enableHooks()
+      session.resetShouldStop()
       try {
         ev.convertFetched(new Iterator[(IT, ModelInferenceOutput)] {
           override def hasNext: Boolean = session.shouldStop
@@ -282,7 +290,6 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
       maxSteps: Long = -1L,
       saveSummaries: Boolean = true,
       name: String = null): Seq[Tensor] = {
-    session.resetShouldStop()
     session.removeHooks(currentTrainHooks ++ inferHooks)
     val values = Op.createWith(graph) {
       val frozen = graph.isFrozen
@@ -297,6 +304,7 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
       stopHook.updateCriteria(if (maxSteps != -1L) StopCriteria.steps(maxSteps) else StopCriteria.none)
       stopHook.reset(session)
       session.enableHooks()
+      session.resetShouldStop()
       try {
         InMemoryEstimator.logger.info("Starting evaluation.")
         val (step, metricValues) = {
