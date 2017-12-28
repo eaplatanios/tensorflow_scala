@@ -240,11 +240,10 @@ private[ops] trait Embedding {
       val partitionAssignments = Math.maximum(
         ids.truncateDivide(idsPerPartition + 1),
         (ids - extras).truncateDivide(idsPerPartition))
-      // Emulate a conditional using a boolean indicator tensor.
-      val isInFirstExtrasPartitions = (partitionAssignments < extras).cast(ids.dataType)
-      val newIds =
-        isInFirstExtrasPartitions * (ids % (idsPerPartition + 1)) +
-            (1 - isInFirstExtrasPartitions) * ((ids - extras) % idsPerPartition)
+      val newIds = Math.select(
+        partitionAssignments < extras,
+        ids % (idsPerPartition + 1),
+        (ids - extras) % idsPerPartition)
       (partitionAssignments, newIds)
     }
   }
