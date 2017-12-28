@@ -21,25 +21,25 @@ import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
 
 /** RNN cell that creates a residual connection (i.e., combining the cell inputs and its outputs) over another RNN cell.
   *
-  * @param  variableScope Variable scope (also acting as name scope) for this layer.
-  * @param  cell          RNN cell being wrapped.
-  * @param  residualFn    Residual function to use that maps from a tuple of cell input and cell output to the new cell
-  *                       output. Common choices include the addition and the concatenation functions.
+  * @param  name       Name scope (also acting as variable scope) for this layer.
+  * @param  cell       RNN cell being wrapped.
+  * @param  residualFn Residual function to use that maps from a tuple of cell input and cell output to the new cell
+  *                    output. Common choices include the addition and the concatenation functions.
   *
   * @author Emmanouil Antonios Platanios
   */
 class ResidualWrapper[O, OS, S, SS](
-    override val variableScope: String,
+    override val name: String,
     val cell: RNNCell[O, OS, S, SS],
     val residualFn: (O, O) => O
 )(implicit
     evO: WhileLoopVariable.Aux[O, OS],
     evS: WhileLoopVariable.Aux[S, SS]
-) extends RNNCell[O, OS, S, SS](variableScope)(evO, evS) {
+) extends RNNCell[O, OS, S, SS](name)(evO, evS) {
   override val layerType: String = "ResidualWrapper"
 
-  override def createCell(mode: Mode, inputShape: OS): ops.rnn.cell.RNNCell[O, OS, S, SS] = {
-    val createdCell = cell.createCell(mode, inputShape)
+  override def createCellWithoutContext(mode: Mode, inputShape: OS): ops.rnn.cell.RNNCell[O, OS, S, SS] = {
+    val createdCell = cell.createCellWithoutContext(mode, inputShape)
     ops.rnn.cell.ResidualWrapper(createdCell, residualFn)
   }
 }

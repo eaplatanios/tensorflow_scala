@@ -32,21 +32,21 @@ object Embedding {
 }
 
 case class Embedding(
-    override val variableScope: String,
+    override val name: String,
     vocabularySize: Int,
     embeddingSize: Int,
     dataType: DataType,
     partitionStrategy: ops.Embedding.PartitionStrategy = ops.Embedding.ModStrategy,
     transformFn: Output => Output = null,
     maxNorm: Tensor = null
-) extends Layer[Output, Output](variableScope) {
+) extends Layer[Output, Output](name) {
   override val layerType: String = "Embedding"
 
-  override protected def forward(input: Output, mode: Mode): Output = {
+  override protected def _forward(input: Output, mode: Mode): Output = {
     val embeddingMap = tf.variable("EmbeddingMap", dataType, Shape(vocabularySize, embeddingSize))
     ops.Embedding.embeddingLookup(
       embeddingMap, input, partitionStrategy, transformFn,
       if (maxNorm == null) null else ops.Basic.constant(maxNorm),
-      variableScope)
+      name)
   }
 }

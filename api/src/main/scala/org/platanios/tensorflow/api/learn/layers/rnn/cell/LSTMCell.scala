@@ -24,7 +24,7 @@ import scala.collection.mutable
 
 /** $OpDocRNNCellLSTMCell
   *
-  * @param  variableScope         Variable scope (also acting as name scope) for this layer.
+  * @param  name              Name scope (also acting as variable scope) for this layer.
   * @param  numUnits          Number of units in the LSTM cell.
   * @param  dataType          Data type for the parameters of this cell.
   * @param  forgetBias        Forget bias added to the forget gate.
@@ -40,7 +40,7 @@ import scala.collection.mutable
   * @author Emmanouil Antonios Platanios
   */
 class LSTMCell(
-    override val variableScope: String,
+    override val name: String,
     val numUnits: Int,
     val dataType: DataType,
     val forgetBias: Float = 1.0f,
@@ -51,10 +51,10 @@ class LSTMCell(
     val activation: Output => Output = ops.Math.tanh(_),
     val kernelInitializer: Initializer = null,
     val biasInitializer: Initializer = ZerosInitializer
-) extends RNNCell[Output, Shape, LSTMState, (Shape, Shape)](variableScope) {
+) extends RNNCell[Output, Shape, LSTMState, (Shape, Shape)](name) {
   override val layerType: String = "LSTMCell"
 
-  override def createCell(mode: Mode, inputShape: Shape): ops.rnn.cell.LSTMCell = {
+  override def createCellWithoutContext(mode: Mode, inputShape: Shape): ops.rnn.cell.LSTMCell = {
     val trainableVariables: mutable.Set[Variable] = mutable.Set[Variable]()
     val hiddenDepth = if (projectionSize != -1) projectionSize else numUnits
     val kernel = tf.variable(
@@ -90,7 +90,7 @@ class LSTMCell(
     }
     ops.rnn.cell.LSTMCell(
       kernel.value, bias.value, cellClip, wfDiag, wiDiag, woDiag, projectionKernel, projectionClip,
-      activation, forgetBias, variableScope)
+      activation, forgetBias, name)
   }
 }
 

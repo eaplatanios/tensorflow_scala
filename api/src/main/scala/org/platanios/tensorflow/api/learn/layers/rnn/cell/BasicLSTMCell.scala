@@ -22,7 +22,7 @@ import org.platanios.tensorflow.api.ops.variables.{Initializer, ZerosInitializer
 
 /** $OpDocRNNCellBasicLSTMCell
   *
-  * @param  variableScope     Variable scope (also acting as name scope) for this layer.
+  * @param  name              Name scope (also acting as variable scope) for this layer.
   * @param  numUnits          Number of units in the LSTM cell.
   * @param  dataType          Data type for the parameters of this cell.
   * @param  forgetBias        Forget bias added to the forget gate.
@@ -33,21 +33,21 @@ import org.platanios.tensorflow.api.ops.variables.{Initializer, ZerosInitializer
   * @author Emmanouil Antonios Platanios
   */
 class BasicLSTMCell(
-    override val variableScope: String,
+    override val name: String,
     val numUnits: Int,
     val dataType: DataType,
     val forgetBias: Float = 1.0f,
     val activation: Output => Output = ops.Math.tanh(_),
     val kernelInitializer: Initializer = null,
     val biasInitializer: Initializer = ZerosInitializer
-) extends RNNCell[Output, Shape, LSTMState, (Shape, Shape)](variableScope) {
+) extends RNNCell[Output, Shape, LSTMState, (Shape, Shape)](name) {
   override val layerType: String = "BasicLSTMCell"
 
-  override def createCell(mode: Mode, inputShape: Shape): ops.rnn.cell.BasicLSTMCell = {
+  override def createCellWithoutContext(mode: Mode, inputShape: Shape): ops.rnn.cell.BasicLSTMCell = {
     val kernel = tf.variable(
       KERNEL_NAME, dataType, Shape(inputShape(-1) + numUnits, 4 * numUnits), kernelInitializer)
     val bias = tf.variable(BIAS_NAME, dataType, Shape(4 * numUnits), biasInitializer)
-    ops.rnn.cell.BasicLSTMCell(kernel, bias, activation, forgetBias, variableScope)
+    ops.rnn.cell.BasicLSTMCell(kernel, bias, activation, forgetBias, name)
   }
 }
 

@@ -25,7 +25,7 @@ import org.platanios.tensorflow.api.tensors.Tensor
   *
   * $OpDocRNNDynamicRNN
   *
-  * @param  variableScope      Variable scope (also acting as name scope) for this layer.
+  * @param  name               Name scope (also acting as variable scope) for this layer.
   * @param  cell               RNN cell to use.
   * @param  initialState       Initial state to use for the RNN, which is a structure over tensors with shapes
   *                            `[batchSize, stateShape(i)(0), stateShape(i)(1), ...]`, where `i` corresponds to the
@@ -41,7 +41,7 @@ import org.platanios.tensorflow.api.tensors.Tensor
   * @author Emmanouil Antonios Platanios
   */
 class RNN[O, OS, S, SS](
-    override val variableScope: String,
+    override val name: String,
     val cell: RNNCell[O, OS, S, SS],
     val initialState: () => S = null,
     val timeMajor: Boolean = false,
@@ -51,15 +51,15 @@ class RNN[O, OS, S, SS](
 )(implicit
     evO: ops.control_flow.WhileLoopVariable.Aux[O, OS],
     evS: ops.control_flow.WhileLoopVariable.Aux[S, SS]
-) extends Layer[O, Tuple[O, S]](variableScope) {
+) extends Layer[O, Tuple[O, S]](name) {
   override val layerType: String = "RNN"
 
-  override protected def forward(input: O, mode: Mode): Tuple[O, S] = {
+  override protected def _forward(input: O, mode: Mode): Tuple[O, S] = {
     val state = if (initialState == null) null.asInstanceOf[S] else initialState()
     val lengths = if (sequenceLengths == null) null else ops.Basic.constant(sequenceLengths)
     val createdCell = cell.createCell(mode, evO.fromShapes(input, evO.outputs(input).map(_.shape)))
     ops.rnn.RNN.dynamicRNN(
-      createdCell, input, state, timeMajor, parallelIterations, swapMemory, lengths, variableScope)(evO, evS)
+      createdCell, input, state, timeMajor, parallelIterations, swapMemory, lengths, name)(evO, evS)
   }
 }
 

@@ -26,7 +26,7 @@ import org.platanios.tensorflow.api.tensors.Tensor
   *
   * $OpDocRNNBidirectionalDynamicRNN
   *
-  * @param  variableScope      Variable scope (also acting as name scope) for this layer.
+  * @param  name               Name scope (also acting as variable scope) for this layer.
   * @param  cellFw             RNN cell to use for the forward direction.
   * @param  cellBw             RNN cell to use for the backward direction.
   * @param  initialStateFw     Initial state to use for the forward RNN, which is a structure over tensors with shapes
@@ -46,7 +46,7 @@ import org.platanios.tensorflow.api.tensors.Tensor
   * @author Emmanouil Antonios Platanios
   */
 class BidirectionalRNN[O, OS, S, SS](
-    override val variableScope: String,
+    override val name: String,
     val cellFw: RNNCell[O, OS, S, SS],
     val cellBw: RNNCell[O, OS, S, SS],
     val initialStateFw: () => S = null,
@@ -58,10 +58,10 @@ class BidirectionalRNN[O, OS, S, SS](
 )(implicit
     evO: ops.control_flow.WhileLoopVariable.Aux[O, OS],
     evS: ops.control_flow.WhileLoopVariable.Aux[S, SS]
-) extends Layer[O, (Tuple[O, S], Tuple[O, S])](variableScope) {
+) extends Layer[O, (Tuple[O, S], Tuple[O, S])](name) {
   override val layerType: String = "BidirectionalRNN"
 
-  override protected def forward(input: O, mode: Mode): (Tuple[O, S], Tuple[O, S]) = {
+  override protected def _forward(input: O, mode: Mode): (Tuple[O, S], Tuple[O, S]) = {
     val stateFw = if (initialStateFw == null) null.asInstanceOf[S] else initialStateFw()
     val stateBw = if (initialStateBw == null) null.asInstanceOf[S] else initialStateBw()
     val lengths = if (sequenceLengths == null) null else ops.Basic.constant(sequenceLengths)
@@ -69,14 +69,14 @@ class BidirectionalRNN[O, OS, S, SS](
     val createdCellBw = cellBw.createCell(mode, evO.fromShapes(input, evO.outputs(input).map(_.shape)))
     ops.rnn.RNN.bidirectionalDynamicRNN(
       createdCellFw, createdCellBw, input, stateFw, stateBw,
-      timeMajor, parallelIterations, swapMemory, lengths, variableScope)(evO, evS)
+      timeMajor, parallelIterations, swapMemory, lengths, name)(evO, evS)
   }
 
   def withConcatenatedOutputs: Layer[O, Tuple[O, (S, S)]] = {
-    new Layer[O, Tuple[O, (S, S)]](s"$variableScope/ConcatenatedOutputs") {
+    new Layer[O, Tuple[O, (S, S)]](s"$name/ConcatenatedOutputs") {
       override val layerType: String = "BidirectionalRNNWithConcatenatedOutputs"
 
-      override protected def forward(input: O, mode: Mode): Tuple[O, (S, S)] = {
+      override protected def _forward(input: O, mode: Mode): Tuple[O, (S, S)] = {
         val raw = BidirectionalRNN.this(input, mode)
         val output = evO.fromOutputs(
           raw._1.output, evO.outputs(raw._1.output).zip(evO.outputs(raw._2.output)).map(o => {

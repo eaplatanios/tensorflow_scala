@@ -43,44 +43,44 @@ object NN {
   object API extends API
 }
 
-case class Softmax(override val variableScope: String)
-    extends Layer[Output, Output](variableScope) {
+case class Softmax(override val name: String)
+    extends Layer[Output, Output](name) {
   override val layerType: String = "Softmax"
 
-  override protected def forward(input: Output, mode: Mode): Output = {
-    ops.NN.softmax(input, name = variableScope)
+  override protected def _forward(input: Output, mode: Mode): Output = {
+    ops.NN.softmax(input, name = name)
   }
 }
 
-case class LogSoftmax(override val variableScope: String)
-    extends Layer[Output, Output](variableScope) {
+case class LogSoftmax(override val name: String)
+    extends Layer[Output, Output](name) {
   override val layerType: String = "LogSoftmax"
 
-  override protected def forward(input: Output, mode: Mode): Output = {
-    ops.NN.logSoftmax(input, name = variableScope)
+  override protected def _forward(input: Output, mode: Mode): Output = {
+    ops.NN.logSoftmax(input, name = name)
   }
 }
 
 case class Dropout(
-    override val variableScope: String,
+    override val name: String,
     keepProbability: Float,
     noiseShape: Shape = null,
     seed: Option[Int] = None
-) extends Layer[Output, Output](variableScope) {
+) extends Layer[Output, Output](name) {
   override val layerType: String = s"Dropout[$keepProbability]"
 
-  override protected def forward(input: Output, mode: Mode): Output = {
+  override protected def _forward(input: Output, mode: Mode): Output = {
     mode match {
       case TRAINING =>
         val noise = if (noiseShape == null) null else noiseShape.toOutput()
-        ops.NN.dropout(input, keepProbability, noise, seed, variableScope)
+        ops.NN.dropout(input, keepProbability, noise, seed, name)
       case _ => input
     }
   }
 }
 
 case class Conv2D(
-    override val variableScope: String,
+    override val name: String,
     filterShape: Shape,
     stride1: Long,
     stride2: Long,
@@ -88,26 +88,26 @@ case class Conv2D(
     dataFormat: CNNDataFormat = CNNDataFormat.default,
     useCuDNNOnGPU: Boolean = true,
     weightsInitializer: Initializer = RandomNormalInitializer()
-) extends Layer[Output, Output](variableScope) {
+) extends Layer[Output, Output](name) {
   override val layerType: String = s"Conv2D[${filterShape.asArray.mkString(",")}]"
 
-  override protected def forward(input: Output, mode: Mode): Output = {
+  override protected def _forward(input: Output, mode: Mode): Output = {
     val weights = tf.variable("Weights", input.dataType, filterShape, weightsInitializer)
     ops.NN.conv2D(input, weights, stride1, stride2, padding, dataFormat, useCuDNNOnGPU)
   }
 }
 
 case class MaxPool(
-    override val variableScope: String,
+    override val name: String,
     windowSize: Seq[Long],
     stride1: Long,
     stride2: Long,
     padding: PaddingMode,
     dataFormat: CNNDataFormat = CNNDataFormat.default
-) extends Layer[Output, Output](variableScope) {
+) extends Layer[Output, Output](name) {
   override val layerType: String = s"MaxPool[${windowSize.mkString(",")}]"
 
-  override protected def forward(input: Output, mode: Mode): Output = {
-    ops.NN.maxPool(input, windowSize, stride1, stride2, padding, dataFormat, variableScope)
+  override protected def _forward(input: Output, mode: Mode): Output = {
+    ops.NN.maxPool(input, windowSize, stride1, stride2, padding, dataFormat, name)
   }
 }

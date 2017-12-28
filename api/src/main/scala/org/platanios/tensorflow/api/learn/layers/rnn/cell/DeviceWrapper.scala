@@ -22,7 +22,7 @@ import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
 
 /** RNN cell that ensures another RNN cell runs on a specific device.
   *
-  * @param  variableScope  Variable scope (also acting as name scope) for this layer.
+  * @param  name           Name scope (also acting as variable scope) for this layer.
   * @param  cell           RNN cell being wrapped.
   * @param  device         Device to use.
   * @param  deviceFunction Device function to use.
@@ -30,19 +30,19 @@ import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
   * @author Emmanouil Antonios Platanios
   */
 class DeviceWrapper[O, OS, S, SS](
-    override val variableScope: String,
+    override val name: String,
     val cell: RNNCell[O, OS, S, SS],
     val device: String = "",
     val deviceFunction: OpSpecification => String = _.device
 )(implicit
     evO: WhileLoopVariable.Aux[O, OS],
     evS: WhileLoopVariable.Aux[S, SS]
-) extends RNNCell[O, OS, S, SS](variableScope)(evO, evS) {
+) extends RNNCell[O, OS, S, SS](name)(evO, evS) {
   override val layerType: String = "DeviceWrapper"
 
-  override def createCell(mode: Mode, inputShape: OS): ops.rnn.cell.RNNCell[O, OS, S, SS] = {
+  override def createCellWithoutContext(mode: Mode, inputShape: OS): ops.rnn.cell.RNNCell[O, OS, S, SS] = {
     Op.createWith(device = device, deviceFunction = deviceFunction) {
-      ops.rnn.cell.DeviceWrapper(cell.createCell(mode, inputShape), device, deviceFunction)
+      ops.rnn.cell.DeviceWrapper(cell.createCellWithoutContext(mode, inputShape), device, deviceFunction)
     }
   }
 }

@@ -29,7 +29,7 @@ import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
   * Note also that for LSTM cells, no dropout is applied to the memory tensor of the state. It is only applied to the
   * state tensor.
   *
-  * @param  variableScope         Variable scope (also acting as name scope) for this layer.
+  * @param  name                  Name scope (also acting as variable scope) for this layer.
   * @param  cell                  RNN cell on which to perform dropout.
   * @param  inputKeepProbability  Keep probability for the input of the RNN cell.
   * @param  outputKeepProbability Keep probability for the output of the RNN cell.
@@ -40,7 +40,7 @@ import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
   * @author Emmanouil Antonios Platanios
   */
 class DropoutWrapper[O, OS, S, SS](
-    override val variableScope: String,
+    override val name: String,
     val cell: RNNCell[O, OS, S, SS],
     val inputKeepProbability: Float = 1.0f,
     val outputKeepProbability: Float = 1.0f,
@@ -51,7 +51,7 @@ class DropoutWrapper[O, OS, S, SS](
     evS: WhileLoopVariable.Aux[S, SS],
     evODropout: ops.rnn.cell.DropoutWrapper.Supported[O],
     evSDropout: ops.rnn.cell.DropoutWrapper.Supported[S]
-) extends RNNCell[O, OS, S, SS](variableScope)(evO, evS) {
+) extends RNNCell[O, OS, S, SS](name)(evO, evS) {
   require(inputKeepProbability > 0.0 && inputKeepProbability <= 1.0,
     s"'inputKeepProbability' ($inputKeepProbability) must be in (0, 1].")
   require(outputKeepProbability > 0.0 && outputKeepProbability <= 1.0,
@@ -61,8 +61,8 @@ class DropoutWrapper[O, OS, S, SS](
 
   override val layerType: String = "DropoutWrapper"
 
-  override def createCell(mode: Mode, inputShape: OS): ops.rnn.cell.RNNCell[O, OS, S, SS] = {
-    val createdCell = cell.createCell(mode, inputShape)
+  override def createCellWithoutContext(mode: Mode, inputShape: OS): ops.rnn.cell.RNNCell[O, OS, S, SS] = {
+    val createdCell = cell.createCellWithoutContext(mode, inputShape)
     mode match {
       case TRAINING =>
         ops.rnn.cell.DropoutWrapper(
@@ -70,7 +70,7 @@ class DropoutWrapper[O, OS, S, SS](
           Basic.constant(inputKeepProbability, name = "InputKeepProbability"),
           Basic.constant(outputKeepProbability, name = "OutputKeepProbability"),
           Basic.constant(stateKeepProbability, name = "StateKeepProbability"), seed,
-          variableScope)(evO, evS, evODropout, evSDropout)
+          name)(evO, evS, evODropout, evSDropout)
       case _ => createdCell
     }
   }

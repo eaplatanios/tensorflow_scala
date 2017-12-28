@@ -22,7 +22,7 @@ import org.platanios.tensorflow.api.ops.variables.{Initializer, ZerosInitializer
 
 /** $OpDocRNNCellBasicRNNCell
   *
-  * @param  variableScope     Variable scope (also acting as name scope) for this layer.
+  * @param  name              Name scope (also acting as variable scope) for this layer.
   * @param  numUnits          Number of units in the RNN cell.
   * @param  dataType          Data type for the parameters of this cell.
   * @param  activation        Activation function used by this RNN cell.
@@ -32,19 +32,19 @@ import org.platanios.tensorflow.api.ops.variables.{Initializer, ZerosInitializer
   * @author Emmanouil Antonios Platanios
   */
 class BasicRNNCell(
-    override val variableScope: String,
+    override val name: String,
     val numUnits: Int,
     val dataType: DataType,
     val activation: Output => Output = ops.Math.tanh(_),
     val kernelInitializer: Initializer = null,
     val biasInitializer: Initializer = ZerosInitializer
-) extends RNNCell[Output, Shape, Output, Shape](variableScope) {
+) extends RNNCell[Output, Shape, Output, Shape](name) {
   override val layerType: String = "BasicRNNCell"
 
-  override def createCell(mode: Mode, inputShape: Shape): ops.rnn.cell.BasicRNNCell = {
+  override def createCellWithoutContext(mode: Mode, inputShape: Shape): ops.rnn.cell.BasicRNNCell = {
     val kernel = tf.variable(KERNEL_NAME, dataType, Shape(inputShape(-1) + numUnits, numUnits), kernelInitializer)
     val bias = tf.variable(BIAS_NAME, dataType, Shape(numUnits), biasInitializer)
-    ops.rnn.cell.BasicRNNCell(kernel, bias, activation, variableScope)
+    ops.rnn.cell.BasicRNNCell(kernel, bias, activation, name)
   }
 }
 

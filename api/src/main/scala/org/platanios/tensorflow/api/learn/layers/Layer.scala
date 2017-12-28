@@ -25,26 +25,40 @@ import org.platanios.tensorflow.api.types.DataType
 import scala.util.DynamicVariable
 
 /**
+  *
+  * '''NOTE:''' Subclasses must implement the `_forward` method. Callers should always use either the `forward` or the
+  * `apply` methods.
+  *
+  * @param  name Name scope (also acting as variable scope) for this layer.
+  *
   * @author Emmanouil Antonios Platanios
   */
 abstract class Layer[T, R](
-    val variableScope: String
+    val name: String
 )(implicit
-    context: DynamicVariable[LayerCreationContext]
+    val context: DynamicVariable[LayerCreationContext]
 ) {
   val layerType: String
 
-  protected def forward(input: T, mode: Mode): R
+  protected def _forward(input: T, mode: Mode): R
 
-  def apply(input: T, mode: Mode): R = Op.createWith(
+  def forward(input: T, mode: Mode): R = Op.createWith(
     nameScope = context.value.nameScope,
     device = context.value.device,
     deviceFunction = context.value.deviceFunction
   ) {
-    VariableScope.createWithVariableScope(variableScope) {
-      forward(input, mode)
+    VariableScope.createWithUpdatedVariableScope(context.value.variableScope, isPure = true) {
+      if (name != null) {
+        VariableScope.createWithVariableScope(name, isPure = true) {
+          _forward(input, mode)
+        }
+      } else {
+        _forward(input, mode)
+      }
     }
   }
+
+  def apply(input: T, mode: Mode): R = forward(input, mode)
 
   def >>[S](other: Layer[R, S]): Compose[T, R, S] = compose(other)
 
@@ -52,9 +66,9 @@ abstract class Layer[T, R](
 
   def ++(others: Seq[Layer[T, R]]): Concatenate[T, R] = concatenate(others: _*)
 
-  def compose[S](other: Layer[R, S]): Compose[T, R, S] = Compose(variableScope, this, other)
+  def compose[S](other: Layer[R, S]): Compose[T, R, S] = Compose(name, this, other)
 
-  def concatenate(others: Layer[T, R]*): Concatenate[T, R] = Concatenate(variableScope, this +: others)
+  def concatenate(others: Layer[T, R]*): Concatenate[T, R] = Concatenate(name, this +: others)
 
   override def toString: String = layerType
 }

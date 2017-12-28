@@ -18,18 +18,38 @@ package org.platanios.tensorflow.api.learn.layers.rnn.cell
 import org.platanios.tensorflow.api.learn.Mode
 import org.platanios.tensorflow.api.learn.layers.Layer
 import org.platanios.tensorflow.api.ops
+import org.platanios.tensorflow.api.ops.Op
 import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
+import org.platanios.tensorflow.api.ops.variables.VariableScope
 
 /**
+  * @param  name Name scope (also acting as variable scope) for this layer.
+  *
   * @author Emmanouil Antonios Platanios
   */
-abstract class RNNCell[O, OS, S, SS](override val variableScope: String)(implicit
+abstract class RNNCell[O, OS, S, SS](override val name: String)(implicit
   evO: WhileLoopVariable.Aux[O, OS],
   evS: WhileLoopVariable.Aux[S, SS]
-) extends Layer[Tuple[O, S], Tuple[O, S]](variableScope) {
-  def createCell(mode: Mode, inputShape: OS): ops.rnn.cell.RNNCell[O, OS, S, SS]
+) extends Layer[Tuple[O, S], Tuple[O, S]](name) {
+  def createCellWithoutContext(mode: Mode, inputShape: OS): ops.rnn.cell.RNNCell[O, OS, S, SS]
 
-  override final protected def forward(input: Tuple[O, S], mode: Mode): Tuple[O, S] = {
-    createCell(mode, evO.fromShapes(input.output, evO.outputs(input.output).map(_.shape))).forward(input)
+  final def createCell(mode: Mode, inputShape: OS): ops.rnn.cell.RNNCell[O, OS, S, SS ] = Op.createWith(
+    nameScope = context.value.nameScope,
+    device = context.value.device,
+    deviceFunction = context.value.deviceFunction
+  ) {
+    VariableScope.createWithUpdatedVariableScope(context.value.variableScope, isPure = true) {
+      if (name != null) {
+        VariableScope.createWithVariableScope(name, isPure = true) {
+          createCellWithoutContext(mode, inputShape)
+        }
+      } else {
+        createCellWithoutContext(mode, inputShape)
+      }
+    }
+  }
+
+  override final protected def _forward(input: Tuple[O, S], mode: Mode): Tuple[O, S] = {
+    createCellWithoutContext(mode, evO.fromShapes(input.output, evO.outputs(input.output).map(_.shape))).forward(input)
   }
 }

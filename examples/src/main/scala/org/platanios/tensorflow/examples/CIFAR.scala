@@ -50,7 +50,7 @@ object CIFAR {
         tf.learn.ReLU("Layer_0/ReLU", 0.1f) >>
         tf.learn.MaxPool("Layer_0/MaxPool", Seq(1, 2, 2, 1), 1, 1, SamePadding) >>
         tf.learn.Conv2D("Layer_1/Conv2D", Shape(2, 2, 16, 32), 1, 1, SamePadding) >>
-        tf.learn.AddBias(variableScope = "Bias_1") >>
+        tf.learn.AddBias("Bias_1") >>
         tf.learn.ReLU("Layer_1/ReLU", 0.1f) >>
         tf.learn.MaxPool("Layer_1/MaxPool", Seq(1, 2, 2, 1), 1, 1, SamePadding) >>
         tf.learn.Flatten("Layer_2/Flatten") >>

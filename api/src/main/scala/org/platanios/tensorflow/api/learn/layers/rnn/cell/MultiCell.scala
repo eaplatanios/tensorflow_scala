@@ -17,7 +17,6 @@ package org.platanios.tensorflow.api.learn.layers.rnn.cell
 
 import org.platanios.tensorflow.api.learn.Mode
 import org.platanios.tensorflow.api.ops
-import org.platanios.tensorflow.api.ops.Op
 import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
 import org.platanios.tensorflow.api.ops.variables.VariableScope
 
@@ -25,32 +24,30 @@ import org.platanios.tensorflow.api.ops.variables.VariableScope
   *
   * This will create a different set of variables for each layer in the stacked LSTM cell (i.e., no variable sharing).
   *
-  * @param  variableScope Variable scope (also acting as name scope) for this layer.
-  * @param  cells         Cells being stacked together.
+  * @param  name  Name scope (also acting as variable scope) for this layer.
+  * @param  cells Cells being stacked together.
   *
   * @author Emmanouil Antonios Platanios
   */
 class MultiCell[O, OS, S, SS](
-    override val variableScope: String,
+    override val name: String,
     val cells: Seq[RNNCell[O, OS, S, SS]]
 )(implicit
     evO: WhileLoopVariable.Aux[O, OS],
     evS: WhileLoopVariable.Aux[S, SS]
-) extends RNNCell[O, OS, Seq[S], Seq[SS]](variableScope) {
+) extends RNNCell[O, OS, Seq[S], Seq[SS]](name) {
   override val layerType: String = "MultiRNNCell"
 
-  override def createCell(mode: Mode, inputShape: OS): ops.rnn.cell.RNNCell[O, OS, Seq[S], Seq[SS]] = {
-    Op.createWithNameScope(variableScope) {
-      val createdCells = cells.zipWithIndex.foldLeft(Seq.empty[ops.rnn.cell.RNNCell[O, OS, S, SS]])((seq, cell) => {
-        VariableScope.createWithVariableScope(s"Cell${cell._2}") {
-          if (seq.isEmpty)
-            seq :+ cell._1.createCell(mode, inputShape)
-          else
-            seq :+ cell._1.createCell(mode, seq.last.outputShape)
-        }
-      })
-      ops.rnn.cell.MultiCell(createdCells)(evO, evS)
-    }
+  override def createCellWithoutContext(mode: Mode, inputShape: OS): ops.rnn.cell.RNNCell[O, OS, Seq[S], Seq[SS]] = {
+    val createdCells = cells.zipWithIndex.foldLeft(Seq.empty[ops.rnn.cell.RNNCell[O, OS, S, SS]])((seq, cell) => {
+      VariableScope.createWithVariableScope(s"Cell${cell._2}") {
+        if (seq.isEmpty)
+          seq :+ cell._1.createCellWithoutContext(mode, inputShape)
+        else
+          seq :+ cell._1.createCellWithoutContext(mode, seq.last.outputShape)
+      }
+    })
+    ops.rnn.cell.MultiCell(createdCells)(evO, evS)
   }
 }
 

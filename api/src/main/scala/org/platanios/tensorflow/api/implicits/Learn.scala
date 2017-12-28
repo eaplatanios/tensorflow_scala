@@ -32,7 +32,7 @@ trait Learn {
   ) extends Layer[CC[T], CC[R]]("Mappable") {
     override val layerType: String = "Mappable"
 
-    override protected def forward(input: CC[T], mode: Mode): CC[R] = {
+    override protected def _forward(input: CC[T], mode: Mode): CC[R] = {
       layer(input, mode)
     }
 
@@ -42,7 +42,7 @@ trait Learn {
     )(implicit
         cbfRS: CanBuildFrom[CC[R], S, CC[S]]
     ): Map[T, R, S, CC] = {
-      Map[T, R, S, CC](layer.variableScope, layer, mapLayer)(cbfRS)
+      Map[T, R, S, CC](layer.name, layer, mapLayer)(cbfRS)
     }
   }
 

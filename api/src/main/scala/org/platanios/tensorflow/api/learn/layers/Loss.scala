@@ -23,7 +23,7 @@ import org.platanios.tensorflow.api.tensors.Tensor
 /**
   * @author Emmanouil Antonios Platanios
   */
-abstract class Loss[T](override val variableScope: String) extends Layer[T, Output](variableScope)
+abstract class Loss[T](override val name: String) extends Layer[T, Output](name)
 
 object Loss {
   private[layers] trait API {
@@ -46,64 +46,64 @@ object Loss {
   object API extends API
 }
 
-case class L2Loss(override val variableScope: String)
-    extends Loss[(Output, Output)](variableScope) {
+case class L2Loss(override val name: String)
+    extends Loss[(Output, Output)](name) {
   override val layerType: String = "L2Loss"
 
-  override protected def forward(input: (Output, Output), mode: Mode): Output = {
-    ops.NN.l2Loss(input._1 - input._2, name = variableScope)
+  override protected def _forward(input: (Output, Output), mode: Mode): Output = {
+    ops.NN.l2Loss(input._1 - input._2, name = name)
   }
 }
 
-case class SoftmaxCrossEntropy(override val variableScope: String)
-    extends Loss[(Output, Output)](variableScope) {
+case class SoftmaxCrossEntropy(override val name: String)
+    extends Loss[(Output, Output)](name) {
   override val layerType: String = "SoftmaxCrossEntropy"
 
-  override protected def forward(input: (Output, Output), mode: Mode): Output = {
-    ops.NN.softmaxCrossEntropy(input._1, input._2, name = variableScope)
+  override protected def _forward(input: (Output, Output), mode: Mode): Output = {
+    ops.NN.softmaxCrossEntropy(input._1, input._2, name = name)
   }
 }
 
-case class SparseSoftmaxCrossEntropy(override val variableScope: String)
-    extends Loss[(Output, Output)](variableScope) {
+case class SparseSoftmaxCrossEntropy(override val name: String)
+    extends Loss[(Output, Output)](name) {
   override val layerType: String = "SparseSoftmaxCrossEntropy"
 
-  override protected def forward(input: (Output, Output), mode: Mode): Output = {
-    ops.NN.sparseSoftmaxCrossEntropy(input._1, input._2, name = variableScope)
+  override protected def _forward(input: (Output, Output), mode: Mode): Output = {
+    ops.NN.sparseSoftmaxCrossEntropy(input._1, input._2, name = name)
   }
 }
 
-case class SigmoidCrossEntropy(override val variableScope: String)
-    extends Loss[(Output, Output)](variableScope) {
+case class SigmoidCrossEntropy(override val name: String)
+    extends Loss[(Output, Output)](name) {
   override val layerType: String = "SigmoidCrossEntropy"
 
-  override protected def forward(input: (Output, Output), mode: Mode): Output = {
-    ops.NN.sigmoidCrossEntropy(input._1, input._2, name = variableScope)
+  override protected def _forward(input: (Output, Output), mode: Mode): Output = {
+    ops.NN.sigmoidCrossEntropy(input._1, input._2, name = name)
   }
 }
 
-case class LogPoissonLoss(override val variableScope: String, computeFullLoss: Boolean = false)
-    extends Loss[(Output, Output)](variableScope) {
+case class LogPoissonLoss(override val name: String, computeFullLoss: Boolean = false)
+    extends Loss[(Output, Output)](name) {
   override val layerType: String = "LogPoissonLoss"
 
-  override protected def forward(input: (Output, Output), mode: Mode): Output = {
-    ops.NN.logPoissonLoss(input._1, input._2, computeFullLoss, name = variableScope)
+  override protected def _forward(input: (Output, Output), mode: Mode): Output = {
+    ops.NN.logPoissonLoss(input._1, input._2, computeFullLoss, name = name)
   }
 }
 
 case class SequenceLoss(
-    override val variableScope: String,
+    override val name: String,
     averageAcrossTimeSteps: Boolean = true,
     averageAcrossBatch: Boolean = true,
     weights: Tensor = null,
     lossFn: (Output, Output) => Output = ops.NN.sparseSoftmaxCrossEntropy(_, _)
-) extends Loss[(Output, Output)](variableScope) {
+) extends Loss[(Output, Output)](name) {
   override val layerType: String = "SequenceLoss"
 
-  override protected def forward(input: (Output, Output), mode: Mode): Output = {
+  override protected def _forward(input: (Output, Output), mode: Mode): Output = {
     ops.NN.sequenceLoss(
       input._1, input._2,
       if (weights == null) null else ops.Basic.constant(weights),
-      averageAcrossTimeSteps, averageAcrossBatch, lossFn, name = variableScope)
+      averageAcrossTimeSteps, averageAcrossBatch, lossFn, name = name)
   }
 }
