@@ -519,7 +519,9 @@ private[api] trait Basic {
     * @group BasicOps
     *
     * @param  inputs Input tensors to be concatenated.
-    * @param  axis   Dimension along which to concatenate the input tensors.
+    * @param  axis   Dimension along which to concatenate the input tensors. As in Python, indexing for the axis is
+    *                0-based. Positive axes in the range of `[0, rank(values))` refer to the `axis`-th dimension, and
+    *                negative axes refer to the `axis + rank(inputs)`-th dimension.
     * @param  name   Name for the created op.
     * @return Created op output.
     */
@@ -1205,14 +1207,17 @@ private[api] trait Basic {
     *
     * @group BasicOps
     *
-    * @param  input           One-dimensional input tensor.
+    * @param  input           Input tensor.
+    * @param  axis            Axis along which to compute the unique values.
     * @param  indicesDataType Data type of the returned indices. Must be [[INT32]] or [[INT64]].
     * @param  name            Name for the created op.
     * @return Tuple containing `output` and `indices`.
     */
-  def unique(input: Output, indicesDataType: DataType = INT32, name: String = "Unique"): (Output, Output) = {
-    val outputs = Op.Builder(opType = "Unique", name = name)
+  def unique(
+      input: Output, axis: Output, indicesDataType: DataType = INT32, name: String = "Unique"): (Output, Output) = {
+    val outputs = Op.Builder(opType = "UniqueV2", name = name)
         .addInput(input)
+        .addInput(axis)
         .setAttribute("out_idx", indicesDataType)
         .build().outputs
     (outputs(0), outputs(1))
