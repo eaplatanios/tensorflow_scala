@@ -71,6 +71,9 @@ abstract class Context protected (
   /** Returns the while context containing this context. */
   def whileLoopContext: Option[WhileLoopContext] = outerContext.flatMap(_.whileLoopContext)
 
+  /** Returns the XLA context containing this context. */
+  def xlaContext: Option[XLAContext] = outerContext.flatMap(_.xlaContext)
+
   /** Adds `op` to the current context. */
   def add(op: Op): Unit = addInternal(op)
 
@@ -211,4 +214,18 @@ object Context {
       Basic.zerosLike(op.outputs(index), optimize = false)
     }
   }
+}
+
+/** Base class for XLA and TPU control flow contexts.
+  *
+  * @param  values         Set of values that have already been seen in this context.
+  * @param  externalValues Set of values referenced by but external to this context.
+  *
+  * @author Emmanouil Antonios Platanios
+  */
+abstract class XLAContext protected (
+    override private[control_flow] val values: mutable.Set[String] = mutable.Set.empty,
+    override private[control_flow] val externalValues: mutable.Map[String, Output] = mutable.Map.empty
+) extends Context(values, externalValues) {
+  override def xlaContext: Option[XLAContext] = Some(this)
 }

@@ -248,11 +248,23 @@ private[api] trait ControlFlow {
 
 private[api] object ControlFlow extends ControlFlow {
   case class ControlFlowOps(op: Op) {
-    /** Returns `true` if the provided op is in within a cond statement. */
+    /** Returns `true` if the provided op is within a cond statement. */
     def isInCond: Boolean = op.controlFlowContext.flatMap(_.condContext).isDefined
 
-    /** Returns `true` if the provided op is in within a while loop statement. */
+    /** Returns `true` if the provided op is within a while loop statement. */
     def isInWhileLoop: Boolean = op.controlFlowContext.flatMap(_.whileLoopContext).isDefined
+
+    /** Returns `true` if the provided op is within an XLA control flow context. */
+    def isInXLAContext: Boolean = {
+      val xlaCompile = {
+        try {
+          op.booleanAttribute("_XlaCompile")
+        } catch {
+          case _: IllegalArgumentException => false
+        }
+      }
+      xlaCompile || op.controlFlowContext.flatMap(_.xlaContext).isDefined
+    }
   }
 
   /** Returns `true` if and only if the provided op is a switch op. */
