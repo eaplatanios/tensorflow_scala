@@ -289,13 +289,14 @@ object RNN extends RNN {
     // `loopBound` can be reduced to `maxSequenceLength` once TensorArray shape inference is working. When sequence
     // lengths are highly variable, this will reduce the performance overhead of padding to a fixed maximum length.
     val loopBound = timeSteps
+    val maximumIterations = if (timeSteps.op.controlFlowContext.isEmpty) timeSteps else null
     val (_, finalOutputTensorArrays, finalStates) = ControlFlow.whileLoop(
       (loopVariables: LoopVariables) => Math.less(loopVariables._1, loopBound),
       (loopVariables: LoopVariables) => timeStep(loopVariables),
       (time, outputTensorArrays, initialStates),
       parallelIterations = parallelIterations,
       swapMemory = swapMemory,
-      maximumIterations = timeSteps)
+      maximumIterations = maximumIterations)
 
     // Unpack the final output if not using output tuples
     val finalOutputs = finalOutputTensorArrays.map(_.stack())
