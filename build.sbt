@@ -24,7 +24,7 @@ crossScalaVersions in ThisBuild := Seq("2.11.11", "2.12.4")
 
 organization in ThisBuild := "org.platanios"
 
-val tensorFlowVersion = "1.4.0"
+val tensorFlowVersion = "1.5.0-rc1"
 val circeVersion = "0.8.0"       // Use for working with JSON.
 
 autoCompilerPlugins in ThisBuild := true
@@ -198,7 +198,7 @@ lazy val api = (project in file("./api"))
     .settings(
       libraryDependencies += "org.typelevel" %% "spire" % "0.14.1",
       libraryDependencies += "org.tensorflow" % "proto" % tensorFlowVersion,
-      libraryDependencies += "com.chuusai" %% "shapeless" % "2.3.2",
+      libraryDependencies += "com.chuusai" %% "shapeless" % "2.3.3",
       libraryDependencies ++= Seq(
         "io.circe" %% "circe-core",
         "io.circe" %% "circe-generic",
