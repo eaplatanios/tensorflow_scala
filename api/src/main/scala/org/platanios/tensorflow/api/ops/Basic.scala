@@ -1901,10 +1901,13 @@ object Basic extends Basic {
       *
       * @group BasicOps
       *
+      * @param  axis            Axis along which to compute the unique values.
       * @param  indicesDataType Data type of the returned indices. Must be [[INT32]] or [[INT64]].
       * @return Tuple containing `output` and `indices`.
       */
-    def unique(indicesDataType: DataType = INT32): (Output, Output) = Basic.unique(output, indicesDataType)
+    def unique(axis: Output, indicesDataType: DataType = INT32): (Output, Output) = {
+      Basic.unique(output, axis, indicesDataType)
+    }
 
     /** $OpDocBasicUniqueWithCounts
       *
