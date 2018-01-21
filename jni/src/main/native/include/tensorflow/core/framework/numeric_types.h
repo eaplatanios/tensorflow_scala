@@ -25,7 +25,6 @@ limitations under the License.
 #include "third_party/eigen3/unsupported/Eigen/CXX11/FixedPoint"
 // clang-format on
 
-#include "tensorflow/core/platform/cpu_info.h"
 #include "tensorflow/core/platform/types.h"
 
 namespace tensorflow {
@@ -192,22 +191,7 @@ inline bool operator>(bfloat16 a, bfloat16 b) {
 inline bool operator>=(bfloat16 a, bfloat16 b) {
   return static_cast<float>(a) >= static_cast<float>(b);
 }
-inline bfloat16& operator+=(bfloat16& a, bfloat16 b) {
-  a = a + b;
-  return a;
-}
-inline bfloat16& operator-=(bfloat16& a, bfloat16 b) {
-  a = a - b;
-  return a;
-}
-inline bfloat16& operator*=(bfloat16& a, bfloat16 b) {
-  a = a * b;
-  return a;
-}
-inline bfloat16& operator/=(bfloat16& a, bfloat16 b) {
-  a = a / b;
-  return a;
-}
+
 }  // end namespace tensorflow
 
 namespace Eigen {

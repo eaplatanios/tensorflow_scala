@@ -177,7 +177,7 @@ class GcsFileSystem : public FileSystem {
 
   /// Loads file contents from GCS for a given filename, offset, and length.
   Status LoadBufferFromGCS(const string& filename, size_t offset, size_t n,
-                           char* buffer, size_t* bytes_transferred);
+                           std::vector<char>* out);
 
   std::unique_ptr<AuthProvider> auth_provider_;
   std::unique_ptr<HttpRequest::Factory> http_request_factory_;

@@ -35,6 +35,7 @@ class OpLevelCostEstimator {
 
   virtual Costs PredictCosts(const OpContext& op_context) const;
 
+ protected:
   // Basic device performance info, sufficient for roofline estimate.
   struct DeviceInfo {
     double gigaops;     // Billions of operations executed per second.
@@ -44,7 +45,6 @@ class OpLevelCostEstimator {
   // Returns basic device performance info.
   virtual DeviceInfo GetDeviceInfo(const DeviceProperties& device) const;
 
- protected:
   // Predict cost of an op for which no accurate estimator is defined.
   Costs PredictCostOfAnUnknownOp(const OpContext& op_context) const;
 

@@ -43,9 +43,8 @@ class FileBlockCache {
   /// cache is constructed. The returned Status should be OK as long as the
   /// read from the remote filesystem succeeded (similar to the semantics of the
   /// read(2) system call).
-  typedef std::function<Status(const string& filename, size_t offset,
-                               size_t buffer_size, char* buffer,
-                               size_t* bytes_transferred)>
+  typedef std::function<Status(const string&, size_t, size_t,
+                               std::vector<char>*)>
       BlockFetcher;
 
   FileBlockCache(size_t block_size, size_t max_bytes, uint64 max_staleness,
@@ -84,8 +83,8 @@ class FileBlockCache {
   ///    placed in `out`.
   /// 4) OK otherwise (i.e. the read succeeded, and at least one byte was placed
   ///    in `out`).
-  Status Read(const string& filename, size_t offset, size_t n, char* buffer,
-              size_t* bytes_transferred);
+  Status Read(const string& filename, size_t offset, size_t n,
+              std::vector<char>* out);
 
   /// Remove all cached blocks for `filename`.
   void RemoveFile(const string& filename) LOCKS_EXCLUDED(mu_);

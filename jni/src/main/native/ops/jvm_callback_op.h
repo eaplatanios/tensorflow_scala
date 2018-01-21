@@ -23,10 +23,6 @@
 
 #include "tensorflow/core/framework/op_kernel.h"
 
-struct TF_Status {
-  tensorflow::Status status;
-};
-
 // A call to the registered JVM function.
 struct JVMCall {
   JNIEnv* env;
