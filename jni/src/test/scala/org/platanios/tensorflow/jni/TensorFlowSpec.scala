@@ -41,7 +41,7 @@ class TensorFlowSpec extends FlatSpec {
     assert(TensorFlow.dataTypeSize(11) === 1)
     assert(TensorFlow.dataTypeSize(12) === 1)
     assert(TensorFlow.dataTypeSize(13) === 4)
-    assert(TensorFlow.dataTypeSize(14) === 2)
+    assert(TensorFlow.dataTypeSize(14) === 0)
     assert(TensorFlow.dataTypeSize(15) === 2)
     assert(TensorFlow.dataTypeSize(16) === 2)
     assert(TensorFlow.dataTypeSize(17) === 2)
