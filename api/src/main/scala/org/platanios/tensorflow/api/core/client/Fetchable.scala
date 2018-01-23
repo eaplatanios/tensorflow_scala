@@ -15,8 +15,8 @@
 
 package org.platanios.tensorflow.api.core.client
 
-import org.platanios.tensorflow.api.ops.{Output, OutputIndexedSlices, SparseOutput}
-import org.platanios.tensorflow.api.tensors.{SparseTensor, Tensor, TensorIndexedSlices}
+import org.platanios.tensorflow.api.ops.{Output, OutputIndexedSlices, OutputLike, SparseOutput}
+import org.platanios.tensorflow.api.tensors.{SparseTensor, Tensor, TensorIndexedSlices, TensorLike}
 import org.platanios.tensorflow.api.utilities.Collections
 
 import shapeless._
@@ -120,6 +120,30 @@ object Fetchable {
           fetchable: SparseOutput, values: Seq[Tensor]): (SparseTensor, Seq[Tensor]) = {
         (SparseTensor(values(0), values(1), values(2)), values.drop(3))
       }
+    }
+  }
+
+  // TODO: Make this more elegant.
+
+  implicit val outputLikeFetchable: Aux[OutputLike, TensorLike] = new Fetchable[OutputLike] {
+    override type ResultType = TensorLike
+
+    override def numberOfFetches(fetchable: OutputLike): Int = fetchable match {
+      case _: Output => 1
+      case _: OutputIndexedSlices => 3
+      case _: SparseOutput => 3
+    }
+
+    override def fetches(fetchable: OutputLike): Seq[Output] = fetchable match {
+      case o: Output => Seq(o)
+      case o: OutputIndexedSlices => Seq(o.indices, o.values, o.denseShape)
+      case o: SparseOutput => Seq(o.indices, o.values, o.denseShape)
+    }
+
+    override def segment(fetchable: OutputLike, values: Seq[Tensor]): (TensorLike, Seq[Tensor]) = fetchable match {
+      case _: Output => (values.head, values.tail)
+      case _: OutputIndexedSlices => (TensorIndexedSlices(values(0), values(1), values(2)), values.drop(3))
+      case _: SparseOutput => (SparseTensor(values(0), values(1), values(2)), values.drop(3))
     }
   }
 
