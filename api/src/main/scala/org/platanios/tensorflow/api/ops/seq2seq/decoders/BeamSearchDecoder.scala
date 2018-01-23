@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.ops.seq2seq.decoders
 
-import org.platanios.tensorflow.api.core.{Indexer, NewAxis, Shape}
+import org.platanios.tensorflow.api.core.{NewAxis, Shape}
 import org.platanios.tensorflow.api.core.exception.{InvalidArgumentException, InvalidShapeException}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops
@@ -128,11 +128,15 @@ class BeamSearchDecoder[S, SS](
     */
   override def initialize(): (Output, Output, BeamSearchDecoder.State[S, SS]) = {
     Op.createWithNameScope(s"$name/Initialize", Set(batchSize.op)) {
-      val finished = Basic.zeros(BOOLEAN, Basic.stack(Seq(batchSize, beamWidth)))
+      val finished = Basic.oneHot(
+        indices = Basic.zeros(INT32, batchSize.expandDims(0)), depth = beamWidth,
+        onValue = false, offValue = true, dataType = BOOLEAN)
       val initialState = BeamSearchDecoder.State[S, SS](
         rnnState = processedInitialCellState,
-        logProbabilities = Basic.zeros(
-          evS.outputs(processedInitialCellState).head.dataType, Basic.stack(Seq(batchSize, beamWidth))),
+        logProbabilities = Basic.oneHot(
+          indices = Basic.zeros(INT32, batchSize.expandDims(0)), depth = beamWidth,
+          onValue = 0.0f, offValue = Float.NegativeInfinity,
+          dataType = evS.outputs(processedInitialCellState).head.dataType),
         finished = finished,
         sequenceLengths = Basic.zeros(INT64, Basic.stack(Seq(batchSize, beamWidth))))
       (finished, beginInput, initialState)
@@ -189,18 +193,10 @@ class BeamSearchDecoder[S, SS](
       val scores = lengthPenalty(totalLogProbabilities, newPredictionLengths)
 
       // During the first time step we only consider the initial beam
-      val scoresShape = Basic.shape(scores)
-      val scoresFlat = ControlFlow.cond(
-        time > 0,
-        () => scores.reshape(Basic.stack(Seq(batchSize, -1))),
-        () => scores(Indexer.::, 0))
-      val numAvailableBeams = ControlFlow.cond(
-        time > 0,
-        () => scoresShape(1 ::).prod(),
-        () => scoresShape(2 ::).prod())
+      val scoresFlat = Basic.reshape(scores, Basic.stack(Seq(batchSize, -1)))
 
       // Pick the next beams according to the specified successors function
-      val nextBeamSize = Math.minimum(Basic.constant(beamWidth, INT32, name = "BeamWidth"), numAvailableBeams)
+      val nextBeamSize = Basic.constant(beamWidth, INT32, name = "BeamWidth")
       val (nextBeamScores, wordIndices) = NN.topK(scoresFlat, nextBeamSize)
       nextBeamScores.setShape(Shape(staticBatchSize, beamWidth))
       wordIndices.setShape(Shape(staticBatchSize, beamWidth))
@@ -417,7 +413,9 @@ object BeamSearchDecoder {
 
   /** Final outputs returned by the beam search after all decoding is finished.
     *
-    * @param  predictedIDs Tensor of shape `[T, batchSize, beamWidth]` containing the final prediction IDs.
+    * @param  predictedIDs Tensor of shape `[batchSize, T, beamWidth]` (or `[T, batchSize, beamWidth]`,
+    *                      if `outputTimeMajor == true`) containing the final prediction IDs. The beams are ordered
+    *                      from best to worst.
     * @param  output       State of the beam search at the end of decoding.
     */
   case class FinalOutput(predictedIDs: ops.Output, output: Output)
