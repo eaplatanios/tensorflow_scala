@@ -214,6 +214,11 @@ object TensorFlowNativePackage extends AutoPlugin {
          |FROM multiarch/crossbuild
          |
          |# Install CMake and Java
+         |RUN echo "deb http://ftp.us.debian.org/debian unstable main contrib non-free" >> /etc/apt/sources.list.d/unstable.list
+         |RUN apt-get update
+         |RUN apt-get -t unstable -y install gcc-7 g++-7
+         |RUN apt-get -t unstable -y install --reinstall build-essential
+         |RUN rm /etc/apt/sources.list.d/unstable.list
          |RUN echo "deb http://httpredir.debian.org/debian/ jessie-backports main" > \\
          |  /etc/apt/sources.list.d/jessie-backports.list
          |RUN apt-get update
@@ -233,6 +238,8 @@ object TensorFlowNativePackage extends AutoPlugin {
          |
          |set(CMAKE_C_COMPILER_WORKS 1)
          |set(CMAKE_CXX_COMPILER_WORKS 1)
+         |set(CMAKE_CXX_STANDARD 11)
+         |set(CMAKE_CXX_STANDARD_REQUIRED on)
          |
          |# Define project and related variables
          |project(tensorflow CXX)
@@ -258,7 +265,7 @@ object TensorFlowNativePackage extends AutoPlugin {
          |    set(CMAKE_INSTALL_RPATH "@loader_path")
          |    set(CMAKE_INSTALL_NAME_DIR "@loader_path")
          |else()
-         |    set(CMAKE_INSTALL_RPATH "$$ORIGIN")
+         |    set(CMAKE_INSTALL_RPATH "$$ORIGIN/")
          |endif()
          |
          |# Include directories
@@ -386,8 +393,8 @@ object TensorFlowNativePackage extends AutoPlugin {
 
     override val cMakeSystemName  : String = "Linux"
     override val cMakeToolsPath   : String = "/usr"
-    override val cMakeCCompiler   : String = s"$cMakeToolsPath/bin/gcc"
-    override val cMakeCXXCompiler : String = s"$cMakeToolsPath/bin/gcc"
+    override val cMakeCCompiler   : String = s"$cMakeToolsPath/bin/gcc-7"
+    override val cMakeCXXCompiler : String = s"$cMakeToolsPath/bin/gcc-7"
     override val cMakeCXXFlags    : String = "-std=c++11"
     override val cMakeTargetSuffix: String = "so"
     override val cMakePath        : String = "/usr/bin"
@@ -409,8 +416,8 @@ object TensorFlowNativePackage extends AutoPlugin {
 
     override val cMakeSystemName  : String = "Linux"
     override val cMakeToolsPath   : String = "/usr"
-    override val cMakeCCompiler   : String = s"$cMakeToolsPath/bin/gcc"
-    override val cMakeCXXCompiler : String = s"$cMakeToolsPath/bin/gcc"
+    override val cMakeCCompiler   : String = s"$cMakeToolsPath/bin/gcc-7"
+    override val cMakeCXXCompiler : String = s"$cMakeToolsPath/bin/gcc-7"
     override val cMakeCXXFlags    : String = "-std=c++11"
     override val cMakeTargetSuffix: String = "so"
     override val cMakePath        : String = "/usr/bin"

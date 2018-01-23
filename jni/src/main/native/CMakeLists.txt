@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.1.0)
 
 set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED on)
 
 # Define project and related variables
 project(tensorflow)
@@ -52,7 +53,7 @@ if(${APPLE})
     set(CMAKE_INSTALL_RPATH "@loader_path")
     set(CMAKE_INSTALL_NAME_DIR "@loader_path")
 else()
-    set(CMAKE_INSTALL_RPATH "$ORIGIN")
+    set(CMAKE_INSTALL_RPATH "$ORIGIN/")
 endif()
 
 # Setup installation targets
