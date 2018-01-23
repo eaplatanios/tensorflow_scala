@@ -15,8 +15,10 @@
 
 package org.platanios.tensorflow.api.ops.rnn.attention
 
+import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
 import org.platanios.tensorflow.api.implicits.Implicits._
+import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
 import org.platanios.tensorflow.api.ops.{Basic, Checks, Math, NN, Op, Output}
 import org.platanios.tensorflow.api.types.{DataType, INT32}
 
@@ -38,26 +40,30 @@ import scala.language.postfixOps
   *
   * @author Emmanouil Antonios Platanios
   */
-abstract class Attention(
+abstract class Attention[AS, ASS](
     protected val memory: Output,
     protected val memorySequenceLengths: Output = null,
     val checkInnerDimensionsDefined: Boolean = true,
     val scoreMaskValue: Output = Float.NegativeInfinity,
     val name: String = "Attention"
+)(implicit
+    evAS: WhileLoopVariable.Aux[AS, ASS]
 ) {
-  lazy val values: Output = Op.createWithNameScope(s"$name/Initialization") {
+  lazy val values: Output = Op.createWithNameScope(s"$name/Values") {
     Attention.maybeMaskValues(memory, memorySequenceLengths, checkInnerDimensionsDefined)
   }
 
   lazy val keys: Output = values
 
-  lazy val batchSize: Output = Op.createWithNameScope(s"$name/Initialization") {
+  lazy val batchSize: Output = Op.createWithNameScope(s"$name/BatchSize") {
     Attention.dimSize(keys, 0)
   }
 
-  lazy val alignmentSize: Output = Op.createWithNameScope(s"$name/Initialization") {
+  lazy val alignmentSize: Output = Op.createWithNameScope(s"$name/AlignmentSize") {
     Attention.dimSize(keys, 1)
   }
+
+  def stateSize: ASS
 
   lazy val dataType: DataType = keys.dataType
 
@@ -69,42 +75,79 @@ abstract class Attention(
     * The default behavior is to return a tensor of all zeros.
     */
   lazy val initialAlignment: Output = {
-    Op.createWithNameScope(s"$name/InitialAlignments", Set(batchSize.op)) {
+    Op.createWithNameScope(s"$name/InitialAlignment", Set(batchSize.op)) {
       val fullShape = Basic.stack(Seq(batchSize, alignmentSize.cast(batchSize.dataType)), axis = 0)
       Basic.zeros(dataType, fullShape)
     }
   }
+
+  /** Initial state value.
+    *
+    * This is important for attention mechanisms that use the previous alignment to calculate the alignment at the
+    * next time step (e.g., monotonic attention).
+    *
+    * The default behavior is to return the same output as `initialAlignment`.
+    */
+  def initialState: AS
 
   /** Computes an alignment tensor given the provided query and previous alignment tensor.
     *
     * The previous alignment tensor is important for attention mechanisms that use the previous alignment to calculate
     * the attention at the next time step, such as monotonic attention mechanisms.
     *
-    * @param  query             Query tensor.
-    * @param  previousAlignment Previous alignment tensor.
-    * @return Alignment tensor.
+    * TODO: Figure out how to generalize the "next state" functionality.
+    *
+    * @param  query         Query tensor.
+    * @param  previousState Previous alignment tensor.
+    * @return Tuple containing the alignment tensor and the next attention state.
     */
-  final def alignment(query: Output, previousAlignment: Output): Output = Op.createWithNameScope(name) {
-    val unmaskedScore = score(query, previousAlignment)
-    val maskedScore = Attention.maybeMaskScore(unmaskedScore, memorySequenceLengths, scoreMaskValue)
-    probability(maskedScore, previousAlignment)
-  }
+  def alignment(query: Output, previousState: AS): (Output, AS)
 
   /** Computes an alignment score for `query`.
     *
-    * @param  query             Query tensor.
-    * @param  previousAlignment Previous alignment tensor.
+    * @param  query Query tensor.
+    * @param  state Current attention mechanism state (defaults to the previous alignment tensor). The data type of
+    *               this tensor matches that of `values` and its shape is `[batchSize, alignmentSize]`, where
+    *               `alignmentSize` is the memory's maximum time.
     * @return Score tensor.
     */
-  protected def score(query: Output, previousAlignment: Output): Output
+  protected def score(query: Output, state: AS): Output
 
   /** Computes alignment probabilities for `score`.
     *
-    * @param  score             Alignment score tensor.
-    * @param  previousAlignment Previous alignment tensor.
+    * @param  score Alignment score tensor.
+    * @param  state Current attention mechanism state (defaults to the previous alignment tensor). The data type of
+    *               this tensor matches that of `values` and its shape is `[batchSize, alignmentSize]`, where
+    *               `alignmentSize` is the memory's maximum time.
     * @return Alignment probabilities tensor.
     */
-  protected def probability(score: Output, previousAlignment: Output): Output = NN.softmax(score, name = "Probability")
+  protected def probability(score: Output, state: AS): Output = NN.softmax(score, name = "Probability")
+}
+
+/** Base class for attention models that use as state the previous alignment. */
+abstract class SimpleAttention(
+    override protected val memory: Output,
+    override protected val memorySequenceLengths: Output = null,
+    override val checkInnerDimensionsDefined: Boolean = true,
+    override val scoreMaskValue: Output = Float.NegativeInfinity,
+    override val name: String = "SimpleAttention"
+) extends Attention[Output, Shape](memory, memorySequenceLengths, checkInnerDimensionsDefined, scoreMaskValue, name) {
+  override def stateSize: Shape = {
+    Output.constantValueAsShape(alignmentSize).getOrElse(Shape.unknown())
+  }
+
+  override def initialState: Output = {
+    Op.createWithNameScope(s"$name/InitialState", Set(batchSize.op)) {
+      Basic.identity(initialAlignment)
+    }
+  }
+
+  override def alignment(query: Output, previousState: Output): (Output, Output) = Op.createWithNameScope(name) {
+    val unmaskedScore = score(query, previousState)
+    val maskedScore = Attention.maybeMaskScore(unmaskedScore, memorySequenceLengths, scoreMaskValue)
+    val alignment = probability(maskedScore, previousState)
+    (alignment, alignment)
+  }
 }
 
 object Attention {
@@ -117,7 +160,7 @@ object Attention {
 
   /** Potentially masks the provided values tensor based on the provided sequence lengths. */
   @throws[InvalidShapeException]
-  private[Attention] def maybeMaskValues(
+  private[attention] def maybeMaskValues(
       values: Output, sequenceLengths: Output, checkInnerDimensionsDefined: Boolean
   ): Output = {
     if (checkInnerDimensionsDefined && !values.shape(2 ::).isFullyDefined)
@@ -152,7 +195,7 @@ object Attention {
   }
 
   /** Potentially masks the provided score tensor based on the provided sequence lengths. */
-  private[Attention] def maybeMaskScore(
+  private[attention] def maybeMaskScore(
       score: Output, sequenceLengths: Output, scoreMaskValue: Output
   ): Output = {
     if (sequenceLengths != null) {

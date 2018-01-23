@@ -50,7 +50,7 @@ class LuongAttention(
     protected val probabilityFn: (Output) => Output = NN.softmax(_, name = "Probability"),
     override val scoreMaskValue: Output = Float.NegativeInfinity,
     override val name: String = "LuongAttention"
-) extends Attention(memory, memorySequenceLengths, checkInnerDimensionsDefined = true, scoreMaskValue, name) {
+) extends SimpleAttention(memory, memorySequenceLengths, checkInnerDimensionsDefined = true, scoreMaskValue, name) {
   override lazy val keys: Output = NN.linear(values, memoryWeights)
 
   @throws[InvalidArgumentException]

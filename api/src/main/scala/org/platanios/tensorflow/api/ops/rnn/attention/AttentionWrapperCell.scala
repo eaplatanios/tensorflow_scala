@@ -43,17 +43,18 @@ import org.platanios.tensorflow.api.types.{DataType, INT32}
   *
   * @author Emmanouil Antonios Platanios
   */
-class AttentionWrapperCell[S, SS] private[attention] (
+class AttentionWrapperCell[S, SS, AS, ASS] private[attention] (
     val cell: RNNCell[Output, Shape, S, SS],
-    val attentions: Seq[Attention],
+    val attentions: Seq[Attention[AS, ASS]], // TODO: Allow for varying supported types in the sequence.
     val attentionLayerWeights: Seq[Output] = null,
     val cellInputFn: (Output, Output) => Output = (input, attention) => Basic.concatenate(Seq(input, attention), -1),
     val outputAttention: Boolean = true,
     val storeAlignmentsHistory: Boolean = false,
     val name: String = "AttentionWrapperCell"
 )(implicit
-    evS: WhileLoopVariable.Aux[S, SS]
-) extends RNNCell[Output, Shape, AttentionWrapperState[S, SS], (SS, Shape, Shape, Seq[Shape], Seq[Shape])] {
+    evS: WhileLoopVariable.Aux[S, SS],
+    evAS: WhileLoopVariable.Aux[AS, ASS]
+) extends RNNCell[Output, Shape, AttentionWrapperState[S, SS, Seq[AS], Seq[ASS]], (SS, Shape, Shape, Seq[Shape], Seq[Shape], Seq[ASS])] {
   private[this] val attentionLayersSize: Int = {
     if (attentionLayerWeights != null) {
       require(attentionLayerWeights.lengthCompare(attentions.size) == 0,
@@ -74,7 +75,7 @@ class AttentionWrapperCell[S, SS] private[attention] (
     *                          `initialCellState`.
     * @return Initial state for this attention cell wrapper.
     */
-  def initialState(initialCellState: S, dataType: DataType = null): AttentionWrapperState[S, SS] = {
+  def initialState(initialCellState: S, dataType: DataType = null): AttentionWrapperState[S, SS, Seq[AS], Seq[ASS]] = {
     if (initialCellState == null) {
       null
     } else {
@@ -101,17 +102,18 @@ class AttentionWrapperCell[S, SS] private[attention] (
               attentions.map(_ => TensorArray.create(0, inferredDataType, dynamicSize = true))
             else
               Seq.empty
-          })
+          },
+          attentionState = attentions.map(_.initialState))
       }
     }
   }
 
   override def outputShape: Shape = if (outputAttention) Shape(attentionLayersSize) else cell.outputShape
 
-  override def stateShape: (SS, Shape, Shape, Seq[Shape], Seq[Shape]) = {
+  override def stateShape: (SS, Shape, Shape, Seq[Shape], Seq[Shape], Seq[ASS]) = {
     (cell.stateShape, Shape(1), Shape(attentionLayersSize),
         attentions.map(a => Output.constantValueAsShape(a.alignmentSize.expandDims(0)).getOrElse(Shape.unknown())),
-        attentions.map(_ => Shape.scalar()))
+        attentions.map(_ => Shape.scalar()), attentions.map(_.stateSize))
   }
 
   /** Performs a step using this attention-wrapped RNN cell.
@@ -129,7 +131,8 @@ class AttentionWrapperCell[S, SS] private[attention] (
     * @return Next tuple.
     */
   override def forward(
-      input: Tuple[Output, AttentionWrapperState[S, SS]]): Tuple[Output, AttentionWrapperState[S, SS]] = {
+      input: Tuple[Output, AttentionWrapperState[S, SS, Seq[AS], Seq[ASS]]]
+  ): Tuple[Output, AttentionWrapperState[S, SS, Seq[AS], Seq[ASS]]] = {
     // Step 1: Calculate the true inputs to the cell based on the previous attention value.
     val cellInput = cellInputFn(input.output, input.state.attention)
     val nextTuple = cell.forward(Tuple(cellInput, input.state.cellState))
@@ -142,9 +145,9 @@ class AttentionWrapperCell[S, SS] private[attention] (
       Basic.identity(output, "CheckedCellOutput")
     }
     val weights = if (attentionLayerWeights != null) attentionLayerWeights else attentions.map(_ => null)
-    val (allAttentions, allAlignments) = (attentions, input.state.alignments, weights).zipped.map {
-      case (mechanism, previous, w) =>
-        val alignments = mechanism.alignment(checkedOutput, previous)
+    val (allAttentions, allAlignments, allStates) = (attentions, input.state.attentionState, weights).zipped.map {
+      case (mechanism, previousState, w) =>
+        val (alignments, state) = mechanism.alignment(checkedOutput, previousState)
         // Reshape from [batchSize, memoryTime] to [batchSize, 1, memoryTime]
         val expandedAlignments = alignments.expandDims(1)
         // Context is the inner product of alignments and values along the memory time dimension.
@@ -159,8 +162,8 @@ class AttentionWrapperCell[S, SS] private[attention] (
           else
             context
         }
-        (attention, alignments)
-    }.unzip
+        (attention, alignments, state)
+    }.unzip3
     val histories = {
       if (storeAlignmentsHistory)
         input.state.alignmentsHistory.zip(allAlignments).map(p => p._1.write(input.state.time, p._2))
@@ -169,7 +172,8 @@ class AttentionWrapperCell[S, SS] private[attention] (
     }
     val one = Basic.constant(1)
     val attention = Basic.concatenate(allAttentions, one)
-    val nextState = AttentionWrapperState(nextTuple.state, input.state.time + one, attention, allAlignments, histories)
+    val nextState = AttentionWrapperState(
+      nextTuple.state, input.state.time + one, attention, allAlignments, histories, allStates)
     if (outputAttention)
       Tuple(attention, nextState)
     else
@@ -178,18 +182,19 @@ class AttentionWrapperCell[S, SS] private[attention] (
 }
 
 object AttentionWrapperCell {
-  def apply[S, SS](
+  def apply[S, SS, AS, ASS](
       cell: RNNCell[Output, Shape, S, SS],
-      attentions: Seq[Attention],
+      attentions: Seq[Attention[AS, ASS]],
       attentionLayerWeights: Seq[Output] = null,
       cellInputFn: (Output, Output) => Output = (input, attention) => Basic.concatenate(Seq(input, attention), -1),
       outputAttention: Boolean = true,
       storeAlignmentsHistory: Boolean = false,
       name: String = "AttentionWrapperCell"
   )(implicit
-      evS: WhileLoopVariable.Aux[S, SS]
-  ): AttentionWrapperCell[S, SS] = {
-    new AttentionWrapperCell[S, SS](
+      evS: WhileLoopVariable.Aux[S, SS],
+      evAS: WhileLoopVariable.Aux[AS, ASS]
+  ): AttentionWrapperCell[S, SS, AS, ASS] = {
+    new AttentionWrapperCell[S, SS, AS, ASS](
       cell, attentions, attentionLayerWeights, cellInputFn, outputAttention, storeAlignmentsHistory, name)
   }
 }
