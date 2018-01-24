@@ -40,7 +40,7 @@ object TensorFlowNativeCrossCompiler {
     processBuilder #&&
         Process(platform.compileScript, repoDir) #&&
         Process(
-          "cp" :: s"lib-package/${platform.tfLibFilename}" ::
+          "cp" :: s"lib_package/${platform.tfLibFilename}" ::
               s"$targetDir/downloads/lib/${platform.tfLibFilename}" :: Nil, repoDir) #&&
         Process("rm" :: "-rf" :: "tensorflow" :: Nil, workingDir.toFile)
   }
