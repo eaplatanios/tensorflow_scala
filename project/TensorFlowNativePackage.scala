@@ -388,8 +388,8 @@ object TensorFlowNativePackage extends AutoPlugin {
 
     override val cMakeSystemName  : String = "Linux"
     override val cMakeToolsPath   : String = "/usr"
-    override val cMakeCCompiler   : String = s"$cMakeToolsPath/bin/gcc-7"
-    override val cMakeCXXCompiler : String = s"$cMakeToolsPath/bin/gcc-7"
+    override val cMakeCCompiler   : String = s"$cMakeToolsPath/bin/gcc"
+    override val cMakeCXXCompiler : String = s"$cMakeToolsPath/bin/gcc"
     override val cMakeCXXFlags    : String = "-std=c++11"
     override val cMakeTargetSuffix: String = "so"
     override val cMakePath        : String = "/usr/bin"
@@ -411,8 +411,8 @@ object TensorFlowNativePackage extends AutoPlugin {
 
     override val cMakeSystemName  : String = "Linux"
     override val cMakeToolsPath   : String = "/usr"
-    override val cMakeCCompiler   : String = s"$cMakeToolsPath/bin/gcc-7"
-    override val cMakeCXXCompiler : String = s"$cMakeToolsPath/bin/gcc-7"
+    override val cMakeCCompiler   : String = s"$cMakeToolsPath/bin/gcc"
+    override val cMakeCXXCompiler : String = s"$cMakeToolsPath/bin/gcc"
     override val cMakeCXXFlags    : String = "-std=c++11"
     override val cMakeTargetSuffix: String = "so"
     override val cMakePath        : String = "/usr/bin"
