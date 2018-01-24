@@ -83,10 +83,10 @@ object MNIST {
         tf.learn.LossLogger(trigger = tf.learn.StepHookTrigger(100)),
         tf.learn.Evaluator(
           log = true, data = () => evalTrainData, metrics = Seq(accMetric),
-          trigger = tf.learn.StepHookTrigger(1000), name = "Train Evaluation"),
+          trigger = tf.learn.StepHookTrigger(1000), name = "TrainEvaluator"),
         tf.learn.Evaluator(
           log = true, data = () => evalTestData, metrics = Seq(accMetric),
-          trigger = tf.learn.StepHookTrigger(1000), name = "Test Evaluation"),
+          trigger = tf.learn.StepHookTrigger(1000), name = "TestEvaluator"),
         tf.learn.StepRateLogger(log = false, summaryDir = summariesDir, trigger = tf.learn.StepHookTrigger(100)),
         tf.learn.SummarySaver(summariesDir, tf.learn.StepHookTrigger(100)),
         tf.learn.CheckpointSaver(summariesDir, tf.learn.StepHookTrigger(1000))),
