@@ -214,11 +214,6 @@ object TensorFlowNativePackage extends AutoPlugin {
          |FROM multiarch/crossbuild
          |
          |# Install CMake and Java
-         |RUN echo "deb http://ftp.us.debian.org/debian unstable main contrib non-free" >> /etc/apt/sources.list.d/unstable.list
-         |RUN apt-get update
-         |RUN apt-get -t unstable -y install gcc-7 g++-7
-         |RUN apt-get -t unstable -y install --reinstall build-essential
-         |RUN rm /etc/apt/sources.list.d/unstable.list
          |RUN echo "deb http://httpredir.debian.org/debian/ jessie-backports main" > \\
          |  /etc/apt/sources.list.d/jessie-backports.list
          |RUN apt-get update
