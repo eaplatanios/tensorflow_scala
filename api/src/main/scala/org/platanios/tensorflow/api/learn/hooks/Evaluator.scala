@@ -51,7 +51,8 @@ import java.nio.file.Path
   * @param  triggerAtEnd If `true`, the hook will be triggered at the end of the run. Note that if this flag is set to
   *                      `true`, then the global step must be computable without using a feed map for the
   *                      [[Session.run()]] call (which should always be the case by default).
-  * @param  name         Name to use for the evaluation hook when logging and saving metric values.
+  * @param  name         Name to use for the evaluation hook when logging and saving metric values. This must follow the
+  *                      same formatting guidelines as the name scopes used when constructing graphs.
   *
   * @author Emmanouil Antonios Platanios
   */
@@ -67,6 +68,7 @@ case class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
 ) extends TriggeredHook(trigger, triggerAtEnd)
     with ModelDependentHook[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] {
   require(log || summaryDir != null, "At least one of 'log' and 'summaryDir' needs to be provided.")
+  require(Op.checkNameScope(name), "Invalid evaluator name.")
 
   override private[learn] val priority: Int = -1000
 
