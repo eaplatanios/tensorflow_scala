@@ -357,8 +357,10 @@ object Output {
     * @return [[Shape]] based on the constant value of `tensor`.
     */
   private[api] def constantValueAsShape(tensor: Output): Option[Shape] = {
-    val shape = tensor.shape.withRank(1)
-    if (shape == Shape(0)) {
+    if (tensor.rank == 0) {
+      // TODO: Handle this better.
+      Some(Shape(-1))
+    } else if (tensor.shape.withRank(1) == Shape(0)) {
       Some(Shape.scalar())
     } else {
       tensor.op.opType match {
@@ -415,7 +417,7 @@ object Output {
                         }
                       })))
         case _ =>
-          var returnShape = Shape.unknown(shape(0))
+          var returnShape = Shape.unknown(tensor.shape(0))
           val valueOption = constantValue(tensor)
           if (valueOption.isDefined) {
             val value = valueOption.get
