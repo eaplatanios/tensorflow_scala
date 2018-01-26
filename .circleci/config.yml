@@ -22,12 +22,12 @@ jobs:
            keys:
              - v1-dependencies-{{ checksum "build.sbt" }}
              - v1-dependencies-
-       - run: cat /dev/null | sbt test:compile
+       - run: cat /dev/null | sbt +test:compile
        - save_cache:
            paths:
              - ~/.ivy2
            key: v1-dependencies--{{ checksum "build.sbt" }}
-       - run: cat /dev/null | sbt test:test
+       - run: cat /dev/null | sbt +test:test
    build-linux-gpu-x86_64:
      docker:
        - image: eaplatanios/tensorflow_scala:linux-gpu-x86_64-0.1.1
@@ -49,12 +49,12 @@ jobs:
            keys:
              - v1-dependencies-{{ checksum "build.sbt" }}
              - v1-dependencies-
-       - run: cat /dev/null | sbt test:compile
+       - run: cat /dev/null | sbt +test:compile
        - save_cache:
            paths:
              - ~/.ivy2
            key: v1-dependencies--{{ checksum "build.sbt" }}
-       - run: cat /dev/null | sbt test:test
+       - run: cat /dev/null | sbt +test:test
 
 workflows:
   version: 2
