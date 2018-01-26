@@ -9,7 +9,7 @@ set(PROJECT_VERSION_MAJOR 0)
 set(PROJECT_VERSION_MINOR 0)
 set(PROJECT_VERSION_PATCH 0)
 
-# Setup JNI
+# Set up JNI
 find_package(JNI REQUIRED)
 if(JNI_FOUND)
     message(STATUS "JNI include directories: ${JNI_INCLUDE_DIRS}")
