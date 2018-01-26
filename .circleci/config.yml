@@ -4,6 +4,11 @@ jobs:
    test-linux-cpu-x86_64:
      docker:
        - image: eaplatanios/tensorflow_scala:linux-cpu-x86_64-0.1.1
+     working_directory: ~/repository
+     environment:
+       LD_LIBRARY_PATH:
+       JVM_OPTS: -Xmx3200m
+       TERM: dumb
      steps:
        - checkout
        - run: mkdir downloads && cd downloads
@@ -12,10 +17,23 @@ jobs:
        - run: mv lib/libtensorflow.so /usr/lib/libtensorflow.so
        - run: mv lib/libtensorflow_framework.so /usr/lib/libtensorflow_framework.so
        - run: cd ..
-       - run: sbt test
+       - restore_cache:
+         keys:
+           - v1-dependencies-{{ checksum "build.sbt" }}
+           - v1-dependencies-
+       - run: cat /dev/null | sbt test:compile
+       - save_cache:
+         paths:
+           - ~/.ivy2
+         key: v1-dependencies--{{ checksum "build.sbt" }}
+       - run: cat /dev/null | sbt test:test
    test-linux-gpu-x86_64:
      docker:
        - image: eaplatanios/tensorflow_scala:linux-gpu-x86_64-0.1.1
+     working_directory: ~/repository
+     environment:
+       JVM_OPTS: -Xmx3200m
+       TERM: dumb
      steps:
        - checkout
        - run: mkdir downloads && cd downloads
@@ -24,7 +42,16 @@ jobs:
        - run: mv lib/libtensorflow.so /usr/lib/libtensorflow.so
        - run: mv lib/libtensorflow_framework.so /usr/lib/libtensorflow_framework.so
        - run: cd ..
-       - run: sbt test
+       - restore_cache:
+         keys:
+           - v1-dependencies-{{ checksum "build.sbt" }}
+           - v1-dependencies-
+       - run: cat /dev/null | sbt test:compile
+       - save_cache:
+         paths:
+           - ~/.ivy2
+         key: v1-dependencies--{{ checksum "build.sbt" }}
+       - run: cat /dev/null | sbt test:test
 
 workflows:
   version: 2
