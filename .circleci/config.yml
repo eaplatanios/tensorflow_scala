@@ -13,10 +13,10 @@ jobs:
      steps:
        - checkout
        - run: mkdir downloads && cd downloads
-       - run: wget http://ci.tensorflow.org/view/Nightly/job/nightly-libtensorflow/TYPE=cpu-slave/lastSuccessfulBuild/artifact/lib_package/libtensorflow-cpu-linux-x86_64.tar.gz
-       - run: tar xvf libtensorflow-cpu-linux-x86_64.tar.gz
-       - run: mv lib/libtensorflow.so /usr/lib/libtensorflow.so
-       - run: mv lib/libtensorflow_framework.so /usr/lib/libtensorflow_framework.so
+       - run: wget https://oss.sonatype.org/service/local/repositories/snapshots/content/org/platanios/tensorflow_2.12/0.1.1-SNAPSHOT/tensorflow_2.12-0.1.1-SNAPSHOT-linux-cpu-x86_64.jar
+       - run: jar xf tensorflow_2.12-0.1.1-SNAPSHOT-linux-cpu-x86_64.jar
+       - run: mv libtensorflow.so /usr/lib/libtensorflow.so
+       - run: mv libtensorflow_framework.so /usr/lib/libtensorflow_framework.so
        - run: cd ..
        - restore_cache:
            keys:
@@ -40,10 +40,10 @@ jobs:
      steps:
        - checkout
        - run: mkdir downloads && cd downloads
-       - run: wget http://ci.tensorflow.org/view/Nightly/job/nightly-libtensorflow/TYPE=gpu-slave/lastSuccessfulBuild/artifact/lib_package/libtensorflow-gpu-linux-x86_64.tar.gz
-       - run: tar xvf libtensorflow-gpu-linux-x86_64.tar.gz
-       - run: mv lib/libtensorflow.so /usr/lib/libtensorflow.so
-       - run: mv lib/libtensorflow_framework.so /usr/lib/libtensorflow_framework.so
+       - run: wget https://oss.sonatype.org/service/local/repositories/snapshots/content/org/platanios/tensorflow_2.12/0.1.1-SNAPSHOT/tensorflow_2.12-0.1.1-SNAPSHOT-linux-gpu-x86_64.jar
+       - run: jar xf tensorflow_2.12-0.1.1-SNAPSHOT-linux-gpu-x86_64.jar
+       - run: mv libtensorflow.so /usr/lib/libtensorflow.so
+       - run: mv libtensorflow_framework.so /usr/lib/libtensorflow_framework.so
        - run: cd ..
        - restore_cache:
            keys:
