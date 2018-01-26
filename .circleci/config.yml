@@ -1,12 +1,13 @@
 version: 2
 
 jobs:
-   test-linux-cpu-x86_64:
+   build-linux-cpu-x86_64:
      docker:
        - image: eaplatanios/tensorflow_scala:linux-cpu-x86_64-0.1.1
      working_directory: ~/repository
      environment:
-       LD_LIBRARY_PATH:
+       LD_LIBRARY_PATH: /usr/lib:$LD_LIBRARY_PATH
+       JAVA_HOME: /usr/lib/jvm/java-8-openjdk-amd64
        JVM_OPTS: -Xmx3200m
        TERM: dumb
      steps:
@@ -27,11 +28,13 @@ jobs:
              - ~/.ivy2
            key: v1-dependencies--{{ checksum "build.sbt" }}
        - run: cat /dev/null | sbt test:test
-   test-linux-gpu-x86_64:
+   build-linux-gpu-x86_64:
      docker:
        - image: eaplatanios/tensorflow_scala:linux-gpu-x86_64-0.1.1
      working_directory: ~/repository
      environment:
+       LD_LIBRARY_PATH: /usr/lib:$LD_LIBRARY_PATH
+       JAVA_HOME: /usr/lib/jvm/java-8-openjdk-amd64
        JVM_OPTS: -Xmx3200m
        TERM: dumb
      steps:
@@ -57,5 +60,5 @@ workflows:
   version: 2
   test:
     jobs:
-      - test-linux-cpu-x86_64
-      - test-linux-gpu-x86_64
+      - build-linux-cpu-x86_64
+      - build-linux-gpu-x86_64
