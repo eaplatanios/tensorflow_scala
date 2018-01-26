@@ -1,0 +1,34 @@
+version: 2
+
+jobs:
+   test-linux-cpu-x86_64:
+     docker:
+       - image: eaplatanios/tensorflow_scala:linux-cpu-x86_64-0.1.1
+     steps:
+       - checkout
+       - run: mkdir downloads && cd downloads
+       - run: wget http://ci.tensorflow.org/view/Nightly/job/nightly-libtensorflow/TYPE=cpu-slave/lastSuccessfulBuild/artifact/lib_package/libtensorflow-cpu-linux-x86_64.tar.gz
+       - run: tar xvf libtensorflow-cpu-linux-x86_64.tar.gz
+       - run: mv lib/libtensorflow.so /usr/lib/libtensorflow.so
+       - run: mv lib/libtensorflow_framework.so /usr/lib/libtensorflow_framework.so
+       - run: cd ..
+       - run: sbt test
+   test-linux-gpu-x86_64:
+     docker:
+       - image: eaplatanios/tensorflow_scala:linux-gpu-x86_64-0.1.1
+     steps:
+       - checkout
+       - run: mkdir downloads && cd downloads
+       - run: wget http://ci.tensorflow.org/view/Nightly/job/nightly-libtensorflow/TYPE=gpu-slave/lastSuccessfulBuild/artifact/lib_package/libtensorflow-gpu-linux-x86_64.tar.gz
+       - run: tar xvf libtensorflow-gpu-linux-x86_64.tar.gz
+       - run: mv lib/libtensorflow.so /usr/lib/libtensorflow.so
+       - run: mv lib/libtensorflow_framework.so /usr/lib/libtensorflow_framework.so
+       - run: cd ..
+       - run: sbt test
+
+workflows:
+  version: 2
+  test:
+    jobs:
+      - test-linux-cpu-x86_64
+      - test-linux-gpu-x86_64
