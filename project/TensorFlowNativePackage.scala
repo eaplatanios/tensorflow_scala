@@ -220,6 +220,7 @@ object TensorFlowNativePackage extends AutoPlugin {
           Process("docker" :: "exec" :: dockerContainer :: "bash" :: "-c" ::
               s"export LD_LIBRARY_PATH=$cMakeLibPath:${'"'}$$LD_LIBRARY_PATH${'"'} && " +
                   s"export PATH=$cMakePath:${'"'}$$PATH${'"'} && " +
+                  "export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64 && " +
                   "cd /root && mkdir bin && mkdir src/build && cd src/build && " +
                   "cmake -DCMAKE_INSTALL_PREFIX:PATH=/root/bin -DCMAKE_BUILD_TYPE=Release /root/src &&" +
                   "make VERBOSE=1 && make install" :: Nil) #&&
@@ -245,6 +246,8 @@ object TensorFlowNativePackage extends AutoPlugin {
   object LINUX_x86_64 extends Platform {
     override val name      : String = "linux-x86_64"
     override val tag       : String = "linux-cpu-x86_64"
+
+    // The parent Docker image is defined in the .circleci/images directory at the root of this repository.
     override val dockerfile: String =
       """
         |FROM eaplatanios/tensorflow_scala:linux-cpu-x86_64-0.1.1
@@ -263,6 +266,8 @@ object TensorFlowNativePackage extends AutoPlugin {
   object LINUX_GPU_x86_64 extends Platform {
     override val name      : String = "linux-gpu-x86_64"
     override val tag       : String = "linux-gpu-x86_64"
+
+    // The parent Docker image is defined in the .circleci/images directory at the root of this repository.
     override val dockerfile: String =
       """
         |FROM eaplatanios/tensorflow_scala:linux-gpu-x86_64-0.1.1
@@ -281,11 +286,7 @@ object TensorFlowNativePackage extends AutoPlugin {
   object DARWIN_x86_64 extends Platform {
     override val name      : String = "darwin-x86_64"
     override val tag       : String = "darwin-cpu-x86_64"
-    override val dockerfile: String =
-      """
-        |FROM eaplatanios/tensorflow_scala:darwin-cpu-x86_64-0.1.1
-        |WORKDIR /root
-      """.stripMargin
+    override val dockerfile: String = ""
 
     override val tfLibFilename      : String = s"libtensorflow-cpu-$name.tar.gz"
     override val tfLibExtractCommand: String = s"tar xf /root/$tfLibFilename -C /usr"
@@ -296,14 +297,11 @@ object TensorFlowNativePackage extends AutoPlugin {
     }
 
     override def build(dockerImage: String, srcDir: String, tgtDir: String): Option[ProcessBuilder] = {
-      val process = Process("cp" :: "-rp" :: srcDir :: s"$tgtDir/code/jni" :: Nil) #&&
-          Process(s"cd $tgtDir/code") #&&
-          Process("rm" :: "-rf" :: "jni/temp_build" :: Nil) #&&
-          Process("mkdir" :: "jni/temp_build" :: Nil) #&&
-          Process("cd" :: "jni/temp_build" :: Nil) #&&
-          Process("cmake" :: s"-DCMAKE_INSTALL_PREFIX:PATH=$tgtDir/bin" :: "-DCMAKE_BUILD_TYPE=Release" :: s"$tgtDir/code/jni" :: Nil) #&&
-          Process("make" :: "VERBOSE=1" :: Nil) #&&
-          Process("make" :: "install" :: Nil)
+      val process = Process("bash" :: "-c" ::
+          s"cp -rp $srcDir $tgtDir/code/jni && " +
+              s"rm -rf $tgtDir/code/jni/build && mkdir $tgtDir/code/jni/build && cd $tgtDir/code/jni/build && " +
+              s"cmake -DCMAKE_INSTALL_PREFIX:PATH=$tgtDir/bin -DCMAKE_BUILD_TYPE=Release $tgtDir/code/jni && " +
+              "make VERBOSE=1 && make install" :: Nil)
       Some(process)
     }
 
