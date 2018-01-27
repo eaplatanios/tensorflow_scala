@@ -16,7 +16,7 @@ limitations under the License.
 #ifndef TENSORFLOW_CORE_PLATFORM_DEFAULT_FINGERPRINT_H_
 #define TENSORFLOW_CORE_PLATFORM_DEFAULT_FINGERPRINT_H_
 
-#include "farmhash.h"
+#include <farmhash.h>
 
 namespace tensorflow {
 

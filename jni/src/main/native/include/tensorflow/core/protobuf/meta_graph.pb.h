@@ -309,6 +309,12 @@ class MetaGraphDef_MetaInfoDef : public ::google::protobuf::Message /* @@protoc_
   void unsafe_arena_set_allocated_any_info(
       ::google::protobuf::Any* any_info);
 
+  // bool stripped_default_attrs = 7;
+  void clear_stripped_default_attrs();
+  static const int kStrippedDefaultAttrsFieldNumber = 7;
+  bool stripped_default_attrs() const;
+  void set_stripped_default_attrs(bool value);
+
   // @@protoc_insertion_point(class_scope:tensorflow.MetaGraphDef.MetaInfoDef)
  private:
 
@@ -322,6 +328,7 @@ class MetaGraphDef_MetaInfoDef : public ::google::protobuf::Message /* @@protoc_
   ::google::protobuf::internal::ArenaStringPtr tensorflow_git_version_;
   ::tensorflow::OpList* stripped_op_list_;
   ::google::protobuf::Any* any_info_;
+  bool stripped_default_attrs_;
   mutable int _cached_size_;
   friend struct protobuf_tensorflow_2fcore_2fprotobuf_2fmeta_5fgraph_2eproto::TableStruct;
 };
@@ -2522,6 +2529,20 @@ inline void MetaGraphDef_MetaInfoDef::unsafe_arena_set_allocated_tensorflow_git_
   tensorflow_git_version_.UnsafeArenaSetAllocated(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
       tensorflow_git_version, GetArenaNoVirtual());
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tensorflow.MetaGraphDef.MetaInfoDef.tensorflow_git_version)
+}
+
+// bool stripped_default_attrs = 7;
+inline void MetaGraphDef_MetaInfoDef::clear_stripped_default_attrs() {
+  stripped_default_attrs_ = false;
+}
+inline bool MetaGraphDef_MetaInfoDef::stripped_default_attrs() const {
+  // @@protoc_insertion_point(field_get:tensorflow.MetaGraphDef.MetaInfoDef.stripped_default_attrs)
+  return stripped_default_attrs_;
+}
+inline void MetaGraphDef_MetaInfoDef::set_stripped_default_attrs(bool value) {
+  
+  stripped_default_attrs_ = value;
+  // @@protoc_insertion_point(field_set:tensorflow.MetaGraphDef.MetaInfoDef.stripped_default_attrs)
 }
 
 // -------------------------------------------------------------------

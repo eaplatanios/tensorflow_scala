@@ -786,29 +786,29 @@ class OpPerformance_OpMemory : public ::google::protobuf::Message /* @@protoc_in
   ::google::protobuf::RepeatedField< ::google::protobuf::int64 >*
       mutable_output_memory();
 
-  // int64 host_temp_memory = 2;
-  void clear_host_temp_memory();
-  static const int kHostTempMemoryFieldNumber = 2;
-  ::google::protobuf::int64 host_temp_memory() const;
-  void set_host_temp_memory(::google::protobuf::int64 value);
+  // int64 temp_memory = 2;
+  void clear_temp_memory();
+  static const int kTempMemoryFieldNumber = 2;
+  ::google::protobuf::int64 temp_memory() const;
+  void set_temp_memory(::google::protobuf::int64 value);
 
-  // int64 device_temp_memory = 3;
-  void clear_device_temp_memory();
-  static const int kDeviceTempMemoryFieldNumber = 3;
-  ::google::protobuf::int64 device_temp_memory() const;
-  void set_device_temp_memory(::google::protobuf::int64 value);
+  // int64 device_temp_memory = 3 [deprecated = true];
+  GOOGLE_PROTOBUF_DEPRECATED_ATTR void clear_device_temp_memory();
+  GOOGLE_PROTOBUF_DEPRECATED_ATTR static const int kDeviceTempMemoryFieldNumber = 3;
+  GOOGLE_PROTOBUF_DEPRECATED_ATTR ::google::protobuf::int64 device_temp_memory() const;
+  GOOGLE_PROTOBUF_DEPRECATED_ATTR void set_device_temp_memory(::google::protobuf::int64 value);
 
-  // int64 host_persistent_memory = 4;
-  void clear_host_persistent_memory();
-  static const int kHostPersistentMemoryFieldNumber = 4;
-  ::google::protobuf::int64 host_persistent_memory() const;
-  void set_host_persistent_memory(::google::protobuf::int64 value);
+  // int64 persistent_memory = 4;
+  void clear_persistent_memory();
+  static const int kPersistentMemoryFieldNumber = 4;
+  ::google::protobuf::int64 persistent_memory() const;
+  void set_persistent_memory(::google::protobuf::int64 value);
 
-  // int64 device_persistent_memory = 5;
-  void clear_device_persistent_memory();
-  static const int kDevicePersistentMemoryFieldNumber = 5;
-  ::google::protobuf::int64 device_persistent_memory() const;
-  void set_device_persistent_memory(::google::protobuf::int64 value);
+  // int64 device_persistent_memory = 5 [deprecated = true];
+  GOOGLE_PROTOBUF_DEPRECATED_ATTR void clear_device_persistent_memory();
+  GOOGLE_PROTOBUF_DEPRECATED_ATTR static const int kDevicePersistentMemoryFieldNumber = 5;
+  GOOGLE_PROTOBUF_DEPRECATED_ATTR ::google::protobuf::int64 device_persistent_memory() const;
+  GOOGLE_PROTOBUF_DEPRECATED_ATTR void set_device_persistent_memory(::google::protobuf::int64 value);
 
   // @@protoc_insertion_point(class_scope:tensorflow.OpPerformance.OpMemory)
  private:
@@ -819,9 +819,9 @@ class OpPerformance_OpMemory : public ::google::protobuf::Message /* @@protoc_in
   typedef void DestructorSkippable_;
   ::google::protobuf::RepeatedField< ::google::protobuf::int64 > output_memory_;
   mutable int _output_memory_cached_byte_size_;
-  ::google::protobuf::int64 host_temp_memory_;
+  ::google::protobuf::int64 temp_memory_;
   ::google::protobuf::int64 device_temp_memory_;
-  ::google::protobuf::int64 host_persistent_memory_;
+  ::google::protobuf::int64 persistent_memory_;
   ::google::protobuf::int64 device_persistent_memory_;
   mutable int _cached_size_;
   friend struct protobuf_tensorflow_2fcore_2fgrappler_2fcosts_2fop_5fperformance_5fdata_2eproto::TableStruct;
@@ -1638,21 +1638,35 @@ OpPerformance_OpMemory::mutable_output_memory() {
   return &output_memory_;
 }
 
-// int64 host_temp_memory = 2;
-inline void OpPerformance_OpMemory::clear_host_temp_memory() {
-  host_temp_memory_ = GOOGLE_LONGLONG(0);
+// int64 temp_memory = 2;
+inline void OpPerformance_OpMemory::clear_temp_memory() {
+  temp_memory_ = GOOGLE_LONGLONG(0);
 }
-inline ::google::protobuf::int64 OpPerformance_OpMemory::host_temp_memory() const {
-  // @@protoc_insertion_point(field_get:tensorflow.OpPerformance.OpMemory.host_temp_memory)
-  return host_temp_memory_;
+inline ::google::protobuf::int64 OpPerformance_OpMemory::temp_memory() const {
+  // @@protoc_insertion_point(field_get:tensorflow.OpPerformance.OpMemory.temp_memory)
+  return temp_memory_;
 }
-inline void OpPerformance_OpMemory::set_host_temp_memory(::google::protobuf::int64 value) {
+inline void OpPerformance_OpMemory::set_temp_memory(::google::protobuf::int64 value) {
   
-  host_temp_memory_ = value;
-  // @@protoc_insertion_point(field_set:tensorflow.OpPerformance.OpMemory.host_temp_memory)
+  temp_memory_ = value;
+  // @@protoc_insertion_point(field_set:tensorflow.OpPerformance.OpMemory.temp_memory)
 }
 
-// int64 device_temp_memory = 3;
+// int64 persistent_memory = 4;
+inline void OpPerformance_OpMemory::clear_persistent_memory() {
+  persistent_memory_ = GOOGLE_LONGLONG(0);
+}
+inline ::google::protobuf::int64 OpPerformance_OpMemory::persistent_memory() const {
+  // @@protoc_insertion_point(field_get:tensorflow.OpPerformance.OpMemory.persistent_memory)
+  return persistent_memory_;
+}
+inline void OpPerformance_OpMemory::set_persistent_memory(::google::protobuf::int64 value) {
+  
+  persistent_memory_ = value;
+  // @@protoc_insertion_point(field_set:tensorflow.OpPerformance.OpMemory.persistent_memory)
+}
+
+// int64 device_temp_memory = 3 [deprecated = true];
 inline void OpPerformance_OpMemory::clear_device_temp_memory() {
   device_temp_memory_ = GOOGLE_LONGLONG(0);
 }
@@ -1666,21 +1680,7 @@ inline void OpPerformance_OpMemory::set_device_temp_memory(::google::protobuf::i
   // @@protoc_insertion_point(field_set:tensorflow.OpPerformance.OpMemory.device_temp_memory)
 }
 
-// int64 host_persistent_memory = 4;
-inline void OpPerformance_OpMemory::clear_host_persistent_memory() {
-  host_persistent_memory_ = GOOGLE_LONGLONG(0);
-}
-inline ::google::protobuf::int64 OpPerformance_OpMemory::host_persistent_memory() const {
-  // @@protoc_insertion_point(field_get:tensorflow.OpPerformance.OpMemory.host_persistent_memory)
-  return host_persistent_memory_;
-}
-inline void OpPerformance_OpMemory::set_host_persistent_memory(::google::protobuf::int64 value) {
-  
-  host_persistent_memory_ = value;
-  // @@protoc_insertion_point(field_set:tensorflow.OpPerformance.OpMemory.host_persistent_memory)
-}
-
-// int64 device_persistent_memory = 5;
+// int64 device_persistent_memory = 5 [deprecated = true];
 inline void OpPerformance_OpMemory::clear_device_persistent_memory() {
   device_persistent_memory_ = GOOGLE_LONGLONG(0);
 }
