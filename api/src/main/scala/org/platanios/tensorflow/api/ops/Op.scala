@@ -1322,12 +1322,7 @@ object Op {
               value.map(s => if (s.rank != -1) s.asArray.map(_.toLong) else Array.empty[Long]),
               value.map(_.rank), value.length)
           case value: InstantiatedFunction[_, _] =>
-            val attrValue = AttrValue.newBuilder()
-            attrValue.setFunc(
-              NameAttrList.newBuilder()
-                  .setName(value.hashedName)
-                  .build())
-            NativeOp.setAttrProto(nativeHandle, attribute._1, attrValue.build().toByteArray)
+            NativeOp.setAttrFuncName(nativeHandle, attribute._1, encodeString(value.hashedName))
           case _ =>
             throw new IllegalArgumentException(s"Unsupported attribute type for attribute named '${attribute._1}.'")
         }

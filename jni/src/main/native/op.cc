@@ -923,6 +923,19 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_setAttrShapeLi
   env->ReleaseStringUTFChars(name, cname);
 }
 
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_setAttrFuncName(
+    JNIEnv* env, jobject object, jlong handle, jstring name, jbyteArray value) {
+  static_assert(
+          sizeof(jbyte) == 1, "Require Java byte to be represented as a single byte.");
+  TF_OperationDescription *d = requireOperationDescriptionHandle(env, handle);
+  if (d == nullptr) return;
+  const char *c_name = env->GetStringUTFChars(name, nullptr);
+  jbyte *c_value = env->GetByteArrayElements(value, nullptr);
+  TF_SetAttrFuncName(d, c_name, (char *) c_value, static_cast<size_t>(env->GetArrayLength(value)));
+  env->ReleaseByteArrayElements(value, c_value, JNI_ABORT);
+  env->ReleaseStringUTFChars(name, c_name);
+}
+
 JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_setAttrProto(
     JNIEnv* env, jobject object, jlong handle, jstring name, jbyteArray value) {
   static_assert(sizeof(jbyte) == 1, "We require the Java byte to be represented as a single byte.");
