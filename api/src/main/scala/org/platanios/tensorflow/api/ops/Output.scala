@@ -416,6 +416,8 @@ object Output {
                           previousShape.map(t => Shape(t(b :: s :: e).entriesIterator.map(_.asInstanceOf[Int]).toArray))
                         }
                       })))
+        case _ if tensor.rank == -1 =>
+          None
         case _ =>
           var returnShape = Shape.unknown(tensor.shape(0))
           val valueOption = constantValue(tensor)
