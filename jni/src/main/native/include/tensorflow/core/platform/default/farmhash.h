@@ -1,3 +1,5 @@
+// TODO: Move this to some external dependencies directory.
+
 // Copyright (c) 2014 Google, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy

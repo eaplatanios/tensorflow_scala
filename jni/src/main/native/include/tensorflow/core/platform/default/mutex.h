@@ -22,8 +22,8 @@ limitations under the License.
 #include <chrono>
 #include <condition_variable>
 #include <mutex>
-#include "nsync_cv.h"
-#include "nsync_mu.h"
+#include "external/nsync/public/nsync_cv.h"
+#include "external/nsync/public/nsync_mu.h"
 #include "tensorflow/core/platform/thread_annotations.h"
 namespace tensorflow {
 
