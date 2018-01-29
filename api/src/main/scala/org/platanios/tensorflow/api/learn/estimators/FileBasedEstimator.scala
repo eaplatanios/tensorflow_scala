@@ -152,12 +152,7 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
         if (tensorBoardConfig != null)
           allChiefOnlyHooks += TensorBoardHook(tensorBoardConfig)
         val saver = getOrCreateSaver()
-        val localInitializer = Op.createWith(
-          controlDependencies = Set(
-            Variable.initializer(Variable.localVariables),
-            Lookup.initializer(Lookup.initializers))) {
-          trainOps.inputIterator.createInitializer(data())
-        }
+        val dataInitializer = trainOps.inputIterator.createInitializer(data())
         val session = Estimator.monitoredTrainingSession(
           configuration = configuration,
           hooks = allHooks.toSet,
@@ -166,7 +161,10 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
             initOp = Some(ControlFlow.group(Set(
               Variable.initializer(Variable.globalVariables),
               Resource.initializer(Resource.sharedResources)))),
-            localInitOp = Some(localInitializer),
+            localInitOp = Some(ControlFlow.group(Set(
+              Variable.initializer(Variable.localVariables),
+              Lookup.initializer(Lookup.initializers)))),
+            localInitFunction = Some((session, _) => session.run(targets = dataInitializer)),
             saver = saver))
         try {
           while (!session.shouldStop)
@@ -272,29 +270,21 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
         case _ => ()
       }
       val saver = getOrCreateSaver()
-      val localInitializer = Op.createWith(
-        controlDependencies = Set(
-          Variable.initializer(Variable.localVariables),
-          Lookup.initializer(Lookup.initializers))) {
-        inferOps.inputIterator.createInitializer(ev.toDataset(input()))
-      }
+      val dataInitializer = inferOps.inputIterator.createInitializer(ev.toDataset(input()))
       val session = MonitoredSession(
         ChiefSessionCreator(
           sessionScaffold = SessionScaffold(
             initOp = Some(ControlFlow.group(Set(
               Variable.initializer(Variable.globalVariables),
               Resource.initializer(Resource.sharedResources)))),
-            localInitOp = Some(localInitializer),
+            localInitOp = Some(ControlFlow.group(Set(
+              Variable.initializer(Variable.localVariables),
+              Lookup.initializer(Lookup.initializers)))),
+            localInitFunction = Some((session, _) => session.run(targets = dataInitializer)),
             saver = saver),
           sessionConfig = configuration.sessionConfig,
           checkpointPath = workingDir),
         hooks.filter(!_.isInstanceOf[Stopper]), shouldRecover = true)
-      try {
-      } catch {
-        case t: Throwable =>
-          session.closeWithoutHookEnd()
-          throw t
-      }
       val output = ev.convertFetched(new Iterator[(IT, ModelInferenceOutput)] {
         override def hasNext: Boolean = session.shouldStop
         override def next(): (IT, ModelInferenceOutput) = {
@@ -425,12 +415,7 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
         case _ => ()
       }
       val saver = getOrCreateSaver()
-      val localInitializer = Op.createWith(
-        controlDependencies = Set(
-          Variable.initializer(Variable.localVariables),
-          Lookup.initializer(Lookup.initializers))) {
-        evaluateOps.inputIterator.createInitializer(data())
-      }
+      val dataInitializer = evaluateOps.inputIterator.createInitializer(data())
       val session = MonitoredSession(
         ChiefSessionCreator(
           master = configuration.evaluationMaster,
@@ -438,7 +423,10 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
             initOp = Some(ControlFlow.group(Set(
               Variable.initializer(Variable.globalVariables),
               Resource.initializer(Resource.sharedResources)))),
-            localInitOp = Some(localInitializer),
+            localInitOp = Some(ControlFlow.group(Set(
+              Variable.initializer(Variable.localVariables),
+              Lookup.initializer(Lookup.initializers)))),
+            localInitFunction = Some((session, _) => session.run(targets = dataInitializer)),
             saver = saver),
           sessionConfig = configuration.sessionConfig,
           checkpointPath = configuration.workingDir),

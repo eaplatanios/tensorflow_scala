@@ -123,6 +123,8 @@ private[learn] case class SessionManager(
     * @param  initFeedMap       Feed map passed to the [[Session.run()]] call when executing `initOp`.
     * @param  initFunction      Function used to initialize the model that is called after the optional `initOp` is
     *                           executed. The function takes one argument: the session being initialized.
+    * @param  localInitFunction Function used to initialize the model that is called after the optional `localInitOp` is
+    *                           executed. The function takes one argument: the session being initialized.
     * @return Created session with a model that is ready to be used.
     * @throws InvalidArgumentException If the model cannot be recovered and no `initOp`, `initFunction`, or
     *                                  `localInitOp` is provided, then an exception is thrown.
@@ -131,7 +133,8 @@ private[learn] case class SessionManager(
   def prepareSession(
       master: String, saver: Option[Saver] = None, checkpointPath: Option[Path], waitForCheckpoint: Boolean = false,
       maxWaitSeconds: Int = 7200, sessionConfig: Option[SessionConfig] = None, initOp: Option[Op] = None,
-      initFeedMap: FeedMap = FeedMap.empty, initFunction: Option[(Session) => Unit] = None): Session = {
+      initFeedMap: FeedMap = FeedMap.empty, initFunction: Option[(Session) => Unit] = None,
+      localInitFunction: Option[(Session) => Unit] = None): Session = {
     val (session, isLoadedFromCheckpoint) = restoreCheckpoint(
       master, saver, checkpointPath, waitForCheckpoint, maxWaitSeconds, sessionConfig)
     if (!isLoadedFromCheckpoint) {
@@ -145,6 +148,7 @@ private[learn] case class SessionManager(
       message => throw InvalidArgumentException(
         s"Initialization ops did not make the model ready for local initialization. " +
             s"[initOp: $initOp, initFunction: $initFunction, error: $message]."))
+    localInitFunction.foreach(f => f(session))
     isModelReady(session).foreach(
       message => throw InvalidArgumentException(
         s"Initialization ops did not make the model ready. " +

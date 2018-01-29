@@ -72,17 +72,17 @@ case class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
 
   override private[learn] val priority: Int = -1000
 
-  private[this] var graph           : Graph                                = _
-  private[this] var sessionCreator  : SessionCreator                       = _
-  private[this] var inputInitializer: Op                                   = _
-  private[this] var evaluateOps     : Model.EvaluateOps[TT, TO, TD, TS, I] = _
+  private[this] var graph          : Graph                                = _
+  private[this] var sessionCreator : SessionCreator                       = _
+  private[this] var dataInitializer: Op                                   = _
+  private[this] var evaluateOps    : Model.EvaluateOps[TT, TO, TD, TS, I] = _
 
   override protected def begin(): Unit = {
     graph = Graph()
     Op.createWith(graph, nameScope = name) {
       randomSeed.foreach(graph.setRandomSeed)
       evaluateOps = Op.createWithNameScope("Model")(modelInstance.model.buildEvaluateOps(metrics))
-      inputInitializer = evaluateOps.inputIterator.createInitializer(data())
+      dataInitializer = evaluateOps.inputIterator.createInitializer(data())
       this.sessionCreator = ChiefSessionCreator(
         master = modelInstance.configuration.evaluationMaster,
         sessionScaffold = SessionScaffold(
@@ -91,7 +91,8 @@ case class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
             Resource.initializer(Resource.sharedResources)))),
           localInitOp = Some(ControlFlow.group(Set(
             Variable.initializer(Variable.localVariables),
-            Lookup.initializer(Lookup.initializers))))),
+            Lookup.initializer(Lookup.initializers)))),
+          localInitFunction = Some((session, _) => session.run(targets = dataInitializer))),
         sessionConfig = modelInstance.configuration.sessionConfig,
         checkpointPath = modelInstance.configuration.workingDir)
     }
@@ -107,7 +108,6 @@ case class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
     val session = MonitoredSession(sessionCreator, shouldRecover = true)
     val values = {
       try {
-        session.run(targets = inputInitializer)
         while (!session.shouldStop)
           try {
             session.run(targets = evaluateOps.metricUpdates.toSet)

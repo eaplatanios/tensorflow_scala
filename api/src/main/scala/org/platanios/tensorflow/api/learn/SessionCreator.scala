@@ -96,8 +96,8 @@ case class ChiefSessionCreator(
       sessionConfig = sessionConfig,
       initOp = Option(initOp),
       initFeedMap = builtSessionScaffold.initFeedMap,
-      initFunction = builtSessionScaffold.internalInitFunction
-    )
+      initFunction = builtSessionScaffold.internalInitFunction,
+      localInitFunction = builtSessionScaffold.internalLocalInitFunction)
   }
 }
 

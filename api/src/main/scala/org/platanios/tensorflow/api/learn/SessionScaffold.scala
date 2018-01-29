@@ -46,11 +46,11 @@ import org.platanios.tensorflow.api.ops.variables.{Saver, Variable}
   * @param  initFunction        Function to run after the init op to perform additional initializations.
   * @param  localInitOp         [[Op]] used to initialize the local variables. Picked from and stored into the
   *                             `LOCAL_INIT_OP` graph collection by default.
+  * @param  localInitFunction   Function to run after the local init op to perform additional initializations.
   * @param  summaryOp           [[Output]] used to merge the summaries in the graph. Picked from and stored into the
   *                             `SUMMARY_OP` graph collection by default.
   * @param  saver               [[Saver]] object taking care of saving the variables. Picked from and stored into the
   *                             `SAVERS` graph collection by default.
-  *
   * @author Emmanouil Antonios Platanios
   */
 case class SessionScaffold(
@@ -60,6 +60,7 @@ case class SessionScaffold(
     initFeedMap: FeedMap = FeedMap.empty,
     initFunction: Option[(Session, BuiltSessionScaffold) => Unit] = None,
     localInitOp: Option[Op] = None,
+    localInitFunction: Option[(Session, BuiltSessionScaffold) => Unit] = None,
     summaryOp: Option[Output] = None,
     saver: Option[Saver] = None) {
   /** Creates any necessary operations, freezes the graph, and returns a new session scaffold that is built. */
@@ -88,8 +89,8 @@ case class SessionScaffold(
     val _saver = saver.getOrElse(getItemOrElse(
       "saver", Graph.Keys.SAVERS, () => Saver(sharded = true, allowEmpty = true)))
     BuiltSessionScaffold(
-      _readyOp, _readyForLocalInitOp, _initOp, initFeedMap, initFunction, _localInitOp, Option(_summaryOp),
-      Option(_saver))
+      _readyOp, _readyForLocalInitOp, _initOp, initFeedMap, initFunction, _localInitOp, localInitFunction,
+      Option(_summaryOp), Option(_saver))
   }
 
   /** Gets the specified item (by `name`) from a current graph collection, or creates it using `default`, if it cannot
@@ -125,7 +126,14 @@ case class BuiltSessionScaffold private[learn](
     initFeedMap: FeedMap,
     initFunction: Option[(Session, BuiltSessionScaffold) => Unit],
     localInitOp: Op,
+    localInitFunction: Option[(Session, BuiltSessionScaffold) => Unit],
     summaryOp: Option[Output],
     saver: Option[Saver] = None) {
-  val internalInitFunction: Option[(Session) => Unit] = initFunction.map(f => (session: Session) => f(session, this))
+  private[learn] val internalInitFunction: Option[(Session) => Unit] = {
+    initFunction.map(f => (session: Session) => f(session, this))
+  }
+
+  private[learn] val internalLocalInitFunction: Option[(Session) => Unit] = {
+    localInitFunction.map(f => (session: Session) => f(session, this))
+  }
 }

@@ -122,11 +122,11 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
     }
   }
 
-  private[this] var additionalInitOps: Set[Op] = Set.empty[Op]
+  private[this] var additionalLocalInitOps: Set[Op] = Set.empty[Op]
 
-  private[this] def initFunction(session: Session, builtSessionScaffold: BuiltSessionScaffold): Unit = {
-    if (additionalInitOps.nonEmpty)
-      session.run(targets = additionalInitOps)
+  private[this] def localInitFunction(session: Session, builtSessionScaffold: BuiltSessionScaffold): Unit = {
+    if (additionalLocalInitOps.nonEmpty)
+      session.run(targets = additionalLocalInitOps)
   }
 
   /** The underlying session that is kept alive throughout this estimator's lifetime. */
@@ -144,7 +144,9 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
       val saver = getOrCreateSaver()
       Estimator.monitoredTrainingSession(
         configuration = configuration, hooks = allHooks, chiefOnlyHooks = allChiefOnlyHooks,
-        sessionScaffold = SessionScaffold(initFunction = Some(initFunction), saver = saver))
+        sessionScaffold = SessionScaffold(
+          localInitFunction = Some(localInitFunction),
+          saver = saver))
     }
   }
 
@@ -162,7 +164,7 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
       if (frozen)
         graph.unFreeze()
       val initializer = trainingOps.inputIterator.createInitializer(data())
-      additionalInitOps = Set(initializer)
+      additionalLocalInitOps = Set(initializer)
       if (frozen)
         graph.freeze()
       session.disableHooks()
@@ -219,7 +221,7 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
       if (frozen)
         graph.unFreeze()
       val initializer = inferenceOps.inputIterator.createInitializer(ev.toDataset(input()))
-      additionalInitOps = Set(initializer)
+      additionalLocalInitOps = Set(initializer)
       if (frozen)
         graph.freeze()
       session.disableHooks()
@@ -296,7 +298,7 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
       if (frozen)
         graph.unFreeze()
       val initializer = evaluationOps.inputIterator.createInitializer(data())
-      additionalInitOps = Set(initializer)
+      additionalLocalInitOps = Set(initializer)
       if (frozen)
         graph.freeze()
       session.disableHooks()
