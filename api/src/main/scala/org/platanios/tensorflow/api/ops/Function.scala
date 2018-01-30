@@ -451,8 +451,11 @@ class FunctionGraph(private[this] val _nativeHandle: Long) extends Graph(_native
     } else {
       // Referring to a tensor from other graph
       capturedOutputs.getOrElseUpdate(output, {
-        // Substitute with a placeholder
-        val placeholder = Basic.placeholder(output.dataType, output.shape)
+        // Substitute with a placeholder and hoist the new input placeholder out of any control flow context we might
+        // currently be in.
+        val placeholder = Op.createWith(controlDependencies = Set.empty) {
+          Basic.placeholder(output.dataType, output.shape)
+        }
         extraArgs.append(placeholder)
         extraInputs.append(output)
         placeholder
