@@ -7,7 +7,7 @@ position: 1
 
 # TensorFlow for Scala
 
-[![Build Status](https://travis-ci.org/eaplatanios/tensorflow_scala.svg?branch=master)](https://travis-ci.org/eaplatanios/tensorflow_scala)
+[![CircleCI](https://circleci.com/gh/eaplatanios/tensorflow_scala/tree/master.svg?style=shield&circle-token=5ee39233fd9f055c3c65529a2737f7666b26f51a)](https://circleci.com/gh/eaplatanios/tensorflow_scala/tree/master)
 
 This library is a Scala API for [https://www.tensorflow.org](https://www.tensorflow.org). It attempts to provide most of 
 the functionality provided by the official Python API, while at the same type being strongly-typed and adding some new 
