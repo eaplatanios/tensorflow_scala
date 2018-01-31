@@ -86,14 +86,13 @@ enum RewriterConfig_MemOptType {
   RewriterConfig_MemOptType_MANUAL = 2,
   RewriterConfig_MemOptType_SWAPPING_HEURISTICS = 4,
   RewriterConfig_MemOptType_RECOMPUTATION_HEURISTICS = 5,
-  RewriterConfig_MemOptType_SCHEDULING_HEURISTICS = 6,
   RewriterConfig_MemOptType_HEURISTICS = 3,
   RewriterConfig_MemOptType_RewriterConfig_MemOptType_INT_MIN_SENTINEL_DO_NOT_USE_ = ::google::protobuf::kint32min,
   RewriterConfig_MemOptType_RewriterConfig_MemOptType_INT_MAX_SENTINEL_DO_NOT_USE_ = ::google::protobuf::kint32max
 };
 bool RewriterConfig_MemOptType_IsValid(int value);
 const RewriterConfig_MemOptType RewriterConfig_MemOptType_MemOptType_MIN = RewriterConfig_MemOptType_DEFAULT_MEM_OPT;
-const RewriterConfig_MemOptType RewriterConfig_MemOptType_MemOptType_MAX = RewriterConfig_MemOptType_SCHEDULING_HEURISTICS;
+const RewriterConfig_MemOptType RewriterConfig_MemOptType_MemOptType_MAX = RewriterConfig_MemOptType_RECOMPUTATION_HEURISTICS;
 const int RewriterConfig_MemOptType_MemOptType_ARRAYSIZE = RewriterConfig_MemOptType_MemOptType_MAX + 1;
 
 const ::google::protobuf::EnumDescriptor* RewriterConfig_MemOptType_descriptor();
@@ -359,8 +358,6 @@ class RewriterConfig : public ::google::protobuf::Message /* @@protoc_insertion_
     RewriterConfig_MemOptType_SWAPPING_HEURISTICS;
   static const MemOptType RECOMPUTATION_HEURISTICS =
     RewriterConfig_MemOptType_RECOMPUTATION_HEURISTICS;
-  static const MemOptType SCHEDULING_HEURISTICS =
-    RewriterConfig_MemOptType_SCHEDULING_HEURISTICS;
   static const MemOptType HEURISTICS =
     RewriterConfig_MemOptType_HEURISTICS;
   static inline bool MemOptType_IsValid(int value) {

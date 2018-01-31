@@ -206,9 +206,6 @@ class FileSystem {
   ///  * UNIMPLEMENTED - The file factory doesn't support directories.
   virtual Status IsDirectory(const string& fname);
 
-  /// \brief Flushes any cached filesystem objects from memory.
-  virtual void FlushCaches();
-
   FileSystem() {}
 
   virtual ~FileSystem();

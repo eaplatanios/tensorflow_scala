@@ -13,8 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef TENSORFLOW_PLATNFORM_CLOUD_DNS_CACHE_H_
-#define TENSORFLOW_PLATNFORM_CLOUD_DNS_CACHE_H_
+#ifndef THIRD_PARTY_TENSORFLOW_PLATNFORM_CLOUD_DNS_CACHE_H_
+#define THIRD_PARTY_TENSORFLOW_PLATNFORM_CLOUD_DNS_CACHE_H_
 
 #include <random>
 
@@ -48,7 +48,7 @@ class GcsDnsCache {
   }
 
   // Annotate the given HttpRequest with resolve overrides from the cache.
-  void AnnotateRequest(HttpRequest* request);
+  Status AnnotateRequest(HttpRequest* request);
 
  private:
   static std::vector<string> ResolveName(const string& name);
@@ -74,4 +74,4 @@ class GcsDnsCache {
 
 }  // namespace tensorflow
 
-#endif  // TENSORFLOW_PLATNFORM_CLOUD_DNS_CACHE_H_
+#endif  // THIRD_PARTY_TENSORFLOW_PLATNFORM_CLOUD_DNS_CACHE_H_

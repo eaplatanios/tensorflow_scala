@@ -136,9 +136,7 @@ template<typename Scalar,int OuterStride> class plainobjectbase_evaluator_data {
 public:
   EIGEN_DEVICE_FUNC plainobjectbase_evaluator_data(const Scalar* ptr, Index outerStride) : data(ptr)
   {
-#ifndef EIGEN_INTERNAL_DEBUGGING
-    EIGEN_UNUSED_VARIABLE(outerStride);
-#endif
+    EIGEN_ONLY_USED_FOR_DEBUG(outerStride);
     eigen_internal_assert(outerStride==OuterStride);
   }
   EIGEN_DEVICE_FUNC Index outerStride() const { return OuterStride; }
