@@ -63,6 +63,9 @@ extern OpPerformanceListDefaultTypeInternal _OpPerformanceList_default_instance_
 class OpPerformance_OpMemory;
 class OpPerformance_OpMemoryDefaultTypeInternal;
 extern OpPerformance_OpMemoryDefaultTypeInternal _OpPerformance_OpMemory_default_instance_;
+class SessionInfo;
+class SessionInfoDefaultTypeInternal;
+extern SessionInfoDefaultTypeInternal _SessionInfo_default_instance_;
 }  // namespace tensorflow
 
 namespace tensorflow {
@@ -681,6 +684,118 @@ class LogNormalDistribution : public ::google::protobuf::Message /* @@protoc_ins
 };
 // -------------------------------------------------------------------
 
+class SessionInfo : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:tensorflow.SessionInfo) */ {
+ public:
+  SessionInfo();
+  virtual ~SessionInfo();
+
+  SessionInfo(const SessionInfo& from);
+
+  inline SessionInfo& operator=(const SessionInfo& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  #if LANG_CXX11
+  SessionInfo(SessionInfo&& from) noexcept
+    : SessionInfo() {
+    *this = ::std::move(from);
+  }
+
+  inline SessionInfo& operator=(SessionInfo&& from) noexcept {
+    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
+      if (this != &from) InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+  #endif
+  inline ::google::protobuf::Arena* GetArena() const PROTOBUF_FINAL {
+    return GetArenaNoVirtual();
+  }
+  inline void* GetMaybeArenaPointer() const PROTOBUF_FINAL {
+    return MaybeArenaPtr();
+  }
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const SessionInfo& default_instance();
+
+  static inline const SessionInfo* internal_default_instance() {
+    return reinterpret_cast<const SessionInfo*>(
+               &_SessionInfo_default_instance_);
+  }
+  static PROTOBUF_CONSTEXPR int const kIndexInFileMessages =
+    5;
+
+  void UnsafeArenaSwap(SessionInfo* other);
+  void Swap(SessionInfo* other);
+  friend void swap(SessionInfo& a, SessionInfo& b) {
+    a.Swap(&b);
+  }
+
+  // implements Message ----------------------------------------------
+
+  inline SessionInfo* New() const PROTOBUF_FINAL { return New(NULL); }
+
+  SessionInfo* New(::google::protobuf::Arena* arena) const PROTOBUF_FINAL;
+  void CopyFrom(const ::google::protobuf::Message& from) PROTOBUF_FINAL;
+  void MergeFrom(const ::google::protobuf::Message& from) PROTOBUF_FINAL;
+  void CopyFrom(const SessionInfo& from);
+  void MergeFrom(const SessionInfo& from);
+  void Clear() PROTOBUF_FINAL;
+  bool IsInitialized() const PROTOBUF_FINAL;
+
+  size_t ByteSizeLong() const PROTOBUF_FINAL;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input) PROTOBUF_FINAL;
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const PROTOBUF_FINAL;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* target) const PROTOBUF_FINAL;
+  int GetCachedSize() const PROTOBUF_FINAL { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const PROTOBUF_FINAL;
+  void InternalSwap(SessionInfo* other);
+  protected:
+  explicit SessionInfo(::google::protobuf::Arena* arena);
+  private:
+  static void ArenaDtor(void* object);
+  inline void RegisterArenaDtor(::google::protobuf::Arena* arena);
+  private:
+  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
+    return _internal_metadata_.arena();
+  }
+  inline void* MaybeArenaPtr() const {
+    return _internal_metadata_.raw_arena_ptr();
+  }
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const PROTOBUF_FINAL;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // int64 intra_op_parallelism = 1;
+  void clear_intra_op_parallelism();
+  static const int kIntraOpParallelismFieldNumber = 1;
+  ::google::protobuf::int64 intra_op_parallelism() const;
+  void set_intra_op_parallelism(::google::protobuf::int64 value);
+
+  // @@protoc_insertion_point(class_scope:tensorflow.SessionInfo)
+ private:
+
+  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  template <typename T> friend class ::google::protobuf::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  ::google::protobuf::int64 intra_op_parallelism_;
+  mutable int _cached_size_;
+  friend struct protobuf_tensorflow_2fcore_2fgrappler_2fcosts_2fop_5fperformance_5fdata_2eproto::TableStruct;
+};
+// -------------------------------------------------------------------
+
 class OpPerformance_OpMemory : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:tensorflow.OpPerformance.OpMemory) */ {
  public:
   OpPerformance_OpMemory();
@@ -721,7 +836,7 @@ class OpPerformance_OpMemory : public ::google::protobuf::Message /* @@protoc_in
                &_OpPerformance_OpMemory_default_instance_);
   }
   static PROTOBUF_CONSTEXPR int const kIndexInFileMessages =
-    5;
+    6;
 
   void UnsafeArenaSwap(OpPerformance_OpMemory* other);
   void Swap(OpPerformance_OpMemory* other);
@@ -786,29 +901,29 @@ class OpPerformance_OpMemory : public ::google::protobuf::Message /* @@protoc_in
   ::google::protobuf::RepeatedField< ::google::protobuf::int64 >*
       mutable_output_memory();
 
-  // int64 host_temp_memory = 2;
-  void clear_host_temp_memory();
-  static const int kHostTempMemoryFieldNumber = 2;
-  ::google::protobuf::int64 host_temp_memory() const;
-  void set_host_temp_memory(::google::protobuf::int64 value);
+  // int64 temp_memory = 2;
+  void clear_temp_memory();
+  static const int kTempMemoryFieldNumber = 2;
+  ::google::protobuf::int64 temp_memory() const;
+  void set_temp_memory(::google::protobuf::int64 value);
 
-  // int64 device_temp_memory = 3;
-  void clear_device_temp_memory();
-  static const int kDeviceTempMemoryFieldNumber = 3;
-  ::google::protobuf::int64 device_temp_memory() const;
-  void set_device_temp_memory(::google::protobuf::int64 value);
+  // int64 device_temp_memory = 3 [deprecated = true];
+  GOOGLE_PROTOBUF_DEPRECATED_ATTR void clear_device_temp_memory();
+  GOOGLE_PROTOBUF_DEPRECATED_ATTR static const int kDeviceTempMemoryFieldNumber = 3;
+  GOOGLE_PROTOBUF_DEPRECATED_ATTR ::google::protobuf::int64 device_temp_memory() const;
+  GOOGLE_PROTOBUF_DEPRECATED_ATTR void set_device_temp_memory(::google::protobuf::int64 value);
 
-  // int64 host_persistent_memory = 4;
-  void clear_host_persistent_memory();
-  static const int kHostPersistentMemoryFieldNumber = 4;
-  ::google::protobuf::int64 host_persistent_memory() const;
-  void set_host_persistent_memory(::google::protobuf::int64 value);
+  // int64 persistent_memory = 4;
+  void clear_persistent_memory();
+  static const int kPersistentMemoryFieldNumber = 4;
+  ::google::protobuf::int64 persistent_memory() const;
+  void set_persistent_memory(::google::protobuf::int64 value);
 
-  // int64 device_persistent_memory = 5;
-  void clear_device_persistent_memory();
-  static const int kDevicePersistentMemoryFieldNumber = 5;
-  ::google::protobuf::int64 device_persistent_memory() const;
-  void set_device_persistent_memory(::google::protobuf::int64 value);
+  // int64 device_persistent_memory = 5 [deprecated = true];
+  GOOGLE_PROTOBUF_DEPRECATED_ATTR void clear_device_persistent_memory();
+  GOOGLE_PROTOBUF_DEPRECATED_ATTR static const int kDevicePersistentMemoryFieldNumber = 5;
+  GOOGLE_PROTOBUF_DEPRECATED_ATTR ::google::protobuf::int64 device_persistent_memory() const;
+  GOOGLE_PROTOBUF_DEPRECATED_ATTR void set_device_persistent_memory(::google::protobuf::int64 value);
 
   // @@protoc_insertion_point(class_scope:tensorflow.OpPerformance.OpMemory)
  private:
@@ -819,9 +934,9 @@ class OpPerformance_OpMemory : public ::google::protobuf::Message /* @@protoc_in
   typedef void DestructorSkippable_;
   ::google::protobuf::RepeatedField< ::google::protobuf::int64 > output_memory_;
   mutable int _output_memory_cached_byte_size_;
-  ::google::protobuf::int64 host_temp_memory_;
+  ::google::protobuf::int64 temp_memory_;
   ::google::protobuf::int64 device_temp_memory_;
-  ::google::protobuf::int64 host_persistent_memory_;
+  ::google::protobuf::int64 persistent_memory_;
   ::google::protobuf::int64 device_persistent_memory_;
   mutable int _cached_size_;
   friend struct protobuf_tensorflow_2fcore_2fgrappler_2fcosts_2fop_5fperformance_5fdata_2eproto::TableStruct;
@@ -874,7 +989,7 @@ class OpPerformance : public ::google::protobuf::Message /* @@protoc_insertion_p
                &_OpPerformance_default_instance_);
   }
   static PROTOBUF_CONSTEXPR int const kIndexInFileMessages =
-    6;
+    7;
 
   void UnsafeArenaSwap(OpPerformance* other);
   void Swap(OpPerformance* other);
@@ -982,6 +1097,24 @@ class OpPerformance : public ::google::protobuf::Message /* @@protoc_insertion_p
   void unsafe_arena_set_allocated_op_memory(
       ::tensorflow::OpPerformance_OpMemory* op_memory);
 
+  // .tensorflow.SessionInfo session_info = 12;
+  bool has_session_info() const;
+  void clear_session_info();
+  static const int kSessionInfoFieldNumber = 12;
+  private:
+  void _slow_mutable_session_info();
+  void _slow_set_allocated_session_info(
+      ::google::protobuf::Arena* message_arena, ::tensorflow::SessionInfo** session_info);
+  ::tensorflow::SessionInfo* _slow_release_session_info();
+  public:
+  const ::tensorflow::SessionInfo& session_info() const;
+  ::tensorflow::SessionInfo* mutable_session_info();
+  ::tensorflow::SessionInfo* release_session_info();
+  void set_allocated_session_info(::tensorflow::SessionInfo* session_info);
+  ::tensorflow::SessionInfo* unsafe_arena_release_session_info();
+  void unsafe_arena_set_allocated_session_info(
+      ::tensorflow::SessionInfo* session_info);
+
   // int64 temporary_memory_size = 2;
   void clear_temporary_memory_size();
   static const int kTemporaryMemorySizeFieldNumber = 2;
@@ -1071,6 +1204,7 @@ class OpPerformance : public ::google::protobuf::Message /* @@protoc_insertion_p
   ::google::protobuf::internal::ArenaStringPtr node_;
   ::tensorflow::OpInfo* op_;
   ::tensorflow::OpPerformance_OpMemory* op_memory_;
+  ::tensorflow::SessionInfo* session_info_;
   ::google::protobuf::int64 temporary_memory_size_;
   ::google::protobuf::int64 compute_cost_;
   double compute_efficiency_;
@@ -1129,7 +1263,7 @@ class OpPerformanceList : public ::google::protobuf::Message /* @@protoc_inserti
                &_OpPerformanceList_default_instance_);
   }
   static PROTOBUF_CONSTEXPR int const kIndexInFileMessages =
-    7;
+    8;
 
   void UnsafeArenaSwap(OpPerformanceList* other);
   void Swap(OpPerformanceList* other);
@@ -1606,6 +1740,24 @@ inline void LogNormalDistribution::set_sigma(double value) {
 
 // -------------------------------------------------------------------
 
+// SessionInfo
+
+// int64 intra_op_parallelism = 1;
+inline void SessionInfo::clear_intra_op_parallelism() {
+  intra_op_parallelism_ = GOOGLE_LONGLONG(0);
+}
+inline ::google::protobuf::int64 SessionInfo::intra_op_parallelism() const {
+  // @@protoc_insertion_point(field_get:tensorflow.SessionInfo.intra_op_parallelism)
+  return intra_op_parallelism_;
+}
+inline void SessionInfo::set_intra_op_parallelism(::google::protobuf::int64 value) {
+  
+  intra_op_parallelism_ = value;
+  // @@protoc_insertion_point(field_set:tensorflow.SessionInfo.intra_op_parallelism)
+}
+
+// -------------------------------------------------------------------
+
 // OpPerformance_OpMemory
 
 // repeated int64 output_memory = 1;
@@ -1638,21 +1790,35 @@ OpPerformance_OpMemory::mutable_output_memory() {
   return &output_memory_;
 }
 
-// int64 host_temp_memory = 2;
-inline void OpPerformance_OpMemory::clear_host_temp_memory() {
-  host_temp_memory_ = GOOGLE_LONGLONG(0);
+// int64 temp_memory = 2;
+inline void OpPerformance_OpMemory::clear_temp_memory() {
+  temp_memory_ = GOOGLE_LONGLONG(0);
 }
-inline ::google::protobuf::int64 OpPerformance_OpMemory::host_temp_memory() const {
-  // @@protoc_insertion_point(field_get:tensorflow.OpPerformance.OpMemory.host_temp_memory)
-  return host_temp_memory_;
+inline ::google::protobuf::int64 OpPerformance_OpMemory::temp_memory() const {
+  // @@protoc_insertion_point(field_get:tensorflow.OpPerformance.OpMemory.temp_memory)
+  return temp_memory_;
 }
-inline void OpPerformance_OpMemory::set_host_temp_memory(::google::protobuf::int64 value) {
+inline void OpPerformance_OpMemory::set_temp_memory(::google::protobuf::int64 value) {
   
-  host_temp_memory_ = value;
-  // @@protoc_insertion_point(field_set:tensorflow.OpPerformance.OpMemory.host_temp_memory)
+  temp_memory_ = value;
+  // @@protoc_insertion_point(field_set:tensorflow.OpPerformance.OpMemory.temp_memory)
 }
 
-// int64 device_temp_memory = 3;
+// int64 persistent_memory = 4;
+inline void OpPerformance_OpMemory::clear_persistent_memory() {
+  persistent_memory_ = GOOGLE_LONGLONG(0);
+}
+inline ::google::protobuf::int64 OpPerformance_OpMemory::persistent_memory() const {
+  // @@protoc_insertion_point(field_get:tensorflow.OpPerformance.OpMemory.persistent_memory)
+  return persistent_memory_;
+}
+inline void OpPerformance_OpMemory::set_persistent_memory(::google::protobuf::int64 value) {
+  
+  persistent_memory_ = value;
+  // @@protoc_insertion_point(field_set:tensorflow.OpPerformance.OpMemory.persistent_memory)
+}
+
+// int64 device_temp_memory = 3 [deprecated = true];
 inline void OpPerformance_OpMemory::clear_device_temp_memory() {
   device_temp_memory_ = GOOGLE_LONGLONG(0);
 }
@@ -1666,21 +1832,7 @@ inline void OpPerformance_OpMemory::set_device_temp_memory(::google::protobuf::i
   // @@protoc_insertion_point(field_set:tensorflow.OpPerformance.OpMemory.device_temp_memory)
 }
 
-// int64 host_persistent_memory = 4;
-inline void OpPerformance_OpMemory::clear_host_persistent_memory() {
-  host_persistent_memory_ = GOOGLE_LONGLONG(0);
-}
-inline ::google::protobuf::int64 OpPerformance_OpMemory::host_persistent_memory() const {
-  // @@protoc_insertion_point(field_get:tensorflow.OpPerformance.OpMemory.host_persistent_memory)
-  return host_persistent_memory_;
-}
-inline void OpPerformance_OpMemory::set_host_persistent_memory(::google::protobuf::int64 value) {
-  
-  host_persistent_memory_ = value;
-  // @@protoc_insertion_point(field_set:tensorflow.OpPerformance.OpMemory.host_persistent_memory)
-}
-
-// int64 device_persistent_memory = 5;
+// int64 device_persistent_memory = 5 [deprecated = true];
 inline void OpPerformance_OpMemory::clear_device_persistent_memory() {
   device_persistent_memory_ = GOOGLE_LONGLONG(0);
 }
@@ -1746,6 +1898,56 @@ inline  void OpPerformance::set_allocated_op(::tensorflow::OpInfo* op) {
     
   }
   // @@protoc_insertion_point(field_set_allocated:tensorflow.OpPerformance.op)
+}
+
+// .tensorflow.SessionInfo session_info = 12;
+inline bool OpPerformance::has_session_info() const {
+  return this != internal_default_instance() && session_info_ != NULL;
+}
+inline void OpPerformance::clear_session_info() {
+  if (GetArenaNoVirtual() == NULL && session_info_ != NULL) delete session_info_;
+  session_info_ = NULL;
+}
+inline const ::tensorflow::SessionInfo& OpPerformance::session_info() const {
+  const ::tensorflow::SessionInfo* p = session_info_;
+  // @@protoc_insertion_point(field_get:tensorflow.OpPerformance.session_info)
+  return p != NULL ? *p : *reinterpret_cast<const ::tensorflow::SessionInfo*>(
+      &::tensorflow::_SessionInfo_default_instance_);
+}
+inline ::tensorflow::SessionInfo* OpPerformance::mutable_session_info() {
+  
+  if (session_info_ == NULL) {
+    _slow_mutable_session_info();
+  }
+  // @@protoc_insertion_point(field_mutable:tensorflow.OpPerformance.session_info)
+  return session_info_;
+}
+inline ::tensorflow::SessionInfo* OpPerformance::release_session_info() {
+  // @@protoc_insertion_point(field_release:tensorflow.OpPerformance.session_info)
+  
+  if (GetArenaNoVirtual() != NULL) {
+    return _slow_release_session_info();
+  } else {
+    ::tensorflow::SessionInfo* temp = session_info_;
+    session_info_ = NULL;
+    return temp;
+  }
+}
+inline  void OpPerformance::set_allocated_session_info(::tensorflow::SessionInfo* session_info) {
+  ::google::protobuf::Arena* message_arena = GetArenaNoVirtual();
+  if (message_arena == NULL) {
+    delete session_info_;
+  }
+  if (session_info != NULL) {
+    _slow_set_allocated_session_info(message_arena, &session_info);
+  }
+  session_info_ = session_info;
+  if (session_info) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_set_allocated:tensorflow.OpPerformance.session_info)
 }
 
 // string node = 5;
@@ -2180,6 +2382,8 @@ OpPerformanceList::op_performance() const {
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
 #endif  // !PROTOBUF_INLINE_NOT_IN_HEADERS
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------
