@@ -77,7 +77,6 @@ package object ops {
           with Clip
           with DataFlow
           with Embedding
-          with Image
           with Logging
           with Math
           with NN
@@ -95,6 +94,7 @@ package object ops {
           with ops.rnn.API
           with ops.seq2seq.API
           with ops.variables.API {
+    object image extends Image
     object train extends training.API
 
     object summary extends Summary {
