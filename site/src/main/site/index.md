@@ -109,6 +109,10 @@ this library yet.
   session), we use a combination of weak references and a disposing thread running in the background. Please refer to 
   `tensorflow/src/main/scala/org/platanios/tensorflow/api/utilities/Disposer.scala`, for the implementation.
 
+## Tutorials
+
+- [Object Detection using Pre-Trained Models](https://brunk.io/deep-learning-in-scala-part-3-object-detection.html)
+
 ## Funding
 
 Funding for the development of this library has been generously provided by the following sponsors:

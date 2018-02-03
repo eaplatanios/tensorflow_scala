@@ -19,8 +19,7 @@ To include the Sonatype repositories in your [SBT](http://www.scala-sbt.org) bui
 should add the following to your `build.sbt` file:
 
 ```scala
-resolvers += Resolver.sonatypeRepo("snapshots")
-libraryDependencies += "org.platanios" %% "tensorflow" % "0.1.0-SNAPSHOT"
+libraryDependencies += "org.platanios" %% "tensorflow" % "0.1.1"
 ```
 
 **NOTE:** This requires that you have installed the TensorFlow dynamic library in your system. If you haven't, please 
