@@ -34,11 +34,23 @@ trait Loader {
       try {
         logger.info(s"Downloading file '$url'.")
         Files.createDirectories(path.getParent)
-        // TODO: [DATA] Add progress bar.
-        val inputStream = new URL(url).openStream()
+        val connection = new URL(url).openConnection()
+        val contentLength = connection.getContentLengthLong
+        val inputStream = connection.getInputStream
         val outputStream = Files.newOutputStream(path)
         val buffer = new Array[Byte](bufferSize)
-        Stream.continually(inputStream.read(buffer)).takeWhile(_ != -1).foreach(outputStream.write(buffer, 0, _))
+        var progress = 0L
+        var progressLogTime = System.currentTimeMillis
+        Stream.continually(inputStream.read(buffer)).takeWhile(_ != -1).foreach(numBytes => {
+          outputStream.write(buffer, 0, numBytes)
+          progress += numBytes
+          val time = System.currentTimeMillis
+          if (time - progressLogTime >= 1e4) {
+            val numBars = Math.floorDiv(10 * progress, contentLength).toInt
+            logger.info(s"[${"=" * numBars}${" " * (10 - numBars)}] $progress / $contentLength bytes downloaded.")
+            progressLogTime = time
+          }
+        })
         outputStream.close()
         logger.info(s"Downloaded file '$url'.")
         true
