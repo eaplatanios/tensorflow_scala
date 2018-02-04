@@ -429,6 +429,12 @@ object Op {
       Op.createWithNameScope(nameScope, values)(block)
     }
 
+    def device[R](
+        device: String = "", deviceFunction: OpSpecification => String = _.device
+    )(block: => R)(implicit context: DynamicVariable[OpCreationContext]): R = {
+      Op.device(device, deviceFunction)(block)(context)
+    }
+
     def colocateWith[R](colocationOps: Set[Op], ignoreExisting: Boolean = false)(block: => R): R = {
       Op.colocateWith(colocationOps, ignoreExisting)(block)
     }
@@ -888,6 +894,65 @@ object Op {
       val newNameScope: String = mergeNameScope(nameScope, context.value.nameScope, context.value.graph.uniqueName(_))
       context.withValue(context.copy(nameScope = newNameScope))(block)
     }
+  }
+
+  /** Executes the provided block of code placing all created ops in the specified device. A `deviceFunction` argument
+    * can be additionally used (aside from the device string representation provided through the `device` argument),
+    * that is a function taking an [[OpSpecification]] as input and returning a string representation of the device
+    * where the corresponding op should be placed. This function is invoked every time a new op is created within the
+    * provided code block. If the function returns `null` for some op, then all subsequent invocations of
+    * `device(deviceFunction = ...)` in the provided code block will be ignored. For information about the valid syntax
+    * of device name strings, see the documentation in
+    * [`DeviceNameUtils`](https://www.tensorflow.org/code/tensorflow/core/util/device_name_utils.h).
+    *
+    * Note that the device scope may be overridden by op wrappers or other library code. For example, a variable
+    * assignment op must be colocated with the corresponding variable. Incompatible device scopes will be ignored.
+    *
+    * For example:
+    * {{{
+    *   // Specifying which device to use
+    *   tf.device("/GPU:0") {
+    *     // All ops constructed in this code block will be placed in GPU 0
+    *     val gpu0C = constant(7.0)
+    *     assert(gpu0C.device == "/device:GPU:0")
+    *
+    *     // Reset the device being used
+    *     tf.device(null) {
+    *       // All ops constructed in this code block will have no assigned device
+    *       val c = constant(8.0)
+    *       assert(c.device == "")
+    *     }
+    *   }
+    *
+    *   // Using a device function
+    *   def matmulOnGPU(opSpecification: OpSpecification): String = {
+    *     if (opSpecification.opType == "MatMul")
+    *       "/GPU:0"
+    *     else
+    *       "/CPU:0"
+    *   }
+    *
+    *   tf.device(deviceFunction = matmulOnGPU) {
+    *     // All ops of type "MatMul" constructed in this code block will be placed on GPU 0. All other operations will
+    *     // be placed on CPU 0.
+    *     val c = constant(9.0)
+    *     assert(c.device == "/device:CPU:0")
+    *     val m = matmul(c, constant(10.0))
+    *     assert(m.device == "/device:GPU:0")
+    *   }
+    * }}}
+    *
+    * @param  device         Device to use.
+    * @param  deviceFunction Device function to use.
+    * @param  block          Code block to run using the provided options.
+    * @param  context        Current op creation context.
+    * @tparam R Return type of the code block.
+    * @return Return value of the code block.
+    */
+  private[api] def device[R](
+      device: String = "", deviceFunction: OpSpecification => String = _.device
+  )(block: => R)(implicit context: DynamicVariable[OpCreationContext]): R = {
+    createWith(device = device, deviceFunction = deviceFunction)(block)(context)
   }
 
   /** Creates a context that can be used for creating ops and placing them on the same device as `colocationOps`.
