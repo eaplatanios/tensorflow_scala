@@ -23,6 +23,7 @@
 
 #include "tensorflow/c/c_api.h"
 #include "tensorflow/c/c_eager_api.h"
+#include "tensorflow/c/c_eager_api_internal.h"
 
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_allocate(
     JNIEnv* env, jobject object, jint data_type, jlongArray shape, jlong num_bytes) {
@@ -177,9 +178,9 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_getS
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerAllocateContext(
     JNIEnv* env, jobject object) {
   std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
-  TF_SessionOptions* options = TF_NewSessionOptions();
+  TFE_ContextOptions* options = TFE_NewContextOptions();
   TFE_Context* context = TFE_NewContext(options, status.get());
-  TF_DeleteSessionOptions(options);
+  TFE_DeleteContextOptions(options);
   CHECK_STATUS(env, status.get(), 0);
   return reinterpret_cast<jlong>(context);
 }

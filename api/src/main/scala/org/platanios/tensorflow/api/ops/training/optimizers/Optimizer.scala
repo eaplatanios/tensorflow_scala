@@ -165,20 +165,21 @@ trait Optimizer {
       val updateOps = mutable.Set.empty[Op]
       for ((g, v, p) <- gradientsAndVariables.map(p => (p._1, p._2, getVariableProcessor(p._2))).filter(_._1 != null)) {
         // We colocate all ops created for variable application on the same device as the variable.
-        Op.createWith(nameScope = s"${v.op.name}Update", colocationOps = Set[Op](v.op)) {
-          updateOps.add(p.updateOp(this, g, iteration))
+        Op.createWith(nameScope = s"${v.op.name}Update") {
+          Op.colocateWith(Set(v.op)) {
+            updateOps.add(p.updateOp(this, g, iteration))
+          }
         }
       }
 
       // Create the op that applies the gradient updates to all variables.
       val applyUpdates = {
         iteration match {
-          case Some(i) =>
-            Op.createWith(
-              colocationOps = Set[Op](i.op),
-              controlDependencies = Set[Op](finish(updateOps.toSet, "Update"))) {
+          case Some(i) => Op.createWith(controlDependencies = Set(finish(updateOps.toSet, "Update"))) {
+            Op.colocateWith(Set(i.op)) {
               i.assignAdd(Basic.constant(1, dataType = i.dataType), name).op
             }
+          }
           case None => finish(updateOps.toSet, name)
         }
       }
@@ -370,7 +371,7 @@ private[optimizers] object Optimizer {
     * @return Indexed slices with de-duplicated indices and summed values slices associated with each unique index.
     */
   private[Optimizer] def deDuplicateOutputIndexedSlices(input: OutputIndexedSlices): OutputIndexedSlices = {
-    val (uniqueIndices, newIndexPositions) = Basic.unique(input.indices)
+    val (uniqueIndices, newIndexPositions) = Basic.unique(input.indices, 0)
     val summedValues = Math.unsortedSegmentSum(input.values, newIndexPositions, Basic.shape(uniqueIndices)(0))
     OutputIndexedSlices(indices = uniqueIndices, values = summedValues, denseShape = input.denseShape)
   }

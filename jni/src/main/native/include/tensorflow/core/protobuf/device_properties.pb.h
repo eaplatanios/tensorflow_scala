@@ -40,6 +40,9 @@ extern DevicePropertiesDefaultTypeInternal _DeviceProperties_default_instance_;
 class DeviceProperties_EnvironmentEntry;
 class DeviceProperties_EnvironmentEntryDefaultTypeInternal;
 extern DeviceProperties_EnvironmentEntryDefaultTypeInternal _DeviceProperties_EnvironmentEntry_default_instance_;
+class NamedDevice;
+class NamedDeviceDefaultTypeInternal;
+extern NamedDeviceDefaultTypeInternal _NamedDevice_default_instance_;
 }  // namespace tensorflow
 
 namespace tensorflow {
@@ -318,6 +321,148 @@ class DeviceProperties : public ::google::protobuf::Message /* @@protoc_insertio
   ::google::protobuf::int64 shared_memory_size_per_multiprocessor_;
   ::google::protobuf::int64 memory_size_;
   ::google::protobuf::int64 bandwidth_;
+  mutable int _cached_size_;
+  friend struct protobuf_tensorflow_2fcore_2fprotobuf_2fdevice_5fproperties_2eproto::TableStruct;
+};
+// -------------------------------------------------------------------
+
+class NamedDevice : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:tensorflow.NamedDevice) */ {
+ public:
+  NamedDevice();
+  virtual ~NamedDevice();
+
+  NamedDevice(const NamedDevice& from);
+
+  inline NamedDevice& operator=(const NamedDevice& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  #if LANG_CXX11
+  NamedDevice(NamedDevice&& from) noexcept
+    : NamedDevice() {
+    *this = ::std::move(from);
+  }
+
+  inline NamedDevice& operator=(NamedDevice&& from) noexcept {
+    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
+      if (this != &from) InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+  #endif
+  inline ::google::protobuf::Arena* GetArena() const PROTOBUF_FINAL {
+    return GetArenaNoVirtual();
+  }
+  inline void* GetMaybeArenaPointer() const PROTOBUF_FINAL {
+    return MaybeArenaPtr();
+  }
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const NamedDevice& default_instance();
+
+  static inline const NamedDevice* internal_default_instance() {
+    return reinterpret_cast<const NamedDevice*>(
+               &_NamedDevice_default_instance_);
+  }
+  static PROTOBUF_CONSTEXPR int const kIndexInFileMessages =
+    2;
+
+  void UnsafeArenaSwap(NamedDevice* other);
+  void Swap(NamedDevice* other);
+  friend void swap(NamedDevice& a, NamedDevice& b) {
+    a.Swap(&b);
+  }
+
+  // implements Message ----------------------------------------------
+
+  inline NamedDevice* New() const PROTOBUF_FINAL { return New(NULL); }
+
+  NamedDevice* New(::google::protobuf::Arena* arena) const PROTOBUF_FINAL;
+  void CopyFrom(const ::google::protobuf::Message& from) PROTOBUF_FINAL;
+  void MergeFrom(const ::google::protobuf::Message& from) PROTOBUF_FINAL;
+  void CopyFrom(const NamedDevice& from);
+  void MergeFrom(const NamedDevice& from);
+  void Clear() PROTOBUF_FINAL;
+  bool IsInitialized() const PROTOBUF_FINAL;
+
+  size_t ByteSizeLong() const PROTOBUF_FINAL;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input) PROTOBUF_FINAL;
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const PROTOBUF_FINAL;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* target) const PROTOBUF_FINAL;
+  int GetCachedSize() const PROTOBUF_FINAL { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const PROTOBUF_FINAL;
+  void InternalSwap(NamedDevice* other);
+  protected:
+  explicit NamedDevice(::google::protobuf::Arena* arena);
+  private:
+  static void ArenaDtor(void* object);
+  inline void RegisterArenaDtor(::google::protobuf::Arena* arena);
+  private:
+  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
+    return _internal_metadata_.arena();
+  }
+  inline void* MaybeArenaPtr() const {
+    return _internal_metadata_.raw_arena_ptr();
+  }
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const PROTOBUF_FINAL;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // string name = 1;
+  void clear_name();
+  static const int kNameFieldNumber = 1;
+  const ::std::string& name() const;
+  void set_name(const ::std::string& value);
+  #if LANG_CXX11
+  void set_name(::std::string&& value);
+  #endif
+  void set_name(const char* value);
+  void set_name(const char* value, size_t size);
+  ::std::string* mutable_name();
+  ::std::string* release_name();
+  void set_allocated_name(::std::string* name);
+  ::std::string* unsafe_arena_release_name();
+  void unsafe_arena_set_allocated_name(
+      ::std::string* name);
+
+  // .tensorflow.DeviceProperties properties = 2;
+  bool has_properties() const;
+  void clear_properties();
+  static const int kPropertiesFieldNumber = 2;
+  private:
+  void _slow_mutable_properties();
+  void _slow_set_allocated_properties(
+      ::google::protobuf::Arena* message_arena, ::tensorflow::DeviceProperties** properties);
+  ::tensorflow::DeviceProperties* _slow_release_properties();
+  public:
+  const ::tensorflow::DeviceProperties& properties() const;
+  ::tensorflow::DeviceProperties* mutable_properties();
+  ::tensorflow::DeviceProperties* release_properties();
+  void set_allocated_properties(::tensorflow::DeviceProperties* properties);
+  ::tensorflow::DeviceProperties* unsafe_arena_release_properties();
+  void unsafe_arena_set_allocated_properties(
+      ::tensorflow::DeviceProperties* properties);
+
+  // @@protoc_insertion_point(class_scope:tensorflow.NamedDevice)
+ private:
+
+  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  template <typename T> friend class ::google::protobuf::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  ::google::protobuf::internal::ArenaStringPtr name_;
+  ::tensorflow::DeviceProperties* properties_;
   mutable int _cached_size_;
   friend struct protobuf_tensorflow_2fcore_2fprotobuf_2fdevice_5fproperties_2eproto::TableStruct;
 };
@@ -704,10 +849,141 @@ inline void DeviceProperties::set_bandwidth(::google::protobuf::int64 value) {
   // @@protoc_insertion_point(field_set:tensorflow.DeviceProperties.bandwidth)
 }
 
+// -------------------------------------------------------------------
+
+// NamedDevice
+
+// string name = 1;
+inline void NamedDevice::clear_name() {
+  name_.ClearToEmpty(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+}
+inline const ::std::string& NamedDevice::name() const {
+  // @@protoc_insertion_point(field_get:tensorflow.NamedDevice.name)
+  return name_.Get();
+}
+inline void NamedDevice::set_name(const ::std::string& value) {
+  
+  name_.Set(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value, GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_set:tensorflow.NamedDevice.name)
+}
+#if LANG_CXX11
+inline void NamedDevice::set_name(::std::string&& value) {
+  
+  name_.Set(
+    &::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::move(value), GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_set_rvalue:tensorflow.NamedDevice.name)
+}
+#endif
+inline void NamedDevice::set_name(const char* value) {
+  GOOGLE_DCHECK(value != NULL);
+  
+  name_.Set(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
+              GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_set_char:tensorflow.NamedDevice.name)
+}
+inline void NamedDevice::set_name(const char* value,
+    size_t size) {
+  
+  name_.Set(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(
+      reinterpret_cast<const char*>(value), size), GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_set_pointer:tensorflow.NamedDevice.name)
+}
+inline ::std::string* NamedDevice::mutable_name() {
+  
+  // @@protoc_insertion_point(field_mutable:tensorflow.NamedDevice.name)
+  return name_.Mutable(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+}
+inline ::std::string* NamedDevice::release_name() {
+  // @@protoc_insertion_point(field_release:tensorflow.NamedDevice.name)
+  
+  return name_.Release(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+}
+inline ::std::string* NamedDevice::unsafe_arena_release_name() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:tensorflow.NamedDevice.name)
+  GOOGLE_DCHECK(GetArenaNoVirtual() != NULL);
+  
+  return name_.UnsafeArenaRelease(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      GetArenaNoVirtual());
+}
+inline void NamedDevice::set_allocated_name(::std::string* name) {
+  if (name != NULL) {
+    
+  } else {
+    
+  }
+  name_.SetAllocated(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), name,
+      GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_set_allocated:tensorflow.NamedDevice.name)
+}
+inline void NamedDevice::unsafe_arena_set_allocated_name(
+    ::std::string* name) {
+  GOOGLE_DCHECK(GetArenaNoVirtual() != NULL);
+  if (name != NULL) {
+    
+  } else {
+    
+  }
+  name_.UnsafeArenaSetAllocated(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      name, GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tensorflow.NamedDevice.name)
+}
+
+// .tensorflow.DeviceProperties properties = 2;
+inline bool NamedDevice::has_properties() const {
+  return this != internal_default_instance() && properties_ != NULL;
+}
+inline void NamedDevice::clear_properties() {
+  if (GetArenaNoVirtual() == NULL && properties_ != NULL) delete properties_;
+  properties_ = NULL;
+}
+inline const ::tensorflow::DeviceProperties& NamedDevice::properties() const {
+  const ::tensorflow::DeviceProperties* p = properties_;
+  // @@protoc_insertion_point(field_get:tensorflow.NamedDevice.properties)
+  return p != NULL ? *p : *reinterpret_cast<const ::tensorflow::DeviceProperties*>(
+      &::tensorflow::_DeviceProperties_default_instance_);
+}
+inline ::tensorflow::DeviceProperties* NamedDevice::mutable_properties() {
+  
+  if (properties_ == NULL) {
+    _slow_mutable_properties();
+  }
+  // @@protoc_insertion_point(field_mutable:tensorflow.NamedDevice.properties)
+  return properties_;
+}
+inline ::tensorflow::DeviceProperties* NamedDevice::release_properties() {
+  // @@protoc_insertion_point(field_release:tensorflow.NamedDevice.properties)
+  
+  if (GetArenaNoVirtual() != NULL) {
+    return _slow_release_properties();
+  } else {
+    ::tensorflow::DeviceProperties* temp = properties_;
+    properties_ = NULL;
+    return temp;
+  }
+}
+inline  void NamedDevice::set_allocated_properties(::tensorflow::DeviceProperties* properties) {
+  ::google::protobuf::Arena* message_arena = GetArenaNoVirtual();
+  if (message_arena == NULL) {
+    delete properties_;
+  }
+  if (properties != NULL) {
+    _slow_set_allocated_properties(message_arena, &properties);
+  }
+  properties_ = properties;
+  if (properties) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_set_allocated:tensorflow.NamedDevice.properties)
+}
+
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
 #endif  // !PROTOBUF_INLINE_NOT_IN_HEADERS
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 

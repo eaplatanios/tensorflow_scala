@@ -51,6 +51,8 @@ private[api] case class CondContext private[control_flow] (
 
   override def controlPivot: Option[Op] = Some(pivot.op)
 
+  override def condContext: Option[CondContext] = Some(this)
+
 //  override def add(op: Op): Unit = addInternal(op)
 //
 //  override private[control_flow] def addInternal(op: Op): Unit = {

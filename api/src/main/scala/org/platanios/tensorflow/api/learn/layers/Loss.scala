@@ -23,7 +23,7 @@ import org.platanios.tensorflow.api.tensors.Tensor
 /**
   * @author Emmanouil Antonios Platanios
   */
-abstract class Loss[T](override protected val name: String) extends Layer[T, Output](name)
+abstract class Loss[T](override val name: String) extends Layer[T, Output](name)
 
 object Loss {
   private[layers] trait API {
@@ -46,64 +46,64 @@ object Loss {
   object API extends API
 }
 
-case class L2Loss(override protected val name: String = "L2Loss")
+case class L2Loss(override val name: String)
     extends Loss[(Output, Output)](name) {
   override val layerType: String = "L2Loss"
 
-  override def forward(input: (Output, Output), mode: Mode): LayerInstance[(Output, Output), Output] = {
-    LayerInstance(input, ops.NN.l2Loss(input._1 - input._2, name = uniquifiedName))
+  override protected def _forward(input: (Output, Output), mode: Mode): Output = {
+    ops.NN.l2Loss(input._1 - input._2, name = name)
   }
 }
 
-case class SoftmaxCrossEntropy(override protected val name: String = "SoftmaxCrossEntropy")
+case class SoftmaxCrossEntropy(override val name: String)
     extends Loss[(Output, Output)](name) {
   override val layerType: String = "SoftmaxCrossEntropy"
 
-  override def forward(input: (Output, Output), mode: Mode): LayerInstance[(Output, Output), Output] = {
-    LayerInstance(input, ops.NN.softmaxCrossEntropy(input._1, input._2, name = uniquifiedName))
+  override protected def _forward(input: (Output, Output), mode: Mode): Output = {
+    ops.NN.softmaxCrossEntropy(input._1, input._2, name = name)
   }
 }
 
-case class SparseSoftmaxCrossEntropy(override protected val name: String = "SparseSoftmaxCrossEntropy")
+case class SparseSoftmaxCrossEntropy(override val name: String)
     extends Loss[(Output, Output)](name) {
   override val layerType: String = "SparseSoftmaxCrossEntropy"
 
-  override def forward(input: (Output, Output), mode: Mode): LayerInstance[(Output, Output), Output] = {
-    LayerInstance(input, ops.NN.sparseSoftmaxCrossEntropy(input._1, input._2, name = uniquifiedName))
+  override protected def _forward(input: (Output, Output), mode: Mode): Output = {
+    ops.NN.sparseSoftmaxCrossEntropy(input._1, input._2, name = name)
   }
 }
 
-case class SigmoidCrossEntropy(override protected val name: String = "SigmoidCrossEntropy")
+case class SigmoidCrossEntropy(override val name: String)
     extends Loss[(Output, Output)](name) {
   override val layerType: String = "SigmoidCrossEntropy"
 
-  override def forward(input: (Output, Output), mode: Mode): LayerInstance[(Output, Output), Output] = {
-    LayerInstance(input, ops.NN.sigmoidCrossEntropy(input._1, input._2, name = uniquifiedName))
+  override protected def _forward(input: (Output, Output), mode: Mode): Output = {
+    ops.NN.sigmoidCrossEntropy(input._1, input._2, name = name)
   }
 }
 
-case class LogPoissonLoss(computeFullLoss: Boolean = false, override protected val name: String = "LogPoissonLoss")
+case class LogPoissonLoss(override val name: String, computeFullLoss: Boolean = false)
     extends Loss[(Output, Output)](name) {
   override val layerType: String = "LogPoissonLoss"
 
-  override def forward(input: (Output, Output), mode: Mode): LayerInstance[(Output, Output), Output] = {
-    LayerInstance(input, ops.NN.logPoissonLoss(input._1, input._2, computeFullLoss, name = uniquifiedName))
+  override protected def _forward(input: (Output, Output), mode: Mode): Output = {
+    ops.NN.logPoissonLoss(input._1, input._2, computeFullLoss, name = name)
   }
 }
 
 case class SequenceLoss(
+    override val name: String,
     averageAcrossTimeSteps: Boolean = true,
     averageAcrossBatch: Boolean = true,
     weights: Tensor = null,
-    lossFn: (Output, Output) => Output = ops.NN.sparseSoftmaxCrossEntropy(_, _),
-    override protected val name: String = "SequenceLoss"
+    lossFn: (Output, Output) => Output = ops.NN.sparseSoftmaxCrossEntropy(_, _)
 ) extends Loss[(Output, Output)](name) {
   override val layerType: String = "SequenceLoss"
 
-  override def forward(input: (Output, Output), mode: Mode): LayerInstance[(Output, Output), Output] = {
-    LayerInstance(input, ops.NN.sequenceLoss(
+  override protected def _forward(input: (Output, Output), mode: Mode): Output = {
+    ops.NN.sequenceLoss(
       input._1, input._2,
       if (weights == null) null else ops.Basic.constant(weights),
-      averageAcrossTimeSteps, averageAcrossBatch, lossFn, name = uniquifiedName))
+      averageAcrossTimeSteps, averageAcrossBatch, lossFn, name = name)
   }
 }

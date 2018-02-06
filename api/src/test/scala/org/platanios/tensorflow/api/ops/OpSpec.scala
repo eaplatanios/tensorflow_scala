@@ -250,7 +250,8 @@ class OpSpec extends FlatSpec with Matchers {
         assert(d.colocationOps === Set[Op](b))
         createWith(colocationOps = Set[Op](a, d)) {
           val e = constant(1.0)
-          assert(e.colocationOps === Set[Op](a, b, d))
+          // `a` is ignored in what follows due to it being impossible to satisfy this colocation constraint
+          assert(e.colocationOps === Set[Op](b, d))
           createWith(colocationOps = Set.empty[Op]) {
             val f = constant(1.0)
             assert(f.colocationOps === Set.empty[Op])

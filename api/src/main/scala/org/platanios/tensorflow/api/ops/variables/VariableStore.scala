@@ -28,6 +28,8 @@ import scala.collection.mutable.ArrayBuffer
   * @author Emmanouil Antonios Platanios
   */
 case class VariableStore private[variables]() {
+  import VariableStore._
+
   /** Map with variable names as keys and the corresponding variables as values. */
   private[this] var variables: Map[String, Variable] = Map.empty[String, Variable]
 
@@ -175,7 +177,7 @@ case class VariableStore private[variables]() {
             // TODO: [LOGGING]
             // Run the regularizer if specified and save the resulting loss.
             if (regularizer != null) {
-              Op.createWith(colocationOps = Set[Op](variable.op)) {
+              Op.colocateWith(Set(variable.op)) {
                 val loss = Op.createWithNameScope(s"$name/Regularizer")(regularizer(variable.value))
                 if (loss != null)
                   Op.currentGraph.addToCollection(loss, Graph.Keys.REGULARIZATION_LOSSES)
@@ -333,21 +335,6 @@ case class VariableStore private[variables]() {
     }
   }
 
-  /** Returns a default variable initializer.
-    *
-    * @param  name     Variable name.
-    * @param  dataType Variable data type.
-    * @return Default initializer.
-    * @throws IllegalArgumentException If no default initializer is defined for the specified data type.
-    */
-  @throws[IllegalArgumentException]
-  private[this] def defaultInitializer(name: String, dataType: DataType = FLOAT32): Initializer = {
-    if (dataType.isFloatingPoint || dataType.isInteger || dataType.isUnsigned || dataType.isBoolean)
-      ZerosInitializer
-    else
-      throw new IllegalArgumentException(s"A default initializer for variable '$name' of type '$dataType' is required.")
-  }
-
   /** Computes which dimension is being sliced and the typical slice shape.
     *
     * @param  fullShape  Variable full shape.
@@ -381,5 +368,24 @@ case class VariableStore private[variables]() {
     if (sliceDimension == -1)
       sliceDimension = 0
     (sliceDimension, Shape.fromSeq(sliceShape))
+  }
+}
+
+object VariableStore {
+  /** Returns a default variable initializer.
+    *
+    * @param  name     Variable name.
+    * @param  dataType Variable data type.
+    * @return Default initializer.
+    * @throws IllegalArgumentException If no default initializer is defined for the specified data type.
+    */
+  @throws[IllegalArgumentException]
+  private[variables] def defaultInitializer(name: String, dataType: DataType = FLOAT32): Initializer = {
+    if (dataType.isFloatingPoint)
+      GlorotUniformInitializer()
+    else if (dataType.isInteger || dataType.isUnsigned || dataType.isBoolean)
+      ZerosInitializer
+    else
+      throw new IllegalArgumentException(s"A default initializer for variable '$name' of type '$dataType' is required.")
   }
 }

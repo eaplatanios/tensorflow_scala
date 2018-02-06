@@ -20,6 +20,7 @@ import org.platanios.tensorflow.api.core.Indexer._
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
+import org.platanios.tensorflow.api.ops.NN.CNNDataFormat
 import org.platanios.tensorflow.api.tensors.{Context, Tensor}
 import org.platanios.tensorflow.api.types._
 import org.platanios.tensorflow.jni.generated.tensors.{Basic => NativeTensorOpsBasic}
@@ -63,6 +64,18 @@ private[api] trait Basic {
     Op.Builder(opType = "Const", name = name)
         .setAttribute("value", constantTensor)
         .setAttribute("dtype", inferredDataType)
+        .build().outputs(0)
+  }
+
+  /** $OpDocBasicGuaranteeConstant
+    *
+    * @param  input Input tensor to guarantee that is constant.
+    * @param  name  Name for the created op.
+    * @return Created op output which is equal to the input tensor.
+    */
+  def guaranteeConstant(input: Output, name: String = "GuaranteeConstant"): Output = {
+    Op.Builder(opType = "GuaranteeConst", name = name)
+        .addInput(input)
         .build().outputs(0)
   }
 
@@ -344,14 +357,22 @@ private[api] trait Basic {
     *
     * @param  inputs   Tensors whose shapes to return.
     * @param  dataType Optional data type to use for the outputs of this op.
+    * @param  optimize Boolean flag indicating whether to optimize this op creation by using a constant op with the
+    *                  shape of each input at graph creation time (instead of execution time), if known.
+    * @param  name     Name for the created op.
     * @return Created op outputs, all of which are one-dimensional.
     */
   def shapeN(
-      inputs: Seq[Output], dataType: DataType = INT32, name: String = "ShapeN"): Seq[Output] = {
-    Op.Builder(opType = "ShapeN", name = name)
+      inputs: Seq[Output], dataType: DataType = INT32, optimize: Boolean = true,
+      name: String = "ShapeN"): Seq[Output] = {
+    val dynamicShapes = Op.Builder(opType = "ShapeN", name = name)
         .addInputList(inputs)
         .setAttribute("out_type", dataType)
         .build().outputs.toSeq
+    if (optimize)
+      inputs.zip(dynamicShapes).map(p => if (p._1.shape.isFullyDefined) p._1.shape.toOutput() else p._2)
+    else
+      dynamicShapes
   }
 
   //endregion Tensor Shape Ops
@@ -498,7 +519,9 @@ private[api] trait Basic {
     * @group BasicOps
     *
     * @param  inputs Input tensors to be concatenated.
-    * @param  axis   Dimension along which to concatenate the input tensors.
+    * @param  axis   Dimension along which to concatenate the input tensors. As in Python, indexing for the axis is
+    *                0-based. Positive axes in the range of `[0, rank(values))` refer to the `axis`-th dimension, and
+    *                negative axes refer to the `axis + rank(inputs)`-th dimension.
     * @param  name   Name for the created op.
     * @return Created op output.
     */
@@ -564,6 +587,7 @@ private[api] trait Basic {
         .addInput(input)
         .addInput(Op.createWith(nameScope = name)(splitSizes))
         .addInput(Op.createWith(nameScope = name)(axis))
+        .setAttribute("num_split", splitSizes.shape(0))
         .build().outputs.toSeq
   }
 
@@ -778,15 +802,18 @@ private[api] trait Basic {
     *
     * @param  input       Input tensor to transpose.
     * @param  permutation Permutation of the input tensor dimensions.
+    * @param  conjugate   If `true`, then the complex conjugate of the transpose result is returned.
     * @param  name        Name for the created op.
     * @return Created op output.
     */
-  def transpose(input: Output, permutation: Output = null, name: String = "Transpose"): Output = {
+  def transpose(
+      input: Output, permutation: Output = null, conjugate: Boolean = false, name: String = "Transpose"): Output = {
+    val opType = if (conjugate && input.dataType.isComplex) "ConjugateTranspose" else "Transpose"
     if (permutation == null) {
       Op.createWith(nameScope = name) {
         val inputRank = rank(input)
         val reversePermutation = inputRank - constant(1) - Math.range(constant(0), inputRank, constant(1))
-        val transposed = Op.Builder(opType = "Transpose", name = name)
+        val transposed = Op.Builder(opType = opType, name = name)
             .addInput(input)
             .addInput(reversePermutation)
             .build().outputs(0)
@@ -797,7 +824,7 @@ private[api] trait Basic {
         transposed
       }
     } else {
-      Op.Builder(opType = "Transpose", name = name)
+      Op.Builder(opType = opType, name = name)
           .addInput(input)
           .addInput(permutation)
           .build().outputs(0)
@@ -808,11 +835,12 @@ private[api] trait Basic {
     *
     * @group BasicOps
     *
-    * @param  input Input tensor to transpose.
+    * @param  input     Input tensor to transpose.
+    * @param  conjugate If `true`, then the complex conjugate of the transpose result is returned.
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def matrixTranspose(input: Output, name: String = "MatrixTranspose"): Output = {
+  def matrixTranspose(input: Output, conjugate: Boolean = false, name: String = "MatrixTranspose"): Output = {
     Op.createWith(nameScope = name) {
       // If we know the number of dimensions statically, we can do two things:
       //   1. Check that `input` is a (batch) matrix.
@@ -822,14 +850,14 @@ private[api] trait Basic {
       val inputRank = inputShape.rank
       if (inputRank != -1) {
         val permutation = Range(0, inputRank - 2).toArray ++ Array(inputRank - 1, inputRank - 2)
-        transpose(input, permutation)
+        transpose(input, permutation, conjugate)
       } else {
         val inputRank = rank(input)
         val inputRankMinus1 = inputRank - constant(1)
         val inputRankMinus2 = inputRank - constant(2)
         val permutation = concatenate(
           Array(Math.range(constant(0), inputRankMinus2, constant(1)), inputRankMinus1, inputRankMinus2))
-        transpose(input, permutation)
+        transpose(input, permutation, conjugate)
       }
     }
   }
@@ -860,7 +888,7 @@ private[api] trait Basic {
   def reverse(input: Output, axes: Output, name: String = "Reverse"): Output = {
     Op.Builder(opType = "ReverseV2", name = name)
         .addInput(input)
-        .addInput(axes)
+        .addInput(if (axes.rank < 1) axes else axes(NewAxis))
         .build().outputs(0)
   }
 
@@ -1035,15 +1063,19 @@ private[api] trait Basic {
     *
     * @group BasicOps
     *
-    * @param  input     `4`-dimensional input tensor with shape `[batch, height, width, depth]`.
-    * @param  blockSize Block size which must be greater than `1`.
-    * @param  name      Name for the created op.
+    * @param  input      `4`-dimensional input tensor with shape `[batch, height, width, depth]`.
+    * @param  blockSize  Block size which must be greater than `1`.
+    * @param  dataFormat Format of the input and output data.
+    * @param  name       Name for the created op.
     * @return Created op output.
     */
-  def spaceToDepth(input: Output, blockSize: Int, name: String = "SpaceToDepth"): Output = {
+  def spaceToDepth(
+      input: Output, blockSize: Int, dataFormat: CNNDataFormat = CNNDataFormat.default,
+      name: String = "SpaceToDepth"): Output = {
     Op.Builder(opType = "SpaceToDepth", name = name)
         .addInput(input)
         .setAttribute("block_size", blockSize.toLong)
+        .setAttribute("data_format", dataFormat.name)
         .build().outputs(0)
   }
 
@@ -1053,13 +1085,17 @@ private[api] trait Basic {
     *
     * @param  input     `4`-dimensional input tensor with shape `[batch, height, width, depth]`.
     * @param  blockSize Block size which must be greater than `1`.
+    * @param  dataFormat Format of the input and output data.
     * @param  name      Name for the created op.
     * @return Created op output.
     */
-  def depthToSpace(input: Output, blockSize: Int, name: String = "DepthToSpace"): Output = {
+  def depthToSpace(
+      input: Output, blockSize: Int, dataFormat: CNNDataFormat = CNNDataFormat.default,
+      name: String = "DepthToSpace"): Output = {
     Op.Builder(opType = "DepthToSpace", name = name)
         .addInput(input)
         .setAttribute("block_size", blockSize.toLong)
+        .setAttribute("data_format", dataFormat.name)
         .build().outputs(0)
   }
 
@@ -1171,14 +1207,17 @@ private[api] trait Basic {
     *
     * @group BasicOps
     *
-    * @param  input           One-dimensional input tensor.
+    * @param  input           Input tensor.
+    * @param  axis            Axis along which to compute the unique values.
     * @param  indicesDataType Data type of the returned indices. Must be [[INT32]] or [[INT64]].
     * @param  name            Name for the created op.
     * @return Tuple containing `output` and `indices`.
     */
-  def unique(input: Output, indicesDataType: DataType = INT32, name: String = "Unique"): (Output, Output) = {
-    val outputs = Op.Builder(opType = "Unique", name = name)
+  def unique(
+      input: Output, axis: Output, indicesDataType: DataType = INT32, name: String = "Unique"): (Output, Output) = {
+    val outputs = Op.Builder(opType = "UniqueV2", name = name)
         .addInput(input)
+        .addInput(axis)
         .setAttribute("out_idx", indicesDataType)
         .build().outputs
     (outputs(0), outputs(1))
@@ -1697,17 +1736,21 @@ object Basic extends Basic {
       * @group BasicOps
       *
       * @param  permutation Permutation of the input tensor dimensions.
+      * @param  conjugate   If `true`, then the complex conjugate of the transpose result is returned.
       * @return Result as a new tensor.
       */
-    def transpose(permutation: Output = null): Output = Basic.transpose(output, permutation)
+    def transpose(permutation: Output = null, conjugate: Boolean = false): Output = {
+      Basic.transpose(output, permutation, conjugate)
+    }
 
     /** $OpDocBasicMatrixTranspose
       *
       * @group BasicOps
       *
+      * @param  conjugate If `true`, then the complex conjugate of the transpose result is returned.
       * @return Result as a new tensor.
       */
-    def matrixTranspose: Output = Basic.matrixTranspose(output)
+    def matrixTranspose(conjugate: Boolean = false): Output = Basic.matrixTranspose(output, conjugate)
 
     /** $OpDocBasicInvertPermutation
       *
@@ -1797,18 +1840,24 @@ object Basic extends Basic {
       * @group BasicOps
       *
       * @param  blockSize Block size which must be greater than `1`.
+      * @param  dataFormat Format of the input and output data.
       * @return Result as a new tensor.
       */
-    def spaceToDepth(blockSize: Int): Output = Basic.spaceToDepth(output, blockSize)
+    def spaceToDepth(blockSize: Int, dataFormat: CNNDataFormat = CNNDataFormat.default): Output = {
+      Basic.spaceToDepth(output, blockSize, dataFormat)
+    }
 
     /** $OpDocBasicDepthToSpace
       *
       * @group BasicOps
       *
       * @param  blockSize Block size which must be greater than `1`.
+      * @param  dataFormat Format of the input and output data.
       * @return Result as a new tensor.
       */
-    def depthToSpace(blockSize: Int): Output = Basic.depthToSpace(output, blockSize)
+    def depthToSpace(blockSize: Int, dataFormat: CNNDataFormat = CNNDataFormat.default): Output = {
+      Basic.depthToSpace(output, blockSize, dataFormat)
+    }
 
     //endregion Output Manipulation Ops
 
@@ -1852,10 +1901,13 @@ object Basic extends Basic {
       *
       * @group BasicOps
       *
+      * @param  axis            Axis along which to compute the unique values.
       * @param  indicesDataType Data type of the returned indices. Must be [[INT32]] or [[INT64]].
       * @return Tuple containing `output` and `indices`.
       */
-    def unique(indicesDataType: DataType = INT32): (Output, Output) = Basic.unique(output, indicesDataType)
+    def unique(axis: Output, indicesDataType: DataType = INT32): (Output, Output) = {
+      Basic.unique(output, axis, indicesDataType)
+    }
 
     /** $OpDocBasicUniqueWithCounts
       *
@@ -2000,6 +2052,7 @@ object Basic extends Basic {
     GradientsRegistry.registerNonDifferentiable("BroadcastGradientArgs")
     GradientsRegistry.registerNonDifferentiable("StopGradient")
 
+    GradientsRegistry.register("GuaranteeConst", identityGradient)
     GradientsRegistry.register("Fill", fillGradient)
     GradientsRegistry.register("PlaceholderWithDefault", identityGradient)
     GradientsRegistry.register("Identity", identityGradient)
@@ -2016,6 +2069,7 @@ object Basic extends Basic {
     GradientsRegistry.register("MirrorPadGrad", mirrorPadHessian)
     GradientsRegistry.register("Reshape", reshapeGradient)
     GradientsRegistry.register("Transpose", transposeGradient)
+    GradientsRegistry.register("ConjugateTranspose", conjugateTransposeGradient)
     GradientsRegistry.register("ReverseV2", reverseGradient)
     GradientsRegistry.register("ReverseSequence", reverseSequenceGradient)
     GradientsRegistry.register("SpaceToBatch", spaceToBatchGradient)
@@ -2217,6 +2271,10 @@ object Basic extends Basic {
       Seq(transpose(outputGradients.head, invertPermutation(op.inputs(1))), null)
     }
 
+    private[this] def conjugateTransposeGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      Seq(transpose(outputGradients.head, invertPermutation(op.inputs(1)), conjugate = true), null)
+    }
+
     private[this] def reverseGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       Seq(reverse(outputGradients.head, op.inputs(1)), null)
     }
@@ -2339,7 +2397,7 @@ object Basic extends Basic {
       val inputVector = op.inputs(0)
       val beginVector = op.inputs(1)
       val inputRank = rank(inputVector)
-      val padShape = stack(Seq(inputRank, constant(Tensor(inputRank.dataType, 1))))
+      val padShape = concatenate(Seq(expandDims(inputRank, 0), constant(Tensor(inputRank.dataType, 1))))
       val beforePad = reshape(beginVector, padShape)
       val afterPad = reshape(shape(inputVector) - shape(op.outputs(0)) - beginVector, padShape)
       val paddings = concatenate(Seq(beforePad, afterPad), axis = 1)
@@ -2402,6 +2460,11 @@ object Basic extends Basic {
     *
     *   The argument `shape` is optional. If present, it specifies the dimensions of the resulting tensor. If not
     *   present, the shape of `value` is used.
+    *
+    * @define OpDocBasicGuaranteeConstant
+    *   The `guaranteeConstant` op gives a guarantee to the TensorFlow runtime that the input tensor is a constant. The
+    *   runtime is then free to make optimizations based on this. The op only accepts value-typed tensors as inputs and
+    *   rejects resource variable handles. It returns the input tensor without modification.
     *
     * @define OpDocBasicImmutableConstant
     *   The `immutableConstant` op returns an immutable tensor from the provided memory region.

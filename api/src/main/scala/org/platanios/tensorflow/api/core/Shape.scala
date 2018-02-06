@@ -223,7 +223,7 @@ final class Shape private (private val array: Array[Int]) extends ProtoSerializa
     *                               provided value.
     */
   @throws[InvalidShapeException]
-  private[api] def withRank(rank: Int): Shape = mergeWith(Shape.unknown(rank))
+  def withRank(rank: Int): Shape = mergeWith(Shape.unknown(rank))
 
   /** Returns a shape with at least the specified rank, that is based on the current shape.
     *
@@ -232,7 +232,7 @@ final class Shape private (private val array: Array[Int]) extends ProtoSerializa
     *                               provided value.
     */
   @throws[InvalidShapeException]
-  private[api] def withRankAtLeast(rank: Int): Shape = {
+  def withRankAtLeast(rank: Int): Shape = {
     assertHasRank(rank)
     this
   }
@@ -243,7 +243,7 @@ final class Shape private (private val array: Array[Int]) extends ProtoSerializa
     * @throws InvalidShapeException If this shape is not fully defined.
     */
   @throws[InvalidShapeException]
-  private[api] def assertFullyDefined(message: String = s"Shape '$this' must be fully defined."): Unit = {
+  def assertFullyDefined(message: String = s"Shape '$this' must be fully defined."): Unit = {
     if (!this.isFullyDefined)
       throw InvalidShapeException(message)
   }
@@ -254,7 +254,7 @@ final class Shape private (private val array: Array[Int]) extends ProtoSerializa
     * @throws InvalidShapeException If this shape has rank other than `rank`.
     */
   @throws[InvalidShapeException]
-  private[api] def assertHasRank(rank: Int): Unit = {
+  def assertHasRank(rank: Int): Unit = {
     if (this.rank != -1 && this.rank != rank)
       throw InvalidShapeException(s"Shape '$this' must have rank $rank.")
   }
@@ -265,7 +265,7 @@ final class Shape private (private val array: Array[Int]) extends ProtoSerializa
     * @throws InvalidShapeException If this shape has rank lower than `rank`.
     */
   @throws[InvalidShapeException]
-  private[api] def assertRankAtLeast(rank: Int): Unit = {
+  def assertRankAtLeast(rank: Int): Unit = {
     if (this.rank < rank)
       throw InvalidShapeException(s"Shape '$this' must have rank at least $rank.")
   }
@@ -276,7 +276,7 @@ final class Shape private (private val array: Array[Int]) extends ProtoSerializa
     * @throws InvalidShapeException If this shape has rank higher than `rank`.
     */
   @throws[InvalidShapeException]
-  private[api] def assertRankAtMost(rank: Int): Unit = {
+  def assertRankAtMost(rank: Int): Unit = {
     if (this.rank > rank)
       throw InvalidShapeException(s"Shape '$this' must have rank at most $rank.")
   }
@@ -288,7 +288,7 @@ final class Shape private (private val array: Array[Int]) extends ProtoSerializa
     * @throws InvalidShapeException If this shape does not have the same rank as `other`.
     */
   @throws[InvalidShapeException]
-  private[api] def assertSameRank(other: Shape): Unit = {
+  def assertSameRank(other: Shape): Unit = {
     if (this.rank != other.rank)
       throw InvalidShapeException(s"Shape '$this' must have the same rank as shape '$other'.")
   }
@@ -302,7 +302,7 @@ final class Shape private (private val array: Array[Int]) extends ProtoSerializa
     * @throws InvalidShapeException If this shape is not compatible with `other`.
     */
   @throws[InvalidShapeException]
-  private[api] def assertIsCompatibleWith(other: Shape): Unit = {
+  def assertIsCompatibleWith(other: Shape): Unit = {
     if (!isCompatibleWith(other))
       throw InvalidShapeException(s"Shape '$this' must be compatible with shape '$other'.")
   }

@@ -15,6 +15,7 @@
 
 package org.platanios.tensorflow.api.ops
 
+import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.types.{INT32, STRING}
 
@@ -112,20 +113,21 @@ private[api] trait Checks {
     }
   }
 
-  /** $OpDocCheckAssertApproximatelyEqual
+  /** $OpDocCheckAssertNear
     *
     * @group CheckOps
-    * @param  x         First input tensor.
-    * @param  y         Second input tensor.
-    * @param  tolerance Comparison tolerance value.
-    * @param  data      Op outputs whose values are printed if `condition` is `false`.
-    * @param  summarize Number of tensor entries to print.
-    * @param  name      Name for the created op.
+    * @param  x            First input tensor.
+    * @param  y            Second input tensor.
+    * @param  relTolerance Comparison relative tolerance value.
+    * @param  absTolerance Comparison absolute tolerance value.
+    * @param  data         Op outputs whose values are printed if `condition` is `false`.
+    * @param  summarize    Number of tensor entries to print.
+    * @param  name         Name for the created op.
     * @return Created op.
     */
-  def assertApproximatelyEqual(
-      x: Output, y: Output, tolerance: Float = 0.00001f, message: Output = null, data: Seq[Output] = null,
-      summarize: Int = 3, name: String = "AssertApproximatelyEqual"): Op = {
+  def assertNear(
+      x: Output, y: Output, relTolerance: Output = 0.00001f, absTolerance: Output = 0.00001f,
+      message: Output = null, data: Seq[Output] = null, summarize: Int = 3, name: String = "AssertNear"): Op = {
     Op.createWithNameScope(name) {
       val processedData = {
         val d: Seq[Output] = {
@@ -133,15 +135,18 @@ private[api] trait Checks {
             data
           } else {
             Seq(
-              s"Condition 'x' == 'y' += 'tolerance' did not hold element-wise:",
+              s"'x' and 'y' are not nearly equal element-wise:",
               s" x (${x.name}) = ", x,
               s" y (${y.name}) = ", y,
-              s" tolerance = $tolerance")
+              s" relative tolerance (${relTolerance.name}) = ", relTolerance,
+              s" absolute tolerance (${absTolerance.name}) = ", absTolerance)
           }
         }
         if (message != null) message +: d else d
       }
-      assert(Math.all(Math.approximatelyEqual(x, y, tolerance)), processedData, summarize)
+      val tolerance = absTolerance + relTolerance * Math.abs(y)
+      val difference = Math.abs(x - y)
+      assert(Math.all(Math.less(difference, tolerance)), processedData, summarize)
     }
   }
 
@@ -406,18 +411,19 @@ private[api] trait Checks {
     *   The condition is satisfied if for every pair of (possibly broadcast) elements `x(i)`, `y(i)`, we have
     *   `x(i) != y(i)`. If both `x` and `y` are empty, it is trivially satisfied.
     *
-    * @define OpDocCheckAssertApproximatelyEqual
-    *   The `assertApproximatelyEqual` op asserts that the condition `x == y += tolerance` holds element-wise.
+    * @define OpDocCheckAssertNear
+    *   The `assertNear` op asserts that `x` and `y` are close element-wise.
     *
     *   Example usage:
     *   {{{
-    *     val output = tf.createWith(controlDependencies = Set(tf.assertApproximatelyEqual(x, y, tol)) {
+    *     val output = tf.createWith(controlDependencies = Set(tf.assertNear(x, y, relTolerance, absTolerance)) {
     *       x.sum()
     *     }
     *   }}}
     *
     *   The condition is satisfied if for every pair of (possibly broadcast) elements `x(i)`, `y(i)`, we have
-    *   `x(i) == y(i) += tolerance`. If both `x` and `y` are empty, it is trivially satisfied.
+    *   `tf.abs(x(i) - y(i)) <= absTolerance + relTolerance * tf.abs(y(i))`. If both `x` and `y` are empty, it is
+    *   trivially satisfied.
     *
     * @define OpDocCheckAssertLess
     *   The `assertLess` op asserts that the condition `x < y` holds element-wise.

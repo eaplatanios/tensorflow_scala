@@ -476,26 +476,30 @@ private[api] object Variable {
       val nameScope = Op.currentNameScope
       val trueName = Op.convertNameScopeToName(nameScope)
       val variableHandle = variable(inferredShape, inferredDataType, sharedName = trueName, name = nameScope)
-      val initialValue = Op.createWith(nameScope = "Initializer", colocationOps = Set[Op](variableHandle.op)) {
-        initializer(inferredDataType, inferredShape, null)
+      val initialValue = Op.createWith(nameScope = "Initializer") {
+        Op.colocateWith(Set(variableHandle.op)) {
+          initializer(inferredDataType, inferredShape, null)
+        }
       }
       val initializeOp = assign(variableHandle, initialValue, name = "InitializationAssign")
-      val cachedValue = Op.createWith(nameScope = "Read", colocationOps = Set[Op](variableHandle.op)) {
-        val cachedValueOp = {
-          if (cachingDevice != null) {
-            // Manually assign reads to the handle's device to avoid log messages
-            val valueOp = Op.createWith(device = variableHandle.device)(readVariable(variableHandle, inferredDataType))
-            // Variables may be created in a "createWith(device = ...)" block or a "createWith(colocationOps = ...)"
-            // block. At the same time, users would expect the caching device to be independent of this context, and/or
-            // would not expect the current device context to be merged with the caching device specification.
-            // Therefore, we reset the colocation stack before creating the cached value. Note that resetting the
-            // colocation stack will also reset the device stack.
-            Op.createWith(colocationOps = Set.empty[Op], device = null)(Basic.identity(valueOp))
-          } else {
-            null
+      val cachedValue = Op.createWith(nameScope = "Read") {
+        Op.colocateWith(Set(variableHandle.op)) {
+          val cachedValueOp = {
+            if (cachingDevice != null) {
+              // Manually assign reads to the handle's device to avoid log messages
+              val valueOp = Op.createWith(device = variableHandle.device)(readVariable(variableHandle, inferredDataType))
+              // Variables may be created in a "createWith(device = ...)" block or a "createWith(colocationOps = ...)"
+              // block. At the same time, users would expect the caching device to be independent of this context, and/or
+              // would not expect the current device context to be merged with the caching device specification.
+              // Therefore, we reset the colocation stack before creating the cached value. Note that resetting the
+              // colocation stack will also reset the device stack.
+              Op.createWith(colocationOps = Set.empty[Op], device = null)(Basic.identity(valueOp))
+            } else {
+              null
+            }
           }
+          cachedValueOp
         }
-        cachedValueOp
       }
 
       val createdVariable = Variable(inferredDataType, variableHandle, initializeOp, cachedValue)

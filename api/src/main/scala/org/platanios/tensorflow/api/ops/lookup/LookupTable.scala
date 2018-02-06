@@ -85,6 +85,7 @@ abstract class InitializableLookupTable private[lookup] (
 ) extends LookupTable(initializer.keysDataType, initializer.valuesDataType, handle.op.name.split("/").last) {
   // Make sure that the provided default value is a scalar
   defaultValue.shape.mergeWith(Shape.scalar())
+  initialize()
 
   /** Creates and returns an op used to initialize this table.
     *

@@ -20,7 +20,9 @@ limitations under the License.
 
 #include "third_party/eigen3/unsupported/Eigen/CXX11/Tensor"
 #include "tensorflow/c/c_api.h"
+#include "tensorflow/c/c_api_internal.h"
 #include "tensorflow/c/c_eager_api.h"
+#include "tensorflow/c/c_eager_api_internal.h"
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/op_kernel.h"
 #include "tensorflow/core/framework/kernel_def.pb_text.h"

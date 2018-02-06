@@ -45,7 +45,7 @@ case class Input[T, O, DA, D, S](private val _dataType: DA, shape: S, name: Stri
 
   private[this] val cache: mutable.Map[Graph, Iterator[T, O, D, S]] = mutable.Map.empty
 
-  protected def create(): Iterator[T, O, D, S] = Iterator.fromStructure(dataType, shape, name)
+  protected def create(): Iterator[T, O, D, S] = Iterator.fromStructure(dataType, shape, name = name)
 
   final def apply(): Iterator[T, O, D, S] = cache.getOrElse(Op.currentGraph, create())
 

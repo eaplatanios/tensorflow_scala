@@ -62,9 +62,18 @@ private[api] trait NN {
     * @param  name    Name for the created op.
     * @return Created op output.
     */
-  def linear(x: Output, weights: Output, bias: Output, name: String = "Linear"): Output = {
-    Op.createWithNameScope(name, Set(x.op, weights.op, bias.op)) {
-      addBias(Math.matmul(x, weights), bias)
+  def linear(x: Output, weights: Output, bias: Output = null, name: String = "Linear"): Output = {
+    Op.createWithNameScope(name, Set(x.op, weights.op) ++ (if (bias != null) Set(bias.op) else Set.empty)) {
+      val product = {
+        if (x.rank > 2)
+          Math.tensorDot(x, weights, Seq(x.rank - 1), Seq(0))
+        else
+          Math.matmul(x, weights)
+      }
+      if (bias != null)
+        addBias(product, bias)
+      else
+        product
     }
   }
 
@@ -372,7 +381,7 @@ private[api] trait NN {
         } else {
           // Reshape logits to rank 2 and labels to rank 1.
           val flattenedLogits = flattenOuterAxes(preciseLogits)
-          val flattenedLabels = Basic.reshape(labels, -1)
+          val flattenedLabels = Basic.reshape(labels, Shape(-1))
           // Create the native op.
           // The second output tensor contains the gradients, which is used for the gradient computation.
           val output = Op.Builder(opType = "SparseSoftmaxCrossEntropyWithLogits", name = name)
@@ -568,18 +577,35 @@ private[api] trait NN {
     if (keepProbability == 1.0) {
       input
     } else {
-      Op.createWithNameScope(name, Set(input.op)) {
-        val inferredNoiseShape = if (noiseShape == null) Basic.shape(input) else noiseShape
-        // Uniform random variable in [keepProbability, 1.0 + keepProbability).
-        val probability = Basic.constant(keepProbability, input.dataType)
-        val random = Random.randomUniform(
-          input.dataType, inferredNoiseShape, minValue = probability, maxValue = probability + 1.0, seed = seed)
-        // 0.0 if in [keepProbability, 1.0) and 1.0 if [1.0, 1.0 + keepProbability).
-        val binaryTensor = Math.floor(random)
-        val output = Math.divide(input, probability) * binaryTensor
-        output.setShape(input.shape)
-        output
-      }
+      dynamicDropout(input, Basic.constant(keepProbability, input.dataType), noiseShape, seed, name)
+    }
+  }
+
+  /** $OpDocNNDropout
+    *
+    * @group NNOps
+    * @param  input           Input tensor.
+    * @param  keepProbability Probability (i.e., scalar in the interval `(0, 1]`) that each element is kept.
+    * @param  noiseShape      [[INT32]] rank-1 tensor representing the shape for the randomly generated keep/drop flags.
+    * @param  seed            Optional random seed, used to generate a random seed pair for the random number
+    *                         generator, when combined with the graph-level seed.
+    * @param  name            Name for the created op.
+    * @return Created op output that has the same shape as `input`.
+    */
+  def dynamicDropout(
+      input: Output, keepProbability: Output, noiseShape: Output = null, seed: Option[Int] = None,
+      name: String = "Dropout"): Output = {
+    Op.createWithNameScope(name, Set(input.op)) {
+      val inferredNoiseShape = if (noiseShape == null) Basic.shape(input) else noiseShape
+      // Uniform random variable in [keepProbability, 1.0 + keepProbability).
+      val probability = Math.cast(keepProbability, input.dataType)
+      val random = Random.randomUniform(
+        input.dataType, inferredNoiseShape, minValue = probability, maxValue = probability + 1.0, seed = seed)
+      // 0.0 if in [keepProbability, 1.0) and 1.0 if [1.0, 1.0 + keepProbability).
+      val binaryTensor = Math.floor(random)
+      val output = Math.divide(input, probability) * binaryTensor
+      output.setShape(input.shape)
+      output
     }
   }
 
@@ -921,6 +947,19 @@ object NN extends NN {
       NN.dropout(output, keepProbability, noiseShape, seed)
     }
 
+    /** $OpDocNNDropout
+      *
+      * @group NNOps
+      * @param  keepProbability Probability (i.e., number in the interval `(0, 1]`) that each element is kept.
+      * @param  noiseShape      [[INT32]] rank-1 tensor representing the shape for the randomly generated keep/drop flags.
+      * @param  seed            Optional random seed, used to generate a random seed pair for the random number
+      *                         generator, when combined with the graph-level seed.
+      * @return Created op output that has the same shape as `input`.
+      */
+    def dynamicDropout(keepProbability: Output, noiseShape: Output = null, seed: Option[Int] = None): Output = {
+      NN.dynamicDropout(output, keepProbability, noiseShape, seed)
+    }
+
     /** $OpDocNNTopK
       *
       * @group NNOps
@@ -996,11 +1035,8 @@ object NN extends NN {
       Seq(Basic.constant(-1, lastAxisSize.dataType, Shape(1)), lastAxisSize), 0))
     // Set the output shape, if known.
     val shape = input.shape
-    if (shape.rank != -1) {
-      val product = shape(0 :: -1).asArray.product
-      if (product > -1)
-        output.setShape(Shape(product, shape(-1)))
-    }
+    if (shape.rank != -1 && !shape.asArray.contains(-1))
+      output.setShape(Shape(shape(0 :: -1).asArray.product, shape(-1)))
     output
   }
 
@@ -1013,6 +1049,7 @@ object NN extends NN {
         axis2,
         Math.range(axis1 + 1, axis2),
         axis1), 0),
+      conjugate = false,
       name)
   }
 
@@ -1028,6 +1065,7 @@ object NN extends NN {
           Math.range(0, axisOutput),
           Math.range(axisOutput + 1, rank),
           axisOutput), 0),
+        conjugate = false,
         name)
     }
   }
@@ -1294,8 +1332,9 @@ object NN extends NN {
         }
       }
 
+      val logits = op.inputs(0)
+      val labelsGradient = broadcastMultiply(lossGradient, -NN.logSoftmax(logits))
       if (!isGradGradientZero) {
-        val logits = op.inputs(0)
         val logitsSoftmax = NN.softmax(logits)
         val gradient = outputGradient + (
             (gradGradient - Basic.squeeze(
@@ -1303,9 +1342,9 @@ object NN extends NN {
                 Basic.expandDims(gradGradient, 1),
                 Basic.expandDims(logitsSoftmax, 2)),
               Array(1))) * logitsSoftmax)
-        Seq(gradient, null)
+        Seq(gradient, labelsGradient)
       } else {
-        Seq(outputGradient, null)
+        Seq(outputGradient, labelsGradient)
       }
     }
 
@@ -1526,6 +1565,9 @@ object NN extends NN {
     *   The op measures the probabilistic error in discrete classification tasks in which the classes are mutually
     *   exclusive (each entry belongs to exactly one class). For example, each CIFAR-10 image is labeled with one and
     *   only one label: an image can be a dog or a truck, but not both.
+    *
+    *   Back-propagation will happen into both `logits` and `labels`. To disallow back-propagation into `labels`, pass
+    *   the label tensors through a `stopGradients` op before feeding it to this function.
     *
     *   '''NOTE:''' While the classes are mutually exclusive, their probabilities need not be. All that is required is
     *   that each row of `labels` is a valid probability distribution. If they are not, the computation of the gradient

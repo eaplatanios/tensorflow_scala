@@ -103,7 +103,7 @@ class SessionWrapper private[learn](
       super.runHelper(feeds, fetches, targets, options, wantMetadata)
     } else {
       // We copy the hooks into a sequence in order to be able to keep track of their order.
-      val currentHooks = activeHooks.toSeq
+      val currentHooks = activeHooks.toSeq.sortBy(-_.priority)
 
       // Invoke the hooks' `beforeSessionRun` callbacks.
       val runContext = Hook.SessionRunContext(Hook.SessionRunArgs(feeds, fetches, targets, options), this)
@@ -116,7 +116,7 @@ class SessionWrapper private[learn](
 
       // Invoke the hooks' `afterSessionRun` callbacks.
       currentHooks.zipWithIndex.foreach(hook => {
-        hook._1.afterSessionRun(runContext, Hook.SessionRunResult(result._1._2(hook._2), result._2))
+        hook._1.internalAfterSessionRun(runContext, Hook.SessionRunResult(result._1._2(hook._2), result._2))
       })
 
       // Update the `_shouldStop` flag and return.
@@ -137,7 +137,7 @@ class SessionWrapper private[learn](
     val hooksFetchesList = mutable.ListBuffer.empty[Seq[Output]]
     val hooksTargetsList = mutable.ListBuffer.empty[Op]
     var hooksRunOptions = RunOptions.newBuilder(runOptions).build()
-    hooks.foreach(hook => hook.beforeSessionRun(runContext) match {
+    hooks.foreach(hook => hook.internalBeforeSessionRun(runContext) match {
       case Some(runArgs) =>
         if (runArgs.feeds.nonEmpty) {
           if (hooksFeedMap.nonEmpty && hooksFeedMap.intersects(runArgs.feeds))
@@ -387,7 +387,7 @@ class MonitoredSession private[learn](
   @throws[RuntimeException]
   override def close(): Unit = {
     try {
-      activeHooks.foreach(_.end(baseSession))
+      activeHooks.toSeq.sortBy(-_.priority).foreach(_.internalEnd(baseSession))
     } catch {
       case _: Throwable => ()
     } finally {
@@ -412,7 +412,7 @@ object MonitoredSession {
       hooks: Set[Hook] = Set.empty,
       shouldRecover: Boolean = true
   ): MonitoredSession = {
-    hooks.foreach(_.begin(sessionCreator))
+    hooks.toSeq.sortBy(-_.priority).foreach(_.internalBegin())
     val hookedSessionCreator = HookedSessionCreator(sessionCreator, hooks)
     val session = if (shouldRecover) RecoverableSession(hookedSessionCreator) else hookedSessionCreator.createSession()
     new MonitoredSession(session, hooks)

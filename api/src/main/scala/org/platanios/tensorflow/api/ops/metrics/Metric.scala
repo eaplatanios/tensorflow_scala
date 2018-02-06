@@ -57,7 +57,7 @@ trait Metric[T, R] {
       name: String, dataType: DataType = null, shape: Shape = null, initializer: Initializer = ZerosInitializer,
       collections: Set[Graph.Key[Variable]] = Set(Metric.METRIC_VARIABLES)): Variable = {
     Variable.getVariable(
-      name = name, dataType = dataType, shape = shape, trainable = false,
+      name = name, dataType = dataType, shape = shape, initializer = initializer, trainable = false,
       collections = collections + Graph.Keys.LOCAL_VARIABLES)
   }
 

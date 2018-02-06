@@ -20,6 +20,7 @@ package org.platanios.tensorflow.api.ops
   */
 package object rnn {
   private[ops] trait API
-      extends cell.API
+      extends attention.API
+          with cell.API
           with RNN
 }

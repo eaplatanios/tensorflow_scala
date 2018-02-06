@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.learn.layers
 
-import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.learn.{Mode, TRAINING, layers}
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.NN.{CNNDataFormat, PaddingMode}
@@ -43,74 +43,71 @@ object NN {
   object API extends API
 }
 
-case class Softmax(override protected val name: String = "Softmax")
+case class Softmax(override val name: String)
     extends Layer[Output, Output](name) {
   override val layerType: String = "Softmax"
 
-  override def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
-    LayerInstance(input, ops.NN.softmax(input, name = uniquifiedName))
+  override protected def _forward(input: Output, mode: Mode): Output = {
+    ops.NN.softmax(input, name = name)
   }
 }
 
-case class LogSoftmax(override protected val name: String = "LogSoftmax")
+case class LogSoftmax(override val name: String)
     extends Layer[Output, Output](name) {
   override val layerType: String = "LogSoftmax"
 
-  override def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
-    LayerInstance(input, ops.NN.logSoftmax(input, name = uniquifiedName))
+  override protected def _forward(input: Output, mode: Mode): Output = {
+    ops.NN.logSoftmax(input, name = name)
   }
 }
 
 case class Dropout(
+    override val name: String,
     keepProbability: Float,
     noiseShape: Shape = null,
-    seed: Option[Int] = None,
-    override protected val name: String = "Dropout"
+    seed: Option[Int] = None
 ) extends Layer[Output, Output](name) {
   override val layerType: String = s"Dropout[$keepProbability]"
 
-  override def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
-    val output = mode match {
+  override protected def _forward(input: Output, mode: Mode): Output = {
+    mode match {
       case TRAINING =>
         val noise = if (noiseShape == null) null else noiseShape.toOutput()
-        ops.NN.dropout(input, keepProbability, noise, seed, uniquifiedName)
+        ops.NN.dropout(input, keepProbability, noise, seed, name)
       case _ => input
     }
-    LayerInstance(input, output)
   }
 }
 
 case class Conv2D(
+    override val name: String,
     filterShape: Shape,
     stride1: Long,
     stride2: Long,
     padding: PaddingMode,
     dataFormat: CNNDataFormat = CNNDataFormat.default,
     useCuDNNOnGPU: Boolean = true,
-    weightsInitializer: Initializer = RandomNormalInitializer(),
-    override protected val name: String = "Conv2D"
+    weightsInitializer: Initializer = RandomNormalInitializer()
 ) extends Layer[Output, Output](name) {
   override val layerType: String = s"Conv2D[${filterShape.asArray.mkString(",")}]"
 
-  override def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
-    val weights = variable(s"$uniquifiedName/Weights", input.dataType, filterShape, weightsInitializer)
-    val output = ops.NN.conv2D(input, weights, stride1, stride2, padding, dataFormat, useCuDNNOnGPU, s"$uniquifiedName/Conv2D")
-    LayerInstance(input, output, Set(weights))
+  override protected def _forward(input: Output, mode: Mode): Output = {
+    val weights = tf.variable("Weights", input.dataType, filterShape, weightsInitializer)
+    ops.NN.conv2D(input, weights, stride1, stride2, padding, dataFormat, useCuDNNOnGPU)
   }
 }
 
 case class MaxPool(
+    override val name: String,
     windowSize: Seq[Long],
     stride1: Long,
     stride2: Long,
     padding: PaddingMode,
-    dataFormat: CNNDataFormat = CNNDataFormat.default,
-    override protected val name: String = "MaxPool"
+    dataFormat: CNNDataFormat = CNNDataFormat.default
 ) extends Layer[Output, Output](name) {
   override val layerType: String = s"MaxPool[${windowSize.mkString(",")}]"
 
-  override def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
-    val output = ops.NN.maxPool(input, windowSize, stride1, stride2, padding, dataFormat, uniquifiedName)
-    LayerInstance(input, output)
+  override protected def _forward(input: Output, mode: Mode): Output = {
+    ops.NN.maxPool(input, windowSize, stride1, stride2, padding, dataFormat, name)
   }
 }

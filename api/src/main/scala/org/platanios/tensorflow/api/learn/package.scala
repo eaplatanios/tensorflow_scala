@@ -26,8 +26,7 @@ package object learn {
   }
 
   private[api] trait API
-      extends Model.API
-          with estimators.API
+      extends estimators.API
           with hooks.API
           with layers.API {
     type Configuration = learn.Configuration
@@ -55,6 +54,14 @@ package object learn {
     val ClipGradientsByNorm       : learn.ClipGradientsByNorm.type        = learn.ClipGradientsByNorm
     val ClipGradientsByAverageNorm: learn.ClipGradientsByAverageNorm.type = learn.ClipGradientsByAverageNorm
     val ClipGradientsByGlobalNorm : learn.ClipGradientsByGlobalNorm.type  = learn.ClipGradientsByGlobalNorm
+
+    type Model = learn.Model
+    type InferenceModel[IT, IO, ID, IS, I] = learn.InferenceModel[IT, IO, ID, IS, I]
+    type TrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] = learn.TrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, EI]
+    type SupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T] = learn.SupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T]
+    type UnsupervisedTrainableModel[IT, IO, ID, IS, I] = learn.UnsupervisedTrainableModel[IT, IO, ID, IS, I]
+
+    val Model: learn.Model.type = learn.Model
   }
 
   private[api] object API extends API

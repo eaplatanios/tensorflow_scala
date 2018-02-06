@@ -16,51 +16,40 @@
 package org.platanios.tensorflow.api.learn.layers.rnn.cell
 
 import org.platanios.tensorflow.api.learn.Mode
-import org.platanios.tensorflow.api.learn.layers.{Layer, LayerInstance}
+import org.platanios.tensorflow.api.learn.layers.Layer
+import org.platanios.tensorflow.api.ops
+import org.platanios.tensorflow.api.ops.Op
+import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
+import org.platanios.tensorflow.api.ops.variables.VariableScope
 
 /**
+  * @param  name Name scope (also acting as variable scope) for this layer.
+  *
   * @author Emmanouil Antonios Platanios
   */
-abstract class RNNCell[O, OS, S, SS](override protected val name: String)
-    extends Layer[Tuple[O, S], Tuple[O, S]](name) {
-  def createCell(mode: Mode): CellInstance[O, OS, S, SS]
+abstract class RNNCell[O, OS, S, SS](override val name: String)(implicit
+  evO: WhileLoopVariable.Aux[O, OS],
+  evS: WhileLoopVariable.Aux[S, SS]
+) extends Layer[Tuple[O, S], Tuple[O, S]](name) {
+  def createCellWithoutContext(mode: Mode, inputShape: OS): ops.rnn.cell.RNNCell[O, OS, S, SS]
 
-  override final def forward(input: Tuple[O, S], mode: Mode): LayerInstance[Tuple[O, S], Tuple[O, S]] = {
-    val cellInstance = createCell(mode)
-    val output = cellInstance.cell.forward(input)
-    LayerInstance(input, output, cellInstance.trainableVariables, cellInstance.nonTrainableVariables)
+  final def createCell(mode: Mode, inputShape: OS): ops.rnn.cell.RNNCell[O, OS, S, SS ] = Op.createWith(
+    nameScope = context.value.nameScope,
+    device = context.value.device,
+    deviceFunction = context.value.deviceFunction
+  ) {
+    VariableScope.createWithUpdatedVariableScope(context.value.variableScope, isPure = true) {
+      if (name != null) {
+        VariableScope.createWithVariableScope(name, isPure = true) {
+          createCellWithoutContext(mode, inputShape)
+        }
+      } else {
+        createCellWithoutContext(mode, inputShape)
+      }
+    }
+  }
+
+  override final protected def _forward(input: Tuple[O, S], mode: Mode): Tuple[O, S] = {
+    createCellWithoutContext(mode, evO.fromShapes(input.output, evO.outputs(input.output).map(_.shape))).forward(input)
   }
 }
-
-///**
-//  * @param  name              Desired name for this layer (note that this name will be made unique by potentially
-//  *                           appending a number to it, if it has been used before for another layer).
-//  */
-//class RNNCellDropoutWrapper(
-//    cell: RNNCell,
-//    inputKeepProbability: Float = 1.0f,
-//    stateKeepProbability: Float = 1.0f,
-//    outputKeepProbability: Float = 1.0f,
-//    seed: Long = 0L,
-//    override protected val name: String = "RNNCellDropoutWrapper"
-//) extends RNNCell(name) {
-//  override val layerType: String = "BasicRNNCell"
-//
-//  override def stateSize: Seq[Shape] = Seq(Shape(numUnits))
-//  override def outputSize: Seq[Shape] = Seq(Shape(numUnits))
-//
-//  override def forward(input: RNNCell.Tuple, mode: Mode): LayerInstance[RNNCell.Tuple, RNNCell.Tuple] = {
-//    if (input.output.rank != 2)
-//      throw InvalidArgumentException(s"Input must be rank-2 (provided rank-${input.output.rank}).")
-//    if (input.output.shape(1) == -1)
-//      throw InvalidArgumentException(s"Last axis of input shape (${input.output.shape}) must be known.")
-//    if (input.state.length != 1)
-//      throw InvalidArgumentException(s"The state must consist of one tensor.")
-//    val kernel = variable(
-//      RNNCell.KERNEL_NAME, input.output.dataType, Shape(input.output.shape(1) + numUnits, numUnits), kernelInitializer)
-//    val bias = variable(RNNCell.BIAS_NAME, input.output.dataType, Shape(numUnits), biasInitializer)
-//    val linear = addBias(matmul(concatenate(input.output, input.state.head, axis = 1), kernel), bias)
-//    val output = activation(linear)
-//    LayerInstance(input, RNNCell.Tuple(output, Seq(output)), Set(kernel, bias))
-//  }
-//}

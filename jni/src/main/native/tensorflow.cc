@@ -138,3 +138,36 @@ JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_clearC
   tensorflow::ClearControlInputs(graph, op);
   return 0;
 }
+
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_setRequestedDevice(
+  JNIEnv* env, jobject object, jlong graph_handle, jlong op_handle, jstring device) {
+  TF_Graph* graph = require_graph_handle(env, graph_handle);
+  TF_Operation* op = require_operation_handle(env, op_handle);
+  if (graph == nullptr)
+    throw_exception(env, tf_invalid_argument_exception, "Graph could not be found.");
+  if (op == nullptr)
+    throw_exception(env, tf_invalid_argument_exception, "Operation could not be found.");
+  const char *c_device = env->GetStringUTFChars(device, nullptr);
+  tensorflow::SetRequestedDevice(graph, op, c_device);
+  env->ReleaseStringUTFChars(device, c_device);
+  return;
+}
+
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_setAttributeProto(
+    JNIEnv* env, jobject object, jlong graph_handle, jlong op_handle, jstring name, jbyteArray value) {
+  TF_Graph* graph = require_graph_handle(env, graph_handle);
+  TF_Operation* op = require_operation_handle(env, op_handle);
+  if (graph == nullptr)
+    throw_exception(env, tf_invalid_argument_exception, "Graph could not be found.");
+  if (op == nullptr)
+    throw_exception(env, tf_invalid_argument_exception, "Operation could not be found.");
+  const char *c_name = env->GetStringUTFChars(name, nullptr);
+  jbyte *c_value = env->GetByteArrayElements(value, nullptr);
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+  TF_Buffer* proto_buffer = TF_NewBufferFromString(c_value, static_cast<size_t>(env->GetArrayLength(value)));
+  tensorflow::SetAttribute(graph, op, c_name, proto_buffer, status.get());
+  TF_DeleteBuffer(proto_buffer);
+  env->ReleaseByteArrayElements(value, c_value, JNI_ABORT);
+  env->ReleaseStringUTFChars(name, c_name);
+  CHECK_STATUS(env, status.get(), void());
+}

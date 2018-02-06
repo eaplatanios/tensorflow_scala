@@ -82,7 +82,7 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
     * @param  stopCriteria Stop criteria to use for stopping the training iteration. For the default criteria please
     *                      refer to the documentation of [[StopCriteria]].
     */
-  override def train(data: () => Dataset[TT, TO, TD, TS], stopCriteria: StopCriteria = StopCriteria()): Unit = {
+  override def train(data: () => Dataset[TT, TO, TD, TS], stopCriteria: StopCriteria = this.stopCriteria): Unit = {
     trainWithHooks(data, stopCriteria)
   }
 
@@ -109,10 +109,12 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
     */
   def trainWithHooks(
       data: () => Dataset[TT, TO, TD, TS],
-      stopCriteria: StopCriteria = StopCriteria(),
+      stopCriteria: StopCriteria = this.stopCriteria,
       hooks: Set[Hook] = trainHooks,
       chiefOnlyHooks: Set[Hook] = trainChiefOnlyHooks,
       tensorBoardConfig: TensorBoardConfig = this.tensorBoardConfig): Unit = {
+    if (hooks.exists(_.isInstanceOf[Stopper]) || chiefOnlyHooks.exists(_.isInstanceOf[Stopper]))
+      Estimator.logger.warn("The provided stopper hook will be ignored. Please use 'stopCriteria' instead.")
     val needsToTrain = {
       if (!stopCriteria.restartCounting) {
         workingDir.flatMap(dir => Saver.latestCheckpoint(dir).flatMap(latestPath => {
@@ -127,30 +129,30 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
         "Skipping training because no restarting is allowed in the termination criteria and the maximum number of " +
             "steps have already been executed in the past (i.e., saved checkpoint).")
     } else {
-      val allHooks = mutable.Set(hooks.toSeq: _*)
-      val allChiefOnlyHooks = mutable.Set(chiefOnlyHooks.toSeq: _*)
-      allHooks += StopHook(stopCriteria)
+      val allHooks = mutable.Set(hooks.filter(!_.isInstanceOf[Stopper]).toSeq: _*)
+      val allChiefOnlyHooks = mutable.Set(chiefOnlyHooks.filter(!_.isInstanceOf[Stopper]).toSeq: _*)
+      allHooks += Stopper(stopCriteria)
       val model = modelFunction(configuration)
       val graph = Graph()
       Op.createWith(graph = graph, deviceFunction = deviceFunction.getOrElse(_.device)) {
-        graph.setRandomSeed(randomSeed)
+        randomSeed.foreach(graph.setRandomSeed)
         // TODO: [LEARN] !!! Do we ever update the global epoch?
         Counter.getOrCreate(Graph.Keys.GLOBAL_EPOCH, local = false)
         Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
         val trainOps = Op.createWithNameScope("Model")(model.buildTrainOps())
-        val inputInitializer = trainOps.inputIterator.createInitializer(data())
         graph.addToCollection(trainOps.loss, Graph.Keys.LOSSES)
-        allHooks += TensorNaNHook(Set(trainOps.loss.name))
+        allHooks += NaNChecker(Set(trainOps.loss.name))
         val modelInstance = ModelInstance(
-          trainOps.inputIterator, trainOps.input, trainOps.output, Some(trainOps.loss), Some(trainOps.trainOp),
-          trainOps.trainableVariables, trainOps.nonTrainableVariables)
+          model, configuration, Some(trainOps.inputIterator), Some(trainOps.input), Some(trainOps.output),
+          Some(trainOps.loss), Some(trainOps.gradientsAndVariables), Some(trainOps.trainOp))
         allHooks.foreach {
-          case hook: ModelDependentHook[I, TT, TO, TD, TS] => hook.setModelInstance(modelInstance)
+          case hook: ModelDependentHook[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] => hook.setModelInstance(modelInstance)
           case _ => ()
         }
         if (tensorBoardConfig != null)
           allChiefOnlyHooks += TensorBoardHook(tensorBoardConfig)
         val saver = getOrCreateSaver()
+        val dataInitializer = trainOps.inputIterator.createInitializer(data())
         val session = Estimator.monitoredTrainingSession(
           configuration = configuration,
           hooks = allHooks.toSet,
@@ -160,9 +162,9 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
               Variable.initializer(Variable.globalVariables),
               Resource.initializer(Resource.sharedResources)))),
             localInitOp = Some(ControlFlow.group(Set(
-              inputInitializer,
               Variable.initializer(Variable.localVariables),
               Lookup.initializer(Lookup.initializers)))),
+            localInitFunction = Some((session, _) => session.run(targets = dataInitializer)),
             saver = saver))
         try {
           while (!session.shouldStop)
@@ -247,6 +249,8 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
       evFetchableIIO: Fetchable.Aux[(IO, I), (IT, ModelInferenceOutput)],
       ev: Estimator.SupportedInferInput[InferInput, InferOutput, IT, IO, ID, IS, ModelInferenceOutput]
   ): InferOutput = {
+    if (hooks.exists(_.isInstanceOf[Stopper]))
+      Estimator.logger.warn("The provided stopper hook will be ignored. Please use 'stopCriteria' instead.")
     // Check that the model has been trained.
     val _checkpointPath = Option(checkpointPath).orElse(workingDir.flatMap(Saver.latestCheckpoint(_)))
     if (_checkpointPath.isEmpty)
@@ -256,19 +260,17 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
     val model = modelFunction(configuration)
     val graph = Graph()
     Op.createWith(graph) {
-      graph.setRandomSeed(randomSeed)
+      randomSeed.foreach(graph.setRandomSeed)
       Counter.getOrCreate(Graph.Keys.GLOBAL_EPOCH, local = false)
       Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
       val inferOps = Op.createWithNameScope("Model")(model.buildInferOps())
-      val inputInitializer = inferOps.inputIterator.createInitializer(ev.toDataset(input()))
-      val modelInstance = ModelInstance(
-        inferOps.inputIterator, inferOps.input, inferOps.output, None, None,
-        inferOps.trainableVariables, inferOps.nonTrainableVariables)
+      val modelInstance = ModelInstance(model, configuration, None, None, Some(inferOps.output), None, None, None)
       hooks.foreach {
-        case hook: ModelDependentHook[I, IT, IO, ID, IS] => hook.setModelInstance(modelInstance)
+        case hook: ModelDependentHook[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] => hook.setModelInstance(modelInstance)
         case _ => ()
       }
       val saver = getOrCreateSaver()
+      val dataInitializer = inferOps.inputIterator.createInitializer(ev.toDataset(input()))
       val session = MonitoredSession(
         ChiefSessionCreator(
           sessionScaffold = SessionScaffold(
@@ -276,13 +278,13 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
               Variable.initializer(Variable.globalVariables),
               Resource.initializer(Resource.sharedResources)))),
             localInitOp = Some(ControlFlow.group(Set(
-              inputInitializer,
               Variable.initializer(Variable.localVariables),
               Lookup.initializer(Lookup.initializers)))),
+            localInitFunction = Some((session, _) => session.run(targets = dataInitializer)),
             saver = saver),
           sessionConfig = configuration.sessionConfig,
           checkpointPath = workingDir),
-        hooks, shouldRecover = true)
+        hooks.filter(!_.isInstanceOf[Stopper]), shouldRecover = true)
       val output = ev.convertFetched(new Iterator[(IT, ModelInferenceOutput)] {
         override def hasNext: Boolean = session.shouldStop
         override def next(): (IT, ModelInferenceOutput) = {
@@ -385,6 +387,8 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
       checkpointPath: Path = null,
       saveSummaries: Boolean = true,
       name: String = null): Seq[Tensor] = {
+    if (hooks.exists(_.isInstanceOf[Stopper]))
+      Estimator.logger.warn("The provided stopper hook will be ignored. Please use 'stopCriteria' instead.")
     // Check that the model has been trained.
     val _checkpointPath = Option(checkpointPath).orElse(workingDir.flatMap(Saver.latestCheckpoint(_)))
     if (_checkpointPath.isEmpty)
@@ -394,24 +398,24 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
     val model = modelFunction(configuration)
     val graph = Graph()
     Op.createWith(graph) {
-      graph.setRandomSeed(randomSeed)
+      randomSeed.foreach(graph.setRandomSeed)
       val evaluateOps = Op.createWithNameScope("Model")(model.buildEvaluateOps(metrics))
-      val inputInitializer = evaluateOps.inputIterator.createInitializer(data())
       Counter.getOrCreate(Graph.Keys.GLOBAL_EPOCH, local = false)
       val globalStep = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
       val evalStep = Counter.getOrCreate(Graph.Keys.EVAL_STEP, local = true)
       val evalStepUpdate = evalStep.assignAdd(1L)
       val evalUpdateOps = ControlFlow.group(evaluateOps.metricUpdates.map(_.op).toSet + evalStepUpdate.op)
-      val allHooks = mutable.Set(hooks.toSeq: _*)
-      allHooks += StopEvaluationHook(maxSteps)
+      val allHooks = mutable.Set(hooks.filter(!_.isInstanceOf[Stopper]).toSeq: _*)
+      allHooks += Stopper(StopCriteria(maxSteps = Some(maxSteps)))
       val modelInstance = ModelInstance(
-        evaluateOps.inputIterator, evaluateOps.input, evaluateOps.output, None, None,
-        evaluateOps.trainableVariables, evaluateOps.nonTrainableVariables)
+        model, configuration, Some(evaluateOps.inputIterator), Some(evaluateOps.input), Some(evaluateOps.output),
+        None, None, None)
       allHooks.foreach {
-        case hook: ModelDependentHook[I, TT, TO, TD, TS] => hook.setModelInstance(modelInstance)
+        case hook: ModelDependentHook[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] => hook.setModelInstance(modelInstance)
         case _ => ()
       }
       val saver = getOrCreateSaver()
+      val dataInitializer = evaluateOps.inputIterator.createInitializer(data())
       val session = MonitoredSession(
         ChiefSessionCreator(
           master = configuration.evaluationMaster,
@@ -420,12 +424,12 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
               Variable.initializer(Variable.globalVariables),
               Resource.initializer(Resource.sharedResources)))),
             localInitOp = Some(ControlFlow.group(Set(
-              inputInitializer,
               Variable.initializer(Variable.localVariables),
               Lookup.initializer(Lookup.initializers)))),
+            localInitFunction = Some((session, _) => session.run(targets = dataInitializer)),
             saver = saver),
           sessionConfig = configuration.sessionConfig,
-          checkpointPath = workingDir),
+          checkpointPath = configuration.workingDir),
         allHooks.toSet, shouldRecover = true)
       FileBasedEstimator.logger.info("Starting evaluation.")
       val (step, metricValues) = {
@@ -445,10 +449,11 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
           case t: Throwable =>
             session.closeWithoutHookEnd()
             throw t
+        } finally {
+          if (!session.closed)
+            session.close()
         }
       }
-      if (!session.closed)
-        session.close()
       FileBasedEstimator.logger.info("Finished evaluation.")
       FileBasedEstimator.logger.info("Saving evaluation results.")
       if (saveSummaries)

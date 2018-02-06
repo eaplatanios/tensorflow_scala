@@ -43,38 +43,38 @@ package org.platanios.tensorflow.api.learn
   * @author Emmanouil Antonios Platanios
   */
 class StopCriteria private[learn] (
-    val maxEpochs: Option[Long] = None,
     val maxSteps: Option[Long] = Some(10000L),
+    val maxEpochs: Option[Long] = None,
     val maxSeconds: Option[Long] = None,
     val restartCounting: Boolean = true,
     val absLossChangeTol: Option[Double] = None,
     val relLossChangeTol: Option[Double] = None,
     val maxStepBelowTol: Long = 10) {
-  require(maxEpochs.getOrElse(0L) >= 0, "'maxEpochs' needs to be a non-negative number.")
   require(maxSteps.getOrElse(0L) >= 0, "'maxSteps' needs to be a non-negative number.")
+  require(maxEpochs.getOrElse(0L) >= 0, "'maxEpochs' needs to be a non-negative number.")
   require(maxSeconds.getOrElse(0L) >= 0, "'maxSeconds' needs to be a non-negative number.")
   require(absLossChangeTol.getOrElse(0.0) >= 0, "'absLossChangeTol' needs to be a non-negative number.")
   require(absLossChangeTol.getOrElse(0.0) >= 0, "'absLossChangeTol' needs to be a non-negative number.")
   require(maxStepBelowTol >= 0, "'maxStepBelowTol' needs to be a non-negative number.")
 
-  private[learn] val needEpoch: Boolean = maxEpochs.isDefined
   private[learn] val needStep : Boolean = maxSteps.isDefined
+  private[learn] val needEpoch: Boolean = maxEpochs.isDefined
   private[learn] val needLoss : Boolean = absLossChangeTol.isDefined || relLossChangeTol.isDefined
 }
 
 object StopCriteria {
   def apply(
-      maxEpochs: Option[Long] = Some(100L),
       maxSteps: Option[Long] = Some(10000L),
+      maxEpochs: Option[Long] = Some(100L),
       maxSeconds: Option[Long] = None,
       restartCounting: Boolean = true,
       absLossChangeTol: Option[Double] = None,
       relLossChangeTol: Option[Double] = None,
       maxStepBelowTol: Long = 10): StopCriteria = {
     new StopCriteria(
-      maxEpochs, maxSteps, maxSeconds, restartCounting, absLossChangeTol, relLossChangeTol, maxStepBelowTol)
+      maxSteps, maxEpochs, maxSeconds, restartCounting, absLossChangeTol, relLossChangeTol, maxStepBelowTol)
   }
 
   def none: StopCriteria = new StopCriteria(None, None, None, true, None, None, 10)
-  def steps(maxSteps: Long): StopCriteria = new StopCriteria(None, Some(maxSteps), None, true, None, None, 10)
+  def steps(maxSteps: Long): StopCriteria = new StopCriteria(Some(maxSteps), None, None, true, None, None, 10)
 }

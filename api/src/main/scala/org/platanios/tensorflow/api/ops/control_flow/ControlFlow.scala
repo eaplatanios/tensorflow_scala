@@ -16,7 +16,8 @@
 package org.platanios.tensorflow.api.ops.control_flow
 
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.core.exception.{InvalidDataTypeException, UnimplementedException}
+import org.platanios.tensorflow.api.core.exception._
+import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.tensors.Tensor
@@ -66,7 +67,7 @@ private[api] trait ControlFlow {
     if (inputsByDevice.size == 1) {
       // 1-level tree. The root node is the returned no-op node.
       val (device, ops) = inputsByDevice.head
-      if (device != null && device != "")
+      if (device != null)
         Op.createWith(device = device, controlDependencies = ops)(noOp(name))
       else
         Op.createWith(controlDependencies = ops)(noOp(name))
@@ -74,7 +75,7 @@ private[api] trait ControlFlow {
       // 2-level tree. The root node is the returned no-op node. `dependencies` contains 1 NoOp node for each device.
       val dependencies = inputsByDevice.toSeq.sortBy(_._1).map {
         case (device, ops) =>
-          if (device != null && device != "")
+          if (device != null)
             Op.createWith(device = device, controlDependencies = ops)(noOp(name))
           else
             Op.createWith(controlDependencies = ops)(noOp(name))
@@ -203,6 +204,8 @@ private[api] trait ControlFlow {
     * @param  parallelIterations    Number of iterations allowed to run in parallel.
     * @param  enableBackPropagation If `true`, back-propagation support is enabled for this while-loop context.
     * @param  swapMemory            If `true`, GPU-CPU memory swapping support is enabled for this while-loop context.
+    * @param  maximumIterations     Optional `INT32` scalar specifying the maximum number of iterations to loop for. If
+    *                               `null` (the default), no iteration limit is enforced.
     * @param  name                  Name prefix for the created ops.
     * @return Created op output structure containing the loop variables values after the loop finishes, mirroring the
     *         return structure of `bodyFn`.
@@ -210,50 +213,69 @@ private[api] trait ControlFlow {
   def whileLoop[T, TS](
       predicateFn: T => Output, bodyFn: T => T, loopVariables: T, shapeInvariants: Option[TS] = None,
       parallelIterations: Int = 10, enableBackPropagation: Boolean = true, swapMemory: Boolean = false,
-      name: String = "WhileLoop"
+      maximumIterations: Output = null, name: String = "WhileLoop"
   )(implicit
       ev: WhileLoopVariable.Aux[T, TS]
   ): T = {
     require(parallelIterations > 0, "'parallelIterations' must be a positive integer.")
     Op.createWithNameScope(name) {
-      val loopContext = WhileLoopContext(parallelIterations, enableBackPropagation, swapMemory)
+      val loopContext = WhileLoopContext(
+        Option(maximumIterations), parallelIterations, enableBackPropagation, swapMemory)
       Op.currentGraph.addToCollection(loopContext, WhileLoopContext.WHILE_LOOP_CONTEXTS)
-      loopContext.buildLoop(predicateFn, bodyFn, loopVariables, shapeInvariants)
+      if (maximumIterations == null) {
+        loopContext.buildLoop(predicateFn, bodyFn, loopVariables, shapeInvariants)
+      } else {
+        require(maximumIterations.rank == 0 || maximumIterations.rank == -1,
+          s"'maximumIterations' must be a scalar, but has shape ${maximumIterations.shape}.")
+        // If/when we generate the gradient for this while loop, the maximum iterations tensor will be used as input to
+        // any generated stack ops. It is likely that the stacks will be outside any control flow context (i.e., if
+        // `gradients()` is called outside any control flow context), which will result in the maximum iterations tensor
+        // being an illegal input (see `ControlFlow.checkInputFromValidContext` -- we could technically allow tensors
+        // from CondContexts, but that will be error-prone and hard to reason about for users).
+        if (maximumIterations.op.isInCond || maximumIterations.op.isInWhileLoop)
+          throw InvalidArgumentException("The `maximumIterations` tensor cannot be defined in a `cond` or `whileLoop`.")
+        val zero = Basic.constant(0, name = "Zero")
+        val one = Basic.constant(1, name = "One")
+        loopContext.buildLoop[(Output, T), (Shape, TS)](
+          (v: (Output, T)) => Math.logicalAnd(v._1 < maximumIterations, predicateFn(v._2)),
+          (v: (Output, T)) => (v._1 + one, bodyFn(v._2)),
+          (zero, loopVariables),
+          shapeInvariants.map((Shape.scalar(), _)))._2
+      }
     }
   }
 }
 
 private[api] object ControlFlow extends ControlFlow {
-  /** Creates an op that does nothing and serves as a control trigger for scheduling. The created op is only useful as
-    * a placeholder for control edges.
-    *
-    * @param  name Name for the created op.
-    * @return Created op output.
-    */
-  private[control_flow] def controlTrigger(name: String = "ControlTrigger"): Op = {
-    Op.Builder(opType = "ControlTrigger", name = name).build()
-  }
+  case class ControlFlowOps(op: Op) {
+    /** Returns `true` if the provided op is within a cond statement. */
+    def isInCond: Boolean = op.controlFlowContext.flatMap(_.condContext).isDefined
 
-  /** Creates an op that forwards its input to the output.
-    *
-    * The op represents the loop termination condition used by the "pivot" switches of a loop.
-    *
-    * @param  input Boolean scalar tensor, representing the branch predicate of the switch op.
-    * @param  name  Name for the created op.
-    * @return Created op output, which has the same value as the input tensor.
-    */
-  private[control_flow] def loopCond(input: Output, name: String = "LoopCond"): Output = {
-    Op.Builder(opType = "LoopCond", name = name)
-        .addInput(input)
-        .build().outputs(0)
+    /** Returns `true` if the provided op is within a while loop statement. */
+    def isInWhileLoop: Boolean = op.controlFlowContext.flatMap(_.whileLoopContext).isDefined
+
+    /** Returns `true` if the provided op is within an XLA control flow context. */
+    def isInXLAContext: Boolean = {
+      val xlaCompile = {
+        try {
+          op.booleanAttribute("_XlaCompile")
+        } catch {
+          case _: IllegalArgumentException => false
+        }
+      }
+      xlaCompile || op.controlFlowContext.flatMap(_.xlaContext).isDefined
+    }
   }
 
   /** Returns `true` if and only if the provided op is a switch op. */
   private[ops] def isSwitch(op: Op): Boolean = op.opType == "Switch" || op.opType == "RefSwitch"
 
   /** Returns `true` if and only if the provided op is a loop invariant. */
+  private[ops] def isLoopEnter(op: Op): Boolean = op.opType == "Enter" || op.opType == "RefEnter"
+
+  /** Returns `true` if and only if the provided op is a constant loop invariant. */
   private[ops] def isLoopConstantEnter(op: Op): Boolean = {
-    (op.opType == "Enter" || op.opType == "RefEnter") && op.booleanAttribute("is_constant")
+    isLoopEnter(op) && op.booleanAttribute("is_constant")
   }
 
   /** Returns `true` if and only if the provided op is a loop exit op. */
@@ -280,6 +302,84 @@ private[api] object ControlFlow extends ControlFlow {
       context.flatMap(_.outerContext)
     else
       context
+  }
+
+  /** Returns `true` if `maybeContainingContext` is or contains `context`. */
+  private[ops] def isContainingContext(context: Context, maybeContainingContext: Option[Context]): Boolean = {
+    if (maybeContainingContext.isEmpty && context == null) {
+      true
+    } else {
+      maybeContainingContext.exists(containingContext => {
+        var currentContext = Option(context)
+        while (currentContext.exists(_ != containingContext))
+          currentContext = currentContext.flatMap(_.outerContext)
+        currentContext.contains(containingContext)
+      })
+    }
+  }
+
+  /** Checks whether `inputOp` can be used from within the `op`'s context. Conceptually, only inputs from an op's while
+    * loop context or any ancestor while loop context (including outside of any context) are valid. In practice, there
+    * are many other edge cases as well. */
+  @throws[InvalidArgumentException]
+  private[ops] def checkInputFromValidContext(op: Op, inputOp: Op): Unit = {
+    val opContext = op.controlFlowContext
+    val inputContext = getOutputContext(inputOp)
+    val errorMessage = inputContext match {
+      case None => null                            // `inputOp` is not in a control flow context.
+      case Some(context) if context == opContext.orNull => null // `inputOp` is in the same control flow context.
+      case Some(context) =>
+        val whileContext = opContext.flatMap(_.whileLoopContext)
+        val inputWhileContext = context.whileLoopContext
+        whileContext match {
+          case None =>
+            if (inputWhileContext.isEmpty) {
+              // Neither `op` nor `inputOp` is in a while loop, but one or both are in conditionals. We allow this,
+              // although execution will fail if the branch corresponding to the `inputOp`'s conditional context is not
+              // taken.
+              null
+            } else if (isLoopEnter(op) || isSwitch(op)) {
+              // The while loop building code clears the context for enter nodes, and the conditional context add value
+              // code clears the context for switch nodes.
+              null
+            } else {
+              s"Cannot use '${inputOp.name}' as input to '${op.name}' because '${inputOp.name}' is in a while loop."
+            }
+          case Some(whileLoopContext) if isContainingContext(whileLoopContext, inputWhileContext) =>
+            // `inputOp` is in a while loop which contains `op`'s while loop (or not in a while loop at all).
+            null
+          case Some(whileLoopContext) if whileLoopContext.gradientLoopState.isDefined &&
+              isContainingContext(whileLoopContext.gradientLoopState.get.forwardContext, inputWhileContext) =>
+            // `op` is in a gradient context and `inputOp` is in the associated forward pass context or an ancestor
+            // thereof. This case is needed to build while loop gradients. Note that we theoretically also need this
+            // case for custom gradient functions that close over tensors from ancestor contexts, but this has not been
+            // verified yet.
+            null
+          case Some(whileLoopContext) if whileLoopContext.gradientLoopState.isDefined &&
+              whileLoopContext.gradientLoopState.get.forwardContext ==
+                  inputWhileContext.flatMap(_.outerContext).orNull =>
+            // `op` is in a gradient context and `inputOp` is in a child of the associated forward pass context. This
+            // case is needed for the gradients of while loops with conditionals.
+            null
+          case Some(whileLoopContext) if inputWhileContext.flatMap(_.gradientLoopState).isDefined &&
+              inputWhileContext.flatMap(_.gradientLoopState).get.forwardContext == whileLoopContext =>
+            // `inputOp` is in the gradient context of `op`'s context. This case is needed when the gradient of a while
+            // loop gradient is requested (this will eventually fail unless there is a `stopGradient` op or similar).
+            null
+          case Some(whileLoopContext) if inputWhileContext.flatMap(_.gradientLoopState).isDefined &&
+              context.gradientLoopState.flatMap(_.forwardContext.gradientLoopState).isDefined &&
+              context.gradientLoopState
+                  .flatMap(_.forwardContext.gradientLoopState).get.forwardContext == whileLoopContext =>
+            // `inputOp` is in the gradient gradient context of `op`'s context. This case is needed when the gradient of
+            // a while loop gradient is requested (this will eventually fail unless there is a `stopGradient` op or
+            // similar).
+            null
+          case _ =>
+            s"Cannot use '${inputOp.name}' as input to '${op.name}' because they are in different while loops."
+        }
+    }
+    if (errorMessage != null)
+      throw InvalidArgumentException(errorMessage)
   }
 
   /** Creates an op that forwards `input` to the output port determined by `predicate`, while making sure the new op is
@@ -327,6 +427,30 @@ private[api] object ControlFlow extends ControlFlow {
   }
 
   //region Low Level Ops
+
+  /** Creates an op that does nothing and serves as a control trigger for scheduling. The created op is only useful as
+    * a placeholder for control edges.
+    *
+    * @param  name Name for the created op.
+    * @return Created op output.
+    */
+  private[control_flow] def controlTrigger(name: String = "ControlTrigger"): Op = {
+    Op.Builder(opType = "ControlTrigger", name = name).build()
+  }
+
+  /** Creates an op that forwards its input to the output.
+    *
+    * The op represents the loop termination condition used by the "pivot" switches of a loop.
+    *
+    * @param  input Boolean scalar tensor, representing the branch predicate of the switch op.
+    * @param  name  Name for the created op.
+    * @return Created op output, which has the same value as the input tensor.
+    */
+  private[control_flow] def loopCond(input: Output, name: String = "LoopCond"): Output = {
+    Op.Builder(opType = "LoopCond", name = name)
+        .addInput(input)
+        .build().outputs(0)
+  }
 
   /** Creates an op that makes its input available to the next iteration.
     *
@@ -751,7 +875,8 @@ private[api] object ControlFlow extends ControlFlow {
               // This is the second time this switch node is visited. It comes from the non-exit branch of the switch,
               // and so we update the second input to the merge node.
               if (outputGradients(1) != null)
-                WhileLoopContext.addNextIterationAndBackEdge(mergeGradient, outputGradients(1))
+                WhileLoopContext.addNextIterationAndBackEdge(
+                  mergeGradient, outputGradients(1), enforceShapeInvariant = false)
               Seq(null, null)
             case None if outputGradients.head != null =>
               // This is the first time this switch node is visited. It comes from the exit branch of the switch, which

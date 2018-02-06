@@ -39,8 +39,6 @@ import java.nio.file.{Files, Path}
 
 import scala.collection.mutable
 
-// TODO: Avoid triggering the checkpoint saver on the first iteration.
-
 /** Abstract class for estimators which are used to train, use, and evaluate TensorFlow models.
   *
   * The [[Estimator]] class wraps a model which is specified by a `modelFunction`, which, given inputs and a number of
@@ -130,7 +128,7 @@ abstract class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
   def checkpointConfig: CheckpointConfig = configuration.checkpointConfig
 
   /** Random seed value to be used by the TensorFlow initializers in this estimator. */
-  def randomSeed: Int = configuration.randomSeed
+  def randomSeed: Option[Int] = configuration.randomSeed
 
   /** Gets an existing saver from the current graph, or creates a new one if none exists. */
   protected def getOrCreateSaver(): Option[Saver] = {
@@ -324,13 +322,13 @@ object Estimator {
         configuration.master, sessionScaffold, configuration.sessionConfig, configuration.workingDir)
       val chiefHooks = mutable.Set((hooks ++ chiefOnlyHooks).toSeq: _*)
       configuration.workingDir.foreach(workingDir => {
-        if (!chiefHooks.exists(_.isInstanceOf[CheckpointSaverHook])) {
+        if (!chiefHooks.exists(_.isInstanceOf[CheckpointSaver])) {
           configuration.checkpointConfig match {
             case NoCheckpoints => ()
             case StepBasedCheckpoints(steps, _, _) =>
-              chiefHooks += CheckpointSaverHook(workingDir, StepHookTrigger(steps))
+              chiefHooks += CheckpointSaver(workingDir, StepHookTrigger(steps))
             case TimeBasedCheckpoints(seconds, _, _) =>
-              chiefHooks += CheckpointSaverHook(workingDir, TimeHookTrigger(seconds))
+              chiefHooks += CheckpointSaver(workingDir, TimeHookTrigger(seconds))
           }
         }
       })

@@ -26,7 +26,7 @@ class VariableSpec extends FlatSpec with Matchers {
   "Variable creation" must "work" in {
     val graph = Graph()
     val variable = tf.createWith(graph = graph) {
-      val initializer = tf.constantInitializer(Tensor(Tensor(2, 3)))
+      val initializer = tf.ConstantInitializer(Tensor(Tensor(2, 3)))
       tf.variable("variable", INT64, Shape(1, 2), initializer)
     }
     assert(variable.dataType === INT64)
@@ -46,7 +46,7 @@ class VariableSpec extends FlatSpec with Matchers {
     val graph = Graph()
     val (variable, variableAssignment) = tf.createWith(graph = graph) {
       val a = tf.constant(Tensor(Tensor(5, 7)), INT64, name = "A")
-      val initializer = tf.constantInitializer(Tensor(Tensor(2, 3)))
+      val initializer = tf.ConstantInitializer(Tensor(Tensor(2, 3)))
       val variable = tf.variable("variable", INT64, Shape(1, 2), initializer)
       val variableAssignment = variable.assign(a)
       (variable, variableAssignment)

@@ -167,7 +167,7 @@ object DataType {
 
   /** Set of all integer data types. */
   val integerDataTypes: Set[DataType] = {
-    Set(INT8, INT16, INT32, INT64, UINT8, UINT16, UINT32, QINT8, QINT16, QINT32, QUINT8, QUINT16)
+    Set(INT8, INT16, INT32, INT64, UINT8, UINT16, UINT32, UINT64, QINT8, QINT16, QINT32, QUINT8, QUINT16)
   }
 
   /** Set of all quantized data types. */
@@ -177,7 +177,7 @@ object DataType {
 
   /** Set of all unsigned data types. */
   val unsignedDataTypes: Set[DataType] = {
-    Set(UINT8, UINT16, UINT32, QUINT8, QUINT16)
+    Set(UINT8, UINT16, UINT32, UINT64, QUINT8, QUINT16)
   }
 
   /** Set of all numeric data types. */
@@ -222,6 +222,7 @@ object DataType {
     case UINT8.cValue => UINT8
     case UINT16.cValue => UINT16
     case UINT32.cValue => UINT32
+    case UINT64.cValue => UINT64
     case QINT8.cValue => QINT8
     case QINT16.cValue => QINT16
     case QINT32.cValue => QINT32
@@ -256,6 +257,7 @@ object DataType {
     case "UINT8" => UINT8
     case "UINT16" => UINT16
     case "UINT32" => UINT32
+    case "UINT64" => UINT64
     case "QINT8" => QINT8
     case "QINT16" => QINT16
     case "QINT32" => QINT32

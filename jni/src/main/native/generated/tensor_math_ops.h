@@ -761,6 +761,30 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
 /*
  * Class:     org_platanios_tensorflow_jni_generated_tensors_Math__
+ * Method:    sparseSegmentSumWithNumSegments
+ * Signature: (JJJJJ)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math_00024_sparseSegmentSumWithNumSegments
+  (JNIEnv *, jobject, jlong, jlong, jlong, jlong, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_Math__
+ * Method:    sparseSegmentMeanWithNumSegments
+ * Signature: (JJJJJ)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math_00024_sparseSegmentMeanWithNumSegments
+  (JNIEnv *, jobject, jlong, jlong, jlong, jlong, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_Math__
+ * Method:    sparseSegmentSqrtNWithNumSegments
+ * Signature: (JJJJJ)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math_00024_sparseSegmentSqrtNWithNumSegments
+  (JNIEnv *, jobject, jlong, jlong, jlong, jlong, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_Math__
  * Method:    diag
  * Signature: (JJ)J
  */

@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.learn
 
-import org.platanios.tensorflow.api.ops.{Op, Output}
+import org.platanios.tensorflow.api.ops.{Op, Output, OutputLike}
 import org.platanios.tensorflow.api.ops.io.data.Iterator
 import org.platanios.tensorflow.api.ops.variables.Variable
 
@@ -26,11 +26,12 @@ import org.platanios.tensorflow.api.ops.variables.Variable
   *
   * @author Emmanouil Antonios Platanios
   */
-case class ModelInstance[I, TT, TO, TD, TS](
-    inputIterator: Iterator[TT, TO, TD, TS],
-    input: TO,
-    output: I,
+case class ModelInstance[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
+    model: TrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, EI],
+    configuration: Configuration,
+    trainInputIterator: Option[Iterator[TT, TO, TD, TS]] = None,
+    trainInput: Option[TO] = None,
+    output: Option[I] = None,
     loss: Option[Output] = None,
-    trainOp: Option[Op] = None,
-    trainableVariables: Set[Variable] = Set.empty,
-    nonTrainableVariables: Set[Variable] = Set.empty)
+    gradientsAndVariables: Option[Seq[(OutputLike, Variable)]] = None,
+    trainOp: Option[Op] = None)

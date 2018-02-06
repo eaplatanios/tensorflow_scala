@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.learn.layers
 
-import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.learn.{Mode, layers}
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.Output
@@ -32,22 +32,21 @@ object Embedding {
 }
 
 case class Embedding(
+    override val name: String,
     vocabularySize: Int,
     embeddingSize: Int,
     dataType: DataType,
     partitionStrategy: ops.Embedding.PartitionStrategy = ops.Embedding.ModStrategy,
     transformFn: Output => Output = null,
-    maxNorm: Tensor = null,
-    override protected val name: String = "Embedding")
-    extends Layer[Output, Output](name) {
+    maxNorm: Tensor = null
+) extends Layer[Output, Output](name) {
   override val layerType: String = "Embedding"
 
-  override def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
-    val embeddingMap = variable("EmbeddingMap", dataType, Shape(vocabularySize, embeddingSize))
-    val output = ops.Embedding.embeddingLookup(
+  override protected def _forward(input: Output, mode: Mode): Output = {
+    val embeddingMap = tf.variable("EmbeddingMap", dataType, Shape(vocabularySize, embeddingSize))
+    ops.Embedding.embeddingLookup(
       embeddingMap, input, partitionStrategy, transformFn,
       if (maxNorm == null) null else ops.Basic.constant(maxNorm),
       name)
-    LayerInstance(input, output, Set(embeddingMap))
   }
 }

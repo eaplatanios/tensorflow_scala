@@ -116,6 +116,9 @@ object Math {
   @native def sparseSegmentSum(contextHandle: Long, data: Long, indices: Long, segment_ids: Long): Long
   @native def sparseSegmentMean(contextHandle: Long, data: Long, indices: Long, segment_ids: Long): Long
   @native def sparseSegmentSqrtN(contextHandle: Long, data: Long, indices: Long, segment_ids: Long): Long
+  @native def sparseSegmentSumWithNumSegments(contextHandle: Long, data: Long, indices: Long, segment_ids: Long, num_segments: Long): Long
+  @native def sparseSegmentMeanWithNumSegments(contextHandle: Long, data: Long, indices: Long, segment_ids: Long, num_segments: Long): Long
+  @native def sparseSegmentSqrtNWithNumSegments(contextHandle: Long, data: Long, indices: Long, segment_ids: Long, num_segments: Long): Long
   @native def diag(contextHandle: Long, diagonal: Long): Long
   @native def diagPart(contextHandle: Long, input: Long): Long
   @native def matrixDiag(contextHandle: Long, diagonal: Long): Long

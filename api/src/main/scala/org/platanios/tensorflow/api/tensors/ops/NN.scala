@@ -61,7 +61,18 @@ private[api] trait NN {
     * @param  bias    Bias tensor.
     * @return Result as a new tensor.
     */
-  def linear(x: Tensor, weights: Tensor, bias: Tensor): Tensor = addBias(Math.matmul(x, weights), bias)
+  def linear(x: Tensor, weights: Tensor, bias: Tensor = null): Tensor = {
+    val product = {
+      if (x.rank > 2)
+        Math.tensorDot(x, weights, Seq(x.rank - 1), Seq(0))
+      else
+        Math.matmul(x, weights)
+    }
+    if (bias != null)
+      addBias(product, bias)
+    else
+      product
+  }
 
   /** $OpDocNNL2Normalize
     *
@@ -691,7 +702,7 @@ object NN extends NN {
       * @param  bias    Bias tensor.
       * @return Result as a new tensor.
       */
-    def linear(weights: Tensor, bias: Tensor): Tensor = NN.linear(tensor, weights, bias)
+    def linear(weights: Tensor, bias: Tensor = null): Tensor = NN.linear(tensor, weights, bias)
 
     /** $OpDocNNL2Normalize
       *

@@ -514,10 +514,12 @@
 // EIGEN_STRONG_INLINE is a stronger version of the inline, using __forceinline on MSVC,
 // but it still doesn't use GCC's always_inline. This is useful in (common) situations where MSVC needs forceinline
 // but GCC is still doing fine with just inline.
+#ifndef EIGEN_STRONG_INLINE
 #if EIGEN_COMP_MSVC || EIGEN_COMP_ICC
 #define EIGEN_STRONG_INLINE __forceinline
 #else
 #define EIGEN_STRONG_INLINE inline
+#endif
 #endif
 
 // EIGEN_ALWAYS_INLINE is the stronget, it has the effect of making the function inline and adding every possible
@@ -696,10 +698,10 @@ namespace Eigen {
 #if defined(EIGEN_DONT_VECTORIZE)
   #define EIGEN_IDEAL_MAX_ALIGN_BYTES 0
 #elif defined(EIGEN_VECTORIZE_AVX512)
-  // 64 bytes static alignmeent is preferred only if really required
+  // 64 bytes static alignment is preferred only if really required
   #define EIGEN_IDEAL_MAX_ALIGN_BYTES 64
 #elif defined(__AVX__)
-  // 32 bytes static alignmeent is preferred only if really required
+  // 32 bytes static alignment is preferred only if really required
   #define EIGEN_IDEAL_MAX_ALIGN_BYTES 32
 #else
   #define EIGEN_IDEAL_MAX_ALIGN_BYTES 16

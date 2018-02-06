@@ -171,6 +171,9 @@ object TensorFlow {
       graphHandle: Long, inputOpHandle: Long, inputIndex: Int, outputOpHandle: Long, outputIndex: Int): Unit
   @native private[tensorflow] def addControlInput(graphHandle: Long, opHandle: Long, inputOpHandle: Long): Int
   @native private[tensorflow] def clearControlInputs(graphHandle: Long, opHandle: Long): Int
+  @native private[tensorflow] def setRequestedDevice(graphHandle: Long, opHandle: Long, device: String): Int
+  @native private[tensorflow] def setAttributeProto(
+      graphHandle: Long, opHandle: Long, attributeName: String, attributeValue: Array[Byte]): Unit
 
   //endregion Internal API
 }

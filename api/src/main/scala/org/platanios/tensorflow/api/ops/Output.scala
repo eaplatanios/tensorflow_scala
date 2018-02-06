@@ -135,7 +135,7 @@ private[ops] object OutputOps {
   *
   * @author Emmanouil Antonios Platanios
   */
-final case class Output private(op: Op, index: Int) extends OutputLike {
+final case class Output private(op: Op, index: Int) extends OutputLike with Symbol {
   /** Graph where the op belongs. */
   override def graph: Graph = op.graph
 
@@ -357,8 +357,10 @@ object Output {
     * @return [[Shape]] based on the constant value of `tensor`.
     */
   private[api] def constantValueAsShape(tensor: Output): Option[Shape] = {
-    val shape = tensor.shape.withRank(1)
-    if (shape == Shape(0)) {
+    if (tensor.rank == 0) {
+      // TODO: Handle this better.
+      Some(Shape(-1))
+    } else if (tensor.shape.withRank(1) == Shape(0)) {
       Some(Shape.scalar())
     } else {
       tensor.op.opType match {
@@ -414,8 +416,10 @@ object Output {
                           previousShape.map(t => Shape(t(b :: s :: e).entriesIterator.map(_.asInstanceOf[Int]).toArray))
                         }
                       })))
+        case _ if tensor.rank == -1 =>
+          None
         case _ =>
-          var returnShape = Shape.unknown(shape(0))
+          var returnShape = Shape.unknown(tensor.shape(0))
           val valueOption = constantValue(tensor)
           if (valueOption.isDefined) {
             val value = valueOption.get
@@ -458,7 +462,7 @@ object Output {
   * @author Emmanouil Antonios Platanios
   */
 final case class OutputIndexedSlices private (indices: Output, values: Output, denseShape: Output = null)
-    extends OutputLike {
+    extends OutputLike with Symbol {
   /** Graph that contains `values`, `indices`, and `denseShape`. */
   override def graph: Graph = getGraphFromInputs(Set(values, indices, denseShape))
 
@@ -578,7 +582,7 @@ final case class OutputIndexedSlices private (indices: Output, values: Output, d
   *
   * @author Emmanouil Antonios Platanios
   */
-final case class SparseOutput(indices: Output, values: Output, denseShape: Output) extends OutputLike {
+final case class SparseOutput(indices: Output, values: Output, denseShape: Output) extends OutputLike with Symbol {
   require(indices.dataType == INT32 || indices.dataType == INT64,
           s"Indices cannot have '${indices.dataType}' data type. They have to be 'INT32' or 'INT64'.")
   require(denseShape.dataType == INT32 || denseShape.dataType == INT64,

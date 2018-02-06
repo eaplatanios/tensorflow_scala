@@ -15,7 +15,6 @@
 
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api
 import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.ops.variables.Saver.{V2, WriterVersion}
 import org.platanios.tensorflow.api.tensors.Tensor
@@ -43,21 +42,16 @@ package object variables {
     val VariableStore            : variables.VariableStore.type     = variables.VariableStore
     val VariableScope            : variables.VariableScope.type     = variables.VariableScope
 
-    val zerosInitializer: Initializer = variables.ZerosInitializer
-    val onesInitializer : Initializer = variables.OnesInitializer
-
-    def constantInitializer(value: Tensor): Initializer = variables.ConstantInitializer(value)
-    def constantInitializer(value: Output): Initializer = variables.DynamicConstantInitializer(value)
-
-    def randomUniformInitializer(
-        minValue: Tensor = 0.0, maxValue: Tensor = 1.0, seed: Option[Int] = None): Initializer = {
-      variables.RandomUniformInitializer(minValue = minValue, maxValue = maxValue, seed = seed)
-    }
-
-    def randomNormalInitializer(
-        mean: Tensor = 0.0, standardDeviation: Tensor = 1.0, seed: Option[Int] = None): Initializer = {
-      variables.RandomNormalInitializer(mean = mean, standardDeviation = standardDeviation, seed = seed)
-    }
+    val ZerosInitializer: variables.ZerosInitializer.type = variables.ZerosInitializer
+    val OnesInitializer : variables.OnesInitializer.type  = variables.OnesInitializer
+    def ConstantInitializer(value: Tensor): variables.Initializer = variables.ConstantInitializer(value)
+    def ConstantInitializer(value: Output): variables.Initializer = variables.DynamicConstantInitializer(value)
+    val RandomUniformInitializer        : variables.RandomUniformInitializer.type         = variables.RandomUniformInitializer
+    val RandomNormalInitializer         : variables.RandomNormalInitializer.type          = variables.RandomNormalInitializer
+    val RandomTruncatedNormalInitializer: variables.RandomTruncatedNormalInitializer.type = variables.RandomTruncatedNormalInitializer
+    val VarianceScalingInitializer      : variables.VarianceScalingInitializer.type       = variables.VarianceScalingInitializer
+    val GlorotUniformInitializer        : variables.GlorotUniformInitializer.type         = variables.GlorotUniformInitializer
+    val GlorotNormalInitializer         : variables.GlorotNormalInitializer.type          = variables.GlorotNormalInitializer
 
     type Saver = variables.Saver
     val Saver: variables.Saver.type = variables.Saver

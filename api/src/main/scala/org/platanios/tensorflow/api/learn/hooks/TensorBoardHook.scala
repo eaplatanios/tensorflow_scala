@@ -17,10 +17,11 @@ package org.platanios.tensorflow.api.learn.hooks
 
 import org.platanios.tensorflow.api.config.TensorBoardConfig
 import org.platanios.tensorflow.api.core.client.Session
-import org.platanios.tensorflow.api.learn.SessionCreator
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
+
+import scala.util.Try
 
 /** Launches a TensorBoard server for the duration of a run.
   *
@@ -33,15 +34,22 @@ import org.slf4j.LoggerFactory
 private[learn] case class TensorBoardHook(tensorBoardConfig: TensorBoardConfig) extends Hook {
   private[this] var tensorBoardProcess: Option[Process] = None
 
-  override def begin(sessionCreator: SessionCreator): Unit = tensorBoardProcess = {
-    Option(tensorBoardConfig).map(config => {
+  override protected def begin(): Unit = tensorBoardProcess = {
+    Option(tensorBoardConfig).flatMap(config => {
       TensorBoardHook.logger.info(
-        s"Launching TensorBoard in '${config.host}:${config.port}' for log directory '${config.logDir.toAbsolutePath}'.")
-      config.processBuilder.start()
+        s"Launching TensorBoard in '${config.host}:${config.port}' " +
+            s"for log directory '${config.logDir.toAbsolutePath}'.")
+      val processOrError = Try(config.processBuilder.start())
+      processOrError.failed.foreach(e => {
+        TensorBoardHook.logger.warn(e.getMessage)
+        TensorBoardHook.logger.warn(
+          "Could not launch TensorBoard. Please make sure it is installed correctly and in your PATH.")
+      })
+      processOrError.toOption
     })
   }
 
-  override def end(session: Session): Unit = {
+  override protected def end(session: Session): Unit = {
     tensorBoardProcess.foreach(process => {
       TensorBoardHook.logger.info("Killing the TensorBoard service.")
       process.destroy()

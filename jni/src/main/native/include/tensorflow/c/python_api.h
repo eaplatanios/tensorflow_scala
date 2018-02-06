@@ -31,6 +31,11 @@ void ClearControlInputs(TF_Graph* graph, TF_Operation* op);
 
 void SetRequestedDevice(TF_Graph* graph, TF_Operation* op, const char* device);
 
+// Changes an attr value in the node_def Protocol Buffer and sets a status upon
+// completion.
+void SetAttribute(
+  TF_Graph* graph, TF_Operation* op, const char* attr_name, TF_Buffer* attr_value_proto, TF_Status* status);
+
 }  // namespace tensorflow
 
 #endif  // THIRD_PARTY_TENSORFLOW_C_PYTHON_API_H_

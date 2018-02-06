@@ -1,0 +1,64 @@
+version: 2
+
+jobs:
+   build-linux-cpu-x86_64:
+     docker:
+       - image: eaplatanios/tensorflow_scala:linux-cpu-x86_64-0.1.1
+     working_directory: ~/repository
+     environment:
+       LD_LIBRARY_PATH: /usr/lib:$LD_LIBRARY_PATH
+       JAVA_HOME: /usr/lib/jvm/java-8-openjdk-amd64
+       JVM_OPTS: -Xmx3200m
+       TERM: dumb
+     steps:
+       - checkout
+       - run: mkdir downloads && cd downloads
+       - run: wget https://oss.sonatype.org/service/local/repositories/snapshots/content/org/platanios/tensorflow_2.12/0.1.1-SNAPSHOT/tensorflow_2.12-0.1.1-SNAPSHOT-linux-cpu-x86_64.jar
+       - run: jar xf tensorflow_2.12-0.1.1-SNAPSHOT-linux-cpu-x86_64.jar
+       - run: mv libtensorflow.so /usr/lib/libtensorflow.so
+       - run: mv libtensorflow_framework.so /usr/lib/libtensorflow_framework.so
+       - run: cd ..
+       - restore_cache:
+           keys:
+             - v1-dependencies-{{ checksum "build.sbt" }}
+             - v1-dependencies-
+       - run: cat /dev/null | sbt +test:compile
+       - save_cache:
+           paths:
+             - ~/.ivy2
+           key: v1-dependencies--{{ checksum "build.sbt" }}
+       - run: cat /dev/null | sbt +test:test
+#   build-linux-gpu-x86_64:
+#     docker:
+#       - image: eaplatanios/tensorflow_scala:linux-gpu-x86_64-0.1.1
+#     working_directory: ~/repository
+#     environment:
+#       LD_LIBRARY_PATH: /usr/lib:$LD_LIBRARY_PATH
+#       JAVA_HOME: /usr/lib/jvm/java-8-openjdk-amd64
+#       JVM_OPTS: -Xmx3200m
+#       TERM: dumb
+#     steps:
+#       - checkout
+#       - run: mkdir downloads && cd downloads
+#       - run: wget https://oss.sonatype.org/service/local/repositories/snapshots/content/org/platanios/tensorflow_2.12/0.1.1-SNAPSHOT/tensorflow_2.12-0.1.1-SNAPSHOT-linux-gpu-x86_64.jar
+#       - run: jar xf tensorflow_2.12-0.1.1-SNAPSHOT-linux-gpu-x86_64.jar
+#       - run: mv libtensorflow.so /usr/lib/libtensorflow.so
+#       - run: mv libtensorflow_framework.so /usr/lib/libtensorflow_framework.so
+#       - run: cd ..
+#       - restore_cache:
+#           keys:
+#             - v1-dependencies-{{ checksum "build.sbt" }}
+#             - v1-dependencies-
+#       - run: cat /dev/null | sbt +test:compile
+#       - save_cache:
+#           paths:
+#             - ~/.ivy2
+#           key: v1-dependencies--{{ checksum "build.sbt" }}
+#       - run: cat /dev/null | sbt +test:test
+
+workflows:
+  version: 2
+  test:
+    jobs:
+      - build-linux-cpu-x86_64
+#      - build-linux-gpu-x86_64

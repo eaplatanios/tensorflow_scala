@@ -58,7 +58,7 @@ private[ops] object Gradients {
       // Initialize the pending counts for ops in the connected sub-graph between the ys and xs.
       val sourceOps = xs.map(_.op).toSet
       val destinationOps = {
-        if (ys.length > 1)
+        if (ys.lengthCompare(1) > 0)
           ys.map(y => if (y.consumers.nonEmpty) Basic.identity(y).op else y.op).toSet
         else
           ys.map(_.op).toSet
@@ -129,7 +129,7 @@ private[ops] object Gradients {
               val outputGradients = opGradients.map(_.headOption.orNull)
               var inputGradients = maybeCompile(name, op, () => gradientFunction(op, outputGradients))
               if (gateGradients && inputGradients.count(_ != null) > 1) {
-                Op.createWith(device = "") {
+                Op.createWith(device = null) {
                   Op.colocateWith(Set.empty[Op], ignoreExisting = true) {
                     inputGradients = ControlFlow.tuple(inputGradients.toArray).toSeq
                   }
@@ -203,7 +203,7 @@ private[ops] object Gradients {
     // Collect the aggregated gradients for the requested tensors and return them.
     xs.map(x => {
       val gradients = accumulatedGradients.get(x.op).map(_.apply(x.index))
-      if (gradients.isDefined && gradients.get.length > 1)
+      if (gradients.isDefined && gradients.get.lengthCompare(1) > 0)
         throw new IllegalArgumentException("The gradients should have been aggregated by now.")
       gradients.map(_.head).orNull
     })
@@ -219,7 +219,7 @@ private[ops] object Gradients {
     */
   private[this] def maybeColocateWith[R](op: Op, colocateGradientsWithOps: Boolean)(block: => R): R = {
     if (colocateGradientsWithOps)
-      Op.createWith(colocationOps = Set[Op](op))(block)
+      Op.colocateWith(Set(op))(block)
     else
       block
   }
@@ -565,7 +565,7 @@ private[ops] object Gradients {
     *            match the number of tensors in `y`.
     * @return Partial derivatives of the `y`s given each one of the `x`s.
     */
-  def cc_gradients(y: Array[Output], x: Array[Output], dx: Array[Output] = null): Array[Output] = {
+  def ccGradients(y: Array[Output], x: Array[Output], dx: Array[Output] = null): Array[Output] = {
     // TODO: Overload this method with all possible uses for it.
     if (dx != null && dx.length != y.length)
       throw new IllegalArgumentException(s"The number of ys (${y.length}) must match the number of dxs (${dx.length}).")

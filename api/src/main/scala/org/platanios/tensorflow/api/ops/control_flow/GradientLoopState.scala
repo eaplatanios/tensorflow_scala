@@ -17,6 +17,7 @@ package org.platanios.tensorflow.api.ops.control_flow
 
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.ops.{Basic, DataFlow, Op, Output, OutputLike}
+import org.platanios.tensorflow.api.types.INT32
 
 import scala.collection.mutable
 
@@ -72,6 +73,7 @@ private[control_flow] case class GradientLoopState private[control_flow] (
         val historyCount = state.addForwardAccumulator(count)
         state.backwardContext.enter()
         val backwardContext = WhileLoopContext(
+          forwardContext.maximumIterations,
           forwardContext.parallelIterations,
           forwardContext.enableBackPropagation,
           forwardContext.swapMemory,
@@ -84,6 +86,7 @@ private[control_flow] case class GradientLoopState private[control_flow] (
       case None =>
         outerForwardContext.foreach(_.enter())
         val backwardContext = WhileLoopContext(
+          forwardContext.maximumIterations,
           forwardContext.parallelIterations,
           forwardContext.enableBackPropagation,
           forwardContext.swapMemory,
@@ -182,7 +185,8 @@ private[control_flow] case class GradientLoopState private[control_flow] (
     Op.createWith(controlDependencies = Set.empty[Op]) {
       currentContext.foreach(_.enter())
       val accumulator = Op.colocateWith(Set(value.op)) {
-        DataFlow.newStack(-1, value.dataType, name = "ForwardAccumulator")
+        val maximumIterations = forwardContext.maximumIterations.getOrElse(Basic.constant(-1, INT32))
+        DataFlow.newStack(maximumIterations, value.dataType, name = "ForwardAccumulator")
       }
       currentContext.foreach(_.exit())
       // Make the `accumulator` available in the forward context.

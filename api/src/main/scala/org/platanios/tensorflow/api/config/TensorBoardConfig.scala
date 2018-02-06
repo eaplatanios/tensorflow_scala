@@ -34,7 +34,7 @@ case class TensorBoardConfig(
     port: Int = 6006,
     reloadInterval: Int = 5) {
   private[api] val processBuilder = new ProcessBuilder(
-    "python", "-m", "tensorboard.main",
+    "tensorboard",
     "--logdir", logDir.toAbsolutePath.toString,
     "--host", host,
     "--port", port.toString,

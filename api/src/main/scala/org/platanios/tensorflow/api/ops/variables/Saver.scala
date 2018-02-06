@@ -203,6 +203,7 @@ class Saver private (saverDef: SaverDef, saveRelativePaths: Boolean = false, pad
       Proto.write(metaGraphFilename.getParent, metaGraphFilename.getFileName.toString, metaGraphDef)
     }
 
+    Saver.logger.info(s"Saved parameters to '$absoluteSavePath'.")
     modelCheckpointPath
   }
 

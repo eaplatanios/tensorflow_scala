@@ -430,7 +430,31 @@ package object types {
     }
   }
 
-  // TODO: !!! [TYPES] Add UINT64 support.
+  val UINT64: DataType.Aux[Long] = new DataType.Aux[Long] {
+    override implicit val supportedType: SupportedType[Long] = longIsSupportedType
+
+    override val name    : String = "UINT64"
+    override val cValue  : Int    = 23
+    override val byteSize: Int    = 8
+    override val priority: Int    = 105
+
+    override def protoType: org.tensorflow.framework.DataType = ???
+
+    override def min: ScalaType = 0L
+    override def max: ScalaType = ???
+
+    private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: Long): Int = {
+      ???
+    }
+
+    private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Long = {
+      ???
+    }
+
+    private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: Long): Unit = {
+      ???
+    }
+  }
 
   val QINT8: DataType.Aux[Byte] = new DataType.Aux[Byte] {
     override implicit val supportedType: SupportedType[Byte] = byteIsSupportedType

@@ -23,7 +23,7 @@ object Text {
   TensorFlow.load()
 
   @native def stringJoin(contextHandle: Long, inputs: Array[Long], separator: Array[Byte]): Long
-  @native def stringSplit(contextHandle: Long, input: Long, delimiter: Long): Array[Long]
+  @native def stringSplit(contextHandle: Long, input: Long, delimiter: Long, skip_empty: Boolean): Array[Long]
   @native def encodeBase64(contextHandle: Long, input: Long, pad: Boolean): Long
   @native def decodeBase64(contextHandle: Long, input: Long): Long
   @native def stringToHashBucket(contextHandle: Long, string_tensor: Long, num_buckets: Long): Long

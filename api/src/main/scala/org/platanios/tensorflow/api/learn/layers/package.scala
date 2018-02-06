@@ -29,10 +29,7 @@ package object layers {
           with Math.API
           with NN.API
           with Summary.API
-          with rnn.API {
-    type LayerInstance[T, R] = layers.LayerInstance[T, R]
-    val LayerInstance: layers.LayerInstance.type = layers.LayerInstance
-  }
+          with rnn.API
 
   private[api] object API extends API
 }

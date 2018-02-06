@@ -74,7 +74,7 @@ blueNorm_impl(const EigenBase<Derived>& _vec)
     // are used. For any specific computer, each of the assignment
     // statements can be replaced
     ibeta = std::numeric_limits<RealScalar>::radix;                 // base for floating-point numbers
-    it    = std::numeric_limits<RealScalar>::digits;                // number of base-beta digits in mantissa
+    it    = NumTraits<RealScalar>::digits();                        // number of base-beta digits in mantissa
     iemin = std::numeric_limits<RealScalar>::min_exponent;          // minimum exponent
     iemax = std::numeric_limits<RealScalar>::max_exponent;          // maximum exponent
     rbig  = (std::numeric_limits<RealScalar>::max)();               // largest floating-point number
@@ -165,7 +165,7 @@ MatrixBase<Derived>::stableNorm() const
   
   typedef typename internal::nested_eval<Derived,2>::type DerivedCopy;
   typedef typename internal::remove_all<DerivedCopy>::type DerivedCopyClean;
-  DerivedCopy copy(derived());
+  const DerivedCopy copy(derived());
   
   enum {
     CanAlign = (   (int(DerivedCopyClean::Flags)&DirectAccessBit)

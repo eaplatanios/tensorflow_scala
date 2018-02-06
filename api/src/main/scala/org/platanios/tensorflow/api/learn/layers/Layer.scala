@@ -15,7 +15,6 @@
 
 package org.platanios.tensorflow.api.learn.layers
 
-import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.learn._
 import org.platanios.tensorflow.api.ops.variables.Variable.VariableGetter
 import org.platanios.tensorflow.api.ops.variables.VariableScope.maybeWrapCustomVariableGetter
@@ -23,38 +22,43 @@ import org.platanios.tensorflow.api.ops.{Op, OpSpecification}
 import org.platanios.tensorflow.api.ops.variables._
 import org.platanios.tensorflow.api.types.DataType
 
-import scala.collection.mutable
 import scala.util.DynamicVariable
 
 /**
+  *
+  * '''NOTE:''' Subclasses must implement the `_forward` method. Callers should always use either the `forward` or the
+  * `apply` methods.
+  *
+  * @param  name Name scope (also acting as variable scope) for this layer.
+  *
   * @author Emmanouil Antonios Platanios
   */
 abstract class Layer[T, R](
-    protected val name: String
+    val name: String
 )(implicit
-    context: DynamicVariable[LayerCreationContext]
+    val context: DynamicVariable[LayerCreationContext]
 ) {
-  val uniquifiedName: String = Layer.uniqueName(name)
-
-  private val variableScope: VariableScope = {
-    if (context.value.variableScope.name != "") {
-      context.value.variableScope
-    } else {
-      VariableScope.createWithVariableScope(name)(Op.currentVariableScope)
-    }
-  }
-
   val layerType: String
 
-  def forward(input: T, mode: Mode): LayerInstance[T, R]
+  protected def _forward(input: T, mode: Mode): R
 
-  def apply(input: T, mode: Mode): LayerInstance[T, R] = Op.createWith(
+  def forward(input: T, mode: Mode): R = Op.createWith(
     nameScope = context.value.nameScope,
     device = context.value.device,
     deviceFunction = context.value.deviceFunction
   ) {
-    forward(input, mode)
+    VariableScope.createWithUpdatedVariableScope(context.value.variableScope, isPure = true) {
+      if (name != null) {
+        VariableScope.createWithVariableScope(name, isPure = true) {
+          _forward(input, mode)
+        }
+      } else {
+        _forward(input, mode)
+      }
+    }
   }
+
+  def apply(input: T, mode: Mode): R = forward(input, mode)
 
   def >>[S](other: Layer[R, S]): Compose[T, R, S] = compose(other)
 
@@ -62,30 +66,11 @@ abstract class Layer[T, R](
 
   def ++(others: Seq[Layer[T, R]]): Concatenate[T, R] = concatenate(others: _*)
 
-  def compose[S](other: Layer[R, S]): Compose[T, R, S] = Compose(this, other)
+  def compose[S](other: Layer[R, S]): Compose[T, R, S] = Compose(name, this, other)
 
-  def concatenate(others: Layer[T, R]*): Concatenate[T, R] = Concatenate(this +: others)
+  def concatenate(others: Layer[T, R]*): Concatenate[T, R] = Concatenate(name, this +: others)
 
-  protected def variable(
-      name: String, dataType: DataType = null, shape: Shape = null, initializer: Initializer = null,
-      regularizer: Regularizer = null, trainable: Boolean = true, reuse: Reuse = ReuseOrCreateNew,
-      collections: Set[Graph.Key[Variable]] = Set.empty, cachingDevice: OpSpecification => String = null): Variable = {
-    variableScope.getVariable(
-      Op.currentVariableStore, name, dataType, shape, initializer, regularizer, trainable, reuse, collections,
-      cachingDevice)
-  }
-
-  protected def partitionedVariable(
-      name: String, dataType: DataType = null, shape: Shape = null, initializer: Initializer = null,
-      regularizer: Regularizer = null, partitioner: Partitioner = null, trainable: Boolean = true,
-      reuse: Reuse = ReuseOrCreateNew, collections: Set[Graph.Key[Variable]] = Set.empty,
-      cachingDevice: OpSpecification => String = null): PartitionedVariable = {
-    variableScope.getPartitionedVariable(
-      Op.currentVariableStore, name, dataType, shape, initializer, regularizer, partitioner, trainable, reuse,
-      collections, cachingDevice)
-  }
-
-  override def toString: String = s"$uniquifiedName[$layerType]"
+  override def toString: String = layerType
 }
 
 private[api] final case class LayerCreationContext(
@@ -168,50 +153,6 @@ object Layer {
     context.value.deviceFunction
   }
 
-  /** Set that contains the current layer names in use. */
-  private[this] val namesInUse: mutable.Set[String] = mutable.Set.empty[String]
-
-  /** Marks `name` as a used layer name (i.e., increments its usage counter). */
-  private[layers] def markNameAsUsed(name: String): Unit = namesInUse synchronized {
-    namesInUse += name
-  }
-
-  /** Returns a unique layer name, based on the provided `name`.
-    *
-    * @param  name       Name in which to base the generated unique name.
-    * @param  markAsUsed If `true`, which is the default, a new unique name is created and marked as in use. If `false`,
-    *                    the unique name is returned without actually being marked as used. This is useful when the
-    *                    caller simply wants to know what the name to be created will be.
-    * @return Unique name.
-    */
-  private[layers] def uniqueName(name: String, markAsUsed: Boolean = true): String = namesInUse synchronized {
-    val nameScope = Op.convertNameScopeToName(Layer.currentNameScope)
-    val fullName = {
-      if (nameScope == null || nameScope == "")
-        name
-      else
-        s"$nameScope/$name"
-    }
-    var count = if (namesInUse.contains(fullName)) 1 else 0
-    // Increment the counter for the provided name.
-    if (markAsUsed)
-      namesInUse += fullName
-    if (count > 0) {
-      var uniqueName = fullName
-      // Make sure the composed name is not already being used.
-      while (namesInUse.contains(uniqueName)) {
-        uniqueName = s"${fullName}_$count"
-        count += 1
-      }
-      // Mark the composed name as used.
-      if (markAsUsed)
-        namesInUse += uniqueName
-      uniqueName
-    } else {
-      fullName
-    }
-  }
-
   private[api] def createWith[R](
       nameScope: String = null,
       device: String = "",
@@ -222,7 +163,7 @@ object Layer {
       context: DynamicVariable[LayerCreationContext]
   ): R = {
     var updatedContext = context.value
-    val newNameScope: String = Op.mergeNameScope(nameScope, updatedContext.nameScope, Layer.uniqueName(_))
+    val newNameScope: String = Op.mergeNameScope(nameScope, updatedContext.nameScope, identity[String])
     updatedContext = updatedContext.copy(nameScope = newNameScope)
     val newDevice: String = Op.mergeDevice(device, updatedContext.device)
     updatedContext = updatedContext.copy(device = newDevice)

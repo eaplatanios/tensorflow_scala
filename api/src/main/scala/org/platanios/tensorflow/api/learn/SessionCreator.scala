@@ -96,8 +96,8 @@ case class ChiefSessionCreator(
       sessionConfig = sessionConfig,
       initOp = Option(initOp),
       initFeedMap = builtSessionScaffold.initFeedMap,
-      initFunction = builtSessionScaffold.internalInitFunction
-    )
+      initFunction = builtSessionScaffold.internalInitFunction,
+      localInitFunction = builtSessionScaffold.internalLocalInitFunction)
   }
 }
 
@@ -165,7 +165,7 @@ private[learn] case class HookedSessionCreator private[learn](
   override def createSession(): Session = {
     val session = Some(sessionCreator.createSession())
     // Inform the hooks that a new session has been created.
-    hooks.foreach(_.afterSessionCreation(session.get))
+    hooks.foreach(_.internalAfterSessionCreation(session.get))
     new SessionWrapper(session.get, hooks)
   }
 }

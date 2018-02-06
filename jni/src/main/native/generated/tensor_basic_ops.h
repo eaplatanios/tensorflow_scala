@@ -169,6 +169,14 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basi
 
 /*
  * Class:     org_platanios_tensorflow_jni_generated_tensors_Basic__
+ * Method:    conjugateTranspose
+ * Signature: (JJJ)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basic_00024_conjugateTranspose
+  (JNIEnv *, jobject, jlong, jlong, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_Basic__
  * Method:    invertPermutation
  * Signature: (JJ)J
  */
@@ -210,18 +218,18 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basi
 /*
  * Class:     org_platanios_tensorflow_jni_generated_tensors_Basic__
  * Method:    spaceToDepth
- * Signature: (JJJ)J
+ * Signature: (JJJ[B)J
  */
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basic_00024_spaceToDepth
-  (JNIEnv *, jobject, jlong, jlong, jlong);
+  (JNIEnv *, jobject, jlong, jlong, jlong, jbyteArray);
 
 /*
  * Class:     org_platanios_tensorflow_jni_generated_tensors_Basic__
  * Method:    depthToSpace
- * Signature: (JJJ)J
+ * Signature: (JJJ[B)J
  */
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basic_00024_depthToSpace
-  (JNIEnv *, jobject, jlong, jlong, jlong);
+  (JNIEnv *, jobject, jlong, jlong, jlong, jbyteArray);
 
 /*
  * Class:     org_platanios_tensorflow_jni_generated_tensors_Basic__
@@ -378,10 +386,10 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basi
 /*
  * Class:     org_platanios_tensorflow_jni_generated_tensors_Basic__
  * Method:    quantizeV2
- * Signature: (JJJJI[B)[J
+ * Signature: (JJJJI[B[B)[J
  */
 JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basic_00024_quantizeV2
-  (JNIEnv *, jobject, jlong, jlong, jlong, jlong, jint, jbyteArray);
+  (JNIEnv *, jobject, jlong, jlong, jlong, jlong, jint, jbyteArray, jbyteArray);
 
 /*
  * Class:     org_platanios_tensorflow_jni_generated_tensors_Basic__

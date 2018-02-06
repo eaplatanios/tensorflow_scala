@@ -84,6 +84,31 @@ private[api] trait Random {
       opSeed.getOrElse(0).toLong))
     Math.add(random * castedStandardDeviation, castedMean)
   }
+
+  /** $OpDocRandomRandomTruncatedNormal
+    *
+    * @group RandomOps
+    * @param  dataType          Data type for the output tensor. Must be one of: [[FLOAT16]], [[FLOAT32]], or
+    *                           [[FLOAT64]].
+    * @param  shape             Rank-1 tensor containing the shape of the output tensor. Defaults to a scalar tensor.
+    * @param  mean              Scalar tensor containing the mean of the Normal distribution. Defaults to `0`.
+    * @param  standardDeviation Scalar tensor containing the standard deviation of the Normal distribution. Defaults to
+    *                           `1`.
+    * @param  seed              Optional random seed, used to generate a random seed pair for the random number
+    *                           generator, when combined with the graph-level seed.
+    * @return Result as a new tensor.
+    */
+  def randomTruncatedNormal(
+      dataType: DataType = FLOAT32, shape: Tensor = Shape.scalar(), mean: Tensor = 0.0, standardDeviation: Tensor = 1.0,
+      seed: Option[Int] = None)(implicit context: DynamicVariable[Context]): Tensor = {
+    val castedMean = Math.cast(mean, dataType)
+    val castedStandardDeviation = Math.cast(standardDeviation, dataType)
+    val (graphSeed, opSeed) = Op.currentGraphRandomSeed(seed)
+    val random = Tensor.fromNativeHandle(NativeTensorOpsRandom.truncatedNormal(
+      context.value.nativeHandle, shape.nativeHandle, dataType.cValue, graphSeed.getOrElse(0).toLong,
+      opSeed.getOrElse(0).toLong))
+    Math.add(random * castedStandardDeviation, castedMean)
+  }
 }
 
 private[api] object Random extends Random

@@ -172,7 +172,7 @@ private[ops] trait Embedding {
     }
     Op.createWithNameScope(name) {
       val segmentIds = sparseIds.indices(::, 0).cast(INT32)
-      val (ids, idx) = if (ignoreWeights) Basic.unique(sparseIds.values) else (sparseIds.values, null)
+      val (ids, idx) = if (ignoreWeights) Basic.unique(sparseIds.values, 0) else (sparseIds.values, null)
       val embeddings = embeddingLookup(parameters, ids, partitionStrategy, maxNorm = maxNorm)
       if (ignoreWeights) {
         combiner.combine(embeddings, idx, segmentIds)
@@ -240,11 +240,10 @@ private[ops] trait Embedding {
       val partitionAssignments = Math.maximum(
         ids.truncateDivide(idsPerPartition + 1),
         (ids - extras).truncateDivide(idsPerPartition))
-      // Emulate a conditional using a boolean indicator tensor.
-      val isInFirstExtrasPartitions = (partitionAssignments < extras).cast(ids.dataType)
-      val newIds =
-        isInFirstExtrasPartitions * (ids % (idsPerPartition + 1)) +
-            (1 - isInFirstExtrasPartitions) * ((ids - extras) % idsPerPartition)
+      val newIds = Math.select(
+        partitionAssignments < extras,
+        ids % (idsPerPartition + 1),
+        (ids - extras) % idsPerPartition)
       (partitionAssignments, newIds)
     }
   }

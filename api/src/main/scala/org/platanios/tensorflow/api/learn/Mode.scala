@@ -20,10 +20,18 @@ package org.platanios.tensorflow.api.learn
   *
   * @author Emmanouil Antonios Platanios
   */
-sealed trait Mode
+sealed trait Mode {
+  val isTraining: Boolean
+}
 
-case object TRAINING extends Mode
+case object TRAINING extends Mode {
+  override val isTraining: Boolean = true
+}
 
-case object EVALUATION extends Mode
+case object EVALUATION extends Mode {
+  override val isTraining: Boolean = false
+}
 
-case object INFERENCE extends Mode
+case object INFERENCE extends Mode {
+  override val isTraining: Boolean = false
+}

@@ -9,6 +9,26 @@
 
 namespace tensorflow {
 
+// Message-text conversion for tensorflow.GPUOptions.Experimental.VirtualDevices
+string ProtoDebugString(
+    const ::tensorflow::GPUOptions_Experimental_VirtualDevices& msg);
+string ProtoShortDebugString(
+    const ::tensorflow::GPUOptions_Experimental_VirtualDevices& msg);
+bool ProtoParseFromString(
+    const string& s,
+    ::tensorflow::GPUOptions_Experimental_VirtualDevices* msg)
+        TF_MUST_USE_RESULT;
+
+// Message-text conversion for tensorflow.GPUOptions.Experimental
+string ProtoDebugString(
+    const ::tensorflow::GPUOptions_Experimental& msg);
+string ProtoShortDebugString(
+    const ::tensorflow::GPUOptions_Experimental& msg);
+bool ProtoParseFromString(
+    const string& s,
+    ::tensorflow::GPUOptions_Experimental* msg)
+        TF_MUST_USE_RESULT;
+
 // Message-text conversion for tensorflow.GPUOptions
 string ProtoDebugString(
     const ::tensorflow::GPUOptions& msg);

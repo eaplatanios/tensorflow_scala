@@ -32,25 +32,25 @@ import scala.util.matching.Regex
   * @author Emmanouil Antonios Platanios
   */
 private[api] trait Summary {
-  // /** $OpDocSummaryTensor
-  //   *
-  //   * @group SummaryOps
-  //   * @param  name        Name for the created summary op.
-  //   * @param  tensor      Tensor to use for the summary.
-  //   * @param  collections Graph collections in which to add the new summary op. Defaults to `Graph.Keys.SUMMARIES`.
-  //   * @param  family      If provided, used as prefix for the summary tag name, which controls the tab name used for
-  //   *                     display on TensorBoard.
-  //   * @return Created op output.
-  //   */
-  // def tensor(
-  //     name: String, tensor: Output, collections: Set[Graph.Key[Output]] = Set(Graph.Keys.SUMMARIES),
-  //     family: String = null): Output = {
-  //   Summary.scoped((scope, tag) => {
-  //     val summary = Summary.tensorSummary(tensor, tag, Tensor(STRING), scope)
-  //     collections.foreach(key => Op.currentGraph.addToCollection(summary, key))
-  //     summary
-  //   }, name, family)
-  // }
+  /** $OpDocSummaryTensor
+    *
+    * @group SummaryOps
+    * @param  name        Name for the created summary op.
+    * @param  tensor      Tensor to use for the summary.
+    * @param  collections Graph collections in which to add the new summary op. Defaults to `Graph.Keys.SUMMARIES`.
+    * @param  family      If provided, used as prefix for the summary tag name, which controls the tab name used for
+    *                     display on TensorBoard.
+    * @return Created op output.
+    */
+  def tensor(
+      name: String, tensor: Output, collections: Set[Graph.Key[Output]] = Set(Graph.Keys.SUMMARIES),
+      family: String = null): Output = {
+    Summary.scoped((scope, tag) => {
+      val summary = Summary.tensorSummary(tensor, tag, Tensor(STRING), scope)
+      collections.foreach(key => Op.currentGraph.addToCollection(summary, key))
+      summary
+    }, name, family)
+  }
 
   /** $OpDocSummaryScalar
     *

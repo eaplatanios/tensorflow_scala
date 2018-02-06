@@ -18,16 +18,25 @@ package org.platanios.tensorflow.api.ops.rnn.cell
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops
+import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
 import org.platanios.tensorflow.api.ops.{Basic, Math, NN, Op, Output}
-import org.platanios.tensorflow.api.types.INT32
+import org.platanios.tensorflow.api.types.{DataType, INT32}
 
 /** Contains functions for constructing ops related to recurrent neural network (RNN) cells.
   *
   * @author Emmanouil Antonios Platanios
   */
-trait RNNCell[O, OS, S, SS] {
+abstract class RNNCell[O, OS, S, SS](implicit
+    evO: WhileLoopVariable.Aux[O, OS],
+    evS: WhileLoopVariable.Aux[S, SS]
+) {
   def outputShape: OS
   def stateShape: SS
+
+  def zeroState(batchSize: Output, dataType: DataType, shape: SS, name: String = "ZeroState"): S = {
+    evS.zero(batchSize, dataType, shape, name)
+  }
+
   def forward(input: Tuple[O, S]): Tuple[O, S]
   def apply(input: Tuple[O, S]): Tuple[O, S] = forward(input)
 }
@@ -123,16 +132,16 @@ object RNNCell {
         throw InvalidArgumentException(s"Last axis of input shape (${output.shape}) must be known.")
       val one = ops.Basic.constant(1, INT32)
       // Parameters of gates are concatenated into one multiply for efficiency.
-      val cPrev = input.state._1
-      val mPrev = input.state._2
-      val lstmMatrix = NN.addBias(Math.matmul(Basic.concatenate(Seq(output, mPrev), axis = 1), kernel), bias)
+      val lstmMatrix = NN.addBias(Math.matmul(Basic.concatenate(Seq(output, input.state.m), axis = 1), kernel), bias)
       // i = input gate, j = new input, f = forget gate, o = output gate
       val lstmMatrixBlocks = Basic.splitEvenly(lstmMatrix, 4, axis = one)
       val (i, j, f, o) = (lstmMatrixBlocks(0), lstmMatrixBlocks(1), lstmMatrixBlocks(2), lstmMatrixBlocks(3))
       val forgetBiasTensor = ops.Basic.constant(forgetBias, f.dataType)
-      val c = Math.multiply(cPrev, Math.sigmoid(f + forgetBiasTensor)) + Math.multiply(Math.sigmoid(i), activation(j))
+      val c = Math.add(
+        Math.multiply(input.state.c, Math.sigmoid(f + forgetBiasTensor)),
+        Math.multiply(Math.sigmoid(i), activation(j)))
       val m = Math.multiply(activation(c), Math.sigmoid(o))
-      LSTMTuple(m, (c, m))
+      LSTMTuple(m, LSTMState(c, m))
     }
   }
 
@@ -176,9 +185,7 @@ object RNNCell {
         throw InvalidArgumentException(s"Last axis of input shape (${output.shape}) must be known.")
       val one = ops.Basic.constant(1, INT32)
       // Parameters of gates are concatenated into one multiply for efficiency.
-      val cPrev = input.state._1
-      val mPrev = input.state._2
-      val lstmMatrix = NN.addBias(Math.matmul(Basic.concatenate(Seq(output, mPrev), axis = 1), kernel), bias)
+      val lstmMatrix = NN.addBias(Math.matmul(Basic.concatenate(Seq(output, input.state.m), axis = 1), kernel), bias)
       // i = input gate, j = new input, f = forget gate, o = output gate
       val lstmMatrixBlocks = Basic.splitEvenly(lstmMatrix, 4, axis = one)
       val (i, j, f, o) = (lstmMatrixBlocks(0), lstmMatrixBlocks(1), lstmMatrixBlocks(2), lstmMatrixBlocks(3))
@@ -186,11 +193,13 @@ object RNNCell {
       val forgetBiasTensor = ops.Basic.constant(forgetBias, f.dataType)
       var firstTerm = f + forgetBiasTensor
       if (wfDiag != null)
-        firstTerm = firstTerm + Math.multiply(wfDiag, cPrev)
+        firstTerm = firstTerm + Math.multiply(wfDiag, input.state.c)
       var secondTerm = i
       if (wiDiag != null)
-        secondTerm = secondTerm + Math.multiply(wiDiag, cPrev)
-      var c = Math.multiply(cPrev, Math.sigmoid(firstTerm)) + Math.multiply(Math.sigmoid(secondTerm), activation(j))
+        secondTerm = secondTerm + Math.multiply(wiDiag, input.state.c)
+      var c = Math.add(
+        Math.multiply(input.state.c, Math.sigmoid(firstTerm)),
+        Math.multiply(Math.sigmoid(secondTerm), activation(j)))
       if (cellClip != -1) {
         val cellClipTensor = ops.Basic.constant(cellClip)
         c = c.clipByValue(-cellClipTensor, cellClipTensor)
@@ -209,7 +218,7 @@ object RNNCell {
           m = m.clipByValue(-projectionClipTensor, projectionClipTensor)
         }
       }
-      LSTMTuple(m, (c, m))
+      LSTMTuple(m, LSTMState(c, m))
     }
   }
 

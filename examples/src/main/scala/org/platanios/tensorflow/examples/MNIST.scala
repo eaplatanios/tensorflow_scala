@@ -59,38 +59,39 @@ object MNIST {
     //    val layer = tf.learn.flatten() >>
     //        tf.learn.cast(FLOAT32) >>
     //        tf.learn.linear(10) // >> tf.learn.logSoftmax()
-    val layer = tf.learn.Flatten() >>
-        tf.learn.Cast(FLOAT32) >>
-        tf.learn.Linear(128, name = "Layer_0") >> tf.learn.ReLU(0.1f) >>
-        tf.learn.Linear(64, name = "Layer_1") >> tf.learn.ReLU(0.1f) >>
-        tf.learn.Linear(32, name = "Layer_2") >> tf.learn.ReLU(0.1f) >>
-        tf.learn.Linear(10, name = "OutputLayer")
-    val trainingInputLayer = tf.learn.Cast(INT64)
-    val loss = tf.learn.SparseSoftmaxCrossEntropy() >> tf.learn.Mean() >> tf.learn.ScalarSummary("Loss")
+    val layer = tf.learn.Flatten("Input/Flatten") >>
+        tf.learn.Cast("Input/Cast", FLOAT32) >>
+        tf.learn.Linear("Layer_0/Linear", 128) >> tf.learn.ReLU("Layer_0/ReLU", 0.1f) >>
+        tf.learn.Linear("Layer_1/Linear", 64) >> tf.learn.ReLU("Layer_1/ReLU", 0.1f) >>
+        tf.learn.Linear("Layer_2/Linear", 32) >> tf.learn.ReLU("Layer_2/ReLU", 0.1f) >>
+        tf.learn.Linear("OutputLayer/Linear", 10)
+    val trainingInputLayer = tf.learn.Cast("TrainInput/Cast", INT64)
+    val loss = tf.learn.SparseSoftmaxCrossEntropy("Loss/CrossEntropy") >>
+        tf.learn.Mean("Loss/Mean") >> tf.learn.ScalarSummary("Loss/Summary", "Loss")
     val optimizer = tf.train.AdaGrad(0.1)
     val model = tf.learn.Model(input, layer, trainInput, trainingInputLayer, loss, optimizer)
 
     logger.info("Training the linear regression model.")
     val summariesDir = Paths.get("temp/mnist-mlp")
     val accMetric = tf.metrics.MapMetric(
-      (v: (Output, (Output, Output))) => (v._1.argmax(-1), v._2._2), tf.metrics.Accuracy())
+      (v: (Output, Output)) => (v._1.argmax(-1), v._2), tf.metrics.Accuracy())
     val estimator = tf.learn.InMemoryEstimator(
       model,
       tf.learn.Configuration(Some(summariesDir)),
       tf.learn.StopCriteria(maxSteps = Some(100000)),
       Set(
-        tf.learn.LossLoggingHook(tf.learn.StepHookTrigger(100)),
-        tf.learn.EvaluationHook(
+        tf.learn.LossLogger(trigger = tf.learn.StepHookTrigger(100)),
+        tf.learn.Evaluator(
           log = true, data = () => evalTrainData, metrics = Seq(accMetric),
-          trigger = tf.learn.StepHookTrigger(1000), name = "Train Evaluation"),
-        tf.learn.EvaluationHook(
+          trigger = tf.learn.StepHookTrigger(1000), name = "TrainEvaluator"),
+        tf.learn.Evaluator(
           log = true, data = () => evalTestData, metrics = Seq(accMetric),
-          trigger = tf.learn.StepHookTrigger(1000), name = "Test Evaluation"),
-        tf.learn.StepRateHook(log = false, summaryDir = summariesDir, trigger = tf.learn.StepHookTrigger(100)),
-        tf.learn.SummarySaverHook(summariesDir, tf.learn.StepHookTrigger(100)),
-        tf.learn.CheckpointSaverHook(summariesDir, tf.learn.StepHookTrigger(100000))),
+          trigger = tf.learn.StepHookTrigger(1000), name = "TestEvaluator"),
+        tf.learn.StepRateLogger(log = false, summaryDir = summariesDir, trigger = tf.learn.StepHookTrigger(100)),
+        tf.learn.SummarySaver(summariesDir, tf.learn.StepHookTrigger(100)),
+        tf.learn.CheckpointSaver(summariesDir, tf.learn.StepHookTrigger(1000))),
       tensorBoardConfig = tf.learn.TensorBoardConfig(summariesDir, reloadInterval = 1))
-    estimator.train(() => trainData, tf.learn.StopCriteria(maxSteps = Some(1000)))
+    estimator.train(() => trainData, tf.learn.StopCriteria(maxSteps = Some(10000)))
 
     def accuracy(images: Tensor, labels: Tensor): Float = {
       val predictions = estimator.infer(() => images)

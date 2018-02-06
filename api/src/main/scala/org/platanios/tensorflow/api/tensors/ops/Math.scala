@@ -16,8 +16,10 @@
 package org.platanios.tensorflow.api.tensors.ops
 
 import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.tensors._
 import org.platanios.tensorflow.api.types._
+import org.platanios.tensorflow.jni.InvalidArgumentException
 import org.platanios.tensorflow.jni.generated.tensors.{Math => NativeTensorOpsMath}
 
 import scala.util.DynamicVariable
@@ -1396,12 +1398,19 @@ private[api] trait Math {
     * @param  indices        One-dimensional tensor with rank equal to that of `segmentIndices`.
     * @param  segmentIndices Segment indices (must have data type of [[INT32]] or [[INT64]]). Values should be sorted
     *                        and can be repeated.
+    * @param  numSegments    Optional `INT32` scalar indicating the size of the output tensor.
     * @return Result as a new tensor.
     */
-  def sparseSegmentSum(
-      data: Tensor, indices: Tensor, segmentIndices: Tensor)(implicit context: DynamicVariable[Context]): Tensor = {
-    Tensor.fromNativeHandle(NativeTensorOpsMath.sparseSegmentSum(
-      context.value.nativeHandle, data.nativeHandle, indices.nativeHandle, segmentIndices.nativeHandle))
+  def sparseSegmentSum(data: Tensor, indices: Tensor, segmentIndices: Tensor, numSegments: Tensor = null)(implicit
+      context: DynamicVariable[Context]
+  ): Tensor = {
+    if (numSegments == null)
+      Tensor.fromNativeHandle(NativeTensorOpsMath.sparseSegmentSum(
+        context.value.nativeHandle, data.nativeHandle, indices.nativeHandle, segmentIndices.nativeHandle))
+    else
+      Tensor.fromNativeHandle(NativeTensorOpsMath.sparseSegmentSumWithNumSegments(
+        context.value.nativeHandle, data.nativeHandle, indices.nativeHandle, segmentIndices.nativeHandle,
+        numSegments.nativeHandle))
   }
 
   /** $OpDocMathSparseSegmentMean
@@ -1412,12 +1421,19 @@ private[api] trait Math {
     * @param  indices        One-dimensional tensor with rank equal to that of `segmentIndices`.
     * @param  segmentIndices Segment indices (must have data type of [[INT32]] or [[INT64]]). Values should be sorted
     *                        and can be repeated.
+    * @param  numSegments    Optional `INT32` scalar indicating the size of the output tensor.
     * @return Result as a new tensor.
     */
-  def sparseSegmentMean(
-      data: Tensor, indices: Tensor, segmentIndices: Tensor)(implicit context: DynamicVariable[Context]): Tensor = {
-    Tensor.fromNativeHandle(NativeTensorOpsMath.sparseSegmentMean(
-      context.value.nativeHandle, data.nativeHandle, indices.nativeHandle, segmentIndices.nativeHandle))
+  def sparseSegmentMean(data: Tensor, indices: Tensor, segmentIndices: Tensor, numSegments: Tensor = null)(implicit
+      context: DynamicVariable[Context]
+  ): Tensor = {
+    if (numSegments == null)
+      Tensor.fromNativeHandle(NativeTensorOpsMath.sparseSegmentMean(
+        context.value.nativeHandle, data.nativeHandle, indices.nativeHandle, segmentIndices.nativeHandle))
+    else
+      Tensor.fromNativeHandle(NativeTensorOpsMath.sparseSegmentMeanWithNumSegments(
+        context.value.nativeHandle, data.nativeHandle, indices.nativeHandle, segmentIndices.nativeHandle,
+        numSegments.nativeHandle))
   }
 
   /** $OpDocMathSparseSegmentSumSqrtN
@@ -1428,12 +1444,19 @@ private[api] trait Math {
     * @param  indices        One-dimensional tensor with rank equal to that of `segmentIndices`.
     * @param  segmentIndices Segment indices (must have data type of [[INT32]] or [[INT64]]). Values should be sorted
     *                        and can be repeated.
+    * @param  numSegments    Optional `INT32` scalar indicating the size of the output tensor.
     * @return Result as a new tensor.
     */
-  def sparseSegmentSumSqrtN(
-      data: Tensor, indices: Tensor, segmentIndices: Tensor)(implicit context: DynamicVariable[Context]): Tensor = {
-    Tensor.fromNativeHandle(NativeTensorOpsMath.sparseSegmentSqrtN(
-      context.value.nativeHandle, data.nativeHandle, indices.nativeHandle, segmentIndices.nativeHandle))
+  def sparseSegmentSumSqrtN(data: Tensor, indices: Tensor, segmentIndices: Tensor, numSegments: Tensor = null)(implicit
+      context: DynamicVariable[Context]
+  ): Tensor = {
+    if (numSegments == null)
+      Tensor.fromNativeHandle(NativeTensorOpsMath.sparseSegmentSqrtN(
+        context.value.nativeHandle, data.nativeHandle, indices.nativeHandle, segmentIndices.nativeHandle))
+    else
+      Tensor.fromNativeHandle(NativeTensorOpsMath.sparseSegmentSqrtNWithNumSegments(
+        context.value.nativeHandle, data.nativeHandle, indices.nativeHandle, segmentIndices.nativeHandle,
+        numSegments.nativeHandle))
   }
 
   //endregion Segment Ops
@@ -1617,7 +1640,79 @@ private[api] trait Math {
     Tensor.fromNativeHandle(NativeTensorOpsMath.cross(context.value.nativeHandle, cA.nativeHandle, cB.nativeHandle))
   }
 
-  // TODO: [OPS] tensorDot
+  /** Dynamic version (i.e., where `numAxes` may be a symbolic tensor) of the `tensorDot` op.
+    *
+    * $OpDocMathTensorDot
+    *
+    * @group MathOps
+    * @param  a       First tensor.
+    * @param  b       Second tensor.
+    * @param  numAxes Number of axes to contract.
+    * @return Created op output.
+    */
+  def tensorDot(a: Tensor, b: Tensor, numAxes: Tensor): Tensor = {
+    if (numAxes.rank != 0)
+      throw InvalidArgumentException("'numAxes' must be a scalar.")
+    tensorDot(a, b, range(a.rank - numAxes, a.rank), range(0, numAxes))
+  }
+
+  /** Dynamic version (i.e., where `axesA` and `axesB` may be symbolic tensors) of the `tensorDot` op.
+    *
+    * $OpDocMathTensorDot
+    *
+    * @group MathOps
+    * @param  a     First tensor.
+    * @param  b     Second tensor.
+    * @param  axesA Axes to contract in `a`.
+    * @param  axesB Axes to contract in `b`.
+    * @return Created op output.
+    */
+  def tensorDot(a: Tensor, b: Tensor, axesA: Tensor, axesB: Tensor): Tensor = {
+    if (axesA.rank != 1)
+      throw InvalidArgumentException("'axesA' must be a vector.")
+    if (axesB.rank != 1)
+      throw InvalidArgumentException("'axesB' must be a vector.")
+
+    /** Helper method to perform transpose and reshape for the tensor contraction op. This method is helpful in reducing
+      * `tensorDot` to `matmul` using the `transpose` and the `reshape` ops. The method takes a tensor and performs the
+      * correct transpose and reshape operations for the provided indices. It returns the reshaped tensor as well as a
+      * list of indices necessary to reshape the tensor back to its proper shape after the matrix multiplication.
+      *
+      * @param  a       Tensor being reshaped.
+      * @param  axes    Sequence of unique indices of axes of `a`.
+      * @param  flipped If `true`, the method assumes that `a` is the second argument in the contraction operation.
+      * @return Tuple that contains: (i) the reshaped tensor `a` that allows contraction via `matmul`, and (ii) an
+      *         `INT32` tensor that contains the shape of the free axes.
+      */
+    def tensorDotReshape(a: Tensor, axes: Tensor, flipped: Boolean = false): (Tensor, Tensor) = {
+      val shapeA = Basic.shape(a)
+      val rankA = Basic.rank(a)
+      val mappedAxes = ((axes >= 0).cast(INT32) * axes) + ((axes < 0).cast(INT32) * (axes + rankA))
+      val (free, _) = Basic.listDiff(Math.range(0, rankA), mappedAxes)
+      val freeAxes = Basic.gather(shapeA, free)
+      val axesAxes = Basic.gather(shapeA, mappedAxes)
+      val prodFree = freeAxes.prod()
+      val prodAxes = axesAxes.prod()
+      val (permutation, newShape) = {
+        if (flipped) {
+          val permutation = Basic.concatenate(Seq(mappedAxes, free), 0)
+          val newShape = Basic.stack(Seq(prodAxes, prodFree))
+          (permutation, newShape)
+        } else {
+          val permutation = Basic.concatenate(Seq(free, mappedAxes), 0)
+          val newShape = Basic.stack(Seq(prodFree, prodAxes))
+          (permutation, newShape)
+        }
+      }
+      val reshapedA = Basic.reshape(Basic.transpose(a, permutation), newShape)
+      (reshapedA, freeAxes)
+    }
+
+    val (reshapedA, freeA) = tensorDotReshape(a, axesA)
+    val (reshapedB, freeB) = tensorDotReshape(b, axesB, flipped = true)
+    val abMatmul = matmul(reshapedA, reshapedB)
+    Basic.reshape(abMatmul, Basic.concatenate(Seq(freeA, freeB), 0))
+  }
 
   //endregion Matrix Ops
 
@@ -2612,10 +2707,11 @@ object Math extends Math {
       * @param  indices        One-dimensional tensor with rank equal to that of `segmentIndices`.
       * @param  segmentIndices Segment indices (must have data type of [[INT32]] or [[INT64]]). Values should be sorted
       *                        and can be repeated.
+      * @param  numSegments    Optional `INT32` scalar indicating the size of the output tensor.
       * @return Result as a new tensor.
       */
-    def sparseSegmentSum(indices: Tensor, segmentIndices: Tensor): Tensor = {
-      Math.sparseSegmentSum(tensor, indices, segmentIndices)
+    def sparseSegmentSum(indices: Tensor, segmentIndices: Tensor, numSegments: Tensor = null): Tensor = {
+      Math.sparseSegmentSum(tensor, indices, segmentIndices, numSegments)
     }
 
     /** $OpDocMathSparseSegmentMean
@@ -2625,10 +2721,11 @@ object Math extends Math {
       * @param  indices        One-dimensional tensor with rank equal to that of `segmentIndices`.
       * @param  segmentIndices Segment indices (must have data type of [[INT32]] or [[INT64]]). Values should be sorted
       *                        and can be repeated.
+      * @param  numSegments    Optional `INT32` scalar indicating the size of the output tensor.
       * @return Result as a new tensor.
       */
-    def sparseSegmentMean(indices: Tensor, segmentIndices: Tensor): Tensor = {
-      Math.sparseSegmentMean(tensor, indices, segmentIndices)
+    def sparseSegmentMean(indices: Tensor, segmentIndices: Tensor, numSegments: Tensor = null): Tensor = {
+      Math.sparseSegmentMean(tensor, indices, segmentIndices, numSegments)
     }
 
     /** $OpDocMathSparseSegmentSumSqrtN
@@ -2638,10 +2735,11 @@ object Math extends Math {
       * @param  indices        One-dimensional tensor with rank equal to that of `segmentIndices`.
       * @param  segmentIndices Segment indices (must have data type of [[INT32]] or [[INT64]]). Values should be sorted
       *                        and can be repeated.
+      * @param  numSegments    Optional `INT32` scalar indicating the size of the output tensor.
       * @return Result as a new tensor.
       */
-    def sparseSegmentSumSqrtN(indices: Tensor, segmentIndices: Tensor): Tensor = {
-      Math.sparseSegmentSumSqrtN(tensor, indices, segmentIndices)
+    def sparseSegmentSumSqrtN(indices: Tensor, segmentIndices: Tensor, numSegments: Tensor = null): Tensor = {
+      Math.sparseSegmentSumSqrtN(tensor, indices, segmentIndices, numSegments)
     }
 
     //endregion Segment Ops
@@ -2738,12 +2836,38 @@ object Math extends Math {
     /** $OpDocMathCross
       *
       * @group MathOps
+      * @param  other Tensor to multiply with.
       *
       * @return Result as a new tensor.
       */
     def cross(other: Tensor): Tensor = Math.cross(tensor, other)
 
-    // TODO: [OPS] tensorDot
+    /** Dynamic version (i.e., where `numAxes` may be a symbolic tensor) of the `tensorDot` op.
+      *
+      * $OpDocMathTensorDot
+      *
+      * @group MathOps
+      * @param  other   Tensor to contract with.
+      * @param  numAxes Number of axes to contract.
+      * @return Created op output.
+      */
+    def tensorDot(other: Tensor, numAxes: Tensor): Tensor = {
+      Math.tensorDot(tensor, other, numAxes)
+    }
+
+    /** Dynamic version (i.e., where `axesA` and `axesB` may be symbolic tensors) of the `tensorDot` op.
+      *
+      * $OpDocMathTensorDot
+      *
+      * @group MathOps
+      * @param  other Tensor to contract with.
+      * @param  axesA Axes to contract in `a`.
+      * @param  axesB Axes to contract in `b`.
+      * @return Created op output.
+      */
+    def tensorDot(other: Tensor, axesA: Tensor, axesB: Tensor): Tensor = {
+      Math.tensorDot(tensor, other, axesA, axesB)
+    }
 
     //endregion Matrix Ops
 

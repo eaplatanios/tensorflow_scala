@@ -29,6 +29,26 @@ bool ProtoParseFromString(
     ::tensorflow::DebugOptions* msg)
         TF_MUST_USE_RESULT;
 
+// Message-text conversion for tensorflow.DebuggedSourceFile
+string ProtoDebugString(
+    const ::tensorflow::DebuggedSourceFile& msg);
+string ProtoShortDebugString(
+    const ::tensorflow::DebuggedSourceFile& msg);
+bool ProtoParseFromString(
+    const string& s,
+    ::tensorflow::DebuggedSourceFile* msg)
+        TF_MUST_USE_RESULT;
+
+// Message-text conversion for tensorflow.DebuggedSourceFiles
+string ProtoDebugString(
+    const ::tensorflow::DebuggedSourceFiles& msg);
+string ProtoShortDebugString(
+    const ::tensorflow::DebuggedSourceFiles& msg);
+bool ProtoParseFromString(
+    const string& s,
+    ::tensorflow::DebuggedSourceFiles* msg)
+        TF_MUST_USE_RESULT;
+
 }  // namespace tensorflow
 
 #endif  // tensorflow_core_protobuf_debug_proto_H_

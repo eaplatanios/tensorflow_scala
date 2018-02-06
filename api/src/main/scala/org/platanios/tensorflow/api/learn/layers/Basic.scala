@@ -48,113 +48,84 @@ object Basic {
   object API extends API
 }
 
-case class Identity[T] private[layers] (override protected val name: String = "Identity") extends Layer[T, T](name) {
+case class Identity[T](override val name: String)
+    extends Layer[T, T](name) {
   override val layerType = "Identity"
 
-  override def forward(input: T, mode: Mode): LayerInstance[T, T] = {
-    LayerInstance(input, input)
-  }
+  override protected def _forward(input: T, mode: Mode): T = input
 }
 
-case class Compose[T, R, S] private[layers] (
-    layer1: Layer[T, R], layer2: Layer[R, S],
-    override protected val name: String = "Compose"
+case class Compose[T, R, S](
+    override val name: String,
+    layer1: Layer[T, R], layer2: Layer[R, S]
 ) extends Layer[T, S](name) {
   override val layerType: String = s"Compose[$layer1>>$layer2]"
 
-  override def forward(input: T, mode: Mode): LayerInstance[T, S] = {
-    val layer1Instance = layer1.forward(input, mode)
-    val layer2Instance = layer2.forward(layer1Instance.output, mode)
-    LayerInstance(
-      input, layer2Instance.output,
-      layer1Instance.trainableVariables ++ layer2Instance.trainableVariables,
-      layer1Instance.nonTrainableVariables ++ layer2Instance.nonTrainableVariables,
-      layer1Instance.graph)
-  }
+  override protected def _forward(input: T, mode: Mode): S = layer2(layer1(input, mode), mode)
 }
 
-case class Concatenate[T, R] private[layers] (
-    layers: Seq[Layer[T, R]],
-    override protected val name: String = "Concatenate"
+case class Concatenate[T, R](
+    override val name: String,
+    layers: Seq[Layer[T, R]]
 ) extends Layer[T, Seq[R]](name) {
-  override val layerType: String = layers.map(_.uniquifiedName).mkString("+")
+  override val layerType: String = "Concatenate"
 
-  override def forward(input: T, mode: Mode): LayerInstance[T, Seq[R]] = {
-    val layerInstances = layers.map(_ (input, mode))
-    LayerInstance(
-      input, layerInstances.map(_.output),
-      layerInstances.flatMap(_.trainableVariables).toSet,
-      layerInstances.flatMap(_.nonTrainableVariables).toSet,
-      layerInstances.head.graph)
-  }
+  override protected def _forward(input: T, mode: Mode): Seq[R] = layers.map(_ (input, mode))
 }
 
-case class Map[T, R, S, CC[A] <: TraversableLike[A, CC[A]]] private[layers] (
+case class Map[T, R, S, CC[A] <: TraversableLike[A, CC[A]]](
+    override val name: String,
     layer: Layer[CC[T], CC[R]],
-    mapLayer: Layer[R, S],
-    override protected val name: String = "Map"
+    mapLayer: Layer[R, S]
 )(implicit
-    cbfSS: CanBuildFrom[CC[LayerInstance[R, S]], S, CC[S]],
-    cbfLIRS: CanBuildFrom[CC[R], LayerInstance[R, S], CC[LayerInstance[R, S]]]
+    cbfRS: CanBuildFrom[CC[R], S, CC[S]]
 ) extends Layer[CC[T], CC[S]](name) {
   override val layerType: String = s"Map[$layer]"
 
-  override def forward(input: CC[T], mode: Mode): LayerInstance[CC[T], CC[S]] = {
-    val layerInstance = layer.forward(input, mode)
-    val mappedInstances = layerInstance.output
+  override protected def _forward(input: CC[T], mode: Mode): CC[S] = {
+    layer(input, mode)
         .asInstanceOf[TraversableLike[R, CC[R]]]
-        .map[LayerInstance[R, S], CC[LayerInstance[R, S]]](mapLayer.forward(_, mode))(cbfLIRS)
-    LayerInstance(
-      input,
-      mappedInstances
-          .asInstanceOf[TraversableLike[LayerInstance[R, S], CC[LayerInstance[R, S]]]]
-          .map[S, CC[S]](_.output)(cbfSS),
-      layerInstance.trainableVariables ++ mappedInstances.flatMap(_.trainableVariables),
-      layerInstance.nonTrainableVariables ++ mappedInstances.flatMap(_.nonTrainableVariables),
-      layerInstance.graph)
+        .map[S, CC[S]](mapLayer(_, mode))(cbfRS)
   }
 }
 
-case class Squeeze(axes: Seq[Int] = null, override protected val name: String = "Squeeze")
+case class Squeeze(override val name: String, axes: Seq[Int] = null)
     extends Layer[Output, Output](name) {
   override val layerType: String = if (axes != null) s"Squeeze[${axes.mkString(", ")}]" else "Squeeze"
 
-  override def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
-    LayerInstance(input, ops.Basic.squeeze(input, axes, name = uniquifiedName))
+  override protected def _forward(input: Output, mode: Mode): Output = {
+    ops.Basic.squeeze(input, axes, name = name)
   }
 }
 
-case class Flatten(override protected val name: String = "Flatten")
+case class Flatten(override val name: String)
     extends Layer[Output, Output](name) {
   override val layerType: String = s"Flatten"
 
-  override def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
-    val output = {
-      if (input.rank == 1)
-        input
-      else if (input.rank > -1 && input.shape(0) > -1)
-        ops.Basic.reshape(input, Shape(input.shape(0), -1), name = uniquifiedName)
-      else
-        ops.Basic.reshape(input, Shape(-1) + input.shape.asArray.tail.product, name = uniquifiedName)
-    }
-    LayerInstance(input, output)
+  override protected def _forward(input: Output, mode: Mode): Output = {
+    if (input.rank == 1)
+      input
+    else if (input.rank > -1 && input.shape(0) > -1)
+      ops.Basic.reshape(input, Shape(input.shape(0), -1), name = name)
+    else
+      ops.Basic.reshape(input, Shape(-1) + input.shape.asArray.tail.product, name = name)
   }
 }
 
-case class Transpose(permutation: Seq[Int], override protected val name: String = "Transpose")
+case class Transpose(override val name: String, permutation: Seq[Int])
     extends Layer[Output, Output](name) {
   override val layerType: String = s"Transpose[${permutation.mkString(", ")}]"
 
-  override def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
-    LayerInstance(input, ops.Basic.transpose(input, permutation, name = uniquifiedName))
+  override protected def _forward(input: Output, mode: Mode): Output = {
+    ops.Basic.transpose(input, permutation, name = name)
   }
 }
 
-case class OneHot(numberOfLabels: Int, override protected val name: String = "OneHot")
+case class OneHot(override val name: String, numberOfLabels: Int)
     extends Layer[Output, Output](name) {
   override val layerType: String = s"OneHot[$numberOfLabels]"
 
-  override def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
-    LayerInstance(input, ops.Basic.oneHot(input, numberOfLabels, name = uniquifiedName))
+  override protected def _forward(input: Output, mode: Mode): Output = {
+    ops.Basic.oneHot(input, numberOfLabels, name = name)
   }
 }

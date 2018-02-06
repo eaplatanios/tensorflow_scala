@@ -15,20 +15,18 @@
 
 package org.platanios.tensorflow.api.learn.layers.rnn.cell
 
-import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.learn.Mode
 import org.platanios.tensorflow.api.ops
-import org.platanios.tensorflow.api.ops.Output
 import org.platanios.tensorflow.api.ops.variables.{Initializer, Variable, ZerosInitializer}
-import org.platanios.tensorflow.api.types.DataType
 
 import scala.collection.mutable
 
 /** $OpDocRNNCellLSTMCell
   *
+  * @param  name              Name scope (also acting as variable scope) for this layer.
   * @param  numUnits          Number of units in the LSTM cell.
   * @param  dataType          Data type for the parameters of this cell.
-  * @param  inputShape        Shape of inputs to this cell.
   * @param  forgetBias        Forget bias added to the forget gate.
   * @param  usePeepholes      Boolean value indicating whether or not to use diagonal/peephole connections.
   * @param  cellClip          If different than `-1`, then the cell state is clipped by this value prior to the cell
@@ -38,40 +36,37 @@ import scala.collection.mutable
   * @param  activation        Activation function used by this LSTM cell.
   * @param  kernelInitializer Variable initializer for kernel matrices.
   * @param  biasInitializer   Variable initializer for the bias vectors.
-  * @param  name              Desired name for this layer (note that this name will be made unique by potentially
-  *                           appending a number to it, if it has been used before for another layer).
   *
   * @author Emmanouil Antonios Platanios
   */
-class LSTMCell private[cell] (
-    numUnits: Int,
+class LSTMCell(
+    override val name: String,
+    val numUnits: Int,
     val dataType: DataType,
-    val inputShape: Shape,
-    forgetBias: Float = 1.0f,
-    usePeepholes: Boolean = false,
-    cellClip: Float = -1,
-    projectionSize: Int = -1,
-    projectionClip: Float = -1,
-    activation: Output => Output = ops.Math.tanh(_),
-    kernelInitializer: Initializer = null,
-    biasInitializer: Initializer = ZerosInitializer,
-    override protected val name: String = "LSTMCell"
-) extends RNNCell[Output, Shape, (Output, Output), (Shape, Shape)](name) {
+    val forgetBias: Float = 1.0f,
+    val usePeepholes: Boolean = false,
+    val cellClip: Float = -1,
+    val projectionSize: Int = -1,
+    val projectionClip: Float = -1,
+    val activation: Output => Output = ops.Math.tanh(_),
+    val kernelInitializer: Initializer = null,
+    val biasInitializer: Initializer = ZerosInitializer
+) extends RNNCell[Output, Shape, LSTMState, (Shape, Shape)](name) {
   override val layerType: String = "LSTMCell"
 
-  override def createCell(mode: Mode): LSTMCellInstance = {
+  override def createCellWithoutContext(mode: Mode, inputShape: Shape): ops.rnn.cell.LSTMCell = {
     val trainableVariables: mutable.Set[Variable] = mutable.Set[Variable]()
     val hiddenDepth = if (projectionSize != -1) projectionSize else numUnits
-    val kernel = variable(
+    val kernel = tf.variable(
       KERNEL_NAME, dataType, Shape(inputShape(-1) + hiddenDepth, 4 * numUnits), kernelInitializer)
-    val bias = variable(BIAS_NAME, dataType, Shape(4 * numUnits), biasInitializer)
+    val bias = tf.variable(BIAS_NAME, dataType, Shape(4 * numUnits), biasInitializer)
     trainableVariables += kernel
     trainableVariables += bias
     val (wfDiag, wiDiag, woDiag) = {
       if (usePeepholes) {
-        val wfDiag = variable("Peepholes/ForgetKernelDiag", dataType, Shape(numUnits), kernelInitializer)
-        val wiDiag = variable("Peepholes/InputKernelDiag", dataType, Shape(numUnits), kernelInitializer)
-        val woDiag = variable("Peepholes/OutputKernelDiag", dataType, Shape(numUnits), kernelInitializer)
+        val wfDiag = tf.variable("Peepholes/ForgetKernelDiag", dataType, Shape(numUnits), kernelInitializer)
+        val wiDiag = tf.variable("Peepholes/InputKernelDiag", dataType, Shape(numUnits), kernelInitializer)
+        val woDiag = tf.variable("Peepholes/OutputKernelDiag", dataType, Shape(numUnits), kernelInitializer)
         trainableVariables += wfDiag
         trainableVariables += wiDiag
         trainableVariables += woDiag
@@ -82,7 +77,7 @@ class LSTMCell private[cell] (
     }
     val projectionKernel = {
       if (projectionSize != -1) {
-        val projectionKernel = variable(
+        val projectionKernel = tf.variable(
           s"Projection/$KERNEL_NAME",
           dataType,
           Shape(numUnits, projectionSize),
@@ -93,18 +88,17 @@ class LSTMCell private[cell] (
         null
       }
     }
-    val cell = ops.rnn.cell.LSTMCell(
+    ops.rnn.cell.LSTMCell(
       kernel.value, bias.value, cellClip, wfDiag, wiDiag, woDiag, projectionKernel, projectionClip,
       activation, forgetBias, name)
-    LSTMCellInstance(cell, trainableVariables.toSet)
   }
 }
 
 object LSTMCell {
   def apply(
+      variableScope: String,
       numUnits: Int,
       dataType: DataType,
-      inputShape: Shape,
       forgetBias: Float = 1.0f,
       usePeepholes: Boolean = false,
       cellClip: Float = -1,
@@ -112,11 +106,10 @@ object LSTMCell {
       projectionClip: Float = -1,
       activation: Output => Output = ops.Math.tanh(_),
       kernelInitializer: Initializer = null,
-      biasInitializer: Initializer = ZerosInitializer,
-      name: String = "LSTMCell"
+      biasInitializer: Initializer = ZerosInitializer
   ): LSTMCell = {
     new LSTMCell(
-      numUnits, dataType, inputShape, forgetBias, usePeepholes, cellClip, projectionSize, projectionClip, activation,
-      kernelInitializer, biasInitializer, name)
+      variableScope, numUnits, dataType, forgetBias, usePeepholes, cellClip, projectionSize, projectionClip, activation,
+      kernelInitializer, biasInitializer)
   }
 }

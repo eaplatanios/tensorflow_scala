@@ -15,10 +15,8 @@
 
 package org.platanios.tensorflow.api.learn.layers.rnn
 
-import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.Output
-import org.platanios.tensorflow.api.ops.variables.Variable
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -27,38 +25,18 @@ package object cell {
   private[cell] val KERNEL_NAME: String = "weights"
   private[cell] val BIAS_NAME  : String = "bias"
 
-  case class CellInstance[O, OS, S, SS](
-      cell: ops.rnn.cell.RNNCell[O, OS, S, SS],
-      trainableVariables: Set[Variable] = Set.empty,
-      nonTrainableVariables: Set[Variable] = Set.empty)
-
-  type BasicCellInstance = CellInstance[Output, Shape, Output, Shape]
-
-  def BasicCellInstance(
-      cell: ops.rnn.cell.RNNCell[Output, Shape, Output, Shape],
-      trainableVariables: Set[Variable] = Set.empty,
-      nonTrainableVariables: Set[Variable] = Set.empty
-  ): BasicCellInstance = {
-    CellInstance(cell, trainableVariables, nonTrainableVariables)
-  }
-
   type Tuple[O, S] = ops.rnn.cell.Tuple[O, S]
   type BasicTuple = Tuple[Output, Output]
 
   val Tuple: ops.rnn.cell.Tuple.type = ops.rnn.cell.Tuple
 
-  type LSTMCellInstance = CellInstance[Output, Shape, (Output, Output), (Shape, Shape)]
+  type LSTMState = ops.rnn.cell.LSTMState
+
+  val LSTMState: ops.rnn.cell.LSTMState.type = ops.rnn.cell.LSTMState
+
   type LSTMTuple = ops.rnn.cell.LSTMTuple
 
-  def LSTMTuple(output: Output, state: (Output, Output)): LSTMTuple = ops.rnn.cell.LSTMTuple(output, state)
-
-  def LSTMCellInstance(
-      cell: ops.rnn.cell.RNNCell[Output, Shape, (Output, Output), (Shape, Shape)],
-      trainableVariables: Set[Variable] = Set.empty,
-      nonTrainableVariables: Set[Variable] = Set.empty
-  ): LSTMCellInstance = {
-    CellInstance(cell, trainableVariables, nonTrainableVariables)
-  }
+  def LSTMTuple(output: Output, state: LSTMState): LSTMTuple = ops.rnn.cell.LSTMTuple(output, state)
 
   private[rnn] trait API {
     type RNNCell[O, OS, S, SS] = cell.RNNCell[O, OS, S, SS]
@@ -66,20 +44,31 @@ package object cell {
     type GRUCell = cell.GRUCell
     type BasicLSTMCell = cell.BasicLSTMCell
     type LSTMCell = cell.LSTMCell
-    type MultiRNNCell[O, OS, S, SS] = cell.MultiRNNCell[O, OS, S, SS]
+    type DeviceWrapper[O, OS, S, SS] = cell.DeviceWrapper[O, OS, S, SS]
+    type DropoutWrapper[O, OS, S, SS] = cell.DropoutWrapper[O, OS, S, SS]
+    type ResidualWrapper[O, OS, S, SS] = cell.ResidualWrapper[O, OS, S, SS]
+    type MultiCell[O, OS, S, SS] = cell.MultiCell[O, OS, S, SS]
 
-    val BasicRNNCell : cell.BasicRNNCell.type  = cell.BasicRNNCell
-    val GRUCell      : cell.GRUCell.type       = cell.GRUCell
-    val BasicLSTMCell: cell.BasicLSTMCell.type = cell.BasicLSTMCell
-    val LSTMCell     : cell.LSTMCell.type      = cell.LSTMCell
-    val MultiRNNCell : cell.MultiRNNCell.type  = cell.MultiRNNCell
+    val BasicRNNCell   : cell.BasicRNNCell.type    = cell.BasicRNNCell
+    val GRUCell        : cell.GRUCell.type         = cell.GRUCell
+    val BasicLSTMCell  : cell.BasicLSTMCell.type   = cell.BasicLSTMCell
+    val LSTMCell       : cell.LSTMCell.type        = cell.LSTMCell
+    val DeviceWrapper  : cell.DeviceWrapper.type   = cell.DeviceWrapper
+    val DropoutWrapper : cell.DropoutWrapper.type  = cell.DropoutWrapper
+    val ResidualWrapper: cell.ResidualWrapper.type = cell.ResidualWrapper
+    val MultiCell      : cell.MultiCell.type       = cell.MultiCell
 
     type RNNTuple[O, S] = cell.Tuple[O, S]
     type BasicTuple = cell.Tuple[Output, Output]
-    type LSTMTuple = cell.Tuple[Output, (Output, Output)]
+
+    type LSTMState = cell.LSTMState
+
+    val LSTMState: cell.LSTMState.type = cell.LSTMState
+
+    type LSTMTuple = cell.Tuple[Output, LSTMState]
 
     val RNNTuple: cell.Tuple.type = cell.Tuple
 
-    def LSTMTuple(output: Output, state: (Output, Output)): LSTMTuple = cell.Tuple(output, state)
+    def LSTMTuple(output: Output, state: LSTMState): LSTMTuple = cell.Tuple(output, state)
   }
 }

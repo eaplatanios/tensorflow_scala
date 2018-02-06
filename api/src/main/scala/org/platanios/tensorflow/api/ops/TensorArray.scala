@@ -45,8 +45,14 @@ import org.platanios.tensorflow.api.types.{DataType, INT64}
   * @author Emmanouil Antonios Platanios
   */
 private[api] case class TensorArray private (
-    handle: Output, flow: Output, dataType: DataType, inferShape: Boolean, private var elementShape: Option[Shape],
-    colocateWithFirstWrite: Boolean = true, private var colocationOps: List[Op] = null) {
+    handle: Output,
+    flow: Output,
+    dataType: DataType,
+    inferShape: Boolean,
+    private var elementShape: Option[Shape],
+    colocateWithFirstWrite: Boolean = true,
+    private var colocationOps: List[Op] = null
+) extends Symbol {
   /** Changes the element shape of the array given a shape to merge with.
     *
     * @param  shape Shape to merge with.
@@ -79,7 +85,7 @@ private[api] case class TensorArray private (
     * @return Tensor in the specified position of the tensor array.
     */
   private[api] def read(index: Output, name: String = "TensorArrayRead"): Output = {
-    Op.createWith(colocationOps = Set(handle.op)) {
+    Op.colocateWith(Set(handle.op)) {
       val value = TensorArray.readOp(handle, index, flow, dataType, name)
       elementShape.foreach(value.setShape)
       value
@@ -112,7 +118,7 @@ private[api] case class TensorArray private (
     * @return Tensor containing the gathered elements, concatenated along a new axis (the new dimension `0`).
     */
   private[api] def gather(indices: Output, name: String = "TensorArrayGather"): Output = {
-    Op.createWith(colocationOps = Set(handle.op)) {
+    Op.colocateWith(Set(handle.op)) {
       val ind = if (indices.rank == 0) indices.expandDims(0) else indices
       val value = TensorArray.gatherOp(handle, ind, flow, dataType, elementShape.getOrElse(Shape.unknown()), name)
       if (elementShape.isDefined)
@@ -156,7 +162,7 @@ private[api] case class TensorArray private (
     */
   private[api] def stack(name: String = "TensorArrayStack"): Output = {
     Op.createWithNameScope(name, Set(handle.op)) {
-      Op.createWith(colocationOps = Set(handle.op)) {
+      Op.colocateWith(Set(handle.op)) {
         gather(Math.range(Basic.constant(0), size()), name)
       }
     }
@@ -227,7 +233,7 @@ private[api] case class TensorArray private (
     * @return Created op output, containing the current size of the tensor array.
     */
   private[api] def size(name: String = "TensorArraySize"): Output = {
-    Op.createWith(colocationOps = Set(handle.op)) {
+    Op.colocateWith(Set(handle.op)) {
       TensorArray.sizeOp(handle, flow, name)
     }
   }
@@ -275,7 +281,7 @@ private[api] case class TensorArray private (
     // `TensorArray.gradientOp` requires a flow input when forward tensor arrays are dynamically sized. This forces the
     // creation of the gradient tensor array only once the final forward array's size is fixed.
     Op.createWithNameScope(name, Set(handle.op)) {
-      Op.createWith(colocationOps = Set(handle.op)) {
+      Op.colocateWith(Set(handle.op)) {
         val (gradientHandle, _) = TensorArray.gradientOp(handle, flow, source)
         val gradientFlow = Op.createWith(controlDependencies = Set(gradientHandle.op)) {
           Basic.identity(flow, name = "GradientFlow")
@@ -294,7 +300,7 @@ private[api] case class TensorArray private (
     * @return Created op.
     */
   private[api] def close(name: String = "TensorArrayClose"): Op = {
-    Op.createWith(colocationOps = Set(handle.op)) {
+    Op.colocateWith(Set(handle.op)) {
       TensorArray.closeOp(handle, name)
     }
   }
@@ -348,11 +354,13 @@ private[api] object TensorArray {
       if (colocateWithFirstWrite) {
         Op.createWith(device = null) {
           Op.colocateWith(Set.empty[Op], ignoreExisting = true) {
-            TensorArray.createOp(size, dataType, elementShape, dynamicSize, clearAfterRead, tensorArrayName, name)
+            TensorArray.createOp(
+              size, dataType, elementShape, dynamicSize, clearAfterRead, inferShape, tensorArrayName, name)
           }
         }
       } else {
-        TensorArray.createOp(size, dataType, elementShape, dynamicSize, clearAfterRead, tensorArrayName, name)
+        TensorArray.createOp(
+          size, dataType, elementShape, dynamicSize, clearAfterRead, inferShape, tensorArrayName, name)
       }
     }
     createFromHandle(handle, flow, dataType, inferShape, elementShape, colocateWithFirstWrite)
@@ -397,6 +405,8 @@ private[api] object TensorArray {
     *                         By default, this is not allowed.
     * @param  clearAfterRead  Boolean value indicating whether to clear the tensors in the array, after being read. This
     *                         disables multiple read semantics but allows early release of memory. Defaults to `true`.
+    * @param  inferShape      Boolean value indicating whether shape inference is enabled. If `true`, all elements must
+    *                         have the same shape.
     * @param  tensorArrayName Overrides the name used for the temporary tensor array resource. If not provided or if an
     *                         empty string is provided, then the name of the created op is used, which is guaranteed to
     *                         be unique.
@@ -405,7 +415,7 @@ private[api] object TensorArray {
     */
   private[TensorArray] def createOp(
       size: Output, dataType: DataType, elementShape: Shape = Shape.unknown(), dynamicSize: Boolean = false,
-      clearAfterRead: Boolean = true, tensorArrayName: String = "",
+      clearAfterRead: Boolean = true, inferShape: Boolean = true, tensorArrayName: String = "",
       name: String = "TensorArray"): (Output, Output) = {
     val outputs = Op.Builder(opType = "TensorArrayV3", name = name)
         .addInput(size)
@@ -413,6 +423,7 @@ private[api] object TensorArray {
         .setAttribute("element_shape", elementShape)
         .setAttribute("dynamic_size", dynamicSize)
         .setAttribute("clear_after_read", clearAfterRead)
+        .setAttribute("identical_element_shapes", inferShape)
         .setAttribute("tensor_array_name", tensorArrayName)
         .build().outputs
     (outputs(0), outputs(1))

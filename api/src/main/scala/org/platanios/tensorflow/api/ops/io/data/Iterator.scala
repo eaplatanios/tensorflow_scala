@@ -21,6 +21,9 @@ import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry
 import org.platanios.tensorflow.api.ops.io.data
 import org.platanios.tensorflow.api.types.DataType
 
+import com.typesafe.scalalogging.Logger
+import org.slf4j.LoggerFactory
+
 // TODO: Rename to "DatasetIterator".
 
 /** A simple [[Iterator]] that does contains an initializer and can thus not be used until an initializer is created for
@@ -42,6 +45,8 @@ class Iterator[T, O, D, S] private[io](
 )(implicit
     ev: Data.Aux[T, O, D, S]
 ) {
+  private[this] var nextCallCount: Int = 0
+
   /** Returns an op that initializes this iterator using the provided [[Dataset]].
     *
     * @param  dataset Dataset to initialize this iterator with. The output data types of this iterator must match the
@@ -62,7 +67,9 @@ class Iterator[T, O, D, S] private[io](
       throw new IllegalArgumentException(
         s"Expected output shapes compatible with '$outputShapes', " +
             s"but got dataset with output shapes '${dataset.outputShapes}'.")
-    Iterator.makeIterator(datasetHandle = dataset.createHandle(), iteratorHandle = handle)
+    Op.colocateWith(Set(handle.op)) {
+      Iterator.makeIterator(datasetHandle = dataset.createHandle(), iteratorHandle = handle)
+    }
   }
 
   /** Creates an op that obtains the next element of this iterator and returns a nested structure of [[Output]]s
@@ -72,6 +79,9 @@ class Iterator[T, O, D, S] private[io](
     * @return Created op outputs in a nested structure according to the data type of this initializer.
     */
   def next(name: String = s"$name/Next"): O = {
+    nextCallCount += 1
+    if (nextCallCount > Iterator.NEXT_CALL_WARNING_THRESHOLD)
+      Iterator.logger.warn(Iterator.NEXT_CALL_WARNING_MESSAGE)
     val flattenedNext = Iterator.iteratorGetNext(
       iteratorHandle = handle,
       outputDataTypes = flattenedOutputDataTypes,
@@ -132,6 +142,8 @@ class InitializableIterator[T, O, D, S] private[io](
 
 /** Contains helper functions for creating iterator-related ops, as well as the iterator API trait. */
 object Iterator {
+  private[data] val logger = Logger(LoggerFactory.getLogger("Data / Iterator"))
+
   type Iterator[T, O, D, S] = data.Iterator[T, O, D, S]
 
   private[io] trait API {
@@ -153,6 +165,20 @@ object Iterator {
       fromStringHandle(stringHandle, outputDataTypes, outputShapes, name)(ev)
     }
   }
+
+  /** Note: It is legitimate to call `Iterator.next()` multiple times, e.g. when you are distributing different elements
+    * to multiple devices in a single step. However, a common pitfall arises when users call `Iterator.next()` in each
+    * iteration of their training loop. `Iterator.next()` adds ops to the graph, and executing each op allocates
+    * resources (including threads); as a consequence, invoking it in every iteration of a training loop causes slowdown
+    * and eventual resource exhaustion. To guard against this outcome, we log a warning when the number of uses crosses
+    * a threshold of suspicion. */
+  private[data] val NEXT_CALL_WARNING_THRESHOLD: Int    = 32
+  private[data] val NEXT_CALL_WARNING_MESSAGE  : String =
+    """An unusually high number of `Iterator.get_next()` calls was detected. This often indicates that `Iterator.next()`
+      |is being called inside a training loop, which will cause gradual slowdown and eventual resource exhaustion. If
+      |this is the case, restructure your code to call `nextElement = iterator.next() once outside the loop, and use
+      |`nextElement` inside the loop.
+    """.stripMargin
 
   /** Creates a new, uninitialized [[Iterator]] from the provided [[Dataset]].
     *

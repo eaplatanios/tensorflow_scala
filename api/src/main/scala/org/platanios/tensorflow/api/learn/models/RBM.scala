@@ -75,7 +75,7 @@ class RBM(
           Math.mean(Basic.stack(hSamples, axis = 0), axes = 0)
         }
       }
-      Model.InferOps(inputIterator, nextInput, output, Set(vb, hb, w), Set.empty)
+      Model.InferOps(inputIterator, nextInput, output)
     })
   }
 
@@ -88,9 +88,10 @@ class RBM(
       val vSampleFreeEnergy = RBM.freeEnergy(vSample, vb, hb, w)
       val loss = Math.mean(vFreeEnergy - vSampleFreeEnergy)
       val step = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
-      val trainOp = optimizer.minimize(loss, iteration = Some(step))
+      val gradientsAndVariables = optimizer.computeGradients(loss, colocateGradientsWithOps = colocateGradientsWithOps)
+      val trainOp = optimizer.applyGradients(gradientsAndVariables, Some(step))
       Model.UnsupervisedTrainOps(
-        inferOps.inputIterator, inferOps.input, inferOps.output, loss, trainOp, Set(vb, hb, w), Set.empty)
+        inferOps.inputIterator, inferOps.input, inferOps.output, loss, gradientsAndVariables, trainOp)
     })
   }
 
@@ -100,8 +101,7 @@ class RBM(
       val streamingInstances = metrics.map(_.streaming(inferOps.output))
       Model.EvaluateOps(
         inferOps.inputIterator, inferOps.input, inferOps.output,
-        streamingInstances.map(_.value), streamingInstances.map(_.update), streamingInstances.map(_.reset),
-        inferOps.trainableVariables, inferOps.nonTrainableVariables ++ streamingInstances.flatMap(_.variables))
+        streamingInstances.map(_.value), streamingInstances.map(_.update), streamingInstances.map(_.reset))
     })
   }
 

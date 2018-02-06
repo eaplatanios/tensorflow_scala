@@ -105,6 +105,41 @@ private[api] trait Random {
       Math.add(random * castedStandardDeviation, castedMean)
     }
   }
+
+  /** $OpDocRandomRandomTruncatedNormal
+    *
+    * @group RandomOps
+    * @param  dataType          Data type for the output tensor. Must be one of: [[FLOAT16]], [[FLOAT32]], or
+    *                           [[FLOAT64]].
+    * @param  shape             Rank-1 tensor containing the shape of the output tensor. Defaults to a scalar tensor.
+    * @param  mean              Scalar tensor containing the mean of the Normal distribution. Defaults to `0`.
+    * @param  standardDeviation Scalar tensor containing the standard deviation of the Normal distribution. Defaults to
+    *                           `1`.
+    * @param  seed              Optional random seed, used to generate a random seed pair for the random number
+    *                           generator, when combined with the graph-level seed.
+    * @param  name              Name for the created op.
+    * @return Created op output.
+    * @throws IllegalArgumentException If `dataType` has an unsupported value.
+    */
+  @throws[IllegalArgumentException]
+  def randomTruncatedNormal(
+      dataType: DataType = FLOAT32, shape: Output = Shape.scalar(), mean: Output = 0.0, standardDeviation: Output = 1.0,
+      seed: Option[Int] = None, name: String = "RandomTruncatedNormal"): Output = {
+    if (dataType != FLOAT16 && dataType != FLOAT32 && dataType != FLOAT64)
+      throw new IllegalArgumentException(s"'dataType' ($dataType) must be one of: FLOAT16, FLOAT32, or FLOAT64.")
+    Op.createWithNameScope(name, Set(shape.op, mean.op, standardDeviation.op)) {
+      val castedMean = Math.cast(mean, dataType)
+      val castedStandardDeviation = Math.cast(standardDeviation, dataType)
+      val (graphSeed, opSeed) = Op.currentGraphRandomSeed(seed)
+      val random = Op.Builder(opType = "TruncatedNormal", name = name)
+          .addInput(shape)
+          .setAttribute("dtype", dataType)
+          .setAttribute("seed", graphSeed.getOrElse(0))
+          .setAttribute("seed2", opSeed.getOrElse(0))
+          .build().outputs(0)
+      Math.add(random * castedStandardDeviation, castedMean)
+    }
+  }
 }
 
 private[api] object Random extends Random {
@@ -125,9 +160,15 @@ private[api] object Random extends Random {
     *   (either `2^32` or `2^64`, depending on the data type).
     *
     * @define OpDocRandomRandomNormal
-    *   The `randomUniform` op outputs random values drawn from a Normal distribution.
+    *   The `randomNormal` op outputs random values drawn from a Normal distribution.
     *
     *   The generated values follow a Normal distribution with mean `mean` and standard deviation `standardDeviation`.
+    *
+    * @define OpDocRandomRandomTruncatedNormal
+    *   The `randomTruncatedNormal` op outputs random values drawn from a truncated Normal distribution.
+    *
+    *   The generated values follow a Normal distribution with mean `mean` and standard deviation `standardDeviation`,
+    *   except that values whose magnitude is more than two standard deviations from the mean are dropped and resampled.
     */
   private[ops] trait Documentation
 }

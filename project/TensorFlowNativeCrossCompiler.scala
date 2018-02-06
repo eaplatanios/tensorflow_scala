@@ -35,12 +35,12 @@ object TensorFlowNativeCrossCompiler {
     if (gitRepositoryBranch != "master") {
       processBuilder = processBuilder #&&
           Process("git" :: "checkout" :: "-b" :: gitRepositoryBranch ::
-                      s"origin/$gitRepositoryBranch" :: Nil, repoDir)
+              s"origin/$gitRepositoryBranch" :: Nil, repoDir)
     }
     processBuilder #&&
         Process(platform.compileScript, repoDir) #&&
         Process(
-          "cp" :: s"lib-package/${platform.tfLibFilename}" ::
+          "cp" :: s"lib_package/${platform.tfLibFilename}" ::
               s"$targetDir/downloads/lib/${platform.tfLibFilename}" :: Nil, repoDir) #&&
         Process("rm" :: "-rf" :: "tensorflow" :: Nil, workingDir.toFile)
   }
@@ -52,7 +52,6 @@ object TensorFlowNativeCrossCompiler {
       case LINUX_x86_64 => "tensorflow/tools/ci_build/linux/libtensorflow_cpu.sh"
       case LINUX_GPU_x86_64 => "tensorflow/tools/ci_build/linux/libtensorflow_gpu.sh"
       case DARWIN_x86_64 => s"$ciBuildScript CPU tensorflow/tools/ci_build/osx/libtensorflow_cpu.sh"
-      case WINDOWS_x86_64 => s"$ciBuildScript CPU tensorflow/tools/ci_build/windows/libtensorflow_cpu.sh"
     }
   }
 }

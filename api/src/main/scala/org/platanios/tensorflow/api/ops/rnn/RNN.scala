@@ -65,27 +65,6 @@ private[rnn] trait RNN {
       evS: WhileLoopVariable.Aux[S, SS]
   ): Tuple[O, S] = {
     Op.createWithNameScope(name) {
-      // By default, `timeMajor` is false and inputs are shaped batch-major: [batch, time, depth]
-      // For internal calculations, we transpose to: [time, batch, depth]
-      var processedInput = evO.outputs(input)
-      processedInput = {
-        if (!timeMajor) {
-          // [B, T, D] => [T, B, D]
-          processedInput.map(RNN.transposeBatchTime)
-        } else {
-          processedInput
-        }
-      }
-      var processedSequenceLength = {
-        if (sequenceLengths == null) {
-          null
-        } else {
-          if (sequenceLengths.rank != -1 && sequenceLengths.rank != 1)
-            throw InvalidShapeException(
-              s"'sequenceLength' (rank = ${sequenceLengths.rank}) must be a vector with length equal to the batch size.")
-          Math.cast(sequenceLengths, INT32, "SequenceLengthCast")
-        }
-      }
       // Create a new variable scope in which the caching device is either determined by the parent scope, or is set to
       // place the cached variables using the same device placement as for the rest of the RNN.
       val currentVariableScope = VariableScope.createWithVariableScope(name)(Op.currentVariableScope)
@@ -96,12 +75,34 @@ private[rnn] trait RNN {
           currentVariableScope.cachingDevice
       }
       VariableScope.createWithUpdatedVariableScope(currentVariableScope, cachingDevice = cachingDevice) {
+        // By default, `timeMajor` is false and inputs are shaped batch-major: [batch, time, depth]
+        // For internal calculations, we transpose to: [time, batch, depth]
+        var processedInput = evO.outputs(input)
+        processedInput = {
+          if (!timeMajor) {
+            // [B, T, D] => [T, B, D]
+            processedInput.map(RNN.transposeBatchTime)
+          } else {
+            processedInput
+          }
+        }
+        var processedSequenceLength = {
+          if (sequenceLengths == null) {
+            null
+          } else {
+            if (sequenceLengths.rank != -1 && sequenceLengths.rank != 1)
+              throw InvalidShapeException(
+                s"'sequenceLength' (rank = ${sequenceLengths.rank}) must be a vector " +
+                    "with length equal to the batch size.")
+            Math.cast(sequenceLengths, INT32, "SequenceLengthCast")
+          }
+        }
         val batchSize = RNN.bestEffortInputBatchSize(processedInput)
         val state = {
           if (initialState != null)
             initialState
           else
-            evS.zero(batchSize, processedInput.head.dataType, cell.stateShape, name)
+            cell.zeroState(batchSize, processedInput.head.dataType, cell.stateShape)
         }
         // Perform some shape validation
         if (sequenceLengths != null) {
@@ -247,11 +248,14 @@ object RNN extends RNN {
         (null, null)
     }
     val time = Basic.constant(0, INT32, name = "Time")
-    val outputTensorArrays = zeroOutputs.indices.map(i => {
-      TensorArray.create(timeSteps, inferredDataType, name = s"Output_$i")
+    val outputTensorArrays = evO.shapes(cell.outputShape).zipWithIndex.map({
+      case (shape, index) => TensorArray.create(
+        timeSteps, inferredDataType, elementShape = Shape(constantBatchSize) ++ Output.constantValueAsShape(shape).get,
+        name = s"Output_$index")
     })
     val inputTensorArrays = inputs.zipWithIndex.map({
-      case (in, index) => TensorArray.create(timeSteps, in.dataType, name = s"Input_$index").unstack(in)
+      case (in, index) => TensorArray.create(
+        timeSteps, in.dataType, elementShape = in.shape(1 ::), name = s"Input_$index").unstack(in)
     })
 
     type LoopVariables = (Output, Seq[TensorArray], Seq[Output])
@@ -282,12 +286,17 @@ object RNN extends RNN {
       (time + 1, nextOutputTensorArrays, nextStates)
     }
 
+    // `loopBound` can be reduced to `maxSequenceLength` once TensorArray shape inference is working. When sequence
+    // lengths are highly variable, this will reduce the performance overhead of padding to a fixed maximum length.
+    val loopBound = timeSteps
+    val maximumIterations = if (timeSteps.op.controlFlowContext.isEmpty) timeSteps else null
     val (_, finalOutputTensorArrays, finalStates) = ControlFlow.whileLoop(
-      (loopVariables: LoopVariables) => Math.less(loopVariables._1, timeSteps),
+      (loopVariables: LoopVariables) => Math.less(loopVariables._1, loopBound),
       (loopVariables: LoopVariables) => timeStep(loopVariables),
       (time, outputTensorArrays, initialStates),
       parallelIterations = parallelIterations,
-      swapMemory = swapMemory)
+      swapMemory = swapMemory,
+      maximumIterations = maximumIterations)
 
     // Unpack the final output if not using output tuples
     val finalOutputs = finalOutputTensorArrays.map(_.stack())

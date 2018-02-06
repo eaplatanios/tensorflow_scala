@@ -22,7 +22,7 @@ import org.platanios.tensorflow.api.ops.Output
 /**
   * @author Emmanouil Antonios Platanios
   */
-abstract class Activation(override protected val name: String) extends Layer[Output, Output](name)
+abstract class Activation(override val name: String) extends Layer[Output, Output](name)
 
 object Activation {
   private[layers] trait API {
@@ -41,74 +41,74 @@ object Activation {
   object API extends API
 }
 
-case class Sigmoid(override protected val name: String = "Sigmoid")
+case class Sigmoid(override val name: String)
     extends Activation(name) {
   override val layerType: String = "Sigmoid"
 
-  override def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
-    LayerInstance(input, ops.Math.sigmoid(input, name = uniquifiedName))
+  override protected def _forward(input: Output, mode: Mode): Output = {
+    ops.Math.sigmoid(input)
   }
 }
 
-case class ReLU(alpha: Float = 0.0f, override protected val name: String = "ReLU")
+case class ReLU(override val name: String, alpha: Float = 0.0f)
     extends Activation(name) {
   override val layerType: String = if (alpha > 0.0f) f"LeakyReLU($alpha%.2f)" else "ReLU"
 
-  override def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
-    LayerInstance(input, ops.NN.relu(input, alpha = alpha, name = uniquifiedName))
+  override protected def _forward(input: Output, mode: Mode): Output = {
+    ops.NN.relu(input, alpha = alpha)
   }
 }
 
-case class ReLU6(override protected val name: String = "ReLU6")
+case class ReLU6(override val name: String)
     extends Activation(name) {
   override val layerType: String = "ReLU6"
 
-  override def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
-    LayerInstance(input, ops.NN.relu6(input, name = uniquifiedName))
+  override protected def _forward(input: Output, mode: Mode): Output = {
+    ops.NN.relu6(input)
   }
 }
 
-case class CReLU(override protected val name: String = "CReLU")
+case class CReLU(override val name: String)
     extends Activation(name) {
   override val layerType: String = "CReLU"
 
-  override def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
-    LayerInstance(input, ops.NN.crelu(input, name = uniquifiedName))
+  override protected def _forward(input: Output, mode: Mode): Output = {
+    ops.NN.crelu(input)
   }
 }
 
-case class ELU(override protected val name: String = "ELU")
+case class ELU(override val name: String)
     extends Activation(name) {
   override val layerType: String = "ELU"
 
-  override def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
-    LayerInstance(input, ops.NN.elu(input, name = uniquifiedName))
+  override protected def _forward(input: Output, mode: Mode): Output = {
+    ops.NN.elu(input)
   }
 }
 
-case class SELU(override protected val name: String = "SELU")
+case class SELU(override val name: String)
     extends Activation(name) {
   override val layerType: String = "SELU"
 
-  override def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
-    LayerInstance(input, ops.NN.selu(input, name = uniquifiedName))
+  override protected def _forward(input: Output, mode: Mode): Output = {
+    ops.NN.selu(input)
   }
 }
 
-case class Softplus(override protected val name: String = "Softplus")
+case class Softplus(override val name: String)
     extends Activation(name) {
   override val layerType: String = "Softplus"
 
-  override def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
-    LayerInstance(input, ops.NN.softplus(input, name = uniquifiedName))
+  override protected def _forward(input: Output, mode: Mode): Output = {
+    ops.NN.softplus(input)
   }
 }
 
-case class Softsign(override protected val name: String = "Softsign")
+case class Softsign(override val name: String)
     extends Activation(name) {
   override val layerType: String = "Softsign"
 
-  override def forward(input: Output, mode: Mode): LayerInstance[Output, Output] = {
-    LayerInstance(input, ops.NN.softsign(input, name = uniquifiedName))
+  override protected def _forward(input: Output, mode: Mode): Output = {
+    ops.NN.softsign(input)
   }
 }

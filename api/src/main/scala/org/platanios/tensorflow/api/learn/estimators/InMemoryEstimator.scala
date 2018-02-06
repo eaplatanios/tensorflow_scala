@@ -17,16 +17,14 @@ package org.platanios.tensorflow.api.learn.estimators
 
 import org.platanios.tensorflow.api.config.TensorBoardConfig
 import org.platanios.tensorflow.api.core.Graph
-import org.platanios.tensorflow.api.core.client.Fetchable
+import org.platanios.tensorflow.api.core.client.{Fetchable, Session}
 import org.platanios.tensorflow.api.core.exception.{InvalidArgumentException, OutOfRangeException}
 import org.platanios.tensorflow.api.learn._
 import org.platanios.tensorflow.api.learn.hooks._
-import org.platanios.tensorflow.api.ops.{Op, Output, Resource}
+import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.io.data.Dataset
-import org.platanios.tensorflow.api.ops.lookup.Lookup
 import org.platanios.tensorflow.api.ops.metrics.Metric
-import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.tensors.Tensor
 
 import com.typesafe.scalalogging.Logger
@@ -71,16 +69,22 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
     val tensorBoardConfig: TensorBoardConfig = null,
     val evaluationMetrics: Seq[Metric[EI, Output]] = Seq.empty
 ) extends Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](modelFunction, configurationBase) {
+  if (trainHooks.exists(_.isInstanceOf[Stopper])
+      || trainChiefOnlyHooks.exists(_.isInstanceOf[Stopper])
+      || inferHooks.exists(_.isInstanceOf[Stopper])
+      || evaluateHooks.exists(_.isInstanceOf[Stopper]))
+    Estimator.logger.warn("The provided stopper hook will be ignored. Please use 'stopCriteria' instead.")
+
   private[this] val graph: Graph                                                 = Graph()
   private[this] val model: TrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] = modelFunction(configuration)
 
-  private[this] val stopHook              : StopHook          = StopHook(stopCriteria)
+  private[this] val stopHook              : Stopper           = Stopper(stopCriteria)
   private[this] var allTrainHooks         : mutable.Set[Hook] = mutable.Set(trainHooks.toSeq: _*) + stopHook
   private[this] var allTrainChiefOnlyHooks: mutable.Set[Hook] = mutable.Set(trainChiefOnlyHooks.toSeq: _*)
 
   private[this] val (globalStep, trainingOps, inferenceOps, evaluationOps, evaluationUpdateOps) = {
     Op.createWith(graph = graph, deviceFunction = deviceFunction.getOrElse(_.device)) {
-      graph.setRandomSeed(randomSeed)
+      randomSeed.foreach(graph.setRandomSeed)
       // TODO: [LEARN] !!! Do we ever update the global epoch?
       Counter.getOrCreate(Graph.Keys.GLOBAL_EPOCH, local = false)
       val globalStep = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
@@ -92,24 +96,25 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
         val evalStepUpdate = evalStep.assignAdd(1L)
         val evalUpdateOps = ControlFlow.group(evaluateOps.metricUpdates.map(_.op).toSet + evalStepUpdate.op)
         val trainModelInstance = ModelInstance(
-          trainOps.inputIterator, trainOps.input, trainOps.output, Some(trainOps.loss), Some(trainOps.trainOp),
-          trainOps.trainableVariables, trainOps.nonTrainableVariables)
+          model, configuration, Some(trainOps.inputIterator), Some(trainOps.input), Some(trainOps.output),
+          Some(trainOps.loss), Some(trainOps.gradientsAndVariables), Some(trainOps.trainOp))
         trainHooks.foreach {
-          case hook: ModelDependentHook[I, TT, TO, TD, TS] => hook.setModelInstance(trainModelInstance)
+          case hook: ModelDependentHook[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] =>
+            hook.setModelInstance(trainModelInstance)
           case _ => ()
         }
-        val inferModelInstance = ModelInstance(
-          inferOps.inputIterator, inferOps.input, inferOps.output, None, None,
-          inferOps.trainableVariables, inferOps.nonTrainableVariables)
+        val inferModelInstance = ModelInstance(model, configuration, None, None, Some(inferOps.output), None, None)
         inferHooks.foreach {
-          case hook: ModelDependentHook[I, IT, IO, ID, IS] => hook.setModelInstance(inferModelInstance)
+          case hook: ModelDependentHook[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] =>
+            hook.setModelInstance(inferModelInstance)
           case _ => ()
         }
         val evaluateModelInstance = ModelInstance(
-          evaluateOps.inputIterator, evaluateOps.input, evaluateOps.output, None, None,
-          evaluateOps.trainableVariables, evaluateOps.nonTrainableVariables)
+          model, configuration, Some(evaluateOps.inputIterator), Some(evaluateOps.input), Some(evaluateOps.output),
+          None, None)
         evaluateHooks.foreach {
-          case hook: ModelDependentHook[I, TT, TO, TD, TS] => hook.setModelInstance(evaluateModelInstance)
+          case hook: ModelDependentHook[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] =>
+            hook.setModelInstance(evaluateModelInstance)
           case _ => ()
         }
         (globalStep, trainOps, inferOps, evaluateOps, evalUpdateOps)
@@ -117,26 +122,30 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
     }
   }
 
+  private[this] var additionalLocalInitOps: Set[Op] = Set.empty[Op]
+
+  private[this] def localInitFunction(session: Session, builtSessionScaffold: BuiltSessionScaffold): Unit = {
+    if (additionalLocalInitOps.nonEmpty)
+      session.run(targets = additionalLocalInitOps)
+  }
+
   /** The underlying session that is kept alive throughout this estimator's lifetime. */
   private[this] val session: MonitoredSession = {
     Op.createWith(graph = graph, deviceFunction = deviceFunction.getOrElse(_.device)) {
       Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
       graph.addToCollection(trainingOps.loss, Graph.Keys.LOSSES)
-      allTrainHooks += TensorNaNHook(Set(trainingOps.loss.name))
+      allTrainHooks += NaNChecker(Set(trainingOps.loss.name))
+      val allHooks = allTrainHooks.toSet ++
+          inferHooks.filter(!_.isInstanceOf[Stopper]) ++
+          evaluateHooks.filter(!_.isInstanceOf[Stopper])
+      val allChiefOnlyHooks = allTrainChiefOnlyHooks.toSet.filter(!_.isInstanceOf[Stopper])
       if (tensorBoardConfig != null)
         allTrainChiefOnlyHooks += TensorBoardHook(tensorBoardConfig)
       val saver = getOrCreateSaver()
       Estimator.monitoredTrainingSession(
-        configuration = configuration,
-        hooks = allTrainHooks.toSet ++ inferHooks ++ evaluateHooks,
-        chiefOnlyHooks = allTrainChiefOnlyHooks.toSet,
+        configuration = configuration, hooks = allHooks, chiefOnlyHooks = allChiefOnlyHooks,
         sessionScaffold = SessionScaffold(
-          initOp = Some(ControlFlow.group(Set(
-            Variable.initializer(Variable.globalVariables),
-            Resource.initializer(Resource.sharedResources)))),
-          localInitOp = Some(ControlFlow.group(Set(
-            Variable.initializer(Variable.localVariables),
-            Lookup.initializer(Lookup.initializers)))),
+          localInitFunction = Some(localInitFunction),
           saver = saver))
     }
   }
@@ -149,13 +158,13 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
     *                      refer to the documentation of [[StopCriteria]].
     */
   override def train(data: () => Dataset[TT, TO, TD, TS], stopCriteria: StopCriteria = this.stopCriteria): Unit = {
-    session.resetShouldStop()
     session.removeHooks(inferHooks ++ evaluateHooks)
     Op.createWith(graph) {
       val frozen = graph.isFrozen
       if (frozen)
         graph.unFreeze()
       val initializer = trainingOps.inputIterator.createInitializer(data())
+      additionalLocalInitOps = Set(initializer)
       if (frozen)
         graph.freeze()
       session.disableHooks()
@@ -163,6 +172,7 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
       stopHook.updateCriteria(stopCriteria)
       stopHook.reset(session)
       session.enableHooks()
+      session.resetShouldStop()
       try {
         while (!session.shouldStop)
           try {
@@ -205,13 +215,13 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
       evFetchableIIO: Fetchable.Aux[(IO, I), (IT, ModelInferenceOutput)],
       ev: Estimator.SupportedInferInput[InferInput, InferOutput, IT, IO, ID, IS, ModelInferenceOutput]
   ): InferOutput = {
-    session.resetShouldStop()
     session.removeHooks(currentTrainHooks ++ evaluateHooks)
     val output = Op.createWith(graph) {
       val frozen = graph.isFrozen
       if (frozen)
         graph.unFreeze()
       val initializer = inferenceOps.inputIterator.createInitializer(ev.toDataset(input()))
+      additionalLocalInitOps = Set(initializer)
       if (frozen)
         graph.freeze()
       session.disableHooks()
@@ -219,6 +229,7 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
       stopHook.updateCriteria(StopCriteria.none)
       stopHook.reset(session)
       session.enableHooks()
+      session.resetShouldStop()
       try {
         ev.convertFetched(new Iterator[(IT, ModelInferenceOutput)] {
           override def hasNext: Boolean = session.shouldStop
@@ -281,13 +292,13 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
       maxSteps: Long = -1L,
       saveSummaries: Boolean = true,
       name: String = null): Seq[Tensor] = {
-    session.resetShouldStop()
     session.removeHooks(currentTrainHooks ++ inferHooks)
     val values = Op.createWith(graph) {
       val frozen = graph.isFrozen
       if (frozen)
         graph.unFreeze()
       val initializer = evaluationOps.inputIterator.createInitializer(data())
+      additionalLocalInitOps = Set(initializer)
       if (frozen)
         graph.freeze()
       session.disableHooks()
@@ -295,6 +306,7 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
       stopHook.updateCriteria(if (maxSteps != -1L) StopCriteria.steps(maxSteps) else StopCriteria.none)
       stopHook.reset(session)
       session.enableHooks()
+      session.resetShouldStop()
       try {
         InMemoryEstimator.logger.info("Starting evaluation.")
         val (step, metricValues) = {
@@ -334,7 +346,7 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
     values
   }
 
-  /** Returns the train hooks being used by this estimator, except for the [[StopHook]] being used. */
+  /** Returns the train hooks being used by this estimator, except for the [[Stopper]] being used. */
   private[this] def currentTrainHooks: Set[Hook] = {
     if (configuration.isChief)
       (allTrainHooks ++ allTrainChiefOnlyHooks).toSet - stopHook

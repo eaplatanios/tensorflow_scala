@@ -38,6 +38,8 @@ import scala.reflect.ClassTag
 
 /** Control flow context for the while-loop construct.
   *
+  * @param  maximumIterations     Optional `INT32` scalar specifying the maximum number of iterations to loop for. If
+  *                               `null` (the default), no iteration limit is enforced.
   * @param  parallelIterations    Number of iterations allowed to run in parallel.
   * @param  enableBackPropagation If `true`, back-propagation support is enabled for this while-loop context.
   * @param  swapMemory            If `true`, GPU-CPU memory swapping support is enabled for this while-loop context.
@@ -53,6 +55,7 @@ import scala.reflect.ClassTag
   * @author Emmanouil Antonios Platanios
   */
 private[api] case class WhileLoopContext private[control_flow] (
+    maximumIterations: Option[Output] = None,
     parallelIterations: Int = 10,
     enableBackPropagation: Boolean = true,
     swapMemory: Boolean = false,
@@ -254,9 +257,6 @@ private[api] case class WhileLoopContext private[control_flow] (
       val exitVariables = switchVariables.map(v => ControlFlow.exit(v._1))
       loopExits.clear()
       loopExits ++= exitVariables
-
-      // Make sure the shapes of the loop outputs are correct.
-      mergeVariables.zip(nextVariables).foreach(p => WhileLoopContext.enforceShapeInvariant(p._1, p._2))
 
       // Exit the loop.
       exitResult(exitVariables)
@@ -507,9 +507,17 @@ private[api] case class WhileLoopContext private[control_flow] (
         values += valuesAcc.name
         denseShapeAcc.foreach(values += _.name)
         val initAcc = Seq(indicesAcc, valuesAcc) ++ denseShapeAcc.map(Seq(_)).getOrElse(Seq.empty)
+        // Set `useInputShape` to `false` since the accumulator tensors will grow in size. If `useInputShape` is `true`,
+        // the `updateInput` call below will result in incompatible shapes.
         val enterAcc = initAcc.map(a => {
-          ControlFlow.enter(a, name, isConstant = false, parallelIterations)
+          ControlFlow.enter(a, name, isConstant = false, parallelIterations, useInputShape = false)
         })
+        // Manually set appropriate partial shapes.
+        enterAcc.head.setShape(Shape(-1))
+        if (valuesAcc.rank != -1 && valuesAcc.rank > 1)
+          enterAcc(1).setShape(Shape(-1) ++ valuesAcc.shape(1 ::))
+        else if (valuesAcc.rank != -1)
+          enterAcc(1).setShape(Shape(-1))
         loopEnters ++= enterAcc
         val mergeAcc = enterAcc.map(a => ControlFlow.merge(Seq(a, a))._1)
         val switchAcc = mergeAcc.map(a => ControlFlow.switch(a, pivot))
@@ -560,6 +568,7 @@ private[api] case class WhileLoopContext private[control_flow] (
     */
   def toWhileContextDef(exportScope: String = null): WhileContextDef = {
     if (exportScope == null || name.startsWith(exportScope)) {
+      // TODO: !!! Add `maximumIterations` when possible.
       WhileContextDef.newBuilder()
           .setContextName(Op.stripNameScope(exportScope, name))
           .setParallelIterations(parallelIterations)
@@ -586,10 +595,17 @@ object WhileLoopContext {
 
   /** Creates a next iteration op for `v` and adds a back edge from `v` to `m`. */
   @throws[IllegalArgumentException]
-  private[ops] def addNextIterationAndBackEdge[T <: OutputLike](m: T, v: T): T = {
+  private[ops] def addNextIterationAndBackEdge[T <: OutputLike](
+      m: T, v: T, enforceShapeInvariant: Boolean = true): T = {
     val result = (m, v) match {
       case (mm: Output, vv: Output) =>
         val nextVV = ControlFlow.nextIteration(vv)
+        if (enforceShapeInvariant) {
+          // Make sure the shapes of the loop outputs are correct. We do this before calling `updateInput`, which will
+          // raise a less helpful error message if the types do not match.
+          // TODO: Apply the same checks for the other cases, below.
+          WhileLoopContext.enforceShapeInvariant(mm, nextVV)
+        }
         ControlFlow.updateInput(mm.op, 1, nextVV)
         nextVV
       case (mm: OutputIndexedSlices, vv: OutputIndexedSlices) =>
@@ -751,6 +767,7 @@ object WhileLoopContext {
     * @return Constructed [[WhileLoopContext]].
     */
   def fromWhileContextDef(whileContextDef: WhileContextDef, importScope: String = null): WhileLoopContext = {
+    // TODO: !!! Add `maximumIterations` when possible.
     val graph = Op.currentGraph
     val name = Op.prependNameScope(importScope, whileContextDef.getContextName)
     val parallelIterations = whileContextDef.getParallelIterations
@@ -767,8 +784,8 @@ object WhileLoopContext {
     }): _*)
     val (values, externalValues) = Context.fromValuesDef(whileContextDef.getValuesDef, importScope)
     val whileLoopContext = WhileLoopContext(
-      parallelIterations, enableBackPropagation, swapMemory, None, pivot, pivotForPredicate, pivotForBody, loopEnters,
-      loopExits, name)
+      None, parallelIterations, enableBackPropagation, swapMemory, None, pivot, pivotForPredicate, pivotForBody,
+      loopEnters, loopExits, name)
     whileLoopContext.values ++= values
     whileLoopContext.externalValues ++= externalValues
     whileLoopContext
@@ -815,6 +832,10 @@ trait WhileLoopVariable[T] {
   def segmentOutputs(output: T, values: Seq[Output]): (T, Seq[Output])
   def fromShapes(output: T, values: Seq[Shape]): ShapeType = segmentShapes(output, values)._1
   def segmentShapes(output: T, values: Seq[Shape]): (ShapeType, Seq[Shape])
+
+  // TODO: These "map" function involve some runtime checking for the "Symbol" type that would be good to work around.
+  def map(value: T, mapFn: (Symbol) => Symbol): T
+  def mapWithShape(value: T, shape: ShapeType, mapFn: (Symbol, Shape) => Symbol): T
 }
 
 object WhileLoopVariable {
@@ -845,6 +866,14 @@ object WhileLoopVariable {
 
     override def segmentShapes(output: Output, values: Seq[Shape]): (Shape, Seq[Shape]) = {
       (values.head, values.tail)
+    }
+
+    override def map(value: Output, mapFn: (Symbol) => Symbol): Output = {
+      mapFn(value).asInstanceOf[Output]
+    }
+
+    override def mapWithShape(value: Output, shape: Shape, mapFn: (Symbol, Shape) => Symbol): Output = {
+      mapFn(value, shape).asInstanceOf[Output]
     }
   }
 
@@ -879,6 +908,16 @@ object WhileLoopVariable {
       override def segmentShapes(output: OutputIndexedSlices, values: Seq[Shape]): (Shape, Seq[Shape]) = {
         (values.head, values.tail)
       }
+
+      override def map(value: OutputIndexedSlices, mapFn: (Symbol) => Symbol): OutputIndexedSlices = {
+        mapFn(value).asInstanceOf[OutputIndexedSlices]
+      }
+
+      override def mapWithShape(
+          value: OutputIndexedSlices, shape: Shape, mapFn: (Symbol, Shape) => Symbol
+      ): OutputIndexedSlices = {
+        mapFn(value, shape).asInstanceOf[OutputIndexedSlices]
+      }
     }
   }
 
@@ -908,6 +947,14 @@ object WhileLoopVariable {
       override def segmentShapes(output: SparseOutput, values: Seq[Shape]): (Shape, Seq[Shape]) = {
         (values.head, values.tail)
       }
+
+      override def map(value: SparseOutput, mapFn: (Symbol) => Symbol): SparseOutput = {
+        mapFn(value).asInstanceOf[SparseOutput]
+      }
+
+      override def mapWithShape(value: SparseOutput, shape: Shape, mapFn: (Symbol, Shape) => Symbol): SparseOutput = {
+        mapFn(value, shape).asInstanceOf[SparseOutput]
+      }
     }
   }
 
@@ -928,6 +975,14 @@ object WhileLoopVariable {
 
     override def segmentShapes(output: TensorArray, values: Seq[Shape]): (Shape, Seq[Shape]) = {
       (values.head, values.tail)
+    }
+
+    override def map(value: TensorArray, mapFn: (Symbol) => Symbol): TensorArray = {
+      mapFn(value).asInstanceOf[TensorArray]
+    }
+
+    override def mapWithShape(value: TensorArray, shape: Shape, mapFn: (Symbol, Shape) => Symbol): TensorArray = {
+      mapFn(value, shape).asInstanceOf[TensorArray]
     }
   }
 
@@ -955,6 +1010,14 @@ object WhileLoopVariable {
         val n = size(output)
         (output.zip(Collections.segment(values.take(n), output.map(ev.size).toSeq))
             .map(f => ev.fromShapes(f._1, f._2)), values.drop(n))
+      }
+
+      override def map(value: Array[T], mapFn: (Symbol) => Symbol): Array[T] = {
+        value.map(ev.map(_, mapFn))
+      }
+
+      override def mapWithShape(value: Array[T], shape: Array[TS], mapFn: (Symbol, Shape) => Symbol): Array[T] = {
+        value.zip(shape).map(p => ev.mapWithShape(p._1, p._2, mapFn))
       }
     }
   }
@@ -988,6 +1051,14 @@ object WhileLoopVariable {
         val n = size(output)
         (output.zip(Collections.segment(values.take(n), output.map(ev.size).toSeq))
             .map(f => ev.fromShapes(f._1, f._2)).to[CC](cbfTTS), values.drop(n))
+      }
+
+      override def map(value: CC[T], mapFn: (Symbol) => Symbol): CC[T] = {
+        value.map(ev.map(_, mapFn))
+      }
+
+      override def mapWithShape(value: CC[T], shape: CC[TS], mapFn: (Symbol, Shape) => Symbol): CC[T] = {
+        value.zip(shape.toSeq).map(p => ev.mapWithShape(p._1, p._2, mapFn)).to[CC](cbfTT)
       }
     }
   }
@@ -1023,6 +1094,14 @@ object WhileLoopVariable {
               .zip(Collections.segment(values.take(n), output.values.map(ev.size).toSeq))
               .map(f => ev.fromShapes(f._1, f._2))).toMap, values.drop(n))
       }
+
+      override def map(value: Map[MK, T], mapFn: (Symbol) => Symbol): Map[MK, T] = {
+        value.mapValues(ev.map(_, mapFn))
+      }
+
+      override def mapWithShape(value: Map[MK, T], shape: Map[MK, TS], mapFn: (Symbol, Shape) => Symbol): Map[MK, T] = {
+        value.map(p => p._1 -> ev.mapWithShape(p._2, shape(p._1), mapFn))
+      }
     }
   }
 
@@ -1035,6 +1114,9 @@ object WhileLoopVariable {
     override def shapes(shape: HNil): Seq[Shape] = Seq.empty[Shape]
     override def segmentOutputs(output: HNil, values: Seq[Output]): (HNil, Seq[Output]) = (HNil, values)
     override def segmentShapes(output: HNil, values: Seq[Shape]): (HNil, Seq[Shape]) = (HNil, values)
+
+    override def map(value: HNil, mapFn: (Symbol) => Symbol): HNil = HNil
+    override def mapWithShape(value: HNil, shape: HNil, mapFn: (Symbol, Shape) => Symbol): HNil = HNil
   }
 
   implicit def recursiveConstructor[H, HS, T <: HList, TS <: HList](implicit
@@ -1070,6 +1152,14 @@ object WhileLoopVariable {
       val (tailOut, tailRemaining) = evTail.segmentShapes(output.tail, headRemaining)
       (headOut :: tailOut, tailRemaining)
     }
+
+    override def map(value: H :: T, mapFn: (Symbol) => Symbol): H :: T = {
+      evHead.value.map(value.head, mapFn) :: evTail.map(value.tail, mapFn)
+    }
+
+    override def mapWithShape(value: H :: T, shape: HS :: TS, mapFn: (Symbol, Shape) => Symbol): H :: T = {
+      evHead.value.mapWithShape(value.head, shape.head, mapFn) :: evTail.mapWithShape(value.tail, shape.tail, mapFn)
+    }
   }
 
   implicit def productConstructor[P <: Product, PS <: Product, L <: HList, LS <: HList](implicit
@@ -1098,6 +1188,14 @@ object WhileLoopVariable {
     override def segmentShapes(output: P, values: Seq[Shape]): (PS, Seq[Shape]) = {
       val (out, remaining) = evL.segmentShapes(genP.to(output), values)
       (tuplerS(out), remaining)
+    }
+
+    override def map(value: P, mapFn: (Symbol) => Symbol): P = {
+      tuplerP(evL.map(genP.to(value), mapFn))
+    }
+
+    override def mapWithShape(value: P, shape: PS, mapFn: (Symbol, Shape) => Symbol): P = {
+      tuplerP(evL.mapWithShape(genP.to(value), genPS.to(shape), mapFn))
     }
   }
 }

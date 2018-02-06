@@ -20,18 +20,22 @@ import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops
-import org.platanios.tensorflow.api.ops.control_flow.Context
+import org.platanios.tensorflow.api.ops.control_flow.{Context, ControlFlow}
 import org.platanios.tensorflow.api.ops.variables.{CreateNewOnly, VariableScope, VariableStore}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.DataType
 import org.platanios.tensorflow.api.utilities.using
-import org.platanios.tensorflow.jni.{Op => NativeOp, Tensor => NativeTensor}
+import org.platanios.tensorflow.jni.{Op => NativeOp, Tensor => NativeTensor, TensorFlow => NativeLibrary}
 
+import com.google.protobuf.ByteString
+import com.typesafe.scalalogging.Logger
+import org.slf4j.LoggerFactory
 import org.tensorflow.framework.{AttrValue, NameAttrList}
 
-import java.nio.charset.Charset
+import java.nio.charset.{Charset, StandardCharsets}
 
 import scala.collection.mutable
+import scala.collection.JavaConverters._
 import scala.util.{DynamicVariable, Try}
 
 /** Represents a graph node, or as we shall call it, an operation, that performs computation on tensors.
@@ -65,7 +69,7 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
   lazy val opType: String = using(graph.reference) { _ => NativeOp.opType(nativeHandle) }
 
   /** Device in which the op tensors are stored and where all computations for this op are performed. */
-  lazy val device: String = using(graph.reference) { _ =>
+  def device: String = using(graph.reference) { _ =>
     val nativeDevice = NativeOp.device(nativeHandle)
     if (nativeDevice == null)
       ""
@@ -74,12 +78,23 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
   }
 
   /** Colocation ops for this op (i.e., ops guaranteed to be placed on the same device). */
-  lazy val colocationOps: Set[Op] = using(graph.reference) { _ =>
+  def colocationOps: Set[Op] = using(graph.reference) { _ =>
     Try(NativeOp.getAttrStringList(nativeHandle, COLOCATION_OPS_ATTRIBUTE_NAME))
         .map(_.toSet[String]
             .filter(_.startsWith(COLOCATION_OPS_ATTRIBUTE_PREFIX))
             .map(opName => graph.findOp(opName.substring(COLOCATION_OPS_ATTRIBUTE_PREFIX.length)).get))
         .getOrElse(Set.empty[Op])
+  }
+
+  private[Op] def updateColocationOps(colocationOpNames: Set[String]): Unit = {
+    val builder = AttrValue.newBuilder()
+    builder.setList(builder.getListBuilder.addAllS(
+      colocationOps.toSeq.map(opName => COLOCATION_OPS_ATTRIBUTE_PREFIX + opName)
+          .sorted.map(ByteString.copyFrom(_, StandardCharsets.ISO_8859_1)).asJava))
+    using(graph.reference) { r =>
+      NativeLibrary.setAttributeProto(
+        r.nativeHandle, nativeHandle, COLOCATION_OPS_ATTRIBUTE_NAME, builder.build().toByteArray)
+    }
   }
 
   private[ops] var controlFlowContext: Option[Context] = None
@@ -375,6 +390,8 @@ private[api] final case class OpCreationContext(
     controlFlowContext: Option[Context] = None) // TODO: !!! Use containers.
 
 object Op {
+  private[ops] val logger = Logger(LoggerFactory.getLogger("Graph Construction"))
+
   private[ops] trait API {
     type Op = ops.Op
     val Op: ops.Op.type = ops.Op
@@ -410,6 +427,12 @@ object Op {
 
     def createWithNameScope[R](nameScope: String, values: Set[Op] = Set.empty[Op])(block: => R): R = {
       Op.createWithNameScope(nameScope, values)(block)
+    }
+
+    def device[R](
+        device: String = "", deviceFunction: OpSpecification => String = _.device
+    )(block: => R)(implicit context: DynamicVariable[OpCreationContext]): R = {
+      Op.device(device, deviceFunction)(block)(context)
     }
 
     def colocateWith[R](colocationOps: Set[Op], ignoreExisting: Boolean = false)(block: => R): R = {
@@ -804,7 +827,8 @@ object Op {
     *
     * @param  graph               Graph to use as default for new ops.
     * @param  nameScope           Name scope to use.
-    * @param  deviceFunction              Device function to use.
+    * @param  device              Device to use.
+    * @param  deviceFunction      Device function to use.
     * @param  colocationOps       Colocation ops to use.
     * @param  controlDependencies Control dependencies to use.
     * @param  attributes          Attributes to use.
@@ -872,6 +896,65 @@ object Op {
     }
   }
 
+  /** Executes the provided block of code placing all created ops in the specified device. A `deviceFunction` argument
+    * can be additionally used (aside from the device string representation provided through the `device` argument),
+    * that is a function taking an [[OpSpecification]] as input and returning a string representation of the device
+    * where the corresponding op should be placed. This function is invoked every time a new op is created within the
+    * provided code block. If the function returns `null` for some op, then all subsequent invocations of
+    * `device(deviceFunction = ...)` in the provided code block will be ignored. For information about the valid syntax
+    * of device name strings, see the documentation in
+    * [`DeviceNameUtils`](https://www.tensorflow.org/code/tensorflow/core/util/device_name_utils.h).
+    *
+    * Note that the device scope may be overridden by op wrappers or other library code. For example, a variable
+    * assignment op must be colocated with the corresponding variable. Incompatible device scopes will be ignored.
+    *
+    * For example:
+    * {{{
+    *   // Specifying which device to use
+    *   tf.device("/GPU:0") {
+    *     // All ops constructed in this code block will be placed in GPU 0
+    *     val gpu0C = constant(7.0)
+    *     assert(gpu0C.device == "/device:GPU:0")
+    *
+    *     // Reset the device being used
+    *     tf.device(null) {
+    *       // All ops constructed in this code block will have no assigned device
+    *       val c = constant(8.0)
+    *       assert(c.device == "")
+    *     }
+    *   }
+    *
+    *   // Using a device function
+    *   def matmulOnGPU(opSpecification: OpSpecification): String = {
+    *     if (opSpecification.opType == "MatMul")
+    *       "/GPU:0"
+    *     else
+    *       "/CPU:0"
+    *   }
+    *
+    *   tf.device(deviceFunction = matmulOnGPU) {
+    *     // All ops of type "MatMul" constructed in this code block will be placed on GPU 0. All other operations will
+    *     // be placed on CPU 0.
+    *     val c = constant(9.0)
+    *     assert(c.device == "/device:CPU:0")
+    *     val m = matmul(c, constant(10.0))
+    *     assert(m.device == "/device:GPU:0")
+    *   }
+    * }}}
+    *
+    * @param  device         Device to use.
+    * @param  deviceFunction Device function to use.
+    * @param  block          Code block to run using the provided options.
+    * @param  context        Current op creation context.
+    * @tparam R Return type of the code block.
+    * @return Return value of the code block.
+    */
+  private[api] def device[R](
+      device: String = "", deviceFunction: OpSpecification => String = _.device
+  )(block: => R)(implicit context: DynamicVariable[OpCreationContext]): R = {
+    createWith(device = device, deviceFunction = deviceFunction)(block)(context)
+  }
+
   /** Creates a context that can be used for creating ops and placing them on the same device as `colocationOps`.
     *
     * Details on the op creation context can be found in the documentation of the public API [[createWith]] function of
@@ -892,7 +975,11 @@ object Op {
       else
         mergeColocationOps(colocationOps, context)
     }
-    context.withValue(context.copy(colocationOps = newColocationOps))(block)
+    // By default, `colocateWith` resets the device function stack, since `colocateWith` is typically used in specific
+    // internal library functions where colocation is intended to be "stronger" than device functions.
+    context.withValue(context.copy(
+      device = "", deviceFunction = (opSpec: OpSpecification) => opSpec.device,
+      colocationOps = newColocationOps))(block)
   }
 
   /** Merges a graph to the provided op creation context graph and returns the graph to use when specifying the updated
@@ -970,15 +1057,9 @@ object Op {
   ): OpSpecification => String = {
     opSpecification => {
       val oldDeviceSpecString = oldDeviceFunction(opSpecification)
-      val newDeviceSpecString = {
-        // TODO: [OPS] Make sure this is the desired behavior.
-        if (oldDevice != null && deviceFunction != null)
-          deviceFunction(opSpecification)
-        else
-          null
-      }
+      val newDeviceSpecString = deviceFunction(opSpecification)
       // Check if the device has been reset or has to be reset for all subsequent nested scopes
-      if (oldDeviceSpecString == null || newDeviceSpecString == null) {
+      if (oldDevice == null || oldDeviceSpecString == null || newDeviceSpecString == null) {
         null
       } else {
         val oldDeviceSpec = DeviceSpecification.fromString(oldDeviceSpecString)
@@ -1181,6 +1262,14 @@ object Op {
     }
   }
 
+  private[Op] def transitiveColocationOps(currentOps: Set[Op], collectedOps: Set[Op] = Set.empty[Op]): Set[Op] = {
+    val newOps = collectedOps ++ currentOps ++ currentOps.flatMap(_.colocationOps)
+    if (newOps.size == collectedOps.size)
+      newOps
+    else
+      newOps ++ newOps.foldLeft(newOps)((collected, op) => transitiveColocationOps(Set(op), collected))
+  }
+
   private[ops] final case class Builder(opType: String, name: String)
       (implicit context: DynamicVariable[OpCreationContext]) {
     context.value.graph.assertNotFrozen()
@@ -1216,13 +1305,31 @@ object Op {
         inputs.foreach(input => pruneControlDependencies(controlDependencies, input.op))
         inputLists.foreach(_.foreach(input => pruneControlDependencies(controlDependencies, input.op)))
         controlDependencies.foreach(op => NativeOp.addControlInput(nativeHandle, op.nativeHandle))
-        device.foreach(NativeOp.setDevice(nativeHandle, _))
-        context.value.colocationOps.foreach(op => NativeOp.colocateWith(nativeHandle, op.nativeHandle))
+        val colocationOps = transitiveColocationOps(context.value.colocationOps)
+        val opDevice = device match {
+          case None | Some("") => colocationOps.find(_.device != "").map(_.device).getOrElse("")
+          case Some(d) => d
+        }
+        colocationOps.toSeq.sortBy(_.name).foreach(op => {
+          if (opDevice != "" && op.device != "" && opDevice != op.device) {
+            Op.logger.warn(
+              s"Tried to colocate '$name' with an op '${op.name}' that has a different device: " +
+                  s"$opDevice vs ${op.device}. Ignoring the colocation property.")
+          } else {
+            NativeOp.colocateWith(nativeHandle, op.nativeHandle)
+            op.updateColocationOps(op.colocationOps.map(_.name) + name)
+            if (opDevice != "")
+              NativeLibrary.setRequestedDevice(r.nativeHandle, op.nativeHandle, opDevice)
+          }
+        })
         mergeAttributes(context.value.attributes)
         setAttributes(nativeHandle)
         // TODO: !!! Set the "container" attribute when necessary. Need a way to check for statefulness.
         val op = Op(graph, NativeOp.finish(nativeHandle))
+        if (opDevice != "")
+          NativeLibrary.setRequestedDevice(r.nativeHandle, op.nativeHandle, opDevice)
         op.controlFlowContext = context.value.controlFlowContext
+        op.inputs.map(_.op).foreach(ControlFlow.checkInputFromValidContext(op, _))
         op.controlFlowContext.foreach(_.add(op))
         built = true
         op
@@ -1280,12 +1387,7 @@ object Op {
               value.map(s => if (s.rank != -1) s.asArray.map(_.toLong) else Array.empty[Long]),
               value.map(_.rank), value.length)
           case value: InstantiatedFunction[_, _] =>
-            val attrValue = AttrValue.newBuilder()
-            attrValue.setFunc(
-              NameAttrList.newBuilder()
-                  .setName(value.hashedName)
-                  .build())
-            NativeOp.setAttrProto(nativeHandle, attribute._1, attrValue.build().toByteArray)
+            NativeOp.setAttrFuncName(nativeHandle, attribute._1, encodeString(value.hashedName))
           case _ =>
             throw new IllegalArgumentException(s"Unsupported attribute type for attribute named '${attribute._1}.'")
         }

@@ -20,6 +20,7 @@ import org.platanios.tensorflow.api.core.exception.OutOfRangeException
 import org.platanios.tensorflow.api.learn.{MonitoredSession, SessionCreator, SessionWrapper}
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
+
 import org.tensorflow.framework.{RunMetadata, RunOptions}
 
 /** Hook to extend calls to `MonitoredSession.run()`.
@@ -117,11 +118,15 @@ import org.tensorflow.framework.{RunMetadata, RunOptions}
   * @author Emmanouil Antonios Platanios
   */
 abstract class Hook {
+  private[learn] val priority: Int = 0
+
   /** Called once before creating the session. When called, the default graph is the one that will be launched in the
     * session. The hook can modify the graph by adding new operations to it. After the `begin` call the graph will be
     * finalized and the other callbacks will not be able to modify the graph anymore. A second `begin` call on the same
     * graph, should not change that graph. */
-  def begin(sessionCreator: SessionCreator): Unit = ()
+  protected def begin(): Unit = ()
+
+  private[learn] def internalBegin(): Unit = begin()
 
   /** Called after a new session is created. This is called to signal the hooks that a new session has been created.
     * This callback has two essential differences with the situation in which `begin()` is called:
@@ -130,9 +135,11 @@ abstract class Hook {
     *   - This method will also be called as a result of recovering a wrapped session (i.e., not only at the beginning
     *     of the overall session).
     *
-    * @param  session     The session that has been created.
+    * @param  session The session that has been created.
     */
-  def afterSessionCreation(session: Session): Unit = ()
+  protected def afterSessionCreation(session: Session): Unit = ()
+
+  private[learn] def internalAfterSessionCreation(session: Session): Unit = afterSessionCreation(session)
 
   /** Called before each call to `Session.run()`. You can return from this call a [[Hook.SessionRunArgs]] object
     * indicating ops or tensors to add to the upcoming run call. These ops/tensors will be run together with the
@@ -147,10 +154,15 @@ abstract class Hook {
     * @param  runContext Provides information about the upcoming run call (i.e., the originally requested ops/tensors,
     *                    the session, etc.).
     */
-  def beforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
+  protected def beforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]
   ): Option[Hook.SessionRunArgs[Seq[Output], Traversable[Op], Seq[Tensor]]] = None
+
+  private[learn] def internalBeforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
+      executableEv: Executable[E],
+      fetchableEv: Fetchable.Aux[F, R]
+  ): Option[Hook.SessionRunArgs[Seq[Output], Traversable[Op], Seq[Tensor]]] = beforeSessionRun(runContext)
 
   /** Called after each call to `Session.run()`.
     *
@@ -168,13 +180,21 @@ abstract class Hook {
     * @param  runResult  Result of the `Session.run()` call that includes the fetched values for the tensors requested
     *                    by `beforeSessionRun()`.
     */
-  def afterSessionRun[F, E, R](
+  protected def afterSessionRun[F, E, R](
       runContext: Hook.SessionRunContext[F, E, R],
       runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor]]
   )(implicit
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]
   ): Unit = ()
+
+  private[learn] def internalAfterSessionRun[F, E, R](
+      runContext: Hook.SessionRunContext[F, E, R],
+      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor]]
+  )(implicit
+      executableEv: Executable[E],
+      fetchableEv: Fetchable.Aux[F, R]
+  ): Unit = afterSessionRun(runContext, runResult)(executableEv, fetchableEv)
 
   /** Called at the end of the session usage (i.e., `Session.run()` will not be invoked again after this call).
     *
@@ -187,7 +207,9 @@ abstract class Hook {
     *
     * @param  session Session that will not be used again after this call.
     */
-  def end(session: Session): Unit = ()
+  protected def end(session: Session): Unit = ()
+
+  private[learn] def internalEnd(session: Session): Unit = end(session)
 }
 
 /** Contains helper classes for the [[Hook]] class. */

@@ -18,6 +18,13 @@ bool ProtoParseFromScanner(
     ::tensorflow::strings::Scanner* scanner, bool nested, bool close_curly,
     ::tensorflow::DeviceProperties* msg);
 
+void AppendProtoDebugString(
+    ::tensorflow::strings::ProtoTextOutput* o,
+    const ::tensorflow::NamedDevice& msg);
+bool ProtoParseFromScanner(
+    ::tensorflow::strings::Scanner* scanner, bool nested, bool close_curly,
+    ::tensorflow::NamedDevice* msg);
+
 }  // namespace internal
 
 }  // namespace tensorflow
