@@ -26,8 +26,6 @@ import org.platanios.tensorflow.api.types.{DataType, FLOAT32, FLOAT64, RESOURCE}
 
 import scala.collection.mutable
 
-// TODO: In Python the optimizer can have state (e.g., variables) which we also do sometimes (e.g., Adam), but I'm not sure if it's good to do that. It's not very "clean".
-
 /**
   * @author Emmanouil Antonios Platanios
   */
@@ -38,15 +36,17 @@ trait Optimizer {
   /** Boolean value indicating whether to apply use locks to prevent concurrent updates to variables. */
   val useLocking: Boolean
 
+  // TODO: [OPTIMIZER] Slot variables make re-using optimizer objects a bit dirty.
+
   /** Some [[Optimizer]] subclasses use additional variables. For example, `MomentumOptimizer` and `AdaGradOptimizer`
     * use variables to accumulate updates. This map is where these variables are stored. */
   protected val slots = mutable.Map.empty[String, mutable.Map[Variable, Variable]]
 
-  /** Contains variables used by some optimizers that require no slots to be stored. */
-  protected val nonSlotVariables = mutable.Map.empty[(String, Option[Graph]), Variable]
-
   /** Returns the names of all slots used by this optimizer. */
   protected def slotNames: Set[String] = slots.keySet.toSet
+
+  /** Contains variables used by some optimizers that require no slots to be stored. */
+  protected val nonSlotVariables = mutable.Map.empty[(String, Option[Graph]), Variable]
 
   /** Creates an op that makes a step towards minimizing `loss` by updating the values of the variables in `variables`.
     *
