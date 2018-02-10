@@ -359,6 +359,13 @@ trait Optimizer {
 
   /** Gets all the non-slot variables that have been added to this optimizer. */
   protected def getNonSlotVariables: Iterable[Variable] = nonSlotVariables.values
+
+  /** Returns a sequence of variables which encode the current state of this optimizer. The returned variables include
+    * both slot variables and non-slot global variables created by this optimizer, in the current graph. */
+  def variables: Seq[Variable] = {
+    (getNonSlotVariables.filter(_.graph == Op.currentGraph) ++ slots.values.flatMap(_.values))
+        .toSeq.sortBy(_.name)
+  }
 }
 
 private[optimizers] object Optimizer {
