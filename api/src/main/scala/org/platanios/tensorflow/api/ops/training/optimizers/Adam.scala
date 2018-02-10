@@ -18,14 +18,21 @@ package org.platanios.tensorflow.api.ops.training.optimizers
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output, OutputIndexedSlices, Summary}
 import org.platanios.tensorflow.api.ops.training.optimizers.decay.{Decay, NoDecay}
-import org.platanios.tensorflow.api.ops.variables.{ConstantInitializer, Variable}
+import org.platanios.tensorflow.api.ops.variables.Variable
 
 /** Optimizer that implements the Adam optimization algorithm.
+  *
+  * Initialization:
+  * {{{
+  *   m_0 = 0  // Initialize the 1st moment vector
+  *   v_0 = 0  // Initialize the 2nd moment vector
+  *   t = 0    // Initialize the time step
+  * }}}
   *
   * The Adam update for step `t` is as follows:
   * {{{
   *   learningRate_t = initialLearningRate * sqrt(beta1 - beta2^t) / (1 - beta1^t)
-  *   m_t =  beta1 * m_{t-1} + (1 - beta1) * gradient
+  *   m_t = beta1 * m_{t-1} + (1 - beta1) * gradient
   *   v_t = beta2 * v_{t-1} + (1 - beta2) * gradient * gradient
   *   variable -= learningRate_t * m_t / (sqrt(v_t) + epsilon)
   * }}}
@@ -72,10 +79,6 @@ case class Adam(
   private[this] var beta2Tensor       : Output = _
   private[this] var epsilonTensor     : Output = _
 
-  // Variables used to accumulate the powers of the beta parameters
-  private[this] var beta1Power: Variable = _
-  private[this] var beta2Power: Variable = _
-
   private[this] def getLearningRate(variable: Variable, iteration: Option[Variable]): Output = {
     if (learningRateTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
@@ -100,22 +103,22 @@ case class Adam(
     Math.cast(epsilonTensor, variable.dataType)
   }
 
+  protected def getBetaPowerAccumulators: (Variable, Variable) = {
+    (getNonSlotVariable("Beta1Power", Op.currentGraph), getNonSlotVariable("Beta2Power", Op.currentGraph))
+  }
+
   override protected def createSlots(variables: Seq[Variable]): Unit = {
-    // We create the 'beta1' and 'beta2' accumulators on the same device as the first variable. We sort the variables
-    // list to make sure this device is consistent across workers (these need to go on the same parameter server,
-    // otherwise some updates are silently ignored).
-    val firstVariable = variables.minBy(_.name)
-    if (beta1Power == null || beta1Power.graph != firstVariable.graph) {
-      Op.colocateWith(Set(firstVariable.op)) {
-        beta1Power = Variable.getVariable("Beta1Power", initializer = ConstantInitializer(beta1), trainable = false)
-        beta2Power = Variable.getVariable("Beta2Power", initializer = ConstantInitializer(beta2), trainable = false)
-      }
-    }
     // Create slots for the first and second moments.
     variables.foreach(v => {
       zerosSlot("m", v, name)
       zerosSlot("v", v, name)
     })
+    // We create the 'beta1' and 'beta2' accumulators on the same device as the first variable. We sort the variables
+    // list to make sure this device is consistent across workers (these need to go on the same parameter server,
+    // otherwise some updates are silently ignored).
+    val firstVariable = variables.minBy(_.name)
+    getOrCreateNonSlotVariable("Beta1Power", beta1, Set(firstVariable.op))
+    getOrCreateNonSlotVariable("Beta2Power", beta2, Set(firstVariable.op))
   }
 
   override def prepare(iteration: Option[Variable]): Unit = {
@@ -130,6 +133,7 @@ case class Adam(
   override def applyDense(gradient: Output, variable: Variable, iteration: Option[Variable]): Op = {
     val m = getSlot("m", variable)
     val v = getSlot("v", variable)
+    val (beta1Power, beta2Power) = getBetaPowerAccumulators
     Adam.resourceApplyDense(
       variable = variable,
       m = m,
@@ -147,6 +151,7 @@ case class Adam(
 
   override protected def finish(updateOps: Set[Op], nameScope: String): Op = {
     // Update the power accumulators.
+    val (beta1Power, beta2Power) = getBetaPowerAccumulators
     val updateBetaPowerOps = Op.createWith(controlDependencies = updateOps) {
       Op.colocateWith(Set(beta1Power.op)) {
         val updateBeta1Power = beta1Power.assign(beta1Power.value * beta1Tensor)
@@ -160,13 +165,13 @@ case class Adam(
   override def applySparse(gradient: OutputIndexedSlices, variable: Variable, iteration: Option[Variable]): Op = {
     val m = getSlot("m", variable)
     val v = getSlot("v", variable)
-    val beta1Power = Math.cast(this.beta1Power.value, variable.dataType)
-    val beta2Power = Math.cast(this.beta2Power.value, variable.dataType)
+    val (beta1Power, beta2Power) = getBetaPowerAccumulators
     val beta1 = getBeta1(variable)
     val beta2 = getBeta2(variable)
     val epsilon = getEpsilon(variable)
     var learningRate = getLearningRate(variable, iteration)
-    learningRate = learningRate * Math.sqrt(1 - beta2Power) / (1 - beta1Power)
+    learningRate = learningRate * Math.sqrt(1 - beta2Power.cast(variable.dataType))
+    learningRate = learningRate / (1 - beta1Power.cast(variable.dataType))
     // m_t = beta1 * m + (1 - beta1) * gradient
     val mScaledGradient = gradient.values * (1 - beta1)
     var mT = m.assign(m.value * beta1)

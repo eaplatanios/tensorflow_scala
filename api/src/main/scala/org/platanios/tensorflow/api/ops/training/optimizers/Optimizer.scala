@@ -20,7 +20,8 @@ import org.platanios.tensorflow.api.core.exception.InvalidDataTypeException
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.training.optimizers.Optimizer._
-import org.platanios.tensorflow.api.ops.variables.{Initializer, Variable, VariableScope}
+import org.platanios.tensorflow.api.ops.variables.{ConstantInitializer, Initializer, Variable, VariableScope}
+import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.{DataType, FLOAT32, FLOAT64, RESOURCE}
 
 import scala.collection.mutable
@@ -40,6 +41,9 @@ trait Optimizer {
   /** Some [[Optimizer]] subclasses use additional variables. For example, `MomentumOptimizer` and `AdaGradOptimizer`
     * use variables to accumulate updates. This map is where these variables are stored. */
   protected val slots = mutable.Map.empty[String, mutable.Map[Variable, Variable]]
+
+  /** Contains variables used by some optimizers that require no slots to be stored. */
+  protected val nonSlotVariables = mutable.Map.empty[(String, Option[Graph]), Variable]
 
   /** Returns the names of all slots used by this optimizer. */
   protected def slotNames: Set[String] = slots.keySet.toSet
@@ -304,8 +308,8 @@ trait Optimizer {
 
   /** Gets an existing slot.
     *
-    * @param  name          Slot name.
-    * @param  variable      Slot primary variable.
+    * @param  name     Slot name.
+    * @param  variable Slot primary variable.
     * @return Requested slot variable, or `null` if it cannot be found.
     */
   protected def getSlot(name: String, variable: Variable): Variable = {
@@ -322,6 +326,39 @@ trait Optimizer {
   protected def zerosSlot(name: String, variable: Variable, variableScope: String): Variable = {
     slotMap(name).getOrElseUpdate(variable, Slot.zeros(variable, variableScope))
   }
+
+  /** Gets or creates (and adds to this optimizer) a non-slot variable.
+    *
+    * @param  name          Variable name.
+    * @param  initialValue  Variable initial value.
+    * @param  colocationOps Set of colocation ops for the non-slot variable.
+    * @return Created non-slot variable.
+    */
+  protected def getOrCreateNonSlotVariable(
+      name: String,
+      initialValue: Tensor,
+      colocationOps: Set[Op] = Set.empty
+  ): Variable = {
+    nonSlotVariables.getOrElseUpdate(
+      (name, colocationOps.map(_.graph).headOption),
+      Op.colocateWith(colocationOps) {
+        Variable.getVariable(name, initializer = ConstantInitializer(initialValue), trainable = false)
+      })
+  }
+
+  /** Gets a non-slot variable that has been added to this optimizer (or throws an error if no such non-slot variable
+    * could be found in this optimizer).
+    *
+    * @param  name  Variable name.
+    * @param  graph Graph in which the variable is defined.
+    * @return Obtained non-slot variable.
+    */
+  protected def getNonSlotVariable(name: String, graph: Graph = null): Variable = {
+    nonSlotVariables((name, Option(graph)))
+  }
+
+  /** Gets all the non-slot variables that have been added to this optimizer. */
+  protected def getNonSlotVariables: Iterable[Variable] = nonSlotVariables.values
 }
 
 private[optimizers] object Optimizer {
