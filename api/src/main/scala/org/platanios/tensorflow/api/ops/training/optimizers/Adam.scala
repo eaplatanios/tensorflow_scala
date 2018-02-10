@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.ops.training.optimizers
 
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
-import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output, OutputIndexedSlices, Summary}
+import org.platanios.tensorflow.api.ops.{Basic, Logging, Math, Op, Output, OutputIndexedSlices, Summary}
 import org.platanios.tensorflow.api.ops.training.optimizers.decay.{Decay, NoDecay}
 import org.platanios.tensorflow.api.ops.variables.Variable
 
@@ -92,9 +92,9 @@ case class Adam(
   }
 
   private[this] def getBeta2(variable: Variable): Output = {
-    if (beta1Tensor == null)
+    if (beta2Tensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    Math.cast(beta1Tensor, variable.dataType)
+    Math.cast(beta2Tensor, variable.dataType)
   }
 
   private[this] def getEpsilon(variable: Variable): Output = {
