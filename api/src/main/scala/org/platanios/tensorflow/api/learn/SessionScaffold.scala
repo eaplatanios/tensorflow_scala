@@ -82,7 +82,7 @@ case class SessionScaffold(
     val _localInitOp = localInitOp.getOrElse(getItemOrElse("local_init_op", Graph.Keys.LOCAL_INIT_OP, () => {
       ControlFlow.group(Set(
         Variable.initializer(Variable.localVariables),
-        Lookup.initializer(Lookup.initializers)))
+        Lookup.lookupsInitializer))
     }))
     val _summaryOp = summaryOp.getOrElse(getItemOrElse(
       "summary_op", Graph.Keys.SUMMARY_OP, () => Summary.mergeAll().orNull))

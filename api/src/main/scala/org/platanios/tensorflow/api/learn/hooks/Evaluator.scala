@@ -91,7 +91,7 @@ case class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
             Resource.initializer(Resource.sharedResources)))),
           localInitOp = Some(ControlFlow.group(Set(
             Variable.initializer(Variable.localVariables),
-            Lookup.initializer(Lookup.initializers)))),
+            Lookup.lookupsInitializer))),
           localInitFunction = Some((session, _) => session.run(targets = dataInitializer))),
         sessionConfig = modelInstance.configuration.sessionConfig,
         checkpointPath = modelInstance.configuration.workingDir)

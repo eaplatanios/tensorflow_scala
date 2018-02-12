@@ -451,6 +451,10 @@ object Op {
       Op.currentGraph.modelVariablesInitializer(name)
     }
 
+    def metricVariablesInitializer(name: String = "MetricVariablesInitializer"): Op = {
+      Op.currentGraph.metricVariablesInitializer(name)
+    }
+
     def trainableVariablesInitializer(name: String = "TrainableVariablesInitializer"): Op = {
       Op.currentGraph.trainableVariablesInitializer(name)
     }
