@@ -37,6 +37,7 @@ private[ops] object Gradients {
     val GradientsRegistry: ops.Gradients.Registry.type = ops.Gradients.Registry
   }
 
+  // TODO: [API] Expose in "tf".
   // TODO: [DOC] Document the "gradients" function.
   def gradients(
       ys: Seq[Output], xs: Seq[Output], dys: Seq[OutputLike] = null, gateGradients: Boolean = false,

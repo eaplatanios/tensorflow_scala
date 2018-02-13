@@ -196,8 +196,8 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
     * `input` can be of one of the following types:
     *
     *   - A [[Dataset]], in which case this method returns an iterator over `(input, output)` tuples corresponding to
-    * each element in the dataset. Note that the predictions are computed lazily in this case, whenever an element
-    * is requested from the returned iterator.
+    *     each element in the dataset. Note that the predictions are computed lazily in this case, whenever an element
+    *     is requested from the returned iterator.
     *   - A single input of type `IT`, in which case this method returns a prediction of type `I`.
     *
     * Note that, `ModelInferenceOutput` refers to the tensor type that corresponds to the symbolic type `I`. For
@@ -235,7 +235,10 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
           override def hasNext: Boolean = session.shouldStop
           override def next(): (IT, ModelInferenceOutput) = {
             try {
-              session.run(fetches = (inferenceOps.input, inferenceOps.output))
+              session.removeHooks(currentTrainHooks ++ evaluateHooks)
+              val output = session.run(fetches = (inferenceOps.input, inferenceOps.output))
+              session.addHooks(currentTrainHooks ++ evaluateHooks)
+              output
             } catch {
               case _: OutOfRangeException =>
                 session.setShouldStop(true)
@@ -308,7 +311,7 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
       session.enableHooks()
       session.resetShouldStop()
       try {
-        InMemoryEstimator.logger.info("Starting evaluation.")
+        InMemoryEstimator.logger.debug("Starting evaluation.")
         val (step, metricValues) = {
           try {
             val step = session.run(fetches = globalStep.value).scalar.asInstanceOf[Long]
@@ -329,8 +332,8 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
               throw t
           }
         }
-        InMemoryEstimator.logger.info("Finished evaluation.")
-        InMemoryEstimator.logger.info("Saving evaluation results.")
+        InMemoryEstimator.logger.debug("Finished evaluation.")
+        InMemoryEstimator.logger.debug("Saving evaluation results.")
         if (saveSummaries)
           saveEvaluationSummaries(step, metrics, metricValues, name)
         metricValues

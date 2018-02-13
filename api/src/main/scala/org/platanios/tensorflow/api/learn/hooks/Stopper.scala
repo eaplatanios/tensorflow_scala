@@ -120,20 +120,20 @@ private[learn] case class Stopper(private var criteria: StopCriteria) extends Ho
     if (criteria.maxEpochs.isDefined) {
       val epoch = runResult.values(epochFetchIndex).scalar.asInstanceOf[Long]
       if (lastEpoch.exists(epoch >= _)) {
-        Stopper.logger.info("Stop requested: Exceeded maximum number of epochs.")
+        Stopper.logger.debug("Stop requested: Exceeded maximum number of epochs.")
         converged = true
       }
     }
     if (criteria.maxSteps.isDefined) {
       val step = runResult.values(stepFetchIndex).scalar.asInstanceOf[Long]
       if (lastStep.exists(step >= _)) {
-        Stopper.logger.info("Stop requested: Exceeded maximum number of steps.")
+        Stopper.logger.debug("Stop requested: Exceeded maximum number of steps.")
         converged = true
       }
     }
     criteria.maxSeconds.foreach(maxSeconds => {
       if (System.currentTimeMillis() - startTime >= maxSeconds) {
-        Stopper.logger.info("Stop requested: Exceeded maximum number of seconds.")
+        Stopper.logger.debug("Stop requested: Exceeded maximum number of seconds.")
         converged = true
       }
     })
@@ -147,7 +147,7 @@ private[learn] case class Stopper(private var criteria: StopCriteria) extends Ho
         numStepsBelowTol = 0
       }
       if (numStepsBelowTol > criteria.maxStepBelowTol) {
-        Stopper.logger.info("Stop requested: Loss value converged.")
+        Stopper.logger.debug("Stop requested: Loss value converged.")
         converged = true
       }
     }

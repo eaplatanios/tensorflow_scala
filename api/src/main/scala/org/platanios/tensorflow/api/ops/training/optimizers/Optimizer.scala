@@ -20,12 +20,11 @@ import org.platanios.tensorflow.api.core.exception.InvalidDataTypeException
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.training.optimizers.Optimizer._
-import org.platanios.tensorflow.api.ops.variables.{Initializer, Variable, VariableScope}
+import org.platanios.tensorflow.api.ops.variables.{ConstantInitializer, Initializer, Variable, VariableScope}
+import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.{DataType, FLOAT32, FLOAT64, RESOURCE}
 
 import scala.collection.mutable
-
-// TODO: In Python the optimizer can have state (e.g., variables) which we also do sometimes (e.g., Adam), but I'm not sure if it's good to do that. It's not very "clean".
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -37,12 +36,17 @@ trait Optimizer {
   /** Boolean value indicating whether to apply use locks to prevent concurrent updates to variables. */
   val useLocking: Boolean
 
+  // TODO: [OPTIMIZER] Slot variables make re-using optimizer objects a bit dirty.
+
   /** Some [[Optimizer]] subclasses use additional variables. For example, `MomentumOptimizer` and `AdaGradOptimizer`
     * use variables to accumulate updates. This map is where these variables are stored. */
   protected val slots = mutable.Map.empty[String, mutable.Map[Variable, Variable]]
 
   /** Returns the names of all slots used by this optimizer. */
   protected def slotNames: Set[String] = slots.keySet.toSet
+
+  /** Contains variables used by some optimizers that require no slots to be stored. */
+  protected val nonSlotVariables = mutable.Map.empty[(String, Option[Graph]), Variable]
 
   /** Creates an op that makes a step towards minimizing `loss` by updating the values of the variables in `variables`.
     *
@@ -304,8 +308,8 @@ trait Optimizer {
 
   /** Gets an existing slot.
     *
-    * @param  name          Slot name.
-    * @param  variable      Slot primary variable.
+    * @param  name     Slot name.
+    * @param  variable Slot primary variable.
     * @return Requested slot variable, or `null` if it cannot be found.
     */
   protected def getSlot(name: String, variable: Variable): Variable = {
@@ -321,6 +325,46 @@ trait Optimizer {
     */
   protected def zerosSlot(name: String, variable: Variable, variableScope: String): Variable = {
     slotMap(name).getOrElseUpdate(variable, Slot.zeros(variable, variableScope))
+  }
+
+  /** Gets or creates (and adds to this optimizer) a non-slot variable.
+    *
+    * @param  name          Variable name.
+    * @param  initialValue  Variable initial value.
+    * @param  colocationOps Set of colocation ops for the non-slot variable.
+    * @return Created non-slot variable.
+    */
+  protected def getOrCreateNonSlotVariable(
+      name: String,
+      initialValue: Tensor,
+      colocationOps: Set[Op] = Set.empty
+  ): Variable = {
+    nonSlotVariables.getOrElseUpdate(
+      (name, colocationOps.map(_.graph).headOption),
+      Op.colocateWith(colocationOps) {
+        Variable.getVariable(name, initializer = ConstantInitializer(initialValue), trainable = false)
+      })
+  }
+
+  /** Gets a non-slot variable that has been added to this optimizer (or throws an error if no such non-slot variable
+    * could be found in this optimizer).
+    *
+    * @param  name  Variable name.
+    * @param  graph Graph in which the variable is defined.
+    * @return Obtained non-slot variable.
+    */
+  protected def getNonSlotVariable(name: String, graph: Graph = null): Variable = {
+    nonSlotVariables((name, Option(graph)))
+  }
+
+  /** Gets all the non-slot variables that have been added to this optimizer. */
+  protected def getNonSlotVariables: Iterable[Variable] = nonSlotVariables.values
+
+  /** Returns a sequence of variables which encode the current state of this optimizer. The returned variables include
+    * both slot variables and non-slot global variables created by this optimizer, in the current graph. */
+  def variables: Seq[Variable] = {
+    (getNonSlotVariables.filter(_.graph == Op.currentGraph) ++ slots.values.flatMap(_.values))
+        .toSeq.sortBy(_.name)
   }
 }
 

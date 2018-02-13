@@ -26,28 +26,10 @@ import org.platanios.tensorflow.api.types.{DataType, INT64, STRING}
   */
 private[lookup] trait Lookup {
   /** Returns the set of all lookup table initializers that have been created in the current graph. */
-  def initializers: Set[Op] = Op.currentGraph.tableInitializers
+  def lookupInitializers: Set[Op] = Op.currentGraph.tableInitializers
 
-  /** Creates an op that groups the provided lookup table initializers.
-    *
-    * After you launch the graph in a session, you can run the returned op to initialize tables. This op runs all the
-    * initializers of the tables in the specified collection, in parallel.
-    *
-    * Calling `tablesInitializer` is equivalent to passing the list of initializers to [[ControlFlow.group]].
-    *
-    * If no table initializers are found in the provided collection, the method still returns an op that can be run.
-    * That op has no effect (i.e., it is a [[ControlFlow.noOp]]).
-    *
-    * @param  initializers Table initializers to group.
-    * @param  name         Name for the created op.
-    * @return Created op.
-    */
-  def initializer(initializers: Set[Op], name: String = "TablesInitializer"): Op = {
-    if (initializers.isEmpty)
-      ControlFlow.noOp(name)
-    else
-      ControlFlow.group(initializers, name)
-  }
+  /** Returns an initializer op for all lookup table initializers that have been created in the current graph. */
+  def lookupsInitializer(name: String = "LookupsInitializer"): Op = Lookup.initializer(lookupInitializers, name)
 
   /** Creates a lookup table that converts string tensors into integer IDs.
     *
@@ -114,6 +96,28 @@ private[lookup] trait Lookup {
 }
 
 object Lookup extends Lookup {
+  /** Creates an op that groups the provided lookup table initializers.
+    *
+    * After you launch the graph in a session, you can run the returned op to initialize tables. This op runs all the
+    * initializers of the tables in the specified collection, in parallel.
+    *
+    * Calling `tablesInitializer` is equivalent to passing the list of initializers to [[ControlFlow.group]].
+    *
+    * If no table initializers are found in the provided collection, the method still returns an op that can be run.
+    * That op has no effect (i.e., it is a [[ControlFlow.noOp]]).
+    *
+    * @param  initializers Table initializers to group.
+    * @param  name         Name for the created op.
+    * @return Created op.
+    */
+  private[lookup] def initializer(initializers: Set[Op], name: String = "LookupsInitializer"): Op = {
+    // TODO: Abstract into the group op and use consistently for the variable initializers too.
+    if (initializers.isEmpty)
+      ControlFlow.noOp(name)
+    else
+      ControlFlow.group(initializers, name)
+  }
+
   /** Creates an op that computes the number of elements in the table referenced by `handle`.
     *
     * @param  handle Resource handle to a lookup table.

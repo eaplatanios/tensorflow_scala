@@ -451,6 +451,10 @@ object Op {
       Op.currentGraph.modelVariablesInitializer(name)
     }
 
+    def metricVariablesInitializer(name: String = "MetricVariablesInitializer"): Op = {
+      Op.currentGraph.metricVariablesInitializer(name)
+    }
+
     def trainableVariablesInitializer(name: String = "TrainableVariablesInitializer"): Op = {
       Op.currentGraph.trainableVariablesInitializer(name)
     }
@@ -1305,7 +1309,7 @@ object Op {
         inputs.foreach(input => pruneControlDependencies(controlDependencies, input.op))
         inputLists.foreach(_.foreach(input => pruneControlDependencies(controlDependencies, input.op)))
         controlDependencies.foreach(op => NativeOp.addControlInput(nativeHandle, op.nativeHandle))
-        val colocationOps = transitiveColocationOps(context.value.colocationOps)
+        val colocationOps = transitiveColocationOps(context.value.colocationOps.filter(_ != null))
         val opDevice = device match {
           case None | Some("") => colocationOps.find(_.device != "").map(_.device).getOrElse("")
           case Some(d) => d

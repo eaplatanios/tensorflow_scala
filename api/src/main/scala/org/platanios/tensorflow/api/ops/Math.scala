@@ -4000,7 +4000,7 @@ object Math extends Math {
       val outputGradient = outputGradients.head.toOutput
       Seq(
         Basic.reshape(sum(outputGradient, rx), xShape),
-        -Basic.reshape(sum(outputGradient, ry), yShape))
+        Basic.reshape(-sum(outputGradient, ry), yShape))
     }
 
     private[this] def mulGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
