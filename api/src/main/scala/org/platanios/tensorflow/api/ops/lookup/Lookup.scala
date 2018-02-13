@@ -29,7 +29,7 @@ private[lookup] trait Lookup {
   def lookupInitializers: Set[Op] = Op.currentGraph.tableInitializers
 
   /** Returns an initializer op for all lookup table initializers that have been created in the current graph. */
-  def lookupsInitializer: Op = Lookup.initializer(lookupInitializers)
+  def lookupsInitializer(name: String = "LookupsInitializer"): Op = Lookup.initializer(lookupInitializers, name)
 
   /** Creates a lookup table that converts string tensors into integer IDs.
     *
@@ -110,7 +110,7 @@ object Lookup extends Lookup {
     * @param  name         Name for the created op.
     * @return Created op.
     */
-  private[lookup] def initializer(initializers: Set[Op], name: String = "TablesInitializer"): Op = {
+  private[lookup] def initializer(initializers: Set[Op], name: String = "LookupsInitializer"): Op = {
     // TODO: Abstract into the group op and use consistently for the variable initializers too.
     if (initializers.isEmpty)
       ControlFlow.noOp(name)
