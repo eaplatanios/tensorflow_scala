@@ -125,7 +125,7 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
       }
     }
     if (!needsToTrain) {
-      FileBasedEstimator.logger.info(
+      FileBasedEstimator.logger.debug(
         "Skipping training because no restarting is allowed in the termination criteria and the maximum number of " +
             "steps have already been executed in the past (i.e., saved checkpoint).")
     } else {
@@ -431,7 +431,7 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
           sessionConfig = configuration.sessionConfig,
           checkpointPath = configuration.workingDir),
         allHooks.toSet, shouldRecover = true)
-      FileBasedEstimator.logger.info("Starting evaluation.")
+      FileBasedEstimator.logger.debug("Starting evaluation.")
       val (step, metricValues) = {
         try {
           val step = session.run(fetches = globalStep.value).scalar.asInstanceOf[Long]
@@ -454,8 +454,8 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
             session.close()
         }
       }
-      FileBasedEstimator.logger.info("Finished evaluation.")
-      FileBasedEstimator.logger.info("Saving evaluation results.")
+      FileBasedEstimator.logger.debug("Finished evaluation.")
+      FileBasedEstimator.logger.debug("Saving evaluation results.")
       if (saveSummaries)
         saveEvaluationSummaries(step, metrics, metricValues, name)
       metricValues

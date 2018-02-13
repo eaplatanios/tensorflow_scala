@@ -27,3 +27,6 @@ project/plugins/project/
 
 # CLion Specific
 **/cmake-build-debug/**/*
+
+# VS Code Specific
+**/.vscode/**/*
