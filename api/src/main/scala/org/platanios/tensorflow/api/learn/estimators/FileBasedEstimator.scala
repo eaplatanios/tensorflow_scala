@@ -163,7 +163,7 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
               Resource.initializer(Resource.sharedResources)))),
             localInitOp = Some(ControlFlow.group(Set(
               Variable.initializer(Variable.localVariables),
-              Lookup.lookupsInitializer))),
+              Lookup.lookupsInitializer()))),
             localInitFunction = Some((session, _) => session.run(targets = dataInitializer)),
             saver = saver))
         try {
@@ -279,7 +279,7 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
               Resource.initializer(Resource.sharedResources)))),
             localInitOp = Some(ControlFlow.group(Set(
               Variable.initializer(Variable.localVariables),
-              Lookup.lookupsInitializer))),
+              Lookup.lookupsInitializer()))),
             localInitFunction = Some((session, _) => session.run(targets = dataInitializer)),
             saver = saver),
           sessionConfig = configuration.sessionConfig,
@@ -425,7 +425,7 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
               Resource.initializer(Resource.sharedResources)))),
             localInitOp = Some(ControlFlow.group(Set(
               Variable.initializer(Variable.localVariables),
-              Lookup.lookupsInitializer))),
+              Lookup.lookupsInitializer()))),
             localInitFunction = Some((session, _) => session.run(targets = dataInitializer)),
             saver = saver),
           sessionConfig = configuration.sessionConfig,
