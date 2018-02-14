@@ -338,9 +338,9 @@ private[learn] case class SessionManager(
     localInitOp.flatMap(op => {
       isModelReadyForLocalInit(session) match {
         case None =>
-          SessionManager.logger.info("Running local initialization op.")
+          SessionManager.logger.debug("Running local initialization op.")
           session.run(targets = op)
-          SessionManager.logger.info("Finished running local initialization op.")
+          SessionManager.logger.debug("Finished running local initialization op.")
           None
         case s => s
       }

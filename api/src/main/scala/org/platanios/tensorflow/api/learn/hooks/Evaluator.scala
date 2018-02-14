@@ -104,7 +104,7 @@ case class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
       runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor]],
       session: Session
   ): Unit = Op.createWith(graph, nameScope = name) {
-    Evaluator.logger.info(s"Computing $name.")
+    Evaluator.logger.debug(s"Computing $name.")
     val session = MonitoredSession(sessionCreator, shouldRecover = true)
     val values = {
       try {

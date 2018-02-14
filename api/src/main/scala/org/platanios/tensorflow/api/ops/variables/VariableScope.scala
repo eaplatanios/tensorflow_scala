@@ -211,7 +211,8 @@ private[api] object VariableScope {
       else
         uniqueName
     }
-    variableStore.enterVariableScope(variableScope.name)
+    // TODO: !!! [VARIABLES] Look into the cached pure variable scope.
+    variableStore.enterVariableScope(newName)
     val newVariableScope = VariableScope(
       // TODO: !!! [VARIABLES] Have 'name' as first argument in order to be consistent.
       reuse = if (reuse == ReuseOrCreateNew) variableScope.reuse else reuse,
@@ -234,7 +235,7 @@ private[api] object VariableScope {
       else
         Op.createWithNameScope(name)(context.withValue(context.value.copy(variableScope = newVariableScope))(block))
     }
-    variableStore.closeVariableSubScopes(variableScope.name)
+    variableStore.closeVariableSubScopes(newName)
     result
   }
 
