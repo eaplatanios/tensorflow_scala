@@ -190,7 +190,7 @@ private[api] object VariableScope {
     * @return Return value of the code block.
     */
   private[api] def createWithVariableScope[R](
-      name: String, reuse: ReuseAllowed = ReuseOrCreateNew, dataType: DataType = null,
+      name: String, reuse: Reuse = ReuseOrCreateNew, dataType: DataType = null,
       initializer: Initializer = null, regularizer: Regularizer = null, partitioner: Partitioner = null,
       cachingDevice: OpSpecification => String = null, customGetter: VariableGetter = null,
       isDefaultName: Boolean = false, isPure: Boolean = false
@@ -260,7 +260,7 @@ private[api] object VariableScope {
     * @return Return value of the code block.
     */
   private[api] def createWithUpdatedVariableScope[R](
-      variableScope: VariableScope, reuse: ReuseAllowed = ReuseOrCreateNew, dataType: DataType = null,
+      variableScope: VariableScope, reuse: Reuse = ReuseOrCreateNew, dataType: DataType = null,
       initializer: Initializer = null, regularizer: Regularizer = null, partitioner: Partitioner = null,
       cachingDevice: OpSpecification => String = null, customGetter: VariableGetter = null, isPure: Boolean = false
   )(

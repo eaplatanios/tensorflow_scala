@@ -103,7 +103,7 @@ package object variables {
     }
 
     def createWithVariableScope[R](
-        name: String, reuse: VariableReuseAllowed = ReuseOrCreateNewVariable, dataType: DataType = null,
+        name: String, reuse: VariableReuse = ReuseOrCreateNewVariable, dataType: DataType = null,
         initializer: VariableInitializer = null, regularizer: VariableRegularizer = null,
         partitioner: VariablePartitioner = null, cachingDevice: OpSpecification => String = null,
         customGetter: VariableGetter = null, isDefaultName: Boolean = false, isPure: Boolean = false)
@@ -114,7 +114,7 @@ package object variables {
     }
 
     def createWithUpdatedVariableScope[R](
-        variableScope: VariableScope, reuse: VariableReuseAllowed = ReuseOrCreateNewVariable, dataType: DataType = null,
+        variableScope: VariableScope, reuse: VariableReuse = ReuseOrCreateNewVariable, dataType: DataType = null,
         initializer: VariableInitializer = null, regularizer: VariableRegularizer = null,
         partitioner: VariablePartitioner = null, cachingDevice: OpSpecification => String = null,
         customGetter: VariableGetter = null, isPure: Boolean = false)(block: => R): R = {
