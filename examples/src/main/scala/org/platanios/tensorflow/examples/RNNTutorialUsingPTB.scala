@@ -69,7 +69,7 @@ object RNNTutorialUsingPTB {
         tf.learn.Sum("Loss/Sum") >>
         tf.learn.ScalarSummary("Loss/Summary", "Loss")
     val optimizer = tf.train.GradientDescent(1.0)
-    tf.learn.Model(input, layer, trainInput, loss, optimizer, tf.learn.ClipGradientsByGlobalNorm(5.0f))
+    tf.learn.Model.supervised(input, layer, trainInput, loss, optimizer, tf.learn.ClipGradientsByGlobalNorm(5.0f))
   }
 
   def main(args: Array[String]): Unit = {

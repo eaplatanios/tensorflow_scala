@@ -60,7 +60,7 @@ object CIFAR {
     val loss = tf.learn.SparseSoftmaxCrossEntropy("Loss/CrossEntropy") >>
         tf.learn.Mean("Loss/Mean") >> tf.learn.ScalarSummary("Loss/Summary", "Loss")
     val optimizer = tf.train.AdaGrad(0.1)
-    val model = tf.learn.Model(input, layer, trainInput, trainingInputLayer, loss, optimizer)
+    val model = tf.learn.Model.supervised(input, layer, trainInput, trainingInputLayer, loss, optimizer)
 
     logger.info("Training the linear regression model.")
     val summariesDir = Paths.get("temp/cnn-cifar")
