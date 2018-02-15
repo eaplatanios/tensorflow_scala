@@ -125,7 +125,7 @@ class SummaryFileWriter private[io](
     * @param  summary String representation of the summary to write.
     * @param  step    Global step number to record with the summary.
     */
-  def writeSummaryString(summary: String, step: Long = 0L): Unit = {
+  def writeSummaryString(summary: String, step: Long): Unit = {
     writeSummary(Summary.parseFrom(ByteString.copyFrom(summary.getBytes("ISO-8859-1"))), step)
   }
 
@@ -136,7 +136,7 @@ class SummaryFileWriter private[io](
     * @param  summary Summary to write.
     * @param  step    Global step number to record with the summary.
     */
-  def writeSummary(summary: Summary, step: Long = 0L): Unit = {
+  def writeSummary(summary: Summary, step: Long): Unit = {
     val summaryBuilder = Summary.newBuilder(summary)
     summaryBuilder.clearValue()
     // We strip the summary metadata for values with tags that we have seen before in order to save space. We just store
@@ -162,7 +162,7 @@ class SummaryFileWriter private[io](
     * @param  sessionLog Session log to write.
     * @param  step       Global step number to record with the session log.
     */
-  def writeSessionLog(sessionLog: SessionLog, step: Long = 0L): Unit = {
+  def writeSessionLog(sessionLog: SessionLog, step: Long): Unit = {
     write(eventBuilder(step).setSessionLog(sessionLog).build())
   }
 
@@ -174,7 +174,7 @@ class SummaryFileWriter private[io](
     * @throws IllegalArgumentException If the provided tag has already been used for this event type.
     */
   @throws[IllegalArgumentException]
-  def writeRunMetadata(runMetadata: RunMetadata, tag: String, step: Long = 0L): Unit = {
+  def writeRunMetadata(runMetadata: RunMetadata, tag: String, step: Long): Unit = {
     if (usedSessionRunTags.contains(tag))
       throw new IllegalArgumentException(s"The provided tag ($tag) has already been used for this event type.")
     usedSessionRunTags.add(tag)
