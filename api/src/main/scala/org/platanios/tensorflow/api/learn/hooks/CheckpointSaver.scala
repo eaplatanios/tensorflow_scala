@@ -103,7 +103,7 @@ case class CheckpointSaver(
       SessionLog.newBuilder()
           .setStatus(SessionLog.SessionStatus.CHECKPOINT)
           .setCheckpointPath(savePath.toAbsolutePath.toString)
-          .build()))
+          .build(), step))
   }
 }
 
