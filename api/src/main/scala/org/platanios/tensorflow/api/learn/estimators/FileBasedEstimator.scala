@@ -286,7 +286,7 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
           checkpointPath = workingDir),
         hooks.filter(!_.isInstanceOf[Stopper]), shouldRecover = true)
       val output = ev.convertFetched(new Iterator[(IT, ModelInferenceOutput)] {
-        override def hasNext: Boolean = session.shouldStop
+        override def hasNext: Boolean = !session.shouldStop
         override def next(): (IT, ModelInferenceOutput) = {
           try {
             session.run(fetches = (inferOps.input, inferOps.output))

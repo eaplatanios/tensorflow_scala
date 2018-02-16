@@ -232,9 +232,10 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
       session.resetShouldStop()
       try {
         ev.convertFetched(new Iterator[(IT, ModelInferenceOutput)] {
-          override def hasNext: Boolean = session.shouldStop
+          override def hasNext: Boolean = !session.shouldStop
           override def next(): (IT, ModelInferenceOutput) = {
             try {
+              // TODO: !!! There might be an issue with the stop criteria here.
               session.removeHooks(currentTrainHooks ++ evaluateHooks)
               val output = session.run(fetches = (inferenceOps.input, inferenceOps.output))
               session.addHooks(currentTrainHooks ++ evaluateHooks)
