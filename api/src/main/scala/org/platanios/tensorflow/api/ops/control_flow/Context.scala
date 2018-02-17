@@ -121,12 +121,13 @@ abstract class Context protected (
   /** Enters this control flow context. */
   def enter()(implicit context: DynamicVariable[OpCreationContext]): Unit = {
     contextStack.append(context.value.controlFlowContext)
-    context.value = context.value.copy(controlFlowContext = Some(this))
+    context.value = context.value.copy(controlFlowContext = Some(this), outerContext = Some(context.value))
   }
 
   /** Exits this control flow context. */
   def exit()(implicit context: DynamicVariable[OpCreationContext]): Unit = {
-    context.value = context.value.copy(controlFlowContext = contextStack.remove(contextStack.size - 1))
+    context.value = context.value.copy(
+      controlFlowContext = contextStack.remove(contextStack.size - 1), outerContext = Some(context.value))
   }
 
   /** Makes a sequence of tensors available in the outer context. */

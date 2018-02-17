@@ -63,20 +63,7 @@ case class Variable private (
     */
   private[api] val handle: Output = variableHandle
 
-  /** Op responsible for initializing this variable. */
-  val initializer: Op = initializeOp
-
-  /** Op output that is `true` when the variable has been initialized and `false` otherwise. */
-  val isInitialized: Output = Op.createWith(graph)(Variable.isVariableInitialized(handle, name = "IsInitialized"))
-
-  // /** Returns the value of the initialized variable. You should use this instead of the variable itself to initialize
-  //   * another variable with a value that depends on the value of this variable.
-  //   *
-  //   * TODO: Add example.
-  //   */
-  // val initializedValue: Output = ??? // TODO: [VARIABLES] [CONTROL_FLOW] !!! We need control flow ops for this.
-
-  /** Returns a cached op which reads the last value of this variable.
+  /** Cached op which reads the last value of this variable.
     *
     * You can not assign a new value to the returned tensor as it is not a reference to the variable.
     *
@@ -92,6 +79,27 @@ case class Variable private (
         Op.createWith(device = handle.device)(Variable.readVariable(handle, dataType))
       }
     }
+  }
+
+  /** Op responsible for initializing this variable. */
+  val initializer: Op = initializeOp
+
+  /** Op output that is `true` when the variable has been initialized and `false` otherwise. */
+  val isInitialized: Output = Op.createWith(graph)(Variable.isVariableInitialized(handle, name = "IsInitialized"))
+
+  /** Value of the initialized variable. You should use this instead of the variable itself to initialize
+    * another variable with a value that depends on the value of this variable.
+    *
+    * Example:
+    * {{{
+    *   // Initialize `v` with random values, and then use `initializedValue` to guarantee that `v` has been initialized
+    *   // before its value is used to initialize `w`. The random tensor will only be sampled once.
+    *   val v = tf.variable("v", FLOAT32, Shape(10, 40), tf.RandomTruncatedNormalInitializer())
+    *   val w = tf.variable("w", initializer = tf.ConstantInitializer(v.initializedValue * 2.0))
+    * }}}
+    */
+  val initializedValue: Output = Op.initialization {
+    ControlFlow.cond(isInitialized, () => value, () => Op.createWith(controlDependencies = Set(initializer))(value))
   }
 
   /** Contains the partition/save-slice information for this variable. */
@@ -472,44 +480,48 @@ private[api] object Variable {
     if (inferredShape == null)
       throw ShapeMismatchException(
         "No shape was provided for the new variable and it could not be inferred from the provided initializer.")
-    Op.createWith(nameScope = name, controlDependencies = Set.empty[Op]) {
-      val nameScope = Op.currentNameScope
-      val trueName = Op.convertNameScopeToName(nameScope)
-      val variableHandle = variable(inferredShape, inferredDataType, sharedName = trueName, name = nameScope)
-      val initialValue = Op.createWith(nameScope = "Initializer") {
-        Op.colocateWith(Set(variableHandle.op)) {
-          initializer(inferredDataType, inferredShape, null)
-        }
-      }
-      val initializeOp = assign(variableHandle, initialValue, name = "InitializationAssign")
-      val cachedValue = Op.createWith(nameScope = "Read") {
-        Op.colocateWith(Set(variableHandle.op)) {
-          val cachedValueOp = {
-            if (cachingDevice != null) {
-              // Manually assign reads to the handle's device to avoid log messages
-              val valueOp = Op.createWith(device = variableHandle.device)(readVariable(variableHandle, inferredDataType))
-              // Variables may be created in a "createWith(device = ...)" block or a "createWith(colocationOps = ...)"
-              // block. At the same time, users would expect the caching device to be independent of this context, and/or
-              // would not expect the current device context to be merged with the caching device specification.
-              // Therefore, we reset the colocation stack before creating the cached value. Note that resetting the
-              // colocation stack will also reset the device stack.
-              Op.createWith(colocationOps = Set.empty[Op], device = null)(Basic.identity(valueOp))
-            } else {
-              null
-            }
+    Op.initialization {
+      Op.createWith(nameScope = name) {
+        val nameScope = Op.currentNameScope
+        val trueName = Op.convertNameScopeToName(nameScope)
+        val variableHandle = variable(inferredShape, inferredDataType, sharedName = trueName, name = nameScope)
+        val initialValue = Op.createWith(nameScope = "Initializer") {
+          Op.colocateWith(Set(variableHandle.op)) {
+            initializer(inferredDataType, inferredShape, null)
           }
-          cachedValueOp
         }
-      }
+        val initializeOp = assign(variableHandle, initialValue, name = "InitializationAssign")
+        val cachedValue = Op.createWith(nameScope = "Read") {
+          Op.colocateWith(Set(variableHandle.op)) {
+            val cachedValueOp = {
+              if (cachingDevice != null) {
+                // Manually assign reads to the handle's device to avoid log messages
+                val valueOp = Op.createWith(device = variableHandle.device) {
+                  readVariable(variableHandle, inferredDataType)
+                }
+                // Variables may be created in a "createWith(device = ...)" block or a "createWith(colocationOps = ...)"
+                // block. At the same time, users would expect the caching device to be independent of this context,
+                // and/or would not expect the current device context to be merged with the caching device
+                // specification. Therefore, we reset the colocation stack before creating the cached value. Note that
+                // resetting the colocation stack will also reset the device stack.
+                Op.createWith(colocationOps = Set.empty[Op], device = null)(Basic.identity(valueOp))
+              } else {
+                null
+              }
+            }
+            cachedValueOp
+          }
+        }
 
-      val createdVariable = Variable(inferredDataType, variableHandle, initializeOp, cachedValue)
-      var effectiveCollections = collections
-      if (effectiveCollections.isEmpty)
-        effectiveCollections += Graph.Keys.GLOBAL_VARIABLES
-      if (trainable)
-        effectiveCollections += Graph.Keys.TRAINABLE_VARIABLES
-      effectiveCollections.foreach(key => createdVariable.graph.addToCollection(createdVariable, key))
-      createdVariable
+        val createdVariable = Variable(inferredDataType, variableHandle, initializeOp, cachedValue)
+        var effectiveCollections = collections
+        if (effectiveCollections.isEmpty)
+          effectiveCollections += Graph.Keys.GLOBAL_VARIABLES
+        if (trainable)
+          effectiveCollections += Graph.Keys.TRAINABLE_VARIABLES
+        effectiveCollections.foreach(key => createdVariable.graph.addToCollection(createdVariable, key))
+        createdVariable
+      }
     }
   }
 

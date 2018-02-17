@@ -146,7 +146,7 @@ trait Optimizer {
         s"No gradients were provided for any of the variables: ${gradientsAndVariables.map(_._2).mkString(", ")}.")
 
     // Create the slots needed by the variables.
-    Op.createWith(controlDependencies = Set.empty[Op]) {
+    Op.initialization {
       val mappedVariables = variables.map(variable => {
         if (variable.op.opType == "VarHandleOp") {
           val v = variable.graph.trainableVariables.find(v => v.isInstanceOf[Variable] && v.handle.op == variable.op)

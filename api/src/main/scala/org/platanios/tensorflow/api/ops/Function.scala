@@ -234,7 +234,7 @@ private[api] case class InstantiatedFunction[I, O] private[ops] (
     evInput: Function.ArgType[I],
     evOutput: Function.ArgType[O]
 ) extends Closeable {
-  require(inputDataTypes.length == evInput.numOutputs,
+  require(inputDataTypes.lengthCompare(evInput.numOutputs) == 0,
           s"The number of 'inputDataTypes' provided (${inputDataTypes.length}) " +
               s"does not match the number of inputs (${evInput.numOutputs}).")
 
@@ -247,7 +247,7 @@ private[api] case class InstantiatedFunction[I, O] private[ops] (
       // Determine names for the function inputs
       val inputNames = {
         if (_inputNames != null) {
-          require(_inputNames.length == inputDataTypes.length,
+          require(_inputNames.lengthCompare(inputDataTypes.length) == 0,
             s"The number of 'inputNames' provided (${_inputNames.length}) " +
                 s"does not match the number of inputs (${inputDataTypes.length}).")
           _inputNames
@@ -282,7 +282,7 @@ private[api] case class InstantiatedFunction[I, O] private[ops] (
       // Determine names for the function outputs
       val outputNames = {
         if (_outputNames != null) {
-          require(_outputNames.length == evOutput.numOutputs,
+          require(_outputNames.lengthCompare(evOutput.numOutputs) == 0,
             s"The number of 'outputNames' provided (${_outputNames.length}) " +
                 s"does not match the number of outputs (${evOutput.numOutputs}).")
           _outputNames

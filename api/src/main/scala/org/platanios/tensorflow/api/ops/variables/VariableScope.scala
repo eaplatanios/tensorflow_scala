@@ -231,9 +231,15 @@ private[api] object VariableScope {
       })
     val result = {
       if (isPure)
-        context.withValue(context.value.copy(variableScope = newVariableScope))(block)
+        context.withValue(context.value.copy(variableScope = newVariableScope, outerContext = Some(context.value))) {
+          block
+        }
       else
-        Op.createWithNameScope(name)(context.withValue(context.value.copy(variableScope = newVariableScope))(block))
+        Op.createWithNameScope(name) {
+          context.withValue(context.value.copy(variableScope = newVariableScope, outerContext = Some(context.value))) {
+            block
+          }
+        }
     }
     variableStore.closeVariableSubScopes(newName)
     result

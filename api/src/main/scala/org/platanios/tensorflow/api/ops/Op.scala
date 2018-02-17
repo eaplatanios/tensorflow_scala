@@ -384,10 +384,17 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
 final case class OpSpecification(name: String, opType: String, device: String)
 
 private[api] final case class OpCreationContext(
-    graph: Graph = Graph(), nameScope: String = "", variableScope: VariableScope = VariableScope(reuse = CreateNewOnly),
-    device: String = "", deviceFunction: OpSpecification => String = _.device, colocationOps: Set[Op] = Set.empty,
-    controlDependencies: Set[Op] = Set.empty, attributes: Map[String, Any] = Map.empty, container: String = "",
-    controlFlowContext: Option[Context] = None) // TODO: !!! Use containers.
+    graph: Graph = Graph(),
+    nameScope: String = "",
+    variableScope: VariableScope = VariableScope(reuse = CreateNewOnly),
+    device: String = "",
+    deviceFunction: OpSpecification => String = _.device,
+    colocationOps: Set[Op] = Set.empty,
+    controlDependencies: Set[Op] = Set.empty,
+    attributes: Map[String, Any] = Map.empty,
+    container: String = "", // TODO: !!! Use containers.
+    controlFlowContext: Option[Context] = None,
+    outerContext: Option[OpCreationContext] = None)
 
 object Op {
   private[ops] val logger = Logger(LoggerFactory.getLogger("Graph Construction"))
@@ -439,6 +446,10 @@ object Op {
       Op.colocateWith(colocationOps, ignoreExisting)(block)
     }
 
+    def initialization[R](block: => R): R = {
+      Op.initialization(block)
+    }
+
     def globalVariablesInitializer(name: String = "GlobalVariablesInitializer"): Op = {
       Op.currentGraph.globalVariablesInitializer(name)
     }
@@ -465,10 +476,7 @@ object Op {
 
   /** Returns the name scope of the current op creation context. */
   private[api] def currentNameScope(implicit context: DynamicVariable[OpCreationContext]): String = {
-    if (context.value.nameScope == "")
-      ""
-    else
-      s"${context.value.nameScope}/"
+    if (context.value.nameScope == "") "" else s"${context.value.nameScope}/"
   }
 
   /** Returns the variable scope of the current op creation context. */
@@ -851,24 +859,25 @@ object Op {
     // TODO: !!! The order of the updates matters here so let's make sure everything is fine.
     var updatedContext = context.value
     val newGraph: Graph = mergeGraph(graph, updatedContext)
-    updatedContext = updatedContext.copy(graph = newGraph)
+    updatedContext = updatedContext.copy(graph = newGraph, outerContext = Some(updatedContext))
     val newNameScope: String = mergeNameScope(nameScope, updatedContext.nameScope, updatedContext.graph.uniqueName(_))
-    updatedContext = updatedContext.copy(nameScope = newNameScope)
+    updatedContext = updatedContext.copy(nameScope = newNameScope, outerContext = Some(updatedContext))
     val newDevice: String = mergeDevice(device, updatedContext.device)
-    updatedContext = updatedContext.copy(device = newDevice)
+    updatedContext = updatedContext.copy(device = newDevice, outerContext = Some(updatedContext))
     val newDeviceFunction: OpSpecification => String = mergeDeviceFunction(
       deviceFunction, updatedContext.deviceFunction, updatedContext.device)
-    updatedContext = updatedContext.copy(deviceFunction = newDeviceFunction)
+    updatedContext = updatedContext.copy(deviceFunction = newDeviceFunction, outerContext = Some(updatedContext))
     val newColocationOps: Set[Op] = mergeColocationOps(colocationOps, updatedContext)
-    updatedContext = updatedContext.copy(colocationOps = newColocationOps)
+    updatedContext = updatedContext.copy(colocationOps = newColocationOps, outerContext = Some(updatedContext))
     val (newControlDependencies, newControlFlowContext): (Set[Op], Option[Context]) =
       mergeControlDependencies(controlDependencies, updatedContext)
     updatedContext = updatedContext.copy(
-      controlDependencies = newControlDependencies, controlFlowContext = newControlFlowContext)
+      controlDependencies = newControlDependencies, controlFlowContext = newControlFlowContext,
+      outerContext = Some(updatedContext))
     val newAttributes: Map[String, Any] = mergeAttributes(attributes, updatedContext)
-    updatedContext = updatedContext.copy(attributes = newAttributes)
+    updatedContext = updatedContext.copy(attributes = newAttributes, outerContext = Some(updatedContext))
     val newContainer: String = mergeContainer(container, updatedContext)
-    updatedContext = updatedContext.copy(container = newContainer)
+    updatedContext = updatedContext.copy(container = newContainer, outerContext = Some(updatedContext))
     context.withValue(updatedContext)(block)
   }
 
@@ -893,10 +902,14 @@ object Op {
     if (values.nonEmpty) {
       val newGraph: Graph = mergeGraph(getGraphFromInputs(values), context)
       val newNameScope: String = mergeNameScope(nameScope, context.value.nameScope, newGraph.uniqueName(_))
-      context.withValue(context.copy(graph = newGraph, nameScope = newNameScope))(block)
+      context.withValue(context.copy(graph = newGraph, nameScope = newNameScope, outerContext = Some(context.value))) {
+        block
+      }
     } else {
       val newNameScope: String = mergeNameScope(nameScope, context.value.nameScope, context.value.graph.uniqueName(_))
-      context.withValue(context.copy(nameScope = newNameScope))(block)
+      context.withValue(context.copy(nameScope = newNameScope, outerContext = Some(context.value))) {
+        block
+      }
     }
   }
 
@@ -983,7 +996,44 @@ object Op {
     // internal library functions where colocation is intended to be "stronger" than device functions.
     context.withValue(context.copy(
       device = "", deviceFunction = (opSpec: OpSpecification) => opSpec.device,
-      colocationOps = newColocationOps))(block)
+      colocationOps = newColocationOps, outerContext = Some(context)))(block)
+  }
+
+  /** Creates a context that can be used for initialization ops.
+    *
+    * This context lifts ops out of control-flow scopes and function-building graphs. There is often a need to lift
+    * variable initialization ops out of control-flow scopes, and function-building graphs. Entering an `initialization`
+    * context is a mechanism for satisfying these desiderata. In particular, entering an `initialization` context has
+    * two effects:
+    *
+    * (1) All control dependencies are cleared the moment the scope is entered; this is equivalent to entering the
+    * context defined by `tf.createWith(controlDependencies = Set.empty)`, which has the side-effect of exiting
+    * control-flow scopes like `tf.cond(...)` and `tf.whileLoop(...)`.
+    *
+    * (2) All operations that are created within this context are lifted into the lowest context in the "context stack"
+    * that is not building a graph function. Every context switch is "logged" in a thread-local stack; the log entry for
+    * a context switch is popped from the stack when the context is exited. Using an `initialization` context is
+    * equivalent to crawling up the context stack, finding the first context that is not building a graph function, and
+    * using it.
+    *
+    * @param  block   Code block to run using the initialization op creation context.
+    * @param  context Current op creation context.
+    * @tparam R       Return type of the code block.
+    * @return Return value of the code block.
+    * @throws IllegalStateException If all graphs in the context stack are used for building functions.
+    */
+  @throws[IllegalStateException]
+  private[api] def initialization[R](block: => R)(implicit context: DynamicVariable[OpCreationContext]): R = {
+    // Get the first context that's not building a function.
+    var outerContext = context.value
+    while (outerContext.graph.isInstanceOf[FunctionGraph] && outerContext.outerContext.isDefined)
+      outerContext = outerContext.outerContext.get
+    if (outerContext.graph.isInstanceOf[FunctionGraph])
+      throw new IllegalStateException("All graphs are building functions.")
+    context.withValue(outerContext) {
+      // Entering an `initScope` preserves the name scope of the current context.
+      createWith(nameScope = context.value.nameScope, controlDependencies = Set.empty[Op])(block)
+    }
   }
 
   /** Merges a graph to the provided op creation context graph and returns the graph to use when specifying the updated
