@@ -9,6 +9,26 @@
 
 namespace tensorflow {
 
+// Message-text conversion for tensorflow.InterconnectLink
+string ProtoDebugString(
+    const ::tensorflow::InterconnectLink& msg);
+string ProtoShortDebugString(
+    const ::tensorflow::InterconnectLink& msg);
+bool ProtoParseFromString(
+    const string& s,
+    ::tensorflow::InterconnectLink* msg)
+        TF_MUST_USE_RESULT;
+
+// Message-text conversion for tensorflow.LocalLinks
+string ProtoDebugString(
+    const ::tensorflow::LocalLinks& msg);
+string ProtoShortDebugString(
+    const ::tensorflow::LocalLinks& msg);
+bool ProtoParseFromString(
+    const string& s,
+    ::tensorflow::LocalLinks* msg)
+        TF_MUST_USE_RESULT;
+
 // Message-text conversion for tensorflow.DeviceLocality
 string ProtoDebugString(
     const ::tensorflow::DeviceLocality& msg);

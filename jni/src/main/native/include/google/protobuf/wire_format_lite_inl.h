@@ -426,7 +426,6 @@ bool WireFormatLite::ReadPackedPrimitiveNoInline(io::CodedInputStream* input,
 }
 
 
-
 inline bool WireFormatLite::ReadGroup(int field_number,
                                       io::CodedInputStream* input,
                                       MessageLite* value) {
@@ -1042,33 +1041,6 @@ inline size_t WireFormatLite::LengthDelimitedSize(size_t length) {
   // decide to start supporting serialized messages greater than 2 GiB in size.
   return length + io::CodedOutputStream::VarintSize32(
       static_cast<uint32>(length));
-}
-
-size_t WireFormatLite::Int64Size (const RepeatedField< int64>& value) {
-  size_t out = 0;
-  const int n = value.size();
-  for (int i = 0; i < n; i++) {
-    out += Int64Size(value.Get(i));
-  }
-  return out;
-}
-
-size_t WireFormatLite::UInt64Size(const RepeatedField<uint64>& value) {
-  size_t out = 0;
-  const int n = value.size();
-  for (int i = 0; i < n; i++) {
-    out += UInt64Size(value.Get(i));
-  }
-  return out;
-}
-
-size_t WireFormatLite::SInt64Size(const RepeatedField< int64>& value) {
-  size_t out = 0;
-  const int n = value.size();
-  for (int i = 0; i < n; i++) {
-    out += SInt64Size(value.Get(i));
-  }
-  return out;
 }
 
 }  // namespace internal

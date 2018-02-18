@@ -47,6 +47,7 @@
 #include <google/protobuf/stubs/common.h>
 #include <google/protobuf/stubs/once.h>
 #include <google/protobuf/has_bits.h>
+#include <google/protobuf/implicit_weak_message.h>
 #include <google/protobuf/map_entry_lite.h>
 #include <google/protobuf/message_lite.h>
 #include <google/protobuf/wire_format_lite.h>
@@ -116,6 +117,21 @@ LIBPROTOBUF_EXPORT double NaN();
 template <class Type> bool AllAreInitialized(const Type& t) {
   for (int i = t.size(); --i >= 0; ) {
     if (!t.Get(i).IsInitialized()) return false;
+  }
+  return true;
+}
+
+// "Weak" variant of AllAreInitialized, used to implement implicit weak fields.
+// This version operates on MessageLite to avoid introducing a dependency on the
+// concrete message type.
+template <class T>
+bool AllAreInitializedWeak(const ::google::protobuf::RepeatedPtrField<T>& t) {
+  for (int i = t.size(); --i >= 0;) {
+    if (!reinterpret_cast<const ::google::protobuf::internal::RepeatedPtrFieldBase&>(t)
+             .Get< ::google::protobuf::internal::ImplicitWeakTypeHandler<T> >(i)
+             .IsInitialized()) {
+      return false;
+    }
   }
   return true;
 }
@@ -271,6 +287,45 @@ void MapFieldSerializer(const uint8* base, uint32 offset, uint32 tag,
       SerializeInternal(reinterpret_cast<const uint8*>(&v[i]), t->field_table,
                         t->num_fields, output);
     }
+  }
+}
+
+LIBPROTOBUF_EXPORT MessageLite* DuplicateIfNonNullInternal(MessageLite* message, Arena* arena);
+LIBPROTOBUF_EXPORT MessageLite* GetOwnedMessageInternal(Arena* message_arena,
+                                     MessageLite* submessage,
+                                     Arena* submessage_arena);
+
+template <typename T>
+T* DuplicateIfNonNull(T* message, Arena* arena) {
+  // The casts must be reinterpret_cast<> because T might be a forward-declared
+  // type that the compiler doesn't know is related to MessageLite.
+  return reinterpret_cast<T*>(DuplicateIfNonNullInternal(
+      reinterpret_cast<MessageLite*>(message), arena));
+}
+
+template <typename T>
+T* GetOwnedMessage(Arena* message_arena, T* submessage,
+                   Arena* submessage_arena) {
+  // The casts must be reinterpret_cast<> because T might be a forward-declared
+  // type that the compiler doesn't know is related to MessageLite.
+  return reinterpret_cast<T*>(GetOwnedMessageInternal(
+      message_arena, reinterpret_cast<MessageLite*>(submessage),
+      submessage_arena));
+}
+
+// Returns a message owned by this Arena.  This may require Own()ing or
+// duplicating the message.
+template <typename T>
+T* GetOwnedMessage(T* message, Arena* arena) {
+  GOOGLE_DCHECK(message);
+  Arena* message_arena = google::protobuf::Arena::GetArena(message);
+  if (message_arena == arena) {
+    return message;
+  } else if (arena != NULL && message_arena == NULL) {
+    arena->Own(message);
+    return message;
+  } else {
+    return DuplicateIfNonNull(message, arena);
   }
 }
 

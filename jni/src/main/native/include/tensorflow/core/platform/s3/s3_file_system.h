@@ -55,6 +55,7 @@ class S3FileSystem : public FileSystem {
   Status GetFileSize(const string& fname, uint64* size) override;
 
   Status RenameFile(const string& src, const string& target) override;
+
  private:
   // Returns the member S3 client, initializing as-needed.
   // When the client tries to access the object in S3, e.g.,
@@ -63,7 +64,7 @@ class S3FileSystem : public FileSystem {
   // variables.
   // By default S3 access regional endpoint, with region
   // controlled by `AWS_REGION`. The endpoint could be overridden
-  // with explicity `S3_ENDPOINT`. S3 use HTTPS by default.
+  // explicitly with `S3_ENDPOINT`. S3 uses HTTPS by default.
   // If S3_USE_HTTPS=0 is specified, HTTP is used. Also,
   // S3_VERIFY_SSL=0 could disable SSL verification in case
   // HTTPS is used.
