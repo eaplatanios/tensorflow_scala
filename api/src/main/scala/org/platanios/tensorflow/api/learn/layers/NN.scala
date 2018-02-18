@@ -64,6 +64,7 @@ case class LogSoftmax(override val name: String)
 case class Dropout(
     override val name: String,
     keepProbability: Float,
+    scaleOutput: Boolean = true,
     noiseShape: Shape = null,
     seed: Option[Int] = None
 ) extends Layer[Output, Output](name) {
@@ -73,7 +74,7 @@ case class Dropout(
     mode match {
       case TRAINING =>
         val noise = if (noiseShape == null) null else noiseShape.toOutput()
-        ops.NN.dropout(input, keepProbability, noise, seed, name)
+        ops.NN.dropout(input, keepProbability, scaleOutput, noise, seed, name)
       case _ => input
     }
   }
