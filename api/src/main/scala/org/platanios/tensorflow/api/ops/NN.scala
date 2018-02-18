@@ -1131,8 +1131,8 @@ object NN extends NN {
     }
   }
 
-  case object NWCFormat extends CNNDataFormat {override val name: String = "NWC"}
-  case object NCWFormat extends CNNDataFormat {override val name: String = "NCW"}
+  case object NWCFormat extends CNNDataFormat {override val name: String = "NHWC"}
+  case object NCWFormat extends CNNDataFormat {override val name: String = "NCHW"}
 
   private[ops] object Gradients {
     GradientsRegistry.register("BiasAdd", biasAddGradient)
