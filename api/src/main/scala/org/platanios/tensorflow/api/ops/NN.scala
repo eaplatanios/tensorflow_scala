@@ -563,6 +563,7 @@ private[api] trait NN {
     * @group NNOps
     * @param  input           Input tensor.
     * @param  keepProbability Probability (i.e., number in the interval `(0, 1]`) that each element is kept.
+    * @param  scaleOutput     If `true`, the outputs will be divided by the keep probability.
     * @param  noiseShape      [[INT32]] rank-1 tensor representing the shape for the randomly generated keep/drop flags.
     * @param  seed            Optional random seed, used to generate a random seed pair for the random number
     *                         generator, when combined with the graph-level seed.
@@ -570,14 +571,18 @@ private[api] trait NN {
     * @return Created op output that has the same shape as `input`.
     */
   def dropout(
-      input: Output, keepProbability: Float, noiseShape: Output = null, seed: Option[Int] = None,
+      input: Output,
+      keepProbability: Float,
+      scaleOutput: Boolean = true,
+      noiseShape: Output = null,
+      seed: Option[Int] = None,
       name: String = "Dropout"): Output = {
     require(keepProbability > 0.0 && keepProbability <= 1.0, s"'keepProbability' ($keepProbability) must be in (0, 1].")
     // Do nothing if we know that keepProbability == 1.
     if (keepProbability == 1.0) {
       input
     } else {
-      dynamicDropout(input, Basic.constant(keepProbability, input.dataType), noiseShape, seed, name)
+      dynamicDropout(input, Basic.constant(keepProbability, input.dataType), scaleOutput, noiseShape, seed, name)
     }
   }
 
@@ -586,6 +591,7 @@ private[api] trait NN {
     * @group NNOps
     * @param  input           Input tensor.
     * @param  keepProbability Probability (i.e., scalar in the interval `(0, 1]`) that each element is kept.
+    * @param  scaleOutput     If `true`, the outputs will be divided by the keep probability.
     * @param  noiseShape      [[INT32]] rank-1 tensor representing the shape for the randomly generated keep/drop flags.
     * @param  seed            Optional random seed, used to generate a random seed pair for the random number
     *                         generator, when combined with the graph-level seed.
@@ -593,8 +599,13 @@ private[api] trait NN {
     * @return Created op output that has the same shape as `input`.
     */
   def dynamicDropout(
-      input: Output, keepProbability: Output, noiseShape: Output = null, seed: Option[Int] = None,
-      name: String = "Dropout"): Output = {
+      input: Output,
+      keepProbability: Output,
+      scaleOutput: Boolean = true,
+      noiseShape: Output = null,
+      seed: Option[Int] = None,
+      name: String = "Dropout"
+  ): Output = {
     Op.createWithNameScope(name, Set(input.op)) {
       val inferredNoiseShape = if (noiseShape == null) Basic.shape(input) else noiseShape
       // Uniform random variable in [keepProbability, 1.0 + keepProbability).
@@ -603,7 +614,7 @@ private[api] trait NN {
         input.dataType, inferredNoiseShape, minValue = probability, maxValue = probability + 1.0, seed = seed)
       // 0.0 if in [keepProbability, 1.0) and 1.0 if [1.0, 1.0 + keepProbability).
       val binaryTensor = Math.floor(random)
-      val output = Math.divide(input, probability) * binaryTensor
+      val output = if (scaleOutput) Math.divide(input, probability) * binaryTensor else input * binaryTensor
       output.setShape(input.shape)
       output
     }
