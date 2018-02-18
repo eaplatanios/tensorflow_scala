@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.tensors.ops
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.ops.NN.{CNNDataFormat, NCHWFormat, NHWCFormat, PaddingMode}
+import org.platanios.tensorflow.api.ops.NN.{CNNDataFormat, NCWFormat, NWCFormat, PaddingMode}
 import org.platanios.tensorflow.api.tensors.{Context, Tensor, TensorOps}
 import org.platanios.tensorflow.api.types.{DataType, FLOAT16, FLOAT32, FLOAT64, INT32, INT64}
 import org.platanios.tensorflow.jni.generated.tensors.{NN => NativeTensorOpsNN}
@@ -39,9 +39,9 @@ private[api] trait NN {
     * @group NNOps
     * @param  value         Value tensor.
     * @param  bias          Bias tensor that must be one-dimensional (i.e., it must have rank 1).
-    * @param  cNNDataFormat Data format of the input and output tensors. With the default format [[NHWCFormat]], the
+    * @param  cNNDataFormat Data format of the input and output tensors. With the default format [[NWCFormat]], the
     *                       `bias` tensor will be added to the last dimension of the `value` tensor. Alternatively, the
-    *                       format could be [[NCHWFormat]], and the `bias` tensor would be added to the third-to-last
+    *                       format could be [[NCWFormat]], and the `bias` tensor would be added to the third-to-last
     *                       dimension.
     * @return Result as a new tensor.
     */
@@ -685,9 +685,9 @@ object NN extends NN {
       *
       * @group NNOps
       * @param  bias          Bias tensor that must be one-dimensional (i.e., it must have rank 1).
-      * @param  cNNDataFormat Data format of the input and output tensors. With the default format [[NHWCFormat]], the
+      * @param  cNNDataFormat Data format of the input and output tensors. With the default format [[NWCFormat]], the
       *                       `bias` tensor will be added to the last dimension of the `value` tensor. Alternatively, the
-      *                       format could be [[NCHWFormat]], and the `bias` tensor would be added to the third-to-last
+      *                       format could be [[NCWFormat]], and the `bias` tensor would be added to the third-to-last
       *                       dimension.
       * @return Result as a new tensor.
       */

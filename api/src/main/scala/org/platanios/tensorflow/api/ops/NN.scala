@@ -36,9 +36,9 @@ private[api] trait NN {
     * @group NNOps
     * @param  value         Value tensor.
     * @param  bias          Bias tensor that must be one-dimensional (i.e., it must have rank 1).
-    * @param  cNNDataFormat Data format of the input and output tensors. With the default format [[NHWCFormat]], the
+    * @param  cNNDataFormat Data format of the input and output tensors. With the default format [[NWCFormat]], the
     *                       `bias` tensor will be added to the last dimension of the `value` tensor. Alternatively, the
-    *                       format could be [[NCHWFormat]], and the `bias` tensor would be added to the third-to-last
+    *                       format could be [[NCWFormat]], and the `bias` tensor would be added to the third-to-last
     *                       dimension.
     * @param  name          Name for the created op.
     * @return Created op output.
@@ -843,9 +843,9 @@ object NN extends NN {
       *
       * @group NNOps
       * @param  bias          Bias tensor that must be one-dimensional (i.e., it must have rank 1).
-      * @param  cNNDataFormat Data format of the input and output tensors. With the default format [[NHWCFormat]], the
+      * @param  cNNDataFormat Data format of the input and output tensors. With the default format [[NWCFormat]], the
       *                       `bias` tensor will be added to the last dimension of the `value` tensor. Alternatively, the
-      *                       format could be [[NCHWFormat]], and the `bias` tensor would be added to the third-to-last
+      *                       format could be [[NCWFormat]], and the `bias` tensor would be added to the third-to-last
       *                       dimension.
       * @return Created op output.
       */
@@ -1107,20 +1107,20 @@ object NN extends NN {
   }
 
   object CNNDataFormat {
-    val default: CNNDataFormat = NHWCFormat
+    val default: CNNDataFormat = NWCFormat
 
     def fromName(name: String): CNNDataFormat = fromString(name)
 
     @throws[InvalidArgumentException]
     def fromString(name: String): CNNDataFormat = name match {
-      case NHWCFormat.name => NHWCFormat
-      case NCHWFormat.name => NCHWFormat
+      case NWCFormat.name => NWCFormat
+      case NCWFormat.name => NCWFormat
       case _ => throw InvalidArgumentException(s"Invalid convolution/pooling data format '$name' provided.")
     }
   }
 
-  case object NHWCFormat extends CNNDataFormat {override val name: String = "NHWC"}
-  case object NCHWFormat extends CNNDataFormat {override val name: String = "NCHW"}
+  case object NWCFormat extends CNNDataFormat {override val name: String = "NWC"}
+  case object NCWFormat extends CNNDataFormat {override val name: String = "NCW"}
 
   private[ops] object Gradients {
     GradientsRegistry.register("BiasAdd", biasAddGradient)
@@ -1733,7 +1733,7 @@ object NN extends NN {
     *        `[batch, outHeight, outWidth, filterHeight * filterWidth * inChannels]`.
     *     3. For each patch, right-multiplies the filter matrix and the image patch vector.
     *
-    *   For example, for the default [[NHWCFormat]]:
+    *   For example, for the default [[NWCFormat]]:
     *   {{{
     *     output(b,i,j,k) = sum_{di,dj,q} input(b, stride1 * i + di, stride2 * j + dj, q) * filter(di,dj,q,k).
     *   }}}
