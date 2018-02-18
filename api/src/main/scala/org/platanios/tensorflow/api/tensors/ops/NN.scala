@@ -479,12 +479,19 @@ private[api] trait NN {
     * @group NNOps
     * @param  input           Input tensor.
     * @param  keepProbability Probability (i.e., number in the interval `(0, 1]`) that each element is kept.
+    * @param  scaleOutput     If `true`, the outputs will be divided by the keep probability.
     * @param  noiseShape      [[INT32]] rank-1 tensor representing the shape for the randomly generated keep/drop flags.
     * @param  seed            Optional random seed, used to generate a random seed pair for the random number
     *                         generator, when combined with the graph-level seed.
     * @return Result as a new tensor that has the same shape as `input`.
     */
-  def dropout(input: Tensor, keepProbability: Float, noiseShape: Tensor = null, seed: Option[Int] = None): Tensor = {
+  def dropout(
+      input: Tensor,
+      keepProbability: Float,
+      scaleOutput: Boolean = true,
+      noiseShape: Tensor = null,
+      seed: Option[Int] = None
+  ): Tensor = {
     require(keepProbability > 0.0 && keepProbability <= 1.0, s"'keepProbability' ($keepProbability) must be in (0, 1].")
     // Do nothing if we know that keepProbability == 1.
     if (keepProbability == 1.0) {
@@ -496,7 +503,8 @@ private[api] trait NN {
       val random = Random.randomUniform(
         input.dataType, inferredNoiseShape, minValue = probability, maxValue = probability + 1.0, seed = seed)
       // 0.0 if in [keepProbability, 1.0) and 1.0 if [1.0, 1.0 + keepProbability).
-      Math.divide(input, probability) * Math.floor(random)
+      val binaryTensor = Math.floor(random)
+      if (scaleOutput) Math.divide(input, probability) * binaryTensor else input * binaryTensor
     }
   }
 
@@ -791,13 +799,19 @@ object NN extends NN {
       *
       * @group NNOps
       * @param  keepProbability Probability (i.e., number in the interval `(0, 1]`) that each element is kept.
+      * @param  scaleOutput     If `true`, the outputs will be divided by the keep probability.
       * @param  noiseShape      [[INT32]] rank-1 tensor representing the shape for the randomly generated keep/drop flags.
       * @param  seed            Optional random seed, used to generate a random seed pair for the random number
       *                         generator, when combined with the graph-level seed.
       * @return Result as a new tensor that has the same shape as `input`.
       */
-    def dropout(keepProbability: Float, noiseShape: Tensor = null, seed: Option[Int] = None): Tensor = {
-      NN.dropout(tensor, keepProbability, noiseShape, seed)
+    def dropout(
+        keepProbability: Float,
+        scaleOutput: Boolean = true,
+        noiseShape: Tensor = null,
+        seed: Option[Int] = None
+    ): Tensor = {
+      NN.dropout(tensor, keepProbability, scaleOutput, noiseShape, seed)
     }
 
     /** $OpDocNNTopK

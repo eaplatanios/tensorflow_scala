@@ -949,26 +949,38 @@ object NN extends NN {
       *
       * @group NNOps
       * @param  keepProbability Probability (i.e., number in the interval `(0, 1]`) that each element is kept.
+      * @param  scaleOutput     If `true`, the outputs will be divided by the keep probability.
       * @param  noiseShape      [[INT32]] rank-1 tensor representing the shape for the randomly generated keep/drop flags.
       * @param  seed            Optional random seed, used to generate a random seed pair for the random number
       *                         generator, when combined with the graph-level seed.
       * @return Created op output that has the same shape as `input`.
       */
-    def dropout(keepProbability: Float, noiseShape: Output = null, seed: Option[Int] = None): Output = {
-      NN.dropout(output, keepProbability, noiseShape, seed)
+    def dropout(
+        keepProbability: Float,
+        scaleOutput: Boolean = true,
+        noiseShape: Output = null,
+        seed: Option[Int] = None
+    ): Output = {
+      NN.dropout(output, keepProbability, scaleOutput, noiseShape, seed)
     }
 
     /** $OpDocNNDropout
       *
       * @group NNOps
       * @param  keepProbability Probability (i.e., number in the interval `(0, 1]`) that each element is kept.
+      * @param  scaleOutput     If `true`, the outputs will be divided by the keep probability.
       * @param  noiseShape      [[INT32]] rank-1 tensor representing the shape for the randomly generated keep/drop flags.
       * @param  seed            Optional random seed, used to generate a random seed pair for the random number
       *                         generator, when combined with the graph-level seed.
       * @return Created op output that has the same shape as `input`.
       */
-    def dynamicDropout(keepProbability: Output, noiseShape: Output = null, seed: Option[Int] = None): Output = {
-      NN.dynamicDropout(output, keepProbability, noiseShape, seed)
+    def dynamicDropout(
+        keepProbability: Output,
+        scaleOutput: Boolean = true,
+        noiseShape: Output = null,
+        seed: Option[Int] = None
+    ): Output = {
+      NN.dynamicDropout(output, keepProbability, scaleOutput, noiseShape, seed)
     }
 
     /** $OpDocNNTopK
