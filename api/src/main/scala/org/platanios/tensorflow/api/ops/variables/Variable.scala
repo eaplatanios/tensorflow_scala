@@ -29,6 +29,7 @@ import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerial
 
 import org.tensorflow.framework.{SaveSliceInfoDef, VariableDef}
 
+import scala.collection.mutable
 import scala.language.postfixOps
 import scala.util.DynamicVariable
 
@@ -490,7 +491,9 @@ private[api] object Variable {
             initializer(inferredDataType, inferredShape, null)
           }
         }
-        val initializeOp = assign(variableHandle, initialValue, name = "InitializationAssign")
+        val initializeOp = assign(
+          variableHandle,
+          tryGuardAgainstUninitializedDependencies(name, initialValue), name = "InitializationAssign")
         val cachedValue = Op.createWith(nameScope = "Read") {
           Op.colocateWith(Set(variableHandle.op)) {
             val cachedValueOp = {
@@ -715,6 +718,118 @@ private[api] object Variable {
         Basic.booleanMask(variableNames, variablesMask)
       }
     }
+  }
+
+  /** Attempts to guard against dependencies on uninitialized variables.
+    *
+    * This method replaces references to variables in `initialValue` with references to the variable's initialized
+    * values. The initialized values are essentially conditional TensorFlow graphs that return a variable's value if it
+    * is initialized, or its `initialValue` if it hasn't been initialized. This replacement is done on a best effort
+    * basis:
+    *
+    *   - If the `initialValue` graph contains cycles, we do not do any replacements for that graph.
+    *   - If the variables that `initialValue` depends on are not present in the global/local variable collections, we
+    *     do not replace them.
+    *
+    * In this cases, it is up to the caller to ensure that the `initialValue` graph uses initialized variables or that
+    * they guard access to variables using their `initializedValue` method.
+    *
+    * @param  variableName Variable name.
+    * @param  initialValue Initial value for the variable.
+    * @return Initial value to use, with some of its dependencies potentially replaced.
+    */
+  private[Variable] def tryGuardAgainstUninitializedDependencies(variableName: String, initialValue: Output): Output = {
+    /** Detects cycles in the dependencies of `initialValue`. */
+    def hasCycle(op: Op, path: mutable.Set[String]): Boolean = {
+      path.contains(op.name) || {
+        path.add(op.name)
+        op.inputs.exists(i => hasCycle(i.op, path))
+      } || {
+        val exists = op.controlInputs.exists(i => hasCycle(i.op, path))
+        if (!exists)
+          path.remove(op.name)
+        exists
+      }
+    }
+
+    // Do not modify the initial value if it contains any cyclic dependencies.
+    if (hasCycle(initialValue.op, mutable.Set.empty[String]))
+      initialValue
+    else
+      safeInitialValueFromOutput(variableName, initialValue, mutable.Map.empty[String, Op])
+  }
+
+  /** Replaces dependencies on variables with their initialized values.
+    *
+    * @param  initialValue Initial value to replace.
+    * @param  opCache      Map used to memoize the results so as to avoid creating redundant operations.
+    * @return Output compatible with `output`. Any inputs that lead to variable values will be replaced with a
+    *         corresponding graph that uses the variable's initialized values. This is done on a best-effort basis. If
+    *         no modifications need to be made then `output` will be returned unchanged.
+    */
+  private[Variable] def safeInitialValueFromOutput(
+      variableName: String,
+      initialValue: Output,
+      opCache: mutable.Map[String, Op]
+  ): Output = {
+    val newOp = opCache.get(initialValue.op.name) match {
+      case Some(op) => op
+      case None =>
+        val op = {
+          val opType = initialValue.op.opType
+          if (opType == "IsVariableInitialized" || opType == "VarIsInitializedOp" || opType == "ReadVariableOp") {
+            initialValue.op
+          } else if (opType == "Variable" || opType == "VariableV2" || opType == "VarHandleOp") {
+            // TODO: Fix handling of resource variables.
+            // Attempt to find the initialized_value of any variable handles.
+            findInitializedValueForVariable(initialValue.op) match {
+              case Some(initializedValue) => initializedValue.op
+              case None => initialValue.op
+            }
+          } else {
+            // Recursively build initializer expressions for the inputs.
+            var modified = false
+            val newOpInputs = initialValue.op.inputs.map(opInput => {
+              val newOpInput = safeInitialValueFromOutput(variableName, opInput, opCache)
+              modified ||= newOpInput != opInput
+              newOpInput
+            })
+
+            // If at least one input was modified, replace the op.
+            if (modified) {
+              val newOpType = if (opType != "RefSwitch") opType else "Switch"
+              val newOpName = s"${initialValue.op.name}_$variableName".replace(":", "_")
+              val opBuilder = Op.Builder(newOpType, newOpName)
+              newOpInputs.foreach(opBuilder.addInput)
+              // TODO: Find a way to create an op replica here (setting the attributes is the current issue).
+              // Python API version:
+              // return self.graph.create_op(
+              //   new_op_type, new_op_inputs,
+              //   op._output_types,  # pylint: disable=protected-access
+              //   name=new_op_name, attrs=op.node_def.attr)
+              initialValue.op
+            } else {
+              initialValue.op
+            }
+          }
+        }
+        opCache.update(initialValue.op.name, op)
+        op
+    }
+    newOp.outputs(initialValue.index)
+  }
+
+  /** Finds the initialized value for a variable op, if an initialized value exists.
+    *
+    * To do so, this method looks up the variable op in the graph global and local variables collections.
+    *
+    * @param  variableOp Variable op.
+    * @return Option containing the initialized value for the variable, or `None`, if no such value could be found.
+    */
+  private[Variable] def findInitializedValueForVariable(variableOp: Op): Option[Output] = {
+    val variables = variableOp.graph.getCollection(Graph.Keys.GLOBAL_VARIABLES) ++
+        variableOp.graph.getCollection(Graph.Keys.LOCAL_VARIABLES)
+    variables.find(v => v.name == variableOp.name || v.name == variableOp.outputs.head.name).map(_.initializedValue)
   }
 
   /** Creates an op that holds a handle to a variable resource.
