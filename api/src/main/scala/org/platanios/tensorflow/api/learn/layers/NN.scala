@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.learn.layers
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.learn.{Mode, TRAINING, layers}
 import org.platanios.tensorflow.api.ops
-import org.platanios.tensorflow.api.ops.NN.{CNNDataFormat, PaddingMode}
+import org.platanios.tensorflow.api.ops.NN.{CNNDataFormat, ConvPaddingMode}
 import org.platanios.tensorflow.api.ops.Output
 import org.platanios.tensorflow.api.ops.variables.{Initializer, RandomNormalInitializer}
 
@@ -85,7 +85,7 @@ case class Conv2D(
     filterShape: Shape,
     stride1: Long,
     stride2: Long,
-    padding: PaddingMode,
+    padding: ConvPaddingMode,
     dataFormat: CNNDataFormat = CNNDataFormat.default,
     useCuDNNOnGPU: Boolean = true,
     weightsInitializer: Initializer = RandomNormalInitializer()
@@ -103,7 +103,7 @@ case class MaxPool(
     windowSize: Seq[Long],
     stride1: Long,
     stride2: Long,
-    padding: PaddingMode,
+    padding: ConvPaddingMode,
     dataFormat: CNNDataFormat = CNNDataFormat.default
 ) extends Layer[Output, Output](name) {
   override val layerType: String = s"MaxPool[${windowSize.mkString(",")}]"

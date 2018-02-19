@@ -674,7 +674,7 @@ private[api] trait NN {
     * @return Created op output, which is a 4-D tensor whose dimension order depends on the value of `dataFormat`.
     */
   def conv2D(
-      input: Output, filter: Output, stride1: Long, stride2: Long, padding: PaddingMode,
+      input: Output, filter: Output, stride1: Long, stride2: Long, padding: ConvPaddingMode,
       dataFormat: CNNDataFormat = CNNDataFormat.default, useCuDNNOnGPU: Boolean = true,
       name: String = "Conv2D"): Output = {
     Op.Builder(opType = "Conv2D", name = name)
@@ -704,7 +704,7 @@ private[api] trait NN {
     */
   def conv2DBackpropInput(
       inputSizes: Output, filter: Output, outputGradient: Output, stride1: Long, stride2: Long,
-      padding: PaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default, useCuDNNOnGPU: Boolean = true,
+      padding: ConvPaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default, useCuDNNOnGPU: Boolean = true,
       name: String = "Conv2DBackpropInput"): Output = {
     Op.Builder(opType = "Conv2DBackpropInput", name = name)
         .addInput(inputSizes)
@@ -734,7 +734,7 @@ private[api] trait NN {
     */
   def conv2DBackpropFilter(
       input: Output, filterSizes: Output, outputGradient: Output, stride1: Long, stride2: Long,
-      padding: PaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default, useCuDNNOnGPU: Boolean = true,
+      padding: ConvPaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default, useCuDNNOnGPU: Boolean = true,
       name: String = "Conv2DBackpropFilter"): Output = {
     Op.Builder(opType = "Conv2DBackpropFilter", name = name)
         .addInput(input)
@@ -763,7 +763,7 @@ private[api] trait NN {
     * @return Created op output, which is a 4-D tensor whose dimension order depends on the value of `dataFormat`.
     */
   def maxPool(
-      input: Output, windowSize: Seq[Long], stride1: Long, stride2: Long, padding: PaddingMode,
+      input: Output, windowSize: Seq[Long], stride1: Long, stride2: Long, padding: ConvPaddingMode,
       dataFormat: CNNDataFormat = CNNDataFormat.default, name: String = "MaxPool"): Output = {
     Op.Builder(opType = "MaxPool", name = name)
         .addInput(input)
@@ -790,7 +790,7 @@ private[api] trait NN {
     */
   def maxPoolGrad(
       originalInput: Output, originalOutput: Output, outputGradient: Output, windowSize: Seq[Long],
-      stride1: Long, stride2: Long, padding: PaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default,
+      stride1: Long, stride2: Long, padding: ConvPaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default,
       name: String = "MaxPoolGrad"): Output = {
     Op.Builder(opType = "MaxPoolGrad", name = name)
         .addInput(originalInput)
@@ -819,7 +819,7 @@ private[api] trait NN {
     */
   def maxPoolGradGrad(
       originalInput: Output, originalOutput: Output, outputGradient: Output, windowSize: Seq[Long],
-      stride1: Long, stride2: Long, padding: PaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default,
+      stride1: Long, stride2: Long, padding: ConvPaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default,
       name: String = "MaxPoolGradGrad"): Output = {
     Op.Builder(opType = "MaxPoolGradGrad", name = name)
         .addInput(originalInput)
@@ -1018,7 +1018,7 @@ object NN extends NN {
       * @return Created op output, which is a 4-D tensor whose dimension order depends on the value of `dataFormat`.
       */
     def conv2D(
-        filter: Output, stride1: Long, stride2: Long, padding: PaddingMode,
+        filter: Output, stride1: Long, stride2: Long, padding: ConvPaddingMode,
         dataFormat: CNNDataFormat = CNNDataFormat.default, useCuDNNOnGPU: Boolean = true,
         name: String = "Conv2D"): Output = {
       NN.conv2D(output, filter, stride1, stride2, padding, dataFormat, useCuDNNOnGPU, name)
@@ -1039,7 +1039,7 @@ object NN extends NN {
       * @return Created op output, which is a 4-D tensor whose dimension order depends on the value of `dataFormat`.
       */
     def maxPool(
-        windowSize: Seq[Long], stride1: Long, stride2: Long, padding: PaddingMode,
+        windowSize: Seq[Long], stride1: Long, stride2: Long, padding: ConvPaddingMode,
         dataFormat: CNNDataFormat = CNNDataFormat.default, name: String = "MaxPool"): Output = {
       NN.maxPool(output, windowSize, stride1, stride2, padding, dataFormat, name)
     }
@@ -1094,24 +1094,24 @@ object NN extends NN {
   }
 
   /** Padding mode. */
-  sealed trait PaddingMode {
+  sealed trait ConvPaddingMode {
     val name: String
     override def toString: String = name
   }
 
-  object PaddingMode {
-    def fromName(name: String): PaddingMode = fromString(name)
+  object ConvPaddingMode {
+    def fromName(name: String): ConvPaddingMode = fromString(name)
 
     @throws[InvalidArgumentException]
-    def fromString(name: String): PaddingMode = name match {
-      case SamePadding.name => SamePadding
-      case ValidPadding.name => ValidPadding
+    def fromString(name: String): ConvPaddingMode = name match {
+      case SameConvPadding.name => SameConvPadding
+      case ValidConvPadding.name => ValidConvPadding
       case _ => throw InvalidArgumentException(s"Invalid convolution/pooling padding mode '$name' provided.")
     }
   }
 
-  case object SamePadding extends PaddingMode {override val name: String = "SAME"}
-  case object ValidPadding extends PaddingMode {override val name: String = "VALID"}
+  case object SameConvPadding extends ConvPaddingMode { override val name: String = "SAME" }
+  case object ValidConvPadding extends ConvPaddingMode { override val name: String = "VALID" }
 
   sealed trait CNNDataFormat {
     val name: String
@@ -1447,7 +1447,7 @@ object NN extends NN {
   private[this] def conv2DGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
     val outputGradient = outputGradients.head.toOutput
     val strides = op.longArrayAttribute("strides")
-    val padding = PaddingMode.fromName(op.stringAttribute("padding"))
+    val padding = ConvPaddingMode.fromName(op.stringAttribute("padding"))
     val dataFormat = CNNDataFormat.fromName(op.stringAttribute("data_format"))
     val useCuDNNOnGPU = op.booleanAttribute("use_cudnn_on_gpu")
     val inputShapes = Basic.shapeN(Seq(op.inputs(0), op.inputs(1)))
@@ -1464,7 +1464,7 @@ object NN extends NN {
     val outputGradient = outputGradients.head.toOutput
     val windowSizes = op.longArrayAttribute("ksize")
     val strides = op.longArrayAttribute("strides")
-    val padding = PaddingMode.fromName(op.stringAttribute("padding"))
+    val padding = ConvPaddingMode.fromName(op.stringAttribute("padding"))
     val dataFormat = CNNDataFormat.fromName(op.stringAttribute("data_format"))
     Seq(
       NN.maxPoolGrad(
@@ -1476,7 +1476,7 @@ object NN extends NN {
     val outputGradient = outputGradients.head.toOutput
     val windowSizes = op.longArrayAttribute("ksize")
     val strides = op.longArrayAttribute("strides")
-    val padding = PaddingMode.fromName(op.stringAttribute("padding"))
+    val padding = ConvPaddingMode.fromName(op.stringAttribute("padding"))
     val dataFormat = CNNDataFormat.fromName(op.stringAttribute("data_format"))
     Seq(
       Basic.zerosLike(op.inputs(0)),
@@ -1490,7 +1490,7 @@ object NN extends NN {
     val outputGradient = outputGradients.head.toOutput
     val windowSizes = op.longArrayAttribute("ksize")
     val strides = op.longArrayAttribute("strides")
-    val padding = PaddingMode.fromName(op.stringAttribute("padding"))
+    val padding = ConvPaddingMode.fromName(op.stringAttribute("padding"))
     val dataFormat = CNNDataFormat.fromName(op.stringAttribute("data_format"))
     Seq(
       Basic.zerosLike(op.inputs(0)),

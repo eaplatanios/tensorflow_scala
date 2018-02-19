@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.examples
 
 import org.platanios.tensorflow.api._
-import org.platanios.tensorflow.api.ops.NN.SamePadding
+import org.platanios.tensorflow.api.ops.NN.SameConvPadding
 import org.platanios.tensorflow.data.image.STL10Loader
 
 import com.typesafe.scalalogging.Logger
@@ -45,14 +45,14 @@ object STL10 {
     val input = tf.learn.Input(UINT8, Shape(-1, dataSet.trainImages.shape(1), dataSet.trainImages.shape(2), dataSet.trainImages.shape(3)))
     val trainInput = tf.learn.Input(UINT8, Shape(-1))
     val layer = tf.learn.Cast("Input/Cast", FLOAT32) >>
-        tf.learn.Conv2D("Layer_0/Conv2D", Shape(5, 5, 3, 32), 1, 1, SamePadding) >>
+        tf.learn.Conv2D("Layer_0/Conv2D", Shape(5, 5, 3, 32), 1, 1, SameConvPadding) >>
         tf.learn.AddBias("Layer_0/Bias") >>
         tf.learn.ReLU("Layer_0/ReLU", 0.1f) >>
-        tf.learn.MaxPool("Layer_0/MaxPool", Seq(1, 2, 2, 1), 1, 1, SamePadding) >>
-        tf.learn.Conv2D("Layer_1/Conv2D", Shape(5, 5, 32, 64), 1, 1, SamePadding) >>
+        tf.learn.MaxPool("Layer_0/MaxPool", Seq(1, 2, 2, 1), 1, 1, SameConvPadding) >>
+        tf.learn.Conv2D("Layer_1/Conv2D", Shape(5, 5, 32, 64), 1, 1, SameConvPadding) >>
         tf.learn.AddBias("Bias_1") >>
         tf.learn.ReLU("Layer_1/ReLU", 0.1f) >>
-        tf.learn.MaxPool("Layer_1/MaxPool", Seq(1, 2, 2, 1), 1, 1, SamePadding) >>
+        tf.learn.MaxPool("Layer_1/MaxPool", Seq(1, 2, 2, 1), 1, 1, SameConvPadding) >>
         tf.learn.Flatten("Layer_2/Flatten") >>
         tf.learn.Linear("Layer_2/Linear", 256) >> tf.learn.ReLU("Layer_2/ReLU", 0.1f) >>
         tf.learn.Linear("OutputLayer/Linear", 10)

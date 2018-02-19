@@ -1174,10 +1174,7 @@ private[api] trait Basic {
       // into INT32, then so do the elements of 'lengths'.
       val matrix = Math.cast(expandDims(lengths, 1), maxLen.dataType)
       val result = Math.less(rowVector, matrix)
-      if (result.dataType == dataType)
-        result
-      else
-        Math.cast(result, dataType)
+      Math.cast(result, dataType)
     }
   }
 
