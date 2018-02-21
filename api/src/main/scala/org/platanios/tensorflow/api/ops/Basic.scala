@@ -648,7 +648,7 @@ private[api] trait Basic {
 
   private[ops] object PaddingMode {
     def fromString(name: String): PaddingMode = name match {
-      case "CONSTANT" => ConstantPadding
+      case "CONSTANT" => ConstantPadding(0)
       case "REFLECT" => ReflectivePadding
       case "SYMMETRIC" => SymmetricPadding
       case _ => throw new IllegalArgumentException(s"Invalid padding mode '$name' provided.")
@@ -676,11 +676,12 @@ private[api] trait Basic {
     *      [0, 0, 0, 0, 0, 0, 0]]
     * }}}
     */
-  object ConstantPadding extends PaddingMode {
+  case class ConstantPadding(value: Output = 0) extends PaddingMode {
     override def pad(input: Output, paddings: Output, name: String): Output = {
-      Op.Builder(opType = "Pad", name = name)
+      Op.Builder(opType = "PadV2", name = name)
           .addInput(input)
           .addInput(paddings)
+          .addInput(value)
           .build().outputs(0)
     }
 
@@ -2062,6 +2063,7 @@ object Basic extends Basic {
     GradientsRegistry.register("SplitV", splitGradient)
     GradientsRegistry.register("Tile", tileGradient)
     GradientsRegistry.register("Pad", padGradient)
+    GradientsRegistry.register("PadV2", padGradient)
     GradientsRegistry.register("MirrorPad", mirrorPadGradient)
     GradientsRegistry.register("MirrorPadGrad", mirrorPadHessian)
     GradientsRegistry.register("Reshape", reshapeGradient)
@@ -2244,7 +2246,7 @@ object Basic extends Basic {
       // Take a slice of 'a' (the 1st column: [rank(x), 1]).
       val padBefore = slice(a, Tensor(0, 0), stack(Seq(rank(x), 1)))
       // Make it a one-dimensional tensor and return it.
-      Seq(slice(outputGradients.head, reshape(padBefore, -1), shape(x)), null)
+      Seq(slice(outputGradients.head, reshape(padBefore, Shape(-1)), shape(x)), null)
     }
 
     private[this] def mirrorPadGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
