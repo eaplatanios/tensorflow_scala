@@ -2254,7 +2254,11 @@ object Basic extends Basic {
       // Take a slice of 'a' (the 1st column: [rank(x), 1]).
       val padBefore = slice(a, Tensor(0, 0), stack(Seq(rank(x), 1)))
       // Make it a one-dimensional tensor and return it.
-      Seq(slice(outputGradients.head, reshape(padBefore, Shape(-1)), shape(x)), null)
+      val xGradient = slice(outputGradients.head, reshape(padBefore, Shape(-1)), shape(x))
+      if (op.inputs.length == 3)
+        Seq(xGradient, null, null)
+      else
+        Seq(xGradient, null)
     }
 
     private[this] def mirrorPadGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
