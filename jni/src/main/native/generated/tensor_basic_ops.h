@@ -145,6 +145,14 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basi
 
 /*
  * Class:     org_platanios_tensorflow_jni_generated_tensors_Basic__
+ * Method:    padV2
+ * Signature: (JJJJ)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basic_00024_padV2
+  (JNIEnv *, jobject, jlong, jlong, jlong, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_Basic__
  * Method:    mirrorPad
  * Signature: (JJJ[B)J
  */

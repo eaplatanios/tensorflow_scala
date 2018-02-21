@@ -622,6 +622,57 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basi
   return reinterpret_cast<jlong>(outputs[0]);
 }
 
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basic_00024_padV2(
+    JNIEnv* env, jobject object, jlong context_handle, jlong input, jlong paddings, jlong constant_values) {
+  REQUIRE_HANDLE(context, TFE_Context, context_handle, 0);
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+
+  std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
+      TFE_NewOp(context, "PadV2", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
+  TFE_OpAddInput(op.get(), input_handle, status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(paddings_handle, TFE_TensorHandle, paddings, 0);
+  TFE_OpAddInput(op.get(), paddings_handle, status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(constant_values_handle, TFE_TensorHandle, constant_values, 0);
+  TFE_OpAddInput(op.get(), constant_values_handle, status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(attr_Tpaddings_paddings_handle, TFE_TensorHandle, paddings, 0);
+  const TF_DataType attr_Tpaddings = TFE_TensorHandleDataType(attr_Tpaddings_paddings_handle);
+  TFE_OpSetAttrType(op.get(), "Tpaddings", attr_Tpaddings);
+
+  REQUIRE_HANDLE(attr_T_input_handle, TFE_TensorHandle, input, 0);
+  const TF_DataType attr_T = TFE_TensorHandleDataType(attr_T_input_handle);
+  TFE_OpSetAttrType(op.get(), "T", attr_T);
+
+  REQUIRE_HANDLE(attr_T_constant_values_handle, TFE_TensorHandle, constant_values, 0);
+  const TF_DataType attr_T_constant_values = TFE_TensorHandleDataType(attr_T_constant_values_handle);
+  if (attr_T != attr_T_constant_values) {
+      std::stringstream error_msg;
+      error_msg
+          << "Argument 'constant_values' of 'padV2' op with data type '"
+          << attr_T_constant_values
+          << "' must match data type '"
+          << attr_T
+          << "' of argument 'input'";
+      throw_exception(env, tf_invalid_argument_exception, error_msg.str().c_str());
+  }
+
+  const int num_outputs = 1;
+  std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
+  TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  return reinterpret_cast<jlong>(outputs[0]);
+}
+
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basic_00024_mirrorPad(
     JNIEnv* env, jobject object, jlong context_handle, jlong input, jlong paddings, jbyteArray mode) {
   REQUIRE_HANDLE(context, TFE_Context, context_handle, 0);

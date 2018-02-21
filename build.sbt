@@ -134,11 +134,11 @@ lazy val jni = (project in file("./jni"))
       ops in generateTensorOps := Map(
         "Basic" -> Seq(
           "ZerosLike", "OnesLike", "Fill", "Rank", "Size", "Shape", "ExpandDims", "Squeeze", "Pack", "ParallelConcat",
-          "Unpack", "ConcatV2", "ConcatOffset", "Split", "SplitV", "Tile", "Pad", "MirrorPad", "Reshape", "Transpose",
-          "ConjugateTranspose", "InvertPermutation", "ReverseV2", "ReverseSequence", "SpaceToBatchND", "BatchToSpaceND",
-          "SpaceToDepth", "DepthToSpace", "Where", "Unique", "UniqueWithCounts", "ListDiff", "GatherV2", "GatherNd",
-          "ScatterNd", "Slice", "StridedSlice", "CheckNumerics", "EditDistance", "OneHot", "BroadcastArgs",
-          "StopGradient", "PreventGradient", "Identity", "IdentityN", "ScatterNdNonAliasingAdd",
+          "Unpack", "ConcatV2", "ConcatOffset", "Split", "SplitV", "Tile", "Pad", "PadV2", "MirrorPad", "Reshape",
+          "Transpose", "ConjugateTranspose", "InvertPermutation", "ReverseV2", "ReverseSequence", "SpaceToBatchND",
+          "BatchToSpaceND", "SpaceToDepth", "DepthToSpace", "Where", "Unique", "UniqueWithCounts", "ListDiff",
+          "GatherV2", "GatherNd", "ScatterNd", "Slice", "StridedSlice", "CheckNumerics", "EditDistance", "OneHot",
+          "BroadcastArgs", "StopGradient", "PreventGradient", "Identity", "IdentityN", "ScatterNdNonAliasingAdd",
           "QuantizeAndDequantizeV3", "QuantizeV2", "Dequantize", "QuantizedConcat", "QuantizedReshape",
           "QuantizedInstanceNorm", "FakeQuantWithMinMaxArgs", "FakeQuantWithMinMaxVars",
           "FakeQuantWithMinMaxVarsPerChannel"),

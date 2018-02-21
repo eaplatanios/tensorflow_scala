@@ -676,18 +676,20 @@ private[api] trait Basic {
     *      [0, 0, 0, 0, 0, 0, 0]]
     * }}}
     */
-  case class ConstantPadding(value: Output = 0) extends PaddingMode {
+  case class ConstantPadding(value: Tensor = 0) extends PaddingMode {
     override def pad(input: Output, paddings: Output, name: String): Output = {
       Op.Builder(opType = "PadV2", name = name)
           .addInput(input)
           .addInput(paddings)
-          .addInput(value)
+          .addInput(value.cast(input.dataType))
           .build().outputs(0)
     }
 
     override def pad(input: Tensor, paddings: Tensor)(implicit context: DynamicVariable[Context]): Tensor = {
       Tensor.fromNativeHandle(
-        NativeTensorOpsBasic.pad(context.value.nativeHandle, input.nativeHandle, paddings.nativeHandle))
+        NativeTensorOpsBasic.padV2(
+          context.value.nativeHandle, input.nativeHandle, paddings.nativeHandle,
+          value.cast(input.dataType).nativeHandle))
     }
   }
 

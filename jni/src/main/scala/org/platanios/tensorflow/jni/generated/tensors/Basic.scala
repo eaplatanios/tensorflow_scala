@@ -39,6 +39,7 @@ object Basic {
   @native def splitV(contextHandle: Long, value: Long, size_splits: Long, split_dim: Long, num_split: Long): Array[Long]
   @native def tile(contextHandle: Long, input: Long, multiples: Long): Long
   @native def pad(contextHandle: Long, input: Long, paddings: Long): Long
+  @native def padV2(contextHandle: Long, input: Long, paddings: Long, constant_values: Long): Long
   @native def mirrorPad(contextHandle: Long, input: Long, paddings: Long, mode: Array[Byte]): Long
   @native def reshape(contextHandle: Long, tensor: Long, shape: Long): Long
   @native def transpose(contextHandle: Long, x: Long, perm: Long): Long
