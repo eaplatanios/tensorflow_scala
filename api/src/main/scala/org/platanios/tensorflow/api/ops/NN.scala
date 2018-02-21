@@ -660,6 +660,47 @@ private[api] trait NN {
 
   //region Convolution Ops
 
+  /** Padding mode. */
+  sealed trait ConvPaddingMode {
+    val name: String
+    override def toString: String = name
+  }
+
+  object ConvPaddingMode {
+    def fromName(name: String): ConvPaddingMode = fromString(name)
+
+    @throws[InvalidArgumentException]
+    def fromString(name: String): ConvPaddingMode = name match {
+      case SameConvPadding.name => SameConvPadding
+      case ValidConvPadding.name => ValidConvPadding
+      case _ => throw InvalidArgumentException(s"Invalid convolution/pooling padding mode '$name' provided.")
+    }
+  }
+
+  case object SameConvPadding extends ConvPaddingMode { override val name: String = "SAME" }
+  case object ValidConvPadding extends ConvPaddingMode { override val name: String = "VALID" }
+
+  sealed trait CNNDataFormat {
+    val name: String
+    override def toString: String = name
+  }
+
+  object CNNDataFormat {
+    val default: CNNDataFormat = NWCFormat
+
+    def fromName(name: String): CNNDataFormat = fromString(name)
+
+    @throws[InvalidArgumentException]
+    def fromString(name: String): CNNDataFormat = name match {
+      case NWCFormat.name => NWCFormat
+      case NCWFormat.name => NCWFormat
+      case _ => throw InvalidArgumentException(s"Invalid convolution/pooling data format '$name' provided.")
+    }
+  }
+
+  case object NWCFormat extends CNNDataFormat { override val name: String = "NHWC" }
+  case object NCWFormat extends CNNDataFormat { override val name: String = "NCHW" }
+
   /** $OpDocConv2D
     *
     * @param  input         4-D tensor whose dimension order is interpreted according to the value of `dataFormat`.
@@ -1092,47 +1133,6 @@ object NN extends NN {
         name)
     }
   }
-
-  /** Padding mode. */
-  sealed trait ConvPaddingMode {
-    val name: String
-    override def toString: String = name
-  }
-
-  object ConvPaddingMode {
-    def fromName(name: String): ConvPaddingMode = fromString(name)
-
-    @throws[InvalidArgumentException]
-    def fromString(name: String): ConvPaddingMode = name match {
-      case SameConvPadding.name => SameConvPadding
-      case ValidConvPadding.name => ValidConvPadding
-      case _ => throw InvalidArgumentException(s"Invalid convolution/pooling padding mode '$name' provided.")
-    }
-  }
-
-  case object SameConvPadding extends ConvPaddingMode { override val name: String = "SAME" }
-  case object ValidConvPadding extends ConvPaddingMode { override val name: String = "VALID" }
-
-  sealed trait CNNDataFormat {
-    val name: String
-    override def toString: String = name
-  }
-
-  object CNNDataFormat {
-    val default: CNNDataFormat = NWCFormat
-
-    def fromName(name: String): CNNDataFormat = fromString(name)
-
-    @throws[InvalidArgumentException]
-    def fromString(name: String): CNNDataFormat = name match {
-      case NWCFormat.name => NWCFormat
-      case NCWFormat.name => NCWFormat
-      case _ => throw InvalidArgumentException(s"Invalid convolution/pooling data format '$name' provided.")
-    }
-  }
-
-  case object NWCFormat extends CNNDataFormat {override val name: String = "NHWC"}
-  case object NCWFormat extends CNNDataFormat {override val name: String = "NCHW"}
 
   private[ops] object Gradients {
     GradientsRegistry.register("BiasAdd", biasAddGradient)
