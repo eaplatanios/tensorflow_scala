@@ -550,10 +550,15 @@ private[api] trait Basic {
     *                   in `lengths`.
     * @param  dataType  Data type for the output tensor.
     * @return Result as a new tensor.
+    * @throws IllegalArgumentException If `maxLength` is not a scalar.
     */
+  @throws[IllegalArgumentException]
   def sequenceMask(
-      lengths: Tensor, maxLength: Tensor = null, dataType: DataType = BOOLEAN)(
-      implicit context: DynamicVariable[Context]): Tensor = {
+      lengths: Tensor,
+      maxLength: Tensor = null,
+      dataType: DataType = BOOLEAN
+  )(implicit context: DynamicVariable[Context]): Tensor = {
+    require(maxLength == null || maxLength.rank == -1 || maxLength.rank == 0, "'maxLength' must be a scalar.")
     val maxLen = if (maxLength != null) maxLength else Math.max(lengths)
     // The basic idea is to compare a range row vector of size 'maxLen', [0, 1, 2, 3, 4], to 'lengths' as a matrix
     // with one column, [[1], [3], [2]]. Because of broadcasting on both arguments, this comparison results in a

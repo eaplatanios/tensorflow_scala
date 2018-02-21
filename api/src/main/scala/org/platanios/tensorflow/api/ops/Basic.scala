@@ -1162,10 +1162,16 @@ private[api] trait Basic {
     * @param  dataType  Data type for the output tensor.
     * @param  name      Name for the created op.
     * @return Created op output.
+    * @throws IllegalArgumentException If `maxLength` is not a scalar.
     */
+  @throws[IllegalArgumentException]
   def sequenceMask(
-      lengths: Output, maxLength: Output = null, dataType: DataType = BOOLEAN,
-      name: String = "SequenceMask"): Output = {
+      lengths: Output,
+      maxLength: Output = null,
+      dataType: DataType = BOOLEAN,
+      name: String = "SequenceMask"
+  ): Output = {
+    require(maxLength == null || maxLength.rank == -1 || maxLength.rank == 0, "'maxLength' must be a scalar.")
     val ops = if (maxLength == null) Set(lengths.op) else Set(lengths.op, maxLength.op)
     Op.createWithNameScope(name, ops) {
       val maxLen = if (maxLength != null) maxLength else Math.max(lengths)
