@@ -669,7 +669,7 @@ private[api] trait Basic {
     * {{{
     *   // 'input' = [[1, 2, 3], [4, 5, 6]]
     *   // 'paddings' = [[1, 1], [2, 2]]
-    *   tf.pad(input, paddings, tf.ConstantPadding) ==>
+    *   tf.pad(input, paddings, tf.ConstantPadding(0)) ==>
     *     [[0, 0, 0, 0, 0, 0, 0],
     *      [0, 0, 1, 2, 3, 0, 0],
     *      [0, 0, 4, 5, 6, 0, 0],
@@ -777,7 +777,7 @@ private[api] trait Basic {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def pad(input: Output, paddings: Output, mode: PaddingMode = ConstantPadding, name: String = "Pad"): Output = {
+  def pad(input: Output, paddings: Output, mode: PaddingMode = ConstantPadding(0), name: String = "Pad"): Output = {
     mode.pad(input, paddings, name)
   }
 
@@ -1718,7 +1718,7 @@ object Basic extends Basic {
       * @param  mode     Padding mode to use.
       * @return Result as a new tensor.
       */
-    def pad(paddings: Output, mode: PaddingMode = ConstantPadding): Output = Basic.pad(output, paddings, mode)
+    def pad(paddings: Output, mode: PaddingMode = ConstantPadding(0)): Output = Basic.pad(output, paddings, mode)
 
     /** $OpDocBasicReshape
       *
@@ -2787,7 +2787,7 @@ object Basic extends Basic {
     *     // 'input' = [[1, 2, 3], [4, 5, 6]]
     *     // 'paddings' = [[1, 1], [2, 2]]
     *
-    *     pad(input, paddings, ConstantPadding) ==>
+    *     pad(input, paddings, ConstantPadding(0)) ==>
     *       [[0, 0, 0, 0, 0, 0, 0],
     *        [0, 0, 1, 2, 3, 0, 0],
     *        [0, 0, 4, 5, 6, 0, 0],

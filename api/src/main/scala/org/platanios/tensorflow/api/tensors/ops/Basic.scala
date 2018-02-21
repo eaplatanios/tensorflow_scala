@@ -242,8 +242,10 @@ private[api] trait Basic {
     * @return Result as a new tensor.
     */
   def pad(
-      input: Tensor, paddings: Tensor, mode: PaddingMode = ConstantPadding)(
-      implicit context: DynamicVariable[Context]): Tensor = {
+      input: Tensor,
+      paddings: Tensor,
+      mode: PaddingMode = ConstantPadding(0)
+  )(implicit context: DynamicVariable[Context]): Tensor = {
     mode.pad(input, paddings)
   }
 
@@ -937,7 +939,7 @@ object Basic extends Basic {
       * @param  mode     Padding mode to use.
       * @return Result as a new tensor.
       */
-    def pad(paddings: Tensor, mode: PaddingMode = ConstantPadding): Tensor = Basic.pad(tensor, paddings, mode)
+    def pad(paddings: Tensor, mode: PaddingMode = ConstantPadding(0)): Tensor = Basic.pad(tensor, paddings, mode)
 
     /** $OpDocBasicReshape
       *
