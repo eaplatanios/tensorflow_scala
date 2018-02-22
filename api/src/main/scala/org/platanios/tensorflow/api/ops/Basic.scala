@@ -2135,13 +2135,10 @@ object Basic extends Basic {
         // Degenerate concatenation.
         Seq(gradient, null)
       } else {
-        var concatenationAxis = op.inputs.last
         val inputValues = op.inputs.take(op.inputs.length - 1)
-        // Using modulus here for convenience since the 'concatenationAxis' value is already verified in the concatenate
-        // op implementation to be within the allowed '[-rank, rank)' range.
-        val nonNegativeConcatenationAxis = concatenationAxis % rank(inputValues(0))
         val outputGradients: Seq[OutputLike] = gradient match {
           case g: Output =>
+            var concatenationAxis = op.inputs.last
             Output.constantValue(concatenationAxis) match {
               case Some(axis) =>
                 // If `concatenationAxis` is a constant defined in a different context, then we duplicate it in the
@@ -2150,10 +2147,14 @@ object Basic extends Basic {
                 // a constant.
                 val gradientContext = ControlFlow.getOutputContext(gradient.op)
                 val axisContext = ControlFlow.getOutputContext(concatenationAxis.op)
-                if (axisContext != gradientContext)
+                if (axisContext != gradientContext) {
                   concatenationAxis = constant(axis)
+                }
               case None => ()
             }
+            // Using modulus here for convenience since the 'concatenationAxis' value is already verified in the
+            // concatenate op implementation to be within the allowed '[-rank, rank)' range.
+            val nonNegativeConcatenationAxis = concatenationAxis % rank(inputValues(0))
             // Get the inputs' tensor shapes.
             val shapes = shapeN(inputValues)
             // The magic number of '16' was found through benchmarking a range of sizes on CPUs and a Maxwell Titan X
@@ -2168,6 +2169,7 @@ object Basic extends Basic {
               offset.zip(shapes).map(t => slice(g, t._1, t._2))
             }
           case g: OutputIndexedSlices =>
+            val concatenationAxis = op.inputs.last
             val staticConcatenationAxis = {
               val axis = Output.constantValue(concatenationAxis)
               if (axis.isEmpty)
@@ -2186,6 +2188,9 @@ object Basic extends Basic {
                 realNumericAxis
               }
             }
+            // Using modulus here for convenience since the 'concatenationAxis' value is already verified in the
+            // concatenate op implementation to be within the allowed '[-rank, rank)' range.
+            val nonNegativeConcatenationAxis = concatenationAxis % rank(inputValues(0))
             // Get the input tensor shapes.
             val shapes = inputValues.map(shape(_))
             if (staticConcatenationAxis > 0) {
