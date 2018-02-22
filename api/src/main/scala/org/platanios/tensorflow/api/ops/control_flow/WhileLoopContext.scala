@@ -23,9 +23,8 @@ import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.{DataType, INT32, RESOURCE}
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
 import org.platanios.tensorflow.api.utilities.Collections
-
-import com.google.protobuf.GeneratedMessageV3
-import org.tensorflow.framework.{CollectionDef, WhileContextDef}
+import com.google.protobuf.{ByteString, GeneratedMessageV3}
+import org.tensorflow.framework.{AttrValue, CollectionDef, WhileContextDef}
 import org.tensorflow.framework.CollectionDef.BytesList
 import shapeless._
 import shapeless.ops.hlist.Tupler
@@ -790,6 +789,12 @@ object WhileLoopContext {
       loopEnters, loopExits, name)
     whileLoopContext.values ++= values
     whileLoopContext.externalValues ++= externalValues
+    if (importScope != null) {
+      val frameName = AttrValue.newBuilder().setS(ByteString.copyFromUtf8(whileLoopContext.name)).build()
+      values.map(Op.currentGraph.findOp).filter(_.exists(ControlFlow.isLoopEnter)).foreach(_.foreach(op => {
+        ControlFlow.setAttribute(op, "frame_name", frameName)
+      }))
+    }
     whileLoopContext
   }
 

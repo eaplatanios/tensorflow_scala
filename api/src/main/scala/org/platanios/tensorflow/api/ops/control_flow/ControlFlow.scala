@@ -24,6 +24,7 @@ import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.INT32
 import org.platanios.tensorflow.api.utilities.using
 import org.platanios.tensorflow.jni.{TensorFlow => NativeLibrary}
+import org.tensorflow.framework.AttrValue
 
 import scala.reflect.ClassTag
 
@@ -717,6 +718,13 @@ private[api] object ControlFlow extends ControlFlow {
     })
     op.reloadNumControlInputs()
     op.reloadControlInputs()
+  }
+
+  /** Sets attribute `name` of `op` to the provided value. */
+  private[control_flow] def setAttribute(op: Op, name: String, value: AttrValue): Unit = {
+    using(op.graph.reference)(r => {
+      NativeLibrary.setAttributeProto(r.nativeHandle, op.nativeHandle, name, value.toByteArray)
+    })
   }
 
   //endregion Native Library Functions
