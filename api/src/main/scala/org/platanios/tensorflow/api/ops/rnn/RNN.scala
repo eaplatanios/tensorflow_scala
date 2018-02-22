@@ -245,7 +245,7 @@ object RNN extends RNN {
       if (sequenceLengths != null)
         (Math.min(sequenceLengths), Math.max(sequenceLengths))
       else
-        (null, null)
+        (null, timeSteps)
     }
     val time = Basic.constant(0, INT32, name = "Time")
     val outputTensorArrays = evO.shapes(cell.outputShape).zipWithIndex.map({
@@ -286,17 +286,15 @@ object RNN extends RNN {
       (time + 1, nextOutputTensorArrays, nextStates)
     }
 
-    // `loopBound` can be reduced to `maxSequenceLength` once TensorArray shape inference is working. When sequence
-    // lengths are highly variable, this will reduce the performance overhead of padding to a fixed maximum length.
-    val loopBound = timeSteps
-    val maximumIterations = if (timeSteps.op.controlFlowContext.isEmpty) timeSteps else null
+    // Make sure that we run at least 1 step, if necessary, to ensure that the tensor arrays pick up the dynamic shape.
+    val loopBound = Math.minimum(timeSteps, Math.maximum(1, maxSequenceLength))
     val (_, finalOutputTensorArrays, finalStates) = ControlFlow.whileLoop(
       (loopVariables: LoopVariables) => Math.less(loopVariables._1, loopBound),
       (loopVariables: LoopVariables) => timeStep(loopVariables),
       (time, outputTensorArrays, initialStates),
       parallelIterations = parallelIterations,
       swapMemory = swapMemory,
-      maximumIterations = maximumIterations)
+      maximumIterations = timeSteps)
 
     // Unpack the final output if not using output tuples
     val finalOutputs = finalOutputTensorArrays.map(_.stack())
@@ -338,17 +336,24 @@ object RNN extends RNN {
     *         state tensors with shapes `[batchSize, stateSize(i)]`, where `i` is an index over that sequence.
     */
   private[RNN] def rnnStep(
-      step: Output, sequenceLengths: Output, minSequenceLength: Output, maxSequenceLength: Output,
-      zeroOutput: Seq[Output], state: Seq[Output], callCell: () => (Seq[Output], Seq[Output]),
-      skipConditionals: Boolean = false): (Seq[Output], Seq[Output]) = {
+      step: Output,
+      sequenceLengths: Output,
+      minSequenceLength: Output,
+      maxSequenceLength: Output,
+      zeroOutput: Seq[Output],
+      state: Seq[Output],
+      callCell: () => (Seq[Output], Seq[Output]),
+      skipConditionals: Boolean = false
+  ): (Seq[Output], Seq[Output]) = {
+    // Describes which batch entries have finished.
+    val copyCond = Math.greaterEqual(step, sequenceLengths)
+
     def copyOneThrough(output: Output, newOutput: Output): Output = {
       // If the state contains a scalar value we simply pass it through.
-      if (output.rank == 0) {
+      if (output.rank == 0)
         newOutput
-      } else {
-        val copyCond = Math.greaterEqual(step, sequenceLengths)
+      else
         Op.colocateWith(Set(newOutput.op))(Math.select(copyCond, output, newOutput))
-      }
     }
 
     def copySomeThrough(newOutput: Seq[Output], newState: Seq[Output]): Seq[Output] = {
