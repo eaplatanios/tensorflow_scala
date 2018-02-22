@@ -21,6 +21,7 @@ import org.platanios.tensorflow.api.core.exception.InvalidShapeException
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.ops.NN.CNNDataFormat
+import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.tensors.{Context, Tensor}
 import org.platanios.tensorflow.api.types._
 import org.platanios.tensorflow.jni.generated.tensors.{Basic => NativeTensorOpsBasic}
@@ -2134,13 +2135,25 @@ object Basic extends Basic {
         // Degenerate concatenation.
         Seq(gradient, null)
       } else {
-        val concatenationAxis = op.inputs.last
+        var concatenationAxis = op.inputs.last
         val inputValues = op.inputs.take(op.inputs.length - 1)
         // Using modulus here for convenience since the 'concatenationAxis' value is already verified in the concatenate
         // op implementation to be within the allowed '[-rank, rank)' range.
         val nonNegativeConcatenationAxis = concatenationAxis % rank(inputValues(0))
         val outputGradients: Seq[OutputLike] = gradient match {
           case g: Output =>
+            Output.constantValue(concatenationAxis) match {
+              case Some(axis) =>
+                // If `concatenationAxis` is a constant defined in a different context, then we duplicate it in the
+                // current context to avoid passing it through an `enter` node. This is a small optimization in general,
+                // but it is required when compiling with XLA, as XLA needs the concatenation op input to be folded into
+                // a constant.
+                val gradientContext = ControlFlow.getOutputContext(gradient.op)
+                val axisContext = ControlFlow.getOutputContext(concatenationAxis.op)
+                if (axisContext != gradientContext)
+                  concatenationAxis = constant(axis)
+              case None => ()
+            }
             // Get the inputs' tensor shapes.
             val shapes = shapeN(inputValues)
             // The magic number of '16' was found through benchmarking a range of sizes on CPUs and a Maxwell Titan X

@@ -297,7 +297,7 @@ private[api] object ControlFlow extends ControlFlow {
   }
 
   /** Returns the control flow context for the outputs of an op. */
-  private[control_flow] def getOutputContext(op: Op): Option[Context] = {
+  private[ops] def getOutputContext(op: Op): Option[Context] = {
     val context = op.controlFlowContext
     if (isLoopExit(op))
       context.flatMap(_.outerContext)
