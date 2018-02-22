@@ -1056,6 +1056,34 @@ private[api] object ControlFlow extends ControlFlow {
     *     val b = (i: Output, m: Output) => (i + 1, tf.concatenate(Seq(m, m), axis = 0))
     *     val r = tf.whileLoop(p, b, (i0, m0), (i0.shape, Shape(-1, 2)))
     *   }}}
+    *
+    *   Example which demonstrates non-strict semantics:
+    *
+    *   In the following example, the final value of the counter `i` does not depend on `x`. So, the `whileLoop` can
+    *   increment the counter parallel to updates of `x`. However, because the loop counter at one loop iteration
+    *   depends on the value at the previous iteration, the loop counter itself cannot be incremented in parallel.
+    *   Hence, if we just want the final value of the counter, then `x` will never be incremented, but the counter will
+    *   be updated on a single thread. Conversely, if we want the value of the output, then the counter may be
+    *   incremented on its own thread, while `x` can be incremented in parallel on a separate thread.
+    *   In the extreme case, it is conceivable that the thread incrementing the counter runs until completion before `x`
+    *   is incremented even a single time. The only thing that can never happen is that the thread updating `x` can
+    *   never get ahead of the counter thread because the thread incrementing `x` depends on the value of the counter.
+    *   {{{
+    *     val n = 10000
+    *     val x = tf.constant(Tensor.zeros(INT32, Shape(n)))
+    *     val p = (i: Output, x: Output) => i < n
+    *     val b = (i: Output, x: Output) => (tf.print(i + 1, Seq(i)), tf.print(x + 1, Seq(x), "x: "))
+    *     val r = tf.whileLoop(p, b, (0, x))
+    *
+    *     val session = tf.Session()
+    *
+    *     // The following line prints [0] to [9999]
+    *
+    *     // The following line may increment the counter and x in parallel. The counter thread may get ahead of the
+    *     // other thread, but not the other way around. So you may see things like "[9996] x: [9987]", meaning that
+    *     // the counter thread is on iteration 9996, while the other thread is on iteration 9987.
+    *     session.run(r._2)
+    *   }}}
     */
   private[ops] trait Documentation
 }
