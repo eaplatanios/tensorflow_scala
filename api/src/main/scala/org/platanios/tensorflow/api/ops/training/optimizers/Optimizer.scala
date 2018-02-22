@@ -181,7 +181,8 @@ trait Optimizer {
         iteration match {
           case Some(i) => Op.createWith(controlDependencies = Set(finish(updateOps.toSet, "Update"))) {
             Op.colocateWith(Set(i.op)) {
-              i.assignAdd(Basic.constant(1, dataType = i.dataType), name).op
+              // The implicit read in the default assign add operation in `Variable` is slow and so we avoid that here.
+              Variable.assignAdd(i.handle, Basic.constant(1, dataType = i.dataType), name)
             }
           }
           case None => finish(updateOps.toSet, name)

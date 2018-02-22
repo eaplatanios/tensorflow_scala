@@ -3961,6 +3961,16 @@ object Math extends Math {
       Seq(null)
     }
 
+    /** Returns `true` if the shapes of `x`, `y`, and `gradient` are all fully specified (i.e., statically known)
+      * and equal. */
+    private[this] def shapeFullySpecifiedAndEqual(x: Output, y: Output, gradient: OutputLike): Boolean = {
+      x.shape.isFullyDefined &&
+          y.shape.isFullyDefined &&
+          gradient.shape.isFullyDefined &&
+          x.shape == y.shape &&
+          x.shape == gradient.shape
+    }
+
     /** Returns the reduction indices for computing the gradients of `shape0` `[operator]` `shape1` with broadcasting.
       *
       * This is typically used by gradient computations for broadcasting operations.
@@ -3982,37 +3992,50 @@ object Math extends Math {
     private[this] def addGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       val x = op.inputs(0)
       val y = op.inputs(1)
-      val xShape = Basic.shape(x)
-      val yShape = Basic.shape(y)
-      val (rx, ry) = broadcastGradientArguments(xShape, yShape)
       val outputGradient = outputGradients.head.toOutput
-      Seq(
-        Basic.reshape(sum(outputGradient, rx), xShape),
-        Basic.reshape(sum(outputGradient, ry), yShape))
+      if (shapeFullySpecifiedAndEqual(x, y, outputGradient)) {
+        Seq(outputGradient, outputGradient)
+      } else {
+        val xShape = Basic.shape(x)
+        val yShape = Basic.shape(y)
+        val (rx, ry) = broadcastGradientArguments(xShape, yShape)
+        Seq(
+          Basic.reshape(sum(outputGradient, rx), xShape),
+          Basic.reshape(sum(outputGradient, ry), yShape))
+      }
     }
 
     private[this] def subGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       val x = op.inputs(0)
       val y = op.inputs(1)
-      val xShape = Basic.shape(x)
-      val yShape = Basic.shape(y)
-      val (rx, ry) = broadcastGradientArguments(xShape, yShape)
       val outputGradient = outputGradients.head.toOutput
-      Seq(
-        Basic.reshape(sum(outputGradient, rx), xShape),
-        Basic.reshape(-sum(outputGradient, ry), yShape))
+      if (shapeFullySpecifiedAndEqual(x, y, outputGradient)) {
+        Seq(outputGradient, -outputGradient)
+      } else {
+        val xShape = Basic.shape(x)
+        val yShape = Basic.shape(y)
+        val (rx, ry) = broadcastGradientArguments(xShape, yShape)
+        Seq(
+          Basic.reshape(sum(outputGradient, rx), xShape),
+          Basic.reshape(-sum(outputGradient, ry), yShape))
+      }
     }
 
     private[this] def mulGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       val x = conjugate(op.inputs(0))
       val y = conjugate(op.inputs(1))
-      val xShape = Basic.shape(x)
-      val yShape = Basic.shape(y)
-      val (rx, ry) = broadcastGradientArguments(xShape, yShape)
       val outputGradient = outputGradients.head.toOutput
-      Seq(
-        Basic.reshape(sum(multiply(outputGradient, y), rx), xShape),
-        Basic.reshape(sum(multiply(x, outputGradient), ry), yShape))
+      if (shapeFullySpecifiedAndEqual(x, y, outputGradient) &&
+          (outputGradient.dataType == INT32 || outputGradient.dataType == FLOAT32)) {
+        Seq(outputGradient * y, outputGradient * x)
+      } else {
+        val xShape = Basic.shape(x)
+        val yShape = Basic.shape(y)
+        val (rx, ry) = broadcastGradientArguments(xShape, yShape)
+        Seq(
+          Basic.reshape(sum(multiply(outputGradient, y), rx), xShape),
+          Basic.reshape(sum(multiply(x, outputGradient), ry), yShape))
+      }
     }
 
     private[this] def divGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {

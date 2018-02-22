@@ -112,12 +112,14 @@ private[api] trait NN {
     */
   def relu(input: Output, alpha: Float = 0.0f, name: String = "ReLU"): Output = {
     def reluOp[T: OutputOps](i: T, n: String): T = {
-      implicitly[OutputOps[T]]
-          .applyUnary(i, o => Op.Builder(opType = "Relu", name = n)
-              .addInput(o)
-              .build().outputs(0))
+      implicitly[OutputOps[T]].applyUnary(i, o => {
+        val oFloat = if (o.dataType.isInteger) o.cast(FLOAT32) else o
+        Op.Builder(opType = "Relu", name = n)
+            .addInput(oFloat)
+            .build().outputs(0)
+      })
     }
-    if (alpha == 0.0) {
+    if (alpha == 0.0f) {
       reluOp(input, name)
     } else {
       Op.createWithNameScope(name) {
@@ -145,12 +147,13 @@ private[api] trait NN {
     *
     * @group NNOps
     * @param  input Input tensor.
+    * @param  axis  Along along which the output values are concatenated along.
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def crelu(input: Output, name: String = "CReLU"): Output = {
+  def crelu(input: Output, axis: Output = -1, name: String = "CReLU"): Output = {
     Op.createWithNameScope(name, Set(input.op)) {
-      relu(Basic.concatenate(Seq(input, -input), axis = -1))
+      relu(Basic.concatenate(Seq(input, -input), axis = axis))
     }
   }
 
@@ -235,7 +238,8 @@ private[api] trait NN {
         // on its last dimension.
         // We swap the logits' axis of axis and its last axis.
         val inputRank = Basic.rank(logits)
-        val swappedLogits = swapAxes(logits, axis, Math.subtract(inputRank, 1))
+        val modAxis = axis % Basic.rank(logits)
+        val swappedLogits = swapAxes(logits, modAxis, Math.subtract(inputRank, 1))
         val shapeAfterSwap = Basic.shape(swappedLogits)
         // We reshape the logits into a matrix.
         val flattenedLogits = flattenOuterAxes(swappedLogits)
@@ -245,7 +249,7 @@ private[api] trait NN {
             .build().outputs(0)
         // We transform back the output tensor.
         output = Basic.reshape(output, shapeAfterSwap)
-        output = swapAxes(output, axis, Math.subtract(inputRank, 1))
+        output = swapAxes(output, modAxis, Math.subtract(inputRank, 1))
         // We make shape inference work since the reshape and the transpose may erase the static shape information.
         output.setShape(shape)
         output
@@ -558,6 +562,20 @@ private[api] trait NN {
 
   //endregion Loss Ops
 
+  /** Returns the `noiseShape` for the provided input, making the best effort possible to deal with unknown sizes. */
+  private[api] def getNoiseShape(input: Output, noiseShape: Output): Output = {
+    if (noiseShape == null) {
+      Basic.shape(input)
+    } else if (input.rank != -1 && input.rank == noiseShape.rank) {
+      Shape.fromSeq(input.shape.asArray.zip(noiseShape.shape.asArray).map {
+        case (inputAxisSize, noiseShapeAxisSize) if noiseShapeAxisSize == -1 && inputAxisSize != -1 => inputAxisSize
+        case (_, noiseShapeAxisSize) => noiseShapeAxisSize
+      })
+    } else {
+      noiseShape
+    }
+  }
+
   /** $OpDocNNDropout
     *
     * @group NNOps
@@ -576,7 +594,8 @@ private[api] trait NN {
       scaleOutput: Boolean = true,
       noiseShape: Output = null,
       seed: Option[Int] = None,
-      name: String = "Dropout"): Output = {
+      name: String = "Dropout"
+  ): Output = {
     require(keepProbability > 0.0 && keepProbability <= 1.0, s"'keepProbability' ($keepProbability) must be in (0, 1].")
     // Do nothing if we know that keepProbability == 1.
     if (keepProbability == 1.0) {
@@ -607,7 +626,7 @@ private[api] trait NN {
       name: String = "Dropout"
   ): Output = {
     Op.createWithNameScope(name, Set(input.op)) {
-      val inferredNoiseShape = if (noiseShape == null) Basic.shape(input) else noiseShape
+      val inferredNoiseShape = getNoiseShape(input, noiseShape)
       // Uniform random variable in [keepProbability, 1.0 + keepProbability).
       val probability = Math.cast(keepProbability, input.dataType)
       val random = Random.randomUniform(
@@ -1650,21 +1669,23 @@ object NN extends NN {
     *   Hence, to ensure stability and avoid numerical overflow, the implementation uses this equivalent formulation:
     *   `max(x, 0) - x * z + log(1 + exp(-abs(x)))`
     *
-    *   If `weights` is not `null`, then the positive examples are weighted and we have the following expression instead
-    *   (where `q = weights`, for brevity):
+    *   If `weights` is not `null`, then the positive examples are weighted. A value `weights > 1` decreases the false
+    *   negative count, hence increasing recall. Conversely setting `weights < 1` decreases the false positive count and
+    *   increases precision. This can be seen from the fact that `weight` is introduced as a multiplicative coefficient
+    *   for the positive targets term in the loss expression (where `q = weights`, for brevity):
     *   `  qz * -log(sigmoid(x)) + (1 - z) * -log(1 - sigmoid(x))`
     *   `= qz * -log(1 / (1 + exp(-x))) + (1 - z) * -log(exp(-x) / (1 + exp(-x)))`
     *   `= qz * log(1 + exp(-x)) + (1 - z) * (-log(exp(-x)) + log(1 + exp(-x)))`
     *   `= qz * log(1 + exp(-x)) + (1 - z) * (x + log(1 + exp(-x))`
     *   `= (1 - z) * x + (qz +  1 - z) * log(1 + exp(-x))`
     *   `= (1 - z) * x + (1 + (q - 1) * z) * log(1 + exp(-x))`
-    *
+    *   
     *   Setting `l = 1 + (q - 1) * z`, to ensure stability and avoid numerical overflow, the implementation uses this
     *   equivalent formulation:
     *   `(1 - z) * x + l * (max(-x, 0) + log(1 + exp(-abs(x))))`
     *
     *   `logits` and `labels` must have the same shape.
-    *
+    * 
     * @define OpDocNNLogPoissonLoss
     *   The `logPoissonLoss` op computes the log-Poisson loss between `logPredictions` and `targets`.
     *
@@ -1685,7 +1706,7 @@ object NN extends NN {
     *                                                                          only computed when
     *                                                                          `computeFullLoss == true`)
     *   `= x - z * log(x) [+ z * log(z) - z + 0.5 * log(2 * pi * z)]`
-    *   `= exp(c) - z * c [+ z * log(z) - z + 0.5 * log(2 * pi * z)]`
+    *   `= exp(c) - z * c [+ z * log(z) - z + 0.5 * log(2 * pi * z)]`.
     *
     * @define OpDocNNSequenceLoss
     *   The `sequenceLoss` op computes an optionally weighted loss for a sequence of predicted logits.

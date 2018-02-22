@@ -134,9 +134,10 @@ private[api] trait NN {
     *
     * @group NNOps
     * @param  input Input tensor.
+    * @param  axis  Along along which the output values are concatenated along.
     * @return Result as a new tensor.
     */
-  def crelu(input: Tensor): Tensor = relu(Basic.concatenate(Seq(input, -input), axis = -1))
+  def crelu(input: Tensor, axis: Tensor = -1): Tensor = relu(Basic.concatenate(Seq(input, -input), axis = axis))
 
   /** $OpDocNNElu
     *
