@@ -252,7 +252,7 @@ private[api] object ControlFlow extends ControlFlow {
     def isInCond: Boolean = op.controlFlowContext.flatMap(_.condContext).isDefined
 
     /** Returns `true` if the provided op is within a while loop statement. */
-    def isInWhileLoop: Boolean = op.controlFlowContext.flatMap(_.whileLoopContext).isDefined
+    def isInWhileLoop: Boolean = op.controlFlowContext.flatMap(_.whileLoopContext()).isDefined
 
     /** Returns `true` if the provided op is within an XLA control flow context. */
     def isInXLAContext: Boolean = {
@@ -329,8 +329,8 @@ private[api] object ControlFlow extends ControlFlow {
       case None => null                            // `inputOp` is not in a control flow context.
       case Some(context) if context == opContext.orNull => null // `inputOp` is in the same control flow context.
       case Some(context) =>
-        val whileContext = opContext.flatMap(_.whileLoopContext)
-        val inputWhileContext = context.whileLoopContext
+        val whileContext = opContext.flatMap(_.whileLoopContext())
+        val inputWhileContext = context.whileLoopContext()
         whileContext match {
           case None =>
             if (inputWhileContext.isEmpty) {

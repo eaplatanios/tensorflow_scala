@@ -30,7 +30,7 @@ private[ops] class GradientState private[control_flow] () {
   private[ops] def getGradientLoopState(op: Op, before: Boolean): Option[GradientLoopState] = {
     val forwardContext = {
       if (before && ControlFlow.isLoopExit(op))
-        op.controlFlowContext.flatMap(_.outerContext).flatMap(_.whileLoopContext)
+        op.controlFlowContext.flatMap(_.outerContext).flatMap(_.whileLoopContext())
       else
         WhileLoopContext.getWhileLoopContext(op)
     }
@@ -58,7 +58,7 @@ private[ops] class GradientState private[control_flow] () {
     WhileLoopContext.getWhileLoopContext(op).foreach(forwardContext => {
       if (!map.contains(forwardContext)) {
         // This is a new while loop and so we create a new gradient loop state for it.
-        val outerForwardContext = forwardContext.outerContext.flatMap(_.whileLoopContext)
+        val outerForwardContext = forwardContext.outerContext.flatMap(_.whileLoopContext())
         val outerGradientLoopState = outerForwardContext.flatMap(map.get)
         val gradientLoopState = GradientLoopState(forwardContext, outerGradientLoopState)
         map += forwardContext -> gradientLoopState
@@ -83,7 +83,7 @@ private[ops] class GradientState private[control_flow] () {
     */
   private[ops] def zerosLikeForExit(value: Output): Output = {
     val forwardContext = value.op.controlFlowContext
-    val outerForwardContext = forwardContext.flatMap(_.outerContext).flatMap(_.whileLoopContext)
+    val outerForwardContext = forwardContext.flatMap(_.outerContext).flatMap(_.whileLoopContext())
     val outerGradientLoopState = outerForwardContext.flatMap(map.get)
     outerGradientLoopState match {
       case Some(gradientLoopState) =>

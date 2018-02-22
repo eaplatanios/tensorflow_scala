@@ -99,9 +99,9 @@ private[api] case class CondContext private[control_flow] (
     }
   }
 
-  override def backPropagate: Boolean = whileLoopContext.exists(_.backPropagate)
+  override def backPropagate: Boolean = whileLoopContext().exists(_.backPropagate)
 
-  override def gradientLoopState: Option[GradientLoopState] = whileLoopContext.flatMap(_.gradientLoopState)
+  override def gradientLoopState: Option[GradientLoopState] = whileLoopContext().flatMap(_.gradientLoopState)
 
   /** Processes an op used in a conditional branch. */
   private[control_flow] def processOp(op: Op): Output = {

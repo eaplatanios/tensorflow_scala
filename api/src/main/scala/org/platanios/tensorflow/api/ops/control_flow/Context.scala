@@ -69,10 +69,15 @@ abstract class Context protected (
   def condContext: Option[CondContext] = outerContext.flatMap(_.condContext)
 
   /** Returns the while context containing this context. */
-  def whileLoopContext: Option[WhileLoopContext] = outerContext.flatMap(_.whileLoopContext)
+  def whileLoopContext(stopContext: Option[WhileLoopContext] = None): Option[WhileLoopContext] = {
+    stopContext match {
+      case Some(context) if context == this => Some(context)
+      case None => outerContext.flatMap(_.whileLoopContext(stopContext))
+    }
+  }
 
   /** Returns the XLA context containing this context. */
-  def xlaContext: Option[XLAContext] = outerContext.flatMap(_.xlaContext)
+  def xlaContext: Option[XLAControlFlowContext] = outerContext.flatMap(_.xlaContext)
 
   /** Adds `op` to the current context. */
   def add(op: Op): Unit = addInternal(op)
@@ -137,10 +142,10 @@ abstract class Context protected (
   private[control_flow] def removeExternalControlEdges(op: Op): Set[Op] = {
     // A control input of 'op' is internal if it is in the same while loop context as the enclosing while loop context
     // of this context.
-    val internalControlInputs = this.whileLoopContext match {
+    val internalControlInputs = this.whileLoopContext() match {
       case None => op.controlInputs
       case Some(wC) =>
-        op.controlInputs.filter(i => ControlFlow.getOutputContext(i).exists(_.whileLoopContext.contains(wC)))
+        op.controlInputs.filter(i => ControlFlow.getOutputContext(i).exists(_.whileLoopContext().contains(wC)))
     }
     if (internalControlInputs.size != op.controlInputs.size) {
       ControlFlow.clearControlInputs(op)
@@ -224,9 +229,9 @@ object Context {
   *
   * @author Emmanouil Antonios Platanios
   */
-abstract class XLAContext protected (
+abstract class XLAControlFlowContext protected (
     override private[control_flow] val values: mutable.Set[String] = mutable.Set.empty,
     override private[control_flow] val externalValues: mutable.Map[String, Output] = mutable.Map.empty
 ) extends Context(values, externalValues) {
-  override def xlaContext: Option[XLAContext] = Some(this)
+  override def xlaContext: Option[XLAControlFlowContext] = Some(this)
 }

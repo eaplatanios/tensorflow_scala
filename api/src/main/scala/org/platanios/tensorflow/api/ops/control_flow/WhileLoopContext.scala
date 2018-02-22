@@ -73,7 +73,7 @@ private[api] case class WhileLoopContext private[control_flow] (
 
   override def controlPivot: Option[Op] = Option(pivotForBody).orElse(Option(pivotForPredicate))
 
-  override def whileLoopContext: Option[WhileLoopContext] = Some(this)
+  override def whileLoopContext(stopContext: Option[WhileLoopContext] = None): Option[WhileLoopContext] = Some(this)
 
   override def add(op: Op): Unit = {
     // For a reduction op, if the op is in a gradient context and its input is from its forward context, moving the op
@@ -84,7 +84,7 @@ private[api] case class WhileLoopContext private[control_flow] (
     if (Set("Shape", "Size", "Rank").contains(op.opType)) {
       val gradientContext = Op.currentControlFlowContext
       if (gradientContext.isDefined) {
-        gradientContext.flatMap(_.whileLoopContext.flatMap(_.gradientLoopState)).foreach(gradientLoopState => {
+        gradientContext.flatMap(_.whileLoopContext().flatMap(_.gradientLoopState)).foreach(gradientLoopState => {
           WhileLoopContext.getWhileLoopContext(op.inputs(0).op).foreach(opInputForwardContext => {
             if (opInputForwardContext == gradientLoopState.forwardContext) {
               val opInputContext = op.inputs(0).op.controlFlowContext
@@ -141,10 +141,10 @@ private[api] case class WhileLoopContext private[control_flow] (
       // If we are in a gradient context and `output` is from its forward context, we use `getRealValue()`, which adds
       // the logic to save the history of `output` in the forward pass.
       Op.currentControlFlowContext.foreach(gradientContext => {
-        gradientContext.whileLoopContext.flatMap(_.gradientLoopState).foreach(gradientLoopState => {
+        gradientContext.whileLoopContext().flatMap(_.gradientLoopState).foreach(gradientLoopState => {
           WhileLoopContext.getWhileLoopContext(output.op).flatMap(forwardContext => {
             if (ControlFlow.isLoopExit(output.op))
-              forwardContext.outerContext.flatMap(_.whileLoopContext)
+              forwardContext.outerContext.flatMap(_.whileLoopContext())
             else
               Some(forwardContext)
           }).foreach(forwardContext => {
@@ -438,7 +438,8 @@ private[api] case class WhileLoopContext private[control_flow] (
                 val zerosShape = resourceSafeShape(value)
                 val acc = Basic.zeros(g.dataType, zerosShape)
                 outerContext.foreach(_.exit())
-                acc.setShape(g.shape)
+                // TODO: [CONTROL_FLOW] Figure out if this is necessary.
+                // acc.setShape(g.shape)
                 acc
             }
           }
@@ -485,7 +486,8 @@ private[api] case class WhileLoopContext private[control_flow] (
                 val realShape = outerGradientLoopState.addBackwardAccumulatedValue(historyZerosShape, zerosShape)
                 val acc = Basic.zeros(g.values.dataType, realShape)
                 context.exit()
-                acc.setShape(g.values.shape)
+                // TODO: [CONTROL_FLOW] Figure out if this is necessary.
+                // acc.setShape(g.values.shape)
                 acc
               case _ =>
                 val zerosShape = Basic.concatenate(
@@ -590,7 +592,7 @@ private[api] case class WhileLoopContext private[control_flow] (
 object WhileLoopContext {
   /** Returns the while-loop context to which `op` belongs. */
   private[control_flow] def getWhileLoopContext(op: Op): Option[WhileLoopContext] = {
-    op.controlFlowContext.flatMap(_.whileLoopContext)
+    op.controlFlowContext.flatMap(_.whileLoopContext())
   }
 
   /** Creates a next iteration op for `v` and adds a back edge from `v` to `m`. */
