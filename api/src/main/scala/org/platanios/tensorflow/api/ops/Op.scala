@@ -30,7 +30,7 @@ import org.platanios.tensorflow.jni.{Op => NativeOp, Tensor => NativeTensor, Ten
 import com.google.protobuf.ByteString
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
-import org.tensorflow.framework.{AttrValue, NameAttrList}
+import org.tensorflow.framework.AttrValue
 
 import java.nio.charset.{Charset, StandardCharsets}
 
