@@ -18,21 +18,22 @@ package org.platanios.tensorflow.api.ops.training.optimizers.decay
 import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.variables.Variable
+import org.platanios.tensorflow.api.types.FLOAT32
 
 /** Learning rate decay wrapper that implements a warm-up scheme, similar to the one proposed in
   * [Attention is All You Need (Section 5.3)](https://arxiv.org/pdf/1706.03762.pdf).
   *
-  * For the first `warmUpSteps` steps the learning rate is multiplied by:
-  * `exp(log(warmUpFactor) / step) ^ (warmUpSteps - step)`.
+  * Warm-up decay methods compute a factor (possible step-dependent) and multiply the learning rate by that factor,
+  * for the first `warmUpSteps` steps of training.
   *
-  * @param  warmUpSteps  Number of warm-up steps.
-  * @param  warmUpFactor Warm-up learning rate scaling factor.
+  * @param  warmUpSteps Number of warm-up steps.
+  * @param  schedule    Warm-up decay schedule.
   *
   * @author Emmanouil Antonios Platanios
   */
 class WarmUpDecay(
     val warmUpSteps: Int,
-    val warmUpFactor: Float = 0.01f,
+    val schedule: WarmUpDecay.Schedule,
     val name: String = "WarmUpDecay"
 ) extends Decay {
   /** Applies the decay method to `value`, the current iteration in the optimization loop is `step` and returns the
@@ -52,20 +53,49 @@ class WarmUpDecay(
       val warmUpStepsValue = Basic.constant(warmUpSteps, value.dataType)
       ControlFlow.cond(
         stepValue < warmUpStepsValue,
-        () => {
-          val warmUpFactorValue = Basic.constant(warmUpFactor, value.dataType)
-          value * Math.pow(
-            Math.exp(Math.log(warmUpFactorValue) / warmUpStepsValue),
-            warmUpStepsValue - stepValue)
-        },
+        () => value * schedule(stepValue, warmUpStepsValue),
         () => value)
     }
   }
 }
 
 object WarmUpDecay {
-  def apply(warmUpSteps: Int, warmUpFactor: Float = 0.01f, name: String = "WarmUpDecay"): WarmUpDecay = {
-    new WarmUpDecay(warmUpSteps, warmUpFactor, name)
+  def apply(warmUpSteps: Int, schedule: WarmUpDecay.Schedule, name: String = "WarmUpDecay"): WarmUpDecay = {
+    new WarmUpDecay(warmUpSteps, schedule, name)
+  }
+
+  /** Warm-up decay schedule. This is what determines the functional form of the warm-up decay factor. */
+  sealed trait Schedule {
+    /** Computes the warm-up decay weight for the current step.
+      *
+      * @param  step        Current step.
+      * @param  warmUpSteps Number of warm-up steps.
+      * @return Learning rate decay weight for the current step.
+      */
+    def apply(step: Output, warmUpSteps: Output): Output
+  }
+
+  /** Linear warm-up decay schedule. For the first `warmUpSteps` steps the learning rate is multiplied by:
+    * `start + ((1.0f - start) / warmUpSteps) * step`.
+    *
+    * @param  offset Linear decay offset.
+    */
+  case class Linear(offset: Float = 0.35f) extends Schedule {
+    override def apply(step: Output, warmUpSteps: Output): Output = {
+      val offsetValue = Basic.constant(offset, FLOAT32)
+      offsetValue + ((1.0f - offsetValue) / warmUpSteps) * step
+    }
+  }
+
+  /** Exponential warm-up decay schedule. For the first `warmUpSteps` steps the learning rate is multiplied by:
+    * `exp(log(warmUpFactor) / step) ^ (warmUpSteps - step)`.
+    *
+    * @param  warmUpFactor Warm-up learning rate scaling factor.
+    */
+  case class Exponential(warmUpFactor: Float = 0.01f) extends Schedule {
+    override def apply(step: Output, warmUpSteps: Output): Output = {
+      val warmUpFactorValue = Basic.constant(warmUpFactor, FLOAT32)
+      Math.exp(Math.log(warmUpFactorValue) / warmUpSteps) ** (warmUpSteps - step)
+    }
   }
 }
-
