@@ -25,6 +25,7 @@ package object decay {
     type CycleLinear10xDecay = decay.CycleLinear10xDecay
     type ExponentialDecay = decay.ExponentialDecay
     type LuongExponentialDecay = decay.LuongExponentialDecay
+    type SqrtDecay = decay.SqrtDecay
     type WarmUpDecay = decay.WarmUpDecay
 
     val NoDecay              : decay.NoDecay.type               = decay.NoDecay
@@ -32,6 +33,7 @@ package object decay {
     val CycleLinear10xDecay  : decay.CycleLinear10xDecay.type   = decay.CycleLinear10xDecay
     val ExponentialDecay     : decay.ExponentialDecay.type      = decay.ExponentialDecay
     val LuongExponentialDecay: decay.LuongExponentialDecay.type = decay.LuongExponentialDecay
+    val SqrtDecay            : decay.SqrtDecay.type             = decay.SqrtDecay
     val WarmUpDecay          : decay.WarmUpDecay.type           = decay.WarmUpDecay
   }
 }

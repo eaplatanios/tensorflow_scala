@@ -18,29 +18,29 @@ package org.platanios.tensorflow.api.ops.training.optimizers.decay
 import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.variables.Variable
-import org.platanios.tensorflow.api.types.FLOAT32
 
-/** Cycle-linear 10x decay method.
+/** Square root decay method.
   *
-  * This method applies a cycle-linear decay function to a provided initial learning rate (i.e., `value`). It requires a
+  * This method applies a square root decay function to a provided initial learning rate (i.e., `value`). It requires a
   * step value to be provided in it's application function, in order to compute the decayed learning rate. You may
   * simply pass a TensorFlow variable that you increment at each training step.
   *
   * The decayed value is computed as follows:
   * {{{
-  *    cyclePosition = 1 - abs(((step % (2 * cycleSteps)) - cycleSteps) / cycleSteps)
-  *    decayed = value * (0.1 + cyclePosition) * 3
+  *    decayed = value * decayFactor / sqrt(max(step, decayThreshold))
   * }}}
   *
-  * @param  cycleSteps Cycle linear decay cycle in terms of number of steps.
-  * @param  startStep  Step after which to start decaying the learning rate.
+  * @param  decayFactor    Decay factor.
+  * @param  decayThreshold Decay threshold.
+  * @param  startStep      Step after which to start decaying the learning rate.
   *
   * @author Emmanouil Antonios Platanios
   */
-class CycleLinear10xDecay protected (
-    val cycleSteps: Int,
+class SqrtDecay protected (
+    val decayFactor: Float = 500.0f,
+    val decayThreshold: Float = 1.0f,
     val startStep: Long = 0L,
-    val name: String = "CycleLinear10xDecay"
+    val name: String = "SqrtDecay"
 ) extends Decay {
   /** Applies the decay method to `value`, the current iteration in the optimization loop is `step` and returns the
     * result.
@@ -53,31 +53,35 @@ class CycleLinear10xDecay protected (
   @throws[IllegalArgumentException]
   override def apply(value: Output, step: Option[Variable]): Output = {
     if (step.isEmpty)
-      throw new IllegalArgumentException("A step needs to be provided for cycle-linear 10x decay.")
+      throw new IllegalArgumentException("A step needs to be provided for square-root decay.")
     Op.createWithNameScope(name, Set(value.op, step.get.op)) {
-      val cycleStepsValue = Basic.constant(cycleSteps, value.dataType)
+      val decayFactorValue = Basic.constant(decayFactor, value.dataType)
+      val decayThresholdValue = Basic.constant(decayThreshold, value.dataType)
       val stepValue = Math.cast(step.get.value, value.dataType)
       if (startStep == 0L) {
-        decay(value, stepValue, cycleStepsValue)
+        decay(value, stepValue, decayFactorValue, decayThresholdValue)
       } else {
         val startStepValue = Basic.constant(startStep, value.dataType)
         ControlFlow.cond(
           stepValue < startStepValue,
           () => value,
-          () => decay(value, stepValue - startStepValue, cycleStepsValue))
+          () => decay(value, stepValue - startStepValue, decayFactorValue, decayThresholdValue))
       }
     }
   }
 
-  private[this] def decay(initialValue: Output, step: Output, cycleSteps: Output): Output = {
-    // Cycle the rate linearly by 10x every `cycleSteps`, up and down.
-    val cyclePosition = 1.0f - Math.abs(((step % (2 * cycleSteps)) - cycleSteps).cast(FLOAT32) / cycleSteps)
-    (0.1f + cyclePosition) * 3.0f // 10x difference in each cycle (0.3 - 3).
+  private[this] def decay(initialValue: Output, step: Output, decayFactor: Output, decayThreshold: Output): Output = {
+    decayFactor / Math.sqrt(Math.maximum(step, decayThreshold))
   }
 }
 
-object CycleLinear10xDecay {
-  def apply(cycleSteps: Int, startStep: Long = 0L, name: String = "CycleLinear10xDecay"): CycleLinear10xDecay = {
-    new CycleLinear10xDecay(cycleSteps, startStep, name)
+object SqrtDecay {
+  def apply(
+      decayFactor: Float = 500.0f,
+      decayThreshold: Float = 1.0f,
+      startStep: Long = 0L,
+      name: String = "SqrtDecay"
+  ): SqrtDecay = {
+    new SqrtDecay(decayFactor, decayThreshold, startStep, name)
   }
 }
