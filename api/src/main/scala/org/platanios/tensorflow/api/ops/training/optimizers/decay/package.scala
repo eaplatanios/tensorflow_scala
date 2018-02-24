@@ -35,5 +35,10 @@ package object decay {
     val LuongExponentialDecay: decay.LuongExponentialDecay.type = decay.LuongExponentialDecay
     val SqrtDecay            : decay.SqrtDecay.type             = decay.SqrtDecay
     val WarmUpDecay          : decay.WarmUpDecay.type           = decay.WarmUpDecay
+
+    // TODO: Piecewise constant.
+    // TODO: Polynomial.
+    // TODO: Natural exp.
+    // TODO: Inverse time.
   }
 }

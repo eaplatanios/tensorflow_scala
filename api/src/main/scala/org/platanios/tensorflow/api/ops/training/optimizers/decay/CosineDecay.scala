@@ -27,17 +27,19 @@ import org.platanios.tensorflow.api.ops.variables.Variable
   *
   * The decayed value is computed as follows:
   * {{{
-  *    cyclePosition = cycleSteps - abs(cycleSteps - (step % (2 * cycleSteps)))
-  *    decayed = value * 0.5 * (1 + cos(pi * cyclePosition / cycleSteps))
+  *    cosineDecay = 0.5 * (1 + cos(pi * min(step, cycleSteps) / cycleSteps))
+  *    decayed = value * ((1 - alpha) * cosineDecay + alpha)
   * }}}
   *
   * @param  cycleSteps Cosine decay cycle in terms of number of steps.
+  * @param  alpha      Minimum decayed learning rate value as a fraction of the original learning rate value.
   * @param  startStep  Step after which to start decaying the learning rate.
   *
   * @author Emmanouil Antonios Platanios
   */
 class CosineDecay protected (
     val cycleSteps: Int,
+    val alpha: Float = 0.0f,
     val startStep: Long = 0L,
     val name: String = "CosineDecay"
 ) extends Decay {
@@ -55,27 +57,28 @@ class CosineDecay protected (
       throw new IllegalArgumentException("A step needs to be provided for cosine decay.")
     Op.createWithNameScope(name, Set(value.op, step.get.op)) {
       val cycleStepsValue = Basic.constant(cycleSteps, value.dataType)
+      val alphaValue = Basic.constant(alpha, value.dataType)
       val stepValue = Math.cast(step.get.value, value.dataType)
       if (startStep == 0L) {
-        decay(value, stepValue, cycleStepsValue)
+        decay(value, stepValue, cycleStepsValue, alphaValue)
       } else {
         val startStepValue = Basic.constant(startStep, value.dataType)
         ControlFlow.cond(
           stepValue < startStepValue,
           () => value,
-          () => decay(value, stepValue - startStepValue, cycleStepsValue))
+          () => decay(value, stepValue - startStepValue, cycleStepsValue, alphaValue))
       }
     }
   }
 
-  private[this] def decay(initialValue: Output, step: Output, cycleSteps: Output): Output = {
-    val cyclePosition = cycleSteps - Math.abs(cycleSteps - (step % (2 * cycleSteps)))
-    0.5f * (1.0f + Math.cos(math.Pi.toFloat * cyclePosition / cycleSteps))
+  private[this] def decay(initialValue: Output, step: Output, cycleSteps: Output, alpha: Output): Output = {
+    val cosineDecay = 0.5f * (1.0f + Math.cos(math.Pi.toFloat * Math.minimum(step, cycleSteps) / cycleSteps))
+    (1.0f - alpha) * cosineDecay + alpha
   }
 }
 
 object CosineDecay {
-  def apply(cycleSteps: Int, startStep: Long = 0L, name: String = "CosineDecay"): CosineDecay = {
-    new CosineDecay(cycleSteps, startStep, name)
+  def apply(cycleSteps: Int, alpha: Float = 0.0f, startStep: Long = 0L, name: String = "CosineDecay"): CosineDecay = {
+    new CosineDecay(cycleSteps, alpha, startStep, name)
   }
 }
