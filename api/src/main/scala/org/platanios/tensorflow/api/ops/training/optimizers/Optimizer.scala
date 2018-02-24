@@ -416,7 +416,7 @@ private[optimizers] object Optimizer {
     * @return Indexed slices with de-duplicated indices and summed values slices associated with each unique index.
     */
   private[Optimizer] def deDuplicateOutputIndexedSlices(input: OutputIndexedSlices): OutputIndexedSlices = {
-    val (uniqueIndices, newIndexPositions) = Basic.unique(input.indices, 0)
+    val (uniqueIndices, newIndexPositions) = Basic.unique(input.indices, Tensor(0))
     val summedValues = Math.unsortedSegmentSum(input.values, newIndexPositions, Basic.shape(uniqueIndices)(0))
     OutputIndexedSlices(indices = uniqueIndices, values = summedValues, denseShape = input.denseShape)
   }
