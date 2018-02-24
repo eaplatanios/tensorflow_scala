@@ -26,7 +26,9 @@ package object schedules {
     type ExponentialDecay = schedules.ExponentialDecay
     type LuongExponentialDecay = schedules.LuongExponentialDecay
     type SqrtDecay = schedules.SqrtDecay
+    type WarmUpExponentialSchedule = schedules.WarmUpExponentialSchedule
     type WarmUpLinearSchedule = schedules.WarmUpLinearSchedule
+    type NoamSchedule = schedules.NoamSchedule
 
     val FixedSchedule            : schedules.FixedSchedule.type             = schedules.FixedSchedule
     val CosineDecay              : schedules.CosineDecay.type               = schedules.CosineDecay
@@ -36,6 +38,7 @@ package object schedules {
     val SqrtDecay                : schedules.SqrtDecay.type                 = schedules.SqrtDecay
     val WarmUpExponentialSchedule: schedules.WarmUpExponentialSchedule.type = schedules.WarmUpExponentialSchedule
     val WarmUpLinearSchedule     : schedules.WarmUpLinearSchedule.type      = schedules.WarmUpLinearSchedule
+    val NoamSchedule             : schedules.NoamSchedule.type              = schedules.NoamSchedule
 
     // TODO: Piecewise constant.
     // TODO: Polynomial.

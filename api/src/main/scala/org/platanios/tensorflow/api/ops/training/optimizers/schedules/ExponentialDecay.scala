@@ -59,9 +59,9 @@ class ExponentialDecay protected (
     if (step.isEmpty)
       throw new IllegalArgumentException("A step needs to be provided for exponential decay.")
     Op.createWithNameScope(name, Set(value.op, step.get.op)) {
+      val stepValue = Math.cast(step.get.value, value.dataType)
       val decayRateValue = Basic.constant(decayRate, value.dataType)
       val decayStepsValue = Basic.constant(decaySteps, value.dataType)
-      val stepValue = Math.cast(step.get.value, value.dataType)
       if (startStep == 0L) {
         decay(value, stepValue, decayRateValue, decayStepsValue, staircase)
       } else {

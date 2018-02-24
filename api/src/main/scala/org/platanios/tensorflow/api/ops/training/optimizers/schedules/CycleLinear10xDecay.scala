@@ -55,8 +55,8 @@ class CycleLinear10xDecay protected (
     if (step.isEmpty)
       throw new IllegalArgumentException("A step needs to be provided for cycle-linear 10x decay.")
     Op.createWithNameScope(name, Set(value.op, step.get.op)) {
-      val cycleStepsValue = Basic.constant(cycleSteps, value.dataType)
       val stepValue = Math.cast(step.get.value, value.dataType)
+      val cycleStepsValue = Basic.constant(cycleSteps, value.dataType)
       if (startStep == 0L) {
         decay(value, stepValue, cycleStepsValue)
       } else {

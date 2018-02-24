@@ -48,7 +48,7 @@ class ComposedSchedule protected (
 }
 
 object ComposedSchedule {
-  def apply(decay1: Schedule, decay2: Schedule): ComposedSchedule = {
-    new ComposedSchedule(decay1, decay2)
+  def apply(schedule1: Schedule, schedule2: Schedule): ComposedSchedule = {
+    new ComposedSchedule(schedule1, schedule2)
   }
 }

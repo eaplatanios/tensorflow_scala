@@ -55,9 +55,9 @@ class SqrtDecay protected (
     if (step.isEmpty)
       throw new IllegalArgumentException("A step needs to be provided for square-root decay.")
     Op.createWithNameScope(name, Set(value.op, step.get.op)) {
+      val stepValue = Math.cast(step.get.value, value.dataType)
       val decayFactorValue = Basic.constant(decayFactor, value.dataType)
       val decayThresholdValue = Basic.constant(decayThreshold, value.dataType)
-      val stepValue = Math.cast(step.get.value, value.dataType)
       if (startStep == 0L) {
         decay(value, stepValue, decayFactorValue, decayThresholdValue)
       } else {

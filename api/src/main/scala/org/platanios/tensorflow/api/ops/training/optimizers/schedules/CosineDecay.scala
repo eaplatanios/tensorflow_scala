@@ -57,9 +57,9 @@ class CosineDecay protected (
     if (step.isEmpty)
       throw new IllegalArgumentException("A step needs to be provided for cosine decay.")
     Op.createWithNameScope(name, Set(value.op, step.get.op)) {
+      val stepValue = Math.cast(step.get.value, value.dataType)
       val cycleStepsValue = Basic.constant(cycleSteps, value.dataType)
       val alphaValue = Basic.constant(alpha, value.dataType)
-      val stepValue = Math.cast(step.get.value, value.dataType)
       if (startStep == 0L) {
         decay(value, stepValue, cycleStepsValue, alphaValue)
       } else {
