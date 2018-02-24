@@ -27,7 +27,7 @@ import org.platanios.tensorflow.api.ops.variables.Variable
   *
   * @author Emmanouil Antonios Platanios
   */
-class ComposedDecay(
+class ComposedDecay protected (
     val decay1: Decay,
     val decay2: Decay
 ) extends Decay {

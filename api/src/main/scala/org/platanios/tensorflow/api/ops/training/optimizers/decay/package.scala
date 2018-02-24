@@ -21,11 +21,13 @@ package org.platanios.tensorflow.api.ops.training.optimizers
 package object decay {
   private[optimizers] trait API {
     type Decay = decay.Decay
+    type CosineDecay = decay.CosineDecay
     type ExponentialDecay = decay.ExponentialDecay
     type LuongExponentialDecay = decay.LuongExponentialDecay
     type WarmUpDecay = decay.WarmUpDecay
 
     val NoDecay              : decay.NoDecay.type               = decay.NoDecay
+    val CosineDecay          : decay.CosineDecay.type           = decay.CosineDecay
     val ExponentialDecay     : decay.ExponentialDecay.type      = decay.ExponentialDecay
     val LuongExponentialDecay: decay.LuongExponentialDecay.type = decay.LuongExponentialDecay
     val WarmUpDecay          : decay.WarmUpDecay.type           = decay.WarmUpDecay

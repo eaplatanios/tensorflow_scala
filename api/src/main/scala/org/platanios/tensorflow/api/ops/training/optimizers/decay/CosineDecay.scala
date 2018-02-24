@@ -19,32 +19,27 @@ import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.variables.Variable
 
-/** Exponential decay method.
+/** Cosine decay method.
   *
-  * This method applies an exponential decay function to a provided initial learning rate (i.e., `value`). It requires a
+  * This method applies a cosine decay function to a provided initial learning rate (i.e., `value`). It requires a
   * step value to be provided in it's application function, in order to compute the decayed learning rate. You may
   * simply pass a TensorFlow variable that you increment at each training step.
   *
   * The decayed value is computed as follows:
   * {{{
-  *    decayed = value * decayRate ^ (step / decaySteps)
+  *    cyclePosition = cycleSteps - abs(cycleSteps - (step % (2 * cycleSteps)))
+  *    decayed = value * 0.5 * (1 + cos(pi * cyclePosition / cycleSteps))
   * }}}
-  * where if `staircase = true`, then `(step / decaySteps)` is an integer division and the decayed learning rate follows
-  * a staircase function.
   *
-  * @param  decayRate  Decay rate.
-  * @param  decaySteps Decay steps.
-  * @param  staircase  If `true`, the decay will occur at discrete intervals.
+  * @param  cycleSteps Cosine decay cycle in terms of number of steps.
   * @param  startStep  Step after which to start decaying the learning rate.
   *
   * @author Emmanouil Antonios Platanios
   */
-class ExponentialDecay protected (
-    val decayRate: Float,
-    val decaySteps: Int,
-    val staircase: Boolean = false,
+class CosineDecay protected (
+    val cycleSteps: Int,
     val startStep: Long = 0L,
-    val name: String = "ExponentialDecay"
+    val name: String = "CosineDecay"
 ) extends Decay {
   /** Applies the decay method to `value`, the current iteration in the optimization loop is `step` and returns the
     * result.
@@ -57,54 +52,30 @@ class ExponentialDecay protected (
   @throws[IllegalArgumentException]
   override def apply(value: Output, step: Option[Variable]): Output = {
     if (step.isEmpty)
-      throw new IllegalArgumentException("A step needs to be provided for exponential decay.")
+      throw new IllegalArgumentException("A step needs to be provided for cosine decay.")
     Op.createWithNameScope(name, Set(value.op, step.get.op)) {
-      val decayRateValue = Basic.constant(decayRate, value.dataType)
-      val decayStepsValue = Basic.constant(decaySteps, value.dataType)
+      val cycleStepsValue = Basic.constant(cycleSteps, value.dataType)
       val stepValue = Math.cast(step.get.value, value.dataType)
       if (startStep == 0L) {
-        decay(value, stepValue, decayRateValue, decayStepsValue, staircase)
+        decay(value, stepValue, cycleStepsValue)
       } else {
         val startStepValue = Basic.constant(startStep, value.dataType)
         ControlFlow.cond(
           stepValue < startStepValue,
           () => value,
-          () => decay(value, stepValue - startStepValue, decayRateValue, decayStepsValue, staircase))
+          () => decay(value, stepValue - startStepValue, cycleStepsValue))
       }
     }
   }
 
-  private[this] def decay(
-      initialValue: Output,
-      step: Output,
-      decayRate: Output,
-      decaySteps: Output,
-      staircase: Boolean
-  ): Output = {
-    val power = Math.divide(step, decaySteps)
-    val decay = Math.pow(decayRate, if (staircase) Math.floor(power) else power)
-    Math.multiply(initialValue, decay)
+  private[this] def decay(initialValue: Output, step: Output, cycleSteps: Output): Output = {
+    val cyclePosition = cycleSteps - Math.abs(cycleSteps - (step % (2 * cycleSteps)))
+    0.5f * (1.0f + Math.cos(math.Pi.toFloat * cyclePosition / cycleSteps))
   }
 }
 
-object ExponentialDecay {
-  def apply(
-      decayRate: Float,
-      decaySteps: Int,
-      staircase: Boolean = false,
-      startStep: Long = 0L,
-      name: String = "ExponentialDecay"
-  ): ExponentialDecay = {
-    new ExponentialDecay(decayRate, decaySteps, staircase, startStep, name)
-  }
-}
-
-/** A particular instance of [[ExponentialDecay]] that was used in [Luong (2016)](https://github.com/lmthang/thesis). */
-class LuongExponentialDecay(val numTrainSteps: Int, override val name: String = "LuongExponentialDecay")
-    extends ExponentialDecay(0.5f, numTrainSteps / 10, staircase = true, numTrainSteps / 2)
-
-object LuongExponentialDecay {
-  def apply(numTrainSteps: Int, name: String = "LuongExponentialDecay"): LuongExponentialDecay = {
-    new LuongExponentialDecay(numTrainSteps, name)
+object CosineDecay {
+  def apply(cycleSteps: Int, startStep: Long = 0L, name: String = "CosineDecay"): CosineDecay = {
+    new CosineDecay(cycleSteps, startStep, name)
   }
 }

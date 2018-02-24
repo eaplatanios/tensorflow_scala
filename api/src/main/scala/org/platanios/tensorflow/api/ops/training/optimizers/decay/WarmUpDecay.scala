@@ -31,7 +31,7 @@ import org.platanios.tensorflow.api.types.FLOAT32
   *
   * @author Emmanouil Antonios Platanios
   */
-class WarmUpDecay(
+class WarmUpDecay protected (
     val warmUpSteps: Int,
     val schedule: WarmUpDecay.Schedule,
     val name: String = "WarmUpDecay"
