@@ -13,35 +13,37 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.ops.training.optimizers.decay
+package org.platanios.tensorflow.api.ops.training.optimizers.schedules
 
+import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.variables.Variable
-import org.platanios.tensorflow.api.types.FLOAT32
 
-/** Cycle-linear 10x decay method.
+/** Cosine decay method.
   *
-  * This method applies a cycle-linear decay function to a provided initial learning rate (i.e., `value`). It requires a
+  * This method applies a cosine decay function to a provided initial learning rate (i.e., `value`). It requires a
   * step value to be provided in it's application function, in order to compute the decayed learning rate. You may
   * simply pass a TensorFlow variable that you increment at each training step.
   *
   * The decayed value is computed as follows:
   * {{{
-  *    cyclePosition = 1 - abs(((step % (2 * cycleSteps)) - cycleSteps) / cycleSteps)
-  *    decayed = value * (0.1 + cyclePosition) * 3
+  *    cosineDecay = 0.5 * (1 + cos(pi * min(step, cycleSteps) / cycleSteps))
+  *    decayed = value * ((1 - alpha) * cosineDecay + alpha)
   * }}}
   *
-  * @param  cycleSteps Cycle linear decay cycle in terms of number of steps.
+  * @param  cycleSteps Cosine decay cycle in terms of number of steps.
+  * @param  alpha      Minimum decayed learning rate value as a fraction of the original learning rate value.
   * @param  startStep  Step after which to start decaying the learning rate.
   *
   * @author Emmanouil Antonios Platanios
   */
-class CycleLinear10xDecay protected (
+class CosineDecay protected (
     val cycleSteps: Int,
+    val alpha: Float = 0.0f,
     val startStep: Long = 0L,
-    val name: String = "CycleLinear10xDecay"
-) extends Decay {
+    val name: String = "CosineDecay"
+) extends Schedule {
   /** Applies the decay method to `value`, the current iteration in the optimization loop is `step` and returns the
     * result.
     *
@@ -53,31 +55,31 @@ class CycleLinear10xDecay protected (
   @throws[IllegalArgumentException]
   override def apply(value: Output, step: Option[Variable]): Output = {
     if (step.isEmpty)
-      throw new IllegalArgumentException("A step needs to be provided for cycle-linear 10x decay.")
+      throw new IllegalArgumentException("A step needs to be provided for cosine decay.")
     Op.createWithNameScope(name, Set(value.op, step.get.op)) {
       val cycleStepsValue = Basic.constant(cycleSteps, value.dataType)
+      val alphaValue = Basic.constant(alpha, value.dataType)
       val stepValue = Math.cast(step.get.value, value.dataType)
       if (startStep == 0L) {
-        decay(value, stepValue, cycleStepsValue)
+        decay(value, stepValue, cycleStepsValue, alphaValue)
       } else {
         val startStepValue = Basic.constant(startStep, value.dataType)
         ControlFlow.cond(
           stepValue < startStepValue,
           () => value,
-          () => decay(value, stepValue - startStepValue, cycleStepsValue))
+          () => decay(value, stepValue - startStepValue, cycleStepsValue, alphaValue))
       }
     }
   }
 
-  private[this] def decay(initialValue: Output, step: Output, cycleSteps: Output): Output = {
-    // Cycle the rate linearly by 10x every `cycleSteps`, up and down.
-    val cyclePosition = 1.0f - Math.abs(((step % (2 * cycleSteps)) - cycleSteps).cast(FLOAT32) / cycleSteps)
-    (0.1f + cyclePosition) * 3.0f // 10x difference in each cycle (0.3 - 3).
+  private[this] def decay(initialValue: Output, step: Output, cycleSteps: Output, alpha: Output): Output = {
+    val cosineDecay = 0.5f * (1.0f + Math.cos(math.Pi.toFloat * Math.minimum(step, cycleSteps) / cycleSteps))
+    (1.0f - alpha) * cosineDecay + alpha
   }
 }
 
-object CycleLinear10xDecay {
-  def apply(cycleSteps: Int, startStep: Long = 0L, name: String = "CycleLinear10xDecay"): CycleLinear10xDecay = {
-    new CycleLinear10xDecay(cycleSteps, startStep, name)
+object CosineDecay {
+  def apply(cycleSteps: Int, alpha: Float = 0.0f, startStep: Long = 0L, name: String = "CosineDecay"): CosineDecay = {
+    new CosineDecay(cycleSteps, alpha, startStep, name)
   }
 }

@@ -20,7 +20,7 @@ package org.platanios.tensorflow.api.ops.training
   */
 package object optimizers {
   private[api] trait API
-      extends decay.API {
+      extends schedules.API {
     type Optimizer = optimizers.Optimizer
     type AdaDelta = optimizers.AdaDelta
     type AdaGrad = optimizers.AdaGrad

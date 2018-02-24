@@ -13,7 +13,7 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.ops.training.optimizers.decay
+package org.platanios.tensorflow.api.ops.training.optimizers.schedules
 
 import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
@@ -41,7 +41,7 @@ class SqrtDecay protected (
     val decayThreshold: Float = 1.0f,
     val startStep: Long = 0L,
     val name: String = "SqrtDecay"
-) extends Decay {
+) extends Schedule {
   /** Applies the decay method to `value`, the current iteration in the optimization loop is `step` and returns the
     * result.
     *

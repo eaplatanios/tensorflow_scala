@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.ops.training.optimizers
 
-import org.platanios.tensorflow.api.ops.training.optimizers.decay.{Decay, NoDecay}
+import org.platanios.tensorflow.api.ops.training.optimizers.schedules.{Schedule, FixedSchedule}
 import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output, OutputIndexedSlices, Summary}
 import org.platanios.tensorflow.api.ops.variables.{ConstantInitializer, Variable}
 
@@ -45,7 +45,7 @@ import org.platanios.tensorflow.api.ops.variables.{ConstantInitializer, Variable
   * @author Emmanouil Antonios Platanios
   */
 case class AdaGrad(
-    learningRate: Double = 0.01, decay: Decay = NoDecay, epsilon: Double = 1e-8, useLocking: Boolean = false,
+    learningRate: Double = 0.01, decay: Schedule = FixedSchedule, epsilon: Double = 1e-8, useLocking: Boolean = false,
     learningRateSummaryTag: String = null, name: String = "AdaGrad"
 ) extends Optimizer {
   private[this] var learningRateTensor: Output = _

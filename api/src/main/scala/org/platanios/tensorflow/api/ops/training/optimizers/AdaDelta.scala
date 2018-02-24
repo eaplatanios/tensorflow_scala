@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.ops.training.optimizers
 
-import org.platanios.tensorflow.api.ops.training.optimizers.decay.{Decay, NoDecay}
+import org.platanios.tensorflow.api.ops.training.optimizers.schedules.{Schedule, FixedSchedule}
 import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output, OutputIndexedSlices, Summary}
 import org.platanios.tensorflow.api.ops.variables.Variable
 
@@ -47,7 +47,7 @@ import org.platanios.tensorflow.api.ops.variables.Variable
   * @author Emmanouil Antonios Platanios
   */
 case class AdaDelta(
-    learningRate: Double = 0.01, decay: Decay = NoDecay, rho: Double = 0.95, epsilon: Double = 1e-8,
+    learningRate: Double = 0.01, decay: Schedule = FixedSchedule, rho: Double = 0.95, epsilon: Double = 1e-8,
     useLocking: Boolean = false, learningRateSummaryTag: String = null, name: String = "AdaDelta"
 ) extends Optimizer {
   private[this] var learningRateTensor: Output = _

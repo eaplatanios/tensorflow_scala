@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops.training.optimizers
 
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output, OutputIndexedSlices, Summary}
-import org.platanios.tensorflow.api.ops.training.optimizers.decay.{Decay, NoDecay}
+import org.platanios.tensorflow.api.ops.training.optimizers.schedules.{Schedule, FixedSchedule}
 import org.platanios.tensorflow.api.ops.variables.Variable
 
 /** Optimizer that implements the Adam optimization algorithm.
@@ -70,7 +70,7 @@ import org.platanios.tensorflow.api.ops.variables.Variable
   * @author Emmanouil Antonios Platanios
   */
 case class Adam(
-    learningRate: Double = 0.001, decay: Decay = NoDecay, beta1: Double = 0.9, beta2: Double = 0.999,
+    learningRate: Double = 0.001, decay: Schedule = FixedSchedule, beta1: Double = 0.9, beta2: Double = 0.999,
     useNesterov: Boolean = false, epsilon: Double = 1e-8, useLocking: Boolean = false,
     learningRateSummaryTag: String = null, name: String = "Adam"
 ) extends Optimizer {

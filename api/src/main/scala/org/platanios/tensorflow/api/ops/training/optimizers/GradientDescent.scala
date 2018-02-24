@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.ops.training.optimizers
 
-import org.platanios.tensorflow.api.ops.training.optimizers.decay.{Decay, NoDecay}
+import org.platanios.tensorflow.api.ops.training.optimizers.schedules.{Schedule, FixedSchedule}
 import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output, OutputIndexedSlices, Summary}
 import org.platanios.tensorflow.api.ops.variables.Variable
 
@@ -38,7 +38,7 @@ import org.platanios.tensorflow.api.ops.variables.Variable
   * @author Emmanouil Antonios Platanios
   */
 case class GradientDescent(
-    learningRate: Double, decay: Decay = NoDecay, momentum: Double = 0.0, useNesterov: Boolean = false,
+    learningRate: Double, decay: Schedule = FixedSchedule, momentum: Double = 0.0, useNesterov: Boolean = false,
     useLocking: Boolean = false, learningRateSummaryTag: String = null,
     name: String = "GradientDescent"
 ) extends Optimizer {
