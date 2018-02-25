@@ -44,9 +44,13 @@ import org.platanios.tensorflow.api.ops.variables.{ConstantInitializer, Variable
   *
   * @author Emmanouil Antonios Platanios
   */
-case class AdaGrad(
-    learningRate: Double = 0.01, decay: Schedule = FixedSchedule, epsilon: Double = 1e-8, useLocking: Boolean = false,
-    learningRateSummaryTag: String = null, name: String = "AdaGrad"
+class AdaGrad protected (
+    val learningRate: Double = 0.01,
+    val decay: Schedule = FixedSchedule,
+    val epsilon: Double = 1e-8,
+    val useLocking: Boolean = false,
+    val learningRateSummaryTag: String = null,
+    val name: String = "AdaGrad"
 ) extends Optimizer {
   private[this] var learningRateTensor: Output = _
 
@@ -82,6 +86,17 @@ case class AdaGrad(
 }
 
 object AdaGrad {
+  def apply(
+      learningRate: Double = 0.01,
+      decay: Schedule = FixedSchedule,
+      epsilon: Double = 1e-8,
+      useLocking: Boolean = false,
+      learningRateSummaryTag: String = null,
+      name: String = "AdaGrad"
+  ): AdaGrad = {
+    new AdaGrad(learningRate, decay, epsilon, useLocking, learningRateSummaryTag, name)
+  }
+
   /** Creates an op that updates `variable` by applying the AdaGrad algorithm update to it.
     *
     * The AdaGrad update is as follows:
@@ -100,8 +115,13 @@ object AdaGrad {
     * @return Created op.
     */
   private[AdaGrad] def resourceApplyDense(
-      variable: Variable, accumulator: Variable, stepSize: Output, gradient: Output, useLocking: Boolean = false,
-      name: String = "ResourceApplyAdaGrad"): Op = {
+      variable: Variable,
+      accumulator: Variable,
+      stepSize: Output,
+      gradient: Output,
+      useLocking: Boolean = false,
+      name: String = "ResourceApplyAdaGrad"
+  ): Op = {
     Op.Builder(opType = "ResourceApplyAdagrad", name = name)
         .addInput(variable.handle)
         .addInput(accumulator.handle)
@@ -130,8 +150,14 @@ object AdaGrad {
     * @return Created op.
     */
   private[AdaGrad] def resourceApplySparse(
-      variable: Variable, accumulator: Variable, stepSize: Output, gradient: Output, indices: Output,
-      useLocking: Boolean = false, name: String = "ResourceSparseApplyAdaGrad"): Op = {
+      variable: Variable,
+      accumulator: Variable,
+      stepSize: Output,
+      gradient: Output,
+      indices: Output,
+      useLocking: Boolean = false,
+      name: String = "ResourceSparseApplyAdaGrad"
+  ): Op = {
     Op.Builder(opType = "ResourceSparseApplyAdagrad", name = name)
         .addInput(variable.handle)
         .addInput(accumulator.handle)

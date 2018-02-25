@@ -37,10 +37,14 @@ import org.platanios.tensorflow.api.ops.variables.Variable
   *
   * @author Emmanouil Antonios Platanios
   */
-case class GradientDescent(
-    learningRate: Double, decay: Schedule = FixedSchedule, momentum: Double = 0.0, useNesterov: Boolean = false,
-    useLocking: Boolean = false, learningRateSummaryTag: String = null,
-    name: String = "GradientDescent"
+class GradientDescent protected (
+    val learningRate: Double,
+    val decay: Schedule = FixedSchedule,
+    val momentum: Double = 0.0,
+    val useNesterov: Boolean = false,
+    val useLocking: Boolean = false,
+    val learningRateSummaryTag: String = null,
+    val name: String = "GradientDescent"
 ) extends Optimizer {
   private[this] var learningRateTensor: Output = _
   private[this] var momentumTensor    : Output = _
@@ -106,6 +110,18 @@ case class GradientDescent(
 }
 
 object GradientDescent {
+  def apply(
+      learningRate: Double,
+      decay: Schedule = FixedSchedule,
+      momentum: Double = 0.0,
+      useNesterov: Boolean = false,
+      useLocking: Boolean = false,
+      learningRateSummaryTag: String = null,
+      name: String = "GradientDescent"
+  ): GradientDescent = {
+    new GradientDescent(learningRate, decay, momentum, useNesterov, useLocking, learningRateSummaryTag, name)
+  }
+
   /** Creates an op that updates the value of `variable` by subtracting `stepSize * gradient` from it.
     *
     * @param  variable   Variable whose value to update.
@@ -117,8 +133,12 @@ object GradientDescent {
     * @return Created op.
     */
   private[GradientDescent] def resourceApplyDense(
-      variable: Variable, stepSize: Output, gradient: Output, useLocking: Boolean = false,
-      name: String = "ResourceApplyGradientDescent"): Op = {
+      variable: Variable,
+      stepSize: Output,
+      gradient: Output,
+      useLocking: Boolean = false,
+      name: String = "ResourceApplyGradientDescent"
+  ): Op = {
     Op.Builder(opType = "ResourceApplyGradientDescent", name = name)
         .addInput(variable.handle)
         .addInput(stepSize)
@@ -149,8 +169,15 @@ object GradientDescent {
     * @return Created op.
     */
   private[GradientDescent] def resourceApplyMomentumDense(
-      variable: Variable, accumulator: Variable, stepSize: Output, gradient: Output, momentum: Output,
-      useNesterov: Boolean = false, useLocking: Boolean = false, name: String = "ResourceApplyMomentum"): Op = {
+      variable: Variable,
+      accumulator: Variable,
+      stepSize: Output,
+      gradient: Output,
+      momentum: Output,
+      useNesterov: Boolean = false,
+      useLocking: Boolean = false,
+      name: String = "ResourceApplyMomentum"
+  ): Op = {
     Op.Builder(opType = "ResourceApplyMomentum", name = name)
         .addInput(variable.handle)
         .addInput(accumulator.handle)
@@ -185,8 +212,16 @@ object GradientDescent {
     * @return Created op.
     */
   private[GradientDescent] def resourceApplyMomentumSparse(
-      variable: Variable, accumulator: Variable, stepSize: Output, gradient: Output, indices: Output, momentum: Output,
-      useNesterov: Boolean = false, useLocking: Boolean = false, name: String = "ResourceSparseApplyMomentum"): Op = {
+      variable: Variable,
+      accumulator: Variable,
+      stepSize: Output,
+      gradient: Output,
+      indices: Output,
+      momentum: Output,
+      useNesterov: Boolean = false,
+      useLocking: Boolean = false,
+      name: String = "ResourceSparseApplyMomentum"
+  ): Op = {
     Op.Builder(opType = "ResourceSparseApplyMomentum", name = name)
         .addInput(variable.handle)
         .addInput(accumulator.handle)

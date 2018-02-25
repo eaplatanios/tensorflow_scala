@@ -69,10 +69,16 @@ import org.platanios.tensorflow.api.ops.variables.Variable
   *
   * @author Emmanouil Antonios Platanios
   */
-case class Adam(
-    learningRate: Double = 0.001, decay: Schedule = FixedSchedule, beta1: Double = 0.9, beta2: Double = 0.999,
-    useNesterov: Boolean = false, epsilon: Double = 1e-8, useLocking: Boolean = false,
-    learningRateSummaryTag: String = null, name: String = "Adam"
+class Adam protected (
+    val learningRate: Double = 0.001,
+    val decay: Schedule = FixedSchedule,
+    val beta1: Double = 0.9,
+    val beta2: Double = 0.999,
+    val useNesterov: Boolean = false,
+    val epsilon: Double = 1e-8,
+    val useLocking: Boolean = false,
+    val learningRateSummaryTag: String = null,
+    val name: String = "Adam"
 ) extends Optimizer {
   private[this] var learningRateTensor: Output = _
   private[this] var beta1Tensor       : Output = _
@@ -182,7 +188,7 @@ case class Adam(
     val vScaledGradient = gradient.values * gradient.values * (1 - beta2)
     var vT = v.assign(v.value * beta2)
     vT = Op.createWith(controlDependencies = Set(vT.op)) {
-      m.assignScatterAdd(gradient.indices, vScaledGradient)
+      v.assignScatterAdd(gradient.indices, vScaledGradient)
     }
     val vTSqrt = Math.sqrt(vT)
     val update = variable.assignSub(learningRate * mT / Math.add(vTSqrt, epsilon))
@@ -191,6 +197,20 @@ case class Adam(
 }
 
 object Adam {
+  def apply(
+      learningRate: Double = 0.001,
+      decay: Schedule = FixedSchedule,
+      beta1: Double = 0.9,
+      beta2: Double = 0.999,
+      useNesterov: Boolean = false,
+      epsilon: Double = 1e-8,
+      useLocking: Boolean = false,
+      learningRateSummaryTag: String = null,
+      name: String = "Adam"
+  ): Adam = {
+    new Adam(learningRate, decay, beta1, beta2, useNesterov, epsilon, useLocking, learningRateSummaryTag, name)
+  }
+
   /** Creates an op that updates `variable` by applying the Adam algorithm update to it.
     *
     * The Adam update for step `t` is as follows:
@@ -218,9 +238,19 @@ object Adam {
     * @return Created op.
     */
   private[Adam] def resourceApplyDense(
-      variable: Variable, m: Variable, v: Variable, beta1Power: Output, beta2Power: Output,
-      stepSize: Output, beta1: Output, beta2: Output, epsilon: Output, gradient: Output,
-      useNesterov: Boolean = false, useLocking: Boolean = false, name: String = "ResourceApplyAdam"
+      variable: Variable,
+      m: Variable,
+      v: Variable,
+      beta1Power: Output,
+      beta2Power: Output,
+      stepSize: Output,
+      beta1: Output,
+      beta2: Output,
+      epsilon: Output,
+      gradient: Output,
+      useNesterov: Boolean = false,
+      useLocking: Boolean = false,
+      name: String = "ResourceApplyAdam"
   ): Op = {
     Op.Builder(opType = "ResourceApplyAdam", name = name)
         .addInput(variable.handle)

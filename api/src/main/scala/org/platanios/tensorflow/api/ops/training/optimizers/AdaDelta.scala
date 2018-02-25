@@ -46,9 +46,14 @@ import org.platanios.tensorflow.api.ops.variables.Variable
   *
   * @author Emmanouil Antonios Platanios
   */
-case class AdaDelta(
-    learningRate: Double = 0.01, decay: Schedule = FixedSchedule, rho: Double = 0.95, epsilon: Double = 1e-8,
-    useLocking: Boolean = false, learningRateSummaryTag: String = null, name: String = "AdaDelta"
+class AdaDelta protected (
+    val learningRate: Double = 0.01,
+    val decay: Schedule = FixedSchedule,
+    val rho: Double = 0.95,
+    val epsilon: Double = 1e-8,
+    val useLocking: Boolean = false,
+    val learningRateSummaryTag: String = null,
+    val name: String = "AdaDelta"
 ) extends Optimizer {
   private[this] var learningRateTensor: Output = _
   private[this] var rhoTensor         : Output = _
@@ -118,6 +123,18 @@ case class AdaDelta(
 }
 
 object AdaDelta {
+  def apply(
+      learningRate: Double = 0.01,
+      decay: Schedule = FixedSchedule,
+      rho: Double = 0.95,
+      epsilon: Double = 1e-8,
+      useLocking: Boolean = false,
+      learningRateSummaryTag: String = null,
+      name: String = "AdaDelta"
+  ): AdaDelta = {
+    new AdaDelta(learningRate, decay, rho, epsilon, useLocking, learningRateSummaryTag, name)
+  }
+
   /** Creates an op that updates `variable` by applying the AdaDelta algorithm update to it.
     *
     * The AdaDelta update is as follows:
@@ -141,8 +158,16 @@ object AdaDelta {
     * @return Created op.
     */
   private[AdaDelta] def resourceApplyDense(
-      variable: Variable, accumulator: Variable, accumulatorUpdate: Variable, stepSize: Output, rho: Output,
-      epsilon: Output, gradient: Output, useLocking: Boolean = false, name: String = "ResourceApplyAdaDelta"): Op = {
+      variable: Variable,
+      accumulator: Variable,
+      accumulatorUpdate: Variable,
+      stepSize: Output,
+      rho: Output,
+      epsilon: Output,
+      gradient: Output,
+      useLocking: Boolean = false,
+      name: String = "ResourceApplyAdaDelta"
+  ): Op = {
     Op.Builder(opType = "ResourceApplyAdadelta", name = name)
         .addInput(variable.handle)
         .addInput(accumulator.handle)
@@ -179,9 +204,17 @@ object AdaDelta {
     * @return Created op.
     */
   private[AdaDelta] def resourceApplySparse(
-      variable: Variable, accumulator: Variable, accumulatorUpdate: Variable, stepSize: Output, rho: Output,
-      epsilon: Output, gradient: Output, indices: Output, useLocking: Boolean = false,
-      name: String = "ResourceSparseApplyAdaDelta"): Op = {
+      variable: Variable,
+      accumulator: Variable,
+      accumulatorUpdate: Variable,
+      stepSize: Output,
+      rho: Output,
+      epsilon: Output,
+      gradient: Output,
+      indices: Output,
+      useLocking: Boolean = false,
+      name: String = "ResourceSparseApplyAdaDelta"
+  ): Op = {
     Op.Builder(opType = "ResourceSparseApplyAdadelta", name = name)
         .addInput(variable.handle)
         .addInput(accumulator.handle)

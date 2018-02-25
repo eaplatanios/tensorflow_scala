@@ -1384,10 +1384,18 @@ private[api] trait Basic {
     * @param  name           Name for the created op.
     * @return Created op output.
     */
-  private[api] def stridedSlice(
-      input: Output, begin: Output, end: Output, strides: Output = null, beginMask: Long = 0,
-      endMask: Long = 0, ellipsisMask: Long = 0, newAxisMask: Long = 0, shrinkAxisMask: Long = 0,
-      name: String = "StridedSlice"): Output = {
+  def stridedSlice(
+      input: Output,
+      begin: Output,
+      end: Output,
+      strides: Output = null,
+      beginMask: Long = 0,
+      endMask: Long = 0,
+      ellipsisMask: Long = 0,
+      newAxisMask: Long = 0,
+      shrinkAxisMask: Long = 0,
+      name: String = "StridedSlice"
+  ): Output = {
     Op.Builder(opType = "StridedSlice", name = name)
         .addInput(input)
         .addInput(begin)
