@@ -52,9 +52,9 @@ class AdaGrad protected (
     val learningRateSummaryTag: String = null,
     val name: String = "AdaGrad"
 ) extends Optimizer {
-  private[this] var learningRateTensor: Output = _
+  protected var learningRateTensor: Output = _
 
-  private[this] def getLearningRate(variable: Variable, iteration: Option[Variable]): Output = {
+  protected def getLearningRate(variable: Variable, iteration: Option[Variable]): Output = {
     if (learningRateTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
     Math.cast(learningRateTensor, variable.dataType)

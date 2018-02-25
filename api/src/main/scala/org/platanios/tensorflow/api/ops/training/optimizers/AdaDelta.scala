@@ -55,23 +55,23 @@ class AdaDelta protected (
     val learningRateSummaryTag: String = null,
     val name: String = "AdaDelta"
 ) extends Optimizer {
-  private[this] var learningRateTensor: Output = _
-  private[this] var rhoTensor         : Output = _
-  private[this] var epsilonTensor     : Output = _
+  protected var learningRateTensor: Output = _
+  protected var rhoTensor         : Output = _
+  protected var epsilonTensor     : Output = _
 
-  private[this] def getLearningRate(variable: Variable, iteration: Option[Variable]): Output = {
+  protected def getLearningRate(variable: Variable, iteration: Option[Variable]): Output = {
     if (learningRateTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
     Math.cast(learningRateTensor, variable.dataType)
   }
 
-  private[this] def getRho(variable: Variable): Output = {
+  protected def getRho(variable: Variable): Output = {
     if (rhoTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
     Math.cast(rhoTensor, variable.dataType)
   }
 
-  private[this] def getEpsilon(variable: Variable): Output = {
+  protected def getEpsilon(variable: Variable): Output = {
     if (epsilonTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
     Math.cast(epsilonTensor, variable.dataType)

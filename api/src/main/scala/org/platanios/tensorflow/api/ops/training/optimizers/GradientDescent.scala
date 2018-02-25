@@ -46,16 +46,16 @@ class GradientDescent protected (
     val learningRateSummaryTag: String = null,
     val name: String = "GradientDescent"
 ) extends Optimizer {
-  private[this] var learningRateTensor: Output = _
-  private[this] var momentumTensor    : Output = _
+  protected var learningRateTensor: Output = _
+  protected var momentumTensor    : Output = _
 
-  private[this] def getLearningRate(variable: Variable, iteration: Option[Variable]): Output = {
+  protected def getLearningRate(variable: Variable, iteration: Option[Variable]): Output = {
     if (learningRateTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
     Math.cast(learningRateTensor, variable.dataType)
   }
 
-  private[this] def getMomentum(variable: Variable): Output = {
+  protected def getMomentum(variable: Variable): Output = {
     if (momentumTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
     Math.cast(momentumTensor, variable.dataType)

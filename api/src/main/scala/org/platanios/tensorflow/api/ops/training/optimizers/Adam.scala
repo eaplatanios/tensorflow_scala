@@ -80,30 +80,30 @@ class Adam protected (
     val learningRateSummaryTag: String = null,
     val name: String = "Adam"
 ) extends Optimizer {
-  private[this] var learningRateTensor: Output = _
-  private[this] var beta1Tensor       : Output = _
-  private[this] var beta2Tensor       : Output = _
-  private[this] var epsilonTensor     : Output = _
+  protected var learningRateTensor: Output = _
+  protected var beta1Tensor       : Output = _
+  protected var beta2Tensor       : Output = _
+  protected var epsilonTensor     : Output = _
 
-  private[this] def getLearningRate(variable: Variable, iteration: Option[Variable]): Output = {
+  protected def getLearningRate(variable: Variable, iteration: Option[Variable]): Output = {
     if (learningRateTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
     Math.cast(learningRateTensor, variable.dataType)
   }
 
-  private[this] def getBeta1(variable: Variable): Output = {
+  protected def getBeta1(variable: Variable): Output = {
     if (beta1Tensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
     Math.cast(beta1Tensor, variable.dataType)
   }
 
-  private[this] def getBeta2(variable: Variable): Output = {
+  protected def getBeta2(variable: Variable): Output = {
     if (beta2Tensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
     Math.cast(beta2Tensor, variable.dataType)
   }
 
-  private[this] def getEpsilon(variable: Variable): Output = {
+  protected def getEpsilon(variable: Variable): Output = {
     if (epsilonTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
     Math.cast(epsilonTensor, variable.dataType)
