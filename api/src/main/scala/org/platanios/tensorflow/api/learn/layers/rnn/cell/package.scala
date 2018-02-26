@@ -22,8 +22,8 @@ import org.platanios.tensorflow.api.ops.Output
   * @author Emmanouil Antonios Platanios
   */
 package object cell {
-  private[cell] val KERNEL_NAME: String = "weights"
-  private[cell] val BIAS_NAME  : String = "bias"
+  private[cell] val KERNEL_NAME: String = "Weights"
+  private[cell] val BIAS_NAME  : String = "Bias"
 
   type Tuple[O, S] = ops.rnn.cell.Tuple[O, S]
   type BasicTuple = Tuple[Output, Output]
