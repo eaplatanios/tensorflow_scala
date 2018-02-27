@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.ops.variables
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.ShapeMismatchException
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.ops.{Basic, Output, Random}
+import org.platanios.tensorflow.api.ops.{Basic, Op, Output, Random}
 import org.platanios.tensorflow.api.ops.variables.Variable.PartitionInformation
 import org.platanios.tensorflow.api.ops.variables.VarianceScalingInitializer.FanInScalingMode
 import org.platanios.tensorflow.api.tensors.Tensor
@@ -40,7 +40,9 @@ trait Initializer {
   val shape: Shape = null
 
   def apply(dataType: DataType, shape: Shape, partitionInfo: PartitionInformation): Output = {
-    initialValue(dataType, shape, partitionInfo)
+    Op.initialization {
+      initialValue(dataType, shape, partitionInfo)
+    }
   }
 
   /** Generates an initial value op.
