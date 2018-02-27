@@ -212,6 +212,21 @@ case class Variable private (
     }
   }
 
+  /** Creates an op that applies updates the provided sparse value updates to this variable and returns its value.
+    *
+    * @param  indices Indices corresponding to the `values` used for the update.
+    * @param  values  Values to use for updating, corresponding to the provided `indices`.
+    * @param  name    Name for created op.
+    * @return Variable value read op, after the addition.
+    */
+  def assignScatter(indices: Output, values: Output, name: String = "AssignScatter"): Output = {
+    if (values.dataType != dataType)
+      throw InvalidDataTypeException(s"Expected '$dataType', but got '${values.dataType}'.")
+    Op.createWith(graph = graph, controlDependencies = Set[Op](Variable.scatterUpdate(handle, indices, values, name))) {
+      read()
+    }
+  }
+
   /** Creates an op that adds the provided sparse value to the current value of the variable and returns its value.
     *
     * @param  indices Indices corresponding to the `values` being added.
@@ -1016,6 +1031,48 @@ private[api] object Variable {
         .setAttribute("dtype", if (dataType == null) variable.dataType else dataType)
         .setAttribute("validate_indices", validateIndices)
         .build().outputs(0)
+  }
+
+  /** Creates an op that applies sparse updates to `variable`.
+    *
+    * The operation computes:
+    * {{{
+    *   // Scalar indices
+    *   variable(::, ---) = updates(indices, ---)
+    *
+    *   // Vector indices
+    *   variable(i, ---) = updates(indices(i), ---)
+    *
+    *   // Higher rank indices
+    *   variable(i, ..., j, ---) = updates(indices(i, ..., j), ---)
+    * }}}
+    *
+    * Duplicate entries are handled correctly: if multiple `indices` reference the same location, their contributions
+    * add up.
+    *
+    * The op requires that `updates.shape = indices.shape + variable.shape(1::)`.
+    *
+    * @param  variable Variable to be updated.
+    * @param  indices  Indices tensor, which must be an `INT32` or `INT64` tensor.
+    * @param  updates  Updates tensor, which must have a numeric data type.
+    * @param  name     Name for the created op.
+    * @return Created op.
+    */
+  private[ops] def scatterUpdate(
+      variable: Output,
+      indices: Output,
+      updates: Output,
+      name: String = "ScatterUpdate"
+  ): Op = {
+    if (indices.dataType != INT32 && indices.dataType != INT64)
+      throw InvalidDataTypeException(
+        s"Data type '${indices.dataType}' is not supported for the resource variable scatter update op indices. " +
+            s"Only 'INT32' and 'INT64' are supported.")
+    Op.Builder(opType = "ResourceScatterUpdate", name = name)
+        .addInput(variable)
+        .addInput(indices)
+        .addInput(updates)
+        .build()
   }
 
   /** Creates an op that adds sparse updates to `variable`.
