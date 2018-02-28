@@ -157,7 +157,7 @@ object AdaDelta {
     * @param  name              Name for the created op.
     * @return Created op.
     */
-  private[AdaDelta] def resourceApplyDense(
+  private[optimizers] def resourceApplyDense(
       variable: Variable,
       accumulator: Variable,
       accumulatorUpdate: Variable,
@@ -203,7 +203,7 @@ object AdaDelta {
     * @param  name              Name for the created op.
     * @return Created op.
     */
-  private[AdaDelta] def resourceApplySparse(
+  private[optimizers] def resourceApplySparse(
       variable: Variable,
       accumulator: Variable,
       accumulatorUpdate: Variable,

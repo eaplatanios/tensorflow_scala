@@ -114,7 +114,7 @@ object AdaGrad {
     * @param  name        Name for the created op.
     * @return Created op.
     */
-  private[AdaGrad] def resourceApplyDense(
+  private[optimizers] def resourceApplyDense(
       variable: Variable,
       accumulator: Variable,
       stepSize: Output,
@@ -149,7 +149,7 @@ object AdaGrad {
     * @param  name        Name for the created op.
     * @return Created op.
     */
-  private[AdaGrad] def resourceApplySparse(
+  private[optimizers] def resourceApplySparse(
       variable: Variable,
       accumulator: Variable,
       stepSize: Output,

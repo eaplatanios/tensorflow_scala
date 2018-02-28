@@ -19,5 +19,8 @@ package org.platanios.tensorflow.api.ops
   * @author Emmanouil Antonios Platanios
   */
 package object training {
-  private[ops] trait API extends optimizers.API
+  private[ops] trait API extends optimizers.API {
+    type ExponentialMovingAverage = training.ExponentialMovingAverage
+    val ExponentialMovingAverage: training.ExponentialMovingAverage.type = training.ExponentialMovingAverage
+  }
 }

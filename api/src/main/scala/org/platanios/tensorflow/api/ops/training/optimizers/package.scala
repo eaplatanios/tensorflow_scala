@@ -26,10 +26,12 @@ package object optimizers {
     type AdaGrad = optimizers.AdaGrad
     type Adam = optimizers.Adam
     type GradientDescent = optimizers.GradientDescent
+    type YellowFin = optimizers.YellowFin
 
     val AdaDelta       : optimizers.AdaDelta.type        = optimizers.AdaDelta
     val AdaGrad        : optimizers.AdaGrad.type         = optimizers.AdaGrad
     val Adam           : optimizers.Adam.type            = optimizers.Adam
     val GradientDescent: optimizers.GradientDescent.type = optimizers.GradientDescent
+    val YellowFin      : optimizers.YellowFin.type       = optimizers.YellowFin
   }
 }

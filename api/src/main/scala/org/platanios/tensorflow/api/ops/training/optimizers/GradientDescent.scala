@@ -63,7 +63,7 @@ class GradientDescent protected (
 
   override protected def createSlots(variables: Seq[Variable]): Unit = {
     if (momentum > 0.0f)
-      variables.foreach(v => zerosSlot("momentum", v, "Momentum"))
+      variables.foreach(v => zerosSlot("Momentum", v, name))
   }
 
   override def prepare(iteration: Option[Variable]): Unit = {
@@ -78,7 +78,7 @@ class GradientDescent protected (
     if (momentum > 0.0f)
       GradientDescent.resourceApplyMomentumDense(
         variable = variable,
-        accumulator = getSlot("momentum", variable),
+        accumulator = getSlot("Momentum", variable),
         stepSize = getLearningRate(variable, iteration),
         gradient = gradient,
         momentum = getMomentum(variable),
@@ -92,7 +92,7 @@ class GradientDescent protected (
     if (momentum > 0.0f)
       GradientDescent.resourceApplyMomentumSparse(
         variable = variable,
-        accumulator = getSlot("momentum", variable),
+        accumulator = getSlot("Momentum", variable),
         stepSize = getLearningRate(variable, iteration),
         gradient = gradient.values,
         indices = gradient.indices,
@@ -132,7 +132,7 @@ object GradientDescent {
     * @param  name       Name for the created op.
     * @return Created op.
     */
-  private[GradientDescent] def resourceApplyDense(
+  private[optimizers] def resourceApplyDense(
       variable: Variable,
       stepSize: Output,
       gradient: Output,
@@ -168,7 +168,7 @@ object GradientDescent {
     * @param  name        Name for the created op.
     * @return Created op.
     */
-  private[GradientDescent] def resourceApplyMomentumDense(
+  private[optimizers] def resourceApplyMomentumDense(
       variable: Variable,
       accumulator: Variable,
       stepSize: Output,
@@ -211,7 +211,7 @@ object GradientDescent {
     * @param  name        Name for the created op.
     * @return Created op.
     */
-  private[GradientDescent] def resourceApplyMomentumSparse(
+  private[optimizers] def resourceApplyMomentumSparse(
       variable: Variable,
       accumulator: Variable,
       stepSize: Output,

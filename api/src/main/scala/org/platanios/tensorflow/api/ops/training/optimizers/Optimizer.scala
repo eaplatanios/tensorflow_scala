@@ -89,10 +89,13 @@ trait Optimizer {
     * @return Sequence of gradient-variable pairs.
     */
   def computeGradients(
-      loss: Output, lossGradients: Seq[OutputLike] = null, variables: Set[Variable] = null,
+      loss: Output,
+      lossGradients: Seq[OutputLike] = null,
+      variables: Set[Variable] = null,
       gradientsGatingMethod: Gradients.GatingMethod = Gradients.OpGating,
       gradientsAggregationMethod: Gradients.AggregationMethod = Gradients.AddAggregationMethod,
-      colocateGradientsWithOps: Boolean = false): Seq[(OutputLike, Variable)] = {
+      colocateGradientsWithOps: Boolean = false
+  ): Seq[(OutputLike, Variable)] = {
     assertSupportedDataTypes(Iterable[OutputLike](loss))
     if (lossGradients != null)
       assertSupportedDataTypes(lossGradients)
@@ -136,8 +139,10 @@ trait Optimizer {
     * @return Created op.
     */
   def applyGradients(
-      gradientsAndVariables: Seq[(OutputLike, Variable)], iteration: Option[Variable] = None,
-      name: String = this.name): Op = {
+      gradientsAndVariables: Seq[(OutputLike, Variable)],
+      iteration: Option[Variable] = None,
+      name: String = this.name
+  ): Op = {
     // This is a default implementation of `applyGradients` that is shared by most optimizers. It relies on the subclass
     // implementing the following methods: `createSlots`, `prepare`, `finish`, `applyDense`, and `applySparse`.
     val variables: Seq[Variable] = gradientsAndVariables.filter(_._1 != null).map(_._2)
@@ -371,7 +376,7 @@ trait Optimizer {
 
 private[optimizers] object Optimizer {
   /** Gets the appropriate variable processor to use for `variable`. */
-  private[Optimizer] def getVariableProcessor(variable: Variable): VariableProcessor = variable match {
+  private[optimizers] def getVariableProcessor(variable: Variable): VariableProcessor = variable match {
     // TODO: [VARIABLES] This is dummy for now.
     case v if v.op.opType == "VarHandleOp" => ResourceVariableProcessor(v)
     case v if v.op.opType == "SubmodelPort" => StreamingModelPortProcessor(v)

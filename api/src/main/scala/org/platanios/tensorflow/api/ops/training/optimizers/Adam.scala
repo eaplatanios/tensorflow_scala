@@ -116,8 +116,8 @@ class Adam protected (
   override protected def createSlots(variables: Seq[Variable]): Unit = {
     // Create slots for the first and second moments.
     variables.foreach(v => {
-      zerosSlot("m", v, name)
-      zerosSlot("v", v, name)
+      zerosSlot("M", v, name)
+      zerosSlot("V", v, name)
     })
     // We create the 'beta1' and 'beta2' accumulators on the same device as the first variable. We sort the variables
     // list to make sure this device is consistent across workers (these need to go on the same parameter server,
@@ -137,8 +137,8 @@ class Adam protected (
   }
 
   override def applyDense(gradient: Output, variable: Variable, iteration: Option[Variable]): Op = {
-    val m = getSlot("m", variable)
-    val v = getSlot("v", variable)
+    val m = getSlot("M", variable)
+    val v = getSlot("V", variable)
     val (beta1Power, beta2Power) = getBetaPowerAccumulators
     Adam.resourceApplyDense(
       variable = variable,
@@ -169,8 +169,8 @@ class Adam protected (
   }
 
   override def applySparse(gradient: OutputIndexedSlices, variable: Variable, iteration: Option[Variable]): Op = {
-    val m = getSlot("m", variable)
-    val v = getSlot("v", variable)
+    val m = getSlot("M", variable)
+    val v = getSlot("V", variable)
     val (beta1Power, beta2Power) = getBetaPowerAccumulators
     val beta1 = getBeta1(variable)
     val beta2 = getBeta2(variable)
@@ -237,7 +237,7 @@ object Adam {
     * @param  name        Name for the created op.
     * @return Created op.
     */
-  private[Adam] def resourceApplyDense(
+  private[optimizers] def resourceApplyDense(
       variable: Variable,
       m: Variable,
       v: Variable,
