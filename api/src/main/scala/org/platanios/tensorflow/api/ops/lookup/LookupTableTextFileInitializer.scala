@@ -62,7 +62,7 @@ import org.platanios.tensorflow.api.types.{DataType, INT64, STRING}
   *
   * @author Emmanouil Antonios Platanios
   */
-class LookupTableTextFileInitializer(
+class LookupTableTextFileInitializer protected (
     val filename: Output,
     override val keysDataType: DataType,
     override val valuesDataType: DataType,

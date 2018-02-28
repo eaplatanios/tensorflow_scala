@@ -35,5 +35,11 @@ package object lookup {
     val LookupTableTensorInitializer  : lookup.LookupTableTensorInitializer.type   = lookup.LookupTableTensorInitializer
     val LookupTableTextFileInitializer: lookup.LookupTableTextFileInitializer.type =
       lookup.LookupTableTextFileInitializer
+
+    type TextFileFieldExtractor = lookup.TextFileFieldExtractor
+
+    val TextFileLineNumber: lookup.TextFileLineNumber.type = lookup.TextFileLineNumber
+    val TextFileWholeLine : lookup.TextFileWholeLine.type  = lookup.TextFileWholeLine
+    val TextFileColumn    : lookup.TextFileColumn.type     = lookup.TextFileColumn
   }
 }

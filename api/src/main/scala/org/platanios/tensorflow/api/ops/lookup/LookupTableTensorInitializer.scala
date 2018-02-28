@@ -26,7 +26,7 @@ import org.platanios.tensorflow.api.ops.{Op, Output}
   *
   * @author Emmanouil Antonios Platanios
   */
-case class LookupTableTensorInitializer(keys: Output, values: Output)
+class LookupTableTensorInitializer protected (val keys: Output, val values: Output)
     extends LookupTableInitializer(keys.dataType, values.dataType) {
   /** Creates and returns an op that initializes the provided table.
     *
@@ -43,4 +43,8 @@ case class LookupTableTensorInitializer(keys: Output, values: Output)
   }
 }
 
-
+object LookupTableTensorInitializer {
+  def apply(keys: Output, values: Output): LookupTableTensorInitializer = {
+    new LookupTableTensorInitializer(keys, values)
+  }
+}
