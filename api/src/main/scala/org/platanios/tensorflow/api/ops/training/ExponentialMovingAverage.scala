@@ -212,6 +212,15 @@ class ExponentialMovingAverage protected (
 }
 
 object ExponentialMovingAverage {
+  def apply(
+      decay: Float,
+      numUpdates: Option[Int] = None,
+      zeroDebias: Boolean = false,
+      name: String = "ExponentialMovingAverage"
+  ): ExponentialMovingAverage = {
+    new ExponentialMovingAverage(decay, numUpdates, zeroDebias, name)
+  }
+
   /** Computes the moving average of a variable.
     *
     * The moving average of `variable` updated with `value` is defined as: `variable * decay + value * (1 - decay)`.
@@ -247,7 +256,7 @@ object ExponentialMovingAverage {
       variable: Variable,
       value: Output,
       decay: Output,
-      zeroDebias: Boolean = true,
+      zeroDebias: Boolean,
       name: String = "Assign"
   ): Output = {
     Op.createWith(nameScope = name, colocationOps = Set(variable.op)) {
@@ -292,12 +301,12 @@ object ExponentialMovingAverage {
         val localStep = Variable.getVariable(
           "LocalStep", unbiasedVariable.dataType, Shape(), ZerosInitializer, trainable = false)
         val biasedUpdate = biased.assignSub((biased - value) * decay, Op.currentVariableScope.name)
-        val localStepUpdate = localStep.assignAdd(1)
+        val localStepUpdate = localStep.assignAdd(Basic.constant(1, localStep.dataType))
         // Compute the value of the delta to update the unbiased EMA. Make sure to use the new values of the biased
         // variable and the local step.
         Op.createWith(controlDependencies = Set(biasedUpdate.op, localStepUpdate.op)) {
           // This function gets `1 - decay`, and so we use `1.0 - decay` in the exponent.
-          unbiasedVariable - (biased / (1.0f - Math.pow(1.0f - decay, localStep)))
+          unbiasedVariable - (biased.read() / (1.0f - Math.pow(1.0f - decay, localStep.read())))
         }
       }
     }

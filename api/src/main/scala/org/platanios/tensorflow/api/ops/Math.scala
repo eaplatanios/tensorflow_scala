@@ -1419,6 +1419,23 @@ private[api] trait Math {
     }
   }
 
+  /** $OpDocMathCountNonZero
+    *
+    * @group MathOps
+    * @param  input    Input tensor for which to count the number of non-zero entries.
+    * @param  name     Name for the created op.
+    * @return Created op output with `INT64` data type.
+    */
+  def countNonZeroSparse[T <: OutputLike](input: T, name: String = "CountNonZero"): Output = {
+    Op.createWith(nameScope = name) {
+      input match {
+        case o: Output => sum(cast(notEqual(o, Basic.constant(0)), INT64))
+        case o: OutputIndexedSlices => sum(cast(notEqual(o.values, Basic.constant(0)), INT64))
+        case o: SparseOutput => sum(cast(notEqual(o.values, Basic.constant(0)), INT64))
+      }
+    }
+  }
+
   //endregion Reduction Ops
 
   /** $OpDocMathArgmax
