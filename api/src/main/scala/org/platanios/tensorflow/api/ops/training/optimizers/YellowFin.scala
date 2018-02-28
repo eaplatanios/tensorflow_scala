@@ -17,9 +17,9 @@ package org.platanios.tensorflow.api.ops.training.optimizers
 
 import org.platanios.tensorflow.api.core.{NewAxis, Shape}
 import org.platanios.tensorflow.api.implicits.Implicits._
+import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.training.ExponentialMovingAverage
-import org.platanios.tensorflow.api.ops.{Basic, Checks, Math, Op, Output, OutputIndexedSlices, OutputLike, Summary}
 import org.platanios.tensorflow.api.ops.training.optimizers.schedules.{FixedSchedule, Schedule}
 import org.platanios.tensorflow.api.ops.variables._
 import org.platanios.tensorflow.api.tensors.Tensor
