@@ -46,7 +46,7 @@ case class FlatMapDataset[T, O, D, S, RT, RO, RD, RS](
 ) extends Dataset[RT, RO, RD, RS](name)(evROToRT, evRData, evFunctionOutput) {
   private[this] lazy val instantiatedFunction = {
     Function(s"$name/Function", function).instantiate(
-      inputDataset.flattenedOutputDataTypes, inputDataset.flattenedOutputShapes, appendHashToName = true)
+      inputDataset.flattenedOutputDataTypes, inputDataset.flattenedOutputShapes)
   }
 
   override def createHandle(): Output = {

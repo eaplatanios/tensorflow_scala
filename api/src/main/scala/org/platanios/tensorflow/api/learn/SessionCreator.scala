@@ -35,6 +35,9 @@ trait SessionCreator {
   def addInitOp(op: Op): Unit = extraInitOps += op
   def addLocalInitOp(op: Op): Unit = extraLocalInitOps += op
 
+  def removeInitOp(op: Op): Unit = extraInitOps -= op
+  def removeLocalInitOp(op: Op): Unit = extraLocalInitOps -= op
+
   protected lazy val initOp: Op = ControlFlow.noOp("InitOp")
   protected lazy val localInitOp: Op = ControlFlow.noOp("LocalInitOp")
 

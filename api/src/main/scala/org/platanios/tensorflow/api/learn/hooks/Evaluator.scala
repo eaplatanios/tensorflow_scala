@@ -103,14 +103,17 @@ case class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
       session: Session
   ): Unit = Op.createWith(graph, nameScope = name) {
     Evaluator.logger.debug(s"Computing $name.")
+    val initializedDatasets = datasets.map(d => (d._1, d._2()))
     val session = MonitoredSession(sessionCreator, shouldRecover = true)
     val values = {
       try {
-        datasets.map {
+        initializedDatasets.map {
           case (datasetName, dataset) =>
-            session.graph.unFreeze()
-            dataInitializer = evaluateOps.inputIterator.createInitializer(dataset())
-            session.graph.freeze()
+            graph.unFreeze()
+            sessionCreator.removeLocalInitOp(dataInitializer)
+            dataInitializer = evaluateOps.inputIterator.createInitializer(dataset)
+            sessionCreator.addLocalInitOp(dataInitializer)
+            graph.freeze()
             session.run(targets = dataInitializer)
             while (!session.shouldStop)
               try {
@@ -119,7 +122,7 @@ case class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
                 case _: OutOfRangeException => session.setShouldStop(true)
               }
             val value = session.run(fetches = evaluateOps.metricValues)
-            session.setShouldStop(false)
+            session.resetShouldStop()
             datasetName -> value
         }
       } catch {
