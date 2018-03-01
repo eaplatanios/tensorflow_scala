@@ -112,7 +112,7 @@ case class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
     val session = MonitoredSession(sessionCreator, shouldRecover = true)
     val values = {
       try {
-        initializedDatasets.map {
+        val values = initializedDatasets.map {
           case (datasetName, dataset) =>
             graph.unFreeze()
             sessionCreator.removeLocalInitOp(dataInitializer)
@@ -120,16 +120,18 @@ case class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
             sessionCreator.addLocalInitOp(dataInitializer)
             graph.freeze()
             session.run(targets = dataInitializer +: evaluateOps.metricResets)
-            while (!session.shouldStop)
+            var shouldStop = false
+            while (!shouldStop)
               try {
                 session.run(targets = evaluateOps.metricUpdates.toSet)
               } catch {
-                case _: OutOfRangeException => session.setShouldStop(true)
+                case _: OutOfRangeException => shouldStop = true
               }
             val value = session.run(fetches = evaluateOps.metricValues)
-            session.resetShouldStop()
             datasetName -> value
         }
+        session.setShouldStop(true)
+        values
       } catch {
         case e if RECOVERABLE_EXCEPTIONS.contains(e.getClass) =>
           session.close()
