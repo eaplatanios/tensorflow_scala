@@ -138,27 +138,28 @@ case class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
       }
     }
     if (log) {
-      val datasetNames = values.map(_._1)
       val datasetValues = values.map(_._2).transpose
-      val columnWidth = math.max(datasetNames.map(_.length).max, 15) + 2
+      val colNames = values.map(_._1)
+      val firstColWidth = metrics.map(_.name.length).max
+      val colWidth = math.max(colNames.map(_.length).max, 15)
       Evaluator.logger.info(s"Step $step $name:")
-      Evaluator.logger.info(s"╔════════════════╤${datasetNames.map(_ => "═" * columnWidth).mkString("╤")}╗")
-      Evaluator.logger.info(f"║                │${datasetNames.map(s" %${columnWidth - 2}s ".format(_)).mkString("│")}║")
-      Evaluator.logger.info(s"╟────────────────┼${datasetNames.map(_ => "─" * columnWidth).mkString("┼")}╢")
+      Evaluator.logger.info(s"╔═${"═" * firstColWidth}═╤${colNames.map(_ => "═" * (colWidth + 2)).mkString("╤")}╗")
+      Evaluator.logger.info(f"║ ${" " * firstColWidth} │${colNames.map(s" %${colWidth}s ".format(_)).mkString("│")}║")
+      Evaluator.logger.info(s"╟─${"─" * firstColWidth}─┼${colNames.map(_ => "─" * (colWidth + 2)).mkString("┼")}╢")
       metrics.zip(datasetValues).foreach {
         case (metric, metricValues) =>
-          val line = s"║%${columnWidth - 2}s │".format(metric) + metricValues.map(metricValue => {
+          val line = s"║ %${firstColWidth}s │".format(metric) + metricValues.map(metricValue => {
             if (metricValue.shape.rank == 0 &&
                 (metricValue.dataType.isFloatingPoint || metricValue.dataType.isInteger)) {
               val castedValue = metricValue.cast(FLOAT32).scalar.asInstanceOf[Float]
-              s" %${columnWidth - 2}.4f ".format(castedValue)
+              s" %${colWidth}.4f ".format(castedValue)
             } else {
-              s"     Not Scalar "
+              s" %${colWidth}s ".format("Not Scalar")
             }
           }).mkString("│") + "║"
           Evaluator.logger.info(line)
       }
-      Evaluator.logger.info(s"╚════════════════╧${datasetNames.map(_ => "═" * columnWidth).mkString("╧")}╝")
+      Evaluator.logger.info(s"╚═${"═" * firstColWidth}═╧${colNames.map(_ => "═" * (colWidth + 2)).mkString("╧")}╝")
     }
     if (summaryDir != null) {
       Evaluator.logger.info(s"Saving $name results at '$summaryDir'.")
