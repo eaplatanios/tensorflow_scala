@@ -320,7 +320,7 @@ case class TensorArray private (
   }
 }
 
-private[api] object TensorArray {
+object TensorArray {
   /** Creates a new tensor array.
     *
     * @param  size                   Size of the tensor array.
@@ -402,7 +402,7 @@ private[api] object TensorArray {
       handle = handle,
       flow = flow,
       dataType = dataType,
-      inferShape = inferShape || elementShape.rank != -1,
+      inferShape = inferShape || elementShape.rank == -1,
       elementShape = if (elementShape.rank == -1) None else Some(elementShape),
       colocateWithFirstWrite = colocateWithFirstWrite)
   }

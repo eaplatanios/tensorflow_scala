@@ -1324,7 +1324,7 @@ object Op {
       newOps ++ newOps.foldLeft(newOps)((collected, op) => transitiveColocationOps(Set(op), collected))
   }
 
-  private[ops] final case class Builder(opType: String, name: String)
+  final case class Builder(opType: String, name: String)
       (implicit context: DynamicVariable[OpCreationContext]) {
     context.value.graph.assertNotFrozen()
 
