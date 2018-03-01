@@ -119,7 +119,7 @@ case class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
             dataInitializer = evaluateOps.inputIterator.createInitializer(dataset)
             sessionCreator.addLocalInitOp(dataInitializer)
             graph.freeze()
-            session.run(targets = Set(dataInitializer, evaluateOps.metricResets))
+            session.run(targets = dataInitializer +: evaluateOps.metricResets)
             while (!session.shouldStop)
               try {
                 session.run(targets = evaluateOps.metricUpdates.toSet)
