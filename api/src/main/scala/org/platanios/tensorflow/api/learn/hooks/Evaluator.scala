@@ -42,7 +42,7 @@ import java.nio.file.Path
   * @param  log          If `true`, the step rate is logged using the current logging configuration.
   * @param  summaryDir   If provided, summaries for the step rate will be saved in this directory. This is useful for
   *                      visualization using TensorBoard, for example.
-  * @param  data         Dataset over which to evaluate and which produces elements of the same type as the train
+  * @param  datasets     Datasets over which to evaluate and which produce elements of the same type as the train
   *                      dataset elements.
   * @param  metrics      Evaluation metrics to use.
   * @param  trigger      Hook trigger specifying when this hook is triggered (i.e., when it executes). If you only want
@@ -59,7 +59,7 @@ import java.nio.file.Path
 case class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
     log: Boolean = true,
     summaryDir: Path = null,
-    data: () => Dataset[TT, TO, TD, TS],
+    datasets: Seq[(String, () => Dataset[TT, TO, TD, TS])],
     metrics: Seq[Metric[EI, Output]],
     trigger: HookTrigger = StepHookTrigger(100),
     triggerAtEnd: Boolean = true,
@@ -82,7 +82,6 @@ case class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
     Op.createWith(graph, nameScope = name) {
       randomSeed.foreach(graph.setRandomSeed)
       evaluateOps = Op.createWithNameScope("Model")(modelInstance.model.buildEvaluateOps(metrics))
-      dataInitializer = evaluateOps.inputIterator.createInitializer(data())
       this.sessionCreator = ChiefSessionCreator(
         master = modelInstance.configuration.evaluationMaster,
         sessionScaffold = SessionScaffold(
@@ -91,8 +90,7 @@ case class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
             Resource.initializer(Resource.sharedResources)))),
           localInitOp = Some(ControlFlow.group(Set(
             Variable.initializer(Variable.localVariables),
-            Lookup.lookupsInitializer()))),
-          localInitFunction = Some((session, _) => session.run(targets = dataInitializer))),
+            Lookup.lookupsInitializer())))),
         sessionConfig = modelInstance.configuration.sessionConfig,
         checkpointPath = modelInstance.configuration.workingDir)
     }
@@ -108,17 +106,26 @@ case class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
     val session = MonitoredSession(sessionCreator, shouldRecover = true)
     val values = {
       try {
-        while (!session.shouldStop)
-          try {
-            session.run(targets = evaluateOps.metricUpdates.toSet)
-          } catch {
-            case _: OutOfRangeException => session.setShouldStop(true)
-          }
-        session.run(fetches = evaluateOps.metricValues)
+        datasets.map {
+          case (datasetName, dataset) =>
+            session.graph.unFreeze()
+            dataInitializer = evaluateOps.inputIterator.createInitializer(dataset())
+            session.graph.freeze()
+            session.run(targets = dataInitializer)
+            while (!session.shouldStop)
+              try {
+                session.run(targets = evaluateOps.metricUpdates.toSet)
+              } catch {
+                case _: OutOfRangeException => session.setShouldStop(true)
+              }
+            val value = session.run(fetches = evaluateOps.metricValues)
+            session.setShouldStop(false)
+            datasetName -> value
+        }
       } catch {
         case e if RECOVERABLE_EXCEPTIONS.contains(e.getClass) =>
           session.close()
-          Seq.empty[Tensor]
+          Seq.empty[(String, Seq[Tensor])]
         case t: Throwable =>
           session.closeWithoutHookEnd()
           throw t
@@ -128,32 +135,46 @@ case class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
       }
     }
     if (log) {
-      val message = metrics.zip(values).map {
-        case (metric, metricValue) =>
-          if (metricValue.shape.rank == 0 &&
-              (metricValue.dataType.isFloatingPoint || metricValue.dataType.isInteger)) {
-            val castedValue = metricValue.cast(FLOAT32).scalar.asInstanceOf[Float]
-            f"${metric.name}%s = $castedValue%.4f"
-          } else {
-            s"'$metric' is non-scalar or non-numeric"
-          }
+      val datasetNames = values.map(_._1)
+      val datasetValues = values.map(_._2).transpose
+      Evaluator.logger.info(s"Step $step $name:")
+      Evaluator.logger.info(s"╔════════════════╤${datasetNames.map(_ => "═" * 17).mkString("╤")}╗")
+      Evaluator.logger.info(f"║                │${datasetNames.map(name => f" $name%15s ").mkString("│")}║")
+      Evaluator.logger.info(s"╟────────────────┼${datasetNames.map(_ => "─" * 17).mkString("┼")}╢")
+      metrics.zip(datasetValues).foreach {
+        case (metric, metricValues) =>
+          val line = f"║$metric%15s │" + metricValues.map(metricValue => {
+            if (metricValue.shape.rank == 0 &&
+                (metricValue.dataType.isFloatingPoint || metricValue.dataType.isInteger)) {
+              val castedValue = metricValue.cast(FLOAT32).scalar.asInstanceOf[Float]
+              f" $castedValue%15.4f "
+            } else {
+              s"     Not Scalar "
+            }
+          }).mkString("│") + "║"
+          Evaluator.logger.info(line)
       }
-      Evaluator.logger.info(s"Step $step $name: ${message.mkString(" | ")}")
+      Evaluator.logger.info(s"╚════════════════╧${datasetNames.map(_ => "═" * 17).mkString("╧")}╝")
     }
     if (summaryDir != null) {
       Evaluator.logger.info(s"Saving $name results at '$summaryDir'.")
+      val datasetNames = values.map(_._1)
+      val datasetValues = values.map(_._2).transpose
       val summaryProto = Summary.newBuilder()
-      metrics.zip(values).foreach {
-        case (metric, metricValue) =>
-          if (metricValue.shape.rank == 0 &&
-              (metricValue.dataType.isFloatingPoint || metricValue.dataType.isInteger)) {
-            val castedValue = metricValue.cast(FLOAT32).scalar.asInstanceOf[Float]
-            val value = Summary.Value.newBuilder()
-            value.setTag(metric.name)
-            value.setSimpleValue(castedValue)
-            summaryProto.addValue(value)
-          } else {
-            Evaluator.logger.warn(s"Skipping summary for non-scalar and/or non-numeric metric '$metric'.")
+      metrics.zip(datasetValues).foreach {
+        case (metric, metricValues) =>
+          datasetNames.zip(metricValues).foreach {
+            case (datasetName, metricValue) =>
+              if (metricValue.shape.rank == 0 &&
+                  (metricValue.dataType.isFloatingPoint || metricValue.dataType.isInteger)) {
+                val castedValue = metricValue.cast(FLOAT32).scalar.asInstanceOf[Float]
+                val value = Summary.Value.newBuilder()
+                value.setTag(s"$datasetName/${metric.name}")
+                value.setSimpleValue(castedValue)
+                summaryProto.addValue(value)
+              } else {
+                Evaluator.logger.warn(s"Skipping summary for non-scalar and/or non-numeric metric '$metric'.")
+              }
           }
       }
       val writer = SummaryFileWriterCache.get(summaryDir)
