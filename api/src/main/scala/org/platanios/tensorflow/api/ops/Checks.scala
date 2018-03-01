@@ -387,6 +387,7 @@ private[api] trait Checks {
 
   /** $OpDocCheckAssertAtMostNTrue
     *
+    * @group CheckOps
     * @param  predicates Sequence containing scalar boolean tensors, representing the predicates.
     * @param  n          Maximum number of predicates allowed to be `true`.
     * @param  message    Optional message to include in the error message, if the assertion fails.
