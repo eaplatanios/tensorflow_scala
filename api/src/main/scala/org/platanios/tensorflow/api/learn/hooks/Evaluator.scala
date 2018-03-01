@@ -103,9 +103,12 @@ case class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
       session: Session
   ): Unit = Op.createWith(graph, nameScope = name) {
     Evaluator.logger.debug(s"Computing $name.")
-    graph.unFreeze()
+    val frozen = graph.isFrozen
+    if (frozen)
+      graph.unFreeze()
     val initializedDatasets = datasets.map(d => (d._1, d._2()))
-    graph.freeze()
+    if (frozen)
+      graph.freeze()
     val session = MonitoredSession(sessionCreator, shouldRecover = true)
     val values = {
       try {
@@ -116,7 +119,7 @@ case class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
             dataInitializer = evaluateOps.inputIterator.createInitializer(dataset)
             sessionCreator.addLocalInitOp(dataInitializer)
             graph.freeze()
-            session.run(targets = dataInitializer)
+            session.run(targets = Set(dataInitializer, evaluateOps.metricResets))
             while (!session.shouldStop)
               try {
                 session.run(targets = evaluateOps.metricUpdates.toSet)
@@ -140,6 +143,7 @@ case class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
       }
     }
     if (log) {
+      // TODO: Convert to vertical orientation.
       val datasetValues = values.map(_._2).transpose
       val colNames = values.map(_._1)
       val firstColWidth = metrics.map(_.name.length).max
