@@ -103,7 +103,9 @@ case class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
       session: Session
   ): Unit = Op.createWith(graph, nameScope = name) {
     Evaluator.logger.debug(s"Computing $name.")
+    graph.unFreeze()
     val initializedDatasets = datasets.map(d => (d._1, d._2()))
+    graph.freeze()
     val session = MonitoredSession(sessionCreator, shouldRecover = true)
     val values = {
       try {
