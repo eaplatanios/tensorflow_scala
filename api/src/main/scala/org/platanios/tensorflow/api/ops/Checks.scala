@@ -62,6 +62,7 @@ private[api] trait Checks {
     * @group CheckOps
     * @param  x         First input tensor.
     * @param  y         Second input tensor.
+    * @param  message   Optional message to include in the error message, if the assertion fails.
     * @param  data      Op outputs whose values are printed if `condition` is `false`.
     * @param  summarize Number of tensor entries to print.
     * @param  name      Name for the created op.
@@ -90,6 +91,7 @@ private[api] trait Checks {
     * @group CheckOps
     * @param  x         First input tensor.
     * @param  y         Second input tensor.
+    * @param  message   Optional message to include in the error message, if the assertion fails.
     * @param  data      Op outputs whose values are printed if `condition` is `false`.
     * @param  summarize Number of tensor entries to print.
     * @param  name      Name for the created op.
@@ -120,6 +122,7 @@ private[api] trait Checks {
     * @param  y            Second input tensor.
     * @param  relTolerance Comparison relative tolerance value.
     * @param  absTolerance Comparison absolute tolerance value.
+    * @param  message      Optional message to include in the error message, if the assertion fails.
     * @param  data         Op outputs whose values are printed if `condition` is `false`.
     * @param  summarize    Number of tensor entries to print.
     * @param  name         Name for the created op.
@@ -155,6 +158,7 @@ private[api] trait Checks {
     * @group CheckOps
     * @param  x         First input tensor.
     * @param  y         Second input tensor.
+    * @param  message   Optional message to include in the error message, if the assertion fails.
     * @param  data      Op outputs whose values are printed if `condition` is `false`.
     * @param  summarize Number of tensor entries to print.
     * @param  name      Name for the created op.
@@ -183,6 +187,7 @@ private[api] trait Checks {
     * @group CheckOps
     * @param  x         First input tensor.
     * @param  y         Second input tensor.
+    * @param  message   Optional message to include in the error message, if the assertion fails.
     * @param  data      Op outputs whose values are printed if `condition` is `false`.
     * @param  summarize Number of tensor entries to print.
     * @param  name      Name for the created op.
@@ -211,6 +216,7 @@ private[api] trait Checks {
     * @group CheckOps
     * @param  x         First input tensor.
     * @param  y         Second input tensor.
+    * @param  message   Optional message to include in the error message, if the assertion fails.
     * @param  data      Op outputs whose values are printed if `condition` is `false`.
     * @param  summarize Number of tensor entries to print.
     * @param  name      Name for the created op.
@@ -239,6 +245,7 @@ private[api] trait Checks {
     * @group CheckOps
     * @param  x         First input tensor.
     * @param  y         Second input tensor.
+    * @param  message   Optional message to include in the error message, if the assertion fails.
     * @param  data      Op outputs whose values are printed if `condition` is `false`.
     * @param  summarize Number of tensor entries to print.
     * @param  name      Name for the created op.
@@ -266,6 +273,7 @@ private[api] trait Checks {
     *
     * @group CheckOps
     * @param  input     Input tensor to check.
+    * @param  message   Optional message to include in the error message, if the assertion fails.
     * @param  data      Op outputs whose values are printed if `condition` is `false`.
     * @param  summarize Number of tensor entries to print.
     * @param  name      Name for the created op.
@@ -293,6 +301,7 @@ private[api] trait Checks {
     *
     * @group CheckOps
     * @param  input     Input tensor to check.
+    * @param  message   Optional message to include in the error message, if the assertion fails.
     * @param  data      Op outputs whose values are printed if `condition` is `false`.
     * @param  summarize Number of tensor entries to print.
     * @param  name      Name for the created op.
@@ -320,6 +329,7 @@ private[api] trait Checks {
     *
     * @group CheckOps
     * @param  input     Input tensor to check.
+    * @param  message   Optional message to include in the error message, if the assertion fails.
     * @param  data      Op outputs whose values are printed if `condition` is `false`.
     * @param  summarize Number of tensor entries to print.
     * @param  name      Name for the created op.
@@ -347,14 +357,19 @@ private[api] trait Checks {
     *
     * @group CheckOps
     * @param  input     Input tensor to check.
+    * @param  message   Optional message to include in the error message, if the assertion fails.
     * @param  data      Op outputs whose values are printed if `condition` is `false`.
     * @param  summarize Number of tensor entries to print.
     * @param  name      Name for the created op.
     * @return Created op.
     */
   def assertNonNegative(
-      input: Output, message: Output = null, data: Seq[Output] = null, summarize: Int = 3,
-      name: String = "AssertNonNegative"): Op = {
+      input: Output,
+      message: Output = null,
+      data: Seq[Output] = null,
+      summarize: Int = 3,
+      name: String = "AssertNonNegative"
+  ): Op = {
     Op.createWithNameScope(name) {
       val processedData = {
         val d: Seq[Output] = {
@@ -367,6 +382,37 @@ private[api] trait Checks {
         if (message != null) message +: d else d
       }
       assertLessEqual(0, input, data = processedData, summarize = summarize)
+    }
+  }
+
+  /** $OpDocCheckAssertAtMostNTrue
+    *
+    * @param  predicates Sequence containing scalar boolean tensors, representing the predicates.
+    * @param  n          Maximum number of predicates allowed to be `true`.
+    * @param  message    Optional message to include in the error message, if the assertion fails.
+    * @param  summarize  Number of tensor entries to print.
+    * @param  name       Name for the created op.
+    * @return Created op.
+    */
+  def assertAtMostNTrue(
+      predicates: Seq[Output],
+      n: Int,
+      message: Output = null,
+      summarize: Int = 3,
+      name: String = "AssertAtMostNTrue"
+  ): Op = {
+    Op.createWithNameScope(name) {
+      val stackedPredicates = Basic.stack(predicates, name = "StackPredicates")
+      val numTrue = Math.sum(Math.cast(stackedPredicates, INT32), "NumTrue")
+      val condition = Math.lessEqual(numTrue, Basic.constant(n, name = "NumTrueConditionsLimit"))
+      val processedData = {
+        val d: Seq[Output] = {
+          val predicateNames = predicates.map(p => s"'${p.name}'").mkString(", ")
+          Seq(s"More than $n conditions ($predicateNames) evaluated as `true`.", stackedPredicates)
+        }
+        if (message != null) message +: d else d
+      }
+      assert(condition, processedData, summarize)
     }
   }
 
@@ -524,6 +570,10 @@ private[api] trait Checks {
     *   }}}
     *
     *   If `input` is an empty tensor, the condition is trivially satisfied.
+    *
+    * @define OpDocCheckAssertAtMostNTrue
+    *   The `assertAtMostNTrue` op asserts that at most `n` of the provided predicates can evaluate to `true` at the
+    *   same time.
     */
   private[ops] trait Documentation
 }
