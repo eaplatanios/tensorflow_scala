@@ -214,11 +214,15 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eage
     JNIEnv* env, jobject object, jlong handle) {
   REQUIRE_HANDLE(tensor, TFE_TensorHandle, handle, nullptr);
   static_assert(sizeof(jlong) == sizeof(int64_t), "Scala \"Long\" is not compatible with the TensorFlow C API.");
-  const jsize num_dims = TFE_TensorHandleNumDims(tensor);
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+  const jsize num_dims = TFE_TensorHandleNumDims(tensor, status.get());
+  CHECK_STATUS(env, status.get(), nullptr);
   jlongArray return_array = env->NewLongArray(num_dims);
   jlong* shape = env->GetLongArrayElements(return_array, nullptr);
-  for (int i = 0; i < num_dims; ++i)
-    shape[i] = static_cast<jlong>(TFE_TensorHandleDim(tensor, i));
+  for (int i = 0; i < num_dims; ++i) {
+    shape[i] = static_cast<jlong>(TFE_TensorHandleDim(tensor, i, status.get()));
+     CHECK_STATUS(env, status.get(), nullptr);
+  }
   env->ReleaseLongArrayElements(return_array, shape, 0);
   return return_array;
 }
@@ -226,7 +230,10 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eage
 JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerDevice(
     JNIEnv* env,  jobject object, jlong handle) {
   REQUIRE_HANDLE(tensor, TFE_TensorHandle, handle, nullptr);
-  return env->NewStringUTF(TFE_TensorHandleDeviceName(tensor));
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+  jstring device = env->NewStringUTF(TFE_TensorHandleDeviceName(tensor, status.get()));
+  CHECK_STATUS(env, status.get(), nullptr);
+  return device;
 }
 
 JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerDelete(
