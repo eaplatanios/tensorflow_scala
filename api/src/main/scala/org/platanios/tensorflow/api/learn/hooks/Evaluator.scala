@@ -72,15 +72,17 @@ case class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
 
   override private[learn] val priority: Int = -1000
 
-  private[this] var graph          : Graph                                = _
-  private[this] var sessionCreator : SessionCreator                       = _
-  private[this] var dataInitializer: Op                                   = _
-  private[this] var evaluateOps    : Model.EvaluateOps[TT, TO, TD, TS, I] = _
+  private[this] var graph              : Graph                                  = _
+  private[this] var sessionCreator     : SessionCreator                         = _
+  private[this] var initializedDatasets: Seq[(String, Dataset[TT, TO, TD, TS])] = _
+  private[this] var dataInitializer    : Op                                     = _
+  private[this] var evaluateOps        : Model.EvaluateOps[TT, TO, TD, TS, I]   = _
 
   override protected def begin(): Unit = {
     graph = Graph()
     Op.createWith(graph, nameScope = name) {
       randomSeed.foreach(graph.setRandomSeed)
+      initializedDatasets = datasets.map(d => (d._1, d._2()))
       evaluateOps = Op.createWithNameScope("Model")(modelInstance.model.buildEvaluateOps(metrics))
       this.sessionCreator = ChiefSessionCreator(
         master = modelInstance.configuration.evaluationMaster,
@@ -103,12 +105,6 @@ case class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
       session: Session
   ): Unit = Op.createWith(graph, nameScope = name) {
     Evaluator.logger.debug(s"Computing $name.")
-    val frozen = graph.isFrozen
-    if (frozen)
-      graph.unFreeze()
-    val initializedDatasets = datasets.map(d => (d._1, d._2()))
-    if (frozen)
-      graph.freeze()
     val session = MonitoredSession(sessionCreator, shouldRecover = true)
     val values = {
       try {
@@ -145,18 +141,17 @@ case class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
       }
     }
     if (log) {
-      // TODO: Convert to vertical orientation.
-      val datasetValues = values.map(_._2).transpose
-      val colNames = values.map(_._1)
-      val firstColWidth = metrics.map(_.name.length).max
-      val colWidth = math.max(colNames.map(_.length).max, 15)
+      val datasetValues = values.map(_._2)
+      val rowNames = values.map(_._1)
+      val firstColWidth = rowNames.map(_.length).max
+      val colWidth = math.max(metrics.map(_.name.length).max, 15)
       Evaluator.logger.info(s"Step $step $name:")
-      Evaluator.logger.info(s"╔═${"═" * firstColWidth}═╤${colNames.map(_ => "═" * (colWidth + 2)).mkString("╤")}╗")
-      Evaluator.logger.info(f"║ ${" " * firstColWidth} │${colNames.map(s" %${colWidth}s ".format(_)).mkString("│")}║")
-      Evaluator.logger.info(s"╟─${"─" * firstColWidth}─┼${colNames.map(_ => "─" * (colWidth + 2)).mkString("┼")}╢")
-      metrics.zip(datasetValues).foreach {
-        case (metric, metricValues) =>
-          val line = s"║ %${firstColWidth}s │".format(metric) + metricValues.map(metricValue => {
+      Evaluator.logger.info(s"╔═${"═" * firstColWidth}═╤${metrics.map(_ => "═" * (colWidth + 2)).mkString("╤")}╗")
+      Evaluator.logger.info(f"║ ${" " * firstColWidth} │${metrics.map(s" %${colWidth}s ".format(_)).mkString("│")}║")
+      Evaluator.logger.info(s"╟─${"─" * firstColWidth}─┼${metrics.map(_ => "─" * (colWidth + 2)).mkString("┼")}╢")
+      rowNames.zip(datasetValues).foreach {
+        case (datasetName, metricValues) =>
+          val line = s"║ %${firstColWidth}s │".format(datasetName) + metricValues.map(metricValue => {
             if (metricValue.shape.rank == 0 &&
                 (metricValue.dataType.isFloatingPoint || metricValue.dataType.isInteger)) {
               val castedValue = metricValue.cast(FLOAT32).scalar.asInstanceOf[Float]
@@ -167,7 +162,7 @@ case class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
           }).mkString("│") + "║"
           Evaluator.logger.info(line)
       }
-      Evaluator.logger.info(s"╚═${"═" * firstColWidth}═╧${colNames.map(_ => "═" * (colWidth + 2)).mkString("╧")}╝")
+      Evaluator.logger.info(s"╚═${"═" * firstColWidth}═╧${metrics.map(_ => "═" * (colWidth + 2)).mkString("╧")}╝")
     }
     if (summaryDir != null) {
       Evaluator.logger.info(s"Saving $name results at '$summaryDir'.")

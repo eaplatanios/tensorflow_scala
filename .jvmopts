@@ -3,8 +3,9 @@
 -Xmx6G
 -Xms6G
 -Xss2M
--XX:ReservedCodeCacheSize=256m
--XX:MaxMetaspaceSize=512m
+-XX:ReservedCodeCacheSize=256M
+-XX:MaxDirectMemorySize=16384M
+-XX:MaxMetaspaceSize=512M
 -XX:+TieredCompilation
 -XX:-UseGCOverheadLimit
 -XX:+CMSClassUnloadingEnabled
