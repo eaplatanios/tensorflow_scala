@@ -213,9 +213,11 @@ object Dataset {
     val TakeDataset: data.TakeDataset.type = data.TakeDataset
     val DropDataset: data.DropDataset.type = data.DropDataset
 
-    val FilterDataset : data.FilterDataset.type  = data.FilterDataset
-    val MapDataset    : data.MapDataset.type     = data.MapDataset
-    val FlatMapDataset: data.FlatMapDataset.type = data.FlatMapDataset
+    val FilterDataset            : data.FilterDataset.type             = data.FilterDataset
+    val MapDataset               : data.MapDataset.type                = data.MapDataset
+    val FlatMapDataset           : data.FlatMapDataset.type            = data.FlatMapDataset
+    val InterleaveDataset        : data.InterleaveDataset.type         = data.InterleaveDataset
+    val ParallelInterleaveDataset: data.ParallelInterleaveDataset.type = data.ParallelInterleaveDataset
 
     val ZipDataset        : data.ZipDataset.type         = data.ZipDataset
     val Zip3Dataset       : data.Zip3Dataset.type        = data.Zip3Dataset

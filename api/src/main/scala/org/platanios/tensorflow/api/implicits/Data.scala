@@ -18,12 +18,13 @@ package org.platanios.tensorflow.api.implicits
 import org.platanios.tensorflow.api.ops.io.data.BatchDataset.BatchDatasetOps
 import org.platanios.tensorflow.api.ops.io.data.CacheDataset.CacheDatasetOps
 import org.platanios.tensorflow.api.ops.io.data.ConcatenatedDataset.ConcatenatedDatasetOps
-import org.platanios.tensorflow.api.ops.io.data.Dataset
+import org.platanios.tensorflow.api.ops.io.data.{Dataset, InterleaveDataset}
 import org.platanios.tensorflow.api.ops.io.data.DropDataset.DropDatasetOps
 import org.platanios.tensorflow.api.ops.io.data.FilterDataset.FilterDatasetOps
 import org.platanios.tensorflow.api.ops.io.data.FlatMapDataset.FlatMapDatasetOps
 import org.platanios.tensorflow.api.ops.io.data.GroupByWindowDataset.GroupByWindowDatasetOps
 import org.platanios.tensorflow.api.ops.io.data.IgnoreErrorsDataset.IgnoreErrorsDatasetOps
+import org.platanios.tensorflow.api.ops.io.data.InterleaveDataset.InterleaveDatasetOps
 import org.platanios.tensorflow.api.ops.io.data.MapDataset.MapDatasetOps
 import org.platanios.tensorflow.api.ops.io.data.PaddedBatchDataset.PaddedBatchDatasetOps
 import org.platanios.tensorflow.api.ops.io.data.PrefetchDataset.PrefetchDatasetOps
@@ -46,7 +47,8 @@ trait Data {
   }
 
   implicit def datasetToConcatenatedDatasetOps[T, O, D, S](
-      dataset: Dataset[T, O, D, S]): ConcatenatedDatasetOps[T, O, D, S] = {
+      dataset: Dataset[T, O, D, S]
+  ): ConcatenatedDatasetOps[T, O, D, S] = {
     ConcatenatedDatasetOps(dataset)
   }
 
@@ -63,13 +65,21 @@ trait Data {
   }
 
   implicit def datasetToGroupByWindowDatasetOps[T, O, D, S](
-      dataset: Dataset[T, O, D, S]): GroupByWindowDatasetOps[T, O, D, S] = {
+      dataset: Dataset[T, O, D, S]
+  ): GroupByWindowDatasetOps[T, O, D, S] = {
     GroupByWindowDatasetOps(dataset)
   }
 
   implicit def datasetToIgnoreErrorsDatasetOps[T, O, D, S](
-      dataset: Dataset[T, O, D, S]): IgnoreErrorsDatasetOps[T, O, D, S] = {
+      dataset: Dataset[T, O, D, S]
+  ): IgnoreErrorsDatasetOps[T, O, D, S] = {
     IgnoreErrorsDatasetOps(dataset)
+  }
+
+  implicit def datasetToInterleaveDatasetOps[T, O, D, S](
+      dataset: Dataset[T, O, D, S]
+  ): InterleaveDatasetOps[T, O, D, S] = {
+    InterleaveDatasetOps(dataset)
   }
 
   implicit def datasetToMapDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S]): MapDatasetOps[T, O, D, S] = {
@@ -77,12 +87,14 @@ trait Data {
   }
 
   implicit def datasetToPaddedBatchDatasetOps[T, O, D, S](
-      dataset: Dataset[T, O, D, S]): PaddedBatchDatasetOps[T, O, D, S] = {
+      dataset: Dataset[T, O, D, S]
+  ): PaddedBatchDatasetOps[T, O, D, S] = {
     PaddedBatchDatasetOps(dataset)
   }
 
   implicit def datasetToPrefetchDatasetOps[T, O, D, S](
-      dataset: Dataset[T, O, D, S]): PrefetchDatasetOps[T, O, D, S] = {
+      dataset: Dataset[T, O, D, S]
+  ): PrefetchDatasetOps[T, O, D, S] = {
     PrefetchDatasetOps(dataset)
   }
 
