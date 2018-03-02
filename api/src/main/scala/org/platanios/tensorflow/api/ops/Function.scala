@@ -274,8 +274,8 @@ private[api] case class InstantiatedFunction[I, O] private[ops] (
           val outputs = function(
             input.map(evInput.outputsDecoderWithKnownArg(_, inputs)._1)
                 .getOrElse(evInput.outputsDecoder(inputs)._1))
-          val flattenedOutputs = evOutput.outputs(outputs)
-          (outputs, flattenedOutputs)
+          val flattenedOutputs = evOutput.outputs(outputs).map(functionGraph.capture)
+          (evOutput.outputsDecoderWithKnownArg(outputs, flattenedOutputs)._1, flattenedOutputs)
         }
       }
 
@@ -397,7 +397,7 @@ private[api] case class InstantiatedFunction[I, O] private[ops] (
       }
       builder.build().outputs
     }
-    evOutput.outputsDecoder(outputs)._1
+    evOutput.outputsDecoderWithKnownArg(dummyOutputs, outputs)._1
   }
 
   /** Constructs and returns a [[FunctionDef]] object, which is a serialized version of this function. */
@@ -445,19 +445,24 @@ class FunctionGraph(private[this] val _nativeHandle: Long) extends Graph(_native
 
   /** Helper function for processing tensors before using them as inputs for ops placed in this graph. Useful for
     * creating function graphs. */
-  override private[api] def processOpInput(output: Output): Output = {
-    if (output.graph == this) {
-      output
+  override private[api] def processOpInput(value: Output): Output = {
+    capture(value)
+  }
+
+  /** Adds the provided tensor to this graph and returns the captured tensor. */
+  private[ops] def capture(value: Output): Output = {
+    if (value.graph == this) {
+      value
     } else {
       // Referring to a tensor from other graph
-      capturedOutputs.getOrElseUpdate(output, {
+      capturedOutputs.getOrElseUpdate(value, {
         // Substitute with a placeholder and hoist the new input placeholder out of any control flow context we might
         // currently be in.
         val placeholder = Op.createWith(controlDependencies = Set.empty) {
-          Basic.placeholder(output.dataType, output.shape)
+          Basic.placeholder(value.dataType, value.shape)
         }
         extraArgs.append(placeholder)
-        extraInputs.append(output)
+        extraInputs.append(value)
         placeholder
       })
     }
@@ -465,10 +470,18 @@ class FunctionGraph(private[this] val _nativeHandle: Long) extends Graph(_native
 
   /** Custom variable getter for variables created within this function graph. */
   private[ops] val customVariableGetter = new VariableGetter {
-    override def apply(name: String, dataType: DataType = FLOAT32, shape: Shape = null, initializer: Initializer = null,
-        regularizer: Regularizer = null, trainable: Boolean = true, reuse: Reuse = ReuseOrCreateNew,
-        collections: Set[Graph.Key[Variable]] = Set.empty, cachingDevice: OpSpecification => String = null,
-        customGetter: VariableGetter = null): Variable = {
+    override def apply(
+        name: String,
+        dataType: DataType = FLOAT32,
+        shape: Shape = null,
+        initializer: Initializer = null,
+        regularizer: Regularizer = null,
+        trainable: Boolean = true,
+        reuse: Reuse = ReuseOrCreateNew,
+        collections: Set[Graph.Key[Variable]] = Set.empty,
+        cachingDevice: OpSpecification => String = null,
+        customGetter: VariableGetter = null
+    ): Variable = {
       // TODO: [FUNCTIONS] !!! Not sure if this works as it should. Especially the '.value' method of resource variables.
       // Here, we switch the default graph to the outer graph and ask the variable scope in which the function is defined
       // to give us the variable. The variable is stashed in extra_vars and returned to the caller. We capture these
