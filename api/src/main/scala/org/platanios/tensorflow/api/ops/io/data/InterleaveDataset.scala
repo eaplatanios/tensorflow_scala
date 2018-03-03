@@ -212,12 +212,13 @@ object InterleaveDataset {
     *                d => TextLinesDataset(d).map(parseFn), cycleLength = 4, blockLength = 16)
     *       }}}
     *
-    *       The `cycleLength` and `blockLength` arguments control the order in which elements are produced. `cycleLength`
-    *       controls the number of input elements that are processed concurrently. If you set `cycleLength` to `1`, this
-    *       transformation will handle one input element at a time, and produce identical results to `flatMap(...)`. In
-    *       general, this transformation will apply `function` to `cycleLength` input elements, open iterators on the
-    *       returned dataset objects, and cycle through them producing `blockLength` consecutive elements from each
-    *       iterator, and consuming the next input element each time it reaches the end of an iterator.
+    *       The `cycleLength` and `blockLength` arguments control the order in which elements are produced.
+    *       `cycleLength` controls the number of input elements that are processed concurrently. If you set
+    *       `cycleLength` to `1`, this transformation will handle one input element at a time, and produce identical
+    *       results to `flatMap(...)`. In general, this transformation will apply `function` to `cycleLength` input
+    *       elements, open iterators on the returned dataset objects, and cycle through them producing `blockLength`
+    *       consecutive elements from each iterator, and consuming the next input element each time it reaches the end
+    *       of an iterator.
     *
     *       For example:
     *       {{{

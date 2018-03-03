@@ -54,3 +54,37 @@ case class TextLinesDataset(
   override def outputDataTypes: DataType = STRING
   override def outputShapes: Shape = Shape.scalar()
 }
+
+/** Dataset with elements read from text files (each line in each file corresponds to an element).
+  *
+  * **Note:** New-line characters are stripped from the output.
+  *
+  * @param  filenames       [[STRING]] scalar or vector tensor containing the the name(s) of the file(s) to be read.
+  * @param  compressionType Compression type for the file.
+  * @param  bufferSize      Number of bytes to buffer while reading from the file.
+  * @param  name            Name for this dataset.
+  *
+  * @author Emmanouil Antonios Platanios
+  */
+case class DynamicTextLinesDataset(
+    filenames: Output,
+    compressionType: CompressionType = NoCompression,
+    bufferSize: Long = 256 * 1024,
+    override val name: String = "TextLineDataset"
+) extends Dataset[Tensor, Output, DataType, Shape](name) {
+  if (filenames.dataType != STRING)
+    throw new IllegalArgumentException(s"'filenames' (dataType = ${filenames.dataType}) must be a STRING tensor.")
+  if (filenames.rank != -1 && filenames.rank > 1)
+    throw new IllegalArgumentException(s"'filenames' (rank = ${filenames.rank}) must be at most 1.")
+
+  override def createHandle(): Output = {
+    Op.Builder(opType = "TextLineDataset", name = name)
+        .addInput(filenames)
+        .addInput(Op.createWithNameScope(name)(compressionType.name))
+        .addInput(Op.createWithNameScope(name)(bufferSize))
+        .build().outputs(0)
+  }
+
+  override def outputDataTypes: DataType = STRING
+  override def outputShapes: Shape = Shape.scalar()
+}
