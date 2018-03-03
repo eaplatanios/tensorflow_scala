@@ -932,7 +932,7 @@ trait SaverDefBuilder {
           // directory, "<user-fed prefix>_temp".
           val concatenatedPrefixes = {
             if (shardedPrefixes.length > 1)
-              Basic.concatenate(shardedPrefixes)
+              Basic.stack(shardedPrefixes)
             else
               shardedPrefixes.head.reshape(Shape(1))
           }
