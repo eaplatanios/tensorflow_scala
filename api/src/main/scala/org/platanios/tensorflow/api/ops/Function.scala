@@ -426,7 +426,7 @@ private[api] case class InstantiatedFunction[I, O] private[ops] (
   */
 class FunctionGraph(private[this] val _nativeHandle: Long) extends Graph(_nativeHandle) {
   /** Graph used during construction of this graph. */
-  private[ops] val outerGraph = Op.currentGraph
+  val outerGraph: Graph = Op.currentGraph
 
   /** Variable scope used during construction of this graph. */
   private[ops] val outerVariableScope = Op.currentVariableScope
