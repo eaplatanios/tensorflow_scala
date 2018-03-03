@@ -790,6 +790,9 @@ class Graph private[api](private[api] var nativeHandle: Long) extends Closeable 
     }
   }
 
+  /** Returns `true` if this graph has been closed (meaning that the corresponding native object has been deleted). */
+  def isClosed: Boolean = nativeHandle == 0
+
   /** Releases the native resources associated with this graph instance.
     *
     * This method blocks until there are no active [[Session]] (or other) instances referring to this graph instance. A
