@@ -949,3 +949,59 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_setAttrProto(
   env->ReleaseStringUTFChars(name, c_name);
   CHECK_STATUS(env, status.get(), void());
 }
+
+JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_toOpDef(
+    JNIEnv* env, jobject object, jlong graph_handle, jstring op_name) {
+  TF_Graph *g = require_graph_handle(env, graph_handle);
+  if (g == nullptr) return nullptr;
+  const char *c_op_name = env->GetStringUTFChars(op_name, nullptr);
+
+  // Call the C API "TF_GraphGetOpDef" function and throw an exception if an error occurs
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+  jbyteArray return_array = nullptr;
+  TF_Buffer *buf = TF_NewBuffer();
+  TF_GraphGetOpDef(g, c_op_name, buf, status.get());
+  env->ReleaseStringUTFChars(op_name, c_op_name);
+  CHECK_STATUS(env, status.get(), nullptr);
+  // sizeof(jsize) is less than sizeof(size_t) on some platforms.
+  if (buf->length > std::numeric_limits<jint>::max()) {
+    throw_exception(env, tf_invalid_argument_exception,
+                    "OpDef is too large to serialize into a Java byte array.");
+  } else {
+    static_assert(sizeof(jbyte) == 1, "Unexpected size of the Java byte type.");
+    jint return_array_length = static_cast<jint>(buf->length);
+    return_array = env->NewByteArray(return_array_length);
+    env->SetByteArrayRegion(return_array, 0, return_array_length, static_cast<const jbyte *>(buf->data));
+  }
+
+  // Clean up and return the byte array
+  TF_DeleteBuffer(buf);
+  return return_array;
+}
+
+JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_toNodeDef(
+    JNIEnv* env, jobject object, jlong handle) {
+  TF_Operation* op = require_operation_handle(env, handle);
+  if (op == nullptr) return nullptr;
+
+  // Call the C API "TF_OperationToNodeDef" function and throw an exception if an error occurs
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+  jbyteArray return_array = nullptr;
+  TF_Buffer *buf = TF_NewBuffer();
+  TF_OperationToNodeDef(op, buf, status.get());
+  CHECK_STATUS(env, status.get(), nullptr);
+  // sizeof(jsize) is less than sizeof(size_t) on some platforms.
+  if (buf->length > std::numeric_limits<jint>::max()) {
+    throw_exception(env, tf_invalid_argument_exception,
+                    "NodeDef is too large to serialize into a Java byte array.");
+  } else {
+    static_assert(sizeof(jbyte) == 1, "Unexpected size of the Java byte type.");
+    jint return_array_length = static_cast<jint>(buf->length);
+    return_array = env->NewByteArray(return_array_length);
+    env->SetByteArrayRegion(return_array, 0, return_array_length, static_cast<const jbyte *>(buf->data));
+  }
+
+  // Clean up and return the byte array
+  TF_DeleteBuffer(buf);
+  return return_array;
+}

@@ -26,12 +26,10 @@ import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.DataType
 import org.platanios.tensorflow.api.utilities.using
 import org.platanios.tensorflow.jni.{Op => NativeOp, Tensor => NativeTensor, TensorFlow => NativeLibrary}
-
 import com.google.protobuf.ByteString
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
-import org.tensorflow.framework.AttrValue
-
+import org.tensorflow.framework.{AttrValue, NodeDef, OpDef}
 import java.nio.charset.{Charset, StandardCharsets}
 
 import scala.collection.mutable
@@ -362,6 +360,12 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
         s"Op has no shape attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
     }
   }
+
+  /** Constructs and returns a [[OpDef]] object, which is a serialized version of this op. */
+  def toOpDef: OpDef = OpDef.parseFrom(NativeOp.toOpDef(graph.nativeHandle, name))
+
+  /** Constructs and returns a [[NodeDef]] object, which is a serialized version of this op. */
+  def toNodeDef: NodeDef = NodeDef.parseFrom(NativeOp.toNodeDef(nativeHandle))
 
   override def toString: String = name
 

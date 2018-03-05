@@ -83,4 +83,7 @@ object Op {
       handle: Long, name: String, shapes: Array[Array[Long]], numDims: Array[Int], numShapes: Int): Unit
   @native def setAttrFuncName(handle: Long, name: String, value: Array[Byte]): Unit
   @native def setAttrProto(handle: Long, name: String, value: Array[Byte]): Unit
+
+  @native def toOpDef(graphHandle: Long, opName: String): Array[Byte]
+  @native def toNodeDef(handle: Long): Array[Byte]
 }
