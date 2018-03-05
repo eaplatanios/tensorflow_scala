@@ -30,6 +30,7 @@ import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerial
 import org.tensorflow.framework.{SaveSliceInfoDef, VariableDef}
 
 import scala.collection.mutable
+import scala.collection.JavaConverters._
 import scala.language.postfixOps
 import scala.util.DynamicVariable
 
@@ -816,13 +817,10 @@ private[api] object Variable {
               val newOpName = s"${initialValue.op.name}_$variableName".replace(":", "_")
               val opBuilder = Op.Builder(newOpType, newOpName)
               newOpInputs.foreach(opBuilder.addInput)
-              // TODO: Find a way to create an op replica here (setting the attributes is the current issue).
-              // Python API version:
-              // return self.graph.create_op(
-              //   new_op_type, new_op_inputs,
-              //   op._output_types,  # pylint: disable=protected-access
-              //   name=new_op_name, attrs=op.node_def.attr)
-              initialValue.op
+              initialValue.op.toNodeDef.getAttrMap.asScala.foreach(attribute => {
+                opBuilder.setAttribute(attribute._1, attribute._2)
+              })
+              opBuilder.build()
             } else {
               initialValue.op
             }
