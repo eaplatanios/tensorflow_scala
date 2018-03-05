@@ -74,16 +74,15 @@ case class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
 
   private[this] var graph              : Graph                                  = _
   private[this] var sessionCreator     : SessionCreator                         = _
-  private[this] var initializedDatasets: Seq[(String, Dataset[TT, TO, TD, TS])] = _
-  private[this] var dataInitializer    : Op                                     = _
+  private[this] var datasetInitializers: Seq[(String, Op)]                      = _
   private[this] var evaluateOps        : Model.EvaluateOps[TT, TO, TD, TS, I]   = _
 
   override protected def begin(): Unit = {
     graph = Graph()
     Op.createWith(graph, nameScope = name) {
       randomSeed.foreach(graph.setRandomSeed)
-      initializedDatasets = datasets.map(d => (d._1, d._2()))
       evaluateOps = Op.createWithNameScope("Model")(modelInstance.model.buildEvaluateOps(metrics))
+      datasetInitializers = datasets.map(d => (d._1, evaluateOps.inputIterator.createInitializer(d._2())))
       this.sessionCreator = ChiefSessionCreator(
         master = modelInstance.configuration.evaluationMaster,
         sessionScaffold = SessionScaffold(
@@ -108,22 +107,21 @@ case class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
     val session = MonitoredSession(sessionCreator, shouldRecover = true)
     val values = {
       try {
-        val values = initializedDatasets.map {
-          case (datasetName, dataset) =>
-            graph.unFreeze()
-            sessionCreator.removeLocalInitOp(dataInitializer)
-            dataInitializer = evaluateOps.inputIterator.createInitializer(dataset)
-            sessionCreator.addLocalInitOp(dataInitializer)
-            graph.freeze()
-            session.run(targets = dataInitializer +: evaluateOps.metricResets)
+        val values = datasetInitializers.map {
+          case (datasetName, datasetInitializer) =>
+            sessionCreator.addLocalInitOp(datasetInitializer)
+            session.run(targets = evaluateOps.metricResets)
+            session.run(targets = datasetInitializer)
             var shouldStop = false
-            while (!shouldStop)
+            while (!shouldStop) {
               try {
                 session.run(targets = evaluateOps.metricUpdates.toSet)
               } catch {
                 case _: OutOfRangeException => shouldStop = true
               }
+            }
             val value = session.run(fetches = evaluateOps.metricValues)
+            sessionCreator.removeLocalInitOp(datasetInitializer)
             datasetName -> value
         }
         session.setShouldStop(true)
