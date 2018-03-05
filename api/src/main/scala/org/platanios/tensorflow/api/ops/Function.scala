@@ -40,15 +40,12 @@ case class Function[I, O](name: String, function: (I) => O)(implicit
     evInput: Function.ArgType[I],
     evOutput: Function.ArgType[O]
 ) {
-  private[this] val instantiatedFunctions = mutable.HashMap.empty[String, InstantiatedFunction[I, O]]
-
   def apply(arg: I, appendHashToName: Boolean = false): O = {
     val dataTypes = evInput.dataTypes(arg)
     val key = dataTypes.map(_.toString).mkString(":")
-    instantiatedFunctions.getOrElseUpdate(key, {
-      InstantiatedFunction(
-        s"${name}_$key", function, dataTypes, input = Some(arg), appendHashToName = appendHashToName)(evInput, evOutput)
-    })(arg)
+    InstantiatedFunction(
+      s"${name}_$key", function, dataTypes, input = Some(arg),
+      appendHashToName = appendHashToName)(evInput, evOutput)(arg)
   }
 
   private[ops] def instantiate(
@@ -58,11 +55,9 @@ case class Function[I, O](name: String, function: (I) => O)(implicit
       appendHashToName: Boolean = false
   ): InstantiatedFunction[I, O] = {
     val key = (inputDataTypes.map(_.toString) ++ Option(inputShapes).getOrElse(Seq.empty).map(_.toString)).mkString(":")
-    instantiatedFunctions.getOrElseUpdate(key, {
-      InstantiatedFunction(
-        s"${name}_$key", function, inputDataTypes, Option(inputShapes), input, appendHashToName = appendHashToName
-      )(evInput, evOutput)
-    })
+    InstantiatedFunction(
+      s"${name}_$key", function, inputDataTypes, Option(inputShapes), input, appendHashToName = appendHashToName
+    )(evInput, evOutput)
   }
 }
 
@@ -462,7 +457,10 @@ class FunctionGraph(private[this] val _nativeHandle: Long) extends Graph(_native
           Basic.placeholder(value.dataType, value.shape)
         }
         extraArgs.append(placeholder)
-        extraInputs.append(value)
+        extraInputs.append(outerGraph match {
+          case g: FunctionGraph => g.capture(value)
+          case _ => value
+        })
         placeholder
       })
     }
