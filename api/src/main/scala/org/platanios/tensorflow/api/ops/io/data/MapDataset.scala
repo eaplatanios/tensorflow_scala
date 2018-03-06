@@ -46,7 +46,8 @@ case class MapDataset[T, O, D, S, RT, RO, RD, RS](
 ) extends Dataset[RT, RO, RD, RS](name)(evROToRT, evRData, evFunctionOutput) {
   private[this] lazy val instantiatedFunction = {
     Function(s"$name/Function", function).instantiate(
-      inputDataset.flattenedOutputDataTypes, inputDataset.flattenedOutputShapes)
+      inputDataset.flattenedOutputDataTypes, inputDataset.flattenedOutputShapes,
+      captureByValue = true, appendHashToName = true)
   }
 
   override def createHandle(): Output = {
@@ -100,7 +101,8 @@ case class ParallelMapDataset[T, O, D, S, RT, RO, RD, RS](
 ) extends Dataset[RT, RO, RD, RS](name)(evROToRT, evRData, evFunctionOutput) {
   private[this] lazy val instantiatedFunction = {
     Function(s"$name/Function", function).instantiate(
-      inputDataset.flattenedOutputDataTypes, inputDataset.flattenedOutputShapes)
+      inputDataset.flattenedOutputDataTypes, inputDataset.flattenedOutputShapes,
+      captureByValue = true, appendHashToName = true)
   }
 
   override def createHandle(): Output = {
