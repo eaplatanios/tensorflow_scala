@@ -16,6 +16,7 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.{Graph, Shape}
+import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.implicits.helpers.OutputToTensor
 import org.platanios.tensorflow.api.ops.io.data.{Data, Dataset}
 import org.platanios.tensorflow.api.ops.variables.Variable.VariableGetter
@@ -29,6 +30,7 @@ import shapeless._
 import shapeless.ops.hlist.Tupler
 
 import scala.collection.mutable
+import scala.collection.JavaConverters._
 import scala.util.DynamicVariable
 
 // TODO: [FUNCTIONS] Add support for function descriptions.
@@ -40,24 +42,29 @@ case class Function[I, O](name: String, function: (I) => O)(implicit
     evInput: Function.ArgType[I],
     evOutput: Function.ArgType[O]
 ) {
-  def apply(arg: I, appendHashToName: Boolean = false): O = {
+  def apply(
+      arg: I,
+      captureByValue: Boolean = false,
+      appendHashToName: Boolean = false
+  ): O = {
     val dataTypes = evInput.dataTypes(arg)
     val key = dataTypes.map(_.toString).mkString(":")
     InstantiatedFunction(
       s"${name}_$key", function, dataTypes, input = Some(arg),
-      appendHashToName = appendHashToName)(evInput, evOutput)(arg)
+      captureByValue = captureByValue, appendHashToName = appendHashToName)(evInput, evOutput)(arg)
   }
 
   private[ops] def instantiate(
       inputDataTypes: Seq[DataType],
       inputShapes: Seq[Shape] = null,
       input: Option[I] = None,
+      captureByValue: Boolean = false,
       appendHashToName: Boolean = false
   ): InstantiatedFunction[I, O] = {
     val key = (inputDataTypes.map(_.toString) ++ Option(inputShapes).getOrElse(Seq.empty).map(_.toString)).mkString(":")
     InstantiatedFunction(
-      s"${name}_$key", function, inputDataTypes, Option(inputShapes), input, appendHashToName = appendHashToName
-    )(evInput, evOutput)
+      s"${name}_$key", function, inputDataTypes, Option(inputShapes), input, captureByValue = captureByValue,
+      appendHashToName = appendHashToName)(evInput, evOutput)
   }
 }
 
@@ -222,6 +229,7 @@ private[api] case class InstantiatedFunction[I, O] private[ops] (
     inputDataTypes: Seq[DataType],
     inputShapes: Option[Seq[Shape]] = None,
     input: Option[I] = None,
+    captureByValue: Boolean = false,
     appendHashToName: Boolean = false,
     private val _inputNames: Seq[String] = null,
     private val _outputNames: Seq[String] = null
@@ -237,7 +245,7 @@ private[api] case class InstantiatedFunction[I, O] private[ops] (
   private[this] val initializationOutput = {
     // List of placeholders for the function definition
     val inputs = mutable.ListBuffer.empty[Output]
-    val functionGraph = FunctionGraph()
+    val functionGraph = FunctionGraph(captureByValue)
     val (inputNames, outputNames, outputs, flattenedOutputs) = Op.createWith(functionGraph) {
       // Determine names for the function inputs
       val inputNames = {
@@ -417,9 +425,14 @@ private[api] case class InstantiatedFunction[I, O] private[ops] (
   * Each captured input's corresponding placeholder is converted into a function argument and the caller passes in the
   * captured tensor.
   *
+  * @param  captureByValue  TODO: !!!
+  *
   * @author Emmanouil Antonios Platanios
   */
-class FunctionGraph(private[this] val _nativeHandle: Long) extends Graph(_nativeHandle) {
+class FunctionGraph(
+    private[this] val _nativeHandle: Long,
+    protected val captureByValue: Boolean
+) extends Graph(_nativeHandle) {
   /** Graph used during construction of this graph. */
   val outerGraph: Graph = Op.currentGraph
 
@@ -445,25 +458,52 @@ class FunctionGraph(private[this] val _nativeHandle: Long) extends Graph(_native
   }
 
   /** Adds the provided tensor to this graph and returns the captured tensor. */
-  private[ops] def capture(value: Output): Output = {
-    if (value.graph == this) {
-      value
+  private[ops] def capture(output: Output): Output = {
+    if (output.graph == this) {
+      output
+    } else if (captureByValue) {
+      addOutputAndParents(outerGraph match {
+        case g: FunctionGraph => g.capture(output)
+        case _ => output
+      })
     } else {
       // Referring to a tensor from other graph
-      capturedOutputs.getOrElseUpdate(value, {
+      capturedOutputs.getOrElseUpdate(output, {
         // Substitute with a placeholder and hoist the new input placeholder out of any control flow context we might
         // currently be in.
         val placeholder = Op.createWith(controlDependencies = Set.empty) {
-          Basic.placeholder(value.dataType, value.shape)
+          Basic.placeholder(output.dataType, output.shape)
         }
         extraArgs.append(placeholder)
         extraInputs.append(outerGraph match {
-          case g: FunctionGraph => g.capture(value)
-          case _ => value
+          case g: FunctionGraph => g.capture(output)
+          case _ => output
         })
         placeholder
       })
     }
+  }
+
+  protected def addOutputAndParents(output: Output): Output = {
+    addOpAndParents(output.op).outputs(output.index)
+  }
+
+  protected def addOpAndParents(op: Op): Op = {
+    op.graph.functions.filter(_.hashedName == op.opType).foreach(_.addToGraph(Op.currentGraph))
+    if (op.toOpDef.getIsStateful)
+      throw InvalidArgumentException(s"Cannot capture a stateful op (name: ${op.name}, type: ${op.opType}) by value.")
+    if (op.opType == "Placeholder" || op.opType == "PlaceholderV2")
+      throw InvalidArgumentException(s"Cannot capture a placeholder (name: ${op.name}, type: ${op.opType}) by value.")
+    val capturedOp = Op.createWith(controlDependencies = op.controlInputs.map(addOpAndParents)) {
+      val opBuilder = Op.Builder(op.opType, op.name)
+      op.inputs.foreach(i => opBuilder.addInput(addOutputAndParents(i)))
+      op.toNodeDef.getAttrMap.asScala.foreach(attribute => {
+        opBuilder.setAttribute(attribute._1, attribute._2)
+      })
+      opBuilder.build()
+    }
+    op.outputs.zip(capturedOp.outputs).foreach(o => capturedOutputs.update(o._1, o._2))
+    capturedOp
   }
 
   /** Custom variable getter for variables created within this function graph. */
@@ -506,5 +546,5 @@ class FunctionGraph(private[this] val _nativeHandle: Long) extends Graph(_native
 /** Contains helper functions for dealing with function graphs. */
 object FunctionGraph {
   /** Constructs and returns an empty new function graph. */
-  def apply(): FunctionGraph = new FunctionGraph(NativeGraph.allocate())
+  def apply(captureByValue: Boolean): FunctionGraph = new FunctionGraph(NativeGraph.allocate(), captureByValue)
 }
