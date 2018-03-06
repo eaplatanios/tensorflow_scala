@@ -17,6 +17,7 @@
 #include "op.h"
 
 #include <cstring>
+#include <limits>
 #include <memory>
 #include <string.h>
 #include <stdint.h>
@@ -951,17 +952,17 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_setAttrProto(
 }
 
 JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_toOpDef(
-    JNIEnv* env, jobject object, jlong graph_handle, jstring op_name) {
+    JNIEnv* env, jobject object, jlong graph_handle, jstring op_type) {
   TF_Graph *g = require_graph_handle(env, graph_handle);
   if (g == nullptr) return nullptr;
-  const char *c_op_name = env->GetStringUTFChars(op_name, nullptr);
+  const char *c_op_type = env->GetStringUTFChars(op_type, nullptr);
 
   // Call the C API "TF_GraphGetOpDef" function and throw an exception if an error occurs
   std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
   jbyteArray return_array = nullptr;
   TF_Buffer *buf = TF_NewBuffer();
-  TF_GraphGetOpDef(g, c_op_name, buf, status.get());
-  env->ReleaseStringUTFChars(op_name, c_op_name);
+  TF_GraphGetOpDef(g, c_op_type, buf, status.get());
+  env->ReleaseStringUTFChars(op_type, c_op_type);
   CHECK_STATUS(env, status.get(), nullptr);
   // sizeof(jsize) is less than sizeof(size_t) on some platforms.
   if (buf->length > std::numeric_limits<jint>::max()) {

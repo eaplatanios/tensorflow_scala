@@ -362,7 +362,7 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
   }
 
   /** Constructs and returns a [[OpDef]] object, which is a serialized version of this op. */
-  def toOpDef: OpDef = OpDef.parseFrom(NativeOp.toOpDef(graph.nativeHandle, name))
+  def toOpDef: OpDef = OpDef.parseFrom(NativeOp.toOpDef(graph.nativeHandle, opType))
 
   /** Constructs and returns a [[NodeDef]] object, which is a serialized version of this op. */
   def toNodeDef: NodeDef = NodeDef.parseFrom(NativeOp.toNodeDef(nativeHandle))

@@ -84,6 +84,6 @@ object Op {
   @native def setAttrFuncName(handle: Long, name: String, value: Array[Byte]): Unit
   @native def setAttrProto(handle: Long, name: String, value: Array[Byte]): Unit
 
-  @native def toOpDef(graphHandle: Long, opName: String): Array[Byte]
+  @native def toOpDef(graphHandle: Long, opType: String): Array[Byte]
   @native def toNodeDef(handle: Long): Array[Byte]
 }
