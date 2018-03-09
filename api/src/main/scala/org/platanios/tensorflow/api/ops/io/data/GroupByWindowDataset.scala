@@ -43,18 +43,18 @@ case class GroupByWindowDataset[T, O, D, S](
   private[this] lazy val instantiatedKeyFunction = {
     Function(s"$name/KeyFunction", keyFn).instantiate(
       inputDataset.flattenedOutputDataTypes, inputDataset.flattenedOutputShapes,
-      captureByValue = true, appendHashToName = true)
+      appendHashToName = true)
   }
 
   private[this] lazy val instantiatedReduceFunction = {
     Function(s"$name/ReduceFunction", reduceFn).instantiate(
       Seq(INT64, VARIANT), Seq(Shape.scalar(), Shape.scalar()), Some((null, inputDataset)),
-      captureByValue = true, appendHashToName = true)
+      appendHashToName = true)
   }
 
   private[this] lazy val instantiatedWindowSizeFunction = {
     Function(s"$name/WindowSizeFunction", (o: Output) => windowSizeFn(o).cast(INT64)).instantiate(
-      Seq(INT64), Seq(Shape.scalar()), captureByValue = true, appendHashToName = true)
+      Seq(INT64), Seq(Shape.scalar()), appendHashToName = true)
   }
 
   override def createHandle(): Output = {

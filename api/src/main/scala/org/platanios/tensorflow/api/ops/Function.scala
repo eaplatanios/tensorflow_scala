@@ -520,6 +520,7 @@ class FunctionGraph(
         cachingDevice: OpSpecification => String = null,
         customGetter: VariableGetter = null
     ): Variable = {
+      // TODO: [FUNCTIONS] !!! Deal with nested function graphs.
       // TODO: [FUNCTIONS] !!! Not sure if this works as it should. Especially the '.value' method of resource variables.
       // Here, we switch the default graph to the outer graph and ask the variable scope in which the function is defined
       // to give us the variable. The variable is stashed in extra_vars and returned to the caller. We capture these

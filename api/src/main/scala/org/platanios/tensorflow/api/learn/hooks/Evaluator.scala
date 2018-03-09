@@ -72,10 +72,10 @@ case class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
 
   override private[learn] val priority: Int = -1000
 
-  private[this] var graph              : Graph                                  = _
-  private[this] var sessionCreator     : SessionCreator                         = _
-  private[this] var datasetInitializers: Seq[(String, Op)]                      = _
-  private[this] var evaluateOps        : Model.EvaluateOps[TT, TO, TD, TS, I]   = _
+  private[this] var graph              : Graph                                = _
+  private[this] var sessionCreator     : SessionCreator                       = _
+  private[this] var datasetInitializers: Seq[(String, Op)]                    = _
+  private[this] var evaluateOps        : Model.EvaluateOps[TT, TO, TD, TS, I] = _
 
   override protected def begin(): Unit = {
     graph = Graph()

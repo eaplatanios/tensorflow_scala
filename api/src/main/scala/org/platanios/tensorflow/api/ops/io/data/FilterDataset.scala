@@ -39,7 +39,7 @@ case class FilterDataset[T, O, D, S](
   private[this] lazy val instantiatedPredicateFunction = {
     Function(s"$name/Predicate", predicateFn).instantiate(
       inputDataset.flattenedOutputDataTypes, inputDataset.flattenedOutputShapes,
-      captureByValue = true, appendHashToName = true)
+      appendHashToName = true)
   }
 
   override def createHandle(): Output = {

@@ -47,7 +47,7 @@ case class FlatMapDataset[T, O, D, S, RT, RO, RD, RS](
   private[this] lazy val instantiatedFunction = {
     Function(s"$name/Function", function).instantiate(
       inputDataset.flattenedOutputDataTypes, inputDataset.flattenedOutputShapes,
-      captureByValue = true, appendHashToName = true)
+      appendHashToName = true)
   }
 
   override def createHandle(): Output = {
