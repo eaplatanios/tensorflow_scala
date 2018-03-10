@@ -105,88 +105,87 @@ case class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
   ): Unit = Op.createWith(graph, nameScope = name) {
     Evaluator.logger.debug(s"Computing $name.")
     val session = MonitoredSession(sessionCreator, shouldRecover = true)
-    val values = {
-      try {
-        val values = datasetInitializers.map {
-          case (datasetName, datasetInitializer) =>
-            sessionCreator.addLocalInitOp(datasetInitializer)
-            session.run(targets = evaluateOps.metricResets)
-            session.run(targets = datasetInitializer)
-            var shouldStop = false
-            while (!shouldStop) {
-              try {
-                session.run(targets = evaluateOps.metricUpdates.toSet)
-              } catch {
-                case _: OutOfRangeException => shouldStop = true
-              }
-            }
-            val value = session.run(fetches = evaluateOps.metricValues)
-            sessionCreator.removeLocalInitOp(datasetInitializer)
-            datasetName -> value
-        }
-        session.setShouldStop(true)
-        values
-      } catch {
-        case e if RECOVERABLE_EXCEPTIONS.contains(e.getClass) =>
-          session.close()
-          Seq.empty[(String, Seq[Tensor])]
-        case t: Throwable =>
-          session.closeWithoutHookEnd()
-          throw t
-      } finally {
-        if (!session.closed)
-          session.close()
+    val rowNames = datasetInitializers.map(_._1)
+    val firstColWidth = rowNames.map(_.length).max
+    val colWidth = math.max(metrics.map(_.name.length).max, 15)
+    var skippedMetricSummaries = Seq.empty[String]
+    val summaryProto = {
+      if (summaryDir != null) {
+        Evaluator.logger.info(s"Saving $name results at '$summaryDir'.")
+        Some(Summary.newBuilder())
+      } else {
+        None
       }
     }
     if (log) {
-      val datasetValues = values.map(_._2)
-      val rowNames = values.map(_._1)
-      val firstColWidth = rowNames.map(_.length).max
-      val colWidth = math.max(metrics.map(_.name.length).max, 15)
       Evaluator.logger.info(s"Step $step $name:")
       Evaluator.logger.info(s"╔═${"═" * firstColWidth}═╤${metrics.map(_ => "═" * (colWidth + 2)).mkString("╤")}╗")
       Evaluator.logger.info(f"║ ${" " * firstColWidth} │${metrics.map(s" %${colWidth}s ".format(_)).mkString("│")}║")
       Evaluator.logger.info(s"╟─${"─" * firstColWidth}─┼${metrics.map(_ => "─" * (colWidth + 2)).mkString("┼")}╢")
-      rowNames.zip(datasetValues).foreach {
-        case (datasetName, metricValues) =>
-          val line = s"║ %${firstColWidth}s │".format(datasetName) + metricValues.map(metricValue => {
+    }
+    try {
+      datasetInitializers.zip(metrics.map(_.name)).foreach {
+        case ((datasetName, datasetInitializer), metric) =>
+          sessionCreator.addLocalInitOp(datasetInitializer)
+          session.run(targets = evaluateOps.metricResets)
+          session.run(targets = datasetInitializer)
+          var shouldStop = false
+          while (!shouldStop) {
+            try {
+              session.run(targets = evaluateOps.metricUpdates.toSet)
+            } catch {
+              case _: OutOfRangeException => shouldStop = true
+            }
+          }
+          val value = session.run(fetches = evaluateOps.metricValues)
+          sessionCreator.removeLocalInitOp(datasetInitializer)
+          summaryProto.foreach(sp => value.foreach(metricValue => {
             if (metricValue.shape.rank == 0 &&
                 (metricValue.dataType.isFloatingPoint || metricValue.dataType.isInteger)) {
               val castedValue = metricValue.cast(FLOAT32).scalar.asInstanceOf[Float]
-              s" %${colWidth}.4f ".format(castedValue)
+              val value = Summary.Value.newBuilder()
+              value.setTag(s"$datasetName/$metric")
+              value.setSimpleValue(castedValue)
+              sp.addValue(value)
             } else {
-              s" %${colWidth}s ".format("Not Scalar")
+              skippedMetricSummaries :+= s"'$metric'"
             }
-          }).mkString("│") + "║"
-          Evaluator.logger.info(line)
-      }
-      Evaluator.logger.info(s"╚═${"═" * firstColWidth}═╧${metrics.map(_ => "═" * (colWidth + 2)).mkString("╧")}╝")
-    }
-    if (summaryDir != null) {
-      Evaluator.logger.info(s"Saving $name results at '$summaryDir'.")
-      val datasetNames = values.map(_._1)
-      val datasetValues = values.map(_._2).transpose
-      val summaryProto = Summary.newBuilder()
-      metrics.zip(datasetValues).foreach {
-        case (metric, metricValues) =>
-          datasetNames.zip(metricValues).foreach {
-            case (datasetName, metricValue) =>
+          }))
+          if (log) {
+            val line = s"║ %${firstColWidth}s │".format(datasetName) + value.map(metricValue => {
               if (metricValue.shape.rank == 0 &&
                   (metricValue.dataType.isFloatingPoint || metricValue.dataType.isInteger)) {
                 val castedValue = metricValue.cast(FLOAT32).scalar.asInstanceOf[Float]
-                val value = Summary.Value.newBuilder()
-                value.setTag(s"$datasetName/${metric.name}")
-                value.setSimpleValue(castedValue)
-                summaryProto.addValue(value)
+                s" %${colWidth}.4f ".format(castedValue)
               } else {
-                Evaluator.logger.warn(s"Skipping summary for non-scalar and/or non-numeric metric '$metric'.")
+                s" %${colWidth}s ".format("Not Scalar")
               }
+            }).mkString("│") + "║"
+            Evaluator.logger.info(line)
           }
       }
-      val writer = SummaryFileWriterCache.get(summaryDir)
-      writer.writeSummary(summaryProto.build(), step)
-      writer.flush()
+      session.setShouldStop(true)
+    } catch {
+      case e if RECOVERABLE_EXCEPTIONS.contains(e.getClass) =>
+        session.close()
+      case t: Throwable =>
+        session.closeWithoutHookEnd()
+        throw t
+    } finally {
+      if (!session.closed)
+        session.close()
     }
+    if (log) {
+      Evaluator.logger.info(s"╚═${"═" * firstColWidth}═╧${metrics.map(_ => "═" * (colWidth + 2)).mkString("╧")}╝")
+    }
+    summaryProto.foreach(sp => {
+      if (skippedMetricSummaries.nonEmpty)
+        Evaluator.logger.warn(
+          s"Skipped summaries for non-scalar and/or non-numeric metrics: ${skippedMetricSummaries.mkString(", ")}.")
+      val writer = SummaryFileWriterCache.get(summaryDir)
+      writer.writeSummary(sp.build(), step)
+      writer.flush()
+    })
   }
 }
 
