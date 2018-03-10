@@ -124,8 +124,8 @@ case class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
       Evaluator.logger.info(s"╟─${"─" * firstColWidth}─┼${metrics.map(_ => "─" * (colWidth + 2)).mkString("┼")}╢")
     }
     try {
-      datasetInitializers.zip(metrics.map(_.name)).foreach {
-        case ((datasetName, datasetInitializer), metric) =>
+      datasetInitializers.foreach {
+        case (datasetName, datasetInitializer) =>
           sessionCreator.addLocalInitOp(datasetInitializer)
           session.run(targets = evaluateOps.metricResets)
           session.run(targets = datasetInitializer)
@@ -139,16 +139,15 @@ case class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
           }
           val value = session.run(fetches = evaluateOps.metricValues)
           sessionCreator.removeLocalInitOp(datasetInitializer)
-          summaryProto.foreach(sp => value.foreach(metricValue => {
-            if (metricValue.shape.rank == 0 &&
-                (metricValue.dataType.isFloatingPoint || metricValue.dataType.isInteger)) {
-              val castedValue = metricValue.cast(FLOAT32).scalar.asInstanceOf[Float]
+          summaryProto.foreach(sp => value.zip(metrics.map(_.name)).foreach(m => {
+            if (m._1.shape.rank == 0 && (m._1.dataType.isFloatingPoint || m._1.dataType.isInteger)) {
+              val castedValue = m._1.cast(FLOAT32).scalar.asInstanceOf[Float]
               val value = Summary.Value.newBuilder()
-              value.setTag(s"$datasetName/$metric")
+              value.setTag(s"$datasetName/${m._2}")
               value.setSimpleValue(castedValue)
               sp.addValue(value)
             } else {
-              skippedMetricSummaries :+= s"'$metric'"
+              skippedMetricSummaries :+= s"'${m._2}'"
             }
           }))
           if (log) {
