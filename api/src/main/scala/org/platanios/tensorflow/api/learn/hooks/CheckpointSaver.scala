@@ -44,11 +44,11 @@ import java.nio.file.{Files, Path}
   *
   * @author Emmanouil Antonios Platanios
   */
-case class CheckpointSaver(
-    directory: Path,
-    trigger: HookTrigger = StepHookTrigger(1000),
-    triggerAtEnd: Boolean = true,
-    checkpointBaseName: String = "model.ckpt"
+class CheckpointSaver protected (
+    val directory: Path,
+    val trigger: HookTrigger = StepHookTrigger(1000),
+    val triggerAtEnd: Boolean = true,
+    val checkpointBaseName: String = "model.ckpt"
 ) extends TriggeredHook(trigger, triggerAtEnd) {
   override private[learn] val priority: Int = 1000
 
@@ -109,4 +109,13 @@ case class CheckpointSaver(
 
 object CheckpointSaver {
   private[CheckpointSaver] val logger = Logger(LoggerFactory.getLogger("Learn / Hooks / Checkpoint Saver"))
+
+  def apply(
+      directory: Path,
+      trigger: HookTrigger = StepHookTrigger(1000),
+      triggerAtEnd: Boolean = true,
+      checkpointBaseName: String = "model.ckpt"
+  ): CheckpointSaver = {
+    new CheckpointSaver(directory, trigger, triggerAtEnd, checkpointBaseName)
+  }
 }

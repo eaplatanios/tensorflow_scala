@@ -31,7 +31,10 @@ import org.slf4j.LoggerFactory
   *
   * @author Emmanouil Antonios Platanios
   */
-case class NaNChecker(tensorNames: Set[String], failOnNaN: Boolean = true) extends Hook {
+class NaNChecker protected (
+    val tensorNames: Set[String],
+    val failOnNaN: Boolean = true
+) extends Hook {
   private[this] var outputs: Seq[Output] = _
 
   override protected def begin(): Unit = {
@@ -70,4 +73,8 @@ case class NaNChecker(tensorNames: Set[String], failOnNaN: Boolean = true) exten
 
 object NaNChecker {
   private[NaNChecker] val logger = Logger(LoggerFactory.getLogger("Learn / Hooks / Tensor NaN"))
+
+  def apply(tensorNames: Set[String], failOnNaN: Boolean = true): NaNChecker = {
+    new NaNChecker(tensorNames, failOnNaN)
+  }
 }

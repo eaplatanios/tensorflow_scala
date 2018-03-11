@@ -56,15 +56,15 @@ import java.nio.file.Path
   *
   * @author Emmanouil Antonios Platanios
   */
-case class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
-    log: Boolean = true,
-    summaryDir: Path = null,
-    datasets: Seq[(String, () => Dataset[TT, TO, TD, TS])],
-    metrics: Seq[Metric[EI, Output]],
-    trigger: HookTrigger = StepHookTrigger(100),
-    triggerAtEnd: Boolean = true,
-    randomSeed: Option[Int] = None,
-    name: String = "Evaluator"
+class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] protected (
+    val log: Boolean = true,
+    val summaryDir: Path = null,
+    val datasets: Seq[(String, () => Dataset[TT, TO, TD, TS])],
+    val metrics: Seq[Metric[EI, Output]],
+    val trigger: HookTrigger = StepHookTrigger(100),
+    val triggerAtEnd: Boolean = true,
+    val randomSeed: Option[Int] = None,
+    val name: String = "Evaluator"
 ) extends TriggeredHook(trigger, triggerAtEnd)
     with ModelDependentHook[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] {
   require(log || summaryDir != null, "At least one of 'log' and 'summaryDir' needs to be provided.")
@@ -190,4 +190,17 @@ case class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
 
 object Evaluator {
   private[Evaluator] val logger = Logger(LoggerFactory.getLogger("Learn / Hooks / Evaluation"))
+
+  def apply[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
+      log: Boolean = true,
+      summaryDir: Path = null,
+      datasets: Seq[(String, () => Dataset[TT, TO, TD, TS])],
+      metrics: Seq[Metric[EI, Output]],
+      trigger: HookTrigger = StepHookTrigger(100),
+      triggerAtEnd: Boolean = true,
+      randomSeed: Option[Int] = None,
+      name: String = "Evaluator"
+  ): Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] = {
+    new Evaluator(log, summaryDir, datasets, metrics, trigger, triggerAtEnd, randomSeed, name)
+  }
 }

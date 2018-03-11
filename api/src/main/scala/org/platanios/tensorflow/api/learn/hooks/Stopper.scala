@@ -33,7 +33,7 @@ import scala.collection.mutable
   *
   * @author Emmanouil Antonios Platanios
   */
-private[learn] case class Stopper(private var criteria: StopCriteria) extends Hook {
+private[learn] class Stopper protected (protected var criteria: StopCriteria) extends Hook {
   private[this] var epoch: Variable = _
   private[this] var step : Variable = _
   private[this] var loss : Output   = _
@@ -158,4 +158,6 @@ private[learn] case class Stopper(private var criteria: StopCriteria) extends Ho
 
 object Stopper {
   private[Stopper] val logger = Logger(LoggerFactory.getLogger("Learn / Hooks / Termination"))
+
+  def apply(criteria: StopCriteria): Stopper = new Stopper(criteria)
 }

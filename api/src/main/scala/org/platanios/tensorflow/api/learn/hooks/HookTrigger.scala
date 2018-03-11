@@ -97,7 +97,8 @@ case class StepHookTrigger(numSteps: Int) extends HookTrigger {
 
   /** Returns `true` if the hook should be triggered for the specified step. */
   override def shouldTriggerForStep(step: Int): Boolean = _lastTrigger match {
-    case None => true
+    case None if step % numSteps == 0 => true
+    case None => false
     case Some((_, s)) if s == step => false
     case Some((_, s)) => step >= s + numSteps
   }

@@ -38,11 +38,11 @@ import java.nio.file.Path
   *
   * @author Emmanouil Antonios Platanios
   */
-case class SummarySaver(
-    directory: Path,
-    trigger: HookTrigger = StepHookTrigger(10),
-    triggerAtEnd: Boolean = true,
-    collection: Graph.Key[Output] = Graph.Keys.SUMMARIES
+class SummarySaver protected (
+    val directory: Path,
+    val trigger: HookTrigger = StepHookTrigger(10),
+    val triggerAtEnd: Boolean = true,
+    val collection: Graph.Key[Output] = Graph.Keys.SUMMARIES
 ) extends TriggeredHook(trigger, triggerAtEnd) {
   private[this] var summary      : Option[Output]            = None
   private[this] var summaryWriter: Option[SummaryFileWriter] = None
@@ -69,5 +69,16 @@ case class SummarySaver(
       writer.writeSummaryString(runResult.values(0).scalar.asInstanceOf[String], step)
       writer.flush()
     })
+  }
+}
+
+object SummarySaver {
+  def apply(
+      directory: Path,
+      trigger: HookTrigger = StepHookTrigger(10),
+      triggerAtEnd: Boolean = true,
+      collection: Graph.Key[Output] = Graph.Keys.SUMMARIES
+  ): SummarySaver = {
+    new SummarySaver(directory, trigger, triggerAtEnd, collection)
   }
 }

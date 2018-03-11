@@ -39,12 +39,12 @@ import java.nio.file.Path
   *
   * @author Emmanouil Antonios Platanios
   */
-case class LossLogger(
-    log: Boolean = true,
-    summaryDir: Path = null,
-    trigger: HookTrigger = StepHookTrigger(1),
-    triggerAtEnd: Boolean = true,
-    formatter: (Option[Double], Long, Float) => String = null
+class LossLogger protected (
+    val log: Boolean = true,
+    val summaryDir: Path = null,
+    val trigger: HookTrigger = StepHookTrigger(1),
+    val triggerAtEnd: Boolean = true,
+    val formatter: (Option[Double], Long, Float) => String = null
 ) extends TriggeredHook(trigger, triggerAtEnd)
     with ModelDependentHook[Any, Any, Any, Any, Any, Any, Any, Any, Any, Any]
     with SummaryWriterHookAddOn {
@@ -82,4 +82,14 @@ case class LossLogger(
 
 object LossLogger {
   private[LossLogger] val logger = Logger(LoggerFactory.getLogger("Learn / Hooks / Loss Logger"))
+
+  def apply(
+      log: Boolean = true,
+      summaryDir: Path = null,
+      trigger: HookTrigger = StepHookTrigger(1),
+      triggerAtEnd: Boolean = true,
+      formatter: (Option[Double], Long, Float) => String = null
+  ): LossLogger = {
+    new LossLogger(log, summaryDir, trigger, triggerAtEnd, formatter)
+  }
 }

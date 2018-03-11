@@ -31,7 +31,7 @@ import scala.util.Try
   *
   * @author Emmanouil Antonios Platanios
   */
-private[learn] case class TensorBoardHook(tensorBoardConfig: TensorBoardConfig) extends Hook {
+private[learn] class TensorBoardHook protected (val tensorBoardConfig: TensorBoardConfig) extends Hook {
   private[this] var tensorBoardProcess: Option[Process] = None
 
   override protected def begin(): Unit = tensorBoardProcess = {
@@ -59,4 +59,6 @@ private[learn] case class TensorBoardHook(tensorBoardConfig: TensorBoardConfig) 
 
 private[learn] object TensorBoardHook {
   private[TensorBoardHook] val logger = Logger(LoggerFactory.getLogger("Learn / Hooks / TensorBoard"))
+
+  def apply(tensorBoardConfig: TensorBoardConfig): TensorBoardHook = new TensorBoardHook(tensorBoardConfig)
 }

@@ -42,12 +42,12 @@ import org.slf4j.LoggerFactory
   *
   * @author Emmanouil Antonios Platanios
   */
-case class TensorLogger(
-    tensors: Map[String, String],
-    trigger: HookTrigger = StepHookTrigger(1),
-    triggerAtEnd: Boolean = true,
-    formatter: (Map[String, Tensor]) => String = null)
-    extends TriggeredHook(trigger, triggerAtEnd) {
+class TensorLogger protected (
+    val tensors: Map[String, String],
+    val trigger: HookTrigger = StepHookTrigger(1),
+    val triggerAtEnd: Boolean = true,
+    val formatter: (Map[String, Tensor]) => String = null
+) extends TriggeredHook(trigger, triggerAtEnd) {
   private[this] val tensorTags : Seq[String] = tensors.keys.toSeq
   private[this] val tensorNames: Seq[String] = tensors.values.toSeq
   private[this] var outputs    : Seq[Output] = _
@@ -83,4 +83,13 @@ case class TensorLogger(
 
 object TensorLogger {
   private[TensorLogger] val logger = Logger(LoggerFactory.getLogger("Learn / Hooks / Tensor Logging"))
+
+  def apply(
+      tensors: Map[String, String],
+      trigger: HookTrigger = StepHookTrigger(1),
+      triggerAtEnd: Boolean = true,
+      formatter: (Map[String, Tensor]) => String = null
+  ): TensorLogger = {
+    new TensorLogger(tensors, trigger, triggerAtEnd, formatter)
+  }
 }
