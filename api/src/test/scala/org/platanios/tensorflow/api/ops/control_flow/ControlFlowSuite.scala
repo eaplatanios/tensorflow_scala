@@ -483,5 +483,25 @@ class ControlFlowSuite extends JUnitSuite with Matchers {
     }
   }
 
+  @Test def testCondGradientInNestedWhileLoops(): Unit = {
+    val (i, x) = ControlFlow.whileLoop(
+      (outerV: (Output, Output)) => outerV._1 < 3,
+      (outerV: (Output, Output)) => {
+        val (_, x) = ControlFlow.whileLoop(
+          (v: (Output, Output)) => v._1 < 3,
+          (v: (Output, Output)) => {
+            val y = ControlFlow.cond(Math.less(v._2, 1), () => 2 * v._2, () => v._2)
+            (v._1 + 1, Gradients.gradients(Seq(y), Seq(v._2)).head.toOutput)
+          },
+          (Basic.constant(0, INT32), Basic.constant(0.0, FLOAT32)))
+        (outerV._1 + 1, x)
+      },
+      (Basic.constant(0, INT32), Basic.constant(0.0, FLOAT32)))
+    val session = Session()
+    val (iValue, xValue) = session.run(fetches = (i, x))
+    assert(iValue.scalar.asInstanceOf[Int] === 3)
+    assert(xValue.scalar.asInstanceOf[Float] === 1.0f)
+  }
+
   //endregion whileLoop
 }
