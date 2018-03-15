@@ -66,7 +66,7 @@ object TFRecordDataset {
     } else {
       TensorSlicesDataset(filenames, name = s"$name/Filenames")
           .parallelInterleave(
-            f => new DynamicTFRecordDataset(f, compressionType, bufferSize, name),
+            f => DynamicTFRecordDataset(f, compressionType, bufferSize, numParallelReads = 1, name = name),
             cycleLength = Basic.constant(numParallelReads, name = s"$name/NumParallelReads"),
             blockLength = Basic.constant(1, name = s"$name/BlockLength"),
             sloppy = false,
@@ -118,7 +118,7 @@ object DynamicTFRecordDataset {
     if (numParallelReads == 1) {
       new DynamicTFRecordDataset(filenames, compressionType, bufferSize, name)
     } else {
-      TensorSlicesDataset(filenames, name = s"$name/Filenames")
+      OutputSlicesDataset(filenames, name = s"$name/Filenames")
           .parallelInterleave(
             f => new DynamicTFRecordDataset(f, compressionType, bufferSize, name),
             cycleLength = Basic.constant(numParallelReads, name = s"$name/NumParallelReads"),

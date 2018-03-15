@@ -15,6 +15,7 @@
 
 package org.platanios.tensorflow.api.ops.io
 
+import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output}
 import org.platanios.tensorflow.api.types.INT64
 
@@ -31,7 +32,7 @@ package object data {
   private[data] def randomSeeds(seed: Option[Int] = None, name: String = "RandomSeeds"): (Output, Output) = {
     Op.createWithNameScope(name) {
       val (graphSeed, opSeed) = Op.currentGraphRandomSeed(seed)
-      val seed1 = Basic.constant(graphSeed.getOrElse(0), INT64)
+      val seed1 = Basic.constant(graphSeed.getOrElse(0): Int, INT64)
       val seed2 = opSeed match {
         case None => Basic.constant(0, INT64)
         case Some(s) => Op.createWithNameScope("Seed2") {
