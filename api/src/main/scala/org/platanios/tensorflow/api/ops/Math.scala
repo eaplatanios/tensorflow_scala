@@ -156,7 +156,37 @@ private[api] trait Math {
           .build().outputs(0)
   }
 
-  // TODO: [OPS] accumulateN
+  /** $OpDocMathAccumulateN
+    *
+    * @param  inputs Input tensors.
+    * @param  shape  Shape of the elements of `inputs` (in case it's not known statically and needs to be retained).
+    * @param  name   Created op name.
+    * @return Created op output.
+    * @throws InvalidArgumentException If any of the inputs has a different data type and/or shape than the rest.
+    */
+  @throws[InvalidArgumentException]
+  def accumulateN(
+      inputs: Seq[Output],
+      shape: Shape = null,
+      name: String = "AccumulateN"
+  ): Output = {
+    val dataType = inputs.head.dataType
+    if (inputs.exists(_.dataType != dataType))
+      throw InvalidArgumentException("All input tensors must have the same data type.")
+    val inferredShape = if (shape == null) Shape.unknown() else shape
+    if (inputs.exists(!_.shape.isCompatibleWith(inferredShape)))
+      throw InvalidArgumentException("All input tensors must have the same shape.")
+    if (inputs.length == 1 && name == null) {
+      inputs.head
+    } else if (inputs.length == 1) {
+      Basic.identity(inputs.head, name = name)
+    } else {
+      Op.Builder(opType = "AccumulateNV2", name = name)
+          .addInputList(inputs)
+          .setAttribute("shape", shape)
+          .build().outputs(0)
+    }
+  }
 
   //region Unary Ops
 
@@ -3557,6 +3587,7 @@ object Math extends Math {
     GradientsRegistry.register("Select", selectGradient)
     GradientsRegistry.register("Cast", castGradient)
     GradientsRegistry.register("AddN", addNGradient)
+    GradientsRegistry.register("AccumulateNV2", accumulateNGradient)
     GradientsRegistry.register("Abs", absGradient)
     GradientsRegistry.register("ComplexAbs", complexAbsGradient)
     GradientsRegistry.register("Neg", negateGradient)
@@ -3665,6 +3696,10 @@ object Math extends Math {
     }
 
     private[this] def addNGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      Seq.fill(op.numInputs)(outputGradients.head)
+    }
+
+    private[this] def accumulateNGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       Seq.fill(op.numInputs)(outputGradients.head)
     }
 
@@ -4752,7 +4787,14 @@ object Math extends Math {
     *
     * @define OpDocMathAddN
     *   The `addN` op adds all input tensors element-wise.
-    * 
+    *
+    * @define OpDocMathAccumulateN
+    *   The `accumulateN` op adds all input tensors element-wise.
+    *
+    *   This op performs the same operation as the `addN` op, but it does not wait for all of its inputs to be ready 
+    *   before beginning to sum. This can save memory if the inputs become available at different times, since the 
+    *   minimum temporary storage is proportional to the output size, rather than the inputs size.
+    *
     * @define OpDocMathAbs
     *   The `abs` op computes the absolute value of a tensor.
     *
