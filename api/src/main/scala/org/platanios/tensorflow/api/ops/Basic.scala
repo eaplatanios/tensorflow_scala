@@ -24,8 +24,8 @@ import org.platanios.tensorflow.api.ops.NN.CNNDataFormat
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.tensors.{Context, Tensor}
 import org.platanios.tensorflow.api.types._
+import org.platanios.tensorflow.jni.InvalidArgumentException
 import org.platanios.tensorflow.jni.generated.tensors.{Basic => NativeTensorOpsBasic}
-
 import org.tensorflow.framework.AttrValue
 
 import scala.language.postfixOps
@@ -296,12 +296,17 @@ private[api] trait Basic {
     * @return Created op output.
     */
   def size[T <: OutputLike](
-      input: T, dataType: DataType = INT32, optimize: Boolean = true, name: String = "Size"): Output = {
+      input: T, dataType: DataType = INT32,
+      optimize: Boolean = true,
+      name: String = "Size"
+  ): Output = {
     input match {
       case o: Output =>
         val inputShape = o.shape
         if (optimize && inputShape.isFullyDefined)
           constant(Tensor.fill(dataType, Shape())(inputShape.numElements), name = name)
+        else if (optimize && inputShape.rank > -1 && inputShape.asArray.contains(0))
+          constant(0, name = name)
         else
           Op.Builder(opType = "Size", name = name)
               .addInput(o)
@@ -584,11 +589,14 @@ private[api] trait Basic {
     * @return Created op outputs.
     */
   def split(input: Output, splitSizes: Output, axis: Output = 0, name: String = "Split"): Seq[Output] = {
+    val splitSizesShape = splitSizes.shape
+    if (splitSizesShape == Shape.unknown())
+      throw InvalidArgumentException(s"Cannot infer the number of splits from the shape '$splitSizesShape'.")
     Op.Builder(opType = "SplitV", name = name)
         .addInput(input)
         .addInput(Op.createWith(nameScope = name)(splitSizes))
         .addInput(Op.createWith(nameScope = name)(axis))
-        .setAttribute("num_split", splitSizes.shape(0))
+        .setAttribute("num_split", splitSizesShape(0))
         .build().outputs.toSeq
   }
 
@@ -1234,15 +1242,21 @@ private[api] trait Basic {
     *
     * @group BasicOps
     *
-    * @param  input           One-dimensional input tensor.
+    * @param  input           Input tensor.
+    * @param  axis            Axis along which to count the unique elements.
     * @param  indicesDataType Data type of the returned indices. Must be [[INT32]] or [[INT64]].
     * @param  name            Name for the created op.
     * @return Tuple containing `output`, `indices`, and `counts`.
     */
   def uniqueWithCounts(
-      input: Output, indicesDataType: DataType = INT32, name: String = "UniqueWithCounts"): (Output, Output, Output) = {
-    val outputs = Op.Builder(opType = "UniqueWithCounts", name = name)
+      input: Output,
+      axis: Output = 0,
+      indicesDataType: DataType = INT32,
+      name: String = "UniqueWithCounts"
+  ): (Output, Output, Output) = {
+    val outputs = Op.Builder(opType = "UniqueWithCountsV2", name = name)
         .addInput(input)
+        .addInput(axis)
         .setAttribute("out_idx", indicesDataType)
         .build().outputs
     (outputs(0), outputs(1), outputs(2))
@@ -1928,11 +1942,12 @@ object Basic extends Basic {
       *
       * @group BasicOps
       *
+      * @param  axis            Axis along which to count the unique elements.
       * @param  indicesDataType Data type of the returned indices. Must be [[INT32]] or [[INT64]].
       * @return Tuple containing `output`, `indices`, and `counts`.
       */
-    def uniqueWithCounts(indicesDataType: DataType = INT32): (Output, Output, Output) = {
-      Basic.uniqueWithCounts(output, indicesDataType)
+    def uniqueWithCounts(axis: Output = 0, indicesDataType: DataType = INT32): (Output, Output, Output) = {
+      Basic.uniqueWithCounts(output, axis, indicesDataType)
     }
 
     /** $OpDocBasicListDiff
@@ -2340,11 +2355,21 @@ object Basic extends Basic {
       Seq(spaceToBatchND(outputGradients.head, op.inputs(1), op.inputs(2)), null, null)
     }
 
+    @throws[InvalidArgumentException]
     private[this] def spaceToDepthGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      if (op.stringAttribute("data_format") == "NCHW_VECT_C")
+        throw InvalidArgumentException(
+          "Cannot compute 'spaceToDepth' gradient with 'NCHW_VECT_C' data format. " +
+              "This format requires 'QINT8' data type.")
       Seq(depthToSpace(outputGradients.head, op.longAttribute("block_size").toInt))
     }
 
+    @throws[InvalidArgumentException]
     private[this] def depthToSpaceGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      if (op.stringAttribute("data_format") == "NCHW_VECT_C")
+        throw InvalidArgumentException(
+          "Cannot compute 'spaceToDepth' gradient with 'NCHW_VECT_C' data format. " +
+              "This format requires 'QINT8' data type.")
       Seq(spaceToDepth(outputGradients.head, op.longAttribute("block_size").toInt))
     }
 
