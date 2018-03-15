@@ -36,6 +36,14 @@ import scala.language.postfixOps
 import scala.util.matching.Regex
 
 /**
+  * 
+  * Each graph uses a reentrant lock internally that protects its core state that can be returned via public accessors,
+  * as well as synchronizes session run calls with methods that create and mutate ops. This synchronization is necessary
+  * because it is illegal to modify an operation after it has been run. Thread-safety is provided on a best-effort basis
+  * to support buggy programs, and is not guaranteed by the public `tf.Graph` API. Note that the lock must be reentrant
+  * because methods that create and mutate ops may be called recursively due to control flow. Without a reentrant lock,
+  * many methods would also need a synchronized version or a lock parameter.
+  *
   * @author Emmanouil Antonios Platanios
   */
 class Graph private[api](private[api] var nativeHandle: Long) extends Closeable with ProtoSerializable {
@@ -533,32 +541,38 @@ class Graph private[api](private[api] var nativeHandle: Long) extends Closeable 
     *                                therefore be defined in this graph.
     */
   def importGraphDef(
-      graphDef: GraphDef, importScope: String = null, inputsMap: Map[(String, Int), Output] = Map.empty,
-      controlDependenciesMap: Map[String, Op] = Map.empty, controlDependencies: Set[Op] = Set.empty): Unit = {
-    assertNotFrozen()
-    val prefix = {
-      if (importScope == null || importScope == "")
-        ""
-      else if (importScope.endsWith("/"))
-        importScope
-      else
-        s"$importScope/"
+      graphDef: GraphDef,
+      importScope: String = null,
+      inputsMap: Map[(String, Int), Output] = Map.empty,
+      controlDependenciesMap: Map[String, Op] = Map.empty,
+      controlDependencies: Set[Op] = Set.empty
+  ): Unit = {
+    this synchronized {
+      assertNotFrozen()
+      val prefix = {
+        if (importScope == null || importScope == "")
+          ""
+        else if (importScope.endsWith("/"))
+          importScope
+        else
+          s"$importScope/"
+      }
+      val inputsMapSourceOpNames = inputsMap.map(_._1._1).toArray
+      val inputsMapSourceOutputIndices = inputsMap.map(_._1._2).toArray
+      val inputsMapDestinationOpHandles = inputsMap.map(_._2.op.nativeHandle).toArray
+      val inputsMapDestinationOutputIndices = inputsMap.map(_._2.index).toArray
+      val controlDependenciesMapSourceOpNames = controlDependenciesMap.keys.toArray
+      val controlDependenciesMapDestinationOpHandles = controlDependenciesMap.map(_._2.nativeHandle).toArray
+      val controlDependenciesOpHandles = controlDependencies.map(_.nativeHandle).toArray
+      NativeHandleLock.synchronized {
+        NativeGraph.importGraphDef(
+          nativeHandle, graphDef.toByteArray, prefix, inputsMapSourceOpNames, inputsMapSourceOutputIndices,
+          inputsMapDestinationOpHandles, inputsMapDestinationOutputIndices, controlDependenciesMapSourceOpNames,
+          controlDependenciesMapDestinationOpHandles, controlDependenciesOpHandles)
+      }
+      // TODO: [PERFORMANCE] Make this faster?
+      namesInUse synchronized ops.foreach(op => markNameAsUsed(op.name))
     }
-    val inputsMapSourceOpNames = inputsMap.map(_._1._1).toArray
-    val inputsMapSourceOutputIndices = inputsMap.map(_._1._2).toArray
-    val inputsMapDestinationOpHandles = inputsMap.map(_._2.op.nativeHandle).toArray
-    val inputsMapDestinationOutputIndices = inputsMap.map(_._2.index).toArray
-    val controlDependenciesMapSourceOpNames = controlDependenciesMap.keys.toArray
-    val controlDependenciesMapDestinationOpHandles = controlDependenciesMap.map(_._2.nativeHandle).toArray
-    val controlDependenciesOpHandles = controlDependencies.map(_.nativeHandle).toArray
-    NativeHandleLock.synchronized {
-      NativeGraph.importGraphDef(
-        nativeHandle, graphDef.toByteArray, prefix, inputsMapSourceOpNames, inputsMapSourceOutputIndices,
-        inputsMapDestinationOpHandles, inputsMapDestinationOutputIndices, controlDependenciesMapSourceOpNames,
-        controlDependenciesMapDestinationOpHandles, controlDependenciesOpHandles)
-    }
-    // TODO: [PERFORMANCE] Make this faster?
-    namesInUse synchronized ops.foreach(op => markNameAsUsed(op.name))
   }
 
   /** Imports a serialized representation of a graph and its meta-information into the current graph.

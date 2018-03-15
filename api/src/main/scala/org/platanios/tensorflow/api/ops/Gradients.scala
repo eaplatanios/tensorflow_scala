@@ -40,9 +40,14 @@ private[ops] object Gradients {
   // TODO: [API] Expose in "tf".
   // TODO: [DOC] Document the "gradients" function.
   def gradients(
-      ys: Seq[Output], xs: Seq[Output], dys: Seq[OutputLike] = null, gateGradients: Boolean = false,
-      aggregationMethod: AggregationMethod = AddAggregationMethod, colocateGradientsWithOps: Boolean = false,
-      name: String = "Gradients"): Seq[OutputLike] = {
+      ys: Seq[Output],
+      xs: Seq[Output],
+      dys: Seq[OutputLike] = null,
+      gateGradients: Boolean = false,
+      aggregationMethod: AggregationMethod = AddAggregationMethod,
+      colocateGradientsWithOps: Boolean = false,
+      name: String = "Gradients"
+  ): Seq[OutputLike] = Op.currentGraph.synchronized {
     // The `accumulatedGradients` variable collects the gradients received on each output endpoint of the op. The
     // gradients for each endpoint are initially collected as a sequence. When it is time to call the op's gradient
     // function, for each endpoint we aggregate the list of received gradients into a "add" operation, if there is more

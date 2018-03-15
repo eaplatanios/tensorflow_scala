@@ -62,4 +62,6 @@ object Session {
       targetOpHandles: Array[Long],
       wantRunMetadata: Boolean,
       outputTensorHandles: Array[Long]): Array[Byte]
+
+  @native def extend(handle: Long): Unit
 }

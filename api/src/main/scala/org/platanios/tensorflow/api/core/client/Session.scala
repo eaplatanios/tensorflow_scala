@@ -119,6 +119,7 @@ class Session private[api](
       (implicit executable: Executable[E], fetchable: Fetchable.Aux[F, R]): (R, Option[RunMetadata]) = {
     if (nativeHandle == 0)
       throw new IllegalStateException("This session has already been closed.")
+    extend()
     val (inputs, inputTensors) = feeds.values.toSeq.unzip
     val inputTensorHandles: Array[Long] = inputTensors.map(_.resolve()).toArray
     val inputOpHandles: Array[Long] = inputs.map(_.op.nativeHandle).toArray
@@ -172,6 +173,14 @@ class Session private[api](
       }
     }
   }
+
+  /** Extends this session with any new operations added to its associated graph. Usually this happens automatically
+    * during a run. After this is called, session runs will no longer extend the session on every call. We expose this
+    * here to allow fine-grained synchronization in multi-threaded workloads, which is required since the Scala
+    * implementation depends on some methods that mutate ops that have already been added to a graph (e.g., for control
+    * flow constructs like while loops). This allows us to prevent modifications to nodes in the graph after the session
+    * has been made aware of them. */
+  protected def extend(): Unit = NativeHandleLock.synchronized { NativeSession.extend(nativeHandle) }
 
   /** Returns a boolean flag indicating whether this session has been closed. */
   def closed: Boolean = nativeHandle == 0

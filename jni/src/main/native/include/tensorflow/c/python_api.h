@@ -36,6 +36,16 @@ void SetRequestedDevice(TF_Graph* graph, TF_Operation* op, const char* device);
 void SetAttribute(
   TF_Graph* graph, TF_Operation* op, const char* attr_name, TF_Buffer* attr_value_proto, TF_Status* status);
 
+// Extends `session` with any new operations added to its associated graph.
+// Usually this happens automatically in TF_SessionRun. After this is called,
+// TF_SessionRun will no longer extend the session on every call.
+//
+// We expose this here to allow fine-grained synchronization in multi-threaded
+// workloads, which is required since the Python implementation depends on the
+// above mutation methods. This allows us to prevent modifications to nodes in
+// the graph after the session has been made aware of them.
+void ExtendSession(TF_Session* session, TF_Status* status);
+
 }  // namespace tensorflow
 
 #endif  // THIRD_PARTY_TENSORFLOW_C_PYTHON_API_H_

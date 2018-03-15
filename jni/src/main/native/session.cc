@@ -21,6 +21,7 @@
 #include <memory>
 
 #include "tensorflow/c/c_api.h"
+#include "tensorflow/c/python_api.h"
 
 namespace {
   void TF_MaybeDeleteBuffer(TF_Buffer* buffer) {
@@ -140,4 +141,12 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Session_00024_run
   }
 
   return return_array;
+}
+
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Session_00024_extend(
+    JNIEnv* env, jobject object, jlong handle) {
+  REQUIRE_HANDLE(session, TF_Session, handle, void());
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+  tensorflow::ExtendSession(session, status.get());
+  CHECK_STATUS(env, status.get(), void());
 }

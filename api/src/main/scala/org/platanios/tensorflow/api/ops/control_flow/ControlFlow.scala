@@ -283,11 +283,14 @@ private[api] trait ControlFlow {
           throw InvalidArgumentException("The `maximumIterations` tensor cannot be defined in a `cond` or `whileLoop`.")
         val zero = Basic.constant(0, name = "Zero")
         val one = Basic.constant(1, name = "One")
-        loopContext.buildLoop[(Output, T), (Shape, TS)](
-          (v: (Output, T)) => Math.logicalAnd(v._1 < maximumIterations, predicateFn(v._2)),
-          (v: (Output, T)) => (v._1 + one, bodyFn(v._2)),
-          (zero, loopVariables),
-          shapeInvariants.map((Shape.scalar(), _)))._2
+        // Building a loop involves mutating ops and thus we need to lock on the graph.
+        Op.currentGraph.synchronized {
+          loopContext.buildLoop[(Output, T), (Shape, TS)](
+            (v: (Output, T)) => Math.logicalAnd(v._1 < maximumIterations, predicateFn(v._2)),
+            (v: (Output, T)) => (v._1 + one, bodyFn(v._2)),
+            (zero, loopVariables),
+            shapeInvariants.map((Shape.scalar(), _)))._2
+        }
       }
     }
   }
