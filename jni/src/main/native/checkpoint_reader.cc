@@ -55,7 +55,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_CheckpointReader_00024
   std::unique_ptr<tensorflow::Tensor> tensor;
   reader->GetTensor(c_name, &tensor, status.get());
   CHECK_STATUS(env, status.get(), 0);
-  TFE_TensorHandle* tfe_tensor = new TFE_TensorHandle(*tensor.get(), nullptr);
+  TFE_TensorHandle* tfe_tensor = new TFE_TensorHandle(*tensor.get(), nullptr, nullptr);
   return (jlong) tfe_tensor;
 }
 

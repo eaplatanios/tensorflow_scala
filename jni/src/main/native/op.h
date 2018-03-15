@@ -447,6 +447,14 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_toOpDef
 JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_toNodeDef
   (JNIEnv *, jobject, jlong);
 
+/*
+ * Class:     org_platanios_tensorflow_jni_Op__
+ * Method:    tryEvaluateConstant
+ * Signature: (JJI)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Op_00024_tryEvaluateConstant
+  (JNIEnv *, jobject, jlong, jlong, jint);
+
 #ifdef __cplusplus
 }
 #endif

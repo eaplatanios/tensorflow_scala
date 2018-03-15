@@ -273,7 +273,13 @@ object Output {
 
   /** Returns the constant value of the given tensor, if efficiently calculable. */
   private[api] def constantValue(tensor: Output): Option[Tensor] = {
-    val value = tensor.op.opType match {
+    val value = using(tensor.graph.reference)(r => {
+      val result = NativeOp.tryEvaluateConstant(r.nativeHandle, tensor.op.nativeHandle, tensor.index)
+      if (result == 0L)
+        None
+      else
+        Some(Tensor.fromNativeHandle(result))
+    }).orElse(tensor.op.opType match {
       case "Const" => Option(tensor.op.tensorAttribute("value")) // TODO: !!! Make more robust.
       case "Shape" =>
         val inputShape = tensor.op.inputs(0).shape
@@ -340,7 +346,7 @@ object Output {
             .flatMap(value1 => constantValue(tensor.op.inputs(1))
                 .map(value2 => TensorMath.notEqual(value1, value2)))
       case _ => None
-    }
+    })
     // If defined, the caller may now depend on the constant value, and so we prevent 'tensor' from being fed.
     if (value.isDefined)
       tensor.graph.preventFeeding(tensor)

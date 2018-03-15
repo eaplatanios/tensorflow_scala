@@ -39,7 +39,7 @@ namespace protobuf_tensorflow_2fcore_2fprotobuf_2fcontrol_5fflow_2eproto {
 struct TableStruct {
   static const ::google::protobuf::internal::ParseTableField entries[];
   static const ::google::protobuf::internal::AuxillaryParseTableField aux[];
-  static const ::google::protobuf::internal::ParseTable schema[4];
+  static const ::google::protobuf::internal::ParseTable schema[5];
   static const ::google::protobuf::internal::FieldMetadata field_metadata[];
   static const ::google::protobuf::internal::SerializationTable serialization_table[];
   static const ::google::protobuf::uint32 offsets[];
@@ -51,19 +51,19 @@ void InitDefaultsValuesDefImpl();
 void InitDefaultsValuesDef();
 void InitDefaultsCondContextDefImpl();
 void InitDefaultsCondContextDef();
-void InitDefaultsWhileContextDefImpl();
-void InitDefaultsWhileContextDef();
 inline void InitDefaults() {
   InitDefaultsValuesDef_ExternalValuesEntry_DoNotUse();
   InitDefaultsValuesDef();
   InitDefaultsCondContextDef();
-  InitDefaultsWhileContextDef();
 }
 }  // namespace protobuf_tensorflow_2fcore_2fprotobuf_2fcontrol_5fflow_2eproto
 namespace tensorflow {
 class CondContextDef;
 class CondContextDefDefaultTypeInternal;
 extern CondContextDefDefaultTypeInternal _CondContextDef_default_instance_;
+class ControlFlowContextDef;
+class ControlFlowContextDefDefaultTypeInternal;
+extern ControlFlowContextDefDefaultTypeInternal _ControlFlowContextDef_default_instance_;
 class ValuesDef;
 class ValuesDefDefaultTypeInternal;
 extern ValuesDefDefaultTypeInternal _ValuesDef_default_instance_;
@@ -77,6 +77,7 @@ extern WhileContextDefDefaultTypeInternal _WhileContextDef_default_instance_;
 namespace google {
 namespace protobuf {
 template<> ::tensorflow::CondContextDef* Arena::CreateMessage< ::tensorflow::CondContextDef>(Arena*);
+template<> ::tensorflow::ControlFlowContextDef* Arena::CreateMessage< ::tensorflow::ControlFlowContextDef>(Arena*);
 template<> ::tensorflow::ValuesDef* Arena::CreateMessage< ::tensorflow::ValuesDef>(Arena*);
 template<> ::tensorflow::ValuesDef_ExternalValuesEntry_DoNotUse* Arena::CreateMessage< ::tensorflow::ValuesDef_ExternalValuesEntry_DoNotUse>(Arena*);
 template<> ::tensorflow::WhileContextDef* Arena::CreateMessage< ::tensorflow::WhileContextDef>(Arena*);
@@ -257,6 +258,161 @@ class ValuesDef : public ::google::protobuf::Message /* @@protoc_insertion_point
 };
 // -------------------------------------------------------------------
 
+class ControlFlowContextDef : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:tensorflow.ControlFlowContextDef) */ {
+ public:
+  ControlFlowContextDef();
+  virtual ~ControlFlowContextDef();
+
+  ControlFlowContextDef(const ControlFlowContextDef& from);
+
+  inline ControlFlowContextDef& operator=(const ControlFlowContextDef& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  #if LANG_CXX11
+  ControlFlowContextDef(ControlFlowContextDef&& from) noexcept
+    : ControlFlowContextDef() {
+    *this = ::std::move(from);
+  }
+
+  inline ControlFlowContextDef& operator=(ControlFlowContextDef&& from) noexcept {
+    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
+      if (this != &from) InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+  #endif
+  inline ::google::protobuf::Arena* GetArena() const PROTOBUF_FINAL {
+    return GetArenaNoVirtual();
+  }
+  inline void* GetMaybeArenaPointer() const PROTOBUF_FINAL {
+    return MaybeArenaPtr();
+  }
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const ControlFlowContextDef& default_instance();
+
+  enum CtxtCase {
+    kCondCtxt = 1,
+    kWhileCtxt = 2,
+    CTXT_NOT_SET = 0,
+  };
+
+  static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
+  static inline const ControlFlowContextDef* internal_default_instance() {
+    return reinterpret_cast<const ControlFlowContextDef*>(
+               &_ControlFlowContextDef_default_instance_);
+  }
+  static PROTOBUF_CONSTEXPR int const kIndexInFileMessages =
+    2;
+
+  void UnsafeArenaSwap(ControlFlowContextDef* other);
+  void Swap(ControlFlowContextDef* other);
+  friend void swap(ControlFlowContextDef& a, ControlFlowContextDef& b) {
+    a.Swap(&b);
+  }
+
+  // implements Message ----------------------------------------------
+
+  inline ControlFlowContextDef* New() const PROTOBUF_FINAL {
+    return ::google::protobuf::Arena::CreateMessage<ControlFlowContextDef>(NULL);
+  }
+
+  ControlFlowContextDef* New(::google::protobuf::Arena* arena) const PROTOBUF_FINAL {
+    return ::google::protobuf::Arena::CreateMessage<ControlFlowContextDef>(arena);
+  }
+  void CopyFrom(const ::google::protobuf::Message& from) PROTOBUF_FINAL;
+  void MergeFrom(const ::google::protobuf::Message& from) PROTOBUF_FINAL;
+  void CopyFrom(const ControlFlowContextDef& from);
+  void MergeFrom(const ControlFlowContextDef& from);
+  void Clear() PROTOBUF_FINAL;
+  bool IsInitialized() const PROTOBUF_FINAL;
+
+  size_t ByteSizeLong() const PROTOBUF_FINAL;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input) PROTOBUF_FINAL;
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const PROTOBUF_FINAL;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* target) const PROTOBUF_FINAL;
+  int GetCachedSize() const PROTOBUF_FINAL { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const PROTOBUF_FINAL;
+  void InternalSwap(ControlFlowContextDef* other);
+  protected:
+  explicit ControlFlowContextDef(::google::protobuf::Arena* arena);
+  private:
+  static void ArenaDtor(void* object);
+  inline void RegisterArenaDtor(::google::protobuf::Arena* arena);
+  private:
+  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
+    return _internal_metadata_.arena();
+  }
+  inline void* MaybeArenaPtr() const {
+    return _internal_metadata_.raw_arena_ptr();
+  }
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const PROTOBUF_FINAL;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // .tensorflow.CondContextDef cond_ctxt = 1;
+  bool has_cond_ctxt() const;
+  void clear_cond_ctxt();
+  static const int kCondCtxtFieldNumber = 1;
+  const ::tensorflow::CondContextDef& cond_ctxt() const;
+  ::tensorflow::CondContextDef* release_cond_ctxt();
+  ::tensorflow::CondContextDef* mutable_cond_ctxt();
+  void set_allocated_cond_ctxt(::tensorflow::CondContextDef* cond_ctxt);
+  void unsafe_arena_set_allocated_cond_ctxt(
+      ::tensorflow::CondContextDef* cond_ctxt);
+  ::tensorflow::CondContextDef* unsafe_arena_release_cond_ctxt();
+
+  // .tensorflow.WhileContextDef while_ctxt = 2;
+  bool has_while_ctxt() const;
+  void clear_while_ctxt();
+  static const int kWhileCtxtFieldNumber = 2;
+  const ::tensorflow::WhileContextDef& while_ctxt() const;
+  ::tensorflow::WhileContextDef* release_while_ctxt();
+  ::tensorflow::WhileContextDef* mutable_while_ctxt();
+  void set_allocated_while_ctxt(::tensorflow::WhileContextDef* while_ctxt);
+  void unsafe_arena_set_allocated_while_ctxt(
+      ::tensorflow::WhileContextDef* while_ctxt);
+  ::tensorflow::WhileContextDef* unsafe_arena_release_while_ctxt();
+
+  CtxtCase ctxt_case() const;
+  // @@protoc_insertion_point(class_scope:tensorflow.ControlFlowContextDef)
+ private:
+  void set_has_cond_ctxt();
+  void set_has_while_ctxt();
+
+  inline bool has_ctxt() const;
+  void clear_ctxt();
+  inline void clear_has_ctxt();
+
+  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  template <typename T> friend class ::google::protobuf::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  union CtxtUnion {
+    CtxtUnion() {}
+    ::tensorflow::CondContextDef* cond_ctxt_;
+    ::tensorflow::WhileContextDef* while_ctxt_;
+  } ctxt_;
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _oneof_case_[1];
+
+  friend struct ::protobuf_tensorflow_2fcore_2fprotobuf_2fcontrol_5fflow_2eproto::TableStruct;
+  friend void ::protobuf_tensorflow_2fcore_2fprotobuf_2fcontrol_5fflow_2eproto::InitDefaultsCondContextDefImpl();
+};
+// -------------------------------------------------------------------
+
 class CondContextDef : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:tensorflow.CondContextDef) */ {
  public:
   CondContextDef();
@@ -298,7 +454,7 @@ class CondContextDef : public ::google::protobuf::Message /* @@protoc_insertion_
                &_CondContextDef_default_instance_);
   }
   static PROTOBUF_CONSTEXPR int const kIndexInFileMessages =
-    2;
+    3;
 
   void UnsafeArenaSwap(CondContextDef* other);
   void Swap(CondContextDef* other);
@@ -354,6 +510,18 @@ class CondContextDef : public ::google::protobuf::Message /* @@protoc_insertion_
   // nested types ----------------------------------------------------
 
   // accessors -------------------------------------------------------
+
+  // repeated .tensorflow.ControlFlowContextDef nested_contexts = 6;
+  int nested_contexts_size() const;
+  void clear_nested_contexts();
+  static const int kNestedContextsFieldNumber = 6;
+  ::tensorflow::ControlFlowContextDef* mutable_nested_contexts(int index);
+  ::google::protobuf::RepeatedPtrField< ::tensorflow::ControlFlowContextDef >*
+      mutable_nested_contexts();
+  const ::tensorflow::ControlFlowContextDef& nested_contexts(int index) const;
+  ::tensorflow::ControlFlowContextDef* add_nested_contexts();
+  const ::google::protobuf::RepeatedPtrField< ::tensorflow::ControlFlowContextDef >&
+      nested_contexts() const;
 
   // string context_name = 1;
   void clear_context_name();
@@ -449,6 +617,7 @@ class CondContextDef : public ::google::protobuf::Message /* @@protoc_insertion_
   template <typename T> friend class ::google::protobuf::Arena::InternalHelper;
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
+  ::google::protobuf::RepeatedPtrField< ::tensorflow::ControlFlowContextDef > nested_contexts_;
   ::google::protobuf::internal::ArenaStringPtr context_name_;
   ::google::protobuf::internal::ArenaStringPtr pred_name_;
   ::google::protobuf::internal::ArenaStringPtr pivot_name_;
@@ -501,7 +670,7 @@ class WhileContextDef : public ::google::protobuf::Message /* @@protoc_insertion
                &_WhileContextDef_default_instance_);
   }
   static PROTOBUF_CONSTEXPR int const kIndexInFileMessages =
-    3;
+    4;
 
   void UnsafeArenaSwap(WhileContextDef* other);
   void Swap(WhileContextDef* other);
@@ -601,6 +770,18 @@ class WhileContextDef : public ::google::protobuf::Message /* @@protoc_insertion
   void add_loop_enter_names(const char* value, size_t size);
   const ::google::protobuf::RepeatedPtrField< ::std::string>& loop_enter_names() const;
   ::google::protobuf::RepeatedPtrField< ::std::string>* mutable_loop_enter_names();
+
+  // repeated .tensorflow.ControlFlowContextDef nested_contexts = 12;
+  int nested_contexts_size() const;
+  void clear_nested_contexts();
+  static const int kNestedContextsFieldNumber = 12;
+  ::tensorflow::ControlFlowContextDef* mutable_nested_contexts(int index);
+  ::google::protobuf::RepeatedPtrField< ::tensorflow::ControlFlowContextDef >*
+      mutable_nested_contexts();
+  const ::tensorflow::ControlFlowContextDef& nested_contexts(int index) const;
+  ::tensorflow::ControlFlowContextDef* add_nested_contexts();
+  const ::google::protobuf::RepeatedPtrField< ::tensorflow::ControlFlowContextDef >&
+      nested_contexts() const;
 
   // string context_name = 1;
   void clear_context_name();
@@ -756,6 +937,7 @@ class WhileContextDef : public ::google::protobuf::Message /* @@protoc_insertion
   typedef void DestructorSkippable_;
   ::google::protobuf::RepeatedPtrField< ::std::string> loop_exit_names_;
   ::google::protobuf::RepeatedPtrField< ::std::string> loop_enter_names_;
+  ::google::protobuf::RepeatedPtrField< ::tensorflow::ControlFlowContextDef > nested_contexts_;
   ::google::protobuf::internal::ArenaStringPtr context_name_;
   ::google::protobuf::internal::ArenaStringPtr pivot_name_;
   ::google::protobuf::internal::ArenaStringPtr pivot_for_pred_name_;
@@ -767,7 +949,7 @@ class WhileContextDef : public ::google::protobuf::Message /* @@protoc_insertion
   bool swap_memory_;
   mutable int _cached_size_;
   friend struct ::protobuf_tensorflow_2fcore_2fprotobuf_2fcontrol_5fflow_2eproto::TableStruct;
-  friend void ::protobuf_tensorflow_2fcore_2fprotobuf_2fcontrol_5fflow_2eproto::InitDefaultsWhileContextDefImpl();
+  friend void ::protobuf_tensorflow_2fcore_2fprotobuf_2fcontrol_5fflow_2eproto::InitDefaultsCondContextDefImpl();
 };
 // ===================================================================
 
@@ -869,6 +1051,149 @@ ValuesDef::mutable_external_values() {
   return external_values_.MutableMap();
 }
 
+// -------------------------------------------------------------------
+
+// ControlFlowContextDef
+
+// .tensorflow.CondContextDef cond_ctxt = 1;
+inline bool ControlFlowContextDef::has_cond_ctxt() const {
+  return ctxt_case() == kCondCtxt;
+}
+inline void ControlFlowContextDef::set_has_cond_ctxt() {
+  _oneof_case_[0] = kCondCtxt;
+}
+inline void ControlFlowContextDef::clear_cond_ctxt() {
+  if (has_cond_ctxt()) {
+    if (GetArenaNoVirtual() == NULL) {
+      delete ctxt_.cond_ctxt_;
+    }
+    clear_has_ctxt();
+  }
+}
+inline ::tensorflow::CondContextDef* ControlFlowContextDef::release_cond_ctxt() {
+  // @@protoc_insertion_point(field_release:tensorflow.ControlFlowContextDef.cond_ctxt)
+  if (has_cond_ctxt()) {
+    clear_has_ctxt();
+      ::tensorflow::CondContextDef* temp = ctxt_.cond_ctxt_;
+    if (GetArenaNoVirtual() != NULL) {
+      temp = ::google::protobuf::internal::DuplicateIfNonNull(temp, NULL);
+    }
+    ctxt_.cond_ctxt_ = NULL;
+    return temp;
+  } else {
+    return NULL;
+  }
+}
+inline const ::tensorflow::CondContextDef& ControlFlowContextDef::cond_ctxt() const {
+  // @@protoc_insertion_point(field_get:tensorflow.ControlFlowContextDef.cond_ctxt)
+  return has_cond_ctxt()
+      ? *ctxt_.cond_ctxt_
+      : *reinterpret_cast< ::tensorflow::CondContextDef*>(&::tensorflow::_CondContextDef_default_instance_);
+}
+inline ::tensorflow::CondContextDef* ControlFlowContextDef::unsafe_arena_release_cond_ctxt() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:tensorflow.ControlFlowContextDef.cond_ctxt)
+  if (has_cond_ctxt()) {
+    clear_has_ctxt();
+    ::tensorflow::CondContextDef* temp = ctxt_.cond_ctxt_;
+    ctxt_.cond_ctxt_ = NULL;
+    return temp;
+  } else {
+    return NULL;
+  }
+}
+inline void ControlFlowContextDef::unsafe_arena_set_allocated_cond_ctxt(::tensorflow::CondContextDef* cond_ctxt) {
+  clear_ctxt();
+  if (cond_ctxt) {
+    set_has_cond_ctxt();
+    ctxt_.cond_ctxt_ = cond_ctxt;
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tensorflow.ControlFlowContextDef.cond_ctxt)
+}
+inline ::tensorflow::CondContextDef* ControlFlowContextDef::mutable_cond_ctxt() {
+  if (!has_cond_ctxt()) {
+    clear_ctxt();
+    set_has_cond_ctxt();
+    ctxt_.cond_ctxt_ = ::google::protobuf::Arena::CreateMessage< ::tensorflow::CondContextDef >(
+        GetArenaNoVirtual());
+  }
+  // @@protoc_insertion_point(field_mutable:tensorflow.ControlFlowContextDef.cond_ctxt)
+  return ctxt_.cond_ctxt_;
+}
+
+// .tensorflow.WhileContextDef while_ctxt = 2;
+inline bool ControlFlowContextDef::has_while_ctxt() const {
+  return ctxt_case() == kWhileCtxt;
+}
+inline void ControlFlowContextDef::set_has_while_ctxt() {
+  _oneof_case_[0] = kWhileCtxt;
+}
+inline void ControlFlowContextDef::clear_while_ctxt() {
+  if (has_while_ctxt()) {
+    if (GetArenaNoVirtual() == NULL) {
+      delete ctxt_.while_ctxt_;
+    }
+    clear_has_ctxt();
+  }
+}
+inline ::tensorflow::WhileContextDef* ControlFlowContextDef::release_while_ctxt() {
+  // @@protoc_insertion_point(field_release:tensorflow.ControlFlowContextDef.while_ctxt)
+  if (has_while_ctxt()) {
+    clear_has_ctxt();
+      ::tensorflow::WhileContextDef* temp = ctxt_.while_ctxt_;
+    if (GetArenaNoVirtual() != NULL) {
+      temp = ::google::protobuf::internal::DuplicateIfNonNull(temp, NULL);
+    }
+    ctxt_.while_ctxt_ = NULL;
+    return temp;
+  } else {
+    return NULL;
+  }
+}
+inline const ::tensorflow::WhileContextDef& ControlFlowContextDef::while_ctxt() const {
+  // @@protoc_insertion_point(field_get:tensorflow.ControlFlowContextDef.while_ctxt)
+  return has_while_ctxt()
+      ? *ctxt_.while_ctxt_
+      : *reinterpret_cast< ::tensorflow::WhileContextDef*>(&::tensorflow::_WhileContextDef_default_instance_);
+}
+inline ::tensorflow::WhileContextDef* ControlFlowContextDef::unsafe_arena_release_while_ctxt() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:tensorflow.ControlFlowContextDef.while_ctxt)
+  if (has_while_ctxt()) {
+    clear_has_ctxt();
+    ::tensorflow::WhileContextDef* temp = ctxt_.while_ctxt_;
+    ctxt_.while_ctxt_ = NULL;
+    return temp;
+  } else {
+    return NULL;
+  }
+}
+inline void ControlFlowContextDef::unsafe_arena_set_allocated_while_ctxt(::tensorflow::WhileContextDef* while_ctxt) {
+  clear_ctxt();
+  if (while_ctxt) {
+    set_has_while_ctxt();
+    ctxt_.while_ctxt_ = while_ctxt;
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tensorflow.ControlFlowContextDef.while_ctxt)
+}
+inline ::tensorflow::WhileContextDef* ControlFlowContextDef::mutable_while_ctxt() {
+  if (!has_while_ctxt()) {
+    clear_ctxt();
+    set_has_while_ctxt();
+    ctxt_.while_ctxt_ = ::google::protobuf::Arena::CreateMessage< ::tensorflow::WhileContextDef >(
+        GetArenaNoVirtual());
+  }
+  // @@protoc_insertion_point(field_mutable:tensorflow.ControlFlowContextDef.while_ctxt)
+  return ctxt_.while_ctxt_;
+}
+
+inline bool ControlFlowContextDef::has_ctxt() const {
+  return ctxt_case() != CTXT_NOT_SET;
+}
+inline void ControlFlowContextDef::clear_has_ctxt() {
+  _oneof_case_[0] = CTXT_NOT_SET;
+}
+inline ControlFlowContextDef::CtxtCase ControlFlowContextDef::ctxt_case() const {
+  return ControlFlowContextDef::CtxtCase(_oneof_case_[0]);
+}
 // -------------------------------------------------------------------
 
 // CondContextDef
@@ -1172,6 +1497,36 @@ inline void CondContextDef::set_allocated_values_def(::tensorflow::ValuesDef* va
   }
   values_def_ = values_def;
   // @@protoc_insertion_point(field_set_allocated:tensorflow.CondContextDef.values_def)
+}
+
+// repeated .tensorflow.ControlFlowContextDef nested_contexts = 6;
+inline int CondContextDef::nested_contexts_size() const {
+  return nested_contexts_.size();
+}
+inline void CondContextDef::clear_nested_contexts() {
+  nested_contexts_.Clear();
+}
+inline ::tensorflow::ControlFlowContextDef* CondContextDef::mutable_nested_contexts(int index) {
+  // @@protoc_insertion_point(field_mutable:tensorflow.CondContextDef.nested_contexts)
+  return nested_contexts_.Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField< ::tensorflow::ControlFlowContextDef >*
+CondContextDef::mutable_nested_contexts() {
+  // @@protoc_insertion_point(field_mutable_list:tensorflow.CondContextDef.nested_contexts)
+  return &nested_contexts_;
+}
+inline const ::tensorflow::ControlFlowContextDef& CondContextDef::nested_contexts(int index) const {
+  // @@protoc_insertion_point(field_get:tensorflow.CondContextDef.nested_contexts)
+  return nested_contexts_.Get(index);
+}
+inline ::tensorflow::ControlFlowContextDef* CondContextDef::add_nested_contexts() {
+  // @@protoc_insertion_point(field_add:tensorflow.CondContextDef.nested_contexts)
+  return nested_contexts_.Add();
+}
+inline const ::google::protobuf::RepeatedPtrField< ::tensorflow::ControlFlowContextDef >&
+CondContextDef::nested_contexts() const {
+  // @@protoc_insertion_point(field_list:tensorflow.CondContextDef.nested_contexts)
+  return nested_contexts_;
 }
 
 // -------------------------------------------------------------------
@@ -1795,9 +2150,41 @@ inline void WhileContextDef::unsafe_arena_set_allocated_maximum_iterations_name(
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tensorflow.WhileContextDef.maximum_iterations_name)
 }
 
+// repeated .tensorflow.ControlFlowContextDef nested_contexts = 12;
+inline int WhileContextDef::nested_contexts_size() const {
+  return nested_contexts_.size();
+}
+inline void WhileContextDef::clear_nested_contexts() {
+  nested_contexts_.Clear();
+}
+inline ::tensorflow::ControlFlowContextDef* WhileContextDef::mutable_nested_contexts(int index) {
+  // @@protoc_insertion_point(field_mutable:tensorflow.WhileContextDef.nested_contexts)
+  return nested_contexts_.Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField< ::tensorflow::ControlFlowContextDef >*
+WhileContextDef::mutable_nested_contexts() {
+  // @@protoc_insertion_point(field_mutable_list:tensorflow.WhileContextDef.nested_contexts)
+  return &nested_contexts_;
+}
+inline const ::tensorflow::ControlFlowContextDef& WhileContextDef::nested_contexts(int index) const {
+  // @@protoc_insertion_point(field_get:tensorflow.WhileContextDef.nested_contexts)
+  return nested_contexts_.Get(index);
+}
+inline ::tensorflow::ControlFlowContextDef* WhileContextDef::add_nested_contexts() {
+  // @@protoc_insertion_point(field_add:tensorflow.WhileContextDef.nested_contexts)
+  return nested_contexts_.Add();
+}
+inline const ::google::protobuf::RepeatedPtrField< ::tensorflow::ControlFlowContextDef >&
+WhileContextDef::nested_contexts() const {
+  // @@protoc_insertion_point(field_list:tensorflow.WhileContextDef.nested_contexts)
+  return nested_contexts_;
+}
+
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------

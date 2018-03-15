@@ -24,6 +24,7 @@ import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.INT32
 import org.platanios.tensorflow.api.utilities.using
 import org.platanios.tensorflow.jni.{TensorFlow => NativeLibrary}
+
 import org.tensorflow.framework.AttrValue
 
 import scala.reflect.ClassTag
@@ -150,47 +151,52 @@ private[api] trait ControlFlow {
       ev: CondOutput.Aux[T, R]
   ): T = {
     Op.createWithNameScope(name) {
-      // Add the switch to the graph.
-      val (pFalse, pTrue) = ControlFlow.switch(predicate, predicate)
-      val pivotTrue = Basic.identity(pTrue, "SwitchTrue")
-      val pivotFalse = Basic.identity(pFalse, "SwitchFalse")
-      val predicateId = Basic.identity(predicate, "PredicateIdentity")
-      // Disable the fetching of tensors that are only on one branch of the cond.
-      pTrue.op.graph.preventFetching(pTrue.op)
-      pFalse.op.graph.preventFetching(pFalse.op)
-      pivotTrue.op.graph.preventFetching(pivotTrue.op)
-      pivotFalse.op.graph.preventFetching(pivotFalse.op)
-      predicateId.op.graph.preventFetching(predicateId.op)
+      Output.constantValue(predicate) match {
+        case Some(predicateValue) if predicateValue.scalar == true => trueFn()
+        case Some(predicateValue) if predicateValue.scalar == false => falseFn()
+        case None =>
+          // Add the switch to the graph.
+          val (pFalse, pTrue) = ControlFlow.switch(predicate, predicate)
+          val pivotTrue = Basic.identity(pTrue, "SwitchTrue")
+          val pivotFalse = Basic.identity(pFalse, "SwitchFalse")
+          val predicateId = Basic.identity(predicate, "PredicateIdentity")
+          // Disable the fetching of tensors that are only on one branch of the cond.
+          pTrue.op.graph.preventFetching(pTrue.op)
+          pFalse.op.graph.preventFetching(pFalse.op)
+          pivotTrue.op.graph.preventFetching(pivotTrue.op)
+          pivotFalse.op.graph.preventFetching(pivotFalse.op)
+          predicateId.op.graph.preventFetching(predicateId.op)
 
-      // Build the graph for the true branch in a new context.
-      val contextTrue = CondContext(predicateId, pivotTrue, TrueBranch)
-      contextTrue.enter()
-      val (originalResultTrue, resultTrue) = contextTrue.buildCondBranch(trueFn)
-      contextTrue.exitResult(resultTrue)
-      contextTrue.exit()
+          // Build the graph for the true branch in a new context.
+          val contextTrue = CondContext(predicateId, pivotTrue, TrueBranch)
+          contextTrue.enter()
+          val (originalResultTrue, resultTrue) = contextTrue.buildCondBranch(trueFn)
+          contextTrue.exitResult(resultTrue)
+          contextTrue.exit()
 
-      // Build the graph for the false branch in a new context.
-      val contextFalse = CondContext(predicateId, pivotFalse, FalseBranch)
-      contextFalse.enter()
-      val (_, resultFalse) = contextFalse.buildCondBranch(falseFn)
-      contextFalse.exitResult(resultFalse)
-      contextFalse.exit()
+          // Build the graph for the false branch in a new context.
+          val contextFalse = CondContext(predicateId, pivotFalse, FalseBranch)
+          contextFalse.enter()
+          val (_, resultFalse) = contextFalse.buildCondBranch(falseFn)
+          contextFalse.exitResult(resultFalse)
+          contextFalse.exit()
 
-      // Check that the return values of the two branches have matching data types.
-      resultTrue.zip(resultFalse).foreach(pair => {
-        if (pair._1.dataType != pair._2.dataType)
-          throw InvalidDataTypeException(
-            s"The outputs of `trueFn` (dataType = ${pair._1.dataType}) and " +
-                s"`falseFn` (dataType = ${pair._2.dataType}) must have the same data type.")
-      })
+          // Check that the return values of the two branches have matching data types.
+          resultTrue.zip(resultFalse).foreach(pair => {
+            if (pair._1.dataType != pair._2.dataType)
+              throw InvalidDataTypeException(
+                s"The outputs of `trueFn` (dataType = ${pair._1.dataType}) and " +
+                    s"`falseFn` (dataType = ${pair._2.dataType}) must have the same data type.")
+          })
 
-      // Add to collections.
-      Op.currentGraph.addToCollection(contextTrue, CondContext.COND_CONTEXTS)
-      Op.currentGraph.addToCollection(contextFalse, CondContext.COND_CONTEXTS)
+          // Add to collections.
+          Op.currentGraph.addToCollection(contextTrue, CondContext.COND_CONTEXTS)
+          Op.currentGraph.addToCollection(contextFalse, CondContext.COND_CONTEXTS)
 
-      // Add the final merge to the graph.
-      val merges = resultFalse.zip(resultTrue).map(p => ControlFlow.merge(Seq(p._1, p._2))._1)
-      ev.unflatten(originalResultTrue, merges)
+          // Add the final merge to the graph.
+          val merges = resultFalse.zip(resultTrue).map(p => ControlFlow.merge(Seq(p._1, p._2))._1)
+          ev.unflatten(originalResultTrue, merges)
+      }
     }
   }
 
@@ -1024,6 +1030,10 @@ private[api] object ControlFlow extends ControlFlow {
     *
     *   `cond` supports nested tensor structures, similar to `Session.run()`. Both `trueFn` and `falseFn` must return
     *   the same (possibly nested) value structure of sequences, tuples, and/or maps.
+    *
+    *   '''NOTE:''' If the predicate always evaluates to some constant value and that can be inferred statically, then
+    *   only the corresponding branch is built and no control flow ops are added. In some cases, this can significantly
+    *   improve performance.
     *
     * @define OpDocControlFlowCases
     *   The `cases` op creates a case operation.

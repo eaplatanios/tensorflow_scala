@@ -34,19 +34,24 @@ limitations under the License.
 namespace {
 // Copy of the C Eager API struct due to the circular dependency issue.
 TFE_TensorHandle* TFE_Local_NewTensorHandle(const tensorflow::Tensor& t) {
-  return new TFE_TensorHandle(t, nullptr);
+  return new TFE_TensorHandle(t, nullptr, nullptr);
 }
 
 // Copy of the C Eager API struct due to the circular dependency issue.
 const tensorflow::Tensor* TFE_Local_TensorHandleUnderlyingTensorInHostMemory(
     TFE_TensorHandle* h, TF_Status* status) {
-  if (h->d != nullptr) {
+  tensorflow::Device* d = nullptr;
+  tensorflow::Device* op_device = nullptr;
+  const tensorflow::Tensor* t = nullptr;
+  status->status = h->TensorAndDevice(&t, &d, &op_device);
+  if (!status->status.ok()) return nullptr;
+  if (d != nullptr) {
     status->status = tensorflow::errors::FailedPrecondition(
         "TFE_TensorHandle is placed in device (not host) memory. Cannot return "
-            "a tensorflow::Tensor");
+        "a tensorflow::Tensor");
     return nullptr;
   }
-  return &h->t;
+  return t;
 }
 }
 

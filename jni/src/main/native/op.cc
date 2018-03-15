@@ -24,6 +24,7 @@
 #include <iostream>
 
 #include "tensorflow/c/c_api.h"
+#include "tensorflow/c/c_eager_api.h"
 
 namespace {
 template <class T>
@@ -1005,4 +1006,22 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_toNodeDe
   // Clean up and return the byte array
   TF_DeleteBuffer(buf);
   return return_array;
+}
+
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Op_00024_tryEvaluateConstant(
+    JNIEnv* env, jobject object, jlong graph_handle, jlong op_handle, jint output_index) {
+  TF_Graph *graph = require_graph_handle(env, graph_handle);
+  if (graph == nullptr) return 0;
+  TF_Operation* op = require_operation_handle(env, op_handle);
+  if (op == nullptr) return 0;
+  TF_Output output{op, output_index};
+
+  TF_Tensor* result_tensor;
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+  bool evaluated = TF_TryEvaluateConstant(graph, output, &result_tensor, status.get());
+  CHECK_STATUS(env, status.get(), 0);
+  if (!evaluated) return 0;
+  TFE_TensorHandle* result_eager_tensor = TFE_NewTensorHandle(result_tensor, status.get());
+  CHECK_STATUS(env, status.get(), 0);
+  return reinterpret_cast<jlong>(result_eager_tensor);
 }

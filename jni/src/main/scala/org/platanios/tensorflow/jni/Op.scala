@@ -86,4 +86,5 @@ object Op {
 
   @native def toOpDef(graphHandle: Long, opType: String): Array[Byte]
   @native def toNodeDef(handle: Long): Array[Byte]
+  @native def tryEvaluateConstant(graphHandle: Long, opHandle: Long, outputIndex: Int): Long
 }

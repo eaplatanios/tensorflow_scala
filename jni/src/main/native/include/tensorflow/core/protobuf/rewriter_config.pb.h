@@ -430,28 +430,28 @@ class RewriterConfig : public ::google::protobuf::Message /* @@protoc_insertion_
   const ::google::protobuf::RepeatedPtrField< ::std::string>& optimizers() const;
   ::google::protobuf::RepeatedPtrField< ::std::string>* mutable_optimizers();
 
-  // string memory_optimizer_target_node_name_prefix = 6;
-  void clear_memory_optimizer_target_node_name_prefix();
-  static const int kMemoryOptimizerTargetNodeNamePrefixFieldNumber = 6;
-  const ::std::string& memory_optimizer_target_node_name_prefix() const;
-  void set_memory_optimizer_target_node_name_prefix(const ::std::string& value);
+  // string memory_optimizer_target_node_name_scope = 6;
+  void clear_memory_optimizer_target_node_name_scope();
+  static const int kMemoryOptimizerTargetNodeNameScopeFieldNumber = 6;
+  const ::std::string& memory_optimizer_target_node_name_scope() const;
+  void set_memory_optimizer_target_node_name_scope(const ::std::string& value);
   #if LANG_CXX11
-  void set_memory_optimizer_target_node_name_prefix(::std::string&& value);
+  void set_memory_optimizer_target_node_name_scope(::std::string&& value);
   #endif
-  void set_memory_optimizer_target_node_name_prefix(const char* value);
-  void set_memory_optimizer_target_node_name_prefix(const char* value, size_t size);
-  ::std::string* mutable_memory_optimizer_target_node_name_prefix();
-  ::std::string* release_memory_optimizer_target_node_name_prefix();
-  void set_allocated_memory_optimizer_target_node_name_prefix(::std::string* memory_optimizer_target_node_name_prefix);
+  void set_memory_optimizer_target_node_name_scope(const char* value);
+  void set_memory_optimizer_target_node_name_scope(const char* value, size_t size);
+  ::std::string* mutable_memory_optimizer_target_node_name_scope();
+  ::std::string* release_memory_optimizer_target_node_name_scope();
+  void set_allocated_memory_optimizer_target_node_name_scope(::std::string* memory_optimizer_target_node_name_scope);
   PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
   "    string fields are deprecated and will be removed in a"
   "    future release.")
-  ::std::string* unsafe_arena_release_memory_optimizer_target_node_name_prefix();
+  ::std::string* unsafe_arena_release_memory_optimizer_target_node_name_scope();
   PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
   "    string fields are deprecated and will be removed in a"
   "    future release.")
-  void unsafe_arena_set_allocated_memory_optimizer_target_node_name_prefix(
-      ::std::string* memory_optimizer_target_node_name_prefix);
+  void unsafe_arena_set_allocated_memory_optimizer_target_node_name_scope(
+      ::std::string* memory_optimizer_target_node_name_scope);
 
   // .tensorflow.AutoParallelOptions auto_parallel = 5;
   bool has_auto_parallel() const;
@@ -507,6 +507,12 @@ class RewriterConfig : public ::google::protobuf::Message /* @@protoc_insertion_
   ::tensorflow::RewriterConfig_Toggle loop_optimization() const;
   void set_loop_optimization(::tensorflow::RewriterConfig_Toggle value);
 
+  // .tensorflow.RewriterConfig.Toggle function_optimization = 10;
+  void clear_function_optimization();
+  static const int kFunctionOptimizationFieldNumber = 10;
+  ::tensorflow::RewriterConfig_Toggle function_optimization() const;
+  void set_function_optimization(::tensorflow::RewriterConfig_Toggle value);
+
   // @@protoc_insertion_point(class_scope:tensorflow.RewriterConfig)
  private:
 
@@ -515,7 +521,7 @@ class RewriterConfig : public ::google::protobuf::Message /* @@protoc_insertion_
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   ::google::protobuf::RepeatedPtrField< ::std::string> optimizers_;
-  ::google::protobuf::internal::ArenaStringPtr memory_optimizer_target_node_name_prefix_;
+  ::google::protobuf::internal::ArenaStringPtr memory_optimizer_target_node_name_scope_;
   ::tensorflow::AutoParallelOptions* auto_parallel_;
   int layout_optimizer_;
   bool disable_model_pruning_;
@@ -524,6 +530,7 @@ class RewriterConfig : public ::google::protobuf::Message /* @@protoc_insertion_
   int arithmetic_optimization_;
   int dependency_optimization_;
   int loop_optimization_;
+  int function_optimization_;
   mutable int _cached_size_;
   friend struct ::protobuf_tensorflow_2fcore_2fprotobuf_2frewriter_5fconfig_2eproto::TableStruct;
   friend void ::protobuf_tensorflow_2fcore_2fprotobuf_2frewriter_5fconfig_2eproto::InitDefaultsRewriterConfigImpl();
@@ -641,6 +648,20 @@ inline void RewriterConfig::set_loop_optimization(::tensorflow::RewriterConfig_T
   // @@protoc_insertion_point(field_set:tensorflow.RewriterConfig.loop_optimization)
 }
 
+// .tensorflow.RewriterConfig.Toggle function_optimization = 10;
+inline void RewriterConfig::clear_function_optimization() {
+  function_optimization_ = 0;
+}
+inline ::tensorflow::RewriterConfig_Toggle RewriterConfig::function_optimization() const {
+  // @@protoc_insertion_point(field_get:tensorflow.RewriterConfig.function_optimization)
+  return static_cast< ::tensorflow::RewriterConfig_Toggle >(function_optimization_);
+}
+inline void RewriterConfig::set_function_optimization(::tensorflow::RewriterConfig_Toggle value) {
+  
+  function_optimization_ = value;
+  // @@protoc_insertion_point(field_set:tensorflow.RewriterConfig.function_optimization)
+}
+
 // bool disable_model_pruning = 2;
 inline void RewriterConfig::clear_disable_model_pruning() {
   disable_model_pruning_ = false;
@@ -669,79 +690,79 @@ inline void RewriterConfig::set_memory_optimization(::tensorflow::RewriterConfig
   // @@protoc_insertion_point(field_set:tensorflow.RewriterConfig.memory_optimization)
 }
 
-// string memory_optimizer_target_node_name_prefix = 6;
-inline void RewriterConfig::clear_memory_optimizer_target_node_name_prefix() {
-  memory_optimizer_target_node_name_prefix_.ClearToEmpty(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+// string memory_optimizer_target_node_name_scope = 6;
+inline void RewriterConfig::clear_memory_optimizer_target_node_name_scope() {
+  memory_optimizer_target_node_name_scope_.ClearToEmpty(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
 }
-inline const ::std::string& RewriterConfig::memory_optimizer_target_node_name_prefix() const {
-  // @@protoc_insertion_point(field_get:tensorflow.RewriterConfig.memory_optimizer_target_node_name_prefix)
-  return memory_optimizer_target_node_name_prefix_.Get();
+inline const ::std::string& RewriterConfig::memory_optimizer_target_node_name_scope() const {
+  // @@protoc_insertion_point(field_get:tensorflow.RewriterConfig.memory_optimizer_target_node_name_scope)
+  return memory_optimizer_target_node_name_scope_.Get();
 }
-inline void RewriterConfig::set_memory_optimizer_target_node_name_prefix(const ::std::string& value) {
+inline void RewriterConfig::set_memory_optimizer_target_node_name_scope(const ::std::string& value) {
   
-  memory_optimizer_target_node_name_prefix_.Set(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value, GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set:tensorflow.RewriterConfig.memory_optimizer_target_node_name_prefix)
+  memory_optimizer_target_node_name_scope_.Set(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value, GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_set:tensorflow.RewriterConfig.memory_optimizer_target_node_name_scope)
 }
 #if LANG_CXX11
-inline void RewriterConfig::set_memory_optimizer_target_node_name_prefix(::std::string&& value) {
+inline void RewriterConfig::set_memory_optimizer_target_node_name_scope(::std::string&& value) {
   
-  memory_optimizer_target_node_name_prefix_.Set(
+  memory_optimizer_target_node_name_scope_.Set(
     &::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::move(value), GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_rvalue:tensorflow.RewriterConfig.memory_optimizer_target_node_name_prefix)
+  // @@protoc_insertion_point(field_set_rvalue:tensorflow.RewriterConfig.memory_optimizer_target_node_name_scope)
 }
 #endif
-inline void RewriterConfig::set_memory_optimizer_target_node_name_prefix(const char* value) {
+inline void RewriterConfig::set_memory_optimizer_target_node_name_scope(const char* value) {
   GOOGLE_DCHECK(value != NULL);
   
-  memory_optimizer_target_node_name_prefix_.Set(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
+  memory_optimizer_target_node_name_scope_.Set(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
               GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_char:tensorflow.RewriterConfig.memory_optimizer_target_node_name_prefix)
+  // @@protoc_insertion_point(field_set_char:tensorflow.RewriterConfig.memory_optimizer_target_node_name_scope)
 }
-inline void RewriterConfig::set_memory_optimizer_target_node_name_prefix(const char* value,
+inline void RewriterConfig::set_memory_optimizer_target_node_name_scope(const char* value,
     size_t size) {
   
-  memory_optimizer_target_node_name_prefix_.Set(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(
+  memory_optimizer_target_node_name_scope_.Set(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(
       reinterpret_cast<const char*>(value), size), GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_pointer:tensorflow.RewriterConfig.memory_optimizer_target_node_name_prefix)
+  // @@protoc_insertion_point(field_set_pointer:tensorflow.RewriterConfig.memory_optimizer_target_node_name_scope)
 }
-inline ::std::string* RewriterConfig::mutable_memory_optimizer_target_node_name_prefix() {
+inline ::std::string* RewriterConfig::mutable_memory_optimizer_target_node_name_scope() {
   
-  // @@protoc_insertion_point(field_mutable:tensorflow.RewriterConfig.memory_optimizer_target_node_name_prefix)
-  return memory_optimizer_target_node_name_prefix_.Mutable(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_mutable:tensorflow.RewriterConfig.memory_optimizer_target_node_name_scope)
+  return memory_optimizer_target_node_name_scope_.Mutable(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
 }
-inline ::std::string* RewriterConfig::release_memory_optimizer_target_node_name_prefix() {
-  // @@protoc_insertion_point(field_release:tensorflow.RewriterConfig.memory_optimizer_target_node_name_prefix)
+inline ::std::string* RewriterConfig::release_memory_optimizer_target_node_name_scope() {
+  // @@protoc_insertion_point(field_release:tensorflow.RewriterConfig.memory_optimizer_target_node_name_scope)
   
-  return memory_optimizer_target_node_name_prefix_.Release(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+  return memory_optimizer_target_node_name_scope_.Release(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
 }
-inline void RewriterConfig::set_allocated_memory_optimizer_target_node_name_prefix(::std::string* memory_optimizer_target_node_name_prefix) {
-  if (memory_optimizer_target_node_name_prefix != NULL) {
+inline void RewriterConfig::set_allocated_memory_optimizer_target_node_name_scope(::std::string* memory_optimizer_target_node_name_scope) {
+  if (memory_optimizer_target_node_name_scope != NULL) {
     
   } else {
     
   }
-  memory_optimizer_target_node_name_prefix_.SetAllocated(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), memory_optimizer_target_node_name_prefix,
+  memory_optimizer_target_node_name_scope_.SetAllocated(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), memory_optimizer_target_node_name_scope,
       GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_set_allocated:tensorflow.RewriterConfig.memory_optimizer_target_node_name_prefix)
+  // @@protoc_insertion_point(field_set_allocated:tensorflow.RewriterConfig.memory_optimizer_target_node_name_scope)
 }
-inline ::std::string* RewriterConfig::unsafe_arena_release_memory_optimizer_target_node_name_prefix() {
-  // @@protoc_insertion_point(field_unsafe_arena_release:tensorflow.RewriterConfig.memory_optimizer_target_node_name_prefix)
+inline ::std::string* RewriterConfig::unsafe_arena_release_memory_optimizer_target_node_name_scope() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:tensorflow.RewriterConfig.memory_optimizer_target_node_name_scope)
   GOOGLE_DCHECK(GetArenaNoVirtual() != NULL);
   
-  return memory_optimizer_target_node_name_prefix_.UnsafeArenaRelease(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+  return memory_optimizer_target_node_name_scope_.UnsafeArenaRelease(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
       GetArenaNoVirtual());
 }
-inline void RewriterConfig::unsafe_arena_set_allocated_memory_optimizer_target_node_name_prefix(
-    ::std::string* memory_optimizer_target_node_name_prefix) {
+inline void RewriterConfig::unsafe_arena_set_allocated_memory_optimizer_target_node_name_scope(
+    ::std::string* memory_optimizer_target_node_name_scope) {
   GOOGLE_DCHECK(GetArenaNoVirtual() != NULL);
-  if (memory_optimizer_target_node_name_prefix != NULL) {
+  if (memory_optimizer_target_node_name_scope != NULL) {
     
   } else {
     
   }
-  memory_optimizer_target_node_name_prefix_.UnsafeArenaSetAllocated(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
-      memory_optimizer_target_node_name_prefix, GetArenaNoVirtual());
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tensorflow.RewriterConfig.memory_optimizer_target_node_name_prefix)
+  memory_optimizer_target_node_name_scope_.UnsafeArenaSetAllocated(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      memory_optimizer_target_node_name_scope, GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tensorflow.RewriterConfig.memory_optimizer_target_node_name_scope)
 }
 
 // .tensorflow.AutoParallelOptions auto_parallel = 5;

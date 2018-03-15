@@ -50,6 +50,8 @@ struct TableStruct {
   static const ::google::protobuf::uint32 offsets[];
 };
 void AddDescriptors();
+void InitDefaultsSessionInfoImpl();
+void InitDefaultsSessionInfo();
 void InitDefaultsOpInfo_AttrEntry_DoNotUseImpl();
 void InitDefaultsOpInfo_AttrEntry_DoNotUse();
 void InitDefaultsOpInfo_TensorPropertiesImpl();
@@ -60,8 +62,6 @@ void InitDefaultsNormalDistributionImpl();
 void InitDefaultsNormalDistribution();
 void InitDefaultsLogNormalDistributionImpl();
 void InitDefaultsLogNormalDistribution();
-void InitDefaultsSessionInfoImpl();
-void InitDefaultsSessionInfo();
 void InitDefaultsOpPerformance_OpMemoryImpl();
 void InitDefaultsOpPerformance_OpMemory();
 void InitDefaultsOpPerformanceImpl();
@@ -69,12 +69,12 @@ void InitDefaultsOpPerformance();
 void InitDefaultsOpPerformanceListImpl();
 void InitDefaultsOpPerformanceList();
 inline void InitDefaults() {
+  InitDefaultsSessionInfo();
   InitDefaultsOpInfo_AttrEntry_DoNotUse();
   InitDefaultsOpInfo_TensorProperties();
   InitDefaultsOpInfo();
   InitDefaultsNormalDistribution();
   InitDefaultsLogNormalDistribution();
-  InitDefaultsSessionInfo();
   InitDefaultsOpPerformance_OpMemory();
   InitDefaultsOpPerformance();
   InitDefaultsOpPerformanceList();
@@ -125,6 +125,124 @@ template<> ::tensorflow::SessionInfo* Arena::CreateMessage< ::tensorflow::Sessio
 namespace tensorflow {
 
 // ===================================================================
+
+class SessionInfo : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:tensorflow.SessionInfo) */ {
+ public:
+  SessionInfo();
+  virtual ~SessionInfo();
+
+  SessionInfo(const SessionInfo& from);
+
+  inline SessionInfo& operator=(const SessionInfo& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  #if LANG_CXX11
+  SessionInfo(SessionInfo&& from) noexcept
+    : SessionInfo() {
+    *this = ::std::move(from);
+  }
+
+  inline SessionInfo& operator=(SessionInfo&& from) noexcept {
+    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
+      if (this != &from) InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+  #endif
+  inline ::google::protobuf::Arena* GetArena() const PROTOBUF_FINAL {
+    return GetArenaNoVirtual();
+  }
+  inline void* GetMaybeArenaPointer() const PROTOBUF_FINAL {
+    return MaybeArenaPtr();
+  }
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const SessionInfo& default_instance();
+
+  static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
+  static inline const SessionInfo* internal_default_instance() {
+    return reinterpret_cast<const SessionInfo*>(
+               &_SessionInfo_default_instance_);
+  }
+  static PROTOBUF_CONSTEXPR int const kIndexInFileMessages =
+    0;
+
+  void UnsafeArenaSwap(SessionInfo* other);
+  void Swap(SessionInfo* other);
+  friend void swap(SessionInfo& a, SessionInfo& b) {
+    a.Swap(&b);
+  }
+
+  // implements Message ----------------------------------------------
+
+  inline SessionInfo* New() const PROTOBUF_FINAL {
+    return ::google::protobuf::Arena::CreateMessage<SessionInfo>(NULL);
+  }
+
+  SessionInfo* New(::google::protobuf::Arena* arena) const PROTOBUF_FINAL {
+    return ::google::protobuf::Arena::CreateMessage<SessionInfo>(arena);
+  }
+  void CopyFrom(const ::google::protobuf::Message& from) PROTOBUF_FINAL;
+  void MergeFrom(const ::google::protobuf::Message& from) PROTOBUF_FINAL;
+  void CopyFrom(const SessionInfo& from);
+  void MergeFrom(const SessionInfo& from);
+  void Clear() PROTOBUF_FINAL;
+  bool IsInitialized() const PROTOBUF_FINAL;
+
+  size_t ByteSizeLong() const PROTOBUF_FINAL;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input) PROTOBUF_FINAL;
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const PROTOBUF_FINAL;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* target) const PROTOBUF_FINAL;
+  int GetCachedSize() const PROTOBUF_FINAL { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const PROTOBUF_FINAL;
+  void InternalSwap(SessionInfo* other);
+  protected:
+  explicit SessionInfo(::google::protobuf::Arena* arena);
+  private:
+  static void ArenaDtor(void* object);
+  inline void RegisterArenaDtor(::google::protobuf::Arena* arena);
+  private:
+  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
+    return _internal_metadata_.arena();
+  }
+  inline void* MaybeArenaPtr() const {
+    return _internal_metadata_.raw_arena_ptr();
+  }
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const PROTOBUF_FINAL;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // int64 intra_op_parallelism = 1;
+  void clear_intra_op_parallelism();
+  static const int kIntraOpParallelismFieldNumber = 1;
+  ::google::protobuf::int64 intra_op_parallelism() const;
+  void set_intra_op_parallelism(::google::protobuf::int64 value);
+
+  // @@protoc_insertion_point(class_scope:tensorflow.SessionInfo)
+ private:
+
+  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  template <typename T> friend class ::google::protobuf::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  ::google::protobuf::int64 intra_op_parallelism_;
+  mutable int _cached_size_;
+  friend struct ::protobuf_tensorflow_2fcore_2fgrappler_2fcosts_2fop_5fperformance_5fdata_2eproto::TableStruct;
+  friend void ::protobuf_tensorflow_2fcore_2fgrappler_2fcosts_2fop_5fperformance_5fdata_2eproto::InitDefaultsSessionInfoImpl();
+};
+// -------------------------------------------------------------------
 
 class OpInfo_AttrEntry_DoNotUse : public ::google::protobuf::internal::MapEntry<OpInfo_AttrEntry_DoNotUse, 
     ::std::string, ::tensorflow::AttrValue,
@@ -188,7 +306,7 @@ class OpInfo_TensorProperties : public ::google::protobuf::Message /* @@protoc_i
                &_OpInfo_TensorProperties_default_instance_);
   }
   static PROTOBUF_CONSTEXPR int const kIndexInFileMessages =
-    1;
+    2;
 
   void UnsafeArenaSwap(OpInfo_TensorProperties* other);
   void Swap(OpInfo_TensorProperties* other);
@@ -332,7 +450,7 @@ class OpInfo : public ::google::protobuf::Message /* @@protoc_insertion_point(cl
                &_OpInfo_default_instance_);
   }
   static PROTOBUF_CONSTEXPR int const kIndexInFileMessages =
-    2;
+    3;
 
   void UnsafeArenaSwap(OpInfo* other);
   void Swap(OpInfo* other);
@@ -459,6 +577,18 @@ class OpInfo : public ::google::protobuf::Message /* @@protoc_insertion_point(cl
       ::tensorflow::DeviceProperties* device);
   ::tensorflow::DeviceProperties* unsafe_arena_release_device();
 
+  // .tensorflow.SessionInfo session_info = 6;
+  bool has_session_info() const;
+  void clear_session_info();
+  static const int kSessionInfoFieldNumber = 6;
+  const ::tensorflow::SessionInfo& session_info() const;
+  ::tensorflow::SessionInfo* release_session_info();
+  ::tensorflow::SessionInfo* mutable_session_info();
+  void set_allocated_session_info(::tensorflow::SessionInfo* session_info);
+  void unsafe_arena_set_allocated_session_info(
+      ::tensorflow::SessionInfo* session_info);
+  ::tensorflow::SessionInfo* unsafe_arena_release_session_info();
+
   // @@protoc_insertion_point(class_scope:tensorflow.OpInfo)
  private:
 
@@ -476,6 +606,7 @@ class OpInfo : public ::google::protobuf::Message /* @@protoc_insertion_point(cl
   ::google::protobuf::RepeatedPtrField< ::tensorflow::OpInfo_TensorProperties > outputs_;
   ::google::protobuf::internal::ArenaStringPtr op_;
   ::tensorflow::DeviceProperties* device_;
+  ::tensorflow::SessionInfo* session_info_;
   mutable int _cached_size_;
   friend struct ::protobuf_tensorflow_2fcore_2fgrappler_2fcosts_2fop_5fperformance_5fdata_2eproto::TableStruct;
   friend void ::protobuf_tensorflow_2fcore_2fgrappler_2fcosts_2fop_5fperformance_5fdata_2eproto::InitDefaultsOpInfoImpl();
@@ -523,7 +654,7 @@ class NormalDistribution : public ::google::protobuf::Message /* @@protoc_insert
                &_NormalDistribution_default_instance_);
   }
   static PROTOBUF_CONSTEXPR int const kIndexInFileMessages =
-    3;
+    4;
 
   void UnsafeArenaSwap(NormalDistribution* other);
   void Swap(NormalDistribution* other);
@@ -648,7 +779,7 @@ class LogNormalDistribution : public ::google::protobuf::Message /* @@protoc_ins
                &_LogNormalDistribution_default_instance_);
   }
   static PROTOBUF_CONSTEXPR int const kIndexInFileMessages =
-    4;
+    5;
 
   void UnsafeArenaSwap(LogNormalDistribution* other);
   void Swap(LogNormalDistribution* other);
@@ -729,124 +860,6 @@ class LogNormalDistribution : public ::google::protobuf::Message /* @@protoc_ins
   mutable int _cached_size_;
   friend struct ::protobuf_tensorflow_2fcore_2fgrappler_2fcosts_2fop_5fperformance_5fdata_2eproto::TableStruct;
   friend void ::protobuf_tensorflow_2fcore_2fgrappler_2fcosts_2fop_5fperformance_5fdata_2eproto::InitDefaultsLogNormalDistributionImpl();
-};
-// -------------------------------------------------------------------
-
-class SessionInfo : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:tensorflow.SessionInfo) */ {
- public:
-  SessionInfo();
-  virtual ~SessionInfo();
-
-  SessionInfo(const SessionInfo& from);
-
-  inline SessionInfo& operator=(const SessionInfo& from) {
-    CopyFrom(from);
-    return *this;
-  }
-  #if LANG_CXX11
-  SessionInfo(SessionInfo&& from) noexcept
-    : SessionInfo() {
-    *this = ::std::move(from);
-  }
-
-  inline SessionInfo& operator=(SessionInfo&& from) noexcept {
-    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
-      if (this != &from) InternalSwap(&from);
-    } else {
-      CopyFrom(from);
-    }
-    return *this;
-  }
-  #endif
-  inline ::google::protobuf::Arena* GetArena() const PROTOBUF_FINAL {
-    return GetArenaNoVirtual();
-  }
-  inline void* GetMaybeArenaPointer() const PROTOBUF_FINAL {
-    return MaybeArenaPtr();
-  }
-  static const ::google::protobuf::Descriptor* descriptor();
-  static const SessionInfo& default_instance();
-
-  static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
-  static inline const SessionInfo* internal_default_instance() {
-    return reinterpret_cast<const SessionInfo*>(
-               &_SessionInfo_default_instance_);
-  }
-  static PROTOBUF_CONSTEXPR int const kIndexInFileMessages =
-    5;
-
-  void UnsafeArenaSwap(SessionInfo* other);
-  void Swap(SessionInfo* other);
-  friend void swap(SessionInfo& a, SessionInfo& b) {
-    a.Swap(&b);
-  }
-
-  // implements Message ----------------------------------------------
-
-  inline SessionInfo* New() const PROTOBUF_FINAL {
-    return ::google::protobuf::Arena::CreateMessage<SessionInfo>(NULL);
-  }
-
-  SessionInfo* New(::google::protobuf::Arena* arena) const PROTOBUF_FINAL {
-    return ::google::protobuf::Arena::CreateMessage<SessionInfo>(arena);
-  }
-  void CopyFrom(const ::google::protobuf::Message& from) PROTOBUF_FINAL;
-  void MergeFrom(const ::google::protobuf::Message& from) PROTOBUF_FINAL;
-  void CopyFrom(const SessionInfo& from);
-  void MergeFrom(const SessionInfo& from);
-  void Clear() PROTOBUF_FINAL;
-  bool IsInitialized() const PROTOBUF_FINAL;
-
-  size_t ByteSizeLong() const PROTOBUF_FINAL;
-  bool MergePartialFromCodedStream(
-      ::google::protobuf::io::CodedInputStream* input) PROTOBUF_FINAL;
-  void SerializeWithCachedSizes(
-      ::google::protobuf::io::CodedOutputStream* output) const PROTOBUF_FINAL;
-  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
-      bool deterministic, ::google::protobuf::uint8* target) const PROTOBUF_FINAL;
-  int GetCachedSize() const PROTOBUF_FINAL { return _cached_size_; }
-  private:
-  void SharedCtor();
-  void SharedDtor();
-  void SetCachedSize(int size) const PROTOBUF_FINAL;
-  void InternalSwap(SessionInfo* other);
-  protected:
-  explicit SessionInfo(::google::protobuf::Arena* arena);
-  private:
-  static void ArenaDtor(void* object);
-  inline void RegisterArenaDtor(::google::protobuf::Arena* arena);
-  private:
-  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
-    return _internal_metadata_.arena();
-  }
-  inline void* MaybeArenaPtr() const {
-    return _internal_metadata_.raw_arena_ptr();
-  }
-  public:
-
-  ::google::protobuf::Metadata GetMetadata() const PROTOBUF_FINAL;
-
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-
-  // int64 intra_op_parallelism = 1;
-  void clear_intra_op_parallelism();
-  static const int kIntraOpParallelismFieldNumber = 1;
-  ::google::protobuf::int64 intra_op_parallelism() const;
-  void set_intra_op_parallelism(::google::protobuf::int64 value);
-
-  // @@protoc_insertion_point(class_scope:tensorflow.SessionInfo)
- private:
-
-  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
-  template <typename T> friend class ::google::protobuf::Arena::InternalHelper;
-  typedef void InternalArenaConstructable_;
-  typedef void DestructorSkippable_;
-  ::google::protobuf::int64 intra_op_parallelism_;
-  mutable int _cached_size_;
-  friend struct ::protobuf_tensorflow_2fcore_2fgrappler_2fcosts_2fop_5fperformance_5fdata_2eproto::TableStruct;
-  friend void ::protobuf_tensorflow_2fcore_2fgrappler_2fcosts_2fop_5fperformance_5fdata_2eproto::InitDefaultsSessionInfoImpl();
 };
 // -------------------------------------------------------------------
 
@@ -1156,17 +1169,17 @@ class OpPerformance : public ::google::protobuf::Message /* @@protoc_insertion_p
       ::tensorflow::OpPerformance_OpMemory* op_memory);
   ::tensorflow::OpPerformance_OpMemory* unsafe_arena_release_op_memory();
 
-  // .tensorflow.SessionInfo session_info = 12;
-  bool has_session_info() const;
-  void clear_session_info();
-  static const int kSessionInfoFieldNumber = 12;
-  const ::tensorflow::SessionInfo& session_info() const;
-  ::tensorflow::SessionInfo* release_session_info();
-  ::tensorflow::SessionInfo* mutable_session_info();
-  void set_allocated_session_info(::tensorflow::SessionInfo* session_info);
-  void unsafe_arena_set_allocated_session_info(
+  // .tensorflow.SessionInfo session_info = 12 [deprecated = true];
+  GOOGLE_PROTOBUF_DEPRECATED_ATTR bool has_session_info() const;
+  GOOGLE_PROTOBUF_DEPRECATED_ATTR void clear_session_info();
+  GOOGLE_PROTOBUF_DEPRECATED_ATTR static const int kSessionInfoFieldNumber = 12;
+  GOOGLE_PROTOBUF_DEPRECATED_ATTR const ::tensorflow::SessionInfo& session_info() const;
+  GOOGLE_PROTOBUF_DEPRECATED_ATTR ::tensorflow::SessionInfo* release_session_info();
+  GOOGLE_PROTOBUF_DEPRECATED_ATTR ::tensorflow::SessionInfo* mutable_session_info();
+  GOOGLE_PROTOBUF_DEPRECATED_ATTR void set_allocated_session_info(::tensorflow::SessionInfo* session_info);
+  GOOGLE_PROTOBUF_DEPRECATED_ATTR void unsafe_arena_set_allocated_session_info(
       ::tensorflow::SessionInfo* session_info);
-  ::tensorflow::SessionInfo* unsafe_arena_release_session_info();
+  GOOGLE_PROTOBUF_DEPRECATED_ATTR ::tensorflow::SessionInfo* unsafe_arena_release_session_info();
 
   // int64 temporary_memory_size = 2;
   void clear_temporary_memory_size();
@@ -1396,6 +1409,24 @@ class OpPerformanceList : public ::google::protobuf::Message /* @@protoc_inserti
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wstrict-aliasing"
 #endif  // __GNUC__
+// SessionInfo
+
+// int64 intra_op_parallelism = 1;
+inline void SessionInfo::clear_intra_op_parallelism() {
+  intra_op_parallelism_ = GOOGLE_LONGLONG(0);
+}
+inline ::google::protobuf::int64 SessionInfo::intra_op_parallelism() const {
+  // @@protoc_insertion_point(field_get:tensorflow.SessionInfo.intra_op_parallelism)
+  return intra_op_parallelism_;
+}
+inline void SessionInfo::set_intra_op_parallelism(::google::protobuf::int64 value) {
+  
+  intra_op_parallelism_ = value;
+  // @@protoc_insertion_point(field_set:tensorflow.SessionInfo.intra_op_parallelism)
+}
+
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // OpInfo_TensorProperties
@@ -1736,6 +1767,68 @@ inline void OpInfo::set_allocated_device(::tensorflow::DeviceProperties* device)
   // @@protoc_insertion_point(field_set_allocated:tensorflow.OpInfo.device)
 }
 
+// .tensorflow.SessionInfo session_info = 6;
+inline bool OpInfo::has_session_info() const {
+  return this != internal_default_instance() && session_info_ != NULL;
+}
+inline void OpInfo::clear_session_info() {
+  if (GetArenaNoVirtual() == NULL && session_info_ != NULL) {
+    delete session_info_;
+  }
+  session_info_ = NULL;
+}
+inline const ::tensorflow::SessionInfo& OpInfo::session_info() const {
+  const ::tensorflow::SessionInfo* p = session_info_;
+  // @@protoc_insertion_point(field_get:tensorflow.OpInfo.session_info)
+  return p != NULL ? *p : *reinterpret_cast<const ::tensorflow::SessionInfo*>(
+      &::tensorflow::_SessionInfo_default_instance_);
+}
+inline ::tensorflow::SessionInfo* OpInfo::release_session_info() {
+  // @@protoc_insertion_point(field_release:tensorflow.OpInfo.session_info)
+  
+  ::tensorflow::SessionInfo* temp = session_info_;
+  if (GetArenaNoVirtual() != NULL) {
+    temp = ::google::protobuf::internal::DuplicateIfNonNull(temp, NULL);
+  }
+  session_info_ = NULL;
+  return temp;
+}
+inline ::tensorflow::SessionInfo* OpInfo::unsafe_arena_release_session_info() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:tensorflow.OpInfo.session_info)
+  
+  ::tensorflow::SessionInfo* temp = session_info_;
+  session_info_ = NULL;
+  return temp;
+}
+inline ::tensorflow::SessionInfo* OpInfo::mutable_session_info() {
+  
+  if (session_info_ == NULL) {
+    session_info_ = ::google::protobuf::Arena::CreateMessage< ::tensorflow::SessionInfo >(
+        GetArenaNoVirtual());
+  }
+  // @@protoc_insertion_point(field_mutable:tensorflow.OpInfo.session_info)
+  return session_info_;
+}
+inline void OpInfo::set_allocated_session_info(::tensorflow::SessionInfo* session_info) {
+  ::google::protobuf::Arena* message_arena = GetArenaNoVirtual();
+  if (message_arena == NULL) {
+    delete session_info_;
+  }
+  if (session_info) {
+    ::google::protobuf::Arena* submessage_arena =
+      ::google::protobuf::Arena::GetArena(session_info);
+    if (message_arena != submessage_arena) {
+      session_info = ::google::protobuf::internal::GetOwnedMessage(
+          message_arena, session_info, submessage_arena);
+    }
+    
+  } else {
+    
+  }
+  session_info_ = session_info;
+  // @@protoc_insertion_point(field_set_allocated:tensorflow.OpInfo.session_info)
+}
+
 // -------------------------------------------------------------------
 
 // NormalDistribution
@@ -1798,24 +1891,6 @@ inline void LogNormalDistribution::set_sigma(double value) {
   
   sigma_ = value;
   // @@protoc_insertion_point(field_set:tensorflow.LogNormalDistribution.sigma)
-}
-
-// -------------------------------------------------------------------
-
-// SessionInfo
-
-// int64 intra_op_parallelism = 1;
-inline void SessionInfo::clear_intra_op_parallelism() {
-  intra_op_parallelism_ = GOOGLE_LONGLONG(0);
-}
-inline ::google::protobuf::int64 SessionInfo::intra_op_parallelism() const {
-  // @@protoc_insertion_point(field_get:tensorflow.SessionInfo.intra_op_parallelism)
-  return intra_op_parallelism_;
-}
-inline void SessionInfo::set_intra_op_parallelism(::google::protobuf::int64 value) {
-  
-  intra_op_parallelism_ = value;
-  // @@protoc_insertion_point(field_set:tensorflow.SessionInfo.intra_op_parallelism)
 }
 
 // -------------------------------------------------------------------
@@ -1974,7 +2049,7 @@ inline void OpPerformance::set_allocated_op(::tensorflow::OpInfo* op) {
   // @@protoc_insertion_point(field_set_allocated:tensorflow.OpPerformance.op)
 }
 
-// .tensorflow.SessionInfo session_info = 12;
+// .tensorflow.SessionInfo session_info = 12 [deprecated = true];
 inline bool OpPerformance::has_session_info() const {
   return this != internal_default_instance() && session_info_ != NULL;
 }
