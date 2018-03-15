@@ -168,6 +168,7 @@ object Dataset {
     type DynamicTextLinesDataset = data.DynamicTextLinesDataset
     type FixedLengthRecordDataset = data.FixedLengthRecordDataset
     type TFRecordDataset = data.TFRecordDataset
+    type DynamicTFRecordDataset = data.DynamicTFRecordDataset
 
     type BatchDataset[T, O, D, S] = data.BatchDataset[T, O, D, S]
     type PaddedBatchDataset[T, O, D, S] = data.PaddedBatchDataset[T, O, D, S]
@@ -203,6 +204,7 @@ object Dataset {
     val DynamicTextLinesDataset  : data.DynamicTextLinesDataset.type   = data.DynamicTextLinesDataset
     val FixedLengthRecordDataset : data.FixedLengthRecordDataset.type  = data.FixedLengthRecordDataset
     val TFRecordDataset          : data.TFRecordDataset.type           = data.TFRecordDataset
+    val DynamicTFRecordDataset   : data.DynamicTFRecordDataset.type    = data.DynamicTFRecordDataset
 
     val BatchDataset       : data.BatchDataset.type        = data.BatchDataset
     val PaddedBatchDataset : data.PaddedBatchDataset.type  = data.PaddedBatchDataset

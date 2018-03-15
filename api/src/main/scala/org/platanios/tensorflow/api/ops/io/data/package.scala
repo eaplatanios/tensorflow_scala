@@ -38,7 +38,7 @@ package object data {
           val seed2 = Basic.constant(s, INT64)
           Math.select(
             Math.logicalAnd(Math.equal(seed1, 0), Math.equal(seed2, 0)),
-            Basic.constant(2 ^ 31 - 1, INT64),
+            Basic.constant(Int.MaxValue, INT64),
             seed2)
         }
       }

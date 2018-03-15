@@ -29,6 +29,11 @@ import scala.collection.{MapLike, SeqLike, breakOut, mutable}
 import scala.language.higherKinds
 import scala.reflect.ClassTag
 
+// TODO: Separate into readers and transformations.
+// TODO: paddedBatchAndDropRemainder
+// TODO: denseToSparseBatch
+// TODO: listFiles
+
 /** Data can be emitted by [[Dataset]]s (i.e., the element types of all [[Dataset]]s are [[Data]]).
   *
   * Currently supported data types are:

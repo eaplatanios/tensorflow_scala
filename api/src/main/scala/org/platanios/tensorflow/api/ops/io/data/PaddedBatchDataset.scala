@@ -174,6 +174,25 @@ object PaddedBatchDataset {
     *   Like the dataset `batch` op, this op combines multiple consecutive elements of a dataset, which might have
     *   different shapes, into a single element. The tensors in the resulting element have an additional outer
     *   dimension, and are padded to the respective shape in `paddedShapes`.
+    *
+    *   This transformation combines multiple consecutive elements of the input dataset into a single element. Like the
+    *   dataset `batch` op, the tensors in the resulting element have an additional outer dimension, which will be
+    *   `batchSize` for all but the last element, and `N % batchSize` for the last element, where `N` is the number of
+    *   elements in this dataset. Unlike the `batch` op, the elements may have different shapes for some of their
+    *   components, and this transformation will pad each component to the respective shape in `paddedShapes`. The
+    *   `paddedShapes` argument determines the resulting shape for each dimension of each component in an output
+    *   element:
+    *
+    *     - If the dimension is a constant, then the component will be padded out to that length along that dimension.
+    *     - If the dimension is unknown, then the component will be padded out to the maximum length of all elements
+    *       along that dimension.
+    *
+    *   '''NOTE:''' If the number of elements in this dataset (`N`) is not an exact multiple of `batchSize`, the final
+    *   batch may contain smaller tensors with shape `N % batchSize` in the batch dimension. If your program depends on
+    *   the batches having the same shape, consider using the `paddedBatchAndDropRemainder` transformation instead.
+    *
+    *   See also the `denseToSparseBatch` op, which combines elements that may have different shapes
+    *   into a sparse tensor.
     */
   private[data] trait Documentation
 }
