@@ -1382,24 +1382,24 @@ private[api] trait Math {
     *
     * @group MathOps
     * @param  input    Input tensor to reduce.
-    * @param  axes     Integer sequence containing the axes to reduce. If `null`, then all axes are reduced.
+    * @param  axes     Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
     * @param  keepDims If `true`, retain the reduced axes.
     * @param  name     Name for the created op.
     * @return Created op output.
     */
   def logSumExp(
-      input: Output, axes: Seq[Int] = null, keepDims: Boolean = false, name: String = "LogSumExp"): Output = {
+      input: Output, axes: Output = null, keepDims: Boolean = false, name: String = "LogSumExp"): Output = {
     if (input.rank == 0)
       input
     else
       Op.createWith(nameScope = name) {
-        val axesArray = axes.toArray
-        val maxValue = Basic.stopGradient(max(input, axesArray, keepDims = true))
-        val result = log(sum(exp(input - maxValue), axesArray, keepDims = true)) + maxValue
-        if (keepDims)
-          result
+        val maxValue = Basic.stopGradient(max(input, axes, keepDims = true))
+        var result = log(sum(exp(input - maxValue), axes, keepDims = true))
+        if (!keepDims)
+          result += Basic.reshape(maxValue, Basic.shape(result))
         else
-          Basic.squeeze(result, axesArray)
+          result += maxValue
+        result
       }
   }
 
@@ -3068,11 +3068,11 @@ object Math extends Math {
     /** $OpDocMathLogSumExp
       *
       * @group MathOps
-      * @param  axes     Integer sequence containing the axes to reduce. If `null`, then all axes are reduced.
+      * @param  axes     Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
       * @param  keepDims If `true`, retain the reduced axes.
       * @return Result as a new tensor.
       */
-    def logSumExp(axes: Seq[Int] = null, keepDims: Boolean = false): Output = Math.logSumExp(output, axes, keepDims)
+    def logSumExp(axes: Output = null, keepDims: Boolean = false): Output = Math.logSumExp(output, axes, keepDims)
 
     /** $OpDocMathCountNonZero
       *
