@@ -68,7 +68,7 @@ case class SessionScaffold(
     val _readyOp = readyOp.getOrElse(getItemOrElse("ready_op", Graph.Keys.READY_OP, () => {
       Basic.concatenate(Seq(
         Variable.uninitializedVariables(),
-        Resource.uninitializedResources()))
+        Resources.uninitializedResources()))
     }))
     val _readyForLocalInitOp = readyForLocalInitOp.getOrElse(getItemOrElse(
       "ready_for_local_init_op", Graph.Keys.READY_FOR_LOCAL_INIT_OP, () => {
@@ -77,12 +77,13 @@ case class SessionScaffold(
     val _initOp = initOp.getOrElse(getItemOrElse("init_op", Graph.Keys.INIT_OP, () => {
       ControlFlow.group(Set(
         Variable.initializer(Variable.globalVariables),
-        Resource.initializer(Resource.sharedResources)))
+        Resources.initializer(Resources.sharedResources)))
     }))
     val _localInitOp = localInitOp.getOrElse(getItemOrElse("local_init_op", Graph.Keys.LOCAL_INIT_OP, () => {
       ControlFlow.group(Set(
         Variable.initializer(Variable.localVariables),
-        Lookup.lookupsInitializer()))
+        Lookup.lookupsInitializer(),
+        Resources.initializer(Resources.localResources)))
     }))
     val _summaryOp = summaryOp.getOrElse(getItemOrElse(
       "summary_op", Graph.Keys.SUMMARY_OP, () => Summary.mergeAll().orNull))

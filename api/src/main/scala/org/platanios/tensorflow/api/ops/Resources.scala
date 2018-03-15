@@ -30,13 +30,30 @@ import org.platanios.tensorflow.api.types.{BOOLEAN, STRING}
   */
 case class Resource(handle: Output, initializeOp: Op, isInitialized: Output)
 
-object Resource {
+trait Resources {
   /** Returns the set of all shared resources used by the current graph which need to be initialized once per cluster. */
   def sharedResources: Set[Resource] = Op.currentGraph.sharedResources
 
   /** Returns the set of all local resources used by the current graph which need to be initialized once per cluster. */
   def localResources: Set[Resource] = Op.currentGraph.localResources
 
+  /** Returns an initializer op for all provided resources. */
+  def resourcesInitializer(resources: Set[Resource], name: String = "ResourcesInitializer"): Op = {
+    Resources.initializer(resources, name)
+  }
+
+  /** Returns an initializer op for all shared resources that have been created in the current graph. */
+  def sharedResourcesInitializer(name: String = "SharedResourcesInitializer"): Op = {
+    Resources.initializer(sharedResources, name)
+  }
+
+  /** Returns an initializer op for all local resources that have been created in the current graph. */
+  def localResourcesInitializer(name: String = "LocalResourcesInitializer"): Op = {
+    Resources.initializer(localResources, name)
+  }
+}
+
+object Resources extends Resources {
   /** Registers the provided resource in the appropriate collections.
     *
     * This makes the resource "findable" in either the shared or local resources collection.

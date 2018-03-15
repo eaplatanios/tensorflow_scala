@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.core
 
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception.{GraphMismatchException, InvalidArgumentException}
-import org.platanios.tensorflow.api.ops.{InstantiatedFunction, Op, Output, Resource}
+import org.platanios.tensorflow.api.ops.{InstantiatedFunction, Op, Output, Resource, Resources}
 import org.platanios.tensorflow.api.ops.metrics.Metric
 import org.platanios.tensorflow.api.ops.variables.{Saver, Variable, VariableStore}
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer}
@@ -36,7 +36,7 @@ import scala.language.postfixOps
 import scala.util.matching.Regex
 
 /**
-  * 
+  *
   * Each graph uses a reentrant lock internally that protects its core state that can be returned via public accessors,
   * as well as synchronizes session run calls with methods that create and mutate ops. This synchronization is necessary
   * because it is illegal to modify an operation after it has been run. Thread-safety is provided on a best-effort basis
@@ -293,7 +293,7 @@ class Graph private[api](private[api] var nativeHandle: Long) extends Closeable 
     *         initialized.
     */
   def uninitializedResources(name: String = "UninitializedResources"): Output = {
-    Resource.uninitializedResources(name = name)
+    Resources.uninitializedResources(name = name)
   }
 
   /** Returns the set of all the train `Op`s (i.e., optimizer update ops) that have been created in the graph. */

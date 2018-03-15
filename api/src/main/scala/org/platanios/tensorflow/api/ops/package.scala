@@ -82,6 +82,7 @@ package object ops {
           with NN
           with Parsing
           with Random
+          with Resources
           with Sets
           with Statistics
           with Text
