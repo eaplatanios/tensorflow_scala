@@ -72,7 +72,7 @@ private[api] case class WhileLoopContext private[control_flow] (
 
   override def controlPivot: Option[Op] = Option(pivotForBody).orElse(Option(pivotForPredicate))
 
-  override def whileLoopContext(stopContext: Option[WhileLoopContext] = None): Option[WhileLoopContext] = Some(this)
+  override def whileLoopContext(stopContext: Option[Context] = None): Option[WhileLoopContext] = Some(this)
 
   override def add(op: Op): Unit = {
     // For a reduction op, if the op is in a gradient context and its input is from its forward context, moving the op

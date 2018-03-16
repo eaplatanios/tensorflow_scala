@@ -274,13 +274,6 @@ private[api] trait ControlFlow {
       } else {
         require(maximumIterations.rank == 0 || maximumIterations.rank == -1,
           s"'maximumIterations' must be a scalar, but has shape ${maximumIterations.shape}.")
-        // If/when we generate the gradient for this while loop, the maximum iterations tensor will be used as input to
-        // any generated stack ops. It is likely that the stacks will be outside any control flow context (i.e., if
-        // `gradients()` is called outside any control flow context), which will result in the maximum iterations tensor
-        // being an illegal input (see `ControlFlow.checkInputFromValidContext` -- we could technically allow tensors
-        // from CondContexts, but that will be error-prone and hard to reason about for users).
-        if (maximumIterations.op.isInCond || maximumIterations.op.isInWhileLoop)
-          throw InvalidArgumentException("The `maximumIterations` tensor cannot be defined in a `cond` or `whileLoop`.")
         val zero = Basic.constant(0, name = "Zero")
         val one = Basic.constant(1, name = "One")
         // Building a loop involves mutating ops and thus we need to lock on the graph.
@@ -430,6 +423,65 @@ private[api] object ControlFlow extends ControlFlow {
     }
     if (errorMessage != null)
       throw InvalidArgumentException(errorMessage)
+  }
+
+  /** Calculates a maximum size for use by stack ops inside XLA while loops.
+    *
+    * @param  value            Value inside the while loop forward context. Used for printing error messages.
+    * @param  whileLoopContext Forward context inside which value resides. This does not always match the value's
+    *                          immediate context, as `value` may be inside e.g., a cond context, inside the while loop.
+    * @return Tensor containing the `maxSize` to feed to a stack initializer.
+    * @throws InvalidArgumentException If `value` is nested inside a while loop that either lacks a `maximumIterations`
+    *                                  parameter, or whose `maximumIterations` parameter is inside a while loop that is
+    *                                  a parent of the calling context, and cannot be evaluated at graph build time
+    *                                  (i.e., statically) to a constant value.
+    */
+  @throws[InvalidArgumentException]
+  private[control_flow] def getMaxSizeFromNestedMaximumIterations(
+      value: Output,
+      whileLoopContext: WhileLoopContext
+  ): Output = {
+    val valueName = value.name
+    // `currentContext` is the context that `tf.gradients()` was called in.
+    val currentContext = Op.currentControlFlowContext
+    val currentContextName = currentContext.map(_.name).getOrElse("")
+
+    // Loop through all containing while-loop contexts between the value and the current context, multiplying together
+    // each context's `maxIterations`, in order to get the maximum stack size.
+    var maxSize = Basic.constant(1)
+    var currentWhileLoopContext: Option[WhileLoopContext] = Some(whileLoopContext)
+    while (currentWhileLoopContext.isDefined) {
+      currentWhileLoopContext.get.maximumIterations match {
+        case None => throw InvalidArgumentException(
+          s"Cannot create a gradient accumulator for tensor '$valueName', inside an XLA while loop, because " +
+              "'maximumIterations' was not passed to the `tf.whileLoop()` call " +
+              s"('${currentWhileLoopContext.get.name}').")
+        case Some(maximumIterations) =>
+          val maximumIterationsContext = maximumIterations.op.controlFlowContext
+          // If `maximumIterationsContext` (non-strictly) contains `currentContext`, then it is ok to use.
+          if (isContainingContext(currentContext.orNull, maximumIterationsContext)) {
+            maxSize *= maximumIterations
+          } else {
+            // We cannot use `maximumIterations` because it is defined in a nested while-loop or cond context, and so
+            // an error will be thrown if we try to use it as input to any ops in `currentContext` (e.g., `maxSize` or
+            // the final accumulator stack). We attempt to get a constant value out to use instead.
+            Output.constantValue(maximumIterations) match {
+              case Some(constantMaximumIterations) => maxSize *= constantMaximumIterations
+              case None => throw InvalidArgumentException(
+                s"Cannot create a gradient accumulator for tensor '$valueName', inside an XLA while loop, because " +
+                    s"the 'maximumIterations' tensor ('${maximumIterations.name}') for while-loop context " +
+                    s"'${currentWhileLoopContext.get.name}' must be statically known (e.g., a constant value or " +
+                    "known shape dimension), or must be defined at or outside the while-loop context " +
+                    s"'$currentContextName' (currently defined in '${maximumIterationsContext.get.name}').")
+            }
+          }
+      }
+      // Find the next outer while-loop context, or stop if we have reached the `tf.gradients()` context.
+      currentWhileLoopContext = currentWhileLoopContext
+          .flatMap(_.outerContext.flatMap(_.whileLoopContext(currentContext)))
+    }
+
+    maxSize
   }
 
   /** Creates an op that forwards `input` to the output port determined by `predicate`, while making sure the new op is

@@ -69,9 +69,9 @@ abstract class Context protected (
   def condContext: Option[CondContext] = outerContext.flatMap(_.condContext)
 
   /** Returns the while context containing this context. */
-  def whileLoopContext(stopContext: Option[WhileLoopContext] = None): Option[WhileLoopContext] = {
+  def whileLoopContext(stopContext: Option[Context] = None): Option[WhileLoopContext] = {
     stopContext match {
-      case Some(context) if context == this => Some(context)
+      case Some(context) if context == this => Some(context.asInstanceOf[WhileLoopContext])
       case None => outerContext.flatMap(_.whileLoopContext(stopContext))
     }
   }
