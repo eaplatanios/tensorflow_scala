@@ -50,6 +50,7 @@ private[api] trait Logging {
 
   /** $OpDocLoggingTimestamp
     *
+    * @group LoggingOps
     * @param  name Name for the created op.
     * @return Created op output.
     */

@@ -21,12 +21,40 @@ import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry
   * @author Emmanouil Antonios Platanios
   */
 private[api] trait Text {
+  /** $OpDocTextRegexReplace
+    *
+    * @group TextOps
+    * @param  input         Tensor containing the text to be processed.
+    * @param  pattern       Tensor containing the regular expression to match the input.
+    * @param  rewrite       Tensor containing the rewrite to be applied to the matched expression.
+    * @param  replaceGlobal If `true`, the replacement is global, otherwise the replacement is done only on the first
+    *                       match.
+    * @param  name          Name for the created op.
+    * @return Created op output.
+    */
+  def regexReplace(
+      input: Output,
+      pattern: Output,
+      rewrite: Output,
+      replaceGlobal: Boolean = true,
+      name: String = "RegexReplace"
+  ): Output = {
+    Op.Builder(opType = "RegexReplace", name = name)
+        .addInput(input)
+        .addInput(pattern)
+        .addInput(rewrite)
+        .setAttribute("replace_global", replaceGlobal)
+        .build().outputs(0)
+  }
+
   /** $OpDocTextStringJoin
     *
     * @group TextOps
     * @param  inputs    Sequence of string tensors that will be joined. The tensors must all have the same shape, or be
     *                   scalars. Scalars may be mixed in; these will be broadcast to the shape of the non-scalar inputs.
     * @param  separator Separator string.
+    * @param  name      Name for the created op.
+    * @return Created op output.
     */
   def stringJoin(inputs: Seq[Output], separator: String = "", name: String = "StringJoin"): Output = {
     Op.Builder(opType = "StringJoin", name = name)
@@ -48,7 +76,11 @@ private[api] trait Text {
     * @return Created op output.
     */
   def stringSplit(
-      input: Output, delimiter: Output = " ", skipEmpty: Boolean = true, name: String = "StringSplit"): SparseOutput = {
+      input: Output,
+      delimiter: Output = " ",
+      skipEmpty: Boolean = true,
+      name: String = "StringSplit"
+  ): SparseOutput = {
     val outputs = Op.Builder(opType = "StringSplit", name = name)
         .addInput(input)
         .addInput(delimiter)
@@ -127,7 +159,12 @@ private[api] trait Text {
     * @return Created op output, which has the same shape as `input`.
     */
   def stringToHashBucketStrong(
-      input: Output, numBuckets: Int, key1: Long, key2: Long, name: String = "StringToHashBucketStrong"): Output = {
+      input: Output,
+      numBuckets: Int,
+      key1: Long,
+      key2: Long,
+      name: String = "StringToHashBucketStrong"
+  ): Output = {
     Op.Builder(opType = "StringToHashBucketStrong", name = name)
         .addInput(input)
         .setAttribute("num_buckets", numBuckets)
@@ -138,6 +175,24 @@ private[api] trait Text {
 
 object Text extends Text {
   case class TextOps(output: Output) {
+    /** $OpDocTextRegexReplace
+      *
+      * @group TextOps
+      * @param  pattern       Tensor containing the regular expression to match the input.
+      * @param  rewrite       Tensor containing the rewrite to be applied to the matched expression.
+      * @param  replaceGlobal If `true`, the replacement is global, otherwise the replacement is done only on the first
+      *                       match.
+      * @param  name          Name for the created op.
+      * @return Created op output.
+      */
+    def regexReplace(
+        pattern: Output,
+        rewrite: Output,
+        replaceGlobal: Boolean = true,
+        name: String = "RegexReplace"
+    ): Output = {
+      Text.regexReplace(output, pattern, rewrite, replaceGlobal, name)
+    }
 
     /** $OpDocTextStringToHashBucket
       *
@@ -214,6 +269,7 @@ object Text extends Text {
   }
 
   private[ops] object Gradients {
+    GradientsRegistry.registerNonDifferentiable("RegexReplace")
     GradientsRegistry.registerNonDifferentiable("ReduceJoin")
     GradientsRegistry.registerNonDifferentiable("StringJoin")
     GradientsRegistry.registerNonDifferentiable("StringSplit")
@@ -225,7 +281,11 @@ object Text extends Text {
     GradientsRegistry.registerNonDifferentiable("StringToHashBucketStrong")
   }
 
-  /** @define OpDocTextStringJoin
+  /** @define OpDocTextRegexReplace
+    *   The `regexReplace` op replaces the match of a regular expression pattern in a string with another provided
+    *   string. The op uses the [re2 syntax](https://github.com/google/re2/wiki/Syntax) for regular expressions.
+    *
+    * @define OpDocTextStringJoin
     *   The `stringJoin` op joins the strings in the given list of string tensors into one tensor, using the provided
     *   separator (which defaults to an empty string).
     *
