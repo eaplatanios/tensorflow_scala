@@ -1021,24 +1021,6 @@ private[api] trait Math {
         .build().outputs(0)
   }
 
-  /** $OpDocMathMaximum
-    *
-    * @group MathOps
-    * @param  x    First input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`, or
-    *              `INT64`.
-    * @param  y    Second input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`,
-    *              or `INT64`.
-    * @param  name Name for the created op.
-    * @return Created op output.
-    */
-  def maximum(x: Output, y: Output, name: String = "Maximum"): Output = {
-    val (cX, cY) = castArgs(x, y)
-    Op.Builder(opType = "Maximum", name = name)
-        .addInput(cX)
-        .addInput(cY)
-        .build().outputs(0)
-  }
-
   /** $OpDocMathMinimum
     *
     * @group MathOps
@@ -1052,6 +1034,24 @@ private[api] trait Math {
   def minimum(x: Output, y: Output, name: String = "Minimum"): Output = {
     val (cX, cY) = castArgs(x, y)
     Op.Builder(opType = "Minimum", name = name)
+        .addInput(cX)
+        .addInput(cY)
+        .build().outputs(0)
+  }
+
+  /** $OpDocMathMaximum
+    *
+    * @group MathOps
+    * @param  x    First input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`, or
+    *              `INT64`.
+    * @param  y    Second input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`,
+    *              or `INT64`.
+    * @param  name Name for the created op.
+    * @return Created op output.
+    */
+  def maximum(x: Output, y: Output, name: String = "Maximum"): Output = {
+    val (cX, cY) = castArgs(x, y)
+    Op.Builder(opType = "Maximum", name = name)
         .addInput(cX)
         .addInput(cY)
         .build().outputs(0)
@@ -3034,19 +3034,19 @@ object Math extends Math {
       */
     def atan2(other: Output): Output = Math.atan2(output, other)
 
-    /** $OpDocMathMaximum
-      *
-      * @group MathOps
-      * @return Result as a new tensor.
-      */
-    def maximum(other: Output): Output = Math.maximum(output, other)
-
     /** $OpDocMathMinimum
       *
       * @group MathOps
       * @return Result as a new tensor.
       */
     def minimum(other: Output): Output = Math.minimum(output, other)
+
+    /** $OpDocMathMaximum
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def maximum(other: Output): Output = Math.maximum(output, other)
 
     //endregion Math Binary Ops
 
@@ -3793,8 +3793,8 @@ object Math extends Math {
     GradientsRegistry.register("Zeta", zetaGradient)
     GradientsRegistry.register("Polygamma", polygammaGradient)
     GradientsRegistry.register("Atan2", atan2Gradient)
-    GradientsRegistry.register("Maximum", maximumGradient)
     GradientsRegistry.register("Minimum", minimumGradient)
+    GradientsRegistry.register("Maximum", maximumGradient)
     GradientsRegistry.register("Betainc", betaIncGradient)
     GradientsRegistry.register("Sum", sumGradient)
     GradientsRegistry.register("Mean", meanGradient)
@@ -4372,22 +4372,6 @@ object Math extends Math {
       }
     }
 
-    private[this] def maximumGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      val x = op.inputs(0)
-      val y = op.inputs(1)
-      val xShape = Basic.shape(x)
-      val yShape = Basic.shape(y)
-      val outputGradient = outputGradients.head.toOutput
-      val zeros = Basic.zerosLike(outputGradient)
-      val xMask = greaterEqual(x, y)
-      val (rx, ry) = broadcastGradientArguments(xShape, yShape)
-      val xGradient = select(xMask, outputGradient, zeros)
-      val yGradient = select(logicalNot(xMask), outputGradient, zeros)
-      Seq(
-        Basic.reshape(sum(xGradient, rx), xShape),
-        Basic.reshape(sum(yGradient, ry), yShape))
-    }
-
     private[this] def minimumGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       val x = op.inputs(0)
       val y = op.inputs(1)
@@ -4398,7 +4382,23 @@ object Math extends Math {
       val xMask = lessEqual(x, y)
       val (rx, ry) = broadcastGradientArguments(xShape, yShape)
       val xGradient = select(xMask, outputGradient, zeros)
-      val yGradient = select(logicalNot(xMask), outputGradient, zeros)
+      val yGradient = select(xMask, zeros, outputGradient)
+      Seq(
+        Basic.reshape(sum(xGradient, rx), xShape),
+        Basic.reshape(sum(yGradient, ry), yShape))
+    }
+
+    private[this] def maximumGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val x = op.inputs(0)
+      val y = op.inputs(1)
+      val xShape = Basic.shape(x)
+      val yShape = Basic.shape(y)
+      val outputGradient = outputGradients.head.toOutput
+      val zeros = Basic.zerosLike(outputGradient)
+      val xMask = greaterEqual(x, y)
+      val (rx, ry) = broadcastGradientArguments(xShape, yShape)
+      val xGradient = select(xMask, outputGradient, zeros)
+      val yGradient = select(xMask, outputGradient, zeros)
       Seq(
         Basic.reshape(sum(xGradient, rx), xShape),
         Basic.reshape(sum(yGradient, ry), yShape))
@@ -5308,15 +5308,15 @@ object Math extends Math {
     *
     *   The op computes the angle `\theta \in [-\pi, \pi]` such that `y = r \cos(\theta)` and 
     *   `x = r \sin(\theta)`, where `r = \sqrt(x^2 + y^2)`.
-		* 
-		* @define OpDocMathMaximum
-		*   The `maximum` op returns the element-wise maximum between two tensors. I.e., `z = x > y ? x : y`.
+    *
+    * @define OpDocMathMinimum
+    *   The `minimum` op returns the element-wise minimum between two tensors. I.e., `z = x < y ? x : y`.
     *
     *   NOTE: This op supports broadcasting. More information about broadcasting can be found
     *   [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
 		* 
-		* @define OpDocMathMinimum
-		*   The `minimum` op returns the element-wise minimum between two tensors. I.e., `z = x < y ? x : y`.
+		* @define OpDocMathMaximum
+		*   The `maximum` op returns the element-wise maximum between two tensors. I.e., `z = x > y ? x : y`.
     *
     *   NOTE: This op supports broadcasting. More information about broadcasting can be found
     *   [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).

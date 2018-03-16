@@ -20,7 +20,7 @@ import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception.OutOfRangeException
 import org.platanios.tensorflow.api.io.events.SummaryFileWriterCache
 import org.platanios.tensorflow.api.learn._
-import org.platanios.tensorflow.api.ops.{Op, Output, Resource}
+import org.platanios.tensorflow.api.ops.{Op, Output, Resources}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.io.data.Dataset
 import org.platanios.tensorflow.api.ops.lookup.Lookup
@@ -88,7 +88,7 @@ class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] protected (
         sessionScaffold = SessionScaffold(
           initOp = Some(ControlFlow.group(Set(
             Variable.initializer(Variable.globalVariables),
-            Resource.initializer(Resource.sharedResources)))),
+            Resources.initializer(Resources.sharedResources)))),
           localInitOp = Some(ControlFlow.group(Set(
             Variable.initializer(Variable.localVariables),
             Lookup.lookupsInitializer())))),
@@ -120,7 +120,7 @@ class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] protected (
     if (log) {
       Evaluator.logger.info(s"Step $step $name:")
       Evaluator.logger.info(s"╔═${"═" * firstColWidth}═╤${metrics.map(_ => "═" * (colWidth + 2)).mkString("╤")}╗")
-      Evaluator.logger.info(f"║ ${" " * firstColWidth} │${metrics.map(s" %${colWidth}s ".format(_)).mkString("│")}║")
+      Evaluator.logger.info(s"║ ${" " * firstColWidth} │${metrics.map(s" %${colWidth}s ".format(_)).mkString("│")}║")
       Evaluator.logger.info(s"╟─${"─" * firstColWidth}─┼${metrics.map(_ => "─" * (colWidth + 2)).mkString("┼")}╢")
     }
     try {

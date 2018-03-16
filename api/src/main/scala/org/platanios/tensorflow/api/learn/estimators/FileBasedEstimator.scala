@@ -27,7 +27,7 @@ import org.platanios.tensorflow.api.ops.io.data.Dataset
 import org.platanios.tensorflow.api.ops.lookup.Lookup
 import org.platanios.tensorflow.api.ops.metrics.Metric
 import org.platanios.tensorflow.api.ops.variables.{Saver, Variable}
-import org.platanios.tensorflow.api.ops.{Op, Output, Resource}
+import org.platanios.tensorflow.api.ops.{Op, Output, Resources}
 import org.platanios.tensorflow.api.tensors.Tensor
 
 import com.typesafe.scalalogging.Logger
@@ -160,7 +160,7 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
           sessionScaffold = SessionScaffold(
             initOp = Some(ControlFlow.group(Set(
               Variable.initializer(Variable.globalVariables),
-              Resource.initializer(Resource.sharedResources)))),
+              Resources.initializer(Resources.sharedResources)))),
             localInitOp = Some(ControlFlow.group(Set(
               Variable.initializer(Variable.localVariables),
               Lookup.lookupsInitializer()))),
@@ -276,7 +276,7 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
           sessionScaffold = SessionScaffold(
             initOp = Some(ControlFlow.group(Set(
               Variable.initializer(Variable.globalVariables),
-              Resource.initializer(Resource.sharedResources)))),
+              Resources.initializer(Resources.sharedResources)))),
             localInitOp = Some(ControlFlow.group(Set(
               Variable.initializer(Variable.localVariables),
               Lookup.lookupsInitializer()))),
@@ -422,7 +422,7 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
           sessionScaffold = SessionScaffold(
             initOp = Some(ControlFlow.group(Set(
               Variable.initializer(Variable.globalVariables),
-              Resource.initializer(Resource.sharedResources)))),
+              Resources.initializer(Resources.sharedResources)))),
             localInitOp = Some(ControlFlow.group(Set(
               Variable.initializer(Variable.localVariables),
               Lookup.lookupsInitializer()))),

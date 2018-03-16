@@ -131,12 +131,14 @@ class BeamSearchDecoder[S, SS](
       val finished = Basic.oneHot(
         indices = Basic.zeros(INT32, batchSize.expandDims(0)), depth = beamWidth,
         onValue = false, offValue = true, dataType = BOOLEAN)
+      val dataType = evS.outputs(processedInitialCellState).head.dataType
+      import dataType.supportedType
       val initialState = BeamSearchDecoder.State[S, SS](
         rnnState = processedInitialCellState,
         logProbabilities = Basic.oneHot(
           indices = Basic.zeros(INT32, batchSize.expandDims(0)), depth = beamWidth,
-          onValue = 0.0f, offValue = Float.NegativeInfinity,
-          dataType = evS.outputs(processedInitialCellState).head.dataType),
+          onValue = Basic.constant(0, dataType), offValue = Basic.constant(dataType.min, dataType),
+          dataType = dataType),
         finished = finished,
         sequenceLengths = Basic.zeros(INT64, Basic.stack(Seq(batchSize, beamWidth))))
       (finished, beginInput, initialState)
