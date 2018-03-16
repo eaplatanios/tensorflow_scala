@@ -15,12 +15,11 @@
 
 package org.platanios.tensorflow.api.core
 
-import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception.{GraphMismatchException, InvalidArgumentException}
 import org.platanios.tensorflow.api.ops.{InstantiatedFunction, Op, Output, Resource, Resources}
 import org.platanios.tensorflow.api.ops.metrics.Metric
 import org.platanios.tensorflow.api.ops.variables.{Saver, Variable, VariableStore}
-import org.platanios.tensorflow.api.utilities.{Closeable, Disposer}
+import org.platanios.tensorflow.api.utilities.{Closeable, Disposer, NativeHandleWrapper}
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
 import org.platanios.tensorflow.jni.{Function => NativeFunction, Graph => NativeGraph, TensorFlow => NativeLibrary}
 
@@ -35,6 +34,8 @@ import scala.collection.mutable
 import scala.language.postfixOps
 import scala.util.matching.Regex
 
+// TODO: Keep track of all sessions using this graph and close them when the graph is closed.
+
 /**
   *
   * Each graph uses a reentrant lock internally that protects its core state that can be returned via public accessors,
@@ -46,13 +47,15 @@ import scala.util.matching.Regex
   *
   * @author Emmanouil Antonios Platanios
   */
-class Graph private[api](private[api] var nativeHandle: Long) extends Closeable with ProtoSerializable {
-  private[this] object NativeHandleLock
+class Graph private[api](
+    private[api] val nativeHandleWrapper: NativeHandleWrapper,
+    override protected val closeFn: () => Unit
+) extends Closeable with ProtoSerializable {
+  /** Lock for the native handle. */
+  private[Graph] def NativeHandleLock = nativeHandleWrapper.Lock
 
-  // Keep track of references in the Scala side and notify the native library when the graph is not referenced
-  // anymore anywhere in the Scala side. This will let the native library free the allocated resources and prevent a
-  // potential memory leak.
-  Disposer.add(this, () => this.close())
+  /** Native handle of this tensor. */
+  private[api] def nativeHandle: Long = nativeHandleWrapper.handle
 
   /** Indicates whether this graph has been frozen (i.e., no more ops can be added to it). */
   private[this] var _frozen: Boolean = false
@@ -71,19 +74,15 @@ class Graph private[api](private[api] var nativeHandle: Long) extends Closeable 
   @throws[AssertionError]
   def assertNotFrozen(): Unit = assert(!_frozen, "This graph has already been frozen.")
 
-  /** List of functions that will be called right before disposing this graph object. Such functions are usually used to
-    * clean up native resources used by this graph. */
-  private[api] val cleanupFunctions: mutable.ListBuffer[() => Unit] = mutable.ListBuffer.empty
-
   /** Adds a cleanup function to this graph. That is, a function that will be called right before disposing this graph
     * object. Such functions are usually used to clean up native resources used by this graph. */
   private[api] def addCleanupFunction(function: () => Unit): Unit = {
     assertNotFrozen()
-    cleanupFunctions.append(function)
+    nativeHandleWrapper.addCleanupFunction(function)
   }
 
-  // TODO: [SESSION] Need to be able to reset this session.
-  private[api] val defaultSession: Session = Session(this)
+  // // TODO: [SESSION] Need to be able to reset this session.
+  // private[api] val defaultSession: Session = Session(this)
 
   /** Map from native op handle to op object in the Scala side. Used for caching ops that have already been obtained
     * from the native library. */
@@ -757,9 +756,6 @@ class Graph private[api](private[api] var nativeHandle: Long) extends Closeable 
     */
   override def toProto: GraphDef = toGraphDef
 
-  /** Reference counter for this graph instance. */
-  private[this] var referenceCount: Int = 0
-
   /** Returns a new reference to this graph. This method should be used by all classes whose corresponding native
     * objects (such as the `TF_Operation` object backing an [[Op]] instance) have a validity tied to that of the graph.
     *
@@ -781,14 +777,14 @@ class Graph private[api](private[api] var nativeHandle: Long) extends Closeable 
     NativeHandleLock.synchronized {
       if (Graph.this.nativeHandle == 0)
         throw new IllegalStateException("close() has been called on the Graph")
-      referenceCount += 1
+      nativeHandleWrapper.referenceCount += 1
     }
 
-    override def close(): Unit = {
+    override protected val closeFn: () => Unit = () => {
       NativeHandleLock.synchronized {
         if (Graph.this.nativeHandle != 0) {
-          referenceCount -= 1
-          if (referenceCount == 0)
+          nativeHandleWrapper.referenceCount -= 1
+          if (nativeHandleWrapper.referenceCount == 0)
             NativeHandleLock.notifyAll()
         }
       }
@@ -807,30 +803,6 @@ class Graph private[api](private[api] var nativeHandle: Long) extends Closeable 
   /** Returns `true` if this graph has been closed (meaning that the corresponding native object has been deleted). */
   def isClosed: Boolean = nativeHandle == 0
 
-  /** Releases the native resources associated with this graph instance.
-    *
-    * This method blocks until there are no active [[Session]] (or other) instances referring to this graph instance. A
-    * graph is not usable after this method returns.
-    */
-  override def close(): Unit = NativeHandleLock.synchronized {
-    defaultSession.close()
-    if (nativeHandle != 0) {
-      while (referenceCount > 0) {
-        try {
-          NativeHandleLock.wait()
-        } catch {
-          case _: InterruptedException =>
-            Thread.currentThread().interrupt()
-            // TODO: Possible leak of the graph in this case?
-            return
-        }
-      }
-      cleanupFunctions.foreach(_ ())
-      NativeGraph.delete(nativeHandle)
-      nativeHandle = 0
-    }
-  }
-
   // TODO: [GRAPH] Better implementations for equals and hashCode.
 
   override def equals(that: Any): Boolean = that match {
@@ -843,7 +815,39 @@ class Graph private[api](private[api] var nativeHandle: Long) extends Closeable 
 
 object Graph {
   /** Constructs and returns an empty new graph. */
-  def apply(): Graph = new Graph(nativeHandle = NativeGraph.allocate())
+  def apply(): Graph = {
+    val nativeHandle = NativeGraph.allocate()
+    val nativeHandleWrapper = NativeHandleWrapper(nativeHandle)
+    val closeFn = () => {
+      var done = false
+      nativeHandleWrapper.preCleanupFunctions.foreach(_ ())
+      nativeHandleWrapper.Lock.synchronized {
+        if (nativeHandle != 0) {
+          while (!done && nativeHandleWrapper.referenceCount > 0) {
+            try {
+              nativeHandleWrapper.Lock.wait()
+            } catch {
+              case _: InterruptedException =>
+                Thread.currentThread().interrupt()
+                // TODO: Possible leak of the graph in this case?
+                done = true
+            }
+          }
+          if (!done) {
+            nativeHandleWrapper.cleanupFunctions.foreach(_ ())
+            NativeGraph.delete(nativeHandleWrapper.handle)
+            nativeHandleWrapper.handle = 0
+          }
+        }
+      }
+    }
+    val graph = new Graph(nativeHandleWrapper, closeFn)
+    // Keep track of references in the Scala side and notify the native library when the graph is not referenced
+    // anymore anywhere in the Scala side. This will let the native library free the allocated resources and prevent a
+    // potential memory leak.
+    Disposer.add(graph, closeFn)
+    graph
+  }
 
   /** Imports a graph from the provided serialized graph object.
     *

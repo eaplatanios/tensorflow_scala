@@ -57,7 +57,7 @@ import scala.util.control.Exception._
 class SessionWrapper private[learn](
     protected var session: Session,
     private val hooks: Set[Hook] = Set.empty[Hook]
-) extends Session(session.graphReference, session.nativeHandle, session.target) {
+) extends Session(session.graphReference, session.target, session.nativeHandleWrapper, () => session.close()) {
   protected var _closed      : Boolean = false
   protected var _shouldStop  : Boolean = false
   protected var _hooksEnabled: Boolean = true

@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.core.client
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.utilities.{Closeable, Disposer}
+import org.platanios.tensorflow.api.utilities.{Closeable, Disposer, NativeHandleWrapper}
 import org.platanios.tensorflow.jni.{Session => NativeSession, Tensor => NativeTensor}
 
 import org.tensorflow.framework.{RunMetadata, RunOptions}
@@ -27,25 +27,26 @@ import org.tensorflow.framework.{RunMetadata, RunOptions}
   *
   * The [[Session]] class enables incremental graph building with inline execution of ops and evaluation of tensors.
   *
-  * @param  graphReference Reference to the underlying graph of this session.
-  * @param  nativeHandle   Handle to the native session object.
-  * @param  target         Process to which this session will connect.
+  * @param  graphReference      Reference to the underlying graph of this session.
+  * @param  target              Process to which this session will connect.
+  * @param  nativeHandleWrapper Wrapper around the pointer to the native server object.
+  * @param  closeFn             Function used to delete the native server object (i.e., free relevant memory).
   *
   * @author Emmanouil Antonios Platanios
   */
 class Session private[api](
     private[api] val graphReference: Graph#Reference,
-    private[api] var nativeHandle: Long,
-    val target: String = "") extends Closeable {
+    val target: String = "",
+    private[api] val nativeHandleWrapper: NativeHandleWrapper,
+    override protected val closeFn: () => Unit
+) extends Closeable {
   val graph: Graph = graphReference.graph
 
-  private[this] object NativeHandleLock
-  private[this] var referenceCount: Int = 0
+  /** Lock for the native handle. */
+  private[Session] def NativeHandleLock = nativeHandleWrapper.Lock
 
-  // Keep track of references in the Scala side and notify the native library when the session is not referenced
-  // anymore anywhere in the Scala side. This will let the native library free the allocated resources and prevent a
-  // potential memory leak.
-  Disposer.add(this, () => this.close())
+  /** Native handle of this tensor. */
+  private[api] def nativeHandle: Long = nativeHandleWrapper.handle
 
   /** Runs ops and evaluates tensors in `fetches`, and returns the values of the evaluated tensors.
     *
@@ -98,9 +99,9 @@ class Session private[api](
     * @param  options Optional [[RunOptions]] protocol buffer that allows controlling the behavior of this particular
     *                 run (e.g., turning tracing on).
     * @return A tuple containing two elements:
-    *         - The evaluated tensors using the structure of `fetches`. For more details on the return type, please
-    *           refer to the documentation of the [[Fetchable]] type class.
-    *         - A [[RunMetadata]] protocol buffer option containing the collected run metadata, if any.
+    *           - The evaluated tensors using the structure of `fetches`. For more details on the return type, please
+    *             refer to the documentation of the [[Fetchable]] type class.
+    *           - A [[RunMetadata]] protocol buffer option containing the collected run metadata, if any.
     * @throws IllegalStateException If the session has already been closed.
     */
   @throws[IllegalStateException]
@@ -132,7 +133,7 @@ class Session private[api](
     NativeHandleLock.synchronized {
       if (nativeHandle == 0)
         throw new IllegalStateException("close() has been called on the session.")
-      referenceCount += 1
+      nativeHandleWrapper.referenceCount += 1
     }
     try {
       val metadata: Array[Byte] = NativeSession.run(
@@ -157,8 +158,8 @@ class Session private[api](
       case t: Throwable =>
         NativeHandleLock.synchronized {
           if (nativeHandle != 0) {
-            referenceCount -= 1
-            if (referenceCount == 0)
+            nativeHandleWrapper.referenceCount -= 1
+            if (nativeHandleWrapper.referenceCount == 0)
               NativeHandleLock.notifyAll()
           }
         }
@@ -166,8 +167,8 @@ class Session private[api](
     } finally {
       NativeHandleLock.synchronized {
         if (nativeHandle != 0) {
-          referenceCount -= 1
-          if (referenceCount == 0)
+          nativeHandleWrapper.referenceCount -= 1
+          if (nativeHandleWrapper.referenceCount == 0)
             NativeHandleLock.notifyAll()
         }
       }
@@ -180,32 +181,12 @@ class Session private[api](
     * implementation depends on some methods that mutate ops that have already been added to a graph (e.g., for control
     * flow constructs like while loops). This allows us to prevent modifications to nodes in the graph after the session
     * has been made aware of them. */
-  protected def extend(): Unit = NativeHandleLock.synchronized { NativeSession.extend(nativeHandle) }
+  protected def extend(): Unit = NativeHandleLock.synchronized {
+    NativeSession.extend(nativeHandle)
+  }
 
   /** Returns a boolean flag indicating whether this session has been closed. */
   def closed: Boolean = nativeHandle == 0
-
-  /** Closes this [[Session]] and releases any resources associated with it. Note that a session is not usable after it
-    * has been closed. */
-  override def close(): Unit = {
-    graphReference.close()
-    NativeHandleLock.synchronized {
-      if (nativeHandle != 0) {
-        while (referenceCount > 0) {
-          try {
-            NativeHandleLock.wait()
-          } catch {
-            case _: InterruptedException =>
-              Thread.currentThread().interrupt()
-              // TODO: [CLIENT] Possible leak of the session and graph in this case?
-              return
-          }
-        }
-        NativeSession.delete(nativeHandle)
-        nativeHandle = 0
-      }
-    }
-  }
 }
 
 /** Contains helper functions for managing [[Session]] instances. */
@@ -220,6 +201,35 @@ object Session {
       graphReference.nativeHandle,
       target,
       sessionConfig.map(_.configProto.toByteArray).orNull)
-    new Session(graphReference, nativeHandle, target)
+    val nativeHandleWrapper = NativeHandleWrapper(nativeHandle)
+    val closeFn = () => {
+      var done = false
+      graphReference.close()
+      nativeHandleWrapper.Lock.synchronized {
+        if (nativeHandleWrapper.handle != 0) {
+          while (!done && nativeHandleWrapper.referenceCount > 0) {
+            try {
+              nativeHandleWrapper.Lock.wait()
+            } catch {
+              case _: InterruptedException =>
+                Thread.currentThread().interrupt()
+                // TODO: [CLIENT] Possible leak of the session and graph in this case?
+                done = true
+            }
+          }
+          if (!done) {
+            NativeSession.delete(nativeHandleWrapper.handle)
+            nativeHandleWrapper.handle = 0
+          }
+        }
+      }
+    }
+    graph.nativeHandleWrapper.addPreCleanupFunction(closeFn)
+    val session = new Session(graphReference, target, nativeHandleWrapper, closeFn)
+    // Keep track of references in the Scala side and notify the native library when the session is not referenced
+    // anymore anywhere in the Scala side. This will let the native library free the allocated resources and prevent a
+    // potential memory leak.
+    Disposer.add(session, closeFn)
+    session
   }
 }

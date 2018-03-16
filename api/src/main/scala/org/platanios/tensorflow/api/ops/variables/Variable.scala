@@ -148,21 +148,21 @@ case class Variable private (
     }
   }
 
-  /** Evaluates the value of this variable.
-    *
-    * If `feeds` is non-empty, then the provided feed values are fed into the session for computing the value of this
-    * variable.
-    *
-    * If `session` is `null` (i.e., not provided), then the default session is used. Otherwise, `session` is used for
-    * the evaluation.
-    *
-    * @param  feeds   Tensors to feed into the session for this evaluation.
-    * @param  session Optional session to use for the evaluation.
-    * @return Value of this variable, for this evaluation.
-    */
-  def evaluate(feeds: Map[Output, Tensor] = Map.empty, session: Session = null): Tensor = {
-    toOutput.evaluate(feeds, session)
-  }
+  // /** Evaluates the value of this variable.
+  //   *
+  //   * If `feeds` is non-empty, then the provided feed values are fed into the session for computing the value of this
+  //   * variable.
+  //   *
+  //   * If `session` is `null` (i.e., not provided), then the default session is used. Otherwise, `session` is used for
+  //   * the evaluation.
+  //   *
+  //   * @param  feeds   Tensors to feed into the session for this evaluation.
+  //   * @param  session Optional session to use for the evaluation.
+  //   * @return Value of this variable, for this evaluation.
+  //   */
+  // def evaluate(feeds: Map[Output, Tensor] = Map.empty, session: Session = null): Tensor = {
+  //   toOutput.evaluate(feeds, session)
+  // }
 
   // TODO: [VARIABLE] Add support for slice assignment.
 

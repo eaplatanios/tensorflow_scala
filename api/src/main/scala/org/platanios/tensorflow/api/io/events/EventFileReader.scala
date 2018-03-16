@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.io.events
 
 import org.platanios.tensorflow.api.core.exception.{DataLossException, OutOfRangeException}
 import org.platanios.tensorflow.api.io.{CompressionType, Loader, NoCompression}
-import org.platanios.tensorflow.api.utilities.{Closeable, Disposer}
+import org.platanios.tensorflow.api.utilities.{Closeable, Disposer, NativeHandleWrapper}
 import org.platanios.tensorflow.jni.{RecordReader => NativeReader}
 
 import com.typesafe.scalalogging.Logger
@@ -39,20 +39,17 @@ import java.nio.file.Path
   *
   * @author Emmanouil Antonios Platanios
   */
-class EventFileReader(val filePath: Path, val compressionType: CompressionType = NoCompression)
-    extends Closeable with Loader[Event] {
-  EventFileReader.logger.info(s"Opening a TensorFlow events file located at '${filePath.toAbsolutePath}'.")
+class EventFileReader protected (
+    val filePath: Path,
+    val compressionType: CompressionType = NoCompression,
+    private[this] val nativeHandleWrapper: NativeHandleWrapper,
+    override protected val closeFn: () => Unit
+) extends Closeable with Loader[Event] {
+  /** Lock for the native handle. */
+  private[EventFileReader] def NativeHandleLock = nativeHandleWrapper.Lock
 
-  private[this] var nativeHandle: Long = {
-    NativeReader.newRecordReaderWrapper(filePath.toAbsolutePath.toString, compressionType.name, 0)
-  }
-
-  private[this] object NativeHandleLock
-
-  // Keep track of references in the Scala side and notify the native library when the reader is not referenced
-  // anymore anywhere in the Scala side. This will let the native library free the allocated resources and prevent a
-  // potential memory leak.
-  Disposer.add(this, () => this.close())
+  /** Native handle of this tensor. */
+  private[api] def nativeHandle: Long = nativeHandleWrapper.handle
 
   def load(): Iterator[Event] = new Iterator[Event] {
     /** Caches the next event stored in the file. */
@@ -89,17 +86,6 @@ class EventFileReader(val filePath: Path, val compressionType: CompressionType =
       event
     }
   }
-
-  /** Closes this reader and releases any resources associated with it. Note that an events file reader is not usable
-    * after it has been closed. */
-  override def close(): Unit = {
-    NativeHandleLock.synchronized {
-      if (nativeHandle != 0) {
-        NativeReader.deleteRecordReaderWrapper(nativeHandle)
-        nativeHandle = 0
-      }
-    }
-  }
 }
 
 private[io] object EventFileReader {
@@ -112,6 +98,22 @@ private[io] object EventFileReader {
     * @return Newly constructed events file reader.
     */
   def apply(filePath: Path, compressionType: CompressionType = NoCompression): EventFileReader = {
-    new EventFileReader(filePath, compressionType)
+    EventFileReader.logger.info(s"Opening a TensorFlow events file located at '${filePath.toAbsolutePath}'.")
+    val nativeHandle = NativeReader.newRecordReaderWrapper(filePath.toAbsolutePath.toString, compressionType.name, 0)
+    val nativeHandleWrapper = NativeHandleWrapper(nativeHandle)
+    val closeFn = () => {
+      nativeHandleWrapper.Lock.synchronized {
+        if (nativeHandleWrapper.handle != 0) {
+          NativeReader.deleteRecordReaderWrapper(nativeHandleWrapper.handle)
+          nativeHandleWrapper.handle = 0
+        }
+      }
+    }
+    val eventFileReader = new EventFileReader(filePath, compressionType, nativeHandleWrapper, closeFn)
+    // Keep track of references in the Scala side and notify the native library when the event file reader is not
+    // referenced anymore anywhere in the Scala side. This will let the native library free the allocated resources and
+    // prevent a potential memory leak.
+    Disposer.add(eventFileReader, closeFn)
+    eventFileReader
   }
 }

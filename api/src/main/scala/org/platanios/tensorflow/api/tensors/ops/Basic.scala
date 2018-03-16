@@ -1202,9 +1202,6 @@ object Basic extends Basic {
       val result = Basic.stridedSlice(
         tensor, beginTensor, endTensor, stridesTensor, stridedSlice._4, stridedSlice._5, stridedSlice._6,
         stridedSlice._7, stridedSlice._8)
-      beginTensor.close()
-      endTensor.close()
-      stridesTensor.close()
       result
     }
 

@@ -22,7 +22,7 @@ import org.platanios.tensorflow.api.ops.io.data.{Data, Dataset}
 import org.platanios.tensorflow.api.ops.variables.Variable.VariableGetter
 import org.platanios.tensorflow.api.ops.variables._
 import org.platanios.tensorflow.api.types.{DataType, FLOAT32, VARIANT}
-import org.platanios.tensorflow.api.utilities.{Closeable, Disposer}
+import org.platanios.tensorflow.api.utilities.{Closeable, Disposer, NativeHandleWrapper}
 import org.platanios.tensorflow.jni.{Function => NativeFunction, Graph => NativeGraph}
 
 import org.tensorflow.framework.FunctionDef
@@ -224,25 +224,105 @@ object Function {
   }
 }
 
-private[api] case class InstantiatedFunction[I, O] private[ops] (
-    name: String, function: (I) => O,
-    inputDataTypes: Seq[DataType],
-    inputShapes: Option[Seq[Shape]] = None,
-    input: Option[I] = None,
-    captureByValue: Boolean = false,
-    appendHashToName: Boolean = false,
-    private val _inputNames: Seq[String] = null,
-    private val _outputNames: Seq[String] = null
+private[api] class InstantiatedFunction[I, O] protected (
+    val hashedName: String,
+    val inputNames: Seq[String],
+    val outputNames: Seq[String],
+    private[ops] val dummyOutputs: O,
+    val outputDataTypes: Seq[DataType],
+    val outputShapes: Seq[Shape],
+    val subFunctions: Set[InstantiatedFunction[_, _]],
+    val extraInputs: Seq[Output],
+    val functionDef: FunctionDef,
+    val name: String,
+    private[this] val nativeHandleWrapper: NativeHandleWrapper,
+    override protected val closeFn: () => Unit
 )(implicit
     evInput: Function.ArgType[I],
     evOutput: Function.ArgType[O]
 ) extends Closeable {
-  require(inputDataTypes.lengthCompare(evInput.numOutputs) == 0,
-          s"The number of 'inputDataTypes' provided (${inputDataTypes.length}) " +
-              s"does not match the number of inputs (${evInput.numOutputs}).")
+  /** Lock for the native handle. */
+  private[InstantiatedFunction] def NativeHandleLock = nativeHandleWrapper.Lock
 
-  // The following code block initializes this function
-  private[this] val initializationOutput = {
+  /** Native handle of this tensor. */
+  private[api] def nativeHandle: Long = nativeHandleWrapper.handle
+
+  /** Adds this function to the provided graph. */
+  def addToGraph(graph: Graph): Unit = graph.getFunction(hashedName) match {
+    case Some(_) => ()
+    case None =>
+      // Add this function into the graph
+      graph.addFunction(this)
+      // Ensure that all sub-functions are also added to the graph
+      subFunctions.foreach(graph.addFunction)
+    // TODO: [FUNCTIONS] Add the gradient function too.
+  }
+
+  /** Creates an op in the current graph that calls this function.
+    *
+    * The op that calls this function, passing the tensors in `inputs` as arguments. It returns the outputs of the call,
+    * which are one or more tensors, structured according to the original Scala function that this function represents.
+    *
+    * @param  input                     Input to the function.
+    * @param  inline                    Boolean parameter instructing the runtime whether to inline the function body
+    *                                   into the call site.
+    * @param  compiled                  Boolean parameter specifying whether to use XLA to compile the function.
+    * @param  separateCompiledGradients Boolean parameter specifying whether to put each gradient sub-graph into a
+    *                                   separate compilation scope. This gives fine-grained control over which portions
+    *                                   of the graph will be compiled as a single unit. Compiling gradients separately
+    *                                   may yield better performance for some graphs. The scope is named based on the
+    *                                   scope of the forward computation as well as the name of the gradients. As a
+    *                                   result, the gradients will be compiled in a scope that is separate from both the
+    *                                   forward computation, and from other gradients.
+    * @param  name                      Name for the created op.
+    * @return Function output.
+    */
+  def apply(
+      input: I, inline: Boolean = true, compiled: Boolean = false, separateCompiledGradients: Boolean = false,
+      name: String = name
+  )(implicit
+      context: DynamicVariable[OpCreationContext]
+  ): O = {
+    val outputs = Op.createWithNameScope(name) {
+      val outputs = evInput.outputs(input)
+      addToGraph(outputs.head.graph)
+      val builder = Op.Builder(opType = hashedName, name = "Call")(context)
+      (outputs ++ extraInputs).foreach(builder.addInput)
+      builder.setAttribute("_noinline", inline)
+      if (compiled) {
+        builder
+            .setAttribute("_XlaCompile", compiled)
+            .setAttribute("_XlaSeparateCompiledGradients", separateCompiledGradients)
+            .setAttribute("_XlaScope", context.value.attributes.getOrElse("_XlaScope", s"function_$name").toString)
+      }
+      builder.build().outputs
+    }
+    evOutput.outputsDecoderWithKnownArg(dummyOutputs, outputs)._1
+  }
+
+  /** Constructs and returns a [[FunctionDef]] object, which is a serialized version of this function. */
+  def toFunctionDef: FunctionDef = functionDef
+}
+
+object InstantiatedFunction {
+  private[api] def apply[I, O](
+      name: String,
+      function: (I) => O,
+      inputDataTypes: Seq[DataType],
+      inputShapes: Option[Seq[Shape]] = None,
+      input: Option[I] = None,
+      captureByValue: Boolean = false,
+      appendHashToName: Boolean = false,
+      _inputNames: Seq[String] = null,
+      _outputNames: Seq[String] = null
+  )(implicit
+      evInput: Function.ArgType[I],
+      evOutput: Function.ArgType[O]
+  ): InstantiatedFunction[I, O] = {
+    require(inputDataTypes.lengthCompare(evInput.numOutputs) == 0,
+      s"The number of 'inputDataTypes' provided (${inputDataTypes.length}) " +
+          s"does not match the number of inputs (${evInput.numOutputs}).")
+
     // List of placeholders for the function definition
     val inputs = mutable.ListBuffer.empty[Output]
     val functionGraph = FunctionGraph(captureByValue)
@@ -306,114 +386,27 @@ private[api] case class InstantiatedFunction[I, O] private[ops] (
       inputs.map(_.op.nativeHandle).toArray, inputs.map(_.index).toArray,
       flattenedOutputs.map(_.op.nativeHandle).toArray, flattenedOutputs.map(_.index).toArray,
       outputNames.toArray)
-    val functionDef = FunctionDef.parseFrom(NativeHandleLock.synchronized(NativeFunction.toFunctionDef(nativeHandle)))
+    val nativeHandleWrapper = NativeHandleWrapper(nativeHandle)
+    val functionDef = FunctionDef.parseFrom(nativeHandleWrapper.Lock.synchronized {
+      NativeFunction.toFunctionDef(nativeHandle)
+    })
     val functionName = functionDef.getSignature.getName
-    (functionName, inputNames, outputNames, outputs, flattenedOutputs, subFunctions, extraInputs, nativeHandle)
-  }
-
-  /** Name of this function with an optional hash string appended to it. */
-  val hashedName: String = initializationOutput._1
-
-  /** Names of the function inputs. */
-  val inputNames: Seq[String] = initializationOutput._2
-
-  /** Names of the function outputs. */
-  val outputNames: Seq[String] = initializationOutput._3
-
-  /** Data types of the function outputs. */
-  val outputDataTypes: Seq[DataType] = initializationOutput._5.map(_.dataType)
-
-  /** Shapes of the function outputs. */
-  val outputShapes: Seq[Shape] = initializationOutput._5.map(_.shape)
-
-  /** Dummy outputs used to store the structure information of the output type. */
-  private[ops] val dummyOutputs: O = initializationOutput._4
-
-  /** Functions defined in the graph used while creating this function. These functions will be added to all graphs
-    * where this function is added to. */
-  private[this] val subFunctions = initializationOutput._6
-
-  /** Extra inputs to feed to the function as arguments when calling it, which correspond to the values of op outputs
-    * that are used in the function, btu which belong to a different graph, than the function graph. */
-  private[ops] val extraInputs = initializationOutput._7
-
-  /** Lock for the native handle. */
-  private[this] object NativeHandleLock
-
-  /** Handle for the underlying native function object. */
-  private[this] var _nativeHandle = initializationOutput._8
-
-  private[api] def nativeHandle: Long = _nativeHandle
-
-  // Keep track of references in the Scala side and notify the native library when the function is not referenced
-  // anymore anywhere in the Scala side. This will let the native library free the allocated resources and prevent a
-  // potential memory leak.
-  Disposer.add(this, () => this.close())
-
-  /** Adds this function to the provided graph. */
-  def addToGraph(graph: Graph): Unit = graph.getFunction(hashedName) match {
-    case Some(_) => ()
-    case None =>
-      // Add this function into the graph
-      graph.addFunction(this)
-      // Ensure that all sub-functions are also added to the graph
-      subFunctions.foreach(graph.addFunction)
-    // TODO: [FUNCTIONS] Add the gradient function too.
-  }
-
-  /** Creates an op in the current graph that calls this function.
-    *
-    * The op that calls this function, passing the tensors in `inputs` as arguments. It returns the outputs of the call,
-    * which are one or more tensors, structured according to the original Scala function that this function represents.
-    *
-    * @param  input                     Input to the function.
-    * @param  inline                    Boolean parameter instructing the runtime whether to inline the function body
-    *                                   into the call site.
-    * @param  compiled                  Boolean parameter specifying whether to use XLA to compile the function.
-    * @param  separateCompiledGradients Boolean parameter specifying whether to put each gradient sub-graph into a
-    *                                   separate compilation scope. This gives fine-grained control over which portions
-    *                                   of the graph will be compiled as a single unit. Compiling gradients separately
-    *                                   may yield better performance for some graphs. The scope is named based on the
-    *                                   scope of the forward computation as well as the name of the gradients. As a
-    *                                   result, the gradients will be compiled in a scope that is separate from both the
-    *                                   forward computation, and from other gradients.
-    * @param  name                      Name for the created op.
-    * @return Function output.
-    */
-  def apply(
-      input: I, inline: Boolean = true, compiled: Boolean = false, separateCompiledGradients: Boolean = false,
-      name: String = name
-  )(implicit
-      context: DynamicVariable[OpCreationContext]
-  ): O = {
-    val outputs = Op.createWithNameScope(name) {
-      val outputs = evInput.outputs(input)
-      addToGraph(outputs.head.graph)
-      val builder = Op.Builder(opType = hashedName, name = "Call")(context)
-      (outputs ++ extraInputs).foreach(builder.addInput)
-      builder.setAttribute("_noinline", inline)
-      if (compiled) {
-        builder
-            .setAttribute("_XlaCompile", compiled)
-            .setAttribute("_XlaSeparateCompiledGradients", separateCompiledGradients)
-            .setAttribute("_XlaScope", context.value.attributes.getOrElse("_XlaScope", s"function_$name").toString)
+    val closeFn = () => {
+      nativeHandleWrapper.Lock.synchronized {
+        if (nativeHandleWrapper.handle != 0) {
+          NativeFunction.delete(nativeHandleWrapper.handle)
+          nativeHandleWrapper.handle = 0
+        }
       }
-      builder.build().outputs
     }
-    evOutput.outputsDecoderWithKnownArg(dummyOutputs, outputs)._1
-  }
-
-  /** Constructs and returns a [[FunctionDef]] object, which is a serialized version of this function. */
-  def toFunctionDef: FunctionDef = {
-    FunctionDef.parseFrom(NativeHandleLock.synchronized(NativeFunction.toFunctionDef(_nativeHandle)))
-  }
-
-  /** Releases the native resources associated with this function instance. */
-  override def close(): Unit = NativeHandleLock.synchronized {
-    if (_nativeHandle != 0) {
-      NativeFunction.delete(_nativeHandle)
-      _nativeHandle = 0
-    }
+    val instantiatedFunction = new InstantiatedFunction(
+      functionName, inputNames, outputNames, outputs, flattenedOutputs.map(_.dataType), flattenedOutputs.map(_.shape),
+      subFunctions, extraInputs, functionDef, name, nativeHandleWrapper, closeFn)(evInput, evOutput)
+    // Keep track of references in the Scala side and notify the native library when the function is not referenced
+    // anymore anywhere in the Scala side. This will let the native library free the allocated resources and prevent a
+    // potential memory leak.
+    Disposer.add(instantiatedFunction, closeFn)
+    instantiatedFunction.asInstanceOf[InstantiatedFunction[I, O]]
   }
 }
 
@@ -430,9 +423,10 @@ private[api] case class InstantiatedFunction[I, O] private[ops] (
   * @author Emmanouil Antonios Platanios
   */
 class FunctionGraph(
-    private[this] val _nativeHandle: Long,
-    protected val captureByValue: Boolean
-) extends Graph(_nativeHandle) {
+    override private[api] val nativeHandleWrapper: NativeHandleWrapper,
+    protected val captureByValue: Boolean,
+    override protected val closeFn: () => Unit
+) extends Graph(nativeHandleWrapper, closeFn) {
   /** Graph used during construction of this graph. */
   val outerGraph: Graph = Op.currentGraph
 
@@ -547,5 +541,37 @@ class FunctionGraph(
 /** Contains helper functions for dealing with function graphs. */
 object FunctionGraph {
   /** Constructs and returns an empty new function graph. */
-  def apply(captureByValue: Boolean): FunctionGraph = new FunctionGraph(NativeGraph.allocate(), captureByValue)
+  def apply(captureByValue: Boolean): FunctionGraph = {
+    val nativeHandle = NativeGraph.allocate()
+    val nativeHandleWrapper = NativeHandleWrapper(nativeHandle)
+    val closeFn = () => {
+      var done = false
+      nativeHandleWrapper.preCleanupFunctions.foreach(_ ())
+      nativeHandleWrapper.Lock.synchronized {
+        if (nativeHandle != 0) {
+          while (!done && nativeHandleWrapper.referenceCount > 0) {
+            try {
+              nativeHandleWrapper.Lock.wait()
+            } catch {
+              case _: InterruptedException =>
+                Thread.currentThread().interrupt()
+                // TODO: Possible leak of the graph in this case?
+                done = true
+            }
+          }
+          if (!done) {
+            nativeHandleWrapper.cleanupFunctions.foreach(_ ())
+            NativeGraph.delete(nativeHandleWrapper.handle)
+            nativeHandleWrapper.handle = 0
+          }
+        }
+      }
+    }
+    val graph = new FunctionGraph(nativeHandleWrapper, captureByValue, closeFn)
+    // Keep track of references in the Scala side and notify the native library when the graph is not referenced
+    // anymore anywhere in the Scala side. This will let the native library free the allocated resources and prevent a
+    // potential memory leak.
+    Disposer.add(graph, closeFn)
+    graph
+  }
 }

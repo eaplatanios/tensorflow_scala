@@ -23,7 +23,7 @@ import org.platanios.tensorflow.api.ops.{Basic, Output}
 import org.platanios.tensorflow.api.tensors.ops.Basic.{BasicOps, stack}
 import org.platanios.tensorflow.api.tensors.ops.{Math, Random}
 import org.platanios.tensorflow.api.types._
-import org.platanios.tensorflow.api.utilities.{Closeable, Disposer}
+import org.platanios.tensorflow.api.utilities.{Closeable, Disposer, NativeHandleWrapper}
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
 import org.platanios.tensorflow.jni.{Tensor => NativeTensor}
 import org.platanios.tensorflow.jni.generated.tensors.{Sparse => NativeTensorOpsSparse}
@@ -140,17 +140,17 @@ private[tensors] object TensorOps {
   *
   * @author Emmanouil Antonios Platanios
   */
-class Tensor private[Tensor](private[api] var nativeHandle: Long)
-    extends TensorLike
+class Tensor private[Tensor](
+    private[this] val nativeHandleWrapper: NativeHandleWrapper,
+    override protected val closeFn: () => Unit
+) extends TensorLike
         with Closeable
         with ProtoSerializable {
   /** Lock for the native handle. */
-  private[this] object NativeHandleLock
+  private[Tensor] def NativeHandleLock = nativeHandleWrapper.Lock
 
-  // Keep track of references in the Scala side and notify the native library when the tensor is not referenced
-  // anymore anywhere in the Scala side. This will let the native library free the allocated resources and prevent a
-  // potential memory leak.
-  Disposer.add(this, () => this.close())
+  /** Native handle of this tensor. */
+  private[api] def nativeHandle: Long = nativeHandleWrapper.handle
 
   /** Data type of this tensor. */
   override val dataType: DataType = DataType.fromCValue(NativeTensor.eagerDataType(nativeHandle))
@@ -296,7 +296,7 @@ class Tensor private[Tensor](private[api] var nativeHandle: Long)
             if (tensor.size <= math.max(maxEntries, 6))
               tensor.entriesIterator
             else
-              (tensor(0 :: maxEntries/2).entriesIterator.toSeq :+ "...") ++ tensor(-maxEntries/2 ::).entriesIterator
+              (tensor(0 :: maxEntries / 2).entriesIterator.toSeq :+ "...") ++ tensor(-maxEntries / 2 ::).entriesIterator
           slice.mkString("[", ", ", "]")
         case _ =>
           val innerSummary = {
@@ -305,8 +305,8 @@ class Tensor private[Tensor](private[api] var nativeHandle: Long)
             if (tensor.shape(0) <= math.max(maxEntries, 6))
               for (i <- 0 until tensor.shape(0)) yield summarizeSlice(i)
             else {
-              val start = for (i <- 0 until maxEntries/2) yield summarizeSlice(i)
-              val end = for (i <- tensor.shape(0) - maxEntries/2 until tensor.shape(0)) yield summarizeSlice(i)
+              val start = for (i <- 0 until maxEntries / 2) yield summarizeSlice(i)
+              val end = for (i <- tensor.shape(0) - maxEntries / 2 until tensor.shape(0)) yield summarizeSlice(i)
               (start :+ "...") ++ end
             }
           }
@@ -314,6 +314,7 @@ class Tensor private[Tensor](private[api] var nativeHandle: Long)
           val extraLine = if (!flattened && tensor.rank >= 3) "\n" else ""
           innerSummary.mkString("[", (if (!flattened) ",\n" else ", ") + extraLine + padding, "]")
       }
+
     if (includeInfo)
       toString + (if (!flattened) "\n" else ": ") + summarize(this, maxEntries)
     else
@@ -364,20 +365,29 @@ class Tensor private[Tensor](private[api] var nativeHandle: Long)
 
   /** Closes this [[Tensor]] and releases any resources associated with it. Note that an [[Tensor]] is not
     * usable after it has been closed. */
-  override def close(): Unit = {
-    NativeHandleLock.synchronized {
-      if (nativeHandle != 0) {
-        NativeTensor.eagerDelete(nativeHandle)
-        nativeHandle = 0
-      }
-    }
-  }
+  override def close(): Unit = closeFn()
 }
 
 object Tensor {
   private[tensors] val logger = Logger(LoggerFactory.getLogger("Tensor"))
 
-  private[api] def fromNativeHandle(nativeHandle: Long): Tensor = new Tensor(nativeHandle)
+  private[api] def fromNativeHandle(nativeHandle: Long): Tensor = {
+    val nativeHandleWrapper = NativeHandleWrapper(nativeHandle)
+    val closeFn = () => {
+      nativeHandleWrapper.Lock.synchronized {
+        if (nativeHandleWrapper.handle != 0) {
+          NativeTensor.eagerDelete(nativeHandleWrapper.handle)
+          nativeHandleWrapper.handle = 0
+        }
+      }
+    }
+    val tensor = new Tensor(nativeHandleWrapper, closeFn)
+    // Keep track of references in the Scala side and notify the native library when the tensor is not referenced
+    // anymore anywhere in the Scala side. This will let the native library free the allocated resources and prevent a
+    // potential memory leak.
+    Disposer.add(tensor, closeFn)
+    tensor
+  }
 
   private[api] def fromHostNativeHandle(nativeHandle: Long): Tensor = {
     Tensor.fromNativeHandle(NativeTensor.eagerAllocate(nativeHandle))

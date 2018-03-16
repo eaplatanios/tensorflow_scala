@@ -20,7 +20,10 @@ package org.platanios.tensorflow.api
   */
 package object utilities {
   trait Closeable {
-    def close(): Unit
+    protected val closeFn: () => Unit
+
+    /** Releases the native resources associated with this object. */
+    def close(): Unit = closeFn()
   }
 
   def using[T <: Closeable, R](resource: T)(block: T => R): R = {
