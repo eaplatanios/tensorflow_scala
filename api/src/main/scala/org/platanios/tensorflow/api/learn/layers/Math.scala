@@ -46,7 +46,7 @@ case class Cast(override val name: String, dataType: DataType)
     extends Layer[Output, Output](name) {
   override val layerType: String = s"Cast[$dataType]"
 
-  override protected def _forward(input: Output, mode: Mode): Output = {
+  override protected def _forward(input: Output)(implicit mode: Mode): Output = {
     ops.Math.cast(input, dataType, name = name)
   }
 }
@@ -55,7 +55,7 @@ case class Sum(override val name: String)
     extends Layer[Output, Output](name) {
   override val layerType: String = "Sum"
 
-  override protected def _forward(input: Output, mode: Mode): Output = {
+  override protected def _forward(input: Output)(implicit mode: Mode): Output = {
     ops.Math.sum(input, name = name)
   }
 }
@@ -64,7 +64,7 @@ case class Mean(override val name: String)
     extends Layer[Output, Output](name) {
   override val layerType: String = "Mean"
 
-  override protected def _forward(input: Output, mode: Mode): Output = {
+  override protected def _forward(input: Output)(implicit mode: Mode): Output = {
     ops.Math.mean(input, name = name)
   }
 }
@@ -75,7 +75,7 @@ case class AddBias(
 ) extends Layer[Output, Output](name) {
   override val layerType: String = "AddBias"
 
-  override protected def _forward(input: Output, mode: Mode): Output = {
+  override protected def _forward(input: Output)(implicit mode: Mode): Output = {
     val bias = tf.variable(s"$name/Bias", input.dataType, Shape(input.shape(-1)), initializer)
     ops.NN.addBias(input, bias.value)
   }
@@ -90,7 +90,7 @@ case class Linear(
 ) extends Layer[Output, Output](name) {
   override val layerType: String = s"Linear[$units]"
 
-  override protected def _forward(input: Output, mode: Mode): Output = {
+  override protected def _forward(input: Output)(implicit mode: Mode): Output = {
     val weights = tf.variable("Weights", input.dataType, Shape(input.shape(-1), units), weightsInitializer)
     if (useBias)
       ops.NN.linear(input, weights.value, tf.variable("Bias", input.dataType, Shape(units), biasInitializer).value)

@@ -49,7 +49,7 @@ abstract class RNNCell[O, OS, S, SS](override val name: String)(implicit
     }
   }
 
-  override final protected def _forward(input: Tuple[O, S], mode: Mode): Tuple[O, S] = {
+  override final protected def _forward(input: Tuple[O, S])(implicit mode: Mode): Tuple[O, S] = {
     createCellWithoutContext(mode, evO.fromShapes(input.output, evO.outputs(input.output).map(_.shape))).forward(input)
   }
 }

@@ -51,7 +51,7 @@ case class ScalarSummary(
 ) extends Summary(name) {
   override val layerType: String = "ScalarSummary"
 
-  override protected def _forward(input: Output, mode: Mode): Output = {
+  override protected def _forward(input: Output)(implicit mode: Mode): Output = {
     ops.Summary.scalar(tag, input, collections, family)
     input
   }
@@ -65,7 +65,7 @@ case class HistogramSummary(
 ) extends Summary(name) {
   override val layerType: String = "HistogramSummary"
 
-  override protected def _forward(input: Output, mode: Mode): Output = {
+  override protected def _forward(input: Output)(implicit mode: Mode): Output = {
     ops.Summary.histogram(tag, input, collections, family)
     input
   }
@@ -81,7 +81,7 @@ case class ImageSummary(
 ) extends Summary(name) {
   override val layerType: String = "ImageSummary"
 
-  override protected def _forward(input: Output, mode: Mode): Output = {
+  override protected def _forward(input: Output)(implicit mode: Mode): Output = {
     ops.Summary.image(tag, input, badColor, maxOutputs, collections, family)
     input
   }
@@ -97,7 +97,7 @@ case class AudioSummary(
 ) extends Summary(name) {
   override val layerType: String = "AudioSummary"
 
-  override protected def _forward(input: Output, mode: Mode): Output = {
+  override protected def _forward(input: Output)(implicit mode: Mode): Output = {
     ops.Summary.audio(tag, input, samplingRate, maxOutputs, collections, family)
   input
   }

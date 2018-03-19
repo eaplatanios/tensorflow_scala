@@ -338,9 +338,11 @@ private[learn] class SimpleInferenceModel[IT, IO, ID, IS, I] private[learn](
     val layer: Layer[IO, I]
 ) extends InferenceModel[IT, IO, ID, IS, I] {
   override def buildInferOps(): Model.InferOps[IT, IO, ID, IS, I] = {
+    implicit val mode: Mode = INFERENCE
+
     val inputIterator = input()
     val inputIteratorNext = inputIterator.next()
-    val layerOutput = layer(inputIteratorNext, INFERENCE)
+    val layerOutput = layer(inputIteratorNext)
     Model.InferOps(inputIterator, inputIteratorNext, layerOutput)
   }
 }
@@ -357,11 +359,13 @@ private[learn] class SimpleUnsupervisedTrainableModel[IT, IO, ID, IS, I] private
   // TODO: [LEARN] Add support for trainable models with only the loss function gradient available.
 
   override def buildTrainOps(): Model.UnsupervisedTrainOps[IT, IO, ID, IS, I] = {
+    implicit val mode: Mode = TRAINING
+
     val inputIterator = input()
     val inputIteratorNext = inputIterator.next()
-    val layerOutput = layer(inputIteratorNext, TRAINING)
+    val layerOutput = layer(inputIteratorNext)
     // TODO: [LEARN] Remove this cast.
-    val lossOutput = Math.cast(loss((inputIteratorNext, layerOutput), TRAINING), FLOAT32, name = "LossCast")
+    val lossOutput = Math.cast(loss((inputIteratorNext, layerOutput)), FLOAT32, name = "LossCast")
     val iteration = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
     val gradientsAndVariables = optimizer.computeGradients(
       lossOutput, colocateGradientsWithOps = colocateGradientsWithOps)
@@ -372,9 +376,11 @@ private[learn] class SimpleUnsupervisedTrainableModel[IT, IO, ID, IS, I] private
   }
 
   override def buildEvaluateOps(metrics: Seq[Metric[I, Output]]): Model.EvaluateOps[IT, IO, ID, IS, I] = {
+    implicit val mode: Mode = EVALUATION
+
     val inputIterator = input()
     val inputIteratorNext = inputIterator.next()
-    val layerOutput = layer(inputIteratorNext, EVALUATION)
+    val layerOutput = layer(inputIteratorNext)
     val streamingInstances = metrics.map(_.streaming(layerOutput))
     Model.EvaluateOps(
       inputIterator, inputIteratorNext, layerOutput,
@@ -396,13 +402,15 @@ private[learn] class SimpleSupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, T
   // TODO: [LEARN] Add support for trainable models with only the loss function gradient available.
 
   override def buildTrainOps(): Model.SupervisedTrainOps[IT, IO, ID, IS, I, TT, TO, TD, TS, T] = {
+    implicit val mode: Mode = TRAINING
+
     val inputIterator = input.zip(trainInput).apply()
     val inputIteratorNext = inputIterator.next()
-    val layerOutput = layer(inputIteratorNext._1, TRAINING)
-    val trainLayerOutput = trainInputLayer(inputIteratorNext._2, TRAINING)
+    val layerOutput = layer(inputIteratorNext._1)
+    val trainLayerOutput = trainInputLayer(inputIteratorNext._2)
     // TODO: [LEARN] Remove this cast.
     val lossOutput = Math.cast(
-      loss((layerOutput, trainLayerOutput), TRAINING), FLOAT32, name = "LossCast")
+      loss((layerOutput, trainLayerOutput)), FLOAT32, name = "LossCast")
     val iteration = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
     val gradientsAndVariables = optimizer.computeGradients(
       lossOutput, colocateGradientsWithOps = colocateGradientsWithOps)
@@ -415,10 +423,12 @@ private[learn] class SimpleSupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, T
   override def buildEvaluateOps(
       metrics: Seq[Metric[(I, T), Output]]
   ): Model.EvaluateOps[(IT, TT), (IO, TO), (ID, TD), (IS, TS), I] = {
+    implicit val mode: Mode = EVALUATION
+
     val inputIterator = input.zip(trainInput).apply()
     val inputIteratorNext = inputIterator.next()
-    val layerOutput = layer(inputIteratorNext._1, EVALUATION)
-    val trainLayerOutput = trainInputLayer(inputIteratorNext._2, EVALUATION)
+    val layerOutput = layer(inputIteratorNext._1)
+    val trainLayerOutput = trainInputLayer(inputIteratorNext._2)
     val streamingInstances = metrics.map(_.streaming((layerOutput, trainLayerOutput)))
     Model.EvaluateOps(
       inputIterator, inputIteratorNext, layerOutput,
@@ -441,13 +451,15 @@ private[learn] class SupervisedConditionalTrainableModel[IT, IO, ID, IS, I, TT, 
   // TODO: [LEARN] Add support for trainable models with only the loss function gradient available.
 
   override def buildTrainOps(): Model.SupervisedTrainOps[IT, IO, ID, IS, I, TT, TO, TD, TS, T] = {
+    implicit val mode: Mode = TRAINING
+
     val inputIterator = input.zip(trainInput).apply()
     val inputIteratorNext = inputIterator.next()
-    val layerOutput = trainLayer(inputIteratorNext, TRAINING)
-    val trainLayerOutput = trainInputLayer(inputIteratorNext._2, TRAINING)
+    val layerOutput = trainLayer(inputIteratorNext)
+    val trainLayerOutput = trainInputLayer(inputIteratorNext._2)
     // TODO: [LEARN] Remove this cast.
     val lossOutput = Math.cast(
-      loss((layerOutput, trainLayerOutput), TRAINING), FLOAT32, name = "LossCast")
+      loss((layerOutput, trainLayerOutput)), FLOAT32, name = "LossCast")
     val iteration = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
     val gradientsAndVariables = optimizer.computeGradients(
       lossOutput, colocateGradientsWithOps = colocateGradientsWithOps)
@@ -460,10 +472,12 @@ private[learn] class SupervisedConditionalTrainableModel[IT, IO, ID, IS, I, TT, 
   override def buildEvaluateOps(
       metrics: Seq[Metric[(I, T), Output]]
   ): Model.EvaluateOps[(IT, TT), (IO, TO), (ID, TD), (IS, TS), I] = {
+    implicit val mode: Mode = EVALUATION
+
     val inputIterator = input.zip(trainInput).apply()
     val inputIteratorNext = inputIterator.next()
-    val layerOutput = layer(inputIteratorNext._1, EVALUATION)
-    val trainLayerOutput = trainInputLayer(inputIteratorNext._2, EVALUATION)
+    val layerOutput = layer(inputIteratorNext._1)
+    val trainLayerOutput = trainInputLayer(inputIteratorNext._2)
     val streamingInstances = metrics.map(_.streaming((layerOutput, trainLayerOutput)))
     Model.EvaluateOps(
       inputIterator, inputIteratorNext, layerOutput,

@@ -40,9 +40,9 @@ abstract class Layer[T, R](
 ) {
   val layerType: String
 
-  protected def _forward(input: T, mode: Mode): R
+  protected def _forward(input: T)(implicit mode: Mode): R
 
-  def forward(input: T, mode: Mode): R = Op.createWith(
+  def forward(input: T)(implicit mode: Mode): R = Op.createWith(
     nameScope = context.value.nameScope,
     device = context.value.device,
     deviceFunction = context.value.deviceFunction
@@ -50,15 +50,15 @@ abstract class Layer[T, R](
     VariableScope.createWithUpdatedVariableScope(context.value.variableScope, isPure = true) {
       if (name != null) {
         VariableScope.createWithVariableScope(name, isPure = true) {
-          _forward(input, mode)
+          _forward(input)
         }
       } else {
-        _forward(input, mode)
+        _forward(input)
       }
     }
   }
 
-  def apply(input: T, mode: Mode): R = forward(input, mode)
+  def apply(input: T)(implicit mode: Mode): R = forward(input)
 
   def >>[S](other: Layer[R, S]): Compose[T, R, S] = compose(other)
 
