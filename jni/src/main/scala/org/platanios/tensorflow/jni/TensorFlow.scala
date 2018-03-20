@@ -141,10 +141,10 @@ object TensorFlow {
   private def extractResource(lib: String, resourceStream: InputStream, directory: Path): Path = {
     val sampleFilename = mapLibraryName(lib)
     val filePath = directory.resolve(sampleFilename)
-    logger.info(s"Extracting the '$lib' native library to ${filePath.toAbsolutePath}.")
+    logger.debug(s"Extracting the '$lib' native library to ${filePath.toAbsolutePath}.")
     try {
       val numBytes = Files.copy(resourceStream, filePath, StandardCopyOption.REPLACE_EXISTING)
-      logger.info(String.format(s"Copied $numBytes bytes to ${filePath.toAbsolutePath}."))
+      logger.debug(String.format(s"Copied $numBytes bytes to ${filePath.toAbsolutePath}."))
     } catch {
       case exception: Exception =>
         throw new UnsatisfiedLinkError(s"Error while extracting the '$lib' native library: $exception")
