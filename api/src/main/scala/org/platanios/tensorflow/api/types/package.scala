@@ -43,17 +43,17 @@ package object types {
     override def protoType: org.tensorflow.framework.DataType = org.tensorflow.framework.DataType.DT_STRING
 
     private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: String): Int = {
-      val stringBytes = element.getBytes(StandardCharsets.UTF_8)
+      val stringBytes = element.getBytes(StandardCharsets.ISO_8859_1)
       NativeTensor.setStringBytes(stringBytes, buffer.duplicate().position(index).asInstanceOf[ByteBuffer].slice())
     }
 
     private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): String = {
       val stringBytes = NativeTensor.getStringBytes(buffer.duplicate().position(index).asInstanceOf[ByteBuffer].slice())
-      new String(stringBytes, StandardCharsets.UTF_8)
+      new String(stringBytes, StandardCharsets.ISO_8859_1)
     }
 
     private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: String): Unit = {
-      tensorProtoBuilder.addStringVal(ByteString.copyFromUtf8(value))
+      tensorProtoBuilder.addStringVal(ByteString.copyFrom(value.getBytes))
     }
   }
 
