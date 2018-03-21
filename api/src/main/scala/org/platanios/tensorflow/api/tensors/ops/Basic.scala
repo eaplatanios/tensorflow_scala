@@ -25,7 +25,7 @@ import org.platanios.tensorflow.api.tensors._
 import org.platanios.tensorflow.api.types._
 import org.platanios.tensorflow.jni.generated.tensors.{Basic => NativeTensorOpsBasic}
 
-import java.nio.charset.Charset
+import java.nio.charset.StandardCharsets
 
 import scala.language.postfixOps
 import scala.util.DynamicVariable
@@ -485,7 +485,7 @@ private[api] trait Basic {
     Tensor.fromNativeHandle(
       NativeTensorOpsBasic.spaceToDepth(
         context.value.nativeHandle, input.nativeHandle, blockSize,
-        dataFormat.name.getBytes(Charset.forName("ISO-8859-1"))))
+        dataFormat.name.getBytes(StandardCharsets.ISO_8859_1)))
   }
 
   /** $OpDocBasicDepthToSpace
@@ -502,7 +502,7 @@ private[api] trait Basic {
     Tensor.fromNativeHandle(
       NativeTensorOpsBasic.depthToSpace(
         context.value.nativeHandle, input.nativeHandle, blockSize,
-        dataFormat.name.getBytes(Charset.forName("ISO-8859-1"))))
+        dataFormat.name.getBytes(StandardCharsets.ISO_8859_1)))
   }
 
   //endregion Tensor Manipulation Ops

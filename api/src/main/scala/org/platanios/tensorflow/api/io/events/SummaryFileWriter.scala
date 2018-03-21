@@ -21,6 +21,7 @@ import com.google.protobuf.ByteString
 import org.tensorflow.framework.{GraphDef, MetaGraphDef, RunMetadata, Summary}
 import org.tensorflow.util.{Event, SessionLog, TaggedRunMetadata}
 
+import java.nio.charset.StandardCharsets
 import java.nio.file.Path
 
 import scala.collection.JavaConverters._
@@ -126,7 +127,7 @@ class SummaryFileWriter private[io](
     * @param  step    Global step number to record with the summary.
     */
   def writeSummaryString(summary: String, step: Long): Unit = {
-    writeSummary(Summary.parseFrom(ByteString.copyFrom(summary.getBytes("ISO-8859-1"))), step)
+    writeSummary(Summary.parseFrom(ByteString.copyFrom(summary.getBytes(StandardCharsets.ISO_8859_1))), step)
   }
 
   /** Writes a `Summary` protocol buffer to the event file.

@@ -23,7 +23,7 @@ import org.platanios.tensorflow.api.tensors.{Context, Tensor, TensorOps}
 import org.platanios.tensorflow.api.types.{DataType, FLOAT16, FLOAT32, FLOAT64, INT32, INT64}
 import org.platanios.tensorflow.jni.generated.tensors.{NN => NativeTensorOpsNN}
 
-import java.nio.charset.Charset
+import java.nio.charset.StandardCharsets
 
 import scala.util.DynamicVariable
 
@@ -50,7 +50,7 @@ private[api] trait NN {
       implicit context: DynamicVariable[Context]): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsNN.biasAdd(
       context.value.nativeHandle, value.nativeHandle, bias.nativeHandle,
-      cNNDataFormat.toString.getBytes(Charset.forName("ISO-8859-1"))))
+      cNNDataFormat.toString.getBytes(StandardCharsets.ISO_8859_1)))
   }
 
   /** $OpDocNNLinear
@@ -562,8 +562,8 @@ private[api] trait NN {
   )(implicit context: DynamicVariable[Context]): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsNN.conv2D(
       context.value.nativeHandle, input.nativeHandle, filter.nativeHandle, Array[Long](1, stride1, stride2, 1),
-      padding.name.getBytes(Charset.forName("ISO-8859-1")), useCuDNNOnGPU,
-      dataFormat.name.getBytes(Charset.forName("ISO-8859-1"))))
+      padding.name.getBytes(StandardCharsets.ISO_8859_1), useCuDNNOnGPU,
+      dataFormat.name.getBytes(StandardCharsets.ISO_8859_1)))
   }
 
   /** $OpDocConv2DBackpropInput
@@ -586,8 +586,8 @@ private[api] trait NN {
   )(implicit context: DynamicVariable[Context]): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsNN.conv2DBackpropInput(
       context.value.nativeHandle, inputSizes.nativeHandle, filter.nativeHandle, outputGradient.nativeHandle,
-      Array[Long](1, stride1, stride2, 1), padding.name.getBytes(Charset.forName("ISO-8859-1")), useCuDNNOnGPU,
-      dataFormat.name.getBytes(Charset.forName("ISO-8859-1"))))
+      Array[Long](1, stride1, stride2, 1), padding.name.getBytes(StandardCharsets.ISO_8859_1), useCuDNNOnGPU,
+      dataFormat.name.getBytes(StandardCharsets.ISO_8859_1)))
   }
 
   /** $OpDocConv2DBackpropFilter
@@ -610,8 +610,8 @@ private[api] trait NN {
   )(implicit context: DynamicVariable[Context]): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsNN.conv2DBackpropFilter(
       context.value.nativeHandle, input.nativeHandle, filterSizes.nativeHandle, outputGradient.nativeHandle,
-      Array[Long](1, stride1, stride2, 1), padding.name.getBytes(Charset.forName("ISO-8859-1")), useCuDNNOnGPU,
-      dataFormat.name.getBytes(Charset.forName("ISO-8859-1"))))
+      Array[Long](1, stride1, stride2, 1), padding.name.getBytes(StandardCharsets.ISO_8859_1), useCuDNNOnGPU,
+      dataFormat.name.getBytes(StandardCharsets.ISO_8859_1)))
   }
 
   //endregion Convolution Ops
@@ -633,8 +633,8 @@ private[api] trait NN {
       dataFormat: CNNDataFormat = CNNDataFormat.default)(implicit context: DynamicVariable[Context]): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsNN.maxPool(
       context.value.nativeHandle, input.nativeHandle, windowSize.toArray,
-      Array[Long](1, stride1, stride2, 1), padding.name.getBytes(Charset.forName("ISO-8859-1")),
-      dataFormat.name.getBytes(Charset.forName("ISO-8859-1"))))
+      Array[Long](1, stride1, stride2, 1), padding.name.getBytes(StandardCharsets.ISO_8859_1),
+      dataFormat.name.getBytes(StandardCharsets.ISO_8859_1)))
   }
 
   /** $OpDocMaxPoolGrad
@@ -656,8 +656,8 @@ private[api] trait NN {
   )(implicit context: DynamicVariable[Context]): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsNN.maxPoolGrad(
       context.value.nativeHandle, originalInput.nativeHandle, originalOutput.nativeHandle, outputGradient.nativeHandle,
-      windowSize.toArray, Array[Long](1, stride1, stride2, 1), padding.name.getBytes(Charset.forName("ISO-8859-1")),
-      dataFormat.name.getBytes(Charset.forName("ISO-8859-1"))))
+      windowSize.toArray, Array[Long](1, stride1, stride2, 1), padding.name.getBytes(StandardCharsets.ISO_8859_1),
+      dataFormat.name.getBytes(StandardCharsets.ISO_8859_1)))
   }
 
   /** $OpDocMaxPoolGradGrad
@@ -679,8 +679,8 @@ private[api] trait NN {
   )(implicit context: DynamicVariable[Context]): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsNN.maxPoolGradGrad(
       context.value.nativeHandle, originalInput.nativeHandle, originalOutput.nativeHandle, outputGradient.nativeHandle,
-      windowSize.toArray, Array[Long](1, stride1, stride2, 1), padding.name.getBytes(Charset.forName("ISO-8859-1")),
-      dataFormat.name.getBytes(Charset.forName("ISO-8859-1"))))
+      windowSize.toArray, Array[Long](1, stride1, stride2, 1), padding.name.getBytes(StandardCharsets.ISO_8859_1),
+      dataFormat.name.getBytes(StandardCharsets.ISO_8859_1)))
   }
 
   //endregion Pooling Ops

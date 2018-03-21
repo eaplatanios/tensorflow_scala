@@ -24,7 +24,7 @@ import org.tensorflow.framework.TensorProto
 import spire.math.{UByte, UShort}
 
 import java.nio.ByteBuffer
-import java.nio.charset.Charset
+import java.nio.charset.StandardCharsets
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -43,13 +43,13 @@ package object types {
     override def protoType: org.tensorflow.framework.DataType = org.tensorflow.framework.DataType.DT_STRING
 
     private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: String): Int = {
-      val stringBytes = element.getBytes(Charset.forName("ISO-8859-1"))
+      val stringBytes = element.getBytes(StandardCharsets.UTF_8)
       NativeTensor.setStringBytes(stringBytes, buffer.duplicate().position(index).asInstanceOf[ByteBuffer].slice())
     }
 
     private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): String = {
       val stringBytes = NativeTensor.getStringBytes(buffer.duplicate().position(index).asInstanceOf[ByteBuffer].slice())
-      new String(stringBytes, Charset.forName("ISO-8859-1"))
+      new String(stringBytes, StandardCharsets.UTF_8)
     }
 
     private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: String): Unit = {
