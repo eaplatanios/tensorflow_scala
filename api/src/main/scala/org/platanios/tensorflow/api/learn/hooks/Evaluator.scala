@@ -27,7 +27,7 @@ import org.platanios.tensorflow.api.ops.lookup.Lookup
 import org.platanios.tensorflow.api.ops.metrics.Metric
 import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.FLOAT32
+import org.platanios.tensorflow.api.types.{FLOAT32, INT64}
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
@@ -152,10 +152,12 @@ class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] protected (
           }))
           if (log) {
             val line = s"║ %${firstColWidth}s │".format(datasetName) + value.map(metricValue => {
-              if (metricValue.shape.rank == 0 &&
-                  (metricValue.dataType.isFloatingPoint || metricValue.dataType.isInteger)) {
+              if (metricValue.shape.rank == 0 && metricValue.dataType.isFloatingPoint) {
                 val castedValue = metricValue.cast(FLOAT32).scalar.asInstanceOf[Float]
                 s" %${colWidth}.4f ".format(castedValue)
+              } else if (metricValue.shape.rank == 0 && metricValue.dataType.isInteger) {
+                val castedValue = metricValue.cast(INT64).scalar.asInstanceOf[Long]
+                s" %${colWidth}d ".format(castedValue)
               } else {
                 s" %${colWidth}s ".format("Not Scalar")
               }
