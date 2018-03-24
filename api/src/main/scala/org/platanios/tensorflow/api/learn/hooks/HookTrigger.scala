@@ -18,6 +18,7 @@ package org.platanios.tensorflow.api.learn.hooks
 import org.platanios.tensorflow.api.learn.hooks
 
 // TODO: [HOOKS] Add epoch hook trigger.
+// TODO: [HOOKS] Offset start (e.g., for the evaluator hook).
 
 /** Determines when hooks should be triggered.
   *

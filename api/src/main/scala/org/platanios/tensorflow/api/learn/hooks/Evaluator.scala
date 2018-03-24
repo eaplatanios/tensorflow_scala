@@ -107,7 +107,7 @@ class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] protected (
     val session = MonitoredSession(sessionCreator, shouldRecover = true)
     val rowNames = datasetInitializers.map(_._1)
     val firstColWidth = rowNames.map(_.length).max
-    val colWidth = math.max(metrics.map(_.name.length).max, 15)
+    val colWidth = math.max(metrics.map(_.name.length).max, 10)
     var skippedMetricSummaries = Seq.empty[String]
     val summaryProto = {
       if (summaryDir != null) {
