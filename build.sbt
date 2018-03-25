@@ -24,7 +24,7 @@ crossScalaVersions in ThisBuild := Seq("2.11.11", "2.12.4")
 
 organization in ThisBuild := "org.platanios"
 
-val tensorFlowVersion = "1.7.0-rc0"
+val tensorFlowVersion = "1.7.0-rc1"
 val circeVersion = "0.9.1" // Use for working with JSON.
 
 autoCompilerPlugins in ThisBuild := true
@@ -181,7 +181,7 @@ lazy val jni = (project in file("./jni"))
       target in CrossCompile := target.value / "native",
       nativePlatforms in CrossCompile := Set(LINUX_x86_64, LINUX_GPU_x86_64, DARWIN_x86_64),
       tensorFlowBinaryVersion in CrossCompile := tensorFlowVersion, // tensorFlowVersion
-      compileTFLib in CrossCompile := false,
+      compileTFLib in CrossCompile := true,
       tfLibRepository in CrossCompile := "https://github.com/tensorflow/tensorflow.git",
       tfLibRepositoryBranch := "master",
       // Specify the order in which the different compilation tasks are executed
