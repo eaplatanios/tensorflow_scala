@@ -60,7 +60,7 @@ abstract class TriggeredHook(
   ): Option[Hook.SessionRunArgs[Seq[Output], Traversable[Op], Seq[Tensor]]] = {
     if (internalTrigger.lastTriggerStep().isEmpty)
       onFirstTrigger(runContext)(executableEv, fetchableEv)
-    shouldTrigger = internalTrigger.shouldTriggerForStep(lastStep.toInt)
+    shouldTrigger = internalTrigger.shouldTriggerForStep(lastStep.toInt + 1)
     if (shouldTrigger) {
       Some(Hook.SessionRunArgs(fetches = step.value +: fetches))
     } else {
@@ -77,7 +77,7 @@ abstract class TriggeredHook(
   ): Unit = {
     lastStep = runResult.values(0).scalar.asInstanceOf[Long]
     if (shouldTrigger) {
-      val elapsed = internalTrigger.updateLastTrigger(lastStep.toInt - 1)
+      val elapsed = internalTrigger.updateLastTrigger(lastStep.toInt)
       onTrigger(lastStep, elapsed, runResult.copy(values = runResult.values.tail), runContext.session)
     }
   }
@@ -85,7 +85,7 @@ abstract class TriggeredHook(
   override private[learn] def internalEnd(session: Session): Unit = {
     if (triggerAtEnd && lastStep.toInt != internalTrigger.lastTriggerStep().getOrElse(-1)) {
       val lastStep = session.run(fetches = step.value).scalar.asInstanceOf[Long]
-      val elapsed = internalTrigger.updateLastTrigger(lastStep.toInt - 1)
+      val elapsed = internalTrigger.updateLastTrigger(lastStep.toInt)
       onTrigger(lastStep, elapsed, Hook.SessionRunResult(session.run(fetches = fetches), None), session)
     }
     super.internalEnd(session)
