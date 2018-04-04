@@ -23,6 +23,7 @@ limitations under the License.
 #include "tensorflow/c/c_api_internal.h"
 #include "tensorflow/c/c_eager_api.h"
 #include "tensorflow/c/c_eager_api_internal.h"
+#include "tensorflow/core/common_runtime/eager/tensor_handle.h"
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/op_kernel.h"
 #include "tensorflow/core/framework/kernel_def.pb_text.h"
@@ -43,9 +44,9 @@ const tensorflow::Tensor* TFE_Local_TensorHandleUnderlyingTensorInHostMemory(
   tensorflow::Device* d = nullptr;
   tensorflow::Device* op_device = nullptr;
   const tensorflow::Tensor* t = nullptr;
-  status->status = h->TensorAndDevice(&t, &d, &op_device);
+  status->status = h->handle->TensorAndDevice(&t, &d, &op_device);
   if (!status->status.ok()) return nullptr;
-  if (d != nullptr) {
+  if (d != nullptr && d != h->handle->Context()->HostCPU()) {
     status->status = tensorflow::errors::FailedPrecondition(
         "TFE_TensorHandle is placed in device (not host) memory. Cannot return "
         "a tensorflow::Tensor");

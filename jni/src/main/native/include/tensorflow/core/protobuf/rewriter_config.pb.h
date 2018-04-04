@@ -513,6 +513,12 @@ class RewriterConfig : public ::google::protobuf::Message /* @@protoc_insertion_
   ::tensorflow::RewriterConfig_Toggle function_optimization() const;
   void set_function_optimization(::tensorflow::RewriterConfig_Toggle value);
 
+  // .tensorflow.RewriterConfig.Toggle debug_stripper = 11;
+  void clear_debug_stripper();
+  static const int kDebugStripperFieldNumber = 11;
+  ::tensorflow::RewriterConfig_Toggle debug_stripper() const;
+  void set_debug_stripper(::tensorflow::RewriterConfig_Toggle value);
+
   // @@protoc_insertion_point(class_scope:tensorflow.RewriterConfig)
  private:
 
@@ -531,6 +537,7 @@ class RewriterConfig : public ::google::protobuf::Message /* @@protoc_insertion_
   int dependency_optimization_;
   int loop_optimization_;
   int function_optimization_;
+  int debug_stripper_;
   mutable int _cached_size_;
   friend struct ::protobuf_tensorflow_2fcore_2fprotobuf_2frewriter_5fconfig_2eproto::TableStruct;
   friend void ::protobuf_tensorflow_2fcore_2fprotobuf_2frewriter_5fconfig_2eproto::InitDefaultsRewriterConfigImpl();
@@ -660,6 +667,20 @@ inline void RewriterConfig::set_function_optimization(::tensorflow::RewriterConf
   
   function_optimization_ = value;
   // @@protoc_insertion_point(field_set:tensorflow.RewriterConfig.function_optimization)
+}
+
+// .tensorflow.RewriterConfig.Toggle debug_stripper = 11;
+inline void RewriterConfig::clear_debug_stripper() {
+  debug_stripper_ = 0;
+}
+inline ::tensorflow::RewriterConfig_Toggle RewriterConfig::debug_stripper() const {
+  // @@protoc_insertion_point(field_get:tensorflow.RewriterConfig.debug_stripper)
+  return static_cast< ::tensorflow::RewriterConfig_Toggle >(debug_stripper_);
+}
+inline void RewriterConfig::set_debug_stripper(::tensorflow::RewriterConfig_Toggle value) {
+  
+  debug_stripper_ = value;
+  // @@protoc_insertion_point(field_set:tensorflow.RewriterConfig.debug_stripper)
 }
 
 // bool disable_model_pruning = 2;
