@@ -25,7 +25,7 @@
 #include <sstream>
 
 #include "tensorflow/c/c_api.h"
-#include "tensorflow/c/c_eager_api.h"
+#include "tensorflow/c/eager/c_api.h"
 
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Sparse_00024_sparseToDense(
     JNIEnv* env, jobject object, jlong context_handle, jlong sparse_indices, jlong output_shape, jlong sparse_values, jlong default_value, jboolean validate_indices) {

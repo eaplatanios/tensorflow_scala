@@ -17,7 +17,7 @@
 #include "server.h"
 #include "utilities.h"
 
-#include "tensorflow/c/status_helper.h"
+#include "tensorflow/c/tf_status_helper.h"
 #include "tensorflow/core/distributed_runtime/server_lib.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status.h"

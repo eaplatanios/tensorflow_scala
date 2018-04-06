@@ -30,7 +30,7 @@ import org.scalatest.junit.JUnitSuite
   */
 class DatasetSuite extends JUnitSuite {
   @Test def testTensorDataset(): Unit = using(Graph()) { graph =>
-    Op.createWith(graph) {
+    Op.createWith(graph, device = "/cpu:0") {
       val components = Tensor(1, 2, 3)
       val iterator = TensorDataset(components).createInitializableIterator()
       val initOp = iterator.initializer

@@ -758,7 +758,7 @@ object OpGenerator {
          |#include <sstream>
          |
          |#include "tensorflow/c/c_api.h"
-         |#include "tensorflow/c/c_eager_api.h"
+         |#include "tensorflow/c/eager/c_api.h"
          |
          |${opCode.map(_.jniImplementationFunction).mkString("\n\n")}
          |""".stripMargin.getBytes())

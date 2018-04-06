@@ -15,7 +15,7 @@ limitations under the License.
 
 #include "tensorflow/c/record_reader.h"
 
-#include "tensorflow/c/status_helper.h"
+#include "tensorflow/c/tf_status_helper.h"
 #include "tensorflow/core/lib/core/stringpiece.h"
 #include "tensorflow/core/lib/io/record_reader.h"
 #include "tensorflow/core/lib/io/zlib_compression_options.h"

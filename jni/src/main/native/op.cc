@@ -24,7 +24,7 @@
 #include <iostream>
 
 #include "tensorflow/c/c_api.h"
-#include "tensorflow/c/c_eager_api.h"
+#include "tensorflow/c/eager/c_api.h"
 
 namespace {
 template <class T>

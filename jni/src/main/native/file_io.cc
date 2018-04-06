@@ -19,7 +19,7 @@
 #include <string.h>
 #include <iostream>
 
-#include "tensorflow/c/status_helper.h"
+#include "tensorflow/c/tf_status_helper.h"
 #include "tensorflow/core/framework/types.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/io/buffered_inputstream.h"

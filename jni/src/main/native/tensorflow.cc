@@ -135,7 +135,7 @@ JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_clearC
     throw_exception(env, tf_invalid_argument_exception, "Graph could not be found.");
   if (op == nullptr)
     throw_exception(env, tf_invalid_argument_exception, "Operation could not be found.");
-  tensorflow::ClearControlInputs(graph, op);
+  tensorflow::RemoveAllControlInputs(graph, op);
   return 0;
 }
 
@@ -165,7 +165,7 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_setAtt
   jbyte *c_value = env->GetByteArrayElements(value, nullptr);
   std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
   TF_Buffer* proto_buffer = TF_NewBufferFromString(c_value, static_cast<size_t>(env->GetArrayLength(value)));
-  tensorflow::SetAttribute(graph, op, c_name, proto_buffer, status.get());
+  tensorflow::SetAttr(graph, op, c_name, proto_buffer, status.get());
   TF_DeleteBuffer(proto_buffer);
   env->ReleaseByteArrayElements(value, c_value, JNI_ABORT);
   env->ReleaseStringUTFChars(name, c_name);

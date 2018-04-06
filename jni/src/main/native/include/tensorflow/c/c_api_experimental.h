@@ -1,8 +1,11 @@
 /* Copyright 2018 The TensorFlow Authors. All Rights Reserved.
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
+
     http://www.apache.org/licenses/LICENSE-2.0
+
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -57,30 +60,52 @@ extern "C" {
 TF_CAPI_EXPORT extern void TF_EnableXLACompilation(TF_SessionOptions* options,
                                                    unsigned char enable);
 
-// Sets up TPU execution, by rewriting the graph accordingly, and initializing
-// TPU system.
+// Initializes TPU system. Must be called exactly once before TF_SessionRun() is
+// called on a TPU graph.
 //
-// On success, returns a shutdown node to be used in a subsequent
-// TF_ShutdownTPUExecution(), and sets the new output nodes in
-// `new_output_nodes` for caller to fetch from. Must be called exactly once
-// before TF_SessionRun().
-//
-// The API and logic is modeled after the python counterparts
-// tpu.{initialize_system(), rewrite(), shutdown_system()}.
-//
-// TODO(b/74774824): Create separate APIs for initializing TPU system and graph
-// rewrite.
-TF_CAPI_EXPORT extern TF_Output TF_SetupTPUExecution(
-    TF_Session* session, int num_input_nodes, const TF_Output* input_nodes,
-    int num_output_nodes, const TF_Output* output_nodes,
-    TF_Output* new_output_nodes, TF_Status* status);
+// The session graph must contain a node named ConfigureDistributedTPU.
+// TODO(b/74774824): Improve the API on initializing TPU system.
+TF_CAPI_EXPORT extern void TF_InitializeTPU(TF_Session* session,
+                                            TF_Status* status);
 
-// Shuts down TPU system. For any `session` where TF_SetupTPUExecution() has
+// Shuts down TPU system. For any `session` where TF_InitializeTPU() has
 // been successfully called, this call must be made exactly once before the
 // session is closed.
-TF_CAPI_EXPORT extern void TF_ShutdownTPUExecution(TF_Session* session,
-                                                   TF_Output shutdown_node,
-                                                   TF_Status* status);
+// The session graph must contain a node named ShutdownDistributedTPU.
+TF_CAPI_EXPORT extern void TF_ShutdownTPU(TF_Session* session,
+                                          TF_Status* status);
+
+// Returns the graph content in a human-readable format, with length set in
+// `len`. The format is subject to change in the future.
+// The returned string is heap-allocated, and caller should call free() on it.
+TF_CAPI_EXPORT extern const char* TF_GraphDebugString(TF_Graph* graph,
+                                                      size_t* len);
+
+// Returns the graph content in a human-readable format, with length set in
+// `len`. The format is subject to change in the future.
+// The returned string is heap-allocated, and caller should call free() on it.
+TF_CAPI_EXPORT extern const char* TF_GraphDebugString(TF_Graph* graph,
+                                                      size_t* len);
+
+// Creates a stack of data set + iterator nodes, currently hard-coded to return
+// a sequence of 3 float values <42.0, 43.0, 44.0> over 3 calls. On success,
+// returns the IteratorGetNext node, which caller can run or feed into an node.
+//
+// TODO(hongm): Extend the API to allow customization of the nodes created.
+TF_CAPI_EXPORT extern TF_Operation* TF_MakeFakeIteratorGetNextWithDatasets(
+    TF_Graph* graph, TF_Status* status);
+
+// Similar to the above API, except that the returned iterator reads the
+// file based dataset from `file_path`.
+// If `is_mnist` is 0, the dataset corresponds to ImageNet.
+// The iterators outputs 2 tensors:
+// - A float tensor of shape `batch_size` X 784 when `is_mnist` is non-zero, or
+// `batch_size` X 224 X 224 X 3 otherwise.
+// - An int32 tensor of shape `batch_size`
+// TODO(hongm): Extend the API to allow customization of the nodes created.
+TF_CAPI_EXPORT extern TF_Operation* TF_MakeFileBasedIteratorGetNextWithDatasets(
+    TF_Graph* graph, const char* file_path, int batch_size,
+    unsigned char is_mnist, TF_Status* status);
 
 #ifdef __cplusplus
 } /* end extern "C" */

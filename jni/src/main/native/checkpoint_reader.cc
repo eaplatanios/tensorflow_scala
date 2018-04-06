@@ -18,8 +18,8 @@
 
 #include <string.h>
 
-#include "tensorflow/c/c_eager_api.h"
-#include "tensorflow/c/c_eager_api_internal.h"
+#include "tensorflow/c/eager/c_api.h"
+#include "tensorflow/c/eager/c_api_internal.h"
 #include "tensorflow/c/checkpoint_reader.h"
 
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_CheckpointReader_00024_newCheckpointReader(

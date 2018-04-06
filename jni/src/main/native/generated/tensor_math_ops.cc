@@ -25,7 +25,7 @@
 #include <sstream>
 
 #include "tensorflow/c/c_api.h"
-#include "tensorflow/c/c_eager_api.h"
+#include "tensorflow/c/eager/c_api.h"
 
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math_00024_select(
     JNIEnv* env, jobject object, jlong context_handle, jlong condition, jlong t, jlong e) {

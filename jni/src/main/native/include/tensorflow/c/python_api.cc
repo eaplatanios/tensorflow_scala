@@ -81,7 +81,7 @@ void AddControlInput(TF_Graph* graph, TF_Operation* op, TF_Operation* input) {
 //  RecordMutation(graph, *op, "adding control input");
 }
 
-void ClearControlInputs(TF_Graph* graph, TF_Operation* op) {
+void RemoveAllControlInputs(TF_Graph* graph, TF_Operation* op) {
   mutex_lock l(graph->mu);
   std::vector<const Edge*> control_edges;
   for (const Edge* edge : op->node.in_edges()) {
@@ -100,7 +100,7 @@ void SetRequestedDevice(TF_Graph* graph, TF_Operation* op, const char* device) {
 //  RecordMutation(graph, *op, "setting device");
 }
 
-void SetAttribute(
+void SetAttr(
   TF_Graph* graph, TF_Operation* op, const char* attr_name, TF_Buffer* attr_value_proto, TF_Status* status) {
   AttrValue attr_val;
   if (!attr_val.ParseFromArray(attr_value_proto->data,
