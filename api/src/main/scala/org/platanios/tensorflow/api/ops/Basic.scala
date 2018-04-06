@@ -2469,7 +2469,7 @@ object Basic extends Basic {
 
   private[this] def stridedSliceGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
     val gradient = Op.Builder(opType = "StridedSliceGrad", name = "StridedSliceGradient")
-        .addInput(shape(op.inputs(0)))
+        .addInput(shape(op.inputs(0), dataType = op.inputs(1).dataType))
         .addInput(op.inputs(1))
         .addInput(op.inputs(2))
         .addInput(op.inputs(3))
