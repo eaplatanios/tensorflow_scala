@@ -115,6 +115,8 @@ private[api] trait Math {
     if (x.dataType == dataType) {
       x
     } else {
+      if (x.dataType.isComplex && !dataType.isComplex)
+        logger.warn("Casting complex tensors to real tensors discards the imaginary part.")
       implicitly[OutputOps[T]]
           .applyUnary(x, o => Op.Builder(opType = "Cast", name = name)
               .addInput(o)

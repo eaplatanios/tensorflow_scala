@@ -32,30 +32,6 @@ limitations under the License.
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/platform/macros.h"
 
-namespace {
-// Copy of the C Eager API struct due to the circular dependency issue.
-TFE_TensorHandle* TFE_Local_NewTensorHandle(const tensorflow::Tensor& t) {
-  return new TFE_TensorHandle(t, nullptr, nullptr);
-}
-
-// Copy of the C Eager API struct due to the circular dependency issue.
-const tensorflow::Tensor* TFE_Local_TensorHandleUnderlyingTensorInHostMemory(
-    TFE_TensorHandle* h, TF_Status* status) {
-  tensorflow::Device* d = nullptr;
-  tensorflow::Device* op_device = nullptr;
-  const tensorflow::Tensor* t = nullptr;
-  status->status = h->handle->TensorAndDevice(&t, &d, &op_device);
-  if (!status->status.ok()) return nullptr;
-  if (d != nullptr && d != h->handle->Context()->HostCPU()) {
-    status->status = tensorflow::errors::FailedPrecondition(
-        "TFE_TensorHandle is placed in device (not host) memory. Cannot return "
-        "a tensorflow::Tensor");
-    return nullptr;
-  }
-  return t;
-}
-}
-
 namespace tensorflow {
 REGISTER_OP("JVMCallback")
     .Input("input: Tin")
@@ -111,7 +87,7 @@ namespace {
     jlong* inputs_array = call->env->GetLongArrayElements(inputs, nullptr);
     for (int64 i = 0; i < n; ++i) {
       const Tensor& t = call->inputs[i];
-      TFE_TensorHandle* tensor = TFE_Local_NewTensorHandle(t);
+      TFE_TensorHandle* tensor = new TFE_TensorHandle(t, nullptr, nullptr);
       inputs_array[i] = reinterpret_cast<jlong>(tensor);
     }
     call->env->ReleaseLongArrayElements(inputs, inputs_array, 0);
@@ -134,8 +110,9 @@ namespace {
         status->status = errors::InvalidArgument("Could not obtain tensor handle to one of the outputs.");
         return;
       }
-      const Tensor* t = TFE_Local_TensorHandleUnderlyingTensorInHostMemory(h, status);
       if (!status->status.ok()) return;
+      const tensorflow::Tensor* t = nullptr;
+      status->status = h->handle->Tensor(&t);
       call->outputs.push_back(*t);
     }
     call->env->ReleaseLongArrayElements(call_outputs, outputs_array, 0);
