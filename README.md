@@ -4,8 +4,10 @@
 
 -----------------
 
-[![CircleCI](https://circleci.com/gh/eaplatanios/tensorflow_scala/tree/master.svg?style=shield&circle-token=5ee39233fd9f055c3c65529a2737f7666b26f51a)](https://circleci.com/gh/eaplatanios/tensorflow_scala/tree/master)
-[![Chat Room](https://badges.gitter.im/eaplatanios/tensorflow_scala.svg)](https://gitter.im/eaplatanios/tensorflow_scala?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![CircleCI](https://img.shields.io/circleci/project/github/eaplatanios/tensorflow_scala.svg?style=for-the-badge)](https://circleci.com/gh/eaplatanios/tensorflow_scala/tree/master)
+[![Codacy Badge](https://img.shields.io/codacy/grade/7fae7fba84df4831a80bc20c3bd021df.svg?style=for-the-badge)](https://www.codacy.com/app/eaplatanios/tensorflow_scala?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=eaplatanios/tensorflow_scala&amp;utm_campaign=Badge_Grade)
+[![Chat Room](https://img.shields.io/gitter/room/nwjs/nw.js.svg?style=for-the-badge)](https://gitter.im/eaplatanios/tensorflow_scala?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+![License](https://img.shields.io/github/license/eaplatanios/tensorflow_scala.svg?style=for-the-badge)
 
 This library is a Scala API for [https://www.tensorflow.org](https://www.tensorflow.org). It attempts to provide most of 
 the functionality provided by the official Python API, while at the same type being strongly-typed and adding some new 
