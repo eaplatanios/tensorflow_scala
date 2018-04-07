@@ -27,6 +27,10 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_CheckpointReader_00024
   const char* c_file_pattern = env->GetStringUTFChars(file_pattern, nullptr);
   std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
   auto* reader = new tensorflow::checkpoint::CheckpointReader(std::string(c_file_pattern), status.get());
+  if (!throw_exception_if_not_ok(env, status.get())) {
+      delete reader;
+      return 0;
+  }
   CHECK_STATUS(env, status.get(), 0);
   env->ReleaseStringUTFChars(file_pattern, c_file_pattern);
   return reinterpret_cast<jlong>(reader);
