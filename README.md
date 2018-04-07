@@ -1,4 +1,8 @@
-# TensorFlow API for Scala
+<div align="center">
+  <img src="https://raw.githubusercontent.com/eaplatanios/tensorflow_scala/master/docs/images/logo.png"><br><br>
+</div>
+
+-----------------
 
 [![CircleCI](https://circleci.com/gh/eaplatanios/tensorflow_scala/tree/master.svg?style=shield&circle-token=5ee39233fd9f055c3c65529a2737f7666b26f51a)](https://circleci.com/gh/eaplatanios/tensorflow_scala/tree/master)
 [![Chat Room](https://badges.gitter.im/eaplatanios/tensorflow_scala.svg)](https://gitter.im/eaplatanios/tensorflow_scala?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
@@ -150,5 +154,9 @@ Funding for the development of this library has been generously provided by the 
 
 - Website margins are a little large relative to the content in mobile
 - Make the code blocks scroll rather than wrap
+
+```bash
+find . -name '*.h' | cpio -pdmu ../tensorflow_scala/jni/src/main/native/include/
+```
 
 -->
