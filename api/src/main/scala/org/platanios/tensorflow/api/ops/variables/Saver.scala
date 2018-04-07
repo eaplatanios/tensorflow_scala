@@ -61,8 +61,8 @@ import scala.collection.mutable
   *
   * Also, optional arguments to the `Saver` constructor let you control the proliferation of checkpoint files on disk:
   *   - `maxToKeep`: The maximum number of recent checkpoint files to keep. As new files are created, older files are
-  *     deleted. If set to `0`, all checkpoint files are kept. Defaults to `5` (that is, the 5 most recent checkpoint
-  *     files are kept).
+  *     deleted. If `0`, no checkpoints are deleted from the filesystem but only the last one is kept in the
+  *     `checkpoint` file. Defaults to `5` (i.e., only the 5 most recent checkpoint files are kept).
   *   - `keepCheckpointEveryNHours`: In addition to keeping the most recent `maxToKeep` checkpoint files, you might want
   *     to keep one checkpoint file for every `N` hours of training. This can be useful if you want to later analyze how
   *     a model progressed during a long training session. For example, passing `keepCheckpointEveryNHours = 2` ensures
@@ -1491,15 +1491,15 @@ private[variables] object Saveable {
     override val producerOps: Set[Op] = variable.map(_.op).toSet
 
     override private[api] def restore(restoredTensors: Seq[Output], restoredShapes: Seq[Output] = null): Op = {
-      var restoredTensors: Seq[Output] = {
+      var tensors: Seq[Output] = {
         if (restoredShapes != null)
           restoredTensors.zip(restoredShapes).map(p => Basic.reshape(p._1, p._2))
         else
           restoredTensors
       }
       // Copy the restored tensors to the variable's devices.
-      restoredTensors = restoredTensors.zip(variableDevices).map(p => Op.createWith(device = p._2)(Basic.identity(p._1)))
-      val restoreOps = variable.zip(restoredTensors).map(p => Variable.assign(p._1.handle, p._2))
+      tensors = tensors.zip(variableDevices).map(p => Op.createWith(device = p._2)(Basic.identity(p._1)))
+      val restoreOps = variable.zip(tensors).map(p => Variable.assign(p._1.handle, p._2))
       // Create a no-op that has control dependencies for all the updates.
       ControlFlow.group(restoreOps.toSet)
     }
