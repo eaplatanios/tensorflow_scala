@@ -78,42 +78,45 @@ TF_Tensor* requireTensor(JNIEnv* env, jlong handle) {
 }
 
 const char* attrTypeToString(TF_AttrType type, char is_list) {
-  std::string typeName;
+  std::string name;
   switch(type) {
     case TF_ATTR_STRING:
-      typeName = "String";
+      name = "String";
       break;
     case TF_ATTR_INT:
-      typeName = "Int";
+      name = "Int";
       break;
     case TF_ATTR_FLOAT:
-      typeName = "Float";
+      name = "Float";
       break;
     case TF_ATTR_BOOL:
-      typeName = "Boolean";
+      name = "Boolean";
       break;
     case TF_ATTR_TYPE:
-      typeName = "DataType";
+      name = "DataType";
       break;
     case TF_ATTR_SHAPE:
-      typeName = "Shape";
+      name = "Shape";
       break;
     case TF_ATTR_TENSOR:
-      typeName = "Tensor";
+      name = "Tensor";
       break;
     case TF_ATTR_PLACEHOLDER:
-      typeName = "Placeholder";
+      name = "Placeholder";
       break;
     case TF_ATTR_FUNC:
-      typeName = "Function";
+      name = "Function";
       break;
     default:
-      typeName = "Unknown";
+      name = "Unknown";
       break;
   }
-  if (is_list == 1)
-    return ("List[" + typeName + "]").c_str();
-  return typeName.c_str();
+  // TODO: It's better to return std::string in the future.
+  std::string result_string = is_list == 1 ? "List[" + name + "]" : name;
+  const char* result = result_string.c_str();
+  char* result_copy = new char[result_string.length() + 1];
+  strcpy(result_copy, result);
+  return result_copy;
 }
 }  // namespace
 
