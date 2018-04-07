@@ -1448,6 +1448,8 @@ private[variables] object Saveable {
           if (variable.partitionInformation != null) variable.partitionInformation.fullName else variable.name,
           variable.value,
           Option(variable.partitionInformation).map(_.saveSpecString).getOrElse("")))) {
+    private val device: String = variable.device
+
     override val name: String = {
       if (variable.partitionInformation != null)
         variable.partitionInformation.fullName
@@ -1458,12 +1460,14 @@ private[variables] object Saveable {
     override val producerOps: Set[Op] = Set(variable.op)
 
     override private[api] def restore(restoredTensors: Seq[Output], restoredShapes: Seq[Output] = null): Op = {
-      val restoredTensor = {
+      var restoredTensor = {
         if (restoredShapes != null)
           Basic.reshape(restoredTensors.head, restoredShapes.head)
         else
           restoredTensors.head
       }
+      // Copy the restored tensor to the variable's device.
+      restoredTensor = Op.createWith(device = device)(Basic.identity(restoredTensor))
       Variable.assign(variable.handle, restoredTensor)
     }
   }
@@ -1475,18 +1479,22 @@ private[variables] object Saveable {
           v.partitionInformation.fullName,
           v.value,
           v.partitionInformation.saveSpecString)).toSeq) {
+    private val devices: Seq[String] = variable.map(_.device).toSeq
+
     override val name: String = variable.name
 
     override val producerOps: Set[Op] = variable.map(_.op).toSet
 
     override private[api] def restore(restoredTensors: Seq[Output], restoredShapes: Seq[Output] = null): Op = {
-      val tensors: Seq[Output] = {
+      var restoredTensors: Seq[Output] = {
         if (restoredShapes != null)
           restoredTensors.zip(restoredShapes).map(p => Basic.reshape(p._1, p._2))
         else
           restoredTensors
       }
-      val restoreOps = variable.zip(tensors).map(p => Variable.assign(p._1.handle, p._2))
+      // Copy the restored tensors to the variable's devices.
+      restoredTensors = restoredTensors.zip(devices).map(p => Op.createWith(device = p._2)(Basic.identity(p._1)))
+      val restoreOps = variable.zip(restoredTensors).map(p => Variable.assign(p._1.handle, p._2))
       // Create a no-op that has control dependencies for all the updates.
       ControlFlow.group(restoreOps.toSet)
     }
