@@ -124,6 +124,8 @@ Funding for the development of this library has been generously provided by the 
 | **CMU Presidential Fellowship**         | **National Science Foundation**   | **Air Force Office of Scientific Research**     | 
 | awarded to Emmanouil Antonios Platanios | Grant #: IIS1250956               | Grant #: FA95501710218                          |
 
+TensorFlow, the TensorFlow logo and any related marks are trademarks of Google Inc.
+
 <!---
 
 ## Supported Features
