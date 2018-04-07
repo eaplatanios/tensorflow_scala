@@ -194,27 +194,7 @@ class Tensor private[Tensor](
   }
 
   private[api] def resolve()(implicit context: DynamicVariable[Context]): Long = {
-    if (device == "CPU:0") {
-      NativeTensor.eagerResolve(nativeHandle)
-    } else {
-      val hostHandle = NativeTensor.eagerCopyToDevice(nativeHandle, context.value.nativeHandle, "CPU:0")
-      val resolvedHandle = NativeTensor.eagerResolve(hostHandle)
-      NativeHandleLock synchronized {
-        if (hostHandle != 0)
-          NativeTensor.eagerDelete(hostHandle)
-      }
-      resolvedHandle
-    }
-  }
-
-  private[api] def buffer(implicit context: DynamicVariable[Context]): ByteBuffer = {
-    val resolvedHandle = resolve()
-    val buffer = NativeTensor.buffer(resolvedHandle).order(ByteOrder.nativeOrder)
-    NativeHandleLock synchronized {
-      if (resolvedHandle != 0)
-        NativeTensor.delete(resolvedHandle)
-    }
-    buffer
+    NativeTensor.eagerResolve(nativeHandle)
   }
 
   private[api] def getElementAtFlattenedIndex(index: Int): dataType.ScalaType = {
@@ -607,7 +587,13 @@ object Tensor {
     if (inferredDataType.byteSize * value.size >= Int.MaxValue)
       throw InvalidArgumentException("Cannot serialize tensors whose content is larger than 2GB.")
     if (value.dataType != STRING && value.size == inferredShape.numElements) {
-      tensorProtoBuilder.setTensorContent(ByteString.copyFrom(castedValue.buffer))
+      val resolvedHandle = castedValue.resolve()
+      val buffer = NativeTensor.buffer(resolvedHandle).order(ByteOrder.nativeOrder)
+      tensorProtoBuilder.setTensorContent(ByteString.copyFrom(buffer))
+      castedValue.NativeHandleLock synchronized {
+        if (resolvedHandle != 0)
+          NativeTensor.delete(resolvedHandle)
+      }
     } else {
       castedValue.entriesIterator.foreach(v => {
         inferredDataType.addToTensorProtoBuilder(
