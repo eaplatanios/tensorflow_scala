@@ -133,7 +133,9 @@ class Saver private (saverDef: SaverDef, saveRelativePaths: Boolean = false, pad
     * @param  metaGraphSuffix         Meta graph filename suffix.
     * @param  writeMetaGraph          Boolean value indicating whether or not to write the graph meta information file.
     * @param  writeCheckpointState    Boolean value indicating whether or not to write the checkpoint state file.
-    * @return Path of the newly created checkpoint file, if the save operation was successful; `None`, otherwise.
+    * @return Path of the newly created checkpoint file, if the save operation was successful; `None`, otherwise. If the
+    *         saver is sharded, the filename ends with `"-?????-of-nnnnn"` where `"nnnnn"` is the number of shards
+    *         created.
     */
   def save(
       session: Session, savePath: Path, globalStep: Option[Int] = None, checkpointStateFilename: String = "checkpoint",
@@ -503,6 +505,13 @@ object Saver {
         saveRelativePaths = saveRelativePaths,
         padGlobalStep = padGlobalStep)
     }
+  }
+
+  /** Creates a new device string based on `device` but using `/CPU:0`. */
+  private[variables] def setCPU0(device: String): String = {
+    DeviceSpecification.fromString(device)
+        .copy(deviceType = "CPU", deviceIndex = 0)
+        .toString
   }
 
   /** Finds and returns the filename of the latest saved checkpoint file.
@@ -893,7 +902,7 @@ trait SaverDefBuilder {
       case SaverDef.CheckpointFormatVersion.V1 =>
         val numberOfShards = Tensor(INT32, saveablesByDevice.length).toOutput
         val shardedSaves = saveablesByDevice.zipWithIndex.map { case ((device, saveables), shard) =>
-          Op.createWith(device = device) {
+          Op.createWith(device = Saver.setCPU0(device)) {
             addSaveOps(SaverDefBuilder.shardedFilenameOp(prefix, shard, numberOfShards), saveables)
           }
         }
@@ -927,7 +936,10 @@ trait SaverDefBuilder {
           }
         }.unzip
         // Co-locates the merge step with the last device.
-        Op.createWith(controlDependencies = shardedSaves.map(_.op).toSet, device = saveablesByDevice.last._1) {
+        Op.createWith(
+          controlDependencies = shardedSaves.map(_.op).toSet,
+          device = Saver.setCPU0(saveablesByDevice.last._1)
+        ) {
           // The V2 format write path consists of a metadata merging step. Once merged, we attempt to delete the temporary
           // directory, "<user-fed prefix>_temp".
           val concatenatedPrefixes = {
@@ -960,19 +972,12 @@ trait SaverDefBuilder {
   protected def addRestoreOps(
       prefix: Output, saveables: Set[Saveable], reshape: Boolean, restoreSequentially: Boolean,
       name: String = "Restore"): Op = {
-    /** Creates a new device string based on `device_string` but using `/CPU:0`. */
-    def setCPU0(device: String): String = {
-      DeviceSpecification.fromString(device)
-          .copy(deviceType = "CPU", deviceIndex = 0)
-          .toString
-    }
-
     var restoreOps = Seq.empty[Op]
     saveables.foreach(saveable => {
       val restoreControlInputs: Set[Op] = if (restoreSequentially) Set(restoreOps.last) else Set.empty[Op]
       // Load and optionally reshape on the CPU, as string tensors are not available on the GPU.
       // TODO: !!! [GPU] Re-enable restore on GPU when we can support annotating string tensors as "HostMemory" inputs.
-      Op.createWith(controlDependencies = restoreControlInputs, device = setCPU0(saveable.device)) {
+      Op.createWith(controlDependencies = restoreControlInputs, device = Saver.setCPU0(saveable.device)) {
         val shapes = {
           if (reshape) {
             // Compute the shapes and let the restore op decide if and how to do the reshape.
@@ -1448,7 +1453,7 @@ private[variables] object Saveable {
           if (variable.partitionInformation != null) variable.partitionInformation.fullName else variable.name,
           variable.value,
           Option(variable.partitionInformation).map(_.saveSpecString).getOrElse("")))) {
-    private val device: String = variable.device
+    private val variableDevice: String = variable.device
 
     override val name: String = {
       if (variable.partitionInformation != null)
@@ -1467,7 +1472,7 @@ private[variables] object Saveable {
           restoredTensors.head
       }
       // Copy the restored tensor to the variable's device.
-      restoredTensor = Op.createWith(device = device)(Basic.identity(restoredTensor))
+      restoredTensor = Op.createWith(device = variableDevice)(Basic.identity(restoredTensor))
       Variable.assign(variable.handle, restoredTensor)
     }
   }
@@ -1479,7 +1484,7 @@ private[variables] object Saveable {
           v.partitionInformation.fullName,
           v.value,
           v.partitionInformation.saveSpecString)).toSeq) {
-    private val devices: Seq[String] = variable.map(_.device).toSeq
+    private val variableDevices: Seq[String] = variable.map(_.device).toSeq
 
     override val name: String = variable.name
 
@@ -1493,7 +1498,7 @@ private[variables] object Saveable {
           restoredTensors
       }
       // Copy the restored tensors to the variable's devices.
-      restoredTensors = restoredTensors.zip(devices).map(p => Op.createWith(device = p._2)(Basic.identity(p._1)))
+      restoredTensors = restoredTensors.zip(variableDevices).map(p => Op.createWith(device = p._2)(Basic.identity(p._1)))
       val restoreOps = variable.zip(restoredTensors).map(p => Variable.assign(p._1.handle, p._2))
       // Create a no-op that has control dependencies for all the updates.
       ControlFlow.group(restoreOps.toSet)
