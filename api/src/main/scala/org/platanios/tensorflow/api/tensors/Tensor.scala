@@ -143,7 +143,7 @@ private[tensors] object TensorOps {
   * @author Emmanouil Antonios Platanios
   */
 class Tensor private[Tensor](
-    private[this] val nativeHandleWrapper: NativeHandleWrapper,
+    private[api] val nativeHandleWrapper: NativeHandleWrapper,
     override protected val closeFn: () => Unit
 ) extends TensorLike
         with Closeable
