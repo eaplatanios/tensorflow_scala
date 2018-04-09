@@ -19,6 +19,9 @@ src_managed/
 project/boot/
 project/plugins/project/
 
+# Metals Specific
+.metals
+
 **/src/main/native/lib/**/*
 **/src/main/generated/**/*
 

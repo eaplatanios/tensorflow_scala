@@ -29,6 +29,8 @@ val circeVersion = "0.9.1" // Use for working with JSON.
 
 autoCompilerPlugins in ThisBuild := true
 
+// addCompilerPlugin(MetalsPlugin.semanticdbScalac)
+
 scalacOptions in ThisBuild ++= Seq(
   "-deprecation",
   "-encoding", "UTF-8",
@@ -43,6 +45,7 @@ scalacOptions in ThisBuild ++= Seq(
   // "-Ywarn-dead-code",
   // "-Ywarn-numeric-widen",
   // "-Ywarn-value-discard",
+  "-Yrangepos",
   "-Xfuture",
   "-P:splain:all",
   "-P:splain:infix",
