@@ -307,8 +307,13 @@ trait Optimizer {
     * @return Requested slot variable.
     */
   protected def getSlot(
-      name: String, variable: Variable, initializer: Initializer, shape: Shape, dataType: DataType,
-      variableScope: String): Variable = {
+      name: String,
+      variable: Variable,
+      initializer: Initializer,
+      shape: Shape,
+      dataType: DataType,
+      variableScope: String
+  ): Variable = {
     slotMap(name).getOrElseUpdate(variable, Slot.create(variable, initializer, variableScope, dataType, shape))
   }
 
