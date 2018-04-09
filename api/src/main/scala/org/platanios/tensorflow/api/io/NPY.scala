@@ -19,19 +19,23 @@ import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidDataTypeException
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types._
+import org.platanios.tensorflow.jni.{Tensor => NativeTensor}
 
 import java.nio.{ByteBuffer, ByteOrder}
 import java.nio.charset.StandardCharsets
-import java.nio.file.{Files, Path}
+import java.nio.file.{Files, Path, StandardOpenOption}
 
 import scala.util.matching.Regex
 
-/**
+/** Contains helpers for dealing with Numpy (i.e., `.npy`) files.
+  *
   * @author Emmanouil Antonios Platanios
   */
-object Numpy {
+object NPY {
+  /** Regular expression used to parse Numpy data types. */
   protected val dtypeParser: Regex = """^[<=>]?(\w\d*)$""".r
 
+  /** Represents an NPY file header. */
   case class Header(description: String, fortranOrder: Boolean, shape: Shape) {
     val dataType: DataType = description match {
       case dtypeParser(t) => numpyDTypeToDataType(t)
@@ -50,7 +54,8 @@ object Numpy {
     }
   }
 
-  @throws[IllegalArgumentException]
+  /** Reads the tensor stored in the provided Numpy (i.e., `.npy`) file. */
+  @throws[InvalidDataTypeException]
   def read(file: Path): Tensor = {
     val byteBuffer = ByteBuffer.wrap(Files.readAllBytes(file))
 
@@ -94,6 +99,52 @@ object Numpy {
       Tensor.fromBuffer(header.dataType, header.shape, numBytes, byteBuffer)
   }
 
+  /** Writes the provided tensor to the provided file, using the Numpy (i.e., `.npy`) file format. Note that this method
+    * will replace the file, if it already exists. */
+  @throws[InvalidDataTypeException]
+  def write(tensor: Tensor, file: Path, fortranOrder: Boolean = false): Unit = {
+    val description = ">" + dataTypeToNumpyDType(tensor.dataType)
+    val header = Header(description, fortranOrder, tensor.shape).toString
+
+    val resolvedHandle = tensor.resolve()
+    val buffer = NativeTensor.buffer(resolvedHandle).order(ByteOrder.nativeOrder)
+    val dataBytes = buffer.array()
+    tensor.NativeHandleLock synchronized {
+      if (resolvedHandle != 0)
+        NativeTensor.delete(resolvedHandle)
+    }
+
+    val remaining = (header.length + 11) % 16
+    val padLength = if (remaining > 0) 16 - remaining else 0
+    val headerLength = header.length + padLength + 1
+    val size = header.length + 11 + padLength + dataBytes.length
+
+    val array = new Array[Byte](size)
+    val byteBuffer = ByteBuffer.wrap(array)
+    byteBuffer.put(Array(
+      0x93.toByte,
+      'N'.toByte,
+      'U'.toByte,
+      'M'.toByte,
+      'P'.toByte,
+      'Y'.toByte,
+      1.toByte,
+      0.toByte))
+    byteBuffer.order(ByteOrder.LITTLE_ENDIAN)
+    byteBuffer.putShort(headerLength.toShort)
+    byteBuffer.order(ByteOrder.BIG_ENDIAN)
+    byteBuffer.put(header.getBytes)
+    byteBuffer.put(Array.fill(padLength)(' '.toByte))
+    byteBuffer.put('\n'.toByte)
+    byteBuffer.put(dataBytes)
+
+    val fileWriter = Files.newOutputStream(file, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
+    fileWriter.write(array)
+    fileWriter.flush()
+    fileWriter.close()
+  }
+
+  /** Returns the TensorFlow data type equivalent to the provided Numpy data type string. */
   @throws[InvalidDataTypeException]
   def numpyDTypeToDataType(dtype: String): DataType = dtype match {
     case "b" => BOOLEAN
@@ -112,6 +163,7 @@ object Numpy {
     case t => throw InvalidDataTypeException(s"Numpy data type '$t' cannot be converted to a TensorFlow data type.")
   }
 
+  /** Returns the Numpy data type string equivalent to the provided TensorFlow data type. */
   @throws[InvalidDataTypeException]
   def dataTypeToNumpyDType(dataType: DataType): String = dataType match {
     case BOOLEAN => "b"

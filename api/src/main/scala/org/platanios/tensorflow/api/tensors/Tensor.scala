@@ -19,6 +19,7 @@ import org.platanios.tensorflow.api.core._
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.implicits.Implicits._
+import org.platanios.tensorflow.api.io.NPY
 import org.platanios.tensorflow.api.ops.{Basic, Output}
 import org.platanios.tensorflow.api.tensors.ops.Basic.{BasicOps, stack}
 import org.platanios.tensorflow.api.tensors.ops.{Math, Random}
@@ -35,6 +36,7 @@ import org.tensorflow.framework.TensorProto
 
 import java.nio._
 import java.nio.charset.Charset
+import java.nio.file.Path
 
 import scala.collection.{TraversableLike, breakOut}
 import scala.language.{higherKinds, postfixOps}
@@ -323,6 +325,10 @@ class Tensor private[Tensor](
     */
   def toTensorProto: TensorProto = Tensor.makeProto(this)
 
+  /** Writes this tensor to the provided file, using the Numpy (i.e., `.npy`) file format. Note that this method will
+    * replace the file, if it already exists. */
+  def writeNPY(file: Path, fortranOrder: Boolean = false): Unit = NPY.write(this, file, fortranOrder)
+
   override def equals(that: Any): Boolean = that match {
     case that: Tensor =>
       this.shape == that.shape &&
@@ -442,8 +448,12 @@ object Tensor {
     * @return New random tensor.
     */
   def rand(
-      dataType: DataType = FLOAT32, shape: Tensor = Shape.scalar(), minValue: Tensor = 0.0, maxValue: Tensor = 1.0,
-      seed: Option[Int] = None): Tensor = {
+      dataType: DataType = FLOAT32,
+      shape: Tensor = Shape.scalar(),
+      minValue: Tensor = 0.0,
+      maxValue: Tensor = 1.0,
+      seed: Option[Int] = None
+  ): Tensor = {
     Random.randomUniform(dataType, shape, minValue, maxValue, seed)
   }
 
@@ -461,8 +471,12 @@ object Tensor {
     * @return New random tensor.
     */
   def randn(
-      dataType: DataType = FLOAT32, shape: Tensor = Shape.scalar(), mean: Tensor = 0.0, standardDeviation: Tensor = 1.0,
-      seed: Option[Int] = None): Tensor = {
+      dataType: DataType = FLOAT32,
+      shape: Tensor = Shape.scalar(),
+      mean: Tensor = 0.0,
+      standardDeviation: Tensor = 1.0,
+      seed: Option[Int] = None
+  ): Tensor = {
     Random.randomNormal(dataType, shape, mean, standardDeviation, seed)
   }
 
@@ -572,6 +586,10 @@ object Tensor {
     NativeTensor.delete(hostHandle)
     tensor
   }
+
+  /** Reads the tensor stored in the provided Numpy (i.e., `.npy`) file. */
+  @throws[IllegalArgumentException]
+  def fromNPY(file: Path): Tensor = NPY.read(file)
 
   @throws[InvalidArgumentException]
   def makeProto(value: Tensor, dataType: DataType = null, shape: Shape = null)(implicit
