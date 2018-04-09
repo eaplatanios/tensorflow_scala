@@ -149,7 +149,7 @@ class Tensor private[Tensor](
         with Closeable
         with ProtoSerializable {
   /** Lock for the native handle. */
-  private[Tensor] def NativeHandleLock = nativeHandleWrapper.Lock
+  private[api] def NativeHandleLock = nativeHandleWrapper.Lock
 
   /** Native handle of this tensor. */
   private[api] def nativeHandle: Long = nativeHandleWrapper.handle
