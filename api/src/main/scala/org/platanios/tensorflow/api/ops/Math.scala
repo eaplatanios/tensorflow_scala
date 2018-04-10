@@ -4180,27 +4180,6 @@ object Math extends Math {
           x.shape == gradient.shape
     }
 
-    /** Returns the reduction indices for computing the gradients of `shape0` `[operator]` `shape1` with broadcasting.
-      *
-      * This is typically used by gradient computations for broadcasting operations.
-      *
-      * @param  shape0 First operand shape.
-      * @param  shape1 Second operand shape.
-      * @param  name   Name for the created op.
-      * @return Tuple containing two op outputs, each containing the reduction indices for the corresponding op.
-      */
-    private[api] def broadcastGradientArguments(
-        shape0: Output,
-        shape1: Output,
-        name: String = "BroadcastGradientArguments"
-    ): (Output, Output) = {
-      val outputs = Op.Builder(opType = "BroadcastGradientArgs", name = name)
-          .addInput(shape0)
-          .addInput(shape1)
-          .build().outputs
-      (outputs(0), outputs(1))
-    }
-
     private[this] def addGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       val x = op.inputs(0)
       val y = op.inputs(1)
@@ -4210,7 +4189,7 @@ object Math extends Math {
       } else {
         val xShape = Basic.shape(x)
         val yShape = Basic.shape(y)
-        val (rx, ry) = broadcastGradientArguments(xShape, yShape)
+        val (rx, ry) = Basic.broadcastGradientArguments(xShape, yShape)
         Seq(
           Basic.reshape(sum(outputGradient, rx), xShape),
           Basic.reshape(sum(outputGradient, ry), yShape))
@@ -4226,7 +4205,7 @@ object Math extends Math {
       } else {
         val xShape = Basic.shape(x)
         val yShape = Basic.shape(y)
-        val (rx, ry) = broadcastGradientArguments(xShape, yShape)
+        val (rx, ry) = Basic.broadcastGradientArguments(xShape, yShape)
         Seq(
           Basic.reshape(sum(outputGradient, rx), xShape),
           Basic.reshape(-sum(outputGradient, ry), yShape))
@@ -4243,7 +4222,7 @@ object Math extends Math {
       } else {
         val xShape = Basic.shape(x)
         val yShape = Basic.shape(y)
-        val (rx, ry) = broadcastGradientArguments(xShape, yShape)
+        val (rx, ry) = Basic.broadcastGradientArguments(xShape, yShape)
         Seq(
           Basic.reshape(sum(multiply(outputGradient, y), rx), xShape),
           Basic.reshape(sum(multiply(x, outputGradient), ry), yShape))
@@ -4255,7 +4234,7 @@ object Math extends Math {
       val y = conjugate(op.inputs(1))
       val xShape = Basic.shape(x)
       val yShape = Basic.shape(y)
-      val (rx, ry) = broadcastGradientArguments(xShape, yShape)
+      val (rx, ry) = Basic.broadcastGradientArguments(xShape, yShape)
       val outputGradient = outputGradients.head.toOutput
       Seq(
         Basic.reshape(sum(divide(outputGradient, y), rx), xShape),
@@ -4275,7 +4254,7 @@ object Math extends Math {
       val y = conjugate(op.inputs(1))
       val xShape = Basic.shape(x)
       val yShape = Basic.shape(y)
-      val (rx, ry) = broadcastGradientArguments(xShape, yShape)
+      val (rx, ry) = Basic.broadcastGradientArguments(xShape, yShape)
       val outputGradient = outputGradients.head.toOutput
       Seq(
         Basic.reshape(sum(realDivide(outputGradient, y), rx), xShape),
@@ -4287,7 +4266,7 @@ object Math extends Math {
       val y = op.inputs(1)
       val xShape = Basic.shape(x)
       val yShape = Basic.shape(y)
-      val (rx, ry) = broadcastGradientArguments(xShape, yShape)
+      val (rx, ry) = Basic.broadcastGradientArguments(xShape, yShape)
       val outputGradient = outputGradients.head.toOutput
       val xGradient = Op.createWith(controlDependencies = Set(outputGradient.op)) {
         multiply(scalarMul(Basic.constant(2, outputGradient.dataType), outputGradient), subtract(x, y))
@@ -4303,7 +4282,7 @@ object Math extends Math {
       val z = conjugate(op.outputs(0))
       val xShape = Basic.shape(x)
       val yShape = Basic.shape(y)
-      val (rx, ry) = broadcastGradientArguments(xShape, yShape)
+      val (rx, ry) = Basic.broadcastGradientArguments(xShape, yShape)
       val outputGradient = outputGradients.head.toOutput
       // Avoid false singularity at x = 0.
       val logX = {
@@ -4330,7 +4309,7 @@ object Math extends Math {
       val x = op.inputs(1)
       val aShape = Basic.shape(a)
       val xShape = Basic.shape(x)
-      val (_, rx) = broadcastGradientArguments(aShape, xShape)
+      val (_, rx) = Basic.broadcastGradientArguments(aShape, xShape)
       val outputGradient = outputGradients.head.toOutput
       // Perform operations in log space before summing, because Gamma(a) and Gamma'(a) can grow large.
       val partialX = exp(negate(x) + multiply(subtract(a, Basic.constant(1, a.dataType)), log(x)) - logGamma(a))
@@ -4345,7 +4324,7 @@ object Math extends Math {
         val q = conjugate(op.inputs(1))
         val xShape = Basic.shape(x)
         val qShape = Basic.shape(q)
-        val (_, rq) = broadcastGradientArguments(xShape, qShape)
+        val (_, rq) = Basic.broadcastGradientArguments(xShape, qShape)
         val partialQ = negate(x) * zeta(add(x, Basic.constant(1, x.dataType)), q)
         Seq(null, Basic.reshape(sum(multiply(partialQ, outputGradient), rq), qShape))
       }
@@ -4359,7 +4338,7 @@ object Math extends Math {
         val x = conjugate(op.inputs(1))
         val nShape = Basic.shape(n)
         val xShape = Basic.shape(x)
-        val (_, rx) = broadcastGradientArguments(nShape, xShape)
+        val (_, rx) = Basic.broadcastGradientArguments(nShape, xShape)
         val partialX = polygamma(add(n, Basic.constant(1, n.dataType)), x)
         Seq(null, Basic.reshape(sum(multiply(partialX, outputGradient), rx), xShape))
       }
@@ -4385,7 +4364,7 @@ object Math extends Math {
       val outputGradient = outputGradients.head.toOutput
       val zeros = Basic.zerosLike(outputGradient)
       val xMask = lessEqual(x, y)
-      val (rx, ry) = broadcastGradientArguments(xShape, yShape)
+      val (rx, ry) = Basic.broadcastGradientArguments(xShape, yShape)
       val xGradient = select(xMask, outputGradient, zeros)
       val yGradient = select(xMask, zeros, outputGradient)
       Seq(
@@ -4401,7 +4380,7 @@ object Math extends Math {
       val outputGradient = outputGradients.head.toOutput
       val zeros = Basic.zerosLike(outputGradient)
       val xMask = greaterEqual(x, y)
-      val (rx, ry) = broadcastGradientArguments(xShape, yShape)
+      val (rx, ry) = Basic.broadcastGradientArguments(xShape, yShape)
       val xGradient = select(xMask, outputGradient, zeros)
       val yGradient = select(xMask, outputGradient, zeros)
       Seq(
@@ -4417,7 +4396,7 @@ object Math extends Math {
       val aShape = Basic.shape(a)
       val xShape = Basic.shape(x)
       val outputGradient = outputGradients.head.toOutput
-      val (_, rx) = broadcastGradientArguments(aShape, xShape)
+      val (_, rx) = Basic.broadcastGradientArguments(aShape, xShape)
       // Perform operations in log space before summing, because terms can grow large.
       val logBeta = logGamma(a) + logGamma(b) - logGamma(a + b)
       val one = Basic.constant(1, b.dataType)
@@ -4908,7 +4887,7 @@ object Math extends Math {
       val xShape = Basic.shape(x)
       val yShape = Basic.shape(y)
       val outputGradient = outputGradients.head.toOutput
-      val (rx, ry) = broadcastGradientArguments(xShape, yShape)
+      val (rx, ry) = Basic.broadcastGradientArguments(xShape, yShape)
       Seq(
         Basic.reshape(sum(real(outputGradient), rx), xShape),
         Basic.reshape(sum(imag(outputGradient), ry), yShape))

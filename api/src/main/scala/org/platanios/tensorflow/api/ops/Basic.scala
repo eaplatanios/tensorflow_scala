@@ -1583,7 +1583,43 @@ private[api] trait Basic {
 
   //region Tensor Broadcasting Ops
 
-  // TODO: Add support for the "broadcastGradientArguments" op.
+  /** $OpDocBasicBroadcastGradientArguments
+    *
+    * @group BasicOps
+    *
+    * @param  shape0 First operand shape.
+    * @param  shape1 Second operand shape.
+    * @param  name   Name for the created op.
+    * @return Tuple containing two op outputs, each containing the reduction indices for the corresponding op.
+    */
+  def broadcastGradientArguments(
+      shape0: Output,
+      shape1: Output,
+      name: String = "BroadcastGradientArguments"
+  ): (Output, Output) = {
+    val outputs = Op.Builder(opType = "BroadcastGradientArgs", name = name)
+        .addInput(shape0)
+        .addInput(shape1)
+        .build().outputs
+    (outputs(0), outputs(1))
+  }
+
+  /** $OpDocBasicBroadcastTo
+    *
+    * @group BasicOps
+    *
+    * @param  tensor Tensor to broadcast.
+    * @param  shape  Shape to broadcast the provided tensor to.
+    * @param  name   Name for the created op.
+    * @return Created op output.
+    */
+  def broadcastTo(tensor: Output, shape: Output, name: String = "BroadcastTo"): Output = {
+    Op.Builder(opType = "BroadcastTo", name = name)
+        .addInput(tensor)
+        .addInput(shape)
+        .build().outputs(0)
+  }
+
   // TODO: Add support for "broadcastShape" (static). Implement the main method in the "Shape" object.
 
   /** $OpDocBasicBroadcastShape
@@ -3931,7 +3967,30 @@ object Basic extends Basic {
     *        [[0.0, 1.0, 0.0],   // oneHot(1)
     *         [0.0, 0.0, 0.0]]]  // oneHot(-1)
     *   }}}
-    * 
+    *
+    * @define OpDocBasicBroadcastGradientArguments
+    *   The `broadcastGradientArguments` op returns the reduction indices for computing the gradients of `shape0`
+    *   `[operator]` `shape1` with broadcasting.
+    *
+    *   This is typically used by gradient computations for broadcasting operations.
+    *
+    * @define OpDocBasicBroadcastTo
+    *   The `broadcastTo` op returns a tensor with its shape broadcast to the provided shape. Broadcasting is the
+    *   process of making arrays to have compatible shapes for arithmetic operations. Two shapes are compatible if for
+    *   each dimension pair they are either equal or one of them is one. When trying to broadcast a tensor to a shape,
+    *   the op starts with the trailing dimension, and works its way forward.
+    *
+    *   For example:
+    *   {{{
+    *     val x = tf.constant(Tensor(1, 2, 3))
+    *     val y = tf.broadcastTo(x, Seq(3, 3))
+    *     y ==> [[1, 2, 3],
+    *            [1, 2, 3],
+    *            [1, 2, 3]]
+    *   }}}
+    *   In the above example, the input tensor with the shape of `[1, 3]` is broadcasted to the output tensor with a
+    *   shape of `[3, 3]`.
+    *
     * @define OpDocBasicBroadcastShape
     *   The `broadcastShape` op returns the broadcasted dynamic shape between two provided shapes, corresponding to the 
     *   shapes of the two arguments provided to an op that supports broadcasting.

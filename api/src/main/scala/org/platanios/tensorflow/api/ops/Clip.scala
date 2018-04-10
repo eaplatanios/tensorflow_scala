@@ -200,8 +200,8 @@ object Clip extends Clip {
       val xGradient = Math.select(Math.logicalOr(xyMask, xzMask), zeros, outputGradient)
       val yGradient = Math.select(xyMask, outputGradient, zeros)
       val zGradient = Math.select(xzMask, outputGradient, zeros)
-      val (_, ry) = Math.Gradients.broadcastGradientArguments(xShape, yShape)
-      val (rx, rz) = Math.Gradients.broadcastGradientArguments(xShape, zShape)
+      val (_, ry) = Basic.broadcastGradientArguments(xShape, yShape)
+      val (rx, rz) = Basic.broadcastGradientArguments(xShape, zShape)
       Seq(
         Math.sum(xGradient, rx).reshape(xShape),
         Math.sum(yGradient, ry).reshape(yShape),
