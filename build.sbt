@@ -19,8 +19,8 @@ import sbtrelease.Vcs
 
 import scala.sys.process.Process
 
-scalaVersion in ThisBuild := "2.12.4"
-crossScalaVersions in ThisBuild := Seq("2.11.11", "2.12.4")
+scalaVersion in ThisBuild := "2.12.5"
+crossScalaVersions in ThisBuild := Seq("2.11.11", "2.12.5")
 
 organization in ThisBuild := "org.platanios"
 
@@ -46,13 +46,13 @@ scalacOptions in ThisBuild ++= Seq(
   // "-Ywarn-numeric-widen",
   // "-Ywarn-value-discard",
   "-Yrangepos",
-  "-Xfuture",
-  "-P:splain:all",
-  "-P:splain:infix",
-  "-P:splain:foundreq",
-  "-P:splain:implicits",
-  "-P:splain:color",
-  "-P:splain:tree"
+  "-Xfuture"
+//  "-P:splain:all",
+//  "-P:splain:infix",
+//  "-P:splain:foundreq",
+//  "-P:splain:implicits",
+//  "-P:splain:color",
+//  "-P:splain:tree"
 //  "-P:splain:boundsimplicits:false"
 )
 
@@ -68,7 +68,7 @@ lazy val loggingSettings = Seq(
 
 lazy val commonSettings = loggingSettings ++ Seq(
   // Plugin that prints better implicit resolution errors.
-  addCompilerPlugin("io.tryp"  % "splain" % "0.2.7" cross CrossVersion.patch)
+  // addCompilerPlugin("io.tryp"  % "splain" % "0.2.7" cross CrossVersion.patch)
 )
 
 lazy val testSettings = Seq(
