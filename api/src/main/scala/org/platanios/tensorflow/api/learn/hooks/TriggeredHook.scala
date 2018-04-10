@@ -51,6 +51,8 @@ abstract class TriggeredHook(
 
   override private[learn] def internalAfterSessionCreation(session: Session): Unit = {
     lastStep = session.run(fetches = step.value).scalar.asInstanceOf[Long]
+    if (lastStep == 0L)
+      lastStep = -1L
     super.internalAfterSessionCreation(session)
   }
 
@@ -58,10 +60,10 @@ abstract class TriggeredHook(
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]
   ): Option[Hook.SessionRunArgs[Seq[Output], Traversable[Op], Seq[Tensor]]] = {
-    if (internalTrigger.lastTriggerStep().isEmpty)
-      onFirstTrigger(runContext)(executableEv, fetchableEv)
     shouldTrigger = internalTrigger.shouldTriggerForStep(lastStep.toInt + 1)
     if (shouldTrigger) {
+      if (internalTrigger.lastTriggerStep().isEmpty)
+        onFirstTrigger(runContext)(executableEv, fetchableEv)
       Some(Hook.SessionRunArgs(fetches = step.value +: fetches))
     } else {
       Some(Hook.SessionRunArgs(fetches = Seq(step.value)))
