@@ -16,7 +16,6 @@
 package org.platanios.tensorflow.api.ops.variables
 
 import org.platanios.tensorflow.api.Op
-import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.exception.{InvalidDataTypeException, ShapeMismatchException}
 import org.platanios.tensorflow.api.implicits.Implicits._
@@ -34,15 +33,39 @@ import scala.collection.JavaConverters._
 import scala.language.postfixOps
 import scala.util.DynamicVariable
 
-/**
+/** Variable based on resource handles.
+  *
+  * TODO: Create a documentation page for the Scala API.
+  * See the [[https://www.tensorflow.org/programmers_guide/variables Variables Guide]] for a high-level overview.
+  *
+  * A variable allows you to maintain state across subsequent calls to `Session.run()`. The variable constructors
+  * require an initial value for the variable, which can be a tensor of any type and shape. The initial value defines
+  * the type and shape of the variable. After construction, the type and shape of the variable are fixed. The value can
+  * be changed using one of the assignment methods.
+  *
+  * Just like any tensor, variables can be used as inputs for other ops in the graph. Additionally, all the operators
+  * overloaded for tensors are carried over to variables, so you can also add nodes to the graph by just doing
+  * arithmetic on variables.
+  *
+  * Unlike the Python API, the Scala API uses resource variables that have well-defined semantics. Each usage of a
+  * resource variable in a TensorFlow graph adds a `read` operation to the graph. The tensors returned by a `read`
+  * operation are guaranteed to see all modifications to the value of the variable which happen in any operation on
+  * which the `read` depends on (either directly, indirectly, or via a control dependency) and guaranteed to not see
+  * any modification to the value of the variable from operations that depend on the `read` operation. Updates from
+  * operations that have no dependency relationship to the `read` operation might or might not be visible to `read`. For
+  * example, if there is more than one assignment to a resource variable in a single `Session.run()` call there is a
+  * well-defined value for each operation which uses the variable's value if the assignments and the `read` are
+  * connected by edges in the graph.
+  *
   * @author Emmanouil Antonios Platanios
   */
 case class Variable private (
     dataType: DataType,
     private val variableHandle: Output,
     private val initializeOp: Op,
-    private val cachedValue: Output)
-    extends ProtoSerializable {
+    private val cachedValue: Output,
+    private[variables] val graphElement: Output
+) extends ProtoSerializable {
   /** Graph where this variable is defined. */
   val graph: Graph = variableHandle.graph
 
@@ -171,6 +194,8 @@ case class Variable private (
   // TODO: [TF_UPDATE] The following ops are not atomic. Consider making atomic if there is a way to do so without a
   // performance cost for those who don't need it.
 
+  // TODO: [VARIABLE] Make reads optional in the assign ops.
+
   /** Creates an op that assigns the provided value to this variable and returns its value.
     *
     * @param  value Value to assign the variable to.
@@ -181,7 +206,7 @@ case class Variable private (
     if (value.dataType != dataType)
       throw InvalidDataTypeException(s"Expected '$dataType', but got '${value.dataType}'.")
     Op.createWith(graph = graph, controlDependencies = Set[Op](Variable.assign(handle, value, name))) {
-      read()
+      Variable.readVariable(handle, dataType, name)
     }
   }
 
@@ -195,7 +220,7 @@ case class Variable private (
     if (value.dataType != dataType)
       throw InvalidDataTypeException(s"Expected '$dataType', but got '${value.dataType}'.")
     Op.createWith(graph = graph, controlDependencies = Set[Op](Variable.assignAdd(handle, value, name))) {
-      read()
+      Variable.readVariable(handle, dataType, name)
     }
   }
 
@@ -209,7 +234,7 @@ case class Variable private (
     if (value.dataType != dataType)
       throw InvalidDataTypeException(s"Expected '$dataType', but got '${value.dataType}'.")
     Op.createWith(graph = graph, controlDependencies = Set[Op](Variable.assignSub(handle, value, name))) {
-      read()
+      Variable.readVariable(handle, dataType, name)
     }
   }
 
@@ -224,7 +249,7 @@ case class Variable private (
     if (values.dataType != dataType)
       throw InvalidDataTypeException(s"Expected '$dataType', but got '${values.dataType}'.")
     Op.createWith(graph = graph, controlDependencies = Set[Op](Variable.scatterUpdate(handle, indices, values, name))) {
-      read()
+      Variable.readVariable(handle, dataType, name)
     }
   }
 
@@ -239,7 +264,7 @@ case class Variable private (
     if (values.dataType != dataType)
       throw InvalidDataTypeException(s"Expected '$dataType', but got '${values.dataType}'.")
     Op.createWith(graph = graph, controlDependencies = Set[Op](Variable.scatterAdd(handle, indices, values, name))) {
-      read()
+      Variable.readVariable(handle, dataType, name)
     }
   }
 
@@ -255,7 +280,7 @@ case class Variable private (
     if (values.dataType != dataType)
       throw InvalidDataTypeException(s"Expected '$dataType', but got '${values.dataType}'.")
     Op.createWith(graph = graph, controlDependencies = Set[Op](Variable.scatterAdd(handle, indices, -values, name))) {
-      read()
+      Variable.readVariable(handle, dataType, name)
     }
   }
 
@@ -510,29 +535,29 @@ private[api] object Variable {
         val initializeOp = assign(
           variableHandle,
           tryGuardAgainstUninitializedDependencies(name, initialValue), name = "InitializationAssign")
-        val cachedValue = Op.createWith(nameScope = "Read") {
+        val (graphElement, cachedValue) = Op.createWith(nameScope = "Read") {
           Op.colocateWith(Set(variableHandle.op)) {
-            val cachedValueOp = {
+            // Manually assign reads to the handle's device to avoid log messages
+            val value = Op.createWith(device = variableHandle.device) {
+              readVariable(variableHandle, inferredDataType)
+            }
+            val cached = {
               if (cachingDevice != null) {
-                // Manually assign reads to the handle's device to avoid log messages
-                val valueOp = Op.createWith(device = variableHandle.device) {
-                  readVariable(variableHandle, inferredDataType)
-                }
                 // Variables may be created in a "createWith(device = ...)" block or a "createWith(colocationOps = ...)"
                 // block. At the same time, users would expect the caching device to be independent of this context,
                 // and/or would not expect the current device context to be merged with the caching device
                 // specification. Therefore, we reset the colocation stack before creating the cached value. Note that
                 // resetting the colocation stack will also reset the device stack.
-                Op.createWith(colocationOps = Set.empty[Op], device = null)(Basic.identity(valueOp))
+                Op.createWith(colocationOps = Set.empty[Op], device = null)(Basic.identity(value))
               } else {
                 null
               }
             }
-            cachedValueOp
+            (value, cached)
           }
         }
 
-        val createdVariable = Variable(inferredDataType, variableHandle, initializeOp, cachedValue)
+        val createdVariable = Variable(inferredDataType, variableHandle, initializeOp, cachedValue, graphElement)
         var effectiveCollections = collections
         if (effectiveCollections.isEmpty)
           effectiveCollections += Graph.Keys.GLOBAL_VARIABLES
@@ -558,10 +583,11 @@ private[api] object Variable {
 
     def prependNameScope(name: String) = if (importScope == null) name else Op.prependNameScope(importScope, name)
 
-    val variableOp = context.graph.getOutputByName(prependNameScope(variableDef.getVariableName))
-    val dataType = variableOp.op.dataTypeAttribute("dtype")
+    val handle = context.graph.getOutputByName(prependNameScope(variableDef.getVariableName))
+    val dataType = handle.op.dataTypeAttribute("dtype")
     val initializeOp = context.graph.getOpByName(prependNameScope(variableDef.getInitializerName))
-    val cachedValueOp = {
+    val graphElement = context.graph.getOutputByName(s"${handle.op.name}/Read/ReadVariable:0")
+    val cachedValue = {
       if (variableDef.getSnapshotName == null || variableDef.getSnapshotName == "")
         null
       else
@@ -573,7 +599,7 @@ private[api] object Variable {
       else
         null
     }
-    val createdVariable = Variable(dataType, variableOp, initializeOp, cachedValueOp)
+    val createdVariable = Variable(dataType, handle, initializeOp, cachedValue, graphElement)
     createdVariable.partitionInformation = saveSliceInformation
     createdVariable
   }
