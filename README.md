@@ -9,11 +9,8 @@
 [![Chat Room](https://img.shields.io/gitter/room/nwjs/nw.js.svg?style=flat-square)](https://gitter.im/eaplatanios/tensorflow_scala?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 ![License](https://img.shields.io/github/license/eaplatanios/tensorflow_scala.svg?style=flat-square)
 
-This library is a Scala API for [https://www.tensorflow.org](https://www.tensorflow.org). It attempts to provide most of 
-the functionality provided by the official Python API, while at the same type being strongly-typed and adding some new 
-features. It is a work in progress and a project I started working on for my personal research purposes. Much of the API 
-should be relatively stable by now, but things are still likely to change. That is why there is no official release of 
-this library yet.
+This library is a Scala API for [https://www.tensorflow.org](https://www.tensorflow.org). It attempts to provide most of the functionality provided by the official Python API, while at the same type being strongly-typed and adding some new features. It is a work in progress and a project I started working on for my personal research purposes. Much of the API 
+should be relatively stable by now, but things are still likely to change. That is why there is no official release of this library yet.
 
 Please refer to the main website for documentation and tutorials. Here
 are a few useful links:
@@ -113,8 +110,7 @@ are a few useful links:
   ```
   
 - Efficient interaction with the native library that avoids unnecessary copying of data. All tensors are created and 
-  managed by the native TensorFlow library. When they are passed to the Scala API (e.g., fetched from a TensorFlow 
-  session), we use a combination of weak references and a disposing thread running in the background. Please refer to 
+  managed by the native TensorFlow library. When they are passed to the Scala API (e.g., fetched from a TensorFlow session), we use a combination of weak references and a disposing thread running in the background. Please refer to 
   `tensorflow/src/main/scala/org/platanios/tensorflow/api/utilities/Disposer.scala`, for the implementation.
 
 ## Funding
@@ -126,7 +122,7 @@ Funding for the development of this library has been generously provided by the 
 | **CMU Presidential Fellowship**         | **National Science Foundation**   | **Air Force Office of Scientific Research**     | 
 | awarded to Emmanouil Antonios Platanios | Grant #: IIS1250956               | Grant #: FA95501710218                          |
 
-TensorFlow, the TensorFlow logo and any related marks are trademarks of Google Inc.
+TensorFlow, the TensorFlow logo, and any related marks are trademarks of Google Inc.
 
 <!---
 
