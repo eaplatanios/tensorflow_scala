@@ -94,6 +94,13 @@ class LIBPROTOBUF_EXPORT FieldMaskUtil {
   // Creates a FieldMask with all fields of type T. This FieldMask only
   // contains fields of T but not any sub-message fields.
   template <typename T>
+  static FieldMask GetFieldMaskForAllFields() {
+    FieldMask out;
+    InternalGetFieldMaskForAllFields(T::descriptor(), &out);
+    return out;
+  }
+  template <typename T>
+  PROTOBUF_RUNTIME_DEPRECATED("Use *out = GetFieldMaskForAllFields() instead")
   static void GetFieldMaskForAllFields(FieldMask* out) {
     InternalGetFieldMaskForAllFields(T::descriptor(), out);
   }
@@ -113,8 +120,17 @@ class LIBPROTOBUF_EXPORT FieldMaskUtil {
   static void Intersect(const FieldMask& mask1, const FieldMask& mask2,
                         FieldMask* out);
 
+  // Subtracts mask2 from mask1 base of type T.
+  template <typename T>
+  static void Subtract(const FieldMask& mask1, const FieldMask& mask2,
+                       FieldMask* out) {
+    InternalSubtract(T::descriptor(), mask1, mask2, out);
+  }
+
   // Returns true if path is covered by the given FieldMask. Note that path
   // "foo.bar" covers all paths like "foo.bar.baz", "foo.bar.quz.x", etc.
+  // Also note that parent paths are not covered by explicit child path, i.e.
+  // "foo.bar" does NOT cover "foo", even if "bar" is the only child.
   static bool IsPathInFieldMask(StringPiece path, const FieldMask& mask);
 
   class MergeOptions;
@@ -167,6 +183,10 @@ class LIBPROTOBUF_EXPORT FieldMaskUtil {
 
   static void InternalGetFieldMaskForAllFields(const Descriptor* descriptor,
                                                FieldMask* out);
+
+  static void InternalSubtract(const Descriptor* descriptor,
+                               const FieldMask& mask1, const FieldMask& mask2,
+                               FieldMask* out);
 };
 
 // Note that for compatibility with the defined behaviour for FieldMask in

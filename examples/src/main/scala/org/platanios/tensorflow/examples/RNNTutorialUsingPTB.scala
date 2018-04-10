@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -44,7 +44,7 @@ object RNNTutorialUsingPTB {
   object RNNOutputLayer extends tf.learn.Layer[LSTMTuple, Output]("RNNOutputLayer") {
     override val layerType: String = "RNNOutputLayer"
 
-    override protected def _forward(input: LSTMTuple, mode: tf.learn.Mode): Output = {
+    override protected def _forward(input: LSTMTuple)(implicit mode: tf.learn.Mode): Output = {
       val weights = tf.variable("OutputWeights", dataType, Shape(numHidden, vocabularySize))
       val bias = tf.variable("OutputBias", dataType, Shape(vocabularySize))
       val output = tf.linear(tf.reshape(input.output, Shape(-1, numHidden)), weights.value, bias.value)
@@ -69,7 +69,7 @@ object RNNTutorialUsingPTB {
         tf.learn.Sum("Loss/Sum") >>
         tf.learn.ScalarSummary("Loss/Summary", "Loss")
     val optimizer = tf.train.GradientDescent(1.0)
-    tf.learn.Model(input, layer, trainInput, loss, optimizer, tf.learn.ClipGradientsByGlobalNorm(5.0f))
+    tf.learn.Model.supervised(input, layer, trainInput, loss, optimizer, tf.learn.ClipGradientsByGlobalNorm(5.0f))
   }
 
   def main(args: Array[String]): Unit = {

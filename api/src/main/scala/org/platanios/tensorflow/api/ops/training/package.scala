@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -19,5 +19,8 @@ package org.platanios.tensorflow.api.ops
   * @author Emmanouil Antonios Platanios
   */
 package object training {
-  private[ops] trait API extends optimizers.API
+  private[ops] trait API extends optimizers.API {
+    type ExponentialMovingAverage = training.ExponentialMovingAverage
+    val ExponentialMovingAverage: training.ExponentialMovingAverage.type = training.ExponentialMovingAverage
+  }
 }

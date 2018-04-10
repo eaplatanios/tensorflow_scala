@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -52,7 +52,7 @@ case class Identity[T](override val name: String)
     extends Layer[T, T](name) {
   override val layerType = "Identity"
 
-  override protected def _forward(input: T, mode: Mode): T = input
+  override protected def _forward(input: T)(implicit mode: Mode): T = input
 }
 
 case class Compose[T, R, S](
@@ -61,7 +61,7 @@ case class Compose[T, R, S](
 ) extends Layer[T, S](name) {
   override val layerType: String = s"Compose[$layer1>>$layer2]"
 
-  override protected def _forward(input: T, mode: Mode): S = layer2(layer1(input, mode), mode)
+  override protected def _forward(input: T)(implicit mode: Mode): S = layer2(layer1(input))
 }
 
 case class Concatenate[T, R](
@@ -70,7 +70,7 @@ case class Concatenate[T, R](
 ) extends Layer[T, Seq[R]](name) {
   override val layerType: String = "Concatenate"
 
-  override protected def _forward(input: T, mode: Mode): Seq[R] = layers.map(_ (input, mode))
+  override protected def _forward(input: T)(implicit mode: Mode): Seq[R] = layers.map(_ (input))
 }
 
 case class Map[T, R, S, CC[A] <: TraversableLike[A, CC[A]]](
@@ -82,10 +82,10 @@ case class Map[T, R, S, CC[A] <: TraversableLike[A, CC[A]]](
 ) extends Layer[CC[T], CC[S]](name) {
   override val layerType: String = s"Map[$layer]"
 
-  override protected def _forward(input: CC[T], mode: Mode): CC[S] = {
-    layer(input, mode)
+  override protected def _forward(input: CC[T])(implicit mode: Mode): CC[S] = {
+    layer(input)
         .asInstanceOf[TraversableLike[R, CC[R]]]
-        .map[S, CC[S]](mapLayer(_, mode))(cbfRS)
+        .map[S, CC[S]](mapLayer(_))(cbfRS)
   }
 }
 
@@ -93,7 +93,7 @@ case class Squeeze(override val name: String, axes: Seq[Int] = null)
     extends Layer[Output, Output](name) {
   override val layerType: String = if (axes != null) s"Squeeze[${axes.mkString(", ")}]" else "Squeeze"
 
-  override protected def _forward(input: Output, mode: Mode): Output = {
+  override protected def _forward(input: Output)(implicit mode: Mode): Output = {
     ops.Basic.squeeze(input, axes, name = name)
   }
 }
@@ -102,7 +102,7 @@ case class Flatten(override val name: String)
     extends Layer[Output, Output](name) {
   override val layerType: String = s"Flatten"
 
-  override protected def _forward(input: Output, mode: Mode): Output = {
+  override protected def _forward(input: Output)(implicit mode: Mode): Output = {
     if (input.rank == 1)
       input
     else if (input.rank > -1 && input.shape(0) > -1)
@@ -116,7 +116,7 @@ case class Transpose(override val name: String, permutation: Seq[Int])
     extends Layer[Output, Output](name) {
   override val layerType: String = s"Transpose[${permutation.mkString(", ")}]"
 
-  override protected def _forward(input: Output, mode: Mode): Output = {
+  override protected def _forward(input: Output)(implicit mode: Mode): Output = {
     ops.Basic.transpose(input, permutation, name = name)
   }
 }
@@ -125,7 +125,7 @@ case class OneHot(override val name: String, numberOfLabels: Int)
     extends Layer[Output, Output](name) {
   override val layerType: String = s"OneHot[$numberOfLabels]"
 
-  override protected def _forward(input: Output, mode: Mode): Output = {
+  override protected def _forward(input: Output)(implicit mode: Mode): Output = {
     ops.Basic.oneHot(input, numberOfLabels, name = name)
   }
 }

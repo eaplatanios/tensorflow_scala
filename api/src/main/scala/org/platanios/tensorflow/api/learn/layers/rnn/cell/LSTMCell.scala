@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -55,21 +55,15 @@ class LSTMCell(
   override val layerType: String = "LSTMCell"
 
   override def createCellWithoutContext(mode: Mode, inputShape: Shape): ops.rnn.cell.LSTMCell = {
-    val trainableVariables: mutable.Set[Variable] = mutable.Set[Variable]()
     val hiddenDepth = if (projectionSize != -1) projectionSize else numUnits
     val kernel = tf.variable(
       KERNEL_NAME, dataType, Shape(inputShape(-1) + hiddenDepth, 4 * numUnits), kernelInitializer)
     val bias = tf.variable(BIAS_NAME, dataType, Shape(4 * numUnits), biasInitializer)
-    trainableVariables += kernel
-    trainableVariables += bias
     val (wfDiag, wiDiag, woDiag) = {
       if (usePeepholes) {
         val wfDiag = tf.variable("Peepholes/ForgetKernelDiag", dataType, Shape(numUnits), kernelInitializer)
         val wiDiag = tf.variable("Peepholes/InputKernelDiag", dataType, Shape(numUnits), kernelInitializer)
         val woDiag = tf.variable("Peepholes/OutputKernelDiag", dataType, Shape(numUnits), kernelInitializer)
-        trainableVariables += wfDiag
-        trainableVariables += wiDiag
-        trainableVariables += woDiag
         (wfDiag.value, wiDiag.value, woDiag.value)
       } else {
         (null, null, null)
@@ -78,11 +72,7 @@ class LSTMCell(
     val projectionKernel = {
       if (projectionSize != -1) {
         val projectionKernel = tf.variable(
-          s"Projection/$KERNEL_NAME",
-          dataType,
-          Shape(numUnits, projectionSize),
-          kernelInitializer)
-        trainableVariables += projectionKernel
+          s"Projection/$KERNEL_NAME", dataType, Shape(numUnits, projectionSize), kernelInitializer)
         projectionKernel.value
       } else {
         null

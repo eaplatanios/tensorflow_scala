@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -103,7 +103,7 @@ package object variables {
     }
 
     def createWithVariableScope[R](
-        name: String, reuse: VariableReuseAllowed = ReuseOrCreateNewVariable, dataType: DataType = null,
+        name: String, reuse: VariableReuse = ReuseOrCreateNewVariable, dataType: DataType = null,
         initializer: VariableInitializer = null, regularizer: VariableRegularizer = null,
         partitioner: VariablePartitioner = null, cachingDevice: OpSpecification => String = null,
         customGetter: VariableGetter = null, isDefaultName: Boolean = false, isPure: Boolean = false)
@@ -114,7 +114,7 @@ package object variables {
     }
 
     def createWithUpdatedVariableScope[R](
-        variableScope: VariableScope, reuse: VariableReuseAllowed = ReuseOrCreateNewVariable, dataType: DataType = null,
+        variableScope: VariableScope, reuse: VariableReuse = ReuseOrCreateNewVariable, dataType: DataType = null,
         initializer: VariableInitializer = null, regularizer: VariableRegularizer = null,
         partitioner: VariablePartitioner = null, cachingDevice: OpSpecification => String = null,
         customGetter: VariableGetter = null, isPure: Boolean = false)(block: => R): R = {

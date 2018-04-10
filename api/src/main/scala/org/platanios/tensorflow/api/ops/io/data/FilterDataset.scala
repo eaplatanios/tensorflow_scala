@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -38,7 +38,8 @@ case class FilterDataset[T, O, D, S](
 ) extends Dataset[T, O, D, S](name)(inputDataset.evOToT, inputDataset.evData, inputDataset.evFunctionInput) {
   private[this] lazy val instantiatedPredicateFunction = {
     Function(s"$name/Predicate", predicateFn).instantiate(
-      inputDataset.flattenedOutputDataTypes, inputDataset.flattenedOutputShapes, appendHashToName = true)
+      inputDataset.flattenedOutputDataTypes, inputDataset.flattenedOutputShapes,
+      appendHashToName = true)
   }
 
   override def createHandle(): Output = {

@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -15,8 +15,8 @@
 
 package org.platanios.tensorflow.api.ops.training.optimizers
 
-import org.platanios.tensorflow.api.ops.training.optimizers.decay.{Decay, NoDecay}
 import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output, OutputIndexedSlices, Summary}
+import org.platanios.tensorflow.api.ops.training.optimizers.schedules.{Schedule, FixedSchedule}
 import org.platanios.tensorflow.api.ops.variables.Variable
 
 /** Optimizer that implements the gradient descent algorithm and includes support for learning rate decay, momentum, and
@@ -37,21 +37,25 @@ import org.platanios.tensorflow.api.ops.variables.Variable
   *
   * @author Emmanouil Antonios Platanios
   */
-case class GradientDescent(
-    learningRate: Double, decay: Decay = NoDecay, momentum: Double = 0.0, useNesterov: Boolean = false,
-    useLocking: Boolean = false, learningRateSummaryTag: String = null,
-    name: String = "GradientDescent"
+class GradientDescent protected (
+    val learningRate: Double,
+    val decay: Schedule = FixedSchedule,
+    val momentum: Double = 0.0,
+    val useNesterov: Boolean = false,
+    val useLocking: Boolean = false,
+    val learningRateSummaryTag: String = null,
+    val name: String = "GradientDescent"
 ) extends Optimizer {
-  private[this] var learningRateTensor: Output = _
-  private[this] var momentumTensor    : Output = _
+  protected var learningRateTensor: Output = _
+  protected var momentumTensor    : Output = _
 
-  private[this] def getLearningRate(variable: Variable, iteration: Option[Variable]): Output = {
+  protected def getLearningRate(variable: Variable, iteration: Option[Variable]): Output = {
     if (learningRateTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
     Math.cast(learningRateTensor, variable.dataType)
   }
 
-  private[this] def getMomentum(variable: Variable): Output = {
+  protected def getMomentum(variable: Variable): Output = {
     if (momentumTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
     Math.cast(momentumTensor, variable.dataType)
@@ -59,7 +63,7 @@ case class GradientDescent(
 
   override protected def createSlots(variables: Seq[Variable]): Unit = {
     if (momentum > 0.0f)
-      variables.foreach(v => zerosSlot("momentum", v, "Momentum"))
+      variables.foreach(v => zerosSlot("Momentum", v, name))
   }
 
   override def prepare(iteration: Option[Variable]): Unit = {
@@ -74,7 +78,7 @@ case class GradientDescent(
     if (momentum > 0.0f)
       GradientDescent.resourceApplyMomentumDense(
         variable = variable,
-        accumulator = getSlot("momentum", variable),
+        accumulator = getSlot("Momentum", variable),
         stepSize = getLearningRate(variable, iteration),
         gradient = gradient,
         momentum = getMomentum(variable),
@@ -88,7 +92,7 @@ case class GradientDescent(
     if (momentum > 0.0f)
       GradientDescent.resourceApplyMomentumSparse(
         variable = variable,
-        accumulator = getSlot("momentum", variable),
+        accumulator = getSlot("Momentum", variable),
         stepSize = getLearningRate(variable, iteration),
         gradient = gradient.values,
         indices = gradient.indices,
@@ -106,6 +110,18 @@ case class GradientDescent(
 }
 
 object GradientDescent {
+  def apply(
+      learningRate: Double,
+      decay: Schedule = FixedSchedule,
+      momentum: Double = 0.0,
+      useNesterov: Boolean = false,
+      useLocking: Boolean = false,
+      learningRateSummaryTag: String = null,
+      name: String = "GradientDescent"
+  ): GradientDescent = {
+    new GradientDescent(learningRate, decay, momentum, useNesterov, useLocking, learningRateSummaryTag, name)
+  }
+
   /** Creates an op that updates the value of `variable` by subtracting `stepSize * gradient` from it.
     *
     * @param  variable   Variable whose value to update.
@@ -116,9 +132,13 @@ object GradientDescent {
     * @param  name       Name for the created op.
     * @return Created op.
     */
-  private[GradientDescent] def resourceApplyDense(
-      variable: Variable, stepSize: Output, gradient: Output, useLocking: Boolean = false,
-      name: String = "ResourceApplyGradientDescent"): Op = {
+  private[optimizers] def resourceApplyDense(
+      variable: Variable,
+      stepSize: Output,
+      gradient: Output,
+      useLocking: Boolean = false,
+      name: String = "ResourceApplyGradientDescent"
+  ): Op = {
     Op.Builder(opType = "ResourceApplyGradientDescent", name = name)
         .addInput(variable.handle)
         .addInput(stepSize)
@@ -148,9 +168,16 @@ object GradientDescent {
     * @param  name        Name for the created op.
     * @return Created op.
     */
-  private[GradientDescent] def resourceApplyMomentumDense(
-      variable: Variable, accumulator: Variable, stepSize: Output, gradient: Output, momentum: Output,
-      useNesterov: Boolean = false, useLocking: Boolean = false, name: String = "ResourceApplyMomentum"): Op = {
+  private[optimizers] def resourceApplyMomentumDense(
+      variable: Variable,
+      accumulator: Variable,
+      stepSize: Output,
+      gradient: Output,
+      momentum: Output,
+      useNesterov: Boolean = false,
+      useLocking: Boolean = false,
+      name: String = "ResourceApplyMomentum"
+  ): Op = {
     Op.Builder(opType = "ResourceApplyMomentum", name = name)
         .addInput(variable.handle)
         .addInput(accumulator.handle)
@@ -184,9 +211,17 @@ object GradientDescent {
     * @param  name        Name for the created op.
     * @return Created op.
     */
-  private[GradientDescent] def resourceApplyMomentumSparse(
-      variable: Variable, accumulator: Variable, stepSize: Output, gradient: Output, indices: Output, momentum: Output,
-      useNesterov: Boolean = false, useLocking: Boolean = false, name: String = "ResourceSparseApplyMomentum"): Op = {
+  private[optimizers] def resourceApplyMomentumSparse(
+      variable: Variable,
+      accumulator: Variable,
+      stepSize: Output,
+      gradient: Output,
+      indices: Output,
+      momentum: Output,
+      useNesterov: Boolean = false,
+      useLocking: Boolean = false,
+      name: String = "ResourceSparseApplyMomentum"
+  ): Op = {
     Op.Builder(opType = "ResourceSparseApplyMomentum", name = name)
         .addInput(variable.handle)
         .addInput(accumulator.handle)

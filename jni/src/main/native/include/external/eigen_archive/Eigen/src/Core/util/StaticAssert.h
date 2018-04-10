@@ -24,6 +24,7 @@
  *
  */
 
+#ifndef EIGEN_STATIC_ASSERT
 #ifndef EIGEN_NO_STATIC_ASSERT
 
   #if EIGEN_MAX_CPP_VER>=11 && (__has_feature(cxx_static_assert) || (defined(__cplusplus) && __cplusplus >= 201103L) || (EIGEN_COMP_MSVC >= 1600))
@@ -101,7 +102,8 @@
         THIS_TYPE_IS_NOT_SUPPORTED=1,
         STORAGE_KIND_MUST_MATCH=1,
         STORAGE_INDEX_MUST_MATCH=1,
-        CHOLMOD_SUPPORTS_DOUBLE_PRECISION_ONLY=1
+        CHOLMOD_SUPPORTS_DOUBLE_PRECISION_ONLY=1,
+        SELFADJOINTVIEW_ACCEPTS_UPPER_AND_LOWER_MODE_ONLY=1
       };
     };
 
@@ -131,7 +133,7 @@
   #define EIGEN_STATIC_ASSERT(CONDITION,MSG) eigen_assert((CONDITION) && #MSG);
 
 #endif // EIGEN_NO_STATIC_ASSERT
-
+#endif // EIGEN_STATIC_ASSERT
 
 // static assertion failing if the type \a TYPE is not a vector type
 #define EIGEN_STATIC_ASSERT_VECTOR_ONLY(TYPE) \

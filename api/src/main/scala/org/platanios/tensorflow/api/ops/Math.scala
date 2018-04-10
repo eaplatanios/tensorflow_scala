@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -115,6 +115,8 @@ private[api] trait Math {
     if (x.dataType == dataType) {
       x
     } else {
+      if (x.dataType.isComplex && !dataType.isComplex)
+        logger.warn("Casting complex tensors to real tensors discards the imaginary part.")
       implicitly[OutputOps[T]]
           .applyUnary(x, o => Op.Builder(opType = "Cast", name = name)
               .addInput(o)
@@ -156,7 +158,37 @@ private[api] trait Math {
           .build().outputs(0)
   }
 
-  // TODO: [OPS] accumulateN
+  /** $OpDocMathAccumulateN
+    *
+    * @param  inputs Input tensors.
+    * @param  shape  Shape of the elements of `inputs` (in case it's not known statically and needs to be retained).
+    * @param  name   Created op name.
+    * @return Created op output.
+    * @throws InvalidArgumentException If any of the inputs has a different data type and/or shape than the rest.
+    */
+  @throws[InvalidArgumentException]
+  def accumulateN(
+      inputs: Seq[Output],
+      shape: Shape = null,
+      name: String = "AccumulateN"
+  ): Output = {
+    val dataType = inputs.head.dataType
+    if (inputs.exists(_.dataType != dataType))
+      throw InvalidArgumentException("All input tensors must have the same data type.")
+    val inferredShape = if (shape == null) Shape.unknown() else shape
+    if (inputs.exists(!_.shape.isCompatibleWith(inferredShape)))
+      throw InvalidArgumentException("All input tensors must have the same shape.")
+    if (inputs.length == 1 && name == null) {
+      inputs.head
+    } else if (inputs.length == 1) {
+      Basic.identity(inputs.head, name = name)
+    } else {
+      Op.Builder(opType = "AccumulateNV2", name = name)
+          .addInputList(inputs)
+          .setAttribute("shape", shape)
+          .build().outputs(0)
+    }
+  }
 
   //region Unary Ops
 
@@ -991,24 +1023,6 @@ private[api] trait Math {
         .build().outputs(0)
   }
 
-  /** $OpDocMathMaximum
-    *
-    * @group MathOps
-    * @param  x    First input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`, or
-    *              `INT64`.
-    * @param  y    Second input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`,
-    *              or `INT64`.
-    * @param  name Name for the created op.
-    * @return Created op output.
-    */
-  def maximum(x: Output, y: Output, name: String = "Maximum"): Output = {
-    val (cX, cY) = castArgs(x, y)
-    Op.Builder(opType = "Maximum", name = name)
-        .addInput(cX)
-        .addInput(cY)
-        .build().outputs(0)
-  }
-
   /** $OpDocMathMinimum
     *
     * @group MathOps
@@ -1022,6 +1036,24 @@ private[api] trait Math {
   def minimum(x: Output, y: Output, name: String = "Minimum"): Output = {
     val (cX, cY) = castArgs(x, y)
     Op.Builder(opType = "Minimum", name = name)
+        .addInput(cX)
+        .addInput(cY)
+        .build().outputs(0)
+  }
+
+  /** $OpDocMathMaximum
+    *
+    * @group MathOps
+    * @param  x    First input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`, or
+    *              `INT64`.
+    * @param  y    Second input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`,
+    *              or `INT64`.
+    * @param  name Name for the created op.
+    * @return Created op output.
+    */
+  def maximum(x: Output, y: Output, name: String = "Maximum"): Output = {
+    val (cX, cY) = castArgs(x, y)
+    Op.Builder(opType = "Maximum", name = name)
         .addInput(cX)
         .addInput(cY)
         .build().outputs(0)
@@ -1382,24 +1414,24 @@ private[api] trait Math {
     *
     * @group MathOps
     * @param  input    Input tensor to reduce.
-    * @param  axes     Integer sequence containing the axes to reduce. If `null`, then all axes are reduced.
+    * @param  axes     Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
     * @param  keepDims If `true`, retain the reduced axes.
     * @param  name     Name for the created op.
     * @return Created op output.
     */
   def logSumExp(
-      input: Output, axes: Seq[Int] = null, keepDims: Boolean = false, name: String = "LogSumExp"): Output = {
+      input: Output, axes: Output = null, keepDims: Boolean = false, name: String = "LogSumExp"): Output = {
     if (input.rank == 0)
       input
     else
       Op.createWith(nameScope = name) {
-        val axesArray = axes.toArray
-        val maxValue = Basic.stopGradient(max(input, axesArray, keepDims = true))
-        val result = log(sum(exp(input - maxValue), axesArray, keepDims = true)) + maxValue
-        if (keepDims)
-          result
+        val maxValue = Basic.stopGradient(max(input, axes, keepDims = true))
+        var result = log(sum(exp(input - maxValue), axes, keepDims = true))
+        if (!keepDims)
+          result += Basic.reshape(maxValue, Basic.shape(result))
         else
-          Basic.squeeze(result, axesArray)
+          result += maxValue
+        result
       }
   }
 
@@ -1416,6 +1448,23 @@ private[api] trait Math {
       input: Output, axes: Output = null, keepDims: Boolean = false, name: String = "CountNonZero"): Output = {
     Op.createWith(nameScope = name) {
       sum(cast(notEqual(input, Basic.constant(0)), INT64), axes, keepDims)
+    }
+  }
+
+  /** $OpDocMathCountNonZero
+    *
+    * @group MathOps
+    * @param  input    Input tensor for which to count the number of non-zero entries.
+    * @param  name     Name for the created op.
+    * @return Created op output with `INT64` data type.
+    */
+  def countNonZeroSparse[T <: OutputLike](input: T, name: String = "CountNonZero"): Output = {
+    Op.createWith(nameScope = name) {
+      input match {
+        case o: Output => sum(cast(notEqual(o, Basic.constant(0)), INT64))
+        case o: OutputIndexedSlices => sum(cast(notEqual(o.values, Basic.constant(0)), INT64))
+        case o: SparseOutput => sum(cast(notEqual(o.values, Basic.constant(0)), INT64))
+      }
     }
   }
 
@@ -1629,8 +1678,94 @@ private[api] trait Math {
     * @return Created op output.
     */
   def unsortedSegmentSum(
-      data: Output, segmentIndices: Output, segmentsNumber: Output, name: String = "UnsortedSegmentSum"): Output = {
+      data: Output,
+      segmentIndices: Output,
+      segmentsNumber: Output,
+      name: String = "UnsortedSegmentSum"
+  ): Output = {
     Op.Builder(opType = "UnsortedSegmentSum", name = name)
+        .addInput(data)
+        .addInput(segmentIndices)
+        .addInput(segmentsNumber)
+        .build().outputs(0)
+  }
+
+  /** Helper function for `unsortedSegmentMean` and `unsortedSegmentSqrtN` that computes the number of segment entries
+    * with zero entries set to `1`, in order to allow for division by `N`.
+    *
+    * @param  data           Data (must have a numeric data type -- i.e., representing a number).
+    * @param  segmentIndices Segment indices (must have data type of [[INT32]] or [[INT64]]).
+    * @param  segmentsNumber Number of segments (must have data type of [[INT32]]).
+    * @return Created op output.
+    */
+  protected def unsortedSegmentN(
+      data: Output,
+      segmentIndices: Output,
+      segmentsNumber: Output,
+      name: String = "UnsortedSegmentN"
+  ): Output = Op.createWithNameScope(name) {
+    // `binCount` does not support negative indices and so we use `unsortedSegmentSum`.
+    val ones = Basic.ones(data.dataType, Basic.shape(segmentIndices))
+    val N = unsortedSegmentSum(ones, segmentIndices, segmentsNumber)
+    val outputRank = Basic.rank(data) - Basic.rank(segmentIndices)
+    val outputRankTiled = Basic.tile(Basic.ones(segmentsNumber.dataType, Shape(1)), outputRank.expandDims(0))
+    val broadcastShape = Basic.concatenate(Seq(segmentsNumber.expandDims(0), outputRankTiled))
+    maximum(1, Basic.reshape(N, broadcastShape))
+  }
+
+  /** $OpDocMathUnsortedSegmentMean
+    *
+    * @group MathOps
+    * @param  data           Data (must have a numeric data type -- i.e., representing a number).
+    * @param  segmentIndices Segment indices (must have data type of [[INT32]] or [[INT64]]).
+    * @param  segmentsNumber Number of segments (must have data type of [[INT32]]).
+    * @param  name           Name for the created op.
+    * @return Created op output.
+    */
+  def unsortedSegmentMean(
+      data: Output,
+      segmentIndices: Output,
+      segmentsNumber: Output,
+      name: String = "UnsortedSegmentMean"
+  ): Output = Op.createWithNameScope(name) {
+    val N = unsortedSegmentN(data, segmentIndices, segmentsNumber, name = "N")
+    unsortedSegmentSum(data, segmentIndices, segmentsNumber, name = "Sum") / N
+  }
+
+  /** $OpDocMathUnsortedSegmentProd
+    *
+    * @group MathOps
+    * @param  data           Data (must have a numeric data type -- i.e., representing a number).
+    * @param  segmentIndices Segment indices (must have data type of [[INT32]] or [[INT64]]).
+    * @param  segmentsNumber Number of segments (must have data type of [[INT32]]).
+    * @param  name           Name for the created op.
+    * @return Created op output.
+    */
+  def unsortedSegmentProd(
+      data: Output,
+      segmentIndices: Output,
+      segmentsNumber: Output,
+      name: String = "UnsortedSegmentProd"
+  ): Output = {
+    Op.Builder(opType = "UnsortedSegmentProd", name = name)
+        .addInput(data)
+        .addInput(segmentIndices)
+        .addInput(segmentsNumber)
+        .build().outputs(0)
+  }
+
+  /** $OpDocMathUnsortedSegmentMin
+    *
+    * @group MathOps
+    * @param  data           Data (must have a numeric data type -- i.e., representing a number).
+    * @param  segmentIndices Segment indices (must have data type of [[INT32]] or [[INT64]]).
+    * @param  segmentsNumber Number of segments (must have data type of [[INT32]]).
+    * @param  name           Name for the created op.
+    * @return Created op output.
+    */
+  def unsortedSegmentMin(
+      data: Output, segmentIndices: Output, segmentsNumber: Output, name: String = "UnsortedSegmentMin"): Output = {
+    Op.Builder(opType = "UnsortedSegmentMin", name = name)
         .addInput(data)
         .addInput(segmentIndices)
         .addInput(segmentsNumber)
@@ -1653,6 +1788,25 @@ private[api] trait Math {
         .addInput(segmentIndices)
         .addInput(segmentsNumber)
         .build().outputs(0)
+  }
+
+  /** $OpDocMathUnsortedSegmentSqrtN
+    *
+    * @group MathOps
+    * @param  data           Data (must have a numeric data type -- i.e., representing a number).
+    * @param  segmentIndices Segment indices (must have data type of [[INT32]] or [[INT64]]).
+    * @param  segmentsNumber Number of segments (must have data type of [[INT32]]).
+    * @param  name           Name for the created op.
+    * @return Created op output.
+    */
+  def unsortedSegmentSqrtN(
+      data: Output,
+      segmentIndices: Output,
+      segmentsNumber: Output,
+      name: String = "UnsortedSegmentSqrtN"
+  ): Output = Op.createWithNameScope(name) {
+    val N = unsortedSegmentN(data, segmentIndices, segmentsNumber, name = "N")
+    unsortedSegmentSum(data, segmentIndices, segmentsNumber, name = "Sum") / sqrt(N)
   }
 
   /** $OpDocMathSparseSegmentSum
@@ -2882,19 +3036,19 @@ object Math extends Math {
       */
     def atan2(other: Output): Output = Math.atan2(output, other)
 
-    /** $OpDocMathMaximum
-      *
-      * @group MathOps
-      * @return Result as a new tensor.
-      */
-    def maximum(other: Output): Output = Math.maximum(output, other)
-
     /** $OpDocMathMinimum
       *
       * @group MathOps
       * @return Result as a new tensor.
       */
     def minimum(other: Output): Output = Math.minimum(output, other)
+
+    /** $OpDocMathMaximum
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def maximum(other: Output): Output = Math.maximum(output, other)
 
     //endregion Math Binary Ops
 
@@ -3051,11 +3205,11 @@ object Math extends Math {
     /** $OpDocMathLogSumExp
       *
       * @group MathOps
-      * @param  axes     Integer sequence containing the axes to reduce. If `null`, then all axes are reduced.
+      * @param  axes     Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
       * @param  keepDims If `true`, retain the reduced axes.
       * @return Result as a new tensor.
       */
-    def logSumExp(axes: Seq[Int] = null, keepDims: Boolean = false): Output = Math.logSumExp(output, axes, keepDims)
+    def logSumExp(axes: Output = null, keepDims: Boolean = false): Output = Math.logSumExp(output, axes, keepDims)
 
     /** $OpDocMathCountNonZero
       *
@@ -3193,6 +3347,42 @@ object Math extends Math {
       Math.unsortedSegmentSum(output, segmentIndices, segmentsNumber)
     }
 
+    /** $OpDocMathUnsortedSegmentMean
+      *
+      * @group MathOps
+      *
+      * @param  segmentIndices Segment indices (must have data type of [[INT32]] or [[INT64]]).
+      * @param  segmentsNumber Number of segments (must have data type of [[INT32]]).
+      * @return Result as a new tensor.
+      */
+    def unsortedSegmentMean(segmentIndices: Output, segmentsNumber: Output): Output = {
+      Math.unsortedSegmentMean(output, segmentIndices, segmentsNumber)
+    }
+
+    /** $OpDocMathUnsortedSegmentProd
+      *
+      * @group MathOps
+      *
+      * @param  segmentIndices Segment indices (must have data type of [[INT32]] or [[INT64]]).
+      * @param  segmentsNumber Number of segments (must have data type of [[INT32]]).
+      * @return Result as a new tensor.
+      */
+    def unsortedSegmentProd(segmentIndices: Output, segmentsNumber: Output): Output = {
+      Math.unsortedSegmentProd(output, segmentIndices, segmentsNumber)
+    }
+
+    /** $OpDocMathUnsortedSegmentMin
+      *
+      * @group MathOps
+      *
+      * @param  segmentIndices Segment indices (must have data type of [[INT32]] or [[INT64]]).
+      * @param  segmentsNumber Number of segments (must have data type of [[INT32]]).
+      * @return Result as a new tensor.
+      */
+    def unsortedSegmentMin(segmentIndices: Output, segmentsNumber: Output): Output = {
+      Math.unsortedSegmentMin(output, segmentIndices, segmentsNumber)
+    }
+
     /** $OpDocMathUnsortedSegmentMax
       *
       * @group MathOps
@@ -3203,6 +3393,18 @@ object Math extends Math {
       */
     def unsortedSegmentMax(segmentIndices: Output, segmentsNumber: Output): Output = {
       Math.unsortedSegmentMax(output, segmentIndices, segmentsNumber)
+    }
+
+    /** $OpDocMathUnsortedSegmentSqrtN
+      *
+      * @group MathOps
+      *
+      * @param  segmentIndices Segment indices (must have data type of [[INT32]] or [[INT64]]).
+      * @param  segmentsNumber Number of segments (must have data type of [[INT32]]).
+      * @return Result as a new tensor.
+      */
+    def unsortedSegmentSqrtN(segmentIndices: Output, segmentsNumber: Output): Output = {
+      Math.unsortedSegmentSqrtN(output, segmentIndices, segmentsNumber)
     }
 
     /** $OpDocMathSparseSegmentSum
@@ -3540,6 +3742,7 @@ object Math extends Math {
     GradientsRegistry.register("Select", selectGradient)
     GradientsRegistry.register("Cast", castGradient)
     GradientsRegistry.register("AddN", addNGradient)
+    GradientsRegistry.register("AccumulateNV2", accumulateNGradient)
     GradientsRegistry.register("Abs", absGradient)
     GradientsRegistry.register("ComplexAbs", complexAbsGradient)
     GradientsRegistry.register("Neg", negateGradient)
@@ -3592,8 +3795,8 @@ object Math extends Math {
     GradientsRegistry.register("Zeta", zetaGradient)
     GradientsRegistry.register("Polygamma", polygammaGradient)
     GradientsRegistry.register("Atan2", atan2Gradient)
-    GradientsRegistry.register("Maximum", maximumGradient)
     GradientsRegistry.register("Minimum", minimumGradient)
+    GradientsRegistry.register("Maximum", maximumGradient)
     GradientsRegistry.register("Betainc", betaIncGradient)
     GradientsRegistry.register("Sum", sumGradient)
     GradientsRegistry.register("Mean", meanGradient)
@@ -3604,10 +3807,12 @@ object Math extends Math {
     GradientsRegistry.register("Cumprod", cumprodGradient)
     GradientsRegistry.register("SegmentSum", segmentSumGradient)
     GradientsRegistry.register("SegmentMean", segmentMeanGradient)
-    GradientsRegistry.register("SegmentMin", segmentMinOrMaxGradient(_, _, isSorted = true))
-    GradientsRegistry.register("SegmentMax", segmentMinOrMaxGradient(_, _, isSorted = true))
+    GradientsRegistry.register("SegmentMin", segmentMinOrMaxGradient)
+    GradientsRegistry.register("SegmentMax", segmentMinOrMaxGradient)
     GradientsRegistry.register("UnsortedSegmentSum", unsortedSegmentSumGradient)
-    GradientsRegistry.register("UnsortedSegmentMax", segmentMinOrMaxGradient(_, _, isSorted = false))
+    GradientsRegistry.register("UnsortedSegmentProd", unsortedSegmentProdGradient)
+    GradientsRegistry.register("UnsortedSegmentMin", unsortedSegmentMinOrMaxGradient)
+    GradientsRegistry.register("UnsortedSegmentMax", unsortedSegmentMinOrMaxGradient)
     GradientsRegistry.register("SparseSegmentSum", sparseSegmentSumGradient)
     GradientsRegistry.register("SparseSegmentSumWithNumSegments", sparseSegmentSumWithNumSegmentsGradient)
     GradientsRegistry.register("SparseSegmentMean", sparseSegmentMeanGradient)
@@ -3648,6 +3853,10 @@ object Math extends Math {
     }
 
     private[this] def addNGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      Seq.fill(op.numInputs)(outputGradients.head)
+    }
+
+    private[this] def accumulateNGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       Seq.fill(op.numInputs)(outputGradients.head)
     }
 
@@ -3961,6 +4170,16 @@ object Math extends Math {
       Seq(null)
     }
 
+    /** Returns `true` if the shapes of `x`, `y`, and `gradient` are all fully specified (i.e., statically known)
+      * and equal. */
+    private[this] def shapeFullySpecifiedAndEqual(x: Output, y: Output, gradient: OutputLike): Boolean = {
+      x.shape.isFullyDefined &&
+          y.shape.isFullyDefined &&
+          gradient.shape.isFullyDefined &&
+          x.shape == y.shape &&
+          x.shape == gradient.shape
+    }
+
     /** Returns the reduction indices for computing the gradients of `shape0` `[operator]` `shape1` with broadcasting.
       *
       * This is typically used by gradient computations for broadcasting operations.
@@ -3970,8 +4189,11 @@ object Math extends Math {
       * @param  name   Name for the created op.
       * @return Tuple containing two op outputs, each containing the reduction indices for the corresponding op.
       */
-    private[this] def broadcastGradientArguments(
-        shape0: Output, shape1: Output, name: String = "BroadcastGradientArguments"): (Output, Output) = {
+    private[api] def broadcastGradientArguments(
+        shape0: Output,
+        shape1: Output,
+        name: String = "BroadcastGradientArguments"
+    ): (Output, Output) = {
       val outputs = Op.Builder(opType = "BroadcastGradientArgs", name = name)
           .addInput(shape0)
           .addInput(shape1)
@@ -3982,37 +4204,50 @@ object Math extends Math {
     private[this] def addGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       val x = op.inputs(0)
       val y = op.inputs(1)
-      val xShape = Basic.shape(x)
-      val yShape = Basic.shape(y)
-      val (rx, ry) = broadcastGradientArguments(xShape, yShape)
       val outputGradient = outputGradients.head.toOutput
-      Seq(
-        Basic.reshape(sum(outputGradient, rx), xShape),
-        Basic.reshape(sum(outputGradient, ry), yShape))
+      if (shapeFullySpecifiedAndEqual(x, y, outputGradient)) {
+        Seq(outputGradient, outputGradient)
+      } else {
+        val xShape = Basic.shape(x)
+        val yShape = Basic.shape(y)
+        val (rx, ry) = broadcastGradientArguments(xShape, yShape)
+        Seq(
+          Basic.reshape(sum(outputGradient, rx), xShape),
+          Basic.reshape(sum(outputGradient, ry), yShape))
+      }
     }
 
     private[this] def subGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       val x = op.inputs(0)
       val y = op.inputs(1)
-      val xShape = Basic.shape(x)
-      val yShape = Basic.shape(y)
-      val (rx, ry) = broadcastGradientArguments(xShape, yShape)
       val outputGradient = outputGradients.head.toOutput
-      Seq(
-        Basic.reshape(sum(outputGradient, rx), xShape),
-        Basic.reshape(-sum(outputGradient, ry), yShape))
+      if (shapeFullySpecifiedAndEqual(x, y, outputGradient)) {
+        Seq(outputGradient, -outputGradient)
+      } else {
+        val xShape = Basic.shape(x)
+        val yShape = Basic.shape(y)
+        val (rx, ry) = broadcastGradientArguments(xShape, yShape)
+        Seq(
+          Basic.reshape(sum(outputGradient, rx), xShape),
+          Basic.reshape(-sum(outputGradient, ry), yShape))
+      }
     }
 
     private[this] def mulGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       val x = conjugate(op.inputs(0))
       val y = conjugate(op.inputs(1))
-      val xShape = Basic.shape(x)
-      val yShape = Basic.shape(y)
-      val (rx, ry) = broadcastGradientArguments(xShape, yShape)
       val outputGradient = outputGradients.head.toOutput
-      Seq(
-        Basic.reshape(sum(multiply(outputGradient, y), rx), xShape),
-        Basic.reshape(sum(multiply(x, outputGradient), ry), yShape))
+      if (shapeFullySpecifiedAndEqual(x, y, outputGradient) &&
+          (outputGradient.dataType == INT32 || outputGradient.dataType == FLOAT32)) {
+        Seq(outputGradient * y, outputGradient * x)
+      } else {
+        val xShape = Basic.shape(x)
+        val yShape = Basic.shape(y)
+        val (rx, ry) = broadcastGradientArguments(xShape, yShape)
+        Seq(
+          Basic.reshape(sum(multiply(outputGradient, y), rx), xShape),
+          Basic.reshape(sum(multiply(x, outputGradient), ry), yShape))
+      }
     }
 
     private[this] def divGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
@@ -4142,22 +4377,6 @@ object Math extends Math {
       }
     }
 
-    private[this] def maximumGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      val x = op.inputs(0)
-      val y = op.inputs(1)
-      val xShape = Basic.shape(x)
-      val yShape = Basic.shape(y)
-      val outputGradient = outputGradients.head.toOutput
-      val zeros = Basic.zerosLike(outputGradient)
-      val xMask = greaterEqual(x, y)
-      val (rx, ry) = broadcastGradientArguments(xShape, yShape)
-      val xGradient = select(xMask, outputGradient, zeros)
-      val yGradient = select(logicalNot(xMask), outputGradient, zeros)
-      Seq(
-        Basic.reshape(sum(xGradient, rx), xShape),
-        Basic.reshape(sum(yGradient, ry), yShape))
-    }
-
     private[this] def minimumGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       val x = op.inputs(0)
       val y = op.inputs(1)
@@ -4168,7 +4387,23 @@ object Math extends Math {
       val xMask = lessEqual(x, y)
       val (rx, ry) = broadcastGradientArguments(xShape, yShape)
       val xGradient = select(xMask, outputGradient, zeros)
-      val yGradient = select(logicalNot(xMask), outputGradient, zeros)
+      val yGradient = select(xMask, zeros, outputGradient)
+      Seq(
+        Basic.reshape(sum(xGradient, rx), xShape),
+        Basic.reshape(sum(yGradient, ry), yShape))
+    }
+
+    private[this] def maximumGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val x = op.inputs(0)
+      val y = op.inputs(1)
+      val xShape = Basic.shape(x)
+      val yShape = Basic.shape(y)
+      val outputGradient = outputGradients.head.toOutput
+      val zeros = Basic.zerosLike(outputGradient)
+      val xMask = greaterEqual(x, y)
+      val (rx, ry) = broadcastGradientArguments(xShape, yShape)
+      val xGradient = select(xMask, outputGradient, zeros)
+      val yGradient = select(xMask, outputGradient, zeros)
       Seq(
         Basic.reshape(sum(xGradient, rx), xShape),
         Basic.reshape(sum(yGradient, ry), yShape))
@@ -4367,35 +4602,106 @@ object Math extends Math {
       Seq(Basic.gather(scaledGradient, op.inputs(1)), null)
     }
 
-    private[this] def segmentMinOrMaxGradient(
-        op: Op, outputGradients: Seq[OutputLike], isSorted: Boolean): Seq[OutputLike] = {
+    private[this] def segmentMinOrMaxGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       val outputGradient = outputGradients.head.toOutput
-      val zeros = Basic.zerosLike(op.inputs(0))
       // Get the number of selected (minimum or maximum) elements in each segment.
       val gatheredOutputs = Basic.gather(op.outputs(0), op.inputs(1))
       val isSelected = equal(op.inputs(0), gatheredOutputs)
-
-      val numSelected = {
-        if (isSorted)
-          segmentSum(cast(isSelected, outputGradient.dataType), op.inputs(1))
-        else
-          unsortedSegmentSum(cast(isSelected, outputGradient.dataType), op.inputs(1), op.inputs(2))
-      }
+      val numSelected = segmentSum(cast(isSelected, outputGradient.dataType), op.inputs(1))
 
       // Compute the gradient for each segment. The gradient for the ith segment is divided evenly among the selected
       // elements in that segment.
       val weightedGradients = divide(outputGradient, numSelected)
       val gatheredGradients = Basic.gather(weightedGradients, op.inputs(1))
+      val zeros = Basic.zerosLike(gatheredGradients)
 
-      if (isSorted)
-        Seq(select(isSelected, gatheredGradients, zeros), null)
-      else
-        Seq(select(isSelected, gatheredGradients, zeros), null, null)
+      Seq(select(isSelected, gatheredGradients, zeros), null)
+    }
+
+    private[this] def gatherDropNegatives(
+        parameters: Output,
+        indices: Output,
+        zeroClippedIndices: Output = null,
+        isPositive: Output = null
+    ): (Output, Output, Output) = {
+      val computedZeroClippedIndices = {
+        if (zeroClippedIndices != null)
+          zeroClippedIndices
+        else
+          Math.maximum(indices, Basic.zerosLike(indices))
+      }
+      val gathered = Basic.gather(parameters, zeroClippedIndices)
+      val computedIsPositive = {
+        if (isPositive != null) {
+          isPositive
+        } else {
+          var isPositive = Math.greaterEqual(indices, 0)
+          // `select` requires that the condition has the same shape as the other two arguments.
+          val minusOne = Basic.constant(-1)
+          (0 until (gathered.rank - isPositive.rank)).foreach(_ => {
+            isPositive = Basic.expandDims(isPositive, minusOne)
+          })
+          Math.logicalAnd(isPositive, Basic.onesLike(gathered, dataType = BOOLEAN))
+        }
+      }
+      (Math.select(computedIsPositive, gathered, Basic.zerosLike(gathered)),
+          computedZeroClippedIndices,
+          computedIsPositive)
     }
 
     private[this] def unsortedSegmentSumGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       val outputGradient = outputGradients.head.toOutput
-      Seq(Basic.gather(outputGradient, op.inputs(1)), null, null)
+      Seq(gatherDropNegatives(outputGradient, op.inputs(1))._1, null, null)
+    }
+
+    private[this] def unsortedSegmentProdGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      // This gradient can be expressed for each segment by dividing the segment's product by each element of the
+      // segment input tensor, but this approach cannot deal with zeros in the input. Unlike `prod` we cannot use the
+      // cumulative sum op here, as individual segments may have a different number of elements. Therefore, we consider
+      // three cases:
+      //
+      //   1) A segment input contains no zeros and can safely be divided by the input tensor.
+      //   2) A segment contains exactly one zero. In this case, the gradient of each input of the segment is zero,
+      //      except for the 0-input. There the gradient is the product of the remaining segment entries.
+      //   3) A segment contains at least two zeros. In this case, the gradient is zero for all segment inputs.
+
+      var outputGradient = outputGradients.head.toOutput
+      // Note that `unsortedSegmentSum` will filter out the negative indices, and so we do not need to do a `logicalAnd`
+      // with `isPositive` here.
+      val isZero = Math.equal(op.inputs(0), 0)
+      val numZeros = Math.unsortedSegmentSum(cast(isZero, INT32), op.inputs(1), op.inputs(2))
+      // Handle case 3 and set the gradient to 0 for segments with more than one 0 as input.
+      outputGradient = Math.select(Math.greater(numZeros, 1), Basic.zerosLike(outputGradient), outputGradient)
+      // Replace all zeros with ones and compute the `unsortedSegmentProd`.
+      val nonZeroData = Math.select(isZero, Basic.onesLike(op.inputs(0)), op.inputs(0))
+      val nonZeroProd = Math.unsortedSegmentProd(nonZeroData, op.inputs(1), op.inputs(2))
+      // Clip the indices for the gather to be positive.
+      val zeroClippedIndices = Math.maximum(op.inputs(1), Basic.zerosLike(op.inputs(1)))
+      val gatheredProd = Basic.gather(op.outputs(0), zeroClippedIndices)
+      val gatheredNonZeroProd = Basic.gather(nonZeroProd, zeroClippedIndices)
+      // The following may contain NaN/Inf.
+      val gatheredProdDivided = gatheredProd / op.inputs(0)
+      // Now fetch the individual results for segments containing zero and those that do not. `isZero` will also fetch
+      // results for entries with negative indices, but the following `gatherDropNegatives` sets the corresponding entry
+      // in the gradient to zero for these.
+      val partialDerivative = Math.select(isZero, gatheredNonZeroProd, gatheredProdDivided)
+      val gatheredGradient = gatherDropNegatives(outputGradient, op.inputs(1), zeroClippedIndices)._1
+      Seq(gatheredGradient * partialDerivative, null, null)
+    }
+
+    private[this] def unsortedSegmentMinOrMaxGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val outputGradient = outputGradients.head.toOutput
+      // Get the number of selected (minimum or maximum) elements in each segment.
+      val (gatheredOutputs, zeroClippedIndices, isPositive) = gatherDropNegatives(op.outputs(0), op.inputs(1))
+      val isSelected = Math.logicalAnd(Math.equal(op.inputs(0), gatheredOutputs), isPositive)
+      val numSelected = unsortedSegmentSum(cast(isSelected, outputGradient.dataType), op.inputs(1), op.inputs(2))
+      // Compute the gradient for each segment. The gradient for the ith segment is divided evenly among the selected
+      // elements in that segment.
+      val weightedGradients = divide(outputGradient, numSelected)
+      val (gatheredGradients, _, _) = gatherDropNegatives(weightedGradients, null, zeroClippedIndices, isPositive)
+      val zeros = Basic.zerosLike(gatheredGradients)
+
+      Seq(select(isSelected, gatheredGradients, zeros), null, null)
     }
 
     private[this] def sparseSegmentSumGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
@@ -4712,7 +5018,14 @@ object Math extends Math {
     *
     * @define OpDocMathAddN
     *   The `addN` op adds all input tensors element-wise.
-    * 
+    *
+    * @define OpDocMathAccumulateN
+    *   The `accumulateN` op adds all input tensors element-wise.
+    *
+    *   This op performs the same operation as the `addN` op, but it does not wait for all of its inputs to be ready 
+    *   before beginning to sum. This can save memory if the inputs become available at different times, since the 
+    *   minimum temporary storage is proportional to the output size, rather than the inputs size.
+    *
     * @define OpDocMathAbs
     *   The `abs` op computes the absolute value of a tensor.
     *
@@ -5000,15 +5313,15 @@ object Math extends Math {
     *
     *   The op computes the angle `\theta \in [-\pi, \pi]` such that `y = r \cos(\theta)` and 
     *   `x = r \sin(\theta)`, where `r = \sqrt(x^2 + y^2)`.
-		* 
-		* @define OpDocMathMaximum
-		*   The `maximum` op returns the element-wise maximum between two tensors. I.e., `z = x > y ? x : y`.
+    *
+    * @define OpDocMathMinimum
+    *   The `minimum` op returns the element-wise minimum between two tensors. I.e., `z = x < y ? x : y`.
     *
     *   NOTE: This op supports broadcasting. More information about broadcasting can be found
     *   [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
 		* 
-		* @define OpDocMathMinimum
-		*   The `minimum` op returns the element-wise minimum between two tensors. I.e., `z = x < y ? x : y`.
+		* @define OpDocMathMaximum
+		*   The `maximum` op returns the element-wise maximum between two tensors. I.e., `z = x > y ? x : y`.
     *
     *   NOTE: This op supports broadcasting. More information about broadcasting can be found
     *   [here](http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html).
@@ -5329,7 +5642,7 @@ object Math extends Math {
     *
     *   The op computes a tensor such that `output(i) = \frac{sum_{j...} data(j,...)}{N}` where the sum is over 
     *   all `j` such that `segmentIndices(j) == i` and `N` is the total number of values being summed. Unlike
-    *   `unsortedSegmentMean`, `segmentIndices` need be sorted.
+    *   `unsortedSegmentMean`, `segmentIndices` need to be sorted.
     *
     *   If the sum if empty for a given segment index `i`, `output(i)` is set to `0`.
     *
@@ -5368,15 +5681,58 @@ object Math extends Math {
     *
     *   The result tensor has the same data type as `data`, but its first dimension size is equal to the number of
     *   distinct segment indices.
-    * 
+    *
     * @define OpDocMathUnsortedSegmentSum
     *   The `unsortedSegmentSum` op computes the sum along segments of a tensor.
     *
-    *   The op computes a tensor such that `output(i) = \sum_{j...} data(j...)` where the sum is over all `j` 
-    *   such that `segmentIndices(j) == i`. Unlike `segmentSum`, `segmentIndices` need not be sorted and need not 
+    *   The op computes a tensor such that `output(i) = \sum_{j...} data(j...)` where the sum is over all `j`
+    *   such that `segmentIndices(j) == i`. Unlike `segmentSum`, `segmentIndices` need not be sorted and need not
     *   cover all values in the full range of valid values.
     *
     *   If the sum if empty for a given segment index `i`, `output(i)` is set to `0`.
+    *
+    *   `segmentsNumber` should equal the number of distinct segment indices.
+    *
+    *   The result tensor has the same data type as `data`, but its first dimension size is equal to the number of
+    *   distinct segment indices.
+    *
+    * @define OpDocMathUnsortedSegmentMean
+    *   The `unsortedSegmentMean` op computes the mean along segments of a tensor.
+    *
+    *   The op computes a tensor such that `output(i) = \frac{\sum_{j...} data(j...)}{N}` where the sum is over 
+    *   all `j` such that `segmentIndices(j) == i` and `N` is the total number of values being summed. Unlike 
+    *   `segmentSum`, `segmentIndices` need not be sorted and need not cover all values in the full range of valid 
+    *   values.
+    *
+    *   If the sum if empty for a given segment index `i`, `output(i)` is set to `0`.
+    *
+    *   `segmentsNumber` should equal the number of distinct segment indices.
+    *
+    *   The result tensor has the same data type as `data`, but its first dimension size is equal to the number of
+    *   distinct segment indices.
+    *
+    * @define OpDocMathUnsortedSegmentProd
+    *   The `unsortedSegmentProd` op computes the product along segments of a tensor.
+    *
+    *   The op computes a tensor such that `output(i) = \prod_{j...} data(j...)` where the product is over all `j`
+    *   such that `segmentIndices(j) == i`. Unlike `segmentProd`, `segmentIndices` need not be sorted and need not
+    *   cover all values in the full range of valid values.
+    *
+    *   If the product if empty for a given segment index `i`, `output(i)` is set to `1`.
+    *
+    *   `segmentsNumber` should equal the number of distinct segment indices.
+    *
+    *   The result tensor has the same data type as `data`, but its first dimension size is equal to the number of
+    *   distinct segment indices.
+    * 
+    * @define OpDocMathUnsortedSegmentMin
+    *   The `unsortedSegmentMin` op computes the min along segments of a tensor.
+    *
+    *   The op computes a tensor such that `output(i) = \min_{j...} data(j...)` where the min is over all `j` 
+    *   such that `segmentIndices(j) == i`. Unlike `segmentMin`, `segmentIndices` need not be sorted and need not 
+    *   cover all values in the full range of valid values.
+    *
+    *   If the min if empty for a given segment index `i`, `output(i)` is set to `0`.
     *
     *   `segmentsNumber` should equal the number of distinct segment indices.
     *
@@ -5391,6 +5747,20 @@ object Math extends Math {
     *   cover all values in the full range of valid values.
     *
     *   If the max if empty for a given segment index `i`, `output(i)` is set to `0`.
+    *
+    *   `segmentsNumber` should equal the number of distinct segment indices.
+    *
+    *   The result tensor has the same data type as `data`, but its first dimension size is equal to the number of
+    *   distinct segment indices.
+    *
+    * @define OpDocMathUnsortedSegmentSqrtN
+    *   The `unsortedSegmentSqrtN` op computes the sum along segments of a tensor, divided by the square root of 
+    *   number of elements being summed.
+    *
+    *   The op computes a tensor such that `output(i) = \frac{\sum_{j...} data(j...)}{\sqrt{N}}` where the sum is 
+    *   over all `j` such that `segmentIndices(j) == i` and `N` is the total number of values being summed.
+    *
+    *   If the sum if empty for a given segment index `i`, `output(i)` is set to `0`.
     *
     *   `segmentsNumber` should equal the number of distinct segment indices.
     *

@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -21,6 +21,7 @@ import com.google.protobuf.ByteString
 import org.tensorflow.framework.{GraphDef, MetaGraphDef, RunMetadata, Summary}
 import org.tensorflow.util.{Event, SessionLog, TaggedRunMetadata}
 
+import java.nio.charset.StandardCharsets
 import java.nio.file.Path
 
 import scala.collection.JavaConverters._
@@ -125,8 +126,8 @@ class SummaryFileWriter private[io](
     * @param  summary String representation of the summary to write.
     * @param  step    Global step number to record with the summary.
     */
-  def writeSummaryString(summary: String, step: Long = 0L): Unit = {
-    writeSummary(Summary.parseFrom(ByteString.copyFrom(summary.getBytes("ISO-8859-1"))), step)
+  def writeSummaryString(summary: String, step: Long): Unit = {
+    writeSummary(Summary.parseFrom(ByteString.copyFrom(summary.getBytes(StandardCharsets.ISO_8859_1))), step)
   }
 
   /** Writes a `Summary` protocol buffer to the event file.
@@ -136,7 +137,7 @@ class SummaryFileWriter private[io](
     * @param  summary Summary to write.
     * @param  step    Global step number to record with the summary.
     */
-  def writeSummary(summary: Summary, step: Long = 0L): Unit = {
+  def writeSummary(summary: Summary, step: Long): Unit = {
     val summaryBuilder = Summary.newBuilder(summary)
     summaryBuilder.clearValue()
     // We strip the summary metadata for values with tags that we have seen before in order to save space. We just store
@@ -162,7 +163,7 @@ class SummaryFileWriter private[io](
     * @param  sessionLog Session log to write.
     * @param  step       Global step number to record with the session log.
     */
-  def writeSessionLog(sessionLog: SessionLog, step: Long = 0L): Unit = {
+  def writeSessionLog(sessionLog: SessionLog, step: Long): Unit = {
     write(eventBuilder(step).setSessionLog(sessionLog).build())
   }
 
@@ -174,7 +175,7 @@ class SummaryFileWriter private[io](
     * @throws IllegalArgumentException If the provided tag has already been used for this event type.
     */
   @throws[IllegalArgumentException]
-  def writeRunMetadata(runMetadata: RunMetadata, tag: String, step: Long = 0L): Unit = {
+  def writeRunMetadata(runMetadata: RunMetadata, tag: String, step: Long): Unit = {
     if (usedSessionRunTags.contains(tag))
       throw new IllegalArgumentException(s"The provided tag ($tag) has already been used for this event type.")
     usedSessionRunTags.add(tag)

@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -481,6 +481,26 @@ class ControlFlowSuite extends JUnitSuite with Matchers {
       val finalLoss = session.run(feeds = Map(input -> Tensor.ones(FLOAT32, Shape(10, 10))), fetches = loss)
       assert(finalLoss.scalar.asInstanceOf[Float] === -1599500.0f +- 1e-7f)
     }
+  }
+
+  @Test def testCondGradientInNestedWhileLoops(): Unit = {
+    val (i, x) = ControlFlow.whileLoop(
+      (outerV: (Output, Output)) => outerV._1 < 3,
+      (outerV: (Output, Output)) => {
+        val (_, x) = ControlFlow.whileLoop(
+          (v: (Output, Output)) => v._1 < 3,
+          (v: (Output, Output)) => {
+            val y = ControlFlow.cond(Math.less(v._2, 1), () => 2 * v._2, () => v._2)
+            (v._1 + 1, Gradients.gradients(Seq(y), Seq(v._2)).head.toOutput)
+          },
+          (Basic.constant(0, INT32), Basic.constant(0.0, FLOAT32)))
+        (outerV._1 + 1, x)
+      },
+      (Basic.constant(0, INT32), Basic.constant(0.0, FLOAT32)))
+    val session = Session()
+    val (iValue, xValue) = session.run(fetches = (i, x))
+    assert(iValue.scalar.asInstanceOf[Int] === 3)
+    assert(xValue.scalar.asInstanceOf[Float] === 1.0f)
   }
 
   //endregion whileLoop

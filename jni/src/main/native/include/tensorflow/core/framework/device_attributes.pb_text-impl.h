@@ -13,6 +13,20 @@ namespace internal {
 
 void AppendProtoDebugString(
     ::tensorflow::strings::ProtoTextOutput* o,
+    const ::tensorflow::InterconnectLink& msg);
+bool ProtoParseFromScanner(
+    ::tensorflow::strings::Scanner* scanner, bool nested, bool close_curly,
+    ::tensorflow::InterconnectLink* msg);
+
+void AppendProtoDebugString(
+    ::tensorflow::strings::ProtoTextOutput* o,
+    const ::tensorflow::LocalLinks& msg);
+bool ProtoParseFromScanner(
+    ::tensorflow::strings::Scanner* scanner, bool nested, bool close_curly,
+    ::tensorflow::LocalLinks* msg);
+
+void AppendProtoDebugString(
+    ::tensorflow::strings::ProtoTextOutput* o,
     const ::tensorflow::DeviceLocality& msg);
 bool ProtoParseFromScanner(
     ::tensorflow::strings::Scanner* scanner, bool nested, bool close_curly,

@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -40,9 +40,14 @@ private[ops] object Gradients {
   // TODO: [API] Expose in "tf".
   // TODO: [DOC] Document the "gradients" function.
   def gradients(
-      ys: Seq[Output], xs: Seq[Output], dys: Seq[OutputLike] = null, gateGradients: Boolean = false,
-      aggregationMethod: AggregationMethod = AddAggregationMethod, colocateGradientsWithOps: Boolean = false,
-      name: String = "Gradients"): Seq[OutputLike] = {
+      ys: Seq[Output],
+      xs: Seq[Output],
+      dys: Seq[OutputLike] = null,
+      gateGradients: Boolean = false,
+      aggregationMethod: AggregationMethod = AddAggregationMethod,
+      colocateGradientsWithOps: Boolean = false,
+      name: String = "Gradients"
+  ): Seq[OutputLike] = Op.currentGraph.synchronized {
     // The `accumulatedGradients` variable collects the gradients received on each output endpoint of the op. The
     // gradients for each endpoint are initially collected as a sequence. When it is time to call the op's gradient
     // function, for each endpoint we aggregate the list of received gradients into a "add" operation, if there is more
@@ -140,6 +145,7 @@ private[ops] object Gradients {
               val nGrd = inputGradients.length
               assert(nInp == nGrd, s"Gradients size ($nGrd) for op '$op' does not match inputs size ($nInp).")
               logGradients(op, outputGradients, inputGradients)
+              // TODO: Report somehow the non-differentiable ops in the graph. This is currently hard to debug.
               op.inputs.zip(inputGradients).filter(_._2 != null).foreach(i => {
                 i._2 match {
                   case gradient: Output if i._1.dataType != RESOURCE => gradient.setShape(i._1.shape)
@@ -501,7 +507,44 @@ private[ops] object Gradients {
     }
   }
 
-  // TODO: [GRADIENTS] Add support for more aggregation methods.
+  /** Gradient aggregation method that simply adds up the collected gradients, without first waiting for all of them to
+    * become available at once.
+    *
+    * The benefit of using this method is that its inputs can be combined in any order and this can allow the expression
+    * to be evaluated with a smaller memory footprint. With this method, it is possible to compute a sum of terms which
+    * are much larger than total GPU memory.
+    */
+  object AccumulateAggregationMethod extends AggregationMethod {
+    override private[Gradients] def aggregateGradients(gradients: Seq[OutputLike]): OutputLike = {
+      if (gradients.forall(_.isInstanceOf[Output])) {
+        Math.accumulateN(gradients.map(_.asInstanceOf[Output]))
+      } else if (gradients.forall(_.isInstanceOf[OutputIndexedSlices])) {
+        def addNOutputIndexedSlices(gradients: Seq[OutputIndexedSlices]): OutputIndexedSlices = {
+          if (gradients.isEmpty) {
+            throw new IllegalArgumentException(
+              "Can not aggregate empty gradients list.")
+          } else if (gradients.length == 1) {
+            gradients.head
+          } else {
+            OutputIndexedSlices(
+              Basic.concatenate(gradients.map(_.indices)),
+              Basic.concatenate(gradients.map(_.values)),
+              gradients.head.denseShape)
+          }
+        }
+        val deviceContributions = gradients.groupBy(_.device).toSeq.sortBy(_._1).map {
+          case (_, outputs) =>
+            Op.colocateWith(Set[Op](gradients.head.op), ignoreExisting = true) {
+              addNOutputIndexedSlices(outputs.map(_.asInstanceOf[OutputIndexedSlices]))
+            }
+        }
+        addNOutputIndexedSlices(deviceContributions)
+      } else {
+        throw new IllegalArgumentException(
+          "The gradients being aggregated need to be all of type 'Output' or 'OutputIndexedSlices'.")
+      }
+    }
+  }
 
   /** Registry that contains the gradient functions to be used when creating gradient ops. Gradient functions for all
     * types of ops that are being differentiated need to be registered using either the [[Registry.register]] or the

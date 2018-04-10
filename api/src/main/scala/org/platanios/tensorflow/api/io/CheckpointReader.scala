@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.io
 
 import org.platanios.tensorflow.api.core.exception.UnavailableException
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.utilities.{Closeable, Disposer}
+import org.platanios.tensorflow.api.utilities.{Closeable, Disposer, NativeHandleWrapper}
 import org.platanios.tensorflow.jni.{CheckpointReader => NativeCheckpointReader}
 
 import java.nio.file.Path
@@ -26,19 +26,21 @@ import java.nio.file.Path
   *
   * This class currently only interacts with single-slice (i.e., non-partitioned) variables.
   *
-  * @param  nativeHandle Handle to a native checkpoint reader object.
+  * @param  nativeHandleWrapper Wrapper around a handle to the native checkpoint reader object.
+  * @param  closeFn             Function used to delete the native checkpoint reader object
+  *                             (i.e., free relevant memory).
   *
   * @author Emmanouil Antonios Platanios
   */
-class CheckpointReader private[CheckpointReader] (private[CheckpointReader] var nativeHandle: Long)
-    extends Closeable {
+class CheckpointReader private[CheckpointReader] (
+    private[this] val nativeHandleWrapper: NativeHandleWrapper,
+    override protected val closeFn: () => Unit
+) extends Closeable {
   /** Lock for the native handle. */
-  private[this] object NativeHandleLock
+  private[CheckpointReader] def NativeHandleLock = nativeHandleWrapper.Lock
 
-  // Keep track of references in the Scala side and notify the native library when the reader is not referenced
-  // anymore anywhere in the Scala side. This will let the native library free the allocated resources and prevent a
-  // potential memory leak.
-  Disposer.add(this, () => this.close())
+  /** Native handle of this tensor. */
+  private[api] def nativeHandle: Long = nativeHandleWrapper.handle
 
   /** Checks if the checkpoint file contains a tensor named `name`.
     *
@@ -66,17 +68,6 @@ class CheckpointReader private[CheckpointReader] (private[CheckpointReader] var 
       throw UnavailableException("This checkpoint reader has already been disposed.")
     Option(NativeCheckpointReader.getTensor(nativeHandle, name)).map(Tensor.fromNativeHandle)
   }
-
-  /** Closes this [[CheckpointReader]] and releases any resources associated with it. Note that a [[CheckpointReader]]
-    * is not usable after it has been closed. */
-  override def close(): Unit = {
-    NativeHandleLock.synchronized {
-      if (nativeHandle != 0) {
-        NativeCheckpointReader.delete(nativeHandle)
-        nativeHandle = 0
-      }
-    }
-  }
 }
 
 object CheckpointReader {
@@ -86,6 +77,21 @@ object CheckpointReader {
     * @return Constructed checkpoint reader.
     */
   def apply(checkpointPath: Path): CheckpointReader = {
-    new CheckpointReader(NativeCheckpointReader.newCheckpointReader(checkpointPath.toAbsolutePath.toString))
+    val nativeHandle = NativeCheckpointReader.newCheckpointReader(checkpointPath.toAbsolutePath.toString)
+    val nativeHandleWrapper = NativeHandleWrapper(nativeHandle)
+    val closeFn = () => {
+      nativeHandleWrapper.Lock.synchronized {
+        if (nativeHandleWrapper.handle != 0) {
+          NativeCheckpointReader.delete(nativeHandleWrapper.handle)
+          nativeHandleWrapper.handle = 0
+        }
+      }
+    }
+    val checkpointReader = new CheckpointReader(nativeHandleWrapper, closeFn)
+    // Keep track of references in the Scala side and notify the native library when the checkpoint reader is not
+    // referenced anymore anywhere in the Scala side. This will let the native library free the allocated resources and
+    // prevent a potential memory leak.
+    Disposer.add(checkpointReader, closeFn)
+    checkpointReader
   }
 }

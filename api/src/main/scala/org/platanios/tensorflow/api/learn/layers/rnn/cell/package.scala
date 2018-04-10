@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -22,8 +22,8 @@ import org.platanios.tensorflow.api.ops.Output
   * @author Emmanouil Antonios Platanios
   */
 package object cell {
-  private[cell] val KERNEL_NAME: String = "weights"
-  private[cell] val BIAS_NAME  : String = "bias"
+  private[cell] val KERNEL_NAME: String = "Weights"
+  private[cell] val BIAS_NAME  : String = "Bias"
 
   type Tuple[O, S] = ops.rnn.cell.Tuple[O, S]
   type BasicTuple = Tuple[Output, Output]

@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -46,7 +46,8 @@ case class FlatMapDataset[T, O, D, S, RT, RO, RD, RS](
 ) extends Dataset[RT, RO, RD, RS](name)(evROToRT, evRData, evFunctionOutput) {
   private[this] lazy val instantiatedFunction = {
     Function(s"$name/Function", function).instantiate(
-      inputDataset.flattenedOutputDataTypes, inputDataset.flattenedOutputShapes, appendHashToName = true)
+      inputDataset.flattenedOutputDataTypes, inputDataset.flattenedOutputShapes,
+      appendHashToName = true)
   }
 
   override def createHandle(): Output = {

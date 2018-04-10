@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -83,4 +83,8 @@ object Op {
       handle: Long, name: String, shapes: Array[Array[Long]], numDims: Array[Int], numShapes: Int): Unit
   @native def setAttrFuncName(handle: Long, name: String, value: Array[Byte]): Unit
   @native def setAttrProto(handle: Long, name: String, value: Array[Byte]): Unit
+
+  @native def toOpDef(graphHandle: Long, opType: String): Array[Byte]
+  @native def toNodeDef(handle: Long): Array[Byte]
+  @native def tryEvaluateConstant(graphHandle: Long, opHandle: Long, outputIndex: Int): Long
 }

@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -15,8 +15,8 @@
 
 package org.platanios.tensorflow.api.ops.training.optimizers
 
-import org.platanios.tensorflow.api.ops.training.optimizers.decay.{Decay, NoDecay}
 import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output, OutputIndexedSlices, Summary}
+import org.platanios.tensorflow.api.ops.training.optimizers.schedules.{Schedule, FixedSchedule}
 import org.platanios.tensorflow.api.ops.variables.Variable
 
 /** Optimizer that implements the AdaDelta optimization algorithm.
@@ -46,27 +46,32 @@ import org.platanios.tensorflow.api.ops.variables.Variable
   *
   * @author Emmanouil Antonios Platanios
   */
-case class AdaDelta(
-    learningRate: Double = 0.01, decay: Decay = NoDecay, rho: Double = 0.95, epsilon: Double = 1e-8,
-    useLocking: Boolean = false, learningRateSummaryTag: String = null, name: String = "AdaDelta"
+class AdaDelta protected (
+    val learningRate: Double = 0.01,
+    val decay: Schedule = FixedSchedule,
+    val rho: Double = 0.95,
+    val epsilon: Double = 1e-8,
+    val useLocking: Boolean = false,
+    val learningRateSummaryTag: String = null,
+    val name: String = "AdaDelta"
 ) extends Optimizer {
-  private[this] var learningRateTensor: Output = _
-  private[this] var rhoTensor         : Output = _
-  private[this] var epsilonTensor     : Output = _
+  protected var learningRateTensor: Output = _
+  protected var rhoTensor         : Output = _
+  protected var epsilonTensor     : Output = _
 
-  private[this] def getLearningRate(variable: Variable, iteration: Option[Variable]): Output = {
+  protected def getLearningRate(variable: Variable, iteration: Option[Variable]): Output = {
     if (learningRateTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
     Math.cast(learningRateTensor, variable.dataType)
   }
 
-  private[this] def getRho(variable: Variable): Output = {
+  protected def getRho(variable: Variable): Output = {
     if (rhoTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
     Math.cast(rhoTensor, variable.dataType)
   }
 
-  private[this] def getEpsilon(variable: Variable): Output = {
+  protected def getEpsilon(variable: Variable): Output = {
     if (epsilonTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
     Math.cast(epsilonTensor, variable.dataType)
@@ -118,6 +123,18 @@ case class AdaDelta(
 }
 
 object AdaDelta {
+  def apply(
+      learningRate: Double = 0.01,
+      decay: Schedule = FixedSchedule,
+      rho: Double = 0.95,
+      epsilon: Double = 1e-8,
+      useLocking: Boolean = false,
+      learningRateSummaryTag: String = null,
+      name: String = "AdaDelta"
+  ): AdaDelta = {
+    new AdaDelta(learningRate, decay, rho, epsilon, useLocking, learningRateSummaryTag, name)
+  }
+
   /** Creates an op that updates `variable` by applying the AdaDelta algorithm update to it.
     *
     * The AdaDelta update is as follows:
@@ -140,9 +157,17 @@ object AdaDelta {
     * @param  name              Name for the created op.
     * @return Created op.
     */
-  private[AdaDelta] def resourceApplyDense(
-      variable: Variable, accumulator: Variable, accumulatorUpdate: Variable, stepSize: Output, rho: Output,
-      epsilon: Output, gradient: Output, useLocking: Boolean = false, name: String = "ResourceApplyAdaDelta"): Op = {
+  private[optimizers] def resourceApplyDense(
+      variable: Variable,
+      accumulator: Variable,
+      accumulatorUpdate: Variable,
+      stepSize: Output,
+      rho: Output,
+      epsilon: Output,
+      gradient: Output,
+      useLocking: Boolean = false,
+      name: String = "ResourceApplyAdaDelta"
+  ): Op = {
     Op.Builder(opType = "ResourceApplyAdadelta", name = name)
         .addInput(variable.handle)
         .addInput(accumulator.handle)
@@ -178,10 +203,18 @@ object AdaDelta {
     * @param  name              Name for the created op.
     * @return Created op.
     */
-  private[AdaDelta] def resourceApplySparse(
-      variable: Variable, accumulator: Variable, accumulatorUpdate: Variable, stepSize: Output, rho: Output,
-      epsilon: Output, gradient: Output, indices: Output, useLocking: Boolean = false,
-      name: String = "ResourceSparseApplyAdaDelta"): Op = {
+  private[optimizers] def resourceApplySparse(
+      variable: Variable,
+      accumulator: Variable,
+      accumulatorUpdate: Variable,
+      stepSize: Output,
+      rho: Output,
+      epsilon: Output,
+      gradient: Output,
+      indices: Output,
+      useLocking: Boolean = false,
+      name: String = "ResourceSparseApplyAdaDelta"
+  ): Op = {
     Op.Builder(opType = "ResourceSparseApplyAdadelta", name = name)
         .addInput(variable.handle)
         .addInput(accumulator.handle)

@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -32,7 +32,7 @@ private[api] trait Logging {
     *                   of `-1` disables logging.
     * @param  summarize Number of entries to print for each tensor.
     * @param  name      Name for the created op.
-    * @return Created op.
+    * @return Created op output.
     */
   def print[T: OutputOps](
       input: T, data: Seq[Output], message: String = "", firstN: Int = -1, summarize: Int = 3,
@@ -47,10 +47,23 @@ private[api] trait Logging {
           .build().outputs(0)
     })
   }
+
+  /** $OpDocLoggingTimestamp
+    *
+    * @group LoggingOps
+    * @param  name Name for the created op.
+    * @return Created op output.
+    */
+  def timestamp(name: String = "Timestamp"): Output = {
+    Op.Builder("Timestamp", name)
+        .build().outputs(0)
+  }
 }
 
 private[api] object Logging extends Logging {
   private[ops] object Gradients {
+    GradientsRegistry.registerNonDifferentiable("Timestamp")
+
     GradientsRegistry.register("Print", printGradient)
 
     private[this] def printGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
@@ -63,6 +76,10 @@ private[api] object Logging extends Logging {
     *
     *   The created op returns `input` as its output (i.e., it is effectively an identity op) and prints all the op
     *   output values in `data` while evaluating.
+    *
+    * @define OpDocLoggingTimestamp
+    *   The `timestamp` op returns a `FLOAT64` tensor that contains the time since the Unix epoch in seconds. Note that
+    *   the timestamp is computed when the op is executed, not when it is added to the graph.
     */
   private[ops] trait Documentation
 }

@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -35,5 +35,11 @@ package object lookup {
     val LookupTableTensorInitializer  : lookup.LookupTableTensorInitializer.type   = lookup.LookupTableTensorInitializer
     val LookupTableTextFileInitializer: lookup.LookupTableTextFileInitializer.type =
       lookup.LookupTableTextFileInitializer
+
+    type TextFileFieldExtractor = lookup.TextFileFieldExtractor
+
+    val TextFileLineNumber: lookup.TextFileLineNumber.type = lookup.TextFileLineNumber
+    val TextFileWholeLine : lookup.TextFileWholeLine.type  = lookup.TextFileWholeLine
+    val TextFileColumn    : lookup.TextFileColumn.type     = lookup.TextFileColumn
   }
 }

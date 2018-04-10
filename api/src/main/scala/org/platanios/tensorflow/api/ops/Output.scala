@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -188,22 +188,22 @@ final case class Output private(op: Op, index: Int) extends OutputLike with Symb
     }
   }
 
-  /** Evaluates this op output.
-    *
-    * If `feeds` is non-empty, then the provided feed values are fed into the session for computing the value of this
-    * op output.
-    *
-    * If `session` is `null` (i.e., not provided), then the default session is used. Otherwise, `session` is used for
-    * the evaluation.
-    *
-    * @param  feeds   Tensors to feed into the session for this evaluation.
-    * @param  session Optional session to use for the evaluation.
-    * @return Value of this op output, for this evaluation.
-    */
-  def evaluate(feeds: Map[Output, Tensor] = Map.empty, session: Session = null): Tensor = {
-    val effectiveSession = if (session == null) graph.defaultSession else session
-    effectiveSession.run(feeds, this)
-  }
+  // /** Evaluates this op output.
+  //   *
+  //   * If `feeds` is non-empty, then the provided feed values are fed into the session for computing the value of this
+  //   * op output.
+  //   *
+  //   * If `session` is `null` (i.e., not provided), then the default session is used. Otherwise, `session` is used for
+  //   * the evaluation.
+  //   *
+  //   * @param  feeds   Tensors to feed into the session for this evaluation.
+  //   * @param  session Optional session to use for the evaluation.
+  //   * @return Value of this op output, for this evaluation.
+  //   */
+  // def evaluate(feeds: Map[Output, Tensor] = Map.empty, session: Session = null): Tensor = {
+  //   val effectiveSession = if (session == null) graph.defaultSession else session
+  //   effectiveSession.run(feeds, this)
+  // }
 
   //region Slicing
 
@@ -273,7 +273,13 @@ object Output {
 
   /** Returns the constant value of the given tensor, if efficiently calculable. */
   private[api] def constantValue(tensor: Output): Option[Tensor] = {
-    val value = tensor.op.opType match {
+    val value = using(tensor.graph.reference)(r => {
+      val result = NativeOp.tryEvaluateConstant(r.nativeHandle, tensor.op.nativeHandle, tensor.index)
+      if (result == 0L)
+        None
+      else
+        Some(Tensor.fromNativeHandle(result))
+    }).orElse(tensor.op.opType match {
       case "Const" => Option(tensor.op.tensorAttribute("value")) // TODO: !!! Make more robust.
       case "Shape" =>
         val inputShape = tensor.op.inputs(0).shape
@@ -340,7 +346,7 @@ object Output {
             .flatMap(value1 => constantValue(tensor.op.inputs(1))
                 .map(value2 => TensorMath.notEqual(value1, value2)))
       case _ => None
-    }
+    })
     // If defined, the caller may now depend on the constant value, and so we prevent 'tensor' from being fed.
     if (value.isDefined)
       tensor.graph.preventFeeding(tensor)
@@ -488,22 +494,22 @@ final case class OutputIndexedSlices private (indices: Output, values: Output, d
     */
   def shape: Shape = Output.constantValueAsShape(denseShape).get
 
-  /** Evaluates these indexed slices.
-    *
-    * If `feeds` is non-empty, then the provided feed values are fed into the session for computing the value of these
-    * indexed slices.
-    *
-    * If `session` is `null` (i.e., not provided), then the default session is used. Otherwise, `session` is used for
-    * the evaluation.
-    *
-    * @param  feeds   Tensors to feed into the session for this evaluation.
-    * @param  session Optional session to use for the evaluation.
-    * @return Value of these indexed slices, for this evaluation.
-    */
-  def value(feeds: FeedMap = FeedMap.empty, session: Session = null): TensorIndexedSlices = {
-    val effectiveSession = if (session == null) graph.defaultSession else session
-    effectiveSession.run(feeds, this)
-  }
+  // /** Evaluates these indexed slices.
+  //   *
+  //   * If `feeds` is non-empty, then the provided feed values are fed into the session for computing the value of these
+  //   * indexed slices.
+  //   *
+  //   * If `session` is `null` (i.e., not provided), then the default session is used. Otherwise, `session` is used for
+  //   * the evaluation.
+  //   *
+  //   * @param  feeds   Tensors to feed into the session for this evaluation.
+  //   * @param  session Optional session to use for the evaluation.
+  //   * @return Value of these indexed slices, for this evaluation.
+  //   */
+  // def value(feeds: FeedMap = FeedMap.empty, session: Session = null): TensorIndexedSlices = {
+  //   val effectiveSession = if (session == null) graph.defaultSession else session
+  //   effectiveSession.run(feeds, this)
+  // }
 
   /** Returns the [[Output]] that this [[OutputLike]] object represents. */
   override def toOutput: Output = {
@@ -616,22 +622,22 @@ final case class SparseOutput(indices: Output, values: Output, denseShape: Outpu
     */
   def shape: Shape = Output.constantValueAsShape(denseShape).get
 
-  /** Evaluates this sparse op output.
-    *
-    * If `feeds` is non-empty, then the provided feed values are fed into the session for computing the value of this
-    * sparse output.
-    *
-    * If `session` is `null` (i.e., not provided), then the default session is used. Otherwise, `session` is used for
-    * the evaluation.
-    *
-    * @param  feeds   Tensors to feed into the session for this evaluation.
-    * @param  session Optional session to use for the evaluation.
-    * @return Value of this sparse op output, for this evaluation.
-    */
-  def value(feeds: FeedMap = FeedMap.empty, session: Session = null): SparseTensor = {
-    val effectiveSession = if (session == null) graph.defaultSession else session
-    effectiveSession.run(feeds, this)
-  }
+  // /** Evaluates this sparse op output.
+  //   *
+  //   * If `feeds` is non-empty, then the provided feed values are fed into the session for computing the value of this
+  //   * sparse output.
+  //   *
+  //   * If `session` is `null` (i.e., not provided), then the default session is used. Otherwise, `session` is used for
+  //   * the evaluation.
+  //   *
+  //   * @param  feeds   Tensors to feed into the session for this evaluation.
+  //   * @param  session Optional session to use for the evaluation.
+  //   * @return Value of this sparse op output, for this evaluation.
+  //   */
+  // def value(feeds: FeedMap = FeedMap.empty, session: Session = null): SparseTensor = {
+  //   val effectiveSession = if (session == null) graph.defaultSession else session
+  //   effectiveSession.run(feeds, this)
+  // }
 
   /** Returns the [[Output]] that this [[OutputLike]] object represents. */
   override def toOutput: Output = toOutput()

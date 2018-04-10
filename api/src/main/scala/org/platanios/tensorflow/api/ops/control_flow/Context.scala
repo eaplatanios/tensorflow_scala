@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -69,39 +69,56 @@ abstract class Context protected (
   def condContext: Option[CondContext] = outerContext.flatMap(_.condContext)
 
   /** Returns the while context containing this context. */
-  def whileLoopContext: Option[WhileLoopContext] = outerContext.flatMap(_.whileLoopContext)
+  def whileLoopContext(stopContext: Option[Context] = None): Option[WhileLoopContext] = {
+    stopContext match {
+      case Some(context) if context == this => Some(context.asInstanceOf[WhileLoopContext])
+      case None => outerContext.flatMap(_.whileLoopContext(stopContext))
+    }
+  }
 
   /** Returns the XLA context containing this context. */
-  def xlaContext: Option[XLAContext] = outerContext.flatMap(_.xlaContext)
+  def xlaContext: Option[XLAControlFlowContext] = outerContext.flatMap(_.xlaContext)
 
   /** Adds `op` to the current context. */
   def add(op: Op): Unit = addInternal(op)
 
-  /** Adds `op` to the current context. */
+  /** Adds `op` to the current context. We move any external control dependencies of the op to the control flow pivot,
+    * to ensure they get executed. */
   private[control_flow] def addInternal(op: Op): Unit = {
-    if (op.numInputs == 0) {
-      // Remove any external control dependencies on this op.
-      val controlInputs = removeExternalControlEdges(op)
-      // Add a control edge from the control pivot to this op.
-      if (controlInputs.isEmpty)
-        controlPivot.foreach(ControlFlow.addControlInput(op, _))
-      op.outputs.foreach(values += _.name)
-    } else {
-      op.inputs.zipWithIndex.foreach({
-        case (input, index) =>
-          val realInput = add(input)
-          if (realInput != input)
-            ControlFlow.updateInput(op, index, realInput)
-      })
-      // Remove any external control dependencies on this op.
-      removeExternalControlEdges(op)
-      // Add a control dependency to the op if it only depends on loop invariants. That is to prevent loop invariants
-      // from enabling ops that should not be executed.
-      if (op.controlInputs.isEmpty &&
-          ((op.graph.isFunction(op.opType) || op.opType == "SymbolicGradient") ||
-              op.inputs.forall(o => ControlFlow.isLoopConstantEnter(o.op))))
-        controlPivot.foreach(ControlFlow.addControlInput(op, _))
-      op.outputs.foreach(values += _.name)
+    val externalInputs = {
+      if (op.numInputs == 0) {
+        // Remove any external control dependencies on this op.
+        val (controlInputs, externalInputs) = removeExternalControlEdges(op)
+        // Add a control edge from the control pivot to this op.
+        if (controlInputs.isEmpty)
+          controlPivot.foreach(ControlFlow.addControlInput(op, _))
+        op.outputs.foreach(values += _.name)
+        externalInputs
+      } else {
+        op.inputs.zipWithIndex.foreach({
+          case (input, index) =>
+            val realInput = add(input)
+            if (realInput != input)
+              ControlFlow.updateInput(op, index, realInput)
+        })
+        // Remove any external control dependencies on this op.
+        val (_, externalInputs) = removeExternalControlEdges(op)
+        // Add a control dependency to the op if it only depends on loop invariants. That is to prevent loop invariants
+        // from enabling ops that should not be executed.
+        if (op.controlInputs.isEmpty &&
+            ((op.graph.isFunction(op.opType) || op.opType == "SymbolicGradient") ||
+                op.inputs.forall(o => ControlFlow.isLoopConstantEnter(o.op))))
+          controlPivot.foreach(ControlFlow.addControlInput(op, _))
+        op.outputs.foreach(values += _.name)
+        externalInputs
+      }
+    }
+    // TODO: [CONTROL_FLOW] Stop ignoring ops with no outputs.
+    // Use an identity to pull control inputs as data inputs. Note that we ignore ops which do not have any outputs.
+    Op.createWith(controlDependencies = Set.empty[Op]) {
+      enter()
+      externalInputs.map(op => Basic.identity(op.outputs(0)).op).foreach(ControlFlow.addControlInput(op, _))
+      exit()
     }
     if (outerContext.isDefined || !ControlFlow.isLoopExit(op)) {
       op.graph.preventFetching(op)
@@ -121,31 +138,39 @@ abstract class Context protected (
   /** Enters this control flow context. */
   def enter()(implicit context: DynamicVariable[OpCreationContext]): Unit = {
     contextStack.append(context.value.controlFlowContext)
-    context.value = context.value.copy(controlFlowContext = Some(this))
+    context.value = context.value.copy(controlFlowContext = Some(this), outerContext = Some(context.value))
   }
 
   /** Exits this control flow context. */
   def exit()(implicit context: DynamicVariable[OpCreationContext]): Unit = {
-    context.value = context.value.copy(controlFlowContext = contextStack.remove(contextStack.size - 1))
+    context.value = context.value.copy(
+      controlFlowContext = contextStack.remove(contextStack.size - 1), outerContext = Some(context.value))
   }
 
   /** Makes a sequence of tensors available in the outer context. */
   def exitResult(result: Seq[OutputLike]): Unit = outerContext.foreach(c => result.foreach(r => c.values += r.name))
 
-  /** Remove any external control dependency on this op. */
-  private[control_flow] def removeExternalControlEdges(op: Op): Set[Op] = {
+  /** Removes any external control dependency on this op and returns the remaining internal control inputs and any
+    * external control inputs that were removed. */
+  private[control_flow] def removeExternalControlEdges(op: Op): (Set[Op], Set[Op]) = {
     // A control input of 'op' is internal if it is in the same while loop context as the enclosing while loop context
     // of this context.
-    val internalControlInputs = this.whileLoopContext match {
+    val internalControlInputs = this.whileLoopContext() match {
       case None => op.controlInputs
       case Some(wC) =>
-        op.controlInputs.filter(i => ControlFlow.getOutputContext(i).exists(_.whileLoopContext.contains(wC)))
+        op.controlInputs.filter(i => ControlFlow.getOutputContext(i).exists(_.whileLoopContext().contains(wC)))
     }
-    if (internalControlInputs.size != op.controlInputs.size) {
-      ControlFlow.clearControlInputs(op)
-      internalControlInputs.foreach(ControlFlow.addControlInput(op, _))
+    val externalControlInputs = {
+      if (internalControlInputs.size != op.controlInputs.size) {
+        val externalControlInputs = op.controlInputs -- internalControlInputs
+        ControlFlow.clearControlInputs(op)
+        internalControlInputs.foreach(ControlFlow.addControlInput(op, _))
+        externalControlInputs
+      } else {
+        Set.empty[Op]
+      }
     }
-    internalControlInputs
+    (internalControlInputs, externalControlInputs)
   }
 
   override def toProto: GeneratedMessageV3 = toProto(null)
@@ -223,9 +248,9 @@ object Context {
   *
   * @author Emmanouil Antonios Platanios
   */
-abstract class XLAContext protected (
+abstract class XLAControlFlowContext protected (
     override private[control_flow] val values: mutable.Set[String] = mutable.Set.empty,
     override private[control_flow] val externalValues: mutable.Map[String, Output] = mutable.Map.empty
 ) extends Context(values, externalValues) {
-  override def xlaContext: Option[XLAContext] = Some(this)
+  override def xlaContext: Option[XLAControlFlowContext] = Some(this)
 }

@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -213,6 +213,7 @@ case class SessionConfig(
         optCommonSubExpressionElimination.isDefined ||
         optConstantFolding.isDefined ||
         optFunctionInlining.isDefined ||
+        optGlobalJITLevel.isDefined ||
         graphEnableReceiveScheduling.isDefined ||
         graphCostModelSteps.isDefined ||
         graphCostModelSkipSteps.isDefined ||
@@ -224,12 +225,14 @@ case class SessionConfig(
       if (optLevel.isDefined ||
           optCommonSubExpressionElimination.isDefined ||
           optConstantFolding.isDefined ||
-          optFunctionInlining.isDefined) {
+          optFunctionInlining.isDefined ||
+          optGlobalJITLevel.isDefined) {
         val optOptions = OptimizerOptions.newBuilder()
         optLevel.foreach(l => optOptions.setOptLevel(l.level))
         optCommonSubExpressionElimination.foreach(optOptions.setDoCommonSubexpressionElimination)
         optConstantFolding.foreach(optOptions.setDoConstantFolding)
         optFunctionInlining.foreach(optOptions.setDoFunctionInlining)
+        optGlobalJITLevel.foreach(l => optOptions.setGlobalJitLevel(l.level))
         graphOptions.setOptimizerOptions(optOptions)
       }
       graphEnableReceiveScheduling.foreach(graphOptions.setEnableRecvScheduling)

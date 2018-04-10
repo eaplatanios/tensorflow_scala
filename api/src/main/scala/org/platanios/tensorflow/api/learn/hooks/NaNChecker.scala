@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -31,7 +31,10 @@ import org.slf4j.LoggerFactory
   *
   * @author Emmanouil Antonios Platanios
   */
-case class NaNChecker(tensorNames: Set[String], failOnNaN: Boolean = true) extends Hook {
+class NaNChecker protected (
+    val tensorNames: Set[String],
+    val failOnNaN: Boolean = true
+) extends Hook {
   private[this] var outputs: Seq[Output] = _
 
   override protected def begin(): Unit = {
@@ -70,4 +73,8 @@ case class NaNChecker(tensorNames: Set[String], failOnNaN: Boolean = true) exten
 
 object NaNChecker {
   private[NaNChecker] val logger = Logger(LoggerFactory.getLogger("Learn / Hooks / Tensor NaN"))
+
+  def apply(tensorNames: Set[String], failOnNaN: Boolean = true): NaNChecker = {
+    new NaNChecker(tensorNames, failOnNaN)
+  }
 }

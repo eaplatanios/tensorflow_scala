@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -51,6 +51,8 @@ abstract class TriggeredHook(
 
   override private[learn] def internalAfterSessionCreation(session: Session): Unit = {
     lastStep = session.run(fetches = step.value).scalar.asInstanceOf[Long]
+    if (lastStep == 0L)
+      lastStep = -1L
     super.internalAfterSessionCreation(session)
   }
 
@@ -58,10 +60,10 @@ abstract class TriggeredHook(
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]
   ): Option[Hook.SessionRunArgs[Seq[Output], Traversable[Op], Seq[Tensor]]] = {
-    if (internalTrigger.lastTriggerStep().isEmpty)
-      onFirstTrigger(runContext)(executableEv, fetchableEv)
-    shouldTrigger = internalTrigger.shouldTriggerForStep(lastStep.toInt)
+    shouldTrigger = internalTrigger.shouldTriggerForStep(lastStep.toInt + 1)
     if (shouldTrigger) {
+      if (internalTrigger.lastTriggerStep().isEmpty)
+        onFirstTrigger(runContext)(executableEv, fetchableEv)
       Some(Hook.SessionRunArgs(fetches = step.value +: fetches))
     } else {
       Some(Hook.SessionRunArgs(fetches = Seq(step.value)))
@@ -77,7 +79,7 @@ abstract class TriggeredHook(
   ): Unit = {
     lastStep = runResult.values(0).scalar.asInstanceOf[Long]
     if (shouldTrigger) {
-      val elapsed = internalTrigger.updateLastTrigger(lastStep.toInt - 1)
+      val elapsed = internalTrigger.updateLastTrigger(lastStep.toInt)
       onTrigger(lastStep, elapsed, runResult.copy(values = runResult.values.tail), runContext.session)
     }
   }
@@ -85,7 +87,7 @@ abstract class TriggeredHook(
   override private[learn] def internalEnd(session: Session): Unit = {
     if (triggerAtEnd && lastStep.toInt != internalTrigger.lastTriggerStep().getOrElse(-1)) {
       val lastStep = session.run(fetches = step.value).scalar.asInstanceOf[Long]
-      val elapsed = internalTrigger.updateLastTrigger(lastStep.toInt - 1)
+      val elapsed = internalTrigger.updateLastTrigger(lastStep.toInt)
       onTrigger(lastStep, elapsed, Hook.SessionRunResult(session.run(fetches = fetches), None), session)
     }
     super.internalEnd(session)

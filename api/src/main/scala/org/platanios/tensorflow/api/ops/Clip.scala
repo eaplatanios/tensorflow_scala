@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -15,6 +15,7 @@
 
 package org.platanios.tensorflow.api.ops
 
+import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.types.INT32
 
 /** Contains functions for constructing ops related to clipping tensor values.
@@ -34,14 +35,11 @@ private[ops] trait Clip {
     * @return Created op output.
     */
   def clipByValue(input: Output, clipValueMin: Output, clipValueMax: Output, name: String = "ClipByValue"): Output = {
-    Op.createWithNameScope(name) {
-      val inputMin = Math.minimum(input, clipValueMax)
-      val inputMax = Math.maximum(inputMin, clipValueMin)
-      // Assert that the result shape is compatible with the initial shape, to prevent unintentional broadcasting.
-      input.shape.assertIsCompatibleWith(inputMin.shape)
-      input.shape.assertIsCompatibleWith(inputMax.shape)
-      inputMax
-    }
+    Op.Builder("ClipByValue", name)
+        .addInput(input)
+        .addInput(clipValueMin)
+        .addInput(clipValueMax)
+        .build().outputs(0)
   }
 
   /** $OpDocClipClipByNorm
@@ -182,6 +180,32 @@ object Clip extends Clip {
       */
     def clipByAverageNorm(input: Output, clipNorm: Output, name: String = "ClipByAverageNorm"): Output = {
       Clip.clipByAverageNorm(output, clipNorm, name)
+    }
+  }
+
+  private[ops] object Gradients {
+    GradientsRegistry.register("ClipByValue", clipByValueGradient)
+
+    private[this] def clipByValueGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val x = op.inputs(0)
+      val y = op.inputs(1)
+      val z = op.inputs(2)
+      val xShape = Basic.shape(x)
+      val yShape = Basic.shape(y)
+      val zShape = Basic.shape(z)
+      val outputGradient = outputGradients.head.toOutput
+      val zeros = Basic.zerosLike(outputGradient)
+      val xyMask = Math.less(x, y)
+      val xzMask = Math.greater(x, z)
+      val xGradient = Math.select(Math.logicalOr(xyMask, xzMask), zeros, outputGradient)
+      val yGradient = Math.select(xyMask, outputGradient, zeros)
+      val zGradient = Math.select(xzMask, outputGradient, zeros)
+      val (_, ry) = Math.Gradients.broadcastGradientArguments(xShape, yShape)
+      val (rx, rz) = Math.Gradients.broadcastGradientArguments(xShape, zShape)
+      Seq(
+        Math.sum(xGradient, rx).reshape(xShape),
+        Math.sum(yGradient, ry).reshape(yShape),
+        Math.sum(zGradient, rz).reshape(zShape))
     }
   }
 

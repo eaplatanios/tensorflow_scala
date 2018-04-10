@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -36,9 +36,9 @@ private[api] trait NN {
     * @group NNOps
     * @param  value         Value tensor.
     * @param  bias          Bias tensor that must be one-dimensional (i.e., it must have rank 1).
-    * @param  cNNDataFormat Data format of the input and output tensors. With the default format [[NHWCFormat]], the
+    * @param  cNNDataFormat Data format of the input and output tensors. With the default format [[NWCFormat]], the
     *                       `bias` tensor will be added to the last dimension of the `value` tensor. Alternatively, the
-    *                       format could be [[NCHWFormat]], and the `bias` tensor would be added to the third-to-last
+    *                       format could be [[NCWFormat]], and the `bias` tensor would be added to the third-to-last
     *                       dimension.
     * @param  name          Name for the created op.
     * @return Created op output.
@@ -112,12 +112,14 @@ private[api] trait NN {
     */
   def relu(input: Output, alpha: Float = 0.0f, name: String = "ReLU"): Output = {
     def reluOp[T: OutputOps](i: T, n: String): T = {
-      implicitly[OutputOps[T]]
-          .applyUnary(i, o => Op.Builder(opType = "Relu", name = n)
-              .addInput(o)
-              .build().outputs(0))
+      implicitly[OutputOps[T]].applyUnary(i, o => {
+        val oFloat = if (o.dataType.isInteger) o.cast(FLOAT32) else o
+        Op.Builder(opType = "Relu", name = n)
+            .addInput(oFloat)
+            .build().outputs(0)
+      })
     }
-    if (alpha == 0.0) {
+    if (alpha == 0.0f) {
       reluOp(input, name)
     } else {
       Op.createWithNameScope(name) {
@@ -145,12 +147,13 @@ private[api] trait NN {
     *
     * @group NNOps
     * @param  input Input tensor.
+    * @param  axis  Along along which the output values are concatenated along.
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def crelu(input: Output, name: String = "CReLU"): Output = {
+  def crelu(input: Output, axis: Output = -1, name: String = "CReLU"): Output = {
     Op.createWithNameScope(name, Set(input.op)) {
-      relu(Basic.concatenate(Seq(input, -input), axis = -1))
+      relu(Basic.concatenate(Seq(input, -input), axis = axis))
     }
   }
 
@@ -235,7 +238,8 @@ private[api] trait NN {
         // on its last dimension.
         // We swap the logits' axis of axis and its last axis.
         val inputRank = Basic.rank(logits)
-        val swappedLogits = swapAxes(logits, axis, Math.subtract(inputRank, 1))
+        val modAxis = axis % Basic.rank(logits)
+        val swappedLogits = swapAxes(logits, modAxis, Math.subtract(inputRank, 1))
         val shapeAfterSwap = Basic.shape(swappedLogits)
         // We reshape the logits into a matrix.
         val flattenedLogits = flattenOuterAxes(swappedLogits)
@@ -245,7 +249,7 @@ private[api] trait NN {
             .build().outputs(0)
         // We transform back the output tensor.
         output = Basic.reshape(output, shapeAfterSwap)
-        output = swapAxes(output, axis, Math.subtract(inputRank, 1))
+        output = swapAxes(output, modAxis, Math.subtract(inputRank, 1))
         // We make shape inference work since the reshape and the transpose may erase the static shape information.
         output.setShape(shape)
         output
@@ -558,11 +562,26 @@ private[api] trait NN {
 
   //endregion Loss Ops
 
+  /** Returns the `noiseShape` for the provided input, making the best effort possible to deal with unknown sizes. */
+  private[api] def getNoiseShape(input: Output, noiseShape: Output): Output = {
+    if (noiseShape == null) {
+      Basic.shape(input)
+    } else if (input.rank != -1 && input.rank == noiseShape.rank) {
+      Shape.fromSeq(input.shape.asArray.zip(noiseShape.shape.asArray).map {
+        case (inputAxisSize, noiseShapeAxisSize) if noiseShapeAxisSize == -1 && inputAxisSize != -1 => inputAxisSize
+        case (_, noiseShapeAxisSize) => noiseShapeAxisSize
+      })
+    } else {
+      noiseShape
+    }
+  }
+
   /** $OpDocNNDropout
     *
     * @group NNOps
     * @param  input           Input tensor.
     * @param  keepProbability Probability (i.e., number in the interval `(0, 1]`) that each element is kept.
+    * @param  scaleOutput     If `true`, the outputs will be divided by the keep probability.
     * @param  noiseShape      [[INT32]] rank-1 tensor representing the shape for the randomly generated keep/drop flags.
     * @param  seed            Optional random seed, used to generate a random seed pair for the random number
     *                         generator, when combined with the graph-level seed.
@@ -570,14 +589,19 @@ private[api] trait NN {
     * @return Created op output that has the same shape as `input`.
     */
   def dropout(
-      input: Output, keepProbability: Float, noiseShape: Output = null, seed: Option[Int] = None,
-      name: String = "Dropout"): Output = {
+      input: Output,
+      keepProbability: Float,
+      scaleOutput: Boolean = true,
+      noiseShape: Output = null,
+      seed: Option[Int] = None,
+      name: String = "Dropout"
+  ): Output = {
     require(keepProbability > 0.0 && keepProbability <= 1.0, s"'keepProbability' ($keepProbability) must be in (0, 1].")
     // Do nothing if we know that keepProbability == 1.
     if (keepProbability == 1.0) {
       input
     } else {
-      dynamicDropout(input, Basic.constant(keepProbability, input.dataType), noiseShape, seed, name)
+      dynamicDropout(input, Basic.constant(keepProbability, input.dataType), scaleOutput, noiseShape, seed, name)
     }
   }
 
@@ -586,6 +610,7 @@ private[api] trait NN {
     * @group NNOps
     * @param  input           Input tensor.
     * @param  keepProbability Probability (i.e., scalar in the interval `(0, 1]`) that each element is kept.
+    * @param  scaleOutput     If `true`, the outputs will be divided by the keep probability.
     * @param  noiseShape      [[INT32]] rank-1 tensor representing the shape for the randomly generated keep/drop flags.
     * @param  seed            Optional random seed, used to generate a random seed pair for the random number
     *                         generator, when combined with the graph-level seed.
@@ -593,17 +618,22 @@ private[api] trait NN {
     * @return Created op output that has the same shape as `input`.
     */
   def dynamicDropout(
-      input: Output, keepProbability: Output, noiseShape: Output = null, seed: Option[Int] = None,
-      name: String = "Dropout"): Output = {
+      input: Output,
+      keepProbability: Output,
+      scaleOutput: Boolean = true,
+      noiseShape: Output = null,
+      seed: Option[Int] = None,
+      name: String = "Dropout"
+  ): Output = {
     Op.createWithNameScope(name, Set(input.op)) {
-      val inferredNoiseShape = if (noiseShape == null) Basic.shape(input) else noiseShape
+      val inferredNoiseShape = getNoiseShape(input, noiseShape)
       // Uniform random variable in [keepProbability, 1.0 + keepProbability).
       val probability = Math.cast(keepProbability, input.dataType)
       val random = Random.randomUniform(
         input.dataType, inferredNoiseShape, minValue = probability, maxValue = probability + 1.0, seed = seed)
       // 0.0 if in [keepProbability, 1.0) and 1.0 if [1.0, 1.0 + keepProbability).
       val binaryTensor = Math.floor(random)
-      val output = Math.divide(input, probability) * binaryTensor
+      val output = if (scaleOutput) Math.divide(input, probability) * binaryTensor else input * binaryTensor
       output.setShape(input.shape)
       output
     }
@@ -649,6 +679,47 @@ private[api] trait NN {
 
   //region Convolution Ops
 
+  /** Padding mode. */
+  sealed trait ConvPaddingMode {
+    val name: String
+    override def toString: String = name
+  }
+
+  object ConvPaddingMode {
+    def fromName(name: String): ConvPaddingMode = fromString(name)
+
+    @throws[InvalidArgumentException]
+    def fromString(name: String): ConvPaddingMode = name match {
+      case SameConvPadding.name => SameConvPadding
+      case ValidConvPadding.name => ValidConvPadding
+      case _ => throw InvalidArgumentException(s"Invalid convolution/pooling padding mode '$name' provided.")
+    }
+  }
+
+  case object SameConvPadding extends ConvPaddingMode { override val name: String = "SAME" }
+  case object ValidConvPadding extends ConvPaddingMode { override val name: String = "VALID" }
+
+  sealed trait CNNDataFormat {
+    val name: String
+    override def toString: String = name
+  }
+
+  object CNNDataFormat {
+    val default: CNNDataFormat = NWCFormat
+
+    def fromName(name: String): CNNDataFormat = fromString(name)
+
+    @throws[InvalidArgumentException]
+    def fromString(name: String): CNNDataFormat = name match {
+      case NWCFormat.name => NWCFormat
+      case NCWFormat.name => NCWFormat
+      case _ => throw InvalidArgumentException(s"Invalid convolution/pooling data format '$name' provided.")
+    }
+  }
+
+  case object NWCFormat extends CNNDataFormat { override val name: String = "NHWC" }
+  case object NCWFormat extends CNNDataFormat { override val name: String = "NCHW" }
+
   /** $OpDocConv2D
     *
     * @param  input         4-D tensor whose dimension order is interpreted according to the value of `dataFormat`.
@@ -663,7 +734,7 @@ private[api] trait NN {
     * @return Created op output, which is a 4-D tensor whose dimension order depends on the value of `dataFormat`.
     */
   def conv2D(
-      input: Output, filter: Output, stride1: Long, stride2: Long, padding: PaddingMode,
+      input: Output, filter: Output, stride1: Long, stride2: Long, padding: ConvPaddingMode,
       dataFormat: CNNDataFormat = CNNDataFormat.default, useCuDNNOnGPU: Boolean = true,
       name: String = "Conv2D"): Output = {
     Op.Builder(opType = "Conv2D", name = name)
@@ -693,7 +764,7 @@ private[api] trait NN {
     */
   def conv2DBackpropInput(
       inputSizes: Output, filter: Output, outputGradient: Output, stride1: Long, stride2: Long,
-      padding: PaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default, useCuDNNOnGPU: Boolean = true,
+      padding: ConvPaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default, useCuDNNOnGPU: Boolean = true,
       name: String = "Conv2DBackpropInput"): Output = {
     Op.Builder(opType = "Conv2DBackpropInput", name = name)
         .addInput(inputSizes)
@@ -723,7 +794,7 @@ private[api] trait NN {
     */
   def conv2DBackpropFilter(
       input: Output, filterSizes: Output, outputGradient: Output, stride1: Long, stride2: Long,
-      padding: PaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default, useCuDNNOnGPU: Boolean = true,
+      padding: ConvPaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default, useCuDNNOnGPU: Boolean = true,
       name: String = "Conv2DBackpropFilter"): Output = {
     Op.Builder(opType = "Conv2DBackpropFilter", name = name)
         .addInput(input)
@@ -752,7 +823,7 @@ private[api] trait NN {
     * @return Created op output, which is a 4-D tensor whose dimension order depends on the value of `dataFormat`.
     */
   def maxPool(
-      input: Output, windowSize: Seq[Long], stride1: Long, stride2: Long, padding: PaddingMode,
+      input: Output, windowSize: Seq[Long], stride1: Long, stride2: Long, padding: ConvPaddingMode,
       dataFormat: CNNDataFormat = CNNDataFormat.default, name: String = "MaxPool"): Output = {
     Op.Builder(opType = "MaxPool", name = name)
         .addInput(input)
@@ -779,7 +850,7 @@ private[api] trait NN {
     */
   def maxPoolGrad(
       originalInput: Output, originalOutput: Output, outputGradient: Output, windowSize: Seq[Long],
-      stride1: Long, stride2: Long, padding: PaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default,
+      stride1: Long, stride2: Long, padding: ConvPaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default,
       name: String = "MaxPoolGrad"): Output = {
     Op.Builder(opType = "MaxPoolGrad", name = name)
         .addInput(originalInput)
@@ -808,7 +879,7 @@ private[api] trait NN {
     */
   def maxPoolGradGrad(
       originalInput: Output, originalOutput: Output, outputGradient: Output, windowSize: Seq[Long],
-      stride1: Long, stride2: Long, padding: PaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default,
+      stride1: Long, stride2: Long, padding: ConvPaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default,
       name: String = "MaxPoolGradGrad"): Output = {
     Op.Builder(opType = "MaxPoolGradGrad", name = name)
         .addInput(originalInput)
@@ -832,9 +903,9 @@ object NN extends NN {
       *
       * @group NNOps
       * @param  bias          Bias tensor that must be one-dimensional (i.e., it must have rank 1).
-      * @param  cNNDataFormat Data format of the input and output tensors. With the default format [[NHWCFormat]], the
+      * @param  cNNDataFormat Data format of the input and output tensors. With the default format [[NWCFormat]], the
       *                       `bias` tensor will be added to the last dimension of the `value` tensor. Alternatively, the
-      *                       format could be [[NCHWFormat]], and the `bias` tensor would be added to the third-to-last
+      *                       format could be [[NCWFormat]], and the `bias` tensor would be added to the third-to-last
       *                       dimension.
       * @return Created op output.
       */
@@ -938,26 +1009,38 @@ object NN extends NN {
       *
       * @group NNOps
       * @param  keepProbability Probability (i.e., number in the interval `(0, 1]`) that each element is kept.
+      * @param  scaleOutput     If `true`, the outputs will be divided by the keep probability.
       * @param  noiseShape      [[INT32]] rank-1 tensor representing the shape for the randomly generated keep/drop flags.
       * @param  seed            Optional random seed, used to generate a random seed pair for the random number
       *                         generator, when combined with the graph-level seed.
       * @return Created op output that has the same shape as `input`.
       */
-    def dropout(keepProbability: Float, noiseShape: Output = null, seed: Option[Int] = None): Output = {
-      NN.dropout(output, keepProbability, noiseShape, seed)
+    def dropout(
+        keepProbability: Float,
+        scaleOutput: Boolean = true,
+        noiseShape: Output = null,
+        seed: Option[Int] = None
+    ): Output = {
+      NN.dropout(output, keepProbability, scaleOutput, noiseShape, seed)
     }
 
     /** $OpDocNNDropout
       *
       * @group NNOps
       * @param  keepProbability Probability (i.e., number in the interval `(0, 1]`) that each element is kept.
+      * @param  scaleOutput     If `true`, the outputs will be divided by the keep probability.
       * @param  noiseShape      [[INT32]] rank-1 tensor representing the shape for the randomly generated keep/drop flags.
       * @param  seed            Optional random seed, used to generate a random seed pair for the random number
       *                         generator, when combined with the graph-level seed.
       * @return Created op output that has the same shape as `input`.
       */
-    def dynamicDropout(keepProbability: Output, noiseShape: Output = null, seed: Option[Int] = None): Output = {
-      NN.dynamicDropout(output, keepProbability, noiseShape, seed)
+    def dynamicDropout(
+        keepProbability: Output,
+        scaleOutput: Boolean = true,
+        noiseShape: Output = null,
+        seed: Option[Int] = None
+    ): Output = {
+      NN.dynamicDropout(output, keepProbability, scaleOutput, noiseShape, seed)
     }
 
     /** $OpDocNNTopK
@@ -995,7 +1078,7 @@ object NN extends NN {
       * @return Created op output, which is a 4-D tensor whose dimension order depends on the value of `dataFormat`.
       */
     def conv2D(
-        filter: Output, stride1: Long, stride2: Long, padding: PaddingMode,
+        filter: Output, stride1: Long, stride2: Long, padding: ConvPaddingMode,
         dataFormat: CNNDataFormat = CNNDataFormat.default, useCuDNNOnGPU: Boolean = true,
         name: String = "Conv2D"): Output = {
       NN.conv2D(output, filter, stride1, stride2, padding, dataFormat, useCuDNNOnGPU, name)
@@ -1016,7 +1099,7 @@ object NN extends NN {
       * @return Created op output, which is a 4-D tensor whose dimension order depends on the value of `dataFormat`.
       */
     def maxPool(
-        windowSize: Seq[Long], stride1: Long, stride2: Long, padding: PaddingMode,
+        windowSize: Seq[Long], stride1: Long, stride2: Long, padding: ConvPaddingMode,
         dataFormat: CNNDataFormat = CNNDataFormat.default, name: String = "MaxPool"): Output = {
       NN.maxPool(output, windowSize, stride1, stride2, padding, dataFormat, name)
     }
@@ -1069,47 +1152,6 @@ object NN extends NN {
         name)
     }
   }
-
-  /** Padding mode. */
-  sealed trait PaddingMode {
-    val name: String
-    override def toString: String = name
-  }
-
-  object PaddingMode {
-    def fromName(name: String): PaddingMode = fromString(name)
-
-    @throws[InvalidArgumentException]
-    def fromString(name: String): PaddingMode = name match {
-      case SamePadding.name => SamePadding
-      case ValidPadding.name => ValidPadding
-      case _ => throw InvalidArgumentException(s"Invalid convolution/pooling padding mode '$name' provided.")
-    }
-  }
-
-  case object SamePadding extends PaddingMode {override val name: String = "SAME"}
-  case object ValidPadding extends PaddingMode {override val name: String = "VALID"}
-
-  sealed trait CNNDataFormat {
-    val name: String
-    override def toString: String = name
-  }
-
-  object CNNDataFormat {
-    val default: CNNDataFormat = NHWCFormat
-
-    def fromName(name: String): CNNDataFormat = fromString(name)
-
-    @throws[InvalidArgumentException]
-    def fromString(name: String): CNNDataFormat = name match {
-      case NHWCFormat.name => NHWCFormat
-      case NCHWFormat.name => NCHWFormat
-      case _ => throw InvalidArgumentException(s"Invalid convolution/pooling data format '$name' provided.")
-    }
-  }
-
-  case object NHWCFormat extends CNNDataFormat {override val name: String = "NHWC"}
-  case object NCHWFormat extends CNNDataFormat {override val name: String = "NCHW"}
 
   private[ops] object Gradients {
     GradientsRegistry.register("BiasAdd", biasAddGradient)
@@ -1424,7 +1466,7 @@ object NN extends NN {
   private[this] def conv2DGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
     val outputGradient = outputGradients.head.toOutput
     val strides = op.longArrayAttribute("strides")
-    val padding = PaddingMode.fromName(op.stringAttribute("padding"))
+    val padding = ConvPaddingMode.fromName(op.stringAttribute("padding"))
     val dataFormat = CNNDataFormat.fromName(op.stringAttribute("data_format"))
     val useCuDNNOnGPU = op.booleanAttribute("use_cudnn_on_gpu")
     val inputShapes = Basic.shapeN(Seq(op.inputs(0), op.inputs(1)))
@@ -1441,7 +1483,7 @@ object NN extends NN {
     val outputGradient = outputGradients.head.toOutput
     val windowSizes = op.longArrayAttribute("ksize")
     val strides = op.longArrayAttribute("strides")
-    val padding = PaddingMode.fromName(op.stringAttribute("padding"))
+    val padding = ConvPaddingMode.fromName(op.stringAttribute("padding"))
     val dataFormat = CNNDataFormat.fromName(op.stringAttribute("data_format"))
     Seq(
       NN.maxPoolGrad(
@@ -1453,7 +1495,7 @@ object NN extends NN {
     val outputGradient = outputGradients.head.toOutput
     val windowSizes = op.longArrayAttribute("ksize")
     val strides = op.longArrayAttribute("strides")
-    val padding = PaddingMode.fromName(op.stringAttribute("padding"))
+    val padding = ConvPaddingMode.fromName(op.stringAttribute("padding"))
     val dataFormat = CNNDataFormat.fromName(op.stringAttribute("data_format"))
     Seq(
       Basic.zerosLike(op.inputs(0)),
@@ -1467,7 +1509,7 @@ object NN extends NN {
     val outputGradient = outputGradients.head.toOutput
     val windowSizes = op.longArrayAttribute("ksize")
     val strides = op.longArrayAttribute("strides")
-    val padding = PaddingMode.fromName(op.stringAttribute("padding"))
+    val padding = ConvPaddingMode.fromName(op.stringAttribute("padding"))
     val dataFormat = CNNDataFormat.fromName(op.stringAttribute("data_format"))
     Seq(
       Basic.zerosLike(op.inputs(0)),
@@ -1627,21 +1669,23 @@ object NN extends NN {
     *   Hence, to ensure stability and avoid numerical overflow, the implementation uses this equivalent formulation:
     *   `max(x, 0) - x * z + log(1 + exp(-abs(x)))`
     *
-    *   If `weights` is not `null`, then the positive examples are weighted and we have the following expression instead
-    *   (where `q = weights`, for brevity):
+    *   If `weights` is not `null`, then the positive examples are weighted. A value `weights > 1` decreases the false
+    *   negative count, hence increasing recall. Conversely setting `weights < 1` decreases the false positive count and
+    *   increases precision. This can be seen from the fact that `weight` is introduced as a multiplicative coefficient
+    *   for the positive targets term in the loss expression (where `q = weights`, for brevity):
     *   `  qz * -log(sigmoid(x)) + (1 - z) * -log(1 - sigmoid(x))`
     *   `= qz * -log(1 / (1 + exp(-x))) + (1 - z) * -log(exp(-x) / (1 + exp(-x)))`
     *   `= qz * log(1 + exp(-x)) + (1 - z) * (-log(exp(-x)) + log(1 + exp(-x)))`
     *   `= qz * log(1 + exp(-x)) + (1 - z) * (x + log(1 + exp(-x))`
     *   `= (1 - z) * x + (qz +  1 - z) * log(1 + exp(-x))`
     *   `= (1 - z) * x + (1 + (q - 1) * z) * log(1 + exp(-x))`
-    *
+    *   
     *   Setting `l = 1 + (q - 1) * z`, to ensure stability and avoid numerical overflow, the implementation uses this
     *   equivalent formulation:
     *   `(1 - z) * x + l * (max(-x, 0) + log(1 + exp(-abs(x))))`
     *
     *   `logits` and `labels` must have the same shape.
-    *
+    * 
     * @define OpDocNNLogPoissonLoss
     *   The `logPoissonLoss` op computes the log-Poisson loss between `logPredictions` and `targets`.
     *
@@ -1662,7 +1706,7 @@ object NN extends NN {
     *                                                                          only computed when
     *                                                                          `computeFullLoss == true`)
     *   `= x - z * log(x) [+ z * log(z) - z + 0.5 * log(2 * pi * z)]`
-    *   `= exp(c) - z * c [+ z * log(z) - z + 0.5 * log(2 * pi * z)]`
+    *   `= exp(c) - z * c [+ z * log(z) - z + 0.5 * log(2 * pi * z)]`.
     *
     * @define OpDocNNSequenceLoss
     *   The `sequenceLoss` op computes an optionally weighted loss for a sequence of predicted logits.
@@ -1722,7 +1766,7 @@ object NN extends NN {
     *        `[batch, outHeight, outWidth, filterHeight * filterWidth * inChannels]`.
     *     3. For each patch, right-multiplies the filter matrix and the image patch vector.
     *
-    *   For example, for the default [[NHWCFormat]]:
+    *   For example, for the default [[NWCFormat]]:
     *   {{{
     *     output(b,i,j,k) = sum_{di,dj,q} input(b, stride1 * i + di, stride2 * j + dj, q) * filter(di,dj,q,k).
     *   }}}

@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -27,6 +27,8 @@ import java.util
   * function will be called in order to dispose the native data. It accepts no arguments and returns nothing.
   *
   * When the object becomes unreachable, the provided disposing function for that object will be called.
+  *
+  * @author Emmanouil Antonios Platanios
   */
 private[api] object Disposer {
   private val queue  : ReferenceQueue[Any]                        = new ReferenceQueue[Any]
@@ -36,9 +38,19 @@ private[api] object Disposer {
     *
     * @param target Disposable object to register.
     */
-  def add(target: Any, disposer: () => Unit): Unit = synchronized {
+  def add(target: Any, disposer: () => Unit): Reference[Any] = synchronized {
     val reference = new PhantomReference(target, Disposer.queue)
     Disposer.records.put(reference, disposer)
+    reference
+  }
+
+  /** Removes/unregisters the provided reference from this disposer (e.g., in case it was disposed of, externally).
+    *
+    * @param  reference Reference to remove/unregister.
+    */
+  def remove(reference: Reference[Any]): Unit = synchronized {
+    if (!reference.isEnqueued)
+      reference.enqueue()
   }
 
   AccessController.doPrivileged(new PrivilegedAction[Unit] {
@@ -60,9 +72,9 @@ private class Disposer extends Runnable {
   override def run(): Unit = {
     while (true) {
       var referenceToBeDisposed = Disposer.queue.remove // Blocks until there is a reference in the queue
-      referenceToBeDisposed.clear()
       var disposer = Disposer.records.remove(referenceToBeDisposed)
       disposer()
+      referenceToBeDisposed.clear()
       referenceToBeDisposed = null
       disposer = null
     }

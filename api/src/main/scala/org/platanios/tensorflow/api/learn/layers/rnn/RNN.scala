@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -54,7 +54,7 @@ class RNN[O, OS, S, SS](
 ) extends Layer[O, Tuple[O, S]](name) {
   override val layerType: String = "RNN"
 
-  override protected def _forward(input: O, mode: Mode): Tuple[O, S] = {
+  override protected def _forward(input: O)(implicit mode: Mode): Tuple[O, S] = {
     val state = if (initialState == null) null.asInstanceOf[S] else initialState()
     val lengths = if (sequenceLengths == null) null else ops.Basic.constant(sequenceLengths)
     val createdCell = cell.createCell(mode, evO.fromShapes(input, evO.outputs(input).map(_.shape)))

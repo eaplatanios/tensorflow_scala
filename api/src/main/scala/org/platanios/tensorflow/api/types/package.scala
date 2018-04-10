@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -24,7 +24,7 @@ import org.tensorflow.framework.TensorProto
 import spire.math.{UByte, UShort}
 
 import java.nio.ByteBuffer
-import java.nio.charset.Charset
+import java.nio.charset.StandardCharsets
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -43,17 +43,17 @@ package object types {
     override def protoType: org.tensorflow.framework.DataType = org.tensorflow.framework.DataType.DT_STRING
 
     private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: String): Int = {
-      val stringBytes = element.getBytes(Charset.forName("ISO-8859-1"))
+      val stringBytes = element.getBytes(StandardCharsets.ISO_8859_1)
       NativeTensor.setStringBytes(stringBytes, buffer.duplicate().position(index).asInstanceOf[ByteBuffer].slice())
     }
 
     private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): String = {
       val stringBytes = NativeTensor.getStringBytes(buffer.duplicate().position(index).asInstanceOf[ByteBuffer].slice())
-      new String(stringBytes, Charset.forName("ISO-8859-1"))
+      new String(stringBytes, StandardCharsets.ISO_8859_1)
     }
 
     private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: String): Unit = {
-      tensorProtoBuilder.addStringVal(ByteString.copyFromUtf8(value))
+      tensorProtoBuilder.addStringVal(ByteString.copyFrom(value.getBytes))
     }
   }
 

@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -26,7 +26,7 @@ import org.platanios.tensorflow.api.ops.{Op, Output}
   *
   * @author Emmanouil Antonios Platanios
   */
-case class LookupTableTensorInitializer(keys: Output, values: Output)
+class LookupTableTensorInitializer protected (val keys: Output, val values: Output)
     extends LookupTableInitializer(keys.dataType, values.dataType) {
   /** Creates and returns an op that initializes the provided table.
     *
@@ -43,4 +43,8 @@ case class LookupTableTensorInitializer(keys: Output, values: Output)
   }
 }
 
-
+object LookupTableTensorInitializer {
+  def apply(keys: Output, values: Output): LookupTableTensorInitializer = {
+    new LookupTableTensorInitializer(keys, values)
+  }
+}

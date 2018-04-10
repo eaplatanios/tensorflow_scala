@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -15,8 +15,8 @@
 
 package org.platanios.tensorflow.api.ops.training.optimizers
 
-import org.platanios.tensorflow.api.ops.training.optimizers.decay.{Decay, NoDecay}
 import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output, OutputIndexedSlices, Summary}
+import org.platanios.tensorflow.api.ops.training.optimizers.schedules.{Schedule, FixedSchedule}
 import org.platanios.tensorflow.api.ops.variables.{ConstantInitializer, Variable}
 
 /** Optimizer that implements the AdaGrad optimization algorithm.
@@ -44,13 +44,17 @@ import org.platanios.tensorflow.api.ops.variables.{ConstantInitializer, Variable
   *
   * @author Emmanouil Antonios Platanios
   */
-case class AdaGrad(
-    learningRate: Double = 0.01, decay: Decay = NoDecay, epsilon: Double = 1e-8, useLocking: Boolean = false,
-    learningRateSummaryTag: String = null, name: String = "AdaGrad"
+class AdaGrad protected (
+    val learningRate: Double = 0.01,
+    val decay: Schedule = FixedSchedule,
+    val epsilon: Double = 1e-8,
+    val useLocking: Boolean = false,
+    val learningRateSummaryTag: String = null,
+    val name: String = "AdaGrad"
 ) extends Optimizer {
-  private[this] var learningRateTensor: Output = _
+  protected var learningRateTensor: Output = _
 
-  private[this] def getLearningRate(variable: Variable, iteration: Option[Variable]): Output = {
+  protected def getLearningRate(variable: Variable, iteration: Option[Variable]): Output = {
     if (learningRateTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
     Math.cast(learningRateTensor, variable.dataType)
@@ -82,6 +86,17 @@ case class AdaGrad(
 }
 
 object AdaGrad {
+  def apply(
+      learningRate: Double = 0.01,
+      decay: Schedule = FixedSchedule,
+      epsilon: Double = 1e-8,
+      useLocking: Boolean = false,
+      learningRateSummaryTag: String = null,
+      name: String = "AdaGrad"
+  ): AdaGrad = {
+    new AdaGrad(learningRate, decay, epsilon, useLocking, learningRateSummaryTag, name)
+  }
+
   /** Creates an op that updates `variable` by applying the AdaGrad algorithm update to it.
     *
     * The AdaGrad update is as follows:
@@ -99,9 +114,14 @@ object AdaGrad {
     * @param  name        Name for the created op.
     * @return Created op.
     */
-  private[AdaGrad] def resourceApplyDense(
-      variable: Variable, accumulator: Variable, stepSize: Output, gradient: Output, useLocking: Boolean = false,
-      name: String = "ResourceApplyAdaGrad"): Op = {
+  private[optimizers] def resourceApplyDense(
+      variable: Variable,
+      accumulator: Variable,
+      stepSize: Output,
+      gradient: Output,
+      useLocking: Boolean = false,
+      name: String = "ResourceApplyAdaGrad"
+  ): Op = {
     Op.Builder(opType = "ResourceApplyAdagrad", name = name)
         .addInput(variable.handle)
         .addInput(accumulator.handle)
@@ -129,9 +149,15 @@ object AdaGrad {
     * @param  name        Name for the created op.
     * @return Created op.
     */
-  private[AdaGrad] def resourceApplySparse(
-      variable: Variable, accumulator: Variable, stepSize: Output, gradient: Output, indices: Output,
-      useLocking: Boolean = false, name: String = "ResourceSparseApplyAdaGrad"): Op = {
+  private[optimizers] def resourceApplySparse(
+      variable: Variable,
+      accumulator: Variable,
+      stepSize: Output,
+      gradient: Output,
+      indices: Output,
+      useLocking: Boolean = false,
+      name: String = "ResourceSparseApplyAdaGrad"
+  ): Op = {
     Op.Builder(opType = "ResourceSparseApplyAdagrad", name = name)
         .addInput(variable.handle)
         .addInput(accumulator.handle)

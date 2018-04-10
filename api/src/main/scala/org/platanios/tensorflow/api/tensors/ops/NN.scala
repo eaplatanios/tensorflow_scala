@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -18,12 +18,12 @@ package org.platanios.tensorflow.api.tensors.ops
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.ops.NN.{CNNDataFormat, NCHWFormat, NHWCFormat, PaddingMode}
+import org.platanios.tensorflow.api.ops.NN.{CNNDataFormat, NCWFormat, NWCFormat, ConvPaddingMode}
 import org.platanios.tensorflow.api.tensors.{Context, Tensor, TensorOps}
 import org.platanios.tensorflow.api.types.{DataType, FLOAT16, FLOAT32, FLOAT64, INT32, INT64}
 import org.platanios.tensorflow.jni.generated.tensors.{NN => NativeTensorOpsNN}
 
-import java.nio.charset.Charset
+import java.nio.charset.StandardCharsets
 
 import scala.util.DynamicVariable
 
@@ -39,9 +39,9 @@ private[api] trait NN {
     * @group NNOps
     * @param  value         Value tensor.
     * @param  bias          Bias tensor that must be one-dimensional (i.e., it must have rank 1).
-    * @param  cNNDataFormat Data format of the input and output tensors. With the default format [[NHWCFormat]], the
+    * @param  cNNDataFormat Data format of the input and output tensors. With the default format [[NWCFormat]], the
     *                       `bias` tensor will be added to the last dimension of the `value` tensor. Alternatively, the
-    *                       format could be [[NCHWFormat]], and the `bias` tensor would be added to the third-to-last
+    *                       format could be [[NCWFormat]], and the `bias` tensor would be added to the third-to-last
     *                       dimension.
     * @return Result as a new tensor.
     */
@@ -50,7 +50,7 @@ private[api] trait NN {
       implicit context: DynamicVariable[Context]): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsNN.biasAdd(
       context.value.nativeHandle, value.nativeHandle, bias.nativeHandle,
-      cNNDataFormat.toString.getBytes(Charset.forName("ISO-8859-1"))))
+      cNNDataFormat.toString.getBytes(StandardCharsets.ISO_8859_1)))
   }
 
   /** $OpDocNNLinear
@@ -134,9 +134,10 @@ private[api] trait NN {
     *
     * @group NNOps
     * @param  input Input tensor.
+    * @param  axis  Along along which the output values are concatenated along.
     * @return Result as a new tensor.
     */
-  def crelu(input: Tensor): Tensor = relu(Basic.concatenate(Seq(input, -input), axis = -1))
+  def crelu(input: Tensor, axis: Tensor = -1): Tensor = relu(Basic.concatenate(Seq(input, -input), axis = axis))
 
   /** $OpDocNNElu
     *
@@ -479,12 +480,19 @@ private[api] trait NN {
     * @group NNOps
     * @param  input           Input tensor.
     * @param  keepProbability Probability (i.e., number in the interval `(0, 1]`) that each element is kept.
+    * @param  scaleOutput     If `true`, the outputs will be divided by the keep probability.
     * @param  noiseShape      [[INT32]] rank-1 tensor representing the shape for the randomly generated keep/drop flags.
     * @param  seed            Optional random seed, used to generate a random seed pair for the random number
     *                         generator, when combined with the graph-level seed.
     * @return Result as a new tensor that has the same shape as `input`.
     */
-  def dropout(input: Tensor, keepProbability: Float, noiseShape: Tensor = null, seed: Option[Int] = None): Tensor = {
+  def dropout(
+      input: Tensor,
+      keepProbability: Float,
+      scaleOutput: Boolean = true,
+      noiseShape: Tensor = null,
+      seed: Option[Int] = None
+  ): Tensor = {
     require(keepProbability > 0.0 && keepProbability <= 1.0, s"'keepProbability' ($keepProbability) must be in (0, 1].")
     // Do nothing if we know that keepProbability == 1.
     if (keepProbability == 1.0) {
@@ -496,7 +504,8 @@ private[api] trait NN {
       val random = Random.randomUniform(
         input.dataType, inferredNoiseShape, minValue = probability, maxValue = probability + 1.0, seed = seed)
       // 0.0 if in [keepProbability, 1.0) and 1.0 if [1.0, 1.0 + keepProbability).
-      Math.divide(input, probability) * Math.floor(random)
+      val binaryTensor = Math.floor(random)
+      if (scaleOutput) Math.divide(input, probability) * binaryTensor else input * binaryTensor
     }
   }
 
@@ -548,13 +557,13 @@ private[api] trait NN {
     * @return Result as a new 4-D tensor whose dimension order depends on the value of `dataFormat`.
     */
   def conv2D(
-      input: Tensor, filter: Tensor, stride1: Long, stride2: Long, padding: PaddingMode,
+      input: Tensor, filter: Tensor, stride1: Long, stride2: Long, padding: ConvPaddingMode,
       dataFormat: CNNDataFormat = CNNDataFormat.default, useCuDNNOnGPU: Boolean = true
   )(implicit context: DynamicVariable[Context]): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsNN.conv2D(
       context.value.nativeHandle, input.nativeHandle, filter.nativeHandle, Array[Long](1, stride1, stride2, 1),
-      padding.name.getBytes(Charset.forName("ISO-8859-1")), useCuDNNOnGPU,
-      dataFormat.name.getBytes(Charset.forName("ISO-8859-1"))))
+      padding.name.getBytes(StandardCharsets.ISO_8859_1), useCuDNNOnGPU,
+      dataFormat.name.getBytes(StandardCharsets.ISO_8859_1)))
   }
 
   /** $OpDocConv2DBackpropInput
@@ -573,12 +582,12 @@ private[api] trait NN {
     */
   def conv2DBackpropInput(
       inputSizes: Tensor, filter: Tensor, outputGradient: Tensor, stride1: Long, stride2: Long,
-      padding: PaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default, useCuDNNOnGPU: Boolean = true
+      padding: ConvPaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default, useCuDNNOnGPU: Boolean = true
   )(implicit context: DynamicVariable[Context]): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsNN.conv2DBackpropInput(
       context.value.nativeHandle, inputSizes.nativeHandle, filter.nativeHandle, outputGradient.nativeHandle,
-      Array[Long](1, stride1, stride2, 1), padding.name.getBytes(Charset.forName("ISO-8859-1")), useCuDNNOnGPU,
-      dataFormat.name.getBytes(Charset.forName("ISO-8859-1"))))
+      Array[Long](1, stride1, stride2, 1), padding.name.getBytes(StandardCharsets.ISO_8859_1), useCuDNNOnGPU,
+      dataFormat.name.getBytes(StandardCharsets.ISO_8859_1)))
   }
 
   /** $OpDocConv2DBackpropFilter
@@ -597,12 +606,12 @@ private[api] trait NN {
     */
   def conv2DBackpropFilter(
       input: Tensor, filterSizes: Tensor, outputGradient: Tensor, stride1: Long, stride2: Long,
-      padding: PaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default, useCuDNNOnGPU: Boolean = true
+      padding: ConvPaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default, useCuDNNOnGPU: Boolean = true
   )(implicit context: DynamicVariable[Context]): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsNN.conv2DBackpropFilter(
       context.value.nativeHandle, input.nativeHandle, filterSizes.nativeHandle, outputGradient.nativeHandle,
-      Array[Long](1, stride1, stride2, 1), padding.name.getBytes(Charset.forName("ISO-8859-1")), useCuDNNOnGPU,
-      dataFormat.name.getBytes(Charset.forName("ISO-8859-1"))))
+      Array[Long](1, stride1, stride2, 1), padding.name.getBytes(StandardCharsets.ISO_8859_1), useCuDNNOnGPU,
+      dataFormat.name.getBytes(StandardCharsets.ISO_8859_1)))
   }
 
   //endregion Convolution Ops
@@ -620,12 +629,12 @@ private[api] trait NN {
     * @return Result as a new 4-D tensor whose dimension order depends on the value of `dataFormat`.
     */
   def maxPool(
-      input: Tensor, windowSize: Seq[Long], stride1: Long, stride2: Long, padding: PaddingMode,
+      input: Tensor, windowSize: Seq[Long], stride1: Long, stride2: Long, padding: ConvPaddingMode,
       dataFormat: CNNDataFormat = CNNDataFormat.default)(implicit context: DynamicVariable[Context]): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsNN.maxPool(
       context.value.nativeHandle, input.nativeHandle, windowSize.toArray,
-      Array[Long](1, stride1, stride2, 1), padding.name.getBytes(Charset.forName("ISO-8859-1")),
-      dataFormat.name.getBytes(Charset.forName("ISO-8859-1"))))
+      Array[Long](1, stride1, stride2, 1), padding.name.getBytes(StandardCharsets.ISO_8859_1),
+      dataFormat.name.getBytes(StandardCharsets.ISO_8859_1)))
   }
 
   /** $OpDocMaxPoolGrad
@@ -643,12 +652,12 @@ private[api] trait NN {
     */
   def maxPoolGrad(
       originalInput: Tensor, originalOutput: Tensor, outputGradient: Tensor, windowSize: Seq[Long],
-      stride1: Long, stride2: Long, padding: PaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default
+      stride1: Long, stride2: Long, padding: ConvPaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default
   )(implicit context: DynamicVariable[Context]): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsNN.maxPoolGrad(
       context.value.nativeHandle, originalInput.nativeHandle, originalOutput.nativeHandle, outputGradient.nativeHandle,
-      windowSize.toArray, Array[Long](1, stride1, stride2, 1), padding.name.getBytes(Charset.forName("ISO-8859-1")),
-      dataFormat.name.getBytes(Charset.forName("ISO-8859-1"))))
+      windowSize.toArray, Array[Long](1, stride1, stride2, 1), padding.name.getBytes(StandardCharsets.ISO_8859_1),
+      dataFormat.name.getBytes(StandardCharsets.ISO_8859_1)))
   }
 
   /** $OpDocMaxPoolGradGrad
@@ -666,12 +675,12 @@ private[api] trait NN {
     */
   def maxPoolGradGrad(
       originalInput: Tensor, originalOutput: Tensor, outputGradient: Tensor, windowSize: Seq[Long],
-      stride1: Long, stride2: Long, padding: PaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default
+      stride1: Long, stride2: Long, padding: ConvPaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default
   )(implicit context: DynamicVariable[Context]): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsNN.maxPoolGradGrad(
       context.value.nativeHandle, originalInput.nativeHandle, originalOutput.nativeHandle, outputGradient.nativeHandle,
-      windowSize.toArray, Array[Long](1, stride1, stride2, 1), padding.name.getBytes(Charset.forName("ISO-8859-1")),
-      dataFormat.name.getBytes(Charset.forName("ISO-8859-1"))))
+      windowSize.toArray, Array[Long](1, stride1, stride2, 1), padding.name.getBytes(StandardCharsets.ISO_8859_1),
+      dataFormat.name.getBytes(StandardCharsets.ISO_8859_1)))
   }
 
   //endregion Pooling Ops
@@ -685,9 +694,9 @@ object NN extends NN {
       *
       * @group NNOps
       * @param  bias          Bias tensor that must be one-dimensional (i.e., it must have rank 1).
-      * @param  cNNDataFormat Data format of the input and output tensors. With the default format [[NHWCFormat]], the
+      * @param  cNNDataFormat Data format of the input and output tensors. With the default format [[NWCFormat]], the
       *                       `bias` tensor will be added to the last dimension of the `value` tensor. Alternatively, the
-      *                       format could be [[NCHWFormat]], and the `bias` tensor would be added to the third-to-last
+      *                       format could be [[NCWFormat]], and the `bias` tensor would be added to the third-to-last
       *                       dimension.
       * @return Result as a new tensor.
       */
@@ -791,13 +800,19 @@ object NN extends NN {
       *
       * @group NNOps
       * @param  keepProbability Probability (i.e., number in the interval `(0, 1]`) that each element is kept.
+      * @param  scaleOutput     If `true`, the outputs will be divided by the keep probability.
       * @param  noiseShape      [[INT32]] rank-1 tensor representing the shape for the randomly generated keep/drop flags.
       * @param  seed            Optional random seed, used to generate a random seed pair for the random number
       *                         generator, when combined with the graph-level seed.
       * @return Result as a new tensor that has the same shape as `input`.
       */
-    def dropout(keepProbability: Float, noiseShape: Tensor = null, seed: Option[Int] = None): Tensor = {
-      NN.dropout(tensor, keepProbability, noiseShape, seed)
+    def dropout(
+        keepProbability: Float,
+        scaleOutput: Boolean = true,
+        noiseShape: Tensor = null,
+        seed: Option[Int] = None
+    ): Tensor = {
+      NN.dropout(tensor, keepProbability, scaleOutput, noiseShape, seed)
     }
 
     /** $OpDocNNTopK
@@ -834,7 +849,7 @@ object NN extends NN {
       * @return Result as a new 4-D tensor whose dimension order depends on the value of `dataFormat`.
       */
     def conv2D(
-        filter: Tensor, stride1: Long, stride2: Long, padding: PaddingMode,
+        filter: Tensor, stride1: Long, stride2: Long, padding: ConvPaddingMode,
         dataFormat: CNNDataFormat = CNNDataFormat.default, useCuDNNOnGPU: Boolean = true): Tensor = {
       NN.conv2D(tensor, filter, stride1, stride2, padding, dataFormat, useCuDNNOnGPU)
     }
@@ -853,7 +868,7 @@ object NN extends NN {
       * @return Result as a new 4-D tensor whose dimension order depends on the value of `dataFormat`.
       */
     def maxPool(
-        windowSize: Seq[Long], stride1: Long, stride2: Long, padding: PaddingMode,
+        windowSize: Seq[Long], stride1: Long, stride2: Long, padding: ConvPaddingMode,
         dataFormat: CNNDataFormat = CNNDataFormat.default): Tensor = {
       NN.maxPool(tensor, windowSize, stride1, stride2, padding, dataFormat)
     }

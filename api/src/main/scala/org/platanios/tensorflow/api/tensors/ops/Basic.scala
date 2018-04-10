@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -25,7 +25,7 @@ import org.platanios.tensorflow.api.tensors._
 import org.platanios.tensorflow.api.types._
 import org.platanios.tensorflow.jni.generated.tensors.{Basic => NativeTensorOpsBasic}
 
-import java.nio.charset.Charset
+import java.nio.charset.StandardCharsets
 
 import scala.language.postfixOps
 import scala.util.DynamicVariable
@@ -242,8 +242,10 @@ private[api] trait Basic {
     * @return Result as a new tensor.
     */
   def pad(
-      input: Tensor, paddings: Tensor, mode: PaddingMode = ConstantPadding)(
-      implicit context: DynamicVariable[Context]): Tensor = {
+      input: Tensor,
+      paddings: Tensor,
+      mode: PaddingMode = ConstantPadding(0)
+  )(implicit context: DynamicVariable[Context]): Tensor = {
     mode.pad(input, paddings)
   }
 
@@ -483,7 +485,7 @@ private[api] trait Basic {
     Tensor.fromNativeHandle(
       NativeTensorOpsBasic.spaceToDepth(
         context.value.nativeHandle, input.nativeHandle, blockSize,
-        dataFormat.name.getBytes(Charset.forName("ISO-8859-1"))))
+        dataFormat.name.getBytes(StandardCharsets.ISO_8859_1)))
   }
 
   /** $OpDocBasicDepthToSpace
@@ -500,7 +502,7 @@ private[api] trait Basic {
     Tensor.fromNativeHandle(
       NativeTensorOpsBasic.depthToSpace(
         context.value.nativeHandle, input.nativeHandle, blockSize,
-        dataFormat.name.getBytes(Charset.forName("ISO-8859-1"))))
+        dataFormat.name.getBytes(StandardCharsets.ISO_8859_1)))
   }
 
   //endregion Tensor Manipulation Ops
@@ -548,10 +550,15 @@ private[api] trait Basic {
     *                   in `lengths`.
     * @param  dataType  Data type for the output tensor.
     * @return Result as a new tensor.
+    * @throws IllegalArgumentException If `maxLength` is not a scalar.
     */
+  @throws[IllegalArgumentException]
   def sequenceMask(
-      lengths: Tensor, maxLength: Tensor = null, dataType: DataType = BOOLEAN)(
-      implicit context: DynamicVariable[Context]): Tensor = {
+      lengths: Tensor,
+      maxLength: Tensor = null,
+      dataType: DataType = BOOLEAN
+  )(implicit context: DynamicVariable[Context]): Tensor = {
+    require(maxLength == null || maxLength.rank == -1 || maxLength.rank == 0, "'maxLength' must be a scalar.")
     val maxLen = if (maxLength != null) maxLength else Math.max(lengths)
     // The basic idea is to compare a range row vector of size 'maxLen', [0, 1, 2, 3, 4], to 'lengths' as a matrix
     // with one column, [[1], [3], [2]]. Because of broadcasting on both arguments, this comparison results in a
@@ -937,7 +944,7 @@ object Basic extends Basic {
       * @param  mode     Padding mode to use.
       * @return Result as a new tensor.
       */
-    def pad(paddings: Tensor, mode: PaddingMode = ConstantPadding): Tensor = Basic.pad(tensor, paddings, mode)
+    def pad(paddings: Tensor, mode: PaddingMode = ConstantPadding(0)): Tensor = Basic.pad(tensor, paddings, mode)
 
     /** $OpDocBasicReshape
       *
@@ -1195,9 +1202,6 @@ object Basic extends Basic {
       val result = Basic.stridedSlice(
         tensor, beginTensor, endTensor, stridesTensor, stridedSlice._4, stridedSlice._5, stridedSlice._6,
         stridedSlice._7, stridedSlice._8)
-      beginTensor.close()
-      endTensor.close()
-      stridesTensor.close()
       result
     }
 

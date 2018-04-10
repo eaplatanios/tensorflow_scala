@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -30,7 +30,7 @@ import org.scalatest.junit.JUnitSuite
   */
 class DatasetSuite extends JUnitSuite {
   @Test def testTensorDataset(): Unit = using(Graph()) { graph =>
-    Op.createWith(graph) {
+    Op.createWith(graph, device = "/cpu:0") {
       val components = Tensor(1, 2, 3)
       val iterator = TensorDataset(components).createInitializableIterator()
       val initOp = iterator.initializer

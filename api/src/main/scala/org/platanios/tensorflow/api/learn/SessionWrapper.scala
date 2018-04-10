@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -53,11 +53,11 @@ import scala.util.control.Exception._
   *
   * @author Emmanouil Antonios Platanios
   */
-// TODO: !!! [LEARN] [SESSIONS] This should probably not be extending session (given the confused functionality w.r.t. "runHelper".
+// TODO: !!! [LEARN] [SESSIONS] This should probably not be extending session (given the confused functionality w.r.t. "runHelper").
 class SessionWrapper private[learn](
     protected var session: Session,
-    private val hooks: Set[Hook] = Set.empty[Hook])
-    extends Session(session.graphReference, session.nativeHandle, session.target) {
+    private val hooks: Set[Hook] = Set.empty[Hook]
+) extends Session(session.graphReference, session.target, session.nativeHandleWrapper, () => session.close()) {
   protected var _closed      : Boolean = false
   protected var _shouldStop  : Boolean = false
   protected var _hooksEnabled: Boolean = true

@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.core.distributed
 import org.platanios.tensorflow.api.config.{ClusterConfig, JobConfig}
 import org.platanios.tensorflow.api.core.client.{Session, SessionConfig}
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
-import org.platanios.tensorflow.api.utilities.{Closeable, Disposer}
+import org.platanios.tensorflow.api.utilities.{Closeable, Disposer, NativeHandleWrapper}
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
 import org.platanios.tensorflow.jni.{Server => NativeServer}
 
@@ -32,26 +32,27 @@ import org.tensorflow.distruntime.ServerDef
   * corresponds to a particular task in a named job. The server can communicate with any other server in the same
   * cluster.
   *
-  * @param  serverDef        [[ServerDef]] containing all the configuration options for this server.
-  * @param  startImmediately Boolean indicator, specifying whether to start the server immediately after creating it.
+  * @param  serverDef           [[ServerDef]] containing all the configuration options for this server.
+  * @param  startImmediately    Boolean indicator, specifying whether to start the server immediately after creating it.
+  * @param  nativeHandleWrapper Wrapper around the pointer to the native server object.
+  * @param  closeFn             Function used to delete the native server object (i.e., free relevant memory).
   *
   * @author Emmanouil Antonios Platanios
   */
-class Server private[distributed] (serverDef: ServerDef, startImmediately: Boolean = true)
-    extends ProtoSerializable with Closeable {
-  /** Handle to the native server object. */
-  private[this] var nativeHandle: Long = NativeServer.newServer(serverDef.toByteArray)
-
+class Server private[distributed] (
+    val serverDef: ServerDef,
+    val startImmediately: Boolean = true,
+    private[this] val nativeHandleWrapper: NativeHandleWrapper,
+    override protected val closeFn: () => Unit
+) extends ProtoSerializable with Closeable {
   /** Lock for the native handle. */
-  private[this] object NativeHandleLock
+  private[Server] def NativeHandleLock = nativeHandleWrapper.Lock
+
+  /** Native handle of this tensor. */
+  private[api] def nativeHandle: Long = nativeHandleWrapper.handle
 
   if (startImmediately)
     start()
-
-  // Keep track of references in the Scala side and notify the native library when the tensor is not referenced
-  // anymore anywhere in the Scala side. This will let the native library free the allocated resources and prevent a
-  // potential memory leak.
-  Disposer.add(this, () => this.close())
 
   /** Starts this server. */
   def start(): Unit = NativeServer.startServer(nativeHandle)
@@ -76,17 +77,6 @@ class Server private[distributed] (serverDef: ServerDef, startImmediately: Boole
     * @return Constructed [[ServerDef]].
     */
   override def toProto: GeneratedMessageV3 = toServerDef
-
-  /** Closes this [[Server]] and releases any resources associated with it. Note that an [[Server]] is not
-    * usable after it has been closed. */
-  override def close(): Unit = {
-    NativeHandleLock.synchronized {
-      if (nativeHandle != 0) {
-        NativeServer.deleteServer(nativeHandle)
-        nativeHandle = 0
-      }
-    }
-  }
 }
 
 /** Contains helper methods for creating [[Server]]s. */
@@ -129,7 +119,22 @@ object Server {
         serverDefBuilder.setDefaultSessionConfig(sessionConfig.toConfigProto)
       serverDefBuilder.build()
     }
-    new Server(serverDef, startImmediately)
+    val nativeHandle = NativeServer.newServer(serverDef.toByteArray)
+    val nativeHandleWrapper = NativeHandleWrapper(nativeHandle)
+    val closeFn = () => {
+      nativeHandleWrapper.Lock.synchronized {
+        if (nativeHandleWrapper.handle != 0) {
+          NativeServer.deleteServer(nativeHandleWrapper.handle)
+          nativeHandleWrapper.handle = 0
+        }
+      }
+    }
+    val server = new Server(serverDef, startImmediately, nativeHandleWrapper, closeFn)
+    // Keep track of references in the Scala side and notify the native library when the server is not referenced
+    // anymore anywhere in the Scala side. This will let the native library free the allocated resources and prevent a
+    // potential memory leak.
+    Disposer.add(server, closeFn)
+    server
   }
 
   /** Creates a new single-process server running on the local host.

@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -42,7 +42,7 @@ case class Embedding(
 ) extends Layer[Output, Output](name) {
   override val layerType: String = "Embedding"
 
-  override protected def _forward(input: Output, mode: Mode): Output = {
+  override protected def _forward(input: Output)(implicit mode: Mode): Output = {
     val embeddingMap = tf.variable("EmbeddingMap", dataType, Shape(vocabularySize, embeddingSize))
     ops.Embedding.embeddingLookup(
       embeddingMap, input, partitionStrategy, transformFn,

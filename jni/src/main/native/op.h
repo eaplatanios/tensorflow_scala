@@ -431,6 +431,30 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_setAttrFuncNam
 JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_setAttrProto
   (JNIEnv *, jobject, jlong, jstring, jbyteArray);
 
+/*
+ * Class:     org_platanios_tensorflow_jni_Op__
+ * Method:    toOpDef
+ * Signature: (JLjava/lang/String;)[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_toOpDef
+  (JNIEnv *, jobject, jlong, jstring);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Op__
+ * Method:    toNodeDef
+ * Signature: (J)[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_toNodeDef
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Op__
+ * Method:    tryEvaluateConstant
+ * Signature: (JJI)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Op_00024_tryEvaluateConstant
+  (JNIEnv *, jobject, jlong, jlong, jint);
+
 #ifdef __cplusplus
 }
 #endif

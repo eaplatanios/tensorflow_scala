@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -181,12 +181,19 @@ private[control_flow] case class GradientLoopState private[control_flow] (
     * @return Resource handle to a stack that contains the accumulated history of the tensor.
     */
   private[control_flow] def addForwardAccumulator(value: Output, deadBranch: Boolean = false): Output = {
+    // `currentContext` is the context that `tf.gradients()` was called in.
     val currentContext = Op.currentControlFlowContext
     Op.createWith(controlDependencies = Set.empty[Op]) {
       currentContext.foreach(_.enter())
       val accumulator = Op.colocateWith(Set(value.op)) {
-        val maximumIterations = forwardContext.maximumIterations.getOrElse(Basic.constant(-1, INT32))
-        DataFlow.newStack(maximumIterations, value.dataType, name = "ForwardAccumulator")
+        // We only need to pass `maximumIterations` to the stack if we are inside an XLA context.
+        val maxSize = {
+          if (value.op.isInXLAContext)
+            ControlFlow.getMaxSizeFromNestedMaximumIterations(value, forwardContext)
+          else
+            Basic.constant(-1, INT32)
+        }
+        DataFlow.newStack(maxSize, value.dataType, name = "ForwardAccumulator")
       }
       currentContext.foreach(_.exit())
       // Make the `accumulator` available in the forward context.

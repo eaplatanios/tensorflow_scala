@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -141,10 +141,10 @@ object TensorFlow {
   private def extractResource(lib: String, resourceStream: InputStream, directory: Path): Path = {
     val sampleFilename = mapLibraryName(lib)
     val filePath = directory.resolve(sampleFilename)
-    logger.info(s"Extracting the '$lib' native library to ${filePath.toAbsolutePath}.")
+    logger.debug(s"Extracting the '$lib' native library to ${filePath.toAbsolutePath}.")
     try {
       val numBytes = Files.copy(resourceStream, filePath, StandardCopyOption.REPLACE_EXISTING)
-      logger.info(String.format(s"Copied $numBytes bytes to ${filePath.toAbsolutePath}."))
+      logger.debug(String.format(s"Copied $numBytes bytes to ${filePath.toAbsolutePath}."))
     } catch {
       case exception: Exception =>
         throw new UnsatisfiedLinkError(s"Error while extracting the '$lib' native library: $exception")

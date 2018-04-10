@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -39,12 +39,12 @@ import java.nio.file.Path
   *
   * @author Emmanouil Antonios Platanios
   */
-case class StepRateLogger(
-    log: Boolean = true,
-    summaryDir: Path = null,
-    trigger: HookTrigger = StepHookTrigger(10),
-    triggerAtEnd: Boolean = true,
-    tag: String = "Steps/Sec"
+class StepRateLogger protected (
+    val log: Boolean = true,
+    val summaryDir: Path = null,
+    val trigger: HookTrigger = StepHookTrigger(10),
+    val triggerAtEnd: Boolean = true,
+    val tag: String = "Steps/Sec"
 ) extends TriggeredHook(trigger, triggerAtEnd) with SummaryWriterHookAddOn {
   require(log || summaryDir != null, "At least one of 'log' and 'summaryDir' needs to be provided.")
 
@@ -65,4 +65,14 @@ case class StepRateLogger(
 
 object StepRateLogger {
   private[StepRateLogger] val logger = Logger(LoggerFactory.getLogger("Learn / Hooks / Step Rate"))
+
+  def apply(
+      log: Boolean = true,
+      summaryDir: Path = null,
+      trigger: HookTrigger = StepHookTrigger(10),
+      triggerAtEnd: Boolean = true,
+      tag: String = "Steps/Sec"
+  ): StepRateLogger = {
+    new StepRateLogger(log, summaryDir, trigger, triggerAtEnd, tag)
+  }
 }

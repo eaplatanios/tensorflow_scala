@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -82,9 +82,10 @@ case object NoHookTrigger extends HookTrigger {
 
 /** Hook trigger that triggers at most once every `numSteps` steps.
   *
-  * @param  numSteps Triggering step frequency.
+  * @param  numSteps  Triggering step frequency.
+  * @param  startStep Step after which to start triggering.
   */
-case class StepHookTrigger(numSteps: Int) extends HookTrigger {
+case class StepHookTrigger(numSteps: Int, startStep: Int = 0) extends HookTrigger {
   require(numSteps >= 0, s"'numSteps' (= $numSteps) must be a non-negative number.")
 
   /** Returns a copy of this hook trigger that is also reset. */
@@ -97,7 +98,9 @@ case class StepHookTrigger(numSteps: Int) extends HookTrigger {
 
   /** Returns `true` if the hook should be triggered for the specified step. */
   override def shouldTriggerForStep(step: Int): Boolean = _lastTrigger match {
-    case None => true
+    case _ if step < startStep => false
+    case None if step % numSteps == 0 => true
+    case None => false
     case Some((_, s)) if s == step => false
     case Some((_, s)) => step >= s + numSteps
   }
@@ -123,8 +126,9 @@ case class StepHookTrigger(numSteps: Int) extends HookTrigger {
 /** Hook trigger that triggers at most once every `numSeconds` seconds.
   *
   * @param  numSeconds Triggering time frequency.
+  * @param  startStep  Step after which to start triggering.
   */
-case class TimeHookTrigger(numSeconds: Double) extends HookTrigger {
+case class TimeHookTrigger(numSeconds: Double, startStep: Int = 0) extends HookTrigger {
   require(numSeconds >= 0, s"'numSeconds' (= $numSeconds) must be a non-negative number.")
 
   /** Returns a copy of this hook trigger that is also reset. */
@@ -137,6 +141,7 @@ case class TimeHookTrigger(numSeconds: Double) extends HookTrigger {
 
   /** Returns `true` if the hook should be triggered for the specified step. */
   override def shouldTriggerForStep(step: Int): Boolean = _lastTrigger match {
+    case _ if step < startStep => false
     case None => true
     case Some((_, s)) if s == step => false
     case Some((t, _)) => (System.currentTimeMillis().toDouble / 1000.0) >= t + numSeconds

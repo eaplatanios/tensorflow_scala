@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -19,11 +19,12 @@ import org.platanios.tensorflow.api.core._
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.implicits.Implicits._
+import org.platanios.tensorflow.api.io.NPY
 import org.platanios.tensorflow.api.ops.{Basic, Output}
 import org.platanios.tensorflow.api.tensors.ops.Basic.{BasicOps, stack}
 import org.platanios.tensorflow.api.tensors.ops.{Math, Random}
 import org.platanios.tensorflow.api.types._
-import org.platanios.tensorflow.api.utilities.{Closeable, Disposer}
+import org.platanios.tensorflow.api.utilities.{Closeable, Disposer, NativeHandleWrapper}
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
 import org.platanios.tensorflow.jni.{Tensor => NativeTensor}
 import org.platanios.tensorflow.jni.generated.tensors.{Sparse => NativeTensorOpsSparse}
@@ -35,6 +36,7 @@ import org.tensorflow.framework.TensorProto
 
 import java.nio._
 import java.nio.charset.Charset
+import java.nio.file.Path
 
 import scala.collection.{TraversableLike, breakOut}
 import scala.language.{higherKinds, postfixOps}
@@ -140,17 +142,17 @@ private[tensors] object TensorOps {
   *
   * @author Emmanouil Antonios Platanios
   */
-class Tensor private[Tensor](private[api] var nativeHandle: Long)
-    extends TensorLike
+class Tensor private[Tensor](
+    private[api] val nativeHandleWrapper: NativeHandleWrapper,
+    override protected val closeFn: () => Unit
+) extends TensorLike
         with Closeable
         with ProtoSerializable {
   /** Lock for the native handle. */
-  private[this] object NativeHandleLock
+  private[api] def NativeHandleLock = nativeHandleWrapper.Lock
 
-  // Keep track of references in the Scala side and notify the native library when the tensor is not referenced
-  // anymore anywhere in the Scala side. This will let the native library free the allocated resources and prevent a
-  // potential memory leak.
-  Disposer.add(this, () => this.close())
+  /** Native handle of this tensor. */
+  private[api] def nativeHandle: Long = nativeHandleWrapper.handle
 
   /** Data type of this tensor. */
   override val dataType: DataType = DataType.fromCValue(NativeTensor.eagerDataType(nativeHandle))
@@ -194,27 +196,7 @@ class Tensor private[Tensor](private[api] var nativeHandle: Long)
   }
 
   private[api] def resolve()(implicit context: DynamicVariable[Context]): Long = {
-    if (device == "CPU:0") {
-      NativeTensor.eagerResolve(nativeHandle)
-    } else {
-      val hostHandle = NativeTensor.eagerCopyToDevice(nativeHandle, context.value.nativeHandle, "CPU:0")
-      val resolvedHandle = NativeTensor.eagerResolve(hostHandle)
-      NativeHandleLock synchronized {
-        if (hostHandle != 0)
-          NativeTensor.eagerDelete(hostHandle)
-      }
-      resolvedHandle
-    }
-  }
-
-  private[api] def buffer(implicit context: DynamicVariable[Context]): ByteBuffer = {
-    val resolvedHandle = resolve()
-    val buffer = NativeTensor.buffer(resolvedHandle).order(ByteOrder.nativeOrder)
-    NativeHandleLock synchronized {
-      if (resolvedHandle != 0)
-        NativeTensor.delete(resolvedHandle)
-    }
-    buffer
+    NativeTensor.eagerResolve(nativeHandle)
   }
 
   private[api] def getElementAtFlattenedIndex(index: Int): dataType.ScalaType = {
@@ -296,7 +278,7 @@ class Tensor private[Tensor](private[api] var nativeHandle: Long)
             if (tensor.size <= math.max(maxEntries, 6))
               tensor.entriesIterator
             else
-              (tensor(0 :: maxEntries/2).entriesIterator.toSeq :+ "...") ++ tensor(-maxEntries/2 ::).entriesIterator
+              (tensor(0 :: maxEntries / 2).entriesIterator.toSeq :+ "...") ++ tensor(-maxEntries / 2 ::).entriesIterator
           slice.mkString("[", ", ", "]")
         case _ =>
           val innerSummary = {
@@ -305,8 +287,8 @@ class Tensor private[Tensor](private[api] var nativeHandle: Long)
             if (tensor.shape(0) <= math.max(maxEntries, 6))
               for (i <- 0 until tensor.shape(0)) yield summarizeSlice(i)
             else {
-              val start = for (i <- 0 until maxEntries/2) yield summarizeSlice(i)
-              val end = for (i <- tensor.shape(0) - maxEntries/2 until tensor.shape(0)) yield summarizeSlice(i)
+              val start = for (i <- 0 until maxEntries / 2) yield summarizeSlice(i)
+              val end = for (i <- tensor.shape(0) - maxEntries / 2 until tensor.shape(0)) yield summarizeSlice(i)
               (start :+ "...") ++ end
             }
           }
@@ -314,6 +296,7 @@ class Tensor private[Tensor](private[api] var nativeHandle: Long)
           val extraLine = if (!flattened && tensor.rank >= 3) "\n" else ""
           innerSummary.mkString("[", (if (!flattened) ",\n" else ", ") + extraLine + padding, "]")
       }
+
     if (includeInfo)
       toString + (if (!flattened) "\n" else ": ") + summarize(this, maxEntries)
     else
@@ -342,6 +325,10 @@ class Tensor private[Tensor](private[api] var nativeHandle: Long)
     */
   def toTensorProto: TensorProto = Tensor.makeProto(this)
 
+  /** Writes this tensor to the provided file, using the Numpy (i.e., `.npy`) file format. Note that this method will
+    * replace the file, if it already exists. */
+  def writeNPY(file: Path, fortranOrder: Boolean = false): Unit = NPY.write(this, file, fortranOrder)
+
   override def equals(that: Any): Boolean = that match {
     case that: Tensor =>
       this.shape == that.shape &&
@@ -364,20 +351,29 @@ class Tensor private[Tensor](private[api] var nativeHandle: Long)
 
   /** Closes this [[Tensor]] and releases any resources associated with it. Note that an [[Tensor]] is not
     * usable after it has been closed. */
-  override def close(): Unit = {
-    NativeHandleLock.synchronized {
-      if (nativeHandle != 0) {
-        NativeTensor.eagerDelete(nativeHandle)
-        nativeHandle = 0
-      }
-    }
-  }
+  override def close(): Unit = closeFn()
 }
 
 object Tensor {
   private[tensors] val logger = Logger(LoggerFactory.getLogger("Tensor"))
 
-  private[api] def fromNativeHandle(nativeHandle: Long): Tensor = new Tensor(nativeHandle)
+  private[api] def fromNativeHandle(nativeHandle: Long): Tensor = {
+    val nativeHandleWrapper = NativeHandleWrapper(nativeHandle)
+    val closeFn = () => {
+      nativeHandleWrapper.Lock.synchronized {
+        if (nativeHandleWrapper.handle != 0) {
+          NativeTensor.eagerDelete(nativeHandleWrapper.handle)
+          nativeHandleWrapper.handle = 0
+        }
+      }
+    }
+    val tensor = new Tensor(nativeHandleWrapper, closeFn)
+    // Keep track of references in the Scala side and notify the native library when the tensor is not referenced
+    // anymore anywhere in the Scala side. This will let the native library free the allocated resources and prevent a
+    // potential memory leak.
+    Disposer.add(tensor, closeFn)
+    tensor
+  }
 
   private[api] def fromHostNativeHandle(nativeHandle: Long): Tensor = {
     Tensor.fromNativeHandle(NativeTensor.eagerAllocate(nativeHandle))
@@ -452,8 +448,12 @@ object Tensor {
     * @return New random tensor.
     */
   def rand(
-      dataType: DataType = FLOAT32, shape: Tensor = Shape.scalar(), minValue: Tensor = 0.0, maxValue: Tensor = 1.0,
-      seed: Option[Int] = None): Tensor = {
+      dataType: DataType = FLOAT32,
+      shape: Tensor = Shape.scalar(),
+      minValue: Tensor = 0.0,
+      maxValue: Tensor = 1.0,
+      seed: Option[Int] = None
+  ): Tensor = {
     Random.randomUniform(dataType, shape, minValue, maxValue, seed)
   }
 
@@ -471,8 +471,12 @@ object Tensor {
     * @return New random tensor.
     */
   def randn(
-      dataType: DataType = FLOAT32, shape: Tensor = Shape.scalar(), mean: Tensor = 0.0, standardDeviation: Tensor = 1.0,
-      seed: Option[Int] = None): Tensor = {
+      dataType: DataType = FLOAT32,
+      shape: Tensor = Shape.scalar(),
+      mean: Tensor = 0.0,
+      standardDeviation: Tensor = 1.0,
+      seed: Option[Int] = None
+  ): Tensor = {
     Random.randomNormal(dataType, shape, mean, standardDeviation, seed)
   }
 
@@ -583,6 +587,10 @@ object Tensor {
     tensor
   }
 
+  /** Reads the tensor stored in the provided Numpy (i.e., `.npy`) file. */
+  @throws[IllegalArgumentException]
+  def fromNPY(file: Path): Tensor = NPY.read(file)
+
   @throws[InvalidArgumentException]
   def makeProto(value: Tensor, dataType: DataType = null, shape: Shape = null)(implicit
       context: DynamicVariable[Context]
@@ -597,7 +605,13 @@ object Tensor {
     if (inferredDataType.byteSize * value.size >= Int.MaxValue)
       throw InvalidArgumentException("Cannot serialize tensors whose content is larger than 2GB.")
     if (value.dataType != STRING && value.size == inferredShape.numElements) {
-      tensorProtoBuilder.setTensorContent(ByteString.copyFrom(castedValue.buffer))
+      val resolvedHandle = castedValue.resolve()
+      val buffer = NativeTensor.buffer(resolvedHandle).order(ByteOrder.nativeOrder)
+      tensorProtoBuilder.setTensorContent(ByteString.copyFrom(buffer))
+      castedValue.NativeHandleLock synchronized {
+        if (resolvedHandle != 0)
+          NativeTensor.delete(resolvedHandle)
+      }
     } else {
       castedValue.entriesIterator.foreach(v => {
         inferredDataType.addToTensorProtoBuilder(

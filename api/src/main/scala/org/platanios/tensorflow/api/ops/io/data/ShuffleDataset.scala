@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -16,7 +16,6 @@
 package org.platanios.tensorflow.api.ops.io.data
 
 import org.platanios.tensorflow.api.ops.{Basic, Op, Output}
-import org.platanios.tensorflow.api.types.INT64
 
 /** Dataset that wraps the application of the `shuffle` op.
   *
@@ -40,14 +39,12 @@ case class ShuffleDataset[T, O, D, S](
     override val name: String = "ShuffleDataset"
 ) extends Dataset[T, O, D, S](name)(inputDataset.evOToT, inputDataset.evData, inputDataset.evFunctionInput) {
   override def createHandle(): Output = {
-    val (graphSeed, opSeed) = Op.currentGraphRandomSeed(seed)
-    val seed1 = graphSeed.getOrElse(0)
-    val seed2 = opSeed.getOrElse(0)
+    val (seed1, seed2) = randomSeeds(seed, s"$name/RandomSeeds")
     Op.Builder(opType = "ShuffleDataset", name = name)
         .addInput(Op.createWithNameScope(name)(inputDataset.createHandle()))
         .addInput(Op.createWithNameScope(name)(Basic.constant(bufferSize)))
-        .addInput(Op.createWithNameScope(name)(Basic.constant(seed1, INT64)))
-        .addInput(Op.createWithNameScope(name)(Basic.constant(seed2, INT64)))
+        .addInput(seed1)
+        .addInput(seed2)
         .setAttribute("output_types", flattenedOutputDataTypes.toArray)
         .setAttribute("output_shapes", flattenedOutputShapes.toArray)
         .build().outputs(0)

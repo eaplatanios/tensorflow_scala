@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -23,33 +23,33 @@ object Session {
 
   @native def allocate(graphHandle: Long, target: String, configProto: Array[Byte]): Long
   @native def delete(handle: Long): Unit
+
   // TODO: [SESSION] "listDevices".
+  // TODO: [SESSION] Add TPU support using the experimental C API.
 
   /** Executes a computation in a session.
     *
-    * The author apologizes for the ugliness of the long argument list of this method. However,
-    * take solace in the fact that this is a private method meant to cross the JNI boundary.
-    *
-    * @param handle              to the C API TF_Session object (Session.nativeHandle)
-    * @param runOptions          serialized representation of a RunOptions protocol buffer, or null
-    * @param inputOpHandles      (see inputOpIndices)
-    * @param inputOpIndices      (see inputTensorHandles)
-    * @param inputTensorHandles  together with inputOpHandles and inputOpIndices specifies the values
+    * @param handle              Handle to the native TensorFlow session object.
+    * @param runOptions          Serialized representation of a `RunOptions` protocol buffer, or `null`.
+    * @param inputOpHandles      See `inputOpIndices`.
+    * @param inputOpIndices      See `inputTensorHandles`.
+    * @param inputTensorHandles  Together with `inputOpHandles` and `inputOpIndices` this array specifies the values
     *                            that are being "fed" (do not need to be computed) during graph execution.
-    *                            inputTensorHandles[i] (which correponds to a Tensor.nativeHandle) is considered to be the
-    *                            inputOpIndices[i]-th output of the Operation inputOpHandles[i]. Thus, it is required that
-    *     inputOpHandles.length == inputOpIndices.length == inputTensorHandles.length.
+    *                            `inputTensorHandles(i)` (which corresponds to a `Tensor.nativeHandle`) is considered to
+    *                            be the `inputOpIndices(i)`-th output of the operation `inputOpHandles(i)`. Thus, it is
+    *                            required that
+    *                            `inputOpHandles.length == inputOpIndices.length == inputTensorHandles.length`.
     * @param outputOpHandles     (see outputOpIndices)
     * @param outputOpIndices     together with outputOpHandles identifies the set of values that should
-    *                            be computed. The outputOpIndices[i]-th output of the Operation outputOpHandles[i], It is
-    *                            required that outputOpHandles.length == outputOpIndices.length.
-    * @param targetOpHandles     is the set of Operations in the graph that are to be executed but whose
-    *                            output will not be returned
-    * @param wantRunMetadata     indicates whether metadata about this execution should be returned.
-    * @param outputTensorHandles will be filled in with handles to the outputs requested. It is
-    *                            required that outputTensorHandles.length == outputOpHandles.length.
-    * @return if wantRunMetadata is true, serialized representation of the RunMetadata protocol
-    *         buffer, false otherwise.
+    *                            be computed. The `outputOpIndices(i)`-th output of the operation `outputOpHandles(i)`.
+    *                            It is required that `outputOpHandles.length == outputOpIndices.length`.
+    * @param targetOpHandles     Set of operations in the graph that are to be executed but whose output will not be
+    *                            returned.
+    * @param wantRunMetadata     Boolean variable that indicates whether metadata about this execution should be
+    *                            returned.
+    * @param outputTensorHandles Array that will be filled in with handles to the outputs requested. It is required that
+    *                            `outputTensorHandles.length == outputOpHandles.length`.
+    * @return Serialized representation of the `RunMetadata` protocol buffer, or `null` if `wantRunMetadata` is `false`.
     */
   @native def run(
       handle: Long,
@@ -62,4 +62,6 @@ object Session {
       targetOpHandles: Array[Long],
       wantRunMetadata: Boolean,
       outputTensorHandles: Array[Long]): Array[Byte]
+
+  @native def extend(handle: Long): Unit
 }

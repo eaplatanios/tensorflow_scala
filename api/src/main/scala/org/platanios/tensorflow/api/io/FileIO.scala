@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.io
 
 import org.platanios.tensorflow.api.core.exception.NotFoundException
-import org.platanios.tensorflow.api.utilities.{Closeable, Disposer}
+import org.platanios.tensorflow.api.utilities.Closeable
 import org.platanios.tensorflow.jni
 import org.platanios.tensorflow.jni.{PermissionDeniedException, FileIO => NativeFileIO}
 
@@ -28,6 +28,9 @@ import scala.collection.JavaConverters._
 
 /** Helper class used for reading from and writing to a file.
   *
+  * '''IMPORTANT:''' `FileIO.close()` needs to be called after being done with this object in order to prevent memory
+  * leaks. The memory will not be automatically freed, like its done for tensors and graphs.
+  *
   * @param  filePath       Path to a file.
   * @param  mode           Mode in which to open the file.
   * @param  readBufferSize Buffer size used when reading from the file.
@@ -37,11 +40,6 @@ case class FileIO(filePath: Path, mode: FileIO.Mode, readBufferSize: Long = 1024
   private[this] var writableFileNativeHandle: Long = 0
 
   private[this] object NativeHandleLock
-
-  // Keep track of references in the Scala side and notify the native library when the file IO object is not referenced
-  // anymore anywhere in the Scala side. This will let the native library free the allocated resources and prevent a
-  // potential memory leak.
-  Disposer.add(this, () => this.close())
 
   private[this] def preReadCheck(): Unit = NativeHandleLock.synchronized {
     if (readBufferNativeHandle == 0) {
@@ -146,7 +144,7 @@ case class FileIO(filePath: Path, mode: FileIO.Mode, readBufferSize: Long = 1024
 
   /** Closes this file IO object and releases any resources associated with it. Note that an events file reader is not
     * usable after it has been closed. */
-  def close(): Unit = {
+  override protected val closeFn: () => Unit = () => {
     NativeHandleLock.synchronized {
       if (readBufferNativeHandle != 0) {
         NativeFileIO.deleteBufferedInputStream(readBufferNativeHandle)
@@ -460,7 +458,10 @@ object FileIO {
 
   /** Reads the entire contents of the file located at `filePath` to a string and returns it. */
   def readFileToString(filePath: Path): String = {
-    FileIO(filePath, READ).read()
+    val fileIO = FileIO(filePath, READ)
+    val content = fileIO.read()
+    fileIO.close()
+    content
   }
 
   /** Writes the provided string to the file located at `filePath`. */

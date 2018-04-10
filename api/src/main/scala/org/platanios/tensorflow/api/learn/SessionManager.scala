@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -20,7 +20,6 @@ import org.platanios.tensorflow.api.core.client.{FeedMap, Session, SessionConfig
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.ops.variables.Saver
-import org.platanios.tensorflow.api.types.STRING
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
@@ -72,13 +71,13 @@ import scala.util.Try
   *
   * @param  graph                  Graph that the model will use. Defaults to the current graph.
   * @param  readyOp                Op used to check if the model is ready. The model is considered ready if this op
-  *                                returns an empty one-dimensional [[STRING]] tensor. If the op returns a non empty
-  *                                one-dimensional [[STRING]] tensor, the elements of that tensor are concatenated and
+  *                                returns an empty one-dimensional `STRING` tensor. If the op returns a non empty
+  *                                one-dimensional `STRING` tensor, the elements of that tensor are concatenated and
   *                                used to indicate to the user why the model is not ready. If this is `None`, then the
   *                                model is not checked for readiness.
   * @param  readyForLocalInitOp    Op used to check if the model is ready to execute `localInitOp`. The model is
-  *                                considered ready if this op returns an empty one-dimensional [[STRING]] tensor. If
-  *                                the op returns a non-empty one-dimensional [[STRING]] tensor, the elements of that
+  *                                considered ready if this op returns an empty one-dimensional `STRING` tensor. If
+  *                                the op returns a non-empty one-dimensional `STRING` tensor, the elements of that
   *                                tensor are concatenated and used to indicate to the user why the model is not ready.
   *                                If this op is provided, then a `localInitOp` must also be provided.
   * @param  localInitOp            Op run immediately after session creation. Usually used to initialize tables and
@@ -268,9 +267,12 @@ private[learn] case class SessionManager(
     *         restoration was successful or not.
     */
   private[this] def restoreCheckpoint(
-      master: String, saver: Option[Saver] = None, checkpointPath: Option[Path] = None,
-      waitForCheckpoint: Boolean = false, maxWaitSeconds: Int = 7200,
-      sessionConfig: Option[SessionConfig] = None): (Session, Boolean) = {
+      master: String, saver: Option[Saver] = None,
+      checkpointPath: Option[Path] = None,
+      waitForCheckpoint: Boolean = false,
+      maxWaitSeconds: Int = 7200,
+      sessionConfig: Option[SessionConfig] = None
+  ): (Session, Boolean) = {
     val session = Session(graph, master, sessionConfig)
     (saver, checkpointPath) match {
       case (Some(_saver), Some(_checkpointPath)) =>
@@ -338,9 +340,9 @@ private[learn] case class SessionManager(
     localInitOp.flatMap(op => {
       isModelReadyForLocalInit(session) match {
         case None =>
-          SessionManager.logger.info("Running local initialization op.")
+          SessionManager.logger.debug("Running local initialization op.")
           session.run(targets = op)
-          SessionManager.logger.info("Finished running local initialization op.")
+          SessionManager.logger.debug("Finished running local initialization op.")
           None
         case s => s
       }

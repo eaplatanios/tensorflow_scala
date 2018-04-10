@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.ops.variables
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.ShapeMismatchException
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.ops.{Basic, Output, Random}
+import org.platanios.tensorflow.api.ops.{Basic, Op, Output, Random}
 import org.platanios.tensorflow.api.ops.variables.Variable.PartitionInformation
 import org.platanios.tensorflow.api.ops.variables.VarianceScalingInitializer.FanInScalingMode
 import org.platanios.tensorflow.api.tensors.Tensor
@@ -40,7 +40,9 @@ trait Initializer {
   val shape: Shape = null
 
   def apply(dataType: DataType, shape: Shape, partitionInfo: PartitionInformation): Output = {
-    initialValue(dataType, shape, partitionInfo)
+    Op.initialization {
+      initialValue(dataType, shape, partitionInfo)
+    }
   }
 
   /** Generates an initial value op.

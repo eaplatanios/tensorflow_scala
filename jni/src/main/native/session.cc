@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -21,6 +21,7 @@
 #include <memory>
 
 #include "tensorflow/c/c_api.h"
+#include "tensorflow/c/python_api.h"
 
 namespace {
   void TF_MaybeDeleteBuffer(TF_Buffer* buffer) {
@@ -140,4 +141,12 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Session_00024_run
   }
 
   return return_array;
+}
+
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Session_00024_extend(
+    JNIEnv* env, jobject object, jlong handle) {
+  REQUIRE_HANDLE(session, TF_Session, handle, void());
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+  tensorflow::ExtendSession(session, status.get());
+  CHECK_STATUS(env, status.get(), void());
 }

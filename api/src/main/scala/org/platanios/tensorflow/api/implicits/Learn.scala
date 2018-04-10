@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -32,8 +32,8 @@ trait Learn {
   ) extends Layer[CC[T], CC[R]]("Mappable") {
     override val layerType: String = "Mappable"
 
-    override protected def _forward(input: CC[T], mode: Mode): CC[R] = {
-      layer(input, mode)
+    override protected def _forward(input: CC[T])(implicit mode: Mode): CC[R] = {
+      layer(input)
     }
 
     def map[S](

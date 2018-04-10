@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -20,14 +20,14 @@ import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception.OutOfRangeException
 import org.platanios.tensorflow.api.io.events.SummaryFileWriterCache
 import org.platanios.tensorflow.api.learn._
-import org.platanios.tensorflow.api.ops.{Op, Output, Resource}
+import org.platanios.tensorflow.api.ops.{Op, Output, Resources}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.io.data.Dataset
 import org.platanios.tensorflow.api.ops.lookup.Lookup
 import org.platanios.tensorflow.api.ops.metrics.Metric
 import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.FLOAT32
+import org.platanios.tensorflow.api.types.{FLOAT32, INT64}
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
@@ -42,7 +42,7 @@ import java.nio.file.Path
   * @param  log          If `true`, the step rate is logged using the current logging configuration.
   * @param  summaryDir   If provided, summaries for the step rate will be saved in this directory. This is useful for
   *                      visualization using TensorBoard, for example.
-  * @param  data         Dataset over which to evaluate and which produces elements of the same type as the train
+  * @param  datasets     Datasets over which to evaluate and which produce elements of the same type as the train
   *                      dataset elements.
   * @param  metrics      Evaluation metrics to use.
   * @param  trigger      Hook trigger specifying when this hook is triggered (i.e., when it executes). If you only want
@@ -56,15 +56,15 @@ import java.nio.file.Path
   *
   * @author Emmanouil Antonios Platanios
   */
-case class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
-    log: Boolean = true,
-    summaryDir: Path = null,
-    data: () => Dataset[TT, TO, TD, TS],
-    metrics: Seq[Metric[EI, Output]],
-    trigger: HookTrigger = StepHookTrigger(100),
-    triggerAtEnd: Boolean = true,
-    randomSeed: Option[Int] = None,
-    name: String = "Evaluator"
+class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] protected (
+    val log: Boolean = true,
+    val summaryDir: Path = null,
+    val datasets: Seq[(String, () => Dataset[TT, TO, TD, TS])],
+    val metrics: Seq[Metric[EI, Output]],
+    val trigger: HookTrigger = StepHookTrigger(100),
+    val triggerAtEnd: Boolean = true,
+    val randomSeed: Option[Int] = None,
+    val name: String = "Evaluator"
 ) extends TriggeredHook(trigger, triggerAtEnd)
     with ModelDependentHook[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] {
   require(log || summaryDir != null, "At least one of 'log' and 'summaryDir' needs to be provided.")
@@ -72,27 +72,26 @@ case class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
 
   override private[learn] val priority: Int = -1000
 
-  private[this] var graph          : Graph                                = _
-  private[this] var sessionCreator : SessionCreator                       = _
-  private[this] var dataInitializer: Op                                   = _
-  private[this] var evaluateOps    : Model.EvaluateOps[TT, TO, TD, TS, I] = _
+  private[this] var graph              : Graph                                = _
+  private[this] var sessionCreator     : SessionCreator                       = _
+  private[this] var datasetInitializers: Seq[(String, Op)]                    = _
+  private[this] var evaluateOps        : Model.EvaluateOps[TT, TO, TD, TS, I] = _
 
   override protected def begin(): Unit = {
     graph = Graph()
     Op.createWith(graph, nameScope = name) {
       randomSeed.foreach(graph.setRandomSeed)
       evaluateOps = Op.createWithNameScope("Model")(modelInstance.model.buildEvaluateOps(metrics))
-      dataInitializer = evaluateOps.inputIterator.createInitializer(data())
+      datasetInitializers = datasets.map(d => (d._1, evaluateOps.inputIterator.createInitializer(d._2())))
       this.sessionCreator = ChiefSessionCreator(
         master = modelInstance.configuration.evaluationMaster,
         sessionScaffold = SessionScaffold(
           initOp = Some(ControlFlow.group(Set(
             Variable.initializer(Variable.globalVariables),
-            Resource.initializer(Resource.sharedResources)))),
+            Resources.initializer(Resources.sharedResources)))),
           localInitOp = Some(ControlFlow.group(Set(
             Variable.initializer(Variable.localVariables),
-            Lookup.lookupsInitializer()))),
-          localInitFunction = Some((session, _) => session.run(targets = dataInitializer))),
+            Lookup.lookupsInitializer())))),
         sessionConfig = modelInstance.configuration.sessionConfig,
         checkpointPath = modelInstance.configuration.workingDir)
     }
@@ -104,65 +103,106 @@ case class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
       runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor]],
       session: Session
   ): Unit = Op.createWith(graph, nameScope = name) {
-    Evaluator.logger.info(s"Computing $name.")
+    Evaluator.logger.debug(s"Computing $name.")
     val session = MonitoredSession(sessionCreator, shouldRecover = true)
-    val values = {
-      try {
-        while (!session.shouldStop)
-          try {
-            session.run(targets = evaluateOps.metricUpdates.toSet)
-          } catch {
-            case _: OutOfRangeException => session.setShouldStop(true)
-          }
-        session.run(fetches = evaluateOps.metricValues)
-      } catch {
-        case e if RECOVERABLE_EXCEPTIONS.contains(e.getClass) =>
-          session.close()
-          Seq.empty[Tensor]
-        case t: Throwable =>
-          session.closeWithoutHookEnd()
-          throw t
-      } finally {
-        if (!session.closed)
-          session.close()
+    val rowNames = datasetInitializers.map(_._1)
+    val firstColWidth = rowNames.map(_.length).max
+    val colWidth = math.max(metrics.map(_.name.length).max, 10)
+    var skippedMetricSummaries = Seq.empty[String]
+    val summaryProto = {
+      if (summaryDir != null) {
+        Evaluator.logger.info(s"Saving $name results at '$summaryDir'.")
+        Some(Summary.newBuilder())
+      } else {
+        None
       }
     }
     if (log) {
-      val message = metrics.zip(values).map {
-        case (metric, metricValue) =>
-          if (metricValue.shape.rank == 0 &&
-              (metricValue.dataType.isFloatingPoint || metricValue.dataType.isInteger)) {
-            val castedValue = metricValue.cast(FLOAT32).scalar.asInstanceOf[Float]
-            f"${metric.name}%s = $castedValue%.4f"
-          } else {
-            s"'$metric' is non-scalar or non-numeric"
-          }
-      }
-      Evaluator.logger.info(s"Step $step $name: ${message.mkString(" | ")}")
+      Evaluator.logger.info(s"Step $step $name:")
+      Evaluator.logger.info(s"╔═${"═" * firstColWidth}═╤${metrics.map(_ => "═" * (colWidth + 2)).mkString("╤")}╗")
+      Evaluator.logger.info(s"║ ${" " * firstColWidth} │${metrics.map(s" %${colWidth}s ".format(_)).mkString("│")}║")
+      Evaluator.logger.info(s"╟─${"─" * firstColWidth}─┼${metrics.map(_ => "─" * (colWidth + 2)).mkString("┼")}╢")
     }
-    if (summaryDir != null) {
-      Evaluator.logger.info(s"Saving $name results at '$summaryDir'.")
-      val summaryProto = Summary.newBuilder()
-      metrics.zip(values).foreach {
-        case (metric, metricValue) =>
-          if (metricValue.shape.rank == 0 &&
-              (metricValue.dataType.isFloatingPoint || metricValue.dataType.isInteger)) {
-            val castedValue = metricValue.cast(FLOAT32).scalar.asInstanceOf[Float]
-            val value = Summary.Value.newBuilder()
-            value.setTag(metric.name)
-            value.setSimpleValue(castedValue)
-            summaryProto.addValue(value)
-          } else {
-            Evaluator.logger.warn(s"Skipping summary for non-scalar and/or non-numeric metric '$metric'.")
+    try {
+      datasetInitializers.foreach {
+        case (datasetName, datasetInitializer) =>
+          sessionCreator.addLocalInitOp(datasetInitializer)
+          session.run(targets = evaluateOps.metricResets)
+          session.run(targets = datasetInitializer)
+          var shouldStop = false
+          while (!shouldStop) {
+            try {
+              session.run(targets = evaluateOps.metricUpdates.toSet)
+            } catch {
+              case _: OutOfRangeException => shouldStop = true
+            }
+          }
+          val value = session.run(fetches = evaluateOps.metricValues)
+          sessionCreator.removeLocalInitOp(datasetInitializer)
+          summaryProto.foreach(sp => value.zip(metrics.map(_.name)).foreach(m => {
+            if (m._1.shape.rank == 0 && (m._1.dataType.isFloatingPoint || m._1.dataType.isInteger)) {
+              val castedValue = m._1.cast(FLOAT32).scalar.asInstanceOf[Float]
+              val value = Summary.Value.newBuilder()
+              value.setTag(s"$datasetName/${m._2}")
+              value.setSimpleValue(castedValue)
+              sp.addValue(value)
+            } else {
+              skippedMetricSummaries :+= s"'${m._2}'"
+            }
+          }))
+          if (log) {
+            val line = s"║ %${firstColWidth}s │".format(datasetName) + value.map(metricValue => {
+              if (metricValue.shape.rank == 0 && metricValue.dataType.isFloatingPoint) {
+                val castedValue = metricValue.cast(FLOAT32).scalar.asInstanceOf[Float]
+                s" %${colWidth}.4f ".format(castedValue)
+              } else if (metricValue.shape.rank == 0 && metricValue.dataType.isInteger) {
+                val castedValue = metricValue.cast(INT64).scalar.asInstanceOf[Long]
+                s" %${colWidth}d ".format(castedValue)
+              } else {
+                s" %${colWidth}s ".format("Not Scalar")
+              }
+            }).mkString("│") + "║"
+            Evaluator.logger.info(line)
           }
       }
+      session.setShouldStop(true)
+    } catch {
+      case e if RECOVERABLE_EXCEPTIONS.contains(e.getClass) =>
+        session.close()
+      case t: Throwable =>
+        session.closeWithoutHookEnd()
+        throw t
+    } finally {
+      if (!session.closed)
+        session.close()
+    }
+    if (log) {
+      Evaluator.logger.info(s"╚═${"═" * firstColWidth}═╧${metrics.map(_ => "═" * (colWidth + 2)).mkString("╧")}╝")
+    }
+    summaryProto.foreach(sp => {
+      if (skippedMetricSummaries.nonEmpty)
+        Evaluator.logger.warn(
+          s"Skipped summaries for non-scalar and/or non-numeric metrics: ${skippedMetricSummaries.mkString(", ")}.")
       val writer = SummaryFileWriterCache.get(summaryDir)
-      writer.writeSummary(summaryProto.build(), step)
+      writer.writeSummary(sp.build(), step)
       writer.flush()
-    }
+    })
   }
 }
 
 object Evaluator {
   private[Evaluator] val logger = Logger(LoggerFactory.getLogger("Learn / Hooks / Evaluation"))
+
+  def apply[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
+      log: Boolean = true,
+      summaryDir: Path = null,
+      datasets: Seq[(String, () => Dataset[TT, TO, TD, TS])],
+      metrics: Seq[Metric[EI, Output]],
+      trigger: HookTrigger = StepHookTrigger(100),
+      triggerAtEnd: Boolean = true,
+      randomSeed: Option[Int] = None,
+      name: String = "Evaluator"
+  ): Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] = {
+    new Evaluator(log, summaryDir, datasets, metrics, trigger, triggerAtEnd, randomSeed, name)
+  }
 }

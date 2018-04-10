@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -212,7 +212,8 @@ abstract class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
       metrics: Seq[Metric[EI, Output]],
       maxSteps: Long = -1L,
       saveSummaries: Boolean = true,
-      name: String = null): Seq[Tensor]
+      name: String = null
+  ): Seq[Tensor]
 
   protected def saveEvaluationSummaries(
       step: Long, metrics: Seq[Metric[EI, Output]], metricValues: Seq[Tensor], name: String = null): Unit = {

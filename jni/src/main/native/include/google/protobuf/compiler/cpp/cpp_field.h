@@ -109,19 +109,19 @@ class FieldGenerator {
   // Generate inline definitions of depenent accessor functions for this field.
   // These are placed inside the header after all class definitions.
   virtual void GenerateDependentInlineAccessorDefinitions(
-    io::Printer* printer) const {}
+      io::Printer* printer) const {}
 
   // Generate inline definitions of accessor functions for this field.
   // These are placed inside the header after all class definitions.
   // In non-.proto.h mode, this generates dependent accessor functions as well.
   virtual void GenerateInlineAccessorDefinitions(
-    io::Printer* printer, bool is_inline) const = 0;
+      io::Printer* printer) const = 0;
 
   // Generate definitions of accessors that aren't inlined.  These are
   // placed somewhere in the .cc file.
   // Most field types don't need this, so the default implementation is empty.
   virtual void GenerateNonInlineAccessorDefinitions(
-    io::Printer* /*printer*/) const {}
+      io::Printer* /*printer*/) const {}
 
   // Generate lines of code (statements, not declarations) which clear the
   // field.  This is used to define the clear_$name$() method
@@ -183,6 +183,10 @@ class FieldGenerator {
   // Generate lines to decode this field, which will be placed inside the
   // message's MergeFromCodedStream() method.
   virtual void GenerateMergeFromCodedStream(io::Printer* printer) const = 0;
+
+  // Returns true if this field's "MergeFromCodedStream" code needs the arena
+  // to be defined as a variable.
+  virtual bool MergeFromCodedStreamNeedsArena() const { return false; }
 
   // Generate lines to decode this field from a packed value, which will be
   // placed inside the message's MergeFromCodedStream() method.

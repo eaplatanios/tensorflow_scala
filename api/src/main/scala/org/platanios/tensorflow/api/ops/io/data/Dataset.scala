@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -165,8 +165,10 @@ object Dataset {
     type SparseTensorSlicesDataset = data.SparseTensorSlicesDataset
     type SparseOutputSlicesDataset = data.SparseOutputSlicesDataset
     type TextLinesDataset = data.TextLinesDataset
+    type DynamicTextLinesDataset = data.DynamicTextLinesDataset
     type FixedLengthRecordDataset = data.FixedLengthRecordDataset
     type TFRecordDataset = data.TFRecordDataset
+    type DynamicTFRecordDataset = data.DynamicTFRecordDataset
 
     type BatchDataset[T, O, D, S] = data.BatchDataset[T, O, D, S]
     type PaddedBatchDataset[T, O, D, S] = data.PaddedBatchDataset[T, O, D, S]
@@ -199,8 +201,10 @@ object Dataset {
     val SparseTensorSlicesDataset: data.SparseTensorSlicesDataset.type = data.SparseTensorSlicesDataset
     val SparseOutputSlicesDataset: data.SparseOutputSlicesDataset.type = data.SparseOutputSlicesDataset
     val TextLinesDataset         : data.TextLinesDataset.type          = data.TextLinesDataset
+    val DynamicTextLinesDataset  : data.DynamicTextLinesDataset.type   = data.DynamicTextLinesDataset
     val FixedLengthRecordDataset : data.FixedLengthRecordDataset.type  = data.FixedLengthRecordDataset
     val TFRecordDataset          : data.TFRecordDataset.type           = data.TFRecordDataset
+    val DynamicTFRecordDataset   : data.DynamicTFRecordDataset.type    = data.DynamicTFRecordDataset
 
     val BatchDataset       : data.BatchDataset.type        = data.BatchDataset
     val PaddedBatchDataset : data.PaddedBatchDataset.type  = data.PaddedBatchDataset
@@ -213,9 +217,11 @@ object Dataset {
     val TakeDataset: data.TakeDataset.type = data.TakeDataset
     val DropDataset: data.DropDataset.type = data.DropDataset
 
-    val FilterDataset : data.FilterDataset.type  = data.FilterDataset
-    val MapDataset    : data.MapDataset.type     = data.MapDataset
-    val FlatMapDataset: data.FlatMapDataset.type = data.FlatMapDataset
+    val FilterDataset            : data.FilterDataset.type             = data.FilterDataset
+    val MapDataset               : data.MapDataset.type                = data.MapDataset
+    val FlatMapDataset           : data.FlatMapDataset.type            = data.FlatMapDataset
+    val InterleaveDataset        : data.InterleaveDataset.type         = data.InterleaveDataset
+    val ParallelInterleaveDataset: data.ParallelInterleaveDataset.type = data.ParallelInterleaveDataset
 
     val ZipDataset        : data.ZipDataset.type         = data.ZipDataset
     val Zip3Dataset       : data.Zip3Dataset.type        = data.Zip3Dataset

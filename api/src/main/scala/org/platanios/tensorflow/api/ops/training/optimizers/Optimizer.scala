@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -89,10 +89,13 @@ trait Optimizer {
     * @return Sequence of gradient-variable pairs.
     */
   def computeGradients(
-      loss: Output, lossGradients: Seq[OutputLike] = null, variables: Set[Variable] = null,
+      loss: Output,
+      lossGradients: Seq[OutputLike] = null,
+      variables: Set[Variable] = null,
       gradientsGatingMethod: Gradients.GatingMethod = Gradients.OpGating,
       gradientsAggregationMethod: Gradients.AggregationMethod = Gradients.AddAggregationMethod,
-      colocateGradientsWithOps: Boolean = false): Seq[(OutputLike, Variable)] = {
+      colocateGradientsWithOps: Boolean = false
+  ): Seq[(OutputLike, Variable)] = {
     assertSupportedDataTypes(Iterable[OutputLike](loss))
     if (lossGradients != null)
       assertSupportedDataTypes(lossGradients)
@@ -136,8 +139,10 @@ trait Optimizer {
     * @return Created op.
     */
   def applyGradients(
-      gradientsAndVariables: Seq[(OutputLike, Variable)], iteration: Option[Variable] = None,
-      name: String = this.name): Op = {
+      gradientsAndVariables: Seq[(OutputLike, Variable)],
+      iteration: Option[Variable] = None,
+      name: String = this.name
+  ): Op = {
     // This is a default implementation of `applyGradients` that is shared by most optimizers. It relies on the subclass
     // implementing the following methods: `createSlots`, `prepare`, `finish`, `applyDense`, and `applySparse`.
     val variables: Seq[Variable] = gradientsAndVariables.filter(_._1 != null).map(_._2)
@@ -146,7 +151,7 @@ trait Optimizer {
         s"No gradients were provided for any of the variables: ${gradientsAndVariables.map(_._2).mkString(", ")}.")
 
     // Create the slots needed by the variables.
-    Op.createWith(controlDependencies = Set.empty[Op]) {
+    Op.initialization {
       val mappedVariables = variables.map(variable => {
         if (variable.op.opType == "VarHandleOp") {
           val v = variable.graph.trainableVariables.find(v => v.isInstanceOf[Variable] && v.handle.op == variable.op)
@@ -181,7 +186,8 @@ trait Optimizer {
         iteration match {
           case Some(i) => Op.createWith(controlDependencies = Set(finish(updateOps.toSet, "Update"))) {
             Op.colocateWith(Set(i.op)) {
-              i.assignAdd(Basic.constant(1, dataType = i.dataType), name).op
+              // The implicit read in the default assign add operation in `Variable` is slow and so we avoid that here.
+              Variable.assignAdd(i.handle, Basic.constant(1, dataType = i.dataType), name)
             }
           }
           case None => finish(updateOps.toSet, name)
@@ -301,8 +307,13 @@ trait Optimizer {
     * @return Requested slot variable.
     */
   protected def getSlot(
-      name: String, variable: Variable, initializer: Initializer, shape: Shape, dataType: DataType,
-      variableScope: String): Variable = {
+      name: String,
+      variable: Variable,
+      initializer: Initializer,
+      shape: Shape,
+      dataType: DataType,
+      variableScope: String
+  ): Variable = {
     slotMap(name).getOrElseUpdate(variable, Slot.create(variable, initializer, variableScope, dataType, shape))
   }
 
@@ -370,7 +381,7 @@ trait Optimizer {
 
 private[optimizers] object Optimizer {
   /** Gets the appropriate variable processor to use for `variable`. */
-  private[Optimizer] def getVariableProcessor(variable: Variable): VariableProcessor = variable match {
+  private[optimizers] def getVariableProcessor(variable: Variable): VariableProcessor = variable match {
     // TODO: [VARIABLES] This is dummy for now.
     case v if v.op.opType == "VarHandleOp" => ResourceVariableProcessor(v)
     case v if v.op.opType == "SubmodelPort" => StreamingModelPortProcessor(v)
@@ -415,7 +426,7 @@ private[optimizers] object Optimizer {
     * @return Indexed slices with de-duplicated indices and summed values slices associated with each unique index.
     */
   private[Optimizer] def deDuplicateOutputIndexedSlices(input: OutputIndexedSlices): OutputIndexedSlices = {
-    val (uniqueIndices, newIndexPositions) = Basic.unique(input.indices, 0)
+    val (uniqueIndices, newIndexPositions) = Basic.unique(input.indices, Tensor(0))
     val summedValues = Math.unsortedSegmentSum(input.values, newIndexPositions, Basic.shape(uniqueIndices)(0))
     OutputIndexedSlices(indices = uniqueIndices, values = summedValues, denseShape = input.denseShape)
   }

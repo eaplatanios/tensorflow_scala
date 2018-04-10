@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -15,9 +15,9 @@
 
 package org.platanios.tensorflow.api.ops.training.optimizers
 
-import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output, OutputIndexedSlices, Summary}
-import org.platanios.tensorflow.api.ops.training.optimizers.decay.{Decay, NoDecay}
+import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
+import org.platanios.tensorflow.api.ops.training.optimizers.schedules.{Schedule, FixedSchedule}
 import org.platanios.tensorflow.api.ops.variables.Variable
 
 /** Optimizer that implements the Adam optimization algorithm.
@@ -69,35 +69,41 @@ import org.platanios.tensorflow.api.ops.variables.Variable
   *
   * @author Emmanouil Antonios Platanios
   */
-case class Adam(
-    learningRate: Double = 0.001, decay: Decay = NoDecay, beta1: Double = 0.9, beta2: Double = 0.999,
-    useNesterov: Boolean = false, epsilon: Double = 1e-8, useLocking: Boolean = false,
-    learningRateSummaryTag: String = null, name: String = "Adam"
+class Adam protected (
+    val learningRate: Double = 0.001,
+    val decay: Schedule = FixedSchedule,
+    val beta1: Double = 0.9,
+    val beta2: Double = 0.999,
+    val useNesterov: Boolean = false,
+    val epsilon: Double = 1e-8,
+    val useLocking: Boolean = false,
+    val learningRateSummaryTag: String = null,
+    val name: String = "Adam"
 ) extends Optimizer {
-  private[this] var learningRateTensor: Output = _
-  private[this] var beta1Tensor       : Output = _
-  private[this] var beta2Tensor       : Output = _
-  private[this] var epsilonTensor     : Output = _
+  protected var learningRateTensor: Output = _
+  protected var beta1Tensor       : Output = _
+  protected var beta2Tensor       : Output = _
+  protected var epsilonTensor     : Output = _
 
-  private[this] def getLearningRate(variable: Variable, iteration: Option[Variable]): Output = {
+  protected def getLearningRate(variable: Variable, iteration: Option[Variable]): Output = {
     if (learningRateTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
     Math.cast(learningRateTensor, variable.dataType)
   }
 
-  private[this] def getBeta1(variable: Variable): Output = {
+  protected def getBeta1(variable: Variable): Output = {
     if (beta1Tensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
     Math.cast(beta1Tensor, variable.dataType)
   }
 
-  private[this] def getBeta2(variable: Variable): Output = {
+  protected def getBeta2(variable: Variable): Output = {
     if (beta2Tensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
     Math.cast(beta2Tensor, variable.dataType)
   }
 
-  private[this] def getEpsilon(variable: Variable): Output = {
+  protected def getEpsilon(variable: Variable): Output = {
     if (epsilonTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
     Math.cast(epsilonTensor, variable.dataType)
@@ -110,8 +116,8 @@ case class Adam(
   override protected def createSlots(variables: Seq[Variable]): Unit = {
     // Create slots for the first and second moments.
     variables.foreach(v => {
-      zerosSlot("m", v, name)
-      zerosSlot("v", v, name)
+      zerosSlot("M", v, name)
+      zerosSlot("V", v, name)
     })
     // We create the 'beta1' and 'beta2' accumulators on the same device as the first variable. We sort the variables
     // list to make sure this device is consistent across workers (these need to go on the same parameter server,
@@ -131,8 +137,8 @@ case class Adam(
   }
 
   override def applyDense(gradient: Output, variable: Variable, iteration: Option[Variable]): Op = {
-    val m = getSlot("m", variable)
-    val v = getSlot("v", variable)
+    val m = getSlot("M", variable)
+    val v = getSlot("V", variable)
     val (beta1Power, beta2Power) = getBetaPowerAccumulators
     Adam.resourceApplyDense(
       variable = variable,
@@ -163,8 +169,8 @@ case class Adam(
   }
 
   override def applySparse(gradient: OutputIndexedSlices, variable: Variable, iteration: Option[Variable]): Op = {
-    val m = getSlot("m", variable)
-    val v = getSlot("v", variable)
+    val m = getSlot("M", variable)
+    val v = getSlot("V", variable)
     val (beta1Power, beta2Power) = getBetaPowerAccumulators
     val beta1 = getBeta1(variable)
     val beta2 = getBeta2(variable)
@@ -182,7 +188,7 @@ case class Adam(
     val vScaledGradient = gradient.values * gradient.values * (1 - beta2)
     var vT = v.assign(v.value * beta2)
     vT = Op.createWith(controlDependencies = Set(vT.op)) {
-      m.assignScatterAdd(gradient.indices, vScaledGradient)
+      v.assignScatterAdd(gradient.indices, vScaledGradient)
     }
     val vTSqrt = Math.sqrt(vT)
     val update = variable.assignSub(learningRate * mT / Math.add(vTSqrt, epsilon))
@@ -191,6 +197,20 @@ case class Adam(
 }
 
 object Adam {
+  def apply(
+      learningRate: Double = 0.001,
+      decay: Schedule = FixedSchedule,
+      beta1: Double = 0.9,
+      beta2: Double = 0.999,
+      useNesterov: Boolean = false,
+      epsilon: Double = 1e-8,
+      useLocking: Boolean = false,
+      learningRateSummaryTag: String = null,
+      name: String = "Adam"
+  ): Adam = {
+    new Adam(learningRate, decay, beta1, beta2, useNesterov, epsilon, useLocking, learningRateSummaryTag, name)
+  }
+
   /** Creates an op that updates `variable` by applying the Adam algorithm update to it.
     *
     * The Adam update for step `t` is as follows:
@@ -217,10 +237,20 @@ object Adam {
     * @param  name        Name for the created op.
     * @return Created op.
     */
-  private[Adam] def resourceApplyDense(
-      variable: Variable, m: Variable, v: Variable, beta1Power: Output, beta2Power: Output,
-      stepSize: Output, beta1: Output, beta2: Output, epsilon: Output, gradient: Output,
-      useNesterov: Boolean = false, useLocking: Boolean = false, name: String = "ResourceApplyAdam"
+  private[optimizers] def resourceApplyDense(
+      variable: Variable,
+      m: Variable,
+      v: Variable,
+      beta1Power: Output,
+      beta2Power: Output,
+      stepSize: Output,
+      beta1: Output,
+      beta2: Output,
+      epsilon: Output,
+      gradient: Output,
+      useNesterov: Boolean = false,
+      useLocking: Boolean = false,
+      name: String = "ResourceApplyAdam"
   ): Op = {
     Op.Builder(opType = "ResourceApplyAdam", name = name)
         .addInput(variable.handle)

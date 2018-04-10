@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -18,8 +18,8 @@
 
 #include <string.h>
 
-#include "tensorflow/c/c_eager_api.h"
-#include "tensorflow/c/c_eager_api_internal.h"
+#include "tensorflow/c/eager/c_api.h"
+#include "tensorflow/c/eager/c_api_internal.h"
 #include "tensorflow/c/checkpoint_reader.h"
 
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_CheckpointReader_00024_newCheckpointReader(
@@ -27,6 +27,10 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_CheckpointReader_00024
   const char* c_file_pattern = env->GetStringUTFChars(file_pattern, nullptr);
   std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
   auto* reader = new tensorflow::checkpoint::CheckpointReader(std::string(c_file_pattern), status.get());
+  if (!throw_exception_if_not_ok(env, status.get())) {
+      delete reader;
+      return 0;
+  }
   CHECK_STATUS(env, status.get(), 0);
   env->ReleaseStringUTFChars(file_pattern, c_file_pattern);
   return reinterpret_cast<jlong>(reader);
@@ -55,7 +59,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_CheckpointReader_00024
   std::unique_ptr<tensorflow::Tensor> tensor;
   reader->GetTensor(c_name, &tensor, status.get());
   CHECK_STATUS(env, status.get(), 0);
-  TFE_TensorHandle* tfe_tensor = new TFE_TensorHandle(*tensor.get(), nullptr);
+  TFE_TensorHandle* tfe_tensor = new TFE_TensorHandle(*tensor.get(), nullptr, nullptr);
   return (jlong) tfe_tensor;
 }
 

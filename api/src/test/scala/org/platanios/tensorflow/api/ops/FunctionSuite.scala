@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -16,6 +16,7 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.{Graph, Shape}
+import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.{FLOAT64, INT32}
@@ -33,7 +34,8 @@ class FunctionSuite extends JUnitSuite {
       val function = Function("identity", identity[Output])
       val input = Basic.constant(Tensor(2.4, -5.6))
       val output = function(input)
-      val outputValue = output.evaluate()
+      val session = Session()
+      val outputValue = session.run(fetches = output)
       assert(outputValue.dataType === FLOAT64)
       assert(outputValue.shape === Shape(2))
       assert(outputValue.entriesIterator.toSeq === Seq(2.4, -5.6))
@@ -45,14 +47,15 @@ class FunctionSuite extends JUnitSuite {
       val flatten = Function("flatten", (o: Output) => o.reshape(Shape(-1)))
       val input = Basic.constant(Tensor(Tensor(2.4, -5.6), Tensor(-0.3, 1.9)))
       val flattenOutput = flatten(input)
-      val flattenOutputValue = flattenOutput.evaluate()
+      val session = Session()
+      val flattenOutputValue = session.run(fetches = flattenOutput)
       assert(flattenOutputValue.dataType === FLOAT64)
       assert(flattenOutputValue.shape === Shape(4))
       assert(flattenOutputValue.entriesIterator.toSeq === Seq(2.4, -5.6, -0.3, 1.9))
 
       val toInt32 = Function("cast", (o: Output) => o.cast(INT32))
       val toInt32Output = toInt32(input)
-      val toInt32OutputValue = toInt32Output.evaluate()
+      val toInt32OutputValue = session.run(fetches = toInt32Output)
       assert(toInt32OutputValue.dataType === INT32)
       assert(toInt32OutputValue.shape === Shape(2, 2))
       assert(toInt32OutputValue.entriesIterator.toList === Seq(2, -5, 0, 1))
@@ -65,7 +68,8 @@ class FunctionSuite extends JUnitSuite {
       val addOne = Function("addOne", (o: Output) => o + one)
       val input = Basic.constant(Tensor(Tensor(2.4, -5.6), Tensor(-0.3, 1.9)))
       val addOneOutput = addOne(input)
-      val addOneOutputValue = addOneOutput.evaluate()
+      val session = Session()
+      val addOneOutputValue = session.run(fetches = addOneOutput)
       assert(addOneOutputValue.dataType === FLOAT64)
       assert(addOneOutputValue.shape === Shape(2, 2))
       assert(addOneOutputValue.entriesIterator.toList === Seq(3.4, -4.6, 0.7, 2.9))

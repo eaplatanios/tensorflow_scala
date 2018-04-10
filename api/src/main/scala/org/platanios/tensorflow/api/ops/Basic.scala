@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -21,10 +21,11 @@ import org.platanios.tensorflow.api.core.exception.InvalidShapeException
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.ops.NN.CNNDataFormat
+import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.tensors.{Context, Tensor}
 import org.platanios.tensorflow.api.types._
+import org.platanios.tensorflow.jni.InvalidArgumentException
 import org.platanios.tensorflow.jni.generated.tensors.{Basic => NativeTensorOpsBasic}
-
 import org.tensorflow.framework.AttrValue
 
 import scala.language.postfixOps
@@ -295,12 +296,17 @@ private[api] trait Basic {
     * @return Created op output.
     */
   def size[T <: OutputLike](
-      input: T, dataType: DataType = INT32, optimize: Boolean = true, name: String = "Size"): Output = {
+      input: T, dataType: DataType = INT32,
+      optimize: Boolean = true,
+      name: String = "Size"
+  ): Output = {
     input match {
       case o: Output =>
         val inputShape = o.shape
         if (optimize && inputShape.isFullyDefined)
           constant(Tensor.fill(dataType, Shape())(inputShape.numElements), name = name)
+        else if (optimize && inputShape.rank > -1 && inputShape.asArray.contains(0))
+          constant(0, name = name)
         else
           Op.Builder(opType = "Size", name = name)
               .addInput(o)
@@ -583,11 +589,14 @@ private[api] trait Basic {
     * @return Created op outputs.
     */
   def split(input: Output, splitSizes: Output, axis: Output = 0, name: String = "Split"): Seq[Output] = {
+    val splitSizesShape = splitSizes.shape
+    if (splitSizesShape == Shape.unknown())
+      throw InvalidArgumentException(s"Cannot infer the number of splits from the shape '$splitSizesShape'.")
     Op.Builder(opType = "SplitV", name = name)
         .addInput(input)
         .addInput(Op.createWith(nameScope = name)(splitSizes))
         .addInput(Op.createWith(nameScope = name)(axis))
-        .setAttribute("num_split", splitSizes.shape(0))
+        .setAttribute("num_split", splitSizesShape(0))
         .build().outputs.toSeq
   }
 
@@ -648,7 +657,7 @@ private[api] trait Basic {
 
   private[ops] object PaddingMode {
     def fromString(name: String): PaddingMode = name match {
-      case "CONSTANT" => ConstantPadding
+      case "CONSTANT" => ConstantPadding(0)
       case "REFLECT" => ReflectivePadding
       case "SYMMETRIC" => SymmetricPadding
       case _ => throw new IllegalArgumentException(s"Invalid padding mode '$name' provided.")
@@ -669,24 +678,27 @@ private[api] trait Basic {
     * {{{
     *   // 'input' = [[1, 2, 3], [4, 5, 6]]
     *   // 'paddings' = [[1, 1], [2, 2]]
-    *   tf.pad(input, paddings, tf.ConstantPadding) ==>
+    *   tf.pad(input, paddings, tf.ConstantPadding(0)) ==>
     *     [[0, 0, 0, 0, 0, 0, 0],
     *      [0, 0, 1, 2, 3, 0, 0],
     *      [0, 0, 4, 5, 6, 0, 0],
     *      [0, 0, 0, 0, 0, 0, 0]]
     * }}}
     */
-  object ConstantPadding extends PaddingMode {
+  case class ConstantPadding(value: Tensor = 0) extends PaddingMode {
     override def pad(input: Output, paddings: Output, name: String): Output = {
-      Op.Builder(opType = "Pad", name = name)
+      Op.Builder(opType = "PadV2", name = name)
           .addInput(input)
           .addInput(paddings)
+          .addInput(value.cast(input.dataType))
           .build().outputs(0)
     }
 
     override def pad(input: Tensor, paddings: Tensor)(implicit context: DynamicVariable[Context]): Tensor = {
       Tensor.fromNativeHandle(
-        NativeTensorOpsBasic.pad(context.value.nativeHandle, input.nativeHandle, paddings.nativeHandle))
+        NativeTensorOpsBasic.padV2(
+          context.value.nativeHandle, input.nativeHandle, paddings.nativeHandle,
+          value.cast(input.dataType).nativeHandle))
     }
   }
 
@@ -776,7 +788,7 @@ private[api] trait Basic {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def pad(input: Output, paddings: Output, mode: PaddingMode = ConstantPadding, name: String = "Pad"): Output = {
+  def pad(input: Output, paddings: Output, mode: PaddingMode = ConstantPadding(0), name: String = "Pad"): Output = {
     mode.pad(input, paddings, name)
   }
 
@@ -1159,10 +1171,16 @@ private[api] trait Basic {
     * @param  dataType  Data type for the output tensor.
     * @param  name      Name for the created op.
     * @return Created op output.
+    * @throws IllegalArgumentException If `maxLength` is not a scalar.
     */
+  @throws[IllegalArgumentException]
   def sequenceMask(
-      lengths: Output, maxLength: Output = null, dataType: DataType = BOOLEAN,
-      name: String = "SequenceMask"): Output = {
+      lengths: Output,
+      maxLength: Output = null,
+      dataType: DataType = BOOLEAN,
+      name: String = "SequenceMask"
+  ): Output = {
+    require(maxLength == null || maxLength.rank == -1 || maxLength.rank == 0, "'maxLength' must be a scalar.")
     val ops = if (maxLength == null) Set(lengths.op) else Set(lengths.op, maxLength.op)
     Op.createWithNameScope(name, ops) {
       val maxLen = if (maxLength != null) maxLength else Math.max(lengths)
@@ -1174,10 +1192,7 @@ private[api] trait Basic {
       // into INT32, then so do the elements of 'lengths'.
       val matrix = Math.cast(expandDims(lengths, 1), maxLen.dataType)
       val result = Math.less(rowVector, matrix)
-      if (result.dataType == dataType)
-        result
-      else
-        Math.cast(result, dataType)
+      Math.cast(result, dataType)
     }
   }
 
@@ -1227,15 +1242,21 @@ private[api] trait Basic {
     *
     * @group BasicOps
     *
-    * @param  input           One-dimensional input tensor.
+    * @param  input           Input tensor.
+    * @param  axis            Axis along which to count the unique elements.
     * @param  indicesDataType Data type of the returned indices. Must be [[INT32]] or [[INT64]].
     * @param  name            Name for the created op.
     * @return Tuple containing `output`, `indices`, and `counts`.
     */
   def uniqueWithCounts(
-      input: Output, indicesDataType: DataType = INT32, name: String = "UniqueWithCounts"): (Output, Output, Output) = {
-    val outputs = Op.Builder(opType = "UniqueWithCounts", name = name)
+      input: Output,
+      axis: Output = 0,
+      indicesDataType: DataType = INT32,
+      name: String = "UniqueWithCounts"
+  ): (Output, Output, Output) = {
+    val outputs = Op.Builder(opType = "UniqueWithCountsV2", name = name)
         .addInput(input)
+        .addInput(axis)
         .setAttribute("out_idx", indicesDataType)
         .build().outputs
     (outputs(0), outputs(1), outputs(2))
@@ -1377,10 +1398,18 @@ private[api] trait Basic {
     * @param  name           Name for the created op.
     * @return Created op output.
     */
-  private[api] def stridedSlice(
-      input: Output, begin: Output, end: Output, strides: Output = null, beginMask: Long = 0,
-      endMask: Long = 0, ellipsisMask: Long = 0, newAxisMask: Long = 0, shrinkAxisMask: Long = 0,
-      name: String = "StridedSlice"): Output = {
+  def stridedSlice(
+      input: Output,
+      begin: Output,
+      end: Output,
+      strides: Output = null,
+      beginMask: Long = 0,
+      endMask: Long = 0,
+      ellipsisMask: Long = 0,
+      newAxisMask: Long = 0,
+      shrinkAxisMask: Long = 0,
+      name: String = "StridedSlice"
+  ): Output = {
     Op.Builder(opType = "StridedSlice", name = name)
         .addInput(input)
         .addInput(begin)
@@ -1720,7 +1749,7 @@ object Basic extends Basic {
       * @param  mode     Padding mode to use.
       * @return Result as a new tensor.
       */
-    def pad(paddings: Output, mode: PaddingMode = ConstantPadding): Output = Basic.pad(output, paddings, mode)
+    def pad(paddings: Output, mode: PaddingMode = ConstantPadding(0)): Output = Basic.pad(output, paddings, mode)
 
     /** $OpDocBasicReshape
       *
@@ -1913,11 +1942,12 @@ object Basic extends Basic {
       *
       * @group BasicOps
       *
+      * @param  axis            Axis along which to count the unique elements.
       * @param  indicesDataType Data type of the returned indices. Must be [[INT32]] or [[INT64]].
       * @return Tuple containing `output`, `indices`, and `counts`.
       */
-    def uniqueWithCounts(indicesDataType: DataType = INT32): (Output, Output, Output) = {
-      Basic.uniqueWithCounts(output, indicesDataType)
+    def uniqueWithCounts(axis: Output = 0, indicesDataType: DataType = INT32): (Output, Output, Output) = {
+      Basic.uniqueWithCounts(output, axis, indicesDataType)
     }
 
     /** $OpDocBasicListDiff
@@ -2065,6 +2095,7 @@ object Basic extends Basic {
     GradientsRegistry.register("SplitV", splitGradient)
     GradientsRegistry.register("Tile", tileGradient)
     GradientsRegistry.register("Pad", padGradient)
+    GradientsRegistry.register("PadV2", padGradient)
     GradientsRegistry.register("MirrorPad", mirrorPadGradient)
     GradientsRegistry.register("MirrorPadGrad", mirrorPadHessian)
     GradientsRegistry.register("Reshape", reshapeGradient)
@@ -2127,13 +2158,26 @@ object Basic extends Basic {
         // Degenerate concatenation.
         Seq(gradient, null)
       } else {
-        val concatenationAxis = op.inputs.last
         val inputValues = op.inputs.take(op.inputs.length - 1)
-        // Using modulus here for convenience since the 'concatenationAxis' value is already verified in the concatenate
-        // op implementation to be within the allowed '[-rank, rank)' range.
-        val nonNegativeConcatenationAxis = concatenationAxis % rank(inputValues(0))
         val outputGradients: Seq[OutputLike] = gradient match {
           case g: Output =>
+            var concatenationAxis = op.inputs.last
+            Output.constantValue(concatenationAxis) match {
+              case Some(axis) =>
+                // If `concatenationAxis` is a constant defined in a different context, then we duplicate it in the
+                // current context to avoid passing it through an `enter` node. This is a small optimization in general,
+                // but it is required when compiling with XLA, as XLA needs the concatenation op input to be folded into
+                // a constant.
+                val gradientContext = ControlFlow.getOutputContext(gradient.op)
+                val axisContext = ControlFlow.getOutputContext(concatenationAxis.op)
+                if (axisContext != gradientContext) {
+                  concatenationAxis = constant(axis)
+                }
+              case None => ()
+            }
+            // Using modulus here for convenience since the 'concatenationAxis' value is already verified in the
+            // concatenate op implementation to be within the allowed '[-rank, rank)' range.
+            val nonNegativeConcatenationAxis = concatenationAxis % rank(inputValues(0))
             // Get the inputs' tensor shapes.
             val shapes = shapeN(inputValues)
             // The magic number of '16' was found through benchmarking a range of sizes on CPUs and a Maxwell Titan X
@@ -2148,6 +2192,7 @@ object Basic extends Basic {
               offset.zip(shapes).map(t => slice(g, t._1, t._2))
             }
           case g: OutputIndexedSlices =>
+            val concatenationAxis = op.inputs.last
             val staticConcatenationAxis = {
               val axis = Output.constantValue(concatenationAxis)
               if (axis.isEmpty)
@@ -2166,6 +2211,9 @@ object Basic extends Basic {
                 realNumericAxis
               }
             }
+            // Using modulus here for convenience since the 'concatenationAxis' value is already verified in the
+            // concatenate op implementation to be within the allowed '[-rank, rank)' range.
+            val nonNegativeConcatenationAxis = concatenationAxis % rank(inputValues(0))
             // Get the input tensor shapes.
             val shapes = inputValues.map(shape(_))
             if (staticConcatenationAxis > 0) {
@@ -2247,7 +2295,11 @@ object Basic extends Basic {
       // Take a slice of 'a' (the 1st column: [rank(x), 1]).
       val padBefore = slice(a, Tensor(0, 0), stack(Seq(rank(x), 1)))
       // Make it a one-dimensional tensor and return it.
-      Seq(slice(outputGradients.head, reshape(padBefore, -1), shape(x)), null)
+      val xGradient = slice(outputGradients.head, reshape(padBefore, Shape(-1)), shape(x))
+      if (op.inputs.length == 3)
+        Seq(xGradient, null, null)
+      else
+        Seq(xGradient, null)
     }
 
     private[this] def mirrorPadGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
@@ -2303,11 +2355,21 @@ object Basic extends Basic {
       Seq(spaceToBatchND(outputGradients.head, op.inputs(1), op.inputs(2)), null, null)
     }
 
+    @throws[InvalidArgumentException]
     private[this] def spaceToDepthGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      if (op.stringAttribute("data_format") == "NCHW_VECT_C")
+        throw InvalidArgumentException(
+          "Cannot compute 'spaceToDepth' gradient with 'NCHW_VECT_C' data format. " +
+              "This format requires 'QINT8' data type.")
       Seq(depthToSpace(outputGradients.head, op.longAttribute("block_size").toInt))
     }
 
+    @throws[InvalidArgumentException]
     private[this] def depthToSpaceGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      if (op.stringAttribute("data_format") == "NCHW_VECT_C")
+        throw InvalidArgumentException(
+          "Cannot compute 'spaceToDepth' gradient with 'NCHW_VECT_C' data format. " +
+              "This format requires 'QINT8' data type.")
       Seq(spaceToDepth(outputGradients.head, op.longAttribute("block_size").toInt))
     }
 
@@ -2407,7 +2469,7 @@ object Basic extends Basic {
 
   private[this] def stridedSliceGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
     val gradient = Op.Builder(opType = "StridedSliceGrad", name = "StridedSliceGradient")
-        .addInput(shape(op.inputs(0)))
+        .addInput(shape(op.inputs(0), dataType = op.inputs(1).dataType))
         .addInput(op.inputs(1))
         .addInput(op.inputs(2))
         .addInput(op.inputs(3))
@@ -2788,7 +2850,7 @@ object Basic extends Basic {
     *     // 'input' = [[1, 2, 3], [4, 5, 6]]
     *     // 'paddings' = [[1, 1], [2, 2]]
     *
-    *     pad(input, paddings, ConstantPadding) ==>
+    *     pad(input, paddings, ConstantPadding(0)) ==>
     *       [[0, 0, 0, 0, 0, 0, 0],
     *        [0, 0, 1, 2, 3, 0, 0],
     *        [0, 0, 4, 5, 6, 0, 0],

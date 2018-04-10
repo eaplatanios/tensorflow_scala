@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -62,7 +62,7 @@ import org.platanios.tensorflow.api.types.{DataType, INT64, STRING}
   *
   * @author Emmanouil Antonios Platanios
   */
-class LookupTableTextFileInitializer(
+class LookupTableTextFileInitializer protected (
     val filename: Output,
     override val keysDataType: DataType,
     override val valuesDataType: DataType,

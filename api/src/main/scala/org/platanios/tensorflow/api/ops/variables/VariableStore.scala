@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -171,7 +171,12 @@ case class VariableStore private[variables]() {
             if (shape != null && !shape.isFullyDefined)
               throw new IllegalArgumentException(
                 s"The shape of a new variable ('$name') must be fully defined, but instead it was set to '$shape'.")
-            val actualInitializer = if (initializer == null) defaultInitializer(name, dataType) else initializer
+            val actualInitializer = Op.initialization {
+              if (initializer == null)
+                defaultInitializer(name, dataType)
+              else
+                initializer
+            }
             val variable = Variable(actualInitializer, dataType, shape, trainable, collections, cachingDevice, name)
             variables += name -> variable
             // TODO: [LOGGING]

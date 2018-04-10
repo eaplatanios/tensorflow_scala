@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -17,12 +17,14 @@
 #include "op.h"
 
 #include <cstring>
+#include <limits>
 #include <memory>
 #include <string.h>
 #include <stdint.h>
 #include <iostream>
 
 #include "tensorflow/c/c_api.h"
+#include "tensorflow/c/eager/c_api.h"
 
 namespace {
 template <class T>
@@ -76,42 +78,45 @@ TF_Tensor* requireTensor(JNIEnv* env, jlong handle) {
 }
 
 const char* attrTypeToString(TF_AttrType type, char is_list) {
-  std::string typeName;
+  std::string name;
   switch(type) {
     case TF_ATTR_STRING:
-      typeName = "String";
+      name = "String";
       break;
     case TF_ATTR_INT:
-      typeName = "Int";
+      name = "Int";
       break;
     case TF_ATTR_FLOAT:
-      typeName = "Float";
+      name = "Float";
       break;
     case TF_ATTR_BOOL:
-      typeName = "Boolean";
+      name = "Boolean";
       break;
     case TF_ATTR_TYPE:
-      typeName = "DataType";
+      name = "DataType";
       break;
     case TF_ATTR_SHAPE:
-      typeName = "Shape";
+      name = "Shape";
       break;
     case TF_ATTR_TENSOR:
-      typeName = "Tensor";
+      name = "Tensor";
       break;
     case TF_ATTR_PLACEHOLDER:
-      typeName = "Placeholder";
+      name = "Placeholder";
       break;
     case TF_ATTR_FUNC:
-      typeName = "Function";
+      name = "Function";
       break;
     default:
-      typeName = "Unknown";
+      name = "Unknown";
       break;
   }
-  if (is_list == 1)
-    return ("List[" + typeName + "]").c_str();
-  return typeName.c_str();
+  // TODO: It's better to return std::string in the future.
+  std::string result_string = is_list == 1 ? "List[" + name + "]" : name;
+  const char* result = result_string.c_str();
+  char* result_copy = new char[result_string.length() + 1];
+  strcpy(result_copy, result);
+  return result_copy;
 }
 }  // namespace
 
@@ -948,4 +953,78 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_setAttrProto(
   env->ReleaseByteArrayElements(value, c_value, JNI_ABORT);
   env->ReleaseStringUTFChars(name, c_name);
   CHECK_STATUS(env, status.get(), void());
+}
+
+JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_toOpDef(
+    JNIEnv* env, jobject object, jlong graph_handle, jstring op_type) {
+  TF_Graph *g = require_graph_handle(env, graph_handle);
+  if (g == nullptr) return nullptr;
+  const char *c_op_type = env->GetStringUTFChars(op_type, nullptr);
+
+  // Call the C API "TF_GraphGetOpDef" function and throw an exception if an error occurs
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+  jbyteArray return_array = nullptr;
+  TF_Buffer *buf = TF_NewBuffer();
+  TF_GraphGetOpDef(g, c_op_type, buf, status.get());
+  env->ReleaseStringUTFChars(op_type, c_op_type);
+  CHECK_STATUS(env, status.get(), nullptr);
+  // sizeof(jsize) is less than sizeof(size_t) on some platforms.
+  if (buf->length > std::numeric_limits<jint>::max()) {
+    throw_exception(env, tf_invalid_argument_exception,
+                    "OpDef is too large to serialize into a Java byte array.");
+  } else {
+    static_assert(sizeof(jbyte) == 1, "Unexpected size of the Java byte type.");
+    jint return_array_length = static_cast<jint>(buf->length);
+    return_array = env->NewByteArray(return_array_length);
+    env->SetByteArrayRegion(return_array, 0, return_array_length, static_cast<const jbyte *>(buf->data));
+  }
+
+  // Clean up and return the byte array
+  TF_DeleteBuffer(buf);
+  return return_array;
+}
+
+JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_toNodeDef(
+    JNIEnv* env, jobject object, jlong handle) {
+  TF_Operation* op = require_operation_handle(env, handle);
+  if (op == nullptr) return nullptr;
+
+  // Call the C API "TF_OperationToNodeDef" function and throw an exception if an error occurs
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+  jbyteArray return_array = nullptr;
+  TF_Buffer *buf = TF_NewBuffer();
+  TF_OperationToNodeDef(op, buf, status.get());
+  CHECK_STATUS(env, status.get(), nullptr);
+  // sizeof(jsize) is less than sizeof(size_t) on some platforms.
+  if (buf->length > std::numeric_limits<jint>::max()) {
+    throw_exception(env, tf_invalid_argument_exception,
+                    "NodeDef is too large to serialize into a Java byte array.");
+  } else {
+    static_assert(sizeof(jbyte) == 1, "Unexpected size of the Java byte type.");
+    jint return_array_length = static_cast<jint>(buf->length);
+    return_array = env->NewByteArray(return_array_length);
+    env->SetByteArrayRegion(return_array, 0, return_array_length, static_cast<const jbyte *>(buf->data));
+  }
+
+  // Clean up and return the byte array
+  TF_DeleteBuffer(buf);
+  return return_array;
+}
+
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Op_00024_tryEvaluateConstant(
+    JNIEnv* env, jobject object, jlong graph_handle, jlong op_handle, jint output_index) {
+  TF_Graph *graph = require_graph_handle(env, graph_handle);
+  if (graph == nullptr) return 0;
+  TF_Operation* op = require_operation_handle(env, op_handle);
+  if (op == nullptr) return 0;
+  TF_Output output{op, output_index};
+
+  TF_Tensor* result_tensor;
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+  bool evaluated = TF_TryEvaluateConstant(graph, output, &result_tensor, status.get());
+  CHECK_STATUS(env, status.get(), 0);
+  if (!evaluated) return 0;
+  TFE_TensorHandle* result_eager_tensor = TFE_NewTensorHandle(result_tensor, status.get());
+  CHECK_STATUS(env, status.get(), 0);
+  return reinterpret_cast<jlong>(result_eager_tensor);
 }

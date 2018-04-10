@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -28,6 +28,11 @@ import scala.collection.generic.CanBuildFrom
 import scala.collection.{MapLike, SeqLike, breakOut, mutable}
 import scala.language.higherKinds
 import scala.reflect.ClassTag
+
+// TODO: Separate into readers and transformations.
+// TODO: paddedBatchAndDropRemainder
+// TODO: denseToSparseBatch
+// TODO: listFiles
 
 /** Data can be emitted by [[Dataset]]s (i.e., the element types of all [[Dataset]]s are [[Data]]).
   *

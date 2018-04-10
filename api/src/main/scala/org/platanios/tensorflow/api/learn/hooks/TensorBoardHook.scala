@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -31,7 +31,7 @@ import scala.util.Try
   *
   * @author Emmanouil Antonios Platanios
   */
-private[learn] case class TensorBoardHook(tensorBoardConfig: TensorBoardConfig) extends Hook {
+private[learn] class TensorBoardHook protected (val tensorBoardConfig: TensorBoardConfig) extends Hook {
   private[this] var tensorBoardProcess: Option[Process] = None
 
   override protected def begin(): Unit = tensorBoardProcess = {
@@ -59,4 +59,6 @@ private[learn] case class TensorBoardHook(tensorBoardConfig: TensorBoardConfig) 
 
 private[learn] object TensorBoardHook {
   private[TensorBoardHook] val logger = Logger(LoggerFactory.getLogger("Learn / Hooks / TensorBoard"))
+
+  def apply(tensorBoardConfig: TensorBoardConfig): TensorBoardHook = new TensorBoardHook(tensorBoardConfig)
 }

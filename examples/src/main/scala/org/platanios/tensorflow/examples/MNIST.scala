@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -17,11 +17,11 @@ package org.platanios.tensorflow.examples
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.data.image.MNISTLoader
-
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
 import java.nio.file.Paths
 
+import org.platanios.tensorflow.api.learn.ClipGradientsByGlobalNorm
 import org.platanios.tensorflow.api.ops.metrics.{Accuracy, Metric}
 import org.platanios.tensorflow.api.ops.metrics.Metric.{METRIC_RESETS, METRIC_UPDATES, METRIC_VALUES, METRIC_VARIABLES}
 
@@ -68,8 +68,9 @@ object MNIST {
     val trainingInputLayer = tf.learn.Cast("TrainInput/Cast", INT64)
     val loss = tf.learn.SparseSoftmaxCrossEntropy("Loss/CrossEntropy") >>
         tf.learn.Mean("Loss/Mean") >> tf.learn.ScalarSummary("Loss/Summary", "Loss")
-    val optimizer = tf.train.AdaGrad(0.1)
-    val model = tf.learn.Model(input, layer, trainInput, trainingInputLayer, loss, optimizer)
+    // val optimizer = tf.train.AdaGrad(0.1)
+    val optimizer = tf.train.YellowFin()
+    val model = tf.learn.Model.supervised(input, layer, trainInput, trainingInputLayer, loss, optimizer, clipGradients = ClipGradientsByGlobalNorm(5.0f))
 
     logger.info("Training the linear regression model.")
     val summariesDir = Paths.get("temp/mnist-mlp")
@@ -82,11 +83,8 @@ object MNIST {
       Set(
         tf.learn.LossLogger(trigger = tf.learn.StepHookTrigger(100)),
         tf.learn.Evaluator(
-          log = true, data = () => evalTrainData, metrics = Seq(accMetric),
-          trigger = tf.learn.StepHookTrigger(1000), name = "TrainEvaluator"),
-        tf.learn.Evaluator(
-          log = true, data = () => evalTestData, metrics = Seq(accMetric),
-          trigger = tf.learn.StepHookTrigger(1000), name = "TestEvaluator"),
+          log = true, datasets = Seq(("Train", () => evalTrainData), ("Test", () => evalTestData)),
+          metrics = Seq(accMetric), trigger = tf.learn.StepHookTrigger(1000), name = "Evaluator"),
         tf.learn.StepRateLogger(log = false, summaryDir = summariesDir, trigger = tf.learn.StepHookTrigger(100)),
         tf.learn.SummarySaver(summariesDir, tf.learn.StepHookTrigger(100)),
         tf.learn.CheckpointSaver(summariesDir, tf.learn.StepHookTrigger(1000))),

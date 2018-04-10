@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -34,6 +34,9 @@ trait SessionCreator {
 
   def addInitOp(op: Op): Unit = extraInitOps += op
   def addLocalInitOp(op: Op): Unit = extraLocalInitOps += op
+
+  def removeInitOp(op: Op): Unit = extraInitOps -= op
+  def removeLocalInitOp(op: Op): Unit = extraLocalInitOps -= op
 
   protected lazy val initOp: Op = ControlFlow.noOp("InitOp")
   protected lazy val localInitOp: Op = ControlFlow.noOp("LocalInitOp")

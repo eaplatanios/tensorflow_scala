@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -42,12 +42,14 @@ case class GroupByWindowDataset[T, O, D, S](
 ) extends Dataset[T, O, D, S](name)(inputDataset.evOToT, inputDataset.evData, inputDataset.evFunctionInput) {
   private[this] lazy val instantiatedKeyFunction = {
     Function(s"$name/KeyFunction", keyFn).instantiate(
-      inputDataset.flattenedOutputDataTypes, inputDataset.flattenedOutputShapes, appendHashToName = true)
+      inputDataset.flattenedOutputDataTypes, inputDataset.flattenedOutputShapes,
+      appendHashToName = true)
   }
 
   private[this] lazy val instantiatedReduceFunction = {
     Function(s"$name/ReduceFunction", reduceFn).instantiate(
-      Seq(INT64, VARIANT), Seq(Shape.scalar(), Shape.scalar()), Some((null, inputDataset)), appendHashToName = true)
+      Seq(INT64, VARIANT), Seq(Shape.scalar(), Shape.scalar()), Some((null, inputDataset)),
+      appendHashToName = true)
   }
 
   private[this] lazy val instantiatedWindowSizeFunction = {

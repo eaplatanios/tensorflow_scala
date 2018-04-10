@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -19,15 +19,17 @@ import sbtrelease.Vcs
 
 import scala.sys.process.Process
 
-scalaVersion in ThisBuild := "2.12.4"
-crossScalaVersions in ThisBuild := Seq("2.11.11", "2.12.4")
+scalaVersion in ThisBuild := "2.12.5"
+crossScalaVersions in ThisBuild := Seq("2.11.11", "2.12.5")
 
 organization in ThisBuild := "org.platanios"
 
-val tensorFlowVersion = "1.5.0"
-val circeVersion = "0.8.0"       // Use for working with JSON.
+val tensorFlowVersion = "1.7.0"
+val circeVersion = "0.9.1" // Use for working with JSON.
 
 autoCompilerPlugins in ThisBuild := true
+
+// addCompilerPlugin(MetalsPlugin.semanticdbScalac)
 
 scalacOptions in ThisBuild ++= Seq(
   "-deprecation",
@@ -43,13 +45,14 @@ scalacOptions in ThisBuild ++= Seq(
   // "-Ywarn-dead-code",
   // "-Ywarn-numeric-widen",
   // "-Ywarn-value-discard",
-  "-Xfuture",
-  "-P:splain:all",
-  "-P:splain:infix",
-  "-P:splain:foundreq",
-  "-P:splain:implicits",
-  "-P:splain:color",
-  "-P:splain:tree"
+  "-Yrangepos",
+  "-Xfuture"
+//  "-P:splain:all",
+//  "-P:splain:infix",
+//  "-P:splain:foundreq",
+//  "-P:splain:implicits",
+//  "-P:splain:color",
+//  "-P:splain:tree"
 //  "-P:splain:boundsimplicits:false"
 )
 
@@ -65,7 +68,7 @@ lazy val loggingSettings = Seq(
 
 lazy val commonSettings = loggingSettings ++ Seq(
   // Plugin that prints better implicit resolution errors.
-  addCompilerPlugin("io.tryp"  % "splain" % "0.2.7" cross CrossVersion.patch)
+  // addCompilerPlugin("io.tryp"  % "splain" % "0.2.7" cross CrossVersion.patch)
 )
 
 lazy val testSettings = Seq(
@@ -134,11 +137,11 @@ lazy val jni = (project in file("./jni"))
       ops in generateTensorOps := Map(
         "Basic" -> Seq(
           "ZerosLike", "OnesLike", "Fill", "Rank", "Size", "Shape", "ExpandDims", "Squeeze", "Pack", "ParallelConcat",
-          "Unpack", "ConcatV2", "ConcatOffset", "Split", "SplitV", "Tile", "Pad", "MirrorPad", "Reshape", "Transpose",
-          "ConjugateTranspose", "InvertPermutation", "ReverseV2", "ReverseSequence", "SpaceToBatchND", "BatchToSpaceND",
-          "SpaceToDepth", "DepthToSpace", "Where", "Unique", "UniqueWithCounts", "ListDiff", "GatherV2", "GatherNd",
-          "ScatterNd", "Slice", "StridedSlice", "CheckNumerics", "EditDistance", "OneHot", "BroadcastArgs",
-          "StopGradient", "PreventGradient", "Identity", "IdentityN", "ScatterNdNonAliasingAdd",
+          "Unpack", "ConcatV2", "ConcatOffset", "Split", "SplitV", "Tile", "Pad", "PadV2", "MirrorPad", "Reshape",
+          "Transpose", "ConjugateTranspose", "InvertPermutation", "ReverseV2", "ReverseSequence", "SpaceToBatchND",
+          "BatchToSpaceND", "SpaceToDepth", "DepthToSpace", "Where", "Unique", "UniqueWithCounts", "ListDiff",
+          "GatherV2", "GatherNd", "ScatterNd", "Slice", "StridedSlice", "CheckNumerics", "EditDistance", "OneHot",
+          "BroadcastArgs", "StopGradient", "PreventGradient", "Identity", "IdentityN", "ScatterNdNonAliasingAdd",
           "QuantizeAndDequantizeV3", "QuantizeV2", "Dequantize", "QuantizedConcat", "QuantizedReshape",
           "QuantizedInstanceNorm", "FakeQuantWithMinMaxArgs", "FakeQuantWithMinMaxVars",
           "FakeQuantWithMinMaxVarsPerChannel"),

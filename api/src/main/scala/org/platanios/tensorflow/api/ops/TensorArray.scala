@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -44,7 +44,7 @@ import org.platanios.tensorflow.api.types.{DataType, INT64}
   *
   * @author Emmanouil Antonios Platanios
   */
-private[api] case class TensorArray private (
+case class TensorArray private (
     handle: Output,
     flow: Output,
     dataType: DataType,
@@ -74,7 +74,7 @@ private[api] case class TensorArray private (
     * @return New [[TensorArray]] object with a flow that ensures the control dependencies from the contexts will become
     *         control dependencies for writes, reads, etc. Use this object for all subsequent operations.
     */
-  private[api] def identity: TensorArray = {
+  def identity: TensorArray = {
     TensorArray(handle, Basic.identity(flow), dataType, inferShape, elementShape, colocateWithFirstWrite, colocationOps)
   }
 
@@ -84,7 +84,7 @@ private[api] case class TensorArray private (
     * @param  name  Name for the created op.
     * @return Tensor in the specified position of the tensor array.
     */
-  private[api] def read(index: Output, name: String = "TensorArrayRead"): Output = {
+  def read(index: Output, name: String = "TensorArrayRead"): Output = {
     Op.colocateWith(Set(handle.op)) {
       val value = TensorArray.readOp(handle, index, flow, dataType, name)
       elementShape.foreach(value.setShape)
@@ -99,7 +99,7 @@ private[api] case class TensorArray private (
     * @param  name  Name for the created op.
     * @return Output flow of the tensor array, used to enforce proper chaining of operations.
     */
-  private[api] def write(index: Output, value: Output, name: String = "TensorArrayWrite"): TensorArray = {
+  def write(index: Output, value: Output, name: String = "TensorArrayWrite"): TensorArray = {
     val writeFlow = maybeColocateWith(value.op)(TensorArray.writeOp(handle, index, value, flow, name))
     val returnValue = TensorArray(
       handle, writeFlow, dataType, inferShape, elementShape, colocateWithFirstWrite, colocationOps)
@@ -117,7 +117,7 @@ private[api] case class TensorArray private (
     * @param  name    Name for the created op.
     * @return Tensor containing the gathered elements, concatenated along a new axis (the new dimension `0`).
     */
-  private[api] def gather(indices: Output, name: String = "TensorArrayGather"): Output = {
+  def gather(indices: Output, name: String = "TensorArrayGather"): Output = {
     Op.colocateWith(Set(handle.op)) {
       val ind = if (indices.rank == 0) indices.expandDims(0) else indices
       val value = TensorArray.gatherOp(handle, ind, flow, dataType, elementShape.getOrElse(Shape.unknown()), name)
@@ -137,7 +137,7 @@ private[api] case class TensorArray private (
     * @param  name    Name for the created op.
     * @return Output flow of the tensor array, used to enforce proper chaining of operations.
     */
-  private[api] def scatter(indices: Output, value: Output, name: String = "TensorArrayScatter"): TensorArray = {
+  def scatter(indices: Output, value: Output, name: String = "TensorArrayScatter"): TensorArray = {
     val scatterFlow = maybeColocateWith(value.op) {
       TensorArray.scatterOp(handle, indices, value, flow, name)
     }
@@ -160,7 +160,7 @@ private[api] case class TensorArray private (
     * @param  name Name for the created op.
     * @return Stacked tensor.
     */
-  private[api] def stack(name: String = "TensorArrayStack"): Output = {
+  def stack(name: String = "TensorArrayStack"): Output = {
     Op.createWithNameScope(name, Set(handle.op)) {
       Op.colocateWith(Set(handle.op)) {
         gather(Math.range(Basic.constant(0), size()), name)
@@ -178,7 +178,7 @@ private[api] case class TensorArray private (
     * @return New tensor array object with flow that ensures the unstack occurs. Use this object for all subsequent
     *         operations.
     */
-  private[api] def unstack(value: Output, name: String = "TensorArrayUnstack"): TensorArray = {
+  def unstack(value: Output, name: String = "TensorArrayUnstack"): TensorArray = {
     scatter(Math.range(Basic.constant(0), Basic.shape(value)(0)), value, name)
   }
 
@@ -192,7 +192,7 @@ private[api] case class TensorArray private (
     * @param  name Name for the created op.
     * @return Tensor with all of the elements in the tensor array, concatenated along the first axis.
     */
-  private[api] def concatenate(name: String = "TensorArrayConcatenate"): Output = {
+  def concatenate(name: String = "TensorArrayConcatenate"): Output = {
     val shape = elementShape.map(s => Shape.fromSeq(s.asArray.tail)).getOrElse(Shape.unknown())
     val (value, _) = TensorArray.concatenateOp(handle, flow, dataType, shape, name)
     if (elementShape.isDefined)
@@ -232,7 +232,7 @@ private[api] case class TensorArray private (
     * @param  name Name for the created op.
     * @return Created op output, containing the current size of the tensor array.
     */
-  private[api] def size(name: String = "TensorArraySize"): Output = {
+  def size(name: String = "TensorArraySize"): Output = {
     Op.colocateWith(Set(handle.op)) {
       TensorArray.sizeOp(handle, flow, name)
     }
@@ -299,7 +299,7 @@ private[api] case class TensorArray private (
     * @param  name Name for the created op.
     * @return Created op.
     */
-  private[api] def close(name: String = "TensorArrayClose"): Op = {
+  def close(name: String = "TensorArrayClose"): Op = {
     Op.colocateWith(Set(handle.op)) {
       TensorArray.closeOp(handle, name)
     }
@@ -320,7 +320,7 @@ private[api] case class TensorArray private (
   }
 }
 
-private[api] object TensorArray {
+object TensorArray {
   /** Creates a new tensor array.
     *
     * @param  size                   Size of the tensor array.
@@ -344,10 +344,17 @@ private[api] object TensorArray {
     * @param  name                   Name for the created tensor array ops.
     * @return Created tensor array.
     */
-  private[api] def create(
-      size: Output, dataType: DataType, dynamicSize: Boolean = false, clearAfterRead: Boolean = true,
-      tensorArrayName: String = "", inferShape: Boolean = true, elementShape: Shape = Shape.unknown(),
-      colocateWithFirstWrite: Boolean = true, name: String = "TensorArray"): TensorArray = {
+  def create(
+      size: Output,
+      dataType: DataType,
+      dynamicSize: Boolean = false,
+      clearAfterRead: Boolean = true,
+      tensorArrayName: String = "",
+      inferShape: Boolean = true,
+      elementShape: Shape = Shape.unknown(),
+      colocateWithFirstWrite: Boolean = true,
+      name: String = "TensorArray"
+  ): TensorArray = {
     // We construct the tensor array with an empty device. The first write into the tensor array from a tensor with a
     // set device will retroactively set the device value of this op.
     val (handle, flow) = {
@@ -382,15 +389,20 @@ private[api] object TensorArray {
     * @return Created tensor array.
     */
   private[api] def createFromHandle(
-      handle: Output, flow: Output, dataType: DataType, inferShape: Boolean = true,
-      elementShape: Shape = Shape.unknown(), colocateWithFirstWrite: Boolean = true): TensorArray = {
+      handle: Output,
+      flow: Output,
+      dataType: DataType,
+      inferShape: Boolean = true,
+      elementShape: Shape = Shape.unknown(),
+      colocateWithFirstWrite: Boolean = true
+  ): TensorArray = {
     // Record the current static shape for the array elements. The element shape is defined either by `elementShape` or
     // the shape of the tensor of the first write. If `inferShape` is `true`, then all writes check for shape equality.
     TensorArray(
       handle = handle,
       flow = flow,
       dataType = dataType,
-      inferShape = inferShape || elementShape.rank != -1,
+      inferShape = inferShape || elementShape.rank == -1,
       elementShape = if (elementShape.rank == -1) None else Some(elementShape),
       colocateWithFirstWrite = colocateWithFirstWrite)
   }

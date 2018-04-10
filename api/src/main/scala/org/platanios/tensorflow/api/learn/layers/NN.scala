@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.learn.layers
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.learn.{Mode, TRAINING, layers}
 import org.platanios.tensorflow.api.ops
-import org.platanios.tensorflow.api.ops.NN.{CNNDataFormat, PaddingMode}
+import org.platanios.tensorflow.api.ops.NN.{CNNDataFormat, ConvPaddingMode}
 import org.platanios.tensorflow.api.ops.Output
 import org.platanios.tensorflow.api.ops.variables.{Initializer, RandomNormalInitializer}
 
@@ -47,7 +47,7 @@ case class Softmax(override val name: String)
     extends Layer[Output, Output](name) {
   override val layerType: String = "Softmax"
 
-  override protected def _forward(input: Output, mode: Mode): Output = {
+  override protected def _forward(input: Output)(implicit mode: Mode): Output = {
     ops.NN.softmax(input, name = name)
   }
 }
@@ -56,7 +56,7 @@ case class LogSoftmax(override val name: String)
     extends Layer[Output, Output](name) {
   override val layerType: String = "LogSoftmax"
 
-  override protected def _forward(input: Output, mode: Mode): Output = {
+  override protected def _forward(input: Output)(implicit mode: Mode): Output = {
     ops.NN.logSoftmax(input, name = name)
   }
 }
@@ -64,16 +64,17 @@ case class LogSoftmax(override val name: String)
 case class Dropout(
     override val name: String,
     keepProbability: Float,
+    scaleOutput: Boolean = true,
     noiseShape: Shape = null,
     seed: Option[Int] = None
 ) extends Layer[Output, Output](name) {
   override val layerType: String = s"Dropout[$keepProbability]"
 
-  override protected def _forward(input: Output, mode: Mode): Output = {
+  override protected def _forward(input: Output)(implicit mode: Mode): Output = {
     mode match {
       case TRAINING =>
         val noise = if (noiseShape == null) null else noiseShape.toOutput()
-        ops.NN.dropout(input, keepProbability, noise, seed, name)
+        ops.NN.dropout(input, keepProbability, scaleOutput, noise, seed, name)
       case _ => input
     }
   }
@@ -84,14 +85,14 @@ case class Conv2D(
     filterShape: Shape,
     stride1: Long,
     stride2: Long,
-    padding: PaddingMode,
+    padding: ConvPaddingMode,
     dataFormat: CNNDataFormat = CNNDataFormat.default,
     useCuDNNOnGPU: Boolean = true,
     weightsInitializer: Initializer = RandomNormalInitializer()
 ) extends Layer[Output, Output](name) {
   override val layerType: String = s"Conv2D[${filterShape.asArray.mkString(",")}]"
 
-  override protected def _forward(input: Output, mode: Mode): Output = {
+  override protected def _forward(input: Output)(implicit mode: Mode): Output = {
     val weights = tf.variable("Weights", input.dataType, filterShape, weightsInitializer)
     ops.NN.conv2D(input, weights, stride1, stride2, padding, dataFormat, useCuDNNOnGPU)
   }
@@ -102,12 +103,12 @@ case class MaxPool(
     windowSize: Seq[Long],
     stride1: Long,
     stride2: Long,
-    padding: PaddingMode,
+    padding: ConvPaddingMode,
     dataFormat: CNNDataFormat = CNNDataFormat.default
 ) extends Layer[Output, Output](name) {
   override val layerType: String = s"MaxPool[${windowSize.mkString(",")}]"
 
-  override protected def _forward(input: Output, mode: Mode): Output = {
+  override protected def _forward(input: Output)(implicit mode: Mode): Output = {
     ops.NN.maxPool(input, windowSize, stride1, stride2, padding, dataFormat, name)
   }
 }

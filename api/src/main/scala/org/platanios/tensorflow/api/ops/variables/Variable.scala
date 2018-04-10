@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -29,6 +29,8 @@ import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerial
 
 import org.tensorflow.framework.{SaveSliceInfoDef, VariableDef}
 
+import scala.collection.mutable
+import scala.collection.JavaConverters._
 import scala.language.postfixOps
 import scala.util.DynamicVariable
 
@@ -63,20 +65,7 @@ case class Variable private (
     */
   private[api] val handle: Output = variableHandle
 
-  /** Op responsible for initializing this variable. */
-  val initializer: Op = initializeOp
-
-  /** Op output that is `true` when the variable has been initialized and `false` otherwise. */
-  val isInitialized: Output = Op.createWith(graph)(Variable.isVariableInitialized(handle, name = "IsInitialized"))
-
-  // /** Returns the value of the initialized variable. You should use this instead of the variable itself to initialize
-  //   * another variable with a value that depends on the value of this variable.
-  //   *
-  //   * TODO: Add example.
-  //   */
-  // val initializedValue: Output = ??? // TODO: [VARIABLES] [CONTROL_FLOW] !!! We need control flow ops for this.
-
-  /** Returns a cached op which reads the last value of this variable.
+  /** Cached op which reads the last value of this variable.
     *
     * You can not assign a new value to the returned tensor as it is not a reference to the variable.
     *
@@ -92,6 +81,27 @@ case class Variable private (
         Op.createWith(device = handle.device)(Variable.readVariable(handle, dataType))
       }
     }
+  }
+
+  /** Op responsible for initializing this variable. */
+  val initializer: Op = initializeOp
+
+  /** Op output that is `true` when the variable has been initialized and `false` otherwise. */
+  val isInitialized: Output = Op.createWith(graph)(Variable.isVariableInitialized(handle, name = "IsInitialized"))
+
+  /** Value of the initialized variable. You should use this instead of the variable itself to initialize
+    * another variable with a value that depends on the value of this variable.
+    *
+    * Example:
+    * {{{
+    *   // Initialize `v` with random values, and then use `initializedValue` to guarantee that `v` has been initialized
+    *   // before its value is used to initialize `w`. The random tensor will only be sampled once.
+    *   val v = tf.variable("v", FLOAT32, Shape(10, 40), tf.RandomTruncatedNormalInitializer())
+    *   val w = tf.variable("w", initializer = tf.ConstantInitializer(v.initializedValue * 2.0))
+    * }}}
+    */
+  val initializedValue: Output = Op.initialization {
+    ControlFlow.cond(isInitialized, () => value, () => Op.createWith(controlDependencies = Set(initializer))(value))
   }
 
   /** Contains the partition/save-slice information for this variable. */
@@ -138,21 +148,21 @@ case class Variable private (
     }
   }
 
-  /** Evaluates the value of this variable.
-    *
-    * If `feeds` is non-empty, then the provided feed values are fed into the session for computing the value of this
-    * variable.
-    *
-    * If `session` is `null` (i.e., not provided), then the default session is used. Otherwise, `session` is used for
-    * the evaluation.
-    *
-    * @param  feeds   Tensors to feed into the session for this evaluation.
-    * @param  session Optional session to use for the evaluation.
-    * @return Value of this variable, for this evaluation.
-    */
-  def evaluate(feeds: Map[Output, Tensor] = Map.empty, session: Session = null): Tensor = {
-    toOutput.evaluate(feeds, session)
-  }
+  // /** Evaluates the value of this variable.
+  //   *
+  //   * If `feeds` is non-empty, then the provided feed values are fed into the session for computing the value of this
+  //   * variable.
+  //   *
+  //   * If `session` is `null` (i.e., not provided), then the default session is used. Otherwise, `session` is used for
+  //   * the evaluation.
+  //   *
+  //   * @param  feeds   Tensors to feed into the session for this evaluation.
+  //   * @param  session Optional session to use for the evaluation.
+  //   * @return Value of this variable, for this evaluation.
+  //   */
+  // def evaluate(feeds: Map[Output, Tensor] = Map.empty, session: Session = null): Tensor = {
+  //   toOutput.evaluate(feeds, session)
+  // }
 
   // TODO: [VARIABLE] Add support for slice assignment.
 
@@ -199,6 +209,21 @@ case class Variable private (
     if (value.dataType != dataType)
       throw InvalidDataTypeException(s"Expected '$dataType', but got '${value.dataType}'.")
     Op.createWith(graph = graph, controlDependencies = Set[Op](Variable.assignSub(handle, value, name))) {
+      read()
+    }
+  }
+
+  /** Creates an op that applies updates the provided sparse value updates to this variable and returns its value.
+    *
+    * @param  indices Indices corresponding to the `values` used for the update.
+    * @param  values  Values to use for updating, corresponding to the provided `indices`.
+    * @param  name    Name for created op.
+    * @return Variable value read op, after the addition.
+    */
+  def assignScatter(indices: Output, values: Output, name: String = "AssignScatter"): Output = {
+    if (values.dataType != dataType)
+      throw InvalidDataTypeException(s"Expected '$dataType', but got '${values.dataType}'.")
+    Op.createWith(graph = graph, controlDependencies = Set[Op](Variable.scatterUpdate(handle, indices, values, name))) {
       read()
     }
   }
@@ -472,44 +497,50 @@ private[api] object Variable {
     if (inferredShape == null)
       throw ShapeMismatchException(
         "No shape was provided for the new variable and it could not be inferred from the provided initializer.")
-    Op.createWith(nameScope = name, controlDependencies = Set.empty[Op]) {
-      val nameScope = Op.currentNameScope
-      val trueName = Op.convertNameScopeToName(nameScope)
-      val variableHandle = variable(inferredShape, inferredDataType, sharedName = trueName, name = nameScope)
-      val initialValue = Op.createWith(nameScope = "Initializer") {
-        Op.colocateWith(Set(variableHandle.op)) {
-          initializer(inferredDataType, inferredShape, null)
-        }
-      }
-      val initializeOp = assign(variableHandle, initialValue, name = "InitializationAssign")
-      val cachedValue = Op.createWith(nameScope = "Read") {
-        Op.colocateWith(Set(variableHandle.op)) {
-          val cachedValueOp = {
-            if (cachingDevice != null) {
-              // Manually assign reads to the handle's device to avoid log messages
-              val valueOp = Op.createWith(device = variableHandle.device)(readVariable(variableHandle, inferredDataType))
-              // Variables may be created in a "createWith(device = ...)" block or a "createWith(colocationOps = ...)"
-              // block. At the same time, users would expect the caching device to be independent of this context, and/or
-              // would not expect the current device context to be merged with the caching device specification.
-              // Therefore, we reset the colocation stack before creating the cached value. Note that resetting the
-              // colocation stack will also reset the device stack.
-              Op.createWith(colocationOps = Set.empty[Op], device = null)(Basic.identity(valueOp))
-            } else {
-              null
-            }
+    Op.initialization {
+      Op.createWith(nameScope = name) {
+        val nameScope = Op.currentNameScope
+        val trueName = Op.convertNameScopeToName(nameScope)
+        val variableHandle = variable(inferredShape, inferredDataType, sharedName = trueName, name = nameScope)
+        val initialValue = Op.createWith(nameScope = "Initializer") {
+          Op.colocateWith(Set(variableHandle.op)) {
+            initializer(inferredDataType, inferredShape, null)
           }
-          cachedValueOp
         }
-      }
+        val initializeOp = assign(
+          variableHandle,
+          tryGuardAgainstUninitializedDependencies(name, initialValue), name = "InitializationAssign")
+        val cachedValue = Op.createWith(nameScope = "Read") {
+          Op.colocateWith(Set(variableHandle.op)) {
+            val cachedValueOp = {
+              if (cachingDevice != null) {
+                // Manually assign reads to the handle's device to avoid log messages
+                val valueOp = Op.createWith(device = variableHandle.device) {
+                  readVariable(variableHandle, inferredDataType)
+                }
+                // Variables may be created in a "createWith(device = ...)" block or a "createWith(colocationOps = ...)"
+                // block. At the same time, users would expect the caching device to be independent of this context,
+                // and/or would not expect the current device context to be merged with the caching device
+                // specification. Therefore, we reset the colocation stack before creating the cached value. Note that
+                // resetting the colocation stack will also reset the device stack.
+                Op.createWith(colocationOps = Set.empty[Op], device = null)(Basic.identity(valueOp))
+              } else {
+                null
+              }
+            }
+            cachedValueOp
+          }
+        }
 
-      val createdVariable = Variable(inferredDataType, variableHandle, initializeOp, cachedValue)
-      var effectiveCollections = collections
-      if (effectiveCollections.isEmpty)
-        effectiveCollections += Graph.Keys.GLOBAL_VARIABLES
-      if (trainable)
-        effectiveCollections += Graph.Keys.TRAINABLE_VARIABLES
-      effectiveCollections.foreach(key => createdVariable.graph.addToCollection(createdVariable, key))
-      createdVariable
+        val createdVariable = Variable(inferredDataType, variableHandle, initializeOp, cachedValue)
+        var effectiveCollections = collections
+        if (effectiveCollections.isEmpty)
+          effectiveCollections += Graph.Keys.GLOBAL_VARIABLES
+        if (trainable)
+          effectiveCollections += Graph.Keys.TRAINABLE_VARIABLES
+        effectiveCollections.foreach(key => createdVariable.graph.addToCollection(createdVariable, key))
+        createdVariable
+      }
     }
   }
 
@@ -705,6 +736,115 @@ private[api] object Variable {
     }
   }
 
+  /** Attempts to guard against dependencies on uninitialized variables.
+    *
+    * This method replaces references to variables in `initialValue` with references to the variable's initialized
+    * values. The initialized values are essentially conditional TensorFlow graphs that return a variable's value if it
+    * is initialized, or its `initialValue` if it hasn't been initialized. This replacement is done on a best effort
+    * basis:
+    *
+    *   - If the `initialValue` graph contains cycles, we do not do any replacements for that graph.
+    *   - If the variables that `initialValue` depends on are not present in the global/local variable collections, we
+    *     do not replace them.
+    *
+    * In this cases, it is up to the caller to ensure that the `initialValue` graph uses initialized variables or that
+    * they guard access to variables using their `initializedValue` method.
+    *
+    * @param  variableName Variable name.
+    * @param  initialValue Initial value for the variable.
+    * @return Initial value to use, with some of its dependencies potentially replaced.
+    */
+  private[Variable] def tryGuardAgainstUninitializedDependencies(variableName: String, initialValue: Output): Output = {
+    /** Detects cycles in the dependencies of `initialValue`. */
+    def hasCycle(op: Op, path: mutable.Set[String]): Boolean = {
+      path.contains(op.name) || {
+        path.add(op.name)
+        op.inputs.exists(i => hasCycle(i.op, path))
+      } || {
+        val exists = op.controlInputs.exists(i => hasCycle(i.op, path))
+        if (!exists)
+          path.remove(op.name)
+        exists
+      }
+    }
+
+    // Do not modify the initial value if it contains any cyclic dependencies.
+    if (hasCycle(initialValue.op, mutable.Set.empty[String]))
+      initialValue
+    else
+      safeInitialValueFromOutput(variableName, initialValue, mutable.Map.empty[String, Op])
+  }
+
+  /** Replaces dependencies on variables with their initialized values.
+    *
+    * @param  initialValue Initial value to replace.
+    * @param  opCache      Map used to memoize the results so as to avoid creating redundant operations.
+    * @return Output compatible with `output`. Any inputs that lead to variable values will be replaced with a
+    *         corresponding graph that uses the variable's initialized values. This is done on a best-effort basis. If
+    *         no modifications need to be made then `output` will be returned unchanged.
+    */
+  private[Variable] def safeInitialValueFromOutput(
+      variableName: String,
+      initialValue: Output,
+      opCache: mutable.Map[String, Op]
+  ): Output = {
+    val newOp = opCache.get(initialValue.op.name) match {
+      case Some(op) => op
+      case None =>
+        val op = {
+          val opType = initialValue.op.opType
+          if (opType == "IsVariableInitialized" || opType == "VarIsInitializedOp" || opType == "ReadVariableOp") {
+            initialValue.op
+          } else if (opType == "Variable" || opType == "VariableV2" || opType == "VarHandleOp") {
+            // TODO: Fix handling of resource variables.
+            // Attempt to find the initialized_value of any variable handles.
+            findInitializedValueForVariable(initialValue.op) match {
+              case Some(initializedValue) => initializedValue.op
+              case None => initialValue.op
+            }
+          } else {
+            // Recursively build initializer expressions for the inputs.
+            var modified = false
+            val newOpInputs = initialValue.op.inputs.map(opInput => {
+              val newOpInput = safeInitialValueFromOutput(variableName, opInput, opCache)
+              modified ||= newOpInput != opInput
+              newOpInput
+            })
+
+            // If at least one input was modified, replace the op.
+            if (modified) {
+              val newOpType = if (opType != "RefSwitch") opType else "Switch"
+              val newOpName = s"${initialValue.op.name}_$variableName".replace(":", "_")
+              val opBuilder = Op.Builder(newOpType, newOpName)
+              newOpInputs.foreach(opBuilder.addInput)
+              initialValue.op.toNodeDef.getAttrMap.asScala.foreach(attribute => {
+                opBuilder.setAttribute(attribute._1, attribute._2)
+              })
+              opBuilder.build()
+            } else {
+              initialValue.op
+            }
+          }
+        }
+        opCache.update(initialValue.op.name, op)
+        op
+    }
+    newOp.outputs(initialValue.index)
+  }
+
+  /** Finds the initialized value for a variable op, if an initialized value exists.
+    *
+    * To do so, this method looks up the variable op in the graph global and local variables collections.
+    *
+    * @param  variableOp Variable op.
+    * @return Option containing the initialized value for the variable, or `None`, if no such value could be found.
+    */
+  private[Variable] def findInitializedValueForVariable(variableOp: Op): Option[Output] = {
+    val variables = variableOp.graph.getCollection(Graph.Keys.GLOBAL_VARIABLES) ++
+        variableOp.graph.getCollection(Graph.Keys.LOCAL_VARIABLES)
+    variables.find(v => v.name == variableOp.name || v.name == variableOp.outputs.head.name).map(_.initializedValue)
+  }
+
   /** Creates an op that holds a handle to a variable resource.
     *
     * Variables hold state in the form of a tensor that persists across steps. The output of this op is a reference to
@@ -889,6 +1029,48 @@ private[api] object Variable {
         .setAttribute("dtype", if (dataType == null) variable.dataType else dataType)
         .setAttribute("validate_indices", validateIndices)
         .build().outputs(0)
+  }
+
+  /** Creates an op that applies sparse updates to `variable`.
+    *
+    * The operation computes:
+    * {{{
+    *   // Scalar indices
+    *   variable(::, ---) = updates(indices, ---)
+    *
+    *   // Vector indices
+    *   variable(i, ---) = updates(indices(i), ---)
+    *
+    *   // Higher rank indices
+    *   variable(i, ..., j, ---) = updates(indices(i, ..., j), ---)
+    * }}}
+    *
+    * Duplicate entries are handled correctly: if multiple `indices` reference the same location, their contributions
+    * add up.
+    *
+    * The op requires that `updates.shape = indices.shape + variable.shape(1::)`.
+    *
+    * @param  variable Variable to be updated.
+    * @param  indices  Indices tensor, which must be an `INT32` or `INT64` tensor.
+    * @param  updates  Updates tensor, which must have a numeric data type.
+    * @param  name     Name for the created op.
+    * @return Created op.
+    */
+  private[ops] def scatterUpdate(
+      variable: Output,
+      indices: Output,
+      updates: Output,
+      name: String = "ScatterUpdate"
+  ): Op = {
+    if (indices.dataType != INT32 && indices.dataType != INT64)
+      throw InvalidDataTypeException(
+        s"Data type '${indices.dataType}' is not supported for the resource variable scatter update op indices. " +
+            s"Only 'INT32' and 'INT64' are supported.")
+    Op.Builder(opType = "ResourceScatterUpdate", name = name)
+        .addInput(variable)
+        .addInput(indices)
+        .addInput(updates)
+        .build()
   }
 
   /** Creates an op that adds sparse updates to `variable`.

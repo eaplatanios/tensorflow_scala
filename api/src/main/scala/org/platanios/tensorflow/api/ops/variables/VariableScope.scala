@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -190,7 +190,7 @@ private[api] object VariableScope {
     * @return Return value of the code block.
     */
   private[api] def createWithVariableScope[R](
-      name: String, reuse: ReuseAllowed = ReuseOrCreateNew, dataType: DataType = null,
+      name: String, reuse: Reuse = ReuseOrCreateNew, dataType: DataType = null,
       initializer: Initializer = null, regularizer: Regularizer = null, partitioner: Partitioner = null,
       cachingDevice: OpSpecification => String = null, customGetter: VariableGetter = null,
       isDefaultName: Boolean = false, isPure: Boolean = false
@@ -211,7 +211,8 @@ private[api] object VariableScope {
       else
         uniqueName
     }
-    variableStore.enterVariableScope(variableScope.name)
+    // TODO: !!! [VARIABLES] Look into the cached pure variable scope.
+    variableStore.enterVariableScope(newName)
     val newVariableScope = VariableScope(
       // TODO: !!! [VARIABLES] Have 'name' as first argument in order to be consistent.
       reuse = if (reuse == ReuseOrCreateNew) variableScope.reuse else reuse,
@@ -230,11 +231,17 @@ private[api] object VariableScope {
       })
     val result = {
       if (isPure)
-        context.withValue(context.value.copy(variableScope = newVariableScope))(block)
+        context.withValue(context.value.copy(variableScope = newVariableScope, outerContext = Some(context.value))) {
+          block
+        }
       else
-        Op.createWithNameScope(name)(context.withValue(context.value.copy(variableScope = newVariableScope))(block))
+        Op.createWithNameScope(name) {
+          context.withValue(context.value.copy(variableScope = newVariableScope, outerContext = Some(context.value))) {
+            block
+          }
+        }
     }
-    variableStore.closeVariableSubScopes(variableScope.name)
+    variableStore.closeVariableSubScopes(newName)
     result
   }
 
@@ -260,7 +267,7 @@ private[api] object VariableScope {
     * @return Return value of the code block.
     */
   private[api] def createWithUpdatedVariableScope[R](
-      variableScope: VariableScope, reuse: ReuseAllowed = ReuseOrCreateNew, dataType: DataType = null,
+      variableScope: VariableScope, reuse: Reuse = ReuseOrCreateNew, dataType: DataType = null,
       initializer: Initializer = null, regularizer: Regularizer = null, partitioner: Partitioner = null,
       cachingDevice: OpSpecification => String = null, customGetter: VariableGetter = null, isPure: Boolean = false
   )(

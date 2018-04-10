@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -24,6 +24,8 @@ import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.INT32
 import org.platanios.tensorflow.api.utilities.using
 import org.platanios.tensorflow.jni.{TensorFlow => NativeLibrary}
+
+import org.tensorflow.framework.AttrValue
 
 import scala.reflect.ClassTag
 
@@ -149,47 +151,92 @@ private[api] trait ControlFlow {
       ev: CondOutput.Aux[T, R]
   ): T = {
     Op.createWithNameScope(name) {
-      // Add the switch to the graph.
-      val (pFalse, pTrue) = ControlFlow.switch(predicate, predicate)
-      val pivotTrue = Basic.identity(pTrue, "SwitchTrue")
-      val pivotFalse = Basic.identity(pFalse, "SwitchFalse")
-      val predicateId = Basic.identity(predicate, "PredicateIdentity")
-      // Disable the fetching of tensors that are only on one branch of the cond.
-      pTrue.op.graph.preventFetching(pTrue.op)
-      pFalse.op.graph.preventFetching(pFalse.op)
-      pivotTrue.op.graph.preventFetching(pivotTrue.op)
-      pivotFalse.op.graph.preventFetching(pivotFalse.op)
-      predicateId.op.graph.preventFetching(predicateId.op)
+      Output.constantValue(predicate) match {
+        case Some(predicateValue) if predicateValue.scalar == true => trueFn()
+        case Some(predicateValue) if predicateValue.scalar == false => falseFn()
+        case None =>
+          // Add the switch to the graph.
+          val (pFalse, pTrue) = ControlFlow.switch(predicate, predicate)
+          val pivotTrue = Basic.identity(pTrue, "SwitchTrue")
+          val pivotFalse = Basic.identity(pFalse, "SwitchFalse")
+          val predicateId = Basic.identity(predicate, "PredicateIdentity")
+          // Disable the fetching of tensors that are only on one branch of the cond.
+          pTrue.op.graph.preventFetching(pTrue.op)
+          pFalse.op.graph.preventFetching(pFalse.op)
+          pivotTrue.op.graph.preventFetching(pivotTrue.op)
+          pivotFalse.op.graph.preventFetching(pivotFalse.op)
+          predicateId.op.graph.preventFetching(predicateId.op)
 
-      // Build the graph for the true branch in a new context.
-      val contextTrue = CondContext(predicateId, pivotTrue, TrueBranch)
-      contextTrue.enter()
-      val (originalResultTrue, resultTrue) = contextTrue.buildCondBranch(trueFn)
-      contextTrue.exitResult(resultTrue)
-      contextTrue.exit()
+          // Build the graph for the true branch in a new context.
+          val contextTrue = CondContext(predicateId, pivotTrue, TrueBranch)
+          contextTrue.enter()
+          val (originalResultTrue, resultTrue) = contextTrue.buildCondBranch(trueFn)
+          contextTrue.exitResult(resultTrue)
+          contextTrue.exit()
 
-      // Build the graph for the false branch in a new context.
-      val contextFalse = CondContext(predicateId, pivotFalse, FalseBranch)
-      contextFalse.enter()
-      val (_, resultFalse) = contextFalse.buildCondBranch(falseFn)
-      contextFalse.exitResult(resultFalse)
-      contextFalse.exit()
+          // Build the graph for the false branch in a new context.
+          val contextFalse = CondContext(predicateId, pivotFalse, FalseBranch)
+          contextFalse.enter()
+          val (_, resultFalse) = contextFalse.buildCondBranch(falseFn)
+          contextFalse.exitResult(resultFalse)
+          contextFalse.exit()
 
-      // Check that the return values of the two branches have matching data types.
-      resultTrue.zip(resultFalse).foreach(pair => {
-        if (pair._1.dataType != pair._2.dataType)
-          throw InvalidDataTypeException(
-            s"The outputs of `trueFn` (dataType = ${pair._1.dataType}) and " +
-                s"`falseFn` (dataType = ${pair._2.dataType}) must have the same data type.")
-      })
+          // Check that the return values of the two branches have matching data types.
+          resultTrue.zip(resultFalse).foreach(pair => {
+            if (pair._1.dataType != pair._2.dataType)
+              throw InvalidDataTypeException(
+                s"The outputs of `trueFn` (dataType = ${pair._1.dataType}) and " +
+                    s"`falseFn` (dataType = ${pair._2.dataType}) must have the same data type.")
+          })
 
-      // Add to collections.
-      Op.currentGraph.addToCollection(contextTrue, CondContext.COND_CONTEXTS)
-      Op.currentGraph.addToCollection(contextFalse, CondContext.COND_CONTEXTS)
+          // Add to collections.
+          Op.currentGraph.addToCollection(contextTrue, CondContext.COND_CONTEXTS)
+          Op.currentGraph.addToCollection(contextFalse, CondContext.COND_CONTEXTS)
 
-      // Add the final merge to the graph.
-      val merges = resultFalse.zip(resultTrue).map(p => ControlFlow.merge(Seq(p._1, p._2))._1)
-      ev.unflatten(originalResultTrue, merges)
+          // Add the final merge to the graph.
+          val merges = resultFalse.zip(resultTrue).map(p => ControlFlow.merge(Seq(p._1, p._2))._1)
+          ev.unflatten(originalResultTrue, merges)
+      }
+    }
+  }
+
+  /** $OpDocControlFlowCases
+    *
+    * @group ControlFlowOps
+    * @param  predicateFnPairs Contains pairs of predicates and value functions for those predicates.
+    * @param  default          Default return value function, in case all predicates evaluate to `false`.
+    * @param  exclusive        If `true`, only one of the predicates is allowed to be `true` at the same time.
+    * @param  name             Name prefix for the created ops.
+    * @return Created op output structure, mirroring the return structure of the provided predicate functions.
+    * @throws InvalidDataTypeException If the data types of the tensors returned by the provided predicate functions
+    *                                  do not match.
+    */
+  @throws[InvalidDataTypeException]
+  def cases[T, R](
+      predicateFnPairs: Seq[(Output, () => T)],
+      default: () => T,
+      exclusive: Boolean = false,
+      name: String = "Cases"
+  )(implicit
+      ev: CondOutput.Aux[T, R]
+  ): T = {
+    Op.createWithNameScope(name) {
+      // To evaluate the conditions in the correct order, we create nested conditions in reverse.
+      val fn = predicateFnPairs.reverse.foldLeft(default) {
+        case (falseFn, predicateFnPair) => () =>
+          cond(
+            predicate = predicateFnPair._1,
+            trueFn = predicateFnPair._2,
+            falseFn = falseFn)
+      }
+      if (exclusive) {
+        Op.createWith(controlDependencies = Set(Checks.assertAtMostNTrue(
+          predicateFnPairs.map(_._1), n = 1, message = "'cases' was created with 'exclusive = true'."))) {
+          fn()
+        }
+      } else {
+        fn()
+      }
     }
   }
 
@@ -227,20 +274,16 @@ private[api] trait ControlFlow {
       } else {
         require(maximumIterations.rank == 0 || maximumIterations.rank == -1,
           s"'maximumIterations' must be a scalar, but has shape ${maximumIterations.shape}.")
-        // If/when we generate the gradient for this while loop, the maximum iterations tensor will be used as input to
-        // any generated stack ops. It is likely that the stacks will be outside any control flow context (i.e., if
-        // `gradients()` is called outside any control flow context), which will result in the maximum iterations tensor
-        // being an illegal input (see `ControlFlow.checkInputFromValidContext` -- we could technically allow tensors
-        // from CondContexts, but that will be error-prone and hard to reason about for users).
-        if (maximumIterations.op.isInCond || maximumIterations.op.isInWhileLoop)
-          throw InvalidArgumentException("The `maximumIterations` tensor cannot be defined in a `cond` or `whileLoop`.")
         val zero = Basic.constant(0, name = "Zero")
         val one = Basic.constant(1, name = "One")
-        loopContext.buildLoop[(Output, T), (Shape, TS)](
-          (v: (Output, T)) => Math.logicalAnd(v._1 < maximumIterations, predicateFn(v._2)),
-          (v: (Output, T)) => (v._1 + one, bodyFn(v._2)),
-          (zero, loopVariables),
-          shapeInvariants.map((Shape.scalar(), _)))._2
+        // Building a loop involves mutating ops and thus we need to lock on the graph.
+        Op.currentGraph.synchronized {
+          loopContext.buildLoop[(Output, T), (Shape, TS)](
+            (v: (Output, T)) => Math.logicalAnd(v._1 < maximumIterations, predicateFn(v._2)),
+            (v: (Output, T)) => (v._1 + one, bodyFn(v._2)),
+            (zero, loopVariables),
+            shapeInvariants.map((Shape.scalar(), _)))._2
+        }
       }
     }
   }
@@ -252,7 +295,7 @@ private[api] object ControlFlow extends ControlFlow {
     def isInCond: Boolean = op.controlFlowContext.flatMap(_.condContext).isDefined
 
     /** Returns `true` if the provided op is within a while loop statement. */
-    def isInWhileLoop: Boolean = op.controlFlowContext.flatMap(_.whileLoopContext).isDefined
+    def isInWhileLoop: Boolean = op.controlFlowContext.flatMap(_.whileLoopContext()).isDefined
 
     /** Returns `true` if the provided op is within an XLA control flow context. */
     def isInXLAContext: Boolean = {
@@ -296,7 +339,7 @@ private[api] object ControlFlow extends ControlFlow {
   }
 
   /** Returns the control flow context for the outputs of an op. */
-  private[control_flow] def getOutputContext(op: Op): Option[Context] = {
+  private[ops] def getOutputContext(op: Op): Option[Context] = {
     val context = op.controlFlowContext
     if (isLoopExit(op))
       context.flatMap(_.outerContext)
@@ -329,8 +372,8 @@ private[api] object ControlFlow extends ControlFlow {
       case None => null                            // `inputOp` is not in a control flow context.
       case Some(context) if context == opContext.orNull => null // `inputOp` is in the same control flow context.
       case Some(context) =>
-        val whileContext = opContext.flatMap(_.whileLoopContext)
-        val inputWhileContext = context.whileLoopContext
+        val whileContext = opContext.flatMap(_.whileLoopContext())
+        val inputWhileContext = context.whileLoopContext()
         whileContext match {
           case None =>
             if (inputWhileContext.isEmpty) {
@@ -380,6 +423,65 @@ private[api] object ControlFlow extends ControlFlow {
     }
     if (errorMessage != null)
       throw InvalidArgumentException(errorMessage)
+  }
+
+  /** Calculates a maximum size for use by stack ops inside XLA while loops.
+    *
+    * @param  value            Value inside the while loop forward context. Used for printing error messages.
+    * @param  whileLoopContext Forward context inside which value resides. This does not always match the value's
+    *                          immediate context, as `value` may be inside e.g., a cond context, inside the while loop.
+    * @return Tensor containing the `maxSize` to feed to a stack initializer.
+    * @throws InvalidArgumentException If `value` is nested inside a while loop that either lacks a `maximumIterations`
+    *                                  parameter, or whose `maximumIterations` parameter is inside a while loop that is
+    *                                  a parent of the calling context, and cannot be evaluated at graph build time
+    *                                  (i.e., statically) to a constant value.
+    */
+  @throws[InvalidArgumentException]
+  private[control_flow] def getMaxSizeFromNestedMaximumIterations(
+      value: Output,
+      whileLoopContext: WhileLoopContext
+  ): Output = {
+    val valueName = value.name
+    // `currentContext` is the context that `tf.gradients()` was called in.
+    val currentContext = Op.currentControlFlowContext
+    val currentContextName = currentContext.map(_.name).getOrElse("")
+
+    // Loop through all containing while-loop contexts between the value and the current context, multiplying together
+    // each context's `maxIterations`, in order to get the maximum stack size.
+    var maxSize = Basic.constant(1)
+    var currentWhileLoopContext: Option[WhileLoopContext] = Some(whileLoopContext)
+    while (currentWhileLoopContext.isDefined) {
+      currentWhileLoopContext.get.maximumIterations match {
+        case None => throw InvalidArgumentException(
+          s"Cannot create a gradient accumulator for tensor '$valueName', inside an XLA while loop, because " +
+              "'maximumIterations' was not passed to the `tf.whileLoop()` call " +
+              s"('${currentWhileLoopContext.get.name}').")
+        case Some(maximumIterations) =>
+          val maximumIterationsContext = maximumIterations.op.controlFlowContext
+          // If `maximumIterationsContext` (non-strictly) contains `currentContext`, then it is ok to use.
+          if (isContainingContext(currentContext.orNull, maximumIterationsContext)) {
+            maxSize *= maximumIterations
+          } else {
+            // We cannot use `maximumIterations` because it is defined in a nested while-loop or cond context, and so
+            // an error will be thrown if we try to use it as input to any ops in `currentContext` (e.g., `maxSize` or
+            // the final accumulator stack). We attempt to get a constant value out to use instead.
+            Output.constantValue(maximumIterations) match {
+              case Some(constantMaximumIterations) => maxSize *= constantMaximumIterations
+              case None => throw InvalidArgumentException(
+                s"Cannot create a gradient accumulator for tensor '$valueName', inside an XLA while loop, because " +
+                    s"the 'maximumIterations' tensor ('${maximumIterations.name}') for while-loop context " +
+                    s"'${currentWhileLoopContext.get.name}' must be statically known (e.g., a constant value or " +
+                    "known shape dimension), or must be defined at or outside the while-loop context " +
+                    s"'$currentContextName' (currently defined in '${maximumIterationsContext.get.name}').")
+            }
+          }
+      }
+      // Find the next outer while-loop context, or stop if we have reached the `tf.gradients()` context.
+      currentWhileLoopContext = currentWhileLoopContext
+          .flatMap(_.outerContext.flatMap(_.whileLoopContext(currentContext)))
+    }
+
+    maxSize
   }
 
   /** Creates an op that forwards `input` to the output port determined by `predicate`, while making sure the new op is
@@ -719,6 +821,13 @@ private[api] object ControlFlow extends ControlFlow {
     op.reloadControlInputs()
   }
 
+  /** Sets attribute `name` of `op` to the provided value. */
+  private[control_flow] def setAttribute(op: Op, name: String, value: AttrValue): Unit = {
+    using(op.graph.reference)(r => {
+      NativeLibrary.setAttributeProto(r.nativeHandle, op.nativeHandle, name, value.toByteArray)
+    })
+  }
+
   //endregion Native Library Functions
 
   //region Gradients
@@ -977,6 +1086,42 @@ private[api] object ControlFlow extends ControlFlow {
     *   `cond` supports nested tensor structures, similar to `Session.run()`. Both `trueFn` and `falseFn` must return
     *   the same (possibly nested) value structure of sequences, tuples, and/or maps.
     *
+    *   '''NOTE:''' If the predicate always evaluates to some constant value and that can be inferred statically, then
+    *   only the corresponding branch is built and no control flow ops are added. In some cases, this can significantly
+    *   improve performance.
+    *
+    * @define OpDocControlFlowCases
+    *   The `cases` op creates a case operation.
+    *
+    *   The `predicateFnPairs` parameter is a sequence of pairs. Each pair contains a boolean scalar tensor and a
+    *   function that takes no parameters and creates the tensors to be returned if the boolean evaluates to `true`.
+    *   `default` is a function that returns the default value, used when all provided predicates evaluate to `false`.
+    *
+    *   All functions in `predicateFnPairs` as well as `default` (if provided) should return the same structure of
+    *   tensors, and with matching data types. If `exclusive == true`, all predicates are evaluated, and an exception is
+    *   thrown if more than one of the predicates evaluates to `true`. If `exclusive == false`, execution stops at the
+    *   first predicate which evaluates to `true`, and the tensors generated by the corresponding function are returned
+    *   immediately. If none of the predicates evaluate to `true`, the operation returns the tensors generated by
+    *   `default`.
+    *
+    *   Example 1:
+    *   {{{
+    *     // r = if (x < y) 17 else 23.
+    *     val r = tf.cases(
+    *       Seq(x < y -> () => tf.constant(17)),
+    *       default = () => tf.constant(23))
+    *   }}}
+    *
+    *   Example 2:
+    *   {{{
+    *     // if (x < y && x > z) throw error.
+    *     // r = if (x < y) 17 else if (x > z) 23 else -1.
+    *     val r = tf.cases(
+    *       Seq(x < y -> () => tf.constant(17), x > z -> tf.constant(23)),
+    *       default = () => tf.constant(-1),
+    *       exclusive = true)
+    *   }}}
+    *
     * @define OpDocControlFlowWhileLoop
     *   The `whileLoop` op repeats the result of `bodyFn` while the condition returned by `predicateFn` is `true`.
     *
@@ -1047,6 +1192,34 @@ private[api] object ControlFlow extends ControlFlow {
     *     val p = (i: Output, m: Output) => i < 10
     *     val b = (i: Output, m: Output) => (i + 1, tf.concatenate(Seq(m, m), axis = 0))
     *     val r = tf.whileLoop(p, b, (i0, m0), (i0.shape, Shape(-1, 2)))
+    *   }}}
+    *
+    *   Example which demonstrates non-strict semantics:
+    *
+    *   In the following example, the final value of the counter `i` does not depend on `x`. So, the `whileLoop` can
+    *   increment the counter parallel to updates of `x`. However, because the loop counter at one loop iteration
+    *   depends on the value at the previous iteration, the loop counter itself cannot be incremented in parallel.
+    *   Hence, if we just want the final value of the counter, then `x` will never be incremented, but the counter will
+    *   be updated on a single thread. Conversely, if we want the value of the output, then the counter may be
+    *   incremented on its own thread, while `x` can be incremented in parallel on a separate thread.
+    *   In the extreme case, it is conceivable that the thread incrementing the counter runs until completion before `x`
+    *   is incremented even a single time. The only thing that can never happen is that the thread updating `x` can
+    *   never get ahead of the counter thread because the thread incrementing `x` depends on the value of the counter.
+    *   {{{
+    *     val n = 10000
+    *     val x = tf.constant(Tensor.zeros(INT32, Shape(n)))
+    *     val p = (i: Output, x: Output) => i < n
+    *     val b = (i: Output, x: Output) => (tf.print(i + 1, Seq(i)), tf.print(x + 1, Seq(x), "x: "))
+    *     val r = tf.whileLoop(p, b, (0, x))
+    *
+    *     val session = tf.Session()
+    *
+    *     // The following line prints [0] to [9999]
+    *
+    *     // The following line may increment the counter and x in parallel. The counter thread may get ahead of the
+    *     // other thread, but not the other way around. So you may see things like "[9996] x: [9987]", meaning that
+    *     // the counter thread is on iteration 9996, while the other thread is on iteration 9987.
+    *     session.run(r._2)
     *   }}}
     */
   private[ops] trait Documentation

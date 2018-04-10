@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -49,7 +49,7 @@ abstract class RNNCell[O, OS, S, SS](override val name: String)(implicit
     }
   }
 
-  override final protected def _forward(input: Tuple[O, S], mode: Mode): Tuple[O, S] = {
+  override final protected def _forward(input: Tuple[O, S])(implicit mode: Mode): Tuple[O, S] = {
     createCellWithoutContext(mode, evO.fromShapes(input.output, evO.outputs(input.output).map(_.shape))).forward(input)
   }
 }
