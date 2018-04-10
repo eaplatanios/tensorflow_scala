@@ -4189,8 +4189,11 @@ object Math extends Math {
       * @param  name   Name for the created op.
       * @return Tuple containing two op outputs, each containing the reduction indices for the corresponding op.
       */
-    private[this] def broadcastGradientArguments(
-        shape0: Output, shape1: Output, name: String = "BroadcastGradientArguments"): (Output, Output) = {
+    private[api] def broadcastGradientArguments(
+        shape0: Output,
+        shape1: Output,
+        name: String = "BroadcastGradientArguments"
+    ): (Output, Output) = {
       val outputs = Op.Builder(opType = "BroadcastGradientArgs", name = name)
           .addInput(shape0)
           .addInput(shape1)

@@ -145,6 +145,7 @@ private[ops] object Gradients {
               val nGrd = inputGradients.length
               assert(nInp == nGrd, s"Gradients size ($nGrd) for op '$op' does not match inputs size ($nInp).")
               logGradients(op, outputGradients, inputGradients)
+              // TODO: Report somehow the non-differentiable ops in the graph. This is currently hard to debug.
               op.inputs.zip(inputGradients).filter(_._2 != null).foreach(i => {
                 i._2 match {
                   case gradient: Output if i._1.dataType != RESOURCE => gradient.setShape(i._1.shape)
