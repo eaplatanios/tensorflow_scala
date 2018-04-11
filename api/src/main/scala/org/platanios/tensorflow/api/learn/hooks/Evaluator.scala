@@ -39,20 +39,22 @@ import java.nio.file.Path
   * creates a new session whenever invoked that loads the latest saved checkpoint and evaluates performance using the
   * provided set of evaluation metrics.
   *
-  * @param  log          If `true`, the step rate is logged using the current logging configuration.
-  * @param  summaryDir   If provided, summaries for the step rate will be saved in this directory. This is useful for
-  *                      visualization using TensorBoard, for example.
-  * @param  datasets     Datasets over which to evaluate and which produce elements of the same type as the train
-  *                      dataset elements.
-  * @param  metrics      Evaluation metrics to use.
-  * @param  trigger      Hook trigger specifying when this hook is triggered (i.e., when it executes). If you only want
-  *                      to trigger this hook at the end of a run and not during, then you should set `trigger` to
-  *                      [[NoHookTrigger]] and `triggerAtEnd` to `true`.
-  * @param  triggerAtEnd If `true`, the hook will be triggered at the end of the run. Note that if this flag is set to
-  *                      `true`, then the global step must be computable without using a feed map for the
-  *                      [[Session.run()]] call (which should always be the case by default).
-  * @param  name         Name to use for the evaluation hook when logging and saving metric values. This must follow the
-  *                      same formatting guidelines as the name scopes used when constructing graphs.
+  * @param  log              If `true`, the step rate is logged using the current logging configuration.
+  * @param  summaryDir       If provided, summaries for the step rate will be saved in this directory. This is useful
+  *                          for visualization using TensorBoard, for example.
+  * @param  datasets         Datasets over which to evaluate and which produce elements of the same type as the train
+  *                          dataset elements.
+  * @param  metrics          Evaluation metrics to use.
+  * @param  trigger          Hook trigger specifying when this hook is triggered (i.e., when it executes). If you only
+  *                          want to trigger this hook at the end of a run and not during, then you should set `trigger`
+  *                          to [[NoHookTrigger]] and `triggerAtEnd` to `true`.
+  * @param  triggerAtEnd     If `true`, the hook will be triggered at the end of the run. Note that if this flag is set
+  *                          to `true`, then the global step must be computable without using a feed map for the
+  *                          [[Session.run()]] call (which should always be the case by default).
+  * @param  numDecimalPoints Number of decimal points to use when logging floating point values.
+  * @param  randomSeed       Random number generator seed to use.
+  * @param  name             Name to use for the evaluation hook when logging and saving metric values. This must follow
+  *                          the same formatting guidelines as the name scopes used when constructing graphs.
   *
   * @author Emmanouil Antonios Platanios
   */
@@ -63,6 +65,7 @@ class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] protected (
     val metrics: Seq[Metric[EI, Output]],
     val trigger: HookTrigger = StepHookTrigger(100),
     val triggerAtEnd: Boolean = true,
+    val numDecimalPoints: Int = 4,
     val randomSeed: Option[Int] = None,
     val name: String = "Evaluator"
 ) extends TriggeredHook(trigger, triggerAtEnd)
@@ -107,7 +110,7 @@ class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] protected (
     val session = MonitoredSession(sessionCreator, shouldRecover = true)
     val rowNames = datasetInitializers.map(_._1)
     val firstColWidth = rowNames.map(_.length).max
-    val colWidth = math.max(metrics.map(_.name.length).max, 10)
+    val colWidth = math.max(metrics.map(_.name.length).max, numDecimalPoints + 6)
     var skippedMetricSummaries = Seq.empty[String]
     val summaryProto = {
       if (summaryDir != null) {
@@ -154,7 +157,7 @@ class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] protected (
             val line = s"║ %${firstColWidth}s │".format(datasetName) + value.map(metricValue => {
               if (metricValue.shape.rank == 0 && metricValue.dataType.isFloatingPoint) {
                 val castedValue = metricValue.cast(FLOAT32).scalar.asInstanceOf[Float]
-                s" %${colWidth}.4f ".format(castedValue)
+                s" %${colWidth}.${numDecimalPoints}f ".format(castedValue)
               } else if (metricValue.shape.rank == 0 && metricValue.dataType.isInteger) {
                 val castedValue = metricValue.cast(INT64).scalar.asInstanceOf[Long]
                 s" %${colWidth}d ".format(castedValue)
@@ -200,9 +203,10 @@ object Evaluator {
       metrics: Seq[Metric[EI, Output]],
       trigger: HookTrigger = StepHookTrigger(100),
       triggerAtEnd: Boolean = true,
+      numDecimalPoints: Int = 4,
       randomSeed: Option[Int] = None,
       name: String = "Evaluator"
   ): Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] = {
-    new Evaluator(log, summaryDir, datasets, metrics, trigger, triggerAtEnd, randomSeed, name)
+    new Evaluator(log, summaryDir, datasets, metrics, trigger, triggerAtEnd, numDecimalPoints, randomSeed, name)
   }
 }
