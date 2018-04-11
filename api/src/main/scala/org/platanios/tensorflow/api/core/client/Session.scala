@@ -72,7 +72,7 @@ class Session private[api](
   @throws[IllegalStateException]
   def run[F, E, R](
       feeds: FeedMap = FeedMap.empty, fetches: F = Seq.empty[Output],
-      targets: E = Traversable.empty[Op], options: RunOptions = null)
+      targets: E = Traversable.empty[Op], options: Option[RunOptions] = None)
       (implicit executable: Executable[E], fetchable: Fetchable.Aux[F, R]): R = {
     runHelper(feeds = feeds, fetches = fetches, targets = targets, options = options)._1
   }
@@ -107,7 +107,7 @@ class Session private[api](
   @throws[IllegalStateException]
   def runWithMetadata[F, E, R](
       feeds: FeedMap = FeedMap.empty, fetches: F = Seq.empty[Output], targets: E = Traversable.empty[Op],
-      options: RunOptions = null)
+      options: Option[RunOptions] = None)
       (implicit executable: Executable[E], fetchable: Fetchable.Aux[F, R]): (R, Option[RunMetadata]) = {
     runHelper(feeds = feeds, fetches = fetches, targets = targets, options = options, wantMetadata = true)
   }
@@ -116,7 +116,7 @@ class Session private[api](
   @throws[IllegalStateException]
   private[api] def runHelper[F, E, R](
       feeds: FeedMap = FeedMap.empty, fetches: F = Seq.empty[Output], targets: E = Traversable.empty[Op],
-      options: RunOptions = null, wantMetadata: Boolean = false)
+      options: Option[RunOptions] = None, wantMetadata: Boolean = false)
       (implicit executable: Executable[E], fetchable: Fetchable.Aux[F, R]): (R, Option[RunMetadata]) = {
     if (nativeHandle == 0)
       throw new IllegalStateException("This session has already been closed.")
@@ -138,7 +138,7 @@ class Session private[api](
     try {
       val metadata: Array[Byte] = NativeSession.run(
         handle = nativeHandle,
-        runOptions = if (options != null) options.toByteArray else Array.empty[Byte],
+        runOptions = options.map(_.toByteArray).getOrElse(Array.empty[Byte]),
         inputTensorHandles = inputTensorHandles,
         inputOpHandles = inputOpHandles,
         inputOpIndices = inputOpIndices,

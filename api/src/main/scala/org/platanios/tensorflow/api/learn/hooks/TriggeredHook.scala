@@ -21,6 +21,7 @@ import org.platanios.tensorflow.api.learn.Counter
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.tensors.Tensor
+import org.tensorflow.framework.RunOptions
 
 /** Hook that may be triggered at certain steps or time points.
   *
@@ -64,7 +65,7 @@ abstract class TriggeredHook(
     if (shouldTrigger) {
       if (internalTrigger.lastTriggerStep().isEmpty)
         onFirstTrigger(runContext)(executableEv, fetchableEv)
-      Some(Hook.SessionRunArgs(fetches = step.value +: fetches))
+      Some(Hook.SessionRunArgs(fetches = step.value +: fetches, options = runOptions, wantMetadata = wantMetadata))
     } else {
       Some(Hook.SessionRunArgs(fetches = Seq(step.value)))
     }
@@ -94,6 +95,8 @@ abstract class TriggeredHook(
   }
 
   protected def fetches: Seq[Output] = Seq.empty[Output]
+  protected def runOptions: Option[RunOptions] = None
+  protected def wantMetadata: Boolean = false
 
   protected def onFirstTrigger[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
       executableEv: Executable[E],

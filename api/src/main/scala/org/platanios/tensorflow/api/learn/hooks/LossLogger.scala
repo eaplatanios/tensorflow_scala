@@ -25,8 +25,12 @@ import org.slf4j.LoggerFactory
 
 import java.nio.file.Path
 
-/** Hooks that logs the loss function value.
+/** Hook that logs the loss function value.
   *
+  * @param  log          If `true`, the loss will also be logged at the `INFO` level, using the current logging
+  *                      configuration.
+  * @param  summaryDir   Summary directory to use optionally, for saving scalar summaries of the loss. These can be
+  *                      useful for visualizing training using TensorBoard.
   * @param  trigger      Hook trigger specifying when this hook is triggered (i.e., when it executes). If you only want
   *                      to log the tensor values at the end of a run and not during, then you should set `trigger` to
   *                      [[NoHookTrigger]] and `logAtEnd` to `true`.

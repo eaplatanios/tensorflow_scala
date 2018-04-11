@@ -237,8 +237,11 @@ object Hook {
 
   /** Represents a complete set of arguments passed to `Session.run()`. */
   case class SessionRunArgs[F, E, R](
-      feeds: FeedMap = FeedMap.empty, fetches: F = Seq.empty[Output], targets: E = Traversable.empty[Op],
-      options: RunOptions = null
+      feeds: FeedMap = FeedMap.empty,
+      fetches: F = Seq.empty[Output],
+      targets: E = Traversable.empty[Op],
+      options: Option[RunOptions] = None,
+      wantMetadata: Boolean = false
   )(implicit
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]

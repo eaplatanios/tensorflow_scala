@@ -33,6 +33,7 @@ package object hooks {
     type SummaryWriterHookAddOn = hooks.SummaryWriterHookAddOn
     type TensorBoardHook = hooks.TensorBoardHook
     type TensorLogger = hooks.TensorLogger
+    type TimelineHook = hooks.TimelineHook
     type TriggeredHook = hooks.TriggeredHook
 
     val CheckpointSaver: hooks.CheckpointSaver.type = hooks.CheckpointSaver
@@ -44,6 +45,7 @@ package object hooks {
     val SummarySaver   : hooks.SummarySaver.type    = hooks.SummarySaver
     val TensorBoardHook: hooks.TensorBoardHook.type = hooks.TensorBoardHook
     val TensorLogger   : hooks.TensorLogger.type    = hooks.TensorLogger
+    val TimelineHook   : hooks.TimelineHook.type    = hooks.TimelineHook
   }
 
   private[api] object API extends API

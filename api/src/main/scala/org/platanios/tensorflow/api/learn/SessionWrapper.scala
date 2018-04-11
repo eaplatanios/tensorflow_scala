@@ -94,7 +94,7 @@ class SessionWrapper private[learn](
   @throws[RuntimeException]
   override private[api] def runHelper[F, E, R](
       feeds: FeedMap = FeedMap.empty, fetches: F = Seq.empty[Output], targets: E = Traversable.empty[Op],
-      options: RunOptions = null, wantMetadata: Boolean = false
+      options: Option[RunOptions] = None, wantMetadata: Boolean = false
   )(implicit
       executable: Executable[E],
       fetchable: Fetchable.Aux[F, R]
@@ -107,12 +107,11 @@ class SessionWrapper private[learn](
 
       // Invoke the hooks' `beforeSessionRun` callbacks.
       val runContext = Hook.SessionRunContext(Hook.SessionRunArgs(feeds, fetches, targets, options), this)
-      val runOptions = if (options == null) RunOptions.getDefaultInstance else options
-      val combinedArgs = invokeHooksBeforeSessionRun(runContext, runOptions, currentHooks)
+      val combinedArgs = invokeHooksBeforeSessionRun(runContext, options, wantMetadata, currentHooks)
 
       // Do session run.
       val result = super.runHelper(
-        combinedArgs.feeds, combinedArgs.fetches, combinedArgs.targets, combinedArgs.options, wantMetadata)
+        combinedArgs.feeds, combinedArgs.fetches, combinedArgs.targets, combinedArgs.options, combinedArgs.wantMetadata)
 
       // Invoke the hooks' `afterSessionRun` callbacks.
       currentHooks.zipWithIndex.foreach(hook => {
@@ -128,7 +127,10 @@ class SessionWrapper private[learn](
   /** Invoked `Hook.beforeSessionRun()` for all hooks and manages their feed maps, fetches, and run options. */
   @throws[RuntimeException]
   private[this] def invokeHooksBeforeSessionRun[F, E, R](
-      runContext: Hook.SessionRunContext[F, E, R], runOptions: RunOptions, hooks: Seq[Hook]
+      runContext: Hook.SessionRunContext[F, E, R],
+      runOptions: Option[RunOptions],
+      wantMetadata: Boolean,
+      hooks: Seq[Hook]
   )(implicit
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]
@@ -136,7 +138,8 @@ class SessionWrapper private[learn](
     var hooksFeedMap = FeedMap.empty
     val hooksFetchesList = mutable.ListBuffer.empty[Seq[Output]]
     val hooksTargetsList = mutable.ListBuffer.empty[Op]
-    var hooksRunOptions = RunOptions.newBuilder(runOptions).build()
+    var hooksRunOptions = runOptions.getOrElse(RunOptions.getDefaultInstance)
+    var hooksWantMetadata = wantMetadata
     hooks.foreach(hook => hook.internalBeforeSessionRun(runContext) match {
       case Some(runArgs) =>
         if (runArgs.feeds.nonEmpty) {
@@ -150,8 +153,8 @@ class SessionWrapper private[learn](
           hooksFetchesList.append(Seq.empty) // TODO: !!! [HOOKS] Can we avoid these empty sequences entirely?
         if (runArgs.targets.nonEmpty)
           hooksTargetsList.appendAll(runArgs.targets)
-        if (runArgs.options != null)
-          hooksRunOptions = mergeRunOptions(hooksRunOptions, runArgs.options)
+        runArgs.options.foreach(options => hooksRunOptions = mergeRunOptions(hooksRunOptions, options))
+        hooksWantMetadata ||= runArgs.wantMetadata
       case None =>
         hooksFetchesList.append(Seq.empty) // TODO: !!! [HOOKS] Can we avoid these empty sequences entirely?
     })
@@ -161,7 +164,7 @@ class SessionWrapper private[learn](
     val combinedFeeds = feeds ++ hooksFeedMap
     val combinedFetches = (runContext.args.fetches, hooksFetchesList)
     val combinedTargets = (runContext.args.targets, hooksTargetsList)
-    Hook.SessionRunArgs(combinedFeeds, combinedFetches, combinedTargets, runOptions)
+    Hook.SessionRunArgs(combinedFeeds, combinedFetches, combinedTargets, Some(hooksRunOptions), hooksWantMetadata)
   }
 
   /** Merges an instance of [[RunOptions]] into another one, returning a new instance of [[RunOptions]].
@@ -267,7 +270,7 @@ case class RecoverableSession private[learn](sessionCreator: SessionCreator)
 
   override private[api] def runHelper[F, E, R](
       feeds: FeedMap = FeedMap.empty, fetches: F = Seq.empty[Output], targets: E = Traversable.empty[Op],
-      options: RunOptions = null, wantMetadata: Boolean = false
+      options: Option[RunOptions] = None, wantMetadata: Boolean = false
   )(implicit
       executable: Executable[E],
       fetchable: Fetchable.Aux[F, R]

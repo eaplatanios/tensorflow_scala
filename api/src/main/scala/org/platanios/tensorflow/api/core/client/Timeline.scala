@@ -94,7 +94,8 @@ object Timeline {
         val threadID = l
         val nodeName = nodeStats.getNodeName
         val startTime = nodeStats.getAllStartMicros
-        val endTime = nodeStats.getAllStartMicros + nodeStats.getAllEndRelMicros
+        val duration = nodeStats.getAllEndRelMicros
+        val endTime = nodeStats.getAllStartMicros + duration
         nodeStats.getOutputList.asScala.zipWithIndex.foreach {
           case (output, index) =>
             val outputName = if (index == 0) nodeName else s"$nodeName:$index"
@@ -136,7 +137,7 @@ object Timeline {
         }
         val arguments = Map("name" -> name.asJson, "op" -> op.asJson) ++
             inputs.zipWithIndex.map(i => s"input${i._2}" -> i._1.asJson)
-        chromeTraceFormatter.emitRegion("Op", op, startTime, endTime, devicePID, threadID, arguments)
+        chromeTraceFormatter.emitRegion("Op", op, startTime, duration, devicePID, threadID, arguments)
 
         // Visualize the computation activity.
         inputs.foreach(inputName => {
@@ -171,7 +172,8 @@ object Timeline {
               }
             }
           } else {
-            logger.info(s"Cannot find tensor '$inputName'. Maybe it was removed by the CSE.")
+            // TODO: Control dependencies currently fail here.
+            logger.debug(s"Cannot find tensor '$inputName'. Maybe it was removed by the CSE.")
           }
         })
       })
