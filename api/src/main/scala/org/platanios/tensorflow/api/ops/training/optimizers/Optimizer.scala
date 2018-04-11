@@ -152,18 +152,8 @@ trait Optimizer {
 
     // Create the slots needed by the variables.
     Op.initialization {
-      val mappedVariables = variables.map(variable => {
-        if (variable.op.opType == "VarHandleOp") {
-          val v = variable.graph.trainableVariables.find(v => v.isInstanceOf[Variable] && v.handle.op == variable.op)
-          if (v.isEmpty)
-            throw new IllegalArgumentException(s"Got handle '$variable', but could not locate the source variable.")
-          v.get
-        } else {
-          variable
-        }
-      })
       VariableScope.createWithVariableScope(name) {
-        createSlots(mappedVariables)
+        createSlots(variables)
       }
     }
 
@@ -314,7 +304,9 @@ trait Optimizer {
       dataType: DataType,
       variableScope: String
   ): Variable = {
-    slotMap(name).getOrElseUpdate(variable, Slot.create(variable, initializer, variableScope, dataType, shape))
+    Op.colocateWith(Set(variable.op)) {
+      slotMap(name).getOrElseUpdate(variable, Slot.create(variable, initializer, variableScope, dataType, shape))
+    }
   }
 
   /** Gets an existing slot.
@@ -335,7 +327,9 @@ trait Optimizer {
     * @return Requested slot variable.
     */
   protected def zerosSlot(name: String, variable: Variable, variableScope: String): Variable = {
-    slotMap(name).getOrElseUpdate(variable, Slot.zeros(variable, variableScope))
+    Op.colocateWith(Set(variable.op)) {
+      slotMap(name).getOrElseUpdate(variable, Slot.zeros(variable, variableScope))
+    }
   }
 
   /** Gets or creates (and adds to this optimizer) a non-slot variable.
