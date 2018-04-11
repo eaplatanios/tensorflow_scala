@@ -486,7 +486,7 @@ object Timeline {
         name: String,
         timestamp: Long,
         processID: Int,
-        counters: Map[String, Long],
+        counters: Map[String, Long]
     ): ChromeTraceFormatter = {
       events += ChromeTraceEvent(
         name = name,
