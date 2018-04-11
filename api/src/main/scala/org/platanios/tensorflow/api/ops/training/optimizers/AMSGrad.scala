@@ -32,7 +32,7 @@ import org.platanios.tensorflow.api.ops.variables.Variable
   *   t = 0       // Initialize the time step
   * }}}
   *
-  * The Adam update for step `t` is as follows:
+  * The AMSGrad update for step `t` is as follows:
   * {{{
   *   learningRate_t = initialLearningRate * sqrt(beta1 - beta2^t) / (1 - beta1^t)
   *   m_t = beta1 * m_{t-1} + (1 - beta1) * gradient
@@ -79,7 +79,7 @@ class AMSGrad protected (
     val epsilon: Double = 1e-8,
     val useLocking: Boolean = false,
     val learningRateSummaryTag: String = null,
-    val name: String = "Adam"
+    val name: String = "AMSGrad"
 ) extends Optimizer {
   protected var learningRateTensor: Output = _
   protected var beta1Tensor       : Output = _
@@ -220,7 +220,7 @@ object AMSGrad {
       epsilon: Double = 1e-8,
       useLocking: Boolean = false,
       learningRateSummaryTag: String = null,
-      name: String = "Adam"
+      name: String = "AMSGrad"
   ): AMSGrad = {
     new AMSGrad(learningRate, decay, beta1, beta2, useNesterov, epsilon, useLocking, learningRateSummaryTag, name)
   }
