@@ -43,8 +43,8 @@ import java.nio.file.{Files, Path, StandardOpenOption}
   */
 class TimelineHook protected (
     val workingDir: Path,
-    val showDataFlow: Boolean = true,
-    val showMemory: Boolean = true,
+    val showDataFlow: Boolean = false,
+    val showMemory: Boolean = false,
     val prettyJson: Boolean = false,
     val trigger: HookTrigger = StepHookTrigger(1000),
     val triggerAtEnd: Boolean = true
@@ -78,8 +78,8 @@ object TimelineHook {
 
   def apply(
       workingDir: Path,
-      showDataFlow: Boolean = true,
-      showMemory: Boolean = true,
+      showDataFlow: Boolean = false,
+      showMemory: Boolean = false,
       prettyJson: Boolean = false,
       trigger: HookTrigger = StepHookTrigger(1000),
       triggerAtEnd: Boolean = true

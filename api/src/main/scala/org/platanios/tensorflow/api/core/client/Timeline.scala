@@ -51,14 +51,14 @@ object Timeline {
     */
   def generateChromeTrace(
       stepStatistics: StepStats,
-      showDataFlow: Boolean = true,
-      showMemory: Boolean = true,
+      showDataFlow: Boolean = false,
+      showMemory: Boolean = false,
       prettyJson: Boolean = false
   ): String = {
     val chromeTraceFormatter = ChromeTraceFormatter()
     var devicePIDs = Map.empty[String, Int]
     var tensorsPIDs = Map.empty[String, Int]
-    var threadIDs = Map.empty[String, Int]
+    var threadIDs = Map.empty[Int, Int]
     var tensors = Map.empty[String, TensorTracker]
     var flowStarts = Map.empty[String, (Long, Int, Int)]
     var nextPID = 0
@@ -80,6 +80,31 @@ object Timeline {
       chromeTraceFormatter.emitPID(s"${deviceStats.getDevice} Compute", devicePID)
       chromeTraceFormatter.emitPID(s"${deviceStats.getDevice} Tensors", tensorsPID)
       nextPID += 2
+
+      // TODO: [TF_UPDATE] Genuine thread IDs in NodeExecStats might be helpful.
+      val lanes = mutable.ArrayBuffer[Long]()
+
+      deviceStats.getNodeStatsList.asScala.zipWithIndex.foreach {
+        case (nodeStats, nodeIndex) =>
+          // Analyze tensor references to track data flow.
+          val nodeName = nodeStats.getNodeName
+          val startTime = nodeStats.getAllStartMicros
+          val duration = nodeStats.getAllEndRelMicros
+          val endTime = nodeStats.getAllStartMicros + duration
+
+          // Assign non-overlapping lanes for the activities on each device.
+          val threadID = {
+            val l = lanes.indexWhere(_ < startTime)
+            if (l < 0) {
+              lanes.append(endTime)
+              lanes.length - 1
+            } else {
+              lanes(l) = endTime
+              l
+            }
+          }
+          threadIDs += nodeIndex -> threadID
+      }
     })
 
     stepStatistics.getDevStatsList.asScala.foreach(deviceStats => {
@@ -87,44 +112,36 @@ object Timeline {
       val devicePID = devicePIDs(deviceName)
       val tensorsPID = tensorsPIDs(deviceName)
 
-      // TODO: [TF_UPDATE] Genuine thread IDs in NodeExecStats might be helpful.
-      val lanes = mutable.ArrayBuffer(0L)
+      deviceStats.getNodeStatsList.asScala.zipWithIndex.foreach {
+        case (nodeStats, nodeIndex) =>
+          // Analyze tensor references to track data flow.
+          val nodeName = nodeStats.getNodeName
+          val startTime = nodeStats.getAllStartMicros
+          val duration = nodeStats.getAllEndRelMicros
+          val endTime = nodeStats.getAllStartMicros + duration
+          val threadID = threadIDs(nodeIndex)
 
-      deviceStats.getNodeStatsList.asScala.foreach(nodeStats => {
-        // Assign non-overlapping lanes for the activities on each device.
-        val l = lanes.indexWhere(_ < nodeStats.getAllStartMicros)
-        if (l < 0)
-          lanes.append(nodeStats.getAllStartMicros + nodeStats.getAllEndRelMicros)
-        else
-          lanes(l) = nodeStats.getAllStartMicros + nodeStats.getAllEndRelMicros
-
-        // Analyze tensor references to track data flow.
-        val threadID = l
-        val nodeName = nodeStats.getNodeName
-        val startTime = nodeStats.getAllStartMicros
-        val duration = nodeStats.getAllEndRelMicros
-        val endTime = nodeStats.getAllStartMicros + duration
-        threadIDs += nodeName -> threadID
-        nodeStats.getOutputList.asScala.zipWithIndex.foreach {
-          case (output, index) =>
-            val outputName = if (index == 0) nodeName else s"$nodeName:$index"
-            val allocationDescription = output.getTensorDescription.getAllocationDescription
-            val numBytes = allocationDescription.getRequestedBytes
-            val allocatorName = allocationDescription.getAllocatorName
-            val tensor = TensorTracker(outputName, tensorsPID, startTime, tensors.size, allocatorName, numBytes)
-            tensors += outputName -> tensor
-            tensor.addRef(startTime)
-            tensor.addDeref(endTime)
-            flowStarts = flowStarts.updated(outputName, (endTime, devicePID, threadID))
-            if (showMemory) {
-              chromeTraceFormatter.emitObjectCreation(
-                "Tensor", outputName, startTime, tensorsPID, threadID, tensor.objectID)
-              chromeTraceFormatter.emitObjectSnapshot(
-                "Tensor", tensor.name, endTime - 1, tensorsPID, threadID, tensor.objectID,
-                snapshot = Map("tensor_description" -> output.getTensorDescription.toString.replace("\"", "")).asJson)
-            }
-        }
-      })
+          nodeStats.getOutputList.asScala.zipWithIndex.foreach {
+            case (output, index) =>
+              val outputName = if (index == 0) nodeName else s"$nodeName:$index"
+              val allocationDescription = output.getTensorDescription.getAllocationDescription
+              val numBytes = allocationDescription.getRequestedBytes
+              val allocatorName = allocationDescription.getAllocatorName
+              val tensor = TensorTracker(outputName, tensorsPID, startTime, tensors.size, allocatorName, numBytes)
+              tensors += outputName -> tensor
+              tensor.addRef(startTime)
+              tensor.addDeref(endTime)
+              flowStarts = flowStarts.updated(outputName, (endTime, devicePID, threadID))
+              if (showMemory) {
+                val tensorDescription = output.getTensorDescription.toString.replace("\"", "")
+                chromeTraceFormatter.emitObjectCreation(
+                  "Tensor", outputName, startTime, tensorsPID, threadID, tensor.objectID)
+                chromeTraceFormatter.emitObjectSnapshot(
+                  "Tensor", tensor.name, endTime - 1, tensorsPID, threadID, tensor.objectID,
+                  snapshot = Map("tensor_description" -> tensorDescription).asJson)
+              }
+          }
+      }
     })
 
     stepStatistics.getDevStatsList.asScala.foreach(deviceStats => {
@@ -134,74 +151,75 @@ object Timeline {
       // The following is `true` if this device is part of the GPU tracer logging.
       val isGPUTrace = deviceName.contains("/stream:") || deviceName.contains("/memcpy")
 
-      deviceStats.getNodeStatsList.asScala.foreach(nodeStats => {
-        val nodeName = nodeStats.getNodeName
-        val threadID = threadIDs(nodeName)
-        val startTime = nodeStats.getAllStartMicros
-        val duration = nodeStats.getAllEndRelMicros
-        val endTime = nodeStats.getAllStartMicros + duration
+      deviceStats.getNodeStatsList.asScala.zipWithIndex.foreach {
+        case (nodeStats, nodeIndex) =>
+          val nodeName = nodeStats.getNodeName
+          val threadID = threadIDs(nodeIndex)
+          val startTime = nodeStats.getAllStartMicros
+          val duration = nodeStats.getAllEndRelMicros
+          val endTime = nodeStats.getAllStartMicros + duration
 
-        // Emit an event to show op execution.
-        val (name, op, inputs) = {
-          if (isGPUTrace) {
-            // Node names should always have the form "name:op".
-            val fields = nodeName.split(':')
-            (fields(0), fields(1), Seq.empty)
-          } else if (nodeName == "RecvTensor") {
-            // RPC tracing does not use the standard timeline label format.
-            ("RecvTensor", "RecvTensor", Seq.empty)
-          } else {
-            val (op, inputs) = nodeStats.getTimelineLabel match {
-              // Expects labels of the form: `name = op(arg, arg, ...)`.
-              case opLabelRegex(_, o, i) if i == "" => (o, Seq.empty)
-              case opLabelRegex(_, o, i) => (o, i.split(", ").toSeq)
-              case _ => ("unknown", Seq.empty)
-            }
-            (nodeName, op, inputs)
-          }
-        }
-        val arguments = Map("name" -> name.asJson, "op" -> op.asJson) ++
-            inputs.zipWithIndex.map(i => s"input${i._2}" -> i._1.asJson)
-        chromeTraceFormatter.emitRegion("Op", op, startTime, duration, devicePID, threadID, arguments)
-
-        // Visualize the computation activity.
-        inputs.foreach(inputName => {
-          val name = {
-            if (tensors.contains(inputName)) {
-              inputName
+          // Emit an event to show op execution.
+          val (name, op, inputs) = {
+            if (isGPUTrace) {
+              // Node names should always have the form "name:op".
+              val fields = nodeName.split(':')
+              (fields(0), fields(1), Seq.empty)
+            } else if (nodeName == "RecvTensor") {
+              // RPC tracing does not use the standard timeline label format.
+              ("RecvTensor", "RecvTensor", Seq.empty)
             } else {
-              // This can happen when partitioning has inserted a Send/Recv. We remove the numeric suffix so that the
-              // data flow appears to come from the original node. Ideally, the step statistics would contain logging
-              // for the Send and Recv nodes.
-              val index = inputName.lastIndexOf("/_")
-              if (index > 0) inputName.substring(0, index) else inputName
+              val (op, inputs) = nodeStats.getTimelineLabel match {
+                // Expects labels of the form: `name = op(arg, arg, ...)`.
+                case opLabelRegex(_, o, i) if i == "" => (o, Seq.empty)
+                case opLabelRegex(_, o, i) => (o, i.split(", ").toSeq)
+                case _ => ("unknown", Seq.empty)
+              }
+              (nodeName, op, inputs)
             }
           }
+          val arguments = Map("name" -> name.asJson, "op" -> op.asJson) ++
+              inputs.zipWithIndex.map(i => s"input${i._2}" -> i._1.asJson)
+          chromeTraceFormatter.emitRegion("Op", op, startTime, duration, devicePID, threadID, arguments)
 
-          if (tensors.contains(name)) {
-            val tensor = tensors(name)
-            tensor.addRef(startTime)
-            tensor.addDeref(endTime - 1)
-
-            if (showDataFlow) {
-              // We use a different flow ID for every graph edge.
-              val (createTime, createPID, createTID) = flowStarts(name)
-
-              // We do not add flows when the producer and the consumer ops are on the same PID/TID since the horizontal
-              // arrows clutter the visualization.
-              if (createPID != devicePID || createTID != threadID) {
-                val flowID = nextFlowID
-                nextFlowID += 1
-                chromeTraceFormatter.emitFlowStart(inputName, createTime, createPID, createTID, flowID)
-                chromeTraceFormatter.emitFlowEnd(inputName, startTime, devicePID, threadID, flowID)
+          // Visualize the computation activity.
+          inputs.foreach(inputName => {
+            val name = {
+              if (tensors.contains(inputName)) {
+                inputName
+              } else {
+                // This can happen when partitioning has inserted a Send/Recv. We remove the numeric suffix so that the
+                // data flow appears to come from the original node. Ideally, the step statistics would contain logging
+                // for the Send and Recv nodes.
+                val index = inputName.lastIndexOf("/_")
+                if (index > 0) inputName.substring(0, index) else inputName
               }
             }
-          } else {
-            // TODO: Control dependencies currently fail here.
-            logger.debug(s"Cannot find tensor '$inputName'. Maybe it was removed by the CSE.")
-          }
-        })
-      })
+
+            if (tensors.contains(name)) {
+              val tensor = tensors(name)
+              tensor.addRef(startTime)
+              tensor.addDeref(endTime - 1)
+
+              if (showDataFlow) {
+                // We use a different flow ID for every graph edge.
+                val (createTime, createPID, createTID) = flowStarts(name)
+
+                // We do not add flows when the producer and the consumer ops are on the same PID/TID since the
+                // horizontal arrows clutter the visualization.
+                if (createPID != devicePID || createTID != threadID) {
+                  val flowID = nextFlowID
+                  nextFlowID += 1
+                  chromeTraceFormatter.emitFlowStart(inputName, createTime, createPID, createTID, flowID)
+                  chromeTraceFormatter.emitFlowEnd(inputName, startTime, devicePID, threadID, flowID)
+                }
+              }
+            } else {
+              // TODO: Control dependencies currently fail here.
+              logger.debug(s"Cannot find tensor '$inputName'. Maybe it was removed by the CSE.")
+            }
+          })
+      }
     })
 
     // Produce a counter series for each memory allocator, if necessary.
