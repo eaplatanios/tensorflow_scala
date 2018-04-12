@@ -19,6 +19,8 @@ import org.platanios.tensorflow.api.core.client.{Session, Timeline}
 import org.platanios.tensorflow.api.ops.Output
 import org.platanios.tensorflow.api.tensors.Tensor
 
+import com.typesafe.scalalogging.Logger
+import org.slf4j.LoggerFactory
 import org.tensorflow.framework.RunOptions
 
 import java.nio.file.{Files, Path, StandardOpenOption}
@@ -59,17 +61,21 @@ class TimelineHook protected (
       runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor]],
       session: Session
   ): Unit = {
+    TimelineHook.logger.info("Saving timeline.")
+    val file = workingDir.resolve(s"trace${step}.json")
     val stepStatistics = runResult.runMetadata.get.getStepStats
     val chromeTraceJSON = Timeline.generateChromeTrace(stepStatistics, showDataFlow, showMemory, prettyJson)
-    val fileWriter = Files.newBufferedWriter(
-      workingDir.resolve(s"trace${step}.json"), StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE)
+    val fileWriter = Files.newBufferedWriter(file, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE)
     fileWriter.write(chromeTraceJSON)
     fileWriter.flush()
     fileWriter.close()
+    TimelineHook.logger.info(s"Saved timeline to '$file'.")
   }
 }
 
 object TimelineHook {
+  private[TimelineHook] val logger = Logger(LoggerFactory.getLogger("Learn / Hooks / Timeline"))
+
   def apply(
       workingDir: Path,
       showDataFlow: Boolean = true,
