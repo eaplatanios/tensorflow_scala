@@ -351,8 +351,8 @@ object Saver {
     *                                   turned off by default.
     * @param  name                      Optional name to use as a prefix when adding ops.
     * @return Created [[SaverDef]] objects.
-    * @throws IllegalArgumentException  If no saveables are provided or obtained from the current graph and `allowEmpty`
-    *                                   is set to `false`.
+    * @throws IllegalArgumentException If no saveables are provided or obtained from the current graph and `allowEmpty`
+    *                                  is set to `false`.
     */
   @throws[IllegalArgumentException]
   private[api] def apply(
@@ -930,7 +930,7 @@ trait SaverDefBuilder {
         // On failure and  subsequent restore, an outdated and orphaned temporary directory can be safely removed.
         val temporaryCheckpointPrefix = Text.stringJoin(Seq(prefix, _SHARDED_SUFFIX))
         val (shardedPrefixes, shardedSaves) = saveablesByDevice.zipWithIndex.map { case ((device, saveables), shard) =>
-          Op.createWith(device = device) {
+          Op.createWith(device = Saver.setCPU0(device)) {
             val prefix = SaverDefBuilder.shardedFilenameOp(temporaryCheckpointPrefix, shard, saveablesByDevice.length)
             (prefix, addSaveOps(prefix, saveables))
           }
