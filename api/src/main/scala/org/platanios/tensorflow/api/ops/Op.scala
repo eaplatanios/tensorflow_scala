@@ -482,7 +482,7 @@ object Op {
 
   /** Returns the name scope of the current op creation context. */
   private[api] def currentNameScope(implicit context: DynamicVariable[OpCreationContext]): String = {
-    if (context.value.nameScope == "") "" else s"${context.value.nameScope}/"
+    if (context.value.nameScope == "") "" else context.value.nameScope
   }
 
   /** Returns the variable scope of the current op creation context. */
@@ -620,12 +620,13 @@ object Op {
     * When `createWith(...)` is used with a name scope, the provided name scope is appended to the context name scope,
     * generating a new op creation context. This new context is used for all ops created within the code block provided
     * in the `createWith(...)` function. The `nameScope` argument will be interpreted as follows:
+    *
     *   - A string not ending with `"/"` will create a new name scope, in which `nameScope` is appended to the prefix of
-    * all operations created in the provided code block. If `nameScope` has been used before, it will be made unique
-    * by calling `uniqueName(graph = context.graph, name = nameScope)`.
+    *     all operations created in the provided code block. If `nameScope` has been used before, it will be made unique
+    *     by calling `uniqueName(graph = context.graph, name = nameScope)`.
     *   - A string ending with `"/"` will be treated as an "absolute" name scope, which makes it possible to re-enter
-    * existing scopes. Such absolute name scopes can be obtained by using the `currentNameScope` function, from
-    * within the appropriate context.
+    *     existing scopes. Such absolute name scopes can be obtained by using the `currentNameScope` function, from
+    *     within the appropriate context.
     *   - A value of `""` will reset the current name scope to the top-level (i.e., empty) name scope.
     *
     * This function checks the provided `nameScope` for validity by checking whether it matches: (i) the regular
