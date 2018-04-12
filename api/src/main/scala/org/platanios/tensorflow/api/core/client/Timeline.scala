@@ -56,6 +56,9 @@ object Timeline {
       prettyJson: Boolean = false
   ): String = {
     val chromeTraceFormatter = ChromeTraceFormatter()
+    var devicePIDs = Map.empty[String, Int]
+    var tensorsPIDs = Map.empty[String, Int]
+    var threadIDs = Map.empty[String, Int]
     var tensors = Map.empty[String, TensorTracker]
     var flowStarts = Map.empty[String, (Long, Int, Int)]
     var nextPID = 0
@@ -67,20 +70,25 @@ object Timeline {
     nextPID += 1
 
     stepStatistics.getDevStatsList.asScala.foreach(deviceStats => {
-      // TODO: [TF_UPDATE] Genuine thread IDs in NodeExecStats might be helpful.
-      val lanes = mutable.ArrayBuffer(0L)
-
       val deviceName = deviceStats.getDevice
 
       // Add processes in the Chrome trace to show compute and data activity.
       val devicePID = nextPID
       val tensorsPID = nextPID + 1
+      devicePIDs += deviceName -> devicePID
+      tensorsPIDs += deviceName -> tensorsPID
       chromeTraceFormatter.emitPID(s"${deviceStats.getDevice} Compute", devicePID)
       chromeTraceFormatter.emitPID(s"${deviceStats.getDevice} Tensors", tensorsPID)
       nextPID += 2
+    })
 
-      // The following is `true` if this device is part of the GPU tracer logging.
-      val isGPUTrace = deviceName.contains("/stream:") || deviceName.contains("/memcpy")
+    stepStatistics.getDevStatsList.asScala.foreach(deviceStats => {
+      val deviceName = deviceStats.getDevice
+      val devicePID = devicePIDs(deviceName)
+      val tensorsPID = tensorsPIDs(deviceName)
+
+      // TODO: [TF_UPDATE] Genuine thread IDs in NodeExecStats might be helpful.
+      val lanes = mutable.ArrayBuffer(0L)
 
       deviceStats.getNodeStatsList.asScala.foreach(nodeStats => {
         // Assign non-overlapping lanes for the activities on each device.
@@ -96,13 +104,14 @@ object Timeline {
         val startTime = nodeStats.getAllStartMicros
         val duration = nodeStats.getAllEndRelMicros
         val endTime = nodeStats.getAllStartMicros + duration
+        threadIDs += nodeName -> threadID
         nodeStats.getOutputList.asScala.zipWithIndex.foreach {
           case (output, index) =>
             val outputName = if (index == 0) nodeName else s"$nodeName:$index"
             val allocationDescription = output.getTensorDescription.getAllocationDescription
             val numBytes = allocationDescription.getRequestedBytes
             val allocatorName = allocationDescription.getAllocatorName
-            val tensor = TensorTracker(outputName, tensors.size, startTime, tensorsPID, allocatorName, numBytes)
+            val tensor = TensorTracker(outputName, tensorsPID, startTime, tensors.size, allocatorName, numBytes)
             tensors += outputName -> tensor
             tensor.addRef(startTime)
             tensor.addDeref(endTime)
@@ -115,6 +124,22 @@ object Timeline {
                 snapshot = Map("tensor_description" -> output.getTensorDescription.toString.replace("\"", "")).asJson)
             }
         }
+      })
+    })
+
+    stepStatistics.getDevStatsList.asScala.foreach(deviceStats => {
+      val deviceName = deviceStats.getDevice
+      val devicePID = devicePIDs(deviceName)
+
+      // The following is `true` if this device is part of the GPU tracer logging.
+      val isGPUTrace = deviceName.contains("/stream:") || deviceName.contains("/memcpy")
+
+      deviceStats.getNodeStatsList.asScala.foreach(nodeStats => {
+        val nodeName = nodeStats.getNodeName
+        val threadID = threadIDs(nodeName)
+        val startTime = nodeStats.getAllStartMicros
+        val duration = nodeStats.getAllEndRelMicros
+        val endTime = nodeStats.getAllStartMicros + duration
 
         // Emit an event to show op execution.
         val (name, op, inputs) = {
