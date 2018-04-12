@@ -1375,11 +1375,6 @@ object Graph {
       override def name: String = "local_resources"
     }
 
-    /** Key to collect all trainable resource-style variables. */
-    object TRAINABLE_RESOURCE_VARIABLES extends VariableCollectionKey {
-      override def name: String = "trainable_resource_variables"
-    }
-
     // Keys to indicate various ops.
 
     object INIT_OP extends OpCollectionKey {

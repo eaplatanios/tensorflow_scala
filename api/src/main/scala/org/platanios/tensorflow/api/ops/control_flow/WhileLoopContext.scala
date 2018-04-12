@@ -248,7 +248,7 @@ private[api] case class WhileLoopContext private[control_flow] (
       val flattenedBodyResult = ev.outputs(bodyResult)
 
       // Add the `NextIteration` op and the back edges to complete the loop.
-      val nextVariables = mergeVariables.zip(flattenedBodyResult).map(p => {
+      mergeVariables.zip(flattenedBodyResult).map(p => {
         WhileLoopContext.addNextIterationAndBackEdge(p._1, p._2)
       })
 

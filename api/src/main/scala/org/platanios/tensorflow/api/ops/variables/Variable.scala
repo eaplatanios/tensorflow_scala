@@ -99,7 +99,7 @@ case class Variable private (
     if (cachedValue != null) {
       cachedValue
     } else {
-      Op.createWith(graph = graph, colocationOps = Set.empty[Op], device = null) {
+      Op.createWith(graph = graph, colocationOps = Set.empty[Op], device = handle.device) {
         // Manually assign reads to the handle's device to avoid log messages
         Op.createWith(device = handle.device)(Variable.readVariable(handle, dataType))
       }
@@ -548,7 +548,7 @@ private[api] object Variable {
                 // and/or would not expect the current device context to be merged with the caching device
                 // specification. Therefore, we reset the colocation stack before creating the cached value. Note that
                 // resetting the colocation stack will also reset the device stack.
-                Op.createWith(colocationOps = Set.empty[Op], device = null)(Basic.identity(value))
+                Op.createWith(colocationOps = Set.empty[Op], deviceFunction = cachingDevice)(Basic.identity(value))
               } else {
                 null
               }

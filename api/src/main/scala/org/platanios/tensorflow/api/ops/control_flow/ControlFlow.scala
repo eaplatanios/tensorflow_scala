@@ -495,7 +495,10 @@ private[api] object ControlFlow extends ControlFlow {
     * @return Tuple containing `outputFalse` and `outputTrue`, in that order.
     */
   private[control_flow] def colocatedSwitch[T <: OutputLike](
-      input: T, predicate: Output, name: String = "Switch"): (T, T) = {
+      input: T,
+      predicate: Output,
+      name: String = "Switch"
+  ): (T, T) = {
     // The device colocation below addresses the following scenario:
     //
     // Assume you execute Optimizer.applyGradients() in a branch of a cond() and:

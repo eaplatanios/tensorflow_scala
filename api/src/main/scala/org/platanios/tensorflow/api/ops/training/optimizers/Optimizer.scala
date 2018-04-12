@@ -102,10 +102,7 @@ trait Optimizer {
     // TODO: [VARIABLES] Settle on what keys to use for variables.
     val collectedVariables: Seq[Variable] = {
       {
-        if (variables == null)
-          loss.graph.trainableVariables ++ loss.graph.getCollection(Graph.Keys.TRAINABLE_RESOURCE_VARIABLES)
-        else
-          variables
+        if (variables == null) loss.graph.trainableVariables else variables
       } ++ loss.graph.getCollection(Graph.Keys.STREAMING_MODEL_PORTS)
     }.toSeq
     if (collectedVariables.isEmpty)
@@ -150,21 +147,21 @@ trait Optimizer {
       throw new IllegalArgumentException(
         s"No gradients were provided for any of the variables: ${gradientsAndVariables.map(_._2).mkString(", ")}.")
 
-    // Create the slots needed by the variables.
-    Op.initialization {
-      VariableScope.createWithVariableScope(name) {
-        createSlots(variables)
-      }
-    }
-
     Op.createWithNameScope(name) {
+      // Create the slots needed by the variables.
+      Op.initialization {
+        VariableScope.createWithVariableScope(name) {
+          createSlots(variables)
+        }
+      }
+
       prepare(iteration)
 
       // Collect the update ops for all variables.
       val updateOps = mutable.Set.empty[Op]
       for ((g, v, p) <- gradientsAndVariables.map(p => (p._1, p._2, getVariableProcessor(p._2))).filter(_._1 != null)) {
         // We colocate all ops created for variable application on the same device as the variable.
-        Op.createWith(nameScope = s"${v.op.name}Update") {
+        Op.createWith(nameScope = s"Update/${v.op.name}") {
           Op.colocateWith(Set(v.op)) {
             updateOps.add(p.updateOp(this, g, iteration))
           }
@@ -174,13 +171,13 @@ trait Optimizer {
       // Create the op that applies the gradient updates to all variables.
       val applyUpdates = {
         iteration match {
-          case Some(i) => Op.createWith(controlDependencies = Set(finish(updateOps.toSet, "Update"))) {
+          case Some(i) => Op.createWith(controlDependencies = Set(finish(updateOps.toSet, "Finish"))) {
             Op.colocateWith(Set(i.op)) {
               // The implicit read in the default assign add operation in `Variable` is slow and so we avoid that here.
               Variable.assignAdd(i.handle, Basic.constant(1, dataType = i.dataType), name)
             }
           }
-          case None => finish(updateOps.toSet, name)
+          case None => finish(updateOps.toSet, "Finish")
         }
       }
 

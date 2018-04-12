@@ -83,42 +83,46 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
   private[this] var allTrainChiefOnlyHooks: mutable.Set[Hook] = mutable.Set(trainChiefOnlyHooks.toSeq: _*)
 
   private[this] val (globalStep, trainingOps, inferenceOps, evaluationOps, evaluationUpdateOps) = {
-    Op.createWith(graph = graph, deviceFunction = deviceFunction.getOrElse(_.device)) {
+    Op.createWith(graph = graph, nameScope = "Estimator", deviceFunction = deviceFunction.getOrElse(_.device)) {
       randomSeed.foreach(graph.setRandomSeed)
-      // TODO: [LEARN] !!! Do we ever update the global epoch?
-      Counter.getOrCreate(Graph.Keys.GLOBAL_EPOCH, local = false)
-      val globalStep = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
-      Op.createWithNameScope("Model") {
-        val trainOps = model.buildTrainOps()
-        val inferOps = model.buildInferOps()
-        val evaluateOps = model.buildEvaluateOps(evaluationMetrics)
+      val (globalStep, trainOps) = Op.createWithNameScope("Train") {
+        // TODO: [LEARN] !!! Do we ever update the global epoch?
+        Counter.getOrCreate(Graph.Keys.GLOBAL_EPOCH, local = false)
+        val globalStep = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
+        val trainOps = Op.createWithNameScope("Model")(model.buildTrainOps())
+        (globalStep, trainOps)
+      }
+      val inferOps = Op.createWithNameScope("Infer/Model")(model.buildInferOps())
+      val (evaluateOps, evalUpdateOps) = Op.createWithNameScope("Evaluate") {
+        val evaluateOps = Op.createWithNameScope("Model")(model.buildEvaluateOps(evaluationMetrics))
         val evalStep = Counter.getOrCreate(Graph.Keys.EVAL_STEP, local = true)
         val evalStepUpdate = evalStep.assignAdd(1L)
         val evalUpdateOps = ControlFlow.group(evaluateOps.metricUpdates.map(_.op).toSet + evalStepUpdate.op)
-        val trainModelInstance = ModelInstance(
-          model, configuration, Some(trainOps.inputIterator), Some(trainOps.input), Some(trainOps.output),
-          Some(trainOps.loss), Some(trainOps.gradientsAndVariables), Some(trainOps.trainOp))
-        trainHooks.foreach {
-          case hook: ModelDependentHook[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] =>
-            hook.setModelInstance(trainModelInstance)
-          case _ => ()
-        }
-        val inferModelInstance = ModelInstance(model, configuration, None, None, Some(inferOps.output), None, None)
-        inferHooks.foreach {
-          case hook: ModelDependentHook[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] =>
-            hook.setModelInstance(inferModelInstance)
-          case _ => ()
-        }
-        val evaluateModelInstance = ModelInstance(
-          model, configuration, Some(evaluateOps.inputIterator), Some(evaluateOps.input), Some(evaluateOps.output),
-          None, None)
-        evaluateHooks.foreach {
-          case hook: ModelDependentHook[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] =>
-            hook.setModelInstance(evaluateModelInstance)
-          case _ => ()
-        }
-        (globalStep, trainOps, inferOps, evaluateOps, evalUpdateOps)
+        (evaluateOps, evalUpdateOps)
       }
+      val trainModelInstance = ModelInstance(
+        model, configuration, Some(trainOps.inputIterator), Some(trainOps.input), Some(trainOps.output),
+        Some(trainOps.loss), Some(trainOps.gradientsAndVariables), Some(trainOps.trainOp))
+      trainHooks.foreach {
+        case hook: ModelDependentHook[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] =>
+          hook.setModelInstance(trainModelInstance)
+        case _ => ()
+      }
+      val inferModelInstance = ModelInstance(model, configuration, None, None, Some(inferOps.output), None, None)
+      inferHooks.foreach {
+        case hook: ModelDependentHook[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] =>
+          hook.setModelInstance(inferModelInstance)
+        case _ => ()
+      }
+      val evaluateModelInstance = ModelInstance(
+        model, configuration, Some(evaluateOps.inputIterator), Some(evaluateOps.input), Some(evaluateOps.output),
+        None, None)
+      evaluateHooks.foreach {
+        case hook: ModelDependentHook[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] =>
+          hook.setModelInstance(evaluateModelInstance)
+        case _ => ()
+      }
+      (globalStep, trainOps, inferOps, evaluateOps, evalUpdateOps)
     }
   }
 

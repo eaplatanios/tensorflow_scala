@@ -113,71 +113,73 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
       hooks: Set[Hook] = trainHooks,
       chiefOnlyHooks: Set[Hook] = trainChiefOnlyHooks,
       tensorBoardConfig: TensorBoardConfig = this.tensorBoardConfig): Unit = {
-    if (hooks.exists(_.isInstanceOf[Stopper]) || chiefOnlyHooks.exists(_.isInstanceOf[Stopper]))
-      Estimator.logger.warn("The provided stopper hook will be ignored. Please use 'stopCriteria' instead.")
-    val needsToTrain = {
-      if (!stopCriteria.restartCounting) {
-        workingDir.flatMap(dir => Saver.latestCheckpoint(dir).flatMap(latestPath => {
-          CheckpointReader(latestPath).getTensor(Graph.Keys.GLOBAL_STEP.name)
-        })).map(_.scalar.asInstanceOf[Long]).flatMap(s => stopCriteria.maxSteps.map(_ <= s)).getOrElse(true)
-      } else {
-        true
-      }
-    }
-    if (!needsToTrain) {
-      FileBasedEstimator.logger.debug(
-        "Skipping training because no restarting is allowed in the termination criteria and the maximum number of " +
-            "steps have already been executed in the past (i.e., saved checkpoint).")
-    } else {
-      val allHooks = mutable.Set(hooks.filter(!_.isInstanceOf[Stopper]).toSeq: _*)
-      val allChiefOnlyHooks = mutable.Set(chiefOnlyHooks.filter(!_.isInstanceOf[Stopper]).toSeq: _*)
-      allHooks += Stopper(stopCriteria)
-      val model = modelFunction(configuration)
-      val graph = Graph()
-      Op.createWith(graph = graph, deviceFunction = deviceFunction.getOrElse(_.device)) {
-        randomSeed.foreach(graph.setRandomSeed)
-        // TODO: [LEARN] !!! Do we ever update the global epoch?
-        Counter.getOrCreate(Graph.Keys.GLOBAL_EPOCH, local = false)
-        Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
-        val trainOps = Op.createWithNameScope("Model")(model.buildTrainOps())
-        graph.addToCollection(trainOps.loss, Graph.Keys.LOSSES)
-        allHooks += NaNChecker(Set(trainOps.loss.name))
-        val modelInstance = ModelInstance(
-          model, configuration, Some(trainOps.inputIterator), Some(trainOps.input), Some(trainOps.output),
-          Some(trainOps.loss), Some(trainOps.gradientsAndVariables), Some(trainOps.trainOp))
-        allHooks.foreach {
-          case hook: ModelDependentHook[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] => hook.setModelInstance(modelInstance)
-          case _ => ()
+    Op.createWithNameScope("Estimator/Train") {
+      if (hooks.exists(_.isInstanceOf[Stopper]) || chiefOnlyHooks.exists(_.isInstanceOf[Stopper]))
+        Estimator.logger.warn("The provided stopper hook will be ignored. Please use 'stopCriteria' instead.")
+      val needsToTrain = {
+        if (!stopCriteria.restartCounting) {
+          workingDir.flatMap(dir => Saver.latestCheckpoint(dir).flatMap(latestPath => {
+            CheckpointReader(latestPath).getTensor(Graph.Keys.GLOBAL_STEP.name)
+          })).map(_.scalar.asInstanceOf[Long]).flatMap(s => stopCriteria.maxSteps.map(_ <= s)).getOrElse(true)
+        } else {
+          true
         }
-        if (tensorBoardConfig != null)
-          allChiefOnlyHooks += TensorBoardHook(tensorBoardConfig)
-        val saver = getOrCreateSaver()
-        val dataInitializer = trainOps.inputIterator.createInitializer(data())
-        val session = Estimator.monitoredTrainingSession(
-          configuration = configuration,
-          hooks = allHooks.toSet,
-          chiefOnlyHooks = allChiefOnlyHooks.toSet,
-          sessionScaffold = SessionScaffold(
-            initOp = Some(ControlFlow.group(Set(
-              Variable.initializer(Variable.globalVariables),
-              Resources.initializer(Resources.sharedResources)))),
-            localInitOp = Some(ControlFlow.group(Set(
-              Variable.initializer(Variable.localVariables),
-              Lookup.lookupsInitializer()))),
-            localInitFunction = Some((session, _) => session.run(targets = dataInitializer)),
-            saver = saver))
-        try {
-          while (!session.shouldStop)
-            session.run(targets = trainOps.trainOp)
-        } catch {
-          case _: OutOfRangeException => session.setShouldStop(true)
-          case e if RECOVERABLE_EXCEPTIONS.contains(e.getClass) => session.close()
-          case t: Throwable =>
-            session.closeWithoutHookEnd()
-            throw t
-        } finally {
-          if (!session.closed)
-            session.close()
+      }
+      if (!needsToTrain) {
+        FileBasedEstimator.logger.debug(
+          "Skipping training because no restarting is allowed in the termination criteria and the maximum number of " +
+              "steps have already been executed in the past (i.e., saved checkpoint).")
+      } else {
+        val allHooks = mutable.Set(hooks.filter(!_.isInstanceOf[Stopper]).toSeq: _*)
+        val allChiefOnlyHooks = mutable.Set(chiefOnlyHooks.filter(!_.isInstanceOf[Stopper]).toSeq: _*)
+        allHooks += Stopper(stopCriteria)
+        val model = modelFunction(configuration)
+        val graph = Graph()
+        Op.createWith(graph = graph, deviceFunction = deviceFunction.getOrElse(_.device)) {
+          randomSeed.foreach(graph.setRandomSeed)
+          // TODO: [LEARN] !!! Do we ever update the global epoch?
+          Counter.getOrCreate(Graph.Keys.GLOBAL_EPOCH, local = false)
+          Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
+          val trainOps = Op.createWithNameScope("Model")(model.buildTrainOps())
+          graph.addToCollection(trainOps.loss, Graph.Keys.LOSSES)
+          allHooks += NaNChecker(Set(trainOps.loss.name))
+          val modelInstance = ModelInstance(
+            model, configuration, Some(trainOps.inputIterator), Some(trainOps.input), Some(trainOps.output),
+            Some(trainOps.loss), Some(trainOps.gradientsAndVariables), Some(trainOps.trainOp))
+          allHooks.foreach {
+            case hook: ModelDependentHook[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] => hook.setModelInstance(modelInstance)
+            case _ => ()
+          }
+          if (tensorBoardConfig != null)
+            allChiefOnlyHooks += TensorBoardHook(tensorBoardConfig)
+          val saver = getOrCreateSaver()
+          val dataInitializer = trainOps.inputIterator.createInitializer(data())
+          val session = Estimator.monitoredTrainingSession(
+            configuration = configuration,
+            hooks = allHooks.toSet,
+            chiefOnlyHooks = allChiefOnlyHooks.toSet,
+            sessionScaffold = SessionScaffold(
+              initOp = Some(ControlFlow.group(Set(
+                Variable.initializer(Variable.globalVariables),
+                Resources.initializer(Resources.sharedResources)))),
+              localInitOp = Some(ControlFlow.group(Set(
+                Variable.initializer(Variable.localVariables),
+                Lookup.lookupsInitializer()))),
+              localInitFunction = Some((session, _) => session.run(targets = dataInitializer)),
+              saver = saver))
+          try {
+            while (!session.shouldStop)
+              session.run(targets = trainOps.trainOp)
+          } catch {
+            case _: OutOfRangeException => session.setShouldStop(true)
+            case e if RECOVERABLE_EXCEPTIONS.contains(e.getClass) => session.close()
+            case t: Throwable =>
+              session.closeWithoutHookEnd()
+              throw t
+          } finally {
+            if (!session.closed)
+              session.close()
+          }
         }
       }
     }
@@ -249,61 +251,63 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
       evFetchableIIO: Fetchable.Aux[(IO, I), (IT, ModelInferenceOutput)],
       ev: Estimator.SupportedInferInput[InferInput, InferOutput, IT, IO, ID, IS, ModelInferenceOutput]
   ): InferOutput = {
-    if (hooks.exists(_.isInstanceOf[Stopper]))
-      Estimator.logger.warn("The provided stopper hook will be ignored. Please use 'stopCriteria' instead.")
-    // Check that the model has been trained.
-    val _checkpointPath = Option(checkpointPath).orElse(workingDir.flatMap(Saver.latestCheckpoint(_)))
-    if (_checkpointPath.isEmpty)
-      throw CheckpointNotFoundException(
-        "No checkpoint was found. Please provide a valid 'workingDir' the estimator configuration, or a path to a " +
-            "valid checkpoint file through the 'checkpointPath' argument.")
-    val model = modelFunction(configuration)
-    val graph = Graph()
-    Op.createWith(graph) {
-      randomSeed.foreach(graph.setRandomSeed)
-      Counter.getOrCreate(Graph.Keys.GLOBAL_EPOCH, local = false)
-      Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
-      val inferOps = Op.createWithNameScope("Model")(model.buildInferOps())
-      val modelInstance = ModelInstance(model, configuration, None, None, Some(inferOps.output), None, None, None)
-      hooks.foreach {
-        case hook: ModelDependentHook[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] => hook.setModelInstance(modelInstance)
-        case _ => ()
-      }
-      val saver = getOrCreateSaver()
-      val dataInitializer = inferOps.inputIterator.createInitializer(ev.toDataset(input()))
-      val session = MonitoredSession(
-        ChiefSessionCreator(
-          sessionScaffold = SessionScaffold(
-            initOp = Some(ControlFlow.group(Set(
-              Variable.initializer(Variable.globalVariables),
-              Resources.initializer(Resources.sharedResources)))),
-            localInitOp = Some(ControlFlow.group(Set(
-              Variable.initializer(Variable.localVariables),
-              Lookup.lookupsInitializer()))),
-            localInitFunction = Some((session, _) => session.run(targets = dataInitializer)),
-            saver = saver),
-          sessionConfig = configuration.sessionConfig,
-          checkpointPath = workingDir),
-        hooks.filter(!_.isInstanceOf[Stopper]), shouldRecover = true)
-      val output = ev.convertFetched(new Iterator[(IT, ModelInferenceOutput)] {
-        override def hasNext: Boolean = !session.shouldStop
-        override def next(): (IT, ModelInferenceOutput) = {
-          try {
-            session.run(fetches = (inferOps.input, inferOps.output))
-          } catch {
-            case _: OutOfRangeException =>
-              session.setShouldStop(true)
-              // TODO: !!! Do something to avoid this null pair.
-              (null.asInstanceOf[IT], null.asInstanceOf[ModelInferenceOutput])
-            case t: Throwable =>
-              session.closeWithoutHookEnd()
-              throw t
-          }
+    Op.createWithNameScope("Estimator/Infer") {
+      if (hooks.exists(_.isInstanceOf[Stopper]))
+        Estimator.logger.warn("The provided stopper hook will be ignored. Please use 'stopCriteria' instead.")
+      // Check that the model has been trained.
+      val _checkpointPath = Option(checkpointPath).orElse(workingDir.flatMap(Saver.latestCheckpoint(_)))
+      if (_checkpointPath.isEmpty)
+        throw CheckpointNotFoundException(
+          "No checkpoint was found. Please provide a valid 'workingDir' the estimator configuration, or a path to a " +
+              "valid checkpoint file through the 'checkpointPath' argument.")
+      val model = modelFunction(configuration)
+      val graph = Graph()
+      Op.createWith(graph) {
+        randomSeed.foreach(graph.setRandomSeed)
+        Counter.getOrCreate(Graph.Keys.GLOBAL_EPOCH, local = false)
+        Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
+        val inferOps = Op.createWithNameScope("Model")(model.buildInferOps())
+        val modelInstance = ModelInstance(model, configuration, None, None, Some(inferOps.output), None, None, None)
+        hooks.foreach {
+          case hook: ModelDependentHook[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] => hook.setModelInstance(modelInstance)
+          case _ => ()
         }
-      })
-      if (!session.closed)
-        session.close()
-      output
+        val saver = getOrCreateSaver()
+        val dataInitializer = inferOps.inputIterator.createInitializer(ev.toDataset(input()))
+        val session = MonitoredSession(
+          ChiefSessionCreator(
+            sessionScaffold = SessionScaffold(
+              initOp = Some(ControlFlow.group(Set(
+                Variable.initializer(Variable.globalVariables),
+                Resources.initializer(Resources.sharedResources)))),
+              localInitOp = Some(ControlFlow.group(Set(
+                Variable.initializer(Variable.localVariables),
+                Lookup.lookupsInitializer()))),
+              localInitFunction = Some((session, _) => session.run(targets = dataInitializer)),
+              saver = saver),
+            sessionConfig = configuration.sessionConfig,
+            checkpointPath = workingDir),
+          hooks.filter(!_.isInstanceOf[Stopper]), shouldRecover = true)
+        val output = ev.convertFetched(new Iterator[(IT, ModelInferenceOutput)] {
+          override def hasNext: Boolean = !session.shouldStop
+          override def next(): (IT, ModelInferenceOutput) = {
+            try {
+              session.run(fetches = (inferOps.input, inferOps.output))
+            } catch {
+              case _: OutOfRangeException =>
+                session.setShouldStop(true)
+                // TODO: !!! Do something to avoid this null pair.
+                (null.asInstanceOf[IT], null.asInstanceOf[ModelInferenceOutput])
+              case t: Throwable =>
+                session.closeWithoutHookEnd()
+                throw t
+            }
+          }
+        })
+        if (!session.closed)
+          session.close()
+        output
+      }
     }
   }
 
@@ -387,78 +391,80 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
       checkpointPath: Path = null,
       saveSummaries: Boolean = true,
       name: String = null): Seq[Tensor] = {
-    if (hooks.exists(_.isInstanceOf[Stopper]))
-      Estimator.logger.warn("The provided stopper hook will be ignored. Please use 'stopCriteria' instead.")
-    // Check that the model has been trained.
-    val _checkpointPath = Option(checkpointPath).orElse(workingDir.flatMap(Saver.latestCheckpoint(_)))
-    if (_checkpointPath.isEmpty)
-      throw CheckpointNotFoundException(
-        "No checkpoint was found. Please provide a valid 'workingDir' the estimator configuration, or a path to a " +
-            "valid checkpoint file through the 'checkpointPath' argument.")
-    val model = modelFunction(configuration)
-    val graph = Graph()
-    Op.createWith(graph) {
-      randomSeed.foreach(graph.setRandomSeed)
-      val evaluateOps = Op.createWithNameScope("Model")(model.buildEvaluateOps(metrics))
-      Counter.getOrCreate(Graph.Keys.GLOBAL_EPOCH, local = false)
-      val globalStep = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
-      val evalStep = Counter.getOrCreate(Graph.Keys.EVAL_STEP, local = true)
-      val evalStepUpdate = evalStep.assignAdd(1L)
-      val evalUpdateOps = ControlFlow.group(evaluateOps.metricUpdates.map(_.op).toSet + evalStepUpdate.op)
-      val allHooks = mutable.Set(hooks.filter(!_.isInstanceOf[Stopper]).toSeq: _*)
-      allHooks += Stopper(StopCriteria(maxSteps = Some(maxSteps)))
-      val modelInstance = ModelInstance(
-        model, configuration, Some(evaluateOps.inputIterator), Some(evaluateOps.input), Some(evaluateOps.output),
-        None, None, None)
-      allHooks.foreach {
-        case hook: ModelDependentHook[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] => hook.setModelInstance(modelInstance)
-        case _ => ()
-      }
-      val saver = getOrCreateSaver()
-      val dataInitializer = evaluateOps.inputIterator.createInitializer(data())
-      val session = MonitoredSession(
-        ChiefSessionCreator(
-          master = configuration.evaluationMaster,
-          sessionScaffold = SessionScaffold(
-            initOp = Some(ControlFlow.group(Set(
-              Variable.initializer(Variable.globalVariables),
-              Resources.initializer(Resources.sharedResources)))),
-            localInitOp = Some(ControlFlow.group(Set(
-              Variable.initializer(Variable.localVariables),
-              Lookup.lookupsInitializer()))),
-            localInitFunction = Some((session, _) => session.run(targets = dataInitializer)),
-            saver = saver),
-          sessionConfig = configuration.sessionConfig,
-          checkpointPath = configuration.workingDir),
-        allHooks.toSet, shouldRecover = true)
-      FileBasedEstimator.logger.debug("Starting evaluation.")
-      val (step, metricValues) = {
-        try {
-          val step = session.run(fetches = globalStep.value).scalar.asInstanceOf[Long]
-          while (!session.shouldStop)
-            try {
-              session.run(targets = evalUpdateOps)
-            } catch {
-              case _: OutOfRangeException => session.setShouldStop(true)
-            }
-          (step, session.run(fetches = evaluateOps.metricValues))
-        } catch {
-          case e if RECOVERABLE_EXCEPTIONS.contains(e.getClass) =>
-            session.close()
-            (-1L, Seq.empty[Tensor])
-          case t: Throwable =>
-            session.closeWithoutHookEnd()
-            throw t
-        } finally {
-          if (!session.closed)
-            session.close()
+    Op.createWithNameScope("Estimator/Evaluate") {
+      if (hooks.exists(_.isInstanceOf[Stopper]))
+        Estimator.logger.warn("The provided stopper hook will be ignored. Please use 'stopCriteria' instead.")
+      // Check that the model has been trained.
+      val _checkpointPath = Option(checkpointPath).orElse(workingDir.flatMap(Saver.latestCheckpoint(_)))
+      if (_checkpointPath.isEmpty)
+        throw CheckpointNotFoundException(
+          "No checkpoint was found. Please provide a valid 'workingDir' the estimator configuration, or a path to a " +
+              "valid checkpoint file through the 'checkpointPath' argument.")
+      val model = modelFunction(configuration)
+      val graph = Graph()
+      Op.createWith(graph) {
+        randomSeed.foreach(graph.setRandomSeed)
+        val evaluateOps = Op.createWithNameScope("Model")(model.buildEvaluateOps(metrics))
+        Counter.getOrCreate(Graph.Keys.GLOBAL_EPOCH, local = false)
+        val globalStep = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
+        val evalStep = Counter.getOrCreate(Graph.Keys.EVAL_STEP, local = true)
+        val evalStepUpdate = evalStep.assignAdd(1L)
+        val evalUpdateOps = ControlFlow.group(evaluateOps.metricUpdates.map(_.op).toSet + evalStepUpdate.op)
+        val allHooks = mutable.Set(hooks.filter(!_.isInstanceOf[Stopper]).toSeq: _*)
+        allHooks += Stopper(StopCriteria(maxSteps = Some(maxSteps)))
+        val modelInstance = ModelInstance(
+          model, configuration, Some(evaluateOps.inputIterator), Some(evaluateOps.input), Some(evaluateOps.output),
+          None, None, None)
+        allHooks.foreach {
+          case hook: ModelDependentHook[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] => hook.setModelInstance(modelInstance)
+          case _ => ()
         }
+        val saver = getOrCreateSaver()
+        val dataInitializer = evaluateOps.inputIterator.createInitializer(data())
+        val session = MonitoredSession(
+          ChiefSessionCreator(
+            master = configuration.evaluationMaster,
+            sessionScaffold = SessionScaffold(
+              initOp = Some(ControlFlow.group(Set(
+                Variable.initializer(Variable.globalVariables),
+                Resources.initializer(Resources.sharedResources)))),
+              localInitOp = Some(ControlFlow.group(Set(
+                Variable.initializer(Variable.localVariables),
+                Lookup.lookupsInitializer()))),
+              localInitFunction = Some((session, _) => session.run(targets = dataInitializer)),
+              saver = saver),
+            sessionConfig = configuration.sessionConfig,
+            checkpointPath = configuration.workingDir),
+          allHooks.toSet, shouldRecover = true)
+        FileBasedEstimator.logger.debug("Starting evaluation.")
+        val (step, metricValues) = {
+          try {
+            val step = session.run(fetches = globalStep.value).scalar.asInstanceOf[Long]
+            while (!session.shouldStop)
+              try {
+                session.run(targets = evalUpdateOps)
+              } catch {
+                case _: OutOfRangeException => session.setShouldStop(true)
+              }
+            (step, session.run(fetches = evaluateOps.metricValues))
+          } catch {
+            case e if RECOVERABLE_EXCEPTIONS.contains(e.getClass) =>
+              session.close()
+              (-1L, Seq.empty[Tensor])
+            case t: Throwable =>
+              session.closeWithoutHookEnd()
+              throw t
+          } finally {
+            if (!session.closed)
+              session.close()
+          }
+        }
+        FileBasedEstimator.logger.debug("Finished evaluation.")
+        FileBasedEstimator.logger.debug("Saving evaluation results.")
+        if (saveSummaries)
+          saveEvaluationSummaries(step, metrics, metricValues, name)
+        metricValues
       }
-      FileBasedEstimator.logger.debug("Finished evaluation.")
-      FileBasedEstimator.logger.debug("Saving evaluation results.")
-      if (saveSummaries)
-        saveEvaluationSummaries(step, metrics, metricValues, name)
-      metricValues
     }
   }
 }
