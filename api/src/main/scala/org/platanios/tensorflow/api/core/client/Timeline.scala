@@ -58,7 +58,7 @@ object Timeline {
     val chromeTraceFormatter = ChromeTraceFormatter()
     var devicePIDs = Map.empty[String, Int]
     var tensorsPIDs = Map.empty[String, Int]
-    var threadIDs = Map.empty[Int, Int]
+    var threadIDs = Map.empty[(Int, Int), Int]
     var tensors = Map.empty[String, TensorTracker]
     var flowStarts = Map.empty[String, (Long, Int, Int)]
     var nextPID = 0
@@ -87,7 +87,6 @@ object Timeline {
       deviceStats.getNodeStatsList.asScala.zipWithIndex.foreach {
         case (nodeStats, nodeIndex) =>
           // Analyze tensor references to track data flow.
-          val nodeName = nodeStats.getNodeName
           val startTime = nodeStats.getAllStartMicros
           val duration = nodeStats.getAllEndRelMicros
           val endTime = nodeStats.getAllStartMicros + duration
@@ -103,7 +102,7 @@ object Timeline {
               l
             }
           }
-          threadIDs += nodeIndex -> threadID
+          threadIDs += (devicePID, nodeIndex) -> threadID
       }
     })
 
@@ -119,7 +118,7 @@ object Timeline {
           val startTime = nodeStats.getAllStartMicros
           val duration = nodeStats.getAllEndRelMicros
           val endTime = nodeStats.getAllStartMicros + duration
-          val threadID = threadIDs(nodeIndex)
+          val threadID = threadIDs((devicePID, nodeIndex))
 
           nodeStats.getOutputList.asScala.zipWithIndex.foreach {
             case (output, index) =>
@@ -154,7 +153,7 @@ object Timeline {
       deviceStats.getNodeStatsList.asScala.zipWithIndex.foreach {
         case (nodeStats, nodeIndex) =>
           val nodeName = nodeStats.getNodeName
-          val threadID = threadIDs(nodeIndex)
+          val threadID = threadIDs((devicePID, nodeIndex))
           val startTime = nodeStats.getAllStartMicros
           val duration = nodeStats.getAllEndRelMicros
           val endTime = nodeStats.getAllStartMicros + duration
