@@ -482,7 +482,7 @@ object Op {
 
   /** Returns the name scope of the current op creation context. */
   private[api] def currentNameScope(implicit context: DynamicVariable[OpCreationContext]): String = {
-    if (context.value.nameScope == "") "" else context.value.nameScope
+    if (context.value.nameScope == "") "" else s"${context.value.nameScope}/"
   }
 
   /** Returns the variable scope of the current op creation context. */
