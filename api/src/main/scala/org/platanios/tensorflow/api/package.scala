@@ -48,7 +48,6 @@ package object api extends implicits.Implicits with Documentation {
   Graph.Keys.register(Graph.Keys.LOSSES)
   Graph.Keys.register(Graph.Keys.SHARED_RESOURCES)
   Graph.Keys.register(Graph.Keys.LOCAL_RESOURCES)
-  Graph.Keys.register(Graph.Keys.TRAINABLE_RESOURCE_VARIABLES)
   Graph.Keys.register(Graph.Keys.INIT_OP)
   Graph.Keys.register(Graph.Keys.LOCAL_INIT_OP)
   Graph.Keys.register(Graph.Keys.READY_OP)
