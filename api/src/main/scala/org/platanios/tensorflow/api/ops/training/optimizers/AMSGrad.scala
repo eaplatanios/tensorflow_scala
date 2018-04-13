@@ -52,21 +52,23 @@ import org.platanios.tensorflow.api.ops.variables.Variable
   *
   * For more information on this algorithm, please refer to this [paper](https://openreview.net/pdf?id=ryQu7f-RZ).
   *
-  * @param  learningRate           Learning rate. Must be `> 0`. If used with `decay`, then this argument specifies the
-  *                                initial value of the learning rate.
-  * @param  decay                  Learning rate decay method to use for each update.
-  * @param  beta1                  Exponential decay rate for the first moment estimates.
-  * @param  beta2                  Exponential decay rate for the second moment estimates.
-  * @param  useNesterov            If `true`, Nesterov momentum is used for the updates.
-  * @param  epsilon                Small constant used for numerical stability. This epsilon corresponds to
-  *                                "epsilon hat" in the Kingma and Ba paper (in the formula just before Section 2.1),
-  *                                and not to the epsilon in Algorithm 1 of the paper.
-  * @param  useLocking             If `true`, the gradient descent updates will be protected by a lock. Otherwise, the
-  *                                behavior is undefined, but may exhibit less contention.
-  * @param  learningRateSummaryTag Optional summary tag name to use for the learning rate value. If `null`, no summary
-  *                                is created for the learning rate. Otherwise, a scalar summary is created which can be
-  *                                monitored using TensorBoard.
-  * @param  name                   Name for this optimizer.
+  * @param  learningRate                 Learning rate. Must be `> 0`. If used with `decay`, then this argument
+  *                                      specifies the initial value of the learning rate.
+  * @param  decay                        Learning rate decay method to use for each update.
+  * @param  beta1                        Exponential decay rate for the first moment estimates.
+  * @param  beta2                        Exponential decay rate for the second moment estimates.
+  * @param  useNesterov                  If `true`, Nesterov momentum is used for the updates.
+  * @param  epsilon                      Small constant used for numerical stability. This epsilon corresponds to
+  *                                      "epsilon hat" in the Kingma and Ba paper (in the formula just before Section
+  *                                      2.1), and not to the epsilon in Algorithm 1 of the paper.
+  * @param  ignoreDuplicateSparseIndices If `true`, duplicate indices will be ignored in sparse updates (i.e., they will
+  *                                      not be uniquified before applying the update).
+  * @param  useLocking                   If `true`, the gradient descent updates will be protected by a lock. Otherwise,
+  *                                      the behavior is undefined, but may exhibit less contention.
+  * @param  learningRateSummaryTag       Optional summary tag name to use for the learning rate value. If `null`, no
+  *                                      summary is created for the learning rate. Otherwise, a scalar summary is
+  *                                      created which can be monitored using TensorBoard.
+  * @param  name                         Name for this optimizer.
   *
   * @author Emmanouil Antonios Platanios
   */
@@ -77,6 +79,7 @@ class AMSGrad protected (
     val beta2: Double = 0.999,
     val useNesterov: Boolean = false,
     val epsilon: Double = 1e-8,
+    override val ignoreDuplicateSparseIndices: Boolean = false,
     val useLocking: Boolean = false,
     val learningRateSummaryTag: String = null,
     val name: String = "AMSGrad"
@@ -218,10 +221,13 @@ object AMSGrad {
       beta2: Double = 0.999,
       useNesterov: Boolean = false,
       epsilon: Double = 1e-8,
+      ignoreDuplicateSparseIndices: Boolean = false,
       useLocking: Boolean = false,
       learningRateSummaryTag: String = null,
       name: String = "AMSGrad"
   ): AMSGrad = {
-    new AMSGrad(learningRate, decay, beta1, beta2, useNesterov, epsilon, useLocking, learningRateSummaryTag, name)
+    new AMSGrad(
+      learningRate, decay, beta1, beta2, useNesterov, epsilon, ignoreDuplicateSparseIndices, useLocking,
+      learningRateSummaryTag, name)
   }
 }

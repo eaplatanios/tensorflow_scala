@@ -36,6 +36,9 @@ trait Optimizer {
   /** Boolean value indicating whether to apply use locks to prevent concurrent updates to variables. */
   val useLocking: Boolean
 
+  /** Boolean value indicating whether to ignore duplicate indices during sparse updates. */
+  val ignoreDuplicateSparseIndices: Boolean
+
   // TODO: [OPTIMIZER] Slot variables make re-using optimizer objects a bit dirty.
 
   /** Some [[Optimizer]] subclasses use additional variables. For example, `MomentumOptimizer` and `AdaGradOptimizer`
@@ -66,10 +69,16 @@ trait Optimizer {
     * @param  name                       Name for the created op.
     * @return Created op.
     */
-  def minimize(loss: Output, lossGradients: Seq[OutputLike] = null, variables: Set[Variable] = null,
+  def minimize(
+      loss: Output,
+      lossGradients: Seq[OutputLike] = null,
+      variables: Set[Variable] = null,
       gradientsGatingMethod: Gradients.GatingMethod = Gradients.OpGating,
       gradientsAggregationMethod: Gradients.AggregationMethod = Gradients.AddAggregationMethod,
-      colocateGradientsWithOps: Boolean = false, iteration: Option[Variable] = None, name: String = "Minimize"): Op = {
+      colocateGradientsWithOps: Boolean = false,
+      iteration: Option[Variable] = None,
+      name: String = "Minimize"
+  ): Op = {
     val gradientsAndVariables = computeGradients(
       loss, lossGradients, variables, gradientsGatingMethod, gradientsAggregationMethod, colocateGradientsWithOps)
     applyGradients(gradientsAndVariables, iteration, name)
@@ -269,8 +278,14 @@ trait Optimizer {
     * @return Created op that applies the provided gradient to the provided variable.
     */
   protected def applySparseDuplicateIndices(
-      gradient: OutputIndexedSlices, variable: Variable, iteration: Option[Variable]): Op = {
-    applySparse(deDuplicateOutputIndexedSlices(gradient), variable, iteration)
+      gradient: OutputIndexedSlices,
+      variable: Variable,
+      iteration: Option[Variable]
+  ): Op = {
+    if (ignoreDuplicateSparseIndices)
+      applySparse(gradient, variable, iteration)
+    else
+      applySparse(deDuplicateOutputIndexedSlices(gradient), variable, iteration)
   }
 
   /** Gets the map used for caching slots created under the provided name. If the map does not exist, then a new empty

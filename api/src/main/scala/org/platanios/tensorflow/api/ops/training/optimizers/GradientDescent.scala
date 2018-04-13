@@ -46,6 +46,8 @@ class GradientDescent protected (
     val learningRateSummaryTag: String = null,
     val name: String = "GradientDescent"
 ) extends Optimizer {
+  override val ignoreDuplicateSparseIndices: Boolean = true
+
   protected var learningRateTensor: Output = _
   protected var momentumTensor    : Output = _
 

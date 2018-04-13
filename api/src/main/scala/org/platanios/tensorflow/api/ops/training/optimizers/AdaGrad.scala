@@ -30,17 +30,19 @@ import org.platanios.tensorflow.api.ops.variables.{ConstantInitializer, Variable
   * For more information on this algorithm, please refer to this
   * [paper](http://www.jmlr.org/papers/volume12/duchi11a/duchi11a.pdf).
   *
-  * @param  learningRate           Learning rate. Must be `> 0`. If used with `decay`, then this argument specifies the
-  *                                initial value of the learning rate.
-  * @param  decay                  Learning rate decay method to use for each update.
-  * @param  epsilon                Initial value to use for the accumulator (i.e., to avoid dividing by zero, or a very
-  *                                small value).
-  * @param  useLocking             If `true`, the gradient descent updates will be protected by a lock. Otherwise, the
-  *                                behavior is undefined, but may exhibit less contention.
-  * @param  learningRateSummaryTag Optional summary tag name to use for the learning rate value. If `null`, no summary
-  *                                is created for the learning rate. Otherwise, a scalar summary is created which can be
-  *                                monitored using TensorBoard.
-  * @param  name                   Name for this optimizer.
+  * @param  learningRate                 Learning rate. Must be `> 0`. If used with `decay`, then this argument
+  *                                      specifies the initial value of the learning rate.
+  * @param  decay                        Learning rate decay method to use for each update.
+  * @param  epsilon                      Initial value to use for the accumulator (i.e., to avoid dividing by zero, or a
+  *                                      very small value).
+  * @param  ignoreDuplicateSparseIndices If `true`, duplicate indices will be ignored in sparse updates (i.e., they will
+  *                                      not be uniquified before applying the update).
+  * @param  useLocking                   If `true`, the gradient descent updates will be protected by a lock. Otherwise,
+  *                                      the behavior is undefined, but may exhibit less contention.
+  * @param  learningRateSummaryTag       Optional summary tag name to use for the learning rate value. If `null`, no
+  *                                      summary is created for the learning rate. Otherwise, a scalar summary is
+  *                                      created which can be monitored using TensorBoard.
+  * @param  name                         Name for this optimizer.
   *
   * @author Emmanouil Antonios Platanios
   */
@@ -48,6 +50,7 @@ class AdaGrad protected (
     val learningRate: Double = 0.01,
     val decay: Schedule = FixedSchedule,
     val epsilon: Double = 1e-8,
+    override val ignoreDuplicateSparseIndices: Boolean = false,
     val useLocking: Boolean = false,
     val learningRateSummaryTag: String = null,
     val name: String = "AdaGrad"
@@ -90,11 +93,12 @@ object AdaGrad {
       learningRate: Double = 0.01,
       decay: Schedule = FixedSchedule,
       epsilon: Double = 1e-8,
+      ignoreDuplicateSparseIndices: Boolean = false,
       useLocking: Boolean = false,
       learningRateSummaryTag: String = null,
       name: String = "AdaGrad"
   ): AdaGrad = {
-    new AdaGrad(learningRate, decay, epsilon, useLocking, learningRateSummaryTag, name)
+    new AdaGrad(learningRate, decay, epsilon, ignoreDuplicateSparseIndices, useLocking, learningRateSummaryTag, name)
   }
 
   /** Creates an op that updates `variable` by applying the AdaGrad algorithm update to it.

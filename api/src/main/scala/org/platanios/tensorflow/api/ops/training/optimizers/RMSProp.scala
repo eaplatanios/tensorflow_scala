@@ -39,19 +39,21 @@ import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output, OutputIndexedS
   *   variable -= momAcc
   * }}}
   *
-  * @param  learningRate           Learning rate. Must be `> 0`. If used with `decay`, then this argument specifies the
-  *                                initial value of the learning rate.
-  * @param  decay                  Learning rate decay method to use for each update.
-  * @param  rho                    RMSProp decay factor.
-  * @param  momentum               RMSProp momentum factor.
-  * @param  epsilon                RMSProp constant factor.
-  * @param  centered               Boolean value indicating whether or not to use the centered version of RMSProp.
-  * @param  useLocking             If `true`, the gradient descent updates will be protected by a lock. Otherwise, the
-  *                                behavior is undefined, but may exhibit less contention.
-  * @param  learningRateSummaryTag Optional summary tag name to use for the learning rate value. If `null`, no summary
-  *                                is created for the learning rate. Otherwise, a scalar summary is created which can be
-  *                                monitored using TensorBoard.
-  * @param  name                   Name for this optimizer.
+  * @param  learningRate                 Learning rate. Must be `> 0`. If used with `decay`, then this argument
+  *                                      specifies the initial value of the learning rate.
+  * @param  decay                        Learning rate decay method to use for each update.
+  * @param  rho                          RMSProp decay factor.
+  * @param  momentum                     RMSProp momentum factor.
+  * @param  epsilon                      RMSProp constant factor.
+  * @param  centered                     Boolean value indicating whether or not to use the centered version of RMSProp.
+  * @param  ignoreDuplicateSparseIndices If `true`, duplicate indices will be ignored in sparse updates (i.e., they will
+  *                                      not be uniquified before applying the update).
+  * @param  useLocking                   If `true`, the gradient descent updates will be protected by a lock. Otherwise,
+  *                                      the behavior is undefined, but may exhibit less contention.
+  * @param  learningRateSummaryTag       Optional summary tag name to use for the learning rate value. If `null`, no
+  *                                      summary is created for the learning rate. Otherwise, a scalar summary is
+  *                                      created which can be monitored using TensorBoard.
+  * @param  name                         Name for this optimizer.
   *
   * @author Emmanouil Antonios Platanios
   */
@@ -62,6 +64,7 @@ class RMSProp protected (
     val momentum: Double = 0.0,
     val epsilon: Double = 1e-10,
     val centered: Boolean = false,
+    override val ignoreDuplicateSparseIndices: Boolean = false,
     val useLocking: Boolean = false,
     val learningRateSummaryTag: String = null,
     val name: String = "RMSProp"
@@ -158,11 +161,14 @@ object RMSProp {
       momentum: Double = 0.0,
       epsilon: Double = 1e-10,
       centered: Boolean = false,
+      ignoreDuplicateSparseIndices: Boolean = false,
       useLocking: Boolean = false,
       learningRateSummaryTag: String = null,
       name: String = "RMSProp"
   ): RMSProp = {
-    new RMSProp(learningRate, decay, rho, momentum, epsilon, centered, useLocking, learningRateSummaryTag, name)
+    new RMSProp(
+      learningRate, decay, rho, momentum, epsilon, centered, ignoreDuplicateSparseIndices, useLocking,
+      learningRateSummaryTag, name)
   }
 
   /** Creates an op that updates `variable` by applying the RMSProp algorithm update to it.
