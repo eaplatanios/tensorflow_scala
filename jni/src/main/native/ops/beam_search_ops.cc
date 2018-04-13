@@ -50,7 +50,7 @@ REGISTER_OP("GatherTree")
     .Input("end_token: T")
     .Output("beams: T")
     .Attr("T: {int32}")
-    .SetShapeFn([](InferenceContext* c) -> tensorflow::Status {
+    .SetShapeFn([](InferenceContext* c) {
       ShapeHandle step_ids, parent_ids, max_sequence_lengths, end_token;
 
       // step_ids, parent_ids, and output are all shaped:
@@ -74,14 +74,11 @@ REGISTER_OP("GatherTree")
     .Doc(R"doc(
 Calculates the full beams from the per-step ids and parent beam ids.
 
-On CPU, if an out of bound parent id is found, an error is returned.
-On GPU, if an out of bound parent id is found, a -1 is stored in the
-corresponding output value and the execution for that beam returns early.
+This op implements the following mathematical equations:
 
-For a given beam, past the time step containing the first decoded `end_token`
-all values are filled in with `end_token`.
-
-TODO(ebrevdo): fill in the remainder of this docstring.
+```python
+TODO(ebrevdo): fill in
+```
 
 step_ids: `[max_time, batch_size, beam_width]`.
 parent_ids: `[max_time, batch_size, beam_width]`.
@@ -127,18 +124,18 @@ class GatherTreeOp : public OpKernel {
         ctx,
         step_ids_shape.dim_size(1) == max_sequence_lengths.shape().dim_size(0),
         errors::InvalidArgument("batch size dimensions step_ids.shape[1] and "
-                                "max_seqeuence_lengths.shape[0] must match.  "
+                                "max_sequence_lengths.shape[0] must match.  "
                                 "but shapes are: ",
                                 step_ids_shape.DebugString(), " and ",
                                 max_sequence_lengths.shape().DebugString()));
     Tensor* beams;
     OP_REQUIRES_OK(ctx, ctx->allocate_output(0, step_ids_shape, &beams));
-    typename TTypes<T, 3>::ConstTensor step_ids_t = step_ids.tensor<T, 3>();
-    typename TTypes<T, 3>::ConstTensor parent_ids_t = parent_ids.tensor<T, 3>();
+    typename TTypes<T, 3>::ConstTensor step_ids_t(step_ids.tensor<T, 3>());
+    typename TTypes<T, 3>::ConstTensor parent_ids_t(parent_ids.tensor<T, 3>());
     typename TTypes<int32>::ConstVec max_seq_lens_t =
         max_sequence_lengths.vec<int32>();
-    typename TTypes<T>::ConstScalar end_token_t = end_token.scalar<T>();
-    typename TTypes<T, 3>::Tensor beams_t = beams->tensor<T, 3>();
+    typename TTypes<T>::ConstScalar end_token_t(end_token.scalar<T>());
+    typename TTypes<T, 3>::Tensor beams_t(beams->tensor<T, 3>());
     const T end_token_value = end_token_t();
     functor::GatherTree<Device, T>()(ctx, device, step_ids_t, parent_ids_t,
                                      max_seq_lens_t, end_token_value, beams_t);
