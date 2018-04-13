@@ -49,9 +49,9 @@ case class TensorArray private (
     flow: Output,
     dataType: DataType,
     inferShape: Boolean,
-    private var elementShape: Option[Shape],
+    private[ops] var elementShape: Option[Shape],
     colocateWithFirstWrite: Boolean = true,
-    private var colocationOps: List[Op] = null
+    private var colocationOps: Seq[Op] = null
 ) extends Symbol {
   /** Changes the element shape of the array given a shape to merge with.
     *
@@ -277,7 +277,10 @@ case class TensorArray private (
     * @return Gradient tensor array.
     */
   private[api] def gradient(
-      source: String, flow: Output = this.flow, name: String = "TensorArrayGradient"): TensorArray = {
+      source: String,
+      flow: Output = this.flow,
+      name: String = "TensorArrayGradient"
+  ): TensorArray = {
     // `TensorArray.gradientOp` requires a flow input when forward tensor arrays are dynamically sized. This forces the
     // creation of the gradient tensor array only once the final forward array's size is fixed.
     Op.createWithNameScope(name, Set(handle.op)) {
@@ -312,7 +315,7 @@ case class TensorArray private (
     if (!colocateWithFirstWrite) {
       block
     } else if (colocationOps == null) {
-      colocationOps = List(op)
+      colocationOps = Seq(op)
       Op.colocateWith(colocationOps.toSet)(block)
     } else {
       Op.colocateWith(colocationOps.take(1).toSet)(block)
