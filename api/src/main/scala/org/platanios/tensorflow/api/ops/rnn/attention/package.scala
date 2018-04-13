@@ -110,7 +110,7 @@ package object attention {
         }
 
         override def map(
-            value: AttentionWrapperState[S, SS, AS, ASS], mapFn: (ops.Symbol) => ops.Symbol
+            value: AttentionWrapperState[S, SS, AS, ASS], mapFn: ops.Symbol => ops.Symbol
         ): AttentionWrapperState[S, SS, AS, ASS] = {
           val cellState = evS.map(value.cellState, mapFn)
           val time = evOutput.map(value.time, mapFn)

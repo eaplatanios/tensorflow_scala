@@ -92,14 +92,16 @@ class AttentionWrapperCell[S, SS, AS, ASS] private[attention] (
             case s: OutputLike => Basic.identity(s, "CheckedInitialCellState")
           })
         }
+        val initialAlignments = attentions.map(_.initialAlignment)
         AttentionWrapperState(
           cellState = checkedCellState,
           time = Basic.zeros(INT32, Shape.scalar()),
           attention = Basic.fill(inferredDataType, Basic.stack(Seq(batchSize, attentionLayersSize)))(0),
-          alignments = attentions.map(_.initialAlignment),
+          alignments = initialAlignments,
           alignmentsHistory = {
             if (storeAlignmentsHistory)
-              attentions.map(_ => TensorArray.create(0, inferredDataType, dynamicSize = true))
+              initialAlignments.map(a =>
+                TensorArray.create(0, inferredDataType, dynamicSize = true, elementShape = a.shape))
             else
               Seq.empty
           },
@@ -113,7 +115,13 @@ class AttentionWrapperCell[S, SS, AS, ASS] private[attention] (
   override def stateShape: (SS, Shape, Shape, Seq[Shape], Seq[Shape], Seq[ASS]) = {
     (cell.stateShape, Shape(1), Shape(attentionLayersSize),
         attentions.map(a => Output.constantValueAsShape(a.alignmentSize.expandDims(0)).getOrElse(Shape.unknown())),
-        attentions.map(_ => Shape.scalar()), attentions.map(_.stateSize))
+        attentions.map(a => {
+          if (storeAlignmentsHistory)
+            Output.constantValueAsShape(a.alignmentSize.expandDims(0)).getOrElse(Shape.unknown())
+          else
+            Shape.scalar()
+        }),
+        attentions.map(_.stateSize))
   }
 
   /** Performs a step using this attention-wrapped RNN cell.

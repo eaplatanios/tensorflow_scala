@@ -283,7 +283,7 @@ object BasicDecoder {
     *                     decoding).
     */
   case class GreedyEmbeddingHelper[S](
-      embeddingFn: (ops.Output) => ops.Output,
+      embeddingFn: ops.Output => ops.Output,
       beginTokens: ops.Output,
       endToken: ops.Output,
       name: String = "RNNDecoderGreedyEmbeddingHelper"

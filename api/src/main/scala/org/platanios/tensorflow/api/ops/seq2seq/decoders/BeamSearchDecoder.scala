@@ -19,11 +19,14 @@ import org.platanios.tensorflow.api.core.{NewAxis, Shape}
 import org.platanios.tensorflow.api.core.exception.{InvalidArgumentException, InvalidShapeException}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops
-import org.platanios.tensorflow.api.ops.{Basic, Math, NN, Op, Output, TensorArray}
+import org.platanios.tensorflow.api.ops.{Basic, Checks, Math, NN, Op, Output, TensorArray}
 import org.platanios.tensorflow.api.ops.control_flow.{ControlFlow, WhileLoopVariable}
 import org.platanios.tensorflow.api.ops.rnn.cell.{RNNCell, Tuple}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types._
+
+import com.typesafe.scalalogging.Logger
+import org.slf4j.LoggerFactory
 
 import scala.collection.mutable.ArrayBuffer
 import scala.language.postfixOps
@@ -32,31 +35,36 @@ import scala.language.postfixOps
 
 /** Recurrent Neural Network (RNN) that uses beam search to find the highest scoring sequence (i.e., perform decoding).
   *
-  * @param  cell             RNN cell to use for decoding.
-  * @param  initialCellState Initial RNN cell state to use for starting the decoding process.
-  * @param  embeddingFn      Function that takes an `INT32` vector of IDs and returns the corresponding embedded values
-  *                          that will be passed to the decoder input.
-  * @param  beginTokens      `INT32` vector with length equal to the batch size, which contains the begin-of-sequence
-  *                          token IDs.
-  * @param  endToken         `INT32` scalar containing the end-of-sequence token ID (i.e., token ID which marks the end
-  *                          of decoding).
-  * @param  beamWidth        Beam width to use for the beam search while decoding.
-  * @param  lengthPenalty    Length penalty method.
-  * @param  outputLayer      Output layer to use that is applied at the outputs of the provided RNN cell before
-  *                          returning them.
-  * @param  name             Name prefix used for all created ops.
+  * @param  cell                RNN cell to use for decoding.
+  * @param  initialCellState    Initial RNN cell state to use for starting the decoding process.
+  * @param  embeddingFn         Function that takes an `INT32` vector of IDs and returns the corresponding embedded
+  *                             values that will be passed to the decoder input.
+  * @param  beginTokens         `INT32` vector with length equal to the batch size, which contains the begin-of-sequence
+  *                             token IDs.
+  * @param  endToken            `INT32` scalar containing the end-of-sequence token ID (i.e., token ID which marks the
+  *                             end of decoding).
+  * @param  beamWidth           Beam width to use for the beam search while decoding.
+  * @param  lengthPenalty       Length penalty method.
+  * @param  outputLayer         Output layer to use that is applied at the outputs of the provided RNN cell before
+  *                             returning them.
+  * @param  reorderTensorArrays If `true`, `TensorArray`s' elements within the cell state will be reordered according to
+  *                             the beam search path. If the `TensorArray` can be reordered, the stacked form will be
+  *                             returned. Otherwise, the `TensorArray` will be returned as is. Set this flag to `false`
+  *                             if the cell state contains any `TensorArray`s that are not amenable to reordering.
+  * @param  name                Name prefix used for all created ops.
   *
   * @author Emmanouil Antonios Platanios
   */
 class BeamSearchDecoder[S, SS](
     override val cell: RNNCell[Output, Shape, S, SS],
     val initialCellState: S,
-    val embeddingFn: (Output) => Output,
+    val embeddingFn: Output => Output,
     val beginTokens: Output,
     val endToken: Output,
     val beamWidth: Int,
     val lengthPenalty: LengthPenalty = NoPenalty,
     val outputLayer: Output => Output = (o: Output) => o,
+    val reorderTensorArrays: Boolean = true,
     override val name: String = "BeamSearchRNNDecoder"
 )(implicit
     evOutput: WhileLoopVariable.Aux[Output, Shape],
@@ -151,7 +159,9 @@ class BeamSearchDecoder[S, SS](
     *         and (iv) a scalar `BOOLEAN` tensor specifying whether decoding has finished.
     */
   override def next(
-      time: Output, input: Output, state: BeamSearchDecoder.State[S, SS]
+      time: Output,
+      input: Output,
+      state: BeamSearchDecoder.State[S, SS]
   ): (BeamSearchDecoder.Output, BeamSearchDecoder.State[S, SS], Output, Output) = {
     Op.createWithNameScope(s"$name/Next") {
       val mergedInput = evOutput.mapWithShape(
@@ -211,7 +221,7 @@ class BeamSearchDecoder[S, SS](
 
       // Append the new IDs to the current predictions
       val gatheredFinished = evOutput.map(previouslyFinished, BeamSearchDecoder.gather(
-          nextParentIDs, _, batchSize, beamWidth, Seq(-1), name = "NextBeamFinishedGather"))
+        nextParentIDs, _, batchSize, beamWidth, Seq(-1), name = "NextBeamFinishedGather"))
       val nextFinished = Math.logicalOr(
         gatheredFinished, Math.equal(nextPredictedIDs, endToken), name = "NextBeamFinished")
 
@@ -259,29 +269,36 @@ class BeamSearchDecoder[S, SS](
     val predictedIDs = BeamSearchDecoder.gatherTree(
       output.predictedIDs, output.parentIDs, maxSequenceLengths, endToken)
     val finalOutput = BeamSearchDecoder.FinalOutput(predictedIDs, output)
-    val finalState = state.copy[S, SS](rnnState = evS.map(
-      state.rnnState, BeamSearchDecoder.maybeSortTensorArrayBeams(_, state.sequenceLengths, output.parentIDs)))
+    var finalState = state
+    if (reorderTensorArrays)
+      finalState = state.copy[S, SS](rnnState = evS.map(
+        state.rnnState, BeamSearchDecoder.maybeSortTensorArrayBeams(
+          _, state.sequenceLengths, output.parentIDs, batchSize, beamWidth)))
     (finalOutput, finalState, finalState.sequenceLengths)
   }
 }
 
 object BeamSearchDecoder {
+  protected[BeamSearchDecoder] val logger = Logger(LoggerFactory.getLogger("Ops / Beam Search Decoder"))
+
   def apply[S, SS](
       cell: RNNCell[ops.Output, Shape, S, SS],
       initialCellState: S,
-      embeddingFn: (ops.Output) => ops.Output,
+      embeddingFn: ops.Output => ops.Output,
       beginTokens: ops.Output,
       endToken: ops.Output,
       beamWidth: Int,
       lengthPenalty: LengthPenalty = NoPenalty,
       outputLayer: ops.Output => ops.Output = (o: ops.Output) => o,
+      reorderTensorArrays: Boolean = true,
       name: String = "BeamSearchRNNDecoder"
   )(implicit
       evOutput: WhileLoopVariable.Aux[ops.Output, Shape],
       evS: WhileLoopVariable.Aux[S, SS]
   ): BeamSearchDecoder[S, SS] = {
     new BeamSearchDecoder[S, SS](
-      cell, initialCellState, embeddingFn, beginTokens, endToken, beamWidth, lengthPenalty, outputLayer, name)
+      cell, initialCellState, embeddingFn, beginTokens, endToken, beamWidth, lengthPenalty, outputLayer,
+      reorderTensorArrays, name)
   }
 
   case class Output(scores: ops.Output, predictedIDs: ops.Output, parentIDs: ops.Output)
@@ -491,7 +508,9 @@ object BeamSearchDecoder {
     *         beams are replaced with a tensor with all probability mass allocated to `endToken`.
     */
   private[BeamSearchDecoder] def maskLogProbabilities(
-      logProbabilities: ops.Output, endToken: ops.Output, finished: ops.Output
+      logProbabilities: ops.Output,
+      endToken: ops.Output,
+      finished: ops.Output
   ): ops.Output = {
     val vocabSize = Basic.shape(logProbabilities)(2)
     // Finished examples are replaced with a vector that has all its probability mass on `endToken`
@@ -614,7 +633,10 @@ object BeamSearchDecoder {
   @throws[InvalidArgumentException]
   @throws[InvalidShapeException]
   private[BeamSearchDecoder] def splitBatchBeams(
-      value: ops.Symbol, shape: Shape, batchSize: ops.Output, beamWidth: Int
+      value: ops.Symbol,
+      shape: Shape,
+      batchSize: ops.Output,
+      beamWidth: Int
   ): ops.Symbol = {
     (value, shape) match {
       case (output: ops.Output, s: Shape) =>
@@ -790,41 +812,123 @@ object BeamSearchDecoder {
     }
   }
 
+  /** Checks are known statically and can be reshaped to `[batchSize, beamSize, -1]` and logs a warning
+    * if they cannot. */
+  private[BeamSearchDecoder] def checkStaticBatchBeam(
+      shape: Shape,
+      batchSize: Int,
+      beamWidth: Int
+  ): Boolean = {
+    if (batchSize != -1 && shape(0) != -1 &&
+        (shape(0) != batchSize * beamWidth ||
+            (shape.rank > 1 && shape(1) != -1 &&
+                (shape(0) != batchSize || shape(1) != beamWidth)))) {
+      val reshapedShape = Shape(batchSize, beamWidth, -1)
+      logger.warn(
+        s"Tensor array reordering expects elements to be reshapable to '$reshapedShape' which is incompatible with " +
+            s"the current shape '$shape'. Consider setting `reorderTensorArrays` to `false` to disable tensor array " +
+            "reordering during the beam search.")
+      false
+    } else {
+      true
+    }
+  }
+
+  /** Returns an assertion op checking that the elements of the stacked tensor array (i.e., `tensor`) can be reshaped
+    * to `[batchSize, beamSize, -1]`. At this point, the tensor array elements have a known rank of at least `1`. */
+  private[BeamSearchDecoder] def checkBatchBeam(
+      tensor: ops.Output,
+      batchSize: ops.Output,
+      beamWidth: ops.Output
+  ): Op = {
+    Checks.assert(
+      condition = {
+        val shape = Basic.shape(tensor)
+        if (tensor.rank == 2)
+          Math.equal(shape(1), batchSize * beamWidth)
+        else
+          Math.logicalOr(
+            Math.equal(shape(1), batchSize * beamWidth),
+            Math.logicalAnd(
+              Math.equal(shape(1), batchSize),
+              Math.equal(shape(2), beamWidth)))
+      },
+      data = Seq("Tensor array reordering expects elements to be reshapable to '[batchSize, beamSize, -1]' which is " +
+          s"incompatible with the dynamic shape of '${tensor.name}' elements. Consider setting `reorderTensorArrays` " +
+          "to `false` to disable tensor array reordering during the beam search."))
+  }
+
+  /** Maybe sorts the beams within a tensor array.
+    *
+    * @param  value           Symbol to be sorted. This will only be sorted if it is a tensor array of size `maxTime`
+    *                         that contains tensors with shape `[batchSize, beamWidth, s]` or
+    *                         `[batchSize * beamWidth, s]`, where `s` is the depth shape.
+    * @param  sequenceLengths Tensor containing the sequence lengths, with shape `[batchSize, beamWidth]`.
+    * @param  parentIDs       Tensor containing the parent indices, with shape `[maxTime, batchSize, beamWidth]`.
+    * @param  batchSize       Batch size.
+    * @param  beamWidth       Beam width.
+    * @return A tensor array where beams are sorted in each tensor, or `value` itself, if it is not a tensor array or
+    *         does not meet the shape requirements.
+    */
   private[BeamSearchDecoder] def maybeSortTensorArrayBeams(
-      value: ops.Symbol, sequenceLengths: ops.Output, parentIDs: ops.Output
+      value: ops.Symbol,
+      sequenceLengths: ops.Output,
+      parentIDs: ops.Output,
+      batchSize: ops.Output,
+      beamWidth: Int
   ): ops.Symbol = {
     value match {
+      case ta: TensorArray if (!ta.inferShape || ta.elementShape.isEmpty) ||
+          ta.elementShape.get(0) == -1 ||
+          ta.elementShape.get(1) < 1 =>
+        val shape = ta.elementShape match {
+          case Some(s) if ta.inferShape => Shape(s(0))
+          case _ => Shape(-1)
+        }
+        logger.warn(
+          s"The tensor array '${ta.handle.name}' in the cell state is not amenable to sorting based on the beam " +
+              s"search result. For a tensor array to be sorted, its elements shape must be defined and have at least " +
+              s"a rank of 1. However, the elements shape in the provided tensor array is: $shape.")
+        ta
+      case ta: TensorArray if !checkStaticBatchBeam(
+        shape = Shape(ta.elementShape.get(0)),
+        batchSize = ops.Output.constantValue(batchSize).map(_.scalar.asInstanceOf[Int]).getOrElse(-1),
+        beamWidth = beamWidth) => ta
       case ta: TensorArray =>
-        val maxTime = Basic.shape(parentIDs)(0)
-        val batchSize = Basic.shape(parentIDs)(1)
-        val beamWidth = Basic.shape(parentIDs)(2)
+        val stackedTensorArray = ta.stack()
+        Op.createWith(controlDependencies = Set(checkBatchBeam(stackedTensorArray, batchSize, beamWidth))) {
+          val maxTime = Basic.shape(parentIDs)(0)
+          val batchSize = Basic.shape(parentIDs)(1)
+          val beamWidth = Basic.shape(parentIDs)(2)
 
-        // Generate beam IDs that will be reordered by the `gatherTree` op
-        val beamIDs = Basic.tile(Math.range(0, beamWidth)(NewAxis, NewAxis), Basic.stack(Seq(maxTime, batchSize, 1)))
-        val mask = Basic.sequenceMask(sequenceLengths, maxTime, INT32).transpose(Seq(2, 0, 1))
+          // Generate beam indices that will be reordered by the `gatherTree` op
+          val beamIndices = Basic.tile(
+            Math.range(0, beamWidth)(NewAxis, NewAxis),
+            Basic.stack(Seq(maxTime, batchSize, 1)))
+          val mask = Basic.sequenceMask(sequenceLengths, maxTime, INT32).transpose(Seq(2, 0, 1))
 
-        // Use `beamWidth + 1` to mark the end of the beam
-        val maskedBeamIDs = (beamIDs * mask) + (1 - mask) * (beamWidth + 1)
-        val maxSequenceLengths = sequenceLengths.max(Tensor(1)).cast(INT32)
-        var sortedBeamIDs = gatherTree(maskedBeamIDs, parentIDs, maxSequenceLengths, beamWidth + 1)
+          // Use `beamWidth + 1` to mark the end of the beam
+          val maskedBeamIndices = (beamIndices * mask) + (1 - mask) * (beamWidth + 1)
+          val maxSequenceLengths = sequenceLengths.max(Tensor(1)).cast(INT32)
+          var sortedBeamIndices = gatherTree(maskedBeamIndices, parentIDs, maxSequenceLengths, beamWidth + 1)
 
-        // For out of range steps, we simply copy the same beam
-        sortedBeamIDs = Math.select(mask.cast(BOOLEAN), sortedBeamIDs, beamIDs)
+          // For out of range steps, we simply copy the same beam
+          sortedBeamIndices = Math.select(mask.cast(BOOLEAN), sortedBeamIndices, beamIndices)
 
-        // Gather from each tensor in `value` according to `sortedBeamIDs`
-        val size = ta.size()
-        val collector = TensorArray.create(size, ta.dataType, dynamicSize = false)
-        val collected = ControlFlow.whileLoop(
-          (loopVariables: (ops.Output, TensorArray)) => loopVariables._1 < size,
-          (loopVariables: (ops.Output, TensorArray)) => {
-            val i = loopVariables._1
-            val gathered = gather(
-              sortedBeamIDs.gather(i), ta.read(i), batchSize, beamWidth, Seq(batchSize * beamWidth, -1))
-            (i + 1, loopVariables._2.write(i, gathered.asInstanceOf[ops.Output]))
-          },
-          (Basic.constant(0), collector),
-          parallelIterations = 1)
-        collected._2
+          // Generate indices for `gatherND`.
+          val timeIndices = Basic.tile(
+            Math.range(0, maxTime)(NewAxis, NewAxis),
+            Basic.stack(Seq(1, batchSize, beamWidth)))
+          val batchIndices = Basic.tile(
+            Math.range(0, batchSize)(NewAxis, NewAxis),
+            Basic.stack(Seq(1, maxTime, beamWidth))).transpose(Seq(1, 0, 2))
+          val indices = Basic.stack(Seq(timeIndices, batchIndices, sortedBeamIndices), -1)
+
+          // Gather from a tensor with collapsed additional dimensions.
+          val finalShape = Basic.shape(stackedTensorArray)
+          val gatherFrom = stackedTensorArray.reshape(Basic.stack(Seq(maxTime, batchSize, beamWidth, -1)))
+          Basic.gatherND(gatherFrom, indices).reshape(finalShape)
+        }
       case _ => value
     }
   }
