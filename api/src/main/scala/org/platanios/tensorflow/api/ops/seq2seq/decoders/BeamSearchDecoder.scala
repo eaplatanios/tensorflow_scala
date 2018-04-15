@@ -175,19 +175,19 @@ class BeamSearchDecoder[S, SS](
       val nextTupleState = evS.mapWithShape(
         mergedNextTuple.state, cell.stateShape, BeamSearchDecoder.maybeSplitBatchBeams(_, _, batchSize, beamWidth))
 
-      // Perform the beam search step
+      // Perform the beam search step.
       val staticBatchSize = Output.constantValue(batchSize).map(_.scalar.asInstanceOf[Int]).getOrElse(-1)
 
-      // Calculate the current lengths of the predictions
+      // Calculate the current lengths of the predictions.
       val predictionLengths = state.sequenceLengths
       val previouslyFinished = state.finished
 
-      // Calculate the total log probabilities for the new hypotheses (final shape = [batchSize, beamWidth, vocabSize])
+      // Calculate the total log probabilities for the new hypotheses (final shape = [batchSize, beamWidth, vocabSize]).
       val stepLogProbabilities = BeamSearchDecoder.maskLogProbabilities(
         NN.logSoftmax(nextTupleOutput), endToken, previouslyFinished)
       val totalLogProbabilities = state.logProbabilities.expandDims(2) + stepLogProbabilities
 
-      // Calculate the continuation lengths by adding to all continuing beams
+      // Calculate the continuation lengths by adding to all continuing search states.
       val vocabSize = {
         if (nextTupleOutput.shape(-1) != -1)
           Basic.constant(nextTupleOutput.shape(-1))
@@ -201,42 +201,42 @@ class BeamSearchDecoder[S, SS](
       val addMask = Math.logicalNot(previouslyFinished).cast(INT64)
       val newPredictionLengths = Math.add(lengthsToAdd * addMask.expandDims(2), predictionLengths.expandDims(2))
 
-      // Calculate the scores for each beam
+      // Calculate the scores for each search state.
       val scores = lengthPenalty(totalLogProbabilities, newPredictionLengths)
 
-      // During the first time step we only consider the initial beam
+      // During the first time step we only consider the initial search state.
       val scoresFlat = Basic.reshape(scores, Basic.stack(Seq(batchSize, -1)))
 
-      // Pick the next beams according to the specified successors function
+      // Pick the next search states according to the specified successors function.
       val nextBeamSize = Basic.constant(beamWidth, INT32, name = "BeamWidth")
       val (nextBeamScores, wordIndices) = NN.topK(scoresFlat, nextBeamSize)
       nextBeamScores.setShape(Shape(staticBatchSize, beamWidth))
       wordIndices.setShape(Shape(staticBatchSize, beamWidth))
 
-      // Pick out the log probabilities, beam indices, and states according to the chosen predictions
+      // Pick out the log probabilities, search state indices, and states according to the chosen predictions.
       val nextBeamLogProbabilities = evOutput.map(totalLogProbabilities, BeamSearchDecoder.gather(
         wordIndices, _, batchSize, vocabSize * beamWidth, Seq(-1), name = "NextBeamLogProbabilities"))
       val nextPredictedIDs = Math.mod(wordIndices, vocabSize, name = "NextBeamPredictedIDs").cast(INT32)
       val nextParentIDs = Math.divide(wordIndices, vocabSize, name = "NextBeamParentIDs").cast(INT32)
 
-      // Append the new IDs to the current predictions
+      // Append the new IDs to the current predictions.
       val gatheredFinished = evOutput.map(previouslyFinished, BeamSearchDecoder.gather(
         nextParentIDs, _, batchSize, beamWidth, Seq(-1), name = "NextBeamFinishedGather"))
       val nextFinished = Math.logicalOr(
         gatheredFinished, Math.equal(nextPredictedIDs, endToken), name = "NextBeamFinished")
 
       // Calculate the length of the next predictions:
-      //   1. Finished beams remain unchanged.
-      //   2. Beams that just finished (i.e., `endToken` predicted) have their length increased by 1.
-      //   3. Beams that have not yet finished have their length increased by 1.
+      //   1. Finished search states remain unchanged.
+      //   2. Search states that just finished (i.e., `endToken` predicted) have their length increased by 1.
+      //   3. Search states that have not yet finished have their length increased by 1.
       lengthsToAdd = Math.logicalNot(gatheredFinished).cast(INT64)
       var nextPredictionLengths = evOutput.map(state.sequenceLengths, BeamSearchDecoder.gather(
         nextParentIDs, _, batchSize, beamWidth, Seq(-1), name = "NextBeamLengthsGather"))
       nextPredictionLengths = nextPredictionLengths + lengthsToAdd
 
-      // Pick out the cell state according to the next beam parent IDs. We use a different gather shape here because the
-      // cell state tensors (i.e., the tensors that would be gathered from) all have rank greater than two and we
-      // need to preserve those dimensions.
+      // Pick out the cell state according to the next search state parent IDs. We use a different gather shape here
+      // because the cell state tensors (i.e., the tensors that would be gathered from) all have rank greater than two
+      // and we need to preserve those dimensions.
       val gatheredNextTupleState = evS.map(nextTupleState, BeamSearchDecoder.maybeGather(
         nextParentIDs, _, batchSize, beamWidth, Seq(batchSize * beamWidth, -1), name = "NextBeamStateGather"))
 
@@ -264,7 +264,7 @@ class BeamSearchDecoder[S, SS](
       state: BeamSearchDecoder.State[S, SS],
       sequenceLengths: Output
   ): (BeamSearchDecoder.FinalOutput, BeamSearchDecoder.State[S, SS], Output) = {
-    // Get the maximum sequence length across all beams for each batch
+    // Get the maximum sequence length across all search states for each batch
     val maxSequenceLengths = state.sequenceLengths.max(Tensor(1)).cast(INT32)
     val predictedIDs = BeamSearchDecoder.gatherTree(
       output.predictedIDs, output.parentIDs, maxSequenceLengths, endToken)
@@ -433,8 +433,8 @@ object BeamSearchDecoder {
   /** Final outputs returned by the beam search after all decoding is finished.
     *
     * @param  predictedIDs Tensor of shape `[batchSize, T, beamWidth]` (or `[T, batchSize, beamWidth]`,
-    *                      if `outputTimeMajor == true`) containing the final prediction IDs. The beams are ordered
-    *                      from best to worst.
+    *                      if `outputTimeMajor == true`) containing the final prediction IDs. The search states are
+    *                      ordered from best to worst.
     * @param  output       State of the beam search at the end of decoding.
     */
   case class FinalOutput(predictedIDs: ops.Output, output: Output)
@@ -496,16 +496,16 @@ object BeamSearchDecoder {
     }
   }
 
-  /** Masks log probabilities. The result is that finished beams allocate all probability mass to `endToken` and
-    * unfinished beams remain unchanged.
+  /** Masks log probabilities. The result is that finished search states allocate all probability mass to `endToken` and
+    * unfinished search states remain unchanged.
     *
     * @param  logProbabilities Log probability for each hypothesis, which is a tensor with shape
     *                          `[batchSize, beamWidth, vocabSize]`.
     * @param  endToken         `INT32` scalar tensor containing the end-of-sequence token ID.
     * @param  finished         `BOOLEAN` tensor of shape `[batchSize, beamWidth]` that specifies which elements in the
     *                          beam have finished decoding.
-    * @return Tensor of shape `[batchSize, beamWidth, vocabSize]`, where unfinished beams stay unchanged and finished
-    *         beams are replaced with a tensor with all probability mass allocated to `endToken`.
+    * @return Tensor of shape `[batchSize, beamWidth, vocabSize]`, where unfinished search states stay unchanged and
+    *         finished search states are replaced with a tensor with all probability mass allocated to `endToken`.
     */
   private[BeamSearchDecoder] def maskLogProbabilities(
       logProbabilities: ops.Output,
@@ -524,7 +524,7 @@ object BeamSearchDecoder {
     Math.select(finishedMask, finishedLogProbabilities, logProbabilities)
   }
 
-  /** The `gatherTree` op calculates the full beams from the per-step IDs and parent beam IDs.
+  /** The `gatherTree` op calculates the full search states from the per-step IDs and parent beam IDs.
     *
     * On a CPU, if an out-of-bounds parent ID is found, an error is returned. On a GPU, if an out-of-bounds parent ID
     * is found, a `-1` is stored in the corresponding output value and the execution for that beam returns early.
@@ -659,7 +659,7 @@ object BeamSearchDecoder {
     }
   }
 
-  /** Maybe converts the provided tensor structure from a batch of beams into a batch by beams, by merging them
+  /** Maybe converts the provided tensor structure from a batch of search states into a batch by beams, by merging them
     * accordingly.
     *
     * More precisely, `value` consists of tensors with shape `[batchSize, beamWidth] ++ ...` and this method reshapes
@@ -675,7 +675,10 @@ object BeamSearchDecoder {
     */
   @throws[InvalidArgumentException]
   private[BeamSearchDecoder] def maybeMergeBatchBeams(
-      value: ops.Symbol, shape: Shape, batchSize: ops.Output, beamWidth: Int
+      value: ops.Symbol,
+      shape: Shape,
+      batchSize: ops.Output,
+      beamWidth: Int
   ): ops.Symbol = {
     value match {
       case output: ops.Output =>
@@ -690,7 +693,8 @@ object BeamSearchDecoder {
     }
   }
 
-  /** Converts the provided tensor structure from a batch of beams into a batch by beams, by merging them accordingly.
+  /** Converts the provided tensor structure from a batch of search states into a batch by beams, by merging them
+    * accordingly>
     *
     * More precisely, `value` consists of tensors with shape `[batchSize, beamWidth] ++ ...` and this method reshapes
     * them into tensors with shape `[batchSize * beamWidth] ++ ...`.
@@ -706,7 +710,10 @@ object BeamSearchDecoder {
   @throws[InvalidArgumentException]
   @throws[InvalidShapeException]
   private[BeamSearchDecoder] def mergeBatchBeams(
-      value: ops.Symbol, shape: Shape, batchSize: ops.Output, beamWidth: Int
+      value: ops.Symbol,
+      shape: Shape,
+      batchSize: ops.Output,
+      beamWidth: Int
   ): ops.Symbol = {
     (value, shape) match {
       case (output: ops.Output, s: Shape) =>
@@ -858,7 +865,7 @@ object BeamSearchDecoder {
           "to `false` to disable tensor array reordering during the beam search."))
   }
 
-  /** Maybe sorts the beams within a tensor array.
+  /** Maybe sorts the search states within a tensor array.
     *
     * @param  value           Symbol to be sorted. This will only be sorted if it is a tensor array of size `maxTime`
     *                         that contains tensors with shape `[batchSize, beamWidth, s]` or
@@ -867,8 +874,8 @@ object BeamSearchDecoder {
     * @param  parentIDs       Tensor containing the parent indices, with shape `[maxTime, batchSize, beamWidth]`.
     * @param  batchSize       Batch size.
     * @param  beamWidth       Beam width.
-    * @return A tensor array where beams are sorted in each tensor, or `value` itself, if it is not a tensor array or
-    *         does not meet the shape requirements.
+    * @return A tensor array where the search states are sorted in each tensor, or `value` itself, if it is not a tensor
+    *         array or does not meet the shape requirements.
     */
   private[BeamSearchDecoder] def maybeSortTensorArrayBeams(
       value: ops.Symbol,
@@ -901,19 +908,20 @@ object BeamSearchDecoder {
           val batchSize = Basic.shape(parentIDs)(1)
           val beamWidth = Basic.shape(parentIDs)(2)
 
-          // Generate beam indices that will be reordered by the `gatherTree` op
-          val beamIndices = Basic.tile(
+          // Generate search state indices that will be reordered by the `gatherTree` op.
+          val searchStateIndices = Basic.tile(
             Math.range(0, beamWidth)(NewAxis, NewAxis),
             Basic.stack(Seq(maxTime, batchSize, 1)))
           val mask = Basic.sequenceMask(sequenceLengths, maxTime, INT32).transpose(Seq(2, 0, 1))
 
-          // Use `beamWidth + 1` to mark the end of the beam
-          val maskedBeamIndices = (beamIndices * mask) + (1 - mask) * (beamWidth + 1)
+          // Use `beamWidth + 1` to mark the end of the beam.
+          val maskedSearchStateIndices = (searchStateIndices * mask) + (1 - mask) * (beamWidth + 1)
           val maxSequenceLengths = sequenceLengths.max(Tensor(1)).cast(INT32)
-          var sortedBeamIndices = gatherTree(maskedBeamIndices, parentIDs, maxSequenceLengths, beamWidth + 1)
+          var sortedSearchStateIndices = gatherTree(
+            maskedSearchStateIndices, parentIDs, maxSequenceLengths, beamWidth + 1)
 
-          // For out of range steps, we simply copy the same beam
-          sortedBeamIndices = Math.select(mask.cast(BOOLEAN), sortedBeamIndices, beamIndices)
+          // For out of range steps, we simply copy the same beam.
+          sortedSearchStateIndices = Math.select(mask.cast(BOOLEAN), sortedSearchStateIndices, searchStateIndices)
 
           // Generate indices for `gatherND`.
           val timeIndices = Basic.tile(
@@ -922,7 +930,7 @@ object BeamSearchDecoder {
           val batchIndices = Basic.tile(
             Math.range(0, batchSize)(NewAxis, NewAxis),
             Basic.stack(Seq(1, maxTime, beamWidth))).transpose(Seq(1, 0, 2))
-          val indices = Basic.stack(Seq(timeIndices, batchIndices, sortedBeamIndices), -1)
+          val indices = Basic.stack(Seq(timeIndices, batchIndices, sortedSearchStateIndices), -1)
 
           // Gather from a tensor with collapsed additional dimensions.
           val finalShape = Basic.shape(stackedTensorArray)
