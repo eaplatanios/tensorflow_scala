@@ -242,7 +242,10 @@ private[ops] object Gradients {
     * @return Created gradients op.
     */
   private[this] def maybeCompile(
-      nameScope: String, op: Op, gradientFunction: () => Seq[OutputLike]): Seq[OutputLike] = {
+      nameScope: String,
+      op: Op,
+      gradientFunction: () => Seq[OutputLike]
+  ): Seq[OutputLike] = {
     // TODO: [FUNCTIONAL] Add extra 'func' argument.
     val cleanNameScope = nameScope.stripSuffix("/").replace('/', '_')
     try {
@@ -282,7 +285,10 @@ private[ops] object Gradients {
     */
   @throws[InvalidDataTypeException]
   private[this] def initialGradients(
-      ys: Seq[OutputLike], dys: Seq[OutputLike], colocateGradientsWithOps: Boolean): Seq[OutputLike] = {
+      ys: Seq[OutputLike],
+      dys: Seq[OutputLike],
+      colocateGradientsWithOps: Boolean
+  ): Seq[OutputLike] = {
     ys.zip(if (dys != null) dys else Seq.fill[OutputLike](ys.length)(null)).zipWithIndex.map {
       case ((y, dy), index) =>
         if (dy == null) {
@@ -354,8 +360,10 @@ private[ops] object Gradients {
     *         control flow loops.
     */
   private[this] def initialPendingCounts(
-      sourceOps: Set[Op], destinationOps: Set[Op],
-      colocateGradientsWithOps: Boolean): (mutable.Map[Op, Int], Option[GradientState]) = {
+      sourceOps: Set[Op],
+      destinationOps: Set[Op],
+      colocateGradientsWithOps: Boolean
+  ): (mutable.Map[Op, Int], Option[GradientState]) = {
     // Mark ops reached when going from 'sources' to 'destinations'
     val reached = mutable.Set[Op](destinationOps.toSeq: _*)
     val reachedQueue = mutable.Queue[Op](sourceOps.toSeq: _*)
@@ -401,7 +409,10 @@ private[ops] object Gradients {
     * @param  gradient  Gradient of `output` to add to the collected gradients.
     */
   private[this] def setGradient(
-      gradients: mutable.Map[Op, mutable.Seq[Seq[OutputLike]]], output: Output, gradient: OutputLike): Unit = {
+      gradients: mutable.Map[Op, mutable.Seq[Seq[OutputLike]]],
+      output: Output,
+      gradient: OutputLike
+  ): Unit = {
     val opGradients = gradients.getOrElseUpdate(
       output.op, mutable.Seq(output.op.outputs.map(_ => Seq.empty[OutputLike]): _*))
     if (ControlFlow.isLoopSwitch(output.op))

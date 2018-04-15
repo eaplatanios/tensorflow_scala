@@ -21,7 +21,7 @@ import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.INT32
+import org.platanios.tensorflow.api.types.{INT32, RESOURCE}
 import org.platanios.tensorflow.api.utilities.using
 import org.platanios.tensorflow.jni.{TensorFlow => NativeLibrary}
 
@@ -955,10 +955,10 @@ private[api] object ControlFlow extends ControlFlow {
         case Some(opContext: CondContext) =>
           if (outputGradients(1 - opContext.branch.value) != null) {
             Seq(merge(outputGradients, name = "CondGradient")._1, null)
-          } else {
-            // At this point, we have created `zeroGradient` guarded by the right switch. Unfortunately, we may still get
-            // `null` here for non-trainable data types or for some types of ops (e.g., `ResourceGather`) created within
-            // only one branch.
+          } else if (op.inputs(0).dataType == RESOURCE) {
+            // At this point, we have created `zeroGradient` guarded by the right switch. Unfortunately, we may still
+            // get `null` here for non-trainable data types or for some types of ops (e.g., `ResourceGather`) created
+            // within only one branch.
             // TODO: !!! This may be inefficient. What if one branch of the switch is not differentiable?
             val goodGradient = outputGradients(opContext.branch.value)
             val zeros = goodGradient match {
@@ -980,6 +980,8 @@ private[api] object ControlFlow extends ControlFlow {
               Seq(merge(Seq(goodGradient, zeroGradient), name = "CondGradient")._1, null)
             else
               Seq(merge(Seq(zeroGradient, goodGradient), name = "CondGradient")._1, null)
+          } else {
+            Seq(null, null)
           }
         case Some(_: WhileLoopContext) =>
           gradientContext.flatMap(_.gradientLoopState).flatMap(_.switchMap.get(op)) match {
