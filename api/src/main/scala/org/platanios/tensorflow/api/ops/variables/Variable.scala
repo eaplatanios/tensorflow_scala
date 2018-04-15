@@ -171,6 +171,17 @@ case class Variable private (
     }
   }
 
+  /** Creates an op that reads the value of this variable sparsely, using the provided `indices`.
+    *
+    * This method should be used when there are multiple reads, or when it is desirable to read the value only after
+    * some condition is true.
+    *
+    * @param  indices Indices to use for the sparse read.
+    * @param  name    Name for the created op.
+    * @return Created op.
+    */
+  def gather(indices: Output, name: String = "Gather"): Output = sparseRead(indices, name)
+
   // /** Evaluates the value of this variable.
   //   *
   //   * If `feeds` is non-empty, then the provided feed values are fed into the session for computing the value of this
@@ -1043,8 +1054,12 @@ private[api] object Variable {
     * @return Created op.
     */
   private[ops] def gather(
-      variable: Output, indices: Output, dataType: DataType = null, validateIndices: Boolean = true,
-      name: String = "VariableGather"): Output = {
+      variable: Output,
+      indices: Output,
+      dataType: DataType = null,
+      validateIndices: Boolean = true,
+      name: String = "VariableGather"
+  ): Output = {
     if (indices.dataType != INT32 && indices.dataType != INT64)
       throw InvalidDataTypeException(
         s"Data type '${indices.dataType}' is not supported for the resource variable gather op indices. " +
