@@ -56,6 +56,9 @@ private[ops] object Gradients {
 
     val ops = ys.map(_.op).toSet ++ xs.map(_.op).toSet ++ (if (dys != null) dys.map(_.op).toSet else Set.empty)
     Op.createWithNameScope(name, ops) {
+      // Get a UID for this call to gradients that can be used to help cluster ops for compilation.
+      val gradientUID = Op.currentGraph.uniqueName("GradientUID")
+
       // The approach we take here is as follows: Create a list of all ops in the sub-graph between the ys and xs. Visit
       // these ops in reverse order of ids to ensure that when we visit an op the gradients with respect to its outputs
       // have been collected. Then, aggregate these gradients if needed, call the op's gradient function, and add the
@@ -80,7 +83,7 @@ private[ops] object Gradients {
       val readyOps = mutable.Queue[Op](destinationOps.filter(pendingCounts.getOrElse(_, 0) == 0).toSeq: _*)
 
       // Add the initial gradients for the ys.
-      val dyInitial = initialGradients(ys, dys, colocateGradientsWithOps)
+      val dyInitial = initialGradients(ys, dys, colocateGradientsWithOps, gradientUID)
       for ((y, dy) <- (ys, dyInitial).zipped)
         setGradient(accumulatedGradients, y, dy)
 
@@ -98,9 +101,9 @@ private[ops] object Gradients {
 
       while (readyOps.nonEmpty) {
         val op = readyOps.dequeue()
-        maybeColocateWith(op, colocateGradientsWithOps) {
+        maybeColocateWith(op, colocateGradientsWithOps, gradientUID) {
           controlFlowGradientState.foreach(_.enterGradientWhileLoopContext(op, before = true))
-          val opGradients = aggregationMethod.aggregateGradients(accumulatedGradients, op)
+          val opGradients = aggregationMethod.aggregateGradients(accumulatedGradients, op, gradientUID)
           controlFlowGradientState.foreach(_.exitGradientWhileLoopContext(op, before = true))
           val hasOutputGradients = opGradients.nonEmpty
           val gradientFunction: Registry.GradientFunction = {
@@ -136,7 +139,7 @@ private[ops] object Gradients {
               var inputGradients = maybeCompile(name, op, () => gradientFunction(op, outputGradients))
               if (gateGradients && inputGradients.count(_ != null) > 1) {
                 Op.createWith(device = null) {
-                  Op.colocateWith(Set.empty[Op], ignoreExisting = true) {
+                  Op.colocateWithForGradient(Set.empty[Op], Some(gradientUID), ignoreExisting = true) {
                     inputGradients = ControlFlow.tuple(inputGradients.toArray).toSeq
                   }
                 }
@@ -221,12 +224,18 @@ private[ops] object Gradients {
     * @param  op                       Op to maybe colocate with.
     * @param  colocateGradientsWithOps Boolean value indicating whether to colocate the gradient ops with the original
     *                                  ops.
+    * @param  gradientUID              Unique identifier within the graph indicating which invocation of gradients is
+    *                                  being executed. Used to cluster ops for compilation.
     * @param  block                    Block of code to execute using the specified colocation ops.
     * @return Return value of `block`.
     */
-  private[this] def maybeColocateWith[R](op: Op, colocateGradientsWithOps: Boolean)(block: => R): R = {
+  private[this] def maybeColocateWith[R](
+      op: Op,
+      colocateGradientsWithOps: Boolean,
+      gradientUID: String
+  )(block: => R): R = {
     if (colocateGradientsWithOps)
-      Op.colocateWith(Set(op))(block)
+      Op.colocateWithForGradient(Set(op), Some(gradientUID))(block)
     else
       block
   }
@@ -280,6 +289,8 @@ private[ops] object Gradients {
     * @param  dys                      Sequence containing tensor gradients.
     * @param  colocateGradientsWithOps Boolean value indicating whether to colocate the gradient ops with the original
     *                                  ops.
+    * @param  gradientUID              Unique identifier within the graph indicating which invocation of gradients is
+    *                                  being executed. Used to cluster ops for compilation.
     * @return Sequence containing the default gradient values.
     * @throws InvalidDataTypeException If the gradient tensor data types are not compatible with the input data types.
     */
@@ -287,7 +298,8 @@ private[ops] object Gradients {
   private[this] def initialGradients(
       ys: Seq[OutputLike],
       dys: Seq[OutputLike],
-      colocateGradientsWithOps: Boolean
+      colocateGradientsWithOps: Boolean,
+      gradientUID: String = "__unsupported__"
   ): Seq[OutputLike] = {
     ys.zip(if (dys != null) dys else Seq.fill[OutputLike](ys.length)(null)).zipWithIndex.map {
       case ((y, dy), index) =>
@@ -295,7 +307,7 @@ private[ops] object Gradients {
           if (y.dataType.isComplex)
             throw InvalidDataTypeException(
               s"Gradients of complex tensors must set 'gradients' (variable.dataType = '${y.dataType}').")
-          maybeColocateWith(y.op, colocateGradientsWithOps) {
+          maybeColocateWith(y.op, colocateGradientsWithOps, gradientUID) {
             y match {
               case o: Output => Basic.onesLike(o, name = s"Gradients_$index")
               case o: OutputIndexedSlices =>
@@ -446,13 +458,18 @@ private[ops] object Gradients {
   sealed trait AggregationMethod {
     /** Aggregate the gradients for op `op`.
       *
-      * @param  gradients Map where the collected gradients are stored. The gradient sequences corresponding to `op`
-      *                   will be replaced with sequences containing a single element corresponding to the aggregated
-      *                   gradient.
-      * @param  op        Op whose gradients to aggregate.
+      * @param  gradients   Map where the collected gradients are stored. The gradient sequences corresponding to `op`
+      *                     will be replaced with sequences containing a single element corresponding to the aggregated
+      *                     gradient.
+      * @param  op          Op whose gradients to aggregate.
+      * @param  gradientUID Unique identifier within the graph indicating which invocation of gradients is being
+      *                     executed. Used to cluster ops for compilation.
       */
     private[Gradients] def aggregateGradients(
-        gradients: mutable.Map[Op, mutable.Seq[Seq[OutputLike]]], op: Op): mutable.Seq[Seq[OutputLike]] = {
+        gradients: mutable.Map[Op, mutable.Seq[Seq[OutputLike]]],
+        op: Op,
+        gradientUID: String
+    ): mutable.Seq[Seq[OutputLike]] = {
       val opGradients = gradients.getOrElse(op, mutable.Seq.empty[Seq[OutputLike]])
       if (ControlFlow.isLoopSwitch(op)) {
         opGradients
@@ -462,7 +479,7 @@ private[ops] object Gradients {
             if (grads.length < 2) {
               grads
             } else {
-              opGradients(index) = Seq[OutputLike](aggregateGradients(grads.filter(_ != null)))
+              opGradients(index) = Seq[OutputLike](aggregateGradients(grads.filter(_ != null), gradientUID))
             }
         }
         opGradients
@@ -471,21 +488,23 @@ private[ops] object Gradients {
 
     /** Aggregates the gradients in `gradient` into a single gradient tensor.
       *
-      * @param  gradients Sequence of gradients to aggregate.
+      * @param  gradients   Sequence of gradients to aggregate.
+      * @param  gradientUID Unique identifier within the graph indicating which invocation of gradients is being
+      *                     executed. Used to cluster ops for compilation.
       * @return Aggregated gradient tensor.
       */
-    private[Gradients] def aggregateGradients(gradients: Seq[OutputLike]): OutputLike
+    private[Gradients] def aggregateGradients(gradients: Seq[OutputLike], gradientUID: String): OutputLike
   }
 
   /** Gradient aggregation method that simply adds up the collected gradients. */
   object AddAggregationMethod extends AggregationMethod {
-    override private[Gradients] def aggregateGradients(gradients: Seq[OutputLike]): OutputLike = {
+    override private[Gradients] def aggregateGradients(gradients: Seq[OutputLike], gradientUID: String): OutputLike = {
        if (gradients.forall(_.isInstanceOf[Output])) {
         // This function adds op outputs from potentially different devices.
         // We add the tensors of each device separately first, and we then add up the partial results.
         val deviceContributions = gradients.groupBy(_.device).toSeq.sortBy(_._1).map {
           case (_, outputs) =>
-            Op.colocateWith(Set[Op](gradients.head.op), ignoreExisting = true) {
+            Op.colocateWithForGradient(Set[Op](gradients.head.op), Some(gradientUID), ignoreExisting = true) {
               Math.addN(outputs.map(_.asInstanceOf[Output]))
             }
         }
@@ -506,7 +525,7 @@ private[ops] object Gradients {
          }
          val deviceContributions = gradients.groupBy(_.device).toSeq.sortBy(_._1).map {
            case (_, outputs) =>
-             Op.colocateWith(Set[Op](gradients.head.op), ignoreExisting = true) {
+             Op.colocateWithForGradient(Set[Op](gradients.head.op), Some(gradientUID), ignoreExisting = true) {
                addNOutputIndexedSlices(outputs.map(_.asInstanceOf[OutputIndexedSlices]))
              }
          }
@@ -526,7 +545,7 @@ private[ops] object Gradients {
     * are much larger than total GPU memory.
     */
   object AccumulateAggregationMethod extends AggregationMethod {
-    override private[Gradients] def aggregateGradients(gradients: Seq[OutputLike]): OutputLike = {
+    override private[Gradients] def aggregateGradients(gradients: Seq[OutputLike], gradientUID: String): OutputLike = {
       if (gradients.forall(_.isInstanceOf[Output])) {
         Math.accumulateN(gradients.map(_.asInstanceOf[Output]))
       } else if (gradients.forall(_.isInstanceOf[OutputIndexedSlices])) {
@@ -545,7 +564,7 @@ private[ops] object Gradients {
         }
         val deviceContributions = gradients.groupBy(_.device).toSeq.sortBy(_._1).map {
           case (_, outputs) =>
-            Op.colocateWith(Set[Op](gradients.head.op), ignoreExisting = true) {
+            Op.colocateWithForGradient(Set[Op](gradients.head.op), Some(gradientUID), ignoreExisting = true) {
               addNOutputIndexedSlices(outputs.map(_.asInstanceOf[OutputIndexedSlices]))
             }
         }

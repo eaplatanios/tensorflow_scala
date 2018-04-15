@@ -991,8 +991,10 @@ object Op {
     * @tparam R Return type of the code block.
     * @return Return value of the code block.
     */
-  private[api] def colocateWith[R](colocationOps: Set[Op], ignoreExisting: Boolean = false)
-      (block: => R)(implicit context: DynamicVariable[OpCreationContext]): R = {
+  private[api] def colocateWith[R](
+      colocationOps: Set[Op],
+      ignoreExisting: Boolean = false
+  )(block: => R)(implicit context: DynamicVariable[OpCreationContext]): R = {
     val newColocationOps: Set[Op] = {
       if (ignoreExisting)
         colocationOps
@@ -1004,6 +1006,40 @@ object Op {
     context.withValue(context.copy(
       device = "", deviceFunction = (opSpec: OpSpecification) => opSpec.device,
       colocationOps = newColocationOps, outerContext = Some(context)))(block)
+  }
+
+  /** Creates a context that can be used for creating gradient ops and placing them on the same device as
+    * `colocationOps`.
+    *
+    * @param  colocationOps  Colocation ops to use.
+    * @param  gradientUID    Unique identifier within the graph indicating which invocation of gradients is being
+    *                        executed. Used to cluster ops for compilation.
+    * @param  ignoreExisting Boolean value indicating whether to ignore the colocation ops in the current context.
+    * @param  block          Code block to run using the provided options.
+    * @param  context        Current op creation context.
+    * @tparam R Return type of the code block.
+    * @return Return value of the code block.
+    */
+  private[api] def colocateWithForGradient[R](
+      colocationOps: Set[Op],
+      gradientUID: Option[String],
+      ignoreExisting: Boolean = false
+  )(block: => R)(implicit context: DynamicVariable[OpCreationContext]): R = {
+    colocateWith(colocationOps, ignoreExisting) {
+      gradientUID match {
+        case Some(uid) => context.value.controlFlowContext match {
+          case Some(controlFlowContext) =>
+            try {
+              controlFlowContext.enterGradientColocation(colocationOps, uid)
+              block
+            } finally {
+              controlFlowContext.exitGradientColocation(colocationOps, uid)
+            }
+          case None => block
+        }
+        case None => block
+      }
+    }
   }
 
   /** Creates a context that can be used for initialization ops.

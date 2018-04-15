@@ -150,6 +150,16 @@ abstract class Context protected (
   /** Makes a sequence of tensors available in the outer context. */
   def exitResult(result: Seq[OutputLike]): Unit = outerContext.foreach(c => result.foreach(r => c.values += r.name))
 
+  /** Enters a control flow context for building a gradient colocated with `colocationOps`. */
+  def enterGradientColocation(colocationOps: Set[Op], gradientUID: String): Unit = {
+    outerContext.foreach(_.enterGradientColocation(colocationOps, gradientUID))
+  }
+
+  /** Exits a control flow context for building a gradient colocated with `colocationOps`. */
+  def exitGradientColocation(colocationOps: Set[Op], gradientUID: String): Unit = {
+    outerContext.foreach(_.exitGradientColocation(colocationOps, gradientUID))
+  }
+
   /** Removes any external control dependency on this op and returns the remaining internal control inputs and any
     * external control inputs that were removed. */
   private[control_flow] def removeExternalControlEdges(op: Op): (Set[Op], Set[Op]) = {
