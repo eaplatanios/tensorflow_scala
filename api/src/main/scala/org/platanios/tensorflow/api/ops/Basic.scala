@@ -296,7 +296,8 @@ private[api] trait Basic {
     * @return Created op output.
     */
   def size[T <: OutputLike](
-      input: T, dataType: DataType = INT32,
+      input: T,
+      dataType: DataType = INT32,
       optimize: Boolean = true,
       name: String = "Size"
   ): Output = {
@@ -306,7 +307,7 @@ private[api] trait Basic {
         if (optimize && inputShape.isFullyDefined)
           constant(Tensor.fill(dataType, Shape())(inputShape.numElements), name = name)
         else if (optimize && inputShape.rank > -1 && inputShape.asArray.contains(0))
-          constant(0, name = name)
+          constant(0, dataType = dataType, name = name)
         else
           Op.Builder(opType = "Size", name = name)
               .addInput(o)
@@ -314,11 +315,11 @@ private[api] trait Basic {
               .build().outputs(0)
       case o: OutputIndexedSlices =>
         Op.createWith(nameScope = name) {
-          Math.prod(Math.cast(o.denseShape, dataType), Array(0))
+          Math.prod(Math.cast(o.denseShape, dataType), Seq(0))
         }
       case o: SparseOutput =>
         Op.createWith(nameScope = name) {
-          Math.prod(Math.cast(o.denseShape, dataType), Array(0))
+          Math.prod(Math.cast(o.denseShape, dataType), Seq(0))
         }
     }
   }
