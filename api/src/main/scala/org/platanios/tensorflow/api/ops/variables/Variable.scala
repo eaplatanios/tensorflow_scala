@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops.variables
 
 import org.platanios.tensorflow.api.Op
 import org.platanios.tensorflow.api.core.{Graph, Shape}
-import org.platanios.tensorflow.api.core.exception.{InvalidDataTypeException, ShapeMismatchException}
+import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.ops._
@@ -632,8 +632,11 @@ private[api] object Variable {
     * @param  partitionShape   Shape of the variable.
     */
   private[variables] case class PartitionInformation(
-      fullName: String = null, fullShape: Shape = null, partitionOffsets: Array[Int] = null,
-      partitionShape: Array[Int] = null) extends ProtoSerializable {
+      fullName: String,
+      fullShape: Shape,
+      partitionOffsets: Array[Int],
+      partitionShape: Array[Int]
+  ) extends ProtoSerializable {
     if (fullShape.rank != partitionOffsets.length)
       throw new IllegalArgumentException(
         s"The number of offsets provided (${partitionOffsets.length}) does not match the full shape rank (${fullShape.rank}).")
@@ -646,6 +649,49 @@ private[api] object Variable {
       val shapeString = fullShape.asArray.mkString(" ")
       val sliceString = partitionOffsets.zip(partitionShape).map(p => s"${p._1},${p._2}").mkString(":")
       s"$shapeString $sliceString"
+    }
+
+    /** Returns the offset when the variable is partitioned along at most one axis.
+      *
+      * @param  shape Shape of one specific variable partition.
+      * @return Integer representing the offset in the dimension along which the variable is partitioned. Returns `0` if
+      *         the variable is not being partitioned.
+      * @throws ShapeMismatchException If `shape` does not have the same rank as `fullShape`.
+      * @throws InvalidShapeException  If the variable is partitioned along more than one axes/dimensions.
+      */
+    @throws[ShapeMismatchException]
+    @throws[InvalidShapeException]
+    def singleOffset(shape: Shape): Int = {
+      singleSliceAxis(shape).map(partitionOffsets(_)).getOrElse(0)
+    }
+
+    /** Returns the slice axis/dimension when the variable is partitioned only along one axis.
+      *
+      * @param  shape Shape of one specific variable partition.
+      * @return Some axis index representing the axis along which the variable is partitioned in, oe `None`, if the
+      *         variable does not seem to be partitioned at all.
+      * @throws ShapeMismatchException If `shape` does not have the same rank as `fullShape`.
+      * @throws InvalidShapeException  If the variable is partitioned along more than one axes/dimensions.
+      */
+    @throws[ShapeMismatchException]
+    @throws[InvalidShapeException]
+    def singleSliceAxis(shape: Shape): Option[Int] = {
+      if (shape.rank != fullShape.rank)
+        throw ShapeMismatchException(
+          s"Expected equal rank, but received shape $shape of rank ${shape.rank}, " +
+              s"while the full shape $fullShape is of rank ${fullShape.rank}.")
+      (0 until shape.rank).foreach(i => {
+        if (partitionOffsets(i) + shape(i) > fullShape(i))
+          throw InvalidShapeException(
+            s"With partition offsets set to [${partitionOffsets.mkString(", ")}], a partition of shape $shape would " +
+                s"exceed the full shape $fullShape in dimension $i.")
+      })
+      val sliceAxes = (0 until shape.rank).filter(i => shape(i) != fullShape(i))
+      if (sliceAxes.length > 1)
+        throw InvalidShapeException(
+          s"Cannot use 'singleSliceAxis()' with shape $shape and full shape $fullShape, since the slice axis could " +
+              s"be any one of [${sliceAxes.mkString(", ")}].")
+      sliceAxes.headOption
     }
 
     override def toProto: SaveSliceInfoDef = toSaveSliceInformationProto(null)

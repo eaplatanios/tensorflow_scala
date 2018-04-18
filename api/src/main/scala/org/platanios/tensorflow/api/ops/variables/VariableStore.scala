@@ -131,18 +131,32 @@ case class VariableStore private[variables]() {
   @throws[ShapeMismatchException]
   @throws[InvalidDataTypeException]
   def getVariable(
-      name: String, dataType: DataType = FLOAT32, shape: Shape = null, initializer: Initializer = null,
-      regularizer: Regularizer = null, trainable: Boolean = true, reuse: Reuse = ReuseOrCreateNew,
-      collections: Set[Graph.Key[Variable]] = Set.empty, cachingDevice: OpSpecification => String = null,
-      customGetter: VariableGetter = null): Variable = {
+      name: String,
+      dataType: DataType = FLOAT32,
+      shape: Shape = null,
+      initializer: Initializer = null,
+      regularizer: Regularizer = null,
+      trainable: Boolean = true,
+      reuse: Reuse = ReuseOrCreateNew,
+      collections: Set[Graph.Key[Variable]] = Set.empty,
+      cachingDevice: OpSpecification => String = null,
+      customGetter: VariableGetter = null
+  ): Variable = {
     /** This function defines the main logic of 'getVariable'. However, 'customGetter' may override this logic. That is
       * why we pass it as an argument to the 'customGetter'. */
     val trueGetter: VariableGetter =
       new VariableGetter {
         override def apply(
-            name: String, dataType: DataType, shape: Shape, initializer: Initializer, regularizer: Regularizer,
-            trainable: Boolean, reuse: Reuse, collections: Set[Graph.Key[Variable]],
-            cachingDevice: (OpSpecification) => String, customGetter: VariableGetter): Variable = {
+            name: String,
+            dataType: DataType,
+            shape: Shape,
+            initializer: Initializer,
+            regularizer: Regularizer,
+            trainable: Boolean,
+            reuse: Reuse,
+            collections: Set[Graph.Key[Variable]],
+            cachingDevice: OpSpecification => String, customGetter: VariableGetter
+        ): Variable = {
           // Single variable case.
           if (variables.contains(s"$name/part_0"))
             throw new IllegalArgumentException(
@@ -237,10 +251,17 @@ case class VariableStore private[variables]() {
   @throws[ShapeMismatchException]
   @throws[InvalidDataTypeException]
   def getPartitionedVariable(
-      name: String, dataType: DataType = FLOAT32, shape: Shape = null, initializer: Initializer = null,
-      regularizer: Regularizer = null, partitioner: Partitioner = null, trainable: Boolean = true,
-      reuse: Reuse = ReuseOrCreateNew, collections: Set[Graph.Key[Variable]] = Set.empty,
-      cachingDevice: OpSpecification => String = null): PartitionedVariable = {
+      name: String,
+      dataType: DataType = FLOAT32,
+      shape: Shape = null,
+      initializer: Initializer = null,
+      regularizer: Regularizer = null,
+      partitioner: Partitioner = null,
+      trainable: Boolean = true,
+      reuse: Reuse = ReuseOrCreateNew,
+      collections: Set[Graph.Key[Variable]] = Set.empty,
+      cachingDevice: OpSpecification => String = null
+  ): PartitionedVariable = {
     Op.createWithNameScope("") {
       if (variables.contains(name))
         throw new IllegalArgumentException(

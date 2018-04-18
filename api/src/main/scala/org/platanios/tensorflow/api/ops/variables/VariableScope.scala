@@ -24,7 +24,6 @@ import org.platanios.tensorflow.api.types.DataType
 import scala.util.DynamicVariable
 
 // TODO: [VARIABLES] Resolve customGetter weirdness related to partitioned variables.
-// TODO: [VARIABLES] Is a custom getter necessary/useful?
 
 /** Variable scope that carries default settings to provide to `getVariable`.
   *
@@ -58,7 +57,8 @@ case class VariableScope private[variables](
     partitioner: Partitioner = null,
     cachingDevice: OpSpecification => String = null,
     nameScope: String = "",
-    customGetter: VariableGetter = null) {
+    customGetter: VariableGetter = null
+) {
   /** Gets an existing variable with the specified name or creates a new one.
     *
     * @param  store         Variable store currently being used to store variables.
@@ -93,11 +93,17 @@ case class VariableScope private[variables](
   @throws[ShapeMismatchException]
   @throws[InvalidDataTypeException]
   def getVariable(
-      store: VariableStore, name: String, dataType: DataType = this.dataType, shape: Shape = null,
-      initializer: Initializer = this.initializer, regularizer: Regularizer = this.regularizer,
-      trainable: Boolean = true, reuse: Reuse = this.reuse,
+      store: VariableStore,
+      name: String,
+      dataType: DataType = this.dataType,
+      shape: Shape = null,
+      initializer: Initializer = this.initializer,
+      regularizer: Regularizer = this.regularizer,
+      trainable: Boolean = true,
+      reuse: Reuse = this.reuse,
       collections: Set[Graph.Key[Variable]] = Set.empty,
-      cachingDevice: OpSpecification => String = this.cachingDevice): Variable = {
+      cachingDevice: OpSpecification => String = this.cachingDevice
+  ): Variable = {
     val fullName = if (this.name != null && this.name != "") s"${this.name}/$name" else name
     // Variable names only depend on the variable scope and not the name scope, so we reset it below for the time of
     // variable creation.
@@ -144,11 +150,18 @@ case class VariableScope private[variables](
   @throws[ShapeMismatchException]
   @throws[InvalidDataTypeException]
   def getPartitionedVariable(
-      store: VariableStore, name: String, dataType: DataType = this.dataType, shape: Shape = null,
-      initializer: Initializer = this.initializer, regularizer: Regularizer = this.regularizer,
-      partitioner: Partitioner = this.partitioner, trainable: Boolean = true,
-      reuse: Reuse = this.reuse, collections: Set[Graph.Key[Variable]] = Set.empty,
-      cachingDevice: OpSpecification => String = this.cachingDevice): PartitionedVariable = {
+      store: VariableStore,
+      name: String,
+      dataType: DataType = this.dataType,
+      shape: Shape = null,
+      initializer: Initializer = this.initializer,
+      regularizer: Regularizer = this.regularizer,
+      partitioner: Partitioner = this.partitioner,
+      trainable: Boolean = true,
+      reuse: Reuse = this.reuse,
+      collections: Set[Graph.Key[Variable]] = Set.empty,
+      cachingDevice: OpSpecification => String = this.cachingDevice
+  ): PartitionedVariable = {
     if (customGetter != null)
       throw new IllegalArgumentException(
         "Private access to 'getPartitionedVariable' is not allowed when a custom getter is set.")
@@ -190,10 +203,16 @@ private[api] object VariableScope {
     * @return Return value of the code block.
     */
   private[api] def createWithVariableScope[R](
-      name: String, reuse: Reuse = ReuseOrCreateNew, dataType: DataType = null,
-      initializer: Initializer = null, regularizer: Regularizer = null, partitioner: Partitioner = null,
-      cachingDevice: OpSpecification => String = null, customGetter: VariableGetter = null,
-      isDefaultName: Boolean = false, isPure: Boolean = false
+      name: String,
+      reuse: Reuse = ReuseOrCreateNew,
+      dataType: DataType = null,
+      initializer: Initializer = null,
+      regularizer: Regularizer = null,
+      partitioner: Partitioner = null,
+      cachingDevice: OpSpecification => String = null,
+      customGetter: VariableGetter = null,
+      isDefaultName: Boolean = false,
+      isPure: Boolean = false
   )(
       block: => R
   )(implicit
@@ -267,9 +286,15 @@ private[api] object VariableScope {
     * @return Return value of the code block.
     */
   private[api] def createWithUpdatedVariableScope[R](
-      variableScope: VariableScope, reuse: Reuse = ReuseOrCreateNew, dataType: DataType = null,
-      initializer: Initializer = null, regularizer: Regularizer = null, partitioner: Partitioner = null,
-      cachingDevice: OpSpecification => String = null, customGetter: VariableGetter = null, isPure: Boolean = false
+      variableScope: VariableScope,
+      reuse: Reuse = ReuseOrCreateNew,
+      dataType: DataType = null,
+      initializer: Initializer = null,
+      regularizer: Regularizer = null,
+      partitioner: Partitioner = null,
+      cachingDevice: OpSpecification => String = null,
+      customGetter: VariableGetter = null,
+      isPure: Boolean = false
   )(
       block: => R
   )(implicit
@@ -312,7 +337,10 @@ private[api] object VariableScope {
     * @param  oldGetter Old variable getter.
     * @return Variable getter to use.
     */
-  private[api] def maybeWrapCustomVariableGetter(getter: VariableGetter, oldGetter: VariableGetter): VariableGetter = {
+  private[api] def maybeWrapCustomVariableGetter(
+      getter: VariableGetter,
+      oldGetter: VariableGetter
+  ): VariableGetter = {
     if (getter == null) {
       oldGetter
     } else {
@@ -320,10 +348,10 @@ private[api] object VariableScope {
         override def apply(
             name: String, dataType: DataType, shape: Shape, initializer: Initializer, regularizer: Regularizer,
             trainable: Boolean, reuse: Reuse, collections: Set[Graph.Key[Variable]],
-            cachingDevice: (OpSpecification) => String, customGetter: VariableGetter): Variable = {
+            cachingDevice: OpSpecification => String, customGetter: VariableGetter): Variable = {
           val g: VariableGetter = new VariableGetter {
             override def apply(n: String, dt: DataType, s: Shape, init: Initializer, reg: Regularizer,
-                train: Boolean, reuse: Reuse, colls: Set[Graph.Key[Variable]], cDevice: (OpSpecification) => String,
+                train: Boolean, reuse: Reuse, colls: Set[Graph.Key[Variable]], cDevice: OpSpecification => String,
                 cg: VariableGetter): Variable = {
               oldGetter(n, dt, s, init, reg, train, reuse, colls, cDevice, customGetter)
             }
