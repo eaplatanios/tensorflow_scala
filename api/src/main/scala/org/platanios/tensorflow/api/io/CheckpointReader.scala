@@ -68,6 +68,8 @@ class CheckpointReader private[CheckpointReader] (
       throw UnavailableException("This checkpoint reader has already been disposed.")
     Option(NativeCheckpointReader.getTensor(nativeHandle, name)).map(Tensor.fromNativeHandle)
   }
+
+  // TODO: [CHECKPOINTS] Add support for obtaining the "VarToShape" and "VarToDataType" maps.
 }
 
 object CheckpointReader {

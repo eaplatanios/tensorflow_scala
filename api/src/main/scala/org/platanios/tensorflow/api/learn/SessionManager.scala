@@ -90,8 +90,12 @@ import scala.util.Try
   */
 @throws[InvalidArgumentException]
 private[learn] case class SessionManager(
-    graph: Graph = Op.currentGraph, readyOp: Option[Output] = None, readyForLocalInitOp: Option[Output] = None,
-    localInitOp: Option[Op] = None, recoveryWaitNumSeconds: Int = 30) {
+    graph: Graph = Op.currentGraph,
+    readyOp: Option[Output] = None,
+    readyForLocalInitOp: Option[Output] = None,
+    localInitOp: Option[Op] = None,
+    recoveryWaitNumSeconds: Int = 30
+) {
   if (readyForLocalInitOp.isDefined && localInitOp.isEmpty)
     throw InvalidArgumentException("If you pass a 'readyForLocalInitOp', you must also pass a 'localInitOp'.")
 
@@ -130,10 +134,17 @@ private[learn] case class SessionManager(
     */
   @throws[InvalidArgumentException]
   def prepareSession(
-      master: String, saver: Option[Saver] = None, checkpointPath: Option[Path], waitForCheckpoint: Boolean = false,
-      maxWaitSeconds: Int = 7200, sessionConfig: Option[SessionConfig] = None, initOp: Option[Op] = None,
-      initFeedMap: FeedMap = FeedMap.empty, initFunction: Option[(Session) => Unit] = None,
-      localInitFunction: Option[(Session) => Unit] = None): Session = {
+      master: String,
+      saver: Option[Saver] = None,
+      checkpointPath: Option[Path],
+      waitForCheckpoint: Boolean = false,
+      maxWaitSeconds: Int = 7200,
+      sessionConfig: Option[SessionConfig] = None,
+      initOp: Option[Op] = None,
+      initFeedMap: FeedMap = FeedMap.empty,
+      initFunction: Option[Session => Unit] = None,
+      localInitFunction: Option[Session => Unit] = None
+  ): Session = {
     val (session, isLoadedFromCheckpoint) = restoreCheckpoint(
       master, saver, checkpointPath, waitForCheckpoint, maxWaitSeconds, sessionConfig)
     if (!isLoadedFromCheckpoint) {
@@ -173,9 +184,13 @@ private[learn] case class SessionManager(
     *         and initialized.
     */
   def recoverSession(
-      master: String, saver: Option[Saver] = None, checkpointPath: Option[Path] = None,
-      waitForCheckpoint: Boolean = false, maxWaitSeconds: Int = 7200,
-      sessionConfig: Option[SessionConfig] = None): (Session, Boolean) = {
+      master: String,
+      saver: Option[Saver] = None,
+      checkpointPath: Option[Path] = None,
+      waitForCheckpoint: Boolean = false,
+      maxWaitSeconds: Int = 7200,
+      sessionConfig: Option[SessionConfig] = None
+  ): (Session, Boolean) = {
     val (session, isLoadedFromCheckpoint) = restoreCheckpoint(
       master, saver, checkpointPath, waitForCheckpoint, maxWaitSeconds, sessionConfig)
 
@@ -222,7 +237,11 @@ private[learn] case class SessionManager(
     * @throws TimeoutException If the `maxWaitSeconds` timeout is exceeded.
     */
   @throws[TimeoutException]
-  def waitForSession(master: String, sessionConfig: Option[SessionConfig] = None, maxWaitSeconds: Int = -1): Session = {
+  def waitForSession(
+      master: String,
+      sessionConfig: Option[SessionConfig] = None,
+      maxWaitSeconds: Int = -1
+  ): Session = {
     val startTime = System.currentTimeMillis()
     var session: Session = null
     var isReady = false

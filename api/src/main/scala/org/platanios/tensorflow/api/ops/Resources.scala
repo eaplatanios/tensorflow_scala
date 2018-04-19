@@ -94,7 +94,9 @@ object Resources extends Resources {
     *         initialized.
     */
   def uninitializedResources(
-      resources: Set[Resource] = sharedResources ++ localResources, name: String = "UninitializedResources"): Output = {
+      resources: Set[Resource] = sharedResources ++ localResources,
+      name: String = "UninitializedResources"
+  ): Output = {
     // Run all operations on the CPU.
     Op.createWith(nameScope = name, device = "/CPU:0") {
       if (resources.isEmpty) {
