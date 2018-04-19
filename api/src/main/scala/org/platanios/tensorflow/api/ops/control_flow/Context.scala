@@ -23,15 +23,14 @@ import org.tensorflow.framework.ValuesDef
 
 import scala.collection.mutable
 import scala.collection.JavaConverters._
-import scala.util.DynamicVariable
 
 /** Base class for control flow contexts.
   *
   * The usage pattern is a sequence of (Enter, Exit) ops followed by a final ExitResult op.
   *
   * We maintain the following state for control flow contexts during graph construction:
-  *   1. [[OpCreationContext]] has a `controlFlowContext` field, which represents the current control flow context used
-  *      to construct new ops. It can be changed by `context.enter()` and `context.exit()`.
+  *   1. [[GraphConstructionScope]] has a `controlFlowContext` field, which represents the current control flow context
+  *      used to construct new ops. It can be changed by `context.enter()` and `context.exit()`.
   *   2. Each op has a `controlFlowContext` field, which is the control flow context to which the op belongs. It is set
   *      at the time the op is created and it is immutable.
   *   3. Each [[Context]] has an `outerContext` field, which is the control flow context in which this context is
@@ -137,15 +136,17 @@ abstract class Context protected (
 
   /** Enters this control flow context. */
   def enter(): Unit = {
-    contextStack.append(opCreationContext.value.controlFlowContext)
-    opCreationContext.value = opCreationContext.value.copy(
-      controlFlowContext = Some(this), outerContext = Some(opCreationContext.value))
+    contextStack.append(graphConstructionScope.value.controlFlowContext)
+    graphConstructionScope.value = graphConstructionScope.value.copy(
+      controlFlowContext = Some(this),
+      outerContext = Some(graphConstructionScope.value))
   }
 
   /** Exits this control flow context. */
   def exit(): Unit = {
-    opCreationContext.value = opCreationContext.value.copy(
-      controlFlowContext = contextStack.remove(contextStack.size - 1), outerContext = Some(opCreationContext.value))
+    graphConstructionScope.value = graphConstructionScope.value.copy(
+      controlFlowContext = contextStack.remove(contextStack.size - 1),
+      outerContext = Some(graphConstructionScope.value))
   }
 
   /** Makes a sequence of tensors available in the outer context. */

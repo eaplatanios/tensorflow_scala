@@ -290,11 +290,11 @@ private[api] class InstantiatedFunction[I, O] protected (
       (outputs ++ extraInputs).foreach(builder.addInput)
       builder.setAttribute("_noinline", inline)
       if (compiled) {
+        val xlaScope = graphConstructionScope.value.attributes.getOrElse("_XlaScope", s"function_$name").toString
         builder
             .setAttribute("_XlaCompile", compiled)
             .setAttribute("_XlaSeparateCompiledGradients", separateCompiledGradients)
-            .setAttribute(
-              "_XlaScope", opCreationContext.value.attributes.getOrElse("_XlaScope", s"function_$name").toString)
+            .setAttribute("_XlaScope", xlaScope)
       }
       builder.build().outputs
     }

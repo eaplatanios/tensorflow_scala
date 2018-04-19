@@ -15,12 +15,9 @@
 
 package org.platanios.tensorflow
 
-import org.platanios.tensorflow.api.tensors.Context
 import org.platanios.tensorflow.api.types.DataType
 
 import spire.math.{UByte, UShort}
-
-import scala.util.DynamicVariable
 
 /**
   * @author Emmanouil Antonios Platanios

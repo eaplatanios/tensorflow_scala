@@ -35,7 +35,7 @@ import java.nio.charset.{Charset, StandardCharsets}
 
 import scala.collection.mutable
 import scala.collection.JavaConverters._
-import scala.util.{DynamicVariable, Try}
+import scala.util.Try
 
 /** Represents a graph node, or as we shall call it, an operation, that performs computation on tensors.
   *
@@ -388,18 +388,6 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
 
 final case class OpSpecification(name: String, opType: String, device: String)
 
-private[api] final case class OpCreationContext(
-    graph: Graph = Graph(),
-    nameScope: String = "",
-    device: String = "",
-    deviceFunction: OpSpecification => String = _.device,
-    colocationOps: Set[Op] = Set.empty,
-    controlDependencies: Set[Op] = Set.empty,
-    attributes: Map[String, Any] = Map.empty,
-    container: String = "", // TODO: !!! Use containers.
-    controlFlowContext: Option[Context] = None,
-    outerContext: Option[OpCreationContext] = None)
-
 object Op {
   private[ops] val logger = Logger(LoggerFactory.getLogger("Op"))
 
@@ -407,7 +395,7 @@ object Op {
     type Op = ops.Op
     val Op: ops.Op.type = ops.Op
 
-    type OpCreationContext = ops.OpCreationContext
+    type OpCreationContext = ops.GraphConstructionScope
     type OpSpecification = ops.OpSpecification
 
     def currentGraph: Graph = Op.currentGraph
@@ -475,46 +463,51 @@ object Op {
   }
 
   /** Returns the graph of the current op creation context. */
-  private[api] def currentGraph: Graph = opCreationContext.value.graph
+  private[api] def currentGraph: Graph = {
+    graphConstructionScope.value.graph
+  }
 
   /** Returns the name scope of the current op creation context. */
   private[api] def currentNameScope: String = {
-    if (opCreationContext.value.nameScope == "") "" else s"${opCreationContext.value.nameScope}/"
+    if (graphConstructionScope.value.nameScope == "")
+      ""
+    else
+      s"${graphConstructionScope.value.nameScope}/"
   }
 
   /** Returns the device of the current op creation context. */
   private[api] def currentDevice: String = {
-    opCreationContext.value.device
+    graphConstructionScope.value.device
   }
 
   /** Returns the device function of the current op creation context. */
   private[api] def currentDeviceFunction: OpSpecification => String = {
-    opCreationContext.value.deviceFunction
+    graphConstructionScope.value.deviceFunction
   }
 
   /** Returns the colocation ops of the current op creation context. */
   private[api] def currentColocationOps: Set[Op] = {
-    opCreationContext.value.colocationOps
+    graphConstructionScope.value.colocationOps
   }
 
   /** Returns the control dependencies of the current op creation context. */
   private[api] def currentControlDependencies: Set[Op] = {
-    opCreationContext.value.controlDependencies
+    graphConstructionScope.value.controlDependencies
   }
 
   /** Returns the attributes of the current op creation context. */
   private[api] def currentAttributes: Map[String, Any] = {
-    opCreationContext.value.attributes
+    graphConstructionScope.value.attributes
   }
 
   /** Returns the container of the current op creation context. */
   private[api] def currentContainer: String = {
-    opCreationContext.value.container
+    graphConstructionScope.value.container
   }
 
   /** Returns the control flow context of the current op creation context. */
   private[api] def currentControlFlowContext: Option[Context] = {
-    opCreationContext.value.controlFlowContext
+    graphConstructionScope.value.controlFlowContext
   }
 
   /** Returns the local seeds an operation should use given an op-specific random seed.
@@ -852,7 +845,7 @@ object Op {
   )(block: => R): R = {
     // TODO: Move this to a separate scope class.
     // TODO: !!! The order of the updates matters here so let's make sure everything is fine.
-    var updatedContext = opCreationContext.value
+    var updatedContext = graphConstructionScope.value
     val newGraph: Graph = mergeGraph(graph, updatedContext)
     updatedContext = updatedContext.copy(graph = newGraph, outerContext = Some(updatedContext))
     val newNameScope: String = mergeNameScope(nameScope, updatedContext.nameScope, updatedContext.graph.uniqueName(_))
@@ -873,7 +866,7 @@ object Op {
     updatedContext = updatedContext.copy(attributes = newAttributes, outerContext = Some(updatedContext))
     val newContainer: String = mergeContainer(container, updatedContext)
     updatedContext = updatedContext.copy(container = newContainer, outerContext = Some(updatedContext))
-    opCreationContext.withValue(updatedContext)(block)
+    graphConstructionScope.withValue(updatedContext)(block)
   }
 
   /** Creates a context that can be used for creating ops.
@@ -892,16 +885,16 @@ object Op {
     */
   @throws[GraphMismatchException]
   private[api] def createWithNameScope[R](nameScope: String, values: Set[Op] = Set.empty[Op])(block: => R): R = {
-    val context = opCreationContext
+    val scope = graphConstructionScope
     if (values.nonEmpty) {
-      val newGraph: Graph = mergeGraph(getGraphFromInputs(values), context)
-      val newNameScope: String = mergeNameScope(nameScope, context.value.nameScope, newGraph.uniqueName(_))
-      context.withValue(context.copy(graph = newGraph, nameScope = newNameScope, outerContext = Some(context.value))) {
+      val newGraph: Graph = mergeGraph(getGraphFromInputs(values), scope.value)
+      val newNameScope: String = mergeNameScope(nameScope, scope.value.nameScope, newGraph.uniqueName(_))
+      scope.withValue(scope.value.copy(graph = newGraph, nameScope = newNameScope, outerContext = Some(scope.value))) {
         block
       }
     } else {
-      val newNameScope: String = mergeNameScope(nameScope, context.value.nameScope, context.value.graph.uniqueName(_))
-      context.withValue(context.copy(nameScope = newNameScope, outerContext = Some(context.value))) {
+      val newNameScope: String = mergeNameScope(nameScope, scope.value.nameScope, scope.value.graph.uniqueName(_))
+      scope.withValue(scope.value.copy(nameScope = newNameScope, outerContext = Some(scope.value))) {
         block
       }
     }
@@ -985,13 +978,13 @@ object Op {
       if (ignoreExisting)
         colocationOps
       else
-        mergeColocationOps(colocationOps, opCreationContext.value)
+        mergeColocationOps(colocationOps, graphConstructionScope.value)
     }
     // By default, `colocateWith` resets the device function stack, since `colocateWith` is typically used in specific
     // internal library functions where colocation is intended to be "stronger" than device functions.
-    opCreationContext.withValue(opCreationContext.copy(
+    graphConstructionScope.withValue(graphConstructionScope.value.copy(
       device = "", deviceFunction = (opSpec: OpSpecification) => opSpec.device,
-      colocationOps = newColocationOps, outerContext = Some(opCreationContext.value)))(block)
+      colocationOps = newColocationOps, outerContext = Some(graphConstructionScope.value)))(block)
   }
 
   /** Creates a context that can be used for creating gradient ops and placing them on the same device as
@@ -1002,7 +995,6 @@ object Op {
     *                        executed. Used to cluster ops for compilation.
     * @param  ignoreExisting Boolean value indicating whether to ignore the colocation ops in the current context.
     * @param  block          Code block to run using the provided options.
-    * @param  context        Current op creation context.
     * @tparam R Return type of the code block.
     * @return Return value of the code block.
     */
@@ -1013,7 +1005,7 @@ object Op {
   )(block: => R): R = {
     colocateWith(colocationOps, ignoreExisting) {
       gradientUID match {
-        case Some(uid) => opCreationContext.value.controlFlowContext match {
+        case Some(uid) => graphConstructionScope.value.controlFlowContext match {
           case Some(controlFlowContext) =>
             try {
               controlFlowContext.enterGradientColocation(colocationOps, uid)
@@ -1053,14 +1045,14 @@ object Op {
   @throws[IllegalStateException]
   private[api] def initialization[R](block: => R): R = {
     // Get the first context that's not building a function.
-    var outerContext = opCreationContext.value
+    var outerContext = graphConstructionScope.value
     while (outerContext.graph.isInstanceOf[FunctionGraph] && outerContext.outerContext.isDefined)
       outerContext = outerContext.outerContext.get
     if (outerContext.graph.isInstanceOf[FunctionGraph])
       throw new IllegalStateException("All graphs are building functions.")
-    opCreationContext.withValue(outerContext) {
+    graphConstructionScope.withValue(outerContext) {
       // Entering an `initScope` preserves the name scope of the current context.
-      createWith(nameScope = opCreationContext.value.nameScope, controlDependencies = Set.empty[Op])(block)
+      createWith(nameScope = graphConstructionScope.value.nameScope, controlDependencies = Set.empty[Op])(block)
     }
   }
 
@@ -1071,7 +1063,7 @@ object Op {
     * @param  context Op creation context whose graph needs to be updated.
     * @return Graph to use for the new op creation context.
     */
-  private[this] def mergeGraph(graph: Graph, context: OpCreationContext): Graph = {
+  private[this] def mergeGraph(graph: Graph, context: GraphConstructionScope): Graph = {
     if (graph == null) context.graph else graph
   }
 
@@ -1159,7 +1151,7 @@ object Op {
     * @param  context       Op creation context whose colocation ops need to be updated.
     * @return Set of colocation ops to use for the new op creation context.
     */
-  private[this] def mergeColocationOps(colocationOps: Set[Op], context: OpCreationContext): Set[Op] = {
+  private[this] def mergeColocationOps(colocationOps: Set[Op], context: GraphConstructionScope): Set[Op] = {
     if (colocationOps == null)
       context.colocationOps
     else if (colocationOps.isEmpty)
@@ -1178,7 +1170,7 @@ object Op {
     */
   private[this] def mergeControlDependencies(
       controlDependencies: Set[Op],
-      context: OpCreationContext
+      context: GraphConstructionScope
   ): (Set[Op], Option[Context]) = {
     if (controlDependencies == null)
       (context.controlDependencies, context.controlFlowContext)
@@ -1196,7 +1188,7 @@ object Op {
     * @param  context    Op creation context whose attributes needs to be updated.
     * @return Set of attributes to use for the new op creation context.
     */
-  private[this] def mergeAttributes(attributes: Map[String, Any], context: OpCreationContext): Map[String, Any] = {
+  private[this] def mergeAttributes(attributes: Map[String, Any], context: GraphConstructionScope): Map[String, Any] = {
     if (attributes == null)
       context.attributes
     else if (attributes == Map.empty[String, Any])
@@ -1221,7 +1213,7 @@ object Op {
     * @param  context   Op creation context whose container needs to be updated.
     * @return Container to use for the new op creation context.
     */
-  private[this] def mergeContainer(container: String, context: OpCreationContext): String = {
+  private[this] def mergeContainer(container: String, context: GraphConstructionScope): String = {
     if (container == null)
       context.container
     else
@@ -1355,14 +1347,14 @@ object Op {
   }
 
   final case class Builder(opType: String, name: String)  {
-    private[this] val context = opCreationContext
+    private[this] val scope = graphConstructionScope.value
 
-    context.value.graph.assertNotFrozen()
+    scope.graph.assertNotFrozen()
 
     if (!checkName(name))
       throw IllegalNameException(s"Illegal op name '$name'.")
 
-    private val graph: Graph = context.value.graph
+    private val graph: Graph = scope.graph
 
     private var built         : Boolean           = false
     // TODO: [OP] Avoid using this extra input functions sequence.
@@ -1376,7 +1368,7 @@ object Op {
       using(graph.reference) { r =>
         if (built)
           throw OpBuilderUsedException("This op builder has already been used to built an op and cannot be re-used.")
-        device = Option(context.value.deviceFunction(OpSpecification(this.name, opType, context.value.device)))
+        device = Option(scope.deviceFunction(OpSpecification(this.name, opType, scope.device)))
         val name = {
           // If a name ends with a "/" then it is a name scope and we use it as-is, after removing the trailing "/".
           if (this.name.endsWith("/"))
@@ -1386,11 +1378,11 @@ object Op {
         }
         val nativeHandle: Long = NativeOp.allocate(r.nativeHandle, opType, name)
         inputFunctions.foreach(_ (nativeHandle))
-        val controlDependencies: mutable.Set[Op] = mutable.Set(context.value.controlDependencies.toSeq: _*)
+        val controlDependencies: mutable.Set[Op] = mutable.Set(scope.controlDependencies.toSeq: _*)
         inputs.foreach(input => pruneControlDependencies(controlDependencies, input.op))
         inputLists.foreach(_.foreach(input => pruneControlDependencies(controlDependencies, input.op)))
         controlDependencies.foreach(op => NativeOp.addControlInput(nativeHandle, op.nativeHandle))
-        val colocationOps = transitiveColocationOps(context.value.colocationOps.filter(_ != null))
+        val colocationOps = transitiveColocationOps(scope.colocationOps.filter(_ != null))
         val opDevice = device match {
           case None | Some("") => colocationOps.find(_.device != "").map(_.device).getOrElse("")
           case Some(d) => d
@@ -1407,13 +1399,13 @@ object Op {
               NativeLibrary.setRequestedDevice(r.nativeHandle, op.nativeHandle, opDevice)
           }
         })
-        mergeAttributes(context.value.attributes)
+        mergeAttributes(scope.attributes)
         setAttributes(nativeHandle)
         // TODO: !!! Set the "container" attribute when necessary. Need a way to check for statefulness.
         val op = Op(graph, NativeOp.finish(nativeHandle))
         if (opDevice != "")
           NativeLibrary.setRequestedDevice(r.nativeHandle, op.nativeHandle, opDevice)
-        op.controlFlowContext = context.value.controlFlowContext
+        op.controlFlowContext = scope.controlFlowContext
         op.inputs.map(_.op).foreach(ControlFlow.checkInputFromValidContext(op, _))
         op.controlFlowContext.foreach(_.add(op))
         built = true

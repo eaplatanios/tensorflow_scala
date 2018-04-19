@@ -16,6 +16,7 @@
 package org.platanios.tensorflow.api
 
 import org.platanios.tensorflow.api
+import org.platanios.tensorflow.api.ops.control_flow.Context
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
@@ -37,9 +38,21 @@ package object ops {
   private[ops] val VALID_OP_NAME_REGEX            : Regex  = "^[A-Za-z0-9.][A-Za-z0-9_.\\-/]*$".r
   private[ops] val VALID_NAME_SCOPE_REGEX         : Regex  = "^[A-Za-z0-9_.\\-/]*$".r
 
-  private[ops] val opCreationContext: DynamicVariable[api.ops.OpCreationContext] = {
-    new DynamicVariable[api.ops.OpCreationContext](api.ops.OpCreationContext(graph = api.core.defaultGraph))
+  private[ops] val graphConstructionScope: DynamicVariable[api.ops.GraphConstructionScope] = {
+    new DynamicVariable[api.ops.GraphConstructionScope](api.ops.GraphConstructionScope(graph = api.core.defaultGraph))
   }
+
+  final case class GraphConstructionScope(
+      graph: Graph = Graph(),
+      nameScope: String = "",
+      device: String = "",
+      deviceFunction: OpSpecification => String = _.device,
+      colocationOps: Set[Op] = Set.empty,
+      controlDependencies: Set[Op] = Set.empty,
+      attributes: Map[String, Any] = Map.empty,
+      container: String = "", // TODO: !!! Use containers.
+      controlFlowContext: Option[Context] = None,
+      outerContext: Option[GraphConstructionScope] = None)
 
   @inline private[ops] def castArgs(output1: Output, output2: Output): (Output, Output) = {
     val dataType = types.DataType.mostPrecise(output1.dataType, output2.dataType)

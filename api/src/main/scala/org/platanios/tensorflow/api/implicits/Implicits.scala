@@ -17,11 +17,9 @@ package org.platanios.tensorflow.api.implicits
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.ops.io.data
-import org.platanios.tensorflow.api.ops.{Op, OpCreationContext, OpSpecification, Output}
+import org.platanios.tensorflow.api.ops.{Op, OpSpecification, Output}
 import org.platanios.tensorflow.api.tensors
 import org.platanios.tensorflow.api.types.DataType
-
-import scala.util.DynamicVariable
 
 /** Groups together all the implicits of the API and takes care of their priorities.
   *
@@ -30,10 +28,6 @@ import scala.util.DynamicVariable
 private[api] trait Implicits
     extends LowPriorityImplicits
         with Indexer {
-  implicit def dynamicVariableToOpCreationContext(context: DynamicVariable[OpCreationContext]): OpCreationContext = {
-    context.value
-  }
-
   /** Convenient implicit conversion function used to convert devices specified as [[String]]s for use with the
     * [[Op.createWith]] function, to the expected device function format taking an [[OpSpecification]] as input and
     * return a device specification string.
@@ -41,7 +35,7 @@ private[api] trait Implicits
     * @param  device Device specification string.
     * @return Function that returns `device` for any [[OpSpecification]] used as input.
     */
-  implicit def deviceImplicitConversion(device: String): (OpSpecification => String) = _ => device
+  implicit def deviceImplicitConversion(device: String): OpSpecification => String = _ => device
 
   // implicit def dataTypeHelper[D >: DataType.Aux[_] <: DataType]: DataType
 }

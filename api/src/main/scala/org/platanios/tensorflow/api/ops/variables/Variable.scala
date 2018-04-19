@@ -623,15 +623,16 @@ private[api] object Variable {
 
     def prependNameScope(name: String) = if (importScope == null) name else Op.prependNameScope(importScope, name)
 
-    val handle = opCreationContext.graph.getOutputByName(prependNameScope(variableDef.getVariableName))
+    val scope = graphConstructionScope.value
+    val handle = scope.graph.getOutputByName(prependNameScope(variableDef.getVariableName))
     val dataType = handle.op.dataTypeAttribute("dtype")
-    val initializeOp = opCreationContext.graph.getOpByName(prependNameScope(variableDef.getInitializerName))
-    val graphElement = opCreationContext.graph.getOutputByName(s"${handle.op.name}/Read/ReadVariable:0")
+    val initializeOp = scope.graph.getOpByName(prependNameScope(variableDef.getInitializerName))
+    val graphElement = scope.graph.getOutputByName(s"${handle.op.name}/Read/ReadVariable:0")
     val cachedValue = {
       if (variableDef.getSnapshotName == null || variableDef.getSnapshotName == "")
         null
       else
-        opCreationContext.graph.getOutputByName(prependNameScope(variableDef.getSnapshotName))
+        scope.graph.getOutputByName(prependNameScope(variableDef.getSnapshotName))
     }
     val saveSliceInformation = {
       if (variableDef.hasSaveSliceInfoDef)
