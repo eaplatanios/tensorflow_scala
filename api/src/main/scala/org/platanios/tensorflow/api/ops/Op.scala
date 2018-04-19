@@ -21,7 +21,6 @@ import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.control_flow.{Context, ControlFlow}
-import org.platanios.tensorflow.api.ops.variables.{CreateNewOnly, VariableScope, VariableStore}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.DataType
 import org.platanios.tensorflow.api.utilities.using
@@ -1179,7 +1178,9 @@ object Op {
     * @return Set of control dependencies to use for the new op creation context.
     */
   private[this] def mergeControlDependencies(
-      controlDependencies: Set[Op], context: OpCreationContext): (Set[Op], Option[Context]) = {
+      controlDependencies: Set[Op],
+      context: OpCreationContext
+  ): (Set[Op], Option[Context]) = {
     if (controlDependencies == null)
       (context.controlDependencies, context.controlFlowContext)
     else if (controlDependencies == Set.empty[Op])

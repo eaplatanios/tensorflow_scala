@@ -378,9 +378,16 @@ private[api] object Variable {
     * @return Requested variable.
     */
   private[api] def getVariable(
-      name: String, dataType: DataType = null, shape: Shape = null, initializer: Initializer = null,
-      regularizer: Regularizer = null, trainable: Boolean = true, reuse: Reuse = ReuseOrCreateNew,
-      collections: Set[Graph.Key[Variable]] = Set.empty, cachingDevice: OpSpecification => String = null): Variable = {
+      name: String,
+      dataType: DataType = null,
+      shape: Shape = null,
+      initializer: Initializer = null,
+      regularizer: Regularizer = null,
+      trainable: Boolean = true,
+      reuse: Reuse = ReuseOrCreateNew,
+      collections: Set[Graph.Key[Variable]] = Set.empty,
+      cachingDevice: OpSpecification => String = null
+  ): Variable = {
     VariableScope.current.getVariable(
       VariableStore.current, name, dataType, shape, initializer, regularizer, trainable, reuse, collections,
       cachingDevice)
@@ -419,10 +426,17 @@ private[api] object Variable {
     * @return Requested variable.
     */
   private[api] def getPartitionedVariable(
-      name: String, dataType: DataType = null, shape: Shape = null, initializer: Initializer = null,
-      regularizer: Regularizer = null, partitioner: Partitioner = null, trainable: Boolean = true,
-      reuse: Reuse = ReuseOrCreateNew, collections: Set[Graph.Key[Variable]] = Set.empty,
-      cachingDevice: OpSpecification => String = null): PartitionedVariable = {
+      name: String,
+      dataType: DataType = null,
+      shape: Shape = null,
+      initializer: Initializer = null,
+      regularizer: Regularizer = null,
+      partitioner: Partitioner = null,
+      trainable: Boolean = true,
+      reuse: Reuse = ReuseOrCreateNew,
+      collections: Set[Graph.Key[Variable]] = Set.empty,
+      cachingDevice: OpSpecification => String = null
+  ): PartitionedVariable = {
     VariableScope.current.getPartitionedVariable(
       VariableStore.current, name, dataType, shape, initializer, regularizer, partitioner, trainable, reuse,
       collections, cachingDevice)
@@ -456,9 +470,15 @@ private[api] object Variable {
     * @return Requested variable.
     */
   private[api] def getLocalVariable(
-      name: String, dataType: DataType = null, shape: Shape = null, initializer: Initializer = null,
-      regularizer: Regularizer = null, reuse: Reuse = ReuseOrCreateNew,
-      collections: Set[Graph.Key[Variable]] = Set.empty, cachingDevice: OpSpecification => String = null): Variable = {
+      name: String,
+      dataType: DataType = null,
+      shape: Shape = null,
+      initializer: Initializer = null,
+      regularizer: Regularizer = null,
+      reuse: Reuse = ReuseOrCreateNew,
+      collections: Set[Graph.Key[Variable]] = Set.empty,
+      cachingDevice: OpSpecification => String = null
+  ): Variable = {
     VariableScope.current.getVariable(
       VariableStore.current, name, dataType, shape, initializer, regularizer, trainable = false, reuse,
       collections + Graph.Keys.LOCAL_VARIABLES, cachingDevice)
@@ -496,10 +516,16 @@ private[api] object Variable {
     * @return Requested variable.
     */
   private[api] def getLocalPartitionedVariable(
-      name: String, dataType: DataType = null, shape: Shape, initializer: Initializer = null,
-      regularizer: Regularizer = null, partitioner: Partitioner = null, reuse: Reuse = ReuseOrCreateNew,
+      name: String,
+      dataType: DataType = null,
+      shape: Shape = null,
+      initializer: Initializer = null,
+      regularizer: Regularizer = null,
+      partitioner: Partitioner = null,
+      reuse: Reuse = ReuseOrCreateNew,
       collections: Set[Graph.Key[Variable]] = Set.empty,
-      cachingDevice: OpSpecification => String = null): PartitionedVariable = {
+      cachingDevice: OpSpecification => String = null
+  ): PartitionedVariable = {
     VariableScope.current.getPartitionedVariable(
       VariableStore.current, name, dataType, shape, initializer, regularizer, partitioner, trainable = false, reuse,
       collections + Graph.Keys.LOCAL_VARIABLES, cachingDevice)
@@ -525,9 +551,14 @@ private[api] object Variable {
     * @return Created variable.
     */
   private[variables] def apply(
-      initializer: Initializer, dataType: DataType = null, shape: Shape = null, trainable: Boolean = true,
-      collections: Set[Graph.Key[Variable]] = Set.empty, cachingDevice: OpSpecification => String = null,
-      name: String = "Variable"): Variable = {
+      initializer: Initializer,
+      dataType: DataType = null,
+      shape: Shape = null,
+      trainable: Boolean = true,
+      collections: Set[Graph.Key[Variable]] = Set.empty,
+      cachingDevice: OpSpecification => String = null,
+      name: String = "Variable"
+  ): Variable = {
     val inferredDataType = if (dataType == null) Option(initializer.dataType).getOrElse(FLOAT32) else dataType
     val inferredShape = if (shape == null) initializer.shape else shape
     if (inferredShape == null)
@@ -618,11 +649,33 @@ private[api] object Variable {
   /** Variable getter type, useful for defining custom variable getters and stacking them. */
   trait VariableGetter {
     def apply(
-        name: String, dataType: DataType = FLOAT32, shape: Shape = null, initializer: Initializer = null,
-        regularizer: Regularizer = null, trainable: Boolean = true, reuse: Reuse = ReuseOrCreateNew,
-        collections: Set[Graph.Key[Variable]] = Set.empty, cachingDevice: OpSpecification => String = null,
-        customGetter: VariableGetter = null): Variable
+        name: String,
+        dataType: DataType = FLOAT32,
+        shape: Shape = null,
+        initializer: Initializer = null,
+        regularizer: Regularizer = null,
+        trainable: Boolean = true,
+        reuse: Reuse = ReuseOrCreateNew,
+        collections: Set[Graph.Key[Variable]] = Set.empty,
+        cachingDevice: OpSpecification => String = null,
+        underlyingGetter: VariableGetter = null
+    ): Variable
   }
+
+  /** Adds `getter` to the scope that `block` is executed in.
+    *
+    * @param  getter Function that specifies custom variable getting behavior. For example, one can specify a custom
+    *                variable getter in order to automatically rename the variables, before calling the underlying
+    *                getter. The underlying variable getter (i.e., the one which is used by default), is provided as a
+    *                last argument to the `getter` function.
+    */
+  def getter[R](getter: VariableGetter)(block: => R): R = {
+    val getters = Op.currentGraph.variableGetters
+    getters.withValue(getters.value :+ getter)(block)
+  }
+
+  /** Returns the variable getters in the current scope. */
+  def currentGetters: Seq[VariableGetter] = Op.currentGraph.variableGetters.value
 
   /** Class that contains partitioning information for a variable that can also be used to save it as a slice.
     *
@@ -800,7 +853,9 @@ private[api] object Variable {
     *         initialized.
     */
   def uninitializedVariables(
-      variables: Set[Variable] = globalVariables ++ localVariables, name: String = "UninitializedVariables"): Output = {
+      variables: Set[Variable] = globalVariables ++ localVariables,
+      name: String = "UninitializedVariables"
+  ): Output = {
     // Run all operations on the CPU.
     Op.createWith(nameScope = name, device = "/CPU:0") {
       if (variables.isEmpty) {
@@ -837,7 +892,10 @@ private[api] object Variable {
     * @param  initialValue Initial value for the variable.
     * @return Initial value to use, with some of its dependencies potentially replaced.
     */
-  private[Variable] def tryGuardAgainstUninitializedDependencies(variableName: String, initialValue: Output): Output = {
+  private[Variable] def tryGuardAgainstUninitializedDependencies(
+      variableName: String,
+      initialValue: Output
+  ): Output = {
     /** Detects cycles in the dependencies of `initialValue`. */
     def hasCycle(op: Op, path: mutable.Set[String]): Boolean = {
       path.contains(op.name) || {
@@ -943,8 +1001,12 @@ private[api] object Variable {
     * @return Created variable op.
     */
   private[ops] def variable(
-      shape: Shape, dataType: DataType, container: String = "", sharedName: String = "",
-      name: String = "Variable"): Output = {
+      shape: Shape,
+      dataType: DataType,
+      container: String = "",
+      sharedName: String = "",
+      name: String = "Variable"
+  ): Output = {
     Op.Builder(opType = "VarHandleOp", name = name)
         .setAttribute("shape", shape)
         .setAttribute("dtype", dataType)
@@ -1000,7 +1062,10 @@ private[api] object Variable {
     * @return Created op.
     */
   private[ops] def unsafeReadVariable(
-      variable: Output, dataType: DataType, name: String = "UnsafeReadVariable"): Output = {
+      variable: Output,
+      dataType: DataType,
+      name: String = "UnsafeReadVariable"
+  ): Output = {
     Op.Builder(opType = "_UnsafeReadVariable", name = name)
         .addInput(variable)
         .setAttribute("dtype", dataType)
@@ -1018,7 +1083,10 @@ private[api] object Variable {
     * @return Created op.
     */
   private[ops] def destroyVariable(
-      variable: Output, ignoreLookupError: Boolean = true, name: String = "DestroyVariable"): Op = {
+      variable: Output,
+      ignoreLookupError: Boolean = true,
+      name: String = "DestroyVariable"
+  ): Op = {
     Op.Builder(opType = "DestroyResourceOp", name = name)
         .addInput(variable)
         .setAttribute("ignore_lookup_error", ignoreLookupError)

@@ -44,5 +44,5 @@ case class VariableScopeStore private[api]() {
 }
 
 object VariableScopeStore {
-  def current: VariableScopeStore = Op.currentGraph.variableScopeStore.get
+  def current: VariableScopeStore = Op.currentGraph.variableScopeStore.value
 }

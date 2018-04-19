@@ -110,12 +110,12 @@ package object variables {
         regularizer: VariableRegularizer = null,
         partitioner: VariablePartitioner = null,
         cachingDevice: OpSpecification => String = null,
-        customGetter: VariableGetter = null,
+        underlyingGetter: VariableGetter = null,
         isDefaultName: Boolean = false,
         isPure: Boolean = false
     )(block: => R): R = {
       variables.VariableScope.scope(
-        name, reuse, dataType, initializer, regularizer, partitioner, cachingDevice, customGetter, isDefaultName,
+        name, reuse, dataType, initializer, regularizer, partitioner, cachingDevice, underlyingGetter, isDefaultName,
         isPure)(block)
     }
 
@@ -127,18 +127,24 @@ package object variables {
         regularizer: VariableRegularizer = null,
         partitioner: VariablePartitioner = null,
         cachingDevice: OpSpecification => String = null,
-        customGetter: VariableGetter = null,
+        underlyingGetter: VariableGetter = null,
         isPure: Boolean = false
     )(block: => R): R = {
       variables.VariableScope.updatedScope(
-        variableScope, reuse, dataType, initializer, regularizer, partitioner, cachingDevice, customGetter,
+        variableScope, reuse, dataType, initializer, regularizer, partitioner, cachingDevice, underlyingGetter,
         isPure)(block)
     }
 
-    /** Returns the current variable scope. */
+    /** Adds `getter` to the scope that `block` is executed in. */
+    def variableGetter[R](getter: VariableGetter)(block: => R): R = Variable.getter(getter)(block)
+
+    /** Returns the variable getters in the current scope. */
+    def currentVariableGetters: Seq[VariableGetter] = Variable.currentGetters
+
+    /** Returns the variable scope in the current scope. */
     def currentVariableScope: VariableScope = VariableScope.current
 
-    /** Returns the current variable store. */
+    /** Returns the variable store in the current scope. */
     def currentVariableStore: VariableStore = VariableStore.current
   }
 }

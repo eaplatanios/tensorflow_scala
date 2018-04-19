@@ -21,7 +21,7 @@ import org.platanios.tensorflow.api.ops.{Op, OpSpecification}
 import org.platanios.tensorflow.api.ops.variables.Variable.VariableGetter
 import org.platanios.tensorflow.api.types.DataType
 
-// TODO: [VARIABLES] Resolve customGetter weirdness related to partitioned variables.
+// TODO: [VARIABLES] Resolve `underlyingGetter` weirdness related to partitioned variables.
 
 /** Variable scope that carries default settings to provide to `getVariable`.
   *
@@ -33,16 +33,16 @@ import org.platanios.tensorflow.api.types.DataType
   * Many of the arguments we need for `getVariable` in a variable store are most easily handled with a context.
   * [[VariableScope]] objects are used for the defaults.
   *
-  * @param  reuse         [[Reuse]] value indicating whether to re-use an existing variable with the same name, create a
-  *                       new variable, or do either.
-  * @param  name          Name of the variable scope, used as a prefix in `getVariable`.
-  * @param  initializer   Default initializer passed to `getVariable`.
-  * @param  regularizer   Default regularizer passed to `getVariable`.
-  * @param  partitioner   Default partitioner passed to `getVariable`.
-  * @param  cachingDevice Default caching device passed to `getVariable`.
-  * @param  nameScope     Default name scope passed to `getVariable`.
-  * @param  dataType      Default data type passed to `getVariable`.
-  * @param  customGetter  Default variable getter passed to `getVariable`.
+  * @param  reuse            [[Reuse]] value indicating whether to re-use an existing variable with the same name,
+  *                          create a new variable, or do either.
+  * @param  name             Name of the variable scope, used as a prefix in `getVariable`.
+  * @param  initializer      Default initializer passed to `getVariable`.
+  * @param  regularizer      Default regularizer passed to `getVariable`.
+  * @param  partitioner      Default partitioner passed to `getVariable`.
+  * @param  cachingDevice    Default caching device passed to `getVariable`.
+  * @param  nameScope        Default name scope passed to `getVariable`.
+  * @param  dataType         Default data type passed to `getVariable`.
+  * @param  underlyingGetter Default underlying variable getter passed to `getVariable`.
   *
   * @author Emmanouil Antonios Platanios
   */
@@ -55,7 +55,7 @@ case class VariableScope private[variables](
     partitioner: Partitioner = null,
     cachingDevice: OpSpecification => String = null,
     nameScope: String = "",
-    customGetter: VariableGetter = null
+    underlyingGetter: VariableGetter = null
 ) {
   /** Gets an existing variable with the specified name or creates a new one.
     *
@@ -160,7 +160,7 @@ case class VariableScope private[variables](
       collections: Set[Graph.Key[Variable]] = Set.empty,
       cachingDevice: OpSpecification => String = this.cachingDevice
   ): PartitionedVariable = {
-    if (customGetter != null)
+    if (underlyingGetter != null)
       throw new IllegalArgumentException(
         "Private access to 'getPartitionedVariable' is not allowed when a custom getter is set.")
     if (partitioner == null)
@@ -238,11 +238,11 @@ private[api] object VariableScope {
       partitioner = if (partitioner == null) oldVariableScope.partitioner else partitioner,
       cachingDevice = if (cachingDevice == null) oldVariableScope.cachingDevice else cachingDevice,
       nameScope = name,
-      customGetter = {
+      underlyingGetter = {
         if (customGetter == null)
-          oldVariableScope.customGetter
+          oldVariableScope.underlyingGetter
         else
-          maybeWrapCustomVariableGetter(customGetter, oldVariableScope.customGetter)
+          maybeWrapCustomVariableGetter(customGetter, oldVariableScope.underlyingGetter)
       })
     variableScopeStore.scope = newVariableScope
     val result = if (isPure) block else Op.createWithNameScope(name)(block)
@@ -295,11 +295,11 @@ private[api] object VariableScope {
       partitioner = if (partitioner == null) variableScope.partitioner else partitioner,
       cachingDevice = if (cachingDevice == null) variableScope.cachingDevice else cachingDevice,
       nameScope = variableScope.nameScope,
-      customGetter = {
+      underlyingGetter = {
         if (customGetter == null)
-          variableScope.customGetter
+          variableScope.underlyingGetter
         else
-          maybeWrapCustomVariableGetter(customGetter, variableScope.customGetter)
+          maybeWrapCustomVariableGetter(customGetter, variableScope.underlyingGetter)
       })
     variableScopeStore.scope = newVariableScope
     val result = if (isPure) block else Op.createWithNameScope(variableScope.name.split("/").last)(block)
@@ -334,7 +334,7 @@ private[api] object VariableScope {
             reuse: Reuse,
             collections: Set[Graph.Key[Variable]],
             cachingDevice: OpSpecification => String,
-            customGetter: VariableGetter
+            underlyingGetter: VariableGetter
         ): Variable = {
           val baseGetter: VariableGetter = new VariableGetter {
             override def apply(
@@ -347,11 +347,11 @@ private[api] object VariableScope {
                 reuse: Reuse,
                 collections: Set[Graph.Key[Variable]],
                 cachingDevice: OpSpecification => String,
-                customGetter: VariableGetter
+                underlyingGetter: VariableGetter
             ): Variable = {
               oldGetter(
                 name, dataType, shape, initializer, regularizer, trainable, reuse, collections, cachingDevice,
-                customGetter)
+                underlyingGetter)
             }
           }
           getter(

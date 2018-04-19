@@ -98,6 +98,10 @@ class Graph private[api](
     new DynamicVariable[VariableScopeStore](VariableScopeStore())
   }
 
+  private[api] val variableGetters: DynamicVariable[Seq[Variable.VariableGetter]] = {
+    new DynamicVariable[Seq[Variable.VariableGetter]](Seq.empty)
+  }
+
   /** Set that contains the current names in use in this graph. */
   private[this] val namesInUse: mutable.Set[String] = mutable.Set.empty[String]
 

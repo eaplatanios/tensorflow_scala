@@ -178,7 +178,7 @@ object Layer {
   private[api] def createWithVariableScope[R](
       name: String, reuse: ReuseAllowed = ReuseOrCreateNew, dataType: DataType = null, initializer: Initializer = null,
       regularizer: Regularizer = null, partitioner: Partitioner = null, cachingDevice: OpSpecification => String = null,
-      customGetter: VariableGetter = null, isDefaultName: Boolean = false, isPure: Boolean = false
+      underlyingGetter: VariableGetter = null, isDefaultName: Boolean = false, isPure: Boolean = false
   )(block: => R): R = {
     if (reuse == ReuseExistingOnly && isDefaultName)
       throw new IllegalArgumentException(
@@ -203,11 +203,11 @@ object Layer {
       partitioner = if (partitioner == null) oldVariableScope.partitioner else partitioner,
       cachingDevice = if (cachingDevice == null) oldVariableScope.cachingDevice else cachingDevice,
       nameScope = name,
-      customGetter = {
-        if (customGetter == null)
-          oldVariableScope.customGetter
+      underlyingGetter = {
+        if (underlyingGetter == null)
+          oldVariableScope.underlyingGetter
         else
-          maybeWrapCustomVariableGetter(customGetter, oldVariableScope.customGetter)
+          maybeWrapCustomVariableGetter(underlyingGetter, oldVariableScope.underlyingGetter)
       })
     variableScopeStore.scope = newVariableScope
     val result = if (isPure) block else Op.createWithNameScope(name)(block)
@@ -219,7 +219,7 @@ object Layer {
   private[api] def createWithUpdatedVariableScope[R](
       variableScope: VariableScope, reuse: ReuseAllowed = ReuseOrCreateNew, dataType: DataType = null,
       initializer: Initializer = null, regularizer: Regularizer = null, partitioner: Partitioner = null,
-      cachingDevice: OpSpecification => String = null, customGetter: VariableGetter = null, isPure: Boolean = false
+      cachingDevice: OpSpecification => String = null, underlyingGetter: VariableGetter = null, isPure: Boolean = false
   )(block: => R): R = {
     val variableScopeStore = VariableScopeStore.current
     val oldVariableScope = variableScopeStore.scope
@@ -234,11 +234,11 @@ object Layer {
       partitioner = if (partitioner == null) variableScope.partitioner else partitioner,
       cachingDevice = if (cachingDevice == null) variableScope.cachingDevice else cachingDevice,
       nameScope = variableScope.nameScope,
-      customGetter = {
-        if (customGetter == null)
-          variableScope.customGetter
+      underlyingGetter = {
+        if (underlyingGetter == null)
+          variableScope.underlyingGetter
         else
-          maybeWrapCustomVariableGetter(customGetter, variableScope.customGetter)
+          maybeWrapCustomVariableGetter(underlyingGetter, variableScope.underlyingGetter)
       })
     variableScopeStore.scope = newVariableScope
     val result = if (isPure) block else Op.createWithNameScope(variableScope.name.split("/").last)(block)
