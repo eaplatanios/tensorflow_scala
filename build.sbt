@@ -199,9 +199,12 @@ lazy val api = (project in file("./api"))
     .settings(testSettings)
     .settings(publishSettings)
     .settings(
-      libraryDependencies += "org.typelevel" %% "spire" % "0.14.1",
-      libraryDependencies += "org.tensorflow" % "proto" % tensorFlowVersion,
-      libraryDependencies += "com.chuusai" %% "shapeless" % "2.3.3",
+      libraryDependencies ++= Seq(
+        "org.typelevel" %% "spire" % "0.14.1",
+        "org.tensorflow" % "proto" % tensorFlowVersion,
+        "com.chuusai" %% "shapeless" % "2.3.3",
+        compilerPlugin("com.github.ghik" %% "silencer-plugin" % "0.6"),
+        "com.github.ghik" %% "silencer-lib" % "0.6"),
       libraryDependencies ++= Seq(
         "io.circe" %% "circe-core",
         "io.circe" %% "circe-generic",

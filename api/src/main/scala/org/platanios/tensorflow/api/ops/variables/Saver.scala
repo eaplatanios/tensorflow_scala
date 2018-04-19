@@ -26,6 +26,7 @@ import org.platanios.tensorflow.api.types.{DataType, INT32}
 import org.platanios.tensorflow.api.utilities.Proto
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
 
+import com.github.ghik.silencer.silent
 import com.google.protobuf.TextFormat
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
@@ -837,7 +838,7 @@ trait SaverDefBuilder {
             .toSeq.unzip3[String, Output, String]
       checkpointFormatVersion match {
         case SaverDef.CheckpointFormatVersion.V1 =>
-          SaverDefBuilder.saveSlicesOp(prefix, tensorNames, tensors, slices, name)
+          SaverDefBuilder.saveSlicesOp(prefix, tensorNames, tensors, slices, name): @silent
         case SaverDef.CheckpointFormatVersion.V2 =>
           SaverDefBuilder.saveV2Op(prefix, tensorNames, tensors, slices, name)
         case _ => throw new IllegalArgumentException(
