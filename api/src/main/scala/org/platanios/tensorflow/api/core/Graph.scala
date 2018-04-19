@@ -22,7 +22,6 @@ import org.platanios.tensorflow.api.ops.variables.{Saver, Variable, VariableScop
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer, NativeHandleWrapper}
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
 import org.platanios.tensorflow.jni.{Function => NativeFunction, Graph => NativeGraph, TensorFlow => NativeLibrary}
-
 import com.google.protobuf.ByteString
 import org.tensorflow.framework.CollectionDef.{BytesList, Int64List, NodeList}
 import org.tensorflow.framework.MetaGraphDef.MetaInfoDef
@@ -32,6 +31,7 @@ import org.tensorflow.util.SaverDef
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.language.postfixOps
+import scala.util.DynamicVariable
 import scala.util.matching.Regex
 
 // TODO: Keep track of all sessions using this graph and close them when the graph is closed.
@@ -94,8 +94,8 @@ class Graph private[api](
   }
 
   /** Variable scope store object of this graph. */
-  private[api] val variableScopeStore: ThreadLocal[VariableScopeStore] = {
-    ThreadLocal.withInitial(() => VariableScopeStore())
+  private[api] val variableScopeStore: DynamicVariable[VariableScopeStore] = {
+    new DynamicVariable[VariableScopeStore](VariableScopeStore())
   }
 
   /** Set that contains the current names in use in this graph. */

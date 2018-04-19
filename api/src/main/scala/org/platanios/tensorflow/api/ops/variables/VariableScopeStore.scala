@@ -31,18 +31,6 @@ case class VariableScopeStore private[api]() {
     variableScopeCounts += scope -> (variableScopeCounts.getOrElse(scope, 0) + 1)
   }
 
-  //  private[api] def exitVariableScope(scope: String): Unit = variableScopeCounts synchronized {
-  //    variableScopeCounts += scope -> (variableScopeCounts.getOrElse(scope, 1) - 1)
-  //  }
-  //
-  //  private[api] def setVariableScopeCounts(counts: Map[String, Int]): Unit = variableScopeCounts synchronized {
-  //    variableScopeCounts ++= counts
-  //  }
-  //
-  //  private[api] def getVariableSubScopeCounts(scope: String): Map[String, Int] = variableScopeCounts synchronized {
-  //    variableScopeCounts.filterKeys(_.startsWith(s"$scope/"))
-  //  }
-
   private[api] def closeVariableSubScopes(scope: String): Unit = {
     variableScopeCounts.keySet.filter(_.startsWith(s"$scope/")).foreach(variableScopeCounts -= _)
   }
