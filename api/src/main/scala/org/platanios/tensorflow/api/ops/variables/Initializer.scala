@@ -24,8 +24,6 @@ import org.platanios.tensorflow.api.ops.variables.VarianceScalingInitializer.Fan
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.DataType
 
-// TODO: [VARIABLE_INITIALIZERS] UniformUnitScaling and orthogonal.
-
 /** Base trait for all variable initializers.
   *
   * @author Emmanouil Antonios Platanios

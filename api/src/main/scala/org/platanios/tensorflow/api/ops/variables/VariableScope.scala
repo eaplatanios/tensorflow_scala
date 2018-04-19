@@ -21,14 +21,10 @@ import org.platanios.tensorflow.api.ops.{Op, OpSpecification}
 import org.platanios.tensorflow.api.ops.variables.Variable.VariableGetter
 import org.platanios.tensorflow.api.types.DataType
 
-// TODO: [VARIABLES] Resolve `underlyingGetter` weirdness related to partitioned variables.
-
 /** Variable scope that carries default settings to provide to `getVariable`.
   *
   * A variable scope allows to create new variables and to share already created ones while providing checks to not
   * create or share by accident.
-  *
-  * TODO: [VARIABLES] [EXAMPLES] Examples.
   *
   * Many of the arguments we need for `getVariable` in a variable store are most easily handled with a context.
   * [[VariableScope]] objects are used for the defaults.
@@ -181,24 +177,24 @@ private[api] object VariableScope {
 
   /** Sets the variable scope to use for op creation context, for all code in `block`.
     *
-    * @param  name          Variable scope name, that may also change the name scope of the op creation context,
-    *                       depending on the value of `isPure`.
-    * @param  reuse         [[Reuse]] value indicating whether to re-use an existing variable with the same name, or do
-    *                       either. Note that this argument cannot be set to [[CreateNewOnly]] in this function. If set
-    *                       to [[ReuseOrCreateNew]], then the parent variable scope `reuse` value is used (i.e..
-    *                       propagated).
-    * @param  dataType      Default data type for variables within the scope.
-    * @param  initializer   Default initializer for variables within the scope.
-    * @param  regularizer   Default regularizer for variables within the scope.
-    * @param  partitioner   Default partitioner for variables within the scope.
-    * @param  cachingDevice Default caching device for variables within the scope.
-    * @param  customGetter  Default variable getter for variables within the scope.
-    * @param  isDefaultName Boolean value indicating whether `name` is a default name or not. If `true`, then `name`
-    *                       will be made unique before being used. `isDefaultName` cannot be set to `true` when `reuse`
-    *                       is set to [[ReuseExistingOnly]].
-    * @param  isPure        Boolean value indicating whether to use a "pure" variable scope. That is, a variable scope
-    *                       that does not affect the name scope of the current op creation context.
-    * @param  block         Code block to run using the provided options.
+    * @param  name             Variable scope name, that may also change the name scope of the op creation context,
+    *                          depending on the value of `isPure`.
+    * @param  reuse            [[Reuse]] value indicating whether to re-use an existing variable with the same name, or
+    *                          do either. Note that this argument cannot be set to [[CreateNewOnly]] in this function.
+    *                          If set to [[ReuseOrCreateNew]], then the parent variable scope `reuse` value is used
+    *                          (i.e., propagated).
+    * @param  dataType         Default data type for variables within the scope.
+    * @param  initializer      Default initializer for variables within the scope.
+    * @param  regularizer      Default regularizer for variables within the scope.
+    * @param  partitioner      Default partitioner for variables within the scope.
+    * @param  cachingDevice    Default caching device for variables within the scope.
+    * @param  underlyingGetter Default variable getter for variables within the scope.
+    * @param  isDefaultName    Boolean value indicating whether `name` is a default name or not. If `true`, then `name`
+    *                          will be made unique before being used. `isDefaultName` cannot be set to `true` when
+    *                          `reuse` is set to [[ReuseExistingOnly]].
+    * @param  isPure           Boolean value indicating whether to use a "pure" variable scope. That is, a variable
+    *                          scope that does not affect the name scope of the current op creation context.
+    * @param  block            Code block to run using the provided options.
     * @tparam R Return type of the code block.
     * @return Return value of the code block.
     */
@@ -210,7 +206,7 @@ private[api] object VariableScope {
       regularizer: Regularizer = null,
       partitioner: Partitioner = null,
       cachingDevice: OpSpecification => String = null,
-      customGetter: VariableGetter = null,
+      underlyingGetter: VariableGetter = null,
       isDefaultName: Boolean = false,
       isPure: Boolean = false
   )(block: => R): R = {
@@ -226,10 +222,8 @@ private[api] object VariableScope {
       else
         uniqueName
     }
-    // TODO: !!! [VARIABLES] Look into the cached pure variable scope.
     variableScopeStore.enterVariableScope(newName)
     val newVariableScope = VariableScope(
-      // TODO: !!! [VARIABLES] Have 'name' as first argument in order to be consistent.
       reuse = if (reuse == ReuseOrCreateNew) oldVariableScope.reuse else reuse,
       name = newName,
       dataType = if (dataType == null) oldVariableScope.dataType else dataType,
@@ -239,10 +233,10 @@ private[api] object VariableScope {
       cachingDevice = if (cachingDevice == null) oldVariableScope.cachingDevice else cachingDevice,
       nameScope = name,
       underlyingGetter = {
-        if (customGetter == null)
+        if (underlyingGetter == null)
           oldVariableScope.underlyingGetter
         else
-          maybeWrapCustomVariableGetter(customGetter, oldVariableScope.underlyingGetter)
+          maybeWrapCustomVariableGetter(underlyingGetter, oldVariableScope.underlyingGetter)
       })
     variableScopeStore.scope = newVariableScope
     val result = if (isPure) block else Op.createWithNameScope(name)(block)
@@ -253,33 +247,33 @@ private[api] object VariableScope {
 
   /** Sets the variable scope to use for op creation context, for all code in `block`.
     *
-    * @param  variableScope Default variable scope to use. Other arguments of this function can override the
-    *                       corresponding parameters of `variableScope`.
-    * @param  reuse         [[Reuse]] value indicating whether to re-use an existing variable with the same name, or do
-    *                       either. Note that this argument cannot be set to [[CreateNewOnly]] in this function. If set
-    *                       to [[ReuseOrCreateNew]], then the parent variable scope `reuse` value is used (i.e..
-    *                       propagated).
-    * @param  dataType      Default data type for variables within the scope.
-    * @param  initializer   Default initializer for variables within the scope.
-    * @param  regularizer   Default regularizer for variables within the scope.
-    * @param  partitioner   Default partitioner for variables within the scope.
-    * @param  cachingDevice Default caching device for variables within the scope.
-    * @param  customGetter  Default variable getter for variables within the scope.
-    * @param  isPure        Boolean value indicating whether to use a "pure" variable scope. That is, a variable scope
-    *                       that does not affect the name scope of the current op creation context.
-    * @param  block         Code block to run using the provided options.
+    * @param  variableScope    Default variable scope to use. Other arguments of this function can override the
+    *                          corresponding parameters of `variableScope`.
+    * @param  reuse            [[Reuse]] value indicating whether to re-use an existing variable with the same name, or
+    *                          do either. Note that this argument cannot be set to [[CreateNewOnly]] in this function.
+    *                          If set to [[ReuseOrCreateNew]], then the parent variable scope `reuse` value is used
+    *                          (i.e., propagated).
+    * @param  dataType         Default data type for variables within the scope.
+    * @param  initializer      Default initializer for variables within the scope.
+    * @param  regularizer      Default regularizer for variables within the scope.
+    * @param  partitioner      Default partitioner for variables within the scope.
+    * @param  cachingDevice    Default caching device for variables within the scope.
+    * @param  underlyingGetter Default variable getter for variables within the scope.
+    * @param  isPure           Boolean value indicating whether to use a "pure" variable scope. That is, a variable
+    *                          scope that does not affect the name scope of the current op creation context.
+    * @param  block            Code block to run using the provided options.
     * @tparam R Return type of the code block.
     * @return Return value of the code block.
     */
   private[api] def updatedScope[R](
-      variableScope: VariableScope,
+      variableScope: VariableScope = VariableScope.current,
       reuse: Reuse = ReuseOrCreateNew,
       dataType: DataType = null,
       initializer: Initializer = null,
       regularizer: Regularizer = null,
       partitioner: Partitioner = null,
       cachingDevice: OpSpecification => String = null,
-      customGetter: VariableGetter = null,
+      underlyingGetter: VariableGetter = null,
       isPure: Boolean = false
   )(block: => R): R = {
     val variableScopeStore = VariableScopeStore.current
@@ -296,10 +290,10 @@ private[api] object VariableScope {
       cachingDevice = if (cachingDevice == null) variableScope.cachingDevice else cachingDevice,
       nameScope = variableScope.nameScope,
       underlyingGetter = {
-        if (customGetter == null)
+        if (underlyingGetter == null)
           variableScope.underlyingGetter
         else
-          maybeWrapCustomVariableGetter(customGetter, variableScope.underlyingGetter)
+          maybeWrapCustomVariableGetter(underlyingGetter, variableScope.underlyingGetter)
       })
     variableScopeStore.scope = newVariableScope
     val result = if (isPure) block else Op.createWithNameScope(variableScope.name.split("/").last)(block)

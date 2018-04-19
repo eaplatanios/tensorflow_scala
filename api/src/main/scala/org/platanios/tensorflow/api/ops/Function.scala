@@ -353,7 +353,7 @@ object InstantiatedFunction {
 
       // Call the Scala function and gather the output tensors
       val (outputs, flattenedOutputs) = {
-        VariableScope.scope("", customGetter = functionGraph.customVariableGetter) {
+        VariableScope.scope("", underlyingGetter = functionGraph.customVariableGetter) {
           // Unflatten the inputs, pass them to the function, and then flatten the returned outputs
           val outputs = function(
             input.map(evInput.outputsDecoderWithKnownArg(_, inputs)._1)

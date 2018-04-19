@@ -31,11 +31,9 @@ import org.tensorflow.framework.{SaveSliceInfoDef, VariableDef}
 import scala.collection.mutable
 import scala.collection.JavaConverters._
 import scala.language.postfixOps
-import scala.util.DynamicVariable
 
 /** Variable based on resource handles.
   *
-  * TODO: Create a documentation page for the Scala API.
   * See the [[https://www.tensorflow.org/programmers_guide/variables Variables Guide]] for a high-level overview.
   *
   * A variable allows you to maintain state across subsequent calls to `Session.run()`. The variable constructors
@@ -198,14 +196,10 @@ case class Variable private (
   //   toOutput.evaluate(feeds, session)
   // }
 
-  // TODO: [VARIABLE] Add support for slice assignment.
-
   //region Assignment Ops
 
   // TODO: [TF_UPDATE] The following ops are not atomic. Consider making atomic if there is a way to do so without a
   // performance cost for those who don't need it.
-
-  // TODO: [VARIABLE] Make reads optional in the assign ops.
 
   /** Creates an op that assigns the provided value to this variable and returns its value.
     *
@@ -669,8 +663,20 @@ private[api] object Variable {
     *                last argument to the `getter` function.
     */
   def getter[R](getter: VariableGetter)(block: => R): R = {
-    val getters = Op.currentGraph.variableGetters
-    getters.withValue(getters.value :+ getter)(block)
+    val currentGetters = Op.currentGraph.variableGetters
+    currentGetters.withValue(currentGetters.value :+ getter)(block)
+  }
+
+  /** Adds `getters` to the scope that `block` is executed in.
+    *
+    * @param  getters Functions that specify custom variable getting behavior. For example, one can specify a custom
+    *                 variable getter in order to automatically rename the variables, before calling the underlying
+    *                 getter. The underlying variable getter (i.e., the one which is used by default), is provided as a
+    *                 last argument to the `getter` function.
+    */
+  def getters[R](getters: Seq[VariableGetter])(block: => R): R = {
+    val currentGetters = Op.currentGraph.variableGetters
+    currentGetters.withValue(currentGetters.value ++ getters)(block)
   }
 
   /** Returns the variable getters in the current scope. */

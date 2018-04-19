@@ -21,6 +21,15 @@ import org.platanios.tensorflow.api.ops.variables.Variable.VariableGetter
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.{DataType, FLOAT32}
 
+// TODO: [VARIABLES/DOC] Create a documentation page for the Scala API (https://www.tensorflow.org/programmers_guide/variables).
+// TODO: [VARIABLES/DOC/EXAMPLES] Examples.
+// TODO: !!! [VARIABLES] Look into the cached pure variable scope.
+// TODO: [VARIABLES] Make reads optional in the assignment ops.
+// TODO: [VARIABLES] Add support for slice assignment.
+// TODO: [VARIABLES] Unify the interfaces of variables and partitioned variables.
+// TODO: [VARIABLES] Support partitioned variables in getters.
+// TODO: [VARIABLES/INITIALIZERS] UniformUnitScaling and orthogonal.
+
 /**
   * @author Emmanouil Antonios Platanios
   */
@@ -121,7 +130,7 @@ package object variables {
     }
 
     def updatedVariableScope[R](
-        variableScope: VariableScope,
+        variableScope: VariableScope = VariableScope.current,
         reuse: VariableReuse = ReuseOrCreateNewVariable,
         dataType: DataType = null,
         initializer: VariableInitializer = null,

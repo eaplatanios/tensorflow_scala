@@ -15,8 +15,9 @@
 
 package org.platanios.tensorflow.api.ops.variables
 
-import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.ops.{Basic, Op, Output}
+import org.platanios.tensorflow.api.core.{Graph, Shape}
+import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
+import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output}
 import org.platanios.tensorflow.api.types.DataType
 
 import scala.math.Ordering.Implicits._
@@ -41,8 +42,12 @@ import scala.math.Ordering.Implicits._
   */
 @throws[IllegalArgumentException]
 case class PartitionedVariable private[variables](
-    name: String, dataType: DataType, shape: Shape, private val wrappedVariables: Seq[Variable],
-    partitions: Array[Int]) extends Iterable[Variable] {
+    name: String,
+    dataType: DataType,
+    shape: Shape,
+    private val wrappedVariables: Seq[Variable],
+    partitions: Array[Int]
+) extends Iterable[Variable] {
   if (shape.rank != partitions.length)
     throw new IllegalArgumentException(
       s"The number of partitions provided (${partitions.length}) does not match the shape rank (${shape.rank}).")
@@ -57,6 +62,10 @@ case class PartitionedVariable private[variables](
   if (wrappedVariables.exists(_.partitionInformation.fullShape != shape))
     throw new IllegalArgumentException(
       "All variables' save slice information full shape must match the provided shape.")
+
+  /** Graph where this variable is defined. */
+  val graph: Graph = wrappedVariables.head.graph
+
   val variables: Seq[Variable] = wrappedVariables.sortBy(_.partitionInformation.partitionOffsets.toList)
 
   /** Returns the overall concatenated value as an [[Output]].
@@ -68,7 +77,7 @@ case class PartitionedVariable private[variables](
     * @throws IllegalArgumentException If having more than one partition axes.
     */
   @throws[IllegalArgumentException]
-  private[this] def concatenated: Output = {
+  def concatenated: Output = {
     val concatenated: Output = {
       if (variables.length == 1) {
         variables.head.value
@@ -103,6 +112,32 @@ case class PartitionedVariable private[variables](
     }
   }
 
+  /** Op responsible for initializing this variable. */
+  val initializer: Op = ControlFlow.group(variables.map(_.initializer).toSet)
+
+  /** Op output that is `true` when the variable has been initialized and `false` otherwise. */
+  val isInitialized: Output = Op.createWith(graph) {
+    Math.all(Basic.stack(variables.map(_.isInitialized)), name = "IsInitialized")
+  }
+
+  /** Value of the initialized variable. You should use this instead of the variable itself to initialize
+    * another variable with a value that depends on the value of this variable.
+    *
+    * Example:
+    * {{{
+    *   // Initialize `v` with random values, and then use `initializedValue` to guarantee that `v` has been initialized
+    *   // before its value is used to initialize `w`. The random tensor will only be sampled once.
+    *   val v = tf.variable("v", FLOAT32, Shape(10, 40), tf.RandomTruncatedNormalInitializer())
+    *   val w = tf.variable("w", initializer = tf.ConstantInitializer(v.initializedValue * 2.0))
+    * }}}
+    */
+  val initializedValue: Output = Op.initialization {
+    ControlFlow.cond(
+      isInitialized,
+      () => value,
+      () => Op.createWith(controlDependencies = Set(initializer))(value))
+  }
+
   /** Converts this variable to an op output. This function simply returns an op corresponding to the variable value. */
   def toOutput: Output = value
 
@@ -120,7 +155,7 @@ case class PartitionedVariable private[variables](
     * @throws IllegalArgumentException If having more than one partition axes.
     */
   @throws[IllegalArgumentException]
-  private[this] def length: Int = {
+  def length: Int = {
     if (partitionAxes.length > 1)
       throw new IllegalArgumentException(s"Cannot get a length for ${partitionAxes.length} > 1 partition axes.")
     variables.length
