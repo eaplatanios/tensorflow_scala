@@ -20,6 +20,7 @@ import org.platanios.tensorflow.api
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
 
+import scala.util.DynamicVariable
 import scala.util.matching.Regex
 
 /**
@@ -35,6 +36,10 @@ package object ops {
   private[ops] val COLOCATION_OPS_ATTRIBUTE_PREFIX: String = "loc:@"
   private[ops] val VALID_OP_NAME_REGEX            : Regex  = "^[A-Za-z0-9.][A-Za-z0-9_.\\-/]*$".r
   private[ops] val VALID_NAME_SCOPE_REGEX         : Regex  = "^[A-Za-z0-9_.\\-/]*$".r
+
+  private[ops] val opCreationContext: DynamicVariable[api.ops.OpCreationContext] = {
+    new DynamicVariable[api.ops.OpCreationContext](api.ops.OpCreationContext(graph = api.core.defaultGraph))
+  }
 
   @inline private[ops] def castArgs(output1: Output, output2: Output): (Output, Output) = {
     val dataType = types.DataType.mostPrecise(output1.dataType, output2.dataType)

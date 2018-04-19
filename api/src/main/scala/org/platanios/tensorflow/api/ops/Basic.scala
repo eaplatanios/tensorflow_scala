@@ -22,10 +22,11 @@ import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.ops.NN.CNNDataFormat
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
-import org.platanios.tensorflow.api.tensors.{Context, Tensor}
+import org.platanios.tensorflow.api.tensors.{executionContext, Context, Tensor}
 import org.platanios.tensorflow.api.types._
 import org.platanios.tensorflow.jni.InvalidArgumentException
 import org.platanios.tensorflow.jni.generated.tensors.{Basic => NativeTensorOpsBasic}
+
 import org.tensorflow.framework.AttrValue
 
 import scala.language.postfixOps
@@ -52,10 +53,7 @@ private[api] trait Basic {
     *                               the provided `shape`.
     */
   @throws[InvalidShapeException]
-  def constant(tensor: Tensor, dataType: DataType = null, shape: Shape = null, name: String = "Constant"
-  )(implicit
-      context: DynamicVariable[Context]
-  ): Output = {
+  def constant(tensor: Tensor, dataType: DataType = null, shape: Shape = null, name: String = "Constant"): Output = {
     val inferredDataType = if (dataType == null) tensor.dataType else dataType
     val inferredShape = if (shape == null) tensor.shape else shape
     val constantTensor =
@@ -653,7 +651,7 @@ private[api] trait Basic {
       * @param  paddings `INT32` or `INT64` tensor containing the paddings.
       * @return Result as a new tensor.
       */
-    private[api] def pad(input: Tensor, paddings: Tensor)(implicit context: DynamicVariable[Context]): Tensor
+    private[api] def pad(input: Tensor, paddings: Tensor): Tensor
   }
 
   private[ops] object PaddingMode {
@@ -695,10 +693,10 @@ private[api] trait Basic {
           .build().outputs(0)
     }
 
-    override def pad(input: Tensor, paddings: Tensor)(implicit context: DynamicVariable[Context]): Tensor = {
+    override def pad(input: Tensor, paddings: Tensor): Tensor = {
       Tensor.fromNativeHandle(
         NativeTensorOpsBasic.padV2(
-          context.value.nativeHandle, input.nativeHandle, paddings.nativeHandle,
+          executionContext.value.nativeHandle, input.nativeHandle, paddings.nativeHandle,
           value.cast(input.dataType).nativeHandle))
     }
   }
@@ -734,10 +732,11 @@ private[api] trait Basic {
           .build().outputs(0)
     }
 
-    override def pad(input: Tensor, paddings: Tensor)(implicit context: DynamicVariable[Context]): Tensor = {
+    override def pad(input: Tensor, paddings: Tensor): Tensor = {
       Tensor.fromNativeHandle(
         NativeTensorOpsBasic.mirrorPad(
-          context.value.nativeHandle, input.nativeHandle, paddings.nativeHandle, "REFLECT".getBytes()))
+          executionContext.value.nativeHandle, input.nativeHandle, paddings.nativeHandle,
+          "REFLECT".getBytes()))
     }
   }
 
@@ -772,10 +771,11 @@ private[api] trait Basic {
           .build().outputs(0)
     }
 
-    override def pad(input: Tensor, paddings: Tensor)(implicit context: DynamicVariable[Context]): Tensor = {
+    override def pad(input: Tensor, paddings: Tensor): Tensor = {
       Tensor.fromNativeHandle(
         NativeTensorOpsBasic.mirrorPad(
-          context.value.nativeHandle, input.nativeHandle, paddings.nativeHandle, "SYMMETRIC".getBytes()))
+          executionContext.value.nativeHandle, input.nativeHandle, paddings.nativeHandle,
+          "SYMMETRIC".getBytes()))
     }
   }
 

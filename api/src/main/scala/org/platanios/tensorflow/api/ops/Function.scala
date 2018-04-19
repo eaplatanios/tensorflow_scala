@@ -31,14 +31,13 @@ import shapeless.ops.hlist.Tupler
 
 import scala.collection.mutable
 import scala.collection.JavaConverters._
-import scala.util.DynamicVariable
 
 // TODO: [FUNCTIONS] Add support for function descriptions.
 
 /**
   * @author Emmanouil Antonios Platanios
   */
-case class Function[I, O](name: String, function: (I) => O)(implicit
+case class Function[I, O](name: String, function: I => O)(implicit
     evInput: Function.ArgType[I],
     evOutput: Function.ArgType[O]
 ) {
@@ -278,22 +277,24 @@ private[api] class InstantiatedFunction[I, O] protected (
     * @return Function output.
     */
   def apply(
-      input: I, inline: Boolean = true, compiled: Boolean = false, separateCompiledGradients: Boolean = false,
+      input: I,
+      inline: Boolean = true,
+      compiled: Boolean = false,
+      separateCompiledGradients: Boolean = false,
       name: String = name
-  )(implicit
-      context: DynamicVariable[OpCreationContext]
   ): O = {
     val outputs = Op.createWithNameScope(name) {
       val outputs = evInput.outputs(input)
       addToGraph(outputs.head.graph)
-      val builder = Op.Builder(opType = hashedName, name = "Call")(context)
+      val builder = Op.Builder(opType = hashedName, name = "Call")
       (outputs ++ extraInputs).foreach(builder.addInput)
       builder.setAttribute("_noinline", inline)
       if (compiled) {
         builder
             .setAttribute("_XlaCompile", compiled)
             .setAttribute("_XlaSeparateCompiledGradients", separateCompiledGradients)
-            .setAttribute("_XlaScope", context.value.attributes.getOrElse("_XlaScope", s"function_$name").toString)
+            .setAttribute(
+              "_XlaScope", opCreationContext.value.attributes.getOrElse("_XlaScope", s"function_$name").toString)
       }
       builder.build().outputs
     }
@@ -307,7 +308,7 @@ private[api] class InstantiatedFunction[I, O] protected (
 object InstantiatedFunction {
   private[api] def apply[I, O](
       name: String,
-      function: (I) => O,
+      function: I => O,
       inputDataTypes: Seq[DataType],
       inputShapes: Option[Seq[Shape]] = None,
       input: Option[I] = None,

@@ -2950,6 +2950,7 @@ object Math extends Math {
       * @group MathOps
       * @return Result as a new tensor.
       */
+    @deprecated("Use `truncateDivide` instead.", "0.1")
     def floorDivide(other: Output): Output = Math.floorDivide(output, other)
 
     /** $OpDocMathTruncateDivide

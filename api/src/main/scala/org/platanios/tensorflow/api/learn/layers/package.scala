@@ -15,10 +15,16 @@
 
 package org.platanios.tensorflow.api.learn
 
+import scala.util.DynamicVariable
+
 /**
   * @author Emmanouil Antonios Platanios
   */
 package object layers {
+  private[learn] val layerContext: DynamicVariable[LayerCreationContext] = {
+    new DynamicVariable[LayerCreationContext](LayerCreationContext())
+  }
+
   private[api] trait API
       extends Activation.API
           with Basic.API

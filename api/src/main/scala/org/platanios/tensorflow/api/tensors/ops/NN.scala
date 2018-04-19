@@ -19,7 +19,7 @@ import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.NN.{CNNDataFormat, NCWFormat, NWCFormat, ConvPaddingMode}
-import org.platanios.tensorflow.api.tensors.{Context, Tensor, TensorOps}
+import org.platanios.tensorflow.api.tensors.{executionContext, Context, Tensor, TensorOps}
 import org.platanios.tensorflow.api.types.{DataType, FLOAT16, FLOAT32, FLOAT64, INT32, INT64}
 import org.platanios.tensorflow.jni.generated.tensors.{NN => NativeTensorOpsNN}
 
@@ -45,11 +45,9 @@ private[api] trait NN {
     *                       dimension.
     * @return Result as a new tensor.
     */
-  def addBias(
-      value: Tensor, bias: Tensor, cNNDataFormat: CNNDataFormat = CNNDataFormat.default)(
-      implicit context: DynamicVariable[Context]): Tensor = {
+  def addBias(value: Tensor, bias: Tensor, cNNDataFormat: CNNDataFormat = CNNDataFormat.default): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsNN.biasAdd(
-      context.value.nativeHandle, value.nativeHandle, bias.nativeHandle,
+      executionContext.value.nativeHandle, value.nativeHandle, bias.nativeHandle,
       cNNDataFormat.toString.getBytes(StandardCharsets.ISO_8859_1)))
   }
 
@@ -104,11 +102,11 @@ private[api] trait NN {
     *               part will be equal to `alpha * x` instead of `0`. Defaults to `0`.
     * @return Result as a new tensor.
     */
-  def relu(input: Tensor, alpha: Float = 0.0f)(implicit context: DynamicVariable[Context]): Tensor = {
+  def relu(input: Tensor, alpha: Float = 0.0f): Tensor = {
     def reluOp[T: TensorOps](i: T): T = {
       implicitly[TensorOps[T]]
           .applyUnary(i, t =>
-            Tensor.fromNativeHandle(NativeTensorOpsNN.relu(context.value.nativeHandle, t.nativeHandle)))
+            Tensor.fromNativeHandle(NativeTensorOpsNN.relu(executionContext.value.nativeHandle, t.nativeHandle)))
     }
 
     if (alpha == 0.0) {
@@ -126,8 +124,8 @@ private[api] trait NN {
     * @param  input Input tensor.
     * @return Result as a new tensor.
     */
-  def relu6(input: Tensor)(implicit context: DynamicVariable[Context]): Tensor = {
-    Tensor.fromNativeHandle(NativeTensorOpsNN.relu6(context.value.nativeHandle, input.nativeHandle))
+  def relu6(input: Tensor): Tensor = {
+    Tensor.fromNativeHandle(NativeTensorOpsNN.relu6(executionContext.value.nativeHandle, input.nativeHandle))
   }
 
   /** $OpDocNNCrelu
@@ -145,8 +143,8 @@ private[api] trait NN {
     * @param  input Input tensor.
     * @return Result as a new tensor.
     */
-  def elu(input: Tensor)(implicit context: DynamicVariable[Context]): Tensor = {
-    Tensor.fromNativeHandle(NativeTensorOpsNN.elu(context.value.nativeHandle, input.nativeHandle))
+  def elu(input: Tensor): Tensor = {
+    Tensor.fromNativeHandle(NativeTensorOpsNN.elu(executionContext.value.nativeHandle, input.nativeHandle))
   }
 
   /** $OpDocNNSelu
@@ -155,8 +153,8 @@ private[api] trait NN {
     * @param  input Input tensor.
     * @return Result as a new tensor.
     */
-  def selu(input: Tensor)(implicit context: DynamicVariable[Context]): Tensor = {
-    Tensor.fromNativeHandle(NativeTensorOpsNN.selu(context.value.nativeHandle, input.nativeHandle))
+  def selu(input: Tensor): Tensor = {
+    Tensor.fromNativeHandle(NativeTensorOpsNN.selu(executionContext.value.nativeHandle, input.nativeHandle))
   }
 
   /** $OpDocNNSoftplus
@@ -165,8 +163,8 @@ private[api] trait NN {
     * @param  input Input tensor.
     * @return Result as a new tensor.
     */
-  def softplus(input: Tensor)(implicit context: DynamicVariable[Context]): Tensor = {
-    Tensor.fromNativeHandle(NativeTensorOpsNN.softplus(context.value.nativeHandle, input.nativeHandle))
+  def softplus(input: Tensor): Tensor = {
+    Tensor.fromNativeHandle(NativeTensorOpsNN.softplus(executionContext.value.nativeHandle, input.nativeHandle))
   }
 
   /** $OpDocNNSoftsign
@@ -175,8 +173,8 @@ private[api] trait NN {
     * @param  input Input tensor.
     * @return Result as a new tensor.
     */
-  def softsign(input: Tensor)(implicit context: DynamicVariable[Context]): Tensor = {
-    Tensor.fromNativeHandle(NativeTensorOpsNN.softsign(context.value.nativeHandle, input.nativeHandle))
+  def softsign(input: Tensor): Tensor = {
+    Tensor.fromNativeHandle(NativeTensorOpsNN.softsign(executionContext.value.nativeHandle, input.nativeHandle))
   }
 
   //endregion Activation Ops
@@ -184,7 +182,7 @@ private[api] trait NN {
   /** Helper function for [[softmax]] and [[logSoftmax]] that reshapes and transposes the input logits into
     * two-dimensional tensors and then creates the corresponding native op. The output is transposed and reshaped
     * back. */
-  private[this] def softmaxHelper(logits: Tensor, opFunction: (Long) => Long, axis: Int = -1): Tensor = {
+  private[this] def softmaxHelper(logits: Tensor, opFunction: Long => Long, axis: Int = -1): Tensor = {
     // We need the original shape of the logits for shape inference.
     val shape = logits.shape
     val isLastAxis = axis == -1 || axis == shape.rank - 1
@@ -221,8 +219,8 @@ private[api] trait NN {
     * @param  axis   Axis along which to perform the softmax. Defaults to `-1` denoting the last axis.
     * @return Result as a new tensor.
     */
-  def softmax(logits: Tensor, axis: Int = -1)(implicit context: DynamicVariable[Context]): Tensor = {
-    softmaxHelper(logits, NativeTensorOpsNN.softmax(context.value.nativeHandle, _), axis)
+  def softmax(logits: Tensor, axis: Int = -1): Tensor = {
+    softmaxHelper(logits, NativeTensorOpsNN.softmax(executionContext.value.nativeHandle, _), axis)
   }
 
   /** $OpDocNNLogSoftmax
@@ -232,8 +230,8 @@ private[api] trait NN {
     * @param  axis   Axis along which to perform the log-softmax. Defaults to `-1` denoting the last axis.
     * @return Result as a new tensor.
     */
-  def logSoftmax(logits: Tensor, axis: Int = -1)(implicit context: DynamicVariable[Context]): Tensor = {
-    softmaxHelper(logits, NativeTensorOpsNN.logSoftmax(context.value.nativeHandle, _), axis)
+  def logSoftmax(logits: Tensor, axis: Int = -1): Tensor = {
+    softmaxHelper(logits, NativeTensorOpsNN.logSoftmax(executionContext.value.nativeHandle, _), axis)
   }
 
   //region Loss Ops
@@ -244,14 +242,16 @@ private[api] trait NN {
     * @param  input [[FLOAT16]], [[FLOAT32]], or [[FLOAT64]] input tensor.
     * @return Result as a new tensor.
     */
-  def l2Loss(input: Tensor)(implicit context: DynamicVariable[Context]): Tensor = {
-    Tensor.fromNativeHandle(NativeTensorOpsNN.l2Loss(context.value.nativeHandle, input.nativeHandle))
+  def l2Loss(input: Tensor): Tensor = {
+    Tensor.fromNativeHandle(NativeTensorOpsNN.l2Loss(executionContext.value.nativeHandle, input.nativeHandle))
   }
 
   private[this] def nativeCrossEntropyProxy(
-      features: Long, labels: Long, function: (Long, Long, Long) => Array[Long])(
-      implicit context: DynamicVariable[Context]): Array[Long] = {
-    function(context.value.nativeHandle, features, labels)
+      features: Long,
+      labels: Long,
+      function: (Long, Long, Long) => Array[Long]
+  ): Array[Long] = {
+    function(executionContext.value.nativeHandle, features, labels)
   }
 
   /** $OpDocNNSoftmaxCrossEntropy
@@ -437,9 +437,13 @@ private[api] trait NN {
     */
   @throws[InvalidShapeException]
   def sequenceLoss(
-      logits: Tensor, labels: Tensor, weights: Tensor = null,
-      averageAcrossTimeSteps: Boolean = true, averageAcrossBatch: Boolean = true,
-      lossFn: (Tensor, Tensor) => Tensor = sparseSoftmaxCrossEntropy(_, _)): Tensor = {
+      logits: Tensor,
+      labels: Tensor,
+      weights: Tensor = null,
+      averageAcrossTimeSteps: Boolean = true,
+      averageAcrossBatch: Boolean = true,
+      lossFn: (Tensor, Tensor) => Tensor = sparseSoftmaxCrossEntropy(_, _)
+  ): Tensor = {
     if (logits.rank != 3)
       throw InvalidShapeException(
         s"'logits' must have shape [batchSize, sequenceLength, numClasses], but had: ${logits.shape}.")
@@ -520,10 +524,12 @@ private[api] trait NN {
     *         dimensional slice, and (ii) `indices`: the indices of `values` within the last axis of `input`.
     */
   def topK(
-      input: Tensor, k: Tensor = 1, sorted: Boolean = true)(
-      implicit context: DynamicVariable[Context]): (Tensor, Tensor) = {
+      input: Tensor,
+      k: Tensor = 1,
+      sorted: Boolean = true
+  ): (Tensor, Tensor) = {
     val outputs = NativeTensorOpsNN.topKV2(
-      context.value.nativeHandle, input.nativeHandle, k.nativeHandle, sorted)
+      executionContext.value.nativeHandle, input.nativeHandle, k.nativeHandle, sorted)
     (Tensor.fromNativeHandle(outputs(0)), Tensor.fromNativeHandle(outputs(1)))
   }
 
@@ -535,10 +541,10 @@ private[api] trait NN {
     * @param  k           Scalar [[INT32]] or [[INT64]] tensor containing the number of top elements to look at.
     * @return Result as a new tensor.
     */
-  def inTopK(predictions: Tensor, targets: Tensor, k: Tensor)(implicit context: DynamicVariable[Context]): Tensor = {
+  def inTopK(predictions: Tensor, targets: Tensor, k: Tensor): Tensor = {
     val mostPreciseDataType = DataType.mostPrecise(targets.dataType, k.dataType)
     Tensor.fromNativeHandle(NativeTensorOpsNN.inTopKV2(
-      context.value.nativeHandle, predictions.nativeHandle, targets.cast(mostPreciseDataType).nativeHandle,
+      executionContext.value.nativeHandle, predictions.nativeHandle, targets.cast(mostPreciseDataType).nativeHandle,
       k.cast(mostPreciseDataType).nativeHandle))
   }
 
@@ -557,12 +563,17 @@ private[api] trait NN {
     * @return Result as a new 4-D tensor whose dimension order depends on the value of `dataFormat`.
     */
   def conv2D(
-      input: Tensor, filter: Tensor, stride1: Long, stride2: Long, padding: ConvPaddingMode,
-      dataFormat: CNNDataFormat = CNNDataFormat.default, useCuDNNOnGPU: Boolean = true
-  )(implicit context: DynamicVariable[Context]): Tensor = {
+      input: Tensor,
+      filter: Tensor,
+      stride1: Long,
+      stride2: Long,
+      padding: ConvPaddingMode,
+      dataFormat: CNNDataFormat = CNNDataFormat.default,
+      useCuDNNOnGPU: Boolean = true
+  ): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsNN.conv2D(
-      context.value.nativeHandle, input.nativeHandle, filter.nativeHandle, Array[Long](1, stride1, stride2, 1),
-      padding.name.getBytes(StandardCharsets.ISO_8859_1), useCuDNNOnGPU,
+      executionContext.value.nativeHandle, input.nativeHandle, filter.nativeHandle,
+      Array[Long](1, stride1, stride2, 1), padding.name.getBytes(StandardCharsets.ISO_8859_1), useCuDNNOnGPU,
       dataFormat.name.getBytes(StandardCharsets.ISO_8859_1)))
   }
 
@@ -581,11 +592,17 @@ private[api] trait NN {
     * @return Result as a new 4-D tensor whose dimension order depends on the value of `dataFormat`.
     */
   def conv2DBackpropInput(
-      inputSizes: Tensor, filter: Tensor, outputGradient: Tensor, stride1: Long, stride2: Long,
-      padding: ConvPaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default, useCuDNNOnGPU: Boolean = true
-  )(implicit context: DynamicVariable[Context]): Tensor = {
+      inputSizes: Tensor,
+      filter: Tensor,
+      outputGradient: Tensor,
+      stride1: Long,
+      stride2: Long,
+      padding: ConvPaddingMode,
+      dataFormat: CNNDataFormat = CNNDataFormat.default,
+      useCuDNNOnGPU: Boolean = true
+  ): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsNN.conv2DBackpropInput(
-      context.value.nativeHandle, inputSizes.nativeHandle, filter.nativeHandle, outputGradient.nativeHandle,
+      executionContext.value.nativeHandle, inputSizes.nativeHandle, filter.nativeHandle, outputGradient.nativeHandle,
       Array[Long](1, stride1, stride2, 1), padding.name.getBytes(StandardCharsets.ISO_8859_1), useCuDNNOnGPU,
       dataFormat.name.getBytes(StandardCharsets.ISO_8859_1)))
   }
@@ -605,11 +622,17 @@ private[api] trait NN {
     * @return Result as a new 4-D tensor whose dimension order depends on the value of `dataFormat`.
     */
   def conv2DBackpropFilter(
-      input: Tensor, filterSizes: Tensor, outputGradient: Tensor, stride1: Long, stride2: Long,
-      padding: ConvPaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default, useCuDNNOnGPU: Boolean = true
-  )(implicit context: DynamicVariable[Context]): Tensor = {
+      input: Tensor,
+      filterSizes: Tensor,
+      outputGradient: Tensor,
+      stride1: Long,
+      stride2: Long,
+      padding: ConvPaddingMode,
+      dataFormat: CNNDataFormat = CNNDataFormat.default,
+      useCuDNNOnGPU: Boolean = true
+  ): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsNN.conv2DBackpropFilter(
-      context.value.nativeHandle, input.nativeHandle, filterSizes.nativeHandle, outputGradient.nativeHandle,
+      executionContext.value.nativeHandle, input.nativeHandle, filterSizes.nativeHandle, outputGradient.nativeHandle,
       Array[Long](1, stride1, stride2, 1), padding.name.getBytes(StandardCharsets.ISO_8859_1), useCuDNNOnGPU,
       dataFormat.name.getBytes(StandardCharsets.ISO_8859_1)))
   }
@@ -629,10 +652,15 @@ private[api] trait NN {
     * @return Result as a new 4-D tensor whose dimension order depends on the value of `dataFormat`.
     */
   def maxPool(
-      input: Tensor, windowSize: Seq[Long], stride1: Long, stride2: Long, padding: ConvPaddingMode,
-      dataFormat: CNNDataFormat = CNNDataFormat.default)(implicit context: DynamicVariable[Context]): Tensor = {
+      input: Tensor,
+      windowSize: Seq[Long],
+      stride1: Long,
+      stride2: Long,
+      padding: ConvPaddingMode,
+      dataFormat: CNNDataFormat = CNNDataFormat.default
+  ): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsNN.maxPool(
-      context.value.nativeHandle, input.nativeHandle, windowSize.toArray,
+      executionContext.value.nativeHandle, input.nativeHandle, windowSize.toArray,
       Array[Long](1, stride1, stride2, 1), padding.name.getBytes(StandardCharsets.ISO_8859_1),
       dataFormat.name.getBytes(StandardCharsets.ISO_8859_1)))
   }
@@ -651,13 +679,19 @@ private[api] trait NN {
     * @return Result as a new 4-D tensor whose dimension order depends on the value of `dataFormat`.
     */
   def maxPoolGrad(
-      originalInput: Tensor, originalOutput: Tensor, outputGradient: Tensor, windowSize: Seq[Long],
-      stride1: Long, stride2: Long, padding: ConvPaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default
-  )(implicit context: DynamicVariable[Context]): Tensor = {
+      originalInput: Tensor,
+      originalOutput: Tensor,
+      outputGradient: Tensor,
+      windowSize: Seq[Long],
+      stride1: Long,
+      stride2: Long,
+      padding: ConvPaddingMode,
+      dataFormat: CNNDataFormat = CNNDataFormat.default
+  ): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsNN.maxPoolGrad(
-      context.value.nativeHandle, originalInput.nativeHandle, originalOutput.nativeHandle, outputGradient.nativeHandle,
-      windowSize.toArray, Array[Long](1, stride1, stride2, 1), padding.name.getBytes(StandardCharsets.ISO_8859_1),
-      dataFormat.name.getBytes(StandardCharsets.ISO_8859_1)))
+      executionContext.value.nativeHandle, originalInput.nativeHandle, originalOutput.nativeHandle,
+      outputGradient.nativeHandle, windowSize.toArray, Array[Long](1, stride1, stride2, 1),
+      padding.name.getBytes(StandardCharsets.ISO_8859_1), dataFormat.name.getBytes(StandardCharsets.ISO_8859_1)))
   }
 
   /** $OpDocMaxPoolGradGrad
@@ -674,13 +708,19 @@ private[api] trait NN {
     * @return Result as a new 4-D tensor whose dimension order depends on the value of `dataFormat`.
     */
   def maxPoolGradGrad(
-      originalInput: Tensor, originalOutput: Tensor, outputGradient: Tensor, windowSize: Seq[Long],
-      stride1: Long, stride2: Long, padding: ConvPaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default
-  )(implicit context: DynamicVariable[Context]): Tensor = {
+      originalInput: Tensor,
+      originalOutput: Tensor,
+      outputGradient: Tensor,
+      windowSize: Seq[Long],
+      stride1: Long,
+      stride2: Long,
+      padding: ConvPaddingMode,
+      dataFormat: CNNDataFormat = CNNDataFormat.default
+  ): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsNN.maxPoolGradGrad(
-      context.value.nativeHandle, originalInput.nativeHandle, originalOutput.nativeHandle, outputGradient.nativeHandle,
-      windowSize.toArray, Array[Long](1, stride1, stride2, 1), padding.name.getBytes(StandardCharsets.ISO_8859_1),
-      dataFormat.name.getBytes(StandardCharsets.ISO_8859_1)))
+      executionContext.value.nativeHandle, originalInput.nativeHandle, originalOutput.nativeHandle,
+      outputGradient.nativeHandle, windowSize.toArray, Array[Long](1, stride1, stride2, 1),
+      padding.name.getBytes(StandardCharsets.ISO_8859_1), dataFormat.name.getBytes(StandardCharsets.ISO_8859_1)))
   }
 
   //endregion Pooling Ops

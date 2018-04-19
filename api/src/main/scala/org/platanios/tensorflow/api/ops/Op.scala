@@ -439,9 +439,10 @@ object Op {
     }
 
     def device[R](
-        device: String = "", deviceFunction: OpSpecification => String = _.device
-    )(block: => R)(implicit context: DynamicVariable[OpCreationContext]): R = {
-      Op.device(device, deviceFunction)(block)(context)
+        device: String = "",
+        deviceFunction: OpSpecification => String = _.device
+    )(block: => R): R = {
+      Op.device(device, deviceFunction)(block)
     }
 
     def colocateWith[R](colocationOps: Set[Op], ignoreExisting: Boolean = false)(block: => R): R = {
@@ -474,49 +475,46 @@ object Op {
   }
 
   /** Returns the graph of the current op creation context. */
-  private[api] def currentGraph(implicit context: DynamicVariable[OpCreationContext]): Graph = context.value.graph
+  private[api] def currentGraph: Graph = opCreationContext.value.graph
 
   /** Returns the name scope of the current op creation context. */
-  private[api] def currentNameScope(implicit context: DynamicVariable[OpCreationContext]): String = {
-    if (context.value.nameScope == "") "" else s"${context.value.nameScope}/"
+  private[api] def currentNameScope: String = {
+    if (opCreationContext.value.nameScope == "") "" else s"${opCreationContext.value.nameScope}/"
   }
 
   /** Returns the device of the current op creation context. */
-  private[api] def currentDevice(implicit context: DynamicVariable[OpCreationContext]): String = {
-    context.value.device
+  private[api] def currentDevice: String = {
+    opCreationContext.value.device
   }
 
   /** Returns the device function of the current op creation context. */
-  private[api] def currentDeviceFunction(implicit
-      context: DynamicVariable[OpCreationContext]): OpSpecification => String = {
-    context.value.deviceFunction
+  private[api] def currentDeviceFunction: OpSpecification => String = {
+    opCreationContext.value.deviceFunction
   }
 
   /** Returns the colocation ops of the current op creation context. */
-  private[api] def currentColocationOps(implicit context: DynamicVariable[OpCreationContext]): Set[Op] = {
-    context.value.colocationOps
+  private[api] def currentColocationOps: Set[Op] = {
+    opCreationContext.value.colocationOps
   }
 
   /** Returns the control dependencies of the current op creation context. */
-  private[api] def currentControlDependencies(implicit context: DynamicVariable[OpCreationContext]): Set[Op] = {
-    context.value.controlDependencies
+  private[api] def currentControlDependencies: Set[Op] = {
+    opCreationContext.value.controlDependencies
   }
 
   /** Returns the attributes of the current op creation context. */
-  private[api] def currentAttributes(implicit context: DynamicVariable[OpCreationContext]): Map[String, Any] = {
-    context.value.attributes
+  private[api] def currentAttributes: Map[String, Any] = {
+    opCreationContext.value.attributes
   }
 
   /** Returns the container of the current op creation context. */
-  private[api] def currentContainer(implicit context: DynamicVariable[OpCreationContext]): String = {
-    context.value.container
+  private[api] def currentContainer: String = {
+    opCreationContext.value.container
   }
 
   /** Returns the control flow context of the current op creation context. */
-  private[api] def currentControlFlowContext(implicit
-      context: DynamicVariable[OpCreationContext]
-  ): Option[Context] = {
-    context.value.controlFlowContext
+  private[api] def currentControlFlowContext: Option[Context] = {
+    opCreationContext.value.controlFlowContext
   }
 
   /** Returns the local seeds an operation should use given an op-specific random seed.
@@ -839,18 +837,22 @@ object Op {
     * @param  attributes          Attributes to use.
     * @param  container           Container to use for resources.
     * @param  block               Code block to run using the provided options.
-    * @param  context             Current op creation context.
     * @tparam R Return type of the code block.
     * @return Return value of the code block.
     */
   private[api] def createWith[R](
-      graph: Graph = null, nameScope: String = null, device: String = "",
-      deviceFunction: OpSpecification => String = _.device, colocationOps: Set[Op] = null,
-      controlDependencies: Set[Op] = null, attributes: Map[String, Any] = null,
-      container: String = null)(block: => R)(implicit context: DynamicVariable[OpCreationContext]): R = {
+      graph: Graph = null,
+      nameScope: String = null,
+      device: String = "",
+      deviceFunction: OpSpecification => String = _.device,
+      colocationOps: Set[Op] = null,
+      controlDependencies: Set[Op] = null,
+      attributes: Map[String, Any] = null,
+      container: String = null
+  )(block: => R): R = {
     // TODO: Move this to a separate scope class.
     // TODO: !!! The order of the updates matters here so let's make sure everything is fine.
-    var updatedContext = context.value
+    var updatedContext = opCreationContext.value
     val newGraph: Graph = mergeGraph(graph, updatedContext)
     updatedContext = updatedContext.copy(graph = newGraph, outerContext = Some(updatedContext))
     val newNameScope: String = mergeNameScope(nameScope, updatedContext.nameScope, updatedContext.graph.uniqueName(_))
@@ -871,7 +873,7 @@ object Op {
     updatedContext = updatedContext.copy(attributes = newAttributes, outerContext = Some(updatedContext))
     val newContainer: String = mergeContainer(container, updatedContext)
     updatedContext = updatedContext.copy(container = newContainer, outerContext = Some(updatedContext))
-    context.withValue(updatedContext)(block)
+    opCreationContext.withValue(updatedContext)(block)
   }
 
   /** Creates a context that can be used for creating ops.
@@ -884,14 +886,13 @@ object Op {
     * @param  nameScope Name scope to use.
     * @param  values    Input values to obtain the default graph from.
     * @param  block     Code block to run using the provided options.
-    * @param  context   Current op creation context.
     * @tparam R Return type of the code block.
     * @return Return value of the code block.
     * @throws GraphMismatchException If any two of the values provided lie in different graphs.
     */
   @throws[GraphMismatchException]
-  private[api] def createWithNameScope[R](nameScope: String, values: Set[Op] = Set.empty[Op])(block: => R)
-      (implicit context: DynamicVariable[OpCreationContext]): R = {
+  private[api] def createWithNameScope[R](nameScope: String, values: Set[Op] = Set.empty[Op])(block: => R): R = {
+    val context = opCreationContext
     if (values.nonEmpty) {
       val newGraph: Graph = mergeGraph(getGraphFromInputs(values), context)
       val newNameScope: String = mergeNameScope(nameScope, context.value.nameScope, newGraph.uniqueName(_))
@@ -955,14 +956,14 @@ object Op {
     * @param  device         Device to use.
     * @param  deviceFunction Device function to use.
     * @param  block          Code block to run using the provided options.
-    * @param  context        Current op creation context.
     * @tparam R Return type of the code block.
     * @return Return value of the code block.
     */
   private[api] def device[R](
-      device: String = "", deviceFunction: OpSpecification => String = _.device
-  )(block: => R)(implicit context: DynamicVariable[OpCreationContext]): R = {
-    createWith(device = device, deviceFunction = deviceFunction)(block)(context)
+      device: String = "",
+      deviceFunction: OpSpecification => String = _.device
+  )(block: => R): R = {
+    createWith(device = device, deviceFunction = deviceFunction)(block)
   }
 
   /** Creates a context that can be used for creating ops and placing them on the same device as `colocationOps`.
@@ -973,25 +974,24 @@ object Op {
     * @param  colocationOps  Colocation ops to use.
     * @param  ignoreExisting Boolean value indicating whether to ignore the colocation ops in the current context.
     * @param  block          Code block to run using the provided options.
-    * @param  context        Current op creation context.
     * @tparam R Return type of the code block.
     * @return Return value of the code block.
     */
   private[api] def colocateWith[R](
       colocationOps: Set[Op],
       ignoreExisting: Boolean = false
-  )(block: => R)(implicit context: DynamicVariable[OpCreationContext]): R = {
+  )(block: => R): R = {
     val newColocationOps: Set[Op] = {
       if (ignoreExisting)
         colocationOps
       else
-        mergeColocationOps(colocationOps, context)
+        mergeColocationOps(colocationOps, opCreationContext.value)
     }
     // By default, `colocateWith` resets the device function stack, since `colocateWith` is typically used in specific
     // internal library functions where colocation is intended to be "stronger" than device functions.
-    context.withValue(context.copy(
+    opCreationContext.withValue(opCreationContext.copy(
       device = "", deviceFunction = (opSpec: OpSpecification) => opSpec.device,
-      colocationOps = newColocationOps, outerContext = Some(context)))(block)
+      colocationOps = newColocationOps, outerContext = Some(opCreationContext.value)))(block)
   }
 
   /** Creates a context that can be used for creating gradient ops and placing them on the same device as
@@ -1010,10 +1010,10 @@ object Op {
       colocationOps: Set[Op],
       gradientUID: Option[String],
       ignoreExisting: Boolean = false
-  )(block: => R)(implicit context: DynamicVariable[OpCreationContext]): R = {
+  )(block: => R): R = {
     colocateWith(colocationOps, ignoreExisting) {
       gradientUID match {
-        case Some(uid) => context.value.controlFlowContext match {
+        case Some(uid) => opCreationContext.value.controlFlowContext match {
           case Some(controlFlowContext) =>
             try {
               controlFlowContext.enterGradientColocation(colocationOps, uid)
@@ -1046,22 +1046,21 @@ object Op {
     * using it.
     *
     * @param  block   Code block to run using the initialization op creation context.
-    * @param  context Current op creation context.
     * @tparam R       Return type of the code block.
     * @return Return value of the code block.
     * @throws IllegalStateException If all graphs in the context stack are used for building functions.
     */
   @throws[IllegalStateException]
-  private[api] def initialization[R](block: => R)(implicit context: DynamicVariable[OpCreationContext]): R = {
+  private[api] def initialization[R](block: => R): R = {
     // Get the first context that's not building a function.
-    var outerContext = context.value
+    var outerContext = opCreationContext.value
     while (outerContext.graph.isInstanceOf[FunctionGraph] && outerContext.outerContext.isDefined)
       outerContext = outerContext.outerContext.get
     if (outerContext.graph.isInstanceOf[FunctionGraph])
       throw new IllegalStateException("All graphs are building functions.")
-    context.withValue(outerContext) {
+    opCreationContext.withValue(outerContext) {
       // Entering an `initScope` preserves the name scope of the current context.
-      createWith(nameScope = context.value.nameScope, controlDependencies = Set.empty[Op])(block)
+      createWith(nameScope = opCreationContext.value.nameScope, controlDependencies = Set.empty[Op])(block)
     }
   }
 
@@ -1355,8 +1354,9 @@ object Op {
       newOps ++ newOps.foldLeft(newOps)((collected, op) => transitiveColocationOps(Set(op), collected))
   }
 
-  final case class Builder(opType: String, name: String)
-      (implicit context: DynamicVariable[OpCreationContext]) {
+  final case class Builder(opType: String, name: String)  {
+    private[this] val context = opCreationContext
+
     context.value.graph.assertNotFrozen()
 
     if (!checkName(name))

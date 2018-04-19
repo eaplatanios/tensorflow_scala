@@ -103,9 +103,9 @@ private[api] trait Basic {
     * @param  axis  Dimension index at which to expand the shape of `input`.
     * @return Result as a new tensor.
     */
-  def expandDims(input: Tensor, axis: Tensor)(implicit context: DynamicVariable[Context]): Tensor = {
+  def expandDims(input: Tensor, axis: Tensor): Tensor = {
     Tensor.fromNativeHandle(
-      NativeTensorOpsBasic.expandDims(context.value.nativeHandle, input.nativeHandle, axis.nativeHandle))
+      NativeTensorOpsBasic.expandDims(executionContext.value.nativeHandle, input.nativeHandle, axis.nativeHandle))
   }
 
   /** $OpDocBasicSqueeze
@@ -116,10 +116,10 @@ private[api] trait Basic {
     *               will be squeezed.
     * @return Result as a new tensor.
     */
-  def squeeze(input: Tensor, axes: Seq[Int] = null)(implicit context: DynamicVariable[Context]): Tensor = {
+  def squeeze(input: Tensor, axes: Seq[Int] = null): Tensor = {
     val longAxes: Array[Long] = if (axes == null) null else axes.map(_.toLong).toArray
     Tensor.fromNativeHandle(
-      NativeTensorOpsBasic.squeeze(context.value.nativeHandle, input.nativeHandle, longAxes))
+      NativeTensorOpsBasic.squeeze(executionContext.value.nativeHandle, input.nativeHandle, longAxes))
   }
 
   /** $OpDocBasicStack
@@ -129,9 +129,9 @@ private[api] trait Basic {
     * @param  axis   Dimension along which to stack the input tensors.
     * @return Result as a new tensor.
     */
-  def stack(inputs: Seq[Tensor], axis: Int = 0)(implicit context: DynamicVariable[Context]): Tensor = {
+  def stack(inputs: Seq[Tensor], axis: Int = 0): Tensor = {
     Tensor.fromNativeHandle(
-      NativeTensorOpsBasic.pack(context.value.nativeHandle, inputs.map(_.nativeHandle).toArray, axis))
+      NativeTensorOpsBasic.pack(executionContext.value.nativeHandle, inputs.map(_.nativeHandle).toArray, axis))
   }
 
   /** $OpDocBasicParallelStack
@@ -140,11 +140,11 @@ private[api] trait Basic {
     * @param  inputs Input tensors to be stacked.
     * @return Result as a new tensor.
     */
-  def parallelStack(inputs: Array[Tensor])(implicit context: DynamicVariable[Context]): Tensor = {
+  def parallelStack(inputs: Array[Tensor]): Tensor = {
     val outputShape = Shape(inputs.length).concatenateWith(inputs.head.shape)
     Tensor.fromNativeHandle(
       NativeTensorOpsBasic.parallelConcat(
-        context.value.nativeHandle, inputs.map(_.nativeHandle), outputShape.asArray.map(_.toLong)))
+        executionContext.value.nativeHandle, inputs.map(_.nativeHandle), outputShape.asArray.map(_.toLong)))
   }
 
   /** $OpDocBasicUnstack
@@ -156,9 +156,10 @@ private[api] trait Basic {
     * @return Result as a sequence of new tensors.
     */
   def unstack(
-      input: Tensor, number: Int = -1, axis: Int = 0)(implicit context: DynamicVariable[Context]): Seq[Tensor] = {
+      input: Tensor, number: Int = -1, axis: Int = 0): Seq[Tensor] = {
     val num: Int = if (number >= 0) number else input.shape(axis)
-    NativeTensorOpsBasic.unpack(context.value.nativeHandle, input.nativeHandle, num, axis).map(Tensor.fromNativeHandle)
+    NativeTensorOpsBasic.unpack(
+      executionContext.value.nativeHandle, input.nativeHandle, num, axis).map(Tensor.fromNativeHandle)
   }
 
   /** $OpDocBasicConcatenate
@@ -168,13 +169,13 @@ private[api] trait Basic {
     * @param  axis   Dimension along which to concatenate the input tensors.
     * @return Result as a new tensor.
     */
-  def concatenate(inputs: Seq[Tensor], axis: Tensor = 0)(implicit context: DynamicVariable[Context]): Tensor = {
+  def concatenate(inputs: Seq[Tensor], axis: Tensor = 0): Tensor = {
     if (inputs.lengthCompare(1) == 0)
       inputs.head
     else
       Tensor.fromNativeHandle(
         NativeTensorOpsBasic.concatV2(
-          context.value.nativeHandle, inputs.map(_.nativeHandle).toArray, axis.nativeHandle))
+          executionContext.value.nativeHandle, inputs.map(_.nativeHandle).toArray, axis.nativeHandle))
   }
 
   /** $OpDocBasicConcatenateOffset
@@ -186,8 +187,9 @@ private[api] trait Basic {
     *         concatenated tensor.
     */
   private[ops] def concatenateOffset(
-      shapes: Seq[Tensor], axis: Tensor)(implicit context: DynamicVariable[Context]): Seq[Tensor] = {
-    NativeTensorOpsBasic.concatOffset(context.value.nativeHandle, axis.nativeHandle, shapes.map(_.nativeHandle).toArray)
+      shapes: Seq[Tensor], axis: Tensor): Seq[Tensor] = {
+    NativeTensorOpsBasic.concatOffset(
+      executionContext.value.nativeHandle, axis.nativeHandle, shapes.map(_.nativeHandle).toArray)
         .map(Tensor.fromNativeHandle)
   }
 
@@ -200,8 +202,9 @@ private[api] trait Basic {
     * @return Result as a sequence of new tensors.
     */
   def splitEvenly(
-      input: Tensor, numSplits: Int, axis: Tensor = 0)(implicit context: DynamicVariable[Context]): Seq[Tensor] = {
-    NativeTensorOpsBasic.split(context.value.nativeHandle, axis.nativeHandle, input.nativeHandle, numSplits.toLong)
+      input: Tensor, numSplits: Int, axis: Tensor = 0): Seq[Tensor] = {
+    NativeTensorOpsBasic.split(
+      executionContext.value.nativeHandle, axis.nativeHandle, input.nativeHandle, numSplits.toLong)
         .map(Tensor.fromNativeHandle)
   }
 
@@ -214,9 +217,10 @@ private[api] trait Basic {
     * @return Result as a new tensor.
     */
   def split(
-      input: Tensor, splitSizes: Tensor, axis: Tensor = 0)(implicit context: DynamicVariable[Context]): Seq[Tensor] = {
+      input: Tensor, splitSizes: Tensor, axis: Tensor = 0): Seq[Tensor] = {
     NativeTensorOpsBasic.splitV(
-      context.value.nativeHandle, input.nativeHandle, splitSizes.nativeHandle, axis.nativeHandle, splitSizes.shape(0))
+      executionContext.value.nativeHandle, input.nativeHandle, splitSizes.nativeHandle,
+      axis.nativeHandle, splitSizes.shape(0))
         .map(Tensor.fromNativeHandle)
   }
 
@@ -228,9 +232,9 @@ private[api] trait Basic {
     *                   of `input`.
     * @return Result as a new tensor.
     */
-  def tile(input: Tensor, multiples: Tensor)(implicit context: DynamicVariable[Context]): Tensor = {
+  def tile(input: Tensor, multiples: Tensor): Tensor = {
     Tensor.fromNativeHandle(
-      NativeTensorOpsBasic.tile(context.value.nativeHandle, input.nativeHandle, multiples.nativeHandle))
+      NativeTensorOpsBasic.tile(executionContext.value.nativeHandle, input.nativeHandle, multiples.nativeHandle))
   }
 
   /** $OpDocBasicPad
@@ -245,7 +249,7 @@ private[api] trait Basic {
       input: Tensor,
       paddings: Tensor,
       mode: PaddingMode = ConstantPadding(0)
-  )(implicit context: DynamicVariable[Context]): Tensor = {
+  ): Tensor = {
     mode.pad(input, paddings)
   }
 
@@ -256,9 +260,9 @@ private[api] trait Basic {
     * @param  shape Shape of the output tensor.
     * @return Result as a new tensor.
     */
-  def reshape(input: Tensor, shape: Tensor)(implicit context: DynamicVariable[Context]): Tensor = {
+  def reshape(input: Tensor, shape: Tensor): Tensor = {
     Tensor.fromNativeHandle(
-      NativeTensorOpsBasic.reshape(context.value.nativeHandle, input.nativeHandle, shape.nativeHandle))
+      NativeTensorOpsBasic.reshape(executionContext.value.nativeHandle, input.nativeHandle, shape.nativeHandle))
   }
 
   /** $OpDocBasicTranspose
@@ -269,29 +273,27 @@ private[api] trait Basic {
     * @param  conjugate   If `true`, then the complex conjugate of the transpose result is returned.
     * @return Result as a new tensor.
     */
-  def transpose(input: Tensor, permutation: Tensor = null, conjugate: Boolean = false)(implicit
-      context: DynamicVariable[Context]
-  ): Tensor = {
+  def transpose(input: Tensor, permutation: Tensor = null, conjugate: Boolean = false): Tensor = {
     if (permutation == null) {
       val inputRank = rank(input)
       val reversePermutation = inputRank - 1 - Math.range(0, inputRank, 1)
       if (conjugate && input.dataType.isComplex)
         Tensor.fromNativeHandle(
           NativeTensorOpsBasic.conjugateTranspose(
-            context.value.nativeHandle, input.nativeHandle, reversePermutation.nativeHandle))
+            executionContext.value.nativeHandle, input.nativeHandle, reversePermutation.nativeHandle))
       else
         Tensor.fromNativeHandle(
           NativeTensorOpsBasic.transpose(
-            context.value.nativeHandle, input.nativeHandle, reversePermutation.nativeHandle))
+            executionContext.value.nativeHandle, input.nativeHandle, reversePermutation.nativeHandle))
     } else {
       if (conjugate && input.dataType.isComplex)
         Tensor.fromNativeHandle(
           NativeTensorOpsBasic.conjugateTranspose(
-            context.value.nativeHandle, input.nativeHandle, permutation.nativeHandle))
+            executionContext.value.nativeHandle, input.nativeHandle, permutation.nativeHandle))
       else
         Tensor.fromNativeHandle(
           NativeTensorOpsBasic.transpose(
-            context.value.nativeHandle, input.nativeHandle, permutation.nativeHandle))
+            executionContext.value.nativeHandle, input.nativeHandle, permutation.nativeHandle))
     }
   }
 
@@ -302,7 +304,7 @@ private[api] trait Basic {
     * @param  conjugate If `true`, then the complex conjugate of the transpose result is returned.
     * @return Result as a new tensor.
     */
-  def matrixTranspose(input: Tensor, conjugate: Boolean = false)(implicit context: DynamicVariable[Context]): Tensor = {
+  def matrixTranspose(input: Tensor, conjugate: Boolean = false): Tensor = {
     val inputRank = input.rank
     if (inputRank < 2)
       throw InvalidShapeException(s"'input' should be a (batch) matrix, with rank > 2. Found shape '${input.shape}'.")
@@ -316,8 +318,9 @@ private[api] trait Basic {
     * @param  input One-dimensional [[INT32]] or [[INT64]] input tensor.
     * @return Result as a new tensor.
     */
-  def invertPermutation(input: Tensor)(implicit context: DynamicVariable[Context]): Tensor = {
-    Tensor.fromNativeHandle(NativeTensorOpsBasic.invertPermutation(context.value.nativeHandle, input.nativeHandle))
+  def invertPermutation(input: Tensor): Tensor = {
+    Tensor.fromNativeHandle(
+      NativeTensorOpsBasic.invertPermutation(executionContext.value.nativeHandle, input.nativeHandle))
   }
 
   /** $OpDocBasicReverse
@@ -327,9 +330,9 @@ private[api] trait Basic {
     * @param  axes  Dimensions of the input tensor to reverse. Has to be [[INT32]] or [[INT64]].
     * @return Result as a new tensor which has the same shape as `input`.
     */
-  def reverse(input: Tensor, axes: Tensor)(implicit context: DynamicVariable[Context]): Tensor = {
+  def reverse(input: Tensor, axes: Tensor): Tensor = {
     Tensor.fromNativeHandle(
-      NativeTensorOpsBasic.reverseV2(context.value.nativeHandle, input.nativeHandle, axes.nativeHandle))
+      NativeTensorOpsBasic.reverseV2(executionContext.value.nativeHandle, input.nativeHandle, axes.nativeHandle))
   }
 
   /** $OpDocBasicReverseSequence
@@ -343,11 +346,14 @@ private[api] trait Basic {
     * @return Result as a new tensor which has the same shape as `input`.
     */
   def reverseSequence(
-      input: Tensor, sequenceLengths: Tensor, sequenceAxis: Int, batchAxis: Int = 0)(
-      implicit context: DynamicVariable[Context]): Tensor = {
+      input: Tensor,
+      sequenceLengths: Tensor,
+      sequenceAxis: Int,
+      batchAxis: Int = 0
+  ): Tensor = {
     Tensor.fromNativeHandle(
       NativeTensorOpsBasic.reverseSequence(
-        context.value.nativeHandle, input.nativeHandle, sequenceLengths.nativeHandle, sequenceAxis, batchAxis))
+        executionContext.value.nativeHandle, input.nativeHandle, sequenceLengths.nativeHandle, sequenceAxis, batchAxis))
   }
 
   /** $OpDocBasicSpaceToBatch
@@ -360,7 +366,10 @@ private[api] trait Basic {
     * @return Result as a new tensor.
     */
   def spaceToBatch(
-      input: Tensor, blockSize: Int, paddings: Tensor)(implicit context: DynamicVariable[Context]): Tensor = {
+      input: Tensor,
+      blockSize: Int,
+      paddings: Tensor
+  ): Tensor = {
     spaceToBatchND(input, Tensor(blockSize, blockSize), paddings)
   }
 
@@ -378,10 +387,10 @@ private[api] trait Basic {
     * @return Result as a new tensor.
     */
   def spaceToBatchND(
-      input: Tensor, blockShape: Tensor, paddings: Tensor)(implicit context: DynamicVariable[Context]): Tensor = {
+      input: Tensor, blockShape: Tensor, paddings: Tensor): Tensor = {
     Tensor.fromNativeHandle(
       NativeTensorOpsBasic.spaceToBatchND(
-        context.value.nativeHandle, input.nativeHandle, blockShape.nativeHandle, paddings.nativeHandle))
+        executionContext.value.nativeHandle, input.nativeHandle, blockShape.nativeHandle, paddings.nativeHandle))
   }
 
   /** $OpDocBasicBatchToSpace
@@ -394,7 +403,7 @@ private[api] trait Basic {
     *                   `[2, 2]`.
     * @return Result as a new tensor.
     */
-  def batchToSpace(input: Tensor, blockSize: Int, crops: Tensor)(implicit context: DynamicVariable[Context]): Tensor = {
+  def batchToSpace(input: Tensor, blockSize: Int, crops: Tensor): Tensor = {
     batchToSpaceND(input, Tensor(blockSize, blockSize), crops)
   }
 
@@ -412,10 +421,10 @@ private[api] trait Basic {
     * @return Result as a new tensor.
     */
   def batchToSpaceND(
-      input: Tensor, blockShape: Tensor, crops: Tensor)(implicit context: DynamicVariable[Context]): Tensor = {
+      input: Tensor, blockShape: Tensor, crops: Tensor): Tensor = {
     Tensor.fromNativeHandle(
       NativeTensorOpsBasic.batchToSpaceND(
-        context.value.nativeHandle, input.nativeHandle, blockShape.nativeHandle, crops.nativeHandle))
+        executionContext.value.nativeHandle, input.nativeHandle, blockShape.nativeHandle, crops.nativeHandle))
   }
 
   /** $OpDocBasicRequiredSpaceToBatchPaddingsAndCrops
@@ -430,8 +439,10 @@ private[api] trait Basic {
     */
   @throws[IllegalArgumentException]
   def requiredSpaceToBatchPaddingsAndCrops(
-      inputShape: Tensor, blockShape: Tensor, basePaddings: Tensor = null)(
-      implicit context: DynamicVariable[Context]): (Tensor, Tensor) = {
+      inputShape: Tensor,
+      blockShape: Tensor,
+      basePaddings: Tensor = null
+  ): (Tensor, Tensor) = {
     if (inputShape.dataType != INT32 || (inputShape.rank != -1 && inputShape.rank != 1))
       throw new IllegalArgumentException(
         s"'inputShape' (dataType = ${inputShape.dataType}, shape = ${inputShape.shape}) " +
@@ -479,12 +490,10 @@ private[api] trait Basic {
     * @param  dataFormat Format of the input and output data.
     * @return Result as a new tensor.
     */
-  def spaceToDepth(input: Tensor, blockSize: Int, dataFormat: CNNDataFormat = CNNDataFormat.default)(implicit
-      context: DynamicVariable[Context]
-  ): Tensor = {
+  def spaceToDepth(input: Tensor, blockSize: Int, dataFormat: CNNDataFormat = CNNDataFormat.default): Tensor = {
     Tensor.fromNativeHandle(
       NativeTensorOpsBasic.spaceToDepth(
-        context.value.nativeHandle, input.nativeHandle, blockSize,
+        executionContext.value.nativeHandle, input.nativeHandle, blockSize,
         dataFormat.name.getBytes(StandardCharsets.ISO_8859_1)))
   }
 
@@ -496,12 +505,10 @@ private[api] trait Basic {
     * @param  dataFormat Format of the input and output data.
     * @return Result as a new tensor.
     */
-  def depthToSpace(input: Tensor, blockSize: Int, dataFormat: CNNDataFormat = CNNDataFormat.default)(implicit
-      context: DynamicVariable[Context]
-  ): Tensor = {
+  def depthToSpace(input: Tensor, blockSize: Int, dataFormat: CNNDataFormat = CNNDataFormat.default): Tensor = {
     Tensor.fromNativeHandle(
       NativeTensorOpsBasic.depthToSpace(
-        context.value.nativeHandle, input.nativeHandle, blockSize,
+        executionContext.value.nativeHandle, input.nativeHandle, blockSize,
         dataFormat.name.getBytes(StandardCharsets.ISO_8859_1)))
   }
 
@@ -515,8 +522,8 @@ private[api] trait Basic {
     * @param  input Input boolean tensor.
     * @return Result as a new tensor.
     */
-  def where(input: Tensor)(implicit context: DynamicVariable[Context]): Tensor = {
-    Tensor.fromNativeHandle(NativeTensorOpsBasic.where(context.value.nativeHandle, input.nativeHandle))
+  def where(input: Tensor): Tensor = {
+    Tensor.fromNativeHandle(NativeTensorOpsBasic.where(executionContext.value.nativeHandle, input.nativeHandle))
   }
 
   /** $OpDocBasicBooleanMask
@@ -526,7 +533,7 @@ private[api] trait Basic {
     * @param  mask  `K`-dimensional boolean tensor, where `K <= N` and `K` must be known statically.
     * @return Result as a new tensor.
     */
-  def booleanMask(input: Tensor, mask: Tensor)(implicit context: DynamicVariable[Context]): Tensor = {
+  def booleanMask(input: Tensor, mask: Tensor): Tensor = {
     val inputShape: Shape = input.shape
     val maskShape: Shape = mask.shape
     val maskRank: Int = maskShape.rank
@@ -557,7 +564,7 @@ private[api] trait Basic {
       lengths: Tensor,
       maxLength: Tensor = null,
       dataType: DataType = BOOLEAN
-  )(implicit context: DynamicVariable[Context]): Tensor = {
+  ): Tensor = {
     require(maxLength == null || maxLength.rank == -1 || maxLength.rank == 0, "'maxLength' must be a scalar.")
     val maxLen = if (maxLength != null) maxLength else Math.max(lengths)
     // The basic idea is to compare a range row vector of size 'maxLen', [0, 1, 2, 3, 4], to 'lengths' as a matrix
@@ -584,8 +591,9 @@ private[api] trait Basic {
     */
   @throws[IllegalArgumentException]
   def indexedSlicesMask(
-      input: TensorIndexedSlices, maskIndices: Tensor)(
-      implicit context: DynamicVariable[Context]): TensorIndexedSlices = {
+      input: TensorIndexedSlices,
+      maskIndices: Tensor
+  ): TensorIndexedSlices = {
     val (outputIndices, toGather) = listDiff(input.indices, maskIndices)
     val outputValues = gather(input.values, toGather)
     TensorIndexedSlices(indices = outputIndices, values = outputValues, denseShape = input.denseShape)
@@ -603,10 +611,9 @@ private[api] trait Basic {
     * @param  indicesDataType Data type of the returned indices. Must be [[INT32]] or [[INT64]].
     * @return Tuple containing `output` and `indices`.
     */
-  def unique(input: Tensor, indicesDataType: DataType = INT32)(
-      implicit context: DynamicVariable[Context]): (Tensor, Tensor) = {
+  def unique(input: Tensor, indicesDataType: DataType = INT32): (Tensor, Tensor) = {
     val tensors = NativeTensorOpsBasic.unique(
-      context.value.nativeHandle, input.nativeHandle, indicesDataType.cValue).map(Tensor.fromNativeHandle)
+      executionContext.value.nativeHandle, input.nativeHandle, indicesDataType.cValue).map(Tensor.fromNativeHandle)
     (tensors(0), tensors(1))
   }
 
@@ -618,10 +625,9 @@ private[api] trait Basic {
     * @param  indicesDataType Data type of the returned indices. Must be [[INT32]] or [[INT64]].
     * @return Tuple containing `output`, `indices`, and `counts`.
     */
-  def uniqueWithCounts(input: Tensor, indicesDataType: DataType = INT32)(
-      implicit context: DynamicVariable[Context]): (Tensor, Tensor, Tensor) = {
+  def uniqueWithCounts(input: Tensor, indicesDataType: DataType = INT32): (Tensor, Tensor, Tensor) = {
     val tensors = NativeTensorOpsBasic.uniqueWithCounts(
-      context.value.nativeHandle, input.nativeHandle, indicesDataType.cValue).map(Tensor.fromNativeHandle)
+      executionContext.value.nativeHandle, input.nativeHandle, indicesDataType.cValue).map(Tensor.fromNativeHandle)
     (tensors(0), tensors(1), tensors(2))
   }
 
@@ -635,10 +641,13 @@ private[api] trait Basic {
     * @return Tuple containing `output` and `indices`, from the method description.
     */
   def listDiff(
-      x: Tensor, y: Tensor, indicesDataType: DataType = INT32)(
-      implicit context: DynamicVariable[Context]): (Tensor, Tensor) = {
+      x: Tensor,
+      y: Tensor,
+      indicesDataType: DataType = INT32
+  ): (Tensor, Tensor) = {
     val tensors = NativeTensorOpsBasic.listDiff(
-      context.value.nativeHandle, x.nativeHandle, y.nativeHandle, indicesDataType.cValue).map(Tensor.fromNativeHandle)
+      executionContext.value.nativeHandle, x.nativeHandle, y.nativeHandle,
+      indicesDataType.cValue).map(Tensor.fromNativeHandle)
     (tensors(0), tensors(1))
   }
 
@@ -655,10 +664,10 @@ private[api] trait Basic {
     * @param  axis    Tensor containing the axis along which to gather.
     * @return Result as a new tensor.
     */
-  def gather(input: Tensor, indices: Tensor, axis: Tensor = 0)(implicit context: DynamicVariable[Context]): Tensor = {
+  def gather(input: Tensor, indices: Tensor, axis: Tensor = 0): Tensor = {
     Tensor.fromNativeHandle(
       NativeTensorOpsBasic.gatherV2(
-        context.value.nativeHandle, input.nativeHandle, indices.nativeHandle, axis.nativeHandle))
+        executionContext.value.nativeHandle, input.nativeHandle, indices.nativeHandle, axis.nativeHandle))
   }
 
   /** $OpDocBasicGatherND
@@ -670,9 +679,9 @@ private[api] trait Basic {
     * @return Result as a new tensor which contains the values from `input` gathered from indices given by `indices`,
     *         with shape `indices.shape(::-1) + input.shape(indices.shape(-1)::)`.
     */
-  def gatherND(input: Tensor, indices: Tensor)(implicit context: DynamicVariable[Context]): Tensor = {
+  def gatherND(input: Tensor, indices: Tensor): Tensor = {
     Tensor.fromNativeHandle(
-      NativeTensorOpsBasic.gatherNd(context.value.nativeHandle, input.nativeHandle, indices.nativeHandle))
+      NativeTensorOpsBasic.gatherNd(executionContext.value.nativeHandle, input.nativeHandle, indices.nativeHandle))
   }
 
   /** $OpDocBasicScatterND
@@ -684,10 +693,10 @@ private[api] trait Basic {
     * @param  shape   One-dimensional `INT32` or `INT64` tensor specifying the shape of the output tensor.
     * @return Result as a new tensor.
     */
-  def scatterND(indices: Tensor, updates: Tensor, shape: Tensor)(implicit context: DynamicVariable[Context]): Tensor = {
+  def scatterND(indices: Tensor, updates: Tensor, shape: Tensor): Tensor = {
     Tensor.fromNativeHandle(
       NativeTensorOpsBasic.scatterNd(
-        context.value.nativeHandle, indices.nativeHandle, updates.nativeHandle, shape.nativeHandle))
+        executionContext.value.nativeHandle, indices.nativeHandle, updates.nativeHandle, shape.nativeHandle))
   }
 
   /** $OpDocBasicSlice
@@ -704,9 +713,10 @@ private[api] trait Basic {
     * @return Result as a new tensor.
     */
   private[ops] def slice(
-      input: Tensor, begin: Tensor, size: Tensor)(implicit context: DynamicVariable[Context]): Tensor = {
+      input: Tensor, begin: Tensor, size: Tensor): Tensor = {
     Tensor.fromNativeHandle(
-      NativeTensorOpsBasic.slice(context.value.nativeHandle, input.nativeHandle, begin.nativeHandle, size.nativeHandle))
+      NativeTensorOpsBasic.slice(
+        executionContext.value.nativeHandle, input.nativeHandle, begin.nativeHandle, size.nativeHandle))
   }
 
   /** $OpDocBasicStridedSlice
@@ -747,13 +757,20 @@ private[api] trait Basic {
     * @return Result as a new tensor.
     */
   private[ops] def stridedSlice(
-      input: Tensor, begin: Tensor, end: Tensor, strides: Tensor = null, beginMask: Long = 0, endMask: Long = 0,
-      ellipsisMask: Long = 0, newAxisMask: Long = 0, shrinkAxisMask: Long = 0)(
-      implicit context: DynamicVariable[Context]): Tensor = {
+      input: Tensor,
+      begin: Tensor,
+      end: Tensor,
+      strides: Tensor = null,
+      beginMask: Long = 0,
+      endMask: Long = 0,
+      ellipsisMask: Long = 0,
+      newAxisMask: Long = 0,
+      shrinkAxisMask: Long = 0
+  ): Tensor = {
     Tensor.fromNativeHandle(
       NativeTensorOpsBasic.stridedSlice(
-        context.value.nativeHandle, input.nativeHandle, begin.nativeHandle, end.nativeHandle, strides.nativeHandle,
-        beginMask, endMask, ellipsisMask, newAxisMask, shrinkAxisMask))
+        executionContext.value.nativeHandle, input.nativeHandle, begin.nativeHandle, end.nativeHandle,
+        strides.nativeHandle, beginMask, endMask, ellipsisMask, newAxisMask, shrinkAxisMask))
   }
 
   //endregion Tensor Slicing Ops
@@ -768,9 +785,9 @@ private[api] trait Basic {
     * @param  message Prefix to print for the error message.
     * @return Result as a new tensor which has the same value as the input tensor.
     */
-  def checkNumerics(input: Tensor, message: String = "")(implicit context: DynamicVariable[Context]): Tensor = {
+  def checkNumerics(input: Tensor, message: String = ""): Tensor = {
     Tensor.fromNativeHandle(
-      NativeTensorOpsBasic.checkNumerics(context.value.nativeHandle, input.nativeHandle, message.getBytes()))
+      NativeTensorOpsBasic.checkNumerics(executionContext.value.nativeHandle, input.nativeHandle, message.getBytes()))
   }
 
   /** $OpDocBasicEditDistance
@@ -783,12 +800,10 @@ private[api] trait Basic {
     *                    length of `truth`.
     * @return Result as a new tensor.
     */
-  def editDistance(
-      hypothesis: SparseTensor, truth: SparseTensor, normalize: Boolean = true)(
-      implicit context: DynamicVariable[Context]): Tensor = {
+  def editDistance(hypothesis: SparseTensor, truth: SparseTensor, normalize: Boolean = true): Tensor = {
     Tensor.fromNativeHandle(
       NativeTensorOpsBasic.editDistance(
-        context.value.nativeHandle,
+        executionContext.value.nativeHandle,
         hypothesis.indices.nativeHandle,
         hypothesis.values.nativeHandle,
         hypothesis.denseShape.nativeHandle,
@@ -816,7 +831,7 @@ private[api] trait Basic {
     */
   def oneHot(
       indices: Tensor, depth: Tensor, onValue: Tensor = null, offValue: Tensor = null, axis: Int = -1,
-      dataType: DataType = null)(implicit context: DynamicVariable[Context]): Tensor = {
+      dataType: DataType = null): Tensor = {
     val inferredDataType = {
       if (dataType != null) {
         dataType
@@ -835,7 +850,7 @@ private[api] trait Basic {
     val actualOffValue = (if (offValue != null) offValue else 0: Tensor).cast(inferredDataType)
     Tensor.fromNativeHandle(
       NativeTensorOpsBasic.oneHot(
-        context.value.nativeHandle, indices.nativeHandle, depth.nativeHandle, actualOnValue.nativeHandle,
+        executionContext.value.nativeHandle, indices.nativeHandle, depth.nativeHandle, actualOnValue.nativeHandle,
         actualOffValue.nativeHandle, axis))
   }
 
@@ -853,8 +868,8 @@ private[api] trait Basic {
     * @param  input Input tensor.
     * @return Result as a new tensor which has the same value as the input tensor.
     */
-  def stopGradient(input: Tensor)(implicit context: DynamicVariable[Context]): Tensor = {
-    Tensor.fromNativeHandle(NativeTensorOpsBasic.stopGradient(context.value.nativeHandle, input.nativeHandle))
+  def stopGradient(input: Tensor): Tensor = {
+    Tensor.fromNativeHandle(NativeTensorOpsBasic.stopGradient(executionContext.value.nativeHandle, input.nativeHandle))
   }
 
   /** $OpDocBasicPreventGradient
@@ -865,9 +880,9 @@ private[api] trait Basic {
     * @param  message Message to print along with the error.
     * @return Result as a new tensor which has the same value as the input tensor.
     */
-  def preventGradient(input: Tensor, message: String = "")(implicit context: DynamicVariable[Context]): Tensor = {
+  def preventGradient(input: Tensor, message: String = ""): Tensor = {
     Tensor.fromNativeHandle(
-      NativeTensorOpsBasic.preventGradient(context.value.nativeHandle, input.nativeHandle, message.getBytes()))
+      NativeTensorOpsBasic.preventGradient(executionContext.value.nativeHandle, input.nativeHandle, message.getBytes()))
   }
 
   //endregion Tensor Gradient Ops

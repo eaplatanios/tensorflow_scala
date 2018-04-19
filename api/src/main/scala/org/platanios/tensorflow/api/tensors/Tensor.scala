@@ -182,9 +182,9 @@ class Tensor private[Tensor](
     *
     * @param  device Device name. For example, `"CPU:0"`, or `"GPU:2"`.
     */
-  def copyToDevice(device: String)(implicit context: DynamicVariable[Context]): Tensor = {
+  def copyToDevice(device: String): Tensor = {
     val parsedDevice = DeviceSpecification.fromString(device).toString.stripPrefix("/device:")
-    val handle = NativeTensor.eagerCopyToDevice(nativeHandle, context.value.nativeHandle, parsedDevice)
+    val handle = NativeTensor.eagerCopyToDevice(nativeHandle, executionContext.value.nativeHandle, parsedDevice)
     parsedDevice match {
       case "CPU:0" =>
         val hostHandle = NativeTensor.eagerResolve(handle)
@@ -195,7 +195,7 @@ class Tensor private[Tensor](
     }
   }
 
-  private[api] def resolve()(implicit context: DynamicVariable[Context]): Long = {
+  private[api] def resolve(): Long = {
     NativeTensor.eagerResolve(nativeHandle)
   }
 
@@ -592,9 +592,7 @@ object Tensor {
   def fromNPY(file: Path): Tensor = NPY.read(file)
 
   @throws[InvalidArgumentException]
-  def makeProto(value: Tensor, dataType: DataType = null, shape: Shape = null)(implicit
-      context: DynamicVariable[Context]
-  ): TensorProto = {
+  def makeProto(value: Tensor, dataType: DataType = null, shape: Shape = null): TensorProto = {
     val inferredDataType = if (dataType == null) value.dataType else dataType
     val inferredShape = if (shape == null) value.shape else shape
     val castedValue = value.cast(inferredDataType)
@@ -777,9 +775,9 @@ final case class SparseTensor(indices: Tensor, values: Tensor, denseShape: Tenso
     * @return Result as a new tensor, with the same data type as `input.values` and shape `input.denseShape`.
     */
   def toTensor(
-      defaultValue: Tensor = 0, validateIndices: Boolean = true)(implicit context: DynamicVariable[Context]): Tensor = {
+      defaultValue: Tensor = 0, validateIndices: Boolean = true): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsSparse.sparseToDense(
-      context.value.nativeHandle, indices.nativeHandle, denseShape.nativeHandle, values.nativeHandle,
+      executionContext.value.nativeHandle, indices.nativeHandle, denseShape.nativeHandle, values.nativeHandle,
       defaultValue.nativeHandle, validateIndices))
   }
 

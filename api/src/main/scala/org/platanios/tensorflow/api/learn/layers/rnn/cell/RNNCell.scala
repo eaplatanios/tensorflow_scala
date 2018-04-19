@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.learn.layers.rnn.cell
 
 import org.platanios.tensorflow.api.learn.Mode
-import org.platanios.tensorflow.api.learn.layers.Layer
+import org.platanios.tensorflow.api.learn.layers.{layerContext, Layer}
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.Op
 import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
@@ -34,11 +34,11 @@ abstract class RNNCell[O, OS, S, SS](override val name: String)(implicit
   def createCellWithoutContext(mode: Mode, inputShape: OS): ops.rnn.cell.RNNCell[O, OS, S, SS]
 
   final def createCell(mode: Mode, inputShape: OS): ops.rnn.cell.RNNCell[O, OS, S, SS ] = Op.createWith(
-    nameScope = context.value.nameScope,
-    device = context.value.device,
-    deviceFunction = context.value.deviceFunction
+    nameScope = layerContext.value.nameScope,
+    device = layerContext.value.device,
+    deviceFunction = layerContext.value.deviceFunction
   ) {
-    VariableScope.updatedScope(context.value.variableScope, isPure = true) {
+    VariableScope.updatedScope(layerContext.value.variableScope, isPure = true) {
       if (name != null) {
         VariableScope.scope(name, isPure = true) {
           createCellWithoutContext(mode, inputShape)

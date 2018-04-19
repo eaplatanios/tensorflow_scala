@@ -35,19 +35,17 @@ import scala.util.DynamicVariable
   */
 abstract class Layer[T, R](
     val name: String
-)(implicit
-    val context: DynamicVariable[LayerCreationContext]
 ) {
   val layerType: String
 
   protected def _forward(input: T)(implicit mode: Mode): R
 
   def forward(input: T)(implicit mode: Mode): R = Op.createWith(
-    nameScope = context.value.nameScope,
-    device = context.value.device,
-    deviceFunction = context.value.deviceFunction
+    nameScope = layerContext.value.nameScope,
+    device = layerContext.value.device,
+    deviceFunction = layerContext.value.deviceFunction
   ) {
-    VariableScope.updatedScope(context.value.variableScope, isPure = true) {
+    VariableScope.updatedScope(layerContext.value.variableScope, isPure = true) {
       if (name != null) {
         VariableScope.scope(name, isPure = true) {
           _forward(input)
@@ -130,39 +128,34 @@ object Layer {
   private[this] val variableStore: VariableStore = VariableStore()
 
   /** Returns the name scope of the current layer creation context. */
-  private[layers] def currentNameScope(implicit context: DynamicVariable[LayerCreationContext]): String = {
-    if (context.value.nameScope == "")
+  private[layers] def currentNameScope: String = {
+    if (layerContext.value.nameScope == "")
       ""
     else
-      s"${context.value.nameScope}/"
+      s"${layerContext.value.nameScope}/"
   }
 
   /** Returns the variable scope of the current layer creation context. */
-  private[layers] def currentVariableScope(implicit context: DynamicVariable[LayerCreationContext]): VariableScope = {
-    context.value.variableScope
+  private[layers] def currentVariableScope: VariableScope = {
+    layerContext.value.variableScope
   }
 
   /** Returns the device of the current layer creation context. */
-  private[layers] def currentDevice(implicit context: DynamicVariable[LayerCreationContext]): String = {
-    context.value.device
+  private[layers] def currentDevice: String = {
+    layerContext.value.device
   }
 
   /** Returns the device function of the current layer creation context. */
-  private[layers] def currentDeviceFunction(
-      implicit context: DynamicVariable[LayerCreationContext]): OpSpecification => String = {
-    context.value.deviceFunction
+  private[layers] def currentDeviceFunction: OpSpecification => String = {
+    layerContext.value.deviceFunction
   }
 
   private[api] def createWith[R](
       nameScope: String = null,
       device: String = "",
       deviceFunction: OpSpecification => String = _.device
-  )(
-      block: => R
-  )(implicit
-      context: DynamicVariable[LayerCreationContext]
-  ): R = {
-    var updatedContext = context.value
+  )(block: => R): R = {
+    var updatedContext = layerContext.value
     val newNameScope: String = Op.mergeNameScope(nameScope, updatedContext.nameScope, identity[String])
     updatedContext = updatedContext.copy(nameScope = newNameScope)
     val newDevice: String = Op.mergeDevice(device, updatedContext.device)
@@ -170,7 +163,7 @@ object Layer {
     val newDeviceFunction: OpSpecification => String = Op.mergeDeviceFunction(
       deviceFunction, updatedContext.deviceFunction, updatedContext.device)
     updatedContext = updatedContext.copy(deviceFunction = newDeviceFunction)
-    context.withValue(updatedContext)(block)
+    layerContext.withValue(updatedContext)(block)
   }
 
   // TODO: There is a lot of code duplicated between here and the variables package.

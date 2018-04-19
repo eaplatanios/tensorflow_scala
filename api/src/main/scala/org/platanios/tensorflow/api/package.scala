@@ -84,16 +84,8 @@ package object api extends implicits.Implicits with Documentation {
   val NewAxis: Indexer = core.NewAxis
   val ::     : Slice   = core.Slice.::
 
-  implicit val tensorEagerExecutionContext: DynamicVariable[Context] = {
-    new DynamicVariable[Context](Context())
-  }
-
   type Tensor = tensors.Tensor
   val Tensor: tensors.Tensor.type = tensors.Tensor
-
-  implicit val opCreationContext: DynamicVariable[api.ops.OpCreationContext] = {
-    new DynamicVariable[api.ops.OpCreationContext](api.ops.OpCreationContext(graph = api.core.defaultGraph))
-  }
 
   type Op = ops.Op
   val Op: ops.Op.type = ops.Op
@@ -108,10 +100,6 @@ package object api extends implicits.Implicits with Documentation {
   val Output             : ops.Output.type              = ops.Output
   val OutputIndexedSlices: ops.OutputIndexedSlices.type = ops.OutputIndexedSlices
   val SparseOutput       : ops.SparseOutput.type        = ops.SparseOutput
-
-  implicit val layerCreationContext: DynamicVariable[api.learn.layers.LayerCreationContext] = {
-    new DynamicVariable[api.learn.layers.LayerCreationContext](api.learn.layers.LayerCreationContext())
-  }
 
   //region Data Types API
 

@@ -615,25 +615,23 @@ private[api] object Variable {
     *
     * @param  variableDef ProtoBuf-serialized variable object.
     * @param  importScope Name scope to use for all imported ops.
-    * @param  context     Op creation context to use while creating the variable.
     * @return Constructed [[Variable]] object.
     */
-  def fromProto(variableDef: VariableDef, importScope: String = null)
-      (implicit context: DynamicVariable[OpCreationContext]): Variable = {
+  def fromProto(variableDef: VariableDef, importScope: String = null): Variable = {
     if (!variableDef.getIsResource)
       throw new IllegalArgumentException("Trying to restore a reference-based variable as a resource-based variable.")
 
     def prependNameScope(name: String) = if (importScope == null) name else Op.prependNameScope(importScope, name)
 
-    val handle = context.graph.getOutputByName(prependNameScope(variableDef.getVariableName))
+    val handle = opCreationContext.graph.getOutputByName(prependNameScope(variableDef.getVariableName))
     val dataType = handle.op.dataTypeAttribute("dtype")
-    val initializeOp = context.graph.getOpByName(prependNameScope(variableDef.getInitializerName))
-    val graphElement = context.graph.getOutputByName(s"${handle.op.name}/Read/ReadVariable:0")
+    val initializeOp = opCreationContext.graph.getOpByName(prependNameScope(variableDef.getInitializerName))
+    val graphElement = opCreationContext.graph.getOutputByName(s"${handle.op.name}/Read/ReadVariable:0")
     val cachedValue = {
       if (variableDef.getSnapshotName == null || variableDef.getSnapshotName == "")
         null
       else
-        context.graph.getOutputByName(prependNameScope(variableDef.getSnapshotName))
+        opCreationContext.graph.getOutputByName(prependNameScope(variableDef.getSnapshotName))
     }
     val saveSliceInformation = {
       if (variableDef.hasSaveSliceInfoDef)

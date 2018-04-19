@@ -15,10 +15,16 @@
 
 package org.platanios.tensorflow.api
 
+import scala.util.DynamicVariable
+
 /**
   * @author Emmanouil Antonios Platanios
   */
 package object tensors {
+  private[api] val executionContext: DynamicVariable[Context] = {
+    new DynamicVariable[Context](Context())
+  }
+
   private[api] trait API
       extends tensors.ops.API
 }

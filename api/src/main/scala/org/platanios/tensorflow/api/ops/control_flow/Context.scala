@@ -136,15 +136,16 @@ abstract class Context protected (
   def gradientLoopState: Option[GradientLoopState]
 
   /** Enters this control flow context. */
-  def enter()(implicit context: DynamicVariable[OpCreationContext]): Unit = {
-    contextStack.append(context.value.controlFlowContext)
-    context.value = context.value.copy(controlFlowContext = Some(this), outerContext = Some(context.value))
+  def enter(): Unit = {
+    contextStack.append(opCreationContext.value.controlFlowContext)
+    opCreationContext.value = opCreationContext.value.copy(
+      controlFlowContext = Some(this), outerContext = Some(opCreationContext.value))
   }
 
   /** Exits this control flow context. */
-  def exit()(implicit context: DynamicVariable[OpCreationContext]): Unit = {
-    context.value = context.value.copy(
-      controlFlowContext = contextStack.remove(contextStack.size - 1), outerContext = Some(context.value))
+  def exit(): Unit = {
+    opCreationContext.value = opCreationContext.value.copy(
+      controlFlowContext = contextStack.remove(contextStack.size - 1), outerContext = Some(opCreationContext.value))
   }
 
   /** Makes a sequence of tensors available in the outer context. */
