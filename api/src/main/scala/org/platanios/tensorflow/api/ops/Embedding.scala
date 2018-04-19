@@ -322,7 +322,7 @@ object Embedding extends Embedding {
     @inline override def dynamicShape: Output = Basic.shape(parameters.value)
 
     override def gather(indices: Output, name: String = "Gather"): Output = {
-      parameters.sparseRead(indices, name = name)
+      parameters.gather(indices, name = name)
     }
   }
 

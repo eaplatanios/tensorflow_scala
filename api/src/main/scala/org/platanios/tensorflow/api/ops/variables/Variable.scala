@@ -58,23 +58,23 @@ import scala.language.postfixOps
   * @author Emmanouil Antonios Platanios
   */
 case class Variable private (
-    dataType: DataType,
+    override val dataType: DataType,
     private val variableHandle: Output,
     private val initializeOp: Op,
     private val cachedValue: Output,
     private[variables] val graphElement: Output
-) extends ProtoSerializable {
+) extends ProtoSerializable with VariableLike {
   /** Graph where this variable is defined. */
-  val graph: Graph = variableHandle.graph
+  override val graph: Graph = variableHandle.graph
 
   /** Name of this variable. */
-  val name: String = variableHandle.op.name
+  override val name: String = variableHandle.op.name
 
   /** Device where this variable resides. */
   val device: String = variableHandle.device
 
   /** Shape of this variable. */
-  val shape: Shape = variableHandle.op.shapeAttribute("shape")
+  override val shape: Shape = variableHandle.op.shapeAttribute("shape")
 
   /** Op corresponding to this variable. */
   val op: Op = variableHandle.op
@@ -93,7 +93,7 @@ case class Variable private (
     * NOTE: You usually do not need to call this method directly, as all ops that use variables do so by internally
     * converting them to tensors.
     */
-  val value: Output = {
+  override val value: Output = {
     if (cachedValue != null) {
       cachedValue
     } else {
@@ -105,10 +105,12 @@ case class Variable private (
   }
 
   /** Op responsible for initializing this variable. */
-  val initializer: Op = initializeOp
+  override val initializer: Op = initializeOp
 
   /** Op output that is `true` when the variable has been initialized and `false` otherwise. */
-  val isInitialized: Output = Op.createWith(graph)(Variable.isVariableInitialized(handle, name = "IsInitialized"))
+  override val isInitialized: Output = {
+    Op.createWith(graph)(Variable.isVariableInitialized(handle, name = "IsInitialized"))
+  }
 
   /** Value of the initialized variable. You should use this instead of the variable itself to initialize
     * another variable with a value that depends on the value of this variable.
@@ -121,7 +123,7 @@ case class Variable private (
     *   val w = tf.variable("w", initializer = tf.ConstantInitializer(v.initializedValue * 2.0))
     * }}}
     */
-  val initializedValue: Output = Op.initialization {
+  override val initializedValue: Output = Op.initialization {
     ControlFlow.cond(isInitialized, () => value, () => Op.createWith(controlDependencies = Set(initializer))(value))
   }
 
@@ -138,7 +140,7 @@ case class Variable private (
     *
     * @return Created op.
     */
-  def read(name: String = "Read"): Output = {
+  override def read(name: String = "Read"): Output = {
     Op.createWith(graph) {
       val value = Op.createWith(nameScope = name, device = handle.device) {
         Variable.readVariable(handle, dataType, name)
@@ -158,7 +160,8 @@ case class Variable private (
     * @param  name    Name for the created op.
     * @return Created op.
     */
-  def sparseRead(indices: Output, name: String = "Gather"): Output = {
+  @throws[UnsupportedOperationException]
+  override def gather(indices: Output, name: String = "Gather"): Output = {
     Op.createWith(graph) {
       val value = Op.createWith(nameScope = name, device = handle.device) {
         Variable.gather(handle, indices, dataType, validateIndices = true, name)
@@ -168,17 +171,6 @@ case class Variable private (
       Basic.identity(value)
     }
   }
-
-  /** Creates an op that reads the value of this variable sparsely, using the provided `indices`.
-    *
-    * This method should be used when there are multiple reads, or when it is desirable to read the value only after
-    * some condition is true.
-    *
-    * @param  indices Indices to use for the sparse read.
-    * @param  name    Name for the created op.
-    * @return Created op.
-    */
-  def gather(indices: Output, name: String = "Gather"): Output = sparseRead(indices, name)
 
   // /** Evaluates the value of this variable.
   //   *
@@ -207,7 +199,8 @@ case class Variable private (
     * @param  name  Name for created op.
     * @return Variable value read op, after the assignment.
     */
-  def assign(value: Output, name: String = "Assign"): Output = {
+  @throws[UnsupportedOperationException]
+  override def assign(value: Output, name: String = "Assign"): Output = {
     if (value.dataType != dataType)
       throw InvalidDataTypeException(s"Expected '$dataType', but got '${value.dataType}'.")
     Op.createWith(graph = graph, controlDependencies = Set[Op](Variable.assign(handle, value, name))) {
@@ -221,7 +214,9 @@ case class Variable private (
     * @param  name  Name for created op.
     * @return Variable value read op, after the addition.
     */
-  def assignAdd(value: Output, name: String = "AssignAdd"): Output = {
+  @throws[UnsupportedOperationException]
+  @throws[InvalidDataTypeException]
+  override def assignAdd(value: Output, name: String = "AssignAdd"): Output = {
     if (value.dataType != dataType)
       throw InvalidDataTypeException(s"Expected '$dataType', but got '${value.dataType}'.")
     Op.createWith(graph = graph, controlDependencies = Set[Op](Variable.assignAdd(handle, value, name))) {
@@ -235,7 +230,9 @@ case class Variable private (
     * @param  name  Name for created op.
     * @return Variable value read op, after the subtraction.
     */
-  def assignSub(value: Output, name: String = "AssignAdd"): Output = {
+  @throws[UnsupportedOperationException]
+  @throws[InvalidDataTypeException]
+  override def assignSub(value: Output, name: String = "AssignAdd"): Output = {
     if (value.dataType != dataType)
       throw InvalidDataTypeException(s"Expected '$dataType', but got '${value.dataType}'.")
     Op.createWith(graph = graph, controlDependencies = Set[Op](Variable.assignSub(handle, value, name))) {
@@ -250,7 +247,9 @@ case class Variable private (
     * @param  name    Name for created op.
     * @return Variable value read op, after the addition.
     */
-  def assignScatter(indices: Output, values: Output, name: String = "AssignScatter"): Output = {
+  @throws[UnsupportedOperationException]
+  @throws[InvalidDataTypeException]
+  override def assignScatter(indices: Output, values: Output, name: String = "AssignScatter"): Output = {
     if (values.dataType != dataType)
       throw InvalidDataTypeException(s"Expected '$dataType', but got '${values.dataType}'.")
     Op.createWith(graph = graph, controlDependencies = Set[Op](Variable.scatterUpdate(handle, indices, values, name))) {
@@ -265,7 +264,9 @@ case class Variable private (
     * @param  name    Name for created op.
     * @return Variable value read op, after the addition.
     */
-  def assignScatterAdd(indices: Output, values: Output, name: String = "AssignScatterAdd"): Output = {
+  @throws[UnsupportedOperationException]
+  @throws[InvalidDataTypeException]
+  override def assignScatterAdd(indices: Output, values: Output, name: String = "AssignScatterAdd"): Output = {
     if (values.dataType != dataType)
       throw InvalidDataTypeException(s"Expected '$dataType', but got '${values.dataType}'.")
     Op.createWith(graph = graph, controlDependencies = Set[Op](Variable.scatterAdd(handle, indices, values, name))) {
@@ -281,7 +282,9 @@ case class Variable private (
     * @param  name    Name for created op.
     * @return Variable value read op, after the addition.
     */
-  def assignScatterSub(indices: Output, values: Output, name: String = "AssignScatterAdd"): Output = {
+  @throws[UnsupportedOperationException]
+  @throws[InvalidDataTypeException]
+  override def assignScatterSub(indices: Output, values: Output, name: String = "AssignScatterAdd"): Output = {
     if (values.dataType != dataType)
       throw InvalidDataTypeException(s"Expected '$dataType', but got '${values.dataType}'.")
     Op.createWith(graph = graph, controlDependencies = Set[Op](Variable.scatterAdd(handle, indices, -values, name))) {
@@ -289,17 +292,7 @@ case class Variable private (
     }
   }
 
-  // Useful operator overloads for the assignment methods:
-
-  def update(value: Output): Unit = assign(value)
-
-  def +=(value: Output): Unit = assignAdd(value)
-  def -=(value: Output): Unit = assignSub(value)
-
   //endregion Assignment Ops
-
-  /** Converts this variable to an op output. This function simply returns an op corresponding to the variable value. */
-  def toOutput: Output = value
 
   override def toProto: VariableDef = toProto(null)
 

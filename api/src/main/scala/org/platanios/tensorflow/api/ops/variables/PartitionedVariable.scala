@@ -15,9 +15,10 @@
 
 package org.platanios.tensorflow.api.ops.variables
 
+import org.platanios.tensorflow.api.core.exception.InvalidDataTypeException
 import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
-import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output, OutputConvertible}
+import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output}
 import org.platanios.tensorflow.api.types.DataType
 
 import scala.math.Ordering.Implicits._
@@ -45,12 +46,12 @@ import scala.math.Ordering.Implicits._
   */
 @throws[IllegalArgumentException]
 case class PartitionedVariable private[variables](
-    name: String,
-    dataType: DataType,
-    shape: Shape,
+    override val name: String,
+    override val dataType: DataType,
+    override val shape: Shape,
     private val wrappedVariables: Seq[Variable],
     partitions: Array[Int]
-) extends Iterable[Variable] with OutputConvertible {
+) extends Iterable[Variable] with VariableLike {
   if (shape.rank != partitions.length)
     throw new IllegalArgumentException(
       s"The number of partitions provided (${partitions.length}) does not match the shape rank (${shape.rank}).")
@@ -67,7 +68,7 @@ case class PartitionedVariable private[variables](
       "All variables' save slice information full shape must match the provided shape.")
 
   /** Graph where this variable is defined. */
-  val graph: Graph = wrappedVariables.head.graph
+  override val graph: Graph = wrappedVariables.head.graph
 
   val variables: Seq[Variable] = wrappedVariables.sortBy(_.partitionInformation.partitionOffsets.toList)
 
@@ -109,17 +110,17 @@ case class PartitionedVariable private[variables](
     * NOTE: You usually do not need to call this method directly, as all ops that use variables do so by internally
     * converting them to tensors.
     */
-  val value: Output = {
+  override val value: Output = {
     Op.createWith(controlDependencies = Set.empty[Op]) {
       concatenated
     }
   }
 
   /** Op responsible for initializing this variable. */
-  val initializer: Op = ControlFlow.group(variables.map(_.initializer).toSet)
+  override val initializer: Op = ControlFlow.group(variables.map(_.initializer).toSet)
 
   /** Op output that is `true` when the variable has been initialized and `false` otherwise. */
-  val isInitialized: Output = Op.createWith(graph) {
+  override val isInitialized: Output = Op.createWith(graph) {
     Math.all(Basic.stack(variables.map(_.isInitialized)), name = "IsInitialized")
   }
 
@@ -134,15 +135,119 @@ case class PartitionedVariable private[variables](
     *   val w = tf.variable("w", initializer = tf.ConstantInitializer(v.initializedValue * 2.0))
     * }}}
     */
-  val initializedValue: Output = Op.initialization {
+  override val initializedValue: Output = Op.initialization {
     ControlFlow.cond(
       isInitialized,
       () => value,
       () => Op.createWith(controlDependencies = Set(initializer))(value))
   }
 
-  /** Converts this variable to an op output. This function simply returns an op corresponding to the variable value. */
-  override def toOutput: Output = value
+  /** Creates an op that reads the value of this variable.
+    *
+    * This method should be used when there are multiple reads, or when it is desirable to read the value only after
+    * some condition is true.
+    *
+    * The returned value may be different from that of [[value]] depending on the device being used, the control
+    * dependencies, etc.
+    *
+    * @return Created op.
+    */
+  override def read(name: String = "Read"): Output = {
+    Op.createWith(graph) {
+      // Return an identity op so that it can get placed on whatever device the context specifies instead of the device
+      // where the variable is.
+      Basic.identity(value)
+    }
+  }
+
+  /** Creates an op that reads the value of this variable sparsely, using the provided `indices`.
+    *
+    * This method should be used when there are multiple reads, or when it is desirable to read the value only after
+    * some condition is true.
+    *
+    * @param  indices Indices to use for the sparse read.
+    * @param  name    Name for the created op.
+    * @return Created op.
+    */
+  @throws[UnsupportedOperationException]
+  override def gather(indices: Output, name: String = "Gather"): Output = {
+    throw new UnsupportedOperationException("Partitioned variables do not support 'gather' yet.")
+  }
+
+  /** Creates an op that assigns the provided value to this variable and returns its value.
+    *
+    * @param  value Value to assign the variable to.
+    * @param  name  Name for created op.
+    * @return Variable value read op, after the assignment.
+    */
+  @throws[UnsupportedOperationException]
+  override def assign(value: Output, name: String = "Assign"): Output = {
+    throw new UnsupportedOperationException("Partitioned variables do not support 'assign' yet.")
+  }
+
+  /** Creates an op that adds the provided value to the current value of the variable and returns its value.
+    *
+    * @param  value Value to add to the current variable value.
+    * @param  name  Name for created op.
+    * @return Variable value read op, after the addition.
+    */
+  @throws[UnsupportedOperationException]
+  @throws[InvalidDataTypeException]
+  override def assignAdd(value: Output, name: String = "AssignAdd"): Output = {
+    throw new UnsupportedOperationException("Partitioned variables do not support 'assignAdd' yet.")
+  }
+
+  /** Creates an op that subtracts the provided value from the current value of the variable and returns its value.
+    *
+    * @param  value Value to subtract from the current variable value.
+    * @param  name  Name for created op.
+    * @return Variable value read op, after the subtraction.
+    */
+  @throws[UnsupportedOperationException]
+  @throws[InvalidDataTypeException]
+  override def assignSub(value: Output, name: String = "AssignAdd"): Output = {
+    throw new UnsupportedOperationException("Partitioned variables do not support 'assignSub' yet.")
+  }
+
+  /** Creates an op that applies updates the provided sparse value updates to this variable and returns its value.
+    *
+    * @param  indices Indices corresponding to the `values` used for the update.
+    * @param  values  Values to use for updating, corresponding to the provided `indices`.
+    * @param  name    Name for created op.
+    * @return Variable value read op, after the addition.
+    */
+  @throws[UnsupportedOperationException]
+  @throws[InvalidDataTypeException]
+  override def assignScatter(indices: Output, values: Output, name: String = "AssignScatter"): Output = {
+    throw new UnsupportedOperationException("Partitioned variables do not support 'assignScatter' yet.")
+  }
+
+  /** Creates an op that adds the provided sparse value to the current value of the variable and returns its value.
+    *
+    * @param  indices Indices corresponding to the `values` being added.
+    * @param  values  Values to be added, corresponding to the provided `indices`.
+    * @param  name    Name for created op.
+    * @return Variable value read op, after the addition.
+    */
+  @throws[UnsupportedOperationException]
+  @throws[InvalidDataTypeException]
+  override def assignScatterAdd(indices: Output, values: Output, name: String = "AssignScatterAdd"): Output = {
+    throw new UnsupportedOperationException("Partitioned variables do not support 'assignScatterAdd' yet.")
+  }
+
+  /** Creates an op that subtracts the provided sparse value from the current value of the variable and returns its
+    * value.
+    *
+    * @param  indices Indices corresponding to the `values` being subtracted.
+    * @param  values  Values to be subtracted, corresponding to the provided `indices`.
+    * @param  name    Name for created op.
+    * @return Variable value read op, after the addition.
+    */
+  @throws[UnsupportedOperationException]
+  @throws[InvalidDataTypeException]
+  override def assignScatterSub(indices: Output, values: Output, name: String = "AssignScatterAdd"): Output = {
+    throw new UnsupportedOperationException("Partitioned variables do not support 'assignScatterAdd' yet.")
+  }
 
   /** Returns an array of integers containing the partition axes of this partitioned variable. */
   private[this] val partitionAxes: Array[Int] = {
