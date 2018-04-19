@@ -352,7 +352,7 @@ object InstantiatedFunction {
 
       // Call the Scala function and gather the output tensors
       val (outputs, flattenedOutputs) = {
-        VariableScope.createWithVariableScope("", customGetter = functionGraph.customVariableGetter) {
+        VariableScope.scope("", customGetter = functionGraph.customVariableGetter) {
           // Unflatten the inputs, pass them to the function, and then flatten the returned outputs
           val outputs = function(
             input.map(evInput.outputsDecoderWithKnownArg(_, inputs)._1)
@@ -431,7 +431,7 @@ class FunctionGraph(
   val outerGraph: Graph = Op.currentGraph
 
   /** Variable scope used during construction of this graph. */
-  private[ops] val outerVariableScope = Op.currentVariableScope
+  private[ops] val outerVariableScope = VariableScope.current
 
   /** Captured op outputs that belong to other graphs and are used within this graph. */
   private[ops] val capturedOutputs = mutable.HashMap.empty[Output, Output]
@@ -521,7 +521,7 @@ class FunctionGraph(
       // variables so that the variable definition is hoisted upward to the outer-most graph.
       Op.createWith(outerGraph) {
         val variable = outerVariableScope.getVariable(
-          store = Op.currentVariableStore,
+          store = VariableStore.current,
           name = name,
           dataType = dataType,
           shape = shape,

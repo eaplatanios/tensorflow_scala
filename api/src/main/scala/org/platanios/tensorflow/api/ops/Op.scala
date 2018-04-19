@@ -392,7 +392,6 @@ final case class OpSpecification(name: String, opType: String, device: String)
 private[api] final case class OpCreationContext(
     graph: Graph = Graph(),
     nameScope: String = "",
-    variableScope: VariableScope = VariableScope(reuse = CreateNewOnly),
     device: String = "",
     deviceFunction: OpSpecification => String = _.device,
     colocationOps: Set[Op] = Set.empty,
@@ -403,7 +402,7 @@ private[api] final case class OpCreationContext(
     outerContext: Option[OpCreationContext] = None)
 
 object Op {
-  private[ops] val logger = Logger(LoggerFactory.getLogger("Graph Construction"))
+  private[ops] val logger = Logger(LoggerFactory.getLogger("Op"))
 
   private[ops] trait API {
     type Op = ops.Op
@@ -414,8 +413,6 @@ object Op {
 
     def currentGraph: Graph = Op.currentGraph
     def currentNameScope: String = Op.currentNameScope
-    def currentVariableScope: VariableScope = Op.currentVariableScope
-    def currentVariableStore: VariableStore = Op.currentVariableStore
     def currentDevice: String = Op.currentDevice
     def currentDeviceFunction: OpSpecification => String = Op.currentDeviceFunction
     def currentColocationOps: Set[Op] = Op.currentColocationOps
@@ -483,16 +480,6 @@ object Op {
   /** Returns the name scope of the current op creation context. */
   private[api] def currentNameScope(implicit context: DynamicVariable[OpCreationContext]): String = {
     if (context.value.nameScope == "") "" else s"${context.value.nameScope}/"
-  }
-
-  /** Returns the variable scope of the current op creation context. */
-  private[api] def currentVariableScope(implicit context: DynamicVariable[OpCreationContext]): VariableScope = {
-    context.value.variableScope
-  }
-
-  /** Returns the variable store of the current op creation context. */
-  private[api] def currentVariableStore(implicit context: DynamicVariable[OpCreationContext]): VariableStore = {
-    context.value.graph.variableStore
   }
 
   /** Returns the device of the current op creation context. */
@@ -1496,7 +1483,7 @@ object Op {
     def addInput(input: Output): Builder = {
       val processedInput = graph.processOpInput(input)
       this.inputFunctions :+= {
-        (nativeHandle: Long) => NativeOp.addInput(nativeHandle, processedInput.op.nativeHandle, processedInput.index)
+        nativeHandle: Long => NativeOp.addInput(nativeHandle, processedInput.op.nativeHandle, processedInput.index)
       }
       this.inputs :+= input
       this
@@ -1505,7 +1492,7 @@ object Op {
     def addInputList(inputList: Seq[Output]): Builder = {
       val processedInputList = inputList.map(graph.processOpInput)
       this.inputFunctions :+= {
-        (nativeHandle: Long) =>
+        nativeHandle: Long =>
           NativeOp.addInputList(
             nativeHandle, processedInputList.map(_.nativeHandle).toArray, processedInputList.map(_.index).toArray)
       }

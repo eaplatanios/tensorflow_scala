@@ -294,13 +294,13 @@ object ExponentialMovingAverage {
     *         also update the shadow variables appropriately.
     */
   private[ExponentialMovingAverage] def zeroDebias(unbiasedVariable: Variable, value: Output, decay: Output): Output = {
-    VariableScope.createWithVariableScope(unbiasedVariable.name) {
+    VariableScope.scope(unbiasedVariable.name) {
       Op.colocateWith(Set(unbiasedVariable.op)) {
         val biased = Variable.getVariable(
           "Biased", unbiasedVariable.dataType, unbiasedVariable.shape, ZerosInitializer, trainable = false)
         val localStep = Variable.getVariable(
           "LocalStep", unbiasedVariable.dataType, Shape(), ZerosInitializer, trainable = false)
-        val biasedUpdate = biased.assignSub((biased - value) * decay, Op.currentVariableScope.name)
+        val biasedUpdate = biased.assignSub((biased - value) * decay, VariableScope.current.name)
         val localStepUpdate = localStep.assignAdd(Basic.constant(1, localStep.dataType))
         // Compute the value of the delta to update the unbiased EMA. Make sure to use the new values of the biased
         // variable and the local step.

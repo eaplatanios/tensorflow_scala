@@ -159,7 +159,7 @@ trait Optimizer {
     Op.createWithNameScope(name) {
       // Create the slots needed by the variables.
       Op.initialization {
-        VariableScope.createWithVariableScope(name) {
+        VariableScope.scope(name) {
           createSlots(variables)
         }
       }

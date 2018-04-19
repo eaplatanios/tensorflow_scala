@@ -18,14 +18,12 @@ package org.platanios.tensorflow.api.core
 import org.platanios.tensorflow.api.core.exception.{GraphMismatchException, InvalidArgumentException}
 import org.platanios.tensorflow.api.ops.{InstantiatedFunction, Op, Output, Resource, Resources}
 import org.platanios.tensorflow.api.ops.metrics.Metric
-import org.platanios.tensorflow.api.ops.variables.{Saver, Variable, VariableStore}
+import org.platanios.tensorflow.api.ops.variables.{Saver, Variable, VariableScopeStore, VariableStore}
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer, NativeHandleWrapper}
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
 import org.platanios.tensorflow.jni.{Function => NativeFunction, Graph => NativeGraph, TensorFlow => NativeLibrary}
 
 import com.google.protobuf.ByteString
-import com.typesafe.scalalogging.Logger
-import org.slf4j.LoggerFactory
 import org.tensorflow.framework.CollectionDef.{BytesList, Int64List, NodeList}
 import org.tensorflow.framework.MetaGraphDef.MetaInfoDef
 import org.tensorflow.framework._
@@ -91,7 +89,14 @@ class Graph private[api](
   private[api] val opsCache: mutable.Map[Long, Op] = mutable.LongMap.empty[Op]
 
   /** Variable store object of this graph, used to store created variables and keep track of variable scope usages. */
-  private[api] val variableStore: VariableStore = VariableStore()
+  private[api] val variableStore: VariableStore = {
+    VariableStore()
+  }
+
+  /** Variable scope store object of this graph. */
+  private[api] val variableScopeStore: ThreadLocal[VariableScopeStore] = {
+    ThreadLocal.withInitial(() => VariableScopeStore())
+  }
 
   /** Set that contains the current names in use in this graph. */
   private[this] val namesInUse: mutable.Set[String] = mutable.Set.empty[String]
@@ -759,9 +764,7 @@ class Graph private[api](
       key: Graph.Key[K],
       exportScope: String = null
   ): MetaGraphDef.Builder = {
-    if (!key.supportsSerialization)
-      Graph.logger.debug(s"Ignoring graph collection with key '${key.name}' because it is not serializable.")
-    key.createCollectionDef(getCollection(key), exportScope).foreach(metaGraphDefBuilder.putCollectionDef(key.name, _))
+    metaGraphDefBuilder.putCollectionDef(key.name, key.createCollectionDef(getCollection(key), exportScope))
     metaGraphDefBuilder
   }
 
@@ -831,8 +834,6 @@ class Graph private[api](
 }
 
 object Graph {
-  private[Graph] val logger = Logger(LoggerFactory.getLogger("Graph"))
-
   /** Constructs and returns an empty new graph. */
   def apply(): Graph = {
     val nativeHandle = NativeGraph.allocate()
@@ -905,9 +906,12 @@ object Graph {
     * @return Constructed [[Graph]] object.
     */
   def fromMetaGraphDef(
-      metaGraphDef: MetaGraphDef, importScope: String = null, clearDevices: Boolean = false,
+      metaGraphDef: MetaGraphDef,
+      importScope: String = null,
+      clearDevices: Boolean = false,
       unboundInputsCollectionKey: Graph.Key[String] = Graph.Keys.UNBOUND_INPUTS,
-      restoreCollectionsPredicate: Graph.Key[_] => Boolean = _ => true): Graph = {
+      restoreCollectionsPredicate: Graph.Key[_] => Boolean = _ => true
+  ): Graph = {
     val graph = Graph()
     graph.importMetaGraphDef(
       metaGraphDef, importScope, clearDevices = clearDevices, unboundInputsCollectionKey = unboundInputsCollectionKey,
@@ -953,8 +957,11 @@ object Graph {
     * @return New processed node definition.
     */
   private def processNodeDef(
-      nodeDef: NodeDef, exportScope: String = null, unboundInputs: mutable.Set[String] = mutable.Set.empty,
-      clearDevices: Boolean = false): NodeDef = {
+      nodeDef: NodeDef,
+      exportScope: String = null,
+      unboundInputs: mutable.Set[String] = mutable.Set.empty,
+      clearDevices: Boolean = false
+  ): NodeDef = {
     val nodeDefBuilder = NodeDef.newBuilder(nodeDef)
     nodeDefBuilder.setName(Op.stripNameScope(exportScope, nodeDef.getName))
     val numberOfInputs = nodeDef.getInputCount
@@ -1014,7 +1021,10 @@ object Graph {
     * @return
     */
   private[api] def equalGraphDef(
-      graphDef1: GraphDef, graphDef2: GraphDef, ignoreInternalAttributes: Boolean = true): (Boolean, String) = {
+      graphDef1: GraphDef,
+      graphDef2: GraphDef,
+      ignoreInternalAttributes: Boolean = true
+  ): (Boolean, String) = {
     // We intentionally do not check that the versions of the two GraphDefs match so that this function can be used for
     // less brittle golden file tests.
     var graph1Index = mutable.Map.empty[String, NodeDef]
@@ -1041,7 +1051,10 @@ object Graph {
   }
 
   private[api] def equalNodeDef(
-      nodeDef1: NodeDef, nodeDef2: NodeDef, ignoreInternalAttributes: Boolean = true): (Boolean, String) = {
+      nodeDef1: NodeDef,
+      nodeDef2: NodeDef,
+      ignoreInternalAttributes: Boolean = true
+  ): (Boolean, String) = {
     if (nodeDef1.getName != nodeDef2.getName)
       return (false, s"Node 1 name '${nodeDef1.getName}' does not match node 2 name '${nodeDef2.getName}'.")
     if (nodeDef1.getOp != nodeDef2.getOp)
@@ -1106,9 +1119,6 @@ object Graph {
     /** Name of this collection key. */
     def name: String
 
-    /** Returns `true` if this collection key supports serialization. */
-    def supportsSerialization: Boolean = false
-
     /** Creates a [[CollectionDef]] from the provided set of values.
       *
       * @param  values      Values to serialize in the [[CollectionDef]].
@@ -1117,7 +1127,7 @@ object Graph {
       *                     their names to allow for easy import into new name scopes.
       * @return Serialized `values` in a new [[CollectionDef]].
       */
-    def createCollectionDef(values: Set[K], exportScope: String = null): Option[CollectionDef] = None
+    def createCollectionDef(values: Set[K], exportScope: String = null): CollectionDef
 
     /** Parses a [[CollectionDef]] and adds the collection values to the corresponding collection in the graph.
       *
@@ -1126,7 +1136,7 @@ object Graph {
       * @param  importScope   Optional prefix that will be prepended to all node names in the graph that is being
       *                       imported to this graph.
       */
-    def parseCollectionDef(collectionDef: CollectionDef, graph: Graph, importScope: String): Unit = ()
+    def parseCollectionDef(collectionDef: CollectionDef, graph: Graph, importScope: String): Unit
 
     Keys.register(this)
   }
@@ -1150,12 +1160,10 @@ object Graph {
 
     /** Key for collections of strings. */
     trait StringCollectionKey extends Key[String] {
-      override def supportsSerialization: Boolean = true
-
-      override def createCollectionDef(values: Set[String], exportScope: String = null): Option[CollectionDef] = {
+      override def createCollectionDef(values: Set[String], exportScope: String = null): CollectionDef = {
         val bytesListBuilder = BytesList.newBuilder()
         values.foreach(s => bytesListBuilder.addValue(ByteString.copyFromUtf8(s)))
-        Some(CollectionDef.newBuilder().setBytesList(bytesListBuilder.build()).build())
+        CollectionDef.newBuilder().setBytesList(bytesListBuilder.build()).build()
       }
 
       override def parseCollectionDef(collectionDef: CollectionDef, graph: Graph, importScope: String): Unit = {
@@ -1168,12 +1176,10 @@ object Graph {
 
     /** Key for collections of integers. */
     trait IntCollectionKey extends Key[Int] {
-      override def supportsSerialization: Boolean = true
-
-      override def createCollectionDef(values: Set[Int], exportScope: String = null): Option[CollectionDef] = {
+      override def createCollectionDef(values: Set[Int], exportScope: String = null): CollectionDef = {
         val int64ListBuilder = Int64List.newBuilder()
         values.foreach(v => int64ListBuilder.addValue(v))
-        Some(CollectionDef.newBuilder().setInt64List(int64ListBuilder.build()).build())
+        CollectionDef.newBuilder().setInt64List(int64ListBuilder.build()).build()
       }
 
       override def parseCollectionDef(collectionDef: CollectionDef, graph: Graph, importScope: String): Unit = {
@@ -1186,16 +1192,14 @@ object Graph {
 
     /** Key for collections of ops. */
     trait OpCollectionKey extends Key[Op] {
-      override def supportsSerialization: Boolean = true
-
-      override def createCollectionDef(values: Set[Op], exportScope: String = null): Option[CollectionDef] = {
+      override def createCollectionDef(values: Set[Op], exportScope: String = null): CollectionDef = {
         val nodeListBuilder = NodeList.newBuilder()
         values.asInstanceOf[Set[Op]]
             .filter(o => Graph.shouldIncludeNode(o.name, exportScope))
             .filter(o => exportScope == null || o.name.startsWith(exportScope)).foreach(o => {
           nodeListBuilder.addValue(Op.stripNameScope(exportScope, o.name))
         })
-        Some(CollectionDef.newBuilder().setNodeList(nodeListBuilder.build()).build())
+        CollectionDef.newBuilder().setNodeList(nodeListBuilder.build()).build()
       }
 
       override def parseCollectionDef(collectionDef: CollectionDef, graph: Graph, importScope: String): Unit = {
@@ -1209,16 +1213,14 @@ object Graph {
 
     /** Key for collections of op outputs. */
     trait OutputCollectionKey extends Key[Output] {
-      override def supportsSerialization: Boolean = true
-
-      override def createCollectionDef(values: Set[Output], exportScope: String): Option[CollectionDef] = {
+      override def createCollectionDef(values: Set[Output], exportScope: String): CollectionDef = {
         val nodeListBuilder = NodeList.newBuilder()
         values.asInstanceOf[Set[Output]]
             .filter(o => Graph.shouldIncludeNode(o.name, exportScope))
             .filter(o => exportScope == null || o.name.startsWith(exportScope)).foreach(o => {
           nodeListBuilder.addValue(Op.stripNameScope(exportScope, o.name))
         })
-        Some(CollectionDef.newBuilder().setNodeList(nodeListBuilder.build()).build())
+        CollectionDef.newBuilder().setNodeList(nodeListBuilder.build()).build()
       }
 
       override def parseCollectionDef(collectionDef: CollectionDef, graph: Graph, importScope: String): Unit = {
@@ -1232,15 +1234,13 @@ object Graph {
 
     /** Key for collections of variables. */
     trait VariableCollectionKey extends Key[Variable] {
-      override def supportsSerialization: Boolean = true
-
-      override def createCollectionDef(values: Set[Variable], exportScope: String = null): Option[CollectionDef] = {
+      override def createCollectionDef(values: Set[Variable], exportScope: String = null): CollectionDef = {
         val bytesListBuilder = BytesList.newBuilder()
         values
             .map(_.toProto(exportScope))
             .filter(_ != null)
             .foreach(s => bytesListBuilder.addValue(s.toByteString))
-        Some(CollectionDef.newBuilder().setBytesList(bytesListBuilder.build()).build())
+        CollectionDef.newBuilder().setBytesList(bytesListBuilder.build()).build()
       }
 
       override def parseCollectionDef(collectionDef: CollectionDef, graph: Graph, importScope: String): Unit = {
@@ -1254,15 +1254,13 @@ object Graph {
 
     /** Key for collections of savers. */
     trait SaverCollectionKey extends Key[Saver] {
-      override def supportsSerialization: Boolean = true
-
-      override def createCollectionDef(values: Set[Saver], exportScope: String = null): Option[CollectionDef] = {
+      override def createCollectionDef(values: Set[Saver], exportScope: String = null): CollectionDef = {
         val bytesListBuilder = BytesList.newBuilder()
         values
             .map(_.toProto(exportScope))
             .filter(_ != null)
             .foreach(s => bytesListBuilder.addValue(s.toByteString))
-        Some(CollectionDef.newBuilder().setBytesList(bytesListBuilder.build()).build())
+        CollectionDef.newBuilder().setBytesList(bytesListBuilder.build()).build()
       }
 
       override def parseCollectionDef(collectionDef: CollectionDef, graph: Graph, importScope: String): Unit = {
@@ -1276,9 +1274,7 @@ object Graph {
 
     /** Key for collections of resources. */
     trait ResourceCollectionKey extends Key[Resource] {
-      override def supportsSerialization: Boolean = true
-
-      override def createCollectionDef(values: Set[Resource], exportScope: String): Option[CollectionDef] = {
+      override def createCollectionDef(values: Set[Resource], exportScope: String): CollectionDef = {
         val nodeListBuilder = NodeList.newBuilder()
         values.foreach(r => {
           if (Graph.shouldIncludeNode(r.handle.name) &&
@@ -1289,7 +1285,7 @@ object Graph {
             nodeListBuilder.addValue(Op.stripNameScope(exportScope, r.isInitialized.name))
           }
         })
-        Some(CollectionDef.newBuilder().setNodeList(nodeListBuilder.build()).build())
+        CollectionDef.newBuilder().setNodeList(nodeListBuilder.build()).build()
       }
 
       override def parseCollectionDef(collectionDef: CollectionDef, graph: Graph, importScope: String): Unit = {

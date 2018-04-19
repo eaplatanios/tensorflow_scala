@@ -381,8 +381,8 @@ private[api] object Variable {
       name: String, dataType: DataType = null, shape: Shape = null, initializer: Initializer = null,
       regularizer: Regularizer = null, trainable: Boolean = true, reuse: Reuse = ReuseOrCreateNew,
       collections: Set[Graph.Key[Variable]] = Set.empty, cachingDevice: OpSpecification => String = null): Variable = {
-    Op.currentVariableScope.getVariable(
-      Op.currentVariableStore, name, dataType, shape, initializer, regularizer, trainable, reuse, collections,
+    VariableScope.current.getVariable(
+      VariableStore.current, name, dataType, shape, initializer, regularizer, trainable, reuse, collections,
       cachingDevice)
   }
 
@@ -423,8 +423,8 @@ private[api] object Variable {
       regularizer: Regularizer = null, partitioner: Partitioner = null, trainable: Boolean = true,
       reuse: Reuse = ReuseOrCreateNew, collections: Set[Graph.Key[Variable]] = Set.empty,
       cachingDevice: OpSpecification => String = null): PartitionedVariable = {
-    Op.currentVariableScope.getPartitionedVariable(
-      Op.currentVariableStore, name, dataType, shape, initializer, regularizer, partitioner, trainable, reuse,
+    VariableScope.current.getPartitionedVariable(
+      VariableStore.current, name, dataType, shape, initializer, regularizer, partitioner, trainable, reuse,
       collections, cachingDevice)
   }
 
@@ -459,8 +459,8 @@ private[api] object Variable {
       name: String, dataType: DataType = null, shape: Shape = null, initializer: Initializer = null,
       regularizer: Regularizer = null, reuse: Reuse = ReuseOrCreateNew,
       collections: Set[Graph.Key[Variable]] = Set.empty, cachingDevice: OpSpecification => String = null): Variable = {
-    Op.currentVariableScope.getVariable(
-      Op.currentVariableStore, name, dataType, shape, initializer, regularizer, trainable = false, reuse,
+    VariableScope.current.getVariable(
+      VariableStore.current, name, dataType, shape, initializer, regularizer, trainable = false, reuse,
       collections + Graph.Keys.LOCAL_VARIABLES, cachingDevice)
   }
 
@@ -500,8 +500,8 @@ private[api] object Variable {
       regularizer: Regularizer = null, partitioner: Partitioner = null, reuse: Reuse = ReuseOrCreateNew,
       collections: Set[Graph.Key[Variable]] = Set.empty,
       cachingDevice: OpSpecification => String = null): PartitionedVariable = {
-    Op.currentVariableScope.getPartitionedVariable(
-      Op.currentVariableStore, name, dataType, shape, initializer, regularizer, partitioner, trainable = false, reuse,
+    VariableScope.current.getPartitionedVariable(
+      VariableStore.current, name, dataType, shape, initializer, regularizer, partitioner, trainable = false, reuse,
       collections + Graph.Keys.LOCAL_VARIABLES, cachingDevice)
   }
 

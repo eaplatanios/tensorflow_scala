@@ -67,14 +67,14 @@ private[rnn] trait RNN {
     Op.createWithNameScope(name) {
       // Create a new variable scope in which the caching device is either determined by the parent scope, or is set to
       // place the cached variables using the same device placement as for the rest of the RNN.
-      val currentVariableScope = VariableScope.createWithVariableScope(name)(Op.currentVariableScope)
+      val currentVariableScope = VariableScope.scope(name)(VariableScope.current)
       val cachingDevice = {
         if (currentVariableScope.cachingDevice == null)
           (opSpecification: OpSpecification) => opSpecification.device
         else
           currentVariableScope.cachingDevice
       }
-      VariableScope.createWithUpdatedVariableScope(currentVariableScope, cachingDevice = cachingDevice) {
+      VariableScope.updatedScope(currentVariableScope, cachingDevice = cachingDevice) {
         // By default, `timeMajor` is false and inputs are shaped batch-major: [batch, time, depth]
         // For internal calculations, we transpose to: [time, batch, depth]
         var processedInput = evO.outputs(input)
@@ -165,9 +165,9 @@ private[rnn] trait RNN {
       evS: WhileLoopVariable.Aux[S, SS]
   ): (Tuple[O, S], Tuple[O, S]) = {
     Op.createWithNameScope(name) {
-      VariableScope.createWithVariableScope(name) {
+      VariableScope.scope(name) {
         // Forward direction
-        val forwardTuple = VariableScope.createWithVariableScope("Forward") {
+        val forwardTuple = VariableScope.scope("Forward") {
           dynamicRNN(
             cellFw, input, initialStateFw, timeMajor, parallelIterations, swapMemory, sequenceLengths)(evO, evS)
         }
@@ -184,7 +184,7 @@ private[rnn] trait RNN {
           evO.fromOutputs(input, sequence)
         }
 
-        val backwardTuple = VariableScope.createWithVariableScope("Backward") {
+        val backwardTuple = VariableScope.scope("Backward") {
           val reversedInput = reverse(input)
           dynamicRNN(
             cellBw, reversedInput, initialStateBw, timeMajor, parallelIterations,

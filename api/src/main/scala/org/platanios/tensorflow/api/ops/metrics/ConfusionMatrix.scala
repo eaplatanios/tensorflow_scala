@@ -135,7 +135,7 @@ class ConfusionMatrix(
   override def streaming(
       values: (Output, Output), weights: Output = null, name: String = name): Metric.StreamingInstance[Output] = {
     Op.createWithNameScope(name) {
-      VariableScope.createWithVariableScope(name) {
+      VariableScope.scope(name) {
         val accumulator = variable(
           "Accumulator", dataType, Shape(numClasses, numClasses), ZerosInitializer, variablesCollections)
         val value = compute(values, weights, name = "Value")

@@ -36,64 +36,6 @@ case class VariableStore private[variables]() {
   /** Map with partitioned variable names as keys and the corresponding partitioned variables as values. */
   private[this] var partitionedVariables: Map[String, PartitionedVariable] = Map.empty[String, PartitionedVariable]
 
-  /** Map with variable scope names as keys and the corresponding use counts as values. */
-  private[this] var variableScopeCounts: Map[String, Int] = Map.empty[String, Int]
-
-  // TODO: [DOC] [VARIABLES]
-
-  private[api] def enterVariableScope(scope: String): Unit = variableScopeCounts synchronized {
-    variableScopeCounts += scope -> (variableScopeCounts.getOrElse(scope, 0) + 1)
-  }
-
-  private[api] def exitVariableScope(scope: String): Unit = variableScopeCounts synchronized {
-    variableScopeCounts += scope -> (variableScopeCounts.getOrElse(scope, 1) - 1)
-  }
-
-  private[api] def setVariableScopeCounts(counts: Map[String, Int]): Unit = variableScopeCounts synchronized {
-    variableScopeCounts ++= counts
-  }
-
-  private[api] def getVariableSubScopeCounts(scope: String): Map[String, Int] = variableScopeCounts synchronized {
-    variableScopeCounts.filterKeys(_.startsWith(s"$scope/"))
-  }
-
-  private[api] def closeVariableSubScopes(scope: String): Unit = variableScopeCounts synchronized {
-    variableScopeCounts.keySet.filter(_.startsWith(s"$scope/")).foreach(variableScopeCounts - _)
-  }
-
-  /** Returns the use count of the provided scope in this variable store.
-    *
-    * @param  scope Variable scope name.
-    * @return Number of usages of the provided variable scope name, in this variable store.
-    */
-  private[api] def variableScopeCount(scope: String): Int = variableScopeCounts.getOrElse(scope, 0)
-
-  /** Gets a name with the provided prefix that is unique in the current variable scope.
-    *
-    * @param  prefix Prefix.
-    * @return Unique name with the provided prefix.
-    */
-  private[api] def uniqueVariableScope(prefix: String): String = {
-    val currentScope = Op.convertNameScopeToName(Op.currentVariableScope.name)
-    val name = {
-      if (currentScope == null || currentScope == "")
-        prefix
-      else
-        s"$currentScope/$prefix"
-    }
-    if (variableScopeCounts.getOrElse(name, 0) == 0) {
-      prefix
-    } else {
-      var uniqueName = name
-      var count = 1
-      while (variableScopeCounts.getOrElse(uniqueName, 0) > 0) {
-        uniqueName = s"${name}_$count"
-        count += 1
-      }
-      uniqueName
-    }
-  }
-
   /** Gets or creates a variable.
     *
     * @param  name          Variable name.
@@ -398,6 +340,8 @@ case class VariableStore private[variables]() {
 }
 
 object VariableStore {
+  def current: VariableStore = Op.currentGraph.variableStore
+
   /** Returns a default variable initializer.
     *
     * @param  name     Variable name.

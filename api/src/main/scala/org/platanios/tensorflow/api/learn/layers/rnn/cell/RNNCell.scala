@@ -38,9 +38,9 @@ abstract class RNNCell[O, OS, S, SS](override val name: String)(implicit
     device = context.value.device,
     deviceFunction = context.value.deviceFunction
   ) {
-    VariableScope.createWithUpdatedVariableScope(context.value.variableScope, isPure = true) {
+    VariableScope.updatedScope(context.value.variableScope, isPure = true) {
       if (name != null) {
-        VariableScope.createWithVariableScope(name, isPure = true) {
+        VariableScope.scope(name, isPure = true) {
           createCellWithoutContext(mode, inputShape)
         }
       } else {

@@ -102,25 +102,43 @@ package object variables {
         name, dataType, shape, initializer, regularizer, partitioner, reuse, collections, cachingDevice)
     }
 
-    def createWithVariableScope[R](
-        name: String, reuse: VariableReuse = ReuseOrCreateNewVariable, dataType: DataType = null,
-        initializer: VariableInitializer = null, regularizer: VariableRegularizer = null,
-        partitioner: VariablePartitioner = null, cachingDevice: OpSpecification => String = null,
-        customGetter: VariableGetter = null, isDefaultName: Boolean = false, isPure: Boolean = false)
-        (block: => R): R = {
-      variables.VariableScope.createWithVariableScope(
+    def variableScope[R](
+        name: String,
+        reuse: VariableReuse = ReuseOrCreateNewVariable,
+        dataType: DataType = null,
+        initializer: VariableInitializer = null,
+        regularizer: VariableRegularizer = null,
+        partitioner: VariablePartitioner = null,
+        cachingDevice: OpSpecification => String = null,
+        customGetter: VariableGetter = null,
+        isDefaultName: Boolean = false,
+        isPure: Boolean = false
+    )(block: => R): R = {
+      variables.VariableScope.scope(
         name, reuse, dataType, initializer, regularizer, partitioner, cachingDevice, customGetter, isDefaultName,
         isPure)(block)
     }
 
-    def createWithUpdatedVariableScope[R](
-        variableScope: VariableScope, reuse: VariableReuse = ReuseOrCreateNewVariable, dataType: DataType = null,
-        initializer: VariableInitializer = null, regularizer: VariableRegularizer = null,
-        partitioner: VariablePartitioner = null, cachingDevice: OpSpecification => String = null,
-        customGetter: VariableGetter = null, isPure: Boolean = false)(block: => R): R = {
-      variables.VariableScope.createWithUpdatedVariableScope(
+    def updatedVariableScope[R](
+        variableScope: VariableScope,
+        reuse: VariableReuse = ReuseOrCreateNewVariable,
+        dataType: DataType = null,
+        initializer: VariableInitializer = null,
+        regularizer: VariableRegularizer = null,
+        partitioner: VariablePartitioner = null,
+        cachingDevice: OpSpecification => String = null,
+        customGetter: VariableGetter = null,
+        isPure: Boolean = false
+    )(block: => R): R = {
+      variables.VariableScope.updatedScope(
         variableScope, reuse, dataType, initializer, regularizer, partitioner, cachingDevice, customGetter,
         isPure)(block)
     }
+
+    /** Returns the current variable scope. */
+    def currentVariableScope: VariableScope = VariableScope.current
+
+    /** Returns the current variable store. */
+    def currentVariableStore: VariableStore = VariableStore.current
   }
 }

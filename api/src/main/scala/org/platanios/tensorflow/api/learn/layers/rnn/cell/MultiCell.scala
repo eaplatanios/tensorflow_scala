@@ -40,7 +40,7 @@ class MultiCell[O, OS, S, SS](
 
   override def createCellWithoutContext(mode: Mode, inputShape: OS): ops.rnn.cell.RNNCell[O, OS, Seq[S], Seq[SS]] = {
     val createdCells = cells.zipWithIndex.foldLeft(Seq.empty[ops.rnn.cell.RNNCell[O, OS, S, SS]])((seq, cell) => {
-      VariableScope.createWithVariableScope(s"Cell${cell._2}") {
+      VariableScope.scope(s"Cell${cell._2}") {
         if (seq.isEmpty)
           seq :+ cell._1.createCellWithoutContext(mode, inputShape)
         else

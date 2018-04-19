@@ -17,11 +17,9 @@ package org.platanios.tensorflow.api.ops.variables
 
 import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.exception.{InvalidDataTypeException, ShapeMismatchException}
-import org.platanios.tensorflow.api.ops.{Op, OpCreationContext, OpSpecification}
+import org.platanios.tensorflow.api.ops.{Op, OpSpecification}
 import org.platanios.tensorflow.api.ops.variables.Variable.VariableGetter
 import org.platanios.tensorflow.api.types.DataType
-
-import scala.util.DynamicVariable
 
 // TODO: [VARIABLES] Resolve customGetter weirdness related to partitioned variables.
 
@@ -178,6 +176,9 @@ case class VariableScope private[variables](
 }
 
 private[api] object VariableScope {
+  /** Returns the current variable scope. */
+  def current: VariableScope = VariableScopeStore.current.scope
+
   /** Sets the variable scope to use for op creation context, for all code in `block`.
     *
     * @param  name          Variable scope name, that may also change the name scope of the op creation context,
@@ -198,11 +199,10 @@ private[api] object VariableScope {
     * @param  isPure        Boolean value indicating whether to use a "pure" variable scope. That is, a variable scope
     *                       that does not affect the name scope of the current op creation context.
     * @param  block         Code block to run using the provided options.
-    * @param  context       Current op creation context.
     * @tparam R Return type of the code block.
     * @return Return value of the code block.
     */
-  private[api] def createWithVariableScope[R](
+  private[api] def scope[R](
       name: String,
       reuse: Reuse = ReuseOrCreateNew,
       dataType: DataType = null,
@@ -213,54 +213,41 @@ private[api] object VariableScope {
       customGetter: VariableGetter = null,
       isDefaultName: Boolean = false,
       isPure: Boolean = false
-  )(
-      block: => R
-  )(implicit
-      context: DynamicVariable[OpCreationContext]
-  ): R = {
+  )(block: => R): R = {
     if (reuse == ReuseExistingOnly && isDefaultName)
       throw new IllegalArgumentException(
         "'reuse' cannot be set to 'ReuseExistingOnly' with 'isDefaultName' set to 'true'.")
-    val variableStore = context.value.graph.variableStore
-    val variableScope = context.value.variableScope
+    val variableScopeStore = VariableScopeStore.current
+    val oldVariableScope = variableScopeStore.scope
     val newName = {
-      val uniqueName = if (isDefaultName) variableStore.uniqueVariableScope(name) else name
-      if (variableScope.name != null && variableScope.name != "")
-        s"${variableScope.name}/$uniqueName"
+      val uniqueName = if (isDefaultName) VariableScope.unique(name) else name
+      if (oldVariableScope.name != null && oldVariableScope.name != "")
+        s"${oldVariableScope.name}/$uniqueName"
       else
         uniqueName
     }
     // TODO: !!! [VARIABLES] Look into the cached pure variable scope.
-    variableStore.enterVariableScope(newName)
+    variableScopeStore.enterVariableScope(newName)
     val newVariableScope = VariableScope(
       // TODO: !!! [VARIABLES] Have 'name' as first argument in order to be consistent.
-      reuse = if (reuse == ReuseOrCreateNew) variableScope.reuse else reuse,
+      reuse = if (reuse == ReuseOrCreateNew) oldVariableScope.reuse else reuse,
       name = newName,
-      dataType = if (dataType == null) variableScope.dataType else dataType,
-      initializer = if (initializer == null) variableScope.initializer else initializer,
-      regularizer = if (regularizer == null) variableScope.regularizer else regularizer,
-      partitioner = if (partitioner == null) variableScope.partitioner else partitioner,
-      cachingDevice = if (cachingDevice == null) variableScope.cachingDevice else cachingDevice,
+      dataType = if (dataType == null) oldVariableScope.dataType else dataType,
+      initializer = if (initializer == null) oldVariableScope.initializer else initializer,
+      regularizer = if (regularizer == null) oldVariableScope.regularizer else regularizer,
+      partitioner = if (partitioner == null) oldVariableScope.partitioner else partitioner,
+      cachingDevice = if (cachingDevice == null) oldVariableScope.cachingDevice else cachingDevice,
       nameScope = name,
       customGetter = {
         if (customGetter == null)
-          variableScope.customGetter
+          oldVariableScope.customGetter
         else
-          maybeWrapCustomVariableGetter(customGetter, variableScope.customGetter)
+          maybeWrapCustomVariableGetter(customGetter, oldVariableScope.customGetter)
       })
-    val result = {
-      if (isPure)
-        context.withValue(context.value.copy(variableScope = newVariableScope, outerContext = Some(context.value))) {
-          block
-        }
-      else
-        Op.createWithNameScope(name) {
-          context.withValue(context.value.copy(variableScope = newVariableScope, outerContext = Some(context.value))) {
-            block
-          }
-        }
-    }
-    variableStore.closeVariableSubScopes(newName)
+    variableScopeStore.scope = newVariableScope
+    val result = if (isPure) block else Op.createWithNameScope(name)(block)
+    variableScopeStore.closeVariableSubScopes(newName)
+    variableScopeStore.scope = oldVariableScope
     result
   }
 
@@ -281,11 +268,10 @@ private[api] object VariableScope {
     * @param  isPure        Boolean value indicating whether to use a "pure" variable scope. That is, a variable scope
     *                       that does not affect the name scope of the current op creation context.
     * @param  block         Code block to run using the provided options.
-    * @param  context       Current op creation context.
     * @tparam R Return type of the code block.
     * @return Return value of the code block.
     */
-  private[api] def createWithUpdatedVariableScope[R](
+  private[api] def updatedScope[R](
       variableScope: VariableScope,
       reuse: Reuse = ReuseOrCreateNew,
       dataType: DataType = null,
@@ -295,14 +281,11 @@ private[api] object VariableScope {
       cachingDevice: OpSpecification => String = null,
       customGetter: VariableGetter = null,
       isPure: Boolean = false
-  )(
-      block: => R
-  )(implicit
-      context: DynamicVariable[OpCreationContext]
-  ): R = {
-    val variableStore = context.value.graph.variableStore
-    val subScopeCounts = variableStore.getVariableSubScopeCounts(variableScope.name)
-    variableStore.enterVariableScope(variableScope.name)
+  )(block: => R): R = {
+    val variableScopeStore = VariableScopeStore.current
+    val oldVariableScope = variableScopeStore.scope
+    val oldVariableScopeCounts = variableScopeStore.variableScopeCounts
+    variableScopeStore.enterVariableScope(variableScope.name)
     val newVariableScope = VariableScope(
       reuse = if (reuse == ReuseOrCreateNew) variableScope.reuse else reuse,
       name = variableScope.name,
@@ -318,15 +301,11 @@ private[api] object VariableScope {
         else
           maybeWrapCustomVariableGetter(customGetter, variableScope.customGetter)
       })
-    val result = {
-      if (isPure)
-        context.withValue(context.value.copy(variableScope = newVariableScope))(block)
-      else
-        context.withValue(context.value.copy(
-          nameScope = variableScope.name.split("/").last, variableScope = newVariableScope))(block)
-    }
-    variableStore.closeVariableSubScopes(variableScope.name)
-    variableStore.setVariableScopeCounts(subScopeCounts)
+    variableScopeStore.scope = newVariableScope
+    val result = if (isPure) block else Op.createWithNameScope(variableScope.name.split("/").last)(block)
+    variableScopeStore.closeVariableSubScopes(variableScope.name)
+    variableScopeStore.variableScopeCounts = oldVariableScopeCounts
+    variableScopeStore.scope = oldVariableScope
     result
   }
 
@@ -346,19 +325,66 @@ private[api] object VariableScope {
     } else {
       new VariableGetter {
         override def apply(
-            name: String, dataType: DataType, shape: Shape, initializer: Initializer, regularizer: Regularizer,
-            trainable: Boolean, reuse: Reuse, collections: Set[Graph.Key[Variable]],
-            cachingDevice: OpSpecification => String, customGetter: VariableGetter): Variable = {
-          val g: VariableGetter = new VariableGetter {
-            override def apply(n: String, dt: DataType, s: Shape, init: Initializer, reg: Regularizer,
-                train: Boolean, reuse: Reuse, colls: Set[Graph.Key[Variable]], cDevice: OpSpecification => String,
-                cg: VariableGetter): Variable = {
-              oldGetter(n, dt, s, init, reg, train, reuse, colls, cDevice, customGetter)
+            name: String,
+            dataType: DataType,
+            shape: Shape,
+            initializer: Initializer,
+            regularizer: Regularizer,
+            trainable: Boolean,
+            reuse: Reuse,
+            collections: Set[Graph.Key[Variable]],
+            cachingDevice: OpSpecification => String,
+            customGetter: VariableGetter
+        ): Variable = {
+          val baseGetter: VariableGetter = new VariableGetter {
+            override def apply(
+                name: String,
+                dataType: DataType,
+                shape: Shape,
+                initializer: Initializer,
+                regularizer: Regularizer,
+                trainable: Boolean,
+                reuse: Reuse,
+                collections: Set[Graph.Key[Variable]],
+                cachingDevice: OpSpecification => String,
+                customGetter: VariableGetter
+            ): Variable = {
+              oldGetter(
+                name, dataType, shape, initializer, regularizer, trainable, reuse, collections, cachingDevice,
+                customGetter)
             }
           }
-          getter(name, dataType, shape, initializer, regularizer, trainable, reuse, collections, cachingDevice, g)
+          getter(
+            name, dataType, shape, initializer, regularizer, trainable, reuse, collections, cachingDevice, baseGetter)
         }
       }
+    }
+  }
+
+  /** Gets a name with the provided prefix that is unique in the current variable scope.
+    *
+    * @param  prefix Prefix.
+    * @return Unique name with the provided prefix.
+    */
+  private[api] def unique(prefix: String): String = {
+    val currentScopeStore = VariableScopeStore.current
+    val currentScope = Op.convertNameScopeToName(VariableScope.current.name)
+    val name = {
+      if (currentScope == null || currentScope == "")
+        prefix
+      else
+        s"$currentScope/$prefix"
+    }
+    if (currentScopeStore.variableScopeCount(name) == 0) {
+      prefix
+    } else {
+      var uniqueName = name
+      var count = 1
+      while (currentScopeStore.variableScopeCount(uniqueName) > 0) {
+        uniqueName = s"${name}_$count"
+        count += 1
+      }
+      uniqueName
     }
   }
 }

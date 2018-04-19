@@ -103,14 +103,14 @@ abstract class Decoder[O, OS, S, SS, DO, DOS, DS, DSS, DFO, DFS](
       throw InvalidShapeException(s"'maximumIterations' (shape = ${maximumIterations.shape}) must be a scalar.")
     // Create a new variable scope in which the caching device is either determined by the parent scope, or is set to
     // place the cached variables using the same device placement as for the rest of the RNN.
-    val currentVariableScope = VariableScope.createWithVariableScope(name)(Op.currentVariableScope)
+    val currentVariableScope = VariableScope.scope(name)(VariableScope.current)
     val cachingDevice = {
       if (currentVariableScope.cachingDevice == null)
         (opSpecification: OpSpecification) => opSpecification.device
       else
         currentVariableScope.cachingDevice
     }
-    VariableScope.createWithUpdatedVariableScope(currentVariableScope, cachingDevice = cachingDevice) {
+    VariableScope.updatedScope(currentVariableScope, cachingDevice = cachingDevice) {
       var (initialFinished, initialInput, initialState) = initialize()
       val initialInputs = evO.outputs(initialInput)
       val initialStates = evDS.outputs(initialState)

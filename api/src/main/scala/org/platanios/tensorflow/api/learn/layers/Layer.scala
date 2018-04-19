@@ -47,9 +47,9 @@ abstract class Layer[T, R](
     device = context.value.device,
     deviceFunction = context.value.deviceFunction
   ) {
-    VariableScope.createWithUpdatedVariableScope(context.value.variableScope, isPure = true) {
+    VariableScope.updatedScope(context.value.variableScope, isPure = true) {
       if (name != null) {
-        VariableScope.createWithVariableScope(name, isPure = true) {
+        VariableScope.scope(name, isPure = true) {
           _forward(input)
         }
       } else {
@@ -179,44 +179,40 @@ object Layer {
       name: String, reuse: ReuseAllowed = ReuseOrCreateNew, dataType: DataType = null, initializer: Initializer = null,
       regularizer: Regularizer = null, partitioner: Partitioner = null, cachingDevice: OpSpecification => String = null,
       customGetter: VariableGetter = null, isDefaultName: Boolean = false, isPure: Boolean = false
-  )(block: => R)(implicit context: DynamicVariable[LayerCreationContext]): R = {
+  )(block: => R): R = {
     if (reuse == ReuseExistingOnly && isDefaultName)
       throw new IllegalArgumentException(
         "'reuse' cannot be set to 'ReuseExistingOnly' with 'isDefaultName' set to 'true'.")
-    val variableScope = context.value.variableScope
+    val variableScopeStore = VariableScopeStore.current
+    val oldVariableScope = variableScopeStore.scope
     val newName = {
-      val uniqueName = if (isDefaultName) variableStore.uniqueVariableScope(name) else name
-      if (variableScope.name != null && variableScope.name != "")
-        s"${variableScope.name}/$uniqueName"
+      val uniqueName = if (isDefaultName) VariableScope.unique(name) else name
+      if (oldVariableScope.name != null && oldVariableScope.name != "")
+        s"${oldVariableScope.name}/$uniqueName"
       else
         uniqueName
     }
-    variableStore.enterVariableScope(variableScope.name)
+    variableScopeStore.enterVariableScope(newName)
     val newVariableScope = VariableScope(
       // TODO: !!! [VARIABLES] Have 'name' as first argument in order to be consistent.
-      reuse = if (reuse == ReuseOrCreateNew) variableScope.reuse else reuse,
+      reuse = if (reuse == ReuseOrCreateNew) oldVariableScope.reuse else reuse,
       name = newName,
-      dataType = if (dataType == null) variableScope.dataType else dataType,
-      initializer = if (initializer == null) variableScope.initializer else initializer,
-      regularizer = if (regularizer == null) variableScope.regularizer else regularizer,
-      partitioner = if (partitioner == null) variableScope.partitioner else partitioner,
-      cachingDevice = if (cachingDevice == null) variableScope.cachingDevice else cachingDevice,
+      dataType = if (dataType == null) oldVariableScope.dataType else dataType,
+      initializer = if (initializer == null) oldVariableScope.initializer else initializer,
+      regularizer = if (regularizer == null) oldVariableScope.regularizer else regularizer,
+      partitioner = if (partitioner == null) oldVariableScope.partitioner else partitioner,
+      cachingDevice = if (cachingDevice == null) oldVariableScope.cachingDevice else cachingDevice,
       nameScope = name,
       customGetter = {
         if (customGetter == null)
-          variableScope.customGetter
+          oldVariableScope.customGetter
         else
-          maybeWrapCustomVariableGetter(customGetter, variableScope.customGetter)
+          maybeWrapCustomVariableGetter(customGetter, oldVariableScope.customGetter)
       })
-    val result = {
-      if (isPure)
-        context.withValue(context.value.copy(variableScope = newVariableScope))(block)
-      else
-        Layer.createWith(nameScope = name) {
-          context.withValue(context.value.copy(variableScope = newVariableScope))(block)
-        }
-    }
-    variableStore.closeVariableSubScopes(variableScope.name)
+    variableScopeStore.scope = newVariableScope
+    val result = if (isPure) block else Op.createWithNameScope(name)(block)
+    variableScopeStore.closeVariableSubScopes(newName)
+    variableScopeStore.scope = oldVariableScope
     result
   }
 
@@ -224,9 +220,11 @@ object Layer {
       variableScope: VariableScope, reuse: ReuseAllowed = ReuseOrCreateNew, dataType: DataType = null,
       initializer: Initializer = null, regularizer: Regularizer = null, partitioner: Partitioner = null,
       cachingDevice: OpSpecification => String = null, customGetter: VariableGetter = null, isPure: Boolean = false
-  )(block: => R)(implicit context: DynamicVariable[LayerCreationContext]): R = {
-    val subScopeCounts = variableStore.getVariableSubScopeCounts(variableScope.name)
-    variableStore.enterVariableScope(variableScope.name)
+  )(block: => R): R = {
+    val variableScopeStore = VariableScopeStore.current
+    val oldVariableScope = variableScopeStore.scope
+    val oldVariableScopeCounts = variableScopeStore.variableScopeCounts
+    variableScopeStore.enterVariableScope(variableScope.name)
     val newVariableScope = VariableScope(
       reuse = if (reuse == ReuseOrCreateNew) variableScope.reuse else reuse,
       name = variableScope.name,
@@ -242,15 +240,11 @@ object Layer {
         else
           maybeWrapCustomVariableGetter(customGetter, variableScope.customGetter)
       })
-    val result = {
-      if (isPure)
-        context.withValue(context.value.copy(variableScope = newVariableScope))(block)
-      else
-        context.withValue(context.value.copy(
-          nameScope = variableScope.name.split("/").last, variableScope = newVariableScope))(block)
-    }
-    variableStore.closeVariableSubScopes(variableScope.name)
-    variableStore.setVariableScopeCounts(subScopeCounts)
+    variableScopeStore.scope = newVariableScope
+    val result = if (isPure) block else Op.createWithNameScope(variableScope.name.split("/").last)(block)
+    variableScopeStore.closeVariableSubScopes(variableScope.name)
+    variableScopeStore.variableScopeCounts = oldVariableScopeCounts
+    variableScopeStore.scope = oldVariableScope
     result
   }
 }
