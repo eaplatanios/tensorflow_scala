@@ -28,8 +28,6 @@ import scala.collection.mutable.ArrayBuffer
   * @author Emmanouil Antonios Platanios
   */
 case class VariableStore private[variables]() {
-  import VariableStore._
-
   /** Map with variable names as keys and the corresponding variables as values. */
   private[this] var variables: Map[String, Variable] = Map.empty[String, Variable]
 
@@ -78,95 +76,54 @@ case class VariableStore private[variables]() {
       collections: Set[Graph.Key[Variable]] = Set.empty,
       cachingDevice: OpSpecification => String = null
   ): Variable = {
-    /** This function defines the main logic of 'getVariable'. However, 'underlyingGetter' may override this logic.
-      * That is why we pass it as an argument to the 'underlyingGetter'. */
-    val defaultGetter: VariableGetter = new VariableGetter {
-      override def apply(
-          name: String,
-          dataType: DataType,
-          shape: Shape,
-          initializer: Initializer,
-          regularizer: Regularizer,
-          trainable: Boolean,
-          reuse: Reuse,
-          collections: Set[Graph.Key[Variable]],
-          cachingDevice: OpSpecification => String,
-          underlyingGetter: VariableGetter
-      ): Variable = {
-        // Single variable case.
-        if (variables.contains(s"$name/part_0"))
-          throw new IllegalArgumentException(
-            s"No partitioner was provided, but a partitioned version of the variable ('$name/part_0') was found in " +
-                s"the variable store. Perhaps a variable of the same name was already created with partitioning?")
-        if (variables.contains(name)) {
-          // Here we handle the case of returning an existing variable.
-          if (reuse == CreateNewOnly)
-            throw new IllegalArgumentException(
-              s"Variable '$name' already exists, but variable scope re-use was set to 'CreateNewOnly'.")
-          val foundVariable = variables(name)
-          if (shape != null && !shape.isCompatibleWith(foundVariable.shape))
-            throw ShapeMismatchException(
-              s"Trying to share variable '$name', but the specified shape '$shape' is not compatible with the " +
-                  s"existing variable shape '${foundVariable.shape}'.")
-          if (dataType != foundVariable.dataType)
-            throw InvalidDataTypeException(
-              s"Trying to share variable '$name', but the specified data type '$dataType' is not compatible with the " +
-                  s"existing variable data type '${foundVariable.dataType}'.")
-          foundVariable
-        } else {
-          // Here we handle the case of creating a new variable.
-          if (reuse == ReuseExistingOnly)
-            throw new IllegalArgumentException(
-              s"Variable '$name' does not exist, but variable scope re-use was set to 'ReuseExistingOnly'.")
-          if (shape != null && !shape.isFullyDefined)
-            throw new IllegalArgumentException(
-              s"The shape of a new variable ('$name') must be fully defined, but instead it was set to '$shape'.")
-          val actualInitializer = Op.initialization {
-            if (initializer == null)
-              defaultInitializer(name, dataType)
-            else
-              initializer
-          }
-          val variable = Variable(actualInitializer, dataType, shape, trainable, collections, cachingDevice, name)
-          variables += name -> variable
-          // TODO: [LOGGING]
-          // Run the regularizer if specified and save the resulting loss.
-          if (regularizer != null) {
-            Op.colocateWith(Set(variable.op)) {
-              val loss = Op.createWithNameScope(s"$name/Regularizer")(regularizer(variable.value))
-              if (loss != null)
-                Op.currentGraph.addToCollection(loss, Graph.Keys.REGULARIZATION_LOSSES)
-            }
-          }
-          variable
+    // Single variable case.
+    if (variables.contains(s"$name/part_0"))
+      throw new IllegalArgumentException(
+        s"No partitioner was provided, but a partitioned version of the variable ('$name/part_0') was found in " +
+            s"the variable store. Perhaps a variable of the same name was already created with partitioning?")
+    if (variables.contains(name)) {
+      // Here we handle the case of returning an existing variable.
+      if (reuse == CreateNewOnly)
+        throw new IllegalArgumentException(
+          s"Variable '$name' already exists, but variable scope re-use was set to 'CreateNewOnly'.")
+      val foundVariable = variables(name)
+      if (shape != null && !shape.isCompatibleWith(foundVariable.shape))
+        throw ShapeMismatchException(
+          s"Trying to share variable '$name', but the specified shape '$shape' is not compatible with the " +
+              s"existing variable shape '${foundVariable.shape}'.")
+      if (dataType != foundVariable.dataType)
+        throw InvalidDataTypeException(
+          s"Trying to share variable '$name', but the specified data type '$dataType' is not compatible with the " +
+              s"existing variable data type '${foundVariable.dataType}'.")
+      foundVariable
+    } else {
+      // Here we handle the case of creating a new variable.
+      if (reuse == ReuseExistingOnly)
+        throw new IllegalArgumentException(
+          s"Variable '$name' does not exist, but variable scope re-use was set to 'ReuseExistingOnly'.")
+      if (shape != null && !shape.isFullyDefined)
+        throw new IllegalArgumentException(
+          s"The shape of a new variable ('$name') must be fully defined, but instead it was set to '$shape'.")
+      val actualInitializer = Op.initialization {
+        if (initializer == null)
+          defaultInitializer(name, dataType)
+        else
+          initializer
+      }
+      val variable = makeGetter()(
+        name, dataType, shape, actualInitializer, regularizer, trainable, reuse, collections, cachingDevice, null)
+      variables += name -> variable
+      // TODO: [LOGGING]
+      // Run the regularizer if specified and save the resulting loss.
+      if (regularizer != null) {
+        Op.colocateWith(Set(variable.op)) {
+          val loss = Op.createWithNameScope(s"$name/Regularizer")(regularizer(variable.value))
+          if (loss != null)
+            Op.currentGraph.addToCollection(loss, Graph.Keys.REGULARIZATION_LOSSES)
         }
       }
+      variable
     }
-
-    def makeGetter(getter: VariableGetter, previousGetter: VariableGetter): VariableGetter = {
-      new VariableGetter {
-        override def apply(
-            name: String,
-            dataType: DataType,
-            shape: Shape,
-            initializer: Initializer,
-            regularizer: Regularizer,
-            trainable: Boolean,
-            reuse: Reuse,
-            collections: Set[Graph.Key[Variable]],
-            cachingDevice: OpSpecification => String,
-            underlyingGetter: VariableGetter
-        ): Variable = {
-          getter(
-            name, dataType, shape, initializer, regularizer, trainable, reuse, collections,
-            cachingDevice, previousGetter)
-        }
-      }
-    }
-
-    var currentGetter = defaultGetter
-    Op.currentGraph.variableGetters.value.foreach(g => currentGetter = makeGetter(g, currentGetter))
-    currentGetter(name, dataType, shape, initializer, regularizer, trainable, reuse, collections, cachingDevice, null)
   }
 
   /** Gets or creates a partitioned variable.
@@ -353,21 +310,4 @@ case class VariableStore private[variables]() {
 
 object VariableStore {
   def current: VariableStore = Op.currentGraph.variableStore
-
-  /** Returns a default variable initializer.
-    *
-    * @param  name     Variable name.
-    * @param  dataType Variable data type.
-    * @return Default initializer.
-    * @throws IllegalArgumentException If no default initializer is defined for the specified data type.
-    */
-  @throws[IllegalArgumentException]
-  private[variables] def defaultInitializer(name: String, dataType: DataType = FLOAT32): Initializer = {
-    if (dataType.isFloatingPoint)
-      GlorotUniformInitializer()
-    else if (dataType.isInteger || dataType.isUnsigned || dataType.isBoolean)
-      ZerosInitializer
-    else
-      throw new IllegalArgumentException(s"A default initializer for variable '$name' of type '$dataType' is required.")
-  }
 }

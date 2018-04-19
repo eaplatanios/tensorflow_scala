@@ -17,8 +17,9 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.ops.variables.Saver.{V2, WriterVersion}
+import org.platanios.tensorflow.api.ops.variables.Variable.VariableGetter
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.DataType
+import org.platanios.tensorflow.api.types.{DataType, FLOAT32}
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -146,5 +147,72 @@ package object variables {
 
     /** Returns the variable store in the current scope. */
     def currentVariableStore: VariableStore = VariableStore.current
+  }
+
+  /** Returns a default variable initializer.
+    *
+    * @param  name     Variable name.
+    * @param  dataType Variable data type.
+    * @return Default initializer.
+    * @throws IllegalArgumentException If no default initializer is defined for the specified data type.
+    */
+  @throws[IllegalArgumentException]
+  def defaultInitializer(name: String, dataType: DataType = FLOAT32): Initializer = {
+    if (dataType.isFloatingPoint)
+      GlorotUniformInitializer()
+    else if (dataType.isInteger || dataType.isUnsigned || dataType.isBoolean)
+      ZerosInitializer
+    else
+      throw new IllegalArgumentException(s"A default initializer for variable '$name' of type '$dataType' is required.")
+  }
+
+  /** This function defines the main logic of 'getVariable'. However, 'underlyingGetter' may override this logic.
+    * That is why we pass it as an argument to the 'underlyingGetter'. */
+  val defaultGetter: VariableGetter = new VariableGetter {
+    override def apply(
+        name: String,
+        dataType: DataType,
+        shape: Shape,
+        initializer: Initializer,
+        regularizer: Regularizer,
+        trainable: Boolean,
+        reuse: Reuse,
+        collections: Set[Graph.Key[Variable]],
+        cachingDevice: OpSpecification => String,
+        underlyingGetter: VariableGetter
+    ): Variable = {
+      val actualInitializer = Op.initialization {
+        if (initializer == null)
+          defaultInitializer(name, dataType)
+        else
+          initializer
+      }
+      Variable(actualInitializer, dataType, shape, trainable, collections, cachingDevice, name)
+    }
+  }
+
+  private[variables] def makeGetter(): VariableGetter = {
+    var currentGetter = defaultGetter
+    Op.currentGraph.variableGetters.value.foreach(g => {
+      currentGetter = new VariableGetter {
+        override def apply(
+            name: String,
+            dataType: DataType,
+            shape: Shape,
+            initializer: Initializer,
+            regularizer: Regularizer,
+            trainable: Boolean,
+            reuse: Reuse,
+            collections: Set[Graph.Key[Variable]],
+            cachingDevice: OpSpecification => String,
+            underlyingGetter: VariableGetter
+        ): Variable = {
+          g(
+            name, dataType, shape, initializer, regularizer, trainable, reuse, collections,
+            cachingDevice, currentGetter)
+        }
+      }
+    })
+    currentGetter
   }
 }
