@@ -16,8 +16,7 @@
 package org.platanios.tensorflow.api.ops.rnn
 
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.ops
-import org.platanios.tensorflow.api.ops.{Op, Output}
+import org.platanios.tensorflow.api.ops.{Op, Output, OutputConvertible}
 import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
 import org.platanios.tensorflow.api.types.DataType
 
@@ -48,7 +47,10 @@ package object cell {
         override type ShapeType = (Shape, Shape)
 
         override def zero(
-            batchSize: Output, dataType: DataType, shape: (Shape, Shape), name: String = "Zero"
+            batchSize: Output,
+            dataType: DataType,
+            shape: (Shape, Shape),
+            name: String = "Zero"
         ): LSTMState = Op.createWithNameScope(name) {
           LSTMState(
             evOutput.zero(batchSize, dataType, shape._1, "Output"),
@@ -67,14 +69,16 @@ package object cell {
           ((shapes(0), shapes(1)), shapes.drop(2))
         }
 
-        override def map(value: LSTMState, mapFn: (ops.Symbol) => ops.Symbol): LSTMState = {
+        override def map(value: LSTMState, mapFn: OutputConvertible => OutputConvertible): LSTMState = {
           LSTMState(
             evOutput.map(value.c, mapFn),
             evOutput.map(value.m, mapFn))
         }
 
         override def mapWithShape(
-            value: LSTMState, shape: (Shape, Shape), mapFn: (ops.Symbol, Shape) => ops.Symbol
+            value: LSTMState,
+            shape: (Shape, Shape),
+            mapFn: (OutputConvertible, Shape) => OutputConvertible
         ): LSTMState = {
           LSTMState(
             evOutput.mapWithShape(value.c, shape._1, mapFn),

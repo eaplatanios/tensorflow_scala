@@ -55,7 +55,9 @@ package object attention {
         override type ShapeType = (SS, Shape, Shape, Seq[Shape], Seq[Shape], ASS)
 
         override def zero(
-            batchSize: Output, dataType: DataType, shape: (SS, Shape, Shape, Seq[Shape], Seq[Shape], ASS),
+            batchSize: Output,
+            dataType: DataType,
+            shape: (SS, Shape, Shape, Seq[Shape], Seq[Shape], ASS),
             name: String = "Zero"
         ): AttentionWrapperState[S, SS, AS, ASS] = Op.createWithNameScope(name) {
           AttentionWrapperState[S, SS, AS, ASS](
@@ -85,7 +87,8 @@ package object attention {
         }
 
         override def segmentOutputs(
-            value: AttentionWrapperState[S, SS, AS, ASS], values: Seq[Output]
+            value: AttentionWrapperState[S, SS, AS, ASS],
+            values: Seq[Output]
         ): (AttentionWrapperState[S, SS, AS, ASS], Seq[Output]) = {
           val (cellState, tail1) = evS.segmentOutputs(value.cellState, values)
           val (time, tail2) = evOutput.segmentOutputs(value.time, tail1)
@@ -98,7 +101,8 @@ package object attention {
         }
 
         override def segmentShapes(
-            value: AttentionWrapperState[S, SS, AS, ASS], shapes: Seq[Shape]
+            value: AttentionWrapperState[S, SS, AS, ASS],
+            shapes: Seq[Shape]
         ): ((SS, Shape, Shape, Seq[Shape], Seq[Shape], ASS), Seq[Shape]) = {
           val (shape1, tail1) = evS.segmentShapes(value.cellState, shapes)
           val (shape2, tail2) = evOutput.segmentShapes(value.time, tail1)
@@ -110,7 +114,8 @@ package object attention {
         }
 
         override def map(
-            value: AttentionWrapperState[S, SS, AS, ASS], mapFn: ops.Symbol => ops.Symbol
+            value: AttentionWrapperState[S, SS, AS, ASS],
+            mapFn: ops.OutputConvertible => ops.OutputConvertible
         ): AttentionWrapperState[S, SS, AS, ASS] = {
           val cellState = evS.map(value.cellState, mapFn)
           val time = evOutput.map(value.time, mapFn)
@@ -123,8 +128,9 @@ package object attention {
         }
 
         override def mapWithShape(
-            value: AttentionWrapperState[S, SS, AS, ASS], shape: (SS, Shape, Shape, Seq[Shape], Seq[Shape], ASS),
-            mapFn: (ops.Symbol, Shape) => ops.Symbol
+            value: AttentionWrapperState[S, SS, AS, ASS],
+            shape: (SS, Shape, Shape, Seq[Shape], Seq[Shape], ASS),
+            mapFn: (ops.OutputConvertible, Shape) => ops.OutputConvertible
         ): AttentionWrapperState[S, SS, AS, ASS] = {
           val cellState = evS.mapWithShape(value.cellState, shape._1, mapFn)
           val time = evOutput.mapWithShape(value.time, shape._2, mapFn)

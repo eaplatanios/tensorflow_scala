@@ -20,4 +20,7 @@ package org.platanios.tensorflow.api.ops
   *
   * @author Emmanouil Antonios Platanios
   */
-trait Symbol
+trait OutputConvertible {
+  /** Converts this symbol to an output (i.e., dense symbolic tensor). */
+  def toOutput: Output
+}

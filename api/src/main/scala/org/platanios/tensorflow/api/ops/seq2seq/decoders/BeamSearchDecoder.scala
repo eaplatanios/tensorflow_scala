@@ -19,7 +19,7 @@ import org.platanios.tensorflow.api.core.{NewAxis, Shape}
 import org.platanios.tensorflow.api.core.exception.{InvalidArgumentException, InvalidShapeException}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops
-import org.platanios.tensorflow.api.ops.{Basic, Checks, Math, NN, Op, Output, TensorArray}
+import org.platanios.tensorflow.api.ops.{Basic, Checks, Math, NN, Op, Output, OutputConvertible, TensorArray}
 import org.platanios.tensorflow.api.ops.control_flow.{ControlFlow, WhileLoopVariable}
 import org.platanios.tensorflow.api.ops.rnn.cell.{RNNCell, Tuple}
 import org.platanios.tensorflow.api.tensors.Tensor
@@ -339,7 +339,7 @@ object BeamSearchDecoder {
           ((shapes(0), shapes(1), shapes(2)), shapes.drop(3))
         }
 
-        override def map(value: Output, mapFn: ops.Symbol => ops.Symbol): Output = {
+        override def map(value: Output, mapFn: OutputConvertible => OutputConvertible): Output = {
           Output(
             evOutput.map(value.scores, mapFn),
             evOutput.map(value.predictedIDs, mapFn),
@@ -347,7 +347,9 @@ object BeamSearchDecoder {
         }
 
         override def mapWithShape(
-            value: Output, shape: (Shape, Shape, Shape), mapFn: (ops.Symbol, Shape) => ops.Symbol
+            value: Output,
+            shape: (Shape, Shape, Shape),
+            mapFn: (OutputConvertible, Shape) => OutputConvertible
         ): Output = {
           Output(
             evOutput.mapWithShape(value.scores, shape._1, mapFn),
@@ -409,7 +411,7 @@ object BeamSearchDecoder {
           ((rnnStateShape, shapesTail(0), shapesTail(1), shapesTail(2)), shapesTail.drop(3))
         }
 
-        override def map(value: State[S, SS], mapFn: ops.Symbol => ops.Symbol): State[S, SS] = {
+        override def map(value: State[S, SS], mapFn: OutputConvertible => OutputConvertible): State[S, SS] = {
           State(
             evS.map(value.rnnState, mapFn),
             evOutput.map(value.logProbabilities, mapFn),
@@ -418,7 +420,9 @@ object BeamSearchDecoder {
         }
 
         override def mapWithShape(
-            value: State[S, SS], shape: (SS, Shape, Shape, Shape), mapFn: (ops.Symbol, Shape) => ops.Symbol
+            value: State[S, SS],
+            shape: (SS, Shape, Shape, Shape),
+            mapFn: (OutputConvertible, Shape) => OutputConvertible
         ): State[S, SS] = {
           State(
             evS.mapWithShape(value.rnnState, shape._1, mapFn),
@@ -479,14 +483,16 @@ object BeamSearchDecoder {
           ((shapes(0), outputShape), shapesTail)
         }
 
-        override def map(value: FinalOutput, mapFn: ops.Symbol => ops.Symbol): FinalOutput = {
+        override def map(value: FinalOutput, mapFn: OutputConvertible => OutputConvertible): FinalOutput = {
           FinalOutput(
             evOpsOutput.map(value.predictedIDs, mapFn),
             evOutput.map(value.output, mapFn))
         }
 
         override def mapWithShape(
-            value: FinalOutput, shape: (Shape, (Shape, Shape, Shape)), mapFn: (ops.Symbol, Shape) => ops.Symbol
+            value: FinalOutput,
+            shape: (Shape, (Shape, Shape, Shape)),
+            mapFn: (OutputConvertible, Shape) => OutputConvertible
         ): FinalOutput = {
           FinalOutput(
             evOpsOutput.mapWithShape(value.predictedIDs, shape._1, mapFn),
@@ -555,7 +561,7 @@ object BeamSearchDecoder {
   }
 
   @throws[InvalidArgumentException]
-  private[decoders] def tileBatch(value: ops.Symbol, multiplier: Int): ops.Symbol = {
+  private[decoders] def tileBatch(value: OutputConvertible, multiplier: Int): OutputConvertible = {
     value match {
       case output: ops.Output =>
         if (output.rank == -1) {
@@ -603,7 +609,10 @@ object BeamSearchDecoder {
     *                                  are known statically).
     */
   @throws[InvalidArgumentException]
-  def maybeSplitBatchBeams(value: ops.Symbol, shape: Shape, batchSize: ops.Output, beamWidth: Int): ops.Symbol = {
+  def maybeSplitBatchBeams(
+      value: OutputConvertible,
+      shape: Shape, batchSize: ops.Output, beamWidth: Int
+  ): OutputConvertible = {
     value match {
       case output: ops.Output =>
         if (output.rank == -1)
@@ -633,11 +642,11 @@ object BeamSearchDecoder {
   @throws[InvalidArgumentException]
   @throws[InvalidShapeException]
   private[BeamSearchDecoder] def splitBatchBeams(
-      value: ops.Symbol,
+      value: OutputConvertible,
       shape: Shape,
       batchSize: ops.Output,
       beamWidth: Int
-  ): ops.Symbol = {
+  ): OutputConvertible = {
     (value, shape) match {
       case (output: ops.Output, s: Shape) =>
         val valueShape = Basic.shape(output)
@@ -675,11 +684,11 @@ object BeamSearchDecoder {
     */
   @throws[InvalidArgumentException]
   private[BeamSearchDecoder] def maybeMergeBatchBeams(
-      value: ops.Symbol,
+      value: OutputConvertible,
       shape: Shape,
       batchSize: ops.Output,
       beamWidth: Int
-  ): ops.Symbol = {
+  ): OutputConvertible = {
     value match {
       case output: ops.Output =>
         if (output.rank == -1)
@@ -710,11 +719,11 @@ object BeamSearchDecoder {
   @throws[InvalidArgumentException]
   @throws[InvalidShapeException]
   private[BeamSearchDecoder] def mergeBatchBeams(
-      value: ops.Symbol,
+      value: OutputConvertible,
       shape: Shape,
       batchSize: ops.Output,
       beamWidth: Int
-  ): ops.Symbol = {
+  ): OutputConvertible = {
     (value, shape) match {
       case (output: ops.Output, s: Shape) =>
         val valueShape = Basic.shape(output)
@@ -757,12 +766,12 @@ object BeamSearchDecoder {
   @throws[InvalidArgumentException]
   private[BeamSearchDecoder] def maybeGather(
       gatherIndices: ops.Output,
-      gatherFrom: ops.Symbol,
+      gatherFrom: OutputConvertible,
       batchSize: ops.Output,
       rangeSize: ops.Output,
       gatherShape: Seq[ops.Output],
       name: String = "GatherTensorHelper"
-  ): ops.Symbol = {
+  ): OutputConvertible = {
     gatherFrom match {
       case gatherFromOutput: ops.Output =>
         if (gatherFromOutput.rank == -1)
@@ -795,12 +804,12 @@ object BeamSearchDecoder {
   @throws[InvalidArgumentException]
   private[BeamSearchDecoder] def gather(
       gatherIndices: ops.Output,
-      gatherFrom: ops.Symbol,
+      gatherFrom: OutputConvertible,
       batchSize: ops.Output,
       rangeSize: ops.Output,
       gatherShape: Seq[ops.Output],
       name: String = "GatherTensorHelper"
-  ): ops.Symbol = {
+  ): OutputConvertible = {
     gatherFrom match {
       case gatherFromOutput: ops.Output =>
         Op.createWithNameScope(name) {
@@ -878,12 +887,12 @@ object BeamSearchDecoder {
     *         array or does not meet the shape requirements.
     */
   private[BeamSearchDecoder] def maybeSortTensorArrayBeams(
-      value: ops.Symbol,
+      value: OutputConvertible,
       sequenceLengths: ops.Output,
       parentIDs: ops.Output,
       batchSize: ops.Output,
       beamWidth: Int
-  ): ops.Symbol = {
+  ): OutputConvertible = {
     value match {
       case ta: TensorArray if (!ta.inferShape || ta.elementShape.isEmpty) ||
           ta.elementShape.get(0) == -1 ||

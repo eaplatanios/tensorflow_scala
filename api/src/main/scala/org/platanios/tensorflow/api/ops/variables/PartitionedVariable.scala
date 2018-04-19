@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops.variables
 
 import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
-import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output}
+import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output, OutputConvertible}
 import org.platanios.tensorflow.api.types.DataType
 
 import scala.math.Ordering.Implicits._
@@ -28,6 +28,9 @@ import scala.math.Ordering.Implicits._
   * iteration is in lexicographic order according to the `variableOffset` property of the save slice information.
   *
   * Accessing this object as an [[Output]] returns the variable parts concatenated along the partition axis.
+  *
+  * This wrapper also acts as an iterator that allows accessing the underlying variables. This iterator is necessary to
+  * control the order of access when variables are not partitioned in a standard way along a single axis.
   *
   * @param  name             Overall name of the variables.
   * @param  dataType         Data type of the variables.
@@ -47,7 +50,7 @@ case class PartitionedVariable private[variables](
     shape: Shape,
     private val wrappedVariables: Seq[Variable],
     partitions: Array[Int]
-) extends Iterable[Variable] {
+) extends Iterable[Variable] with OutputConvertible {
   if (shape.rank != partitions.length)
     throw new IllegalArgumentException(
       s"The number of partitions provided (${partitions.length}) does not match the shape rank (${shape.rank}).")
@@ -139,7 +142,7 @@ case class PartitionedVariable private[variables](
   }
 
   /** Converts this variable to an op output. This function simply returns an op corresponding to the variable value. */
-  def toOutput: Output = value
+  override def toOutput: Output = value
 
   /** Returns an array of integers containing the partition axes of this partitioned variable. */
   private[this] val partitionAxes: Array[Int] = {

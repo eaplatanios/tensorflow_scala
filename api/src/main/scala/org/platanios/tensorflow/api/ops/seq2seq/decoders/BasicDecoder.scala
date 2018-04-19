@@ -154,14 +154,16 @@ object BasicDecoder {
         ((rnnOutput, sample), tail)
       }
 
-      override def map(value: Output[O, OS], mapFn: ops.Symbol => ops.Symbol): Output[O, OS] = {
+      override def map(value: Output[O, OS], mapFn: ops.OutputConvertible => ops.OutputConvertible): Output[O, OS] = {
         Output(
           whileLoopEvO.map(value.rnnOutput, mapFn),
           whileLoopEvO.map(value.sample, mapFn))
       }
 
       override def mapWithShape(
-          value: Output[O, OS], shape: (OS, OS), mapFn: (ops.Symbol, Shape) => ops.Symbol
+          value: Output[O, OS],
+          shape: (OS, OS),
+          mapFn: (ops.OutputConvertible, Shape) => ops.OutputConvertible
       ): Output[O, OS] = {
         Output(
           whileLoopEvO.mapWithShape(value.rnnOutput, shape._1, mapFn),

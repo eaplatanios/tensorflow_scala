@@ -16,12 +16,12 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.{Graph, Indexer, Shape}
-import org.platanios.tensorflow.api.core.client.{FeedMap, Session}
+import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.Basic.BasicOps
 import org.platanios.tensorflow.api.ops.Op.{createWith, getGraphFromInputs}
-import org.platanios.tensorflow.api.tensors.{SparseTensor, Tensor, TensorIndexedSlices}
+import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.tensors.ops.{Basic => TensorBasic, Math => TensorMath}
 import org.platanios.tensorflow.api.types.{DataType, INT32, INT64}
 import org.platanios.tensorflow.api.utilities.using
@@ -31,7 +31,7 @@ import org.platanios.tensorflow.jni.{Op => NativeOp}
   *
   * @author Emmanouil Antonios Platanios
   */
-sealed trait OutputLike {
+sealed trait OutputLike extends OutputConvertible {
   /** Graph where the op belongs. */
   def graph: Graph
 
@@ -51,7 +51,7 @@ sealed trait OutputLike {
   def consumers: Array[Input]
 
   /** Returns the [[Output]] that this [[OutputLike]] object represents. */
-  def toOutput: Output
+  override def toOutput: Output
 
   /** Returns an [[OutputIndexedSlices]] that has the same value as this [[OutputLike]].
     *
@@ -135,7 +135,7 @@ private[ops] object OutputOps {
   *
   * @author Emmanouil Antonios Platanios
   */
-final case class Output private(op: Op, index: Int) extends OutputLike with Symbol {
+final case class Output private(op: Op, index: Int) extends OutputLike {
   /** Graph where the op belongs. */
   override def graph: Graph = op.graph
 
@@ -468,7 +468,7 @@ object Output {
   * @author Emmanouil Antonios Platanios
   */
 final case class OutputIndexedSlices private (indices: Output, values: Output, denseShape: Output = null)
-    extends OutputLike with Symbol {
+    extends OutputLike {
   /** Graph that contains `values`, `indices`, and `denseShape`. */
   override def graph: Graph = getGraphFromInputs(Set(values, indices, denseShape))
 
@@ -588,7 +588,7 @@ final case class OutputIndexedSlices private (indices: Output, values: Output, d
   *
   * @author Emmanouil Antonios Platanios
   */
-final case class SparseOutput(indices: Output, values: Output, denseShape: Output) extends OutputLike with Symbol {
+final case class SparseOutput(indices: Output, values: Output, denseShape: Output) extends OutputLike {
   require(indices.dataType == INT32 || indices.dataType == INT64,
           s"Indices cannot have '${indices.dataType}' data type. They have to be 'INT32' or 'INT64'.")
   require(denseShape.dataType == INT32 || denseShape.dataType == INT64,

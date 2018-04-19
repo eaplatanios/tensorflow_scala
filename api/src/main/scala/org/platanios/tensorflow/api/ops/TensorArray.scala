@@ -52,7 +52,7 @@ case class TensorArray private (
     private[ops] var elementShape: Option[Shape],
     colocateWithFirstWrite: Boolean = true,
     private var colocationOps: Seq[Op] = null
-) extends Symbol {
+) extends OutputConvertible {
   /** Changes the element shape of the array given a shape to merge with.
     *
     * @param  shape Shape to merge with.
@@ -294,6 +294,9 @@ case class TensorArray private (
       }
     }
   }
+
+  /** Converts this tensor array to an output (i.e., dense symbolic tensor), by stacking it. */
+  override def toOutput: Output = stack()
 
   /** Returns an op that deletes this tensor array from its resource container.
     *
