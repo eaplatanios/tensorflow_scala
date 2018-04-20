@@ -1,0 +1,10 @@
+bleach==1.5.0
+enum34==1.1.6
+html5lib==0.9999999
+Markdown==2.6.11
+numpy==1.14.0
+protobuf==3.5.1
+six==1.11.0
+tensorflow==1.4.1
+tensorflow-tensorboard==0.4.0
+Werkzeug==0.14.1
