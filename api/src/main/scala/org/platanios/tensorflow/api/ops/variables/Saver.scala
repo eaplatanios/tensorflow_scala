@@ -834,7 +834,7 @@ trait SaverDefBuilder {
     if (saveables.nonEmpty) {
       val (tensorNames, tensors, slices) =
         saveables.flatMap(_.saveSpecifications)
-            .map(s => (s.name, s.value, s.saveSliceSpecification))
+            .map(s => (s.name, s.value(), s.saveSliceSpecification))
             .toSeq.unzip3[String, Output, String]
       checkpointFormatVersion match {
         case SaverDef.CheckpointFormatVersion.V1 =>
@@ -990,7 +990,7 @@ trait SaverDefBuilder {
               if (s.value().shape.isFullyDefined)
                 s.value().shape.toOutput()
               else
-                Basic.shape(s.value)
+                Basic.shape(s.value())
             })
           } else {
             null
@@ -1424,7 +1424,7 @@ case class SaveSpecification private(name: String, value: () => Output, saveSlic
   *
   * @param  saveSpecifications Sequence containing a save specification per tensor that needs to be saved.
   */
-abstract class Saveable private(val saveSpecifications: Seq[SaveSpecification]) {
+abstract class Saveable protected (val saveSpecifications: Seq[SaveSpecification]) {
   /** Name to save the object under. */
   val name: String
 
