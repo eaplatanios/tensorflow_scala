@@ -35,6 +35,7 @@ import org.platanios.tensorflow.api.types.{DataType, FLOAT32}
   */
 package object variables {
   private[ops] trait API {
+    type VariableLike = variables.VariableLike
     type Variable = variables.Variable
     type PartitionedVariable = variables.PartitionedVariable
     type VariableReuse = variables.Reuse
@@ -71,7 +72,8 @@ package object variables {
         keepCheckpointEveryNHours: Float = 10000.0f, restoreSequentially: Boolean = false, filename: String = "model",
         builder: SaverDefBuilder = DefaultSaverDefBuilder, allowEmpty: Boolean = false,
         writerVersion: WriterVersion = V2, saveRelativePaths: Boolean = false, padGlobalStep: Boolean = false,
-        name: String = "Saver"): Saver = {
+        name: String = "Saver"
+    ): Saver = {
       Saver(
         saveables, reshape, sharded, maxToKeep, keepCheckpointEveryNHours, restoreSequentially, filename, builder,
         allowEmpty, writerVersion, saveRelativePaths, padGlobalStep, name)
@@ -81,7 +83,8 @@ package object variables {
         name: String, dataType: DataType = null, shape: Shape = null, initializer: VariableInitializer = null,
         regularizer: VariableRegularizer = null, trainable: Boolean = true, reuse: Reuse = ReuseOrCreateNew,
         collections: Set[Graph.Key[Variable]] = Set.empty,
-        cachingDevice: OpSpecification => String = null): Variable = {
+        cachingDevice: OpSpecification => String = null
+    ): Variable = {
       Variable.getVariable(
         name, dataType, shape, initializer, regularizer, trainable, reuse, collections, cachingDevice)
     }
@@ -90,7 +93,8 @@ package object variables {
         name: String, dataType: DataType = null, shape: Shape = null, initializer: VariableInitializer = null,
         regularizer: VariableRegularizer = null, partitioner: VariablePartitioner, trainable: Boolean = true,
         reuse: Reuse = ReuseOrCreateNew, collections: Set[Graph.Key[Variable]] = Set.empty,
-        cachingDevice: OpSpecification => String = null): PartitionedVariable = {
+        cachingDevice: OpSpecification => String = null
+    ): PartitionedVariable = {
       Variable.getPartitionedVariable(
         name, dataType, shape, initializer, regularizer, partitioner, trainable, reuse, collections, cachingDevice)
     }
@@ -99,7 +103,8 @@ package object variables {
         name: String, dataType: DataType = null, shape: Shape = null, initializer: VariableInitializer = null,
         regularizer: VariableRegularizer = null, reuse: Reuse = ReuseOrCreateNew,
         collections: Set[Graph.Key[Variable]] = Set.empty,
-        cachingDevice: OpSpecification => String = null): Variable = {
+        cachingDevice: OpSpecification => String = null
+    ): Variable = {
       Variable.getLocalVariable(name, dataType, shape, initializer, regularizer, reuse, collections, cachingDevice)
     }
 
@@ -107,7 +112,8 @@ package object variables {
         name: String, dataType: DataType = null, shape: Shape = null, initializer: VariableInitializer = null,
         regularizer: VariableRegularizer = null, partitioner: VariablePartitioner, reuse: Reuse = ReuseOrCreateNew,
         collections: Set[Graph.Key[Variable]] = Set.empty,
-        cachingDevice: OpSpecification => String = null): PartitionedVariable = {
+        cachingDevice: OpSpecification => String = null
+    ): PartitionedVariable = {
       Variable.getLocalPartitionedVariable(
         name, dataType, shape, initializer, regularizer, partitioner, reuse, collections, cachingDevice)
     }

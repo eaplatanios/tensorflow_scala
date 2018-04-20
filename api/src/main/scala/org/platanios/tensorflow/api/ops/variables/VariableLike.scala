@@ -20,7 +20,8 @@ import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.ops.{Op, Output, OutputConvertible}
 import org.platanios.tensorflow.api.types.DataType
 
-/**
+/** Represents objects that can be used as variables (e.g., variables and partitioned variables).
+  *
   * @author Emmanouil Antonios Platanios
   */
 trait VariableLike extends OutputConvertible {
@@ -148,11 +149,11 @@ trait VariableLike extends OutputConvertible {
     * @param  indices Indices corresponding to the `values` being subtracted.
     * @param  values  Values to be subtracted, corresponding to the provided `indices`.
     * @param  name    Name for created op.
-    * @return Variable value read op, after the addition.
+    * @return Variable value read op, after the subtraction.
     */
   @throws[UnsupportedOperationException]
   @throws[InvalidDataTypeException]
-  def assignScatterSub(indices: Output, values: Output, name: String = "AssignScatterAdd"): Output
+  def assignScatterSub(indices: Output, values: Output, name: String = "AssignScatterSub"): Output
 
   /** Converts this variable to an op output. This function simply returns an op corresponding to the variable value. */
   def toOutput: Output = value

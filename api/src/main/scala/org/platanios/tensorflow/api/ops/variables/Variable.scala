@@ -280,11 +280,11 @@ case class Variable private (
     * @param  indices Indices corresponding to the `values` being subtracted.
     * @param  values  Values to be subtracted, corresponding to the provided `indices`.
     * @param  name    Name for created op.
-    * @return Variable value read op, after the addition.
+    * @return Variable value read op, after the subtraction.
     */
   @throws[UnsupportedOperationException]
   @throws[InvalidDataTypeException]
-  override def assignScatterSub(indices: Output, values: Output, name: String = "AssignScatterAdd"): Output = {
+  override def assignScatterSub(indices: Output, values: Output, name: String = "AssignScatterSub"): Output = {
     if (values.dataType != dataType)
       throw InvalidDataTypeException(s"Expected '$dataType', but got '${values.dataType}'.")
     Op.createWith(graph = graph, controlDependencies = Set[Op](Variable.scatterAdd(handle, indices, -values, name))) {

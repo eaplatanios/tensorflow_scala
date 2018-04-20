@@ -864,7 +864,7 @@ trait SaverDefBuilder {
   protected def restore(prefix: Output, saveable: Saveable, name: String = "Restore"): Seq[Output] = {
     val (tensorNames, slices, dataTypes) =
       saveable.saveSpecifications
-          .map(s => (s.name, s.saveSliceSpecification, s.value.dataType))
+          .map(s => (s.name, s.saveSliceSpecification, s.value().dataType))
           .unzip3[String, String, DataType]
     SaverDefBuilder.restoreV2Op(prefix, tensorNames, slices, dataTypes, name)
   }
@@ -971,8 +971,12 @@ trait SaverDefBuilder {
     * @return Created op.
     */
   protected def addRestoreOps(
-      prefix: Output, saveables: Set[Saveable], reshape: Boolean, restoreSequentially: Boolean,
-      name: String = "Restore"): Op = {
+      prefix: Output,
+      saveables: Set[Saveable],
+      reshape: Boolean,
+      restoreSequentially: Boolean,
+      name: String = "Restore"
+  ): Op = {
     var restoreOps = Seq.empty[Op]
     saveables.foreach(saveable => {
       val restoreControlInputs: Set[Op] = if (restoreSequentially) Set(restoreOps.last) else Set.empty[Op]
@@ -983,8 +987,8 @@ trait SaverDefBuilder {
           if (reshape) {
             // Compute the shapes and let the restore op decide if and how to do the reshape.
             saveable.saveSpecifications.map(s => {
-              if (s.value.shape.isFullyDefined)
-                s.value.shape.toOutput()
+              if (s.value().shape.isFullyDefined)
+                s.value().shape.toOutput()
               else
                 Basic.shape(s.value)
             })
@@ -1414,7 +1418,7 @@ private[variables] object DefaultSaverDefBuilder extends SaverDefBuilder
   * @param  value                  Value that needs to be saved.
   * @param  saveSliceSpecification Slice specification string used for saving.
   */
-case class SaveSpecification private(name: String, value: Output, saveSliceSpecification: String)
+case class SaveSpecification private(name: String, value: () => Output, saveSliceSpecification: String)
 
 /** Base class for defining objects that be saved and restored.
   *
@@ -1428,9 +1432,9 @@ abstract class Saveable private(val saveSpecifications: Seq[SaveSpecification]) 
   val producerOps: Set[Op]
 
   /** Device of this saveable object. All tensors that need to be saved must lie on the same device. */
-  val device: String = {
-    val device = saveSpecifications.head.value.device
-    if (saveSpecifications.exists(_.value.device != device))
+  def device: String = {
+    val device = saveSpecifications.head.value().device
+    if (saveSpecifications.exists(_.value().device != device))
       throw new IllegalArgumentException(
         "All tensors being saved under one saveable object must lie on the same device.")
     device
@@ -1446,13 +1450,13 @@ abstract class Saveable private(val saveSpecifications: Seq[SaveSpecification]) 
   private[api] def restore(restoredTensors: Seq[Output], restoredShapes: Seq[Output] = null): Op
 }
 
-private[variables] object Saveable {
+private[ops] object Saveable {
   /** Wrapper saveable object that allows variables to be saved. */
   implicit class VariableSaveable(variable: Variable)
       extends Saveable(
         Seq(SaveSpecification(
           if (variable.partitionInformation != null) variable.partitionInformation.fullName else variable.name,
-          variable.value,
+          () => variable.value,
           Option(variable.partitionInformation).map(_.saveSpecString).getOrElse("")))) {
     private val variableDevice: String = variable.device
 
@@ -1483,7 +1487,7 @@ private[variables] object Saveable {
       extends Saveable(
         variable.map(v => SaveSpecification(
           v.partitionInformation.fullName,
-          v.value,
+          () => v.value,
           v.partitionInformation.saveSpecString)).toSeq) {
     private val variableDevices: Seq[String] = variable.map(_.device).toSeq
 
