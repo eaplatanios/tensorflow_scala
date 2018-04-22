@@ -18,12 +18,11 @@ package org.platanios.tensorflow.api.ops.training.distribute.packers
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.ops.{Basic, Op, Output}
-import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.types.FLOAT32
 
 import scala.collection.mutable
 
-/** Gradients packer that concatenates small tensors together for reduction.
+/** Packer that concatenates small tensors together for reduction.
   *
   * @param  maxBytes  Largest tensor eligible for aggregation, in terms of the number of bytes it takes up.
   * @param  maxGroups Largest permitted aggregation of small tensors.
@@ -41,95 +40,88 @@ class AggregateSmallTensorsPacker protected(
   if (maxGroups < 1)
     throw InvalidArgumentException(s"'maxGroups' must be at least 1, but was set to $maxGroups.")
 
-  /** Packs the gradients.
+  /** Packs the provided values.
     *
-    * This method looks through the first tower for gradients of the same type (`FLOAT32`), and small size, that are all
-    * sequential. Replace each such group with a new tensor that is a flattened concatenation of the tensors in the
-    * group.
-    *
-    * @param  groupedGradientsAndVariables Grouped gradients and variables (per device).
-    * @return Packed gradients, ready for reduction, along with information that is necessary for unpacking later on.
-    * @throws InvalidArgumentException If the provided grouped gradients and variables are inconsistent in some way.
+    * @param  grouped Grouped values (per device).
+    * @return Packed values, ready for reduction, along with information that is necessary for unpacking later on.
+    * @throws InvalidArgumentException If the provided grouped values are inconsistent in any way.
     */
   @throws[InvalidArgumentException]
   override def pack(
-      groupedGradientsAndVariables: Seq[Seq[(Output, Variable)]]
+      grouped: Seq[Seq[Output]]
   ): (Seq[Seq[Output]], Option[AggregateSmallTensorsPacker.PackInformation]) = {
-    val partitions = groupedGradientsAndVariables.head.map(_._1).zipWithIndex.partition(gi => {
+    val partitions = grouped.head.zipWithIndex.partition(gi => {
       gi._1.dataType == FLOAT32 && 4 * gi._1.shape.numElements <= maxBytes
     })
     val smallIndices = partitions._1.map(_._2)
     val largeIndices = partitions._2.map(_._2)
     val (smallRanges, smallSingles) = AggregateSmallTensorsPacker.extractRanges(smallIndices, maxGroups)
     if (smallRanges.isEmpty) {
-      (groupedGradientsAndVariables.map(_.map(_._1)), None)
+      (grouped, None)
     } else {
       val ungroupedIndices = (largeIndices ++ smallSingles).sorted
-      val numGradients = groupedGradientsAndVariables.head.size
-      val packZipped = groupedGradientsAndVariables.zipWithIndex.map {
-        case (gradientsAndVariables, deviceIndex) =>
-          if (gradientsAndVariables.size != numGradients)
-            throw InvalidArgumentException("The number of gradients must match across devices.")
-          val (packedSmallGradients, packInformationSeq) = smallRanges.zipWithIndex.map(ri => {
+      val numValues = grouped.head.size
+      val packZipped = grouped.zipWithIndex.map {
+        case (values, deviceIndex) =>
+          if (values.size != numValues)
+            throw InvalidArgumentException("The number of values must match across devices.")
+          val (packedSmall, packInformationSeq) = smallRanges.zipWithIndex.map(ri => {
             val range = ri._1
-            val (members, variables, shapes) = Op.createWith(nameScope = "Pack") {
-              gradientsAndVariables.slice(range._1, range._2 + 1).map(gv => {
-                val member = Op.device(gv._1.device)(Basic.reshape(gv._1, Shape(-1)))
-                (member, gv._2, gv._1.shape)
-              }).unzip3
+            val (members, shapes) = Op.createWith(nameScope = "Pack") {
+              values.slice(range._1, range._2 + 1).map(v => {
+                val member = Op.device(v.device)(Basic.reshape(v, Shape(-1)))
+                (member, v.shape)
+              }).unzip
             }
-            val packedGradient = Op.device(members.head.device)(Basic.concatenate(members))
-            val information = AggregateSmallTensorsPacker.PackedGradientInformation(range, variables, shapes)
-            (packedGradient, (deviceIndex, ri._2) -> information)
+            val packed = Op.device(members.head.device)(Basic.concatenate(members))
+            val information = AggregateSmallTensorsPacker.PackedValuesInformation(range, shapes)
+            (packed, (deviceIndex, ri._2) -> information)
           }).unzip
-          val packedGradients = packedSmallGradients ++ ungroupedIndices.map(gradientsAndVariables(_)._1)
+          val packed = packedSmall ++ ungroupedIndices.map(values)
           val packInformation = packInformationSeq.toMap
-          (packedGradients, packInformation)
+          (packed, packInformation)
       }
-      val (packedGradients, perDevicePackInformation) = packZipped.unzip
+      val (packed, perDevicePackInformation) = packZipped.unzip
       val packInformation = AggregateSmallTensorsPacker.PackInformation(perDevicePackInformation.reduce(_ ++ _))
-      (packedGradients, Some(packInformation))
+      (packed, Some(packInformation))
     }
   }
 
-  /** Reverses the packing performed by `pack`, on the provided packed gradients.
+  /** Reverses the packing performed by `pack`, on the provided packed values.
     *
-    * @param  packedGradients Packed gradients to unpack.
+    * @param  packed          Packed values to unpack.
     * @param  packInformation Information from the packing process that is necessary for unpacking.
-    * @return Unpacked `packedGradients`.
+    * @return Unpacked `packed`.
     * @throws InvalidArgumentException If not pack information is provided, while it is actually necessary.
     */
   @throws[InvalidArgumentException]
   override def unpack(
-      packedGradients: Seq[Seq[(Output, Variable)]],
+      packed: Seq[Seq[Output]],
       packInformation: Option[AggregateSmallTensorsPacker.PackInformation]
-  ): Seq[Seq[(Output, Variable)]] = packInformation match {
-    case None => packedGradients
+  ): Seq[Seq[Output]] = packInformation match {
+    case None => packed
     case Some(information) =>
-      val numDevices = packedGradients.size
+      val numDevices = packed.size
       val numPacked = information.map.size / numDevices
-      packedGradients.zipWithIndex.map {
-        case (deviceGradients, deviceIndex) =>
-          val newGradientsAndVariables = mutable.ListBuffer(deviceGradients.slice(numPacked, deviceGradients.size): _*)
+      packed.zipWithIndex.map {
+        case (deviceValues, deviceIndex) =>
+          val newValues = mutable.ListBuffer(deviceValues.slice(numPacked, deviceValues.size): _*)
           (0 until numPacked).foreach(i => {
-            val gradient = deviceGradients(i)._1
-            val packedGradientInformation = information.map((deviceIndex, i))
-            val unpackedGradientsAndVariables = Op.device(gradient.device) {
+            val value = deviceValues(i)
+            val packedValuesInformation = information.map((deviceIndex, i))
+            val unpacked = Op.device(value.device) {
               Op.createWith(nameScope = "Unpack") {
-                val splits = Basic.split(gradient, packedGradientInformation.shapes.map(_.numElements))
-                val shapes = packedGradientInformation.shapes
-                val variables = packedGradientInformation.variables
-                (splits, shapes, variables).zipped.map {
-                  case (split, shape, variable) => (Basic.reshape(split, shape), variable)
-                }
+                val splits = Basic.split(value, packedValuesInformation.shapes.map(_.numElements))
+                val shapes = packedValuesInformation.shapes
+                splits.zip(shapes).map(ss => Basic.reshape(ss._1, ss._2))
               }
             }
             // TODO: [DISTRIBUTE] Can become more elegant with a map and without the mutable list buffer.
-            (packedGradientInformation.range._1 until packedGradientInformation.range._2)
+            (packedValuesInformation.range._1 until packedValuesInformation.range._2)
                 .zipWithIndex
-                .foreach(i => newGradientsAndVariables.insert(i._1, unpackedGradientsAndVariables(i._2)))
+                .foreach(i => newValues.insert(i._1, unpacked(i._2)))
           })
-          newGradientsAndVariables
+          newValues
       }
   }
 }
@@ -142,13 +134,13 @@ object AggregateSmallTensorsPacker {
     new AggregateSmallTensorsPacker(maxBytes, maxGroups)
   }
 
-  case class PackedGradientInformation(range: (Int, Int), variables: Seq[Variable], shapes: Seq[Shape])
+  case class PackedValuesInformation(range: (Int, Int), shapes: Seq[Shape])
 
   /** Contains information collected while packing that is necessary for unpacking.
     *
-    * @param  map Map from device index and variable index pairs, to packed gradient information.
+    * @param  map Map from device index and value index pairs, to packed values information.
     */
-  case class PackInformation(map: Map[(Int, Int), PackedGradientInformation])
+  case class PackInformation(map: Map[(Int, Int), PackedValuesInformation])
 
   /** Extracts consecutive ranges and singles from the provided sequence of indices.
     *

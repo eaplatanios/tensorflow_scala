@@ -18,11 +18,10 @@ package org.platanios.tensorflow.api.ops.training.distribute.packers
 import org.platanios.tensorflow.api.core.{NewAxis, Shape}
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output}
-import org.platanios.tensorflow.api.ops.variables.Variable
 
-/** Gradients packer that concatenates all gradients together and then splits them into packs for reduction.
+/** Packer that concatenates all tensors together and then splits them into packs for reduction.
   *
-  * @param  numPacks Number of packs to split the gradients into.
+  * @param  numPacks Number of packs to split the values into.
   * @throws InvalidArgumentException If `numPacks` is less than 1.
   *
   * @author Emmanouil Antonios Platanios
@@ -33,76 +32,72 @@ class ConcatenateAndSplitPacker protected(val numPacks: Int)
   if (numPacks < 1)
     throw InvalidArgumentException(s"'numPacks' must be at least 1, but was set to $numPacks.")
 
-  /** Packs the gradients.
+  /** Packs the provided values.
     *
-    * @param  groupedGradientsAndVariables Grouped gradients and variables (per device).
-    * @return Packed gradients, ready for reduction, along with information that is necessary for unpacking later on.
-    * @throws InvalidArgumentException If the provided grouped gradients and variables are inconsistent in some way.
+    * @param  grouped Grouped values (per device).
+    * @return Packed values, ready for reduction, along with information that is necessary for unpacking later on.
+    * @throws InvalidArgumentException If the provided grouped values are inconsistent in any way.
     */
   @throws[InvalidArgumentException]
   override def pack(
-      groupedGradientsAndVariables: Seq[Seq[(Output, Variable)]]
+      grouped: Seq[Seq[Output]]
   ): (Seq[Seq[Output]], Option[ConcatenateAndSplitPacker.PackInformation]) = {
-    val packed = groupedGradientsAndVariables.map(gradientsAndVariables => {
-      Op.colocateWith(Set(gradientsAndVariables.head._1.op)) {
-        // Flatten all the gradients.
-        val flatGradients = gradientsAndVariables.map(gv => Basic.reshape(gv._1, Shape(-1)))
-        // Remember the original shapes and sizes of all the gradients.
-        val towerShapes = gradientsAndVariables.map(gv => Basic.shape(gv._1))
-        val towerSizes = gradientsAndVariables.map(gv => Basic.size(gv._1))
-        // Concatenate all the flat gradients into a big flat tensor.
-        val concatenatedGradients = Basic.concatenate(flatGradients, axis = 0)
+    val packed = grouped.map(values => {
+      Op.colocateWith(Set(values.head.op)) {
+        // Flatten all the values.
+        val flattened = values.map(v => Basic.reshape(v, Shape(-1)))
+        // Remember the original shapes and sizes of all the values.
+        val towerShapes = values.map(v => Basic.shape(v))
+        val towerSizes = values.map(v => Basic.size(v))
+        // Concatenate all the flat values into a big flat tensor.
+        val concatenated = Basic.concatenate(flattened, axis = 0)
 
         // Split the concatenated tensor into packs. In cases where the total size is not divisible by `numPacks`, the
         // last pack gets more elements.
         // TODO: [DISTRIBUTE] It is also possible to optimize away the concatenation.
         val numSplits = Basic.constant(numPacks, name = "NumSplits")
-        val totalGradientSize = Basic.size(concatenatedGradients)
-        val splitSize = Math.truncateDivide(totalGradientSize, numSplits)
-        val splitSizeLast = totalGradientSize - splitSize * (numSplits - 1)
+        val totalSize = Basic.size(concatenated)
+        val splitSize = Math.truncateDivide(totalSize, numSplits)
+        val splitSizeLast = totalSize - splitSize * (numSplits - 1)
         val splitSizes = Basic.concatenate(Seq(Basic.fill(shape = numSplits - 1)(splitSize), splitSizeLast(NewAxis)))
-        val gradientPacks = Basic.split(concatenatedGradients, splitSizes)
+        val valuePacks = Basic.split(concatenated, splitSizes)
 
-        // Ready to aggregate the repacked gradients.
-        (gradientPacks, towerShapes, towerSizes)
+        // Ready to aggregate the repacked values.
+        (valuePacks, towerShapes, towerSizes)
       }
     }).unzip3
     val packInformation = ConcatenateAndSplitPacker.PackInformation(
-      groupedGradientsAndVariables = groupedGradientsAndVariables,
       allTowerShapes = packed._2,
       allTowerSizes = packed._3)
     (packed._1, Some(packInformation))
   }
 
-  /** Reverses the packing performed by `pack`, on the provided packed gradients.
+  /** Reverses the packing performed by `pack`, on the provided packed values.
     *
-    * @param  packedGradients Packed gradients to unpack.
+    * @param  packed          Packed values to unpack.
     * @param  packInformation Information from the packing process that is necessary for unpacking.
-    * @return Unpacked `packedGradients`.
+    * @return Unpacked `packed`.
     * @throws InvalidArgumentException If not pack information is provided, while it is actually necessary.
     */
   @throws[InvalidArgumentException]
   override def unpack(
-      packedGradients: Seq[Seq[(Output, Variable)]],
+      packed: Seq[Seq[Output]],
       packInformation: Option[ConcatenateAndSplitPacker.PackInformation]
-  ): Seq[Seq[(Output, Variable)]] = packInformation match {
-    case None => throw InvalidArgumentException("Cannot unpack gradients because no pack information is provided.")
+  ): Seq[Seq[Output]] = packInformation match {
+    case None => throw InvalidArgumentException("Cannot unpack values because no pack information is provided.")
     case Some(information) =>
-      packedGradients.zip(information.groupedGradientsAndVariables)
-          .zip(information.allTowerShapes.zip(information.allTowerSizes))
+      packed.zip(information.allTowerShapes.zip(information.allTowerSizes))
           .map {
-            case ((deviceGradients, gradientsAndVariables), (shapes, sizes)) =>
-              // Reverse the previous operations that `pack` applied, in order to convert the summed gradients back
+            case (deviceValues, (shapes, sizes)) =>
+              // Reverse the previous operations that `pack` applied, in order to convert the packed values back
               // into their original shapes.
-              Op.colocateWith(Set(deviceGradients.head._1.op)) {
-                // Concatenate the summed gradient packs into a big flat tensor.
-                val concatenatedDeviceGradients = Basic.concatenate(deviceGradients.map(_._1))
+              Op.colocateWith(Set(deviceValues.head.op)) {
+                // Concatenate the packed values into a big flat tensor.
+                val concatenatedDeviceValues = Basic.concatenate(deviceValues)
                 // Split the tensors back into their original sizes.
-                val splitGradients = Basic.split(concatenatedDeviceGradients, Basic.stack(sizes))
+                val splitValues = Basic.split(concatenatedDeviceValues, Basic.stack(sizes))
                 // Reshape the tensors back into their original shapes.
-                val reshapedGradients = splitGradients.zip(shapes).map(gs => Basic.reshape(gs._1, gs._2))
-                // Form the original sequence of gradients and variables using the reshaped gradients.
-                reshapedGradients.zip(gradientsAndVariables).map(ggv => (ggv._1, ggv._2._2))
+                splitValues.zip(shapes).map(vs => Basic.reshape(vs._1, vs._2))
               }
           }
   }
@@ -115,12 +110,10 @@ object ConcatenateAndSplitPacker {
 
   /** Contains information collected while packing that is necessary for unpacking.
     *
-    * @param  groupedGradientsAndVariables Grouped gradients and variables that were packed.
-    * @param  allTowerShapes               Shapes of the gradients for all towers.
-    * @param  allTowerSizes                Sizes of the gradients for all towers.
+    * @param  allTowerShapes Shapes of the values for all towers.
+    * @param  allTowerSizes  Sizes of the values for all towers.
     */
   case class PackInformation(
-      groupedGradientsAndVariables: Seq[Seq[(Output, Variable)]],
       allTowerShapes: Seq[Seq[Output]],
       allTowerSizes: Seq[Seq[Output]])
 }

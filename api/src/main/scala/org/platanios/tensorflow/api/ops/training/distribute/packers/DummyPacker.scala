@@ -18,15 +18,11 @@ package org.platanios.tensorflow.api.ops.training.distribute.packers
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.ops.Output
 
-/** Represents a tensor packer that helps facilitate faster communication between devices.
-  *
-  * TODO: [DISTRIBUTE] This can only be used with dense tensors at this point.
-  *
-  * @tparam P Pack information type. Represents information collected during packing that is necessary for unpacking.
+/** Represents a dummy packer that does not perform any tensor packing at all.
   *
   * @author Emmanouil Antonios Platanios
   */
-trait Packer[P] {
+object DummyPacker extends Packer[Unit] {
   /** Packs the provided values.
     *
     * @param  grouped Grouped values (per device).
@@ -34,7 +30,9 @@ trait Packer[P] {
     * @throws InvalidArgumentException If the provided grouped values are inconsistent in any way.
     */
   @throws[InvalidArgumentException]
-  def pack(grouped: Seq[Seq[Output]]): (Seq[Seq[Output]], Option[P])
+  def pack(grouped: Seq[Seq[Output]]): (Seq[Seq[Output]], Option[Unit]) = {
+    (grouped, None)
+  }
 
   /** Reverses the packing performed by `pack`, on the provided packed values.
     *
@@ -44,5 +42,7 @@ trait Packer[P] {
     * @throws InvalidArgumentException If not pack information is provided, while it is actually necessary.
     */
   @throws[InvalidArgumentException]
-  def unpack(packed: Seq[Seq[Output]], packInformation: Option[P]): Seq[Seq[Output]]
+  def unpack(packed: Seq[Seq[Output]], packInformation: Option[Unit]): Seq[Seq[Output]] = {
+    packed
+  }
 }
