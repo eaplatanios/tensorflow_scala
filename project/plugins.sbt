@@ -1,4 +1,4 @@
-/* Copyright 2017, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -15,13 +15,12 @@
 
 logLevel := Level.Warn
 
-val tensorFlowVersion = "1.5.0"
+val tensorFlowVersion = "1.8.0-rc1"
 
 libraryDependencies ++= Seq(
   "ch.qos.logback" % "logback-classic" % "1.2.3",
   "org.ow2.asm" % "asm" % "5.0.4",
-  "org.tensorflow" % "proto" % tensorFlowVersion
-)
+  "org.tensorflow" % "proto" % tensorFlowVersion)
 
 // addSbtPlugin("com.thoughtworks.sbt-api-mappings" % "sbt-api-mappings" % "latest.release")
 addSbtPlugin("com.github.gseitz" % "sbt-protobuf" % "0.6.3")

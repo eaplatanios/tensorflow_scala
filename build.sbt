@@ -24,7 +24,7 @@ crossScalaVersions in ThisBuild := Seq("2.11.11", "2.12.5")
 
 organization in ThisBuild := "org.platanios"
 
-val tensorFlowVersion = "1.7.0"
+val tensorFlowVersion = "1.8.0-rc1"
 val circeVersion = "0.9.1" // Use for working with JSON.
 
 autoCompilerPlugins in ThisBuild := true
@@ -62,7 +62,7 @@ scalacOptions in ThisBuild ++= Seq(
 
 lazy val loggingSettings = Seq(
   libraryDependencies ++= Seq(
-    "com.typesafe.scala-logging" %% "scala-logging"   % "3.7.2",
+    "com.typesafe.scala-logging" %% "scala-logging"   % "3.9.0",
     "ch.qos.logback"             %  "logback-classic" % "1.2.3")
 )
 
@@ -73,7 +73,7 @@ lazy val commonSettings = loggingSettings ++ Seq(
 
 lazy val testSettings = Seq(
   libraryDependencies ++= Seq(
-    "junit"         %  "junit" %   "4.12",
+    "junit"         %  "junit"     % "4.12",
     "org.scalactic" %% "scalactic" % "3.0.4",
     "org.scalatest" %% "scalatest" % "3.0.4" % "test"),
   logBuffered in Test := false,
