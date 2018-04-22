@@ -64,4 +64,6 @@ object Session {
       outputTensorHandles: Array[Long]): Array[Byte]
 
   @native def extend(handle: Long): Unit
+
+  @native def deviceList(configProto: Array[Byte]): Array[Array[Byte]]
 }

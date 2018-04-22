@@ -67,6 +67,8 @@ package object api extends implicits.Implicits with Documentation {
 
   //endregion Graph
 
+  val Devices: core.Devices.type = core.Devices
+
   type Session = core.client.Session
   val Session: core.client.Session.type = core.client.Session
 

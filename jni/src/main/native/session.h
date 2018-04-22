@@ -39,6 +39,14 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Session_00024_run
 JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Session_00024_extend
   (JNIEnv *, jobject, jlong);
 
+/*
+ * Class:     org_platanios_tensorflow_jni_Session__
+ * Method:    deviceList
+ * Signature: ([B)[[B
+ */
+JNIEXPORT jobjectArray JNICALL Java_org_platanios_tensorflow_jni_Session_00024_deviceList
+  (JNIEnv *, jobject, jbyteArray);
+
 #ifdef __cplusplus
 }
 #endif

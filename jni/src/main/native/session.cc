@@ -17,24 +17,71 @@
 #include "session.h"
 #include "utilities.h"
 
-#include <string.h>
+#include <string>
 #include <memory>
 
 #include "tensorflow/c/c_api.h"
 #include "tensorflow/c/python_api.h"
+#include "tensorflow/c/tf_status_helper.h"
+#include "tensorflow/core/common_runtime/device.h"
+#include "tensorflow/core/common_runtime/device_factory.h"
+#include "tensorflow/core/framework/device_attributes.pb.h"
+#include "tensorflow/core/lib/core/status.h"
+#include "tensorflow/core/protobuf/config.pb.h"
+#include "tensorflow/core/public/session_options.h"
 
 namespace {
-  void TF_MaybeDeleteBuffer(TF_Buffer* buffer) {
-    if (buffer == nullptr) return;
-    TF_DeleteBuffer(buffer);
-  }
 
-  typedef std::unique_ptr<TF_Buffer, decltype(&TF_MaybeDeleteBuffer)> unique_tf_buffer;
+void TF_MaybeDeleteBuffer(TF_Buffer* buffer) {
+  if (buffer == nullptr) return;
+  TF_DeleteBuffer(buffer);
+}
 
-  unique_tf_buffer MakeUniqueBuffer(TF_Buffer* buffer) {
-    return unique_tf_buffer(buffer, (void (&&)(TF_Buffer*)) TF_MaybeDeleteBuffer);
-  }
+typedef std::unique_ptr<TF_Buffer, decltype(&TF_MaybeDeleteBuffer)> unique_tf_buffer;
+
+unique_tf_buffer MakeUniqueBuffer(TF_Buffer* buffer) {
+  return unique_tf_buffer(buffer, (void (&&)(TF_Buffer*)) TF_MaybeDeleteBuffer);
+}
+
 }  // namespace
+
+namespace tensorflow {
+  static std::vector<std::string> ListDevicesWithSessionConfig(
+      const tensorflow::ConfigProto& config, TF_Status* out_status) {
+    std::vector<std::string> output;
+    SessionOptions options;
+    options.config = config;
+    std::vector<Device*> devices;
+    Status status = DeviceFactory::AddDevices(
+        options, "" /* name_prefix */, &devices);
+    if (!status.ok()) {
+      Set_TF_Status_from_Status(out_status, status);
+    }
+
+    std::vector<std::unique_ptr<Device>> device_holder(devices.begin(),
+                                                       devices.end());
+
+    for (const Device* device : devices) {
+      const DeviceAttributes& attr = device->attributes();
+      std::string attr_serialized;
+      if (!attr.SerializeToString(&attr_serialized)) {
+        Set_TF_Status_from_Status(
+            out_status,
+            errors::Internal("Could not serialize device string"));
+        output.clear();
+        return output;
+      }
+      output.push_back(attr_serialized);
+    }
+
+    return output;
+  }
+
+  std::vector<std::string> ListDevices(TF_Status* out_status) {
+    tensorflow::ConfigProto session_config;
+    return ListDevicesWithSessionConfig(session_config, out_status);
+  }
+}  // namespace tensorflow
 
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Session_00024_allocate(
     JNIEnv* env, jobject object, jlong graph_handle, jstring target, jbyteArray config_proto) {
@@ -149,4 +196,37 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Session_00024_extend(
   std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
   tensorflow::ExtendSession(session, status.get());
   CHECK_STATUS(env, status.get(), void());
+}
+
+JNIEXPORT jobjectArray JNICALL Java_org_platanios_tensorflow_jni_Session_00024_deviceList(
+    JNIEnv* env, jobject object, jbyteArray config_proto) {
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+  std::vector<std::string> devices;
+  jbyte* c_str_config_proto;
+  if (config_proto == NULL) {
+    devices = tensorflow::ListDevices(status.get());
+    CHECK_STATUS(env, status.get(), nullptr);
+  } else {
+    c_str_config_proto = env->GetByteArrayElements(config_proto, nullptr);
+    tensorflow::ConfigProto c_config_proto;
+    if (!c_config_proto.ParseFromArray(c_str_config_proto, static_cast<size_t>(env->GetArrayLength(config_proto)))) {
+      Set_TF_Status_from_Status(
+        status.get(),
+        tensorflow::errors::InvalidArgument("Could not parse the provided session config proto."));
+      CHECK_STATUS(env, status.get(), nullptr);
+    }
+    devices = tensorflow::ListDevicesWithSessionConfig(c_config_proto, status.get());
+    CHECK_STATUS(env, status.get(), nullptr);
+  }
+  jobjectArray ret = env->NewObjectArray(devices.size(), env->FindClass("[B"), env->NewByteArray(1024));
+  for (int i = 0; i < devices.size(); i++) {
+    jbyteArray device = env->NewByteArray(devices[i].length());
+    char* buffer = reinterpret_cast<char*>(env->GetByteArrayElements(device, NULL));
+    memcpy(buffer, devices[i].c_str(), devices[i].length());
+    env->ReleaseByteArrayElements(device, reinterpret_cast<jbyte*>(buffer), 0);
+    env->SetObjectArrayElement(ret, i, device);
+  }
+  if (config_proto != nullptr)
+    env->ReleaseByteArrayElements(config_proto, c_str_config_proto, JNI_ABORT);
+  return ret;
 }
