@@ -179,6 +179,7 @@ package object api extends implicits.Implicits with Documentation {
           with ops.API
           with types.API {
     object data extends api.ops.io.API
+    object distribute extends api.ops.training.distribute.API
     object learn extends api.learn.API
     object metrics extends api.ops.metrics.API
   }

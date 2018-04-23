@@ -26,6 +26,8 @@ import org.platanios.tensorflow.api.ops.Text.TextOps
 import org.platanios.tensorflow.api.ops.variables.{PartitionedVariable, Variable}
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow.ControlFlowOps
+import org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionContext
+import org.platanios.tensorflow.api.ops.training.distribute.values.DistributedValue
 import org.platanios.tensorflow.api.tensors.TensorConvertible
 
 /** Groups together all implicits related to constructing symbolic ops.
@@ -39,32 +41,34 @@ trait Ops {
     ev.toTensor(value).toOutput
   }
 
-  implicit def outputLikeToOutput[T <: OutputLike](outputLike: T): Output = outputLike.toOutput
+  implicit def outputConvertibleToOutput[T <: OutputConvertible](outputConvertible: T): Output = {
+    outputConvertible.toOutput
+  }
 
   implicit def outputToOp(output: Output): Op = output.op
   implicit def outputToInitialValueFunction(output: Output): () => Output = () => output
 
   implicit def outputToBasicOps(value: Output): BasicOps = BasicOps(value)
-  implicit def outputConvertibleToBasicOps[T](value: T)(implicit f: (T) => Output): BasicOps = BasicOps(f(value))
+  implicit def outputConvertibleToBasicOps[T](value: T)(implicit f: T => Output): BasicOps = BasicOps(f(value))
 
   implicit def outputToClipOps(value: Output): ClipOps = ClipOps(value)
-  implicit def outputConvertibleToClipOps[T](value: T)(implicit f: (T) => Output): ClipOps = ClipOps(f(value))
+  implicit def outputConvertibleToClipOps[T](value: T)(implicit f: T => Output): ClipOps = ClipOps(f(value))
 
   implicit def outputToMathOps(value: Output): MathOps = MathOps(value)
-  implicit def outputConvertibleToMathOps[T](value: T)(implicit f: (T) => Output): MathOps = MathOps(f(value))
+  implicit def outputConvertibleToMathOps[T](value: T)(implicit f: T => Output): MathOps = MathOps(f(value))
 
   implicit def outputToNNOps(value: Output): NNOps = NNOps(value)
-  implicit def outputConvertibleToNNOps[T](value: T)(implicit f: (T) => Output): NNOps = NNOps(f(value))
+  implicit def outputConvertibleToNNOps[T](value: T)(implicit f: T => Output): NNOps = NNOps(f(value))
 
   implicit def sparseOutputToNNOps(value: SparseOutput): SparseOps = SparseOps(value)
 
   implicit def outputToStatisticsOps(value: Output): StatisticsOps = StatisticsOps(value)
-  implicit def outputConvertibleToStatisticsOps[T](value: T)(implicit f: (T) => Output): StatisticsOps = {
+  implicit def outputConvertibleToStatisticsOps[T](value: T)(implicit f: T => Output): StatisticsOps = {
     StatisticsOps(f(value))
   }
 
   implicit def outputToTextOps(value: Output): TextOps = TextOps(value)
-  implicit def outputConvertibleToTextOps[T](value: T)(implicit f: (T) => Output): TextOps = TextOps(f(value))
+  implicit def outputConvertibleToTextOps[T](value: T)(implicit f: T => Output): TextOps = TextOps(f(value))
 
   implicit def singlePartitionEmbeddingMap(parameters: EmbeddingParameters): EmbeddingMap = {
     EmbeddingMap(Seq(parameters))
@@ -80,4 +84,8 @@ trait Ops {
 
   implicit def outputToEmbeddingMap(parameters: Output): EmbeddingMap = OutputParameters(parameters)
   implicit def variableToEmbeddingMap(parameters: Variable): EmbeddingMap = VariableParameters(parameters)
+
+  implicit def distributedValueToValue[T <: OutputConvertible, D <: DistributedValue[T]](
+      value: D
+  )(implicit context: DistributionContext): T = value.get()
 }
