@@ -21,6 +21,8 @@ import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output}
 
 /** Packer that concatenates all tensors together and then splits them into packs for reduction.
   *
+  * This packer aggregates values into a total of `numPacks` splits.
+  *
   * @param  numPacks Number of packs to split the values into.
   * @throws InvalidArgumentException If `numPacks` is less than 1.
   *

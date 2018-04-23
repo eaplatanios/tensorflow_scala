@@ -24,6 +24,9 @@ import scala.collection.mutable
 
 /** Packer that concatenates small tensors together for reduction.
   *
+  * This packer aggregates values that occupy less than `maxBytes` memory space into groups with at most `maxGroups`
+  * values each.
+  * 
   * @param  maxBytes  Largest tensor eligible for aggregation, in terms of the number of bytes it takes up.
   * @param  maxGroups Largest permitted aggregation of small tensors.
   * @throws InvalidArgumentException If `maxBytes` or `maxGroups` is less than 1.
