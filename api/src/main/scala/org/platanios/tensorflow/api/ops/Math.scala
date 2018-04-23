@@ -1447,7 +1447,7 @@ private[api] trait Math {
   def countNonZero(
       input: Output, axes: Output = null, keepDims: Boolean = false, name: String = "CountNonZero"): Output = {
     Op.createWith(nameScope = name) {
-      sum(cast(notEqual(input, Basic.constant(0)), INT64), axes, keepDims)
+      sum(cast(notEqual(input, Basic.zeros(input.dataType, Shape())), INT64), axes, keepDims)
     }
   }
 
@@ -1460,10 +1460,11 @@ private[api] trait Math {
     */
   def countNonZeroSparse[T <: OutputLike](input: T, name: String = "CountNonZero"): Output = {
     Op.createWith(nameScope = name) {
+      val zero = Basic.zeros(input.dataType, Shape())
       input match {
-        case o: Output => sum(cast(notEqual(o, Basic.constant(0)), INT64))
-        case o: OutputIndexedSlices => sum(cast(notEqual(o.values, Basic.constant(0)), INT64))
-        case o: SparseOutput => sum(cast(notEqual(o.values, Basic.constant(0)), INT64))
+        case o: Output => sum(cast(notEqual(o, zero), INT64))
+        case o: OutputIndexedSlices => sum(cast(notEqual(o.values, zero), INT64))
+        case o: SparseOutput => sum(cast(notEqual(o.values, zero), INT64))
       }
     }
   }
@@ -5522,8 +5523,8 @@ object Math extends Math {
     *
     *   If `axes` is `null`, then all axes are reduced, and a tensor with a single element is returned.
     *   
-		*   IMPORTANT NOTE: Floating point comparison to zero is done by exact floating point equality check. Small values 
-		*   are '''not''' rounded to zero for the purposes of the non-zero check.
+		*   '''IMPORTANT NOTE:''' Floating point comparison to zero is done by exact floating point equality check. Small
+    *   values are '''not''' rounded to zero for the purposes of the non-zero check.
 		*   
     *   For example:
     *   {{{
@@ -5533,6 +5534,15 @@ object Math extends Math {
     *     countNonZero(x, 1) ==> [1, 2]
     *     countNonZero(x, 1, keepDims = true) ==> [[1], [2]]
     *     countNonZero(x, [0, 1]) ==> 3
+    *   }}}
+    *
+    *   '''IMPORTANT NOTE:''' Strings are compared against zero-length empty string `""`. Any string with a size greater
+    *   than zero is already considered as nonzero.
+    *
+    *   For example:
+    *   {{{
+    *     // 'x' is ["", "a", "  ", "b", ""]
+    *     countNonZero(x) ==> 3 // "a", "  ", and "b" are treated as nonzero strings.
     *   }}}
     * 
     * @define OpDocMathArgmax

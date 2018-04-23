@@ -1201,7 +1201,7 @@ private[api] trait Math {
     * @return Result as a new tensor with [[INT64]] data type.
     */
   def countNonZero(input: Tensor, axes: Tensor = null, keepDims: Boolean = false): Tensor = {
-    sum(cast(notEqual(input, 0), INT64), axes, keepDims)
+    sum(cast(notEqual(input, Tensor.zeros(input.dataType, Shape())), INT64), axes, keepDims)
   }
 
   //endregion Reduction Ops
