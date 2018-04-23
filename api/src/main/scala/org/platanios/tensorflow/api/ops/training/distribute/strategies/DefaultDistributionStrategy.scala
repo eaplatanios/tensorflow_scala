@@ -166,7 +166,7 @@ class DefaultDistributionStrategy extends DistributionStrategy {
     * @param  arguments Mirrored arguments that should be passed to `fn`.
     * @return Merged return value of `fn` across all towers.
     */
-  override def update[T: Distributable, R](
+  override def update[T: Distributable, R: Distributable](
       variable: MirroredVariable,
       fn: (Variable, Seq[T]) => R,
       arguments: Seq[MirroredValue[T]]
@@ -192,7 +192,7 @@ class DefaultDistributionStrategy extends DistributionStrategy {
     * @throws InvalidArgumentException If the provided `colocateWith` argument is invalid (e.g., too many devices).
     */
   @throws[InvalidArgumentException]
-  override def updateNonSlot[D: Destination, T: Distributable, R](
+  override def updateNonSlot[D: Destination, T: Distributable, R: Distributable](
       colocateWith: D,
       fn: Seq[T] => R,
       arguments: Seq[MirroredValue[T]]
@@ -219,7 +219,7 @@ class DefaultDistributionStrategy extends DistributionStrategy {
     * @param  fn          Optional function to apply to the value on the source device, before copying.
     * @return Fetched value in `device`.
     */
-  override def fetch[T: Distributable : OutputLike](
+  override def fetch[T <: OutputLike : Distributable](
       value: DistributedValue[T],
       destination: String = "/device:CPU:0",
       fn: T => T = (t: T) => t
