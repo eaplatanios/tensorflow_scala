@@ -614,7 +614,13 @@ private[api] object Variable {
     val handle = scope.graph.getOutputByName(prependNameScope(variableDef.getVariableName))
     val dataType = handle.op.dataTypeAttribute("dtype")
     val initializeOp = scope.graph.getOpByName(prependNameScope(variableDef.getInitializerName))
-    val graphElement = scope.graph.getOutputByName(s"${handle.op.name}/Read/ReadVariable:0")
+    val graphElement = try {
+      scope.graph.getOutputByName(s"${handle.op.name}/Read/ReadVariable:0")
+    } catch {
+      // The following handles the default naming of the read ops in the Python API, so that graphs created using the
+      // Python API can be loaded in Scala API.
+      case _: Throwable => scope.graph.getOutputByName(s"${handle.op.name}/Read/ReadVariableOp:0")
+    }
     val cachedValue = {
       if (variableDef.getSnapshotName == null || variableDef.getSnapshotName == "")
         null
