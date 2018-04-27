@@ -20,7 +20,7 @@ import scala.util.Random
   *         model was saved using tf.train.Saver()
   *
   *         Version used:
-  *         TensorFlow version: 1.6.0
+  *         TensorFlow version: 1.7.0
   *         ScalaTensorFlow version: 0.2.0-SNAPSHOT
   */
 object LinearRegressionFromRestoredPythonModel {
