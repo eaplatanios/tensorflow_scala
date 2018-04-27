@@ -60,10 +60,10 @@ object LinearRegressionFromRestoredPythonModel {
       val weight = session.graph.getOutputByName("p2s_weights_w/Read/ReadVariableOp:0")
       val bias = session.graph.getOutputByName("p2s_weights_b/Read/ReadVariableOp:0")
       val loss = session.graph.getOutputByName("p2s_loss:0")
-      val magic_placeholder_w = session.graph.getOutputByName("magic_placeholder_w:0")
-      val magic_placeholder_b = session.graph.getOutputByName("magic_placeholder_b:0")
-      val gradient_w = session.graph.getOutputByName("exported_gradient_p2s_weights_w:0")
-      val gradient_b = session.graph.getOutputByName("exported_gradient_p2s_weights_b:0")
+      val placeholderW = session.graph.getOutputByName("magic_placeholder_w:0")
+      val placeholderB = session.graph.getOutputByName("magic_placeholder_b:0")
+      val gradientW = session.graph.getOutputByName("exported_gradient_p2s_weights_w:0")
+      val gradientB = session.graph.getOutputByName("exported_gradient_p2s_weights_b:0")
 
       // OPERATIONS
       val trainOp = session.graph.getOpByName("p2s_train_op")
@@ -79,10 +79,10 @@ object LinearRegressionFromRestoredPythonModel {
       myPrintln("" + weight, 116)
       myPrintln("" + bias, 116)
       myPrintln("" + loss, 116)
-      myPrintln("" + magic_placeholder_w, 116)
-      myPrintln("" + magic_placeholder_b, 116)
-      myPrintln("" + gradient_w, 116)
-      myPrintln("" + gradient_b, 116)
+      myPrintln("" + placeholderW, 116)
+      myPrintln("" + placeholderB, 116)
+      myPrintln("" + gradientW, 116)
+      myPrintln("" + gradientB, 116)
 
       myPrintln("" + trainOp, 116)
       myPrintln("" + assign_variable_op_w, 116)
@@ -111,12 +111,10 @@ object LinearRegressionFromRestoredPythonModel {
   def batch(batchSize: Int): (Tensor, Tensor) = {
     val inputs = ArrayBuffer.empty[Float]
     val outputs = ArrayBuffer.empty[Float]
-    var i = 0
-    while (i < batchSize) {
+    for (_ <- 0 until batchSize) {
       val input = random.nextFloat()
       inputs += input
       outputs += weight * input
-      i += 1
     }
     (Tensor(inputs).reshape(Shape(-1, 1)), Tensor(outputs).reshape(Shape(-1, 1)))
   }
