@@ -157,13 +157,13 @@ class AMSGrad protected (
     val mT = m.assign((m.value * beta1) + mScaledGradient)
 
     // v_t = beta2 * v + (1 - beta2) * gradient * gradient
-    val vScaledGradient = gradient * gradient * (1 - beta2)
+    val vScaledGradient = Math.square(gradient) * (1 - beta2)
     val vT = v.assign((v.value * beta2) + vScaledGradient)
 
     val vHatT = vHat.assign(Math.maximum(vT, vHat))
     val vHatTSqrt = Math.sqrt(vHatT)
     val update = variable.assignSub(learningRate * mT / Math.add(vHatTSqrt, epsilon))
-    ControlFlow.group(Set(update.op, mT.op, vT.op))
+    ControlFlow.group(Set(update.op, mT.op, vT.op, vHatT.op))
   }
 
   override protected def finish(updateOps: Set[Op], nameScope: String): Op = {

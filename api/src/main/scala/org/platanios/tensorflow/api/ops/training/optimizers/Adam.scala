@@ -180,18 +180,21 @@ class Adam protected (
     var learningRate = getLearningRate(variable, iteration)
     learningRate = learningRate * Math.sqrt(1 - beta2Power.cast(variable.dataType))
     learningRate = learningRate / (1 - beta1Power.cast(variable.dataType))
+
     // m_t = beta1 * m + (1 - beta1) * gradient
     val mScaledGradient = gradient.values * (1 - beta1)
     var mT = m.assign(m.value * beta1)
     mT = Op.createWith(controlDependencies = Set(mT.op)) {
       m.assignScatterAdd(gradient.indices, mScaledGradient)
     }
+
     // v_t = beta2 * v + (1 - beta2) * gradient * gradient
     val vScaledGradient = gradient.values * gradient.values * (1 - beta2)
     var vT = v.assign(v.value * beta2)
     vT = Op.createWith(controlDependencies = Set(vT.op)) {
       v.assignScatterAdd(gradient.indices, vScaledGradient)
     }
+
     val vTSqrt = Math.sqrt(vT)
     val update = variable.assignSub(learningRate * mT / Math.add(vTSqrt, epsilon))
     ControlFlow.group(Set(update.op, mT.op, vT.op))

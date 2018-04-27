@@ -28,6 +28,7 @@ package object optimizers {
     type AMSGrad = optimizers.AMSGrad
     type GradientDescent = optimizers.GradientDescent
     type LazyAdam = optimizers.LazyAdam
+    type LazyAMSGrad = optimizers.LazyAMSGrad
     type YellowFin = optimizers.YellowFin
 
     val AdaDelta       : optimizers.AdaDelta.type        = optimizers.AdaDelta
@@ -36,6 +37,7 @@ package object optimizers {
     val AMSGrad        : optimizers.AMSGrad.type         = optimizers.AMSGrad
     val GradientDescent: optimizers.GradientDescent.type = optimizers.GradientDescent
     val LazyAdam       : optimizers.LazyAdam.type        = optimizers.LazyAdam
+    val LazyAMSGrad    : optimizers.LazyAMSGrad.type     = optimizers.LazyAMSGrad
     val YellowFin      : optimizers.YellowFin.type       = optimizers.YellowFin
   }
 }
