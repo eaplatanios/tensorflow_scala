@@ -408,7 +408,7 @@ object TensorArray {
       handle = handle,
       flow = flow,
       dataType = dataType,
-      inferShape = inferShape || elementShape.rank != -1,
+      inferShape = inferShape,
       elementShape = if (elementShape.rank == -1) None else Some(elementShape),
       colocateWithFirstWrite = colocateWithFirstWrite)
   }
