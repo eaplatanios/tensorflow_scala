@@ -35,7 +35,7 @@ have the main TensorFlow dynamic library installed. You have two options for dea
   1. Use:
      
      ```scala
-     libraryDependencies += "org.platanios" %% "tensorflow" % "0.1.0-SNAPSHOT" classifier "linux-cpu-x86_64"
+     libraryDependencies += "org.platanios" %% "tensorflow" % "0.2.0-SNAPSHOT" classifier "linux-cpu-x86_64"
      ```
      
      instead of the line above, for your `build.sbt` file. *Make sure to replace `linux-cpu-x86_64` with the string 
