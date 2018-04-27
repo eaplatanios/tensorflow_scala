@@ -68,8 +68,8 @@ object LinearRegressionFromRestoredPythonModel {
 
       // TRAINING LOOP
       for (i <- 0 to 50) {
-        val trainBatch: (Tensor, Tensor) = batch(10000)
-        val feedsMap: Map[Output, Tensor] = Map(input -> trainBatch._1, output -> trainBatch._2)
+        val (one, two) = batch(10000)
+        val feedsMap = Map(input -> one, output -> two)
         val fetchesSeq = Seq(loss, weight, bias)
         val trainFetches = session.run(feeds = feedsMap, fetches = fetchesSeq, targets = trainOp)
         val trainLoss = trainFetches(0)
