@@ -29,12 +29,16 @@ object LinearRegressionFromRestoredPythonModel {
   private[this] val weight = random.nextFloat()
 
   def main(args: Array[String]): Unit = {
+    val meta = "examples/src/main/scala/org/platanios/tensorflow/examples/python2scala/virgin-linear-regression-pull-request.meta"
+    val checkpoint = "examples/src/main/scala/org/platanios/tensorflow/examples/python2scala/virgin-linear-regression-pull-request"
+    val metaGraphDefFile = "examples/src/main/scala/org/platanios/tensorflow/examples/python2scala/MetaGraphDef.txt"
+    
     logger.info("\n- - - - - PYTHON 2 SCALA - - - - - ")
     // Path to a model saved with the Python API of tensorflow (version 1.7.0)
-    val metaGraphDefInputStream = new BufferedInputStream(new FileInputStream("examples/src/main/scala/org/platanios/tensorflow/examples/python2scala/virgin-linear-regression-pull-request.meta"))
+    val metaGraphDefInputStream = new BufferedInputStream(new FileInputStream(meta))
     val mgf = MetaGraphDef.parseFrom(metaGraphDefInputStream)
-    val checkpointPath = Paths.get("examples/src/main/scala/org/platanios/tensorflow/examples/python2scala/virgin-linear-regression-pull-request")
-    scala.reflect.io.File("examples/src/main/scala/org/platanios/tensorflow/examples/python2scala/MetaGraphDef.txt").appendAll(mgf.toString)
+    val checkpointPath = Paths.get(checkpoint)
+    scala.reflect.io.File(metaGraphDefFile).appendAll(mgf.toString)
 
     tf.createWith(graph = Graph()) {
       val session = Session()
