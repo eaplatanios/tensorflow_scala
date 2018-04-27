@@ -75,8 +75,6 @@ class LazyAMSGrad protected (
 ) extends AMSGrad(
   learningRate, decay, beta1, beta2, useNesterov, epsilon, useLocking, learningRateSummaryTag, name
 ) {
-  override val ignoreDuplicateSparseIndices: Boolean = true
-
   override def applySparse(gradient: OutputIndexedSlices, variable: Variable, iteration: Option[Variable]): Op = {
     val m = getSlot("M", variable)
     val v = getSlot("V", variable)

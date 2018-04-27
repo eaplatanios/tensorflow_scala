@@ -114,8 +114,11 @@ private[ops] trait Clip {
     * @return Tuple containing the clipped tensors as well as the global norm that was used for the clipping.
     */
   def clipByGlobalNorm(
-      inputs: Seq[OutputLike], clipNorm: Output, globalNorm: Output = null,
-      name: String = "ClipByGlobalNorm"): (Seq[OutputLike], Output) = {
+      inputs: Seq[OutputLike],
+      clipNorm: Output,
+      globalNorm: Output = null,
+      name: String = "ClipByGlobalNorm"
+  ): (Seq[OutputLike], Output) = {
     Op.createWithNameScope(name) {
       val norm = if (globalNorm != null) globalNorm else this.globalNorm(inputs)
       // Calculate the l2-norm and clip elements by the ratio of `clipNorm` to that l2-norm.

@@ -162,7 +162,8 @@ class AMSGrad protected (
 
     val vHatT = vHat.assign(Math.maximum(vT, vHat))
     val vHatTSqrt = Math.sqrt(vHatT)
-    val update = variable.assignSub(learningRate * mT / Math.add(vHatTSqrt, epsilon))
+    val denominator = vHatTSqrt + epsilon
+    val update = variable.assignSub(learningRate * mT / denominator)
     ControlFlow.group(Set(update.op, mT.op, vT.op, vHatT.op))
   }
 
@@ -199,7 +200,7 @@ class AMSGrad protected (
     }
 
     // v_t = beta2 * v + (1 - beta2) * gradient * gradient
-    val vScaledGradient = gradient.values * gradient.values * (1 - beta2)
+    val vScaledGradient = Math.square(gradient.values) * (1 - beta2)
     var vT = v.assign(v.value * beta2)
     vT = Op.createWith(controlDependencies = Set(vT.op)) {
       v.assignScatterAdd(gradient.indices, vScaledGradient)
@@ -207,8 +208,9 @@ class AMSGrad protected (
 
     val vHatT = vHat.assign(Math.maximum(vT, vHat))
     val vHatTSqrt = Math.sqrt(vHatT)
-    val update = variable.assignSub(learningRate * mT / Math.add(vHatTSqrt, epsilon))
-    ControlFlow.group(Set(update.op, mT.op, vT.op))
+    val denominator = vHatTSqrt + epsilon
+    val update = variable.assignSub(learningRate * mT / denominator)
+    ControlFlow.group(Set(update.op, mT.op, vT.op, vHatT.op))
   }
 }
 
