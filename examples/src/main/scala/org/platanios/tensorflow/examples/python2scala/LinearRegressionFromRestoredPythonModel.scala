@@ -38,7 +38,7 @@ object LinearRegressionFromRestoredPythonModel {
     val metaGraphDefInputStream = new BufferedInputStream(new FileInputStream(meta))
     val mgf = MetaGraphDef.parseFrom(metaGraphDefInputStream)
     val checkpointPath = Paths.get(checkpoint)
-    scala.reflect.io.File(metaGraphDefFile).appendAll(mgf.toString)
+    scala.reflect.io.File(metaGraphDefFile).writeAll(mgf.toString)
 
     tf.createWith(graph = Graph()) {
       val session = Session()
