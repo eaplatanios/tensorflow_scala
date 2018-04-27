@@ -143,7 +143,7 @@ case class TensorArray private (
     }
     val returnValue = TensorArray(
       handle, scatterFlow, dataType, inferShape, elementShape, colocateWithFirstWrite, colocationOps)
-    if (this.inferShape) {
+    if (inferShape) {
       val valueShape = scatterFlow.inputs(2).shape
       val shape = if (valueShape != Shape.unknown()) Shape.fromSeq(valueShape.asArray.tail) else valueShape
       returnValue.mergeElementShape(shape)
@@ -408,7 +408,7 @@ object TensorArray {
       handle = handle,
       flow = flow,
       dataType = dataType,
-      inferShape = inferShape || elementShape.rank == -1,
+      inferShape = inferShape || elementShape.rank != -1,
       elementShape = if (elementShape.rank == -1) None else Some(elementShape),
       colocateWithFirstWrite = colocateWithFirstWrite)
   }

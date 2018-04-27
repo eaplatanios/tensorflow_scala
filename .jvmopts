@@ -1,7 +1,7 @@
 -Dfile.encoding=UTF8
 -Xms1G
--Xmx6G
--Xms6G
+-Xmx4G
+-Xms4G
 -Xss2M
 -XX:ReservedCodeCacheSize=256M
 -XX:MaxDirectMemorySize=16384M
