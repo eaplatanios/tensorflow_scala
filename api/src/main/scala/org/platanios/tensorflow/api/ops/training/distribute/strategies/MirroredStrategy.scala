@@ -68,7 +68,7 @@ class MirroredStrategy protected(
       value: O,
       devices: Seq[DeviceSpecification] = Seq.empty
   )(implicit context: CrossTowerContext): MirroredValue[O] = {
-    getCrossTowerOps.broadcast(value, if (devices.isEmpty) deviceSpecs else devices)
+    getCrossTowerOps.broadcast(value, if (devices.isEmpty) deviceSpecs.toSeq else devices)
   }
 
   override def reduce[D: Destination](

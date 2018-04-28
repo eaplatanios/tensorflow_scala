@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.ops.training.distribute
 
 import org.platanios.tensorflow.api.core.DeviceSpecification
-import org.platanios.tensorflow.api.ops.{Op, OpSpecification, graphConstructionScope}
+import org.platanios.tensorflow.api.ops.{Op, OpSpecification, OutputLike, graphConstructionScope}
 import org.platanios.tensorflow.api.ops.training.distribute.strategies.{CrossTowerContext, DistributionContext, DistributionStrategy}
 import org.platanios.tensorflow.api.ops.training.distribute.values.{DistributedValue, MirroredValue}
 
@@ -99,10 +99,10 @@ trait API {
     * @param  devices Destination devices.
     * @return Mirrored value.
     */
-  def broadcast[T: Distributable](
-      value: T,
-      devices: Seq[DeviceSpecification]
-  )(implicit context: CrossTowerContext): MirroredValue[T] = {
+  def broadcast[O <: OutputLike](
+      value: O,
+      devices: Seq[DeviceSpecification] = Seq.empty
+  )(implicit context: CrossTowerContext): MirroredValue[O] = {
     context.strategy.broadcast(value, devices)
   }
 
