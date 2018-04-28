@@ -17,15 +17,15 @@ package org.platanios.tensorflow.api.ops.training.distribute.strategies
 
 import org.platanios.tensorflow.api.core.DeviceSpecification
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
-import org.platanios.tensorflow.api.ops.{Basic, Op, OutputLike}
+import org.platanios.tensorflow.api.ops.{Basic, Op, Output, OutputLike}
 import org.platanios.tensorflow.api.ops.training.distribute._
-import org.platanios.tensorflow.api.ops.training.distribute.values.{DistributedValue, MirroredValue, MirroredVariable}
+import org.platanios.tensorflow.api.ops.training.distribute.values._
 import org.platanios.tensorflow.api.ops.variables.Variable
 
 /**
   * @author Emmanouil Antonios Platanios
   */
-class DefaultDistributionStrategy extends DistributionStrategy {
+class DefaultStrategy extends DistributionStrategy {
   override protected def createVariable: ColocatedVariableGetter = {
     ???
   }
@@ -73,12 +73,12 @@ class DefaultDistributionStrategy extends DistributionStrategy {
     * @param  devices Destination devices.
     * @return Mirrored value.
     */
-  override def broadcast[T: Distributable](
-      value: T,
+  override def broadcast[O <: OutputLike](
+      value: O,
       devices: Seq[DeviceSpecification] = Seq.empty
-  )(implicit context: CrossTowerContext): MirroredValue[T] = {
+  )(implicit context: CrossTowerContext): MirroredValue[O] = {
     if (devices.isEmpty) {
-      val device = implicitly[Distributable[T]].device(value)
+      val device = DeviceSpecification.fromString(value.device)
       MirroredValue(Map(device -> value))
     } else {
       throw new UnsupportedOperationException("The default distribution strategy does not yet support broadcasting.")
@@ -133,17 +133,17 @@ class DefaultDistributionStrategy extends DistributionStrategy {
 
   /** Combines values across towers into one value.
     *
-    * @param  reduction Reduction method to use.
-    * @param  value     Value to reduce.
-    * @param  devices   Optional devices on which to copy the reduced value.
+    * @param  reduction   Reduction method to use.
+    * @param  value       Value to reduce.
+    * @param  destination Optional destination on which to copy the reduced value.
     * @return Reduced value.
     */
-  override def reduce[T: Distributable](
+  override def reduce[D: Destination](
       reduction: Reduction,
-      value: DistributedValue[T],
-      devices: Seq[DeviceSpecification]
-  )(implicit context: CrossTowerContext): MirroredValue[T] = {
-    // TODO: [DISTRIBUTE] !!! Use `devices`.
+      value: PerDeviceValue[OutputLike],
+      destination: Option[D] = None
+  )(implicit context: CrossTowerContext): MirroredValue[OutputLike] = {
+    // TODO: [DISTRIBUTE] !!! Use `destination`.
     MirroredValue(value.index)
   }
 
@@ -211,24 +211,25 @@ class DefaultDistributionStrategy extends DistributionStrategy {
     MirroredValue(resultIndex.toMap)
   }
 
-  /** Returns a copy of `fn(value)` on `device`. This is useful for getting a mirrored value onto a device. The method
-    * will attempt to avoid a copy by checking if the value is already on the destination device.
+  /** Returns a copy of `fn(variable.value)` on `destination`. This is useful for getting a mirrored variable value onto
+    * a device. The method will attempt to avoid a copy by checking if the value is already on the destination device.
     *
-    * @param  value       Value (which may be mirrored) to copy and fetch.
-    * @param  destination Device to copy the value to.
+    * @param  variable    Variable (which may be mirrored) to copy and fetch.
+    * @param  destination Device to copy the variable value to.
     * @param  fn          Optional function to apply to the value on the source device, before copying.
     * @return Fetched value in `device`.
     */
-  override def fetch[T <: OutputLike : Distributable](
-      value: DistributedValue[T],
+  @throws[InvalidArgumentException]
+  override def fetch(
+      variable: DistributedVariable,
       destination: String = "/device:CPU:0",
-      fn: T => T = (t: T) => t
-  )(implicit context: CrossTowerContext): T = {
-    val processedValue = DistributedValue(value.index.map(kv => {
-      Op.colocateWith(Set(implicitly[Distributable[T]].op(kv._2))) {
+      fn: Output => Output = (o: Output) => o
+  )(implicit context: CrossTowerContext): Output = {
+    val processedValue = DistributedValue(variable.index.map(kv => {
+      Op.colocateWith(Set(kv._2.op)) {
         kv._1 -> fn(kv._2)
       }
-    }), value.distributionType)
+    }), variable.distributionType)
     Op.createWith(device = destination) {
       Basic.identity(processedValue.index.values.head)
     }
@@ -256,13 +257,13 @@ class DefaultDistributionStrategy extends DistributionStrategy {
   override def numTowers: Int = 1
 
   /** Returns the devices used to run `forEachTower()` calls. */
-  override def workerDevices: Seq[String] = {
+  override def workerDevices: Set[String] = {
     throw new UnsupportedOperationException(
       "`workerDevices` is not supported by the default distribution strategy.")
   }
 
   /** Returns the devices used for variable and updates placement. */
-  override def parameterDevices: Seq[String] = {
+  override def parameterDevices: Set[String] = {
     throw new UnsupportedOperationException(
       "`parameterDevices` is not supported by the default distribution strategy.")
   }
@@ -275,8 +276,8 @@ class DefaultDistributionStrategy extends DistributionStrategy {
     * @param  variables Variables being optimized.
     * @return Colocation ops for non-slot variables.
     */
-  override def nonSlotColocationOps(variables: Seq[Variable]): Set[Op] = {
-    Set(variables.minBy(_.name).op)
+  override def nonSlotDevices(variables: Seq[Variable]): Set[DeviceSpecification] = {
+    Set(DeviceSpecification.fromString(variables.minBy(_.name).op.device))
   }
 
   /** Returns a map from worker devices to indices.

@@ -20,7 +20,7 @@ import org.platanios.tensorflow.api.core.{DeviceSpecification, Devices}
 import org.platanios.tensorflow.api.ops.training.distribute._
 import org.platanios.tensorflow.api.ops.training.distribute.packers.ConcatenateAndSplitPacker
 import org.platanios.tensorflow.api.ops.training.distribute.values.{MirroredValue, PerDeviceValue}
-import org.platanios.tensorflow.api.ops.{Basic, Op, Output, OutputLike}
+import org.platanios.tensorflow.api.ops.{Basic, Op, OutputLike}
 
 import scala.collection.JavaConverters._
 
@@ -40,9 +40,9 @@ abstract class CrossTowerOps {
     */
   def reduce[D: Destination](
       reduction: Reduction,
-      value: PerDeviceValue[Output],
+      value: PerDeviceValue[OutputLike],
       destination: Option[D]
-  ): MirroredValue[Output]
+  ): MirroredValue[OutputLike]
 
   /** Reduces a batch per-device values to the corresponding provided destinations.
     *
@@ -57,8 +57,8 @@ abstract class CrossTowerOps {
     */
   def batchReduce[D: Destination](
       reduction: Reduction,
-      valueDestinationPairs: Seq[(PerDeviceValue[Output], Option[D])]
-  ): Seq[MirroredValue[Output]]
+      valueDestinationPairs: Seq[(PerDeviceValue[OutputLike], Option[D])]
+  ): Seq[MirroredValue[OutputLike]]
 
   /** Broadcasts `value` to `destination`.
     *
@@ -66,10 +66,10 @@ abstract class CrossTowerOps {
     * @param  destination Broadcast destination.
     * @return Broadcasted mirrored value.
     */
-  def broadcast[D: Destination](
-      value: Output,
+  def broadcast[O <: OutputLike, D: Destination](
+      value: O,
       destination: D
-  ): MirroredValue[Output] = {
+  ): MirroredValue[O] = {
     CrossTowerOps.simpleBroadcast(value, destination)
   }
 }
@@ -159,10 +159,10 @@ object CrossTowerOps {
   }
 
   private[distribute] def simpleReduce(
-      value: PerDeviceValue[Output],
+      value: PerDeviceValue[OutputLike],
       reduceToDevice: DeviceSpecification,
       reduction: Reduction
-  ): Output = {
+  ): OutputLike = {
     // TODO: [DISTRIBUTE] What about "MapOutput"?
     val values = value.index.values.toSeq
     if (values.isEmpty)

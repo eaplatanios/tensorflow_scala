@@ -27,7 +27,7 @@ import org.platanios.tensorflow.api.ops.training.distribute.strategies.{Distribu
   *
   * @author Emmanouil Antonios Platanios
   */
-class DistributedValue[T: Distributable] protected (
+class DistributedValue[+T: Distributable] protected (
     val index: Map[DeviceSpecification, T],
     val distributionType: DistributedValue.Type
 ) {

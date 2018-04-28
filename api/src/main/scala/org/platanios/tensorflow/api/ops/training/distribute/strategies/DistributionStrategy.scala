@@ -20,10 +20,10 @@ import org.platanios.tensorflow.api.core.client.SessionConfig
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.training.distribute._
-import org.platanios.tensorflow.api.ops.training.distribute.values.{DistributedValue, MirroredValue, MirroredVariable}
+import org.platanios.tensorflow.api.ops.training.distribute.values._
 import org.platanios.tensorflow.api.ops.variables.Variable.VariableGetter
 import org.platanios.tensorflow.api.ops.variables._
-import org.platanios.tensorflow.api.ops.{Op, OpSpecification, OutputLike}
+import org.platanios.tensorflow.api.ops.{Op, OpSpecification, Output, OutputLike}
 import org.platanios.tensorflow.api.types.{DataType, FLOAT32}
 
 /** Represents a list of devices with a state and a compute distribution policy.
@@ -183,6 +183,9 @@ abstract class DistributionStrategy {
   //  # TODO(josh11b): List of towers with their worker and parameter devices
   //  #   (where the parameter devices may overlap in the ps case).
 
+  /** Finds and sets the best configuration for the provided TensorFlow session configuration. */
+  def configure(sessionConfig: SessionConfig): Unit = ()
+
   def scope[R](block: => R): R = {
     val getter = new VariableGetter {
       def apply(
@@ -325,10 +328,10 @@ abstract class DistributionStrategy {
     * @param  devices Destination devices.
     * @return Mirrored value.
     */
-  def broadcast[T: Distributable](
-      value: T,
+  def broadcast[O <: OutputLike](
+      value: O,
       devices: Seq[DeviceSpecification] = Seq.empty
-  )(implicit context: CrossTowerContext): MirroredValue[T]
+  )(implicit context: CrossTowerContext): MirroredValue[O]
 
   /** Runs `fn` once per tower.
     *
@@ -375,28 +378,28 @@ abstract class DistributionStrategy {
 
   /** Combines values across towers into one value.
     *
-    * @param  reduction Reduction method to use.
-    * @param  value     Value to reduce.
-    * @param  devices   Optional devices on which to copy the reduced value.
+    * @param  reduction   Reduction method to use.
+    * @param  value       Value to reduce.
+    * @param  destination Optional destination on which to copy the reduced value.
     * @return Reduced value.
     */
-  def reduce[T: Distributable](
+  def reduce[D: Destination](
       reduction: Reduction,
-      value: DistributedValue[T],
-      devices: Seq[DeviceSpecification] = Seq.empty
-  )(implicit context: CrossTowerContext): MirroredValue[T]
+      value: PerDeviceValue[OutputLike],
+      destination: Option[D] = None
+  )(implicit context: CrossTowerContext): MirroredValue[OutputLike]
 
   /** Combines multiple `reduce` calls into one for faster execution.
     *
-    * @param  reduction Reduction method to use.
-    * @param  values    Sequence of values to reduce pairs with devices to copy the reduced values.
+    * @param  reduction             Reduction method to use.
+    * @param  valueDestinationPairs Sequence of values to reduce pairs with destinations to copy the reduced values to.
     * @return Reduced values.
     */
-  def batchReduce[T: Distributable](
+  def batchReduce[D: Destination](
       reduction: Reduction,
-      values: Seq[(DistributedValue[T], Seq[DeviceSpecification])]
-  )(implicit context: CrossTowerContext): Seq[DistributedValue[T]] = {
-    values.map(v => reduce(reduction, v._1, v._2))
+      valueDestinationPairs: Seq[(PerDeviceValue[OutputLike], Option[D])]
+  )(implicit context: CrossTowerContext): Seq[DistributedValue[OutputLike]] = {
+    valueDestinationPairs.map(v => reduce(reduction, v._1, v._2))
   }
 
   /** Runs `fn` to update `variable` using inputs mirrored to the same devices.
@@ -439,19 +442,21 @@ abstract class DistributionStrategy {
       arguments: Seq[MirroredValue[T]]
   )(implicit context: CrossTowerContext): MirroredValue[R]
 
-  /** Returns a copy of `fn(value)` on `device`. This is useful for getting a mirrored value onto a device. The method
-    * will attempt to avoid a copy by checking if the value is already on the destination device.
+  /** Returns a copy of `fn(variable.value)` on `destination`. This is useful for getting a mirrored variable value onto
+    * a device. The method will attempt to avoid a copy by checking if the value is already on the destination device.
     *
-    * @param  value       Value (which may be mirrored) to copy and fetch.
-    * @param  destination Device to copy the value to.
+    * @param  variable    Variable (which may be mirrored) to copy and fetch.
+    * @param  destination Device to copy the variable value to.
     * @param  fn          Optional function to apply to the value on the source device, before copying.
     * @return Fetched value in `device`.
+    * @throws InvalidArgumentException If there is an issue with the provided variable.
     */
-  def fetch[T <: OutputLike : Distributable](
-      value: DistributedValue[T],
+  @throws[InvalidArgumentException]
+  def fetch(
+      variable: DistributedVariable,
       destination: String = "/device:CPU:0",
-      fn: T => T = (t: T) => t
-  )(implicit context: CrossTowerContext): T
+      fn: Output => Output = (o: Output) => o
+  )(implicit context: CrossTowerContext): Output
 
   /** Returns the list of all per-device values contained in `value`.
     *
@@ -528,10 +533,10 @@ abstract class DistributionStrategy {
   def numTowers: Int
 
   /** Returns the devices used to run `forEachTower()` calls. */
-  def workerDevices: Seq[String]
+  def workerDevices: Set[String]
 
   /** Returns the devices used for variable and updates placement. */
-  def parameterDevices: Seq[String]
+  def parameterDevices: Set[String]
 
   /** Returns the devices used for non-slot variables.
     *
@@ -541,8 +546,5 @@ abstract class DistributionStrategy {
     * @param  variables Variables being optimized.
     * @return Colocation ops for non-slot variables.
     */
-  def nonSlotColocationOps(variables: Seq[Variable]): Set[Op]
-
-  /** Finds and sets the best configuration for the provided TensorFlow session configuration. */
-  def configure(sessionConfig: SessionConfig): Unit = ()
+  def nonSlotDevices(variables: Seq[Variable]): Set[DeviceSpecification]
 }

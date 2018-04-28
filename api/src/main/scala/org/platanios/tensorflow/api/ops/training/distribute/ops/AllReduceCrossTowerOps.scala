@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.ops.training.distribute.ops
 
 import org.platanios.tensorflow.api.core.DeviceSpecification
-import org.platanios.tensorflow.api.ops.Output
+import org.platanios.tensorflow.api.ops.{Output, OutputLike}
 import org.platanios.tensorflow.api.ops.training.distribute._
 import org.platanios.tensorflow.api.ops.training.distribute.packers.Packer
 import org.platanios.tensorflow.api.ops.training.distribute.values.{MirroredValue, PerDeviceValue}
@@ -44,9 +44,9 @@ class AllReduceCrossTowerOps[P] protected(
     */
   def reduce[D: Destination](
       reduction: Reduction,
-      value: PerDeviceValue[Output],
+      value: PerDeviceValue[OutputLike],
       destination: Option[D]
-  ): MirroredValue[Output] = destination match {
+  ): MirroredValue[OutputLike] = destination match {
     case None =>
       batchAllReduce(reduction, Seq(value)).head
     case Some(d) if Destination.devicesMatch(d, value) =>
@@ -71,8 +71,8 @@ class AllReduceCrossTowerOps[P] protected(
     */
   def batchReduce[D: Destination](
       reduction: Reduction,
-      valueDestinationPairs: Seq[(PerDeviceValue[Output], Option[D])]
-  ): Seq[MirroredValue[Output]] = {
+      valueDestinationPairs: Seq[(PerDeviceValue[OutputLike], Option[D])]
+  ): Seq[MirroredValue[OutputLike]] = {
     if (Destination.allDevicesMatch(valueDestinationPairs)) {
       batchAllReduce(reduction, valueDestinationPairs.map(_._1))
     } else {
@@ -89,8 +89,8 @@ class AllReduceCrossTowerOps[P] protected(
     */
   protected def batchAllReduce(
       reduction: Reduction,
-      values: Seq[PerDeviceValue[Output]]
-  ): Seq[MirroredValue[Output]] = {
+      values: Seq[PerDeviceValue[OutputLike]]
+  ): Seq[MirroredValue[OutputLike]] = {
     // Pack the gradients before performing the reduction, in order to ensure efficient communication.
     val destinations = values.head.devices
     val grouped = AllReduceCrossTowerOps.groupValueByDevice(values)
@@ -117,15 +117,15 @@ object AllReduceCrossTowerOps {
   }
 
   trait Algorithm {
-    def apply(groupedValues: Seq[Seq[Output]]): Seq[Seq[Output]]
+    def apply(groupedValues: Seq[Seq[OutputLike]]): Seq[Seq[OutputLike]]
   }
 
   object HierarchicalCopy extends Algorithm {
-    override def apply(groupedValues: Seq[Seq[Output]]): Seq[Seq[Output]] = ??? // TODO: [DISTRIBUTE] !!!
+    override def apply(groupedValues: Seq[Seq[OutputLike]]): Seq[Seq[OutputLike]] = ??? // TODO: [DISTRIBUTE] !!!
   }
 
   object NCCL extends Algorithm {
-    override def apply(groupedValues: Seq[Seq[Output]]): Seq[Seq[Output]] = ??? // TODO: [DISTRIBUTE] !!!
+    override def apply(groupedValues: Seq[Seq[OutputLike]]): Seq[Seq[OutputLike]] = ??? // TODO: [DISTRIBUTE] !!!
   }
 
   /** Groups values into sub-lists based on their devices.
@@ -161,10 +161,10 @@ object AllReduceCrossTowerOps {
     * @return Sequence of ungrouped mirrored values.
     */
   private[AllReduceCrossTowerOps] def ungroupToMirrored(
-      groupedReduced: Seq[Seq[Output]],
+      groupedReduced: Seq[Seq[OutputLike]],
       destinations: Seq[DeviceSpecification],
       reduction: Reduction
-  ): Seq[MirroredValue[Output]] = {
+  ): Seq[MirroredValue[OutputLike]] = {
     groupedReduced.transpose.map(perDeviceReduced => {
       val processedPerDeviceReduced = perDeviceReduced.map(reduction.processUngroupedValue(_, destinations))
       MirroredValue(destinations.zip(processedPerDeviceReduced).toMap)

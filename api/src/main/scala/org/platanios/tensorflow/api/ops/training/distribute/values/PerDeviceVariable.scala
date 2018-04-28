@@ -133,8 +133,7 @@ object PerDeviceVariable {
       extends Saveable(
         Seq(SaveSpecification(
           variable.name,
-          // TODO: [DISTRIBUTE] !!! Should `fetch` every be returning variables?
-          () => context.strategy.fetch(PerDeviceValue(variable.index.mapValues(_.value))),
+          () => context.strategy.fetch(variable),
           ""))) {
     override val name: String = variable.name
 
