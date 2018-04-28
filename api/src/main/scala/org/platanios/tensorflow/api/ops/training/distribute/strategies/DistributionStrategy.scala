@@ -493,7 +493,7 @@ abstract class DistributionStrategy {
     *   }
     * }}}
     */
-  def workerDeviceIndex(implicit context: CrossTowerContext): Map[String, Int]
+  def workerDeviceIndex(implicit context: CrossTowerContext): Map[DeviceSpecification, Int]
 
   //endregion Cross-Tower Context Methods
 

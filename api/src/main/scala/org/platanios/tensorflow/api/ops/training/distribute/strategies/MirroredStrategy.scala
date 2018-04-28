@@ -169,5 +169,5 @@ class MirroredStrategy protected(
 
   override def nonSlotDevices(variables: Seq[Variable]): Set[DeviceSpecification] = deviceSpecs
 
-  override def workerDeviceIndex(implicit context: CrossTowerContext): Map[String, Int] = deviceIndex
+  override def workerDeviceIndex(implicit context: CrossTowerContext): Map[DeviceSpecification, Int] = deviceIndex
 }

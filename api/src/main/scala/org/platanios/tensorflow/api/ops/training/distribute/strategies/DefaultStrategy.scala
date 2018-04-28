@@ -293,7 +293,7 @@ class DefaultStrategy extends DistributionStrategy {
     *   }
     * }}}
     */
-  override def workerDeviceIndex(implicit context: CrossTowerContext): Map[String, Int] = {
+  override def workerDeviceIndex(implicit context: CrossTowerContext): Map[DeviceSpecification, Int] = {
     throw new UnsupportedOperationException(
       "`workerDeviceIndex` is not supported by the default distribution strategy.")
   }
