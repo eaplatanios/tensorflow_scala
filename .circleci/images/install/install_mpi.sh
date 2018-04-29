@@ -17,7 +17,9 @@
 set +e
 mpiexec=$(which mpiexec)
 if [[ -z "$mpiexec_location" ]]; then
-    # Install dependencies from ubuntu deb repository.
-    apt-get update
-    apt-get install -y --no-install-recommends openmpi-bin libopenmpi-dev
+    wget https://www.open-mpi.org/software/ompi/v3.0/downloads/openmpi-3.0.1.tar.gz
+    tar xvf openmpi-3.0.1.tar.gz
+    cd openmpi-3.0.1
+    ./configure --prefix=/usr
+    make all install
 fi
