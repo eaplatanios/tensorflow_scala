@@ -25,7 +25,6 @@ RUN /install/install_sbt.sh
 
 # Set up MPI
 ENV TF_NEED_MPI 1
-ENV MPI_HOME /usr/lib/openmpi
 
 # Set up the master bazelrc configuration file.
 ENV LD_LIBRARY_PATH /usr/local/cuda/extras/CUPTI/lib64:$LD_LIBRARY_PATH

@@ -54,6 +54,7 @@ object TensorFlowNativePackage extends AutoPlugin {
     tfLibCompile := false,
     tfLibRepository := "https://github.com/tensorflow/tensorflow.git",
     tfLibRepositoryBranch := "master",
+    dockerImagePrefix := "tensorflow-jni",
     nativeArtifactName := "tensorflow",
     nativeLibPath := {
       val log = streams.value.log

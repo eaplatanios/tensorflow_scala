@@ -19,7 +19,6 @@ RUN /install/install_sbt.sh
 
 # Set up MPI
 ENV TF_NEED_MPI 1
-ENV MPI_HOME /usr/lib/openmpi
 
 ENV JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
 

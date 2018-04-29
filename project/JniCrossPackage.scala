@@ -32,6 +32,9 @@ object JniCrossPackage extends AutoPlugin {
         .extend(Compile)
         .describedAs("Native code cross-compiling configuration.")
 
+    val dockerImagePrefix: SettingKey[String] =
+      settingKey[String]("###")
+
     val nativePlatforms: SettingKey[Set[Platform]] =
       settingKey[Set[Platform]]("Set of native platforms for which to cross-compile.")
 
@@ -107,10 +110,9 @@ object JniCrossPackage extends AutoPlugin {
 
         // Compile and generate binaries
         log.info(s"Generating binaries in '$platformTargetDir'.")
-        val dockerImage = moduleName.value
-        val dockerContainer = s"${dockerImage}_${platform.name}"
+        val dockerContainer = s"${moduleName.value}_${platform.name}"
         val exitCode = platform.build(
-          dockerImage = dockerImage,
+          dockerImage = s"${dockerImagePrefix.value}_${platform.name}",
           dockerContainer = dockerContainer,
           srcDir = (baseDirectory.value / "src" / "main" / "native").getPath,
           tgtDir = platformTargetDir.getPath,
@@ -238,7 +240,7 @@ object JniCrossPackage extends AutoPlugin {
     // The parent Docker image is defined in the .circleci/images directory at the root of this repository.
     override val dockerfile: Option[String] = Some(
       """
-        |FROM eaplatanios/tensorflow_scala:linux-cpu-x86_64-0.1.1
+        |FROM eaplatanios/tensorflow_scala:linux-cpu-x86_64-0.2.0
         |WORKDIR /root
       """.stripMargin)
   }
@@ -250,7 +252,7 @@ object JniCrossPackage extends AutoPlugin {
     // The parent Docker image is defined in the .circleci/images directory at the root of this repository.
     override val dockerfile: Option[String] = Some(
       """
-        |FROM eaplatanios/tensorflow_scala:linux-gpu-x86_64-0.1.1
+        |FROM eaplatanios/tensorflow_scala:linux-gpu-x86_64-0.2.0
         |WORKDIR /root
       """.stripMargin)
   }
@@ -267,9 +269,11 @@ object JniCrossPackage extends AutoPlugin {
         libPath: String
     ): Option[ProcessBuilder] = {
       val process = Process("bash" :: "-c" ::
-          s"cp -rp $srcDir $tgtDir/code/jni && " +
-              s"rm -rf $tgtDir/code/jni/build && mkdir $tgtDir/code/jni/build && cd $tgtDir/code/jni/build && " +
-              s"cmake -DCMAKE_INSTALL_PREFIX:PATH=$tgtDir/bin -DCMAKE_BUILD_TYPE=Release $tgtDir/code/jni && " +
+          s"cp -rp $srcDir $tgtDir/code/native && " +
+              s"rm -rf $tgtDir/code/native/build && " +
+              s"mkdir $tgtDir/code/native/build && " +
+              s"cd $tgtDir/code/native/build && " +
+              s"cmake -DCMAKE_INSTALL_PREFIX:PATH=$tgtDir/bin -DCMAKE_BUILD_TYPE=Release $tgtDir/code/native && " +
               "make VERBOSE=1 && make install" :: Nil)
       Some(process)
     }
