@@ -15,7 +15,7 @@
 
 logLevel := Level.Warn
 
-val tensorFlowVersion = "1.8.0-rc1"
+val tensorFlowVersion = "1.8.0"
 
 libraryDependencies ++= Seq(
   "ch.qos.logback" % "logback-classic" % "1.2.3",
