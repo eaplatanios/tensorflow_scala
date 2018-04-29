@@ -3,7 +3,7 @@ version: 2
 jobs:
    build-linux-cpu-x86_64:
      docker:
-       - image: eaplatanios/tensorflow_scala:linux-cpu-x86_64-0.1.1
+       - image: eaplatanios/tensorflow_scala:linux-cpu-x86_64-0.2.0
      working_directory: ~/repository
      environment:
        LD_LIBRARY_PATH: /usr/lib:$LD_LIBRARY_PATH
@@ -30,7 +30,7 @@ jobs:
        - run: cat /dev/null | sbt +test:test
 #   build-linux-gpu-x86_64:
 #     docker:
-#       - image: eaplatanios/tensorflow_scala:linux-gpu-x86_64-0.1.1
+#       - image: eaplatanios/tensorflow_scala:linux-gpu-x86_64-0.2.0
 #     working_directory: ~/repository
 #     environment:
 #       LD_LIBRARY_PATH: /usr/lib:$LD_LIBRARY_PATH
