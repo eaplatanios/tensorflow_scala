@@ -63,7 +63,7 @@ class AdaGrad protected (
     Math.cast(learningRateTensor, variable.dataType)
   }
 
-  override protected def createSlots(variables: Seq[Variable]): Unit = {
+  override def createSlots(variables: Seq[Variable]): Unit = {
     variables.foreach(v => {
       val initializer = ConstantInitializer(epsilon)
       getSlot("Accumulator", v, initializer, v.shape, v.dataType, name)

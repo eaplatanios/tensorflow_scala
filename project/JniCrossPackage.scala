@@ -29,7 +29,6 @@ object JniCrossPackage extends AutoPlugin {
 
   object autoImport {
     lazy val JniCross = config("cross")
-        .extend(Compile)
         .describedAs("Native code cross-compiling configuration.")
 
     val dockerImagePrefix: SettingKey[String] =
@@ -58,8 +57,8 @@ object JniCrossPackage extends AutoPlugin {
 
   lazy val settings: Seq[Setting[_]] = Seq(
     nativePlatforms := Set(LINUX_x86_64, LINUX_GPU_x86_64, DARWIN_x86_64),
-    target := (target in Compile).value / "native",
-    nativeLibPath := {
+    target in JniCross := (target in Compile).value / "native",
+    nativeLibPath in JniCross := {
       val targetDir = (target in nativeCrossCompile).value
       (nativePlatforms in nativeCrossCompile).value.map(platform => {
         platform -> targetDir / platform.name
@@ -67,7 +66,7 @@ object JniCrossPackage extends AutoPlugin {
     },
     // Make the SBT clean task also cleans the generated cross-compilation files
     clean := {
-      clean.value
+      (clean in Compile).value
       streams.value.log.info("Cleaning generated cross compilation files.")
       val path = (target in nativeCrossCompile).value.toPath
       if (Files.exists(path))
@@ -79,7 +78,7 @@ object JniCrossPackage extends AutoPlugin {
             .foreach(Files.deleteIfExists)
     },
     compile := {
-      nativeCrossCompile.value
+      nativeCompile.value
       (compile in Compile).value
     },
     nativeCompile := {

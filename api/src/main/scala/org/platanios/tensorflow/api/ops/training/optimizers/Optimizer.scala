@@ -199,7 +199,7 @@ trait Optimizer {
 
   /** Supported data types for the loss function, the variables, and the gradients. Subclasses should override this
     * field allow other float types. */
-  protected val supportedDataTypes: Set[DataType] = Set[DataType](FLOAT32, FLOAT64)
+  val supportedDataTypes: Set[DataType] = Set[DataType](FLOAT32, FLOAT64)
 
   /** Asserts that the provided `outputs` all have data types that are supported by this optimizer.
     *
@@ -215,13 +215,13 @@ trait Optimizer {
   }
 
   /** Create all slots needed by this optimizer. */
-  protected def createSlots(variables: Seq[Variable]): Unit = {
+  def createSlots(variables: Seq[Variable]): Unit = {
     // No slots are created by default.
   }
 
   /** Creates all necessary tensors before applying the gradients. This function is called from within an op creation
     * context that uses as its name scope the name that users have chosen for the application of gradients. */
-  protected def prepare(iteration: Option[Variable]): Unit = {}
+  def prepare(iteration: Option[Variable]): Unit = {}
 
   /** Creates an op that finishes the gradients application. This function is called from within an op creation context
     * that uses as its name scope the name that users have chosen for the application of gradients.
@@ -230,7 +230,7 @@ trait Optimizer {
     * @param  nameScope Name scope to use for all the ops created by this function.
     * @return Created op output.
     */
-  protected def finish(updateOps: Set[Op], nameScope: String): Op = {
+  def finish(updateOps: Set[Op], nameScope: String): Op = {
     ControlFlow.group(updateOps, nameScope)
   }
 
@@ -241,7 +241,7 @@ trait Optimizer {
     * @param  iteration Option containing current iteration in the optimization loop, if one has been provided.
     * @return Created op that applies the provided gradient to the provided variable.
     */
-  protected def applyDense(gradient: Output, variable: Variable, iteration: Option[Variable]): Op
+  def applyDense(gradient: Output, variable: Variable, iteration: Option[Variable]): Op
 
   /** Applies the updates corresponding to the provided gradient, to the provided variable.
     *
@@ -255,7 +255,7 @@ trait Optimizer {
     * @param  iteration Option containing current iteration in the optimization loop, if one has been provided.
     * @return Created op that applies the provided gradient to the provided variable.
     */
-  protected def applySparse(gradient: OutputIndexedSlices, variable: Variable, iteration: Option[Variable]): Op
+  def applySparse(gradient: OutputIndexedSlices, variable: Variable, iteration: Option[Variable]): Op
 
   /** Applies the updates corresponding to the provided gradient (with potentially duplicate indices), to the provided
     * variable.
@@ -277,7 +277,7 @@ trait Optimizer {
     * @param  iteration Option containing current iteration in the optimization loop, if one has been provided.
     * @return Created op that applies the provided gradient to the provided variable.
     */
-  protected def applySparseDuplicateIndices(
+  def applySparseDuplicateIndices(
       gradient: OutputIndexedSlices,
       variable: Variable,
       iteration: Option[Variable]

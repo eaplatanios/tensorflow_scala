@@ -63,7 +63,7 @@ class GradientDescent protected (
     Math.cast(momentumTensor, variable.dataType)
   }
 
-  override protected def createSlots(variables: Seq[Variable]): Unit = {
+  override def createSlots(variables: Seq[Variable]): Unit = {
     if (momentum > 0.0f)
       variables.foreach(v => zerosSlot("Momentum", v, name))
   }

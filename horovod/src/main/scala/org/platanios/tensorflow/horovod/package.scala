@@ -163,11 +163,12 @@ package object horovod {
         extends tf.learn.Hook {
       protected var broadcastOp: Option[Op] = None
 
-      override protected def begin(): Unit = broadcastOp match {
-        case None | Some(op) if op.graph != tf.currentGraph => tf.device(device) {
-          broadcastOp = Some(broadcastGlobalVariables(rootRank))
+      override protected def begin(): Unit = {
+        if (broadcastOp.isEmpty || broadcastOp.get.graph != tf.currentGraph) {
+          tf.device(device) {
+            broadcastOp = Some(broadcastGlobalVariables(rootRank))
+          }
         }
-        case _ => ()
       }
 
       override protected def afterSessionCreation(session: Session): Unit = {
@@ -182,10 +183,10 @@ package object horovod {
         val deviceSparse: String = ""
     ) extends tf.train.Optimizer {
       /** Boolean value indicating whether to apply use locks to prevent concurrent updates to variables. */
-      override val useLocking: Boolean = super.useLocking
+      override val useLocking: Boolean = optimizer.useLocking
 
       /** Boolean value indicating whether to ignore duplicate indices during sparse updates. */
-      override val ignoreDuplicateSparseIndices: Boolean = super.ignoreDuplicateSparseIndices
+      override val ignoreDuplicateSparseIndices: Boolean = optimizer.ignoreDuplicateSparseIndices
 
       /** Computes the gradients of `loss` with respect to the variables in `variables`, if provided, otherwise with
         * respect to all the trainable variables in the graph where `loss` is defined.
@@ -237,25 +238,25 @@ package object horovod {
           iteration: Option[Variable] = None,
           name: String = this.name
       ): Op = {
-        super.applyGradients(gradientsAndVariables, iteration, name)
+        optimizer.applyGradients(gradientsAndVariables, iteration, name)
       }
 
       /** Supported data types for the loss function, the variables, and the gradients. Subclasses should override this
         * field allow other float types. */
-      override protected val supportedDataTypes: Set[DataType] = {
-        super.supportedDataTypes
+      override val supportedDataTypes: Set[DataType] = {
+        optimizer.supportedDataTypes
       }
 
       /** Create all slots needed by this optimizer. */
-      override protected def createSlots(variables: Seq[Variable]): Unit = {
-        super.createSlots(variables)
+      override def createSlots(variables: Seq[Variable]): Unit = {
+        optimizer.createSlots(variables)
       }
 
       /** Creates all necessary tensors before applying the gradients. This function is called from within an op
         * creation context that uses as its name scope the name that users have chosen for the application of
         * gradients. */
-      override protected def prepare(iteration: Option[Variable]): Unit = {
-        super.prepare(iteration)
+      override def prepare(iteration: Option[Variable]): Unit = {
+        optimizer.prepare(iteration)
       }
 
       /** Creates an op that finishes the gradients application. This function is called from within an op creation
@@ -265,8 +266,8 @@ package object horovod {
         * @param  nameScope Name scope to use for all the ops created by this function.
         * @return Created op output.
         */
-      override protected def finish(updateOps: Set[Op], nameScope: String): Op = {
-        super.finish(updateOps, nameScope)
+      override def finish(updateOps: Set[Op], nameScope: String): Op = {
+        optimizer.finish(updateOps, nameScope)
       }
 
       /** Applies the updates corresponding to the provided gradient, to the provided variable.
@@ -276,12 +277,12 @@ package object horovod {
         * @param  iteration Option containing current iteration in the optimization loop, if one has been provided.
         * @return Created op that applies the provided gradient to the provided variable.
         */
-      override protected def applyDense(
+      override def applyDense(
           gradient: Output,
           variable: Variable,
           iteration: Option[Variable]
       ): Op = {
-        super.applyDense(gradient, variable, iteration)
+        optimizer.applyDense(gradient, variable, iteration)
       }
 
       /** Applies the updates corresponding to the provided gradient, to the provided variable.
@@ -296,12 +297,12 @@ package object horovod {
         * @param  iteration Option containing current iteration in the optimization loop, if one has been provided.
         * @return Created op that applies the provided gradient to the provided variable.
         */
-      override protected def applySparse(
+      override def applySparse(
           gradient: OutputIndexedSlices,
           variable: Variable,
           iteration: Option[Variable]
       ): Op = {
-        super.applySparse(gradient, variable, iteration)
+        optimizer.applySparse(gradient, variable, iteration)
       }
 
       /** Applies the updates corresponding to the provided gradient (with potentially duplicate indices), to the
@@ -324,12 +325,12 @@ package object horovod {
         * @param  iteration Option containing current iteration in the optimization loop, if one has been provided.
         * @return Created op that applies the provided gradient to the provided variable.
         */
-      override protected def applySparseDuplicateIndices(
+      override def applySparseDuplicateIndices(
           gradient: OutputIndexedSlices,
           variable: Variable,
           iteration: Option[Variable]
       ): Op = {
-        super.applySparseDuplicateIndices(gradient, variable, iteration)
+        optimizer.applySparseDuplicateIndices(gradient, variable, iteration)
       }
     }
   }

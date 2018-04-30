@@ -87,7 +87,7 @@ class YellowFin protected (
     Math.cast(momentumTensor, variable.dataType)
   }
 
-  override protected def createSlots(variables: Seq[Variable]): Unit = {
+  override def createSlots(variables: Seq[Variable]): Unit = {
     variables.foreach(v => zerosSlot("Momentum", v, name))
   }
 

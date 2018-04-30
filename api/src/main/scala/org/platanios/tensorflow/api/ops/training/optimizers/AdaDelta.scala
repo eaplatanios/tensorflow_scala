@@ -80,7 +80,7 @@ class AdaDelta protected (
     Math.cast(epsilonTensor, variable.dataType)
   }
 
-  override protected def createSlots(variables: Seq[Variable]): Unit = {
+  override def createSlots(variables: Seq[Variable]): Unit = {
     variables.foreach(v => {
       zerosSlot("Accumulator", v, name)
       zerosSlot("AccumulatorUpdate", v, name)

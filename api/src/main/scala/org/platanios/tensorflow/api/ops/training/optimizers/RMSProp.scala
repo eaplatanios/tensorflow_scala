@@ -98,7 +98,7 @@ class RMSProp protected (
     Math.cast(epsilonTensor, variable.dataType)
   }
 
-  override protected def createSlots(variables: Seq[Variable]): Unit = {
+  override def createSlots(variables: Seq[Variable]): Unit = {
     variables.foreach(v => {
       val rmsInit = if (v.shape.isFullyDefined) OnesInitializer else DynamicConstantInitializer(Basic.onesLike(v))
       getSlot("AccumulatorRMS", v, rmsInit, v.shape, v.dataType, name)

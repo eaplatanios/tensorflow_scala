@@ -115,7 +115,7 @@ class Adam protected (
     (getNonSlotVariable("Beta1Power", Op.currentGraph), getNonSlotVariable("Beta2Power", Op.currentGraph))
   }
 
-  override protected def createSlots(variables: Seq[Variable]): Unit = {
+  override def createSlots(variables: Seq[Variable]): Unit = {
     // Create slots for the first and second moments.
     variables.foreach(v => {
       zerosSlot("M", v, name)
@@ -157,7 +157,7 @@ class Adam protected (
       useNesterov = useNesterov)
   }
 
-  override protected def finish(updateOps: Set[Op], nameScope: String): Op = {
+  override def finish(updateOps: Set[Op], nameScope: String): Op = {
     // Update the power accumulators.
     val (beta1Power, beta2Power) = getBetaPowerAccumulators
     val updateBetaPowerOps = Op.createWith(controlDependencies = updateOps) {
