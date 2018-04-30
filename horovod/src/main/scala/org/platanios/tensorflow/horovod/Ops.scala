@@ -76,8 +76,8 @@ private[horovod] trait Ops {
 
 private[horovod] object Ops extends Ops {
   private[horovod] object Gradients {
-    tf.gradientsRegistry.registerNonDifferentiable("HorovodAllReduce")
-    tf.gradientsRegistry.registerNonDifferentiable("HorovodAllGather")
+    tf.gradientsRegistry.registerNonDifferentiable("HorovodAllreduce")
+    tf.gradientsRegistry.registerNonDifferentiable("HorovodAllgather")
     tf.gradientsRegistry.registerNonDifferentiable("HorovodBroadcast")
   }
 }

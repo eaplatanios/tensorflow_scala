@@ -132,7 +132,7 @@ object JniCrossPackage extends AutoPlugin {
         nativeCrossCompile.value,
         (resourceManaged in Compile).value)
     }.taskValue,
-    packagedArtifacts in Compile ++= {
+    packagedArtifacts ++= {
       nativeCrossCompile.value
           .map(p => p._1 -> getPackagedArtifacts(p._1, p._2))
           .filter(_._2.isDefined).map {

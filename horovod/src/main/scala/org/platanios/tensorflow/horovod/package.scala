@@ -149,7 +149,7 @@ package object horovod {
       tf.group(tf.currentGraph.globalVariables.map(v => {
         Op.Builder(opType = "AssignVariableOp", name = s"${v.name}/Broadcast/Assign")
             .addInput(v.op.outputs.head)
-            .addInput(Ops.broadcast(v.value, rootRank))
+            .addInput(Ops.broadcast(v.value, rootRank, s"${v.name}/Broadcast"))
             .setAttribute("dtype", v.dataType)
             .build()
       }))

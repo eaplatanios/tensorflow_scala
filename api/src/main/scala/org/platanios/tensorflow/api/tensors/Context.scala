@@ -15,6 +15,7 @@
 
 package org.platanios.tensorflow.api.tensors
 
+import org.platanios.tensorflow.api.core.client.SessionConfig
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer, NativeHandleWrapper}
 import org.platanios.tensorflow.jni.{Tensor => NativeTensor}
 
@@ -43,8 +44,10 @@ private[api] final case class Context private (
 /** Contains helper functions for dealing with eager tensor op execution contexts. */
 private[api] object Context {
   /** Creates a new eager tensor op execution context. */
-  def apply(): Context = {
-    val nativeHandle = NativeTensor.eagerAllocateContext()
+  def apply(
+      sessionConfig: Option[SessionConfig] = None
+  ): Context = {
+    val nativeHandle = NativeTensor.eagerAllocateContext(sessionConfig.map(_.configProto.toByteArray).orNull)
     val nativeHandleWrapper = NativeHandleWrapper(nativeHandle)
     val closeFn = () => {
       nativeHandleWrapper.Lock.synchronized {
