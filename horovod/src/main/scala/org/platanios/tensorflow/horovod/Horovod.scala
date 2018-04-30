@@ -24,6 +24,7 @@ import java.io.{IOException, InputStream}
 import java.nio.file.{Files, Path, StandardCopyOption}
 
 import scala.collection.JavaConverters._
+import scala.sys.process._
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -37,10 +38,20 @@ private[horovod] object Horovod {
   /** Current platform operating system. */
   private[this] val os = {
     val name = System.getProperty("os.name").toLowerCase
-    if (name.contains("linux")) "linux"
-    else if (name.contains("os x") || name.contains("darwin")) "darwin"
-    else if (name.contains("windows")) "windows"
-    else name.replaceAll("\\s", "")
+    if (name.contains("linux")) {
+      // Hack to check if CUDA is installed in the system.
+      val result = Process("nvidia-smi").lineStream
+      if (result.isEmpty || result.exists(_.contains("command not found")))
+        "linux"
+      else
+        "linux-gpu"
+    } else if (name.contains("os x") || name.contains("darwin")) {
+      "darwin"
+    } else if (name.contains("windows")) {
+      "windows"
+    } else {
+      name.replaceAll("\\s", "")
+    }
   }
 
   /** Current platform architecture. */

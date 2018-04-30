@@ -176,7 +176,7 @@ package object horovod {
       }
     }
 
-    class DistributedOptimizer(
+    class DistributedOptimizer protected(
         val optimizer: tf.train.Optimizer,
         val name: String = "DistributedOptimizer",
         val deviceDense: String = "",
@@ -331,6 +331,17 @@ package object horovod {
           iteration: Option[Variable]
       ): Op = {
         optimizer.applySparseDuplicateIndices(gradient, variable, iteration)
+      }
+    }
+
+    object DistributedOptimizer {
+      def apply(
+          optimizer: api.tf.train.Optimizer,
+          name: String = "DistributedOptimizer",
+          deviceDense: String = "",
+          deviceSparse: String = ""
+      ): DistributedOptimizer = {
+        new DistributedOptimizer(optimizer, name, deviceDense, deviceSparse)
       }
     }
   }

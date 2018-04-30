@@ -198,11 +198,12 @@ lazy val horovod = (project in file("./horovod"))
       target in javah := sourceDirectory.value / "main" / "native" / "include",
       sourceDirectory in nativeCompile := sourceDirectory.value / "main" / "native",
       target in nativeCompile := target.value / "native" / nativePlatform.value,
-      version in ThisBuild := "0.12.1-SNAPSHOT",
       dockerImagePrefix in JniCross := "tensorflow-jni",
       nativeArtifactName in JniCross := "horovod",
       nativeLibPath in JniCross := {
-        val tfVersion = "nightly" // tensorFlowVersion
+        (nativeCrossCompile in JniCross in jni).value
+        val tfVersion = (tfBinaryVersion in JniCross in jni).value
+        val tfJniTarget = (target in JniCross in jni).value
         val log = streams.value.log
         val targetDir = (target in nativeCrossCompile in JniCross).value
         IO.createDirectory(targetDir)
@@ -213,7 +214,6 @@ lazy val horovod = (project in file("./horovod"))
 
           // Download the native TensorFlow library
           log.info(s"Downloading the TensorFlow native library.")
-          val tfJniTarget = (target in nativeCrossCompile in JniCross in jni).value
           val exitCode = TensorFlowNativePackage.downloadTfLib(
             platform, (tfJniTarget / platform.name).getPath, tfVersion
           ).map(_ ! log)
@@ -225,8 +225,7 @@ lazy val horovod = (project in file("./horovod"))
 
           platform -> tfJniTarget / platform.name
         }).toMap
-      },
-      releaseVersionFile := baseDirectory.value / "version.sbt")
+      })
 
 lazy val data = (project in file("./data"))
     .dependsOn(api)
