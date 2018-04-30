@@ -29,12 +29,12 @@ import scala.collection.mutable
 /**
   * @author Emmanouil Antonios Platanios
   */
-private[ops] object Gradients {
+object Gradients {
   val logger = Logger(LoggerFactory.getLogger("Gradients"))
 
   private[ops] trait API {
-    val Gradients        : ops.Gradients.type          = ops.Gradients
-    val GradientsRegistry: ops.Gradients.Registry.type = ops.Gradients.Registry
+    val gradients        : ops.Gradients.type          = ops.Gradients
+    val gradientsRegistry: ops.Gradients.Registry.type = ops.Gradients.Registry
   }
 
   // TODO: [API] Expose in "tf".

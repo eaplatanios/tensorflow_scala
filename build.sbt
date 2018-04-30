@@ -14,7 +14,7 @@
  */
 
 import ReleaseTransformations._
-import TensorFlowNativePackage._
+import JniCrossPackage._
 import sbtrelease.Vcs
 
 import scala.sys.process.Process
@@ -24,7 +24,7 @@ crossScalaVersions in ThisBuild := Seq("2.11.11", "2.12.6")
 
 organization in ThisBuild := "org.platanios"
 
-val tensorFlowVersion = "1.8.0-rc1"
+val tensorFlowVersion = "1.8.0"
 val circeVersion = "0.9.1" // Use for working with JSON.
 
 autoCompilerPlugins in ThisBuild := true
@@ -56,10 +56,6 @@ scalacOptions in ThisBuild ++= Seq(
 //  "-P:splain:boundsimplicits:false"
 )
 
-// TODO: Find a way to better deal with cross-compiling. Current issues:
-//       - publish, publishLocal, publishSigned, and publishLocalSigned do not account for cross-compiling.
-//       - publishLocalCrossCompiled is a sort-of hacky alternative to deal with one of these cases.
-
 lazy val loggingSettings = Seq(
   libraryDependencies ++= Seq(
     "com.typesafe.scala-logging" %% "scala-logging"   % "3.9.0",
@@ -83,28 +79,10 @@ lazy val testSettings = Seq(
   testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oDF")
 )
 
-lazy val crossCompilationPackagingSettings = Seq(
-  nativeCompile in jni := {
-    (nativeCrossCompile in CrossCompile in jni).value
-    Seq.empty
-  },
-  resourceGenerators in Compile in jni += Def.task {
-    jniLibraries(
-      (nativeCrossCompile in CrossCompile in jni).value,
-      (resourceManaged in Compile in jni).value)
-  }.taskValue,
-  packagedArtifacts ++= {
-    (nativeCrossCompile in CrossCompile in jni).value.map { case (platform, ((dir, nativeLibs), _)) =>
-      Artifact("tensorflow", platform.tag) -> nativeLibsToJar(
-        platform, dir, nativeLibs, (tensorFlowBinaryVersion in CrossCompile in jni).value, streams.value.log)
-    }
-  }
-)
-
 lazy val all = (project in file("."))
     .aggregate(jni, api, data, examples, site)
     .dependsOn(jni, api)
-    .settings(moduleName := "tensorflow", name := "TensorFlow for Scala")
+    .settings(moduleName := "tensorflow", name := "TensorFlow Scala")
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(
@@ -114,20 +92,12 @@ lazy val all = (project in file("."))
       unmanagedResourceDirectories in Compile := Nil,
       unmanagedResourceDirectories in Test := Nil,
       nativeCompile := Seq.empty,
-      nativeCrossCompile in CrossCompile := Map.empty,
-      commands ++= Seq(
-        publishCrossCompiled,
-        publishLocalCrossCompiled,
-        publishSignedCrossCompiled,
-        publishLocalSignedCrossCompiled),
-      releaseProcess := ReleaseStep(reapply(crossCompilationPackagingSettings, _)) +: releaseProcess.value,
-      publishArtifact := true
-    )
+      nativeCrossCompile in JniCross := Map.empty,
+      publishArtifact := true)
 
 lazy val jni = (project in file("./jni"))
-    .enablePlugins(JniNative, TensorFlowGenerateTensorOps, TensorFlowNativePackage)
-    .configs(CrossCompile)
-    .settings(moduleName := "tensorflow-jni", name := "TensorFlow for Scala JNI Bindings")
+    .enablePlugins(JniNative, TensorFlowGenerateTensorOps, JniCrossPackage, TensorFlowNativePackage)
+    .settings(moduleName := "tensorflow-jni", name := "TensorFlow Scala - JNI Bindings")
     .settings(commonSettings)
     .settings(testSettings)
     .settings(publishSettings)
@@ -181,20 +151,19 @@ lazy val jni = (project in file("./jni"))
       target in javah := sourceDirectory.value / "main" / "native" / "include",
       sourceDirectory in nativeCompile := sourceDirectory.value / "main" / "native",
       target in nativeCompile := target.value / "native" / nativePlatform.value,
-      target in CrossCompile := target.value / "native",
-      nativePlatforms in CrossCompile := Set(LINUX_x86_64, LINUX_GPU_x86_64, DARWIN_x86_64),
-      tensorFlowBinaryVersion in CrossCompile := "nightly", // tensorFlowVersion
-      compileTFLib in CrossCompile := false,
-      tfLibRepository in CrossCompile := "https://github.com/tensorflow/tensorflow.git",
-      tfLibRepositoryBranch := "master",
+      target in JniCross := target.value / "native",
+      nativePlatforms in JniCross := Set(LINUX_x86_64, LINUX_GPU_x86_64, DARWIN_x86_64),
+      tfBinaryVersion in JniCross := "nightly", // tensorFlowVersion
+      tfLibCompile in JniCross := false,
+      tfLibRepository in JniCross := "https://github.com/tensorflow/tensorflow.git",
+      tfLibRepositoryBranch in JniCross := "master",
       // Specify the order in which the different compilation tasks are executed
-      nativeCompile := nativeCompile.dependsOn(generateTensorOps).value
-    )
+      nativeCompile := nativeCompile.dependsOn(generateTensorOps).value)
 
 lazy val api = (project in file("./api"))
     .dependsOn(jni)
     .enablePlugins(ProtobufPlugin)
-    .settings(moduleName := "tensorflow-api", name := "TensorFlow for Scala API")
+    .settings(moduleName := "tensorflow-api", name := "TensorFlow Scala")
     .settings(commonSettings)
     .settings(testSettings)
     .settings(publishSettings)
@@ -215,29 +184,69 @@ lazy val api = (project in file("./api"))
       sourceDirectory in ProtobufConfig := sourceDirectory.value / "main" / "proto",
       javaSource in ProtobufConfig := ((sourceDirectory in Compile).value / "generated" / "java"),
       sourceDirectories in Compile += sourceDirectory.value / "main" / "generated" / "java",
-      unmanagedResourceDirectories in Compile += (sourceDirectory in ProtobufConfig).value
-    )
+      unmanagedResourceDirectories in Compile += (sourceDirectory in ProtobufConfig).value)
 
-lazy val data = (project in file("./data"))
-    .dependsOn(api)
-    .settings(moduleName := "tensorflow-data", name := "TensorFlow for Scala Data")
+lazy val horovod = (project in file("./horovod"))
+    .dependsOn(jni, api)
+    .enablePlugins(JniNative, JniCrossPackage)
+    .settings(moduleName := "tensorflow-horovod", name := "TensorFlow Scala - Horovod")
     .settings(commonSettings)
     .settings(testSettings)
     .settings(publishSettings)
     .settings(
-      libraryDependencies += "org.apache.commons" % "commons-compress" % "1.15"
-    )
+      // Native bindings compilation settings
+      target in javah := sourceDirectory.value / "main" / "native" / "include",
+      sourceDirectory in nativeCompile := sourceDirectory.value / "main" / "native",
+      target in nativeCompile := target.value / "native" / nativePlatform.value,
+      version in ThisBuild := "0.12.1-SNAPSHOT",
+      dockerImagePrefix in JniCross := "tensorflow-jni",
+      nativeArtifactName in JniCross := "horovod",
+      nativeLibPath in JniCross := {
+        val tfVersion = "nightly" // tensorFlowVersion
+        val log = streams.value.log
+        val targetDir = (target in nativeCrossCompile in JniCross).value
+        IO.createDirectory(targetDir)
+        (nativePlatforms in nativeCrossCompile in JniCross).value.map(platform => {
+          val platformTargetDir = targetDir / platform.name
+          IO.createDirectory(platformTargetDir / "downloads")
+          IO.createDirectory(platformTargetDir / "downloads" / "lib")
+
+          // Download the native TensorFlow library
+          log.info(s"Downloading the TensorFlow native library.")
+          val tfJniTarget = (target in nativeCrossCompile in JniCross in jni).value
+          val exitCode = TensorFlowNativePackage.downloadTfLib(
+            platform, (tfJniTarget / platform.name).getPath, tfVersion
+          ).map(_ ! log)
+
+          if (exitCode.getOrElse(0) != 0) {
+            sys.error(
+              s"An error occurred while preparing the native TensorFlow libraries for '$platform'. Exit code: $exitCode.")
+          }
+
+          platform -> tfJniTarget / platform.name
+        }).toMap
+      },
+      releaseVersionFile := baseDirectory.value / "version.sbt")
+
+lazy val data = (project in file("./data"))
+    .dependsOn(api)
+    .settings(moduleName := "tensorflow-data", name := "TensorFlow Scala - Data")
+    .settings(commonSettings)
+    .settings(testSettings)
+    .settings(publishSettings)
+    .settings(
+      libraryDependencies += "org.apache.commons" % "commons-compress" % "1.15")
 
 lazy val examples = (project in file("./examples"))
     .dependsOn(api, data)
-    .settings(moduleName := "tensorflow-examples", name := "TensorFlow for Scala Examples")
+    .settings(moduleName := "tensorflow-examples", name := "TensorFlow Scala - Examples")
     .settings(commonSettings)
     .settings(publishSettings)
 
 lazy val site = (project in file("./site"))
     .dependsOn(api)
     .enablePlugins(ScalaUnidocPlugin, MicrositesPlugin)
-    .settings(moduleName := "tensorflow-site", name := "TensorFlow for Scala Site")
+    .settings(moduleName := "tensorflow-site", name := "TensorFlow Scala - Site")
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(noPublishSettings)
@@ -289,16 +298,14 @@ lazy val site = (project in file("./site"))
       micrositeFooterText := None,
       includeFilter in makeSite :=
           "*.html" | "*.css" | "*.png" | "*.jpg" | "*.gif" | "*.js" | "*.swf" | "*.yml" | "*.md" | "*.svg",
-      includeFilter in Jekyll := (includeFilter in makeSite).value
-    )
+      includeFilter in Jekyll := (includeFilter in makeSite).value)
 
 lazy val noPublishSettings = Seq(
   publish := Unit,
   publishLocal := Unit,
   publishArtifact := false,
   skip in publish := true,
-  releaseProcess := Nil
-)
+  releaseProcess := Nil)
 
 val deletedPublishedSnapshots = taskKey[Unit]("Delete published snapshots.")
 
@@ -313,8 +320,7 @@ lazy val publishSettings = Seq(
       id="eaplatanios",
       name="Emmanouil Antonios Platanios",
       email="e.a.platanios@gmail.com",
-      url=url("http://platanios.org/"))
-  ),
+      url=url("http://platanios.org/"))),
   autoAPIMappings := true,
   apiURL := Some(url("http://eaplatanios.github.io/tensorflow_scala/api/")),
   releaseCrossBuild := true,
@@ -324,6 +330,7 @@ lazy val publishSettings = Seq(
     s"v${if (releaseUseGlobalVersion.value) buildVersionValue else versionValue}"
   },
   releaseVersionBump := sbtrelease.Version.Bump.Next,
+  releaseVersionFile := baseDirectory.value / "version.sbt",
   releaseUseGlobalVersion := true,
   releasePublishArtifactsAction := PgpKeys.publishSigned.value,
   releaseVcs := Vcs.detect(baseDirectory.value),
@@ -357,8 +364,7 @@ lazy val publishSettings = Seq(
     setNextVersion,
     commitNextVersion,
     releaseStepCommand("sonatypeReleaseAll"),
-    pushChanges
-  ),
+    pushChanges),
   // For Travis CI - see http://www.cakesolutions.net/teamblogs/publishing-artefacts-to-oss-sonatype-nexus-using-sbt-and-travis-ci
   credentials ++= (for {
     username <- Option(System.getenv().get("SONATYPE_USERNAME"))
@@ -372,31 +378,3 @@ lazy val publishSettings = Seq(
           s"${Opts.resolver.sonatypeSnapshots.root}/${organization.value.replace(".", "/")}/" :: Nil) ! streams.value.log
   }
 )
-
-lazy val publishCrossCompiled = Command.command("publishCrossCompiled") { state =>
-  val newState = reapply(crossCompilationPackagingSettings, state)
-  val extracted = Project.extract(newState)
-  extracted.runAggregated(publish in extracted.get(thisProjectRef), newState)
-  state
-}
-
-lazy val publishLocalCrossCompiled = Command.command("publishLocalCrossCompiled") { state =>
-  val newState = reapply(crossCompilationPackagingSettings, state)
-  val extracted = Project.extract(newState)
-  extracted.runAggregated(publishLocal in extracted.get(thisProjectRef), newState)
-  state
-}
-
-lazy val publishSignedCrossCompiled = Command.command("publishSignedCrossCompiled") { state =>
-  val newState = reapply(crossCompilationPackagingSettings, state)
-  val extracted = Project.extract(newState)
-  extracted.runAggregated(PgpKeys.publishSigned in extracted.get(thisProjectRef), newState)
-  state
-}
-
-lazy val publishLocalSignedCrossCompiled = Command.command("publishLocalSignedCrossCompiled") { state =>
-  val newState = reapply(crossCompilationPackagingSettings, state)
-  val extracted = Project.extract(newState)
-  extracted.runAggregated(PgpKeys.publishLocalSigned in extracted.get(thisProjectRef), newState)
-  state
-}
