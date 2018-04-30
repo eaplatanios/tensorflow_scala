@@ -32,7 +32,7 @@ private[horovod] trait Ops {
     * @return Tensor of the same shape and type as `value` that is summed across all processes.
     */
   def allReduce(value: Output, name: String = "HorovodAllReduce"): Output = {
-    Op.Builder("HorovodAllReduce", name)
+    Op.Builder("HorovodAllreduce", name)
         .addInput(value)
         .build().outputs(0)
   }
@@ -49,7 +49,7 @@ private[horovod] trait Ops {
     *         first dimensions of the tensors in the different Horovod processes.
     */
   def allGather(value: Output, name: String = "HorovodAllGather"): Output = {
-    Op.Builder("HorovodAllGather", name)
+    Op.Builder("HorovodAllgather", name)
         .addInput(value)
         .build().outputs(0)
   }

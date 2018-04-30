@@ -168,6 +168,7 @@ object JniCrossPackage extends AutoPlugin {
   ): Option[File] = {
     val dir = crossCompilationOutput.packagedArtifactsDir.getPath
     val dirPath = Paths.get(dir)
+    // TODO: [BUILD] !!! Make the following name more generic.
     val jarPath = dirPath.resolveSibling(s"tensorflow-native-${platform.name}.jar").toString
     val filePaths = crossCompilationOutput.packagedArtifacts.map(f => dirPath.relativize(Paths.get(f.getPath))).toList
     if (filePaths.nonEmpty) {

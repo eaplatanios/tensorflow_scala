@@ -586,10 +586,13 @@ object Saver {
     *         relative paths to `directory`.
     */
   private def checkpointState(
-      directory: Path, modelCheckpointPath: Path, allModelCheckpointPaths: Seq[Path] = Seq.empty): CheckpointState = {
+      directory: Path,
+      modelCheckpointPath: Path,
+      allModelCheckpointPaths: Seq[Path] = Seq.empty
+  ): CheckpointState = {
     var checkpointPath = modelCheckpointPath
     var allCheckpointPaths = {
-      if (allModelCheckpointPaths.last != checkpointPath)
+      if (allModelCheckpointPaths.isEmpty || allModelCheckpointPaths.last != checkpointPath)
         allModelCheckpointPaths :+ checkpointPath
       else
         allModelCheckpointPaths

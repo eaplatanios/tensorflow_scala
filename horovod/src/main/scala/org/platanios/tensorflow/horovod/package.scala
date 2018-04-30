@@ -146,7 +146,13 @@ package object horovod {
       * @return Created broadcast op.
       */
     def broadcastGlobalVariables(rootRank: Int): Op = {
-      tf.group(tf.currentGraph.globalVariables.map(v => v.assign(Ops.broadcast(v.value, rootRank)).op))
+      tf.group(tf.currentGraph.globalVariables.map(v => {
+        Op.Builder(opType = "AssignVariableOp", name = s"${v.name}/Broadcast/Assign")
+            .addInput(v.op.outputs.head)
+            .addInput(Ops.broadcast(v.value, rootRank))
+            .setAttribute("dtype", v.dataType)
+            .build()
+      }))
     }
 
     /** Hooks that will broadcast all global variables from root rank to all other processes during initialization.
