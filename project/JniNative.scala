@@ -108,9 +108,9 @@ object JniNative extends AutoPlugin {
       streams.value.log.success(s"Libraries built in:\n\t- ${libraries.map(_.getAbsolutePath).mkString("\n\t- ")}")
       libraries
     },
-    compile in Compile := (compile in Compile).dependsOn(nativeCompile).value,
+    // compile in Compile := (compile in Compile).dependsOn(nativeCompile).value,
     // Make the SBT clean task also cleans the native sources.
-    clean := clean.dependsOn(clean in nativeCompile).value)
+    // clean := clean.dependsOn(clean in nativeCompile).value)
 
   override lazy val projectSettings: Seq[Setting[_]] = settings
 }
