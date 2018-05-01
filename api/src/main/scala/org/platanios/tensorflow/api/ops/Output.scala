@@ -526,7 +526,7 @@ final case class OutputIndexedSlices(indices: Output, values: Output, denseShape
       logger.warn(
         s"Converting sparse 'OutputIndexedSlices' to a dense 'Output' with ${denseShapeValue.get.numElements} " +
             "elements. This may consume a large amount of memory.")
-    createWith(nameScope = "IndexedSlicesToOutput") {
+    createWith(nameScope = s"$name/ToOutput") {
       Math.unsortedSegmentSum(data = values, segmentIndices = indices, segmentsNumber = denseShape.gather(0))
     }
   }
@@ -669,7 +669,11 @@ final case class SparseOutput(indices: Output, values: Output, denseShape: Outpu
     * @param  name            Name for the created op.
     * @return Created op output, with the same data type as `input.values` and shape `input.denseShape`.
     */
-  def toOutput(defaultValue: Output = 0, validateIndices: Boolean = true, name: String = "SparseToDense"): Output = {
+  def toOutput(
+      defaultValue: Output = 0,
+      validateIndices: Boolean = true,
+      name: String = s"$name/ToOutput"
+  ): Output = {
     Op.Builder(opType = "SparseToDense", name = name)
         .addInput(indices)
         .addInput(denseShape)

@@ -187,7 +187,7 @@ class Saver private (saverDef: SaverDef, saveRelativePaths: Boolean = false, pad
         if (writeCheckpointState) {
           maybeDeleteOldCheckpoints(modelCheckpointPath, metaGraphSuffix)
           Saver.updateCheckpointStateFile(
-            savePathParent, modelCheckpointPath, lastCheckpoints.map(_._1), checkpointStateFilename, saveRelativePaths)
+            savePathParent, modelCheckpointPath, latestCheckpoints, checkpointStateFilename, saveRelativePaths)
         }
         Some(modelCheckpointPath)
       } catch {
@@ -592,7 +592,7 @@ object Saver {
   ): CheckpointState = {
     var checkpointPath = modelCheckpointPath
     var allCheckpointPaths = {
-      if (allModelCheckpointPaths.isEmpty || allModelCheckpointPaths.last != checkpointPath)
+      if (allModelCheckpointPaths.last != checkpointPath)
         allModelCheckpointPaths :+ checkpointPath
       else
         allModelCheckpointPaths
@@ -626,8 +626,12 @@ object Saver {
     *                                 file.
     */
   private def updateCheckpointStateFile(
-      directory: Path, modelCheckpointPath: Path, allModelCheckpointPaths: Seq[Path] = Seq.empty,
-      checkpointStateFilename: String = "checkpoint", saveRelativePaths: Boolean = false): Unit = {
+      directory: Path,
+      modelCheckpointPath: Path,
+      allModelCheckpointPaths: Seq[Path] = Seq.empty,
+      checkpointStateFilename: String = "checkpoint",
+      saveRelativePaths: Boolean = false
+  ): Unit = {
     // Writes the "checkpoint" file for the coordinator for later restoration.
     val coordinatorCheckpointStateFilename = directory.resolve(checkpointStateFilename)
     val state = {
@@ -718,8 +722,10 @@ object Saver {
     *         specified by `unit`.
     */
   private def checkpointTimes(
-      checkpointPrefixes: Seq[Path], unit: TimeUnit = TimeUnit.SECONDS,
-      followSymbolicLinks: Boolean = true): Seq[Long] = {
+      checkpointPrefixes: Seq[Path],
+      unit: TimeUnit = TimeUnit.SECONDS,
+      followSymbolicLinks: Boolean = true
+  ): Seq[Long] = {
     def maybeGetTime(pattern: Path): Long = {
       val paths = FileIO.getMatchingPaths(pattern)
       if (paths.nonEmpty) {
