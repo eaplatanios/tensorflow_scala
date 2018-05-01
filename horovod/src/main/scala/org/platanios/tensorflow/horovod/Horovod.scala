@@ -41,13 +41,18 @@ private[horovod] object Horovod {
     if (name.contains("linux")) {
       // Hack to check if CUDA is installed in the system.
       val result = Process("nvidia-smi").lineStream
-      if (result.isEmpty || result.exists(_.contains("command not found")))
+      if (result.isEmpty || result.exists(_.contains("command not found"))) {
+        logger.info("Detected Linux x86-64 without CUDA support.")
         "linux"
-      else
+      } else {
+        logger.info("Detected Linux x86-64 with CUDA support.")
         "linux-gpu"
+      }
     } else if (name.contains("os x") || name.contains("darwin")) {
+      logger.info("Detected MacOS x86-64 without CUDA support.")
       "darwin"
     } else if (name.contains("windows")) {
+      logger.info("Detected Windows x86-64 without CUDA support.")
       "windows"
     } else {
       name.replaceAll("\\s", "")

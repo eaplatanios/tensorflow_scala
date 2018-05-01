@@ -119,10 +119,10 @@ package object horovod {
         deviceSparse: String = ""
     ): O = value match {
       case v: OutputIndexedSlices => tf.device(deviceSparse) {
-        // For indexed slices we do two all-gathers intead of an all-reduce.
+        // For indexed slices we do two all-gathers instead of an all-reduce.
         val horovodSize = tf.constant(size, v.dataType)
-        var values = Ops.allGather(v.values)
-        val indices = Ops.allGather(v.indices)
+        var values = Ops.allGather(v.values, name = s"${v.values.name.replace(":", "_")}/AllGather")
+        val indices = Ops.allGather(v.indices, name = s"${v.indices.name.replace(":", "_")}/AllGather")
 
         // To convert this operation to an average, we divide all gathered values by the Horovod size.
         values = if (average) tf.divide(values, horovodSize) else values
@@ -131,7 +131,7 @@ package object horovod {
       case v => tf.device(deviceDense) {
         // TODO: [HOROVOD] What about sparse tensors?
         val horovodSize = tf.constant(size, v.dataType)
-        val summedValue = Ops.allReduce(v.toOutput)
+        val summedValue = Ops.allReduce(v.toOutput, name = s"${v.name.replace(":", "_")}/AllReduce")
         if (average)
           tf.divide(summedValue, horovodSize).asInstanceOf[O]
         else
