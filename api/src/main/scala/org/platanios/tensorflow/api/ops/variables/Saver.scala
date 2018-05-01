@@ -139,9 +139,14 @@ class Saver private (saverDef: SaverDef, saveRelativePaths: Boolean = false, pad
     *         created.
     */
   def save(
-      session: Session, savePath: Path, globalStep: Option[Int] = None, checkpointStateFilename: String = "checkpoint",
-      metaGraphSuffix: String = "meta", writeMetaGraph: Boolean = true,
-      writeCheckpointState: Boolean = true): Option[Path] = {
+      session: Session,
+      savePath: Path,
+      globalStep: Option[Int] = None,
+      checkpointStateFilename: String = "checkpoint",
+      metaGraphSuffix: String = "meta",
+      writeMetaGraph: Boolean = true,
+      writeCheckpointState: Boolean = true
+  ): Option[Path] = {
     val absoluteSavePath = savePath.toAbsolutePath
     Saver.logger.info(s"Saving parameters to '$absoluteSavePath'.")
     if (writerVersion != Saver.V2) {
@@ -185,9 +190,10 @@ class Saver private (saverDef: SaverDef, saveRelativePaths: Boolean = false, pad
             feeds = Map(filenameTensor -> (checkpointFile.toString: Tensor)),
             fetches = saveTensor).scalar.asInstanceOf[String])
         if (writeCheckpointState) {
-          maybeDeleteOldCheckpoints(modelCheckpointPath, metaGraphSuffix)
+          recoverLastCheckpoints(Seq(modelCheckpointPath))
           Saver.updateCheckpointStateFile(
             savePathParent, modelCheckpointPath, latestCheckpoints, checkpointStateFilename, saveRelativePaths)
+          maybeDeleteOldCheckpoints(modelCheckpointPath, metaGraphSuffix)
         }
         Some(modelCheckpointPath)
       } catch {
@@ -357,10 +363,20 @@ object Saver {
     */
   @throws[IllegalArgumentException]
   private[api] def apply(
-      saveables: Set[Saveable] = null, reshape: Boolean = false, sharded: Boolean = false, maxToKeep: Int = 5,
-      keepCheckpointEveryNHours: Float = 10000.0f, restoreSequentially: Boolean = false, filename: String = "model",
-      builder: SaverDefBuilder = DefaultSaverDefBuilder, allowEmpty: Boolean = false, writerVersion: WriterVersion = V2,
-      saveRelativePaths: Boolean = false, padGlobalStep: Boolean = false, name: String = "Saver"): Saver = {
+      saveables: Set[Saveable] = null,
+      reshape: Boolean = false,
+      sharded: Boolean = false,
+      maxToKeep: Int = 5,
+      keepCheckpointEveryNHours: Float = 10000.0f,
+      restoreSequentially: Boolean = false,
+      filename: String = "model",
+      builder: SaverDefBuilder = DefaultSaverDefBuilder,
+      allowEmpty: Boolean = false,
+      writerVersion: WriterVersion = V2,
+      saveRelativePaths: Boolean = false,
+      padGlobalStep: Boolean = false,
+      name: String = "Saver"
+  ): Saver = {
     val collectedSaveables: Set[Saveable] = {
       if (saveables == null) {
         // TODO: [VARIABLES] Use a better default for this.
@@ -397,8 +413,11 @@ object Saver {
     * @return Constructed [[Saver]].
     */
   def fromSaverDef(
-      saverDef: SaverDef, importScope: String = null, saveRelativePaths: Boolean = false,
-      padGlobalStep: Boolean = true): Saver = {
+      saverDef: SaverDef,
+      importScope: String = null,
+      saveRelativePaths: Boolean = false,
+      padGlobalStep: Boolean = true
+  ): Saver = {
     val newSaverDef = {
       if (importScope != null && importScope != "") {
         val saverDefBuilder = saverDef.toBuilder
@@ -427,8 +446,11 @@ object Saver {
     * @return Constructed [[Saver]].
     */
   def fromProto(
-      saverDef: SaverDef, importScope: String = null, saveRelativePaths: Boolean = false,
-      padGlobalStep: Boolean = true): Saver = {
+      saverDef: SaverDef,
+      importScope: String = null,
+      saveRelativePaths: Boolean = false,
+      padGlobalStep: Boolean = true
+  ): Saver = {
     fromSaverDef(
       saverDef = saverDef,
       importScope = importScope,
@@ -482,11 +504,18 @@ object Saver {
     *                                     Defaults to a function that returns `true` for all inputs.
     * @return Constructed [[Saver]].
     */
-  def fromMetaGraphDef(metaGraphDef: MetaGraphDef, importScope: String = null, saveRelativePaths: Boolean = false,
-      padGlobalStep: Boolean = true, inputsMap: Map[(String, Int), Output] = Map.empty,
-      controlDependenciesMap: Map[String, Op] = Map.empty, controlDependencies: Set[Op] = Set.empty,
-      clearDevices: Boolean = false, unboundInputsCollectionKey: Graph.Key[String] = Graph.Keys.UNBOUND_INPUTS,
-      restoreCollectionsPredicate: Graph.Key[_] => Boolean = _ => true): Saver = {
+  def fromMetaGraphDef(
+      metaGraphDef: MetaGraphDef,
+      importScope: String = null,
+      saveRelativePaths: Boolean = false,
+      padGlobalStep: Boolean = true,
+      inputsMap: Map[(String, Int), Output] = Map.empty,
+      controlDependenciesMap: Map[String, Op] = Map.empty,
+      controlDependencies: Set[Op] = Set.empty,
+      clearDevices: Boolean = false,
+      unboundInputsCollectionKey: Graph.Key[String] = Graph.Keys.UNBOUND_INPUTS,
+      restoreCollectionsPredicate: Graph.Key[_] => Boolean = _ => true
+  ): Saver = {
     Op.currentGraph.importMetaGraphDef(
       metaGraphDef = metaGraphDef,
       importScope = importScope,
@@ -592,7 +621,7 @@ object Saver {
   ): CheckpointState = {
     var checkpointPath = modelCheckpointPath
     var allCheckpointPaths = {
-      if (allModelCheckpointPaths.last != checkpointPath)
+      if (allModelCheckpointPaths.isEmpty || allModelCheckpointPaths.last != checkpointPath)
         allModelCheckpointPaths :+ checkpointPath
       else
         allModelCheckpointPaths
@@ -672,7 +701,9 @@ object Saver {
     */
   @throws[IllegalArgumentException]
   private[api] def loadCheckpointState(
-      directory: Path, checkpointStateFile: String = "checkpoint"): Option[CheckpointState] = {
+      directory: Path,
+      checkpointStateFile: String = "checkpoint"
+  ): Option[CheckpointState] = {
     val coordinatorCheckpointStateFilename = directory.resolve(checkpointStateFile)
     // Check that the file exists before opening it to avoid many lines of errors from colossus in the logs.
     if (Files.exists(coordinatorCheckpointStateFilename)) {
@@ -1028,8 +1059,12 @@ trait SaverDefBuilder {
     * @return Created op.
     */
   protected def addShardedRestoreOps(
-      prefix: Output, saveablesByDevice: Seq[(String, Set[Saveable])], reshape: Boolean, restoreSequentially: Boolean,
-      name: String = "Restore"): Op = {
+      prefix: Output,
+      saveablesByDevice: Seq[(String, Set[Saveable])],
+      reshape: Boolean,
+      restoreSequentially: Boolean,
+      name: String = "Restore"
+  ): Op = {
     val restoreOps = saveablesByDevice.map { case (device, saveables) =>
       Op.createWith(device = device)(addRestoreOps(prefix, saveables, restoreSequentially, reshape, name))
     }
@@ -1059,9 +1094,15 @@ trait SaverDefBuilder {
     * @return Created [[SaverDef]] object.
     */
   def build(
-      saveables: Set[Saveable], reshape: Boolean = false, sharded: Boolean = false, maxToKeep: Int = 5,
-      keepCheckpointEveryNHours: Float = 10000.0f, restoreSequentially: Boolean = false, filename: String = "model",
-      name: String = "Saver"): SaverDef = {
+      saveables: Set[Saveable],
+      reshape: Boolean = false,
+      sharded: Boolean = false,
+      maxToKeep: Int = 5,
+      keepCheckpointEveryNHours: Float = 10000.0f,
+      restoreSequentially: Boolean = false,
+      filename: String = "model",
+      name: String = "Saver"
+  ): SaverDef = {
     SaverDefBuilder.checkSaveables(saveables)
     val (filenameOutput, saveOutput, restoreOp) = Op.createWithNameScope(name, saveables.flatMap(_.producerOps)) {
       // Add the constant string tensor for the filename.
@@ -1186,8 +1227,12 @@ object SaverDefBuilder {
   @deprecated("The V1 checkpoint format version has been deprecated.", "0.1")
   @throws[IllegalArgumentException]
   private def saveSlicesOp(
-      filename: Output, tensorNames: Seq[String], tensors: Seq[Output], slices: Seq[String],
-      name: String = "Save"): Op = {
+      filename: Output,
+      tensorNames: Seq[String],
+      tensors: Seq[Output],
+      slices: Seq[String],
+      name: String = "Save"
+  ): Op = {
     if (tensorNames.length != tensors.length)
       throw new IllegalArgumentException(
         s"The number of tensor names provided (${tensorNames.length}) does not match the number of tensors in " +
@@ -1225,7 +1270,11 @@ object SaverDefBuilder {
     */
   @deprecated("The V1 checkpoint format version has been deprecated.", "0.1")
   private def restoreOp(
-      filenamePattern: Output, tensorName: String, preferredShard: Int = -1, name: String = "Restore"): Output = {
+      filenamePattern: Output,
+      tensorName: String,
+      preferredShard: Int = -1,
+      name: String = "Restore"
+  ): Output = {
     Op.Builder(opType = "Restore", name = name)
         .addInput(filenamePattern)
         .addInput(Tensor(tensorName).toOutput)
@@ -1249,8 +1298,12 @@ object SaverDefBuilder {
     */
   @deprecated("The V1 checkpoint format version has been deprecated.", "0.1")
   private def restoreSliceOp(
-      filenamePattern: Output, tensorName: String, slice: String, preferredShard: Int = -1,
-      name: String = "Restore"): Output = {
+      filenamePattern: Output,
+      tensorName: String,
+      slice: String,
+      preferredShard: Int = -1,
+      name: String = "Restore"
+  ): Output = {
     Op.Builder(opType = "RestoreSlice", name = name)
         .addInput(filenamePattern)
         .addInput(Tensor(tensorName).toOutput)
@@ -1291,8 +1344,12 @@ object SaverDefBuilder {
     */
   @throws[IllegalArgumentException]
   private def saveV2Op(
-      prefix: Output, tensorNames: Seq[String], tensors: Seq[Output], slices: Seq[String],
-      name: String = "Save"): Op = {
+      prefix: Output,
+      tensorNames: Seq[String],
+      tensors: Seq[Output],
+      slices: Seq[String],
+      name: String = "Save"
+  ): Op = {
     if (tensorNames.length != tensors.length)
       throw new IllegalArgumentException(
         s"The number of tensor names provided (${tensorNames.length}) does not match the number of tensors in " +
@@ -1342,8 +1399,12 @@ object SaverDefBuilder {
     */
   @throws[IllegalArgumentException]
   private def restoreV2Op(
-      prefix: Output, tensorNames: Seq[String], slices: Seq[String], dataTypes: Seq[DataType],
-      name: String = "Restore"): Seq[Output] = {
+      prefix: Output,
+      tensorNames: Seq[String],
+      slices: Seq[String],
+      dataTypes: Seq[DataType],
+      name: String = "Restore"
+  ): Seq[Output] = {
     if (tensorNames.length != slices.length)
       throw new IllegalArgumentException(
         s"The number of tensor names provided (${tensorNames.length}) does not match the number of slices in " +
@@ -1375,8 +1436,11 @@ object SaverDefBuilder {
     * @return Created op.
     */
   private def mergeV2Checkpoints(
-      checkpointPrefixes: Output, destinationPrefix: Output, deleteOldDirectories: Boolean = true,
-      name: String = "MergeV2Checkpoints"): Op = {
+      checkpointPrefixes: Output,
+      destinationPrefix: Output,
+      deleteOldDirectories: Boolean = true,
+      name: String = "MergeV2Checkpoints"
+  ): Op = {
     Op.Builder(opType = "MergeV2Checkpoints", name = name)
         .addInput(checkpointPrefixes)
         .addInput(destinationPrefix)
@@ -1394,7 +1458,11 @@ object SaverDefBuilder {
     * @return Created scalar op output containing the sharded filename.
     */
   private def shardedFilenameOp(
-      filename: Output, shard: Output, numberOfShards: Output, name: String = "ShardedFilename"): Output = {
+      filename: Output,
+      shard: Output,
+      numberOfShards: Output,
+      name: String = "ShardedFilename"
+  ): Output = {
     Op.Builder(opType = "ShardedFilename", name = name)
         .addInput(filename)
         .addInput(shard)
@@ -1410,7 +1478,10 @@ object SaverDefBuilder {
     * @return Created scalar op output containing a filename pattern string.
     */
   private def shardedFilenameSpecificationOp(
-      filename: Output, numberOfShards: Output, name: String = "ShardedFilenameSpecification"): Output = {
+      filename: Output,
+      numberOfShards: Output,
+      name: String = "ShardedFilenameSpecification"
+  ): Output = {
     Op.Builder(opType = "ShardedFilespec", name = name)
         .addInput(filename)
         .addInput(numberOfShards)
