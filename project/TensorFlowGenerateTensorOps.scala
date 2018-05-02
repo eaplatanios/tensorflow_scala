@@ -43,7 +43,7 @@ object TensorFlowGenerateTensorOps extends AutoPlugin {
   import autoImport._
 
   lazy val settings: Seq[Setting[_]] = Seq(
-    scalaPackage in generateTensorOps := s"tensors",
+    scalaPackage in generateTensorOps := "tensors",
     target in generateTensorOps := target.value,
     ops in generateTensorOps := Map.empty,
     clean in generateTensorOps := {
@@ -69,12 +69,17 @@ object TensorFlowGenerateTensorOps extends AutoPlugin {
     },
     generateTensorOps := {
       streams.value.log.info("Generating TensorFlow tensor op files.")
-      generateFiles(
-        (target in generateTensorOps).value.toPath,
-        (ops in generateTensorOps).value,
-        s"org.platanios.tensorflow.jni.generated.${(scalaPackage in generateTensorOps).value}")
-    }
-  )
+      val opsPBFile = (target in generateTensorOps).value / "resources" / "ops.pbtxt"
+      val cachedFunction = FileFunction.cached(opsPBFile.getParentFile)(opsFiles => {
+        generateFiles(
+          opsFiles.head,
+          (target in generateTensorOps).value.toPath,
+          (ops in generateTensorOps).value,
+          s"org.platanios.tensorflow.jni.generated.${(scalaPackage in generateTensorOps).value}")
+        Set.empty
+      })
+      cachedFunction(Set(opsPBFile))
+    })
 
   override lazy val projectSettings: Seq[Setting[_]] = settings
 }

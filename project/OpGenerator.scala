@@ -17,6 +17,8 @@ import com.google.protobuf.TextFormat
 import org.tensorflow.framework.{AttrValue, OpDef, OpList}
 import org.tensorflow.framework.OpDef.AttrDef
 
+import sbt.File
+
 import java.io.StringWriter
 import java.nio.file.{Files, Path, Paths}
 import java.util.Locale
@@ -634,14 +636,14 @@ object OpGenerator {
     *
     * Note that all pre-existing files in the relevant directories will be replaced.
     *
+    * @param  opsPBFile    Protobuf file containing the op definitions.
     * @param  path         Root path for the file generation.
-    * @param  ops          Grouped ops for which bindinds will be generated.
+    * @param  ops          Grouped ops for which bindings will be generated.
     * @param  scalaPackage Scala package to use for the generated Scala file.
     */
-  def generateFiles(path: Path, ops: Map[String, Seq[String]], scalaPackage: String): Unit = {
+  def generateFiles(opsPBFile: File, path: Path, ops: Map[String, Seq[String]], scalaPackage: String): Unit = {
     val opList = OpList.newBuilder()
-    TextFormat.merge(
-      Files.readAllLines(path.resolve(Paths.get("resources", "ops.pbtxt"))).toArray.mkString("\n"), opList)
+    TextFormat.merge(Files.readAllLines(opsPBFile.toPath).toArray.mkString("\n"), opList)
     val opDefsMap = opList.getOpList.asScala.map(o => o.getName -> o).toMap
     ops.foreach(o => generateGroupFiles(path, o._1, o._2.map(opDefsMap), scalaPackage))
   }
