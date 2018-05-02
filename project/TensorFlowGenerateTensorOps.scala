@@ -70,7 +70,7 @@ object TensorFlowGenerateTensorOps extends AutoPlugin {
     generateTensorOps := {
       streams.value.log.info("Generating TensorFlow tensor op files.")
       val opsPBFile = (target in generateTensorOps).value / "resources" / "ops.pbtxt"
-      val cachedFunction = FileFunction.cached(opsPBFile.getParentFile)(opsFiles => {
+      val cachedFunction = FileFunction.cached(streams.value.cacheDirectory)(opsFiles => {
         generateFiles(
           opsFiles.head,
           (target in generateTensorOps).value.toPath,

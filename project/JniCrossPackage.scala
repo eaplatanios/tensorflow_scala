@@ -57,8 +57,8 @@ object JniCrossPackage extends AutoPlugin {
 
   lazy val settings: Seq[Setting[_]] = Seq(
     nativePlatforms := Set(LINUX_x86_64, LINUX_GPU_x86_64, DARWIN_x86_64),
-    target in JniCross := (target in Compile).value / "native",
-    nativeLibPath in JniCross := {
+    target := (target in Compile).value / "native",
+    nativeLibPath := {
       val targetDir = (target in nativeCrossCompile).value
       (nativePlatforms in nativeCrossCompile).value.map(platform => {
         platform -> targetDir / platform.name
@@ -76,10 +76,6 @@ object JniCrossPackage extends AutoPlugin {
             .toSeq
             .reverse
             .foreach(Files.deleteIfExists)
-    },
-    compile := {
-      nativeCompile.value
-      (compile in Compile).value
     },
     nativeCompile := {
       nativeCrossCompile.value
@@ -127,19 +123,11 @@ object JniCrossPackage extends AutoPlugin {
         platform -> CrossCompilationOutput(managedResources, packagedArtifactsDir, packagedArtifacts)
       }).toMap
     },
-    resourceGenerators in Compile += Def.task {
+    resourceGenerators := Seq(Def.task {
       getManagedResources(
         nativeCrossCompile.value,
         (resourceManaged in Compile).value)
-    }.taskValue,
-    packagedArtifacts ++= {
-      nativeCrossCompile.value
-          .map(p => p._1 -> getPackagedArtifacts(p._1, p._2))
-          .filter(_._2.isDefined).map {
-        case (platform, file) => Artifact(nativeArtifactName.value, platform.tag) -> file.get
-      }
-    }
-  )
+    }.taskValue))
 
   override lazy val projectSettings: Seq[Def.Setting[_]] = inConfig(JniCross)(settings)
 
