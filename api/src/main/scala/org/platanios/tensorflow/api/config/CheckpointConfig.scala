@@ -26,7 +26,7 @@ sealed trait CheckpointConfig {
 
 /** Checkpoint configuration for not saving any checkpoints. */
 case object NoCheckpoints extends CheckpointConfig {
-  override val maxCheckpointsToKeep     : Int = 0
+  override val maxCheckpointsToKeep     : Int = 1
   override val keepCheckpointEveryNHours: Int = 10000
 }
 

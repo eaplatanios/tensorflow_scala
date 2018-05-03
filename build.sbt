@@ -187,7 +187,7 @@ lazy val api = (project in file("./api"))
         "io.circe" %% "circe-parser"
       ).map(_ % circeVersion),
       // Protobuf settings
-      version in ProtobufConfig := "3.4.0",
+      version in ProtobufConfig := "3.5.1",
       sourceDirectory in ProtobufConfig := sourceDirectory.value / "main" / "proto",
       javaSource in ProtobufConfig := ((sourceDirectory in Compile).value / "generated" / "java"),
       sourceDirectories in Compile += sourceDirectory.value / "main" / "generated" / "java",

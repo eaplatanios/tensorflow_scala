@@ -190,7 +190,6 @@ class Saver private (saverDef: SaverDef, saveRelativePaths: Boolean = false, pad
             feeds = Map(filenameTensor -> (checkpointFile.toString: Tensor)),
             fetches = saveTensor).scalar.asInstanceOf[String])
         if (writeCheckpointState) {
-          recoverLastCheckpoints(Seq(modelCheckpointPath))
           Saver.updateCheckpointStateFile(
             savePathParent, modelCheckpointPath, latestCheckpoints, checkpointStateFilename, saveRelativePaths)
           maybeDeleteOldCheckpoints(modelCheckpointPath, metaGraphSuffix)
@@ -708,7 +707,7 @@ object Saver {
     // Check that the file exists before opening it to avoid many lines of errors from colossus in the logs.
     if (Files.exists(coordinatorCheckpointStateFilename)) {
       try {
-        val loadedString = Files.readAllLines(coordinatorCheckpointStateFilename).get(0)
+        val loadedString = Files.readAllLines(coordinatorCheckpointStateFilename).asScala.mkString("\n")
         val checkpointStateBuilder = CheckpointState.newBuilder()
         TextFormat.merge(loadedString, checkpointStateBuilder)
         if (checkpointStateBuilder.getModelCheckpointPath == null)
@@ -716,11 +715,11 @@ object Saver {
         // For relative paths, we prepend the directory.
         val modelCheckpointPath = checkpointStateBuilder.getModelCheckpointPath
         if (!directory.getFileSystem.getPath(modelCheckpointPath).isAbsolute)
-          checkpointStateBuilder.setModelCheckpointPath(directory.resolve(modelCheckpointPath).toString)
+          checkpointStateBuilder.setModelCheckpointPath(directory.resolve(modelCheckpointPath).toAbsolutePath.toString)
         (0 until checkpointStateBuilder.getAllModelCheckpointPathsCount).foreach(i => {
           val path = checkpointStateBuilder.getAllModelCheckpointPaths(i)
           if (!directory.getFileSystem.getPath(path).isAbsolute)
-            checkpointStateBuilder.setAllModelCheckpointPaths(i, directory.resolve(path).toString)
+            checkpointStateBuilder.setAllModelCheckpointPaths(i, directory.resolve(path).toAbsolutePath.toString)
         })
         Some(checkpointStateBuilder.build())
       } catch {
