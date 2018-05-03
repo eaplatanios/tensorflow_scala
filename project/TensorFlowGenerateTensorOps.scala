@@ -68,9 +68,10 @@ object TensorFlowGenerateTensorOps extends AutoPlugin {
             .foreach(Files.deleteIfExists)
     },
     generateTensorOps := {
-      streams.value.log.info("Generating TensorFlow tensor op files.")
+      val log = streams.value.log
       val opsPBFile = (target in generateTensorOps).value / "resources" / "ops.pbtxt"
       val cachedFunction = FileFunction.cached(streams.value.cacheDirectory)(opsFiles => {
+        log.info("Generating TensorFlow tensor op files.")
         generateFiles(
           opsFiles.head,
           (target in generateTensorOps).value.toPath,

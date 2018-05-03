@@ -99,14 +99,18 @@ object JniNative extends AutoPlugin {
     },
     clean in nativeCompile := nativeClean.value,
     nativeCompile := {
+      val log = streams.value.log
       val tool = nativeBuildTool.value
       val toolInstance = nativeBuildToolInstance.value
       val targetDir = (target in nativeCompile).value / "bin"
-      IO.createDirectory(targetDir)
-      streams.value.log.info(s"Building library with native build tool ${tool.name}.")
-      val libraries = toolInstance.libraries(targetDir)
-      streams.value.log.success(s"Libraries built in:\n\t- ${libraries.map(_.getAbsolutePath).mkString("\n\t- ")}")
-      libraries
+      val cachedFunction = FileFunction.cached(streams.value.cacheDirectory)(_ => {
+        IO.createDirectory(targetDir)
+        log.info(s"Building library with native build tool ${tool.name}.")
+        val libraries = toolInstance.libraries(targetDir)
+        log.success(s"Libraries built in:\n\t- ${libraries.map(_.getAbsolutePath).mkString("\n\t- ")}")
+        libraries.toSet
+      })
+      cachedFunction((sourceDirectory in nativeCompile).value.listFiles().toSet).toSeq
     },
     compile in Compile := (compile in Compile).dependsOn(nativeCompile).value,
     // Make the SBT clean task also cleans the native sources.
