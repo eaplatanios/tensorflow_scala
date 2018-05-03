@@ -29,7 +29,11 @@ object JniCrossPackage extends AutoPlugin {
 
   object autoImport {
     lazy val JniCross = config("cross")
+        .extend(Compile)
         .describedAs("Native code cross-compiling configuration.")
+
+    val nativeCrossCompilationEnabled: SettingKey[Boolean] =
+      settingKey[Boolean]("###")
 
     val dockerImagePrefix: SettingKey[String] =
       settingKey[String]("###")
@@ -77,59 +81,74 @@ object JniCrossPackage extends AutoPlugin {
             .reverse
             .foreach(Files.deleteIfExists)
     },
+    compile := (compile in Compile).dependsOn(nativeCompile).value,
     nativeCompile := {
       nativeCrossCompile.value
       Seq.empty
     },
-    nativeCrossCompile := {
-      val log = streams.value.log
-      val baseDir = baseDirectory.value
-      val targetDir = (target in nativeCrossCompile).value
-      IO.createDirectory(targetDir)
-      (nativePlatforms in nativeCrossCompile).value.map(platform => {
-        log.info(s"Cross-compiling '${moduleName.value}' for platform '$platform'.")
-        log.info(s"Using '$baseDir' as the base directory.")
-        val platformTargetDir = targetDir / platform.name
+    nativeCrossCompile := Def.taskDyn {
+      if (nativeCrossCompilationEnabled.value) {
+        Def.task {
+          val log = streams.value.log
+          val baseDir = baseDirectory.value
+          val targetDir = (target in nativeCrossCompile).value
+          IO.createDirectory(targetDir)
+          (nativePlatforms in nativeCrossCompile).value.map(platform => {
+            log.info(s"Cross-compiling '${moduleName.value}' for platform '$platform'.")
+            log.info(s"Using '$baseDir' as the base directory.")
+            val platformTargetDir = targetDir / platform.name
 
-        IO.createDirectory(platformTargetDir)
-        IO.createDirectory(platformTargetDir / "code")
-        IO.createDirectory(platformTargetDir / "docker")
-        IO.createDirectory(platformTargetDir / "lib")
+            IO.createDirectory(platformTargetDir)
+            IO.createDirectory(platformTargetDir / "code")
+            IO.createDirectory(platformTargetDir / "docker")
+            IO.createDirectory(platformTargetDir / "lib")
 
-        // Generate Dockerfile
-        platform.dockerfile.foreach(d => {
-          val dockerfilePath = platformTargetDir / "docker" / "Dockerfile"
-          log.info(s"Generating Dockerfile in '$dockerfilePath'.")
-          IO.write(dockerfilePath, d)
-        })
+            // Generate Dockerfile
+            platform.dockerfile.foreach(d => {
+              val dockerfilePath = platformTargetDir / "docker" / "Dockerfile"
+              log.info(s"Generating Dockerfile in '$dockerfilePath'.")
+              IO.write(dockerfilePath, d)
+            })
 
-        // Compile and generate binaries
-        log.info(s"Generating binaries in '$platformTargetDir'.")
-        val dockerContainer = s"${moduleName.value}_${platform.name}"
-        val exitCode = platform.build(
-          dockerImage = s"${dockerImagePrefix.value}_${platform.name}",
-          dockerContainer = dockerContainer,
-          srcDir = (baseDirectory.value / "src" / "main" / "native").getPath,
-          tgtDir = platformTargetDir.getPath,
-          libPath = nativeLibPath.value(platform).getPath).map(_ ! log)
-        log.info("Cleaning up after build.")
-        platform.cleanUpAfterBuild(dockerContainer).foreach(_ ! log)
-        if (exitCode.getOrElse(0) != 0)
-          sys.error(s"An error occurred while cross-compiling for '$platform'. Exit code: $exitCode.")
+            // Compile and generate binaries
+            log.info(s"Generating binaries in '$platformTargetDir'.")
+            val dockerContainer = s"${moduleName.value}_${platform.name}"
+            val exitCode = platform.build(
+              dockerImage = s"${dockerImagePrefix.value}_${platform.name}",
+              dockerContainer = dockerContainer,
+              srcDir = (baseDirectory.value / "src" / "main" / "native").getPath,
+              tgtDir = platformTargetDir.getPath,
+              libPath = nativeLibPath.value(platform).getPath).map(_ ! log)
+            log.info("Cleaning up after build.")
+            platform.cleanUpAfterBuild(dockerContainer).foreach(_ ! log)
+            if (exitCode.getOrElse(0) != 0)
+              sys.error(s"An error occurred while cross-compiling for '$platform'. Exit code: $exitCode.")
 
-        val managedResources = (platformTargetDir / "bin" ** ("*.so" | "*.dylib" | "*.dll")).get.filter(_.isFile).toSet
-        val packagedArtifactsDir = platformTargetDir / "lib"
-        val packagedArtifacts = (platformTargetDir / "lib" ** ("*.so" | "*.dylib" | "*.dll")).get.filter(_.isFile).toSet
-        platform -> CrossCompilationOutput(managedResources, packagedArtifactsDir, packagedArtifacts)
-      }).toMap
-    },
-    resourceGenerators := Seq(Def.task {
-      getManagedResources(
-        nativeCrossCompile.value,
-        (resourceManaged in Compile).value)
-    }.taskValue))
+            val sharedLibraryFilter = "*.so" | "*.dylib" | "*.dll"
+            platform -> CrossCompilationOutput(
+              managedResources = (platformTargetDir / "bin" ** sharedLibraryFilter).get.filter(_.isFile).toSet,
+              packagedArtifactsDir = platformTargetDir / "lib",
+              packagedArtifacts = (platformTargetDir / "lib" ** sharedLibraryFilter).get.filter(_.isFile).toSet)
+          }).toMap
+        }
+      } else {
+        Def.task(Map.empty[Platform, CrossCompilationOutput])
+      }
+    }.value)
 
-  override lazy val projectSettings: Seq[Def.Setting[_]] = inConfig(JniCross)(settings)
+  override lazy val projectSettings: Seq[Def.Setting[_]] = inConfig(JniCross)(settings) ++ Seq(
+    resourceGenerators in Compile += Def.taskDyn {
+      if (nativeCrossCompilationEnabled.value) {
+        Def.task {
+          getManagedResources(
+            (nativeCrossCompile in JniCross).value,
+            (resourceManaged in Compile).value)
+        }
+      } else {
+        Def.task(Seq.empty[File])
+      }
+    }.taskValue
+  )
 
   def getManagedResources(
       crossCompilationOutputs: Map[Platform, CrossCompilationOutput],

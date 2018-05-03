@@ -56,6 +56,8 @@ scalacOptions in ThisBuild ++= Seq(
 //  "-P:splain:boundsimplicits:false"
 )
 
+nativeCrossCompilationEnabled in ThisBuild := false
+
 lazy val loggingSettings = Seq(
   libraryDependencies ++= Seq(
     "com.typesafe.scala-logging" %% "scala-logging"   % "3.9.0",
@@ -80,7 +82,7 @@ lazy val testSettings = Seq(
 )
 
 lazy val all = (project in file("."))
-    .aggregate(jni, api, data, examples, site)
+    .aggregate(jni, api, horovod, data, examples, site)
     .dependsOn(jni, api)
     .settings(moduleName := "tensorflow", name := "TensorFlow Scala")
     .settings(commonSettings)
@@ -91,9 +93,14 @@ lazy val all = (project in file("."))
       unmanagedSourceDirectories in Test := Nil,
       unmanagedResourceDirectories in Compile := Nil,
       unmanagedResourceDirectories in Test := Nil,
-      nativeCompile := Seq.empty,
-      nativeCrossCompile in JniCross := Map.empty,
-      publishArtifact := true)
+      publishArtifact := true,
+      packagedArtifacts ++= {
+        (nativeCrossCompile in JniCross in jni).value
+            .map(p => p._1 -> getPackagedArtifacts(p._1, p._2))
+            .filter(_._2.isDefined).map {
+          case (platform, file) => Artifact((nativeArtifactName in JniCross in jni).value, platform.tag) -> file.get
+        }
+      })
 
 lazy val jni = (project in file("./jni"))
     .enablePlugins(JniNative, TensorFlowGenerateTensorOps, JniCrossPackage, TensorFlowNativePackage)
@@ -220,7 +227,8 @@ lazy val horovod = (project in file("./horovod"))
 
           if (exitCode.getOrElse(0) != 0) {
             sys.error(
-              s"An error occurred while preparing the native TensorFlow libraries for '$platform'. Exit code: $exitCode.")
+              s"An error occurred while preparing the native TensorFlow libraries for '$platform'. " +
+                  s"Exit code: $exitCode.")
           }
 
           platform -> tfJniTarget / platform.name
