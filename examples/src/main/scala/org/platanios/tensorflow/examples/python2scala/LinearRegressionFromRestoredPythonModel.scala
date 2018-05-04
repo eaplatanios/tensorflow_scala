@@ -48,21 +48,21 @@ object LinearRegressionFromRestoredPythonModel {
       for (op <- session.graph.ops)
         myPrintln("OPERATION name:    " + op, 76)
       println(" -" * 40)
-
+      
       // RESTORE NODES and OPERATIONS
       val input = session.graph.getOutputByName("p2s_input:0")
       val output = session.graph.getOutputByName("p2s_output:0")
       val weight = session.graph.getOutputByName("p2s_weights_w/Read/ReadVariableOp:0")
       val bias = session.graph.getOutputByName("p2s_weights_b/Read/ReadVariableOp:0")
       val loss = session.graph.getOutputByName("p2s_loss:0")
-      val placeholderW = session.graph.getOutputByName("magic_placeholder_w:0")
-      val placeholderB = session.graph.getOutputByName("magic_placeholder_b:0")
+      val placeholderW = session.graph.getOutputByName("placeholder_p2s_weights_w:0")
+      val placeholderB = session.graph.getOutputByName("placeholder_p2s_weights_b:0")
       val gradientW = session.graph.getOutputByName("exported_gradient_p2s_weights_w:0")
       val gradientB = session.graph.getOutputByName("exported_gradient_p2s_weights_b:0")
 
       val trainOp = session.graph.getOpByName("p2s_train_op")
-      val assignVariableW = session.graph.getOpByName("AssignVariableOp")
-      val assignVariableB = session.graph.getOpByName("AssignVariableOp_1")
+      val assignVariableW = session.graph.getOpByName("AssignOp_p2s_weights_w")
+      val assignVariableB = session.graph.getOpByName("AssignOp_p2s_weights_b")
 
       printRestoredNodesAndOperations(session, input, output, weight, bias, loss, placeholderW, placeholderB, gradientW, gradientB, trainOp, assignVariableW, assignVariableB)
 
@@ -83,8 +83,8 @@ object LinearRegressionFromRestoredPythonModel {
 
   // UTILIY METHODS
   def batch(batchSize: Int): (Tensor, Tensor) = {
-    val inputs = ArrayBuffer.empty[Float]
-    val outputs = ArrayBuffer.empty[Float]
+    val inputs = ArrayBuffer.empty[Double]
+    val outputs = ArrayBuffer.empty[Double]
     for (_ <- 0 until batchSize) {
       val input = random.nextFloat()
       inputs += input
@@ -93,7 +93,7 @@ object LinearRegressionFromRestoredPythonModel {
     (Tensor(inputs).reshape(Shape(-1, 1)), Tensor(outputs).reshape(Shape(-1, 1)))
   }
 
-  def printRestoredNodesAndOperations(session: Session, input: Output, output: Output, weight: Output, bias: Output, loss: Output, placeholderW: Output, placeholderB: Output, gradientW: Output, gradientB: Output, trainOp: Op, assignVariableW: Op,  assignVariableB: Op): Unit ={
+  def printRestoredNodesAndOperations(session: Session, input: Output, output: Output, weight: Output, bias: Output, loss: Output, placeholderW: Output, placeholderB: Output, gradientW: Output, gradientB: Output, trainOp: Op, assignVariableW: Op, assignVariableB: Op): Unit = {
     // ---------- PRINT RESTORED OUTPUT AND OPERATIONS ------------
     println(" *" * 60)
     myPrintln("Trained weight value: " + session.run(fetches = weight).scalar, 90)
@@ -116,6 +116,7 @@ object LinearRegressionFromRestoredPythonModel {
 
     println("")
   }
+
   def myPrintln(str: String, size: Int): Unit = {
     println(String.format("| %1$-" + size + "s |", str))
   }

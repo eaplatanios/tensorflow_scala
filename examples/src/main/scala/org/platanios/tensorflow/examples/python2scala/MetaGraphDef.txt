@@ -900,6 +900,12 @@ graph_def {
     op: "Placeholder"
     device: "/device:CPU:0"
     attr {
+      key: "dtype"
+      value {
+        type: DT_DOUBLE
+      }
+    }
+    attr {
       key: "shape"
       value {
         shape {
@@ -910,12 +916,6 @@ graph_def {
             size: 1
           }
         }
-      }
-    }
-    attr {
-      key: "dtype"
-      value {
-        type: DT_DOUBLE
       }
     }
     attr {
@@ -1028,12 +1028,6 @@ graph_def {
     op: "VarHandleOp"
     device: "/device:CPU:0"
     attr {
-      key: "container"
-      value {
-        s: ""
-      }
-    }
-    attr {
       key: "shape"
       value {
         shape {
@@ -1064,6 +1058,12 @@ graph_def {
       key: "dtype"
       value {
         type: DT_DOUBLE
+      }
+    }
+    attr {
+      key: "container"
+      value {
+        s: ""
       }
     }
     attr {
@@ -1322,166 +1322,6 @@ graph_def {
     }
   }
   node {
-    name: "placeholder_p2s_weights_w"
-    op: "Placeholder"
-    device: "/device:CPU:0"
-    attr {
-      key: "shape"
-      value {
-        shape {
-          dim {
-            size: 1
-          }
-          dim {
-            size: 1
-          }
-        }
-      }
-    }
-    attr {
-      key: "dtype"
-      value {
-        type: DT_DOUBLE
-      }
-    }
-    attr {
-      key: "_output_shapes"
-      value {
-        list {
-          shape {
-            dim {
-              size: 1
-            }
-            dim {
-              size: 1
-            }
-          }
-        }
-      }
-    }
-  }
-  node {
-    name: "AssignOpp2s_weights_w"
-    op: "AssignVariableOp"
-    input: "p2s_weights_w"
-    input: "placeholder_p2s_weights_w"
-    device: "/device:CPU:0"
-    attr {
-      key: "dtype"
-      value {
-        type: DT_DOUBLE
-      }
-    }
-  }
-  node {
-    name: "ReadVariableOp"
-    op: "ReadVariableOp"
-    input: "p2s_weights_w"
-    input: "^AssignOpp2s_weights_w"
-    device: "/device:CPU:0"
-    attr {
-      key: "dtype"
-      value {
-        type: DT_DOUBLE
-      }
-    }
-    attr {
-      key: "_output_shapes"
-      value {
-        list {
-          shape {
-            dim {
-              size: 1
-            }
-            dim {
-              size: 1
-            }
-          }
-        }
-      }
-    }
-  }
-  node {
-    name: "placeholder_p2s_weights_b"
-    op: "Placeholder"
-    device: "/device:CPU:0"
-    attr {
-      key: "shape"
-      value {
-        shape {
-          dim {
-            size: 1
-          }
-          dim {
-            size: 1
-          }
-        }
-      }
-    }
-    attr {
-      key: "dtype"
-      value {
-        type: DT_DOUBLE
-      }
-    }
-    attr {
-      key: "_output_shapes"
-      value {
-        list {
-          shape {
-            dim {
-              size: 1
-            }
-            dim {
-              size: 1
-            }
-          }
-        }
-      }
-    }
-  }
-  node {
-    name: "AssignOpp2s_weights_b"
-    op: "AssignVariableOp"
-    input: "p2s_weights_b"
-    input: "placeholder_p2s_weights_b"
-    device: "/device:CPU:0"
-    attr {
-      key: "dtype"
-      value {
-        type: DT_DOUBLE
-      }
-    }
-  }
-  node {
-    name: "ReadVariableOp_1"
-    op: "ReadVariableOp"
-    input: "p2s_weights_b"
-    input: "^AssignOpp2s_weights_b"
-    device: "/device:CPU:0"
-    attr {
-      key: "dtype"
-      value {
-        type: DT_DOUBLE
-      }
-    }
-    attr {
-      key: "_output_shapes"
-      value {
-        list {
-          shape {
-            dim {
-              size: 1
-            }
-            dim {
-              size: 1
-            }
-          }
-        }
-      }
-    }
-  }
-  node {
     name: "MatMul/ReadVariableOp"
     op: "ReadVariableOp"
     input: "p2s_weights_w"
@@ -1663,6 +1503,12 @@ graph_def {
     op: "Const"
     device: "/device:CPU:0"
     attr {
+      key: "dtype"
+      value {
+        type: DT_INT32
+      }
+    }
+    attr {
       key: "value"
       value {
         tensor {
@@ -1674,12 +1520,6 @@ graph_def {
           }
           tensor_content: "\000\000\000\000\001\000\000\000"
         }
-      }
-    }
-    attr {
-      key: "dtype"
-      value {
-        type: DT_INT32
       }
     }
     attr {
@@ -2136,6 +1976,12 @@ graph_def {
     input: "gradients/p2s_loss_grad/Const_1"
     device: "/device:CPU:0"
     attr {
+      key: "T"
+      value {
+        type: DT_INT32
+      }
+    }
+    attr {
       key: "Tidx"
       value {
         type: DT_INT32
@@ -2145,12 +1991,6 @@ graph_def {
       key: "keep_dims"
       value {
         b: false
-      }
-    }
-    attr {
-      key: "T"
-      value {
-        type: DT_INT32
       }
     }
     attr {
@@ -2168,6 +2008,12 @@ graph_def {
     op: "Const"
     device: "/device:CPU:0"
     attr {
+      key: "dtype"
+      value {
+        type: DT_INT32
+      }
+    }
+    attr {
       key: "value"
       value {
         tensor {
@@ -2176,12 +2022,6 @@ graph_def {
           }
           int_val: 1
         }
-      }
-    }
-    attr {
-      key: "dtype"
-      value {
-        type: DT_INT32
       }
     }
     attr {
@@ -2244,15 +2084,15 @@ graph_def {
     input: "gradients/p2s_loss_grad/floordiv"
     device: "/device:CPU:0"
     attr {
-      key: "DstT"
-      value {
-        type: DT_DOUBLE
-      }
-    }
-    attr {
       key: "SrcT"
       value {
         type: DT_INT32
+      }
+    }
+    attr {
+      key: "DstT"
+      value {
+        type: DT_DOUBLE
       }
     }
     attr {
@@ -2417,15 +2257,15 @@ graph_def {
     input: "p2s_output"
     device: "/device:CPU:0"
     attr {
-      key: "out_type"
-      value {
-        type: DT_INT32
-      }
-    }
-    attr {
       key: "T"
       value {
         type: DT_DOUBLE
+      }
+    }
+    attr {
+      key: "out_type"
+      value {
+        type: DT_INT32
       }
     }
     attr {
@@ -2547,6 +2387,12 @@ graph_def {
     input: "gradients/sub_grad/BroadcastGradientArgs:1"
     device: "/device:CPU:0"
     attr {
+      key: "T"
+      value {
+        type: DT_DOUBLE
+      }
+    }
+    attr {
       key: "Tidx"
       value {
         type: DT_INT32
@@ -2556,12 +2402,6 @@ graph_def {
       key: "keep_dims"
       value {
         b: false
-      }
-    }
-    attr {
-      key: "T"
-      value {
-        type: DT_DOUBLE
       }
     }
     attr {
@@ -2814,6 +2654,12 @@ graph_def {
     input: "gradients/add_grad/BroadcastGradientArgs"
     device: "/device:CPU:0"
     attr {
+      key: "T"
+      value {
+        type: DT_DOUBLE
+      }
+    }
+    attr {
       key: "Tidx"
       value {
         type: DT_INT32
@@ -2823,12 +2669,6 @@ graph_def {
       key: "keep_dims"
       value {
         b: false
-      }
-    }
-    attr {
-      key: "T"
-      value {
-        type: DT_DOUBLE
       }
     }
     attr {
@@ -2849,15 +2689,15 @@ graph_def {
     input: "gradients/add_grad/Shape"
     device: "/device:CPU:0"
     attr {
-      key: "Tshape"
-      value {
-        type: DT_INT32
-      }
-    }
-    attr {
       key: "T"
       value {
         type: DT_DOUBLE
+      }
+    }
+    attr {
+      key: "Tshape"
+      value {
+        type: DT_INT32
       }
     }
     attr {
@@ -2883,6 +2723,12 @@ graph_def {
     input: "gradients/add_grad/BroadcastGradientArgs:1"
     device: "/device:CPU:0"
     attr {
+      key: "T"
+      value {
+        type: DT_DOUBLE
+      }
+    }
+    attr {
       key: "Tidx"
       value {
         type: DT_INT32
@@ -2892,12 +2738,6 @@ graph_def {
       key: "keep_dims"
       value {
         b: false
-      }
-    }
-    attr {
-      key: "T"
-      value {
-        type: DT_DOUBLE
       }
     }
     attr {
@@ -2959,17 +2799,17 @@ graph_def {
     input: "^gradients/add_grad/tuple/group_deps"
     device: "/device:CPU:0"
     attr {
+      key: "T"
+      value {
+        type: DT_DOUBLE
+      }
+    }
+    attr {
       key: "_class"
       value {
         list {
           s: "loc:@gradients/add_grad/Reshape"
         }
-      }
-    }
-    attr {
-      key: "T"
-      value {
-        type: DT_DOUBLE
       }
     }
     attr {
@@ -2995,17 +2835,17 @@ graph_def {
     input: "^gradients/add_grad/tuple/group_deps"
     device: "/device:CPU:0"
     attr {
-      key: "T"
-      value {
-        type: DT_DOUBLE
-      }
-    }
-    attr {
       key: "_class"
       value {
         list {
           s: "loc:@gradients/add_grad/Reshape_1"
         }
+      }
+    }
+    attr {
+      key: "T"
+      value {
+        type: DT_DOUBLE
       }
     }
     attr {
@@ -3071,12 +2911,6 @@ graph_def {
     input: "gradients/add_grad/tuple/control_dependency"
     device: "/device:CPU:0"
     attr {
-      key: "T"
-      value {
-        type: DT_DOUBLE
-      }
-    }
-    attr {
       key: "transpose_a"
       value {
         b: true
@@ -3086,6 +2920,12 @@ graph_def {
       key: "transpose_b"
       value {
         b: false
+      }
+    }
+    attr {
+      key: "T"
+      value {
+        type: DT_DOUBLE
       }
     }
     attr {
@@ -3154,17 +2994,17 @@ graph_def {
     input: "^gradients/MatMul_grad/tuple/group_deps"
     device: "/device:CPU:0"
     attr {
-      key: "T"
-      value {
-        type: DT_DOUBLE
-      }
-    }
-    attr {
       key: "_class"
       value {
         list {
           s: "loc:@gradients/MatMul_grad/MatMul_1"
         }
+      }
+    }
+    attr {
+      key: "T"
+      value {
+        type: DT_DOUBLE
       }
     }
     attr {
@@ -3347,6 +3187,25 @@ graph_def {
     op: "VarHandleOp"
     device: "/device:CPU:0"
     attr {
+      key: "shape"
+      value {
+        shape {
+          dim {
+            size: 1
+          }
+          dim {
+            size: 1
+          }
+        }
+      }
+    }
+    attr {
+      key: "shared_name"
+      value {
+        s: "p2s_weights_w/Adagrad"
+      }
+    }
+    attr {
       key: "_class"
       value {
         list {
@@ -3364,25 +3223,6 @@ graph_def {
       key: "container"
       value {
         s: ""
-      }
-    }
-    attr {
-      key: "shape"
-      value {
-        shape {
-          dim {
-            size: 1
-          }
-          dim {
-            size: 1
-          }
-        }
-      }
-    }
-    attr {
-      key: "shared_name"
-      value {
-        s: "p2s_weights_w/Adagrad"
       }
     }
     attr {
@@ -3425,17 +3265,17 @@ graph_def {
     input: "p2s_weights_w/Adagrad/Initializer/Const"
     device: "/device:CPU:0"
     attr {
+      key: "dtype"
+      value {
+        type: DT_DOUBLE
+      }
+    }
+    attr {
       key: "_class"
       value {
         list {
           s: "loc:@p2s_weights_w/Adagrad/Read/ReadVariableOp"
         }
-      }
-    }
-    attr {
-      key: "dtype"
-      value {
-        type: DT_DOUBLE
       }
     }
   }
@@ -3638,20 +3478,6 @@ graph_def {
     op: "VarHandleOp"
     device: "/device:CPU:0"
     attr {
-      key: "shared_name"
-      value {
-        s: "p2s_weights_b/Adagrad"
-      }
-    }
-    attr {
-      key: "_class"
-      value {
-        list {
-          s: "loc:@p2s_weights_b/Adagrad/Read/ReadVariableOp"
-        }
-      }
-    }
-    attr {
       key: "dtype"
       value {
         type: DT_DOUBLE
@@ -3673,6 +3499,20 @@ graph_def {
           dim {
             size: 1
           }
+        }
+      }
+    }
+    attr {
+      key: "shared_name"
+      value {
+        s: "p2s_weights_b/Adagrad"
+      }
+    }
+    attr {
+      key: "_class"
+      value {
+        list {
+          s: "loc:@p2s_weights_b/Adagrad/Read/ReadVariableOp"
         }
       }
     }
@@ -3856,6 +3696,12 @@ graph_def {
     input: "p2s_train_op/learning_rate"
     device: "/device:CPU:0"
     attr {
+      key: "DstT"
+      value {
+        type: DT_DOUBLE
+      }
+    }
+    attr {
       key: "SrcT"
       value {
         type: DT_FLOAT
@@ -3867,12 +3713,6 @@ graph_def {
         list {
           s: "loc:@p2s_train_op/update_p2s_weights_w/Read/ReadVariableOp"
         }
-      }
-    }
-    attr {
-      key: "DstT"
-      value {
-        type: DT_DOUBLE
       }
     }
     attr {
@@ -3894,14 +3734,6 @@ graph_def {
     input: "gradients/MatMul_grad/tuple/control_dependency_1"
     device: "/device:CPU:0"
     attr {
-      key: "_class"
-      value {
-        list {
-          s: "loc:@p2s_train_op/update_p2s_weights_w/Read/ReadVariableOp"
-        }
-      }
-    }
-    attr {
       key: "use_locking"
       value {
         b: false
@@ -3911,6 +3743,14 @@ graph_def {
       key: "T"
       value {
         type: DT_DOUBLE
+      }
+    }
+    attr {
+      key: "_class"
+      value {
+        list {
+          s: "loc:@p2s_train_op/update_p2s_weights_w/Read/ReadVariableOp"
+        }
       }
     }
   }
@@ -4012,14 +3852,6 @@ graph_def {
     input: "gradients/add_grad/tuple/control_dependency_1"
     device: "/device:CPU:0"
     attr {
-      key: "_class"
-      value {
-        list {
-          s: "loc:@p2s_train_op/update_p2s_weights_b/Read/ReadVariableOp"
-        }
-      }
-    }
-    attr {
       key: "use_locking"
       value {
         b: false
@@ -4031,6 +3863,14 @@ graph_def {
         type: DT_DOUBLE
       }
     }
+    attr {
+      key: "_class"
+      value {
+        list {
+          s: "loc:@p2s_train_op/update_p2s_weights_b/Read/ReadVariableOp"
+        }
+      }
+    }
   }
   node {
     name: "p2s_train_op"
@@ -4038,60 +3878,6 @@ graph_def {
     input: "^p2s_train_op/update_p2s_weights_b/ResourceApplyAdagrad"
     input: "^p2s_train_op/update_p2s_weights_w/ResourceApplyAdagrad"
     device: "/device:CPU:0"
-  }
-  node {
-    name: "exported_gradient_p2s_weights_w"
-    op: "Identity"
-    input: "gradients/MatMul_grad/tuple/control_dependency_1"
-    device: "/device:CPU:0"
-    attr {
-      key: "T"
-      value {
-        type: DT_DOUBLE
-      }
-    }
-    attr {
-      key: "_output_shapes"
-      value {
-        list {
-          shape {
-            dim {
-              size: 1
-            }
-            dim {
-              size: 1
-            }
-          }
-        }
-      }
-    }
-  }
-  node {
-    name: "exported_gradient_p2s_weights_b"
-    op: "Identity"
-    input: "gradients/add_grad/tuple/control_dependency_1"
-    device: "/device:CPU:0"
-    attr {
-      key: "T"
-      value {
-        type: DT_DOUBLE
-      }
-    }
-    attr {
-      key: "_output_shapes"
-      value {
-        list {
-          shape {
-            dim {
-              size: 1
-            }
-            dim {
-              size: 1
-            }
-          }
-        }
-      }
-    }
   }
   node {
     name: "init"
@@ -4243,17 +4029,17 @@ graph_def {
     input: "^save/SaveV2"
     device: "/device:CPU:0"
     attr {
+      key: "T"
+      value {
+        type: DT_STRING
+      }
+    }
+    attr {
       key: "_class"
       value {
         list {
           s: "loc:@save/Const"
         }
-      }
-    }
-    attr {
-      key: "T"
-      value {
-        type: DT_STRING
       }
     }
     attr {
@@ -4532,6 +4318,220 @@ graph_def {
     input: "^save/AssignVariableOp_2"
     input: "^save/AssignVariableOp_3"
     device: "/device:CPU:0"
+  }
+  node {
+    name: "placeholder_p2s_weights_w"
+    op: "Placeholder"
+    device: "/device:CPU:0"
+    attr {
+      key: "shape"
+      value {
+        shape {
+          dim {
+            size: 1
+          }
+          dim {
+            size: 1
+          }
+        }
+      }
+    }
+    attr {
+      key: "dtype"
+      value {
+        type: DT_DOUBLE
+      }
+    }
+    attr {
+      key: "_output_shapes"
+      value {
+        list {
+          shape {
+            dim {
+              size: 1
+            }
+            dim {
+              size: 1
+            }
+          }
+        }
+      }
+    }
+  }
+  node {
+    name: "AssignOp_p2s_weights_w"
+    op: "AssignVariableOp"
+    input: "p2s_weights_w"
+    input: "placeholder_p2s_weights_w"
+    device: "/device:CPU:0"
+    attr {
+      key: "dtype"
+      value {
+        type: DT_DOUBLE
+      }
+    }
+  }
+  node {
+    name: "ReadVariableOp"
+    op: "ReadVariableOp"
+    input: "p2s_weights_w"
+    input: "^AssignOp_p2s_weights_w"
+    device: "/device:CPU:0"
+    attr {
+      key: "dtype"
+      value {
+        type: DT_DOUBLE
+      }
+    }
+    attr {
+      key: "_output_shapes"
+      value {
+        list {
+          shape {
+            dim {
+              size: 1
+            }
+            dim {
+              size: 1
+            }
+          }
+        }
+      }
+    }
+  }
+  node {
+    name: "exported_gradient_p2s_weights_w"
+    op: "Identity"
+    input: "gradients/MatMul_grad/tuple/control_dependency_1"
+    device: "/device:CPU:0"
+    attr {
+      key: "T"
+      value {
+        type: DT_DOUBLE
+      }
+    }
+    attr {
+      key: "_output_shapes"
+      value {
+        list {
+          shape {
+            dim {
+              size: 1
+            }
+            dim {
+              size: 1
+            }
+          }
+        }
+      }
+    }
+  }
+  node {
+    name: "placeholder_p2s_weights_b"
+    op: "Placeholder"
+    device: "/device:CPU:0"
+    attr {
+      key: "shape"
+      value {
+        shape {
+          dim {
+            size: 1
+          }
+          dim {
+            size: 1
+          }
+        }
+      }
+    }
+    attr {
+      key: "dtype"
+      value {
+        type: DT_DOUBLE
+      }
+    }
+    attr {
+      key: "_output_shapes"
+      value {
+        list {
+          shape {
+            dim {
+              size: 1
+            }
+            dim {
+              size: 1
+            }
+          }
+        }
+      }
+    }
+  }
+  node {
+    name: "AssignOp_p2s_weights_b"
+    op: "AssignVariableOp"
+    input: "p2s_weights_b"
+    input: "placeholder_p2s_weights_b"
+    device: "/device:CPU:0"
+    attr {
+      key: "dtype"
+      value {
+        type: DT_DOUBLE
+      }
+    }
+  }
+  node {
+    name: "ReadVariableOp_1"
+    op: "ReadVariableOp"
+    input: "p2s_weights_b"
+    input: "^AssignOp_p2s_weights_b"
+    device: "/device:CPU:0"
+    attr {
+      key: "dtype"
+      value {
+        type: DT_DOUBLE
+      }
+    }
+    attr {
+      key: "_output_shapes"
+      value {
+        list {
+          shape {
+            dim {
+              size: 1
+            }
+            dim {
+              size: 1
+            }
+          }
+        }
+      }
+    }
+  }
+  node {
+    name: "exported_gradient_p2s_weights_b"
+    op: "Identity"
+    input: "gradients/add_grad/tuple/control_dependency_1"
+    device: "/device:CPU:0"
+    attr {
+      key: "T"
+      value {
+        type: DT_DOUBLE
+      }
+    }
+    attr {
+      key: "_output_shapes"
+      value {
+        list {
+          shape {
+            dim {
+              size: 1
+            }
+            dim {
+              size: 1
+            }
+          }
+        }
+      }
+    }
   }
   versions {
     producer: 26
