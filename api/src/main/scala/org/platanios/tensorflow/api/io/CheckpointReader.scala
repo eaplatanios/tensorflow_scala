@@ -15,8 +15,10 @@
 
 package org.platanios.tensorflow.api.io
 
+import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.UnavailableException
 import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.api.types.DataType
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer, NativeHandleWrapper}
 import org.platanios.tensorflow.jni.{CheckpointReader => NativeCheckpointReader}
 
@@ -69,7 +71,17 @@ class CheckpointReader private[CheckpointReader] (
     Option(NativeCheckpointReader.getTensor(nativeHandle, name)).map(Tensor.fromNativeHandle)
   }
 
-  // TODO: [CHECKPOINTS] Add support for obtaining the "VarToShape" and "VarToDataType" maps.
+  /** Returns a map from variable name to shape, for all variables containing in this checkpoint. */
+  def variableShapes: Map[String, Shape] = {
+    val shapes = NativeCheckpointReader.variableShapes(nativeHandle)
+    shapes.variables.zip(shapes.shapes.map(s => Shape.create(s.map(_.toInt)))).toMap
+  }
+
+  /** Returns a map from variable name to data type, for all variables containing in this checkpoint. */
+  def variableDataTypes: Map[String, DataType] = {
+    val types = NativeCheckpointReader.variableDataTypes(nativeHandle)
+    types.variables.zip(types.dataTypes.map(DataType.fromCValue)).toMap
+  }
 }
 
 object CheckpointReader {
