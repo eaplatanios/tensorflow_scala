@@ -148,7 +148,6 @@ class Saver private (saverDef: SaverDef, saveRelativePaths: Boolean = false, pad
       writeCheckpointState: Boolean = true
   ): Option[Path] = {
     val absoluteSavePath = savePath.toAbsolutePath
-    Saver.logger.info(s"Saving parameters to '$absoluteSavePath'.")
     if (writerVersion != Saver.V2) {
       Saver.logger.warn("===========================================================")
       Saver.logger.warn("TensorFlow's V1 checkpoint format version has been deprecated.")
@@ -178,6 +177,8 @@ class Saver private (saverDef: SaverDef, saveRelativePaths: Boolean = false, pad
       }
     }
 
+    Saver.logger.info(s"Saving parameters to '$checkpointFile'.")
+
     // Save checkpoint.
     val savePathParent = absoluteSavePath.getParent
     val modelCheckpointPath = {
@@ -190,9 +191,9 @@ class Saver private (saverDef: SaverDef, saveRelativePaths: Boolean = false, pad
             feeds = Map(filenameTensor -> (checkpointFile.toString: Tensor)),
             fetches = saveTensor).scalar.asInstanceOf[String])
         if (writeCheckpointState) {
+          maybeDeleteOldCheckpoints(modelCheckpointPath, metaGraphSuffix)
           Saver.updateCheckpointStateFile(
             savePathParent, modelCheckpointPath, latestCheckpoints, checkpointStateFilename, saveRelativePaths)
-          maybeDeleteOldCheckpoints(modelCheckpointPath, metaGraphSuffix)
         }
         Some(modelCheckpointPath)
       } catch {
@@ -211,7 +212,7 @@ class Saver private (saverDef: SaverDef, saveRelativePaths: Boolean = false, pad
       Proto.write(metaGraphFilename.getParent, metaGraphFilename.getFileName.toString, metaGraphDef)
     }
 
-    Saver.logger.info(s"Saved parameters to '$absoluteSavePath'.")
+    Saver.logger.info(s"Saved parameters to '$checkpointFile'.")
     modelCheckpointPath
   }
 
@@ -620,7 +621,7 @@ object Saver {
   ): CheckpointState = {
     var checkpointPath = modelCheckpointPath
     var allCheckpointPaths = {
-      if (allModelCheckpointPaths.isEmpty || allModelCheckpointPaths.last != checkpointPath)
+      if (allModelCheckpointPaths.nonEmpty && allModelCheckpointPaths.last != checkpointPath)
         allModelCheckpointPaths :+ checkpointPath
       else
         allModelCheckpointPaths
