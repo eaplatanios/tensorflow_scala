@@ -20,7 +20,7 @@ import scala.util.Random
   *         model was saved using tf.train.Saver()
   *
   *         Version used:
-  *         TensorFlow version: 1.7.0
+  *         TensorFlow version: 1.8.0rc1
   *         ScalaTensorFlow version: 0.2.0-SNAPSHOT
   */
 object LinearRegressionFromRestoredPythonModel {
@@ -48,7 +48,7 @@ object LinearRegressionFromRestoredPythonModel {
       for (op <- session.graph.ops)
         myPrintln("OPERATION name:    " + op, 76)
       println(" -" * 40)
-      
+
       // RESTORE NODES and OPERATIONS
       val input = session.graph.getOutputByName("p2s_input:0")
       val output = session.graph.getOutputByName("p2s_output:0")
