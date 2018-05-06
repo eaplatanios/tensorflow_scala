@@ -28,7 +28,7 @@ import org.platanios.tensorflow.api.ops.{Math, Output}
   *
   * @author Emmanouil Antonios Platanios
   */
-class BasicRNNCell private[cell] (
+class BasicRNNCell protected (
     val kernel: Output,
     val bias: Output,
     val activation: Output => Output = Math.tanh(_),

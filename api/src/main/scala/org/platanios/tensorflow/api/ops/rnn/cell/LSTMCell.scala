@@ -40,7 +40,7 @@ import org.platanios.tensorflow.api.ops.{Math, Output}
   *
   * @author Emmanouil Antonios Platanios
   */
-class LSTMCell private[cell] (
+class LSTMCell protected (
     val kernel: Output,
     val bias: Output,
     val cellClip: Float = -1,

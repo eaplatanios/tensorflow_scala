@@ -57,9 +57,14 @@ private[rnn] trait RNN {
   @throws[InvalidShapeException]
   @throws[InvalidArgumentException]
   def dynamicRNN[O, OS, S, SS](
-      cell: RNNCell[O, OS, S, SS], input: O, initialState: S = null.asInstanceOf[S],
-      timeMajor: Boolean = false, parallelIterations: Int = 32, swapMemory: Boolean = false,
-      sequenceLengths: Output = null, name: String = "RNN"
+      cell: RNNCell[O, OS, S, SS],
+      input: O,
+      initialState: S = null.asInstanceOf[S],
+      timeMajor: Boolean = false,
+      parallelIterations: Int = 32,
+      swapMemory: Boolean = false,
+      sequenceLengths: Output = null,
+      name: String = "RNN"
   )(implicit
       evO: WhileLoopVariable.Aux[O, OS],
       evS: WhileLoopVariable.Aux[S, SS]
@@ -155,11 +160,16 @@ private[rnn] trait RNN {
     */
   @throws[InvalidShapeException]
   def bidirectionalDynamicRNN[O, OS, S, SS](
-      cellFw: RNNCell[O, OS, S, SS], cellBw: RNNCell[O, OS, S, SS],
+      cellFw: RNNCell[O, OS, S, SS],
+      cellBw: RNNCell[O, OS, S, SS],
       input: O,
-      initialStateFw: S = null.asInstanceOf[S], initialStateBw: S = null.asInstanceOf[S],
-      timeMajor: Boolean = false, parallelIterations: Int = 32, swapMemory: Boolean = false,
-      sequenceLengths: Output = null, name: String = "RNN"
+      initialStateFw: S = null.asInstanceOf[S],
+      initialStateBw: S = null.asInstanceOf[S],
+      timeMajor: Boolean = false,
+      parallelIterations: Int = 32,
+      swapMemory: Boolean = false,
+      sequenceLengths: Output = null,
+      name: String = "RNN"
   )(implicit
       evO: WhileLoopVariable.Aux[O, OS],
       evS: WhileLoopVariable.Aux[S, SS]
@@ -215,8 +225,12 @@ object RNN extends RNN {
     */
   @throws[InvalidShapeException]
   private[RNN] def dynamicRNNLoop[O, OS, S, SS](
-      cell: RNNCell[O, OS, S, SS], input: O, initialState: S,
-      parallelIterations: Int, swapMemory: Boolean, sequenceLengths: Output = null
+      cell: RNNCell[O, OS, S, SS],
+      input: O,
+      initialState: S,
+      parallelIterations: Int,
+      swapMemory: Boolean,
+      sequenceLengths: Output = null
   )(implicit
       evO: WhileLoopVariable.Aux[O, OS],
       evS: WhileLoopVariable.Aux[S, SS]

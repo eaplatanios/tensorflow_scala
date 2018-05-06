@@ -27,7 +27,7 @@ import org.platanios.tensorflow.api.types.DataType
   *
   * @author Emmanouil Antonios Platanios
   */
-class DeviceWrapper[O, OS, S, SS](
+class DeviceWrapper[O, OS, S, SS] protected (
     val cell: RNNCell[O, OS, S, SS],
     val device: String = "",
     val deviceFunction: OpSpecification => String = _.device

@@ -54,9 +54,12 @@ object RNNCell {
     * @throws InvalidArgumentException If the `input` shape is invalid.
     */
   @throws[InvalidArgumentException]
-  private[cell] def basicRNNCell(
-      input: BasicTuple, kernel: Output, bias: Output,
-      activation: Output => Output = Math.tanh(_), name: String = "BasicRNNCell"
+  def basicRNNCell(
+      input: BasicTuple,
+      kernel: Output,
+      bias: Output,
+      activation: Output => Output = Math.tanh(_),
+      name: String = "BasicRNNCell"
   ): BasicTuple = {
     Op.createWithNameScope(name) {
       val output = input.output
@@ -85,10 +88,15 @@ object RNNCell {
     * @throws InvalidArgumentException If the `input` shape is invalid.
     */
   @throws[InvalidArgumentException]
-  private[cell] def gruCell(
-      input: BasicTuple, gateKernel: Output, gateBias: Output, candidateKernel: Output,
-      candidateBias: Output, activation: Output => Output = Math.tanh(_),
-      name: String = "GRUCell"): BasicTuple = {
+  def gruCell(
+      input: BasicTuple,
+      gateKernel: Output,
+      gateBias: Output,
+      candidateKernel: Output,
+      candidateBias: Output,
+      activation: Output => Output = Math.tanh(_),
+      name: String = "GRUCell"
+  ): BasicTuple = {
     Op.createWithNameScope(name) {
       val output = input.output
       val state = input.state
@@ -119,10 +127,13 @@ object RNNCell {
     * @throws InvalidArgumentException If the `input` shape is invalid.
     */
   @throws[InvalidArgumentException]
-  private[cell] def basicLSTMCell(
-      input: LSTMTuple, kernel: Output, bias: Output,
+  def basicLSTMCell(
+      input: LSTMTuple,
+      kernel: Output,
+      bias: Output,
       activation: Output => Output = Math.tanh(_),
-      forgetBias: Float = 1.0f, name: String = "BasicLSTMCell"
+      forgetBias: Float = 1.0f,
+      name: String = "BasicLSTMCell"
   ): LSTMTuple = {
     Op.createWithNameScope(name) {
       val output = input.output
@@ -169,12 +180,18 @@ object RNNCell {
     * @throws InvalidArgumentException If the `input` shape is invalid.
     */
   @throws[InvalidArgumentException]
-  private[cell] def lstmCell(
-      input: LSTMTuple, kernel: Output, bias: Output,
+  def lstmCell(
+      input: LSTMTuple,
+      kernel: Output,
+      bias: Output,
       cellClip: Float = -1,
-      wfDiag: Output = null, wiDiag: Output = null, woDiag: Output = null,
-      projectionKernel: Output = null, projectionClip: Float = -1,
-      activation: Output => Output = Math.tanh(_), forgetBias: Float = 1.0f,
+      wfDiag: Output = null,
+      wiDiag: Output = null,
+      woDiag: Output = null,
+      projectionKernel: Output = null,
+      projectionClip: Float = -1,
+      activation: Output => Output = Math.tanh(_),
+      forgetBias: Float = 1.0f,
       name: String = "LSTMCell"
   ): LSTMTuple = {
     Op.createWithNameScope(name) {

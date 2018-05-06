@@ -30,7 +30,7 @@ import org.platanios.tensorflow.api.ops.{Math, Output}
   *
   * @author Emmanouil Antonios Platanios
   */
-class GRUCell private[cell] (
+class GRUCell protected (
     val gateKernel: Output,
     val gateBias: Output,
     val candidateKernel: Output,

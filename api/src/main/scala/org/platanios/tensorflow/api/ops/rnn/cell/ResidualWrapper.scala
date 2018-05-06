@@ -25,7 +25,7 @@ import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
   *
   * @author Emmanouil Antonios Platanios
   */
-class ResidualWrapper[O, OS, S, SS](
+class ResidualWrapper[O, OS, S, SS] protected (
     val cell: RNNCell[O, OS, S, SS],
     val residualFn: (O, O) => O
 )(implicit

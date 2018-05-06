@@ -29,7 +29,7 @@ import org.platanios.tensorflow.api.ops.{Math, Output}
   *
   * @author Emmanouil Antonios Platanios
   */
-class BasicLSTMCell private[cell] (
+class BasicLSTMCell protected (
     val kernel: Output,
     val bias: Output,
     val activation: Output => Output = Math.tanh(_),
@@ -48,8 +48,12 @@ class BasicLSTMCell private[cell] (
 
 object BasicLSTMCell {
   def apply(
-      kernel: Output, bias: Output, activation: Output => Output = Math.tanh(_), forgetBias: Float = 1.0f,
-      name: String = "BasicLSTMCell"): BasicLSTMCell = {
+      kernel: Output,
+      bias: Output,
+      activation: Output => Output = Math.tanh(_),
+      forgetBias: Float = 1.0f,
+      name: String = "BasicLSTMCell"
+  ): BasicLSTMCell = {
     new BasicLSTMCell(kernel, bias, activation, forgetBias, name)
   }
 }

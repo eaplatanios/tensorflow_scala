@@ -48,7 +48,7 @@ import scala.reflect.ClassTag
   *
   * @author Emmanouil Antonios Platanios
   */
-class DropoutWrapper[O, OS, S, SS](
+class DropoutWrapper[O, OS, S, SS] protected (
     val cell: RNNCell[O, OS, S, SS],
     val inputKeepProbability: Output = 1.0f,
     val outputKeepProbability: Output = 1.0f,
