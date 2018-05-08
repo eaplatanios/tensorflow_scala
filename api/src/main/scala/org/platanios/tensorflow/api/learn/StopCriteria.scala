@@ -57,9 +57,9 @@ class StopCriteria private[learn] (
   require(absLossChangeTol.getOrElse(0.0) >= 0, "'absLossChangeTol' needs to be a non-negative number.")
   require(maxStepBelowTol >= 0, "'maxStepBelowTol' needs to be a non-negative number.")
 
-  private[learn] val needStep : Boolean = maxSteps.isDefined
-  private[learn] val needEpoch: Boolean = maxEpochs.isDefined
-  private[learn] val needLoss : Boolean = absLossChangeTol.isDefined || relLossChangeTol.isDefined
+  val needStep : Boolean = maxSteps.isDefined
+  val needEpoch: Boolean = maxEpochs.isDefined
+  val needLoss : Boolean = absLossChangeTol.isDefined || relLossChangeTol.isDefined
 }
 
 object StopCriteria {

@@ -24,6 +24,7 @@ package object optimizers {
     type Optimizer = optimizers.Optimizer
     type AdaDelta = optimizers.AdaDelta
     type AdaGrad = optimizers.AdaGrad
+    type RMSProp = optimizers.RMSProp
     type Adam = optimizers.Adam
     type AMSGrad = optimizers.AMSGrad
     type GradientDescent = optimizers.GradientDescent
@@ -33,6 +34,7 @@ package object optimizers {
 
     val AdaDelta       : optimizers.AdaDelta.type        = optimizers.AdaDelta
     val AdaGrad        : optimizers.AdaGrad.type         = optimizers.AdaGrad
+    val RMSProp        : optimizers.RMSProp.type         = optimizers.RMSProp
     val Adam           : optimizers.Adam.type            = optimizers.Adam
     val AMSGrad        : optimizers.AMSGrad.type         = optimizers.AMSGrad
     val GradientDescent: optimizers.GradientDescent.type = optimizers.GradientDescent

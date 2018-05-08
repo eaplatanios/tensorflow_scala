@@ -33,7 +33,7 @@ abstract class RNNCell[O, OS, S, SS](override val name: String)(implicit
 ) extends Layer[Tuple[O, S], Tuple[O, S]](name) {
   def createCellWithoutContext(mode: Mode, inputShape: OS): ops.rnn.cell.RNNCell[O, OS, S, SS]
 
-  final def createCell(mode: Mode, inputShape: OS): ops.rnn.cell.RNNCell[O, OS, S, SS ] = Op.createWith(
+  final def createCell(mode: Mode, inputShape: OS): ops.rnn.cell.RNNCell[O, OS, S, SS] = Op.createWith(
     nameScope = layerContext.value.nameScope,
     device = layerContext.value.device,
     deviceFunction = layerContext.value.deviceFunction
