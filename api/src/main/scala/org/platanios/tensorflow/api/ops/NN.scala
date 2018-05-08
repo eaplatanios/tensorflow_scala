@@ -728,21 +728,34 @@ private[api] trait NN {
     * @param  stride2       Stride of the sliding window along the third dimension of `input`.
     * @param  padding       Padding mode to use.
     * @param  dataFormat    Format of the input and output data.
+    * @param  dilations     The dilation factor for each dimension of input. If set to `k > 1`, there will be `k - 1`
+    *                       skipped cells between each filter element on that dimension. The dimension order is
+    *                       determined by the value of `dataFormat`. Dilations in the batch and depth dimensions must
+    *                       be set to `1`.
     * @param  useCuDNNOnGPU Boolean value indicating whether or not to use CuDNN for the created op, if its placed on a
     *                       GPU, as opposed to the TensorFlow implementation.
     * @param  name          Name for the created op.
     * @return Created op output, which is a 4-D tensor whose dimension order depends on the value of `dataFormat`.
     */
   def conv2D(
-      input: Output, filter: Output, stride1: Long, stride2: Long, padding: ConvPaddingMode,
-      dataFormat: CNNDataFormat = CNNDataFormat.default, useCuDNNOnGPU: Boolean = true,
-      name: String = "Conv2D"): Output = {
+      input: Output,
+      filter: Output,
+      stride1: Long,
+      stride2: Long,
+      padding: ConvPaddingMode,
+      dataFormat: CNNDataFormat = CNNDataFormat.default,
+      // TODO: [OPS/NN] Enforce the batch and depth dilation constraint at compile time.
+      dilations: (Int, Int, Int, Int) = (1, 1, 1, 1),
+      useCuDNNOnGPU: Boolean = true,
+      name: String = "Conv2D"
+  ): Output = {
     Op.Builder(opType = "Conv2D", name = name)
         .addInput(input)
         .addInput(filter)
         .setAttribute("strides", Array[Long](1, stride1, stride2, 1))
         .setAttribute("padding", padding.name)
         .setAttribute("data_format", dataFormat.name)
+        .setAttribute("dilations", Array[Long](dilations._1, dilations._2, dilations._3, dilations._4))
         .setAttribute("use_cudnn_on_gpu", useCuDNNOnGPU)
         .build().outputs(0)
   }
@@ -757,15 +770,28 @@ private[api] trait NN {
     * @param  stride2        Stride of the sliding window along the third dimension of `input`.
     * @param  padding        Padding mode to use.
     * @param  dataFormat     Format of the input and output data.
+    * @param  dilations      The dilation factor for each dimension of input. If set to `k > 1`, there will be `k - 1`
+    *                        skipped cells between each filter element on that dimension. The dimension order is
+    *                        determined by the value of `dataFormat`. Dilations in the batch and depth dimensions must
+    *                        be set to `1`.
     * @param  useCuDNNOnGPU  Boolean value indicating whether or not to use CuDNN for the created op, if its placed on a
     *                        GPU, as opposed to the TensorFlow implementation.
     * @param  name           Name for the created op.
     * @return Created op output, which is a 4-D tensor whose dimension order depends on the value of `dataFormat`.
     */
   def conv2DBackpropInput(
-      inputSizes: Output, filter: Output, outputGradient: Output, stride1: Long, stride2: Long,
-      padding: ConvPaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default, useCuDNNOnGPU: Boolean = true,
-      name: String = "Conv2DBackpropInput"): Output = {
+      inputSizes: Output,
+      filter: Output,
+      outputGradient: Output,
+      stride1: Long,
+      stride2: Long,
+      padding: ConvPaddingMode,
+      dataFormat: CNNDataFormat = CNNDataFormat.default,
+      // TODO: [OPS/NN] Enforce the batch and depth dilation constraint at compile time.
+      dilations: (Int, Int, Int, Int) = (1, 1, 1, 1),
+      useCuDNNOnGPU: Boolean = true,
+      name: String = "Conv2DBackpropInput"
+  ): Output = {
     Op.Builder(opType = "Conv2DBackpropInput", name = name)
         .addInput(inputSizes)
         .addInput(filter)
@@ -773,6 +799,7 @@ private[api] trait NN {
         .setAttribute("strides", Array[Long](1, stride1, stride2, 1))
         .setAttribute("padding", padding.name)
         .setAttribute("data_format", dataFormat.name)
+        .setAttribute("dilations", Array[Long](dilations._1, dilations._2, dilations._3, dilations._4))
         .setAttribute("use_cudnn_on_gpu", useCuDNNOnGPU)
         .build().outputs(0)
   }
@@ -787,15 +814,28 @@ private[api] trait NN {
     * @param  stride2        Stride of the sliding window along the third dimension of `input`.
     * @param  padding        Padding mode to use.
     * @param  dataFormat     Format of the input and output data.
+    * @param  dilations      The dilation factor for each dimension of input. If set to `k > 1`, there will be `k - 1`
+    *                        skipped cells between each filter element on that dimension. The dimension order is
+    *                        determined by the value of `dataFormat`. Dilations in the batch and depth dimensions must
+    *                        be set to `1`.
     * @param  useCuDNNOnGPU  Boolean value indicating whether or not to use CuDNN for the created op, if its placed on a
     *                        GPU, as opposed to the TensorFlow implementation.
     * @param  name           Name for the created op.
     * @return Created op output, which is a 4-D tensor whose dimension order depends on the value of `dataFormat`.
     */
   def conv2DBackpropFilter(
-      input: Output, filterSizes: Output, outputGradient: Output, stride1: Long, stride2: Long,
-      padding: ConvPaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default, useCuDNNOnGPU: Boolean = true,
-      name: String = "Conv2DBackpropFilter"): Output = {
+      input: Output,
+      filterSizes: Output,
+      outputGradient: Output,
+      stride1: Long,
+      stride2: Long,
+      padding: ConvPaddingMode,
+      dataFormat: CNNDataFormat = CNNDataFormat.default,
+      // TODO: [OPS/NN] Enforce the batch and depth dilation constraint at compile time.
+      dilations: (Int, Int, Int, Int) = (1, 1, 1, 1),
+      useCuDNNOnGPU: Boolean = true,
+      name: String = "Conv2DBackpropFilter"
+  ): Output = {
     Op.Builder(opType = "Conv2DBackpropFilter", name = name)
         .addInput(input)
         .addInput(filterSizes)
@@ -803,6 +843,7 @@ private[api] trait NN {
         .setAttribute("strides", Array[Long](1, stride1, stride2, 1))
         .setAttribute("padding", padding.name)
         .setAttribute("data_format", dataFormat.name)
+        .setAttribute("dilations", Array[Long](dilations._1, dilations._2, dilations._3, dilations._4))
         .setAttribute("use_cudnn_on_gpu", useCuDNNOnGPU)
         .build().outputs(0)
   }
@@ -1072,16 +1113,27 @@ object NN extends NN {
       * @param  stride2       Stride of the sliding window along the third dimension of this tensor.
       * @param  padding       Padding mode to use.
       * @param  dataFormat    Format of the input and output data.
-      * @param  useCuDNNOnGPU Boolean value indicating whether or not to use CuDNN for the created op, if its placed on a
-      *                       GPU, as opposed to the TensorFlow implementation.
+      * @param  dilations     The dilation factor for each dimension of input. If set to `k > 1`, there will be `k - 1`
+      *                       skipped cells between each filter element on that dimension. The dimension order is
+      *                       determined by the value of `dataFormat`. Dilations in the batch and depth dimensions must
+      *                       be set to `1`.
+      * @param  useCuDNNOnGPU Boolean value indicating whether or not to use CuDNN for the created op, if its placed on
+      *                       a GPU, as opposed to the TensorFlow implementation.
       * @param  name          Name for the created op.
       * @return Created op output, which is a 4-D tensor whose dimension order depends on the value of `dataFormat`.
       */
     def conv2D(
-        filter: Output, stride1: Long, stride2: Long, padding: ConvPaddingMode,
-        dataFormat: CNNDataFormat = CNNDataFormat.default, useCuDNNOnGPU: Boolean = true,
-        name: String = "Conv2D"): Output = {
-      NN.conv2D(output, filter, stride1, stride2, padding, dataFormat, useCuDNNOnGPU, name)
+        filter: Output,
+        stride1: Long,
+        stride2: Long,
+        padding: ConvPaddingMode,
+        dataFormat: CNNDataFormat = CNNDataFormat.default,
+        // TODO: [OPS/NN] Enforce the batch and depth dilation constraint at compile time.
+        dilations: (Int, Int, Int, Int) = (1, 1, 1, 1),
+        useCuDNNOnGPU: Boolean = true,
+        name: String = "Conv2D"
+    ): Output = {
+      NN.conv2D(output, filter, stride1, stride2, padding, dataFormat, dilations, useCuDNNOnGPU, name)
     }
 
     //endregion Convolution Ops
@@ -1468,15 +1520,16 @@ object NN extends NN {
     val strides = op.longArrayAttribute("strides")
     val padding = ConvPaddingMode.fromName(op.stringAttribute("padding"))
     val dataFormat = CNNDataFormat.fromName(op.stringAttribute("data_format"))
+    val dilations = op.longArrayAttribute("dilations")
     val useCuDNNOnGPU = op.booleanAttribute("use_cudnn_on_gpu")
     val inputShapes = Basic.shapeN(Seq(op.inputs(0), op.inputs(1)))
     Seq(
       NN.conv2DBackpropInput(
-        inputShapes(0), op.inputs(1), outputGradient, strides(1).toInt, strides(2).toInt,
-        padding, dataFormat, useCuDNNOnGPU),
+        inputShapes(0), op.inputs(1), outputGradient, strides(1).toInt, strides(2).toInt, padding, dataFormat,
+        (dilations(0).toInt, dilations(1).toInt, dilations(2).toInt, dilations(3).toInt), useCuDNNOnGPU),
       NN.conv2DBackpropFilter(
-        op.inputs(0), inputShapes(1), outputGradient, strides(1).toInt, strides(2).toInt,
-        padding, dataFormat, useCuDNNOnGPU))
+        op.inputs(0), inputShapes(1), outputGradient, strides(1).toInt, strides(2).toInt, padding, dataFormat,
+        (dilations(0).toInt, dilations(1).toInt, dilations(2).toInt, dilations(3).toInt), useCuDNNOnGPU))
   }
 
   private[this] def maxPoolGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {

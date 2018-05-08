@@ -87,6 +87,7 @@ case class Conv2D(
     stride2: Long,
     padding: ConvPaddingMode,
     dataFormat: CNNDataFormat = CNNDataFormat.default,
+    dilations: (Int, Int, Int, Int) = (1, 1, 1, 1),
     useCuDNNOnGPU: Boolean = true,
     weightsInitializer: Initializer = RandomNormalInitializer()
 ) extends Layer[Output, Output](name) {
@@ -94,7 +95,7 @@ case class Conv2D(
 
   override protected def _forward(input: Output)(implicit mode: Mode): Output = {
     val weights = tf.variable("Weights", input.dataType, filterShape, weightsInitializer)
-    ops.NN.conv2D(input, weights, stride1, stride2, padding, dataFormat, useCuDNNOnGPU)
+    ops.NN.conv2D(input, weights, stride1, stride2, padding, dataFormat, dilations, useCuDNNOnGPU)
   }
 }
 

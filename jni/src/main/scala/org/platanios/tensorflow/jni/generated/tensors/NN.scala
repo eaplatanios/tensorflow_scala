@@ -45,13 +45,13 @@ object NN {
   @native def maxPoolWithArgmax(contextHandle: Long, input: Long, ksize: Array[Long], strides: Array[Long], padding: Array[Byte], targmax: Int): Array[Long]
   @native def fractionalAvgPool(contextHandle: Long, value: Long, pooling_ratio: Array[Float], pseudo_random: Boolean, overlapping: Boolean, deterministic: Boolean, seed: Long, seed2: Long): Array[Long]
   @native def fractionalMaxPool(contextHandle: Long, value: Long, pooling_ratio: Array[Float], pseudo_random: Boolean, overlapping: Boolean, deterministic: Boolean, seed: Long, seed2: Long): Array[Long]
-  @native def conv2D(contextHandle: Long, input: Long, filter: Long, strides: Array[Long], padding: Array[Byte], use_cudnn_on_gpu: Boolean, data_format: Array[Byte]): Long
-  @native def conv2DBackpropInput(contextHandle: Long, input_sizes: Long, filter: Long, out_backprop: Long, strides: Array[Long], padding: Array[Byte], use_cudnn_on_gpu: Boolean, data_format: Array[Byte]): Long
-  @native def conv2DBackpropFilter(contextHandle: Long, input: Long, filter_sizes: Long, out_backprop: Long, strides: Array[Long], padding: Array[Byte], use_cudnn_on_gpu: Boolean, data_format: Array[Byte]): Long
+  @native def conv2D(contextHandle: Long, input: Long, filter: Long, strides: Array[Long], padding: Array[Byte], use_cudnn_on_gpu: Boolean, data_format: Array[Byte], dilations: Array[Long]): Long
+  @native def conv2DBackpropInput(contextHandle: Long, input_sizes: Long, filter: Long, out_backprop: Long, strides: Array[Long], padding: Array[Byte], use_cudnn_on_gpu: Boolean, data_format: Array[Byte], dilations: Array[Long]): Long
+  @native def conv2DBackpropFilter(contextHandle: Long, input: Long, filter_sizes: Long, out_backprop: Long, strides: Array[Long], padding: Array[Byte], use_cudnn_on_gpu: Boolean, data_format: Array[Byte], dilations: Array[Long]): Long
   @native def fusedResizeAndPadConv2D(contextHandle: Long, input: Long, size: Long, paddings: Long, filter: Long, mode: Array[Byte], strides: Array[Long], padding: Array[Byte], resize_align_corners: Boolean): Long
   @native def fusedPadConv2D(contextHandle: Long, input: Long, paddings: Long, filter: Long, mode: Array[Byte], strides: Array[Long], padding: Array[Byte]): Long
-  @native def depthwiseConv2dNative(contextHandle: Long, input: Long, filter: Long, strides: Array[Long], padding: Array[Byte], data_format: Array[Byte]): Long
-  @native def conv3D(contextHandle: Long, input: Long, filter: Long, strides: Array[Long], padding: Array[Byte], data_format: Array[Byte]): Long
+  @native def depthwiseConv2dNative(contextHandle: Long, input: Long, filter: Long, strides: Array[Long], padding: Array[Byte], data_format: Array[Byte], dilations: Array[Long]): Long
+  @native def conv3D(contextHandle: Long, input: Long, filter: Long, strides: Array[Long], padding: Array[Byte], data_format: Array[Byte], dilations: Array[Long]): Long
   @native def dilation2D(contextHandle: Long, input: Long, filter: Long, strides: Array[Long], rates: Array[Long], padding: Array[Byte]): Long
   @native def lRN(contextHandle: Long, input: Long, depth_radius: Long, bias: Float, alpha: Float, beta: Float): Long
   @native def batchNormWithGlobalNormalization(contextHandle: Long, t: Long, m: Long, v: Long, beta: Long, gamma: Long, variance_epsilon: Float, scale_after_normalization: Boolean): Long
@@ -62,6 +62,6 @@ object NN {
   @native def quantizedReluX(contextHandle: Long, features: Long, max_value: Long, min_features: Long, max_features: Long, out_type: Int): Array[Long]
   @native def quantizedAvgPool(contextHandle: Long, input: Long, min_input: Long, max_input: Long, ksize: Array[Long], strides: Array[Long], padding: Array[Byte]): Array[Long]
   @native def quantizedMaxPool(contextHandle: Long, input: Long, min_input: Long, max_input: Long, ksize: Array[Long], strides: Array[Long], padding: Array[Byte]): Array[Long]
-  @native def quantizedConv2D(contextHandle: Long, input: Long, filter: Long, min_input: Long, max_input: Long, min_filter: Long, max_filter: Long, strides: Array[Long], padding: Array[Byte], out_type: Int): Array[Long]
+  @native def quantizedConv2D(contextHandle: Long, input: Long, filter: Long, min_input: Long, max_input: Long, min_filter: Long, max_filter: Long, strides: Array[Long], padding: Array[Byte], out_type: Int, dilations: Array[Long]): Array[Long]
   @native def quantizedBatchNormWithGlobalNormalization(contextHandle: Long, t: Long, t_min: Long, t_max: Long, m: Long, m_min: Long, m_max: Long, v: Long, v_min: Long, v_max: Long, beta: Long, beta_min: Long, beta_max: Long, gamma: Long, gamma_min: Long, gamma_max: Long, out_type: Int, variance_epsilon: Float, scale_after_normalization: Boolean): Array[Long]
 }

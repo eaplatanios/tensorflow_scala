@@ -558,6 +558,10 @@ private[api] trait NN {
     * @param  stride2       Stride of the sliding window along the third dimension of `input`.
     * @param  padding       Padding mode to use.
     * @param  dataFormat    Format of the input and output data.
+    * @param  dilations     The dilation factor for each dimension of input. If set to `k > 1`, there will be `k - 1`
+    *                       skipped cells between each filter element on that dimension. The dimension order is
+    *                       determined by the value of `dataFormat`. Dilations in the batch and depth dimensions must
+    *                       be set to `1`.
     * @param  useCuDNNOnGPU Boolean value indicating whether or not to use CuDNN for the created op, if its placed on a
     *                       GPU, as opposed to the TensorFlow implementation.
     * @return Result as a new 4-D tensor whose dimension order depends on the value of `dataFormat`.
@@ -569,12 +573,15 @@ private[api] trait NN {
       stride2: Long,
       padding: ConvPaddingMode,
       dataFormat: CNNDataFormat = CNNDataFormat.default,
+      // TODO: [OPS/NN] Enforce the batch and depth dilation constraint at compile time.
+      dilations: (Int, Int, Int, Int) = (1, 1, 1, 1),
       useCuDNNOnGPU: Boolean = true
   ): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsNN.conv2D(
       executionContext.value.nativeHandle, input.nativeHandle, filter.nativeHandle,
       Array[Long](1, stride1, stride2, 1), padding.name.getBytes(StandardCharsets.ISO_8859_1), useCuDNNOnGPU,
-      dataFormat.name.getBytes(StandardCharsets.ISO_8859_1)))
+      dataFormat.name.getBytes(StandardCharsets.ISO_8859_1),
+      Array(dilations._1, dilations._2, dilations._3, dilations._4)))
   }
 
   /** $OpDocConv2DBackpropInput
@@ -587,6 +594,10 @@ private[api] trait NN {
     * @param  stride2        Stride of the sliding window along the third dimension of `input`.
     * @param  padding        Padding mode to use.
     * @param  dataFormat     Format of the input and output data.
+    * @param  dilations      The dilation factor for each dimension of input. If set to `k > 1`, there will be `k - 1`
+    *                        skipped cells between each filter element on that dimension. The dimension order is
+    *                        determined by the value of `dataFormat`. Dilations in the batch and depth dimensions must
+    *                        be set to `1`.
     * @param  useCuDNNOnGPU  Boolean value indicating whether or not to use CuDNN for the created op, if its placed on a
     *                        GPU, as opposed to the TensorFlow implementation.
     * @return Result as a new 4-D tensor whose dimension order depends on the value of `dataFormat`.
@@ -599,12 +610,15 @@ private[api] trait NN {
       stride2: Long,
       padding: ConvPaddingMode,
       dataFormat: CNNDataFormat = CNNDataFormat.default,
+      // TODO: [OPS/NN] Enforce the batch and depth dilation constraint at compile time.
+      dilations: (Int, Int, Int, Int) = (1, 1, 1, 1),
       useCuDNNOnGPU: Boolean = true
   ): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsNN.conv2DBackpropInput(
       executionContext.value.nativeHandle, inputSizes.nativeHandle, filter.nativeHandle, outputGradient.nativeHandle,
       Array[Long](1, stride1, stride2, 1), padding.name.getBytes(StandardCharsets.ISO_8859_1), useCuDNNOnGPU,
-      dataFormat.name.getBytes(StandardCharsets.ISO_8859_1)))
+      dataFormat.name.getBytes(StandardCharsets.ISO_8859_1),
+      Array(dilations._1, dilations._2, dilations._3, dilations._4)))
   }
 
   /** $OpDocConv2DBackpropFilter
@@ -617,6 +631,10 @@ private[api] trait NN {
     * @param  stride2        Stride of the sliding window along the third dimension of `input`.
     * @param  padding        Padding mode to use.
     * @param  dataFormat     Format of the input and output data.
+    * @param  dilations      The dilation factor for each dimension of input. If set to `k > 1`, there will be `k - 1`
+    *                        skipped cells between each filter element on that dimension. The dimension order is
+    *                        determined by the value of `dataFormat`. Dilations in the batch and depth dimensions must
+    *                        be set to `1`.
     * @param  useCuDNNOnGPU  Boolean value indicating whether or not to use CuDNN for the created op, if its placed on a
     *                        GPU, as opposed to the TensorFlow implementation.
     * @return Result as a new 4-D tensor whose dimension order depends on the value of `dataFormat`.
@@ -629,12 +647,15 @@ private[api] trait NN {
       stride2: Long,
       padding: ConvPaddingMode,
       dataFormat: CNNDataFormat = CNNDataFormat.default,
+      // TODO: [OPS/NN] Enforce the batch and depth dilation constraint at compile time.
+      dilations: (Int, Int, Int, Int) = (1, 1, 1, 1),
       useCuDNNOnGPU: Boolean = true
   ): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsNN.conv2DBackpropFilter(
       executionContext.value.nativeHandle, input.nativeHandle, filterSizes.nativeHandle, outputGradient.nativeHandle,
       Array[Long](1, stride1, stride2, 1), padding.name.getBytes(StandardCharsets.ISO_8859_1), useCuDNNOnGPU,
-      dataFormat.name.getBytes(StandardCharsets.ISO_8859_1)))
+      dataFormat.name.getBytes(StandardCharsets.ISO_8859_1),
+      Array(dilations._1, dilations._2, dilations._3, dilations._4)))
   }
 
   //endregion Convolution Ops
@@ -884,14 +905,25 @@ object NN extends NN {
       * @param  stride2       Stride of the sliding window along the third dimension of this tensor.
       * @param  padding       Padding mode to use.
       * @param  dataFormat    Format of the input and output data.
+      * @param  dilations     The dilation factor for each dimension of input. If set to `k > 1`, there will be `k - 1`
+      *                       skipped cells between each filter element on that dimension. The dimension order is
+      *                       determined by the value of `dataFormat`. Dilations in the batch and depth dimensions must
+      *                       be set to `1`.
       * @param  useCuDNNOnGPU Boolean value indicating whether or not to use CuDNN for the created op, if its placed on a
       *                       GPU, as opposed to the TensorFlow implementation.
       * @return Result as a new 4-D tensor whose dimension order depends on the value of `dataFormat`.
       */
     def conv2D(
-        filter: Tensor, stride1: Long, stride2: Long, padding: ConvPaddingMode,
-        dataFormat: CNNDataFormat = CNNDataFormat.default, useCuDNNOnGPU: Boolean = true): Tensor = {
-      NN.conv2D(tensor, filter, stride1, stride2, padding, dataFormat, useCuDNNOnGPU)
+        filter: Tensor,
+        stride1: Long,
+        stride2: Long,
+        padding: ConvPaddingMode,
+        dataFormat: CNNDataFormat = CNNDataFormat.default,
+        // TODO: [OPS/NN] Enforce the batch and depth dilation constraint at compile time.
+        dilations: (Int, Int, Int, Int) = (1, 1, 1, 1),
+        useCuDNNOnGPU: Boolean = true
+    ): Tensor = {
+      NN.conv2D(tensor, filter, stride1, stride2, padding, dataFormat, dilations, useCuDNNOnGPU)
     }
 
     //endregion Convolution Ops

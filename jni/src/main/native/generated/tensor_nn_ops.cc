@@ -1021,7 +1021,7 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors
 }
 
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_00024_conv2D(
-    JNIEnv* env, jobject object, jlong context_handle, jlong input, jlong filter, jlongArray strides, jbyteArray padding, jboolean use_cudnn_on_gpu, jbyteArray data_format) {
+    JNIEnv* env, jobject object, jlong context_handle, jlong input, jlong filter, jlongArray strides, jbyteArray padding, jboolean use_cudnn_on_gpu, jbyteArray data_format, jlongArray dilations) {
   REQUIRE_HANDLE(context, TFE_Context, context_handle, 0);
   std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
 
@@ -1073,6 +1073,15 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_0
   TFE_OpSetAttrString(op.get(), "data_format", reinterpret_cast<const char *>(data_format_c_value));
   env->ReleaseByteArrayElements(data_format, data_format_c_value, JNI_ABORT);
 
+  const int dilations_n = env->GetArrayLength(dilations);
+  std::unique_ptr<int64_t[]> dilations_c_value(new int64_t[dilations_n]);
+  jlong* dilations_elems = env->GetLongArrayElements(dilations, nullptr);
+  for (int i = 0; i < dilations_n; ++i) {
+    dilations_c_value[i] = static_cast<int64_t>(dilations_elems[i]);
+  }
+  TFE_OpSetAttrIntList(op.get(), "dilations", dilations_c_value.get(), dilations_n);
+  env->ReleaseLongArrayElements(dilations, dilations_elems, JNI_ABORT);
+
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
   std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
@@ -1083,7 +1092,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_0
 }
 
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_00024_conv2DBackpropInput(
-    JNIEnv* env, jobject object, jlong context_handle, jlong input_sizes, jlong filter, jlong out_backprop, jlongArray strides, jbyteArray padding, jboolean use_cudnn_on_gpu, jbyteArray data_format) {
+    JNIEnv* env, jobject object, jlong context_handle, jlong input_sizes, jlong filter, jlong out_backprop, jlongArray strides, jbyteArray padding, jboolean use_cudnn_on_gpu, jbyteArray data_format, jlongArray dilations) {
   REQUIRE_HANDLE(context, TFE_Context, context_handle, 0);
   std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
 
@@ -1139,6 +1148,15 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_0
   TFE_OpSetAttrString(op.get(), "data_format", reinterpret_cast<const char *>(data_format_c_value));
   env->ReleaseByteArrayElements(data_format, data_format_c_value, JNI_ABORT);
 
+  const int dilations_n = env->GetArrayLength(dilations);
+  std::unique_ptr<int64_t[]> dilations_c_value(new int64_t[dilations_n]);
+  jlong* dilations_elems = env->GetLongArrayElements(dilations, nullptr);
+  for (int i = 0; i < dilations_n; ++i) {
+    dilations_c_value[i] = static_cast<int64_t>(dilations_elems[i]);
+  }
+  TFE_OpSetAttrIntList(op.get(), "dilations", dilations_c_value.get(), dilations_n);
+  env->ReleaseLongArrayElements(dilations, dilations_elems, JNI_ABORT);
+
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
   std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
@@ -1149,7 +1167,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_0
 }
 
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_00024_conv2DBackpropFilter(
-    JNIEnv* env, jobject object, jlong context_handle, jlong input, jlong filter_sizes, jlong out_backprop, jlongArray strides, jbyteArray padding, jboolean use_cudnn_on_gpu, jbyteArray data_format) {
+    JNIEnv* env, jobject object, jlong context_handle, jlong input, jlong filter_sizes, jlong out_backprop, jlongArray strides, jbyteArray padding, jboolean use_cudnn_on_gpu, jbyteArray data_format, jlongArray dilations) {
   REQUIRE_HANDLE(context, TFE_Context, context_handle, 0);
   std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
 
@@ -1204,6 +1222,15 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_0
   jbyte *data_format_c_value = env->GetByteArrayElements(data_format, nullptr);
   TFE_OpSetAttrString(op.get(), "data_format", reinterpret_cast<const char *>(data_format_c_value));
   env->ReleaseByteArrayElements(data_format, data_format_c_value, JNI_ABORT);
+
+  const int dilations_n = env->GetArrayLength(dilations);
+  std::unique_ptr<int64_t[]> dilations_c_value(new int64_t[dilations_n]);
+  jlong* dilations_elems = env->GetLongArrayElements(dilations, nullptr);
+  for (int i = 0; i < dilations_n; ++i) {
+    dilations_c_value[i] = static_cast<int64_t>(dilations_elems[i]);
+  }
+  TFE_OpSetAttrIntList(op.get(), "dilations", dilations_c_value.get(), dilations_n);
+  env->ReleaseLongArrayElements(dilations, dilations_elems, JNI_ABORT);
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
@@ -1349,7 +1376,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_0
 }
 
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_00024_depthwiseConv2dNative(
-    JNIEnv* env, jobject object, jlong context_handle, jlong input, jlong filter, jlongArray strides, jbyteArray padding, jbyteArray data_format) {
+    JNIEnv* env, jobject object, jlong context_handle, jlong input, jlong filter, jlongArray strides, jbyteArray padding, jbyteArray data_format, jlongArray dilations) {
   REQUIRE_HANDLE(context, TFE_Context, context_handle, 0);
   std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
 
@@ -1399,6 +1426,15 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_0
   TFE_OpSetAttrString(op.get(), "data_format", reinterpret_cast<const char *>(data_format_c_value));
   env->ReleaseByteArrayElements(data_format, data_format_c_value, JNI_ABORT);
 
+  const int dilations_n = env->GetArrayLength(dilations);
+  std::unique_ptr<int64_t[]> dilations_c_value(new int64_t[dilations_n]);
+  jlong* dilations_elems = env->GetLongArrayElements(dilations, nullptr);
+  for (int i = 0; i < dilations_n; ++i) {
+    dilations_c_value[i] = static_cast<int64_t>(dilations_elems[i]);
+  }
+  TFE_OpSetAttrIntList(op.get(), "dilations", dilations_c_value.get(), dilations_n);
+  env->ReleaseLongArrayElements(dilations, dilations_elems, JNI_ABORT);
+
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
   std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
@@ -1409,7 +1445,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_0
 }
 
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_00024_conv3D(
-    JNIEnv* env, jobject object, jlong context_handle, jlong input, jlong filter, jlongArray strides, jbyteArray padding, jbyteArray data_format) {
+    JNIEnv* env, jobject object, jlong context_handle, jlong input, jlong filter, jlongArray strides, jbyteArray padding, jbyteArray data_format, jlongArray dilations) {
   REQUIRE_HANDLE(context, TFE_Context, context_handle, 0);
   std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
 
@@ -1458,6 +1494,15 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_0
   jbyte *data_format_c_value = env->GetByteArrayElements(data_format, nullptr);
   TFE_OpSetAttrString(op.get(), "data_format", reinterpret_cast<const char *>(data_format_c_value));
   env->ReleaseByteArrayElements(data_format, data_format_c_value, JNI_ABORT);
+
+  const int dilations_n = env->GetArrayLength(dilations);
+  std::unique_ptr<int64_t[]> dilations_c_value(new int64_t[dilations_n]);
+  jlong* dilations_elems = env->GetLongArrayElements(dilations, nullptr);
+  for (int i = 0; i < dilations_n; ++i) {
+    dilations_c_value[i] = static_cast<int64_t>(dilations_elems[i]);
+  }
+  TFE_OpSetAttrIntList(op.get(), "dilations", dilations_c_value.get(), dilations_n);
+  env->ReleaseLongArrayElements(dilations, dilations_elems, JNI_ABORT);
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
@@ -2086,7 +2131,7 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors
 }
 
 JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_00024_quantizedConv2D(
-    JNIEnv* env, jobject object, jlong context_handle, jlong input, jlong filter, jlong min_input, jlong max_input, jlong min_filter, jlong max_filter, jlongArray strides, jbyteArray padding, jint out_type) {
+    JNIEnv* env, jobject object, jlong context_handle, jlong input, jlong filter, jlong min_input, jlong max_input, jlong min_filter, jlong max_filter, jlongArray strides, jbyteArray padding, jint out_type, jlongArray dilations) {
   REQUIRE_HANDLE(context, TFE_Context, context_handle, nullptr);
   std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
 
@@ -2140,6 +2185,15 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors
   env->ReleaseByteArrayElements(padding, padding_c_value, JNI_ABORT);
 
   TFE_OpSetAttrType(op.get(), "out_type", static_cast<TF_DataType>(out_type));
+
+  const int dilations_n = env->GetArrayLength(dilations);
+  std::unique_ptr<int64_t[]> dilations_c_value(new int64_t[dilations_n]);
+  jlong* dilations_elems = env->GetLongArrayElements(dilations, nullptr);
+  for (int i = 0; i < dilations_n; ++i) {
+    dilations_c_value[i] = static_cast<int64_t>(dilations_elems[i]);
+  }
+  TFE_OpSetAttrIntList(op.get(), "dilations", dilations_c_value.get(), dilations_n);
+  env->ReleaseLongArrayElements(dilations, dilations_elems, JNI_ABORT);
 
   const int num_outputs = 3;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);

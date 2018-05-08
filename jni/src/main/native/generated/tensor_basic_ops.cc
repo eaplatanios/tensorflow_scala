@@ -96,6 +96,10 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basi
   TFE_OpAddInput(op.get(), value_handle, status.get());
   CHECK_STATUS(env, status.get(), 0);
 
+  REQUIRE_HANDLE(attr_index_type_dims_handle, TFE_TensorHandle, dims, 0);
+  const TF_DataType attr_index_type = TFE_TensorHandleDataType(attr_index_type_dims_handle);
+  TFE_OpSetAttrType(op.get(), "index_type", attr_index_type);
+
   REQUIRE_HANDLE(attr_T_value_handle, TFE_TensorHandle, value, 0);
   const TF_DataType attr_T = TFE_TensorHandleDataType(attr_T_value_handle);
   TFE_OpSetAttrType(op.get(), "T", attr_T);
