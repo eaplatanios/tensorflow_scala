@@ -32,8 +32,8 @@ import scala.sys.process._
 private[tpu] object TPU {
   private[this] val logger: Logger = Logger(LoggerFactory.getLogger("TensorFlow / TPU"))
 
-  /** TensorFlow TPU JNI bindings library name. */
-  private[this] val JNI_LIB_NAME: String = "tpu_jni"
+  /** TensorFlow TPU ops library name. */
+  private[this] val OPS_LIB_NAME: String = "tpu_ops"
 
   /** Current platform operating system. */
   private[this] val os = {
@@ -66,56 +66,38 @@ private[tpu] object TPU {
     else arch
   }
 
-  /** Loads the TensorFlow TPU JNI bindings library, if provided as a resource. */
+  /** Loads the TensorFlow TPU ops library, if provided as a resource. */
   def load(): Unit = this synchronized {
-    // If either:
-    // (1) The native library has already been statically loaded, or
-    // (2) The required native code has been statically linked (through a custom launcher), or
-    // (3) The native code is part of another library (such as an application-level library) that has already been
-    //     loaded.
-    // then it seems that the native library has already been loaded and there is nothing else to do.
-    if (!checkIfLoaded()) {
-      // Native code is not present, perhaps it has been packaged into the JAR file containing this code.
-      val tempDirectory = Files.createTempDirectory("tensorflow_scala_tpu_native_library")
-      Runtime.getRuntime.addShutdownHook(new Thread() {
-        override def run(): Unit = {
-          Files.walk(tempDirectory).iterator().asScala.toSeq.reverse.foreach(Files.deleteIfExists)
-        }
-      })
-      val classLoader = Thread.currentThread.getContextClassLoader
+    // Native code is not present, perhaps it has been packaged into the JAR file containing this code.
+    val tempDirectory = Files.createTempDirectory("tensorflow_scala_tpu_native_library")
+    Runtime.getRuntime.addShutdownHook(new Thread() {
+      override def run(): Unit = {
+        Files.walk(tempDirectory).iterator().asScala.toSeq.reverse.foreach(Files.deleteIfExists)
+      }
+    })
+    val classLoader = Thread.currentThread.getContextClassLoader
 
-      // Load the TensorFlow JNI bindings from the appropriate resource.
-      val jniResourceStream = Option(classLoader.getResourceAsStream(makeResourceName(JNI_LIB_NAME)))
-      val jniPath = jniResourceStream.map(extractResource(JNI_LIB_NAME, _, tempDirectory))
-      if (jniPath.isEmpty)
-        throw new UnsatisfiedLinkError(
-          s"Cannot find the TensorFlow TPU JNI bindings for OS: $os, and architecture: $architecture. See " +
-              "https://github.com/eaplatanios/tensorflow_scala/tree/master/README.md for possible solutions " +
-              "(such as building the library from source).")
-      jniPath.foreach(path => {
-        try {
-          System.load(path.toAbsolutePath.toString)
-        } catch {
-          case exception: IOException => throw new UnsatisfiedLinkError(
-            "Unable to load the TensorFlow TPU JNI bindings from the extracted file. This could be due to the " +
-                s"TensorFlow native library not being available. Error: ${exception.getMessage}.")
-        }
-      })
+    // Load the TensorFlow ops library from the appropriate resource.
+    val opsResourceStream = Option(classLoader.getResourceAsStream(makeResourceName(OPS_LIB_NAME)))
+    val opsPath = opsResourceStream.map(extractResource(OPS_LIB_NAME, _, tempDirectory))
+    if (opsPath.isEmpty)
+      throw new UnsatisfiedLinkError(
+        s"Cannot find the TensorFlow TPU ops library for OS: $os, and architecture: $architecture. See " +
+            "https://github.com/eaplatanios/tensorflow_scala/tree/master/README.md for possible solutions " +
+            "(such as building the library from source).")
+    opsPath.foreach(path => {
+      try {
+        System.load(path.toAbsolutePath.toString)
+      } catch {
+        case exception: IOException => throw new UnsatisfiedLinkError(
+          "Unable to load the TensorFlow TPU ops library from the extracted file. This could be due to the " +
+              s"TensorFlow native library not being available. Error: ${exception.getMessage}.")
+      }
+    })
 
-      // Load the TPU ops library from the appropriate resource.
-      // TODO: !!! For some reason this can be called twice.
-      jniPath.foreach(path => TensorFlow.loadOpLibrary(path.toAbsolutePath.toString))
-    }
-  }
-
-  /** Checks if the TensorFlow TPU JNI bindings library has been loaded. */
-  private[this] def checkIfLoaded(): Boolean = {
-    try {
-      ???
-      true
-    } catch {
-      case _: UnsatisfiedLinkError => false
-    }
+    // Load the TPU ops library from the appropriate resource.
+    // TODO: !!! For some reason this can be called twice.
+    opsPath.foreach(path => TensorFlow.loadOpLibrary(path.toAbsolutePath.toString))
   }
 
   /** Maps the provided library name to a filename, similar to [[System.mapLibraryName]]. */

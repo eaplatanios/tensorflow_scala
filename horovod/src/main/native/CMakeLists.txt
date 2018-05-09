@@ -61,7 +61,7 @@ if(NOT LIB_TENSORFLOW_FRAMEWORK)
   message(FATAL_ERROR "Library `tensorflow_framework` not found.")
 endif()
 
-# Collect sources for the JNI and the op libraries
+# Collect sources for the JNI library
 
 file(GLOB JNI_LIB_SRC
   "*.cc"
