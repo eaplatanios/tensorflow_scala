@@ -4,7 +4,7 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED on)
 
 # Define project and related variables
-project(tensorflow)
+project(tpu)
 set(PROJECT_VERSION_MAJOR 0)
 set(PROJECT_VERSION_MINOR 2)
 set(PROJECT_VERSION_PATCH 0)
@@ -12,14 +12,19 @@ set(PROJECT_VERSION_PATCH 0)
 # Set up JNI
 find_package(JNI REQUIRED)
 if(JNI_FOUND)
-    message(STATUS "JNI include directories: ${JNI_INCLUDE_DIRS}")
+  message(STATUS "JNI include directories: ${JNI_INCLUDE_DIRS}")
 endif()
 
 # Include directories
 include_directories(.)
-include_directories(./generated)
 include_directories(./include)
 include_directories(./ops)
+
+# Needed for the TensorFlow header files.
+include_directories(../../../../jni/src/main/native/include)
+include_directories(../../../../../../jni/src/main/native/include)
+include_directories(/tensorflow_scala/jni/src/main/native/include)
+
 include_directories(${JNI_INCLUDE_DIRS})
 
 # Find Native TensorFlow Library to link
@@ -37,12 +42,7 @@ endif()
 
 file(GLOB JNI_LIB_SRC
   "*.cc"
-  "generated/*.cc"
-  "include/tensorflow/c/*.cc"
-  "include/tensorflow/core/distributed_runtime/*.cc"
-)
-
-file(GLOB OP_LIB_SRC
+  "include/tensorflow/contrib/tpu/proto/*.cc"
   "ops/*.cc"
 )
 
@@ -61,8 +61,3 @@ set(JNI_LIB_NAME "${PROJECT_NAME}_jni")
 add_library(${JNI_LIB_NAME} MODULE ${JNI_LIB_SRC})
 target_link_libraries(${JNI_LIB_NAME} ${LIB_TENSORFLOW} ${LIB_TENSORFLOW_FRAMEWORK})
 install(TARGETS ${JNI_LIB_NAME} LIBRARY DESTINATION .)
-
-set(OP_LIB_NAME "${PROJECT_NAME}_ops")
-add_library(${OP_LIB_NAME} MODULE ${OP_LIB_SRC})
-target_link_libraries(${OP_LIB_NAME} ${LIB_TENSORFLOW} ${LIB_TENSORFLOW_FRAMEWORK})
-install(TARGETS ${OP_LIB_NAME} LIBRARY DESTINATION .)
