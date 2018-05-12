@@ -47,7 +47,7 @@ object MNISTLoader extends Loader {
   }
 
   case object FASHION_MNIST extends DatasetType {
-    override val url                : String = "http://fashion-mnist.s3-website.eu-central-1.amazonaws.com"
+    override val url                : String = "http://fashion-mnist.s3-website.eu-central-1.amazonaws.com/"
     override val trainImagesFilename: String = "train-images-idx3-ubyte.gz"
     override val trainLabelsFilename: String = "train-labels-idx1-ubyte.gz"
     override val testImagesFilename : String = "t10k-images-idx3-ubyte.gz"
