@@ -67,7 +67,12 @@ import scala.util.matching.Regex
   * @author Emmanouil Antonios Platanios
   */
 private[api] case class DeviceSpecification(
-    job: String = null, replica: Int = -1, task: Int = -1, deviceType: String = null, deviceIndex: Int = -1) {
+    job: String = null,
+    replica: Int = -1,
+    task: Int = -1,
+    deviceType: String = null,
+    deviceIndex: Int = -1
+) {
   /** Returns a string representation of this device, of the form:
     *
     * `/job:<name>/replica:<id>/task:<id>/device:<device_type>:<id>`.

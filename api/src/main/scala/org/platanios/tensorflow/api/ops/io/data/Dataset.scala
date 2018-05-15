@@ -23,6 +23,7 @@ import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry
 import org.platanios.tensorflow.api.ops.io.data
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.{DataType, INT64}
+
 import java.util.concurrent.atomic.AtomicLong
 
 import scala.collection.mutable
@@ -63,7 +64,9 @@ abstract class Dataset[T, O, D, S](
     * @return Created iterator.
     */
   def createInitializableIterator(
-      sharedName: String = "", name: String = "InitializableIterator"): InitializableIterator[T, O, D, S] = {
+      sharedName: String = "",
+      name: String = "InitializableIterator"
+  ): InitializableIterator[T, O, D, S] = {
     Iterator.fromDataset(this, sharedName, name)
   }
 

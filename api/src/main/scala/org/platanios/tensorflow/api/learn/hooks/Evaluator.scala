@@ -35,6 +35,8 @@ import org.tensorflow.framework.Summary
 
 import java.nio.file.Path
 
+// TODO: [LEARN] Add support for dataset groups and mean over datasets.
+
 /** Hooks that can be used to evaluate the performance of an estimator for a separate dataset, while training. This hook
   * creates a new session whenever invoked that loads the latest saved checkpoint and evaluates performance using the
   * provided set of evaluation metrics.

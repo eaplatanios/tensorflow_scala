@@ -72,6 +72,23 @@ class Iterator[T, O, D, S] private[io](
     }
   }
 
+  /** Returns an op that initializes this iterator using the provided dataset handle.
+    *
+    * '''NOTE:''' It is advisable not to use this method for initializing iterators as it does not support compile-time
+    * checking for whether the provided dataset handle is compatible with this iterator.
+    *
+    * @param  datasetHandle Dataset handle to initialize this iterator with. The output data types of this iterator must
+    *                       match the output data types of the corresponding dataset, and its output shapes must be
+    *                       compatible with the output shapes of that dataset.
+    * @param  name          Name for the created op.
+    * @return Created op.
+    */
+  def createInitializerFromHandle(datasetHandle: Output, name: String = s"$name/Initializer"): Op = {
+    Op.colocateWith(Set(handle.op)) {
+      Iterator.makeIterator(datasetHandle = datasetHandle, iteratorHandle = handle)
+    }
+  }
+
   /** Creates an op that obtains the next element of this iterator and returns a nested structure of [[Output]]s
     * (according to the structures supported by the [[Data]] type trait) that corresponds to that element.
     *

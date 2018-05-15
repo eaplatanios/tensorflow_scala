@@ -34,7 +34,7 @@ import org.platanios.tensorflow.api.ops.{Function, Op, Output}
   */
 case class FlatMapDataset[T, O, D, S, RT, RO, RD, RS](
     inputDataset: Dataset[T, O, D, S],
-    function: (O) => Dataset[RT, RO, RD, RS],
+    function: O => Dataset[RT, RO, RD, RS],
     override val name: String = "FlatMapDataset"
 )(implicit
     evOToT: OutputToTensor.Aux[O, T] = inputDataset.evOToT,
@@ -72,7 +72,7 @@ object FlatMapDataset {
       * @param  name     Name for the created dataset.
       * @return Created dataset.
       */
-    def flatMap[RT, RO, RD, RS](function: (O) => Dataset[RT, RO, RD, RS], name: String = "FlatMap")(implicit
+    def flatMap[RT, RO, RD, RS](function: O => Dataset[RT, RO, RD, RS], name: String = "FlatMap")(implicit
         evROToRT: OutputToTensor.Aux[RO, RT],
         evRData: Data.Aux[RT, RO, RD, RS],
         evFunctionOutput: Function.ArgType[RO]

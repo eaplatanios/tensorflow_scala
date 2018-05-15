@@ -38,7 +38,7 @@ import org.platanios.tensorflow.api.types.INT64
   */
 case class InterleaveDataset[T, O, D, S, RT, RO, RD, RS](
     inputDataset: Dataset[T, O, D, S],
-    function: (O) => Dataset[RT, RO, RD, RS],
+    function: O => Dataset[RT, RO, RD, RS],
     cycleLength: Output,
     blockLength: Output = 1,
     override val name: String = "InterleaveDataset"
@@ -98,7 +98,7 @@ case class InterleaveDataset[T, O, D, S, RT, RO, RD, RS](
   */
 case class ParallelInterleaveDataset[T, O, D, S, RT, RO, RD, RS](
     inputDataset: Dataset[T, O, D, S],
-    function: (O) => Dataset[RT, RO, RD, RS],
+    function: O => Dataset[RT, RO, RD, RS],
     cycleLength: Output,
     blockLength: Output = 1,
     sloppy: Boolean = false,
@@ -152,7 +152,7 @@ object InterleaveDataset {
       * @return Created dataset.
       */
     def interleave[RT, RO, RD, RS](
-        function: (O) => Dataset[RT, RO, RD, RS],
+        function: O => Dataset[RT, RO, RD, RS],
         cycleLength: Output,
         blockLength: Output = 1,
         name: String = "Interleave"
@@ -183,7 +183,7 @@ object InterleaveDataset {
       * @return Created dataset.
       */
     def parallelInterleave[RT, RO, RD, RS](
-        function: (O) => Dataset[RT, RO, RD, RS],
+        function: O => Dataset[RT, RO, RD, RS],
         cycleLength: Output,
         blockLength: Output = 1,
         sloppy: Boolean = false,
