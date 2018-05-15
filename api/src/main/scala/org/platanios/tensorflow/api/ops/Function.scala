@@ -53,7 +53,7 @@ case class Function[I, O](name: String, function: I => O)(implicit
       captureByValue = captureByValue, appendHashToName = appendHashToName)(evInput, evOutput)(arg)
   }
 
-  private[ops] def instantiate(
+  def instantiate(
       inputDataTypes: Seq[DataType],
       inputShapes: Seq[Shape] = null,
       input: Option[I] = None,
