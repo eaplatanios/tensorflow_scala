@@ -190,6 +190,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerAllo
     CHECK_STATUS(env, status.get(), 0);
   }
 
+  TFE_ContextOptionsSetAsync(options, 0);
   TFE_Context* context = TFE_NewContext(options, status.get());
 
   TFE_DeleteContextOptions(options);
