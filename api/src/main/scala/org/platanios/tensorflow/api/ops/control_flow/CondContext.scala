@@ -42,10 +42,15 @@ import scala.reflect.ClassTag
   * @author Emmanouil Antonios Platanios
   */
 private[api] case class CondContext private[control_flow] (
-    predicate: Output, pivot: Output, branch: CondBranch, private val _name: String = "CondContext"
+    predicate: Output,
+    pivot: Output,
+    branch: CondBranch,
+    private val _name: String = "CondContext"
 ) extends Context() with ProtoSerializable {
   values += predicate.name
   values += pivot.name
+
+  pivot.op.controlFlowContext = Some(this)
 
   override val name: String = Op.currentGraph.uniqueName(_name)
 
