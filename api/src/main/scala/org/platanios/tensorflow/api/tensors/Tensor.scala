@@ -185,14 +185,7 @@ class Tensor private[Tensor](
   def copyToDevice(device: String): Tensor = {
     val parsedDevice = DeviceSpecification.fromString(device).toString.stripPrefix("/device:")
     val handle = NativeTensor.eagerCopyToDevice(nativeHandle, executionContext.get().nativeHandle, parsedDevice)
-    parsedDevice match {
-      case "CPU:0" =>
-        val hostHandle = NativeTensor.eagerResolve(handle)
-        val tensor = Tensor.fromHostNativeHandle(hostHandle)
-        NativeTensor.delete(hostHandle)
-        tensor
-      case _ => Tensor(handle)
-    }
+    Tensor.fromNativeHandle(handle)
   }
 
   private[api] def resolve(): Long = {
