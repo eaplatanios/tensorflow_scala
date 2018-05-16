@@ -31,6 +31,7 @@ limitations under the License.
 #include "tensorflow/core/lib/core/coding.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/platform/macros.h"
+#include "tensorflow/core/platform/mutex.h"
 
 namespace tensorflow {
 REGISTER_OP("JVMCallback")
@@ -160,6 +161,8 @@ namespace {
       return errors::Unknown("Failed to run JVM callback function. Could not find registry class or its 'call' method.");
     }
   }
+
+  static mutex mu;
 }  // namespace
 
 class JVMCallbackOp : public OpKernel {
@@ -170,30 +173,25 @@ public:
     OP_REQUIRES_OK(ctx, ctx->GetAttr("jvm_pointer", &jvm_pointer));
     jvm_ = pointerFromString<JavaVM*>(jvm_pointer);
     JNIEnv* env;
+    mutex_lock l(mu);
     int jvmEnvStatus = jvm_->GetEnv((void **) &env, JNI_VERSION_1_6);
-    if (jvmEnvStatus != JNI_OK) {
-      jint status = jvm_->AttachCurrentThread((void**) &env, nullptr);
-      assert(status == JNI_OK);
-    }
+    if (jvmEnvStatus == JNI_EDETACHED)
+      jvm_->AttachCurrentThread((void**) &env, nullptr);
     std::string registry_pointer;
     OP_REQUIRES_OK(ctx, ctx->GetAttr("registry_pointer", &registry_pointer));
     registry_ = pointerFromString<jclass>(registry_pointer);
     std::string registry_call_pointer;
     OP_REQUIRES_OK(ctx, ctx->GetAttr("registry_call_pointer", &registry_call_pointer));
     call_method_id_ = pointerFromString<jmethodID>(registry_call_pointer);
-    if (jvmEnvStatus != JNI_OK) {
-      jint status = jvm_->DetachCurrentThread();
-      assert(status == JNI_OK);
-    }
+    jvm_->DetachCurrentThread();
   }
 
   void Compute(OpKernelContext* ctx) override {
     JNIEnv* env;
+    mutex_lock l(mu);
     int jvmEnvStatus = jvm_->GetEnv((void**) &env, JNI_VERSION_1_6);
-    if (jvmEnvStatus != JNI_OK) {
-      jint status = jvm_->AttachCurrentThread((void**) &env, nullptr);
-      assert(status == JNI_OK);
-    }
+    if (jvmEnvStatus == JNI_EDETACHED)
+      jvm_->AttachCurrentThread((void**) &env, nullptr);
 
     JVMCall call;
     call.env = env;
@@ -205,10 +203,7 @@ public:
     }
 
     Status s = CallJVMFunction(&call);
-    if (jvmEnvStatus != JNI_OK) {
-      jint status = jvm_->DetachCurrentThread();
-      assert(status == JNI_OK);
-    }
+    jvm_->DetachCurrentThread();
 
     OP_REQUIRES_OK(ctx, s);
 
@@ -229,7 +224,7 @@ public:
 
 private:
   int id_;
-  JavaVM* jvm_;
+  JavaVM* jvm_ GUARDED_BY(mu);
   jclass registry_;
   jmethodID call_method_id_;
 
