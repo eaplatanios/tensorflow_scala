@@ -184,7 +184,7 @@ class Tensor private[Tensor](
     */
   def copyToDevice(device: String): Tensor = {
     val parsedDevice = DeviceSpecification.fromString(device).toString.stripPrefix("/device:")
-    val handle = NativeTensor.eagerCopyToDevice(nativeHandle, executionContext.value.nativeHandle, parsedDevice)
+    val handle = NativeTensor.eagerCopyToDevice(nativeHandle, executionContext.get().nativeHandle, parsedDevice)
     parsedDevice match {
       case "CPU:0" =>
         val hostHandle = NativeTensor.eagerResolve(handle)
@@ -777,7 +777,7 @@ final case class SparseTensor(indices: Tensor, values: Tensor, denseShape: Tenso
   def toTensor(
       defaultValue: Tensor = 0, validateIndices: Boolean = true): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsSparse.sparseToDense(
-      executionContext.value.nativeHandle, indices.nativeHandle, denseShape.nativeHandle, values.nativeHandle,
+      executionContext.get().nativeHandle, indices.nativeHandle, denseShape.nativeHandle, values.nativeHandle,
       defaultValue.nativeHandle, validateIndices))
   }
 
