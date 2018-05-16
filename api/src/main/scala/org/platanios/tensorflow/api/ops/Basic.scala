@@ -692,7 +692,7 @@ private[api] trait Basic {
     override def pad(input: Tensor, paddings: Tensor): Tensor = {
       Tensor.fromNativeHandle(
         NativeTensorOpsBasic.padV2(
-          executionContext.value.nativeHandle, input.nativeHandle, paddings.nativeHandle,
+          executionContext.get().nativeHandle, input.nativeHandle, paddings.nativeHandle,
           value.cast(input.dataType).nativeHandle))
     }
   }
@@ -731,7 +731,7 @@ private[api] trait Basic {
     override def pad(input: Tensor, paddings: Tensor): Tensor = {
       Tensor.fromNativeHandle(
         NativeTensorOpsBasic.mirrorPad(
-          executionContext.value.nativeHandle, input.nativeHandle, paddings.nativeHandle,
+          executionContext.get().nativeHandle, input.nativeHandle, paddings.nativeHandle,
           "REFLECT".getBytes()))
     }
   }
@@ -770,7 +770,7 @@ private[api] trait Basic {
     override def pad(input: Tensor, paddings: Tensor): Tensor = {
       Tensor.fromNativeHandle(
         NativeTensorOpsBasic.mirrorPad(
-          executionContext.value.nativeHandle, input.nativeHandle, paddings.nativeHandle,
+          executionContext.get().nativeHandle, input.nativeHandle, paddings.nativeHandle,
           "SYMMETRIC".getBytes()))
     }
   }
