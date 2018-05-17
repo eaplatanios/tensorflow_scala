@@ -29,6 +29,12 @@ struct JVMCall {
   jclass registry;
   jmethodID call_method_id;
 
+  // The device on which tensors are stored.
+  tensorflow::Device* device;
+
+  // True if and only if this op has been placed on a GPU.
+  bool gpu;
+
   // Passed to the JVM to call the function registered with this ID.
   int id;
 

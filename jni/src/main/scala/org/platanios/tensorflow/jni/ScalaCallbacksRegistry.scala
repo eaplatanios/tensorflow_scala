@@ -26,13 +26,13 @@ object ScalaCallbacksRegistry {
   private[this] object Lock
 
   private[this] var uniqueId  = 0
-  private[this] val callbacks = mutable.Map.empty[Int, (Array[Long]) => Array[Long]]
+  private[this] val callbacks = mutable.Map.empty[Int, Array[Long] => Array[Long]]
 
   /** Number of callbacks currently registered. */
   def size: Int = callbacks.size
 
   /** Registers the provided callback function and returns a unique token to use when creating ops invoking it. */
-  def register(function: (Array[Long]) => Array[Long]): Int = Lock synchronized {
+  def register(function: Array[Long] => Array[Long]): Int = Lock synchronized {
     val token = uniqueId
     callbacks.update(uniqueId, function)
     uniqueId += 1

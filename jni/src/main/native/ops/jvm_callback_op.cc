@@ -15,6 +15,8 @@ limitations under the License.
 
 #include "jvm_callback_op.h"
 
+#include <pthread.h>
+
 #include "exception.h"
 #include "utilities.h"
 
@@ -40,7 +42,6 @@ REGISTER_OP("JVMCallback")
     .Attr("id: int")
     .Attr("jvm_pointer: string")
     .Attr("registry_pointer: string")
-    .Attr("registry_call_pointer: string")
     .Attr("Tin: list(type) >= 0")
     .Attr("Tout: list(type) >=0")
     .SetIsStateful()
@@ -57,8 +58,6 @@ jvm_pointer: A pointer to an existing JVM instance represented as a
   string. This is the JVM that will be used when invoking this JVM
   callback.
 registry_pointer: Pointer to the JVM callbacks registry class.
-registry_call_pointer: Pointer to the JVM callbacks registry class
-  'call' method.
 input: List of tensors that will provide input to the op.
 output: Output tensors from the op.
 Tin: Data types of the inputs to the op.
@@ -72,7 +71,6 @@ REGISTER_OP("JVMCallbackStateless")
     .Attr("id: int")
     .Attr("jvm_pointer: string")
     .Attr("registry_pointer: string")
-    .Attr("registry_call_pointer: string")
     .Attr("Tin: list(type) >= 0")
     .Attr("Tout: list(type) >= 0")
     .SetShapeFn(shape_inference::UnknownShape)
@@ -88,7 +86,12 @@ namespace {
     jlong* inputs_array = call->env->GetLongArrayElements(inputs, nullptr);
     for (int64 i = 0; i < n; ++i) {
       const Tensor& t = call->inputs[i];
-      TFE_TensorHandle* tensor = new TFE_TensorHandle(t, nullptr, nullptr);
+      TFE_TensorHandle* tensor;
+      if (call->gpu) {
+        tensor = new TFE_TensorHandle(t, call->device, call->device);
+      } else {
+        tensor = new TFE_TensorHandle(t, nullptr, nullptr);
+      }
       inputs_array[i] = reinterpret_cast<jlong>(tensor);
     }
     call->env->ReleaseLongArrayElements(inputs, inputs_array, 0);
@@ -163,6 +166,8 @@ namespace {
   }
 
   static mutex mu;
+  static pthread_key_t key;
+  static pthread_once_t key_once = PTHREAD_ONCE_INIT;
 }  // namespace
 
 class JVMCallbackOp : public OpKernel {
@@ -175,15 +180,15 @@ public:
     JNIEnv* env;
     mutex_lock l(mu);
     int jvmEnvStatus = jvm_->GetEnv((void **) &env, JNI_VERSION_1_6);
+    pthread_once(&key_once, make_key);
+    pthread_setspecific(key, (void *) env);
     if (jvmEnvStatus == JNI_EDETACHED)
       jvm_->AttachCurrentThread((void**) &env, nullptr);
     std::string registry_pointer;
     OP_REQUIRES_OK(ctx, ctx->GetAttr("registry_pointer", &registry_pointer));
     registry_ = pointerFromString<jclass>(registry_pointer);
-    std::string registry_call_pointer;
-    OP_REQUIRES_OK(ctx, ctx->GetAttr("registry_call_pointer", &registry_call_pointer));
-    call_method_id_ = pointerFromString<jmethodID>(registry_call_pointer);
-    jvm_->DetachCurrentThread();
+    call_method_id_ = env->GetStaticMethodID(registry_, "call", "(I[J)[J");
+    gpu_ = ctx->device_type().type_string() == DEVICE_GPU;
   }
 
   void Compute(OpKernelContext* ctx) override {
@@ -192,18 +197,20 @@ public:
     int jvmEnvStatus = jvm_->GetEnv((void**) &env, JNI_VERSION_1_6);
     if (jvmEnvStatus == JNI_EDETACHED)
       jvm_->AttachCurrentThread((void**) &env, nullptr);
+    pthread_setspecific(key, (void *) env);
 
     JVMCall call;
     call.env = env;
     call.registry = registry_;
     call.call_method_id = call_method_id_;
+    call.device = dynamic_cast<Device*>(ctx->device());
+    call.gpu = gpu_;
     call.id = id_;
     for (int i = 0; i < ctx->num_inputs(); ++i) {
       call.inputs.push_back(ctx->input(i));
     }
 
     Status s = CallJVMFunction(&call);
-    jvm_->DetachCurrentThread();
 
     OP_REQUIRES_OK(ctx, s);
 
@@ -228,7 +235,23 @@ private:
   jclass registry_;
   jmethodID call_method_id_;
 
+  // True if and only if this op has been placed on a GPU.
+  bool gpu_;
+
   TF_DISALLOW_COPY_AND_ASSIGN(JVMCallbackOp);
+
+  static void make_key() {
+    pthread_key_create(&key, detach_current_thread);
+  }
+
+  static void detach_current_thread(void *p) {
+    if (p != 0) {
+      JavaVM *jvm = 0;
+      JNIEnv *env = (JNIEnv *) p;
+      env->GetJavaVM(&jvm);
+      jvm->DetachCurrentThread();
+    }
+  }
 };
 
 namespace kernel_factory {
@@ -246,6 +269,10 @@ auto jvmCallbackOpInitializer = []{
   if (reg->find(strings::StrCat("JVMCallback:", DeviceTypeString(DEVICE_CPU), ":")) == reg->end()) {
     REGISTER_KERNEL_BUILDER(Name("JVMCallback").Device(DEVICE_CPU), JVMCallbackOp);
     REGISTER_KERNEL_BUILDER(Name("JVMCallbackStateless").Device(DEVICE_CPU), JVMCallbackOp);
+  }
+  if (reg->find(strings::StrCat("JVMCallback:", DeviceTypeString(DEVICE_GPU), ":")) == reg->end()) {
+    REGISTER_KERNEL_BUILDER(Name("JVMCallback").Device(DEVICE_GPU), JVMCallbackOp);
+    REGISTER_KERNEL_BUILDER(Name("JVMCallbackStateless").Device(DEVICE_GPU), JVMCallbackOp);
   }
   return 0;
 }();
