@@ -17,14 +17,16 @@ package org.platanios.tensorflow.api
 
 import org.platanios.tensorflow.api.core.client.SessionConfig
 
+import scala.util.DynamicVariable
+
 /**
   * @author Emmanouil Antonios Platanios
   */
 package object tensors {
-  private[api] val executionContext: ThreadLocal[Context] = {
+  private[api] val executionContext: DynamicVariable[Context] = {
     val sessionConfig = sys.env.get("TF_CUDA_VISIBLE_DEVICES")
         .map(devices => SessionConfig(gpuVisibleDevices = Some(devices.split(',').map(_.toInt))))
-    ThreadLocal.withInitial[Context](() => Context(sessionConfig))
+   new DynamicVariable[Context](Context(sessionConfig))
   }
 
   private[api] trait API

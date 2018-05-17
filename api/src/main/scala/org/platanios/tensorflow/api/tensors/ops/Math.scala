@@ -41,7 +41,7 @@ private[api] trait Math {
   def select(condition: Tensor, x: Tensor, y: Tensor): Tensor = {
     val (cX, cY) = castArgs(x, y)
     Tensor.fromNativeHandle(NativeTensorOpsMath.select(
-      executionContext.get().nativeHandle, condition.nativeHandle, cX.nativeHandle, cY.nativeHandle))
+      executionContext.value.nativeHandle, condition.nativeHandle, cX.nativeHandle, cY.nativeHandle))
   }
 
   /** $OpDocMathRange
@@ -76,7 +76,7 @@ private[api] trait Math {
       castedDelta = cast(delta, inferredDataType)
     Tensor.fromNativeHandle(
       NativeTensorOpsMath.range(
-        executionContext.get().nativeHandle, castedStart.nativeHandle, castedLimit.nativeHandle,
+        executionContext.value.nativeHandle, castedStart.nativeHandle, castedLimit.nativeHandle,
         castedDelta.nativeHandle))
   }
 
@@ -95,7 +95,7 @@ private[api] trait Math {
       numberOfValues: Tensor
   ): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsMath.linSpace(
-      executionContext.get().nativeHandle, start.nativeHandle, stop.nativeHandle, numberOfValues.nativeHandle))
+      executionContext.value.nativeHandle, start.nativeHandle, stop.nativeHandle, numberOfValues.nativeHandle))
   }
 
   /** $OpDocMathCast
@@ -112,7 +112,7 @@ private[api] trait Math {
       implicitly[TensorOps[T]]
           .applyUnary(x, t =>
             Tensor.fromNativeHandle(NativeTensorOpsMath.cast(
-              executionContext.get().nativeHandle, t.nativeHandle, dataType.cValue)))
+              executionContext.value.nativeHandle, t.nativeHandle, dataType.cValue)))
     }
   }
 
@@ -127,7 +127,7 @@ private[api] trait Math {
     */
   def bitcast(input: Tensor, dataType: DataType): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsMath.bitcast(
-      executionContext.get().nativeHandle, input.nativeHandle, dataType.cValue))
+      executionContext.value.nativeHandle, input.nativeHandle, dataType.cValue))
   }
 
   /** $OpDocMathAddN
@@ -141,7 +141,7 @@ private[api] trait Math {
       inputs.head
     else
       Tensor.fromNativeHandle(NativeTensorOpsMath.addN(
-        executionContext.get().nativeHandle, castArgs(inputs).map(_.nativeHandle).toArray))
+        executionContext.value.nativeHandle, castArgs(inputs).map(_.nativeHandle).toArray))
   }
 
   // TODO: [OPS] accumulateN
@@ -160,11 +160,11 @@ private[api] trait Math {
       implicitly[TensorOps[T]]
           .applyUnary(x, t =>
             Tensor.fromNativeHandle(NativeTensorOpsMath.complexAbs(
-              executionContext.get().nativeHandle, t.nativeHandle, x.dataType.cValue)))
+              executionContext.value.nativeHandle, t.nativeHandle, x.dataType.cValue)))
     } else {
       implicitly[TensorOps[T]]
           .applyUnary(x, t =>
-            Tensor.fromNativeHandle(NativeTensorOpsMath.abs(executionContext.get().nativeHandle, t.nativeHandle)))
+            Tensor.fromNativeHandle(NativeTensorOpsMath.abs(executionContext.value.nativeHandle, t.nativeHandle)))
     }
   }
 
@@ -178,7 +178,7 @@ private[api] trait Math {
   def negate[T: TensorOps](x: T): T = {
     implicitly[TensorOps[T]]
         .applyUnary(x, t =>
-          Tensor.fromNativeHandle(NativeTensorOpsMath.neg(executionContext.get().nativeHandle, t.nativeHandle)))
+          Tensor.fromNativeHandle(NativeTensorOpsMath.neg(executionContext.value.nativeHandle, t.nativeHandle)))
   }
 
   /** $OpDocMathReciprocal
@@ -191,7 +191,7 @@ private[api] trait Math {
   def reciprocal[T: TensorOps](x: T): T = {
     implicitly[TensorOps[T]]
         .applyUnary(x, t =>
-          Tensor.fromNativeHandle(NativeTensorOpsMath.reciprocal(executionContext.get().nativeHandle, t.nativeHandle)))
+          Tensor.fromNativeHandle(NativeTensorOpsMath.reciprocal(executionContext.value.nativeHandle, t.nativeHandle)))
   }
 
   /** $OpDocMathSquare
@@ -204,7 +204,7 @@ private[api] trait Math {
   def square[T: TensorOps](x: T): T = {
     implicitly[TensorOps[T]]
         .applyUnary(x, t =>
-          Tensor.fromNativeHandle(NativeTensorOpsMath.square(executionContext.get().nativeHandle, t.nativeHandle)))
+          Tensor.fromNativeHandle(NativeTensorOpsMath.square(executionContext.value.nativeHandle, t.nativeHandle)))
   }
 
   /** $OpDocMathSqrt
@@ -217,7 +217,7 @@ private[api] trait Math {
   def sqrt[T: TensorOps](x: T): T = {
     implicitly[TensorOps[T]]
         .applyUnary(x, t =>
-          Tensor.fromNativeHandle(NativeTensorOpsMath.sqrt(executionContext.get().nativeHandle, t.nativeHandle)))
+          Tensor.fromNativeHandle(NativeTensorOpsMath.sqrt(executionContext.value.nativeHandle, t.nativeHandle)))
   }
 
   /** $OpDocMathRsqrt
@@ -230,7 +230,7 @@ private[api] trait Math {
   def rsqrt[T: TensorOps](x: T): T = {
     implicitly[TensorOps[T]]
         .applyUnary(x, t =>
-          Tensor.fromNativeHandle(NativeTensorOpsMath.rsqrt(executionContext.get().nativeHandle, t.nativeHandle)))
+          Tensor.fromNativeHandle(NativeTensorOpsMath.rsqrt(executionContext.value.nativeHandle, t.nativeHandle)))
   }
 
   /** $OpDocMathExp
@@ -243,7 +243,7 @@ private[api] trait Math {
   def exp[T: TensorOps](x: T): T = {
     implicitly[TensorOps[T]]
         .applyUnary(x, t =>
-          Tensor.fromNativeHandle(NativeTensorOpsMath.exp(executionContext.get().nativeHandle, t.nativeHandle)))
+          Tensor.fromNativeHandle(NativeTensorOpsMath.exp(executionContext.value.nativeHandle, t.nativeHandle)))
   }
 
   /** $OpDocMathExpm1
@@ -256,7 +256,7 @@ private[api] trait Math {
   def expm1[T: TensorOps](x: T): T = {
     implicitly[TensorOps[T]]
         .applyUnary(x, t =>
-          Tensor.fromNativeHandle(NativeTensorOpsMath.expm1(executionContext.get().nativeHandle, t.nativeHandle)))
+          Tensor.fromNativeHandle(NativeTensorOpsMath.expm1(executionContext.value.nativeHandle, t.nativeHandle)))
   }
 
   /** $OpDocMathLog
@@ -269,7 +269,7 @@ private[api] trait Math {
   def log[T: TensorOps](x: T): T = {
     implicitly[TensorOps[T]]
         .applyUnary(x, t =>
-          Tensor.fromNativeHandle(NativeTensorOpsMath.log(executionContext.get().nativeHandle, t.nativeHandle)))
+          Tensor.fromNativeHandle(NativeTensorOpsMath.log(executionContext.value.nativeHandle, t.nativeHandle)))
   }
 
   /** $OpDocMathLog1p
@@ -282,7 +282,7 @@ private[api] trait Math {
   def log1p[T: TensorOps](x: T): T = {
     implicitly[TensorOps[T]]
         .applyUnary(x, t =>
-          Tensor.fromNativeHandle(NativeTensorOpsMath.log1p(executionContext.get().nativeHandle, t.nativeHandle)))
+          Tensor.fromNativeHandle(NativeTensorOpsMath.log1p(executionContext.value.nativeHandle, t.nativeHandle)))
   }
 
   /** $OpDocMathSin
@@ -295,7 +295,7 @@ private[api] trait Math {
   def sin[T: TensorOps](x: T): T = {
     implicitly[TensorOps[T]]
         .applyUnary(x, t =>
-          Tensor.fromNativeHandle(NativeTensorOpsMath.sin(executionContext.get().nativeHandle, t.nativeHandle)))
+          Tensor.fromNativeHandle(NativeTensorOpsMath.sin(executionContext.value.nativeHandle, t.nativeHandle)))
   }
 
   /** $OpDocMathCos
@@ -308,7 +308,7 @@ private[api] trait Math {
   def cos[T: TensorOps](x: T): T = {
     implicitly[TensorOps[T]]
         .applyUnary(x, t =>
-          Tensor.fromNativeHandle(NativeTensorOpsMath.cos(executionContext.get().nativeHandle, t.nativeHandle)))
+          Tensor.fromNativeHandle(NativeTensorOpsMath.cos(executionContext.value.nativeHandle, t.nativeHandle)))
   }
 
   /** $OpDocMathTan
@@ -321,7 +321,7 @@ private[api] trait Math {
   def tan[T: TensorOps](x: T): T = {
     implicitly[TensorOps[T]]
         .applyUnary(x, t =>
-          Tensor.fromNativeHandle(NativeTensorOpsMath.tan(executionContext.get().nativeHandle, t.nativeHandle)))
+          Tensor.fromNativeHandle(NativeTensorOpsMath.tan(executionContext.value.nativeHandle, t.nativeHandle)))
   }
 
   /** $OpDocMathAsin
@@ -334,7 +334,7 @@ private[api] trait Math {
   def asin[T: TensorOps](x: T): T = {
     implicitly[TensorOps[T]]
         .applyUnary(x, t =>
-          Tensor.fromNativeHandle(NativeTensorOpsMath.asin(executionContext.get().nativeHandle, t.nativeHandle)))
+          Tensor.fromNativeHandle(NativeTensorOpsMath.asin(executionContext.value.nativeHandle, t.nativeHandle)))
   }
 
   /** $OpDocMathAcos
@@ -347,7 +347,7 @@ private[api] trait Math {
   def acos[T: TensorOps](x: T): T = {
     implicitly[TensorOps[T]]
         .applyUnary(x, t =>
-          Tensor.fromNativeHandle(NativeTensorOpsMath.acos(executionContext.get().nativeHandle, t.nativeHandle)))
+          Tensor.fromNativeHandle(NativeTensorOpsMath.acos(executionContext.value.nativeHandle, t.nativeHandle)))
   }
 
   /** $OpDocMathAtan
@@ -360,7 +360,7 @@ private[api] trait Math {
   def atan[T: TensorOps](x: T): T = {
     implicitly[TensorOps[T]]
         .applyUnary(x, t =>
-          Tensor.fromNativeHandle(NativeTensorOpsMath.atan(executionContext.get().nativeHandle, t.nativeHandle)))
+          Tensor.fromNativeHandle(NativeTensorOpsMath.atan(executionContext.value.nativeHandle, t.nativeHandle)))
   }
 
   /** $OpDocMathSinh
@@ -373,7 +373,7 @@ private[api] trait Math {
   def sinh[T: TensorOps](x: T): T = {
     implicitly[TensorOps[T]]
         .applyUnary(x, t =>
-          Tensor.fromNativeHandle(NativeTensorOpsMath.sinh(executionContext.get().nativeHandle, t.nativeHandle)))
+          Tensor.fromNativeHandle(NativeTensorOpsMath.sinh(executionContext.value.nativeHandle, t.nativeHandle)))
   }
 
   /** $OpDocMathCosh
@@ -386,7 +386,7 @@ private[api] trait Math {
   def cosh[T: TensorOps](x: T): T = {
     implicitly[TensorOps[T]]
         .applyUnary(x, t =>
-          Tensor.fromNativeHandle(NativeTensorOpsMath.cosh(executionContext.get().nativeHandle, t.nativeHandle)))
+          Tensor.fromNativeHandle(NativeTensorOpsMath.cosh(executionContext.value.nativeHandle, t.nativeHandle)))
   }
 
   /** $OpDocMathTanh
@@ -399,7 +399,7 @@ private[api] trait Math {
   def tanh[T: TensorOps](x: T): T = {
     implicitly[TensorOps[T]]
         .applyUnary(x, t =>
-          Tensor.fromNativeHandle(NativeTensorOpsMath.tanh(executionContext.get().nativeHandle, t.nativeHandle)))
+          Tensor.fromNativeHandle(NativeTensorOpsMath.tanh(executionContext.value.nativeHandle, t.nativeHandle)))
   }
 
   /** $OpDocMathAsinh
@@ -412,7 +412,7 @@ private[api] trait Math {
   def asinh[T: TensorOps](x: T): T = {
     implicitly[TensorOps[T]]
         .applyUnary(x, t =>
-          Tensor.fromNativeHandle(NativeTensorOpsMath.asinh(executionContext.get().nativeHandle, t.nativeHandle)))
+          Tensor.fromNativeHandle(NativeTensorOpsMath.asinh(executionContext.value.nativeHandle, t.nativeHandle)))
   }
 
   /** $OpDocMathAcosh
@@ -425,7 +425,7 @@ private[api] trait Math {
   def acosh[T: TensorOps](x: T): T = {
     implicitly[TensorOps[T]]
         .applyUnary(x, t =>
-          Tensor.fromNativeHandle(NativeTensorOpsMath.acosh(executionContext.get().nativeHandle, t.nativeHandle)))
+          Tensor.fromNativeHandle(NativeTensorOpsMath.acosh(executionContext.value.nativeHandle, t.nativeHandle)))
   }
 
   /** $OpDocMathAtanh
@@ -438,7 +438,7 @@ private[api] trait Math {
   def atanh[T: TensorOps](x: T): T = {
     implicitly[TensorOps[T]]
         .applyUnary(x, t =>
-          Tensor.fromNativeHandle(NativeTensorOpsMath.atanh(executionContext.get().nativeHandle, t.nativeHandle)))
+          Tensor.fromNativeHandle(NativeTensorOpsMath.atanh(executionContext.value.nativeHandle, t.nativeHandle)))
   }
 
   /** $OpDocMathLogGamma
@@ -451,7 +451,7 @@ private[api] trait Math {
   def logGamma[T: TensorOps](x: T): T = {
     implicitly[TensorOps[T]]
         .applyUnary(x, t =>
-          Tensor.fromNativeHandle(NativeTensorOpsMath.lgamma(executionContext.get().nativeHandle, t.nativeHandle)))
+          Tensor.fromNativeHandle(NativeTensorOpsMath.lgamma(executionContext.value.nativeHandle, t.nativeHandle)))
   }
 
   /** $OpDocMathDigamma
@@ -464,7 +464,7 @@ private[api] trait Math {
   def digamma[T: TensorOps](x: T): T = {
     implicitly[TensorOps[T]]
         .applyUnary(x, t =>
-          Tensor.fromNativeHandle(NativeTensorOpsMath.digamma(executionContext.get().nativeHandle, t.nativeHandle)))
+          Tensor.fromNativeHandle(NativeTensorOpsMath.digamma(executionContext.value.nativeHandle, t.nativeHandle)))
   }
 
   /** $OpDocMathErf
@@ -477,7 +477,7 @@ private[api] trait Math {
   def erf[T: TensorOps](x: T): T = {
     implicitly[TensorOps[T]]
         .applyUnary(x, t =>
-          Tensor.fromNativeHandle(NativeTensorOpsMath.erf(executionContext.get().nativeHandle, t.nativeHandle)))
+          Tensor.fromNativeHandle(NativeTensorOpsMath.erf(executionContext.value.nativeHandle, t.nativeHandle)))
   }
 
   /** $OpDocMathErfc
@@ -490,7 +490,7 @@ private[api] trait Math {
   def erfc[T: TensorOps](x: T): T = {
     implicitly[TensorOps[T]]
         .applyUnary(x, t =>
-          Tensor.fromNativeHandle(NativeTensorOpsMath.erfc(executionContext.get().nativeHandle, t.nativeHandle)))
+          Tensor.fromNativeHandle(NativeTensorOpsMath.erfc(executionContext.value.nativeHandle, t.nativeHandle)))
   }
 
   /** $OpDocMathSigmoid
@@ -503,7 +503,7 @@ private[api] trait Math {
   def sigmoid[T: TensorOps](x: T): T = {
     implicitly[TensorOps[T]]
         .applyUnary(x, t =>
-          Tensor.fromNativeHandle(NativeTensorOpsMath.sigmoid(executionContext.get().nativeHandle, t.nativeHandle)))
+          Tensor.fromNativeHandle(NativeTensorOpsMath.sigmoid(executionContext.value.nativeHandle, t.nativeHandle)))
   }
 
   // TODO: [OPS] logSigmoid
@@ -518,7 +518,7 @@ private[api] trait Math {
   def sign[T: TensorOps](x: T): T = {
     implicitly[TensorOps[T]]
         .applyUnary(x, t =>
-          Tensor.fromNativeHandle(NativeTensorOpsMath.sign(executionContext.get().nativeHandle, t.nativeHandle)))
+          Tensor.fromNativeHandle(NativeTensorOpsMath.sign(executionContext.value.nativeHandle, t.nativeHandle)))
   }
 
   /** $OpDocMathRound
@@ -531,7 +531,7 @@ private[api] trait Math {
   def round[T: TensorOps](x: T): T = {
     implicitly[TensorOps[T]]
         .applyUnary(x, t =>
-          Tensor.fromNativeHandle(NativeTensorOpsMath.round(executionContext.get().nativeHandle, t.nativeHandle)))
+          Tensor.fromNativeHandle(NativeTensorOpsMath.round(executionContext.value.nativeHandle, t.nativeHandle)))
   }
 
   /** $OpDocMathRoundInt
@@ -543,7 +543,7 @@ private[api] trait Math {
   def roundInt[T: TensorOps](x: T): T = {
     implicitly[TensorOps[T]]
         .applyUnary(x, t =>
-          Tensor.fromNativeHandle(NativeTensorOpsMath.rint(executionContext.get().nativeHandle, t.nativeHandle)))
+          Tensor.fromNativeHandle(NativeTensorOpsMath.rint(executionContext.value.nativeHandle, t.nativeHandle)))
   }
 
   /** $OpDocMathFloor
@@ -555,7 +555,7 @@ private[api] trait Math {
   def floor[T: TensorOps](x: T): T = {
     implicitly[TensorOps[T]]
         .applyUnary(x, t =>
-          Tensor.fromNativeHandle(NativeTensorOpsMath.floor(executionContext.get().nativeHandle, t.nativeHandle)))
+          Tensor.fromNativeHandle(NativeTensorOpsMath.floor(executionContext.value.nativeHandle, t.nativeHandle)))
   }
 
   /** $OpDocMathCeil
@@ -567,7 +567,7 @@ private[api] trait Math {
   def ceil[T: TensorOps](x: T): T = {
     implicitly[TensorOps[T]]
         .applyUnary(x, t =>
-          Tensor.fromNativeHandle(NativeTensorOpsMath.ceil(executionContext.get().nativeHandle, t.nativeHandle)))
+          Tensor.fromNativeHandle(NativeTensorOpsMath.ceil(executionContext.value.nativeHandle, t.nativeHandle)))
   }
 
   /** $OpDocMathIsNaN
@@ -579,7 +579,7 @@ private[api] trait Math {
   def isNaN[T: TensorOps](x: T): T = {
     implicitly[TensorOps[T]]
         .applyUnary(x, t =>
-          Tensor.fromNativeHandle(NativeTensorOpsMath.isNan(executionContext.get().nativeHandle, t.nativeHandle)))
+          Tensor.fromNativeHandle(NativeTensorOpsMath.isNan(executionContext.value.nativeHandle, t.nativeHandle)))
   }
 
   /** $OpDocMathIsInf
@@ -591,7 +591,7 @@ private[api] trait Math {
   def isInf[T: TensorOps](x: T): T = {
     implicitly[TensorOps[T]]
         .applyUnary(x, t =>
-          Tensor.fromNativeHandle(NativeTensorOpsMath.isInf(executionContext.get().nativeHandle, t.nativeHandle)))
+          Tensor.fromNativeHandle(NativeTensorOpsMath.isInf(executionContext.value.nativeHandle, t.nativeHandle)))
   }
 
   /** $OpDocMathIsFinite
@@ -603,7 +603,7 @@ private[api] trait Math {
   def isFinite[T: TensorOps](x: T): T = {
     implicitly[TensorOps[T]]
         .applyUnary(x, t =>
-          Tensor.fromNativeHandle(NativeTensorOpsMath.isFinite(executionContext.get().nativeHandle, t.nativeHandle)))
+          Tensor.fromNativeHandle(NativeTensorOpsMath.isFinite(executionContext.value.nativeHandle, t.nativeHandle)))
   }
 
   //endregion Unary Ops
@@ -622,7 +622,7 @@ private[api] trait Math {
   def add(x: Tensor, y: Tensor): Tensor = {
     val (cX, cY) = castArgs(x, y)
     Tensor.fromNativeHandle(NativeTensorOpsMath.add(
-      executionContext.get().nativeHandle, cX.nativeHandle, cY.nativeHandle))
+      executionContext.value.nativeHandle, cX.nativeHandle, cY.nativeHandle))
   }
 
   /** $OpDocMathSubtract
@@ -637,7 +637,7 @@ private[api] trait Math {
   def subtract(x: Tensor, y: Tensor): Tensor = {
     val (cX, cY) = castArgs(x, y)
     Tensor.fromNativeHandle(NativeTensorOpsMath.sub(
-      executionContext.get().nativeHandle, cX.nativeHandle, cY.nativeHandle))
+      executionContext.value.nativeHandle, cX.nativeHandle, cY.nativeHandle))
   }
 
   /** $OpDocMathMultiply
@@ -652,7 +652,7 @@ private[api] trait Math {
   def multiply(x: Tensor, y: Tensor): Tensor = {
     val (cX, cY) = castArgs(x, y)
     Tensor.fromNativeHandle(NativeTensorOpsMath.mul(
-      executionContext.get().nativeHandle, cX.nativeHandle, cY.nativeHandle))
+      executionContext.value.nativeHandle, cX.nativeHandle, cY.nativeHandle))
   }
 
   /** $OpDocMathDivide
@@ -667,7 +667,7 @@ private[api] trait Math {
   def divide(x: Tensor, y: Tensor): Tensor = {
     val (cX, cY) = castArgs(x, y)
     Tensor.fromNativeHandle(NativeTensorOpsMath.div(
-      executionContext.get().nativeHandle, cX.nativeHandle, cY.nativeHandle))
+      executionContext.value.nativeHandle, cX.nativeHandle, cY.nativeHandle))
   }
 
   /** $OpDocMathFloorDivide
@@ -683,7 +683,7 @@ private[api] trait Math {
   def floorDivide(x: Tensor, y: Tensor): Tensor = {
     val (cX, cY) = castArgs(x, y)
     Tensor.fromNativeHandle(NativeTensorOpsMath.floorDiv(
-      executionContext.get().nativeHandle, cX.nativeHandle, cY.nativeHandle))
+      executionContext.value.nativeHandle, cX.nativeHandle, cY.nativeHandle))
   }
 
   /** $OpDocMathTruncateDivide
@@ -698,7 +698,7 @@ private[api] trait Math {
   def truncateDivide(x: Tensor, y: Tensor): Tensor = {
     val (cX, cY) = castArgs(x, y)
     Tensor.fromNativeHandle(NativeTensorOpsMath.truncateDiv(
-      executionContext.get().nativeHandle, cX.nativeHandle, cY.nativeHandle))
+      executionContext.value.nativeHandle, cX.nativeHandle, cY.nativeHandle))
   }
 
   /** $OpDocMathRealDivide
@@ -713,7 +713,7 @@ private[api] trait Math {
   def realDivide(x: Tensor, y: Tensor): Tensor = {
     val (cX, cY) = castArgs(x, y)
     Tensor.fromNativeHandle(NativeTensorOpsMath.realDiv(
-      executionContext.get().nativeHandle, cX.nativeHandle, cY.nativeHandle))
+      executionContext.value.nativeHandle, cX.nativeHandle, cY.nativeHandle))
   }
 
   /** $OpDocMathSquaredDifference
@@ -728,7 +728,7 @@ private[api] trait Math {
   def squaredDifference(x: Tensor, y: Tensor): Tensor = {
     val (cX, cY) = castArgs(x, y)
     Tensor.fromNativeHandle(NativeTensorOpsMath.squaredDifference(
-      executionContext.get().nativeHandle, cX.nativeHandle, cY.nativeHandle))
+      executionContext.value.nativeHandle, cX.nativeHandle, cY.nativeHandle))
   }
 
   /** $OpDocMathMod
@@ -741,7 +741,7 @@ private[api] trait Math {
   def mod(x: Tensor, y: Tensor): Tensor = {
     val (cX, cY) = castArgs(x, y)
     Tensor.fromNativeHandle(NativeTensorOpsMath.mod(
-      executionContext.get().nativeHandle, cX.nativeHandle, cY.nativeHandle))
+      executionContext.value.nativeHandle, cX.nativeHandle, cY.nativeHandle))
   }
 
   /** $OpDocMathFloorMod
@@ -754,7 +754,7 @@ private[api] trait Math {
   def floorMod(x: Tensor, y: Tensor): Tensor = {
     val (cX, cY) = castArgs(x, y)
     Tensor.fromNativeHandle(NativeTensorOpsMath.floorMod(
-      executionContext.get().nativeHandle, cX.nativeHandle, cY.nativeHandle))
+      executionContext.value.nativeHandle, cX.nativeHandle, cY.nativeHandle))
   }
 
   /** $OpDocMathTruncateMod
@@ -767,7 +767,7 @@ private[api] trait Math {
   def truncateMod(x: Tensor, y: Tensor): Tensor = {
     val (cX, cY) = castArgs(x, y)
     Tensor.fromNativeHandle(NativeTensorOpsMath.truncateMod(
-      executionContext.get().nativeHandle, cX.nativeHandle, cY.nativeHandle))
+      executionContext.value.nativeHandle, cX.nativeHandle, cY.nativeHandle))
   }
 
   /** $OpDocMathPow
@@ -782,7 +782,7 @@ private[api] trait Math {
   def pow(x: Tensor, y: Tensor): Tensor = {
     val (cX, cY) = castArgs(x, y)
     Tensor.fromNativeHandle(NativeTensorOpsMath.pow(
-      executionContext.get().nativeHandle, cX.nativeHandle, cY.nativeHandle))
+      executionContext.value.nativeHandle, cX.nativeHandle, cY.nativeHandle))
   }
 
   /** $OpDocMathIgammac
@@ -795,7 +795,7 @@ private[api] trait Math {
   def igammac(a: Tensor, x: Tensor): Tensor = {
     val (cA, cX) = castArgs(a, x)
     Tensor.fromNativeHandle(NativeTensorOpsMath.igammac(
-      executionContext.get().nativeHandle, cA.nativeHandle, cX.nativeHandle))
+      executionContext.value.nativeHandle, cA.nativeHandle, cX.nativeHandle))
   }
 
   /** $OpDocMathIgamma
@@ -808,7 +808,7 @@ private[api] trait Math {
   def igamma(a: Tensor, x: Tensor): Tensor = {
     val (cA, cX) = castArgs(a, x)
     Tensor.fromNativeHandle(NativeTensorOpsMath.igamma(
-      executionContext.get().nativeHandle, cA.nativeHandle, cX.nativeHandle))
+      executionContext.value.nativeHandle, cA.nativeHandle, cX.nativeHandle))
   }
 
   /** $OpDocMathZeta
@@ -821,7 +821,7 @@ private[api] trait Math {
   def zeta(x: Tensor, q: Tensor): Tensor = {
     val (cX, cQ) = castArgs(x, q)
     Tensor.fromNativeHandle(NativeTensorOpsMath.zeta(
-      executionContext.get().nativeHandle, cX.nativeHandle, cQ.nativeHandle))
+      executionContext.value.nativeHandle, cX.nativeHandle, cQ.nativeHandle))
   }
 
   /** $OpDocMathPolygamma
@@ -834,7 +834,7 @@ private[api] trait Math {
   def polygamma(n: Tensor, x: Tensor): Tensor = {
     val (cN, cX) = castArgs(n, x)
     Tensor.fromNativeHandle(NativeTensorOpsMath.polygamma(
-      executionContext.get().nativeHandle, cN.nativeHandle, cX.nativeHandle))
+      executionContext.value.nativeHandle, cN.nativeHandle, cX.nativeHandle))
   }
 
   /** $OpDocMathAtan2
@@ -847,7 +847,7 @@ private[api] trait Math {
   def atan2(x: Tensor, y: Tensor): Tensor = {
     val (cX, cY) = castArgs(x, y)
     Tensor.fromNativeHandle(NativeTensorOpsMath.atan2(
-      executionContext.get().nativeHandle, cX.nativeHandle, cY.nativeHandle))
+      executionContext.value.nativeHandle, cX.nativeHandle, cY.nativeHandle))
   }
 
   /** $OpDocMathMaximum
@@ -862,7 +862,7 @@ private[api] trait Math {
   def maximum(x: Tensor, y: Tensor): Tensor = {
     val (cX, cY) = castArgs(x, y)
     Tensor.fromNativeHandle(NativeTensorOpsMath.maximum(
-      executionContext.get().nativeHandle, cX.nativeHandle, cY.nativeHandle))
+      executionContext.value.nativeHandle, cX.nativeHandle, cY.nativeHandle))
   }
 
   /** $OpDocMathMinimum
@@ -877,7 +877,7 @@ private[api] trait Math {
   def minimum(x: Tensor, y: Tensor): Tensor = {
     val (cX, cY) = castArgs(x, y)
     Tensor.fromNativeHandle(NativeTensorOpsMath.minimum(
-      executionContext.get().nativeHandle, cX.nativeHandle, cY.nativeHandle))
+      executionContext.value.nativeHandle, cX.nativeHandle, cY.nativeHandle))
   }
 
   //endregion Binary Ops
@@ -893,7 +893,7 @@ private[api] trait Math {
   def incompleteBeta(a: Tensor, b: Tensor, x: Tensor): Tensor = {
     val (cA, cB, cX) = castArgs(a, b, x)
     Tensor.fromNativeHandle(NativeTensorOpsMath.betainc(
-      executionContext.get().nativeHandle, cA.nativeHandle, cB.nativeHandle, cX.nativeHandle))
+      executionContext.value.nativeHandle, cA.nativeHandle, cB.nativeHandle, cX.nativeHandle))
   }
 
   //region Logical Ops
@@ -906,7 +906,7 @@ private[api] trait Math {
     */
   def logicalNot(x: Tensor): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsMath.logicalNot(
-      executionContext.get().nativeHandle, x.nativeHandle))
+      executionContext.value.nativeHandle, x.nativeHandle))
   }
 
   /** $OpDocMathLogicalAnd
@@ -918,7 +918,7 @@ private[api] trait Math {
     */
   def logicalAnd(x: Tensor, y: Tensor): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsMath.logicalAnd(
-      executionContext.get().nativeHandle, x.nativeHandle, y.nativeHandle))
+      executionContext.value.nativeHandle, x.nativeHandle, y.nativeHandle))
   }
 
   /** $OpDocMathLogicalOr
@@ -930,7 +930,7 @@ private[api] trait Math {
     */
   def logicalOr(x: Tensor, y: Tensor): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsMath.logicalOr(
-      executionContext.get().nativeHandle, x.nativeHandle, y.nativeHandle))
+      executionContext.value.nativeHandle, x.nativeHandle, y.nativeHandle))
   }
 
   /** $OpDocMathLogicalXOr
@@ -958,7 +958,7 @@ private[api] trait Math {
   def equal(x: Tensor, y: Tensor): Tensor = {
     val (cX, cY) = castArgs(x, y)
     Tensor.fromNativeHandle(NativeTensorOpsMath.equal(
-      executionContext.get().nativeHandle, cX.nativeHandle, cY.nativeHandle))
+      executionContext.value.nativeHandle, cX.nativeHandle, cY.nativeHandle))
   }
 
   /** $OpDocMathNotEqual
@@ -971,7 +971,7 @@ private[api] trait Math {
   def notEqual(x: Tensor, y: Tensor): Tensor = {
     val (cX, cY) = castArgs(x, y)
     Tensor.fromNativeHandle(NativeTensorOpsMath.notEqual(
-      executionContext.get().nativeHandle, cX.nativeHandle, cY.nativeHandle))
+      executionContext.value.nativeHandle, cX.nativeHandle, cY.nativeHandle))
   }
 
   /** $OpDocMathApproximatelyEqual
@@ -989,7 +989,7 @@ private[api] trait Math {
   ): Tensor = {
     val (cX, cY) = castArgs(x, y)
     Tensor.fromNativeHandle(NativeTensorOpsMath.approximateEqual(
-      executionContext.get().nativeHandle, cX.nativeHandle, cY.nativeHandle, tolerance))
+      executionContext.value.nativeHandle, cX.nativeHandle, cY.nativeHandle, tolerance))
   }
 
   /** OpDocMathLess
@@ -1002,7 +1002,7 @@ private[api] trait Math {
   def less(x: Tensor, y: Tensor): Tensor = {
     val (cX, cY) = castArgs(x, y)
     Tensor.fromNativeHandle(NativeTensorOpsMath.less(
-      executionContext.get().nativeHandle, cX.nativeHandle, cY.nativeHandle))
+      executionContext.value.nativeHandle, cX.nativeHandle, cY.nativeHandle))
   }
 
   /** OpDocMathLessEqual
@@ -1015,7 +1015,7 @@ private[api] trait Math {
   def lessEqual(x: Tensor, y: Tensor): Tensor = {
     val (cX, cY) = castArgs(x, y)
     Tensor.fromNativeHandle(NativeTensorOpsMath.lessEqual(
-      executionContext.get().nativeHandle, cX.nativeHandle, cY.nativeHandle))
+      executionContext.value.nativeHandle, cX.nativeHandle, cY.nativeHandle))
   }
 
   /** OpDocMathGreater
@@ -1028,7 +1028,7 @@ private[api] trait Math {
   def greater(x: Tensor, y: Tensor): Tensor = {
     val (cX, cY) = castArgs(x, y)
     Tensor.fromNativeHandle(NativeTensorOpsMath.greater(
-      executionContext.get().nativeHandle, cX.nativeHandle, cY.nativeHandle))
+      executionContext.value.nativeHandle, cX.nativeHandle, cY.nativeHandle))
   }
 
   /** OpDocMathGreaterEqual
@@ -1041,7 +1041,7 @@ private[api] trait Math {
   def greaterEqual(x: Tensor, y: Tensor): Tensor = {
     val (cX, cY) = castArgs(x, y)
     Tensor.fromNativeHandle(NativeTensorOpsMath.greaterEqual(
-      executionContext.get().nativeHandle, cX.nativeHandle, cY.nativeHandle))
+      executionContext.value.nativeHandle, cX.nativeHandle, cY.nativeHandle))
   }
 
   //endregion Comparison Ops
@@ -1077,7 +1077,7 @@ private[api] trait Math {
       input
     else
       Tensor.fromNativeHandle(NativeTensorOpsMath.sum(
-        executionContext.get().nativeHandle, input.nativeHandle, reductionAxes(input, axes).nativeHandle, keepDims))
+        executionContext.value.nativeHandle, input.nativeHandle, reductionAxes(input, axes).nativeHandle, keepDims))
   }
 
   /** $OpDocMathMean
@@ -1093,7 +1093,7 @@ private[api] trait Math {
       input
     else
       Tensor.fromNativeHandle(NativeTensorOpsMath.mean(
-        executionContext.get().nativeHandle, input.nativeHandle, reductionAxes(input, axes).nativeHandle, keepDims))
+        executionContext.value.nativeHandle, input.nativeHandle, reductionAxes(input, axes).nativeHandle, keepDims))
   }
 
   /** $OpDocMathProd
@@ -1109,7 +1109,7 @@ private[api] trait Math {
       input
     else
       Tensor.fromNativeHandle(NativeTensorOpsMath.prod(
-        executionContext.get().nativeHandle, input.nativeHandle, reductionAxes(input, axes).nativeHandle, keepDims))
+        executionContext.value.nativeHandle, input.nativeHandle, reductionAxes(input, axes).nativeHandle, keepDims))
   }
 
   /** $OpDocMathMin
@@ -1125,7 +1125,7 @@ private[api] trait Math {
       input
     else
       Tensor.fromNativeHandle(NativeTensorOpsMath.min(
-        executionContext.get().nativeHandle, input.nativeHandle, reductionAxes(input, axes).nativeHandle, keepDims))
+        executionContext.value.nativeHandle, input.nativeHandle, reductionAxes(input, axes).nativeHandle, keepDims))
   }
 
   /** $OpDocMathMax
@@ -1141,7 +1141,7 @@ private[api] trait Math {
       input
     else
       Tensor.fromNativeHandle(NativeTensorOpsMath.max(
-        executionContext.get().nativeHandle, input.nativeHandle, reductionAxes(input, axes).nativeHandle, keepDims))
+        executionContext.value.nativeHandle, input.nativeHandle, reductionAxes(input, axes).nativeHandle, keepDims))
   }
 
   /** $OpDocMathAll
@@ -1154,7 +1154,7 @@ private[api] trait Math {
     */
   def all(input: Tensor, axes: Tensor = null, keepDims: Boolean = false): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsMath.all(
-      executionContext.get().nativeHandle, input.nativeHandle, reductionAxes(input, axes).nativeHandle, keepDims))
+      executionContext.value.nativeHandle, input.nativeHandle, reductionAxes(input, axes).nativeHandle, keepDims))
   }
 
   /** $OpDocMathAny
@@ -1167,7 +1167,7 @@ private[api] trait Math {
     */
   def any(input: Tensor, axes: Tensor = null, keepDims: Boolean = false): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsMath.any(
-      executionContext.get().nativeHandle, input.nativeHandle, reductionAxes(input, axes).nativeHandle, keepDims))
+      executionContext.value.nativeHandle, input.nativeHandle, reductionAxes(input, axes).nativeHandle, keepDims))
   }
 
   /** $OpDocMathLogSumExp
@@ -1216,7 +1216,7 @@ private[api] trait Math {
     */
   def argmax(input: Tensor, axes: Tensor = 0, outputDataType: DataType = INT64): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsMath.argMax(
-      executionContext.get().nativeHandle, input.nativeHandle, axes.nativeHandle, outputDataType.cValue))
+      executionContext.value.nativeHandle, input.nativeHandle, axes.nativeHandle, outputDataType.cValue))
   }
 
   /** $OpDocMathArgmin
@@ -1229,7 +1229,7 @@ private[api] trait Math {
     */
   def argmin(input: Tensor, axes: Tensor = 0, outputDataType: DataType = INT64): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsMath.argMin(
-      executionContext.get().nativeHandle, input.nativeHandle, axes.nativeHandle, outputDataType.cValue))
+      executionContext.value.nativeHandle, input.nativeHandle, axes.nativeHandle, outputDataType.cValue))
   }
 
   /** $OpDocMathBinCount
@@ -1267,7 +1267,7 @@ private[api] trait Math {
       }
     }
     Tensor.fromNativeHandle(NativeTensorOpsMath.bincount(
-      executionContext.get().nativeHandle, input.nativeHandle, outputSize.nativeHandle, effectiveWeights.nativeHandle))
+      executionContext.value.nativeHandle, input.nativeHandle, outputSize.nativeHandle, effectiveWeights.nativeHandle))
   }
 
   /** $OpDocMathCumsum
@@ -1286,7 +1286,7 @@ private[api] trait Math {
       reverse: Boolean = false
   ): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsMath.cumsum(
-      executionContext.get().nativeHandle, input.nativeHandle, axis.nativeHandle, exclusive, reverse))
+      executionContext.value.nativeHandle, input.nativeHandle, axis.nativeHandle, exclusive, reverse))
   }
 
   /** $OpDocMathCumprod
@@ -1305,7 +1305,7 @@ private[api] trait Math {
       reverse: Boolean = false
   ): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsMath.cumprod(
-      executionContext.get().nativeHandle, input.nativeHandle, axis.nativeHandle, exclusive, reverse))
+      executionContext.value.nativeHandle, input.nativeHandle, axis.nativeHandle, exclusive, reverse))
   }
 
   //region Segment Ops
@@ -1321,7 +1321,7 @@ private[api] trait Math {
     */
   def segmentSum(data: Tensor, segmentIndices: Tensor): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsMath.segmentSum(
-      executionContext.get().nativeHandle, data.nativeHandle, segmentIndices.nativeHandle))
+      executionContext.value.nativeHandle, data.nativeHandle, segmentIndices.nativeHandle))
   }
 
   /** $OpDocMathSegmentMean
@@ -1335,7 +1335,7 @@ private[api] trait Math {
     */
   def segmentMean(data: Tensor, segmentIndices: Tensor): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsMath.segmentMean(
-      executionContext.get().nativeHandle, data.nativeHandle, segmentIndices.nativeHandle))
+      executionContext.value.nativeHandle, data.nativeHandle, segmentIndices.nativeHandle))
   }
 
   /** $OpDocMathSegmentProd
@@ -1349,7 +1349,7 @@ private[api] trait Math {
     */
   def segmentProd(data: Tensor, segmentIndices: Tensor): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsMath.segmentProd(
-      executionContext.get().nativeHandle, data.nativeHandle, segmentIndices.nativeHandle))
+      executionContext.value.nativeHandle, data.nativeHandle, segmentIndices.nativeHandle))
   }
 
   /** $OpDocMathSegmentMin
@@ -1363,7 +1363,7 @@ private[api] trait Math {
     */
   def segmentMin(data: Tensor, segmentIndices: Tensor): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsMath.segmentMin(
-      executionContext.get().nativeHandle, data.nativeHandle, segmentIndices.nativeHandle))
+      executionContext.value.nativeHandle, data.nativeHandle, segmentIndices.nativeHandle))
   }
 
   /** $OpDocMathSegmentMax
@@ -1377,7 +1377,7 @@ private[api] trait Math {
     */
   def segmentMax(data: Tensor, segmentIndices: Tensor): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsMath.segmentMax(
-      executionContext.get().nativeHandle, data.nativeHandle, segmentIndices.nativeHandle))
+      executionContext.value.nativeHandle, data.nativeHandle, segmentIndices.nativeHandle))
   }
 
   /** $OpDocMathUnsortedSegmentSum
@@ -1391,7 +1391,7 @@ private[api] trait Math {
     */
   def unsortedSegmentSum(data: Tensor, segmentIndices: Tensor, segmentsNumber: Tensor): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsMath.unsortedSegmentSum(
-      executionContext.get().nativeHandle, data.nativeHandle, segmentIndices.nativeHandle, segmentsNumber.nativeHandle))
+      executionContext.value.nativeHandle, data.nativeHandle, segmentIndices.nativeHandle, segmentsNumber.nativeHandle))
   }
 
   /** $OpDocMathUnsortedSegmentMax
@@ -1405,7 +1405,7 @@ private[api] trait Math {
     */
   def unsortedSegmentMax(data: Tensor, segmentIndices: Tensor, segmentsNumber: Tensor): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsMath.unsortedSegmentMax(
-      executionContext.get().nativeHandle, data.nativeHandle, segmentIndices.nativeHandle, segmentsNumber.nativeHandle))
+      executionContext.value.nativeHandle, data.nativeHandle, segmentIndices.nativeHandle, segmentsNumber.nativeHandle))
   }
 
   /** $OpDocMathSparseSegmentSum
@@ -1422,10 +1422,10 @@ private[api] trait Math {
   def sparseSegmentSum(data: Tensor, indices: Tensor, segmentIndices: Tensor, numSegments: Tensor = null): Tensor = {
     if (numSegments == null)
       Tensor.fromNativeHandle(NativeTensorOpsMath.sparseSegmentSum(
-        executionContext.get().nativeHandle, data.nativeHandle, indices.nativeHandle, segmentIndices.nativeHandle))
+        executionContext.value.nativeHandle, data.nativeHandle, indices.nativeHandle, segmentIndices.nativeHandle))
     else
       Tensor.fromNativeHandle(NativeTensorOpsMath.sparseSegmentSumWithNumSegments(
-        executionContext.get().nativeHandle, data.nativeHandle, indices.nativeHandle, segmentIndices.nativeHandle,
+        executionContext.value.nativeHandle, data.nativeHandle, indices.nativeHandle, segmentIndices.nativeHandle,
         numSegments.nativeHandle))
   }
 
@@ -1443,10 +1443,10 @@ private[api] trait Math {
   def sparseSegmentMean(data: Tensor, indices: Tensor, segmentIndices: Tensor, numSegments: Tensor = null): Tensor = {
     if (numSegments == null)
       Tensor.fromNativeHandle(NativeTensorOpsMath.sparseSegmentMean(
-        executionContext.get().nativeHandle, data.nativeHandle, indices.nativeHandle, segmentIndices.nativeHandle))
+        executionContext.value.nativeHandle, data.nativeHandle, indices.nativeHandle, segmentIndices.nativeHandle))
     else
       Tensor.fromNativeHandle(NativeTensorOpsMath.sparseSegmentMeanWithNumSegments(
-        executionContext.get().nativeHandle, data.nativeHandle, indices.nativeHandle, segmentIndices.nativeHandle,
+        executionContext.value.nativeHandle, data.nativeHandle, indices.nativeHandle, segmentIndices.nativeHandle,
         numSegments.nativeHandle))
   }
 
@@ -1469,10 +1469,10 @@ private[api] trait Math {
   ): Tensor = {
     if (numSegments == null)
       Tensor.fromNativeHandle(NativeTensorOpsMath.sparseSegmentSqrtN(
-        executionContext.get().nativeHandle, data.nativeHandle, indices.nativeHandle, segmentIndices.nativeHandle))
+        executionContext.value.nativeHandle, data.nativeHandle, indices.nativeHandle, segmentIndices.nativeHandle))
     else
       Tensor.fromNativeHandle(NativeTensorOpsMath.sparseSegmentSqrtNWithNumSegments(
-        executionContext.get().nativeHandle, data.nativeHandle, indices.nativeHandle, segmentIndices.nativeHandle,
+        executionContext.value.nativeHandle, data.nativeHandle, indices.nativeHandle, segmentIndices.nativeHandle,
         numSegments.nativeHandle))
   }
 
@@ -1488,7 +1488,7 @@ private[api] trait Math {
     * @return Result as a new tensor.
     */
   def diag(diagonal: Tensor): Tensor = {
-    Tensor.fromNativeHandle(NativeTensorOpsMath.diag(executionContext.get().nativeHandle, diagonal.nativeHandle))
+    Tensor.fromNativeHandle(NativeTensorOpsMath.diag(executionContext.value.nativeHandle, diagonal.nativeHandle))
   }
 
   /** $OpDocMathDiagPart
@@ -1499,7 +1499,7 @@ private[api] trait Math {
     * @return Result as a new tensor.
     */
   def diagPart(input: Tensor): Tensor = {
-    Tensor.fromNativeHandle(NativeTensorOpsMath.diagPart(executionContext.get().nativeHandle, input.nativeHandle))
+    Tensor.fromNativeHandle(NativeTensorOpsMath.diagPart(executionContext.value.nativeHandle, input.nativeHandle))
   }
 
   /** $OpDocMathMatrixDiag
@@ -1511,7 +1511,7 @@ private[api] trait Math {
     *         last dimension duplicated.
     */
   def matrixDiag(diagonal: Tensor): Tensor = {
-    Tensor.fromNativeHandle(NativeTensorOpsMath.matrixDiag(executionContext.get().nativeHandle, diagonal.nativeHandle))
+    Tensor.fromNativeHandle(NativeTensorOpsMath.matrixDiag(executionContext.value.nativeHandle, diagonal.nativeHandle))
   }
 
   /** $OpDocMathMatrixSetDiag
@@ -1524,7 +1524,7 @@ private[api] trait Math {
     */
   def matrixSetDiag(input: Tensor, diagonal: Tensor): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsMath.matrixSetDiag(
-      executionContext.get().nativeHandle, input.nativeHandle, diagonal.nativeHandle))
+      executionContext.value.nativeHandle, input.nativeHandle, diagonal.nativeHandle))
   }
 
   /** $OpDocMathMatrixDiagPart
@@ -1536,7 +1536,7 @@ private[api] trait Math {
     *         `input.shape[:-2] + [min(input.shape[-2:])]`.
     */
   def matrixDiagPart(input: Tensor): Tensor = {
-    Tensor.fromNativeHandle(NativeTensorOpsMath.matrixDiagPart(executionContext.get().nativeHandle, input.nativeHandle))
+    Tensor.fromNativeHandle(NativeTensorOpsMath.matrixDiagPart(executionContext.value.nativeHandle, input.nativeHandle))
   }
 
   /** $OpDocMathMatrixBandPart
@@ -1552,7 +1552,7 @@ private[api] trait Math {
     */
   def matrixBandPart(input: Tensor, numSubDiagonals: Tensor, numSuperDiagonals: Tensor): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsMath.matrixBandPart(
-      executionContext.get().nativeHandle, input.nativeHandle, numSubDiagonals.nativeHandle,
+      executionContext.value.nativeHandle, input.nativeHandle, numSubDiagonals.nativeHandle,
       numSuperDiagonals.nativeHandle))
   }
 
@@ -1613,7 +1613,7 @@ private[api] trait Math {
       val (x, adjointX) = transposeConjugateToAdjoint(cA, transposeA, conjugateA)
       val (y, adjointY) = transposeConjugateToAdjoint(cB, transposeB, conjugateB)
       Tensor.fromNativeHandle(NativeTensorOpsMath.batchMatMul(
-        executionContext.get().nativeHandle, x.nativeHandle, y.nativeHandle, adjointX, adjointY))
+        executionContext.value.nativeHandle, x.nativeHandle, y.nativeHandle, adjointX, adjointY))
     } else if (cA.dataType == BFLOAT16 || cB.dataType == BFLOAT16 || // "MatMul" does not currently support this type.
         ((aIsSparse || bIsSparse) &&
             sparseMatMulDataTypes.contains(cA.dataType) &&
@@ -1621,13 +1621,13 @@ private[api] trait Math {
       val (x, transposeX) = transposeConjugateToTranspose(cA, transposeA, conjugateA)
       val (y, transposeY) = transposeConjugateToTranspose(cB, transposeB, conjugateB)
       Tensor.fromNativeHandle(NativeTensorOpsMath.sparseMatMul(
-        executionContext.get().nativeHandle, x.nativeHandle, y.nativeHandle, transposeX, transposeY,
+        executionContext.value.nativeHandle, x.nativeHandle, y.nativeHandle, transposeX, transposeY,
         aIsSparse, bIsSparse))
     } else {
       val (x, transposeX) = transposeConjugateToTranspose(cA, transposeA, conjugateA)
       val (y, transposeY) = transposeConjugateToTranspose(cB, transposeB, conjugateB)
       Tensor.fromNativeHandle(NativeTensorOpsMath.matMul(
-        executionContext.get().nativeHandle, x.nativeHandle, y.nativeHandle, transposeX, transposeY))
+        executionContext.value.nativeHandle, x.nativeHandle, y.nativeHandle, transposeX, transposeY))
     }
   }
 
@@ -1662,7 +1662,7 @@ private[api] trait Math {
   def cross(a: Tensor, b: Tensor): Tensor = {
     val (cA, cB) = castArgs(a, b)
     Tensor.fromNativeHandle(NativeTensorOpsMath.cross(
-      executionContext.get().nativeHandle, cA.nativeHandle, cB.nativeHandle))
+      executionContext.value.nativeHandle, cA.nativeHandle, cB.nativeHandle))
   }
 
   /** Dynamic version (i.e., where `numAxes` may be a symbolic tensor) of the `tensorDot` op.
@@ -1763,7 +1763,7 @@ private[api] trait Math {
             s"type, which must be either 'FLOAT32' or 'FLOAT64'.")
     }
     Tensor.fromNativeHandle(NativeTensorOpsMath.complex(
-      executionContext.get().nativeHandle, cReal.nativeHandle, cImag.nativeHandle, outputDataType.cValue))
+      executionContext.value.nativeHandle, cReal.nativeHandle, cImag.nativeHandle, outputDataType.cValue))
   }
 
   /** $OpDocMathReal
@@ -1780,7 +1780,7 @@ private[api] trait Math {
       implicitly[TensorOps[T]]
           .applyUnary(input, t =>
             Tensor.fromNativeHandle(NativeTensorOpsMath.real(
-              executionContext.get().nativeHandle, t.nativeHandle, t.dataType.real.cValue)))
+              executionContext.value.nativeHandle, t.nativeHandle, t.dataType.real.cValue)))
     }
   }
 
@@ -1798,7 +1798,7 @@ private[api] trait Math {
       implicitly[TensorOps[T]]
           .applyUnary(input, t =>
             Tensor.fromNativeHandle(NativeTensorOpsMath.imag(
-              executionContext.get().nativeHandle, t.nativeHandle, t.dataType.real.cValue)))
+              executionContext.value.nativeHandle, t.nativeHandle, t.dataType.real.cValue)))
     }
   }
 
@@ -1814,7 +1814,7 @@ private[api] trait Math {
         .applyUnary(input, t => {
           if (t.dataType.isComplex) {
             Tensor.fromNativeHandle(NativeTensorOpsMath.angle(
-              executionContext.get().nativeHandle, t.nativeHandle, t.dataType.real.cValue))
+              executionContext.value.nativeHandle, t.nativeHandle, t.dataType.real.cValue))
           } else if (t.dataType.isNumeric) {
             Tensor.zeros(t.dataType, t.shape)
           } else {
@@ -1834,7 +1834,7 @@ private[api] trait Math {
     implicitly[TensorOps[T]]
         .applyUnary(input, t => {
           if (t.dataType.isComplex) {
-            Tensor.fromNativeHandle(NativeTensorOpsMath.conj(executionContext.get().nativeHandle, t.nativeHandle))
+            Tensor.fromNativeHandle(NativeTensorOpsMath.conj(executionContext.value.nativeHandle, t.nativeHandle))
           } else if (t.dataType.isNumeric) {
             t
           } else {
@@ -1863,7 +1863,7 @@ private[api] trait Math {
     */
   def bucketize(input: Tensor, boundaries: Seq[Float]): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsMath.bucketize(
-      executionContext.get().nativeHandle, input.nativeHandle, boundaries.toArray))
+      executionContext.value.nativeHandle, input.nativeHandle, boundaries.toArray))
   }
 
   //endregion Bucketization Ops

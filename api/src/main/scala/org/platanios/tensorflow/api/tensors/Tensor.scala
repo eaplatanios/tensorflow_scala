@@ -184,7 +184,7 @@ class Tensor private[Tensor](
     */
   def copyToDevice(device: String): Tensor = {
     val parsedDevice = DeviceSpecification.fromString(device).toString.stripPrefix("/device:")
-    val handle = NativeTensor.eagerCopyToDevice(nativeHandle, executionContext.get().nativeHandle, parsedDevice)
+    val handle = NativeTensor.eagerCopyToDevice(nativeHandle, executionContext.value.nativeHandle, parsedDevice)
     Tensor.fromNativeHandle(handle)
   }
 
@@ -331,7 +331,7 @@ class Tensor private[Tensor](
   }
 
   override def hashCode(): Int = {
-    // TODO: !!! [TENSORS] Find more efficient way to do this.
+    // TODO: !!! [TENSORS] Find a more efficient way to do this.
     val prime = 31
     var result = 1
     result = prime * result + dataType.hashCode
@@ -770,7 +770,7 @@ final case class SparseTensor(indices: Tensor, values: Tensor, denseShape: Tenso
   def toTensor(
       defaultValue: Tensor = 0, validateIndices: Boolean = true): Tensor = {
     Tensor.fromNativeHandle(NativeTensorOpsSparse.sparseToDense(
-      executionContext.get().nativeHandle, indices.nativeHandle, denseShape.nativeHandle, values.nativeHandle,
+      executionContext.value.nativeHandle, indices.nativeHandle, denseShape.nativeHandle, values.nativeHandle,
       defaultValue.nativeHandle, validateIndices))
   }
 

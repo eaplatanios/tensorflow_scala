@@ -54,11 +54,11 @@ private[api] trait Random {
     val (graphSeed, opSeed) = Op.currentGraphRandomSeed(seed)
     if (dataType.isInteger) {
       Tensor.fromNativeHandle(NativeTensorOpsRandom.randomUniformInt(
-        executionContext.get().nativeHandle, shape.nativeHandle, castedMinValue.nativeHandle,
+        executionContext.value.nativeHandle, shape.nativeHandle, castedMinValue.nativeHandle,
         castedMaxValue.nativeHandle, graphSeed.getOrElse(0).toLong, opSeed.getOrElse(0).toLong))
     } else {
       val random = Tensor.fromNativeHandle(NativeTensorOpsRandom.randomUniform(
-        executionContext.get().nativeHandle, shape.nativeHandle, dataType.cValue, graphSeed.getOrElse(0).toLong,
+        executionContext.value.nativeHandle, shape.nativeHandle, dataType.cValue, graphSeed.getOrElse(0).toLong,
         opSeed.getOrElse(0).toLong))
       Math.add(random * (castedMaxValue - castedMinValue), castedMinValue)
     }
@@ -88,7 +88,7 @@ private[api] trait Random {
     val castedStandardDeviation = Math.cast(standardDeviation, dataType)
     val (graphSeed, opSeed) = Op.currentGraphRandomSeed(seed)
     val random = Tensor.fromNativeHandle(NativeTensorOpsRandom.randomStandardNormal(
-      executionContext.get().nativeHandle, shape.nativeHandle, dataType.cValue, graphSeed.getOrElse(0).toLong,
+      executionContext.value.nativeHandle, shape.nativeHandle, dataType.cValue, graphSeed.getOrElse(0).toLong,
       opSeed.getOrElse(0).toLong))
     Math.add(random * castedStandardDeviation, castedMean)
   }
@@ -117,7 +117,7 @@ private[api] trait Random {
     val castedStandardDeviation = Math.cast(standardDeviation, dataType)
     val (graphSeed, opSeed) = Op.currentGraphRandomSeed(seed)
     val random = Tensor.fromNativeHandle(NativeTensorOpsRandom.truncatedNormal(
-      executionContext.get().nativeHandle, shape.nativeHandle, dataType.cValue, graphSeed.getOrElse(0).toLong,
+      executionContext.value.nativeHandle, shape.nativeHandle, dataType.cValue, graphSeed.getOrElse(0).toLong,
       opSeed.getOrElse(0).toLong))
     Math.add(random * castedStandardDeviation, castedMean)
   }

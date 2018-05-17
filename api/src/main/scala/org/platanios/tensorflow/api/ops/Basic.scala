@@ -164,7 +164,11 @@ private[api] trait Basic {
     * @return Created op output.
     */
   def onesLike(
-      input: Output, dataType: DataType = null, optimize: Boolean = true, name: String = "OnesLike"): Output = {
+      input: Output,
+      dataType: DataType = null,
+      optimize: Boolean = true,
+      name: String = "OnesLike"
+  ): Output = {
     val outputDataType = if (dataType != null) dataType else input.dataType
     if (optimize && input.shape.isFullyDefined) {
       // We can produce a ones tensor independent of the value of 'tensor' since the shape is known statically.
@@ -692,7 +696,7 @@ private[api] trait Basic {
     override def pad(input: Tensor, paddings: Tensor): Tensor = {
       Tensor.fromNativeHandle(
         NativeTensorOpsBasic.padV2(
-          executionContext.get().nativeHandle, input.nativeHandle, paddings.nativeHandle,
+          executionContext.value.nativeHandle, input.nativeHandle, paddings.nativeHandle,
           value.cast(input.dataType).nativeHandle))
     }
   }
@@ -731,7 +735,7 @@ private[api] trait Basic {
     override def pad(input: Tensor, paddings: Tensor): Tensor = {
       Tensor.fromNativeHandle(
         NativeTensorOpsBasic.mirrorPad(
-          executionContext.get().nativeHandle, input.nativeHandle, paddings.nativeHandle,
+          executionContext.value.nativeHandle, input.nativeHandle, paddings.nativeHandle,
           "REFLECT".getBytes()))
     }
   }
@@ -770,7 +774,7 @@ private[api] trait Basic {
     override def pad(input: Tensor, paddings: Tensor): Tensor = {
       Tensor.fromNativeHandle(
         NativeTensorOpsBasic.mirrorPad(
-          executionContext.get().nativeHandle, input.nativeHandle, paddings.nativeHandle,
+          executionContext.value.nativeHandle, input.nativeHandle, paddings.nativeHandle,
           "SYMMETRIC".getBytes()))
     }
   }
