@@ -29,16 +29,17 @@ class DeviceSpecificationSpec extends FlatSpec with Matchers {
   }
 
   it must "have a correctly functioning toString method implementation" in {
-    assert(DeviceSpecification(job = "foo").toString === "/job:foo")
-    assert(DeviceSpecification(job = "foo", task = 3).toString === "/job:foo/task:3")
-    assert(DeviceSpecification(task = 3, deviceType = "CPU", deviceIndex = 1).toString === "/task:3/device:CPU:1")
-    assert(DeviceSpecification(job = "foo", replica = 12).toString === "/job:foo/replica:12")
+    assert(DeviceSpecification(job = "foo").toString === "/job:foo/replica:0/task:0/device:CPU:0")
+    assert(DeviceSpecification(job = "foo", task = 3).toString === "/job:foo/replica:0/task:3/device:CPU:0")
+    assert(DeviceSpecification(task = 3, deviceType = "CPU", deviceIndex = 1).toString
+        === "/job:localhost/replica:0/task:3/device:CPU:1")
+    assert(DeviceSpecification(job = "foo", replica = 12).toString === "/job:foo/replica:12/task:0/device:CPU:0")
     assert(DeviceSpecification(job = "foo", task = 3, deviceType = "CPU", deviceIndex = 0).toString
-               === "/job:foo/task:3/device:CPU:0")
+               === "/job:foo/replica:0/task:3/device:CPU:0")
     assert(DeviceSpecification(job = "foo", replica = 12, deviceType = "CPU", deviceIndex = 0).toString
-               === "/job:foo/replica:12/device:CPU:0")
+               === "/job:foo/replica:12/task:0/device:CPU:0")
     assert(DeviceSpecification(job = "foo", replica = 12, deviceType = "GPU", deviceIndex = 2).toString
-               === "/job:foo/replica:12/device:GPU:2")
+               === "/job:foo/replica:12/task:0/device:GPU:2")
     assert(DeviceSpecification(job = "foo", replica = 12, task = 3, deviceType = "GPU").toString
                === "/job:foo/replica:12/task:3/device:GPU:*")
   }
@@ -62,17 +63,17 @@ class DeviceSpecificationSpec extends FlatSpec with Matchers {
     val dev1 = DeviceSpecification.fromString("/job:foo/replica:0")
     val dev2 = DeviceSpecification.fromString("/task:1/GPU:2")
     assert(DeviceSpecification.merge(dev1, dev2).toString === "/job:foo/replica:0/task:1/device:GPU:2")
-    assert(dev1.toString === "/job:foo/replica:0")
-    assert(dev2.toString === "/task:1/device:GPU:2")
+    assert(dev1.toString === "/job:foo/replica:0/task:0/device:CPU:0")
+    assert(dev2.toString === "/job:localhost/replica:0/task:1/device:GPU:2")
     val dev3 = DeviceSpecification()
     val dev4 = DeviceSpecification.merge(dev3, DeviceSpecification.fromString("/task:1/CPU:0"))
-    assert(dev4.toString === "/task:1/device:CPU:0")
+    assert(dev4.toString === "/job:localhost/replica:0/task:1/device:CPU:0")
     val dev5 = DeviceSpecification.merge(dev4, DeviceSpecification.fromString("/job:boo/GPU:0"))
-    assert(dev5.toString === "/job:boo/task:1/device:GPU:0")
+    assert(dev5.toString === "/job:boo/replica:0/task:1/device:GPU:0")
     val dev6 = DeviceSpecification.merge(dev5, DeviceSpecification.fromString("/job:muu/CPU:2"))
-    assert(dev6.toString === "/job:muu/task:1/device:CPU:2")
+    assert(dev6.toString === "/job:muu/replica:0/task:1/device:CPU:2")
     val dev7 = DeviceSpecification.merge(dev6, DeviceSpecification.fromString("/job:muu/device:MyFunnyDevice:2"))
-    assert(dev7.toString === "/job:muu/task:1/device:MYFUNNYDEVICE:2")
+    assert(dev7.toString === "/job:muu/replica:0/task:1/device:MYFUNNYDEVICE:2")
   }
 
   "An InvalidDeviceSpecificationException" must "be thrown when attempting to parse invalid strings" in {
