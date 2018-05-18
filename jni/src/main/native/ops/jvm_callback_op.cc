@@ -130,6 +130,7 @@ namespace {
       auto outputs = (jlongArray) call->env->CallStaticObjectMethod(
           call->registry, call->call_method_id, call->id, call_inputs);
       jthrowable exc(call->env->ExceptionOccurred());
+      call->env->ExceptionClear();
       if (exc) {
         // Get the exception string representation to use as the error message.
         jclass throwableCls(call->env->FindClass("java/lang/Throwable"));
@@ -138,6 +139,7 @@ namespace {
         const char* c_exc_string = call->env->GetStringUTFChars(exc_string, 0);
         tensorflow::StringPiece tf_exc_string(c_exc_string);
         call->env->ReleaseStringUTFChars(exc_string, c_exc_string);
+
         // Get the exception class name and convert it to a TensorFlow error code.
         jclass excObjCls(call->env->GetObjectClass(exc));
         jclass classCls(call->env->FindClass("java/lang/Class"));
