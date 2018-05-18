@@ -35,7 +35,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Text
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "StringJoin", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
-  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  TFE_OpSetDevice(op.get(), "/job:localhost/replica:0/task:0/device:CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   const int inputs_num_tensors = env->GetArrayLength(inputs);
@@ -71,7 +71,7 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "StringSplit", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), nullptr);
-  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  TFE_OpSetDevice(op.get(), "/job:localhost/replica:0/task:0/device:CPU:0", status.get());
   CHECK_STATUS(env, status.get(), nullptr);
 
   REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, nullptr);
@@ -107,7 +107,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Text
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "EncodeBase64", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
-  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  TFE_OpSetDevice(op.get(), "/job:localhost/replica:0/task:0/device:CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
@@ -133,7 +133,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Text
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "DecodeBase64", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
-  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  TFE_OpSetDevice(op.get(), "/job:localhost/replica:0/task:0/device:CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
@@ -157,7 +157,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Text
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "StringToHashBucket", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
-  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  TFE_OpSetDevice(op.get(), "/job:localhost/replica:0/task:0/device:CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(string_tensor_handle, TFE_TensorHandle, string_tensor, 0);
@@ -183,7 +183,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Text
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "StringToHashBucketFast", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
-  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  TFE_OpSetDevice(op.get(), "/job:localhost/replica:0/task:0/device:CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
@@ -209,7 +209,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Text
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "StringToHashBucketStrong", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
-  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  TFE_OpSetDevice(op.get(), "/job:localhost/replica:0/task:0/device:CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
