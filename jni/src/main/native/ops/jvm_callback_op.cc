@@ -86,7 +86,7 @@ namespace {
       const Tensor& t = call->inputs[i];
       TFE_TensorHandle* tensor;
 //      if (call->gpu) {
-//        // TODO: Obtain the device from the tensor itself, rather than from the call.
+//        // TODO: !!! [CALLBACK] Obtain the device from the tensor itself, rather than from the call.
 //        tensor = new TFE_TensorHandle(t, call->device, call->device);
 //      } else {
 //        tensor = new TFE_TensorHandle(t, nullptr, nullptr);
@@ -295,10 +295,11 @@ auto jvmCallbackOpInitializer = []{
     REGISTER_KERNEL_BUILDER(Name("JVMCallback").Device(DEVICE_CPU), JVMCallbackOp);
     REGISTER_KERNEL_BUILDER(Name("JVMCallbackStateless").Device(DEVICE_CPU), JVMCallbackOp);
   }
-  if (reg->find(strings::StrCat("JVMCallback:", DeviceTypeString(DEVICE_GPU), ":")) == reg->end()) {
-    REGISTER_KERNEL_BUILDER(Name("JVMCallback").Device(DEVICE_GPU), JVMCallbackOp);
-    REGISTER_KERNEL_BUILDER(Name("JVMCallbackStateless").Device(DEVICE_GPU), JVMCallbackOp);
-  }
+  // TODO: !!! [CALLBACK] Temporary.
+//  if (reg->find(strings::StrCat("JVMCallback:", DeviceTypeString(DEVICE_GPU), ":")) == reg->end()) {
+//    REGISTER_KERNEL_BUILDER(Name("JVMCallback").Device(DEVICE_GPU), JVMCallbackOp);
+//    REGISTER_KERNEL_BUILDER(Name("JVMCallbackStateless").Device(DEVICE_GPU), JVMCallbackOp);
+//  }
   return 0;
 }();
 }
