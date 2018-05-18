@@ -1191,7 +1191,7 @@ private[api] trait Basic {
       val rowVector = Math.range(Basic.zerosLike(maxLen), maxLen, Basic.onesLike(maxLen))
       // Since 'maxLen' >= max(lengths), it is safe to use 'maxLen' as a cast authoritative type. Whenever 'maxLen' fits
       // into INT32, then so do the elements of 'lengths'.
-      val matrix = Math.cast(expandDims(lengths, 1), maxLen.dataType)
+      val matrix = Math.cast(expandDims(lengths, -1), maxLen.dataType)
       val result = Math.less(rowVector, matrix)
       Math.cast(result, dataType)
     }
