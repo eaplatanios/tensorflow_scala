@@ -369,7 +369,8 @@ object Tensor {
   }
 
   private[api] def fromHostNativeHandle(nativeHandle: Long): Tensor = {
-    Tensor.fromNativeHandle(NativeTensor.eagerAllocate(nativeHandle))
+    // TODO: !!! [TENSORS] CPU copy here is an ugly temporary solution.
+    Tensor.fromNativeHandle(NativeTensor.eagerAllocate(nativeHandle)).cpu()
   }
 
   def apply[T](head: T, tail: T*)(implicit ev: TensorConvertible[T]): Tensor = {
@@ -508,11 +509,9 @@ object Tensor {
           index += numEncodedBytes
           i += 1
         }
-        synchronized {
-          val tensor = Tensor.fromHostNativeHandle(hostHandle)
-          NativeTensor.delete(hostHandle)
-          tensor
-        }
+        val tensor = Tensor.fromHostNativeHandle(hostHandle)
+        NativeTensor.delete(hostHandle)
+        tensor
       case _ =>
         val numBytes = shape.numElements * inferredDataType.byteSize
         val hostHandle = NativeTensor.allocate(inferredDataType.cValue, shape.asArray.map(_.toLong), numBytes)
@@ -524,11 +523,9 @@ object Tensor {
           index += inferredDataType.byteSize
           i += 1
         }
-        synchronized {
-          val tensor = Tensor.fromHostNativeHandle(hostHandle)
-          NativeTensor.delete(hostHandle)
-          tensor
-        }
+        val tensor = Tensor.fromHostNativeHandle(hostHandle)
+        NativeTensor.delete(hostHandle)
+        tensor
     }
   }
 

@@ -47,8 +47,12 @@ private[api] trait Callback {
     * @return Created op output.
     */
   def callback[T, TS, TD, R, RS, RD](
-      function: T => R, input: TS, outputDataType: RD, stateful: Boolean = true,
-      name: String = "Callback")(implicit
+      function: T => R,
+      input: TS,
+      outputDataType: RD,
+      stateful: Boolean = true,
+      name: String = "Callback"
+  )(implicit
       evInput: Callback.ArgType.Aux[T, TS, TD],
       evOutput: Callback.ArgType.Aux[R, RS, RD]
   ): RS = {
