@@ -53,12 +53,16 @@ case class OpGenerator(opDef: OpDef) {
     val codeBuilder = StringBuilder.newBuilder
     val deallocationBuilder = StringBuilder.newBuilder
 
+    // TODO: !!! [TENSORS] We currently hardcode the op device to the CPU, but we should change that in the future.
+
     codeBuilder.append(
       s"""  REQUIRE_HANDLE(context, TFE_Context, context_handle, $cNullValuePlaceholder);
          |  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
          |
          |  std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
          |      TFE_NewOp(context, "${opDef.getName}", status.get()), TFE_DeleteOp);
+         |  CHECK_STATUS(env, status.get(), $cNullValuePlaceholder);
+         |  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
          |  CHECK_STATUS(env, status.get(), $cNullValuePlaceholder);""".stripMargin)
 
     addInputs(codeBuilder)

@@ -35,6 +35,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Rand
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "RandomUniform", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(shape_handle, TFE_TensorHandle, shape, 0);
   TFE_OpAddInput(op.get(), shape_handle, status.get());
@@ -66,6 +68,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Rand
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "RandomUniformInt", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(shape_handle, TFE_TensorHandle, shape, 0);
@@ -122,6 +126,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Rand
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "RandomStandardNormal", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(shape_handle, TFE_TensorHandle, shape, 0);
   TFE_OpAddInput(op.get(), shape_handle, status.get());
@@ -153,6 +159,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Rand
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "TruncatedNormal", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(shape_handle, TFE_TensorHandle, shape, 0);

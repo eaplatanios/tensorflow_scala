@@ -369,8 +369,7 @@ object Tensor {
   }
 
   private[api] def fromHostNativeHandle(nativeHandle: Long): Tensor = {
-    // TODO: !!! [TENSORS] CPU copy here is an ugly temporary solution.
-    Tensor.fromNativeHandle(NativeTensor.eagerAllocate(nativeHandle)).cpu()
+    Tensor.fromNativeHandle(NativeTensor.eagerAllocate(nativeHandle))
   }
 
   def apply[T](head: T, tail: T*)(implicit ev: TensorConvertible[T]): Tensor = {

@@ -35,6 +35,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Select", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(condition_handle, TFE_TensorHandle, condition, 0);
   TFE_OpAddInput(op.get(), condition_handle, status.get());
@@ -81,6 +83,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Range", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(start_handle, TFE_TensorHandle, start, 0);
@@ -142,6 +146,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "LinSpace", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(start_handle, TFE_TensorHandle, start, 0);
   TFE_OpAddInput(op.get(), start_handle, status.get());
@@ -193,6 +199,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Cast", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
   TFE_OpAddInput(op.get(), x_handle, status.get());
@@ -221,6 +229,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Bitcast", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
   TFE_OpAddInput(op.get(), input_handle, status.get());
@@ -248,6 +258,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "AddN", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   const int inputs_num_tensors = env->GetArrayLength(inputs);
@@ -285,6 +297,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Abs", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
   TFE_OpAddInput(op.get(), x_handle, status.get());
@@ -310,6 +324,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "ComplexAbs", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
@@ -339,6 +355,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Neg", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
   TFE_OpAddInput(op.get(), x_handle, status.get());
@@ -364,6 +382,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Reciprocal", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
@@ -391,6 +411,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Square", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
   TFE_OpAddInput(op.get(), x_handle, status.get());
@@ -416,6 +438,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Sqrt", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
@@ -443,6 +467,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Rsqrt", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
   TFE_OpAddInput(op.get(), x_handle, status.get());
@@ -468,6 +494,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Exp", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
@@ -495,6 +523,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Expm1", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
   TFE_OpAddInput(op.get(), x_handle, status.get());
@@ -520,6 +550,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Log", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
@@ -547,6 +579,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Log1p", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
   TFE_OpAddInput(op.get(), x_handle, status.get());
@@ -572,6 +606,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Sin", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
@@ -599,6 +635,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Cos", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
   TFE_OpAddInput(op.get(), x_handle, status.get());
@@ -624,6 +662,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Tan", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
@@ -651,6 +691,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Asin", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
   TFE_OpAddInput(op.get(), x_handle, status.get());
@@ -676,6 +718,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Acos", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
@@ -703,6 +747,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Atan", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
   TFE_OpAddInput(op.get(), x_handle, status.get());
@@ -728,6 +774,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Sinh", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
@@ -755,6 +803,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Cosh", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
   TFE_OpAddInput(op.get(), x_handle, status.get());
@@ -780,6 +830,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Tanh", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
@@ -807,6 +859,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Asinh", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
   TFE_OpAddInput(op.get(), x_handle, status.get());
@@ -832,6 +886,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Acosh", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
@@ -859,6 +915,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Atanh", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
   TFE_OpAddInput(op.get(), x_handle, status.get());
@@ -884,6 +942,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Lgamma", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
@@ -911,6 +971,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Digamma", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
   TFE_OpAddInput(op.get(), x_handle, status.get());
@@ -936,6 +998,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Erf", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
@@ -963,6 +1027,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Erfc", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
   TFE_OpAddInput(op.get(), x_handle, status.get());
@@ -988,6 +1054,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Sigmoid", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
@@ -1015,6 +1083,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Sign", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
   TFE_OpAddInput(op.get(), x_handle, status.get());
@@ -1040,6 +1110,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Round", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
@@ -1067,6 +1139,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Rint", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
   TFE_OpAddInput(op.get(), x_handle, status.get());
@@ -1092,6 +1166,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Floor", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
@@ -1119,6 +1195,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Ceil", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
   TFE_OpAddInput(op.get(), x_handle, status.get());
@@ -1144,6 +1222,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "IsNan", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
@@ -1171,6 +1251,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "IsInf", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
   TFE_OpAddInput(op.get(), x_handle, status.get());
@@ -1197,6 +1279,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "IsFinite", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
   TFE_OpAddInput(op.get(), x_handle, status.get());
@@ -1222,6 +1306,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Add", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
@@ -1266,6 +1352,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Sub", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
   TFE_OpAddInput(op.get(), x_handle, status.get());
@@ -1308,6 +1396,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Mul", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
@@ -1352,6 +1442,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Div", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
   TFE_OpAddInput(op.get(), x_handle, status.get());
@@ -1394,6 +1486,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "FloorDiv", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
@@ -1438,6 +1532,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "TruncateDiv", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
   TFE_OpAddInput(op.get(), x_handle, status.get());
@@ -1480,6 +1576,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "RealDiv", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
@@ -1524,6 +1622,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "SquaredDifference", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
   TFE_OpAddInput(op.get(), x_handle, status.get());
@@ -1566,6 +1666,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Mod", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
@@ -1610,6 +1712,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "FloorMod", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
   TFE_OpAddInput(op.get(), x_handle, status.get());
@@ -1652,6 +1756,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "TruncateMod", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
@@ -1696,6 +1802,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Pow", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
   TFE_OpAddInput(op.get(), x_handle, status.get());
@@ -1738,6 +1846,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Igammac", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(a_handle, TFE_TensorHandle, a, 0);
@@ -1782,6 +1892,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Igamma", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(a_handle, TFE_TensorHandle, a, 0);
   TFE_OpAddInput(op.get(), a_handle, status.get());
@@ -1824,6 +1936,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Zeta", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
@@ -1868,6 +1982,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Polygamma", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(a_handle, TFE_TensorHandle, a, 0);
   TFE_OpAddInput(op.get(), a_handle, status.get());
@@ -1910,6 +2026,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Atan2", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(y_handle, TFE_TensorHandle, y, 0);
@@ -1954,6 +2072,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Maximum", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
   TFE_OpAddInput(op.get(), x_handle, status.get());
@@ -1997,6 +2117,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Minimum", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
   TFE_OpAddInput(op.get(), x_handle, status.get());
@@ -2039,6 +2161,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Betainc", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(a_handle, TFE_TensorHandle, a, 0);
@@ -2100,6 +2224,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "LogicalNot", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
   TFE_OpAddInput(op.get(), x_handle, status.get());
@@ -2121,6 +2247,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "LogicalAnd", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
@@ -2148,6 +2276,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "LogicalOr", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
   TFE_OpAddInput(op.get(), x_handle, status.get());
@@ -2173,6 +2303,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Equal", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
@@ -2217,6 +2349,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "NotEqual", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
   TFE_OpAddInput(op.get(), x_handle, status.get());
@@ -2259,6 +2393,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "ApproximateEqual", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
@@ -2305,6 +2441,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Less", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
   TFE_OpAddInput(op.get(), x_handle, status.get());
@@ -2347,6 +2485,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "LessEqual", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
@@ -2391,6 +2531,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Greater", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
   TFE_OpAddInput(op.get(), x_handle, status.get());
@@ -2433,6 +2575,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "GreaterEqual", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
@@ -2477,6 +2621,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Sum", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
   TFE_OpAddInput(op.get(), input_handle, status.get());
@@ -2512,6 +2658,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Mean", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
@@ -2549,6 +2697,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Prod", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
   TFE_OpAddInput(op.get(), input_handle, status.get());
@@ -2584,6 +2734,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Min", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
@@ -2621,6 +2773,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Max", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
   TFE_OpAddInput(op.get(), input_handle, status.get());
@@ -2657,6 +2811,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "All", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
   TFE_OpAddInput(op.get(), input_handle, status.get());
@@ -2689,6 +2845,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Any", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
   TFE_OpAddInput(op.get(), input_handle, status.get());
@@ -2720,6 +2878,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "ArgMax", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
@@ -2757,6 +2917,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "ArgMin", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
   TFE_OpAddInput(op.get(), input_handle, status.get());
@@ -2793,6 +2955,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Bincount", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(arr_handle, TFE_TensorHandle, arr, 0);
   TFE_OpAddInput(op.get(), arr_handle, status.get());
@@ -2826,6 +2990,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Cumsum", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
@@ -2865,6 +3031,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Cumprod", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
   TFE_OpAddInput(op.get(), x_handle, status.get());
@@ -2903,6 +3071,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "SegmentSum", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(data_handle, TFE_TensorHandle, data, 0);
   TFE_OpAddInput(op.get(), data_handle, status.get());
@@ -2936,6 +3106,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "SegmentMean", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(data_handle, TFE_TensorHandle, data, 0);
@@ -2971,6 +3143,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "SegmentProd", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(data_handle, TFE_TensorHandle, data, 0);
   TFE_OpAddInput(op.get(), data_handle, status.get());
@@ -3004,6 +3178,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "SegmentMin", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(data_handle, TFE_TensorHandle, data, 0);
@@ -3039,6 +3215,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "SegmentMax", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(data_handle, TFE_TensorHandle, data, 0);
   TFE_OpAddInput(op.get(), data_handle, status.get());
@@ -3072,6 +3250,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "UnsortedSegmentSum", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(data_handle, TFE_TensorHandle, data, 0);
@@ -3115,6 +3295,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "UnsortedSegmentMax", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(data_handle, TFE_TensorHandle, data, 0);
   TFE_OpAddInput(op.get(), data_handle, status.get());
@@ -3157,6 +3339,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "SparseSegmentSum", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(data_handle, TFE_TensorHandle, data, 0);
   TFE_OpAddInput(op.get(), data_handle, status.get());
@@ -3194,6 +3378,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "SparseSegmentMean", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(data_handle, TFE_TensorHandle, data, 0);
@@ -3233,6 +3419,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "SparseSegmentSqrtN", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(data_handle, TFE_TensorHandle, data, 0);
   TFE_OpAddInput(op.get(), data_handle, status.get());
@@ -3270,6 +3458,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "SparseSegmentSumWithNumSegments", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(data_handle, TFE_TensorHandle, data, 0);
@@ -3317,6 +3507,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "SparseSegmentMeanWithNumSegments", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(data_handle, TFE_TensorHandle, data, 0);
   TFE_OpAddInput(op.get(), data_handle, status.get());
@@ -3362,6 +3554,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "SparseSegmentSqrtNWithNumSegments", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(data_handle, TFE_TensorHandle, data, 0);
@@ -3409,6 +3603,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Diag", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(diagonal_handle, TFE_TensorHandle, diagonal, 0);
   TFE_OpAddInput(op.get(), diagonal_handle, status.get());
@@ -3434,6 +3630,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "DiagPart", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
@@ -3461,6 +3659,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "MatrixDiag", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(diagonal_handle, TFE_TensorHandle, diagonal, 0);
   TFE_OpAddInput(op.get(), diagonal_handle, status.get());
@@ -3486,6 +3686,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "MatrixSetDiag", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
@@ -3530,6 +3732,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "MatrixDiagPart", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
   TFE_OpAddInput(op.get(), input_handle, status.get());
@@ -3555,6 +3759,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "MatrixBandPart", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
@@ -3607,6 +3813,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "MatMul", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(a_handle, TFE_TensorHandle, a, 0);
   TFE_OpAddInput(op.get(), a_handle, status.get());
@@ -3653,6 +3861,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "BatchMatMul", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, 0);
@@ -3701,6 +3911,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "SparseMatMul", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(a_handle, TFE_TensorHandle, a, 0);
   TFE_OpAddInput(op.get(), a_handle, status.get());
@@ -3742,6 +3954,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Cross", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(a_handle, TFE_TensorHandle, a, 0);
@@ -3785,6 +3999,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Complex", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(real_handle, TFE_TensorHandle, real, 0);
@@ -3831,6 +4047,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Real", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
   TFE_OpAddInput(op.get(), input_handle, status.get());
@@ -3858,6 +4076,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Imag", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
@@ -3887,6 +4107,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Angle", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
   TFE_OpAddInput(op.get(), input_handle, status.get());
@@ -3915,6 +4137,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Conj", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
   TFE_OpAddInput(op.get(), input_handle, status.get());
@@ -3940,6 +4164,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Bucketize", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
@@ -3975,6 +4201,8 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "QuantizedAdd", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), nullptr);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), nullptr);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, nullptr);
@@ -4034,6 +4262,8 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "QuantizedMul", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), nullptr);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), nullptr);
 
   REQUIRE_HANDLE(x_handle, TFE_TensorHandle, x, nullptr);
   TFE_OpAddInput(op.get(), x_handle, status.get());
@@ -4091,6 +4321,8 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "QuantizedMatMul", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), nullptr);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), nullptr);
 
   REQUIRE_HANDLE(a_handle, TFE_TensorHandle, a, nullptr);
@@ -4156,6 +4388,8 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "QuantizeDownAndShrinkRange", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), nullptr);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), nullptr);
 
   REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, nullptr);
   TFE_OpAddInput(op.get(), input_handle, status.get());
@@ -4197,6 +4431,8 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "Requantize", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), nullptr);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), nullptr);
 
   REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, nullptr);
@@ -4248,6 +4484,8 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "RequantizationRange", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), nullptr);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), nullptr);
 
   REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, nullptr);
   TFE_OpAddInput(op.get(), input_handle, status.get());
@@ -4287,6 +4525,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "CompareAndBitpack", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "CPU:0", status.get());
   CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
