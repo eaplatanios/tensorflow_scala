@@ -233,7 +233,7 @@ final class Shape private (private val array: Array[Int]) extends ProtoSerializa
     */
   @throws[InvalidShapeException]
   def withRankAtLeast(rank: Int): Shape = {
-    assertHasRank(rank)
+    assertRankAtLeast(rank)
     this
   }
 

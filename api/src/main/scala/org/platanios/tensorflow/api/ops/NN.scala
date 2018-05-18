@@ -309,7 +309,11 @@ private[api] trait NN {
     *         the softmax cross entropy loss.
     */
   def softmaxCrossEntropy(
-      logits: Output, labels: Output, axis: Int = -1, name: String = "SoftmaxCrossEntropy"): Output = {
+      logits: Output,
+      labels: Output,
+      axis: Int = -1,
+      name: String = "SoftmaxCrossEntropy"
+  ): Output = {
     Op.createWithNameScope(name, Set(logits.op, labels.op)) {
       // Labels and logits must be of the same data type.
       val preciseLogits = if (logits.dataType == FLOAT16) Math.cast(logits, FLOAT32) else logits
@@ -370,7 +374,11 @@ private[api] trait NN {
     *         softmax cross entropy loss.
     */
   def sparseSoftmaxCrossEntropy(
-      logits: Output, labels: Output, axis: Int = -1, name: String = "SparseSoftmaxCrossEntropy"): Output = {
+      logits: Output,
+      labels: Output,
+      axis: Int = -1,
+      name: String = "SparseSoftmaxCrossEntropy"
+  ): Output = {
     Op.createWithNameScope(name, Set(logits.op, labels.op)) {
       val preciseLogits = if (logits.dataType == FLOAT16) Math.cast(logits, FLOAT32) else logits
       // Check if no reshapes are required.
@@ -418,7 +426,11 @@ private[api] trait NN {
     *         the sigmoid cross entropy loss.
     */
   def sigmoidCrossEntropy(
-      logits: Output, labels: Output, weights: Output = null, name: String = "SigmoidCrossEntropy"): Output = {
+      logits: Output,
+      labels: Output,
+      weights: Output = null,
+      name: String = "SigmoidCrossEntropy"
+  ): Output = {
     Op.createWithNameScope(name, Set(logits.op, labels.op)) {
       val output = {
         if (weights == null) {
