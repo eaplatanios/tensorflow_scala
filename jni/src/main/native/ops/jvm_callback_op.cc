@@ -85,11 +85,13 @@ namespace {
     for (int64 i = 0; i < n; ++i) {
       const Tensor& t = call->inputs[i];
       TFE_TensorHandle* tensor;
-      if (call->gpu) {
-        tensor = new TFE_TensorHandle(t, call->device, call->device);
-      } else {
-        tensor = new TFE_TensorHandle(t, nullptr, nullptr);
-      }
+//      if (call->gpu) {
+//        // TODO: Obtain the device from the tensor itself, rather than from the call.
+//        tensor = new TFE_TensorHandle(t, call->device, call->device);
+//      } else {
+//        tensor = new TFE_TensorHandle(t, nullptr, nullptr);
+//      }
+      tensor = new TFE_TensorHandle(t, nullptr, nullptr);
       inputs_array[i] = reinterpret_cast<jlong>(tensor);
     }
     call->env->ReleaseLongArrayElements(inputs, inputs_array, 0);
