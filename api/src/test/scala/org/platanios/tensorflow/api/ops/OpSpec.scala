@@ -127,10 +127,10 @@ class OpSpec extends FlatSpec with Matchers {
       assert(c1.device === "")
       createWith(device = "/CPU:0") {
         val c2 = constant(2.0)
-        assert(c2.device === "/job:localhost/replica:0/task:0/device:CPU:0")
+        assert(c2.device === "/device:CPU:0")
         createWith(device = "/GPU:0") {
           val c3 = constant(3.0)
-          assert(c3.device === "/job:localhost/replica:0/task:0/device:GPU:0")
+          assert(c3.device === "/device:GPU:0")
         }
       }
       val c4 = constant(4.0)
@@ -144,10 +144,10 @@ class OpSpec extends FlatSpec with Matchers {
       assert(c1.device === "")
       createWith(device = "/job:worker/replica:2") {
         val c2 = constant(2.0)
-        assert(c2.device === "/job:worker/replica:2/task:0/device:CPU:0")
+        assert(c2.device === "/job:worker/replica:2")
         createWith(device = "/job:worker/replica:3/task:0") {
           val c3 = constant(3.0)
-          assert(c3.device === "/job:worker/replica:3/task:0/device:CPU:0")
+          assert(c3.device === "/job:worker/replica:3/task:0")
         }
       }
       val c4 = constant(4.0)
@@ -161,10 +161,10 @@ class OpSpec extends FlatSpec with Matchers {
       assert(c1.device === "")
       createWith(device = "/job:worker/replica:2/device:CPU:1") {
         val c2 = constant(2.0)
-        assert(c2.device === "/job:worker/replica:2/task:0/device:CPU:1")
+        assert(c2.device === "/job:worker/replica:2/device:CPU:1")
         createWith(device = "/job:worker/replica:2/device:GPU:2") {
           val c3 = constant(3.0)
-          assert(c3.device === "/job:worker/replica:2/task:0/device:GPU:2")
+          assert(c3.device === "/job:worker/replica:2/device:GPU:2")
         }
       }
       val c4 = constant(4.0)
@@ -178,22 +178,22 @@ class OpSpec extends FlatSpec with Matchers {
       assert(c1.device === "")
       createWith(device = "/device:GPU:*") {
         val c2 = constant(2.0)
-        assert(c2.device === "/job:localhost/replica:0/task:0/device:GPU:*")
+        assert(c2.device === "/device:GPU:*")
         createWith(device = "/job:worker") {
           val c3 = constant(3.0)
-          assert(c3.device === "/job:worker/replica:0/task:0/device:GPU:*")
+          assert(c3.device === "/job:worker/device:GPU:*")
           createWith(device = "/device:CPU:0") {
             val c4 = constant(4.0)
-            assert(c4.device === "/job:worker/replica:0/task:0/device:CPU:0")
+            assert(c4.device === "/job:worker/device:CPU:0")
             createWith(device = "/job:ps") {
               val c5 = constant(5.0)
-              assert(c5.device === "/job:ps/replica:0/task:0/device:CPU:0")
+              assert(c5.device === "/job:ps/device:CPU:0")
             }
           }
         }
         createWith(device = "/device:GPU:5") {
           val c6 = constant(6.0)
-          assert(c6.device === "/job:localhost/replica:0/task:0/device:GPU:5")
+          assert(c6.device === "/device:GPU:5")
         }
       }
       val c7 = constant(7.0)
@@ -207,7 +207,7 @@ class OpSpec extends FlatSpec with Matchers {
       assert(c1.device === "")
       createWith(device = "/CPU:0") {
         val c2 = constant(2.0)
-        assert(c2.device === "/job:localhost/replica:0/task:0/device:CPU:0")
+        assert(c2.device === "/device:CPU:0")
         createWith(device = null) {
           val c3 = constant(3.0)
           assert(c3.device === "")
@@ -226,9 +226,9 @@ class OpSpec extends FlatSpec with Matchers {
     createWith(graph = Graph()) {
       createWith(deviceFunction = matmulOnGPU) {
         val c = constant(Tensor(Tensor(1.0), Tensor(1.0)))
-        assert(c.device === "/job:localhost/replica:0/task:0/device:CPU:0")
+        assert(c.device === "/device:CPU:0")
         val m = matmul(c, constant(Tensor(Tensor(2.0))))
-        assert(m.device === "/job:localhost/replica:0/task:0/device:GPU:0")
+        assert(m.device === "/device:GPU:0")
       }
     }
   }
@@ -390,16 +390,16 @@ class OpSpec extends FlatSpec with Matchers {
       val graph2Constant1 = constant(2.0, name = "C")
       assert(graph2Constant1.graph === graph2)
       assert(graph2Constant1.op.name === "Nested/C")
-      assert(graph2Constant1.device === "/job:localhost/replica:0/task:0/device:GPU:0")
+      assert(graph2Constant1.device === "/device:GPU:0")
       createWith(graph = graph1, nameScope = "Inner") {
         val graph1NestedConstant = constant(3.0, name = "C")
         assert(graph1NestedConstant.graph === graph1)
         assert(graph1NestedConstant.op.name === "Nested/Inner/C")
-        assert(graph1NestedConstant.device === "/job:localhost/replica:0/task:0/device:GPU:0")
+        assert(graph1NestedConstant.device === "/device:GPU:0")
       }
       val graph2Constant2 = constant(4.0)
       assert(graph2Constant2.graph === graph2)
-      assert(graph2Constant2.device === "/job:localhost/replica:0/task:0/device:GPU:0")
+      assert(graph2Constant2.device === "/device:GPU:0")
     }
   }
 

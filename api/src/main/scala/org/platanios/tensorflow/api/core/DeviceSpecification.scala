@@ -80,27 +80,18 @@ private[api] case class DeviceSpecification(
     * @return String representation of the device.
     */
   override def toString: String = {
-    val nonDefault = (job != null) || (replica != -1) || (task != -1) || (deviceType != null) || (deviceIndex != -1)
     val stringBuilder: StringBuilder = new StringBuilder()
     if (job != null)
       stringBuilder ++= s"/job:$job"
-    else if (nonDefault)
-      stringBuilder ++= s"/job:localhost"
     if (replica != -1)
       stringBuilder ++= s"/replica:$replica"
-    else if (nonDefault)
-      stringBuilder ++= s"/replica:0"
     if (task != -1)
       stringBuilder ++= s"/task:$task"
-    else if (nonDefault)
-      stringBuilder ++= s"/task:0"
     if (deviceType != null) {
       if (deviceIndex != -1)
         stringBuilder ++= s"/device:$deviceType:$deviceIndex"
       else
         stringBuilder ++= s"/device:$deviceType:*"
-    } else if (nonDefault) {
-      stringBuilder ++= s"/device:CPU:0"
     }
     stringBuilder.toString()
   }

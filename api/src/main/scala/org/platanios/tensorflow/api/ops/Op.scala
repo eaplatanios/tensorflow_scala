@@ -1387,9 +1387,8 @@ object Op {
           case None | Some("") => colocationOps.find(_.device != "").map(_.device).getOrElse("")
           case Some(d) => d
         }
-        val canonicalizedOpDevice = DeviceSpecification.fromString(opDevice).toString
         colocationOps.toSeq.sortBy(_.name).foreach(op => {
-          if (opDevice != "" && op.device != "" && canonicalizedOpDevice != op.device) {
+          if (opDevice != "" && op.device != "" && opDevice != op.device) {
             Op.logger.warn(
               s"Tried to colocate '$name' with an op '${op.name}' that has a different device: " +
                   s"$opDevice vs ${op.device}. Ignoring the colocation property.")
@@ -1397,7 +1396,7 @@ object Op {
             NativeOp.colocateWith(nativeHandle, op.nativeHandle)
             op.updateColocationOps(op.colocationOps.map(_.name) + name)
             if (opDevice != "")
-              NativeLibrary.setRequestedDevice(r.nativeHandle, op.nativeHandle, canonicalizedOpDevice)
+              NativeLibrary.setRequestedDevice(r.nativeHandle, op.nativeHandle, opDevice)
           }
         })
         mergeAttributes(scope.attributes)
@@ -1405,7 +1404,7 @@ object Op {
         // TODO: !!! Set the "container" attribute when necessary. Need a way to check for statefulness.
         val op = Op(graph, NativeOp.finish(nativeHandle))
         if (opDevice != "")
-          NativeLibrary.setRequestedDevice(r.nativeHandle, op.nativeHandle, canonicalizedOpDevice)
+          NativeLibrary.setRequestedDevice(r.nativeHandle, op.nativeHandle, opDevice)
         op.controlFlowContext = scope.controlFlowContext
         op.inputs.map(_.op).foreach(ControlFlow.checkInputFromValidContext(op, _))
         op.controlFlowContext.foreach(_.add(op))

@@ -109,9 +109,9 @@ class ControlFlowSuite extends JUnitSuite with Matchers {
     val expectedGraphDefBuilder = GraphDef.newBuilder()
     TextFormat.merge(
       """
-        |node { name: "a" op: "Const" device: "/job:localhost/replica:0/task:0/device:CPU:0" }
-        |node { name: "b" op: "Const" device: "/job:localhost/replica:0/task:0/device:CPU:0" }
-        |node { name: "root" op: "NoOp" input: "^a" input: "^b" device: "/job:localhost/replica:0/task:0/device:CPU:0" }
+        |node { name: "a" op: "Const" device: "/task:0" }
+        |node { name: "b" op: "Const" device: "/task:0" }
+        |node { name: "root" op: "NoOp" input: "^a" input: "^b" device: "/task:0" }
       """.stripMargin, expectedGraphDefBuilder)
     val expectedGraphDef = expectedGraphDefBuilder.build()
     val (equal, _) = Graph.equalGraphDef(graphDef, expectedGraphDef)
@@ -136,13 +136,13 @@ class ControlFlowSuite extends JUnitSuite with Matchers {
     val expectedGraphDefBuilder = GraphDef.newBuilder()
     TextFormat.merge(
       """
-        |node { name: "a" op: "Const" device: "/job:localhost/replica:0/task:0/device:CPU:0" }
-        |node { name: "b" op: "Const" device: "/job:localhost/replica:0/task:0/device:CPU:0" }
-        |node { name: "c" op: "Const" device: "/job:localhost/replica:0/task:1/device:CPU:0" }
-        |node { name: "d" op: "Const" device: "/job:localhost/replica:0/task:1/device:CPU:0" }
-        |node { name: "root" op: "NoOp" input: "^a" input: "^b" device: "/job:localhost/replica:0/task:0/device:CPU:0" }
-        |node { name: "root_1" op: "NoOp" input: "^c" input: "^d" device: "/job:localhost/replica:0/task:1/device:CPU:0" }
-        |node { name: "root_2" op: "NoOp" input: "^root" input: "^root_1" device: "/job:localhost/replica:0/task:2/device:CPU:0" }
+        |node { name: "a" op: "Const" device: "/task:0" }
+        |node { name: "b" op: "Const" device: "/task:0" }
+        |node { name: "c" op: "Const" device: "/task:1" }
+        |node { name: "d" op: "Const" device: "/task:1" }
+        |node { name: "root" op: "NoOp" input: "^a" input: "^b" device: "/task:0" }
+        |node { name: "root_1" op: "NoOp" input: "^c" input: "^d" device: "/task:1" }
+        |node { name: "root_2" op: "NoOp" input: "^root" input: "^root_1" device: "/task:2" }
       """.stripMargin, expectedGraphDefBuilder)
     val expectedGraphDef = expectedGraphDefBuilder.build()
     val (equal, _) = Graph.equalGraphDef(graphDef, expectedGraphDef)
