@@ -15,8 +15,6 @@ limitations under the License.
 
 #include "jvm_callback_op.h"
 
-#include <pthread.h>
-
 #include "exception.h"
 #include "utilities.h"
 
@@ -165,25 +163,64 @@ namespace {
     }
   }
 
-  static mutex mu;
-  static pthread_key_t key;
-  static pthread_once_t key_once = PTHREAD_ONCE_INIT;
+  struct JVMWrapper {
+    JavaVM* jvm_;
+    mutex lock;
+
+	  JVMWrapper(JavaVM* jvm_) : jvm_(jvm_) { }
+  };
+
+  static std::vector<JVMWrapper*> jvms;
+
+  struct JVMThreadHelper {
+    JNIEnv* env;
+	  JavaVM* jvm_;
+
+    JVMThreadHelper() : jvm_(nullptr) { }
+
+    ~JVMThreadHelper() {
+      if (jvm_ != nullptr)
+        jvm_->DetachCurrentThread();
+    }
+
+    void set_jvm(JavaVM* jvm) {
+      if (jvm_ != nullptr) {
+        if (jvm_ != jvm)
+          throw "Multiple JVMs detected per thread.";
+	       return;
+      }
+      jvm_ = jvm;
+      int jvmEnvStatus = jvm_->GetEnv((void**) &env, JNI_VERSION_1_6);
+      if (jvmEnvStatus == JNI_EDETACHED)
+        jvm_->AttachCurrentThread((void**) &env, nullptr);
+	  }
+  };
+
+  JVMWrapper& get_jvm_wrapper(JavaVM* jvm_) {
+    for (JVMWrapper* wrapper : jvms)
+      if (wrapper->jvm_ == jvm_)
+        return *wrapper;
+
+    /* the JVM isn't in the array */
+    jvms.push_back(new JVMWrapper(jvm_));
+    return **jvms.rbegin();
+  }
+
+  thread_local JVMThreadHelper jvm_thread;
 }  // namespace
 
+
 class JVMCallbackOp : public OpKernel {
+
 public:
   explicit JVMCallbackOp(OpKernelConstruction* ctx) : OpKernel(ctx) {
     OP_REQUIRES_OK(ctx, ctx->GetAttr("id", &id_));
     std::string jvm_pointer;
     OP_REQUIRES_OK(ctx, ctx->GetAttr("jvm_pointer", &jvm_pointer));
     jvm_ = pointerFromString<JavaVM*>(jvm_pointer);
-    JNIEnv* env;
-    mutex_lock l(mu);
-    int jvmEnvStatus = jvm_->GetEnv((void **) &env, JNI_VERSION_1_6);
-    pthread_once(&key_once, make_key);
-    pthread_setspecific(key, (void *) env);
-    if (jvmEnvStatus == JNI_EDETACHED)
-      jvm_->AttachCurrentThread((void**) &env, nullptr);
+	  mutex_lock l(get_jvm_wrapper(jvm_).lock);
+    jvm_thread.set_jvm(jvm_);
+    JNIEnv* env = jvm_thread.env;
     std::string registry_pointer;
     OP_REQUIRES_OK(ctx, ctx->GetAttr("registry_pointer", &registry_pointer));
     registry_ = pointerFromString<jclass>(registry_pointer);
@@ -192,12 +229,9 @@ public:
   }
 
   void Compute(OpKernelContext* ctx) override {
-    JNIEnv* env;
-    mutex_lock l(mu);
-    int jvmEnvStatus = jvm_->GetEnv((void**) &env, JNI_VERSION_1_6);
-    if (jvmEnvStatus == JNI_EDETACHED)
-      jvm_->AttachCurrentThread((void**) &env, nullptr);
-    pthread_setspecific(key, (void *) env);
+	  mutex_lock l(get_jvm_wrapper(jvm_).lock);
+    jvm_thread.set_jvm(jvm_);
+    JNIEnv* env = jvm_thread.env;
 
     JVMCall call;
     call.env = env;
@@ -231,7 +265,7 @@ public:
 
 private:
   int id_;
-  JavaVM* jvm_ GUARDED_BY(mu);
+  JavaVM* jvm_;
   jclass registry_;
   jmethodID call_method_id_;
 
@@ -239,19 +273,6 @@ private:
   bool gpu_;
 
   TF_DISALLOW_COPY_AND_ASSIGN(JVMCallbackOp);
-
-  static void make_key() {
-    pthread_key_create(&key, detach_current_thread);
-  }
-
-  static void detach_current_thread(void *p) {
-    if (p != 0) {
-      JavaVM *jvm = 0;
-      JNIEnv *env = (JNIEnv *) p;
-      env->GetJavaVM(&jvm);
-      jvm->DetachCurrentThread();
-    }
-  }
 };
 
 namespace kernel_factory {
