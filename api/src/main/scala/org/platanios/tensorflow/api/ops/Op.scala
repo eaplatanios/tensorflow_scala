@@ -1395,16 +1395,14 @@ object Op {
           } else {
             NativeOp.colocateWith(nativeHandle, op.nativeHandle)
             op.updateColocationOps(op.colocationOps.map(_.name) + name)
-            if (opDevice != "")
-              NativeLibrary.setRequestedDevice(r.nativeHandle, op.nativeHandle, opDevice)
+            NativeLibrary.setRequestedDevice(r.nativeHandle, op.nativeHandle, opDevice)
           }
         })
         mergeAttributes(scope.attributes)
         setAttributes(nativeHandle)
         // TODO: !!! Set the "container" attribute when necessary. Need a way to check for statefulness.
         val op = Op(graph, NativeOp.finish(nativeHandle))
-        if (opDevice != "")
-          NativeLibrary.setRequestedDevice(r.nativeHandle, op.nativeHandle, opDevice)
+        NativeLibrary.setRequestedDevice(r.nativeHandle, op.nativeHandle, opDevice)
         op.controlFlowContext = scope.controlFlowContext
         op.inputs.map(_.op).foreach(ControlFlow.checkInputFromValidContext(op, _))
         op.controlFlowContext.foreach(_.add(op))
