@@ -132,7 +132,7 @@ class CoreCodegenInterface {
   virtual gpr_timespec gpr_time_0(gpr_clock_type type) = 0;
 };
 
-extern CoreCodegenInterface* g_core_codegen_interface;
+CoreCodegenInterface* g_core_codegen_interface;
 
 /// Codegen specific version of \a GPR_ASSERT.
 #define GPR_CODEGEN_ASSERT(x)                                              \

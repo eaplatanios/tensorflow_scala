@@ -35,7 +35,7 @@
 
 namespace grpc {
 
-extern CoreCodegenInterface* g_core_codegen_interface;
+CoreCodegenInterface* g_core_codegen_interface;
 
 /// This is a specialization of the protobuf class ZeroCopyInputStream
 /// The principle is to get one chunk of data at a time from the proto layer,

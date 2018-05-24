@@ -85,7 +85,7 @@ template <class InputMessage, class OutputMessage>
 class BlockingUnaryCallImpl;
 }  // namespace internal
 
-extern CoreCodegenInterface* g_core_codegen_interface;
+CoreCodegenInterface* g_core_codegen_interface;
 
 /// A thin wrapper around \ref grpc_completion_queue (see \ref
 /// src/core/lib/surface/completion_queue.h).

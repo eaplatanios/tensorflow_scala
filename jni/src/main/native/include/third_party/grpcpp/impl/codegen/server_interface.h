@@ -36,7 +36,7 @@ class ServerContext;
 class ServerCredentials;
 class Service;
 
-extern CoreCodegenInterface* g_core_codegen_interface;
+CoreCodegenInterface* g_core_codegen_interface;
 
 /// Models a gRPC server.
 ///

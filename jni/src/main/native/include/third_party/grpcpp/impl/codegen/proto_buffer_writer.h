@@ -34,7 +34,7 @@
 
 namespace grpc {
 
-extern CoreCodegenInterface* g_core_codegen_interface;
+CoreCodegenInterface* g_core_codegen_interface;
 
 // Forward declaration for testing use only
 namespace internal {

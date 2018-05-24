@@ -51,7 +51,7 @@ bool TensorHandle::IsReady() {
 }
 
 bool TensorHandle::IsRemote() {
-  return remote_op_id_ >= 0 && remote_output_num_ >= 0;
+  return remote_output_num_ >= 0;
 }
 
 Status TensorHandle::WaitReady() {
