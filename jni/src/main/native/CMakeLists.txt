@@ -19,6 +19,7 @@ endif()
 include_directories(.)
 include_directories(./generated)
 include_directories(./include)
+include_directories(./include/third_party)
 include_directories(./ops)
 include_directories(${JNI_INCLUDE_DIRS})
 

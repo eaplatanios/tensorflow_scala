@@ -207,7 +207,7 @@ class LiteralBase {
     return ShapeUtil::ElementsIn(ShapeUtil::GetSubshape(shape(), index));
   }
 
-  // Return the count of the elements in the sparse array at the given shape
+  // Returns the count of the elements in the sparse array at the given shape
   // index in this literal, which will be no larger than
   // LayoutUtil::MaxSparseElements(SetSubshape(shape(), index).layout()).
   int64 sparse_element_count() const;
@@ -307,6 +307,11 @@ class LiteralBase {
   // Creates a new Literal object with the shape specified as parameter.
   // The content of the literal values is the default value of the primitive
   // type of literal itself (0 for numeric types, and false for predicates).
+  //
+  // Note: It's an antipattern to use this method then immediately call
+  // Literal::Populate on the result (since that results in zero initialization,
+  // then reinitialization. Conside if a call to MakeUnique<Literal>(shape),
+  // followed by the call to Literal::Populate can be used instead.
   static std::unique_ptr<Literal> CreateFromShape(const Shape& shape);
 
  protected:
@@ -528,8 +533,9 @@ class LiteralBase {
   virtual const Piece& root_piece() const = 0;
 
   // LiteralSlice and Literal must access Pieces of other Literals.
-  friend class LiteralSlice;
   friend class Literal;
+  friend class LiteralSlice;
+  friend class BorrowingLiteral;
 };
 
 // Class representing literal values in XLA.
@@ -980,7 +986,7 @@ class Literal : public LiteralBase {
   static string MultiIndexAsString(
       tensorflow::gtl::ArraySlice<int64> multi_index);
 
- protected:
+ private:
   // Recursively sets the subshapes and buffers of all subpieces rooted at
   // 'piece'. If 'allocate_array' is true, memory is allocated for the arrays in
   // the shape.
@@ -993,7 +999,6 @@ class Literal : public LiteralBase {
 
   Piece& root_piece() const override { return *root_piece_; };
 
- private:
   // Internal template helper for the Literal::CopySliceFrom(), matching its
   // arguments one by one.
   template <typename NativeT>
@@ -1039,7 +1044,6 @@ class Literal : public LiteralBase {
 
   friend class LiteralBase;
 };
-
 std::ostream& operator<<(std::ostream& out, const Literal& literal);
 
 // A read-only view of a Literal. A LiteralSlice contains pointers to shape and
@@ -1047,7 +1051,8 @@ std::ostream& operator<<(std::ostream& out, const Literal& literal);
 class LiteralSlice : public LiteralBase {
  public:
   LiteralSlice() : LiteralBase() {}
-  // Implicit conversion constructor that can also accept Literal.
+
+  // Implicit conversion constructors.
   LiteralSlice(const LiteralBase& literal);
   LiteralSlice(const LiteralBase& literal, const ShapeIndex& view_root);
 
@@ -1055,6 +1060,35 @@ class LiteralSlice : public LiteralBase {
   const Piece& root_piece() const override { return *root_piece_; };
 
   const Piece* root_piece_;  // Not owned.
+};
+
+// A read-only Literal where the underlying buffers are never owned by this
+// class.
+class BorrowingLiteral : public LiteralBase {
+ public:
+  BorrowingLiteral() : LiteralBase() {}
+
+  // 'src_buf_ptr' is not owned by this class and must outlive the
+  // lifetime of this class. It points to an appropirately sized buffer with
+  // data interpretered as indicated by 'shape'.
+  // This constructor is only used for array shapes.
+  BorrowingLiteral(const char* src_buf_ptr, const Shape& shape);
+  // Similar as above, except to be used for constructing non-nested tuples.
+  BorrowingLiteral(tensorflow::gtl::ArraySlice<const char*> src_buf_ptrs,
+                   const Shape& shape);
+  // TODO(b/79707221): adding constructors for nested tuples as well.
+
+ private:
+  // Recursively builds the subtree for the given piece and sets the subshapes
+  // of the given piece with the given shape.
+  void BuildPieceSubtree(const Shape& shape, Piece* piece);
+
+  // Accessor for the root piece of this literal.
+  const Piece& root_piece() const override { return root_piece_; };
+  Piece root_piece_;
+
+  // Shape of this literal.
+  const Shape shape_;
 };
 
 template <typename NativeT>
@@ -1621,7 +1655,7 @@ template <PrimitiveType type, typename T>
     const std::function<T(tensorflow::gtl::ArraySlice<int64>)>& generator) {
   using NativeT = typename primitive_util::PrimitiveTypeToNative<type>::type;
   TF_RET_CHECK(shape.element_type() == type);
-  std::unique_ptr<Literal> literal = Literal::CreateFromShape(shape);
+  auto literal = MakeUnique<Literal>(shape);
   TF_RETURN_IF_ERROR(literal.get()->Populate<NativeT>(
       [&](tensorflow::gtl::ArraySlice<int64> indexes) {
         return generator(indexes);

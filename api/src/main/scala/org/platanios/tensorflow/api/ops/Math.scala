@@ -4522,7 +4522,8 @@ object Math extends Math {
       // Calculate the product, leaving out the current entry.
       val left = cumprod(reshaped, axis = 0, exclusive = true)
       val right = cumprod(reshaped, axis = 0, exclusive = true, reverse = true)
-      val y = Basic.reshape(multiply(left, right), permutedShape)
+      // For complex inputs, the gradient is in the conjugate direction.
+      val y = Basic.reshape(multiply(Math.conjugate(left), Math.conjugate(right)), permutedShape)
 
       // Invert the transpose and reshape operations.
       val output = multiply(gradient, Basic.transpose(y, Basic.invertPermutation(permutation)))

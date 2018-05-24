@@ -85,13 +85,11 @@ namespace {
     for (int64 i = 0; i < n; ++i) {
       const Tensor& t = call->inputs[i];
       TFE_TensorHandle* tensor;
-//      if (call->gpu) {
-//        // TODO: !!! [CALLBACK] Obtain the device from the tensor itself, rather than from the call.
-//        tensor = new TFE_TensorHandle(t, call->device, call->device);
-//      } else {
-//        tensor = new TFE_TensorHandle(t, nullptr, nullptr);
-//      }
-      tensor = new TFE_TensorHandle(t, nullptr, nullptr);
+      if (call->gpu) {
+        tensor = new TFE_TensorHandle(t, call->device, call->device);
+      } else {
+        tensor = new TFE_TensorHandle(t, nullptr, nullptr);
+      }
       inputs_array[i] = reinterpret_cast<jlong>(tensor);
     }
     call->env->ReleaseLongArrayElements(inputs, inputs_array, 0);
@@ -132,18 +130,17 @@ namespace {
       auto outputs = (jlongArray) call->env->CallStaticObjectMethod(
           call->registry, call->call_method_id, call->id, call_inputs);
       jthrowable exc(call->env->ExceptionOccurred());
-      call->env->ExceptionClear();
       if (exc) {
         // Get the exception string representation to use as the error message.
-        jclass throwableCls(call->env->FindClass("java/lang/Throwable"));
-        jmethodID toString = call->env->GetMethodID(throwableCls, "toString", "()Ljava/lang/String;");
-        jstring exc_string = (jstring) call->env->CallObjectMethod(exc, toString);
-        const char* c_exc_string = call->env->GetStringUTFChars(exc_string, 0);
-        tensorflow::StringPiece tf_exc_string(c_exc_string);
-        call->env->ReleaseStringUTFChars(exc_string, c_exc_string);
+        jclass excObjCls(call->env->GetObjectClass(exc));
+        jmethodID toString = call->env->GetMethodID(excObjCls, "toString", "()Ljava/lang/String;");
+        jstring excString = (jstring) call->env->CallObjectMethod(exc, toString);
+        const char* excCString = call->env->GetStringUTFChars(excString, 0);
+        std::string excCppString(excCString);
+        tensorflow::StringPiece tf_exc_string(excCppString);
+        call->env->ReleaseStringUTFChars(excString, excCString);
 
         // Get the exception class name and convert it to a TensorFlow error code.
-        jclass excObjCls(call->env->GetObjectClass(exc));
         jclass classCls(call->env->FindClass("java/lang/Class"));
         jmethodID getName(call->env->GetMethodID(classCls, "getName", "()Ljava/lang/String;"));
         jstring clsName(static_cast<jstring>(call->env->CallObjectMethod(excObjCls, getName)));
@@ -151,6 +148,7 @@ namespace {
         std::string clsNameCppString(clsNameCString);
         int error_code = tf_error_code(clsNameCppString);
         call->env->ReleaseStringUTFChars(clsName, clsNameCString);
+        call->env->ExceptionClear();
         return tensorflow::Status((tensorflow::error::Code) error_code, tf_exc_string);
       }
 
@@ -295,11 +293,10 @@ auto jvmCallbackOpInitializer = []{
     REGISTER_KERNEL_BUILDER(Name("JVMCallback").Device(DEVICE_CPU), JVMCallbackOp);
     REGISTER_KERNEL_BUILDER(Name("JVMCallbackStateless").Device(DEVICE_CPU), JVMCallbackOp);
   }
-  // TODO: !!! [CALLBACK] Temporary.
-//  if (reg->find(strings::StrCat("JVMCallback:", DeviceTypeString(DEVICE_GPU), ":")) == reg->end()) {
-//    REGISTER_KERNEL_BUILDER(Name("JVMCallback").Device(DEVICE_GPU), JVMCallbackOp);
-//    REGISTER_KERNEL_BUILDER(Name("JVMCallbackStateless").Device(DEVICE_GPU), JVMCallbackOp);
-//  }
+  if (reg->find(strings::StrCat("JVMCallback:", DeviceTypeString(DEVICE_GPU), ":")) == reg->end()) {
+    REGISTER_KERNEL_BUILDER(Name("JVMCallback").Device(DEVICE_GPU), JVMCallbackOp);
+    REGISTER_KERNEL_BUILDER(Name("JVMCallbackStateless").Device(DEVICE_GPU), JVMCallbackOp);
+  }
   return 0;
 }();
 }
