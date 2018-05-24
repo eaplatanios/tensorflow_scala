@@ -44,7 +44,7 @@ namespace grpc {
 
 class ByteBuffer;
 class CompletionQueue;
-CoreCodegenInterface* g_core_codegen_interface;
+extern CoreCodegenInterface* g_core_codegen_interface;
 
 namespace internal {
 class Call;

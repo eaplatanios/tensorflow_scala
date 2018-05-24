@@ -38,7 +38,7 @@
 
 namespace grpc {
 
-CoreCodegenInterface* g_core_codegen_interface;
+extern CoreCodegenInterface* g_core_codegen_interface;
 
 // ProtoBufferWriter must be a subclass of ::protobuf::io::ZeroCopyOutputStream.
 template <class ProtoBufferWriter, class T>
