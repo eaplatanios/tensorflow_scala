@@ -22,7 +22,6 @@ limitations under the License.
 #include "tensorflow/c/c_api.h"
 #include "tensorflow/c/c_api_internal.h"
 #include "tensorflow/c/eager/c_api.h"
-#include "tensorflow/c/eager/c_api_internal.h"
 #include "tensorflow/core/common_runtime/eager/tensor_handle.h"
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/op_kernel.h"
@@ -75,6 +74,20 @@ REGISTER_OP("JVMCallbackStateless")
     .Doc(R"doc(
 A stateless version of `JVMCallback`.
 )doc");
+
+struct TFE_TensorHandle {
+  TFE_TensorHandle(const tensorflow::Tensor& t, tensorflow::Device* d,
+                   tensorflow::Device* op_device)
+      : handle(new tensorflow::TensorHandle(t, d, op_device, nullptr)) {}
+
+  TFE_TensorHandle(tensorflow::uint64 node_id, tensorflow::DataType dtype,
+                   tensorflow::EagerContext* ctx)
+      : handle(new tensorflow::TensorHandle(node_id, dtype, ctx)) {}
+
+  TFE_TensorHandle(tensorflow::TensorHandle* handle) : handle(handle) {}
+
+  tensorflow::TensorHandle* handle;
+};
 
 namespace {
   // Given the 'call', prepares the inputs as a JNI long array that is appropriate for calling the registry.
