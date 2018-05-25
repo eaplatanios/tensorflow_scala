@@ -19,8 +19,15 @@
 #include <string.h>
 
 #include "tensorflow/c/eager/c_api.h"
-#include "tensorflow/c/eager/c_api_internal.h"
 #include "tensorflow/c/checkpoint_reader.h"
+#include "tensorflow/core/common_runtime/eager/tensor_handle.h"
+
+struct TFE_TensorHandle {
+  TFE_TensorHandle(const tensorflow::Tensor& t)
+      : handle(new tensorflow::TensorHandle(t, nullptr, nullptr, nullptr)) {}
+
+  tensorflow::TensorHandle* handle;
+};
 
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_CheckpointReader_00024_newCheckpointReader(
     JNIEnv* env, jobject object, jstring file_pattern) {
@@ -59,7 +66,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_CheckpointReader_00024
   std::unique_ptr<tensorflow::Tensor> tensor;
   reader->GetTensor(c_name, &tensor, status.get());
   CHECK_STATUS(env, status.get(), 0);
-  TFE_TensorHandle* tfe_tensor = new TFE_TensorHandle(*tensor.get(), nullptr, nullptr);
+  TFE_TensorHandle* tfe_tensor = new TFE_TensorHandle(*tensor.get());
   return (jlong) tfe_tensor;
 }
 

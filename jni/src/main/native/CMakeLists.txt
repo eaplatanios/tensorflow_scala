@@ -40,14 +40,14 @@ file(GLOB JNI_LIB_SRC
   "*.cc"
   "generated/*.cc"
   "include/tensorflow/c/*.cc"
-  "include/tensorflow/core/distributed_runtime/*.cc"
+  "include/tensorflow/core/distributed_runtime/server_lib.cc"
 )
 
 file(GLOB OP_LIB_SRC
   "ops/*.cc"
 )
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=0")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=0 -Wl,--no-undefined")
 
 set(CMAKE_BUILD_WITH_INSTALL_RPATH 1)
 if(${APPLE})

@@ -23,7 +23,6 @@
 
 #include "tensorflow/c/c_api.h"
 #include "tensorflow/c/eager/c_api.h"
-#include "tensorflow/c/eager/c_api_internal.h"
 
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_allocate(
     JNIEnv* env, jobject object, jint data_type, jlongArray shape, jlong num_bytes) {
