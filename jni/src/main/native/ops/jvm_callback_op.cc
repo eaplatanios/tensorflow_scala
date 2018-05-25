@@ -306,10 +306,11 @@ auto jvmCallbackOpInitializer = []{
     REGISTER_KERNEL_BUILDER(Name("JVMCallback").Device(DEVICE_CPU), JVMCallbackOp);
     REGISTER_KERNEL_BUILDER(Name("JVMCallbackStateless").Device(DEVICE_CPU), JVMCallbackOp);
   }
-  if (reg->find(strings::StrCat("JVMCallback:", DeviceTypeString(DEVICE_GPU), ":")) == reg->end()) {
-    REGISTER_KERNEL_BUILDER(Name("JVMCallback").Device(DEVICE_GPU), JVMCallbackOp);
-    REGISTER_KERNEL_BUILDER(Name("JVMCallbackStateless").Device(DEVICE_GPU), JVMCallbackOp);
-  }
+  // TODO: !!!
+  // if (reg->find(strings::StrCat("JVMCallback:", DeviceTypeString(DEVICE_GPU), ":")) == reg->end()) {
+  //   REGISTER_KERNEL_BUILDER(Name("JVMCallback").Device(DEVICE_GPU), JVMCallbackOp);
+  //   REGISTER_KERNEL_BUILDER(Name("JVMCallbackStateless").Device(DEVICE_GPU), JVMCallbackOp);
+  // }
   return 0;
 }();
 }
