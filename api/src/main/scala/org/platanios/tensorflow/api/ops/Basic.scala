@@ -250,10 +250,9 @@ private[api] trait Basic {
   def sparsePlaceholder(
       dataType: DataType, shape: Shape = null, name: String = "SparsePlaceholder"): SparseOutput = {
     SparseOutput(
-      indices = placeholder(dataType, Shape(-1), name + "/Indices"),
-      values = placeholder(INT64, Shape(-1, -1), name + "/Values"),
-      denseShape =
-          if (shape == null) placeholder(INT64, Shape(-1), name + "/Shape") else constant(shape.toTensor()))
+      indices = placeholder(dataType, Shape(-1, -1), name + "/Indices"),
+      values = placeholder(INT64, Shape(-1), name + "/Values"),
+      denseShape = if (shape == null) placeholder(INT64, Shape(-1), name + "/Shape") else constant(shape.toTensor()))
   }
 
   //endregion Tensor Creation Ops
