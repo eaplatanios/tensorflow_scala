@@ -364,6 +364,8 @@ lazy val noPublishSettings = Seq(
 
 val deletedPublishedSnapshots = taskKey[Unit]("Delete published snapshots.")
 
+import sbtrelease.Utilities._
+
 lazy val publishSettings = Seq(
   publishArtifact := true,
   homepage := Some(url("https://github.com/eaplatanios/tensorflow_scala")),
@@ -410,12 +412,16 @@ lazy val publishSettings = Seq(
   releaseProcess := Seq[ReleaseStep](
     checkSnapshotDependencies,
     inquireVersions,
-    runClean,
+    // runClean,
     runTest,
     setReleaseVersion,
     commitReleaseVersion,
     tagRelease,
-    publishArtifacts,
+    ReleaseStep({ st: State =>
+      val extracted = st.extract
+      val ref = extracted.get(thisProjectRef)
+      extracted.runAggregated(releasePublishArtifactsAction in JniCross in Global in ref, st)
+    }),
     setNextVersion,
     commitNextVersion,
     releaseStepCommand("sonatypeReleaseAll"),
