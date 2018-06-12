@@ -90,7 +90,11 @@ private[api] trait Basic {
     * @return Created op output.
     */
   private[ops] def immutableConstant(
-      dataType: DataType, shape: Shape, memoryRegionName: String, name: String = "ImmutableConstant"): Output = {
+      dataType: DataType,
+      shape: Shape,
+      memoryRegionName: String,
+      name: String = "ImmutableConstant"
+  ): Output = {
     Op.Builder(opType = "ImmutableConst", name = name)
         .setAttribute("dtype", dataType)
         .setAttribute("shape", shape)
@@ -123,7 +127,11 @@ private[api] trait Basic {
     * @return Created op output.
     */
   def zerosLike(
-      input: Output, dataType: DataType = null, optimize: Boolean = true, name: String = "ZerosLike"): Output = {
+      input: Output,
+      dataType: DataType = null,
+      optimize: Boolean = true,
+      name: String = "ZerosLike"
+  ): Output = {
     val outputDataType = if (dataType != null) dataType else input.dataType
     if (optimize && input.shape.isFullyDefined) {
       // We can produce a zeros tensor independent of the value of 'tensor' since the shape is known statically.
@@ -247,8 +255,7 @@ private[api] trait Basic {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def sparsePlaceholder(
-      dataType: DataType, shape: Shape = null, name: String = "SparsePlaceholder"): SparseOutput = {
+  def sparsePlaceholder(dataType: DataType, shape: Shape = null, name: String = "SparsePlaceholder"): SparseOutput = {
     SparseOutput(
       indices = placeholder(dataType, Shape(-1, -1), name + "/Indices"),
       values = placeholder(INT64, Shape(-1), name + "/Values"),
