@@ -235,7 +235,9 @@ object Dataset {
     val GroupByWindowDataset: data.GroupByWindowDataset.type = data.GroupByWindowDataset
 
     def fromGenerator[T, O, DA, D, S](
-        generator: () => Iterable[T], outputDataType: DA, outputShape: S = null
+        generator: () => Iterable[T],
+        outputDataType: DA,
+        outputShape: S = null
     )(implicit
         evDAToD: DataTypeAuxToDataType.Aux[DA, D],
         evData: Data.Aux[T, O, D, S],
@@ -285,7 +287,9 @@ object Dataset {
     * @return Constructed dataset.
     */
   private[api] def fromGenerator[T, O, DA, D, S](
-      generator: () => Iterable[T], outputDataType: DA, outputShape: S = null
+      generator: () => Iterable[T],
+      outputDataType: DA,
+      outputShape: S = null
   )(implicit
       evDAToD: DataTypeAuxToDataType.Aux[DA, D],
       evData: Data.Aux[T, O, D, S],

@@ -158,5 +158,11 @@ private[tpu] object Ops {
     tf.gradientsRegistry.registerNonDifferentiable("InfeedEnqueueTuple")
     tf.gradientsRegistry.registerNonDifferentiable("InfeedDequeue")
     tf.gradientsRegistry.registerNonDifferentiable("InfeedDequeueTuple")
+
+    tf.gradientsRegistry.register("CrossReplicaSum", crossReplicaSumGradient)
+
+    private[this] def crossReplicaSumGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      Seq(crossReplicaSum(outputGradients.head))
+    }
   }
 }
