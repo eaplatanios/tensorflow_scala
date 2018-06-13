@@ -35,4 +35,4 @@ addSbtPlugin("com.jsuereth"      % "sbt-pgp"      % "1.1.1")
 addSbtPlugin("org.xerial.sbt"    % "sbt-sonatype" % "2.0")
 
 // Generally useful plugins
-addSbtPlugin("io.get-coursier" %  "sbt-coursier" % "1.0.0") // Provides fast dependency resolution.
+addSbtPlugin("io.get-coursier" %  "sbt-coursier" % "1.0.3") // Provides fast dependency resolution.
